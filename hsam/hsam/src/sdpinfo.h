@@ -17,15 +17,8 @@ enum hostType{
 	RELAY
 };
 
-struct CryptoParams {
-  CryptoParams() : tag(0) {}
-  CryptoParams(int t, const std::string& cs,
-               const std::string& kp, const std::string& sp)
-      : tag(t), cipher_suite(cs), key_params(kp), session_params(sp) {}
-
-  bool Matches(const CryptoParams& params) const {
-    return (tag == params.tag && cipher_suite == params.cipher_suite);
-  }
+struct CryptoInfo {
+  CryptoInfo() : tag(0) {}
 
   int tag;
   std::string cipher_suite;
@@ -36,10 +29,13 @@ struct CryptoParams {
 struct CandidateInfo{
 	CandidateInfo() : tag(0){}
 	int tag;
-	int priority;
+	unsigned int priority;
+	unsigned int compid;
 	std::string foundation;
-	std::string address;
-	int port;
+	std::string host_address;
+	std::string relay_address;
+	int host_port;
+	int relay_port;
 	std::string net_prot;
 	hostType type;
 	std::string name;
@@ -49,15 +45,18 @@ struct CandidateInfo{
 	std::string passwd;
 };
 
-class SDPProcessor {
+class SDPInfo {
 public:
-	SDPProcessor();
-	virtual ~SDPProcessor();
+	SDPInfo();
+	virtual ~SDPInfo();
 	bool initWithSDP(const std::string &sdp);
 	const std::string &getSDP();
 
+
 private:
 	bool processSDP(const std::string &sdp);
+	void processCandidate (char** pieces, int size);
+
 
 
 };

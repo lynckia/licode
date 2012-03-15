@@ -5,25 +5,27 @@
  *      Author: pedro
  */
 
-#include "SDPProcessor.h"
+#include "sdpinfo.h"
+#include <stdio.h>
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
 #include <sstream>
+#include <nice/nice.h>
 
 #define CRYPTO="a=crypto:"
 #define CANDIDATE = "a=candidate:"
 #define MID = "a=mid:"
 
-SDPProcessor::SDPProcessor() {
+SDPInfo::SDPInfo() {
 	printf("hola SDPProcessor \n");
 }
 
-SDPProcessor::~SDPProcessor() {
+SDPInfo::~SDPInfo() {
 	// TODO Auto-generated destructor stub
 }
 
-bool SDPProcessor::initWithSDP(const std::string& sdp) {
+bool SDPInfo::initWithSDP(const std::string& sdp) {
 	processSDP(sdp);
 	return true;
 
@@ -67,24 +69,26 @@ const std::string& SDPProcessor::getSDP() {
 
 }
 
-bool SDPProcessor::processSDP(const std::string& sdp) {
+bool SDPInfo::processSDP(const std::string& sdp) {
 
 	std::string strLine;
 	std::istringstream iss(sdp);
-	char* line;
+	char* line= (char*)malloc(1000);
 	char** pieces = (char**)malloc(10000);
 	char** cryptopiece = (char**)malloc(5000);
-	char *cand = "a=candidate:";
-	char *crypto = "a=crypto:";
-	char *mid = "a=mid:";
+
+	const char *cand = "a=candidate:";
+	const char *crypto = "a=crypto:";
+	const char *mid = "a=mid:";
 	while(std::getline(iss,strLine)){
-		sprintf(line, "%s", strLine.c_str());
+		const char* theline = strLine.c_str();
+		sprintf(line, "%s\n", theline);
 
 		char* isCand = strstr(line,cand);
 		char* isCrypt = strstr(line,crypto);
 		char* ismid = strstr(line,mid);
 		if(isCand!=NULL){
-			printf("cand %s\n", isCrypt );
+			printf("cand %s\n", isCand );
 
 			char *pch;
 			pch = strtok (line," :");
@@ -97,8 +101,8 @@ bool SDPProcessor::processSDP(const std::string& sdp) {
 				pieces[i++]=pch;
 			}
 
-			//candidate = processCandidate (pieces,i-1);
-			//candList = g_slist_append(candList,candidate);
+			processCandidate (pieces,i-1);
+
 		}
 		if(ismid!=NULL){
 			char* pch;
@@ -125,12 +129,55 @@ bool SDPProcessor::processSDP(const std::string& sdp) {
 			//			sprintf(key, "%s",cryptopiece[3]);
 			//				keys = g_slist_append(keys,key);
 		}
-		free(pieces);
-		free(cryptopiece);
 
 	}
+	free(pieces);
+	free(cryptopiece);
+
 
 	return true;
 }
+
+void SDPInfos::processCandidate (char** pieces, int size){
+
+	const char* types_str[10]={"host","srflx","prflx","relay"};
+
+	CandidateInfo *cand = new CandidateInfo();
+	cand->foundation = pieces[0];
+	cand->compid = (unsigned int)strtoul(pieces[1], NULL, 10);
+
+	cand->net_prot = pieces[2];
+//	if (strcmp(pieces[2],"udp")){
+//		printf("error... como que no udp\n");
+//	}
+	cand->priority = (unsigned int)strtoul(pieces[3], NULL, 10);
+	cand->host_address = std::string(pieces[4]);
+	cand->host_port = (unsigned int)strtoul(pieces[5], NULL, 10);
+	if (strcmp(pieces[6],"typ")){
+		printf("error... aqui va typ\n");
+	}
+	int type=-1;
+	int offset=0;
+	int p;
+	for(p=0;p<4;p++){
+		if (!strcmp(pieces[7],types_str[p])){
+			type = p;
+		}
+	}
+	if (type==3){
+		printf("tipo relay... metiendo offset");
+		offset=2;
+
+		cand->relay_address = std::string(pieces[8]);
+		cand->relay_port = (unsigned int)strtoul(pieces[9], NULL, 10);
+	}
+	cand->net_prot = pieces[9+offset];
+	cand->username = std::string(pieces[13+offset]);
+	cand->passwd = std::string(pieces[15+offset]);
+
+
+	//return cand;
+}
+
 
 
