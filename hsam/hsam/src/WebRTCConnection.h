@@ -10,6 +10,7 @@
 
 #include "NiceConnection.h"
 #include "Srtpchannel.h"
+#include "sdpinfo.h"
 
 class WebRTCConnection {
 public:
@@ -19,8 +20,10 @@ public:
 	bool setRemoteSDP(const char* sdp);
 	const char* getLocalSDP();
 private:
-	NiceConnection ice;
-	SrtpChannel srtp;
+	SDPInfo remote_sdp;
+	SDPInfo local_sdp;
+	NiceConnection *nice;
+
 };
 
 #endif /* WEBRTCCONNECTION_H_ */

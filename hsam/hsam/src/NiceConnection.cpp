@@ -6,17 +6,16 @@
  */
 
 #include "NiceConnection.h"
+#include "sdpinfo.h"
 #include <stdio.h>
+
 //
 
 #include <glib.h>
 
-//
-NiceAgent* agent;
 
 guint stream_id;
 GSList* lcands;
-GMainLoop* loop;
 int streamsGathered, total_streams;
 int rec, sen;
 int length;
@@ -93,21 +92,48 @@ void cb_nice_recv( NiceAgent* agent, guint stream_id, guint component_id, guint 
 
 void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer user_data )
 {
+	NiceConnection *conn = (NiceConnection*)user_data;
+	conn->state = NiceConnection::CANDIDATES_GATHERED;
+	printf("ConnState %u\n",conn->state);
+
+
 	// ... Wait until the signal candidate-gathering-done is fired ...
 	lcands = nice_agent_get_local_candidates( agent, stream_id, 1 );
 	NiceCandidate *cand;
 	GSList* iterator;
 	//	printf("gathering done %u\n",stream_id);
-	//printf("Candidates---------------------------------------------------->\n");
+	printf("Candidates---------------------------------------------------->\n");
 	for (iterator = lcands; iterator; iterator=iterator->next){
+		char address[100];
 		cand = (NiceCandidate*)iterator->data;
-		/*
+		nice_address_to_string(&cand->addr, address);
+		printf("foundation %s\n"), cand->foundation;
+		printf("compid %u\n", cand->component_id);
+
 		printf("stream_id %u\n",cand->stream_id);
 		printf("priority %u\n", cand->priority);
 		printf("username %s\n", cand->username);
 		printf("password %s\n", cand->password);
-		 */
-		print_candidate_sdp(cand);
+//address, nice_address_get_port(&cand->addr)
+		CandidateInfo cand_info;
+		cand_info.compid = cand->component_id;
+		cand_info.foundation = cand->foundation;
+		cand_info.host_address = std::string(address);
+		cand_info.host_port = nice_address_get_port(&cand->addr);
+		cand_info.media_type = VIDEO_TYPE;
+		cand_info.type = HOST;
+		cand_info.net_prot= "udp";
+		cand_info.trans_prot = "video_rtp";
+		cand_info.net_name = "eth0";
+		cand_info.username = std::string(cand->username);
+		if(cand->password)
+			cand_info.passwd = std::string(cand->password);
+		else
+			cand_info.passwd = std::string("(null)");
+
+		conn->localCandidates.push_back(cand_info);
+
+//		print_candidate_sdp(cand);
 	}
 	printf("candidate_gathering done\n");
 
@@ -125,9 +151,10 @@ void cb_new_selected_pair  (NiceAgent *agent, guint stream_id, guint component_i
 }
 
 
-NiceConnection::NiceConnection() {
+NiceConnection::NiceConnection(const std::string &localaddr, const std::string &stunaddr) {
 	streamsGathered = 0;
 	total_streams = 0;
+	state = INITIAL;
 
 	g_type_init();
 	g_thread_init( NULL );
@@ -140,13 +167,16 @@ NiceConnection::NiceConnection() {
 	agent = nice_agent_new( g_main_loop_get_context( loop ),NICE_COMPATIBILITY_GOOGLE);
 
 	NiceAddress* naddr = nice_address_new();
-	nice_address_set_from_string(naddr,"138.4.4.141");
+
+	//nice_address_set_from_string(naddr,"138.4.4.141");
+	nice_address_set_from_string(naddr,localaddr.c_str());
 	nice_agent_add_local_address (agent, naddr);
 
 	GValue val = { 0 }, val2 = { 0 };
 
 	g_value_init( &val, G_TYPE_STRING );
-	g_value_set_string( &val, "173.194.70.126" );
+	//g_value_set_string( &val, "173.194.70.126" );
+	g_value_set_string( &val, stunaddr.c_str() );
 	g_object_set_property( G_OBJECT( agent ), "stun-server", &val );
 
 	g_value_init( &val2, G_TYPE_UINT );
@@ -154,7 +184,7 @@ NiceConnection::NiceConnection() {
 	g_object_set_property( G_OBJECT( agent ), "stun-server-port", &val2 );
 
 	// Connect the signals
-	g_signal_connect( G_OBJECT( agent ), "candidate-gathering-done", G_CALLBACK( cb_candidate_gathering_done ), NULL );
+	g_signal_connect( G_OBJECT( agent ), "candidate-gathering-done", G_CALLBACK( cb_candidate_gathering_done ), this );
 	g_signal_connect( G_OBJECT( agent ), "component-state-changed", G_CALLBACK( cb_component_state_changed ), NULL );
 	g_signal_connect( G_OBJECT( agent ), "new-selected-pair", G_CALLBACK( cb_new_selected_pair ), NULL );
 
@@ -170,7 +200,9 @@ NiceConnection::NiceConnection() {
 	g_main_loop_run( loop );
 
 	// Destroy the object
+	state = FINISHED;
 	g_object_unref( agent );
+
 }
 
 
@@ -179,14 +211,14 @@ NiceConnection::~NiceConnection() {
 	// TODO Auto-generated destructor stub
 }
 
-bool NiceConnection::setRemoteCandidates(std::vector<std::string> &candidates){
+bool NiceConnection::setRemoteCandidates(std::vector<CandidateInfo> &candidates){
 	return true;
 }
 
-std::vector<std::string> &NiceConnection::getLocalCandidates(){
-	std::vector<std::string> vic;
-	return vic;
-}
+//std::vector<CandidateInfo> NiceConnection::getLocalCandidates(){
+//	std::vector<CandidateInfo> vic;
+//	return vic;
+//}
 
 
 

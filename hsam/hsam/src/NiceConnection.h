@@ -11,13 +11,33 @@
 #include <nice/nice.h>
 #include <vector>
 #include <string>
+
+//forward declaration
+struct CandidateInfo;
+
+
+
 class NiceConnection {
 
 public:
-	NiceConnection();
+	enum IceState{
+		INITIAL,
+		CANDIDATES_GATHERED,
+		CANDIDATES_RECEIVED,
+		READY,
+		FINISHED
+	};
+	IceState state;
+	NiceConnection(const std::string &localaddr, const std::string &stunaddr);
 	virtual ~NiceConnection();
-	bool setRemoteCandidates(std::vector<std::string> &candidates);
-	std::vector<std::string> &getLocalCandidates();
+	bool setRemoteCandidates(std::vector<CandidateInfo> &candidates);
+	std::vector<CandidateInfo> localCandidates;
+
+private:
+	NiceAgent* agent;
+	GMainLoop* loop;
+//	void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id, gpointer user_data);
+
 };
 
 #endif /* NICECONNECTION_H_ */
