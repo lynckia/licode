@@ -6,6 +6,7 @@
  */
 
 #include "NiceConnection.h"
+#include "WebRTCConnection.h"
 #include "sdpinfo.h"
 #include <stdio.h>
 
@@ -25,29 +26,27 @@ void print_candidate_sdp (NiceCandidate *cand)
 {
 
 	char* types_str[10]={"host","srflx","prflx","relay"};
-
 	char address[100];
 	nice_address_to_string(&cand->addr, address);
 	char* proto;
 	switch (cand->stream_id){
 	case 1:
-		proto = "video_rtp";
+		proto = (char*)"video_rtp";
 		break;
 	case 2:
-		proto = "video_rtcp";
+		proto = (char*)"video_rtcp";
 		break;
 	case 3:
-		proto = "rtp";
+		proto =(char*)"rtp";
 		break;
 	case 4:
-		proto = "rtcp";
+		proto = (char*)"rtcp";
 		break;
 	default:
-		proto = "rtp";
+		proto =(char*)"rtp";
 		break;
 	}
 	if(cand->type == 3){
-		char reladdr[100];
 		printf("a=candidate:%s %u udp %u %s %u typ %s name %s network_name en1 username %s password %s generation 0\n",
 				cand->foundation, cand->component_id, cand->priority,
 				address, nice_address_get_port(&cand->addr), types_str[cand->type], proto, cand->username, cand->password);
@@ -85,15 +84,14 @@ typedef struct
 void cb_nice_recv( NiceAgent* agent, guint stream_id, guint component_id, guint len, gchar* buf, gpointer user_data )
 {
 	printf( "cb_nice_recv len %u id %u\n",len, stream_id );
-
-
+	NiceConnection* nicecon = (NiceConnection*)user_data;
+	nicecon->conn->receiveNiceData((char*)buf,(int)len, (NiceConnection*)user_data);
 }
 
 
 void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer user_data )
 {
 	NiceConnection *conn = (NiceConnection*)user_data;
-	conn->state = NiceConnection::CANDIDATES_GATHERED;
 	printf("ConnState %u\n",conn->state);
 
 
@@ -107,7 +105,7 @@ void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer us
 		char address[100];
 		cand = (NiceCandidate*)iterator->data;
 		nice_address_to_string(&cand->addr, address);
-		printf("foundation %s\n"), cand->foundation;
+		printf("foundation %s\n", cand->foundation);
 		printf("compid %u\n", cand->component_id);
 
 		printf("stream_id %u\n",cand->stream_id);
@@ -136,6 +134,7 @@ void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer us
 //		print_candidate_sdp(cand);
 	}
 	printf("candidate_gathering done\n");
+	conn->state = NiceConnection::CANDIDATES_GATHERED;
 
 }
 
@@ -186,13 +185,13 @@ NiceConnection::NiceConnection(const std::string &localaddr, const std::string &
 	// Connect the signals
 	g_signal_connect( G_OBJECT( agent ), "candidate-gathering-done", G_CALLBACK( cb_candidate_gathering_done ), this );
 	g_signal_connect( G_OBJECT( agent ), "component-state-changed", G_CALLBACK( cb_component_state_changed ), NULL );
-	g_signal_connect( G_OBJECT( agent ), "new-selected-pair", G_CALLBACK( cb_new_selected_pair ), NULL );
+	g_signal_connect( G_OBJECT( agent ), "new-selected-pair", G_CALLBACK( cb_new_selected_pair ), this );
 
 	// Create a new stream with one component and start gathering candidates
 
 	nice_agent_add_stream( agent, 1);
 	nice_agent_gather_candidates(agent, 1);
-	nice_agent_attach_recv( agent, 1, 1, g_main_loop_get_context( loop ), cb_nice_recv, NULL );
+	nice_agent_attach_recv( agent, 1, 1, g_main_loop_get_context( loop ), cb_nice_recv, this );
 
 
 	// Attach to the component to receive the data
@@ -205,15 +204,66 @@ NiceConnection::NiceConnection(const std::string &localaddr, const std::string &
 
 }
 
-
-
 NiceConnection::~NiceConnection() {
 	// TODO Auto-generated destructor stub
 }
 
+int NiceConnection::sendData(void *buf, int len){
+	int val = -1;
+	if (state == READY){
+		val = nice_agent_send(agent, 0, 1, len, (char*)buf);
+	}
+	return val;
+}
+
 bool NiceConnection::setRemoteCandidates(std::vector<CandidateInfo> &candidates){
+	GSList* candList = NULL;
+
+	for (unsigned int it =0; it<candidates.size(); it++){
+		NiceCandidateType nice_cand_type;
+		CandidateInfo cinfo = candidates[it];
+		switch (cinfo.type) {
+			case HOST:
+				nice_cand_type = NICE_CANDIDATE_TYPE_HOST;
+				break;
+			case SRLFX:
+				nice_cand_type = NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
+				break;
+			case PRFLX:
+				nice_cand_type = NICE_CANDIDATE_TYPE_PEER_REFLEXIVE;
+				break;
+			case RELAY:
+				nice_cand_type = NICE_CANDIDATE_TYPE_RELAYED;
+				break;
+			default:
+				break;
+		}
+		NiceCandidate* thecandidate = nice_candidate_new(nice_cand_type);
+		NiceAddress* naddr = nice_address_new();
+		nice_address_set_from_string(naddr, cinfo.host_address.c_str());
+		nice_address_set_port(naddr, cinfo.host_port);
+		thecandidate->addr = *naddr;
+		sprintf(thecandidate->foundation,"%s", cinfo.foundation.c_str());
+		sprintf(thecandidate->username,"%s", cinfo.username.c_str());
+		sprintf(thecandidate->password,"%s", cinfo.passwd.c_str());
+		thecandidate->stream_id = (guint)1;
+		thecandidate->component_id = cinfo.compid;
+		thecandidate->priority = cinfo.priority;
+		thecandidate->transport = NICE_CANDIDATE_TRANSPORT_UDP;
+
+		candList = g_slist_append(candList,thecandidate);
+
+	}
+	nice_agent_set_remote_candidates(agent, 1, 1, candList);
+	state = CANDIDATES_RECEIVED;
+
 	return true;
 }
+
+void NiceConnection::setWebRTCConnection(WebRTCConnection *connection){
+	this->conn = connection;
+}
+
 
 //std::vector<CandidateInfo> NiceConnection::getLocalCandidates(){
 //	std::vector<CandidateInfo> vic;

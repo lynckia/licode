@@ -15,6 +15,13 @@ SrtpChannel::SrtpChannel() {
 
 SrtpChannel::~SrtpChannel() {
 	// TODO Auto-generated destructor stub
+	if (*send_session!=NULL){
+		srtp_dealloc(*send_session);
+	}
+	if (*receive_session!=NULL){
+		srtp_dealloc(*receive_session);
+	}
+
 }
 
 bool SrtpChannel::SetRtpParams(char* sendingKey, char* receivingKey){
@@ -25,8 +32,44 @@ bool SrtpChannel::SetRtpParams(char* sendingKey, char* receivingKey){
 bool SrtpChannel::SetRtcpParams(char* sendingKey, char* receivingKey){
 	return 0;
 }
-
-bool SrtpChannel::configureSRTPsession(srtp_t session, const char* key, enum Type type ){
+int SrtpChannel::ProtectRtp(void* buffer, int len){
+	int val = srtp_protect(*receive_session, buffer, &len)==0;
+	if(val==0){
+		return len;
+	}else{
+		printf("Error SRTP %u\n",val);
+		return val;
+	}
+	return len;
+}
+int SrtpChannel::UnprotectRtp(void* buffer, int len){
+	int val = srtp_unprotect(*receive_session, buffer, &len)==0;
+	if(val==0){
+		return len;
+	}else{
+		printf("Error SRTP %u\n",val);
+		return val;
+	}
+}
+int SrtpChannel::ProtectRtcp(void* buffer, int len){
+	int val = srtp_protect_rtcp(*receive_session, buffer, &len)==0;
+	if(val==0){
+		return len;
+	}else{
+		printf("Error SRTP %u\n",val);
+		return val;
+	}
+}
+int SrtpChannel::UnprotectRtcp(void* buffer, int len){
+	int val = srtp_unprotect_rtcp(*receive_session, buffer, &len)==0;
+	if(val==0){
+		return len;
+	}else{
+		printf("Error SRTP %u\n",val);
+		return val;
+	}
+}
+bool SrtpChannel::configureSRTPsession(srtp_t *session, const char* key, enum Type type ){
 	srtp_policy_t policy;
 	memset(&policy, 0, sizeof(policy));
 
@@ -57,7 +100,7 @@ bool SrtpChannel::configureSRTPsession(srtp_t session, const char* key, enum Typ
 	printf("%s\n", octet_string_hex_string(akey+16, 14));
 	// allocate and initialize the SRTP session
 	policy.key = akey;
-	int res = srtp_create(&session, &policy);
+	int res = srtp_create(session, &policy);
 	return res!=0? false:true;
 }
 
