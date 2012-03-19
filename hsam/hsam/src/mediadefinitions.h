@@ -11,17 +11,14 @@ class NiceConnection;
 
 class MediaReceiver{
 public:
-	virtual int receiveAudioData(void* buf, int len)=0;
-	virtual int receiveVideoData(void* buf, int len)=0;
-
+	virtual int receiveAudioData(char* buf, int len)=0;
+	virtual int receiveVideoData(char* buf, int len)=0;
 	virtual ~MediaReceiver(){};
 };
 
 class NiceReceiver{
 public:
-	virtual int receiveAudioNiceData(void* buf, int len, NiceConnection* nice)=0;
-	virtual int receiveVideoNiceData(void* buf, int len, NiceConnection* nice)=0;
-
+	virtual int receiveNiceData(char* buf, int len, NiceConnection* nice)=0;
 	virtual ~NiceReceiver(){};
 };
 

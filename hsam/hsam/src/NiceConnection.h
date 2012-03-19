@@ -35,11 +35,13 @@ public:
 	IceState state;
 	NiceConnection(const std::string &localaddr, const std::string &stunaddr);
 	virtual ~NiceConnection();
+	void init();
 	bool setRemoteCandidates(std::vector<CandidateInfo> &candidates);
 	void setWebRTCConnection(WebRTCConnection *connection);
 	std::vector<CandidateInfo> localCandidates;
 	int sendData(void* buf, int len);
 	WebRTCConnection* conn;
+
 
 private:
 	NiceAgent* agent;

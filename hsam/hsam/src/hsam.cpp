@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <fstream>
 #include "NiceConnection.h"
+#include "WebRTCConnection.h"
 #include "sdpinfo.h"
 using namespace std;
 
@@ -21,7 +22,10 @@ int main() {
 //	SDPInfo pepe;
 //	pepe.initWithSDP(str);
 //	cout << pepe.getSDP() << endl;
-	NiceConnection nic("138.4.4.141","173.194.70.126");
+	//NiceConnection nic("138.4.4.141","173.194.70.126");
+	WebRTCConnection pepe;
+	printf("pWQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQepepepe\n");
+	pepe.init();
 
 
 	return 0;

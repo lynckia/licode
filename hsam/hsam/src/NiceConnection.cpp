@@ -9,7 +9,7 @@
 #include "WebRTCConnection.h"
 #include "sdpinfo.h"
 #include <stdio.h>
-
+#include <boost/thread.hpp>
 //
 
 #include <glib.h>
@@ -169,13 +169,13 @@ NiceConnection::NiceConnection(const std::string &localaddr, const std::string &
 
 	//nice_address_set_from_string(naddr,"138.4.4.141");
 	nice_address_set_from_string(naddr,localaddr.c_str());
-	nice_agent_add_local_address (agent, naddr);
+	//nice_agent_add_local_address (agent, naddr);
 
 	GValue val = { 0 }, val2 = { 0 };
 
 	g_value_init( &val, G_TYPE_STRING );
-	//g_value_set_string( &val, "173.194.70.126" );
-	g_value_set_string( &val, stunaddr.c_str() );
+	g_value_set_string( &val, "173.194.70.126" );
+	//g_value_set_string( &val, stunaddr.c_str() );
 	g_object_set_property( G_OBJECT( agent ), "stun-server", &val );
 
 	g_value_init( &val2, G_TYPE_UINT );
@@ -196,16 +196,17 @@ NiceConnection::NiceConnection(const std::string &localaddr, const std::string &
 
 	// Attach to the component to receive the data
 
-	g_main_loop_run( loop );
+	//g_main_loop_run( loop );
 
 	// Destroy the object
-	state = FINISHED;
-	g_object_unref( agent );
+	//state = FINISHED;
+	//g_object_unref( agent );
 
 }
 
 NiceConnection::~NiceConnection() {
 	// TODO Auto-generated destructor stub
+
 }
 
 int NiceConnection::sendData(void *buf, int len){
@@ -214,6 +215,10 @@ int NiceConnection::sendData(void *buf, int len){
 		val = nice_agent_send(agent, 0, 1, len, (char*)buf);
 	}
 	return val;
+}
+void NiceConnection::init(){
+	printf("init\n");
+	g_main_loop_run(loop);
 }
 
 bool NiceConnection::setRemoteCandidates(std::vector<CandidateInfo> &candidates){

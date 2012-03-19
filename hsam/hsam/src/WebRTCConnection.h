@@ -20,7 +20,7 @@ public:
 	virtual ~WebRTCConnection();
 	bool init();
 	bool setRemoteSDP(const std::string &sdp);
-	const char* getLocalSDP();
+	std::string getLocalSDP();
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
 	void setAudioReceiver(MediaReceiver *receiv);
@@ -38,6 +38,8 @@ private:
 
 	MediaReceiver *audio_receiver;
 	MediaReceiver *video_receiver;
+
+	std::string getLocalAddress();
 
 };
 
