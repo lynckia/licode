@@ -9,7 +9,6 @@
 #include "WebRTCConnection.h"
 #include "sdpinfo.h"
 #include <stdio.h>
-#include <boost/thread.hpp>
 //
 
 #include <glib.h>
@@ -151,6 +150,34 @@ void cb_new_selected_pair  (NiceAgent *agent, guint stream_id, guint component_i
 
 
 NiceConnection::NiceConnection(const std::string &localaddr, const std::string &stunaddr) {
+
+	// Destroy the object
+	//state = FINISHED;
+	//g_object_unref( agent );
+
+}
+
+NiceConnection::~NiceConnection() {
+	// TODO Auto-generated destructor stub
+
+}
+
+void NiceConnection::join() {
+	m_Thread.join();
+}
+
+void NiceConnection::start() {
+	m_Thread = boost::thread(&NiceConnection::init, this);
+}
+
+int NiceConnection::sendData(void *buf, int len){
+	int val = -1;
+	if (state == READY){
+		val = nice_agent_send(agent, 0, 1, len, (char*)buf);
+	}
+	return val;
+}
+void NiceConnection::init(){
 	streamsGathered = 0;
 	total_streams = 0;
 	state = INITIAL;
@@ -165,10 +192,10 @@ NiceConnection::NiceConnection(const std::string &localaddr, const std::string &
 	// Create a nice agent
 	agent = nice_agent_new( g_main_loop_get_context( loop ),NICE_COMPATIBILITY_GOOGLE);
 
-	NiceAddress* naddr = nice_address_new();
+	//NiceAddress* naddr = nice_address_new();
 
 	//nice_address_set_from_string(naddr,"138.4.4.141");
-	nice_address_set_from_string(naddr,localaddr.c_str());
+	//nice_address_set_from_string(naddr,localaddr.c_str());
 	//nice_agent_add_local_address (agent, naddr);
 
 	GValue val = { 0 }, val2 = { 0 };
@@ -196,30 +223,11 @@ NiceConnection::NiceConnection(const std::string &localaddr, const std::string &
 
 	// Attach to the component to receive the data
 
-	//g_main_loop_run( loop );
-
-	// Destroy the object
-	//state = FINISHED;
-	//g_object_unref( agent );
-
-}
-
-NiceConnection::~NiceConnection() {
-	// TODO Auto-generated destructor stub
-
-}
-
-int NiceConnection::sendData(void *buf, int len){
-	int val = -1;
-	if (state == READY){
-		val = nice_agent_send(agent, 0, 1, len, (char*)buf);
-	}
-	return val;
-}
-void NiceConnection::init(){
+	g_main_loop_run( loop );
 	printf("init\n");
 	g_main_loop_run(loop);
 }
+
 
 bool NiceConnection::setRemoteCandidates(std::vector<CandidateInfo> &candidates){
 	GSList* candList = NULL;

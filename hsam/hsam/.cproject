@@ -54,6 +54,7 @@
 									<listOptionValue builtIn="false" value="glib-2.0"/>
 									<listOptionValue builtIn="false" value="nice"/>
 									<listOptionValue builtIn="false" value="srtp"/>
+									<listOptionValue builtIn="false" value="boost_thread"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1529660811" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>

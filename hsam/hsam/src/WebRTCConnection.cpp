@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <boost/thread.hpp>
 
 WebRTCConnection::WebRTCConnection(): MediaReceiver() {
 	// TODO Auto-generated constructor stub
@@ -29,7 +30,9 @@ WebRTCConnection::~WebRTCConnection() {
 }
 
 bool WebRTCConnection::init(){
-	video_nice->init();
+	video_nice->start();
+	printf("holaaaaaaaaDFASAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
+	//video_nice->join();
 
 	return true;
 }
@@ -71,6 +74,7 @@ int WebRTCConnection::receiveVideoData(char* buf, int len){
 }
 
 int WebRTCConnection::receiveNiceData(char* buf, int len, NiceConnection* nice){
+	boost::mutex::scoped_lock lock(write_mutex);
 	int length = len;
 	if(nice->type == AUDIO_TYPE){
 		if (audio_receiver){

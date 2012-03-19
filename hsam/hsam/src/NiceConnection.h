@@ -13,12 +13,12 @@
 #include "sdpinfo.h"
 #include <vector>
 #include <string>
+#include <boost/thread.hpp>
 
 //forward declaration
 struct CandidateInfo;
 
 class WebRTCConnection;
-
 
 
 class NiceConnection {
@@ -35,7 +35,8 @@ public:
 	IceState state;
 	NiceConnection(const std::string &localaddr, const std::string &stunaddr);
 	virtual ~NiceConnection();
-	void init();
+	void join();
+	void start();
 	bool setRemoteCandidates(std::vector<CandidateInfo> &candidates);
 	void setWebRTCConnection(WebRTCConnection *connection);
 	std::vector<CandidateInfo> localCandidates;
@@ -44,8 +45,11 @@ public:
 
 
 private:
+	void init();
+
 	NiceAgent* agent;
 	GMainLoop* loop;
+	boost::thread m_Thread;
 
 };
 

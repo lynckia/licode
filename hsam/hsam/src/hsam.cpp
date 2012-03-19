@@ -26,6 +26,8 @@ int main() {
 	WebRTCConnection pepe;
 	printf("pWQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQepepepe\n");
 	pepe.init();
+	getchar();
+
 
 
 	return 0;
