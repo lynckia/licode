@@ -13,7 +13,7 @@
 #include "sdpinfo.h"
 #include "mediadefinitions.h"
 #include <string>
-#include<boost/thread/mutex.hpp>
+#include <boost/thread/mutex.hpp>
 
 class WebRTCConnection: public MediaReceiver, public NiceReceiver{
 public:
@@ -34,13 +34,15 @@ private:
 	SDPInfo local_sdp;
 	NiceConnection *audio_nice;
 	NiceConnection *video_nice;
+	NiceConnection *audio_nice_rtcp;
+	NiceConnection *video_nice_rtcp;
 	SrtpChannel *audio_srtp;
 	SrtpChannel *video_srtp;
 
 	MediaReceiver *audio_receiver;
 	MediaReceiver *video_receiver;
 
-	std::string getLocalAddress();
+	//std::string getLocalAddress();
 	boost::mutex write_mutex;
 
 };

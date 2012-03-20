@@ -62,7 +62,8 @@ public:
 	bool initWithSDP(const std::string &sdp);
 	void addCandidate (const CandidateInfo &info);
 	void addCrypto (const CryptoInfo &info);
-
+	std::vector<CandidateInfo> &getCandidateInfos();
+	std::vector<CryptoInfo> &getCryptoInfos();
 
 	std::string getSDP();
 

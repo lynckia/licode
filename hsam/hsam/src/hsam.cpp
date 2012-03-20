@@ -12,22 +12,29 @@
 #include "NiceConnection.h"
 #include "WebRTCConnection.h"
 #include "sdpinfo.h"
+#include <nice/nice.h>
+#include <srtp/srtp.h>
+
 using namespace std;
 
 int main() {
-	std::ifstream t("/home/pedro/workspace/webRTC/MCU/prototype/sdptodo");
-	std::string str((std::istreambuf_iterator<char>(t)),
-                 std::istreambuf_iterator<char>());
-	//cout << str <<endl;
+
 //	SDPInfo pepe;
 //	pepe.initWithSDP(str);
 //	cout << pepe.getSDP() << endl;
-	//NiceConnection nic("138.4.4.141","173.194.70.126");
+
 	WebRTCConnection pepe;
 	printf("pWQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQepepepe\n");
 	pepe.init();
-	getchar();
+	printf("Local SDP %s\n", pepe.getLocalSDP().c_str());
 
+	printf("push remote sdp\n");
+	getchar();
+	std::ifstream t("/home/pedro/workspace/webRTC/MCU/prototype/sdptodo");
+	std::string str((std::istreambuf_iterator<char>(t)),
+                 std::istreambuf_iterator<char>());
+	cout << str <<endl;
+	pepe.setRemoteSDP(str);
 
 
 	return 0;

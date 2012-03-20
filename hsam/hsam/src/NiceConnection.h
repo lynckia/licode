@@ -14,6 +14,8 @@
 #include <vector>
 #include <string>
 #include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
+
 
 //forward declaration
 struct CandidateInfo;
@@ -24,6 +26,8 @@ class WebRTCConnection;
 class NiceConnection {
 
 public:
+
+
 	enum IceState{
 		INITIAL,
 		CANDIDATES_GATHERED,
@@ -31,25 +35,29 @@ public:
 		READY,
 		FINISHED
 	};
-	mediaType type;
+	mediaType media_type;
+	std::string *trans_name;
 	IceState state;
-	NiceConnection(const std::string &localaddr, const std::string &stunaddr);
+	NiceConnection(mediaType med, const std::string &transport_name);
 	virtual ~NiceConnection();
 	void join();
 	void start();
 	bool setRemoteCandidates(std::vector<CandidateInfo> &candidates);
 	void setWebRTCConnection(WebRTCConnection *connection);
-	std::vector<CandidateInfo> localCandidates;
+	WebRTCConnection* getWebRTCConnection();
+	std::vector<CandidateInfo> *local_candidates;
 	int sendData(void* buf, int len);
-	WebRTCConnection* conn;
+
 
 
 private:
 	void init();
 
 	NiceAgent* agent;
+	WebRTCConnection* conn;
 	GMainLoop* loop;
 	boost::thread m_Thread;
+
 
 };
 

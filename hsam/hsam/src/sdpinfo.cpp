@@ -43,7 +43,7 @@ void SDPInfo::addCrypto (const CryptoInfo &info){
 std::string SDPInfo::getSDP() {
 
 	std::ostringstream sdp;
-	sdp << "v=0\n"
+	sdp << "\nv=0\n"
 			<< "o=- 0 0 IN IP4 127.0.0.1\n"
 			<< "s=\n"
 			<< "c=IN IP4 0.0.0.0\n"
@@ -126,11 +126,11 @@ std::string SDPInfo::getSDP() {
 				printedVideo = true;
 			}
 
-			sdp << "a=candidate: " << cand.foundation << " " << cand.compid
+			sdp << "a=candidate:" << cand.foundation << " " << cand.compid
 					<< " " << cand.net_prot << " " << cand.priority << " "
 					<< cand.host_address << " " << cand.host_port << " typ "
 					<< hostType_str << " name " << cand.trans_prot << " network_name "
-					<< " eth0 username " << cand.username << " password " << cand.passwd
+					<< "eth0 username " << cand.username << " password " << cand.passwd
 					<< " generation 0" << endl;
 		}
 	}
@@ -140,8 +140,8 @@ std::string SDPInfo::getSDP() {
 		for (unsigned int it = 0; it<crypto_vector.size(); it++){
 			CryptoInfo cryp_info = crypto_vector[it];
 			if (cryp_info.media_type==VIDEO_TYPE){
-				sdp << "a=crypto: " << cryp_info.tag << " " << cryp_info.cipher_suite
-						<< " " << "inline: " << cryp_info.key_params <<endl;
+				sdp << "a=crypto:" << cryp_info.tag << " " << cryp_info.cipher_suite
+						<< " " << "inline:" << cryp_info.key_params <<endl;
 			}
 		}
 
@@ -194,7 +194,7 @@ bool SDPInfo::processSDP(const std::string& sdp) {
 			mtype = AUDIO_TYPE;
 		}
 		if(isCand!=NULL){
-			printf("cand %s\n", isCand );
+		//	printf("cand %s\n", isCand );
 
 			char *pch;
 			pch = strtok (line," :");
@@ -219,7 +219,7 @@ bool SDPInfo::processSDP(const std::string& sdp) {
 //
 //		}
 		if(isCrypt!=NULL){
-			printf("crypt %s\n", isCrypt );
+		//	printf("crypt %s\n", isCrypt );
 			CryptoInfo crypinfo;
 			char *pch;
 			pch = strtok (line," :");
@@ -247,6 +247,14 @@ bool SDPInfo::processSDP(const std::string& sdp) {
 
 
 	return true;
+}
+
+std::vector<CandidateInfo>& SDPInfo::getCandidateInfos() {
+	return cand_vector;
+}
+
+std::vector<CryptoInfo>& SDPInfo::getCryptoInfos() {
+	return crypto_vector;
 }
 
 bool SDPInfo::processCandidate (char** pieces, int size, mediaType media_type){
