@@ -200,9 +200,7 @@ int WebRTCConnection::receiveNiceData(char* buf, int len, NiceConnection* nice){
 	else if(nice->media_type == VIDEO_TYPE){
 		if (video_receiver){
 			if (video_srtp){
-				printf("Antes len %d\n", length);
 				video_srtp->UnprotectRtp(buf,&length);
-				printf("Despues len%d\n", length);
 
 			}
 			if(length<=0)

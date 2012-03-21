@@ -39,10 +39,8 @@ bool SrtpChannel::SetRtcpParams(char* sendingKey, char* receivingKey){
 int SrtpChannel::ProtectRtp(char* buffer, int *len){
 	if (!active)
 		return 0;
-		printf("SRTP protect len ANTES %d \n",*len);
 	int val = srtp_protect(send_session, buffer, len);
 	if(val==0){
-		printf("SRTP protect len %d \n",*len);
 		return 0;
 	}else{
 		printf("Error SRTP %u\n",val);
@@ -129,7 +127,6 @@ bool SrtpChannel::configureSRTPsession(srtp_t *session, const char* key, enum Ty
 	// allocate and initialize the SRTP session
 	policy.key = akey;
 	int res = srtp_create(session, &policy);
-	printf("res es %d\n", res);
 //	return res!=0? false:true;
 	return true;
 }
