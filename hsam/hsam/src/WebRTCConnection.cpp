@@ -18,65 +18,130 @@
 
 WebRTCConnection::WebRTCConnection(): MediaReceiver() {
 	// TODO Auto-generated constructor stub
+	video = 1;
+	ssrc = 55543;
+	if(video){
+		video_nice = new NiceConnection(VIDEO_TYPE,"video_rtp");
+		video_nice_rtcp = new NiceConnection(VIDEO_TYPE,"video_rtcp");
+		video_nice->setWebRTCConnection(this);
+		video_nice_rtcp->setWebRTCConnection(this);
+		video_srtp = new SrtpChannel();
+		video_receiver = this;
+		CryptoInfo crytp;
+		crytp.cipher_suite=std::string("AES_CM_128_HMAC_SHA1_80");
+		crytp.media_type= VIDEO_TYPE;
+		std::string key = SrtpChannel::generateBase64Key();
+		crytp.key_params = key;
+//		crytp.key_params = std::string("b0c+3druTInEz+C4EH2widkWdh7u9McnEn8vy/JM");
+		local_sdp.addCrypto(crytp);
+	}else{
+		audio_nice = new NiceConnection(AUDIO_TYPE, "rtp");
+		audio_nice_rtcp = new NiceConnection(AUDIO_TYPE, "rtcp");
+		audio_nice->setWebRTCConnection(this);
+		audio_nice_rtcp->setWebRTCConnection(this);
+		audio_srtp = new SrtpChannel();
+		audio_receiver = this;
+		CryptoInfo crytp;
+		crytp.cipher_suite=std::string("AES_CM_128_HMAC_SHA1_80");
+		crytp.media_type= AUDIO_TYPE;
+		std::string key = SrtpChannel::generateBase64Key();
+		crytp.key_params = key;
+//		crytp.key_params = std::string("b0c+3druTInEz+C4EH2widkWdh7u9McnEn8vy/JM");
+		local_sdp.addCrypto(crytp);
+	}
 
-	video_nice = new NiceConnection(VIDEO_TYPE,"video_rtp");
-	video_nice_rtcp = new NiceConnection(VIDEO_TYPE,"video_rtcp");
-	video_nice->setWebRTCConnection(this);
-	video_nice_rtcp->setWebRTCConnection(this);
-	video_srtp = new SrtpChannel();
-	CryptoInfo crytp;
-	crytp.cipher_suite=std::string("AES_CM_128_HMAC_SHA1_80");
-	crytp.media_type= VIDEO_TYPE;
-	std::string key = SrtpChannel::generateBase64Key();
-	crytp.key_params = key;
-	local_sdp.addCrypto(crytp);
+
 
 
 
 }
 
 WebRTCConnection::~WebRTCConnection() {
-	if (video_nice)
+	if (video_nice!=NULL)
 		delete video_nice;
 	if (video_nice_rtcp)
 		delete video_nice_rtcp;
-	if(video_srtp)
+	if(video_srtp!=NULL)
 		delete video_srtp;
+	if (audio_nice!=NULL)
+		delete audio_nice;
+	if (audio_nice_rtcp!=NULL)
+			delete audio_nice_rtcp;
+	if (audio_srtp!=NULL)
+			delete audio_srtp;
+
 	// TODO Auto-generated destructor stub
 }
 
 bool WebRTCConnection::init(){
-	video_nice->start();
-	video_nice_rtcp->start();
-	while (video_nice->state!=NiceConnection::CANDIDATES_GATHERED){
-		sleep(1);
+	std::vector<CandidateInfo> *cands;
+	if (video){
+		video_nice->start();
+		video_nice_rtcp->start();
+		while (video_nice->state!=NiceConnection::CANDIDATES_GATHERED){
+			sleep(1);
+		}
+
+		cands = video_nice->local_candidates;
+
+		for (unsigned int it = 0; it<cands->size();it++ ){
+			CandidateInfo cand = cands->at(it);
+			local_sdp.addCandidate(cand);
+		}
+		while (video_nice_rtcp->state!=NiceConnection::CANDIDATES_GATHERED){
+			sleep(1);
+		}
+
+		cands = video_nice_rtcp->local_candidates;
+		for (unsigned int it = 0; it<cands->size();it++ ){
+			CandidateInfo cand = cands->at(it);
+			local_sdp.addCandidate(cand);
+		}
+
+	}else{
+		audio_nice->start();
+		audio_nice_rtcp->start();
+		while (audio_nice->state!=NiceConnection::CANDIDATES_GATHERED){
+			sleep(1);
+		}
+
+		cands = audio_nice->local_candidates;
+
+		for (unsigned int it = 0; it<cands->size();it++ ){
+			CandidateInfo cand = cands->at(it);
+			local_sdp.addCandidate(cand);
+		}
+		while (audio_nice_rtcp->state!=NiceConnection::CANDIDATES_GATHERED){
+			sleep(1);
+		}
+
+		cands = audio_nice_rtcp->local_candidates;
+		for (unsigned int it = 0; it<cands->size();it++ ){
+			CandidateInfo cand = cands->at(it);
+			local_sdp.addCandidate(cand);
+		}
+
 	}
 
-	std::vector<CandidateInfo> *cands = video_nice->local_candidates;
 
-	for (unsigned int it = 0; it<cands->size();it++ ){
-		CandidateInfo cand = cands->at(it);
-		local_sdp.addCandidate(cand);
-	}
-	while (video_nice_rtcp->state!=NiceConnection::CANDIDATES_GATHERED){
-		sleep(1);
-	}
-
-	cands = video_nice_rtcp->local_candidates;
-
-	for (unsigned int it = 0; it<cands->size();it++ ){
-		CandidateInfo cand = cands->at(it);
-		local_sdp.addCandidate(cand);
-	}
 	return true;
 }
 bool WebRTCConnection::setRemoteSDP(const std::string &sdp){
 	remote_sdp.initWithSDP(sdp);
-	video_nice->setRemoteCandidates(remote_sdp.getCandidateInfos());
-	video_nice_rtcp->setRemoteCandidates(remote_sdp.getCandidateInfos());
+	if(video){
+		video_nice->setRemoteCandidates(remote_sdp.getCandidateInfos());
+		video_nice_rtcp->setRemoteCandidates(remote_sdp.getCandidateInfos());
 
-	video_srtp->SetRtpParams((char*)local_sdp.getCryptoInfos().at(0).key_params.c_str(), (char*)remote_sdp.getCryptoInfos().at(0).key_params.c_str());
-	video_nice->join();
+		video_srtp->SetRtpParams((char*)local_sdp.getCryptoInfos().at(0).key_params.c_str(), (char*)remote_sdp.getCryptoInfos().at(0).key_params.c_str());
+		video_nice->join();
+
+	}else{
+		audio_nice->setRemoteCandidates(remote_sdp.getCandidateInfos());
+		audio_nice_rtcp->setRemoteCandidates(remote_sdp.getCandidateInfos());
+
+		audio_srtp->SetRtpParams((char*)local_sdp.getCryptoInfos().at(0).key_params.c_str(), (char*)remote_sdp.getCryptoInfos().at(0).key_params.c_str());
+		audio_nice->join();
+	}
 	return true;
 }
 std::string WebRTCConnection::getLocalSDP(){
@@ -93,10 +158,12 @@ int WebRTCConnection::receiveAudioData(char* buf, int len){
 	int res=-1;
 	int length= len;
 	if (audio_srtp){
-		length = audio_srtp->ProtectRtp(buf, len);
+		length = audio_srtp->ProtectRtp(buf, &len);
 	}
+	if (len<=0)
+			return length;
 	if (audio_nice){
-		res= audio_nice->sendData(buf, length);
+		res= audio_nice->sendData(buf, len);
 	}
 	return res;
 }
@@ -104,8 +171,11 @@ int WebRTCConnection::receiveVideoData(char* buf, int len){
 	int res=-1;
 	int length= len;
 	if (video_srtp){
-		length = video_srtp->ProtectRtp(buf, len);
+		video_srtp->ProtectRtp(buf, &length);
+		printf("A mandar %d\n", length);
 	}
+	if (length<=10)
+		return length;
 	if (video_nice){
 		res= video_nice->sendData(buf, length);
 	}
@@ -114,14 +184,15 @@ int WebRTCConnection::receiveVideoData(char* buf, int len){
 
 int WebRTCConnection::receiveNiceData(char* buf, int len, NiceConnection* nice){
 	boost::mutex::scoped_lock lock(write_mutex);
-	printf("hola\n");
 	int length = len;
 
 	if(nice->media_type == AUDIO_TYPE){
 		if (audio_receiver){
 			if (audio_srtp){
-				length = audio_srtp->UnprotectRtp(buf,len);
+				audio_srtp->UnprotectRtp(buf,&length);
 			}
+			if(length<=0)
+				return length;
 			audio_receiver->receiveAudioData(buf, length);
 			return length;
 		}
@@ -129,9 +200,16 @@ int WebRTCConnection::receiveNiceData(char* buf, int len, NiceConnection* nice){
 	else if(nice->media_type == VIDEO_TYPE){
 		if (video_receiver){
 			if (video_srtp){
-				length = video_srtp->UnprotectRtp(buf,len);
+				printf("Antes len %d\n", length);
+				video_srtp->UnprotectRtp(buf,&length);
+				printf("Despues len%d\n", length);
+
 			}
-			//video_receiver->receiveVideoData(buf, length);
+			if(length<=0)
+				return length;
+			rtpheader *head = (rtpheader*) buf;
+			head->ssrc = htonl(ssrc);
+			video_receiver->receiveVideoData(buf, length);
 			return length;
 		}
 	}

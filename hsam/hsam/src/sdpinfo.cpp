@@ -76,11 +76,11 @@ std::string SDPInfo::getSDP() {
 				printedAudio = true;
 			}
 
-			sdp << "a=candidate: " << cand.foundation << " " << cand.compid
+			sdp << "a=candidate:" << cand.foundation << " " << cand.compid
 					<< " " << cand.net_prot << " " << cand.priority << " "
 					<< cand.host_address << " " << cand.host_port << " typ "
-					<< hostType_str << " name " << cand.trans_prot << " network name "
-					<< " eth0 username " << cand.username << " password " << cand.passwd
+					<< hostType_str << " name " << cand.trans_prot << " network_name "
+					<< "eth0 username " << cand.username << " password " << cand.passwd
 					<< " generation 0" << endl;
 		}
 	}
@@ -90,14 +90,14 @@ std::string SDPInfo::getSDP() {
 		for (unsigned int it = 0; it<crypto_vector.size(); it++){
 			CryptoInfo cryp_info = crypto_vector[it];
 			if (cryp_info.media_type==AUDIO_TYPE){
-				sdp << "a=crypto: " << cryp_info.tag << " " << cryp_info.cipher_suite
-						<< " " << "inline: " << cryp_info.key_params <<endl;
+				sdp << "a=crypto:" << cryp_info.tag << " " << cryp_info.cipher_suite
+						<< " " << "inline:" << cryp_info.key_params <<endl;
 			}
 		}
 
 		sdp << "a=rtpmap:103 ISAC/16000\na=rtpmap:104 ISAC/32000\na=rtpmap:0 PCMU/8000\n"
 				"a=rtpmap:8 PCMA/8000\na=rtpmap:106 CN/32000\na=rtpmap:105 CN/16000\n"
-				"a=rtpmap:13 CN/8000\na=rtpmap:126 telephone-event/8000";
+				"a=rtpmap:13 CN/8000\na=rtpmap:126 telephone-event/8000\n";
 	}
 
 	for (unsigned int it = 0 ; it<cand_vector.size(); it++){
@@ -148,20 +148,8 @@ std::string SDPInfo::getSDP() {
 		sdp << "a=rtpmap:100 VP8/90000\na=rtpmap:101 red/90000\na=rtpmap:102 ulpfec/90000\n";
 	}
 
+	sdp << "a=ssrc:55543 cname:o/i14u9pJrxRKAsu\na=ssrc:55543 mslabel:048f838f-2dd1-4a98-ab9e-8eb5f00abab8\na=ssrc:55543 label:iSight integrada";
 
-	// candidates video
-
-
-	/*
-		printf("a=candidate:%s %u udp %u %s %u typ %s name %s network_name en1 username %s password %s generation 0\n",
-				cand->foundation, cand->component_id, cand->priority,
-				address, nice_address_get_port(&cand->addr), types_str[cand->type], proto, cand->username, cand->password);
-	}else{
-		printf("a=candidate:%s %u udp %u %s %u typ %s name %s network_name en1 username %s password %s generation 0\n",
-				cand->foundation, cand->component_id, cand->priority,
-				address, nice_address_get_port(&cand->addr), types_str[cand->type], proto, cand->username, cand->password);
-	}
-*/
 	return sdp.str();
 }
 

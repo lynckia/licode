@@ -30,7 +30,7 @@ int main() {
 
 	printf("push remote sdp\n");
 	getchar();
-	std::ifstream t("/home/pedro/workspace/webRTC/MCU/prototype/sdptodo");
+	std::ifstream t("/home/pedro/workspace/webRTC/MCU/prototype/sdp");
 	std::string str((std::istreambuf_iterator<char>(t)),
                  std::istreambuf_iterator<char>());
 	cout << str <<endl;

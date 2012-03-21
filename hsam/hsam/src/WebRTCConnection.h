@@ -41,6 +41,8 @@ private:
 
 	MediaReceiver *audio_receiver;
 	MediaReceiver *video_receiver;
+	int video;
+	int ssrc;
 
 	//std::string getLocalAddress();
 	boost::mutex write_mutex;

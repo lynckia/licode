@@ -68,6 +68,9 @@ void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer us
 		cand_info.type = HOST;
 		cand_info.net_prot= "udp";
 		cand_info.trans_prot = std::string(*conn->trans_name);
+		if(!conn->trans_name->compare("video_rtcp")||!conn->trans_name->compare("rtcp")){
+			cand_info.compid =2;
+		}
 		cand_info.net_name = "eth0";
 		cand_info.username = std::string(cand->username);
 		if(cand->password)
@@ -95,6 +98,8 @@ void cb_component_state_changed( void )
 void cb_new_selected_pair  (NiceAgent *agent, guint stream_id, guint component_id, gchar *lfoundation, gchar *rfoundation, gpointer user_data)
 {
 	boost::mutex::scoped_lock lock(write_mutex);
+	NiceConnection *conn = (NiceConnection*)user_data;
+	conn->state = NiceConnection::READY;
 
 	printf( "cb_new_selected_pair for stream %u, comp %u, lfound %s, rfound %s\n", stream_id, component_id, lfoundation, rfoundation );
 }

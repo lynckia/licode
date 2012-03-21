@@ -25,7 +25,7 @@ enum mediaType{
 };
 
 struct CryptoInfo {
-  CryptoInfo() : tag(0) {}
+  CryptoInfo() : tag(1) {}
 
   int tag;
   std::string cipher_suite;
