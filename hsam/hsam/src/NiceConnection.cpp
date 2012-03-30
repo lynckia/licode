@@ -10,7 +10,6 @@
 #include "sdpinfo.h"
 #include <stdio.h>
 //
-
 #include <glib.h>
 
 
@@ -20,13 +19,13 @@ int streamsGathered, total_streams;
 int rec, sen;
 int length;
 uint32_t ssrc = 55543;
-boost::mutex write_mutex;
+boost::mutex write_mutex, gather_mutex, state_mutex, selected_mutex;
 
 void cb_nice_recv( NiceAgent* agent, guint stream_id, guint component_id, guint len, gchar* buf, gpointer user_data )
 {
 	boost::mutex::scoped_lock lock(write_mutex);
 
-	printf( "cb_nice_recv len %u id %u\n",len, stream_id );
+//	printf( "cb_nice_recv len %u id %u\n",len, stream_id );
 	NiceConnection* nicecon = (NiceConnection*)user_data;
 	nicecon->getWebRTCConnection()->receiveNiceData((char*)buf,(int)len, (NiceConnection*)user_data);
 }
@@ -34,7 +33,7 @@ void cb_nice_recv( NiceAgent* agent, guint stream_id, guint component_id, guint 
 
 void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer user_data )
 {
-	boost::mutex::scoped_lock lock(write_mutex);
+	boost::mutex::scoped_lock lock(gather_mutex);
 
 	NiceConnection *conn = (NiceConnection*)user_data;
 	printf("ConnState %u\n",conn->state);
@@ -89,7 +88,7 @@ void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer us
 
 void cb_component_state_changed( void )
 {
-	boost::mutex::scoped_lock lock(write_mutex);
+	boost::mutex::scoped_lock lock(state_mutex);
 
 	printf( "cb_component_state_changed\n" );
 }
@@ -97,9 +96,10 @@ void cb_component_state_changed( void )
 
 void cb_new_selected_pair  (NiceAgent *agent, guint stream_id, guint component_id, gchar *lfoundation, gchar *rfoundation, gpointer user_data)
 {
-	boost::mutex::scoped_lock lock(write_mutex);
+	boost::mutex::scoped_lock lock(selected_mutex);
 	NiceConnection *conn = (NiceConnection*)user_data;
 	conn->state = NiceConnection::READY;
+
 
 	printf( "cb_new_selected_pair for stream %u, comp %u, lfound %s, rfound %s\n", stream_id, component_id, lfoundation, rfoundation );
 }

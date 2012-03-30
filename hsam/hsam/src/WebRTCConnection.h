@@ -17,7 +17,7 @@
 
 class WebRTCConnection: public MediaReceiver, public NiceReceiver{
 public:
-	WebRTCConnection();
+	WebRTCConnection(bool standAlone=false);
 	virtual ~WebRTCConnection();
 	bool init();
 	bool setRemoteSDP(const std::string &sdp);
@@ -41,11 +41,12 @@ private:
 
 	MediaReceiver *audio_receiver;
 	MediaReceiver *video_receiver;
-	int video;
-	int ssrc;
+	int video, audio;
+	int audio_ssrc, video_ssrc;
+	bool standAlone;
 
 	//std::string getLocalAddress();
-	boost::mutex write_mutex;
+	boost::mutex write_mutex, receiveAudio, receiveVideo;
 
 };
 

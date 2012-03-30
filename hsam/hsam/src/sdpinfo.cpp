@@ -19,7 +19,6 @@
 using std::endl;
 
 SDPInfo::SDPInfo() {
-	printf("hola SDPProcessor \n");
 }
 
 SDPInfo::~SDPInfo() {
@@ -43,10 +42,9 @@ void SDPInfo::addCrypto (const CryptoInfo &info){
 std::string SDPInfo::getSDP() {
 
 	std::ostringstream sdp;
-	sdp << "\nv=0\n"
+	sdp << "v=0\n"
 			<< "o=- 0 0 IN IP4 127.0.0.1\n"
 			<< "s=\n"
-			<< "c=IN IP4 0.0.0.0\n"
 			<< "t=0 0\n";
 	//candidates audio
 	bool printedAudio = false, printedVideo = false;
@@ -72,7 +70,9 @@ std::string SDPInfo::getSDP() {
 		}
 		if (cand.media_type == AUDIO_TYPE){
 			if (!printedAudio){
-				sdp << "m=audio 1 RTP/AVPF 103 104 0 8 106 105 13 126\n";
+				sdp << "m=audio "<<cand.host_port << " RTP/AVPF 103 104 0 8 106 105 13 126\n"
+				<< "c=IN IP4 " << cand.host_address <<endl
+				<< "a=rtcp:"<<cand_vector[3].host_port<<" IN IP4 " << cand.host_address <<endl;
 				printedAudio = true;
 			}
 
@@ -98,6 +98,8 @@ std::string SDPInfo::getSDP() {
 		sdp << "a=rtpmap:103 ISAC/16000\na=rtpmap:104 ISAC/32000\na=rtpmap:0 PCMU/8000\n"
 				"a=rtpmap:8 PCMA/8000\na=rtpmap:106 CN/32000\na=rtpmap:105 CN/16000\n"
 				"a=rtpmap:13 CN/8000\na=rtpmap:126 telephone-event/8000\n";
+		sdp << "a=ssrc:"<<audio_ssrc <<" cname:o/i14u9pJrxRKAsu\na=ssrc:"<<audio_ssrc<<" mslabel:048f838f-2dd1-4a98-ab9e-8eb5f00abab8\na=ssrc:" << audio_ssrc << " label:iSight integrada\n";
+
 	}
 
 	for (unsigned int it = 0 ; it<cand_vector.size(); it++){
@@ -122,7 +124,9 @@ std::string SDPInfo::getSDP() {
 		}
 		if (cand.media_type == VIDEO_TYPE){
 			if (!printedVideo){
-				sdp << "m=video 1 RTP/AVPF 100 101 102\n";
+				sdp << "m=video " <<cand.host_port << " RTP/AVPF 100 101 102\n"
+						<< "c=IN IP4 " << cand.host_address <<endl
+						<< "a=rtcp:"<<cand_vector[1].host_port << " IN IP4 " << cand.host_address <<endl;
 				printedVideo = true;
 			}
 
@@ -146,9 +150,11 @@ std::string SDPInfo::getSDP() {
 		}
 
 		sdp << "a=rtpmap:100 VP8/90000\na=rtpmap:101 red/90000\na=rtpmap:102 ulpfec/90000\n";
+		sdp << "a=ssrc:"<<video_ssrc <<" cname:o/i14u9pJrxRKAsu\na=ssrc:"<<video_ssrc<<" mslabel:048f838f-2dd1-4a98-ab9e-8eb5f00abab8\na=ssrc:" << video_ssrc << " label:iSight integrada\n";
+
+
 	}
 
-	sdp << "a=ssrc:55543 cname:o/i14u9pJrxRKAsu\na=ssrc:55543 mslabel:048f838f-2dd1-4a98-ab9e-8eb5f00abab8\na=ssrc:55543 label:iSight integrada";
 
 	return sdp.str();
 }
@@ -182,7 +188,7 @@ bool SDPInfo::processSDP(const std::string& sdp) {
 			mtype = AUDIO_TYPE;
 		}
 		if(isCand!=NULL){
-		//	printf("cand %s\n", isCand );
+//			printf("cand %s\n", isCand );
 
 			char *pch;
 			pch = strtok (line," :");
@@ -261,7 +267,7 @@ bool SDPInfo::processCandidate (char** pieces, int size, mediaType media_type){
 	cand.host_address = std::string(pieces[4]);
 	cand.host_port = (unsigned int)strtoul(pieces[5], NULL, 10);
 	if (strcmp(pieces[6],"typ")){
-		printf("error... aqui va typ\n");
+		printf("error... aqui va typ, va %s \n", pieces[6]);
 		return false;
 	}
 	int type=-1;

@@ -25,12 +25,12 @@ enum mediaType{
 };
 
 struct CryptoInfo {
-  CryptoInfo() : tag(1) {}
+  CryptoInfo() : tag(0) {}
 
   int tag;
   std::string cipher_suite;
   std::string key_params;
-  int ssrc;
+  //int ssrc;
   mediaType media_type;
 
 };
@@ -64,8 +64,8 @@ public:
 	void addCrypto (const CryptoInfo &info);
 	std::vector<CandidateInfo> &getCandidateInfos();
 	std::vector<CryptoInfo> &getCryptoInfos();
-
 	std::string getSDP();
+	int audio_ssrc, video_ssrc;
 
 
 private:
@@ -73,6 +73,7 @@ private:
 	bool processCandidate (char** pieces, int size, mediaType media_type);
 	std::vector<CandidateInfo> cand_vector;
 	std::vector<CryptoInfo> crypto_vector;
+
 
 };
 
