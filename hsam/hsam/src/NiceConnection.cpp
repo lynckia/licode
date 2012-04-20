@@ -12,6 +12,12 @@
 //
 #include <glib.h>
 
+#include <sys/types.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <arpa/inet.h>
+
 
 guint stream_id;
 GSList* lcands;
@@ -36,7 +42,7 @@ void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer us
 	boost::mutex::scoped_lock lock(gather_mutex);
 
 	NiceConnection *conn = (NiceConnection*)user_data;
-	printf("ConnState %u\n",conn->state);
+	//printf("ConnState %u\n",conn->state);
 
 
 	// ... Wait until the signal candidate-gathering-done is fired ...
@@ -44,7 +50,7 @@ void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer us
 	NiceCandidate *cand;
 	GSList* iterator;
 	//	printf("gathering done %u\n",stream_id);
-	printf("Candidates---------------------------------------------------->\n");
+	//printf("Candidates---------------------------------------------------->\n");
 	for (iterator = lcands; iterator; iterator=iterator->next){
 		char address[100];
 		cand = (NiceCandidate*)iterator->data;
@@ -154,11 +160,13 @@ void NiceConnection::init(){
 
 	// Create a nice agent
 	agent = nice_agent_new( g_main_loop_get_context( loop ),NICE_COMPATIBILITY_GOOGLE);
-
+//	agent = nice_agent_new( g_main_loop_get_context( loop ),NICE_COMPATIBILITY_RFC5245);
 	NiceAddress* naddr = nice_address_new();
+//	std::string local_addr = getLocalAddress();
+
+//	nice_address_set_from_string(naddr,local_addr.c_str());
 
 	nice_address_set_from_string(naddr,"138.4.4.141");
-	//nice_address_set_from_string(naddr,localaddr.c_str());
 	nice_agent_add_local_address (agent, naddr);
 
 	GValue val = { 0 }, val2 = { 0 };
@@ -180,7 +188,10 @@ void NiceConnection::init(){
 	// Create a new stream with one component and start gathering candidates
 
 	int res = nice_agent_add_stream( agent, 1);
+	// Set Port Range
+//	nice_agent_set_port_range(agent, (guint)1, (guint)1, (guint)51000, (guint)52000);
 	printf("EL ID ES %d\n", res);
+
 	nice_agent_gather_candidates(agent, 1);
 	nice_agent_attach_recv( agent, 1, 1, g_main_loop_get_context( loop ), cb_nice_recv, this );
 
@@ -236,7 +247,6 @@ bool NiceConnection::setRemoteCandidates(std::vector<CandidateInfo> &candidates)
 		thecandidate->component_id = cinfo.compid;
 		thecandidate->priority = cinfo.priority;
 		thecandidate->transport = NICE_CANDIDATE_TRANSPORT_UDP;
-		printf("COSICA %s y del nice %s \n", cinfo.trans_prot.c_str(), this->trans_name->c_str());
 		candList = g_slist_append(candList,thecandidate);
 
 	}
@@ -251,6 +261,33 @@ void NiceConnection::setWebRTCConnection(WebRTCConnection *connection){
 	this->conn = connection;
 }
 
+
+
+
+std::string NiceConnection::getLocalAddress(){
+    struct ifaddrs * ifAddrStruct=NULL;
+    struct ifaddrs * ifa=NULL;
+    void * tmpAddrPtr=NULL;
+
+    getifaddrs(&ifAddrStruct);
+
+    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa ->ifa_addr->sa_family==AF_INET) { // check it is IP4
+            // is a valid IP4 Address
+            tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+            char addressBuffer[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+//            printf("%s IP Address %s\n", ifa->ifa_name, addressBuffer);
+            if (!strcmp(ifa->ifa_name, "eth0")){
+            	return std::string(addressBuffer);
+            }
+
+        }
+    }
+    if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct);
+    return 0;
+
+}
 
 //std::vector<CandidateInfo> NiceConnection::getLocalCandidates(){
 //	std::vector<CandidateInfo> vic;

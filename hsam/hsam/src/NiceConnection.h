@@ -52,7 +52,7 @@ public:
 
 private:
 	void init();
-
+	std::string getLocalAddress();
 	NiceAgent* agent;
 	WebRTCConnection* conn;
 	GMainLoop* loop;
