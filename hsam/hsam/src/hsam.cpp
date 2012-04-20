@@ -25,7 +25,7 @@ std::map<int, WebRTCConnection*> peers;
 
 
 int main() {
-//
+
 //	WebRTCConnection pepe(true);
 //	printf("pWQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQepepepe\n");
 //	pepe.init();
@@ -40,15 +40,10 @@ int main() {
 //	pepe.setAudioReceiver(&pepe);
 //	pepe.setVideoReceiver(&pepe);
 //	pepe.setRemoteSDP(str);
-//
-
-
     SDPReceiver* receiver = new SDPReceiver();
     Observer *subscriber = new Observer("subscriber", receiver);
     new Observer("publisher", receiver);
     subscriber->wait();
-
-
 
     return 0;
 }

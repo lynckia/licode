@@ -71,61 +71,63 @@ void Observer::OnMessageFromPeer(int peer_id, const std::string& message){
 	     }
 
 		std::string sdp = receiver_->getLocalSDP(peer_id);
-		std::string sdp2 = Observer::Match(roap, "^.*sdp\" : \"(.*)\",\n.*$");
+		std::string sdp2 = Observer::Match(roap, "^.*sdp\":\"(.*)\",.*$");
 		Observer::Replace(sdp2,"\\\\r\\\\n","\\n");
 		printf("sdp OFFER!!!!!!!!!!!!\n%s\n", sdp2.c_str());
 		receiver_->setRemoteSDP(peer_id, sdp2);
 
-		Observer::Replace(sdp, "a=ssrc[^\n]*\n", "");
+//		Observer::Replace(sdp, "a=ssrc[^\n]*\n", "");
 		Observer::Replace(sdp, "\n", "\\\\r\\\\n");
-		std::string answererSessionId = "FteaVmkG83fNDPWqhUpUERBYNu7z98fV";
-		std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\" : \"(.{32,32}).*$");
-		std::string answer1 ("SDP\n{\n \"messageType\" : \"ANSWER\",\n");
-		answer1.append(" \"offererSessionId\" : \"").append(offererSessionId).append("\",\n");
-		answer1.append(" \"answererSessionId\" : \"").append(answererSessionId).append("\",\n");
+		std::string answererSessionId = "106";
+		std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\":\"(.{32,32}).*$");
+//		std::string offererSessionId = "104";
+		std::string answer1 ("\n{\n \"messageType\" : \"ANSWER\",\n");
 		printf("sdp ANSWEEEER!!!!!!! %s\n", sdp.c_str());
 		answer1.append(" \"sdp\" : \"").append(sdp).append("\",\n");
+		answer1.append(" \"offererSessionId\" : \"").append(offererSessionId).append("\",\n");
+		answer1.append(" \"answererSessionId\" : \"").append(answererSessionId).append("\",\n");
 		answer1.append(" \"seq\" : 1\n}\n");
 		pc_->SendToPeer(peer_id, answer1);
-	} else if (roap.find("ANSWER") != std::string::npos) {
-		printf("ANSWER\n");
-		// ANSWER2: Quiero pasar el SDP y devuelvo OK2
-		// Obtener el SDP
-		// Crear OK
-		// 	Pillar el OffererId
-		// 	Pillar el AnswererId
-//		std::string sdp = Observer::Match(roap, "^.*sdp\" : \"(.*)\",\n.*$");
-//		Observer::Replace(sdp,"\\\\r\\\\n","\\n");
-//		printf("sdp\n%s\n", sdp.c_str());
-//		receiver_->setRemoteSDP(peer_id, sdp);
-		std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\" : \"(.{32,32}).*$");
-		std::string answererSessionId = Observer::Match(roap, "^.*answererSessionId\" : \"(.{32,32}).*$");
-		std::string ok2 ("SDP\n{\n \"messageType\" : \"OK\",\n");
-		ok2.append(" \"offererSessionId\" : \"").append(answererSessionId).append("\",\n");
-		ok2.append(" \"answererSessionId\" : \"").append(offererSessionId).append("\",\n");
-		ok2.append(" \"seq\" : 2\n}\n");
-		pc_->SendToPeer(peer_id, ok2);
-	} else if (roap.find("OK") != std::string::npos) {
-		printf("OK\n");
-		// OK1: Solo devuelvo parte del ANSWER1 como OFFER2
-		// Quitar candidatos
-		// Pasar a ROAP
-		// 	Pillar el OffererId
-		// 	Pillar el AnswererId
-
-		std::string sdp = receiver_->getLocalSDP(peer_id);
-		std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\" : \"(.{32,32}).*$");
-		std::string answererSessionId = Observer::Match(roap, "^.*answererSessionId\" : \"(.{32,32}).*$");
-		Observer::Replace(sdp, "\\\\n", "\n");
-		//Observer::Replace(sdp, "a=candidate[^\n]*generation 0\n", "");
-		Observer::Replace(sdp, "\n", "\\\\r\\\\n");
-		std::string offer2 ("SDP\n{\n \"messageType\" : \"OFFER\",\n");
-		offer2.append(" \"offererSessionId\" : \"").append(offererSessionId).append("\",\n");
-		offer2.append(" \"answererSessionId\" : \"").append(answererSessionId).append("\",\n");
-		offer2.append(" \"sdp\" : \"").append(sdp).append("\",\n");
-		offer2.append(" \"seq\" : 2,\n \"tieBreaker\" : 802577871\n}\n");
-		pc_->SendToPeer(peer_id, offer2);
 	}
+//	} else if (roap.find("ANSWER") != std::string::npos) {
+//		printf("ANSWER\n");
+//		// ANSWER2: Quiero pasar el SDP y devuelvo OK2
+//		// Obtener el SDP
+//		// Crear OK
+//		// 	Pillar el OffererId
+//		// 	Pillar el AnswererId
+////		std::string sdp = Observer::Match(roap, "^.*sdp\" : \"(.*)\",\n.*$");
+////		Observer::Replace(sdp,"\\\\r\\\\n","\\n");
+////		printf("sdp\n%s\n", sdp.c_str());
+////		receiver_->setRemoteSDP(peer_id, sdp);
+//		std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\" : \"(.{32,32}).*$");
+//		std::string answererSessionId = Observer::Match(roap, "^.*answererSessionId\" : \"(.{32,32}).*$");
+//		std::string ok2 ("SDP\n{\n \"messageType\" : \"OK\",\n");
+//		ok2.append(" \"offererSessionId\" : \"").append(answererSessionId).append("\",\n");
+//		ok2.append(" \"answererSessionId\" : \"").append(offererSessionId).append("\",\n");
+//		ok2.append(" \"seq\" : 2\n}\n");
+//		pc_->SendToPeer(peer_id, ok2);
+//	} else if (roap.find("OK") != std::string::npos) {
+////		printf("OK\n");
+////		// OK1: Solo devuelvo parte del ANSWER1 como OFFER2
+////		// Quitar candidatos
+////		// Pasar a ROAP
+////		// 	Pillar el OffererId
+////		// 	Pillar el AnswererId
+////
+////		std::string sdp = receiver_->getLocalSDP(peer_id);
+////		std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\" : \"(.{32,32}).*$");
+////		std::string answererSessionId = Observer::Match(roap, "^.*answererSessionId\" : \"(.{32,32}).*$");
+////		Observer::Replace(sdp, "\\\\n", "\n");
+////		//Observer::Replace(sdp, "a=candidate[^\n]*generation 0\n", "");
+////		Observer::Replace(sdp, "\n", "\\\\r\\\\n");
+////		std::string offer2 ("SDP\n{\n \"messageType\" : \"OFFER\",\n");
+////		offer2.append(" \"offererSessionId\" : \"").append(offererSessionId).append("\",\n");
+////		offer2.append(" \"answererSessionId\" : \"").append(answererSessionId).append("\",\n");
+////		offer2.append(" \"sdp\" : \"").append(sdp).append("\",\n");
+////		offer2.append(" \"seq\" : 2,\n \"tieBreaker\" : 802577871\n}\n");
+////		pc_->SendToPeer(peer_id, offer2);
+//	}
 
 }
 void Observer::OnMessageSent(int err){

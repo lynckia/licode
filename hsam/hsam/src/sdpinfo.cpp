@@ -80,7 +80,7 @@ std::string SDPInfo::getSDP() {
 					<< " " << cand.net_prot << " " << cand.priority << " "
 					<< cand.host_address << " " << cand.host_port << " typ "
 					<< hostType_str << " name " << cand.trans_prot << " network_name "
-					<< "eth0 username " << cand.username << " password " << cand.passwd
+					<< "eth0 username " /*<< cand.username << */" password " /*<< cand.passwd*/
 					<< " generation 0" << endl;
 		}
 	}

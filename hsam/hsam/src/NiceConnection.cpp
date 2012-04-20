@@ -188,8 +188,8 @@ void NiceConnection::init(){
 	// Create a new stream with one component and start gathering candidates
 
 	int res = nice_agent_add_stream( agent, 1);
-	// Set Port Range
-//	nice_agent_set_port_range(agent, (guint)1, (guint)1, (guint)51000, (guint)52000);
+	// Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
+	nice_agent_set_port_range(agent, (guint)1, (guint)1, (guint)51000, (guint)52000);
 	printf("EL ID ES %d\n", res);
 
 	nice_agent_gather_candidates(agent, 1);

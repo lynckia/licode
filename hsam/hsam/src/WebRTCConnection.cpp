@@ -9,11 +9,7 @@
 #include "sdpinfo.h"
 
 #include <cstdio>
-#include <sys/types.h>
-#include <ifaddrs.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <arpa/inet.h>
+
 #include <boost/thread.hpp>
 
 WebRTCConnection::WebRTCConnection(bool standAlone): MediaReceiver() {
@@ -27,9 +23,9 @@ WebRTCConnection::WebRTCConnection(bool standAlone): MediaReceiver() {
 	this->standAlone = standAlone;
 	if(video){
 		video_nice = new NiceConnection(VIDEO_TYPE,"video_rtp");
-		video_nice_rtcp = new NiceConnection(VIDEO_TYPE,"video_rtcp");
+//		video_nice_rtcp = new NiceConnection(VIDEO_TYPE,"video_rtcp");
 		video_nice->setWebRTCConnection(this);
-		video_nice_rtcp->setWebRTCConnection(this);
+//		video_nice_rtcp->setWebRTCConnection(this);
 		video_srtp = new SrtpChannel();
 //		video_receiver = this;
 		CryptoInfo crytp;
@@ -45,9 +41,9 @@ WebRTCConnection::WebRTCConnection(bool standAlone): MediaReceiver() {
 	}
 	if (audio){
 		audio_nice = new NiceConnection(AUDIO_TYPE, "rtp");
-		audio_nice_rtcp = new NiceConnection(AUDIO_TYPE, "rtcp");
+//		audio_nice_rtcp = new NiceConnection(AUDIO_TYPE, "rtcp");
 		audio_nice->setWebRTCConnection(this);
-		audio_nice_rtcp->setWebRTCConnection(this);
+//		audio_nice_rtcp->setWebRTCConnection(this);
 		audio_srtp = new SrtpChannel();
 //		audio_receiver = this;
 		CryptoInfo crytp;
@@ -87,7 +83,7 @@ bool WebRTCConnection::init(){
 
 		video_nice->start();
 		sleep(1);
-		video_nice_rtcp->start();
+//		video_nice_rtcp->start();
 //		sleep(1);
 
 		while (video_nice->state!=NiceConnection::CANDIDATES_GATHERED){
@@ -101,21 +97,21 @@ bool WebRTCConnection::init(){
 			CandidateInfo cand = cands->at(it);
 			local_sdp.addCandidate(cand);
 		}
-		while (video_nice_rtcp->state!=NiceConnection::CANDIDATES_GATHERED){
-			sleep(1);
-		}
+//		while (video_nice_rtcp->state!=NiceConnection::CANDIDATES_GATHERED){
+//			sleep(1);
+//		}
 
-		cands = video_nice_rtcp->local_candidates;
-		for (unsigned int it = 0; it<cands->size();it++ ){
-			CandidateInfo cand = cands->at(it);
-			local_sdp.addCandidate(cand);
-		}
+//		cands = video_nice_rtcp->local_candidates;
+//		for (unsigned int it = 0; it<cands->size();it++ ){
+//			CandidateInfo cand = cands->at(it);
+//			local_sdp.addCandidate(cand);
+//		}
 
 	}
 	if (audio){
 		audio_nice->start();
 		sleep(1);
-		audio_nice_rtcp->start();
+//		audio_nice_rtcp->start();
 		sleep(1);
 		while (audio_nice->state!=NiceConnection::CANDIDATES_GATHERED){
 			sleep(1);
@@ -127,15 +123,15 @@ bool WebRTCConnection::init(){
 			CandidateInfo cand = cands->at(it);
 			local_sdp.addCandidate(cand);
 		}
-		while (audio_nice_rtcp->state!=NiceConnection::CANDIDATES_GATHERED){
-			sleep(1);
-		}
+//		while (audio_nice_rtcp->state!=NiceConnection::CANDIDATES_GATHERED){
+//			sleep(1);
+//		}
 
-		cands = audio_nice_rtcp->local_candidates;
-		for (unsigned int it = 0; it<cands->size();it++ ){
-			CandidateInfo cand = cands->at(it);
-			local_sdp.addCandidate(cand);
-		}
+//		cands = audio_nice_rtcp->local_candidates;
+//		for (unsigned int it = 0; it<cands->size();it++ ){
+//			CandidateInfo cand = cands->at(it);
+//			local_sdp.addCandidate(cand);
+//		}
 
 	}
 
@@ -170,13 +166,13 @@ bool WebRTCConnection::setRemoteSDP(const std::string &sdp){
 
 	if(video){
 		video_nice->setRemoteCandidates(remote_sdp.getCandidateInfos());
-		video_nice_rtcp->setRemoteCandidates(remote_sdp.getCandidateInfos());
+//		video_nice_rtcp->setRemoteCandidates(remote_sdp.getCandidateInfos());
 		video_srtp->SetRtpParams((char*)cryptLocal_video.key_params.c_str(), (char*)cryptRemote_video.key_params.c_str());
 
 	}
 	if (audio){
 		audio_nice->setRemoteCandidates(remote_sdp.getCandidateInfos());
-		audio_nice_rtcp->setRemoteCandidates(remote_sdp.getCandidateInfos());
+//		audio_nice_rtcp->setRemoteCandidates(remote_sdp.getCandidateInfos());
 
 		audio_srtp->SetRtpParams((char*)cryptLocal_audio.key_params.c_str(), (char*)cryptRemote_audio.key_params.c_str());
 	}
@@ -274,32 +270,6 @@ int WebRTCConnection::receiveNiceData(char* buf, int len, NiceConnection* nice){
 	return -1;
 }
 
-/*
-std::string WebRTCConnection::getLocalAddress(){
-    struct ifaddrs * ifAddrStruct=NULL;
-    struct ifaddrs * ifa=NULL;
-    void * tmpAddrPtr=NULL;
-
-    getifaddrs(&ifAddrStruct);
-
-    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
-        if (ifa ->ifa_addr->sa_family==AF_INET) { // check it is IP4
-            // is a valid IP4 Address
-            tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-            char addressBuffer[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-            printf("%s IP Address %s\n", ifa->ifa_name, addressBuffer);
-            if (!strcmp(ifa->ifa_name, "eth0")){
-            	return std::string(addressBuffer);
-            }
-
-        }
-    }
-    if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct);
-    return 0;
-
-}
-*/
 
 
 
