@@ -5,7 +5,7 @@
 //#include <iostream>           // For cerr and cout
 #include <time.h>
 
-Observer::Observer(std::string name, SDPReceiver *receiver):pc_(new PC()), name_(name), receiver_(receiver) {
+Observer::Observer(std::string name, SDPReceiver *receiver):pc_(new PC(name)), name_(name), receiver_(receiver) {
     pthread_create(&thread, 0, &Observer::init, this);
 }
 
@@ -83,6 +83,7 @@ void Observer::OnMessageFromPeer(int peer_id, const std::string& message){
 		std::string answer1 ("SDP\n{\n \"messageType\" : \"ANSWER\",\n");
 		answer1.append(" \"offererSessionId\" : \"").append(offererSessionId).append("\",\n");
 		answer1.append(" \"answererSessionId\" : \"").append(answererSessionId).append("\",\n");
+		printf("sdp ANSWEEEER!!!!!!! %s\n", sdp.c_str());
 		answer1.append(" \"sdp\" : \"").append(sdp).append("\",\n");
 		answer1.append(" \"seq\" : 1\n}\n");
 		pc_->SendToPeer(peer_id, answer1);
@@ -106,7 +107,6 @@ void Observer::OnMessageFromPeer(int peer_id, const std::string& message){
 		pc_->SendToPeer(peer_id, ok2);
 	} else if (roap.find("OK") != std::string::npos) {
 		printf("OK\n");
-
 		// OK1: Solo devuelvo parte del ANSWER1 como OFFER2
 		// Quitar candidatos
 		// Pasar a ROAP
@@ -114,7 +114,6 @@ void Observer::OnMessageFromPeer(int peer_id, const std::string& message){
 		// 	Pillar el AnswererId
 
 		std::string sdp = receiver_->getLocalSDP(peer_id);
-
 		std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\" : \"(.{32,32}).*$");
 		std::string answererSessionId = Observer::Match(roap, "^.*answererSessionId\" : \"(.{32,32}).*$");
 		Observer::Replace(sdp, "\\\\n", "\n");

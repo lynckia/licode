@@ -312,7 +312,7 @@ void PC::OnHangingGetRead() {
   //printf("Waiting...");
   if (ReadIntoBuffer(socket, &notification_data_, &content_length)) {
     size_t peer_id = 0, eoh = 0;
-//    printf("Response %s\n", notification_data_.c_str());
+   //printf("Response %s\n", notification_data_.c_str());
     bool ok = ParseServerResponse(notification_data_, content_length,
                                   &peer_id, &eoh);
 //printf("ok %d\n", ok);
@@ -346,7 +346,7 @@ void PC::OnHangingGetRead() {
       isSending = false;
   }
   notification_data_.clear();
-  printf("Done\n");
+//  printf("Done\n");
 
   if (state_ == CONNECTED) {
       OnHangingGetConnect();
