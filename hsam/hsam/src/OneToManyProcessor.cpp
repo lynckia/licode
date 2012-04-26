@@ -66,7 +66,7 @@ void OneToManyProcessor::addSubscriber(WebRTCConnection* conn, int peer_id) {
 	this->subscribers[peer_id]=conn;
 }
 void OneToManyProcessor::removeSubscriber(int peer_id){
-	if (this->subscribers[peer_id]!=NULL){
+	if (this->subscribers.find(peer_id)!=subscribers.end()){
 		this->subscribers[peer_id]->close();
 		this->subscribers.erase(peer_id);
 	}
