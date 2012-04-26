@@ -53,7 +53,7 @@ int SrtpChannel::UnprotectRtp(char* buffer, int *len){
 	rtcpheader *chead = (rtcpheader*)buffer;
 
 	if(chead->packettype==200||chead->packettype==201){
-		printf("Es RTCP\n");
+//		printf("Es RTCP\n");
 		*len=-1;
 		return -1;
 	}

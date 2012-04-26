@@ -70,7 +70,30 @@ void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer us
 		cand_info.host_address = std::string(address);
 		cand_info.host_port = nice_address_get_port(&cand->addr);
 		cand_info.media_type = conn->media_type;
-		cand_info.type = HOST;
+
+		/*
+		 *   NICE_CANDIDATE_TYPE_HOST,
+  	  	 * 	  NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE,
+  	  	 *	  NICE_CANDIDATE_TYPE_PEER_REFLEXIVE,
+  	  	 * 	  NICE_CANDIDATE_TYPE_RELAYED,
+		 */
+		switch (cand->type) {
+			case NICE_CANDIDATE_TYPE_HOST :
+				cand_info.type = HOST;
+				break;
+			case NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
+				cand_info.type = SRLFX;
+				break;
+			case NICE_CANDIDATE_TYPE_PEER_REFLEXIVE:
+				cand_info.type = PRFLX;
+				break;
+			case NICE_CANDIDATE_TYPE_RELAYED:
+				printf("WARNING TURN NOT IMPLEMENTED YET\n");
+				cand_info.type = RELAY;
+				break;
+			default:
+				break;
+		}
 		cand_info.net_prot= "udp";
 		cand_info.trans_prot = std::string(*conn->trans_name);
 		if(!conn->trans_name->compare("video_rtcp")||!conn->trans_name->compare("rtcp")){
@@ -119,6 +142,10 @@ NiceConnection::NiceConnection(mediaType med, const std::string &transport_name)
 }
 
 NiceConnection::~NiceConnection() {
+	if(state!=FINISHED)
+		this->close();
+	if (agent)
+		g_object_unref(agent);
 	if (local_candidates)
 		delete local_candidates;
 	if (trans_name)
@@ -134,6 +161,14 @@ void NiceConnection::join() {
 void NiceConnection::start() {
 	m_Thread = boost::thread(&NiceConnection::init, this);
 }
+
+void NiceConnection::close() {
+	nice_agent_remove_stream(agent,1);
+	g_main_loop_quit(loop);
+	state = FINISHED;
+
+}
+
 
 int NiceConnection::sendData(void *buf, int len){
 	int val = -1;
@@ -227,6 +262,7 @@ bool NiceConnection::setRemoteCandidates(std::vector<CandidateInfo> &candidates)
 			nice_cand_type = NICE_CANDIDATE_TYPE_RELAYED;
 			break;
 		default:
+			nice_cand_type = NICE_CANDIDATE_TYPE_HOST;
 			break;
 		}
 		//138.4.4.141

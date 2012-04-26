@@ -86,7 +86,7 @@ bool PC::ReadIntoBuffer(TCPSocket* socket,
     data->append(buffer, bytes);
 //  } while (true);
   *content_length = strlen(data->c_str());
-//  printf("RECEIVED %s \n", data->c_str());
+  printf("RECEIVED %s \n", data->c_str());
   parseMessage(data);
   return true;
 
@@ -139,6 +139,10 @@ void PC::parseMessage(std::string *data){
 	int the_id = atoi(id.c_str());
 	if (method.compare("MSG_FROM_PEER")==0)
 		OnMessageFromPeer(the_id,message);
+	if(method.compare("BYE")==0){
+		callback_->OnPeerDisconnected(the_id);
+	}
+
 }
 
 void PC::OnMessageFromPeer(int peer_id, const std::string& message) {

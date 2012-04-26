@@ -42,6 +42,7 @@ public:
 	virtual ~NiceConnection();
 	void join();
 	void start();
+	void close();
 	bool setRemoteCandidates(std::vector<CandidateInfo> &candidates);
 	void setWebRTCConnection(WebRTCConnection *connection);
 	WebRTCConnection* getWebRTCConnection();

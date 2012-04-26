@@ -20,6 +20,7 @@ public:
 	WebRTCConnection(bool standAlone=false);
 	virtual ~WebRTCConnection();
 	bool init();
+	void close();
 	bool setRemoteSDP(const std::string &sdp);
 	std::string getLocalSDP();
 	int receiveAudioData(char* buf, int len);

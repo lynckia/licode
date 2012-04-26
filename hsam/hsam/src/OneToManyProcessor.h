@@ -7,7 +7,7 @@
 
 #ifndef ONETOMANYPROCESSOR_H_
 #define ONETOMANYPROCESSOR_H_
-#include <vector>
+#include <map>
 #include "mediadefinitions.h"
 
 class WebRTCConnection;
@@ -16,11 +16,12 @@ public:
 	OneToManyProcessor();
 	virtual ~OneToManyProcessor();
 	void setPublisher(WebRTCConnection* conn);
-	void addSubscriber(WebRTCConnection* conn);
+	void addSubscriber(WebRTCConnection* conn, int peer_id);
+	void removeSubscriber(int peer_id);
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
 	WebRTCConnection *publisher;
-	std::vector<WebRTCConnection*> subscribers;
+	std::map<int, WebRTCConnection*> subscribers;
 	char* sendVideoBuffer;
 	char* sendAudioBuffer;
 

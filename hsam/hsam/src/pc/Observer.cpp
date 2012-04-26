@@ -51,6 +51,7 @@ void Observer::OnPeerConnected(int id, const std::string& name){
     
 }
 void Observer::OnPeerDisconnected(int peer_id){
+	receiver_->peerDisconnected(peer_id);
     
 }
 void Observer::OnMessageFromPeer(int peer_id, const std::string& message){

@@ -270,7 +270,7 @@ bool SDPInfo::processCandidate (char** pieces, int size, mediaType media_type){
 		printf("error... aqui va typ, va %s \n", pieces[6]);
 		return false;
 	}
-	int type=-1;
+	unsigned int type=1111;
 	int offset=0;
 	int p;
 	for(p=0;p<4;p++){
@@ -278,6 +278,24 @@ bool SDPInfo::processCandidate (char** pieces, int size, mediaType media_type){
 			type = p;
 		}
 	}
+	switch (type) {
+		case 0:
+			cand.type = HOST;
+			break;
+		case 1:
+			cand.type = SRLFX;
+			break;
+		case 2:
+			cand.type = PRFLX;
+			break;
+		case 3:
+			cand.type = RELAY;
+			break;
+		default:
+			cand.type = HOST;
+			break;
+	}
+
 	if (type==3){
 		printf("tipo relay... metiendo offset");
 		offset=2;

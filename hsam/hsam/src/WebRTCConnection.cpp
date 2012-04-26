@@ -18,8 +18,16 @@ WebRTCConnection::WebRTCConnection(bool standAlone): MediaReceiver() {
 	audio = 1;
 	video_ssrc = 55543;
 	audio_ssrc = 44444;
-	video_receiver =NULL;
+	video_receiver = NULL;
 	audio_receiver = NULL;
+	audio_nice = NULL;
+	video_nice = NULL;
+	audio_nice_rtcp = NULL;
+	video_nice_rtcp = NULL;
+	audio_srtp = NULL;
+	video_srtp = NULL;
+
+
 	this->standAlone = standAlone;
 	if(video){
 		video_nice = new NiceConnection(VIDEO_TYPE,"video_rtp");
@@ -61,18 +69,19 @@ WebRTCConnection::WebRTCConnection(bool standAlone): MediaReceiver() {
 }
 
 WebRTCConnection::~WebRTCConnection() {
-	if (video_nice!=NULL)
-		delete video_nice;
-	if (video_nice_rtcp)
-		delete video_nice_rtcp;
-	if(video_srtp!=NULL)
-		delete video_srtp;
-	if (audio_nice!=NULL)
-		delete audio_nice;
-	if (audio_nice_rtcp!=NULL)
-			delete audio_nice_rtcp;
-	if (audio_srtp!=NULL)
-			delete audio_srtp;
+	this->close();
+//	if (video_nice!=NULL)
+//		delete video_nice;
+//	if (video_nice_rtcp)
+//		delete video_nice_rtcp;
+//	if(video_srtp!=NULL)
+//		delete video_srtp;
+//	if (audio_nice!=NULL)
+//		delete audio_nice;
+//	if (audio_nice_rtcp!=NULL)
+//			delete audio_nice_rtcp;
+//	if (audio_srtp!=NULL)
+//			delete audio_srtp;
 
 	// TODO Auto-generated destructor stub
 }
@@ -136,6 +145,33 @@ bool WebRTCConnection::init(){
 	}
 
 	return true;
+}
+
+void WebRTCConnection::close(){
+	if (audio_nice!=NULL){
+		audio_nice->close();
+		audio_nice->join();
+		delete audio_nice;
+	}
+	if (audio_nice_rtcp!=NULL){
+		audio_nice_rtcp->close();
+		audio_nice_rtcp->join();
+		delete audio_nice_rtcp;
+	}
+	if (video_nice!=NULL){
+		video_nice->close();
+		video_nice->join();
+		delete video_nice;
+	}
+	if (video_nice_rtcp!=NULL){
+		video_nice_rtcp->close();
+		video_nice_rtcp->join();
+		delete video_nice_rtcp;
+	}
+	if (audio_srtp!=NULL)
+		delete audio_srtp;
+	if (video_srtp!=NULL)
+		delete video_srtp;
 }
 bool WebRTCConnection::setRemoteSDP(const std::string &sdp){
 	remote_sdp.initWithSDP(sdp);
