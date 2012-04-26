@@ -135,6 +135,8 @@ void cb_new_selected_pair  (NiceAgent *agent, guint stream_id, guint component_i
 
 
 NiceConnection::NiceConnection(mediaType med, const std::string &transport_name) {
+	agent = NULL;
+	loop = NULL;
 	media_type = med;
 	local_candidates = new std::vector<CandidateInfo>();
 	trans_name = new std::string (transport_name);
@@ -163,8 +165,10 @@ void NiceConnection::start() {
 }
 
 void NiceConnection::close() {
-	nice_agent_remove_stream(agent,1);
-	g_main_loop_quit(loop);
+	if (agent!=NULL)
+		nice_agent_remove_stream(agent,1);
+	if (loop!=NULL)
+		g_main_loop_quit(loop);
 	state = FINISHED;
 
 }
