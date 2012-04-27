@@ -80,7 +80,7 @@ std::string SDPInfo::getSDP() {
 					<< " " << cand.net_prot << " " << cand.priority << " "
 					<< cand.host_address << " " << cand.host_port << " typ "
 					<< hostType_str << " name " << cand.trans_prot << " network_name "
-					<< "eth0 username " /*<< cand.username << */" password " /*<< cand.passwd*/
+					<< "eth0 username " << cand.username << " password " << cand.passwd
 					<< " generation 0" << endl;
 		}
 	}
@@ -263,6 +263,8 @@ bool SDPInfo::processCandidate (char** pieces, int size, mediaType media_type){
 //	if (strcmp(pieces[2],"udp")){
 //		printf("error... como que no udp\n");
 //	}
+//	a=candidate:0 1 udp 2130706432 138.4.4.143 52314 typ host network_name en0 username F+pV4GqEWzOZWvno password U3KKQXo26W7RtukI5+SblDl8 generation 0
+//		        0 1 2    3            4          5     6  7    8            9     10      11               12          13                     14       15
 	cand.priority = (unsigned int)strtoul(pieces[3], NULL, 10);
 	cand.host_address = std::string(pieces[4]);
 	cand.host_port = (unsigned int)strtoul(pieces[5], NULL, 10);
@@ -303,9 +305,10 @@ bool SDPInfo::processCandidate (char** pieces, int size, mediaType media_type){
 		cand.relay_address = std::string(pieces[8]);
 		cand.relay_port = (unsigned int)strtoul(pieces[9], NULL, 10);
 	}
-	cand.trans_prot = pieces[9+offset];
-	cand.username = std::string(pieces[13+offset]);
-	cand.passwd = std::string(pieces[15+offset]);
+//	cand.trans_prot = pieces[9+offset];
+	cand.trans_prot = "";
+	cand.username = std::string(pieces[11+offset]);
+	cand.passwd = std::string(pieces[13+offset]);
     cand_vector.push_back(cand);
 	return true;
 }
