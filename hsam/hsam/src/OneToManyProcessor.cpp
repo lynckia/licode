@@ -36,7 +36,7 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len){
 	for (it = subscribers.begin(); it!=subscribers.end(); it++) {
 		memset(sendAudioBuffer,0,len);
 		memcpy(sendAudioBuffer,buf, len);
-		(*it).second->receiveVideoData(sendAudioBuffer, len);
+		(*it).second->receiveAudioData(sendAudioBuffer, len);
 	}
 
 	return 0;
