@@ -30,7 +30,7 @@ WebRTCConnection::WebRTCConnection(bool standAlone): MediaReceiver() {
 
 	this->standAlone = standAlone;
 	if(video){
-		video_nice = new NiceConnection(VIDEO_TYPE,"video_rtp");
+		video_nice = new NiceConnection(VIDEO_TYPE,"");
 //		video_nice_rtcp = new NiceConnection(VIDEO_TYPE,"video_rtcp");
 		video_nice->setWebRTCConnection(this);
 //		video_nice_rtcp->setWebRTCConnection(this);
@@ -48,7 +48,7 @@ WebRTCConnection::WebRTCConnection(bool standAlone): MediaReceiver() {
 		local_sdp.video_ssrc = video_ssrc;
 	}
 	if (audio){
-		audio_nice = new NiceConnection(AUDIO_TYPE, "rtp");
+		audio_nice = new NiceConnection(AUDIO_TYPE, "");
 //		audio_nice_rtcp = new NiceConnection(AUDIO_TYPE, "rtcp");
 		audio_nice->setWebRTCConnection(this);
 //		audio_nice_rtcp->setWebRTCConnection(this);
