@@ -121,7 +121,7 @@ bool WebRTCConnection::init(){
 		audio_nice->start();
 		sleep(1);
 //		audio_nice_rtcp->start();
-		sleep(1);
+//		sleep(1);
 		while (audio_nice->state!=NiceConnection::CANDIDATES_GATHERED){
 			sleep(1);
 		}
