@@ -186,8 +186,10 @@ bool WebRTCConnection::setRemoteSDP(const std::string &sdp){
 	for (unsigned int it = 0; it < crypto_remote.size(); it++){
 		CryptoInfo cryptemp = crypto_remote[it];
 		if (cryptemp.media_type == VIDEO_TYPE && !cryptemp.cipher_suite.compare("AES_CM_128_HMAC_SHA1_80")){
+			video = true;
 			cryptRemote_video = cryptemp;
 		}else if (cryptemp.media_type == AUDIO_TYPE && !cryptemp.cipher_suite.compare("AES_CM_128_HMAC_SHA1_80")){
+			audio = true;
 			cryptRemote_audio = cryptemp;
 		}
 	}
