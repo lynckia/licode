@@ -148,35 +148,42 @@ bool WebRTCConnection::init(){
 }
 
 void WebRTCConnection::close(){
-	if (audio_nice!=NULL){
-		audio_nice->close();
-		audio_nice->join();
-		delete audio_nice;
+	if (audio){
+		if (audio_nice!=NULL){
+			audio_nice->close();
+			audio_nice->join();
+			delete audio_nice;
+		}
+		if (audio_nice_rtcp!=NULL){
+			audio_nice_rtcp->close();
+			audio_nice_rtcp->join();
+			delete audio_nice_rtcp;
+		}
+		if (audio_srtp!=NULL)
+			delete audio_srtp;
 	}
-	if (audio_nice_rtcp!=NULL){
-		audio_nice_rtcp->close();
-		audio_nice_rtcp->join();
-		delete audio_nice_rtcp;
+	if (video){
+		if (video_nice!=NULL){
+			video_nice->close();
+			video_nice->join();
+			delete video_nice;
+		}
+		if (video_nice_rtcp!=NULL){
+			video_nice_rtcp->close();
+			video_nice_rtcp->join();
+			delete video_nice_rtcp;
+		}
+
+		if (video_srtp!=NULL)
+			delete video_srtp;
 	}
-	if (video_nice!=NULL){
-		video_nice->close();
-		video_nice->join();
-		delete video_nice;
-	}
-	if (video_nice_rtcp!=NULL){
-		video_nice_rtcp->close();
-		video_nice_rtcp->join();
-		delete video_nice_rtcp;
-	}
-	if (audio_srtp!=NULL)
-		delete audio_srtp;
-	if (video_srtp!=NULL)
-		delete video_srtp;
 }
 bool WebRTCConnection::setRemoteSDP(const std::string &sdp){
 	remote_sdp.initWithSDP(sdp);
 	std::vector<CryptoInfo> crypto_remote = remote_sdp.getCryptoInfos();
 	std::vector<CryptoInfo> crypto_local = local_sdp.getCryptoInfos();
+	video = false;
+	audio = false;
 
 	CryptoInfo cryptLocal_video;
 	CryptoInfo cryptLocal_audio;
