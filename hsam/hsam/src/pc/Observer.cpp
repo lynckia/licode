@@ -1,33 +1,24 @@
 #include "Observer.h"
 
 #include <boost/regex.hpp>
+#include <boost/thread.hpp>
 
-//#include <iostream>           // For cerr and cout
 #include <time.h>
 
 Observer::Observer(std::string name, SDPReceiver *receiver):pc_(new PC(name)), name_(name), receiver_(receiver) {
-    pthread_create(&thread, 0, &Observer::init, this);
+	this->init();
 }
 
 Observer::~Observer() {
 }
 
 void Observer::wait() {
-    pthread_join(thread, 0);
+	m_Thread.join();
 }
 
-void *Observer::init(void *obj) {
-    //All we do here is call the do_work() function
-    reinterpret_cast<Observer *>(obj)->start();
-    return NULL;
+void Observer::init() {
+	m_Thread = boost::thread(&Observer::start, this);
 }
-
-//void sleep ( int seconds )
-//{
-//  clock_t endwait;
-//  endwait = clock () + seconds * CLOCKS_PER_SEC ;
-//  while (clock() < endwait) {}
-//}
 
 void Observer::start() {
     pc_->RegisterObserver(this);
@@ -37,8 +28,41 @@ void Observer::start() {
     while(true) {
         pc_->OnHangingGetConnect();
         pc_->OnHangingGetRead();
-        sleep(3);
+        sleep(1);
     }
+}
+
+void Observer::processMessage(int peer_id, const std::string& message){
+	printf("Arrancando movida con %d, %s", peer_id, message.c_str());
+	printf("OFFER1\n");
+	std::string roap = message;
+
+
+	// 	Pillar el OffererId
+	// 	Generar AnswererId
+	if (name_ == "publisher") {
+		receiver_->createPublisher(peer_id);
+     } else {
+    	receiver_->createSubscriber(peer_id);
+     }
+
+	std::string sdp = receiver_->getLocalSDP(peer_id);
+	std::string sdp2 = Observer::Match(roap, "^.*sdp\":\"(.*)\",.*$");
+	Observer::Replace(sdp2,"\\\\r\\\\n","\\n");
+	printf("sdp OFFER!!!!!!!!!!!!\n%s\n", sdp2.c_str());
+	receiver_->setRemoteSDP(peer_id, sdp2);
+
+	Observer::Replace(sdp, "\n", "\\\\r\\\\n");
+	std::string answererSessionId = "106";
+	std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\":\"(.{32,32}).*$");
+	std::string answer1 ("\n{\n \"messageType\" : \"ANSWER\",\n");
+	printf("sdp ANSWEEEER!!!!!!! %s\n", sdp.c_str());
+	answer1.append(" \"sdp\" : \"").append(sdp).append("\",\n");
+	answer1.append(" \"offererSessionId\" : \"").append(offererSessionId).append("\",\n");
+	answer1.append(" \"answererSessionId\" : \"").append(answererSessionId).append("\",\n");
+	answer1.append(" \"seq\" : 1\n}\n");
+	pc_->SendToPeer(peer_id, answer1);
+
 }
 
 void Observer::OnSignedIn(){
@@ -59,77 +83,8 @@ void Observer::OnMessageFromPeer(int peer_id, const std::string& message){
 	printf("message : %s\n",message.c_str());
 	std::string roap = message;
 	if (roap.find("OFFER") != std::string::npos) {
-		// OFFER1: Inicializo a Pedro y devuelvo el primer SDP como ANSWER1
-		// Pasar a ROAP
-		printf("OFFER1\n");
-
-		// 	Pillar el OffererId
-		// 	Generar AnswererId
-		if (name_ == "publisher") {
-			receiver_->createPublisher(peer_id);
-	     } else {
-	    	receiver_->createSubscriber(peer_id);
-	     }
-
-		std::string sdp = receiver_->getLocalSDP(peer_id);
-		std::string sdp2 = Observer::Match(roap, "^.*sdp\":\"(.*)\",.*$");
-		Observer::Replace(sdp2,"\\\\r\\\\n","\\n");
-		printf("sdp OFFER!!!!!!!!!!!!\n%s\n", sdp2.c_str());
-		receiver_->setRemoteSDP(peer_id, sdp2);
-
-//		Observer::Replace(sdp, "a=ssrc[^\n]*\n", "");
-		Observer::Replace(sdp, "\n", "\\\\r\\\\n");
-		std::string answererSessionId = "106";
-		std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\":\"(.{32,32}).*$");
-//		std::string offererSessionId = "104";
-		std::string answer1 ("\n{\n \"messageType\" : \"ANSWER\",\n");
-		printf("sdp ANSWEEEER!!!!!!! %s\n", sdp.c_str());
-		answer1.append(" \"sdp\" : \"").append(sdp).append("\",\n");
-		answer1.append(" \"offererSessionId\" : \"").append(offererSessionId).append("\",\n");
-		answer1.append(" \"answererSessionId\" : \"").append(answererSessionId).append("\",\n");
-		answer1.append(" \"seq\" : 1\n}\n");
-		pc_->SendToPeer(peer_id, answer1);
+		boost::thread *theThread = new boost::thread (&Observer::processMessage, this, peer_id, message);
 	}
-//	} else if (roap.find("ANSWER") != std::string::npos) {
-//		printf("ANSWER\n");
-//		// ANSWER2: Quiero pasar el SDP y devuelvo OK2
-//		// Obtener el SDP
-//		// Crear OK
-//		// 	Pillar el OffererId
-//		// 	Pillar el AnswererId
-////		std::string sdp = Observer::Match(roap, "^.*sdp\" : \"(.*)\",\n.*$");
-////		Observer::Replace(sdp,"\\\\r\\\\n","\\n");
-////		printf("sdp\n%s\n", sdp.c_str());
-////		receiver_->setRemoteSDP(peer_id, sdp);
-//		std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\" : \"(.{32,32}).*$");
-//		std::string answererSessionId = Observer::Match(roap, "^.*answererSessionId\" : \"(.{32,32}).*$");
-//		std::string ok2 ("SDP\n{\n \"messageType\" : \"OK\",\n");
-//		ok2.append(" \"offererSessionId\" : \"").append(answererSessionId).append("\",\n");
-//		ok2.append(" \"answererSessionId\" : \"").append(offererSessionId).append("\",\n");
-//		ok2.append(" \"seq\" : 2\n}\n");
-//		pc_->SendToPeer(peer_id, ok2);
-//	} else if (roap.find("OK") != std::string::npos) {
-////		printf("OK\n");
-////		// OK1: Solo devuelvo parte del ANSWER1 como OFFER2
-////		// Quitar candidatos
-////		// Pasar a ROAP
-////		// 	Pillar el OffererId
-////		// 	Pillar el AnswererId
-////
-////		std::string sdp = receiver_->getLocalSDP(peer_id);
-////		std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\" : \"(.{32,32}).*$");
-////		std::string answererSessionId = Observer::Match(roap, "^.*answererSessionId\" : \"(.{32,32}).*$");
-////		Observer::Replace(sdp, "\\\\n", "\n");
-////		//Observer::Replace(sdp, "a=candidate[^\n]*generation 0\n", "");
-////		Observer::Replace(sdp, "\n", "\\\\r\\\\n");
-////		std::string offer2 ("SDP\n{\n \"messageType\" : \"OFFER\",\n");
-////		offer2.append(" \"offererSessionId\" : \"").append(offererSessionId).append("\",\n");
-////		offer2.append(" \"answererSessionId\" : \"").append(answererSessionId).append("\",\n");
-////		offer2.append(" \"sdp\" : \"").append(sdp).append("\",\n");
-////		offer2.append(" \"seq\" : 2,\n \"tieBreaker\" : 802577871\n}\n");
-////		pc_->SendToPeer(peer_id, offer2);
-//	}
-
 }
 void Observer::OnMessageSent(int err){
     

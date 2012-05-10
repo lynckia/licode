@@ -1,6 +1,5 @@
 #include "PCSocket.h"
 
-#include <pthread.h>
 #include <cstdlib>
 #include <stdio.h>// For atoi()
 
@@ -23,12 +22,13 @@ public:
     static std::string Match(const std::string& text, const std::string& pattern);
 
 private:
-    static void *init(void* obj);
+    void init();
     void start();
+    void processMessage(int peerid, const std::string& message);
 
 
     PC *pc_;
-    pthread_t thread;
+    boost::thread m_Thread;
     std::string name_;
     SDPReceiver *receiver_;
 };
