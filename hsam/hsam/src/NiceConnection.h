@@ -9,17 +9,16 @@
 #define NICECONNECTION_H_
 
 #include <nice/nice.h>
-#include "mediadefinitions.h"
-#include "sdpinfo.h"
 #include <vector>
 #include <string>
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
+#include "mediadefinitions.h"
+#include "sdpinfo.h"
 
-//forward declaration
+//forward declarations
 struct CandidateInfo;
-
 class WebRTCConnection;
 
 
@@ -53,7 +52,7 @@ public:
 
 private:
 	void init();
-	std::string getLocalAddress();
+//	std::string getLocalAddress();
 	NiceAgent* agent;
 	WebRTCConnection* conn;
 	GMainLoop* loop;

@@ -8,14 +8,7 @@
 #include "NiceConnection.h"
 #include "WebRTCConnection.h"
 #include "sdpinfo.h"
-#include <stdio.h>
 #include <glib.h>
-#include <sys/types.h>
-#include <ifaddrs.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <arpa/inet.h>
-
 
 guint stream_id;
 GSList* lcands;
@@ -196,14 +189,6 @@ void NiceConnection::init(){
 
 	// Create a nice agent
 	agent = nice_agent_new( g_main_loop_get_context( loop ),NICE_COMPATIBILITY_GOOGLE);
-//	agent = nice_agent_new( g_main_loop_get_context( loop ),NICE_COMPATIBILITY_RFC5245);
-	NiceAddress* naddr = nice_address_new();
-//	std::string local_addr = getLocalAddress();
-
-//	nice_address_set_from_string(naddr,local_addr.c_str());
-
-	nice_address_set_from_string(naddr,"138.4.4.141");
-	nice_agent_add_local_address (agent, naddr);
 
 	GValue val = { 0 }, val2 = { 0 };
 
@@ -297,41 +282,3 @@ bool NiceConnection::setRemoteCandidates(std::vector<CandidateInfo> &candidates)
 void NiceConnection::setWebRTCConnection(WebRTCConnection *connection){
 	this->conn = connection;
 }
-
-
-
-
-std::string NiceConnection::getLocalAddress(){
-    struct ifaddrs * ifAddrStruct=NULL;
-    struct ifaddrs * ifa=NULL;
-    void * tmpAddrPtr=NULL;
-
-    getifaddrs(&ifAddrStruct);
-
-    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
-        if (ifa ->ifa_addr->sa_family==AF_INET) { // check it is IP4
-            // is a valid IP4 Address
-            tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-            char addressBuffer[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-//            printf("%s IP Address %s\n", ifa->ifa_name, addressBuffer);
-            if (!strcmp(ifa->ifa_name, "eth0")){
-            	return std::string(addressBuffer);
-            }
-
-        }
-    }
-    if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct);
-    return 0;
-
-}
-
-
-
-
-
-
-
-
-
-
