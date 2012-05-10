@@ -3,7 +3,7 @@
 // Author      : Pedro Rodriguez
 // Version     :
 // Copyright   :
-// Description : Hello World in C++, Ansi-style
+// Description : Ansi-style
 //============================================================================
 
 #include <iostream>
@@ -47,14 +47,13 @@ int main() {
     return 0;
 }
 
-SDPReceiver::SDPReceiver() {
+SDPReceiver::SDPReceiver(){
 	muxer = new OneToManyProcessor();
 }
 // AQUI
-
 void SDPReceiver::createPublisher(int peer_id){
 	if (muxer->publisher==NULL){
-		printf("Adding publisher peer_id\n", peer_id);
+		printf("Adding publisher peer_id %d\n", peer_id);
 		WebRTCConnection *newConn = new WebRTCConnection;
 		newConn->init();
 		newConn->setAudioReceiver(muxer);
@@ -82,7 +81,6 @@ void SDPReceiver::setRemoteSDP(int peer_id, const std::string &sdp){
 		//peers[peer_id]->setRemoteSDP(sdp);
 		muxer->subscribers[peer_id]->setRemoteSDP(sdp);
 	}
-
 }
 std::string SDPReceiver::getLocalSDP(int peer_id){
 	std::string sdp;// =  peers[peer_id]->getLocalSDP();

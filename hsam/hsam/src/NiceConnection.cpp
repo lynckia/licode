@@ -9,9 +9,7 @@
 #include "WebRTCConnection.h"
 #include "sdpinfo.h"
 #include <stdio.h>
-//
 #include <glib.h>
-
 #include <sys/types.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
@@ -62,7 +60,6 @@ void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer us
 //		printf("priority %u\n", cand->priority);
 //		printf("username %s\n", cand->username);
 //		printf("password %s\n", cand->password);
-//address, nice_address_get_port(&cand->addr)
 		CandidateInfo cand_info;
 		cand_info.compid = cand->component_id;
 		cand_info.foundation = cand->foundation;
@@ -329,10 +326,6 @@ std::string NiceConnection::getLocalAddress(){
 
 }
 
-//std::vector<CandidateInfo> NiceConnection::getLocalCandidates(){
-//	std::vector<CandidateInfo> vic;
-//	return vic;
-//}
 
 
 

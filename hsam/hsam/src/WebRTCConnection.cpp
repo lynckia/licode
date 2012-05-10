@@ -10,9 +10,7 @@
 
 #include <cstdio>
 
-#include <boost/thread.hpp>
-
-WebRTCConnection::WebRTCConnection(bool standAlone): MediaReceiver() {
+WebRTCConnection::WebRTCConnection(bool standAlone) {
 	// TODO Auto-generated constructor stub
 	video = 1;
 	audio = 1;
