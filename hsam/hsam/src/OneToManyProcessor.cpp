@@ -7,31 +7,26 @@
 
 #include "OneToManyProcessor.h"
 #include "WebRTCConnection.h"
-//#include <cstring>
 
 OneToManyProcessor::OneToManyProcessor() : MediaReceiver(){
 	sendVideoBuffer = (char*)malloc(2000);
 	sendAudioBuffer = (char*)malloc(2000);
 
 	publisher = NULL;
-	// TODO Auto-generated constructor stub
 
 }
 
 OneToManyProcessor::~OneToManyProcessor() {
-
-	// TODO Auto-generated destructor stub
+	if(sendVideoBuffer)
+		delete sendVideoBuffer;
+	if(sendAudioBuffer)
+		delete sendAudioBuffer;
 }
 int OneToManyProcessor::receiveAudioData(char* buf, int len){
 
 	if (subscribers.empty()||len<=0)
 		return 0;
 
-	//	for (unsigned int it = 0; it < subscribers.size(); it++) {
-	//		memset(sendAudioBuffer,0,len);
-	//		memcpy(sendAudioBuffer,buf, len);
-	//		subscribers[it]->receiveAudioData(sendAudioBuffer, len);
-	//	}
 	std::map<int,WebRTCConnection*>::iterator it;
 	for (it = subscribers.begin(); it!=subscribers.end(); it++) {
 		memset(sendAudioBuffer,0,len);
@@ -44,11 +39,7 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len){
 int OneToManyProcessor::receiveVideoData(char* buf, int len){
 	if (subscribers.empty()||len<=0)
 		return 0;
-	//	for (unsigned int it = 0; it < subscribers.size(); it++) {
-	//		memset(sendVideoBuffer,0,len);
-	//		memcpy(sendVideoBuffer,buf, len);
-	//		subscribers[it]->receiveVideoData(sendVideoBuffer, len);
-	//	}
+
 	std::map<int,WebRTCConnection*>::iterator it;
 	for (it = subscribers.begin(); it!=subscribers.end(); it++) {
 		memset(sendVideoBuffer,0,len);

@@ -3,7 +3,7 @@
 // Author      : Pedro Rodriguez
 // Version     :
 // Copyright   :
-// Description : Ansi-style
+// Description : Test Publisher
 //============================================================================
 
 #include <iostream>

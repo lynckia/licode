@@ -11,7 +11,6 @@
 #include <cstdio>
 
 WebRTCConnection::WebRTCConnection(bool standAlone) {
-	// TODO Auto-generated constructor stub
 	video = 1;
 	audio = 1;
 	video_ssrc = 55543;
@@ -68,20 +67,6 @@ WebRTCConnection::WebRTCConnection(bool standAlone) {
 
 WebRTCConnection::~WebRTCConnection() {
 	this->close();
-//	if (video_nice!=NULL)
-//		delete video_nice;
-//	if (video_nice_rtcp)
-//		delete video_nice_rtcp;
-//	if(video_srtp!=NULL)
-//		delete video_srtp;
-//	if (audio_nice!=NULL)
-//		delete audio_nice;
-//	if (audio_nice_rtcp!=NULL)
-//			delete audio_nice_rtcp;
-//	if (audio_srtp!=NULL)
-//			delete audio_srtp;
-
-	// TODO Auto-generated destructor stub
 }
 
 bool WebRTCConnection::init(){
@@ -89,7 +74,7 @@ bool WebRTCConnection::init(){
 	if (video){
 
 		video_nice->start();
-		sleep(1);
+//		sleep(1);
 //		video_nice_rtcp->start();
 //		sleep(1);
 
@@ -117,7 +102,7 @@ bool WebRTCConnection::init(){
 	}
 	if (audio){
 		audio_nice->start();
-		sleep(1);
+//		sleep(1);
 //		audio_nice_rtcp->start();
 //		sleep(1);
 		while (audio_nice->state!=NiceConnection::CANDIDATES_GATHERED){
