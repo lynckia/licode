@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <stdio.h>// For atoi()
+#include <boost/thread.hpp>
 
 #include "SDPReceiver.h"
 

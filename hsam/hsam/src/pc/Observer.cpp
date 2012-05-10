@@ -1,8 +1,6 @@
 #include "Observer.h"
 
 #include <boost/regex.hpp>
-#include <boost/thread.hpp>
-
 #include <time.h>
 
 Observer::Observer(std::string name, SDPReceiver *receiver):pc_(new PC(name)), name_(name), receiver_(receiver) {
@@ -83,7 +81,7 @@ void Observer::OnMessageFromPeer(int peer_id, const std::string& message){
 	printf("message : %s\n",message.c_str());
 	std::string roap = message;
 	if (roap.find("OFFER") != std::string::npos) {
-		boost::thread *theThread = new boost::thread (&Observer::processMessage, this, peer_id, message);
+		boost::thread theThread (&Observer::processMessage, this, peer_id, message);
 	}
 }
 void Observer::OnMessageSent(int err){
