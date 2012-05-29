@@ -79,13 +79,20 @@ std::string SDPInfo::getSDP() {
 			sdp << "a=candidate:" << cand.foundation << " " << cand.compid
 					<< " " << cand.net_prot << " " << cand.priority << " "
 					<< cand.host_address << " " << cand.host_port << " typ "
-					<< hostType_str << " name " << cand.trans_prot << " network_name "
+					<< hostType_str/* << " name " << cand.trans_prot << " network_name "
 					<< "eth0 username " << cand.username << " password " << cand.passwd
-					<< " generation 0" << endl;
+					*/<< " generation 0" << endl;
+
+			if(ice_username.empty()) {
+				ice_username = cand.username;
+				ice_passwd = cand.passwd;
+			}
 		}
 	}
 	//crypto audio
 	if (printedAudio){
+		sdp << "a=ice-ufrag:" << ice_username <<endl;
+		sdp << "a=ice-pwd:" << ice_passwd <<endl;
 		sdp << "a=mid:audio\na=rtcp-mux\n";
 		for (unsigned int it = 0; it<crypto_vector.size(); it++){
 			CryptoInfo cryp_info = crypto_vector[it];
@@ -133,13 +140,20 @@ std::string SDPInfo::getSDP() {
 			sdp << "a=candidate:" << cand.foundation << " " << cand.compid
 					<< " " << cand.net_prot << " " << cand.priority << " "
 					<< cand.host_address << " " << cand.host_port << " typ "
-					<< hostType_str << " name " << cand.trans_prot << " network_name "
+					<< hostType_str/* << " name " << cand.trans_prot << " network_name "
 					<< "eth0 username " << cand.username << " password " << cand.passwd
-					<< " generation 0" << endl;
+					*/<< " generation 0" << endl;
+
+			if(ice_username.empty()) {
+				ice_username = cand.username;
+				ice_passwd = cand.passwd;
+			}
 		}
 	}
 	//crypto audio
 	if (printedVideo){
+		sdp << "a=ice-ufrag:" << ice_username <<endl;
+		sdp << "a=ice-pwd:" << ice_passwd <<endl;
 		sdp << "a=mid:video\na=rtcp-mux\n";
 		for (unsigned int it = 0; it<crypto_vector.size(); it++){
 			CryptoInfo cryp_info = crypto_vector[it];
@@ -172,7 +186,10 @@ bool SDPInfo::processSDP(const std::string& sdp) {
 	//const char *mid = "a=mid:";
 	const char *video = "m=video";
 	const char *audio = "m=audio";
+	const char *ice_user = "a=ice-ufrag";
+	const char *ice_pass = "a=ice-pwd";
 	mediaType mtype = OTHER;
+
 	while(std::getline(iss,strLine)){
 		const char* theline = strLine.c_str();
 		sprintf(line, "%s\n", theline);
@@ -180,6 +197,8 @@ bool SDPInfo::processSDP(const std::string& sdp) {
 		char* isAudio = strstr(line,audio);
 		char* isCand = strstr(line,cand);
 		char* isCrypt = strstr(line,crypto);
+		char* isUser = strstr(line,ice_user);
+		char* isPass = strstr(line,ice_pass);
 //		char* ismid = strstr(line,mid);
 		if (isVideo){
 			mtype = VIDEO_TYPE;
@@ -233,12 +252,30 @@ bool SDPInfo::processSDP(const std::string& sdp) {
 			//			sprintf(key, "%s",cryptopiece[3]);
 			//				keys = g_slist_append(keys,key);
 		}
+		if(isUser){
+			char *pch;
+			pch = strtok (line,":");
+			pch = strtok (NULL, ":");
+			ice_username = std::string(pch);
+
+		}
+		if(isPass){
+			char *pch;
+			pch = strtok (line,":");
+			pch = strtok (NULL, ":");
+			ice_passwd = std::string(pch);
+		}
 
 	}
 	free(line);
 	free(pieces);
 	free(cryptopiece);
 
+	for(unsigned int i = 0; i < cand_vector.size(); i++) {
+		CandidateInfo c = cand_vector[i];
+		c.username = ice_username;
+		c.passwd = ice_passwd;
+	}
 
 	return true;
 }
@@ -273,7 +310,7 @@ bool SDPInfo::processCandidate (char** pieces, int size, mediaType media_type){
 		return false;
 	}
 	unsigned int type=1111;
-	int offset=0;
+//	int offset=0;
 	int p;
 	for(p=0;p<4;p++){
 		if (!strcmp(pieces[7],types_str[p])){
@@ -300,15 +337,15 @@ bool SDPInfo::processCandidate (char** pieces, int size, mediaType media_type){
 
 	if (type==3){
 		printf("tipo relay... metiendo offset");
-		offset=2;
+//		offset=2;
 
 		cand.relay_address = std::string(pieces[8]);
 		cand.relay_port = (unsigned int)strtoul(pieces[9], NULL, 10);
 	}
 //	cand.trans_prot = pieces[9+offset];
 	cand.trans_prot = "";
-	cand.username = std::string(pieces[11+offset]);
-	cand.passwd = std::string(pieces[13+offset]);
+//	cand.username = std::string(pieces[11+offset]);
+//	cand.passwd = std::string(pieces[13+offset]);
     cand_vector.push_back(cand);
 	return true;
 }

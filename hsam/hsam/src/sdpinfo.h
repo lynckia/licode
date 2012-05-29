@@ -73,7 +73,8 @@ private:
 	bool processCandidate (char** pieces, int size, mediaType media_type);
 	std::vector<CandidateInfo> cand_vector;
 	std::vector<CryptoInfo> crypto_vector;
-
+	std::string ice_username;
+	std::string ice_passwd;
 
 };
 
