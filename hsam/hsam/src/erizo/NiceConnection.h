@@ -8,14 +8,15 @@
 #ifndef NICECONNECTION_H_
 #define NICECONNECTION_H_
 
-#include <nice/nice.h>
-
 #include <string>
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
 #include "MediaDefinitions.h"
 #include "SdpInfo.h"
+
+typedef struct _NiceAgent NiceAgent;
+typedef struct _GMainLoop GMainLoop;
 
 namespace erizo {
 //forward declarations

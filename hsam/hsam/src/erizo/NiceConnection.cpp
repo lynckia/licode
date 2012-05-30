@@ -6,6 +6,8 @@
  */
 
 #include <glib.h>
+#include <nice/nice.h>
+
 
 #include "NiceConnection.h"
 #include "WebRtcConnection.h"
