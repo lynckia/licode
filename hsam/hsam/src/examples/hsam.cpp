@@ -10,16 +10,14 @@
 #include <stdio.h>
 #include <fstream>
 
-#include <nice/nice.h>
-#include <srtp/srtp.h>
+
 #include <boost/regex.hpp>
 
 #include "pc/Observer.h"
-#include "media/Test.h"
-#include "OneToManyProcessor.h"
-#include "NiceConnection.h"
-#include "WebRtcConnection.h"
-#include "SdpInfo.h"
+#include "../erizo/OneToManyProcessor.h"
+#include "../erizo/NiceConnection.h"
+#include "../erizo/WebRtcConnection.h"
+#include "../erizo/SdpInfo.h"
 
 
 
