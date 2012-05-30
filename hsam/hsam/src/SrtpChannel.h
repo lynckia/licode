@@ -12,13 +12,8 @@
 #include <netinet/in.h>
 #include <srtp/srtp.h>
 
-
-//struct srtp_event_data_t;
-//struct srtp_ctx_t;
-//typedef srtp_ctx_t* srtp_t;
-//struct srtp_policy_t;
-
 namespace erizo{
+
 typedef struct
 {
 	uint32_t cc:4;
@@ -31,7 +26,6 @@ typedef struct
 	uint32_t timestamp;
 	uint32_t ssrc;
 }rtpheader;
-
 
 typedef struct
 {
@@ -57,16 +51,18 @@ public:
 	static std::string generateBase64Key();
 
 private:
-	bool active_;
 	enum TransmissionType{
 		SENDING,
 		RECEIVING
 	};
+
+	bool configureSrtpSession(srtp_t *session, const char* key, enum TransmissionType type );
+
+	bool active_;
 	srtp_t send_session_;
 	srtp_t receive_session_;
-	srtp_t rtcp_send_ession_;
+	srtp_t rtcp_send_session_;
 	srtp_t rtcp_receive_session_;
-	bool configureSrtpSession(srtp_t *session, const char* key, enum TransmissionType type );
 };
 
 } /* namespace erizo */

@@ -22,11 +22,8 @@ namespace erizo {
 struct CandidateInfo;
 class WebRtcConnection;
 
-
 class NiceConnection {
-
 public:
-
 	enum IceState{
 		INITIAL,
 		CANDIDATES_GATHERED,
@@ -35,28 +32,27 @@ public:
 		FINISHED
 	};
 
-	MediaType mediaType;
-	std::string *transportName;
-	IceState iceState;
 	NiceConnection(MediaType med, const std::string &transportName);
 	virtual ~NiceConnection();
 	void join();
 	void start();
 	void close();
+	WebRtcConnection* getWebRtcConnection();
 	bool setRemoteCandidates(std::vector<CandidateInfo> &candidates);
 	void setWebRtcConnection(WebRtcConnection *connection);
-	WebRtcConnection* getWebRtcConnection();
-	std::vector<CandidateInfo> *localCandidates;
 	int sendData(void* buf, int len);
 
-private:
+	MediaType mediaType;
+	std::string *transportName;
+	IceState iceState;
+	std::vector<CandidateInfo> *localCandidates;
 
+private:
 	void init();
 	NiceAgent* agent_;
 	WebRtcConnection* conn_;
 	GMainLoop* loop_;
 	boost::thread m_Thread_;
-
 };
 
 } /* namespace erizo */

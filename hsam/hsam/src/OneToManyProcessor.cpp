@@ -10,18 +10,21 @@
 
 namespace erizo{
 OneToManyProcessor::OneToManyProcessor() : MediaReceiver(){
+
 	sendVideoBuffer_ = (char*)malloc(2000);
 	sendAudioBuffer_ = (char*)malloc(2000);
 	publisher = NULL;
 
 }
 
-OneToManyProcessor::~OneToManyProcessor() {
+OneToManyProcessor::~OneToManyProcessor(){
+
 	if(sendVideoBuffer_)
 		delete sendVideoBuffer_;
 	if(sendAudioBuffer_)
 		delete sendAudioBuffer_;
 }
+
 int OneToManyProcessor::receiveAudioData(char* buf, int len){
 
 	if (subscribers.empty()||len<=0)
@@ -36,7 +39,9 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len){
 
 	return 0;
 }
+
 int OneToManyProcessor::receiveVideoData(char* buf, int len){
+
 	if (subscribers.empty()||len<=0)
 		return 0;
 
@@ -49,19 +54,24 @@ int OneToManyProcessor::receiveVideoData(char* buf, int len){
 	return 0;
 }
 
-void OneToManyProcessor::setPublisher(WebRtcConnection* webRtcConn) {
+void OneToManyProcessor::setPublisher(WebRtcConnection* webRtcConn){
+
 	this->publisher = webRtcConn;
 }
 
-void OneToManyProcessor::addSubscriber(WebRtcConnection* webRtcConn, int peerId) {
+void OneToManyProcessor::addSubscriber(WebRtcConnection* webRtcConn, int peerId){
+
 	this->subscribers[peerId]=webRtcConn;
 }
+
 void OneToManyProcessor::removeSubscriber(int peerId){
+
 	if (this->subscribers.find(peerId)!=subscribers.end()){
 		this->subscribers[peerId]->close();
 		this->subscribers.erase(peerId);
 	}
 }
+
 }/* namespace erizo */
 
 

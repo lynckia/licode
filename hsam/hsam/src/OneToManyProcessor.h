@@ -25,6 +25,7 @@ public:
 	void removeSubscriber(int peerId);
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
+
 	WebRtcConnection *publisher;
 	std::map<int, WebRtcConnection*> subscribers;
 

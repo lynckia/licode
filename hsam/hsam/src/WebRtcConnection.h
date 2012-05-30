@@ -48,7 +48,6 @@ private:
 	int audioSsrc_, videoSsrc_;
 	bool standAlone_;
 
-	//std::string getLocalAddress();
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_;
 
 };

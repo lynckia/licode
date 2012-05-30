@@ -4,22 +4,27 @@
 #include "Observer.h"
 
 
-Observer::Observer(std::string name, SDPReceiver *receiver):pc_(new PC(name)), name_(name), receiver_(receiver) {
+Observer::Observer(std::string name, SDPReceiver *receiver):pc_(new PC(name)), name_(name), receiver_(receiver)
+{
 	this->init();
 }
 
-Observer::~Observer() {
+Observer::~Observer()
+{
 }
 
-void Observer::wait() {
+void Observer::wait()
+{
 	m_Thread_.join();
 }
 
-void Observer::init() {
+void Observer::init()
+{
 	m_Thread_ = boost::thread(&Observer::start, this);
 }
 
-void Observer::start() {
+void Observer::start()
+{
     pc_->RegisterObserver(this);
     
     pc_->Connect(name_);
@@ -31,8 +36,9 @@ void Observer::start() {
     }
 }
 
-void Observer::processMessage(int peer_id, const std::string& message){
-	printf("Arrancando movida con %d, %s", peer_id, message.c_str());
+void Observer::processMessage(int peer_id, const std::string& message)
+{
+	printf("Processing Message %d, %s", peer_id, message.c_str());
 	printf("OFFER1\n");
 	std::string roap = message;
 
@@ -64,20 +70,23 @@ void Observer::processMessage(int peer_id, const std::string& message){
 
 }
 
-void Observer::OnSignedIn(){
-    
+void Observer::OnSignedIn()
+{
 }
-void Observer::OnDisconnected(){
+void Observer::OnDisconnected()
+{
     pthread_exit(0);
 }
-void Observer::OnPeerConnected(int id, const std::string& name){
+void Observer::OnPeerConnected(int id, const std::string& name)
+{
     
 }
 void Observer::OnPeerDisconnected(int peer_id){
 	receiver_->peerDisconnected(peer_id);
     
 }
-void Observer::OnMessageFromPeer(int peer_id, const std::string& message){
+void Observer::OnMessageFromPeer(int peer_id, const std::string& message)
+{
 	printf("OnMessageFromPeer\n");
 	printf("message : %s\n",message.c_str());
 	std::string roap = message;
@@ -85,16 +94,18 @@ void Observer::OnMessageFromPeer(int peer_id, const std::string& message){
 		boost::thread theThread (&Observer::processMessage, this, peer_id, message);
 	}
 }
-void Observer::OnMessageSent(int err){
+void Observer::OnMessageSent(int err)
+{
     
 }
 
-void Observer::Replace(std::string& text, const std::string& pattern, const std::string& replace) {
+void Observer::Replace(std::string& text, const std::string& pattern, const std::string& replace)
+{
 	boost::regex regex_pattern (pattern,boost::regex_constants::perl);
-
 	text = boost::regex_replace (text, regex_pattern , replace);
 }
-std::string Observer::Match(const std::string& text, const std::string& pattern) {
+std::string Observer::Match(const std::string& text, const std::string& pattern)
+{
 	boost::regex regex_pattern (pattern);
 	boost::cmatch what;
 	boost::regex_match(text.c_str(), what, regex_pattern);

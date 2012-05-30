@@ -16,6 +16,7 @@
 namespace erizo {
 
 WebRtcConnection::WebRtcConnection(bool standAlone) {
+
 	video_ = 1;
 	audio_ = 1;
 	bundle_ = 1;
@@ -27,7 +28,6 @@ WebRtcConnection::WebRtcConnection(bool standAlone) {
 	videoNice_ = NULL;
 	audioSrtp_ = NULL;
 	videoSrtp_ = NULL;
-
 
 	this->standAlone_ = standAlone;
 	if (!bundle_){
@@ -45,6 +45,7 @@ WebRtcConnection::WebRtcConnection(bool standAlone) {
 			localSdp_.addCrypto(crytp);
 			localSdp_.videoSsrc = videoSsrc_;
 		}
+
 		if (audio_){
 			audioNice_ = new NiceConnection(AUDIO_TYPE, "");
 			audioNice_->setWebRtcConnection(this);
@@ -57,8 +58,8 @@ WebRtcConnection::WebRtcConnection(bool standAlone) {
 			crytp.keyParams = key;
 			localSdp_.addCrypto(crytp);
 			localSdp_.audioSsrc = audioSsrc_;
-
 		}
+
 	}else{
 		videoNice_ = new NiceConnection(VIDEO_TYPE,"");
 		videoNice_->setWebRtcConnection(this);
@@ -67,7 +68,6 @@ WebRtcConnection::WebRtcConnection(bool standAlone) {
 		crytpv.cipherSuite=std::string("AES_CM_128_HMAC_SHA1_80");
 		crytpv.mediaType= VIDEO_TYPE;
 		std::string keyv = SrtpChannel::generateBase64Key();
-
 		crytpv.keyParams = keyv;
 		crytpv.tag = 0;
 		localSdp_.addCrypto(crytpv);
@@ -83,14 +83,17 @@ WebRtcConnection::WebRtcConnection(bool standAlone) {
 		localSdp_.audioSsrc = audioSsrc_;
 
 	}
+
 	printf("WebRTCConnection constructed with video %d audio %d\n", video_, audio_);
 }
 
 WebRtcConnection::~WebRtcConnection() {
+
 	this->close();
 }
 
 bool WebRtcConnection::init(){
+
 	std::vector<CandidateInfo> *cands;
 	if(!bundle_){
 		if (video_){
@@ -134,6 +137,7 @@ bool WebRtcConnection::init(){
 }
 
 void WebRtcConnection::close(){
+
 	if (audio_){
 		if (audioNice_!=NULL){
 			audioNice_->close();
@@ -153,7 +157,9 @@ void WebRtcConnection::close(){
 			delete videoSrtp_;
 	}
 }
+
 bool WebRtcConnection::setRemoteSdp(const std::string &sdp){
+
 	remoteSdp_.initWithSdp(sdp);
 	std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
 	std::vector<CryptoInfo> crypto_local = localSdp_.getCryptoInfos();
@@ -208,19 +214,25 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp){
 
 	return true;
 }
+
 std::string WebRtcConnection::getLocalSdp(){
+
 	return localSdp_.getSdp();
 }
+
 void WebRtcConnection::setAudioReceiver(MediaReceiver *receiv){
+
 	this->audioReceiver_ = receiv;
 }
+
 void WebRtcConnection::setVideoReceiver(MediaReceiver *receiv){
+
 	this->videoReceiver_ = receiv;
 }
 
 int WebRtcConnection::receiveAudioData(char* buf, int len){
-	boost::mutex::scoped_lock lock(receiveAudioMutex_);
 
+	boost::mutex::scoped_lock lock(receiveAudioMutex_);
 	int res=-1;
 	int length= len;
 	if (audioSrtp_){
@@ -234,9 +246,10 @@ int WebRtcConnection::receiveAudioData(char* buf, int len){
 	}
 	return res;
 }
-int WebRtcConnection::receiveVideoData(char* buf, int len){
-	boost::mutex::scoped_lock lock(receiveVideoMutex_);
 
+int WebRtcConnection::receiveVideoData(char* buf, int len){
+
+	boost::mutex::scoped_lock lock(receiveVideoMutex_);
 	int res=-1;
 	int length= len;
 	if (videoSrtp_){
@@ -252,6 +265,7 @@ int WebRtcConnection::receiveVideoData(char* buf, int len){
 }
 
 int WebRtcConnection::receiveNiceData(char* buf, int len, NiceConnection* nice){
+
 	boost::mutex::scoped_lock lock(writeMutex_);
 	if (audioReceiver_ == NULL && videoReceiver_ == NULL)
 		return 0;
@@ -261,9 +275,7 @@ int WebRtcConnection::receiveNiceData(char* buf, int len, NiceConnection* nice){
 	if(nice->mediaType == AUDIO_TYPE){
 		if (audioReceiver_!=NULL){
 			if (audioSrtp_){
-//				printf("por aqui %d\n", length);
 				audioSrtp_->unprotectRtp(buf,&length);
-//				printf("por desprotegido audio %d\n", length);
 			}
 			if(length<=0)
 				return length;
@@ -274,13 +286,9 @@ int WebRtcConnection::receiveNiceData(char* buf, int len, NiceConnection* nice){
 		}
 	}
 	else if(nice->mediaType == VIDEO_TYPE){
-//		printf("RECIBIDO VIDEO %d\n", length);
-
 		if (videoReceiver_!=NULL){
 			if (videoSrtp_){
 				videoSrtp_->unprotectRtp(buf,&length);
-//				printf("por desprotegido video %d\n", length);
-
 			}
 			if(length<=0)
 				return length;
