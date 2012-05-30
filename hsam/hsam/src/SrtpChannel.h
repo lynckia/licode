@@ -18,7 +18,7 @@
 //typedef srtp_ctx_t* srtp_t;
 //struct srtp_policy_t;
 
-
+namespace erizo{
 typedef struct
 {
 	uint32_t cc:4;
@@ -44,28 +44,30 @@ typedef struct
 }rtcpheader;
 
 class SrtpChannel {
-public:
-	int ProtectRtp(char* buffer, int *len);
-	int UnprotectRtp(char* buffer, int *len);
-	int ProtectRtcp(char* buffer, int *len);
-	int UnprotectRtcp(char* buffer, int *len);
-	bool SetRtpParams(char* sendingKey, char* receivingKey);
-	bool SetRtcpParams(char* sendingKey, char* receivingKey);
-	static std::string generateBase64Key();
 
+public:
 	SrtpChannel();
 	virtual ~SrtpChannel();
+	int protectRtp(char* buffer, int *len);
+	int unprotectRtp(char* buffer, int *len);
+	int protectRtcp(char* buffer, int *len);
+	int unprotectRtcp(char* buffer, int *len);
+	bool setRtpParams(char* sendingKey, char* receivingKey);
+	bool setRtcpParams(char* sendingKey, char* receivingKey);
+	static std::string generateBase64Key();
+
 private:
 	bool active_;
-	enum Type{
+	enum TransmissionType{
 		SENDING,
 		RECEIVING
 	};
 	srtp_t send_session_;
 	srtp_t receive_session_;
-	srtp_t rtcp_send_session_;
+	srtp_t rtcp_send_ession_;
 	srtp_t rtcp_receive_session_;
-	bool configureSrtpSession(srtp_t *session, const char* key, enum Type type );
+	bool configureSrtpSession(srtp_t *session, const char* key, enum TransmissionType type );
 };
 
+} /* namespace erizo */
 #endif /* SRTPCHANNEL_H_ */

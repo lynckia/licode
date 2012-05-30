@@ -15,16 +15,17 @@
 #include <boost/regex.hpp>
 
 #include "pc/Observer.h"
-#include "OneToManyProcessor.h"
 #include "media/Test.h"
+#include "OneToManyProcessor.h"
 #include "NiceConnection.h"
-#include "WebRTCConnection.h"
+#include "WebRtcConnection.h"
 #include "SdpInfo.h"
 
 
 
-using namespace std;
-std::map<int, WebRTCConnection*> peers;
+using namespace erizo;
+
+std::map<int, WebRtcConnection*> peers;
 int publisherid = 0;
 int main() {
 
@@ -59,13 +60,13 @@ int main() {
 }
 
 SDPReceiver::SDPReceiver(){
-	muxer = new OneToManyProcessor();
+	muxer = new erizo::OneToManyProcessor();
 }
 // AQUI
 void SDPReceiver::createPublisher(int peer_id){
 	if (muxer->publisher==NULL){
 		printf("Adding publisher peer_id %d\n", peer_id);
-		WebRTCConnection *newConn = new WebRTCConnection;
+		WebRtcConnection *newConn = new WebRtcConnection;
 		newConn->init();
 		newConn->setAudioReceiver(muxer);
 		newConn->setVideoReceiver(muxer);
@@ -79,26 +80,26 @@ void SDPReceiver::createPublisher(int peer_id){
 }
 void SDPReceiver::createSubscriber(int peer_id){
 	printf("Adding Subscriber peerid %d\n", peer_id);
-	WebRTCConnection *newConn = new WebRTCConnection;
+	WebRtcConnection *newConn = new WebRtcConnection;
 	newConn->init();
 	muxer->addSubscriber(newConn, peer_id);
 //	peers[peer_id] = newConn;
 }
 void SDPReceiver::setRemoteSDP(int peer_id, const std::string &sdp){
 	if (peer_id == publisherid){
-		muxer->publisher->setRemoteSDP(sdp);
+		muxer->publisher->setRemoteSdp(sdp);
 
 	}else{
 		//peers[peer_id]->setRemoteSDP(sdp);
-		muxer->subscribers[peer_id]->setRemoteSDP(sdp);
+		muxer->subscribers[peer_id]->setRemoteSdp(sdp);
 	}
 }
 std::string SDPReceiver::getLocalSDP(int peer_id){
 	std::string sdp;// =  peers[peer_id]->getLocalSDP();
 	if (peer_id ==publisherid){
-		sdp = muxer->publisher->getLocalSDP();
+		sdp = muxer->publisher->getLocalSdp();
 	}else{
-		sdp = muxer->subscribers[peer_id]->getLocalSDP();
+		sdp = muxer->subscribers[peer_id]->getLocalSdp();
 	}
 	printf("Getting localSDP %s\n", sdp.c_str());
 	return sdp;

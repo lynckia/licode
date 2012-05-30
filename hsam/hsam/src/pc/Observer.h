@@ -1,10 +1,10 @@
-#include "PCSocket.h"
-
 #include <cstdlib>
 #include <stdio.h>// For atoi()
 #include <boost/thread.hpp>
 
 #include "SDPReceiver.h"
+#include "PCSocket.h"
+
 
 class Observer : PCClientObserver {
 public:
@@ -29,7 +29,7 @@ private:
 
 
     PC *pc_;
-    boost::thread m_Thread;
+    boost::thread m_Thread_;
     std::string name_;
     SDPReceiver *receiver_;
 };

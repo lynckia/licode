@@ -6,32 +6,32 @@
  */
 
 #include "OneToManyProcessor.h"
-#include "WebRTCConnection.h"
+#include "WebRtcConnection.h"
 
+namespace erizo{
 OneToManyProcessor::OneToManyProcessor() : MediaReceiver(){
-	sendVideoBuffer = (char*)malloc(2000);
-	sendAudioBuffer = (char*)malloc(2000);
-
+	sendVideoBuffer_ = (char*)malloc(2000);
+	sendAudioBuffer_ = (char*)malloc(2000);
 	publisher = NULL;
 
 }
 
 OneToManyProcessor::~OneToManyProcessor() {
-	if(sendVideoBuffer)
-		delete sendVideoBuffer;
-	if(sendAudioBuffer)
-		delete sendAudioBuffer;
+	if(sendVideoBuffer_)
+		delete sendVideoBuffer_;
+	if(sendAudioBuffer_)
+		delete sendAudioBuffer_;
 }
 int OneToManyProcessor::receiveAudioData(char* buf, int len){
 
 	if (subscribers.empty()||len<=0)
 		return 0;
 
-	std::map<int,WebRTCConnection*>::iterator it;
+	std::map<int,WebRtcConnection*>::iterator it;
 	for (it = subscribers.begin(); it!=subscribers.end(); it++) {
-		memset(sendAudioBuffer,0,len);
-		memcpy(sendAudioBuffer,buf, len);
-		(*it).second->receiveAudioData(sendAudioBuffer, len);
+		memset(sendAudioBuffer_,0,len);
+		memcpy(sendAudioBuffer_,buf, len);
+		(*it).second->receiveAudioData(sendAudioBuffer_, len);
 	}
 
 	return 0;
@@ -40,29 +40,29 @@ int OneToManyProcessor::receiveVideoData(char* buf, int len){
 	if (subscribers.empty()||len<=0)
 		return 0;
 
-	std::map<int,WebRTCConnection*>::iterator it;
+	std::map<int,WebRtcConnection*>::iterator it;
 	for (it = subscribers.begin(); it!=subscribers.end(); it++) {
-		memset(sendVideoBuffer,0,len);
-		memcpy(sendVideoBuffer,buf, len);
-		(*it).second->receiveVideoData(sendVideoBuffer, len);
+		memset(sendVideoBuffer_,0,len);
+		memcpy(sendVideoBuffer_,buf, len);
+		(*it).second->receiveVideoData(sendVideoBuffer_, len);
 	}
 	return 0;
 }
 
-void OneToManyProcessor::setPublisher(WebRTCConnection* conn) {
-	this->publisher = conn;
+void OneToManyProcessor::setPublisher(WebRtcConnection* webRtcConn) {
+	this->publisher = webRtcConn;
 }
 
-void OneToManyProcessor::addSubscriber(WebRTCConnection* conn, int peer_id) {
-	this->subscribers[peer_id]=conn;
+void OneToManyProcessor::addSubscriber(WebRtcConnection* webRtcConn, int peerId) {
+	this->subscribers[peerId]=webRtcConn;
 }
-void OneToManyProcessor::removeSubscriber(int peer_id){
-	if (this->subscribers.find(peer_id)!=subscribers.end()){
-		this->subscribers[peer_id]->close();
-		this->subscribers.erase(peer_id);
+void OneToManyProcessor::removeSubscriber(int peerId){
+	if (this->subscribers.find(peerId)!=subscribers.end()){
+		this->subscribers[peerId]->close();
+		this->subscribers.erase(peerId);
 	}
 }
-
+}/* namespace erizo */
 
 
 

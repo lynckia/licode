@@ -11,70 +11,73 @@
 #include <string>
 #include <vector>
 
-enum hostType{
+namespace erizo{
+
+enum HostType{
 	HOST,
 	SRLFX,
 	PRFLX,
 	RELAY
 };
 
-enum mediaType{
+enum MediaType{
 	VIDEO_TYPE,
 	AUDIO_TYPE,
 	OTHER
 };
 
-struct CryptoInfo {
+class CryptoInfo {
+public:
   CryptoInfo() : tag(0) {}
-
   int tag;
-  std::string cipher_suite;
-  std::string key_params;
+  std::string cipherSuite;
+  std::string keyParams;
   //int ssrc;
-  mediaType media_type;
+  MediaType mediaType;
 
 };
 
-struct CandidateInfo{
+class CandidateInfo{
+public:
 	CandidateInfo() : tag(0){}
 	bool isBundle;
 	int tag;
 	unsigned int priority;
-	unsigned int compid;
+	unsigned int componentId;
 	std::string foundation;
-	std::string host_address;
-	std::string relay_address;
-	int host_port;
-	int relay_port;
-	std::string net_prot;
-	hostType type;
-	std::string trans_prot;
+	std::string hostAddress;
+	std::string relayAddress;
+	int hostPort;
+	int relayPort;
+	std::string netProtocol;
+	HostType hostType;
+	std::string transProtocol;
 	std::string username;
-	std::string passwd;
-	mediaType media_type;
+	std::string password;
+	MediaType mediaType;
 };
 
-class SDPInfo {
+class SdpInfo {
 public:
-	SDPInfo();
-	virtual ~SDPInfo();
-	bool initWithSDP(const std::string &sdp);
-	void addCandidate (const CandidateInfo &info);
-	void addCrypto (const CryptoInfo &info);
-	std::vector<CandidateInfo> &getCandidateInfos();
-	std::vector<CryptoInfo> &getCryptoInfos();
-	std::string getSDP();
-	int audio_ssrc, video_ssrc;
+	SdpInfo();
+	virtual ~SdpInfo();
+	bool initWithSdp(const std::string& sdp);
+	void addCandidate (const CandidateInfo& info);
+	void addCrypto (const CryptoInfo& info);
+	std::vector<CandidateInfo>& getCandidateInfos();
+	std::vector<CryptoInfo>& getCryptoInfos();
+	std::string getSdp();
+	int audioSsrc, videoSsrc;
 
 
 private:
-	bool processSDP(const std::string &sdp);
-	bool processCandidate (char** pieces, int size, mediaType media_type);
-	std::vector<CandidateInfo> cand_vector;
-	std::vector<CryptoInfo> crypto_vector;
-	std::string ice_username;
-	std::string ice_passwd;
+	bool processSdp(const std::string& sdp);
+	bool processCandidate (char** pieces, int size, MediaType mediaType);
+	std::vector<CandidateInfo> candidateVector_;
+	std::vector<CryptoInfo> cryptoVector_;
+	std::string iceUsername_;
+	std::string icePassword_;
 
 };
-
+}/* namespace erizo */
 #endif /* SDPPROCESSOR_H_ */

@@ -12,23 +12,26 @@
 
 #include "MediaDefinitions.h"
 
-class WebRTCConnection;
+namespace erizo{
+
+class WebRtcConnection;
+
 class OneToManyProcessor : public MediaReceiver {
 public:
 	OneToManyProcessor();
 	virtual ~OneToManyProcessor();
-	void setPublisher(WebRTCConnection* conn);
-	void addSubscriber(WebRTCConnection* conn, int peer_id);
-	void removeSubscriber(int peer_id);
+	void setPublisher(WebRtcConnection* webRtcConn);
+	void addSubscriber(WebRtcConnection* webRtcConn, int peerId);
+	void removeSubscriber(int peerId);
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
-	WebRTCConnection *publisher;
-	std::map<int, WebRTCConnection*> subscribers;
-	char* sendVideoBuffer;
-	char* sendAudioBuffer;
-
+	WebRtcConnection *publisher;
+	std::map<int, WebRtcConnection*> subscribers;
 
 private:
+	char* sendVideoBuffer_;
+	char* sendAudioBuffer_;
 };
 
+} /* namespace erizo */
 #endif /* ONETOMANYPROCESSOR_H_ */

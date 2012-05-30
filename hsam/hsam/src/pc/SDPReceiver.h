@@ -1,6 +1,9 @@
-class OneToManyProcessor;
+#include "../OneToManyProcessor.h"
+
 class SDPReceiver {
+
 public:
+
     SDPReceiver();
     virtual ~SDPReceiver(){};
     void createPublisher(int peer_id);
@@ -8,6 +11,8 @@ public:
     void setRemoteSDP(int peer_id, const std::string &sdp);
     std::string getLocalSDP(int peer_id);
     void peerDisconnected (int peer_id);
+
 private:
-    OneToManyProcessor* muxer;
+
+    erizo::OneToManyProcessor* muxer;
 };

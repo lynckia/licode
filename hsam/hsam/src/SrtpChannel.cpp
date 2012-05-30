@@ -11,6 +11,8 @@
 
 #include "SrtpChannel.h"
 
+namespace erizo{
+
 SrtpChannel::SrtpChannel() {
 	srtp_init();
 	active_ = false;
@@ -27,7 +29,7 @@ SrtpChannel::~SrtpChannel() {
 
 }
 
-bool SrtpChannel::SetRtpParams(char* sendingKey, char* receivingKey){
+bool SrtpChannel::setRtpParams(char* sendingKey, char* receivingKey){
 	printf("Configuring srtp local key %s remote key %s\n", sendingKey, receivingKey);
 	configureSrtpSession(&send_session_, sendingKey, SENDING);
 	configureSrtpSession(&receive_session_,receivingKey, RECEIVING);
@@ -36,10 +38,10 @@ bool SrtpChannel::SetRtpParams(char* sendingKey, char* receivingKey){
 
 	return active_;
 }
-bool SrtpChannel::SetRtcpParams(char* sendingKey, char* receivingKey){
+bool SrtpChannel::setRtcpParams(char* sendingKey, char* receivingKey){
 	return 0;
 }
-int SrtpChannel::ProtectRtp(char* buffer, int *len){
+int SrtpChannel::protectRtp(char* buffer, int *len){
 	if (!active_)
 		return 0;
 	int val = srtp_protect(send_session_, buffer, len);
@@ -50,7 +52,7 @@ int SrtpChannel::ProtectRtp(char* buffer, int *len){
 		return -1;
 	}
 }
-int SrtpChannel::UnprotectRtp(char* buffer, int *len){
+int SrtpChannel::unprotectRtp(char* buffer, int *len){
 	if(!active_)
 		return 0;
 	rtcpheader *chead = (rtcpheader*)buffer;
@@ -70,7 +72,7 @@ int SrtpChannel::UnprotectRtp(char* buffer, int *len){
 	}
 
 }
-int SrtpChannel::ProtectRtcp(char* buffer, int *len){
+int SrtpChannel::protectRtcp(char* buffer, int *len){
 	int val = srtp_protect_rtcp(receive_session_, (char*)buffer, len);
 	if(val==0){
 		return 0;
@@ -79,7 +81,7 @@ int SrtpChannel::ProtectRtcp(char* buffer, int *len){
 		return -1;
 	}
 }
-int SrtpChannel::UnprotectRtcp(char* buffer, int *len){
+int SrtpChannel::unprotectRtcp(char* buffer, int *len){
 	int val = srtp_unprotect_rtcp(receive_session_, buffer, len);
 	if(val!=err_status_ok){
 		return 0;
@@ -96,7 +98,7 @@ std::string SrtpChannel::generateBase64Key() {
 }
 
 
-bool SrtpChannel::configureSrtpSession(srtp_t *session, const char* key, enum Type type ){
+bool SrtpChannel::configureSrtpSession(srtp_t *session, const char* key, enum TransmissionType type ){
 	srtp_policy_t policy;
 	memset(&policy, 0, sizeof(policy));
 
@@ -129,11 +131,11 @@ bool SrtpChannel::configureSrtpSession(srtp_t *session, const char* key, enum Ty
 	printf("%s\n", octet_string_hex_string(akey+16, 14));
 	// allocate and initialize the SRTP session
 	policy.key = akey;
-	int res = srtp_create(session, &policy);
+	srtp_create(session, &policy);
 //	return res!=0? false:true;
 	return true;
 }
-
+} /*namespace erizo */
 
 
 

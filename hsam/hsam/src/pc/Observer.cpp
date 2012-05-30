@@ -1,7 +1,8 @@
-#include "Observer.h"
-
 #include <boost/regex.hpp>
 #include <time.h>
+
+#include "Observer.h"
+
 
 Observer::Observer(std::string name, SDPReceiver *receiver):pc_(new PC(name)), name_(name), receiver_(receiver) {
 	this->init();
@@ -11,11 +12,11 @@ Observer::~Observer() {
 }
 
 void Observer::wait() {
-	m_Thread.join();
+	m_Thread_.join();
 }
 
 void Observer::init() {
-	m_Thread = boost::thread(&Observer::start, this);
+	m_Thread_ = boost::thread(&Observer::start, this);
 }
 
 void Observer::start() {
