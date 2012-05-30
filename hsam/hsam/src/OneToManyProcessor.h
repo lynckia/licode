@@ -7,8 +7,10 @@
 
 #ifndef ONETOMANYPROCESSOR_H_
 #define ONETOMANYPROCESSOR_H_
+
 #include <map>
-#include "mediadefinitions.h"
+
+#include "MediaDefinitions.h"
 
 class WebRTCConnection;
 class OneToManyProcessor : public MediaReceiver {

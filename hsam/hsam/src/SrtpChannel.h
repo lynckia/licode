@@ -56,16 +56,16 @@ public:
 	SrtpChannel();
 	virtual ~SrtpChannel();
 private:
-	bool active;
+	bool active_;
 	enum Type{
 		SENDING,
 		RECEIVING
 	};
-	srtp_t send_session;
-	srtp_t receive_session;
-	srtp_t rtcp_send_session;
-	srtp_t rtcp_receive_session;
-	bool configureSRTPsession(srtp_t *session, const char* key, enum Type type );
+	srtp_t send_session_;
+	srtp_t receive_session_;
+	srtp_t rtcp_send_session_;
+	srtp_t rtcp_receive_session_;
+	bool configureSrtpSession(srtp_t *session, const char* key, enum Type type );
 };
 
 #endif /* SRTPCHANNEL_H_ */

@@ -5,10 +5,11 @@
  *      Author: pedro
  */
 
+#include <glib.h>
+
 #include "NiceConnection.h"
 #include "WebRTCConnection.h"
-#include "sdpinfo.h"
-#include <glib.h>
+#include "SdpInfo.h"
 
 guint stream_id;
 GSList* lcands;
@@ -56,7 +57,7 @@ void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer us
 		CandidateInfo cand_info;
 		cand_info.compid = cand->component_id;
 		cand_info.foundation = cand->foundation;
-		cand_info.priority = (float)cand->priority;
+		cand_info.priority = cand->priority;
 		cand_info.host_address = std::string(address);
 		cand_info.host_port = nice_address_get_port(&cand->addr);
 		cand_info.media_type = conn->media_type;
@@ -86,10 +87,6 @@ void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer us
 		}
 		cand_info.net_prot= "udp";
 		cand_info.trans_prot = std::string(*conn->trans_name);
-		if(!conn->trans_name->compare("video_rtcp")||!conn->trans_name->compare("rtcp")){
-			cand_info.compid =2;
-		}
-		cand_info.net_name = "eth0";
 		cand_info.username = std::string(cand->username);
 		if(cand->password)
 			cand_info.passwd = std::string(cand->password);
@@ -97,8 +94,6 @@ void cb_candidate_gathering_done( NiceAgent *agent, guint stream_id, gpointer us
 			cand_info.passwd = std::string("(null)");
 
 		conn->local_candidates->push_back(cand_info);
-
-//		print_candidate_sdp(cand);
 	}
 	printf("candidate_gathering done, size %u\n", conn->local_candidates->size());
 	conn->state = NiceConnection::CANDIDATES_GATHERED;
@@ -208,7 +203,7 @@ void NiceConnection::init(){
 
 	// Create a new stream with one component and start gathering candidates
 
-	int res = nice_agent_add_stream( agent, 1);
+	int res = nice_agent_add_stream( agent, 2);
 	// Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
 	nice_agent_set_port_range(agent, (guint)1, (guint)1, (guint)51000, (guint)52000);
 	printf("EL ID ES %d\n", res);

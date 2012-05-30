@@ -9,16 +9,19 @@
 #include <iostream>
 #include <stdio.h>
 #include <fstream>
-#include "NiceConnection.h"
-#include "WebRTCConnection.h"
-#include "sdpinfo.h"
+
 #include <nice/nice.h>
 #include <srtp/srtp.h>
+#include <boost/regex.hpp>
+
 #include "pc/Observer.h"
 #include "OneToManyProcessor.h"
+#include "media/Test.h"
+#include "NiceConnection.h"
+#include "WebRTCConnection.h"
+#include "SdpInfo.h"
 
 
-#include <boost/regex.hpp>
 
 using namespace std;
 std::map<int, WebRTCConnection*> peers;
@@ -43,6 +46,14 @@ int main() {
     Observer *subscriber = new Observer("subscriber", receiver);
     new Observer("publisher", receiver);
     subscriber->wait();
+
+//	std::ifstream t("/home/pedro/sdpnuevo.sdp");
+//	std::string str((std::istreambuf_iterator<char>(t)),std::istreambuf_iterator<char>());
+//	cout << str <<endl;
+//	SDPInfo sdp;
+//	sdp.initWithSDP(str);
+//	printf("resultado %s\n",sdp.getSDP().c_str());
+
 
     return 0;
 }

@@ -5,16 +5,13 @@
  *      Author: pedro
  */
 
-#include "sdpinfo.h"
 #include <sstream>
 #include <stdio.h>
 #include <cstdlib>
 #include <cstring>
 
+#include "SdpInfo.h"
 
-#define CRYPTO = "a=crypto:"
-#define CANDIDATE = "a=candidate:"
-#define MID = "a=mid:"
 
 using std::endl;
 
@@ -22,7 +19,6 @@ SDPInfo::SDPInfo() {
 }
 
 SDPInfo::~SDPInfo() {
-	// TODO Auto-generated destructor stub
 }
 
 bool SDPInfo::initWithSDP(const std::string& sdp) {
@@ -46,10 +42,14 @@ std::string SDPInfo::getSDP() {
 			<< "o=- 0 0 IN IP4 127.0.0.1\n"
 			<< "s=\n"
 			<< "t=0 0\n";
+	bool bundle = cand_vector[0].isBundle;
+	if (bundle){
+		sdp <<"a=group:BUNDLE audio video\n";
+	}
 	//candidates audio
 	bool printedAudio = false, printedVideo = false;
 	for (unsigned int it = 0 ; it<cand_vector.size(); it++){
-		CandidateInfo cand = cand_vector[it];
+		const CandidateInfo& cand = cand_vector[it];
 		std::string hostType_str;
 		switch (cand.type) {
 		case HOST:
@@ -70,20 +70,18 @@ std::string SDPInfo::getSDP() {
 		}
 		if (cand.media_type == AUDIO_TYPE){
 			if (!printedAudio){
-				sdp << "m=audio "<<cand.host_port << " RTP/AVPF 103 104 0 8 106 105 13 126\n"
-				<< "c=IN IP4 " << cand.host_address <<endl
-				<< "a=rtcp:"<<cand_vector[3].host_port<<" IN IP4 " << cand.host_address <<endl;
+				sdp << "m=audio "<<cand.host_port << " RTP/SAVPF 103 104 0 8 106 105 13 126\n"
+				<< "c=IN IP4 " << /*cand.host_address*/ "138.4.4.141" <<endl
+				<< "a=rtcp:"<<cand_vector[3].host_port<<" IN IP4 " << /*cand.host_address*/ "138.4.4.141" <<endl;
 				printedAudio = true;
 			}
 
 			sdp << "a=candidate:" << cand.foundation << " " << cand.compid
 					<< " " << cand.net_prot << " " << cand.priority << " "
 					<< cand.host_address << " " << cand.host_port << " typ "
-					<< hostType_str/* << " name " << cand.trans_prot << " network_name "
-					<< "eth0 username " << cand.username << " password " << cand.passwd
-					*/<< " generation 0" << endl;
+					<< hostType_str<< " generation 0" << endl;
 
-			if(ice_username.empty()) {
+			if(ice_username.empty() && bundle ) {
 				ice_username = cand.username;
 				ice_passwd = cand.passwd;
 			}
@@ -95,7 +93,7 @@ std::string SDPInfo::getSDP() {
 		sdp << "a=ice-pwd:" << ice_passwd <<endl;
 		sdp << "a=mid:audio\na=rtcp-mux\n";
 		for (unsigned int it = 0; it<crypto_vector.size(); it++){
-			CryptoInfo cryp_info = crypto_vector[it];
+			const CryptoInfo& cryp_info = crypto_vector[it];
 			if (cryp_info.media_type==AUDIO_TYPE){
 				sdp << "a=crypto:" << cryp_info.tag << " " << cryp_info.cipher_suite
 						<< " " << "inline:" << cryp_info.key_params <<endl;
@@ -110,7 +108,7 @@ std::string SDPInfo::getSDP() {
 	}
 
 	for (unsigned int it = 0 ; it<cand_vector.size(); it++){
-		CandidateInfo cand = cand_vector[it];
+		const CandidateInfo& cand = cand_vector[it];
 		std::string hostType_str;
 		switch (cand.type) {
 		case HOST:
@@ -131,20 +129,18 @@ std::string SDPInfo::getSDP() {
 		}
 		if (cand.media_type == VIDEO_TYPE){
 			if (!printedVideo){
-				sdp << "m=video " <<cand.host_port << " RTP/AVPF 100 101 102\n"
-						<< "c=IN IP4 " << cand.host_address <<endl
-						<< "a=rtcp:"<<cand_vector[1].host_port << " IN IP4 " << cand.host_address <<endl;
+				sdp << "m=video " <<cand.host_port << " RTP/SAVPF 100 101 102\n"
+						<< "c=IN IP4 " << /*cand.host_address*/ "138.4.4.141" <<endl
+						<< "a=rtcp:"<<cand_vector[1].host_port << " IN IP4 " << /*cand.host_address*/ "138.4.4.141" <<endl;
 				printedVideo = true;
 			}
 
 			sdp << "a=candidate:" << cand.foundation << " " << cand.compid
 					<< " " << cand.net_prot << " " << cand.priority << " "
 					<< cand.host_address << " " << cand.host_port << " typ "
-					<< hostType_str/* << " name " << cand.trans_prot << " network_name "
-					<< "eth0 username " << cand.username << " password " << cand.passwd
-					*/<< " generation 0" << endl;
+					<< hostType_str << " generation 0" << endl;
 
-			if(ice_username.empty()) {
+			if(ice_username.empty() && bundle) {
 				ice_username = cand.username;
 				ice_passwd = cand.passwd;
 			}
@@ -156,7 +152,7 @@ std::string SDPInfo::getSDP() {
 		sdp << "a=ice-pwd:" << ice_passwd <<endl;
 		sdp << "a=mid:video\na=rtcp-mux\n";
 		for (unsigned int it = 0; it<crypto_vector.size(); it++){
-			CryptoInfo cryp_info = crypto_vector[it];
+			const CryptoInfo& cryp_info = crypto_vector[it];
 			if (cryp_info.media_type==VIDEO_TYPE){
 				sdp << "a=crypto:" << cryp_info.tag << " " << cryp_info.cipher_suite
 						<< " " << "inline:" << cryp_info.key_params <<endl;
@@ -165,8 +161,6 @@ std::string SDPInfo::getSDP() {
 
 		sdp << "a=rtpmap:100 VP8/90000\na=rtpmap:101 red/90000\na=rtpmap:102 ulpfec/90000\n";
 		sdp << "a=ssrc:"<<video_ssrc <<" cname:o/i14u9pJrxRKAsu\na=ssrc:"<<video_ssrc<<" mslabel:048f838f-2dd1-4a98-ab9e-8eb5f00abab8\na=ssrc:" << video_ssrc << " label:iSight integrada\n";
-
-
 	}
 
 
@@ -184,22 +178,30 @@ bool SDPInfo::processSDP(const std::string& sdp) {
 	const char *cand = "a=candidate:";
 	const char *crypto = "a=crypto:";
 	//const char *mid = "a=mid:";
+	const char *group = "a=group:";
 	const char *video = "m=video";
 	const char *audio = "m=audio";
 	const char *ice_user = "a=ice-ufrag";
 	const char *ice_pass = "a=ice-pwd";
 	mediaType mtype = OTHER;
+	bool bundle = false;
+
 
 	while(std::getline(iss,strLine)){
 		const char* theline = strLine.c_str();
 		sprintf(line, "%s\n", theline);
 		char* isVideo = strstr(line,video);
 		char* isAudio = strstr(line,audio);
+		char* isGroup =  strstr(line,group);
 		char* isCand = strstr(line,cand);
 		char* isCrypt = strstr(line,crypto);
 		char* isUser = strstr(line,ice_user);
 		char* isPass = strstr(line,ice_pass);
+
 //		char* ismid = strstr(line,mid);
+		if (isGroup){
+			bundle = true;
+		}
 		if (isVideo){
 			mtype = VIDEO_TYPE;
 		}
@@ -223,7 +225,7 @@ bool SDPInfo::processSDP(const std::string& sdp) {
 			processCandidate (pieces,i-1, mtype);
 		}
 //		if(ismid!=NULL){
-//			printf("MIIIIID %s\n", ismid+6);
+//			printf(" %s\n", ismid+6);
 //			if (!strcmp(ismid+6,"video")){
 //
 //			}else if(!strcmp(ismid+6,"audio")){
@@ -254,15 +256,15 @@ bool SDPInfo::processSDP(const std::string& sdp) {
 		}
 		if(isUser){
 			char *pch;
-			pch = strtok (line,":");
-			pch = strtok (NULL, ":");
+			pch = strtok (line," : \n");
+			pch = strtok (NULL, " : \n");
 			ice_username = std::string(pch);
 
 		}
 		if(isPass){
 			char *pch;
-			pch = strtok (line,":");
-			pch = strtok (NULL, ":");
+			pch = strtok (line," : \n");
+			pch = strtok (NULL, ": \n");
 			ice_passwd = std::string(pch);
 		}
 
@@ -272,9 +274,10 @@ bool SDPInfo::processSDP(const std::string& sdp) {
 	free(cryptopiece);
 
 	for(unsigned int i = 0; i < cand_vector.size(); i++) {
-		CandidateInfo c = cand_vector[i];
+		CandidateInfo& c = cand_vector[i];
 		c.username = ice_username;
 		c.passwd = ice_passwd;
+		c.isBundle = bundle;
 	}
 
 	return true;
@@ -297,20 +300,19 @@ bool SDPInfo::processCandidate (char** pieces, int size, mediaType media_type){
 	cand.compid = (unsigned int)strtoul(pieces[1], NULL, 10);
 
 	cand.net_prot = pieces[2];
-//	if (strcmp(pieces[2],"udp")){
-//		printf("error... como que no udp\n");
-//	}
-//	a=candidate:0 1 udp 2130706432 138.4.4.143 52314 typ host network_name en0 username F+pV4GqEWzOZWvno password U3KKQXo26W7RtukI5+SblDl8 generation 0
-//		        0 1 2    3            4          5     6  7    8            9     10      11               12          13                     14       15
+	// libnice does not support tcp candidates, we ignore them
+	if (cand.net_prot.compare("udp")){
+		return false;
+	}
+//	a=candidate:0 1 udp 2130706432 138.4.4.143 52314 typ host  generation 0
+//		        0 1 2    3            4          5     6  7    8          9
 	cand.priority = (unsigned int)strtoul(pieces[3], NULL, 10);
 	cand.host_address = std::string(pieces[4]);
 	cand.host_port = (unsigned int)strtoul(pieces[5], NULL, 10);
 	if (strcmp(pieces[6],"typ")){
-		printf("error... aqui va typ, va %s \n", pieces[6]);
 		return false;
 	}
 	unsigned int type=1111;
-//	int offset=0;
 	int p;
 	for(p=0;p<4;p++){
 		if (!strcmp(pieces[7],types_str[p])){
@@ -336,16 +338,9 @@ bool SDPInfo::processCandidate (char** pieces, int size, mediaType media_type){
 	}
 
 	if (type==3){
-		printf("tipo relay... metiendo offset");
-//		offset=2;
-
 		cand.relay_address = std::string(pieces[8]);
 		cand.relay_port = (unsigned int)strtoul(pieces[9], NULL, 10);
 	}
-//	cand.trans_prot = pieces[9+offset];
-	cand.trans_prot = "";
-//	cand.username = std::string(pieces[11+offset]);
-//	cand.passwd = std::string(pieces[13+offset]);
     cand_vector.push_back(cand);
 	return true;
 }

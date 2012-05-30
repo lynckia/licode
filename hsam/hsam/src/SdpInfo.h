@@ -37,8 +37,9 @@ struct CryptoInfo {
 
 struct CandidateInfo{
 	CandidateInfo() : tag(0){}
+	bool isBundle;
 	int tag;
-	float priority;
+	unsigned int priority;
 	unsigned int compid;
 	std::string foundation;
 	std::string host_address;
@@ -47,9 +48,7 @@ struct CandidateInfo{
 	int relay_port;
 	std::string net_prot;
 	hostType type;
-	std::string name;
 	std::string trans_prot;
-	std::string net_name;
 	std::string username;
 	std::string passwd;
 	mediaType media_type;

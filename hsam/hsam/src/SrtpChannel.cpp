@@ -5,41 +5,44 @@
  *      Author: pedro
  */
 
-#include "Srtpchannel.h"
+
 #include <srtp/srtp.h>
 #include <nice/nice.h>
+
+#include "SrtpChannel.h"
+
 SrtpChannel::SrtpChannel() {
 	srtp_init();
-	active = false;
+	active_ = false;
 }
 
 SrtpChannel::~SrtpChannel() {
 	// TODO Auto-generated destructor stub
-	if (send_session!=NULL){
-		srtp_dealloc(send_session);
+	if (send_session_!=NULL){
+		srtp_dealloc(send_session_);
 	}
-	if (receive_session!=NULL){
-		srtp_dealloc(receive_session);
+	if (receive_session_!=NULL){
+		srtp_dealloc(receive_session_);
 	}
 
 }
 
 bool SrtpChannel::SetRtpParams(char* sendingKey, char* receivingKey){
 	printf("Configuring srtp local key %s remote key %s\n", sendingKey, receivingKey);
-	configureSRTPsession(&send_session, sendingKey, SENDING);
-	configureSRTPsession(&receive_session,receivingKey, RECEIVING);
+	configureSrtpSession(&send_session_, sendingKey, SENDING);
+	configureSrtpSession(&receive_session_,receivingKey, RECEIVING);
 	sleep(1);
-	active = true;
+	active_ = true;
 
-	return active;
+	return active_;
 }
 bool SrtpChannel::SetRtcpParams(char* sendingKey, char* receivingKey){
 	return 0;
 }
 int SrtpChannel::ProtectRtp(char* buffer, int *len){
-	if (!active)
+	if (!active_)
 		return 0;
-	int val = srtp_protect(send_session, buffer, len);
+	int val = srtp_protect(send_session_, buffer, len);
 	if(val==0){
 		return 0;
 	}else{
@@ -48,7 +51,7 @@ int SrtpChannel::ProtectRtp(char* buffer, int *len){
 	}
 }
 int SrtpChannel::UnprotectRtp(char* buffer, int *len){
-	if(!active)
+	if(!active_)
 		return 0;
 	rtcpheader *chead = (rtcpheader*)buffer;
 
@@ -58,7 +61,7 @@ int SrtpChannel::UnprotectRtp(char* buffer, int *len){
 		return -1;
 	}
 	//		printf("Es RTP\n");
-	int val = srtp_unprotect(receive_session, (char*)buffer, len);
+	int val = srtp_unprotect(receive_session_, (char*)buffer, len);
 	if(val==0){
 		return 0;
 	}else{
@@ -68,7 +71,7 @@ int SrtpChannel::UnprotectRtp(char* buffer, int *len){
 
 }
 int SrtpChannel::ProtectRtcp(char* buffer, int *len){
-	int val = srtp_protect_rtcp(receive_session, (char*)buffer, len);
+	int val = srtp_protect_rtcp(receive_session_, (char*)buffer, len);
 	if(val==0){
 		return 0;
 	}else{
@@ -77,7 +80,7 @@ int SrtpChannel::ProtectRtcp(char* buffer, int *len){
 	}
 }
 int SrtpChannel::UnprotectRtcp(char* buffer, int *len){
-	int val = srtp_unprotect_rtcp(receive_session, buffer, len);
+	int val = srtp_unprotect_rtcp(receive_session_, buffer, len);
 	if(val!=err_status_ok){
 		return 0;
 	}else{
@@ -93,7 +96,7 @@ std::string SrtpChannel::generateBase64Key() {
 }
 
 
-bool SrtpChannel::configureSRTPsession(srtp_t *session, const char* key, enum Type type ){
+bool SrtpChannel::configureSrtpSession(srtp_t *session, const char* key, enum Type type ){
 	srtp_policy_t policy;
 	memset(&policy, 0, sizeof(policy));
 

@@ -9,13 +9,13 @@
 #define NICECONNECTION_H_
 
 #include <nice/nice.h>
-#include <vector>
+//#include <vector>
 #include <string>
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
-#include "mediadefinitions.h"
-#include "sdpinfo.h"
+#include "MediaDefinitions.h"
+#include "SdpInfo.h"
 
 //forward declarations
 struct CandidateInfo;
@@ -26,7 +26,6 @@ class NiceConnection {
 
 public:
 
-
 	enum IceState{
 		INITIAL,
 		CANDIDATES_GATHERED,
@@ -34,6 +33,7 @@ public:
 		READY,
 		FINISHED
 	};
+
 	mediaType media_type;
 	std::string *trans_name;
 	IceState state;
