@@ -8,7 +8,7 @@ function(test_lib LIB_NAME)
 endfunction(test_lib)
 
 project (ERIZO)
-file(GLOB_RECURSE ERIZO_SOURCES ${ERIZO_SOURCE_DIR}/*.cpp ${ERIZO_SOURCE_DIR}/*.h)
+file(GLOB ERIZO_SOURCES ${ERIZO_SOURCE_DIR}/*.cpp ${ERIZO_SOURCE_DIR}/*.h)
 add_library(erizo SHARED ${ERIZO_SOURCES})
 find_package(GTK2 REQUIRED gtk)
 # GTK2
