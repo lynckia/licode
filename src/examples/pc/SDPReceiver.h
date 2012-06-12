@@ -1,4 +1,4 @@
-#include "../../erizo/OneToManyProcessor.h"
+#include <OneToManyProcessor.h>
 
 class SDPReceiver {
 
