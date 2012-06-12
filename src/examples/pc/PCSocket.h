@@ -1,9 +1,9 @@
 #ifndef __PC_INCLUDED__
 #define __PC_INCLUDED__
 
-#include "PracticalSocket.h"
 
 #include <map>
+#include <boost/asio.hpp>
 
 typedef std::map<int, std::string> Peers;
 
@@ -50,21 +50,25 @@ class PC {
  protected:
   void Close();
   bool ConnectControlSocket();
+  boost::asio::ip::tcp::socket* CreateClientSocket(int port);
   void OnMessageFromPeer(int peer_id, const std::string& message);
 
   // Returns true if the whole response has been read.
-  bool ReadIntoBuffer(TCPSocket* socket, std::string* data,
+  bool ReadIntoBuffer(boost::asio::ip::tcp::socket* socket, std::string* data,
                       size_t* content_length);
-  void OnRead(TCPSocket* socket);
+  void OnRead(boost::asio::ip::tcp::socket* socket);
   void parseMessage(std::string *data);
 
 
-  void OnClose(TCPSocket* socket, int err);
+  void OnClose(boost::asio::ip::tcp::socket* socket, int err);
 
   PCClientObserver* callback_;
   std::string server_address_;
-  TCPSocket* control_socket_;
-  TCPSocket* hanging_get_;
+
+  boost::asio::ip::tcp::socket* control_socket_;
+  boost::asio::ip::tcp::resolver* resolver_;
+  boost::asio::io_service* ioservice_;
+
   std::string onconnect_data_;
   std::string control_data_;
   std::string notification_data_;

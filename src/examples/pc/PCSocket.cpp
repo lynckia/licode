@@ -5,17 +5,17 @@
 #include <stdio.h>
 #include <cstdlib>
 
+
 #define PUBLISHER_PORT 8484
 #define SUBSCRIBER_PORT 8485
-string servAddress = "rocky.dit.upm.es";
+//std::string servAddress = "rocky.dit.upm.es";
+std::string servAddress = "138.4.4.143";
+
+using boost::asio::ip::tcp;
+
 
 
 const char kByeMessage[] = "BYE";
-
-TCPSocket* CreateClientSocket(int port) {
-    TCPSocket *sock = new TCPSocket(servAddress, port);
-    return sock;
-}
 
 
 PC::PC(const std::string &name)
@@ -23,6 +23,9 @@ PC::PC(const std::string &name)
     state_(NOT_CONNECTED),
     my_id_(-1),
     isSending(false) {
+
+	ioservice_ = new boost::asio::io_service;
+	resolver_ = new tcp::resolver(*ioservice_);
 
 	if (name.compare("publisher")==0){
 		control_socket_ = CreateClientSocket(PUBLISHER_PORT);
@@ -52,11 +55,25 @@ void PC::RegisterObserver(
   callback_ = callback;
 }
 
+tcp::socket* PC::CreateClientSocket(int port) {
+//	tcp::socket *sock = new tcp::socket (servAddress, port);
+	char portchar[6];
+	sprintf(portchar,"%d",port);
+	tcp::resolver::query query(tcp::v4(), servAddress, portchar);
+	tcp::resolver::iterator iterator = resolver_->resolve(query);
+	tcp::socket *sock = new tcp::socket (*ioservice_);
+    boost::asio::connect(*sock, iterator);
+    return sock;
+}
+
+
+
 
 bool PC::Connect(const std::string& client_name) {
 	std::string signin = "SIGN_IN;";
 	signin.append(client_name).append(";");
-	control_socket_->send(signin.c_str(), signin.length());
+	//control_socket_->send(boost::asio::buffer(signin, signin.length() ), signin.length());
+	boost::asio::write(*control_socket_,boost::asio::buffer((char*)signin.c_str(), signin.length()));
 	state_ = CONNECTED;
 	return true;
 }
@@ -73,17 +90,19 @@ bool PC::SignOut() {
     return true;
 }
 
-bool PC::ReadIntoBuffer(TCPSocket* socket,
+bool PC::ReadIntoBuffer(boost::asio::ip::tcp::socket* socket,
         std::string* data,
         size_t* content_length) {
-  char buffer[10000];
+  char charbuf[10000];
 //  do {
 
-    int bytes = socket->recv(buffer, sizeof(buffer));
-    if (bytes <= 0)
+  //    size_t reply_length = boost::asio::read(s,boost::asio::buffer(reply, request_length));
+//    int bytes = socket->recv(buffer, sizeof(buffer));
+  size_t reply_length = boost::asio::read(*control_socket_,  boost::asio::buffer(charbuf, 10000));
+  if (reply_length <= 0)
       state_ = NOT_CONNECTED;
 
-    data->append(buffer, bytes);
+    data->append(charbuf, reply_length);
 //  } while (true);
   *content_length = strlen(data->c_str());
   printf("RECEIVED %s \n", data->c_str());
@@ -92,7 +111,7 @@ bool PC::ReadIntoBuffer(TCPSocket* socket,
 
 }
 
-void PC::OnRead(TCPSocket* socket) {
+void PC::OnRead(boost::asio::ip::tcp::socket* socket) {
 	size_t content_length = 0;
 	std::string the_data;
 	if (state_ == CONNECTED){
@@ -101,7 +120,7 @@ void PC::OnRead(TCPSocket* socket) {
 		}
 	}
 }
-void PC::OnClose(TCPSocket* socket, int err) {
+void PC::OnClose(boost::asio::ip::tcp::socket* socket, int err) {
 
 }
 
@@ -156,7 +175,9 @@ bool PC::SendToPeer(int peer_id, const std::string& message) {
 	sprintf((char*)peer,"%d",peer_id);
 	std::string msg;
 	msg.append("MSG_TO_PEER;").append((char*)peer).append(";").append(message);
-	control_socket_->send(msg.c_str(), msg.length());
+//	control_socket_->send(msg.c_str(), msg.length());
+	boost::asio::write(*control_socket_,boost::asio::buffer((char*)msg.c_str(), msg.length()));
+
 	return true;
 }
 
