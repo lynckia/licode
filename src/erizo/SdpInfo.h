@@ -11,35 +11,34 @@
 #include <string>
 #include <vector>
 
-namespace erizo{
+namespace erizo {
 
-enum HostType{
-	HOST,
-	SRLFX,
-	PRFLX,
-	RELAY
+enum HostType {
+	HOST, SRLFX, PRFLX, RELAY
 };
 
-enum MediaType{
-	VIDEO_TYPE,
-	AUDIO_TYPE,
-	OTHER
+enum MediaType {
+	VIDEO_TYPE, AUDIO_TYPE, OTHER
 };
 
 class CryptoInfo {
 public:
-  CryptoInfo() : tag(0) {}
-  int tag;
-  std::string cipherSuite;
-  std::string keyParams;
-  //int ssrc;
-  MediaType mediaType;
+	CryptoInfo() :
+			tag(0) {
+	}
+	int tag;
+	std::string cipherSuite;
+	std::string keyParams;
+	//int ssrc;
+	MediaType mediaType;
 
 };
 
-class CandidateInfo{
+class CandidateInfo {
 public:
-	CandidateInfo() : tag(0){}
+	CandidateInfo() :
+			tag(0) {
+	}
 	bool isBundle;
 	int tag;
 	unsigned int priority;
@@ -62,17 +61,16 @@ public:
 	SdpInfo();
 	virtual ~SdpInfo();
 	bool initWithSdp(const std::string& sdp);
-	void addCandidate (const CandidateInfo& info);
-	void addCrypto (const CryptoInfo& info);
+	void addCandidate(const CandidateInfo& info);
+	void addCrypto(const CryptoInfo& info);
 	std::vector<CandidateInfo>& getCandidateInfos();
 	std::vector<CryptoInfo>& getCryptoInfos();
 	std::string getSdp();
 	unsigned int audioSsrc, videoSsrc;
 
-
 private:
 	bool processSdp(const std::string& sdp);
-	bool processCandidate (char** pieces, int size, MediaType mediaType);
+	bool processCandidate(char** pieces, int size, MediaType mediaType);
 	std::vector<CandidateInfo> candidateVector_;
 	std::vector<CryptoInfo> cryptoVector_;
 	std::string iceUsername_;

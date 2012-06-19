@@ -46,7 +46,7 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 	GSList* iterator;
 	//	printf("gathering done %u\n",stream_id);
 	//printf("Candidates---------------------------------------------------->\n");
-	while(lcands!=NULL) {
+	while (lcands != NULL) {
 		for (iterator = lcands; iterator; iterator = iterator->next) {
 			char address[100];
 			cand = (NiceCandidate*) iterator->data;
@@ -92,9 +92,9 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 			cand_info.transProtocol = std::string(*conn->transportName);
 			//cand_info.username = std::string(cand->username);
 			if (cand->username)
-							cand_info.username = std::string(cand->username);
-						else
-							cand_info.username = std::string("(null)");
+				cand_info.username = std::string(cand->username);
+			else
+				cand_info.username = std::string("(null)");
 
 			if (cand->password)
 				cand_info.password = std::string(cand->password);
@@ -103,7 +103,8 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 
 			conn->localCandidates->push_back(cand_info);
 		}
-		lcands = nice_agent_get_local_candidates(agent, stream_id, currentCompId++);
+		lcands = nice_agent_get_local_candidates(agent, stream_id,
+				currentCompId++);
 	}
 	printf("candidate_gathering done, size %u\n",
 			conn->localCandidates->size());
@@ -172,7 +173,6 @@ void NiceConnection::close() {
 
 int NiceConnection::sendData(void *buf, int len) {
 
-
 	int val = -1;
 	if (iceState == READY) {
 		val = nice_agent_send(agent_, 1, 1, len, (char*) buf);
@@ -196,13 +196,12 @@ void NiceConnection::init() {
 	loop_ = g_main_loop_new(NULL, FALSE);
 	//	nice_debug_enable( TRUE );
 	// Create a nice agent
-	agent_ = nice_agent_new(g_main_loop_get_context(loop_),	NICE_COMPATIBILITY_GOOGLE);
+	agent_ = nice_agent_new(g_main_loop_get_context(loop_),
+			NICE_COMPATIBILITY_GOOGLE);
 
 	NiceAddress* naddr = nice_address_new();
-	nice_address_set_from_string(naddr,"138.4.4.141");
-	nice_agent_add_local_address (agent_, naddr);
-
-
+	nice_address_set_from_string(naddr, "138.4.4.141");
+	nice_agent_add_local_address(agent_, naddr);
 
 	GValue val = { 0 }, val2 = { 0 };
 

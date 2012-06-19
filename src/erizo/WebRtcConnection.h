@@ -19,9 +19,9 @@ namespace erizo {
 
 class NiceConnection;
 
-class WebRtcConnection: public MediaReceiver, public NiceReceiver{
+class WebRtcConnection: public MediaReceiver, public NiceReceiver {
 public:
-	WebRtcConnection(bool standAlone=false);
+	WebRtcConnection(bool standAlone = false);
 	virtual ~WebRtcConnection();
 	bool init();
 	void close();
@@ -31,8 +31,7 @@ public:
 	int receiveVideoData(char* buf, int len);
 	void setAudioReceiver(MediaReceiver *receiv);
 	void setVideoReceiver(MediaReceiver *receiv);
-	int receiveNiceData(char* buf,int len, NiceConnection *nice);
-
+	int receiveNiceData(char* buf, int len, NiceConnection *nice);
 
 private:
 	SdpInfo remoteSdp_;
@@ -46,7 +45,7 @@ private:
 	MediaReceiver* videoReceiver_;
 	int video_, audio_, bundle_;
 	unsigned int localAudioSsrc_, localVideoSsrc_;
-	unsigned int remoteAudioSSRC_,remoteVideoSSRC_;
+	unsigned int remoteAudioSSRC_, remoteVideoSSRC_;
 
 	bool standAlone_;
 
