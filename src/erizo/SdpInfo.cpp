@@ -73,7 +73,7 @@ std::string SdpInfo::getSdp() {
 			if (!printedAudio){
 				sdp << "m=audio "<<cand.hostPort << " RTP/SAVPF 103 104 0 8 106 105 13 126\n"
 				<< "c=IN IP4 " << /*cand.host_address*/ "138.4.4.141" <<endl
-				<< "a=rtcp:"<<candidateVector_[3].hostPort<<" IN IP4 " << /*cand.host_address*/ "138.4.4.141" <<endl;
+				<< "a=rtcp:"<<candidateVector_[0].hostPort<<" IN IP4 " << /*cand.host_address*/ "138.4.4.141" <<endl;
 				printedAudio = true;
 			}
 
@@ -92,6 +92,7 @@ std::string SdpInfo::getSdp() {
 	if (printedAudio){
 		sdp << "a=ice-ufrag:" << iceUsername_ <<endl;
 		sdp << "a=ice-pwd:" << icePassword_ <<endl;
+		sdp << "a=sendrecv"<<endl;
 		sdp << "a=mid:audio\na=rtcp-mux\n";
 		for (unsigned int it = 0; it<cryptoVector_.size(); it++){
 			const CryptoInfo& cryp_info = cryptoVector_[it];
@@ -132,7 +133,7 @@ std::string SdpInfo::getSdp() {
 			if (!printedVideo){
 				sdp << "m=video " <<cand.hostPort << " RTP/SAVPF 100 101 102\n"
 						<< "c=IN IP4 " << /*cand.host_address*/ "138.4.4.141" <<endl
-						<< "a=rtcp:"<<candidateVector_[1].hostPort<< " IN IP4 " << /*cand.host_address*/ "138.4.4.141" <<endl;
+						<< "a=rtcp:"<<candidateVector_[0].hostPort<< " IN IP4 " << /*cand.host_address*/ "138.4.4.141" <<endl;
 				printedVideo = true;
 			}
 
@@ -151,6 +152,7 @@ std::string SdpInfo::getSdp() {
 	if (printedVideo){
 		sdp << "a=ice-ufrag:" << iceUsername_ <<endl;
 		sdp << "a=ice-pwd:" << icePassword_ <<endl;
+		sdp << "a=sendrecv"<<endl;
 		sdp << "a=mid:video\na=rtcp-mux\n";
 		for (unsigned int it = 0; it<cryptoVector_.size(); it++){
 			const CryptoInfo& cryp_info = cryptoVector_[it];
@@ -184,6 +186,7 @@ bool SdpInfo::processSdp(const std::string& sdp) {
 	const char *audio = "m=audio";
 	const char *ice_user = "a=ice-ufrag";
 	const char *ice_pass = "a=ice-pwd";
+	const char *ssrctag = "a=ssrc";
 	MediaType mtype = OTHER;
 	bool bundle = false;
 
@@ -198,6 +201,7 @@ bool SdpInfo::processSdp(const std::string& sdp) {
 		char* isCrypt = strstr(line,crypto);
 		char* isUser = strstr(line,ice_user);
 		char* isPass = strstr(line,ice_pass);
+		char* isSsrc = strstr(line,ssrctag);
 
 //		char* ismid = strstr(line,mid);
 		if (isGroup){
@@ -210,15 +214,12 @@ bool SdpInfo::processSdp(const std::string& sdp) {
 			mtype = AUDIO_TYPE;
 		}
 		if(isCand!=NULL){
-//			printf("cand %s\n", isCand );
-
 			char *pch;
 			pch = strtok (line," :");
 			pieces[0] = pch;
 			int i = 0;
 			while (pch != NULL)
 			{
-				//printf ("%s\n",pch);
 				pch = strtok (NULL, " :");
 				pieces[i++]=pch;
 			}
@@ -268,6 +269,17 @@ bool SdpInfo::processSdp(const std::string& sdp) {
 			pch = strtok (NULL, ": \n");
 			icePassword_ = std::string(pch);
 		}
+		if(isSsrc){
+			char *pch;
+			pch = strtok (line," : \n");
+			pch = strtok (NULL, ": \n");
+			if (mtype == VIDEO_TYPE){
+				videoSsrc = strtoul(pch,NULL,10);
+			}else if (mtype == AUDIO_TYPE){
+				audioSsrc = strtoul(pch,NULL,10);
+			}
+		}
+
 
 	}
 	free(line);

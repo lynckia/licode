@@ -45,7 +45,9 @@ private:
 	MediaReceiver* audioReceiver_;
 	MediaReceiver* videoReceiver_;
 	int video_, audio_, bundle_;
-	int audioSsrc_, videoSsrc_;
+	unsigned int localAudioSsrc_, localVideoSsrc_;
+	unsigned int remoteAudioSSRC_,remoteVideoSSRC_;
+
 	bool standAlone_;
 
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_;

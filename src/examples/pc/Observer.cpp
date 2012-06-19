@@ -46,9 +46,11 @@ void Observer::processMessage(int peer_id, const std::string& message)
 	// 	Pillar el OffererId
 	// 	Generar AnswererId
 	if (name_ == "publisher") {
-		receiver_->createPublisher(peer_id);
+		if(!receiver_->createPublisher(peer_id))
+			return;
      } else {
-    	receiver_->createSubscriber(peer_id);
+    	if(!receiver_->createSubscriber(peer_id))
+    		return;
      }
 
 	std::string sdp = receiver_->getLocalSDP(peer_id);
@@ -59,12 +61,13 @@ void Observer::processMessage(int peer_id, const std::string& message)
 
 	Observer::Replace(sdp, "\n", "\\\\r\\\\n");
 	std::string answererSessionId = "106";
-	std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\":\"(.{32,32}).*$");
-	std::string answer1 ("\n{\n \"messageType\" : \"ANSWER\",\n");
+//	std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\":(.{32,32}).*$");
+	std::string offererSessionId = Observer::Match(roap, "^.*offererSessionId\":(...).*$");
+	std::string answer1 ("\n{\n \"messageType\":\"ANSWER\",\n");
 	printf("sdp ANSWEEEER!!!!!!! %s\n", sdp.c_str());
-	answer1.append(" \"sdp\" : \"").append(sdp).append("\",\n");
-	answer1.append(" \"offererSessionId\" : \"").append(offererSessionId).append("\",\n");
-	answer1.append(" \"answererSessionId\" : \"").append(answererSessionId).append("\",\n");
+	answer1.append(" \"sdp\":\"").append(sdp).append("\",\n");
+	answer1.append(" \"offererSessionId\":").append(offererSessionId).append(",\n");
+	answer1.append(" \"answererSessionId\":").append(answererSessionId).append(",\n");
 	answer1.append(" \"seq\" : 1\n}\n");
 	pc_->SendToPeer(peer_id, answer1);
 

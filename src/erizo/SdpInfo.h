@@ -67,7 +67,7 @@ public:
 	std::vector<CandidateInfo>& getCandidateInfos();
 	std::vector<CryptoInfo>& getCryptoInfos();
 	std::string getSdp();
-	int audioSsrc, videoSsrc;
+	unsigned int audioSsrc, videoSsrc;
 
 
 private:
@@ -77,7 +77,6 @@ private:
 	std::vector<CryptoInfo> cryptoVector_;
 	std::string iceUsername_;
 	std::string icePassword_;
-
 };
 }/* namespace erizo */
 #endif /* SDPPROCESSOR_H_ */

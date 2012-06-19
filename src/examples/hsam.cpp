@@ -14,16 +14,15 @@
 #include <boost/regex.hpp>
 
 #include "pc/Observer.h"
-#include "../erizo/OneToManyProcessor.h"
-#include "../erizo/NiceConnection.h"
-#include "../erizo/WebRtcConnection.h"
-#include "../erizo/SdpInfo.h"
+#include <OneToManyProcessor.h>
+#include <NiceConnection.h>
+#include <WebRtcConnection.h>
+#include <SdpInfo.h>
 
 
 
 using namespace erizo;
 
-std::map<int, WebRtcConnection*> peers;
 int publisherid = 0;
 int main() {
 
@@ -41,10 +40,14 @@ int main() {
 //	pepe.setAudioReceiver(&pepe);
 //	pepe.setVideoReceiver(&pepe);
 //	pepe.setRemoteSDP(str);
+
+//	printf("Probando\n");
     SDPReceiver* receiver = new SDPReceiver();
     Observer *subscriber = new Observer("subscriber", receiver);
     new Observer("publisher", receiver);
     subscriber->wait();
+
+
 
 //	std::ifstream t("/home/pedro/sdpnuevo.sdp");
 //	std::string str((std::istreambuf_iterator<char>(t)),std::istreambuf_iterator<char>());
@@ -60,8 +63,8 @@ int main() {
 SDPReceiver::SDPReceiver(){
 	muxer = new erizo::OneToManyProcessor();
 }
-// AQUI
-void SDPReceiver::createPublisher(int peer_id){
+
+bool SDPReceiver::createPublisher(int peer_id){
 	if (muxer->publisher==NULL){
 		printf("Adding publisher peer_id %d\n", peer_id);
 		WebRtcConnection *newConn = new WebRtcConnection;
@@ -69,31 +72,36 @@ void SDPReceiver::createPublisher(int peer_id){
 		newConn->setAudioReceiver(muxer);
 		newConn->setVideoReceiver(muxer);
 		muxer->setPublisher(newConn);
-//		peers[peer_id] = newConn;
 		publisherid = peer_id;
 	}else{
 		printf("PUBLISHER ALREADY SET\n");
+		return false;
+	}
+	return true;
+}
+bool SDPReceiver::createSubscriber(int peer_id){
+	printf("Adding Subscriber peerid %d\n", peer_id);
+	if (muxer->subscribers.find(peer_id)!=muxer->subscribers.end()){
+		printf("OFFER AGAIN\n");
+		return false;
 	}
 
-}
-void SDPReceiver::createSubscriber(int peer_id){
-	printf("Adding Subscriber peerid %d\n", peer_id);
+
 	WebRtcConnection *newConn = new WebRtcConnection;
 	newConn->init();
 	muxer->addSubscriber(newConn, peer_id);
-//	peers[peer_id] = newConn;
+	return true;
 }
 void SDPReceiver::setRemoteSDP(int peer_id, const std::string &sdp){
 	if (peer_id == publisherid){
 		muxer->publisher->setRemoteSdp(sdp);
 
 	}else{
-		//peers[peer_id]->setRemoteSDP(sdp);
 		muxer->subscribers[peer_id]->setRemoteSdp(sdp);
 	}
 }
 std::string SDPReceiver::getLocalSDP(int peer_id){
-	std::string sdp;// =  peers[peer_id]->getLocalSDP();
+	std::string sdp;
 	if (peer_id ==publisherid){
 		sdp = muxer->publisher->getLocalSdp();
 	}else{

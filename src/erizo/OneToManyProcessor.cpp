@@ -41,7 +41,6 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len){
 }
 
 int OneToManyProcessor::receiveVideoData(char* buf, int len){
-
 	if (subscribers.empty()||len<=0)
 		return 0;
 
