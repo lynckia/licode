@@ -4,9 +4,9 @@ Erizo is a project that aims to implement a library able to communicate with Web
 
 ## Directory structure
 
-/src -  The root source directory.
-/src/erizo - The source of the main library
-/src/examples - Examples and tests
+- /src -  The root source directory
+- /src/erizo - The source of the main library
+- /src/examples - Examples and tests
 
 ## Requirements
 
@@ -14,14 +14,18 @@ Erizo is a project that aims to implement a library able to communicate with Web
 - Libnice version >= 1.10
 - boost_threads >= 1.49
 - boost_regex >= 1.49 (optional, only for examples)
+- boost_asio >= 1.49 (optional, only for examples)
 
 - CMake >= 2.8 for building
 
 ## Building Instructions
 
-This project is built using CMake. It is better to build it out of source.
-Run the usual: cmake {location of /src}. It generates two main targets: erizo and examples.
-Making erizo generates liberizo.so which is required to compile the examples.
+This project is built using CMake.
+
+The easiest way to build it is to use the provided scripts:
+- Run ./generateProject.sh to run cmake, test the dependencies and generate the Makefile.
+- Run ./buildProyect.sh to build the project after generating the Makefile. It simply runs make in the build directory.
+- Run ./generateEclipseProyect.sh to generate an Eclipse CDT project which can be imported and used to work with the code.
 
 ## License
 
