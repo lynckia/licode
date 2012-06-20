@@ -48,9 +48,14 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 	//printf("Candidates---------------------------------------------------->\n");
 	while (lcands != NULL) {
 		for (iterator = lcands; iterator; iterator = iterator->next) {
-			char address[100];
+			char address[40];
 			cand = (NiceCandidate*) iterator->data;
 			nice_address_to_string(&cand->addr, address);
+			if (strstr(address, ":")!=NULL){
+				printf("Ignoring IPV6 candidate\n");
+				continue;
+
+			}
 //			printf("foundation %s\n", cand->foundation);
 //			printf("compid %u\n", cand->component_id);
 //			printf("stream_id %u\n", cand->stream_id);
@@ -64,6 +69,7 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 			cand_info.hostAddress = std::string(address);
 			cand_info.hostPort = nice_address_get_port(&cand->addr);
 			cand_info.mediaType = conn->mediaType;
+
 
 			/*
 			 *   NICE_CANDIDATE_TYPE_HOST,
@@ -199,9 +205,9 @@ void NiceConnection::init() {
 	agent_ = nice_agent_new(g_main_loop_get_context(loop_),
 			NICE_COMPATIBILITY_GOOGLE);
 
-	NiceAddress* naddr = nice_address_new();
-	nice_address_set_from_string(naddr, "138.4.4.141");
-	nice_agent_add_local_address(agent_, naddr);
+//	NiceAddress* naddr = nice_address_new();
+//	nice_address_set_from_string(naddr, "138.4.4.141");
+//	nice_agent_add_local_address(agent_, naddr);
 
 	GValue val = { 0 }, val2 = { 0 };
 
