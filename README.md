@@ -27,6 +27,8 @@ The easiest way to build it is to use the provided scripts:
 - Run ./buildProyect.sh to build the project after generating the Makefile. It simply runs make in the build directory.
 - Run ./generateEclipseProyect.sh to generate an Eclipse CDT project which can be imported and used to work with the code.
 
+If doxygen is availabe a "doc" target is generated. HTML documentation can be built by runnin make doc in the build directory.
+
 ##Examples
 
 As of now, the only application built using the library is a streaming application that connects via TCP to a server application built on top of node.js.
