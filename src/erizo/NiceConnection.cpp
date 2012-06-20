@@ -132,7 +132,7 @@ void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
 	NiceConnection *conn = (NiceConnection*) user_data;
 	conn->iceState = NiceConnection::READY;
 	printf(
-			"cb_new_selected_pair for stream %u, comp %u, lfound %s, rfound %s OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n",
+			"cb_new_selected_pair for stream %u, comp %u, lfound %s, rfound %s \n",
 			stream_id, component_id, lfoundation, rfoundation);
 }
 
