@@ -1,8 +1,5 @@
 /*
  * WebRTCConnection.h
- *
- *  Created on: Mar 14, 2012
- *      Author: pedro
  */
 
 #ifndef WEBRTCCONNECTION_H_

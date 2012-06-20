@@ -1,8 +1,5 @@
 /*
  * NiceConnection.cpp
- *
- *  Created on: Mar 8, 2012
- *      Author: pedro
  */
 
 #include <glib.h>
@@ -21,12 +18,10 @@ int rec, sen;
 int length;
 int components = 2;
 uint32_t ssrc = 55543;
-boost::mutex writeMutex, gatherMutex, stateMutex, selectedMutex;
 
 void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
 		guint len, gchar* buf, gpointer user_data) {
 
-	boost::mutex::scoped_lock lock(writeMutex);
 //	printf( "cb_nice_recv len %u id %u\n",len, stream_id );
 	NiceConnection* nicecon = (NiceConnection*) user_data;
 	nicecon->getWebRtcConnection()->receiveNiceData((char*) buf, (int) len,
@@ -36,7 +31,6 @@ void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
 void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 		gpointer user_data) {
 
-	boost::mutex::scoped_lock lock(gatherMutex);
 	NiceConnection *conn = (NiceConnection*) user_data;
 	//printf("ConnState %u\n",conn->state);
 	// ... Wait until the signal candidate-gathering-done is fired ...
@@ -119,7 +113,6 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 
 void cb_component_state_changed(void) {
 
-	boost::mutex::scoped_lock lock(stateMutex);
 	printf("cb_component_state_changed\n");
 }
 
@@ -128,7 +121,6 @@ void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
 	printf(
 			"cb_new_selected_pair for stream %u, comp %u, lfound %s, rfound %s OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n",
 			stream_id, component_id, lfoundation, rfoundation);
-	boost::mutex::scoped_lock lock(selectedMutex);
 	NiceConnection *conn = (NiceConnection*) user_data;
 	conn->iceState = NiceConnection::READY;
 	printf(
@@ -206,7 +198,6 @@ void NiceConnection::init() {
 			NICE_COMPATIBILITY_GOOGLE);
 
 //	NiceAddress* naddr = nice_address_new();
-//	nice_address_set_from_string(naddr, "138.4.4.141");
 //	nice_agent_add_local_address(agent_, naddr);
 
 	GValue val = { 0 }, val2 = { 0 };

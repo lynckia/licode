@@ -1,5 +1,11 @@
-#include <cstdlib>
-#include <stdio.h>// For atoi()
+/*
+ * Observer.h
+ */
+
+#ifndef OBSERVER_H_
+#define OBSERVER_H_
+
+#include <string>
 #include <boost/thread.hpp>
 
 #include "SDPReceiver.h"
@@ -32,4 +38,6 @@ private:
 	std::string name_;
 	SDPReceiver *receiver_;
 };
+
+#endif /* OBSERVER_H_ */
 

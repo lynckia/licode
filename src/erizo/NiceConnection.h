@@ -1,8 +1,5 @@
 /*
  * NiceConnection.h
- *
- *  Created on: Mar 8, 2012
- *      Author: pedro
  */
 
 #ifndef NICECONNECTION_H_
@@ -10,7 +7,6 @@
 
 #include <string>
 #include <boost/thread.hpp>
-#include <boost/thread/mutex.hpp>
 
 #include "MediaDefinitions.h"
 #include "SdpInfo.h"

@@ -1,10 +1,6 @@
-//============================================================================
-// Name        : hsam.cpp
-// Author      : Pedro Rodriguez
-// Version     :
-// Copyright   :
-// Description : Test Publisher
-//============================================================================
+/*
+ * hsam.cpp
+ */
 
 #include <stdio.h>
 

@@ -1,8 +1,5 @@
 /*
  * WebRTCConnection.cpp
- *
- *  Created on: Mar 14, 2012
- *      Author: pedro
  */
 
 #include <cstdio>

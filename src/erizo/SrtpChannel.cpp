@@ -1,8 +1,5 @@
 /*
  * Srtpchannel.cpp
- *
- *  Created on: Mar 8, 2012
- *      Author: pedro
  */
 
 #include <srtp/srtp.h>

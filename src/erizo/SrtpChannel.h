@@ -1,8 +1,5 @@
 /*
  * Srtpchannel.h
- *
- *  Created on: Mar 8, 2012
- *      Author: pedro
  */
 
 #ifndef SRTPCHANNEL_H_

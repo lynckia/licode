@@ -1,8 +1,5 @@
 /*
  * OneToManyProcessor.cpp
- *
- *  Created on: Mar 21, 2012
- *      Author: pedro
  */
 
 #include "OneToManyProcessor.h"

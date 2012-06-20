@@ -1,9 +1,10 @@
+/*
+ * PCSocket.cpp
+ */
+
 #include "PCSocket.h"
-#include <iostream>
-#include <sstream>
-#include <cstring>
 #include <stdio.h>
-#include <cstdlib>
+
 
 #define PUBLISHER_PORT 8484
 #define SUBSCRIBER_PORT 8485

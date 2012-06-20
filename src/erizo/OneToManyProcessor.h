@@ -1,8 +1,5 @@
 /*
  * OneToManyProcessor.h
- *
- *  Created on: Mar 21, 2012
- *      Author: pedro
  */
 
 #ifndef ONETOMANYPROCESSOR_H_
