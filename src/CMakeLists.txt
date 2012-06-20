@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 
 project (ERIZO_ALL)
-set (COMPILE_EXAMPLES ON)
+set (COMPILE_EXAMPLES OFF)
 add_subdirectory(${ERIZO_ALL_SOURCES}erizo)
 find_package (Doxygen)
 if(DOXYGEN_FOUND)
