@@ -6,51 +6,24 @@
 // Description : Test Publisher
 //============================================================================
 
-#include <iostream>
 #include <stdio.h>
-#include <fstream>
 
-#include <boost/regex.hpp>
+#include <OneToManyProcessor.h>
+#include <SdpInfo.h>
+#include <WebRtcConnection.h>
+#include <NiceConnection.h>
 
 #include "pc/Observer.h"
-#include <OneToManyProcessor.h>
-#include <NiceConnection.h>
-#include <WebRtcConnection.h>
-#include <SdpInfo.h>
 
 using namespace erizo;
 
 int publisherid = 0;
 int main() {
 
-//	WebRTCConnection pepe(true);
-//	printf("pWQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQepepepe\n");
-//	pepe.init();
-//	printf("Local SDP\n%s\n", pepe.getLocalSDP().c_str());
-//
-//	printf("push remote sdp\n");
-//	getchar();
-//	std::ifstream t("/home/pedro/workspace/webRTC/MCU/prototype/sdp");
-//	std::string str((std::istreambuf_iterator<char>(t)),
-//                 std::istreambuf_iterator<char>());
-//	cout << str <<endl;
-//	pepe.setAudioReceiver(&pepe);
-//	pepe.setVideoReceiver(&pepe);
-//	pepe.setRemoteSDP(str);
-
-//	printf("Probando\n");
 	SDPReceiver* receiver = new SDPReceiver();
 	Observer *subscriber = new Observer("subscriber", receiver);
 	new Observer("publisher", receiver);
 	subscriber->wait();
-
-//	std::ifstream t("/home/pedro/sdpnuevo.sdp");
-//	std::string str((std::istreambuf_iterator<char>(t)),std::istreambuf_iterator<char>());
-//	cout << str <<endl;
-//	SDPInfo sdp;
-//	sdp.initWithSDP(str);
-//	printf("resultado %s\n",sdp.getSDP().c_str());
-
 	return 0;
 }
 

@@ -7,8 +7,7 @@
 
 #define PUBLISHER_PORT 8484
 #define SUBSCRIBER_PORT 8485
-std::string servAddress = "rocky.dit.upm.es";
-//std::string servAddress = "138.4.4.143";
+std::string servAddress = ""; //INSERT NODE SERVER ADDRESS HERE
 
 using boost::asio::ip::tcp;
 
