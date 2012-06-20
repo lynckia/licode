@@ -1,6 +1,6 @@
 # Erizo, a C/C++ Multipoint Control Unit (MCU) Library for WebRTC 
 
-Erizo is a project that aims to implement a library able to communicate with WebRTC browser clients in order to provide advanced communication services. Currently it is tested on Ubuntu 12.04 and above but it should be able to be compiled on other distributions.
+Erizo is a project that aims to implement a library able to communicate with WebRTC (http://www.webrtc.org) browser clients in order to provide advanced communication services. Currently it is tested on Ubuntu 12.04 and above but it should be able to be compiled on other distributions.
 
 ## Directory structure
 
@@ -26,6 +26,15 @@ The easiest way to build it is to use the provided scripts:
 - Run ./generateProject.sh to run cmake, test the dependencies and generate the Makefile.
 - Run ./buildProyect.sh to build the project after generating the Makefile. It simply runs make in the build directory.
 - Run ./generateEclipseProyect.sh to generate an Eclipse CDT project which can be imported and used to work with the code.
+
+##Examples
+
+As of now, the only application built using the library is a streaming application that connects via TCP to a server application built on top of node.js.
+
+The node.js app is not released but the code should provide an example on how the SDP exchange is made.
+In the current state, the examples are not compiled by default, however, they can be built by setting COMPILE_EXAMPLES to ON in src/CMakeLists.txt
+
+In the future, we will include here tests and examples.
 
 ## License
 
