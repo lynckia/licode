@@ -10,14 +10,14 @@ Erizo is a project that aims to implement a library able to communicate with Web
 
 ## Requirements
 
+- CMake >= 2.8 
 - libSRTP version >= 1.4.4
 - Libnice version >= 1.10
-- boost_threads >= 1.49
-- boost_regex >= 1.49 (optional, only for examples)
-- boost_asio >= 1.49 (optional, only for examples)
-
-- CMake >= 2.8 for building
-
+- boost_threads >= 1.48
+- boost_regex >= 1.48 (optional, only for examples)
+- boost_asio >= 1.48 (optional, only for examples)
+- boost_system >= 1.48 (optional, only for examples)
+ 
 ## Building Instructions
 
 This project is built using CMake.
