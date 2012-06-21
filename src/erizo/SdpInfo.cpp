@@ -66,9 +66,9 @@ std::string SdpInfo::getSdp() {
 			if (!printedAudio) {
 				sdp << "m=audio " << cand.hostPort
 						<< " RTP/SAVPF 103 104 0 8 106 105 13 126\n"
-						<< "c=IN IP4 " << /*cand.host_address*/"138.4.4.141"
+						<< "c=IN IP4 " << cand.hostAddress
 						<< endl << "a=rtcp:" << candidateVector_[0].hostPort
-						<< " IN IP4 " << /*cand.host_address*/"138.4.4.141"
+						<< " IN IP4 " << cand.hostAddress
 						<< endl;
 				printedAudio = true;
 			}
@@ -133,9 +133,9 @@ std::string SdpInfo::getSdp() {
 		if (cand.mediaType == VIDEO_TYPE) {
 			if (!printedVideo) {
 				sdp << "m=video " << cand.hostPort << " RTP/SAVPF 100 101 102\n"
-						<< "c=IN IP4 " << /*cand.host_address*/"138.4.4.141"
+						<< "c=IN IP4 " << cand.hostAddress
 						<< endl << "a=rtcp:" << candidateVector_[0].hostPort
-						<< " IN IP4 " << /*cand.host_address*/"138.4.4.141"
+						<< " IN IP4 " << cand.hostAddress
 						<< endl;
 				printedVideo = true;
 			}
