@@ -11,7 +11,7 @@
 
 namespace erizo {
 
-WebRtcConnection::WebRtcConnection(bool standAlone) {
+WebRtcConnection::WebRtcConnection() {
 
 	video_ = 1;
 	audio_ = 1;
@@ -25,7 +25,6 @@ WebRtcConnection::WebRtcConnection(bool standAlone) {
 	audioSrtp_ = NULL;
 	videoSrtp_ = NULL;
 
-	this->standAlone_ = standAlone;
 	if (!bundle_) {
 		if (video_) {
 			videoNice_ = new NiceConnection(VIDEO_TYPE, "");
@@ -213,14 +212,6 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 //		audioSrtp_->setRtpParams((char*)cryptLocal_audio.keyParams.c_str(), (char*)cryptRemote_audio.keyParams.c_str());
 
 	}
-
-	if (standAlone_) {
-		if (audio_)
-			audioNice_->join();
-		else
-			videoNice_->join();
-	}
-
 	return true;
 }
 
