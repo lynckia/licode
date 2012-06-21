@@ -15,7 +15,7 @@ WebRtcConnection::WebRtcConnection(bool standAlone) {
 
 	video_ = 1;
 	audio_ = 1;
-	bundle_ = 1;
+	bundle_ = true;
 	localVideoSsrc_ = 55543;
 	localAudioSsrc_ = 44444;
 	videoReceiver_ = NULL;
@@ -125,6 +125,7 @@ bool WebRtcConnection::init() {
 		cands = videoNice_->localCandidates;
 		for (unsigned int it = 0; it < cands->size(); it++) {
 			CandidateInfo cand = cands->at(it);
+			cand.isBundle = bundle_;
 			localSdp_.addCandidate(cand);
 			cand.mediaType = AUDIO_TYPE;
 			localSdp_.addCandidate(cand);
