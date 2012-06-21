@@ -1,7 +1,3 @@
-/*
- * WebRTCConnection.h
- */
-
 #ifndef WEBRTCCONNECTION_H_
 #define WEBRTCCONNECTION_H_
 
@@ -16,13 +12,43 @@ namespace erizo {
 
 class NiceConnection;
 
+/**
+ * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
+ * it comprises all the necessary ICE and SRTP components.
+ */
 class WebRtcConnection: public MediaReceiver, public NiceReceiver {
 public:
-	WebRtcConnection(bool standAlone = false);
+
+	/**
+	 * Constructor.
+	 * Constructs an empty WebRTCConnection without any configuration.
+	 */
+	WebRtcConnection();
+	/**
+	 * Destructor.
+	 */
 	virtual ~WebRtcConnection();
+	/**
+	 * Inits the WebConnection by starting ICE Candidate Gathering.
+	 * This is a blocking call and will end when candidates are gathered and the WebRTCConnection is ready to receive the remote SDP
+	 * @return True if the candidates are gathered.
+	 */
 	bool init();
+	/**
+	 * Closes the webRTC connection.
+	 * The object cannot be used after this call.
+	 */
 	void close();
+	/**
+	 * Sets the SDP of the remote peer.
+	 * @param sdp The SDP
+	 * @return true if the SDP was received correctly.
+	 */
 	bool setRemoteSdp(const std::string &sdp);
+	/**
+	 * Obtains the local SDP-
+	 * @return The SDP as a string.
+	 */
 	std::string getLocalSdp();
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
@@ -43,9 +69,6 @@ private:
 	int video_, audio_, bundle_;
 	unsigned int localAudioSsrc_, localVideoSsrc_;
 	unsigned int remoteAudioSSRC_, remoteVideoSSRC_;
-
-	bool standAlone_;
-
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_;
 
 };
