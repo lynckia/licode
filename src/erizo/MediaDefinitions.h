@@ -10,7 +10,7 @@ namespace erizo{
 class NiceConnection;
 
 /**
- * A media receiver is any class that can receive audio or video data.
+ * A MediaReceiver is any class that can receive audio or video data.
  */
 class MediaReceiver{
 public:

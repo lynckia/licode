@@ -9,28 +9,47 @@
 #include <vector>
 
 namespace erizo {
-
+/**
+ * ICE candidate types
+ */
 enum HostType {
 	HOST, SRLFX, PRFLX, RELAY
 };
-
+/**
+ * Channel types
+ */
 enum MediaType {
 	VIDEO_TYPE, AUDIO_TYPE, OTHER
 };
-
+/**
+ * SRTP info.
+ */
 class CryptoInfo {
 public:
 	CryptoInfo() :
 			tag(0) {
 	}
+	/**
+	 * tag number
+	 */
 	int tag;
+	/**
+	 * The cipher suite. Only AES_CM_128_HMAC_SHA1_80 is supported as of now.
+	 */
 	std::string cipherSuite;
+	/**
+	 * The key
+	 */
 	std::string keyParams;
-	//int ssrc;
+	/**
+	 * The MediaType
+	 */
 	MediaType mediaType;
 
 };
-
+/**
+ * Contains the information of an ICE Candidate
+ */
 class CandidateInfo {
 public:
 	CandidateInfo() :
@@ -52,17 +71,51 @@ public:
 	std::string password;
 	MediaType mediaType;
 };
-
+/**
+ * Contains the information of a single SDP.
+ * Used to parse and generate SDPs
+ */
 class SdpInfo {
 public:
+	/**
+	 * Constructor
+	 */
 	SdpInfo();
 	virtual ~SdpInfo();
+	/**
+	 * Inits the object with a given SDP.
+	 * @param sdp An string with the SDP.
+	 * @return true if success
+	 */
 	bool initWithSdp(const std::string& sdp);
+	/**
+	 * Adds a new candidate.
+	 * @param info The CandidateInfo containing the new candidate
+	 */
 	void addCandidate(const CandidateInfo& info);
+	/**
+	 * Adds SRTP info.
+	 * @param info The CryptoInfo containing the information.
+	 */
 	void addCrypto(const CryptoInfo& info);
+	/**
+	 * Gets the candidates.
+	 * @return A vector containing the current candidates.
+	 */
 	std::vector<CandidateInfo>& getCandidateInfos();
+	/**
+	 * Gets the SRTP information.
+	 * @return A vector containing the CryptoInfo objects with the SRTP information.
+	 */
 	std::vector<CryptoInfo>& getCryptoInfos();
+	/**
+	 * Gets the actual SDP.
+	 * @return The SDP in string format.
+	 */
 	std::string getSdp();
+	/**
+	 * The audio and video SSRCs for this particular SDP.
+	 */
 	unsigned int audioSsrc, videoSsrc;
 
 private:
