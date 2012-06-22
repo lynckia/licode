@@ -41,19 +41,35 @@ public:
 	void close();
 	/**
 	 * Sets the SDP of the remote peer.
-	 * @param sdp The SDP
+	 * @param sdp The SDP.
 	 * @return true if the SDP was received correctly.
 	 */
 	bool setRemoteSdp(const std::string &sdp);
 	/**
-	 * Obtains the local SDP-
+	 * Obtains the local SDP.
 	 * @return The SDP as a string.
 	 */
 	std::string getLocalSdp();
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
+	/**
+	 * Sets a MediaReceiver that is going to receive Audio Data
+	 * @param receiv The MediaReceiver to send audio to.
+	 */
 	void setAudioReceiver(MediaReceiver *receiv);
+	/**
+	 * Sets a MediaReceiver that is going to receive Video Data
+	 * @param receiv The MediaReceiver
+	 */
 	void setVideoReceiver(MediaReceiver *receiv);
+	/**
+	 * Method to Receive data from a NiceConnection
+	 * @param buf The data buffer
+	 * @param len The length of the buffer
+	 * @param nice The NiceConnection orgi
+	 * @return
+	 */
+
 	int receiveNiceData(char* buf, int len, NiceConnection *nice);
 
 private:

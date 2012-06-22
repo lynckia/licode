@@ -31,18 +31,64 @@ typedef struct {
 	uint32_t length :16;
 	uint32_t ssrc;
 } rtcpheader;
-
+/**
+ * A SRTP data Channel.
+ * Represents a SRTP Channel with keys for protecting and unprotecting RTP and RTCP data.
+ */
 class SrtpChannel {
 
 public:
+	/**
+	 * The constructor. At this point the class is only initialized but it still needs the Key pair.
+	 */
 	SrtpChannel();
 	virtual ~SrtpChannel();
+	/**
+	 * Protects RTP Data
+	 * @param buffer Pointer to the buffer with the data. The protected data is returned here
+	 * @param len Pointer to the length of the data. The length is returned here
+	 * @return 0 or an error code
+	 */
 	int protectRtp(char* buffer, int *len);
+	/**
+	 * Unprotects RTP Data
+	 * @param buffer Pointer to the buffer with the data. The unprotected data is returned here
+	 * @param len Pointer to the length of the data. The length is returned here
+	 * @return 0 or an error code
+	 */
 	int unprotectRtp(char* buffer, int *len);
+	/**
+	 * Protects RTCP Data
+	 * @param buffer Pointer to the buffer with the data. The protected data is returned here
+	 * @param len Pointer to the length of the data. The length is returned here
+	 * @return 0 or an error code
+	 */
 	int protectRtcp(char* buffer, int *len);
+	/**
+	 * Unprotects RTCP Data
+	 * @param buffer Pointer to the buffer with the data. The unprotected data is returned here
+	 * @param len Pointer to the length of the data. The length is returned here
+	 * @return 0 or an error code
+	 */
 	int unprotectRtcp(char* buffer, int *len);
+	/**
+	 * Sets a key pair for the RTP channel
+	 * @param sendingKey The key for protecting data
+	 * @param receivingKey The key for unprotecting data
+	 * @return true if everything is ok
+	 */
 	bool setRtpParams(char* sendingKey, char* receivingKey);
+	/**
+	 * Sets a key pair for the RTCP channel
+	 * @param sendingKey The key for protecting data
+	 * @param receivingKey The key for unprotecting data
+	 * @return true if everything is ok
+	 */
 	bool setRtcpParams(char* sendingKey, char* receivingKey);
+	/**
+	 * Generates a valid key and encodes it in Base64
+	 * @return The new key
+	 */
 	static std::string generateBase64Key();
 
 private:
