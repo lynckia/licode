@@ -2,6 +2,8 @@
 
 Erizo is a project that aims to implement a library able to communicate with WebRTC (http://www.webrtc.org) browser clients in order to provide advanced communication services. Currently it is tested on Ubuntu 11.10 and above but it should be able to be compiled on other distributions.
 
+Updated code documentation can be found at http://ging.github.com/erizo 
+
 ## Directory structure
 
 - /src -  The root source directory
