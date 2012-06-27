@@ -1,12 +1,5 @@
-#include <iostream>
-#include <stdio.h>
-#include <fstream>
-
 #include "MediaProcessor.h"
-
-#include <boost/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/regex.hpp>
+#include <boost/asio.hpp>
 
 #ifndef TEST_H_
 #define TEST_H_
@@ -18,8 +11,10 @@ public:
 
 	void rec();
 	void send(char *buff, int buffSize);
+private:
 
-	//UDPSocket *sock;
+	boost::asio::ip::udp::socket* socket_;
+	boost::asio::io_service* ioservice_;
 	MediaProcessor *mp;
 };
 

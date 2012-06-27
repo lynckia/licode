@@ -1,7 +1,15 @@
+#include <iostream>
+#include <stdio.h>
+
+#include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
+
+
 #include "Test.h"
+using boost::asio::ip::udp;
+
 
 Test::Test() {
-	// TODO Auto-generated constructor stub
 	mp = new MediaProcessor();
 
 
@@ -18,18 +26,18 @@ Test::Test() {
 
 
 	videoCodecInfo *v = new videoCodecInfo;
-	v->codec = CODEC_ID_MPEG2VIDEO;
-	//v->codec = CODEC_ID_MPEG4;
-	v->width = 176;
-	v->height = 144;
+	v->codec = CODEC_ID_VP8;
+//	v->codec = CODEC_ID_MPEG4;
+	v->width = 706;
+	v->height = 396;
 
 	mp->initVideoDecoder(v);
 
 	videoCodecInfo *c = new videoCodecInfo;
 	//c->codec = CODEC_ID_MPEG2VIDEO;
-	c->codec = CODEC_ID_H263;
-	c->width = 176;
-	c->height = 144;
+	c->codec = CODEC_ID_MPEG2VIDEO;
+	c->width = v->width;
+	c->height = v->height;
 	c->frameRate = 24;
 	c->bitRate = 1024;
 	c->maxInter = 0;
@@ -43,19 +51,20 @@ Test::Test() {
 	mp->initVideoUnpackagerRTP(r);
 
 
-//	sock = new UDPSocket(5004);
+	ioservice_ = new boost::asio::io_service;
+	socket_ = new udp::socket(*ioservice_, udp::endpoint(udp::v4(),40000));
+
 	boost::thread t = boost::thread(&Test::rec, this);
 	t.join();
 }
 
 Test::~Test() {
-	// TODO Auto-generated destructor stub
 	//sock->disconnect();
 }
 
 void Test::rec() {
 
-	int outBuff2Size = 176*144*3/2;
+	int outBuff2Size = 706*396*3/2;
 
     void *buff = malloc(2000);
     char * outBuff = (char*)malloc(50000);
@@ -68,20 +77,20 @@ void Test::rec() {
 
     std::string s;
     unsigned short u;
-
+    int a;
     while(true) {
 
     	memset(buff, 0, 2000);
 
 //    	int a = sock->recvFrom(buff, 2000, s, u);
-
-    	printf("\n********* RECEPCIÓN *********");
-    	int a = 5;
-		printf("\n\nBytes = %d", a);
+    	a = socket_->receive(boost::asio::buffer(buff, 2000));
+    	printf("********* RECEPCIÓN *********\n");
+//    	int a = 5;
+		printf("Bytes = %d\n", a);
 
 		int b = mp->unpackageVideoRTP((char*)buff, a, outBuff, &gotFrame);
 
-		printf("\nBytes desem = %d", b);
+		printf("Bytes desem = %d\n", b);
 
 		size += b;
 		outBuff += b;
@@ -90,12 +99,12 @@ void Test::rec() {
 
 			outBuff -= size;
 
-			printf("\nTengo un frame desempaquetado!! Size = %d", size);
+			printf("Tengo un frame desempaquetado!! Size = %d\n", size);
 
 			int c;
 
 			c = mp->decodeVideo(outBuff, size, outBuff2, outBuff2Size, &gotDecFrame);
-			printf("\nBytes dec = %d", c);
+			printf("Bytes dec = %d\n", c);
 
 			printf("\n*****************************");
 

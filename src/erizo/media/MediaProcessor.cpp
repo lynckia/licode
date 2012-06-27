@@ -1,5 +1,9 @@
-#include "MediaProcessor.h"
+
 #include <string>
+
+
+#include "MediaProcessor.h"
+
 //UDPSocket *sock=NULL;
 //UDPSocket *out=NULL;
 std::string s;
@@ -19,7 +23,7 @@ MediaProcessor::MediaProcessor() {
 
 	avcodec_register_all();
 	av_register_all();
-//	avformat_network_init();
+	avformat_network_init();
 }
 
 MediaProcessor::~MediaProcessor() {
@@ -735,31 +739,33 @@ int MediaProcessor::unpackageVideoRTP(char *inBuff, int inBuffLen, char *outBuff
 */
 	*gotFrame = 0;
 
-//	rtpHeader *head = (rtpHeader*)inBuff;
-//
-//	int sec = ntohs(head->seqnum);
-//	int ssrc = ntohl(head->ssrc);
-//	unsigned long time = ntohl(head->timestamp);
-//
-//
-//
-//
-//	int l = inBuffLen - RTP_HEADER_LEN;
-//
-//	inBuff += RTP_HEADER_LEN;
-//
-//	memcpy(outBuff, inBuff, l);
-//
-//	if(head->marker) {
-//		*gotFrame = 1;
-//	}
+	rtpHeader* head = (rtpHeader*)inBuff;
 
-//	return l;
+	int sec = ntohs(head->seqnum);
+	int ssrc = ntohl(head->ssrc);
+	unsigned long time = ntohl(head->timestamp);
 
 
-//	if (avformat_find_stream_info(vInputFormatContext, NULL) < 0) {
-//		return -1;
-//	}
+
+
+	int l = inBuffLen - RTP_HEADER_LEN;
+
+	inBuff += RTP_HEADER_LEN;
+
+	memcpy(outBuff, inBuff, l);
+	vp8RtpHeader* vp8h = (vp8RtpHeader*)outBuff;
+	printf("Printf R %u, PartID %u , X %u \n\n", vp8h->R, vp8h->partId, vp8h->X);
+
+	if(head->marker) {
+		*gotFrame = 1;
+	}
+
+	return l;
+
+
+	if (avformat_find_stream_info(vInputFormatContext, NULL) < 0) {
+		return -1;
+	}
 
 	AVPacket pkt;
 	av_init_packet(&pkt);

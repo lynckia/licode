@@ -46,6 +46,15 @@ typedef struct
 	uint32_t ssrc;
 }rtpHeader;
 
+typedef struct
+{
+	uint32_t partId:4;
+	uint32_t S:1;
+	uint32_t N:1;
+	uint32_t R:1;
+	uint32_t X:1;
+}vp8RtpHeader;
+
 
 #define RTP_HEADER_LEN 12;
 
