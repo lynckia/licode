@@ -6,8 +6,10 @@
 
 
 #include "Test.h"
+#include "utils/RtpUtils.h"
 using boost::asio::ip::udp;
 
+using namespace erizo;
 
 Test::Test() {
 	mp = new MediaProcessor();
@@ -88,9 +90,14 @@ void Test::rec() {
 //    	int a = 5;
 		printf("Bytes = %d\n", a);
 
-		int b = mp->unpackageVideoRTP((char*)buff, a, outBuff, &gotFrame);
+		int z,b;
+		z = mp->unpackageVideoRTP((char*)buff, a, outBuff, &gotFrame);
 
-		printf("Bytes desem = %d\n", b);
+		RTPPayloadVP8* parsed = pars.parseVP8((unsigned char*)outBuff, z);
+		b = parsed->dataLength;
+		//int c = parsed.dataLength;
+
+		printf("Bytes desem = %d prevp8 %d\n", b, z );
 
 		size += b;
 		outBuff += b;
