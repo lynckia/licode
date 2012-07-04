@@ -8,10 +8,13 @@
 #include <map>
 
 #include "MediaDefinitions.h"
+#include "media/MediaProcessor.h"
+#include "media/utils/RtpUtils.h"
+
 
 namespace erizo{
-
 class WebRtcConnection;
+
 
 /**
  * Represents a One to Many connection.
@@ -41,11 +44,18 @@ public:
 	int receiveVideoData(char* buf, int len);
 
 	WebRtcConnection *publisher;
+	MediaProcessor *mp;
 	std::map<int, WebRtcConnection*> subscribers;
 
 private:
 	char* sendVideoBuffer_;
 	char* sendAudioBuffer_;
+	char* unpackagedBuffer_;
+	char* decodedBuffer_;
+	char* codedBuffer_;
+	int gotFrame_,gotDecodedFrame_, size_;
+	RtpParser pars;
+
 };
 
 } /* namespace erizo */

@@ -6,12 +6,13 @@
 
 
 #include "Test.h"
-#include "utils/RtpUtils.h"
+
 using boost::asio::ip::udp;
 
 using namespace erizo;
 
 Test::Test() {
+
 	mp = new MediaProcessor();
 
 
@@ -30,8 +31,10 @@ Test::Test() {
 	videoCodecInfo *v = new videoCodecInfo;
 	v->codec = CODEC_ID_VP8;
 //	v->codec = CODEC_ID_MPEG4;
-	v->width = 706;
-	v->height = 396;
+	//v->width = 706;
+	//v->height = 396;
+	v->width = 400;
+	v->height = 300;
 
 	mp->initVideoDecoder(v);
 
@@ -54,10 +57,14 @@ Test::Test() {
 
 
 	ioservice_ = new boost::asio::io_service;
+	resolver_ = new udp::resolver(*ioservice_);
 	socket_ = new udp::socket(*ioservice_, udp::endpoint(udp::v4(),40000));
+	query_ = new udp::resolver::query(udp::v4(),"127.0.0.1", "50000");
+
 
 	boost::thread t = boost::thread(&Test::rec, this);
 	t.join();
+
 }
 
 Test::~Test() {
@@ -84,23 +91,21 @@ void Test::rec() {
 
     	memset(buff, 0, 2000);
 
-//    	int a = sock->recvFrom(buff, 2000, s, u);
     	a = socket_->receive(boost::asio::buffer(buff, 2000));
     	printf("********* RECEPCIÓN *********\n");
-//    	int a = 5;
 		printf("Bytes = %d\n", a);
 
 		int z,b;
 		z = mp->unpackageVideoRTP((char*)buff, a, outBuff, &gotFrame);
 
-		RTPPayloadVP8* parsed = pars.parseVP8((unsigned char*)outBuff, z);
-		b = parsed->dataLength;
+//		RTPPayloadVP8* parsed = pars.parseVP8((unsigned char*)outBuff, z);
+//		b = parsed->dataLength;
 		//int c = parsed.dataLength;
 
-		printf("Bytes desem = %d prevp8 %d\n", b, z );
+//		printf("Bytes desem = %d prevp8 %d\n", b, z );
 
-		size += b;
-		outBuff += b;
+		size += z;
+		outBuff += z;
 
 		if(gotFrame) {
 
@@ -144,8 +149,11 @@ void Test::send(char *buff, int buffSize) {
 
 	printf("\nBytes empaquetados = %d", b);
 
-	//sock->sendTo(buffSend2, b, "toronado.dit.upm.es", 5005);
+	udp::resolver::iterator iterator = resolver_->resolve(*query_);
 
+
+//	socket_->send_to(buffSend2, b, "toronado.dit.upm.es", 5005);
+	socket_->send_to(boost::asio::buffer(buffSend2,b),*iterator);
 	free(buffSend);
 	free(buffSend2);
 

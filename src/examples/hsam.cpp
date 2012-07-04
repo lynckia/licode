@@ -8,8 +8,7 @@
 #include <SdpInfo.h>
 #include <WebRtcConnection.h>
 #include <NiceConnection.h>
-#include <media/Test.h>
-
+#include "Test.h"
 #include "pc/Observer.h"
 
 using namespace erizo;

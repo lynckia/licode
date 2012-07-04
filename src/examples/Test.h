@@ -1,5 +1,5 @@
-#include "MediaProcessor.h"
-#include "utils/RtpUtils.h"
+#include <media/MediaProcessor.h>
+#include <media/utils/RtpUtils.h>
 #include <boost/asio.hpp>
 
 #ifndef TEST_H_
@@ -15,6 +15,9 @@ public:
 private:
 
 	boost::asio::ip::udp::socket* socket_;
+	boost::asio::ip::udp::resolver* resolver_;
+
+	boost::asio::ip::udp::resolver::query* query_;
 	boost::asio::io_service* ioservice_;
 	MediaProcessor *mp;
 	erizo::RtpParser pars;

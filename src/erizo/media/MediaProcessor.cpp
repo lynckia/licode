@@ -743,40 +743,44 @@ int MediaProcessor::unpackageVideoRTP(char *inBuff, int inBuffLen,
 	int sec = ntohs(head->seqnum);
 	int ssrc = ntohl(head->ssrc);
 	unsigned long time = ntohl(head->timestamp);
-
+//	if (ssrc!= 55543)
+//		return -1;
 	int l = inBuffLen - RTP_HEADER_LEN;
 
 	inBuff += RTP_HEADER_LEN;
+	vp8RtpHeader* vp8h = (vp8RtpHeader*) outBuff;
+	printf("R: %u, PartID %u , X %u \n", vp8h->R, vp8h->partId, vp8h->X);
+	l--;
+	inBuff++;
 
 	memcpy(outBuff, inBuff, l);
-	vp8RtpHeader* vp8h = (vp8RtpHeader*) outBuff;
-	printf("R: %u, PartID %u , X %u \n\n", vp8h->R, vp8h->partId, vp8h->X);
+
 
 	if (head->marker) {
 		*gotFrame = 1;
 	}
 
 	return l;
-
-	if (avformat_find_stream_info(vInputFormatContext, NULL) < 0) {
-		return -1;
-	}
-
-	AVPacket pkt;
-	av_init_packet(&pkt);
-
-	//aInputFormatContext->iformat->read_packet(aInputFormatContext, &pkt);
-
-	int p = av_read_frame(vInputFormatContext, &pkt);
-	printf("Leido frame %d\n", p);
-
-	outBuff = (char*) pkt.data;
-
-	int se = pkt.size;
-
-	av_free_packet(&pkt);
-
-	return se;
+//
+//	if (avformat_find_stream_info(vInputFormatContext, NULL) < 0) {
+//		return -1;
+//	}
+//
+//	AVPacket pkt;
+//	av_init_packet(&pkt);
+//
+//	//aInputFormatContext->iformat->read_packet(aInputFormatContext, &pkt);
+//
+//	int p = av_read_frame(vInputFormatContext, &pkt);
+//	printf("Leido frame %d\n", p);
+//
+//	outBuff = (char*) pkt.data;
+//
+//	int se = pkt.size;
+//
+//	av_free_packet(&pkt);
+//
+//	return se;
 
 }
 

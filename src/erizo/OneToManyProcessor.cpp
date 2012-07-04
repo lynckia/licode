@@ -11,7 +11,47 @@ OneToManyProcessor::OneToManyProcessor() :
 
 	sendVideoBuffer_ = (char*) malloc(2000);
 	sendAudioBuffer_ = (char*) malloc(2000);
+
 	publisher = NULL;
+
+	// Media processing
+
+    unpackagedBuffer_ = (char*)malloc(50000);
+    memset(unpackagedBuffer_, 0, 50000);
+
+
+    gotFrame_ = 0;
+    size_ = 0;
+    gotDecodedFrame_=0;
+
+
+
+	mp = new MediaProcessor();
+	videoCodecInfo *v = new videoCodecInfo;
+	v->codec = CODEC_ID_VP8;
+	//	v->codec = CODEC_ID_MPEG4;
+	v->width = 640;
+	v->height = 480;
+	decodedBuffer_ = (char*) malloc(v->width*v->height*3/2);
+	memset(decodedBuffer_,0,v->width*v->height*3/2);
+	mp->initVideoDecoder(v);
+
+	videoCodecInfo *c = new videoCodecInfo;
+	//c->codec = CODEC_ID_MPEG2VIDEO;
+	c->codec = CODEC_ID_VP8;
+	c->width = v->width;
+	c->height = v->height;
+	c->frameRate = 24;
+	c->bitRate = 1024;
+	c->maxInter = 0;
+
+	mp->initVideoCoder(c);
+
+	RTPInfo *r = new RTPInfo;
+	//r->codec = CODEC_ID_MPEG2VIDEO;
+	//	r->codec = CODEC_ID_MPEG4;
+	mp->initVideoPackagerRTP(r);
+	mp->initVideoUnpackagerRTP(r);
 
 }
 
@@ -39,6 +79,40 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len) {
 }
 
 int OneToManyProcessor::receiveVideoData(char* buf, int len) {
+
+	int b;
+	int x = mp->unpackageVideoRTP(buf,len,unpackagedBuffer_,&gotFrame_);
+//	if (x>0){
+//		RTPPayloadVP8* parsed = pars.parseVP8((unsigned char*)unpackagedBuffer_, x);
+//		b = parsed->dataLength;
+//		printf("Bytes desem = %d, sobre %d reciv\n", b, len);
+//
+//	}
+	size_ += x;
+	unpackagedBuffer_ += x;
+	if(gotFrame_) {
+
+				unpackagedBuffer_ -= size_;
+
+				printf("Tengo un frame desempaquetado!! Size = %d\n", size_);
+
+				int c;
+
+				c = mp->decodeVideo(unpackagedBuffer_, size_, decodedBuffer_, 640*480*3/2, &gotDecodedFrame_);
+				printf("Bytes dec = %d\n", c);
+
+				printf("\n*****************************");
+
+				size_ = 0;
+				memset(unpackagedBuffer_, 0, 50000);
+				gotFrame_ = 0;
+
+				if(gotDecodedFrame_) {
+					printf("\nTengo un frame decodificado!!");
+					gotDecodedFrame_ = 0;
+					//send(outBuff2, c);
+				}
+			}
 	if (subscribers.empty() || len <= 0)
 		return 0;
 
