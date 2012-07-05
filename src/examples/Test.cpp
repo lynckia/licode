@@ -118,14 +118,13 @@ void Test::rec() {
 			c = mp->decodeVideo(outBuff, size, outBuff2, outBuff2Size, &gotDecFrame);
 			printf("Bytes dec = %d\n", c);
 
-			printf("\n*****************************");
 
 			size = 0;
 			memset(outBuff, 0, 50000);
 			gotFrame = 0;
 
 			if(gotDecFrame) {
-				printf("\nTengo un frame decodificado!!");
+				printf("Tengo un frame decodificado!!");
 				gotDecFrame = 0;
 				send(outBuff2, c);
 			}

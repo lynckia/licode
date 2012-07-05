@@ -743,15 +743,15 @@ int MediaProcessor::unpackageVideoRTP(char *inBuff, int inBuffLen,
 	int sec = ntohs(head->seqnum);
 	int ssrc = ntohl(head->ssrc);
 	unsigned long time = ntohl(head->timestamp);
-//	if (ssrc!= 55543)
-//		return -1;
+	if (ssrc!= 55543)
+		return -1;
 	int l = inBuffLen - RTP_HEADER_LEN;
 
 	inBuff += RTP_HEADER_LEN;
 	vp8RtpHeader* vp8h = (vp8RtpHeader*) outBuff;
 	printf("R: %u, PartID %u , X %u \n", vp8h->R, vp8h->partId, vp8h->X);
-	l--;
-	inBuff++;
+	//l--;
+	//inBuff++;
 
 	memcpy(outBuff, inBuff, l);
 
