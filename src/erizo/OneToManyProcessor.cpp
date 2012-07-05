@@ -16,15 +16,12 @@ OneToManyProcessor::OneToManyProcessor() :
 
 	// Media processing
 
-    unpackagedBuffer_ = (char*)malloc(50000);
-    memset(unpackagedBuffer_, 0, 50000);
+	unpackagedBuffer_ = (char*) malloc(50000);
+	memset(unpackagedBuffer_, 0, 50000);
 
-
-    gotFrame_ = 0;
-    size_ = 0;
-    gotDecodedFrame_=0;
-
-
+	gotFrame_ = 0;
+	size_ = 0;
+	gotDecodedFrame_ = 0;
 
 	mp = new MediaProcessor();
 	videoCodecInfo *v = new videoCodecInfo;
@@ -32,8 +29,8 @@ OneToManyProcessor::OneToManyProcessor() :
 	//	v->codec = CODEC_ID_MPEG4;
 	v->width = 640;
 	v->height = 480;
-	decodedBuffer_ = (char*) malloc(v->width*v->height*3/2);
-	memset(decodedBuffer_,0,v->width*v->height*3/2);
+	decodedBuffer_ = (char*) malloc(v->width * v->height * 3 / 2);
+	memset(decodedBuffer_, 0, v->width * v->height * 3 / 2);
 	mp->initVideoDecoder(v);
 
 	videoCodecInfo *c = new videoCodecInfo;
@@ -79,45 +76,64 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len) {
 }
 
 int OneToManyProcessor::receiveVideoData(char* buf, int len) {
+	if (head.size() < 50) {
+		rtpHeader* rtphead = (rtpHeader*)buf;
+		printf("PT %u\n",rtphead->payloadtype);
+		if(rtphead->payloadtype==103){
+			return 0;
+		}
 
+		packet* p = new packet;
+		p->data = buf;
+		p->length = len;
+		head.push_back(p);
+		printf("Storing head %d\n", head.size());
+	}
+/*
 	int b;
-	int x = mp->unpackageVideoRTP(buf,len,unpackagedBuffer_,&gotFrame_);
-//	if (x>0){
-//		RTPPayloadVP8* parsed = pars.parseVP8((unsigned char*)unpackagedBuffer_, x);
-//		b = parsed->dataLength;
-//		printf("Bytes desem = %d, sobre %d reciv\n", b, len);
-//
-//	}
+	int x = mp->unpackageVideoRTP(buf, len, unpackagedBuffer_, &gotFrame_);
+	if (x > 0) {
+		RTPPayloadVP8* parsed = pars.parseVP8(
+				(unsigned char*) unpackagedBuffer_, x);
+		b = parsed->dataLength;
+		printf("Bytes desem = %d, sobre %d reciv\n", b, len);
+
+	}
 	size_ += x;
 	unpackagedBuffer_ += x;
-	if(gotFrame_) {
+	if (gotFrame_) {
 
-				unpackagedBuffer_ -= size_;
+		unpackagedBuffer_ -= size_;
 
-				printf("Tengo un frame desempaquetado!! Size = %d\n", size_);
+		printf("Tengo un frame desempaquetado!! Size = %d\n", size_);
 
-				int c;
+		int c;
 
-				c = mp->decodeVideo(unpackagedBuffer_, size_, decodedBuffer_, 640*480*3/2, &gotDecodedFrame_);
-				printf("Bytes dec = %d\n", c);
+		c = mp->decodeVideo(unpackagedBuffer_, size_, decodedBuffer_,
+				640 * 480 * 3 / 2, &gotDecodedFrame_);
+		printf("Bytes dec = %d\n", c);
 
-				printf("\n*****************************");
+		size_ = 0;
+		memset(unpackagedBuffer_, 0, 50000);
+		gotFrame_ = 0;
 
-				size_ = 0;
-				memset(unpackagedBuffer_, 0, 50000);
-				gotFrame_ = 0;
-
-				if(gotDecodedFrame_) {
-					printf("\nTengo un frame decodificado!!");
-					gotDecodedFrame_ = 0;
-					//send(outBuff2, c);
-				}
-			}
+		if (gotDecodedFrame_) {
+			printf("Tengo un frame decodificado!!\n");
+			gotDecodedFrame_ = 0;
+			//send(outBuff2, c);
+		}
+	}
+*/
 	if (subscribers.empty() || len <= 0)
 		return 0;
 
 	std::map<int, WebRtcConnection*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
+		if ((*it).second->sentPackets==0){
+			printf("******sending Head to %d\n",((*it).first));
+			sendHead((*it).second);
+		}
+
 		memset(sendVideoBuffer_, 0, len);
 		memcpy(sendVideoBuffer_, buf, len);
 		(*it).second->receiveVideoData(sendVideoBuffer_, len);
@@ -132,8 +148,9 @@ void OneToManyProcessor::setPublisher(WebRtcConnection* webRtcConn) {
 
 void OneToManyProcessor::addSubscriber(WebRtcConnection* webRtcConn,
 		int peerId) {
-
 	this->subscribers[peerId] = webRtcConn;
+//	sendHead(webRtcConn);
+
 }
 
 void OneToManyProcessor::removeSubscriber(int peerId) {
@@ -142,6 +159,14 @@ void OneToManyProcessor::removeSubscriber(int peerId) {
 		this->subscribers[peerId]->close();
 		this->subscribers.erase(peerId);
 	}
+}
+
+void OneToManyProcessor::sendHead(WebRtcConnection* conn) {
+	int i = 0;
+	for (i = 0; i<head.size(); i++) {
+		conn->receiveVideoData(head[i]->data, head[i]->length);
+	}
+
 }
 
 }/* namespace erizo */
