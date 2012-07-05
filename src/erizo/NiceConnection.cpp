@@ -45,7 +45,7 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 			char address[40];
 			cand = (NiceCandidate*) iterator->data;
 			nice_address_to_string(&cand->addr, address);
-			if (strstr(address, ":")!=NULL){
+			if (strstr(address, ":") != NULL) {
 				printf("Ignoring IPV6 candidate\n");
 				continue;
 
@@ -63,7 +63,6 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 			cand_info.hostAddress = std::string(address);
 			cand_info.hostPort = nice_address_get_port(&cand->addr);
 			cand_info.mediaType = conn->mediaType;
-
 
 			/*
 			 *   NICE_CANDIDATE_TYPE_HOST,
@@ -111,18 +110,27 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 	conn->iceState = NiceConnection::CANDIDATES_GATHERED;
 }
 
-void cb_component_state_changed(void) {
+void cb_component_state_changed(NiceAgent *agent, guint stream_id,
+		guint component_id, guint state, gpointer user_data) {
+	printf("cb_component_state_changed %u\n", state);
+	if (state == NICE_COMPONENT_STATE_READY){
+		NiceConnection *conn = (NiceConnection*) user_data;
+		conn->iceState = NiceConnection::READY;
+	}else if (state == NICE_COMPONENT_STATE_FAILED){
+		printf("Ice Component failed, stopping\n");
+		NiceConnection *conn = (NiceConnection*) user_data;
+		conn->getWebRtcConnection()->close();
+	}
 
-	printf("cb_component_state_changed\n");
 }
 
 void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
 		gchar *lfoundation, gchar *rfoundation, gpointer user_data) {
 	printf(
-			"cb_new_selected_pair for stream %u, comp %u, lfound %s, rfound %s OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n",
+			"cb_new_selected_pair for stream %u, comp %u, lfound %s, rfound %s \n",
 			stream_id, component_id, lfoundation, rfoundation);
 	NiceConnection *conn = (NiceConnection*) user_data;
-	conn->iceState = NiceConnection::READY;
+
 	printf(
 			"cb_new_selected_pair for stream %u, comp %u, lfound %s, rfound %s \n",
 			stream_id, component_id, lfoundation, rfoundation);
@@ -214,7 +222,7 @@ void NiceConnection::init() {
 	g_signal_connect( G_OBJECT( agent_ ), "candidate-gathering-done",
 			G_CALLBACK( cb_candidate_gathering_done ), this);
 	g_signal_connect( G_OBJECT( agent_ ), "component-state-changed",
-			G_CALLBACK( cb_component_state_changed ), NULL);
+			G_CALLBACK( cb_component_state_changed ), this);
 	g_signal_connect( G_OBJECT( agent_ ), "new-selected-pair",
 			G_CALLBACK( cb_new_selected_pair ), this);
 
