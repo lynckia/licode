@@ -9,6 +9,11 @@ namespace erizo{
 
 class NiceConnection;
 
+struct packet{
+	char data[1200];
+	int length;
+};
+
 /**
  * A MediaReceiver is any class that can receive audio or video data.
  */

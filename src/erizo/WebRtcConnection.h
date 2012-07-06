@@ -2,7 +2,10 @@
 #define WEBRTCCONNECTION_H_
 
 #include <string>
+#include <queue>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread.hpp>
+
 
 #include "SrtpChannel.h"
 #include "SdpInfo.h"
@@ -86,6 +89,14 @@ private:
 	unsigned int localAudioSsrc_, localVideoSsrc_;
 	unsigned int remoteAudioSSRC_, remoteVideoSSRC_;
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_;
+	boost::thread send_Thread_;
+	std::queue<packet> sendQueue_;
+
+
+	bool sending;
+	void sendLoop();
+
+
 
 };
 
