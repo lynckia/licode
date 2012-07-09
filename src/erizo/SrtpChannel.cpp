@@ -78,7 +78,7 @@ int SrtpChannel::unprotectRtp(char* buffer, int *len) {
 
 int SrtpChannel::protectRtcp(char* buffer, int *len) {
 
-	int val = srtp_protect_rtcp(receive_session_, (char*) buffer, len);
+	int val = srtp_protect_rtcp(send_session_, (char*) buffer, len);
 	if (val == 0) {
 		return 0;
 	} else {
