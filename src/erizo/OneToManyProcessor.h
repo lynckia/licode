@@ -57,7 +57,7 @@ private:
 	int gotFrame_,gotDecodedFrame_, size_;
 	void sendHead(WebRtcConnection* conn);
 	RtpParser pars;
-
+	unsigned int sentPackets_;
 };
 
 } /* namespace erizo */

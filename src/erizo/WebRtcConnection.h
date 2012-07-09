@@ -75,6 +75,13 @@ public:
 
 	int receiveNiceData(char* buf, int len, NiceConnection *nice);
 
+	/**
+	 * Sends a FIR Packet (RFC 5104) asking for a keyframe
+	 * @return the size of the data sent
+	 */
+	int sendFirPacket();
+
+
 private:
 	SdpInfo remoteSdp_;
 	SdpInfo localSdp_;
@@ -85,7 +92,7 @@ private:
 
 	MediaReceiver* audioReceiver_;
 	MediaReceiver* videoReceiver_;
-	int video_, audio_, bundle_;
+	int video_, audio_, bundle_, sequenceNumberFIR_;
 	unsigned int localAudioSsrc_, localVideoSsrc_;
 	unsigned int remoteAudioSSRC_, remoteVideoSSRC_;
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_;

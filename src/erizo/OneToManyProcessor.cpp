@@ -13,6 +13,7 @@ OneToManyProcessor::OneToManyProcessor() :
 	sendAudioBuffer_ = (char*) malloc(2000);
 
 	publisher = NULL;
+	sentPackets_ = 0;
 
 	// Media processing
 
@@ -113,13 +114,16 @@ int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 	 */
 	if (subscribers.empty() || len <= 0)
 		return 0;
-
+	if (sentPackets_ % 1000 == 0) {
+		publisher->sendFirPacket();
+	}
 	std::map<int, WebRtcConnection*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
 		memset(sendVideoBuffer_, 0, len);
 		memcpy(sendVideoBuffer_, buf, len);
 		(*it).second->receiveVideoData(sendVideoBuffer_, len);
 	}
+	sentPackets_++;
 	return 0;
 }
 
