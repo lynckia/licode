@@ -16,10 +16,6 @@
 namespace erizo{
 class WebRtcConnection;
 
-struct packet{
-	char* data;
-	int length;
-};
 /**
  * Represents a One to Many connection.
  * Receives media from one publisher and retransmits it to every subscriber.
@@ -57,7 +53,7 @@ private:
 	char* unpackagedBuffer_;
 	char* decodedBuffer_;
 	char* codedBuffer_;
-	std::vector<packet*> head;
+	std::vector<packet> head;
 	int gotFrame_,gotDecodedFrame_, size_;
 	void sendHead(WebRtcConnection* conn);
 	RtpParser pars;
