@@ -15,6 +15,7 @@ WebRtcConnection::WebRtcConnection() {
 
 	video_ = 1;
 	audio_ = 1;
+	sequenceNumberFIR_ = 0;
 	bundle_ = true;
 	localVideoSsrc_ = 55543;
 	localAudioSsrc_ = 44444;
@@ -70,13 +71,13 @@ WebRtcConnection::WebRtcConnection() {
 		crytpv.tag = 1;
 		localSdp_.addCrypto(crytpv);
 		localSdp_.videoSsrc = localVideoSsrc_;
-//		audioSrtp_ = new SrtpChannel();
+		//		audioSrtp_ = new SrtpChannel();
 		CryptoInfo crytpa;
 		crytpa.cipherSuite = std::string("AES_CM_128_HMAC_SHA1_80");
 		crytpa.mediaType = AUDIO_TYPE;
 		//crytpa.tag = 1;
 		crytpa.tag = 1;
-//		std::string keya = SrtpChannel::generateBase64Key();
+		//		std::string keya = SrtpChannel::generateBase64Key();
 		crytpa.keyParams = keyv;
 		localSdp_.addCrypto(crytpa);
 		localSdp_.audioSsrc = localAudioSsrc_;
@@ -214,7 +215,9 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 		remoteAudioSSRC_ = remoteSdp_.audioSsrc;
 		videoSrtp_->setRtpParams((char*) cryptLocal_video.keyParams.c_str(),
 				(char*) cryptRemote_video.keyParams.c_str());
-//		audioSrtp_->setRtpParams((char*)cryptLocal_audio.keyParams.c_str(), (char*)cryptRemote_audio.keyParams.c_str());
+		videoSrtp_->setRtcpParams((char*) cryptLocal_video.keyParams.c_str(),
+				(char*) cryptRemote_video.keyParams.c_str());
+		//		audioSrtp_->setRtpParams((char*)cryptLocal_audio.keyParams.c_str(), (char*)cryptRemote_audio.keyParams.c_str());
 
 	}
 	return true;
@@ -241,7 +244,7 @@ int WebRtcConnection::receiveAudioData(char* buf, int len) {
 	int length = len;
 	if (audioSrtp_) {
 		audioSrtp_->protectRtp(buf, &length);
-//		printf("A mandar %d\n", length);
+		//		printf("A mandar %d\n", length);
 	}
 	if (len <= 0)
 		return length;
@@ -255,7 +258,8 @@ int WebRtcConnection::receiveVideoData(char* buf, int len) {
 
 	int res = -1;
 	int length = len;
-	if (videoSrtp_) {
+	if (videoSrtp_ && videoNice_->iceState == NiceConnection::READY) {
+		//		printf("protect\n");
 		videoSrtp_->protectRtp(buf, &length);
 	}
 	if (length <= 10)
@@ -271,15 +275,13 @@ int WebRtcConnection::receiveVideoData(char* buf, int len) {
 			sendQueue_.push(p_);
 		}
 		receiveVideoMutex_.unlock();
-	}else{
-		printf("NICE NOT READY\n\n\n");
 	}
 	return res;
 }
 
 int WebRtcConnection::receiveNiceData(char* buf, int len,
 		NiceConnection* nice) {
-//	printf("Receive Nice Data %d, type %d\n", len, nice->mediaType);
+	//	printf("Receive Nice Data %d, type %d\n", len, nice->mediaType);
 	boost::mutex::scoped_lock lock(writeMutex_);
 	if (audioReceiver_ == NULL && videoReceiver_ == NULL)
 		return 0;
@@ -341,7 +343,6 @@ void WebRtcConnection::sendLoop() {
 		if (sendQueue_.size() > 0) {
 			videoNice_->sendData(sendQueue_.front().data,
 					sendQueue_.front().length);
-
 			sendQueue_.pop();
 			receiveVideoMutex_.unlock();
 		} else {
@@ -349,6 +350,44 @@ void WebRtcConnection::sendLoop() {
 			usleep(1000);
 		}
 	}
+}
+int WebRtcConnection::sendFirPacket() {
+	sequenceNumberFIR_++; // do not increase if repetition
+	int pos = 0;
+	uint8_t rtcpPacket[50];
+	// add full intra request indicator
+	uint8_t FMT = 4;
+	rtcpPacket[pos++] = (uint8_t) 0x80 + FMT;
+	rtcpPacket[pos++] = (uint8_t) 206;
+
+	//Length of 4
+	rtcpPacket[pos++] = (uint8_t) 0;
+	rtcpPacket[pos++] = (uint8_t) (4);
+
+	// Add our own SSRC
+	uint32_t* ptr = reinterpret_cast<uint32_t*>(rtcpPacket + pos);
+	ptr[0] = htonl(localVideoSsrc_);
+	pos += 4;
+
+	rtcpPacket[pos++] = (uint8_t) 0;
+	rtcpPacket[pos++] = (uint8_t) 0;
+	rtcpPacket[pos++] = (uint8_t) 0;
+	rtcpPacket[pos++] = (uint8_t) 0;
+	// Additional Feedback Control Information (FCI)
+	uint32_t* ptr2 = reinterpret_cast<uint32_t*>(rtcpPacket + pos);
+	ptr2[0] = htonl(remoteVideoSSRC_);
+	pos += 4;
+
+	rtcpPacket[pos++] = (uint8_t) (sequenceNumberFIR_);
+	rtcpPacket[pos++] = (uint8_t) 0;
+	rtcpPacket[pos++] = (uint8_t) 0;
+	rtcpPacket[pos++] = (uint8_t) 0;
+	if (videoSrtp_ != NULL && videoNice_ != NULL
+			&& videoNice_->iceState == NiceConnection::READY) {
+		videoSrtp_->protectRtcp((char*) rtcpPacket, &pos);
+		videoNice_->sendData((char*) rtcpPacket, pos);
+	}
+	return pos;
 }
 
 } /* namespace erizo */

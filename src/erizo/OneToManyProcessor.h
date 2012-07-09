@@ -46,6 +46,7 @@ public:
 private:
 	char* sendVideoBuffer_;
 	char* sendAudioBuffer_;
+	unsigned int sentPackets_;
 };
 
 } /* namespace erizo */
