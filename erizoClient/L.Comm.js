@@ -2,7 +2,7 @@ var L = L || {};
 L.Comm = function(L) {
 	var privateVar;
 	var connect = function(token, callback, error) {
-		L.Comm.privateVar;
+		L.Comm.privateVar = 0;
 	};
 	var sendMessage = function(type, msg, callback, error) {
 

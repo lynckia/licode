@@ -1,6 +1,7 @@
 var EventDispatcher = function(spec) {
     var that = {};
 
+    spec.dispatcher = {};
     spec.dispatcher.eventListeners = {};
 
     that.addEventListener = function(eventType, listener) {
@@ -20,8 +21,9 @@ var EventDispatcher = function(spec) {
 
     that.dispatchEvent = function(event) {
         var listener;
+        console.log("Event: " + event.type);
         for (listener in spec.dispatcher.eventListeners[event.type]) {
-            listener(event);
+            spec.dispatcher.eventListeners[event.type][listener](event);
         }
     };
 
@@ -42,6 +44,28 @@ var Publisher = function(spec) {
         return spec.video;
     };
 
+    that.init = function() {
+        try {
+            navigator.webkitGetUserMedia({video:spec.video,audio:spec.audio}, function(stream) {
+                
+                console.log("User has granted access to local media.");
+
+                that.stream = Stream({streamID: 12345, stream: stream});
+
+                // Draw on HTML
+                L.Utils.addVideoToElement(that.stream.streamID, that.stream.stream, spec.elementID);
+
+                var publisherEvent = PublisherEvent({type:"access-accepted"});
+                that.dispatchEvent(publisherEvent);
+            }, function(error) {
+                alert("Failed to get access to local media. Error code was " + error.code + ".");
+            });
+            console.log("Requested access to local media");
+        } catch (e) {
+            console.log(e, "getUserMedia error");
+        }
+    };
+
     return that;
 };
 
@@ -50,18 +74,21 @@ var Stream = function(spec) {
     that.elementID = undefined;
     that.streamID = spec.streamID;
     that.stream = spec.stream;
+    return that;
 };
 
 var Room = function(spec) {
     // Ex.: Room({token:"fdfdasdsadsa"})
     var that = EventDispatcher(spec);
-    that.connection = {};
     that.roomID = 10;
+    L.Utils.init();
 
     that.connect = function() {
         // 1- Connect to Erizo-Controller
         var streamList = [];
         // 2- Retrieve list of streams
+
+        // 3 - Update RoomID
         var connectEvt = RoomEvent({type:"room-connected", 
                 streams:streamList
             });
@@ -77,11 +104,12 @@ var Room = function(spec) {
 
     that.publish = function(publisher) {
         spec.publisher = publisher;
+        publisher.room = that;
 
         // 1- Publish Stream to Erizo-Controller
-        var stream1 = Stream({streamID: "12312321", stream:undefined});
+        var stream = publisher.stream;
 
-        var evt = StreamEvent({type:"stream-added", stream:stream1});
+        var evt = StreamEvent({type:"stream-added", stream:stream});
         that.dispatchEvent(evt);
     };
 
@@ -98,8 +126,11 @@ var Room = function(spec) {
     that.subscribe = function(stream, elementID) {
         stream.elementID = elementID;
         // Subscribe to stream stream
-
+        console.log("Subscribing to: " + stream.streamID);
         // Notify Erizo-Controller
+
+        // Draw on html
+        L.Utils.addVideoToElement(stream.streamID, stream.stream, elementID);
     };
 
     that.unsubscribe = function(stream) {
@@ -108,6 +139,9 @@ var Room = function(spec) {
         // Remove 
 
         // Notify Erizo-Controller
+
+        // Remove from view
+        L.Utils.removeVideo(stream.streamID);
     };
 
     return that;
@@ -140,3 +174,10 @@ var StreamEvent = function(spec) {
 
     return that;
 };
+
+var PublisherEvent = function(spec) {
+    // Ex.: StreamEvent({type:"access-accepted", stream:stream1});
+    var that = LynckiaEvent(spec);
+
+    return that;
+}
