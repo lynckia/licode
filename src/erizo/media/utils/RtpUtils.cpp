@@ -189,6 +189,7 @@ RTPPayloadVP8* RtpParser::parseVP8(unsigned char* data,
 //  if (0 != ParseVP8FrameSize(parsedPacket, dataPtr, dataLength)) {
 //    return *vp8;
 //  }
+	vp8->data = dataPtr;
 	vp8->dataLength = (unsigned int) dataLength;
 
 	return vp8;

@@ -77,53 +77,45 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len) {
 }
 
 int OneToManyProcessor::receiveVideoData(char* buf, int len) {
-	/*
-	 int b;
-	 int x = mp->unpackageVideoRTP(buf, len, unpackagedBuffer_, &gotFrame_);
-	 if (x > 0) {
-	 RTPPayloadVP8* parsed = pars.parseVP8(
-	 (unsigned char*) unpackagedBuffer_, x);
-	 b = parsed->dataLength;
-	 printf("Bytes desem = %d, sobre %d reciv\n", b, len);
+	int x = mp->unpackageVideoRTP(buf, len, unpackagedBuffer_, &gotFrame_);
+	size_ += x;
+	unpackagedBuffer_ += x;
 
-	 }
-	 size_ += x;
-	 unpackagedBuffer_ += x;
-	 if (gotFrame_) {
+	if (gotFrame_) {
 
-	 unpackagedBuffer_ -= size_;
+		unpackagedBuffer_ -= size_;
 
-	 printf("Tengo un frame desempaquetado!! Size = %d\n", size_);
+		printf("Tengo un frame desempaquetado!! Size = %d\n", size_);
 
-	 int c;
+		int c;
 
-	 c = mp->decodeVideo(unpackagedBuffer_, size_, decodedBuffer_,
-	 640 * 480 * 3 / 2, &gotDecodedFrame_);
-	 printf("Bytes dec = %d\n", c);
+		c = mp->decodeVideo(unpackagedBuffer_, size_, decodedBuffer_,
+				640 * 480 * 3 / 2, &gotDecodedFrame_);
+		printf("Bytes dec = %d\n", c);
 
-	 size_ = 0;
-	 memset(unpackagedBuffer_, 0, 50000);
-	 gotFrame_ = 0;
+		size_ = 0;
 
-	 if (gotDecodedFrame_) {
-	 printf("Tengo un frame decodificado!!\n");
-	 gotDecodedFrame_ = 0;
-	 //send(outBuff2, c);
-	 }
-	 }
-	 */
-	if (subscribers.empty() || len <= 0)
-		return 0;
-	if (sentPackets_ % 1000 == 0) {
-		publisher->sendFirPacket();
+		gotFrame_ = 0;
+
+		if (gotDecodedFrame_) {
+			printf("Tengo un frame decodificado!!\n");
+			gotDecodedFrame_ = 0;
+			memset(unpackagedBuffer_, 0, 50000);
+			//send(outBuff2, c);
+		}
 	}
-	std::map<int, WebRtcConnection*>::iterator it;
-	for (it = subscribers.begin(); it != subscribers.end(); it++) {
-		memset(sendVideoBuffer_, 0, len);
-		memcpy(sendVideoBuffer_, buf, len);
-		(*it).second->receiveVideoData(sendVideoBuffer_, len);
-	}
-	sentPackets_++;
+//	if (subscribers.empty() || len <= 0)
+//		return 0;
+//	if (sentPackets_ % 1000 == 0) {
+//		publisher->sendFirPacket();
+//	}
+//	std::map<int, WebRtcConnection*>::iterator it;
+//	for (it = subscribers.begin(); it != subscribers.end(); it++) {
+//		memset(sendVideoBuffer_, 0, len);
+//		memcpy(sendVideoBuffer_, buf, len);
+//		(*it).second->receiveVideoData(sendVideoBuffer_, len);
+//	}
+//	sentPackets_++;
 	return 0;
 }
 

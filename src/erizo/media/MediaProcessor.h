@@ -4,6 +4,8 @@
 #include <boost/cstdint.hpp>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#include "utils/RtpUtils.h"
+
 
 
 extern "C" {
@@ -122,6 +124,9 @@ private:
 	AVInputFormat *vInputFormat;
 	AVFormatContext *vOutputFormatContext;
 	AVOutputFormat *vOutputFormat;
+
+	erizo::RtpParser pars;
+
 
 };
 

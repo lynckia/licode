@@ -743,24 +743,36 @@ int MediaProcessor::unpackageVideoRTP(char *inBuff, int inBuffLen,
 	int sec = ntohs(head->seqnum);
 	int ssrc = ntohl(head->ssrc);
 	unsigned long time = ntohl(head->timestamp);
-	if (ssrc!= 55543)
+	printf("PT %d, ssrc %u, extension %d\n", head->payloadtype, ssrc,
+			head->extension);
+	if (ssrc != 55543/* && head->payloadtype!=101*/) {
 		return -1;
+	}
+	if (head->payloadtype != 100) {
+		printf("EEEEEEEEEEEEEEOOOOOOOOOOOOOOOOOOOOOOOO %d\n\n\n",
+				head->payloadtype);
+		return -1;
+	}
 	int l = inBuffLen - RTP_HEADER_LEN;
-
 	inBuff += RTP_HEADER_LEN;
-	vp8RtpHeader* vp8h = (vp8RtpHeader*) outBuff;
-	printf("R: %u, PartID %u , X %u \n", vp8h->R, vp8h->partId, vp8h->X);
-	//l--;
-	//inBuff++;
+//	vp8RtpHeader* vphead = (vp8RtpHeader*) inBuff;
+//	printf("MIO X: %u , N:%u PartID %u\n", vphead->X, vphead->N,
+//			vphead->partId);
 
-	memcpy(outBuff, inBuff, l);
+	erizo::RTPPayloadVP8* parsed = pars.parseVP8((unsigned char*) inBuff, l);
+	printf("l : %d, parsedDatalength %u\n", l, parsed->dataLength);
+//	l--;
+//	inBuff++;
 
-
+//	memcpy(outBuff, inBuff, parsed->dataLength);
+	memcpy(outBuff, parsed->data, parsed->dataLength);
 	if (head->marker) {
+		printf("Marker\n");
 		*gotFrame = 1;
 	}
 
-	return l;
+//	return l;
+	return parsed->dataLength;
 //
 //	if (avformat_find_stream_info(vInputFormatContext, NULL) < 0) {
 //		return -1;
