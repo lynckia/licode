@@ -180,4 +180,4 @@ var PublisherEvent = function(spec) {
     var that = LynckiaEvent(spec);
 
     return that;
-}
+};
