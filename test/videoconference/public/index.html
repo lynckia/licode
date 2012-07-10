@@ -1,0 +1,371 @@
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+
+<!--
+Copyright (c) 2011-2012 The WebRTC project authors. All Rights Reserved.
+
+Use of this source code is governed by a BSD-style license
+that can be found in the LICENSE file in the root of the source
+tree. An additional intellectual property rights grant can be found
+in the file PATENTS. All contributing project authors may
+be found in the AUTHORS file in the root of the source tree.
+-->
+
+
+<head>
+<title>Lynckia WebRTC videoconference</title>
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+<link href='css/style.css' rel='stylesheet' />
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
+<script src="roap_on_jsep.js"></script>
+
+<script type="text/javascript">
+// TODO: Catch more exceptions
+
+var server;
+var socket;
+var myName;
+var localStream = null;
+var callState = 0; // 0 - Not started, 1 - Call ongoing
+
+var views = {};
+var PCs = {};
+PCs['publisher'] = null;
+
+
+// General
+
+function setElementValuesFromURL() {
+  window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi,
+    function(m, key, value) {
+      document.getElementById(key).value = unescape(value);
+    });
+}
+
+function toggleExtraButtons() {
+  document.getElementById("createPcBtn").hidden =
+    !document.getElementById("createPcBtn").hidden;
+  document.getElementById("test1Btn").hidden =
+    !document.getElementById("test1Btn").hidden;
+}
+
+function trace(txt) {
+	console.log(txt);
+}
+
+function trace_warning(txt) {
+  var wtxt = "WARNING: " + txt;
+  trace(wtxt);
+}
+
+function trace_exception(e, txt) {
+  var etxt = "EXCEPTION: " + txt;
+  trace(etxt);
+}
+
+function setCallState(state) {
+  trace("Changing call state: " + callState + " -> " + state);
+  callState = state;
+}
+
+function checkPeerConnection() {
+  if (!PCs['publisher']) {
+    trace_warning("No PeerConnection object exists");
+    return 0;
+  }
+  return 1;
+}
+
+// Local stream generation
+
+function gotStream(s) {
+  var url = webkitURL.createObjectURL(s);
+  document.getElementById("localView").src = url;
+  trace("User has granted access to local media. url = " + url);
+  localStream = s;
+  connect();
+}
+
+function gotStreamFailed(error) {
+  alert("Failed to get access to local media. Error code was " + error.code +
+    ".");
+  trace_warning("Failed to get access to local media. Error code was " +
+    error.code);
+}
+
+function getUserMedia() {
+  try {
+    navigator.webkitGetUserMedia({video:true, audio:true}, gotStream, gotStreamFailed);
+    trace("Requested access to local media");
+  } catch (e) {
+    trace_exception(e, "getUserMedia error");
+  }
+}
+
+
+// Call control
+
+function createPeerConnection() {
+	if (PCs['publisher']) {
+		trace_warning("PeerConnection object already exists");
+	}
+	trace("Creating PeerConnection object");
+	try {
+
+	var pc = new RoapConnection("STUN stun.l.google.com:19302", onSignalingMessage);
+  PCs['publisher'] = pc;
+
+	} catch (e) {
+		trace_exception(e, "Create PeerConnection error");
+	}
+}
+
+function doCall() {
+	createPeerConnection();
+  trace("Adding stream");
+  PCs['publisher'].addStream(localStream);
+}
+
+function hangUp() {
+	trace("Closing call");
+	//sendToPeer("BYE");
+	closeCall();
+}
+
+function closeCall() {
+	trace("Stopping showing remote stream");
+	document.getElementById("remoteView").src = "dummy";
+	if (PCs['publisher']) {
+		trace("Stopping call [pc.close()]");
+		PCs['publisher'].close();
+		PCs['publisher'] = null;
+	} else
+		trace("No pc object to close");
+	setCallState(0);
+}
+
+function updateNicknames(nicknames) {
+  console.log('Recibo nicknameeeees: ', nicknames, 'PCs: ', PCs, 'myName', myName);
+  for (var key in nicknames) {
+    if (key != myName && PCs[key] == undefined) {
+      console.log('Hago un subscriber nuevo', key);
+      createSubscriberPC(key);
+    }
+  }
+
+  for(var key in PCs) {
+    if (key != myName && key != 'publisher' && nicknames[key] == undefined) {
+      console.log('Borro un subscriber', key);
+      removeSubscriberPC(key);
+    }
+  }
+}
+
+
+
+function createSubscriberPC(to) {
+
+  try {
+
+    var subsPC = new RoapConnection("STUN stun.l.google.com:19302", function(msg) {
+
+      var to;
+      for(var key in PCs) {
+        if(PCs[key] == subsPC){
+          to = key;
+          console.log('lo tengoo: ', to);
+        }
+      }
+      console.log('envioooo a: ', to, 'mens: ', msg);
+      sendToPeer(to, msg);
+    });
+    
+    subsPC.onaddstream = function(e) {
+
+      var i = 1;
+      var view = 'remoteView' + i;
+      var src = document.getElementById(view).src;
+
+      while (src != '') {
+        i++;
+        if (i == 4) {
+          console.log('Not empty video tag');
+          return;
+        };
+        view = 'remoteView' + i;
+        src = document.getElementById(view).src;
+      }
+
+      var from;
+      for(var key in PCs) {
+        if(PCs[key] == subsPC){
+          from = key;
+        }
+      }
+
+      console.log('View:', view, 'for', from);
+
+      views[from] = view;
+  
+      var stream = e.stream;
+      var url = webkitURL.createObjectURL(stream);
+      document.getElementById(view).src = url;
+      trace("Started showing remote stream. url = " + url);
+
+    }
+
+    PCs[to] = subsPC;
+    //subsPC.onremovestream = onRemoveStream;
+  } catch (e) {
+    trace_exception(e, "Create PeerConnection error");
+  }
+}
+
+function removeSubscriberPC(from) {
+
+  document.getElementById(views[from]).removeAttribute("src");
+  delete views[from];
+
+  if(PCs[from]) {
+    PCs[from].close();
+    delete PCs[from];
+  }
+}
+
+
+// PeerConnection callbacks
+
+function onRemoveStream(e) {
+	// Currently if we get this callback, call has ended.
+	document.getElementById("remoteView").src = "";
+	trace("Stopped showing remote stream");
+}
+
+function onSignalingMessage(msg) {
+	sendToPeer('publisher', msg);
+}
+
+
+// TODO: Add callbacks onconnecting, onopen and onstatechange.
+
+// Server interaction
+
+function handlePeerMessage(msg) {
+
+  //if (msg.search("BYE") == 0) closeCall()
+
+  try {
+    trace("Processing message otrooo. PCs: " + msg.msg);
+    //PCs[msg.from].processSignalingMessage(msg.msg);
+    PCs[msg.from].processSignalingMessage(msg.msg);
+  } catch (e) {
+    trace_exception(e, "Process signaling message error");
+  }
+
+}
+
+function handlePublisherMessage(msg) {
+ 
+
+}
+
+function sendToPeer(to, data) {
+  socket.emit('unicast', to, data);
+}
+
+
+function signIn() {
+  try {
+    socket = io.connect(server);
+    socket.on('message', handlePeerMessage);
+    socket.on('nicknames', updateNicknames);
+
+    console.log("Connecting with ID " + myName); 
+    socket.emit('nickname', myName, function (set){
+      console.log("Respuesta nickname: "+ set);
+      doCall();
+    });
+  } catch (e) { 
+    trace_exception(e, "Start sign in error");
+  }
+}
+
+function connect() {
+  myName = Math.floor(Math.random()*1111111);
+  server = "/";//"http://hpcm.dit.upm.es:8081";  
+  if (myName.length == 0) {
+    alert("I need a name please.");
+    document.getElementById("local").focus();
+  } else {
+    
+    signIn();
+  }
+}
+
+function disconnect() {
+    hangUp();
+}
+
+
+// Window event handling
+
+window.onload = function() {
+  setElementValuesFromURL();
+  getUserMedia();
+}
+
+window.onbeforeunload = disconnect;
+
+
+</script>
+
+</head>
+
+<body>
+
+  <div class="wrapper">
+
+  <img src="images/logo.svg"/ class="logostyle">
+
+    <div id="vidcontainer">
+
+      <div id="vid1" class="coolstyle">
+      <video id="localView" class="video" autoplay></video>
+      </div>
+
+      <div id="vid2" class="coolstyle">
+      <video id="remoteView1" class="video" autoplay></video>
+      </div>
+
+      <div id="vid3" class="coolstyle">
+      <video id="remoteView2" class="video" autoplay></video>
+      </div>
+
+      <div id="vid4" class="coolstyle">
+      <video id="remoteView3" class="video" autoplay></video>
+      </div>
+
+    </div>
+
+    <div class="push"></div>
+    
+  </div>
+
+  <footer>
+
+    <div id="imglogo">
+    <img src="images/star.svg"/ class="footerstyle">
+    </div>
+
+    <div id="textfoo">
+    Developed by <a href="http://www.dit.upm.es/">DIT UPM</a>.
+    </div>
+
+  </footer>
+
+</body>
+</html>
