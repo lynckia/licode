@@ -32,7 +32,7 @@ void SdpInfo::addCrypto(const CryptoInfo& info) {
 }
 
 std::string SdpInfo::getSdp() {
-
+	printf("1\n");
 	std::ostringstream sdp;
 	sdp << "v=0\n" << "o=- 0 0 IN IP4 127.0.0.1\n" << "s=\n" << "t=0 0\n";
 	bool bundle = candidateVector_[0].isBundle;
@@ -40,6 +40,7 @@ std::string SdpInfo::getSdp() {
 	if (bundle) {
 		sdp << "a=group:BUNDLE audio video\n";
 	}
+	printf("2\n");
 	//candidates audio
 	bool printedAudio = false, printedVideo = false;
 	for (unsigned int it = 0; it < candidateVector_.size(); it++) {
@@ -84,6 +85,7 @@ std::string SdpInfo::getSdp() {
 			}
 		}
 	}
+	printf("3\n");
 	//crypto audio
 	if (printedAudio) {
 		sdp << "a=ice-ufrag:" << iceUsername_ << endl;
@@ -167,12 +169,13 @@ std::string SdpInfo::getSdp() {
 		}
 
 		sdp
-				<< "a=rtpmap:100 VP8/90000\na=rtpmap:101 red/90000\na=rtpmap:102 ulpfec/90000\n";
+				<< "a=rtpmap:100 VP8/90000\n"/*a=rtpmap:101 red/90000\na=rtpmap:102 ulpfec/90000\n"*/;
 		sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu\na=ssrc:"
 				<< videoSsrc
 				<< " mslabel:048f838f-2dd1-4a98-ab9e-8eb5f00abab8\na=ssrc:"
 				<< videoSsrc << " label:iSight integrada\n";
 	}
+	printf("4\n");
 
 	return sdp.str();
 }
