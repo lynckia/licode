@@ -1,3 +1,5 @@
+import os
+
 srcdir = '.'
 blddir = 'build'
 VERSION = '0.0.1'
@@ -9,11 +11,11 @@ def configure(conf):
   conf.check_tool('compiler_cxx')
   conf.check_tool('node_addon')
   conf.env.append_unique('CXXFLAGS', ['-Wall', '-O3'])
-  conf.env['LIBPATH_ERIZO'] = '/home/alvaro/workspace/webRTC/erizo/src/erizo'
   conf.env['LIB_ERIZO'] = 'erizo'
+  conf.env['ERIZO_HOME'] = os.environ['ERIZO_HOME']
 
 def build(bld):
-  obj = bld.new_task_gen('cxx', 'shlib', 'node_addon', uselib="ERIZO")
-  obj.cxxflags = ["-I/home/alvaro/workspace/webRTC/erizo/src/erizo", "-g", "-Wall"]
+  obj = bld.new_task_gen('cxx', 'shlib', 'node_addon')
+  obj.cxxflags = ["-I"+bld.env['ERIZO_HOME']+"/src/erizo", "-g", "-Wall", "-L" + bld.env['ERIZO_HOME'] + "/build/erizo/liberizo.so"]
   obj.target = 'addon'
   obj.source = ['addon.cc', 'WebRtcConnection.cc', 'OneToManyProcessor.cc']
