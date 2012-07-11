@@ -132,13 +132,18 @@ var Room = function(spec) {
     that.connect = function() {
         // 1- Connect to Erizo-Controller
         var streamList = [];
-        // 2- Retrieve list of streams
-
-        // 3 - Update RoomID
-        var connectEvt = RoomEvent({type:"room-connected", 
+        var token = L.Base64.decodeBase64(spec.token);
+        L.Comm.connect(JSON.parse(token), function(msg) {
+            // 2- Retrieve list of streams
+            // 3 - Update RoomID
+            L.Logger.info("Connected! " + msg);
+            var connectEvt = RoomEvent({type:"room-connected", 
                 streams:streamList
             });
         that.dispatchEvent(connectEvt);
+        }, function(error) {
+            L.Logger.error("Not Connected! " + error);
+        });
     };
 
     // It disconnects from the room, dispatching a new ConnectionEvent("room-disconnected")
@@ -156,10 +161,15 @@ var Room = function(spec) {
         publisher.room = that;
 
         // 1- Publish Stream to Erizo-Controller
-        var stream = publisher.stream;
-
-        var evt = StreamEvent({type:"stream-added", stream:stream});
-        that.dispatchEvent(evt);
+        var pc = new RoapConnection("STUN stun.l.google.com:19302", function(offer){
+            L.Comm.sendSDP('publish', 'offer', offer, function(answer) {
+                pc.onsignalingmessage = function(ok) {
+                    L.Comm.sendSDP('publish', 'ok', ok);
+                    L.Logger.info('Stream published');
+                };
+                pc.processSignalingMessage(answer);
+            });
+        });
     };
 
     // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")

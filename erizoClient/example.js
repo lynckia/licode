@@ -1,7 +1,7 @@
 window.onload = function() {
     L.Logger.setLogLevel(L.Logger.DEBUG);
-    L.Logger.enableLogPanel();
-    var room = Room({token:"dsuiahduioashdioua"});
+    //L.Logger.debug("Connected!");
+    var room = Room({token:"eyJ0b2tlbklkIjoiNGZmZDk5NmJkN2I2ODkyNjA4MDAwMDBkIiwiaG9zdCI6InJvc2VuZG8uZGl0LnVwbS5lczo4MDgwIiwic2lnbmF0dXJlIjoiTlRGak5UVXhNVFEwTnpsbE9ERXdaVEZqWXpnd01EQXdNVEppTjJNME9URmlORGt6TkRBeU13PT0ifQ=="});
 
     var publisher = Publisher({audio:true, video:true, elementID:"pepito"});
     publisher.addEventListener("access-accepted", function() {

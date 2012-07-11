@@ -2,25 +2,39 @@ var L = L || {};
 
 L.Comm = function(L) {
 
-	var socket;
-	var server = 'rosendo.dit.upm.es:8080';
+    var socket;
 
-	var connect = function(token, callback, error) {
-	
-		L.Comm.socket = io.connect(server);
-    	L.Comm.sendMessage('token', token, callback, error);
+    var connect = function(token, callback, error) {
+        L.Comm.socket = io.connect(token.host, {reconnect: false});
+        L.Comm.sendMessage('token', token, callback, error);
     
-	};
+        L.Comm.socket.on('disconnect', function (argument) {
+            L.Logger.info("Socket disconnected");
+         });
+    };
 
-	var sendMessage = function(type, msg, callback, error) {
+    var sendMessage = function(type, msg, callback, error) {
 
-        L.Comm.socket.emit(type, msg, callback, error);
+        L.Comm.socket.emit(type, msg, function(respType, msg) {
+            if(respType === "success") {
+                callback(msg);
+            } else {
+                error(msg);
+            }
+        });
 
-	};
+    };
 
-	return {
-		connect: connect,
-		sendMessage: sendMessage
-	};
+    var sendSDP = function(type, state, sdp, callback) {
+        L.Comm.socket.emit(type, state, sdp, function(response, respCallback) {
+            callback(response, respCallback);
+        });
+    };
+
+    return {
+        connect: connect,
+        sendMessage: sendMessage,
+        sendSDP: sendSDP
+    };
 
 }(L);

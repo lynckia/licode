@@ -18,7 +18,6 @@ RoapConnection.sessionId = 103;
 // for dependency injection.
 /** Constructor for JSEP supporting PeerConnection objects. */
 RoapConnection.JsepPeerConnectionConstructor = webkitPeerConnection00;
-
 /** Constructor for SessionDescription objects. */
 RoapConnection.SessionDescriptionConstructor = SessionDescription;
 
@@ -197,13 +196,7 @@ RoapConnection.prototype.onstablestate = function() {
     if (this.state === 'new' || this.state === 'established') {
       // See if the current offer is the same as what we already sent.
       // If not, no change is needed.
-      var newOffer;
-      try {
-        newOffer = this.peerConnection.createOffer('audio,video');
-      } catch (e) {
-        newOffer = this.peerConnection.createOffer({audio:true, video:true});
-      }
-
+      var newOffer = this.peerConnection.createOffer({has_audio:true,has_video:true});
       if (newOffer.toSdp() != this.prevOffer) {
         // Prepare to send an offer.
         this.peerConnection.setLocalDescription(this.peerConnection.SDP_OFFER,
@@ -227,13 +220,8 @@ RoapConnection.prototype.onstablestate = function() {
       // Not done: Retransmission on non-response.
       this.state = 'offer-sent';
     } else if (this.state === 'offer-received') {
-      try {
-        mySDP = this.peerConnection.createAnswer(this.offer_as_string,
-                                                 'audio,video');
-      } catch (e) {
-        mySDP = this.peerConnection.createAnswer(this.offer_as_string,
-                                                 {audio:true, video:true});
-      }
+      mySDP = this.peerConnection.createAnswer(this.offer_as_string,
+                                               {has_audio:true,has_video:true});
       this.peerConnection.setLocalDescription(this.peerConnection.SDP_ANSWER,
                                               mySDP);
       this.state = 'offer-received-preparing-answer';
@@ -298,3 +286,4 @@ RoapConnection.prototype.sendMessage = function(operation, sdp) {
 RoapConnection.prototype.error = function(text) {
   throw 'Error in RoapOnJsep: ' + text;
 };
+
