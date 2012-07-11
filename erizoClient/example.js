@@ -1,5 +1,6 @@
 window.onload = function() {
-
+    L.Logger.setLogLevel(L.Logger.DEBUG);
+    L.Logger.enableLogPanel();
     var room = Room({token:"dsuiahduioashdioua"});
 
     var publisher = Publisher({audio:true, video:true, elementID:"pepito"});

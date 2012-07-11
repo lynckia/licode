@@ -1,6 +1,6 @@
 var L = L || {};
 
-L.Utils = function(L) {
+L.HTML = function(L) {
 
     var init = function() {
         window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m, key, value) {

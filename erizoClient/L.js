@@ -32,7 +32,7 @@ var EventDispatcher = function(spec) {
     // of event. All events are intended to be LynckiaEvents.
     that.dispatchEvent = function(event) {
         var listener;
-        console.log("Event: " + event.type);
+        L.Logger.debug("Event: " + event.type);
         for (listener in spec.dispatcher.eventListeners[event.type]) {
             spec.dispatcher.eventListeners[event.type][listener](event);
         }
@@ -77,21 +77,23 @@ var Publisher = function(spec) {
         try {
             navigator.webkitGetUserMedia({video:spec.video,audio:spec.audio}, function(stream) {
                 
-                console.log("User has granted access to local media.");
+                L.Logger.info("User has granted access to local media.");
 
                 that.stream = Stream({streamID: 12345, stream: stream});
 
                 // Draw on HTML
-                L.Utils.addVideoToElement(that.stream.streamID, that.stream.stream, spec.elementID);
+                if (spec.elementID !== undefined) {
+                    L.HTML.addVideoToElement(that.stream.streamID, that.stream.stream, spec.elementID);
+                }
 
                 var publisherEvent = PublisherEvent({type:"access-accepted"});
                 that.dispatchEvent(publisherEvent);
             }, function(error) {
-                alert("Failed to get access to local media. Error code was " + error.code + ".");
+                L.Logger.error("Failed to get access to local media. Error code was " + error.code + ".");
             });
-            console.log("Requested access to local media");
+            L.Logger.debug("Requested access to local media");
         } catch (e) {
-            console.log(e, "getUserMedia error");
+            L.Logger.error("Error accessing to local media");
         }
     };
 
@@ -124,7 +126,7 @@ var Stream = function(spec) {
 var Room = function(spec) {
     var that = EventDispatcher(spec);
     that.roomID = 10;
-    L.Utils.init();
+    L.HTML.init();
 
     // It stablishes a connection to the room. Once it is done it throws a RoomEvent("room-connected")
     that.connect = function() {
@@ -175,11 +177,11 @@ var Room = function(spec) {
     that.subscribe = function(stream, elementID) {
         stream.elementID = elementID;
         // Subscribe to stream stream
-        console.log("Subscribing to: " + stream.streamID);
+        L.Logger.info("Subscribing to: " + stream.streamID);
         // Notify Erizo-Controller
 
         // Draw on html
-        L.Utils.addVideoToElement(stream.streamID, stream.stream, elementID);
+        L.HTML.addVideoToElement(stream.streamID, stream.stream, elementID);
     };
 
     // It unsubscribes from the stream, removing the HTML element.
@@ -191,7 +193,7 @@ var Room = function(spec) {
         // Notify Erizo-Controller
 
         // Remove from view
-        L.Utils.removeVideo(stream.streamID);
+        L.HTML.removeVideo(stream.streamID);
     };
 
     return that;
