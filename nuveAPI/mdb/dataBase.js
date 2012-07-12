@@ -3,8 +3,8 @@ var collections = ["rooms", "tokens", "services"];
 exports.db = require("mongojs").connect(databaseUrl, collections);
 
 exports.superService = '4fe07f5f3812a0c588ddba97';
-exports.nuveKey = 'grdp1l0';
-exports.erizoControllerHost = 'http://localhost:8080';
+exports.nuveKey = 'claveNuve';
+exports.erizoControllerHost = 'rosendo.dit.upm.es:8080';
 
 
 /*
