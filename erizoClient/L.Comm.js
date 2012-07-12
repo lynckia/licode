@@ -1,22 +1,31 @@
 var L = L || {};
 
-L.Comm = function(L) {
+L.Comm = (function (L) {
+    "use strict";
+    var socket, connect, sendMessage, sendSDP;
 
-    var socket;
-
-    var connect = function(token, callback, error) {
+    connect = function (token, callback, error) {
         L.Comm.socket = io.connect(token.host, {reconnect: false});
-        L.Comm.sendMessage('token', token, callback, error);
-    
+
+        L.Comm.socket.on('onAddStream', function (stream) {
+            L.Logger.info("New Stream " + stream);
+        });
+
         L.Comm.socket.on('disconnect', function (argument) {
             L.Logger.info("Socket disconnected");
-         });
+        });
+
+
+
+        L.Comm.sendMessage('token', token, callback, error);
+
+
     };
 
-    var sendMessage = function(type, msg, callback, error) {
+    sendMessage = function (type, msg, callback, error) {
 
-        L.Comm.socket.emit(type, msg, function(respType, msg) {
-            if(respType === "success") {
+        L.Comm.socket.emit(type, msg, function (respType, msg) {
+            if (respType === "success") {
                 callback(msg);
             } else {
                 error(msg);
@@ -25,8 +34,8 @@ L.Comm = function(L) {
 
     };
 
-    var sendSDP = function(type, state, sdp, callback) {
-        L.Comm.socket.emit(type, state, sdp, function(response, respCallback) {
+    sendSDP = function (type, state, sdp, callback) {
+        L.Comm.socket.emit(type, state, sdp, function (response, respCallback) {
             callback(response, respCallback);
         });
     };
@@ -37,4 +46,4 @@ L.Comm = function(L) {
         sendSDP: sendSDP
     };
 
-}(L);
+}(L));
