@@ -20,7 +20,7 @@ class WebRtcConnection;
  * Represents a One to Many connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class OneToManyProcessor : public MediaReceiver {
+class OneToManyProcessor : public MediaReceiver, public RawDataReceiver {
 public:
 	OneToManyProcessor();
 	virtual ~OneToManyProcessor();
@@ -42,9 +42,11 @@ public:
 	void removeSubscriber(int peerId);
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
+	void receiveRawData (unsigned char* buf, int len);
 
 	WebRtcConnection *publisher;
-	MediaProcessor *mp;
+//	MediaProcessor *mp;
+	InputProcessor* ip;
 	std::map<int, WebRtcConnection*> subscribers;
 
 private:

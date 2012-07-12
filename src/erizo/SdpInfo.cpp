@@ -197,7 +197,7 @@ bool SdpInfo::processSdp(const std::string& sdp) {
 	const char *ice_user = "a=ice-ufrag";
 	const char *ice_pass = "a=ice-pwd";
 	const char *ssrctag = "a=ssrc";
-	MediaType mtype = OTHER;
+	MediaType mtype = OTHER_MEDIA;
 	bool bundle = false;
 
 	while (std::getline(iss, strLine)) {

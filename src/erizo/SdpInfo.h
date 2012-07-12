@@ -19,7 +19,7 @@ enum HostType {
  * Channel types
  */
 enum MediaType {
-	VIDEO_TYPE, AUDIO_TYPE, OTHER
+	VIDEO_TYPE, AUDIO_TYPE, BOTH_MEDIA, OTHER_MEDIA
 };
 /**
  * SRTP info.

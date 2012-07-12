@@ -4,15 +4,18 @@
 #include <boost/cstdint.hpp>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#include <string>
+
 #include "utils/RtpUtils.h"
-
-
+#include "../MediaDefinitions.h"
 
 extern "C" {
-	#include <libavcodec/avcodec.h>
-	#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 
 }
+
+namespace erizo {
 
 struct audioCodecInfo {
 	enum CodecID codec;
@@ -31,103 +34,187 @@ struct videoCodecInfo {
 
 struct RTPInfo {
 	enum CodecID codec;
-	int seqNum;
-	int ssrc;
+	unsigned int ssrc;
+	unsigned int PT;
 };
 
-typedef struct
-{
-	uint32_t cc:4;
-	uint32_t extension:1;
-	uint32_t padding:1;
-	uint32_t version:2;
-	uint32_t payloadtype:7;
-	uint32_t marker:1;
-	uint32_t seqnum:16;
+
+enum ProcessorType{
+	RTP_ONLY, AVF
+};
+
+struct MediaInfo {
+	std::string url;
+	bool hasVideo;
+	bool hasAudio;
+	ProcessorType proccessorType;
+	RTPInfo rtpVideoInfo;
+	RTPInfo rtpAudioInfo;
+	videoCodecInfo videoCodec;
+	audioCodecInfo audioCodec;
+
+};
+
+typedef struct {
+	uint32_t cc :4;
+	uint32_t extension :1;
+	uint32_t padding :1;
+	uint32_t version :2;
+	uint32_t payloadtype :7;
+	uint32_t marker :1;
+	uint32_t seqnum :16;
 	uint32_t timestamp;
 	uint32_t ssrc;
-}rtpHeader;
+} rtpHeader;
 
-typedef struct
-{
-	uint32_t partId:4;
-	uint32_t S:1;
-	uint32_t N:1;
-	uint32_t R:1;
-	uint32_t X:1;
-}vp8RtpHeader;
+typedef struct {
+	uint32_t partId :4;
+	uint32_t S :1;
+	uint32_t N :1;
+	uint32_t R :1;
+	uint32_t X :1;
+} vp8RtpHeader;
 
+#define RTP_HEADER_LEN 12
 
-#define RTP_HEADER_LEN 12;
+#define UNPACKAGED_BUFFER_SIZE 50000
+//class MediaProcessor{
+//	MediaProcessor();
+//	virtual ~Mediaprocessor();
+//private:
+//	InputProcessor* input;
+//	OutputProcessor* output;
+//};
 
-class MediaProcessor {
+class RawDataReceiver {
 public:
-	MediaProcessor();
-	virtual ~MediaProcessor();
+	virtual void receiveRawData(unsigned char*data, int len) = 0;
+	virtual ~RawDataReceiver() {
+	}
+	;
 
-	bool initAudioCoder(const audioCodecInfo *audioCodec);
-	bool initAudioDecoder(const audioCodecInfo *audioCodec);
-	bool initVideoCoder(const videoCodecInfo *videoCodec);
-	bool initVideoDecoder(const videoCodecInfo *videoCodec);
+};
 
-	bool initAudioPackagerRTP(const RTPInfo *audioRTP);
-	bool initAudioUnpackagerRTP(const RTPInfo *audioRTP);
-	bool initVideoPackagerRTP(const RTPInfo *videoRTP);
-	bool initVideoUnpackagerRTP(const RTPInfo *videoRTP);
+class InputProcessor: MediaReceiver {
+public:
+	InputProcessor();
+	virtual ~InputProcessor();
 
-	int encodeAudio(char *inBuff, int nSamples, char *outBuff);
-	int decodeAudio(char *inBuff, int inBuffLen, char *outBuff);
-	int encodeVideo(char *inBuff, int inBuffLen, char *outBuff, int outBuffLen);
-	int decodeVideo(char *inBuff, int inBuffLen, char *outBuff, int outBuffLen, int *gotFrame);
+	int init(const MediaInfo& info, RawDataReceiver* receiver);
 
-	int packageAudioRTP(char *inBuff, int inBuffLen, char *outBuff);
-	int unpackageAudioRTP(char *inBuff, int inBuffLen, char *outBuff);
-	int packageVideoRTP(char *inBuff, int inBuffLen, char *outBuff);
-	int unpackageVideoRTP(char *inBuff, int inBuffLen, char *outBuff, int *gotFrame);
-
-	//readFromFile
-	//writeTofile
-	//Encapsular
-	//Desencapsular
+	int receiveAudioData(char* buf, int len);
+	int receiveVideoData(char* buf, int len);
 
 private:
-	int audioCoder;
+
 	int audioDecoder;
-	int videoCoder;
 	int videoDecoder;
 
-	int audioPackager;
+	MediaInfo mediaInfo;
+
 	int audioUnpackager;
-	int videoPackager;
 	int videoUnpackager;
 
-	AVCodec *aCoder;
-	AVCodecContext *aCoderContext;
-	AVCodec *aDecoder;
-	AVCodecContext *aDecoderContext;
+	int gotUnpackagedFrame_;
+	int upackagedSize_;
 
-	AVCodec *vCoder;
-	AVCodecContext *vCoderContext;
-	AVFrame *cPicture;
-	AVCodec *vDecoder;
-	AVCodecContext *vDecoderContext;
-	AVFrame *dPicture;
+	unsigned char* decodedBuffer_;
+	unsigned char* unpackagedBuffer_;
 
-	AVFormatContext *aInputFormatContext;
-	AVInputFormat *aInputFormat;
-	AVFormatContext *aOutputFormatContext;
-	AVOutputFormat *aOutputFormat;
+	AVCodec* aDecoder;
+	AVCodecContext* aDecoderContext;
 
-	RTPInfo *vRTPInfo;
+	AVCodec* vDecoder;
+	AVCodecContext* vDecoderContext;
+	AVFrame* dPicture;
 
-	AVFormatContext *vInputFormatContext;
-	AVInputFormat *vInputFormat;
-	AVFormatContext *vOutputFormatContext;
-	AVOutputFormat *vOutputFormat;
+	AVFormatContext* aInputFormatContext;
+	AVInputFormat* aInputFormat;
+
+	RTPInfo* vRTPInfo;
+
+	AVFormatContext* vInputFormatContext;
+	AVInputFormat* vInputFormat;
+
+	RawDataReceiver* rawReceiver_;
 
 	erizo::RtpParser pars;
 
+	bool initAudioDecoder();
+	bool initVideoDecoder();
+
+	bool initAudioUnpackagerRTP();
+	bool initVideoUnpackager();
+
+	int decodeAudio(unsigned char* inBuff, int inBuffLen,
+			unsigned char* outBuff);
+	int decodeVideo(unsigned char* inBuff, int inBuffLen,
+			unsigned char* outBuff, int outBuffLen, int* gotFrame);
+
+	int unpackageAudioRTP(unsigned char* inBuff, int inBuffLen,
+			unsigned char* outBuff);
+	int unpackageVideoRTP(unsigned char* inBuff, int inBuffLen,
+			unsigned char* outBuff, int* gotFrame);
 
 };
+class OutputProcessor: public RawDataReceiver {
+public:
+
+	OutputProcessor();
+	virtual ~OutputProcessor();
+	int init(const MediaInfo &info);
+
+	void receiveRawData(unsigned char*data, int len);
+
+private:
+
+	int audioCoder;
+	int videoCoder;
+
+	int audioPackager;
+	int videoPackager;
+
+	unsigned char* encodedBuffer_;
+	unsigned char* packagedBuffer_;
+
+	MediaInfo mediaInfo;
+
+	AVCodec* aCoder;
+	AVCodecContext* aCoderContext;
+
+	AVCodec* vCoder;
+	AVCodecContext* vCoderContext;
+	AVFrame* cPicture;
+
+	AVFormatContext* aOutputFormatContext;
+	AVOutputFormat* aOutputFormat;
+
+	RTPInfo* vRTPInfo;
+
+	AVFormatContext* vOutputFormatContext;
+	AVOutputFormat* vOutputFormat;
+
+	MediaReceiver* Receiver;
+
+	RtpParser pars;
+
+	bool initAudioCoder(const audioCodecInfo& audioCodec);
+	bool initVideoCoder(const videoCodecInfo& videoCodec);
+
+	bool initAudioPackagerRTP(const RTPInfo& audioRTP);
+	bool initVideoPackagerRTP(const RTPInfo& videoRTP);
+
+	int encodeAudio(unsigned char* inBuff, int nSamples,
+			unsigned char* outBuff);
+	int encodeVideo(unsigned char* inBuff, int inBuffLen,
+			unsigned char* outBuff, int outBuffLen);
+
+	int packageAudioRTP(unsigned char* inBuff, int inBuffLen,
+			unsigned char* outBuff);
+	int packageVideoRTP(unsigned char* inBuff, int inBuffLen,
+			unsigned char* outBuff);
+	int packageVideoAVF(AVPacket* pkt);
+};
+} /* namespace erizo */
 
 #endif /* MEDIAPROCESSOR_H_ */

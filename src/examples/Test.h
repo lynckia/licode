@@ -4,11 +4,12 @@
 
 #ifndef TEST_H_
 #define TEST_H_
-
-class Test {
+namespace erizo{
+class Test: public RawDataReceiver {
 public:
 	Test();
 	virtual ~Test();
+	void receiveRawData(unsigned char*data, int len);
 
 	void rec();
 	void send(char *buff, int buffSize);
@@ -19,9 +20,10 @@ private:
 
 	boost::asio::ip::udp::resolver::query* query_;
 	boost::asio::io_service* ioservice_;
-	MediaProcessor *mp;
+	InputProcessor* ip;
 	erizo::RtpParser pars;
 
 };
 
+}
 #endif /* TEST_H_ */
