@@ -111,6 +111,11 @@ rpc.connect(function() {
         socket.on('disconnect', function () {
 
             console.log('Socket disconnect ', socket.id);
+        
+            if(socket.stream !== undefined) {
+                sendMsgToRoom(socket.room, 'onRemoveStream', socket.stream);
+            } 
+
             if(socket.room !== undefined) {
                 var index = socket.room.sockets.indexOf(socket.id);
                 if(index !== -1) {
