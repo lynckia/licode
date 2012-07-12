@@ -66,7 +66,6 @@ int InputProcessor::receiveVideoData(char* buf, int len) {
 	if (videoUnpackager && videoDecoder) {
 		int ret = unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
 				unpackagedBuffer_, &gotUnpackagedFrame_);
-		//	int x = mp->unpackageVideoRTP(buf, len, unpackagedBuffer_, &gotFrame_);
 		upackagedSize_ += ret;
 		unpackagedBuffer_ += ret;
 
@@ -90,10 +89,12 @@ int InputProcessor::receiveVideoData(char* buf, int len) {
 			if (gotDecodedFrame) {
 				printf("Tengo un frame decodificado!!\n");
 				gotDecodedFrame = 0;
+				rawReceiver_->receiveRawData(decodedBuffer_, c);
 				memset(unpackagedBuffer_, 0, 50000);
-				unsigned char *buffSend = (unsigned char*) malloc(c);
-				memcpy(buffSend, decodedBuffer_, c);
-				rawReceiver_->receiveRawData(buffSend, c);
+
+//				unsigned char *buffSend = (unsigned char*) malloc(c);
+//				memcpy(buffSend, decodedBuffer_, c);
+
 			}
 
 		}
@@ -188,7 +189,7 @@ bool InputProcessor::initAudioUnpackager() {
 
 bool InputProcessor::initVideoUnpackager() {
 	if (mediaInfo.proccessorType == RTP_ONLY) {
-		printf("Unpackagin from RTP\n");
+		printf("Unpackaging from RTP\n");
 	} else {
 
 	}
@@ -444,14 +445,14 @@ int InputProcessor::unpackageVideo(unsigned char* inBuff, int inBuffLen,
 	unsigned long time = ntohl(head->timestamp);
 	printf("PT %d, ssrc %u, extension %d\n", head->payloadtype, ssrc,
 			head->extension);
-//	if (ssrc != 55543/* && head->payloadtype!=101*/) {
-//		return -1;
-//	}
-//	if (head->payloadtype != 100) {
-//		printf("EEEEEEEEEEEEEEOOOOOOOOOOOOOOOOOOOOOOOO %d\n\n\n",
-//				head->payloadtype);
-//		return -1;
-//	}
+	if (ssrc != 55543/* && head->payloadtype!=101*/) {
+		return -1;
+	}
+	if (head->payloadtype != 100) {
+		printf("EEEEEEEEEEEEEEOOOOOOOOOOOOOOOOOOOOOOOO %d\n\n\n",
+				head->payloadtype);
+		return -1;
+	}
 	int l = inBuffLen - RTP_HEADER_LEN;
 	inBuff += RTP_HEADER_LEN;
 //	vp8RtpHeader* vphead = (vp8RtpHeader*) inBuff;

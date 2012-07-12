@@ -120,6 +120,7 @@ private:
 	unsigned char* decodedBuffer_;
 	unsigned char* unpackagedBuffer_;
 
+
 	AVCodec* aDecoder;
 	AVCodecContext* aDecoderContext;
 

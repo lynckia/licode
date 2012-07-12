@@ -16,6 +16,11 @@ OneToManyProcessor::OneToManyProcessor() :
 	sentPackets_ = 0;
 	ip = new InputProcessor();
 	MediaInfo m;
+	printf("initiating mediaInfo\n");
+	m.videoCodec.bitRate =2000000;
+	printf("m.videoCodec.bitrate %d\n\n", m.videoCodec.bitRate);
+	m.videoCodec.height = 480;
+	m.videoCodec.width = 640;
 	ip->init(m, this);
 	// Media processing
 
@@ -98,7 +103,8 @@ int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 }
 
 void OneToManyProcessor::receiveRawData(unsigned char* buf, int len){
-	printf("Received %d", len);
+	printf("Received %d\n", len);
+//	free(buf);
 }
 void OneToManyProcessor::setPublisher(WebRtcConnection* webRtcConn) {
 
