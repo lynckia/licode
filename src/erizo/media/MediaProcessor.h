@@ -38,8 +38,7 @@ struct RTPInfo {
 	unsigned int PT;
 };
 
-
-enum ProcessorType{
+enum ProcessorType {
 	RTP_ONLY, AVF
 };
 
@@ -143,7 +142,7 @@ private:
 	bool initAudioDecoder();
 	bool initVideoDecoder();
 
-	bool initAudioUnpackagerRTP();
+	bool initAudioUnpackager();
 	bool initVideoUnpackager();
 
 	int decodeAudio(unsigned char* inBuff, int inBuffLen,
@@ -151,9 +150,9 @@ private:
 	int decodeVideo(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff, int outBuffLen, int* gotFrame);
 
-	int unpackageAudioRTP(unsigned char* inBuff, int inBuffLen,
+	int unpackageAudio(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);
-	int unpackageVideoRTP(unsigned char* inBuff, int inBuffLen,
+	int unpackageVideo(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff, int* gotFrame);
 
 };
@@ -198,22 +197,21 @@ private:
 
 	RtpParser pars;
 
-	bool initAudioCoder(const audioCodecInfo& audioCodec);
-	bool initVideoCoder(const videoCodecInfo& videoCodec);
+	bool initAudioCoder();
+	bool initVideoCoder();
 
-	bool initAudioPackagerRTP(const RTPInfo& audioRTP);
-	bool initVideoPackagerRTP(const RTPInfo& videoRTP);
+	bool initAudioPackager();
+	bool initVideoPackager();
 
 	int encodeAudio(unsigned char* inBuff, int nSamples,
 			unsigned char* outBuff);
 	int encodeVideo(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff, int outBuffLen);
 
-	int packageAudioRTP(unsigned char* inBuff, int inBuffLen,
+	int packageAudio(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);
-	int packageVideoRTP(unsigned char* inBuff, int inBuffLen,
+	int packageVideo(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);
-	int packageVideoAVF(AVPacket* pkt);
 };
 } /* namespace erizo */
 

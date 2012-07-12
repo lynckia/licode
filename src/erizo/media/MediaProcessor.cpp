@@ -64,7 +64,7 @@ int InputProcessor::receiveAudioData(char* buf, int len) {
 int InputProcessor::receiveVideoData(char* buf, int len) {
 
 	if (videoUnpackager && videoDecoder) {
-		int ret = unpackageVideoRTP(reinterpret_cast<unsigned char*>(buf), len,
+		int ret = unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
 				unpackagedBuffer_, &gotUnpackagedFrame_);
 		//	int x = mp->unpackageVideoRTP(buf, len, unpackagedBuffer_, &gotFrame_);
 		upackagedSize_ += ret;
@@ -93,9 +93,6 @@ int InputProcessor::receiveVideoData(char* buf, int len) {
 				memset(unpackagedBuffer_, 0, 50000);
 				unsigned char *buffSend = (unsigned char*) malloc(c);
 				memcpy(buffSend, decodedBuffer_, c);
-
-//				int a = this->encodeVideo(decodedBuffer_, c, buffSend,
-//						buffSize);
 				rawReceiver_->receiveRawData(buffSend, c);
 			}
 
@@ -167,7 +164,7 @@ bool InputProcessor::initVideoDecoder() {
 	return true;
 }
 
-bool InputProcessor::initAudioUnpackagerRTP() {
+bool InputProcessor::initAudioUnpackager() {
 
 	if (mediaInfo.proccessorType != RTP_ONLY) {
 		aInputFormatContext = avformat_alloc_context();
@@ -190,7 +187,11 @@ bool InputProcessor::initAudioUnpackagerRTP() {
 }
 
 bool InputProcessor::initVideoUnpackager() {
+	if (mediaInfo.proccessorType == RTP_ONLY) {
+		printf("Unpackagin from RTP\n");
+	} else {
 
+	}
 	videoUnpackager = 1;
 	return true;
 
@@ -378,7 +379,7 @@ int InputProcessor::decodeVideo(unsigned char* inBuff, int inBuffLen,
 	return outSize * 3 / 2;
 }
 
-int InputProcessor::unpackageAudioRTP(unsigned char* inBuff, int inBuffLen,
+int InputProcessor::unpackageAudio(unsigned char* inBuff, int inBuffLen,
 		unsigned char* outBuff) {
 
 	/*
@@ -426,7 +427,7 @@ int InputProcessor::unpackageAudioRTP(unsigned char* inBuff, int inBuffLen,
 	return l;
 }
 
-int InputProcessor::unpackageVideoRTP(unsigned char* inBuff, int inBuffLen,
+int InputProcessor::unpackageVideo(unsigned char* inBuff, int inBuffLen,
 		unsigned char* outBuff, int *gotFrame) {
 	/*
 	 if (videoUnpackager == 0) {
@@ -535,20 +536,16 @@ int OutputProcessor::init(const MediaInfo &info) {
 	encodedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
 	packagedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
 
-	videoCodecInfo c;
-	c.codec = CODEC_ID_H264;
-	c.width = 640;
-	c.height = 480;
-	c.frameRate = 24;
-	c.bitRate = 1024;
-	c.maxInter = 0;
+//	videoCodecInfo c;
+//	c.codec = CODEC_ID_H264;
+//	c.width = 640;
+//	c.height = 480;
+//	c.frameRate = 24;
+//	c.bitRate = 1024;
+//	c.maxInter = 0;
 
-	this->initVideoCoder(c);
-
-	RTPInfo r;
-	r.codec = CODEC_ID_H263P;
-
-	this->initVideoPackagerRTP(r);
+	this->initVideoCoder();
+	this->initVideoPackager();
 	return 0;
 }
 
@@ -558,12 +555,12 @@ void OutputProcessor::receiveRawData(unsigned char* data, int len) {
 
 	printf("\nBytes codificados = %d", a);
 
-	int b = this->packageVideoRTP(encodedBuffer_, a, packagedBuffer_);
+	int b = this->packageVideo(encodedBuffer_, a, packagedBuffer_);
 	printf("\nBytes empaquetados = %d", b);
 }
-bool OutputProcessor::initAudioCoder(const audioCodecInfo& audioCodec) {
+bool OutputProcessor::initAudioCoder() {
 
-	aCoder = avcodec_find_encoder(audioCodec.codec);
+	aCoder = avcodec_find_encoder(mediaInfo.audioCodec.codec);
 	if (!aCoder) {
 		printf("Encoder de audio no encontrado");
 		return false;
@@ -576,8 +573,8 @@ bool OutputProcessor::initAudioCoder(const audioCodecInfo& audioCodec) {
 	}
 
 	aCoderContext->sample_fmt = AV_SAMPLE_FMT_S16;
-	aCoderContext->bit_rate = audioCodec.bitRate;
-	aCoderContext->sample_rate = audioCodec.sampleRate;
+	aCoderContext->bit_rate = mediaInfo.audioCodec.bitRate;
+	aCoderContext->sample_rate = mediaInfo.audioCodec.sampleRate;
 	aCoderContext->channels = 1;
 
 	if (avcodec_open2(aCoderContext, aCoder, NULL) < 0) {
@@ -589,9 +586,9 @@ bool OutputProcessor::initAudioCoder(const audioCodecInfo& audioCodec) {
 	return true;
 }
 
-bool OutputProcessor::initVideoCoder(const videoCodecInfo& videoCodec) {
+bool OutputProcessor::initVideoCoder() {
 
-	vCoder = avcodec_find_encoder(videoCodec.codec);
+	vCoder = avcodec_find_encoder(mediaInfo.videoCodec.codec);
 	if (!vCoder) {
 		printf("Encoder de vídeo no encontrado");
 		return false;
@@ -603,27 +600,27 @@ bool OutputProcessor::initVideoCoder(const videoCodecInfo& videoCodec) {
 		return false;
 	}
 
-	vCoderContext->bit_rate = videoCodec.bitRate;
-	vCoderContext->bit_rate_tolerance = 1.1 * videoCodec.bitRate
-			/ videoCodec.frameRate;
-	vCoderContext->rc_max_rate = videoCodec.bitRate * 2;
+	vCoderContext->bit_rate = mediaInfo.videoCodec.bitRate;
+	vCoderContext->bit_rate_tolerance = 1.1 * mediaInfo.videoCodec.bitRate
+			/ mediaInfo.videoCodec.frameRate;
+	vCoderContext->rc_max_rate = mediaInfo.videoCodec.bitRate * 2;
 
-	if (videoCodec.frameRate >= 1.0) {
-		vCoderContext->rc_buffer_size = videoCodec.bitRate; // 1 second stored, in bps
+	if (mediaInfo.videoCodec.frameRate >= 1.0) {
+		vCoderContext->rc_buffer_size = mediaInfo.videoCodec.bitRate; // 1 second stored, in bps
 	} else {
-		vCoderContext->rc_buffer_size = 1.1 * videoCodec.bitRate
-				/ videoCodec.frameRate;
+		vCoderContext->rc_buffer_size = 1.1 * mediaInfo.videoCodec.bitRate
+				/ mediaInfo.videoCodec.frameRate;
 	}
 
 	vCoderContext->rc_buffer_aggressivity = 1.0;
-	vCoderContext->gop_size = videoCodec.maxInter;
+	vCoderContext->gop_size = mediaInfo.videoCodec.maxInter;
 	vCoderContext->max_b_frames = 0;
 	vCoderContext->me_method = ME_EPZS;
 
-	vCoderContext->width = videoCodec.width;
-	vCoderContext->height = videoCodec.height;
+	vCoderContext->width = mediaInfo.videoCodec.width;
+	vCoderContext->height = mediaInfo.videoCodec.height;
 	vCoderContext->pix_fmt = PIX_FMT_YUV420P;
-	vCoderContext->time_base = (AVRational) {1000, 1000*videoCodec.frameRate};
+	vCoderContext->time_base = (AVRational) {1000, 1000*mediaInfo.videoCodec.frameRate};
 
 	if (avcodec_open2(vCoderContext, vCoder, NULL) < 0) {
 		printf("Error al abrir el decoder de vídeo");
@@ -640,7 +637,7 @@ bool OutputProcessor::initVideoCoder(const videoCodecInfo& videoCodec) {
 	return true;
 }
 
-bool OutputProcessor::initAudioPackagerRTP(const RTPInfo& audioRTP) {
+bool OutputProcessor::initAudioPackager() {
 
 	aOutputFormatContext = avformat_alloc_context();
 	if (!aOutputFormatContext) {
@@ -655,13 +652,13 @@ bool OutputProcessor::initAudioPackagerRTP(const RTPInfo& audioRTP) {
 	}
 
 	aOutputFormatContext->oformat = aOutputFormat;
-	aOutputFormat->audio_codec = audioRTP.codec;
+	aOutputFormat->audio_codec = mediaInfo.audioCodec.codec;
 
 	audioPackager = 1;
 	return true;
 }
 
-bool OutputProcessor::initVideoPackagerRTP(const RTPInfo& videoRTP) {
+bool OutputProcessor::initVideoPackager() {
 //
 //	vOutputFormatContext = avformat_alloc_context();
 //	if (!vOutputFormatContext){
@@ -686,7 +683,7 @@ bool OutputProcessor::initVideoPackagerRTP(const RTPInfo& videoRTP) {
 	return true;
 }
 
-int OutputProcessor::packageVideoRTP(unsigned char* inBuff, int inBuffLen,
+int OutputProcessor::packageVideo(unsigned char* inBuff, int inBuffLen,
 		unsigned char* outBuff) {
 
 	if (videoPackager == 0) {
@@ -734,13 +731,7 @@ int OutputProcessor::packageVideoRTP(unsigned char* inBuff, int inBuffLen,
 	return l;
 }
 
-int OutputProcessor::packageVideoAVF(AVPacket* pkt) {
-	int ret = av_write_frame(vOutputFormatContext, pkt);
-
-	return ret;
-}
-
-int OutputProcessor::packageAudioRTP(unsigned char* inBuff, int inBuffLen,
+int OutputProcessor::packageAudio(unsigned char* inBuff, int inBuffLen,
 		unsigned char* outBuff) {
 
 	if (audioPackager == 0) {
