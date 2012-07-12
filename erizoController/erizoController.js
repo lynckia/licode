@@ -5,7 +5,7 @@ var io = require('socket.io').listen(8080);
 
 io.set('log level', 1);
 
-var nuveKey = 'grdp1l0';
+var nuveKey = 'claveNuve';
 
 var rooms = {};
 
@@ -13,7 +13,7 @@ var sendMsgToRoom = function(room, type, arg) {
 
     var sockets = room.sockets; 
     for(var id in sockets) {
-        console.log('Sending message to ', sockets[id]);
+        console.log('Sending message to', sockets[id], 'in room ', room.id);
         io.sockets.socket(sockets[id]).emit(type, arg);    
     }
        
@@ -24,7 +24,7 @@ rpc.connect(function() {
 
     io.sockets.on('connection', function (socket) {
 
-        console.log("New Socket id ", socket.id);
+        console.log("Socket connect ", socket.id);
         
         socket.on('token', function (token, callback) {
 
@@ -47,16 +47,14 @@ rpc.connect(function() {
                             room.sockets = [];
                             room.sockets.push(socket.id);
                             room.streams = [];
-                            console.log('************* Creo webRTCController');
                             room.webRtcController = new controller.WebRtcController();
                             rooms[tokenDB.room] = room;
                         } else {
                             rooms[tokenDB.room].sockets.push(socket.id);
                         }
                         socket.room = rooms[tokenDB.room];
-                        //console.log('OK, Valid token', tokenDB);
+                        console.log('OK, Valid token');
 
-                        //enviar los streams de la sala!
                         callback('success', rooms[tokenDB.room].streams);
                     
                     } else {
@@ -70,21 +68,17 @@ rpc.connect(function() {
                 callback('error', 'Authentication error');
                 socket.disconnect();
             }
-
         });
 
         socket.on('publish', function(state, sdp, callback) {
-            console.log('*****SDP: ', sdp);
 
             if (state === 'offer' && socket.state === undefined) {
-                console.log('*****OFFER: ', sdp);
                 socket.room.webRtcController.addPublisher(socket.id, sdp, function (answer) {
                     socket.state = 'waitingOk';
                     callback(answer, socket.id);
                 });
 
             } else if (state === 'ok' && socket.state === 'waitingOk') {
-                console.log('*****OK: ', sdp);
                 socket.state = 'publishing';
                 socket.stream = socket.id;
                 socket.room.streams.push(socket.stream);
@@ -93,16 +87,30 @@ rpc.connect(function() {
         });
 
         socket.on('subscribe', function(to, sdp, callback) {
-            
             socket.room.webRtcController.addSubscriber(socket.id, to, sdp, function (answer) {
                 callback(answer);
             });
-
-           
          });
 
+        socket.on('unpublish', function() {
+
+            sendMsgToRoom(socket.room, 'onRemoveStream', socket.stream);
+            var index = socket.room.streams.indexOf(socket.id);
+            if(index !== -1) {
+                socket.room.streams.splice(index, 1);
+            }
+            socket.state = undefined;
+            socket.stream = undefined;
+            socket.room.webRtcController.removePublisher(socket.id);
+        });
+
+        socket.on('unsubscribe', function(to) {
+            socket.room.webRtcController.removeSubscriber(socket.id, to);
+        });
+
         socket.on('disconnect', function () {
-            console.log('Socket disconnect');
+
+            console.log('Socket disconnect ', socket.id);
             if(socket.room !== undefined) {
                 var index = socket.room.sockets.indexOf(socket.id);
                 if(index !== -1) {
@@ -112,12 +120,10 @@ rpc.connect(function() {
                 if(index !== -1) {
                     socket.room.streams.splice(index, 1);
                 }
-                socket.room.webRtcController.deleteCheck(socket.id);
+                socket.room.webRtcController.removeClient(socket.id);
             }       
         });
-
     });
-
 });
 
 
@@ -137,9 +143,7 @@ var checkSignature = function(token, key) {
 var calculateSignature = function(token, key) {
 
     var toSign = token.tokenId + ',' + token.host;
-    
     var signed = crypto.createHmac('sha1', key).update(toSign).digest('hex');
-
     return (new Buffer(signed)).toString('base64');
 }
 
