@@ -9,34 +9,14 @@ var nuveKey = 'grdp1l0';
 
 var rooms = {};
 
-var processResponse = function (from, to, msg){
+var sendMsgToRoom = function(room, type, arg) {
 
-    toid = nicknames[to];
-    var send = {from: from, msg: msg};
-    //console.log('Sending unicast to ' + io.sockets.socket(toid).id);
-    io.sockets.socket(toid).emit('message', send);
-    
-    if(from == 'publisher') {   
-        io.sockets.emit('nicknames', nicknames);
+    var sockets = room.sockets; 
+    for(var id in sockets) {
+        console.log('Sending message to ', sockets[id]);
+        io.sockets.socket(sockets[id]).emit(type, arg);    
     }
-}
-
-
-var processMess = function (from, to, msg) {
-
-    if (to == 'publisher'){
-
-        webrtccontroller.addPublisher(from, msg, processResponse);
-    } else {
-        webrtccontroller.addSubscriber(from, to, msg, processResponse);
-    }
-    
-};
-
-
-
-var sendMsgToAll = function (socket, msg) {
-    socket.broadcast.emit('broadcast', msg);
+       
 };
 
 
@@ -50,8 +30,6 @@ rpc.connect(function() {
 
             var tokenDB;
 
-            callback('success', 'ok');
-/*
             if(checkSignature(token, nuveKey)) {
 
                 rpc.callRpc('deleteToken', token.tokenId, function(resp) {
@@ -68,13 +46,18 @@ rpc.connect(function() {
                             room.id = tokenDB.room;
                             room.sockets = [];
                             room.sockets.push(socket.id);
+                            room.streams = [];
+                            console.log('************* Creo webRTCController');
+                            room.webRtcController = new controller.WebRtcController();
                             rooms[tokenDB.room] = room;
                         } else {
                             rooms[tokenDB.room].sockets.push(socket.id);
                         }
                         socket.room = rooms[tokenDB.room];
-                        console.log('OK, Valid token', tokenDB);
-                        callback('success', 'Valid token');
+                        //console.log('OK, Valid token', tokenDB);
+
+                        //enviar los streams de la sala!
+                        callback('success', rooms[tokenDB.room].streams);
                     
                     } else {
                         console.log('Invalid host');
@@ -87,32 +70,36 @@ rpc.connect(function() {
                 callback('error', 'Authentication error');
                 socket.disconnect();
             }
-*/
+
         });
 
         socket.on('publish', function(state, sdp, callback) {
+            console.log('*****SDP: ', sdp);
 
             if (state === 'offer' && socket.state === undefined) {
-                
-                var webrtccontroller = new controller.WebRTCController();
-                webrtccontroller.addPublisher(socket.id, sdp, function (from, to, answer) {
-                    console.log('********************envio callback');
-                    socket.state = 'offer';
-                    callback(answer);
+                console.log('*****OFFER: ', sdp);
+                socket.room.webRtcController.addPublisher(socket.id, sdp, function (answer) {
+                    socket.state = 'waitingOk';
+                    callback(answer, socket.id);
                 });
 
-            } else if (state === 'ok' && socket.state === 'offer') {
-                socket.state = 'ok';
-                console.log('yeah');
+            } else if (state === 'ok' && socket.state === 'waitingOk') {
+                console.log('*****OK: ', sdp);
+                socket.state = 'publishing';
                 socket.stream = socket.id;
-                sendMessageToRoom('');
-                io.sockets.emit('onAddStream', socket.stream);
+                socket.room.streams.push(socket.stream);
+                sendMsgToRoom(socket.room, 'onAddStream', socket.stream);
             }
-
-            
-
-
         });
+
+        socket.on('subscribe', function(to, sdp, callback) {
+            
+            socket.room.webRtcController.addSubscriber(socket.id, to, sdp, function (answer) {
+                callback(answer);
+            });
+
+           
+         });
 
         socket.on('disconnect', function () {
             console.log('Socket disconnect');
@@ -121,6 +108,11 @@ rpc.connect(function() {
                 if(index !== -1) {
                     socket.room.sockets.splice(index, 1);
                 }
+                index = socket.room.streams.indexOf(socket.id);
+                if(index !== -1) {
+                    socket.room.streams.splice(index, 1);
+                }
+                socket.room.webRtcController.deleteCheck(socket.id);
             }       
         });
 
@@ -131,7 +123,6 @@ rpc.connect(function() {
 
 
 var checkSignature = function(token, key) {
-
 
     var calculatedSignature = calculateSignature(token, key);
 

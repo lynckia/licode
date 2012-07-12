@@ -4,9 +4,10 @@ var addon = require('./../erizoAPI/build/Release/addon');
 var subscribers = {}; //id (muxer): array de subscribers
 var publishers = {}; //id: muxer
 
-exports.WebRTCController = function() {
+exports.WebRtcController = function() {
 
     var that = {};
+
     var getSdp = function(roap) {
 
         var reg1 = new RegExp(/^.*sdp\":\"(.*)\",.*$/);
@@ -57,12 +58,12 @@ exports.WebRTCController = function() {
             muxer.setPublisher(newConn);
 
             var remoteSdp = getSdp(roap);
-            console.log('SDP remote: ', remoteSdp);
+            //console.log('SDP remote: ', remoteSdp);
 
             newConn.setRemoteSdp(remoteSdp);
 
             var localSdp = newConn.getLocalSdp();
-            console.log('SDP local: ', localSdp);
+            //console.log('SDP local: ', localSdp);
 
             var answer = getRoap(localSdp, roap);
 
@@ -70,8 +71,9 @@ exports.WebRTCController = function() {
             subscribers[from] = new Array();
             
             //console.log('Publishers: ', publishers);
+            //console.log('Subscribers: ', publishers);
 
-            callback('publisher', from, answer);
+            callback(answer);
 
 
         } else {
@@ -81,9 +83,8 @@ exports.WebRTCController = function() {
 
     that.addSubscriber = function(from, to, msg, callback) {
 
-        //console.log('Publishers: ', publishers);
 
-        if(from !== undefined && publishers[to] !== undefined && subscribers[to].indexOf(from) == -1 &&msg.match('OFFER') != null) {
+        if(from !== undefined && publishers[to] !== undefined && subscribers[to].indexOf(from) == -1 && msg.match('OFFER') != null) {
 
             var roap = msg;
                     
@@ -105,10 +106,12 @@ exports.WebRTCController = function() {
 
             subscribers[to].push(from);
 
-            callback(to, from, answer);
+            //console.log('Publishers: ', publishers);
+            //console.log('Subscribers: ', subscribers);
+
+            callback(answer);
         }
     }
-
 
     that.deleteCheck = function (from) {
 
@@ -122,9 +125,7 @@ exports.WebRTCController = function() {
         }
 
         if(subscribers[from] != undefined && publishers[from] != undefined) {
-
             console.log('Removing muxer', from);
-
             publishers[from].close();
             delete subscribers[from];
             delete publishers[from];    
@@ -134,4 +135,3 @@ exports.WebRTCController = function() {
     return that;
 
 }
-
