@@ -57,8 +57,8 @@ var Room = function (spec) {
     }
 
     connectSocket = function (token, callback, error) {
-        that.socket = io.connect("hpcm.dit.upm.es:8080", {reconnect: false});
-        //that.socket = io.connect(token.host, {reconnect: false});
+        //that.socket = io.connect("hpcm.dit.upm.es:8080", {reconnect: false});
+        that.socket = io.connect(token.host, {reconnect: false});
 
         that.socket.on('onAddStream', function (id) {
             var stream = Stream({streamID: id})
@@ -117,8 +117,10 @@ var Room = function (spec) {
         var streamList = [];
         var token = L.Base64.decodeBase64(spec.token);
         that.state = CONNECTING;
-        connectSocket(JSON.parse(token), function (streams) {
-            var index = 0, stream, streamList = [];
+        connectSocket(JSON.parse(token), function (response) {
+            var index = 0, stream, streamList = [], streams, roomId;
+            streams = response.streams;
+            roomId = response.id;
             that.state = CONNECTED;
 
             // 2- Retrieve list of streams
@@ -131,7 +133,7 @@ var Room = function (spec) {
             }
 
             // 3 - Update RoomID
-            that.roomID = '';
+            that.roomID = roomId;
 
             L.Logger.info("Connected to room " + that.roomID);
 
