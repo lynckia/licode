@@ -55,7 +55,7 @@ rpc.connect(function() {
                         socket.room = rooms[tokenDB.room];
                         console.log('OK, Valid token');
 
-                        callback('success', rooms[tokenDB.room].streams);
+                        callback('success', {streams: socket.room.streams, id: socket.room.id});
                     
                     } else {
                         console.log('Invalid host');
@@ -87,7 +87,9 @@ rpc.connect(function() {
         });
 
         socket.on('subscribe', function(to, sdp, callback) {
+            console.log('**********Empiezo a añadir subscriber para ', socket.id, 'a', to);
             socket.room.webRtcController.addSubscriber(socket.id, to, sdp, function (answer) {
+                console.log('***********Tengo el answer del subscriber para ', socket.id, 'a', to);
                 callback(answer);
             });
          });
