@@ -1,3 +1,4 @@
+var room, publisher;
 window.onload = function () {
 
     N.API.init("http://toronado.dit.upm.es:3000/", "4fe07f2475556d4402000001", "clave");
@@ -7,9 +8,9 @@ window.onload = function () {
         console.log("Token: " + response);
         L.Logger.setLogLevel(L.Logger.DEBUG);
         //L.Logger.debug("Connected!");
-        var room = Room({token: token});
+        room = Room({token: token});
 
-        var publisher = Publisher({audio: true, video: true, elementID: "pepito"});
+        publisher = Publisher({audio: true, video: true, elementID: "pepito"});
         publisher.addEventListener("access-accepted", function () {
             console.log(publisher.stream);
 
@@ -50,8 +51,11 @@ window.onload = function () {
             room.addEventListener("stream-removed", function (streamEvent) {
                 // Remove stream from DOM
                 var stream = streamEvent.stream;
-                var element = document.getElementById("test" + stream.streamID);
-                element.getParentNode().removeChild(element);
+                if (stream.elementID !== undefined) {
+                    console.log("Removing " + stream.elementID);
+                    var element = document.getElementById(stream.elementID);
+                    element.parentNode.removeChild(element);
+                }
             });
 
             room.connect();

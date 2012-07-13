@@ -87,7 +87,7 @@ RoapConnection.prototype.processSignalingMessage = function(msgstring) {
       // Initial offer.
       this.offer_as_string = msg.sdp;
       var sdp = new RoapConnection.SessionDescriptionConstructor(msg.sdp);
-      console.log('SDP is ' + sdp.toSdp());
+      //console.log('SDP is ' + sdp.toSdp());
       this.peerConnection.setRemoteDescription(this.peerConnection.SDP_OFFER,
                                                sdp);
       this.state = 'offer-received';
@@ -215,7 +215,7 @@ RoapConnection.prototype.onstablestate = function() {
       }
       // Now able to send the offer we've already prepared.
       this.prevOffer = this.peerConnection.localDescription.toSdp();
-      console.log('Sent SDP is' + this.prevOffer);
+      //console.log('Sent SDP is ' + this.prevOffer);
       this.sendMessage('OFFER', this.prevOffer);
       // Not done: Retransmission on non-response.
       this.state = 'offer-sent';

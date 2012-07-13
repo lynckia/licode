@@ -15,8 +15,8 @@ var EventDispatcher = function (spec) {
     that.addEventListener = function (eventType, listener) {
         if (spec.dispatcher.eventListeners[eventType] === undefined) {
             spec.dispatcher.eventListeners[eventType] = [];
-            spec.dispatcher.eventListeners[eventType].push(listener);
         }
+        spec.dispatcher.eventListeners[eventType].push(listener);
     };
 
     // It removes an available event listener.

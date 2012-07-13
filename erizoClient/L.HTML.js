@@ -31,12 +31,13 @@ L.HTML = (function (L) {
 
     removeVideo = function (id) {
         var video = document.getElementById("stream" + id);
-        video.close();
-        video.getParentNode().removeChild(node);
+        video.pause();
+        video.parentNode.removeChild(video);
     };
 
     return {
         init: init,
-        addVideoToElement: addVideoToElement
+        addVideoToElement: addVideoToElement,
+        removeVideo: removeVideo
     };
 }(L));
