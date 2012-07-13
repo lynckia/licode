@@ -11,33 +11,74 @@
  */
 var Room = function (spec) {
     "use strict";
-    var that = EventDispatcher(spec), connectSocket, sendMessageSocket, sendSDPSocket, streams = {};
-    that.roomID = 10;
+    var that = EventDispatcher(spec), connectSocket, sendMessageSocket, sendSDPSocket, removeStream, DISCONNECTED = 0, CONNECTING = 1, CONNECTED = 0; 
+    that.streams = {};
+    that.roomID = '';
     that.socket = {};
+    that.state = DISCONNECTED;
     L.HTML.init();
 
     // Private functions
 
+    that.addEventListener("room-disconnected", function(evt) {
+        var index;
+        that.state = DISCONNECTED;
+
+        // Remove all streams
+        for (index in that.streams) {
+            if (that.streams.hasOwnProperty(index)) {
+                var stream = that.streams[index];
+                removeStream(stream);
+                delete that.streams[index];
+                var evt = StreamEvent({type: 'stream-removed', stream: stream});
+                that.dispatchEvent(evt);
+            }
+        }
+        that.streams = {};
+
+        spec.publisher.pc.close();
+        spec.publisher.pc = undefined;
+
+        try {
+            that.socket.disconnect();
+        } catch (error) {
+            L.Logger.debug("Socket already disconnected");
+        }
+        that.socket = undefined;
+    });
+
+    removeStream = function(stream) {
+        if (stream.stream !== undefined) {
+            // Remove HTML element
+            L.HTML.removeVideo(stream.streamID);
+            // Close PC stream
+            stream.pc.close();
+        }
+    }
+
     connectSocket = function (token, callback, error) {
-        that.socket = io.connect(token.host, {reconnect: false});
+        that.socket = io.connect("hpcm.dit.upm.es:8080", {reconnect: false});
+        //that.socket = io.connect(token.host, {reconnect: false});
 
         that.socket.on('onAddStream', function (id) {
             var stream = Stream({streamID: id})
-            streams[id] = stream;
+            that.streams[id] = stream;
             var evt = StreamEvent({type: 'stream-added', stream: stream});
             that.dispatchEvent(evt);
         });
 
         that.socket.on('onRemoveStream', function (id) {
-            var stream = streams[id];
-            delete streams[id];
-            L.HTML.removeVideo(id);
+            var stream = that.streams[id];
+            delete that.streams[id];
+            removeStream(stream);
             var evt = StreamEvent({type: 'stream-removed', stream: stream});
             that.dispatchEvent(evt);
         });
 
         that.socket.on('disconnect', function (argument) {
             L.Logger.info("Socket disconnected");
+            var disconnectEvt = RoomEvent({type: "room-disconnected"});
+            that.dispatchEvent(disconnectEvt);
         });
 
         sendMessageSocket('token', token, callback, error);
@@ -67,32 +108,43 @@ var Room = function (spec) {
 
     // It stablishes a connection to the room. Once it is done it throws a RoomEvent("room-connected")
     that.connect = function () {
+
+        if (that.state !== DISCONNECTED) {
+            L.Logger.error("Room already connected");
+        }
+
         // 1- Connect to Erizo-Controller
         var streamList = [];
         var token = L.Base64.decodeBase64(spec.token);
+        that.state = CONNECTING;
         connectSocket(JSON.parse(token), function (streams) {
             var index = 0, stream, streamList = [];
+            that.state = CONNECTED;
+
             // 2- Retrieve list of streams
-            // 3 - Update RoomID
-            L.Logger.info("Connected!");
             for (index in streams) {
                 if (streams.hasOwnProperty(index)) {
                     stream = Stream({streamID: streams[index], stream: undefined});
                     streamList.push(stream);
-                    streams[streams[index]] = stream;
+                    that.streams[streams[index]] = stream;
                 }
             }
+
+            // 3 - Update RoomID
+            that.roomID = '';
+
+            L.Logger.info("Connected to room " + that.roomID);
+
             var connectEvt = RoomEvent({type: "room-connected", streams: streamList});
             that.dispatchEvent(connectEvt);
         }, function (error) {
-            L.Logger.error("Not Connected! " + error);
+            L.Logger.error("Not Connected! Error: " + error);
         });
     };
 
     // It disconnects from the room, dispatching a new ConnectionEvent("room-disconnected")
     that.disconnect = function () {
         // 1- Disconnect from room
-
         var disconnectEvt = RoomEvent({type: "room-disconnected"});
         that.dispatchEvent(disconnectEvt);
     };
@@ -151,14 +203,18 @@ var Room = function (spec) {
 
     // It unsubscribes from the stream, removing the HTML element.
     that.unsubscribe = function (stream) {
+        
         // Unsubscribe from stream stream
+        if (that.socket !== undefined) {
+            sendMessageSocket('unsubscribe', stream.streamID, function() {
+                removeStream(stream);
+            }, function() {
+                L.Logger.error("Error calling unsubscribe.");
+            });
+        } else {
+            callback();
+        }
 
-        // Remove 
-
-        // Notify Erizo-Controller
-
-        // Remove from view
-        L.HTML.removeVideo(stream.streamID);
     };
 
     return that;
