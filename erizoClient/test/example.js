@@ -3,7 +3,7 @@ publisher = Publisher({audio: true, video: true, elementID: "pepito"});
 var vid_index = 2;
 window.onload = function () {
 
-    N.API.init("http://nuve.dit.upm.es:3000/", "50001b26773e74ee30000001", "clave");
+    N.API.init("http://chotis2.dit.upm.es:3000/", "50001b26773e74ee30000001", "clave");
 
     N.API.createToken("50001b77773e74ee30000002", "alvaro", "guay", function (response) {
         var token = response;
