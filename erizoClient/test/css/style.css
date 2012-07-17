@@ -1,0 +1,136 @@
+html, body {
+	margin: auto;
+	width: 640px;
+	background-color: #fff;
+	height: 480px;
+	background-attachment:fixed;
+	background-image: linear-gradient(bottom, #EDEDED 30%, #FAFAFA 60%, #FFFFFF 85%);
+	background-image: -o-linear-gradient(bottom, #EDEDED 30%, #FAFAFA 60%, #FFFFFF 85%);
+	background-image: -moz-linear-gradient(bottom, #EDEDED 30%, #FAFAFA 60%, #FFFFFF 85%);
+	background-image: -webkit-linear-gradient(bottom, #EDEDED 30%, #FAFAFA 60%, #FFFFFF 85%);
+	background-image: -ms-linear-gradient(bottom, #EDEDED 30%, #FAFAFA 60%, #FFFFFF 85%);
+
+	background-image: -webkit-gradient(
+		linear,
+		right bottom,
+		right top,
+		color-stop(0.39, #EDEDED),
+		color-stop(0.7, #FAFAFA),
+		color-stop(0.85, #FFFFFF)
+	);
+}
+
+.footerstyle {
+	position: absolute;
+	width: 150px;
+	height: 150px;
+	margin-left: -255px;
+	margin-top: 660px;
+	left: 50%;
+}
+
+.logostyle {
+	position:absolute;
+	left: 50%;
+    top: 53px;
+    width: 340px;
+    height: 204px;
+    margin-left: 10px;
+}
+
+#vidcontainer {
+	width: 640px;
+	height: 480px;
+}
+
+#textfoo {
+
+	font-family: Arial;
+	font-weight:bold;
+	color: 003675;
+	font-size: 16;
+
+	position: absolute;
+	width: 340px;
+	margin-left: -273px;
+	margin-top: 840px;
+	left: 50%;
+}
+	
+#vid1 {
+	background-color: #fff;
+	margin-top: 50px;
+	margin-bottom: 15px;
+	left: 50%;
+	margin-left: -345px;
+}
+
+#vid2 {
+	background-color: #303;
+	margin-left: -345px;
+	margin-top: 330px;
+	left: 50%;
+}
+
+#vid3 {
+	background-color: # C99;
+	margin-left: 10px;
+	margin-top: 330px;
+	left: 50%;
+}
+
+#vid4 {
+	background-color: # FC6;
+	margin-left: 10px;
+	margin-top: 610px;
+	left: 50%;
+}
+
+.cam {
+	opacity: 0.2;
+	margin-left:45%;
+	margin-top:30%;
+}
+
+.coolstyle {
+
+	width: 340px;
+	height: 260px;
+
+	position: absolute;
+
+	border-radius: 15px;
+	moz-border-radius: 15px;
+	webkit-border-radius: 15px;
+	-moz-box-shadow: 0 0 5px #888;
+	-webkit-box-shadow: 0 0 5px#888;
+	box-shadow: 0 0 5px #888;
+
+	background-image: linear-gradient(bottom, #001329 9%, #013066 44%, #003775 78%);
+	background-image: -o-linear-gradient(bottom, #001329 9%, #013066 44%, #003775 78%);
+	background-image: -moz-linear-gradient(bottom, #001329 9%, #013066 44%, #003775 78%);
+	background-image: -webkit-linear-gradient(bottom, #001329 9%, #013066 44%, #003775 78%);
+	background-image: -ms-linear-gradient(bottom, #001329 9%, #013066 44%, #003775 78%);
+
+	background-image: -webkit-gradient(
+		linear,
+		left bottom,
+		left top,
+		color-stop(0.09, #001329),
+		color-stop(0.44, #013066),
+		color-stop(0.78, #003775)
+	);
+}
+
+.footer, .push {
+	position: relative;
+    height: 10%;
+	width: 100%;
+}
+
+.wrapper {
+	min-height: 91%;
+	height: auto !important;
+	height: 80%;
+	margin: 0 auto -4em;
+}
