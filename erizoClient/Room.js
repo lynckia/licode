@@ -18,8 +18,6 @@ var Room = function (spec) {
     that.state = DISCONNECTED;
     L.HTML.init();
 
-    // Private functions
-
     that.addEventListener("room-disconnected", function(evt) {
         var index;
         that.state = DISCONNECTED;
@@ -36,9 +34,11 @@ var Room = function (spec) {
         }
         that.streams = {};
 
+        // Close Peer Connection
         spec.publisher.pc.close();
         spec.publisher.pc = undefined;
 
+        // Close socket
         try {
             that.socket.disconnect();
         } catch (error) {
@@ -47,6 +47,9 @@ var Room = function (spec) {
         that.socket = undefined;
     });
 
+    // Private functions
+
+    // It removes the stream from HTML and close the PeerConnection associated 
     removeStream = function(stream) {
         if (stream.stream !== undefined) {
             // Remove HTML element
@@ -56,10 +59,14 @@ var Room = function (spec) {
         }
     }
 
+    // It connects to the server through socket.io
     connectSocket = function (token, callback, error) {
+        // Once we have connected
+
         //that.socket = io.connect("hpcm.dit.upm.es:8080", {reconnect: false});
         that.socket = io.connect(token.host, {reconnect: false});
 
+        // We receive an event with a new stream in the room
         that.socket.on('onAddStream', function (id) {
             var stream = Stream({streamID: id})
             that.streams[id] = stream;
@@ -67,6 +74,7 @@ var Room = function (spec) {
             that.dispatchEvent(evt);
         });
 
+        // We receive an event of a stream removed from the room
         that.socket.on('onRemoveStream', function (id) {
             var stream = that.streams[id];
             delete that.streams[id];
@@ -75,15 +83,18 @@ var Room = function (spec) {
             that.dispatchEvent(evt);
         });
 
+        // The socket has disconnected
         that.socket.on('disconnect', function (argument) {
             L.Logger.info("Socket disconnected");
             var disconnectEvt = RoomEvent({type: "room-disconnected"});
             that.dispatchEvent(disconnectEvt);
         });
 
+        // First message with the token
         sendMessageSocket('token', token, callback, error);
     };
 
+    // Function to send a message to the server using socket.io
     sendMessageSocket = function (type, msg, callback, error) {
         that.socket.emit(type, msg, function (respType, msg) {
             if (respType === "success") {
@@ -98,6 +109,7 @@ var Room = function (spec) {
         });
     };
 
+    // It sends a SDP message to the server using socket.io
     sendSDPSocket = function (type, state, sdp, callback) {
         that.socket.emit(type, state, sdp, function (response, respCallback) {
             callback(response, respCallback);
