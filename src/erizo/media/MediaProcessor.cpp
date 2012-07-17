@@ -24,7 +24,6 @@ InputProcessor::InputProcessor() {
 }
 
 InputProcessor::~InputProcessor() {
-
 	if (audioDecoder == 1) {
 		avcodec_close(aDecoderContext);
 		av_free(aDecoderContext);
@@ -430,69 +429,72 @@ int InputProcessor::unpackageAudio(unsigned char* inBuff, int inBuffLen,
 
 int InputProcessor::unpackageVideo(unsigned char* inBuff, int inBuffLen,
 		unsigned char* outBuff, int *gotFrame) {
-	/*
-	 if (videoUnpackager == 0) {
-	 printf("No se ha inicailizado el codec de input vídeo RTP");
-	 return -1;
-	 }
-	 */
+
+	if (videoUnpackager == 0) {
+		printf("Unpackager not correctly initialized");
+		return -1;
+	}
 	*gotFrame = 0;
+	if (mediaInfo.proccessorType == RTP_ONLY) {
+		rtpHeader* head = (rtpHeader*) inBuff;
 
-	rtpHeader* head = (rtpHeader*) inBuff;
-
-	int sec = ntohs(head->seqnum);
-	int ssrc = ntohl(head->ssrc);
-	unsigned long time = ntohl(head->timestamp);
-	printf("PT %d, ssrc %u, extension %d\n", head->payloadtype, ssrc,
-			head->extension);
-	if (ssrc != 55543/* && head->payloadtype!=101*/) {
-		return -1;
-	}
-	if (head->payloadtype != 100) {
-		printf("EEEEEEEEEEEEEEOOOOOOOOOOOOOOOOOOOOOOOO %d\n\n\n",
-				head->payloadtype);
-		return -1;
-	}
-	int l = inBuffLen - RTP_HEADER_LEN;
-	inBuff += RTP_HEADER_LEN;
-//	vp8RtpHeader* vphead = (vp8RtpHeader*) inBuff;
-//	printf("MIO X: %u , N:%u PartID %u\n", vphead->X, vphead->N,
+		int sec = ntohs(head->seqnum);
+		int ssrc = ntohl(head->ssrc);
+		unsigned long time = ntohl(head->timestamp);
+		printf("PT %d, ssrc %u, extension %d\n", head->payloadtype, ssrc,
+				head->extension);
+		if (ssrc != 55543 /*&& head->payloadtype!=101*/) {
+			return -1;
+		}
+		if (head->payloadtype != 100) {
+			printf("EEEEEEEEEEEEEEOOOOOOOOOOOOOOOOOOOOOOOO %d\n\n\n",
+					head->payloadtype);
+			return -1;
+		}
+		int l = inBuffLen - RTP_HEADER_LEN;
+		inBuff += RTP_HEADER_LEN;
+//		vp8RtpHeader* vphead = (vp8RtpHeader*) inBuff;
+//		printf("MIO X: %u , N:%u PartID %u\n", vphead->X, vphead->N,
 //			vphead->partId);
 
-	erizo::RTPPayloadVP8* parsed = pars.parseVP8((unsigned char*) inBuff, l);
-	printf("l : %d, parsedDatalength %u\n", l, parsed->dataLength);
-//	l--;
-//	inBuff++;
+		erizo::RTPPayloadVP8* parsed = pars.parseVP8((unsigned char*) inBuff,
+				l);
+		printf("l : %d, parsedDatalength %u\n", l, parsed->dataLength);
+//		l--;
+//		inBuff++;
 
 //	memcpy(outBuff, inBuff, parsed->dataLength);
-	memcpy(outBuff, parsed->data, parsed->dataLength);
-	if (head->marker) {
-		printf("Marker\n");
-		*gotFrame = 1;
-	}
+		memcpy(outBuff, parsed->data, parsed->dataLength);
+		if (head->marker) {
+			printf("Marker\n");
+			*gotFrame = 1;
+		}
 
 //	return l;
-	return parsed->dataLength;
-//
-//	if (avformat_find_stream_info(vInputFormatContext, NULL) < 0) {
-//		return -1;
-//	}
-//
-//	AVPacket pkt;
-//	av_init_packet(&pkt);
-//
-//	//aInputFormatContext->iformat->read_packet(aInputFormatContext, &pkt);
-//
-//	int p = av_read_frame(vInputFormatContext, &pkt);
-//	printf("Leido frame %d\n", p);
-//
-//	outBuff = (char*) pkt.data;
-//
-//	int se = pkt.size;
-//
-//	av_free_packet(&pkt);
-//
-//	return se;
+		return parsed->dataLength;
+	} else {
+
+		if (avformat_find_stream_info(vInputFormatContext, NULL) < 0) {
+			return -1;
+		}
+
+		AVPacket pkt;
+		av_init_packet(&pkt);
+
+		//aInputFormatContext->iformat->read_packet(aInputFormatContext, &pkt);
+
+		int p = av_read_frame(vInputFormatContext, &pkt);
+		printf("Leido frame %d\n", p);
+
+		outBuff = pkt.data;
+
+		int se = pkt.size;
+
+		av_free_packet(&pkt);
+
+		return se;
+
+	}
 
 }
 
@@ -544,6 +546,7 @@ int OutputProcessor::init(const MediaInfo &info) {
 //	c.frameRate = 24;
 //	c.bitRate = 1024;
 //	c.maxInter = 0;
+	this->mediaInfo.videoCodec.codec = CODEC_ID_H263P;
 
 	this->initVideoCoder();
 	this->initVideoPackager();
@@ -559,6 +562,7 @@ void OutputProcessor::receiveRawData(unsigned char* data, int len) {
 	int b = this->packageVideo(encodedBuffer_, a, packagedBuffer_);
 	printf("\nBytes empaquetados = %d", b);
 }
+
 bool OutputProcessor::initAudioCoder() {
 
 	aCoder = avcodec_find_encoder(mediaInfo.audioCodec.codec);
@@ -621,7 +625,8 @@ bool OutputProcessor::initVideoCoder() {
 	vCoderContext->width = mediaInfo.videoCodec.width;
 	vCoderContext->height = mediaInfo.videoCodec.height;
 	vCoderContext->pix_fmt = PIX_FMT_YUV420P;
-	vCoderContext->time_base = (AVRational) {1000, 1000*mediaInfo.videoCodec.frameRate};
+	vCoderContext->time_base =
+			(AVRational) {1000, 1000*mediaInfo.videoCodec.frameRate};
 
 	if (avcodec_open2(vCoderContext, vCoder, NULL) < 0) {
 		printf("Error al abrir el decoder de vídeo");
@@ -660,76 +665,26 @@ bool OutputProcessor::initAudioPackager() {
 }
 
 bool OutputProcessor::initVideoPackager() {
-//
-//	vOutputFormatContext = avformat_alloc_context();
-//	if (!vOutputFormatContext){
-//		printf("Memory Error al inicializar videoPackager");
-//		return false;
-//	}
-//
-//	vOutputFormat = av_guess_format("rtp",NULL,NULL);
-//	if (vOutputFormat == NULL){
-//	   printf("Could not guess format al inicializar videoPackager");
-//	   return false;
-//	}
-//
-//	vOutputFormatContext->oformat=vOutputFormat;
-//	vOutputFormat->video_codec = videoRTP->codec;
+	if (mediaInfo.proccessorType == RTP_ONLY) {
+		printf("RTP ONLY OutputProcessor\n");
+	} else {
+		vOutputFormatContext = avformat_alloc_context();
+		if (!vOutputFormatContext) {
+			printf("videoPackager: Error creating avformat context \n");
+			return false;
+		}
 
-//	vRTPInfo = (RTPInfo*) videoRTP;
-//	vRTPInfo->seqNum = 0;
-//	vRTPInfo->ssrc = 5;
+		vOutputFormat = av_guess_format(mediaInfo.url.c_str(), NULL, NULL);
+		if (vOutputFormat == NULL) {
+			printf("videoPackager: Could not guess format");
+			return false;
+		}
 
+		vOutputFormatContext->oformat = vOutputFormat;
+		vOutputFormat->video_codec = mediaInfo.videoCodec.codec;
+	}
 	videoPackager = 1;
 	return true;
-}
-
-int OutputProcessor::packageVideo(unsigned char* inBuff, int inBuffLen,
-		unsigned char* outBuff) {
-
-	if (videoPackager == 0) {
-		printf("No se ha inicailizado el codec de output vídeo RTP");
-		return -1;
-	}
-
-	int l = inBuffLen + RTP_HEADER_LEN;
-
-	rtpHeader * head = (rtpHeader*) outBuff;
-
-	timeval time;
-	gettimeofday(&time, NULL);
-	long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-
-	head->version = 2; //v = 2
-	head->extension = 0;
-	head->marker = 1; //n?0:1;
-	head->padding = 0;
-	head->cc = 0;
-//	head->seqnum = htons(vRTPInfo->seqNum++);
-	head->timestamp = htonl(millis);
-	head->ssrc = htonl(vRTPInfo->ssrc);
-	head->payloadtype = 34; //32;
-
-	outBuff += RTP_HEADER_LEN;
-
-	memcpy(outBuff, inBuff, inBuffLen);
-
-//	AVIOContext *c = avio_alloc_context((unsigned char*)outBuff, l, 1, NULL, NULL, NULL, NULL);
-//
-//	vOutputFormatContext->pb = c;
-//	vOutputFormatContext->flags = AVFMT_NOFILE;
-//
-//	AVPacket pkt;
-//	av_init_packet(&pkt);
-//	pkt.data = (unsigned char*)inBuff;
-//	pkt.size = inBuffLen;
-//
-//	int ret = av_write_frame(vOutputFormatContext,&pkt);
-//
-//	av_free_packet(&pkt);
-//	av_free(c);
-
-	return l;
 }
 
 int OutputProcessor::packageAudio(unsigned char* inBuff, int inBuffLen,
@@ -743,8 +698,8 @@ int OutputProcessor::packageAudio(unsigned char* inBuff, int inBuffLen,
 	AVIOContext *c = avio_alloc_context((unsigned char*) outBuff, 2000, 1, NULL,
 			NULL, NULL, NULL);
 
-	aOutputFormatContext->pb = c;
-	aOutputFormatContext->flags = AVFMT_NOFILE;
+//	aOutputFormatContext->pb = c;
+//	aOutputFormatContext->flags = AVFMT_NOFILE;
 
 	AVPacket pkt;
 	av_init_packet(&pkt);
@@ -757,6 +712,59 @@ int OutputProcessor::packageAudio(unsigned char* inBuff, int inBuffLen,
 	av_free(c);
 
 	return ret;
+}
+
+int OutputProcessor::packageVideo(unsigned char* inBuff, int inBuffLen,
+		unsigned char* outBuff) {
+
+	if (videoPackager == 0) {
+		printf("No se ha inicailizado el codec de output vídeo RTP");
+		return -1;
+	}
+
+	if (mediaInfo.proccessorType == RTP_ONLY) {
+
+		int l = inBuffLen + RTP_HEADER_LEN;
+
+		rtpHeader * head = (rtpHeader*) outBuff;
+
+		timeval time;
+		gettimeofday(&time, NULL);
+		long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+
+		head->version = 2; //v = 2
+		head->extension = 0;
+		head->marker = 1; //n?0:1;
+		head->padding = 0;
+		head->cc = 0;
+//	head->seqnum = htons(vRTPInfo->seqNum++);
+		head->timestamp = htonl(millis);
+		head->ssrc = htonl(vRTPInfo->ssrc);
+		head->payloadtype = 34; //32;
+
+		outBuff += RTP_HEADER_LEN;
+
+		memcpy(outBuff, inBuff, inBuffLen);
+		return l;
+
+	} else {
+//		AVIOContext *c = avio_alloc_context((unsigned char*) outBuff, l, 1,
+//				NULL, NULL, NULL, NULL);
+//
+//		vOutputFormatContext->pb = c;
+//		vOutputFormatContext->flags = AVFMT_NOFILE;
+
+		AVPacket pkt;
+		av_init_packet(&pkt);
+		pkt.data = (unsigned char*) inBuff;
+		pkt.size = inBuffLen;
+
+		int ret = av_write_frame(vOutputFormatContext, &pkt);
+
+		av_free_packet(&pkt);
+//		av_free(c);
+	}
+
 }
 
 int OutputProcessor::encodeAudio(unsigned char* inBuff, int nSamples,

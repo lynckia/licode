@@ -47,6 +47,7 @@ public:
 	WebRtcConnection *publisher;
 //	MediaProcessor *mp;
 	InputProcessor* ip;
+	OutputProcessor* op;
 	std::map<int, WebRtcConnection*> subscribers;
 
 private:
