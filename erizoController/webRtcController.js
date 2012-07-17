@@ -1,22 +1,22 @@
 var addon = require('./../erizoAPI/build/Release/addon');
 
-var subscribers = {}; //id (muxer): array de subscribers
-var publishers = {}; //id: muxer
-
 exports.WebRtcController = function() {
 
     var that = {};
 
-    that.addPublisher = function(from, msg, callback) {
+    that.subscribers = {}; //id (muxer): array de subscribers
+    that.publishers = {}; //id: muxer
 
-        if(publishers[from] === undefined) {
+    that.addPublisher = function(from, sdp, callback) {
+
+        if(that.publishers[from] === undefined) {
 
             console.log("Adding publisher peer_id ", from);
 
-            var roap = msg;
+            var roap = sdp;
             var muxer = new addon.OneToManyProcessor();
             var newConn = new addon.WebRtcConnection();
-            
+
             newConn.init();
             newConn.setAudioReceiver(muxer);
             newConn.setVideoReceiver(muxer);
@@ -31,29 +31,30 @@ exports.WebRtcController = function() {
 
             var answer = getRoap(localSdp, roap);
 
-            publishers[from] = muxer;
-            subscribers[from] = new Array();
-            
-            //console.log('Publishers: ', publishers);
-            //console.log('Subscribers: ', publishers);
+            that.publishers[from] = muxer;
+            that.subscribers[from] = new Array();
+
             callback(answer);
+             
+            //console.log('Publishers: ', that.publishers);
+            //console.log('Subscribers: ', that.subscribers);
 
         } else {
             console.log("Publisher already set for", from);
         }
     }
 
-    that.addSubscriber = function(from, to, msg, callback) {
+    that.addSubscriber = function(from, to, sdp, callback) {
 
-        if(publishers[to] !== undefined && subscribers[to].indexOf(from) === -1 && msg.match('OFFER') !== null) {
+        if(that.publishers[to] !== undefined && that.subscribers[to].indexOf(from) === -1 && sdp.match('OFFER') !== null) {
 
             console.log("Adding subscriber from ", from, 'to ', to);
-            
-            var roap = msg;
+
+            var roap = sdp;
             var newConn = new addon.WebRtcConnection();
             
             newConn.init();
-            publishers[to].addSubscriber(newConn, from);                                                        
+            that.publishers[to].addSubscriber(newConn, from);                                                        
 
             var remoteSdp = getSdp(roap);
             newConn.setRemoteSdp(remoteSdp);
@@ -63,54 +64,56 @@ exports.WebRtcController = function() {
             //console.log('SDP local: ', localSdp);
 
             var answer = getRoap(localSdp, roap);
+                        
+            that.subscribers[to].push(from);
 
-            subscribers[to].push(from);
-
-            //console.log('Publishers: ', publishers);
-            //console.log('Subscribers: ', subscribers);
             callback(answer);
+
+            //console.log('Publishers: ', that.publishers);
+            //console.log('Subscribers: ', that.subscribers);
         }
     }
 
     that.removePublisher = function(from) {
-        
-        if(subscribers[from] != undefined && publishers[from] != undefined) {
+
+        if(that.subscribers[from] != undefined && that.publishers[from] != undefined) {
             console.log('Removing muxer', from);
-            publishers[from].close();
-            delete subscribers[from];
-            delete publishers[from];    
+            that.publishers[from].close();
+            delete that.subscribers[from];
+            delete that.publishers[from];    
         }
     }
 
     that.removeSubscriber = function(from, to) {
 
-        var index = subscribers[to].indexOf(from);
+        var index = that.subscribers[to].indexOf(from);
         if (index != -1) {
             console.log('Removing subscriber ', from, 'to muxer ', to);
-            publishers[to].removeSubscriber(from);
-            subscribers[to].splice(index, 1);
+            that.publishers[to].removeSubscriber(from);
+            that.subscribers[to].splice(index, 1);
         }
     }
 
     that.removeClient = function(from) {
 
         console.log('Removing client ', from);
-        for(var key in subscribers) {
-            var index = subscribers[key].indexOf(from);
+        for(var key in that.subscribers) {
+            var index = that.subscribers[key].indexOf(from);
             if (index != -1) {
                 console.log('Removing subscriber ', from, 'to muxer ', key);
-                publishers[key].removeSubscriber(from);
-                subscribers[key].splice(index, 1);
+                that.publishers[key].removeSubscriber(from);
+                that.subscribers[key].splice(index, 1);
             };
         }
 
-        if(subscribers[from] != undefined && publishers[from] != undefined) {
+        if(that.subscribers[from] != undefined && that.publishers[from] != undefined) {
             console.log('Removing muxer', from);
-            publishers[from].close();
-            delete subscribers[from];
-            delete publishers[from];    
+            that.publishers[from].close();
+            delete that.subscribers[from];
+            delete that.publishers[from];    
         }
     }
+
 
     var getSdp = function(roap) {
 
