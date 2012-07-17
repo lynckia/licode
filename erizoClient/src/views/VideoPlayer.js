@@ -23,7 +23,7 @@ var VideoPlayer = function(spec) {
     that.elementID = spec.elementID;
 
     L.Logger.debug('Creating URL from stream ' + that.stream);
-    that.url = webkitURL.createObjectURL(that.stream);
+    that.stream_url = webkitURL.createObjectURL(that.stream);
 
     that.div = document.createElement('div');
     that.div.setAttribute('id', 'player_' + that.id);
@@ -54,7 +54,7 @@ var VideoPlayer = function(spec) {
     that.div.onmouseover = onmouseover;
     that.div.onmouseout = onmouseout;
 
-    that.video.src = that.url;
+    that.video.src = that.stream_url;
 
     return that;
 };
