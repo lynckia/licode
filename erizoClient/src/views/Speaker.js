@@ -1,5 +1,5 @@
 var Speaker = function(spec) {
-    var that = EventDispatcher({});
+    var that = View({});
     that.elementID = spec.elementID;
     that.video = spec.video;
     that.id = spec.id;
@@ -8,7 +8,7 @@ var Speaker = function(spec) {
     that.icon = document.createElement('img');
     
     that.icon.setAttribute('id', 'volume_' + that.id);
-    that.icon.setAttribute('src', 'http://hpcm.dit.upm.es/assets/mute48.png');
+    that.icon.setAttribute('src', that.url + '/assets/mute48.png');
     that.icon.setAttribute('style', 'width: 32px; height: 32px; position: absolute;');
     that.div.appendChild(that.icon);
 
@@ -25,9 +25,9 @@ var Speaker = function(spec) {
 
     that.picker.oninput = function(evt) {
         if (that.picker.value > 0) {
-            that.icon.setAttribute('src', 'http://hpcm.dit.upm.es/assets/sound48.png');
+            that.icon.setAttribute('src', that.url + '/assets/sound48.png');
         } else {
-            that.icon.setAttribute('src', 'http://hpcm.dit.upm.es/assets/mute48.png');
+            that.icon.setAttribute('src', that.url + '/assets/mute48.png');
         }
         that.video = that.picker.value;
     };

@@ -1,5 +1,5 @@
 var VideoPlayer = function(spec) {
-    var that = {};
+    var that = View({});
 
     window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
         document.getElementById(key).value = unescape(value);
@@ -32,7 +32,7 @@ var VideoPlayer = function(spec) {
     that.loader = document.createElement('img');
     that.loader.setAttribute('style', 'width: 16px; height: 16px; position: absolute; top: 50%; left: 50%; margin-top: -8px; margin-left: -8px');
     that.loader.setAttribute('id', 'back_' + that.id);
-    that.loader.setAttribute('src', 'http://hpcm.dit.upm.es/assets/loader.gif');
+    that.loader.setAttribute('src', that.url + '/assets/loader.gif');
 
     that.video = document.createElement('video');
     that.video.setAttribute('id', 'stream' + that.id);

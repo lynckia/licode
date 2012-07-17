@@ -1,5 +1,5 @@
 var Bar = function(spec) {
-    var that = EventDispatcher({});
+    var that = View({});
     that.elementID = spec.elementID;
     that.id = spec.id;
     var waiting = undefined;
@@ -13,7 +13,7 @@ var Bar = function(spec) {
 
     that.logo = document.createElement('img');
     that.logo.setAttribute('style', 'width: 32px; height: 32px; position: absolute; top: 0; left: 0;');
-    that.logo.setAttribute('src', 'http://hpcm.dit.upm.es/assets/star.svg');
+    that.logo.setAttribute('src', that.url + '/assets/star.svg');
 
     var show = function(displaying) {
         if (displaying !== 'block') {
