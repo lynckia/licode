@@ -20,11 +20,22 @@ app.set('view options', {
   layout: false
 });
 
+app.use(function(req, res, next) {
+
+	res.header('Access-Control-Allow-Origin', '*');
+	res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
+	res.header('Access-Control-Allow-Headers', 'origin, authorization, content-type');
+
+	next();
+});
+
 app.get('/test', function(req,res) {
 	res.render('test');
 });
 
-app.all('*', nuveAuthenticator.authenticate);
+app.get('*', nuveAuthenticator.authenticate);
+app.post('*', nuveAuthenticator.authenticate);
+app.delete('*', nuveAuthenticator.authenticate);
 
 app.post('/rooms', roomsResource.createRoom);
 app.get('/rooms', roomsResource.represent);
@@ -46,3 +57,4 @@ app.get('/rooms/:room/users/:user', userResource.getUser);
 app.delete('/rooms/:room/users/:user', userResource.deleteUser);
 
 app.listen(3000);
+

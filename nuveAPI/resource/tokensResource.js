@@ -36,6 +36,7 @@ exports.create = function(req, res) {
 				res.send('Name and role?', 401);
 				return;
 			}
+			console.log('Sending token');
 			res.send(tokenS);
 			
 		});
@@ -56,9 +57,9 @@ var generateToken = function(callback) {
 
 	var token = {};
 	token.userName = user;
-	token.room = this.room.name;
+	token.room = this.room._id;
 	token.role = role;
-	token.service = this.service.name;
+	token.service = this.service._id;
 	token.creationDate = new Date();
 	
 	token.host = dataBase.erizoControllerHost;
