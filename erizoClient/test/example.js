@@ -3,9 +3,9 @@ publisher = Publisher({audio: true, video: true, elementID: "pepito"});
 var vid_index = 2;
 window.onload = function () {
 
-    N.API.init("http://toronado.dit.upm.es:3000/", "4fe07f2475556d4402000001", "clave");
+    N.API.init("http://nuve.dit.upm.es:3000/", "50001b26773e74ee30000001", "clave");
 
-    N.API.createToken("4fe07f3875556d4402000002", "alvaro", "guay", function (response) {
+    N.API.createToken("50001b77773e74ee30000002", "alvaro", "guay", function (response) {
         var token = response;
         console.log("Token: " + response);
         L.Logger.setLogLevel(L.Logger.DEBUG);
