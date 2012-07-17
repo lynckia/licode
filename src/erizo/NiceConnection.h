@@ -11,6 +11,7 @@
 
 #include "MediaDefinitions.h"
 #include "SdpInfo.h"
+#include "WebRtcConnection.h"
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainLoop GMainLoop;
@@ -26,9 +27,7 @@ class WebRtcConnection;
  */
 class NiceConnection {
 public:
-	enum IceState {
-		INITIAL, CANDIDATES_GATHERED, CANDIDATES_RECEIVED, READY, FINISHED
-	};
+
 	/**
 	 * Constructs a new NiceConnection.
 	 * @param med The MediaType of the connection.
@@ -89,12 +88,16 @@ public:
 	 */
 	std::vector<CandidateInfo>* localCandidates;
 
+	void updateIceState(IceState state);
+
+
 private:
 	void init();
 	NiceAgent* agent_;
 	WebRtcConnection* conn_;
 	GMainLoop* loop_;
 	boost::thread m_Thread_;
+
 };
 
 } /* namespace erizo */

@@ -6,7 +6,6 @@
 #include <nice/nice.h>
 
 #include "NiceConnection.h"
-#include "WebRtcConnection.h"
 #include "SdpInfo.h"
 
 namespace erizo {
@@ -107,7 +106,7 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 	}
 	printf("candidate_gathering done, size %u\n",
 			conn->localCandidates->size());
-	conn->iceState = NiceConnection::CANDIDATES_GATHERED;
+	conn->updateIceState(CANDIDATES_GATHERED);
 }
 
 void cb_component_state_changed(NiceAgent *agent, guint stream_id,
@@ -115,11 +114,12 @@ void cb_component_state_changed(NiceAgent *agent, guint stream_id,
 	printf("cb_component_state_changed %u\n", state);
 	if (state == NICE_COMPONENT_STATE_READY){
 		NiceConnection *conn = (NiceConnection*) user_data;
-		conn->iceState = NiceConnection::READY;
+		conn->updateIceState(READY);
 	}else if (state == NICE_COMPONENT_STATE_FAILED){
 		printf("Ice Component failed, stopping\n");
 		NiceConnection *conn = (NiceConnection*) user_data;
-		conn->getWebRtcConnection()->close();
+		conn->updateIceState(FAILED);
+		//conn->getWebRtcConnection()->close();
 	}
 
 }
@@ -141,6 +141,7 @@ NiceConnection::NiceConnection(MediaType med,
 
 	agent_ = NULL;
 	loop_ = NULL;
+	conn_ = NULL;
 	mediaType = med;
 	localCandidates = new std::vector<CandidateInfo>();
 	transportName = new std::string(transport_name);
@@ -194,7 +195,7 @@ WebRtcConnection* NiceConnection::getWebRtcConnection() {
 void NiceConnection::init() {
 
 	streamsGathered = 0;
-	iceState = INITIAL;
+	this->updateIceState(INITIAL);
 
 	g_type_init();
 	g_thread_init(NULL);
@@ -292,13 +293,19 @@ bool NiceConnection::setRemoteCandidates(
 	}
 	nice_agent_set_remote_candidates(agent_, (guint) 1, 1, candList);
 	printf("Candidates SET \n");
-	iceState = CANDIDATES_RECEIVED;
+	this->updateIceState(CANDIDATES_RECEIVED);
 	return true;
 }
 
 void NiceConnection::setWebRtcConnection(WebRtcConnection* connection) {
 
 	this->conn_ = connection;
+}
+
+void NiceConnection::updateIceState(IceState state){
+	this->iceState = state;
+	if(this->conn_!=NULL)
+		this->conn_->updateState(state,this);
 }
 
 } /* namespace erizo */

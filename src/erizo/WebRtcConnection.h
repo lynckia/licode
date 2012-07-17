@@ -6,7 +6,6 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread.hpp>
 
-
 #include "SrtpChannel.h"
 #include "SdpInfo.h"
 #include "MediaDefinitions.h"
@@ -14,6 +13,18 @@
 namespace erizo {
 
 class NiceConnection;
+
+enum IceState {
+	INITIAL, CANDIDATES_GATHERED, CANDIDATES_RECEIVED, READY, FINISHED, FAILED
+};
+
+class WebRtcConnectionStateListener {
+public:
+	virtual ~WebRtcConnectionStateListener() {
+	};
+	virtual void connectionStateChanged(IceState newState)=0;
+
+};
 
 /**
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
@@ -53,6 +64,7 @@ public:
 	 * @return The SDP as a string.
 	 */
 	std::string getLocalSdp();
+
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
 	/**
@@ -81,6 +93,7 @@ public:
 	 */
 	int sendFirPacket();
 
+	void setWebRTCConnectionStateListener(WebRtcConnectionStateListener* listener);
 
 private:
 	SdpInfo remoteSdp_;
@@ -89,6 +102,7 @@ private:
 	NiceConnection* videoNice_;
 	SrtpChannel* audioSrtp_;
 	SrtpChannel* videoSrtp_;
+	IceState globalIceState_;
 
 	MediaReceiver* audioReceiver_;
 	MediaReceiver* videoReceiver_;
@@ -98,12 +112,14 @@ private:
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_;
 	boost::thread send_Thread_;
 	std::queue<packet> sendQueue_;
+	WebRtcConnectionStateListener* connStateListener;
 
+	void updateState(IceState newState, NiceConnection* niceConn);
 
 	bool sending;
 	void sendLoop();
 
-
+	friend class NiceConnection;
 
 };
 
