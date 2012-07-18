@@ -7,6 +7,8 @@ exports.WebRtcController = function() {
     var subscribers = {}; //id (muxer): array de subscribers
     var publishers = {}; //id: muxer
 
+    var INTERVAL_TIME = 200;
+
     that.addPublisher = function(from, sdp, callback) {
 
         if(publishers[from] === undefined) {
@@ -102,6 +104,8 @@ exports.WebRtcController = function() {
 
             var state = wrtc.getCurrentState();
 
+            console.log('state: ', state);
+
             if(state > 0) {
 
                 wrtc.setRemoteSdp(remoteSdp);
@@ -114,8 +118,8 @@ exports.WebRtcController = function() {
 
                 clearInterval(intervarId);
             }
-            
-        }, 1000);
+
+        }, INTERVAL_TIME);
     }
 
     var getSdp = function(roap) {
