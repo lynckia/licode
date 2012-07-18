@@ -104,8 +104,6 @@ exports.WebRtcController = function() {
 
             var state = wrtc.getCurrentState();
 
-            console.log('state: ', state);
-
             if(state > 0) {
 
                 wrtc.setRemoteSdp(remoteSdp);
