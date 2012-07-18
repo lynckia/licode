@@ -95,6 +95,8 @@ public:
 
 	void setWebRTCConnectionStateListener(WebRtcConnectionStateListener* listener);
 
+	IceState getCurrentState();
+
 private:
 	SdpInfo remoteSdp_;
 	SdpInfo localSdp_;
@@ -112,7 +114,7 @@ private:
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_;
 	boost::thread send_Thread_;
 	std::queue<packet> sendQueue_;
-	WebRtcConnectionStateListener* connStateListener;
+	WebRtcConnectionStateListener* connStateListener_;
 
 	void updateState(IceState newState, NiceConnection* niceConn);
 

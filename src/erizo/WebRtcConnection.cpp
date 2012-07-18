@@ -26,7 +26,8 @@ WebRtcConnection::WebRtcConnection() {
 	audioSrtp_ = NULL;
 	videoSrtp_ = NULL;
 	globalIceState_ = INITIAL;
-	//sending = false;
+	connStateListener_ = NULL;
+
 	sending = true;
 	send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
 
@@ -376,20 +377,26 @@ int WebRtcConnection::sendFirPacket() {
 
 void WebRtcConnection::setWebRTCConnectionStateListener(
 		WebRtcConnectionStateListener* listener) {
-	this->connStateListener = listener;
+	this->connStateListener_ = listener;
 }
 
 void WebRtcConnection::updateState(IceState newState,
 		NiceConnection* niceConn) {
+
 	if (bundle_) {
 		if (newState == globalIceState_)
 			return;
 		globalIceState_ = newState;
-		connStateListener->connectionStateChanged(globalIceState_);
+		if (connStateListener_!=NULL)
+			connStateListener_->connectionStateChanged(globalIceState_);
 		if (newState == FAILED)
 			this->close();
 	}
 
+}
+
+IceState WebRtcConnection::getCurrentState(){
+	return globalIceState_;
 }
 
 void WebRtcConnection::sendLoop() {
