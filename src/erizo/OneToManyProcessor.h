@@ -19,6 +19,9 @@ class WebRtcConnection;
  */
 class OneToManyProcessor : public MediaReceiver {
 public:
+	WebRtcConnection *publisher;
+	std::map<int, WebRtcConnection*> subscribers;
+
 	OneToManyProcessor();
 	virtual ~OneToManyProcessor();
 	/**
@@ -39,9 +42,10 @@ public:
 	void removeSubscriber(int peerId);
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
-
-	WebRtcConnection *publisher;
-	std::map<int, WebRtcConnection*> subscribers;
+	/**
+	 * Closes all the subscribers and the publisher, the object is useless after this
+	 */
+	void closeAll();
 
 private:
 	char* sendVideoBuffer_;

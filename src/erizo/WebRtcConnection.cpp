@@ -109,9 +109,10 @@ bool WebRtcConnection::init() {
 }
 
 void WebRtcConnection::close() {
-	sending = false;
-	send_Thread_.join();
-
+	if (sending != false) {
+		sending = false;
+		send_Thread_.join();
+	}
 	if (audio_) {
 		if (audioNice_ != NULL) {
 			audioNice_->close();
@@ -387,15 +388,15 @@ void WebRtcConnection::updateState(IceState newState,
 		if (newState == globalIceState_)
 			return;
 		globalIceState_ = newState;
-		if (connStateListener_!=NULL)
+		if (connStateListener_ != NULL)
 			connStateListener_->connectionStateChanged(globalIceState_);
-		if (newState == FAILED)
-			this->close();
+//		if (newState == FAILED)
+////			this->close();
 	}
 
 }
 
-IceState WebRtcConnection::getCurrentState(){
+IceState WebRtcConnection::getCurrentState() {
 	return globalIceState_;
 }
 
