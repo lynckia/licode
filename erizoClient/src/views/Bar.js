@@ -1,20 +1,37 @@
+/*
+ * Bar represents the bottom menu bar of every VideoPlayer.
+ * It contains a Speaker and an icon.
+ * Every Bar is a View.
+ * Ex.: var bar = Bar({elementID: element, id: id});
+ */
 var Bar = function(spec) {
     var that = View({});
-    that.elementID = spec.elementID;
-    that.id = spec.id;
+
     var waiting = undefined;
 
+    // Variables
+
+    // DOM element in which the Bar will be appended
+    that.elementID = spec.elementID;
+
+    // Bar ID
+    that.id = spec.id;
+    
+    // Container
     that.div = document.createElement('div');
     that.div.setAttribute('id', 'bar_'+that.id);
 
+    // Bottom bar
     that.bar = document.createElement('div');
     that.bar.setAttribute('style', 'width: 100%; height: 32px; position: absolute; bottom: 0; right: 0; background-color: rgba(255,255,255,0.62)');
     that.bar.setAttribute('id', 'subbar_'+that.id);
 
+    // Lynckia icon
     that.logo = document.createElement('img');
     that.logo.setAttribute('style', 'width: 32px; height: 32px; position: absolute; top: 0; left: 0;');
     that.logo.setAttribute('src', that.url + '/assets/star.svg');
 
+    // Private functions
     var show = function(displaying) {
         if (displaying !== 'block') {
             displaying = 'none';
@@ -25,6 +42,8 @@ var Bar = function(spec) {
         that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; bottom: 0; right: 0; display:'+displaying);
     };
 
+    // Public functions
+
     that.display = function() {
         show('block');
     };
@@ -33,10 +52,11 @@ var Bar = function(spec) {
         waiting = setTimeout(show, 1000);
     };
 
-    console.log(that.elementID);
     document.getElementById(that.elementID).appendChild(that.div);
     that.div.appendChild(that.bar);
     that.bar.appendChild(that.logo);
+
+    // Speaker component
     that.speaker = new Speaker({elementID: 'bar_'+that.id, id: that.id, video: spec.video});
     that.display();
     that.hide();
