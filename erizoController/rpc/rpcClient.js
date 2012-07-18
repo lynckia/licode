@@ -8,7 +8,7 @@ var queue;
 
 exports.connect = function(callback) {
 
-	var connection = amqp.createConnection({host: 'toronado.dit.upm.es', port: 5672});
+	var connection = amqp.createConnection({host: 'chotis2.dit.upm.es', port: 5672});
 	connection.on('ready', function () {
 
 		exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
