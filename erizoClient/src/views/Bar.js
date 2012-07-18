@@ -27,8 +27,13 @@ var Bar = function(spec) {
     that.bar.setAttribute('id', 'subbar_'+that.id);
 
     // Lynckia icon
+    that.link = document.createElement('a');
+    that.link.setAttribute('href', 'http://lynckiablog.blogspot.com.es/');
+    that.link.setAttribute('target', '_blank');
+    
     that.logo = document.createElement('img');
     that.logo.setAttribute('style', 'width: 32px; height: 32px; position: absolute; top: 0; left: 0;');
+    that.logo.setAttribute('alt', 'Lynckia');
     that.logo.setAttribute('src', that.url + '/assets/star.svg');
 
     // Private functions
@@ -54,7 +59,8 @@ var Bar = function(spec) {
 
     document.getElementById(that.elementID).appendChild(that.div);
     that.div.appendChild(that.bar);
-    that.bar.appendChild(that.logo);
+    that.bar.appendChild(that.link);
+    that.link.appendChild(that.logo);
 
     // Speaker component
     that.speaker = new Speaker({elementID: 'bar_'+that.id, id: that.id, video: spec.video});
