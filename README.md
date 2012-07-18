@@ -36,9 +36,8 @@ If doxygen is availabe a "doc" target is generated. HTML documentation can be bu
 As of now, the only application built using the library is a streaming application that connects via TCP to a server application built on top of node.js.
 
 The node.js app is not released but the code should provide an example on how the SDP exchange is made.
-In the current state, the examples are not compiled by default, however, they can be built by setting COMPILE_EXAMPLES to ON in src/CMakeLists.txt
-
-In the future, we will include here tests and examples.
+The examples are unusable as of now, but they can help to understand the API.
+In the future, we will include here tests and updated examples.
 
 ## License
 

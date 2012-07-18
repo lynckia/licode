@@ -13,7 +13,9 @@
 namespace erizo {
 
 class NiceConnection;
-
+/**
+ * States of ICE
+ */
 enum IceState {
 	INITIAL, CANDIDATES_GATHERED, CANDIDATES_RECEIVED, READY, FINISHED, FAILED
 };
@@ -21,7 +23,8 @@ enum IceState {
 class WebRtcConnectionStateListener {
 public:
 	virtual ~WebRtcConnectionStateListener() {
-	};
+	}
+	;
 	virtual void connectionStateChanged(IceState newState)=0;
 
 };
@@ -44,7 +47,6 @@ public:
 	virtual ~WebRtcConnection();
 	/**
 	 * Inits the WebConnection by starting ICE Candidate Gathering.
-	 * This is a blocking call and will end when candidates are gathered and the WebRTCConnection is ready to receive the remote SDP
 	 * @return True if the candidates are gathered.
 	 */
 	bool init();
@@ -93,8 +95,12 @@ public:
 	 */
 	int sendFirPacket();
 
-	void setWebRTCConnectionStateListener(WebRtcConnectionStateListener* listener);
-
+	void setWebRTCConnectionStateListener(
+			WebRtcConnectionStateListener* listener);
+	/**
+	 * Gets the current state of the Ice Connection
+	 * @return
+	 */
 	IceState getCurrentState();
 
 private:
