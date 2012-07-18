@@ -23,6 +23,7 @@ class WebRtcConnection : public node::ObjectWrap {
   static v8::Handle<v8::Value> getLocalSdp(const v8::Arguments& args);
   static v8::Handle<v8::Value> setAudioReceiver(const v8::Arguments& args);
   static v8::Handle<v8::Value> setVideoReceiver(const v8::Arguments& args);
+  static v8::Handle<v8::Value> getCurrentState(const v8::Arguments& args);
  
 };
 

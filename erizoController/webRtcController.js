@@ -4,40 +4,29 @@ exports.WebRtcController = function() {
 
     var that = {};
 
-    that.subscribers = {}; //id (muxer): array de subscribers
-    that.publishers = {}; //id: muxer
+    var subscribers = {}; //id (muxer): array de subscribers
+    var publishers = {}; //id: muxer
 
     that.addPublisher = function(from, sdp, callback) {
 
-        if(that.publishers[from] === undefined) {
+        if(publishers[from] === undefined) {
 
             console.log("Adding publisher peer_id ", from);
 
-            var roap = sdp;
             var muxer = new addon.OneToManyProcessor();
-            var newConn = new addon.WebRtcConnection();
+            var wrtc = new addon.WebRtcConnection();
 
-            newConn.init();
-            newConn.setAudioReceiver(muxer);
-            newConn.setVideoReceiver(muxer);
-            muxer.setPublisher(newConn);
+            publishers[from] = muxer;
+            subscribers[from] = new Array();
 
-            var remoteSdp = getSdp(roap);
-            newConn.setRemoteSdp(remoteSdp);
-            //console.log('SDP remote: ', remoteSdp);
+            wrtc.setAudioReceiver(muxer);
+            wrtc.setVideoReceiver(muxer);
+            muxer.setPublisher(wrtc);
 
-            var localSdp = newConn.getLocalSdp();
-            //console.log('SDP local: ', localSdp);
+            initWebRtcConnection(wrtc, sdp, callback);
 
-            var answer = getRoap(localSdp, roap);
-
-            that.publishers[from] = muxer;
-            that.subscribers[from] = new Array();
-
-            callback(answer);
-             
-            //console.log('Publishers: ', that.publishers);
-            //console.log('Subscribers: ', that.subscribers);
+            //console.log('Publishers: ', publishers);
+            //console.log('Subscribers: ', subscribers);
 
         } else {
             console.log("Publisher already set for", from);
@@ -46,74 +35,88 @@ exports.WebRtcController = function() {
 
     that.addSubscriber = function(from, to, sdp, callback) {
 
-        if(that.publishers[to] !== undefined && that.subscribers[to].indexOf(from) === -1 && sdp.match('OFFER') !== null) {
+        if(publishers[to] !== undefined && subscribers[to].indexOf(from) === -1 && sdp.match('OFFER') !== null) {
 
             console.log("Adding subscriber from ", from, 'to ', to);
-
-            var roap = sdp;
-            var newConn = new addon.WebRtcConnection();
             
-            newConn.init();
-            that.publishers[to].addSubscriber(newConn, from);                                                        
+            var wrtc = new addon.WebRtcConnection();
 
-            var remoteSdp = getSdp(roap);
-            newConn.setRemoteSdp(remoteSdp);
-            //console.log('SDP remote: ', remoteSdp);
+            subscribers[to].push(from);
+            publishers[to].addSubscriber(wrtc, from); 
 
-            var localSdp = newConn.getLocalSdp();
-            //console.log('SDP local: ', localSdp);
+            initWebRtcConnection(wrtc, sdp, callback);
 
-            var answer = getRoap(localSdp, roap);
-                        
-            that.subscribers[to].push(from);
-
-            callback(answer);
-
-            //console.log('Publishers: ', that.publishers);
-            //console.log('Subscribers: ', that.subscribers);
+            //console.log('Publishers: ', publishers);
+            //console.log('Subscribers: ', subscribers);
         }
     }
 
     that.removePublisher = function(from) {
 
-        if(that.subscribers[from] != undefined && that.publishers[from] != undefined) {
+        if(subscribers[from] != undefined && publishers[from] != undefined) {
             console.log('Removing muxer', from);
-            that.publishers[from].close();
-            delete that.subscribers[from];
-            delete that.publishers[from];    
+            publishers[from].close();
+            delete subscribers[from];
+            delete publishers[from];    
         }
     }
 
     that.removeSubscriber = function(from, to) {
 
-        var index = that.subscribers[to].indexOf(from);
+        var index = subscribers[to].indexOf(from);
         if (index != -1) {
             console.log('Removing subscriber ', from, 'to muxer ', to);
-            that.publishers[to].removeSubscriber(from);
-            that.subscribers[to].splice(index, 1);
+            publishers[to].removeSubscriber(from);
+            subscribers[to].splice(index, 1);
         }
     }
 
     that.removeClient = function(from) {
 
         console.log('Removing client ', from);
-        for(var key in that.subscribers) {
-            var index = that.subscribers[key].indexOf(from);
+        for(var key in subscribers) {
+            var index = subscribers[key].indexOf(from);
             if (index != -1) {
                 console.log('Removing subscriber ', from, 'to muxer ', key);
-                that.publishers[key].removeSubscriber(from);
-                that.subscribers[key].splice(index, 1);
+                publishers[key].removeSubscriber(from);
+                subscribers[key].splice(index, 1);
             };
         }
 
-        if(that.subscribers[from] != undefined && that.publishers[from] != undefined) {
+        if(subscribers[from] != undefined && publishers[from] != undefined) {
             console.log('Removing muxer', from);
-            that.publishers[from].close();
-            delete that.subscribers[from];
-            delete that.publishers[from];    
+            publishers[from].close();
+            delete subscribers[from];
+            delete publishers[from];    
         }
     }
 
+    var initWebRtcConnection = function(wrtc, sdp, callback) {
+
+        wrtc.init();
+                       
+        var roap = sdp;                                            
+        var remoteSdp = getSdp(roap);
+
+        var intervarId = setInterval(function() {
+
+            var state = wrtc.getCurrentState();
+
+            if(state > 0) {
+
+                wrtc.setRemoteSdp(remoteSdp);
+                //console.log('SDP remote: ', remoteSdp);
+                var localSdp = wrtc.getLocalSdp();
+                //console.log('SDP local: ', localSdp);
+
+                var answer = getRoap(localSdp, roap);
+                callback(answer);
+
+                clearInterval(intervarId);
+            }
+            
+        }, 1000);
+    }
 
     var getSdp = function(roap) {
 

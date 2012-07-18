@@ -87,9 +87,7 @@ rpc.connect(function() {
         });
 
         socket.on('subscribe', function(to, sdp, callback) {
-            console.log('**********Empiezo a añadir subscriber para ', socket.id, 'a', to);
             socket.room.webRtcController.addSubscriber(socket.id, to, sdp, function (answer) {
-                console.log('***********Tengo el answer del subscriber para ', socket.id, 'a', to);
                 callback(answer);
             });
          });
