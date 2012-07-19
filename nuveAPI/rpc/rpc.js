@@ -30,11 +30,11 @@ connection.on('ready', function () {
 		});
 
 		clientQueue = connection.queue('', function (q) {
-		  	console.log('ClientQueue ' + q.name + ' is open');
+		  	console.log('ClientQueue ' + clientQueue.name + ' is open');
 
-		 	queue.bind('rpcExchange', queue.name);
+		 	clientQueue.bind('rpcExchange', clientQueue.name);
 
-		  	queue.subscribe(function (message) {
+		  	clientQueue.subscribe(function (message) {
 			
 				map[message.corrID](message.data);
 
