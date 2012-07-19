@@ -1,4 +1,4 @@
-var room, roomId, publisher;
+var room, roomId, publisher, interval;
 
 roomId1 = "50001b77773e74ee30000002";
 roomId2 = "5007cf98a8946ac114000116";
@@ -15,6 +15,29 @@ window.onload = function () {
     var room2 = document.getElementById('room2');
     var room3 = document.getElementById('room3');
     var room4 = document.getElementById('room4');
+
+    var writeUsers = function(id, room, number) {
+        room.childNodes[1].innerText = "Room " + id + " - (" + number + " users)";
+    };
+
+    var checkUsers = function() {
+        N.API.getUsers(roomId1, function(users) {
+            writeUsers(1, room1, JSON.parse(users).length);
+            N.API.getUsers(roomId2, function(users) {
+                writeUsers(2, room2, JSON.parse(users).length);
+                N.API.getUsers(roomId3, function(users) {
+                    writeUsers(3, room3, JSON.parse(users).length);
+                    N.API.getUsers(roomId4, function(users) {
+                        writeUsers(4, room4, JSON.parse(users).length);
+                    });    
+                });
+            });
+        });
+    };
+
+    interval = setInterval(checkUsers, 10000);
+
+    checkUsers();
 
     room1.onmousedown = function(evt) {
         initialize(roomId1);
@@ -33,7 +56,7 @@ window.onload = function () {
     };
 
     var initialize = function(roomId) {
-
+        clearInterval(interval);
         var roomcontainer = document.getElementById("roomcontainer");
         roomcontainer.setAttribute("class", "hide");
         var vidcontainer = document.getElementById("vidcontainer");

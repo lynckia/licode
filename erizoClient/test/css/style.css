@@ -94,6 +94,10 @@ html, body {
 	height: 60px;
 }
 
+.room {
+	cursor: pointer;
+}
+
 .roomtext {
 
 	font-family: Arial;
