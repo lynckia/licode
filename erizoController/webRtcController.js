@@ -95,6 +95,8 @@ exports.WebRtcController = function() {
 
     var initWebRtcConnection = function(wrtc, sdp, callback) {
 
+        var date = (new Date()).getTime();
+
         wrtc.init();
                        
         var roap = sdp;                                            
@@ -106,12 +108,16 @@ exports.WebRtcController = function() {
 
             if(state > 0) {
 
+                console.log('Ready: ', (new Date()).getTime() - date);
                 wrtc.setRemoteSdp(remoteSdp);
+                console.log('Set remote: ', (new Date()).getTime() - date);
                 //console.log('SDP remote: ', remoteSdp);
                 var localSdp = wrtc.getLocalSdp();
+                console.log('Get: ', (new Date()).getTime() - date);
                 //console.log('SDP local: ', localSdp);
 
                 var answer = getRoap(localSdp, roap);
+                console.log('Final: ', (new Date()).getTime() - date);
                 callback(answer);
 
                 clearInterval(intervarId);
