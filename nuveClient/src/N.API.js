@@ -115,7 +115,7 @@ N.API = (function (N) {
 
         req.setRequestHeader('Authorization', header);
         req.setRequestHeader('Content-Type', 'application/json');
-        console.log("Sending " + method + " to " + url + " - " + JSON.stringify(body));
+        //console.log("Sending " + method + " to " + url + " - " + JSON.stringify(body));
         req.send(JSON.stringify(body));
     };
 
