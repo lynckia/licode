@@ -17,7 +17,7 @@ N.API = (function (N) {
     };
 
     createRoom = function (name, callback) {
-        send(callback, 'POST', name, N.API.params.url + 'rooms');
+        send(callback, 'POST', {name: name}, N.API.params.url + 'rooms');
     };
 
     getRooms = function (callback) {
@@ -115,7 +115,7 @@ N.API = (function (N) {
 
         req.setRequestHeader('Authorization', header);
         req.setRequestHeader('Content-Type', 'application/json');
-        console.log("Sending " + method + " to " + url);
+        console.log("Sending " + method + " to " + url + " - " + JSON.stringify(body));
         req.send(JSON.stringify(body));
     };
 
@@ -132,6 +132,7 @@ N.API = (function (N) {
         init: init,
         createRoom: createRoom,
         getRooms: getRooms,
+        getRoom: getRoom,
         deleteRoom: deleteRoom,
         createToken: createToken,
         createService: createService,
