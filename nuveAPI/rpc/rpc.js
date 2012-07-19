@@ -30,7 +30,7 @@ connection.on('ready', function () {
 		});
 
 		clientQueue = connection.queue('', function (q) {
-		  	console.log('ClientQueue ' + clientQueue.name + ' is open');
+		  	console.log('ClientQueue ' + q.name + ' is open');
 
 		 	clientQueue.bind('rpcExchange', clientQueue.name);
 
@@ -50,7 +50,7 @@ exports.callRpc = function(method, args, callback) {
 	corrID ++;
 	map[corrID] = callback;
 
-	var send = {method: method, args: args, corrID: corrID, replyTo: queue.name };
+	var send = {method: method, args: args, corrID: corrID, replyTo: clientQueue.name};
  	
  	exc.publish('erizoController', send);
 	
