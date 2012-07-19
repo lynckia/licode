@@ -56,6 +56,103 @@ html, body {
 	margin-top: 840px;
 	left: 50%;
 }
+
+#room1 {
+	background-color: #fff;
+	margin-top: 400px;
+	margin-bottom: 15px;
+	left: 50%;
+	margin-left: -345px;
+	width: 340px;
+	height: 60px;
+}
+
+#room2 {
+	background-color: #303;
+	margin-left: -345px;
+	margin-top: 490px;
+	left: 50%;
+	width: 340px;
+	height: 60px;
+}
+
+#room3 {
+	background-color: # C99;
+	margin-left: -345px;
+	margin-top: 580px;
+	left: 50%;
+	width: 340px;
+	height: 60px;;
+}
+
+#room4 {
+	background-color: # FC6;
+	margin-left: -345px;
+	margin-top: 670px;
+	left: 50%;
+	width: 340px;
+	height: 60px;
+}
+
+.roomtext {
+
+	font-family: Arial;
+	font-weight:bold;
+	color: white;
+	font-size: 25;
+
+	position: absolute;
+	width: 340px;
+	margin-left: -125px;
+	margin-top: 15px;
+	left: 50%;
+}
+
+#titletext {
+
+	font-family: Arial;
+	font-weight:bold;
+	color: 003675;
+	font-size: 25;
+
+	position: absolute;
+	width: 340px;
+	margin-left: -335px;
+	margin-top: 320px;
+	left: 50%;
+}
+
+#star {
+	position: absolute;
+	width: 150px;
+	height: 150px;
+	margin-left: 40px;
+	margin-top: 80px;
+	left: 50%;
+}
+
+#logo {
+	position:absolute;
+	left: 50%;
+    top: 53px;
+    width: 340px;
+    height: 204px;
+    margin-left: -345px;
+}
+
+#textfooindex {
+
+	font-family: Arial;
+	font-weight:bold;
+	color: 003675;
+	font-size: 16;
+
+	position: absolute;
+	width: 340px;
+	margin-left: -80px;
+	margin-top: 820px;
+	left: 50%;
+}
 	
 #vid1 {
 	background-color: #fff;
