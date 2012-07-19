@@ -23,7 +23,7 @@ var Speaker = function(spec) {
     that.div = document.createElement('div');
     that.div.setAttribute('style', 'width: 32px; height: 32px; position: absolute; bottom: 0; right: 0;');
 
-    // Volume icon
+    // Volume icon 
     that.icon = document.createElement('img');
     that.icon.setAttribute('id', 'volume_' + that.id);
     that.icon.setAttribute('src', that.url + '/assets/mute48.png');
@@ -39,7 +39,7 @@ var Speaker = function(spec) {
     that.picker.step = 10;
     that.picker.value = 50;
     that.div.appendChild(that.picker);
-    //that.video.volume = that.picker.value;
+    that.video.volume = that.picker.value / 100;
 
     that.picker.oninput = function(evt) {
         if (that.picker.value > 0) {
@@ -47,7 +47,7 @@ var Speaker = function(spec) {
         } else {
             that.icon.setAttribute('src', that.url + '/assets/mute48.png');
         }
-        //that.video.volume = that.picker.value;
+        that.video.volume = that.picker.value / 100;
     };
 
     // Private functions

@@ -16,6 +16,7 @@ var Publisher = function (spec) {
     var that = EventDispatcher(spec);
     that.room = undefined;
     that.elementID = undefined;
+    that.showing = false;
 
     // Public functions
 
@@ -39,12 +40,6 @@ var Publisher = function (spec) {
 
                 that.stream = Stream({streamID: 0, stream: stream});
 
-                // Draw on HTML
-                if (spec.elementID !== undefined) {
-                    var player = new VideoPlayer({id: that.stream.streamID, stream: that.stream.stream, elementID: spec.elementID});
-                    that.player = player;
-                }
-
                 var publisherEvent = PublisherEvent({type: "access-accepted"});
                 that.dispatchEvent(publisherEvent);
             }, function (error) {
@@ -53,6 +48,15 @@ var Publisher = function (spec) {
             L.Logger.debug("Requested access to local media");
         } catch (e) {
             L.Logger.error("Error accessing to local media");
+        }
+    };
+
+    that.show = function() {
+        // Draw on HTML
+        if (spec.elementID !== undefined) {
+            var player = new VideoPlayer({id: that.stream.streamID, stream: that.stream.stream, elementID: spec.elementID});
+            that.player = player;
+            that.showing = true;
         }
     };
 
