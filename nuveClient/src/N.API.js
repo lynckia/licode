@@ -75,7 +75,7 @@ N.API = (function (N) {
         }
 
         timestamp = new Date().getTime();
-        cnounce = '123123aaff';
+        cnounce = Math.floor(Math.random()*99999);
 
         toSign = timestamp + ',' + cnounce;
 
