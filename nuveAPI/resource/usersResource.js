@@ -28,7 +28,7 @@ exports.getList = function(req, res) {
 			return;
 		}
 
-		rpc.callRpc('getUsersInRoom', room._id, function(users) {
+		rpc.callRpc('getUsersInRoom', this.room._id, function(users) {
 			res.send(users);
 		});
 
