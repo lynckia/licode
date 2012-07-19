@@ -1,5 +1,5 @@
 var crypto = require('crypto');
-var rpc = require('./rpc/rpcClient');
+var rpc = require('./rpc/rpc');
 var controller = require('./webRtcController');
 var io = require('socket.io').listen(8080);
 
@@ -40,6 +40,7 @@ rpc.connect(function() {
                         socket.disconnect();
 
                     } else if (token.host == resp.host) {
+                        console.log(resp);
                         tokenDB = resp;
                         if(rooms[tokenDB.room] === undefined) {
                             var room = {};
@@ -52,7 +53,9 @@ rpc.connect(function() {
                         } else {
                             rooms[tokenDB.room].sockets.push(socket.id);
                         }
+                        var user = {name: tokenDB.userName, role: tokenDB.role};
                         socket.room = rooms[tokenDB.room];
+                        socket.user = user;
                         console.log('OK, Valid token');
 
                         callback('success', {streams: socket.room.streams, id: socket.room.id});
@@ -131,7 +134,22 @@ rpc.connect(function() {
     });
 });
 
+exports.getUsersInRoom = function(room, callback) {
 
+    var users = [];
+    if(rooms[room] === undefined) {
+        callback(users);
+        return;
+    }
+    
+    var sockets = rooms[room].sockets; 
+    
+    console.log('para la sala ', room, 'los sockets son: ', sockets);
+    for(var id in sockets) {   
+        users.push(io.sockets.socket(sockets[id]).user);   
+    }
+    callback(users);
+}
 
 var checkSignature = function(token, key) {
 
