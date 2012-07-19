@@ -1,11 +1,11 @@
-var room, roomId, publisher, interval;
+var room, roomId, publisher, interval, serverUrl;
 
 roomId1 = "50001b77773e74ee30000002";
 roomId2 = "5007cf98a8946ac114000116";
 roomId3 = "5007cf9aa8946ac114000117";
 roomId4 = "5007cf9ca8946ac114000118";
 
-N.API.init("http://chotis2.dit.upm.es:3000/", "50001b26773e74ee30000001", "clave");
+serverUrl = "http://chotis2.dit.upm.es:3000/";
 
 publisher = Publisher({audio: true, video: true, elementID: "pepito"});
 
@@ -16,18 +16,54 @@ window.onload = function () {
     var room3 = document.getElementById('room3');
     var room4 = document.getElementById('room4');
 
+     var createToken = function(roomId, userName, role, callback) {
+
+        var req = new XMLHttpRequest();
+        var url = serverUrl + 'createToken/' + roomId;
+        var body = {username: userName, role: role};
+
+        req.onreadystatechange = function () {
+            if (req.readyState === 4) {
+                callback(req.responseText);
+            }
+        };
+
+        req.open('POST', url, true);
+
+        req.setRequestHeader('Content-Type', 'application/json');
+        console.log("Sending to " + url + " - " + JSON.stringify(body));
+        req.send(JSON.stringify(body));
+    };
+
+    var getUsers = function(roomId, callback) {
+
+        var req = new XMLHttpRequest();
+        var url = serverUrl + 'getUsers/' + roomId;
+
+        req.onreadystatechange = function () {
+            if (req.readyState === 4) {
+                callback(req.responseText);
+            }
+        };
+
+        req.open('GET', url, true);
+
+        console.log("Sending  to " + url);
+        req.send();
+    };
+
     var writeUsers = function(id, room, number) {
         room.childNodes[1].innerText = "Room " + id + " - (" + number + " users)";
     };
 
     var checkUsers = function() {
-        N.API.getUsers(roomId1, function(users) {
+        getUsers(roomId1, function(users) {
             writeUsers(1, room1, JSON.parse(users).length);
-            N.API.getUsers(roomId2, function(users) {
+            getUsers(roomId2, function(users) {
                 writeUsers(2, room2, JSON.parse(users).length);
-                N.API.getUsers(roomId3, function(users) {
+                getUsers(roomId3, function(users) {
                     writeUsers(3, room3, JSON.parse(users).length);
-                    N.API.getUsers(roomId4, function(users) {
+                    getUsers(roomId4, function(users) {
                         writeUsers(4, room4, JSON.parse(users).length);
                     });    
                 });
@@ -62,7 +98,7 @@ window.onload = function () {
         var vidcontainer = document.getElementById("vidcontainer");
         vidcontainer.setAttribute("class", "");
 
-        N.API.createToken(roomId, "user", "role", function (response) {
+        createToken(roomId, "user", "role", function (response) {
             var token = response;
             L.Logger.setLogLevel(L.Logger.DEBUG);
             //L.Logger.debug("Connected!");

@@ -141,7 +141,7 @@ exports.getUsersInRoom = function(room, callback) {
         callback(users);
         return;
     }
-    
+
     var sockets = rooms[room].sockets; 
     
     console.log('para la sala ', room, 'los sockets son: ', sockets);
