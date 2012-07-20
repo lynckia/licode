@@ -2,7 +2,7 @@ var db = require('./dataBase').db;
 var BSON = require('mongodb').BSONPure;
 
 
-var getRoom = exports.getRoom = function(id, service, callback) {
+var getRoom = exports.getRoom = function(id, callback) {
 	
 	db.rooms.findOne({_id: new BSON.ObjectID(id)}, function(err, room) {
 		if(room == undefined) console.log("Room not found");
@@ -12,7 +12,7 @@ var getRoom = exports.getRoom = function(id, service, callback) {
 	});
 }
 
-var hasRoom = exports.hasRoom = function(id, service, callback) {
+var hasRoom = exports.hasRoom = function(id, callback) {
 	
 	getRoom(id, function(room) {
 		if (room == undefined) callback(false);
@@ -21,16 +21,14 @@ var hasRoom = exports.hasRoom = function(id, service, callback) {
 
 }
 
-exports.addRoom = function(room, service, callback) {
+exports.addRoom = function(room, callback) {
 
 	db.rooms.save(room, function(error, saved) {
-		service.rooms.push(saved);
-		db.services.save(serv);
-		callback(saved._id);
+		callback(saved);
 	});
 }
 
-exports.removeRoom = function(id, service) {
+exports.removeRoom = function(id) {
 	hasRoom(id, function(hasR) {
 		if (hasR) {
 			db.rooms.remove({_id: new BSON.ObjectID(id)});

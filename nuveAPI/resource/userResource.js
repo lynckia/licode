@@ -1,4 +1,5 @@
 var roomRegistry = require('./../mdb/roomRegistry');
+var serviceRegistry = require('./../mdb/serviceRegistry');
 
 var service;
 var room;

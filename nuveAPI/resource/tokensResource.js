@@ -1,5 +1,6 @@
 var roomRegistry = require('./../mdb/roomRegistry');
 var tokenRegistry = require('./../mdb/tokenRegistry');
+var serviceRegistry = require('./../mdb/serviceRegistry');
 var dataBase= require('./../mdb/dataBase');
 var crypto = require('crypto');
 

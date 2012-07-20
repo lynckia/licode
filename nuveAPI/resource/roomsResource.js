@@ -1,4 +1,5 @@
 var roomRegistry = require('./../mdb/roomRegistry');
+var serviceRegistry = require('./../mdb/serviceRegistry');
 
 var service;
 
@@ -20,7 +21,9 @@ exports.createRoom = function(req, res) {
 		return;
 	}
 	
-	roomRegistry.addRoom(req.body, this.service, function(result) {
+	roomRegistry.addRoom(req.body, function(result) {
+		this.service.rooms.push(result);
+		serviceRegistry.updateService(this.service);
 		console.log('Room created:', req.body.name, 'for service', this.service.name);
 		res.send(result);
 	});
@@ -37,5 +40,5 @@ exports.represent = function(req, res) {
 	}
 	console.log('Represent rooms');
 	
-	res.send(service.rooms);
+	res.send(this.service.rooms);
 };

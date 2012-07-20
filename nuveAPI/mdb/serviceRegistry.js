@@ -49,8 +49,8 @@ exports.removeService = function(id) {
 exports.getRoomForService = function(roomId, service, callback) {
 
 	for(var room in service.rooms) {
-		if(room._id === roomId) {
-			callback(room);
+		if(service.rooms[room]._id == roomId) {
+			callback(service.rooms[room]);
 			return;
 		}
 	}
