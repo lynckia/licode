@@ -1,0 +1,15 @@
+{
+  "author": "GING <jcervino@dit.upm.es>",
+  "name": "nuve-client",
+  "description": "JavaScript implementation of Nuve Client",
+  "version": "0.1.4",
+  "homepage": "http://chotis2.dit.upm.es/",
+  "main": "main.js",
+  "engines": {
+    "node": "~0.6.11"
+  },
+  "bin" : "./bin/nuve",
+  "dependencies": {},
+  "devDependencies": {},
+  "optionalDependencies": {}
+}

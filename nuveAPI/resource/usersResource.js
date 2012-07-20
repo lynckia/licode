@@ -1,4 +1,5 @@
 var roomRegistry = require('./../mdb/roomRegistry');
+var rpc = require('./../rpc/rpc');
 
 var service;
 var room;
@@ -27,10 +28,9 @@ exports.getList = function(req, res) {
 			return;
 		}
 
-		
-		//Consultar RabbitMQ
-
-
+		rpc.callRpc('getUsersInRoom', this.room._id, function(users) {
+			res.send(users);
+		});
 
 	});
 

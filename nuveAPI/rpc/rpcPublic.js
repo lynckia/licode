@@ -14,10 +14,4 @@ exports.deleteToken = function(id, callback) {
 		}
 	});
 
-	
-
-}
-
-exports.multiplica = function(num, callback) {
-	callback(num * 2);
 }
