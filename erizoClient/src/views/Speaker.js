@@ -26,7 +26,7 @@ var Speaker = function(spec) {
     // Volume icon 
     that.icon = document.createElement('img');
     that.icon.setAttribute('id', 'volume_' + that.id);
-    that.icon.setAttribute('src', that.url + '/assets/mute48.png');
+    that.icon.setAttribute('src', that.url + '/assets/sound48.png');
     that.icon.setAttribute('style', 'width: 32px; height: 32px; position: absolute;');
     that.div.appendChild(that.icon);
 
