@@ -7,6 +7,9 @@ var crypto = require('crypto');
 var service;
 var room;
 
+/*
+ * Gets the service and the room for the proccess of the request.
+ */
 var doInit = function (roomId, callback) {
 	this.service = require('./../auth/nuveAuthenticator').service;
 
@@ -17,17 +20,18 @@ var doInit = function (roomId, callback) {
 
 };
 
-//Post
+/*
+ * Post Token. Creates a new token for a determined room of a service.
+ */
 exports.create = function(req, res) {
 	doInit(req.params.room, function() {
 
 		if (this.service == undefined) {
-			console.log('Without service');
-			res.send('Without service', 401);
+			res.send('Service not found', 404);
 			return;
 		} else if (this.room == undefined) {
-			console.log('Room not found');
-			res.send('Room not found', 404);
+			console.log('Room ', req.params.room, ' does not exist');
+			res.send('Room ', req.params.room, ' does not exist', 404);
 			return;
 		}
 
@@ -37,7 +41,7 @@ exports.create = function(req, res) {
 				res.send('Name and role?', 401);
 				return;
 			}
-			console.log('Sending token');
+			console.log('Create token for room ', this.room._id, 'and service ', this.service._id);
 			res.send(tokenS);
 			
 		});
@@ -45,7 +49,11 @@ exports.create = function(req, res) {
 	
 };
 
-
+/*
+ * Generates new token. 
+ * The format of a token is:
+ * {tokenId: id, host: erizoController host, signature: signature of the token};
+ */
 var generateToken = function(callback) {
 
 	var user = require('./../auth/nuveAuthenticator').user;
@@ -79,6 +87,3 @@ var generateToken = function(callback) {
 	
 
 }
-
-
-

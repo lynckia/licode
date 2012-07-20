@@ -5,7 +5,7 @@ var BSON = require('mongodb').BSONPure;
 var getRoom = exports.getRoom = function(id, callback) {
 	
 	db.rooms.findOne({_id: new BSON.ObjectID(id)}, function(err, room) {
-		if(room == undefined) console.log("Room not found");
+		if(room == undefined) console.log('Room ', id, ' not found');
     	if (callback != undefined) {
     		callback(room);
     	}

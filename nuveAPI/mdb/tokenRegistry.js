@@ -12,7 +12,7 @@ exports.getList = function(callback) {
 var getToken = exports.getToken = function(id, callback) {
 	
 	db.tokens.findOne({_id: new BSON.ObjectID(id)}, function(err, token) {
-		if(token == undefined) console.log("token not found");
+		if(token == undefined) console.log('Token ', id, ' not found');
     	if (callback != undefined) {
     		callback(token);
     	}
