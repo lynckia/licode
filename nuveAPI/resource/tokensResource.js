@@ -65,12 +65,6 @@ var generateToken = function(callback) {
 	
 	token.host = dataBase.erizoControllerHost;
 
-
-	//***********************************
-	//TODO: Comprobaciones de salas y tal
-	//***********************************
-
-
 	tokenRegistry.addToken(token, function(id) {
 
 		var toSign = id + ',' + token.host;
