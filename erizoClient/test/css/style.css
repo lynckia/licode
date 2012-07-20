@@ -62,14 +62,14 @@ html, body {
 	margin-top: 400px;
 	margin-bottom: 15px;
 	left: 50%;
-	margin-left: -345px;
+	margin-left: -220px;
 	width: 340px;
 	height: 60px;
 }
 
 #room2 {
 	background-color: #303;
-	margin-left: -345px;
+	margin-left: -220px;
 	margin-top: 490px;
 	left: 50%;
 	width: 340px;
@@ -78,7 +78,7 @@ html, body {
 
 #room3 {
 	background-color: # C99;
-	margin-left: -345px;
+	margin-left: -220px;
 	margin-top: 580px;
 	left: 50%;
 	width: 340px;
@@ -87,7 +87,7 @@ html, body {
 
 #room4 {
 	background-color: # FC6;
-	margin-left: -345px;
+	margin-left: -220px;
 	margin-top: 670px;
 	left: 50%;
 	width: 340px;
@@ -121,7 +121,7 @@ html, body {
 
 	position: absolute;
 	width: 340px;
-	margin-left: -335px;
+	margin-left: -220px;
 	margin-top: 320px;
 	left: 50%;
 }
@@ -153,7 +153,7 @@ html, body {
 
 	position: absolute;
 	width: 340px;
-	margin-left: -80px;
+	margin-left: -140px;
 	margin-top: 820px;
 	left: 50%;
 }
