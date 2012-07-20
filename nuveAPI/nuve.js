@@ -14,6 +14,7 @@ var serviceResource = require('./resource/serviceResource');
 var usersResource = require('./resource/usersResource');
 var userResource = require('./resource/userResource');
 
+app.use(express.static(__dirname + '/public'));
 app.use(express.bodyParser());
 app.set('view engine', 'ejs');
 app.set('view options', {
