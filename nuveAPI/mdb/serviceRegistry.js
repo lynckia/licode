@@ -45,3 +45,14 @@ exports.removeService = function(id) {
 		}
 	});
 }
+
+exports.getRoomForService = function(roomId, service, callback) {
+
+	for(var room in service.rooms) {
+		if(room._id === roomId) {
+			callback(room);
+			return;
+		}
+	}
+	callback(undefined);
+}

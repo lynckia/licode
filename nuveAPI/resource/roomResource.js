@@ -4,14 +4,13 @@ var serviceRegistry = require('./../mdb/serviceRegistry');
 var service;
 var room;
 
-var doInit = function (room, callback) {
+var doInit = function (roomId, callback) {
 	this.service = require('./../auth/nuveAuthenticator').service;
 
-	roomRegistry.getRoom(room, function(room) {
+	serviceRegistry.getRoomForService(roomId, this.service, function(room) {
 		this.room = room;
 		callback();
-	});
-	
+	});	
 };
 
 //Get

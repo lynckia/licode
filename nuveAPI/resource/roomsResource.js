@@ -36,8 +36,6 @@ exports.represent = function(req, res) {
 		return;
 	}
 	console.log('Represent rooms');
-	roomRegistry.getList(function(list) {
-		res.send(list);
-	});	
-
+	
+	res.send(service.rooms);
 };
