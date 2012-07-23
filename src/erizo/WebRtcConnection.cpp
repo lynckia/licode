@@ -25,7 +25,9 @@ WebRtcConnection::WebRtcConnection() {
 	videoNice_ = NULL;
 	audioSrtp_ = NULL;
 	videoSrtp_ = NULL;
-	//sending = false;
+	globalIceState_ = INITIAL;
+	connStateListener_ = NULL;
+
 	sending = true;
 	send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
 
@@ -95,53 +97,22 @@ WebRtcConnection::~WebRtcConnection() {
 
 bool WebRtcConnection::init() {
 
-	std::vector<CandidateInfo> *cands;
 	if (!bundle_) {
-		if (video_) {
+		if (video_)
 			videoNice_->start();
-			while (videoNice_->iceState != NiceConnection::CANDIDATES_GATHERED) {
-				usleep(100000);
-			}
-			cands = videoNice_->localCandidates;
-			for (unsigned int it = 0; it < cands->size(); it++) {
-				CandidateInfo cand = cands->at(it);
-				localSdp_.addCandidate(cand);
-			}
-		}
-		if (audio_) {
+		if (audio_)
 			audioNice_->start();
-			while (audioNice_->iceState != NiceConnection::CANDIDATES_GATHERED) {
-				usleep(100000);
-			}
-			cands = audioNice_->localCandidates;
-			for (unsigned int it = 0; it < cands->size(); it++) {
-				CandidateInfo cand = cands->at(it);
-				localSdp_.addCandidate(cand);
-			}
-		}
-
 	} else {
 		videoNice_->start();
-		while (videoNice_->iceState != NiceConnection::CANDIDATES_GATHERED) {
-			usleep(100000);
-		}
-		cands = videoNice_->localCandidates;
-		for (unsigned int it = 0; it < cands->size(); it++) {
-			CandidateInfo cand = cands->at(it);
-			cand.isBundle = bundle_;
-			localSdp_.addCandidate(cand);
-			cand.mediaType = AUDIO_TYPE;
-			localSdp_.addCandidate(cand);
-
-		}
 	}
 	return true;
 }
 
 void WebRtcConnection::close() {
-	sending = false;
-	send_Thread_.join();
-
+	if (sending != false) {
+		sending = false;
+		send_Thread_.join();
+	}
 	if (audio_) {
 		if (audioNice_ != NULL) {
 			audioNice_->close();
@@ -224,7 +195,37 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 }
 
 std::string WebRtcConnection::getLocalSdp() {
+	std::vector<CandidateInfo> *cands;
 	printf("Geting Local sdp\n");
+	if (bundle_) {
+		if (videoNice_->iceState > CANDIDATES_GATHERED) {
+			cands = videoNice_->localCandidates;
+			for (unsigned int it = 0; it < cands->size(); it++) {
+				CandidateInfo cand = cands->at(it);
+				cand.isBundle = bundle_;
+				localSdp_.addCandidate(cand);
+				cand.mediaType = AUDIO_TYPE;
+				localSdp_.addCandidate(cand);
+			}
+		} else {
+			printf("WARNING getting local sdp before it is ready!\n");
+		}
+	} else {
+		if (video_ && videoNice_->iceState > CANDIDATES_GATHERED) {
+			cands = videoNice_->localCandidates;
+			for (unsigned int it = 0; it < cands->size(); it++) {
+				CandidateInfo cand = cands->at(it);
+				localSdp_.addCandidate(cand);
+			}
+		}
+		if (audio_ && audioNice_->iceState > CANDIDATES_GATHERED) {
+			cands = audioNice_->localCandidates;
+			for (unsigned int it = 0; it < cands->size(); it++) {
+				CandidateInfo cand = cands->at(it);
+				localSdp_.addCandidate(cand);
+			}
+		}
+	}
 	return localSdp_.getSdp();
 }
 
@@ -258,13 +259,13 @@ int WebRtcConnection::receiveVideoData(char* buf, int len) {
 
 	int res = -1;
 	int length = len;
-	if (videoSrtp_ && videoNice_->iceState == NiceConnection::READY) {
+	if (videoSrtp_ && videoNice_->iceState == READY) {
 		//		printf("protect\n");
 		videoSrtp_->protectRtp(buf, &length);
 	}
 	if (length <= 10)
 		return length;
-	if (videoNice_->iceState == NiceConnection::READY) {
+	if (videoNice_->iceState == READY) {
 		receiveVideoMutex_.lock();
 		if (sendQueue_.size() < 1000) {
 			packet p_;
@@ -336,21 +337,6 @@ int WebRtcConnection::receiveNiceData(char* buf, int len,
 	return -1;
 }
 
-void WebRtcConnection::sendLoop() {
-
-	while (sending == true) {
-		receiveVideoMutex_.lock();
-		if (sendQueue_.size() > 0) {
-			videoNice_->sendData(sendQueue_.front().data,
-					sendQueue_.front().length);
-			sendQueue_.pop();
-			receiveVideoMutex_.unlock();
-		} else {
-			receiveVideoMutex_.unlock();
-			usleep(1000);
-		}
-	}
-}
 int WebRtcConnection::sendFirPacket() {
 	sequenceNumberFIR_++; // do not increase if repetition
 	int pos = 0;
@@ -383,11 +369,51 @@ int WebRtcConnection::sendFirPacket() {
 	rtcpPacket[pos++] = (uint8_t) 0;
 	rtcpPacket[pos++] = (uint8_t) 0;
 	if (videoSrtp_ != NULL && videoNice_ != NULL
-			&& videoNice_->iceState == NiceConnection::READY) {
+			&& videoNice_->iceState == READY) {
 		videoSrtp_->protectRtcp((char*) rtcpPacket, &pos);
 		videoNice_->sendData((char*) rtcpPacket, pos);
 	}
 	return pos;
+}
+
+void WebRtcConnection::setWebRTCConnectionStateListener(
+		WebRtcConnectionStateListener* listener) {
+	this->connStateListener_ = listener;
+}
+
+void WebRtcConnection::updateState(IceState newState,
+		NiceConnection* niceConn) {
+
+	if (bundle_) {
+		if (newState == globalIceState_)
+			return;
+		globalIceState_ = newState;
+		if (connStateListener_ != NULL)
+			connStateListener_->connectionStateChanged(globalIceState_);
+//		if (newState == FAILED)
+////			this->close();
+	}
+
+}
+
+IceState WebRtcConnection::getCurrentState() {
+	return globalIceState_;
+}
+
+void WebRtcConnection::sendLoop() {
+
+	while (sending == true) {
+		receiveVideoMutex_.lock();
+		if (sendQueue_.size() > 0) {
+			videoNice_->sendData(sendQueue_.front().data,
+					sendQueue_.front().length);
+			sendQueue_.pop();
+			receiveVideoMutex_.unlock();
+		} else {
+			receiveVideoMutex_.unlock();
+			usleep(1000);
+		}
+	}
 }
 
 } /* namespace erizo */

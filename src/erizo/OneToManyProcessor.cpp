@@ -38,7 +38,7 @@ OneToManyProcessor::OneToManyProcessor() :
 }
 
 OneToManyProcessor::~OneToManyProcessor() {
-
+	this->closeAll();
 	if (sendVideoBuffer_)
 		delete sendVideoBuffer_;
 	if (sendAudioBuffer_)
@@ -66,7 +66,7 @@ int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 
 //	if (subscribers.empty() || len <= 0)
 //		return 0;
-//	if (sentPackets_ % 1000 == 0) {
+//	if (sentPackets_ % 500 == 0) {
 //		publisher->sendFirPacket();
 //	}
 //	std::map<int, WebRtcConnection*>::iterator it;
@@ -100,6 +100,14 @@ void OneToManyProcessor::removeSubscriber(int peerId) {
 		this->subscribers[peerId]->close();
 		this->subscribers.erase(peerId);
 	}
+}
+
+void OneToManyProcessor::closeAll() {
+	std::map<int, WebRtcConnection*>::iterator it;
+	for (it = subscribers.begin(); it != subscribers.end(); it++) {
+		(*it).second->close();
+	}
+	this->publisher->close();
 }
 
 }/* namespace erizo */
