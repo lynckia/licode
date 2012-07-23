@@ -45,7 +45,7 @@ exports.represent = function(req, res) {
 		res.send('Service not found', 404);
 		return;
 	}
-	console.log('Represent rooms for service ', this.service._id);
+	console.log('Representing rooms for service ', this.service._id);
 	
 	res.send(this.service.rooms);
 };

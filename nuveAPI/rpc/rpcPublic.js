@@ -12,7 +12,7 @@ exports.deleteToken = function(id, callback) {
 		} else {
 
 			tokenRegistry.removeToken(id, function() {
-                console.log('Consumed token ', token._id, 'from room ', token.room ' of service ', token.service);
+                console.log('Consumed token ', token._id, 'from room ', token.room, ' of service ', token.service);
 				callback(token);
 			});
 		}

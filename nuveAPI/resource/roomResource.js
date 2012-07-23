@@ -26,7 +26,7 @@ exports.represent = function(req, res) {
 		}
 		else if (this.room == undefined) {
 			console.log('Room ', req.params.room, ' does not exist');	
-			res.send('Room ', req.params.room, ' does not exist', 404);	
+			res.send('Room does not exist', 404);	
 		} else {
 			console.log('Representing room ', this.room._id, 'of service ', this.service._id);
 			res.send(this.room);
@@ -46,7 +46,7 @@ exports.deleteRoom = function(req, res) {
 		}
 		else if (this.room == undefined) {
 			console.log('Room ', req.params.room, ' does not exist');
-			res.send('Room ', req.params.room, ' does not exist', 404);	
+			res.send('Room does not exist', 404);	
 		} else {
 			var id = '';
 			id += this.room._id;
@@ -64,7 +64,7 @@ exports.deleteRoom = function(req, res) {
 				this.service.rooms.splice(index, 1);
 				serviceRegistry.updateService(this.service);
 				console.log('Room ', id, ' deleted for service ', this.service._id);
-				res.send('Room ', id, ' deleted');
+				res.send('Room deleted');
 			}
 		}
 	});

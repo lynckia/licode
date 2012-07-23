@@ -29,7 +29,7 @@ exports.getList = function(req, res) {
 			return;
 		} else if (this.room == undefined) {
 			console.log('Room ', req.params.room, ' does not exist');
-			res.send('Room ', req.params.room, ' does not exist', 404);
+			res.send('Room does not exist', 404);
 			return;
 		}
 

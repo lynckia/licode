@@ -23,7 +23,7 @@ exports.represent = function(req, res) {
 	doInit(req.params.service, function(serv) {
 		if(serv == 'error'){
 			console.log('Service ', req.params.service, ' not authorized for this action');
-			res.send('Service ', req.params.service, ' not authorized for this action', 401);
+			res.send('Service not authorized for this action', 401);
 			return;
 		}
 		if (serv == undefined) {
@@ -43,7 +43,7 @@ exports.deleteService = function(req, res) {
 	doInit(req.params.service, function(serv) {
 		if(serv == 'error'){
 			console.log('Service ', req.params.service, ' not authorized for this action');
-			res.send('Service ', req.params.service, ' not authorized for this action', 401);
+			res.send('Service not authorized for this action', 401);
 			return;
 		}
 		if (serv == undefined) {
@@ -53,6 +53,7 @@ exports.deleteService = function(req, res) {
 		var id = '';
 		id += serv._id;
 		serviceRegistry.removeService(id);
-		res.send('Service ', id, ' deleted');
+		console.log('Serveice ', id, ' deleted');
+		res.send('Service deleted');
 	});
 };
