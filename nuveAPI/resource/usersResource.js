@@ -32,13 +32,12 @@ exports.getList = function(req, res) {
 			res.send('Room does not exist', 404);
 			return;
 		}
-
+		
+		console.log('Representing users for room ', this.room._id, 'and service', this.service._id);
 		rpc.callRpc('getUsersInRoom', this.room._id, function(users) {
-			console.log('Representing users for room ', this.room._id, 'and service', this.service._id);
 			res.send(users);
 		});
 
 	});
-
 
 }
