@@ -9,12 +9,15 @@ var queue;
 
 exports.connect = function(callback) {
 
+	// Create the amqp connection to rabbitMQ server
 	var connection = amqp.createConnection({host: 'chotis2.dit.upm.es', port: 5672});
 	connection.on('ready', function () {
 
+			//Create a direct exchange 
 		exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
 			console.log('Exchange ' + exchange.name + ' is open');
 
+			//Create the queue for receive messages
 			var q = connection.queue('erizoControllerQueue', function (queueCreated) {
 			  	console.log('Queue ' + queueCreated.name + ' is open');
 
@@ -28,6 +31,7 @@ exports.connect = function(callback) {
 
 		  		});
 
+		  		//Create the queue for send messages
 		  		queue = connection.queue('', function (q) {
 				  	console.log('Queue ' + q.name + ' is open');
 
@@ -48,6 +52,9 @@ exports.connect = function(callback) {
 	});
 }
 
+/*
+ * Calls remotely the 'method' function defined in rpcPublic of nuve.
+ */
 exports.callRpc = function(method, args, callback) {
 
 	corrID ++;

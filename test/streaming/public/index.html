@@ -14,18 +14,20 @@ be found in the AUTHORS file in the root of the source tree.
 <html>
 
 <head>
-<title>WebRTC Streaming</title>
-
+<title>WebRTC Subscriber</title>
+<!--
 <style type="text/css">
-	body, input, button, select, table {
-	  font-family:"Lucida Grande", "Lucida Sans", Verdana, Arial, sans-serif;
-	  font-size: 13 px;
-	}
-	body, input:enable, button:enable, select:enable, table {
-	  color: rgb(51, 51, 51);
-	}
-	h1 {font-size: 40 px;}
+  body, input, button, select, table {
+    font-family:"Lucida Grande", "Lucida Sans", Verdana, Arial, sans-serif;
+    font-size: 13 px;
+  }
+  body, input:enable, button:enable, select:enable, table {
+    color: rgb(51, 51, 51);
+  }
+  h1 {font-size: 40 px;}
 </style>
+-->
+
 <link href='css/bootstrap.min.css' media='screen' rel='stylesheet' />
 <link href='css/style.css' media='screen' rel='stylesheet' />
 
@@ -37,18 +39,12 @@ be found in the AUTHORS file in the root of the source tree.
 
 // TODO: Catch more exceptions
 
-var server;
 var socket;
-var myName;
-var remoteId = -1;
-var remoteName;
 var pc = null;
 var localStream = null;
 var callState = 0; // 0 - Not started, 1 - Call ongoing
 var sdp1;
-
-var publisher = 'subscriber';
-
+var streamID;
 
 // General
 
@@ -67,7 +63,7 @@ function toggleExtraButtons() {
 }
 
 function trace(txt) {
-	console.log(txt);
+  console.log(txt);
 }
 
 function trace_warning(txt) {
@@ -93,136 +89,81 @@ function checkPeerConnection() {
   return 1;
 }
 
-
 // Call control
 
 function createPeerConnection() {
-	if (pc) {
-		trace_warning("PeerConnection object already exists");
-	}
-	trace("Creating PeerConnection object");
-	try {
+  if (pc) {
+    trace_warning("PeerConnection object already exists");
+  }
+  trace("Creating PeerConnection object");
+  try {
 
-	pc = new RoapConnection("STUN stun.l.google.com:19302", onSignalingMessage);
-	pc.onaddstream = onAddStream;
-	pc.onremovestream = onRemoveStream;
-	} catch (e) {
-		trace_exception(e, "Create PeerConnection error");
-	}
+    pc = new RoapConnection("STUN stun.l.google.com:19302", function(offer) {
+      socket.emit('subscribe', streamID, offer, function (answer) {
+        pc.processSignalingMessage(answer);
+      });
+    });
+
+    pc.onaddstream = onAddStream;
+    pc.onremovestream = onRemoveStream;
+  } catch (e) {
+    trace_exception(e, "Create PeerConnection error");
+  }
 }
 
 function doCall() {
-	createPeerConnection();
+  createPeerConnection();
 }
 
 function hangUp() {
-	trace("Sending BYE to " + remoteName + " (ID " + remoteId + ")");
-	sendToPeer("BYE");
-	closeCall();
+  closeCall();
 }
 
 function closeCall() {
-	trace("Stopping showing remote stream");
-	document.getElementById("remoteView").src = "dummy";
-	if (pc) {
-		trace("Stopping call [pc.close()]");
-		pc.close();
-		pc = null;
-	} else
-		trace("No pc object to close");
-	remoteId = -1;
-	setCallState(0);
+  trace("Stopping showing local stream");
+  document.getElementById("localView").src = "dummy";
+  if (pc) {
+    trace("Stopping call [pc.close()]");
+    pc.close();
+    pc = null;
+  } else
+    trace("No pc object to close");
 }
 
 
 // PeerConnection callbacks
 
 function onAddStream(e) {
-	var stream = e.stream;
-	var url = webkitURL.createObjectURL(stream);
-	document.getElementById("remoteView").src = url;
-	trace("Started showing remote stream. url = " + url);
+  var stream = e.stream;
+  var url = webkitURL.createObjectURL(stream);
+  document.getElementById("localView").src = url;
+  trace("Started showing remote stream. url = " + url);
 }
 
 function onRemoveStream(e) {
-	// Currently if we get this callback, call has ended.
-	document.getElementById("remoteView").src = "";
-	trace("Stopped showing remote stream");
+  // Currently if we get this callback, call has ended.
+  document.getElementById("localView").src = "";
+  trace("Stopped showing remote stream");
 }
 
-function onSignalingMessage(msg) {
-	sendToPeer(msg);
-}
-
-
-// TODO: Add callbacks onconnecting, onopen and onstatechange.
-
-// Server interaction
-
-function handlePeerMessage(msg) {
-
-  trace("Received message:\n" + msg);
-  // Assuming we receive the message from the peer we want to communicate with.
-  // TODO: Only accept messages from peer we communicate with with if call is
-  // ongoing.
-  if (msg.search("BYE") == 0) {
-    // Other side has hung up.
-    closeCall()
-  } else {
-    if (!pc) {
-      // Other side is calling us, startup
-      createPeerConnection();
-      try {
-        pc.processSignalingMessage(msg);
-      } catch (e) {
-        trace_exception(e, "Process signaling message error");
-      }
-    } else {
-      try {
-	    trace("Processing message");
-        pc.processSignalingMessage(msg);
-      } catch (e) {
-        trace_exception(e, "Process signaling message error");
-      }
-    }
-  }
-}
-
-function sendToPeer(data) {
-  socket.emit('unicast','subscriber',data);
-}
 
 
 function signIn() {
   try {
-    socket = io.connect(server);
-    socket.on('message', handlePeerMessage);
+    socket = io.connect('/');
 
-    console.log("Connecting with ID " + myName); 
-    socket.emit('nickname', myName, function (set){
-      console.log("Respuesta nickname: "+ set);
-      doCall();
+    socket.emit('initConnection', function (response, streams) {
+      streamID = streams.streams[0];
+      if (response == 'success' && streamID !== undefined) {
+        doCall();
+      }
     });
   } catch (e) { 
     trace_exception(e, "Start sign in error");
   }
 }
 
-function connect() {
-  myName = Math.floor(Math.random()*1111111);
-  server = "/";//"http://hpcm.dit.upm.es:8081";  
-  if (myName.length == 0) {
-    alert("I need a name please.");
-    document.getElementById("local").focus();
-  } else {
-    // TODO: Disable connect button here, but we need a timeout and check if we
-    // have connected, if so enable it again.
-    signIn();
-  }
-}
-
 function disconnect() {
-  if (callState == 1)
     hangUp();
 }
 
@@ -231,7 +172,7 @@ function disconnect() {
 
 window.onload = function() {
   setElementValuesFromURL();
-  connect();
+  signIn();
 }
 
 window.onbeforeunload = disconnect;
@@ -243,59 +184,18 @@ window.onbeforeunload = disconnect;
 <body id="splash">
 <div id="login" class="modal login">
 <div class="modal-header">
-<h1>WebRTC Video Streaming</h1>
+<h1>WebRTC Video Subscriber</h1>
 </div>
 <div class="modal-body clearfix">
-<p id="loading">Loading...</p>
-<p id="mess">The video can take 2 minutes to load. Please, be patient.</p>
-<video class="local-video" id="remoteView" autoplay="autoplay"></video><p>
+<video class="local-video" id="localView" autoplay="autoplay"></video><p>
 </div>
-<div class="twtr-widget" id="twtr-widget-1"></div>
 </div>
 <select id="peers" size="5" disabled="true" style='display: none'>
 <option value="-1">Not connected</option>
 </select>
 <pre>
-Listen to your twits by including the #webrtc_dit hashtag!!
+You must have a WebRTC capable browser in order to make the streaming.
 </pre>
-
-<div id="contact">
-Developed by <a href="http://www.dit.upm.es/">DIT UPM</a>. <a href="mailto:prodriguez@dit.upm.es,jcervino@dit.upm.es,aalonsog@dit.upm.es">Contact us</a> for further information<br/>
-You must have a WebRTC capable browser in order to view the streaming. All music we play is royalty free.
-</div>
-
-<script charset="utf-8" src="http://widgets.twimg.com/j/2/widget.js"></script>
-<script>
-new TWTR.Widget({
-  version: 2,
-  id: 'twtr-widget-1',
-  type: 'search',
-  search: '#webrtc_dit',
-  interval: 30000,
-  title: 'WebRTC Streaming Test',
-  subject: '#webrtc_dit Live Twits ',
-  width: 250,
-  height: 200,
-  theme: {
-    shell: {
-      background: '#8ec1da',
-      color: '#ffffff',
-    },
-    tweets: {
-      background: '#ffffff',
-      color: '#444444',
-      links: '#1985b5'
-    }
-  },
-  features: {
-    scrollbar: false,
-    loop: true,
-    live: true,
-    behavior: 'default'
-  }
-}).render().start();
-</script>
-
 </body>
 
 </html>

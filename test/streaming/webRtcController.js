@@ -1,114 +1,153 @@
-var addon = require('./../../erizoAPI/build/Release/addon');;
+var addon = require('./../../erizoAPI/build/Release/addon');
 
-var muxer = new addon.OneToManyProcessor();
+exports.WebRtcController = function() {
 
-var subscribers = new Array();
+    var that = {};
 
-exports.processMsg = function(from, to, msg, callback) {
+    var subscribers = {}; //id (muxer): array de subscribers
+    var publishers = {}; //id: muxer
 
-	if (to == 'publisher'){
-		if(!muxer.hasPublisher()) {
+    var INTERVAL_TIME = 200;
 
-			var roap = msg;
+    that.addPublisher = function(from, sdp, callback) {
 
-			console.log("Adding publisher peer_id ", from);
-			var newConn = new addon.WebRtcConnection();
-			newConn.init();
-			newConn.setAudioReceiver(muxer);
-			newConn.setVideoReceiver(muxer);
-			muxer.setPublisher(newConn);
+        if(publishers[from] === undefined) {
 
-			var remoteSdp = getSdp(roap);
-			//console.log('SDP remote: ', remoteSdp);
+            console.log("Adding publisher peer_id ", from);
 
-			newConn.setRemoteSdp(remoteSdp);
+            var muxer = new addon.OneToManyProcessor();
+            var wrtc = new addon.WebRtcConnection();
 
-			var localSdp = newConn.getLocalSdp();
-			//console.log('SDP local: ', localSdp);
+            publishers[from] = muxer;
+            subscribers[from] = new Array();
 
-			var answer = getRoap(localSdp, roap);
+            wrtc.setAudioReceiver(muxer);
+            wrtc.setVideoReceiver(muxer);
+            muxer.setPublisher(wrtc);
 
-			callback('publisher', from, answer);
+            initWebRtcConnection(wrtc, sdp, callback);
 
+            //console.log('Publishers: ', publishers);
+            //console.log('Subscribers: ', subscribers);
 
-		} else {
-			console.log("Publisher already set");
-			
-		}
-		return;
-	}
-	if (to == 'subscriber'){
+        } else {
+            console.log("Publisher already set for", from);
+        }
+    }
 
-		if(subscribers.indexOf(from) == -1) {
+    that.addSubscriber = function(from, to, sdp, callback) {
 
-			subscribers.push(from);
+        if(publishers[to] !== undefined && subscribers[to].indexOf(from) === -1 && sdp.match('OFFER') !== null) {
 
-			var roap = msg;
-			
-			console.log("Adding subscriber peer_id ", from);
-			var newConn = new addon.WebRtcConnection();
-			newConn.init();
-			muxer.addSubscriber(newConn, from);
+            console.log("Adding subscriber from ", from, 'to ', to);
+            
+            var wrtc = new addon.WebRtcConnection();
 
-			var remoteSdp = getSdp(roap);
-			//console.log('SDP remote: ', remoteSdp);
+            subscribers[to].push(from);
+            publishers[to].addSubscriber(wrtc, from); 
 
-			newConn.setRemoteSdp(remoteSdp);
+            initWebRtcConnection(wrtc, sdp, callback);
 
-			var localSdp = newConn.getLocalSdp();
-			//console.log('SDP local: ', localSdp);
+            //console.log('Publishers: ', publishers);
+            //console.log('Subscribers: ', subscribers);
+        }
+    }
 
-			var answer = getRoap(localSdp, roap);
+    that.removePublisher = function(from) {
 
-			callback('subscriber', from, answer);
-		}
+        if(subscribers[from] != undefined && publishers[from] != undefined) {
+            console.log('Removing muxer', from);
+            publishers[from].close();
+            delete subscribers[from];
+            delete publishers[from];    
+        }
+    }
 
+    that.removeSubscriber = function(from, to) {
 
-		return;
-	}
-}
+        var index = subscribers[to].indexOf(from);
+        if (index != -1) {
+            console.log('Removing subscriber ', from, 'to muxer ', to);
+            publishers[to].removeSubscriber(from);
+            subscribers[to].splice(index, 1);
+        }
+    }
 
-exports.deleteCheck = function (from) {
+    that.removeClient = function(from) {
 
-	var i = subscribers.indexOf(from);
+        console.log('Removing client ', from);
+        for(var key in subscribers) {
+            var index = subscribers[key].indexOf(from);
+            if (index != -1) {
+                console.log('Removing subscriber ', from, 'to muxer ', key);
+                publishers[key].removeSubscriber(from);
+                subscribers[key].splice(index, 1);
+            };
+        }
 
-	if(i != -1) {
-		muxer.removeSubscriber(from);
-		subscribers.splice(i, 1);
-	}	
+        if(subscribers[from] != undefined && publishers[from] != undefined) {
+            console.log('Removing muxer', from);
+            publishers[from].close();
+            delete subscribers[from];
+            delete publishers[from];    
+        }
+    }
 
-}
+    var initWebRtcConnection = function(wrtc, sdp, callback) {
 
-var getSdp = function(roap) {
+        wrtc.init();
+                       
+        var roap = sdp;                                            
+        var remoteSdp = getSdp(roap);
 
-	var reg1 = new RegExp(/^.*sdp\":\"(.*)\",.*$/);
-	var sdp = roap.match(reg1)[1];
+        var intervarId = setInterval(function() {
 
-	var reg2 = new RegExp(/\\r\\n/g);
-	var sdp = sdp.replace(reg2, '\n');
+            var state = wrtc.getCurrentState();
 
-	return sdp;
+            if(state > 0) {
 
-}
+                wrtc.setRemoteSdp(remoteSdp);
+                //console.log('SDP remote: ', remoteSdp);
+                var localSdp = wrtc.getLocalSdp();
+                //console.log('SDP local: ', localSdp);
 
-var getRoap = function (sdp, offerRoap) {
+                var answer = getRoap(localSdp, roap);
+                callback(answer);
 
-	var reg1 = new RegExp(/\n/g);
-	sdp = sdp.replace(reg1, '\\r\\n');
+                clearInterval(intervarId);
+            }
 
-	var answererSessionId = "106";
+        }, INTERVAL_TIME);
+    }
 
-	var reg2 = new RegExp(/^.*offererSessionId\":(...).*$/);
-	var offererSessionId = offerRoap.match(reg2)[1];
+    var getSdp = function(roap) {
 
-	//console.log('SDP envío: ', sdp);
+        var reg1 = new RegExp(/^.*sdp\":\"(.*)\",.*$/);
+        var sdp = roap.match(reg1)[1];
 
-	var answer = ('\n{\n \"messageType\":\"ANSWER\",\n');
+        var reg2 = new RegExp(/\\r\\n/g);
+        var sdp = sdp.replace(reg2, '\n');
 
-	answer += ' \"sdp\":\"' + sdp + '\",\n';
-	answer += ' \"offererSessionId\":' + offererSessionId + ',\n';
-	answer += ' \"answererSessionId\":' + answererSessionId + ',\n \"seq\" : 1\n}\n';
+        return sdp;
 
-	return answer;
+    }
 
+    var getRoap = function (sdp, offerRoap) {
+
+        var reg1 = new RegExp(/\n/g);
+        sdp = sdp.replace(reg1, '\\r\\n');
+
+        var reg2 = new RegExp(/^.*offererSessionId\":(...).*$/);
+        var offererSessionId = offerRoap.match(reg2)[1];
+
+        var answererSessionId = "106";
+        var answer = ('\n{\n \"messageType\":\"ANSWER\",\n');
+        answer += ' \"sdp\":\"' + sdp + '\",\n';
+        answer += ' \"offererSessionId\":' + offererSessionId + ',\n';
+        answer += ' \"answererSessionId\":' + answererSessionId + ',\n \"seq\" : 1\n}\n';
+
+        return answer;
+    }
+
+    return that;
 }
