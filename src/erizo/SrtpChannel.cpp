@@ -27,12 +27,11 @@ SrtpChannel::~SrtpChannel() {
 }
 
 bool SrtpChannel::setRtpParams(char* sendingKey, char* receivingKey) {
-
 	printf("Configuring srtp local key %s remote key %s\n", sendingKey,
 			receivingKey);
 	configureSrtpSession(&send_session_, sendingKey, SENDING);
 	configureSrtpSession(&receive_session_, receivingKey, RECEIVING);
-	sleep(1);
+
 	active_ = true;
 	return active_;
 }
