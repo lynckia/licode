@@ -7,14 +7,17 @@ var map = {};
 var clientQueue;
 var exc;
 
+// Create the amqp connection to rabbitMQ server
 var connection = amqp.createConnection({host: 'localhost', port: 5672});
 
 connection.on('ready', function () {
 	console.log('Conected to rabbitMQ server');
 
+	//Create a direct exchange 
 	exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
 		console.log('Exchange ' + exchange.name + ' is open');
 
+		//Create the queue for receive messages
 		var q = connection.queue('nuveQueue', function (queue) {
 		  	console.log('Queue ' + queue.name + ' is open');
 
@@ -30,6 +33,7 @@ connection.on('ready', function () {
 	  		});
 		});
 
+		//Create the queue for send messages
 		clientQueue = connection.queue('', function (q) {
 		  	console.log('ClientQueue ' + q.name + ' is open');
 
@@ -46,6 +50,9 @@ connection.on('ready', function () {
 
 });
 
+/*
+ * Calls remotely the 'method' function defined in rpcPublic of erizoController.
+ */
 exports.callRpc = function(method, args, callback) {
 
 	corrID ++;

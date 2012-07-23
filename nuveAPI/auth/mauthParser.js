@@ -1,5 +1,8 @@
 var crypto = require('crypto');
 
+/*
+ * Parses a string header to a json with the fields of the authentication header.
+ */
 exports.parseHeader = function(header) {
 
 	var params = {};
@@ -26,6 +29,9 @@ exports.parseHeader = function(header) {
 	return params;
 }
 
+/*
+ * Makes a string header from a json with the fields of an authentication header.
+ */
 exports.makeHeader = function(params) {
 
 	if(params.realm == undefined) {
@@ -43,6 +49,9 @@ exports.makeHeader = function(params) {
 	return header;
 }
 
+/*
+ * Given a json with the header params and the key calculates the signature.
+ */
 exports.calculateClientSignature = function(params, key) {
 
 	var toSign = params.timestamp + ',' + params.cnonce;
@@ -55,6 +64,9 @@ exports.calculateClientSignature = function(params, key) {
 	return (new Buffer(signed)).toString('base64');
 }
 
+/*
+ * Given a json with the header params and the key calculates the signature.
+ */
 exports.calculateServerSignature = function(params, key) {
 
 	var toSign = params.timestamp;
@@ -62,5 +74,3 @@ exports.calculateServerSignature = function(params, key) {
 
 	return (new Buffer(signed)).toString('base64');
 }
-
-//Authorization: MAuth realm="http://marte3.dit.upm.es",mauth_signature_method="HMAC_SHA1",mauth_serviceid="prueba",mauth_timestamp="1231321321",mauth_cnonce="123123aadf",mauth_version="3.1",mauth_username="user",mauth_role="participant",mauth_signature="asasasa"

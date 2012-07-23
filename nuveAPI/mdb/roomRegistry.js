@@ -17,10 +17,13 @@ var hasRoom = exports.hasRoom = function(id, callback) {
 	getRoom(id, function(room) {
 		if (room == undefined) callback(false);
 		else callback(true);
-	})
+	});
 
 }
 
+/*
+ * Adds a new room to the data base.
+ */
 exports.addRoom = function(room, callback) {
 
 	db.rooms.save(room, function(error, saved) {
@@ -28,6 +31,9 @@ exports.addRoom = function(room, callback) {
 	});
 }
 
+/*
+ * Removes a determined room from the data base.
+ */
 exports.removeRoom = function(id) {
 	hasRoom(id, function(hasR) {
 		if (hasR) {
