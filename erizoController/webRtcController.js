@@ -7,7 +7,8 @@ exports.WebRtcController = function() {
     var subscribers = {}; //id (muxer): array de subscribers
     var publishers = {}; //id: muxer
 
-    var INTERVAL_TIME = 200;
+    var INTERVAL_TIME = 100;
+    var INTERVAL_TIME_FIR = 100;
 
     that.addPublisher = function(from, sdp, callback) {
 
@@ -47,6 +48,7 @@ exports.WebRtcController = function() {
             publishers[to].addSubscriber(wrtc, from); 
 
             initWebRtcConnection(wrtc, sdp, callback);
+            waitForFIR(wrtc, to);
 
             //console.log('Publishers: ', publishers);
             //console.log('Subscribers: ', subscribers);
@@ -90,6 +92,23 @@ exports.WebRtcController = function() {
             publishers[from].close();
             delete subscribers[from];
             delete publishers[from];    
+        }
+    }
+
+    var waitForFIR = function(wrtc, to) {
+
+        if(publishers[to] !== undefined) {
+            var intervarId = setInterval(function() {
+
+                var state = wrtc.getCurrentState();
+
+                if(state > 2) {
+
+                    publishers[to].sendFIR();                    
+                    clearInterval(intervarId);
+                }
+
+            }, INTERVAL_TIME_FIR);
         }
     }
 

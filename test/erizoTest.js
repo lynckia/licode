@@ -1,4 +1,4 @@
-var controller = require('./webRtcController');
+var controller = require('./../erizoController/webRtcController');
 var express = require ('express');
 var net = require('net');
 var app = express.createServer();
