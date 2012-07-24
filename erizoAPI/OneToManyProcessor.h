@@ -20,7 +20,7 @@ class OneToManyProcessor : public MediaReceiver {
   static v8::Handle<v8::Value> hasPublisher(const v8::Arguments& args);
   static v8::Handle<v8::Value> addSubscriber(const v8::Arguments& args);
   static v8::Handle<v8::Value> removeSubscriber(const v8::Arguments& args);
-
+  static v8::Handle<v8::Value> sendFIR(const v8::Arguments& args);
 };
 
 #endif

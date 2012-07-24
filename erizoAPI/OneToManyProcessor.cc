@@ -19,6 +19,7 @@ void OneToManyProcessor::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("hasPublisher"), FunctionTemplate::New(hasPublisher)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("addSubscriber"), FunctionTemplate::New(addSubscriber)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("removeSubscriber"), FunctionTemplate::New(removeSubscriber)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("sendFIR"), FunctionTemplate::New(sendFIR)->GetFunction());
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("OneToManyProcessor"), constructor);
@@ -101,5 +102,16 @@ Handle<Value> OneToManyProcessor::removeSubscriber(const Arguments& args) {
 
   me->removeSubscriber(peerId);
 
+  return scope.Close(Null());
+}
+
+Handle<Value> OneToManyProcessor::sendFIR(const Arguments& args) {
+  HandleScope scope;
+
+  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
+  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+
+  me->publisher->sendFirPacket();
+  
   return scope.Close(Null());
 }
