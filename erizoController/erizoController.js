@@ -9,6 +9,9 @@ var nuveKey = 'claveNuve';
 
 var rooms = {};
 
+/*
+ * Sends a massege of type 'type' to all sockets in a determined room.
+ */
 var sendMsgToRoom = function(room, type, arg) {
 
     var sockets = room.sockets; 
@@ -26,6 +29,8 @@ rpc.connect(function() {
 
         console.log("Socket connect ", socket.id);
         
+        // Gets 'token' messages on the socket. Checks the signature and ask nuve if it is valid. 
+        // Then registers it in the room and callback to the client. 
         socket.on('token', function (token, callback) {
 
             var tokenDB;
@@ -73,6 +78,7 @@ rpc.connect(function() {
             }
         });
 
+        //Gets 'publish' messages on the socket in order to add new stream to the room.
         socket.on('publish', function(state, sdp, callback) {
 
             if (state === 'offer' && socket.state === undefined) {
@@ -89,12 +95,14 @@ rpc.connect(function() {
             }
         });
 
+        //Gets 'subscribe' messages on the socket in order to add new subscriber to a determined stream (to).
         socket.on('subscribe', function(to, sdp, callback) {
             socket.room.webRtcController.addSubscriber(socket.id, to, sdp, function (answer) {
                 callback(answer);
             });
-         });
+        });
 
+        //Gets 'unpublish' messages on the socket in order to remove a stream from the room.
         socket.on('unpublish', function() {
 
             sendMsgToRoom(socket.room, 'onRemoveStream', socket.stream);
@@ -107,10 +115,12 @@ rpc.connect(function() {
             socket.room.webRtcController.removePublisher(socket.id);
         });
 
+        //Gets 'unsubscribe' messages on the socket in order to remove a subscriber from a determined stream (to).
         socket.on('unsubscribe', function(to) {
             socket.room.webRtcController.removeSubscriber(socket.id, to);
         });
 
+        //When a client leaves the room erizoController removes its stream from the room if exists.  
         socket.on('disconnect', function () {
 
             console.log('Socket disconnect ', socket.id);
@@ -134,6 +144,9 @@ rpc.connect(function() {
     });
 });
 
+/*
+ *Gets a list of users in a determined room.
+ */
 exports.getUsersInRoom = function(room, callback) {
 
     var users = [];

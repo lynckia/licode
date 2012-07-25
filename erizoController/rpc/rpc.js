@@ -13,7 +13,7 @@ exports.connect = function(callback) {
 	var connection = amqp.createConnection({host: 'chotis2.dit.upm.es', port: 5672});
 	connection.on('ready', function () {
 
-			//Create a direct exchange 
+		//Create a direct exchange 
 		exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
 			console.log('Exchange ' + exchange.name + ' is open');
 

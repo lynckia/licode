@@ -4,12 +4,20 @@ exports.WebRtcController = function() {
 
     var that = {};
 
-    var subscribers = {}; //id (muxer): array de subscribers
-    var publishers = {}; //id: muxer
+    // {id: array of subscribers}
+    var subscribers = {}; 
 
-    var INTERVAL_TIME = 100;
+    // {id: OneToManyProcessor}
+    var publishers = {}; 
+
+    var INTERVAL_TIME_SDP = 100;
     var INTERVAL_TIME_FIR = 100;
 
+    /*
+     * Adds a publisher to the room. This creates a new OneToManyProcessor
+     * and a new WebRtcConnection. This WebRtcConnection will be the publisher
+     * of the OneToManyProcessor.
+     */
     that.addPublisher = function(from, sdp, callback) {
 
         if(publishers[from] === undefined) {
@@ -36,6 +44,11 @@ exports.WebRtcController = function() {
         }
     }
 
+    /*
+     * Adds a subscriber to the room. This creates a new WebRtcConnection. 
+     * This WebRtcConnection will be added to the subscribers list of the
+     * OneToManyProcessor.
+     */
     that.addSubscriber = function(from, to, sdp, callback) {
 
         if(publishers[to] !== undefined && subscribers[to].indexOf(from) === -1 && sdp.match('OFFER') !== null) {
@@ -55,6 +68,9 @@ exports.WebRtcController = function() {
         }
     }
 
+    /*
+     * Removes a publisher from the room. This also deletes the associated OneToManyProcessor.
+     */
     that.removePublisher = function(from) {
 
         if(subscribers[from] != undefined && publishers[from] != undefined) {
@@ -65,6 +81,9 @@ exports.WebRtcController = function() {
         }
     }
 
+    /*
+     * Removes a subscriber from the room. This also removes it from the associated OneToManyProcessor.
+     */
     that.removeSubscriber = function(from, to) {
 
         var index = subscribers[to].indexOf(from);
@@ -75,6 +94,9 @@ exports.WebRtcController = function() {
         }
     }
 
+    /*
+     * Removes a client from the session. This removes the publisher and all the subscribers related.
+     */
     that.removeClient = function(from) {
 
         console.log('Removing client ', from);
@@ -95,6 +117,9 @@ exports.WebRtcController = function() {
         }
     }
 
+    /*
+     * Given a WebRtcConnection waits for the state READY for ask it to send a FIR packet to its publisher. 
+     */
     var waitForFIR = function(wrtc, to) {
 
         if(publishers[to] !== undefined) {
@@ -112,6 +137,9 @@ exports.WebRtcController = function() {
         }
     }
 
+    /*
+     * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP. 
+     */
     var initWebRtcConnection = function(wrtc, sdp, callback) {
 
         wrtc.init();
@@ -136,9 +164,12 @@ exports.WebRtcController = function() {
                 clearInterval(intervarId);
             }
 
-        }, INTERVAL_TIME);
+        }, INTERVAL_TIME_SDP);
     }
 
+    /*
+     * Gets SDP from roap message.
+     */
     var getSdp = function(roap) {
 
         var reg1 = new RegExp(/^.*sdp\":\"(.*)\",.*$/);
@@ -151,6 +182,9 @@ exports.WebRtcController = function() {
 
     }
 
+    /*
+     * Gets roap message from SDP.
+     */
     var getRoap = function (sdp, offerRoap) {
 
         var reg1 = new RegExp(/\n/g);

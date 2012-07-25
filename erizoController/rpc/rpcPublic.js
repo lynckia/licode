@@ -1,10 +1,13 @@
 var erizoController = require('./../erizoController');
 
+/*
+ * This function is called remotely from nuve to get a list of the users in a determined room.
+ */
 exports.getUsersInRoom = function(id, callback) {
 
     erizoController.getUsersInRoom(id, function(users) {
 
-    console.log('me piden usuarios para ', id, 'y son ', users);
+    console.log('Users for room ', id, ' are ', users);
         if(users == undefined) {
             callback('error');
         } else {
