@@ -45,7 +45,6 @@ rpc.connect(function() {
                         socket.disconnect();
 
                     } else if (token.host == resp.host) {
-                        console.log(resp);
                         tokenDB = resp;
                         if(rooms[tokenDB.room] === undefined) {
                             var room = {};
@@ -156,8 +155,7 @@ exports.getUsersInRoom = function(room, callback) {
     }
 
     var sockets = rooms[room].sockets; 
-    
-    console.log('para la sala ', room, 'los sockets son: ', sockets);
+
     for(var id in sockets) {   
         users.push(io.sockets.socket(sockets[id]).user);   
     }

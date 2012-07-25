@@ -5,7 +5,7 @@ var rpcPublic = require('./rpcPublic');
 var corrID = 0;
 var map = {};
 var exc;
-var queue;
+var clientQueue;
 
 exports.connect = function(callback) {
 
@@ -32,12 +32,12 @@ exports.connect = function(callback) {
 		  		});
 
 		  		//Create the queue for send messages
-		  		queue = connection.queue('', function (q) {
-				  	console.log('Queue ' + q.name + ' is open');
+		  		clientQueue = connection.queue('', function (q) {
+				  	console.log('ClientQueue ' + q.name + ' is open');
 
-				 	queue.bind('rpcExchange', queue.name);
+				 	clientQueue.bind('rpcExchange', clientQueue.name);
 
-				  	queue.subscribe(function (message) {
+				  	clientQueue.subscribe(function (message) {
 					
 						map[message.corrID](message.data);
 
