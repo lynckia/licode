@@ -18,9 +18,19 @@ var sendMsgToRoom = function(room, type, arg) {
     for(var id in sockets) {
         console.log('Sending message to', sockets[id], 'in room ', room.id);
         io.sockets.socket(sockets[id]).emit(type, arg);    
-    }
-       
+    }     
 };
+
+var sendCloudInfo = function() {
+
+    var intervarId = setInterval(function() {
+
+        var info = {nSalas: 2};
+
+        rpc.callRpc('cloudHandler', 'setInfo', info, function(){});
+
+    }, 5000);
+}
 
 
 rpc.connect(function() {
@@ -37,7 +47,7 @@ rpc.connect(function() {
 
             if(checkSignature(token, nuveKey)) {
 
-                rpc.callRpc('deleteToken', token.tokenId, function(resp) {
+                rpc.callRpc('nuve', 'deleteToken', token.tokenId, function(resp) {
 
                     if (resp == 'error') {
                         console.log('Token does not exist');
@@ -142,6 +152,8 @@ rpc.connect(function() {
         });
     });
 });
+
+sendCloudInfo();
 
 /*
  *Gets a list of users in a determined room.
