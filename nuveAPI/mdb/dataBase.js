@@ -1,4 +1,4 @@
-var databaseUrl = "mydb1";
+var databaseUrl = "chotis2.dit.upm.es/mydb1";
 
 /*
  * Data base collections and its fields are:
@@ -20,4 +20,4 @@ exports.superService = '5000144598eb6bc7c198c2ae';
 exports.nuveKey = 'claveNuve';
 
 // ErizoController host
-exports.erizoControllerHost = 'chotis2.dit.upm.es:8080';
+exports.erizoControllerHost = 'rosendo.dit.upm.es:8080';

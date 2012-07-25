@@ -34,7 +34,7 @@ exports.getList = function(req, res) {
 		}
 		
 		console.log('Representing users for room ', this.room._id, 'and service', this.service._id);
-		rpc.callRpc('getUsersInRoom', this.room._id, function(users) {
+		rpc.callRpc('erizoController', 'getUsersInRoom', this.room._id, function(users) {
 			res.send(users);
 		});
 

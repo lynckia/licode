@@ -21,7 +21,7 @@ connection.on('ready', function () {
 		var q = connection.queue('nuveQueue', function (queue) {
 		  	console.log('Queue ' + queue.name + ' is open');
 
-		  	q.bind('rpcExchange', 'nuve');
+		  	q.bind('rpcExchange', 'cloudHandler');
 	  		q.subscribe(function (message) { 
 
 	    		rpcPublic[message.method](message.args, function(result) {
@@ -53,7 +53,7 @@ connection.on('ready', function () {
 /*
  * Calls remotely the 'method' function defined in rpcPublic of 'to'.
  */
-exports.callRpc = function(method, args, callback) {
+exports.callRpc = function(to, method, args, callback) {
 
 	corrID ++;
 	map[corrID] = callback;
