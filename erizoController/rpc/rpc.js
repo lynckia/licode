@@ -10,7 +10,7 @@ var clientQueue;
 exports.connect = function(callback) {
 
 	// Create the amqp connection to rabbitMQ server
-	var connection = amqp.createConnection({host: 'chotis2.dit.upm.es', port: 5672});
+	var connection = amqp.createConnection({host: 'toronado.dit.upm.es', port: 5672});
 	connection.on('ready', function () {
 
 		//Create a direct exchange 
@@ -53,15 +53,15 @@ exports.connect = function(callback) {
 }
 
 /*
- * Calls remotely the 'method' function defined in rpcPublic of nuve.
+ * Calls remotely the 'method' function defined in rpcPublic of 'to'.
  */
-exports.callRpc = function(method, args, callback) {
+exports.callRpc = function(to, method, args, callback) {
 
 	corrID ++;
 	map[corrID] = callback;
 
-	var send = {method: method, args: args, corrID: corrID, replyTo: queue.name };
+	var send = {method: method, args: args, corrID: corrID, replyTo: clientQueue.name };
  	
- 	exc.publish('nuve', send);
+ 	exc.publish(to, send);
 	
 }
