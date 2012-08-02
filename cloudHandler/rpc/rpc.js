@@ -42,6 +42,7 @@ connection.on('ready', function () {
 		  	clientQueue.subscribe(function (message) {
 			
 				map[message.corrID](message.data);
+				delete map[message.corrID];
 
 		  	});
 
