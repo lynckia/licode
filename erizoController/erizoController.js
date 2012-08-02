@@ -7,6 +7,9 @@ io.set('log level', 1);
 
 var nuveKey = 'claveNuve';
 
+var INTERVAL_TIME_KEEPALIVE = 5000;
+var myId;
+var myIP;
 var rooms = {};
 
 /*
@@ -21,19 +24,54 @@ var sendMsgToRoom = function(room, type, arg) {
     }     
 };
 
-var sendCloudInfo = function() {
+var addToCloudHandler = function() {
 
-    var intervarId = setInterval(function() {
+    var interfaces = require('os').networkInterfaces();
+    var addresses = [];
+    for (k in interfaces) {
+        for (k2 in interfaces[k]) {
+            var address = interfaces[k][k2];
+            if (address.family == 'IPv4' && !address.internal) {
+                addresses.push(address.address)
+            }
+        }
+    }
 
-        var info = {nSalas: 2};
+    var myIP = addresses[0];
 
-        rpc.callRpc('cloudHandler', 'setInfo', info, function(){});
+    rpc.callRpc('cloudHandler', 'addNewErizoController', myIP, function(id) {
 
-    }, 5000);
+        myId = id;
+
+        var intervarId = setInterval(function() {
+
+            rpc.callRpc('cloudHandler', 'keepAlive', myId, function(result){
+                if(result === 'whoareyou') {
+                    console.log('I don`t exist in cloudHandler. I`m going to be killed');
+                    clearInterval(intervarId);
+                    rpc.callRpc('cloudHandler', 'killMe', myIP, function(){});
+                }
+            });
+
+        }, INTERVAL_TIME_KEEPALIVE);
+
+    });
+
+   
 }
 
+//*******************************************************************
+// TODO: Cuando añado o borro salas calculo con un algoritmo propio cuál es mi estado
+//       Si cambio de estado envío mensaje a cloudHandler
+//       var info = {id: myId, state: myState};
+//       rpc.callRpc('cloudHandler', 'setInfo', info, function(){});
+//      
+//       Decidir qué estados hay
+//*******************************************************************
 
 rpc.connect(function() {
+
+    addToCloudHandler();
 
     io.sockets.on('connection', function (socket) {
 
@@ -153,7 +191,6 @@ rpc.connect(function() {
     });
 });
 
-sendCloudInfo();
 
 /*
  *Gets a list of users in a determined room.
