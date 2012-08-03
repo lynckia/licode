@@ -24,19 +24,50 @@ var checkKAInterval = setInterval(checkKA, INTERVAL_TIME_CHECK_KA);
 var recalculatePriority = function() {
 
 	//*******************************************************************
-	// TODO: Algoritmo de ordenacion de ecQueue en función de los 'state' de erizoControllers
-	// 		 En la cola están ordenados por prioridad los EC disponibles
-	//       Si la cola se queda vacía se arranca un EC nuevo
+	// Algoritmo de ordenacion de ecQueue en función de los 'state' de erizoControllers
+	// 		 
+	//		En la cola están ordenados por prioridad los EC disponibles
+	//      Si la cola se queda vacía se arranca un EC nuevo
 	//
-	//       Decidir qué estados hay
+	//		States: 
+	//				0: Not available
+	//				1: Warning
+	//				2: Available 
 	//*******************************************************************
+
+	var newEcQueue = [];
+	var available = 0;
+	var warnings = 0;
+
+	for(var ec in erizoControllers) {
+		if (erizoControllers[ec].state == 2) {
+			newEcQueue.push(ec);
+			available++;
+		}
+	}
+
+	for(var ec in erizoControllers) {
+		if (erizoControllers[ec].state == 1) {
+			newEcQueue.push(ec);
+			warnings++;
+		}
+	}
+
+	ecQueue = newEcQueue;
+
+	if(ecQueue.length == 0 || (available == 0 && warnings < 2)) {
+		//*****************************************
+		// TODO: Arrancar un nuevo ErizoController.
+		//*****************************************
+	}
 
 }
 
 exports.addNewErizoController = function(ip, callback) {
 	var id = ++idIndex;
-	erizoControllers[id] = {ip: ip, state: 0, keepAlive: 0};
+	erizoControllers[id] = {ip: ip, state: 2, keepAlive: 0};
 	console.log('New erizocontroller', id , 'in: ', erizoControllers[id].ip);
+	recalculatePriority();
 	callback(id);
 }
 
@@ -84,6 +115,7 @@ exports.getTheBestEC = function(callback) {
 			var ip = erizoControllers[params.id].ip;
 			callback(ip);
 
+			recalculatePriority();
 			clearInterval(intervarId);
 		};
 
@@ -91,18 +123,6 @@ exports.getTheBestEC = function(callback) {
     }, INTERVAL_TIME_EC_READY);
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
