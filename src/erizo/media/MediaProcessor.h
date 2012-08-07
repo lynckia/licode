@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <string>
 
-#include "utils/RtpUtils.h"
+#include "utils/RtpParser.h"
 #include "../MediaDefinitions.h"
 
 extern "C" {
@@ -64,6 +64,8 @@ typedef struct {
 	uint32_t seqnum :16;
 	uint32_t timestamp;
 	uint32_t ssrc;
+	uint32_t extId:16;
+	uint32_t extLength:16;
 } rtpHeader;
 
 typedef struct {
@@ -209,10 +211,13 @@ private:
 	int encodeVideo(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff, int outBuffLen);
 
+	int encodeVideo(unsigned char* inBuff, int inBuffLen, AVPacket* pkt);
+
 	int packageAudio(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);
 	int packageVideo(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);
+	int packageVideo(AVPacket* pkt, unsigned char* outBuff);
 };
 } /* namespace erizo */
 

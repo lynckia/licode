@@ -25,11 +25,12 @@ OneToManyProcessor::OneToManyProcessor() :
 
 
 	MediaInfo om;
-	om.proccessorType = RTP_ONLY;
+	om.proccessorType = AVF;
 	om.videoCodec.bitRate =2000000;
 	printf("m.videoCodec.bitrate %d\n\n", om.videoCodec.bitRate);
 	om.videoCodec.height = 480;
 	om.videoCodec.width = 640;
+	om.url = "file://tmp/test.mp4";
 	printf("Initiation outputprocessor\n");
 	op = new OutputProcessor();
 	op->init(om);
@@ -81,6 +82,7 @@ int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 
 void OneToManyProcessor::receiveRawData(unsigned char* buf, int len){
 	printf("Received %d\n", len);
+	op->receiveRawData(buf,len);
 //	free(buf);
 }
 void OneToManyProcessor::setPublisher(WebRtcConnection* webRtcConn) {

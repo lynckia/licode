@@ -10,7 +10,6 @@
 
 #include "MediaDefinitions.h"
 #include "media/MediaProcessor.h"
-#include "media/utils/RtpUtils.h"
 
 
 namespace erizo{

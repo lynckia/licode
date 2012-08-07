@@ -451,18 +451,28 @@ int InputProcessor::unpackageVideo(unsigned char* inBuff, int inBuffLen,
 					head->payloadtype);
 			return -1;
 		}
+		int extoffset = 0;
+		if (head->extension) {
+			extoffset++;
+			extoffset += ntohs(head->extLength);
+			extoffset = extoffset * 4;
+			unsigned int extId = ntohs(head->extId);
+			printf("There is extension length: %u , id: %u\n", extoffset,
+					extId);
+		}
 		int l = inBuffLen - RTP_HEADER_LEN;
+		l -= extoffset;
 		inBuff += RTP_HEADER_LEN;
-//		vp8RtpHeader* vphead = (vp8RtpHeader*) inBuff;
-//		printf("MIO X: %u , N:%u PartID %u\n", vphead->X, vphead->N,
-//			vphead->partId);
+		inBuff += extoffset;
+		vp8RtpHeader* vphead = (vp8RtpHeader*) inBuff;
+		printf("MIO X: %u , N:%u PartID %u\n", vphead->X, vphead->N,
+				vphead->partId);
 
 		erizo::RTPPayloadVP8* parsed = pars.parseVP8((unsigned char*) inBuff,
 				l);
 		printf("l : %d, parsedDatalength %u\n", l, parsed->dataLength);
 //		l--;
 //		inBuff++;
-
 //	memcpy(outBuff, inBuff, parsed->dataLength);
 		memcpy(outBuff, parsed->data, parsed->dataLength);
 		if (head->marker) {
@@ -554,12 +564,19 @@ int OutputProcessor::init(const MediaInfo &info) {
 }
 
 void OutputProcessor::receiveRawData(unsigned char* data, int len) {
-	int a = this->encodeVideo(data, len, encodedBuffer_,
-			UNPACKAGED_BUFFER_SIZE);
+	AVPacket pkt;
+	av_init_packet(&pkt);
+	pkt.data = encodedBuffer_;
+	pkt.size = UNPACKAGED_BUFFER_SIZE;
+
+//	int a = this->encodeVideo(data, len, encodedBuffer_,
+//			UNPACKAGED_BUFFER_SIZE);
+	int a = this->encodeVideo(data, len, &pkt);
 
 	printf("\nBytes codificados = %d", a);
 
-	int b = this->packageVideo(encodedBuffer_, a, packagedBuffer_);
+//	int b = this->packageVideo(encodedBuffer_, a, packagedBuffer_);
+	int b = this->packageVideo(&pkt, packagedBuffer_);
 	printf("\nBytes empaquetados = %d", b);
 }
 
@@ -668,13 +685,14 @@ bool OutputProcessor::initVideoPackager() {
 	if (mediaInfo.proccessorType == RTP_ONLY) {
 		printf("RTP ONLY OutputProcessor\n");
 	} else {
+		printf("FILE ONLY OutputProcessor: %s\n", mediaInfo.url.c_str());
 		vOutputFormatContext = avformat_alloc_context();
 		if (!vOutputFormatContext) {
 			printf("videoPackager: Error creating avformat context \n");
 			return false;
 		}
 
-		vOutputFormat = av_guess_format(mediaInfo.url.c_str(), NULL, NULL);
+		vOutputFormat = av_guess_format(NULL, mediaInfo.url.c_str(), NULL);
 		if (vOutputFormat == NULL) {
 			printf("videoPackager: Could not guess format");
 			return false;
@@ -682,6 +700,7 @@ bool OutputProcessor::initVideoPackager() {
 
 		vOutputFormatContext->oformat = vOutputFormat;
 		vOutputFormat->video_codec = mediaInfo.videoCodec.codec;
+
 	}
 	videoPackager = 1;
 	return true;
@@ -765,6 +784,53 @@ int OutputProcessor::packageVideo(unsigned char* inBuff, int inBuffLen,
 //		av_free(c);
 	}
 
+}
+int OutputProcessor::packageVideo(AVPacket* pkt, unsigned char* outBuff) {
+	if (videoPackager == 0) {
+		printf("No se ha inicailizado el codec de output vídeo RTP");
+		return -1;
+	}
+
+	if (mediaInfo.proccessorType == RTP_ONLY) {
+
+		int l = pkt->size + RTP_HEADER_LEN;
+
+		rtpHeader * head = (rtpHeader*) pkt->data;
+
+		timeval time;
+		gettimeofday(&time, NULL);
+		long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+
+		head->version = 2; //v = 2
+		head->extension = 0;
+		head->marker = 1; //n?0:1;
+		head->padding = 0;
+		head->cc = 0;
+//	head->seqnum = htons(vRTPInfo->seqNum++);
+		head->timestamp = htonl(millis);
+		head->ssrc = htonl(vRTPInfo->ssrc);
+		head->payloadtype = 34; //32;
+
+		outBuff += RTP_HEADER_LEN;
+
+		memcpy(outBuff, pkt->data, pkt->size);
+		return l;
+
+	} else {
+//		AVIOContext *c = avio_alloc_context((unsigned char*) outBuff, l, 1,
+//				NULL, NULL, NULL, NULL);
+//
+//		vOutputFormatContext->pb = c;
+//		vOutputFormatContext->flags = AVFMT_NOFILE;
+
+		printf("por aqui\n");
+		pkt->stream_index = 0;
+		int ret = av_write_frame(vOutputFormatContext, pkt);
+
+		//av_free_packet(&pkt);
+//		av_free(c);
+	}
+	return 0;
 }
 
 int OutputProcessor::encodeAudio(unsigned char* inBuff, int nSamples,
@@ -869,5 +935,44 @@ int OutputProcessor::encodeVideo(unsigned char* inBuff, int inBuffLen,
 
 	return ret ? ret : pkt.size;
 
+}
+
+int OutputProcessor::encodeVideo(unsigned char* inBuff, int inBuffLen,
+		AVPacket* pkt) {
+	if (videoCoder == 0) {
+		printf("No se han inicializado los parámetros del videoCoder");
+		return -1;
+	}
+
+	int size = vCoderContext->width * vCoderContext->height;
+
+	cPicture->pts = AV_NOPTS_VALUE;
+	cPicture->data[0] = (unsigned char*) inBuff;
+	cPicture->data[1] = (unsigned char*) inBuff + size;
+	cPicture->data[2] = (unsigned char*) inBuff + size + size / 4;
+	cPicture->linesize[0] = vCoderContext->width;
+	cPicture->linesize[1] = vCoderContext->width / 2;
+	cPicture->linesize[2] = vCoderContext->width / 2;
+
+	int ret = 0;
+	int got_packet = 0;
+
+	ret = avcodec_encode_video2(vCoderContext, pkt, cPicture, &got_packet);
+
+	if (!ret && got_packet && vCoderContext->coded_frame) {
+		vCoderContext->coded_frame->pts = pkt->pts;
+		vCoderContext->coded_frame->key_frame =
+				!!(pkt->flags & AV_PKT_FLAG_KEY);
+	}
+
+	/* free any side data since we cannot return it */
+//		if (pkt.side_data_elems > 0) {
+//			int i;
+//			for (i = 0; i < pkt.side_data_elems; i++)
+//				av_free(pkt.side_data[i].data);
+//			av_freep(&pkt.side_data);
+//			pkt.side_data_elems = 0;
+//		}
+	return ret ? ret : pkt->size;
 }
 } /* namespace erizo */

@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <string>
 
-#include "RtpUtils.h"
+#include "RtpParser.h"
 
 namespace erizo {
 
