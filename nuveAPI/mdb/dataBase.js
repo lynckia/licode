@@ -19,5 +19,3 @@ exports.superService = '5000144598eb6bc7c198c2ae';
 // Superservice key
 exports.nuveKey = 'claveNuve';
 
-// ErizoController host
-exports.erizoControllerHost = 'rosendo.dit.upm.es:8080';

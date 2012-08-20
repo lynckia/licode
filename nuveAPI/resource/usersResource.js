@@ -19,7 +19,7 @@ var doInit = function (roomId, callback) {
 };
 
 /*
- * Get Users. Represent a list of users of a determined room. This is consulted to erizoController using RabbitMQ RPC call.
+ * Get Users. Represent a list of users of a determined room. This is consulted to cloudHandler using RabbitMQ RPC call.
  */
 exports.getList = function(req, res) {
 	doInit(req.params.room, function() {
@@ -34,7 +34,7 @@ exports.getList = function(req, res) {
 		}
 		
 		console.log('Representing users for room ', this.room._id, 'and service', this.service._id);
-		rpc.callRpc('erizoController', 'getUsersInRoom', this.room._id, function(users) {
+		rpc.callRpc('cloudHandler', 'getUsersInRoom', this.room._id, function(users) {
 			res.send(users);
 		});
 

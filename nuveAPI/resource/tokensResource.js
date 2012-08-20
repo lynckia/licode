@@ -2,6 +2,7 @@ var roomRegistry = require('./../mdb/roomRegistry');
 var tokenRegistry = require('./../mdb/tokenRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var dataBase= require('./../mdb/dataBase');
+var rpc = require('./../rpc/rpc');
 var crypto = require('crypto');
 
 var service;
@@ -41,7 +42,7 @@ exports.create = function(req, res) {
 				res.send('Name and role?', 401);
 				return;
 			}
-			console.log('Create token for room ', this.room._id, 'and service ', this.service._id);
+			console.log('Created token for room ', this.room._id, 'and service ', this.service._id);
 			res.send(tokenS);
 			
 		});
@@ -70,20 +71,22 @@ var generateToken = function(callback) {
 	token.role = role;
 	token.service = this.service._id;
 	token.creationDate = new Date();
-	
-	token.host = dataBase.erizoControllerHost;
 
-	tokenRegistry.addToken(token, function(id) {
+	rpc.callRpc('cloudHandler', 'getErizoControllerForRoom', this.room._id, function(ec) {
 
-		var toSign = id + ',' + token.host;
-		var hex = crypto.createHmac('sha1', dataBase.nuveKey).update(toSign).digest('hex');
-		var signed = (new Buffer(hex)).toString('base64');
+		console.log(ec);
+		token.host = ec.ip;
 
-		var tokenJ = {tokenId: id, host: token.host, signature: signed};
-		var tokenS = (new Buffer(JSON.stringify(tokenJ))).toString('base64');
+		tokenRegistry.addToken(token, function(id) {
 
-		callback(tokenS);
+			var toSign = id + ',' + token.host;
+			var hex = crypto.createHmac('sha1', dataBase.nuveKey).update(toSign).digest('hex');
+			var signed = (new Buffer(hex)).toString('base64');
+
+			var tokenJ = {tokenId: id, host: token.host, signature: signed};
+			var tokenS = (new Buffer(JSON.stringify(tokenJ))).toString('base64');
+
+			callback(tokenS);
+		});
 	});
-	
-
 }

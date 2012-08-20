@@ -1,9 +1,10 @@
-require('./rpc/rpc');
+var rpc = require('./rpc/rpc');
 
 var INTERVAL_TIME_EC_READY = 100;
 var INTERVAL_TIME_CHECK_KA = 5000;
 
 var erizoControllers = {};
+var rooms = {};    	// roomId: erizoControllerId
 var ecQueue = [];
 var idIndex = 0;
 
@@ -65,8 +66,9 @@ var recalculatePriority = function() {
 
 exports.addNewErizoController = function(ip, callback) {
 	var id = ++idIndex;
-	erizoControllers[id] = {ip: ip, state: 2, keepAlive: 0};
-	console.log('New erizocontroller', id , 'in: ', erizoControllers[id].ip);
+	var rpcID = 'erizoController_' + id;
+	erizoControllers[id] = {ip: ip, rpcID: rpcID, state: 2, keepAlive: 0};
+	console.log('New erizocontroller (', id , ') in: ', erizoControllers[id].ip);
 	recalculatePriority();
 	callback(id);
 }
@@ -81,7 +83,7 @@ exports.keepAlive = function(id, callback) {
 	} else {
 		erizoControllers[id].keepAlive = 0;
 		result = 'ok';
-		console.log('KA: ', id);
+		//console.log('KA: ', id);
 	}
 	callback(result);
 }
@@ -103,8 +105,13 @@ exports.killMe = function(ip) {
 
 }
 
-exports.getTheBestEC = function(callback) {
-	
+exports.getErizoControllerForRoom = function(roomId, callback) {
+
+	if (rooms[roomId] !== undefined) {
+		callback(erizoControllers[rooms[roomId]]);
+		return;
+	}
+
 	var id;
 
 	var intervarId = setInterval(function() {
@@ -112,8 +119,9 @@ exports.getTheBestEC = function(callback) {
 		id = ecQueue[0];
 
 		if (id !== undefined) {
-			var ip = erizoControllers[params.id].ip;
-			callback(ip);
+
+			rooms[roomId] = id;
+			callback(erizoControllers[id]);
 
 			recalculatePriority();
 			clearInterval(intervarId);
@@ -124,7 +132,18 @@ exports.getTheBestEC = function(callback) {
 
 }
 
+exports.getUsersInRoom = function(roomId, callback) {
+	if (rooms[roomId] === undefined) {
+		callback([]);
+		return;
+	}
 
+	var rpcID = erizoControllers[rooms[roomId]].rpcID;
+
+	rpc.callRpc(rpcID, 'getUsersInRoom', roomId, function(users) {
+		callback(users);
+	});
+}
 
 
 

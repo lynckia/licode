@@ -8,7 +8,7 @@ var clientQueue;
 var exc;
 
 // Create the amqp connection to rabbitMQ server
-var connection = amqp.createConnection({host: 'toronado.dit.upm.es', port: 5672});
+var connection = amqp.createConnection({host: 'chotis2.dit.upm.es', port: 5672});
 
 connection.on('ready', function () {
 	console.log('Conected to rabbitMQ server');
@@ -18,7 +18,7 @@ connection.on('ready', function () {
 		console.log('Exchange ' + exchange.name + ' is open');
 
 		//Create the queue for receive messages
-		var q = connection.queue('nuveQueue', function (queue) {
+		var q = connection.queue('cloudHandlerQueue', function (queue) {
 		  	console.log('Queue ' + queue.name + ' is open');
 
 		  	q.bind('rpcExchange', 'cloudHandler');

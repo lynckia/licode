@@ -22,8 +22,15 @@ exports.killMe = function(ip, callback) {
 	callback();
 }
 
-exports.getTheBestEC = function(callback) {
-	cloudHandler.getTheBestEC(function(host) {
-		callback(host);
+exports.getErizoControllerForRoom = function(roomId, callback) {
+	cloudHandler.getErizoControllerForRoom(roomId, function(ec) {
+		callback(ec);
 	});
+}
+
+exports.getUsersInRoom = function(id, callback) {
+
+    cloudHandler.getUsersInRoom(id, function(users) {
+    	callback(users);
+    });
 }

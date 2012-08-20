@@ -8,7 +8,7 @@ var clientQueue;
 var exc;
 
 // Create the amqp connection to rabbitMQ server
-var connection = amqp.createConnection({host: 'toronado.dit.upm.es', port: 5672});
+var connection = amqp.createConnection({host: 'chotis2.dit.upm.es', port: 5672});
 
 connection.on('ready', function () {
 	console.log('Conected to rabbitMQ server');
@@ -54,7 +54,7 @@ connection.on('ready', function () {
 /*
  * Calls remotely the 'method' function defined in rpcPublic of 'to'.
  */
-exports.callRpc = function(method, args, callback) {
+exports.callRpc = function(to, method, args, callback) {
 
 	corrID ++;
 	map[corrID] = callback;
