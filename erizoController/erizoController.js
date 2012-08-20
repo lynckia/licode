@@ -24,7 +24,7 @@ var sendMsgToRoom = function(room, type, arg) {
     }     
 };
 
-var addToCloudHandler = function() {
+var addToCloudHandler = function(callback) {
 
     var interfaces = require('os').networkInterfaces();
     var addresses = [];
@@ -55,6 +55,8 @@ var addToCloudHandler = function() {
 
         }, INTERVAL_TIME_KEEPALIVE);
 
+        callback();
+
     });
 
    
@@ -66,12 +68,24 @@ var addToCloudHandler = function() {
 //       var info = {id: myId, state: myState};
 //       rpc.callRpc('cloudHandler', 'setInfo', info, function(){});
 //      
-//       Decidir qué estados hay
+//       States: 
+//            0: Not available
+//            1: Warning
+//            2: Available 
 //*******************************************************************
 
 rpc.connect(function() {
 
-    addToCloudHandler();
+    addToCloudHandler(function() {
+
+        var rpcID = 'erizoController_' + myId;
+
+        rpc.bind(rpcID, listen);
+        
+    });
+});
+
+var listen = function() {
 
     io.sockets.on('connection', function (socket) {
 
@@ -189,7 +203,7 @@ rpc.connect(function() {
             }       
         });
     });
-});
+}
 
 
 /*
@@ -208,6 +222,7 @@ exports.getUsersInRoom = function(room, callback) {
     for(var id in sockets) {   
         users.push(io.sockets.socket(sockets[id]).user);   
     }
+
     callback(users);
 }
 

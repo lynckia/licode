@@ -7,7 +7,7 @@ exports.getUsersInRoom = function(id, callback) {
 
     erizoController.getUsersInRoom(id, function(users) {
 
-    console.log('Users for room ', id, ' are ', users);
+        console.log('Users for room ', id, ' are ', users);
         if(users == undefined) {
             callback('error');
         } else {
