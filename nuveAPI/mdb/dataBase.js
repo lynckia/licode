@@ -14,7 +14,7 @@ var collections = ["rooms", "tokens", "services"];
 exports.db = require("mongojs").connect(databaseUrl, collections);
 
 // Superservice ID
-exports.superService = '5000144598eb6bc7c198c2ae';
+exports.superService = '50001a6651336eccad9dcfdd';
 
 // Superservice key
 exports.nuveKey = 'claveNuve';
