@@ -15,6 +15,11 @@ var checkKA = function() {
 		if (erizoControllers[ec].keepAlive > 10) {
 			console.log('ErizoController', ec ,' in ', erizoControllers[ec].ip, 'does not respond. Deleting it.');
 			delete erizoControllers[ec];
+			for(var room in rooms) {
+				if(rooms[room] == ec) {
+					delete rooms[room];
+				}
+			}
 		};
 		
 	}
