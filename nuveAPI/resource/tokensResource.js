@@ -75,7 +75,7 @@ var generateToken = function(callback) {
 	rpc.callRpc('cloudHandler', 'getErizoControllerForRoom', this.room._id, function(ec) {
 
 		console.log(ec);
-		token.host = ec.ip;
+		token.host = ec.ip + ':8080';
 
 		tokenRegistry.addToken(token, function(id) {
 
