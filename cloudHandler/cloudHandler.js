@@ -1,7 +1,8 @@
 var rpc = require('./rpc/rpc');
 
 var INTERVAL_TIME_EC_READY = 100;
-var INTERVAL_TIME_CHECK_KA = 5000;
+var INTERVAL_TIME_CHECK_KA = 1000;
+var MAX_KA_COUNT = 5;
 
 var erizoControllers = {};
 var rooms = {};    	// roomId: erizoControllerId
@@ -12,7 +13,7 @@ var checkKA = function() {
 
 	for(var ec in erizoControllers) {
 		erizoControllers[ec].keepAlive++;
-		if (erizoControllers[ec].keepAlive > 10) {
+		if (erizoControllers[ec].keepAlive > MAX_KA_COUNT) {
 			console.log('ErizoController', ec ,' in ', erizoControllers[ec].ip, 'does not respond. Deleting it.');
 			delete erizoControllers[ec];
 			for(var room in rooms) {
@@ -20,6 +21,7 @@ var checkKA = function() {
 					delete rooms[room];
 				}
 			}
+			recalculatePriority();
 		};
 		
 	}
@@ -144,8 +146,8 @@ exports.getUsersInRoom = function(roomId, callback) {
 	}
 
 	var rpcID = erizoControllers[rooms[roomId]].rpcID;
-
 	rpc.callRpc(rpcID, 'getUsersInRoom', roomId, function(users) {
+		if(users == 'timeout') users = '?';
 		callback(users);
 	});
 }

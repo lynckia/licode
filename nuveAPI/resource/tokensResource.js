@@ -38,8 +38,12 @@ exports.create = function(req, res) {
 
 		generateToken(function(tokenS) {
 			
-			if (tokenS == undefined) {
+			if (tokenS === undefined) {
 				res.send('Name and role?', 401);
+				return;
+			}
+			if (tokenS == 'error') {
+				res.send('CloudHandler does not respond', 401);
 				return;
 			}
 			console.log('Created token for room ', this.room._id, 'and service ', this.service._id);
@@ -74,7 +78,11 @@ var generateToken = function(callback) {
 
 	rpc.callRpc('cloudHandler', 'getErizoControllerForRoom', this.room._id, function(ec) {
 
-		console.log(ec);
+		if (ec == 'timeout') {
+			callback('error');
+			return;
+		}
+
 		token.host = ec.ip + ':8080';
 
 		tokenRegistry.addToken(token, function(id) {
