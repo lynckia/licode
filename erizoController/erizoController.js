@@ -7,10 +7,15 @@ io.set('log level', 1);
 
 var nuveKey = 'claveNuve';
 
+var WARNING_N_ROOMS = 2;
+var LIMIT_N_ROOMS = 4;
+
 var INTERVAL_TIME_KEEPALIVE = 1000;
+
 var myId;
 var myIP;
 var rooms = {};
+var myState;
 
 /*
  * Sends a massege of type 'type' to all sockets in a determined room.
@@ -47,6 +52,7 @@ var addToCloudHandler = function(callback) {
         }
 
         myId = id;
+        myState = 2;
 
         var intervarId = setInterval(function() {
 
@@ -62,22 +68,41 @@ var addToCloudHandler = function(callback) {
 
         callback();
 
-    });
-
-   
+    });  
 }
 
 //*******************************************************************
-// TODO: Cuando añado o borro salas calculo con un algoritmo propio cuál es mi estado
+//       Cuando añado o borro salas calculo con un algoritmo propio cuál es mi estado
 //       Si cambio de estado envío mensaje a cloudHandler
-//       var info = {id: myId, state: myState};
-//       rpc.callRpc('cloudHandler', 'setInfo', info, function(){});
 //      
 //       States: 
 //            0: Not available
 //            1: Warning
 //            2: Available 
 //*******************************************************************
+var updateMyState = function() {
+
+    var nRooms = 0, newState;
+
+    for(var i in rooms) {
+        nRooms++;
+    }
+
+    console.log('Update: ', nRooms);
+
+    if(nRooms < WARNING_N_ROOMS) return;
+    if(nRooms > LIMIT_N_ROOMS) newState = 0;
+    else newState = 1;
+
+    if(newState == myState) return;
+
+    myState = newState;
+
+    var info = {id: myId, state: myState};
+    rpc.callRpc('cloudHandler', 'setInfo', info, function(){});
+}
+
+
 
 rpc.connect(function() {
 
@@ -126,6 +151,7 @@ var listen = function() {
                             room.streams = [];
                             room.webRtcController = new controller.WebRtcController();
                             rooms[tokenDB.room] = room;
+                            updateMyState();
                         } else {
                             rooms[tokenDB.room].sockets.push(socket.id);
                         }
