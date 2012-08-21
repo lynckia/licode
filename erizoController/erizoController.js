@@ -7,8 +7,8 @@ io.set('log level', 1);
 
 var nuveKey = 'claveNuve';
 
-var WARNING_N_ROOMS = 2;
-var LIMIT_N_ROOMS = 4;
+var WARNING_N_ROOMS = 15;
+var LIMIT_N_ROOMS = 20;
 
 var INTERVAL_TIME_KEEPALIVE = 1000;
 
