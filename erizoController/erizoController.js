@@ -7,7 +7,7 @@ io.set('log level', 1);
 
 var nuveKey = 'claveNuve';
 
-var INTERVAL_TIME_KEEPALIVE = 5000;
+var INTERVAL_TIME_KEEPALIVE = 1000;
 var myId;
 var myIP;
 var rooms = {};
@@ -40,6 +40,11 @@ var addToCloudHandler = function(callback) {
     var myIP = addresses[0];
 
     rpc.callRpc('cloudHandler', 'addNewErizoController', myIP, function(id) {
+
+        if(id == 'timeout') {
+            console.log('CloudHandler does not respond');
+            return;
+        }
 
         myId = id;
 
@@ -104,6 +109,11 @@ var listen = function() {
                     if (resp == 'error') {
                         console.log('Token does not exist');
                         callback('error', 'Token does not exist');
+                        socket.disconnect();
+
+                    } else if (resp == 'timeout') {
+                        console.log('Nuve does not respond');
+                        callback('error', 'Nuve does not respond');
                         socket.disconnect();
 
                     } else if (token.host == resp.host) {
