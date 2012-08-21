@@ -13,7 +13,7 @@ var clientQueue;
 exports.connect = function(callback) {
 
 	// Create the amqp connection to rabbitMQ server
-	connection = amqp.createConnection({host: 'toronado.dit.upm.es', port: 5672});
+	connection = amqp.createConnection({host: 'chotis2.dit.upm.es', port: 5672});
 	connection.on('ready', function () {
 
 		//Create a direct exchange 
