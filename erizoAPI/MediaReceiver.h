@@ -5,6 +5,9 @@
 #include <MediaDefinitions.h>
 
 
+/*
+ * Wrapper class of erizo::MediaReceiver
+ */
 class MediaReceiver : public node::ObjectWrap {
  public:
 

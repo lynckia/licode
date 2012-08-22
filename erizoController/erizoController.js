@@ -88,8 +88,6 @@ var updateMyState = function() {
         nRooms++;
     }
 
-    console.log('Update: ', nRooms);
-
     if(nRooms < WARNING_N_ROOMS) return;
     if(nRooms > LIMIT_N_ROOMS) newState = 0;
     else newState = 1;
