@@ -9,14 +9,14 @@ You can find erizo code at <a href="http://github.com/ging/erizo">http://github.
  
 ## Building Instructions
 
-1. Export the paths to get the source code and the library of erizo: 
+1- Export the paths to get the source code and the library of erizo: 
 
-    - Main path to erizo<br>
-    export ERIZO_HOME=path/to/erizo
-    - Path to liberizo.so<br>
-    export LD\_LIBRARY\_PATH=path/to/erizo/build/erizo
+    - Main path to erizo
+      export ERIZO_HOME=path/to/erizo
+    - Path to liberizo.so
+      export LD\_LIBRARY\_PATH=path/to/erizo/build/erizo
 
-2. Execute build.sh
+2- Execute build.sh
 
 ##Usage
 
