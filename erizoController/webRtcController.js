@@ -1,4 +1,4 @@
-var addon = require('./../erizoAPI/build/Release/addon');
+var addon = require('./../../erizoAPI/build/Release/addon');
 
 exports.WebRtcController = function() {
 
