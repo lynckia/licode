@@ -10,7 +10,7 @@
 /*
  * Wrapper class of erizo::WebRtcConnection
  *
- * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
+ * A WebRTC Connection. This class represents a WebRtcConnection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary ICE and SRTP components.
  */
 class WebRtcConnection : public node::ObjectWrap {
@@ -25,7 +25,7 @@ class WebRtcConnection : public node::ObjectWrap {
 
   /*
    * Constructor.
-   * Constructs an empty WebRTCConnection without any configuration.
+   * Constructs an empty WebRtcConnection without any configuration.
    */
   static v8::Handle<v8::Value> New(const v8::Arguments& args);
   /*
@@ -34,7 +34,7 @@ class WebRtcConnection : public node::ObjectWrap {
    */
   static v8::Handle<v8::Value> close(const v8::Arguments& args);
   /*
-   * Inits the WebConnection by starting ICE Candidate Gathering.
+   * Inits the WebRtcConnection by starting ICE Candidate Gathering.
    * Returns true if the candidates are gathered.
    */
   static v8::Handle<v8::Value> init(const v8::Arguments& args);  
