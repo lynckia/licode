@@ -97,7 +97,7 @@ exports.keepAlive = function(id, callback) {
 
 exports.setInfo = function(params) {
 	
-	console.log('Received info from ', params.id, '.Recalculating erizoControllers priority');
+	console.log('Received info ', params,	 '.Recalculating erizoControllers priority');
 	erizoControllers[params.id].state = params.state;
 	recalculatePriority();
 }
