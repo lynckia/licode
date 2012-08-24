@@ -9,7 +9,7 @@ N.API = (function (N) {
         key: undefined
     };
 
-    N.API.url = 'http://chotis2.dit.upm.es:3000/';
+    url = 'http://chotis2.dit.upm.es:3000/';
 
     init = function (service, key) {
         N.API.params.service = service;
