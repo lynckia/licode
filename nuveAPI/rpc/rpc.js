@@ -2,8 +2,10 @@ var sys = require('util');
 var amqp = require('amqp');
 var rpcPublic = require('./rpcPublic');
 
+var TIMEOUT = 3000;
+
 var corrID = 0;
-var map = {};
+var map = {};	//{corrID: {fn: callback, to: timeout}}
 var clientQueue;
 var exc;
 
@@ -40,10 +42,13 @@ connection.on('ready', function () {
 		 	clientQueue.bind('rpcExchange', clientQueue.name);
 
 		  	clientQueue.subscribe(function (message) {
-			
-				map[message.corrID](message.data);
-				delete map[message.corrID];
 
+		  		if(map[message.corrID] !== undefined) {
+
+					map[message.corrID].fn(message.data);
+					clearTimeout(map[message.corrID].to);
+					delete map[message.corrID];
+				}
 		  	});
 
 		});
@@ -57,10 +62,17 @@ connection.on('ready', function () {
 exports.callRpc = function(to, method, args, callback) {
 
 	corrID ++;
-	map[corrID] = callback;
+	map[corrID] = {};
+	map[corrID].fn = callback;
+	map[corrID].to = setTimeout(callbackError, TIMEOUT, corrID);
 
 	var send = {method: method, args: args, corrID: corrID, replyTo: clientQueue.name};
  	
  	exc.publish(to, send);
 	
+}
+
+var callbackError = function(corrID) {
+	map[corrID].fn('timeout');
+	delete map[corrID];
 }

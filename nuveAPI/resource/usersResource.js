@@ -35,6 +35,10 @@ exports.getList = function(req, res) {
 		
 		console.log('Representing users for room ', this.room._id, 'and service', this.service._id);
 		rpc.callRpc('cloudHandler', 'getUsersInRoom', this.room._id, function(users) {
+			if (users == 'error') {
+				res.send('CloudHandler does not respond', 401);
+				return;
+			}
 			res.send(users);
 		});
 
