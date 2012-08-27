@@ -17,7 +17,11 @@ N.API = (function (N) {
     };
 
     createRoom = function (name, callback, options) {
-        send(callback, 'POST', {name: name, options: options}, url + 'rooms');
+
+        send(function(roomRtn) {
+            var room = JSON.parse(roomRtn);
+            callback(room);
+        }, 'POST', {name: name, options: options}, url + 'rooms');
     };
 
     getRooms = function (callback) {
