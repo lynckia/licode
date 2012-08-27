@@ -17,7 +17,7 @@ N.API = (function (N) {
     };
 
     createRoom = function (name, callback, options) {
-        send(callback, 'POST', {name: name, options: options}, N.API.params.url + 'rooms');
+        send(callback, 'POST', {name: name, options: options}, N.API.url + 'rooms');
     };
 
     getRooms = function (callback) {
@@ -32,8 +32,8 @@ N.API = (function (N) {
         send(callback, 'DELETE', undefined, N.API.url + 'rooms/' + room);
     };
 
-    createToken = function (room, username, role, callback, options) {
-        send(callback, 'POST', {options: options}, N.API.params.url + 'rooms/' + room + "/tokens", username, role);
+    createToken = function (room, username, role, callback) {
+        send(callback, 'POST', undefined, N.API.url + 'rooms/' + room + "/tokens", username, role);
     };
 
     createService = function (name, key, callback) {
