@@ -8,11 +8,13 @@ exports.role;
 
 var cache = {};
 
-
+/*
+ * This function has the logic needed for authenticate a nuve request. 
+ * If the authentication success exports the service and the user and role (if needed). Else send back 
+ * a response with an authentication request to the client.
+ */
 exports.authenticate = function(req, res, next) {
-	
-	console.log('autenticando');
-	
+
 	var authHeader = req.header('Authorization');
 
 	var challengeReq = 'MAuth realm="http://marte3.dit.upm.es"';
@@ -21,38 +23,39 @@ exports.authenticate = function(req, res, next) {
 
 		var params = mauthParser.parseHeader(authHeader);
 
-		//console.log('Params:', params);
-		//var string = mauthParser.makeHeader(params);
-		//console.log('Header:', string);
-
+		// Get the service from the data base.
 		serviceRegistry.getService(params.serviceid, function(serv) {
 			if (serv == undefined) {
-				console.log('Unknow service:', params.serviceid);		
+				console.log('[Auth] Unknow service:', params.serviceid);		
 				res.send(401, {'WWW-Authenticate': challengeReq});
 				return;
 			}
 
 			var key = serv.key;
 
+			// Check if timestam and cnonce are valids in order to avoid duplicate requests.
 			if(!checkTimestamp(serv, params)) {
+				console.log('[Auth] Invalid timestamp or cnonce');
 				res.send(401, {'WWW-Authenticate': challengeReq});
 				return;
 			}
 
+			// Check if the signature is valid. 
 			if(checkSignature(params, key)) {
 
 				if(params.username != undefined && params.role != undefined) {
 					exports.user = params.username;
 					exports.role = params.role;
-
 				}
 
 				cache[serv.name] =  params;
 				exports.service = serv;
+
+				// If everything in the authentication is valid continue with the request.
 				next();
 
 			} else {
-				console.log('Wrong credentials');
+				console.log('[Auth] Wrong credentials');
 				res.send(401, {'WWW-Authenticate': challengeReq});
 				return;
 			}	
@@ -60,7 +63,7 @@ exports.authenticate = function(req, res, next) {
 		});
 
 	} else {
-		console.log('MAuth header not presented');
+		console.log('[Auth] MAuth header not presented');
 		res.send(401, {'WWW-Authenticate': challengeReq});
 		return;
 	}
@@ -77,9 +80,12 @@ var checkTimestamp = function(ser, params) {
 
 	var lastTS = lastParams.timestamp;
 	var newTS = params.timestamp;
+	var lastC = lastParams.cnonce;
+	var newC = params.cnonce;
 
-	if(newTS < lastTS || (lastTS == newTS && lastParams.cnonce == params.cnonce)) {
-		console.log('Invalid timestamp or cnonce');
+	if(newTS < lastTS || (lastTS == newTS && lastC == newC)) {
+		console.log('Last timestamp: ', lastTS, ' and new: ', newTS);
+		console.log('Last cnonce: ', lastC, ' and new: ', newC);
 		return false;
 	}
 
@@ -95,7 +101,6 @@ var checkSignature = function(params, key) {
 	var calculatedSignature = mauthParser.calculateClientSignature(params, key);
 
 	if(calculatedSignature != params.signature) {
-		console.log('Auth fail. Invalid signature.');
 		return false;
 	} else {
 		return true;

@@ -3,7 +3,6 @@ var db = require('./mdb/dataBase').db;
 require('./rpc/rpc');
 var app = express.createServer();
 
-
 var nuveAuthenticator = require('./auth/nuveAuthenticator');
 
 var roomsResource = require('./resource/roomsResource');

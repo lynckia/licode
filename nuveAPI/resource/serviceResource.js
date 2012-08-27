@@ -1,6 +1,9 @@
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var BSON = require('mongodb').BSONPure;
 
+/*
+ * Gets the service and checks if it is superservice. Only superservice can do actions about services.
+ */
 var doInit = function (serv, callback) {
 	var service = require('./../auth/nuveAuthenticator').service;
 	var superService = require('./../mdb/dataBase').superService;
@@ -13,11 +16,13 @@ var doInit = function (serv, callback) {
 	}
 };
 
-//Get
+/*
+ * Get Service. Represents a determined service.
+ */
 exports.represent = function(req, res) {
 	doInit(req.params.service, function(serv) {
 		if(serv == 'error'){
-			console.log('Service not authorized for this action');
+			console.log('Service ', req.params.service, ' not authorized for this action');
 			res.send('Service not authorized for this action', 401);
 			return;
 		}
@@ -25,16 +30,19 @@ exports.represent = function(req, res) {
 			res.send('Service not found', 404);
 			return;
 		}
+		console.log('Representing service ', serv._id);
 		res.send(serv);
 	});
 	
 };
 
-//Delete
+/*
+ * Delete Service. Removes a determined service from the data base.
+ */
 exports.deleteService = function(req, res) {
 	doInit(req.params.service, function(serv) {
 		if(serv == 'error'){
-			console.log('Service not authorized for this action');
+			console.log('Service ', req.params.service, ' not authorized for this action');
 			res.send('Service not authorized for this action', 401);
 			return;
 		}
@@ -45,6 +53,7 @@ exports.deleteService = function(req, res) {
 		var id = '';
 		id += serv._id;
 		serviceRegistry.removeService(id);
+		console.log('Serveice ', id, ' deleted');
 		res.send('Service deleted');
 	});
 };

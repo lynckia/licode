@@ -2,7 +2,7 @@ var sys = require('util');
 var amqp = require('amqp');
 var rpcPublic = require('./rpcPublic');
 
-var TIMEOUT = 3000;
+var TIMEOUT = 2000;
 
 var corrID = 0;
 var map = {};	//{corrID: {fn: callback, to: timeout}}
@@ -20,10 +20,10 @@ connection.on('ready', function () {
 		console.log('Exchange ' + exchange.name + ' is open');
 
 		//Create the queue for receive messages
-		var q = connection.queue('nuveQueue', function (queue) {
+		var q = connection.queue('cloudHandlerQueue', function (queue) {
 		  	console.log('Queue ' + queue.name + ' is open');
 
-		  	q.bind('rpcExchange', 'nuve');
+		  	q.bind('rpcExchange', 'cloudHandler');
 	  		q.subscribe(function (message) { 
 
 	    		rpcPublic[message.method](message.args, function(result) {
@@ -44,11 +44,12 @@ connection.on('ready', function () {
 		  	clientQueue.subscribe(function (message) {
 
 		  		if(map[message.corrID] !== undefined) {
-
+			
 					map[message.corrID].fn(message.data);
 					clearTimeout(map[message.corrID].to);
 					delete map[message.corrID];
 				}
+
 		  	});
 
 		});
@@ -76,3 +77,6 @@ var callbackError = function(corrID) {
 	map[corrID].fn('timeout');
 	delete map[corrID];
 }
+
+
+
