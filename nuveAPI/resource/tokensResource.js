@@ -76,25 +76,70 @@ var generateToken = function(callback) {
 	token.service = this.service._id;
 	token.creationDate = new Date();
 
-	rpc.callRpc('cloudHandler', 'getErizoControllerForRoom', this.room._id, function(ec) {
+	if (this.service.testRoom !== undefined) {
+		var r = '' +  this.room._id;
+		var tr = '' + this.service.testRoom._id;
 
-		if (ec == 'timeout') {
-			callback('error');
-			return;
+		if(tr == r) {
+			if (this.service.testToken === undefined) {
+				token.use = 0;
+				token.host = dataBase.testErizoController;
+
+				console.log('Creating testToken');
+
+				tokenRegistry.addToken(token, function(id) {
+
+					token._id = id;
+					this.service.testToken = token;
+					serviceRegistry.updateService(this.service);
+
+					var tokenS = getTokenString(id, token);
+					callback(tokenS);
+					return;
+				});
+
+			} else {
+				
+				token = this.service.testToken;
+
+				console.log('TestToken already exists, sending it', token);
+			
+				var tokenS = getTokenString(token._id, token);
+				callback(tokenS);
+				return;
+
+			}		
 		}
+	} else {
+		rpc.callRpc('cloudHandler', 'getErizoControllerForRoom', this.room._id, function(ec) {
 
-		token.host = ec.ip + ':8080';
+			if (ec == 'timeout') {
+				callback('error');
+				return;
+			}
 
-		tokenRegistry.addToken(token, function(id) {
+			token.host = ec.ip + ':8080';
 
-			var toSign = id + ',' + token.host;
-			var hex = crypto.createHmac('sha1', dataBase.nuveKey).update(toSign).digest('hex');
-			var signed = (new Buffer(hex)).toString('base64');
+			tokenRegistry.addToken(token, function(id) {
 
-			var tokenJ = {tokenId: id, host: token.host, signature: signed};
-			var tokenS = (new Buffer(JSON.stringify(tokenJ))).toString('base64');
-
-			callback(tokenS);
+				var tokenS = getTokenString(id, token);
+				callback(tokenS);
+			});
 		});
-	});
+	}
+	
+	
+}
+
+
+var getTokenString = function(id, token) {
+
+	var toSign = id + ',' + token.host;
+	var hex = crypto.createHmac('sha1', dataBase.nuveKey).update(toSign).digest('hex');
+	var signed = (new Buffer(hex)).toString('base64');
+
+	var tokenJ = {tokenId: id, host: token.host, signature: signed};
+	var tokenS = (new Buffer(JSON.stringify(tokenJ))).toString('base64');
+
+	return tokenS;
 }

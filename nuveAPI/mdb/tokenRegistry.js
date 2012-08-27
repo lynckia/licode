@@ -52,3 +52,10 @@ exports.removeToken = function(id, callback) {
 		}
 	});
 }
+
+/*
+ * Updates a determined token in the data base.
+ */
+exports.updateToken = function(token) {
+	db.tokens.save(token);
+}

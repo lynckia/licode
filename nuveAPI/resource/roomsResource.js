@@ -25,15 +25,31 @@ exports.createRoom = function(req, res) {
 		res.send('Invalid room', 404);
 		return;
 	}
-	
-	roomRegistry.addRoom(req.body, function(result) {
-		this.service.rooms.push(result);
-		serviceRegistry.updateService(this.service);
-		console.log('Room created:', req.body.name, 'for service', this.service.name);
-		res.send(result);
-	});
-	
 
+	if (req.body.options == 'test') {
+		if (this.service.testRoom !== undefined) {
+			console.log('TestRoom already exists for service', this.service.name);
+			res.send(this.service.testRoom);
+		} else {
+			var room = {name: 'testRoom'}
+			roomRegistry.addRoom(room, function(result) {
+				this.service.testRoom = result;
+				this.service.rooms.push(result);
+				serviceRegistry.updateService(this.service);
+				console.log('TestRoom created for service', this.service.name);
+				res.send(result);
+			});
+		}
+	} else {
+		var room = {name: req.body.name}
+		roomRegistry.addRoom(room, function(result) {
+			this.service.rooms.push(result);
+			serviceRegistry.updateService(this.service);
+			console.log('Room created:', req.body.name, 'for service', this.service.name);
+			res.send(result);
+		});
+	}
+	
 };
 
 /*
