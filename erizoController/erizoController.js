@@ -88,7 +88,7 @@ var updateMyState = function() {
         nRooms++;
     }
 
-    if(nRooms < WARNING_N_ROOMS) return;
+    if(nRooms < WARNING_N_ROOMS) newState = 2;
     if(nRooms > LIMIT_N_ROOMS) newState = 0;
     else newState = 1;
 
@@ -234,7 +234,12 @@ var listen = function() {
                     socket.room.streams.splice(index, 1);
                 }
                 socket.room.webRtcController.removeClient(socket.id);
-            }       
+            } 
+            if (socket.room.sockets.length == 0) {
+                console.log('Empty room ' , socket.room.id, '. Deleting it');
+                delete rooms[socket.room.id];
+                updateMyState();
+            };
         });
     });
 }
