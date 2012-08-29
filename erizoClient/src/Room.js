@@ -34,8 +34,10 @@ var Room = function (spec) {
         that.streams = {};
 
         // Close Peer Connection
-        spec.publisher.pc.close();
-        spec.publisher.pc = undefined;
+        if (spec.publisher !== undefined) {
+            spec.publisher.pc.close();
+            spec.publisher.pc = undefined;
+        }
 
         // Close socket
         try {
