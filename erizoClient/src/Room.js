@@ -11,7 +11,7 @@
  */
 var Room = function (spec) {
     "use strict";
-    var that = EventDispatcher(spec), connectSocket, sendMessageSocket, sendSDPSocket, removeStream, DISCONNECTED = 0, CONNECTING = 1, CONNECTED = 0; 
+    var that = EventDispatcher(spec), connectSocket, sendMessageSocket, sendSDPSocket, removeStream, DISCONNECTED = 0, CONNECTING = 1, CONNECTED = 2; 
     that.streams = {};
     that.roomID = '';
     that.socket = {};
@@ -34,8 +34,10 @@ var Room = function (spec) {
         that.streams = {};
 
         // Close Peer Connection
-        spec.publisher.pc.close();
-        spec.publisher.pc = undefined;
+        if (spec.publisher !== undefined) {
+            spec.publisher.pc.close();
+            spec.publisher.pc = undefined;
+        }
 
         // Close socket
         try {
@@ -156,7 +158,7 @@ var Room = function (spec) {
         });
     };
 
-    // It disconnects from the room, dispatching a new ConnectionEvent("room-disconnected")
+    // It disconnects from the room, dispatching a new RoomEvent("room-disconnected")
     that.disconnect = function () {
         // 1- Disconnect from room
         var disconnectEvt = RoomEvent({type: "room-disconnected"});
@@ -185,7 +187,7 @@ var Room = function (spec) {
     };
 
     // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
-    that.unpublish = function (publisher) {
+    that.unpublish = function () {
 
         // Unpublish stream from Erizo-Controller
         sendMessageSocket('unpublish', undefined);
