@@ -16,63 +16,71 @@ N.API = (function (N) {
         N.API.params.url = 'http://chotis2.dit.upm.es:3000/';
     };
 
-    createRoom = function (name, callback, options) {
+    createRoom = function (name, callback, options, params) {
 
         send(function(roomRtn) {
             var room = JSON.parse(roomRtn);
             callback(room);
-        }, 'POST', {name: name, options: options}, N.API.params.url + 'rooms');
+        }, 'POST', {name: name, options: options}, 'rooms', params);
     };
 
-    getRooms = function (callback) {
-        send(callback, 'GET', undefined, N.API.params.url + 'rooms');
+    getRooms = function (callback, params) {
+        send(callback, 'GET', undefined, 'rooms', params);
     };
 
-    getRoom = function (room, callback) {
-        send(callback, 'GET', undefined, N.API.params.url + 'rooms/' + room);
+    getRoom = function (room, callback, params) {
+        send(callback, 'GET', undefined, 'rooms/' + room, params);
     };
 
-    deleteRoom = function (room, callback) {
-        send(callback, 'DELETE', undefined, N.API.params.url + 'rooms/' + room);
+    deleteRoom = function (room, callback, params) {
+        send(callback, 'DELETE', undefined, 'rooms/' + room, params);
     };
 
-    createToken = function (room, username, role, callback) {
-        send(callback, 'POST', undefined, N.API.params.url + 'rooms/' + room + "/tokens", username, role);
+    createToken = function (room, username, role, callback, params) {
+        send(callback, 'POST', undefined, 'rooms/' + room + "/tokens", params, username, role);
     };
 
-    createService = function (name, key, callback) {
-        send(callback, 'POST', {name: name, key: key}, N.API.params.url + 'services/');
+    createService = function (name, key, callback, params) {
+        send(callback, 'POST', {name: name, key: key}, 'services/', params);
     };
 
-    getServices = function (callback) {
-        send(callback, 'GET', undefined, N.API.params.url + 'services/');
+    getServices = function (callback, params) {
+        send(callback, 'GET', undefined, 'services/', params);
     };
 
-    getService = function (service, callback) {
-        send(callback, 'GET', undefined, N.API.params.url + 'services/' + service);
+    getService = function (service, callback, params) {
+        send(callback, 'GET', undefined, 'services/' + service, params);
     };
 
-    deleteService = function (service, callback) {
-        send(callback, 'DELETE', undefined, N.API.params.url + 'services/' + service);
+    deleteService = function (service, callback, params) {
+        send(callback, 'DELETE', undefined, 'services/' + service, params);
     };
 
-    getUsers = function (room, callback) {
-        send(callback, 'GET', undefined, N.API.params.url + 'rooms/' + room + '/users/');
+    getUsers = function (room, callback, params) {
+        send(callback, 'GET', undefined, 'rooms/' + room + '/users/', params);
     };
 
-    getUser = function (room, user, callback) {
-        send(callback, 'GET', undefined, N.API.params.url + 'rooms/' + room + '/users/' + user);
+    getUser = function (room, user, callback, params) {
+        send(callback, 'GET', undefined, 'rooms/' + room + '/users/' + user, params);
     };
 
-    deleteUser = function (room, user, callback) {
-        send(callback, 'DELETE', undefined, N.API.params.url + 'rooms/' + room + '/users/' + user);
+    deleteUser = function (room, user, callback, params) {
+        send(callback, 'DELETE', undefined, 'rooms/' + room + '/users/' + user);
     };
 
-    send = function (callback, method, body, url, username, role) {
+    send = function (callback, method, body, url, params, username, role) {
         var service, key, timestamp, cnounce, toSign, header, signed, req;
-        service = N.API.params.service;
-        key = N.API.params.key;
-
+        
+        if (params === undefined) {
+            service = N.API.params.service;
+            key = N.API.params.key;
+            url = N.API.params.url + url;
+        } else {
+            service = params.service;
+            key = params.key;
+            url = params.url + url;
+        }
+        
         if (service === '' || key === '') {
             console.log('ServiceID and Key are required!!');
             return;
