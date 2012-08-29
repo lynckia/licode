@@ -2,18 +2,18 @@ var N = N || {};
 
 N.API = (function (N) {
     "use strict";
-    var createRoom, getRooms, getRoom, deleteRoom, createToken, createService, getServices, getService, deleteService, getUsers, getUser, deleteUser, params, url, send, calculateSignature, init;
+    var createRoom, getRooms, getRoom, deleteRoom, createToken, createService, getServices, getService, deleteService, getUsers, getUser, deleteUser, params, send, calculateSignature, init;
 
     params = {
         service: undefined,
-        key: undefined
+        key: undefined,
+        url: undefined
     };
-
-    url = 'http://chotis2.dit.upm.es:3000/';
 
     init = function (service, key) {
         N.API.params.service = service;
         N.API.params.key = key;
+        N.API.params.url = 'http://chotis2.dit.upm.es:3000/';
     };
 
     createRoom = function (name, callback, options) {
@@ -21,51 +21,51 @@ N.API = (function (N) {
         send(function(roomRtn) {
             var room = JSON.parse(roomRtn);
             callback(room);
-        }, 'POST', {name: name, options: options}, url + 'rooms');
+        }, 'POST', {name: name, options: options}, N.API.params.url + 'rooms');
     };
 
     getRooms = function (callback) {
-        send(callback, 'GET', undefined, url + 'rooms');
+        send(callback, 'GET', undefined, N.API.params.url + 'rooms');
     };
 
     getRoom = function (room, callback) {
-        send(callback, 'GET', undefined, url + 'rooms/' + room);
+        send(callback, 'GET', undefined, N.API.params.url + 'rooms/' + room);
     };
 
     deleteRoom = function (room, callback) {
-        send(callback, 'DELETE', undefined, url + 'rooms/' + room);
+        send(callback, 'DELETE', undefined, N.API.params.url + 'rooms/' + room);
     };
 
     createToken = function (room, username, role, callback) {
-        send(callback, 'POST', undefined, url + 'rooms/' + room + "/tokens", username, role);
+        send(callback, 'POST', undefined, N.API.params.url + 'rooms/' + room + "/tokens", username, role);
     };
 
     createService = function (name, key, callback) {
-        send(callback, 'POST', {name: name, key: key}, url + 'services/');
+        send(callback, 'POST', {name: name, key: key}, N.API.params.url + 'services/');
     };
 
     getServices = function (callback) {
-        send(callback, 'GET', undefined, url + 'services/');
+        send(callback, 'GET', undefined, N.API.params.url + 'services/');
     };
 
     getService = function (service, callback) {
-        send(callback, 'GET', undefined, url + 'services/' + service);
+        send(callback, 'GET', undefined, N.API.params.url + 'services/' + service);
     };
 
     deleteService = function (service, callback) {
-        send(callback, 'DELETE', undefined, url + 'services/' + service);
+        send(callback, 'DELETE', undefined, N.API.params.url + 'services/' + service);
     };
 
     getUsers = function (room, callback) {
-        send(callback, 'GET', undefined, url + 'rooms/' + room + '/users/');
+        send(callback, 'GET', undefined, N.API.params.url + 'rooms/' + room + '/users/');
     };
 
     getUser = function (room, user, callback) {
-        send(callback, 'GET', undefined, url + 'rooms/' + room + '/users/' + user);
+        send(callback, 'GET', undefined, N.API.params.url + 'rooms/' + room + '/users/' + user);
     };
 
     deleteUser = function (room, user, callback) {
-        send(callback, 'DELETE', undefined, url + 'rooms/' + room + '/users/' + user);
+        send(callback, 'DELETE', undefined, N.API.params.url + 'rooms/' + room + '/users/' + user);
     };
 
     send = function (callback, method, body, url, username, role) {
