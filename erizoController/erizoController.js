@@ -7,8 +7,8 @@ io.set('log level', 1);
 
 var nuveKey = 'claveNuve';
 
-var WARNING_N_ROOMS = 2;
-var LIMIT_N_ROOMS = 4;
+var WARNING_N_ROOMS = 15;
+var LIMIT_N_ROOMS = 20;
 
 var INTERVAL_TIME_KEEPALIVE = 1000;
 
@@ -88,9 +88,7 @@ var updateMyState = function() {
         nRooms++;
     }
 
-    console.log('Update: ', nRooms);
-
-    if(nRooms < WARNING_N_ROOMS) return;
+    if(nRooms < WARNING_N_ROOMS) newState = 2;
     if(nRooms > LIMIT_N_ROOMS) newState = 0;
     else newState = 1;
 
@@ -236,7 +234,12 @@ var listen = function() {
                     socket.room.streams.splice(index, 1);
                 }
                 socket.room.webRtcController.removeClient(socket.id);
-            }       
+            } 
+            if (socket.room.sockets.length == 0) {
+                console.log('Empty room ' , socket.room.id, '. Deleting it');
+                delete rooms[socket.room.id];
+                updateMyState();
+            };
         });
     });
 }
