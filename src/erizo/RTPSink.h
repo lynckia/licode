@@ -26,7 +26,7 @@ private:
 
 	boost::asio::ip::udp::resolver::query* query_;
 	boost::asio::io_service* ioservice_;
-	boost::asio::ip::udp::resolver::iterator* iterator_;
+	boost::asio::ip::udp::resolver::iterator iterator_;
 };
 
 

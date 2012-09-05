@@ -13,7 +13,6 @@ RtpParser::~RtpParser() {
 
 }
 
-/* namespace erizo */
 //
 // VP8 format:
 //

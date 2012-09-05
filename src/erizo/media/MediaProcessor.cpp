@@ -1,6 +1,8 @@
 #include <string>
 
 #include "MediaProcessor.h"
+#include "../RTPSink.h"
+#include "utils/RtpFragmenter.h"
 
 //UDPSocket *sock=NULL;
 //UDPSocket *out=NULL;
@@ -39,7 +41,7 @@ InputProcessor::~InputProcessor() {
 	}
 }
 
-int InputProcessor::init(const MediaInfo &info, RawDataReceiver* receiver) {
+int InputProcessor::init(const MediaInfo& info, RawDataReceiver* receiver) {
 	this->mediaInfo = info;
 	this->rawReceiver_ = receiver;
 
@@ -65,16 +67,14 @@ int InputProcessor::receiveVideoData(char* buf, int len) {
 	if (videoUnpackager && videoDecoder) {
 		int ret = unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
 				unpackagedBuffer_, &gotUnpackagedFrame_);
+		if (ret < 0)
+			return 0;
 		upackagedSize_ += ret;
 		unpackagedBuffer_ += ret;
-
 		if (gotUnpackagedFrame_) {
-
 			unpackagedBuffer_ -= upackagedSize_;
-
 			printf("Tengo un frame desempaquetado!! Size = %d\n",
 					upackagedSize_);
-
 			int c;
 			int gotDecodedFrame = 0;
 
@@ -83,19 +83,12 @@ int InputProcessor::receiveVideoData(char* buf, int len) {
 
 			upackagedSize_ = 0;
 			gotUnpackagedFrame_ = 0;
-
 			printf("Bytes dec = %d\n", c);
-			if (gotDecodedFrame) {
+			if (gotDecodedFrame && c > 0) {
 				printf("Tengo un frame decodificado!!\n");
 				gotDecodedFrame = 0;
 				rawReceiver_->receiveRawData(decodedBuffer_, c);
-				memset(unpackagedBuffer_, 0, 50000);
-
-//				unsigned char *buffSend = (unsigned char*) malloc(c);
-//				memcpy(buffSend, decodedBuffer_, c);
-
 			}
-
 		}
 		return 3;
 	}
@@ -300,6 +293,7 @@ int InputProcessor::decodeVideo(unsigned char* inBuff, int inBuffLen,
 	*gotFrame = 0;
 
 	AVPacket avpkt;
+	av_init_packet(&avpkt);
 
 	avpkt.data = inBuff;
 	avpkt.size = inBuffLen;
@@ -313,7 +307,7 @@ int InputProcessor::decodeVideo(unsigned char* inBuff, int inBuffLen,
 				&avpkt);
 
 		if (len < 0) {
-			printf("Error al decodificar frame de vídeo");
+			printf("Error al decodificar frame de vídeo\n");
 			return -1;
 		}
 
@@ -375,6 +369,7 @@ int InputProcessor::decodeVideo(unsigned char* inBuff, int inBuffLen,
 		cromV += dst_linesize;
 		src += src_linesize;
 	}
+	av_free_packet(&avpkt);
 
 	return outSize * 3 / 2;
 }
@@ -434,6 +429,7 @@ int InputProcessor::unpackageVideo(unsigned char* inBuff, int inBuffLen,
 		printf("Unpackager not correctly initialized");
 		return -1;
 	}
+	int inBuffOffset = 0;
 	*gotFrame = 0;
 	if (mediaInfo.proccessorType == RTP_ONLY) {
 		rtpHeader* head = (rtpHeader*) inBuff;
@@ -462,14 +458,14 @@ int InputProcessor::unpackageVideo(unsigned char* inBuff, int inBuffLen,
 		}
 		int l = inBuffLen - RTP_HEADER_LEN;
 		l -= extoffset;
-		inBuff += RTP_HEADER_LEN;
-		inBuff += extoffset;
-		vp8RtpHeader* vphead = (vp8RtpHeader*) inBuff;
+		inBuffOffset += RTP_HEADER_LEN;
+		inBuffOffset += extoffset;
+		vp8RtpHeader* vphead = (vp8RtpHeader*) &inBuff[inBuffOffset];
 		printf("MIO X: %u , N:%u PartID %u\n", vphead->X, vphead->N,
 				vphead->partId);
 
-		erizo::RTPPayloadVP8* parsed = pars.parseVP8((unsigned char*) inBuff,
-				l);
+		erizo::RTPPayloadVP8* parsed = pars.parseVP8(
+				(unsigned char*) &inBuff[inBuffOffset], l);
 		printf("l : %d, parsedDatalength %u\n", l, parsed->dataLength);
 //		l--;
 //		inBuff++;
@@ -541,13 +537,20 @@ OutputProcessor::~OutputProcessor() {
 	if (packagedBuffer_) {
 		free(packagedBuffer_);
 	}
+	if (rtpBuffer_) {
+		free(rtpBuffer_);
+	}
 }
 
-int OutputProcessor::init(const MediaInfo &info) {
+int OutputProcessor::init(const MediaInfo& info) {
 	this->mediaInfo = info;
 
 	encodedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
-	packagedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
+	packagedBuffer_ = (unsigned char*) malloc(PACKAGED_BUFFER_SIZE);
+	rtpBuffer_ = (unsigned char*) malloc(PACKAGED_BUFFER_SIZE);
+
+//	sink_ = new RTPSink("138.4.4.143", "50000");
+	sink_ = new RTPSink("127.0.0.1", "50000");
 
 //	videoCodecInfo c;
 //	c.codec = CODEC_ID_H264;
@@ -556,9 +559,11 @@ int OutputProcessor::init(const MediaInfo &info) {
 //	c.frameRate = 24;
 //	c.bitRate = 1024;
 //	c.maxInter = 0;
-	this->mediaInfo.videoCodec.codec = CODEC_ID_H263P;
-
-	this->initVideoCoder();
+	this->mediaInfo.videoCodec.codec = CODEC_ID_VP8;
+	if(!this->initVideoCoder()){
+		printf("Fallo aqui\n");
+		exit(0);
+	}
 	this->initVideoPackager();
 	return 0;
 }
@@ -573,11 +578,13 @@ void OutputProcessor::receiveRawData(unsigned char* data, int len) {
 //			UNPACKAGED_BUFFER_SIZE);
 	int a = this->encodeVideo(data, len, &pkt);
 
-	printf("\nBytes codificados = %d", a);
+//	printf("Bytes codificados = %d\n", a);
 
-//	int b = this->packageVideo(encodedBuffer_, a, packagedBuffer_);
+//									int b = this->packageVideo(encodedBuffer_, a, packagedBuffer_);
 	int b = this->packageVideo(&pkt, packagedBuffer_);
-	printf("\nBytes empaquetados = %d", b);
+//	av_free_packet(&pkt);
+//	printf("Bytes empaquetados = %d\n", b);
+	av_free_packet(&pkt);
 }
 
 bool OutputProcessor::initAudioCoder() {
@@ -637,7 +644,7 @@ bool OutputProcessor::initVideoCoder() {
 	vCoderContext->rc_buffer_aggressivity = 1.0;
 	vCoderContext->gop_size = mediaInfo.videoCodec.maxInter;
 	vCoderContext->max_b_frames = 0;
-	vCoderContext->me_method = ME_EPZS;
+//	vCoderContext->me_method = ME_EPZS;
 
 	vCoderContext->width = mediaInfo.videoCodec.width;
 	vCoderContext->height = mediaInfo.videoCodec.height;
@@ -684,6 +691,7 @@ bool OutputProcessor::initAudioPackager() {
 bool OutputProcessor::initVideoPackager() {
 	if (mediaInfo.proccessorType == RTP_ONLY) {
 		printf("RTP ONLY OutputProcessor\n");
+		seqnum_ = 0;
 	} else {
 		printf("FILE ONLY OutputProcessor: %s\n", mediaInfo.url.c_str());
 		vOutputFormatContext = avformat_alloc_context();
@@ -733,58 +741,58 @@ int OutputProcessor::packageAudio(unsigned char* inBuff, int inBuffLen,
 	return ret;
 }
 
-int OutputProcessor::packageVideo(unsigned char* inBuff, int inBuffLen,
-		unsigned char* outBuff) {
+//int OutputProcessor::packageVideo(unsigned char* inBuff, int inBuffLen,
+//		unsigned char* outBuff) {
 
-	if (videoPackager == 0) {
-		printf("No se ha inicailizado el codec de output vídeo RTP");
-		return -1;
-	}
-
-	if (mediaInfo.proccessorType == RTP_ONLY) {
-
-		int l = inBuffLen + RTP_HEADER_LEN;
-
-		rtpHeader * head = (rtpHeader*) outBuff;
-
-		timeval time;
-		gettimeofday(&time, NULL);
-		long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-
-		head->version = 2; //v = 2
-		head->extension = 0;
-		head->marker = 1; //n?0:1;
-		head->padding = 0;
-		head->cc = 0;
-//	head->seqnum = htons(vRTPInfo->seqNum++);
-		head->timestamp = htonl(millis);
-		head->ssrc = htonl(vRTPInfo->ssrc);
-		head->payloadtype = 34; //32;
-
-		outBuff += RTP_HEADER_LEN;
-
-		memcpy(outBuff, inBuff, inBuffLen);
-		return l;
-
-	} else {
-//		AVIOContext *c = avio_alloc_context((unsigned char*) outBuff, l, 1,
-//				NULL, NULL, NULL, NULL);
+//	if (videoPackager == 0) {
+//		printf("No se ha inicailizado el codec de output vídeo RTP");
+//		return -1;
+//	}
 //
-//		vOutputFormatContext->pb = c;
-//		vOutputFormatContext->flags = AVFMT_NOFILE;
+//	if (mediaInfo.proccessorType == RTP_ONLY) {
+//
+//		int l = inBuffLen + RTP_HEADER_LEN;
+//
+//		rtpHeader * head = (rtpHeader*) outBuff;
+//
+//		timeval time;
+//		gettimeofday(&time, NULL);
+//		long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+//
+//		head->version = 2; //v = 2
+//		head->extension = 0;
+//		head->marker = 1; //n?0:1;
+//		head->padding = 0;
+//		head->cc = 0;
+////	head->seqnum = htons(vRTPInfo->seqNum++);
+//		head->timestamp = htonl(millis);
+//		head->ssrc = htonl(vRTPInfo->ssrc);
+//		head->payloadtype = 34; //32;
+//
+//		outBuff += RTP_HEADER_LEN;
+//
+//		memcpy(outBuff, inBuff, inBuffLen);
+//		return l;
+//
+//	} else {
+////		AVIOContext *c = avio_alloc_context((unsigned char*) outBuff, l, 1,
+////				NULL, NULL, NULL, NULL);
+////
+////		vOutputFormatContext->pb = c;
+////		vOutputFormatContext->flags = AVFMT_NOFILE;
+//
+//		AVPacket pkt;
+//		av_init_packet(&pkt);
+//		pkt.data = (unsigned char*) inBuff;
+//		pkt.size = inBuffLen;
+//
+//		int ret = av_write_frame(vOutputFormatContext, &pkt);
+//
+//		av_free_packet(&pkt);
+////		av_free(c);
+//	}
 
-		AVPacket pkt;
-		av_init_packet(&pkt);
-		pkt.data = (unsigned char*) inBuff;
-		pkt.size = inBuffLen;
-
-		int ret = av_write_frame(vOutputFormatContext, &pkt);
-
-		av_free_packet(&pkt);
-//		av_free(c);
-	}
-
-}
+//}
 int OutputProcessor::packageVideo(AVPacket* pkt, unsigned char* outBuff) {
 	if (videoPackager == 0) {
 		printf("No se ha inicailizado el codec de output vídeo RTP");
@@ -793,37 +801,44 @@ int OutputProcessor::packageVideo(AVPacket* pkt, unsigned char* outBuff) {
 
 	if (mediaInfo.proccessorType == RTP_ONLY) {
 
-		int l = pkt->size + RTP_HEADER_LEN;
+//		return l;
+		printf("To packetize %u\n", pkt->size);
+		if (pkt->size <= 0)
+			return -1;
+		RtpFragmenter frag(pkt->data, pkt->size);
+		bool lastFrame = false;
+		unsigned int outlen = 0;
+		do {
+			outlen = 0;
+			frag.getPacket(outBuff, &outlen, &lastFrame);
+			unsigned int l = outlen + RTP_HEADER_LEN;
+//			memset(rtpBuffer_,0,PACKAGED_BUFFER_SIZE);
+			rtpHeader * head = (rtpHeader*) rtpBuffer_;
+			timeval time;
+			gettimeofday(&time, NULL);
+			long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
 
-		rtpHeader * head = (rtpHeader*) pkt->data;
-
-		timeval time;
-		gettimeofday(&time, NULL);
-		long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-
-		head->version = 2; //v = 2
-		head->extension = 0;
-		head->marker = 1; //n?0:1;
-		head->padding = 0;
-		head->cc = 0;
-//	head->seqnum = htons(vRTPInfo->seqNum++);
-		head->timestamp = htonl(millis);
-		head->ssrc = htonl(vRTPInfo->ssrc);
-		head->payloadtype = 34; //32;
-
-		outBuff += RTP_HEADER_LEN;
-
-		memcpy(outBuff, pkt->data, pkt->size);
-		return l;
+			head->version = 2; //v = 2
+			head->extension = 0;
+			head->marker = lastFrame ? 1 : 0;
+			head->padding = 0;
+			head->cc = 0;
+			head->seqnum = htons(seqnum_++);
+			head->timestamp = htonl(millis);//pkt->pts;
+			head->ssrc = htonl(5554);
+			head->payloadtype = 96;//100; //32;
+			//rtpBuffer_ += RTP_HEADER_LEN;
+			printf("outlen to write %u, lastframe %d\n", outlen, lastFrame, pkt->dts);
+			memcpy(&rtpBuffer_[RTP_HEADER_LEN], outBuff, outlen);
+			sink_->sendData(rtpBuffer_, l);
+		} while (!lastFrame);
 
 	} else {
 //		AVIOContext *c = avio_alloc_context((unsigned char*) outBuff, l, 1,
 //				NULL, NULL, NULL, NULL);
-//
 //		vOutputFormatContext->pb = c;
 //		vOutputFormatContext->flags = AVFMT_NOFILE;
 
-		printf("por aqui\n");
 		pkt->stream_index = 0;
 		int ret = av_write_frame(vOutputFormatContext, pkt);
 
@@ -886,56 +901,55 @@ int OutputProcessor::encodeAudio(unsigned char* inBuff, int nSamples,
 
 }
 
-int OutputProcessor::encodeVideo(unsigned char* inBuff, int inBuffLen,
-		unsigned char* outBuff, int outBuffLen) {
-
-	if (videoCoder == 0) {
-		printf("No se han inicializado los parámetros del videoCoder");
-		return -1;
-	}
-
-	int size = vCoderContext->width * vCoderContext->height;
-
-	cPicture->pts = AV_NOPTS_VALUE;
-	cPicture->data[0] = (unsigned char*) inBuff;
-	cPicture->data[1] = (unsigned char*) inBuff + size;
-	cPicture->data[2] = (unsigned char*) inBuff + size + size / 4;
-	cPicture->linesize[0] = vCoderContext->width;
-	cPicture->linesize[1] = vCoderContext->width / 2;
-	cPicture->linesize[2] = vCoderContext->width / 2;
-
-	AVPacket pkt;
-	int ret = 0;
-	int got_packet = 0;
-
-	if (outBuffLen < FF_MIN_BUFFER_SIZE) {
-		printf("buffer smaller than minimum size");
-		return -1;
-	}
-
-	av_init_packet(&pkt);
-	pkt.data = (unsigned char*) outBuff;
-	pkt.size = outBuffLen;
-
-	ret = avcodec_encode_video2(vCoderContext, &pkt, cPicture, &got_packet);
-
-	if (!ret && got_packet && vCoderContext->coded_frame) {
-		vCoderContext->coded_frame->pts = pkt.pts;
-		vCoderContext->coded_frame->key_frame = !!(pkt.flags & AV_PKT_FLAG_KEY);
-	}
-
-	/* free any side data since we cannot return it */
-	if (pkt.side_data_elems > 0) {
-		int i;
-		for (i = 0; i < pkt.side_data_elems; i++)
-			av_free(pkt.side_data[i].data);
-		av_freep(&pkt.side_data);
-		pkt.side_data_elems = 0;
-	}
-
-	return ret ? ret : pkt.size;
-
-}
+//int OutputProcessor::encodeVideo(unsigned char* inBuff, int inBuffLen,
+//		unsigned char* outBuff, int outBuffLen) {
+//
+//	if (videoCoder == 0) {
+//		printf("No se han inicializado los parámetros del videoCoder");
+//		return -1;
+//	}
+//
+//	int size = vCoderContext->width * vCoderContext->height;
+//
+//	cPicture->pts = AV_NOPTS_VALUE;
+//	cPicture->data[0] = (unsigned char*) inBuff;
+//	cPicture->data[1] = (unsigned char*) inBuff + size;
+//	cPicture->data[2] = (unsigned char*) inBuff + size + size / 4;
+//	cPicture->linesize[0] = vCoderContext->width;
+//	cPicture->linesize[1] = vCoderContext->width / 2;
+//	cPicture->linesize[2] = vCoderContext->width / 2;
+//
+//	AVPacket pkt;
+//	int ret = 0;
+//	int got_packet = 0;
+//
+//	if (outBuffLen < FF_MIN_BUFFER_SIZE) {
+//		printf("buffer smaller than minimum size");
+//		return -1;
+//	}
+//
+//	av_init_packet(&pkt);
+//	pkt.data = (unsigned char*) outBuff;
+//	pkt.size = outBuffLen;
+//
+//	ret = avcodec_encode_video2(vCoderContext, &pkt, cPicture, &got_packet);
+//
+//	if (!ret && got_packet && vCoderContext->coded_frame) {
+//		vCoderContext->coded_frame->pts = pkt.pts;
+//		vCoderContext->coded_frame->key_frame = !!(pkt.flags & AV_PKT_FLAG_KEY);
+//	}
+//
+//	/* free any side data since we cannot return it */
+////	if (pkt.side_data_elems > 0) {
+////		int i;
+////		for (i = 0; i < pkt.side_data_elems; i++)
+////			av_free(pkt.side_data[i].data);
+////		av_freep(&pkt.side_data);
+////		pkt.side_data_elems = 0;
+////	}
+//	return ret ? ret : pkt.size;
+//
+//}
 
 int OutputProcessor::encodeVideo(unsigned char* inBuff, int inBuffLen,
 		AVPacket* pkt) {
@@ -943,7 +957,6 @@ int OutputProcessor::encodeVideo(unsigned char* inBuff, int inBuffLen,
 		printf("No se han inicializado los parámetros del videoCoder");
 		return -1;
 	}
-
 	int size = vCoderContext->width * vCoderContext->height;
 
 	cPicture->pts = AV_NOPTS_VALUE;
@@ -956,9 +969,9 @@ int OutputProcessor::encodeVideo(unsigned char* inBuff, int inBuffLen,
 
 	int ret = 0;
 	int got_packet = 0;
-
+	printf("Before encoding\n");
 	ret = avcodec_encode_video2(vCoderContext, pkt, cPicture, &got_packet);
-
+	printf("Encoded video size %u, ret %d, got_packet %d\n", pkt->size, ret, got_packet);
 	if (!ret && got_packet && vCoderContext->coded_frame) {
 		vCoderContext->coded_frame->pts = pkt->pts;
 		vCoderContext->coded_frame->key_frame =

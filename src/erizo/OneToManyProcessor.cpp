@@ -16,20 +16,20 @@ OneToManyProcessor::OneToManyProcessor() :
 	sentPackets_ = 0;
 	ip = new InputProcessor();
 	MediaInfo m;
-	m.proccessorType= RTP_ONLY;
-	m.videoCodec.bitRate =2000000;
+	m.proccessorType = RTP_ONLY;
+	m.videoCodec.bitRate = 2000000;
 	printf("m.videoCodec.bitrate %d\n\n", m.videoCodec.bitRate);
 	m.videoCodec.height = 480;
 	m.videoCodec.width = 640;
 	ip->init(m, this);
 
-
 	MediaInfo om;
-	om.proccessorType = AVF;
-	om.videoCodec.bitRate =2000000;
+	om.proccessorType = RTP_ONLY;
+	om.videoCodec.bitRate = 500000;
 	printf("m.videoCodec.bitrate %d\n\n", om.videoCodec.bitRate);
 	om.videoCodec.height = 480;
 	om.videoCodec.width = 640;
+	om.videoCodec.frameRate = 24;
 	om.url = "file://tmp/test.mp4";
 	printf("Initiation outputprocessor\n");
 	op = new OutputProcessor();
@@ -62,8 +62,9 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len) {
 }
 
 int OneToManyProcessor::receiveVideoData(char* buf, int len) {
-
-	ip->receiveVideoData(buf,len);
+//	memset(sendVideoBuffer_, 0, len);
+	memcpy(sendVideoBuffer_, buf, len);
+	ip->receiveVideoData(sendVideoBuffer_, len);
 
 //	if (subscribers.empty() || len <= 0)
 //		return 0;
@@ -80,24 +81,20 @@ int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 //	return 0;
 }
 
-void OneToManyProcessor::receiveRawData(unsigned char* buf, int len){
+void OneToManyProcessor::receiveRawData(unsigned char* buf, int len) {
 	printf("Received %d\n", len);
-	op->receiveRawData(buf,len);
-//	free(buf);
+	op->receiveRawData(buf, len);
 }
 void OneToManyProcessor::setPublisher(WebRtcConnection* webRtcConn) {
-
 	this->publisher = webRtcConn;
 }
 
 void OneToManyProcessor::addSubscriber(WebRtcConnection* webRtcConn,
 		int peerId) {
 	this->subscribers[peerId] = webRtcConn;
-
 }
 
 void OneToManyProcessor::removeSubscriber(int peerId) {
-
 	if (this->subscribers.find(peerId) != subscribers.end()) {
 		this->subscribers[peerId]->close();
 		this->subscribers.erase(peerId);

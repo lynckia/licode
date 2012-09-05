@@ -79,6 +79,7 @@ typedef struct {
 #define RTP_HEADER_LEN 12
 
 #define UNPACKAGED_BUFFER_SIZE 50000
+#define PACKAGED_BUFFER_SIZE 1300
 //class MediaProcessor{
 //	MediaProcessor();
 //	virtual ~Mediaprocessor();
@@ -95,6 +96,8 @@ public:
 	;
 
 };
+
+class RTPSink;
 
 class InputProcessor: MediaReceiver {
 public:
@@ -164,7 +167,7 @@ public:
 
 	OutputProcessor();
 	virtual ~OutputProcessor();
-	int init(const MediaInfo &info);
+	int init(const MediaInfo& info);
 
 	void receiveRawData(unsigned char*data, int len);
 
@@ -176,8 +179,11 @@ private:
 	int audioPackager;
 	int videoPackager;
 
+	unsigned int seqnum_;
+
 	unsigned char* encodedBuffer_;
 	unsigned char* packagedBuffer_;
+	unsigned char* rtpBuffer_;
 
 	MediaInfo mediaInfo;
 
@@ -191,7 +197,8 @@ private:
 	AVFormatContext* aOutputFormatContext;
 	AVOutputFormat* aOutputFormat;
 
-	RTPInfo* vRTPInfo;
+	RTPInfo* vRTPInfo_;
+	RTPSink* sink_;
 
 	AVFormatContext* vOutputFormatContext;
 	AVOutputFormat* vOutputFormat;
@@ -208,15 +215,15 @@ private:
 
 	int encodeAudio(unsigned char* inBuff, int nSamples,
 			unsigned char* outBuff);
-	int encodeVideo(unsigned char* inBuff, int inBuffLen,
-			unsigned char* outBuff, int outBuffLen);
+//	int encodeVideo(unsigned char* inBuff, int inBuffLen,
+//			unsigned char* outBuff, int outBuffLen);
 
 	int encodeVideo(unsigned char* inBuff, int inBuffLen, AVPacket* pkt);
 
 	int packageAudio(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);
-	int packageVideo(unsigned char* inBuff, int inBuffLen,
-			unsigned char* outBuff);
+//	int packageVideo(unsigned char* inBuff, int inBuffLen,
+//			unsigned char* outBuff);
 	int packageVideo(AVPacket* pkt, unsigned char* outBuff);
 };
 } /* namespace erizo */
