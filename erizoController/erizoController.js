@@ -89,11 +89,11 @@ var updateMyState = function() {
     }
 
     if(nRooms < WARNING_N_ROOMS) newState = 2;
-    if(nRooms > LIMIT_N_ROOMS) newState = 0;
+    else if(nRooms > LIMIT_N_ROOMS) newState = 0;
     else newState = 1;
 
     if(newState == myState) return;
-
+    
     myState = newState;
 
     var info = {id: myId, state: myState};
@@ -263,6 +263,26 @@ exports.getUsersInRoom = function(room, callback) {
     }
 
     callback(users);
+}
+
+/*
+ * Delete a determined room.
+ */
+exports.deleteRoom = function(room, callback) {
+    if(rooms[room] === undefined) {
+        callback('Success');
+        return;
+    }
+    var sockets = rooms[room].sockets;
+
+    for(var id in sockets) {   
+        rooms[room].webRtcController.removeClient(sockets[id]);  
+    }
+    console.log('Deleting room ', room, rooms);
+    delete rooms[room];
+    updateMyState();
+    console.log('1 Deleting room ', room, rooms);
+    callback('Success');
 }
 
 var checkSignature = function(token, key) {

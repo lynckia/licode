@@ -14,5 +14,10 @@ exports.getUsersInRoom = function(id, callback) {
             callback(users);
         }
     });
+}
 
+exports.deleteRoom = function(roomId, callback) {
+    erizoController.deleteRoom(roomId, function(result) {
+        callback(result);
+    });
 }
