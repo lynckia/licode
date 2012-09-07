@@ -29,8 +29,13 @@ exports.getErizoControllerForRoom = function(roomId, callback) {
 }
 
 exports.getUsersInRoom = function(id, callback) {
-
     cloudHandler.getUsersInRoom(id, function(users) {
     	callback(users);
+    });
+}
+
+exports.deleteRoom = function(roomId, callback) {
+	cloudHandler.deleteRoom(roomId, function(result) {
+	   	callback(result);
     });
 }

@@ -28,6 +28,7 @@ exports.create = function(req, res) {
 	doInit(req.params.room, function() {
 
 		if (this.service == undefined) {
+			console.log('Service not found');
 			res.send('Service not found', 404);
 			return;
 		} else if (this.room == undefined) {
@@ -76,41 +77,45 @@ var generateToken = function(callback) {
 	token.service = this.service._id;
 	token.creationDate = new Date();
 
+	var r = '' +  this.room._id;
+	var tr = undefined; 
+
 	if (this.service.testRoom !== undefined) {
-		var r = '' +  this.room._id;
-		var tr = '' + this.service.testRoom._id;
+		tr = '' + this.service.testRoom._id;
+	}
 
-		if(tr == r) {
-			if (this.service.testToken === undefined) {
-				token.use = 0;
-				token.host = dataBase.testErizoController;
+	if (tr == r) {
 
-				console.log('Creating testToken');
+		if (this.service.testToken === undefined) {
+			token.use = 0;
+			token.host = dataBase.testErizoController;
 
-				tokenRegistry.addToken(token, function(id) {
+			console.log('Creating testToken');
 
-					token._id = id;
-					this.service.testToken = token;
-					serviceRegistry.updateService(this.service);
+			tokenRegistry.addToken(token, function(id) {
 
-					var tokenS = getTokenString(id, token);
-					callback(tokenS);
-					return;
-				});
+				token._id = id;
+				this.service.testToken = token;
+				serviceRegistry.updateService(this.service);
 
-			} else {
-				
-				token = this.service.testToken;
-
-				console.log('TestToken already exists, sending it', token);
-			
-				var tokenS = getTokenString(token._id, token);
+				var tokenS = getTokenString(id, token);
 				callback(tokenS);
 				return;
+			});
 
-			}		
-		}
+		} else {
+			
+			token = this.service.testToken;
+
+			console.log('TestToken already exists, sending it', token);
+		
+			var tokenS = getTokenString(token._id, token);
+			callback(tokenS);
+			return;
+
+		}		
 	} else {
+
 		rpc.callRpc('cloudHandler', 'getErizoControllerForRoom', this.room._id, function(ec) {
 
 			if (ec == 'timeout') {
@@ -127,8 +132,6 @@ var generateToken = function(callback) {
 			});
 		});
 	}
-	
-	
 }
 
 

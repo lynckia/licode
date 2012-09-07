@@ -1,5 +1,6 @@
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
+var rpc = require('./../rpc/rpc');
 
 var service;
 var room;
@@ -37,7 +38,7 @@ exports.represent = function(req, res) {
 };
 
 /*
- * Delete Room. Removes a determined room from the data base.
+ * Delete Room. Removes a determined room from the data base and asks cloudHandler to remove ir from erizoController.
  */
 exports.deleteRoom = function(req, res) {
 	doInit(req.params.room, function() {
@@ -64,6 +65,7 @@ exports.deleteRoom = function(req, res) {
 				this.service.rooms.splice(index, 1);
 				serviceRegistry.updateService(this.service);
 				console.log('Room ', id, ' deleted for service ', this.service._id);
+				rpc.callRpc('cloudHandler', 'deleteRoom', id, function() {});
 				res.send('Room deleted');
 			}
 		}

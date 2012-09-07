@@ -152,5 +152,17 @@ exports.getUsersInRoom = function(roomId, callback) {
 	});
 }
 
+exports.deleteRoom = function(roomId, callback) {
+	if (rooms[roomId] === undefined) {
+		callback('Success');
+		return;
+	}
+
+	var rpcID = erizoControllers[rooms[roomId]].rpcID;
+	rpc.callRpc(rpcID, 'deleteRoom', roomId, function(result) {
+		callback(result);
+	});
+}
+
 
 
