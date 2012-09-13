@@ -64,8 +64,8 @@ typedef struct {
 	uint32_t seqnum :16;
 	uint32_t timestamp;
 	uint32_t ssrc;
-	uint32_t extId:16;
-	uint32_t extLength:16;
+	uint32_t extId :16;
+	uint32_t extLength :16;
 } rtpHeader;
 
 typedef struct {
@@ -78,8 +78,8 @@ typedef struct {
 
 #define RTP_HEADER_LEN 12
 
-#define UNPACKAGED_BUFFER_SIZE 50000
-#define PACKAGED_BUFFER_SIZE 1300
+#define UNPACKAGED_BUFFER_SIZE 150000
+#define PACKAGED_BUFFER_SIZE 2000
 //class MediaProcessor{
 //	MediaProcessor();
 //	virtual ~Mediaprocessor();
@@ -94,7 +94,14 @@ public:
 	virtual ~RawDataReceiver() {
 	}
 	;
+};
 
+class RTPDataReceiver {
+public:
+	virtual void receiveRtpData(unsigned char*rtpdata, int len) = 0;
+	virtual ~RTPDataReceiver() {
+	}
+	;
 };
 
 class RTPSink;
@@ -124,7 +131,6 @@ private:
 
 	unsigned char* decodedBuffer_;
 	unsigned char* unpackagedBuffer_;
-
 
 	AVCodec* aDecoder;
 	AVCodecContext* aDecoderContext;
@@ -167,7 +173,7 @@ public:
 
 	OutputProcessor();
 	virtual ~OutputProcessor();
-	int init(const MediaInfo& info);
+	int init(const MediaInfo& info, RTPDataReceiver* rtpReceiver);
 
 	void receiveRawData(unsigned char*data, int len);
 
@@ -181,11 +187,15 @@ private:
 
 	unsigned int seqnum_;
 
+	unsigned long timestamp_;
+
 	unsigned char* encodedBuffer_;
 	unsigned char* packagedBuffer_;
 	unsigned char* rtpBuffer_;
 
 	MediaInfo mediaInfo;
+
+	RTPDataReceiver* rtpReceiver_;
 
 	AVCodec* aCoder;
 	AVCodecContext* aCoderContext;
@@ -202,8 +212,6 @@ private:
 
 	AVFormatContext* vOutputFormatContext;
 	AVOutputFormat* vOutputFormat;
-
-	MediaReceiver* Receiver;
 
 	RtpParser pars;
 

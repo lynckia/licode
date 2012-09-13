@@ -28,7 +28,7 @@ RTPSink::~RTPSink() {
 }
 
 int RTPSink::sendData(unsigned char* buffer, int len) {
-	printf("sending %u bytes\n", len);
+//	printf("sending %u bytes\n", len);
 	socket_->send_to(boost::asio::buffer(buffer, len), *iterator_);
 
 	return len;

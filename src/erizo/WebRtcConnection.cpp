@@ -260,7 +260,6 @@ int WebRtcConnection::receiveVideoData(char* buf, int len) {
 	int res = -1;
 	int length = len;
 	if (videoSrtp_ && videoNice_->iceState == READY) {
-		//		printf("protect\n");
 		videoSrtp_->protectRtp(buf, &length);
 	}
 	if (length <= 10)

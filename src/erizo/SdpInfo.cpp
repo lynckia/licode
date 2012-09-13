@@ -134,7 +134,7 @@ std::string SdpInfo::getSdp() {
 		}
 		if (cand.mediaType == VIDEO_TYPE) {
 			if (!printedVideo) {
-				sdp << "m=video " << cand.hostPort << " RTP/SAVPF 100 101 102\n"
+				sdp << "m=video " << cand.hostPort << " RTP/SAVPF 100 101 102\n"//" RTP/SAVPF 100 101 102\n"
 						<< "c=IN IP4 " << cand.hostAddress
 						<< endl << "a=rtcp:" << candidateVector_[0].hostPort
 						<< " IN IP4 " << cand.hostAddress

@@ -14,12 +14,13 @@
 
 namespace erizo{
 class WebRtcConnection;
+class RTPSink;
 
 /**
  * Represents a One to Many connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class OneToManyProcessor : public MediaReceiver, public RawDataReceiver {
+class OneToManyProcessor : public MediaReceiver, public RawDataReceiver, public RTPDataReceiver {
 public:
 	WebRtcConnection *publisher;
 	std::map<int, WebRtcConnection*> subscribers;
@@ -45,6 +46,7 @@ public:
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
 	void receiveRawData (unsigned char* buf, int len);
+	void receiveRtpData(unsigned char*rtpdata, int len);
 
 //	MediaProcessor *mp;
 	InputProcessor* ip;
@@ -60,6 +62,7 @@ private:
 	char* unpackagedBuffer_;
 	char* decodedBuffer_;
 	char* codedBuffer_;
+	RTPSink* sink_;
 	std::vector<packet> head;
 	int gotFrame_,gotDecodedFrame_, size_;
 	void sendHead(WebRtcConnection* conn);
