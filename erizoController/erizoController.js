@@ -1,6 +1,7 @@
 var crypto = require('crypto');
 var rpc = require('./rpc/rpc');
 var controller = require('./webRtcController');
+var ST = require('./Stream');
 var io = require('socket.io').listen(8080);
 
 io.set('log level', 1);
@@ -146,7 +147,7 @@ var listen = function() {
                             room.id = tokenDB.room;
                             room.sockets = [];
                             room.sockets.push(socket.id);
-                            room.streams = [];
+                            room.streams = {}; //streamId: Stream
                             room.webRtcController = new controller.WebRtcController();
                             rooms[tokenDB.room] = room;
                             updateMyState();
@@ -156,9 +157,16 @@ var listen = function() {
                         var user = {name: tokenDB.userName, role: tokenDB.role};
                         socket.room = rooms[tokenDB.room];
                         socket.user = user;
+                        socket.streams = []; //[list of streamIds]
+                        socket.state = 'sleeping';
                         console.log('OK, Valid token');
 
-                        callback('success', {streams: socket.room.streams, id: socket.room.id});
+                        var streamList = [];
+                        for(var i in socket.room.streams) {
+                            streamList.push(socket.room.streams[i].getPublicStream());
+                        }
+
+                        callback('success', {streams: streamList, id: socket.room.id});
                     
                     } else {
                         console.log('Invalid host');
@@ -173,68 +181,130 @@ var listen = function() {
             }
         });
 
-        //Gets 'publish' messages on the socket in order to add new stream to the room.
-        socket.on('publish', function(state, sdp, callback) {
-
-            if (state === 'offer' && socket.state === undefined) {
-                socket.room.webRtcController.addPublisher(socket.id, sdp, function (answer) {
-                    socket.state = 'waitingOk';
-                    callback(answer, socket.id);
-                });
-
-            } else if (state === 'ok' && socket.state === 'waitingOk') {
-                socket.state = 'publishing';
-                socket.stream = socket.id;
-                socket.room.streams.push(socket.stream);
-                sendMsgToRoom(socket.room, 'onAddStream', socket.stream);
-            }
+        //Gets 'ssendDataStream' messages on the socket in order to write a message in a dataStream.
+        socket.on('sendDataStream', function(msg) {
+            var sockets = socket.room.streams[msg.id].getDataSubscribers(); 
+            for(var id in sockets) {
+                console.log('Sending dataStream to', sockets[id], 'in stream ', msg.id, 'mensaje', msg.msg);
+                io.sockets.socket(sockets[id]).emit('onDataStream', msg);    
+            } 
         });
 
-        //Gets 'subscribe' messages on the socket in order to add new subscriber to a determined stream (to).
-        socket.on('subscribe', function(to, sdp, callback) {
-            socket.room.webRtcController.addSubscriber(socket.id, to, sdp, function (answer) {
-                callback(answer);
-            });
+        //Gets 'publish' messages on the socket in order to add new stream to the room.
+        socket.on('publish', function(options, sdp, callback) {
+            
+            if (options.state !== 'data') {
+                if (options.state === 'offer' && socket.state === 'sleeping') {
+                    var id = Math.random()*100000000000000000;
+                    socket.room.webRtcController.addPublisher(id, sdp, function (answer) {
+                        socket.state = 'waitingOk';
+                        callback(answer, id);
+                    });
+
+                } else if (options.state === 'ok' && socket.state === 'waitingOk') {
+                    var st = new ST.Stream({id: options.streamId, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
+                    socket.state = 'sleeping';
+                    socket.streams.push(options.streamId);
+                    socket.room.streams[options.streamId] = st;
+                    sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
+                }
+            } else {
+                var id = Math.random()*100000000000000000;
+                var st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
+                socket.streams.push(id);
+                socket.room.streams[id] = st;
+                sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
+                callback(undefined, id);
+            }
+
+        });
+
+        //Gets 'subscribe' messages on the socket in order to add new subscriber to a determined stream (options.streamId).
+        socket.on('subscribe', function(options, sdp, callback) {
+
+            if (socket.room.streams[options.streamId] === undefined) {
+                return;
+            }
+
+            socket.room.streams[options.streamId].addDataSubscriber(socket.id);
+            
+            if(socket.room.streams[options.streamId].hasAudio() && socket.room.streams[options.streamId].hasVideo()) {
+                socket.room.webRtcController.addSubscriber(socket.id, options.streamId, sdp, function (answer) {
+                    callback(answer);
+                });
+            } else {
+                callback(undefined);
+            }
+            
         });
 
         //Gets 'unpublish' messages on the socket in order to remove a stream from the room.
-        socket.on('unpublish', function() {
+        socket.on('unpublish', function(streamId) {
 
-            sendMsgToRoom(socket.room, 'onRemoveStream', socket.stream);
-            var index = socket.room.streams.indexOf(socket.id);
-            if(index !== -1) {
-                socket.room.streams.splice(index, 1);
+            sendMsgToRoom(socket.room, 'onRemoveStream', {id: streamId});
+
+            if(socket.room.streams[streamId].hasAudio() && socket.room.streams[streamId].hasVideo()) {
+                socket.state = 'sleeping';
+                socket.room.webRtcController.removePublisher(streamId);
             }
-            socket.state = undefined;
-            socket.stream = undefined;
-            socket.room.webRtcController.removePublisher(socket.id);
+
+            for(var i in socket.room.streams) {
+                socket.room.streams[i].removeDataSubscriber(socket.id);
+            }
+
+            var index = socket.streams.indexOf(streamId);
+            if(index !== -1) {
+                socket.streams.splice(index, 1);
+            }
+            if (socket.room.streams[streamId]) {
+                delete socket.room.streams[streamId];
+            }
+
         });
 
         //Gets 'unsubscribe' messages on the socket in order to remove a subscriber from a determined stream (to).
         socket.on('unsubscribe', function(to) {
-            socket.room.webRtcController.removeSubscriber(socket.id, to);
+
+            socket.room.streams[to].removeDataSubscriber(socket.id);
+           
+            if (socket.room.streams[to].audio && socket.room.streams[to].video) {
+                socket.room.webRtcController.removeSubscriber(socket.id, to);
+            }
+            
         });
 
-        //When a client leaves the room erizoController removes its stream from the room if exists.  
+        //When a client leaves the room erizoController removes its streams from the room if exists.  
         socket.on('disconnect', function () {
 
             console.log('Socket disconnect ', socket.id);
         
-            if(socket.stream !== undefined) {
-                sendMsgToRoom(socket.room, 'onRemoveStream', socket.stream);
-            } 
+            for(var i in socket.streams) {
+                sendMsgToRoom(socket.room, 'onRemoveStream', {id: socket.streams[i]});
+            }
 
             if(socket.room !== undefined) {
+
+                for(var i in socket.room.streams) {
+                    socket.room.streams[i].removeDataSubscriber(socket.id);
+                }
+
                 var index = socket.room.sockets.indexOf(socket.id);
                 if(index !== -1) {
                     socket.room.sockets.splice(index, 1);
                 }
-                index = socket.room.streams.indexOf(socket.id);
-                if(index !== -1) {
-                    socket.room.streams.splice(index, 1);
+                for(var i in socket.streams) {
+                    var id = socket.streams[i];
+
+                    if (socket.room.streams[id].hasAudio() && socket.room.streams[id].hasVideo()) {
+                        socket.room.webRtcController.removeClient(socket.id, id);
+                    }; 
+
+                    if (socket.room.streams[id]) {
+                        delete socket.room.streams[id];
+                    }  
                 }
-                socket.room.webRtcController.removeClient(socket.id);
             } 
+
             if (socket.room.sockets.length == 0) {
                 console.log('Empty room ' , socket.room.id, '. Deleting it');
                 delete rooms[socket.room.id];

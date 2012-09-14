@@ -1,0 +1,52 @@
+exports.Stream = function(spec) {
+
+    var that = {};
+
+    var dataSubscribers = [];
+
+    that.getID = function() {
+       return spec.id;
+    };
+
+    // Indicates if the stream has audio activated
+    that.hasAudio = function () {
+       return spec.audio;
+    };
+
+    // Indicates if the stream has video activated
+    that.hasVideo = function () {
+       return spec.video;
+    };
+
+    // Indicates if the stream has video activated
+    that.hasData = function () {
+       return spec.data;
+    };
+
+    that.getAttributes = function() {
+       return spec.attributes;
+    };
+
+    that.getDataSubscribers = function() {
+        return dataSubscribers;
+    }
+
+    that.addDataSubscriber = function(id) {
+        if (dataSubscribers.indexOf(id) === -1) {
+            dataSubscribers.push(id);
+        }
+    }
+
+    that.removeDataSubscriber = function(id) {
+        var index = dataSubscribers.indexOf(id);
+        if(index !== -1) {
+            dataSubscribers.splice(index, 1);
+        }
+    }
+
+    that.getPublicStream = function() {
+        return {id: spec.id, audio: spec.audio, video: spec.video, data: spec.data, attributes: spec.attributes};
+    }
+
+    return that;
+}
