@@ -11,8 +11,9 @@
  */
 var Room = function (spec) {
     "use strict";
-    var that = EventDispatcher(spec), connectSocket, sendMessageSocket, sendSDPSocket, removeStream, DISCONNECTED = 0, CONNECTING = 1, CONNECTED = 2; 
-    that.streams = {};
+    var that = EventDispatcher(spec), connectSocket, sendMessageSocket, sendSDPSocket, sendDataSocket, removeStream, DISCONNECTED = 0, CONNECTING = 1, CONNECTED = 2; 
+    that.remoteStreams = {};
+    that.localStreams = {};
     that.roomID = '';
     that.socket = {};
     that.state = DISCONNECTED;
@@ -22,21 +23,24 @@ var Room = function (spec) {
         that.state = DISCONNECTED;
 
         // Remove all streams
-        for (index in that.streams) {
-            if (that.streams.hasOwnProperty(index)) {
-                var stream = that.streams[index];
+        for (index in that.remoteStreams) {
+            if (that.remoteStreams.hasOwnProperty(index)) {
+                var stream = that.remoteStreams[index];
                 removeStream(stream);
-                delete that.streams[index];
+                delete that.remoteStreams[index];
                 var evt = StreamEvent({type: 'stream-removed', stream: stream});
                 that.dispatchEvent(evt);
             }
         }
-        that.streams = {};
+        that.remoteStreams = {};
 
-        // Close Peer Connection
-        if (spec.publisher !== undefined) {
-            spec.publisher.pc.close();
-            spec.publisher.pc = undefined;
+        // Close Peer Connections
+        for (index in that.localStreams) {
+            if (that.localStreams.hasOwnProperty(index)) {
+                var stream = that.localStreams[index];
+                removeStream(stream);
+                delete that.localStreams[index];
+            }
         }
 
         // Close socket
@@ -54,12 +58,18 @@ var Room = function (spec) {
     removeStream = function(stream) {
         if (stream.stream !== undefined) {
             // Remove HTML element
-            stream.player.destroy();
+            stream.hide();
 
             // Close PC stream
             stream.pc.close();
         }
-    }
+    };
+
+    sendDataSocket = function(stream, msg) {
+        if (stream.local) {
+            sendMessageSocket("sendDataStream", {id: stream.getID(), msg: msg});
+        }
+    };
 
     // It connects to the server through socket.io
     connectSocket = function (token, callback, error) {
@@ -68,18 +78,27 @@ var Room = function (spec) {
         //that.socket = io.connect("hpcm.dit.upm.es:8080", {reconnect: false});
         that.socket = io.connect(token.host, {reconnect: false});
 
-        // We receive an event with a new stream in the room
-        that.socket.on('onAddStream', function (id) {
-            var stream = Stream({streamID: id})
-            that.streams[id] = stream;
+        // We receive an event with a new stream in the room.
+        // type can be "media" or "data"
+        that.socket.on('onAddStream', function (arg) {
+            console.log(arg);
+            var stream = Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, attributes: arg.attributes});
+            that.remoteStreams[arg.id] = stream;
             var evt = StreamEvent({type: 'stream-added', stream: stream});
             that.dispatchEvent(evt);
         });
 
+        // We receive an event of new data in one of the streams
+        that.socket.on('onDataStream', function (arg) {
+            var stream = that.remoteStreams[arg.id];
+            var evt = StreamEvent({type: 'stream-data', msg: arg.msg});
+            stream.dispatchEvent(evt);
+        });
+
         // We receive an event of a stream removed from the room
-        that.socket.on('onRemoveStream', function (id) {
-            var stream = that.streams[id];
-            delete that.streams[id];
+        that.socket.on('onRemoveStream', function (arg) {
+            var stream = that.remoteStreams[arg.id];
+            delete that.remoteStreams[arg.id];
             removeStream(stream);
             var evt = StreamEvent({type: 'stream-removed', stream: stream});
             that.dispatchEvent(evt);
@@ -112,9 +131,11 @@ var Room = function (spec) {
     };
 
     // It sends a SDP message to the server using socket.io
-    sendSDPSocket = function (type, state, sdp, callback) {
-        that.socket.emit(type, state, sdp, function (response, respCallback) {
-            callback(response, respCallback);
+    sendSDPSocket = function (type, options, sdp, callback) {
+        that.socket.emit(type, options, sdp, function (response, respCallback) {
+            if (callback !== undefined) {
+                callback(response, respCallback);
+            }
         });
     };
 
@@ -140,9 +161,10 @@ var Room = function (spec) {
             // 2- Retrieve list of streams
             for (index in streams) {
                 if (streams.hasOwnProperty(index)) {
-                    stream = Stream({streamID: streams[index], stream: undefined});
+                    var arg = streams[index];
+                    stream = Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, attributes: arg.attributes});
                     streamList.push(stream);
-                    that.streams[streams[index]] = stream;
+                    that.remoteStreams[arg.id] = stream;
                 }
             }
 
@@ -165,57 +187,95 @@ var Room = function (spec) {
         that.dispatchEvent(disconnectEvt);
     };
 
-    // It publishes the local stream given by publisher. Once it is added it throws a 
+    // It publishes the stream provided as argument. Once it is added it throws a 
     // StreamEvent("stream-added").
-    that.publish = function (publisher) {
-        spec.publisher = publisher;
-        publisher.room = that;
+    that.publish = function (stream) {
 
-        // 1- Publish Stream to Erizo-Controller
-        publisher.pc = new RoapConnection("STUN stun.l.google.com:19302", function(offer){
-            sendSDPSocket('publish', 'offer', offer, function (answer, id) {
-                publisher.pc.onsignalingmessage = function (ok) {
-                    publisher.pc.onsignalingmessage = function() {};
-                    sendSDPSocket('publish', 'ok', ok);
-                    L.Logger.info('Stream published ' + ok);
-                    publisher.stream.streamID = id;
-                };
-                publisher.pc.processSignalingMessage(answer);
-            });
-        });
-        publisher.pc.addStream(publisher.stream.stream);
+        // 1- If the stream is not local we do nothing.
+        if (stream.local && that.localStreams[stream.getID()] === undefined) {
+
+            
+            
+            // 2- Publish Media Stream to Erizo-Controller
+            if (stream.hasAudio() || stream.hasVideo()) {
+                stream.pc = new RoapConnection("STUN stun.l.google.com:19302", function(offer){
+                    sendSDPSocket('publish', {state:'offer', data: true, audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
+                        stream.pc.onsignalingmessage = function (ok) {
+                            stream.pc.onsignalingmessage = function() {};
+                            sendSDPSocket('publish', {state:'ok',streamId:id, data: true, audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, ok);
+                            L.Logger.info('Stream published');
+                            stream.getID = function() {
+                                return id;
+                            };
+                            stream.sendData = function(msg) {
+                                sendDataSocket(stream, msg);
+                            };
+                            that.localStreams[id] = stream;
+                        };
+                        stream.pc.processSignalingMessage(answer);
+                    });
+                });
+                stream.pc.addStream(stream.stream);
+            } else if (stream.hasData()) {
+                // 3- Publish Data Stream
+                sendSDPSocket('publish', {state: 'data', data: true, audio: false, video: false, attributes: stream.getAttributes()}, undefined, function (answer, id) {
+                    L.Logger.info('Stream published');
+                    stream.getID = function() {
+                        return id;
+                    };
+                    stream.sendData = function(msg) {
+                        sendDataSocket(stream, msg);
+                    };
+                    that.localStreams[id] = stream;
+                });
+            } else {
+                // Invalid stream
+            }
+        }
     };
 
     // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
-    that.unpublish = function () {
+    that.unpublish = function (stream) {
 
         // Unpublish stream from Erizo-Controller
-        sendMessageSocket('unpublish', undefined);
-
+        if (stream.local) {
+            // Media stream
+            sendMessageSocket('unpublish', stream.getID());
+        }
     };
 
     // It subscribe to a remote stream and draws it inside the HTML tag given by the ID='elementID'
-    that.subscribe = function (stream, elementID) {
-        stream.elementID = elementID;
+    that.subscribe = function (stream) {
 
-        // 1- Subscribe to Stream
-        stream.pc = new RoapConnection("STUN stun.l.google.com:19302", function (offer){
-            sendSDPSocket('subscribe', stream.streamID, offer, function (answer) {
-                stream.pc.processSignalingMessage(answer);
+        if (!stream.local) {
 
-            });
-        });
+            if(stream.hasVideo() || stream.hasAudio()) {
+                // 1- Subscribe to Stream
+                stream.pc = new RoapConnection("STUN stun.l.google.com:19302", function (offer){
+                    sendSDPSocket('subscribe', {streamId:stream.getID()}, offer, function (answer) {
+                        stream.pc.processSignalingMessage(answer);
 
-        stream.pc.onaddstream = function (evt) {
-            // Draw on html
-            L.Logger.info('Stream subscribed');
-            stream.stream = evt.stream;
-            var player = new VideoPlayer({id: stream.streamID, stream: stream.stream, elementID: elementID});
-            stream.player = player;
-        };
+                    });
+                });
 
-        // Subscribe to stream stream
-        L.Logger.info("Subscribing to: " + stream.streamID);
+                stream.pc.onaddstream = function (evt) {
+                    // Draw on html
+                    L.Logger.info('Stream subscribed');
+                    stream.stream = evt.stream;
+                    var evt2 = StreamEvent({type: 'stream-subscribed', stream: stream});
+                    that.dispatchEvent(evt2);
+                };
+            } else if (stream.hasData()) {
+                sendSDPSocket('subscribe', {streamId:stream.getID()}, undefined, function(answer) {
+                    L.Logger.info('Stream subscribed');
+                    var evt = StreamEvent({type: 'stream-subscribed', stream: stream});
+                    that.dispatchEvent(evt);
+                });
+            }
+
+            // Subscribe to stream stream
+            L.Logger.info("Subscribing to: " + stream.getID());
+        }
     };
 
     // It unsubscribes from the stream, removing the HTML element.
@@ -223,11 +283,13 @@ var Room = function (spec) {
         
         // Unsubscribe from stream stream
         if (that.socket !== undefined) {
-            sendMessageSocket('unsubscribe', stream.streamID, function() {
-                removeStream(stream);
-            }, function() {
-                L.Logger.error("Error calling unsubscribe.");
-            });
+            if (!stream.local) {
+                sendMessageSocket('unsubscribe', stream.getID(), function() {
+                    removeStream(stream);
+                }, function() {
+                    L.Logger.error("Error calling unsubscribe.");
+                });
+            }
         } else {
             callback();
         }
