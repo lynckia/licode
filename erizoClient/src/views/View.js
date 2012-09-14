@@ -2,9 +2,9 @@
  * View class represents a HTML component
  * Every view is an EventDispatcher.
  */
-
-var View = function(spec) {
-    var that = EventDispatcher({});
+var Erizo = Erizo || {};
+Erizo.View = function(spec) {
+    var that = Erizo.EventDispatcher({});
 
     // Variables
 

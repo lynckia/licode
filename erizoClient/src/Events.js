@@ -2,7 +2,8 @@
  * Class EventDispatcher provides event handling to sub-classes.
  * It is inherited from Publisher, Room, etc.
  */
-var EventDispatcher = function (spec) {
+var Erizo = Erizo || {};
+Erizo.EventDispatcher = function (spec) {
     "use strict";
     var that = {};
     // Private vars
@@ -52,7 +53,7 @@ var EventDispatcher = function (spec) {
  * A LynckiaEvent can be initialized this way:
  * var event = LynckiaEvent({type: "room-connected"});
  */
-var LynckiaEvent = function (spec) {
+Erizo.LynckiaEvent = function (spec) {
     "use strict";
     var that = {};
 
@@ -71,9 +72,9 @@ var LynckiaEvent = function (spec) {
  * 'room-connected' - points out that the user has been successfully connected to the room.
  * 'room-disconnected' - shows that the user has been already disconnected.
  */
-var RoomEvent = function (spec) {
+Erizo.RoomEvent = function (spec) {
     "use strict";
-    var that = LynckiaEvent(spec);
+    var that = Erizo.LynckiaEvent(spec);
 
     // A list with the streams that are published in the room.
     that.streams = spec.streams;
@@ -89,9 +90,9 @@ var RoomEvent = function (spec) {
  * 'stream-added' - indicates that there is a new stream available in the room.
  * 'stream-removed' - shows that a previous available stream has been removed from the room.
  */
-var StreamEvent = function (spec) {
+Erizo.StreamEvent = function (spec) {
     "use strict";
-    var that = LynckiaEvent(spec);
+    var that = Erizo.LynckiaEvent(spec);
 
     // The stream related to this event.
     that.stream = spec.stream;
@@ -108,9 +109,9 @@ var StreamEvent = function (spec) {
  * Event types:
  * 'access-accepted' - indicates that the user has accepted to share his camera and microphone
  */
-var PublisherEvent = function (spec) {
+Erizo.PublisherEvent = function (spec) {
     "use strict";
-    var that = LynckiaEvent(spec);
+    var that = Erizo.LynckiaEvent(spec);
 
     return that;
 };

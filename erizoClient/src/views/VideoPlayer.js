@@ -3,8 +3,9 @@
  * Ex.: var player = VideoPlayer({id: id, stream: stream, elementID: elementID});
  * A VideoPlayer is also a View component.
  */
-var VideoPlayer = function(spec) {
-    var that = View({});
+var Erizo = Erizo || {};
+Erizo.VideoPlayer = function(spec) {
+    var that = Erizo.View({});
 
     // Variables
 
@@ -70,7 +71,7 @@ var VideoPlayer = function(spec) {
     that.div.appendChild(that.video);
 
     // Bottom Bar
-    that.bar = new Bar({elementID: 'player_' + that.id, id: that.id, video: that.video});
+    that.bar = new Erizo.Bar({elementID: 'player_' + that.id, id: that.id, video: that.video});
 
     that.div.onmouseover = onmouseover;
     that.div.onmouseout = onmouseout;

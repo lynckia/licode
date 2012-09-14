@@ -4,8 +4,9 @@
  * Every Bar is a View.
  * Ex.: var bar = Bar({elementID: element, id: id});
  */
-var Bar = function(spec) {
-    var that = View({});
+var Erizo = Erizo || {};
+Erizo.Bar = function(spec) {
+    var that = Erizo.View({});
 
     var waiting = undefined;
 
@@ -63,7 +64,7 @@ var Bar = function(spec) {
     that.link.appendChild(that.logo);
 
     // Speaker component
-    that.speaker = new Speaker({elementID: 'bar_'+that.id, id: that.id, video: spec.video});
+    that.speaker = new Erizo.Speaker({elementID: 'bar_'+that.id, id: that.id, video: spec.video});
     that.display();
     that.hide();
     return that;

@@ -2,9 +2,10 @@
  * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC stream
  * and identify the stream and where it should be drawn.
  */
-var Stream = function (spec) {
+var Erizo = Erizo || {};
+Erizo.Stream = function (spec) {
     "use strict";
-    var that = EventDispatcher(spec);
+    var that = Erizo.EventDispatcher(spec);
     that.stream = spec.stream;
     that.room = undefined;
     that.showing = false;
@@ -51,7 +52,7 @@ var Stream = function (spec) {
                     L.Logger.info("User has granted access to local media.");
                     that.stream = stream;
 
-                    var streamEvent = StreamEvent({type: "access-accepted"});
+                    var streamEvent = Erizo.StreamEvent({type: "access-accepted"});
                     that.dispatchEvent(streamEvent);
 
                 }, function (error) {
@@ -59,7 +60,7 @@ var Stream = function (spec) {
                 });
                 L.Logger.debug("Requested access to local media");
             } else {
-                var streamEvent = StreamEvent({type: "access-accepted"});
+                var streamEvent = Erizo.StreamEvent({type: "access-accepted"});
                 that.dispatchEvent(streamEvent);
             }
         } catch (e) {
@@ -72,7 +73,7 @@ var Stream = function (spec) {
         if (that.hasVideo()) {
             // Draw on HTML
             if (elementID !== undefined) {
-                var player = new VideoPlayer({id: that.getID(), stream: that.stream, elementID: elementID});
+                var player = new Erizo.VideoPlayer({id: that.getID(), stream: that.stream, elementID: elementID});
                 that.player = player;
                 that.showing = true;
             }

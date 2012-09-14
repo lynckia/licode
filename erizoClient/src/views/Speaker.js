@@ -4,9 +4,9 @@
  * Every Speaker is a View.
  * Ex.: var speaker = Speaker({elementID: element, video: videoTag, id: id});
  */
-
-var Speaker = function(spec) {
-    var that = View({});
+var Erizo = Erizo || {};
+Erizo.Speaker = function(spec) {
+    var that = Erizo.View({});
 
     // Variables
 
