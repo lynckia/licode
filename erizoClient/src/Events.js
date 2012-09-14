@@ -96,6 +96,8 @@ var StreamEvent = function (spec) {
     // The stream related to this event.
     that.stream = spec.stream;
 
+    that.msg = spec.msg;
+
     return that;
 };
 
