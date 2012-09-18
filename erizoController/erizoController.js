@@ -213,8 +213,8 @@ var listen = function() {
                 var st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
                 socket.streams.push(id);
                 socket.room.streams[id] = st;
-                sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
                 callback(undefined, id);
+                sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
             }
 
         });
