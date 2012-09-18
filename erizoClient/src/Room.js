@@ -93,7 +93,7 @@ Erizo.Room = function (spec) {
         // We receive an event of new data in one of the streams
         that.socket.on('onDataStream', function (arg) {
             var stream = that.remoteStreams[arg.id];
-            var evt = Erizo.StreamEvent({type: 'stream-data', msg: arg.msg});
+            var evt = Erizo.StreamEvent({type: 'stream-data', msg: arg.msg, stream: stream});
             stream.dispatchEvent(evt);
         });
 
