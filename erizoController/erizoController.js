@@ -228,7 +228,7 @@ var listen = function() {
 
             socket.room.streams[options.streamId].addDataSubscriber(socket.id);
             
-            if(socket.room.streams[options.streamId].hasAudio() && socket.room.streams[options.streamId].hasVideo()) {
+            if(socket.room.streams[options.streamId].hasAudio() || socket.room.streams[options.streamId].hasVideo()) {
                 socket.room.webRtcController.addSubscriber(socket.id, options.streamId, sdp, function (answer) {
                     callback(answer);
                 });
