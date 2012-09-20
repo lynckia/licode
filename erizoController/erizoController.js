@@ -265,6 +265,10 @@ var listen = function() {
         //Gets 'unsubscribe' messages on the socket in order to remove a subscriber from a determined stream (to).
         socket.on('unsubscribe', function(to) {
 
+            if (socket.room.streams[to] === undefined) {
+                return;
+            }
+
             socket.room.streams[to].removeDataSubscriber(socket.id);
            
             if (socket.room.streams[to].audio && socket.room.streams[to].video) {
