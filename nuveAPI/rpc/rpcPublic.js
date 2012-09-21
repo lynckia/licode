@@ -15,7 +15,7 @@ exports.deleteToken = function(id, callback) {
 			if (token.use !== undefined) {
 				//Is a test token
 				var time = ((new Date()).getTime()) - token.creationDate.getTime();
-				if (token.use > 49) { // || time*1000 > 3600*24*30){
+				if (token.use > 490) { // || time*1000 > 3600*24*30){
 					var s = '' + token.service;
 					serviceRegistry.getService(s, function(service) {
 						delete service.testToken;
