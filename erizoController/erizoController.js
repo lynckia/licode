@@ -271,7 +271,7 @@ var listen = function() {
 
             socket.room.streams[to].removeDataSubscriber(socket.id);
            
-            if (socket.room.streams[to].audio || socket.room.streams[to].video) {
+            if (socket.room.streams[to].hasAudio() || socket.room.streams[to].hasVideo()) {
                 socket.room.webRtcController.removeSubscriber(socket.id, to);
             }
             
