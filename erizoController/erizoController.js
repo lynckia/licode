@@ -309,7 +309,7 @@ var listen = function() {
                 }
             } 
 
-            if (socket.room.sockets.length == 0) {
+            if (socket.room !== undefined && socket.room.sockets.length == 0) {
                 console.log('Empty room ' , socket.room.id, '. Deleting it');
                 delete rooms[socket.room.id];
                 updateMyState();
