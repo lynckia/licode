@@ -243,7 +243,7 @@ var listen = function() {
 
             sendMsgToRoom(socket.room, 'onRemoveStream', {id: streamId});
 
-            if(socket.room.streams[streamId].hasAudio() && socket.room.streams[streamId].hasVideo()) {
+            if(socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo()) {
                 socket.state = 'sleeping';
                 socket.room.webRtcController.removePublisher(streamId);
             }
@@ -271,7 +271,7 @@ var listen = function() {
 
             socket.room.streams[to].removeDataSubscriber(socket.id);
            
-            if (socket.room.streams[to].audio && socket.room.streams[to].video) {
+            if (socket.room.streams[to].audio || socket.room.streams[to].video) {
                 socket.room.webRtcController.removeSubscriber(socket.id, to);
             }
             
@@ -299,7 +299,7 @@ var listen = function() {
                 for(var i in socket.streams) {
                     var id = socket.streams[i];
 
-                    if (socket.room.streams[id].hasAudio() && socket.room.streams[id].hasVideo()) {
+                    if (socket.room.streams[id].hasAudio() || socket.room.streams[id].hasVideo()) {
                         socket.room.webRtcController.removeClient(socket.id, id);
                     }; 
 
