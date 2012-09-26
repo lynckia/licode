@@ -42,6 +42,16 @@ enum ProcessorType {
 	RTP_ONLY, AVF
 };
 
+enum DataType {
+	VIDEO, AUDIO
+};
+
+struct RawDataPacket {
+	unsigned char* data;
+	int length;
+	DataType type;
+};
+
 struct MediaInfo {
 	std::string url;
 	bool hasVideo;
@@ -53,30 +63,6 @@ struct MediaInfo {
 	audioCodecInfo audioCodec;
 
 };
-
-typedef struct {
-	uint32_t cc :4;
-	uint32_t extension :1;
-	uint32_t padding :1;
-	uint32_t version :2;
-	uint32_t payloadtype :7;
-	uint32_t marker :1;
-	uint32_t seqnum :16;
-	uint32_t timestamp;
-	uint32_t ssrc;
-	uint32_t extId :16;
-	uint32_t extLength :16;
-} rtpHeader;
-
-typedef struct {
-	uint32_t partId :4;
-	uint32_t S :1;
-	uint32_t N :1;
-	uint32_t R :1;
-	uint32_t X :1;
-} vp8RtpHeader;
-
-#define RTP_HEADER_LEN 12
 
 #define UNPACKAGED_BUFFER_SIZE 150000
 #define PACKAGED_BUFFER_SIZE 2000
@@ -90,7 +76,7 @@ typedef struct {
 
 class RawDataReceiver {
 public:
-	virtual void receiveRawData(unsigned char*data, int len) = 0;
+	virtual void receiveRawData(RawDataPacket& packet) = 0;
 	virtual ~RawDataReceiver() {
 	}
 	;
@@ -131,6 +117,9 @@ private:
 
 	unsigned char* decodedBuffer_;
 	unsigned char* unpackagedBuffer_;
+
+	unsigned char* decodedAudioBuffer_;
+	unsigned char* unpackagedAudioBuffer_;
 
 	AVCodec* aDecoder;
 	AVCodecContext* aDecoderContext;
@@ -175,7 +164,7 @@ public:
 	virtual ~OutputProcessor();
 	int init(const MediaInfo& info, RTPDataReceiver* rtpReceiver);
 
-	void receiveRawData(unsigned char*data, int len);
+	void receiveRawData(RawDataPacket& packet);
 
 private:
 
@@ -192,6 +181,10 @@ private:
 	unsigned char* encodedBuffer_;
 	unsigned char* packagedBuffer_;
 	unsigned char* rtpBuffer_;
+
+	unsigned char* encodedAudioBuffer_;
+	unsigned char* packagedAudioBuffer_;
+	unsigned char* rtpAudioBuffer_;
 
 	MediaInfo mediaInfo;
 
@@ -222,16 +215,13 @@ private:
 	bool initVideoPackager();
 
 	int encodeAudio(unsigned char* inBuff, int nSamples,
-			unsigned char* outBuff);
-//	int encodeVideo(unsigned char* inBuff, int inBuffLen,
-//			unsigned char* outBuff, int outBuffLen);
+			AVPacket* pkt);
 
 	int encodeVideo(unsigned char* inBuff, int inBuffLen, AVPacket* pkt);
 
 	int packageAudio(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);
-//	int packageVideo(unsigned char* inBuff, int inBuffLen,
-//			unsigned char* outBuff);
+
 	int packageVideo(AVPacket* pkt, unsigned char* outBuff);
 };
 } /* namespace erizo */

@@ -102,9 +102,10 @@ std::string SdpInfo::getSdp() {
 		}
 
 		sdp
-				<< "a=rtpmap:103 ISAC/16000\na=rtpmap:104 ISAC/32000\na=rtpmap:0 PCMU/8000\n"
-						"a=rtpmap:8 PCMA/8000\na=rtpmap:106 CN/32000\na=rtpmap:105 CN/16000\n"
-						"a=rtpmap:13 CN/8000\na=rtpmap:126 telephone-event/8000\n";
+//				<< "a=rtpmap:103 ISAC/16000\na=rtpmap:104 ISAC/32000\na=rtpmap:0 PCMU/8000\n"
+//						"a=rtpmap:8 PCMA/8000\na=rtpmap:106 CN/32000\na=rtpmap:105 CN/16000\n"
+//						"a=rtpmap:13 CN/8000\na=rtpmap:126 telephone-event/8000\n";
+				<< "a=rtpmap:0 PCMU/8000\n";
 		sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu\na=ssrc:"
 				<< audioSsrc
 				<< " mslabel:048f838f-2dd1-4a98-ab9e-8eb5f00abab8\na=ssrc:"
@@ -134,7 +135,7 @@ std::string SdpInfo::getSdp() {
 		}
 		if (cand.mediaType == VIDEO_TYPE) {
 			if (!printedVideo) {
-				sdp << "m=video " << cand.hostPort << " RTP/SAVPF 100 101 102\n"//" RTP/SAVPF 100 101 102\n"
+				sdp << "m=video " << cand.hostPort << " RTP/SAVPF 100 101 102\n"
 						<< "c=IN IP4 " << cand.hostAddress
 						<< endl << "a=rtcp:" << candidateVector_[0].hostPort
 						<< " IN IP4 " << cand.hostAddress

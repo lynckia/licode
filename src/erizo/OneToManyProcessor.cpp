@@ -5,6 +5,7 @@
 #include "OneToManyProcessor.h"
 #include "WebRtcConnection.h"
 #include "RTPSink.h"
+#include "media/utils/RtpHeader.h"
 
 namespace erizo {
 OneToManyProcessor::OneToManyProcessor() :
@@ -24,6 +25,12 @@ OneToManyProcessor::OneToManyProcessor() :
 	m.hasVideo = true;
 	m.videoCodec.width = 640;
 	m.videoCodec.height = 480;
+	m.hasAudio = false;
+	if (m.hasAudio) {
+		m.audioCodec.sampleRate = 8000;
+		m.audioCodec.bitRate = 64000;
+
+	}
 	ip->init(m, this);
 
 	MediaInfo om;
@@ -31,9 +38,16 @@ OneToManyProcessor::OneToManyProcessor() :
 	om.videoCodec.bitRate = 2000000;
 	om.videoCodec.width = 640;
 	om.videoCodec.height = 480;
-	om.videoCodec.frameRate = 30;
+	om.videoCodec.frameRate = 20;
 	om.hasVideo = true;
 //	om.url = "file://tmp/test.mp4";
+
+	om.hasAudio = false;
+	if (om.hasAudio) {
+		om.audioCodec.sampleRate = 8000;
+		om.audioCodec.bitRate = 64000;
+	}
+
 	op = new OutputProcessor();
 	op->init(om, this);
 
@@ -45,7 +59,7 @@ OneToManyProcessor::~OneToManyProcessor() {
 		delete sendVideoBuffer_;
 	if (sendAudioBuffer_)
 		delete sendAudioBuffer_;
-	if(sink_){
+	if (sink_) {
 		delete sink_;
 	}
 }
@@ -68,12 +82,17 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len) {
 int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 	memset(sendVideoBuffer_, 0, len);
 	memcpy(sendVideoBuffer_, buf, len);
-//	ip->receiveVideoData(buf, len);
-	rtpHeader* head = (rtpHeader*) buf;
-	if (head->payloadtype!=100)
-		return 0;
 
-	ip->receiveVideoData(sendVideoBuffer_, len);
+	RTPHeader* theHead = reinterpret_cast<RTPHeader*>(buf);
+	printf("Probando nuevo header\n\n");
+	printf("extension %d pt %u\n", theHead->getExtension(),
+			theHead->getPayloadType());
+
+	if (theHead->getPayloadType() == 100) {
+		ip->receiveVideoData(sendVideoBuffer_, len);
+	} else {
+		this->receiveRtpData((unsigned char*) buf, len);
+	}
 
 //	if (subscribers.empty() || len <= 0)
 //		return 0;
@@ -94,9 +113,9 @@ int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 	return 0;
 }
 
-void OneToManyProcessor::receiveRawData(unsigned char* buf, int len) {
-	printf("Received %d\n", len);
-	op->receiveRawData(buf, len);
+void OneToManyProcessor::receiveRawData(RawDataPacket& pkt) {
+	printf("Received %d\n", pkt.length);
+	op->receiveRawData(pkt);
 }
 
 void OneToManyProcessor::receiveRtpData(unsigned char*rtpdata, int len) {
@@ -110,7 +129,6 @@ void OneToManyProcessor::receiveRtpData(unsigned char*rtpdata, int len) {
 //	}
 	std::map<int, WebRtcConnection*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
-//		memset(sendVideoBuffer_, 0, len);
 		memcpy(sendVideoBuffer_, rtpdata, len);
 		(*it).second->receiveVideoData(sendVideoBuffer_, len);
 	}

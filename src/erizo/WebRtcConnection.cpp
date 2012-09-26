@@ -390,7 +390,7 @@ void WebRtcConnection::updateState(IceState newState,
 		if (connStateListener_ != NULL)
 			connStateListener_->connectionStateChanged(globalIceState_);
 //		if (newState == FAILED)
-////			this->close();
+//			this->close();
 	}
 
 }

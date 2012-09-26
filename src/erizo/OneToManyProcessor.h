@@ -45,7 +45,7 @@ public:
 	void removeSubscriber(int peerId);
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
-	void receiveRawData (unsigned char* buf, int len);
+	void receiveRawData(RawDataPacket& packet);
 	void receiveRtpData(unsigned char*rtpdata, int len);
 
 //	MediaProcessor *mp;
