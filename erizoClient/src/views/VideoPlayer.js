@@ -71,7 +71,7 @@ Erizo.VideoPlayer = function(spec) {
     that.div.appendChild(that.video);
 
     // Bottom Bar
-    that.bar = new Erizo.Bar({elementID: 'player_' + that.id, id: that.id, video: that.video});
+    that.bar = new Erizo.Bar({elementID: 'player_' + that.id, id: that.id, video: that.video, options: spec.options});
 
     that.div.onmouseover = onmouseover;
     that.div.onmouseout = onmouseout;

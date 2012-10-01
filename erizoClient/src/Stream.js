@@ -68,12 +68,12 @@ Erizo.Stream = function (spec) {
         }
     };
 
-    that.show = function(elementID) {
+    that.show = function(elementID, options) {
         that.elementID = elementID;
         if (that.hasVideo()) {
             // Draw on HTML
             if (elementID !== undefined) {
-                var player = new Erizo.VideoPlayer({id: that.getID(), stream: that.stream, elementID: elementID});
+                var player = new Erizo.VideoPlayer({id: that.getID(), stream: that.stream, elementID: elementID, options: options});
                 that.player = player;
                 that.showing = true;
             }
@@ -87,7 +87,39 @@ Erizo.Stream = function (spec) {
                 that.showing = false;
             }
         }
-    }
+    };
+
+    that.setFrameCollector = function(interval, callback) {
+        if (spec.collector === undefined && that.player !== undefined) {
+            var video = that.player.video;
+
+            var style = document.defaultView.getComputedStyle(video);
+            var width = parseInt(style.getPropertyValue("width"));
+            var height = parseInt(style.getPropertyValue("height"));
+
+            var canvas = document.createElement('canvas');
+            canvas.id = "testing";
+            canvas.width = width;
+            canvas.height = height;
+            canvas.setAttribute('style', 'display: none');
+            //document.body.appendChild(canvas);
+            var context = canvas.getContext('2d');
+            
+            var getFrame = function() {
+                if (that.stream !== undefined && that.player !== undefined) {
+                    context.drawImage(video, 0, 0, width, height);
+                    var imageData = context.getImageData(0, 0, width, height);
+                    callback(imageData);
+                }
+            };
+            spec.collector = setInterval(getFrame, interval);    
+        }
+    };
+
+    that.removeFrameCollector = function() {
+        clearInterval(spec.collector);
+        spec.collector = undefined;
+    };
 
     return that;
 };

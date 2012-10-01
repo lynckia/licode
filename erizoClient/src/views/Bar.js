@@ -64,8 +64,12 @@ Erizo.Bar = function(spec) {
     that.link.appendChild(that.logo);
 
     // Speaker component
-    that.speaker = new Erizo.Speaker({elementID: 'bar_'+that.id, id: that.id, video: spec.video});
+    if (spec.options === undefined || spec.options.speaker === undefined || spec.options.speaker === true) {
+        that.speaker = new Erizo.Speaker({elementID: 'bar_'+that.id, id: that.id, video: spec.video});
+    }
+
     that.display();
     that.hide();
+
     return that;
 };
