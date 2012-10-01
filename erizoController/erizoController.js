@@ -243,7 +243,7 @@ var listen = function() {
 
             sendMsgToRoom(socket.room, 'onRemoveStream', {id: streamId});
 
-            if(socket.room.streams[streamId].hasAudio() && socket.room.streams[streamId].hasVideo()) {
+            if(socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo()) {
                 socket.state = 'sleeping';
                 socket.room.webRtcController.removePublisher(streamId);
             }
@@ -265,9 +265,13 @@ var listen = function() {
         //Gets 'unsubscribe' messages on the socket in order to remove a subscriber from a determined stream (to).
         socket.on('unsubscribe', function(to) {
 
+            if (socket.room.streams[to] === undefined) {
+                return;
+            }
+
             socket.room.streams[to].removeDataSubscriber(socket.id);
            
-            if (socket.room.streams[to].audio && socket.room.streams[to].video) {
+            if (socket.room.streams[to].hasAudio() || socket.room.streams[to].hasVideo()) {
                 socket.room.webRtcController.removeSubscriber(socket.id, to);
             }
             
@@ -295,7 +299,7 @@ var listen = function() {
                 for(var i in socket.streams) {
                     var id = socket.streams[i];
 
-                    if (socket.room.streams[id].hasAudio() && socket.room.streams[id].hasVideo()) {
+                    if (socket.room.streams[id].hasAudio() || socket.room.streams[id].hasVideo()) {
                         socket.room.webRtcController.removeClient(socket.id, id);
                     }; 
 
@@ -305,7 +309,7 @@ var listen = function() {
                 }
             } 
 
-            if (socket.room.sockets.length == 0) {
+            if (socket.room !== undefined && socket.room.sockets.length == 0) {
                 console.log('Empty room ' , socket.room.id, '. Deleting it');
                 delete rooms[socket.room.id];
                 updateMyState();
