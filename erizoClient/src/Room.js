@@ -298,5 +298,23 @@ Erizo.Room = function (spec) {
 
     };
 
+    //It searchs the streams that have "name" attribute with "value" value
+    that.getStreamsByAttribute = function (name, value) {
+
+        var streams = [];
+
+        for (var index in that.remoteStreams) {
+            var stream = that.remoteStreams[index];
+
+            if (stream.getAttributes() !== undefined && stream.getAttributes()[name] !== undefined) {
+                if (stream.getAttributes()[name] === value) {
+                    streams.push(stream);
+                }
+            }
+        }
+
+        return streams;
+    };
+
     return that;
 };
