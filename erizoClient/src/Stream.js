@@ -91,8 +91,8 @@ Erizo.Stream = function (spec) {
         }
     };
 
-    that.setFrameCollector = function(interval, callback) {
-        if (spec.collector === undefined && that.player !== undefined) {
+    that.getVideoFrame = function() {
+        if (that.player !== undefined && that.stream !== undefined) {
             var video = that.player.video;
 
             var style = document.defaultView.getComputedStyle(video);
@@ -106,21 +106,14 @@ Erizo.Stream = function (spec) {
             canvas.setAttribute('style', 'display: none');
             //document.body.appendChild(canvas);
             var context = canvas.getContext('2d');
-            
-            var getFrame = function() {
-                if (that.stream !== undefined && that.player !== undefined) {
-                    context.drawImage(video, 0, 0, width, height);
-                    var imageData = context.getImageData(0, 0, width, height);
-                    callback(imageData);
-                }
-            };
-            spec.collector = setInterval(getFrame, interval);    
-        }
-    };
 
-    that.removeFrameCollector = function() {
-        clearInterval(spec.collector);
-        spec.collector = undefined;
+            context.drawImage(video, 0, 0, width, height);
+            var imageData = context.getImageData(0, 0, width, height);
+
+            return imageData;
+        } else {
+            return null;
+        }
     };
 
     return that;
