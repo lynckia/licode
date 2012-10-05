@@ -91,7 +91,7 @@ Erizo.Stream = function (spec) {
         }
     };
 
-    that.getVideoFrame = function() {
+    var getFrame = function() {
         if (that.player !== undefined && that.stream !== undefined) {
             var video = that.player.video;
 
@@ -108,12 +108,23 @@ Erizo.Stream = function (spec) {
             var context = canvas.getContext('2d');
 
             context.drawImage(video, 0, 0, width, height);
-            var imageData = context.getImageData(0, 0, width, height);
 
-            return imageData;
+            return canvas;
         } else {
             return null;
         }
+    };
+
+    that.getVideoFrameURL = function() {
+        var canvas = getFrame();
+        if (canvas != null) return canvas.toDataURL();
+        else return null;
+    };
+
+    that.getVideoFrame = function() {
+        var canvas = getFrame();
+        if (canvas != null) return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        else return null;
     };
 
     return that;

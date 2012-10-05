@@ -21,13 +21,13 @@ Erizo.Speaker = function(spec) {
 
     // Container
     that.div = document.createElement('div');
-    that.div.setAttribute('style', 'width: 32px; height: 32px; position: absolute; bottom: 0; right: 0;');
+    that.div.setAttribute('style', 'width: 10%; height: 100%; position: absolute; bottom: 0; right: 0;');
 
     // Volume icon 
     that.icon = document.createElement('img');
     that.icon.setAttribute('id', 'volume_' + that.id);
     that.icon.setAttribute('src', that.url + '/assets/sound48.png');
-    that.icon.setAttribute('style', 'width: 32px; height: 32px; position: absolute;');
+    that.icon.setAttribute('style', 'width: 100%; height: 100%; position: absolute;');
     that.div.appendChild(that.icon);
 
     // Volume bar
