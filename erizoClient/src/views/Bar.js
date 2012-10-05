@@ -24,7 +24,7 @@ Erizo.Bar = function(spec) {
 
     // Bottom bar
     that.bar = document.createElement('div');
-    that.bar.setAttribute('style', 'width: 100%; height: 15%; position: absolute; bottom: 0; right: 0; background-color: rgba(255,255,255,0.62)');
+    that.bar.setAttribute('style', 'width: 100%; height: 15%; max-height: 30px; position: absolute; bottom: 0; right: 0; background-color: rgba(255,255,255,0.62)');
     that.bar.setAttribute('id', 'subbar_'+that.id);
 
     // Lynckia icon

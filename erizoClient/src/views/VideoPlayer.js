@@ -73,8 +73,8 @@ Erizo.VideoPlayer = function(spec) {
     that.div.appendChild(that.loader);
     that.div.appendChild(that.video);
 
-    that.containerWidth = that.container.offsetWidth;
-    that.containerHeight = that.container.offsetHeight;
+    that.containerWidth = 0;
+    that.containerHeight = 0;
 
     that.resize = setInterval(function() {
 
@@ -85,19 +85,19 @@ Erizo.VideoPlayer = function(spec) {
 
             if (width*(3/4) > height) {
 
-                that.video.style.width = width;
-                that.video.style.height = (3/4)*width;
+                that.video.style.width = width + "px";
+                that.video.style.height = (3/4)*width + "px";
 
                 that.video.style.top = -((3/4)*width/2 - height/2) + " px";
-                that.video.style.left = 0;
+                that.video.style.left = 0 + "px";
 
             } else {
 
-                that.video.style.height = height;
-                that.video.style.width = (4/3)*height;
+                that.video.style.height = height + "px";
+                that.video.style.width = (4/3)*height + "px";
 
                 that.video.style.left = -((4/3)*height/2 - width/2) + " px";
-                that.video.style.top = 0;
+                that.video.style.top = 0 + "px";
 
             }
 
