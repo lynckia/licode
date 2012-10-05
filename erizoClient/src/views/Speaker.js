@@ -21,7 +21,7 @@ Erizo.Speaker = function(spec) {
 
     // Container
     that.div = document.createElement('div');
-    that.div.setAttribute('style', 'width: 10%; height: 100%; position: absolute; bottom: 0; right: 0;');
+    that.div.setAttribute('style', 'width: 10%; height: 100%; max-width: 30px; position: absolute; bottom: 0; right: 0;');
 
     // Volume icon 
     that.icon = document.createElement('img');
@@ -52,7 +52,7 @@ Erizo.Speaker = function(spec) {
 
     // Private functions
     var show = function(displaying) {
-        that.picker.setAttribute('style', 'width: 32px; height: 100px; position: absolute; bottom: 30px; right: 0px; -webkit-appearance: slider-vertical; display: '+displaying);
+        that.picker.setAttribute('style', 'width: 32px; height: 100px; position: absolute; bottom: '+that.div.offsetHeight+'px; right: 0px; -webkit-appearance: slider-vertical; display: '+displaying);
     };
 
     // Public functions

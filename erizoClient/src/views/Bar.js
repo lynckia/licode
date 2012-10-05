@@ -33,7 +33,7 @@ Erizo.Bar = function(spec) {
     that.link.setAttribute('target', '_blank');
     
     that.logo = document.createElement('img');
-    that.logo.setAttribute('style', 'width: 10%; height: 100%; position: absolute; top: 0; left: 10px;');
+    that.logo.setAttribute('style', 'width: 10%; height: 100%; max-width: 30px; position: absolute; top: 0; left: 2px;');
     that.logo.setAttribute('alt', 'Lynckia');
     that.logo.setAttribute('src', that.url + '/assets/star.svg');
 
