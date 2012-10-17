@@ -98,16 +98,23 @@ Erizo.Stream = function (spec) {
             var style = document.defaultView.getComputedStyle(video);
             var width = parseInt(style.getPropertyValue("width"));
             var height = parseInt(style.getPropertyValue("height"));
+            var left = parseInt(style.getPropertyValue("left"));
+            var top = parseInt(style.getPropertyValue("top"));
+
+            var div = document.getElementById(that.elementID);
+            var divStyle = document.defaultView.getComputedStyle(div);
+            var divWidth = parseInt(divStyle.getPropertyValue("width"));
+            var divHeight = parseInt(divStyle.getPropertyValue("height"));
 
             var canvas = document.createElement('canvas');
             canvas.id = "testing";
-            canvas.width = width;
-            canvas.height = height;
+            canvas.width = divWidth;
+            canvas.height = divHeight;
             canvas.setAttribute('style', 'display: none');
             //document.body.appendChild(canvas);
             var context = canvas.getContext('2d');
 
-            context.drawImage(video, 0, 0, width, height);
+            context.drawImage(video, left, top, width, height);
 
             return canvas;
         } else {
