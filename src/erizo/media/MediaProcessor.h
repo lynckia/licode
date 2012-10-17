@@ -6,8 +6,9 @@
 #include <arpa/inet.h>
 #include <string>
 
-#include "utils/RtpParser.h"
+#include "rtp/RtpParser.h"
 #include "../MediaDefinitions.h"
+#include "codecs/CodecFactory.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -17,20 +18,6 @@ extern "C" {
 
 namespace erizo {
 
-struct audioCodecInfo {
-	enum CodecID codec;
-	int bitRate;
-	int sampleRate;
-};
-
-struct videoCodecInfo {
-	enum CodecID codec;
-	int width;
-	int height;
-	int bitRate;
-	int frameRate;
-	int maxInter;
-};
 
 struct RTPInfo {
 	enum CodecID codec;
@@ -59,8 +46,8 @@ struct MediaInfo {
 	ProcessorType proccessorType;
 	RTPInfo rtpVideoInfo;
 	RTPInfo rtpAudioInfo;
-	videoCodecInfo videoCodec;
-	audioCodecInfo audioCodec;
+	VideoCodecInfo videoCodec;
+	AudioCodecInfo audioCodec;
 
 };
 

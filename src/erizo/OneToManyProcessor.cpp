@@ -5,7 +5,7 @@
 #include "OneToManyProcessor.h"
 #include "WebRtcConnection.h"
 #include "RTPSink.h"
-#include "media/utils/RtpHeader.h"
+#include "media/rtp/RtpHeader.h"
 
 namespace erizo {
 OneToManyProcessor::OneToManyProcessor() :

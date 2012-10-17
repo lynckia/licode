@@ -1,8 +1,8 @@
 #include <string>
 
 #include "MediaProcessor.h"
-#include "utils/RtpVP8Fragmenter.h"
-#include "utils/RtpHeader.h"
+#include "rtp/RtpVP8Fragmenter.h"
+#include "rtp/RtpHeader.h"
 
 namespace erizo {
 
@@ -41,7 +41,7 @@ namespace erizo {
     this->mediaInfo = info;
     this->rawReceiver_ = receiver;
     if (mediaInfo.hasVideo) {
-      mediaInfo.videoCodec.codec = CODEC_ID_VP8;
+      mediaInfo.videoCodec.codec = VIDEO_CODEC_VP8;
       decodedBuffer_ = (unsigned char*) malloc(
           info.videoCodec.width * info.videoCodec.height * 3 / 2);
       unpackagedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
@@ -50,7 +50,7 @@ namespace erizo {
     }
     if (mediaInfo.hasAudio) {
       printf("Init AUDIO processor\n");
-      mediaInfo.audioCodec.codec =CODEC_ID_PCM_MULAW;
+      mediaInfo.audioCodec.codec = AUDIO_CODEC_PCM_MULAW_8;
       decodedAudioBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
       unpackagedAudioBuffer_ = (unsigned char*) malloc(
           UNPACKAGED_BUFFER_SIZE);
@@ -114,7 +114,7 @@ namespace erizo {
 
   bool InputProcessor::initAudioDecoder() {
 
-    aDecoder = avcodec_find_decoder(mediaInfo.audioCodec.codec);
+    aDecoder = avcodec_find_decoder(static_cast<CodecID>(mediaInfo.audioCodec.codec));
     if (!aDecoder) {
       printf("Decoder de audio no encontrado");
       return false;
@@ -144,8 +144,8 @@ namespace erizo {
 
   bool InputProcessor::initVideoDecoder() {
 
-    videoCodecInfo& videoCodec = mediaInfo.videoCodec;
-    vDecoder = avcodec_find_decoder(videoCodec.codec);
+    VideoCodecInfo& videoCodec = mediaInfo.videoCodec;
+    vDecoder = avcodec_find_decoder(static_cast<CodecID>(videoCodec.codec));
     if (!vDecoder) {
       printf("Decoder de vídeo no encontrado");
       return false;
@@ -463,21 +463,23 @@ decoding:
     rtpBuffer_ = (unsigned char*) malloc(PACKAGED_BUFFER_SIZE);
 
     if (mediaInfo.hasVideo) {
-      this->mediaInfo.videoCodec.codec = CODEC_ID_VP8;
+      this->mediaInfo.videoCodec.codec = VIDEO_CODEC_VP8;
       if (!this->initVideoCoder()) {
         printf("Fallo aqui\n");
       }
       this->initVideoPackager();
     }
     if (mediaInfo.hasAudio) {
+      
       printf("Init AUDIO processor\n");
-      mediaInfo.audioCodec.codec = CODEC_ID_MP2;//CODEC_ID_PCM_MULAW;
+      mediaInfo.audioCodec.codec = AUDIO_CODEC_PCM_MULAW_8;
       mediaInfo.audioCodec.sampleRate= 44100;
       mediaInfo.audioCodec.bitRate = 64000;
       encodedAudioBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
       packagedAudioBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
       this->initAudioCoder();
       this->initAudioPackager();
+      
 
     }
 
@@ -506,7 +508,7 @@ decoding:
 
   bool OutputProcessor::initAudioCoder() {
 
-    aCoder = avcodec_find_encoder(mediaInfo.audioCodec.codec);
+    aCoder = avcodec_find_encoder(static_cast<CodecID>(mediaInfo.audioCodec.codec));
     if (!aCoder) {
       printf("Encoder de audio no encontrado");
       exit(0);
@@ -537,7 +539,7 @@ decoding:
 
   bool OutputProcessor::initVideoCoder() {
 
-    vCoder = avcodec_find_encoder(mediaInfo.videoCodec.codec);
+    vCoder = avcodec_find_encoder(static_cast<CodecID>(mediaInfo.videoCodec.codec));
     if (!vCoder) {
       printf("Encoder de vídeo no encontrado");
       return false;
