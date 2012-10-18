@@ -20,7 +20,7 @@ if (GTK2_FOUND)
  target_link_libraries(erizo ${GTK2_LIBRARIES})
 endif(GTK2_FOUND)
 # BOOST
-set (BOOST_LIBS thread regex)
+set (BOOST_LIBS system thread regex)
 find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
 target_link_libraries(erizo ${Boost_LIBRARIES})
 find_library(SRTP srtp)
