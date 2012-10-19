@@ -17,9 +17,9 @@ RoapConnection.sessionId = 103;
 // Call the constructor for peerconnections indirectly, so that it's availble
 // for dependency injection.
 /** Constructor for JSEP supporting PeerConnection objects. */
-//RoapConnection.JsepPeerConnectionConstructor = webkitRTCPeerConnection;
+RoapConnection.JsepPeerConnectionConstructor = webkitPeerConnection00;
 /** Constructor for SessionDescription objects. */
-//RoapConnection.SessionDescriptionConstructor = RTCSessionDescription;
+RoapConnection.SessionDescriptionConstructor = SessionDescription;
 
 /**
  * @constructor for RoapConnection objects.
@@ -28,47 +28,17 @@ RoapConnection.sessionId = 103;
  */
 function RoapConnection(configuration, signalingCallback) {
   var that = this;
-
-  this.isRTCPeerConnection = true;
-
-  this.stunServerOO = 'STUN stun.l.google.com:19302';
-  this.pc_config = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
-  this.mediaConstraints = {'has_audio':true, 'has_video':true};
-
-  try {
-
-    this.peerConnection = new webkitRTCPeerConnection(this.pc_config);
-
-    this.peerConnection.onicecandidate =  function(event) {
-      if (!event.candidate) {
-        // At the moment, we do not renegotiate when new candidates
-        // show up after the more flag has been false once.
-        that.moreIceComing = false;
-        that.markActionNeeded();
-      } else {
+  this.peerConnection = new RoapConnection.JsepPeerConnectionConstructor(
+      'STUN stun.l.google.com:19302',
+      function(candidate, more) {
+        if (more == false) {
+          // At the moment, we do not renegotiate when new candidates
+          // show up after the more flag has been false once.
+          that.moreIceComing = false;
+          that.markActionNeeded();
+        }
         that.iceCandidateCount += 1;
-      }
-    }
-
-    console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(this.pc_config) + "\".");
-
-  } catch (e) {
-
-    this.peerConnection = new webkitPeerConnection00(this.stunServerOO, function(candidate, more) {
-      if (more == false) {
-        // At the moment, we do not renegotiate when new candidates
-        // show up after the more flag has been false once.
-        that.moreIceComing = false;
-        that.markActionNeeded();
-      }
-      that.iceCandidateCount += 1;
-    });
-
-    this.isRTCPeerConnection = false;
-    console.log("Created webkitPeerConnnection00 with config \"" + this.stunServerOO + "\".");
-  }
-
-
+      });
   this.sessionId = ++RoapConnection.sessionId;
   this.sequenceNumber = 0;  // Number of last ROAP message sent. Starts at 1.
   this.actionNeeded = false;
@@ -98,7 +68,7 @@ function RoapConnection(configuration, signalingCallback) {
   this.onremovestream = null;
   this.state = 'new';
   // Auto-fire next events.
-  this.markActionNeeded(); 
+  this.markActionNeeded();
 }
 
 /**
@@ -112,73 +82,49 @@ RoapConnection.prototype.processSignalingMessage = function(msgstring) {
   console.log('Activity on conn ' + this.sessionId);
   var msg = JSON.parse(msgstring);
   this.incomingMessage = msg;
-
   if (this.state === 'new') {
     if (msg.messageType === 'OFFER') {
       // Initial offer.
-      if (this.isRTCPeerConnection) {
-        var sd = {sdp: msg.sdp, type: 'offer'};
-        this.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
-      } else {
-        this.offer_as_string = msg.sdp;
-        var sdp = new SessionDescription(msg.sdp);
-        this.peerConnection.setRemoteDescription(this.peerConnection.SDP_OFFER, sdp);
-      }
-      
+      this.offer_as_string = msg.sdp;
+      var sdp = new RoapConnection.SessionDescriptionConstructor(msg.sdp);
+      //console.log('SDP is ' + sdp.toSdp());
+      this.peerConnection.setRemoteDescription(this.peerConnection.SDP_OFFER,
+                                               sdp);
       this.state = 'offer-received';
       // Allow other stuff to happen, then reply.
       this.markActionNeeded();
     } else {
-      this.error('Illegal message for this state: ' + msg.messageType + ' in state ' + this.state);
+      this.error('Illegal message for this state: ' +
+                 msg.messageType + ' in state ' + this.state);
     }
-
   } else if (this.state === 'offer-sent') {
     if (msg.messageType === 'ANSWER') {
-
-      if (this.isRTCPeerConnection) {
-        var sd = {sdp: msg.sdp, type: 'answer'};
-        this.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
-      } else {
-        var sdp = new SessionDescription(msg.sdp);
-        this.peerConnection.setRemoteDescription(this.peerConnection.SDP_ANSWER, sdp);
-      }
+      this.peerConnection.setRemoteDescription(this.peerConnection.SDP_ANSWER,
+          new RoapConnection.SessionDescriptionConstructor(msg.sdp));
       this.sendOK();
       this.state = 'established';
-
     } else if (msg.messageType === 'pr-answer') {
-      if (this.isRTCPeerConnection) {
-        var sd = {sdp: msg.sdp, type: 'pr-answer'};
-        this.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
-      } else {
-        var sdp = new SessionDescription(msg.sdp);
-        this.peerConnection.setRemoteDescription('pr-answer', sdp);
-      }
-            
+      this.peerConnection.setRemoteDescription('pr-answer',
+          new RoapConnection.SessionDescriptionConstructor(msg.sdp));
       // No change to state, and no response.
     } else if (msg.messageType === 'offer') {
       // Glare processing.
       this.error('Not written yet');
     } else {
-      this.error('Illegal message for this state: ' + msg.messageType + ' in state ' + this.state);
+      this.error('Illegal message for this state: ' +
+                 msg.messageType + ' in state ' + this.state);
     }
-
   } else if (this.state === 'established') {
     if (msg.messageType === 'OFFER') {
       // Subsequent offer.
-
-      if (this.isRTCPeerConnection) {
-        var sd = {sdp: msg.sdp, type: 'offer'};
-        this.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
-      } else {
-        var sdp = new SessionDescription(msg.sdp);
-        this.peerConnection.setRemoteDescription(this.peerConnection.SDP_OFFER, sdp);
-      }
-  
+      this.peerConnection.setRemoteDescription(this.peerConnection.SDP_OFFER,
+          new RoapConnection.SessionDescriptionConstructor(msg.sdp));
       this.state = 'offer-received';
       // Allow other stuff to happen, then reply.
       this.markActionNeeded();
     } else {
-      this.error('Illegal message for this state: ' + msg.messageType + ' in state ' + this.state);
+      this.error('Illegal message for this state: ' +
+                 msg.messageType + ' in state ' + this.state);
     }
   }
 };
@@ -246,115 +192,58 @@ RoapConnection.prototype.doLater = function(what) {
 RoapConnection.prototype.onstablestate = function() {
   var mySDP;
   var roapMessage = {};
-  var that = this;
   if (this.actionNeeded) {
     if (this.state === 'new' || this.state === 'established') {
       // See if the current offer is the same as what we already sent.
       // If not, no change is needed.
-
-      if (this.isRTCPeerConnection) {
-
-        this.peerConnection.createOffer(function(sessionDescription){
-
-          var newOffer = sessionDescription.sdp;
-
-          if (newOffer != this.prevOffer) {
-            // Prepare to send an offer.
-            that.peerConnection.setLocalDescription(sessionDescription);
-
-            that.state = 'preparing-offer';
-            that.markActionNeeded();
-            return;
-          } else {
-            console.log('Not sending a new offer');
-          }
-
-        }, null, this.mediaConstraints);
-
+      var newOffer = this.peerConnection.createOffer({has_audio:true,has_video:true});
+      if (newOffer.toSdp() != this.prevOffer) {
+        // Prepare to send an offer.
+        this.peerConnection.setLocalDescription(this.peerConnection.SDP_OFFER,
+                                                newOffer);
+        this.peerConnection.startIce();
+        this.state = 'preparing-offer';
+        this.markActionNeeded();
+        return;
       } else {
-
-        var newOffer = this.peerConnection.createOffer(this.mediaConstraints);
-        if (newOffer.toSdp() != this.prevOffer) {
-          // Prepare to send an offer.
-          this.peerConnection.setLocalDescription(this.peerConnection.SDP_OFFER, newOffer);
-          this.peerConnection.startIce();
-          this.state = 'preparing-offer';
-          this.markActionNeeded();
-          return;
-        } else {
-          console.log('Not sending a new offer');
-        }
-
+        console.log('Not sending a new offer');
       }
-
     } else if (this.state === 'preparing-offer') {
       // Don't do anything until we have the ICE candidates.
       if (this.moreIceComing) {
         return;
       }
       // Now able to send the offer we've already prepared.
-      if (this.isRTCPeerConnection) {
-        this.prevOffer = this.peerConnection.localDescription.sdp;
-      } else {
-        this.prevOffer = this.peerConnection.localDescription.toSdp();
-      }
-      
+      this.prevOffer = this.peerConnection.localDescription.toSdp();
       //console.log('Sent SDP is ' + this.prevOffer);
       this.sendMessage('OFFER', this.prevOffer);
       // Not done: Retransmission on non-response.
       this.state = 'offer-sent';
-
     } else if (this.state === 'offer-received') {
-
-      if (this.isRTCPeerConnection) {
-        this.peerConnection.createAnswer(function(sessionDescription) {
-
-          this.peerConnection.setLocalDescription(sessionDescription);
-          this.state = 'offer-received-preparing-answer';
-
-          if (!this.iceStarted) {
-            var now = new Date();
-            console.log(now.getTime() + ': Starting ICE in responder');
-            this.iceStarted = true;
-          } else {
-            this.markActionNeeded();
-            return;
-          }
-
-        }, null, this.mediaConstraints);
-
+      mySDP = this.peerConnection.createAnswer(this.offer_as_string,
+                                               {has_audio:true,has_video:true});
+      this.peerConnection.setLocalDescription(this.peerConnection.SDP_ANSWER,
+                                              mySDP);
+      this.state = 'offer-received-preparing-answer';
+      if (!this.iceStarted) {
+        var now = new Date();
+        console.log(now.getTime() + ': Starting ICE in responder');
+        this.peerConnection.startIce();
+        this.iceStarted = true;
       } else {
-
-        mySDP = this.peerConnection.createAnswer(this.offer_as_string, this.mediaConstraints);
-        this.peerConnection.setLocalDescription(this.peerConnection.SDP_ANSWER, mySDP);
-        this.state = 'offer-received-preparing-answer';
-
-        if (!this.iceStarted) {
-          var now = new Date();
-          console.log(now.getTime() + ': Starting ICE in responder');
-          this.peerConnection.startIce();
-          this.iceStarted = true;
-        } else {
-          this.markActionNeeded();
-          return;
-        }
+        this.markActionNeeded();
+        return;
       }
-      
     } else if (this.state === 'offer-received-preparing-answer') {
       if (this.moreIceComing) {
         return;
       }
-
-      if (this.isRTCPeerConnection) {
-        mySDP = this.peerConnection.localDescription.sdp;
-      } else {
-        mySDP = this.peerConnection.localDescription.toSdp();
-      }
-      
-      this.sendMessage('ANSWER', mySDP);
+      mySDP = this.peerConnection.localDescription;
+      this.sendMessage('ANSWER', mySDP.toSdp());
       this.state = 'established';
     } else {
-      this.error('Dazed and confused in state ' + this.state + ', stopping here');
+      this.error('Dazed and confused in state ' + this.state +
+                 ', stopping here');
     }
     this.actionNeeded = false;
   }
