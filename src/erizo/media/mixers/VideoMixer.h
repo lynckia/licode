@@ -23,8 +23,8 @@ class RTPSink;
  */
 class VideoMixer : public MediaReceiver, public RawDataReceiver, public RTPDataReceiver {
 public:
-	WebRtcConnection *publisher;
-	std::map<int, WebRtcConnection*> subscribers;
+	WebRtcConnection *subscriber;
+	std::map<int, WebRtcConnection*> publishers;
 
 	VideoMixer();
 	virtual ~VideoMixer();
@@ -32,22 +32,22 @@ public:
 	 * Sets the Publisher
 	 * @param webRtcConn The WebRtcConnection of the Publisher
 	 */
-	void setPublisher(WebRtcConnection* webRtcConn);
+	void addPublisher(WebRtcConnection* webRtcConn, int peerSSRC);
 	/**
 	 * Sets the subscriber
 	 * @param webRtcConn The WebRtcConnection of the subscriber
 	 * @param peerId An unique Id for the subscriber
 	 */
-	void addSubscriber(WebRtcConnection* webRtcConn, int peerId);
+	void setSubscriber(WebRtcConnection* webRtcConn);
 	/**
 	 * Eliminates the subscriber given its peer id
 	 * @param peerId the peerId
 	 */
-	void removeSubscriber(int peerId);
+	void removePublisher(int peerSSRC);
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
 	void receiveRawData(RawDataPacket& packet);
-	void receiveRtpData(unsigned char*rtpdata, int len);
+  void receiveRtpData();
 
 //	MediaProcessor *mp;
 	InputProcessor* ip;
