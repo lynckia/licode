@@ -200,7 +200,9 @@ Erizo.Room = function (spec) {
             
             // 2- Publish Media Stream to Erizo-Controller
             if (stream.hasAudio() || stream.hasVideo()) {
-                stream.pc = new RoapConnection("STUN stun.l.google.com:19302", function(offer){
+                //stream.pc = new RoapConnection("STUN stun.l.google.com:19302", function(offer){
+                stream.pc = new ErizoPeerConnection(function(offer){
+
                     sendSDPSocket('publish', {state:'offer', data: true, audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
                         stream.pc.onsignalingmessage = function (ok) {
                             stream.pc.onsignalingmessage = function() {};
@@ -253,7 +255,7 @@ Erizo.Room = function (spec) {
 
             if(stream.hasVideo() || stream.hasAudio()) {
                 // 1- Subscribe to Stream
-                stream.pc = new RoapConnection("STUN stun.l.google.com:19302", function (offer){
+                stream.pc = new ErizoPeerConnection(function (offer){
                     sendSDPSocket('subscribe', {streamId:stream.getID()}, offer, function (answer) {
                         stream.pc.processSignalingMessage(answer);
 

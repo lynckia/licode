@@ -47,7 +47,8 @@ Erizo.Stream = function (spec) {
     that.init = function () {
         try {
             if (spec.audio || spec.video) {
-                navigator.webkitGetUserMedia({video: spec.video, audio: spec.audio}, function (stream) {
+                ErizoGetUserMedia({video: spec.video, audio: spec.audio}, function (stream) {
+                //navigator.webkitGetUserMedia("audio, video", function (stream) {
                     
                     L.Logger.info("User has granted access to local media.");
                     that.stream = stream;
