@@ -8,7 +8,7 @@
 
 #include "rtp/RtpParser.h"
 #include "../MediaDefinitions.h"
-#include "codecs/CodecFactory.h"
+#include "codecs/Codecs.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>

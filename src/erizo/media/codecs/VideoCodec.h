@@ -5,7 +5,7 @@
 #ifndef VIDEOCODEC_H_
 #define VIDEOCODEC_H_
 
-#include "CodecFactory.h"
+#include "Codecs.h"
 //Forward Declarations
 
 struct AVCodec;
