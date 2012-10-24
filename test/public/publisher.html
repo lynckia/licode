@@ -34,6 +34,7 @@ be found in the AUTHORS file in the root of the source tree.
 <script src="/socket.io/socket.io.js"></script>
 <script src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
 <script src="roap_on_jsep.js"></script>
+<script src="erizo_on_jsep.js"></script>
 
 <script type="text/javascript">
 
@@ -106,7 +107,7 @@ function gotStreamFailed(error) {
 
 function getUserMedia() {
   try {
-    navigator.webkitGetUserMedia({video:true, audio:true}, gotStream, gotStreamFailed);
+    ErizoGetUserMedia({video:true, audio:true}, gotStream, gotStreamFailed);
     trace("Requested access to local media");
   } catch (e) {
     trace_exception(e, "getUserMedia error");
@@ -123,7 +124,7 @@ function createPeerConnection() {
   trace("Creating PeerConnection object");
   try {
 
-    pc = new RoapConnection("STUN stun.l.google.com:19302", function(offer){
+    pc = new ErizoPeerConnection(function(offer){
       socket.emit('publish', 'offer', offer, function (answer, id) {
           pc.onsignalingmessage = function (ok) {
               pc.onsignalingmessage = function() {};
