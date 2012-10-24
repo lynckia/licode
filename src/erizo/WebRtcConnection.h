@@ -117,7 +117,7 @@ private:
 	int video_, audio_, bundle_, sequenceNumberFIR_;
 	unsigned int localAudioSsrc_, localVideoSsrc_;
 	unsigned int remoteAudioSSRC_, remoteVideoSSRC_;
-	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_;
+	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_, updateStateMutex_;
 	boost::thread send_Thread_;
 	std::queue<packet> sendQueue_;
 	WebRtcConnectionStateListener* connStateListener_;

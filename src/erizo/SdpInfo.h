@@ -22,6 +22,12 @@ enum MediaType {
 	VIDEO_TYPE, AUDIO_TYPE, OTHER
 };
 /**
+ * RTP Profile
+ */
+enum Profile {
+  AVPF, SAVPF
+};
+/**
  * SRTP info.
  */
 class CryptoInfo {
@@ -117,6 +123,14 @@ public:
 	 * The audio and video SSRCs for this particular SDP.
 	 */
 	unsigned int audioSsrc, videoSsrc;
+  /**
+   * Is it Bundle
+   */
+  bool isBundle;
+  /**
+   * RTP Profile type
+   */
+  Profile profile;
 
 private:
 	bool processSdp(const std::string& sdp);

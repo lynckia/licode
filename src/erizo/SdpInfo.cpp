@@ -13,6 +13,10 @@ using std::endl;
 namespace erizo {
 
 SdpInfo::SdpInfo() {
+  isBundle = false;
+  profile = AVPF;
+  audioSsrc = 0;
+  videoSsrc = 0;
 }
 
 SdpInfo::~SdpInfo() {
@@ -35,9 +39,8 @@ std::string SdpInfo::getSdp() {
 
 	std::ostringstream sdp;
 	sdp << "v=0\n" << "o=- 0 0 IN IP4 127.0.0.1\n" << "s=\n" << "t=0 0\n";
-	bool bundle = candidateVector_[0].isBundle;
 
-	if (bundle) {
+	if (isBundle) {
 		sdp << "a=group:BUNDLE audio video\n";
 	}
 	//candidates audio
@@ -65,7 +68,8 @@ std::string SdpInfo::getSdp() {
 		if (cand.mediaType == AUDIO_TYPE) {
 			if (!printedAudio) {
 				sdp << "m=audio " << cand.hostPort
-						<< " RTP/SAVPF 103 104 0 8 106 105 13 126\n"
+//						<< " RTP/SAVPF 103 104 0 8 106 105 13 126\n"
+            << " RTP/" << (profile==SAVPF?"SAVPF ":"AVPF ") << "103 104 0 8 106 105 13 126\n"
 						<< "c=IN IP4 " << cand.hostAddress
 						<< endl << "a=rtcp:" << candidateVector_[0].hostPort
 						<< " IN IP4 " << cand.hostAddress
@@ -78,7 +82,7 @@ std::string SdpInfo::getSdp() {
 					<< cand.hostAddress << " " << cand.hostPort << " typ "
 					<< hostType_str << " generation 0" << endl;
 
-			if (iceUsername_.empty() && bundle) {
+			if (iceUsername_.empty() && isBundle) {
 				iceUsername_ = cand.username;
 				icePassword_ = cand.password;
 			}
@@ -132,7 +136,7 @@ std::string SdpInfo::getSdp() {
 		}
 		if (cand.mediaType == VIDEO_TYPE) {
 			if (!printedVideo) {
-				sdp << "m=video " << cand.hostPort << " RTP/SAVPF 100 101 102\n"
+				sdp << "m=video " << cand.hostPort << " RTP/" << (profile==SAVPF?"SAVPF ":"AVPF ") <<  "100 101 102 103\n"
 						<< "c=IN IP4 " << cand.hostAddress
 						<< endl << "a=rtcp:" << candidateVector_[0].hostPort
 						<< " IN IP4 " << cand.hostAddress
@@ -145,7 +149,7 @@ std::string SdpInfo::getSdp() {
 					<< cand.hostAddress << " " << cand.hostPort << " typ "
 					<< hostType_str << " generation 0" << endl;
 
-			if (iceUsername_.empty() && bundle) {
+			if (iceUsername_.empty() && isBundle) {
 				iceUsername_ = cand.username;
 				icePassword_ = cand.password;
 			}
@@ -167,13 +171,13 @@ std::string SdpInfo::getSdp() {
 		}
 
 		sdp
-				<< "a=rtpmap:100 VP8/90000\na=rtpmap:101 red/90000\na=rtpmap:102 ulpfec/90000\n";
+				<< "a=rtpmap:100 VP8/90000\na=rtpmap:101 red/90000\na=rtpmap:102 ulpfec/90000\na=rtpmap:103 H264/90000\n";
 		sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu\na=ssrc:"
 				<< videoSsrc
 				<< " mslabel:048f838f-2dd1-4a98-ab9e-8eb5f00abab8\na=ssrc:"
 				<< videoSsrc << " label:iSight integrada\n";
 	}
-
+  printf("sdp local \n %s\n",sdp.str().c_str());
 	return sdp.str();
 }
 
@@ -194,8 +198,8 @@ bool SdpInfo::processSdp(const std::string& sdp) {
 	const char *ice_user = "a=ice-ufrag";
 	const char *ice_pass = "a=ice-pwd";
 	const char *ssrctag = "a=ssrc";
+  const char *savpf = "SAVPF";
 	MediaType mtype = OTHER;
-	bool bundle = false;
 
 	while (std::getline(iss, strLine)) {
 		const char* theline = strLine.c_str();
@@ -208,10 +212,14 @@ bool SdpInfo::processSdp(const std::string& sdp) {
 		char* isUser = strstr(line, ice_user);
 		char* isPass = strstr(line, ice_pass);
 		char* isSsrc = strstr(line, ssrctag);
-
+    char* isSAVPF = strstr(line, savpf);
+    if (isSAVPF){
+      profile = SAVPF;
+      printf("PROFILE %s (1 SAVPF)\n", isSAVPF);
+    }
 //		char* ismid = strstr(line,mid);
 		if (isGroup) {
-			bundle = true;
+			isBundle = true;
 		}
 		if (isVideo) {
 			mtype = VIDEO_TYPE;
@@ -293,7 +301,7 @@ bool SdpInfo::processSdp(const std::string& sdp) {
 		CandidateInfo& c = candidateVector_[i];
 		c.username = iceUsername_;
 		c.password = icePassword_;
-		c.isBundle = bundle;
+		c.isBundle = isBundle;
 	}
 
 	return true;
