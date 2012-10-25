@@ -82,10 +82,8 @@ std::string SdpInfo::getSdp() {
 					<< cand.hostAddress << " " << cand.hostPort << " typ "
 					<< hostType_str << " generation 0" << endl;
 
-			if (iceUsername_.empty() && isBundle) {
-				iceUsername_ = cand.username;
+				iceUsername_ = cand.username;        
 				icePassword_ = cand.password;
-			}
 		}
 	}
 	//crypto audio
@@ -149,10 +147,8 @@ std::string SdpInfo::getSdp() {
 					<< cand.hostAddress << " " << cand.hostPort << " typ "
 					<< hostType_str << " generation 0" << endl;
 
-			if (iceUsername_.empty() && isBundle) {
 				iceUsername_ = cand.username;
 				icePassword_ = cand.password;
-			}
 		}
 	}
 	//crypto audio
