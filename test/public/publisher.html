@@ -126,14 +126,15 @@ function createPeerConnection() {
 
     pc = new ErizoPeerConnection(function(offer){
       socket.emit('publish', 'offer', offer, function (answer, id) {
-          console.log('recibo answer', answer);
+          console.log('recibo answer');
           pc.onsignalingmessage = function (ok) {
               console.log('envio ok');
               pc.onsignalingmessage = function() {};
               socket.emit('publish', 'ok', ok);
           };
+          console.log('voy a hacer nuevo answer');
           var newAnswer = ErizoParseAnswer(answer);
-          console.log('nuevo answer ', newAnswer);
+          console.log('ya tengo nuevo answer');
           pc.processSignalingMessage(newAnswer);
       });
     });
