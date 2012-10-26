@@ -24,18 +24,19 @@ namespace erizo {
     }
 
   VideoEncoder::VideoEncoder(){
+    avcodec_register_all();
   }
 
   int VideoEncoder::initEncoder(const VideoCodecInfo& info){
-    vCoder = avcodec_find_encoder(static_cast<CodecID>(info.codec));
+    vCoder = avcodec_find_encoder(VideoCodecID2ffmpegDecoderID(info.codec));
     if (!vCoder) {
-      printf("Encoder de vídeo no encontrado");
+      printf("Video codec not found for encoder");
       return -1;
     }
 
     vCoderContext = avcodec_alloc_context3(vCoder);
     if (!vCoderContext) {
-      printf("Error de memoria en coder de vídeo");
+      printf("Error allocating vCoderContext");
       return -2;
     }
 
@@ -56,13 +57,13 @@ namespace erizo {
       (AVRational) {info.width,info.height};
 
     if (avcodec_open2(vCoderContext, vCoder, NULL) < 0) {
-      printf("Error al abrir el decoder de vídeo");
+      printf("Error opening video decoder");
       return -3;
     }
 
     cPicture = avcodec_alloc_frame();
     if (!cPicture) {
-      printf("Error de memoria en frame del coder de vídeo");
+      printf("Error allocating video frame");
       return -4;
     }
 
@@ -71,23 +72,23 @@ namespace erizo {
     return 0;
   }
 
-  int VideoEncoder::encodeVideo (uint8_t* inBuffer, int inLength, uint8_t* outBuffer, int outLength, bool& hasFrame){
+  int VideoEncoder::encodeVideo (unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength, int& hasFrame){
 
     int size = vCoderContext->width * vCoderContext->height;
     printf("vCoderContext width %d\n", vCoderContext->width);
 
     cPicture->pts = AV_NOPTS_VALUE;
-    cPicture->data[0] = (unsigned char*) inBuffer;
-    cPicture->data[1] = (unsigned char*) inBuffer + size;
-    cPicture->data[2] = (unsigned char*) inBuffer + size + size / 4;
+    cPicture->data[0] = inBuffer;
+    cPicture->data[1] = inBuffer + size;
+    cPicture->data[2] = inBuffer + size + size / 4;
     cPicture->linesize[0] = vCoderContext->width;
     cPicture->linesize[1] = vCoderContext->width / 2;
     cPicture->linesize[2] = vCoderContext->width / 2;
 
     AVPacket pkt;
     av_init_packet(&pkt);
-    pkt.data = inBuffer;
-    pkt.size = inLength;
+    pkt.data = outBuffer;
+    pkt.size = outLength;
 
     int ret = 0;
     int got_packet = 0;
@@ -102,17 +103,7 @@ namespace erizo {
       vCoderContext->coded_frame->key_frame =
         !!(pkt.flags & AV_PKT_FLAG_KEY);
     }
-    /* free any side data since we cannot return it */
-    //		if (pkt.side_data_elems > 0) {
-    //			int i;
-    //			for (i = 0; i < pkt.side_data_elems; i++)
-    //				av_free(pkt.side_data[i].data);
-    //			av_freep(&pkt.side_data);
-    //			pkt.side_data_elems = 0;
-    //		}
     return ret ? ret : pkt.size;
-
-    return ret;
   }
 
   int VideoEncoder::closeEncoder() {
@@ -121,11 +112,13 @@ namespace erizo {
 
 
   VideoDecoder::VideoDecoder(){
+    avcodec_register_all();
     vDecoder = 0;
     vDecoderContext = 0;
   }
 
   int VideoDecoder::initDecoder (const VideoCodecInfo& info){
+    printf("Init Decoder\n");
     vDecoder = avcodec_find_decoder(CODEC_ID_VP8);
     if (!vDecoder) {
       printf("Error getting video decoder\n");
@@ -154,8 +147,9 @@ namespace erizo {
 
     return 0;
   }
-  int VideoDecoder::decodeVideo(uint8_t* inBuff, int inBuffLen,
-      uint8_t* outBuff, int outBuffLen, bool* gotFrame){
+  int VideoDecoder::decodeVideo(unsigned char* inBuff, int inBuffLen,
+      unsigned char* outBuff, int outBuffLen, int* gotFrame){
+    printf("decode video\n");
     if (vDecoder == 0 || vDecoderContext == 0){
       printf("Init Codec First\n");
       return -1;
@@ -178,7 +172,7 @@ namespace erizo {
           &avpkt);
 
       if (len < 0) {
-        printf("Error al decodificar frame de vídeo\n");
+        printf("Error decoding video frame\n");
         return -1;
       }
 
@@ -191,7 +185,6 @@ namespace erizo {
     }
 
     if (!got_picture) {
-      printf("Aún no tengo frame");
       return -1;
     }
 
@@ -200,7 +193,6 @@ decoding:
     int outSize = vDecoderContext->height * vDecoderContext->width;
 
     if (outBuffLen < (outSize * 3 / 2)) {
-      printf("No se ha rellenado el buffer??? outBuffLen = %d\n", outBuffLen);
       return outSize * 3 / 2;
     }
 

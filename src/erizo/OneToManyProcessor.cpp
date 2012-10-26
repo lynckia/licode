@@ -31,6 +31,7 @@ OneToManyProcessor::OneToManyProcessor() :
 		m.audioCodec.bitRate = 64000;
 
 	}
+  printf("init ip\n");
 	ip->init(m, this);
 
 	MediaInfo om;
@@ -84,9 +85,8 @@ int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 	memcpy(sendVideoBuffer_, buf, len);
 
 	RTPHeader* theHead = reinterpret_cast<RTPHeader*>(buf);
-	printf("Probando nuevo header\n\n");
-	printf("extension %d pt %u\n", theHead->getExtension(),
-			theHead->getPayloadType());
+//	printf("extension %d pt %u\n", theHead->getExtension(),
+//			theHead->getPayloadType());
 
 	if (theHead->getPayloadType() == 100) {
 		ip->receiveVideoData(sendVideoBuffer_, len);
@@ -114,7 +114,7 @@ int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 }
 
 void OneToManyProcessor::receiveRawData(RawDataPacket& pkt) {
-	printf("Received %d\n", pkt.length);
+//	printf("Received %d\n", pkt.length);
 	op->receiveRawData(pkt);
 }
 

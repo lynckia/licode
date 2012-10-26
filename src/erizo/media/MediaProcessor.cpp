@@ -3,6 +3,7 @@
 #include "MediaProcessor.h"
 #include "rtp/RtpVP8Fragmenter.h"
 #include "rtp/RtpHeader.h"
+#include "codecs/VideoCodec.h"
 
 namespace erizo {
 
@@ -17,7 +18,6 @@ namespace erizo {
     upackagedSize_ = 0;
     decodedBuffer_ = NULL;
 
-    avcodec_register_all();
     av_register_all();
   }
 
@@ -28,9 +28,7 @@ namespace erizo {
     }
 
     if (videoDecoder == 1) {
-      avcodec_close(vDecoderContext);
-      av_free(vDecoderContext);
-      av_free(dPicture);
+      vDecoder.closeDecoder();      
     }
     if (decodedBuffer_ != NULL) {
       free(decodedBuffer_);
@@ -45,8 +43,9 @@ namespace erizo {
       decodedBuffer_ = (unsigned char*) malloc(
           info.videoCodec.width * info.videoCodec.height * 3 / 2);
       unpackagedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
-      this->initVideoDecoder();
-      this->initVideoUnpackager();
+      if(!vDecoder.initDecoder(mediaInfo.videoCodec));
+        videoDecoder = 1; 
+      if(!this->initVideoUnpackager());
     }
     if (mediaInfo.hasAudio) {
       printf("Init AUDIO processor\n");
@@ -89,11 +88,11 @@ namespace erizo {
         int c;
         int gotDecodedFrame = 0;
 
-        c = this->decodeVideo(unpackagedBuffer_, upackagedSize_,
+        c = vDecoder.decodeVideo(unpackagedBuffer_, upackagedSize_,
             decodedBuffer_,
             mediaInfo.videoCodec.width * mediaInfo.videoCodec.height * 3
             / 2, &gotDecodedFrame);
-
+        
         upackagedSize_ = 0;
         gotUnpackagedFrame_ = 0;
         printf("Bytes dec = %d\n", c);
@@ -140,12 +139,6 @@ namespace erizo {
     audioDecoder = 1;
     return true;
 
-  }
-
-  bool InputProcessor::initVideoDecoder() {
-
-    videoDecoder = 1;
-    return true;
   }
 
   bool InputProcessor::initAudioUnpackager() {
@@ -249,12 +242,6 @@ namespace erizo {
 
   }
 
-  int InputProcessor::decodeVideo(unsigned char* inBuff, int inBuffLen,
-      unsigned char* outBuff, int outBuffLen, int* gotFrame) {
-    return 1;
-    
-  }
-
   int InputProcessor::unpackageAudio(unsigned char* inBuff, int inBuffLen,
       unsigned char* outBuff) {
 
@@ -277,8 +264,8 @@ namespace erizo {
     RTPHeader* head = reinterpret_cast<RTPHeader*>(inBuff);
 
 
-    printf("PT %d, ssrc %u, extension %d\n", head->getPayloadType(), head->getSSRC(),
-        head->getExtension());
+//    printf("PT %d, ssrc %u, extension %d\n", head->getPayloadType(), head->getSSRC(),
+//        head->getExtension());
     if ( head->getSSRC() != 55543 /*&& head->payloadtype!=101*/) {
       return -1;
     }
@@ -286,7 +273,7 @@ namespace erizo {
       return -1;
     }
 
-    printf("RTP header length: %d", head->getHeaderLength()); //Should include extensions
+//    printf("RTP header length: %d", head->getHeaderLength()); //Should include extensions
     int l = inBuffLen - head->getHeaderLength();
     inBuffOffset+=head->getHeaderLength();
 
@@ -325,9 +312,7 @@ namespace erizo {
     }
 
     if (videoCoder == 1) {
-      avcodec_close(vCoderContext);
-      av_free(vCoderContext);
-      av_free(cPicture);
+      vCoder.closeEncoder();
     }
     if (encodedBuffer_) {
       free(encodedBuffer_);
@@ -350,8 +335,8 @@ namespace erizo {
 
     if (mediaInfo.hasVideo) {
       this->mediaInfo.videoCodec.codec = VIDEO_CODEC_VP8;
-      if (!this->initVideoCoder()) {
-        printf("Fallo aqui\n");
+      if (vCoder.initEncoder(mediaInfo.videoCodec)) {
+        printf("Error initing encoder\n");
       }
       this->initVideoPackager();
     }
@@ -365,7 +350,6 @@ namespace erizo {
       packagedAudioBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
       this->initAudioCoder();
       this->initAudioPackager();
-      
 
     }
 
@@ -374,22 +358,20 @@ namespace erizo {
 
 
   void OutputProcessor::receiveRawData(RawDataPacket& packet) {
-    AVPacket pkt;
-    av_init_packet(&pkt);
-    pkt.data = encodedBuffer_;
-    pkt.size = UNPACKAGED_BUFFER_SIZE;
+    int hasFrame = 0;
     if (packet.type == VIDEO) {
-      int a = this->encodeVideo(packet.data, packet.length, &pkt);
+      printf("Encoding video: size %d\n", packet.length);
+      int a = vCoder.encodeVideo(packet.data, packet.length, encodedBuffer_,UNPACKAGED_BUFFER_SIZE,hasFrame);
       if (a > 0)
-        int b = this->packageVideo(&pkt, packagedBuffer_);
+        int b = this->packageVideo(encodedBuffer_, a, packagedBuffer_);
     } else {
-      int a = this->encodeAudio(packet.data, packet.length, &pkt);
-      if (a > 0) {
-        printf("GUAY a %d\n", a);
-      }
+//      int a = this->encodeAudio(packet.data, packet.length, &pkt);
+//      if (a > 0) {
+//        printf("GUAY a %d\n", a);
+//      }
 
     }
-    av_free_packet(&pkt);
+//    av_free_packet(&pkt);
   }
 
   bool OutputProcessor::initAudioCoder() {
@@ -420,14 +402,6 @@ namespace erizo {
     }
 
     audioCoder = 1;
-    return true;
-  }
-
-  bool OutputProcessor::initVideoCoder() {
-
-    videoCoder = 1;
-    printf("videoCoder configured successfully %d x %d\n", vCoderContext->width,
-        vCoderContext->height);
     return true;
   }
 
@@ -467,16 +441,16 @@ namespace erizo {
     //	rtpReceiver_->receiveRtpData(rtpBuffer_, (inBuffLen + RTP_HEADER_LEN));
   }
 
-  int OutputProcessor::packageVideo(AVPacket* pkt, unsigned char* outBuff) {
+  int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff) {
     if (videoPackager == 0) {
       printf("No se ha inicailizado el codec de output vídeo RTP");
       return -1;
     }
 
-    printf("To packetize %u\n", pkt->size);
-    if (pkt->size <= 0)
+    printf("To packetize %u\n", buffSize);
+    if (buffSize <= 0)
       return -1;
-    RtpVP8Fragmenter frag(pkt->data, pkt->size, 1100);
+    RtpVP8Fragmenter frag(inBuff, buffSize, 1100);
     bool lastFrame = false;
     unsigned int outlen = 0;
     timeval time;
@@ -563,12 +537,4 @@ namespace erizo {
 
   }
 
-  int OutputProcessor::encodeVideo(unsigned char* inBuff, int inBuffLen,
-      AVPacket* pkt) {
-    if (videoCoder == 0) {
-      printf("No se han inicializado los parámetros del videoCoder");
-      return -1;
-    }
-    return 1;
-  }
 } /* namespace erizo */

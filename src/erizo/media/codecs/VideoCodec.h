@@ -18,8 +18,8 @@ namespace erizo {
     public:
       VideoEncoder();
       int initEncoder (const VideoCodecInfo& info);
-      int encodeVideo (uint8_t* inBuffer, int length, 
-          uint8_t* outBuffer, int outLength, bool& hasFrame);
+      int encodeVideo (unsigned char* inBuffer, int length, 
+          unsigned char* outBuffer, int outLength, int& hasFrame);
       int closeEncoder ();
 
     private:
@@ -32,8 +32,8 @@ namespace erizo {
     public:
       VideoDecoder();
       int initDecoder (const VideoCodecInfo& info);
-      int decodeVideo(uint8_t* inBuff, int inBuffLen,
-          uint8_t* outBuff, int outBuffLen, bool* gotFrame);
+      int decodeVideo(unsigned char* inBuff, int inBuffLen,
+          unsigned char* outBuff, int outBuffLen, int* gotFrame);
       int closeDecoder();
 
     private:

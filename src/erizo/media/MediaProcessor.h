@@ -9,6 +9,7 @@
 #include "rtp/RtpParser.h"
 #include "../MediaDefinitions.h"
 #include "codecs/Codecs.h"
+#include "codecs/VideoCodec.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -111,12 +112,10 @@ private:
 	AVCodec* aDecoder;
 	AVCodecContext* aDecoderContext;
 
-	AVCodec* vDecoder;
-	AVCodecContext* vDecoderContext;
-	AVFrame* dPicture;
 
 	AVFormatContext* aInputFormatContext;
 	AVInputFormat* aInputFormat;
+  VideoDecoder vDecoder;
 
 	RTPInfo* vRTPInfo;
 
@@ -128,15 +127,12 @@ private:
 	erizo::RtpParser pars;
 
 	bool initAudioDecoder();
-	bool initVideoDecoder();
 
 	bool initAudioUnpackager();
 	bool initVideoUnpackager();
 
 	int decodeAudio(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);
-	int decodeVideo(unsigned char* inBuff, int inBuffLen,
-			unsigned char* outBuff, int outBuffLen, int* gotFrame);
 
 	int unpackageAudio(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);
@@ -180,9 +176,8 @@ private:
 	AVCodec* aCoder;
 	AVCodecContext* aCoderContext;
 
-	AVCodec* vCoder;
-	AVCodecContext* vCoderContext;
-	AVFrame* cPicture;
+  VideoEncoder vCoder;
+
 
 	AVFormatContext* aOutputFormatContext;
 	AVOutputFormat* aOutputFormat;
@@ -196,7 +191,6 @@ private:
 	RtpParser pars;
 
 	bool initAudioCoder();
-	bool initVideoCoder();
 
 	bool initAudioPackager();
 	bool initVideoPackager();
@@ -204,12 +198,10 @@ private:
 	int encodeAudio(unsigned char* inBuff, int nSamples,
 			AVPacket* pkt);
 
-	int encodeVideo(unsigned char* inBuff, int inBuffLen, AVPacket* pkt);
-
 	int packageAudio(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);
 
-	int packageVideo(AVPacket* pkt, unsigned char* outBuff);
+	int packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff);
 };
 } /* namespace erizo */
 
