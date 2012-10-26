@@ -26,9 +26,9 @@ ErizoPeerConnection = function (signalingCallback) {
 			var sdp = sdp.replace(reg2, info);
 
 			var reg4 = new RegExp(/\n/g);
-			var sdp = sdp.replace(reg4, '\\r\\n')
+			var sdp = sdp.replace(reg4, '\\r\\n');
 
-			signalingCallback(sdp);
+			signalingCallback(sdp, offer);
 		});
 		
 
@@ -41,15 +41,18 @@ ErizoPeerConnection = function (signalingCallback) {
 
 ErizoParseAnswer = function(answer) {
 
-	
-	var username = answer.match(/(?:a=ice-ufrag:)(.+)(?:\r\n)/)[1];
-	var pass = answer.match(/(?:a=ice-pwd:)(.+)(?:\r\n)/)[1];
+	var newAnswer = {};
 
-	var reg1 = new RegExp(/(?:a=ice-ufrag:)(.+)(?:\r\n)/g);
-	var reg2 = new RegExp(/(?:a=ice-pwd:)(.+)(?:\r\n)/g);
+	var username = answer.match(/(a=ice-ufrag:)(.+?)(\\r\\n)/)[2];
+	var pass = answer.match(/(a=ice-pwd:)(.+?)(\\r\\n)/)[2];
+
+	var reg1 = new RegExp(/(a=ice-ufrag:)(.+?)(\\r\\n)/g);
+	var reg2 = new RegExp(/(a=ice-pwd:)(.+?)(\\r\\n)/g);
 
 	answer = answer.replace(reg1, '');
 	answer = answer.replace(reg2, '');
+
+	newAnswer.answer = answer;
 
 	var reg3 = new RegExp(/(generation)/g);
 
@@ -70,6 +73,28 @@ ErizoParseAnswer = function(answer) {
 	var reg3 = new RegExp(/(magia)/g);
 
 	answer = answer.replace(reg3, 'generation');
+
+
+
+
+	var matches2 = answer.match(/(a=candidate:)(.+?)(generation 0)/g);
+	var matches3 = answer.match(/(generation 0)/g);
+
+	for (var i = 0; i < matches2.length; i++) {
+
+		var candidate = matches2[i];
+		candidate = candidate.replace(/(rtp)/, 'rtcp');
+
+		candidate = candidate.replace(/(generation)/, 'magia');
+
+		var info3 = 'magia 0\\r\\n' + candidate;
+
+		answer = answer.replace(matches3[i], info3);
+
+	}
+
+	answer = answer.replace(reg3, 'generation');
+
 
 	return answer;
 
