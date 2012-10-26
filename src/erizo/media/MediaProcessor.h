@@ -72,7 +72,7 @@ public:
 
 class RTPDataReceiver {
 public:
-	virtual void receiveRtpData(unsigned char*rtpdata, int len) = 0;
+	virtual void receiveRtpData(unsigned char* rtpdata, int len) = 0;
 	virtual ~RTPDataReceiver() {
 	}
 	;

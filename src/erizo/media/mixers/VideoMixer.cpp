@@ -40,6 +40,14 @@ namespace erizo {
     }
 
   VideoMixer::~VideoMixer() {
+
+    if (sendVideoBuffer_)
+      delete sendVideoBuffer_;
+    if (sendAudioBuffer_)
+      delete sendAudioBuffer_;
+    if (sink_) {
+      delete sink_;
+    }
   }
 
   int VideoMixer::receiveAudioData(char* buf, int len) {
@@ -51,6 +59,9 @@ namespace erizo {
   }
 
   void VideoMixer::receiveRawData(RawDataPacket& pkt) {
+  }
+
+  void VideoMixer::receiveRtpData(unsigned char* rtpdata, int len){
   }
 
   void VideoMixer::addPublisher(WebRtcConnection* webRtcConn, int peerSSRC){

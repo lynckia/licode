@@ -47,7 +47,7 @@ public:
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
 	void receiveRawData(RawDataPacket& packet);
-  void receiveRtpData();
+  void receiveRtpData(unsigned char* rtpdata, int len);
 
 //	MediaProcessor *mp;
 	InputProcessor* ip;

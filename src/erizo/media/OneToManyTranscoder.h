@@ -1,29 +1,32 @@
 /*
- * OneToManyProcessor.h
+ * OneToManyTranscoder.h
  */
 
-#ifndef ONETOMANYPROCESSOR_H_
-#define ONETOMANYPROCESSOR_H_
+#ifndef ONETOMANYTRANSCODER_H_
+#define ONETOMANYTRANSCODER_H_
 
 #include <map>
+#include <vector>
 
-#include "MediaDefinitions.h"
+#include "../MediaDefinitions.h"
+#include "MediaProcessor.h"
+
 
 namespace erizo{
-
 class WebRtcConnection;
+class RTPSink;
 
 /**
  * Represents a One to Many connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class OneToManyProcessor : public MediaReceiver {
+class OneToManyTranscoder : public MediaReceiver, public RawDataReceiver, public RTPDataReceiver {
 public:
 	WebRtcConnection *publisher;
 	std::map<int, WebRtcConnection*> subscribers;
 
-	OneToManyProcessor();
-	virtual ~OneToManyProcessor();
+	OneToManyTranscoder();
+	virtual ~OneToManyTranscoder();
 	/**
 	 * Sets the Publisher
 	 * @param webRtcConn The WebRtcConnection of the Publisher
@@ -42,6 +45,12 @@ public:
 	void removeSubscriber(int peerId);
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
+	void receiveRawData(RawDataPacket& packet);
+	void receiveRtpData(unsigned char*rtpdata, int len);
+
+//	MediaProcessor *mp;
+	InputProcessor* ip;
+	OutputProcessor* op;
 	/**
 	 * Closes all the subscribers and the publisher, the object is useless after this
 	 */
@@ -50,8 +59,16 @@ public:
 private:
 	char* sendVideoBuffer_;
 	char* sendAudioBuffer_;
+	char* unpackagedBuffer_;
+	char* decodedBuffer_;
+	char* codedBuffer_;
+	RTPSink* sink_;
+	std::vector<packet> head;
+	int gotFrame_,gotDecodedFrame_, size_;
+	void sendHead(WebRtcConnection* conn);
+	RtpParser pars;
 	unsigned int sentPackets_;
 };
 
 } /* namespace erizo */
-#endif /* ONETOMANYPROCESSOR_H_ */
+#endif /* ONETOMANYTRANSCODER_H_ */
