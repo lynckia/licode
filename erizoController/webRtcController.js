@@ -190,13 +190,16 @@ exports.WebRtcController = function() {
         var reg1 = new RegExp(/\n/g);
         sdp = sdp.replace(reg1, '\\r\\n');
 
-        var reg2 = new RegExp(/^.*offererSessionId\":(...).*$/);
-        var offererSessionId = offerRoap.match(reg2)[1];
+        var offererSessionId = offerRoap.match(/("offererSessionId":)(.+?)(,)/)[0];
+
+        //var reg2 = new RegExp(/^.*offererSessionId\":(...).*$/);
+        //var offererSessionId = offerRoap.match(reg2)[1];
 
         var answererSessionId = "106";
         var answer = ('\n{\n \"messageType\":\"ANSWER\",\n');
         answer += ' \"sdp\":\"' + sdp + '\",\n';
-        answer += ' \"offererSessionId\":' + offererSessionId + ',\n';
+        //answer += ' \"offererSessionId\":' + offererSessionId + ',\n';
+        answer += ' ' + offererSessionId + '\n';
         answer += ' \"answererSessionId\":' + answererSessionId + ',\n \"seq\" : 1\n}\n';
 
         return answer;
