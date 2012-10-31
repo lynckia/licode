@@ -96,6 +96,22 @@ ErizoParseAnswer = function(answer) {
 	answer = answer.replace(reg3, 'generation');
 
 
+
+
+	//---------------------------------------------
+
+	var reg10 = new RegExp(/(a=sendrecv\\r\\n)/g);
+
+	answer = answer.replace(reg10, '');
+
+	var reg11 = new RegExp(/(a=mid:video\\r\\n)/g);
+
+	answer = answer.replace(reg11, 'a=mid:video\\r\\na=fmtp:103 profile-level-id=42C00B;packetization-mode=1\\r\\n');
+
+	//---------------------------------------------
+
+	answer = 'SDP ' + answer;
+
 	return answer;
 
 }

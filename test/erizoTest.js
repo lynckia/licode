@@ -41,6 +41,10 @@ var sendMsgToRoom = function(room, type, arg) {
 io.sockets.on('connection', function (socket) {
 
     console.log("Socket connect ", socket.id);
+
+    socket.on('sdp', function (sdp) {
+        console.log('lllllllllllllll', sdp);
+    });
     
     socket.on('initConnection', function (room, callback) {
 

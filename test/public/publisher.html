@@ -124,8 +124,13 @@ function createPeerConnection() {
   trace("Creating PeerConnection object");
   try {
 
-    pc = new ErizoPeerConnection(function(offer, offerAnt){
-      socket.emit('publish', 'offer', offer, function (answer, id) {
+    pc = new ErizoPeerConnection(function(offer, ant){
+
+      //socket.emit('sdp', ant);
+
+      console.log('++++++++++++++SIGNALING++++++++++++++');
+
+      socket.emit('publish', 'offer', offer, function (answer) {
           pc.onsignalingmessage = function (ok) {
               console.log('envio ok');
               pc.onsignalingmessage = function() {};
@@ -138,6 +143,12 @@ function createPeerConnection() {
             console.log('SOY BOWSER voy a hacer nuevo answer');
             newAnswer = ErizoParseAnswer(answer);
             console.log('ya tengo nuevo answer');
+
+            var par = JSON.parse(newAnswer.substring(4));
+
+            socket.emit('sdp', par.seq);
+
+            //socket.emit('sdp', newAnswer);
           }
 
           pc.processSignalingMessage(newAnswer);
