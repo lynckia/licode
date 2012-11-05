@@ -35,6 +35,8 @@ function RoapConnection(configuration, signalingCallback) {
   this.pc_config = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
   this.mediaConstraints = {'has_audio':true, 'has_video':true};
 
+  this.stAdd = false;
+
   try {
 
     this.peerConnection = new webkitRTCPeerConnection(this.pc_config);
@@ -188,6 +190,7 @@ RoapConnection.prototype.processSignalingMessage = function(msgstring) {
  * @param {MediaStream} stream The outgoing MediaStream to add.
  */
 RoapConnection.prototype.addStream = function(stream) {
+  this.stAdd = true;
   this.peerConnection.addStream(stream);
   this.markActionNeeded();
 };
@@ -250,7 +253,11 @@ RoapConnection.prototype.onstablestate = function() {
   if (this.actionNeeded) {
     if (this.state === 'new' || this.state === 'established') {
       // See if the current offer is the same as what we already sent.
-      // If not, no change is needed.
+      // If not, no change is needed.   
+
+      if(!this.stAdd) {
+        this.mediaConstraints = {'mandatory': {'OfferToReceiveVideo': 'true', 'OfferToReceiveAudio': 'true'}};
+      }
 
       if (this.isRTCPeerConnection) {
 
@@ -259,9 +266,9 @@ RoapConnection.prototype.onstablestate = function() {
           var newOffer = sessionDescription.sdp;
 
           if (newOffer != this.prevOffer) {
-            // Prepare to send an offer.
-            that.peerConnection.setLocalDescription(sessionDescription);
 
+            that.peerConnection.setLocalDescription(sessionDescription);
+            
             that.state = 'preparing-offer';
             that.markActionNeeded();
             return;
