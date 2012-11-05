@@ -255,11 +255,11 @@ RoapConnection.prototype.onstablestate = function() {
       // See if the current offer is the same as what we already sent.
       // If not, no change is needed.   
 
-      if(!this.stAdd) {
-        this.mediaConstraints = {'mandatory': {'OfferToReceiveVideo': 'true', 'OfferToReceiveAudio': 'true'}};
-      }
-
       if (this.isRTCPeerConnection) {
+
+        if(!this.stAdd) {
+          this.mediaConstraints = {'mandatory': {'OfferToReceiveVideo': 'true', 'OfferToReceiveAudio': 'true'}};
+        }
 
         this.peerConnection.createOffer(function(sessionDescription){
 
