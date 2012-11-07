@@ -244,7 +244,6 @@ namespace erizo {
         profile = SAVPF;
         printf("PROFILE %s (1 SAVPF)\n", isSAVPF);
       }
-      //		char* ismid = strstr(line,mid);
       if (isGroup) {
         isBundle = true;
       }
@@ -266,15 +265,6 @@ namespace erizo {
 
         processCandidate(pieces, i - 1, mtype);
       }
-      //		if(ismid!=NULL){
-      //			printf(" %s\n", ismid+6);
-      //			if (!strcmp(ismid+6,"video")){
-      //
-      //			}else if(!strcmp(ismid+6,"audio")){
-      //
-      //			}
-      //
-      //		}
       if (isCrypt) {
         //	printf("crypt %s\n", isCrypt );
         CryptoInfo crypinfo;
