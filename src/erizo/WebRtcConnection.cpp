@@ -255,7 +255,6 @@ namespace erizo {
       }
     }
     localSdp_.profile = remoteSdp_.profile;
-    printf("About to return local sdp %d\n", (int)localSdp_.getPayloadInfos().size());
     return localSdp_.getSdp();
   }
 
