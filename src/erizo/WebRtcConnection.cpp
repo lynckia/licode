@@ -92,6 +92,8 @@ namespace erizo {
     CryptoInfo cryptRemote_audio;
 
     bundle_ = remoteSdp_.isBundle;
+    std::vector<RtpMap> payloadRemote = remoteSdp_.getPayloadInfos();
+    localSdp_.getPayloadInfos() = remoteSdp_.getPayloadInfos();
     localSdp_.isBundle = bundle_;
 
     printf("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d ", video_, remoteSdp_.videoSsrc, audio_, remoteSdp_.audioSsrc,  bundle_);
@@ -253,6 +255,7 @@ namespace erizo {
       }
     }
     localSdp_.profile = remoteSdp_.profile;
+    printf("About to return local sdp %d\n", (int)localSdp_.getPayloadInfos().size());
     return localSdp_.getSdp();
   }
 

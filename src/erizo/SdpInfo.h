@@ -84,7 +84,7 @@ struct RtpMap {
   unsigned int payloadType;
   std::string encodingName;
   unsigned int clockRate;
-  MediaType type;
+  MediaType mediaType;
 };
 /**
  * Contains the information of a single SDP.

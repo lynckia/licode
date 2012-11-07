@@ -100,11 +100,21 @@ namespace erizo {
             << cryp_info.keyParams << endl;
         }
       }
+      /*
+         sdp
+         << "a=rtpmap:103 ISAC/16000\na=rtpmap:104 ISAC/32000\na=rtpmap:0 PCMU/8000\n"
+         "a=rtpmap:8 PCMA/8000\na=rtpmap:106 CN/32000\na=rtpmap:105 CN/16000\n"
+         "a=rtpmap:13 CN/8000\na=rtpmap:126 telephone-event/8000\n";
+         PAYLOAD PART 
+         */
 
-      sdp
-        << "a=rtpmap:103 ISAC/16000\na=rtpmap:104 ISAC/32000\na=rtpmap:0 PCMU/8000\n"
-        "a=rtpmap:8 PCMA/8000\na=rtpmap:106 CN/32000\na=rtpmap:105 CN/16000\n"
-        "a=rtpmap:13 CN/8000\na=rtpmap:126 telephone-event/8000\n";
+      for (unsigned int it = 0; it < payloadVector_.size(); it++) {
+        const RtpMap& rtp = payloadVector_[it];
+        if (rtp.mediaType!=AUDIO_TYPE)
+          continue;
+        sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
+          << rtp.clockRate <<"\n";
+      }
       sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu\na=ssrc:"
         << audioSsrc
         << " mslabel:048f838f-2dd1-4a98-ab9e-8eb5f00abab8\na=ssrc:"
@@ -166,8 +176,17 @@ namespace erizo {
         }
       }
 
-      sdp
-        << "a=rtpmap:100 VP8/90000\na=rtpmap:101 red/90000\na=rtpmap:102 ulpfec/90000\na=rtpmap:103 H264/90000\n";
+      //      sdp
+      //        << "a=rtpmap:100 VP8/90000\na=rtpmap:101 red/90000\na=rtpmap:102 ulpfec/90000\na=rtpmap:103 H264/90000\n";
+
+      for (unsigned int it = 0; it < payloadVector_.size(); it++) {
+        const RtpMap& rtp = payloadVector_[it];
+        if (rtp.mediaType!=VIDEO_TYPE)
+          continue;
+        sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
+          << rtp.clockRate <<"\n";
+      }
+
       sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu\na=ssrc:"
         << videoSsrc
         << " mslabel:048f838f-2dd1-4a98-ab9e-8eb5f00abab8\na=ssrc:"
@@ -195,6 +214,7 @@ namespace erizo {
     const char *ice_pass = "a=ice-pwd";
     const char *ssrctag = "a=ssrc";
     const char *savpf = "SAVPF";
+    const char *rtpmap = "a=rtpmap:";
     MediaType mtype = OTHER;
 
     while (std::getline(iss, strLine)) {
@@ -209,6 +229,7 @@ namespace erizo {
       char* isPass = strstr(line, ice_pass);
       char* isSsrc = strstr(line, ssrctag);
       char* isSAVPF = strstr(line, savpf);
+      char* isRtpmap = strstr(line,rtpmap);
       if (isSAVPF){
         profile = SAVPF;
         printf("PROFILE %s (1 SAVPF)\n", isSAVPF);
@@ -244,7 +265,7 @@ namespace erizo {
       //			}
       //
       //		}
-      if (isCrypt != NULL) {
+      if (isCrypt) {
         //	printf("crypt %s\n", isCrypt );
         CryptoInfo crypinfo;
         char *pch;
@@ -265,20 +286,20 @@ namespace erizo {
         //				keys = g_slist_append(keys,key);
       }
       if (isUser) {
-        char *pch;
+        char* pch;
         pch = strtok(line, " : \n");
         pch = strtok(NULL, " : \n");
         iceUsername_ = std::string(pch);
 
       }
       if (isPass) {
-        char *pch;
+        char* pch;
         pch = strtok(line, " : \n");
         pch = strtok(NULL, ": \n");
         icePassword_ = std::string(pch);
       }
       if (isSsrc) {
-        char *pch;
+        char* pch;
         pch = strtok(line, " : \n");
         pch = strtok(NULL, ": \n");
         if (mtype == VIDEO_TYPE) {
@@ -286,6 +307,23 @@ namespace erizo {
         } else if (mtype == AUDIO_TYPE) {
           audioSsrc = strtoul(pch, NULL, 10);
         }
+      }
+      // a=rtpmap:PT codec_name/clock_rate
+      if(isRtpmap){
+        RtpMap theMap; 
+        char* pch;
+        pch = strtok(line, " : / \n");
+        pch = strtok(NULL, " : / \n");
+        unsigned int PT = strtoul(pch, NULL, 10);
+        pch = strtok(NULL, " : / \n");
+        std::string codecname(pch);
+        pch = strtok(NULL, " : / \n");
+        unsigned int clock = strtoul(pch, NULL, 10);
+        theMap.payloadType = PT;
+        theMap.encodingName = codecname;
+        theMap.clockRate = clock;
+        theMap.mediaType = mtype;
+        payloadVector_.push_back(theMap);
       }
 
     }
