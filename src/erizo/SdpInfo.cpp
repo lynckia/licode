@@ -311,6 +311,10 @@ namespace erizo {
     return cryptoVector_;
   }
 
+  std::vector<RtpMap>& SdpInfo::getPayloadInfos(){
+    return payloadVector_;
+  }
+
   bool SdpInfo::processCandidate(char** pieces, int size, MediaType mediaType) {
 
     CandidateInfo cand;

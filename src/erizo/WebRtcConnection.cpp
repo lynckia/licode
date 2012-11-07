@@ -208,7 +208,6 @@ namespace erizo {
         }
       }
     } else {
-      printf("THIS\n");
       videoNice_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
       remoteVideoSSRC_ = remoteSdp_.videoSsrc;
       remoteAudioSSRC_ = remoteSdp_.audioSsrc;

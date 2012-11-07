@@ -78,6 +78,15 @@ public:
 	MediaType mediaType;
 };
 /**
+ * A PT to Codec map
+ */
+struct RtpMap {
+  unsigned int payloadType;
+  std::string encodingName;
+  unsigned int clockRate;
+  MediaType type;
+};
+/**
  * Contains the information of a single SDP.
  * Used to parse and generate SDPs
  */
@@ -114,6 +123,11 @@ public:
 	 * @return A vector containing the CryptoInfo objects with the SRTP information.
 	 */
 	std::vector<CryptoInfo>& getCryptoInfos();
+  /**
+   * Gets the payloadType information
+   * @return A vector containing the PT-codec information
+   */
+  std::vector<RtpMap>& getPayloadInfos();
 	/**
 	 * Gets the actual SDP.
 	 * @return The SDP in string format.
@@ -132,11 +146,13 @@ public:
    */
   Profile profile;
 
+
 private:
 	bool processSdp(const std::string& sdp);
 	bool processCandidate(char** pieces, int size, MediaType mediaType);
 	std::vector<CandidateInfo> candidateVector_;
 	std::vector<CryptoInfo> cryptoVector_;
+  std::vector<RtpMap> payloadVector_;
 	std::string iceUsername_;
 	std::string icePassword_;
 };
