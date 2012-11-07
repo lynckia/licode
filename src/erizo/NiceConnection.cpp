@@ -23,7 +23,7 @@ void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
 
 //	printf( "cb_nice_recv len %u id %u\n",len, stream_id );
 	NiceConnection* nicecon = (NiceConnection*) user_data;
-	nicecon->getWebRtcConnection()->receiveNiceData((char*) buf, (int) len,
+	nicecon->getWebRtcConnection()->receiveNiceData(reinterpret_cast<char*> (buf), static_cast<unsigned int> (len),
 			(NiceConnection*) user_data);
 }
 
@@ -37,6 +37,30 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 	lcands = nice_agent_get_local_candidates(agent, stream_id, currentCompId++);
 	NiceCandidate *cand;
 	GSList* iterator;
+
+
+//////False candidate for testing when there is no network (like in the train) :)
+ /* 
+		NiceCandidate* thecandidate = nice_candidate_new(NICE_CANDIDATE_TYPE_HOST);
+		NiceAddress* naddr = nice_address_new();
+		nice_address_set_from_string(naddr, "127.0.0.1");
+		nice_address_set_port(naddr, 50000);
+		thecandidate->addr = *naddr;
+		char* uname = (char*) malloc(50);
+		char* pass = (char*) malloc(50);
+		sprintf(thecandidate->foundation, "%s", "1");
+		sprintf(uname, "%s", "Pedro");
+		sprintf(pass, "%s", "elgrande");
+
+		thecandidate->username = uname;
+		thecandidate->password = pass;
+		thecandidate->stream_id = (guint) 1;
+		thecandidate->component_id = 1;
+		thecandidate->priority = 1000;
+		thecandidate->transport = NICE_CANDIDATE_TRANSPORT_UDP;
+		lcands = g_slist_append(lcands, thecandidate);
+*/
+
 	//	printf("gathering done %u\n",stream_id);
 	//printf("Candidates---------------------------------------------------->\n");
 	while (lcands != NULL) {
@@ -106,6 +130,7 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 	}
 	printf("candidate_gathering done, size %lu\n",
 			conn->localCandidates->size());
+
   if (conn->localCandidates->size()==0){
     printf("No local candidates found, check your network connection\n");
     exit(0);
@@ -182,11 +207,11 @@ void NiceConnection::close() {
 	iceState = FINISHED;
 }
 
-int NiceConnection::sendData(void *buf, int len) {
+int NiceConnection::sendData(void* buf, int len) {
 
 	int val = -1;
 	if (iceState == READY) {
-		val = nice_agent_send(agent_, 1, 1, len, (char*) buf);
+		val = nice_agent_send(agent_, 1, 1, len, reinterpret_cast<const gchar*>(buf));
 	}
 	return val;
 }
