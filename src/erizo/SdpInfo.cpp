@@ -68,8 +68,14 @@ namespace erizo {
       if (cand.mediaType == AUDIO_TYPE) {
         if (!printedAudio) {
           sdp << "m=audio " << cand.hostPort
-            //						<< " RTP/SAVPF 103 104 0 8 106 105 13 126\n"
-            << " RTP/" << (profile==SAVPF?"SAVPF ":"AVPF ") << "103 104 0 8 106 105 13 126\n"
+            << " RTP/" << (profile==SAVPF?"SAVPF ":"AVPF ");// << "103 104 0 8 106 105 13 126\n"
+          for (unsigned int it =0; it<payloadVector_.size(); it++){
+            const RtpMap& payload_info = payloadVector_[it];
+            if (payload_info.mediaType == AUDIO_TYPE)
+              sdp << payload_info.payloadType <<" ";
+
+          }
+          sdp << "\n"
             << "c=IN IP4 " << cand.hostAddress
             << endl << "a=rtcp:" << candidateVector_[0].hostPort
             << " IN IP4 " << cand.hostAddress
@@ -82,7 +88,7 @@ namespace erizo {
           << cand.hostAddress << " " << cand.hostPort << " typ "
           << hostType_str << " generation 0" << endl;
 
-        iceUsername_ = cand.username;        
+        iceUsername_ = cand.username;
         icePassword_ = cand.password;
       }
     }
@@ -100,20 +106,12 @@ namespace erizo {
             << cryp_info.keyParams << endl;
         }
       }
-      /*
-         sdp
-         << "a=rtpmap:103 ISAC/16000\na=rtpmap:104 ISAC/32000\na=rtpmap:0 PCMU/8000\n"
-         "a=rtpmap:8 PCMA/8000\na=rtpmap:106 CN/32000\na=rtpmap:105 CN/16000\n"
-         "a=rtpmap:13 CN/8000\na=rtpmap:126 telephone-event/8000\n";
-         PAYLOAD PART 
-         */
 
       for (unsigned int it = 0; it < payloadVector_.size(); it++) {
         const RtpMap& rtp = payloadVector_[it];
-        if (rtp.mediaType!=AUDIO_TYPE)
-          continue;
-        sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
-          << rtp.clockRate <<"\n";
+        if (rtp.mediaType==AUDIO_TYPE)
+          sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
+            << rtp.clockRate <<"\n";
       }
       sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu\na=ssrc:"
         << audioSsrc
@@ -144,8 +142,14 @@ namespace erizo {
       }
       if (cand.mediaType == VIDEO_TYPE) {
         if (!printedVideo) {
-          sdp << "m=video " << cand.hostPort << " RTP/" << (profile==SAVPF?"SAVPF ":"AVPF ") <<  "100 101 102 103\n"
-            << "c=IN IP4 " << cand.hostAddress
+          sdp << "m=video " << cand.hostPort << " RTP/" << (profile==SAVPF?"SAVPF ":"AVPF "); //<<  "100 101 102 103\n"
+          for (unsigned int it =0; it<payloadVector_.size(); it++){
+            const RtpMap& payload_info = payloadVector_[it];
+            if (payload_info.mediaType == VIDEO_TYPE)
+              sdp << payload_info.payloadType <<" ";
+          }
+
+          sdp << "\n" << "c=IN IP4 " << cand.hostAddress
             << endl << "a=rtcp:" << candidateVector_[0].hostPort
             << " IN IP4 " << cand.hostAddress
             << endl;
@@ -176,15 +180,11 @@ namespace erizo {
         }
       }
 
-      //      sdp
-      //        << "a=rtpmap:100 VP8/90000\na=rtpmap:101 red/90000\na=rtpmap:102 ulpfec/90000\na=rtpmap:103 H264/90000\n";
-
       for (unsigned int it = 0; it < payloadVector_.size(); it++) {
         const RtpMap& rtp = payloadVector_[it];
-        if (rtp.mediaType!=VIDEO_TYPE)
-          continue;
-        sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
-          << rtp.clockRate <<"\n";
+        if (rtp.mediaType==VIDEO_TYPE)
+          sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
+            << rtp.clockRate <<"\n";
       }
 
       sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu\na=ssrc:"
