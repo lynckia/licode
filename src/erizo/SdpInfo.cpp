@@ -12,8 +12,21 @@
 using std::endl;
 namespace erizo {
 
+  static const char *cand = "a=candidate:";
+  static const char *crypto = "a=crypto:";
+  static const char *group = "a=group:";
+  static const char *video = "m=video";
+  static const char *audio = "m=audio";
+  static const char *ice_user = "a=ice-ufrag";
+  static const char *ice_pass = "a=ice-pwd";
+  static const char *ssrctag = "a=ssrc";
+  static const char *savpf = "SAVPF";
+  static const char *rtpmap = "a=rtpmap:";
+  static const char *rtcpmux = "a=rtcp-mux";
+
   SdpInfo::SdpInfo() {
     isBundle = false;
+    isRtcpMux = false;
     profile = AVPF;
     audioSsrc = 0;
     videoSsrc = 0;
@@ -97,7 +110,9 @@ namespace erizo {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
       sdp << "a=sendrecv" << endl;
-      sdp << "a=mid:audio\na=rtcp-mux\n";
+      sdp << "a=mid:audio\n";
+      if (isRtcpMux)
+        sdp << "a=rtcp-mux\n";
       for (unsigned int it = 0; it < cryptoVector_.size(); it++) {
         const CryptoInfo& cryp_info = cryptoVector_[it];
         if (cryp_info.mediaType == AUDIO_TYPE) {
@@ -170,7 +185,9 @@ namespace erizo {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
       sdp << "a=sendrecv" << endl;
-      sdp << "a=mid:video\na=rtcp-mux\n";
+      sdp << "a=mid:video\n";
+      if (isRtcpMux) 
+        sdp << "a=rtcp-mux\n";
       for (unsigned int it = 0; it < cryptoVector_.size(); it++) {
         const CryptoInfo& cryp_info = cryptoVector_[it];
         if (cryp_info.mediaType == VIDEO_TYPE) {
@@ -204,17 +221,6 @@ namespace erizo {
     char** pieces = (char**) malloc(10000);
     char** cryptopiece = (char**) malloc(5000);
 
-    const char *cand = "a=candidate:";
-    const char *crypto = "a=crypto:";
-    //const char *mid = "a=mid:";
-    const char *group = "a=group:";
-    const char *video = "m=video";
-    const char *audio = "m=audio";
-    const char *ice_user = "a=ice-ufrag";
-    const char *ice_pass = "a=ice-pwd";
-    const char *ssrctag = "a=ssrc";
-    const char *savpf = "SAVPF";
-    const char *rtpmap = "a=rtpmap:";
     MediaType mtype = OTHER;
 
     while (std::getline(iss, strLine)) {
@@ -230,6 +236,10 @@ namespace erizo {
       char* isSsrc = strstr(line, ssrctag);
       char* isSAVPF = strstr(line, savpf);
       char* isRtpmap = strstr(line,rtpmap);
+      char* isRtcpMuxchar = strstr(line,rtcpmux);
+      if (isRtcpMuxchar){
+        isRtcpMux = true;
+      }
       if (isSAVPF){
         profile = SAVPF;
         printf("PROFILE %s (1 SAVPF)\n", isSAVPF);
@@ -327,6 +337,7 @@ namespace erizo {
       }
 
     }
+
     free(line);
     free(pieces);
     free(cryptopiece);

@@ -142,6 +142,10 @@ public:
    */
   bool isBundle;
   /**
+   * Is there rtcp muxing
+   */
+  bool isRtcpMux;
+  /**
    * RTP Profile type
    */
   Profile profile;
