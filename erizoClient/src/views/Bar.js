@@ -29,7 +29,7 @@ Erizo.Bar = function(spec) {
 
     // Lynckia icon
     that.link = document.createElement('a');
-    that.link.setAttribute('href', 'http://lynckiablog.blogspot.com.es/');
+    that.link.setAttribute('href', 'http://www.lynckia.com/');
     that.link.setAttribute('target', '_blank');
     
     that.logo = document.createElement('img');

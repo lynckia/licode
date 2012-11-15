@@ -1,6 +1,7 @@
 var sys = require('util');
 var amqp = require('amqp');
 var rpcPublic = require('./rpcPublic');
+var config = require('./../../../lynckia_config');
 
 var TIMEOUT = 2000;
 
@@ -13,7 +14,7 @@ var clientQueue;
 exports.connect = function(callback) {
 
 	// Create the amqp connection to rabbitMQ server
-	connection = amqp.createConnection({host: 'chotis2.dit.upm.es', port: 5672});
+	connection = amqp.createConnection({host: config.rabbit.host, port: config.rabbit.port});
 	connection.on('ready', function () {
 
 		//Create a direct exchange 
