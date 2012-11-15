@@ -128,8 +128,7 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 		lcands = nice_agent_get_local_candidates(agent, stream_id,
 				currentCompId++);
 	}
-	printf("candidate_gathering done, size %lu\n",
-			conn->localCandidates->size());
+	printf("candidate_gathering done\n");
 
   if (conn->localCandidates->size()==0){
     printf("No local candidates found, check your network connection\n");
