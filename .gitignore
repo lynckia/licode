@@ -1,1 +1,5 @@
 .DS_Store
+nuveClient/dist/nuve.js
+nuveClient/dist/xmlhttprequest.js
+cloudHandler/node_modules/
+nuveAPI/node_modules/
