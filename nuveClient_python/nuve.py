@@ -9,11 +9,11 @@ class Nuve:
     key = None;
     url = None;
 
-    def __init__(self, service, key):
+    def __init__(self, service, key, url, port):
         self.service = service;
         self.key = key;
-        self.url = 'chotis2.dit.upm.es';
-        self.port = 3000;
+        self.url = url;
+        self.port = port;
 
     def createRoom(self, name, options, params=None):
         response = self.send('POST', {"name": name, "options": options}, "/rooms/", params);

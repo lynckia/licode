@@ -10,10 +10,10 @@ N.API = (function (N) {
         url: undefined
     };
 
-    init = function (service, key) {
+    init = function (service, key, url) {
         N.API.params.service = service;
         N.API.params.key = key;
-        N.API.params.url = 'http://chotis2.dit.upm.es:3000/';
+        N.API.params.url = url;
     };
 
     createRoom = function (name, callback, options, params) {
