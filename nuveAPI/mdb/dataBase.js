@@ -1,4 +1,6 @@
-var databaseUrl = "chotis2.dit.upm.es/mydb1";
+var config = require('./../../../lynckia_config');
+
+var databaseUrl = config.nuve.dataBaseURL;
 
 /*
  * Data base collections and its fields are:
@@ -14,9 +16,9 @@ var collections = ["rooms", "tokens", "services"];
 exports.db = require("mongojs").connect(databaseUrl, collections);
 
 // Superservice ID
-exports.superService = '50001a6651336eccad9dcfdd';
+exports.superService = config.nuve.superserviceID;
 
 // Superservice key
-exports.nuveKey = 'claveNuve';
+exports.nuveKey = config.nuve.superserviceKey;
 
-exports.testErizoController = 'chotis2.dit.upm.es:8080';
+exports.testErizoController = config.nuve.testErizoController;

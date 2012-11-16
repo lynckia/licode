@@ -32,15 +32,10 @@ var checkKAInterval = setInterval(checkKA, INTERVAL_TIME_CHECK_KA);
 var recalculatePriority = function() {
 
 	//*******************************************************************
-	// Algoritmo de ordenacion de ecQueue en función de los 'state' de erizoControllers
-	// 		 
-	//		En la cola están ordenados por prioridad los EC disponibles
-	//      Si la cola se queda vacía se arranca un EC nuevo
-	//
-	//		States: 
-	//				0: Not available
-	//				1: Warning
-	//				2: Available 
+	// States: 
+	//	0: Not available
+	//  1: Warning
+	//	2: Available 
 	//*******************************************************************
 
 	var newEcQueue = [];
@@ -64,9 +59,7 @@ var recalculatePriority = function() {
 	ecQueue = newEcQueue;
 
 	if(ecQueue.length == 0 || (available == 0 && warnings < 2)) {
-		//*****************************************
-		// TODO: Arrancar un nuevo ErizoController.
-		//*****************************************
+		console.log('[CLOUD HANDLER]: Warning! Any erizoController is available.');
 	}
 
 }
@@ -104,11 +97,7 @@ exports.setInfo = function(params) {
 
 exports.killMe = function(ip) {
 
-	console.log('Killing erizoController in host ', ip);
-
-	//************************************
-	// TODO: Apagar la máquina de IP 'ip'.
-	//*************************************
+	console.log('[CLOUD HANDLER]: ErizoController in host ', ip, 'does not respond.');
 
 }
 
