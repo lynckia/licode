@@ -1,6 +1,8 @@
 #!/bin/bash
 
-TARGET=../npm/package/lib/nuve.js
+java -jar compiler.jar --js ../lib/xmlhttprequest.js --js_output_file ../dist/xmlhttprequest.js
+
+TARGET=../dist/nuve.js
 
 current_dir=`pwd`
 
@@ -9,7 +11,7 @@ echo '/*' > $TARGET
 echo '*/' >> $TARGET
 
 # Body
-echo 'var XMLHttpRequest = require("./../vendor/xmlhttprequest").XMLHttpRequest;' >> $TARGET
+cat ../dist/xmlhttprequest.js >> $TARGET
 cat ../build/nuve.js >> $TARGET
 echo 'module.exports = N;' >> $TARGET
 

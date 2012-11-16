@@ -16,7 +16,7 @@ var Url = require("url"),
   spawn = require("child_process").spawn,
   fs = require('fs');
 
-exports.XMLHttpRequest = function() {
+var XMLHttpRequest = function() {
   /**
    * Private variables
    */
@@ -35,7 +35,7 @@ exports.XMLHttpRequest = function() {
   // Set some default headers
   var defaultHeaders = {
     "User-Agent": "node.js",
-    "Accept": "*/*",
+    "Accept": "*/*"
   };
 
   // Send flag
