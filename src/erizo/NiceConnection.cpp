@@ -228,8 +228,7 @@ void NiceConnection::init() {
 	//	nice_debug_enable( TRUE );
 	// Create a nice agent
 	agent_ = nice_agent_new(g_main_loop_get_context(loop_),
-			//NICE_COMPATIBILITY_GOOGLE);
-     NICE_COMPATIBILITY_RFC5245);
+		 NICE_COMPATIBILITY_GOOGLE);
 
 //	NiceAddress* naddr = nice_address_new();
 //	nice_agent_add_local_address(agent_, naddr);
