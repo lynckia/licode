@@ -33,7 +33,8 @@ function RoapConnection(configuration, signalingCallback) {
 
   this.stunServerOO = 'STUN stun.l.google.com:19302';
   this.pc_config = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
-  this.mediaConstraints = {'has_audio':true, 'has_video':true};
+  //this.mediaConstraints = {'has_audio':true, 'has_video':true};
+  this.mediaConstraints = {'mandatory': {'OfferToReceiveVideo': 'true', 'OfferToReceiveAudio': 'true'}};
 
   this.stAdd = false;
 
@@ -257,9 +258,9 @@ RoapConnection.prototype.onstablestate = function() {
 
       if (this.isRTCPeerConnection) {
 
-        if(!this.stAdd) {
-          this.mediaConstraints = {'mandatory': {'OfferToReceiveVideo': 'true', 'OfferToReceiveAudio': 'true'}};
-        }
+//        if(!this.stAdd) {
+//         this.mediaConstraints = {'mandatory': {'OfferToReceiveVideo': 'true', 'OfferToReceiveAudio': 'true'}};
+//        }
 
         this.peerConnection.createOffer(function(sessionDescription){
 
