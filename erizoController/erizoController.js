@@ -9,10 +9,10 @@ io.set('log level', 1);
 
 var nuveKey = config.nuve.nuveKey;
 
-var WARNING_N_ROOMS = 15;
-var LIMIT_N_ROOMS = 20;
+var WARNING_N_ROOMS = config.erizoController.warning_n_rooms;
+var LIMIT_N_ROOMS = config.erizoController.limit_n_rooms;
 
-var INTERVAL_TIME_KEEPALIVE = 1000;
+var INTERVAL_TIME_KEEPALIVE = config.erizoController.interval_time_keepAlive;
 
 var myId;
 var myIP;
