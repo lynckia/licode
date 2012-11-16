@@ -15,8 +15,7 @@ GSList* lcands;
 int streamsGathered;
 int rec, sen;
 int length;
-int components = 2;
-uint32_t ssrc = 55543;
+const uint32_t ssrc = 55543;
 
 void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
 		guint len, gchar* buf, gpointer user_data) {
@@ -37,8 +36,6 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 	lcands = nice_agent_get_local_candidates(agent, stream_id, currentCompId++);
 	NiceCandidate *cand;
 	GSList* iterator;
-
-
 //////False candidate for testing when there is no network (like in the train) :)
  /* 
 		NiceCandidate* thecandidate = nice_candidate_new(NICE_CANDIDATE_TYPE_HOST);
@@ -50,7 +47,7 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 		char* pass = (char*) malloc(50);
 		sprintf(thecandidate->foundation, "%s", "1");
 		sprintf(uname, "%s", "Pedro");
-		sprintf(pass, "%s", "elgrande");
+		sprintf(pass, "%s", "oooo");
 
 		thecandidate->username = uname;
 		thecandidate->password = pass;
@@ -144,7 +141,7 @@ void cb_component_state_changed(NiceAgent *agent, guint stream_id,
 		NiceConnection *conn = (NiceConnection*) user_data;
 		conn->updateIceState(READY);
 	} else if (state == NICE_COMPONENT_STATE_FAILED) {
-		printf("Ice Component failed, stopping\n");
+		printf("Ice Component failed\n");
 		NiceConnection *conn = (NiceConnection*) user_data;
 		conn->updateIceState(FAILED);
 		//conn->getWebRtcConnection()->close();
@@ -165,12 +162,11 @@ void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
 }
 
 NiceConnection::NiceConnection(MediaType med,
-		const std::string &transport_name) {
-
+		const std::string &transport_name, int iceComponents):mediaType(med),
+    iceComponents_(iceComponents){
 	agent_ = NULL;
 	loop_ = NULL;
 	conn_ = NULL;
-	mediaType = med;
 	localCandidates = new std::vector<CandidateInfo>();
 	transportName = new std::string(transport_name);
 }
@@ -232,7 +228,8 @@ void NiceConnection::init() {
 	//	nice_debug_enable( TRUE );
 	// Create a nice agent
 	agent_ = nice_agent_new(g_main_loop_get_context(loop_),
-			NICE_COMPATIBILITY_GOOGLE);
+			//NICE_COMPATIBILITY_GOOGLE);
+     NICE_COMPATIBILITY_RFC5245);
 
 //	NiceAddress* naddr = nice_address_new();
 //	nice_agent_add_local_address(agent_, naddr);
@@ -256,8 +253,8 @@ void NiceConnection::init() {
 			G_CALLBACK( cb_new_selected_pair ), this);
 
 	// Create a new stream and start gathering candidates
-
-	int res = nice_agent_add_stream(agent_, 1);
+  printf("Adding Stream... Number of components %d\n", iceComponents_);
+	int res = nice_agent_add_stream(agent_, iceComponents_);
 	// Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
 //	nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)51000, (guint)52000);
 
