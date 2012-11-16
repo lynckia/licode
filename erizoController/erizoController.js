@@ -7,7 +7,7 @@ var config = require('./../../lynckia_config');
 
 io.set('log level', 1);
 
-var nuveKey = config.nuve.nuveKey;
+var nuveKey = config.nuve.superserviceKey;
 
 var WARNING_N_ROOMS = config.erizoController.warning_n_rooms;
 var LIMIT_N_ROOMS = config.erizoController.limit_n_rooms;
