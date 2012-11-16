@@ -1,2 +1,2 @@
-erizoAPI/build/
-erizoAPI/.lock-wscript
+erizoClient/dist/erizo.js
+erizoController/node_modules/
