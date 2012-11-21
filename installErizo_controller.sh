@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo [erizo_controller] Installing node_modules for erizo_controller
+
 cd erizoController
 
 npm install amqp
