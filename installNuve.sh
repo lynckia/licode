@@ -2,6 +2,8 @@
 
 cd nuveAPI
 
+echo [nuve] Installing node_modules for nuve
+
 npm install amqp
 npm install express
 npm install mongodb
