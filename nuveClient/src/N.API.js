@@ -126,9 +126,14 @@ N.API = (function (N) {
         req.open(method, url, true);
 
         req.setRequestHeader('Authorization', header);
-        req.setRequestHeader('Content-Type', 'application/json');
-        //console.log("Sending " + method + " to " + url + " - " + JSON.stringify(body));
-        req.send(JSON.stringify(body));
+
+        if (body !== undefined) {
+            req.setRequestHeader('Content-Type', 'application/json');
+            req.send(JSON.stringify(body));
+        } else {
+            req.send();
+        }
+        
     };
 
     calculateSignature = function (toSign, key) {
