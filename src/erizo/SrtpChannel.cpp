@@ -120,8 +120,8 @@ bool SrtpChannel::configureSrtpSession(srtp_t *session, const char* key,
 	}
 
 	policy.ssrc.value = 0;
-	policy.window_size = 1024;
-	policy.allow_repeat_tx = 1;
+//	policy.window_size = 1024;
+//	policy.allow_repeat_tx = 1;
 	policy.next = NULL;
 	//printf("auth_tag_len %d\n", policy.rtp.auth_tag_len);
 
