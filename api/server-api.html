@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Server API | Lynckia</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le styles -->
+    <link href="assets/css/bootstrap.css" rel="stylesheet">
+    <link href="assets/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="assets/css/docs.css" rel="stylesheet">
+    <link href="assets/css/prettify.css" rel="stylesheet">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le fav and touch icons -->
+    <link rel="shortcut icon" href="assets/ico/favicon.ico">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="assets/ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="assets/ico/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="assets/ico/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="assets/ico/apple-touch-icon-57-precomposed.png">
+
+    <script type="text/javascript">
+      var createService = function() {
+
+          var req = new XMLHttpRequest();
+          var url = '/email';
+          var name = document.getElementById("name").value;
+          var email = document.getElementById("email").value;
+
+          req.open('POST', url, true);
+          req.send(JSON.stringify({name: name, email: email}));
+          req.onreadystatechange = function() {
+            if (req.readyState !== 4) {
+              return;
+            }
+            $('#servMsg').addClass('alert');
+            $('#servMsg').html('You\'ll receive an email with your service credentials.');
+          };
+      };
+    </script>
+
+  </head>
+
+  <body data-spy="scroll" data-target=".bs-docs-sidebar">
+
+    <!-- Navbar
+    ================================================== -->
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="./index.html">Lynckia</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li class="">
+                <a href="./index.html">Home</a>
+              </li>
+              <li class="">
+                <a href="./getting-started.html">Get started</a>
+              </li>
+              <li class="">
+                <a href="./install.html">Installation</a>
+              </li>
+              <li class="">
+                <a href="./architecture.html">Architecture</a>
+              </li>
+              <li class="">
+                <a href="./client-api.html">Client API</a>
+              </li>
+              <li class="active">
+                <a href="./server-api.html">Server API</a>
+              </li>
+              <li class="">
+                <a href="./try.html">Try it!</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<!-- Subhead
+================================================== -->
+<header class="jumbotron subhead" id="overview">
+  <div class="container">
+    <h1>Server API</h1>
+    <p class="lead">Server-side API, getting the resources needed for your videoconference application.</p>
+  </div>
+</header>
+
+
+  <div class="container">
+
+    <!-- Docs nav
+    ================================================== -->
+    <div class="row">
+      <div class="span3 bs-docs-sidebar">
+        <ul class="nav nav-list bs-docs-sidenav">
+          <li><a href="#overview"><i class="icon-chevron-right"></i>Overview</a></li>
+          <li><a href="#initialize"><i class="icon-chevron-right"></i>Initialize</a></li>
+          <li><a href="#rooms"><i class="icon-chevron-right"></i>Rooms</a></li>
+          <li><a href="#tokens"><i class="icon-chevron-right"></i>Tokens</a></li>
+          <li><a href="#users"><i class="icon-chevron-right"></i>Users</a></li>
+          <!--<li><a href="#serviceid"><i class="icon-chevron-right"></i>Get Service Id</a></li>-->
+          <li><a href="#examples"><i class="icon-chevron-right"></i>Examples</a></li>
+        </ul>
+      </div>
+
+      <div class="span9">
+
+        <!-- Overview
+        ================================================== -->
+        <section id="overview">
+          <div class="page-header">
+            <h1>Overview</h1>
+          </div>
+          <p class="lead">The Lynckia server-side API provides your server communication with Nuve.</p>
+
+          <p>Nuve is a Lynckia module that manages some resources like the videoconference rooms or the tokens to access to a determined room. Server-side API is available in node.js.</p>
+
+          <table class="table table-bordered table-striped">
+            <thead>
+             <tr>
+               <th style="width: 150px;">Class</th>
+               <th>Description</th>
+             </tr>
+            </thead>
+            <tbody>
+             <tr>
+               <td><a href="#rooms">Room</a></td>
+               <td>Represents a videoconference room.</td>
+             </tr>
+             <tr>
+               <td><a href="#tokens">Token</a></td>
+               <td>The key to add a new participant to a videoconference room.</td>
+             </tr>
+             <tr>
+               <td><a href="#users">User</a></td>
+               <td>A user that can publish or subscribe to streams in a videoconference room.</td>
+             </tr>
+            </tbody>
+          </table>
+
+        </section>
+
+
+        <!-- Initialize
+        ================================================== -->
+        <section id="initialize">
+          <div class="page-header">
+            <h1>Initialize</h1>
+          </div>
+          <p>Once yow download the API, you need to require it in your node.js server and initialize it with a Service. Call the constructor with the Service Id and the Service Key issued you. </p>
+          <pre class="prettyprint linenums">
+var N = require('./nuve');
+N.API.init(serviceId, serviceKey);</pre>
+          <p>You can obtain your own Service Id and Service Key <a href="#serviceid">here</a>. With this Service you can create videoconference rooms for your videoconference application and get the neccesary tokens for add participants to them. Also you can ask Nuve about the users connected to a room.</p>
+          
+          <div class="row-fluid">
+            <div class="span9">
+              <h4>Download server-side API</h4>
+              <p>Here you can download nuve.js (a Node.js module), or nuve.py (a Python module).</p>
+              <p><a class="btn btn-large btn-primary" href="assets/nuve.js">Download nuve.js</a></p>
+              <p><a class="btn btn-large btn-primary" href="assets/nuve.py">Download nuve.py</a></p>
+            </div>
+            
+          </div>
+        </section>
+
+
+        <!-- Rooms
+        ================================================== -->
+        <section id="rooms">
+          <div class="page-header">
+            <h1>Rooms</h1>
+          </div>
+          <p class="lead">A Room object represent a videoconference room. In a room participate users that can interchange their streams. Each participant can publish his stream and/or subscribe to the other streams published in the room.</p>
+          
+          <p>A Room object has the following properties:</p>
+          <ul>
+            <li><code>Room.name</code>: the name of the room.</li>
+            <li><code>Room._id</code>: an unique identifier for the room.</li>
+          </ul>
+          <p>In your service you can create a room, get a list of rooms that you have created, get the info about a determined room or delete a room when you don't need it.</p>
+
+          <h3>Create Room</h3>
+          <p>To create a room you need to specify a name and a callback function. When the room is created Nuve calls this function and returns you the roomId:</p>
+          <pre class="prettyprint linenums">
+var roomName = 'myFirstRoom';
+
+N.API.createRoom(roomName, function(room) {
+  console.log('Room created with id: ', room._id);
+});</pre>
+
+          <h3>Get Rooms</h3>
+          <p>You can ask Nuve for a list of the rooms in your service:</p>
+          <pre class="prettyprint linenums">
+N.API.getRooms(function(rooms) {
+  for(var i in rooms) {
+    console.log('Room ', i, ':', rooms[i].name);
+  }
+});</pre>
+
+          <h3>Get Room</h3>
+          <p>Also you can get the info about a determined room with its roomId:</p>
+          <pre class="prettyprint linenums">
+var roomId = '30121g51113e74fff3115502';
+
+N.API.getRoom(roomId, function(room) {
+  console.log('Room name: ', room.name):
+});</pre>
+
+          <h3>Delete Room</h3>
+          <p>And finally, for delete a determined room:</p>
+          <pre class="prettyprint linenums">
+var roomId = '30121g51113e74fff3115502';
+
+N.API.deleteRoom(roomId, function(result) {
+  console.log('Result: ', result):
+});</pre>
+          
+        </section>
+
+
+
+        <!-- Tokens
+        ================================================== -->
+        <section id="tokens">
+          <div class="page-header">
+            <h1>Tokens</h1>
+          </div>
+          <p class="lead">A Token is a string that allows you to add a new participant to a determined room.</p>
+        
+          <p>When you want to add a new participant to a room, you need to create a new token than you will consume in the <a href="./client-api.html">client-side API</a>. To create a token you need to specify a name and a role for the new participant.</p>
+
+          <ul>
+            <li><code>Name</code>: a name that identify the participant.</li>
+            <li><code>Role</code>: roles are not defined yet. We will update this soon.</li>
+          </ul>
+
+          <h3>Create Token</h3>
+          <p></p>
+          <pre class="prettyprint linenums">
+var roomId = '30121g51113e74fff3115502';
+var name = 'userName';
+var role = '';
+
+N.API.createToken(room, name, role, function(token) {
+  console.log('Token created: ', token);
+});</pre>
+
+        </section>
+
+
+
+        <!-- Users
+        ================================================== -->
+        <section id="users">
+          <div class="page-header">
+            <h1>Users</h1>
+          </div>
+
+          <p class="lead">A user User object represents a participant in a videoconference room.</p>
+          
+          <p>A User object has the following properties:</p>
+          <ul>
+            <li><code>User.name</code>: the name specified when you created the token.</li>
+            <li><code>User.role</code>: the role specified when you created the token. Roles are not defined yet. We will update this soon.</li>
+          </ul>
+          <p>You can ask Nuve for a list of the users connected to a determined room.</p>
+
+          <h3>Get Users</h3>
+          <p></p>
+          <pre class="prettyprint linenums">
+var roomId = '30121g51113e74fff3115502';
+
+N.API.getUsers(roomId, function(users) {
+  console.log('This room has ', users.length, 'users');
+
+  for(var i in users) {
+    console.log('User ', i, ':', users[i].name, 'with role: ', users[i].role);
+  }
+});</pre>
+
+        </section>
+
+
+
+        <!-- ServiceId
+        ================================================== -->
+        <!--<section id="serviceid">
+          <div class="page-header">
+            <h1>Get Service Id</h1>
+          </div>
+          <p class="lead">Here you can obtain a Service in order to create your own videoconference rooms.</p>
+
+          <p>Fill the following fields and we send you and email with your ServiceId and your ServiceKey:</p>
+          
+          <p>Name:</p>
+          <input type="text" id="name" class="span3">
+          <p>Email address:</p>
+          <input type="text" id="email" class="span3">
+  
+          <p><a class="btn btn-large btn-primary" onclick="createService();">Get Service Id</a></p>
+          <div id="servMsg"></div>
+    
+          
+        </section>-->
+
+                <!-- Examples
+        ================================================== -->
+        <section id="examples">
+          <div class="page-header">
+            <h1>Examples</h1>
+          </div>
+          <p class="lead">With a deep intro into the contents out of the way, we can focus putting Server API to use. To do that, we'll utilize a basic example that includes everything we mentioned in the previous section.</p>
+          <p>Now, here's a look at a typical server application implemented in Node.js:</p>
+          <div class="row-fluid">
+            
+            <div class="span8">
+              <pre class="prettyprint linenums:1">
+var N = require('nuve');
+N.API.init("531b26113e74ee30500001", "myKey");</pre>
+            </div>
+
+            <div class="span4">
+              <p>We first initialize Nuve (Server API)</p>
+            </div>
+          </div>
+          <div class="row-fluid">
+
+            <div class="span8">
+              <pre class="prettyprint linenums:3">
+var express = require('express');
+var app = express.createServer();
+
+app.use(express.bodyParser());
+app.configure(function () {
+    app.use(express.logger());
+    app.use(express.static(__dirname + '/public'));
+});</pre>
+            </div>
+            <div class="span4">
+              <p>We also include express support for our server. We prepare it to publish static HTML files in which we  will have JavaScript client applications that we will explain later.</p>
+            </div>
+
+          </div>
+          <div class="row-fluid">
+
+            <div class="span8">
+              <pre class="prettyprint linenums:11">
+app.post('/createRoom/', function(req, res){
+
+    var name = req.params.name;
+    N.API.createRoom(function(roomID) {
+        res.send(roomID);
+    });
+});</pre>
+            </div>
+            <div class="span4">
+              <p>Requests to <code>/createRoom/</code> URL will create a new Room in Lynckia.</p>
+            </div>
+
+          </div>
+          <div class="row-fluid">
+
+            <div class="span8">
+              <pre class="prettyprint linenums:18">
+app.get('/getRooms/', function(req, res){
+
+    N.API.getRooms(function(rooms) {
+        res.send(rooms);
+    });
+});</pre>
+            </div>
+            <div class="span4">
+              <p>Requests to <code>/getRooms/</code> URL will retrieve a list of our Rooms in Lynckia.</p>
+            </div>
+
+          </div>
+          <div class="row-fluid">
+
+            <div class="span8">
+              <pre class="prettyprint linenums:24">
+app.get('/getUsers/:room', function(req, res){
+
+    var room = req.params.room;
+    N.API.getUsers(room, function(users) {
+        res.send(users);
+    });
+});</pre>
+            </div>
+            <div class="span4">
+              <p>Requests to <code>/getUsers/roomID</code> URL will retrieve a list of users that are connected to room <code>roomID</code>.</p>
+            </div>
+
+          </div>
+          <div class="row-fluid">
+
+            <div class="span8">
+              <pre class="prettyprint linenums:31">
+app.post('/createToken/:room', function(req, res){
+
+    var room = req.params.room;
+    var username = req.body.username;
+    var role = req.body.role;
+    N.API.createToken(room, username, role, function(token) {
+        res.send(token);
+    });
+});</pre>
+            </div>
+            <div class="span4">
+              <p>Requests to <code>/createToken/roomID</code> URL will create an access token for including a participant in room <code>roomID</code>.</p>
+            </div>
+
+          </div>
+          <div class="row-fluid">
+
+            <div class="span8">
+              <pre class="prettyprint linenums:40">
+app.listen (80);</pre>
+            </div>
+            <div class="span4">
+              <p>Finally, we will start our service, that will listen to port 80 (line 19).</p>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Next
+        ================================================== -->
+        <section id="what-next">
+          <div class="page-header">
+            <h1>What next?</h1>
+          </div>
+          <p class="lead">Head to the Server API for information, examples, and code snippets of the additional API to manage rooms, and give access to users, or start testing this API.</p>
+          <a class="btn btn-large btn-primary" href="./server-api.html">Visit the Server API</a>
+          <a class="btn btn-large" href="./try.html" style="margin-left: 5px;">Try it!</a>
+        </section>
+
+      </div>
+    </div>
+
+  </div>
+
+
+
+    <!-- Footer
+    ================================================== -->
+    <footer class="footer">
+      <div class="container">
+        <p class="pull-right"><a href="#">Back to top</a></p>
+        <p>Designed and built with all the love in the world by GING. Documentation licensed under <a href="http://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>.</p>
+        <ul class="footer-links">
+          <li><a href="http://lynckiablog.blogspot.com">Read the blog</a></li>
+          <li><a href="https://plus.google.com/u/0/117182047221528167166">Follow us in Google+</a></li>
+          <li><a href="https://plus.google.com/u/0/117182047221528167166">Contact us</a></li>
+        </ul>
+      </div>
+    </footer>
+
+
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+    <script src="assets/js/jquery.js"></script>
+    <script src="assets/js/prettify.js"></script>
+    <script src="assets/js/bootstrap.min.js"></script>
+    <script src="assets/js/application.js"></script>
+
+  </body>
+</html>

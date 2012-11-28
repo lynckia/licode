@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Getting | Lynckia</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le styles -->
+    <link href="assets/css/bootstrap.css" rel="stylesheet">
+    <link href="assets/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="assets/css/docs.css" rel="stylesheet">
+    <link href="assets/css/prettify.css" rel="stylesheet">
+
+    <script type="text/javascript" src="assets/js/nuve.js"></script>
+    <script type="text/javascript" src="http://chotis2.dit.upm.es:3000/erizo.js"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le fav and touch icons -->
+    <link rel="shortcut icon" href="assets/ico/favicon.ico">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="assets/ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="assets/ico/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="assets/ico/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="assets/ico/apple-touch-icon-57-precomposed.png">
+
+  </head>
+
+  <body data-spy="scroll" data-target=".bs-docs-sidebar">
+
+    <!-- Navbar
+    ================================================== -->
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="./index.html">Lynckia</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li class="">
+                <a href="./index.html">Home</a>
+              </li>
+              <li class="active">
+                <a href="./getting-started.html">Get started</a>
+              </li>
+              <li class="">
+                <a href="./install.html">Installation</a>
+              </li>
+              <li class="">
+                <a href="./architecture.html">Architecture</a>
+              </li>
+              <li class="">
+                <a href="./client-api.html">Client API</a>
+              </li>
+              <li class="">
+                <a href="./server-api.html">Server API</a>
+              </li>
+              <li class="">
+                <a href="./try.html">Try it!</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<!-- Subhead
+================================================== -->
+<header class="jumbotron subhead" id="overview">
+  <div class="container">
+    <h1>Getting started</h1>
+    <p class="lead">Overview of the project, it's contents, and how to get started with a simple template.</p>
+  </div>
+</header>
+
+
+  <div class="container">
+
+    <!-- Docs nav
+    ================================================== -->
+    <div class="row">
+      <div class="span3 bs-docs-sidebar">
+        <ul class="nav nav-list bs-docs-sidenav">
+          <li><a href="#register"><i class="icon-chevron-right"></i> Register</a></li>
+          <li><a href="#test-token"><i class="icon-chevron-right"></i> Create token</a></li>
+          <li><a href="#client-side"><i class="icon-chevron-right"></i> Client application</a></li>
+        </ul>
+      </div>
+      <div class="span9">
+
+        <!-- Register
+        ================================================== -->
+        <section id="register">
+          <div class="page-header">
+            <h1>1. Register your service in Lynckia</h1>
+          </div>
+          <p class="lead">When you initialize your Service you need the credentials obtained during registration.</p>
+          <div class="row-fluid">
+            <!--<div class="span3"><a class="btn btn-primary btn-large pull-right" href="server-api.html#serviceid">Register your Service</a></div>-
+            <div class="span9">Here you can obtain your own Service Id and Service Key. With this Service you can create videoconference rooms for your videoconference application and get the neccesary tokens for add participants to them. Also you can ask Nuve about the users connected to a room.</div>
+          -->
+         </div>
+        </section>
+
+        <!-- Create your Test Token
+        ================================================== -->
+        <section id="test-token">
+          <div class="page-header">
+            <h1>2. Create your test token</h1>
+          </div>
+          <p class="lead"> For getting started into the Client API you will need to create a special token, which is aimed to provide basic access to our system. You will be able to use this token during a month or 50 times.</p>
+          <p>You could ask for a new token when you reach the limit.</p>
+          <p>Fill the form with the credentials your received during registration. Once you press the button here we will show you the test token.</p>
+
+          <br>
+          <form class="form-inline" href="#">
+            <script type="text/javascript">
+              var token = "";
+              $(document).ready(function() {
+                
+                $('#createTestToken').click(function() {
+                  var id = $('#serviceID').val();
+                  var key = $('#serviceKey').val();
+                  if (id !== "" && key !== "") {
+                    N.API.init(id, key);
+                    N.API.createRoom("test", function(roomRtn) {
+                      if (roomRtn !== "Unauthorized") {
+                        
+                        N.API.createToken(roomRtn._id, "testing", "participant", function(tok) {
+                          token = tok;
+                          $('#getToken').val(tok);
+                           $('#msg').addClass("alert");
+                           $('#msg').html("Your token is: <br><small>"+tok+"</small><br>You can test the client app now!!");
+                        });
+                      }
+                    }, "test");
+                  }
+                });
+              });
+            </script>
+            <input id="serviceID" type="text" class="input-large" placeholder="Service ID">
+            <input id="serviceKey" type="text" class="input-large" placeholder="Service Key">
+            <button id="createTestToken" type="submit" class="btn">Create Test Token</button> 
+            <div id="msg" class="pre-scrollable"></div>
+          </form>
+
+        </section>
+
+
+        <!-- Basic Client-side application
+        ================================================== -->
+        <section id="client-side">
+          <div class="page-header">
+            <h1>3. Basic Client-side application</h1>
+          </div>
+          <p class="lead">Client API is focused to create connections, send video/audio and show other videos in the browser.</p>
+          <p>First, you need to introduce the test token you have just received.</p>
+          
+          <p>Below, you can see the example application and the corresponding HTML and JavaScript source code.
+          <div id="example" class="bs-docs-example">
+            <script type="text/javascript">
+              var room;
+              $(document).ready(function() {
+                $('#connect').click(function() {
+                  if (room === undefined && $('#getToken').val() !== "") {
+                    token = $('#getToken').val();
+                    room = Erizo.Room({token: token});
+                    room.addEventListener('room-connected', function() {
+                      $('#alert').text('You\'re connected to room now.');
+                      state = 1;
+                    });
+                    room.addEventListener('stream-added', function(stream) {
+                      
+                      room.subscribe(stream.stream);
+                    });
+                    room.addEventListener('stream-subscribed', function(streamEvent) {
+                      var stream = streamEvent.stream;
+                      var elementID = 'stream'+stream.streamID;
+                      $('#vidcontainer').append('<div id='+elementID+
+                        ' style=\'width:80px;height:60px\'></div>');
+                      stream.show(elementID);
+
+                    });
+                    $('#alert').text('Connecting...');
+                    room.connect();
+                  }
+                });
+                $('#publish').click(function() {
+                  if (room !== undefined && room.state === 2) {
+                    var stream = new Erizo.Stream({video: true, audio: true, data: true});
+                    stream.addEventListener('access-accepted', function(){
+                      room.publish(stream);
+                      $('#alert').text('Your video has been published in room.');
+                    });
+                    stream.init();
+                  }
+                });
+                $('#disconnect').click(function() {
+                  if (room !== undefined && room.state === 2) {
+                    room.disconnect();
+                    room = undefined;
+                    $('#alert').text('You\'ve been disconnected.');
+                  }
+                });
+              });
+            </script>
+            <div id="vidcontainer"></div>
+            <div  class="alert" id="alert"></div>
+            <form class="form-inline" href="#">
+              
+              <input id="getToken" type="text" class="input-large" placeholder="token"></input>
+              <button id="connect" type="submit" class="btn">Connect</button>
+              <button id="publish" type="submit" class="btn">Publish My Video</button>
+              <button id="disconnect" type="submit" class="btn">Disconnect</button>
+
+            </form>
+            </p>
+            
+          </div>
+          <pre id="tutorial" class="prettyprint linenums:1">
+&ltscript type="text/javascript" src="http://chotis2.dit.upm.es:3000/erizo.js"&gt&lt/script&gt
+&ltscript type="text/javascript"&gt
+var room;
+$('#connect').click(function() {
+  if (room === undefined && $('#getToken').val() !== "") {
+    token = $('#getToken').val();
+    room = Erizo.Room({token: token});
+    room.addEventListener('room-connected', function() {
+      $('#alert').text('You\'re connected to room now.');
+      state = 1;
+    });
+    room.addEventListener('stream-added', function(stream) {
+      room.subscribe(stream.stream);
+    });
+    room.addEventListener('stream-subscribed', function(streamEvent) {
+      var stream = streamEvent.stream;
+      var elementID = 'stream'+stream.streamID;
+      $('#vidcontainer').append('&ltdiv id='+elementID+
+        ' style=\'width:80px;height:60px\'&gt&lt/div&gt');
+      stream.show(elementID);
+
+    });
+    $('#alert').text('Connecting...');
+    room.connect();
+  }
+});
+$('#publish').click(function() {
+  if (room.state === 2) {
+    var stream = new Erizo.Stream({video: true, audio: true, data: true});
+    stream.addEventListener('access-accepted', function(){
+      room.publish(stream);
+      $('#alert').text('Your video has been published in room.');
+    });
+    stream.init();
+  }
+});
+$('#disconnect').click(function() {
+  if (room.state === 2) {
+    room.disconnect();
+    room = undefined;
+    $('#alert').text('You\'ve been disconnected.');
+  }
+});
+&lt/script&gt
+&ltbutton id="connect" class="btn"&gtConnect&lt/button&gt
+&ltbutton id="publish" class="btn"&gtPublish My Video&lt/button&gt
+&ltbutton id="disconnect" class="btn"&gtPublish My Video&lt/button&gt
+&ltdiv id="vidcontainer" style="width: 400px; height: 300px"&gt
+&lt/div&gt</pre>
+          <script type="text/javascript">
+            var paint = function(array) {
+              var i;
+              for (i = 0; i<$('.linenums li').length; i++) {
+                $($('.linenums li')[i]).css({'background-color':''});
+                $($('.linenums li')[i]).children().each(function(index,value){$(value).css({'color':''})});
+              }
+              for (i = 0; i<array.length; i++) {
+                $($('.linenums li')[array[i]-1]).css({'background-color':'#08C'});
+                $($('.linenums li')[array[i]-1]).children().each(function(index,value){$(value).css({'color':'white'})});
+              }
+              
+            };
+            $('#connect').hover(function(){
+                paint([4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]);
+              }, function() {
+                paint([]);
+            });
+            $('#publish').hover(function(){
+                paint([26,27,28,29,30,31,32,33,34,35]);
+              }, function() {
+                paint([]);
+            });
+            $('#disconnect').hover(function(){
+                paint([36,37,38,39,40,41,42]);
+              }, function() {
+                paint([]);
+            });
+          </script>
+        </section>
+
+
+        <!-- Next
+        ================================================== -->
+        <section id="what-next">
+          <div class="page-header">
+            <h1>What next?</h1>
+          </div>
+          <p class="lead">Head to the Lynckia Architecture for more information about different Lynckia components, or take the next leap and get into the client API for rooms and users management.</p>
+          <a class="btn btn-large btn-primary" href="./architecture.html">Visit the Architecture</a>
+          <a class="btn btn-large" href="./client-api.html" style="margin-left: 5px;">Start with Client API</a>
+        </section>
+
+
+
+
+      </div>
+    </div>
+
+  </div>
+
+
+
+    <!-- Footer
+    ================================================== -->
+    <footer class="footer">
+      <div class="container">
+        <p class="pull-right"><a href="#">Back to top</a></p>
+        <p>Designed and built with all the love in the world by GING. Documentation licensed under <a href="http://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>.</p>
+        <ul class="footer-links">
+          <li><a href="http://lynckiablog.blogspot.com">Read the blog</a></li>
+          <li><a href="https://plus.google.com/u/0/117182047221528167166">Follow us in Google+</a></li>
+          <li><a href="https://plus.google.com/u/0/117182047221528167166">Contact us</a></li>
+        </ul>
+      </div>
+    </footer>
+
+
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+    <script src="assets/js/jquery.js"></script>
+    <script src="assets/js/prettify.js"></script>
+    <script src="assets/js/bootstrap.min.js"></script>
+    <script src="assets/js/application.js"></script>
+
+  </body>
+</html>
