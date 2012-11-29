@@ -225,7 +225,7 @@ void NiceConnection::init() {
 	g_thread_init(NULL);
 
 	loop_ = g_main_loop_new(NULL, FALSE);
-	//	nice_debug_enable( TRUE );
+	nice_debug_enable( TRUE );
 	// Create a nice agent
 	agent_ = nice_agent_new(g_main_loop_get_context(loop_),
 		 NICE_COMPATIBILITY_RFC5245);
