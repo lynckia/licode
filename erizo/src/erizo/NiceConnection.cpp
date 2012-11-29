@@ -36,6 +36,9 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 	lcands = nice_agent_get_local_candidates(agent, stream_id, currentCompId++);
 	NiceCandidate *cand;
 	GSList* iterator;
+	gchar *ufrag = NULL, *upass = NULL;
+	nice_agent_get_local_credentials(agent, stream_id, &ufrag, &upass);
+
 //////False candidate for testing when there is no network (like in the train) :)
  /* 
 		NiceCandidate* thecandidate = nice_candidate_new(NICE_CANDIDATE_TYPE_HOST);
@@ -110,15 +113,9 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 			cand_info.netProtocol = "udp";
 			cand_info.transProtocol = std::string(*conn->transportName);
 			//cand_info.username = std::string(cand->username);
-			if (cand->username)
-				cand_info.username = std::string(cand->username);
-			else
-				cand_info.username = std::string("(null)");
+			cand_info.username = std::string(ufrag);
 
-			if (cand->password)
-				cand_info.password = std::string(cand->password);
-			else
-				cand_info.password = std::string("(null)");
+			cand_info.password = std::string(upass);
 
 			conn->localCandidates->push_back(cand_info);
 		}
@@ -126,6 +123,9 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 				currentCompId++);
 	}
 	printf("candidate_gathering done\n");
+
+	g_free(ufrag);
+	g_free(upass);
 
   if (conn->localCandidates->size()==0){
     printf("No local candidates found, check your network connection\n");
@@ -228,7 +228,9 @@ void NiceConnection::init() {
 	//	nice_debug_enable( TRUE );
 	// Create a nice agent
 	agent_ = nice_agent_new(g_main_loop_get_context(loop_),
-		 NICE_COMPATIBILITY_GOOGLE);
+		 NICE_COMPATIBILITY_RFC5245);
+
+	g_object_set (G_OBJECT (agent_), "controlling-mode", TRUE, NULL);
 
 //	NiceAddress* naddr = nice_address_new();
 //	nice_agent_add_local_address(agent_, naddr);

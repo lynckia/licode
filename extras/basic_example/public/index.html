@@ -4,11 +4,12 @@
     <script type="text/javascript" src="erizo.js"></script>
     <script type="text/javascript">
 
-		serverUrl = "/";
+		var serverUrl = "/";
+		var localStream, room;
 
 		window.onload = function () {
 
-  			var localStream = Erizo.Stream({audio: true, video: true, data: true});
+  			localStream = Erizo.Stream({audio: true, video: true, data: true});
 
 		    var createToken = function(userName, role, callback) {
 
@@ -30,7 +31,7 @@
 		    createToken("user", "role", function (response) {
 		        var token = response;
 		        console.log(token);
-		        var room = Erizo.Room({token: token});
+		        room = Erizo.Room({token: token});
 
 		        localStream.addEventListener("access-accepted", function () {
 		            
