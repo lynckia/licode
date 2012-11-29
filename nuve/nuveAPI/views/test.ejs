@@ -1,0 +1,315 @@
+<html>
+
+<head>
+<title>NuveAPI Test</title>
+
+<style type="text/css">
+	h1 {
+    font-size: 20 px;
+    }
+
+    #container {
+        width: 100%;
+        
+    }
+
+    #data {
+        float: left;
+        width: 35%;
+        height: 100%;
+    }
+
+    #response {
+        margin-top: 15%;
+    }
+
+    #options {
+        text-align: left;
+        margin-left: 40px;
+        width: 70%;
+    }
+
+    #contact {
+        clear: both;
+        
+    }
+</style>
+
+<script src="http://crypto-js.googlecode.com/svn/tags/3.0.2/build/rollups/hmac-sha1.js"></script>
+<script type="text/javascript">
+
+var method;
+var url;
+var body;
+
+function setParams() {
+
+    method = '';
+    url = '/'; //nuve public URL
+    body = {};
+
+    if (document.getElementById('createRoom').checked) {
+        method = 'POST';
+        body.name = document.getElementById('room1').value;
+        url += 'rooms';
+        
+    } else if (document.getElementById('getRooms').checked) {
+        method = 'GET';
+        url += 'rooms';
+
+    } else if (document.getElementById('getRoom').checked) {
+        method = 'GET';
+        url += 'rooms/' + document.getElementById('room1').value;
+
+    } else if (document.getElementById('deleteRoom').checked) {
+        method = 'DELETE';
+        url += 'rooms/' + document.getElementById('room1').value;
+
+    } else if (document.getElementById('createToken').checked) {
+        method = 'POST';
+        url += 'rooms/' + document.getElementById('room2').value + '/tokens';
+        
+    } else if (document.getElementById('createService').checked) {
+        method = 'POST';
+        body.name = document.getElementById('service1').value;
+        body.key =  document.getElementById('key1').value;
+        url += 'services/';
+        
+    } else if (document.getElementById('getServices').checked) {
+        method = 'GET';
+        url += 'services/';
+
+    } else if (document.getElementById('getService').checked) {
+        method = 'GET';
+        url += 'services/' + document.getElementById('service1').value;
+
+    } else if (document.getElementById('deleteService').checked) {
+        method = 'DELETE';
+        url += 'services/' + document.getElementById('service1').value;
+
+    } else if (document.getElementById('getUsers').checked) {
+        method = 'GET';
+        url += 'rooms/' + document.getElementById('room3').value + '/users';
+
+    } else if (document.getElementById('getUser').checked) {
+        method = 'GET';
+        url += 'rooms/' + document.getElementById('room3').value + '/users/' + document.getElementById('user').value;
+
+    } else if (document.getElementById('deleteUser').checked) {
+        method = 'DELETE';
+        url += 'rooms/' + document.getElementById('room3').value + '/users/'  + document.getElementById('user').value;
+
+    }
+
+}
+
+function send() {
+
+    setParams();
+
+	var service = document.getElementById('service').value;
+	var key = document.getElementById('key').value;
+
+	if(service == '' || key == '') {
+		alert('ServiceID and Key are required!!');
+		return;
+	}
+
+	var username = document.getElementById('username').value;
+	var role = document.getElementById('role').value;
+
+	var timestamp = new Date().getTime();
+	var cnounce = '123123aaff';
+
+	var toSign = timestamp + ',' + cnounce;
+
+	var header = 'MAuth realm=http://marte3.dit.upm.es,mauth_signature_method=HMAC_SHA1';
+
+	if (username != '' && role != '') {
+	
+		header += ',mauth_username=';
+		header +=  username;
+		header += ',mauth_role=';
+		header +=  role;
+
+		toSign += ',' + username + ',' + role;
+	}
+
+	var signed = calculateSignature(toSign, key);
+
+
+	header += ',mauth_serviceid=';
+	header +=  service;
+	header += ',mauth_cnonce=';
+	header += cnounce;
+	header += ',mauth_timestamp=';
+	header +=  timestamp;
+	header += ',mauth_signature=';
+	header +=  signed;
+
+	var req = new XMLHttpRequest();
+	
+	req.onreadystatechange = onreadystatechange = function () {
+		
+  		if (req.readyState == '4') {
+    		document.getElementById("response").value = req.responseText;
+    	}
+	}
+
+	req.open(method, url, true);
+
+	req.setRequestHeader('Authorization', header);
+    req.setRequestHeader('Content-Type', 'application/json');
+	req.send(JSON.stringify(body));
+
+}
+
+
+function calculateSignature(toSign, key) {
+	
+	var hash = CryptoJS.HmacSHA1(toSign, key);
+
+	var hex = hash.toString(CryptoJS.enc.Hex);
+
+
+	var signed = encodeBase64(hex);
+
+	return signed;
+}
+
+var END_OF_INPUT = -1;
+
+var base64Chars = new Array(
+    'A','B','C','D','E','F','G','H',
+    'I','J','K','L','M','N','O','P',
+    'Q','R','S','T','U','V','W','X',
+    'Y','Z','a','b','c','d','e','f',
+    'g','h','i','j','k','l','m','n',
+    'o','p','q','r','s','t','u','v',
+    'w','x','y','z','0','1','2','3',
+    '4','5','6','7','8','9','+','/'
+);
+
+var base64Str;
+var base64Count;
+
+function readBase64(){    
+    if (!base64Str) return END_OF_INPUT;
+    if (base64Count >= base64Str.length) return END_OF_INPUT;
+    var c = base64Str.charCodeAt(base64Count) & 0xff;
+    base64Count++;
+    return c;
+}
+
+function encodeBase64(str){
+    base64Str = str;
+    base64Count = 0;
+    var result = '';
+    var inBuffer = new Array(3);
+    var lineCount = 0;
+    var done = false;
+    while (!done && (inBuffer[0] = readBase64()) != END_OF_INPUT){
+        inBuffer[1] = readBase64();
+        inBuffer[2] = readBase64();
+        result += (base64Chars[ inBuffer[0] >> 2 ]);
+        if (inBuffer[1] != END_OF_INPUT){
+            result += (base64Chars [(( inBuffer[0] << 4 ) & 0x30) | (inBuffer[1] >> 4) ]);
+            if (inBuffer[2] != END_OF_INPUT){
+                result += (base64Chars [((inBuffer[1] << 2) & 0x3c) | (inBuffer[2] >> 6) ]);
+                result += (base64Chars [inBuffer[2] & 0x3F]);
+            } else {
+                result += (base64Chars [((inBuffer[1] << 2) & 0x3c)]);
+                result += ('=');
+                done = true;
+            }
+        } else {
+            result += (base64Chars [(( inBuffer[0] << 4 ) & 0x30)]);
+            result += ('=');
+            result += ('=');
+            done = true;
+        }
+        lineCount += 4;
+        if (lineCount >= 76){
+            result += ('\n');
+            lineCount = 0;
+        }
+    }
+    return result;
+}
+
+</script>
+
+</head>
+
+<body>
+
+<h1>NuveAPI Test</h1>
+
+<div id="container">
+
+<div id="data">
+
+<table>
+<tr>
+<td>Service ID:</td>
+<td><input type="text" id="service" value=""/></td>
+</tr>
+<tr>
+<td>Key:</td>
+<td><input type="password" id="key" value=""/></td>
+</tr>
+<tr>
+<td>User name (optional):</td>
+<td><input type="text" id="username"/></td>
+</tr>
+<tr>
+<td>Role (optional):</td>
+<td><input type="text" id="role"/></td>
+</tr>
+</table>
+
+<textarea id="response" rows="14" cols="60" readonly="readonly">
+
+</textarea>
+
+</div>
+
+<div id="options">
+
+<input type="radio" id="createRoom" name="req"/>Create room<br/>
+<input type="radio" id="getRooms" name="req"/>Represent rooms<br/>
+<input type="radio" id="getRoom" name="req"/>Get room<br/>
+<input type="radio" id="deleteRoom" name="req"/>Delete room<br/>
+Room: <input type="text" id="room1"/><br/><br/>
+
+<input type="radio" id="createToken" name="req"/>Create token<br/>
+Room: <input type="text" id="room2"/><br/><br/>
+
+<input type="radio" id="createService" name="req"/>Create service<br/>
+Service: <input type="text" id="service1"/>
+Key: <input type="text" id="key1"/><br/>
+<input type="radio" id="getServices" name="req"/>Represent services<br/>
+<input type="radio" id="getService" name="req"/>Get service<br/>
+<input type="radio" id="deleteService" name="req"/>Delete service<br/><br/>
+
+<input type="radio" id="getUsers" name="req"/>Represent users<br/>
+<input type="radio" id="getUser" name="req"/>Get user<br/>
+<input type="radio" id="deleteUser" name="req"/>Delete user<br/>
+User: <input type="text" id="user"/>
+Room: <input type="text" id="room3"/><br/>
+
+<p><input type="button" value="Send" id ="sendButton" onClick="javascript:send()" /></p>
+
+</div>
+
+</div>
+
+
+<div id="contact">
+Developed by <a href="http://www.dit.upm.es/">DIT UPM</a>.<br/>
+</div>
+
+
+</body>
+
+</html>
