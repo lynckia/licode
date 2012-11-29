@@ -1,81 +1,179 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<meta name="viewport" content="initial-scale=1.0, width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>Lynckia</title>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <title>Lynckia Video Conference Service</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
 
-<link href="bootstrap.min.css" rel="stylesheet" type="text/css" />
-<link href="bootstrap-responsive.min.css" rel="stylesheet" type="text/css" />
-<link href="style.css" rel="stylesheet" type="text/css" />
-<script type="text/javascript" src="js/jquery.min.js"></script>
-<script type="text/javascript" src="js/jquery.parallax-1.1.3.js"></script>
-<script type="text/javascript" src="js/jquery.localscroll-1.2.7-min.js"></script>
-<script type="text/javascript" src="js/jquery.scrollTo-1.4.2-min.js"></script>
-<script type="text/javascript" src="js/bootstrap.min.js"></script>
-<script type="text/javascript" src="js/lynckialol.js"></script>
-</head>
+    <!-- Le styles -->
+    <link rel="stylesheet" href="http://fortawesome.github.com/Font-Awesome/assets/css/site.css">
+    <link href="assets/css/bootstrap.css" rel="stylesheet">
+    <link href="assets/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="assets/css/docs.css" rel="stylesheet">
+    <link href="assets/css/prettify.css" rel="stylesheet">
 
-<body>
-	<ul id="nav" class="unstyled visible-desktop">
-		<li><a href="#intro" title="Next Section"><img src="images/dot.png" alt="Link" /></a></li>
-	    <li><a href="#second" title="Next Section"><img src="images/dot.png" alt="Link" /></a></li>
-	    <li><a href="#third" title="Next Section"><img src="images/dot.png" alt="Link" /></a></li>
-	    <li><a href="#fifth" title="Next Section"><img src="images/dot.png" alt="Link" /></a></li>
-	</ul>
+    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
 
-	<div id="api-link">
-		<a href="api/"><img style="position: absolute; top: 0; right: 0; border: 0;" src="images/orange.png" alt="Access the API"><p class="text">Check the API</p></a>
+    <a href="https://github.com/ging/lynckia"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_left_red_aa0000.png" alt="Fork me on GitHub"></a>
 
-	</div>
+    <!-- Le fav and touch icons -->
+    <link rel="shortcut icon" href="assets/ico/favicon.ico">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="assets/ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="assets/ico/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="assets/ico/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="assets/ico/apple-touch-icon-57-precomposed.png">
 
-	<div id="contact">
-		<a href="mailto:contact@lynckia.com">Contact Us</a>
-		<a href="https://twitter.com/lynckia" class="twitter-follow-button" data-show-count="false">Follow @lynckia</a>
-		<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
-		<a href="https://twitter.com/share" class="twitter-share-button" data-via="lynckia">Tweet</a>
-		<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
-	</div>
-	
-	<div id="intro" class="window-div">
-		<div class="story">
-			<div class="bg1"></div>
-			<!--<div class="bg2"></div>-->
-			<div class="logo"></div>
-			<div class="imglogo1"></div>
-            <div class="intro-text">
-	            <p>Include your own live multimedia service in your web in just a few steps with Lynckia.</p>
-	        </div>
-	    </div> <!--.story-->
-	</div> <!--#intro-->
-	
-	<div id="second" class="window-div">
-		<div class="story"><div class="webcam"></div>
-	    	<div class="float-right webcam-text">
-	            <h2>Real-Time Multimedia</h2>
-	            <p>We provide you with rooms that you can use to create real-time multimedia events for multiple users. You can implement videoconference, live streaming, games and so on in your web applications. All you need is JavaScript!</p>
-	        </div>
-	    </div> <!--.story-->
-	    
-	</div> <!--#second-->
-	
-	<div id="third" class="window-div">
-		<div class="story"><div class="html5"></div>
-	    	<div class="float-left">
-	        	<h2>HTML5</h2>
-	            <p>Your service will be 100% compliant with HTML5. We use all novel standard communication technologies. Your users will not have to install any additional software. Say goodbye to Flash and other plugin-based technologies!</p>
-	        </div>
-	    </div> <!--.story-->
-	</div> <!--#third-->
-    
-    <div id="fifth" class="window-div">
-		<div class="story"><div class="d"></div><div class="i"></div><div class="y"></div>
-	    	<div class="float-left">
-	        	<h2>Do It Yourself</h2>
-	            <p>You can customize your service according to your needs and users. You can put each video in different locations inside your application and control them as you want. The only limit is your imagination!</p>
-	        </div>
-	    </div> <!--.story-->
-	</div> <!--#third-->
+ </head>
 
-</body>
-</html>
+  <body data-spy="scroll" data-target=".bs-docs-sidebar" data-twttr-rendered="true">
+
+    <!-- Navbar
+    ================================================== -->
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="./index.html">Lynckia</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li class="active">
+                <a href="./index.html">Home</a>
+              </li>
+              <li class="">
+                <a href="./getting-started.html">Get started</a>
+              </li>
+              <li class="">
+                <a href="./install.html">Installation</a>
+              </li>
+              <li class="">
+                <a href="./architecture.html">Architecture</a>
+              </li>
+              <li class="">
+                <a href="./client-api.html">Client API</a>
+              </li>
+              <li class="">
+                <a href="./server-api.html">Server API</a>
+              </li>
+              <li class="">
+                <a href="./try.html">Try it!</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<div class="jumbotron masthead">
+  <div class="container">
+    <img src="assets/img/logo.svg" alt="Lynckia">
+    <img src="assets/img/star.svg" alt="Lynckia" class="hidden-phone hidden-tablet star">
+    <p>Connect your users with videoconference in their browsers.</p>
+    <p><a href="./getting-started.html" class="btn btn-primary btn-large hidden-phone hidden-tablet">Start Using it!</a></p>
+    <ul class="masthead-links">
+      <li>Beta version</li>
+    </ul>
+  </div>
+</div>
+
+<div class="bs-docs-social">
+  <div class="container">
+    <ul class="bs-docs-social-buttons">
+      <li class="follow-btn">
+        <iframe allowtransparency="true" frameborder="0" scrolling="no" src="http://platform.twitter.com/widgets/follow_button.1345016233.html#_=1345640025492&amp;id=twitter-widget-2&amp;lang=en&amp;screen_name=lynckia&amp;show_count=true&amp;show_screen_name=true&amp;size=m" class="twitter-follow-button" style="width: 242px; height: 20px; " title="Twitter Follow Button"></iframe>
+      </li>
+      <li class="tweet-btn">
+        <iframe allowtransparency="true" frameborder="0" scrolling="no" src="http://platform.twitter.com/widgets/tweet_button.1345016233.html#_=1345640025419&amp;count=horizontal&amp;id=twitter-widget-0&amp;lang=en&amp;original_referer=http%3A%2F%2Flynckia-api.appspot.com&amp;related=Ging%3ACreator%20of%20Lynckia&amp;size=m&amp;text=Lynckia&amp;url=http%3A%2F%2Flynckia-api.appspot.com&amp;via=lynckia" class="twitter-share-button twitter-count-horizontal" style="width: 110px; height: 20px; " title="Twitter Tweet Button"></iframe>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="marketing">
+    <h1>Introducing Lynckia.</h1>
+    <div class="row-fluid">
+      <div class="span4">
+        <img src="assets/img/webrtc.jpg">
+        
+        <h2>Built on top of WebRTC.</h2>
+        <p>Lynckia is based on WebRTC technologies. It is 100% compatible with latest stable versions of Google Chrome. Your users will be able to talk from their web browsers with no need to installing anything.</p>
+      </div>
+      <div class="span4">
+        <img src="assets/img/scale.png">
+        <h2>Easy, fast and scalable.</h2>
+        <p>You don't need to care about complicated real-time infrastructures. It provides a fast development of videoconference features based on HTML5. And we make it 100% scalable.</p>
+      </div>
+      <div class="span4">
+        <img src="assets/img/camera.png"><img src="assets/img/headphones.png">
+        <h2>Videoconference, Streaming, Recording.</h2>
+        <p>Lynckia allows you to include videoconference rooms on your web. But you can also implement streaming, recording and any other real-time multimedia features you dreamt of!</p>
+      </div>
+    </div>
+
+    <hr class="soften">
+
+    <h1>Building your own conference provider.</h1>
+
+    <iframe src="http://ghbtns.com/github-btn.html?user=ging&repo=lynckia&type=fork"
+    allowtransparency="true" frameborder="0" scrolling="0" width="62" height="20"></iframe>
+    <iframe src="http://ghbtns.com/github-btn.html?user=ging&repo=lynckia&type=watch&count=true"
+    allowtransparency="true" frameborder="0" scrolling="0" width="80" height="20"></iframe>
+
+    <br/>
+
+    <div class="row-fluid">
+      <div class="span3">
+        <h2>Erizo</h2>
+        <p>It's the WebRTC Multipoint Control Unit (MCU). It's written in C++ and is 100\% compatible with WebRTC standard and its protocols.</p>
+      </div>
+      <div class="span3">
+        <h2>Erizo API</h2>
+        <p>A Node.js addon wrapper for Erizo. It configures and manages all aspects of Erizo from your Node.js applications!</p>
+        
+      </div>
+      <div class="span3">
+        <h2>Erizo Controller</h2>
+        <p>It's the core of the service. It provides Rooms to users in order to make multiconference sessions. It also supplies enough security mechanisms and additional capabilities: data, user lists, events, and so on.</p>
+      </div>
+      <div class="span3">
+        <h2>Nuve</h2>
+        <p>This is our first Videoconference as a Service API, implemented in 2007, it offers Room management, Users access control and service registration to third-party applications. It also provides Cloud scalability to the service.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <!-- Footer
+    ================================================== -->
+    <footer class="footer">
+      <div class="container">
+        <p class="pull-right"><a href="#">Back to top</a></p>
+        <p>Designed and built with all the love in the world by GING. Documentation licensed under <a href="http://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>.</p>
+        <ul class="footer-links">
+          <li><a href="http://lynckiablog.blogspot.com">Read the blog</a></li>
+          <li><a href="https://plus.google.com/u/0/117182047221528167166">Follow us in Google+</a></li>
+          <li><a href="https://plus.google.com/u/0/117182047221528167166">Contact us</a></li>
+        </ul>
+      </div>
+    </footer>
+
+
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+    <script src="assets/js/jquery.js"></script>
+    <script src="assets/js/prettify.js"></script>
+    <script src="assets/js/bootstrap.min.js"></script>
+    <script src="assets/js/application.js"></script>
+
+</body></html>
