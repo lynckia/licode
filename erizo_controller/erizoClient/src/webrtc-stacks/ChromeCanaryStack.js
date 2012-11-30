@@ -6,13 +6,10 @@ Erizo.ChromeCanaryStack = function (spec) {
     var that = {};
 
     that.pc_config = {
-<<<<<<< HEAD
+
         "iceServers": [{
             "url": "stun:stun.l.google.com:19302"
         }]
-=======
-        "iceServers": []
->>>>>>> master
     };
 
     that.mediaConstraints = {
@@ -25,11 +22,7 @@ Erizo.ChromeCanaryStack = function (spec) {
     that.peerConnection = new webkitRTCPeerConnection(that.pc_config);
 
     that.peerConnection.onicecandidate = function (event) {
-<<<<<<< HEAD
         console.log("PeerConnection: ", spec.session_id);
-=======
-        console.log("State: " + that.peerConnection.iceGatheringState);
->>>>>>> master
         if (!event.candidate) {
             // At the moment, we do not renegotiate when new candidates
             // show up after the more flag has been false once.
