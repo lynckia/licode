@@ -85,8 +85,11 @@ Handle<Value> OneToManyProcessor::addSubscriber(const Arguments& args) {
   WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
   erizo::WebRtcConnection *wr = param->me;
 
-  int peerId = args[1]->IntegerValue(); 
+// get the param
+  v8::String::Utf8Value param1(args[1]->ToString());
 
+// convert it to string
+  std::string peerId = std::string(*param1);
   me->addSubscriber(wr, peerId);
 
   return scope.Close(Null());
@@ -98,8 +101,11 @@ Handle<Value> OneToManyProcessor::removeSubscriber(const Arguments& args) {
   OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  int peerId = args[0]->IntegerValue(); 
+// get the param
+  v8::String::Utf8Value param1(args[0]->ToString());
 
+// convert it to string
+  std::string peerId = std::string(*param1);
   me->removeSubscriber(peerId);
 
   return scope.Close(Null());

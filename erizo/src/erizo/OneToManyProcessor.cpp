@@ -29,7 +29,7 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len) {
 	if (subscribers.empty() || len <= 0)
 		return 0;
 
-	std::map<int, WebRtcConnection*>::iterator it;
+	std::map<std::string, WebRtcConnection*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
 		memset(sendAudioBuffer_, 0, len);
 		memcpy(sendAudioBuffer_, buf, len);
@@ -45,7 +45,7 @@ int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 	if (sentPackets_ % 500 == 0) {
 		publisher->sendFirPacket();
 	}
-	std::map<int, WebRtcConnection*>::iterator it;
+	std::map<std::string, WebRtcConnection*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
 		memset(sendVideoBuffer_, 0, len);
 		memcpy(sendVideoBuffer_, buf, len);
@@ -61,13 +61,11 @@ void OneToManyProcessor::setPublisher(WebRtcConnection* webRtcConn) {
 }
 
 void OneToManyProcessor::addSubscriber(WebRtcConnection* webRtcConn,
-		int peerId) {
-
+		const std::string& peerId) {
 	this->subscribers[peerId] = webRtcConn;
 }
 
-void OneToManyProcessor::removeSubscriber(int peerId) {
-
+void OneToManyProcessor::removeSubscriber(const std::string& peerId) {
 	if (this->subscribers.find(peerId) != subscribers.end()) {
 		this->subscribers[peerId]->close();
 		this->subscribers.erase(peerId);
@@ -75,7 +73,7 @@ void OneToManyProcessor::removeSubscriber(int peerId) {
 }
 
 void OneToManyProcessor::closeAll() {
-	std::map<int, WebRtcConnection*>::iterator it;
+	std::map<std::string, WebRtcConnection*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
 		(*it).second->close();
 	}
