@@ -1,159 +1,6059 @@
-RoapConnection.sessionId=103;
-function RoapConnection(c,a){var b=this;this.isRTCPeerConnection=!0;this.stunServerOO="STUN stun.l.google.com:19302";this.pc_config={iceServers:[{url:"stun:stun.l.google.com:19302"}]};this.mediaConstraints={mandatory:{OfferToReceiveVideo:"true",OfferToReceiveAudio:"true"}};this.stAdd=!1;try{this.peerConnection=new webkitRTCPeerConnection(this.pc_config),this.peerConnection.onicecandidate=function(a){a.candidate?b.iceCandidateCount+=1:(b.moreIceComing=!1,b.markActionNeeded())},console.log('Created webkitRTCPeerConnnection with config "'+
-JSON.stringify(this.pc_config)+'".')}catch(d){this.peerConnection=new webkitPeerConnection00(this.stunServerOO,function(a,d){!1==d&&(b.moreIceComing=!1,b.markActionNeeded());b.iceCandidateCount+=1}),this.isRTCPeerConnection=!1,console.log('Created webkitPeerConnnection00 with config "'+this.stunServerOO+'".')}this.sessionId=++RoapConnection.sessionId;this.sequenceNumber=0;this.iceStarted=this.actionNeeded=!1;this.moreIceComing=!0;this.iceCandidateCount=0;this.onsignalingmessage=a;this.peerConnection.onopen=
-function(){if(b.onopen)b.onopen()};this.peerConnection.onaddstream=function(a){if(b.onaddstream)b.onaddstream(a)};this.peerConnection.onremovestream=function(a){if(b.onremovestream)b.onremovestream(a)};this.onremovestream=this.onaddstream=null;this.state="new";this.markActionNeeded()}
-RoapConnection.prototype.processSignalingMessage=function(c){console.log("Activity on conn "+this.sessionId);this.incomingMessage=c=JSON.parse(c);"new"===this.state?"OFFER"===c.messageType?(this.isRTCPeerConnection?(c={sdp:c.sdp,type:"offer"},this.peerConnection.setRemoteDescription(new RTCSessionDescription(c))):(this.offer_as_string=c.sdp,c=new SessionDescription(c.sdp),this.peerConnection.setRemoteDescription(this.peerConnection.SDP_OFFER,c)),this.state="offer-received",this.markActionNeeded()):
-this.error("Illegal message for this state: "+c.messageType+" in state "+this.state):"offer-sent"===this.state?"ANSWER"===c.messageType?(this.isRTCPeerConnection?(c={sdp:c.sdp,type:"answer"},this.peerConnection.setRemoteDescription(new RTCSessionDescription(c))):(c=new SessionDescription(c.sdp),this.peerConnection.setRemoteDescription(this.peerConnection.SDP_ANSWER,c)),this.sendOK(),this.state="established"):"pr-answer"===c.messageType?this.isRTCPeerConnection?(c={sdp:c.sdp,type:"pr-answer"},this.peerConnection.setRemoteDescription(new RTCSessionDescription(c))):
-(c=new SessionDescription(c.sdp),this.peerConnection.setRemoteDescription("pr-answer",c)):"offer"===c.messageType?this.error("Not written yet"):this.error("Illegal message for this state: "+c.messageType+" in state "+this.state):"established"===this.state&&("OFFER"===c.messageType?(this.isRTCPeerConnection?(c={sdp:c.sdp,type:"offer"},this.peerConnection.setRemoteDescription(new RTCSessionDescription(c))):(c=new SessionDescription(c.sdp),this.peerConnection.setRemoteDescription(this.peerConnection.SDP_OFFER,
-c)),this.state="offer-received",this.markActionNeeded()):this.error("Illegal message for this state: "+c.messageType+" in state "+this.state))};RoapConnection.prototype.addStream=function(c){this.stAdd=!0;this.peerConnection.addStream(c);this.markActionNeeded()};RoapConnection.prototype.removeStream=function(c){var a;for(a=0;a<this.peerConnection.localStreams.length;++a)localStreams[a]===c&&(localStreams[a]=null);this.markActionNeeded()};
-RoapConnection.prototype.close=function(){this.state="closed";this.peerConnection.close()};RoapConnection.prototype.markActionNeeded=function(){this.actionNeeded=!0;var c=this;this.doLater(function(){c.onstablestate()})};RoapConnection.prototype.doLater=function(c){window.setTimeout(c,1)};
-RoapConnection.prototype.onstablestate=function(){var c,a=this;if(this.actionNeeded){if("new"===this.state||"established"===this.state)if(this.isRTCPeerConnection)this.peerConnection.createOffer(function(b){b.sdp!=this.prevOffer?(a.peerConnection.setLocalDescription(b),a.state="preparing-offer",a.markActionNeeded()):console.log("Not sending a new offer")},null,this.mediaConstraints);else{c=this.peerConnection.createOffer(this.mediaConstraints);if(c.toSdp()!=this.prevOffer){this.peerConnection.setLocalDescription(this.peerConnection.SDP_OFFER,
-c);this.peerConnection.startIce();this.state="preparing-offer";this.markActionNeeded();return}console.log("Not sending a new offer")}else if("preparing-offer"===this.state){if(this.moreIceComing)return;this.prevOffer=this.isRTCPeerConnection?this.peerConnection.localDescription.sdp:this.peerConnection.localDescription.toSdp();this.sendMessage("OFFER",this.prevOffer);this.state="offer-sent"}else if("offer-received"===this.state)if(this.isRTCPeerConnection)this.peerConnection.createAnswer(function(a){this.peerConnection.setLocalDescription(a);
-this.state="offer-received-preparing-answer";this.iceStarted?this.markActionNeeded():(console.log((new Date).getTime()+": Starting ICE in responder"),this.iceStarted=!0)},null,this.mediaConstraints);else{c=this.peerConnection.createAnswer(this.offer_as_string,this.mediaConstraints);this.peerConnection.setLocalDescription(this.peerConnection.SDP_ANSWER,c);this.state="offer-received-preparing-answer";if(this.iceStarted){this.markActionNeeded();return}console.log((new Date).getTime()+": Starting ICE in responder");
-this.peerConnection.startIce();this.iceStarted=!0}else if("offer-received-preparing-answer"===this.state){if(this.moreIceComing)return;c=this.isRTCPeerConnection?this.peerConnection.localDescription.sdp:this.peerConnection.localDescription.toSdp();this.sendMessage("ANSWER",c);this.state="established"}else this.error("Dazed and confused in state "+this.state+", stopping here");this.actionNeeded=!1}};RoapConnection.prototype.sendOK=function(){this.sendMessage("OK")};
-RoapConnection.prototype.sendMessage=function(c,a){var b={};b.messageType=c;b.sdp=a;"OFFER"===c?(b.offererSessionId=this.sessionId,b.answererSessionId=this.otherSessionId,b.seq=++this.sequenceNumber,b.tiebreaker=Math.floor(429496723*Math.random()+1)):(b.offererSessionId=this.incomingMessage.offererSessionId,b.answererSessionId=this.sessionId,b.seq=this.incomingMessage.seq);this.onsignalingmessage(JSON.stringify(b))};RoapConnection.prototype.error=function(c){throw"Error in RoapOnJsep: "+c;};ErizoPeerConnection=function(c){try{return new webkitPeerConnection("STUN stun.l.google.com:19302",function(a){console.log("PeerConnection BOWSER");var a=a.substring(4),a=a.replace(RegExp(/\\r\\n/g),"\n"),d=a.match(/(username) \w+/)[0].substring(9),e=a.match(/(password) \w+/)[0].substring(9),a=a.replace(RegExp("(?: name)(.+)(?:"+e+" )","gm")," "),a=a.replace(RegExp(/(c=IN)/g),"a=ice-ufrag:"+d+"\\r\\na=ice-pwd:"+e+"\\r\\nc=IN"),a=a.replace(RegExp(/\n/g),"\\r\\n");c(a)})}catch(a){return console.log("PeerConnection CHROME"),
-new RoapConnection("STUN stun.l.google.com:19302",c)}};
-ErizoParseAnswer=function(c){for(var a=c.match(/(?:a=ice-ufrag:)(.+)(?:\r\n)/)[1],b=c.match(/(?:a=ice-pwd:)(.+)(?:\r\n)/)[1],d=RegExp(/(?:a=ice-pwd:)(.+)(?:\r\n)/g),c=c.replace(RegExp(/(?:a=ice-ufrag:)(.+)(?:\r\n)/g),""),c=c.replace(d,""),e=RegExp(/(generation)/g),d="name rtp network_name en0 username "+a+" password "+b+" magia",a="name video_rtp network_name en0 username "+a+" password "+b+" magia",b=c.match(e),e=0;e<b.length;e++)c=e<b.length/2?c.replace(b[e],d):c.replace(b[e],a);e=RegExp(/(magia)/g);
-return c=c.replace(e,"generation")};ErizoGetUserMedia=function(c,a){try{navigator.webkitGetUserMedia("audio, video",a),console.log("GetUserMedia BOWSER")}catch(b){console.log("GetUserMedia CHROME"),navigator.webkitGetUserMedia(c,a)}};(function(c,a){c.version="0.9.6";c.protocol=1;c.transports=[];c.j=[];c.sockets={};c.connect=function(b,d){var e=c.util.parseUri(b),f,i;a&&a.location&&(e.protocol=e.protocol||a.location.protocol.slice(0,-1),e.host=e.host||(a.document?a.document.domain:a.location.hostname),e.port=e.port||a.location.port);f=c.util.uniqueUri(e);var g={host:e.host,secure:"https"==e.protocol,port:e.port||("https"==e.protocol?443:80),query:e.query||""};c.util.merge(g,d);if(g["force new connection"]||!c.sockets[f])i=new c.Socket(g);
-!g["force new connection"]&&i&&(c.sockets[f]=i);i=i||c.sockets[f];return i.of(1<e.path.length?e.path:"")}})("object"===typeof module?module.exports:this.io={},this);
-(function(c,a){var b=c.util={},d=/^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/,e="source,protocol,authority,userInfo,user,password,host,port,relative,path,directory,file,query,anchor".split(",");b.parseUri=function(a){for(var a=d.exec(a||""),b={},c=14;c--;)b[e[c]]=a[c]||"";return b};b.uniqueUri=function(b){var d=b.protocol,c=b.host,b=b.port;"document"in
-a?(c=c||document.domain,b=b||("https"==d&&"https:"!==document.location.protocol?443:document.location.port)):(c=c||"localhost",!b&&"https"==d&&(b=443));return(d||"http")+"://"+c+":"+(b||80)};b.query=function(a,d){var c=b.chunkQuery(a||""),e=[];b.merge(c,b.chunkQuery(d||""));for(var f in c)c.hasOwnProperty(f)&&e.push(f+"="+c[f]);return e.length?"?"+e.join("&"):""};b.chunkQuery=function(a){for(var b={},a=a.split("&"),d=0,c=a.length,e;d<c;++d)e=a[d].split("="),e[0]&&(b[e[0]]=e[1]);return b};var f=!1;
-b.load=function(d){if("document"in a&&"complete"===document.readyState||f)return d();b.on(a,"load",d,!1)};b.on=function(a,b,d,c){a.attachEvent?a.attachEvent("on"+b,d):a.addEventListener&&a.addEventListener(b,d,c)};b.request=function(a){if(a&&"undefined"!=typeof XDomainRequest)return new XDomainRequest;if("undefined"!=typeof XMLHttpRequest&&(!a||b.ua.hasCORS))return new XMLHttpRequest;if(!a)try{return new (window[["Active"].concat("Object").join("X")])("Microsoft.XMLHTTP")}catch(d){}return null};"undefined"!=
-typeof window&&b.load(function(){f=!0});b.defer=function(a){if(!b.ua.webkit||"undefined"!=typeof importScripts)return a();b.load(function(){setTimeout(a,100)})};b.merge=function(a,d,c,e){var e=e||[],c="undefined"==typeof c?2:c,f;for(f in d)d.hasOwnProperty(f)&&0>b.indexOf(e,f)&&("object"!==typeof a[f]||!c?(a[f]=d[f],e.push(d[f])):b.merge(a[f],d[f],c-1,e));return a};b.mixin=function(a,d){b.merge(a.prototype,d.prototype)};b.inherit=function(a,b){function d(){}d.prototype=b.prototype;a.prototype=new d};
-b.isArray=Array.isArray||function(a){return"[object Array]"===Object.prototype.toString.call(a)};b.intersect=function(a,d){for(var c=[],e=a.length>d.length?a:d,f=a.length>d.length?d:a,m=0,q=f.length;m<q;m++)~b.indexOf(e,f[m])&&c.push(f[m]);return c};b.indexOf=function(a,b,d){for(var c=a.length,d=0>d?0>d+c?0:d+c:d||0;d<c&&a[d]!==b;d++);return c<=d?-1:d};b.toArray=function(a){for(var b=[],d=0,c=a.length;d<c;d++)b.push(a[d]);return b};b.ua={};b.ua.hasCORS="undefined"!=typeof XMLHttpRequest&&function(){try{var a=
-new XMLHttpRequest}catch(b){return!1}return void 0!=a.withCredentials}();b.ua.webkit="undefined"!=typeof navigator&&/webkit/i.test(navigator.userAgent)})("undefined"!=typeof io?io:module.exports,this);
-(function(c,a){function b(){}c.EventEmitter=b;b.prototype.on=function(b,c){this.$events||(this.$events={});this.$events[b]?a.util.isArray(this.$events[b])?this.$events[b].push(c):this.$events[b]=[this.$events[b],c]:this.$events[b]=c;return this};b.prototype.addListener=b.prototype.on;b.prototype.once=function(a,b){function c(){i.removeListener(a,c);b.apply(this,arguments)}var i=this;c.listener=b;this.on(a,c);return this};b.prototype.removeListener=function(b,c){if(this.$events&&this.$events[b]){var f=
-this.$events[b];if(a.util.isArray(f)){for(var i=-1,g=0,j=f.length;g<j;g++)if(f[g]===c||f[g].listener&&f[g].listener===c){i=g;break}if(0>i)return this;f.splice(i,1);f.length||delete this.$events[b]}else(f===c||f.listener&&f.listener===c)&&delete this.$events[b]}return this};b.prototype.removeAllListeners=function(a){this.$events&&this.$events[a]&&(this.$events[a]=null);return this};b.prototype.listeners=function(b){this.$events||(this.$events={});this.$events[b]||(this.$events[b]=[]);a.util.isArray(this.$events[b])||
-(this.$events[b]=[this.$events[b]]);return this.$events[b]};b.prototype.emit=function(b){if(!this.$events)return!1;var c=this.$events[b];if(!c)return!1;var f=Array.prototype.slice.call(arguments,1);if("function"==typeof c)c.apply(this,f);else if(a.util.isArray(c))for(var c=c.slice(),i=0,g=c.length;i<g;i++)c[i].apply(this,f);else return!1;return!0}})("undefined"!=typeof io?io:module.exports,"undefined"!=typeof io?io:module.parent.exports);
-(function(c,a){function b(a){return 10>a?"0"+a:a}function d(a){g.lastIndex=0;return g.test(a)?'"'+a.replace(g,function(a){var b=h[a];return"string"===typeof b?b:"\\u"+("0000"+a.charCodeAt(0).toString(16)).slice(-4)})+'"':'"'+a+'"'}function e(a,c){var g,f,i,h,o=j,r,p=c[a];p instanceof Date&&(p=isFinite(a.valueOf())?a.getUTCFullYear()+"-"+b(a.getUTCMonth()+1)+"-"+b(a.getUTCDate())+"T"+b(a.getUTCHours())+":"+b(a.getUTCMinutes())+":"+b(a.getUTCSeconds())+"Z":null);"function"===typeof m&&(p=m.call(c,a,
-p));switch(typeof p){case "string":return d(p);case "number":return isFinite(p)?""+p:"null";case "boolean":case "null":return""+p;case "object":if(!p)return"null";j+=n;r=[];if("[object Array]"===Object.prototype.toString.apply(p)){h=p.length;for(g=0;g<h;g+=1)r[g]=e(g,p)||"null";i=0===r.length?"[]":j?"[\n"+j+r.join(",\n"+j)+"\n"+o+"]":"["+r.join(",")+"]";j=o;return i}if(m&&"object"===typeof m){h=m.length;for(g=0;g<h;g+=1)"string"===typeof m[g]&&(f=m[g],(i=e(f,p))&&r.push(d(f)+(j?": ":":")+i))}else for(f in p)Object.prototype.hasOwnProperty.call(p,
-f)&&(i=e(f,p))&&r.push(d(f)+(j?": ":":")+i);i=0===r.length?"{}":j?"{\n"+j+r.join(",\n"+j)+"\n"+o+"}":"{"+r.join(",")+"}";j=o;return i}}if(a&&a.parse)return c.JSON={parse:a.parse,stringify:a.stringify};var f=c.JSON={},i=/[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,g=/[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,j,n,h={"\u0008":"\\b","\t":"\\t","\n":"\\n","\u000c":"\\f",
-"\r":"\\r",'"':'\\"',"\\":"\\\\"},m;f.stringify=function(a,b,c){var d;n=j="";if("number"===typeof c)for(d=0;d<c;d+=1)n+=" ";else"string"===typeof c&&(n=c);if((m=b)&&"function"!==typeof b&&("object"!==typeof b||"number"!==typeof b.length))throw Error("JSON.stringify");return e("",{"":a})};f.parse=function(a,b){function c(a,d){var g,e,f=a[d];if(f&&"object"===typeof f)for(g in f)Object.prototype.hasOwnProperty.call(f,g)&&(e=c(f,g),void 0!==e?f[g]=e:delete f[g]);return b.call(a,d,f)}var d,a=""+a;i.lastIndex=
-0;i.test(a)&&(a=a.replace(i,function(a){return"\\u"+("0000"+a.charCodeAt(0).toString(16)).slice(-4)}));if(/^[\],:{}\s]*$/.test(a.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g,"@").replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g,"]").replace(/(?:^|:|,)(?:\s*\[)+/g,"")))return d=eval("("+a+")"),"function"===typeof b?c({"":d},""):d;throw new SyntaxError("JSON.parse");}})("undefined"!=typeof io?io:module.exports,"undefined"!==typeof JSON?JSON:void 0);
-(function(c,a){var b=c.parser={},d=b.packets="disconnect,connect,heartbeat,message,json,event,ack,error,noop".split(","),e=b.reasons=["transport not supported","client not handshaken","unauthorized"],f=b.advice=["reconnect"],i=a.JSON,g=a.util.indexOf;b.encodePacket=function(a){var b=g(d,a.type),c=a.id||"",j=a.endpoint||"",s=a.ack,t=null;switch(a.type){case "error":var A=a.reason?g(e,a.reason):"",a=a.advice?g(f,a.advice):"";if(""!==A||""!==a)t=A+(""!==a?"+"+a:"");break;case "message":""!==a.data&&
-(t=a.data);break;case "event":t={name:a.name};a.args&&a.args.length&&(t.args=a.args);t=i.stringify(t);break;case "json":t=i.stringify(a.data);break;case "connect":a.qs&&(t=a.qs);break;case "ack":t=a.ackId+(a.args&&a.args.length?"+"+i.stringify(a.args):"")}b=[b,c+("data"==s?"+":""),j];null!==t&&void 0!==t&&b.push(t);return b.join(":")};b.encodePayload=function(a){var b="";if(1==a.length)return a[0];for(var c=0,d=a.length;c<d;c++)b+="\ufffd"+a[c].length+"\ufffd"+a[c];return b};var j=/([^:]+):([0-9]+)?(\+)?:([^:]+)?:?([\s\S]*)?/;
-b.decodePacket=function(a){var b=a.match(j);if(!b)return{};var c=b[2]||"",a=b[5]||"",g={type:d[b[1]],endpoint:b[4]||""};c&&(g.id=c,g.ack=b[3]?"data":!0);switch(g.type){case "error":b=a.split("+");g.reason=e[b[0]]||"";g.advice=f[b[1]]||"";break;case "message":g.data=a||"";break;case "event":try{var s=i.parse(a);g.name=s.name;g.args=s.args}catch(t){}g.args=g.args||[];break;case "json":try{g.data=i.parse(a)}catch(A){}break;case "connect":g.qs=a||"";break;case "ack":if(b=a.match(/^([0-9]+)(\+)?(.*)/))if(g.ackId=
-b[1],g.args=[],b[3])try{g.args=b[3]?i.parse(b[3]):[]}catch(w){}}return g};b.decodePayload=function(a){if("\ufffd"==a.charAt(0)){for(var c=[],d=1,g="";d<a.length;d++)"\ufffd"==a.charAt(d)?(c.push(b.decodePacket(a.substr(d+1).substr(0,g))),d+=Number(g)+1,g=""):g+=a.charAt(d);return c}return[b.decodePacket(a)]}})("undefined"!=typeof io?io:module.exports,"undefined"!=typeof io?io:module.parent.exports);
-(function(c,a){function b(a,b){this.socket=a;this.sessid=b}c.Transport=b;a.util.mixin(b,a.EventEmitter);b.prototype.onData=function(b){this.clearCloseTimeout();(this.socket.connected||this.socket.connecting||this.socket.reconnecting)&&this.setCloseTimeout();if(""!==b&&(b=a.parser.decodePayload(b))&&b.length)for(var c=0,f=b.length;c<f;c++)this.onPacket(b[c]);return this};b.prototype.onPacket=function(a){this.socket.setHeartbeatTimeout();if("heartbeat"==a.type)return this.onHeartbeat();if("connect"==
-a.type&&""==a.endpoint)this.onConnect();"error"==a.type&&"reconnect"==a.advice&&(this.open=!1);this.socket.onPacket(a);return this};b.prototype.setCloseTimeout=function(){if(!this.closeTimeout){var a=this;this.closeTimeout=setTimeout(function(){a.onDisconnect()},this.socket.closeTimeout)}};b.prototype.onDisconnect=function(){this.close&&this.open&&this.close();this.clearTimeouts();this.socket.onDisconnect();return this};b.prototype.onConnect=function(){this.socket.onConnect();return this};b.prototype.clearCloseTimeout=
-function(){this.closeTimeout&&(clearTimeout(this.closeTimeout),this.closeTimeout=null)};b.prototype.clearTimeouts=function(){this.clearCloseTimeout();this.reopenTimeout&&clearTimeout(this.reopenTimeout)};b.prototype.packet=function(b){this.send(a.parser.encodePacket(b))};b.prototype.onHeartbeat=function(){this.packet({type:"heartbeat"})};b.prototype.onOpen=function(){this.open=!0;this.clearCloseTimeout();this.socket.onOpen()};b.prototype.onClose=function(){this.open=!1;this.socket.onClose();this.onDisconnect()};
-b.prototype.prepareUrl=function(){var b=this.socket.options;return this.scheme()+"://"+b.host+":"+b.port+"/"+b.resource+"/"+a.protocol+"/"+this.name+"/"+this.sessid};b.prototype.ready=function(a,b){b.call(this)}})("undefined"!=typeof io?io:module.exports,"undefined"!=typeof io?io:module.parent.exports);
-(function(c,a,b){function d(c){this.options={port:80,secure:!1,document:"document"in b?document:!1,resource:"socket.io",transports:a.transports,"connect timeout":1E4,"try multiple transports":!0,reconnect:!0,"reconnection delay":500,"reconnection limit":Infinity,"reopen delay":3E3,"max reconnection attempts":10,"sync disconnect on unload":!0,"auto connect":!0,"flash policy port":10843};a.util.merge(this.options,c);this.reconnecting=this.connecting=this.open=this.connected=!1;this.namespaces={};this.buffer=
-[];this.doBuffer=!1;if(this.options["sync disconnect on unload"]&&(!this.isXDomain()||a.util.ua.hasCORS)){var d=this;a.util.on(b,"unload",function(){d.disconnectSync()},!1)}this.options["auto connect"]&&this.connect()}function e(){}c.Socket=d;a.util.mixin(d,a.EventEmitter);d.prototype.of=function(b){this.namespaces[b]||(this.namespaces[b]=new a.SocketNamespace(this,b),""!==b&&this.namespaces[b].packet({type:"connect"}));return this.namespaces[b]};d.prototype.publish=function(){this.emit.apply(this,
-arguments);var a,b;for(b in this.namespaces)this.namespaces.hasOwnProperty(b)&&(a=this.of(b),a.$emit.apply(a,arguments))};d.prototype.handshake=function(b){function c(a){if(a instanceof Error)d.onError(a.message);else b.apply(null,a.split(":"))}var d=this,j=this.options,j=["http"+(j.secure?"s":"")+":/",j.host+":"+j.port,j.resource,a.protocol,a.util.query(this.options.query,"t="+ +new Date)].join("/");if(this.isXDomain()&&!a.util.ua.hasCORS){var n=document.getElementsByTagName("script")[0],h=document.createElement("script");
-h.src=j+"&jsonp="+a.j.length;n.parentNode.insertBefore(h,n);a.j.push(function(a){c(a);h.parentNode.removeChild(h)})}else{var m=a.util.request();m.open("GET",j,!0);m.withCredentials=!0;m.onreadystatechange=function(){4==m.readyState&&(m.onreadystatechange=e,200==m.status?c(m.responseText):!d.reconnecting&&d.onError(m.responseText))};m.send(null)}};d.prototype.getTransport=function(b){for(var b=b||this.transports,c=0,d;d=b[c];c++)if(a.Transport[d]&&a.Transport[d].check(this)&&(!this.isXDomain()||a.Transport[d].xdomainCheck()))return new a.Transport[d](this,
-this.sessionid);return null};d.prototype.connect=function(b){if(this.connecting)return this;var c=this;this.handshake(function(d,e,n,h){function m(a){c.transport&&c.transport.clearTimeouts();c.transport=c.getTransport(a);if(!c.transport)return c.publish("connect_failed");c.transport.ready(c,function(){c.connecting=!0;c.publish("connecting",c.transport.name);c.transport.open();c.options["connect timeout"]&&(c.connectTimeoutTimer=setTimeout(function(){if(!c.connected&&(c.connecting=!1,c.options["try multiple transports"])){c.remainingTransports||
-(c.remainingTransports=c.transports.slice(0));for(var a=c.remainingTransports;0<a.length&&a.splice(0,1)[0]!=c.transport.name;);a.length?m(a):c.publish("connect_failed")}},c.options["connect timeout"]))})}c.sessionid=d;c.closeTimeout=1E3*n;c.heartbeatTimeout=1E3*e;c.transports=h?a.util.intersect(h.split(","),c.options.transports):c.options.transports;c.setHeartbeatTimeout();m(c.transports);c.once("connect",function(){clearTimeout(c.connectTimeoutTimer);b&&"function"==typeof b&&b()})});return this};
-d.prototype.setHeartbeatTimeout=function(){clearTimeout(this.heartbeatTimeoutTimer);var a=this;this.heartbeatTimeoutTimer=setTimeout(function(){a.transport.onClose()},this.heartbeatTimeout)};d.prototype.packet=function(a){this.connected&&!this.doBuffer?this.transport.packet(a):this.buffer.push(a);return this};d.prototype.setBuffer=function(a){this.doBuffer=a;!a&&this.connected&&this.buffer.length&&(this.transport.payload(this.buffer),this.buffer=[])};d.prototype.disconnect=function(){if(this.connected||
-this.connecting)this.open&&this.of("").packet({type:"disconnect"}),this.onDisconnect("booted");return this};d.prototype.disconnectSync=function(){a.util.request().open("GET",this.resource+"/"+a.protocol+"/"+this.sessionid,!0);this.onDisconnect("booted")};d.prototype.isXDomain=function(){var a=b.location.port||("https:"==b.location.protocol?443:80);return this.options.host!==b.location.hostname||this.options.port!=a};d.prototype.onConnect=function(){this.connected||(this.connected=!0,this.connecting=
-!1,this.doBuffer||this.setBuffer(!1),this.emit("connect"))};d.prototype.onOpen=function(){this.open=!0};d.prototype.onClose=function(){this.open=!1;clearTimeout(this.heartbeatTimeoutTimer)};d.prototype.onPacket=function(a){this.of(a.endpoint).onPacket(a)};d.prototype.onError=function(a){if(a&&a.advice&&"reconnect"===a.advice&&(this.connected||this.connecting))this.disconnect(),this.options.reconnect&&this.reconnect();this.publish("error",a&&a.reason?a.reason:a)};d.prototype.onDisconnect=function(a){var b=
-this.connected,c=this.connecting;this.open=this.connecting=this.connected=!1;if(b||c)this.transport.close(),this.transport.clearTimeouts(),b&&(this.publish("disconnect",a),"booted"!=a&&this.options.reconnect&&!this.reconnecting&&this.reconnect())};d.prototype.reconnect=function(){function a(){if(c.connected){for(var d in c.namespaces)c.namespaces.hasOwnProperty(d)&&""!==d&&c.namespaces[d].packet({type:"connect"});c.publish("reconnect",c.transport.name,c.reconnectionAttempts)}clearTimeout(c.reconnectionTimer);
-c.removeListener("connect_failed",b);c.removeListener("connect",b);c.reconnecting=!1;delete c.reconnectionAttempts;delete c.reconnectionDelay;delete c.reconnectionTimer;delete c.redoTransports;c.options["try multiple transports"]=e}function b(){if(c.reconnecting){if(c.connected)return a();if(c.connecting&&c.reconnecting)return c.reconnectionTimer=setTimeout(b,1E3);c.reconnectionAttempts++>=d?c.redoTransports?(c.publish("reconnect_failed"),a()):(c.on("connect_failed",b),c.options["try multiple transports"]=
-!0,c.transport=c.getTransport(),c.redoTransports=!0,c.connect()):(c.reconnectionDelay<h&&(c.reconnectionDelay*=2),c.connect(),c.publish("reconnecting",c.reconnectionDelay,c.reconnectionAttempts),c.reconnectionTimer=setTimeout(b,c.reconnectionDelay))}}this.reconnecting=!0;this.reconnectionAttempts=0;this.reconnectionDelay=this.options["reconnection delay"];var c=this,d=this.options["max reconnection attempts"],e=this.options["try multiple transports"],h=this.options["reconnection limit"];this.options["try multiple transports"]=
-!1;this.reconnectionTimer=setTimeout(b,this.reconnectionDelay);this.on("connect",b)}})("undefined"!=typeof io?io:module.exports,"undefined"!=typeof io?io:module.parent.exports,this);
-(function(c,a){function b(a,b){this.socket=a;this.name=b||"";this.flags={};this.json=new d(this,"json");this.ackPackets=0;this.acks={}}function d(a,b){this.namespace=a;this.name=b}c.SocketNamespace=b;a.util.mixin(b,a.EventEmitter);b.prototype.$emit=a.EventEmitter.prototype.emit;b.prototype.of=function(){return this.socket.of.apply(this.socket,arguments)};b.prototype.packet=function(a){a.endpoint=this.name;this.socket.packet(a);this.flags={};return this};b.prototype.send=function(a,b){var c={type:this.flags.json?
-"json":"message",data:a};"function"==typeof b&&(c.id=++this.ackPackets,c.ack=!0,this.acks[c.id]=b);return this.packet(c)};b.prototype.emit=function(a){var b=Array.prototype.slice.call(arguments,1),c=b[b.length-1],d={type:"event",name:a};"function"==typeof c&&(d.id=++this.ackPackets,d.ack="data",this.acks[d.id]=c,b=b.slice(0,b.length-1));d.args=b;return this.packet(d)};b.prototype.disconnect=function(){""===this.name?this.socket.disconnect():(this.packet({type:"disconnect"}),this.$emit("disconnect"));
-return this};b.prototype.onPacket=function(b){function c(){d.packet({type:"ack",args:a.util.toArray(arguments),ackId:b.id})}var d=this;switch(b.type){case "connect":this.$emit("connect");break;case "disconnect":if(""===this.name)this.socket.onDisconnect(b.reason||"booted");else this.$emit("disconnect",b.reason);break;case "message":case "json":var g=["message",b.data];"data"==b.ack?g.push(c):b.ack&&this.packet({type:"ack",ackId:b.id});this.$emit.apply(this,g);break;case "event":g=[b.name].concat(b.args);
-"data"==b.ack&&g.push(c);this.$emit.apply(this,g);break;case "ack":this.acks[b.ackId]&&(this.acks[b.ackId].apply(this,b.args),delete this.acks[b.ackId]);break;case "error":if(b.advice)this.socket.onError(b);else"unauthorized"==b.reason?this.$emit("connect_failed",b.reason):this.$emit("error",b.reason)}};d.prototype.send=function(){this.namespace.flags[this.name]=!0;this.namespace.send.apply(this.namespace,arguments)};d.prototype.emit=function(){this.namespace.flags[this.name]=!0;this.namespace.emit.apply(this.namespace,
-arguments)}})("undefined"!=typeof io?io:module.exports,"undefined"!=typeof io?io:module.parent.exports);
-(function(c,a,b){function d(b){a.Transport.apply(this,arguments)}c.websocket=d;a.util.inherit(d,a.Transport);d.prototype.name="websocket";d.prototype.open=function(){var c=a.util.query(this.socket.options.query),d=this,i;i||(i=b.MozWebSocket||b.WebSocket);this.websocket=new i(this.prepareUrl()+c);this.websocket.onopen=function(){d.onOpen();d.socket.setBuffer(!1)};this.websocket.onmessage=function(a){d.onData(a.data)};this.websocket.onclose=function(){d.onClose();d.socket.setBuffer(!0)};this.websocket.onerror=
-function(a){d.onError(a)};return this};d.prototype.send=function(a){this.websocket.send(a);return this};d.prototype.payload=function(a){for(var b=0,c=a.length;b<c;b++)this.packet(a[b]);return this};d.prototype.close=function(){this.websocket.close();return this};d.prototype.onError=function(a){this.socket.onError(a)};d.prototype.scheme=function(){return this.socket.options.secure?"wss":"ws"};d.check=function(){return"WebSocket"in b&&!("__addTask"in WebSocket)||"MozWebSocket"in b};d.xdomainCheck=function(){return!0};
-a.transports.push("websocket")})("undefined"!=typeof io?io.Transport:module.exports,"undefined"!=typeof io?io:module.parent.exports,this);
-(function(c,a){function b(){a.Transport.websocket.apply(this,arguments)}c.flashsocket=b;a.util.inherit(b,a.Transport.websocket);b.prototype.name="flashsocket";b.prototype.open=function(){var b=this,c=arguments;WebSocket.__addTask(function(){a.Transport.websocket.prototype.open.apply(b,c)});return this};b.prototype.send=function(){var b=this,c=arguments;WebSocket.__addTask(function(){a.Transport.websocket.prototype.send.apply(b,c)});return this};b.prototype.close=function(){WebSocket.__tasks.length=
-0;a.Transport.websocket.prototype.close.call(this);return this};b.prototype.ready=function(c,e){function f(){var a=c.options,f=a["flash policy port"],n=["http"+(a.secure?"s":"")+":/",a.host+":"+a.port,a.resource,"static/flashsocket","WebSocketMain"+(c.isXDomain()?"Insecure":"")+".swf"];b.loaded||("undefined"===typeof WEB_SOCKET_SWF_LOCATION&&(WEB_SOCKET_SWF_LOCATION=n.join("/")),843!==f&&WebSocket.loadFlashPolicyFile("xmlsocket://"+a.host+":"+f),WebSocket.__initialize(),b.loaded=!0);e.call(i)}var i=
-this;if(document.body)return f();a.util.load(f)};b.check=function(){return"undefined"==typeof WebSocket||!("__initialize"in WebSocket)||!swfobject?!1:10<=swfobject.getFlashPlayerVersion().major};b.xdomainCheck=function(){return!0};"undefined"!=typeof window&&(WEB_SOCKET_DISABLE_AUTO_INITIALIZATION=!0);a.transports.push("flashsocket")})("undefined"!=typeof io?io.Transport:module.exports,"undefined"!=typeof io?io:module.parent.exports);
-if("undefined"!=typeof window)var swfobject=function(){function c(){if(!z){try{var a=l.getElementsByTagName("body")[0].appendChild(l.createElement("span"));a.parentNode.removeChild(a)}catch(b){return}z=!0;for(var a=D.length,c=0;c<a;c++)D[c]()}}function a(a){z?a():D[D.length]=a}function b(a){if(typeof u.addEventListener!=o)u.addEventListener("load",a,!1);else if(typeof l.addEventListener!=o)l.addEventListener("load",a,!1);else if(typeof u.attachEvent!=o)s(u,"onload",a);else if("function"==typeof u.onload){var b=
-u.onload;u.onload=function(){b();a()}}else u.onload=a}function d(){var a=l.getElementsByTagName("body")[0],b=l.createElement(r);b.setAttribute("type",p);var c=a.appendChild(b);if(c){var d=0;(function(){if(typeof c.GetVariable!=o){var g=c.GetVariable("$version");g&&(g=g.split(" ")[1].split(","),k.pv=[parseInt(g[0],10),parseInt(g[1],10),parseInt(g[2],10)])}else if(10>d){d++;setTimeout(arguments.callee,10);return}a.removeChild(b);c=null;e()})()}else e()}function e(){var a=x.length;if(0<a)for(var b=0;b<
-a;b++){var c=x[b].id,d=x[b].callbackFn,e={success:!1,id:c};if(0<k.pv[0]){var h=q(c);if(h)if(t(x[b].swfVersion)&&!(k.wk&&312>k.wk))w(c,!0),d&&(e.success=!0,e.ref=f(c),d(e));else if(x[b].expressInstall&&i()){e={};e.data=x[b].expressInstall;e.width=h.getAttribute("width")||"0";e.height=h.getAttribute("height")||"0";h.getAttribute("class")&&(e.styleclass=h.getAttribute("class"));h.getAttribute("align")&&(e.align=h.getAttribute("align"));for(var n={},h=h.getElementsByTagName("param"),m=h.length,l=0;l<
-m;l++)"movie"!=h[l].getAttribute("name").toLowerCase()&&(n[h[l].getAttribute("name")]=h[l].getAttribute("value"));g(e,n,c,d)}else j(h),d&&d(e)}else if(w(c,!0),d){if((c=f(c))&&typeof c.SetVariable!=o)e.success=!0,e.ref=c;d(e)}}}function f(a){var b=null;if((a=q(a))&&"OBJECT"==a.nodeName)typeof a.SetVariable!=o?b=a:(a=a.getElementsByTagName(r)[0])&&(b=a);return b}function i(){return!E&&t("6.0.65")&&(k.win||k.mac)&&!(k.wk&&312>k.wk)}function g(a,b,c,d){E=!0;H=d||null;K={success:!1,id:c};var g=q(c);if(g){"OBJECT"==
-g.nodeName?(C=n(g),F=null):(C=g,F=c);a.id=M;if(typeof a.width==o||!/%$/.test(a.width)&&310>parseInt(a.width,10))a.width="310";if(typeof a.height==o||!/%$/.test(a.height)&&137>parseInt(a.height,10))a.height="137";l.title=l.title.slice(0,47)+" - Flash Player Installation";d=k.ie&&k.win?["Active"].concat("").join("X"):"PlugIn";d="MMredirectURL="+u.location.toString().replace(/&/g,"%26")+"&MMplayerType="+d+"&MMdoctitle="+l.title;b.flashvars=typeof b.flashvars!=o?b.flashvars+("&"+d):d;k.ie&&k.win&&4!=
-g.readyState&&(d=l.createElement("div"),c+="SWFObjectNew",d.setAttribute("id",c),g.parentNode.insertBefore(d,g),g.style.display="none",function(){g.readyState==4?g.parentNode.removeChild(g):setTimeout(arguments.callee,10)}());h(a,b,c)}}function j(a){if(k.ie&&k.win&&4!=a.readyState){var b=l.createElement("div");a.parentNode.insertBefore(b,a);b.parentNode.replaceChild(n(a),b);a.style.display="none";(function(){4==a.readyState?a.parentNode.removeChild(a):setTimeout(arguments.callee,10)})()}else a.parentNode.replaceChild(n(a),
-a)}function n(a){var b=l.createElement("div");if(k.win&&k.ie)b.innerHTML=a.innerHTML;else if(a=a.getElementsByTagName(r)[0])if(a=a.childNodes)for(var c=a.length,d=0;d<c;d++)!(1==a[d].nodeType&&"PARAM"==a[d].nodeName)&&8!=a[d].nodeType&&b.appendChild(a[d].cloneNode(!0));return b}function h(a,b,c){var d,g=q(c);if(k.wk&&312>k.wk)return d;if(g)if(typeof a.id==o&&(a.id=c),k.ie&&k.win){var e="",f;for(f in a)a[f]!=Object.prototype[f]&&("data"==f.toLowerCase()?b.movie=a[f]:"styleclass"==f.toLowerCase()?e+=
-' class="'+a[f]+'"':"classid"!=f.toLowerCase()&&(e+=" "+f+'="'+a[f]+'"'));f="";for(var h in b)b[h]!=Object.prototype[h]&&(f+='<param name="'+h+'" value="'+b[h]+'" />');g.outerHTML='<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"'+e+">"+f+"</object>";G[G.length]=a.id;d=q(a.id)}else{h=l.createElement(r);h.setAttribute("type",p);for(var j in a)a[j]!=Object.prototype[j]&&("styleclass"==j.toLowerCase()?h.setAttribute("class",a[j]):"classid"!=j.toLowerCase()&&h.setAttribute(j,a[j]));for(e in b)b[e]!=
-Object.prototype[e]&&"movie"!=e.toLowerCase()&&(a=h,f=e,j=b[e],c=l.createElement("param"),c.setAttribute("name",f),c.setAttribute("value",j),a.appendChild(c));g.parentNode.replaceChild(h,g);d=h}return d}function m(a){var b=q(a);b&&"OBJECT"==b.nodeName&&(k.ie&&k.win?(b.style.display="none",function(){if(4==b.readyState){var c=q(a);if(c){for(var d in c)"function"==typeof c[d]&&(c[d]=null);c.parentNode.removeChild(c)}}else setTimeout(arguments.callee,10)}()):b.parentNode.removeChild(b))}function q(a){var b=
-null;try{b=l.getElementById(a)}catch(c){}return b}function s(a,b,c){a.attachEvent(b,c);B[B.length]=[a,b,c]}function t(a){var b=k.pv,a=a.split(".");a[0]=parseInt(a[0],10);a[1]=parseInt(a[1],10)||0;a[2]=parseInt(a[2],10)||0;return b[0]>a[0]||b[0]==a[0]&&b[1]>a[1]||b[0]==a[0]&&b[1]==a[1]&&b[2]>=a[2]?!0:!1}function A(a,b,c,d){if(!k.ie||!k.mac){var g=l.getElementsByTagName("head")[0];if(g){c=c&&"string"==typeof c?c:"screen";d&&(I=v=null);if(!v||I!=c)d=l.createElement("style"),d.setAttribute("type","text/css"),
-d.setAttribute("media",c),v=g.appendChild(d),k.ie&&k.win&&typeof l.styleSheets!=o&&0<l.styleSheets.length&&(v=l.styleSheets[l.styleSheets.length-1]),I=c;k.ie&&k.win?v&&typeof v.addRule==r&&v.addRule(a,b):v&&typeof l.createTextNode!=o&&v.appendChild(l.createTextNode(a+" {"+b+"}"))}}}function w(a,b){if(N){var c=b?"visible":"hidden";z&&q(a)?q(a).style.visibility=c:A("#"+a,"visibility:"+c)}}function J(a){return null!=/[\\\"<>\.;]/.exec(a)&&typeof encodeURIComponent!=o?encodeURIComponent(a):a}var o="undefined",
-r="object",p="application/x-shockwave-flash",M="SWFObjectExprInst",u=window,l=document,y=navigator,O=!1,D=[function(){O?d():e()}],x=[],G=[],B=[],C,F,H,K,z=!1,E=!1,v,I,N=!0,k=function(){var a=typeof l.getElementById!=o&&typeof l.getElementsByTagName!=o&&typeof l.createElement!=o,b=y.userAgent.toLowerCase(),c=y.platform.toLowerCase(),d=c?/win/.test(c):/win/.test(b),c=c?/mac/.test(c):/mac/.test(b),b=/webkit/.test(b)?parseFloat(b.replace(/^.*webkit\/(\d+(\.\d+)?).*$/,"$1")):!1,g=!+"\v1",e=[0,0,0],f=null;
-if(typeof y.plugins!=o&&typeof y.plugins["Shockwave Flash"]==r){if((f=y.plugins["Shockwave Flash"].description)&&!(typeof y.mimeTypes!=o&&y.mimeTypes[p]&&!y.mimeTypes[p].enabledPlugin))O=!0,g=!1,f=f.replace(/^.*\s+(\S+\s+\S+$)/,"$1"),e[0]=parseInt(f.replace(/^(.*)\..*$/,"$1"),10),e[1]=parseInt(f.replace(/^.*\.(.*)\s.*$/,"$1"),10),e[2]=/[a-zA-Z]/.test(f)?parseInt(f.replace(/^.*[a-zA-Z]+(.*)$/,"$1"),10):0}else if(typeof u[["Active"].concat("Object").join("X")]!=o)try{var h=new (window[["Active"].concat("Object").join("X")])("ShockwaveFlash.ShockwaveFlash");
-if(h&&(f=h.GetVariable("$version")))g=!0,f=f.split(" ")[1].split(","),e=[parseInt(f[0],10),parseInt(f[1],10),parseInt(f[2],10)]}catch(j){}return{w3:a,pv:e,wk:b,ie:g,win:d,mac:c}}();(function(){k.w3&&((typeof l.readyState!=o&&"complete"==l.readyState||typeof l.readyState==o&&(l.getElementsByTagName("body")[0]||l.body))&&c(),z||(typeof l.addEventListener!=o&&l.addEventListener("DOMContentLoaded",c,!1),k.ie&&k.win&&(l.attachEvent("onreadystatechange",function(){"complete"==l.readyState&&(l.detachEvent("onreadystatechange",
-arguments.callee),c())}),u==top&&function(){if(!z){try{l.documentElement.doScroll("left")}catch(a){setTimeout(arguments.callee,0);return}c()}}()),k.wk&&function(){z||(/loaded|complete/.test(l.readyState)?c():setTimeout(arguments.callee,0))}(),b(c)))})();(function(){k.ie&&k.win&&window.attachEvent("onunload",function(){for(var a=B.length,b=0;b<a;b++)B[b][0].detachEvent(B[b][1],B[b][2]);a=G.length;for(b=0;b<a;b++)m(G[b]);for(var c in k)k[c]=null;k=null;for(var d in swfobject)swfobject[d]=null;swfobject=
-null})})();return{registerObject:function(a,b,c,d){if(k.w3&&a&&b){var g={};g.id=a;g.swfVersion=b;g.expressInstall=c;g.callbackFn=d;x[x.length]=g;w(a,!1)}else d&&d({success:!1,id:a})},getObjectById:function(a){if(k.w3)return f(a)},embedSWF:function(b,c,d,e,f,j,n,m,l,q){var p={success:!1,id:c};k.w3&&!(k.wk&&312>k.wk)&&b&&c&&d&&e&&f?(w(c,!1),a(function(){d+="";e+="";var a={};if(l&&typeof l===r)for(var k in l)a[k]=l[k];a.data=b;a.width=d;a.height=e;k={};if(m&&typeof m===r)for(var s in m)k[s]=m[s];if(n&&
-typeof n===r)for(var u in n)k.flashvars=typeof k.flashvars!=o?k.flashvars+("&"+u+"="+n[u]):u+"="+n[u];if(t(f))s=h(a,k,c),a.id==c&&w(c,!0),p.success=!0,p.ref=s;else{if(j&&i()){a.data=j;g(a,k,c,q);return}w(c,!0)}q&&q(p)})):q&&q(p)},switchOffAutoHideShow:function(){N=!1},ua:k,getFlashPlayerVersion:function(){return{major:k.pv[0],minor:k.pv[1],release:k.pv[2]}},hasFlashPlayerVersion:t,createSWF:function(a,b,c){if(k.w3)return h(a,b,c)},showExpressInstall:function(a,b,c,d){k.w3&&i()&&g(a,b,c,d)},removeSWF:function(a){k.w3&&
-m(a)},createCSS:function(a,b,c,d){k.w3&&A(a,b,c,d)},addDomLoadEvent:a,addLoadEvent:b,getQueryParamValue:function(a){var b=l.location.search||l.location.hash;if(b){/\?/.test(b)&&(b=b.split("?")[1]);if(null==a)return J(b);for(var b=b.split("&"),c=0;c<b.length;c++)if(b[c].substring(0,b[c].indexOf("="))==a)return J(b[c].substring(b[c].indexOf("=")+1))}return""},expressInstallCallback:function(){if(E){var a=q(M);a&&C&&(a.parentNode.replaceChild(C,a),F&&(w(F,!0),k.ie&&k.win&&(C.style.display="block")),
-H&&H(K));E=!1}}}}();
-(function(){if(!("undefined"==typeof window||window.WebSocket)){var c=window.console;if(!c||!c.log||!c.error)c={log:function(){},error:function(){}};swfobject.hasFlashPlayerVersion("10.0.0")?("file:"==location.protocol&&c.error("WARNING: web-socket-js doesn't work in file:///... URL unless you set Flash Security Settings properly. Open the page via Web server i.e. http://..."),WebSocket=function(a,b,c,e,f){var i=this;i.__id=WebSocket.__nextId++;WebSocket.__instances[i.__id]=i;i.readyState=WebSocket.CONNECTING;
-i.bufferedAmount=0;i.__events={};b?"string"==typeof b&&(b=[b]):b=[];setTimeout(function(){WebSocket.__addTask(function(){WebSocket.__flash.create(i.__id,a,b,c||null,e||0,f||null)})},0)},WebSocket.prototype.send=function(a){if(this.readyState==WebSocket.CONNECTING)throw"INVALID_STATE_ERR: Web Socket connection has not been established";a=WebSocket.__flash.send(this.__id,encodeURIComponent(a));if(0>a)return!0;this.bufferedAmount+=a;return!1},WebSocket.prototype.close=function(){this.readyState==WebSocket.CLOSED||
-this.readyState==WebSocket.CLOSING||(this.readyState=WebSocket.CLOSING,WebSocket.__flash.close(this.__id))},WebSocket.prototype.addEventListener=function(a,b){a in this.__events||(this.__events[a]=[]);this.__events[a].push(b)},WebSocket.prototype.removeEventListener=function(a,b){if(a in this.__events)for(var c=this.__events[a],e=c.length-1;0<=e;--e)if(c[e]===b){c.splice(e,1);break}},WebSocket.prototype.dispatchEvent=function(a){for(var b=this.__events[a.type]||[],c=0;c<b.length;++c)b[c](a);(b=this["on"+
-a.type])&&b(a)},WebSocket.prototype.__handleEvent=function(a){"readyState"in a&&(this.readyState=a.readyState);"protocol"in a&&(this.protocol=a.protocol);if("open"==a.type||"error"==a.type)a=this.__createSimpleEvent(a.type);else if("close"==a.type)a=this.__createSimpleEvent("close");else if("message"==a.type)a=this.__createMessageEvent("message",decodeURIComponent(a.message));else throw"unknown event type: "+a.type;this.dispatchEvent(a)},WebSocket.prototype.__createSimpleEvent=function(a){if(document.createEvent&&
-window.Event){var b=document.createEvent("Event");b.initEvent(a,!1,!1);return b}return{type:a,bubbles:!1,cancelable:!1}},WebSocket.prototype.__createMessageEvent=function(a,b){if(document.createEvent&&window.MessageEvent&&!window.opera){var c=document.createEvent("MessageEvent");c.initMessageEvent("message",!1,!1,b,null,null,window,null);return c}return{type:a,data:b,bubbles:!1,cancelable:!1}},WebSocket.CONNECTING=0,WebSocket.OPEN=1,WebSocket.CLOSING=2,WebSocket.CLOSED=3,WebSocket.__flash=null,WebSocket.__instances=
-{},WebSocket.__tasks=[],WebSocket.__nextId=0,WebSocket.loadFlashPolicyFile=function(a){WebSocket.__addTask(function(){WebSocket.__flash.loadManualPolicyFile(a)})},WebSocket.__initialize=function(){if(!WebSocket.__flash)if(WebSocket.__swfLocation&&(window.WEB_SOCKET_SWF_LOCATION=WebSocket.__swfLocation),window.WEB_SOCKET_SWF_LOCATION){var a=document.createElement("div");a.id="webSocketContainer";a.style.position="absolute";WebSocket.__isFlashLite()?(a.style.left="0px",a.style.top="0px"):(a.style.left=
-"-100px",a.style.top="-100px");var b=document.createElement("div");b.id="webSocketFlash";a.appendChild(b);document.body.appendChild(a);swfobject.embedSWF(WEB_SOCKET_SWF_LOCATION,"webSocketFlash","1","1","10.0.0",null,null,{hasPriority:!0,swliveconnect:!0,allowScriptAccess:"always"},null,function(a){a.success||c.error("[WebSocket] swfobject.embedSWF failed")})}else c.error("[WebSocket] set WEB_SOCKET_SWF_LOCATION to location of WebSocketMain.swf")},WebSocket.__onFlashInitialized=function(){setTimeout(function(){WebSocket.__flash=
-document.getElementById("webSocketFlash");WebSocket.__flash.setCallerUrl(location.href);WebSocket.__flash.setDebug(!!window.WEB_SOCKET_DEBUG);for(var a=0;a<WebSocket.__tasks.length;++a)WebSocket.__tasks[a]();WebSocket.__tasks=[]},0)},WebSocket.__onFlashEvent=function(){setTimeout(function(){try{for(var a=WebSocket.__flash.receiveEvents(),b=0;b<a.length;++b)WebSocket.__instances[a[b].webSocketId].__handleEvent(a[b])}catch(d){c.error(d)}},0);return!0},WebSocket.__log=function(a){c.log(decodeURIComponent(a))},
-WebSocket.__error=function(a){c.error(decodeURIComponent(a))},WebSocket.__addTask=function(a){WebSocket.__flash?a():WebSocket.__tasks.push(a)},WebSocket.__isFlashLite=function(){if(!window.navigator||!window.navigator.mimeTypes)return!1;var a=window.navigator.mimeTypes["application/x-shockwave-flash"];return!a||!a.enabledPlugin||!a.enabledPlugin.filename?!1:a.enabledPlugin.filename.match(/flashlite/i)?!0:!1},window.WEB_SOCKET_DISABLE_AUTO_INITIALIZATION||(window.addEventListener?window.addEventListener("load",
-function(){WebSocket.__initialize()},!1):window.attachEvent("onload",function(){WebSocket.__initialize()}))):c.error("Flash Player >= 10.0.0 is required.")}})();
-(function(c,a,b){function d(b){b&&(a.Transport.apply(this,arguments),this.sendBuffer=[])}function e(){}c.XHR=d;a.util.inherit(d,a.Transport);d.prototype.open=function(){this.socket.setBuffer(!1);this.onOpen();this.get();this.setCloseTimeout();return this};d.prototype.payload=function(b){for(var c=[],d=0,e=b.length;d<e;d++)c.push(a.parser.encodePacket(b[d]));this.send(a.parser.encodePayload(c))};d.prototype.send=function(a){this.post(a);return this};d.prototype.post=function(a){function c(){if(4==
-this.readyState)if(this.onreadystatechange=e,j.posting=!1,200==this.status)j.socket.setBuffer(!1);else j.onClose()}function d(){this.onload=e;j.socket.setBuffer(!1)}var j=this;this.socket.setBuffer(!0);this.sendXHR=this.request("POST");b.XDomainRequest&&this.sendXHR instanceof XDomainRequest?this.sendXHR.onload=this.sendXHR.onerror=d:this.sendXHR.onreadystatechange=c;this.sendXHR.send(a)};d.prototype.close=function(){this.onClose();return this};d.prototype.request=function(b){var c=a.util.request(this.socket.isXDomain()),
-d=a.util.query(this.socket.options.query,"t="+ +new Date);c.open(b||"GET",this.prepareUrl()+d,!0);if("POST"==b)try{c.setRequestHeader?c.setRequestHeader("Content-type","text/plain;charset=UTF-8"):c.contentType="text/plain"}catch(e){}return c};d.prototype.scheme=function(){return this.socket.options.secure?"https":"http"};d.check=function(c,d){try{var g=a.util.request(d),e=b.XDomainRequest&&g instanceof XDomainRequest,n=(c&&c.options&&c.options.secure?"https:":"http:")!=b.location.protocol;if(g&&(!e||
-!n))return!0}catch(h){}return!1};d.xdomainCheck=function(){return d.check(null,!0)}})("undefined"!=typeof io?io.Transport:module.exports,"undefined"!=typeof io?io:module.parent.exports,this);
-(function(c,a){function b(b){a.Transport.XHR.apply(this,arguments)}c.htmlfile=b;a.util.inherit(b,a.Transport.XHR);b.prototype.name="htmlfile";b.prototype.get=function(){this.doc=new (window[["Active"].concat("Object").join("X")])("htmlfile");this.doc.open();this.doc.write("<html></html>");this.doc.close();this.doc.parentWindow.s=this;var b=this.doc.createElement("div");b.className="socketio";this.doc.body.appendChild(b);this.iframe=this.doc.createElement("iframe");b.appendChild(this.iframe);var c=
-this,b=a.util.query(this.socket.options.query,"t="+ +new Date);this.iframe.src=this.prepareUrl()+b;a.util.on(window,"unload",function(){c.destroy()})};b.prototype._=function(a,b){this.onData(a);try{var c=b.getElementsByTagName("script")[0];c.parentNode.removeChild(c)}catch(i){}};b.prototype.destroy=function(){if(this.iframe){try{this.iframe.src="about:blank"}catch(a){}this.doc=null;this.iframe.parentNode.removeChild(this.iframe);this.iframe=null;CollectGarbage()}};b.prototype.close=function(){this.destroy();
-return a.Transport.XHR.prototype.close.call(this)};b.check=function(){if("undefined"!=typeof window&&["Active"].concat("Object").join("X")in window)try{return new (window[["Active"].concat("Object").join("X")])("htmlfile")&&a.Transport.XHR.check()}catch(b){}return!1};b.xdomainCheck=function(){return!1};a.transports.push("htmlfile")})("undefined"!=typeof io?io.Transport:module.exports,"undefined"!=typeof io?io:module.parent.exports);
-(function(c,a,b){function d(){a.Transport.XHR.apply(this,arguments)}function e(){}c["xhr-polling"]=d;a.util.inherit(d,a.Transport.XHR);a.util.merge(d,a.Transport.XHR);d.prototype.name="xhr-polling";d.prototype.open=function(){a.Transport.XHR.prototype.open.call(this);return!1};d.prototype.get=function(){function a(){if(4==this.readyState)if(this.onreadystatechange=e,200==this.status)j.onData(this.responseText),j.get();else j.onClose()}function c(){this.onerror=this.onload=e;j.onData(this.responseText);
-j.get()}function d(){j.onClose()}if(this.open){var j=this;this.xhr=this.request();b.XDomainRequest&&this.xhr instanceof XDomainRequest?(this.xhr.onload=c,this.xhr.onerror=d):this.xhr.onreadystatechange=a;this.xhr.send(null)}};d.prototype.onClose=function(){a.Transport.XHR.prototype.onClose.call(this);if(this.xhr){this.xhr.onreadystatechange=this.xhr.onload=this.xhr.onerror=e;try{this.xhr.abort()}catch(b){}this.xhr=null}};d.prototype.ready=function(b,c){var d=this;a.util.defer(function(){c.call(d)})};
-a.transports.push("xhr-polling")})("undefined"!=typeof io?io.Transport:module.exports,"undefined"!=typeof io?io:module.parent.exports,this);
-(function(c,a,b){function d(b){a.Transport["xhr-polling"].apply(this,arguments);this.index=a.j.length;var c=this;a.j.push(function(a){c._(a)})}var e=b.document&&"MozAppearance"in b.document.documentElement.style;c["jsonp-polling"]=d;a.util.inherit(d,a.Transport["xhr-polling"]);d.prototype.name="jsonp-polling";d.prototype.post=function(b){function c(){d();e.socket.setBuffer(!1)}function d(){e.iframe&&e.form.removeChild(e.iframe);try{s=document.createElement('<iframe name="'+e.iframeId+'">')}catch(a){s=
-document.createElement("iframe"),s.name=e.iframeId}s.id=e.iframeId;e.form.appendChild(s);e.iframe=s}var e=this,n=a.util.query(this.socket.options.query,"t="+ +new Date+"&i="+this.index);if(!this.form){var h=document.createElement("form"),m=document.createElement("textarea"),q=this.iframeId="socketio_iframe_"+this.index,s;h.className="socketio";h.style.position="absolute";h.style.top="0px";h.style.left="0px";h.style.display="none";h.target=q;h.method="POST";h.setAttribute("accept-charset","utf-8");
-m.name="d";h.appendChild(m);document.body.appendChild(h);this.form=h;this.area=m}this.form.action=this.prepareUrl()+n;d();this.area.value=a.JSON.stringify(b);try{this.form.submit()}catch(t){}this.iframe.attachEvent?s.onreadystatechange=function(){"complete"==e.iframe.readyState&&c()}:this.iframe.onload=c;this.socket.setBuffer(!0)};d.prototype.get=function(){var b=this,c=document.createElement("script"),d=a.util.query(this.socket.options.query,"t="+ +new Date+"&i="+this.index);this.script&&(this.script.parentNode.removeChild(this.script),
-this.script=null);c.async=!0;c.src=this.prepareUrl()+d;c.onerror=function(){b.onClose()};d=document.getElementsByTagName("script")[0];d.parentNode.insertBefore(c,d);this.script=c;e&&setTimeout(function(){var a=document.createElement("iframe");document.body.appendChild(a);document.body.removeChild(a)},100)};d.prototype._=function(a){this.onData(a);this.open&&this.get();return this};d.prototype.ready=function(b,c){var d=this;if(!e)return c.call(this);a.util.load(function(){c.call(d)})};d.check=function(){return"document"in
-b};d.xdomainCheck=function(){return!0};a.transports.push("jsonp-polling")})("undefined"!=typeof io?io.Transport:module.exports,"undefined"!=typeof io?io:module.parent.exports,this);var Erizo=Erizo||{};
-Erizo.EventDispatcher=function(c){var a={};c.dispatcher={};c.dispatcher.eventListeners={};a.addEventListener=function(a,d){void 0===c.dispatcher.eventListeners[a]&&(c.dispatcher.eventListeners[a]=[]);c.dispatcher.eventListeners[a].push(d)};a.removeEventListener=function(a,d){var e;e=c.dispatcher.eventListeners[a].indexOf(d);-1!==e&&c.dispatcher.eventListeners[a].splice(e,1)};a.dispatchEvent=function(a){var d;L.Logger.debug("Event: "+a.type);for(d in c.dispatcher.eventListeners[a.type])if(c.dispatcher.eventListeners[a.type].hasOwnProperty(d))c.dispatcher.eventListeners[a.type][d](a)};return a};
-Erizo.LynckiaEvent=function(c){var a={};a.type=c.type;return a};Erizo.RoomEvent=function(c){var a=Erizo.LynckiaEvent(c);a.streams=c.streams;return a};Erizo.StreamEvent=function(c){var a=Erizo.LynckiaEvent(c);a.stream=c.stream;a.msg=c.msg;return a};Erizo.PublisherEvent=function(c){return Erizo.LynckiaEvent(c)};Erizo=Erizo||{};
-Erizo.ChromeStableStack=function(c){var a={pc_config:{iceServers:[{url:"stun:stun.l.google.com:19302"}]},mediaConstraints:{mandatory:{OfferToReceiveVideo:"true",OfferToReceiveAudio:"true"}}};a.peerConnection=new webkitRTCPeerConnection(a.pc_config);a.peerConnection.onicecandidate=function(b){b.candidate?a.iceCandidateCount+=1:(a.moreIceComing=!1,a.markActionNeeded())};console.log('Created webkitRTCPeerConnnection with config "'+JSON.stringify(a.pc_config)+'".');a.processSignalingMessage=function(b){console.log("Activity on conn "+
-a.sessionId);b=JSON.parse(b);a.incomingMessage=b;"new"===a.state?"OFFER"===b.messageType?(b={sdp:b.sdp,type:"offer"},a.peerConnection.setRemoteDescription(new RTCSessionDescription(b)),a.state="offer-received",a.markActionNeeded()):a.error("Illegal message for this state: "+b.messageType+" in state "+a.state):"offer-sent"===a.state?"ANSWER"===b.messageType?(b={sdp:b.sdp,type:"answer"},a.peerConnection.setRemoteDescription(new RTCSessionDescription(b)),a.sendOK(),a.state="established"):"pr-answer"===
-b.messageType?(b={sdp:b.sdp,type:"pr-answer"},a.peerConnection.setRemoteDescription(new RTCSessionDescription(b))):"offer"===b.messageType?a.error("Not written yet"):a.error("Illegal message for this state: "+b.messageType+" in state "+a.state):"established"===a.state&&("OFFER"===b.messageType?(b={sdp:b.sdp,type:"offer"},a.peerConnection.setRemoteDescription(new RTCSessionDescription(b)),a.state="offer-received",a.markActionNeeded()):a.error("Illegal message for this state: "+b.messageType+" in state "+
-a.state))};a.addStream=function(b){a.peerConnection.addStream(b);a.markActionNeeded()};a.removeStream=function(){a.markActionNeeded()};a.close=function(){a.state="closed";a.peerConnection.close()};a.markActionNeeded=function(){a.actionNeeded=!0;a.doLater(function(){a.onstablestate()})};a.doLater=function(a){window.setTimeout(a,1)};a.onstablestate=function(){var b;if(a.actionNeeded){if("new"===a.state||"established"===a.state)a.peerConnection.createOffer(function(b){b.sdp!==a.prevOffer?(a.peerConnection.setLocalDescription(b),
-a.state="preparing-offer",a.markActionNeeded()):console.log("Not sending a new offer")},null,a.mediaConstraints);else if("preparing-offer"===a.state){if(a.moreIceComing)return;a.prevOffer=a.peerConnection.localDescription.sdp;console.log("Sending OFFER: ",a.prevOffer);a.sendMessage("OFFER",a.prevOffer);a.state="offer-sent"}else if("offer-received"===a.state)a.peerConnection.createAnswer(function(b){a.peerConnection.setLocalDescription(b);a.state="offer-received-preparing-answer";a.iceStarted?a.markActionNeeded():
-(console.log((new Date).getTime()+": Starting ICE in responder"),a.iceStarted=!0)},null,a.mediaConstraints);else if("offer-received-preparing-answer"===a.state){if(a.moreIceComing)return;b=a.peerConnection.localDescription.sdp;a.sendMessage("ANSWER",b);a.state="established"}else a.error("Dazed and confused in state "+a.state+", stopping here");a.actionNeeded=!1}};a.sendOK=function(){a.sendMessage("OK")};a.sendMessage=function(b,c){var e={};e.messageType=b;e.sdp=c;"OFFER"===b?(e.offererSessionId=a.sessionId,
-e.answererSessionId=a.otherSessionId,e.seq=++a.sequenceNumber,e.tiebreaker=Math.floor(429496723*Math.random()+1)):(e.offererSessionId=a.incomingMessage.offererSessionId,e.answererSessionId=a.sessionId,e.seq=a.incomingMessage.seq);a.onsignalingmessage(JSON.stringify(e))};a.error=function(a){throw"Error in RoapOnJsep: "+a;};a.sessionId=++RoapConnection.sessionId;a.sequenceNumber=0;a.actionNeeded=!1;a.iceStarted=!1;a.moreIceComing=!0;a.iceCandidateCount=0;a.onsignalingmessage=c.callback;a.peerConnection.onopen=
-function(){if(a.onopen)a.onopen()};a.peerConnection.onaddstream=function(b){if(a.onaddstream)a.onaddstream(b)};a.peerConnection.onremovestream=function(b){if(a.onremovestream)a.onremovestream(b)};a.onaddstream=null;a.onremovestream=null;a.state="new";a.markActionNeeded();return a};Erizo=Erizo||{};
-Erizo.ChromeCanaryStack=function(c){var a={pc_config:{iceServers:[]},mediaConstraints:{mandatory:{OfferToReceiveVideo:"true",OfferToReceiveAudio:"true"}}};a.peerConnection=new webkitRTCPeerConnection(a.pc_config);a.peerConnection.onicecandidate=function(b){console.log("State: "+a.peerConnection.iceGatheringState);if(b.candidate)a.iceCandidateCount+=1;else if(console.log("State: "+a.peerConnection.iceGatheringState),void 0===a.ices&&(a.ices=0),a.ices++,console.log(a.ices),1<=a.ices&&a.moreIceComing)a.moreIceComing=
-!1,a.markActionNeeded()};console.log('Created webkitRTCPeerConnnection with config "'+JSON.stringify(a.pc_config)+'".');a.processSignalingMessage=function(b){console.log("Activity on conn "+a.sessionId);b=JSON.parse(b);a.incomingMessage=b;"new"===a.state?"OFFER"===b.messageType?(b={sdp:b.sdp,type:"offer"},a.peerConnection.setRemoteDescription(new RTCSessionDescription(b)),a.state="offer-received",a.markActionNeeded()):a.error("Illegal message for this state: "+b.messageType+" in state "+a.state):
-"offer-sent"===a.state?"ANSWER"===b.messageType?(b={sdp:b.sdp,type:"answer"},console.log("Received ANSWER: ",b),a.peerConnection.setRemoteDescription(new RTCSessionDescription(b)),a.sendOK(),a.state="established"):"pr-answer"===b.messageType?(b={sdp:b.sdp,type:"pr-answer"},a.peerConnection.setRemoteDescription(new RTCSessionDescription(b))):"offer"===b.messageType?a.error("Not written yet"):a.error("Illegal message for this state: "+b.messageType+" in state "+a.state):"established"===a.state&&("OFFER"===
-b.messageType?(b={sdp:b.sdp,type:"offer"},a.peerConnection.setRemoteDescription(new RTCSessionDescription(b)),a.state="offer-received",a.markActionNeeded()):a.error("Illegal message for this state: "+b.messageType+" in state "+a.state))};a.addStream=function(b){a.peerConnection.addStream(b);a.markActionNeeded()};a.removeStream=function(){a.markActionNeeded()};a.close=function(){a.state="closed";a.peerConnection.close()};a.markActionNeeded=function(){a.actionNeeded=!0;a.doLater(function(){a.onstablestate()})};
-a.doLater=function(a){window.setTimeout(a,1)};a.onstablestate=function(){var b;if(a.actionNeeded){if("new"===a.state||"established"===a.state)a.peerConnection.createOffer(function(b){b.sdp!==a.prevOffer?(a.peerConnection.setLocalDescription(b),a.state="preparing-offer",a.markActionNeeded()):console.log("Not sending a new offer")},null,a.mediaConstraints);else if("preparing-offer"===a.state){if(a.moreIceComing)return;a.prevOffer=a.peerConnection.localDescription.sdp;console.log("Sending OFFER: ",a.prevOffer);
-a.sendMessage("OFFER",a.prevOffer);a.state="offer-sent"}else if("offer-received"===a.state)a.peerConnection.createAnswer(function(b){a.peerConnection.setLocalDescription(b);a.state="offer-received-preparing-answer";a.iceStarted?a.markActionNeeded():(console.log((new Date).getTime()+": Starting ICE in responder"),a.iceStarted=!0)},null,a.mediaConstraints);else if("offer-received-preparing-answer"===a.state){if(a.moreIceComing)return;b=a.peerConnection.localDescription.sdp;a.sendMessage("ANSWER",b);
-a.state="established"}else a.error("Dazed and confused in state "+a.state+", stopping here");a.actionNeeded=!1}};a.sendOK=function(){a.sendMessage("OK")};a.sendMessage=function(b,c){var e={};e.messageType=b;e.sdp=c;"OFFER"===b?(e.offererSessionId=a.sessionId,e.answererSessionId=a.otherSessionId,e.seq=++a.sequenceNumber,e.tiebreaker=Math.floor(429496723*Math.random()+1)):(e.offererSessionId=a.incomingMessage.offererSessionId,e.answererSessionId=a.sessionId,e.seq=a.incomingMessage.seq);a.onsignalingmessage(JSON.stringify(e))};
-a.error=function(a){throw"Error in RoapOnJsep: "+a;};a.sessionId=++RoapConnection.sessionId;a.sequenceNumber=0;a.actionNeeded=!1;a.iceStarted=!1;a.moreIceComing=!0;a.iceCandidateCount=0;a.onsignalingmessage=c.callback;a.peerConnection.onopen=function(){if(a.onopen)a.onopen()};a.peerConnection.onaddstream=function(b){if(a.onaddstream)a.onaddstream(b)};a.peerConnection.onremovestream=function(b){if(a.onremovestream)a.onremovestream(b)};a.onaddstream=null;a.onremovestream=null;a.state="new";a.markActionNeeded();
-return a};Erizo=Erizo||{};Erizo.sessionId=103;
-Erizo.Connection=function(c){var a={};c.session_id=++Erizo.sessionId;a.browser="";if("23"===window.navigator.appVersion.match(/Chrome\/(.*?)\./)[1])console.log("Stable!"),a=Erizo.ChromeStableStack(c),a.browser="chrome-stable";else if("25"===window.navigator.appVersion.match(/Chrome\/(.*?)\./)[1])console.log("Canary!"),a=Erizo.ChromeCanaryStack(c),a.browser="chrome-canary";else if(void 0!==webkitPeerConnection)a.browser="bowser";else if(void 0!==mozPeerConnection)a.browser="mozilla";else throw a.browser=
-"none","WebRTC stack not available";return a};Erizo=Erizo||{};
-Erizo.Stream=function(c){var a=Erizo.EventDispatcher(c);a.stream=c.stream;a.room=void 0;a.showing=!1;a.local=!1;if(void 0===c.local||!0===c.local)a.local=!0;a.getID=function(){return c.streamID};a.getAttributes=function(){return c.attributes};a.hasAudio=function(){return c.audio};a.hasVideo=function(){return c.video};a.hasData=function(){return c.data};a.sendData=function(){};a.init=function(){try{if(c.audio||c.video)ErizoGetUserMedia({video:c.video,audio:c.audio},function(b){L.Logger.info("User has granted access to local media.");a.stream=
-b;b=Erizo.StreamEvent({type:"access-accepted"});a.dispatchEvent(b)},function(b){L.Logger.error("Failed to get access to local media. Error code was "+b.code+".");b=Erizo.StreamEvent({type:"access-denied"});a.dispatchEvent(b)}),L.Logger.debug("Requested access to local media");else{var b=Erizo.StreamEvent({type:"access-accepted"});a.dispatchEvent(b)}}catch(e){L.Logger.error("Error accessing to local media")}};a.show=function(b,c){a.elementID=b;if(a.hasVideo()&&void 0!==b){var f=new Erizo.VideoPlayer({id:a.getID(),
-stream:a.stream,elementID:b,options:c});a.player=f;a.showing=!0}};a.hide=function(){a.showing&&void 0!==a.player&&(a.player.destroy(),a.showing=!1)};var b=function(){if(void 0!==a.player&&void 0!==a.stream){var b=a.player.video,c=document.defaultView.getComputedStyle(b),f=parseInt(c.getPropertyValue("width")),i=parseInt(c.getPropertyValue("height")),g=parseInt(c.getPropertyValue("left")),c=parseInt(c.getPropertyValue("top")),j=document.getElementById(a.elementID),n=document.defaultView.getComputedStyle(j),
-j=parseInt(n.getPropertyValue("width")),n=parseInt(n.getPropertyValue("height")),h=document.createElement("canvas");h.id="testing";h.width=j;h.height=n;h.setAttribute("style","display: none");h.getContext("2d").drawImage(b,g,c,f,i);return h}return null};a.getVideoFrameURL=function(){var a=b();return null!=a?a.toDataURL():null};a.getVideoFrame=function(){var a=b();return null!=a?a.getContext("2d").getImageData(0,0,a.width,a.height):null};return a};Erizo=Erizo||{};
-Erizo.Room=function(c){var a=Erizo.EventDispatcher(c),b,d,e,f,i;a.remoteStreams={};a.localStreams={};a.roomID="";a.socket={};a.state=0;a.addEventListener("room-disconnected",function(b){var c;a.state=0;for(c in a.remoteStreams)a.remoteStreams.hasOwnProperty(c)&&(b=a.remoteStreams[c],i(b),delete a.remoteStreams[c],b=Erizo.StreamEvent({type:"stream-removed",stream:b}),a.dispatchEvent(b));a.remoteStreams={};for(c in a.localStreams)a.localStreams.hasOwnProperty(c)&&(b=a.localStreams[c],i(b),delete a.localStreams[c]);
-try{a.socket.disconnect()}catch(d){L.Logger.debug("Socket already disconnected")}a.socket=void 0});i=function(a){void 0!==a.stream&&(a.hide(),a.pc.close())};f=function(a,b){a.local&&d("sendDataStream",{id:a.getID(),msg:b})};b=function(b,c,e){a.socket=io.connect(b.host,{reconnect:!1});a.socket.on("onAddStream",function(b){console.log(b);var c=Erizo.Stream({streamID:b.id,local:!1,audio:b.audio,video:b.video,data:b.data,attributes:b.attributes});a.remoteStreams[b.id]=c;b=Erizo.StreamEvent({type:"stream-added",
-stream:c});a.dispatchEvent(b)});a.socket.on("onDataStream",function(b){var c=a.remoteStreams[b.id],b=Erizo.StreamEvent({type:"stream-data",msg:b.msg,stream:c});c.dispatchEvent(b)});a.socket.on("onRemoveStream",function(b){var c=a.remoteStreams[b.id];delete a.remoteStreams[b.id];i(c);b=Erizo.StreamEvent({type:"stream-removed",stream:c});a.dispatchEvent(b)});a.socket.on("disconnect",function(){L.Logger.info("Socket disconnected");var b=Erizo.RoomEvent({type:"room-disconnected"});a.dispatchEvent(b)});
-d("token",b,c,e)};d=function(b,c,d,e){a.socket.emit(b,c,function(a,b){"success"===a?void 0!==d&&d(b):void 0!==e&&e(b)})};e=function(b,c,d,e){a.socket.emit(b,c,d,function(a,b){void 0!==e&&e(a,b)})};a.connect=function(){0!==a.state&&L.Logger.error("Room already connected");var d=L.Base64.decodeBase64(c.token);a.state=1;b(JSON.parse(d),function(b){var c=0,d=[],e,g;e=b.streams;g=b.id;a.state=2;for(c in e)if(e.hasOwnProperty(c)){var f=e[c],b=Erizo.Stream({streamID:f.id,local:!1,audio:f.audio,video:f.video,
-data:f.data,attributes:f.attributes});d.push(b);a.remoteStreams[f.id]=b}a.roomID=g;L.Logger.info("Connected to room "+a.roomID);c=Erizo.RoomEvent({type:"room-connected",streams:d});a.dispatchEvent(c)},function(a){L.Logger.error("Not Connected! Error: "+a)})};a.disconnect=function(){var b=Erizo.RoomEvent({type:"room-disconnected"});a.dispatchEvent(b)};a.publish=function(b){b.local&&void 0===a.localStreams[b.getID()]&&(b.hasAudio()||b.hasVideo()?(b.pc=Erizo.Connection({callback:function(c){e("publish",
-{state:"offer",data:!0,audio:b.hasAudio(),video:b.hasVideo(),attributes:b.getAttributes()},c,function(c,d){b.pc.onsignalingmessage=function(c){b.pc.onsignalingmessage=function(){};e("publish",{state:"ok",streamId:d,data:!0,audio:b.hasAudio(),video:b.hasVideo(),attributes:b.getAttributes()},c);L.Logger.info("Stream published");b.getID=function(){return d};b.sendData=function(a){f(b,a)};a.localStreams[d]=b};b.pc.processSignalingMessage(c)})}}),b.pc.addStream(b.stream)):b.hasData()&&e("publish",{state:"data",
-data:!0,audio:!1,video:!1,attributes:b.getAttributes()},void 0,function(c,d){L.Logger.info("Stream published");b.getID=function(){return d};b.sendData=function(a){f(b,a)};a.localStreams[d]=b}))};a.unpublish=function(a){a.local&&d("unpublish",a.getID())};a.subscribe=function(b){b.local||(b.hasVideo()||b.hasAudio()?(b.pc=Erizo.Connection({callback:function(a){e("subscribe",{streamId:b.getID()},a,function(a){b.pc.processSignalingMessage(a)})}}),b.pc.onaddstream=function(c){L.Logger.info("Stream subscribed");
-b.stream=c.stream;c=Erizo.StreamEvent({type:"stream-subscribed",stream:b});a.dispatchEvent(c)}):b.hasData()&&e("subscribe",{streamId:b.getID()},void 0,function(){L.Logger.info("Stream subscribed");var c=Erizo.StreamEvent({type:"stream-subscribed",stream:b});a.dispatchEvent(c)}),L.Logger.info("Subscribing to: "+b.getID()))};a.unsubscribe=function(b){void 0!==a.socket?b.local||d("unsubscribe",b.getID(),function(){i(b)},function(){L.Logger.error("Error calling unsubscribe.")}):callback()};a.getStreamsByAttribute=
-function(b,c){var d=[],e;for(e in a.remoteStreams){var f=a.remoteStreams[e];void 0!==f.getAttributes()&&void 0!==f.getAttributes()[b]&&f.getAttributes()[b]===c&&d.push(f)}return d};return a};var L=L||{};
-L.Logger=function(c){return{DEBUG:0,TRACE:1,INFO:2,WARNING:3,ERROR:4,NONE:5,enableLogPanel:function(){c.Logger.panel=document.createElement("textarea");c.Logger.panel.setAttribute("id","lynckia-logs");c.Logger.panel.setAttribute("style","width: 100%; height: 100%; display: none");c.Logger.panel.setAttribute("rows",20);c.Logger.panel.setAttribute("cols",20);c.Logger.panel.setAttribute("readOnly",!0);document.body.appendChild(c.Logger.panel)},setLogLevel:function(a){a>c.Logger.NONE?a=c.Logger.NONE:a<
-c.Logger.DEBUG&&(a=c.Logger.DEBUG);c.Logger.logLevel=a},log:function(a,b){var d="";a<c.Logger.logLevel||(a===c.Logger.DEBUG?d+="DEBUG":a===c.Logger.TRACE?d+="TRACE":a===c.Logger.INFO?d+="INFO":a===c.Logger.WARNING?d+="WARNING":a===c.Logger.ERROR&&(d+="ERROR"),d=d+": "+b,void 0!==c.Logger.panel?c.Logger.panel.value=c.Logger.panel.value+"\n"+d:console.log(d))},debug:function(a){c.Logger.log(c.Logger.DEBUG,a)},trace:function(a){c.Logger.log(c.Logger.TRACE,a)},info:function(a){c.Logger.log(c.Logger.INFO,
-a)},warning:function(a){c.Logger.log(c.Logger.WARNING,a)},error:function(a){c.Logger.log(c.Logger.ERROR,a)}}}(L);L=L||{};
-L.Base64=function(){var c,a,b,d,e,f,i,g,j;c="A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,0,1,2,3,4,5,6,7,8,9,+,/".split(",");a=[];for(e=0;e<c.length;e+=1)a[c[e]]=e;f=function(a){b=a;d=0};i=function(){var a;if(!b||d>=b.length)return-1;a=b.charCodeAt(d)&255;d+=1;return a};g=function(){if(!b)return-1;for(;;){if(d>=b.length)return-1;var c=b.charAt(d);d+=1;if(a[c])return a[c];if("A"===c)return 0}};j=function(a){a=a.toString(16);1===a.length&&(a=
-"0"+a);return unescape("%"+a)};return{encodeBase64:function(a){var b,d,e;f(a);a="";b=Array(3);d=0;for(e=!1;!e&&-1!==(b[0]=i());)if(b[1]=i(),b[2]=i(),a+=c[b[0]>>2],-1!==b[1]?(a+=c[b[0]<<4&48|b[1]>>4],-1!==b[2]?(a+=c[b[1]<<2&60|b[2]>>6],a+=c[b[2]&63]):(a+=c[b[1]<<2&60],a+="=",e=!0)):(a+=c[b[0]<<4&48],a+="=",a+="=",e=!0),d+=4,76<=d)a+="\n",d=0;return a},decodeBase64:function(a){var b,c;f(a);a="";b=Array(4);for(c=!1;!c&&-1!==(b[0]=g())&&-1!==(b[1]=g());)b[2]=g(),b[3]=g(),a+=j(b[0]<<2&255|b[1]>>4),-1!==
-b[2]?(a+=j(b[1]<<4&255|b[2]>>2),-1!==b[3]?a+=j(b[2]<<6&255|b[3]):c=!0):c=!0;return a}}}(L);Erizo=Erizo||{};Erizo.View=function(){var c=Erizo.EventDispatcher({});c.url="http://chotis2.dit.upm.es:3000";return c};Erizo=Erizo||{};
-Erizo.VideoPlayer=function(c){var a=Erizo.View({});a.id=c.id;a.stream=c.stream;a.elementID=c.elementID;a.destroy=function(){a.video.pause();clearInterval(a.resize);a.parentNode.removeChild(a.div)};window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi,function(a,c,e){document.getElementById(c).value=unescape(e)});L.Logger.debug("Creating URL from stream "+a.stream);a.stream_url=webkitURL.createObjectURL(a.stream);a.div=document.createElement("div");a.div.setAttribute("id","player_"+a.id);a.div.setAttribute("style",
-"width: 100%; height: 100%; position: relative; background-color: black; overflow: hidden;");a.loader=document.createElement("img");a.loader.setAttribute("style","width: 16px; height: 16px; position: absolute; top: 50%; left: 50%; margin-top: -8px; margin-left: -8px");a.loader.setAttribute("id","back_"+a.id);a.loader.setAttribute("src",a.url+"/assets/loader.gif");a.video=document.createElement("video");a.video.setAttribute("id","stream"+a.id);a.video.setAttribute("style","width: 100%; height: 100%; position: absolute");
-a.video.setAttribute("autoplay","autoplay");void 0!==a.elementID?(document.getElementById(a.elementID).appendChild(a.div),a.container=document.getElementById(a.elementID)):(document.body.appendChild(a.div),a.container=document.body);a.parentNode=a.div.parentNode;a.div.appendChild(a.loader);a.div.appendChild(a.video);a.containerWidth=0;a.containerHeight=0;a.resize=setInterval(function(){var b=a.container.offsetWidth,c=a.container.offsetHeight;if(b!==a.containerWidth||c!==a.containerHeight){if(b*0.75>
-c){a.video.style.width=b+"px";a.video.style.height=0.75*b+"px";a.video.style.top=-(0.75*b/2-c/2)+"px";a.video.style.left="0px"}else{a.video.style.height=c+"px";a.video.style.width=4/3*c+"px";a.video.style.left=-(4/3*c/2-b/2)+"px";a.video.style.top="0px"}a.containerWidth=b;a.containerHeight=c}},500);a.bar=new Erizo.Bar({elementID:"player_"+a.id,id:a.id,video:a.video,options:c.options});a.div.onmouseover=function(){a.bar.display()};a.div.onmouseout=function(){a.bar.hide()};a.video.src=a.stream_url;
-return a};Erizo=Erizo||{};
-Erizo.Bar=function(c){var a=Erizo.View({}),b=void 0;a.elementID=c.elementID;a.id=c.id;a.div=document.createElement("div");a.div.setAttribute("id","bar_"+a.id);a.bar=document.createElement("div");a.bar.setAttribute("style","width: 100%; height: 15%; max-height: 30px; position: absolute; bottom: 0; right: 0; background-color: rgba(255,255,255,0.62)");a.bar.setAttribute("id","subbar_"+a.id);a.link=document.createElement("a");a.link.setAttribute("href","http://www.lynckia.com/");a.link.setAttribute("target","_blank");
-a.logo=document.createElement("img");a.logo.setAttribute("style","width: 10%; height: 100%; max-width: 30px; position: absolute; top: 0; left: 2px;");a.logo.setAttribute("alt","Lynckia");a.logo.setAttribute("src",a.url+"/assets/star.svg");var d=function(c){"block"!==c?c="none":clearTimeout(b);a.div.setAttribute("style","width: 100%; height: 100%; position: relative; bottom: 0; right: 0; display:"+c)};a.display=function(){d("block")};a.hide=function(){b=setTimeout(d,1E3)};document.getElementById(a.elementID).appendChild(a.div);
-a.div.appendChild(a.bar);a.bar.appendChild(a.link);a.link.appendChild(a.logo);if(void 0===c.options||void 0===c.options.speaker||!0===c.options.speaker)a.speaker=new Erizo.Speaker({elementID:"subbar_"+a.id,id:a.id,video:c.video});a.display();a.hide();return a};Erizo=Erizo||{};
-Erizo.Speaker=function(c){var a=Erizo.View({});a.elementID=c.elementID;a.video=c.video;a.id=c.id;a.div=document.createElement("div");a.div.setAttribute("style","width: 10%; height: 100%; max-width: 30px; position: absolute; bottom: 0; right: 0;");a.icon=document.createElement("img");a.icon.setAttribute("id","volume_"+a.id);a.icon.setAttribute("src",a.url+"/assets/sound48.png");a.icon.setAttribute("style","width: 100%; height: 100%; position: absolute;");a.div.appendChild(a.icon);a.picker=document.createElement("input");
-a.picker.setAttribute("id","picker_"+a.id);a.picker.type="range";a.picker.min=0;a.picker.max=100;a.picker.step=10;a.picker.value=50;a.div.appendChild(a.picker);a.video.volume=a.picker.value/100;a.picker.oninput=function(){0<a.picker.value?a.icon.setAttribute("src",a.url+"/assets/sound48.png"):a.icon.setAttribute("src",a.url+"/assets/mute48.png");a.video.volume=a.picker.value/100};var b=function(b){a.picker.setAttribute("style","width: 32px; height: 100px; position: absolute; bottom: "+a.div.offsetHeight+
-"px; right: 0px; -webkit-appearance: slider-vertical; display: "+b)};a.div.onmouseover=function(){b("block")};a.div.onmouseout=function(){b("none")};b("none");document.getElementById(a.elementID).appendChild(a.div);return a};
+// Copyright (C) 2012 Google. All rights reserved.
+/**
+ * @fileoverview
+ * An implementation of ROAP that builds on JSEP as a substrate.
+ * This is based on the following drafts:<ul>
+ * <li>draft-uberti-rtcweb-jsep-02 (JSEP).
+ * <li>draft-jennings-rtcweb-signaling-01 (ROAP).
+ * </ul>
+ *
+ * Liberties have been taken with the APIs, such as using strings
+ * rather than constants for all state variable values.
+ * @author hta@google.com (Harald Alvestrand)
+ */
+// Static variable for allocating new session IDs.
+RoapConnection.sessionId = 103;
+
+// Call the constructor for peerconnections indirectly, so that it's availble
+// for dependency injection.
+/** Constructor for JSEP supporting PeerConnection objects. */
+//RoapConnection.JsepPeerConnectionConstructor = webkitRTCPeerConnection;
+/** Constructor for SessionDescription objects. */
+//RoapConnection.SessionDescriptionConstructor = RTCSessionDescription;
+
+/**
+ * @constructor for RoapConnection objects.
+ * @param {string} configuration Configuration details. Ignored.
+ * @param {function} signalingCallback for processing signalling messages.
+ */
+function RoapConnection(configuration, signalingCallback) {
+  var that = this;
+
+  this.isRTCPeerConnection = true;
+
+  this.stunServerOO = 'STUN stun.l.google.com:19302';
+  this.pc_config = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
+  //this.mediaConstraints = {'has_audio':true, 'has_video':true};
+  this.mediaConstraints = {'mandatory': {'OfferToReceiveVideo': 'true', 'OfferToReceiveAudio': 'true'}};
+
+  this.stAdd = false;
+
+  try {
+
+    this.peerConnection = new webkitRTCPeerConnection(this.pc_config);
+
+    this.peerConnection.onicecandidate =  function(event) {
+      if (!event.candidate) {
+        // At the moment, we do not renegotiate when new candidates
+        // show up after the more flag has been false once.
+        that.moreIceComing = false;
+        that.markActionNeeded();
+      } else {
+        that.iceCandidateCount += 1;
+      }
+    }
+
+    console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(this.pc_config) + "\".");
+
+  } catch (e) {
+
+    this.peerConnection = new webkitPeerConnection00(this.stunServerOO, function(candidate, more) {
+      if (more == false) {
+        // At the moment, we do not renegotiate when new candidates
+        // show up after the more flag has been false once.
+        that.moreIceComing = false;
+        that.markActionNeeded();
+      }
+      that.iceCandidateCount += 1;
+    });
+
+    this.isRTCPeerConnection = false;
+    console.log("Created webkitPeerConnnection00 with config \"" + this.stunServerOO + "\".");
+  }
+
+
+  this.sessionId = ++RoapConnection.sessionId;
+  this.sequenceNumber = 0;  // Number of last ROAP message sent. Starts at 1.
+  this.actionNeeded = false;
+  this.iceStarted = false;
+  this.moreIceComing = true;
+  this.iceCandidateCount = 0;
+  this.onsignalingmessage = signalingCallback;
+  this.peerConnection.onopen = function() {
+    if (that.onopen) {
+      that.onopen();
+    }
+  }
+  this.peerConnection.onaddstream = function(stream) {
+    if (that.onaddstream) {
+      that.onaddstream(stream);
+    }
+  }
+
+  this.peerConnection.onremovestream = function(stream) {
+    if (that.onremovestream) {
+      that.onremovestream(stream);
+    }
+  }
+  // Variables that are part of the public interface of PeerConnection
+  // in the 28 January 2012 version of the webrtc specification.
+  this.onaddstream = null;
+  this.onremovestream = null;
+  this.state = 'new';
+  // Auto-fire next events.
+  this.markActionNeeded(); 
+}
+
+/**
+ * This function processes signalling messages from the other side.
+ * @param {string} msgstring JSON-formatted string containing a ROAP message.
+ */
+RoapConnection.prototype.processSignalingMessage = function(msgstring) {
+  // Offer: Check for glare and resolve.
+  // Answer/OK: Remove retransmit for the msg this is an answer to.
+  // Send back "OK" if this was an Answer.
+  console.log('Activity on conn ' + this.sessionId);
+  var msg = JSON.parse(msgstring);
+  this.incomingMessage = msg;
+
+  if (this.state === 'new') {
+    if (msg.messageType === 'OFFER') {
+      // Initial offer.
+      if (this.isRTCPeerConnection) {
+        var sd = {sdp: msg.sdp, type: 'offer'};
+        this.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
+      } else {
+        this.offer_as_string = msg.sdp;
+        var sdp = new SessionDescription(msg.sdp);
+        this.peerConnection.setRemoteDescription(this.peerConnection.SDP_OFFER, sdp);
+      }
+      
+      this.state = 'offer-received';
+      // Allow other stuff to happen, then reply.
+      this.markActionNeeded();
+    } else {
+      this.error('Illegal message for this state: ' + msg.messageType + ' in state ' + this.state);
+    }
+
+  } else if (this.state === 'offer-sent') {
+    if (msg.messageType === 'ANSWER') {
+
+      if (this.isRTCPeerConnection) {
+        var sd = {sdp: msg.sdp, type: 'answer'};
+        this.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
+      } else {
+        var sdp = new SessionDescription(msg.sdp);
+        this.peerConnection.setRemoteDescription(this.peerConnection.SDP_ANSWER, sdp);
+      }
+      this.sendOK();
+      this.state = 'established';
+
+    } else if (msg.messageType === 'pr-answer') {
+      if (this.isRTCPeerConnection) {
+        var sd = {sdp: msg.sdp, type: 'pr-answer'};
+        this.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
+      } else {
+        var sdp = new SessionDescription(msg.sdp);
+        this.peerConnection.setRemoteDescription('pr-answer', sdp);
+      }
+            
+      // No change to state, and no response.
+    } else if (msg.messageType === 'offer') {
+      // Glare processing.
+      this.error('Not written yet');
+    } else {
+      this.error('Illegal message for this state: ' + msg.messageType + ' in state ' + this.state);
+    }
+
+  } else if (this.state === 'established') {
+    if (msg.messageType === 'OFFER') {
+      // Subsequent offer.
+
+      if (this.isRTCPeerConnection) {
+        var sd = {sdp: msg.sdp, type: 'offer'};
+        this.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
+      } else {
+        var sdp = new SessionDescription(msg.sdp);
+        this.peerConnection.setRemoteDescription(this.peerConnection.SDP_OFFER, sdp);
+      }
+  
+      this.state = 'offer-received';
+      // Allow other stuff to happen, then reply.
+      this.markActionNeeded();
+    } else {
+      this.error('Illegal message for this state: ' + msg.messageType + ' in state ' + this.state);
+    }
+  }
+};
+
+/**
+ * Adds a stream - this causes signalling to happen, if needed.
+ * @param {MediaStream} stream The outgoing MediaStream to add.
+ */
+RoapConnection.prototype.addStream = function(stream) {
+  this.stAdd = true;
+  this.peerConnection.addStream(stream);
+  this.markActionNeeded();
+};
+
+/**
+ * Removes a stream.
+ * @param {MediaStream} stream The MediaStream to remove.
+ */
+RoapConnection.prototype.removeStream = function(stream) {
+  var i;
+  for (i = 0; i < this.peerConnection.localStreams.length; ++i) {
+    if (localStreams[i] === stream) {
+      localStreams[i] = null;
+    }
+  }
+  this.markActionNeeded();
+};
+
+/**
+ * Closes the connection.
+ */
+RoapConnection.prototype.close = function() {
+  this.state = 'closed';
+  this.peerConnection.close();
+};
+
+/**
+ * Internal function: Mark that something happened.
+ */
+RoapConnection.prototype.markActionNeeded = function() {
+  this.actionNeeded = true;
+  var that = this;
+  this.doLater(function() {
+      that.onstablestate();
+    });
+};
+
+/**
+ * Internal function: Do something later (not on this stack).
+ * @param {function} what Callback to be executed later.
+ */
+RoapConnection.prototype.doLater = function(what) {
+  // Post an event to myself so that I get called a while later.
+  // (needs more JS/DOM info. Just call the processing function on a delay
+  // for now.)
+  window.setTimeout(what, 1);
+};
+
+/**
+ * Internal function called when a stable state
+ * is entered by the browser (to allow for multiple AddStream calls or
+ * other interesting actions).
+ * This function will generate an offer or answer, as needed, and send
+ * to the remote party using our onsignalingmessage function.
+ */
+RoapConnection.prototype.onstablestate = function() {
+  var mySDP;
+  var roapMessage = {};
+  var that = this;
+  if (this.actionNeeded) {
+    if (this.state === 'new' || this.state === 'established') {
+      // See if the current offer is the same as what we already sent.
+      // If not, no change is needed.   
+
+      if (this.isRTCPeerConnection) {
+
+//        if(!this.stAdd) {
+//         this.mediaConstraints = {'mandatory': {'OfferToReceiveVideo': 'true', 'OfferToReceiveAudio': 'true'}};
+//        }
+
+        this.peerConnection.createOffer(function(sessionDescription){
+
+          var newOffer = sessionDescription.sdp;
+
+          if (newOffer != this.prevOffer) {
+
+            that.peerConnection.setLocalDescription(sessionDescription);
+            
+            that.state = 'preparing-offer';
+            that.markActionNeeded();
+            return;
+          } else {
+            console.log('Not sending a new offer');
+          }
+
+        }, null, this.mediaConstraints);
+
+      } else {
+
+        var newOffer = this.peerConnection.createOffer(this.mediaConstraints);
+        if (newOffer.toSdp() != this.prevOffer) {
+          // Prepare to send an offer.
+          this.peerConnection.setLocalDescription(this.peerConnection.SDP_OFFER, newOffer);
+          this.peerConnection.startIce();
+          this.state = 'preparing-offer';
+          this.markActionNeeded();
+          return;
+        } else {
+          console.log('Not sending a new offer');
+        }
+
+      }
+
+    } else if (this.state === 'preparing-offer') {
+      // Don't do anything until we have the ICE candidates.
+      if (this.moreIceComing) {
+        return;
+      }
+      // Now able to send the offer we've already prepared.
+      if (this.isRTCPeerConnection) {
+        this.prevOffer = this.peerConnection.localDescription.sdp;
+      } else {
+        this.prevOffer = this.peerConnection.localDescription.toSdp();
+      }
+      
+      //console.log('Sent SDP is ' + this.prevOffer);
+      this.sendMessage('OFFER', this.prevOffer);
+      // Not done: Retransmission on non-response.
+      this.state = 'offer-sent';
+
+    } else if (this.state === 'offer-received') {
+
+      if (this.isRTCPeerConnection) {
+        this.peerConnection.createAnswer(function(sessionDescription) {
+
+          this.peerConnection.setLocalDescription(sessionDescription);
+          this.state = 'offer-received-preparing-answer';
+
+          if (!this.iceStarted) {
+            var now = new Date();
+            console.log(now.getTime() + ': Starting ICE in responder');
+            this.iceStarted = true;
+          } else {
+            this.markActionNeeded();
+            return;
+          }
+
+        }, null, this.mediaConstraints);
+
+      } else {
+
+        mySDP = this.peerConnection.createAnswer(this.offer_as_string, this.mediaConstraints);
+        this.peerConnection.setLocalDescription(this.peerConnection.SDP_ANSWER, mySDP);
+        this.state = 'offer-received-preparing-answer';
+
+        if (!this.iceStarted) {
+          var now = new Date();
+          console.log(now.getTime() + ': Starting ICE in responder');
+          this.peerConnection.startIce();
+          this.iceStarted = true;
+        } else {
+          this.markActionNeeded();
+          return;
+        }
+      }
+      
+    } else if (this.state === 'offer-received-preparing-answer') {
+      if (this.moreIceComing) {
+        return;
+      }
+
+      if (this.isRTCPeerConnection) {
+        mySDP = this.peerConnection.localDescription.sdp;
+      } else {
+        mySDP = this.peerConnection.localDescription.toSdp();
+      }
+      
+      this.sendMessage('ANSWER', mySDP);
+      this.state = 'established';
+    } else {
+      this.error('Dazed and confused in state ' + this.state + ', stopping here');
+    }
+    this.actionNeeded = false;
+  }
+};
+
+/**
+ * Internal function to send an "OK" message.
+ */
+RoapConnection.prototype.sendOK = function() {
+  this.sendMessage('OK');
+};
+
+/**
+ * Internal function to send a signalling message.
+ * @param {string} operation What operation to signal.
+ * @param {string} sdp SDP message body.
+ */
+RoapConnection.prototype.sendMessage = function(operation, sdp) {
+  var roapMessage = {};
+  roapMessage.messageType = operation;
+  roapMessage.sdp = sdp;  // may be null or undefined
+  if (operation === 'OFFER') {
+    roapMessage.offererSessionId = this.sessionId;
+    roapMessage.answererSessionId = this.otherSessionId;  // may be null
+    roapMessage.seq = ++this.sequenceNumber;
+    // The tiebreaker needs to be neither 0 nor 429496725.
+    roapMessage.tiebreaker = Math.floor(Math.random() * 429496723 + 1);
+  } else {
+    roapMessage.offererSessionId = this.incomingMessage.offererSessionId;
+    roapMessage.answererSessionId = this.sessionId;
+    roapMessage.seq = this.incomingMessage.seq;
+  }
+  this.onsignalingmessage(JSON.stringify(roapMessage));
+};
+
+/**
+ * Internal something-bad-happened function.
+ * @param {string} text What happened - suitable for logging.
+ */
+RoapConnection.prototype.error = function(text) {
+  throw 'Error in RoapOnJsep: ' + text;
+};
+
+
+ErizoPeerConnection = function (signalingCallback) {
+
+	var that = this;
+
+	try {
+
+		return new webkitPeerConnection("STUN stun.l.google.com:19302", function (offer) {
+			
+			console.log('PeerConnection BOWSER');
+
+			var sdp = offer.substring(4);
+
+			var reg5 = new RegExp(/\\r\\n/g);
+			var sdp = sdp.replace(reg5, '\n');
+
+			var username = sdp.match(/(username) \w+/)[0].substring(9);
+			var pass = sdp.match(/(password) \w+/)[0].substring(9);
+
+			var reg1 = new RegExp("(?: name)(.+)(?:" +pass+" )", "gm");
+
+			var sdp = sdp.replace(reg1, ' ');
+
+			var info = 'a=ice-ufrag:' + username + '\\r\\na=ice-pwd:' + pass + '\\r\\nc=IN';
+			var reg2 = new RegExp(/(c=IN)/g);
+			var sdp = sdp.replace(reg2, info);
+
+			var reg4 = new RegExp(/\n/g);
+			var sdp = sdp.replace(reg4, '\\r\\n')
+
+			signalingCallback(sdp);
+		});
+		
+
+	} catch (e) {
+		console.log('PeerConnection CHROME');
+		return new RoapConnection("STUN stun.l.google.com:19302", signalingCallback);
+	}
+
+};
+
+ErizoParseAnswer = function(answer) {
+
+	
+	var username = answer.match(/(?:a=ice-ufrag:)(.+)(?:\r\n)/)[1];
+	var pass = answer.match(/(?:a=ice-pwd:)(.+)(?:\r\n)/)[1];
+
+	var reg1 = new RegExp(/(?:a=ice-ufrag:)(.+)(?:\r\n)/g);
+	var reg2 = new RegExp(/(?:a=ice-pwd:)(.+)(?:\r\n)/g);
+
+	answer = answer.replace(reg1, '');
+	answer = answer.replace(reg2, '');
+
+	var reg3 = new RegExp(/(generation)/g);
+
+	var info1 = 'name rtp network_name en0 username ' + username + ' password ' + pass + ' magia';
+
+	var info2 = 'name video_rtp network_name en0 username ' + username + ' password ' + pass + ' magia';
+
+	var matches = answer.match(reg3);
+
+	for (var i = 0; i < matches.length; i++) {
+		if (i < matches.length/2) {
+			answer = answer.replace(matches[i], info1);
+		} else {
+			answer = answer.replace(matches[i], info2);
+		}
+	}
+
+	var reg3 = new RegExp(/(magia)/g);
+
+	answer = answer.replace(reg3, 'generation');
+
+	return answer;
+
+}
+
+ErizoGetUserMedia = function (config, callback) {
+
+	try	{
+
+		navigator.webkitGetUserMedia("audio, video", callback);
+		console.log('GetUserMedia BOWSER');
+
+	} catch (e) {
+
+		console.log('GetUserMedia CHROME');
+		navigator.webkitGetUserMedia(config, callback);
+
+	}
+
+};/*! Socket.IO.js build:0.9.6, development. Copyright(c) 2011 LearnBoost <dev@learnboost.com> MIT Licensed */
+
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, global) {
+
+  /**
+   * IO namespace.
+   *
+   * @namespace
+   */
+
+  var io = exports;
+
+  /**
+   * Socket.IO version
+   *
+   * @api public
+   */
+
+  io.version = '0.9.6';
+
+  /**
+   * Protocol implemented.
+   *
+   * @api public
+   */
+
+  io.protocol = 1;
+
+  /**
+   * Available transports, these will be populated with the available transports
+   *
+   * @api public
+   */
+
+  io.transports = [];
+
+  /**
+   * Keep track of jsonp callbacks.
+   *
+   * @api private
+   */
+
+  io.j = [];
+
+  /**
+   * Keep track of our io.Sockets
+   *
+   * @api private
+   */
+  io.sockets = {};
+
+
+  /**
+   * Manages connections to hosts.
+   *
+   * @param {String} uri
+   * @Param {Boolean} force creation of new socket (defaults to false)
+   * @api public
+   */
+
+  io.connect = function (host, details) {
+    var uri = io.util.parseUri(host)
+      , uuri
+      , socket;
+
+    if (global && global.location) {
+      uri.protocol = uri.protocol || global.location.protocol.slice(0, -1);
+      uri.host = uri.host || (global.document
+        ? global.document.domain : global.location.hostname);
+      uri.port = uri.port || global.location.port;
+    }
+
+    uuri = io.util.uniqueUri(uri);
+
+    var options = {
+        host: uri.host
+      , secure: 'https' == uri.protocol
+      , port: uri.port || ('https' == uri.protocol ? 443 : 80)
+      , query: uri.query || ''
+    };
+
+    io.util.merge(options, details);
+
+    if (options['force new connection'] || !io.sockets[uuri]) {
+      socket = new io.Socket(options);
+    }
+
+    if (!options['force new connection'] && socket) {
+      io.sockets[uuri] = socket;
+    }
+
+    socket = socket || io.sockets[uuri];
+
+    // if path is different from '' or /
+    return socket.of(uri.path.length > 1 ? uri.path : '');
+  };
+
+})('object' === typeof module ? module.exports : (this.io = {}), this);
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, global) {
+
+  /**
+   * Utilities namespace.
+   *
+   * @namespace
+   */
+
+  var util = exports.util = {};
+
+  /**
+   * Parses an URI
+   *
+   * @author Steven Levithan <stevenlevithan.com> (MIT license)
+   * @api public
+   */
+
+  var re = /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
+
+  var parts = ['source', 'protocol', 'authority', 'userInfo', 'user', 'password',
+               'host', 'port', 'relative', 'path', 'directory', 'file', 'query',
+               'anchor'];
+
+  util.parseUri = function (str) {
+    var m = re.exec(str || '')
+      , uri = {}
+      , i = 14;
+
+    while (i--) {
+      uri[parts[i]] = m[i] || '';
+    }
+
+    return uri;
+  };
+
+  /**
+   * Produces a unique url that identifies a Socket.IO connection.
+   *
+   * @param {Object} uri
+   * @api public
+   */
+
+  util.uniqueUri = function (uri) {
+    var protocol = uri.protocol
+      , host = uri.host
+      , port = uri.port;
+
+    if ('document' in global) {
+      host = host || document.domain;
+      port = port || (protocol == 'https'
+        && document.location.protocol !== 'https:' ? 443 : document.location.port);
+    } else {
+      host = host || 'localhost';
+
+      if (!port && protocol == 'https') {
+        port = 443;
+      }
+    }
+
+    return (protocol || 'http') + '://' + host + ':' + (port || 80);
+  };
+
+  /**
+   * Mergest 2 query strings in to once unique query string
+   *
+   * @param {String} base
+   * @param {String} addition
+   * @api public
+   */
+
+  util.query = function (base, addition) {
+    var query = util.chunkQuery(base || '')
+      , components = [];
+
+    util.merge(query, util.chunkQuery(addition || ''));
+    for (var part in query) {
+      if (query.hasOwnProperty(part)) {
+        components.push(part + '=' + query[part]);
+      }
+    }
+
+    return components.length ? '?' + components.join('&') : '';
+  };
+
+  /**
+   * Transforms a querystring in to an object
+   *
+   * @param {String} qs
+   * @api public
+   */
+
+  util.chunkQuery = function (qs) {
+    var query = {}
+      , params = qs.split('&')
+      , i = 0
+      , l = params.length
+      , kv;
+
+    for (; i < l; ++i) {
+      kv = params[i].split('=');
+      if (kv[0]) {
+        query[kv[0]] = kv[1];
+      }
+    }
+
+    return query;
+  };
+
+  /**
+   * Executes the given function when the page is loaded.
+   *
+   *     io.util.load(function () { console.log('page loaded'); });
+   *
+   * @param {Function} fn
+   * @api public
+   */
+
+  var pageLoaded = false;
+
+  util.load = function (fn) {
+    if ('document' in global && document.readyState === 'complete' || pageLoaded) {
+      return fn();
+    }
+
+    util.on(global, 'load', fn, false);
+  };
+
+  /**
+   * Adds an event.
+   *
+   * @api private
+   */
+
+  util.on = function (element, event, fn, capture) {
+    if (element.attachEvent) {
+      element.attachEvent('on' + event, fn);
+    } else if (element.addEventListener) {
+      element.addEventListener(event, fn, capture);
+    }
+  };
+
+  /**
+   * Generates the correct `XMLHttpRequest` for regular and cross domain requests.
+   *
+   * @param {Boolean} [xdomain] Create a request that can be used cross domain.
+   * @returns {XMLHttpRequest|false} If we can create a XMLHttpRequest.
+   * @api private
+   */
+
+  util.request = function (xdomain) {
+
+    if (xdomain && 'undefined' != typeof XDomainRequest) {
+      return new XDomainRequest();
+    }
+
+    if ('undefined' != typeof XMLHttpRequest && (!xdomain || util.ua.hasCORS)) {
+      return new XMLHttpRequest();
+    }
+
+    if (!xdomain) {
+      try {
+        return new window[(['Active'].concat('Object').join('X'))]('Microsoft.XMLHTTP');
+      } catch(e) { }
+    }
+
+    return null;
+  };
+
+  /**
+   * XHR based transport constructor.
+   *
+   * @constructor
+   * @api public
+   */
+
+  /**
+   * Change the internal pageLoaded value.
+   */
+
+  if ('undefined' != typeof window) {
+    util.load(function () {
+      pageLoaded = true;
+    });
+  }
+
+  /**
+   * Defers a function to ensure a spinner is not displayed by the browser
+   *
+   * @param {Function} fn
+   * @api public
+   */
+
+  util.defer = function (fn) {
+    if (!util.ua.webkit || 'undefined' != typeof importScripts) {
+      return fn();
+    }
+
+    util.load(function () {
+      setTimeout(fn, 100);
+    });
+  };
+
+  /**
+   * Merges two objects.
+   *
+   * @api public
+   */
+  
+  util.merge = function merge (target, additional, deep, lastseen) {
+    var seen = lastseen || []
+      , depth = typeof deep == 'undefined' ? 2 : deep
+      , prop;
+
+    for (prop in additional) {
+      if (additional.hasOwnProperty(prop) && util.indexOf(seen, prop) < 0) {
+        if (typeof target[prop] !== 'object' || !depth) {
+          target[prop] = additional[prop];
+          seen.push(additional[prop]);
+        } else {
+          util.merge(target[prop], additional[prop], depth - 1, seen);
+        }
+      }
+    }
+
+    return target;
+  };
+
+  /**
+   * Merges prototypes from objects
+   *
+   * @api public
+   */
+  
+  util.mixin = function (ctor, ctor2) {
+    util.merge(ctor.prototype, ctor2.prototype);
+  };
+
+  /**
+   * Shortcut for prototypical and static inheritance.
+   *
+   * @api private
+   */
+
+  util.inherit = function (ctor, ctor2) {
+    function f() {};
+    f.prototype = ctor2.prototype;
+    ctor.prototype = new f;
+  };
+
+  /**
+   * Checks if the given object is an Array.
+   *
+   *     io.util.isArray([]); // true
+   *     io.util.isArray({}); // false
+   *
+   * @param Object obj
+   * @api public
+   */
+
+  util.isArray = Array.isArray || function (obj) {
+    return Object.prototype.toString.call(obj) === '[object Array]';
+  };
+
+  /**
+   * Intersects values of two arrays into a third
+   *
+   * @api public
+   */
+
+  util.intersect = function (arr, arr2) {
+    var ret = []
+      , longest = arr.length > arr2.length ? arr : arr2
+      , shortest = arr.length > arr2.length ? arr2 : arr;
+
+    for (var i = 0, l = shortest.length; i < l; i++) {
+      if (~util.indexOf(longest, shortest[i]))
+        ret.push(shortest[i]);
+    }
+
+    return ret;
+  }
+
+  /**
+   * Array indexOf compatibility.
+   *
+   * @see bit.ly/a5Dxa2
+   * @api public
+   */
+
+  util.indexOf = function (arr, o, i) {
+    
+    for (var j = arr.length, i = i < 0 ? i + j < 0 ? 0 : i + j : i || 0; 
+         i < j && arr[i] !== o; i++) {}
+
+    return j <= i ? -1 : i;
+  };
+
+  /**
+   * Converts enumerables to array.
+   *
+   * @api public
+   */
+
+  util.toArray = function (enu) {
+    var arr = [];
+
+    for (var i = 0, l = enu.length; i < l; i++)
+      arr.push(enu[i]);
+
+    return arr;
+  };
+
+  /**
+   * UA / engines detection namespace.
+   *
+   * @namespace
+   */
+
+  util.ua = {};
+
+  /**
+   * Whether the UA supports CORS for XHR.
+   *
+   * @api public
+   */
+
+  util.ua.hasCORS = 'undefined' != typeof XMLHttpRequest && (function () {
+    try {
+      var a = new XMLHttpRequest();
+    } catch (e) {
+      return false;
+    }
+
+    return a.withCredentials != undefined;
+  })();
+
+  /**
+   * Detect webkit.
+   *
+   * @api public
+   */
+
+  util.ua.webkit = 'undefined' != typeof navigator
+    && /webkit/i.test(navigator.userAgent);
+
+})('undefined' != typeof io ? io : module.exports, this);
+
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, io) {
+
+  /**
+   * Expose constructor.
+   */
+
+  exports.EventEmitter = EventEmitter;
+
+  /**
+   * Event emitter constructor.
+   *
+   * @api public.
+   */
+
+  function EventEmitter () {};
+
+  /**
+   * Adds a listener
+   *
+   * @api public
+   */
+
+  EventEmitter.prototype.on = function (name, fn) {
+    if (!this.$events) {
+      this.$events = {};
+    }
+
+    if (!this.$events[name]) {
+      this.$events[name] = fn;
+    } else if (io.util.isArray(this.$events[name])) {
+      this.$events[name].push(fn);
+    } else {
+      this.$events[name] = [this.$events[name], fn];
+    }
+
+    return this;
+  };
+
+  EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+
+  /**
+   * Adds a volatile listener.
+   *
+   * @api public
+   */
+
+  EventEmitter.prototype.once = function (name, fn) {
+    var self = this;
+
+    function on () {
+      self.removeListener(name, on);
+      fn.apply(this, arguments);
+    };
+
+    on.listener = fn;
+    this.on(name, on);
+
+    return this;
+  };
+
+  /**
+   * Removes a listener.
+   *
+   * @api public
+   */
+
+  EventEmitter.prototype.removeListener = function (name, fn) {
+    if (this.$events && this.$events[name]) {
+      var list = this.$events[name];
+
+      if (io.util.isArray(list)) {
+        var pos = -1;
+
+        for (var i = 0, l = list.length; i < l; i++) {
+          if (list[i] === fn || (list[i].listener && list[i].listener === fn)) {
+            pos = i;
+            break;
+          }
+        }
+
+        if (pos < 0) {
+          return this;
+        }
+
+        list.splice(pos, 1);
+
+        if (!list.length) {
+          delete this.$events[name];
+        }
+      } else if (list === fn || (list.listener && list.listener === fn)) {
+        delete this.$events[name];
+      }
+    }
+
+    return this;
+  };
+
+  /**
+   * Removes all listeners for an event.
+   *
+   * @api public
+   */
+
+  EventEmitter.prototype.removeAllListeners = function (name) {
+    // TODO: enable this when node 0.5 is stable
+    //if (name === undefined) {
+      //this.$events = {};
+      //return this;
+    //}
+
+    if (this.$events && this.$events[name]) {
+      this.$events[name] = null;
+    }
+
+    return this;
+  };
+
+  /**
+   * Gets all listeners for a certain event.
+   *
+   * @api publci
+   */
+
+  EventEmitter.prototype.listeners = function (name) {
+    if (!this.$events) {
+      this.$events = {};
+    }
+
+    if (!this.$events[name]) {
+      this.$events[name] = [];
+    }
+
+    if (!io.util.isArray(this.$events[name])) {
+      this.$events[name] = [this.$events[name]];
+    }
+
+    return this.$events[name];
+  };
+
+  /**
+   * Emits an event.
+   *
+   * @api public
+   */
+
+  EventEmitter.prototype.emit = function (name) {
+    if (!this.$events) {
+      return false;
+    }
+
+    var handler = this.$events[name];
+
+    if (!handler) {
+      return false;
+    }
+
+    var args = Array.prototype.slice.call(arguments, 1);
+
+    if ('function' == typeof handler) {
+      handler.apply(this, args);
+    } else if (io.util.isArray(handler)) {
+      var listeners = handler.slice();
+
+      for (var i = 0, l = listeners.length; i < l; i++) {
+        listeners[i].apply(this, args);
+      }
+    } else {
+      return false;
+    }
+
+    return true;
+  };
+
+})(
+    'undefined' != typeof io ? io : module.exports
+  , 'undefined' != typeof io ? io : module.parent.exports
+);
+
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+/**
+ * Based on JSON2 (http://www.JSON.org/js.html).
+ */
+
+(function (exports, nativeJSON) {
+  "use strict";
+
+  // use native JSON if it's available
+  if (nativeJSON && nativeJSON.parse){
+    return exports.JSON = {
+      parse: nativeJSON.parse
+    , stringify: nativeJSON.stringify
+    }
+  }
+
+  var JSON = exports.JSON = {};
+
+  function f(n) {
+      // Format integers to have at least two digits.
+      return n < 10 ? '0' + n : n;
+  }
+
+  function date(d, key) {
+    return isFinite(d.valueOf()) ?
+        d.getUTCFullYear()     + '-' +
+        f(d.getUTCMonth() + 1) + '-' +
+        f(d.getUTCDate())      + 'T' +
+        f(d.getUTCHours())     + ':' +
+        f(d.getUTCMinutes())   + ':' +
+        f(d.getUTCSeconds())   + 'Z' : null;
+  };
+
+  var cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
+      escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
+      gap,
+      indent,
+      meta = {    // table of character substitutions
+          '\b': '\\b',
+          '\t': '\\t',
+          '\n': '\\n',
+          '\f': '\\f',
+          '\r': '\\r',
+          '"' : '\\"',
+          '\\': '\\\\'
+      },
+      rep;
+
+
+  function quote(string) {
+
+// If the string contains no control characters, no quote characters, and no
+// backslash characters, then we can safely slap some quotes around it.
+// Otherwise we must also replace the offending characters with safe escape
+// sequences.
+
+      escapable.lastIndex = 0;
+      return escapable.test(string) ? '"' + string.replace(escapable, function (a) {
+          var c = meta[a];
+          return typeof c === 'string' ? c :
+              '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
+      }) + '"' : '"' + string + '"';
+  }
+
+
+  function str(key, holder) {
+
+// Produce a string from holder[key].
+
+      var i,          // The loop counter.
+          k,          // The member key.
+          v,          // The member value.
+          length,
+          mind = gap,
+          partial,
+          value = holder[key];
+
+// If the value has a toJSON method, call it to obtain a replacement value.
+
+      if (value instanceof Date) {
+          value = date(key);
+      }
+
+// If we were called with a replacer function, then call the replacer to
+// obtain a replacement value.
+
+      if (typeof rep === 'function') {
+          value = rep.call(holder, key, value);
+      }
+
+// What happens next depends on the value's type.
+
+      switch (typeof value) {
+      case 'string':
+          return quote(value);
+
+      case 'number':
+
+// JSON numbers must be finite. Encode non-finite numbers as null.
+
+          return isFinite(value) ? String(value) : 'null';
+
+      case 'boolean':
+      case 'null':
+
+// If the value is a boolean or null, convert it to a string. Note:
+// typeof null does not produce 'null'. The case is included here in
+// the remote chance that this gets fixed someday.
+
+          return String(value);
+
+// If the type is 'object', we might be dealing with an object or an array or
+// null.
+
+      case 'object':
+
+// Due to a specification blunder in ECMAScript, typeof null is 'object',
+// so watch out for that case.
+
+          if (!value) {
+              return 'null';
+          }
+
+// Make an array to hold the partial results of stringifying this object value.
+
+          gap += indent;
+          partial = [];
+
+// Is the value an array?
+
+          if (Object.prototype.toString.apply(value) === '[object Array]') {
+
+// The value is an array. Stringify every element. Use null as a placeholder
+// for non-JSON values.
+
+              length = value.length;
+              for (i = 0; i < length; i += 1) {
+                  partial[i] = str(i, value) || 'null';
+              }
+
+// Join all of the elements together, separated with commas, and wrap them in
+// brackets.
+
+              v = partial.length === 0 ? '[]' : gap ?
+                  '[\n' + gap + partial.join(',\n' + gap) + '\n' + mind + ']' :
+                  '[' + partial.join(',') + ']';
+              gap = mind;
+              return v;
+          }
+
+// If the replacer is an array, use it to select the members to be stringified.
+
+          if (rep && typeof rep === 'object') {
+              length = rep.length;
+              for (i = 0; i < length; i += 1) {
+                  if (typeof rep[i] === 'string') {
+                      k = rep[i];
+                      v = str(k, value);
+                      if (v) {
+                          partial.push(quote(k) + (gap ? ': ' : ':') + v);
+                      }
+                  }
+              }
+          } else {
+
+// Otherwise, iterate through all of the keys in the object.
+
+              for (k in value) {
+                  if (Object.prototype.hasOwnProperty.call(value, k)) {
+                      v = str(k, value);
+                      if (v) {
+                          partial.push(quote(k) + (gap ? ': ' : ':') + v);
+                      }
+                  }
+              }
+          }
+
+// Join all of the member texts together, separated with commas,
+// and wrap them in braces.
+
+          v = partial.length === 0 ? '{}' : gap ?
+              '{\n' + gap + partial.join(',\n' + gap) + '\n' + mind + '}' :
+              '{' + partial.join(',') + '}';
+          gap = mind;
+          return v;
+      }
+  }
+
+// If the JSON object does not yet have a stringify method, give it one.
+
+  JSON.stringify = function (value, replacer, space) {
+
+// The stringify method takes a value and an optional replacer, and an optional
+// space parameter, and returns a JSON text. The replacer can be a function
+// that can replace values, or an array of strings that will select the keys.
+// A default replacer method can be provided. Use of the space parameter can
+// produce text that is more easily readable.
+
+      var i;
+      gap = '';
+      indent = '';
+
+// If the space parameter is a number, make an indent string containing that
+// many spaces.
+
+      if (typeof space === 'number') {
+          for (i = 0; i < space; i += 1) {
+              indent += ' ';
+          }
+
+// If the space parameter is a string, it will be used as the indent string.
+
+      } else if (typeof space === 'string') {
+          indent = space;
+      }
+
+// If there is a replacer, it must be a function or an array.
+// Otherwise, throw an error.
+
+      rep = replacer;
+      if (replacer && typeof replacer !== 'function' &&
+              (typeof replacer !== 'object' ||
+              typeof replacer.length !== 'number')) {
+          throw new Error('JSON.stringify');
+      }
+
+// Make a fake root object containing our value under the key of ''.
+// Return the result of stringifying the value.
+
+      return str('', {'': value});
+  };
+
+// If the JSON object does not yet have a parse method, give it one.
+
+  JSON.parse = function (text, reviver) {
+  // The parse method takes a text and an optional reviver function, and returns
+  // a JavaScript value if the text is a valid JSON text.
+
+      var j;
+
+      function walk(holder, key) {
+
+  // The walk method is used to recursively walk the resulting structure so
+  // that modifications can be made.
+
+          var k, v, value = holder[key];
+          if (value && typeof value === 'object') {
+              for (k in value) {
+                  if (Object.prototype.hasOwnProperty.call(value, k)) {
+                      v = walk(value, k);
+                      if (v !== undefined) {
+                          value[k] = v;
+                      } else {
+                          delete value[k];
+                      }
+                  }
+              }
+          }
+          return reviver.call(holder, key, value);
+      }
+
+
+  // Parsing happens in four stages. In the first stage, we replace certain
+  // Unicode characters with escape sequences. JavaScript handles many characters
+  // incorrectly, either silently deleting them, or treating them as line endings.
+
+      text = String(text);
+      cx.lastIndex = 0;
+      if (cx.test(text)) {
+          text = text.replace(cx, function (a) {
+              return '\\u' +
+                  ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
+          });
+      }
+
+  // In the second stage, we run the text against regular expressions that look
+  // for non-JSON patterns. We are especially concerned with '()' and 'new'
+  // because they can cause invocation, and '=' because it can cause mutation.
+  // But just to be safe, we want to reject all unexpected forms.
+
+  // We split the second stage into 4 regexp operations in order to work around
+  // crippling inefficiencies in IE's and Safari's regexp engines. First we
+  // replace the JSON backslash pairs with '@' (a non-JSON character). Second, we
+  // replace all simple value tokens with ']' characters. Third, we delete all
+  // open brackets that follow a colon or comma or that begin the text. Finally,
+  // we look to see that the remaining characters are only whitespace or ']' or
+  // ',' or ':' or '{' or '}'. If that is so, then the text is safe for eval.
+
+      if (/^[\],:{}\s]*$/
+              .test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@')
+                  .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']')
+                  .replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+
+  // In the third stage we use the eval function to compile the text into a
+  // JavaScript structure. The '{' operator is subject to a syntactic ambiguity
+  // in JavaScript: it can begin a block or an object literal. We wrap the text
+  // in parens to eliminate the ambiguity.
+
+          j = eval('(' + text + ')');
+
+  // In the optional fourth stage, we recursively walk the new structure, passing
+  // each name/value pair to a reviver function for possible transformation.
+
+          return typeof reviver === 'function' ?
+              walk({'': j}, '') : j;
+      }
+
+  // If the text is not JSON parseable, then a SyntaxError is thrown.
+
+      throw new SyntaxError('JSON.parse');
+  };
+
+})(
+    'undefined' != typeof io ? io : module.exports
+  , typeof JSON !== 'undefined' ? JSON : undefined
+);
+
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, io) {
+
+  /**
+   * Parser namespace.
+   *
+   * @namespace
+   */
+
+  var parser = exports.parser = {};
+
+  /**
+   * Packet types.
+   */
+
+  var packets = parser.packets = [
+      'disconnect'
+    , 'connect'
+    , 'heartbeat'
+    , 'message'
+    , 'json'
+    , 'event'
+    , 'ack'
+    , 'error'
+    , 'noop'
+  ];
+
+  /**
+   * Errors reasons.
+   */
+
+  var reasons = parser.reasons = [
+      'transport not supported'
+    , 'client not handshaken'
+    , 'unauthorized'
+  ];
+
+  /**
+   * Errors advice.
+   */
+
+  var advice = parser.advice = [
+      'reconnect'
+  ];
+
+  /**
+   * Shortcuts.
+   */
+
+  var JSON = io.JSON
+    , indexOf = io.util.indexOf;
+
+  /**
+   * Encodes a packet.
+   *
+   * @api private
+   */
+
+  parser.encodePacket = function (packet) {
+    var type = indexOf(packets, packet.type)
+      , id = packet.id || ''
+      , endpoint = packet.endpoint || ''
+      , ack = packet.ack
+      , data = null;
+
+    switch (packet.type) {
+      case 'error':
+        var reason = packet.reason ? indexOf(reasons, packet.reason) : ''
+          , adv = packet.advice ? indexOf(advice, packet.advice) : '';
+
+        if (reason !== '' || adv !== '')
+          data = reason + (adv !== '' ? ('+' + adv) : '');
+
+        break;
+
+      case 'message':
+        if (packet.data !== '')
+          data = packet.data;
+        break;
+
+      case 'event':
+        var ev = { name: packet.name };
+
+        if (packet.args && packet.args.length) {
+          ev.args = packet.args;
+        }
+
+        data = JSON.stringify(ev);
+        break;
+
+      case 'json':
+        data = JSON.stringify(packet.data);
+        break;
+
+      case 'connect':
+        if (packet.qs)
+          data = packet.qs;
+        break;
+
+      case 'ack':
+        data = packet.ackId
+          + (packet.args && packet.args.length
+              ? '+' + JSON.stringify(packet.args) : '');
+        break;
+    }
+
+    // construct packet with required fragments
+    var encoded = [
+        type
+      , id + (ack == 'data' ? '+' : '')
+      , endpoint
+    ];
+
+    // data fragment is optional
+    if (data !== null && data !== undefined)
+      encoded.push(data);
+
+    return encoded.join(':');
+  };
+
+  /**
+   * Encodes multiple messages (payload).
+   *
+   * @param {Array} messages
+   * @api private
+   */
+
+  parser.encodePayload = function (packets) {
+    var decoded = '';
+
+    if (packets.length == 1)
+      return packets[0];
+
+    for (var i = 0, l = packets.length; i < l; i++) {
+      var packet = packets[i];
+      decoded += '\ufffd' + packet.length + '\ufffd' + packets[i];
+    }
+
+    return decoded;
+  };
+
+  /**
+   * Decodes a packet
+   *
+   * @api private
+   */
+
+  var regexp = /([^:]+):([0-9]+)?(\+)?:([^:]+)?:?([\s\S]*)?/;
+
+  parser.decodePacket = function (data) {
+    var pieces = data.match(regexp);
+
+    if (!pieces) return {};
+
+    var id = pieces[2] || ''
+      , data = pieces[5] || ''
+      , packet = {
+            type: packets[pieces[1]]
+          , endpoint: pieces[4] || ''
+        };
+
+    // whether we need to acknowledge the packet
+    if (id) {
+      packet.id = id;
+      if (pieces[3])
+        packet.ack = 'data';
+      else
+        packet.ack = true;
+    }
+
+    // handle different packet types
+    switch (packet.type) {
+      case 'error':
+        var pieces = data.split('+');
+        packet.reason = reasons[pieces[0]] || '';
+        packet.advice = advice[pieces[1]] || '';
+        break;
+
+      case 'message':
+        packet.data = data || '';
+        break;
+
+      case 'event':
+        try {
+          var opts = JSON.parse(data);
+          packet.name = opts.name;
+          packet.args = opts.args;
+        } catch (e) { }
+
+        packet.args = packet.args || [];
+        break;
+
+      case 'json':
+        try {
+          packet.data = JSON.parse(data);
+        } catch (e) { }
+        break;
+
+      case 'connect':
+        packet.qs = data || '';
+        break;
+
+      case 'ack':
+        var pieces = data.match(/^([0-9]+)(\+)?(.*)/);
+        if (pieces) {
+          packet.ackId = pieces[1];
+          packet.args = [];
+
+          if (pieces[3]) {
+            try {
+              packet.args = pieces[3] ? JSON.parse(pieces[3]) : [];
+            } catch (e) { }
+          }
+        }
+        break;
+
+      case 'disconnect':
+      case 'heartbeat':
+        break;
+    };
+
+    return packet;
+  };
+
+  /**
+   * Decodes data payload. Detects multiple messages
+   *
+   * @return {Array} messages
+   * @api public
+   */
+
+  parser.decodePayload = function (data) {
+    // IE doesn't like data[i] for unicode chars, charAt works fine
+    if (data.charAt(0) == '\ufffd') {
+      var ret = [];
+
+      for (var i = 1, length = ''; i < data.length; i++) {
+        if (data.charAt(i) == '\ufffd') {
+          ret.push(parser.decodePacket(data.substr(i + 1).substr(0, length)));
+          i += Number(length) + 1;
+          length = '';
+        } else {
+          length += data.charAt(i);
+        }
+      }
+
+      return ret;
+    } else {
+      return [parser.decodePacket(data)];
+    }
+  };
+
+})(
+    'undefined' != typeof io ? io : module.exports
+  , 'undefined' != typeof io ? io : module.parent.exports
+);
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, io) {
+
+  /**
+   * Expose constructor.
+   */
+
+  exports.Transport = Transport;
+
+  /**
+   * This is the transport template for all supported transport methods.
+   *
+   * @constructor
+   * @api public
+   */
+
+  function Transport (socket, sessid) {
+    this.socket = socket;
+    this.sessid = sessid;
+  };
+
+  /**
+   * Apply EventEmitter mixin.
+   */
+
+  io.util.mixin(Transport, io.EventEmitter);
+
+  /**
+   * Handles the response from the server. When a new response is received
+   * it will automatically update the timeout, decode the message and
+   * forwards the response to the onMessage function for further processing.
+   *
+   * @param {String} data Response from the server.
+   * @api private
+   */
+
+  Transport.prototype.onData = function (data) {
+    this.clearCloseTimeout();
+    
+    // If the connection in currently open (or in a reopening state) reset the close 
+    // timeout since we have just received data. This check is necessary so
+    // that we don't reset the timeout on an explicitly disconnected connection.
+    if (this.socket.connected || this.socket.connecting || this.socket.reconnecting) {
+      this.setCloseTimeout();
+    }
+
+    if (data !== '') {
+      // todo: we should only do decodePayload for xhr transports
+      var msgs = io.parser.decodePayload(data);
+
+      if (msgs && msgs.length) {
+        for (var i = 0, l = msgs.length; i < l; i++) {
+          this.onPacket(msgs[i]);
+        }
+      }
+    }
+
+    return this;
+  };
+
+  /**
+   * Handles packets.
+   *
+   * @api private
+   */
+
+  Transport.prototype.onPacket = function (packet) {
+    this.socket.setHeartbeatTimeout();
+
+    if (packet.type == 'heartbeat') {
+      return this.onHeartbeat();
+    }
+
+    if (packet.type == 'connect' && packet.endpoint == '') {
+      this.onConnect();
+    }
+
+    if (packet.type == 'error' && packet.advice == 'reconnect') {
+      this.open = false;
+    }
+
+    this.socket.onPacket(packet);
+
+    return this;
+  };
+
+  /**
+   * Sets close timeout
+   *
+   * @api private
+   */
+  
+  Transport.prototype.setCloseTimeout = function () {
+    if (!this.closeTimeout) {
+      var self = this;
+
+      this.closeTimeout = setTimeout(function () {
+        self.onDisconnect();
+      }, this.socket.closeTimeout);
+    }
+  };
+
+  /**
+   * Called when transport disconnects.
+   *
+   * @api private
+   */
+
+  Transport.prototype.onDisconnect = function () {
+    if (this.close && this.open) this.close();
+    this.clearTimeouts();
+    this.socket.onDisconnect();
+    return this;
+  };
+
+  /**
+   * Called when transport connects
+   *
+   * @api private
+   */
+
+  Transport.prototype.onConnect = function () {
+    this.socket.onConnect();
+    return this;
+  }
+
+  /**
+   * Clears close timeout
+   *
+   * @api private
+   */
+
+  Transport.prototype.clearCloseTimeout = function () {
+    if (this.closeTimeout) {
+      clearTimeout(this.closeTimeout);
+      this.closeTimeout = null;
+    }
+  };
+
+  /**
+   * Clear timeouts
+   *
+   * @api private
+   */
+
+  Transport.prototype.clearTimeouts = function () {
+    this.clearCloseTimeout();
+
+    if (this.reopenTimeout) {
+      clearTimeout(this.reopenTimeout);
+    }
+  };
+
+  /**
+   * Sends a packet
+   *
+   * @param {Object} packet object.
+   * @api private
+   */
+
+  Transport.prototype.packet = function (packet) {
+    this.send(io.parser.encodePacket(packet));
+  };
+
+  /**
+   * Send the received heartbeat message back to server. So the server
+   * knows we are still connected.
+   *
+   * @param {String} heartbeat Heartbeat response from the server.
+   * @api private
+   */
+
+  Transport.prototype.onHeartbeat = function (heartbeat) {
+    this.packet({ type: 'heartbeat' });
+  };
+ 
+  /**
+   * Called when the transport opens.
+   *
+   * @api private
+   */
+
+  Transport.prototype.onOpen = function () {
+    this.open = true;
+    this.clearCloseTimeout();
+    this.socket.onOpen();
+  };
+
+  /**
+   * Notifies the base when the connection with the Socket.IO server
+   * has been disconnected.
+   *
+   * @api private
+   */
+
+  Transport.prototype.onClose = function () {
+    var self = this;
+
+    /* FIXME: reopen delay causing a infinit loop
+    this.reopenTimeout = setTimeout(function () {
+      self.open();
+    }, this.socket.options['reopen delay']);*/
+
+    this.open = false;
+    this.socket.onClose();
+    this.onDisconnect();
+  };
+
+  /**
+   * Generates a connection url based on the Socket.IO URL Protocol.
+   * See <https://github.com/learnboost/socket.io-node/> for more details.
+   *
+   * @returns {String} Connection url
+   * @api private
+   */
+
+  Transport.prototype.prepareUrl = function () {
+    var options = this.socket.options;
+
+    return this.scheme() + '://'
+      + options.host + ':' + options.port + '/'
+      + options.resource + '/' + io.protocol
+      + '/' + this.name + '/' + this.sessid;
+  };
+
+  /**
+   * Checks if the transport is ready to start a connection.
+   *
+   * @param {Socket} socket The socket instance that needs a transport
+   * @param {Function} fn The callback
+   * @api private
+   */
+
+  Transport.prototype.ready = function (socket, fn) {
+    fn.call(this);
+  };
+})(
+    'undefined' != typeof io ? io : module.exports
+  , 'undefined' != typeof io ? io : module.parent.exports
+);
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, io, global) {
+
+  /**
+   * Expose constructor.
+   */
+
+  exports.Socket = Socket;
+
+  /**
+   * Create a new `Socket.IO client` which can establish a persistent
+   * connection with a Socket.IO enabled server.
+   *
+   * @api public
+   */
+
+  function Socket (options) {
+    this.options = {
+        port: 80
+      , secure: false
+      , document: 'document' in global ? document : false
+      , resource: 'socket.io'
+      , transports: io.transports
+      , 'connect timeout': 10000
+      , 'try multiple transports': true
+      , 'reconnect': true
+      , 'reconnection delay': 500
+      , 'reconnection limit': Infinity
+      , 'reopen delay': 3000
+      , 'max reconnection attempts': 10
+      , 'sync disconnect on unload': true
+      , 'auto connect': true
+      , 'flash policy port': 10843
+    };
+
+    io.util.merge(this.options, options);
+
+    this.connected = false;
+    this.open = false;
+    this.connecting = false;
+    this.reconnecting = false;
+    this.namespaces = {};
+    this.buffer = [];
+    this.doBuffer = false;
+
+    if (this.options['sync disconnect on unload'] &&
+        (!this.isXDomain() || io.util.ua.hasCORS)) {
+      var self = this;
+
+      io.util.on(global, 'unload', function () {
+        self.disconnectSync();
+      }, false);
+    }
+
+    if (this.options['auto connect']) {
+      this.connect();
+    }
+};
+
+  /**
+   * Apply EventEmitter mixin.
+   */
+
+  io.util.mixin(Socket, io.EventEmitter);
+
+  /**
+   * Returns a namespace listener/emitter for this socket
+   *
+   * @api public
+   */
+
+  Socket.prototype.of = function (name) {
+    if (!this.namespaces[name]) {
+      this.namespaces[name] = new io.SocketNamespace(this, name);
+
+      if (name !== '') {
+        this.namespaces[name].packet({ type: 'connect' });
+      }
+    }
+
+    return this.namespaces[name];
+  };
+
+  /**
+   * Emits the given event to the Socket and all namespaces
+   *
+   * @api private
+   */
+
+  Socket.prototype.publish = function () {
+    this.emit.apply(this, arguments);
+
+    var nsp;
+
+    for (var i in this.namespaces) {
+      if (this.namespaces.hasOwnProperty(i)) {
+        nsp = this.of(i);
+        nsp.$emit.apply(nsp, arguments);
+      }
+    }
+  };
+
+  /**
+   * Performs the handshake
+   *
+   * @api private
+   */
+
+  function empty () { };
+
+  Socket.prototype.handshake = function (fn) {
+    var self = this
+      , options = this.options;
+
+    function complete (data) {
+      if (data instanceof Error) {
+        self.onError(data.message);
+      } else {
+        fn.apply(null, data.split(':'));
+      }
+    };
+
+    var url = [
+          'http' + (options.secure ? 's' : '') + ':/'
+        , options.host + ':' + options.port
+        , options.resource
+        , io.protocol
+        , io.util.query(this.options.query, 't=' + +new Date)
+      ].join('/');
+
+    if (this.isXDomain() && !io.util.ua.hasCORS) {
+      var insertAt = document.getElementsByTagName('script')[0]
+        , script = document.createElement('script');
+
+      script.src = url + '&jsonp=' + io.j.length;
+      insertAt.parentNode.insertBefore(script, insertAt);
+
+      io.j.push(function (data) {
+        complete(data);
+        script.parentNode.removeChild(script);
+      });
+    } else {
+      var xhr = io.util.request();
+
+      xhr.open('GET', url, true);
+      xhr.withCredentials = true;
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState == 4) {
+          xhr.onreadystatechange = empty;
+
+          if (xhr.status == 200) {
+            complete(xhr.responseText);
+          } else {
+            !self.reconnecting && self.onError(xhr.responseText);
+          }
+        }
+      };
+      xhr.send(null);
+    }
+  };
+
+  /**
+   * Find an available transport based on the options supplied in the constructor.
+   *
+   * @api private
+   */
+
+  Socket.prototype.getTransport = function (override) {
+    var transports = override || this.transports, match;
+
+    for (var i = 0, transport; transport = transports[i]; i++) {
+      if (io.Transport[transport]
+        && io.Transport[transport].check(this)
+        && (!this.isXDomain() || io.Transport[transport].xdomainCheck())) {
+        return new io.Transport[transport](this, this.sessionid);
+      }
+    }
+
+    return null;
+  };
+
+  /**
+   * Connects to the server.
+   *
+   * @param {Function} [fn] Callback.
+   * @returns {io.Socket}
+   * @api public
+   */
+
+  Socket.prototype.connect = function (fn) {
+    if (this.connecting) {
+      return this;
+    }
+
+    var self = this;
+
+    this.handshake(function (sid, heartbeat, close, transports) {
+      self.sessionid = sid;
+      self.closeTimeout = close * 1000;
+      self.heartbeatTimeout = heartbeat * 1000;
+      self.transports = transports ? io.util.intersect(
+          transports.split(',')
+        , self.options.transports
+      ) : self.options.transports;
+
+      self.setHeartbeatTimeout();
+
+      function connect (transports){
+        if (self.transport) self.transport.clearTimeouts();
+
+        self.transport = self.getTransport(transports);
+        if (!self.transport) return self.publish('connect_failed');
+
+        // once the transport is ready
+        self.transport.ready(self, function () {
+          self.connecting = true;
+          self.publish('connecting', self.transport.name);
+          self.transport.open();
+
+          if (self.options['connect timeout']) {
+            self.connectTimeoutTimer = setTimeout(function () {
+              if (!self.connected) {
+                self.connecting = false;
+
+                if (self.options['try multiple transports']) {
+                  if (!self.remainingTransports) {
+                    self.remainingTransports = self.transports.slice(0);
+                  }
+
+                  var remaining = self.remainingTransports;
+
+                  while (remaining.length > 0 && remaining.splice(0,1)[0] !=
+                         self.transport.name) {}
+
+                    if (remaining.length){
+                      connect(remaining);
+                    } else {
+                      self.publish('connect_failed');
+                    }
+                }
+              }
+            }, self.options['connect timeout']);
+          }
+        });
+      }
+
+      connect(self.transports);
+
+      self.once('connect', function (){
+        clearTimeout(self.connectTimeoutTimer);
+
+        fn && typeof fn == 'function' && fn();
+      });
+    });
+
+    return this;
+  };
+
+  /**
+   * Clears and sets a new heartbeat timeout using the value given by the
+   * server during the handshake.
+   *
+   * @api private
+   */
+
+  Socket.prototype.setHeartbeatTimeout = function () {
+    clearTimeout(this.heartbeatTimeoutTimer);
+
+    var self = this;
+    this.heartbeatTimeoutTimer = setTimeout(function () {
+      self.transport.onClose();
+    }, this.heartbeatTimeout);
+  };
+
+  /**
+   * Sends a message.
+   *
+   * @param {Object} data packet.
+   * @returns {io.Socket}
+   * @api public
+   */
+
+  Socket.prototype.packet = function (data) {
+    if (this.connected && !this.doBuffer) {
+      this.transport.packet(data);
+    } else {
+      this.buffer.push(data);
+    }
+
+    return this;
+  };
+
+  /**
+   * Sets buffer state
+   *
+   * @api private
+   */
+
+  Socket.prototype.setBuffer = function (v) {
+    this.doBuffer = v;
+
+    if (!v && this.connected && this.buffer.length) {
+      this.transport.payload(this.buffer);
+      this.buffer = [];
+    }
+  };
+
+  /**
+   * Disconnect the established connect.
+   *
+   * @returns {io.Socket}
+   * @api public
+   */
+
+  Socket.prototype.disconnect = function () {
+    if (this.connected || this.connecting) {
+      if (this.open) {
+        this.of('').packet({ type: 'disconnect' });
+      }
+
+      // handle disconnection immediately
+      this.onDisconnect('booted');
+    }
+
+    return this;
+  };
+
+  /**
+   * Disconnects the socket with a sync XHR.
+   *
+   * @api private
+   */
+
+  Socket.prototype.disconnectSync = function () {
+    // ensure disconnection
+    var xhr = io.util.request()
+      , uri = this.resource + '/' + io.protocol + '/' + this.sessionid;
+
+    xhr.open('GET', uri, true);
+
+    // handle disconnection immediately
+    this.onDisconnect('booted');
+  };
+
+  /**
+   * Check if we need to use cross domain enabled transports. Cross domain would
+   * be a different port or different domain name.
+   *
+   * @returns {Boolean}
+   * @api private
+   */
+
+  Socket.prototype.isXDomain = function () {
+
+    var port = global.location.port ||
+      ('https:' == global.location.protocol ? 443 : 80);
+
+    return this.options.host !== global.location.hostname 
+      || this.options.port != port;
+  };
+
+  /**
+   * Called upon handshake.
+   *
+   * @api private
+   */
+
+  Socket.prototype.onConnect = function () {
+    if (!this.connected) {
+      this.connected = true;
+      this.connecting = false;
+      if (!this.doBuffer) {
+        // make sure to flush the buffer
+        this.setBuffer(false);
+      }
+      this.emit('connect');
+    }
+  };
+
+  /**
+   * Called when the transport opens
+   *
+   * @api private
+   */
+
+  Socket.prototype.onOpen = function () {
+    this.open = true;
+  };
+
+  /**
+   * Called when the transport closes.
+   *
+   * @api private
+   */
+
+  Socket.prototype.onClose = function () {
+    this.open = false;
+    clearTimeout(this.heartbeatTimeoutTimer);
+  };
+
+  /**
+   * Called when the transport first opens a connection
+   *
+   * @param text
+   */
+
+  Socket.prototype.onPacket = function (packet) {
+    this.of(packet.endpoint).onPacket(packet);
+  };
+
+  /**
+   * Handles an error.
+   *
+   * @api private
+   */
+
+  Socket.prototype.onError = function (err) {
+    if (err && err.advice) {
+      if (err.advice === 'reconnect' && (this.connected || this.connecting)) {
+        this.disconnect();
+        if (this.options.reconnect) {
+          this.reconnect();
+        }
+      }
+    }
+
+    this.publish('error', err && err.reason ? err.reason : err);
+  };
+
+  /**
+   * Called when the transport disconnects.
+   *
+   * @api private
+   */
+
+  Socket.prototype.onDisconnect = function (reason) {
+    var wasConnected = this.connected
+      , wasConnecting = this.connecting;
+
+    this.connected = false;
+    this.connecting = false;
+    this.open = false;
+
+    if (wasConnected || wasConnecting) {
+      this.transport.close();
+      this.transport.clearTimeouts();
+      if (wasConnected) {
+        this.publish('disconnect', reason);
+
+        if ('booted' != reason && this.options.reconnect && !this.reconnecting) {
+          this.reconnect();
+        }
+      }
+    }
+  };
+
+  /**
+   * Called upon reconnection.
+   *
+   * @api private
+   */
+
+  Socket.prototype.reconnect = function () {
+    this.reconnecting = true;
+    this.reconnectionAttempts = 0;
+    this.reconnectionDelay = this.options['reconnection delay'];
+
+    var self = this
+      , maxAttempts = this.options['max reconnection attempts']
+      , tryMultiple = this.options['try multiple transports']
+      , limit = this.options['reconnection limit'];
+
+    function reset () {
+      if (self.connected) {
+        for (var i in self.namespaces) {
+          if (self.namespaces.hasOwnProperty(i) && '' !== i) {
+              self.namespaces[i].packet({ type: 'connect' });
+          }
+        }
+        self.publish('reconnect', self.transport.name, self.reconnectionAttempts);
+      }
+
+      clearTimeout(self.reconnectionTimer);
+
+      self.removeListener('connect_failed', maybeReconnect);
+      self.removeListener('connect', maybeReconnect);
+
+      self.reconnecting = false;
+
+      delete self.reconnectionAttempts;
+      delete self.reconnectionDelay;
+      delete self.reconnectionTimer;
+      delete self.redoTransports;
+
+      self.options['try multiple transports'] = tryMultiple;
+    };
+
+    function maybeReconnect () {
+      if (!self.reconnecting) {
+        return;
+      }
+
+      if (self.connected) {
+        return reset();
+      };
+
+      if (self.connecting && self.reconnecting) {
+        return self.reconnectionTimer = setTimeout(maybeReconnect, 1000);
+      }
+
+      if (self.reconnectionAttempts++ >= maxAttempts) {
+        if (!self.redoTransports) {
+          self.on('connect_failed', maybeReconnect);
+          self.options['try multiple transports'] = true;
+          self.transport = self.getTransport();
+          self.redoTransports = true;
+          self.connect();
+        } else {
+          self.publish('reconnect_failed');
+          reset();
+        }
+      } else {
+        if (self.reconnectionDelay < limit) {
+          self.reconnectionDelay *= 2; // exponential back off
+        }
+
+        self.connect();
+        self.publish('reconnecting', self.reconnectionDelay, self.reconnectionAttempts);
+        self.reconnectionTimer = setTimeout(maybeReconnect, self.reconnectionDelay);
+      }
+    };
+
+    this.options['try multiple transports'] = false;
+    this.reconnectionTimer = setTimeout(maybeReconnect, this.reconnectionDelay);
+
+    this.on('connect', maybeReconnect);
+  };
+
+})(
+    'undefined' != typeof io ? io : module.exports
+  , 'undefined' != typeof io ? io : module.parent.exports
+  , this
+);
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, io) {
+
+  /**
+   * Expose constructor.
+   */
+
+  exports.SocketNamespace = SocketNamespace;
+
+  /**
+   * Socket namespace constructor.
+   *
+   * @constructor
+   * @api public
+   */
+
+  function SocketNamespace (socket, name) {
+    this.socket = socket;
+    this.name = name || '';
+    this.flags = {};
+    this.json = new Flag(this, 'json');
+    this.ackPackets = 0;
+    this.acks = {};
+  };
+
+  /**
+   * Apply EventEmitter mixin.
+   */
+
+  io.util.mixin(SocketNamespace, io.EventEmitter);
+
+  /**
+   * Copies emit since we override it
+   *
+   * @api private
+   */
+
+  SocketNamespace.prototype.$emit = io.EventEmitter.prototype.emit;
+
+  /**
+   * Creates a new namespace, by proxying the request to the socket. This
+   * allows us to use the synax as we do on the server.
+   *
+   * @api public
+   */
+
+  SocketNamespace.prototype.of = function () {
+    return this.socket.of.apply(this.socket, arguments);
+  };
+
+  /**
+   * Sends a packet.
+   *
+   * @api private
+   */
+
+  SocketNamespace.prototype.packet = function (packet) {
+    packet.endpoint = this.name;
+    this.socket.packet(packet);
+    this.flags = {};
+    return this;
+  };
+
+  /**
+   * Sends a message
+   *
+   * @api public
+   */
+
+  SocketNamespace.prototype.send = function (data, fn) {
+    var packet = {
+        type: this.flags.json ? 'json' : 'message'
+      , data: data
+    };
+
+    if ('function' == typeof fn) {
+      packet.id = ++this.ackPackets;
+      packet.ack = true;
+      this.acks[packet.id] = fn;
+    }
+
+    return this.packet(packet);
+  };
+
+  /**
+   * Emits an event
+   *
+   * @api public
+   */
+  
+  SocketNamespace.prototype.emit = function (name) {
+    var args = Array.prototype.slice.call(arguments, 1)
+      , lastArg = args[args.length - 1]
+      , packet = {
+            type: 'event'
+          , name: name
+        };
+
+    if ('function' == typeof lastArg) {
+      packet.id = ++this.ackPackets;
+      packet.ack = 'data';
+      this.acks[packet.id] = lastArg;
+      args = args.slice(0, args.length - 1);
+    }
+
+    packet.args = args;
+
+    return this.packet(packet);
+  };
+
+  /**
+   * Disconnects the namespace
+   *
+   * @api private
+   */
+
+  SocketNamespace.prototype.disconnect = function () {
+    if (this.name === '') {
+      this.socket.disconnect();
+    } else {
+      this.packet({ type: 'disconnect' });
+      this.$emit('disconnect');
+    }
+
+    return this;
+  };
+
+  /**
+   * Handles a packet
+   *
+   * @api private
+   */
+
+  SocketNamespace.prototype.onPacket = function (packet) {
+    var self = this;
+
+    function ack () {
+      self.packet({
+          type: 'ack'
+        , args: io.util.toArray(arguments)
+        , ackId: packet.id
+      });
+    };
+
+    switch (packet.type) {
+      case 'connect':
+        this.$emit('connect');
+        break;
+
+      case 'disconnect':
+        if (this.name === '') {
+          this.socket.onDisconnect(packet.reason || 'booted');
+        } else {
+          this.$emit('disconnect', packet.reason);
+        }
+        break;
+
+      case 'message':
+      case 'json':
+        var params = ['message', packet.data];
+
+        if (packet.ack == 'data') {
+          params.push(ack);
+        } else if (packet.ack) {
+          this.packet({ type: 'ack', ackId: packet.id });
+        }
+
+        this.$emit.apply(this, params);
+        break;
+
+      case 'event':
+        var params = [packet.name].concat(packet.args);
+
+        if (packet.ack == 'data')
+          params.push(ack);
+
+        this.$emit.apply(this, params);
+        break;
+
+      case 'ack':
+        if (this.acks[packet.ackId]) {
+          this.acks[packet.ackId].apply(this, packet.args);
+          delete this.acks[packet.ackId];
+        }
+        break;
+
+      case 'error':
+        if (packet.advice){
+          this.socket.onError(packet);
+        } else {
+          if (packet.reason == 'unauthorized') {
+            this.$emit('connect_failed', packet.reason);
+          } else {
+            this.$emit('error', packet.reason);
+          }
+        }
+        break;
+    }
+  };
+
+  /**
+   * Flag interface.
+   *
+   * @api private
+   */
+
+  function Flag (nsp, name) {
+    this.namespace = nsp;
+    this.name = name;
+  };
+
+  /**
+   * Send a message
+   *
+   * @api public
+   */
+
+  Flag.prototype.send = function () {
+    this.namespace.flags[this.name] = true;
+    this.namespace.send.apply(this.namespace, arguments);
+  };
+
+  /**
+   * Emit an event
+   *
+   * @api public
+   */
+
+  Flag.prototype.emit = function () {
+    this.namespace.flags[this.name] = true;
+    this.namespace.emit.apply(this.namespace, arguments);
+  };
+
+})(
+    'undefined' != typeof io ? io : module.exports
+  , 'undefined' != typeof io ? io : module.parent.exports
+);
+
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, io, global) {
+
+  /**
+   * Expose constructor.
+   */
+
+  exports.websocket = WS;
+
+  /**
+   * The WebSocket transport uses the HTML5 WebSocket API to establish an
+   * persistent connection with the Socket.IO server. This transport will also
+   * be inherited by the FlashSocket fallback as it provides a API compatible
+   * polyfill for the WebSockets.
+   *
+   * @constructor
+   * @extends {io.Transport}
+   * @api public
+   */
+
+  function WS (socket) {
+    io.Transport.apply(this, arguments);
+  };
+
+  /**
+   * Inherits from Transport.
+   */
+
+  io.util.inherit(WS, io.Transport);
+
+  /**
+   * Transport name
+   *
+   * @api public
+   */
+
+  WS.prototype.name = 'websocket';
+
+  /**
+   * Initializes a new `WebSocket` connection with the Socket.IO server. We attach
+   * all the appropriate listeners to handle the responses from the server.
+   *
+   * @returns {Transport}
+   * @api public
+   */
+
+  WS.prototype.open = function () {
+    var query = io.util.query(this.socket.options.query)
+      , self = this
+      , Socket
+
+
+    if (!Socket) {
+      Socket = global.MozWebSocket || global.WebSocket;
+    }
+
+    this.websocket = new Socket(this.prepareUrl() + query);
+
+    this.websocket.onopen = function () {
+      self.onOpen();
+      self.socket.setBuffer(false);
+    };
+    this.websocket.onmessage = function (ev) {
+      self.onData(ev.data);
+    };
+    this.websocket.onclose = function () {
+      self.onClose();
+      self.socket.setBuffer(true);
+    };
+    this.websocket.onerror = function (e) {
+      self.onError(e);
+    };
+
+    return this;
+  };
+
+  /**
+   * Send a message to the Socket.IO server. The message will automatically be
+   * encoded in the correct message format.
+   *
+   * @returns {Transport}
+   * @api public
+   */
+
+  WS.prototype.send = function (data) {
+    this.websocket.send(data);
+    return this;
+  };
+
+  /**
+   * Payload
+   *
+   * @api private
+   */
+
+  WS.prototype.payload = function (arr) {
+    for (var i = 0, l = arr.length; i < l; i++) {
+      this.packet(arr[i]);
+    }
+    return this;
+  };
+
+  /**
+   * Disconnect the established `WebSocket` connection.
+   *
+   * @returns {Transport}
+   * @api public
+   */
+
+  WS.prototype.close = function () {
+    this.websocket.close();
+    return this;
+  };
+
+  /**
+   * Handle the errors that `WebSocket` might be giving when we
+   * are attempting to connect or send messages.
+   *
+   * @param {Error} e The error.
+   * @api private
+   */
+
+  WS.prototype.onError = function (e) {
+    this.socket.onError(e);
+  };
+
+  /**
+   * Returns the appropriate scheme for the URI generation.
+   *
+   * @api private
+   */
+  WS.prototype.scheme = function () {
+    return this.socket.options.secure ? 'wss' : 'ws';
+  };
+
+  /**
+   * Checks if the browser has support for native `WebSockets` and that
+   * it's not the polyfill created for the FlashSocket transport.
+   *
+   * @return {Boolean}
+   * @api public
+   */
+
+  WS.check = function () {
+    return ('WebSocket' in global && !('__addTask' in WebSocket))
+          || 'MozWebSocket' in global;
+  };
+
+  /**
+   * Check if the `WebSocket` transport support cross domain communications.
+   *
+   * @returns {Boolean}
+   * @api public
+   */
+
+  WS.xdomainCheck = function () {
+    return true;
+  };
+
+  /**
+   * Add the transport to your public io.transports array.
+   *
+   * @api private
+   */
+
+  io.transports.push('websocket');
+
+})(
+    'undefined' != typeof io ? io.Transport : module.exports
+  , 'undefined' != typeof io ? io : module.parent.exports
+  , this
+);
+
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, io) {
+
+  /**
+   * Expose constructor.
+   */
+
+  exports.flashsocket = Flashsocket;
+
+  /**
+   * The FlashSocket transport. This is a API wrapper for the HTML5 WebSocket
+   * specification. It uses a .swf file to communicate with the server. If you want
+   * to serve the .swf file from a other server than where the Socket.IO script is
+   * coming from you need to use the insecure version of the .swf. More information
+   * about this can be found on the github page.
+   *
+   * @constructor
+   * @extends {io.Transport.websocket}
+   * @api public
+   */
+
+  function Flashsocket () {
+    io.Transport.websocket.apply(this, arguments);
+  };
+
+  /**
+   * Inherits from Transport.
+   */
+
+  io.util.inherit(Flashsocket, io.Transport.websocket);
+
+  /**
+   * Transport name
+   *
+   * @api public
+   */
+
+  Flashsocket.prototype.name = 'flashsocket';
+
+  /**
+   * Disconnect the established `FlashSocket` connection. This is done by adding a 
+   * new task to the FlashSocket. The rest will be handled off by the `WebSocket` 
+   * transport.
+   *
+   * @returns {Transport}
+   * @api public
+   */
+
+  Flashsocket.prototype.open = function () {
+    var self = this
+      , args = arguments;
+
+    WebSocket.__addTask(function () {
+      io.Transport.websocket.prototype.open.apply(self, args);
+    });
+    return this;
+  };
+  
+  /**
+   * Sends a message to the Socket.IO server. This is done by adding a new
+   * task to the FlashSocket. The rest will be handled off by the `WebSocket` 
+   * transport.
+   *
+   * @returns {Transport}
+   * @api public
+   */
+
+  Flashsocket.prototype.send = function () {
+    var self = this, args = arguments;
+    WebSocket.__addTask(function () {
+      io.Transport.websocket.prototype.send.apply(self, args);
+    });
+    return this;
+  };
+
+  /**
+   * Disconnects the established `FlashSocket` connection.
+   *
+   * @returns {Transport}
+   * @api public
+   */
+
+  Flashsocket.prototype.close = function () {
+    WebSocket.__tasks.length = 0;
+    io.Transport.websocket.prototype.close.call(this);
+    return this;
+  };
+
+  /**
+   * The WebSocket fall back needs to append the flash container to the body
+   * element, so we need to make sure we have access to it. Or defer the call
+   * until we are sure there is a body element.
+   *
+   * @param {Socket} socket The socket instance that needs a transport
+   * @param {Function} fn The callback
+   * @api private
+   */
+
+  Flashsocket.prototype.ready = function (socket, fn) {
+    function init () {
+      var options = socket.options
+        , port = options['flash policy port']
+        , path = [
+              'http' + (options.secure ? 's' : '') + ':/'
+            , options.host + ':' + options.port
+            , options.resource
+            , 'static/flashsocket'
+            , 'WebSocketMain' + (socket.isXDomain() ? 'Insecure' : '') + '.swf'
+          ];
+
+      // Only start downloading the swf file when the checked that this browser
+      // actually supports it
+      if (!Flashsocket.loaded) {
+        if (typeof WEB_SOCKET_SWF_LOCATION === 'undefined') {
+          // Set the correct file based on the XDomain settings
+          WEB_SOCKET_SWF_LOCATION = path.join('/');
+        }
+
+        if (port !== 843) {
+          WebSocket.loadFlashPolicyFile('xmlsocket://' + options.host + ':' + port);
+        }
+
+        WebSocket.__initialize();
+        Flashsocket.loaded = true;
+      }
+
+      fn.call(self);
+    }
+
+    var self = this;
+    if (document.body) return init();
+
+    io.util.load(init);
+  };
+
+  /**
+   * Check if the FlashSocket transport is supported as it requires that the Adobe
+   * Flash Player plug-in version `10.0.0` or greater is installed. And also check if
+   * the polyfill is correctly loaded.
+   *
+   * @returns {Boolean}
+   * @api public
+   */
+
+  Flashsocket.check = function () {
+    if (
+        typeof WebSocket == 'undefined'
+      || !('__initialize' in WebSocket) || !swfobject
+    ) return false;
+
+    return swfobject.getFlashPlayerVersion().major >= 10;
+  };
+
+  /**
+   * Check if the FlashSocket transport can be used as cross domain / cross origin 
+   * transport. Because we can't see which type (secure or insecure) of .swf is used
+   * we will just return true.
+   *
+   * @returns {Boolean}
+   * @api public
+   */
+
+  Flashsocket.xdomainCheck = function () {
+    return true;
+  };
+
+  /**
+   * Disable AUTO_INITIALIZATION
+   */
+
+  if (typeof window != 'undefined') {
+    WEB_SOCKET_DISABLE_AUTO_INITIALIZATION = true;
+  }
+
+  /**
+   * Add the transport to your public io.transports array.
+   *
+   * @api private
+   */
+
+  io.transports.push('flashsocket');
+})(
+    'undefined' != typeof io ? io.Transport : module.exports
+  , 'undefined' != typeof io ? io : module.parent.exports
+);
+/*	SWFObject v2.2 <http://code.google.com/p/swfobject/> 
+	is released under the MIT License <http://www.opensource.org/licenses/mit-license.php> 
+*/
+if ('undefined' != typeof window) {
+var swfobject=function(){var D="undefined",r="object",S="Shockwave Flash",W="ShockwaveFlash.ShockwaveFlash",q="application/x-shockwave-flash",R="SWFObjectExprInst",x="onreadystatechange",O=window,j=document,t=navigator,T=false,U=[h],o=[],N=[],I=[],l,Q,E,B,J=false,a=false,n,G,m=true,M=function(){var aa=typeof j.getElementById!=D&&typeof j.getElementsByTagName!=D&&typeof j.createElement!=D,ah=t.userAgent.toLowerCase(),Y=t.platform.toLowerCase(),ae=Y?/win/.test(Y):/win/.test(ah),ac=Y?/mac/.test(Y):/mac/.test(ah),af=/webkit/.test(ah)?parseFloat(ah.replace(/^.*webkit\/(\d+(\.\d+)?).*$/,"$1")):false,X=!+"\v1",ag=[0,0,0],ab=null;if(typeof t.plugins!=D&&typeof t.plugins[S]==r){ab=t.plugins[S].description;if(ab&&!(typeof t.mimeTypes!=D&&t.mimeTypes[q]&&!t.mimeTypes[q].enabledPlugin)){T=true;X=false;ab=ab.replace(/^.*\s+(\S+\s+\S+$)/,"$1");ag[0]=parseInt(ab.replace(/^(.*)\..*$/,"$1"),10);ag[1]=parseInt(ab.replace(/^.*\.(.*)\s.*$/,"$1"),10);ag[2]=/[a-zA-Z]/.test(ab)?parseInt(ab.replace(/^.*[a-zA-Z]+(.*)$/,"$1"),10):0}}else{if(typeof O[(['Active'].concat('Object').join('X'))]!=D){try{var ad=new window[(['Active'].concat('Object').join('X'))](W);if(ad){ab=ad.GetVariable("$version");if(ab){X=true;ab=ab.split(" ")[1].split(",");ag=[parseInt(ab[0],10),parseInt(ab[1],10),parseInt(ab[2],10)]}}}catch(Z){}}}return{w3:aa,pv:ag,wk:af,ie:X,win:ae,mac:ac}}(),k=function(){if(!M.w3){return}if((typeof j.readyState!=D&&j.readyState=="complete")||(typeof j.readyState==D&&(j.getElementsByTagName("body")[0]||j.body))){f()}if(!J){if(typeof j.addEventListener!=D){j.addEventListener("DOMContentLoaded",f,false)}if(M.ie&&M.win){j.attachEvent(x,function(){if(j.readyState=="complete"){j.detachEvent(x,arguments.callee);f()}});if(O==top){(function(){if(J){return}try{j.documentElement.doScroll("left")}catch(X){setTimeout(arguments.callee,0);return}f()})()}}if(M.wk){(function(){if(J){return}if(!/loaded|complete/.test(j.readyState)){setTimeout(arguments.callee,0);return}f()})()}s(f)}}();function f(){if(J){return}try{var Z=j.getElementsByTagName("body")[0].appendChild(C("span"));Z.parentNode.removeChild(Z)}catch(aa){return}J=true;var X=U.length;for(var Y=0;Y<X;Y++){U[Y]()}}function K(X){if(J){X()}else{U[U.length]=X}}function s(Y){if(typeof O.addEventListener!=D){O.addEventListener("load",Y,false)}else{if(typeof j.addEventListener!=D){j.addEventListener("load",Y,false)}else{if(typeof O.attachEvent!=D){i(O,"onload",Y)}else{if(typeof O.onload=="function"){var X=O.onload;O.onload=function(){X();Y()}}else{O.onload=Y}}}}}function h(){if(T){V()}else{H()}}function V(){var X=j.getElementsByTagName("body")[0];var aa=C(r);aa.setAttribute("type",q);var Z=X.appendChild(aa);if(Z){var Y=0;(function(){if(typeof Z.GetVariable!=D){var ab=Z.GetVariable("$version");if(ab){ab=ab.split(" ")[1].split(",");M.pv=[parseInt(ab[0],10),parseInt(ab[1],10),parseInt(ab[2],10)]}}else{if(Y<10){Y++;setTimeout(arguments.callee,10);return}}X.removeChild(aa);Z=null;H()})()}else{H()}}function H(){var ag=o.length;if(ag>0){for(var af=0;af<ag;af++){var Y=o[af].id;var ab=o[af].callbackFn;var aa={success:false,id:Y};if(M.pv[0]>0){var ae=c(Y);if(ae){if(F(o[af].swfVersion)&&!(M.wk&&M.wk<312)){w(Y,true);if(ab){aa.success=true;aa.ref=z(Y);ab(aa)}}else{if(o[af].expressInstall&&A()){var ai={};ai.data=o[af].expressInstall;ai.width=ae.getAttribute("width")||"0";ai.height=ae.getAttribute("height")||"0";if(ae.getAttribute("class")){ai.styleclass=ae.getAttribute("class")}if(ae.getAttribute("align")){ai.align=ae.getAttribute("align")}var ah={};var X=ae.getElementsByTagName("param");var ac=X.length;for(var ad=0;ad<ac;ad++){if(X[ad].getAttribute("name").toLowerCase()!="movie"){ah[X[ad].getAttribute("name")]=X[ad].getAttribute("value")}}P(ai,ah,Y,ab)}else{p(ae);if(ab){ab(aa)}}}}}else{w(Y,true);if(ab){var Z=z(Y);if(Z&&typeof Z.SetVariable!=D){aa.success=true;aa.ref=Z}ab(aa)}}}}}function z(aa){var X=null;var Y=c(aa);if(Y&&Y.nodeName=="OBJECT"){if(typeof Y.SetVariable!=D){X=Y}else{var Z=Y.getElementsByTagName(r)[0];if(Z){X=Z}}}return X}function A(){return !a&&F("6.0.65")&&(M.win||M.mac)&&!(M.wk&&M.wk<312)}function P(aa,ab,X,Z){a=true;E=Z||null;B={success:false,id:X};var ae=c(X);if(ae){if(ae.nodeName=="OBJECT"){l=g(ae);Q=null}else{l=ae;Q=X}aa.id=R;if(typeof aa.width==D||(!/%$/.test(aa.width)&&parseInt(aa.width,10)<310)){aa.width="310"}if(typeof aa.height==D||(!/%$/.test(aa.height)&&parseInt(aa.height,10)<137)){aa.height="137"}j.title=j.title.slice(0,47)+" - Flash Player Installation";var ad=M.ie&&M.win?(['Active'].concat('').join('X')):"PlugIn",ac="MMredirectURL="+O.location.toString().replace(/&/g,"%26")+"&MMplayerType="+ad+"&MMdoctitle="+j.title;if(typeof ab.flashvars!=D){ab.flashvars+="&"+ac}else{ab.flashvars=ac}if(M.ie&&M.win&&ae.readyState!=4){var Y=C("div");X+="SWFObjectNew";Y.setAttribute("id",X);ae.parentNode.insertBefore(Y,ae);ae.style.display="none";(function(){if(ae.readyState==4){ae.parentNode.removeChild(ae)}else{setTimeout(arguments.callee,10)}})()}u(aa,ab,X)}}function p(Y){if(M.ie&&M.win&&Y.readyState!=4){var X=C("div");Y.parentNode.insertBefore(X,Y);X.parentNode.replaceChild(g(Y),X);Y.style.display="none";(function(){if(Y.readyState==4){Y.parentNode.removeChild(Y)}else{setTimeout(arguments.callee,10)}})()}else{Y.parentNode.replaceChild(g(Y),Y)}}function g(ab){var aa=C("div");if(M.win&&M.ie){aa.innerHTML=ab.innerHTML}else{var Y=ab.getElementsByTagName(r)[0];if(Y){var ad=Y.childNodes;if(ad){var X=ad.length;for(var Z=0;Z<X;Z++){if(!(ad[Z].nodeType==1&&ad[Z].nodeName=="PARAM")&&!(ad[Z].nodeType==8)){aa.appendChild(ad[Z].cloneNode(true))}}}}}return aa}function u(ai,ag,Y){var X,aa=c(Y);if(M.wk&&M.wk<312){return X}if(aa){if(typeof ai.id==D){ai.id=Y}if(M.ie&&M.win){var ah="";for(var ae in ai){if(ai[ae]!=Object.prototype[ae]){if(ae.toLowerCase()=="data"){ag.movie=ai[ae]}else{if(ae.toLowerCase()=="styleclass"){ah+=' class="'+ai[ae]+'"'}else{if(ae.toLowerCase()!="classid"){ah+=" "+ae+'="'+ai[ae]+'"'}}}}}var af="";for(var ad in ag){if(ag[ad]!=Object.prototype[ad]){af+='<param name="'+ad+'" value="'+ag[ad]+'" />'}}aa.outerHTML='<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"'+ah+">"+af+"</object>";N[N.length]=ai.id;X=c(ai.id)}else{var Z=C(r);Z.setAttribute("type",q);for(var ac in ai){if(ai[ac]!=Object.prototype[ac]){if(ac.toLowerCase()=="styleclass"){Z.setAttribute("class",ai[ac])}else{if(ac.toLowerCase()!="classid"){Z.setAttribute(ac,ai[ac])}}}}for(var ab in ag){if(ag[ab]!=Object.prototype[ab]&&ab.toLowerCase()!="movie"){e(Z,ab,ag[ab])}}aa.parentNode.replaceChild(Z,aa);X=Z}}return X}function e(Z,X,Y){var aa=C("param");aa.setAttribute("name",X);aa.setAttribute("value",Y);Z.appendChild(aa)}function y(Y){var X=c(Y);if(X&&X.nodeName=="OBJECT"){if(M.ie&&M.win){X.style.display="none";(function(){if(X.readyState==4){b(Y)}else{setTimeout(arguments.callee,10)}})()}else{X.parentNode.removeChild(X)}}}function b(Z){var Y=c(Z);if(Y){for(var X in Y){if(typeof Y[X]=="function"){Y[X]=null}}Y.parentNode.removeChild(Y)}}function c(Z){var X=null;try{X=j.getElementById(Z)}catch(Y){}return X}function C(X){return j.createElement(X)}function i(Z,X,Y){Z.attachEvent(X,Y);I[I.length]=[Z,X,Y]}function F(Z){var Y=M.pv,X=Z.split(".");X[0]=parseInt(X[0],10);X[1]=parseInt(X[1],10)||0;X[2]=parseInt(X[2],10)||0;return(Y[0]>X[0]||(Y[0]==X[0]&&Y[1]>X[1])||(Y[0]==X[0]&&Y[1]==X[1]&&Y[2]>=X[2]))?true:false}function v(ac,Y,ad,ab){if(M.ie&&M.mac){return}var aa=j.getElementsByTagName("head")[0];if(!aa){return}var X=(ad&&typeof ad=="string")?ad:"screen";if(ab){n=null;G=null}if(!n||G!=X){var Z=C("style");Z.setAttribute("type","text/css");Z.setAttribute("media",X);n=aa.appendChild(Z);if(M.ie&&M.win&&typeof j.styleSheets!=D&&j.styleSheets.length>0){n=j.styleSheets[j.styleSheets.length-1]}G=X}if(M.ie&&M.win){if(n&&typeof n.addRule==r){n.addRule(ac,Y)}}else{if(n&&typeof j.createTextNode!=D){n.appendChild(j.createTextNode(ac+" {"+Y+"}"))}}}function w(Z,X){if(!m){return}var Y=X?"visible":"hidden";if(J&&c(Z)){c(Z).style.visibility=Y}else{v("#"+Z,"visibility:"+Y)}}function L(Y){var Z=/[\\\"<>\.;]/;var X=Z.exec(Y)!=null;return X&&typeof encodeURIComponent!=D?encodeURIComponent(Y):Y}var d=function(){if(M.ie&&M.win){window.attachEvent("onunload",function(){var ac=I.length;for(var ab=0;ab<ac;ab++){I[ab][0].detachEvent(I[ab][1],I[ab][2])}var Z=N.length;for(var aa=0;aa<Z;aa++){y(N[aa])}for(var Y in M){M[Y]=null}M=null;for(var X in swfobject){swfobject[X]=null}swfobject=null})}}();return{registerObject:function(ab,X,aa,Z){if(M.w3&&ab&&X){var Y={};Y.id=ab;Y.swfVersion=X;Y.expressInstall=aa;Y.callbackFn=Z;o[o.length]=Y;w(ab,false)}else{if(Z){Z({success:false,id:ab})}}},getObjectById:function(X){if(M.w3){return z(X)}},embedSWF:function(ab,ah,ae,ag,Y,aa,Z,ad,af,ac){var X={success:false,id:ah};if(M.w3&&!(M.wk&&M.wk<312)&&ab&&ah&&ae&&ag&&Y){w(ah,false);K(function(){ae+="";ag+="";var aj={};if(af&&typeof af===r){for(var al in af){aj[al]=af[al]}}aj.data=ab;aj.width=ae;aj.height=ag;var am={};if(ad&&typeof ad===r){for(var ak in ad){am[ak]=ad[ak]}}if(Z&&typeof Z===r){for(var ai in Z){if(typeof am.flashvars!=D){am.flashvars+="&"+ai+"="+Z[ai]}else{am.flashvars=ai+"="+Z[ai]}}}if(F(Y)){var an=u(aj,am,ah);if(aj.id==ah){w(ah,true)}X.success=true;X.ref=an}else{if(aa&&A()){aj.data=aa;P(aj,am,ah,ac);return}else{w(ah,true)}}if(ac){ac(X)}})}else{if(ac){ac(X)}}},switchOffAutoHideShow:function(){m=false},ua:M,getFlashPlayerVersion:function(){return{major:M.pv[0],minor:M.pv[1],release:M.pv[2]}},hasFlashPlayerVersion:F,createSWF:function(Z,Y,X){if(M.w3){return u(Z,Y,X)}else{return undefined}},showExpressInstall:function(Z,aa,X,Y){if(M.w3&&A()){P(Z,aa,X,Y)}},removeSWF:function(X){if(M.w3){y(X)}},createCSS:function(aa,Z,Y,X){if(M.w3){v(aa,Z,Y,X)}},addDomLoadEvent:K,addLoadEvent:s,getQueryParamValue:function(aa){var Z=j.location.search||j.location.hash;if(Z){if(/\?/.test(Z)){Z=Z.split("?")[1]}if(aa==null){return L(Z)}var Y=Z.split("&");for(var X=0;X<Y.length;X++){if(Y[X].substring(0,Y[X].indexOf("="))==aa){return L(Y[X].substring((Y[X].indexOf("=")+1)))}}}return""},expressInstallCallback:function(){if(a){var X=c(R);if(X&&l){X.parentNode.replaceChild(l,X);if(Q){w(Q,true);if(M.ie&&M.win){l.style.display="block"}}if(E){E(B)}}a=false}}}}();
+}
+// Copyright: Hiroshi Ichikawa <http://gimite.net/en/>
+// License: New BSD License
+// Reference: http://dev.w3.org/html5/websockets/
+// Reference: http://tools.ietf.org/html/draft-hixie-thewebsocketprotocol
+
+(function() {
+  
+  if ('undefined' == typeof window || window.WebSocket) return;
+
+  var console = window.console;
+  if (!console || !console.log || !console.error) {
+    console = {log: function(){ }, error: function(){ }};
+  }
+  
+  if (!swfobject.hasFlashPlayerVersion("10.0.0")) {
+    console.error("Flash Player >= 10.0.0 is required.");
+    return;
+  }
+  if (location.protocol == "file:") {
+    console.error(
+      "WARNING: web-socket-js doesn't work in file:///... URL " +
+      "unless you set Flash Security Settings properly. " +
+      "Open the page via Web server i.e. http://...");
+  }
+
+  /**
+   * This class represents a faux web socket.
+   * @param {string} url
+   * @param {array or string} protocols
+   * @param {string} proxyHost
+   * @param {int} proxyPort
+   * @param {string} headers
+   */
+  WebSocket = function(url, protocols, proxyHost, proxyPort, headers) {
+    var self = this;
+    self.__id = WebSocket.__nextId++;
+    WebSocket.__instances[self.__id] = self;
+    self.readyState = WebSocket.CONNECTING;
+    self.bufferedAmount = 0;
+    self.__events = {};
+    if (!protocols) {
+      protocols = [];
+    } else if (typeof protocols == "string") {
+      protocols = [protocols];
+    }
+    // Uses setTimeout() to make sure __createFlash() runs after the caller sets ws.onopen etc.
+    // Otherwise, when onopen fires immediately, onopen is called before it is set.
+    setTimeout(function() {
+      WebSocket.__addTask(function() {
+        WebSocket.__flash.create(
+            self.__id, url, protocols, proxyHost || null, proxyPort || 0, headers || null);
+      });
+    }, 0);
+  };
+
+  /**
+   * Send data to the web socket.
+   * @param {string} data  The data to send to the socket.
+   * @return {boolean}  True for success, false for failure.
+   */
+  WebSocket.prototype.send = function(data) {
+    if (this.readyState == WebSocket.CONNECTING) {
+      throw "INVALID_STATE_ERR: Web Socket connection has not been established";
+    }
+    // We use encodeURIComponent() here, because FABridge doesn't work if
+    // the argument includes some characters. We don't use escape() here
+    // because of this:
+    // https://developer.mozilla.org/en/Core_JavaScript_1.5_Guide/Functions#escape_and_unescape_Functions
+    // But it looks decodeURIComponent(encodeURIComponent(s)) doesn't
+    // preserve all Unicode characters either e.g. "\uffff" in Firefox.
+    // Note by wtritch: Hopefully this will not be necessary using ExternalInterface.  Will require
+    // additional testing.
+    var result = WebSocket.__flash.send(this.__id, encodeURIComponent(data));
+    if (result < 0) { // success
+      return true;
+    } else {
+      this.bufferedAmount += result;
+      return false;
+    }
+  };
+
+  /**
+   * Close this web socket gracefully.
+   */
+  WebSocket.prototype.close = function() {
+    if (this.readyState == WebSocket.CLOSED || this.readyState == WebSocket.CLOSING) {
+      return;
+    }
+    this.readyState = WebSocket.CLOSING;
+    WebSocket.__flash.close(this.__id);
+  };
+
+  /**
+   * Implementation of {@link <a href="http://www.w3.org/TR/DOM-Level-2-Events/events.html#Events-registration">DOM 2 EventTarget Interface</a>}
+   *
+   * @param {string} type
+   * @param {function} listener
+   * @param {boolean} useCapture
+   * @return void
+   */
+  WebSocket.prototype.addEventListener = function(type, listener, useCapture) {
+    if (!(type in this.__events)) {
+      this.__events[type] = [];
+    }
+    this.__events[type].push(listener);
+  };
+
+  /**
+   * Implementation of {@link <a href="http://www.w3.org/TR/DOM-Level-2-Events/events.html#Events-registration">DOM 2 EventTarget Interface</a>}
+   *
+   * @param {string} type
+   * @param {function} listener
+   * @param {boolean} useCapture
+   * @return void
+   */
+  WebSocket.prototype.removeEventListener = function(type, listener, useCapture) {
+    if (!(type in this.__events)) return;
+    var events = this.__events[type];
+    for (var i = events.length - 1; i >= 0; --i) {
+      if (events[i] === listener) {
+        events.splice(i, 1);
+        break;
+      }
+    }
+  };
+
+  /**
+   * Implementation of {@link <a href="http://www.w3.org/TR/DOM-Level-2-Events/events.html#Events-registration">DOM 2 EventTarget Interface</a>}
+   *
+   * @param {Event} event
+   * @return void
+   */
+  WebSocket.prototype.dispatchEvent = function(event) {
+    var events = this.__events[event.type] || [];
+    for (var i = 0; i < events.length; ++i) {
+      events[i](event);
+    }
+    var handler = this["on" + event.type];
+    if (handler) handler(event);
+  };
+
+  /**
+   * Handles an event from Flash.
+   * @param {Object} flashEvent
+   */
+  WebSocket.prototype.__handleEvent = function(flashEvent) {
+    if ("readyState" in flashEvent) {
+      this.readyState = flashEvent.readyState;
+    }
+    if ("protocol" in flashEvent) {
+      this.protocol = flashEvent.protocol;
+    }
+    
+    var jsEvent;
+    if (flashEvent.type == "open" || flashEvent.type == "error") {
+      jsEvent = this.__createSimpleEvent(flashEvent.type);
+    } else if (flashEvent.type == "close") {
+      // TODO implement jsEvent.wasClean
+      jsEvent = this.__createSimpleEvent("close");
+    } else if (flashEvent.type == "message") {
+      var data = decodeURIComponent(flashEvent.message);
+      jsEvent = this.__createMessageEvent("message", data);
+    } else {
+      throw "unknown event type: " + flashEvent.type;
+    }
+    
+    this.dispatchEvent(jsEvent);
+  };
+  
+  WebSocket.prototype.__createSimpleEvent = function(type) {
+    if (document.createEvent && window.Event) {
+      var event = document.createEvent("Event");
+      event.initEvent(type, false, false);
+      return event;
+    } else {
+      return {type: type, bubbles: false, cancelable: false};
+    }
+  };
+  
+  WebSocket.prototype.__createMessageEvent = function(type, data) {
+    if (document.createEvent && window.MessageEvent && !window.opera) {
+      var event = document.createEvent("MessageEvent");
+      event.initMessageEvent("message", false, false, data, null, null, window, null);
+      return event;
+    } else {
+      // IE and Opera, the latter one truncates the data parameter after any 0x00 bytes.
+      return {type: type, data: data, bubbles: false, cancelable: false};
+    }
+  };
+  
+  /**
+   * Define the WebSocket readyState enumeration.
+   */
+  WebSocket.CONNECTING = 0;
+  WebSocket.OPEN = 1;
+  WebSocket.CLOSING = 2;
+  WebSocket.CLOSED = 3;
+
+  WebSocket.__flash = null;
+  WebSocket.__instances = {};
+  WebSocket.__tasks = [];
+  WebSocket.__nextId = 0;
+  
+  /**
+   * Load a new flash security policy file.
+   * @param {string} url
+   */
+  WebSocket.loadFlashPolicyFile = function(url){
+    WebSocket.__addTask(function() {
+      WebSocket.__flash.loadManualPolicyFile(url);
+    });
+  };
+
+  /**
+   * Loads WebSocketMain.swf and creates WebSocketMain object in Flash.
+   */
+  WebSocket.__initialize = function() {
+    if (WebSocket.__flash) return;
+    
+    if (WebSocket.__swfLocation) {
+      // For backword compatibility.
+      window.WEB_SOCKET_SWF_LOCATION = WebSocket.__swfLocation;
+    }
+    if (!window.WEB_SOCKET_SWF_LOCATION) {
+      console.error("[WebSocket] set WEB_SOCKET_SWF_LOCATION to location of WebSocketMain.swf");
+      return;
+    }
+    var container = document.createElement("div");
+    container.id = "webSocketContainer";
+    // Hides Flash box. We cannot use display: none or visibility: hidden because it prevents
+    // Flash from loading at least in IE. So we move it out of the screen at (-100, -100).
+    // But this even doesn't work with Flash Lite (e.g. in Droid Incredible). So with Flash
+    // Lite, we put it at (0, 0). This shows 1x1 box visible at left-top corner but this is
+    // the best we can do as far as we know now.
+    container.style.position = "absolute";
+    if (WebSocket.__isFlashLite()) {
+      container.style.left = "0px";
+      container.style.top = "0px";
+    } else {
+      container.style.left = "-100px";
+      container.style.top = "-100px";
+    }
+    var holder = document.createElement("div");
+    holder.id = "webSocketFlash";
+    container.appendChild(holder);
+    document.body.appendChild(container);
+    // See this article for hasPriority:
+    // http://help.adobe.com/en_US/as3/mobile/WS4bebcd66a74275c36cfb8137124318eebc6-7ffd.html
+    swfobject.embedSWF(
+      WEB_SOCKET_SWF_LOCATION,
+      "webSocketFlash",
+      "1" /* width */,
+      "1" /* height */,
+      "10.0.0" /* SWF version */,
+      null,
+      null,
+      {hasPriority: true, swliveconnect : true, allowScriptAccess: "always"},
+      null,
+      function(e) {
+        if (!e.success) {
+          console.error("[WebSocket] swfobject.embedSWF failed");
+        }
+      });
+  };
+  
+  /**
+   * Called by Flash to notify JS that it's fully loaded and ready
+   * for communication.
+   */
+  WebSocket.__onFlashInitialized = function() {
+    // We need to set a timeout here to avoid round-trip calls
+    // to flash during the initialization process.
+    setTimeout(function() {
+      WebSocket.__flash = document.getElementById("webSocketFlash");
+      WebSocket.__flash.setCallerUrl(location.href);
+      WebSocket.__flash.setDebug(!!window.WEB_SOCKET_DEBUG);
+      for (var i = 0; i < WebSocket.__tasks.length; ++i) {
+        WebSocket.__tasks[i]();
+      }
+      WebSocket.__tasks = [];
+    }, 0);
+  };
+  
+  /**
+   * Called by Flash to notify WebSockets events are fired.
+   */
+  WebSocket.__onFlashEvent = function() {
+    setTimeout(function() {
+      try {
+        // Gets events using receiveEvents() instead of getting it from event object
+        // of Flash event. This is to make sure to keep message order.
+        // It seems sometimes Flash events don't arrive in the same order as they are sent.
+        var events = WebSocket.__flash.receiveEvents();
+        for (var i = 0; i < events.length; ++i) {
+          WebSocket.__instances[events[i].webSocketId].__handleEvent(events[i]);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }, 0);
+    return true;
+  };
+  
+  // Called by Flash.
+  WebSocket.__log = function(message) {
+    console.log(decodeURIComponent(message));
+  };
+  
+  // Called by Flash.
+  WebSocket.__error = function(message) {
+    console.error(decodeURIComponent(message));
+  };
+  
+  WebSocket.__addTask = function(task) {
+    if (WebSocket.__flash) {
+      task();
+    } else {
+      WebSocket.__tasks.push(task);
+    }
+  };
+  
+  /**
+   * Test if the browser is running flash lite.
+   * @return {boolean} True if flash lite is running, false otherwise.
+   */
+  WebSocket.__isFlashLite = function() {
+    if (!window.navigator || !window.navigator.mimeTypes) {
+      return false;
+    }
+    var mimeType = window.navigator.mimeTypes["application/x-shockwave-flash"];
+    if (!mimeType || !mimeType.enabledPlugin || !mimeType.enabledPlugin.filename) {
+      return false;
+    }
+    return mimeType.enabledPlugin.filename.match(/flashlite/i) ? true : false;
+  };
+  
+  if (!window.WEB_SOCKET_DISABLE_AUTO_INITIALIZATION) {
+    if (window.addEventListener) {
+      window.addEventListener("load", function(){
+        WebSocket.__initialize();
+      }, false);
+    } else {
+      window.attachEvent("onload", function(){
+        WebSocket.__initialize();
+      });
+    }
+  }
+  
+})();
+
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, io, global) {
+
+  /**
+   * Expose constructor.
+   *
+   * @api public
+   */
+
+  exports.XHR = XHR;
+
+  /**
+   * XHR constructor
+   *
+   * @costructor
+   * @api public
+   */
+
+  function XHR (socket) {
+    if (!socket) return;
+
+    io.Transport.apply(this, arguments);
+    this.sendBuffer = [];
+  };
+
+  /**
+   * Inherits from Transport.
+   */
+
+  io.util.inherit(XHR, io.Transport);
+
+  /**
+   * Establish a connection
+   *
+   * @returns {Transport}
+   * @api public
+   */
+
+  XHR.prototype.open = function () {
+    this.socket.setBuffer(false);
+    this.onOpen();
+    this.get();
+
+    // we need to make sure the request succeeds since we have no indication
+    // whether the request opened or not until it succeeded.
+    this.setCloseTimeout();
+
+    return this;
+  };
+
+  /**
+   * Check if we need to send data to the Socket.IO server, if we have data in our
+   * buffer we encode it and forward it to the `post` method.
+   *
+   * @api private
+   */
+
+  XHR.prototype.payload = function (payload) {
+    var msgs = [];
+
+    for (var i = 0, l = payload.length; i < l; i++) {
+      msgs.push(io.parser.encodePacket(payload[i]));
+    }
+
+    this.send(io.parser.encodePayload(msgs));
+  };
+
+  /**
+   * Send data to the Socket.IO server.
+   *
+   * @param data The message
+   * @returns {Transport}
+   * @api public
+   */
+
+  XHR.prototype.send = function (data) {
+    this.post(data);
+    return this;
+  };
+
+  /**
+   * Posts a encoded message to the Socket.IO server.
+   *
+   * @param {String} data A encoded message.
+   * @api private
+   */
+
+  function empty () { };
+
+  XHR.prototype.post = function (data) {
+    var self = this;
+    this.socket.setBuffer(true);
+
+    function stateChange () {
+      if (this.readyState == 4) {
+        this.onreadystatechange = empty;
+        self.posting = false;
+
+        if (this.status == 200){
+          self.socket.setBuffer(false);
+        } else {
+          self.onClose();
+        }
+      }
+    }
+
+    function onload () {
+      this.onload = empty;
+      self.socket.setBuffer(false);
+    };
+
+    this.sendXHR = this.request('POST');
+
+    if (global.XDomainRequest && this.sendXHR instanceof XDomainRequest) {
+      this.sendXHR.onload = this.sendXHR.onerror = onload;
+    } else {
+      this.sendXHR.onreadystatechange = stateChange;
+    }
+
+    this.sendXHR.send(data);
+  };
+
+  /**
+   * Disconnects the established `XHR` connection.
+   *
+   * @returns {Transport}
+   * @api public
+   */
+
+  XHR.prototype.close = function () {
+    this.onClose();
+    return this;
+  };
+
+  /**
+   * Generates a configured XHR request
+   *
+   * @param {String} url The url that needs to be requested.
+   * @param {String} method The method the request should use.
+   * @returns {XMLHttpRequest}
+   * @api private
+   */
+
+  XHR.prototype.request = function (method) {
+    var req = io.util.request(this.socket.isXDomain())
+      , query = io.util.query(this.socket.options.query, 't=' + +new Date);
+
+    req.open(method || 'GET', this.prepareUrl() + query, true);
+
+    if (method == 'POST') {
+      try {
+        if (req.setRequestHeader) {
+          req.setRequestHeader('Content-type', 'text/plain;charset=UTF-8');
+        } else {
+          // XDomainRequest
+          req.contentType = 'text/plain';
+        }
+      } catch (e) {}
+    }
+
+    return req;
+  };
+
+  /**
+   * Returns the scheme to use for the transport URLs.
+   *
+   * @api private
+   */
+
+  XHR.prototype.scheme = function () {
+    return this.socket.options.secure ? 'https' : 'http';
+  };
+
+  /**
+   * Check if the XHR transports are supported
+   *
+   * @param {Boolean} xdomain Check if we support cross domain requests.
+   * @returns {Boolean}
+   * @api public
+   */
+
+  XHR.check = function (socket, xdomain) {
+    try {
+      var request = io.util.request(xdomain),
+          usesXDomReq = (global.XDomainRequest && request instanceof XDomainRequest),
+          socketProtocol = (socket && socket.options && socket.options.secure ? 'https:' : 'http:'),
+          isXProtocol = (socketProtocol != global.location.protocol);
+      if (request && !(usesXDomReq && isXProtocol)) {
+        return true;
+      }
+    } catch(e) {}
+
+    return false;
+  };
+
+  /**
+   * Check if the XHR transport supports cross domain requests.
+   *
+   * @returns {Boolean}
+   * @api public
+   */
+
+  XHR.xdomainCheck = function () {
+    return XHR.check(null, true);
+  };
+
+})(
+    'undefined' != typeof io ? io.Transport : module.exports
+  , 'undefined' != typeof io ? io : module.parent.exports
+  , this
+);
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, io) {
+
+  /**
+   * Expose constructor.
+   */
+
+  exports.htmlfile = HTMLFile;
+
+  /**
+   * The HTMLFile transport creates a `forever iframe` based transport
+   * for Internet Explorer. Regular forever iframe implementations will 
+   * continuously trigger the browsers buzy indicators. If the forever iframe
+   * is created inside a `htmlfile` these indicators will not be trigged.
+   *
+   * @constructor
+   * @extends {io.Transport.XHR}
+   * @api public
+   */
+
+  function HTMLFile (socket) {
+    io.Transport.XHR.apply(this, arguments);
+  };
+
+  /**
+   * Inherits from XHR transport.
+   */
+
+  io.util.inherit(HTMLFile, io.Transport.XHR);
+
+  /**
+   * Transport name
+   *
+   * @api public
+   */
+
+  HTMLFile.prototype.name = 'htmlfile';
+
+  /**
+   * Creates a new Ac...eX `htmlfile` with a forever loading iframe
+   * that can be used to listen to messages. Inside the generated
+   * `htmlfile` a reference will be made to the HTMLFile transport.
+   *
+   * @api private
+   */
+
+  HTMLFile.prototype.get = function () {
+    this.doc = new window[(['Active'].concat('Object').join('X'))]('htmlfile');
+    this.doc.open();
+    this.doc.write('<html></html>');
+    this.doc.close();
+    this.doc.parentWindow.s = this;
+
+    var iframeC = this.doc.createElement('div');
+    iframeC.className = 'socketio';
+
+    this.doc.body.appendChild(iframeC);
+    this.iframe = this.doc.createElement('iframe');
+
+    iframeC.appendChild(this.iframe);
+
+    var self = this
+      , query = io.util.query(this.socket.options.query, 't='+ +new Date);
+
+    this.iframe.src = this.prepareUrl() + query;
+
+    io.util.on(window, 'unload', function () {
+      self.destroy();
+    });
+  };
+
+  /**
+   * The Socket.IO server will write script tags inside the forever
+   * iframe, this function will be used as callback for the incoming
+   * information.
+   *
+   * @param {String} data The message
+   * @param {document} doc Reference to the context
+   * @api private
+   */
+
+  HTMLFile.prototype._ = function (data, doc) {
+    this.onData(data);
+    try {
+      var script = doc.getElementsByTagName('script')[0];
+      script.parentNode.removeChild(script);
+    } catch (e) { }
+  };
+
+  /**
+   * Destroy the established connection, iframe and `htmlfile`.
+   * And calls the `CollectGarbage` function of Internet Explorer
+   * to release the memory.
+   *
+   * @api private
+   */
+
+  HTMLFile.prototype.destroy = function () {
+    if (this.iframe){
+      try {
+        this.iframe.src = 'about:blank';
+      } catch(e){}
+
+      this.doc = null;
+      this.iframe.parentNode.removeChild(this.iframe);
+      this.iframe = null;
+
+      CollectGarbage();
+    }
+  };
+
+  /**
+   * Disconnects the established connection.
+   *
+   * @returns {Transport} Chaining.
+   * @api public
+   */
+
+  HTMLFile.prototype.close = function () {
+    this.destroy();
+    return io.Transport.XHR.prototype.close.call(this);
+  };
+
+  /**
+   * Checks if the browser supports this transport. The browser
+   * must have an `Ac...eXObject` implementation.
+   *
+   * @return {Boolean}
+   * @api public
+   */
+
+  HTMLFile.check = function () {
+    if (typeof window != "undefined" && (['Active'].concat('Object').join('X')) in window){
+      try {
+        var a = new window[(['Active'].concat('Object').join('X'))]('htmlfile');
+        return a && io.Transport.XHR.check();
+      } catch(e){}
+    }
+    return false;
+  };
+
+  /**
+   * Check if cross domain requests are supported.
+   *
+   * @returns {Boolean}
+   * @api public
+   */
+
+  HTMLFile.xdomainCheck = function () {
+    // we can probably do handling for sub-domains, we should
+    // test that it's cross domain but a subdomain here
+    return false;
+  };
+
+  /**
+   * Add the transport to your public io.transports array.
+   *
+   * @api private
+   */
+
+  io.transports.push('htmlfile');
+
+})(
+    'undefined' != typeof io ? io.Transport : module.exports
+  , 'undefined' != typeof io ? io : module.parent.exports
+);
+
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, io, global) {
+
+  /**
+   * Expose constructor.
+   */
+
+  exports['xhr-polling'] = XHRPolling;
+
+  /**
+   * The XHR-polling transport uses long polling XHR requests to create a
+   * "persistent" connection with the server.
+   *
+   * @constructor
+   * @api public
+   */
+
+  function XHRPolling () {
+    io.Transport.XHR.apply(this, arguments);
+  };
+
+  /**
+   * Inherits from XHR transport.
+   */
+
+  io.util.inherit(XHRPolling, io.Transport.XHR);
+
+  /**
+   * Merge the properties from XHR transport
+   */
+
+  io.util.merge(XHRPolling, io.Transport.XHR);
+
+  /**
+   * Transport name
+   *
+   * @api public
+   */
+
+  XHRPolling.prototype.name = 'xhr-polling';
+
+  /** 
+   * Establish a connection, for iPhone and Android this will be done once the page
+   * is loaded.
+   *
+   * @returns {Transport} Chaining.
+   * @api public
+   */
+
+  XHRPolling.prototype.open = function () {
+    var self = this;
+
+    io.Transport.XHR.prototype.open.call(self);
+    return false;
+  };
+
+  /**
+   * Starts a XHR request to wait for incoming messages.
+   *
+   * @api private
+   */
+
+  function empty () {};
+
+  XHRPolling.prototype.get = function () {
+    if (!this.open) return;
+
+    var self = this;
+
+    function stateChange () {
+      if (this.readyState == 4) {
+        this.onreadystatechange = empty;
+
+        if (this.status == 200) {
+          self.onData(this.responseText);
+          self.get();
+        } else {
+          self.onClose();
+        }
+      }
+    };
+
+    function onload () {
+      this.onload = empty;
+      this.onerror = empty;
+      self.onData(this.responseText);
+      self.get();
+    };
+
+    function onerror () {
+      self.onClose();
+    };
+
+    this.xhr = this.request();
+
+    if (global.XDomainRequest && this.xhr instanceof XDomainRequest) {
+      this.xhr.onload = onload;
+      this.xhr.onerror = onerror;
+    } else {
+      this.xhr.onreadystatechange = stateChange;
+    }
+
+    this.xhr.send(null);
+  };
+
+  /**
+   * Handle the unclean close behavior.
+   *
+   * @api private
+   */
+
+  XHRPolling.prototype.onClose = function () {
+    io.Transport.XHR.prototype.onClose.call(this);
+
+    if (this.xhr) {
+      this.xhr.onreadystatechange = this.xhr.onload = this.xhr.onerror = empty;
+      try {
+        this.xhr.abort();
+      } catch(e){}
+      this.xhr = null;
+    }
+  };
+
+  /**
+   * Webkit based browsers show a infinit spinner when you start a XHR request
+   * before the browsers onload event is called so we need to defer opening of
+   * the transport until the onload event is called. Wrapping the cb in our
+   * defer method solve this.
+   *
+   * @param {Socket} socket The socket instance that needs a transport
+   * @param {Function} fn The callback
+   * @api private
+   */
+
+  XHRPolling.prototype.ready = function (socket, fn) {
+    var self = this;
+
+    io.util.defer(function () {
+      fn.call(self);
+    });
+  };
+
+  /**
+   * Add the transport to your public io.transports array.
+   *
+   * @api private
+   */
+
+  io.transports.push('xhr-polling');
+
+})(
+    'undefined' != typeof io ? io.Transport : module.exports
+  , 'undefined' != typeof io ? io : module.parent.exports
+  , this
+);
+
+/**
+ * socket.io
+ * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
+ * MIT Licensed
+ */
+
+(function (exports, io, global) {
+  /**
+   * There is a way to hide the loading indicator in Firefox. If you create and
+   * remove a iframe it will stop showing the current loading indicator.
+   * Unfortunately we can't feature detect that and UA sniffing is evil.
+   *
+   * @api private
+   */
+
+  var indicator = global.document && "MozAppearance" in
+    global.document.documentElement.style;
+
+  /**
+   * Expose constructor.
+   */
+
+  exports['jsonp-polling'] = JSONPPolling;
+
+  /**
+   * The JSONP transport creates an persistent connection by dynamically
+   * inserting a script tag in the page. This script tag will receive the
+   * information of the Socket.IO server. When new information is received
+   * it creates a new script tag for the new data stream.
+   *
+   * @constructor
+   * @extends {io.Transport.xhr-polling}
+   * @api public
+   */
+
+  function JSONPPolling (socket) {
+    io.Transport['xhr-polling'].apply(this, arguments);
+
+    this.index = io.j.length;
+
+    var self = this;
+
+    io.j.push(function (msg) {
+      self._(msg);
+    });
+  };
+
+  /**
+   * Inherits from XHR polling transport.
+   */
+
+  io.util.inherit(JSONPPolling, io.Transport['xhr-polling']);
+
+  /**
+   * Transport name
+   *
+   * @api public
+   */
+
+  JSONPPolling.prototype.name = 'jsonp-polling';
+
+  /**
+   * Posts a encoded message to the Socket.IO server using an iframe.
+   * The iframe is used because script tags can create POST based requests.
+   * The iframe is positioned outside of the view so the user does not
+   * notice it's existence.
+   *
+   * @param {String} data A encoded message.
+   * @api private
+   */
+
+  JSONPPolling.prototype.post = function (data) {
+    var self = this
+      , query = io.util.query(
+             this.socket.options.query
+          , 't='+ (+new Date) + '&i=' + this.index
+        );
+
+    if (!this.form) {
+      var form = document.createElement('form')
+        , area = document.createElement('textarea')
+        , id = this.iframeId = 'socketio_iframe_' + this.index
+        , iframe;
+
+      form.className = 'socketio';
+      form.style.position = 'absolute';
+      form.style.top = '0px';
+      form.style.left = '0px';
+      form.style.display = 'none';
+      form.target = id;
+      form.method = 'POST';
+      form.setAttribute('accept-charset', 'utf-8');
+      area.name = 'd';
+      form.appendChild(area);
+      document.body.appendChild(form);
+
+      this.form = form;
+      this.area = area;
+    }
+
+    this.form.action = this.prepareUrl() + query;
+
+    function complete () {
+      initIframe();
+      self.socket.setBuffer(false);
+    };
+
+    function initIframe () {
+      if (self.iframe) {
+        self.form.removeChild(self.iframe);
+      }
+
+      try {
+        // ie6 dynamic iframes with target="" support (thanks Chris Lambacher)
+        iframe = document.createElement('<iframe name="'+ self.iframeId +'">');
+      } catch (e) {
+        iframe = document.createElement('iframe');
+        iframe.name = self.iframeId;
+      }
+
+      iframe.id = self.iframeId;
+
+      self.form.appendChild(iframe);
+      self.iframe = iframe;
+    };
+
+    initIframe();
+
+    // we temporarily stringify until we figure out how to prevent
+    // browsers from turning `\n` into `\r\n` in form inputs
+    this.area.value = io.JSON.stringify(data);
+
+    try {
+      this.form.submit();
+    } catch(e) {}
+
+    if (this.iframe.attachEvent) {
+      iframe.onreadystatechange = function () {
+        if (self.iframe.readyState == 'complete') {
+          complete();
+        }
+      };
+    } else {
+      this.iframe.onload = complete;
+    }
+
+    this.socket.setBuffer(true);
+  };
+  
+  /**
+   * Creates a new JSONP poll that can be used to listen
+   * for messages from the Socket.IO server.
+   *
+   * @api private
+   */
+
+  JSONPPolling.prototype.get = function () {
+    var self = this
+      , script = document.createElement('script')
+      , query = io.util.query(
+             this.socket.options.query
+          , 't='+ (+new Date) + '&i=' + this.index
+        );
+
+    if (this.script) {
+      this.script.parentNode.removeChild(this.script);
+      this.script = null;
+    }
+
+    script.async = true;
+    script.src = this.prepareUrl() + query;
+    script.onerror = function () {
+      self.onClose();
+    };
+
+    var insertAt = document.getElementsByTagName('script')[0]
+    insertAt.parentNode.insertBefore(script, insertAt);
+    this.script = script;
+
+    if (indicator) {
+      setTimeout(function () {
+        var iframe = document.createElement('iframe');
+        document.body.appendChild(iframe);
+        document.body.removeChild(iframe);
+      }, 100);
+    }
+  };
+
+  /**
+   * Callback function for the incoming message stream from the Socket.IO server.
+   *
+   * @param {String} data The message
+   * @api private
+   */
+
+  JSONPPolling.prototype._ = function (msg) {
+    this.onData(msg);
+    if (this.open) {
+      this.get();
+    }
+    return this;
+  };
+
+  /**
+   * The indicator hack only works after onload
+   *
+   * @param {Socket} socket The socket instance that needs a transport
+   * @param {Function} fn The callback
+   * @api private
+   */
+
+  JSONPPolling.prototype.ready = function (socket, fn) {
+    var self = this;
+    if (!indicator) return fn.call(this);
+
+    io.util.load(function () {
+      fn.call(self);
+    });
+  };
+
+  /**
+   * Checks if browser supports this transport.
+   *
+   * @return {Boolean}
+   * @api public
+   */
+
+  JSONPPolling.check = function () {
+    return 'document' in global;
+  };
+
+  /**
+   * Check if cross domain requests are supported
+   *
+   * @returns {Boolean}
+   * @api public
+   */
+
+  JSONPPolling.xdomainCheck = function () {
+    return true;
+  };
+
+  /**
+   * Add the transport to your public io.transports array.
+   *
+   * @api private
+   */
+
+  io.transports.push('jsonp-polling');
+
+})(
+    'undefined' != typeof io ? io.Transport : module.exports
+  , 'undefined' != typeof io ? io : module.parent.exports
+  , this
+);
+/*
+ * Class EventDispatcher provides event handling to sub-classes.
+ * It is inherited from Publisher, Room, etc.
+ */
+var Erizo = Erizo || {};
+Erizo.EventDispatcher = function (spec) {
+    "use strict";
+    var that = {};
+    // Private vars
+    spec.dispatcher = {};
+    spec.dispatcher.eventListeners = {};
+
+    // Public functions
+
+    // It adds an event listener attached to an event type.
+    that.addEventListener = function (eventType, listener) {
+        if (spec.dispatcher.eventListeners[eventType] === undefined) {
+            spec.dispatcher.eventListeners[eventType] = [];
+        }
+        spec.dispatcher.eventListeners[eventType].push(listener);
+    };
+
+    // It removes an available event listener.
+    that.removeEventListener = function (eventType, listener) {
+        var index;
+        index = spec.dispatcher.eventListeners[eventType].indexOf(listener);
+        if (index !== -1) {
+            spec.dispatcher.eventListeners[eventType].splice(index, 1);
+        }
+    };
+
+    // It dispatch a new event to the event listeners, based on the type 
+    // of event. All events are intended to be LynckiaEvents.
+    that.dispatchEvent = function (event) {
+        var listener;
+        L.Logger.debug("Event: " + event.type);
+        for (listener in spec.dispatcher.eventListeners[event.type]) {
+            if (spec.dispatcher.eventListeners[event.type].hasOwnProperty(listener)) {
+                spec.dispatcher.eventListeners[event.type][listener](event);
+            }
+        }
+    };
+
+    return that;
+};
+
+// **** EVENTS ****
+
+/*
+ * Class LynckiaEvent represents a generic Event in the library.
+ * It handles the type of event, that is important when adding
+ * event listeners to EventDispatchers and dispatching new events. 
+ * A LynckiaEvent can be initialized this way:
+ * var event = LynckiaEvent({type: "room-connected"});
+ */
+Erizo.LynckiaEvent = function (spec) {
+    "use strict";
+    var that = {};
+
+    // Event type. Examples are: 'room-connected', 'stream-added', etc.
+    that.type = spec.type;
+
+    return that;
+};
+
+/*
+ * Class RoomEvent represents an Event that happens in a Room. It is a
+ * LynckiaEvent.
+ * It is usually initialized as:
+ * var roomEvent = RoomEvent({type:"room-connected", streams:[stream1, stream2]});
+ * Event types:
+ * 'room-connected' - points out that the user has been successfully connected to the room.
+ * 'room-disconnected' - shows that the user has been already disconnected.
+ */
+Erizo.RoomEvent = function (spec) {
+    "use strict";
+    var that = Erizo.LynckiaEvent(spec);
+
+    // A list with the streams that are published in the room.
+    that.streams = spec.streams;
+
+    return that;
+};
+
+/*
+ * Class StreamEvent represents an event related to a stream. It is a LynckiaEvent.
+ * It is usually initialized this way:
+ * var streamEvent = StreamEvent({type:"stream-added", stream:stream1});
+ * Event types:
+ * 'stream-added' - indicates that there is a new stream available in the room.
+ * 'stream-removed' - shows that a previous available stream has been removed from the room.
+ */
+Erizo.StreamEvent = function (spec) {
+    "use strict";
+    var that = Erizo.LynckiaEvent(spec);
+
+    // The stream related to this event.
+    that.stream = spec.stream;
+
+    that.msg = spec.msg;
+
+    return that;
+};
+
+/*
+ * Class PublisherEvent represents an event related to a publisher. It is a LynckiaEvent.
+ * It usually initializes as:
+ * var publisherEvent = PublisherEvent({})
+ * Event types:
+ * 'access-accepted' - indicates that the user has accepted to share his camera and microphone
+ */
+Erizo.PublisherEvent = function (spec) {
+    "use strict";
+    var that = Erizo.LynckiaEvent(spec);
+
+    return that;
+};var Erizo = Erizo || {};
+
+Erizo.ChromeStableStack = function (spec) {
+    "use strict";
+
+    var that = {};
+
+    that.pc_config = {
+        "iceServers": [{
+            "url": "stun:stun.l.google.com:19302"
+        }]
+    };
+
+    that.mediaConstraints = {
+        'mandatory': {
+            'OfferToReceiveVideo': 'true',
+            'OfferToReceiveAudio': 'true'
+        }
+    };
+
+    that.peerConnection = new webkitRTCPeerConnection(that.pc_config);
+
+    that.peerConnection.onicecandidate = function (event) {
+        if (!event.candidate) {
+            // At the moment, we do not renegotiate when new candidates
+            // show up after the more flag has been false once.
+            that.moreIceComing = false;
+            that.markActionNeeded();
+        } else {
+            that.iceCandidateCount += 1;
+        }
+    };
+
+    console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
+
+    /**
+     * This function processes signalling messages from the other side.
+     * @param {string} msgstring JSON-formatted string containing a ROAP message.
+     */
+    that.processSignalingMessage = function (msgstring) {
+        // Offer: Check for glare and resolve.
+        // Answer/OK: Remove retransmit for the msg this is an answer to.
+        // Send back "OK" if this was an Answer.
+        console.log('Activity on conn ' + that.sessionId);
+        var msg = JSON.parse(msgstring), sd;
+        that.incomingMessage = msg;
+
+        if (that.state === 'new') {
+            if (msg.messageType === 'OFFER') {
+                // Initial offer.
+                sd = {
+                    sdp: msg.sdp,
+                    type: 'offer'
+                };
+                that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
+
+                that.state = 'offer-received';
+                // Allow other stuff to happen, then reply.
+                that.markActionNeeded();
+            } else {
+                that.error('Illegal message for this state: ' + msg.messageType + ' in state ' + that.state);
+            }
+
+        } else if (that.state === 'offer-sent') {
+            if (msg.messageType === 'ANSWER') {
+
+                sd = {
+                    sdp: msg.sdp,
+                    type: 'answer'
+                };
+                that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
+                that.sendOK();
+                that.state = 'established';
+
+            } else if (msg.messageType === 'pr-answer') {
+                sd = {
+                    sdp: msg.sdp,
+                    type: 'pr-answer'
+                };
+                that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
+
+                // No change to state, and no response.
+            } else if (msg.messageType === 'offer') {
+                // Glare processing.
+                that.error('Not written yet');
+            } else {
+                that.error('Illegal message for this state: ' + msg.messageType + ' in state ' + that.state);
+            }
+
+        } else if (that.state === 'established') {
+            if (msg.messageType === 'OFFER') {
+                // Subsequent offer.
+                sd = {
+                    sdp: msg.sdp,
+                    type: 'offer'
+                };
+                that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
+
+                that.state = 'offer-received';
+                // Allow other stuff to happen, then reply.
+                that.markActionNeeded();
+            } else {
+                that.error('Illegal message for this state: ' + msg.messageType + ' in state ' + that.state);
+            }
+        }
+    };
+
+    /**
+     * Adds a stream - this causes signalling to happen, if needed.
+     * @param {MediaStream} stream The outgoing MediaStream to add.
+     */
+    that.addStream = function (stream) {
+        that.peerConnection.addStream(stream);
+        that.markActionNeeded();
+    };
+
+    /**
+     * Removes a stream.
+     * @param {MediaStream} stream The MediaStream to remove.
+     */
+    that.removeStream = function (stream) {
+//        var i;
+//        for (i = 0; i < that.peerConnection.localStreams.length; ++i) {
+//            if (that.localStreams[i] === stream) {
+//                that.localStreams[i] = null;
+//            }
+//        }
+        that.markActionNeeded();
+    };
+
+    /**
+     * Closes the connection.
+     */
+    that.close = function () {
+        that.state = 'closed';
+        that.peerConnection.close();
+    };
+
+    /**
+     * Internal function: Mark that something happened.
+     */
+    that.markActionNeeded = function () {
+        that.actionNeeded = true;
+        that.doLater(function () {
+            that.onstablestate();
+        });
+    };
+
+    /**
+     * Internal function: Do something later (not on this stack).
+     * @param {function} what Callback to be executed later.
+     */
+    that.doLater = function (what) {
+        // Post an event to myself so that I get called a while later.
+        // (needs more JS/DOM info. Just call the processing function on a delay
+        // for now.)
+        window.setTimeout(what, 1);
+    };
+
+    /**
+     * Internal function called when a stable state
+     * is entered by the browser (to allow for multiple AddStream calls or
+     * other interesting actions).
+     * This function will generate an offer or answer, as needed, and send
+     * to the remote party using our onsignalingmessage function.
+     */
+    that.onstablestate = function () {
+        var mySDP;
+        var roapMessage = {};
+        if (that.actionNeeded) {
+            if (that.state === 'new' || that.state === 'established') {
+                // See if the current offer is the same as what we already sent.
+                // If not, no change is needed.   
+
+                that.peerConnection.createOffer(function (sessionDescription) {
+
+                    var newOffer = sessionDescription.sdp;
+
+                    if (newOffer !== that.prevOffer) {
+
+                        that.peerConnection.setLocalDescription(sessionDescription);
+
+                        that.state = 'preparing-offer';
+                        that.markActionNeeded();
+                        return;
+                    } else {
+                        console.log('Not sending a new offer');
+                    }
+
+                }, null, that.mediaConstraints);
+
+
+            } else if (that.state === 'preparing-offer') {
+                // Don't do anything until we have the ICE candidates.
+                if (that.moreIceComing) {
+                    return;
+                }
+                // Now able to send the offer we've already prepared.
+                that.prevOffer = that.peerConnection.localDescription.sdp;
+                console.log("Sending OFFER: ", that.prevOffer);
+                //console.log('Sent SDP is ' + that.prevOffer);
+                that.sendMessage('OFFER', that.prevOffer);
+                // Not done: Retransmission on non-response.
+                that.state = 'offer-sent';
+
+            } else if (that.state === 'offer-received') {
+
+                that.peerConnection.createAnswer(function (sessionDescription) {
+
+                    that.peerConnection.setLocalDescription(sessionDescription);
+                    that.state = 'offer-received-preparing-answer';
+
+                    if (!that.iceStarted) {
+                        var now = new Date();
+                        console.log(now.getTime() + ': Starting ICE in responder');
+                        that.iceStarted = true;
+                    } else {
+                        that.markActionNeeded();
+                        return;
+                    }
+
+                }, null, that.mediaConstraints);
+
+            } else if (that.state === 'offer-received-preparing-answer') {
+                if (that.moreIceComing) {
+                    return;
+                }
+
+                mySDP = that.peerConnection.localDescription.sdp;
+
+                that.sendMessage('ANSWER', mySDP);
+                that.state = 'established';
+            } else {
+                that.error('Dazed and confused in state ' + that.state + ', stopping here');
+            }
+            that.actionNeeded = false;
+        }
+    };
+
+    /**
+     * Internal function to send an "OK" message.
+     */
+    that.sendOK = function () {
+        that.sendMessage('OK');
+    };
+
+    /**
+     * Internal function to send a signalling message.
+     * @param {string} operation What operation to signal.
+     * @param {string} sdp SDP message body.
+     */
+    that.sendMessage = function (operation, sdp) {
+        var roapMessage = {};
+        roapMessage.messageType = operation;
+        roapMessage.sdp = sdp; // may be null or undefined
+        if (operation === 'OFFER') {
+            roapMessage.offererSessionId = that.sessionId;
+            roapMessage.answererSessionId = that.otherSessionId; // may be null
+            roapMessage.seq = ++that.sequenceNumber;
+            // The tiebreaker needs to be neither 0 nor 429496725.
+            roapMessage.tiebreaker = Math.floor(Math.random() * 429496723 + 1);
+        } else {
+            roapMessage.offererSessionId = that.incomingMessage.offererSessionId;
+            roapMessage.answererSessionId = that.sessionId;
+            roapMessage.seq = that.incomingMessage.seq;
+        }
+        that.onsignalingmessage(JSON.stringify(roapMessage));
+    };
+
+    /**
+     * Internal something-bad-happened function.
+     * @param {string} text What happened - suitable for logging.
+     */
+    that.error = function (text) {
+        throw 'Error in RoapOnJsep: ' + text;
+    };
+
+    that.sessionId = ++RoapConnection.sessionId;
+    that.sequenceNumber = 0; // Number of last ROAP message sent. Starts at 1.
+    that.actionNeeded = false;
+    that.iceStarted = false;
+    that.moreIceComing = true;
+    that.iceCandidateCount = 0;
+    that.onsignalingmessage = spec.callback;
+
+    that.peerConnection.onopen = function () {
+        if (that.onopen) {
+            that.onopen();
+        }
+    };
+
+    that.peerConnection.onaddstream = function (stream) {
+        if (that.onaddstream) {
+            that.onaddstream(stream);
+        }
+    };
+
+    that.peerConnection.onremovestream = function (stream) {
+        if (that.onremovestream) {
+            that.onremovestream(stream);
+        }
+    };
+
+    // Variables that are part of the public interface of PeerConnection
+    // in the 28 January 2012 version of the webrtc specification.
+    that.onaddstream = null;
+    that.onremovestream = null;
+    that.state = 'new';
+    // Auto-fire next events.
+    that.markActionNeeded();
+    return that;
+};var Erizo = Erizo || {};
+var exp;
+
+Erizo.ChromeCanaryStack = function (spec) {
+    "use strict";
+
+    var that = {};
+
+    that.pc_config = {
+        "iceServers": []
+    };
+
+    that.mediaConstraints = {
+        'mandatory': {
+            'OfferToReceiveVideo': 'true',
+            'OfferToReceiveAudio': 'true'
+        }
+    };
+
+    that.peerConnection = new webkitRTCPeerConnection(that.pc_config);
+
+    that.peerConnection.onicecandidate = function (event) {
+        console.log("State: " + that.peerConnection.iceGatheringState);
+        if (!event.candidate) {
+            // At the moment, we do not renegotiate when new candidates
+            // show up after the more flag has been false once.
+            console.log("State: " + that.peerConnection.iceGatheringState);
+            
+            if (that.ices === undefined) {
+              that.ices = 0;
+            }
+            that.ices++;
+            console.log(that.ices);
+            if (that.ices >=1 && that.moreIceComing) {
+              that.moreIceComing = false;
+              that.markActionNeeded();
+            }
+        } else {
+            that.iceCandidateCount += 1;
+        }
+    };
+
+    console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
+
+    /**
+     * This function processes signalling messages from the other side.
+     * @param {string} msgstring JSON-formatted string containing a ROAP message.
+     */
+    that.processSignalingMessage = function (msgstring) {
+        // Offer: Check for glare and resolve.
+        // Answer/OK: Remove retransmit for the msg this is an answer to.
+        // Send back "OK" if this was an Answer.
+        console.log('Activity on conn ' + that.sessionId);
+        var msg = JSON.parse(msgstring), sd;
+        that.incomingMessage = msg;
+
+        if (that.state === 'new') {
+            if (msg.messageType === 'OFFER') {
+                // Initial offer.
+                sd = {
+                    sdp: msg.sdp,
+                    type: 'offer'
+                };
+                that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
+
+                that.state = 'offer-received';
+                // Allow other stuff to happen, then reply.
+                that.markActionNeeded();
+            } else {
+                that.error('Illegal message for this state: ' + msg.messageType + ' in state ' + that.state);
+            }
+
+        } else if (that.state === 'offer-sent') {
+            if (msg.messageType === 'ANSWER') {
+
+                var regExp = new RegExp(/m=video.*\r\n/g);
+
+                exp = msg.sdp.match(regExp);
+                console.log(exp);
+
+                msg.sdp = msg.sdp.replace(regExp, exp+"b=AS:50\r\n");
+                
+                sd = {
+                    sdp: msg.sdp,
+                    type: 'answer'
+                };
+                console.log("Received ANSWER: ", sd);
+                that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
+                that.sendOK();
+                that.state = 'established';
+
+            } else if (msg.messageType === 'pr-answer') {
+                sd = {
+                    sdp: msg.sdp,
+                    type: 'pr-answer'
+                };
+                that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
+
+                // No change to state, and no response.
+            } else if (msg.messageType === 'offer') {
+                // Glare processing.
+                that.error('Not written yet');
+            } else {
+                that.error('Illegal message for this state: ' + msg.messageType + ' in state ' + that.state);
+            }
+
+        } else if (that.state === 'established') {
+            if (msg.messageType === 'OFFER') {
+                // Subsequent offer.
+                sd = {
+                    sdp: msg.sdp,
+                    type: 'offer'
+                };
+                that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
+
+                that.state = 'offer-received';
+                // Allow other stuff to happen, then reply.
+                that.markActionNeeded();
+            } else {
+                that.error('Illegal message for this state: ' + msg.messageType + ' in state ' + that.state);
+            }
+        }
+    };
+
+    /**
+     * Adds a stream - this causes signalling to happen, if needed.
+     * @param {MediaStream} stream The outgoing MediaStream to add.
+     */
+    that.addStream = function (stream) {
+        that.peerConnection.addStream(stream);
+        that.markActionNeeded();
+    };
+
+    /**
+     * Removes a stream.
+     * @param {MediaStream} stream The MediaStream to remove.
+     */
+    that.removeStream = function (stream) {
+//        var i;
+//        for (i = 0; i < that.peerConnection.localStreams.length; ++i) {
+//            if (that.localStreams[i] === stream) {
+//                that.localStreams[i] = null;
+//            }
+//        }
+        that.markActionNeeded();
+    };
+
+    /**
+     * Closes the connection.
+     */
+    that.close = function () {
+        that.state = 'closed';
+        that.peerConnection.close();
+    };
+
+    /**
+     * Internal function: Mark that something happened.
+     */
+    that.markActionNeeded = function () {
+        that.actionNeeded = true;
+        that.doLater(function () {
+            that.onstablestate();
+        });
+    };
+
+    /**
+     * Internal function: Do something later (not on this stack).
+     * @param {function} what Callback to be executed later.
+     */
+    that.doLater = function (what) {
+        // Post an event to myself so that I get called a while later.
+        // (needs more JS/DOM info. Just call the processing function on a delay
+        // for now.)
+        window.setTimeout(what, 1);
+    };
+
+    /**
+     * Internal function called when a stable state
+     * is entered by the browser (to allow for multiple AddStream calls or
+     * other interesting actions).
+     * This function will generate an offer or answer, as needed, and send
+     * to the remote party using our onsignalingmessage function.
+     */
+    that.onstablestate = function () {
+        var mySDP;
+        var roapMessage = {};
+        if (that.actionNeeded) {
+            if (that.state === 'new' || that.state === 'established') {
+                // See if the current offer is the same as what we already sent.
+                // If not, no change is needed.   
+
+                that.peerConnection.createOffer(function (sessionDescription) {
+
+                    
+
+                    var regExp = new RegExp(/m=video.*\r\n/g);
+
+                    exp = sessionDescription.sdp.match(regExp);
+                    console.log(exp);
+
+                    sessionDescription.sdp = sessionDescription.sdp.replace(regExp, exp+"b=AS:50\r\n");
+                    
+
+                    var newOffer = sessionDescription.sdp;
+
+                    console.log("Changed",sessionDescription.sdp);
+
+                    if (newOffer !== that.prevOffer) {
+
+                        that.peerConnection.setLocalDescription(sessionDescription);
+
+                        that.state = 'preparing-offer';
+                        that.markActionNeeded();
+                        return;
+                    } else {
+                        console.log('Not sending a new offer');
+                    }
+
+                }, null, that.mediaConstraints);
+
+
+            } else if (that.state === 'preparing-offer') {
+                // Don't do anything until we have the ICE candidates.
+                if (that.moreIceComing) {
+                    return;
+                }
+
+                
+                // Now able to send the offer we've already prepared.
+                that.prevOffer = that.peerConnection.localDescription.sdp;
+                console.log("Sending OFFER: ", that.prevOffer);
+                //console.log('Sent SDP is ' + that.prevOffer);
+                that.sendMessage('OFFER', that.prevOffer);
+                // Not done: Retransmission on non-response.
+                that.state = 'offer-sent';
+
+            } else if (that.state === 'offer-received') {
+
+                that.peerConnection.createAnswer(function (sessionDescription) {
+                    that.peerConnection.setLocalDescription(sessionDescription);
+                    that.state = 'offer-received-preparing-answer';
+
+                    if (!that.iceStarted) {
+                        var now = new Date();
+                        console.log(now.getTime() + ': Starting ICE in responder');
+                        that.iceStarted = true;
+                    } else {
+                        that.markActionNeeded();
+                        return;
+                    }
+
+                }, null, that.mediaConstraints);
+
+            } else if (that.state === 'offer-received-preparing-answer') {
+                if (that.moreIceComing) {
+                    return;
+                }
+
+                mySDP = that.peerConnection.localDescription.sdp;
+
+                that.sendMessage('ANSWER', mySDP);
+                that.state = 'established';
+            } else {
+                that.error('Dazed and confused in state ' + that.state + ', stopping here');
+            }
+            that.actionNeeded = false;
+        }
+    };
+
+    /**
+     * Internal function to send an "OK" message.
+     */
+    that.sendOK = function () {
+        that.sendMessage('OK');
+    };
+
+    /**
+     * Internal function to send a signalling message.
+     * @param {string} operation What operation to signal.
+     * @param {string} sdp SDP message body.
+     */
+    that.sendMessage = function (operation, sdp) {
+        var roapMessage = {};
+        roapMessage.messageType = operation;
+        roapMessage.sdp = sdp; // may be null or undefined
+        if (operation === 'OFFER') {
+            roapMessage.offererSessionId = that.sessionId;
+            roapMessage.answererSessionId = that.otherSessionId; // may be null
+            roapMessage.seq = ++that.sequenceNumber;
+            // The tiebreaker needs to be neither 0 nor 429496725.
+            roapMessage.tiebreaker = Math.floor(Math.random() * 429496723 + 1);
+        } else {
+            roapMessage.offererSessionId = that.incomingMessage.offererSessionId;
+            roapMessage.answererSessionId = that.sessionId;
+            roapMessage.seq = that.incomingMessage.seq;
+        }
+        that.onsignalingmessage(JSON.stringify(roapMessage));
+    };
+
+    /**
+     * Internal something-bad-happened function.
+     * @param {string} text What happened - suitable for logging.
+     */
+    that.error = function (text) {
+        throw 'Error in RoapOnJsep: ' + text;
+    };
+
+    that.sessionId = ++RoapConnection.sessionId;
+    that.sequenceNumber = 0; // Number of last ROAP message sent. Starts at 1.
+    that.actionNeeded = false;
+    that.iceStarted = false;
+    that.moreIceComing = true;
+    that.iceCandidateCount = 0;
+    that.onsignalingmessage = spec.callback;
+
+    that.peerConnection.onopen = function () {
+        if (that.onopen) {
+            that.onopen();
+        }
+    };
+
+    that.peerConnection.onaddstream = function (stream) {
+        if (that.onaddstream) {
+            that.onaddstream(stream);
+        }
+    };
+
+    that.peerConnection.onremovestream = function (stream) {
+        if (that.onremovestream) {
+            that.onremovestream(stream);
+        }
+    };
+
+    // Variables that are part of the public interface of PeerConnection
+    // in the 28 January 2012 version of the webrtc specification.
+    that.onaddstream = null;
+    that.onremovestream = null;
+    that.state = 'new';
+    // Auto-fire next events.
+    that.markActionNeeded();
+    return that;
+};var Erizo = Erizo || {};
+
+Erizo.sessionId = 103;
+
+Erizo.Connection = function (spec) {
+	"use strict";
+	var that = {};
+
+	spec.session_id = ++Erizo.sessionId;
+
+	// Check which WebRTC Stack is installed.
+	that.browser = "";
+	if (window.navigator.appVersion.match(/Chrome\/(.*?)\./)[1] === "23") {
+		// Google Chrome Stable.
+		console.log("Stable!");
+		that = Erizo.ChromeStableStack(spec);
+		that.browser = "chrome-stable";
+	} else if (window.navigator.appVersion.match(/Chrome\/(.*?)\./)[1] === "25") {
+		// Google Chrome Canary.
+		console.log("Canary!");
+		that = Erizo.ChromeCanaryStack(spec);
+		that.browser = "chrome-canary";
+	} else if (webkitPeerConnection !== undefined) {
+		// Bowser
+		that.browser = "bowser";
+	} else if (mozPeerConnection !== undefined) {
+		// Firefox
+		that.browser = "mozilla";
+	} else {
+		// None.
+		that.browser = "none";
+		throw "WebRTC stack not available";
+	}
+
+	return that;
+};/*
+ * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC stream
+ * and identify the stream and where it should be drawn.
+ */
+var Erizo = Erizo || {};
+Erizo.Stream = function (spec) {
+    "use strict";
+    var that = Erizo.EventDispatcher(spec);
+    that.stream = spec.stream;
+    that.room = undefined;
+    that.showing = false;
+    that.local = false;
+    if (spec.local === undefined || spec.local === true) {
+        that.local = true;
+    }
+
+    // Public functions
+
+    that.getID = function() {
+        return spec.streamID;
+    };
+
+    that.getAttributes = function() {
+        return spec.attributes;
+    };
+
+    // Indicates if the stream has audio activated
+    that.hasAudio = function () {
+        return spec.audio;
+    };
+
+    // Indicates if the stream has video activated
+    that.hasVideo = function () {
+        return spec.video;
+    };
+
+    // Indicates if the stream has video activated
+    that.hasData = function () {
+        return spec.data;
+    };
+
+    // Sends data through this stream.
+    that.sendData = function(msg) {};
+
+    // Initializes the stream and tries to retrieve a stream from local video and audio
+    // We need to call this method before we can publish it in the room.
+    that.init = function () {
+        try {
+            if (spec.audio || spec.video) {
+                ErizoGetUserMedia({video: spec.video, audio: spec.audio}, function (stream) {
+                //navigator.webkitGetUserMedia("audio, video", function (stream) {
+                    
+                    L.Logger.info("User has granted access to local media.");
+                    that.stream = stream;
+
+                    var streamEvent = Erizo.StreamEvent({type: "access-accepted"});
+                    that.dispatchEvent(streamEvent);
+
+                }, function (error) {
+                    L.Logger.error("Failed to get access to local media. Error code was " + error.code + ".");
+                    var streamEvent = Erizo.StreamEvent({type: "access-denied"});
+                    that.dispatchEvent(streamEvent);
+                });
+                L.Logger.debug("Requested access to local media");
+            } else {
+                var streamEvent = Erizo.StreamEvent({type: "access-accepted"});
+                that.dispatchEvent(streamEvent);
+            }
+        } catch (e) {
+            L.Logger.error("Error accessing to local media");
+        }
+    };
+
+    that.show = function(elementID, options) {
+        that.elementID = elementID;
+        if (that.hasVideo()) {
+            // Draw on HTML
+            if (elementID !== undefined) {
+                var player = new Erizo.VideoPlayer({id: that.getID(), stream: that.stream, elementID: elementID, options: options});
+                that.player = player;
+                that.showing = true;
+            }
+        }
+    };
+
+    that.hide = function() {
+        if (that.showing) {
+            if (that.player !== undefined) {
+                that.player.destroy();
+                that.showing = false;
+            }
+        }
+    };
+
+    var getFrame = function() {
+        if (that.player !== undefined && that.stream !== undefined) {
+            var video = that.player.video;
+
+            var style = document.defaultView.getComputedStyle(video);
+            var width = parseInt(style.getPropertyValue("width"));
+            var height = parseInt(style.getPropertyValue("height"));
+            var left = parseInt(style.getPropertyValue("left"));
+            var top = parseInt(style.getPropertyValue("top"));
+
+            var div = document.getElementById(that.elementID);
+            var divStyle = document.defaultView.getComputedStyle(div);
+            var divWidth = parseInt(divStyle.getPropertyValue("width"));
+            var divHeight = parseInt(divStyle.getPropertyValue("height"));
+
+            var canvas = document.createElement('canvas');
+            canvas.id = "testing";
+            canvas.width = divWidth;
+            canvas.height = divHeight;
+            canvas.setAttribute('style', 'display: none');
+            //document.body.appendChild(canvas);
+            var context = canvas.getContext('2d');
+
+            context.drawImage(video, left, top, width, height);
+
+            return canvas;
+        } else {
+            return null;
+        }
+    };
+
+    that.getVideoFrameURL = function() {
+        var canvas = getFrame();
+        if (canvas != null) return canvas.toDataURL();
+        else return null;
+    };
+
+    that.getVideoFrame = function() {
+        var canvas = getFrame();
+        if (canvas != null) return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        else return null;
+    };
+
+    return that;
+};/*
+ * Class Room represents a Lynckia Room. It will handle the connection, local stream publication and 
+ * remote stream subscription.
+ * Typical Room initialization would be:
+ * var room = Erizo.Room({token:'213h8012hwduahd-321ueiwqewq'});
+ * It also handles RoomEvents and StreamEvents. For example:
+ * Event 'room-connected' points out that the user has been successfully connected to the room.
+ * Event 'room-disconnected' shows that the user has been already disconnected.
+ * Event 'stream-added' indicates that there is a new stream available in the room.
+ * Event 'stream-removed' shows that a previous available stream has been removed from the room.
+ */
+var Erizo = Erizo || {};
+
+Erizo.Room = function (spec) {
+    "use strict";
+    var that = Erizo.EventDispatcher(spec), connectSocket, sendMessageSocket, sendSDPSocket, sendDataSocket, removeStream, DISCONNECTED = 0, CONNECTING = 1, CONNECTED = 2; 
+    that.remoteStreams = {};
+    that.localStreams = {};
+    that.roomID = '';
+    that.socket = {};
+    that.state = DISCONNECTED;
+
+    that.addEventListener("room-disconnected", function(evt) {
+        var index;
+        that.state = DISCONNECTED;
+
+        // Remove all streams
+        for (index in that.remoteStreams) {
+            if (that.remoteStreams.hasOwnProperty(index)) {
+                var stream = that.remoteStreams[index];
+                removeStream(stream);
+                delete that.remoteStreams[index];
+                var evt = Erizo.StreamEvent({type: 'stream-removed', stream: stream});
+                that.dispatchEvent(evt);
+            }
+        }
+        that.remoteStreams = {};
+
+        // Close Peer Connections
+        for (index in that.localStreams) {
+            if (that.localStreams.hasOwnProperty(index)) {
+                var stream = that.localStreams[index];
+                removeStream(stream);
+                delete that.localStreams[index];
+            }
+        }
+
+        // Close socket
+        try {
+            that.socket.disconnect();
+        } catch (error) {
+            L.Logger.debug("Socket already disconnected");
+        }
+        that.socket = undefined;
+    });
+
+    // Private functions
+
+    // It removes the stream from HTML and close the PeerConnection associated 
+    removeStream = function(stream) {
+        if (stream.stream !== undefined) {
+            // Remove HTML element
+            stream.hide();
+
+            // Close PC stream
+            stream.pc.close();
+        }
+    };
+
+    sendDataSocket = function(stream, msg) {
+        if (stream.local) {
+            sendMessageSocket("sendDataStream", {id: stream.getID(), msg: msg});
+        }
+    };
+
+    // It connects to the server through socket.io
+    connectSocket = function (token, callback, error) {
+        // Once we have connected
+
+        //that.socket = io.connect("hpcm.dit.upm.es:8080", {reconnect: false});
+        that.socket = io.connect(token.host, {reconnect: false});
+
+        // We receive an event with a new stream in the room.
+        // type can be "media" or "data"
+        that.socket.on('onAddStream', function (arg) {
+            console.log(arg);
+            var stream = Erizo.Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, attributes: arg.attributes});
+            that.remoteStreams[arg.id] = stream;
+            var evt = Erizo.StreamEvent({type: 'stream-added', stream: stream});
+            that.dispatchEvent(evt);
+        });
+
+        // We receive an event of new data in one of the streams
+        that.socket.on('onDataStream', function (arg) {
+            var stream = that.remoteStreams[arg.id];
+            var evt = Erizo.StreamEvent({type: 'stream-data', msg: arg.msg, stream: stream});
+            stream.dispatchEvent(evt);
+        });
+
+        // We receive an event of a stream removed from the room
+        that.socket.on('onRemoveStream', function (arg) {
+            var stream = that.remoteStreams[arg.id];
+            delete that.remoteStreams[arg.id];
+            removeStream(stream);
+            var evt = Erizo.StreamEvent({type: 'stream-removed', stream: stream});
+            that.dispatchEvent(evt);
+        });
+
+        // The socket has disconnected
+        that.socket.on('disconnect', function (argument) {
+            L.Logger.info("Socket disconnected");
+            var disconnectEvt = Erizo.RoomEvent({type: "room-disconnected"});
+            that.dispatchEvent(disconnectEvt);
+        });
+
+        // First message with the token
+        sendMessageSocket('token', token, callback, error);
+    };
+
+    // Function to send a message to the server using socket.io
+    sendMessageSocket = function (type, msg, callback, error) {
+        that.socket.emit(type, msg, function (respType, msg) {
+            if (respType === "success") {
+                if (callback !== undefined) {
+                    callback(msg);
+                }
+            } else {
+                if (error !== undefined) {
+                    error(msg);
+                }
+            }
+        });
+    };
+
+    // It sends a SDP message to the server using socket.io
+    sendSDPSocket = function (type, options, sdp, callback) {
+        that.socket.emit(type, options, sdp, function (response, respCallback) {
+            if (callback !== undefined) {
+                callback(response, respCallback);
+            }
+        });
+    };
+
+    // Public functions
+
+    // It stablishes a connection to the room. Once it is done it throws a RoomEvent("room-connected")
+    that.connect = function () {
+
+        if (that.state !== DISCONNECTED) {
+            L.Logger.error("Room already connected");
+        }
+
+        // 1- Connect to Erizo-Controller
+        var streamList = [];
+        var token = L.Base64.decodeBase64(spec.token);
+        that.state = CONNECTING;
+        connectSocket(JSON.parse(token), function (response) {
+            var index = 0, stream, streamList = [], streams, roomId;
+            streams = response.streams;
+            roomId = response.id;
+            that.state = CONNECTED;
+
+            // 2- Retrieve list of streams
+            for (index in streams) {
+                if (streams.hasOwnProperty(index)) {
+                    var arg = streams[index];
+                    stream = Erizo.Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, attributes: arg.attributes});
+                    streamList.push(stream);
+                    that.remoteStreams[arg.id] = stream;
+                }
+            }
+
+            // 3 - Update RoomID
+            that.roomID = roomId;
+
+            L.Logger.info("Connected to room " + that.roomID);
+
+            var connectEvt = Erizo.RoomEvent({type: "room-connected", streams: streamList});
+            that.dispatchEvent(connectEvt);
+        }, function (error) {
+            L.Logger.error("Not Connected! Error: " + error);
+        });
+    };
+
+    // It disconnects from the room, dispatching a new RoomEvent("room-disconnected")
+    that.disconnect = function () {
+        // 1- Disconnect from room
+        var disconnectEvt = Erizo.RoomEvent({type: "room-disconnected"});
+        that.dispatchEvent(disconnectEvt);
+    };
+
+    // It publishes the stream provided as argument. Once it is added it throws a 
+    // StreamEvent("stream-added").
+    that.publish = function (stream) {
+
+        // 1- If the stream is not local we do nothing.
+        if (stream.local && that.localStreams[stream.getID()] === undefined) {
+
+            
+            
+            // 2- Publish Media Stream to Erizo-Controller
+            if (stream.hasAudio() || stream.hasVideo()) {
+                
+                stream.pc = Erizo.Connection({callback: function(offer){
+                    sendSDPSocket('publish', {state:'offer', data: true, audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
+                        stream.pc.onsignalingmessage = function (ok) {
+                            stream.pc.onsignalingmessage = function() {};
+                            sendSDPSocket('publish', {state:'ok',streamId:id, data: true, audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, ok);
+                            L.Logger.info('Stream published');
+                            stream.getID = function() {
+                                return id;
+                            };
+                            stream.sendData = function(msg) {
+                                sendDataSocket(stream, msg);
+                            };
+                            that.localStreams[id] = stream;
+                        };
+                        stream.pc.processSignalingMessage(answer);
+                    });
+                }});
+
+                stream.pc.addStream(stream.stream);
+            } else if (stream.hasData()) {
+                // 3- Publish Data Stream
+                sendSDPSocket('publish', {state: 'data', data: true, audio: false, video: false, attributes: stream.getAttributes()}, undefined, function (answer, id) {
+                    L.Logger.info('Stream published');
+                    stream.getID = function() {
+                        return id;
+                    };
+                    stream.sendData = function(msg) {
+                        sendDataSocket(stream, msg);
+                    };
+                    that.localStreams[id] = stream;
+                });
+            } else {
+                // Invalid stream
+            }
+        }
+    };
+
+    // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
+    that.unpublish = function (stream) {
+
+        // Unpublish stream from Erizo-Controller
+        if (stream.local) {
+            // Media stream
+            sendMessageSocket('unpublish', stream.getID());
+        }
+    };
+
+    // It subscribe to a remote stream and draws it inside the HTML tag given by the ID='elementID'
+    that.subscribe = function (stream) {
+
+        if (!stream.local) {
+
+            if(stream.hasVideo() || stream.hasAudio()) {
+                // 1- Subscribe to Stream
+                stream.pc = Erizo.Connection({callback: function(offer){
+                    sendSDPSocket('subscribe', {streamId:stream.getID()}, offer, function (answer) {
+                        stream.pc.processSignalingMessage(answer);
+
+                    });
+                }});
+
+                stream.pc.onaddstream = function (evt) {
+                    // Draw on html
+                    L.Logger.info('Stream subscribed');
+                    stream.stream = evt.stream;
+                    var evt2 = Erizo.StreamEvent({type: 'stream-subscribed', stream: stream});
+                    that.dispatchEvent(evt2);
+                };
+            } else if (stream.hasData()) {
+                sendSDPSocket('subscribe', {streamId:stream.getID()}, undefined, function(answer) {
+                    L.Logger.info('Stream subscribed');
+                    var evt = Erizo.StreamEvent({type: 'stream-subscribed', stream: stream});
+                    that.dispatchEvent(evt);
+                });
+            }
+
+            // Subscribe to stream stream
+            L.Logger.info("Subscribing to: " + stream.getID());
+        }
+    };
+
+    // It unsubscribes from the stream, removing the HTML element.
+    that.unsubscribe = function (stream) {
+        
+        // Unsubscribe from stream stream
+        if (that.socket !== undefined) {
+            if (!stream.local) {
+                sendMessageSocket('unsubscribe', stream.getID(), function() {
+                    removeStream(stream);
+                }, function() {
+                    L.Logger.error("Error calling unsubscribe.");
+                });
+            }
+        } else {
+            callback();
+        }
+
+    };
+
+    //It searchs the streams that have "name" attribute with "value" value
+    that.getStreamsByAttribute = function (name, value) {
+
+        var streams = [];
+
+        for (var index in that.remoteStreams) {
+            var stream = that.remoteStreams[index];
+
+            if (stream.getAttributes() !== undefined && stream.getAttributes()[name] !== undefined) {
+                if (stream.getAttributes()[name] === value) {
+                    streams.push(stream);
+                }
+            }
+        }
+
+        return streams;
+    };
+
+    return that;
+};
+var L = L || {};
+
+/*
+ * API to write logs based on traditional logging mechanisms: debug, trace, info, warning, error
+ */
+L.Logger = (function (L) {
+    "use strict";
+    var DEBUG = 0, TRACE = 1, INFO = 2, WARNING = 3, ERROR = 4, NONE = 5, logLevel = DEBUG, enableLogPanel, setLogLevel, log, debug, trace, info, warning, error;
+
+    // By calling this method we will not use console.log to print the logs anymore. Instead we will use a <textarea/> element to write down future logs
+    enableLogPanel = function () {
+        L.Logger.panel = document.createElement('textarea');
+        L.Logger.panel.setAttribute("id", "lynckia-logs");
+        L.Logger.panel.setAttribute("style", "width: 100%; height: 100%; display: none");
+        L.Logger.panel.setAttribute("rows", 20);
+        L.Logger.panel.setAttribute("cols", 20);
+        L.Logger.panel.setAttribute("readOnly", true);
+        document.body.appendChild(L.Logger.panel);
+    };
+
+    // It sets the new log level. We can set it to NONE if we do not want to print logs
+    setLogLevel = function (level) {
+        if (level > L.Logger.NONE) {
+            level = L.Logger.NONE;
+        } else if (level < L.Logger.DEBUG) {
+            level = L.Logger.DEBUG;
+        }
+        L.Logger.logLevel = level;
+    };
+
+    // Generic function to print logs for a given level: L.Logger.[DEBUG, TRACE, INFO, WARNING, ERROR]
+    log = function (level, msg) {
+        var out = '';
+        if (level < L.Logger.logLevel) {
+            return;
+        }
+        if (level === L.Logger.DEBUG) {
+            out = out + "DEBUG";
+        } else if (level === L.Logger.TRACE) {
+            out = out + "TRACE";
+        } else if (level === L.Logger.INFO) {
+            out = out + "INFO";
+        } else if (level === L.Logger.WARNING) {
+            out = out + "WARNING";
+        } else if (level === L.Logger.ERROR) {
+            out = out + "ERROR";
+        }
+
+        out = out + ": " + msg;
+        if (L.Logger.panel !== undefined) {
+            L.Logger.panel.value = L.Logger.panel.value + "\n" + out;
+        } else {
+            console.log(out);
+        }
+    };
+
+    // It prints debug logs
+    debug = function (msg) {
+        L.Logger.log(L.Logger.DEBUG, msg);
+    };
+
+    // It prints trace logs
+    trace = function (msg) {
+        L.Logger.log(L.Logger.TRACE, msg);
+    };
+
+    // It prints info logs
+    info = function (msg) {
+        L.Logger.log(L.Logger.INFO, msg);
+    };
+
+    // It prints warning logs
+    warning = function (msg) {
+        L.Logger.log(L.Logger.WARNING, msg);
+    };
+
+    // It prints error logs
+    error = function (msg) {
+        L.Logger.log(L.Logger.ERROR, msg);
+    };
+
+    return {
+        DEBUG: DEBUG,
+        TRACE: TRACE,
+        INFO: INFO,
+        WARNING: WARNING,
+        ERROR: ERROR,
+        NONE: NONE,
+        enableLogPanel: enableLogPanel,
+        setLogLevel: setLogLevel,
+        log: log,
+        debug: debug,
+        trace: trace,
+        info: info,
+        warning: warning,
+        error: error
+    };
+}(L));var L = L || {};
+L.Base64 = (function (L) {
+    "use strict";
+    var END_OF_INPUT, base64Chars, reverseBase64Chars, base64Str, base64Count, i, setBase64Str, readBase64, encodeBase64, readReverseBase64, ntos, decodeBase64;
+
+    END_OF_INPUT = -1;
+
+    base64Chars = [
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+        'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+        'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+        'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+        'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+        'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+        'w', 'x', 'y', 'z', '0', '1', '2', '3',
+        '4', '5', '6', '7', '8', '9', '+', '/'
+    ];
+
+    reverseBase64Chars = [];
+
+    for (i = 0; i < base64Chars.length; i = i + 1) {
+        reverseBase64Chars[base64Chars[i]] = i;
+    }
+
+    setBase64Str = function (str) {
+        base64Str = str;
+        base64Count = 0;
+    };
+
+    readBase64 = function () {
+        var c;
+        if (!base64Str) {
+            return END_OF_INPUT;
+        }
+        if (base64Count >= base64Str.length) {
+            return END_OF_INPUT;
+        }
+        c = base64Str.charCodeAt(base64Count) & 0xff;
+        base64Count = base64Count + 1;
+        return c;
+    };
+
+    encodeBase64 = function (str) {
+        var result, inBuffer, lineCount, done;
+        setBase64Str(str);
+        result = '';
+        inBuffer = new Array(3);
+        lineCount = 0;
+        done = false;
+        while (!done && (inBuffer[0] = readBase64()) !== END_OF_INPUT) {
+            inBuffer[1] = readBase64();
+            inBuffer[2] = readBase64();
+            result = result + (base64Chars[inBuffer[0] >> 2]);
+            if (inBuffer[1] !== END_OF_INPUT) {
+                result = result + (base64Chars [((inBuffer[0] << 4) & 0x30) | (inBuffer[1] >> 4)]);
+                if (inBuffer[2] !== END_OF_INPUT) {
+                    result = result + (base64Chars [((inBuffer[1] << 2) & 0x3c) | (inBuffer[2] >> 6)]);
+                    result = result + (base64Chars[inBuffer[2] & 0x3F]);
+                } else {
+                    result = result + (base64Chars[((inBuffer[1] << 2) & 0x3c)]);
+                    result = result + ('=');
+                    done = true;
+                }
+            } else {
+                result = result + (base64Chars[((inBuffer[0] << 4) & 0x30)]);
+                result = result + ('=');
+                result = result + ('=');
+                done = true;
+            }
+            lineCount = lineCount + 4;
+            if (lineCount >= 76) {
+                result = result + ('\n');
+                lineCount = 0;
+            }
+        }
+        return result;
+    };
+
+    readReverseBase64 = function () {
+        if (!base64Str) {
+            return END_OF_INPUT;
+        }
+        while (true) {
+            if (base64Count >= base64Str.length) {
+                return END_OF_INPUT;
+            }
+            var nextCharacter = base64Str.charAt(base64Count);
+            base64Count = base64Count + 1;
+            if (reverseBase64Chars[nextCharacter]) {
+                return reverseBase64Chars[nextCharacter];
+            }
+            if (nextCharacter === 'A') {
+                return 0;
+            }
+        }
+    };
+
+    ntos = function (n) {
+        n = n.toString(16);
+        if (n.length === 1) {
+            n = "0" + n;
+        }
+        n = "%" + n;
+        return unescape(n);
+    };
+
+    decodeBase64 = function (str) {
+        var result, inBuffer, done;
+        setBase64Str(str);
+        result = "";
+        inBuffer = new Array(4);
+        done = false;
+        while (!done && (inBuffer[0] = readReverseBase64()) !== END_OF_INPUT && (inBuffer[1] = readReverseBase64()) !== END_OF_INPUT) {
+            inBuffer[2] = readReverseBase64();
+            inBuffer[3] = readReverseBase64();
+            result = result + ntos((((inBuffer[0] << 2) & 0xff)| inBuffer[1] >> 4));
+            if (inBuffer[2] !== END_OF_INPUT) {
+                result +=  ntos((((inBuffer[1] << 4) & 0xff) | inBuffer[2] >> 2));
+                if (inBuffer[3] !== END_OF_INPUT) {
+                    result = result +  ntos((((inBuffer[2] << 6)  & 0xff) | inBuffer[3]));
+                } else {
+                    done = true;
+                }
+            } else {
+                done = true;
+            }
+        }
+        return result;
+    };
+
+    return {
+        encodeBase64: encodeBase64,
+        decodeBase64: decodeBase64
+    };
+}(L));/*
+ * View class represents a HTML component
+ * Every view is an EventDispatcher.
+ */
+var Erizo = Erizo || {};
+Erizo.View = function(spec) {
+    var that = Erizo.EventDispatcher({});
+
+    // Variables
+
+    // URL where it will look for icons and assets
+    that.url = "http://chotis2.dit.upm.es:3000";
+    return that;
+};/*
+ * VideoPlayer represents a Lynckia video component that shows either a local or a remote video.
+ * Ex.: var player = VideoPlayer({id: id, stream: stream, elementID: elementID});
+ * A VideoPlayer is also a View component.
+ */
+var Erizo = Erizo || {};
+Erizo.VideoPlayer = function(spec) {
+    var that = Erizo.View({});
+
+    // Variables
+
+    // VideoPlayer ID
+    that.id = spec.id;
+
+    // Stream that the VideoPlayer will play
+    that.stream = spec.stream;
+
+    // DOM element in which the VideoPlayer will be appended
+    that.elementID = spec.elementID;
+
+    // Private functions
+    var onmouseover = function(evt) {
+        that.bar.display();
+    };
+
+    var onmouseout = function(evt) {
+        that.bar.hide();
+    };
+
+    // Public functions
+
+    // It will stop the VideoPlayer and remove it from the HTML
+    that.destroy = function() {
+        that.video.pause();
+        clearInterval(that.resize);
+        that.parentNode.removeChild(that.div);
+    };
+  
+    window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
+        document.getElementById(key).value = unescape(value);
+    });
+
+    L.Logger.debug('Creating URL from stream ' + that.stream);
+    that.stream_url = webkitURL.createObjectURL(that.stream);
+
+    // Container
+    that.div = document.createElement('div');
+    that.div.setAttribute('id', 'player_' + that.id);
+    that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; background-color: black; overflow: hidden;');
+
+    // Loader icon
+    that.loader = document.createElement('img');
+    that.loader.setAttribute('style', 'width: 16px; height: 16px; position: absolute; top: 50%; left: 50%; margin-top: -8px; margin-left: -8px');
+    that.loader.setAttribute('id', 'back_' + that.id);
+    that.loader.setAttribute('src', that.url + '/assets/loader.gif');
+
+    // Video tag
+    that.video = document.createElement('video');
+    that.video.setAttribute('id', 'stream' + that.id);
+    that.video.setAttribute('style', 'width: 100%; height: 100%; position: absolute');
+    that.video.setAttribute('autoplay', 'autoplay');
+
+    if (that.elementID !== undefined) {
+        document.getElementById(that.elementID).appendChild(that.div);
+        that.container = document.getElementById(that.elementID);
+    } else {
+        document.body.appendChild(that.div);
+        that.container = document.body;
+    }
+
+    that.parentNode = that.div.parentNode;
+
+    that.div.appendChild(that.loader);
+    that.div.appendChild(that.video);
+
+    that.containerWidth = 0;
+    that.containerHeight = 0;
+
+    that.resize = setInterval(function() {
+
+        var width = that.container.offsetWidth;
+        var height = that.container.offsetHeight;
+
+        if (width !== that.containerWidth || height !== that.containerHeight) {
+
+            if (width*(3/4) > height) {
+
+                that.video.style.width = width + "px";
+                that.video.style.height = (3/4)*width + "px";
+
+                that.video.style.top = -((3/4)*width/2 - height/2) + "px";
+                that.video.style.left = 0 + "px";
+
+            } else {
+
+                that.video.style.height = height + "px";
+                that.video.style.width = (4/3)*height + "px";
+
+                that.video.style.left = -((4/3)*height/2 - width/2) + "px";
+                that.video.style.top = 0 + "px";
+
+            }
+
+            that.containerWidth = width;
+            that.containerHeight = height;
+        }
+
+
+    }, 500);
+
+
+    // Bottom Bar
+    that.bar = new Erizo.Bar({elementID: 'player_' + that.id, id: that.id, video: that.video, options: spec.options});
+
+    that.div.onmouseover = onmouseover;
+    that.div.onmouseout = onmouseout;
+
+    that.video.src = that.stream_url;
+
+    return that;
+};/*
+ * Bar represents the bottom menu bar of every VideoPlayer.
+ * It contains a Speaker and an icon.
+ * Every Bar is a View.
+ * Ex.: var bar = Bar({elementID: element, id: id});
+ */
+var Erizo = Erizo || {};
+Erizo.Bar = function(spec) {
+    var that = Erizo.View({});
+
+    var waiting = undefined;
+
+    // Variables
+
+    // DOM element in which the Bar will be appended
+    that.elementID = spec.elementID;
+
+    // Bar ID
+    that.id = spec.id;
+    
+    // Container
+    that.div = document.createElement('div');
+    that.div.setAttribute('id', 'bar_'+that.id);
+
+    // Bottom bar
+    that.bar = document.createElement('div');
+    that.bar.setAttribute('style', 'width: 100%; height: 15%; max-height: 30px; position: absolute; bottom: 0; right: 0; background-color: rgba(255,255,255,0.62)');
+    that.bar.setAttribute('id', 'subbar_'+that.id);
+
+    // Lynckia icon
+    that.link = document.createElement('a');
+    that.link.setAttribute('href', 'http://www.lynckia.com/');
+    that.link.setAttribute('target', '_blank');
+    
+    that.logo = document.createElement('img');
+    that.logo.setAttribute('style', 'width: 10%; height: 100%; max-width: 30px; position: absolute; top: 0; left: 2px;');
+    that.logo.setAttribute('alt', 'Lynckia');
+    that.logo.setAttribute('src', that.url + '/assets/star.svg');
+
+    // Private functions
+    var show = function(displaying) {
+        if (displaying !== 'block') {
+            displaying = 'none';
+        } else {
+            clearTimeout(waiting);
+        }
+        
+        that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; bottom: 0; right: 0; display:'+displaying);
+    };
+
+    // Public functions
+
+    that.display = function() {
+        show('block');
+    };
+
+    that.hide = function() {
+        waiting = setTimeout(show, 1000);
+    };
+
+    document.getElementById(that.elementID).appendChild(that.div);
+    that.div.appendChild(that.bar);
+    that.bar.appendChild(that.link);
+    that.link.appendChild(that.logo);
+
+    // Speaker component
+    if (spec.options === undefined || spec.options.speaker === undefined || spec.options.speaker === true) {
+        that.speaker = new Erizo.Speaker({elementID: 'subbar_'+that.id, id: that.id, video: spec.video});
+    }
+
+    that.display();
+    that.hide();
+
+    return that;
+};/*
+ * Speaker represents the volume icon that will be shown in the VideoPlayer, for example.
+ * It manages the volume level of the video tag given in the constructor.
+ * Every Speaker is a View.
+ * Ex.: var speaker = Speaker({elementID: element, video: videoTag, id: id});
+ */
+var Erizo = Erizo || {};
+Erizo.Speaker = function(spec) {
+    var that = Erizo.View({});
+
+    // Variables
+
+    // DOM element in which the Speaker will be appended
+    that.elementID = spec.elementID;
+
+    // Video tag
+    that.video = spec.video;
+
+    // Speaker id
+    that.id = spec.id;
+
+    // Container
+    that.div = document.createElement('div');
+    that.div.setAttribute('style', 'width: 10%; height: 100%; max-width: 30px; position: absolute; bottom: 0; right: 0;');
+
+    // Volume icon 
+    that.icon = document.createElement('img');
+    that.icon.setAttribute('id', 'volume_' + that.id);
+    that.icon.setAttribute('src', that.url + '/assets/sound48.png');
+    that.icon.setAttribute('style', 'width: 100%; height: 100%; position: absolute;');
+    that.div.appendChild(that.icon);
+
+    // Volume bar
+    that.picker = document.createElement('input');
+    that.picker.setAttribute('id', 'picker_' + that.id);
+    that.picker.type = "range";
+    that.picker.min = 0;
+    that.picker.max = 100;
+    that.picker.step = 10;
+    that.picker.value = 50;
+    that.div.appendChild(that.picker);
+    that.video.volume = that.picker.value / 100;
+
+    that.picker.oninput = function(evt) {
+        if (that.picker.value > 0) {
+            that.icon.setAttribute('src', that.url + '/assets/sound48.png');
+        } else {
+            that.icon.setAttribute('src', that.url + '/assets/mute48.png');
+        }
+        that.video.volume = that.picker.value / 100;
+    };
+
+    // Private functions
+    var show = function(displaying) {
+        that.picker.setAttribute('style', 'width: 32px; height: 100px; position: absolute; bottom: '+that.div.offsetHeight+'px; right: 0px; -webkit-appearance: slider-vertical; display: '+displaying);
+    };
+
+    // Public functions
+    that.div.onmouseover = function(evt) {
+        show('block');
+    };
+
+    that.div.onmouseout = function(evt) {
+        show('none');
+    };
+
+    show('none');
+
+    document.getElementById(that.elementID).appendChild(that.div);
+    return that;
+}

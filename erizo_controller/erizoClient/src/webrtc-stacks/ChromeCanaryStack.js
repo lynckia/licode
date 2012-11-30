@@ -71,6 +71,13 @@ Erizo.ChromeCanaryStack = function (spec) {
 
         } else if (that.state === 'offer-sent') {
             if (msg.messageType === 'ANSWER') {
+
+                var regExp = new RegExp(/m=video.*\r\n/g);
+
+                var exp = msg.sdp.match(regExp);
+                console.log(exp);
+
+                msg.sdp = msg.sdp.replace(regExp, exp+"b=AS:50\r\n");
                 
                 sd = {
                     sdp: msg.sdp,
@@ -183,7 +190,17 @@ Erizo.ChromeCanaryStack = function (spec) {
 
                 that.peerConnection.createOffer(function (sessionDescription) {
 
+                    var regExp = new RegExp(/m=video.*\r\n/g);
+
+                    var exp = sessionDescription.sdp.match(regExp);
+                    console.log(exp);
+
+                    sessionDescription.sdp = sessionDescription.sdp.replace(regExp, exp+"b=AS:50\r\n");
+                    
+
                     var newOffer = sessionDescription.sdp;
+
+                    console.log("Changed",sessionDescription.sdp);
 
                     if (newOffer !== that.prevOffer) {
 

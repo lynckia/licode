@@ -225,12 +225,12 @@ void NiceConnection::init() {
 	g_thread_init(NULL);
 
 	loop_ = g_main_loop_new(NULL, FALSE);
-	nice_debug_enable( TRUE );
+	//nice_debug_enable( TRUE );
 	// Create a nice agent
 	agent_ = nice_agent_new(g_main_loop_get_context(loop_),
 		 NICE_COMPATIBILITY_RFC5245);
 
-	g_object_set (G_OBJECT (agent_), "controlling-mode", TRUE, NULL);
+	g_object_set (G_OBJECT (agent_), "controlling-mode", FALSE, NULL);
 
 //	NiceAddress* naddr = nice_address_new();
 //	nice_agent_add_local_address(agent_, naddr);

@@ -34,7 +34,7 @@ public:
 	 * @param transportName The name of the transport protocol. Was used when WebRTC used video_rtp instead of just rtp.
    * @param iceComponents Number of ice components pero connection. Default is 1 (rtcp-mux).
 	 */
-	NiceConnection(MediaType med, const std::string &transportName, int iceComponents=2);
+	NiceConnection(MediaType med, const std::string &transportName, int iceComponents=1);
 	virtual ~NiceConnection();
 	/**
 	 * Join to the internal thread of the NiceConnection.
