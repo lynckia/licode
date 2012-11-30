@@ -6,6 +6,7 @@
 #define ONETOMANYPROCESSOR_H_
 
 #include <map>
+#include <string>
 
 #include "MediaDefinitions.h"
 
@@ -20,7 +21,7 @@ class WebRtcConnection;
 class OneToManyProcessor : public MediaReceiver {
 public:
 	WebRtcConnection *publisher;
-	std::map<int, WebRtcConnection*> subscribers;
+	std::map<std::string, WebRtcConnection*> subscribers;
 
 	OneToManyProcessor();
 	virtual ~OneToManyProcessor();
@@ -34,12 +35,12 @@ public:
 	 * @param webRtcConn The WebRtcConnection of the subscriber
 	 * @param peerId An unique Id for the subscriber
 	 */
-	void addSubscriber(WebRtcConnection* webRtcConn, int peerId);
+	void addSubscriber(WebRtcConnection* webRtcConn, const std::string& peerId);
 	/**
 	 * Eliminates the subscriber given its peer id
 	 * @param peerId the peerId
 	 */
-	void removeSubscriber(int peerId);
+	void removeSubscriber(const std::string& peerId);
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
 	/**
