@@ -5,9 +5,6 @@ cat ../lib/roap_on_jsep.js >> $FILE
 cat ../lib/erizo_on_jsep.js >> $FILE
 cat ../lib/socket.io.js >> $FILE
 cat ../src/Events.js >> $FILE
-cat ../src/webrtc-stacks/ChromeStableStack.js >> $FILE
-cat ../src/webrtc-stacks/ChromeCanaryStack.js >> $FILE
-cat ../src/Connection.js >> $FILE
 cat ../src/Stream.js >> $FILE
 cat ../src/Room.js >> $FILE
 cat ../src/utils/L.Logger.js >> $FILE

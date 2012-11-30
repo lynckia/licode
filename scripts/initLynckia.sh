@@ -10,8 +10,6 @@ EXTRAS=$ROOT/extras
 
 export PATH=$PATH:/usr/local/sbin
 
-sudo echo
-
 sudo rabbitmq-server > $BUILD_DIR/rabbit.log &
 
 cd $ROOT/nuve
