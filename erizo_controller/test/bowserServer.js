@@ -1,7 +1,9 @@
 var express = require ('express');
 var net = require('net');
-var app = express.createServer();
-var io = require('socket.io').listen(app);
+var http = require('http');
+var app = express();
+var server = http.createServer(app);
+var io = require('socket.io').listen(server);
 
 io.set('log level', 1);
 
