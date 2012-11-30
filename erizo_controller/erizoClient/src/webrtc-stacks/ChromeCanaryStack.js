@@ -6,7 +6,9 @@ Erizo.ChromeCanaryStack = function (spec) {
     var that = {};
 
     that.pc_config = {
-        "iceServers": []
+        "iceServers": [{
+            "url": "stun:stun.l.google.com:19302"
+        }]
     };
 
     that.mediaConstraints = {
@@ -19,7 +21,7 @@ Erizo.ChromeCanaryStack = function (spec) {
     that.peerConnection = new webkitRTCPeerConnection(that.pc_config);
 
     that.peerConnection.onicecandidate = function (event) {
-        console.log("State: " + that.peerConnection.iceGatheringState);
+        console.log("PeerConnection: ", spec.session_id);
         if (!event.candidate) {
             // At the moment, we do not renegotiate when new candidates
             // show up after the more flag has been false once.
@@ -77,7 +79,7 @@ Erizo.ChromeCanaryStack = function (spec) {
                 var exp = msg.sdp.match(regExp);
                 console.log(exp);
 
-                msg.sdp = msg.sdp.replace(regExp, exp+"b=AS:50\r\n");
+                msg.sdp = msg.sdp.replace(regExp, exp+"b=AS:2000\r\n");
                 
                 sd = {
                     sdp: msg.sdp,
@@ -190,17 +192,9 @@ Erizo.ChromeCanaryStack = function (spec) {
 
                 that.peerConnection.createOffer(function (sessionDescription) {
 
-                    var regExp = new RegExp(/m=video.*\r\n/g);
-
-                    var exp = sessionDescription.sdp.match(regExp);
-                    console.log(exp);
-
-                    sessionDescription.sdp = sessionDescription.sdp.replace(regExp, exp+"b=AS:50\r\n");
-                    
-
                     var newOffer = sessionDescription.sdp;
 
-                    console.log("Changed",sessionDescription.sdp);
+                    console.log("Changed " + spec.session_id ,sessionDescription.sdp);
 
                     if (newOffer !== that.prevOffer) {
 
