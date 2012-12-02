@@ -1,3 +1,4 @@
+/*global require, exports*/
 var config = require('./../../../lynckia_config');
 
 var databaseUrl = config.nuve.dataBaseURL;

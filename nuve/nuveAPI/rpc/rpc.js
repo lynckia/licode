@@ -1,3 +1,4 @@
+/*global exports, require, console, Buffer, setTimeout, clearTimeout*/
 var sys = require('util');
 var amqp = require('amqp');
 var rpcPublic = require('./rpcPublic');
@@ -6,7 +7,7 @@ var config = require('./../../../lynckia_config');
 var TIMEOUT = 3000;
 
 var corrID = 0;
-var map = {};	//{corrID: {fn: callback, to: timeout}}
+var map = {};   //{corrID: {fn: callback, to: timeout}}
 var clientQueue;
 var exc;
 
@@ -14,66 +15,71 @@ var exc;
 var connection = amqp.createConnection({host: config.rabbit.host, port: config.rabbit.port});
 
 connection.on('ready', function () {
-	console.log('Conected to rabbitMQ server');
+    "use strict";
 
-	//Create a direct exchange 
-	exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
-		console.log('Exchange ' + exchange.name + ' is open');
+    console.log('Conected to rabbitMQ server');
 
-		//Create the queue for receive messages
-		var q = connection.queue('nuveQueue', function (queue) {
-		  	console.log('Queue ' + queue.name + ' is open');
+    //Create a direct exchange 
+    exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
+        console.log('Exchange ' + exchange.name + ' is open');
 
-		  	q.bind('rpcExchange', 'nuve');
-	  		q.subscribe(function (message) { 
+        //Create the queue for receive messages
+        var q = connection.queue('nuveQueue', function (queue) {
+            console.log('Queue ' + queue.name + ' is open');
 
-	    		rpcPublic[message.method](message.args, function(result) {
+            q.bind('rpcExchange', 'nuve');
+            q.subscribe(function (message) {
 
-	    			exc.publish(message.replyTo, {data: result, corrID: message.corrID});
-	    		});
+                rpcPublic[message.method](message.args, function (result) {
 
-	    		
-	  		});
-		});
+                    exc.publish(message.replyTo, {data: result, corrID: message.corrID});
+                });
 
-		//Create the queue for send messages
-		clientQueue = connection.queue('', function (q) {
-		  	console.log('ClientQueue ' + q.name + ' is open');
+            });
+        });
 
-		 	clientQueue.bind('rpcExchange', clientQueue.name);
+        //Create the queue for send messages
+        clientQueue = connection.queue('', function (q) {
+            console.log('ClientQueue ' + q.name + ' is open');
 
-		  	clientQueue.subscribe(function (message) {
+            clientQueue.bind('rpcExchange', clientQueue.name);
 
-		  		if(map[message.corrID] !== undefined) {
+            clientQueue.subscribe(function (message) {
 
-					map[message.corrID].fn(message.data);
-					clearTimeout(map[message.corrID].to);
-					delete map[message.corrID];
-				}
-		  	});
+                if (map[message.corrID] !== undefined) {
 
-		});
-	});
+                    map[message.corrID].fn(message.data);
+                    clearTimeout(map[message.corrID].to);
+                    delete map[message.corrID];
+                }
+            });
+
+        });
+    });
 
 });
+
+var callbackError = function (corrID) {
+    "use strict";
+
+    map[corrID].fn('timeout');
+    delete map[corrID];
+};
 
 /*
  * Calls remotely the 'method' function defined in rpcPublic of 'to'.
  */
-exports.callRpc = function(to, method, args, callback) {
+exports.callRpc = function (to, method, args, callback) {
+    "use strict";
 
-	corrID ++;
-	map[corrID] = {};
-	map[corrID].fn = callback;
-	map[corrID].to = setTimeout(callbackError, TIMEOUT, corrID);
+    corrID += 1;
+    map[corrID] = {};
+    map[corrID].fn = callback;
+    map[corrID].to = setTimeout(callbackError, TIMEOUT, corrID);
 
-	var send = {method: method, args: args, corrID: corrID, replyTo: clientQueue.name};
- 	
- 	exc.publish(to, send);
-	
-}
+    var send = {method: method, args: args, corrID: corrID, replyTo: clientQueue.name};
 
-var callbackError = function(corrID) {
-	map[corrID].fn('timeout');
-	delete map[corrID];
-}
+    exc.publish(to, send);
+
+};
+

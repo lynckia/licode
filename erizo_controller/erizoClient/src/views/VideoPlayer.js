@@ -1,11 +1,16 @@
+/*global window, console, clearInterval, setInterval, document, unescape, L, webkitURL*/
 /*
  * VideoPlayer represents a Lynckia video component that shows either a local or a remote video.
  * Ex.: var player = VideoPlayer({id: id, stream: stream, elementID: elementID});
  * A VideoPlayer is also a View component.
  */
 var Erizo = Erizo || {};
-Erizo.VideoPlayer = function(spec) {
-    var that = Erizo.View({});
+Erizo.VideoPlayer = function (spec) {
+    "use strict";
+
+    var that = Erizo.View({}),
+        onmouseover,
+        onmouseout;
 
     // Variables
 
@@ -19,23 +24,23 @@ Erizo.VideoPlayer = function(spec) {
     that.elementID = spec.elementID;
 
     // Private functions
-    var onmouseover = function(evt) {
+    onmouseover = function (evt) {
         that.bar.display();
     };
 
-    var onmouseout = function(evt) {
+    onmouseout = function (evt) {
         that.bar.hide();
     };
 
     // Public functions
 
     // It will stop the VideoPlayer and remove it from the HTML
-    that.destroy = function() {
+    that.destroy = function () {
         that.video.pause();
         clearInterval(that.resize);
         that.parentNode.removeChild(that.div);
     };
-  
+
     window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
         document.getElementById(key).value = unescape(value);
     });
@@ -76,28 +81,28 @@ Erizo.VideoPlayer = function(spec) {
     that.containerWidth = 0;
     that.containerHeight = 0;
 
-    that.resize = setInterval(function() {
+    that.resize = setInterval(function () {
 
-        var width = that.container.offsetWidth;
-        var height = that.container.offsetHeight;
+        var width = that.container.offsetWidth,
+            height = that.container.offsetHeight;
 
         if (width !== that.containerWidth || height !== that.containerHeight) {
 
-            if (width*(3/4) > height) {
+            if (width * (3 / 4) > height) {
 
                 that.video.style.width = width + "px";
-                that.video.style.height = (3/4)*width + "px";
+                that.video.style.height = (3 / 4) * width + "px";
 
-                that.video.style.top = -((3/4)*width/2 - height/2) + "px";
-                that.video.style.left = 0 + "px";
+                that.video.style.top = -((3 / 4) * width / 2 - height / 2) + "px";
+                that.video.style.left = "0px";
 
             } else {
 
                 that.video.style.height = height + "px";
-                that.video.style.width = (4/3)*height + "px";
+                that.video.style.width = (4 / 3) * height + "px";
 
-                that.video.style.left = -((4/3)*height/2 - width/2) + "px";
-                that.video.style.top = 0 + "px";
+                that.video.style.left = -((4 / 3) * height / 2 - width / 2) + "px";
+                that.video.style.top = "0px";
 
             }
 

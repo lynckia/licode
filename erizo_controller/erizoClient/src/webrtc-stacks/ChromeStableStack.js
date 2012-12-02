@@ -1,9 +1,12 @@
+/*global window, console, RTCSessionDescription, RoapConnection, webkitRTCPeerConnection*/
+
 var Erizo = Erizo || {};
 
 Erizo.ChromeStableStack = function (spec) {
     "use strict";
 
-    var that = {};
+    var that = {},
+        WebkitRTCPeerConnection = webkitRTCPeerConnection;
 
     that.pc_config = {
         "iceServers": [{
@@ -18,7 +21,7 @@ Erizo.ChromeStableStack = function (spec) {
         }
     };
 
-    that.peerConnection = new webkitRTCPeerConnection(that.pc_config);
+    that.peerConnection = new WebkitRTCPeerConnection(that.pc_config);
 
     that.peerConnection.onicecandidate = function (event) {
         if (!event.candidate) {
@@ -165,8 +168,8 @@ Erizo.ChromeStableStack = function (spec) {
      * to the remote party using our onsignalingmessage function.
      */
     that.onstablestate = function () {
-        var mySDP;
-        var roapMessage = {};
+        var mySDP,
+            roapMessage = {};
         if (that.actionNeeded) {
             if (that.state === 'new' || that.state === 'established') {
                 // See if the current offer is the same as what we already sent.
@@ -256,7 +259,7 @@ Erizo.ChromeStableStack = function (spec) {
         if (operation === 'OFFER') {
             roapMessage.offererSessionId = that.sessionId;
             roapMessage.answererSessionId = that.otherSessionId; // may be null
-            roapMessage.seq = ++that.sequenceNumber;
+            roapMessage.seq = (that.sequenceNumber += 1);
             // The tiebreaker needs to be neither 0 nor 429496725.
             roapMessage.tiebreaker = Math.floor(Math.random() * 429496723 + 1);
         } else {
@@ -275,7 +278,7 @@ Erizo.ChromeStableStack = function (spec) {
         throw 'Error in RoapOnJsep: ' + text;
     };
 
-    that.sessionId = ++RoapConnection.sessionId;
+    that.sessionId = (RoapConnection.sessionId += 1);
     that.sequenceNumber = 0; // Number of last ROAP message sent. Starts at 1.
     that.actionNeeded = false;
     that.iceStarted = false;

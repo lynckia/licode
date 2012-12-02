@@ -3,7 +3,9 @@
  * Every view is an EventDispatcher.
  */
 var Erizo = Erizo || {};
-Erizo.View = function(spec) {
+Erizo.View = function (spec) {
+	"use strict";
+
     var that = Erizo.EventDispatcher({});
 
     // Variables

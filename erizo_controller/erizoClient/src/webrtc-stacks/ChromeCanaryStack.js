@@ -1,9 +1,12 @@
+/*global window, console, RTCSessionDescription, RoapConnection, webkitRTCPeerConnection*/
+
 var Erizo = Erizo || {};
 
 Erizo.ChromeCanaryStack = function (spec) {
     "use strict";
 
-    var that = {};
+    var that = {},
+        WebkitRTCPeerConnection = webkitRTCPeerConnection;
 
     that.pc_config = {
 
@@ -19,7 +22,7 @@ Erizo.ChromeCanaryStack = function (spec) {
         }
     };
 
-    that.peerConnection = new webkitRTCPeerConnection(that.pc_config);
+    that.peerConnection = new WebkitRTCPeerConnection(that.pc_config);
 
     that.peerConnection.onicecandidate = function (event) {
         console.log("PeerConnection: ", spec.session_id);
@@ -27,15 +30,15 @@ Erizo.ChromeCanaryStack = function (spec) {
             // At the moment, we do not renegotiate when new candidates
             // show up after the more flag has been false once.
             console.log("State: " + that.peerConnection.iceGatheringState);
-            
+
             if (that.ices === undefined) {
-              that.ices = 0;
+                that.ices = 0;
             }
-            that.ices++;
+            that.ices = that.ices + 1;
             console.log(that.ices);
-            if (that.ices >=1 && that.moreIceComing) {
-              that.moreIceComing = false;
-              that.markActionNeeded();
+            if (that.ices >= 1 && that.moreIceComing) {
+                that.moreIceComing = false;
+                that.markActionNeeded();
             }
         } else {
             that.iceCandidateCount += 1;
@@ -53,7 +56,7 @@ Erizo.ChromeCanaryStack = function (spec) {
         // Answer/OK: Remove retransmit for the msg this is an answer to.
         // Send back "OK" if this was an Answer.
         console.log('Activity on conn ' + that.sessionId);
-        var msg = JSON.parse(msgstring), sd;
+        var msg = JSON.parse(msgstring), sd, regExp, exp;
         that.incomingMessage = msg;
 
         if (that.state === 'new') {
@@ -75,13 +78,13 @@ Erizo.ChromeCanaryStack = function (spec) {
         } else if (that.state === 'offer-sent') {
             if (msg.messageType === 'ANSWER') {
 
-                var regExp = new RegExp(/m=video.*\r\n/g);
+                regExp = new RegExp(/m=video[\w\W]*\r\n/g);
 
-                var exp = msg.sdp.match(regExp);
+                exp = msg.sdp.match(regExp);
                 console.log(exp);
 
-                msg.sdp = msg.sdp.replace(regExp, exp+"b=AS:50\r\n");
-                
+                msg.sdp = msg.sdp.replace(regExp, exp + "b=AS:100\r\n");
+
                 sd = {
                     sdp: msg.sdp,
                     type: 'answer'
@@ -184,8 +187,7 @@ Erizo.ChromeCanaryStack = function (spec) {
      * to the remote party using our onsignalingmessage function.
      */
     that.onstablestate = function () {
-        var mySDP;
-        var roapMessage = {};
+        var mySDP, roapMessage = {};
         if (that.actionNeeded) {
             if (that.state === 'new' || that.state === 'established') {
                 // See if the current offer is the same as what we already sent.
@@ -193,17 +195,9 @@ Erizo.ChromeCanaryStack = function (spec) {
 
                 that.peerConnection.createOffer(function (sessionDescription) {
 
-                    var regExp = new RegExp(/m=video.*\r\n/g);
-
-                    var exp = sessionDescription.sdp.match(regExp);
-                    console.log(exp);
-
-                    sessionDescription.sdp = sessionDescription.sdp.replace(regExp, exp+"b=AS:50\r\n");
-                    
-
                     var newOffer = sessionDescription.sdp;
 
-                    console.log("Changed",sessionDescription.sdp);
+                    console.log("Changed", sessionDescription.sdp);
 
                     if (newOffer !== that.prevOffer) {
 
@@ -225,7 +219,7 @@ Erizo.ChromeCanaryStack = function (spec) {
                     return;
                 }
 
-                
+
                 // Now able to send the offer we've already prepared.
                 that.prevOffer = that.peerConnection.localDescription.sdp;
                 console.log("Sending OFFER: ", that.prevOffer);
@@ -286,7 +280,7 @@ Erizo.ChromeCanaryStack = function (spec) {
         if (operation === 'OFFER') {
             roapMessage.offererSessionId = that.sessionId;
             roapMessage.answererSessionId = that.otherSessionId; // may be null
-            roapMessage.seq = ++that.sequenceNumber;
+            roapMessage.seq = (that.sequenceNumber += 1);
             // The tiebreaker needs to be neither 0 nor 429496725.
             roapMessage.tiebreaker = Math.floor(Math.random() * 429496723 + 1);
         } else {
@@ -305,7 +299,7 @@ Erizo.ChromeCanaryStack = function (spec) {
         throw 'Error in RoapOnJsep: ' + text;
     };
 
-    that.sessionId = ++RoapConnection.sessionId;
+    that.sessionId = (RoapConnection.sessionId += 1);
     that.sequenceNumber = 0; // Number of last ROAP message sent. Starts at 1.
     that.actionNeeded = false;
     that.iceStarted = false;

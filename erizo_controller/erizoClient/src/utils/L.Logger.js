@@ -1,3 +1,5 @@
+/*global document, console*/
+
 var L = L || {};
 
 /*

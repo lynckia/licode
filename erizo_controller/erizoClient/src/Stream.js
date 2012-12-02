@@ -1,3 +1,4 @@
+/*global ErizoGetUserMedia, L, document*/
 /*
  * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC stream
  * and identify the stream and where it should be drawn.
@@ -5,7 +6,8 @@
 var Erizo = Erizo || {};
 Erizo.Stream = function (spec) {
     "use strict";
-    var that = Erizo.EventDispatcher(spec);
+    var that = Erizo.EventDispatcher(spec),
+        getFrame;
     that.stream = spec.stream;
     that.room = undefined;
     that.showing = false;
@@ -16,11 +18,11 @@ Erizo.Stream = function (spec) {
 
     // Public functions
 
-    that.getID = function() {
+    that.getID = function () {
         return spec.streamID;
     };
 
-    that.getAttributes = function() {
+    that.getAttributes = function () {
         return spec.attributes;
     };
 
@@ -40,16 +42,16 @@ Erizo.Stream = function (spec) {
     };
 
     // Sends data through this stream.
-    that.sendData = function(msg) {};
+    that.sendData = function (msg) {};
 
     // Initializes the stream and tries to retrieve a stream from local video and audio
     // We need to call this method before we can publish it in the room.
     that.init = function () {
         try {
             if (spec.audio || spec.video) {
-                ErizoGetUserMedia({video: spec.video, audio: spec.audio}, function (stream) {
+                Erizo.GetUserMedia({video: spec.video, audio: spec.audio}, function (stream) {
                 //navigator.webkitGetUserMedia("audio, video", function (stream) {
-                    
+
                     L.Logger.info("User has granted access to local media.");
                     that.stream = stream;
 
@@ -71,7 +73,7 @@ Erizo.Stream = function (spec) {
         }
     };
 
-    that.show = function(elementID, options) {
+    that.show = function (elementID, options) {
         that.elementID = elementID;
         if (that.hasVideo()) {
             // Draw on HTML
@@ -83,7 +85,7 @@ Erizo.Stream = function (spec) {
         }
     };
 
-    that.hide = function() {
+    that.hide = function () {
         if (that.showing) {
             if (that.player !== undefined) {
                 that.player.destroy();
@@ -92,28 +94,30 @@ Erizo.Stream = function (spec) {
         }
     };
 
-    var getFrame = function() {
+    getFrame = function () {
         if (that.player !== undefined && that.stream !== undefined) {
-            var video = that.player.video;
+            var video = that.player.video,
 
-            var style = document.defaultView.getComputedStyle(video);
-            var width = parseInt(style.getPropertyValue("width"));
-            var height = parseInt(style.getPropertyValue("height"));
-            var left = parseInt(style.getPropertyValue("left"));
-            var top = parseInt(style.getPropertyValue("top"));
+                style = document.defaultView.getComputedStyle(video),
+                width = parseInt(style.getPropertyValue("width"), 10),
+                height = parseInt(style.getPropertyValue("height"), 10),
+                left = parseInt(style.getPropertyValue("left"), 10),
+                top = parseInt(style.getPropertyValue("top"), 10),
 
-            var div = document.getElementById(that.elementID);
-            var divStyle = document.defaultView.getComputedStyle(div);
-            var divWidth = parseInt(divStyle.getPropertyValue("width"));
-            var divHeight = parseInt(divStyle.getPropertyValue("height"));
+                div = document.getElementById(that.elementID),
+                divStyle = document.defaultView.getComputedStyle(div),
+                divWidth = parseInt(divStyle.getPropertyValue("width"), 10),
+                divHeight = parseInt(divStyle.getPropertyValue("height"), 10),
 
-            var canvas = document.createElement('canvas');
+                canvas = document.createElement('canvas'),
+                context;
+
             canvas.id = "testing";
             canvas.width = divWidth;
             canvas.height = divHeight;
             canvas.setAttribute('style', 'display: none');
             //document.body.appendChild(canvas);
-            var context = canvas.getContext('2d');
+            context = canvas.getContext('2d');
 
             context.drawImage(video, left, top, width, height);
 
@@ -123,16 +127,22 @@ Erizo.Stream = function (spec) {
         }
     };
 
-    that.getVideoFrameURL = function() {
+    that.getVideoFrameURL = function () {
         var canvas = getFrame();
-        if (canvas != null) return canvas.toDataURL();
-        else return null;
+        if (canvas !== null) {
+            return canvas.toDataURL();
+        } else {
+            return null;
+        }
     };
 
-    that.getVideoFrame = function() {
+    that.getVideoFrame = function () {
         var canvas = getFrame();
-        if (canvas != null) return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-        else return null;
+        if (canvas !== null) {
+            return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        } else {
+            return null;
+        }
     };
 
     return that;
