@@ -7,5 +7,7 @@ before_install:
   - ./scripts/installErizo.sh
   - ./scripts/installNuve.sh
   - ./scripts/installBasicExample.sh
+  - ./scripts/initLynckia.sh
+  - ./scripts/initBasicExample.sh
 branches:
   only: travis-test
