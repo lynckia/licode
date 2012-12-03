@@ -8,7 +8,7 @@ before_install:
   - ./scripts/installNuve.sh
   - ./scripts/installBasicExample.sh
   - ./scripts/initLynckia.sh
-  - sleep 3
+  - sleep 5
   - ./scripts/initBasicExample.sh
   - netstat -punta | grep 8080
   - netstat -punta | grep 3000
