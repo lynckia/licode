@@ -148,20 +148,6 @@ var updateMyState = function () {
     rpc.callRpc('cloudHandler', 'setInfo', info, function () {});
 };
 
-
-
-rpc.connect(function () {
-    "use strict";
-
-    addToCloudHandler(function () {
-
-        var rpcID = 'erizoController_' + myId;
-
-        rpc.bind(rpcID, listen); // FIXME: alvaro: listen?
-
-    });
-});
-
 var listen = function () {
     "use strict";
 
@@ -431,3 +417,15 @@ exports.deleteRoom = function (room, callback) {
     console.log('1 Deleting room ', room, rooms);
     callback('Success');
 };
+
+rpc.connect(function () {
+    "use strict";
+
+    addToCloudHandler(function () {
+
+        var rpcID = 'erizoController_' + myId;
+
+        rpc.bind(rpcID, listen);
+
+    });
+});
