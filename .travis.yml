@@ -8,6 +8,7 @@ before_install:
   - ./scripts/installNuve.sh
   - ./scripts/installBasicExample.sh
   - ./scripts/initLynckia.sh
+  - sleep 3
   - ./scripts/initBasicExample.sh
 branches:
   only: travis-test

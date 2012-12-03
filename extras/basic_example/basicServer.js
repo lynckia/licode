@@ -4,7 +4,7 @@ var net = require('net');
 var N = require('./nuve');
 var config = require('./../../lynckia_config');
 
-var app = express.createServer();
+var app = express();
 
 app.use(express.bodyParser());
 
