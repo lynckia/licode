@@ -14,7 +14,7 @@ app.configure(function () {
 
 });
 
-app.listen (3004);
+server.listen (3004);
 
 var callerId;
 var answererId;
