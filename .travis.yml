@@ -8,9 +8,7 @@ before_install:
   - ./scripts/installNuve.sh
   - ./scripts/installBasicExample.sh
   - ./scripts/initLynckia.sh
-  - sleep 5
+  - sleep 10
   - ./scripts/initBasicExample.sh
-  - netstat -punta | grep 8080
-  - netstat -punta | grep 3000
 branches:
   only: travis-test
