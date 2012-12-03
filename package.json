@@ -1,0 +1,25 @@
+{
+  "name": "lynckia",
+  "version": "0.1.0",
+  "description": "Open Source Communication Provider",
+  "devDependencies": {
+    "vows": "0.6.x"
+    },
+    "contributors": [ 
+        {
+            "name": "Alvaro Alonso",
+            "email": "aalonsog@dit.upm.es"
+        },
+        {
+            "name": "Pedro Rodriguez",
+            "email": "prodriguez@dit.upm.es"
+        },
+        {
+            "name": "Javier Cerviño",
+            "email": "jcervino@dit.upm.es"
+        }
+    ],
+    "scripts": {
+        "test": "vows --spec --isolate test/*"
+    }
+}
