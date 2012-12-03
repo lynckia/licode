@@ -1,8 +1,8 @@
 /*global require, module*/
 var vows = require('vows'),
     assert = require('assert'),
-    N = require('./extras/basic_example/nuve'),
-    config = require('./lynckia_config');
+    N = require('../extras/basic_example/nuve'),
+    config = require('../lynckia_config');
 
 vows.describe('lynckia').addBatch({
     "Lynckia service": {
