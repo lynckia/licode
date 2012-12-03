@@ -10,5 +10,7 @@ before_install:
   - ./scripts/initLynckia.sh
   - sleep 3
   - ./scripts/initBasicExample.sh
+  - netstat -punta | grep 8080
+  - netstat -punta | grep 3000
 branches:
   only: travis-test
