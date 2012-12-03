@@ -5,5 +5,7 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq make gcc libssl-dev cmake libsrtp0-dev libsrtp0 libnice10 libnice-dev libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev
   - ./scripts/installErizo.sh
+  - ./scripts/installNuve.sh
+  - ./scripts/installBasicExample.sh
 branches:
   only: travis-test
