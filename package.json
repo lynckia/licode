@@ -1,9 +1,9 @@
 {
-  "name": "lynckia",
-  "version": "0.1.0",
-  "description": "Open Source Communication Provider",
-  "devDependencies": {
-    "vows": "0.6.x"
+    "name": "lynckia",
+    "version": "0.1.0",
+    "description": "Open Source Communication Provider",
+    "devDependencies": {
+        "vows": "0.6.x"
     },
     "contributors": [ 
         {
