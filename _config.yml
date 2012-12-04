@@ -1,0 +1,16 @@
+markdown: rdiscount
+permalink: /:title.html
+destination: ./site/
+auto: true
+exclude:
+  - Rakefile
+  - Gemfile
+  - .gitignore
+baseurl: /
+domain: lynckia.com
+title: Lynckia - Open Source Communication Provider
+server: true
+author: Lynckia
+web: http://www.lynckia.com
+twitter: lynckia
+github: ging/lynckia

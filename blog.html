@@ -1,0 +1,34 @@
+---
+layout: default
+title: Lynckia Blog 
+blog: true
+---
+
+<!-- Subhead
+================================================== -->
+<header class="jumbotron subhead" id="overview">
+  <div class="container">
+    <h1>Lynckia's Blog</h1>
+    <p class="lead">Here we will keep you informed about last news, events, and other stuff related to Lynckia and WebRTC.</p>
+  </div>
+</header>
+
+
+<div class="row-fluid">
+    <div class="container offset3 span6">
+
+
+<!-- Posts
+================================================== -->
+{%  for post in site.posts %}
+<section id="requirements">
+    <div class="page-header">
+        <p><h1><a href="{{ post.url }}">{{ post.title }}</a></h1>{{ post.date | date_to_string }} - {{site.author}}</p>
+    </div>
+    <p>{{ post.content | truncatewords: 100 }}</p>
+    <p><a href="{{ post.url }}">Read more ...</a></p>
+    
+ </div>
+</section>
+{% endfor %}
+</div></div>

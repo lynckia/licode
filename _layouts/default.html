@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html><head>
+    <meta charset="utf-8">
+    <title>{{ page.title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Lynckia">
+
+    <!-- Le styles -->
+    <link rel="stylesheet" href="http://fortawesome.github.com/Font-Awesome/assets/css/site.css">
+    <link href="assets/css/bootstrap.css" rel="stylesheet">
+    <link href="assets/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="assets/css/docs.css" rel="stylesheet">
+    <link href="assets/css/prettify.css" rel="stylesheet">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <!-- Le fav and touch icons -->
+    <link rel="shortcut icon" href="assets/ico/favicon.ico">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="assets/ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="assets/ico/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="assets/ico/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="assets/ico/apple-touch-icon-57-precomposed.png">
+
+ <!-- --------------------------------------------------------------------------------- 
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+  <title>{% if page.title %}{{ page.title }} - {% endif %}{{ site.title }}</title>
+
+  {% if page.description %}
+  <meta name="description" content="{{ page.description }}" />
+  {% endif %}
+  <meta name="author" content="{{ site.author }}">
+
+  <!--[if lt IE 9]>
+    <!-- script src="http://html5shim.googlecode.com/svn/trunk/html5.js" type="text/javascript"></script>
+  <![endif]-->
+
+  {% if site.feedburner %}
+  <!-- link href="http://feeds.feedburner.com/{{ site.feedburner.id }}" rel="alternate" title="{{ site.title }}" type="application/atom+xml" />
+  {% endif %}
+
+  {% if site.google_analytics %}
+  <!-- google analytics async -->
+  <!-- script type="text/javascript">
+  <!--  var _gaq = _gaq || [];
+  <!--  _gaq.push(['_setAccount', '{{ site.google_analytics.account }}']);
+  <!--  _gaq.push(['_trackPageview']);
+  <!--  (function() {
+  <!--    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  <!--    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  <!--    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  <!--  })();
+  <!-- /script -->
+  <!-- {% endif %}
+
+  <!-- link rel="shortcut icon" href="/favicon.ico"/>
+  <!-- script src="/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+
+ --------------------------------------------------------------------------------- -->
+</head>
+
+  <body data-spy="scroll" data-target=".bs-docs-sidebar" data-twttr-rendered="true">
+
+
+    <a href="https://github.com/ging/lynckia"><img style="position: fixed; top: 0; right: 0; border: 0; z-index: 1031" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a>
+
+
+    <!-- Navbar
+    ================================================== -->
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="./index.html">Lynckia</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              
+              <li {% if page.home %}class="active"{% endif %}>
+                <a href="./index.html">Home</a>
+              </li>
+              <li {% if page.blog %}class="active"{% endif %}>
+                <a href="./blog.html">Blog</a>
+              </li>
+              <li {% if page.community %}class="active"{% endif %}>
+                <a href="./community.html">Community</a>
+              </li>
+              <li {% if page.gettingstarted %}class="active"{% endif %}>
+                <a href="./getting-started.html">Get started</a>
+              </li>
+              <li {% if page.install %}class="active"{% endif %}>
+                <a href="./install.html">Installation</a>
+              </li>
+              <li {% if page.architecture %}class="active"{% endif %}>
+                <a href="./architecture.html">Architecture</a>
+              </li>
+              <li {% if page.clientapi %}class="active"{% endif %}>
+                <a href="./client-api.html">Client API</a>
+              </li>
+              <li {% if page.serverapi %}class="active"{% endif %}>
+                <a href="./server-api.html">Server API</a>
+              </li>
+              <li {% if page.try %}class="active"{% endif %}>
+                <a href="./try.html">Try it!</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content area -->
+
+    {{ content }}
+
+    
+
+  <!-- End Main content area -->
+  {% include footer.html %}
+<!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+    <script src="assets/js/jquery.js"></script>
+    <script src="assets/js/prettify.js"></script>
+    <script src="assets/js/bootstrap.min.js"></script>
+    <script src="assets/js/application.js"></script>
+
+</body></html>

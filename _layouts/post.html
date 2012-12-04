@@ -1,0 +1,67 @@
+---
+layout: default
+comments: true
+blog: true
+---
+<header class="jumbotron subhead" id="overview">
+  <div class="container">
+    <h1>Lynckia's Blog</h1>
+    <p class="lead">Here we will keep you informed about last news, events, and other stuff related to Lynckia and WebRTC.</p>
+  </div>
+</header>
+  
+<div class="row-fluid">
+    <div class="container offset3 span6">
+
+    <h2>
+      <a href="{{ page.url }}" rel="bookmark" title="Permanent link to ">{{ page.title }}</a>
+    </h2>
+    <h5>
+        <!-- avatar><img 
+    class="avatar"
+    src="http://s.gravatar.com/avatar/{{ site.gravatar }}?s=40"
+    alt="{{ site.author }}"
+    width="40"
+    height="40">
+        </avatar -->
+        <time>{{ page.date | date: '%B' }} {{ page.date | date: '%e' }}, {{ page.date | date: '%Y' }}</time> - 
+        <author>{{ site.author }}</author>
+    </h5>
+
+  <p /><br /><p />
+
+  {{ content }}
+
+  <div>
+    <nav id="related">
+      <h3>Related Posts</h3>
+      <ul class="posts">
+        {% for post in site.related_posts limit:5 %}
+          <p><li><span>{{ post.date | date_to_string }}</span> - <a href="{{ post.url }}">{{ post.title }}</a></li></p>
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+
+  <div>
+    <h3>Comments</h3>
+
+  {% if page.comments %} 
+          <div id="disqus_thread"></div>
+          <script type="text/javascript">
+              /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+              var disqus_shortname = 'lynckia'; // required: replace example with your forum shortname
+
+              /* * * DON'T EDIT BELOW THIS LINE * * */
+              (function() {
+                  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+              })();
+          </script>
+          <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+          <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+  {% endif %} 
+</div>
+</div>
+</div>

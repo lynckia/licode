@@ -1,0 +1,26 @@
+---
+layout: nil
+---
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+ 
+ <title>Lynckia Blog</title>
+ <link href="http://lynckia.com/feed/atom.xml" rel="self"/>
+ <link href="http://lynckia.com/feed"/>
+ <updated>{{ site.time | date_to_xmlschema }}</updated>
+ <id>http://lynckia.com/feed</id>
+ <author>
+   <name>Lynckia</name>
+ </author>
+
+ {% for post in site.posts %}
+ <entry>
+   <title>{{ post.title }}</title>
+   <link href="http://gitwatcher.com/blog{{ post.url }}"/>
+   <updated>{{ post.date | date_to_xmlschema }}</updated>
+   <id>http://lynckia.com/blog{{ post.id }}.html</id>
+   <content type="html">{{ post.content | xml_escape }}</content>
+ </entry>
+ {% endfor %}
+ 
+</feed>
