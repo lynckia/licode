@@ -10,5 +10,6 @@ before_install:
   - ./scripts/initLynckia.sh
   - sleep 10
   - ./scripts/initBasicExample.sh
+  - ./.travis/scripts/install_chrome.sh
 branches:
   only: travis-test
