@@ -22,6 +22,6 @@
         }
     ],
     "scripts": {
-        "test": "./node_modules/coffee-script/bin/cake ./test/testacular.coffee"
+        "test": "./node_modules/coffee-script/bin/cake /home/travis/builds/ging/lynckia/test/testacular.coffee"
     }
 }
