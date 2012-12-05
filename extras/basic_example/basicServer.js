@@ -5,10 +5,7 @@ var express = require('express'),
     fs = require("fs")
     config = require('./../../lynckia_config');
 
-var privateKey = fs.readFileSync('./cert/key.pem').toString();
-var certificate = fs.readFileSync('./cert/certificate.pem').toString();
-
-var app = express({key: privateKey, cert: certificate});
+var app = express();
 
 app.use(express.bodyParser());
 
