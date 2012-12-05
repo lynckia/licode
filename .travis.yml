@@ -12,6 +12,5 @@ before_install:
   - ./.travis/scripts/install_chrome.sh
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
-  - google-chrome
 branches:
   only: travis-test
