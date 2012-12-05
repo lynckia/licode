@@ -223,14 +223,25 @@ if(attributes.type === 'public') {
           <p>It gets an image frame from the video. 
 
           <div class="bs-docs-example">
-          The client can get the bitmap raw data from the video streams. The Stream returns the Bitmap data. If you want to get the image periodically you can set an interval.
+          The client can get the bitmap raw data from the video streams. The Stream returns the Bitmap data. You can put it in a canvas element. If you want to get the image periodically you can set an interval.
           </div>
 <pre class="prettyprint linenums">
-var image;
+var bitmap;
+var canvas = document.createElement('canvas');
+var context = canvas.getContext('2d');
+
+canvas.id = "testCanvas";
+document.body.appendChild(canvas);
 
 setInterval(function() {
-  image = stream.getVideoFrame();
-  //do something with the image
+  
+  bitmap = stream.getVideoFrame();
+  
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  
+  context.putImageData(bitmap, 0, 0);
+
 }, 100);
 </pre>
 
