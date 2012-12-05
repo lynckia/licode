@@ -63,7 +63,7 @@ captureTimeout = 10000;
 
 // Auto run tests on start (when browsers are captured) and exit
 // CLI --single-run --no-single-run
-singleRun = false;
+singleRun = true;
 
 // report which specs are slower than 500ms
 // CLI --report-slower-than 500

@@ -1,10 +1,14 @@
 /*global require, __dirname, console*/
-var express = require('express');
-var net = require('net');
-var N = require('./nuve');
-var config = require('./../../lynckia_config');
+var express = require('express'),
+    net = require('net'),
+    N = require('./nuve'),
+    fs = require("fs")
+    config = require('./../../lynckia_config');
 
-var app = express();
+var privateKey = fs.readFileSync('./cert/key.pem').toString();
+var certificate = fs.readFileSync('./cert/certificate.pem').toString();
+
+var app = express({key: privateKey, cert: certificate});
 
 app.use(express.bodyParser());
 
