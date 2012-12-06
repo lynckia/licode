@@ -1,0 +1,25 @@
+{
+   "profile": {
+      "avatar_index": 0,
+      "content_settings": {
+         "clear_on_exit_migrated": true,
+         "pattern_pairs": {
+            "http://localhost:9876/,*": {
+               "media-stream": {
+                  "audio": "Default"
+               }
+            }
+         },
+         "pref_version": 1
+      },
+      "created_by_version": "19.0.1084.56",
+      "exit_type": "Normal",
+      "exited_cleanly": true,
+      "local_profile_id": 12356675,
+      "name": "First user",
+      "per_host_zoom_levels": {
+         "icts.ebd.csic.es": 0.5227587223052979,
+         "mail.google.com": -0.5778829455375671
+      }
+   }
+}

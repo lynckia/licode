@@ -14,7 +14,7 @@ files = [
   JASMINE,
   JASMINE_ADAPTER,
   'extras/basic_example/public/erizo.js',
-  'extras/basic_example/public/script.js'
+  'test/nuve-test.js',
 ];
 
 // list of files to exclude
@@ -44,7 +44,7 @@ logLevel = LOG_INFO;
 
 // enable / disable watching file and executing tests whenever any file changes
 // CLI --auto-watch --no-auto-watch
-autoWatch = true;
+autoWatch = false;
 
 // Start these browsers, currently available:
 // - Chrome
@@ -55,7 +55,7 @@ autoWatch = true;
 // - PhantomJS
 // - IE (only Windows)
 // CLI --browsers Chrome,Firefox,Safari
-browsers = ["Chrome"];
+browsers = ["test/chrome-start.sh"];
 
 // If browser does not capture in given timeout [ms], kill it
 // CLI --capture-timeout 5000
