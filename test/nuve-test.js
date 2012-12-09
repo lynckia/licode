@@ -1,7 +1,7 @@
-/*global describe, beforeEach, it, XMLHttpRequest, jasmine, expect, waitsFor*/
+/*global describe, beforeEach, it, XMLHttpRequest, jasmine, expect, waitsFor, runs, Erizo*/
 describe('server', function () {
     "use strict";
-    var room, createToken, token, localStream;
+    var room, createToken, token, localStream, remoteStream;
 
     createToken = function (userName, role, callback) {
 
@@ -22,21 +22,22 @@ describe('server', function () {
     };
 
     beforeEach(function () {
-
     });
 
     it('should get token', function () {
         var callback = jasmine.createSpy("token");
 
-        createToken("user", "role", callback);
+        createToken("user", "role", function(_token) {
+            callback();
+            token = _token;
+        });
 
         waitsFor(function () {
             return callback.callCount > 0;
         });
 
-        runs(function(){
+        runs(function () {
             expect(callback).toHaveBeenCalled();
-            token = callback.mostRecentCall.args;
         });
     });
 
@@ -53,7 +54,94 @@ describe('server', function () {
             return callback.callCount > 0;
         });
 
-        runs(function(){
+        runs(function () {
+
+            expect(callback).toHaveBeenCalled();
+        });
+    });
+
+    it('should connect to room', function () {
+        var callback = jasmine.createSpy("connectroom");
+
+        room = Erizo.Room({token: token});
+
+        room.addEventListener("room-connected", callback);
+
+        room.connect();
+
+        waitsFor(function () {
+            return callback.callCount > 0;
+        });
+
+        runs(function () {
+            expect(callback).toHaveBeenCalled();
+        });
+    });
+
+    it('should publish stream in room', function () {
+        var callback = jasmine.createSpy("publishroom");
+
+        room.publish(localStream);
+
+        room.addEventListener("stream-added", function(msg) {
+            remoteStream = msg.stream;
+            callback();
+        });
+
+        waitsFor(function () {
+            return callback.callCount > 0;
+        });
+
+        runs(function () {
+            expect(callback).toHaveBeenCalled();
+        });
+    });
+
+    it('should subscribe to stream in room', function () {
+        var callback = jasmine.createSpy("publishroom");
+
+        room.addEventListener("stream-subscribed", function() {
+            callback();
+        });
+
+        room.subscribe(remoteStream);
+
+        waitsFor(function () {
+            return callback.callCount > 0;
+        });
+
+        runs(function () {
+            expect(callback).toHaveBeenCalled();
+        });
+    });
+
+    it('should allow showing a subscribed stream', function () {
+        var divg = document.createElement("div");
+        divg.setAttribute("id", "myDiv");
+        document.body.appendChild(divg);
+
+        remoteStream.show('myDiv');
+
+        waits(500);
+
+        runs(function () {
+            var video = document.getElementById('stream' + remoteStream.getID());
+            expect(video.getAttribute("url")).toBeDefined();
+        });
+    });
+
+    it('should disconnect from room', function () {
+        var callback = jasmine.createSpy("connectroom");
+
+        room.addEventListener("room-disconnected", callback);
+
+        room.disconnect();
+
+        waitsFor(function () {
+            return callback.callCount > 0;
+        });
+
+        runs(function () {
             expect(callback).toHaveBeenCalled();
         });
     });

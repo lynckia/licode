@@ -13,8 +13,8 @@ basePath = '.';
 files = [
   JASMINE,
   JASMINE_ADAPTER,
-  'extras/basic_example/public/erizo.js',
-  'test/nuve-test.js',
+  '../extras/basic_example/public/erizo.js',
+  '../test/nuve-test.js',
 ];
 
 // list of files to exclude
@@ -40,7 +40,7 @@ colors = true;
 // level of logging
 // possible values: LOG_DISABLE || LOG_ERROR || LOG_WARN || LOG_INFO || LOG_DEBUG
 // CLI --log-level debug
-logLevel = LOG_INFO;
+logLevel = LOG_DEBUG;
 
 // enable / disable watching file and executing tests whenever any file changes
 // CLI --auto-watch --no-auto-watch
@@ -55,7 +55,7 @@ autoWatch = false;
 // - PhantomJS
 // - IE (only Windows)
 // CLI --browsers Chrome,Firefox,Safari
-browsers = ["test/chrome-start.sh"];
+browsers = [".travis/chrome-start.sh"];
 
 // If browser does not capture in given timeout [ms], kill it
 // CLI --capture-timeout 5000

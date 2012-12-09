@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<testsuites>
+  <testsuite name="Chrome 25.0" package="" timestamp="2012-12-08T16:25:54" id="0" hostname="jmov.local" tests="5" errors="1" failures="1" time="3.698">
+    <properties>
+      <property name="browser.fullName" value="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.21 (KHTML, like Gecko) Chrome/25.0.1353.0 Safari/537.21"/>
+    </properties>
+    <testcase name="should get token" time="3.628" classname="Chrome 25.0.server"/>
+    <testcase name="should get access to user media" time="0.066" classname="Chrome 25.0.server"/>
+    <testcase name="should connect to room" time="0.004" classname="Chrome 25.0.server">
+      <failure type="">TypeError: Object 1 has no method &apos;charAt&apos;
+    at g (/Users/jcague/Desarrollo/lynckiaGithub/extras/basic_example/public/erizo.js:146:400)
+    at Object.decodeBase64 (/Users/jcague/Desarrollo/lynckiaGithub/extras/basic_example/public/erizo.js:147:432)
+    at Object.a.connect (/Users/jcague/Desarrollo/lynckiaGithub/extras/basic_example/public/erizo.js:137:234)
+    at null.&lt;anonymous&gt; (/Users/jcague/Desarrollo/lynckiaGithub/test/nuve-test.js:69:14)
+</failure>
+    </testcase>
+    <system-out/>
+    <system-err/>
+  </testsuite>
+</testsuites>

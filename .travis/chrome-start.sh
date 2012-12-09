@@ -16,7 +16,7 @@ fi
 # Prepare profile to use webrtc
 rm -rf $USER_DIR
 mkdir -p $USER_DIR"/Default/"
-cp test/Preferences $USER_DIR"/Default/"
+cp .travis/Preferences $USER_DIR"/Default/"
 
 # Execute the command
 exec "$CMD" --user-data-dir="$USER_DIR" --no-default-browser-check --no-first-run --disable-default-apps --use-fake-device-for-media-stream "$@"
