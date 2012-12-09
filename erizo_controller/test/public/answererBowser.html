@@ -28,9 +28,6 @@ be found in the AUTHORS file in the root of the source tree.
 </style>
 -->
 
-<link href='css/bootstrap.min.css' media='screen' rel='stylesheet' />
-<link href='css/style.css' media='screen' rel='stylesheet' />
-
 <script src="/socket.io/socket.io.js"></script>
 <script src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
 <script src="roap_on_jsep.js"></script>
@@ -88,6 +85,33 @@ function checkPeerConnection() {
   return 1;
 }
 
+// Local stream generation
+
+function gotStream(s) {
+  // var url = webkitURL.createObjectURL(s);
+  // document.getElementById("localView").src = url;
+  // trace("User has granted access to local media. url = " + url);
+  localStream = s;
+
+  signIn();
+}
+
+function gotStreamFailed(error) {
+  alert("Failed to get access to local media. Error code was " + error.code +
+    ".");
+  trace_warning("Failed to get access to local media. Error code was " +
+    error.code);
+}
+
+function getUserMedia() {
+  try {
+    ErizoGetUserMedia({video:true, audio:true}, gotStream, gotStreamFailed);
+    trace("Requested access to local media");
+  } catch (e) {
+    trace_exception(e, "getUserMedia error");
+  }
+}
+
 // Call control
 
 function createPeerConnection() {
@@ -110,9 +134,14 @@ var state = 0;
 
 function onSignalingMessage (mess) {
 
- 
-    console.log('envio en answer', mess);
-    socket.emit('answer', mess);
+    // if (state === 0) {
+    //   console.log('es offer no lo quiero');
+    //   state = 1;
+    // } else {
+      console.log('envio en answer', mess);
+      socket.emit('answer', mess);
+    //}
+    
 
 
 
@@ -165,7 +194,8 @@ function signIn() {
 
     socket.on('signaling', function (sdp) {
       console.log('me llega el offer', sdp);
-      doCall();
+      createPeerConnection();
+      pc.addStream(localStream);
       pc.processSignalingMessage(sdp);
     });
 
@@ -183,7 +213,7 @@ function disconnect() {
 
 window.onload = function() {
   setElementValuesFromURL();
-  signIn();
+  getUserMedia();
 }
 
 window.onbeforeunload = disconnect;
@@ -192,21 +222,12 @@ window.onbeforeunload = disconnect;
 </script>
 </head>
 
-<body id="splash">
-<div id="login" class="modal login">
-<div class="modal-header">
+<body>
+
 <h1>WebRTC Video Subscriber</h1>
-</div>
-<div class="modal-body clearfix">
-<video class="local-video" id="localView" autoplay="autoplay"></video><p>
-</div>
-</div>
-<select id="peers" size="5" disabled="true" style='display: none'>
-<option value="-1">Not connected</option>
-</select>
-<pre>
-You must have a WebRTC capable browser in order to make the streaming.
-</pre>
+
+<video id="localView" autoplay width="300" height="246"></video>
+
 </body>
 
 </html>
