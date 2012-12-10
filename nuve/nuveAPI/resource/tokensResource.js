@@ -6,8 +6,8 @@ var dataBase = require('./../mdb/dataBase');
 var rpc = require('./../rpc/rpc');
 var crypto = require('crypto');
 
-var service;
-var room;
+var currentService;
+var currentRoom;
 
 /*
  * Gets the service and the room for the proccess of the request.
@@ -15,11 +15,11 @@ var room;
 var doInit = function (roomId, callback) {
     "use strict";
 
-    service = require('./../auth/nuveAuthenticator').service;
+    currentService = require('./../auth/nuveAuthenticator').service;
 
-    serviceRegistry.getRoomForService(roomId, service, function (roomTemp) {
-        console.log(roomTemp);
-        room = roomTemp;
+    serviceRegistry.getRoomForService(roomId, currentService, function (room) {
+        //console.log(room);
+        currentRoom = room;
         callback();
     });
 };
@@ -59,21 +59,21 @@ var generateToken = function (callback) {
 
     token = {};
     token.userName = user;
-    token.room = room._id;
+    token.room = currentRoom._id;
     token.role = role;
-    token.service = service._id;
+    token.service = currentService._id;
     token.creationDate = new Date();
 
-    r = room._id;
+    r = currentRoom._id;
     tr = undefined;
 
-    if (service.testRoom !== undefined) {
-        tr = service.testRoom._id;
+    if (currentService.testRoom !== undefined) {
+        tr = currentService.testRoom._id;
     }
 
     if (tr === r) {
 
-        if (service.testToken === undefined) {
+        if (currentService.testToken === undefined) {
             token.use = 0;
             token.host = dataBase.testErizoController;
 
@@ -82,8 +82,8 @@ var generateToken = function (callback) {
             tokenRegistry.addToken(token, function (id) {
 
                 token._id = id;
-                service.testToken = token;
-                serviceRegistry.updateService(service);
+                currentService.testToken = token;
+                serviceRegistry.updateService(currentService);
 
                 tokenS = getTokenString(id, token);
                 callback(tokenS);
@@ -92,7 +92,7 @@ var generateToken = function (callback) {
 
         } else {
 
-            token = service.testToken;
+            token = currentService.testToken;
 
             console.log('TestToken already exists, sending it', token);
 
@@ -103,7 +103,7 @@ var generateToken = function (callback) {
         }
     } else {
 
-        rpc.callRpc('cloudHandler', 'getErizoControllerForRoom', room._id, function (ec) {
+        rpc.callRpc('cloudHandler', 'getErizoControllerForRoom', currentRoom._id, function (ec) {
 
             if (ec === 'timeout') {
                 callback('error');
@@ -129,11 +129,11 @@ exports.create = function (req, res) {
 
     doInit(req.params.room, function () {
 
-        if (service === undefined) {
+        if (currentService === undefined) {
             console.log('Service not found');
             res.send('Service not found', 404);
             return;
-        } else if (room === undefined) {
+        } else if (currentRoom === undefined) {
             console.log('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
             return;
@@ -149,7 +149,7 @@ exports.create = function (req, res) {
                 res.send('CloudHandler does not respond', 401);
                 return;
             }
-            console.log('Created token for room ', room._id, 'and service ', service._id);
+            console.log('Created token for room ', currentRoom._id, 'and service ', currentService._id);
             res.send(tokenS);
         });
     });

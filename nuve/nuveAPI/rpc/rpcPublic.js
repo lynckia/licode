@@ -4,9 +4,12 @@ var serviceRegistry = require('./../mdb/serviceRegistry');
 
 /*
  * This function is used to consume a token. Removes it from the data base and returns to erizoController.
+ * Also it removes old tokens.
  */
 exports.deleteToken = function (id, callback) {
     "use strict";
+
+    tokenRegistry.removeOldTokens();
 
     tokenRegistry.getToken(id, function (token) {
 

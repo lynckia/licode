@@ -79,7 +79,6 @@ exports.getRoomForService = function (roomId, service, callback) {
     "use strict";
 
     var room;
-    console.log(service.rooms);
     for (room in service.rooms) {
         if (service.rooms.hasOwnProperty(room)) {
             if (String(service.rooms[room]._id) === String(roomId)) {

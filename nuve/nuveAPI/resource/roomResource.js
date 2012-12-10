@@ -3,8 +3,8 @@ var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var rpc = require('./../rpc/rpc');
 
-var service;
-var room;
+var currentService;
+var currentRoom;
 
 /*
  * Gets the service and the room for the proccess of the request.
@@ -12,10 +12,10 @@ var room;
 var doInit = function (roomId, callback) {
     "use strict";
 
-    this.service = require('./../auth/nuveAuthenticator').service;
+    currentService = require('./../auth/nuveAuthenticator').service;
 
-    serviceRegistry.getRoomForService(roomId, this.service, function (room) {
-        this.room = room;
+    serviceRegistry.getRoomForService(roomId, currentService, function (room) {
+        currentRoom = room;
         callback();
     });
 };
@@ -27,14 +27,14 @@ exports.represent = function (req, res) {
     "use strict";
 
     doInit(req.params.room, function () {
-        if (this.service === undefined) {
+        if (currentService === undefined) {
             res.send('Client unathorized', 401);
-        } else if (this.room === undefined) {
+        } else if (currentRoom === undefined) {
             console.log('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
         } else {
-            console.log('Representing room ', this.room._id, 'of service ', this.service._id);
-            res.send(this.room);
+            console.log('Representing room ', currentRoom._id, 'of service ', currentService._id);
+            res.send(currentRoom);
         }
     });
 };
@@ -46,18 +46,18 @@ exports.deleteRoom = function (req, res) {
     "use strict";
 
     doInit(req.params.room, function () {
-        if (this.service === undefined) {
+        if (currentService === undefined) {
             res.send('Client unathorized', 401);
-        } else if (this.room === undefined) {
+        } else if (currentRoom === undefined) {
             console.log('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
         } else {
             var id = '',
-                array = this.service.rooms,
+                array = currentService.rooms,
                 index = -1,
                 i;
 
-            id += this.room._id;
+            id += currentRoom._id;
             roomRegistry.removeRoom(id);
 
             for (i = 0; i < array.length; i += 1) {
@@ -66,9 +66,9 @@ exports.deleteRoom = function (req, res) {
                 }
             }
             if (index !== -1) {
-                this.service.rooms.splice(index, 1);
-                serviceRegistry.updateService(this.service);
-                console.log('Room ', id, ' deleted for service ', this.service._id);
+                currentService.rooms.splice(index, 1);
+                serviceRegistry.updateService(currentService);
+                console.log('Room ', id, ' deleted for service ', currentService._id);
                 rpc.callRpc('cloudHandler', 'deleteRoom', id, function () {});
                 res.send('Room deleted');
             }

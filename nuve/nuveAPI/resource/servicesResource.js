@@ -2,7 +2,7 @@
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var BSON = require('mongodb').BSONPure;
 
-var service;
+var currentService;
 
 /*
  * Gets the service and checks if it is superservice. Only superservice can do actions about services.
@@ -10,9 +10,9 @@ var service;
 var doInit = function (serv) {
     "use strict";
 
-    this.service = require('./../auth/nuveAuthenticator').service;
+    currentService = require('./../auth/nuveAuthenticator').service;
     var superService = require('./../mdb/dataBase').superService;
-    return (this.service._id === superService);
+    return (currentService._id === superService);
 };
 
 /*
@@ -22,7 +22,7 @@ exports.create = function (req, res) {
     "use strict";
 
     if (!doInit()) {
-        console.log('Service ', this.service._id, ' not authorized for this action');
+        console.log('Service ', currentService._id, ' not authorized for this action');
         res.send('Service not authorized for this action', 401);
         return;
     }
@@ -40,7 +40,7 @@ exports.represent = function (req, res) {
     "use strict";
 
     if (!doInit()) {
-        console.log('Service ', this.service, ' not authorized for this action');
+        console.log('Service ', currentService, ' not authorized for this action');
         res.send('Service not authorized for this action', 401);
         return;
     }

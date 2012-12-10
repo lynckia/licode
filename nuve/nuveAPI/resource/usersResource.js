@@ -3,8 +3,8 @@ var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var rpc = require('./../rpc/rpc');
 
-var service;
-var room;
+var currentService;
+var currentRoom;
 
 /*
  * Gets the service and the room for the proccess of the request.
@@ -12,10 +12,10 @@ var room;
 var doInit = function (roomId, callback) {
     "use strict";
 
-    this.service = require('./../auth/nuveAuthenticator').service;
+    currentService = require('./../auth/nuveAuthenticator').service;
 
-    serviceRegistry.getRoomForService(roomId, this.service, function (room) {
-        this.room = room;
+    serviceRegistry.getRoomForService(roomId, currentService, function (room) {
+        currentRoom = room;
         callback();
     });
 
@@ -29,17 +29,17 @@ exports.getList = function (req, res) {
 
     doInit(req.params.room, function () {
 
-        if (this.service === undefined) {
+        if (currentService === undefined) {
             res.send('Service not found', 404);
             return;
-        } else if (this.room === undefined) {
+        } else if (currentRoom === undefined) {
             console.log('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
             return;
         }
 
-        console.log('Representing users for room ', this.room._id, 'and service', this.service._id);
-        rpc.callRpc('cloudHandler', 'getUsersInRoom', this.room._id, function (users) {
+        console.log('Representing users for room ', currentRoom._id, 'and service', currentService._id);
+        rpc.callRpc('cloudHandler', 'getUsersInRoom', currentRoom._id, function (users) {
             if (users === 'error') {
                 res.send('CloudHandler does not respond', 401);
                 return;

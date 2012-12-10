@@ -2,18 +2,18 @@
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 
-var service;
-var room;
+var currentService;
+var currentRoom;
 
 /*
  * Gets the service and the room for the proccess of the request.
  */
 var doInit = function (roomId, callback) {
     "use strict";
-    this.service = require('./../auth/nuveAuthenticator').service;
+    currentService = require('./../auth/nuveAuthenticator').service;
 
-    serviceRegistry.getRoomForService(roomId, this.service, function (room) {
-        this.room = room;
+    serviceRegistry.getRoomForService(roomId, currentService, function (room) {
+        currentRoom = room;
         callback();
     });
 
@@ -27,10 +27,10 @@ exports.getUser = function (req, res) {
 
     doInit(req.params.room, function () {
 
-        if (this.service === undefined) {
+        if (currentService === undefined) {
             res.send('Service not found', 404);
             return;
-        } else if (this.room === undefined) {
+        } else if (currentRoom === undefined) {
             console.log('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
             return;
@@ -50,10 +50,10 @@ exports.deleteUser = function (req, res) {
 
     doInit(req.params.room, function () {
 
-        if (this.service === undefined) {
+        if (currentService === undefined) {
             res.send('Service not found', 404);
             return;
-        } else if (this.room === undefined) {
+        } else if (currentRoom === undefined) {
             console.log('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
             return;

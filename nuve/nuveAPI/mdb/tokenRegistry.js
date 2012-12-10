@@ -5,7 +5,7 @@ var BSON = require('mongodb').BSONPure;
 /*
  * Gets a list of the tokens in the data base.
  */
-exports.getList = function (callback) {
+var getList = exports.getList = function (callback) {
     "use strict";
 
     db.tokens.find({}).toArray(function (err, tokens) {
@@ -57,7 +57,7 @@ exports.addToken = function (token, callback) {
 /*
  * Removes a token from the data base.
  */
-exports.removeToken = function (id, callback) {
+var removeToken = exports.removeToken = function (id, callback) {
     "use strict";
 
     hasToken(id, function (hasT) {
@@ -75,4 +75,29 @@ exports.updateToken = function (token) {
     "use strict";
 
     db.tokens.save(token);
+};
+
+exports.removeOldTokens = function () {
+    "use strict";
+
+    var i, token, time, tokenTime, dif;
+
+    db.tokens.find({'use':{$exists:false}}).toArray(function (err, tokens) {
+        if (err || !tokens) {
+            
+        } else {
+            for (i in tokens) {
+                token = tokens[i];
+                time = (new Date()).getTime();
+                tokenTime = token.creationDate.getTime();
+                dif = time - tokenTime;
+
+                if (dif > 3*60*1000) {
+                    removeToken(token._id + '', function() {
+                        console.log('Removed old token ', token._id, 'from room ', token.room, ' of service ', token.service);
+                    });
+                }
+            }
+        }
+    });
 };

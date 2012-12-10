@@ -2,14 +2,14 @@
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 
-var service;
+var currentService;
 
 /*
  * Gets the service for the proccess of the request.
  */
 var doInit = function () {
     "use strict";
-    service = require('./../auth/nuveAuthenticator').service;
+    currentService = require('./../auth/nuveAuthenticator').service;
 };
 
 /*
@@ -22,7 +22,7 @@ exports.createRoom = function (req, res) {
 
     doInit();
 
-    if (service === undefined) {
+    if (currentService === undefined) {
         res.send('Service not found', 404);
         return;
     }
@@ -33,25 +33,25 @@ exports.createRoom = function (req, res) {
     }
 
     if (req.body.options === 'test') {
-        if (service.testRoom !== undefined) {
-            console.log('TestRoom already exists for service', service.name);
-            res.send(service.testRoom);
+        if (currentService.testRoom !== undefined) {
+            console.log('TestRoom already exists for service', currentService.name);
+            res.send(currentService.testRoom);
         } else {
             room = {name: 'testRoom'};
             roomRegistry.addRoom(room, function (result) {
-                service.testRoom = result;
-                service.rooms.push(result);
-                serviceRegistry.updateService(service);
-                console.log('TestRoom created for service', service.name);
+                currentService.testRoom = result;
+                currentService.rooms.push(result);
+                serviceRegistry.updateService(currentService);
+                console.log('TestRoom created for service', currentService.name);
                 res.send(result);
             });
         }
     } else {
         room = {name: req.body.name};
         roomRegistry.addRoom(room, function (result) {
-            service.rooms.push(result);
-            serviceRegistry.updateService(service);
-            console.log('Room created:', req.body.name, 'for service', service.name);
+            currentService.rooms.push(result);
+            serviceRegistry.updateService(currentService);
+            console.log('Room created:', req.body.name, 'for service', currentService.name);
             res.send(result);
         });
     }
@@ -64,11 +64,11 @@ exports.represent = function (req, res) {
     "use strict";
 
     doInit();
-    if (service === undefined) {
+    if (currentService === undefined) {
         res.send('Service not found', 404);
         return;
     }
-    console.log('Representing rooms for service ', service._id);
+    console.log('Representing rooms for service ', currentService._id);
 
-    res.send(service.rooms);
+    res.send(currentService.rooms);
 };
