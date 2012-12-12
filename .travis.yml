@@ -1,0 +1,16 @@
+language: node_js
+node_js:
+  - 0.8
+before_install:
+  - sudo apt-get install -qq make gcc libssl-dev cmake libsrtp0-dev libsrtp0 libnice10 libnice-dev libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev
+  - ./scripts/installErizo.sh
+  - ./scripts/installNuve.sh
+  - ./scripts/installBasicExample.sh
+  - ./scripts/initLynckia.sh
+  - sleep 10
+  - ./scripts/initBasicExample.sh
+  - ./.travis/scripts/install_chrome.sh
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
+branches:
+  only: travis-test

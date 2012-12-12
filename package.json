@@ -1,0 +1,27 @@
+{
+    "name": "lynckia",
+    "version": "0.1.0",
+    "description": "Open Source Communication Provider",
+    "devDependencies": {
+        "vows": "0.6.x",
+        "coffee-script": "1.4.x",
+        "testacular": "0.4.x"
+    },
+    "contributors": [ 
+        {
+            "name": "Alvaro Alonso",
+            "email": "aalonsog@dit.upm.es"
+        },
+        {
+            "name": "Pedro Rodriguez",
+            "email": "prodriguez@dit.upm.es"
+        },
+        {
+            "name": "Javier Cerviño",
+            "email": "jcervino@dit.upm.es"
+        }
+    ],
+    "scripts": {
+        "test": "./node_modules/coffee-script/bin/cake test"
+    }
+}
