@@ -5,6 +5,7 @@
 #include <WebRtcConnection.h>
 #include "MediaReceiver.h"
 #include "OneToManyProcessor.h"
+#include "OneToManyTranscoder.h"
 
 
 /*
