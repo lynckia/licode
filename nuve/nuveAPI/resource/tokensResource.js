@@ -1,58 +1,40 @@
+/*global exports, require, console, Buffer*/
 var roomRegistry = require('./../mdb/roomRegistry');
 var tokenRegistry = require('./../mdb/tokenRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
-var dataBase= require('./../mdb/dataBase');
+var dataBase = require('./../mdb/dataBase');
 var rpc = require('./../rpc/rpc');
 var crypto = require('crypto');
 
-var service;
-var room;
+var currentService;
+var currentRoom;
 
 /*
  * Gets the service and the room for the proccess of the request.
  */
 var doInit = function (roomId, callback) {
-	this.service = require('./../auth/nuveAuthenticator').service;
+    "use strict";
 
-	serviceRegistry.getRoomForService(roomId, this.service, function(room) {
-		this.room = room;
-		callback();
-	});
+    currentService = require('./../auth/nuveAuthenticator').service;
 
+    serviceRegistry.getRoomForService(roomId, currentService, function (room) {
+        //console.log(room);
+        currentRoom = room;
+        callback();
+    });
 };
 
-/*
- * Post Token. Creates a new token for a determined room of a service.
- */
-exports.create = function(req, res) {
-	doInit(req.params.room, function() {
+var getTokenString = function (id, token) {
+    "use strict";
 
-		if (this.service == undefined) {
-			console.log('Service not found');
-			res.send('Service not found', 404);
-			return;
-		} else if (this.room == undefined) {
-			console.log('Room ', req.params.room, ' does not exist');
-			res.send('Room does not exist', 404);
-			return;
-		}
+    var toSign = id + ',' + token.host,
+        hex = crypto.createHmac('sha1', dataBase.nuveKey).update(toSign).digest('hex'),
+        signed = (new Buffer(hex)).toString('base64'),
 
-		generateToken(function(tokenS) {
-			
-			if (tokenS === undefined) {
-				res.send('Name and role?', 401);
-				return;
-			}
-			if (tokenS == 'error') {
-				res.send('CloudHandler does not respond', 401);
-				return;
-			}
-			console.log('Created token for room ', this.room._id, 'and service ', this.service._id);
-			res.send(tokenS);
-			
-		});
-	});
-	
+        tokenJ = {tokenId: id, host: token.host, signature: signed},
+        tokenS = (new Buffer(JSON.stringify(tokenJ))).toString('base64');
+
+    return tokenS;
 };
 
 /*
@@ -60,89 +42,115 @@ exports.create = function(req, res) {
  * The format of a token is:
  * {tokenId: id, host: erizoController host, signature: signature of the token};
  */
-var generateToken = function(callback) {
+var generateToken = function (callback) {
+    "use strict";
 
-	var user = require('./../auth/nuveAuthenticator').user;
-	var role = require('./../auth/nuveAuthenticator').role;
+    var user = require('./../auth/nuveAuthenticator').user,
+        role = require('./../auth/nuveAuthenticator').role,
+        r,
+        tr,
+        token,
+        tokenS;
 
-	if (user == undefined || user == '') {
-		callback(undefined);
-		return;
-	}
+    if (user === undefined || user === '') {
+        callback(undefined);
+        return;
+    }
 
-	var token = {};
-	token.userName = user;
-	token.room = this.room._id;
-	token.role = role;
-	token.service = this.service._id;
-	token.creationDate = new Date();
+    token = {};
+    token.userName = user;
+    token.room = currentRoom._id;
+    token.role = role;
+    token.service = currentService._id;
+    token.creationDate = new Date();
 
-	var r = '' +  this.room._id;
-	var tr = undefined; 
+    r = currentRoom._id;
+    tr = undefined;
 
-	if (this.service.testRoom !== undefined) {
-		tr = '' + this.service.testRoom._id;
-	}
+    if (currentService.testRoom !== undefined) {
+        tr = currentService.testRoom._id;
+    }
 
-	if (tr == r) {
+    if (tr === r) {
 
-		if (this.service.testToken === undefined) {
-			token.use = 0;
-			token.host = dataBase.testErizoController;
+        if (currentService.testToken === undefined) {
+            token.use = 0;
+            token.host = dataBase.testErizoController;
 
-			console.log('Creating testToken');
+            console.log('Creating testToken');
 
-			tokenRegistry.addToken(token, function(id) {
+            tokenRegistry.addToken(token, function (id) {
 
-				token._id = id;
-				this.service.testToken = token;
-				serviceRegistry.updateService(this.service);
+                token._id = id;
+                currentService.testToken = token;
+                serviceRegistry.updateService(currentService);
 
-				var tokenS = getTokenString(id, token);
-				callback(tokenS);
-				return;
-			});
+                tokenS = getTokenString(id, token);
+                callback(tokenS);
+                return;
+            });
 
-		} else {
-			
-			token = this.service.testToken;
+        } else {
 
-			console.log('TestToken already exists, sending it', token);
-		
-			var tokenS = getTokenString(token._id, token);
-			callback(tokenS);
-			return;
+            token = currentService.testToken;
 
-		}		
-	} else {
+            console.log('TestToken already exists, sending it', token);
 
-		rpc.callRpc('cloudHandler', 'getErizoControllerForRoom', this.room._id, function(ec) {
+            tokenS = getTokenString(token._id, token);
+            callback(tokenS);
+            return;
 
-			if (ec == 'timeout') {
-				callback('error');
-				return;
-			}
+        }
+    } else {
 
-			token.host = ec.ip + ':8080';
+        rpc.callRpc('cloudHandler', 'getErizoControllerForRoom', currentRoom._id, function (ec) {
 
-			tokenRegistry.addToken(token, function(id) {
+            if (ec === 'timeout') {
+                callback('error');
+                return;
+            }
 
-				var tokenS = getTokenString(id, token);
-				callback(tokenS);
-			});
-		});
-	}
-}
+            token.host = ec.ip + ':8080';
 
+            tokenRegistry.addToken(token, function (id) {
 
-var getTokenString = function(id, token) {
+                var tokenS = getTokenString(id, token);
+                callback(tokenS);
+            });
+        });
+    }
+};
 
-	var toSign = id + ',' + token.host;
-	var hex = crypto.createHmac('sha1', dataBase.nuveKey).update(toSign).digest('hex');
-	var signed = (new Buffer(hex)).toString('base64');
+/*
+ * Post Token. Creates a new token for a determined room of a service.
+ */
+exports.create = function (req, res) {
+    "use strict";
 
-	var tokenJ = {tokenId: id, host: token.host, signature: signed};
-	var tokenS = (new Buffer(JSON.stringify(tokenJ))).toString('base64');
+    doInit(req.params.room, function () {
 
-	return tokenS;
-}
+        if (currentService === undefined) {
+            console.log('Service not found');
+            res.send('Service not found', 404);
+            return;
+        } else if (currentRoom === undefined) {
+            console.log('Room ', req.params.room, ' does not exist');
+            res.send('Room does not exist', 404);
+            return;
+        }
+
+        generateToken(function (tokenS) {
+
+            if (tokenS === undefined) {
+                res.send('Name and role?', 401);
+                return;
+            }
+            if (tokenS === 'error') {
+                res.send('CloudHandler does not respond', 401);
+                return;
+            }
+            console.log('Created token for room ', currentRoom._id, 'and service ', currentService._id);
+            res.send(tokenS);
+        });
+    });
+};

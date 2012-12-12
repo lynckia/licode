@@ -1,52 +1,53 @@
-exports.Stream = function(spec) {
+/*global exports*/
+exports.Stream = function (spec) {
+    "use strict";
 
-    var that = {};
+    var that = {},
+        dataSubscribers = [];
 
-    var dataSubscribers = [];
-
-    that.getID = function() {
-       return spec.id;
+    that.getID = function () {
+        return spec.id;
     };
 
     // Indicates if the stream has audio activated
     that.hasAudio = function () {
-       return spec.audio;
+        return spec.audio;
     };
 
     // Indicates if the stream has video activated
     that.hasVideo = function () {
-       return spec.video;
+        return spec.video;
     };
 
     // Indicates if the stream has video activated
     that.hasData = function () {
-       return spec.data;
+        return spec.data;
     };
 
-    that.getAttributes = function() {
-       return spec.attributes;
+    that.getAttributes = function () {
+        return spec.attributes;
     };
 
-    that.getDataSubscribers = function() {
+    that.getDataSubscribers = function () {
         return dataSubscribers;
-    }
+    };
 
-    that.addDataSubscriber = function(id) {
+    that.addDataSubscriber = function (id) {
         if (dataSubscribers.indexOf(id) === -1) {
             dataSubscribers.push(id);
         }
-    }
+    };
 
-    that.removeDataSubscriber = function(id) {
+    that.removeDataSubscriber = function (id) {
         var index = dataSubscribers.indexOf(id);
-        if(index !== -1) {
+        if (index !== -1) {
             dataSubscribers.splice(index, 1);
         }
-    }
+    };
 
-    that.getPublicStream = function() {
+    that.getPublicStream = function () {
         return {id: spec.id, audio: spec.audio, video: spec.video, data: spec.data, attributes: spec.attributes};
-    }
+    };
 
     return that;
-}
+};

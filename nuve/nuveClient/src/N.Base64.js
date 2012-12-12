@@ -1,3 +1,4 @@
+/*global unescape*/
 var N = N || {};
 N.Base64 = (function (N) {
     "use strict";
@@ -52,9 +53,9 @@ N.Base64 = (function (N) {
             inBuffer[2] = readBase64();
             result = result + (base64Chars[inBuffer[0] >> 2]);
             if (inBuffer[1] !== END_OF_INPUT) {
-                result = result + (base64Chars [((inBuffer[0] << 4) & 0x30) | (inBuffer[1] >> 4)]);
+                result = result + (base64Chars[((inBuffer[0] << 4) & 0x30) | (inBuffer[1] >> 4)]);
                 if (inBuffer[2] !== END_OF_INPUT) {
-                    result = result + (base64Chars [((inBuffer[1] << 2) & 0x3c) | (inBuffer[2] >> 6)]);
+                    result = result + (base64Chars[((inBuffer[1] << 2) & 0x3c) | (inBuffer[2] >> 6)]);
                     result = result + (base64Chars[inBuffer[2] & 0x3F]);
                 } else {
                     result = result + (base64Chars[((inBuffer[1] << 2) & 0x3c)]);
@@ -113,7 +114,7 @@ N.Base64 = (function (N) {
         while (!done && (inBuffer[0] = readReverseBase64()) !== END_OF_INPUT && (inBuffer[1] = readReverseBase64()) !== END_OF_INPUT) {
             inBuffer[2] = readReverseBase64();
             inBuffer[3] = readReverseBase64();
-            result = result + ntos((((inBuffer[0] << 2) & 0xff)| inBuffer[1] >> 4));
+            result = result + ntos((((inBuffer[0] << 2) & 0xff) | inBuffer[1] >> 4));
             if (inBuffer[2] !== END_OF_INPUT) {
                 result +=  ntos((((inBuffer[1] << 4) & 0xff) | inBuffer[2] >> 2));
                 if (inBuffer[3] !== END_OF_INPUT) {

@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
+find_package(PkgConfig)
 #functions
 function(test_lib LIB_NAME)
  if (${LIB_NAME} MATCHES "^.*-NOTFOUND")
@@ -8,17 +9,18 @@ function(test_lib LIB_NAME)
 endfunction(test_lib)
 project (ERIZO)
 
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/")
 set(ERIZO_VERSION_MAJOR 0)
 set(ERIZO_VERSION_MINOR 1)
 
 file(GLOB_RECURSE ERIZO_SOURCES ${ERIZO_SOURCE_DIR}/*.cpp ${ERIZO_SOURCE_DIR}/*.h)
 add_library(erizo SHARED ${ERIZO_SOURCES})
-find_package(GTK2 REQUIRED gtk)
-# GTK2
-if (GTK2_FOUND)
- include_directories(${GTK2_INCLUDE_DIRS})
- target_link_libraries(erizo ${GTK2_LIBRARIES})
-endif(GTK2_FOUND)
+
+#GLIB
+find_package(Glib REQUIRED)
+include_directories(${GLIB_INCLUDE_DIRS})
+target_link_libraries(erizo ${GLIB_LIBRARIES})
+
 # BOOST
 set (BOOST_LIBS thread regex system)
 find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)

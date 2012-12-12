@@ -1,0 +1,304 @@
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+
+<!--
+Copyright (c) 2011-2012 The WebRTC project authors. All Rights Reserved.
+
+Use of this source code is governed by a BSD-style license
+that can be found in the LICENSE file in the root of the source
+tree. An additional intellectual property rights grant can be found
+in the file PATENTS. All contributing project authors may
+be found in the AUTHORS file in the root of the source tree.
+-->
+
+
+<head>
+<title>Lynckia WebRTC videoconference</title>
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+<link href='css/styleLynckia.css' rel='stylesheet' />
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
+<script src="roap_on_jsep.js"></script>
+<script src="erizo_on_jsep.js"></script>
+
+<script type="text/javascript">
+// TODO: Catch more exceptions
+
+var server;
+var socket;
+var localStream = null;
+var callState = 0; // 0 - Not started, 1 - Call ongoing
+
+var views = {};
+var myPC = undefined;
+var PCs = {};
+var myID;
+
+// General
+
+function setElementValuesFromURL() {
+  window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi,
+    function(m, key, value) {
+      document.getElementById(key).value = unescape(value);
+    });
+}
+
+function toggleExtraButtons() {
+  document.getElementById("createPcBtn").hidden =
+    !document.getElementById("createPcBtn").hidden;
+  document.getElementById("test1Btn").hidden =
+    !document.getElementById("test1Btn").hidden;
+}
+
+function trace(txt) {
+    console.log(txt);
+}
+
+function trace_warning(txt) {
+  var wtxt = "WARNING: " + txt;
+  trace(wtxt);
+}
+
+function trace_exception(e, txt) {
+  var etxt = "EXCEPTION: " + txt;
+  trace(etxt);
+}
+
+function setCallState(state) {
+  trace("Changing call state: " + callState + " -> " + state);
+  callState = state;
+}
+
+function checkPeerConnection() {
+  if (!myPC) {
+    trace_warning("No PeerConnection object exists");
+    return 0;
+  }
+  return 1;
+}
+
+// Local stream generation
+
+function gotStream(s) {
+  var url = webkitURL.createObjectURL(s);
+  document.getElementById("localView").src = url;
+  trace("User has granted access to local media. url = " + url);
+  localStream = s;
+  signIn();
+}
+
+function gotStreamFailed(error) {
+  alert("Failed to get access to local media. Error code was " + error.code +
+    ".");
+  trace_warning("Failed to get access to local media. Error code was " +
+    error.code);
+}
+
+function getUserMedia() {
+  try {
+    ErizoGetUserMedia({video:true, audio:true}, gotStream, gotStreamFailed);
+    trace("Requested access to local media");
+  } catch (e) {
+    trace_exception(e, "getUserMedia error");
+  }
+}
+
+
+// Call control
+
+function createPeerConnection() {
+    if (myPC !== undefined) {
+        trace_warning("PeerConnection object already exists");
+    }
+    trace("Creating PeerConnection object");
+    try {
+      myPC = new ErizoPeerConnection(function(offer){
+        socket.emit('publish', 'offer', offer, function (answer, id) {
+            myPC.onsignalingmessage = function (ok) {
+                myPC.onsignalingmessage = function() {};
+                socket.emit('publish', 'ok', ok);
+            };
+            myPC.processSignalingMessage(answer);
+        });
+      });
+
+    } catch (e) {
+        trace_exception(e, "Create PeerConnection error");
+    }
+}
+
+function doCall() {
+  createPeerConnection();
+  trace("Adding stream");
+  myPC.addStream(localStream);
+}
+
+function hangUp() {
+    trace("Closing call");
+    closeCall();
+}
+
+function closeCall() {
+    trace("Stopping showing remote stream");
+    document.getElementById("remoteView").src = "dummy";
+    if (myPC) {
+        trace("Stopping call [pc.close()]");
+        myPC.close();
+        myPC = null;
+    } else
+        trace("No pc object to close");
+    setCallState(0);
+}
+
+
+function createSubscriberPC(streamID) {
+
+  try {
+
+    PCs[streamID] = new ErizoPeerConnection(function(offer) {
+      socket.emit('subscribe', streamID, offer, function (answer) {
+        PCs[streamID].processSignalingMessage(answer);
+      });
+    });
+    
+    PCs[streamID].onaddstream = function(e) {
+
+      var i = 1;
+      var view = 'remoteView' + i;
+      var src = document.getElementById(view).src;
+
+      while (src != '') {
+        i++;
+        if (i == 4) {
+          console.log('Not empty video tag');
+          return;
+        };
+        view = 'remoteView' + i;
+        src = document.getElementById(view).src;
+      }
+
+      console.log('View:', view, 'for', streamID);
+
+      views[streamID] = view;
+  
+      var stream = e.stream;
+      var url = webkitURL.createObjectURL(stream);
+      document.getElementById(view).src = url;
+      trace("Started showing remote stream. url = " + url);
+
+    }
+
+    //subsPC.onremovestream = onRemoveStream;
+  } catch (e) {
+    trace_exception(e, "Create PeerConnection error");
+  }
+}
+
+function removeSubscriberPC(streamID) {
+
+  document.getElementById(views[streamID]).removeAttribute("src");
+  delete views[streamID];
+
+  if(PCs[streamID]) {
+    PCs[streamID].close();
+    delete PCs[streamID];
+  }
+}
+
+function signIn() {
+  try {
+    socket = io.connect('/');
+
+    socket.on('onAddStream', function(streamID) {
+      if(streamID != myID) {
+        createSubscriberPC(streamID);
+      }
+    });
+
+    socket.on('onRemoveStream', function(streamID) {
+      removeSubscriberPC(streamID);
+    });
+
+    socket.emit('initConnection', 'videoconference', function (response, streams, id) {
+      myID = id;
+      if (response == 'success') {
+        doCall();
+        var stArray = streams.streams;
+        for(var id in stArray) {
+          if (stArray[id] != myID) {
+            createSubscriberPC(stArray[id]);
+          }
+        }
+      }
+    });
+  } catch (e) { 
+    trace_exception(e, "Start sign in error");
+  }
+}
+
+function disconnect() {
+    hangUp();
+}
+
+
+// Window event handling
+
+window.onload = function() {
+  setElementValuesFromURL();
+  getUserMedia();
+}
+
+window.onbeforeunload = disconnect;
+
+
+</script>
+
+</head>
+
+<body>
+
+  <div class="wrapper">
+
+  <img src="images/logo.svg"/ class="logostyle">
+
+    <div id="vidcontainer">
+
+      <div id="vid1" class="coolstyle">
+      <video id="localView" class="video" autoplay></video>
+      </div>
+
+      <div id="vid2" class="coolstyle">
+      <video id="remoteView1" class="video" autoplay></video>
+      </div>
+
+      <div id="vid3" class="coolstyle">
+      <video id="remoteView2" class="video" autoplay></video>
+      </div>
+
+      <div id="vid4" class="coolstyle">
+      <video id="remoteView3" class="video" autoplay></video>
+      </div>
+
+    </div>
+
+    <div class="push"></div>
+    
+  </div>
+
+  <footer>
+
+    <div id="imglogo">
+    <img src="images/star.svg"/ class="footerstyle">
+    </div>
+
+    <div id="textfoo">
+    Developed by <a href="http://www.dit.upm.es/">DIT UPM</a>.
+    </div>
+
+  </footer>
+
+</body>
+</html>

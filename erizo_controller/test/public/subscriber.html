@@ -1,0 +1,203 @@
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+
+<!--
+Copyright (c) 2011-2012 The WebRTC project authors. All Rights Reserved.
+
+Use of this source code is governed by a BSD-style license
+that can be found in the LICENSE file in the root of the source
+tree. An additional intellectual property rights grant can be found
+in the file PATENTS. All contributing project authors may
+be found in the AUTHORS file in the root of the source tree.
+-->
+
+<html>
+
+<head>
+<title>WebRTC Subscriber</title>
+<!--
+<style type="text/css">
+  body, input, button, select, table {
+    font-family:"Lucida Grande", "Lucida Sans", Verdana, Arial, sans-serif;
+    font-size: 13 px;
+  }
+  body, input:enable, button:enable, select:enable, table {
+    color: rgb(51, 51, 51);
+  }
+  h1 {font-size: 40 px;}
+</style>
+-->
+
+<link href='css/bootstrap.min.css' media='screen' rel='stylesheet' />
+<link href='css/style.css' media='screen' rel='stylesheet' />
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
+<script src="roap_on_jsep.js"></script>
+<script src="erizo_on_jsep.js"></script>
+
+<script type="text/javascript">
+
+// TODO: Catch more exceptions
+
+var socket;
+var pc = null;
+var localStream = null;
+var streamID;
+
+// General
+
+function setElementValuesFromURL() {
+  window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi,
+    function(m, key, value) {
+      document.getElementById(key).value = unescape(value);
+    });
+}
+
+function toggleExtraButtons() {
+  document.getElementById("createPcBtn").hidden =
+    !document.getElementById("createPcBtn").hidden;
+  document.getElementById("test1Btn").hidden =
+    !document.getElementById("test1Btn").hidden;
+}
+
+function trace(txt) {
+  console.log(txt);
+}
+
+function trace_warning(txt) {
+  var wtxt = "WARNING: " + txt;
+  trace(wtxt);
+}
+
+function trace_exception(e, txt) {
+  var etxt = "EXCEPTION: " + txt;
+  trace(etxt);
+}
+
+function setCallState(state) {
+  trace("Changing call state: " + callState + " -> " + state);
+  callState = state;
+}
+
+function checkPeerConnection() {
+  if (!pc) {
+    trace_warning("No PeerConnection object exists");
+    return 0;
+  }
+  return 1;
+}
+
+// Call control
+
+function createPeerConnection() {
+  if (pc) {
+    trace_warning("PeerConnection object already exists");
+  }
+  trace("Creating PeerConnection object");
+  try {
+
+    pc = new ErizoPeerConnection(function(offer) {
+      socket.emit('subscribe', streamID, offer, function (answer) {
+        pc.processSignalingMessage(answer);
+      });
+    });
+
+    pc.onaddstream = onAddStream;
+    pc.onremovestream = onRemoveStream;
+  } catch (e) {
+    trace_exception(e, "Create PeerConnection error");
+  }
+}
+
+function doCall() {
+  createPeerConnection();
+}
+
+function hangUp() {
+  closeCall();
+}
+
+function closeCall() {
+  trace("Stopping showing local stream");
+  document.getElementById("localView").src = "dummy";
+  if (pc) {
+    trace("Stopping call [pc.close()]");
+    pc.close();
+    pc = null;
+  } else
+    trace("No pc object to close");
+}
+
+
+// PeerConnection callbacks
+
+function onAddStream(e) {
+  var stream = e.stream;
+  var url = webkitURL.createObjectURL(stream);
+  document.getElementById("localView").src = url;
+  trace("Started showing remote stream. url = " + url);
+}
+
+function onRemoveStream(e) {
+  // Currently if we get this callback, call has ended.
+  document.getElementById("localView").src = "";
+  trace("Stopped showing remote stream");
+}
+
+
+
+function signIn() {
+  try {
+    socket = io.connect('/');
+
+    socket.emit('initConnection', 'streaming', function (response, streams, id) {
+      streamID = streams.streams[0];
+      if (response == 'success' && streamID !== undefined) {
+        doCall();
+      } else {
+        console.log('Error! Is there a publisher in the room??');
+      }
+    });
+  } catch (e) { 
+    trace_exception(e, "Start sign in error");
+  }
+}
+
+function disconnect() {
+    hangUp();
+}
+
+
+// Window event handling
+
+window.onload = function() {
+  setElementValuesFromURL();
+  signIn();
+}
+
+window.onbeforeunload = disconnect;
+
+
+</script>
+</head>
+
+<body id="splash">
+<div id="login" class="modal login">
+<div class="modal-header">
+<h1>WebRTC Video Subscriber</h1>
+</div>
+<div class="modal-body clearfix">
+<video class="local-video" id="localView" autoplay="autoplay"></video><p>
+</div>
+</div>
+<select id="peers" size="5" disabled="true" style='display: none'>
+<option value="-1">Not connected</option>
+</select>
+<pre>
+You must have a WebRTC capable browser in order to make the streaming.
+</pre>
+</body>
+
+</html>
+

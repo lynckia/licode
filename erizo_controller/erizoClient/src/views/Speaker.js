@@ -1,3 +1,4 @@
+/*global window, console, document */
 /*
  * Speaker represents the volume icon that will be shown in the VideoPlayer, for example.
  * It manages the volume level of the video tag given in the constructor.
@@ -5,8 +6,10 @@
  * Ex.: var speaker = Speaker({elementID: element, video: videoTag, id: id});
  */
 var Erizo = Erizo || {};
-Erizo.Speaker = function(spec) {
-    var that = Erizo.View({});
+Erizo.Speaker = function (spec) {
+    "use strict";
+    var that = Erizo.View({}),
+        show;
 
     // Variables
 
@@ -41,7 +44,7 @@ Erizo.Speaker = function(spec) {
     that.div.appendChild(that.picker);
     that.video.volume = that.picker.value / 100;
 
-    that.picker.oninput = function(evt) {
+    that.picker.oninput = function (evt) {
         if (that.picker.value > 0) {
             that.icon.setAttribute('src', that.url + '/assets/sound48.png');
         } else {
@@ -51,16 +54,16 @@ Erizo.Speaker = function(spec) {
     };
 
     // Private functions
-    var show = function(displaying) {
-        that.picker.setAttribute('style', 'width: 32px; height: 100px; position: absolute; bottom: '+that.div.offsetHeight+'px; right: 0px; -webkit-appearance: slider-vertical; display: '+displaying);
+    show = function (displaying) {
+        that.picker.setAttribute('style', 'width: 32px; height: 100px; position: absolute; bottom: ' + that.div.offsetHeight + 'px; right: 0px; -webkit-appearance: slider-vertical; display: ' + displaying);
     };
 
     // Public functions
-    that.div.onmouseover = function(evt) {
+    that.div.onmouseover = function (evt) {
         show('block');
     };
 
-    that.div.onmouseout = function(evt) {
+    that.div.onmouseout = function (evt) {
         show('none');
     };
 
@@ -68,4 +71,4 @@ Erizo.Speaker = function(spec) {
 
     document.getElementById(that.elementID).appendChild(that.div);
     return that;
-}
+};

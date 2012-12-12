@@ -6,6 +6,11 @@
 #define VIDEOCODEC_H_
 
 #include "Codecs.h"
+
+extern "C" {
+#include <libavutil/avutil.h>
+#include <libavcodec/avcodec.h>
+}
 //Forward Declarations
 
 struct AVCodec;

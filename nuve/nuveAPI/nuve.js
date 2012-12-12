@@ -1,7 +1,8 @@
-var express = require('express'); 
+/*global exports, require, console, Buffer, __dirname*/
+var express = require('express');
 var db = require('./mdb/dataBase').db;
 require('./rpc/rpc');
-var app = express.createServer();
+var app = express();
 
 var nuveAuthenticator = require('./auth/nuveAuthenticator');
 
@@ -17,20 +18,23 @@ app.use(express.static(__dirname + '/public'));
 app.use(express.bodyParser());
 app.set('view engine', 'ejs');
 app.set('view options', {
-  layout: false
+    layout: false
 });
 
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
+    "use strict";
 
-	res.header('Access-Control-Allow-Origin', '*');
-	res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
-	res.header('Access-Control-Allow-Headers', 'origin, authorization, content-type');
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
+    res.header('Access-Control-Allow-Headers', 'origin, authorization, content-type');
 
-	next();
+    next();
 });
 
-app.get('/test', function(req,res) {
-	res.render('test');
+app.get('/test', function (req, res) {
+    "use strict";
+
+    res.render('test');
 });
 
 app.get('*', nuveAuthenticator.authenticate);
@@ -57,4 +61,3 @@ app.get('/rooms/:room/users/:user', userResource.getUser);
 app.delete('/rooms/:room/users/:user', userResource.deleteUser);
 
 app.listen(3000);
-

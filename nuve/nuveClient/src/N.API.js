@@ -1,3 +1,4 @@
+/*global console, CryptoJS, XMLHttpRequest*/
 var N = N || {};
 
 N.API = (function (N) {
@@ -18,7 +19,7 @@ N.API = (function (N) {
 
     createRoom = function (name, callback, options, params) {
 
-        send(function(roomRtn) {
+        send(function (roomRtn) {
             var room = JSON.parse(roomRtn);
             callback(room);
         }, 'POST', {name: name, options: options}, 'rooms', params);
@@ -70,7 +71,7 @@ N.API = (function (N) {
 
     send = function (callback, method, body, url, params, username, role) {
         var service, key, timestamp, cnounce, toSign, header, signed, req;
-        
+
         if (params === undefined) {
             service = N.API.params.service;
             key = N.API.params.key;
@@ -80,14 +81,14 @@ N.API = (function (N) {
             key = params.key;
             url = params.url + url;
         }
-        
+
         if (service === '' || key === '') {
             console.log('ServiceID and Key are required!!');
             return;
         }
 
         timestamp = new Date().getTime();
-        cnounce = Math.floor(Math.random()*99999);
+        cnounce = Math.floor(Math.random() * 99999);
 
         toSign = timestamp + ',' + cnounce;
 
@@ -133,7 +134,7 @@ N.API = (function (N) {
         } else {
             req.send();
         }
-        
+
     };
 
     calculateSignature = function (toSign, key) {

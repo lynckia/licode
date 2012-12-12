@@ -3,13 +3,13 @@
  */
 
 #include "VideoCodec.h"
-#include "Codecs.h"
 
 #include <string>
+
+#include <cstddef>
+#include <cstdio>
+#include <string.h>
 #include <boost/cstdint.hpp>
-extern "C" {
-#include <libavcodec/avcodec.h>
-}
 
 namespace erizo {
   inline  CodecID
@@ -239,10 +239,10 @@ decoding:
 
   int VideoDecoder::closeDecoder(){
     if (dPicture!=0)
-      av_free(dPicture);
+//      av_free(dPicture);
     if (vDecoderContext!=0){
       avcodec_close(vDecoderContext);
-      av_free(vDecoderContext);
+//      av_free(vDecoderContext);
     }
     return 0;
   }

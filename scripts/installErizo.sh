@@ -31,9 +31,9 @@ install_erizo_controller(){
   cd $CURRENT_DIR
 }
 
-pause 'Installing erizo... [press Enter]'
+echo 'Installing erizo... [press Enter]'
 install_erizo
-pause 'Installing erizoAPI... [press Enter]'
+echo 'Installing erizoAPI... [press Enter]'
 install_erizo_api
-pause 'Installing erizoController... [press Enter]'
+echo 'Installing erizoController... [press Enter]'
 install_erizo_controller

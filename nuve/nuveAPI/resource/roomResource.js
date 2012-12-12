@@ -1,74 +1,78 @@
+/*global exports, require, console*/
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var rpc = require('./../rpc/rpc');
 
-var service;
-var room;
+var currentService;
+var currentRoom;
 
 /*
  * Gets the service and the room for the proccess of the request.
  */
 var doInit = function (roomId, callback) {
-	this.service = require('./../auth/nuveAuthenticator').service;
+    "use strict";
 
-	serviceRegistry.getRoomForService(roomId, this.service, function(room) {
-		this.room = room;
-		callback();
-	});	
+    currentService = require('./../auth/nuveAuthenticator').service;
+
+    serviceRegistry.getRoomForService(roomId, currentService, function (room) {
+        currentRoom = room;
+        callback();
+    });
 };
 
 /*
  * Get Room. Represents a determined room.
  */
-exports.represent = function(req, res) {
-	doInit(req.params.room, function() {
-		if (this.service == undefined) {
-			res.send('Client unathorized', 401);
-		}
-		else if (this.room == undefined) {
-			console.log('Room ', req.params.room, ' does not exist');	
-			res.send('Room does not exist', 404);	
-		} else {
-			console.log('Representing room ', this.room._id, 'of service ', this.service._id);
-			res.send(this.room);
-		}
-		
-	});
-	
+exports.represent = function (req, res) {
+    "use strict";
+
+    doInit(req.params.room, function () {
+        if (currentService === undefined) {
+            res.send('Client unathorized', 401);
+        } else if (currentRoom === undefined) {
+            console.log('Room ', req.params.room, ' does not exist');
+            res.send('Room does not exist', 404);
+        } else {
+            console.log('Representing room ', currentRoom._id, 'of service ', currentService._id);
+            res.send(currentRoom);
+        }
+    });
 };
 
 /*
  * Delete Room. Removes a determined room from the data base and asks cloudHandler to remove ir from erizoController.
  */
-exports.deleteRoom = function(req, res) {
-	doInit(req.params.room, function() {
-		if (this.service == undefined) {
-			res.send('Client unathorized', 401);
-		}
-		else if (this.room == undefined) {
-			console.log('Room ', req.params.room, ' does not exist');
-			res.send('Room does not exist', 404);	
-		} else {
-			var id = '';
-			id += this.room._id;
-			roomRegistry.removeRoom(id);
+exports.deleteRoom = function (req, res) {
+    "use strict";
 
-			var array = this.service.rooms;
-			var index = -1;
-			for (var i = 0; i < array.length; i++) {
-	
-				if(array[i]._id == id){
-					index = i;
-				}
-			}
-			if (index != -1) {
-				this.service.rooms.splice(index, 1);
-				serviceRegistry.updateService(this.service);
-				console.log('Room ', id, ' deleted for service ', this.service._id);
-				rpc.callRpc('cloudHandler', 'deleteRoom', id, function() {});
-				res.send('Room deleted');
-			}
-		}
-	});
+    doInit(req.params.room, function () {
+        if (currentService === undefined) {
+            res.send('Client unathorized', 401);
+        } else if (currentRoom === undefined) {
+            console.log('Room ', req.params.room, ' does not exist');
+            res.send('Room does not exist', 404);
+        } else {
+            var id = '',
+                array = currentService.rooms,
+                index = -1,
+                i;
+
+            id += currentRoom._id;
+            roomRegistry.removeRoom(id);
+
+            for (i = 0; i < array.length; i += 1) {
+                if (array[i]._id === id) {
+                    index = i;
+                }
+            }
+            if (index !== -1) {
+                currentService.rooms.splice(index, 1);
+                serviceRegistry.updateService(currentService);
+                console.log('Room ', id, ' deleted for service ', currentService._id);
+                rpc.callRpc('cloudHandler', 'deleteRoom', id, function () {});
+                res.send('Room deleted');
+            }
+        }
+    });
 
 };
