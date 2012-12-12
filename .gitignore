@@ -2,3 +2,13 @@ build/
 lynckia_config.js
 extras/basic_example/node_modules
 site
+extras/basic_example/public/erizo.js
+extras/basic_example/nuve.js
+node_modules/
+nuve/nuveClient/build/nuve.js
+nuve/nuveClient/dist/nuve.js
+nuve/nuveClient/dist/xmlhttprequest.js
+erizoAPI/.lock-wscript
+erizoAPI/build
+
+
