@@ -22,12 +22,13 @@ install: true
       <div class="span3 bs-docs-sidebar">
         <ul class="nav nav-list bs-docs-sidenav">
           <li><a href="#requirements"><i class="icon-chevron-right"></i> Requirements</a></li>
+          <li><a href="#clone"><i class="icon-chevron-right"></i> Clone Lynckia code</a></li>
           <li><a href="#dependencies"><i class="icon-chevron-right"></i> Dependencies</a></li>
-          <li><a href="#erizo"><i class="icon-chevron-right"></i> Erizo</a></li>
-          <li><a href="#nuve"><i class="icon-chevron-right"></i> Nuve</a></li>
+          <li><a href="#lynckia"><i class="icon-chevron-right"></i> Lynckia</a></li>
           <li><a href="#basic-example"><i class="icon-chevron-right"></i> Basic Example</a></li>
           <li><a href="#init-lynckia"><i class="icon-chevron-right"></i> Init Lynckia</a></li>
           <li><a href="#init-basic-example"><i class="icon-chevron-right"></i> Init Basic Example</a></li>
+          <li><a href="#test"><i class="icon-chevron-right"></i> Test it!</a></li>
         </ul>
       </div>
       <div class="span9">
@@ -48,67 +49,70 @@ install: true
             <div class="span6">
               <img width="80px" src="assets/img/apple.gif"></img>
               <h3>Mac OS X</h3>
-              <p>it has been tested with Mountain Lion.</p>
+              <p>It has been tested with Mountain Lion.</p>
             </div>
             
          </div>
+        </section>
+
+        <!-- Clone
+        ================================================== -->
+        <section id="clone">
+          <div class="page-header">
+            <h1>2. Clone Lynckia code</h1>
+          </div>
+          <p class="lead">You first need to clone our code from github.</p>
+          <p>You need to have git installed in your computer.</p>
+          <p>In ubuntu use "sudo apt-get install git".</p>
+          <p>In Mac OS X you need to have installed Xcode Command Line Tools. Also you can install git with homebrew.</p>
+          <div class="bs-docs-example">
+          Now clone the repository.  
+          </div>
+<pre class="prettyprint linenums">
+git clone https://github.com/ging/lynckia.git
+</pre>
+          <p>All scrips used below are included in this code cloned from github.</p>
         </section>
 
         <!-- Dependencies
         ================================================== -->
         <section id="dependencies">
           <div class="page-header">
-            <h1>2. Install Dependencies</h1>
+            <h1>3. Install Dependencies</h1>
           </div>
-          <p class="lead">You first need to install dependencies if you want to use Lynckia.</p>
+          <p class="lead">Now you need to install some dependencies to use Lynckia.</p>
             <p>This step depends on the type of Operating System your are using.</p>
             <div class="bs-docs-example">
             Ubuntu 12.04 LTS.
             </div>
 <pre class="prettyprint linenums">
-bash <(curl -s http://chotis2.dit.upm.es/installDepsUbuntu.sh)
+./lynckia/scripts/installUbuntuDeps.sh
 </pre>
 
         <div class="bs-docs-example">
             Mac OS X Mountain Lion.
             </div>
 <pre class="prettyprint linenums">
-bash <(curl -s http://chotis2.dit.upm.es/installDepsMac.sh)
+./lynckia/scripts/installMacDeps.sh
 </pre>
         </section>
 
-        <!-- Install Erizo
+        <!-- Install Lynckia
         ================================================== -->
-        <section id="erizo">
+        <section id="lynckia">
           <div class="page-header">
-            <h1>3. Install Erizo components</h1>
+            <h1>4. Install Lynckia</h1>
           </div>
-          <p class="lead"> This step will install all Erizo components.</p>
-          <p>These components are: <a href="https://github.com/ging/erizo">Erizo</a>, <a href="https://github.com/ging/erizoAPI">Erizo API</a> and <a href="https://github.com/ging/erizo_controller">Erizo Controller</a>.</p>
+          <p class="lead"> This step will install all Lynckia components.</p>
+          <p>These components are: Erizo, Erizo API, Erizo Controller and Nuve.</p>
           <div class="bs-docs-example">
-            You will only need to execute the next command. It does not depends on the Operating System.
+            You will only need to execute these commands. They do not depends on the Operating System.
             </div>
 <pre class="prettyprint linenums">
-bash <(curl -s http://chotis2.dit.upm.es/installErizo.sh)
+./lynckia/scripts/installErizo.sh
+./lynckia/scripts/installNuve.sh
 </pre>
         </section>
-
-        <!-- Install Nuve
-        ================================================== -->
-        <section id="nuve">
-          <div class="page-header">
-            <h1>4. Install Nuve</h1>
-          </div>
-          <p class="lead"> This step will install Nuve.</p>
-          <p>You can check the source code <a href="https://github.com/ging/nuve">here</a>.</p>
-          <div class="bs-docs-example">
-            You will only need to execute the next command. It does not depends on the Operating System.
-            </div>
-<pre class="prettyprint linenums">
-bash <(curl -s http://chotis2.dit.upm.es/installNuve.sh)
-</pre>
-        </section>
-
 
         <!-- Install Basic Example
         ================================================== -->
@@ -121,7 +125,7 @@ bash <(curl -s http://chotis2.dit.upm.es/installNuve.sh)
             You will only need to execute the next command. It does not depends on the Operating System.
             </div>
 <pre class="prettyprint linenums">
-bash <(curl -s http://chotis2.dit.upm.es/installBasicExample.sh)
+./lynckia/scripts/installBasicExample.sh
 </pre>
         </section>
 
@@ -136,7 +140,7 @@ bash <(curl -s http://chotis2.dit.upm.es/installBasicExample.sh)
             You will only need to execute the next command. It does not depends on the Operating System.
             </div>
 <pre class="prettyprint linenums">
-bash <(curl -s http://chotis2.dit.upm.es/initLynckia.sh)
+./lynckia/scripts/initLynckia.sh
 </pre>
         </section>
 
@@ -151,8 +155,17 @@ bash <(curl -s http://chotis2.dit.upm.es/initLynckia.sh)
             You will only need to execute the next command. It does not depends on the Operating System.
             </div>
 <pre class="prettyprint linenums">
-bash <(curl -s http://chotis2.dit.upm.es/initBasicExample.sh)
+./lynckia/scripts/initBasicExample.sh
 </pre>
+        </section>
+
+        <!-- Test
+        ================================================== -->
+        <section id="test">
+          <div class="page-header">
+            <h1>8. Test Lynckia!<h1>
+          </div>
+          <p class="lead"> Now you can connect to localhost:3004 and test your basic videoconference example!</p>
         </section>
 
         <!-- Next
