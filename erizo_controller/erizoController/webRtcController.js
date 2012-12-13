@@ -116,7 +116,7 @@ exports.WebRtcController = function () {
 
             console.log("Adding publisher peer_id ", from);
 
-            var muxer = new addon.OneToManyProcessor(),
+            var muxer = new addon.OneToManyTranscoder(),
                 wrtc = new addon.WebRtcConnection();
 
             publishers[from] = muxer;

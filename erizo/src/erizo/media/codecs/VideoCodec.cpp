@@ -119,7 +119,7 @@ namespace erizo {
 
   int VideoDecoder::initDecoder (const VideoCodecInfo& info){
     printf("Init Decoder\n");
-    vDecoder = avcodec_find_decoder(CODEC_ID_VP8);
+    vDecoder = avcodec_find_decoder(VideoCodecID2ffmpegDecoderID(info.codec));
     if (!vDecoder) {
       printf("Error getting video decoder\n");
       return -1;
