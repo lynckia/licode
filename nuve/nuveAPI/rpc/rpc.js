@@ -12,7 +12,15 @@ var clientQueue;
 var exc;
 
 // Create the amqp connection to rabbitMQ server
-var connection = amqp.createConnection({host: config.rabbit.host, port: config.rabbit.port});
+var addr = {};
+
+if (config.rabbit.url !== undefined) {
+    addr.url = config.rabbit.url;
+} else {
+    addr.host = config.rabbit.host;
+    addr.port = config.rabbit.port;
+}
+var connection = amqp.createConnection(addr);
 
 connection.on('ready', function () {
     "use strict";
