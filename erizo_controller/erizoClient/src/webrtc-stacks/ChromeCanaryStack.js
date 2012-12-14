@@ -9,11 +9,12 @@ Erizo.ChromeCanaryStack = function (spec) {
         WebkitRTCPeerConnection = webkitRTCPeerConnection;
 
     that.pc_config = {
-
-        "iceServers": [{
-            "url": "stun:stun.l.google.com:19302"
-        }]
+        "iceServers": []
     };
+
+    if (spec.stunServerUrl !== undefined) {
+        that.pc_config.iceServers.push({"url": spec.stunServerUrl});
+    } 
 
     that.mediaConstraints = {
         'mandatory': {
@@ -21,6 +22,8 @@ Erizo.ChromeCanaryStack = function (spec) {
             'OfferToReceiveAudio': 'true'
         }
     };
+
+    that.roapSessionId = 103;
 
     that.peerConnection = new WebkitRTCPeerConnection(that.pc_config);
 
@@ -299,7 +302,7 @@ Erizo.ChromeCanaryStack = function (spec) {
         throw 'Error in RoapOnJsep: ' + text;
     };
 
-    that.sessionId = (RoapConnection.sessionId += 1);
+    that.sessionId = (that.roapSessionId += 1);
     that.sequenceNumber = 0; // Number of last ROAP message sent. Starts at 1.
     that.actionNeeded = false;
     that.iceStarted = false;

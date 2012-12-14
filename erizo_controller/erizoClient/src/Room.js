@@ -171,6 +171,7 @@ Erizo.Room = function (spec) {
             var index = 0, stream, streamList = [], streams, roomId, arg, connectEvt;
             streams = response.streams;
             roomId = response.id;
+            that.stunServerUrl = response.stunServerUrl;
             that.state = CONNECTED;
 
             // 2- Retrieve list of streams
@@ -228,7 +229,7 @@ Erizo.Room = function (spec) {
                         };
                         stream.pc.processSignalingMessage(answer);
                     });
-                }});
+                }, stunServerUrl: that.stunServerUrl});
 
                 stream.pc.addStream(stream.stream);
             } else if (stream.hasData()) {
@@ -269,7 +270,7 @@ Erizo.Room = function (spec) {
                         stream.pc.processSignalingMessage(answer);
 
                     });
-                }});
+                }, stunServerUrl: that.stunServerUrl});
 
                 stream.pc.onaddstream = function (evt) {
                     // Draw on html

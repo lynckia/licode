@@ -203,7 +203,7 @@ var listen = function () {
                             }
                         }
 
-                        callback('success', {streams: streamList, id: socket.room.id});
+                        callback('success', {streams: streamList, id: socket.room.id, stunServerUrl: config.erizoController.stunServerUrl});
 
                     } else {
                         console.log('Invalid host');

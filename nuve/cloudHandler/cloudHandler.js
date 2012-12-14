@@ -46,7 +46,7 @@ var recalculatePriority = function () {
     ecQueue = newEcQueue;
 
     if (ecQueue.length === 0 || (available === 0 && warnings < 2)) {
-        console.log('[CLOUD HANDLER]: Warning! Any erizoController is available.');
+        console.log('[CLOUD HANDLER]: Warning! No erizoController is available.');
     }
 
 },
