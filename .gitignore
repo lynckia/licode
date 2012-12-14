@@ -1,3 +1,4 @@
+.DS_Store
 build/
 lynckia_config.js
 extras/basic_example/node_modules
@@ -10,5 +11,6 @@ nuve/nuveClient/dist/nuve.js
 nuve/nuveClient/dist/xmlhttprequest.js
 erizoAPI/.lock-wscript
 erizoAPI/build
-
+nuve
+erizo_controller
 
