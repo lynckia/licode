@@ -31,7 +31,7 @@ namespace erizo {
     avformat_network_init();
     //open rtsp
     printf("trying to open input\n");
-    if(avformat_open_input(&context, url,NULL,NULL) != 0){
+    if(avformat_open_input(&context, url.c_str(),NULL,NULL) != 0){
       printf("fail when opening input\n");
     }
     if(avformat_find_stream_info(context,NULL) < 0){
