@@ -14,14 +14,13 @@ blog: true
 </header>
 
 
-<div class="row-fluid">
-    <div class="container offset3 span6">
 
 
 <!-- Posts
 ================================================== -->
 {%  for post in site.posts %}
-<section id="requirements">
+<div class="row-fluid">
+<section id="requirements" class="container offset3 span6" >
     <div class="page-header">
         <p><h1><a href="{{ post.url }}">{{ post.title }}</a></h1>{{ post.date | date_to_string }} - {{site.author}}</p>
     </div>
