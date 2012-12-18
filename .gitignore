@@ -13,4 +13,5 @@ erizoAPI/.lock-wscript
 erizoAPI/build
 nuve
 erizo_controller
+npm-debug.log
 
