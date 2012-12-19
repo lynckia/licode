@@ -49,6 +49,7 @@ Erizo.Stream = function (spec) {
     that.init = function () {
         try {
             if (spec.audio || spec.video) {
+                L.Logger.debug("Requested access to local media");
                 Erizo.GetUserMedia({video: spec.video, audio: spec.audio}, function (stream) {
                 //navigator.webkitGetUserMedia("audio, video", function (stream) {
 
@@ -63,7 +64,6 @@ Erizo.Stream = function (spec) {
                     var streamEvent = Erizo.StreamEvent({type: "access-denied"});
                     that.dispatchEvent(streamEvent);
                 });
-                L.Logger.debug("Requested access to local media");
             } else {
                 var streamEvent = Erizo.StreamEvent({type: "access-accepted"});
                 that.dispatchEvent(streamEvent);
