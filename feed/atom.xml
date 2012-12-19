@@ -6,7 +6,7 @@ layout: nil
  
     <title>Lynckia Blog</title>
     <link href="http://lynckia.com/feed/atom.xml" rel="self"/>
-    <link href="http://lynckia.com/feed"/>
+    <link href="http://lynckia.com/"/>
     <updated>{{ site.time | date_to_xmlschema }}</updated>
     <id>http://lynckia.com/feed/atom.xml</id>
     <author>
