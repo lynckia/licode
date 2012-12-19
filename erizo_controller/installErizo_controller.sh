@@ -12,5 +12,6 @@ echo [erizo_controller] Done, node_modules installed
 cd ../erizoClient/tools
 
 ./compile.sh
+./compilefc.sh
 
 echo [erizo_controller] Done, erizo.js compiled
