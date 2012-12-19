@@ -16,7 +16,7 @@ layout: nil
 {%  for post in site.posts %}
 <entry>
     <title>{{ post.title }}</title>
-    <link href="http://gitwatcher.com/blog{{ post.url }}"/>
+    <link href="http://lynckia.com/blog{{ post.url }}"/>
     <updated>{{ post.date | date_to_xmlschema }}</updated>
     <id>http://lynckia.com/blog{{ post.id }}.html</id>
     <content type="html">{{ post.content | xml_escape }}</content>
