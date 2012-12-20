@@ -26,6 +26,7 @@ clientapi: true
           <li><a href="#room"><i class="icon-chevron-right"></i> Room</a></li>
           <li><a href="#events"><i class="icon-chevron-right"></i> Events</a></li>
           <li><a href="#examples"><i class="icon-chevron-right"></i> Examples</a></li>
+          <li><a href="#erizofc"><i class="icon-chevron-right"></i> Node.js client</a></li>
         </ul>
       </div>
       <div class="span9">
@@ -604,6 +605,28 @@ stream.addEventListener("stream-data", function(evt){
 &lt/html&gt
 </pre>
 
+        </section>
+
+        <!-- Erizofc
+        ================================================== -->
+        <section id="erizofc">
+          <div class="page-header">
+            <h1>Node.js client</h1>
+          </div>
+          <p class="lead">Running erizo clients in your node.js applications.</p>
+          <p>You can also run erizo clients in your node.js applications with the same API explained here. You can connect to rooms, publish and subscribe to streams and manage events. You need only to import the node module <b>erizofc.js</b></p>
+          <pre class="prettyprint linenums">
+var Erizo = require('.erizofc');</pre>
+          <p>And now you can use the API like explained for the browser case, calling <b>Erizo.Room</b>, <b>Erizo.Stream</b> and <b>Erizo.Events</b>. Note that you can not publish/subscribe streams with video and/or audio. We are working on this feature in order to develop another way of distribute video/audio streams.</p>
+          
+          <div class="row-fluid">
+            <div class="span9">
+              <h4>Download erizofc API</h4>
+              <p>Here you can download erizofc.js (a Node.js module).</p>
+              <p><a class="btn btn-large btn-primary" href="assets/erizofc.js">Download erizofc.js</a></p>
+            </div>
+            
+          </div>
         </section>
 
         <!-- Next
