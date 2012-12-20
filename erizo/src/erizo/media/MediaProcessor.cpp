@@ -360,7 +360,7 @@ namespace erizo {
   void OutputProcessor::receiveRawData(RawDataPacket& packet) {
     int hasFrame = 0;
     if (packet.type == VIDEO) {
-      printf("Encoding video: size %d\n", packet.length);
+//      printf("Encoding video: size %d\n", packet.length);
       int a = vCoder.encodeVideo(packet.data, packet.length, encodedBuffer_,UNPACKAGED_BUFFER_SIZE,hasFrame);
       if (a > 0)
         int b = this->packageVideo(encodedBuffer_, a, packagedBuffer_);
@@ -447,7 +447,7 @@ namespace erizo {
       return -1;
     }
 
-    printf("To packetize %u\n", buffSize);
+//    printf("To packetize %u\n", buffSize);
     if (buffSize <= 0)
       return -1;
     RtpVP8Fragmenter frag(inBuff, buffSize, 1100);

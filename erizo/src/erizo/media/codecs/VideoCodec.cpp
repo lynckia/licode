@@ -15,6 +15,7 @@ namespace erizo {
   inline  CodecID
     VideoCodecID2ffmpegDecoderID(VideoCodecID codec)
     {
+      printf("puedeser\n");
       switch (codec)
       {
         case VIDEO_CODEC_H264: return CODEC_ID_H264;
@@ -41,20 +42,23 @@ namespace erizo {
     }
 
     vCoderContext->bit_rate = info.bitRate;
-    vCoderContext->rc_min_rate = info.bitRate; //
-    vCoderContext->rc_max_rate = info.bitRate; // VPX_CBR
-    vCoderContext->qmin = 8;
-    vCoderContext->qmax = 56; // rc_quantifiers
-    //	vCoderContext->frame_skip_threshold = 30;
-    vCoderContext->rc_buffer_aggressivity = 1;
-    vCoderContext->rc_buffer_size = vCoderContext->bit_rate;
-    vCoderContext->rc_initial_buffer_occupancy = vCoderContext->bit_rate / 2;
+//    vCoderContext->rc_min_rate = info.bitRate; //
+//    vCoderContext->rc_max_rate = info.bitRate; // VPX_CBR
+//    vCoderContext->qmin = 8;
+//    vCoderContext->qmax = 56; // rc_quantifiers
+    vCoderContext->profile = 3;
+    //    vCoderContext->frame_skip_threshold = 30;
+    //   vCoderContext->rc_buffer_aggressivity = 1;
+    //    vCoderContext->rc_buffer_size = vCoderContext->bit_rate;
+    //    vCoderContext->rc_initial_buffer_occupancy = vCoderContext->bit_rate / 2;
     vCoderContext->width = info.width;
     vCoderContext->height = info.height;
     vCoderContext->pix_fmt = PIX_FMT_YUV420P;
     vCoderContext->time_base = (AVRational) {1, 90000};
+    //
     vCoderContext->sample_aspect_ratio =
       (AVRational) {info.width,info.height};
+    vCoderContext->thread_count = 4;
 
     if (avcodec_open2(vCoderContext, vCoder, NULL) < 0) {
       printf("Error opening video decoder");
@@ -75,7 +79,7 @@ namespace erizo {
   int VideoEncoder::encodeVideo (unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength, int& hasFrame){
 
     int size = vCoderContext->width * vCoderContext->height;
-    printf("vCoderContext width %d\n", vCoderContext->width);
+    //    printf("vCoderContext width %d\n", vCoderContext->width);
 
     cPicture->pts = AV_NOPTS_VALUE;
     cPicture->data[0] = inBuffer;
@@ -92,12 +96,12 @@ namespace erizo {
 
     int ret = 0;
     int got_packet = 0;
-    printf(
-        "Before encoding inBufflen %d, size %d, codecontext width %d pkt->size%d\n",
-        inLength, size, vCoderContext->width, pkt.size);
+    //    printf(
+    //        "Before encoding inBufflen %d, size %d, codecontext width %d pkt->size%d\n",
+    //        inLength, size, vCoderContext->width, pkt.size);
     ret = avcodec_encode_video2(vCoderContext, &pkt, cPicture, &got_packet);
-    printf("Encoded video size %u, ret %d, got_packet %d, pts %lld, dts %lld\n",
-        pkt.size, ret, got_packet, pkt.pts, pkt.dts);
+    //    printf("Encoded video size %u, ret %d, got_packet %d, pts %lld, dts %lld\n",
+    //        pkt.size, ret, got_packet, pkt.pts, pkt.dts);
     if (!ret && got_packet && vCoderContext->coded_frame) {
       vCoderContext->coded_frame->pts = pkt.pts;
       vCoderContext->coded_frame->key_frame =
@@ -149,7 +153,6 @@ namespace erizo {
   }
   int VideoDecoder::decodeVideo(unsigned char* inBuff, int inBuffLen,
       unsigned char* outBuff, int outBuffLen, int* gotFrame){
-    printf("decode video\n");
     if (vDecoder == 0 || vDecoderContext == 0){
       printf("Init Codec First\n");
       return -1;
@@ -239,11 +242,11 @@ decoding:
 
   int VideoDecoder::closeDecoder(){
     if (dPicture!=0)
-//      av_free(dPicture);
-    if (vDecoderContext!=0){
-      avcodec_close(vDecoderContext);
-//      av_free(vDecoderContext);
-    }
+      //      av_free(dPicture);
+      if (vDecoderContext!=0){
+        avcodec_close(vDecoderContext);
+        //      av_free(vDecoderContext);
+      }
     return 0;
   }
 

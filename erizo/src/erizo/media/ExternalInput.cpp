@@ -1,31 +1,22 @@
 #include "ExternalInput.h"
+#include "../WebRtcConnection.h"
+#include "../RTPSink.h"
 #include <cstdio>
 
 #include <boost/cstdint.hpp>
 #include <sys/time.h>
 #include <arpa/inet.h>
-extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-}
 
 namespace erizo {
-  ExternalInput::ExternalInput(const std::string& url): RTPDataReceiver() {
+  ExternalInput::ExternalInput(): MediaReceiver(), RTPDataReceiver() {
 
-    printf("Constructor\n");
+//    printf("Constructor URL: %s\n", url.c_str());
 
-
-    AVFormatContext *_formatCtx;
-    AVCodecContext  *_codecCtx;
-    AVCodec         *_codec;
-    AVFrame         *_frame;
-    AVPacket        _packet;
-    AVDictionary    *_optionsDict;
+    std::string url("");
 
 
-    AVFormatContext* context = avformat_alloc_context();
-    int video_stream_index;
-
+	  sink_ = new RTPSink("138.4.4.143", "50000");
+    context = avformat_alloc_context();
     av_register_all();
     avcodec_register_all();
     avformat_network_init();
@@ -38,26 +29,24 @@ namespace erizo {
       printf("fail when finding stream info\n");
     }
 
+	  sendVideoBuffer_ = (char*) malloc(2000);
     VideoCodecInfo info;
-    info.payloadType = 98;
+//    info.payloadType = 98;
     info.width = 640;
     info.height = 480;
-    int bufflen = 640*480*3/2;
+    bufflen = 640*480*3/2;
     decodedBuffer_ = (unsigned char*) malloc(bufflen);
     info.codec = VIDEO_CODEC_H264;
-
-    inCodec_->initDecoder(info);
-
+    inCodec_.initDecoder(info);
 
     MediaInfo om;
     om.proccessorType = RTP_ONLY;
     om.videoCodec.codec = VIDEO_CODEC_VP8;
-    om.videoCodec.bitRate = 2000000;
+    om.videoCodec.bitRate = 100000;
     om.videoCodec.width = 640;
     om.videoCodec.height = 480;
     om.videoCodec.frameRate = 20;
     om.hasVideo = true;
-    //	om.url = "file://tmp/test.mp4";
 
     om.hasAudio = false;
     if (om.hasAudio) {
@@ -76,8 +65,7 @@ namespace erizo {
         video_stream_index = i;
     }
 
-    AVPacket packet;
-    av_init_packet(&packet);
+    av_init_packet(&avpacket);
 
     //open output file
     //    AVOutputFormat* fmt = av_guess_format(NULL,"test2.avi",NULL);
@@ -87,43 +75,129 @@ namespace erizo {
 
     AVStream* stream=NULL;
     int cnt = 0;
-    int gotDecodedFrame = 0;
+
+	  thread_ = boost::thread(&ExternalInput::receiveLoop, this);
+    running = true;
+	  encodeThread_ = boost::thread(&ExternalInput::encodeLoop, this);
     //start reading packets from stream and write them to file
-    av_read_play(context);//play RTSP
-    while(av_read_frame(context,&packet)>=0){//read 100 frames
-      if(packet.stream_index == video_stream_index){//packet is video               
-        if(stream == NULL){//create stream in file
-          //                stream = avformat_new_stream(oc,context->streams[video_stream_index]->codec->codec);
-          //                avcodec_copy_context(stream->codec,context->streams[video_stream_index]->codec);
-          //                stream->sample_aspect_ratio = context->streams[video_stream_index]->codec->sample_aspect_ratio;
-          //                avformat_write_header(oc,NULL);
-        }
-        //        packet.stream_index = stream->id;
-        //
-        printf("eEad PAcket size: %u\n", packet.size);
-        inCodec_->decodeVideo(packet.data, packet.size, decodedBuffer_, bufflen, &gotDecodedFrame);
 
-        if (gotDecodedFrame){
-          gotDecodedFrame=0;
-        }
-        //            av_write_frame(oc,&packet);
-
-
-      }
-      av_free_packet(&packet);
-      av_init_packet(&packet);
-    }
-    av_read_pause(context);
     //    av_write_trailer(oc);
     //    avio_close(oc->pb);
     //    avformat_free_context(oc);
   }
 
 
-	void ExternalInput::receiveRtpData(unsigned char* rtpdata, int len){
-
-  }
   ExternalInput::~ExternalInput(){
     printf("Destructor\n");
   }
+
+  void ExternalInput::receiveRtpData(unsigned char*rtpdata, int len) {
+//    printf("Received rtp data %d\n subscribers %d\n", len, subscribers.empty());
+//    sink_->sendData(rtpdata, len);
+  
+       memcpy(sendVideoBuffer_, rtpdata, len);
+
+       if (subscribers.empty() || len <= 0)
+       return;
+    //	if (sentPackets_ % 500 == 0) {
+    //		publisher->sendFirPacket();
+    //	}
+    std::map<std::string, WebRtcConnection*>::iterator it;
+    for (it = subscribers.begin(); it != subscribers.end(); it++) {
+    memcpy(sendVideoBuffer_, rtpdata, len);
+    (*it).second->receiveVideoData(sendVideoBuffer_, len);
+    }
+    
+  }
+
+  void ExternalInput::setPublisher(WebRtcConnection* webRtcConn) {
+    //    this->publisher = webRtcConn;
+  }
+
+  void ExternalInput::addSubscriber(WebRtcConnection* webRtcConn,
+      const std::string& peerId) {
+    this->subscribers[peerId] = webRtcConn;
+  }
+
+  void ExternalInput::removeSubscriber(const std::string& peerId) {
+    if (this->subscribers.find(peerId) != subscribers.end()) {
+      this->subscribers[peerId]->close();
+      this->subscribers.erase(peerId);
+    }
+  }
+
+  int ExternalInput::receiveAudioData(char* buf, int len){
+    return 0;
+  }
+
+  int ExternalInput::receiveVideoData(char* buf, int len){
+    return 0;
+  }
+  void ExternalInput::receiveLoop(){
+
+    av_read_play(context);//play RTSP
+    int gotDecodedFrame = 0;
+    while(av_read_frame(context,&avpacket)>=0){//read 100 frames
+      if(avpacket.stream_index == video_stream_index){//packet is video               
+        /*
+        if(stream == NULL){//create stream in file
+          //                stream = avformat_new_stream(oc,context->streams[video_stream_index]->codec->codec);
+          //                avcodec_copy_context(stream->codec,context->streams[video_stream_index]->codec);
+          //                stream->sample_aspect_ratio = context->streams[video_stream_index]->codec->sample_aspect_ratio;
+          //                avformat_write_header(oc,NULL);
+        }
+        */
+        //        packet.stream_index = stream->id;
+        //
+//        printf("Read PAcket size: %u\n", avpacket.size);
+        inCodec_.decodeVideo(avpacket.data, avpacket.size, decodedBuffer_, bufflen, &gotDecodedFrame);
+        RawDataPacket packetR;
+
+        if (gotDecodedFrame){
+          packetR.data = decodedBuffer_;
+          packetR.length = bufflen;
+          packetR.type = VIDEO;
+          queueMutex_.lock();
+          packetQueue_.push(packetR);
+          queueMutex_.unlock();
+          gotDecodedFrame=0;
+        }
+        //            av_write_frame(oc,&packet);
+
+
+      }
+      av_free_packet(&avpacket);
+      av_init_packet(&avpacket);
+    }
+    running=false;
+    av_read_pause(context);
+  }
+
+void ExternalInput::encodeLoop() {
+	while (running == true) {
+		queueMutex_.lock();
+		if (packetQueue_.size() > 0) {
+      op_->receiveRawData(packetQueue_.front());
+			packetQueue_.pop();
+
+//      printf("Queue Size! %d\n", packetQueue_.size());
+			queueMutex_.unlock();
+		} else {
+			queueMutex_.unlock();
+			usleep(1000);
+		}
+	}
 }
+
+  
+
+  void ExternalInput::closeAll() {
+    std::map<std::string, WebRtcConnection*>::iterator it;
+    for (it = subscribers.begin(); it != subscribers.end(); it++) {
+      (*it).second->close();
+    }
+    //   this->publisher->close();
+  }
+
+}
+
