@@ -853,6 +853,10 @@ form.bs-docs-example {
   width: 14px;
 }
 
+.navbar .nav > li > .dropdown-menu:after {
+  display: none;
+}
+
 
 
 /* Responsive
@@ -1045,3 +1049,5 @@ form.bs-docs-example {
     float: none;
   }
 }
+
+
