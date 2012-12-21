@@ -1,7 +1,7 @@
 /*global exports, require, console, Buffer*/
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
-var rpc = require('./../rpc/rpc');
+var cloudHandler = require('../cloudHandler');
 
 var currentService;
 var currentRoom;
@@ -22,7 +22,7 @@ var doInit = function (roomId, callback) {
 };
 
 /*
- * Get Users. Represent a list of users of a determined room. This is consulted to cloudHandler using RabbitMQ RPC call.
+ * Get Users. Represent a list of users of a determined room. This is consulted to cloudHandler.
  */
 exports.getList = function (req, res) {
     "use strict";
@@ -39,7 +39,7 @@ exports.getList = function (req, res) {
         }
 
         console.log('Representing users for room ', currentRoom._id, 'and service', currentService._id);
-        rpc.callRpc('cloudHandler', 'getUsersInRoom', currentRoom._id, function (users) {
+        cloudHandler.getUsersInRoom (currentRoom._id, function (users) {
             if (users === 'error') {
                 res.send('CloudHandler does not respond', 401);
                 return;

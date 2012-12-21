@@ -1,7 +1,7 @@
 /*global exports, require, console*/
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
-var rpc = require('./../rpc/rpc');
+var cloudHandler = require('../cloudHandler');
 
 var currentService;
 var currentRoom;
@@ -69,7 +69,7 @@ exports.deleteRoom = function (req, res) {
                 currentService.rooms.splice(index, 1);
                 serviceRegistry.updateService(currentService);
                 console.log('Room ', id, ' deleted for service ', currentService._id);
-                rpc.callRpc('cloudHandler', 'deleteRoom', id, function () {});
+                cloudHandler.deleteRoom(id, function () {});
                 res.send('Room deleted');
             }
         }

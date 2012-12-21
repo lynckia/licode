@@ -1,6 +1,7 @@
 /*global exports, require, console, Buffer, setTimeout, clearTimeout*/
 var tokenRegistry = require('./../mdb/tokenRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
+var cloudHandler = require('./../cloudHandler');
 
 /*
  * This function is used to consume a token. Removes it from the data base and returns to erizoController.
@@ -48,3 +49,25 @@ exports.deleteToken = function (id, callback) {
         }
     });
 };
+
+exports.addNewErizoController = function(ip, callback) {
+    cloudHandler.addNewErizoController(ip, function (id) {
+        callback(id);   
+    });
+}
+
+exports.keepAlive = function(id, callback) {
+    cloudHandler.keepAlive(id, function(result) {
+        callback(result);
+    });
+}
+
+exports.setInfo = function(params, callback) {
+    cloudHandler.setInfo(params);
+    callback();
+}
+
+exports.killMe = function(ip, callback) {
+    cloudHandler.killMe(ip);
+    callback();
+}

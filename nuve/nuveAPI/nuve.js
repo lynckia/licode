@@ -1,8 +1,10 @@
 /*global exports, require, console, Buffer, __dirname*/
 var express = require('express');
 var db = require('./mdb/dataBase').db;
-require('./rpc/rpc');
+var rpc = require('./rpc/rpc');
 var app = express();
+
+rpc.connect();
 
 var nuveAuthenticator = require('./auth/nuveAuthenticator');
 

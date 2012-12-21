@@ -83,7 +83,7 @@ var addToCloudHandler = function (callback) {
 
     myIP = addresses[0];
 
-    rpc.callRpc('cloudHandler', 'addNewErizoController', myIP, function (id) {
+    rpc.callRpc('nuve', 'addNewErizoController', myIP, function (id) {
 
         if (id === 'timeout') {
             console.log('CloudHandler does not respond');
@@ -95,11 +95,11 @@ var addToCloudHandler = function (callback) {
 
         var intervarId = setInterval(function () {
 
-            rpc.callRpc('cloudHandler', 'keepAlive', myId, function (result) {
+            rpc.callRpc('nuve', 'keepAlive', myId, function (result) {
                 if (result === 'whoareyou') {
                     console.log('I don`t exist in cloudHandler. I`m going to be killed');
                     clearInterval(intervarId);
-                    rpc.callRpc('cloudHandler', 'killMe', myIP, function () {});
+                    rpc.callRpc('nuve', 'killMe', myIP, function () {});
                 }
             });
 
@@ -145,7 +145,7 @@ var updateMyState = function () {
     myState = newState;
 
     info = {id: myId, state: myState};
-    rpc.callRpc('cloudHandler', 'setInfo', info, function () {});
+    rpc.callRpc('nuve', 'setInfo', info, function () {});
 };
 
 var listen = function () {
