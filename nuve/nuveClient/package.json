@@ -1,0 +1,8 @@
+{
+  "name": "nuve-client",
+  "description": "It offers Room management, Users access control and service registration to third-party applications. It also provides Cloud scalability to the service.",
+  "version": "0.0.1",
+  "author": "Lynckia <contact@lynckia.com>",
+  "main": "dist/nuve-client.js",
+  "engine": "node 0.6.12"
+}

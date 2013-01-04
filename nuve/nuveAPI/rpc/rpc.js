@@ -2,8 +2,12 @@
 var sys = require('util');
 var amqp = require('amqp');
 var rpcPublic = require('./rpcPublic');
-var config = require('./../../../lynckia_config');
-
+var config;
+try {
+    config = require('./../../../lynckia_config');
+} catch (e) {
+    config = require('/etc/lynckia/nuve_config');
+}
 var TIMEOUT = 3000;
 
 var corrID = 0;

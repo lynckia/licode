@@ -1,0 +1,22 @@
+{
+  "name": "nuve-server",
+  "preferGlobal": "true",
+  "description": "It offers Room management, Users access control and service registration to third-party applications. It also provides Cloud scalability to the service.",
+  "version": "0.0.14",
+  "author": "Lynckia <contact@lynckia.com>",
+  "dependencies": {
+    "amqp": "0.1.4",
+    "express": "3.0.5",
+    "mongodb": "1.2.6",
+    "mongojs": "0.4.6"
+  },
+  "main": "nuve.js",
+  "bin": {
+    "nuve-server": "nuve-server"
+  },
+  "scripts": {
+    "start": "node nuve.js",
+    "postinstall": "sudo ./configure.sh"
+  },
+  "engine": "node 0.6.12"
+}

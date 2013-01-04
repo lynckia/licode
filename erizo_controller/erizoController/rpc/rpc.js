@@ -1,8 +1,13 @@
 var sys = require('util');
 var amqp = require('amqp');
 var rpcPublic = require('./rpcPublic');
-var config = require('./../../../lynckia_config');
 
+var config;
+try {
+    config = require('./../../../lynckia_config');
+} catch (e) {
+    config = require('/etc/lynckia/erizo_config');
+}
 var TIMEOUT = 2000;
 
 var corrID = 0;

@@ -1,0 +1,25 @@
+Source: liberizo
+Priority: extra
+Maintainer: lynckia <contact@lynckia.com>
+Build-Depends: debhelper (>= 8.0.0), libssl-dev, libsrtp0-dev, libnice-dev, libglib2.0-dev, make, cmake, gcc, g++, libboost-regex-dev, libboost-thread-dev, libboost-system-dev, cdbs
+Standards-Version: 3.9.2
+Section: libs
+Homepage: http://www.lynckia.com
+#Vcs-Git: git://git.debian.org/collab-maint/liberizo.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/liberizo.git;a=summary
+
+Package: liberizo-dev
+Section: libdevel
+Architecture: any
+Depends: liberizo (= ${binary:Version}), libboost-regex-dev, libboost-thread-dev, libboost-system-dev, libsrtp0-dev, libnice-dev 
+Description: MCU library compatible with WebRTC browsers. Development files.
+  Erizo is a project that aims to implement a library able to communicate with WebRTC (http://www.webrtc.org) browser clients in order to provide advanced communication services. Currently it is 
+  tested on Ubuntu 11.10 and above but it should be able to be compiled on other distributions.
+
+Package: liberizo
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsrtp0, libnice10, 
+Description: MCU library compatible with WebRTC browsers.
+  Erizo is a project that aims to implement a library able to communicate with WebRTC (http://www.webrtc.org) browser clients in order to provide advanced communication services. Currently it is 
+  tested on Ubuntu 11.10 and above but it should be able to be compiled on other distributions.

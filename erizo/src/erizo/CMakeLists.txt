@@ -33,3 +33,7 @@ test_lib(${NICE})
 find_library(GTHREAD gthread-2.0)
 test_lib(${GTHREAD})
 target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD})
+
+install(TARGETS erizo LIBRARY DESTINATION lib)
+file(GLOB files "${ERIZO_SOURCE_DIR}/*.h")
+install(FILES ${files} DESTINATION include)

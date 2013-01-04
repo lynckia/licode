@@ -1,6 +1,10 @@
 /*global require, exports, console, setInterval, clearInterval*/
 
-var addon = require('./../../erizoAPI/build/Release/addon');
+try {
+    addon = require('./../../erizoAPI/build/Release/addon');
+} catch (e) {
+    addon = require('erizo-api');
+}
 
 exports.WebRtcController = function () {
     "use strict";

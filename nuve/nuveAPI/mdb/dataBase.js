@@ -1,5 +1,10 @@
 /*global require, exports*/
-var config = require('./../../../lynckia_config');
+var config;
+try {
+    config = require('./../../../lynckia_config');
+} catch (e) {
+    config = require('/etc/lynckia/nuve_config');    
+}
 
 var databaseUrl = config.nuve.dataBaseURL;
 

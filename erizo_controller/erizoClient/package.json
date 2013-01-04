@@ -1,0 +1,11 @@
+{
+  "name": "erizo-client",
+  "description": "It provides Rooms to users in order to make multiconference sessions. It also supplies enough security mechanisms and additional capabilities: data, user lists, events, and so on.",
+  "version": "0.0.3",
+  "author": "Lynckia <contact@lynckia.com>",
+  "main": "dist/erizo-client.js",
+  "dependencies": {
+    "socket.io-client": "0.9.11"
+  },
+  "engine": "node 0.6.12"
+}

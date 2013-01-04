@@ -1,0 +1,27 @@
+{
+   "name": "erizo-api",
+   "version": "0.0.4",
+   "description": "Node.js module wrapper for Erizo MCU",
+   "keywords": [
+       "c++",
+       "erizo"
+   ],
+   "main": "erizo-api.js",
+   "author": {
+       "name": "Lynckia",
+       "email": "contact@lynckia.com",
+       "web": "http://www.lynckia.com",
+       "twitter": "lynckia"
+   }, 
+   "license": "MIT",
+   "repository": {
+       "type": "git",
+       "url": "git@github.com:ging/lynckia.git" 
+   }, 
+   "engines": {
+       "node": ">=0.2.0"
+   },
+   "scripts": {
+       "install": "node-waf configure build"
+   }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "erizo-controller",
+  "preferGlobal": "true",
+  "description": "It provides Rooms to users in order to make multiconference sessions. It also supplies enough security mechanisms and additional capabilities: data, user lists, events, and so on.",
+  "version": "0.0.13",
+  "author": "Lynckia <contact@lynckia.com>",
+  "dependencies": {
+    "amqp": "0.1.4",
+    "socket.io": "0.9.13",
+    "erizo-api": "0.0.3"
+  },
+  "main": "erizoController.js",
+  "bin": {
+    "erizo-controller": "erizo-controller"
+  },
+  "scripts": {
+    "start": "node erizoController.js",
+    "postinstall": "sudo mkdir -p /etc/lynckia/; sudo cp config_template.js /etc/lynckia/erizo_config.js"
+  },
+  "engine": "node 0.6.12"
+}

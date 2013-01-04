@@ -4,7 +4,13 @@ var rpc = require('./rpc/rpc');
 var controller = require('./webRtcController');
 var ST = require('./Stream');
 var io = require('socket.io').listen(8080);
-var config = require('./../../lynckia_config');
+
+var config;
+try {
+    config = require('./../../lynckia_config');
+} catch (e) {
+    config = require('/etc/lynckia/erizo_config');
+}
 
 io.set('log level', 1);
 
