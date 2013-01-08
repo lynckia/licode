@@ -93,9 +93,8 @@ exports.removeOldTokens = function () {
                 dif = time - tokenTime;
 
                 if (dif > 3*60*1000) {
-                    removeToken(token._id + '', function() {
-                        console.log('Removed old token ', token._id, 'from room ', token.room, ' of service ', token.service);
-                    });
+                    console.log('Removing old token ', token._id, 'from room ', token.room, ' of service ', token.service);
+                    removeToken(token._id + '', function() {});
                 }
             }
         }
