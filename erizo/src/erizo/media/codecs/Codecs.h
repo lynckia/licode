@@ -7,7 +7,8 @@ namespace erizo{
 
   enum VideoCodecID{
     VIDEO_CODEC_VP8,
-    VIDEO_CODEC_H264
+    VIDEO_CODEC_H264,
+    VIDEO_CODEC_MPEG4
   };
 
   enum AudioCodecID{

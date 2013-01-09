@@ -15,11 +15,11 @@ namespace erizo {
   inline  CodecID
     VideoCodecID2ffmpegDecoderID(VideoCodecID codec)
     {
-      printf("puedeser\n");
       switch (codec)
       {
         case VIDEO_CODEC_H264: return CODEC_ID_H264;
         case VIDEO_CODEC_VP8: return CODEC_ID_VP8;
+        case VIDEO_CODEC_MPEG4: return CODEC_ID_MPEG4;
         default: printf("Unknown codec\n"); return CODEC_ID_VP8;
       }
     }
