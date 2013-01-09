@@ -300,14 +300,10 @@ bool NiceConnection::setRemoteCandidates(
 		nice_address_set_from_string(naddr, cinfo.hostAddress.c_str());
 		nice_address_set_port(naddr, cinfo.hostPort);
 		thecandidate->addr = *naddr;
-		char* uname = (char*) malloc(32); //TODO: Find proper fix, sometimes is > 32 when it is not
-		char* pass = (char*) malloc(cinfo.password.size());
 		sprintf(thecandidate->foundation, "%s", cinfo.foundation.c_str());
-		sprintf(uname, "%s", cinfo.username.c_str());
-		sprintf(pass, "%s", cinfo.password.c_str());
 
-		thecandidate->username = uname;
-		thecandidate->password = pass;
+		thecandidate->username = strdup(cinfo.username.c_str());
+		thecandidate->password = strdup(cinfo.password.c_str());
 		thecandidate->stream_id = (guint) 1;
 		thecandidate->component_id = cinfo.componentId;
 		thecandidate->priority = cinfo.priority;
