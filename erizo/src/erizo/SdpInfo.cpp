@@ -109,6 +109,7 @@ namespace erizo {
     if (printedAudio) {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
+      sdp << "a=ice-options:google-ice" <<endl;
       sdp << "a=sendrecv" << endl;
       sdp << "a=mid:audio\n";
       if (isRtcpMux)
@@ -184,6 +185,7 @@ namespace erizo {
     if (printedVideo) {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
+      sdp << "a=ice-options:google-ice" <<endl;
       sdp << "a=sendrecv" << endl;
       sdp << "a=mid:video\n";
       if (isRtcpMux) 
