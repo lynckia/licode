@@ -49,13 +49,14 @@ namespace erizo {
   }
 
   std::string SdpInfo::getSdp() {
-
+    std::string msidtemp ("P6OnaC5U1TFojMEKLECj1gQsThGcuLqMH1zm");
     std::ostringstream sdp;
     sdp << "v=0\n" << "o=- 0 0 IN IP4 127.0.0.1\n" << "s=\n" << "t=0 0\n";
 
     if (isBundle) {
       sdp << "a=group:BUNDLE audio video\n";
-    }
+      sdp << "a=msid-semantic: WMS "<< msidtemp << endl;
+     }
     //candidates audio
     bool printedAudio = false, printedVideo = false;
     for (unsigned int it = 0; it < candidateVector_.size(); it++) {
@@ -129,10 +130,10 @@ namespace erizo {
           sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
             << rtp.clockRate <<"\n";
       }
-      sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu\na=ssrc:"
-        << audioSsrc
-        << " mslabel:048f838f-2dd1-4a98-ab9e-8eb5f00abab8\na=ssrc:"
-        << audioSsrc << " label:iSight integrada\n";
+      sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<
+        "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl<<
+        "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl<<
+        "a=ssrc:"<< audioSsrc << " label:" << msidtemp <<"a0"<<endl;
 
     }
 
@@ -206,10 +207,10 @@ namespace erizo {
             << rtp.clockRate <<"\n";
       }
 
-      sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu\na=ssrc:"
-        << videoSsrc
-        << " mslabel:048f838f-2dd1-4a98-ab9e-8eb5f00abab8\na=ssrc:"
-        << videoSsrc << " label:iSight integrada\n";
+      sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<
+        "a=ssrc:"<< videoSsrc << " msid:"<< msidtemp << " v0"<< endl<<
+        "a=ssrc:"<< videoSsrc << " mslabel:"<< msidtemp << endl<<
+        "a=ssrc:"<< videoSsrc << " label:" << msidtemp <<"v0"<<endl;
     }
     printf("sdp local \n %s\n",sdp.str().c_str());
     return sdp.str();
