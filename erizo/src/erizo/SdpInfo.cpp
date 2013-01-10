@@ -49,7 +49,8 @@ namespace erizo {
   }
 
   std::string SdpInfo::getSdp() {
-    std::string msidtemp ("P6OnaC5U1TFojMEKLECj1gQsThGcuLqMH1zm");
+    char msidtemp[10];
+    gen_random(msidtemp,10);
     std::ostringstream sdp;
     sdp << "v=0\n" << "o=- 0 0 IN IP4 127.0.0.1\n" << "s=\n" << "t=0 0\n";
 
@@ -411,5 +412,17 @@ namespace erizo {
     return true;
   }
 
+  void SdpInfo::gen_random(char *s, const int len) {
+    static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+
+    for (int i = 0; i < len; ++i) {
+        s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+
+    s[len] = 0;
+  }
 }/* namespace erizo */
 
