@@ -46,7 +46,7 @@ namespace erizo {
   }
 
   bool WebRtcConnection::init() {
-
+    printf("init... localvideoSsrc_ %d\n", localVideoSsrc_);
     videoNice_->start();
     audioNice_->start();
     return true;
@@ -273,14 +273,36 @@ namespace erizo {
     boost::mutex::scoped_lock lock(receiveAudioMutex_);
     int res = -1;
     int length = len;
-    if (audioSrtp_) {
-      audioSrtp_->protectRtp(buf, &length);
-      //		printf("A mandar %d\n", length);
-    }
-    if (len <= 0)
-      return length;
-    if (audioNice_) {
-      res = audioNice_->sendData(buf, length);
+
+    rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
+    inHead->ssrc = htonl(localAudioSsrc_);
+    if (bundle_){
+      if (videoSrtp_ && videoNice_->iceState == READY) {
+        videoSrtp_->protectRtp(buf, &length);
+      }
+      if (length <= 10)
+        return length;
+      if (videoNice_->iceState == READY) {
+        receiveVideoMutex_.lock();
+        if (sendQueue_.size() < 1000) {
+          packet p_;
+          memset(p_.data, 0, length);
+          memcpy(p_.data, buf, length);
+
+          p_.length = length;
+          sendQueue_.push(p_);
+        }
+        receiveVideoMutex_.unlock();
+      }
+    }else{
+      if (audioSrtp_) {
+        audioSrtp_->protectRtp(buf, &length);
+      }
+      if (len <= 0)
+        return length;
+      if (audioNice_) {
+        res = audioNice_->sendData(buf, length);
+      }
     }
     return res;
   }
@@ -289,8 +311,10 @@ namespace erizo {
 
     int res = -1;
     int length = len;
+
+    rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
+    inHead->ssrc = htonl(localVideoSsrc_);
     if (videoSrtp_ && videoNice_->iceState == READY) {
-      //		printf("protect\n");
       videoSrtp_->protectRtp(buf, &length);
     }
     if (length <= 10)
@@ -312,7 +336,6 @@ namespace erizo {
 
   int WebRtcConnection::receiveNiceData(char* buf, int len,
       NiceConnection* nice) {
-    //    printf("Receive Nice Data %d, type %d\n", len, nice->mediaType);
     boost::mutex::scoped_lock lock(writeMutex_);
     if (audioReceiver_ == NULL && videoReceiver_ == NULL)
       return 0;
@@ -324,14 +347,11 @@ namespace erizo {
       }
       if (length <= 0)
         return length;
-      rtpheader* inHead = (rtpheader*) buf;
+      rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
       if (inHead->ssrc == htonl(remoteVideoSSRC_)) {
-        inHead->ssrc = htonl(localVideoSsrc_);
         videoReceiver_->receiveVideoData(buf, length);
-
       } else if (inHead->ssrc == htonl(remoteAudioSSRC_)) {
-        inHead->ssrc = htonl(localAudioSsrc_);
-        videoReceiver_->receiveVideoData(buf, length); // We send it via the video nice, the only one we have
+        videoReceiver_->receiveAudioData(buf, length); // We send it via the video nice, the only one we have
       } else {
         printf("Unknown SSRC, ignoring\n");
       }

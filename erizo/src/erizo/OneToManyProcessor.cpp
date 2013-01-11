@@ -62,6 +62,9 @@ void OneToManyProcessor::setPublisher(WebRtcConnection* webRtcConn) {
 
 void OneToManyProcessor::addSubscriber(WebRtcConnection* webRtcConn,
 		const std::string& peerId) {
+  printf("Adding subscriber\n");
+  webRtcConn->localAudioSsrc_ = this->publisher->remoteAudioSSRC_;
+  webRtcConn->localVideoSsrc_ = this->publisher->remoteVideoSSRC_;
 	this->subscribers[peerId] = webRtcConn;
 }
 
