@@ -46,14 +46,6 @@ int SrtpChannel::protectRtp(char* buffer, int *len) {
 	if (!active_)
 		return 0;
 
-	rtcpheader *chead = reinterpret_cast<rtcpheader*> (buffer);
-
-	if (chead->packettype == 200 || chead->packettype == 201) {
-//		printf("RTCP\n");
-    protectRtcp(buffer, len);
-    return 0;
-	}
-
 	int val = srtp_protect(send_session_, buffer, len);
 	if (val == 0) {
 		return 0;
@@ -67,13 +59,6 @@ int SrtpChannel::unprotectRtp(char* buffer, int *len) {
 
 	if (!active_)
 		return 0;
-	rtcpheader *chead = reinterpret_cast<rtcpheader*> (buffer);
-
-	if (chead->packettype == 200 || chead->packettype == 201) {
-//		printf("RTCP\n");
-    unprotectRtcp(buffer, len);
-    return 0;
-	}
 	int val = srtp_unprotect(receive_session_, (char*) buffer, len);
 	if (val == 0) {
 		return 0;
@@ -97,7 +82,7 @@ int SrtpChannel::protectRtcp(char* buffer, int *len) {
 int SrtpChannel::unprotectRtcp(char* buffer, int *len) {
 
 	int val = srtp_unprotect_rtcp(receive_session_, buffer, len);
-	if (val != err_status_ok) {
+	if (val == 0) {
 		return 0;
 	} else {
 		printf("Error SrtpChannel::unprotectRtcp %u\n", val);

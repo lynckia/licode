@@ -274,11 +274,20 @@ namespace erizo {
     int res = -1;
     int length = len;
 
-    rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
-    inHead->ssrc = htonl(localAudioSsrc_);
     if (bundle_){
+
       if (videoSrtp_ && videoNice_->iceState == READY) {
-        videoSrtp_->protectRtp(buf, &length);
+
+        rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
+        if (chead->packettype == 200 || chead->packettype == 201) {
+          //		printf("RTCP\n");
+          chead->ssrc=htonl(localAudioSsrc_);
+          videoSrtp_->protectRtcp(buf, &len);
+        }else{
+          rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
+          inHead->ssrc = htonl(localAudioSsrc_);
+          videoSrtp_->protectRtp(buf, &length);
+        }
       }
       if (length <= 10)
         return length;
@@ -295,6 +304,9 @@ namespace erizo {
         receiveVideoMutex_.unlock();
       }
     }else{
+
+      rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
+      inHead->ssrc = htonl(localAudioSsrc_);
       if (audioSrtp_) {
         audioSrtp_->protectRtp(buf, &length);
       }
@@ -312,10 +324,18 @@ namespace erizo {
     int res = -1;
     int length = len;
 
-    rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
-    inHead->ssrc = htonl(localVideoSsrc_);
-    if (videoSrtp_ && videoNice_->iceState == READY) {
-      videoSrtp_->protectRtp(buf, &length);
+    rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
+    if (chead->packettype == 200 || chead->packettype == 201) {
+      //		printf("RTCP\n");
+      chead->ssrc=htonl(localVideoSsrc_);
+      videoSrtp_->protectRtcp(buf, &len);
+    }
+    else{
+      rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
+      inHead->ssrc = htonl(localVideoSsrc_);
+      if (videoSrtp_ && videoNice_->iceState == READY) {
+        videoSrtp_->protectRtp(buf, &length);
+      }
     }
     if (length <= 10)
       return length;
@@ -341,9 +361,18 @@ namespace erizo {
       return 0;
 
     int length = len;
+
     if (bundle_) {
-      if (videoSrtp_) {
-        videoSrtp_->unprotectRtp(buf, &length);
+
+      rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
+      if (videoSrtp_){
+        if (chead->packettype == 200 || chead->packettype == 201) {
+          //		printf("RTCP\n");
+          videoSrtp_->unprotectRtcp(buf, &length);
+          return 0;
+        }   else {
+          videoSrtp_->unprotectRtp(buf, &length);
+        }
       }
       if (length <= 0)
         return length;
