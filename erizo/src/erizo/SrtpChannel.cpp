@@ -49,7 +49,7 @@ int SrtpChannel::protectRtp(char* buffer, int *len) {
 	if (val == 0) {
 		return 0;
 	} else {
-		printf("Error SRTP %u\n", val);
+		printf("Error SrtpChannel::protectRtp %u\n", val);
 		return -1;
 	}
 }
@@ -70,7 +70,7 @@ int SrtpChannel::unprotectRtp(char* buffer, int *len) {
 	if (val == 0) {
 		return 0;
 	} else {
-		printf("Error SRTP %u\n", val);
+		printf("Error SrtpChannel::unprotectRtp %u\n", val);
 		return -1;
 	}
 }
@@ -81,7 +81,7 @@ int SrtpChannel::protectRtcp(char* buffer, int *len) {
 	if (val == 0) {
 		return 0;
 	} else {
-		printf("Error SRTP %u\n", val);
+		printf("Error SrtpChannel::protectRtcp %u\n", val);
 		return -1;
 	}
 }
@@ -92,7 +92,7 @@ int SrtpChannel::unprotectRtcp(char* buffer, int *len) {
 	if (val != err_status_ok) {
 		return 0;
 	} else {
-		printf("Error SRTP %u\n", val);
+		printf("Error SrtpChannel::unprotectRtcp %u\n", val);
 		return -1;
 	}
 }
