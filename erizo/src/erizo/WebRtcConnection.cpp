@@ -280,9 +280,8 @@ namespace erizo {
 
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
         if (chead->packettype == 200 || chead->packettype == 201) {
-          //		printf("RTCP\n");
           chead->ssrc=htonl(localAudioSsrc_);
-          videoSrtp_->protectRtcp(buf, &len);
+          videoSrtp_->protectRtcp(buf, &length);
         }else{
           rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
           inHead->ssrc = htonl(localAudioSsrc_);
@@ -326,9 +325,10 @@ namespace erizo {
 
     rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
     if (chead->packettype == 200 || chead->packettype == 201) {
-      //		printf("RTCP\n");
       chead->ssrc=htonl(localVideoSsrc_);
-      videoSrtp_->protectRtcp(buf, &len);
+      if (videoSrtp_ && videoNice_->iceState == READY) {
+      videoSrtp_->protectRtcp(buf, &length);
+      }
     }
     else{
       rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
@@ -362,24 +362,27 @@ namespace erizo {
 
     int length = len;
 
-    if (bundle_) {
+    int recvSSRC = 0;
 
-      rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
+    if (bundle_) {
       if (videoSrtp_){
+        rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
         if (chead->packettype == 200 || chead->packettype == 201) {
-          //		printf("RTCP\n");
           videoSrtp_->unprotectRtcp(buf, &length);
-          return 0;
+          recvSSRC = ntohl(chead->ssrc);
         }   else {
           videoSrtp_->unprotectRtp(buf, &length);
         }
       }
       if (length <= 0)
         return length;
-      rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
-      if (inHead->ssrc == htonl(remoteVideoSSRC_)) {
+      if (recvSSRC==0){
+        rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
+        recvSSRC= ntohl(inHead->ssrc);
+      }
+      if (recvSSRC==remoteVideoSSRC_) {
         videoReceiver_->receiveVideoData(buf, length);
-      } else if (inHead->ssrc == htonl(remoteAudioSSRC_)) {
+      } else if (recvSSRC==remoteAudioSSRC_) {
         videoReceiver_->receiveAudioData(buf, length); // We send it via the video nice, the only one we have
       } else {
         printf("Unknown SSRC, ignoring\n");
