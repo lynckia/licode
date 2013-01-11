@@ -42,10 +42,10 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len) {
 int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 	if (subscribers.empty() || len <= 0)
 		return 0;
-/*	if (sentPackets_ % 500 == 0) {
+	if (sentPackets_ % 500 == 0) {
 		publisher->sendFirPacket();
 	}
-  */
+ 
 	std::map<std::string, WebRtcConnection*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
 		memset(sendVideoBuffer_, 0, len);
