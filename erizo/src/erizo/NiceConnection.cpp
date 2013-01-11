@@ -15,7 +15,6 @@ GSList* lcands;
 int streamsGathered;
 int rec, sen;
 int length;
-const uint32_t ssrc = 55543;
 
 void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
 		guint len, gchar* buf, gpointer user_data) {
@@ -151,11 +150,6 @@ void cb_component_state_changed(NiceAgent *agent, guint stream_id,
 
 void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
 		gchar *lfoundation, gchar *rfoundation, gpointer user_data) {
-	printf(
-			"cb_new_selected_pair for stream %u, comp %u, lfound %s, rfound %s \n",
-			stream_id, component_id, lfoundation, rfoundation);
-	NiceConnection *conn = (NiceConnection*) user_data;
-
 	printf(
 			"cb_new_selected_pair for stream %u, comp %u, lfound %s, rfound %s \n",
 			stream_id, component_id, lfoundation, rfoundation);
