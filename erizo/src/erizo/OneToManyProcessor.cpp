@@ -42,9 +42,16 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len) {
 int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 	if (subscribers.empty() || len <= 0)
 		return 0;
-	if (sentPackets_ % 500 == 0) {
-		publisher->sendFirPacket();
-	}
+  rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
+  if(head->packettype==201 || head->packettype==206){
+    head->ssrc = htonl(publisher->localVideoSsrc_);
+    publisher->receiveVideoData(buf,len);
+    return 0;
+  }
+
+//	if (sentPackets_ % 500 == 0) {
+//		publisher->sendFirPacket();
+//	}
  
 	std::map<std::string, WebRtcConnection*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
@@ -66,6 +73,11 @@ void OneToManyProcessor::addSubscriber(WebRtcConnection* webRtcConn,
   printf("Adding subscriber\n");
   webRtcConn->localAudioSsrc_ = this->publisher->remoteAudioSSRC_;
   webRtcConn->localVideoSsrc_ = this->publisher->remoteVideoSSRC_;
+  if (this->subscribers.empty()){
+    printf("Adding rtcp\n");
+    this->rtcpReceiverPeerId_= peerId;
+    webRtcConn->setVideoReceiver(this);
+  }
 	this->subscribers[peerId] = webRtcConn;
 }
 

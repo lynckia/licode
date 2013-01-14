@@ -52,6 +52,7 @@ private:
 	char* sendVideoBuffer_;
 	char* sendAudioBuffer_;
 	unsigned int sentPackets_;
+  std::string rtcpReceiverPeerId_;
 };
 
 } /* namespace erizo */

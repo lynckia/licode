@@ -362,15 +362,18 @@ namespace erizo {
 
     int length = len;
 
-    int recvSSRC = 0;
+    unsigned int recvSSRC = 0;
 
     if (bundle_) {
       if (videoSrtp_){
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
-        if (chead->packettype == 200 || chead->packettype == 201) {
+        if (chead->packettype == 200) {
           videoSrtp_->unprotectRtcp(buf, &length);
           recvSSRC = ntohl(chead->ssrc);
-        }   else {
+        } else if (chead->packettype == 201){
+          videoSrtp_->unprotectRtcp(buf, &length);
+          recvSSRC = ntohl(chead->ssrcsource);
+        } else {
           videoSrtp_->unprotectRtp(buf, &length);
         }
       }
@@ -380,15 +383,14 @@ namespace erizo {
         rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
         recvSSRC= ntohl(inHead->ssrc);
       }
-      if (recvSSRC==remoteVideoSSRC_) {
+      if (recvSSRC==remoteVideoSSRC_ || recvSSRC==localVideoSsrc_) {
         videoReceiver_->receiveVideoData(buf, length);
-      } else if (recvSSRC==remoteAudioSSRC_) {
-        videoReceiver_->receiveAudioData(buf, length); // We send it via the video nice, the only one we have
+      } else if (recvSSRC==remoteAudioSSRC_ || recvSSRC==localAudioSsrc_) {
+        videoReceiver_->receiveAudioData(buf, length);
       } else {
-        printf("Unknown SSRC, ignoring\n");
+        printf("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring\n", recvSSRC, localVideoSsrc_, remoteVideoSSRC_);
       }
       return length;
-
     }
 
     if (nice->mediaType == AUDIO_TYPE) {
