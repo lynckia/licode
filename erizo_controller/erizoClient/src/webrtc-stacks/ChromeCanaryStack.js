@@ -81,12 +81,12 @@ Erizo.ChromeCanaryStack = function (spec) {
         } else if (that.state === 'offer-sent') {
             if (msg.messageType === 'ANSWER') {
 
-                regExp = new RegExp(/m=video[\w\W]*\r\n/g);
+                //regExp = new RegExp(/m=video[\w\W]*\r\n/g);
 
-                exp = msg.sdp.match(regExp);
-                console.log(exp);
+                //exp = msg.sdp.match(regExp);
+                //console.log(exp);
 
-                msg.sdp = msg.sdp.replace(regExp, exp + "b=AS:100\r\n");
+                //msg.sdp = msg.sdp.replace(regExp, exp + "b=AS:100\r\n");
 
                 sd = {
                     sdp: msg.sdp,

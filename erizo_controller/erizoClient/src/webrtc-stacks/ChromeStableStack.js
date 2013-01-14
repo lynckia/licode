@@ -28,11 +28,21 @@ Erizo.ChromeStableStack = function (spec) {
     that.peerConnection = new WebkitRTCPeerConnection(that.pc_config);
 
     that.peerConnection.onicecandidate = function (event) {
+        console.log("PeerConnection: ", spec.session_id);
         if (!event.candidate) {
             // At the moment, we do not renegotiate when new candidates
             // show up after the more flag has been false once.
-            that.moreIceComing = false;
-            that.markActionNeeded();
+            console.log("State: " + that.peerConnection.iceGatheringState);
+
+            if (that.ices === undefined) {
+                that.ices = 0;
+            }
+            that.ices = that.ices + 1;
+            console.log(that.ices);
+            if (that.ices >= 1 && that.moreIceComing) {
+                that.moreIceComing = false;
+                that.markActionNeeded();
+            }
         } else {
             that.iceCandidateCount += 1;
         }
@@ -49,7 +59,7 @@ Erizo.ChromeStableStack = function (spec) {
         // Answer/OK: Remove retransmit for the msg this is an answer to.
         // Send back "OK" if this was an Answer.
         console.log('Activity on conn ' + that.sessionId);
-        var msg = JSON.parse(msgstring), sd;
+        var msg = JSON.parse(msgstring), sd, regExp, exp;
         that.incomingMessage = msg;
 
         if (that.state === 'new') {
@@ -71,10 +81,18 @@ Erizo.ChromeStableStack = function (spec) {
         } else if (that.state === 'offer-sent') {
             if (msg.messageType === 'ANSWER') {
 
+                //regExp = new RegExp(/m=video[\w\W]*\r\n/g);
+
+                //exp = msg.sdp.match(regExp);
+                //console.log(exp);
+
+                //msg.sdp = msg.sdp.replace(regExp, exp + "b=AS:100\r\n");
+
                 sd = {
                     sdp: msg.sdp,
                     type: 'answer'
                 };
+                console.log("Received ANSWER: ", sd);
                 that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
                 that.sendOK();
                 that.state = 'established';
@@ -172,8 +190,7 @@ Erizo.ChromeStableStack = function (spec) {
      * to the remote party using our onsignalingmessage function.
      */
     that.onstablestate = function () {
-        var mySDP,
-            roapMessage = {};
+        var mySDP, roapMessage = {};
         if (that.actionNeeded) {
             if (that.state === 'new' || that.state === 'established') {
                 // See if the current offer is the same as what we already sent.
@@ -182,6 +199,8 @@ Erizo.ChromeStableStack = function (spec) {
                 that.peerConnection.createOffer(function (sessionDescription) {
 
                     var newOffer = sessionDescription.sdp;
+
+                    console.log("Changed", sessionDescription.sdp);
 
                     if (newOffer !== that.prevOffer) {
 
@@ -202,6 +221,8 @@ Erizo.ChromeStableStack = function (spec) {
                 if (that.moreIceComing) {
                     return;
                 }
+
+
                 // Now able to send the offer we've already prepared.
                 that.prevOffer = that.peerConnection.localDescription.sdp;
                 console.log("Sending OFFER: ", that.prevOffer);
@@ -213,7 +234,6 @@ Erizo.ChromeStableStack = function (spec) {
             } else if (that.state === 'offer-received') {
 
                 that.peerConnection.createAnswer(function (sessionDescription) {
-
                     that.peerConnection.setLocalDescription(sessionDescription);
                     that.state = 'offer-received-preparing-answer';
 
