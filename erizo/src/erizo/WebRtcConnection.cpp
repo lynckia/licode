@@ -281,11 +281,13 @@ namespace erizo {
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
         if (chead->packettype == 200 || chead->packettype == 201) {
           chead->ssrc=htonl(localAudioSsrc_);
-          videoSrtp_->protectRtcp(buf, &length);
+          if(videoSrtp_->protectRtcp(buf, &length)<0)
+            return length;
         }else{
           rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
           inHead->ssrc = htonl(localAudioSsrc_);
-          videoSrtp_->protectRtp(buf, &length);
+          if(videoSrtp_->protectRtp(buf, &length)<0)
+            return length;
         }
       }
       if (length <= 10)
@@ -307,7 +309,8 @@ namespace erizo {
       rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
       inHead->ssrc = htonl(localAudioSsrc_);
       if (audioSrtp_) {
-        audioSrtp_->protectRtp(buf, &length);
+        if(audioSrtp_->protectRtp(buf, &length)<0)
+          return length;
       }
       if (len <= 0)
         return length;
@@ -327,14 +330,16 @@ namespace erizo {
     if (chead->packettype == 200 || chead->packettype == 201) {
       chead->ssrc=htonl(localVideoSsrc_);
       if (videoSrtp_ && videoNice_->iceState == READY) {
-      videoSrtp_->protectRtcp(buf, &length);
+        if(videoSrtp_->protectRtcp(buf, &length)<0)
+          return length;
       }
     }
     else{
       rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
       inHead->ssrc = htonl(localVideoSsrc_);
       if (videoSrtp_ && videoNice_->iceState == READY) {
-        videoSrtp_->protectRtp(buf, &length);
+        if(videoSrtp_->protectRtp(buf, &length)<0)
+          return length;
       }
     }
     if (length <= 10)
@@ -368,13 +373,16 @@ namespace erizo {
       if (videoSrtp_){
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
         if (chead->packettype == 200) {
-          videoSrtp_->unprotectRtcp(buf, &length);
+          if (videoSrtp_->unprotectRtcp(buf, &length)<0)
+            return length;
           recvSSRC = ntohl(chead->ssrc);
         } else if (chead->packettype == 201){
-          videoSrtp_->unprotectRtcp(buf, &length);
+          if(videoSrtp_->unprotectRtcp(buf, &length)<0)
+            return length;
           recvSSRC = ntohl(chead->ssrcsource);
         } else {
-          videoSrtp_->unprotectRtp(buf, &length);
+          if(videoSrtp_->unprotectRtp(buf, &length)<0)
+            return length;
         }
       }
       if (length <= 0)
@@ -396,7 +404,8 @@ namespace erizo {
     if (nice->mediaType == AUDIO_TYPE) {
       if (audioReceiver_ != NULL) {
         if (audioSrtp_) {
-          audioSrtp_->unprotectRtp(buf, &length);
+          if(audioSrtp_->unprotectRtp(buf, &length)<0)
+            return length;
         }
         if (length <= 0)
           return length;
@@ -408,7 +417,8 @@ namespace erizo {
     } else if (nice->mediaType == VIDEO_TYPE) {
       if (videoReceiver_ != NULL) {
         if (videoSrtp_) {
-          videoSrtp_->unprotectRtp(buf, &length);
+          if(videoSrtp_->unprotectRtp(buf, &length)<0)
+            return length;
         }
         if (length <= 0)
           return length;
@@ -454,7 +464,8 @@ namespace erizo {
     rtcpPacket[pos++] = (uint8_t) 0;
     if (videoNice_ != NULL && videoNice_->iceState == READY) {
       if (videoSrtp_!=NULL)
-        videoSrtp_->protectRtcp((char*) rtcpPacket, &pos);
+        if(videoSrtp_->protectRtcp((char*) rtcpPacket, &pos)<0)
+          return pos;
       videoNice_->sendData((char*) rtcpPacket, pos);
     }
     return pos;

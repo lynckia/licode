@@ -31,6 +31,7 @@ typedef struct {
 	uint32_t length :16;
 	uint32_t ssrc;
   uint32_t ssrcsource;
+  uint32_t fractionLost:8;
 } rtcpheader;
 /**
  * A SRTP data Channel.

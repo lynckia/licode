@@ -42,15 +42,17 @@ bool SrtpChannel::setRtcpParams(char* sendingKey, char* receivingKey) {
 }
 
 int SrtpChannel::protectRtp(char* buffer, int *len) {
-
+  
 	if (!active_)
 		return 0;
-
+  
 	int val = srtp_protect(send_session_, buffer, len);
 	if (val == 0) {
 		return 0;
 	} else {
-		printf("Error SrtpChannel::protectRtp %u\n", val);
+    rtcpheader* head = reinterpret_cast<rtcpheader*>(buffer);
+    rtpheader* headrtp = reinterpret_cast<rtpheader*>(buffer);
+		printf("Error SrtpChannel::protectRtp %u packettype %d pt %d\n", val,head->packettype, headrtp->payloadtype);
 		return -1;
 	}
 }
