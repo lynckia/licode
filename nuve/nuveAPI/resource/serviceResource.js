@@ -10,6 +10,8 @@ var doInit = function (serv, callback) {
 
     var service = require('./../auth/nuveAuthenticator').service,
         superService = require('./../mdb/dataBase').superService;
+
+    service._id = service._id + '';    
     if (service._id !== superService) {
         callback('error');
     } else {
