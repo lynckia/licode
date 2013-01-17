@@ -49,8 +49,9 @@ namespace erizo {
   }
 
   std::string SdpInfo::getSdp() {
-    char msidtemp[10];
+    char* msidtemp = static_cast<char*>(malloc(10));
     gen_random(msidtemp,10);
+
     std::ostringstream sdp;
     sdp << "v=0\n" << "o=- 0 0 IN IP4 127.0.0.1\n" << "s=\n" << "t=0 0\n";
 
@@ -213,6 +214,7 @@ namespace erizo {
         "a=ssrc:"<< videoSsrc << " mslabel:"<< msidtemp << endl<<
         "a=ssrc:"<< videoSsrc << " label:" << msidtemp <<"v0"<<endl;
     }
+    free (msidtemp);
     printf("sdp local \n %s\n",sdp.str().c_str());
     return sdp.str();
   }
