@@ -1,0 +1,6 @@
+*.a
+*.o
+config.log
+config.status
+crypto/include/config.h
+Makefile
