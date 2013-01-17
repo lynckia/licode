@@ -21,10 +21,9 @@ npm install mongojs
 
 echo [nuve] Done, node_modules installed
 
-cd ../nuveClient/tools
+cd ../nuveClient/
 
-./compile.sh
-./compileDist.sh
+grunt min
 
 echo [nuve] Done, nuve.js compiled
 

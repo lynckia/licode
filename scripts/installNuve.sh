@@ -9,9 +9,9 @@ CURRENT_DIR=`pwd`
 DB_DIR="$BUILD_DIR"/db
 
 install_nuve(){
-  cd $ROOT/nuve
+  cd "$ROOT/nuve"
   ./installNuve.sh
-  cd $CURRENT_DIR
+  cd "$CURRENT_DIR"
 }
 
 populate_mongo(){
@@ -39,7 +39,7 @@ populate_mongo(){
 
   echo [lynckia] SuperService ID $SERVID
   echo [lynckia] SuperService KEY $SERVKEY
-  cd $BUILD_DIR
+  cd "$BUILD_DIR"
   replacement=s/_auto_generated_ID_/${SERVID}/
   sed $replacement $PATHNAME/lynckia_default.js > $BUILD_DIR/lynckia_1.js
   replacement=s/_auto_generated_KEY_/${SERVKEY}/

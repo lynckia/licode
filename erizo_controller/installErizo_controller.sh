@@ -6,12 +6,12 @@ cd erizoController
 
 npm install amqp
 npm install socket.io
+npm install grunt
 
 echo [erizo_controller] Done, node_modules installed
 
-cd ../erizoClient/tools
+cd ../erizoClient/
 
-./compile.sh
-./compilefc.sh
+grunt min
 
 echo [erizo_controller] Done, erizo.js compiled

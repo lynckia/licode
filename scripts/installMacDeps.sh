@@ -1,12 +1,12 @@
 #!/bin/bash
 SCRIPT=`pwd`/$0
-FILENAME=`basename $SCRIPT`
-PATHNAME=`dirname $SCRIPT`
-ROOT=$PATHNAME/..
-BUILD_DIR=$ROOT/build
-CURRENT_DIR=`pwd`
+FILENAME=`basename "$SCRIPT"`
+PATHNAME=`dirname "$SCRIPT"`
+ROOT="$PATHNAME/.."
+BUILD_DIR="$ROOT/build"
+CURRENT_DIR="`pwd`"
 
-LIB_DIR=$BUILD_DIR/libdeps
+LIB_DIR="$BUILD_DIR/libdeps"
 
 pause() {
   read -p "$*"
@@ -22,14 +22,14 @@ install_brew_deps(){
 
 install_libnice(){
   if [ -d $LIB_DIR ]; then
-    cd $LIB_DIR
+    cd "$LIB_DIR"
     curl -O http://nice.freedesktop.org/releases/libnice-0.1.3.tar.gz
     tar -zxvf libnice-0.1.3.tar.gz
     cd libnice-0.1.3
     ./configure
     make
     sudo make install
-    cd $CURRENT_DIR
+    cd "$CURRENT_DIR"
   else
     mkdir -p $LIB_DIR
     install_libnice
@@ -38,7 +38,7 @@ install_libnice(){
 
 install_libsrtp(){
   if [ -d $LIB_DIR ]; then
-    cd $LIB_DIR
+    cd "$LIB_DIR"
     curl -O http://srtp.sourceforge.net/srtp-1.4.2.tgz
     tar -zxvf srtp-1.4.2.tgz
     cd srtp  

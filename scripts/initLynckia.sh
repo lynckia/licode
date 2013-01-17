@@ -25,7 +25,7 @@ export ERIZO_HOME=$ROOT/erizo/
 cd $ROOT/erizo_controller
 ./initErizo_controller.sh
 
-cp $ROOT/erizo_controller/erizoClient/dist/erizo.js $EXTRAS/basic_example/public/
+cp $ROOT/erizo_controller/erizoClient/dist/erizo-web.js $EXTRAS/basic_example/public/erizo.js
 cp $ROOT/nuve/nuveClient/dist/nuve.js $EXTRAS/basic_example/
 
 echo [lynckia] Done, run basic_example/basicServer.js
