@@ -33,8 +33,7 @@ be found in the AUTHORS file in the root of the source tree.
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
-<script src="roap_on_jsep.js"></script>
-<script src="erizo_on_jsep.js"></script>
+<script src="erizo.js"></script>
 
 <script type="text/javascript">
 
@@ -97,11 +96,11 @@ function createPeerConnection() {
   trace("Creating PeerConnection object");
   try {
 
-    pc = new ErizoPeerConnection(function(offer) {
+    pc = Erizo.Connection({callback: function (offer) {
       socket.emit('subscribe', streamID, offer, function (answer) {
         pc.processSignalingMessage(answer);
       });
-    });
+    }, stunServerUrl: 'stun:stun.l.google.com:19302'});
 
     pc.onaddstream = onAddStream;
     pc.onremovestream = onRemoveStream;

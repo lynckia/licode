@@ -33,8 +33,7 @@ be found in the AUTHORS file in the root of the source tree.
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
-<script src="roap_on_jsep.js"></script>
-<script src="erizo_on_jsep.js"></script>
+<script src="erizo.js"></script>
 
 <script type="text/javascript">
 
@@ -107,7 +106,7 @@ function gotStreamFailed(error) {
 
 function getUserMedia() {
   try {
-    ErizoGetUserMedia({video:true, audio:true}, gotStream, gotStreamFailed);
+    Erizo.GetUserMedia({video: true, audio: true}, gotStream, gotStreamFailed);
     trace("Requested access to local media");
   } catch (e) {
     trace_exception(e, "getUserMedia error");
@@ -124,37 +123,17 @@ function createPeerConnection() {
   trace("Creating PeerConnection object");
   try {
 
-    pc = new ErizoPeerConnection(function(offer, ant){
-
-      //socket.emit('sdp', ant);
-
-      console.log('++++++++++++++SIGNALING++++++++++++++');
+    pc = Erizo.Connection({callback: function (offer) {
 
       socket.emit('publish', 'offer', offer, function (answer) {
           pc.onsignalingmessage = function (ok) {
-              console.log('envio ok');
               pc.onsignalingmessage = function() {};
               socket.emit('publish', 'ok', ok);
           };
     
-          var newAnswer = answer;
-
-          if(!pc.peerConnection) {
-            console.log('SOY BOWSER voy a hacer nuevo answer');
-            newAnswer = ErizoParseAnswer(answer);
-            console.log('ya tengo nuevo answer');
-
-            var par = JSON.parse(newAnswer.substring(4));
-
-            socket.emit('sdp', par.seq);
-
-            //socket.emit('sdp', newAnswer);
-          }
-
-          pc.processSignalingMessage(newAnswer);
-          console.log('espero ok');
+          pc.processSignalingMessage(answer);
       });
-    });
+    }, stunServerUrl: 'stun:stun.l.google.com:19302'});
 
     pc.onaddstream = onAddStream;
     pc.onremovestream = onRemoveStream;
