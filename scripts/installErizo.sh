@@ -10,6 +10,14 @@ CURRENT_DIR=`pwd`
 pause() {
   read -p "$*"
 }
+install_libsrtp(){
+  cd $ROOT/third_party/srtp
+  ./configure
+  make
+  sudo make uninstall
+  sudo make install
+  cd $CURRENT_DIR
+}
 
 install_erizo(){
   cd $ROOT/erizo
@@ -31,9 +39,11 @@ install_erizo_controller(){
   cd $CURRENT_DIR
 }
 
-echo 'Installing erizo... [press Enter]'
+echo 'Installing libsrtp...'
+install_libsrtp
+echo 'Installing erizo...'
 install_erizo
-echo 'Installing erizoAPI... [press Enter]'
+echo 'Installing erizoAPI...'
 install_erizo_api
-echo 'Installing erizoController... [press Enter]'
+echo 'Installing erizoController...'
 install_erizo_controller
