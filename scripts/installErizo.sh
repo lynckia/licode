@@ -12,7 +12,7 @@ pause() {
 }
 install_libsrtp(){
   cd $ROOT/third_party/srtp
-  ./configure
+  CFLAGS="-fPIC" ./configure
   make
   sudo make uninstall
   sudo make install
