@@ -50,8 +50,8 @@ exports.deleteToken = function (id, callback) {
     });
 };
 
-exports.addNewErizoController = function(ip, callback) {
-    cloudHandler.addNewErizoController(ip, function (id) {
+exports.addNewErizoController = function(msg, callback) {
+    cloudHandler.addNewErizoController(msg, function (id) {
         callback(id);   
     });
 }
