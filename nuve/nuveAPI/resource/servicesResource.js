@@ -12,6 +12,7 @@ var doInit = function (serv) {
 
     currentService = require('./../auth/nuveAuthenticator').service;
     var superService = require('./../mdb/dataBase').superService;
+    currentService._id = currentService._id + '';
     return (currentService._id === superService);
 };
 
