@@ -11,10 +11,19 @@ var connection;
 var exc;
 var clientQueue;
 
+var addr = {};
+
+if (config.rabbit.url !== undefined) {
+	addr.url = config.rabbit.url;
+} else {
+	addr.host = config.rabbit.host;
+	addr.port = config.rabbit.port;
+}
+
 exports.connect = function(callback) {
 
 	// Create the amqp connection to rabbitMQ server
-	connection = amqp.createConnection({host: config.rabbit.host, port: config.rabbit.port});
+	connection = amqp.createConnection(addr);
 	connection.on('ready', function () {
 
 		//Create a direct exchange 

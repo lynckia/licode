@@ -16,7 +16,6 @@ var LIMIT_N_ROOMS = config.erizoController.limit_n_rooms;
 var INTERVAL_TIME_KEEPALIVE = config.erizoController.interval_time_keepAlive;
 
 var myId;
-var myIP;
 var rooms = {};
 var myState;
 
@@ -57,6 +56,9 @@ var sendMsgToRoom = function (room, type, arg) {
     }
 };
 
+var privateRegexp;
+var publicIP;
+
 var addToCloudHandler = function (callback) {
     "use strict";
 
@@ -64,8 +66,7 @@ var addToCloudHandler = function (callback) {
         addresses = [],
         k,
         k2,
-        address,
-        myIP;
+        address;
 
 
     for (k in interfaces) {
@@ -81,25 +82,30 @@ var addToCloudHandler = function (callback) {
         }
     }
 
-    myIP = addresses[0];
+    publicIP = addresses[0];
+    privateRegexp = new RegExp(publicIP, 'g');
 
-    rpc.callRpc('cloudHandler', 'addNewErizoController', myIP, function (id) {
+    rpc.callRpc('nuve', 'addNewErizoController', {cloudProvider: config.cloudProvider.name, ip: publicIP}, function (msg) {
 
-        if (id === 'timeout') {
+        if (msg === 'timeout') {
             console.log('CloudHandler does not respond');
             return;
         }
+        if (msg == 'error') {
+            console.log('Error in communication with cloudProvider');
+        }
 
-        myId = id;
+        publicIP = msg.publicIP;
+        myId = msg.id;
         myState = 2;
 
         var intervarId = setInterval(function () {
 
-            rpc.callRpc('cloudHandler', 'keepAlive', myId, function (result) {
+            rpc.callRpc('nuve', 'keepAlive', myId, function (result) {
                 if (result === 'whoareyou') {
                     console.log('I don`t exist in cloudHandler. I`m going to be killed');
                     clearInterval(intervarId);
-                    rpc.callRpc('cloudHandler', 'killMe', myIP, function () {});
+                    rpc.callRpc('nuve', 'killMe', publicIP, function () {});
                 }
             });
 
@@ -145,7 +151,7 @@ var updateMyState = function () {
     myState = newState;
 
     info = {id: myId, state: myState};
-    rpc.callRpc('cloudHandler', 'setInfo', info, function () {});
+    rpc.callRpc('nuve', 'setInfo', info, function () {});
 };
 
 var listen = function () {
@@ -203,7 +209,7 @@ var listen = function () {
                             }
                         }
 
-                        callback('success', {streams: streamList, id: socket.room.id});
+                        callback('success', {streams: streamList, id: socket.room.id, stunServerUrl: config.erizoController.stunServerUrl});
 
                     } else {
                         console.log('Invalid host');
@@ -237,6 +243,7 @@ var listen = function () {
                     id = Math.random() * 100000000000000000;
                     socket.room.webRtcController.addPublisher(id, sdp, function (answer) {
                         socket.state = 'waitingOk';
+                        answer = answer.replace(privateRegexp, publicIP);
                         callback(answer, id);
                     });
 
@@ -269,6 +276,7 @@ var listen = function () {
 
             if (socket.room.streams[options.streamId].hasAudio() || socket.room.streams[options.streamId].hasVideo()) {
                 socket.room.webRtcController.addSubscriber(socket.id, options.streamId, sdp, function (answer) {
+                    answer = answer.replace(privateRegexp, publicIP);
                     callback(answer);
                 });
             } else {

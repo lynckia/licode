@@ -6,8 +6,7 @@
 #include "WebRtcConnection.h"
 
 namespace erizo {
-OneToManyProcessor::OneToManyProcessor() :
-		MediaReceiver() {
+OneToManyProcessor::OneToManyProcessor() {
 
 	sendVideoBuffer_ = (char*) malloc(2000);
 	sendAudioBuffer_ = (char*) malloc(2000);
@@ -29,7 +28,7 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len) {
 	if (subscribers.empty() || len <= 0)
 		return 0;
 
-	std::map<std::string, WebRtcConnection*>::iterator it;
+	std::map<std::string, MediaReceiver*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
 		memset(sendAudioBuffer_, 0, len);
 		memcpy(sendAudioBuffer_, buf, len);
@@ -42,10 +41,7 @@ int OneToManyProcessor::receiveAudioData(char* buf, int len) {
 int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 	if (subscribers.empty() || len <= 0)
 		return 0;
-	if (sentPackets_ % 500 == 0) {
-		publisher->sendFirPacket();
-	}
-	std::map<std::string, WebRtcConnection*>::iterator it;
+	std::map<std::string, MediaReceiver*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
 		memset(sendVideoBuffer_, 0, len);
 		memcpy(sendVideoBuffer_, buf, len);
@@ -55,12 +51,12 @@ int OneToManyProcessor::receiveVideoData(char* buf, int len) {
 	return 0;
 }
 
-void OneToManyProcessor::setPublisher(WebRtcConnection* webRtcConn) {
+void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
 
 	this->publisher = webRtcConn;
 }
 
-void OneToManyProcessor::addSubscriber(WebRtcConnection* webRtcConn,
+void OneToManyProcessor::addSubscriber(MediaReceiver* webRtcConn,
 		const std::string& peerId) {
 	this->subscribers[peerId] = webRtcConn;
 }
@@ -72,8 +68,12 @@ void OneToManyProcessor::removeSubscriber(const std::string& peerId) {
 	}
 }
 
+void OneToManyProcessor::close(){
+  this->closeAll();
+}
+
 void OneToManyProcessor::closeAll() {
-	std::map<std::string, WebRtcConnection*>::iterator it;
+	std::map<std::string, MediaReceiver*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
 		(*it).second->close();
 	}

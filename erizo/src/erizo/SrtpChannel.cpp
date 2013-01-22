@@ -42,14 +42,17 @@ bool SrtpChannel::setRtcpParams(char* sendingKey, char* receivingKey) {
 }
 
 int SrtpChannel::protectRtp(char* buffer, int *len) {
-
+  
 	if (!active_)
 		return 0;
+  
 	int val = srtp_protect(send_session_, buffer, len);
 	if (val == 0) {
 		return 0;
 	} else {
-		printf("Error SRTP %u\n", val);
+    rtcpheader* head = reinterpret_cast<rtcpheader*>(buffer);
+    rtpheader* headrtp = reinterpret_cast<rtpheader*>(buffer);
+		printf("Error SrtpChannel::protectRtp %u packettype %d pt %d\n", val,head->packettype, headrtp->payloadtype);
 		return -1;
 	}
 }
@@ -58,19 +61,13 @@ int SrtpChannel::unprotectRtp(char* buffer, int *len) {
 
 	if (!active_)
 		return 0;
-	rtcpheader *chead = (rtcpheader*) buffer;
-
-	if (chead->packettype == 200 || chead->packettype == 201) {
-//		printf("RTCP\n");
-		*len = -1;
-		return -1;
-	}
-	//		printf("Es RTP\n");
 	int val = srtp_unprotect(receive_session_, (char*) buffer, len);
 	if (val == 0) {
 		return 0;
 	} else {
-		printf("Error SRTP %u\n", val);
+    rtcpheader* head = reinterpret_cast<rtcpheader*>(buffer);
+    rtpheader* headrtp = reinterpret_cast<rtpheader*>(buffer);
+		printf("Error SrtpChannel::unprotectRtp %u packettype %d pt %d\n", val,head->packettype, headrtp->payloadtype);
 		return -1;
 	}
 }
@@ -81,7 +78,7 @@ int SrtpChannel::protectRtcp(char* buffer, int *len) {
 	if (val == 0) {
 		return 0;
 	} else {
-		printf("Error SRTP %u\n", val);
+		printf("Error SrtpChannel::protectRtcp %u\n", val);
 		return -1;
 	}
 }
@@ -89,10 +86,10 @@ int SrtpChannel::protectRtcp(char* buffer, int *len) {
 int SrtpChannel::unprotectRtcp(char* buffer, int *len) {
 
 	int val = srtp_unprotect_rtcp(receive_session_, buffer, len);
-	if (val != err_status_ok) {
+	if (val == 0) {
 		return 0;
 	} else {
-		printf("Error SRTP %u\n", val);
+		printf("Error SrtpChannel::unprotectRtcp %u\n", val);
 		return -1;
 	}
 }
@@ -120,8 +117,8 @@ bool SrtpChannel::configureSrtpSession(srtp_t *session, const char* key,
 	}
 
 	policy.ssrc.value = 0;
-//	policy.window_size = 1024;
-//	policy.allow_repeat_tx = 1;
+	policy.window_size = 1024;
+	policy.allow_repeat_tx = 1;
 	policy.next = NULL;
 	//printf("auth_tag_len %d\n", policy.rtp.auth_tag_len);
 

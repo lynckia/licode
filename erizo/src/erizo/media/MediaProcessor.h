@@ -90,6 +90,8 @@ public:
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
 
+  void close();
+
 private:
 
 	int audioDecoder;

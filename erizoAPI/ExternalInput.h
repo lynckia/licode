@@ -13,7 +13,7 @@
  * Represents a OneToMany connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class ExternalInput : public MediaReceiver {
+class ExternalInput : public MediaSource {
  public:
   static void Init(v8::Handle<v8::Object> target);
 
@@ -32,29 +32,20 @@ class ExternalInput : public MediaReceiver {
    */
   static v8::Handle<v8::Value> close(const v8::Arguments& args);
   /*
-   * Sets the Publisher
-   * Param: the WebRtcConnection of the Publisher
+   * Inits the ExternalInput 
+   * Returns true ready
    */
-  static v8::Handle<v8::Value> setPublisher(const v8::Arguments& args);
-   /*
-   * Returns true if ExternalInput has a publisher
-   */
-  static v8::Handle<v8::Value> hasPublisher(const v8::Arguments& args);
+  static v8::Handle<v8::Value> init(const v8::Arguments& args);  
   /*
-   * Sets the subscriber
-   * Param1: the WebRtcConnection of the subscriber
-   * Param2: an unique Id for the subscriber
+   * Sets a MediaReceiver that is going to receive Audio Data
+   * Param: the MediaReceiver to send audio to.
    */
-  static v8::Handle<v8::Value> addSubscriber(const v8::Arguments& args);
+  static v8::Handle<v8::Value> setAudioReceiver(const v8::Arguments& args);
   /*
-   * Removes a subscriber given its peer id
-   * Param: the peerId
+   * Sets a MediaReceiver that is going to receive Video Data
+   * Param: the MediaReceiver
    */
-  static v8::Handle<v8::Value> removeSubscriber(const v8::Arguments& args);
-  /*
-   * Ask the publisher to send a FIR packet
-   */
-  static v8::Handle<v8::Value> sendFIR(const v8::Arguments& args);
+  static v8::Handle<v8::Value> setVideoReceiver(const v8::Arguments& args);
 };
 
 #endif

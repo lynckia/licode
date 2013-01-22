@@ -12,12 +12,18 @@ Erizo.Connection = function (spec) {
 
     // Check which WebRTC Stack is installed.
     that.browser = "";
-    if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "23") {
+
+    if (typeof module !== 'undefined' && module.exports) {
+        L.Logger.error('Publish/subscribe video/audio streams not supported in erizofc yet');
+        that = Erizo.FcStack(spec);
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "23" || 
+               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "24") {
         // Google Chrome Stable.
         console.log("Stable!");
         that = Erizo.ChromeStableStack(spec);
         that.browser = "chrome-stable";
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "25") {
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "25" ||
+               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "26") {
         // Google Chrome Canary.
         console.log("Canary!");
         that = Erizo.ChromeCanaryStack(spec);
@@ -40,12 +46,17 @@ Erizo.Connection = function (spec) {
 Erizo.GetUserMedia = function (config, callback) {
     "use strict";
 
-    try {
-        navigator.webkitGetUserMedia("audio, video", callback);
-        console.log('GetUserMedia BOWSER');
-    } catch (e) {
-        navigator.webkitGetUserMedia(config, callback);
-        console.log('GetUserMedia CHROME');
+    if (typeof module !== 'undefined' && module.exports) {
+        L.Logger.error('Video/audio streams not supported in erizofc yet');
+    } else {
+        try {
+            navigator.webkitGetUserMedia("audio, video", callback);
+            console.log('GetUserMedia BOWSER');
+        } catch (e) {
+            navigator.webkitGetUserMedia(config, callback);
+            console.log('GetUserMedia CHROME');
+        }
     }
+    
 
 };

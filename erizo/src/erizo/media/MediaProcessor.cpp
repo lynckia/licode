@@ -288,6 +288,10 @@ namespace erizo {
 
   }
 
+  void InputProcessor::close(){
+    printf("close\n");
+  }
+
   OutputProcessor::OutputProcessor() {
 
     audioCoder = 0;

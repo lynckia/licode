@@ -51,10 +51,6 @@ class OneToManyProcessor : public MediaReceiver {
    * Param: the peerId
    */
   static v8::Handle<v8::Value> removeSubscriber(const v8::Arguments& args);
-  /*
-   * Ask the publisher to send a FIR packet
-   */
-  static v8::Handle<v8::Value> sendFIR(const v8::Arguments& args);
 };
 
 #endif

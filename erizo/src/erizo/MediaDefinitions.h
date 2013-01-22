@@ -21,8 +21,22 @@ class MediaReceiver{
 public:
 	virtual int receiveAudioData(char* buf, int len)=0;
 	virtual int receiveVideoData(char* buf, int len)=0;
+  virtual void close()=0;
 	virtual ~MediaReceiver(){};
 };
+
+/**
+ * A MediaSource is any class that can produce audio or video data.
+ */
+class MediaSource{
+public:
+  virtual void setAudioReceiver(MediaReceiver* audioReceiver)=0;
+  virtual void setVideoReceiver(MediaReceiver* videoReceiver)=0;
+  virtual void close()=0;
+  virtual ~MediaSource(){};
+
+};
+
 /**
  * A NiceReceiver is any class that can receive data from a nice connection.
  */

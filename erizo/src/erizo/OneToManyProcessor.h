@@ -20,8 +20,8 @@ class WebRtcConnection;
  */
 class OneToManyProcessor : public MediaReceiver {
 public:
-	WebRtcConnection *publisher;
-	std::map<std::string, WebRtcConnection*> subscribers;
+	MediaSource* publisher;
+	std::map<std::string, MediaReceiver*> subscribers;
 
 	OneToManyProcessor();
 	virtual ~OneToManyProcessor();
@@ -29,13 +29,13 @@ public:
 	 * Sets the Publisher
 	 * @param webRtcConn The WebRtcConnection of the Publisher
 	 */
-	void setPublisher(WebRtcConnection* webRtcConn);
+	void setPublisher(MediaSource* webRtcConn);
 	/**
 	 * Sets the subscriber
 	 * @param webRtcConn The WebRtcConnection of the subscriber
 	 * @param peerId An unique Id for the subscriber
 	 */
-	void addSubscriber(WebRtcConnection* webRtcConn, const std::string& peerId);
+	void addSubscriber(MediaReceiver* webRtcConn, const std::string& peerId);
 	/**
 	 * Eliminates the subscriber given its peer id
 	 * @param peerId the peerId
@@ -43,6 +43,8 @@ public:
 	void removeSubscriber(const std::string& peerId);
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
+
+  void close();
 	/**
 	 * Closes all the subscribers and the publisher, the object is useless after this
 	 */

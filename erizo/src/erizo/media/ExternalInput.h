@@ -16,39 +16,17 @@ extern "C" {
 
 namespace erizo{
   class WebRtcConnection;
-  class RTPSink;
 
-  class ExternalInput : public MediaReceiver, public RTPDataReceiver {
+  class ExternalInput : public MediaSource, public RTPDataReceiver {
 
     public:
-
-      WebRtcConnection *publisher;
-      std::map<std::string, WebRtcConnection*> subscribers;
-
       ExternalInput ();
       virtual ~ExternalInput();
-      void init();
-      /**
-       * Sets the Publisher
-       * @param webRtcConn The WebRtcConnection of the Publisher
-       */
-      void setPublisher(WebRtcConnection* webRtcConn);
-      /**
-       * Sets the subscriber
-       * @param webRtcConn The WebRtcConnection of the subscriber
-       * @param peerId An unique Id for the subscriber
-       */
-      void addSubscriber(WebRtcConnection* webRtcConn, const std::string& peerId);
-      /**
-       * Eliminates the subscriber given its peer id
-       * @param peerId the peerId
-       */
-      void removeSubscriber(const std::string& peerId);
-
-      int receiveAudioData(char* buf, int len);
-      int receiveVideoData(char* buf, int len);
+      bool init();
       void receiveRtpData(unsigned char*rtpdata, int len);
-      void closeAll();
+      void setAudioReceiver(MediaReceiver* audioReceiver);
+      void setVideoReceiver(MediaReceiver* videoReceiver);
+      void close();
 
 
     private:
@@ -56,6 +34,8 @@ namespace erizo{
       VideoDecoder inCodec_;
       unsigned char* decodedBuffer_;
       char* sendVideoBuffer_;
+      MediaReceiver* videoReceiver_;
+      MediaReceiver* audioReceiver_;
       void receiveLoop();
       void encodeLoop();
 
@@ -72,9 +52,6 @@ namespace erizo{
       AVFormatContext* context;
       int video_stream_index, bufflen;
       AVPacket avpacket;
-
-      RTPSink* sink_;
-
   };
 }
 #endif /* EXTERNALINPUT_H_ */

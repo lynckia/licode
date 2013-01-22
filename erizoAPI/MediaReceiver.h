@@ -14,4 +14,13 @@ class MediaReceiver : public node::ObjectWrap {
   erizo::MediaReceiver *me;
 };
 
+/*
+ * Wrapper class of erizo::MediaSource
+ */
+class MediaSource : public node::ObjectWrap {
+ public:
+
+  erizo::MediaSource *me;
+};
+
 #endif

@@ -15,11 +15,9 @@ void ExternalInput::Init(Handle<Object> target) {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   // Prototype
   tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("setPublisher"), FunctionTemplate::New(setPublisher)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("hasPublisher"), FunctionTemplate::New(hasPublisher)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("addSubscriber"), FunctionTemplate::New(addSubscriber)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("removeSubscriber"), FunctionTemplate::New(removeSubscriber)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("sendFIR"), FunctionTemplate::New(sendFIR)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("init"), FunctionTemplate::New(init)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("setAudioReceiver"), FunctionTemplate::New(setAudioReceiver)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("setVideoReceiver"), FunctionTemplate::New(setVideoReceiver)->GetFunction());
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("ExternalInput"), constructor);
@@ -47,77 +45,41 @@ Handle<Value> ExternalInput::close(const Arguments& args) {
   return scope.Close(Null());
 }
 
-Handle<Value> ExternalInput::setPublisher(const Arguments& args) {
+Handle<Value> ExternalInput::init(const Arguments& args) {
+  HandleScope scope;
+
+  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
+  erizo::ExternalInput *me = (erizo::ExternalInput*) obj->me;
+
+  bool r = me->init();
+
+  return scope.Close(Boolean::New(r));
+}
+
+Handle<Value> ExternalInput::setAudioReceiver(const Arguments& args) {
   HandleScope scope;
 
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 
-  WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
-  erizo::WebRtcConnection *wr = param->me;
+  MediaReceiver* param = ObjectWrap::Unwrap<MediaReceiver>(args[0]->ToObject());
+  erizo::MediaReceiver *mr = param->me;
 
-  me->setPublisher(wr);
+  me-> setAudioReceiver(mr);
 
   return scope.Close(Null());
 }
 
-Handle<Value> ExternalInput::hasPublisher(const Arguments& args) {
+Handle<Value> ExternalInput::setVideoReceiver(const Arguments& args) {
   HandleScope scope;
 
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 
-  bool p = true;
+  MediaReceiver* param = ObjectWrap::Unwrap<MediaReceiver>(args[0]->ToObject());
+  erizo::MediaReceiver *mr = param->me;
 
-  if(me->publisher == NULL) {
-    p = false;
-  }
-  
-  return scope.Close(Boolean::New(p));
-}
+  me-> setVideoReceiver(mr);
 
-Handle<Value> ExternalInput::addSubscriber(const Arguments& args) {
-  HandleScope scope;
-
-  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
-  erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
-
-  WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
-  erizo::WebRtcConnection *wr = param->me;
-
-// get the param
-  v8::String::Utf8Value param1(args[1]->ToString());
-
-// convert it to string
-  std::string peerId = std::string(*param1);
-  me->addSubscriber(wr, peerId);
-
-  return scope.Close(Null());
-}
-
-Handle<Value> ExternalInput::removeSubscriber(const Arguments& args) {
-  HandleScope scope;
-
-  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
-  erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
-
-// get the param
-  v8::String::Utf8Value param1(args[0]->ToString());
-
-// convert it to string
-  std::string peerId = std::string(*param1);
-  me->removeSubscriber(peerId);
-
-  return scope.Close(Null());
-}
-
-Handle<Value> ExternalInput::sendFIR(const Arguments& args) {
-  HandleScope scope;
-
-  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
-  erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
-
-  me->publisher->sendFirPacket();
-  
   return scope.Close(Null());
 }

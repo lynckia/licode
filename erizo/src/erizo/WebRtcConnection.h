@@ -35,6 +35,8 @@ public:
  */
 class WebRtcConnection: public MediaReceiver, public NiceReceiver {
 public:
+	unsigned int localAudioSsrc_, localVideoSsrc_;
+	unsigned int remoteAudioSSRC_, remoteVideoSSRC_;
 
 	/**
 	 * Constructor.
@@ -115,9 +117,7 @@ private:
 	MediaReceiver* audioReceiver_;
 	MediaReceiver* videoReceiver_;
 	int video_, audio_, bundle_, sequenceNumberFIR_;
-	unsigned int localAudioSsrc_, localVideoSsrc_;
-	unsigned int remoteAudioSSRC_, remoteVideoSSRC_;
-	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_;
+	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_, updateStateMutex_;
 	boost::thread send_Thread_;
 	std::queue<packet> sendQueue_;
 	WebRtcConnectionStateListener* connStateListener_;

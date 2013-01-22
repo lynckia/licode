@@ -8,8 +8,7 @@
 #include "rtp/RtpHeader.h"
 
 namespace erizo {
-OneToManyTranscoder::OneToManyTranscoder() :
-		MediaReceiver() {
+OneToManyTranscoder::OneToManyTranscoder() {
 
 	sendVideoBuffer_ = (char*) malloc(2000);
 	sendAudioBuffer_ = (char*) malloc(2000);
@@ -149,6 +148,10 @@ void OneToManyTranscoder::removeSubscriber(const std::string& peerId) {
 		this->subscribers[peerId]->close();
 		this->subscribers.erase(peerId);
 	}
+}
+
+void OneToManyTranscoder::close() {
+  this->closeAll();
 }
 
 void OneToManyTranscoder::closeAll() {

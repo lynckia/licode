@@ -30,7 +30,7 @@ exports.WebRtcController = function () {
 
                 if (state > 2) {
 
-                    publishers[to].sendFIR();
+//                    publishers[to].sendFIR();
                     clearInterval(intervarId);
                 }
 
@@ -116,8 +116,7 @@ exports.WebRtcController = function () {
 
             console.log("Adding publisher peer_id ", from);
 
-            var muxer = new addon.ExternalInput(),
-//            var muxer = new addon.OneToManyTranscoder(),
+            var muxer = new addon.OneToManyProcessor(),
                 wrtc = new addon.WebRtcConnection();
 
             publishers[from] = muxer;
@@ -154,7 +153,7 @@ exports.WebRtcController = function () {
             publishers[to].addSubscriber(wrtc, from);
 
             initWebRtcConnection(wrtc, sdp, callback);
-            //waitForFIR(wrtc, to);
+            waitForFIR(wrtc, to);
 
             //console.log('Publishers: ', publishers);
             //console.log('Subscribers: ', subscribers);

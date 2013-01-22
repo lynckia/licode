@@ -9,11 +9,12 @@ Erizo.ChromeCanaryStack = function (spec) {
         WebkitRTCPeerConnection = webkitRTCPeerConnection;
 
     that.pc_config = {
-
-        "iceServers": [{
-            "url": "stun:stun.l.google.com:19302"
-        }]
+        "iceServers": []
     };
+
+    if (spec.stunServerUrl !== undefined) {
+        that.pc_config.iceServers.push({"url": spec.stunServerUrl});
+    } 
 
     that.mediaConstraints = {
         'mandatory': {
@@ -21,6 +22,8 @@ Erizo.ChromeCanaryStack = function (spec) {
             'OfferToReceiveAudio': 'true'
         }
     };
+
+    that.roapSessionId = 103;
 
     that.peerConnection = new WebkitRTCPeerConnection(that.pc_config);
 
@@ -78,12 +81,12 @@ Erizo.ChromeCanaryStack = function (spec) {
         } else if (that.state === 'offer-sent') {
             if (msg.messageType === 'ANSWER') {
 
-                regExp = new RegExp(/m=video[\w\W]*\r\n/g);
+                //regExp = new RegExp(/m=video[\w\W]*\r\n/g);
 
-                exp = msg.sdp.match(regExp);
-                console.log(exp);
+                //exp = msg.sdp.match(regExp);
+                //console.log(exp);
 
-                msg.sdp = msg.sdp.replace(regExp, exp + "b=AS:100\r\n");
+                //msg.sdp = msg.sdp.replace(regExp, exp + "b=AS:100\r\n");
 
                 sd = {
                     sdp: msg.sdp,
@@ -299,7 +302,7 @@ Erizo.ChromeCanaryStack = function (spec) {
         throw 'Error in RoapOnJsep: ' + text;
     };
 
-    that.sessionId = (RoapConnection.sessionId += 1);
+    that.sessionId = (that.roapSessionId += 1);
     that.sequenceNumber = 0; // Number of last ROAP message sent. Starts at 1.
     that.actionNeeded = false;
     that.iceStarted = false;

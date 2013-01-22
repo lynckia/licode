@@ -8,14 +8,13 @@
 #include <arpa/inet.h>
 
 namespace erizo {
-  ExternalInput::ExternalInput(): MediaReceiver(), RTPDataReceiver() {
+  ExternalInput::ExternalInput(){
 
-//    printf("Constructor URL: %s\n", url.c_str());
+    //    printf("Constructor URL: %s\n", url.c_str());
 
-    std::string url("");
+    std::string url("rtsp://isabel:grdp1l0@138.4.4.253:554/MediaInput/h264");
 
 
-	  sink_ = new RTPSink("138.4.4.143", "50000");
     context = avformat_alloc_context();
     av_register_all();
     avcodec_register_all();
@@ -29,9 +28,9 @@ namespace erizo {
       printf("fail when finding stream info\n");
     }
 
-	  sendVideoBuffer_ = (char*) malloc(2000);
+    sendVideoBuffer_ = (char*) malloc(2000);
     VideoCodecInfo info;
-//    info.payloadType = 98;
+    //    info.payloadType = 98;
     info.width = 640;
     info.height = 480;
     bufflen = 640*480*3/2;
@@ -76,9 +75,9 @@ namespace erizo {
     AVStream* stream=NULL;
     int cnt = 0;
 
-	  thread_ = boost::thread(&ExternalInput::receiveLoop, this);
+    thread_ = boost::thread(&ExternalInput::receiveLoop, this);
     running = true;
-	  encodeThread_ = boost::thread(&ExternalInput::encodeLoop, this);
+    encodeThread_ = boost::thread(&ExternalInput::encodeLoop, this);
     //start reading packets from stream and write them to file
 
     //    av_write_trailer(oc);
@@ -86,53 +85,30 @@ namespace erizo {
     //    avformat_free_context(oc);
   }
 
+  void ExternalInput::setAudioReceiver(MediaReceiver* audioReceiver){
+    this->audioReceiver_ = audioReceiver;
+  }
+  void ExternalInput::setVideoReceiver(MediaReceiver* videoReceiver){
+    this->videoReceiver_ = videoReceiver;
+  }
+  bool ExternalInput::init(){
+    return true;
+  }
+  void ExternalInput::close() {
+  }
 
   ExternalInput::~ExternalInput(){
     printf("Destructor\n");
   }
 
   void ExternalInput::receiveRtpData(unsigned char*rtpdata, int len) {
-//    printf("Received rtp data %d\n subscribers %d\n", len, subscribers.empty());
-//    sink_->sendData(rtpdata, len);
-  
-       memcpy(sendVideoBuffer_, rtpdata, len);
-
-       if (subscribers.empty() || len <= 0)
-       return;
-    //	if (sentPackets_ % 500 == 0) {
-    //		publisher->sendFirPacket();
-    //	}
-    std::map<std::string, WebRtcConnection*>::iterator it;
-    for (it = subscribers.begin(); it != subscribers.end(); it++) {
-    memcpy(sendVideoBuffer_, rtpdata, len);
-    (*it).second->receiveVideoData(sendVideoBuffer_, len);
+    if (videoReceiver_==NULL){
+      memcpy(sendVideoBuffer_, rtpdata, len);
+      videoReceiver_->receiveVideoData(sendVideoBuffer_, len);
     }
-    
+
   }
 
-  void ExternalInput::setPublisher(WebRtcConnection* webRtcConn) {
-    //    this->publisher = webRtcConn;
-  }
-
-  void ExternalInput::addSubscriber(WebRtcConnection* webRtcConn,
-      const std::string& peerId) {
-    this->subscribers[peerId] = webRtcConn;
-  }
-
-  void ExternalInput::removeSubscriber(const std::string& peerId) {
-    if (this->subscribers.find(peerId) != subscribers.end()) {
-      this->subscribers[peerId]->close();
-      this->subscribers.erase(peerId);
-    }
-  }
-
-  int ExternalInput::receiveAudioData(char* buf, int len){
-    return 0;
-  }
-
-  int ExternalInput::receiveVideoData(char* buf, int len){
-    return 0;
-  }
   void ExternalInput::receiveLoop(){
 
     av_read_play(context);//play RTSP
@@ -140,16 +116,16 @@ namespace erizo {
     while(av_read_frame(context,&avpacket)>=0){//read 100 frames
       if(avpacket.stream_index == video_stream_index){//packet is video               
         /*
-        if(stream == NULL){//create stream in file
-          //                stream = avformat_new_stream(oc,context->streams[video_stream_index]->codec->codec);
-          //                avcodec_copy_context(stream->codec,context->streams[video_stream_index]->codec);
-          //                stream->sample_aspect_ratio = context->streams[video_stream_index]->codec->sample_aspect_ratio;
-          //                avformat_write_header(oc,NULL);
+           if(stream == NULL){//create stream in file
+        //                stream = avformat_new_stream(oc,context->streams[video_stream_index]->codec->codec);
+        //                avcodec_copy_context(stream->codec,context->streams[video_stream_index]->codec);
+        //                stream->sample_aspect_ratio = context->streams[video_stream_index]->codec->sample_aspect_ratio;
+        //                avformat_write_header(oc,NULL);
         }
         */
         //        packet.stream_index = stream->id;
         //
-//        printf("Read PAcket size: %u\n", avpacket.size);
+        //        printf("Read PAcket size: %u\n", avpacket.size);
         inCodec_.decodeVideo(avpacket.data, avpacket.size, decodedBuffer_, bufflen, &gotDecodedFrame);
         RawDataPacket packetR;
 
@@ -173,30 +149,20 @@ namespace erizo {
     av_read_pause(context);
   }
 
-void ExternalInput::encodeLoop() {
-	while (running == true) {
-		queueMutex_.lock();
-		if (packetQueue_.size() > 0) {
-      op_->receiveRawData(packetQueue_.front());
-			packetQueue_.pop();
+  void ExternalInput::encodeLoop() {
+    while (running == true) {
+      queueMutex_.lock();
+      if (packetQueue_.size() > 0) {
+        op_->receiveRawData(packetQueue_.front());
+        packetQueue_.pop();
 
-//      printf("Queue Size! %d\n", packetQueue_.size());
-			queueMutex_.unlock();
-		} else {
-			queueMutex_.unlock();
-			usleep(1000);
-		}
-	}
-}
-
-  
-
-  void ExternalInput::closeAll() {
-    std::map<std::string, WebRtcConnection*>::iterator it;
-    for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      (*it).second->close();
+        //      printf("Queue Size! %d\n", packetQueue_.size());
+        queueMutex_.unlock();
+      } else {
+        queueMutex_.unlock();
+        usleep(1000);
+      }
     }
-    //   this->publisher->close();
   }
 
 }

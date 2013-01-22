@@ -19,7 +19,13 @@ enum HostType {
  * Channel types
  */
 enum MediaType {
-	VIDEO_TYPE, AUDIO_TYPE, BOTH_MEDIA, OTHER_MEDIA
+	VIDEO_TYPE, AUDIO_TYPE, OTHER
+};
+/**
+ * RTP Profile
+ */
+enum Profile {
+  AVPF, SAVPF
 };
 /**
  * SRTP info.
@@ -72,6 +78,15 @@ public:
 	MediaType mediaType;
 };
 /**
+ * A PT to Codec map
+ */
+struct RtpMap {
+  unsigned int payloadType;
+  std::string encodingName;
+  unsigned int clockRate;
+  MediaType mediaType;
+};
+/**
  * Contains the information of a single SDP.
  * Used to parse and generate SDPs
  */
@@ -108,6 +123,11 @@ public:
 	 * @return A vector containing the CryptoInfo objects with the SRTP information.
 	 */
 	std::vector<CryptoInfo>& getCryptoInfos();
+  /**
+   * Gets the payloadType information
+   * @return A vector containing the PT-codec information
+   */
+  std::vector<RtpMap>& getPayloadInfos();
 	/**
 	 * Gets the actual SDP.
 	 * @return The SDP in string format.
@@ -117,12 +137,27 @@ public:
 	 * The audio and video SSRCs for this particular SDP.
 	 */
 	unsigned int audioSsrc, videoSsrc;
+  /**
+   * Is it Bundle
+   */
+  bool isBundle;
+  /**
+   * Is there rtcp muxing
+   */
+  bool isRtcpMux;
+  /**
+   * RTP Profile type
+   */
+  Profile profile;
+
 
 private:
 	bool processSdp(const std::string& sdp);
 	bool processCandidate(char** pieces, int size, MediaType mediaType);
+  void gen_random(char* s, int len);
 	std::vector<CandidateInfo> candidateVector_;
 	std::vector<CryptoInfo> cryptoVector_;
+  std::vector<RtpMap> payloadVector_;
 	std::string iceUsername_;
 	std::string icePassword_;
 };

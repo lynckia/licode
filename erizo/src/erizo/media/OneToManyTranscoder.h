@@ -51,6 +51,8 @@ public:
 //	MediaProcessor *mp;
 	InputProcessor* ip;
 	OutputProcessor* op;
+
+  void close();
 	/**
 	 * Closes all the subscribers and the publisher, the object is useless after this
 	 */

@@ -19,7 +19,6 @@ void OneToManyProcessor::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("hasPublisher"), FunctionTemplate::New(hasPublisher)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("addSubscriber"), FunctionTemplate::New(addSubscriber)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("removeSubscriber"), FunctionTemplate::New(removeSubscriber)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("sendFIR"), FunctionTemplate::New(sendFIR)->GetFunction());
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("OneToManyProcessor"), constructor);
@@ -53,8 +52,8 @@ Handle<Value> OneToManyProcessor::setPublisher(const Arguments& args) {
   OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
-  erizo::WebRtcConnection *wr = param->me;
+  MediaSource* param = ObjectWrap::Unwrap<MediaSource>(args[0]->ToObject());
+  erizo::MediaSource *wr = param->me;
 
   me->setPublisher(wr);
 
@@ -82,8 +81,8 @@ Handle<Value> OneToManyProcessor::addSubscriber(const Arguments& args) {
   OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
-  erizo::WebRtcConnection *wr = param->me;
+  MediaReceiver* param = ObjectWrap::Unwrap<MediaReceiver>(args[0]->ToObject());
+  erizo::MediaReceiver *wr = param->me;
 
 // get the param
   v8::String::Utf8Value param1(args[1]->ToString());
@@ -111,13 +110,3 @@ Handle<Value> OneToManyProcessor::removeSubscriber(const Arguments& args) {
   return scope.Close(Null());
 }
 
-Handle<Value> OneToManyProcessor::sendFIR(const Arguments& args) {
-  HandleScope scope;
-
-  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
-  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
-
-  me->publisher->sendFirPacket();
-  
-  return scope.Close(Null());
-}
