@@ -36,21 +36,6 @@ install_libnice(){
   fi
 }
 
-install_libsrtp(){
-  if [ -d $LIB_DIR ]; then
-    cd $LIB_DIR
-    curl -O http://srtp.sourceforge.net/srtp-1.4.2.tgz
-    tar -zxvf srtp-1.4.2.tgz
-    cd srtp  
-    ./configure
-    make
-    sudo make install
-    cd $CURRENT_DIR
-  else
-    mkdir -p $LIB_DIR
-    install_libsrtp
-  fi
-}
 
 pause "Installing homebrew... [press Enter]"
 install_homebrew
@@ -58,5 +43,3 @@ pause "Installing deps via homebrew... [press Enter]"
 install_brew_deps
 pause 'Installing libnice... [press Enter]'
 install_libnice
-pause 'Installing libsrtp... [press Enter]'
-install_libsrtp

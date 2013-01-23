@@ -17,6 +17,8 @@ sudo rabbitmq-server > $BUILD_DIR/rabbit.log &
 cd $ROOT/nuve
 ./initNuve.sh
 
+sleep 2
+
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/erizo/build/erizo:$ROOT/erizo
 export ERIZO_HOME=$ROOT/erizo/
 
