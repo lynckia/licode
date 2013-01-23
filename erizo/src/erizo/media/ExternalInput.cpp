@@ -102,7 +102,7 @@ namespace erizo {
   }
 
   void ExternalInput::receiveRtpData(unsigned char*rtpdata, int len) {
-    if (videoReceiver_==NULL){
+    if (videoReceiver_!=NULL){
       memcpy(sendVideoBuffer_, rtpdata, len);
       videoReceiver_->receiveVideoData(sendVideoBuffer_, len);
     }
