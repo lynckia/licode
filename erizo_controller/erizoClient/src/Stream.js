@@ -73,6 +73,18 @@ Erizo.Stream = function (spec) {
         }
     };
 
+    that.close = function () {
+        if (that.local) {
+            if (that.room !== undefined) {
+                that.room.unpublish(that);
+            }
+            // Remove HTML element
+            that.hide();
+            that.stream.stop();       
+            that.stream = undefined; 
+        }
+    };
+
     that.show = function (elementID, options) {
         that.elementID = elementID;
         if (that.hasVideo()) {
