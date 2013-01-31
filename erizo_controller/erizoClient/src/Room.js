@@ -51,7 +51,7 @@ Erizo.Room = function (spec) {
         for (index in that.localStreams) {
             if (that.localStreams.hasOwnProperty(index)) {
                 stream = that.localStreams[index];
-                removeStream(stream);
+                stream.pc.close();
                 delete that.localStreams[index];
             }
         }
@@ -92,7 +92,10 @@ Erizo.Room = function (spec) {
     connectSocket = function (token, callback, error) {
         // Once we have connected
 
-        //that.socket = io.connect("hpcm.dit.upm.es:8080", {reconnect: false});
+        var host = 'http://' + token.host;
+
+        delete io.sockets[host];
+
         that.socket = io.connect(token.host, {reconnect: false});
 
         // We receive an event with a new stream in the room.

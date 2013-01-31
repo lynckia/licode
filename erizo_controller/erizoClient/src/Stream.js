@@ -80,7 +80,9 @@ Erizo.Stream = function (spec) {
             }
             // Remove HTML element
             that.hide();
-            that.stream.stop();       
+            if (that.stream !== undefined) {
+                that.stream.stop();       
+            }
             that.stream = undefined; 
         }
     };
