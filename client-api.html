@@ -119,6 +119,10 @@ clientapi: true
                   <td>Initializes the local stream.</td>
                 </tr>
                 <tr>
+                  <td><a href="#closeStream">close()</a></td>
+                  <td>Closes the local stream.</td>
+                </tr>
+                <tr>
                   <td><a href="#showStream">show(elementID, options)</a></td>
                   <td>Draws the video in the HTML.</td>
                 </tr>
@@ -170,6 +174,20 @@ stream.addEventListener('access-accepted', function(event) {
 stream.addEventListener('access-denied', function(event) {
   console.log("Access to webcam and microphone rejected");
 });
+</pre>
+
+          <h3 id="closeStream">Close a local stream</h3>
+
+          <p>It closes a local stream. 
+          <p>If the stream has audio and/or video this method also stops the capture of your camera and microphone.  
+          <p>If the stream is published in a room this method also unpublish it.
+          <p>If the stream is showing in a div this method also hides it.
+
+          <div class="bs-docs-example">
+          You can close a local stream previously initialized with this code.
+          </div>
+<pre class="prettyprint linenums">
+stream.close();
 </pre>
           <h3 id="showStream">Show our local video in the HTML</h3>
 

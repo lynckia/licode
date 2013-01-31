@@ -11,7 +11,7 @@ layout: nil
     <id>http://lynckia.com/feed/atom.xml</id>
     <author>
         <name>Lynckia</name>
-        <mail>contactus@lynckia.com</mail>
+        <mail>contact@lynckia.com</mail>
     </author>
 {%  for post in site.posts %}
 <entry>
