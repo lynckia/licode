@@ -20,7 +20,7 @@ namespace erizo{
   class ExternalInput : public MediaSource, public RTPDataReceiver {
 
     public:
-      ExternalInput ();
+      ExternalInput (std::string inputUrl);
       virtual ~ExternalInput();
       bool init();
       void receiveRtpData(unsigned char*rtpdata, int len);
@@ -39,6 +39,7 @@ namespace erizo{
       void receiveLoop();
       void encodeLoop();
 
+      std::string url;
       bool running;
 	    boost::mutex queueMutex_;
       boost::thread thread_, encodeThread_;

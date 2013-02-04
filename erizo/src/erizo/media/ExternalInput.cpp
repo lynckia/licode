@@ -8,13 +8,11 @@
 #include <arpa/inet.h>
 
 namespace erizo {
-  ExternalInput::ExternalInput(){
+  ExternalInput::ExternalInput(std::string inputUrl){
 
-    //    printf("Constructor URL: %s\n", url.c_str());
+    //    printf("Constructor URL: %s\n", inputUrl.c_str());
 
-    url = std::string("rtsp://isabel:grdp1l0@138.4.4.253:554/MediaInput/h264");
-
-
+    url = inputUrl;
     
   }
 
