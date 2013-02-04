@@ -12,9 +12,19 @@ namespace erizo {
 
     //    printf("Constructor URL: %s\n", url.c_str());
 
-    std::string url("rtsp://isabel:grdp1l0@138.4.4.253:554/MediaInput/h264");
+    url = std::string("rtsp://isabel:grdp1l0@138.4.4.253:554/MediaInput/h264");
 
 
+    
+  }
+
+  void ExternalInput::setAudioReceiver(MediaReceiver* audioReceiver){
+    this->audioReceiver_ = audioReceiver;
+  }
+  void ExternalInput::setVideoReceiver(MediaReceiver* videoReceiver){
+    this->videoReceiver_ = videoReceiver;
+  }
+  bool ExternalInput::init(){
     context = avformat_alloc_context();
     av_register_all();
     avcodec_register_all();
@@ -23,9 +33,11 @@ namespace erizo {
     printf("trying to open input\n");
     if(avformat_open_input(&context, url.c_str(),NULL,NULL) != 0){
       printf("fail when opening input\n");
+      return false;
     }
     if(avformat_find_stream_info(context,NULL) < 0){
       printf("fail when finding stream info\n");
+      return false;
     }
 
     sendVideoBuffer_ = (char*) malloc(2000);
@@ -83,17 +95,10 @@ namespace erizo {
     //    av_write_trailer(oc);
     //    avio_close(oc->pb);
     //    avformat_free_context(oc);
-  }
 
-  void ExternalInput::setAudioReceiver(MediaReceiver* audioReceiver){
-    this->audioReceiver_ = audioReceiver;
-  }
-  void ExternalInput::setVideoReceiver(MediaReceiver* videoReceiver){
-    this->videoReceiver_ = videoReceiver;
-  }
-  bool ExternalInput::init(){
     return true;
   }
+
   void ExternalInput::close() {
   }
 
