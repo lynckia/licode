@@ -1,5 +1,7 @@
 /*global require, console, setInterval, clearInterval, exports*/
 var rpc = require('./rpc/rpc');
+var config = require('./../../lynckia_config');
+var ec2;
 
 var INTERVAL_TIME_EC_READY = 100;
 var INTERVAL_TIME_CHECK_KA = 1000;
@@ -46,7 +48,7 @@ var recalculatePriority = function () {
     ecQueue = newEcQueue;
 
     if (ecQueue.length === 0 || (available === 0 && warnings < 2)) {
-        console.log('[CLOUD HANDLER]: Warning! Any erizoController is available.');
+        console.log('[CLOUD HANDLER]: Warning! No erizoController is available.');
     }
 
 },
@@ -76,7 +78,41 @@ var recalculatePriority = function () {
 
     checkKAInterval = setInterval(checkKA, INTERVAL_TIME_CHECK_KA);
 
-exports.addNewErizoController = function (ip, callback) {
+exports.addNewErizoController = function (msg, callback) {
+    "use strict";
+
+    if (msg.cloudProvider === '') {
+        addNewPrivateErizoController(msg.ip, callback);
+    } else if (msg.cloudProvider === 'amazon') {
+        addNewAmazonErizoController(msg.ip, callback);
+    }
+    
+};
+
+var addNewAmazonErizoController = function(privateIP, callback) {
+    
+    var publicIP;
+    var instaceId;
+
+    if (ec2 === undefined) {
+        ec2 = require('aws-lib').createEC2Client(config.cloudProvider.accessKey, config.cloudProvider.secretAccessKey, {host:'ec2.eu-west-1.amazonaws.com', version: '2012-12-01'});
+    }
+    console.log('private ip ', privateIP);
+
+    ec2.call('DescribeInstances', {'Filter.1.Name':'private-ip-address', 'Filter.1.Value':privateIP}, function (err, response) {
+
+        if (err) {
+            console.log('Error: ', err);
+            callback('error');
+        } else if (response) {
+            publicIP = response.reservationSet.item.instancesSet.item.ipAddress;
+            console.log('public IP: ', publicIP);
+            addNewPrivateErizoController(publicIP, callback);
+        }
+    });
+}
+
+var addNewPrivateErizoController = function (ip, callback) {
     "use strict";
     idIndex += 1;
     var id = idIndex,
@@ -84,7 +120,7 @@ exports.addNewErizoController = function (ip, callback) {
     erizoControllers[id] = {ip: ip, rpcID: rpcID, state: 2, keepAlive: 0};
     console.log('New erizocontroller (', id, ') in: ', erizoControllers[id].ip);
     recalculatePriority();
-    callback(id);
+    callback({id: id, publicIP: ip});
 };
 
 exports.keepAlive = function (id, callback) {

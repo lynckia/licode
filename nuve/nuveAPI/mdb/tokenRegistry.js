@@ -21,7 +21,8 @@ var getToken = exports.getToken = function (id, callback) {
     "use strict";
 
     db.tokens.findOne({_id: new BSON.ObjectID(id)}, function (err, token) {
-        if (token === undefined) {
+        if (token == null) {
+            token = undefined;
             console.log('Token ', id, ' not found');
         }
         if (callback !== undefined) {
@@ -93,9 +94,8 @@ exports.removeOldTokens = function () {
                 dif = time - tokenTime;
 
                 if (dif > 3*60*1000) {
-                    removeToken(token._id + '', function() {
-                        console.log('Removed old token ', token._id, 'from room ', token.room, ' of service ', token.service);
-                    });
+                    console.log('Removing old token ', token._id, 'from room ', token.room, ' of service ', token.service);
+                    removeToken(token._id + '', function() {});
                 }
             }
         }

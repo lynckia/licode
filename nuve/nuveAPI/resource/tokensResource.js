@@ -3,8 +3,8 @@ var roomRegistry = require('./../mdb/roomRegistry');
 var tokenRegistry = require('./../mdb/tokenRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var dataBase = require('./../mdb/dataBase');
-var rpc = require('./../rpc/rpc');
 var crypto = require('crypto');
+var cloudHandler = require('../cloudHandler');
 
 var currentService;
 var currentRoom;
@@ -103,7 +103,7 @@ var generateToken = function (callback) {
         }
     } else {
 
-        rpc.callRpc('cloudHandler', 'getErizoControllerForRoom', currentRoom._id, function (ec) {
+        cloudHandler.getErizoControllerForRoom (currentRoom._id, function (ec) {
 
             if (ec === 'timeout') {
                 callback('error');
