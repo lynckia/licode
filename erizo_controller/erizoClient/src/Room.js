@@ -51,7 +51,7 @@ Erizo.Room = function (spec) {
         for (index in that.localStreams) {
             if (that.localStreams.hasOwnProperty(index)) {
                 stream = that.localStreams[index];
-                removeStream(stream);
+                stream.pc.close();
                 delete that.localStreams[index];
             }
         }
@@ -70,11 +70,15 @@ Erizo.Room = function (spec) {
     // It removes the stream from HTML and close the PeerConnection associated 
     removeStream = function (stream) {
         if (stream.stream !== undefined) {
+
             // Remove HTML element
             stream.hide();
 
             // Close PC stream
             stream.pc.close();
+            if (stream.local) {
+                stream.stream.stop();
+            }
         }
     };
 
@@ -88,7 +92,10 @@ Erizo.Room = function (spec) {
     connectSocket = function (token, callback, error) {
         // Once we have connected
 
-        //that.socket = io.connect("hpcm.dit.upm.es:8080", {reconnect: false});
+        var host = 'http://' + token.host;
+
+        delete io.sockets[host];
+
         that.socket = io.connect(token.host, {reconnect: false});
 
         // We receive an event with a new stream in the room.
@@ -225,6 +232,7 @@ Erizo.Room = function (spec) {
                                 sendDataSocket(stream, msg);
                             };
                             that.localStreams[id] = stream;
+                            stream.room = that;
                         } else {
                             L.Logger.info('Error when publishing the stream');
                         }
@@ -245,6 +253,7 @@ Erizo.Room = function (spec) {
                                     sendDataSocket(stream, msg);
                                 };
                                 that.localStreams[id] = stream;
+                                stream.room = that;
                             };
                             stream.pc.processSignalingMessage(answer);
                         });
@@ -264,6 +273,7 @@ Erizo.Room = function (spec) {
                         sendDataSocket(stream, msg);
                     };
                     that.localStreams[id] = stream;
+                    stream.room = that;
                 });
             }
         }
@@ -276,6 +286,15 @@ Erizo.Room = function (spec) {
         if (stream.local) {
             // Media stream
             sendMessageSocket('unpublish', stream.getID());
+            stream.room = undefined;
+            if (stream.hasAudio() || stream.hasVideo()) {
+                stream.pc.close();
+                stream.pc = undefined;
+            }
+            delete that.localStreams[stream.getID()];
+
+            stream.getID = function () {};
+            stream.sendData = function (msg) {};
         }
     };
 
