@@ -224,7 +224,7 @@ var listen = function () {
             }
         });
 
-        //Gets 'ssendDataStream' messages on the socket in order to write a message in a dataStream.
+        //Gets 'sendDataStream' messages on the socket in order to write a message in a dataStream.
         socket.on('sendDataStream', function (msg) {
             var sockets = socket.room.streams[msg.id].getDataSubscribers(), id;
             for (id in sockets) {
@@ -238,7 +238,7 @@ var listen = function () {
         //Gets 'publish' messages on the socket in order to add new stream to the room.
         socket.on('publish', function (options, sdp, callback) {
             var id, st;
-            if (options.state !== 'data') {
+            if (options.state === 'offer' || options.state === 'ok') {
                 if (options.state === 'offer' && socket.state === 'sleeping') {
                     id = Math.random() * 100000000000000000;
                     socket.room.webRtcController.addPublisher(id, sdp, function (answer) {
@@ -254,15 +254,29 @@ var listen = function () {
                     socket.room.streams[options.streamId] = st;
                     sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
                 }
-            } else {
+
+            } else if (options.state === 'data') {
                 id = Math.random() * 100000000000000000;
                 st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
                 socket.streams.push(id);
                 socket.room.streams[id] = st;
                 callback(undefined, id);
                 sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
-            }
 
+            } else if (options.state === 'url') {
+                id = Math.random() * 100000000000000000;
+                socket.room.webRtcController.addExternalInput(id, sdp, function (result) {
+                    if (result === 'success') {
+                        st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
+                        socket.streams.push(id);
+                        socket.room.streams[id] = st;
+                        callback(result, id);
+                        sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
+                    } else {
+                        callback(result);
+                    }
+                });
+            }
         });
 
         //Gets 'subscribe' messages on the socket in order to add new subscriber to a determined stream (options.streamId).

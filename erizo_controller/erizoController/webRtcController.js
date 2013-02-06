@@ -105,6 +105,36 @@ exports.WebRtcController = function () {
         return answer;
     };
 
+    that.addExternalInput = function (from, url, callback) {
+
+        if (publishers[from] === undefined) {
+
+            console.log("Adding external input peer_id ", from);
+
+            var muxer = new addon.OneToManyProcessor(),
+                ei = new addon.ExternalInput(url);
+
+            publishers[from] = muxer;
+            subscribers[from] = [];
+
+            ei.setAudioReceiver(muxer);
+            ei.setVideoReceiver(muxer);
+            muxer.setPublisher(ei);
+
+            var answer = ei.init();
+
+            if (answer) {
+                callback('success');
+            } else {
+                callback('error');
+            }
+
+        } else {
+            console.log("Publisher already set for", from);
+        }
+    };
+
+
     /*
      * Adds a publisher to the room. This creates a new OneToManyProcessor
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher

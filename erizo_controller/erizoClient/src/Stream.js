@@ -9,6 +9,7 @@ Erizo.Stream = function (spec) {
     var that = Erizo.EventDispatcher(spec),
         getFrame;
     that.stream = spec.stream;
+    that.url = spec.url;
     that.room = undefined;
     that.showing = false;
     that.local = false;

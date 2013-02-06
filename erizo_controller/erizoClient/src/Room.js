@@ -213,11 +213,10 @@ Erizo.Room = function (spec) {
             // 2- Publish Media Stream to Erizo-Controller
             if (stream.hasAudio() || stream.hasVideo()) {
 
-                stream.pc = Erizo.Connection({callback: function (offer) {
-                    sendSDPSocket('publish', {state: 'offer', data: true, audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
-                        stream.pc.onsignalingmessage = function (ok) {
-                            stream.pc.onsignalingmessage = function () {};
-                            sendSDPSocket('publish', {state: 'ok', streamId: id, data: true, audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, ok);
+                if (stream.url !== undefined) {
+                    sendSDPSocket('publish', {state: 'url', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, stream.url, function (answer, id) {
+                        
+                        if (answer === 'success') {
                             L.Logger.info('Stream published');
                             stream.getID = function () {
                                 return id;
@@ -226,12 +225,34 @@ Erizo.Room = function (spec) {
                                 sendDataSocket(stream, msg);
                             };
                             that.localStreams[id] = stream;
-                        };
-                        stream.pc.processSignalingMessage(answer);
-                    });
-                }, stunServerUrl: that.stunServerUrl});
+                        } else {
+                            L.Logger.info('Error when publishing the stream');
+                        }
 
-                stream.pc.addStream(stream.stream);
+                    });
+
+                } else {
+                    stream.pc = Erizo.Connection({callback: function (offer) {
+                        sendSDPSocket('publish', {state: 'offer', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
+                            stream.pc.onsignalingmessage = function (ok) {
+                                stream.pc.onsignalingmessage = function () {};
+                                sendSDPSocket('publish', {state: 'ok', streamId: id, data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, ok);
+                                L.Logger.info('Stream published');
+                                stream.getID = function () {
+                                    return id;
+                                };
+                                stream.sendData = function (msg) {
+                                    sendDataSocket(stream, msg);
+                                };
+                                that.localStreams[id] = stream;
+                            };
+                            stream.pc.processSignalingMessage(answer);
+                        });
+                    }, stunServerUrl: that.stunServerUrl});
+
+                    stream.pc.addStream(stream.stream);
+                }
+
             } else if (stream.hasData()) {
                 // 3- Publish Data Stream
                 sendSDPSocket('publish', {state: 'data', data: true, audio: false, video: false, attributes: stream.getAttributes()}, undefined, function (answer, id) {
