@@ -74,18 +74,6 @@ Erizo.Stream = function (spec) {
         }
     };
 
-    that.show = function (elementID, options) {
-        that.elementID = elementID;
-        if (that.hasVideo()) {
-            // Draw on HTML
-            if (elementID !== undefined) {
-                var player = new Erizo.VideoPlayer({id: that.getID(), stream: that.stream, elementID: elementID, options: options});
-                that.player = player;
-                that.showing = true;
-            }
-        }
-    };
-
     that.close = function () {
         if (that.local) {
             if (that.room !== undefined) {
@@ -97,6 +85,18 @@ Erizo.Stream = function (spec) {
                 that.stream.stop();       
             }
             that.stream = undefined; 
+        }
+    };
+
+    that.show = function (elementID, options) {
+        that.elementID = elementID;
+        if (that.hasVideo()) {
+            // Draw on HTML
+            if (elementID !== undefined) {
+                var player = new Erizo.VideoPlayer({id: that.getID(), stream: that.stream, elementID: elementID, options: options});
+                that.player = player;
+                that.showing = true;
+            }
         }
     };
 
