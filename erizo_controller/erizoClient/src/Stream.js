@@ -49,7 +49,7 @@ Erizo.Stream = function (spec) {
     // We need to call this method before we can publish it in the room.
     that.init = function () {
         try {
-            if (spec.audio || spec.video) {
+            if ((spec.audio || spec.video) && spec.url === undefined) {
                 L.Logger.debug("Requested access to local media");
                 Erizo.GetUserMedia({video: spec.video, audio: spec.audio}, function (stream) {
                 //navigator.webkitGetUserMedia("audio, video", function (stream) {

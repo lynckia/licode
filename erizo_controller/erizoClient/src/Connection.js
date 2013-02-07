@@ -47,7 +47,7 @@ Erizo.GetUserMedia = function (config, callback) {
     "use strict";
 
     if (typeof module !== 'undefined' && module.exports) {
-        L.Logger.error('Video/audio streams not supported in erizofc yet');
+        L.Logger.error('Video/audio streams not supported in erizofc yet (only specifying a url)');
     } else {
         try {
             navigator.webkitGetUserMedia("audio, video", callback);

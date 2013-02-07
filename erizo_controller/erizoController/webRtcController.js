@@ -30,7 +30,7 @@ exports.WebRtcController = function () {
 
                 if (state > 2) {
 
-//                    publishers[to].sendFIR();
+                    //publishers[to].sendFIR();
                     clearInterval(intervarId);
                 }
 
