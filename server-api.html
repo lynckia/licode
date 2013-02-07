@@ -75,21 +75,12 @@ serverapi: true
           <div class="page-header">
             <h1>Initialize</h1>
           </div>
-          <p>Once yow download the API, you need to require it in your node.js server and initialize it with a Service. Call the constructor with the Service Id and the Service Key issued you. </p>
+          <p>Once you compile the API, you need to require it in your node.js server and initialize it with a Service. Call the constructor with the Service Id and the Service Key created in the data base. </p>
           <pre class="prettyprint linenums">
 var N = require('./nuve');
 N.API.init(serviceId, serviceKey);</pre>
-          <p>You can obtain your own Service Id and Service Key <a href="#serviceid">here</a>. With this Service you can create videoconference rooms for your videoconference application and get the neccesary tokens for add participants to them. Also you can ask Nuve about the users connected to a room.</p>
-          
-          <div class="row-fluid">
-            <div class="span9">
-              <h4>Download server-side API</h4>
-              <p>Here you can download nuve.js (a Node.js module), or nuve.py (a Python module).</p>
-              <p><a class="btn btn-large btn-primary" href="assets/nuve.js">Download nuve.js</a></p>
-              <p><a class="btn btn-large btn-primary" href="assets/nuve.py">Download nuve.py</a></p>
-            </div>
-            
-          </div>
+          <p>With a Service you can create videoconference rooms for your videoconference application and get the neccesary tokens for add participants to them. Also you can ask Nuve about the users connected to a room.</p>
+          <p>You can also compile Nuve API for python.</p>
         </section>
 
 
