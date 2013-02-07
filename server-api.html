@@ -78,7 +78,7 @@ serverapi: true
           <p>Once you compile the API, you need to require it in your node.js server and initialize it with a Service. Call the constructor with the Service Id and the Service Key created in the data base. </p>
           <pre class="prettyprint linenums">
 var N = require('./nuve');
-N.API.init(serviceId, serviceKey);</pre>
+N.API.init(serviceId, serviceKey, nuve_host);</pre>
           <p>With a Service you can create videoconference rooms for your videoconference application and get the neccesary tokens for add participants to them. Also you can ask Nuve about the users connected to a room.</p>
           <p>You can also compile Nuve API for python.</p>
         </section>
@@ -236,7 +236,7 @@ N.API.getUsers(roomId, function(users) {
             <div class="span8">
               <pre class="prettyprint linenums:1">
 var N = require('nuve');
-N.API.init("531b26113e74ee30500001", "myKey");</pre>
+N.API.init("531b26113e74ee30500001", "myKey", "http://localhost:3000/");</pre>
             </div>
 
             <div class="span4">
