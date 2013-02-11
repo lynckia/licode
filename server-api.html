@@ -268,7 +268,7 @@ app.configure(function () {
 app.post('/createRoom/', function(req, res){
 
     var name = req.params.name;
-    N.API.createRoom(function(roomID) {
+    N.API.createRoom('myRoom', function(roomID) {
         res.send(roomID);
     });
 });</pre>
