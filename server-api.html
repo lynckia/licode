@@ -267,7 +267,6 @@ app.configure(function () {
               <pre class="prettyprint linenums:11">
 app.post('/createRoom/', function(req, res){
 
-    var name = req.params.name;
     N.API.createRoom('myRoom', function(roomID) {
         res.send(roomID);
     });
