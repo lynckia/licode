@@ -6,8 +6,7 @@
 #include "WebRtcConnection.h"
 
 namespace erizo {
-  OneToManyProcessor::OneToManyProcessor() :
-    MediaReceiver() {
+  OneToManyProcessor::OneToManyProcessor() {
 
       sendVideoBuffer_ = (char*) malloc(2000);
       sendAudioBuffer_ = (char*) malloc(2000);
@@ -25,11 +24,10 @@ namespace erizo {
   }
 
   int OneToManyProcessor::receiveAudioData(char* buf, int len) {
-
     if (subscribers.empty() || len <= 0)
       return 0;
 
-    std::map<std::string, WebRtcConnection*>::iterator it;
+    std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
       memset(sendAudioBuffer_, 0, len);
       memcpy(sendAudioBuffer_, buf, len);
@@ -57,12 +55,13 @@ namespace erizo {
       }
       */
 
-      head->ssrc = htonl(publisher->localVideoSsrc_);
-      publisher->receiveVideoData(buf,len);
+      head->ssrc = htonl(publisher->getVideoSourceSSRC());
+     // publisher->receiveVideoData(buf,len);
+     publisher->receiveFeedback(buf,len);
       return 0;
     }
 
-    std::map<std::string, WebRtcConnection*>::iterator it;
+    std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
       memset(sendVideoBuffer_, 0, len);
       memcpy(sendVideoBuffer_, buf, len);
@@ -73,12 +72,12 @@ namespace erizo {
     return 0;
   }
 
-  void OneToManyProcessor::setPublisher(WebRtcConnection* webRtcConn) {
+  void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
 
     this->publisher = webRtcConn;
   }
 
-  void OneToManyProcessor::addSubscriber(WebRtcConnection* webRtcConn,
+  void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
     printf("Adding subscriber\n");
     webRtcConn->localAudioSsrc_ = this->publisher->remoteAudioSSRC_;
@@ -102,7 +101,7 @@ namespace erizo {
   }
 
   void OneToManyProcessor::closeAll() {
-    std::map<std::string, WebRtcConnection*>::iterator it;
+    std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
       (*it).second->close();
     }

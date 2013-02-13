@@ -33,7 +33,7 @@ public:
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary ICE and SRTP components.
  */
-class WebRtcConnection: public MediaReceiver, public NiceReceiver {
+class WebRtcConnection: public MediaSink, public MediaSource, public NiceReceiver {
 public:
 	unsigned int localAudioSsrc_, localVideoSsrc_;
 	unsigned int remoteAudioSSRC_, remoteVideoSSRC_;

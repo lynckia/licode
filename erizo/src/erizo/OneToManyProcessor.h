@@ -18,10 +18,10 @@ class WebRtcConnection;
  * Represents a One to Many connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class OneToManyProcessor : public MediaReceiver {
+class OneToManyProcessor : public MediaSink {
 public:
-	WebRtcConnection *publisher;
-	std::map<std::string, WebRtcConnection*> subscribers;
+	MediaSource *publisher;
+	std::map<std::string, MediaSink*> subscribers;
 
 	OneToManyProcessor();
 	virtual ~OneToManyProcessor();
@@ -29,13 +29,13 @@ public:
 	 * Sets the Publisher
 	 * @param webRtcConn The WebRtcConnection of the Publisher
 	 */
-	void setPublisher(WebRtcConnection* webRtcConn);
+	void setPublisher(MediaSource* webRtcConn);
 	/**
 	 * Sets the subscriber
 	 * @param webRtcConn The WebRtcConnection of the subscriber
 	 * @param peerId An unique Id for the subscriber
 	 */
-	void addSubscriber(WebRtcConnection* webRtcConn, const std::string& peerId);
+	void addSubscriber(MediaSink* webRtcConn, const std::string& peerId);
 	/**
 	 * Eliminates the subscriber given its peer id
 	 * @param peerId the peerId

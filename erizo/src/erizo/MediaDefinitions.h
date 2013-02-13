@@ -17,14 +17,18 @@ struct packet{
 /**
  * A MediaReceiver is any class that can receive audio or video data.
  */
-class MediaReceiver{
+class MediaSink{
 protected:
-  unsigned int receiverSSRC_;
+  unsigned int audioSinkSSRC_;
+  unsigned int videoSinkSSRC_;
 public:
 	virtual int receiveAudioData(char* buf, int len)=0;
 	virtual int receiveVideoData(char* buf, int len)=0;
+  virtual void setFeedbackReceiver(MediaSource* source)=0;
+  virtual unsigned int getVideoSinkSSRC (){ return videoSinkSSRC_};
+  virtual unsigned int setVideoSinkSSRC (unsigned int ssrc){ videoSinkSSRC_ = ssrc};
   virtual void close()=0;
-	virtual ~MediaReceiver(){};
+	virtual ~MediaSink(){};
 };
 
 /**
@@ -32,12 +36,15 @@ public:
  */
 class MediaSource{
 protected: 
-    unsigned int sourceSSRC_;
+    unsigned int videoSourceSSRC_;
+    unsigned int audioSourceSSRC_;
 public:
-  virtual void setAudioReceiver(MediaReceiver* audioReceiver)=0;
-  virtual void setVideoReceiver(MediaReceiver* videoReceiver)=0;
-  virtual int receiveRTCP(char* buf, int len)=0;
-  virtual int sendFirPacket();
+  virtual void setAudioReceiver(MediaSink* audioReceiver)=0;
+  virtual void setVideoReceiver(MediaSink* videoReceiver)=0;
+  virtual int receiveFeedback(char* buf, int len)=0;
+  virtual int sendFirPacket()=0;
+  virtual unsigned int getVideoSourceSSRC (){ return videoSourceSSRC_};
+  virtual unsigned int setVideoSourceSSRC (unsigned int ssrc){ videoSourceSSRC_ = ssrc};
   virtual void close()=0;
 	virtual ~MediaSource(){};
 };
