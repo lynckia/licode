@@ -259,12 +259,12 @@ namespace erizo {
     return localSdp_.getSdp();
   }
 
-  void WebRtcConnection::setAudioReceiver(MediaReceiver *receiv) {
+  void WebRtcConnection::setAudioReceiver(MediaSink *receiv) {
 
     this->audioReceiver_ = receiv;
   }
 
-  void WebRtcConnection::setVideoReceiver(MediaReceiver *receiv) {
+  void WebRtcConnection::setVideoReceiver(MediaSink *receiv) {
 
     this->videoReceiver_ = receiv;
   }
@@ -357,6 +357,10 @@ namespace erizo {
       receiveVideoMutex_.unlock();
     }
     return res;
+  }
+
+  int WebRtcConnection::receiveFeedback(char* buf, int len){
+    printf("receiving Feedback\n");
   }
 
   int WebRtcConnection::receiveNiceData(char* buf, int len,

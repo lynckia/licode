@@ -14,6 +14,8 @@ struct packet{
 	int length;
 };
 
+
+class MediaSource;
 /**
  * A MediaReceiver is any class that can receive audio or video data.
  */
@@ -25,8 +27,10 @@ public:
 	virtual int receiveAudioData(char* buf, int len)=0;
 	virtual int receiveVideoData(char* buf, int len)=0;
   virtual void setFeedbackReceiver(MediaSource* source)=0;
-  virtual unsigned int getVideoSinkSSRC (){ return videoSinkSSRC_};
-  virtual unsigned int setVideoSinkSSRC (unsigned int ssrc){ videoSinkSSRC_ = ssrc};
+  virtual unsigned int getVideoSinkSSRC (){ return videoSinkSSRC_;};
+  virtual unsigned int setVideoSinkSSRC (unsigned int ssrc){ videoSinkSSRC_ = ssrc;};
+  virtual unsigned int getAudioSinkSSRC (){ return audioSinkSSRC_;};
+  virtual unsigned int setAudioSinkSSRC (unsigned int ssrc){ audioSinkSSRC_ = ssrc;};
   virtual void close()=0;
 	virtual ~MediaSink(){};
 };
@@ -43,8 +47,10 @@ public:
   virtual void setVideoReceiver(MediaSink* videoReceiver)=0;
   virtual int receiveFeedback(char* buf, int len)=0;
   virtual int sendFirPacket()=0;
-  virtual unsigned int getVideoSourceSSRC (){ return videoSourceSSRC_};
-  virtual unsigned int setVideoSourceSSRC (unsigned int ssrc){ videoSourceSSRC_ = ssrc};
+  virtual unsigned int getVideoSourceSSRC (){ return videoSourceSSRC_;};
+  virtual unsigned int setVideoSourceSSRC (unsigned int ssrc){ videoSourceSSRC_ = ssrc;};
+  virtual unsigned int getAudioSourceSSRC (){ return audioSourceSSRC_;};
+  virtual unsigned int setAudioSourceSSRC (unsigned int ssrc){ audioSourceSSRC_ = ssrc;};
   virtual void close()=0;
 	virtual ~MediaSource(){};
 };

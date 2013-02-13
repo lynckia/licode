@@ -80,12 +80,13 @@ namespace erizo {
   void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
     printf("Adding subscriber\n");
-    webRtcConn->localAudioSsrc_ = this->publisher->remoteAudioSSRC_;
-    webRtcConn->localVideoSsrc_ = this->publisher->remoteVideoSSRC_;
+    webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
+    webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
 //    if (this->subscribers.empty()|| this->rtcpReceiverPeerId_.empty()){
       printf("Adding rtcp\n");
   //    this->rtcpReceiverPeerId_= peerId;
-      webRtcConn->setVideoReceiver(this);
+  //    TODO: ADD FEEDBACK
+//      webRtcConn->setVideoReceiver(this);
     //}
     this->subscribers[peerId] = webRtcConn;
   }

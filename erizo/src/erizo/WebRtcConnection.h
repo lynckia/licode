@@ -75,12 +75,12 @@ public:
 	 * Sets a MediaReceiver that is going to receive Audio Data
 	 * @param receiv The MediaReceiver to send audio to.
 	 */
-	void setAudioReceiver(MediaReceiver *receiv);
+	void setAudioReceiver(MediaSink *receiv);
 	/**
 	 * Sets a MediaReceiver that is going to receive Video Data
 	 * @param receiv The MediaReceiver
 	 */
-	void setVideoReceiver(MediaReceiver *receiv);
+	void setVideoReceiver(MediaSink *receiv);
 	/**
 	 * Method to Receive data from a NiceConnection
 	 * @param buf The data buffer
@@ -90,6 +90,9 @@ public:
 	 */
 
 	int receiveNiceData(char* buf, int len, NiceConnection *nice);
+
+
+  int receiveFeedback(char* buf, int len);
 
 	/**
 	 * Sends a FIR Packet (RFC 5104) asking for a keyframe
@@ -114,8 +117,8 @@ private:
 	SrtpChannel* videoSrtp_;
 	IceState globalIceState_;
 
-	MediaReceiver* audioReceiver_;
-	MediaReceiver* videoReceiver_;
+	MediaSink* audioReceiver_;
+	MediaSink* videoReceiver_;
 	int video_, audio_, bundle_, sequenceNumberFIR_;
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_, updateStateMutex_;
 	boost::thread send_Thread_;
