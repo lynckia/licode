@@ -16,11 +16,18 @@ struct packet{
 
 
 class MediaSource;
+
+
+class FeedbackReceiver{
+public:
+  virtual int receiveFeedback(char* buf, int len)=0;
+};
 /**
  * A MediaReceiver is any class that can receive audio or video data.
  */
 class MediaSink{
-protected:
+private:
+  //SSRCs received by the SINK
   unsigned int audioSinkSSRC_;
   unsigned int videoSinkSSRC_;
 public:
@@ -28,9 +35,9 @@ public:
 	virtual int receiveVideoData(char* buf, int len)=0;
   virtual void setFeedbackReceiver(MediaSource* source)=0;
   virtual unsigned int getVideoSinkSSRC (){ return videoSinkSSRC_;};
-  virtual unsigned int setVideoSinkSSRC (unsigned int ssrc){ videoSinkSSRC_ = ssrc;};
+  virtual void setVideoSinkSSRC (unsigned int ssrc){ videoSinkSSRC_ = ssrc;};
   virtual unsigned int getAudioSinkSSRC (){ return audioSinkSSRC_;};
-  virtual unsigned int setAudioSinkSSRC (unsigned int ssrc){ audioSinkSSRC_ = ssrc;};
+  virtual void setAudioSinkSSRC (unsigned int ssrc){ audioSinkSSRC_ = ssrc;};
   virtual void close()=0;
 	virtual ~MediaSink(){};
 };
@@ -38,22 +45,23 @@ public:
 /**
  * A MediaSource is any class that produces audio or video data.
  */
-class MediaSource{
-protected: 
+class MediaSource: public FeedbackReceiver{
+private: 
+  //SSRCs coming from the source
     unsigned int videoSourceSSRC_;
     unsigned int audioSourceSSRC_;
 public:
   virtual void setAudioReceiver(MediaSink* audioReceiver)=0;
   virtual void setVideoReceiver(MediaSink* videoReceiver)=0;
-  virtual int receiveFeedback(char* buf, int len)=0;
   virtual int sendFirPacket()=0;
   virtual unsigned int getVideoSourceSSRC (){ return videoSourceSSRC_;};
-  virtual unsigned int setVideoSourceSSRC (unsigned int ssrc){ videoSourceSSRC_ = ssrc;};
+  virtual void setVideoSourceSSRC (unsigned int ssrc){ videoSourceSSRC_ = ssrc;};
   virtual unsigned int getAudioSourceSSRC (){ return audioSourceSSRC_;};
-  virtual unsigned int setAudioSourceSSRC (unsigned int ssrc){ audioSourceSSRC_ = ssrc;};
+  virtual void setAudioSourceSSRC (unsigned int ssrc){ audioSourceSSRC_ = ssrc;};
   virtual void close()=0;
 	virtual ~MediaSource(){};
 };
+
 
 
 /**

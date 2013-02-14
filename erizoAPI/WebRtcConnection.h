@@ -3,7 +3,7 @@
 
 #include <node.h>
 #include <WebRtcConnection.h>
-#include "MediaReceiver.h"
+#include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
 
 

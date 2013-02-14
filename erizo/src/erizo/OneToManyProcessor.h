@@ -18,7 +18,7 @@ class WebRtcConnection;
  * Represents a One to Many connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class OneToManyProcessor : public MediaSink {
+class OneToManyProcessor : public MediaSink, public FeedbackReceiver {
 public:
 	MediaSource *publisher;
 	std::map<std::string, MediaSink*> subscribers;
@@ -43,6 +43,12 @@ public:
 	void removeSubscriber(const std::string& peerId);
 	int receiveAudioData(char* buf, int len);
 	int receiveVideoData(char* buf, int len);
+
+  void setFeedbackReceiver(MediaSource* source);
+
+  int receiveFeedback(char* buf, int len);
+
+  void close();
 	/**
 	 * Closes all the subscribers and the publisher, the object is useless after this
 	 */

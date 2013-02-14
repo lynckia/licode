@@ -77,11 +77,38 @@ namespace erizo {
     this->publisher = webRtcConn;
   }
 
+  void OneToManyProcessor::setFeedbackReceiver(MediaSource* source){
+    printf("setting Media Source\n");
+  }
+
+  int OneToManyProcessor::receiveFeedback(char* buf, int len){
+    rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
+    if(head->packettype==201 || head->packettype==206){
+      int offset = 0;
+      /*
+      rtcpheader* head2;
+
+      while (offset<len){
+        head2 = reinterpret_cast<rtcpheader*>(&buf[offset]);
+        if (head2->packettype==206 && head2->blockcount==1){
+          //printf("NACK\n");
+        }
+        offset+=(ntohs(head2->length)+1)*4;
+      }
+      */
+
+      head->ssrc = htonl(publisher->getVideoSourceSSRC());
+     // publisher->receiveVideoData(buf,len);
+     publisher->receiveFeedback(buf,len);
+      return 0;
+    }
+  }
+
   void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
     printf("Adding subscriber\n");
-    webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
-    webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
+//    webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
+//    webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
 //    if (this->subscribers.empty()|| this->rtcpReceiverPeerId_.empty()){
       printf("Adding rtcp\n");
   //    this->rtcpReceiverPeerId_= peerId;
@@ -99,6 +126,10 @@ namespace erizo {
       this->subscribers[peerId]->close();
       this->subscribers.erase(peerId);
     }
+  }
+
+  void OneToManyProcessor::close(){
+    this->closeAll();
   }
 
   void OneToManyProcessor::closeAll() {

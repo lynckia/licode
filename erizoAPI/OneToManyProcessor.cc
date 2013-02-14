@@ -53,8 +53,8 @@ Handle<Value> OneToManyProcessor::setPublisher(const Arguments& args) {
   OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
-  erizo::WebRtcConnection *wr = param->me;
+  MediaSource* param = ObjectWrap::Unwrap<MediaSource>(args[0]->ToObject());
+  erizo::MediaSource *wr = param->me;
 
   me->setPublisher(wr);
 
@@ -82,8 +82,8 @@ Handle<Value> OneToManyProcessor::addSubscriber(const Arguments& args) {
   OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
-  erizo::WebRtcConnection *wr = param->me;
+  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(args[0]->ToObject());
+  erizo::MediaSink *wr = param->me;
 
 // get the param
   v8::String::Utf8Value param1(args[1]->ToString());

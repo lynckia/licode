@@ -35,9 +35,6 @@ public:
  */
 class WebRtcConnection: public MediaSink, public MediaSource, public NiceReceiver {
 public:
-	unsigned int localAudioSsrc_, localVideoSsrc_;
-	unsigned int remoteAudioSSRC_, remoteVideoSSRC_;
-
 	/**
 	 * Constructor.
 	 * Constructs an empty WebRTCConnection without any configuration.
@@ -81,6 +78,13 @@ public:
 	 * @param receiv The MediaReceiver
 	 */
 	void setVideoReceiver(MediaSink *receiv);
+	
+  /**
+	 * Sets a MediaSource that is going to receive rtcp feedback
+	 * @param receiv The MediaSource
+	 */
+	void setFeedbackReceiver(MediaSource *receiv);
+
 	/**
 	 * Method to Receive data from a NiceConnection
 	 * @param buf The data buffer
@@ -88,7 +92,6 @@ public:
 	 * @param nice The NiceConnection orgi
 	 * @return
 	 */
-
 	int receiveNiceData(char* buf, int len, NiceConnection *nice);
 
 

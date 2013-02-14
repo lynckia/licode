@@ -18,8 +18,8 @@ namespace erizo {
     audio_ = 0;
     sequenceNumberFIR_ = 0;
     bundle_ = false;
-    localVideoSsrc_ = 55543;
-    localAudioSsrc_ = 44444;
+    this->setVideoSinkSSRC(55543);
+    this->setAudioSinkSSRC(44444);
     videoReceiver_ = NULL;
     audioReceiver_ = NULL;
     audioNice_ = NULL;
@@ -46,7 +46,7 @@ namespace erizo {
   }
 
   bool WebRtcConnection::init() {
-    printf("init... localvideoSsrc_ %d\n", localVideoSsrc_);
+    printf("init... Sink SSRC %d\n", this->getVideoSinkSSRC());
     videoNice_->start();
     audioNice_->start();
     return true;
@@ -115,7 +115,7 @@ namespace erizo {
           localSdp_.addCrypto(crytp);
         }
         //        }
-        localSdp_.videoSsrc = localVideoSsrc_;
+        localSdp_.videoSsrc = this->getVideoSinkSSRC();
       } else {
         videoNice_->close();
         delete (videoNice_);
@@ -135,7 +135,7 @@ namespace erizo {
           localSdp_.addCrypto(crytp);
         }
         //        }
-        localSdp_.audioSsrc = localAudioSsrc_;
+        localSdp_.audioSsrc = this->getAudioSinkSSRC();
       } else {
         audioNice_->close();
         audioNice_->join();
@@ -165,8 +165,8 @@ namespace erizo {
         localSdp_.addCrypto(crytpa);
       }
 
-      localSdp_.videoSsrc = localVideoSsrc_;
-      localSdp_.audioSsrc = localAudioSsrc_;
+      localSdp_.videoSsrc = this->getVideoSinkSSRC();
+      localSdp_.audioSsrc = this->getAudioSinkSSRC();
 
     }
 
@@ -212,8 +212,8 @@ namespace erizo {
       }
     } else {
       videoNice_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
-      remoteVideoSSRC_ = remoteSdp_.videoSsrc;
-      remoteAudioSSRC_ = remoteSdp_.audioSsrc;
+      this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
+      this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
       videoSrtp_->setRtpParams((char*) cryptLocal_video.keyParams.c_str(),
           (char*) cryptRemote_video.keyParams.c_str());
       videoSrtp_->setRtcpParams((char*) cryptLocal_video.keyParams.c_str(),
@@ -280,12 +280,12 @@ namespace erizo {
 
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
         if (chead->packettype == 200 || chead->packettype == 201) {
-          chead->ssrc=htonl(localAudioSsrc_);
+          chead->ssrc=htonl(this->getVideoSinkSSRC());
           if(videoSrtp_->protectRtcp(buf, &length)<0)
             return length;
         }else{
           rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
-          inHead->ssrc = htonl(localAudioSsrc_);
+          inHead->ssrc = htonl(this->getAudioSinkSSRC());
           if(videoSrtp_->protectRtp(buf, &length)<0)
             return length;
         }
@@ -307,7 +307,7 @@ namespace erizo {
     }else{
 
       rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
-      inHead->ssrc = htonl(localAudioSsrc_);
+      inHead->ssrc = htonl(this->getAudioSinkSSRC());
       if (audioSrtp_) {
         if(audioSrtp_->protectRtp(buf, &length)<0)
           return length;
@@ -328,7 +328,7 @@ namespace erizo {
 
     rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
     if (chead->packettype == 200 || chead->packettype == 201) {
-      chead->ssrc=htonl(localVideoSsrc_);
+      chead->ssrc=htonl(this->getVideoSinkSSRC());
       if (videoSrtp_ && videoNice_->iceState == READY) {
         if(videoSrtp_->protectRtcp(buf, &length)<0)
           return length;
@@ -336,7 +336,7 @@ namespace erizo {
     }
     else{
       rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
-      inHead->ssrc = htonl(localVideoSsrc_);
+      inHead->ssrc = htonl(this->getVideoSinkSSRC());
       if (videoSrtp_ && videoNice_->iceState == READY) {
         if(videoSrtp_->protectRtp(buf, &length)<0)
           return length;
@@ -359,8 +359,14 @@ namespace erizo {
     return res;
   }
 
+  void WebRtcConnection::setFeedbackReceiver(MediaSource* source){
+    printf("Setting Feedback\n");
+  }
+
   int WebRtcConnection::receiveFeedback(char* buf, int len){
     printf("receiving Feedback\n");
+    this->receiveVideoData(buf,len);
+    return 0;
   }
 
   int WebRtcConnection::receiveNiceData(char* buf, int len,
@@ -395,12 +401,12 @@ namespace erizo {
         rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
         recvSSRC= ntohl(inHead->ssrc);
       }
-      if (recvSSRC==remoteVideoSSRC_ || recvSSRC==localVideoSsrc_) {
+      if (recvSSRC==this->getVideoSourceSSRC() || recvSSRC==this->getVideoSinkSSRC()) {
         videoReceiver_->receiveVideoData(buf, length);
-      } else if (recvSSRC==remoteAudioSSRC_ || recvSSRC==localAudioSsrc_) {
+      } else if (recvSSRC==this->getAudioSourceSSRC() || recvSSRC==this->getAudioSinkSSRC()) {
         videoReceiver_->receiveAudioData(buf, length);
       } else {
-        printf("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring\n", recvSSRC, localVideoSsrc_, remoteVideoSSRC_);
+        printf("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring\n", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
       }
       return length;
     }
@@ -414,7 +420,7 @@ namespace erizo {
         if (length <= 0)
           return length;
         rtpheader *head = (rtpheader*) buf;
-        head->ssrc = htonl(localAudioSsrc_);
+        head->ssrc = htonl(this->getAudioSinkSSRC());
         audioReceiver_->receiveAudioData(buf, length);
         return length;
       }
@@ -427,7 +433,7 @@ namespace erizo {
         if (length <= 0)
           return length;
         rtpheader *head = (rtpheader*) buf;
-        head->ssrc = htonl(localVideoSsrc_);
+        head->ssrc = htonl(this->getVideoSinkSSRC());
         videoReceiver_->receiveVideoData(buf, length);
         return length;
       }
@@ -450,7 +456,7 @@ namespace erizo {
 
     // Add our own SSRC
     uint32_t* ptr = reinterpret_cast<uint32_t*>(rtcpPacket + pos);
-    ptr[0] = htonl(localVideoSsrc_);
+    ptr[0] = htonl(this->getVideoSinkSSRC());
     pos += 4;
 
     rtcpPacket[pos++] = (uint8_t) 0;
@@ -459,7 +465,7 @@ namespace erizo {
     rtcpPacket[pos++] = (uint8_t) 0;
     // Additional Feedback Control Information (FCI)
     uint32_t* ptr2 = reinterpret_cast<uint32_t*>(rtcpPacket + pos);
-    ptr2[0] = htonl(remoteVideoSSRC_);
+    ptr2[0] = htonl(this->getVideoSourceSSRC());
     pos += 4;
 
     rtcpPacket[pos++] = (uint8_t) (sequenceNumberFIR_);
