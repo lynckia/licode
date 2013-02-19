@@ -191,10 +191,11 @@ N.API.createToken(room, name, role, function(token) {
 var roomId = '30121g51113e74fff3115502';
 
 N.API.getUsers(roomId, function(users) {
-  console.log('This room has ', users.length, 'users');
+  var usersList = JSON.parse(users);
+  console.log('This room has ', usersList.length, 'users');
 
-  for(var i in users) {
-    console.log('User ', i, ':', users[i].name, 'with role: ', users[i].role);
+  for(var i in usersList) {
+    console.log('User ', i, ':', usersList[i].name, 'with role: ', usersList[i].role);
   }
 });</pre>
 
