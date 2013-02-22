@@ -13,6 +13,7 @@ message("current source dir " ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/")
 set(ERIZO_VERSION_MAJOR 0)
 set(ERIZO_VERSION_MINOR 1)
+set(CMAKE_CXX_FLAGS "-g -Wall")
 
 file(GLOB ERIZO_SOURCES ${ERIZO_SOURCE_DIR}/*.cpp ${ERIZO_SOURCE_DIR}/*.h)
 add_library(erizo SHARED ${ERIZO_SOURCES})

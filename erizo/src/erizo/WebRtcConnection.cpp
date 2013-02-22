@@ -20,8 +20,6 @@ namespace erizo {
     bundle_ = false;
     this->setVideoSinkSSRC(55543);
     this->setAudioSinkSSRC(44444);
-    videoReceiver_ = NULL;
-    audioReceiver_ = NULL;
     audioNice_ = NULL;
     videoNice_ = NULL;
     audioSrtp_ = NULL;
@@ -77,6 +75,14 @@ namespace erizo {
     }
   }
 
+  void WebRtcConnection::closeSink(){
+    this->close();
+  }
+
+  void WebRtcConnection::closeSource(){
+    this->close();
+  }
+
   bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     printf("Set Remote SDP\n %s", sdp.c_str());
     remoteSdp_.initWithSdp(sdp);
@@ -122,8 +128,6 @@ namespace erizo {
       }
 
       if (audio_) {
-        //        if (remoteSdp_.getCryptoInfos().size()!=0){
-        //
         if (remoteSdp_.profile==SAVPF){
           audioSrtp_ = new SrtpChannel();
           CryptoInfo crytp;
@@ -134,7 +138,6 @@ namespace erizo {
           crytp.keyParams = key;
           localSdp_.addCrypto(crytp);
         }
-        //        }
         localSdp_.audioSsrc = this->getAudioSinkSSRC();
       } else {
         audioNice_->close();
@@ -259,17 +262,7 @@ namespace erizo {
     return localSdp_.getSdp();
   }
 
-  void WebRtcConnection::setAudioReceiver(MediaSink *receiv) {
-
-    this->audioReceiver_ = receiv;
-  }
-
-  void WebRtcConnection::setVideoReceiver(MediaSink *receiv) {
-
-    this->videoReceiver_ = receiv;
-  }
-
-  int WebRtcConnection::receiveAudioData(char* buf, int len) {
+  int WebRtcConnection::deliverAudioData(char* buf, int len) {
     boost::mutex::scoped_lock lock(receiveAudioMutex_);
     int res = -1;
     int length = len;
@@ -321,7 +314,7 @@ namespace erizo {
     return res;
   }
 
-  int WebRtcConnection::receiveVideoData(char* buf, int len) {
+  int WebRtcConnection::deliverVideoData(char* buf, int len) {
 
     int res = -1;
     int length = len;
@@ -359,28 +352,24 @@ namespace erizo {
     return res;
   }
 
-  void WebRtcConnection::setFeedbackReceiver(MediaSource* source){
-    printf("Setting Feedback\n");
-  }
-
-  int WebRtcConnection::receiveFeedback(char* buf, int len){
+  int WebRtcConnection::deliverFeedback(char* buf, int len){
     printf("receiving Feedback\n");
-    this->receiveVideoData(buf,len);
+    this->deliverVideoData(buf,len);
     return 0;
   }
 
   int WebRtcConnection::receiveNiceData(char* buf, int len,
       NiceConnection* nice) {
     boost::mutex::scoped_lock lock(writeMutex_);
-    if (audioReceiver_ == NULL && videoReceiver_ == NULL)
+    if (audioSink_ == NULL && videoSink_ == NULL)
       return 0;
 
     int length = len;
 
     unsigned int recvSSRC = 0;
-
     if (bundle_) {
       if (videoSrtp_){
+
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
         if (chead->packettype == 200) {
           if (videoSrtp_->unprotectRtcp(buf, &length)<0)
@@ -395,24 +384,27 @@ namespace erizo {
             return length;
         }
       }
+
       if (length <= 0)
         return length;
       if (recvSSRC==0){
         rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
         recvSSRC= ntohl(inHead->ssrc);
       }
+
       if (recvSSRC==this->getVideoSourceSSRC() || recvSSRC==this->getVideoSinkSSRC()) {
-        videoReceiver_->receiveVideoData(buf, length);
+        videoSink_->deliverVideoData(buf, length);
       } else if (recvSSRC==this->getAudioSourceSSRC() || recvSSRC==this->getAudioSinkSSRC()) {
-        videoReceiver_->receiveAudioData(buf, length);
+        videoSink_->deliverAudioData(buf, length);
       } else {
         printf("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring\n", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
       }
+
       return length;
     }
 
     if (nice->mediaType == AUDIO_TYPE) {
-      if (audioReceiver_ != NULL) {
+      if (audioSink_ != NULL) {
         if (audioSrtp_) {
           if(audioSrtp_->unprotectRtp(buf, &length)<0)
             return length;
@@ -421,11 +413,11 @@ namespace erizo {
           return length;
         rtpheader *head = (rtpheader*) buf;
         head->ssrc = htonl(this->getAudioSinkSSRC());
-        audioReceiver_->receiveAudioData(buf, length);
+        audioSink_->deliverAudioData(buf, length);
         return length;
       }
     } else if (nice->mediaType == VIDEO_TYPE) {
-      if (videoReceiver_ != NULL) {
+      if (videoSink_ != NULL) {
         if (videoSrtp_) {
           if(videoSrtp_->unprotectRtp(buf, &length)<0)
             return length;
@@ -434,7 +426,7 @@ namespace erizo {
           return length;
         rtpheader *head = (rtpheader*) buf;
         head->ssrc = htonl(this->getVideoSinkSSRC());
-        videoReceiver_->receiveVideoData(buf, length);
+        videoSink_->deliverVideoData(buf, length);
         return length;
       }
     }

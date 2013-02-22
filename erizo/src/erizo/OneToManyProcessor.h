@@ -18,7 +18,7 @@ class WebRtcConnection;
  * Represents a One to Many connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class OneToManyProcessor : public MediaSink, public FeedbackReceiver {
+class OneToManyProcessor : public MediaSink, public FeedbackSink {
 public:
 	MediaSource *publisher;
 	std::map<std::string, MediaSink*> subscribers;
@@ -41,14 +41,13 @@ public:
 	 * @param peerId the peerId
 	 */
 	void removeSubscriber(const std::string& peerId);
-	int receiveAudioData(char* buf, int len);
-	int receiveVideoData(char* buf, int len);
+	int deliverAudioData(char* buf, int len);
+	int deliverVideoData(char* buf, int len);
 
-  void setFeedbackReceiver(MediaSource* source);
-
-  int receiveFeedback(char* buf, int len);
+  int deliverFeedback(char* buf, int len);
 
   void close();
+  void closeSink();
 	/**
 	 * Closes all the subscribers and the publisher, the object is useless after this
 	 */
@@ -59,6 +58,7 @@ private:
 	char* sendAudioBuffer_;
 	unsigned int sentPackets_;
   std::string rtcpReceiverPeerId_;
+  FeedbackSink* feedbackSink_;
 };
 
 } /* namespace erizo */

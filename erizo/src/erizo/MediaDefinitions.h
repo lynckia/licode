@@ -14,55 +14,65 @@ struct packet{
 	int length;
 };
 
-
-class MediaSource;
-
-
-class FeedbackReceiver{
+class FeedbackSink{
 public:
-  virtual int receiveFeedback(char* buf, int len)=0;
+  virtual int deliverFeedback(char* buf, int len)=0;
 };
-/**
- * A MediaReceiver is any class that can receive audio or video data.
+
+class FeedbackSource{
+protected:
+  FeedbackSink* fbSink_;
+public:
+  virtual void setFeedbackReceiver(FeedbackSink* sink){
+    fbSink_ = sink;
+  };
+
+};
+
+/*
+ * A MediaSink 
  */
 class MediaSink{
-private:
+protected:
   //SSRCs received by the SINK
   unsigned int audioSinkSSRC_;
   unsigned int videoSinkSSRC_;
 public:
-	virtual int receiveAudioData(char* buf, int len)=0;
-	virtual int receiveVideoData(char* buf, int len)=0;
-  virtual void setFeedbackReceiver(MediaSource* source)=0;
+	virtual int deliverAudioData(char* buf, int len)=0;
+	virtual int deliverVideoData(char* buf, int len)=0;
   virtual unsigned int getVideoSinkSSRC (){ return videoSinkSSRC_;};
   virtual void setVideoSinkSSRC (unsigned int ssrc){ videoSinkSSRC_ = ssrc;};
   virtual unsigned int getAudioSinkSSRC (){ return audioSinkSSRC_;};
   virtual void setAudioSinkSSRC (unsigned int ssrc){ audioSinkSSRC_ = ssrc;};
-  virtual void close()=0;
+  virtual void closeSink()=0;
 	virtual ~MediaSink(){};
 };
 
 /**
  * A MediaSource is any class that produces audio or video data.
  */
-class MediaSource: public FeedbackReceiver{
-private: 
+class MediaSource{
+protected: 
   //SSRCs coming from the source
     unsigned int videoSourceSSRC_;
     unsigned int audioSourceSSRC_;
+    MediaSink* videoSink_;
+    MediaSink* audioSink_;
 public:
-  virtual void setAudioReceiver(MediaSink* audioReceiver)=0;
-  virtual void setVideoReceiver(MediaSink* videoReceiver)=0;
+  virtual void setAudioSink(MediaSink* audioSink){
+    this->audioSink_ = audioSink;
+  };
+  virtual void setVideoSink(MediaSink* videoSink){
+    this->videoSink_ = videoSink;
+  };
   virtual int sendFirPacket()=0;
   virtual unsigned int getVideoSourceSSRC (){ return videoSourceSSRC_;};
   virtual void setVideoSourceSSRC (unsigned int ssrc){ videoSourceSSRC_ = ssrc;};
   virtual unsigned int getAudioSourceSSRC (){ return audioSourceSSRC_;};
   virtual void setAudioSourceSSRC (unsigned int ssrc){ audioSourceSSRC_ = ssrc;};
-  virtual void close()=0;
+  virtual void closeSource()=0;
 	virtual ~MediaSource(){};
 };
-
-
 
 /**
  * A NiceReceiver is any class that can receive data from a nice connection.

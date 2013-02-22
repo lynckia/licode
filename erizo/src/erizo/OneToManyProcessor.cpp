@@ -11,6 +11,7 @@ namespace erizo {
       sendVideoBuffer_ = (char*) malloc(2000);
       sendAudioBuffer_ = (char*) malloc(2000);
       publisher = NULL;
+      feedbackSink_ = NULL;
       sentPackets_ = 0;
 
     }
@@ -23,7 +24,7 @@ namespace erizo {
       delete sendAudioBuffer_;
   }
 
-  int OneToManyProcessor::receiveAudioData(char* buf, int len) {
+  int OneToManyProcessor::deliverAudioData(char* buf, int len) {
     if (subscribers.empty() || len <= 0)
       return 0;
 
@@ -31,13 +32,13 @@ namespace erizo {
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
       memset(sendAudioBuffer_, 0, len);
       memcpy(sendAudioBuffer_, buf, len);
-      (*it).second->receiveAudioData(sendAudioBuffer_, len);
+      (*it).second->deliverAudioData(sendAudioBuffer_, len);
     }
 
     return 0;
   }
 
-  int OneToManyProcessor::receiveVideoData(char* buf, int len) {
+  int OneToManyProcessor::deliverVideoData(char* buf, int len) {
     if (subscribers.empty() || len <= 0)
       return 0;
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
@@ -57,7 +58,10 @@ namespace erizo {
 
       head->ssrc = htonl(publisher->getVideoSourceSSRC());
      // publisher->receiveVideoData(buf,len);
-     publisher->receiveFeedback(buf,len);
+      if (feedbackSink_){
+        printf("Mal vamos?\n");
+        feedbackSink_->deliverFeedback(buf,len);
+      }
       return 0;
     }
 
@@ -65,7 +69,7 @@ namespace erizo {
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
       memset(sendVideoBuffer_, 0, len);
       memcpy(sendVideoBuffer_, buf, len);
-      (*it).second->receiveVideoData(sendVideoBuffer_, len);
+      (*it).second->deliverVideoData(sendVideoBuffer_, len);
     }
 
     sentPackets_++;
@@ -75,13 +79,12 @@ namespace erizo {
   void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
 
     this->publisher = webRtcConn;
+    feedbackSink_ = dynamic_cast<FeedbackSink*> (webRtcConn);
+    if (feedbackSink_)
+      printf("FeedbackSink set\n");
   }
 
-  void OneToManyProcessor::setFeedbackReceiver(MediaSource* source){
-    printf("setting Media Source\n");
-  }
-
-  int OneToManyProcessor::receiveFeedback(char* buf, int len){
+  int OneToManyProcessor::deliverFeedback(char* buf, int len){
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
     if(head->packettype==201 || head->packettype==206){
       int offset = 0;
@@ -99,7 +102,7 @@ namespace erizo {
 
       head->ssrc = htonl(publisher->getVideoSourceSSRC());
      // publisher->receiveVideoData(buf,len);
-     publisher->receiveFeedback(buf,len);
+     //publisher->receiveFeedback(buf,len);
       return 0;
     }
   }
@@ -123,9 +126,13 @@ namespace erizo {
 //      rtcpReceiverPeerId_.clear();
 //    }
     if (this->subscribers.find(peerId) != subscribers.end()) {
-      this->subscribers[peerId]->close();
+      this->subscribers[peerId]->closeSink();
       this->subscribers.erase(peerId);
     }
+  }
+
+  void OneToManyProcessor::closeSink(){
+    this->close();
   }
 
   void OneToManyProcessor::close(){
@@ -135,9 +142,9 @@ namespace erizo {
   void OneToManyProcessor::closeAll() {
     std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      (*it).second->close();
+      (*it).second->closeSink();
     }
-    this->publisher->close();
+    this->publisher->closeSource();
   }
 
 }/* namespace erizo */

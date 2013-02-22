@@ -33,7 +33,7 @@ public:
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary ICE and SRTP components.
  */
-class WebRtcConnection: public MediaSink, public MediaSource, public NiceReceiver {
+class WebRtcConnection: public MediaSink, public MediaSource, public NiceReceiver, public FeedbackSink, public FeedbackSource {
 public:
 	/**
 	 * Constructor.
@@ -54,6 +54,8 @@ public:
 	 * The object cannot be used after this call.
 	 */
 	void close();
+  void closeSink();
+  void closeSource();
 	/**
 	 * Sets the SDP of the remote peer.
 	 * @param sdp The SDP.
@@ -66,24 +68,8 @@ public:
 	 */
 	std::string getLocalSdp();
 
-	int receiveAudioData(char* buf, int len);
-	int receiveVideoData(char* buf, int len);
-	/**
-	 * Sets a MediaReceiver that is going to receive Audio Data
-	 * @param receiv The MediaReceiver to send audio to.
-	 */
-	void setAudioReceiver(MediaSink *receiv);
-	/**
-	 * Sets a MediaReceiver that is going to receive Video Data
-	 * @param receiv The MediaReceiver
-	 */
-	void setVideoReceiver(MediaSink *receiv);
-	
-  /**
-	 * Sets a MediaSource that is going to receive rtcp feedback
-	 * @param receiv The MediaSource
-	 */
-	void setFeedbackReceiver(MediaSource *receiv);
+	int deliverAudioData(char* buf, int len);
+	int deliverVideoData(char* buf, int len);
 
 	/**
 	 * Method to Receive data from a NiceConnection
@@ -95,7 +81,7 @@ public:
 	int receiveNiceData(char* buf, int len, NiceConnection *nice);
 
 
-  int receiveFeedback(char* buf, int len);
+  int deliverFeedback(char* buf, int len);
 
 	/**
 	 * Sends a FIR Packet (RFC 5104) asking for a keyframe
@@ -120,8 +106,6 @@ private:
 	SrtpChannel* videoSrtp_;
 	IceState globalIceState_;
 
-	MediaSink* audioReceiver_;
-	MediaSink* videoReceiver_;
 	int video_, audio_, bundle_, sequenceNumberFIR_;
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_, updateStateMutex_;
 	boost::thread send_Thread_;
