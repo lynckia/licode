@@ -16,8 +16,8 @@ Erizo.Connection = function (spec) {
     if (typeof module !== 'undefined' && module.exports) {
         L.Logger.error('Publish/subscribe video/audio streams not supported in erizofc yet');
         that = Erizo.FcStack(spec);
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "23" || 
-               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "24") {
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "24" || 
+               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "25") {
         // Google Chrome Stable.
         console.log("Stable!");
         that = Erizo.ChromeStableStack(spec);
