@@ -43,17 +43,17 @@ Erizo.Connection = function (spec) {
     return that;
 };
 
-Erizo.GetUserMedia = function (config, callback) {
+Erizo.GetUserMedia = function (config, callback, error) {
     "use strict";
 
     if (typeof module !== 'undefined' && module.exports) {
         L.Logger.error('Video/audio streams not supported in erizofc yet');
     } else {
         try {
-            navigator.webkitGetUserMedia("audio, video", callback);
+            navigator.webkitGetUserMedia("audio, video", callback, error);
             console.log('GetUserMedia BOWSER');
         } catch (e) {
-            navigator.webkitGetUserMedia(config, callback);
+            navigator.webkitGetUserMedia(config, callback, error);
             console.log('GetUserMedia CHROME');
         }
     }
