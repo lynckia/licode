@@ -88,7 +88,7 @@ class Nuve:
 
         conn = httplib.HTTPConnection(self.url, self.port);
         headers = {"Authorization": header, 'Content-Type': 'application/json'};
-        conn.request(method, url, None, headers);
+        conn.request(method, url, body, headers);
         res = conn.getresponse();
         if res.status == 401:
             print res.status, res.reason;
