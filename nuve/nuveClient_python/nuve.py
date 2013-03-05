@@ -28,7 +28,7 @@ class Nuve:
         response = self.send('DELETE', None, '/rooms/'+room, params);
         return response;
     def createToken(self, room, username, role, params=None):
-        response = self.send('POST', None, '/rooms/'+room + '/tokens', params, username, role);
+        response = self.send('POST', json.dumps({}), '/rooms/'+ room + '/tokens', params, username, role);
         return response;
     def createService(self, name, key, params=None):
         response = self.send('POST', json.dumps({"name": name, "key": key}), '/services/', params);
