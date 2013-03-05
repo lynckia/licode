@@ -20,10 +20,13 @@ namespace erizo {
     bundle_ = false;
     this->setVideoSinkSSRC(55543);
     this->setAudioSinkSSRC(44444);
+    videoSink_ = NULL;
+    audioSink_ = NULL;
     audioNice_ = NULL;
     videoNice_ = NULL;
     audioSrtp_ = NULL;
     videoSrtp_ = NULL;
+    fbSink_ = NULL;
     globalIceState_ = INITIAL;
     connStateListener_ = NULL;
 
@@ -363,22 +366,24 @@ namespace erizo {
     boost::mutex::scoped_lock lock(writeMutex_);
     if (audioSink_ == NULL && videoSink_ == NULL)
       return 0;
-
     int length = len;
 
     unsigned int recvSSRC = 0;
     if (bundle_) {
       if (videoSrtp_){
-
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
         if (chead->packettype == 200) {
           if (videoSrtp_->unprotectRtcp(buf, &length)<0)
             return length;
           recvSSRC = ntohl(chead->ssrc);
+          fbSink_->deliverFeedback(buf,len);
+          return length;
         } else if (chead->packettype == 201){
           if(videoSrtp_->unprotectRtcp(buf, &length)<0)
             return length;
           recvSSRC = ntohl(chead->ssrcsource);
+          fbSink_->deliverFeedback(buf,len);
+          return length;
         } else {
           if(videoSrtp_->unprotectRtp(buf, &length)<0)
             return length;
