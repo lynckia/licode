@@ -296,12 +296,6 @@ var listen = function () {
                 socket.room.webRtcController.removePublisher(streamId);
             }
 
-            for (i in socket.room.streams) {
-                if (socket.room.streams.hasOwnProperty(i)) {
-                    socket.room.streams[i].removeDataSubscriber(socket.id);
-                }
-            }
-
             index = socket.streams.indexOf(streamId);
             if (index !== -1) {
                 socket.streams.splice(index, 1);
