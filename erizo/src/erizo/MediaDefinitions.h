@@ -23,7 +23,7 @@ class FeedbackSource{
 protected:
   FeedbackSink* fbSink_;
 public:
-  virtual void setFeedbackReceiver(FeedbackSink* sink){
+  virtual void setFeedbackSink(FeedbackSink* sink){
     fbSink_ = sink;
   };
 
@@ -37,6 +37,8 @@ protected:
   //SSRCs received by the SINK
   unsigned int audioSinkSSRC_;
   unsigned int videoSinkSSRC_;
+  //Is it able to provide Feedback
+  FeedbackSource* sinkfbSource_;
 public:
 	virtual int deliverAudioData(char* buf, int len)=0;
 	virtual int deliverVideoData(char* buf, int len)=0;
@@ -44,6 +46,9 @@ public:
   virtual void setVideoSinkSSRC (unsigned int ssrc){ videoSinkSSRC_ = ssrc;};
   virtual unsigned int getAudioSinkSSRC (){ return audioSinkSSRC_;};
   virtual void setAudioSinkSSRC (unsigned int ssrc){ audioSinkSSRC_ = ssrc;};
+  virtual FeedbackSource* getFeedbackSource(){
+    return sinkfbSource_;
+  };
   virtual void closeSink()=0;
 	virtual ~MediaSink(){};
 };
@@ -58,12 +63,18 @@ protected:
     unsigned int audioSourceSSRC_;
     MediaSink* videoSink_;
     MediaSink* audioSink_;
+  //can it accept feedback
+    FeedbackSink* sourcefbSink_;
 public:
   virtual void setAudioSink(MediaSink* audioSink){
     this->audioSink_ = audioSink;
   };
   virtual void setVideoSink(MediaSink* videoSink){
     this->videoSink_ = videoSink;
+  };
+
+  virtual FeedbackSink* getFeedbackSink(){
+    return sourcefbSink_;
   };
   virtual int sendFirPacket()=0;
   virtual unsigned int getVideoSourceSSRC (){ return videoSourceSSRC_;};

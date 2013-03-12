@@ -27,6 +27,9 @@ namespace erizo {
     audioSrtp_ = NULL;
     videoSrtp_ = NULL;
     fbSink_ = NULL;
+    sourcefbSink_ = this;
+    sinkfbSource_ = this;
+    
     globalIceState_ = INITIAL;
     connStateListener_ = NULL;
 
@@ -47,7 +50,6 @@ namespace erizo {
   }
 
   bool WebRtcConnection::init() {
-    printf("init... Sink SSRC %d\n", this->getVideoSinkSSRC());
     videoNice_->start();
     audioNice_->start();
     return true;
@@ -370,20 +372,19 @@ namespace erizo {
 
     unsigned int recvSSRC = 0;
     if (bundle_) {
+      bool isrtcp = false;
       if (videoSrtp_){
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
-        if (chead->packettype == 200) {
+        if (fbSink_!=NULL && chead->packettype == 200) {
           if (videoSrtp_->unprotectRtcp(buf, &length)<0)
             return length;
           recvSSRC = ntohl(chead->ssrc);
-          fbSink_->deliverFeedback(buf,len);
+          isrtcp = true;
           return length;
-        } else if (chead->packettype == 201){
+        } else if (fbSink_!=NULL && chead->packettype == 201){
           if(videoSrtp_->unprotectRtcp(buf, &length)<0)
             return length;
           recvSSRC = ntohl(chead->ssrcsource);
-          fbSink_->deliverFeedback(buf,len);
-          return length;
         } else {
           if(videoSrtp_->unprotectRtp(buf, &length)<0)
             return length;
@@ -398,7 +399,11 @@ namespace erizo {
       }
 
       if (recvSSRC==this->getVideoSourceSSRC() || recvSSRC==this->getVideoSinkSSRC()) {
-        videoSink_->deliverVideoData(buf, length);
+        if (isrtcp){
+          fbSink_->deliverFeedback(buf,len);
+        }else{
+          videoSink_->deliverVideoData(buf, length);
+        }
       } else if (recvSSRC==this->getAudioSourceSSRC() || recvSSRC==this->getAudioSinkSSRC()) {
         videoSink_->deliverAudioData(buf, length);
       } else {

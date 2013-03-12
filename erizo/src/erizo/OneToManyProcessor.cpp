@@ -44,66 +44,41 @@ namespace erizo {
 
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
     if(head->packettype==201 || head->packettype==206){
-      int offset = 0;
-      /*
-      rtcpheader* head2;
-
-      while (offset<len){
-        head2 = reinterpret_cast<rtcpheader*>(&buf[offset]);
-        if (head2->packettype==206 && head2->blockcount==1){
-          //printf("NACK\n");
-        }
-        offset+=(ntohs(head2->length)+1)*4;
-      }
-      */
-
-      head->ssrc = htonl(publisher->getVideoSourceSSRC());
-     // publisher->receiveVideoData(buf,len);
+      printf("recibo feedback por donde no es\n");
       if (feedbackSink_){
-        printf("Mal vamos?\n");
+        printf("pepepepepe22222222\n");
+        head->ssrc = htonl(publisher->getVideoSourceSSRC());
         feedbackSink_->deliverFeedback(buf,len);
       }
       return 0;
     }
-
     std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
       memset(sendVideoBuffer_, 0, len);
       memcpy(sendVideoBuffer_, buf, len);
       (*it).second->deliverVideoData(sendVideoBuffer_, len);
     }
-
     sentPackets_++;
     return 0;
   }
 
   void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
-
+    printf("SET PUBLISHER\n");
     this->publisher = webRtcConn;
-    feedbackSink_ = dynamic_cast<FeedbackSink*> (webRtcConn);
-    if (feedbackSink_)
-      printf("FeedbackSink set\n");
+    feedbackSink_ = publisher->getFeedbackSink();
+
+    if (feedbackSink_!=NULL){
+      printf("FeedbackSink set**************************************************\n\n\n");
+    }
   }
 
   int OneToManyProcessor::deliverFeedback(char* buf, int len){
+    printf("pepepepepe\n");
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
     if(head->packettype==201 || head->packettype==206){
       int offset = 0;
-      /*
-      rtcpheader* head2;
-
-      while (offset<len){
-        head2 = reinterpret_cast<rtcpheader*>(&buf[offset]);
-        if (head2->packettype==206 && head2->blockcount==1){
-          //printf("NACK\n");
-        }
-        offset+=(ntohs(head2->length)+1)*4;
-      }
-      */
-
       head->ssrc = htonl(publisher->getVideoSourceSSRC());
-     // publisher->receiveVideoData(buf,len);
-     //publisher->receiveFeedback(buf,len);
+      feedbackSink_->deliverFeedback(buf,len);
       return 0;
     }
   }
@@ -113,20 +88,17 @@ namespace erizo {
     printf("Adding subscriber\n");
     webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
     webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
-//    if (this->subscribers.empty()|| this->rtcpReceiverPeerId_.empty()){
-      printf("Adding rtcp\n");
-  //    this->rtcpReceiverPeerId_= peerId;
-  //    TODO: ADD FEEDBACK
-//      webRtcConn->setVideoReceiver(this);
-    //}
-    
+    printf("Subscribers ssrcs: Audio %u, video, %u from %u, %u \n", webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC());
+    FeedbackSource* fbsource = webRtcConn->getFeedbackSource();
+
+    if (fbsource!=NULL){
+      printf("adding fbsource************************************************\n\n\n");
+      fbsource->setFeedbackSink(this);
+    }
     this->subscribers[peerId] = webRtcConn;
   }
 
   void OneToManyProcessor::removeSubscriber(const std::string& peerId) {
-//    if (!rtcpReceiverPeerId_.compare(peerId)){
-//      rtcpReceiverPeerId_.clear();
-//    }
     if (this->subscribers.find(peerId) != subscribers.end()) {
       this->subscribers[peerId]->closeSink();
       this->subscribers.erase(peerId);
