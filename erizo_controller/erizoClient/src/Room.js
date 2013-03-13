@@ -129,8 +129,10 @@ Erizo.Room = function (spec) {
         // The socket has disconnected
         that.socket.on('disconnect', function (argument) {
             L.Logger.info("Socket disconnected");
-            var disconnectEvt = Erizo.RoomEvent({type: "room-disconnected"});
-            that.dispatchEvent(disconnectEvt);
+            if (that.state !== DISCONNECTED) {
+                var disconnectEvt = Erizo.RoomEvent({type: "room-disconnected"});
+                that.dispatchEvent(disconnectEvt);
+            }
         });
 
         // First message with the token

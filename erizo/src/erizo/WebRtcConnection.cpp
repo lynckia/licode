@@ -444,6 +444,7 @@ namespace erizo {
   }
 
   int WebRtcConnection::sendFirPacket() {
+    printf("SendingFIR\n");
     sequenceNumberFIR_++; // do not increase if repetition
     int pos = 0;
     uint8_t rtcpPacket[50];

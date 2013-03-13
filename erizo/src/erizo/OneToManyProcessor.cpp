@@ -68,7 +68,6 @@ namespace erizo {
   }
 
   int OneToManyProcessor::deliverFeedback(char* buf, int len){
-    printf("pepepepepe\n");
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
     if(head->packettype==201 || head->packettype==206){
       int offset = 0;

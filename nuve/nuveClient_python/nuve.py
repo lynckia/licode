@@ -16,7 +16,7 @@ class Nuve:
         self.port = port;
 
     def createRoom(self, name, options, params=None):
-        response = self.send('POST', {"name": name, "options": options}, "/rooms/", params);
+        response = self.send('POST', json.dumps({"name": name, "options": options}), "/rooms/", params);
         return response;
     def getRooms(self, params=None):
         response = self.send('GET', None, '/rooms/', params);
@@ -28,10 +28,10 @@ class Nuve:
         response = self.send('DELETE', None, '/rooms/'+room, params);
         return response;
     def createToken(self, room, username, role, params=None):
-        response = self.send('POST', None, '/rooms/'+room + '/tokens', params, username, role);
+        response = self.send('POST', json.dumps({}), '/rooms/'+ room + '/tokens', params, username, role);
         return response;
     def createService(self, name, key, params=None):
-        response = self.send('POST',  {"name": name, "key": key}, '/services/', params);
+        response = self.send('POST', json.dumps({"name": name, "key": key}), '/services/', params);
         return response;
     def getServices(self, params=None):
         response = self.send('GET',  None, '/services/', params);
@@ -88,7 +88,7 @@ class Nuve:
 
         conn = httplib.HTTPConnection(self.url, self.port);
         headers = {"Authorization": header, 'Content-Type': 'application/json'};
-        conn.request(method, url, None, headers);
+        conn.request(method, url, body, headers);
         res = conn.getresponse();
         if res.status == 401:
             print res.status, res.reason;
