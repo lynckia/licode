@@ -29,7 +29,7 @@ namespace erizo {
     fbSink_ = NULL;
     sourcefbSink_ = this;
     sinkfbSource_ = this;
-    
+     
     globalIceState_ = INITIAL;
     connStateListener_ = NULL;
 
@@ -372,19 +372,19 @@ namespace erizo {
 
     unsigned int recvSSRC = 0;
     if (bundle_) {
-      bool isrtcp = false;
+      bool isfeedback = false;
       if (videoSrtp_){
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
-        if (fbSink_!=NULL && chead->packettype == 200) {
+        if (chead->packettype == 200) { //Sender Report
           if (videoSrtp_->unprotectRtcp(buf, &length)<0)
             return length;
           recvSSRC = ntohl(chead->ssrc);
-          isrtcp = true;
-          return length;
-        } else if (fbSink_!=NULL && chead->packettype == 201){
+        } else if (chead->packettype == 201){
+          printf("Es FEEDBACK\n");
           if(videoSrtp_->unprotectRtcp(buf, &length)<0)
             return length;
           recvSSRC = ntohl(chead->ssrcsource);
+          isfeedback=true;
         } else {
           if(videoSrtp_->unprotectRtp(buf, &length)<0)
             return length;
@@ -399,7 +399,7 @@ namespace erizo {
       }
 
       if (recvSSRC==this->getVideoSourceSSRC() || recvSSRC==this->getVideoSinkSSRC()) {
-        if (isrtcp){
+        if (isfeedback && fbSink_!=NULL){
           fbSink_->deliverFeedback(buf,len);
         }else{
           videoSink_->deliverVideoData(buf, length);

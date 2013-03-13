@@ -5,6 +5,8 @@
 #ifndef MEDIADEFINITIONS_H_
 #define MEDIADEFINITIONS_H_
 
+#include <cstdio>
+
 namespace erizo{
 
 class NiceConnection;
@@ -42,11 +44,11 @@ protected:
 public:
 	virtual int deliverAudioData(char* buf, int len)=0;
 	virtual int deliverVideoData(char* buf, int len)=0;
-  virtual unsigned int getVideoSinkSSRC (){ return videoSinkSSRC_;};
-  virtual void setVideoSinkSSRC (unsigned int ssrc){ videoSinkSSRC_ = ssrc;};
-  virtual unsigned int getAudioSinkSSRC (){ return audioSinkSSRC_;};
-  virtual void setAudioSinkSSRC (unsigned int ssrc){ audioSinkSSRC_ = ssrc;};
-  virtual FeedbackSource* getFeedbackSource(){
+  unsigned int getVideoSinkSSRC (){return videoSinkSSRC_;};
+  void setVideoSinkSSRC (unsigned int ssrc){videoSinkSSRC_ = ssrc;};
+  unsigned int getAudioSinkSSRC (){return audioSinkSSRC_;};
+  void setAudioSinkSSRC (unsigned int ssrc){audioSinkSSRC_ = ssrc;};
+  FeedbackSource* getFeedbackSource(){
     return sinkfbSource_;
   };
   virtual void closeSink()=0;
@@ -66,21 +68,21 @@ protected:
   //can it accept feedback
     FeedbackSink* sourcefbSink_;
 public:
-  virtual void setAudioSink(MediaSink* audioSink){
+  void setAudioSink(MediaSink* audioSink){
     this->audioSink_ = audioSink;
   };
-  virtual void setVideoSink(MediaSink* videoSink){
+  void setVideoSink(MediaSink* videoSink){
     this->videoSink_ = videoSink;
   };
 
-  virtual FeedbackSink* getFeedbackSink(){
+  FeedbackSink* getFeedbackSink(){
     return sourcefbSink_;
   };
   virtual int sendFirPacket()=0;
-  virtual unsigned int getVideoSourceSSRC (){ return videoSourceSSRC_;};
-  virtual void setVideoSourceSSRC (unsigned int ssrc){ videoSourceSSRC_ = ssrc;};
-  virtual unsigned int getAudioSourceSSRC (){ return audioSourceSSRC_;};
-  virtual void setAudioSourceSSRC (unsigned int ssrc){ audioSourceSSRC_ = ssrc;};
+  unsigned int getVideoSourceSSRC (){return videoSourceSSRC_;};
+  void setVideoSourceSSRC (unsigned int ssrc){videoSourceSSRC_ = ssrc;};
+  unsigned int getAudioSourceSSRC (){return audioSourceSSRC_;};
+  void setAudioSourceSSRC (unsigned int ssrc){audioSourceSSRC_ = ssrc;};
   virtual void closeSource()=0;
 	virtual ~MediaSource(){};
 };

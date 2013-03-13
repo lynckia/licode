@@ -46,7 +46,6 @@ namespace erizo {
     if(head->packettype==201 || head->packettype==206){
       printf("recibo feedback por donde no es\n");
       if (feedbackSink_){
-        printf("pepepepepe22222222\n");
         head->ssrc = htonl(publisher->getVideoSourceSSRC());
         feedbackSink_->deliverFeedback(buf,len);
       }
@@ -66,10 +65,6 @@ namespace erizo {
     printf("SET PUBLISHER\n");
     this->publisher = webRtcConn;
     feedbackSink_ = publisher->getFeedbackSink();
-
-    if (feedbackSink_!=NULL){
-      printf("FeedbackSink set**************************************************\n\n\n");
-    }
   }
 
   int OneToManyProcessor::deliverFeedback(char* buf, int len){
@@ -86,9 +81,10 @@ namespace erizo {
   void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
     printf("Adding subscriber\n");
+    printf("From %u, %u \n", publisher->getAudioSourceSSRC() , publisher->getVideoSourceSSRC());
     webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
     webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
-    printf("Subscribers ssrcs: Audio %u, video, %u from %u, %u \n", webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC());
+    printf("Subscribers ssrcs: Audio %u, video, %u from %u, %u \n", webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC(), this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
     FeedbackSource* fbsource = webRtcConn->getFeedbackSource();
 
     if (fbsource!=NULL){

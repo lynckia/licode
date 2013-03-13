@@ -53,10 +53,11 @@ Handle<Value> OneToManyProcessor::setPublisher(const Arguments& args) {
   OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  MediaSource* param = ObjectWrap::Unwrap<MediaSource>(args[0]->ToObject());
-  erizo::MediaSource *wr = param->me;
+  WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
+  erizo::WebRtcConnection* wr = (erizo::WebRtcConnection*)param->me;
 
-  me->setPublisher(wr);
+  erizo::MediaSource* ms = dynamic_cast<erizo::MediaSource*>(wr);
+  me->setPublisher(ms);
 
   return scope.Close(Null());
 }
@@ -82,15 +83,17 @@ Handle<Value> OneToManyProcessor::addSubscriber(const Arguments& args) {
   OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(args[0]->ToObject());
-  erizo::MediaSink *wr = param->me;
+  WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
+  erizo::WebRtcConnection* wr = param->me;
+
+  erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
 
 // get the param
   v8::String::Utf8Value param1(args[1]->ToString());
 
 // convert it to string
   std::string peerId = std::string(*param1);
-  me->addSubscriber(wr, peerId);
+  me->addSubscriber(ms, peerId);
 
   return scope.Close(Null());
 }
