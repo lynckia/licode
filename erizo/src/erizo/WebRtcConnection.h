@@ -100,7 +100,6 @@ public:
 private:
 	SdpInfo remoteSdp_;
 	SdpInfo localSdp_;
-	NiceConnection* audioNice_;
 	NiceConnection* videoNice_;
 	SrtpChannel* audioSrtp_;
 	SrtpChannel* videoSrtp_;
@@ -109,7 +108,7 @@ private:
 	int video_, audio_, bundle_, sequenceNumberFIR_;
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_, updateStateMutex_;
 	boost::thread send_Thread_;
-	std::queue<packet> sendQueue_;
+	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionStateListener* connStateListener_;
 
 	void updateState(IceState newState, NiceConnection* niceConn);

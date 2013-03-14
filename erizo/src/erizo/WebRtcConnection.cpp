@@ -22,9 +22,9 @@ namespace erizo {
     this->setAudioSinkSSRC(44444);
     videoSink_ = NULL;
     audioSink_ = NULL;
-    niceConn_ = NULL;
     audioSrtp_ = NULL;
     videoSrtp_ = NULL;
+    videoNice_ = NULL;
     fbSink_ = NULL;
     sourcefbSink_ = this;
     sinkfbSource_ = this;
@@ -38,9 +38,6 @@ namespace erizo {
     videoNice_ = new NiceConnection(VIDEO_TYPE, "");
     videoNice_->setWebRtcConnection(this);
 
-    audioNice_ = new NiceConnection(AUDIO_TYPE, "");
-    audioNice_->setWebRtcConnection(this);
-
   }
 
   WebRtcConnection::~WebRtcConnection() {
@@ -50,7 +47,6 @@ namespace erizo {
 
   bool WebRtcConnection::init() {
     videoNice_->start();
-    audioNice_->start();
     return true;
   }
 
@@ -60,11 +56,6 @@ namespace erizo {
       send_Thread_.join();
     }
     if (audio_) {
-      if (audioNice_ != NULL) {
-        audioNice_->close();
-        audioNice_->join();
-        delete audioNice_;
-      }
       if (audioSrtp_ != NULL)
         delete audioSrtp_;
     }
@@ -91,10 +82,8 @@ namespace erizo {
     printf("Set Remote SDP\n %s", sdp.c_str());
     remoteSdp_.initWithSdp(sdp);
     std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
-    //    video_ = (remoteSdp_.videoSsrc==0?false:true);
-    //    audio_ = (remoteSdp_.audioSsrc==0?false:true);
-    video_=1;
-    audio_=1;
+    video_ = (remoteSdp_.videoSsrc==0?false:true);
+    audio_ = (remoteSdp_.audioSsrc==0?false:true);
 
     CryptoInfo cryptLocal_video;
     CryptoInfo cryptLocal_audio;
@@ -109,50 +98,6 @@ namespace erizo {
 
     printf("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d ", video_, remoteSdp_.videoSsrc, audio_, remoteSdp_.audioSsrc,  bundle_);
 
-    if (!bundle_) {
-      printf("NOT BUNDLE\n");
-      if (video_) {
-        //        if (remoteSdp_.getCryptoInfos().size()!=0){
-        if (remoteSdp_.profile==SAVPF){
-          videoSrtp_ = new SrtpChannel();
-          CryptoInfo crytp;
-          crytp.cipherSuite = std::string("AES_CM_128_HMAC_SHA1_80");
-          crytp.mediaType = VIDEO_TYPE;
-          std::string key = SrtpChannel::generateBase64Key();
-
-          crytp.keyParams = key;
-          crytp.tag = 0;
-          localSdp_.addCrypto(crytp);
-        }
-        //        }
-        localSdp_.videoSsrc = this->getVideoSinkSSRC();
-      } else {
-        videoNice_->close();
-        delete (videoNice_);
-      }
-
-      if (audio_) {
-        if (remoteSdp_.profile==SAVPF){
-          audioSrtp_ = new SrtpChannel();
-          CryptoInfo crytp;
-          crytp.cipherSuite = std::string("AES_CM_128_HMAC_SHA1_80");
-          crytp.mediaType = AUDIO_TYPE;
-          crytp.tag = 1;
-          std::string key = SrtpChannel::generateBase64Key();
-          crytp.keyParams = key;
-          localSdp_.addCrypto(crytp);
-        }
-        localSdp_.audioSsrc = this->getAudioSinkSSRC();
-      } else {
-        audioNice_->close();
-        audioNice_->join();
-        delete(audioNice_);
-      }
-
-    } else {
-      audioNice_->close();
-      delete(audioNice_);
-      audioNice_=NULL;
       if(remoteSdp_.profile == SAVPF){
         videoSrtp_ = new SrtpChannel();
         CryptoInfo crytpv;
@@ -174,8 +119,6 @@ namespace erizo {
 
       localSdp_.videoSsrc = this->getVideoSinkSSRC();
       localSdp_.audioSsrc = this->getAudioSinkSSRC();
-
-    }
 
     std::vector<CryptoInfo> crypto_local = localSdp_.getCryptoInfos();
 
@@ -201,39 +144,20 @@ namespace erizo {
         cryptLocal_audio = cryptemp;
       }
     }
-    if (!bundle_) {
-      if (video_) {
-        videoNice_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
-        if(videoSrtp_!=NULL){
-          videoSrtp_->setRtpParams((char*) cryptLocal_video.keyParams.c_str(),
-              (char*) cryptRemote_video.keyParams.c_str());
-        }
-
-      }
-      if (audio_) {
-        audioNice_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
-        if (audioSrtp_!=NULL){
-          audioSrtp_->setRtpParams((char*) cryptLocal_audio.keyParams.c_str(),
-              (char*) cryptRemote_audio.keyParams.c_str());
-        }
-      }
-    } else {
-      videoNice_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
-      this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
-      this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
-      videoSrtp_->setRtpParams((char*) cryptLocal_video.keyParams.c_str(),
+   videoNice_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
+  this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
+  this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
+  videoSrtp_->setRtpParams((char*) cryptLocal_video.keyParams.c_str(),
           (char*) cryptRemote_video.keyParams.c_str());
-      videoSrtp_->setRtcpParams((char*) cryptLocal_video.keyParams.c_str(),
+   videoSrtp_->setRtcpParams((char*) cryptLocal_video.keyParams.c_str(),
           (char*) cryptRemote_video.keyParams.c_str());
       //		audioSrtp_->setRtpParams((char*)cryptLocal_audio.keyParams.c_str(), (char*)cryptRemote_audio.keyParams.c_str());
 
-    }
     return true;
   }
 
   std::string WebRtcConnection::getLocalSdp() {
     std::vector<CandidateInfo> *cands;
-    if (bundle_) {
       if (videoNice_->iceState > CANDIDATES_GATHERED) {
         cands = videoNice_->localCandidates;
         for (unsigned int it = 0; it < cands->size(); it++) {
@@ -246,22 +170,6 @@ namespace erizo {
       } else {
         printf("WARNING getting local sdp before it is ready!\n");
       }
-    } else {
-      if (video_ && videoNice_->iceState > CANDIDATES_GATHERED) {
-        cands = videoNice_->localCandidates;
-        for (unsigned int it = 0; it < cands->size(); it++) {
-          CandidateInfo cand = cands->at(it);
-          localSdp_.addCandidate(cand);
-        }
-      }
-      if (audio_ && audioNice_->iceState > CANDIDATES_GATHERED) {
-        cands = audioNice_->localCandidates;
-        for (unsigned int it = 0; it < cands->size(); it++) {
-          CandidateInfo cand = cands->at(it);
-          localSdp_.addCandidate(cand);
-        }
-      }
-    }
     localSdp_.profile = remoteSdp_.profile;
     return localSdp_.getSdp();
   }
@@ -292,7 +200,7 @@ namespace erizo {
       if (videoNice_->iceState == READY) {
         receiveVideoMutex_.lock();
         if (sendQueue_.size() < 1000) {
-          packet p_;
+          dataPacket p_;
           memset(p_.data, 0, length);
           memcpy(p_.data, buf, length);
 
@@ -300,19 +208,6 @@ namespace erizo {
           sendQueue_.push(p_);
         }
         receiveVideoMutex_.unlock();
-      }
-    }else{
-
-      rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
-      inHead->ssrc = htonl(this->getAudioSinkSSRC());
-      if (audioSrtp_) {
-        if(audioSrtp_->protectRtp(buf, &length)<0)
-          return length;
-      }
-      if (len <= 0)
-        return length;
-      if (audioNice_) {
-        res = audioNice_->sendData(buf, length);
       }
     }
     return res;
@@ -344,7 +239,7 @@ namespace erizo {
     if (videoNice_->iceState == READY) {
       receiveVideoMutex_.lock();
       if (sendQueue_.size() < 1000) {
-        packet p_;
+        dataPacket p_;
         memset(p_.data, 0, length);
         memcpy(p_.data, buf, length);
 
@@ -495,10 +390,9 @@ namespace erizo {
     if (niceConn == videoNice_&& bundle_){
       temp = newState;
     }else{
-      if (audioNice_ == NULL || videoNice_ == NULL){
+      if (videoNice_ == NULL){
         temp = newState;
       }else{
-        temp = audioNice_->iceState<=videoNice_->iceState? audioNice_->iceState:videoNice_->iceState;
       }
 
     }

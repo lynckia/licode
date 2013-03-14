@@ -5,15 +5,20 @@
 #ifndef MEDIADEFINITIONS_H_
 #define MEDIADEFINITIONS_H_
 
-#include <cstdio>
-
 namespace erizo{
 
 class NiceConnection;
 
-struct packet{
+enum packetType{
+  VIDEO_PACKET,
+  AUDIO_PACKET,
+  OTHER_PACKET    
+};
+
+struct dataPacket{
 	char data[1200];
 	int length;
+  packetType type;
 };
 
 class FeedbackSink{

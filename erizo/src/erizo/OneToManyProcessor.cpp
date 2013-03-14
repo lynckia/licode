@@ -70,11 +70,12 @@ namespace erizo {
   int OneToManyProcessor::deliverFeedback(char* buf, int len){
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
     if(head->packettype==201 || head->packettype==206){
-      int offset = 0;
       head->ssrc = htonl(publisher->getVideoSourceSSRC());
       feedbackSink_->deliverFeedback(buf,len);
-      return 0;
+      return len;
     }
+    return 0;
+
   }
 
   void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
