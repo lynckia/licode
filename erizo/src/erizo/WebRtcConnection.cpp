@@ -22,8 +22,7 @@ namespace erizo {
     this->setAudioSinkSSRC(44444);
     videoSink_ = NULL;
     audioSink_ = NULL;
-    audioNice_ = NULL;
-    videoNice_ = NULL;
+    niceConn_ = NULL;
     audioSrtp_ = NULL;
     videoSrtp_ = NULL;
     fbSink_ = NULL;
@@ -358,7 +357,6 @@ namespace erizo {
   }
 
   int WebRtcConnection::deliverFeedback(char* buf, int len){
-    printf("receiving Feedback\n");
     this->deliverVideoData(buf,len);
     return 0;
   }
@@ -366,7 +364,7 @@ namespace erizo {
   int WebRtcConnection::receiveNiceData(char* buf, int len,
       NiceConnection* nice) {
     boost::mutex::scoped_lock lock(writeMutex_);
-    if (audioSink_ == NULL && videoSink_ == NULL)
+    if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL)
       return 0;
     int length = len;
 
@@ -379,20 +377,21 @@ namespace erizo {
           if (videoSrtp_->unprotectRtcp(buf, &length)<0)
             return length;
           recvSSRC = ntohl(chead->ssrc);
-        } else if (chead->packettype == 201){
-          printf("Es FEEDBACK\n");
+        } else if (chead->packettype == 201 || chead->packettype==206){
           if(videoSrtp_->unprotectRtcp(buf, &length)<0)
             return length;
           recvSSRC = ntohl(chead->ssrcsource);
-          isfeedback=true;
+          fbSink_->deliverFeedback(buf,length);          
+          return length;
         } else {
           if(videoSrtp_->unprotectRtp(buf, &length)<0)
             return length;
         }
       }
-
+      
       if (length <= 0)
         return length;
+
       if (recvSSRC==0){
         rtpheader* inHead = reinterpret_cast<rtpheader*> (buf);
         recvSSRC= ntohl(inHead->ssrc);
@@ -400,7 +399,7 @@ namespace erizo {
 
       if (recvSSRC==this->getVideoSourceSSRC() || recvSSRC==this->getVideoSinkSSRC()) {
         if (isfeedback && fbSink_!=NULL){
-          fbSink_->deliverFeedback(buf,len);
+          fbSink_->deliverFeedback(buf,length);
         }else{
           videoSink_->deliverVideoData(buf, length);
         }
