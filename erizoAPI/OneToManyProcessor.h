@@ -3,7 +3,7 @@
 
 #include <node.h>
 #include <OneToManyProcessor.h>
-#include "MediaReceiver.h"
+#include "MediaDefinitions.h"
 #include "WebRtcConnection.h"
 
 
@@ -13,7 +13,7 @@
  * Represents a OneToMany connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class OneToManyProcessor : public MediaReceiver {
+class OneToManyProcessor : public MediaSink {
  public:
   static void Init(v8::Handle<v8::Object> target);
 
@@ -51,6 +51,10 @@ class OneToManyProcessor : public MediaReceiver {
    * Param: the peerId
    */
   static v8::Handle<v8::Value> removeSubscriber(const v8::Arguments& args);
+  /*
+   * Ask the publisher to send a FIR packet
+   */
+  static v8::Handle<v8::Value> sendFIR(const v8::Arguments& args);
 };
 
 #endif

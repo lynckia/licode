@@ -16,12 +16,6 @@ namespace erizo {
     
   }
 
-  void ExternalInput::setAudioReceiver(MediaReceiver* audioReceiver){
-    this->audioReceiver_ = audioReceiver;
-  }
-  void ExternalInput::setVideoReceiver(MediaReceiver* videoReceiver){
-    this->videoReceiver_ = videoReceiver;
-  }
   bool ExternalInput::init(){
     context = avformat_alloc_context();
     av_register_all();
@@ -105,9 +99,9 @@ namespace erizo {
   }
 
   void ExternalInput::receiveRtpData(unsigned char*rtpdata, int len) {
-    if (videoReceiver_!=NULL){
+    if (videoSink_!=NULL){
       memcpy(sendVideoBuffer_, rtpdata, len);
-      videoReceiver_->receiveVideoData(sendVideoBuffer_, len);
+      videoSink_->deliverVideoData(sendVideoBuffer_, len);
     }
 
   }
@@ -150,6 +144,10 @@ namespace erizo {
     }
     running=false;
     av_read_pause(context);
+  }
+
+  int ExternalInput::sendFirPacket(){
+    return 0;
   }
 
   void ExternalInput::encodeLoop() {

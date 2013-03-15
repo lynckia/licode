@@ -80,16 +80,17 @@ public:
 
 class RTPSink;
 
-class InputProcessor: MediaReceiver {
+class InputProcessor: MediaSink {
 public:
 	InputProcessor();
 	virtual ~InputProcessor();
 
 	int init(const MediaInfo& info, RawDataReceiver* receiver);
 
-	int receiveAudioData(char* buf, int len);
-	int receiveVideoData(char* buf, int len);
+	int deliverAudioData(char* buf, int len);
+	int deliverVideoData(char* buf, int len);
 
+  void closeSink();
   void close();
 
 private:

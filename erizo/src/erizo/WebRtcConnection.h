@@ -33,11 +33,8 @@ public:
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary ICE and SRTP components.
  */
-class WebRtcConnection: public MediaReceiver, public MediaSource, public NiceReceiver {
+class WebRtcConnection: public MediaSink, public MediaSource, public NiceReceiver, public FeedbackSink, public FeedbackSource {
 public:
-	unsigned int localAudioSsrc_, localVideoSsrc_;
-	unsigned int remoteAudioSSRC_, remoteVideoSSRC_;
-
 	/**
 	 * Constructor.
 	 * Constructs an empty WebRTCConnection without any configuration.
@@ -57,6 +54,8 @@ public:
 	 * The object cannot be used after this call.
 	 */
 	void close();
+  void closeSink();
+  void closeSource();
 	/**
 	 * Sets the SDP of the remote peer.
 	 * @param sdp The SDP.
@@ -69,18 +68,9 @@ public:
 	 */
 	std::string getLocalSdp();
 
-	int receiveAudioData(char* buf, int len);
-	int receiveVideoData(char* buf, int len);
-	/**
-	 * Sets a MediaReceiver that is going to receive Audio Data
-	 * @param receiv The MediaReceiver to send audio to.
-	 */
-	void setAudioReceiver(MediaReceiver *receiv);
-	/**
-	 * Sets a MediaReceiver that is going to receive Video Data
-	 * @param receiv The MediaReceiver
-	 */
-	void setVideoReceiver(MediaReceiver *receiv);
+	int deliverAudioData(char* buf, int len);
+	int deliverVideoData(char* buf, int len);
+
 	/**
 	 * Method to Receive data from a NiceConnection
 	 * @param buf The data buffer
@@ -88,8 +78,10 @@ public:
 	 * @param nice The NiceConnection orgi
 	 * @return
 	 */
-
 	int receiveNiceData(char* buf, int len, NiceConnection *nice);
+
+
+  int deliverFeedback(char* buf, int len);
 
 	/**
 	 * Sends a FIR Packet (RFC 5104) asking for a keyframe
@@ -108,18 +100,15 @@ public:
 private:
 	SdpInfo remoteSdp_;
 	SdpInfo localSdp_;
-	NiceConnection* audioNice_;
 	NiceConnection* videoNice_;
 	SrtpChannel* audioSrtp_;
 	SrtpChannel* videoSrtp_;
 	IceState globalIceState_;
 
-	MediaReceiver* audioReceiver_;
-	MediaReceiver* videoReceiver_;
 	int video_, audio_, bundle_, sequenceNumberFIR_;
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_, updateStateMutex_;
 	boost::thread send_Thread_;
-	std::queue<packet> sendQueue_;
+	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionStateListener* connStateListener_;
 
 	void updateState(IceState newState, NiceConnection* niceConn);

@@ -24,8 +24,7 @@ namespace erizo{
       virtual ~ExternalInput();
       bool init();
       void receiveRtpData(unsigned char*rtpdata, int len);
-      void setAudioReceiver(MediaReceiver* audioReceiver);
-      void setVideoReceiver(MediaReceiver* videoReceiver);
+      int sendFirPacket();
       void close();
 
 
@@ -34,8 +33,6 @@ namespace erizo{
       VideoDecoder inCodec_;
       unsigned char* decodedBuffer_;
       char* sendVideoBuffer_;
-      MediaReceiver* videoReceiver_;
-      MediaReceiver* audioReceiver_;
       void receiveLoop();
       void encodeLoop();
 

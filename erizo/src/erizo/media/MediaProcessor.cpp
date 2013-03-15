@@ -59,7 +59,7 @@ namespace erizo {
     return 0;
   }
 
-  int InputProcessor::receiveAudioData(char* buf, int len) {
+  int InputProcessor::deliverAudioData(char* buf, int len) {
     if (audioDecoder && audioUnpackager) {
       printf("Decoding audio\n");
       int unp = unpackageAudio((unsigned char*) buf, len,
@@ -73,7 +73,7 @@ namespace erizo {
       rawReceiver_->receiveRawData(p);
     }
   }
-  int InputProcessor::receiveVideoData(char* buf, int len) {
+  int InputProcessor::deliverVideoData(char* buf, int len) {
     if (videoUnpackager && videoDecoder) {
       int ret = unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedBuffer_, &gotUnpackagedFrame_);
@@ -286,6 +286,10 @@ namespace erizo {
     }
     return parsed->dataLength;
 
+  }
+
+  void InputProcessor::closeSink(){
+    this->close();
   }
 
   void InputProcessor::close(){

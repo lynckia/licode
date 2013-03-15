@@ -8,19 +8,29 @@
 /*
  * Wrapper class of erizo::MediaReceiver
  */
-class MediaReceiver : public node::ObjectWrap {
- public:
+class MediaSink : public node::ObjectWrap {
+public:
 
-  erizo::MediaReceiver *me;
+  erizo::MediaSink *me;
 };
 
 /*
  * Wrapper class of erizo::MediaSource
  */
 class MediaSource : public node::ObjectWrap {
- public:
+public:
 
   erizo::MediaSource *me;
+};
+
+class FeedbackSink: public node::ObjectWrap {
+public:
+  erizo::FeedbackSink *me;
+};
+
+class FeedbackSource: public node::ObjectWrap {
+public:
+  erizo::FeedbackSource *me;
 };
 
 #endif

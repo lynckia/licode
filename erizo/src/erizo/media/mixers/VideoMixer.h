@@ -21,7 +21,7 @@ class RTPSink;
  * Represents a One to Many connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class VideoMixer : public MediaReceiver, public RawDataReceiver, public RTPDataReceiver {
+class VideoMixer : public MediaSink, public RawDataReceiver, public RTPDataReceiver {
 public:
 	WebRtcConnection *subscriber;
 	std::map<int, WebRtcConnection*> publishers;
@@ -44,10 +44,12 @@ public:
 	 * @param peerId the peerId
 	 */
 	void removePublisher(int peerSSRC);
-	int receiveAudioData(char* buf, int len);
-	int receiveVideoData(char* buf, int len);
+	int deliverAudioData(char* buf, int len);
+	int deliverVideoData(char* buf, int len);
 	void receiveRawData(RawDataPacket& packet);
   void receiveRtpData(unsigned char* rtpdata, int len);
+
+  void closeSink();
 
 //	MediaProcessor *mp;
 	InputProcessor* ip;
@@ -64,7 +66,7 @@ private:
 	char* decodedBuffer_;
 	char* codedBuffer_;
 	RTPSink* sink_;
-	std::vector<packet> head;
+	std::vector<dataPacket> head;
 	int gotFrame_,gotDecodedFrame_, size_;
 	void sendHead(WebRtcConnection* conn);
 	RtpParser pars;

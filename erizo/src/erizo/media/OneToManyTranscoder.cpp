@@ -64,8 +64,7 @@ OneToManyTranscoder::~OneToManyTranscoder() {
 	}
 }
 
-int OneToManyTranscoder::receiveAudioData(char* buf, int len) {
-
+int OneToManyTranscoder::deliverAudioData(char* buf, int len) {
 	if (subscribers.empty() || len <= 0)
 		return 0;
 
@@ -73,13 +72,13 @@ int OneToManyTranscoder::receiveAudioData(char* buf, int len) {
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
 		memset(sendAudioBuffer_, 0, len);
 		memcpy(sendAudioBuffer_, buf, len);
-		(*it).second->receiveAudioData(sendAudioBuffer_, len);
+		(*it).second->deliverAudioData(sendAudioBuffer_, len);
 	}
 
 	return 0;
 }
 
-int OneToManyTranscoder::receiveVideoData(char* buf, int len) {
+int OneToManyTranscoder::deliverVideoData(char* buf, int len) {
 	memset(sendVideoBuffer_, 0, len);
 	memcpy(sendVideoBuffer_, buf, len);
 
@@ -88,7 +87,7 @@ int OneToManyTranscoder::receiveVideoData(char* buf, int len) {
 //			theHead->getPayloadType());
 
 	if (theHead->getPayloadType() == 100) {
-		ip->receiveVideoData(sendVideoBuffer_, len);
+		ip->deliverVideoData(sendVideoBuffer_, len);
 	} else {
 		this->receiveRtpData((unsigned char*) buf, len);
 	}
@@ -129,7 +128,7 @@ void OneToManyTranscoder::receiveRtpData(unsigned char*rtpdata, int len) {
 	std::map<std::string, WebRtcConnection*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
 		memcpy(sendVideoBuffer_, rtpdata, len);
-		(*it).second->receiveVideoData(sendVideoBuffer_, len);
+		(*it).second->deliverVideoData(sendVideoBuffer_, len);
 	}
 	sentPackets_++;
 }
@@ -148,6 +147,10 @@ void OneToManyTranscoder::removeSubscriber(const std::string& peerId) {
 		this->subscribers[peerId]->close();
 		this->subscribers.erase(peerId);
 	}
+}
+
+void OneToManyTranscoder::closeSink(){
+  this->closeAll();
 }
 
 void OneToManyTranscoder::close() {

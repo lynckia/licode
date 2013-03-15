@@ -8,8 +8,7 @@
 #include "../../WebRtcConnection.h"
 
 namespace erizo {
-  VideoMixer::VideoMixer() :
-    MediaReceiver() {
+  VideoMixer::VideoMixer() {
 
       sendVideoBuffer_ = (char*) malloc(2000);
       sendAudioBuffer_ = (char*) malloc(2000);
@@ -50,11 +49,11 @@ namespace erizo {
     }
   }
 
-  int VideoMixer::receiveAudioData(char* buf, int len) {
+  int VideoMixer::deliverAudioData(char* buf, int len) {
 
   }
 
-  int VideoMixer::receiveVideoData(char* buf, int len) {
+  int VideoMixer::deliverVideoData(char* buf, int len) {
 
   }
 
@@ -71,6 +70,10 @@ namespace erizo {
   }
 
   void VideoMixer::removePublisher(int peerSSRC) {
+  }
+
+  void VideoMixer::closeSink() {
+    this->closeAll();
   }
 
   void VideoMixer::closeAll() {
