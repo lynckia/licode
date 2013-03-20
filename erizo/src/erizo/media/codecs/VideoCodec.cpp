@@ -151,6 +151,30 @@ namespace erizo {
 
     return 0;
   }
+
+  int VideoDecoder::initDecoder (AVCodecContext* context){
+    printf("Init Decoder\n");
+    vDecoder = avcodec_find_decoder(context->codec_id);
+    if (!vDecoder) {
+      printf("Error getting video decoder\n");
+      return -1;
+    }
+    vDecoderContext = context;
+
+    if (avcodec_open2(vDecoderContext, vDecoder, NULL) < 0) {
+      printf("Error opening video decoder\n");
+      return -1;
+    }
+
+    dPicture = avcodec_alloc_frame();
+    if (!dPicture) {
+      printf("Error allocating video frame\n");
+      return -1;
+    }
+
+    return 0;
+  }
+
   int VideoDecoder::decodeVideo(unsigned char* inBuff, int inBuffLen,
       unsigned char* outBuff, int outBuffLen, int* gotFrame){
     if (vDecoder == 0 || vDecoderContext == 0){

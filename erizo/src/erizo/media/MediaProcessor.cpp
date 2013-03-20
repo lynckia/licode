@@ -293,7 +293,20 @@ namespace erizo {
   }
 
   void InputProcessor::close(){
-    printf("close\n");
+
+    if (audioDecoder == 1) {
+      avcodec_close(aDecoderContext);
+      av_free(aDecoderContext);
+      audioDecoder = 0;
+    }
+
+    if (videoDecoder == 1) {
+      vDecoder.closeDecoder();      
+      videoDecoder = 0;
+    }
+    if (decodedBuffer_ != NULL) {
+      free(decodedBuffer_);
+    }
   }
 
   OutputProcessor::OutputProcessor() {
@@ -362,6 +375,29 @@ namespace erizo {
     }
 
     return 0;
+  }
+
+  void OutputProcessor::close(){
+
+    if (audioCoder == 1) {
+      avcodec_close(aCoderContext);
+      av_free(aCoderContext);
+      audioCoder = 0;
+    }
+
+    if (videoCoder == 1) {
+      vCoder.closeEncoder();
+      videoCoder = 0;
+    }
+    if (encodedBuffer_) {
+      free(encodedBuffer_);
+    }
+    if (packagedBuffer_) {
+      free(packagedBuffer_);
+    }
+    if (rtpBuffer_) {
+      free(rtpBuffer_);
+    }
   }
 
 

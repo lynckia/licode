@@ -34,13 +34,20 @@ namespace erizo {
 
     sendVideoBuffer_ = (char*) malloc(2000);
     VideoCodecInfo info;
-    //    info.payloadType = 98;
-    info.width = 640;
-    info.height = 480;
-    bufflen = 640*480*3/2;
+
+    int ret;
+    ret = av_find_best_stream(context, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+    if (ret < 0){
+      printf("No video stream?\n");
+      return false;
+    }
+    video_stream_index = ret;
+
+    AVStream* st = context->streams[ret];    
+    inCodec_.initDecoder(st->codec);
+
+    bufflen = st->codec->width*st->codec->height*3/2;
     decodedBuffer_ = (unsigned char*) malloc(bufflen);
-    info.codec = VIDEO_CODEC_H264;
-    inCodec_.initDecoder(info);
 
     MediaInfo om;
     om.proccessorType = RTP_ONLY;
@@ -61,20 +68,8 @@ namespace erizo {
     op_->init(om, this);
 
 
-    printf("Success!\n");
-    //search video stream
-    for(int i =0;i<context->nb_streams;i++){
-      if(context->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-        video_stream_index = i;
-    }
-
+    printf("Success initializing external input\n");
     av_init_packet(&avpacket);
-
-    //open output file
-    //    AVOutputFormat* fmt = av_guess_format(NULL,"test2.avi",NULL);
-    //    AVFormatContext* oc = avformat_alloc_context();
-    //    oc->oformat = fmt;
-    //    avio_open2(&oc->pb, "test.avi", AVIO_FLAG_WRITE,NULL,NULL);
 
     AVStream* stream=NULL;
     int cnt = 0;
@@ -82,16 +77,11 @@ namespace erizo {
     thread_ = boost::thread(&ExternalInput::receiveLoop, this);
     running = true;
     encodeThread_ = boost::thread(&ExternalInput::encodeLoop, this);
-    //start reading packets from stream and write them to file
-
-    //    av_write_trailer(oc);
-    //    avio_close(oc->pb);
-    //    avformat_free_context(oc);
-
     return true;
   }
 
   void ExternalInput::closeSource() {
+    running = false;
   }
 
   int ExternalInput::sendFirPacket() {
@@ -99,6 +89,7 @@ namespace erizo {
   }
 
   ExternalInput::~ExternalInput(){
+    this->closeSource();
     printf("Destructor\n");
   }
 
@@ -116,20 +107,9 @@ namespace erizo {
     int gotDecodedFrame = 0;
     while(av_read_frame(context,&avpacket)>=0){//read 100 frames
       if(avpacket.stream_index == video_stream_index){//packet is video               
-        /*
-           if(stream == NULL){//create stream in file
-        //                stream = avformat_new_stream(oc,context->streams[video_stream_index]->codec->codec);
-        //                avcodec_copy_context(stream->codec,context->streams[video_stream_index]->codec);
-        //                stream->sample_aspect_ratio = context->streams[video_stream_index]->codec->sample_aspect_ratio;
-        //                avformat_write_header(oc,NULL);
-        }
-        */
         //        packet.stream_index = stream->id;
-        //
-        //        printf("Read PAcket size: %u\n", avpacket.size);
         inCodec_.decodeVideo(avpacket.data, avpacket.size, decodedBuffer_, bufflen, &gotDecodedFrame);
         RawDataPacket packetR;
-
         if (gotDecodedFrame){
           packetR.data = decodedBuffer_;
           packetR.length = bufflen;
@@ -139,9 +119,6 @@ namespace erizo {
           queueMutex_.unlock();
           gotDecodedFrame=0;
         }
-        //            av_write_frame(oc,&packet);
-
-
       }
       av_free_packet(&avpacket);
       av_init_packet(&avpacket);

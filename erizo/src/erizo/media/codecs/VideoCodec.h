@@ -13,9 +13,9 @@ extern "C" {
 }
 //Forward Declarations
 
-struct AVCodec;
-struct AVCodecContext;
-struct AVFrame;
+//struct AVCodec;
+//struct AVCodecContext;
+//struct AVFrame;
 
 namespace erizo {
 
@@ -37,6 +37,7 @@ namespace erizo {
     public:
       VideoDecoder();
       int initDecoder (const VideoCodecInfo& info);
+      int initDecoder (AVCodecContext* context);
       int decodeVideo(unsigned char* inBuff, int inBuffLen,
           unsigned char* outBuff, int outBuffLen, int* gotFrame);
       int closeDecoder();

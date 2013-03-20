@@ -149,7 +149,7 @@ public:
 	OutputProcessor();
 	virtual ~OutputProcessor();
 	int init(const MediaInfo& info, RTPDataReceiver* rtpReceiver);
-
+  void close();
 	void receiveRawData(RawDataPacket& packet);
 
 private:
