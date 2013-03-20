@@ -11,7 +11,7 @@ namespace erizo {
   ExternalInput::ExternalInput(std::string inputUrl){
 
     //    printf("Constructor URL: %s\n", inputUrl.c_str());
-
+    sourcefbSink_=NULL;
     url = inputUrl;
     
   }

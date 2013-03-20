@@ -69,6 +69,8 @@ namespace erizo {
 
   int OneToManyProcessor::deliverFeedback(char* buf, int len){
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
+    if (feedbackSink_==NULL)
+      return 0;
     if(head->packettype==201 || head->packettype==206){
       head->ssrc = htonl(publisher->getVideoSourceSSRC());
       feedbackSink_->deliverFeedback(buf,len);
