@@ -3,7 +3,7 @@
 
 #include <node.h>
 #include <media/ExternalInput.h>
-#include "MediaReceiver.h"
+#include "MediaDefinitions.h"
 #include "WebRtcConnection.h"
 
 

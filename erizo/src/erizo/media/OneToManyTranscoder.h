@@ -22,8 +22,8 @@ class RTPSink;
  */
 class OneToManyTranscoder : public MediaSink, public RawDataReceiver, public RTPDataReceiver {
 public:
-	WebRtcConnection *publisher;
-	std::map<std::string, WebRtcConnection*> subscribers;
+	MediaSource* publisher;
+	std::map<std::string, MediaSink*> subscribers;
 
 	OneToManyTranscoder();
 	virtual ~OneToManyTranscoder();
@@ -31,13 +31,13 @@ public:
 	 * Sets the Publisher
 	 * @param webRtcConn The WebRtcConnection of the Publisher
 	 */
-	void setPublisher(WebRtcConnection* webRtcConn);
+	void setPublisher(MediaSource* webRtcConn);
 	/**
 	 * Sets the subscriber
 	 * @param webRtcConn The WebRtcConnection of the subscriber
 	 * @param peerId An unique Id for the subscriber
 	 */
-	void addSubscriber(WebRtcConnection* webRtcConn, const std::string& peerId);
+	void addSubscriber(MediaSink* webRtcConn, const std::string& peerId);
 	/**
 	 * Eliminates the subscriber given its peer id
 	 * @param peerId the peerId

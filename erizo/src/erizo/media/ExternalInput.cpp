@@ -91,7 +91,11 @@ namespace erizo {
     return true;
   }
 
-  void ExternalInput::close() {
+  void ExternalInput::closeSource() {
+  }
+
+  int ExternalInput::sendFirPacket() {
+    return 0;
   }
 
   ExternalInput::~ExternalInput(){
@@ -144,10 +148,6 @@ namespace erizo {
     }
     running=false;
     av_read_pause(context);
-  }
-
-  int ExternalInput::sendFirPacket(){
-    return 0;
   }
 
   void ExternalInput::encodeLoop() {

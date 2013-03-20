@@ -25,7 +25,7 @@ namespace erizo{
       bool init();
       void receiveRtpData(unsigned char*rtpdata, int len);
       int sendFirPacket();
-      void close();
+      void closeSource();
 
 
     private:

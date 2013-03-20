@@ -3,7 +3,7 @@
 
 #include <node.h>
 #include <media/OneToManyTranscoder.h>
-#include "MediaReceiver.h"
+#include "MediaDefinitions.h"
 #include "WebRtcConnection.h"
 
 
@@ -13,7 +13,7 @@
  * Represents a OneToMany connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class OneToManyTranscoder : public MediaReceiver {
+class OneToManyTranscoder : public MediaSink {
  public:
   static void Init(v8::Handle<v8::Object> target);
 

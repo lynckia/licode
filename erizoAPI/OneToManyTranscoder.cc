@@ -54,9 +54,11 @@ Handle<Value> OneToManyTranscoder::setPublisher(const Arguments& args) {
   erizo::OneToManyTranscoder *me = (erizo::OneToManyTranscoder*)obj->me;
 
   WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
-  erizo::WebRtcConnection *wr = param->me;
+  erizo::WebRtcConnection* wr = (erizo::WebRtcConnection*)param->me;
 
-  me->setPublisher(wr);
+  erizo::MediaSource* ms = dynamic_cast<erizo::MediaSource*>(wr);
+  me->setPublisher(ms);
+
 
   return scope.Close(Null());
 }
@@ -83,8 +85,9 @@ Handle<Value> OneToManyTranscoder::addSubscriber(const Arguments& args) {
   erizo::OneToManyTranscoder *me = (erizo::OneToManyTranscoder*)obj->me;
 
   WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
-  erizo::WebRtcConnection *wr = param->me;
+  erizo::WebRtcConnection* wr = param->me;
 
+  erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
 // get the param
   v8::String::Utf8Value param1(args[1]->ToString());
 

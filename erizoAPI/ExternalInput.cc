@@ -65,10 +65,10 @@ Handle<Value> ExternalInput::setAudioReceiver(const Arguments& args) {
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 
-  MediaReceiver* param = ObjectWrap::Unwrap<MediaReceiver>(args[0]->ToObject());
-  erizo::MediaReceiver *mr = param->me;
+  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(args[0]->ToObject());
+  erizo::MediaSink *mr = param->me;
 
-  me-> setAudioReceiver(mr);
+  me->setAudioSink(mr);
 
   return scope.Close(Null());
 }
@@ -79,10 +79,10 @@ Handle<Value> ExternalInput::setVideoReceiver(const Arguments& args) {
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 
-  MediaReceiver* param = ObjectWrap::Unwrap<MediaReceiver>(args[0]->ToObject());
-  erizo::MediaReceiver *mr = param->me;
+  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(args[0]->ToObject());
+  erizo::MediaSink *mr = param->me;
 
-  me-> setVideoReceiver(mr);
+  me->setVideoSink(mr);
 
   return scope.Close(Null());
 }
