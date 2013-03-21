@@ -13,6 +13,8 @@ SrtpChannel::SrtpChannel() {
 
 	srtp_init();
 	active_ = false;
+  send_session_ = NULL;
+  receive_session_ = NULL;
 }
 
 SrtpChannel::~SrtpChannel() {
