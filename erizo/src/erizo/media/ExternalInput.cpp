@@ -9,11 +9,8 @@
 
 namespace erizo {
   ExternalInput::ExternalInput(std::string inputUrl){
-
-    //    printf("Constructor URL: %s\n", inputUrl.c_str());
     sourcefbSink_=NULL;
     url = inputUrl;
-    
   }
 
   bool ExternalInput::init(){
@@ -68,7 +65,7 @@ namespace erizo {
     op_->init(om, this);
 
 
-    printf("Success initializing external input\n");
+    printf("Success initializing external input for codec %s\n", st->codec->codec_name);
     av_init_packet(&avpacket);
 
     AVStream* stream=NULL;
@@ -105,7 +102,7 @@ namespace erizo {
 
     av_read_play(context);//play RTSP
     int gotDecodedFrame = 0;
-    while(av_read_frame(context,&avpacket)>=0){//read 100 frames
+    while(av_read_frame(context,&avpacket)>=0&& running==true){//read 100 frames
       if(avpacket.stream_index == video_stream_index){//packet is video               
         //        packet.stream_index = stream->id;
         inCodec_.decodeVideo(avpacket.data, avpacket.size, decodedBuffer_, bufflen, &gotDecodedFrame);
