@@ -28,6 +28,10 @@ roomVc.sockets = [];
 roomVc.streams = [];
 roomVc.webRtcController = new controller.WebRtcController();
 
+roomVc.streams.push('1234');
+roomVc.webRtcController.addExternalInput('1234', "rtsp://isabel:grdp1l0@138.4.4.253:554/MediaInput/h264", function (result) {
+console.log(result);
+});
 
 var sendMsgToRoom = function(room, type, arg) {
 
