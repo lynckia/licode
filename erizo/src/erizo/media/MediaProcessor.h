@@ -21,7 +21,7 @@ namespace erizo {
 
 
 struct RTPInfo {
-	enum CodecID codec;
+	enum AVCodecID codec;
 	unsigned int ssrc;
 	unsigned int PT;
 };

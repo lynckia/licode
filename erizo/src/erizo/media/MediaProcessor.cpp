@@ -113,7 +113,7 @@ namespace erizo {
 
   bool InputProcessor::initAudioDecoder() {
 
-    aDecoder = avcodec_find_decoder(static_cast<CodecID>(mediaInfo.audioCodec.codec));
+    aDecoder = avcodec_find_decoder(static_cast<AVCodecID>(mediaInfo.audioCodec.codec));
     if (!aDecoder) {
       printf("Decoder de audio no encontrado");
       return false;
@@ -164,7 +164,7 @@ namespace erizo {
     int outSize;
     int decSize = 0;
     int len = -1;
-    uint8_t *decBuff = (uint8_t*) malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
+    uint8_t *decBuff = (uint8_t*) malloc(16000);
 
     av_init_packet(&avpkt);
     avpkt.data = (unsigned char*) inBuff;
@@ -172,7 +172,7 @@ namespace erizo {
 
     while (avpkt.size > 0) {
 
-      outSize = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+      outSize = 16000;
 
       //Puede fallar. Cogido de libavcodec/utils.c del paso de avcodec_decode_audio3 a avcodec_decode_audio4
       //avcodec_decode_audio3(aDecoderContext, (short*)decBuff, &outSize, &avpkt);
@@ -420,7 +420,7 @@ namespace erizo {
 
   bool OutputProcessor::initAudioCoder() {
 
-    aCoder = avcodec_find_encoder(static_cast<CodecID>(mediaInfo.audioCodec.codec));
+    aCoder = avcodec_find_encoder(static_cast<AVCodecID>(mediaInfo.audioCodec.codec));
     if (!aCoder) {
       printf("Encoder de audio no encontrado");
       exit(0);
