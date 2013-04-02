@@ -385,22 +385,17 @@ namespace erizo {
 
   void WebRtcConnection::updateState(IceState newState,
       NiceConnection* niceConn) {
+//    printf("UPDATESTATE %d\n", newState);
     boost::mutex::scoped_lock lock(updateStateMutex_);
     IceState temp;
-    if (niceConn == videoNice_&& bundle_){
-      temp = newState;
-    }else{
-      if (videoNice_ == NULL){
-        temp = newState;
-      }else{
-      }
-
-    }
+    temp = newState;
     if (temp == globalIceState_)
       return;
     globalIceState_ = temp;
-    if (connStateListener_ != NULL)
+    if (connStateListener_ != NULL){
+      printf("State Changed %d\n", globalIceState_);
       connStateListener_->connectionStateChanged(globalIceState_);
+    }
   }
 
   IceState WebRtcConnection::getCurrentState() {
