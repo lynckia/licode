@@ -49,6 +49,14 @@ namespace erizo {
     return;
   }
 
+
+	int ExternalOutput::deliverAudioData(char* buf, int len){
+    return 0;
+  }
+	int ExternalOutput::deliverVideoData(char* buf, int len){
+    return 0;
+  }
+
   void ExternalOutput::encodeLoop() {
     while (running == true) {
       queueMutex_.lock();
