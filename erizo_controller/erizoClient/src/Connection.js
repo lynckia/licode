@@ -16,14 +16,14 @@ Erizo.Connection = function (spec) {
     if (typeof module !== 'undefined' && module.exports) {
         L.Logger.error('Publish/subscribe video/audio streams not supported in erizofc yet');
         that = Erizo.FcStack(spec);
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "23" || 
-               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "24") {
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "25" || 
+               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "26") {
         // Google Chrome Stable.
         console.log("Stable!");
         that = Erizo.ChromeStableStack(spec);
         that.browser = "chrome-stable";
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "25" ||
-               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "26") {
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "27" ||
+               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "28") {
         // Google Chrome Canary.
         console.log("Canary!");
         that = Erizo.ChromeCanaryStack(spec);
