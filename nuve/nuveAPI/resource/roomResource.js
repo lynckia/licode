@@ -61,7 +61,7 @@ exports.deleteRoom = function (req, res) {
             roomRegistry.removeRoom(id);
 
             for (i = 0; i < array.length; i += 1) {
-                if (array[i]._id === id) {
+                if (array[i]._id === currentRoom._id) {
                     index = i;
                 }
             }
