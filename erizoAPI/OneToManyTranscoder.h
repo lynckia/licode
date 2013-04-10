@@ -16,6 +16,7 @@
 class OneToManyTranscoder : public MediaSink {
  public:
   static void Init(v8::Handle<v8::Object> target);
+  erizo::OneToManyTranscoder* me;
 
  private:
   OneToManyTranscoder();

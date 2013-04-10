@@ -5,6 +5,7 @@
 #include <OneToManyProcessor.h>
 #include "MediaDefinitions.h"
 #include "WebRtcConnection.h"
+#include "ExternalInput.h"
 
 
 /*
@@ -16,6 +17,7 @@
 class OneToManyProcessor : public MediaSink {
  public:
   static void Init(v8::Handle<v8::Object> target);
+  erizo::OneToManyProcessor* me;
 
  private:
   OneToManyProcessor();
@@ -36,7 +38,12 @@ class OneToManyProcessor : public MediaSink {
    * Param: the WebRtcConnection of the Publisher
    */
   static v8::Handle<v8::Value> setPublisher(const v8::Arguments& args);
-   /*
+  /*
+   * Sets an External Publisher
+   * Param: the ExternalInput of the Publisher
+   */
+  static v8::Handle<v8::Value> setExternalPublisher(const v8::Arguments& args);
+  /*
    * Returns true if OneToManyProcessor has a publisher
    */
   static v8::Handle<v8::Value> hasPublisher(const v8::Arguments& args);

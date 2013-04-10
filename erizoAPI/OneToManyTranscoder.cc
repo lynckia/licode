@@ -30,6 +30,7 @@ Handle<Value> OneToManyTranscoder::New(const Arguments& args) {
 
   OneToManyTranscoder* obj = new OneToManyTranscoder();
   obj->me = new erizo::OneToManyTranscoder();
+  obj->msink = obj->me;
 
   obj->Wrap(args.This());
 
