@@ -22,17 +22,7 @@ namespace erizo {
   }
 
   InputProcessor::~InputProcessor() {
-    if (audioDecoder == 1) {
-      avcodec_close(aDecoderContext);
-      av_free(aDecoderContext);
-    }
-
-    if (videoDecoder == 1) {
-      vDecoder.closeDecoder();      
-    }
-    if (decodedBuffer_ != NULL) {
-      free(decodedBuffer_);
-    }
+    this->close();
   }
 
   int InputProcessor::init(const MediaInfo& info, RawDataReceiver* receiver) {
@@ -326,24 +316,7 @@ namespace erizo {
   }
 
   OutputProcessor::~OutputProcessor() {
-
-    if (audioCoder == 1) {
-      avcodec_close(aCoderContext);
-      av_free(aCoderContext);
-    }
-
-    if (videoCoder == 1) {
-      vCoder.closeEncoder();
-    }
-    if (encodedBuffer_) {
-      free(encodedBuffer_);
-    }
-    if (packagedBuffer_) {
-      free(packagedBuffer_);
-    }
-    if (rtpBuffer_) {
-      free(rtpBuffer_);
-    }
+    this->close();
   }
 
   int OutputProcessor::init(const MediaInfo& info, RTPDataReceiver* rtpReceiver) {

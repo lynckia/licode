@@ -20,10 +20,10 @@ namespace erizo{
   class ExternalInput : public MediaSource, public RTPDataReceiver {
 
     public:
-      ExternalInput (std::string inputUrl);
+      ExternalInput (const std::string& inputUrl);
       virtual ~ExternalInput();
       bool init();
-      void receiveRtpData(unsigned char*rtpdata, int len);
+      void receiveRtpData(unsigned char* rtpdata, int len);
       int sendFirPacket();
       void closeSource();
 
@@ -33,23 +33,20 @@ namespace erizo{
       VideoDecoder inCodec_;
       unsigned char* decodedBuffer_;
       char* sendVideoBuffer_;
-      void receiveLoop();
-      void encodeLoop();
 
-      std::string url;
-      bool running;
+      std::string url_;
+      bool running_;
 	    boost::mutex queueMutex_;
       boost::thread thread_, encodeThread_;
       std::queue<RawDataPacket> packetQueue_;
-      AVFormatContext *_formatCtx;
-      AVCodecContext  *_codecCtx;
-      AVCodec         *_codec;
-      AVFrame         *_frame;
-      AVPacket        _packet;
-      AVDictionary    *_optionsDict;
-      AVFormatContext* context;
-      int video_stream_index, bufflen;
-      AVPacket avpacket;
+      AVFormatContext* context_;
+      AVPacket avpacket_;
+      int video_stream_index_, bufflen_;
+
+
+      void receiveLoop();
+      void encodeLoop();
+
   };
 }
 #endif /* EXTERNALINPUT_H_ */

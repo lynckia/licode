@@ -117,6 +117,7 @@ namespace erizo {
       (*it).second->closeSink();
     }
     this->publisher->closeSource();
+    printf("CloseSource Hecho!\n");
   }
 
 }/* namespace erizo */

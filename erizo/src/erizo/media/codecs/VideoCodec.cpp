@@ -26,6 +26,13 @@ namespace erizo {
 
   VideoEncoder::VideoEncoder(){
     avcodec_register_all();
+    vCoder = NULL;
+    vCoderContext = NULL;
+    cPicture = NULL;
+  }
+
+  VideoEncoder::~VideoEncoder(){
+    this->closeEncoder();
   }
 
   int VideoEncoder::initEncoder(const VideoCodecInfo& info){
@@ -111,14 +118,24 @@ namespace erizo {
   }
 
   int VideoEncoder::closeEncoder() {
+    if (vCoderContext!=NULL)
+      avcodec_close(vCoderContext);
+    if (cPicture !=NULL)
+      av_frame_free(&cPicture);
+
     return 0;
   }
 
 
   VideoDecoder::VideoDecoder(){
     avcodec_register_all();
-    vDecoder = 0;
-    vDecoderContext = 0;
+    vDecoder = NULL;
+    vDecoderContext = NULL;
+    dPicture = NULL;
+  }
+
+  VideoDecoder::~VideoDecoder(){
+    this->closeDecoder();
   }
 
   int VideoDecoder::initDecoder (const VideoCodecInfo& info){
@@ -265,12 +282,10 @@ decoding:
   }
 
   int VideoDecoder::closeDecoder(){
-    if (dPicture!=0)
-      //      av_free(dPicture);
-      if (vDecoderContext!=0){
-        avcodec_close(vDecoderContext);
-        //      av_free(vDecoderContext);
-      }
+    if (vDecoderContext != NULL)
+      avcodec_close(vDecoderContext);
+    if (dPicture != NULL)
+      av_frame_free(&dPicture);
     return 0;
   }
 

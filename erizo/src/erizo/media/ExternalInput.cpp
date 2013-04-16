@@ -8,23 +8,32 @@
 #include <arpa/inet.h>
 
 namespace erizo {
-  ExternalInput::ExternalInput(std::string inputUrl){
+  
+  ExternalInput::ExternalInput(const std::string& inputUrl){
     sourcefbSink_=NULL;
-    url = inputUrl;
+    context_ = NULL;
+    sendVideoBuffer_=NULL;
+    running_ = false;
+    url_ = inputUrl;
+  }
+
+  ExternalInput::~ExternalInput(){
+    printf("Destructor EI\n");
+    this->closeSource();
   }
 
   bool ExternalInput::init(){
-    context = avformat_alloc_context();
+    context_ = avformat_alloc_context();
     av_register_all();
     avcodec_register_all();
     avformat_network_init();
     //open rtsp
     printf("trying to open input\n");
-    if(avformat_open_input(&context, url.c_str(),NULL,NULL) != 0){
+    if(avformat_open_input(&context_, url_.c_str(),NULL,NULL) != 0){
       printf("fail when opening input\n");
       return false;
     }
-    if(avformat_find_stream_info(context,NULL) < 0){
+    if(avformat_find_stream_info(context_,NULL) < 0){
       printf("fail when finding stream info\n");
       return false;
     }
@@ -33,18 +42,18 @@ namespace erizo {
     VideoCodecInfo info;
 
     int ret;
-    ret = av_find_best_stream(context, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+    ret = av_find_best_stream(context_, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
     if (ret < 0){
       printf("No video stream?\n");
       return false;
     }
-    video_stream_index = ret;
+    video_stream_index_ = ret;
 
-    AVStream* st = context->streams[ret];    
+    AVStream* st = context_->streams[ret];    
     inCodec_.initDecoder(st->codec);
 
-    bufflen = st->codec->width*st->codec->height*3/2;
-    decodedBuffer_ = (unsigned char*) malloc(bufflen);
+    bufflen_ = st->codec->width*st->codec->height*3/2;
+    decodedBuffer_ = (unsigned char*) malloc(bufflen_);
 
     MediaInfo om;
     om.proccessorType = RTP_ONLY;
@@ -66,29 +75,34 @@ namespace erizo {
 
 
     printf("Success initializing external input for codec %s\n", st->codec->codec_name);
-    av_init_packet(&avpacket);
+    av_init_packet(&avpacket_);
 
     AVStream* stream=NULL;
     int cnt = 0;
 
     thread_ = boost::thread(&ExternalInput::receiveLoop, this);
-    running = true;
+    running_ = true;
     encodeThread_ = boost::thread(&ExternalInput::encodeLoop, this);
     return true;
   }
 
   void ExternalInput::closeSource() {
-    running = false;
+    running_ = false;
+    encodeThread_.join();
+    thread_.join();
+    av_free_packet(&avpacket_);
+    if (context_!=NULL)
+      avformat_free_context(context_);
+    if (sendVideoBuffer_!=NULL)
+      free(sendVideoBuffer_);
+    if(decodedBuffer_!=NULL)
+      free(decodedBuffer_);
   }
 
   int ExternalInput::sendFirPacket() {
     return 0;
   }
 
-  ExternalInput::~ExternalInput(){
-    this->closeSource();
-    printf("Destructor\n");
-  }
 
   void ExternalInput::receiveRtpData(unsigned char*rtpdata, int len) {
     if (videoSink_!=NULL){
@@ -100,16 +114,16 @@ namespace erizo {
 
   void ExternalInput::receiveLoop(){
 
-    av_read_play(context);//play RTSP
+    av_read_play(context_);//play RTSP
     int gotDecodedFrame = 0;
-    while(av_read_frame(context,&avpacket)>=0&& running==true){//read 100 frames
-      if(avpacket.stream_index == video_stream_index){//packet is video               
+    while(av_read_frame(context_,&avpacket_)>=0&& running_==true){//read 100 frames
+      if(avpacket_.stream_index == video_stream_index_){//packet is video               
         //        packet.stream_index = stream->id;
-        inCodec_.decodeVideo(avpacket.data, avpacket.size, decodedBuffer_, bufflen, &gotDecodedFrame);
+        inCodec_.decodeVideo(avpacket_.data, avpacket_.size, decodedBuffer_, bufflen_, &gotDecodedFrame);
         RawDataPacket packetR;
         if (gotDecodedFrame){
           packetR.data = decodedBuffer_;
-          packetR.length = bufflen;
+          packetR.length = bufflen_;
           packetR.type = VIDEO;
           queueMutex_.lock();
           packetQueue_.push(packetR);
@@ -117,15 +131,15 @@ namespace erizo {
           gotDecodedFrame=0;
         }
       }
-      av_free_packet(&avpacket);
-      av_init_packet(&avpacket);
+      av_free_packet(&avpacket_);
+      av_init_packet(&avpacket_);
     }
-    running=false;
-    av_read_pause(context);
+    running_=false;
+    av_read_pause(context_);
   }
 
   void ExternalInput::encodeLoop() {
-    while (running == true) {
+    while (running_ == true) {
       queueMutex_.lock();
       if (packetQueue_.size() > 0) {
         op_->receiveRawData(packetQueue_.front());
