@@ -36,7 +36,7 @@ Erizo.Bar = function (spec) {
     that.link.setAttribute('target', '_blank');
 
     that.logo = document.createElement('img');
-    that.logo.setAttribute('style', 'width: 10%; height: 100%; max-width: 30px; position: absolute; top: 0; left: 2px;');
+    that.logo.setAttribute('style', 'width: 100%; height: 100%; max-width: 30px; position: absolute; top: 0; left: 2px;');
     that.logo.setAttribute('alt', 'Lynckia');
     that.logo.setAttribute('src', that.url + '/assets/star.svg');
 
@@ -68,7 +68,7 @@ Erizo.Bar = function (spec) {
 
     // Speaker component
     if (spec.options === undefined || spec.options.speaker === undefined || spec.options.speaker === true) {
-        that.speaker = new Erizo.Speaker({elementID: 'subbar_' + that.id, id: that.id, video: spec.video});
+        that.speaker = new Erizo.Speaker({elementID: 'subbar_' + that.id, id: that.id, stream: spec.stream, video: spec.video});
     }
 
     that.display();

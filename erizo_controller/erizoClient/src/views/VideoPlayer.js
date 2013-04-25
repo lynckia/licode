@@ -18,7 +18,7 @@ Erizo.VideoPlayer = function (spec) {
     that.id = spec.id;
 
     // Stream that the VideoPlayer will play
-    that.stream = spec.stream;
+    that.stream = spec.stream.stream;
 
     // DOM element in which the VideoPlayer will be appended
     that.elementID = spec.elementID;
@@ -115,7 +115,7 @@ Erizo.VideoPlayer = function (spec) {
 
 
     // Bottom Bar
-    that.bar = new Erizo.Bar({elementID: 'player_' + that.id, id: that.id, video: that.video, options: spec.options});
+    that.bar = new Erizo.Bar({elementID: 'player_' + that.id, id: that.id, stream: spec.stream, video: that.video, options: spec.options});
 
     that.div.onmouseover = onmouseover;
     that.div.onmouseout = onmouseout;
