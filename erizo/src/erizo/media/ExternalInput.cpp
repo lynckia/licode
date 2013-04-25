@@ -58,7 +58,7 @@ namespace erizo {
     MediaInfo om;
     om.proccessorType = RTP_ONLY;
     om.videoCodec.codec = VIDEO_CODEC_VP8;
-    om.videoCodec.bitRate = 100000;
+    om.videoCodec.bitRate = 1000000;
     om.videoCodec.width = 640;
     om.videoCodec.height = 480;
     om.videoCodec.frameRate = 20;
