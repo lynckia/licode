@@ -91,7 +91,7 @@ Handle<Value> WebRtcConnection::setAudioReceiver(const Arguments& args) {
   erizo::WebRtcConnection *me = obj->me;
 
   MediaSink* param = ObjectWrap::Unwrap<MediaSink>(args[0]->ToObject());
-  erizo::MediaSink *mr = param->me;
+  erizo::MediaSink *mr = param->msink;
 
   me-> setAudioSink(mr);
 
@@ -105,7 +105,7 @@ Handle<Value> WebRtcConnection::setVideoReceiver(const Arguments& args) {
   erizo::WebRtcConnection *me = obj->me;
 
   MediaSink* param = ObjectWrap::Unwrap<MediaSink>(args[0]->ToObject());
-  erizo::MediaSink *mr = param->me;
+  erizo::MediaSink *mr = param->msink;
 
   me-> setVideoSink(mr);
 

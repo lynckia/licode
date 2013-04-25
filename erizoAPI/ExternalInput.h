@@ -13,9 +13,10 @@
  * Represents a OneToMany connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class ExternalInput : public MediaSource {
+class ExternalInput: public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> target);
+  erizo::ExternalInput* me;
 
  private:
   ExternalInput();

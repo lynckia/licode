@@ -119,7 +119,7 @@ exports.WebRtcController = function () {
 
             ei.setAudioReceiver(muxer);
             ei.setVideoReceiver(muxer);
-            muxer.setPublisher(ei);
+            muxer.setExternalPublisher(ei);
 
             var answer = ei.init();
 

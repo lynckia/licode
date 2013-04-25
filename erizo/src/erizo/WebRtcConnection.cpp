@@ -51,6 +51,7 @@ namespace erizo {
   }
 
   void WebRtcConnection::close() {
+    fbSink_ = NULL;
     if (sending != false) {
       sending = false;
       send_Thread_.join();
@@ -58,15 +59,18 @@ namespace erizo {
     if (audio_) {
       if (audioSrtp_ != NULL)
         delete audioSrtp_;
+        audioSrtp_=NULL;
     }
     if (video_) {
       if (videoNice_ != NULL) {
         videoNice_->close();
         videoNice_->join();
         delete videoNice_;
+        videoNice_ = NULL;
       }
       if (videoSrtp_ != NULL)
         delete videoSrtp_;
+      videoSrtp_ = NULL;
     }
   }
 
@@ -266,7 +270,7 @@ namespace erizo {
     unsigned int recvSSRC = 0;
     if (bundle_) {
       bool isfeedback = false;
-      if (videoSrtp_){
+      if (videoSrtp_!=NULL){
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
         if (chead->packettype == 200) { //Sender Report
           if (videoSrtp_->unprotectRtcp(buf, &length)<0)
@@ -276,7 +280,8 @@ namespace erizo {
           if(videoSrtp_->unprotectRtcp(buf, &length)<0)
             return length;
           recvSSRC = ntohl(chead->ssrcsource);
-          fbSink_->deliverFeedback(buf,length);          
+          if (fbSink_!=NULL)
+            fbSink_->deliverFeedback(buf,length);
           return length;
         } else {
           if(videoSrtp_->unprotectRtp(buf, &length)<0)
@@ -296,10 +301,12 @@ namespace erizo {
         if (isfeedback && fbSink_!=NULL){
           fbSink_->deliverFeedback(buf,length);
         }else{
-          videoSink_->deliverVideoData(buf, length);
+          if (videoSink_!=NULL)
+            videoSink_->deliverVideoData(buf, length);
         }
       } else if (recvSSRC==this->getAudioSourceSSRC() || recvSSRC==this->getAudioSinkSSRC()) {
-        videoSink_->deliverAudioData(buf, length);
+        if (videoSink_!=NULL)
+          videoSink_->deliverAudioData(buf, length);
       } else {
         printf("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring\n", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
       }
