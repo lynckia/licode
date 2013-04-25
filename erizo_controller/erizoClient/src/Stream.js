@@ -93,7 +93,7 @@ Erizo.Stream = function (spec) {
         if (that.hasVideo()) {
             // Draw on HTML
             if (elementID !== undefined) {
-                var player = new Erizo.VideoPlayer({id: that.getID(), stream: that.stream, elementID: elementID, options: options});
+                var player = new Erizo.VideoPlayer({id: that.getID(), stream: that, elementID: elementID, options: options});
                 that.player = player;
                 that.showing = true;
             }
