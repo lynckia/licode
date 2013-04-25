@@ -17,7 +17,7 @@ extern "C" {
 namespace erizo{
   class WebRtcConnection;
 
-  class ExternalOutput : public MediaSink {
+  class ExternalOutput : public MediaSink, public RawDataReceiver {
 
     public:
       ExternalOutput (std::string outputUrl);
@@ -25,7 +25,7 @@ namespace erizo{
       bool init();
 	    int deliverAudioData(char* buf, int len);
 	    int deliverVideoData(char* buf, int len);
-      void receiveRtpData(unsigned char*rtpdata, int len);
+      void receiveRawData(RawDataPacket& packet);
       void closeSink();
 
 
@@ -45,9 +45,18 @@ namespace erizo{
       AVCodecContext  *_codecCtx;
       AVCodec         *_codec;
       AVFrame         *_frame;
+      AVStream        *video_st, *audio_st;
       AVPacket        _packet;
       AVDictionary    *_optionsDict;
-      AVFormatContext* context;
+
+
+      AVFormatContext *context_;
+      AVOutputFormat *oformat_;
+      AVCodec *videoCodec_; 
+      AVCodecContext *videoCodecCtx_;
+      InputProcessor *in;
+    
+
       int video_stream_index, bufflen;
       AVPacket avpacket;
   };

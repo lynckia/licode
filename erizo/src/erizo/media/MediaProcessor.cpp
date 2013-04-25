@@ -256,9 +256,9 @@ namespace erizo {
 
 //    printf("PT %d, ssrc %u, extension %d\n", head->getPayloadType(), head->getSSRC(),
 //        head->getExtension());
-    if ( head->getSSRC() != 55543 /*&& head->payloadtype!=101*/) {
-      return -1;
-    }
+//    if ( head->getSSRC() != 55543 /*&& head->payloadtype!=101*/) {
+//      return -1;
+//    }
     if (head->getPayloadType() != 100) {
       return -1;
     }
