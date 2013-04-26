@@ -51,11 +51,11 @@ namespace erizo {
     vCoderContext->bit_rate = info.bitRate;
     vCoderContext->rc_min_rate = info.bitRate; //
     vCoderContext->rc_max_rate = info.bitRate; // VPX_CBR
-    vCoderContext->qmin = 8;
-    vCoderContext->qmax = 56; // rc_quantifiers
+    vCoderContext->qmin = 0;
+    vCoderContext->qmax = 40; // rc_quantifiers
     vCoderContext->profile = 3;
     //    vCoderContext->frame_skip_threshold = 30;
-    vCoderContext->rc_buffer_aggressivity = 1;
+    vCoderContext->rc_buffer_aggressivity = 0.95;
     //vCoderContext->rc_buffer_size = vCoderContext->bit_rate;
     //vCoderContext->rc_initial_buffer_occupancy = vCoderContext->bit_rate / 2;
     vCoderContext->rc_initial_buffer_occupancy = 500;
