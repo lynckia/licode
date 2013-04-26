@@ -48,6 +48,7 @@ exports.addService = function (service, callback) {
     "use strict";
     service.rooms = [];
     db.services.save(service, function (error, saved) {
+        if (error) console.log('MongoDB: Error adding service: ', error);
         callback(saved._id);
     });
 };
@@ -57,7 +58,9 @@ exports.addService = function (service, callback) {
  */
 exports.updateService = function (service) {
     "use strict";
-    db.services.save(service);
+    db.services.save(service, function (error, saved) {
+        if (error) console.log('MongoDB: Error updating service: ', error);
+    });
 };
 
 /*

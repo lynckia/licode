@@ -35,6 +35,7 @@ exports.addRoom = function (room, callback) {
     "use strict";
 
     db.rooms.save(room, function (error, saved) {
+        if (error) console.log('MongoDB: Error adding room: ', error);
         callback(saved);
     });
 };

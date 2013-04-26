@@ -51,6 +51,7 @@ exports.addToken = function (token, callback) {
     "use strict";
 
     db.tokens.save(token, function (error, saved) {
+        if (error) console.log('Error adding token: ', error);
         callback(saved._id);
     });
 };
