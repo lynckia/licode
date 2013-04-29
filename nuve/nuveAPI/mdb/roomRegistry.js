@@ -47,7 +47,9 @@ exports.removeRoom = function (id) {
     "use strict";
     hasRoom(id, function (hasR) {
         if (hasR) {
-            db.rooms.remove({_id: new BSON.ObjectID(id)});
+            db.rooms.remove({_id: new BSON.ObjectID(id)}, , function (error, saved) {
+                if (error) console.log('MongoDB: Error romoving room: ', error);
+            });
         }
     });
 };

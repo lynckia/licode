@@ -70,7 +70,9 @@ exports.removeService = function (id) {
     "use strict";
     hasService(id, function (hasS) {
         if (hasS) {
-            db.services.remove({_id: new BSON.ObjectID(id)});
+            db.services.remove({_id: new BSON.ObjectID(id)}, unction (error, saved) {
+                if (error) console.log('MongoDB: Error removing service: ', error);
+            });
         }
     });
 };
