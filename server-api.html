@@ -99,6 +99,8 @@ N.API.init(serviceId, serviceKey, nuve_host);</pre>
           </ul>
           <p>In your service you can create a room, get a list of rooms that you have created, get the info about a determined room or delete a room when you don't need it.</p>
 
+          <p>In all functions you can include an error callback ir order to catch possible problems with nuve server.</p>
+
           <h3>Create Room</h3>
           <p>To create a room you need to specify a name and a callback function. When the room is created Nuve calls this function and returns you the roomId:</p>
           <pre class="prettyprint linenums">
@@ -115,7 +117,7 @@ N.API.getRooms(function(rooms) {
   for(var i in rooms) {
     console.log('Room ', i, ':', rooms[i].name);
   }
-});</pre>
+}, errorCallback);</pre>
 
           <h3>Get Room</h3>
           <p>Also you can get the info about a determined room with its roomId:</p>
@@ -124,7 +126,7 @@ var roomId = '30121g51113e74fff3115502';
 
 N.API.getRoom(roomId, function(room) {
   console.log('Room name: ', room.name):
-});</pre>
+}, errorCallback);</pre>
 
           <h3>Delete Room</h3>
           <p>And finally, for delete a determined room:</p>
@@ -133,7 +135,7 @@ var roomId = '30121g51113e74fff3115502';
 
 N.API.deleteRoom(roomId, function(result) {
   console.log('Result: ', result):
-});</pre>
+}, errorCallback);</pre>
           
         </section>
 
@@ -163,7 +165,7 @@ var role = '';
 
 N.API.createToken(roomId, name, role, function(token) {
   console.log('Token created: ', token);
-});</pre>
+}, errorCallback);</pre>
 
         </section>
 
@@ -197,7 +199,7 @@ N.API.getUsers(roomId, function(users) {
   for(var i in usersList) {
     console.log('User ', i, ':', usersList[i].name, 'with role: ', usersList[i].role);
   }
-});</pre>
+}, errorCallback);</pre>
 
         </section>
 
@@ -270,6 +272,8 @@ app.post('/createRoom/', function(req, res){
 
     N.API.createRoom('myRoom', function(roomID) {
         res.send(roomID);
+    }, function (e) {
+        console.log('Error: ', e);
     });
 });</pre>
             </div>
@@ -286,6 +290,8 @@ app.get('/getRooms/', function(req, res){
 
     N.API.getRooms(function(rooms) {
         res.send(rooms);
+    }, function (e) {
+        console.log('Error: ', e);
     });
 });</pre>
             </div>
@@ -303,6 +309,8 @@ app.get('/getUsers/:room', function(req, res){
     var room = req.params.room;
     N.API.getUsers(room, function(users) {
         res.send(users);
+    }, function (e) {
+        console.log('Error: ', e);
     });
 });</pre>
             </div>
@@ -322,6 +330,8 @@ app.post('/createToken/:room', function(req, res){
     var role = req.body.role;
     N.API.createToken(room, username, role, function(token) {
         res.send(token);
+    }, function (e) {
+        console.log('Error: ', e);
     });
 });</pre>
             </div>
