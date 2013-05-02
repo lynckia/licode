@@ -95,7 +95,7 @@ var addNewAmazonErizoController = function(privateIP, callback) {
     var instaceId;
 
     if (ec2 === undefined) {
-        ec2 = require('aws-lib').createEC2Client(config.cloudProvider.accessKey, config.cloudProvider.secretAccessKey, {host:'ec2.eu-west-1.amazonaws.com', version: '2012-12-01'});
+        ec2 = require('aws-lib').createEC2Client(config.cloudProvider.accessKey, config.cloudProvider.secretAccessKey);
     }
     console.log('private ip ', privateIP);
 
