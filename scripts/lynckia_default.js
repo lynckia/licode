@@ -20,6 +20,8 @@ config.erizoController.limit_n_rooms = 20;
 config.erizoController.interval_time_keepAlive = 1000;
 
 config.cloudProvider.name = '';
+//In Amazon Ec2 instances you can specify the zone host. By default is 'ec2.us-east-1a.amazonaws.com' 
+config.cloudProvider.host = '';
 config.cloudProvider.accessKey = '';
 config.cloudProvider.secretAccessKey = '';
 
