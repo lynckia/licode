@@ -54,11 +54,11 @@ clientapi: true
               <tbody>
                 <tr>
                   <td><a href="#stream">Erizo.Stream</a></td>
-                  <td>Provides access to local and remote video, audio and data streams in a Lynckia Room.</td>
+                  <td>Provides access to local and remote video, audio and data streams in a Licode Room.</td>
                 </tr>
                 <tr>
                   <td><a href="#room">Erizo.Room</a></td>
-                  <td>Represents a Lynckia Room and provides connection, local stream publication and remote stream subscription.</td>
+                  <td>Represents a Licode Room and provides connection, local stream publication and remote stream subscription.</td>
                 </tr>
                 <tr>
                   <td><a href="#events">Erizo.Events</a></td>
@@ -75,7 +75,7 @@ clientapi: true
             <h1>Erizo.Stream</h1>
           </div>
           <p class="lead"> It will handle the WebRTC (audio, video and/or data) stream, identify it, and where it should be drawn.</p>
-          <p>They could be local or remote. Lynckia internally creates remote streams through the <a href="#room">Erizo.Room</a> APIs.
+          <p>They could be local or remote. Licode internally creates remote streams through the <a href="#room">Erizo.Room</a> APIs.
           <p>It will identify each local and remote streams with <code>stream.getID()</code> and it controls where it should be drawn in the HTML page according to <code>stream.show()</code> (just in case they are video/audio streams).
 
             <p>You need to initialize the Stream before you can use it in the Room. Typical initializacion of Stream is:
@@ -276,7 +276,7 @@ setInterval(function() {
           <div class="page-header">
             <h1>Erizo.Room</h1>
           </div>
-          <p class="lead">It represents a Lynckia Room. It will handle the connection, local stream publication and remote stream subscription.</p>
+          <p class="lead">It represents a Licode Room. It will handle the connection, local stream publication and remote stream subscription.</p>
           <p> Typical Room initialization would be:
           <pre class="prettyprint linenums">
 var room = Erizo.Room({token:'213h8012hwduahd-321ueiwqewq'});</pre>
@@ -347,7 +347,7 @@ room.addEventListener("room-connected", function(event) {
           <h3 id="publishStream">Publish the local stream</h3>
           <p>It publishes the local stream given by an argument called <code>stream</code>. 
           <p>Your client should be connected to the <code>room</code> and the stream should be first initialized. 
-          <p>When you call this function it starts to send video or audio to your Lynckia Room. Once the stream is ready all clients in the room will receive a <em>stream-added</em> event with the information about your stream and they could subscribe to it.</p>
+          <p>When you call this function it starts to send video or audio to your Licode Room. Once the stream is ready all clients in the room will receive a <em>stream-added</em> event with the information about your stream and they could subscribe to it.</p>
           <div class="bs-docs-example">
             For publishing you first need to create and initialize a stream and connect to the room. Then you give the stream to the room in order to publish the streams it handles (line 1).
             <p>It throws a <em>stream-added</em> <a href="#events">Event</a> when the stream is finally published in the room, beacuse it will be added. So you have to add and event listener to handle it (line 2), and then check if the stream is the one you have just published (line 3).
@@ -446,8 +446,8 @@ room.connect();</pre>
           <div class="page-header">
             <h1>Erizo.Events</h1>
           </div>
-          <p class="lead">Lynckia provides a set of event classes to handle changes during client connection.</p>
-          <p><a href="#room">Room</a> and <a href="#stream">Stream</a> classes throw different Lynckia events (they are <em>EventDispatchers</em>) and it's always a good idea to listen to them. Here we will explain the different kinds of events in Lynckia. In the next table you can see a brief description.</p>
+          <p class="lead">Licode provides a set of event classes to handle changes during client connection.</p>
+          <p><a href="#room">Room</a> and <a href="#stream">Stream</a> classes throw different Licode events (they are <em>EventDispatchers</em>) and it's always a good idea to listen to them. Here we will explain the different kinds of events in Licode. In the next table you can see a brief description.</p>
           <table class="table table-hover table-bordered">
               <caption><strong>List of Event classes</strong></caption>
               <thead>
@@ -458,7 +458,7 @@ room.connect();</pre>
               </thead>
               <tbody>
                 <tr>
-                  <td><a href="#lynckiaEvent">Lynckia Event</a></td>
+                  <td><a href="#LicodeEvent">licode Event</a></td>
                   <td>It represents a generic Event in the library, which is inherited by the others.</td>
                 </tr>
                 <tr>
@@ -473,13 +473,13 @@ room.connect();</pre>
             </table>
 
 
-          <h3 id="lynckiaEvent">Lynckia Event</h3>
+          <h3 id="licodeEvent">Licode Event</h3>
           <p> It handles the type of event, that is important when adding event listeners to EventDispatchers and dispatching new events. 
           <div class="bs-docs-example">
-            A LynckiaEvent can be initialized like this, but it is usually created by Client API.
+            A LicodeEvent can be initialized like this, but it is usually created by Client API.
           </div>
 <pre class="prettyprint linenums">
-var event = Erizo.LynckiaEvent({type: "room-connected"});</pre>
+var event = Erizo.LicodeEvent({type: "room-connected"});</pre>
 
           <h3 id="roomEvent">Room Event</h3>
           <p> It represents connect and disconnect events.</p>
@@ -557,7 +557,7 @@ stream.addEventListener("stream-data", function(evt){
 <pre class="prettyprint linenums">
 &lthtml&gt
   &lthead&gt
-    &lttitle>Lynckia Basic Example&lt/title&gt
+    &lttitle>Licode Basic Example&lt/title&gt
     &ltscript type="text/javascript" src="erizo.js">&lt/script&gt
     &ltscript type="text/javascript"&gt
 

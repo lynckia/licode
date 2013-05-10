@@ -1,0 +1,7 @@
+	 .fullwidthbanner-container{
+		width:100% !important;
+		position:relative;
+		padding:0;
+		max-height:500px !important;
+		overflow:hidden;
+	}

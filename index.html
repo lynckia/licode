@@ -1,92 +1,315 @@
----
-layout: default
-title: Lynckia HTML5 Communication Provider
-home: true
----
-
-<div class="jumbotron masthead">
-<!--<div class="jumbotron masthead christmas">-->
-  <div class="container">
-    <img src="assets/img/logo.svg" alt="Lynckia">
-    <img src="assets/img/star.svg" alt="Lynckia" class="hidden-phone hidden-tablet star">
-    <!--<img src="assets/img/star-christmas.png" alt="Lynckia" class="hidden-phone hidden-tablet star">-->
-    <p>Open Source WebRTC Communications Platform.</p>
-    <p><a href="./install.html" class="btn btn-primary btn-large hidden-phone hidden-tablet">Start Using it!</a></p>
-    <ul class="masthead-links">
-      <li>Beta version</li>
-    </ul>
-  </div>
-</div>
-
-<div class="bs-docs-social">
-  <div class="container">
-    <ul class="bs-docs-social-buttons">
-      <li class="follow-btn">
-        <iframe allowtransparency="true" frameborder="0" scrolling="no" src="http://platform.twitter.com/widgets/follow_button.1345016233.html#_=1345640025492&amp;id=twitter-widget-2&amp;lang=en&amp;screen_name=lynckia&amp;show_count=true&amp;show_screen_name=true&amp;size=m" class="twitter-follow-button" style="width: 242px; height: 20px; " title="Twitter Follow Button"></iframe>
-      </li>
-      <li class="tweet-btn">
-        <iframe allowtransparency="true" frameborder="0" scrolling="no" src="http://platform.twitter.com/widgets/tweet_button.1345016233.html#_=1345640025419&amp;count=horizontal&amp;id=twitter-widget-0&amp;lang=en&amp;original_referer=http%3A%2F%2Flynckia-api.appspot.com&amp;related=Ging%3ACreator%20of%20Lynckia&amp;size=m&amp;text=Lynckia&amp;url=http%3A%2F%2Flynckia.com&amp;via=lynckia" class="twitter-share-button twitter-count-horizontal" style="width: 110px; height: 20px; " title="Twitter Tweet Button"></iframe>
-      </li>
-
-      <li class="github-btns">
-        <iframe src="http://ghbtns.com/github-btn.html?user=ging&repo=lynckia&type=fork"
-        allowtransparency="true" frameborder="0" scrolling="0" width="62" height="20"></iframe>
-        <iframe src="http://ghbtns.com/github-btn.html?user=ging&repo=lynckia&type=watch&count=true"
-        allowtransparency="true" frameborder="0" scrolling="0" width="80" height="20"></iframe>
-      </li>
-    </ul>
-  </div>
-</div>
-
-<div class="container">
-
-  <div class="marketing">
-    <h1>Introducing Lynckia.</h1>
-    <div class="row-fluid">
-      <div class="span4">
-        <img src="assets/img/webrtc.jpg">
-        
-        <h2>Built on top of WebRTC.</h2>
-        <p>Lynckia is based on WebRTC technologies. It is 100% compatible with latest stable versions of Google Chrome. Your users will be able to talk from their web browsers with no need to installing anything.</p>
-      </div>
-      <div class="span4">
-        <img src="assets/img/scale.png">
-        <h2>Easy, fast and scalable.</h2>
-        <p>You don't need to care about complicated real-time infrastructures. It provides a fast development of videoconference features based on HTML5. And we make it 100% scalable.</p>
-      </div>
-      <div class="span4">
-        <img src="assets/img/camera.png"><img src="assets/img/headphones.png">
-        <h2>Videoconference, Streaming, Recording.</h2>
-        <p>Lynckia allows you to include videoconference rooms on your web. But you can also implement streaming, recording and any other real-time multimedia features you dreamt of!</p>
-      </div>
-    </div>
-
-    <hr class="soften">
-
-    <h1>Building your own conference provider.</h1>
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8"> 
+	
+	<title>Lynckia - WebRTC Communications Solutions</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="css/bootstrap.css" type="text/css">
+	<link rel="stylesheet" href="css/bootstrap-responsive.css" type="text/css">
+	<link rel="stylesheet" href="css/style.css" type="text/css">
+	
+	
+</head>
+<body>
+	<a href="#" class="scrollup">Scroll</a>
+	<div class="top_float"></div>
+	<div class="clear"></div>
     
+    <header id="home">
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="container">
+                    <div class="row">
+                        <div class="logo_holder ">
+                        	<a href="index.html"><img src="images/logo.png" title=" " alt=" "/></a>
+                        </div>
+                        <div class="menu_holder">
+                        	<ul class="visible-phone">
+                                <li>
+                                    <select id="phone_menu">
+                                    	<option value="">Menu</option>
+                                        <option value="home.html">Home</option>
+                                        <option value="about.html">About</option>
+                                        <option value="features.html">Features</option>
+                                        <option value="404.html">404 Error</option>
+                                        <option value="portfolio.html">Portfolio</option>
+                                        <option value="portfolio-3column.html">3 Column</option>
+                                        <option value="portfolio-2column.html">2 Column</option>
+                                        <option value="single-project.html">Single Project</option>
+                                        <option value="blog.html">Blog</option>
+                                        <option value="post.html">Single Post</option>
+                                        <option value="contact.html">Contact</option>
+                                    </select>
+                                </li>
+                            </ul>
+                            <ul class="menu visible-desktop visible-tablet">
+                            	<li class="active parent">
+                                	<a href="#home" id="trigger-home" class="lsf scroll" data-placement="top" data-original-title="HOME">home</a>
 
-    <br/>
+                                </li>
+                                                                <li class="parent">
+                                    <a href="#licode" id="trigger-features" class="lsf licodelogo scroll" data-placement="top" data-original-title="LICODE">power</a>
+                                </li>
+                                <li class="parent"><a href="#team" id="trigger-about" class="lsf scroll" data-placement="top" data-original-title="TEAM">group</a></li>
+                                <li class="parent"><a href="#contact" id="trigger-contact" class="lsf scroll" data-placement="top" data-original-title="CONTACT">mail</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="clear"></div>
 
-    <div class="row-fluid">
-      <div class="span3">
-        <h2>Erizo</h2>
-        <p>It's the WebRTC Multipoint Control Unit (MCU). It's written in C++ and is 100\% compatible with WebRTC standard and its protocols.</p>
-      </div>
-      <div class="span3">
-        <h2>Erizo API</h2>
-        <p>A Node.js addon wrapper for Erizo. It configures and manages all aspects of Erizo from your Node.js applications!</p>
-        
-      </div>
-      <div class="span3">
-        <h2>Erizo Controller</h2>
-        <p>It's the core of the service. It provides Rooms to users in order to make multiconference sessions. It also supplies enough security mechanisms and additional capabilities: data, user lists, events, and so on.</p>
-      </div>
-      <div class="span3">
-        <h2>Nuve</h2>
-        <p>This is our first Videoconference as a Service API, implemented in 2007, it offers Room management, Users access control and service registration to third-party applications. It also provides Cloud scalability to the service.</p>
-      </div>
+                    
+    
+    
+    <div class="container-fluid welcome_txt">
+    	<div class="row-fluid">
+        	<div class="container">
+            	<div class="row">
+                	<div class="span6">
+                        <div class="clear"></div>
+                        <div class="span9">
+                        <div class="clear"></div>
+                        <img class="firstimage" src="images/star.png" title=" " alt=" "/>
+                    </div>
+
+                    </div>
+                    <div class="span6">
+                        <div class="sub_heading">Web Real Time Communications Solutions</div>
+                        <hr>
+                    	<p>In today's web systems and applications real-time communication is a key factor and a very atractive resource for the users. From Lynckia we are going to design an ad-hoc solution for your service according to its specific requirements. And this solution will be based on our main product Licode, leveraged by an Open Source community which is downloading and testing the software every day.</p>
+                        <hr>
+                        <div class="double_break"></div>
+                        
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
+
+
+     <div class="clear"></div>               
+    <div class="horizontal_seperator"></div>
+    <div class="clear"></div>
+    
+    <div id="licode" class="container-fluid portfolio">
+        <div class="row-fluid">
+            <div class="container">
+                <div class="row">
+                    <div class="span12">
+                        <div class="main_heading">Licode<span><strong>&nbsp; / &nbsp;</strong>Open Source WebRTC Communications Platform</span></div>
+                        <div class="promo">
+                            <p>Licode is our main core software platform. It is an Open Source project that allows you to include real-time communications like streaming or videoconference in your web application in a very easy an fast way. If you want to know more about Licode don't doubt in visit its website!</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="span8 new_project">
+                        <div class="active_image">
+                            <a href="licode/" target="_blank"><img src="images/promo1.png"  alt=" " /></a>
+                        </div>
+                        <div class="double_break"></div>
+ 
+                        <div class="single_break"></div>
+
+                        
+                    </div>
+                    <div class="span4">
+                        <div class="sub_heading">Built on top of WebRTC</div>
+                        <div class="single_break"></div>
+                        <p>Licode is based on WebRTC technologies. It is 100% compatible with latest stable versions of Google Chrome. Your users will be able to talk from their web browsers with no need to installing anything.</p>
+                        <div class="sub_heading">Easy, fast and scalable.</div>
+                        <div class="single_break"></div>
+                        <p>Easy, fast and scalable.You don't need to care about complicated real-time infrastructures. Licode provides a fast development of real-time communications features based on HTML5. And we make it 100% scalable.</p>
+                        <div class="sub_heading">Videoconference, Streaming, Recording.</div>
+                        <div class="single_break"></div>
+                        <p>Licode allows you to include videoconference rooms on your web. But you can also implement streaming, recording and any other real-time multimedia features you dreamt of!</p>
+                        <div class="single_break"></div>
+                        <a href="licode/" target="_blank" class="button">Project Website</a>
+                        <hr/>      
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="team" class="container-fluid main">
+        <div class="row-fluid">
+            <div class="container">
+                <div class="row">
+                    <div class="span12">
+                        <div class="main_heading">Our Team</div>
+                        <div class="promo">
+                            <p>We are a team of engineers with more than ten years of experience in videoconference and real time systems. We designed services in multiple technologies during these years. Now, we are totally focused on web communications to offer the best solution to the requirements of your company. </p>
+                        </div>
+                    </div>
+                    
+                </div>
+                <div class="row">
+                    <div class="span4 team">
+                        <img src="images/team/001.jpg" title=" " alt=" "/>
+                        <div class="clear"></div>
+                        <div class="sub_heading">Javier Cerviño</div>
+                        <div class="clear"></div>
+                        <h4>FrontEnd Developer</h4>
+                        <div class="clear"></div>
+                        <p></p>
+                         <div class="single_break"></div>
+                         <div class="social-icons2">
+                            <a href="http://www.linkedin.com/profile/view?id=36508164&locale=es_ES&trk=tyah" target="_blank" target=data-placement="top" data-original-title="LINKEDIN">i</a>
+                            <a href="http://twitter.com/jcague" target="_blank" data-placement="top" data-original-title="TWITTER">l</a>
+                        </div>
+                    </div>
+                    <div class="span4 team">
+                        <img src="images/team/002.jpg" title=" " alt=" "/>
+                        <div class="clear"></div>
+                        <div class="sub_heading">Pedro Rodríguez</div>
+                        <div class="clear"></div>
+                        <h4>BackEnd Developer </h4>
+                        <div class="clear"></div>
+                        <p></p>
+                        <div class="single_break"></div>
+                        <div class="social-icons2">
+                            <a href="http://www.linkedin.com/profile/view?id=148057752&locale=es_ES&trk=tyah" target="_blank" data-placement="top" data-original-title="LINKEDIN">i</a>
+                            <a href="http://twitter.com/lodoyun" target="_blank" data-placement="top" data-original-title="TWITTER">l</a>
+                        </div>
+                    </div>
+                    <div class="span4 team">
+                        <img src="images/team/003.jpg" title=" " alt=" "/>
+                        <div class="clear"></div>
+                        <div class="sub_heading">Álvaro Alonso</div>
+                        <div class="clear"></div>
+                        <h4>BackEnd Developer</h4>
+                        <div class="clear"></div>
+                        <p></p>
+                        <div class="single_break"></div>
+                        <div class="social-icons2">
+                            <a href="http://www.linkedin.com/profile/view?id=227240998&trk=tab_pro" target="_blank" data-placement="top" data-original-title="LINKEDIN">i</a>
+                            <a href="http://twitter.com/larsonalonso" target="_blank" data-placement="top" data-original-title="TWITTER">l</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="clear"></div>
+    <div class="horizontal_seperator"></div>
+    <div class="clear"></div>
+
+    <div class="sub_footer">
+    	<div id="contact" class="container-fluid contact">
+        <div class="row-fluid">
+            <div class="container">
+                <div class="row">
+                    <div class="span12">
+                        <div class="main_heading2">Contact</div>
+                        <div class="promo">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="span8">
+                        
+                        <form class="contact_form" id="contactForm" action="MAILTO:contact@lynckia.com?subject=Lynckia Contact" enctype="text/plain" method="post">
+                            <div id="fname"  class="alert alert-error error">
+                            Name must not be empty
+                            </div>
+                            <div id="fmail" class="alert alert-error  error">
+                            Please provide a valid email
+                            </div>
+                            <div id="fmsg" class="alert alert-error  error">
+                            Message should not be empty
+                            </div>
+
+                            <input required class="span11 input" size="16" type="text" name="name" id="name" placeholder="Name"/>
+                            
+                            <div class="single_break"></div>
+                            
+                            <input required class="span11 input" size="16" type="email" name="email" id="email" placeholder="Email Address"/>
+                            
+                            <div class="single_break"></div>
+                            
+                            <textarea required class="span11 textarea" name="message" id="msg" placeholder="Message"></textarea>
+                            
+                            <div class="single_break"></div>
+                            
+                            <input class="button send_msg" value="Send Message" type="submit" id="submit"  />
+                            
+                        </form>
+                    </div>
+                    <div class="span4 contact_info">                        
+                    <div class="sub_heading">Latest Tweet</div>
+                            <ul id="twitter_update_list" class="tweets">
+                            </ul>
+                        <div class="social-icons">
+                            <a href="https://twitter.com/Lynckia" data-placement="bottom" target="_blank" data-original-title="TWITTER">l</a>
+                            <a href="http://feeds.feedburner.com/lynckia" target="_blank" data-placement="bottom" data-original-title="RSS">r</a>
+                            <a href="http://www.youtube.com/channel/UC-YEIvU22hfyg5IrKzOaTGQ" data-placement="bottom"  target="_blank" data-original-title="YOUTUBE">x</a>
+                            <a href="http://plus.google.com/u/0/117182047221528167166" data-placement="bottom"  target="_blank" data-original-title="GOOGLE PLUS">g</a>
+                        </div>
+                    </div>
+                </div>
+           </div>
+        </div>
+    </div>
+    </div>
+    
+	<script src="js/jquery-1.8.2.min.js"></script>
+	<script src="js/jquery.easing.1.3.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+    <script src="js/form-validation.js"></script>
+    
+    
+    <!-- jQuery KenBurn Slider  -->
+	<script type="text/javascript" src="js/jquery.themepunch.plugins.min.js"></script>
+    <script type="text/javascript" src="js/jquery.themepunch.revolution.min.js"></script>
+    
+	<script src="js/script.js"></script>
+    <script type="text/javascript" src="http://twitter.com/javascripts/blogger.js">  
+</script>
+<script type="text/javascript" src="https://api.twitter.com/1/statuses/user_timeline.json?screen_name=Lynckia&amp;include_rts=1&amp;callback=twitterCallback2&amp;count=3">  </script>
+<script>
+jQuery(document).ready(function($) {
+ 
+    $(".scroll").click(function(event){     
+        event.preventDefault();
+        $('html,body').animate({scrollTop:$(this.hash).offset().top}, 500);
+    });
+});
+</script>
+
+<script type="text/javascript">
+    $(document).ready(function(){ 
+ 
+        $(window).scroll(function(){
+            if ($(this).scrollTop() > 100) {
+                $('.scrollup').fadeIn();
+            } else {
+                $('.scrollup').fadeOut();
+            }
+        }); 
+ 
+        $('.scrollup').click(function(){
+            $("html, body").animate({ scrollTop: 0 }, 600);
+            return false;
+        });
+ 
+    });
+</script>
+	
+	
+
+	
+</body>
+</html>

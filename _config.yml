@@ -1,5 +1,5 @@
 markdown: rdiscount
-permalink: /:title.html
+permalink: licode/:title.html
 destination: ./site/
 auto: true
 exclude:
@@ -8,7 +8,7 @@ exclude:
   - .gitignore
 baseurl: /
 domain: lynckia.com
-title: Lynckia - Open Source Communication Provider
+title: Licode - Open Source Communication Provider
 server: true
 author: Lynckia
 web: http://www.lynckia.com

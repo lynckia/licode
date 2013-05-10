@@ -8,7 +8,7 @@ Intro
 ----
 
 We've been working on developing tests for checking WebRTC connections 
-in Lynckia and Google Chrome (stable and unstable versions). We started 
+in Licode and Google Chrome (stable and unstable versions). We started 
 using Travis for the server tests some weeks ago, but at this time, we
 wanted to go beyond simple tests of Nuve and basic room's functionality.
 
@@ -106,7 +106,7 @@ Testing
 ------
 
 For testing we used Jasmine and its asynchronous functionalities. We use it to 
-test Lynckia but it can also be used to test WebRTC applications. Below we show 
+test Licode but it can also be used to test WebRTC applications. Below we show 
 one of our examples in the 
 [test cases](https://github.com/ging/lynckia/blob/master/test/nuve-test.js):
 
