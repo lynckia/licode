@@ -1,6 +1,7 @@
 /*global require, exports, console, setInterval, clearInterval*/
 
 var addon = require('./../../erizoAPI/build/Release/addon');
+var config = require('./../../lynckia_config');
 
 exports.WebRtcController = function () {
     "use strict";
@@ -117,7 +118,7 @@ exports.WebRtcController = function () {
             console.log("Adding publisher peer_id ", from);
 
             var muxer = new addon.OneToManyProcessor(),
-                wrtc = new addon.WebRtcConnection();
+                wrtc = new addon.WebRtcConnection(config.erizo.stunserver, config.erizo.stunport, config.erizo.minport, config.erizo.maxport);
 
             publishers[from] = muxer;
             subscribers[from] = [];
@@ -147,7 +148,7 @@ exports.WebRtcController = function () {
 
             console.log("Adding subscriber from ", from, 'to ', to);
 
-            var wrtc = new addon.WebRtcConnection();
+            var wrtc = new addon.WebRtcConnection(config.erizo.stunserver, config.erizo.stunport, config.erizo.minport, config.erizo.maxport);
 
             subscribers[to].push(from);
             publishers[to].addSubscriber(wrtc, from);

@@ -156,8 +156,9 @@ void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
 }
 
 NiceConnection::NiceConnection(MediaType med,
-		const std::string &transport_name, int iceComponents):mediaType(med),
-    iceComponents_(iceComponents){
+		const std::string &transport_name, int iceComponents, const std::string& stunServer,
+    int stunPort, int minPort, int maxPort):mediaType(med),iceComponents_(iceComponents), 
+    stunServer_(stunServer), stunPort_ (stunPort), minPort_(minPort), maxPort_(maxPort) {
 	agent_ = NULL;
 	loop_ = NULL;
 	conn_ = NULL;
@@ -227,15 +228,16 @@ void NiceConnection::init() {
 //	NiceAddress* naddr = nice_address_new();
 //	nice_agent_add_local_address(agent_, naddr);
 
-	GValue val = { 0 }, val2 = { 0 };
+  if (!stunServer_.compare("") && stunPort_!=0){
+    GValue val = { 0 }, val2 = { 0 };
+    g_value_init(&val, G_TYPE_STRING);
+    g_value_set_string(&val, stunServer_.c_str());
+    g_object_set_property(G_OBJECT( agent_ ), "stun-server", &val);
 
-//	g_value_init(&val, G_TYPE_STRING);
-//	g_value_set_string(&val, "173.194.70.126");
-//	g_object_set_property(G_OBJECT( agent_ ), "stun-server", &val);
-//
-//	g_value_init(&val2, G_TYPE_UINT);
-//	g_value_set_uint(&val2, 19302);
-//	g_object_set_property(G_OBJECT( agent_ ), "stun-server-port", &val2);
+    g_value_init(&val2, G_TYPE_UINT);
+    g_value_set_uint(&val2, stunPort_);
+	  g_object_set_property(G_OBJECT( agent_ ), "stun-server-port", &val2);
+  }
 
 	// Connect the signals
 	g_signal_connect( G_OBJECT( agent_ ), "candidate-gathering-done",
@@ -249,7 +251,9 @@ void NiceConnection::init() {
   printf("Adding Stream... Number of components %d\n", iceComponents_);
 	int res = nice_agent_add_stream(agent_, iceComponents_);
 	// Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
-//	nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)51000, (guint)52000);
+  if (minPort_!=0 && maxPort_!=0){
+  	nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)minPort_, (guint)maxPort_);
+  }
 
 	nice_agent_gather_candidates(agent_, 1);
 	nice_agent_attach_recv(agent_, 1, 1, g_main_loop_get_context(loop_),

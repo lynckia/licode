@@ -11,9 +11,9 @@
 
 namespace erizo {
 
-  WebRtcConnection::WebRtcConnection() {
+  WebRtcConnection::WebRtcConnection(const std::string &stunServer, int stunPort, int minPort, int maxPort){
 
-    printf("WebRtcConnection constructor\n");
+    printf("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", stunServer.c_str(), stunPort, minPort, maxPort);
     video_ = 0;
     audio_ = 0;
     sequenceNumberFIR_ = 0;
@@ -32,10 +32,10 @@ namespace erizo {
     sending = true;
     send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
 
-    videoNice_ = new NiceConnection(VIDEO_TYPE, "");
+    videoNice_ = new NiceConnection(VIDEO_TYPE, "", 1,  stunServer, stunPort, minPort, maxPort);
     videoNice_->setWebRtcConnection(this);
 
-    audioNice_ = new NiceConnection(AUDIO_TYPE, "");
+    audioNice_ = new NiceConnection(AUDIO_TYPE, "", 1,  stunServer, stunPort, minPort, maxPort);
     audioNice_->setWebRtcConnection(this);
 
   }

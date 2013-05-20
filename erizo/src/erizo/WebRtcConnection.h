@@ -42,7 +42,7 @@ public:
 	 * Constructor.
 	 * Constructs an empty WebRTCConnection without any configuration.
 	 */
-	WebRtcConnection();
+	WebRtcConnection(const std::string &stunServer, int stunPort, int minPort, int maxPort);
 	/**
 	 * Destructor.
 	 */

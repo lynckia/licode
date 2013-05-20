@@ -28,9 +28,19 @@ void WebRtcConnection::Init(Handle<Object> target) {
 
 Handle<Value> WebRtcConnection::New(const Arguments& args) {
   HandleScope scope;
+  if (args.Length()<4){
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
+    return args.This();
+  }
+//	webrtcconnection(const std::string &stunserver, int stunport, int minport, int maxport);
+  String::Utf8Value param(args[0]->ToString());
+  std::string stunServer = std::string(*param);
+  int stunPort = args[1]->IntegerValue();
+  int minPort = args[2]->IntegerValue();
+  int maxPort = args[3]->IntegerValue();
 
   WebRtcConnection* obj = new WebRtcConnection();
-  obj->me = new erizo::WebRtcConnection();
+  obj->me = new erizo::WebRtcConnection(stunServer,stunPort,minPort,maxPort);
   obj->Wrap(args.This());
 
   return args.This();
