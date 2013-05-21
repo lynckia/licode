@@ -1,7 +1,7 @@
 /*global require, console, setInterval, clearInterval, exports*/
+var http = require('http');
 var rpc = require('./rpc/rpc');
 var config = require('./../../lynckia_config');
-var ec2;
 
 var INTERVAL_TIME_EC_READY = 100;
 var INTERVAL_TIME_CHECK_KA = 1000;
@@ -91,28 +91,20 @@ exports.addNewErizoController = function (msg, callback) {
 
 var addNewAmazonErizoController = function(privateIP, callback) {
     
-    var publicIP;
-    var instaceId;
-
-    if (ec2 === undefined) {
-        var opt = {version: '2012-12-01'};
-        if (config.cloudProvider.host !== '') {
-            opt.host = config.cloudProvider.host;
-        }
-        ec2 = require('aws-lib').createEC2Client(config.cloudProvider.accessKey, config.cloudProvider.secretAccessKey, opt);
-    }
     console.log('private ip ', privateIP);
 
-    ec2.call('DescribeInstances', {'Filter.1.Name':'private-ip-address', 'Filter.1.Value':privateIP}, function (err, response) {
-
-        if (err) {
-            console.log('Error: ', err);
-            callback('error');
-        } else if (response) {
-            publicIP = response.reservationSet.item.instancesSet.item.ipAddress;
-            console.log('public IP: ', publicIP);
-            addNewPrivateErizoController(publicIP, callback);
-        }
+    http.get('http://169.254.169.254/latest/meta-data/public-ipv4', function (response) {
+        var content = '';
+        response.on('data', function(chunk) {
+            content += chunk;
+        });
+        response.on('end', function() {
+            console.log('public IP: ', content);
+            addNewPrivateErizoController(content, callback);
+        });
+    }).on('error', function(err) {
+        console.log('Error: ', err);
+        callback('error');
     });
 }
 

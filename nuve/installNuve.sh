@@ -18,7 +18,6 @@ npm install amqp
 npm install express
 npm install mongodb
 npm install mongojs
-npm install aws-lib
 
 echo [nuve] Done, node_modules installed
 
