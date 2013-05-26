@@ -41,9 +41,9 @@ Erizo.VideoPlayer = function (spec) {
         that.parentNode.removeChild(that.div);
     };
 
-    window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
+    /*window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
         document.getElementById(key).value = unescape(value);
-    });
+    });*/
 
     L.Logger.debug('Creating URL from stream ' + that.stream);
     that.stream_url = webkitURL.createObjectURL(that.stream);
