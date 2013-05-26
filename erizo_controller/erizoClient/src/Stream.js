@@ -50,7 +50,11 @@ Erizo.Stream = function (spec) {
         try {
             if (spec.audio || spec.video) {
                 L.Logger.debug("Requested access to local media");
-                Erizo.GetUserMedia({video: spec.video, audio: spec.audio}, function (stream) {
+                var opt = {video: spec.video, audio: spec.audio};
+                if (spec.screen) {
+                    opt = {video:{mandatory: {chromeMediaSource: 'screen'}}};
+                }
+                Erizo.GetUserMedia(opt, function (stream) {
                 //navigator.webkitGetUserMedia("audio, video", function (stream) {
 
                     L.Logger.info("User has granted access to local media.");
