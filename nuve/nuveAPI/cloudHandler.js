@@ -1,5 +1,4 @@
 /*global require, console, setInterval, clearInterval, exports*/
-var http = require('http');
 var rpc = require('./rpc/rpc');
 var config = require('./../../lynckia_config');
 
@@ -81,32 +80,8 @@ var recalculatePriority = function () {
 exports.addNewErizoController = function (msg, callback) {
     "use strict";
 
-    if (msg.cloudProvider === '') {
-        addNewPrivateErizoController(msg.ip, callback);
-    } else if (msg.cloudProvider === 'amazon') {
-        addNewAmazonErizoController(msg.ip, callback);
-    }
-    
+    addNewPrivateErizoController(msg.ip, callback);
 };
-
-var addNewAmazonErizoController = function(privateIP, callback) {
-    
-    console.log('private ip ', privateIP);
-
-    http.get('http://169.254.169.254/latest/meta-data/public-ipv4', function (response) {
-        var content = '';
-        response.on('data', function(chunk) {
-            content += chunk;
-        });
-        response.on('end', function() {
-            console.log('public IP: ', content);
-            addNewPrivateErizoController(content, callback);
-        });
-    }).on('error', function(err) {
-        console.log('Error: ', err);
-        callback('error');
-    });
-}
 
 var addNewPrivateErizoController = function (ip, callback) {
     "use strict";
