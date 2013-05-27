@@ -10,15 +10,6 @@ CURRENT_DIR=`pwd`
 pause() {
   read -p "$*"
 }
-install_libsrtp(){
-  cd $ROOT/third_party/srtp
-  CFLAGS="-fPIC" ./configure
-  make
-  sudo make uninstall
-  sudo make install
-  cd $CURRENT_DIR
-}
-
 install_erizo(){
   cd $ROOT/erizo
   ./generateProject.sh
@@ -39,8 +30,6 @@ install_erizo_controller(){
   cd $CURRENT_DIR
 }
 
-echo 'Installing libsrtp...'
-install_libsrtp
 echo 'Installing erizo...'
 install_erizo
 echo 'Installing erizoAPI...'
