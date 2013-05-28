@@ -14,7 +14,7 @@ blog: true
     <div class="container offset3 span6">
 
     <h2>
-      <a href="/{{ page.url }}" rel="bookmark" title="Permanent link to ">{{ page.title }}</a>
+      <a href="../{{ page.url }}" rel="bookmark" title="Permanent link to ">{{ page.title }}</a>
     </h2>
     <h5>
         <!-- avatar><img 
@@ -37,7 +37,7 @@ blog: true
       <h3>Related Posts</h3>
       <ul class="posts">
         {% for post in site.related_posts limit:5 %}
-          <p><li><span>{{ post.date | date_to_string }}</span> - <a href="/{{ post.url }}">{{ post.title }}</a></li></p>
+          <p><li><span>{{ post.date | date_to_string }}</span> - <a href="../{{ post.url }}">{{ post.title }}</a></li></p>
         {% endfor %}
       </ul>
     </nav>
