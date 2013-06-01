@@ -30,9 +30,5 @@ config.erizo.minport = 0;
 config.erizo.maxport = 0;
 
 config.cloudProvider.name = '';
-//In Amazon Ec2 instances you can specify the zone host. By default is 'ec2.us-east-1a.amazonaws.com' 
-config.cloudProvider.host = '';
-config.cloudProvider.accessKey = '';
-config.cloudProvider.secretAccessKey = '';
 
 module.exports = config;

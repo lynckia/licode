@@ -4,6 +4,7 @@ var rpc = require('./rpc/rpc');
 var controller = require('./webRtcController');
 var ST = require('./Stream');
 var io = require('socket.io').listen(8080);
+var http = require('http');
 var config = require('./../../lynckia_config');
 
 io.set('log level', 1);
@@ -62,6 +63,36 @@ var publicIP;
 var addToCloudHandler = function (callback) {
     "use strict";
 
+    var addToCloudHandlerInternal = function(ipAddress) {
+        rpc.callRpc('nuve', 'addNewErizoController', {cloudProvider: config.cloudProvider.name, ip: ipAddress}, function (msg) {
+            if (msg === 'timeout') {
+                console.log('CloudHandler does not respond');
+                return;
+            }
+            if (msg == 'error') {
+                console.log('Error in communication with cloudProvider');
+            }
+
+            publicIP = msg.publicIP;
+            myId = msg.id;
+            myState = 2;
+
+            var intervarId = setInterval(function () {
+
+                rpc.callRpc('nuve', 'keepAlive', myId, function (result) {
+                    if (result === 'whoareyou') {
+                        console.log('I don`t exist in cloudHandler. I`m going to be killed');
+                        clearInterval(intervarId);
+                        rpc.callRpc('nuve', 'killMe', publicIP, function () {});
+                    }
+                });
+
+            }, INTERVAL_TIME_KEEPALIVE);
+
+            callback();
+        });
+    }
+
     var interfaces = require('os').networkInterfaces(),
         addresses = [],
         k,
@@ -81,39 +112,26 @@ var addToCloudHandler = function (callback) {
             }
         }
     }
-
     publicIP = addresses[0];
+    console.log('detected ip address: ' + publicIP);
     privateRegexp = new RegExp(publicIP, 'g');
 
-    rpc.callRpc('nuve', 'addNewErizoController', {cloudProvider: config.cloudProvider.name, ip: publicIP}, function (msg) {
-
-        if (msg === 'timeout') {
-            console.log('CloudHandler does not respond');
-            return;
-        }
-        if (msg == 'error') {
-            console.log('Error in communication with cloudProvider');
-        }
-
-        publicIP = msg.publicIP;
-        myId = msg.id;
-        myState = 2;
-
-        var intervarId = setInterval(function () {
-
-            rpc.callRpc('nuve', 'keepAlive', myId, function (result) {
-                if (result === 'whoareyou') {
-                    console.log('I don`t exist in cloudHandler. I`m going to be killed');
-                    clearInterval(intervarId);
-                    rpc.callRpc('nuve', 'killMe', publicIP, function () {});
-                }
+    if (config.cloudProvider.name === 'amazon') {
+        http.get('http://169.254.169.254/latest/meta-data/public-ipv4', function (response) {
+            var content = '';
+            response.on('data', function(chunk) {
+                content += chunk;
             });
-
-        }, INTERVAL_TIME_KEEPALIVE);
-
-        callback();
-
-    });
+            response.on('end', function() {
+                console.log('public IP: ', content);
+                addToCloudHandlerInternal(content);
+            });
+        }).on('error', function(err) {
+            console.log('Error: ', err);
+        });
+    } else {
+        addToCloudHandlerInternal(publicIP);
+    }
 };
 
 //*******************************************************************
