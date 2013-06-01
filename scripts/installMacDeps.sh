@@ -26,6 +26,7 @@ install_libnice(){
     curl -O http://nice.freedesktop.org/releases/libnice-0.1.3.tar.gz
     tar -zxvf libnice-0.1.3.tar.gz
     cd libnice-0.1.3
+    echo nice_agent_set_port_range >> nice/libnice.sym
     ./configure
     make
     sudo make install
