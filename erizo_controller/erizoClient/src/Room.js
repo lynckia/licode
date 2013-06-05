@@ -102,7 +102,7 @@ Erizo.Room = function (spec) {
         // type can be "media" or "data"
         that.socket.on('onAddStream', function (arg) {
             console.log(arg);
-            var stream = Erizo.Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, attributes: arg.attributes}),
+            var stream = Erizo.Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, screen: arg.screen, attributes: arg.attributes}),
                 evt;
             that.remoteStreams[arg.id] = stream;
             evt = Erizo.StreamEvent({type: 'stream-added', stream: stream});
@@ -187,7 +187,8 @@ Erizo.Room = function (spec) {
             for (index in streams) {
                 if (streams.hasOwnProperty(index)) {
                     arg = streams[index];
-                    stream = Erizo.Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, attributes: arg.attributes});
+                    console.log(arg);
+                    stream = Erizo.Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, screen: arg.screen, attributes: arg.attributes});
                     streamList.push(stream);
                     that.remoteStreams[arg.id] = stream;
                 }
@@ -226,7 +227,7 @@ Erizo.Room = function (spec) {
                     sendSDPSocket('publish', {state: 'offer', data: true, audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
                         stream.pc.onsignalingmessage = function (ok) {
                             stream.pc.onsignalingmessage = function () {};
-                            sendSDPSocket('publish', {state: 'ok', streamId: id, data: true, audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, ok);
+                            sendSDPSocket('publish', {state: 'ok', streamId: id, data: true, audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, ok);
                             L.Logger.info('Stream published');
                             stream.getID = function () {
                                 return id;
@@ -244,7 +245,7 @@ Erizo.Room = function (spec) {
                 stream.pc.addStream(stream.stream);
             } else if (stream.hasData()) {
                 // 3- Publish Data Stream
-                sendSDPSocket('publish', {state: 'data', data: true, audio: false, video: false, attributes: stream.getAttributes()}, undefined, function (answer, id) {
+                sendSDPSocket('publish', {state: 'data', data: true, audio: false, video: false, screen: false, attributes: stream.getAttributes()}, undefined, function (answer, id) {
                     L.Logger.info('Stream published');
                     stream.getID = function () {
                         return id;

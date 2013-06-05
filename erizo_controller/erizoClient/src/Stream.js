@@ -12,6 +12,9 @@ Erizo.Stream = function (spec) {
     that.room = undefined;
     that.showing = false;
     that.local = false;
+    that.video = spec.video;
+    that.audio = spec.audio;
+    that.screen = spec.screen;
     if (spec.local === undefined || spec.local === true) {
         that.local = true;
     }
@@ -36,9 +39,14 @@ Erizo.Stream = function (spec) {
         return spec.video;
     };
 
-    // Indicates if the stream has video activated
+    // Indicates if the stream has data activated
     that.hasData = function () {
         return spec.data;
+    };
+
+    // Indicates if the stream has screen activated
+    that.hasScreen = function () {
+        return spec.screen;
     };
 
     // Sends data through this stream.
@@ -85,9 +93,9 @@ Erizo.Stream = function (spec) {
             // Remove HTML element
             that.hide();
             if (that.stream !== undefined) {
-                that.stream.stop();       
+                that.stream.stop();
             }
-            that.stream = undefined; 
+            that.stream = undefined;
         }
     };
 
