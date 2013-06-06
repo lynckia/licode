@@ -1,6 +1,6 @@
 /*global window, console, clearInterval, setInterval, document, unescape, L, webkitURL*/
 /*
- * VideoPlayer represents a Lynckia video component that shows either a local or a remote video.
+ * VideoPlayer represents a Licode video component that shows either a local or a remote video.
  * Ex.: var player = VideoPlayer({id: id, stream: stream, elementID: elementID});
  * A VideoPlayer is also a View component.
  */

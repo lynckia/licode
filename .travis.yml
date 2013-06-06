@@ -6,7 +6,7 @@ before_install:
   - ./scripts/installErizo.sh
   - ./scripts/installNuve.sh
   - ./scripts/installBasicExample.sh
-  - ./scripts/initLynckia.sh
+  - ./scripts/initLicode.sh
   - sleep 10
   - ./scripts/initBasicExample.sh
   - ./.travis/scripts/install_chrome.sh

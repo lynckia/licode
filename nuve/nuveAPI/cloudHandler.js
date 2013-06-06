@@ -1,6 +1,6 @@
 /*global require, console, setInterval, clearInterval, exports*/
 var rpc = require('./rpc/rpc');
-var config = require('./../../lynckia_config');
+var config = require('./../../licode_config');
 var ec2;
 
 var INTERVAL_TIME_EC_READY = 100;

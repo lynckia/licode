@@ -1,6 +1,6 @@
 /*global L, io, console*/
 /*
- * Class Room represents a Lynckia Room. It will handle the connection, local stream publication and 
+ * Class Room represents a Licode Room. It will handle the connection, local stream publication and 
  * remote stream subscription.
  * Typical Room initialization would be:
  * var room = Erizo.Room({token:'213h8012hwduahd-321ueiwqewq'});

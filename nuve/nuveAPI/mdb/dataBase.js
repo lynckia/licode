@@ -1,5 +1,5 @@
 /*global require, exports*/
-var config = require('./../../../lynckia_config');
+var config = require('./../../../licode_config');
 
 var databaseUrl = config.nuve.dataBaseURL;
 
