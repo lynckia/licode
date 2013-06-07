@@ -9,7 +9,7 @@ if a bandwidth and general quality is agreed during the signalling or
 negotiation phase, any change in one of the participants' connection
 will degrade the communication. There are many studies and implemented
 mechanisms to help solve this problem. These solutions are heavily
-dependant on the protocols and technologies used in each application.
+dependant on the protocols and technologies used in each application
 
 Licode lives in the WebRTC world and has to communicate with the
 current implementations, being [Google Chrome](http://google.com/chrome) the
