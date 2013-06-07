@@ -78,11 +78,17 @@ clientapi: true
           <p>They could be local or remote. Licode internally creates remote streams through the <a href="#room">Erizo.Room</a> APIs.
           <p>It will identify each local and remote streams with <code>stream.getID()</code> and it controls where it should be drawn in the HTML page according to <code>stream.show()</code> (just in case they are video/audio streams).
 
-            <p>You need to initialize the Stream before you can use it in the Room. Typical initializacion of Stream is:
+          <p>You need to initialize the Stream before you can use it in the Room. Typical initializacion of Stream is:
 <pre class="prettyprint linenums">
  var stream = Erizo.Stream({audio:true, video:false, data: true, attributes: {name:'myStream'}});</pre>
  <p>
           <code>audio</code>, <code>video</code> and <code>data</code> variables has to be set to true if you want to publish them in the room. While <code>attributes</code> variable can store additional information related to the stream. This information will be shared between clients in the room.</p>
+
+          <p>If you want to share your use a stream to share your screen you should initialize it this way:
+<pre class="prettyprint linenums">
+ var stream = Erizo.Stream({screen: true, data: true, attributes: {name:'myStream'}});</pre>
+ <p>
+          Note that, if you use a Stream this way, the client that will share its sreen must access to your web app using a secure connection (with htpps protocol).</p>
 
           <p> You can access the next variables in a stream object:</p>
           <ul>
