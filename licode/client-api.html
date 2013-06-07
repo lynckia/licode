@@ -84,11 +84,11 @@ clientapi: true
  <p>
           <code>audio</code>, <code>video</code> and <code>data</code> variables has to be set to true if you want to publish them in the room. While <code>attributes</code> variable can store additional information related to the stream. This information will be shared between clients in the room.</p>
 
-          <p>If you want to share your use a stream to share your screen you should initialize it this way:
+          <p>If you want to use a stream to share your screen you should initialize it this way:
 <pre class="prettyprint linenums">
  var stream = Erizo.Stream({screen: true, data: true, attributes: {name:'myStream'}});</pre>
  <p>
-          Note that, if you use a Stream this way, the client that will share its sreen must access to your web app using a secure connection (with htpps protocol).</p>
+          Note that, if you use a Stream this way, the client that will share its sreen must access to your web app using a secure connection (with https protocol).</p>
 
           <p> You can access the next variables in a stream object:</p>
           <ul>
