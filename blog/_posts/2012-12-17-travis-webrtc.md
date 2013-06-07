@@ -61,7 +61,7 @@ helps us to do it by the <code>before_install</code> command:
 
 In this case you have to create the <code>install_chrome.sh</code> script to 
 start chrome before the tests. You can access this script [here]
-(https://github.com/ging/lynckia/blob/master/.travis/scripts/install_chrome.sh).
+(https://github.com/ging/licode/blob/master/.travis/scripts/install_chrome.sh).
 
 
 
@@ -87,10 +87,10 @@ And we'll also add the corresponding Cakefile:
             console.log stdout
 
 In the 
-[chrome-start.sh](https://github.com/ging/lynckia/blob/master/.travis/chrome-start.sh) 
+[chrome-start.sh](https://github.com/ging/licode/blob/master/.travis/chrome-start.sh) 
 file we have the corresponding starting scripts. With this script we setup 
 Chrome with some default Chrome 
-[Preferences](https://github.com/ging/lynckia/blob/master/.travis/Preferences): 
+[Preferences](https://github.com/ging/licode/blob/master/.travis/Preferences): 
 
 * It allows the user to start Chrome and use Webrtc from a local URL 
 (http://localhost:9876/) without asking permissions. This is configured in the 
@@ -108,7 +108,7 @@ Testing
 For testing we used Jasmine and its asynchronous functionalities. We use it to 
 test Licode but it can also be used to test WebRTC applications. Below we show 
 one of our examples in the 
-[test cases](https://github.com/ging/lynckia/blob/master/test/nuve-test.js):
+[test cases](https://github.com/ging/licode/blob/master/test/nuve-test.js):
 
     it('should get access to user media', function () {
         var callback = jasmine.createSpy("getusermedia");
