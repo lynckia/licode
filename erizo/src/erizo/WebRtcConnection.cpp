@@ -78,7 +78,7 @@ namespace erizo {
   }
 
   bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
-    printf("Set Remote SDP\n %s", sdp.c_str());
+    printf("Set Remote SDP\n %s\n", sdp.c_str());
     remoteSdp_.initWithSdp(sdp);
     std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
     //    video_ = (remoteSdp_.videoSsrc==0?false:true);
@@ -97,7 +97,7 @@ namespace erizo {
     localSdp_.isBundle = bundle_;
     localSdp_.isRtcpMux = remoteSdp_.isRtcpMux;
 
-    printf("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d ", video_, remoteSdp_.videoSsrc, audio_, remoteSdp_.audioSsrc,  bundle_);
+    printf("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d\n", video_, remoteSdp_.videoSsrc, audio_, remoteSdp_.audioSsrc,  bundle_);
 
     if (!bundle_) {
       printf("NOT BUNDLE\n");
