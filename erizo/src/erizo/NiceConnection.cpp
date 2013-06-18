@@ -217,7 +217,7 @@ void NiceConnection::init() {
 	this->updateIceState(INITIAL);
 
 	g_type_init();
-	g_thread_init(NULL);
+//	g_thread_init(NULL);
 
 	loop_ = g_main_loop_new(NULL, FALSE);
 	//	nice_debug_enable( TRUE );
