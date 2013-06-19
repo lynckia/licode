@@ -18,6 +18,7 @@ install_homebrew(){
 
 install_brew_deps(){
   brew install glib pkg-config boost cmake node mongodb rabbitmq
+  npm install -g node-gyp
 }
 
 install_libnice(){
