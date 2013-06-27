@@ -22,8 +22,8 @@ Erizo.Connection = function (spec) {
         console.log("Stable!");
         that = Erizo.ChromeStableStack(spec);
         that.browser = "chrome-stable";
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "28" ||
-        window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "29") {
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "29" ||
+        window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "30") {
         // Google Chrome Canary.
         console.log("Canary!");
         that = Erizo.ChromeCanaryStack(spec);
