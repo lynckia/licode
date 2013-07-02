@@ -16,6 +16,10 @@ Erizo.ChromeCanaryStack = function (spec) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
     } 
 
+    if (spec.turnServer !== undefined) {
+        that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential":spec.turnServer.password, "url": spec.turnServer.url});
+    }
+
     that.mediaConstraints = {
         'mandatory': {
             'OfferToReceiveVideo': 'true',

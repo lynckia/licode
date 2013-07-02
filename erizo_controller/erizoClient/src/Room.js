@@ -240,7 +240,7 @@ Erizo.Room = function (spec) {
                         };
                         stream.pc.processSignalingMessage(answer);
                     });
-                }, stunServerUrl: that.stunServerUrl});
+                }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
                 stream.pc.addStream(stream.stream);
             } else if (stream.hasData()) {
@@ -291,7 +291,7 @@ Erizo.Room = function (spec) {
                         stream.pc.processSignalingMessage(answer);
 
                     });
-                }, stunServerUrl: that.stunServerUrl});
+                }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
                 stream.pc.onaddstream = function (evt) {
                     // Draw on html
