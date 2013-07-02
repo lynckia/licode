@@ -110,7 +110,6 @@ Erizo.VideoPlayer = function (spec) {
             }
 
         } else {
-            console.log("Screen!");
             if (width * (3 / 4) < height) {
 
                 that.video.style.width = width + "px";
