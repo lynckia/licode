@@ -52,7 +52,7 @@ Erizo.ChromeCanaryStack = function (spec) {
         }
     };
 
-    console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
+    //console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
 
     /**
      * This function processes signalling messages from the other side.
