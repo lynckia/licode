@@ -6,11 +6,9 @@ before_install:
   - ./scripts/installErizo.sh
   - ./scripts/installNuve.sh
   - ./scripts/installBasicExample.sh
-  - ./scripts/initLynckia.sh
+  - ./scripts/initLicode.sh
   - sleep 10
   - ./scripts/initBasicExample.sh
   - ./.travis/scripts/install_chrome.sh
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
-branches:
-  only: travis-test

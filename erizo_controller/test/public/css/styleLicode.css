@@ -1,0 +1,127 @@
+html, body {
+    margin: auto;
+    width:1240px;
+    background-color: #fff;
+    height: 1024px;
+    background-attachment:fixed;
+    background-image: linear-gradient(bottom, #EDEDED 30%, #FAFAFA 60%, #FFFFFF 85%);
+    background-image: -o-linear-gradient(bottom, #EDEDED 30%, #FAFAFA 60%, #FFFFFF 85%);
+    background-image: -moz-linear-gradient(bottom, #EDEDED 30%, #FAFAFA 60%, #FFFFFF 85%);
+    background-image: -webkit-linear-gradient(bottom, #EDEDED 30%, #FAFAFA 60%, #FFFFFF 85%);
+    background-image: -ms-linear-gradient(bottom, #EDEDED 30%, #FAFAFA 60%, #FFFFFF 85%);
+
+    background-image: -webkit-gradient(
+        linear,
+        right bottom,
+        right top,
+        color-stop(0.39, #EDEDED),
+        color-stop(0.7, #FAFAFA),
+        color-stop(0.85, #FFFFFF)
+    );
+}
+
+.video {
+    width: 96%;
+    height: 100%;
+    margin-left: 2%;
+}
+
+.footerstyle {
+    float: left;
+    height: 23%;
+    margin-bottom: 3%;
+    margin-left: 12%;
+    margin-top: 9.5%;
+    width: 23%;
+}
+
+.logostyle {
+    float: right;
+    margin-right: 30px;
+    margin-top: 82px;
+}
+
+#vidcontainer {
+    width: 1255px;
+    height: 1024px;
+}
+
+#textfoo {
+    margin-top: 90px;
+    margin-right: 200px;
+    float: right;
+    font-family: Arial;
+    font-weight:bold;
+    color: 003675;
+    font-size: 25;
+}
+    
+#vid1 {
+    background-color: #fff;
+    margin-top: 50px;
+    margin-bottom: 15px;
+}
+
+#vid2 {
+    background-color: #303;
+    margin-right: 15px;
+    float: left;
+}
+
+#vid3 {
+    background-color: # C99;
+    float: left;
+    margin-bottom: 20px;
+}
+
+#vid4 {
+    background-color: # FC6;
+    float: right;   
+}
+
+.cam {
+    opacity: 0.2;
+    margin-left:45%;
+    margin-top:30%;
+}
+
+.coolstyle {
+
+    width: 620px;
+    height: 512px;
+
+    border-radius: 15px;
+    moz-border-radius: 15px;
+    webkit-border-radius: 15px;
+    -moz-box-shadow: 0 0 5px #888;
+    -webkit-box-shadow: 0 0 5px#888;
+    box-shadow: 0 0 5px #888;
+
+    background-image: linear-gradient(bottom, #001329 9%, #013066 44%, #003775 78%);
+    background-image: -o-linear-gradient(bottom, #001329 9%, #013066 44%, #003775 78%);
+    background-image: -moz-linear-gradient(bottom, #001329 9%, #013066 44%, #003775 78%);
+    background-image: -webkit-linear-gradient(bottom, #001329 9%, #013066 44%, #003775 78%);
+    background-image: -ms-linear-gradient(bottom, #001329 9%, #013066 44%, #003775 78%);
+
+    background-image: -webkit-gradient(
+        linear,
+        left bottom,
+        left top,
+        color-stop(0.09, #001329),
+        color-stop(0.44, #013066),
+        color-stop(0.78, #003775)
+    );
+}
+
+.footer, .push {
+    position: relative;
+    height: 10%;
+    width: 100%;
+}
+
+.wrapper {
+    min-height: 91%;
+    height: auto !important;
+    height: 80%;
+    margin: 0 auto -4em;
+}

@@ -12,7 +12,7 @@ L.Logger = (function (L) {
     // By calling this method we will not use console.log to print the logs anymore. Instead we will use a <textarea/> element to write down future logs
     enableLogPanel = function () {
         L.Logger.panel = document.createElement('textarea');
-        L.Logger.panel.setAttribute("id", "lynckia-logs");
+        L.Logger.panel.setAttribute("id", "licode-logs");
         L.Logger.panel.setAttribute("style", "width: 100%; height: 100%; display: none");
         L.Logger.panel.setAttribute("rows", 20);
         L.Logger.panel.setAttribute("cols", 20);

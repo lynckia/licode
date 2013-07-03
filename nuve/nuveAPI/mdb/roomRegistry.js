@@ -35,6 +35,7 @@ exports.addRoom = function (room, callback) {
     "use strict";
 
     db.rooms.save(room, function (error, saved) {
+        if (error) console.log('MongoDB: Error adding room: ', error);
         callback(saved);
     });
 };
@@ -46,7 +47,9 @@ exports.removeRoom = function (id) {
     "use strict";
     hasRoom(id, function (hasR) {
         if (hasR) {
-            db.rooms.remove({_id: new BSON.ObjectID(id)});
+            db.rooms.remove({_id: new BSON.ObjectID(id)}, function (error, removed) {
+                if (error) console.log('MongoDB: Error romoving room: ', error);
+            });
         }
     });
 };

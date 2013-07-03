@@ -4,7 +4,7 @@ var rpc = require('./rpc/rpc');
 var controller = require('./webRtcController');
 var ST = require('./Stream');
 var io = require('socket.io').listen(8080);
-var config = require('./../../lynckia_config');
+var config = require('./../../licode_config');
 
 io.set('log level', 1);
 
@@ -248,7 +248,7 @@ var listen = function () {
                     });
 
                 } else if (options.state === 'ok' && socket.state === 'waitingOk') {
-                    st = new ST.Stream({id: options.streamId, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
+                    st = new ST.Stream({id: options.streamId, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
                     socket.state = 'sleeping';
                     socket.streams.push(options.streamId);
                     socket.room.streams[options.streamId] = st;
@@ -256,7 +256,7 @@ var listen = function () {
                 }
             } else {
                 id = Math.random() * 100000000000000000;
-                st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
+                st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
                 socket.streams.push(id);
                 socket.room.streams[id] = st;
                 callback(undefined, id);

@@ -16,19 +16,24 @@ Erizo.Connection = function (spec) {
     if (typeof module !== 'undefined' && module.exports) {
         L.Logger.error('Publish/subscribe video/audio streams not supported in erizofc yet');
         that = Erizo.FcStack(spec);
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "24" || 
-               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "25") {
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "26" ||
+               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "27") {
         // Google Chrome Stable.
         console.log("Stable!");
         that = Erizo.ChromeStableStack(spec);
         that.browser = "chrome-stable";
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "26" ||
-               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "27") {
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "28" ||
+        window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "29") {
         // Google Chrome Canary.
         console.log("Canary!");
         that = Erizo.ChromeCanaryStack(spec);
         that.browser = "chrome-canary";
-    } else if (window.navigator.appVersion.match(/Bowser\/([\w\W]*?)\./)[1] === "25") {
+    }  else if (window.navigator.userAgent.toLowerCase().indexOf("chrome")>=0) {
+        // Probably Google Chrome Stable.
+        console.log("Probably stable!");
+        that = Erizo.ChromeStableStack(spec);
+        that.browser = "chrome-stable";
+    }  else if (window.navigator.appVersion.match(/Bowser\/([\w\W]*?)\./)[1] === "25") {
         // Bowser
         that.browser = "bowser";
     } else if (window.navigator.appVersion.match(/Mozilla\/([\w\W]*?)\./)[1] === "25") {
@@ -54,9 +59,8 @@ Erizo.GetUserMedia = function (config, callback, error) {
             console.log('GetUserMedia BOWSER');
         } catch (e) {
             navigator.webkitGetUserMedia(config, callback, error);
-            console.log('GetUserMedia CHROME');
+            console.log('GetUserMedia CHROME', config);
         }
     }
-    
 
 };

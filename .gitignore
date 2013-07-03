@@ -1,5 +1,5 @@
 build/
-lynckia_config.js
+licode_config.js
 extras/basic_example/node_modules
 extras/basic_example/public/erizo.js
 extras/basic_example/nuve.js
