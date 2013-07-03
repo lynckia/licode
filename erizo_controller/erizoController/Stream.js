@@ -19,9 +19,14 @@ exports.Stream = function (spec) {
         return spec.video;
     };
 
-    // Indicates if the stream has video activated
+    // Indicates if the stream has data activated
     that.hasData = function () {
         return spec.data;
+    };
+
+    // Indicates if the stream has screen activated
+    that.hasScreen = function () {
+        return spec.screen;
     };
 
     that.getAttributes = function () {
@@ -46,7 +51,7 @@ exports.Stream = function (spec) {
     };
 
     that.getPublicStream = function () {
-        return {id: spec.id, audio: spec.audio, video: spec.video, data: spec.data, attributes: spec.attributes};
+        return {id: spec.id, audio: spec.audio, video: spec.video, data: spec.data, screen: spec.screen, attributes: spec.attributes};
     };
 
     return that;

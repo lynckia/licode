@@ -16,6 +16,10 @@ Erizo.ChromeCanaryStack = function (spec) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
     } 
 
+    if (spec.turnServer !== undefined) {
+        that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential":spec.turnServer.password, "url": spec.turnServer.url});
+    }
+
     that.mediaConstraints = {
         'mandatory': {
             'OfferToReceiveVideo': 'true',
@@ -48,7 +52,7 @@ Erizo.ChromeCanaryStack = function (spec) {
         }
     };
 
-    console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
+    //console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
 
     /**
      * This function processes signalling messages from the other side.
