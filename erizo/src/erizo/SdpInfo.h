@@ -149,7 +149,14 @@ public:
    * RTP Profile type
    */
   Profile profile;
-
+  /**
+   * Is there DTLS fingerprint
+   */
+  bool isFingerprint;
+  /**
+   * DTLS Fingerprint
+   */
+  std::string fingerprint;
 
 private:
 	bool processSdp(const std::string& sdp);

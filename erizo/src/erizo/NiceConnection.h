@@ -70,7 +70,7 @@ public:
 	 * @param len Length of the Buffer.
 	 * @return Bytes sent.
 	 */
-	int sendData(void* buf, int len);
+	int sendData(const void* buf, int len);
 
 	/**
 	 * The MediaType of the connection

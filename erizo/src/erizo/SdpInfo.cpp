@@ -23,6 +23,7 @@ namespace erizo {
   static const char *savpf = "SAVPF";
   static const char *rtpmap = "a=rtpmap:";
   static const char *rtcpmux = "a=rtcp-mux";
+  static const char *fp = "a=fingerprint";
 
   SdpInfo::SdpInfo() {
     isBundle = false;
@@ -51,6 +52,8 @@ namespace erizo {
   std::string SdpInfo::getSdp() {
     char* msidtemp = static_cast<char*>(malloc(10));
     gen_random(msidtemp,10);
+
+    printf("Getting SDP");
 
     std::ostringstream sdp;
     sdp << "v=0\n" << "o=- 0 0 IN IP4 127.0.0.1\n" << "s=\n" << "t=0 0\n";
@@ -113,6 +116,9 @@ namespace erizo {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
       sdp << "a=ice-options:google-ice" <<endl;
+      if (isFingerprint) {
+        sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
+      }
       sdp << "a=sendrecv" << endl;
       sdp << "a=mid:audio\n";
       if (isRtcpMux)
@@ -189,6 +195,9 @@ namespace erizo {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
       sdp << "a=ice-options:google-ice" <<endl;
+      if (isFingerprint) {
+        sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
+      }
       sdp << "a=sendrecv" << endl;
       sdp << "a=mid:video\n";
       if (isRtcpMux) 
@@ -243,12 +252,22 @@ namespace erizo {
       char* isSAVPF = strstr(line, savpf);
       char* isRtpmap = strstr(line,rtpmap);
       char* isRtcpMuxchar = strstr(line,rtcpmux);
+      char* isFP = strstr(line,fp);
       if (isRtcpMuxchar){
         isRtcpMux = true;
       }
       if (isSAVPF){
         profile = SAVPF;
         printf("PROFILE %s (1 SAVPF)\n", isSAVPF);
+      }
+      if (isFP){
+        char *pch;
+        pch = strtok(line, ":");
+        pch = strtok(NULL, " ");
+        pch = strtok(NULL, " ");
+        fingerprint = std::string(pch);
+        isFingerprint = true;
+        printf("Fingerprint %s \n", fingerprint.c_str());
       }
       if (isGroup) {
         isBundle = true;

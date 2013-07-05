@@ -13,6 +13,7 @@
 namespace erizo {
 
 class NiceConnection;
+class DtlsConnection;
 /**
  * States of ICE
  */
@@ -97,6 +98,8 @@ public:
 	 */
 	IceState getCurrentState();
 
+	void startSRTP(std::string clientKey,std::string serverKey, std::string srtpProfile);
+
 private:
 	SdpInfo remoteSdp_;
 	SdpInfo localSdp_;
@@ -110,6 +113,9 @@ private:
 	boost::thread send_Thread_;
 	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionStateListener* connStateListener_;
+
+	DtlsConnection* audioDtls_;
+	DtlsConnection* videoDtls_;
 
 	void updateState(IceState newState, NiceConnection* niceConn);
 

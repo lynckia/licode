@@ -14,6 +14,24 @@ install_apt_deps(){
   sudo npm install -g node-gyp
 }
 
+install_openssl(){
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    curl -O http://www.openssl.org/source/openssl-1.0.1e.tar.gz
+    tar -zxvf openssl-1.0.1e.tar.gz
+    cd openssl-1.0.1e
+    ./configure
+    make
+    sudo make install
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_openssl
+  fi
+}
+
 pause "Installing deps via apt-get... [press Enter]"
 install_apt_deps
 
+pause "Installing openssl library...  [press Enter]"
+install_openssl

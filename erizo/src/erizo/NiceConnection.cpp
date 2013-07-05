@@ -65,7 +65,7 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 			cand = (NiceCandidate*) iterator->data;
 			nice_address_to_string(&cand->addr, address);
 			if (strstr(address, ":") != NULL) {
-				printf("Ignoring IPV6 candidate\n");
+				printf("Ignoring IPV6 candidate %s\n", address);
 				continue;
 
 			}
@@ -124,7 +124,7 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 		lcands = nice_agent_get_local_candidates(agent, stream_id,
 				currentCompId++);
 	}
-	printf("candidate_gathering done\n");
+	printf("candidate_gathering done with %d candidates\n", conn->localCandidates->size());
 
   if (conn->localCandidates->size()==0){
     printf("No local candidates found, check your network connection\n");
@@ -196,7 +196,7 @@ void NiceConnection::close() {
 	iceState = FINISHED;
 }
 
-int NiceConnection::sendData(void* buf, int len) {
+int NiceConnection::sendData(const void* buf, int len) {
 
 	int val = -1;
 	if (iceState == READY) {
@@ -227,7 +227,7 @@ void NiceConnection::init() {
 //	NiceAddress* naddr = nice_address_new();
 //	nice_agent_add_local_address(agent_, naddr);
 
-	GValue val = { 0 }, val2 = { 0 };
+//	GValue val = { 0 }, val2 = { 0 };
 
 //	g_value_init(&val, G_TYPE_STRING);
 //	g_value_set_string(&val, "173.194.70.126");
@@ -247,7 +247,7 @@ void NiceConnection::init() {
 
 	// Create a new stream and start gathering candidates
   printf("Adding Stream... Number of components %d\n", iceComponents_);
-	int res = nice_agent_add_stream(agent_, iceComponents_);
+	nice_agent_add_stream(agent_, iceComponents_);
 	// Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
 //	nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)51000, (guint)52000);
 

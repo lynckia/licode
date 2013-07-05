@@ -52,11 +52,12 @@ exports.WebRtcController = function () {
             intervarId = setInterval(function () {
 
                 var state = wrtc.getCurrentState(), localSdp, answer;
+                console.log("Current WebRtcConnection state", state);
 
                 if (state > 0) {
 
                     wrtc.setRemoteSdp(remoteSdp);
-                    //console.log('SDP remote: ', remoteSdp);
+                    console.log('SDP remote: ', remoteSdp);
                     localSdp = wrtc.getLocalSdp();
 
                     answer = getRoap(localSdp, roap);

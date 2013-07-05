@@ -6,6 +6,7 @@
 
 #include "WebRtcConnection.h"
 #include "NiceConnection.h"
+#include "DtlsConnection.h"
 
 #include "SdpInfo.h"
 
@@ -91,6 +92,7 @@ namespace erizo {
     CryptoInfo cryptRemote_audio;
 
     bundle_ = remoteSdp_.isBundle;
+    printf("Is bundle? %d %d", bundle_, true);
     std::vector<RtpMap> payloadRemote = remoteSdp_.getPayloadInfos();
     localSdp_.getPayloadInfos() = remoteSdp_.getPayloadInfos();
     localSdp_.isBundle = bundle_;
@@ -98,7 +100,11 @@ namespace erizo {
 
     printf("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d ", video_, remoteSdp_.videoSsrc, audio_, remoteSdp_.audioSsrc,  bundle_);
 
-      if(remoteSdp_.profile == SAVPF){
+      if (remoteSdp_.isFingerprint){
+        videoDtls_ = new DtlsConnection(videoNice_);
+        setWebRTCConnectionStateListener(videoDtls_);
+        videoDtls_->setWebRtcConnection(this);
+      } else if(remoteSdp_.profile == SAVPF){
         videoSrtp_ = new SrtpChannel();
         CryptoInfo crytpv;
         crytpv.cipherSuite = std::string("AES_CM_128_HMAC_SHA1_80");
@@ -144,20 +150,27 @@ namespace erizo {
         cryptLocal_audio = cryptemp;
       }
     }
-   videoNice_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
-  this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
-  this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
-  videoSrtp_->setRtpParams((char*) cryptLocal_video.keyParams.c_str(),
+    videoNice_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
+    this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
+    this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
+    if (videoSrtp_!=NULL) {
+      videoSrtp_->setRtpParams((char*) cryptLocal_video.keyParams.c_str(),
           (char*) cryptRemote_video.keyParams.c_str());
-   videoSrtp_->setRtcpParams((char*) cryptLocal_video.keyParams.c_str(),
+      videoSrtp_->setRtcpParams((char*) cryptLocal_video.keyParams.c_str(),
           (char*) cryptRemote_video.keyParams.c_str());
       //		audioSrtp_->setRtpParams((char*)cryptLocal_audio.keyParams.c_str(), (char*)cryptRemote_audio.keyParams.c_str());
+    }
 
     return true;
   }
 
   std::string WebRtcConnection::getLocalSdp() {
     std::vector<CandidateInfo> *cands;
+    printf("Getting SDP");
+      if (remoteSdp_.isFingerprint) {
+        localSdp_.isFingerprint = remoteSdp_.isFingerprint;
+        localSdp_.fingerprint = videoDtls_->getMyFingerprint();
+      }
       if (videoNice_->iceState > CANDIDATES_GATHERED) {
         cands = videoNice_->localCandidates;
         for (unsigned int it = 0; it < cands->size(); it++) {
@@ -266,6 +279,10 @@ namespace erizo {
     unsigned int recvSSRC = 0;
     if (bundle_) {
       bool isfeedback = false;
+      if (DtlsConnection::isDtlsPacket(reinterpret_cast<unsigned char*>(buf), len)) {
+        videoDtls_->read(reinterpret_cast<unsigned char*>(buf), len);
+        return len;
+      }
       if (videoSrtp_){
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
         if (chead->packettype == 200) { //Sender Report
@@ -378,6 +395,15 @@ namespace erizo {
     return pos;
   }
 
+  void WebRtcConnection::startSRTP(std::string clientKey,std::string serverKey, std::string srtpProfile) {
+    videoSrtp_ = new SrtpChannel();
+
+    videoSrtp_->setRtpParams((char*) clientKey.c_str(),
+            (char*) serverKey.c_str());
+    videoSrtp_->setRtcpParams((char*) clientKey.c_str(),
+            (char*) serverKey.c_str());
+  }
+
   void WebRtcConnection::setWebRTCConnectionStateListener(
       WebRtcConnectionStateListener* listener) {
     this->connStateListener_ = listener;
@@ -386,13 +412,15 @@ namespace erizo {
   void WebRtcConnection::updateState(IceState newState,
       NiceConnection* niceConn) {
     boost::mutex::scoped_lock lock(updateStateMutex_);
-    IceState temp;
+    IceState temp = INITIAL;
+    printf("New IceState %d %d %d\n", newState, niceConn == videoNice_, bundle_);
     if (niceConn == videoNice_&& bundle_){
       temp = newState;
     }else{
       if (videoNice_ == NULL){
         temp = newState;
       }else{
+        temp = videoNice_->iceState;
       }
 
     }
@@ -404,6 +432,7 @@ namespace erizo {
   }
 
   IceState WebRtcConnection::getCurrentState() {
+    printf("CurentState %d\n", globalIceState_);
     return globalIceState_;
   }
 
