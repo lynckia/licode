@@ -189,7 +189,7 @@ namespace erizo {
 
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
         if (chead->packettype == 200 || chead->packettype == 201) {
-          chead->ssrc=htonl(this->getVideoSinkSSRC());
+          chead->ssrc=htonl(this->getAudioSinkSSRC());
           if(videoSrtp_->protectRtcp(buf, &length)<0)
             return length;
         }else{

@@ -205,8 +205,13 @@ namespace erizo {
       for (unsigned int it = 0; it < payloadVector_.size(); it++) {
         const RtpMap& rtp = payloadVector_[it];
         if (rtp.mediaType==VIDEO_TYPE)
+        {
           sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
             << rtp.clockRate <<"\n";
+          if(rtp.payloadType == 100){
+            sdp << "a=rtcp-fb:100 ccm fir\n" <<  "a=rtcp-fb:100 nack\n"; 
+          }
+        }
       }
 
       sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<
