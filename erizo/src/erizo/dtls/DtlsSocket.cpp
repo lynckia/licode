@@ -26,10 +26,10 @@ class dtls::DtlsSocketTimer : public DtlsTimer
      ~DtlsSocketTimer()
       {
       }
-     
+
       void expired()
       {
-         mSocket->expired(this);        
+         mSocket->expired(this);
       }
   private:
      DtlsSocket *mSocket;
@@ -44,9 +44,9 @@ DtlsSocket::DtlsSocket(std::auto_ptr<DtlsSocketContext> socketContext, DtlsFacto
    mSocketContext(socketContext),
    mFactory(factory),
    mReadTimer(0),
-   mSocketType(type), 
+   mSocketType(type),
    mHandshakeCompleted(false)
-{  
+{
    mSocketContext->setDtlsSocket(this);
 
    assert(factory->mContext);
@@ -75,9 +75,6 @@ DtlsSocket::DtlsSocket(std::auto_ptr<DtlsSocketContext> socketContext, DtlsFacto
    mOutBio=BIO_new(BIO_f_dwrap());
    BIO_push(mOutBio,memBIO2);
 
-   printf("mInBIO: %p -> %p\n",  (void *)mInBio,  (void *)memBIO1);
-   printf("mOutBio: %p -> %p\n", (void *)mOutBio, (void *)memBIO2);
-
    SSL_set_bio(mSsl,mInBio,mOutBio);
 }
 
@@ -86,8 +83,12 @@ DtlsSocket::~DtlsSocket()
    if(mReadTimer) mReadTimer->invalidate();
 
    // Properly shutdown the socket and free it - note: this also free's the BIO's
-   SSL_shutdown(mSsl);
-   SSL_free(mSsl);
+   if (mSsl != NULL) {
+      SSL_shutdown(mSsl);
+      SSL_free(mSsl);
+      mSsl = NULL;
+   }
+
 }
 
 void
@@ -96,11 +97,11 @@ DtlsSocket::expired(DtlsSocketTimer* timer)
    forceRetransmit();
    //delete timer;
 
-   //assert(timer == mReadTimer);   
+   //assert(timer == mReadTimer);
    //mReadTimer = 0;
 }
 
-void 
+void
 DtlsSocket::startClient()
 {
    assert(mSocketType == Client);
@@ -143,7 +144,7 @@ DtlsSocket::forceRetransmit()
 }
 
 void
-DtlsSocket::doHandshakeIteration() 
+DtlsSocket::doHandshakeIteration()
 {
    int r;
    char errbuf[1024];
@@ -160,16 +161,14 @@ DtlsSocket::doHandshakeIteration()
 
    // See what was written
    int outBioLen;
-   unsigned char *outBioData;  
-   printf("Nuestro read %p\n", (void *)mOutBio);
+   unsigned char *outBioData;
    outBioLen=BIO_get_mem_data(mOutBio,&outBioData);
-   printf("Read ya");
 
    // Now handle handshake errors */
    switch(sslerr=SSL_get_error(mSsl,r))
    {
    case SSL_ERROR_NONE:
-      mHandshakeCompleted = true;       
+      mHandshakeCompleted = true;
       mSocketContext->handshakeCompleted();
       if(mReadTimer) mReadTimer->invalidate();
       mReadTimer = 0;
@@ -201,12 +200,9 @@ DtlsSocket::doHandshakeIteration()
    }
 
    // If mOutBio is now nonzero-length, then we need to write the
-   // data to the network. TODO: warning, MTU issues! 
+   // data to the network. TODO: warning, MTU issues!
    if(outBioLen)
    {
-      cerr << "Writing data: ";
-      cerr.write((char*)outBioData, outBioLen);
-      cerr << " length " << outBioLen << endl;
       mSocketContext->write(outBioData,outBioLen);
    }
 }
@@ -290,7 +286,7 @@ DtlsSocket::getSrtpSessionKeys()
    keys.clientMasterSaltLen = SRTP_MASTER_KEY_SALT_LEN;
    keys.serverMasterSaltLen = SRTP_MASTER_KEY_SALT_LEN;
 
-   return keys;   
+   return keys;
 }
 
 SRTP_PROTECTION_PROFILE*
@@ -303,7 +299,7 @@ DtlsSocket::getSrtpProfile()
 
 // Fingerprint is assumed to be long enough
 void
-DtlsSocket::computeFingerprint(X509 *cert, char *fingerprint) 
+DtlsSocket::computeFingerprint(X509 *cert, char *fingerprint)
 {
    unsigned char md[EVP_MAX_MD_SIZE];
    int r;
@@ -348,8 +344,8 @@ DtlsSocket::createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy
    server_policy.window_size = 128;
    server_policy.allow_repeat_tx = 1;
 
-   SrtpSessionKeys srtp_key = getSrtpSessionKeys();   
-   /* set client_write key */  
+   SrtpSessionKeys srtp_key = getSrtpSessionKeys();
+   /* set client_write key */
    client_policy.key = client_master_key_and_salt;
    if (srtp_key.clientMasterKeyLen != key_len)
    {
@@ -359,17 +355,17 @@ DtlsSocket::createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy
    if (srtp_key.clientMasterSaltLen != salt_len)
    {
       cout << "error: unexpected client salt length" << endl;
-      assert(0);      
+      assert(0);
    }
 
    memcpy(client_master_key_and_salt, srtp_key.clientMasterKey, key_len);
    memcpy(client_master_key_and_salt + key_len, srtp_key.clientMasterSalt, salt_len);
 
-   cout << "client master key and salt: " << 
+   cout << "client master key and salt: " <<
       octet_string_hex_string(client_master_key_and_salt, key_len + salt_len) << endl;
 
    /* initialize client SRTP policy from profile  */
-   err_status_t err = crypto_policy_set_from_profile_for_rtp(&client_policy.rtp, profile);   
+   err_status_t err = crypto_policy_set_from_profile_for_rtp(&client_policy.rtp, profile);
    if (err) assert(0);
 
    err = crypto_policy_set_from_profile_for_rtcp(&client_policy.rtcp, profile);
@@ -387,12 +383,12 @@ DtlsSocket::createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy
    if (srtp_key.serverMasterSaltLen != salt_len)
    {
       cout << "error: unexpected salt length" << endl;
-      assert(0);      
+      assert(0);
    }
 
    memcpy(server_master_key_and_salt, srtp_key.serverMasterKey, key_len);
    memcpy(server_master_key_and_salt + key_len, srtp_key.serverMasterSalt, salt_len);
-   cout << "server master key and salt: " << 
+   cout << "server master key and salt: " <<
       octet_string_hex_string(server_master_key_and_salt, key_len + salt_len) << endl;
 
    /* initialize server SRTP policy from profile  */
@@ -403,7 +399,7 @@ DtlsSocket::createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy
    if (err) assert(0);
    server_policy.next = NULL;
 
-   if (mSocketType == Client) 
+   if (mSocketType == Client)
    {
       client_policy.ssrc.type = ssrc_any_outbound;
       outboundPolicy = client_policy;
@@ -435,34 +431,34 @@ DtlsSocket::getReadTimeout()
 
 /* ====================================================================
 
- Copyright (c) 2007-2008, Eric Rescorla and Derek MacDonald 
+ Copyright (c) 2007-2008, Eric Rescorla and Derek MacDonald
  All rights reserved.
- 
+
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are 
+ modification, are permitted provided that the following conditions are
  met:
- 
- 1. Redistributions of source code must retain the above copyright 
-    notice, this list of conditions and the following disclaimer. 
- 
+
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
  2. Redistributions in binary form must reproduce the above copyright
     notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution. 
- 
- 3. None of the contributors names may be used to endorse or promote 
-    products derived from this software without specific prior written 
-    permission. 
- 
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+    documentation and/or other materials provided with the distribution.
+
+ 3. None of the contributors names may be used to endorse or promote
+    products derived from this software without specific prior written
+    permission.
+
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  ==================================================================== */

@@ -119,7 +119,6 @@ Handle<Value> WebRtcConnection::getCurrentState(const Arguments& args) {
   erizo::WebRtcConnection *me = obj->me;
 
   int state = me->getCurrentState();
-  printf("GetCurrentState from node %d\n", state);
 
   return scope.Close(Number::New(state));
 }

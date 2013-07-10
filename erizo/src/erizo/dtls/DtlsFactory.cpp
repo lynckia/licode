@@ -11,6 +11,10 @@
 #include <openssl/err.h>
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
+#include <openssl/x509v3.h>
+
+#include <openssl/bn.h>
+#include <openssl/srtp.h>
 
 #include "DtlsFactory.h"
 #include "DtlsSocket.h"
@@ -32,7 +36,7 @@ SSLInfoCallback(const SSL* s, int where, int ret) {
     cout <<  str << ":" << SSL_state_string_long(s) << endl;
   } else if (where & SSL_CB_ALERT) {
     str = (where & SSL_CB_READ) ? "read" : "write";
-    cout <<  "SSL3 alert " << str
+    cout <<  "SSL3 alert " << ret << " " << str
       << ":" << SSL_alert_type_string_long(ret)
       << ":" << SSL_alert_desc_string_long(ret) << endl;
   } else if (where & SSL_CB_EXIT) {
@@ -112,32 +116,132 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
   return ok;
 }
 
-DtlsFactory::DtlsFactory(std::auto_ptr<DtlsTimerContext> tc,X509 *cert, EVP_PKEY *privkey):
-   mTimerContext(tc),
-   mCert(cert)
+static const int KEY_LENGTH = 1024;
+
+int createCert (const string& pAor, int expireDays, int keyLen, X509*& outCert, EVP_PKEY*& outKey )
 {
-   int r;
-   mContext=SSL_CTX_new(DTLSv1_client_method());
-   assert(mContext);
+   int ret;
 
-   r=SSL_CTX_use_certificate(mContext, cert);
-   assert(r==1);
+   cerr << "Generating new user cert for " << pAor << endl;
+   string aor = "sip:" + pAor;
 
-   r=SSL_CTX_use_PrivateKey(mContext, privkey);
-   assert(r==1);
+   // Make sure that necessary algorithms exist:
+   assert(EVP_sha1());
 
-   SSL_CTX_set_cipher_list(mContext, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+   EVP_PKEY* privkey = EVP_PKEY_new();
+   assert(privkey);
 
-   SSL_CTX_set_info_callback(mContext, SSLInfoCallback);
+   RSA* rsa = RSA_new();
 
-   SSL_CTX_set_verify(mContext, SSL_VERIFY_PEER |SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+   BIGNUM* exponent = BN_new();
+   BN_set_word(exponent, 0x10001);
+
+   RSA_generate_key_ex(rsa, KEY_LENGTH, exponent, NULL);
+
+   //RSA* rsa = RSA_generate_key(keyLen, RSA_F4, NULL, NULL);
+   assert(rsa);    // couldn't make key pair
+
+   ret = EVP_PKEY_set1_RSA(privkey, rsa);
+   assert(ret);
+
+   X509* cert = X509_new();
+   assert(cert);
+
+   X509_NAME* subject = X509_NAME_new();
+   X509_EXTENSION* ext = X509_EXTENSION_new();
+
+   // set version to X509v3 (starts from 0)
+   //X509_set_version(cert, 0L);
+
+   int serial = rand();  // get an int worth of randomness
+   assert(sizeof(int)==4);
+   ASN1_INTEGER_set(X509_get_serialNumber(cert),serial);
+
+//    ret = X509_NAME_add_entry_by_txt( subject, "O",  MBSTRING_ASC,
+//                                      (unsigned char *) domain.data(), domain.size(),
+//                                      -1, 0);
+   assert(ret);
+   ret = X509_NAME_add_entry_by_txt( subject, "CN", MBSTRING_ASC,
+                                     (unsigned char *) aor.data(), aor.size(),
+                                     -1, 0);
+   assert(ret);
+
+   ret = X509_set_issuer_name(cert, subject);
+   assert(ret);
+   ret = X509_set_subject_name(cert, subject);
+   assert(ret);
+
+   const long duration = 60*60*24*expireDays;
+   X509_gmtime_adj(X509_get_notBefore(cert),0);
+   X509_gmtime_adj(X509_get_notAfter(cert), duration);
+
+   ret = X509_set_pubkey(cert, privkey);
+   assert(ret);
+
+   string subjectAltNameStr = string("URI:sip:") + aor
+      + string(",URI:im:")+aor
+      + string(",URI:pres:")+aor;
+   ext = X509V3_EXT_conf_nid( NULL , NULL , NID_subject_alt_name,
+                              (char*) subjectAltNameStr.c_str() );
+//   X509_add_ext( cert, ext, -1);
+   X509_EXTENSION_free(ext);
+
+   static char CA_FALSE[] = "CA:FALSE";
+   ext = X509V3_EXT_conf_nid(NULL, NULL, NID_basic_constraints, CA_FALSE);
+   ret = X509_add_ext( cert, ext, -1);
+   assert(ret);
+   X509_EXTENSION_free(ext);
+
+   // TODO add extensions NID_subject_key_identifier and NID_authority_key_identifier
+
+   ret = X509_sign(cert, privkey, EVP_sha1());
+   assert(ret);
+
+   outCert = cert;
+   outKey = privkey;
+   return ret;
+}
+
+DtlsFactory::DtlsFactory()
+{
+    SSL_library_init();
+    SSL_load_error_strings();
+    ERR_load_crypto_strings();
+    //  srtp_init();
+
+    X509 *cert;
+    EVP_PKEY *privkey;
+
+    createCert("sip:client@example.com",365,1024,cert,privkey);
+    mCert = cert;
+
+    mTimerContext = std::auto_ptr<TestTimerContext>(new TestTimerContext());
+
+
+    cout << "Created the factories\n";
+
+    int r;
+    mContext=SSL_CTX_new(DTLSv1_client_method());
+    assert(mContext);
+
+    r=SSL_CTX_use_certificate(mContext, cert);
+    assert(r==1);
+
+    r=SSL_CTX_use_PrivateKey(mContext, privkey);
+    assert(r==1);
+
+    SSL_CTX_set_cipher_list(mContext, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+
+    SSL_CTX_set_info_callback(mContext, SSLInfoCallback);
+
+    SSL_CTX_set_verify(mContext, SSL_VERIFY_PEER |SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
                      SSLVerifyCallback);
 
-   SSL_CTX_set_session_cache_mode(mContext, SSL_SESS_CACHE_OFF);
-   SSL_CTX_set_options(mContext, SSL_OP_NO_TICKET);
-   // Set SRTP profiles
-   r=SSL_CTX_set_tlsext_use_srtp(mContext, DefaultSrtpProfile);
-   assert(r==0);
+    SSL_CTX_set_session_cache_mode(mContext, SSL_SESS_CACHE_OFF);
+    SSL_CTX_set_options(mContext, SSL_OP_NO_TICKET);
+    // Set SRTP profiles
+    r=SSL_CTX_set_tlsext_use_srtp(mContext, DefaultSrtpProfile);
+    assert(r==0);
 }
 
 DtlsFactory::~DtlsFactory()

@@ -70,7 +70,6 @@ static int dwrap_read(BIO *b, char *out, int outl)
 {
    int ret, ret2;
    if(!b || !out) {
-    printf("Read Malo null - %d -> %p\n", outl, (void *)b);
     return 0;
    }
 
@@ -78,7 +77,6 @@ static int dwrap_read(BIO *b, char *out, int outl)
    BIO_clear_retry_flags(b);
 
    ret=BIO_read(b->next_bio,out,outl);
-   printf("Read %d - %d -> %p\n", ret, outl, (void *)b);
 
    if(ret<=0) {
 //      ret2=BIO_read(b->next_bio,out,outl);
@@ -93,12 +91,10 @@ static int dwrap_write(BIO *b, const char *in, int inl)
 {
 
    if(!b || !in || (inl<=0)) {
-    printf("Write Malo null - %d -> %p\n", inl, (void *)b);
     return 0;
   }
 
    int ret = BIO_write(b->next_bio,in,inl);
-   printf("Write %d - %d -> %p\n", ret, inl, (void *)b);
    return ret;
 }
 

@@ -47,13 +47,14 @@ int SrtpChannel::protectRtp(char* buffer, int *len) {
   
 	if (!active_)
 		return 0;
-  
+	rtpheader* headrtp = reinterpret_cast<rtpheader*>(buffer);
+  	//printf("Protecting RTP seqnum %d pt %d\n", headrtp->seqnum, headrtp->payloadtype);
 	int val = srtp_protect(send_session_, buffer, len);
 	if (val == 0) {
 		return 0;
 	} else {
-    rtcpheader* head = reinterpret_cast<rtcpheader*>(buffer);
-    rtpheader* headrtp = reinterpret_cast<rtpheader*>(buffer);
+    	rtcpheader* head = reinterpret_cast<rtcpheader*>(buffer);
+    	
 		printf("Error SrtpChannel::protectRtp %u packettype %d pt %d\n", val,head->packettype, headrtp->payloadtype);
 		return -1;
 	}
@@ -80,7 +81,8 @@ int SrtpChannel::protectRtcp(char* buffer, int *len) {
 	if (val == 0) {
 		return 0;
 	} else {
-		printf("Error SrtpChannel::protectRtcp %u\n", val);
+		rtcpheader* head = reinterpret_cast<rtcpheader*>(buffer);
+		printf("Error SrtpChannel::protectRtcp %upackettype %d \n", val, head->packettype);
 		return -1;
 	}
 }

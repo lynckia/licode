@@ -8,8 +8,8 @@
 namespace erizo {
   OneToManyProcessor::OneToManyProcessor() {
 
-      sendVideoBuffer_ = (char*) malloc(2000);
-      sendAudioBuffer_ = (char*) malloc(2000);
+      sendVideoBuffer_ = (char*) malloc(20000);
+      sendAudioBuffer_ = (char*) malloc(20000);
       publisher = NULL;
       feedbackSink_ = NULL;
       sentPackets_ = 0;
@@ -52,9 +52,11 @@ namespace erizo {
       return 0;
     }
     std::map<std::string, MediaSink*>::iterator it;
+    //printf("Sending video data to subscribers of %u\n", publisher->getVideoSourceSSRC());
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
       memset(sendVideoBuffer_, 0, len);
       memcpy(sendVideoBuffer_, buf, len);
+      //printf(" Subscriber %u\n", (*it).second->getVideoSinkSSRC());
       (*it).second->deliverVideoData(sendVideoBuffer_, len);
     }
     sentPackets_++;
@@ -68,12 +70,7 @@ namespace erizo {
   }
 
   int OneToManyProcessor::deliverFeedback(char* buf, int len){
-    rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
-    if(head->packettype==201 || head->packettype==206){
-      head->ssrc = htonl(publisher->getVideoSourceSSRC());
-      feedbackSink_->deliverFeedback(buf,len);
-      return len;
-    }
+    feedbackSink_->deliverFeedback(buf,len);
     return 0;
 
   }

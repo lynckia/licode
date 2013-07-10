@@ -131,7 +131,9 @@ class DtlsSocketContext
       //is required 
       DtlsSocketContext();
       virtual ~DtlsSocketContext();
+      void setSocket(DtlsSocket *socket);
       void start();
+      void stop();
       void read(const unsigned char* data, unsigned int len);
       void write(const unsigned char* data, unsigned int len);
       void handshakeCompleted();
@@ -142,6 +144,7 @@ class DtlsSocketContext
    protected:
       DtlsSocket *mSocket;
       DtlsReceiver *receiver;
+      DtlsFactory *clientFactory;
      
    private:
       friend class DtlsSocket;

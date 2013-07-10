@@ -129,8 +129,10 @@ resip_OpenSSLInit_dynCreateFunction(char* file, int line)
 void
 resip_OpenSSLInit_dynDestroyFunction(CRYPTO_dynlock_value* dynlock, const char* file, int line)
 {
+   printf("Removing dynDestroyFunction\n");
    delete dynlock->mutex;
    delete dynlock;
+   printf("Removed dynDestroyFunction\n");
 }
 
 void 

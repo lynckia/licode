@@ -24,8 +24,8 @@ class DtlsFactory
    public:
      enum PacketType { rtp, dtls, stun, unknown};
      
-     // Creates a DTLS SSL Context and enables srtp extension, also sets the private and public key cert
-     DtlsFactory(std::auto_ptr<DtlsTimerContext> tc, X509 *cert, EVP_PKEY *privkey);
+     
+     
 
      // Note: this orphans any DtlsSockets you were stupid enough
      // not to free
@@ -54,9 +54,16 @@ class DtlsFactory
 
      // Examines the first few bits of a packet to determine its type: rtp, dtls, stun or unknown
      static PacketType demuxPacket(const unsigned char *buf, unsigned int len);
+
+     static DtlsFactory* GetInstance() {
+        static DtlsFactory INSTANCE;
+        return &INSTANCE;
+     }
      
 private:
      friend class DtlsSocket;
+     // Creates a DTLS SSL Context and enables srtp extension, also sets the private and public key cert
+     DtlsFactory();
      SSL_CTX* mContext;
      EVP_MD_CTX* ctx_;
      std::auto_ptr<DtlsTimerContext> mTimerContext;

@@ -53,7 +53,7 @@ namespace erizo {
     char* msidtemp = static_cast<char*>(malloc(10));
     gen_random(msidtemp,10);
 
-    printf("Getting SDP");
+    printf("Getting SDP\n");
 
     std::ostringstream sdp;
     sdp << "v=0\n" << "o=- 0 0 IN IP4 127.0.0.1\n" << "s=\n" << "t=0 0\n";
@@ -168,6 +168,7 @@ namespace erizo {
       if (cand.mediaType == VIDEO_TYPE) {
         if (!printedVideo) {
           sdp << "m=video " << cand.hostPort << " RTP/" << (profile==SAVPF?"SAVPF ":"AVPF "); //<<  "100 101 102 103\n"
+
           for (unsigned int it =0; it<payloadVector_.size(); it++){
             const RtpMap& payload_info = payloadVector_[it];
             if (payload_info.mediaType == VIDEO_TYPE)
@@ -213,9 +214,14 @@ namespace erizo {
 
       for (unsigned int it = 0; it < payloadVector_.size(); it++) {
         const RtpMap& rtp = payloadVector_[it];
-        if (rtp.mediaType==VIDEO_TYPE)
+          if (rtp.mediaType==VIDEO_TYPE)
+          {
           sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
-            << rtp.clockRate <<"\n";
+              << rtp.clockRate <<"\n";
+          if(rtp.payloadType == 100){
+            sdp << "a=rtcp-fb:100 ccm fir\n" << "a=rtcp-fb:100 nack\n";
+          }
+        }
       }
 
       sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<

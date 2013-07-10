@@ -4,6 +4,7 @@
 
 #include <glib.h>
 #include <nice/nice.h>
+ #include <cstdio>
 
 #include "NiceConnection.h"
 #include "SdpInfo.h"
@@ -19,9 +20,9 @@ int length;
 void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
 		guint len, gchar* buf, gpointer user_data) {
 
-//	printf( "cb_nice_recv len %u id %u\n",len, stream_id );
+	//printf( "cb_nice_recv len %u id %u\n",len, stream_id );
 	NiceConnection* nicecon = (NiceConnection*) user_data;
-	nicecon->getWebRtcConnection()->receiveNiceData(reinterpret_cast<char*> (buf), static_cast<unsigned int> (len),
+	nicecon->getNiceListener()->onNiceData(reinterpret_cast<char*> (buf), static_cast<unsigned int> (len),
 			(NiceConnection*) user_data);
 }
 
@@ -130,7 +131,7 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
     printf("No local candidates found, check your network connection\n");
     exit(0);
   }
-	conn->updateIceState(CANDIDATES_GATHERED);
+	conn->updateIceState(NICE_CANDIDATES_GATHERED);
 }
 
 void cb_component_state_changed(NiceAgent *agent, guint stream_id,
@@ -138,11 +139,11 @@ void cb_component_state_changed(NiceAgent *agent, guint stream_id,
 	printf("cb_component_state_changed %u\n", state);
 	if (state == NICE_COMPONENT_STATE_READY) {
 		NiceConnection *conn = (NiceConnection*) user_data;
-		conn->updateIceState(READY);
+		conn->updateIceState(NICE_READY);
 	} else if (state == NICE_COMPONENT_STATE_FAILED) {
 		printf("Ice Component failed\n");
 		NiceConnection *conn = (NiceConnection*) user_data;
-		conn->updateIceState(FAILED);
+		conn->updateIceState(NICE_FAILED);
 		//conn->getWebRtcConnection()->close();
 	}
 
@@ -160,14 +161,14 @@ NiceConnection::NiceConnection(MediaType med,
     iceComponents_(iceComponents){
 	agent_ = NULL;
 	loop_ = NULL;
-	conn_ = NULL;
+	listener_ = NULL;
 	localCandidates = new std::vector<CandidateInfo>();
 	transportName = new std::string(transport_name);
 }
 
 NiceConnection::~NiceConnection() {
 
-	if (iceState != FINISHED)
+	if (iceState != NICE_FINISHED)
 		this->close();
 	if (agent_)
 		g_object_unref(agent_);
@@ -188,38 +189,35 @@ void NiceConnection::start() {
 }
 
 void NiceConnection::close() {
-
 	if (agent_ != NULL)
 		nice_agent_remove_stream(agent_, 1);
 	if (loop_ != NULL)
 		g_main_loop_quit(loop_);
-	iceState = FINISHED;
+	iceState = NICE_FINISHED;
 }
 
 int NiceConnection::sendData(const void* buf, int len) {
 
 	int val = -1;
-	if (iceState == READY) {
+	if (iceState == NICE_READY) {
 		val = nice_agent_send(agent_, 1, 1, len, reinterpret_cast<const gchar*>(buf));
 	}
+	if (val != len) {
+		printf("Data sent %d of %d\n", val, len);
+	}
 	return val;
-}
-
-WebRtcConnection* NiceConnection::getWebRtcConnection() {
-
-	return conn_;
 }
 
 void NiceConnection::init() {
 
 	streamsGathered = 0;
-	this->updateIceState(INITIAL);
+	this->updateIceState(NICE_INITIAL);
 
 	g_type_init();
 	g_thread_init(NULL);
 
 	loop_ = g_main_loop_new(NULL, FALSE);
-	//	nice_debug_enable( TRUE );
+//	nice_debug_enable( TRUE );
 	// Create a nice agent
 	agent_ = nice_agent_new(g_main_loop_get_context(loop_),
 		 NICE_COMPATIBILITY_GOOGLE);
@@ -262,6 +260,8 @@ void NiceConnection::init() {
 bool NiceConnection::setRemoteCandidates(
 		std::vector<CandidateInfo> &candidates) {
 
+	printf("Setting remote candidates\n");
+
 	GSList* candList = NULL;
 
 	for (unsigned int it = 0; it < candidates.size(); it++) {
@@ -303,25 +303,28 @@ bool NiceConnection::setRemoteCandidates(
 		thecandidate->priority = cinfo.priority;
 		thecandidate->transport = NICE_CANDIDATE_TRANSPORT_UDP;
 		candList = g_slist_append(candList, thecandidate);
-
+		printf("New Candidate SET %s %d\n", cinfo.hostAddress.c_str(), cinfo.hostPort);
 	}
 
 	nice_agent_set_remote_candidates(agent_, (guint) 1, 1, candList);
 
 	printf("Candidates SET\n");
-	this->updateIceState(CANDIDATES_RECEIVED);
+	this->updateIceState(NICE_CANDIDATES_RECEIVED);
 	return true;
 }
 
-void NiceConnection::setWebRtcConnection(WebRtcConnection* connection) {
+void NiceConnection::setNiceListener(NiceConnectionListener *listener) {
+	this->listener_ = listener;
+}
 
-	this->conn_ = connection;
+NiceConnectionListener* NiceConnection::getNiceListener() {
+	return this->listener_;
 }
 
 void NiceConnection::updateIceState(IceState state) {
 	this->iceState = state;
-	if (this->conn_ != NULL)
-		this->conn_->updateState(state, this);
+	if (this->listener_ != NULL)
+		this->listener_->updateIceState(state, this);
 }
 
 } /* namespace erizo */

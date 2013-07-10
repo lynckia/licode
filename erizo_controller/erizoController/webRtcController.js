@@ -29,7 +29,7 @@ exports.WebRtcController = function () {
 
                 var state = wrtc.getCurrentState();
 
-                if (state > 2) {
+                if (state >= 2) {
 
                     publishers[to].sendFIR();
                     clearInterval(intervarId);
@@ -52,12 +52,12 @@ exports.WebRtcController = function () {
             intervarId = setInterval(function () {
 
                 var state = wrtc.getCurrentState(), localSdp, answer;
-                console.log("Current WebRtcConnection state", state);
+                console.log("Current WebRtcConnection state ", state);
 
-                if (state > 0) {
-
-                    wrtc.setRemoteSdp(remoteSdp);
+                if (state >= 1) {
                     console.log('SDP remote: ', remoteSdp);
+                    wrtc.setRemoteSdp(remoteSdp);
+                    console.log('Get local SDP');
                     localSdp = wrtc.getLocalSdp();
 
                     answer = getRoap(localSdp, roap);
@@ -170,8 +170,11 @@ exports.WebRtcController = function () {
         if (subscribers[from] !== undefined && publishers[from] !== undefined) {
             console.log('Removing muxer', from);
             publishers[from].close();
+            console.log('Removing subscribers', from);
             delete subscribers[from];
+            console.log('Removing publisher', from);
             delete publishers[from];
+            console.log('Removed all');
         }
     };
 
