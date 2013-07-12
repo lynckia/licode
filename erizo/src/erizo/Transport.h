@@ -15,19 +15,20 @@ namespace erizo {
 	class TransportListener {
 		public:
 			virtual void onTransportData(char* buf, int len, bool rtcp, unsigned int recvSSRC, Transport *transport) = 0;
-			virtual void queueData(const char* data, int len) = 0;
+			virtual void queueData(int comp, const char* data, int len, Transport *transport) = 0;
 			virtual void updateState(TransportState state, Transport *transport) = 0;
 	};
 	class Transport : public NiceConnectionListener {
 		public:
 			NiceConnection *nice_;
 			MediaType mediaType;
-			Transport(MediaType med, const std::string &transport_name, bool rtcp_mux, TransportListener *transportListener) {
-				this->mediaType = mediaType;
+			Transport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener) {
+				this->mediaType = med;
 				transpListener_ = transportListener;
+				rtcp_mux_ = rtcp_mux;
 			}
 			virtual void updateIceState(IceState state, NiceConnection *conn) = 0;
-			virtual void onNiceData(char* data, int len, NiceConnection* nice) = 0;
+			virtual void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) = 0;
 			virtual void write(char* data, int len, int sinkSSRC) = 0;
 			virtual void processLocalSdp(SdpInfo *localSdp_) = 0;
 			virtual void close()=0;
@@ -53,12 +54,13 @@ namespace erizo {
 			NiceConnection* getNiceConnection() {
 				return nice_;
 			}
-			void writeOnNice(void* buf, int len) {
-				getNiceConnection()->sendData(buf, len);
+			void writeOnNice(int comp, void* buf, int len) {
+				getNiceConnection()->sendData(comp, buf, len);
 			}
 			bool setRemoteCandidates(std::vector<CandidateInfo> &candidates) {
 				return getNiceConnection()->setRemoteCandidates(candidates);
 			}
+			bool rtcp_mux_;
 		private:
 			TransportListener *transpListener_;
 

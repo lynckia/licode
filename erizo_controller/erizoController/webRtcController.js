@@ -20,7 +20,7 @@ exports.WebRtcController = function () {
         getRoap;
 
     /*
-     * Given a WebRtcConnection waits for the state READY for ask it to send a FIR packet to its publisher. 
+     * Given a WebRtcConnection waits for the state READY for ask it to send a FIR packet to its publisher.
      */
     waitForFIR = function (wrtc, to) {
 
@@ -40,23 +40,25 @@ exports.WebRtcController = function () {
     };
 
     /*
-     * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP. 
+     * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
      */
     initWebRtcConnection = function (wrtc, sdp, callback) {
 
         wrtc.init();
 
         var roap = sdp,
-            remoteSdp = getSdp(roap),
+            remoteSdp = getSdp(roap);
 
-            intervarId = setInterval(function () {
+        console.log('SDP remote: ', remoteSdp);
+
+        wrtc.setRemoteSdp(remoteSdp);
+
+        var intervarId = setInterval(function () {
 
                 var state = wrtc.getCurrentState(), localSdp, answer;
                 console.log("Current WebRtcConnection state ", state);
 
                 if (state >= 1) {
-                    console.log('SDP remote: ', remoteSdp);
-                    wrtc.setRemoteSdp(remoteSdp);
                     console.log('Get local SDP');
                     localSdp = wrtc.getLocalSdp();
 
@@ -139,7 +141,7 @@ exports.WebRtcController = function () {
     };
 
     /*
-     * Adds a subscriber to the room. This creates a new WebRtcConnection. 
+     * Adds a subscriber to the room. This creates a new WebRtcConnection.
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
      */

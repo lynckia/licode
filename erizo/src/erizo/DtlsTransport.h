@@ -12,24 +12,26 @@ namespace erizo {
 	class SrtpChannel;
 	class DtlsTransport : dtls::DtlsReceiver, public Transport {
 		public:
-			DtlsTransport(MediaType med, const std::string &transport_name, bool rtcp_mux, TransportListener *transportListener);
+			DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener);
 			~DtlsTransport();
 			void connectionStateChanged(IceState newState);
 			std::string getMyFingerprint();
 			static bool isDtlsPacket(const char* buf, int len);
-			void onNiceData(char* data, int len, NiceConnection* nice);
+			void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice);
 			void write(char* data, int len, int sinkSSRC);
-			void writeDtls(const unsigned char* data, unsigned int len);
-      		void onHandshakeCompleted(std::string clientKey, std::string serverKey, std::string srtp_profile);
+			void writeDtls(dtls::DtlsSocketContext *ctx, const unsigned char* data, unsigned int len);
+      		void onHandshakeCompleted(dtls::DtlsSocketContext *ctx, std::string clientKey, std::string serverKey, std::string srtp_profile);
       		void updateIceState(IceState state, NiceConnection *conn);
       		void processLocalSdp(SdpInfo *localSdp_);
       		void close();
 
 		private:
 			char* protectBuf_, *unprotectBuf_;
-			dtls::DtlsSocketContext *dtlsClient;
+			dtls::DtlsSocketContext *dtlsRtp, *dtlsRtcp;
 			boost::mutex writeMutex_, readMutex_;
-			SrtpChannel *srtp_;
+			SrtpChannel *srtp_, *srtcp_;
+			bool readyRtp, readyRtcp;
+			bool bundle_;
 			friend class Transport;
 	};
 }

@@ -34,8 +34,6 @@ namespace erizo {
 
     videoTransport_ = NULL;
     audioTransport_ = NULL;
-    audioTransport_ = new DtlsTransport(AUDIO_TYPE, "", true, this);
-    videoTransport_ = new DtlsTransport(VIDEO_TYPE, "", true, this);
     printf("WebRtcConnection constructor end\n");
 
   }
@@ -137,7 +135,9 @@ namespace erizo {
         cryptLocal_audio = cryptemp;
       }
     }
-    videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
+
+    videoTransport_ = new DtlsTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this);
+    audioTransport_ = new DtlsTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this);
 
     this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
     this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
@@ -162,6 +162,7 @@ namespace erizo {
   int WebRtcConnection::deliverAudioData(char* buf, int len) {
     boost::mutex::scoped_lock lock(receiveAudioMutex_);
     if (bundle_){
+      printf("Sending audio to audio channel Bad\n");
       videoTransport_->write(buf, len, this->getVideoSinkSSRC());
     } else {
       audioTransport_->write(buf, len, this->getAudioSinkSSRC());
@@ -171,6 +172,11 @@ namespace erizo {
 
   int WebRtcConnection::deliverVideoData(char* buf, int len) {
     boost::mutex::scoped_lock lock(receiveAudioMutex_);
+    //printf("Sending video\n");
+    rtpheader *head = (rtpheader*) buf;
+        if (head->payloadtype == 0) {
+          printf("Sending audio on video!!!!!!! %d\n", head->payloadtype);  
+        }
     videoTransport_->write(buf, len, this->getVideoSinkSSRC());
     return len;
   }
@@ -188,30 +194,33 @@ namespace erizo {
       return;
     int length = len;
 
-    if (bundle_) {
-      if (rtcp) {
-        if (fbSink_ != NULL) {
-          fbSink_->deliverFeedback(buf,length);
-        }
+    if (rtcp) {
+      if (fbSink_ != NULL) {
+        fbSink_->deliverFeedback(buf,length);
+      }
+    } else if (bundle_) {
+      if (recvSSRC==this->getVideoSourceSSRC() || recvSSRC==this->getVideoSinkSSRC()) {
+        videoSink_->deliverVideoData(buf, length);
+      } else if (recvSSRC==this->getAudioSourceSSRC() || recvSSRC==this->getAudioSinkSSRC()) {
+        videoSink_->deliverAudioData(buf, length);
       } else {
-        if (recvSSRC==this->getVideoSourceSSRC() || recvSSRC==this->getVideoSinkSSRC()) {
-          videoSink_->deliverVideoData(buf, length);
-        } else if (recvSSRC==this->getAudioSourceSSRC() || recvSSRC==this->getAudioSinkSSRC()) {
-          videoSink_->deliverAudioData(buf, length);
-        } else {
-          printf("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring\n", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
-        }
+        printf("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring\n", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
       }
     } else if (transport->mediaType == AUDIO_TYPE) {
       if (audioSink_ != NULL) {
         rtpheader *head = (rtpheader*) buf;
-        head->ssrc = htonl(this->getVideoSinkSSRC());
+        head->ssrc = htonl(this->getAudioSinkSSRC());
+
+        
         audioSink_->deliverAudioData(buf, length);
       }
     } else if (transport->mediaType == VIDEO_TYPE) {
       if (videoSink_ != NULL) {
         rtpheader *head = (rtpheader*) buf;
-        head->ssrc = htonl(this->getAudioSinkSSRC());
+        if (head->payloadtype == 0) {
+          printf("Received audio on video!!!!!!! %d %p\n", head->payloadtype, transport);  
+        }
+        head->ssrc = htonl(this->getVideoSinkSSRC());
         videoSink_->deliverVideoData(buf, length);
       }
     }
@@ -271,11 +280,16 @@ namespace erizo {
     if (state == TRANSPORT_STARTED &&
       audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_STARTED &&
       videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_STARTED) {
+      videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
+      if (!bundle_) {
+        audioTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
+      }
       temp = STARTED;
     }
 
     if (transport == videoTransport_ && bundle_) {
       if (state == TRANSPORT_READY) {
+            printf("Ready to send and receive media!!\n");
             temp = READY;
         }
     }
@@ -295,13 +309,19 @@ namespace erizo {
       connStateListener_->connectionStateChanged(globalState_);
   }
 
-  void WebRtcConnection::queueData(const char* buf, int length) {
+  void WebRtcConnection::queueData(int comp, const char* buf, int length, Transport *transport) {
       receiveVideoMutex_.lock();
       if (sendQueue_.size() < 1000) {
         dataPacket p_;
         memset(p_.data, 0, length);
         memcpy(p_.data, buf, length);
-
+        p_.comp = comp;
+        if (transport->mediaType == VIDEO_TYPE) {
+          p_.type = VIDEO_PACKET;
+        } else {
+          p_.type = AUDIO_PACKET;
+        }
+        
         p_.length = length;
         sendQueue_.push(p_);
       }
@@ -317,8 +337,13 @@ namespace erizo {
     while (sending == true) {
       receiveVideoMutex_.lock();
       if (sendQueue_.size() > 0) {
-        videoTransport_->writeOnNice(sendQueue_.front().data,
+        if (sendQueue_.front().type == AUDIO_PACKET && audioTransport_!=NULL) {
+          audioTransport_->writeOnNice(sendQueue_.front().comp, sendQueue_.front().data,
             sendQueue_.front().length);
+        } else {
+          videoTransport_->writeOnNice(sendQueue_.front().comp, sendQueue_.front().data,
+            sendQueue_.front().length);
+        }
         sendQueue_.pop();
         receiveVideoMutex_.unlock();
       } else {

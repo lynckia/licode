@@ -23,6 +23,9 @@ using namespace dtls;
 using namespace std;
 const char* DtlsFactory::DefaultSrtpProfile = "SRTP_AES128_CM_SHA1_80";
 
+X509 *DtlsFactory::mCert = NULL;
+EVP_PKEY *DtlsFactory::privkey = NULL;
+
 void
 SSLInfoCallback(const SSL* s, int where, int ret) {
   const char* str = "undefined";
@@ -202,18 +205,22 @@ int createCert (const string& pAor, int expireDays, int keyLen, X509*& outCert, 
    return ret;
 }
 
-DtlsFactory::DtlsFactory()
-{
+void DtlsFactory::Init() {
+  if (DtlsFactory::mCert == NULL) {
+    printf("SSL Initializing!!!!!!!!!!\n");
     SSL_library_init();
     SSL_load_error_strings();
     ERR_load_crypto_strings();
     //  srtp_init();
 
-    X509 *cert;
-    EVP_PKEY *privkey;
+    createCert("sip:client@example.com",365,1024,DtlsFactory::mCert,DtlsFactory::privkey);
+  }
 
-    createCert("sip:client@example.com",365,1024,cert,privkey);
-    mCert = cert;
+}
+
+DtlsFactory::DtlsFactory()
+{
+    DtlsFactory::Init();
 
     mTimerContext = std::auto_ptr<TestTimerContext>(new TestTimerContext());
 
@@ -224,7 +231,7 @@ DtlsFactory::DtlsFactory()
     mContext=SSL_CTX_new(DTLSv1_client_method());
     assert(mContext);
 
-    r=SSL_CTX_use_certificate(mContext, cert);
+    r=SSL_CTX_use_certificate(mContext, mCert);
     assert(r==1);
 
     r=SSL_CTX_use_PrivateKey(mContext, privkey);
@@ -266,7 +273,7 @@ DtlsFactory::createServer(std::auto_ptr<DtlsSocketContext> context)
 void
 DtlsFactory::getMyCertFingerprint(char *fingerprint)
 {
-   DtlsSocket::computeFingerprint(mCert,fingerprint);
+   DtlsSocket::computeFingerprint(DtlsFactory::mCert,fingerprint);
 }
 
 void

@@ -95,7 +95,7 @@ public:
 
 	void updateState(TransportState state, Transport * transport);
 
-	void queueData(const char* data, int len);
+	void queueData(int comp, const char* data, int len, Transport *transport);
 
 private:
 	SdpInfo remoteSdp_;

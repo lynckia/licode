@@ -44,7 +44,7 @@ namespace erizo {
 
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
     if(head->packettype==201 || head->packettype==206){
-      printf("recibo feedback por donde no es\n");
+      printf("recibo feedback por donde no es %d\n", head->packettype);
       if (feedbackSink_){
         head->ssrc = htonl(publisher->getVideoSourceSSRC());
         feedbackSink_->deliverFeedback(buf,len);

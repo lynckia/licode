@@ -16,6 +16,10 @@ Erizo.Connection = function (spec) {
     if (typeof module !== 'undefined' && module.exports) {
         L.Logger.error('Publish/subscribe video/audio streams not supported in erizofc yet');
         that = Erizo.FcStack(spec);
+    } else if (window.navigator.userAgent.match("Firefox") !== null) {
+        // Firefox
+        that.browser = "mozilla";
+        that = Erizo.FirefoxStack(spec);
     } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "26" ||
                window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "27") {
         // Google Chrome Stable.
@@ -36,9 +40,6 @@ Erizo.Connection = function (spec) {
     }  else if (window.navigator.appVersion.match(/Bowser\/([\w\W]*?)\./)[1] === "25") {
         // Bowser
         that.browser = "bowser";
-    } else if (window.navigator.appVersion.match(/Mozilla\/([\w\W]*?)\./)[1] === "25") {
-        // Firefox
-        that.browser = "mozilla";
     } else {
         // None.
         that.browser = "none";
@@ -51,16 +52,15 @@ Erizo.Connection = function (spec) {
 Erizo.GetUserMedia = function (config, callback, error) {
     "use strict";
 
+    navigator.getMedia = ( navigator.getUserMedia ||
+                       navigator.webkitGetUserMedia ||
+                       navigator.mozGetUserMedia ||
+                       navigator.msGetUserMedia);
+
     if (typeof module !== 'undefined' && module.exports) {
         L.Logger.error('Video/audio streams not supported in erizofc yet');
     } else {
-        try {
-            navigator.webkitGetUserMedia("audio, video", callback, error);
-            console.log('GetUserMedia BOWSER');
-        } catch (e) {
-            navigator.webkitGetUserMedia(config, callback, error);
-            console.log('GetUserMedia CHROME', config);
-        }
+        navigator.getMedia(config, callback, error);
     }
 
 };

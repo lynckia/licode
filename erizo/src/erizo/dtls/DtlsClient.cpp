@@ -63,7 +63,7 @@ void DtlsSocketContext::setDtlsReceiver(DtlsReceiver *recv) {
 void DtlsSocketContext::write(const unsigned char* data, unsigned int len)
 {
   if (receiver != NULL) {
-    receiver->writeDtls(data, len);
+    receiver->writeDtls(this, data, len);
   }
 }
 
@@ -119,7 +119,7 @@ void DtlsSocketContext::handshakeCompleted()
     }
 
     if (receiver != NULL) {
-      receiver->onHandshakeCompleted(clientKey, serverKey, srtp_profile->name);
+      receiver->onHandshakeCompleted(this, clientKey, serverKey, srtp_profile->name);
     }
   }
   else {

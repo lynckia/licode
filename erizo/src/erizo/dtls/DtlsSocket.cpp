@@ -146,6 +146,7 @@ DtlsSocket::forceRetransmit()
 void
 DtlsSocket::doHandshakeIteration()
 {
+   boost::mutex::scoped_lock lock(handshakeMutex_);
    int r;
    char errbuf[1024];
    int sslerr;
@@ -153,9 +154,7 @@ DtlsSocket::doHandshakeIteration()
    if(mHandshakeCompleted)
       return;
 
-   printf("Traza Inicio");
    r=SSL_do_handshake(mSsl);
-   printf("Traza fin");
    errbuf[0]=0;
    ERR_error_string_n(ERR_peek_error(),errbuf,sizeof(errbuf));
 

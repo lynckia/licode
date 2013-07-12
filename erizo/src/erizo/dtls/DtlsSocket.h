@@ -22,6 +22,8 @@ extern "C"
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
 
+#include <boost/thread/mutex.hpp>
+
 namespace dtls
 {
 class DtlsFactory;
@@ -114,14 +116,15 @@ class DtlsSocket
       BIO *mOutBio;
       
       SocketType mSocketType;
-      bool mHandshakeCompleted;      
+      bool mHandshakeCompleted;
+      boost::mutex handshakeMutex_; 
 };
 
 class DtlsReceiver
 {
 public:
-      virtual void writeDtls(const unsigned char* data, unsigned int len)=0;
-      virtual void onHandshakeCompleted(std::string clientKey, std::string serverKey, std::string srtp_profile) = 0;
+      virtual void writeDtls(DtlsSocketContext *ctx, const unsigned char* data, unsigned int len)=0;
+      virtual void onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey, std::string serverKey, std::string srtp_profile) = 0;
 };
 
 class DtlsSocketContext

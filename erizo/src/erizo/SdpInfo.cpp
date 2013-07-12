@@ -96,16 +96,18 @@ namespace erizo {
           }
           sdp << "\n"
             << "c=IN IP4 " << cand.hostAddress
-            << endl << "a=rtcp:" << candidateVector_[0].hostPort
-            << " IN IP4 " << cand.hostAddress
             << endl;
+          if (isRtcpMux) {
+            sdp << "a=rtcp:" << candidateVector_[0].hostPort << " IN IP4 " << cand.hostAddress
+                << endl;
+          }
           printedAudio = true;
         }
 
         sdp << "a=candidate:" << cand.foundation << " " << cand.componentId
           << " " << cand.netProtocol << " " << cand.priority << " "
           << cand.hostAddress << " " << cand.hostPort << " typ "
-          << hostType_str << " generation 0" << endl;
+          << hostType_str /*<< " generation 0" */<< endl;
 
         iceUsername_ = cand.username;
         icePassword_ = cand.password;
@@ -115,7 +117,7 @@ namespace erizo {
     if (printedAudio) {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
-      sdp << "a=ice-options:google-ice" <<endl;
+      //sdp << "a=ice-options:google-ice" <<endl;
       if (isFingerprint) {
         sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
       }
@@ -175,17 +177,18 @@ namespace erizo {
               sdp << payload_info.payloadType <<" ";
           }
 
-          sdp << "\n" << "c=IN IP4 " << cand.hostAddress
-            << endl << "a=rtcp:" << candidateVector_[0].hostPort
-            << " IN IP4 " << cand.hostAddress
-            << endl;
+          sdp << "\n" << "c=IN IP4 " << cand.hostAddress << endl;
+          if (isRtcpMux) {
+            sdp << "a=rtcp:" << candidateVector_[0].hostPort << " IN IP4 " << cand.hostAddress
+                << endl;
+          }
           printedVideo = true;
         }
 
         sdp << "a=candidate:" << cand.foundation << " " << cand.componentId
           << " " << cand.netProtocol << " " << cand.priority << " "
           << cand.hostAddress << " " << cand.hostPort << " typ "
-          << hostType_str << " generation 0" << endl;
+          << hostType_str /*<< " generation 0" */<<endl;
 
         iceUsername_ = cand.username;
         icePassword_ = cand.password;
@@ -195,7 +198,7 @@ namespace erizo {
     if (printedVideo) {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
-      sdp << "a=ice-options:google-ice" <<endl;
+      //sdp << "a=ice-options:google-ice" <<endl;
       if (isFingerprint) {
         sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
       }
@@ -395,7 +398,7 @@ namespace erizo {
 
     cand.netProtocol = pieces[2];
     // libnice does not support tcp candidates, we ignore them
-    if (cand.netProtocol.compare("udp")) {
+    if (cand.netProtocol.compare("UDP")) {
       return false;
     }
     //	a=candidate:0 1 udp 2130706432 138.4.4.143 52314 typ host  generation 0

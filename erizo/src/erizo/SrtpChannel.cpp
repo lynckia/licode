@@ -33,13 +33,14 @@ bool SrtpChannel::setRtpParams(char* sendingKey, char* receivingKey) {
 			receivingKey);
 	configureSrtpSession(&send_session_, sendingKey, SENDING);
 	configureSrtpSession(&receive_session_, receivingKey, RECEIVING);
+	
 
 	active_ = true;
 	return active_;
 }
 
 bool SrtpChannel::setRtcpParams(char* sendingKey, char* receivingKey) {
-
+	
 	return 0;
 }
 

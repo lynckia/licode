@@ -16,6 +16,7 @@ enum packetType{
 };
 
 struct dataPacket{
+  int comp;
 	char data[1200];
 	int length;
   packetType type;

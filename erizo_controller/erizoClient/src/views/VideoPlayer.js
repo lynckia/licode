@@ -46,7 +46,8 @@ Erizo.VideoPlayer = function (spec) {
     });*/
 
     L.Logger.debug('Creating URL from stream ' + that.stream);
-    that.stream_url = webkitURL.createObjectURL(that.stream);
+    var myURL = window.URL || webkitURL;
+    that.stream_url = myURL.createObjectURL(that.stream);
 
     // Container
     that.div = document.createElement('div');

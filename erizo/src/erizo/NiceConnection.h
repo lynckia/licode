@@ -29,7 +29,7 @@ enum IceState {
 
 class NiceConnectionListener {
 public: 
-	virtual void onNiceData(char* data, int len, NiceConnection* conn)=0;
+	virtual void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* conn)=0;
 	virtual void updateIceState(IceState state, NiceConnection *conn)=0;
 };
 
@@ -84,7 +84,7 @@ public:
 	 * @param len Length of the Buffer.
 	 * @return Bytes sent.
 	 */
-	int sendData(const void* buf, int len);
+	int sendData(unsigned int compId, const void* buf, int len);
 
 	/**
 	 * The MediaType of the connection
@@ -104,6 +104,7 @@ public:
 	std::vector<CandidateInfo>* localCandidates;
 
 	void updateIceState(IceState state);
+	void updateComponentState(unsigned int compId, IceState state);
 
 
 private:
@@ -112,8 +113,8 @@ private:
 	NiceConnectionListener* listener_;
 	GMainLoop* loop_;
 	boost::thread m_Thread_;
-  int iceComponents_;
-
+  	int iceComponents_;
+  	std::map <uint, IceState> comp_state_list;
 };
 
 } /* namespace erizo */
