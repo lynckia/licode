@@ -54,9 +54,9 @@ Handle<Value> ExternalInput::init(const Arguments& args) {
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
   erizo::ExternalInput *me = (erizo::ExternalInput*) obj->me;
 
-  bool r = me->init();
+  int r = me->init();
 
-  return scope.Close(Boolean::New(r));
+  return scope.Close(Integer::New(r));
 }
 
 Handle<Value> ExternalInput::setAudioReceiver(const Arguments& args) {

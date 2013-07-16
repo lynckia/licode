@@ -22,34 +22,39 @@ namespace erizo {
     this->closeSource();
   }
 
-  bool ExternalInput::init(){
+  int ExternalInput::init(){
     context_ = avformat_alloc_context();
     av_register_all();
     avcodec_register_all();
     avformat_network_init();
     //open rtsp
     printf("trying to open input\n");
-    if(avformat_open_input(&context_, url_.c_str(),NULL,NULL) != 0){
-      printf("fail when opening input\n");
+    int res = avformat_open_input(&context_, url_.c_str(),NULL,NULL);
+    char errbuff[500];
+    printf ("RES %d\n", res);
+    if(res != 0){
+      av_strerror(res, (char*)(&errbuff), 500);
+      printf("fail when opening input %s\n", errbuff);
       return false;
     }
-    if(avformat_find_stream_info(context_,NULL) < 0){
-      printf("fail when finding stream info\n");
+    res = avformat_find_stream_info(context_,NULL);
+    if(res!=0){
+      av_strerror(res, (char*)(&errbuff), 500);
+      printf("fail when finding stream info %s\n", errbuff);
       return false;
     }
 
-    sendVideoBuffer_ = (char*) malloc(2000);
     VideoCodecInfo info;
 
-    int ret;
-    ret = av_find_best_stream(context_, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
-    if (ret < 0){
+    int streamNo = av_find_best_stream(context_, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+    if (streamNo < 0){
       printf("No video stream?\n");
       return false;
     }
-    video_stream_index_ = ret;
+    sendVideoBuffer_ = (char*) malloc(2000);
 
-    AVStream* st = context_->streams[ret];    
+    video_stream_index_ = streamNo;
+    AVStream* st = context_->streams[streamNo];    
     inCodec_.initDecoder(st->codec);
 
     bufflen_ = st->codec->width*st->codec->height*3/2;
@@ -113,7 +118,6 @@ namespace erizo {
   }
 
   void ExternalInput::receiveLoop(){
-
     av_read_play(context_);//play RTSP
     int gotDecodedFrame = 0;
     while(av_read_frame(context_,&avpacket_)>=0&& running_==true){//read 100 frames

@@ -22,7 +22,7 @@ namespace erizo{
     public:
       ExternalInput (const std::string& inputUrl);
       virtual ~ExternalInput();
-      bool init();
+      int init();
       void receiveRtpData(unsigned char* rtpdata, int len);
       int sendFirPacket();
       void closeSource();
