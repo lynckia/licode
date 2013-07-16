@@ -38,7 +38,7 @@ namespace erizo {
       return res;
     }
     res = avformat_find_stream_info(context_,NULL);
-    if(res!=0){
+    if(res<0){
       av_strerror(res, (char*)(&errbuff), 500);
       printf("fail when finding stream info %s\n", errbuff);
       return res;
