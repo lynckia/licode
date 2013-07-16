@@ -5,7 +5,7 @@ var ec2;
 
 var INTERVAL_TIME_EC_READY = 100;
 var INTERVAL_TIME_CHECK_KA = 1000;
-var MAX_KA_COUNT = 5;
+var MAX_KA_COUNT = 10;
 
 var erizoControllers = {};
 var rooms = {}; // roomId: erizoControllerId
