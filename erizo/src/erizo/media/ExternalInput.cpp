@@ -35,13 +35,13 @@ namespace erizo {
     if(res != 0){
       av_strerror(res, (char*)(&errbuff), 500);
       printf("fail when opening input %s\n", errbuff);
-      return false;
+      return res;
     }
     res = avformat_find_stream_info(context_,NULL);
     if(res!=0){
       av_strerror(res, (char*)(&errbuff), 500);
       printf("fail when finding stream info %s\n", errbuff);
-      return false;
+      return res;
     }
 
     VideoCodecInfo info;
@@ -49,7 +49,7 @@ namespace erizo {
     int streamNo = av_find_best_stream(context_, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
     if (streamNo < 0){
       printf("No video stream?\n");
-      return false;
+      return streamNo;
     }
     sendVideoBuffer_ = (char*) malloc(2000);
 
