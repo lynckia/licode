@@ -6,3 +6,4 @@ extras/basic_example/nuve.js
 node_modules/
 site
 .DS_Store
+scripts/libdeps/
