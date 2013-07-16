@@ -124,7 +124,8 @@ N.API.getRooms(function(rooms) {
           <pre class="prettyprint linenums">
 var roomId = '30121g51113e74fff3115502';
 
-N.API.getRoom(roomId, function(room) {
+N.API.getRoom(roomId, function(resp) {
+  var room= JSON.parse(resp);
   console.log('Room name: ', room.name):
 }, errorCallback);</pre>
 
