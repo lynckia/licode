@@ -123,10 +123,10 @@ exports.WebRtcController = function () {
 
             var answer = ei.init();
 
-            if (answer) {
+            if (answer >= 0) {
                 callback('success');
             } else {
-                callback('error');
+                callback(answer);
             }
 
         } else {
