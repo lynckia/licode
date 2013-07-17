@@ -33,10 +33,6 @@ namespace erizo {
    if (oformat_->video_codec != AV_CODEC_ID_NONE) {
      videoCodec_ = avcodec_find_encoder(oformat_->video_codec);
      printf("Found Codec %s\n", videoCodec_->name);
-     if (videoCodec_->id == AV_CODEC_ID_VP8){
-
-       printf("VP88888888888!!!! %d, context_id %d\n", videoCodec_->id, context_->video_codec_id);
-     }
      if (videoCodec_==NULL){
        printf("Could not find codec\n");
        return false;
@@ -47,12 +43,11 @@ namespace erizo {
      videoCodecCtx_->codec_id = oformat_->video_codec;
      videoCodecCtx_->width = 640;
      videoCodecCtx_->height = 480;
-     videoCodecCtx_->time_base = (AVRational){1,20};
+     videoCodecCtx_->time_base = (AVRational){1,24};
      videoCodecCtx_->pix_fmt = PIX_FMT_YUV420P;
      if (oformat_->flags & AVFMT_GLOBALHEADER){
        videoCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
      }
-     avcodec_open2(videoCodecCtx_, videoCodec_, NULL);
      context_->streams[0] = video_st;
      avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
      avformat_write_header(context_, NULL);
@@ -61,11 +56,12 @@ namespace erizo {
    in = new InputProcessor();
    MediaInfo m;
 //    m.processorType = RTP_ONLY;
-	 m.hasVideo = true;
-   m.videoCodec.width = 640;
-   m.videoCodec.height = 480;
-   m.hasAudio = false;
-   printf("********************* INIT IP\n");
+	m.hasVideo = false;
+  m.hasAudio = true;
+  if (m.hasAudio) {
+    m.audioCodec.sampleRate = 8000;
+		m.audioCodec.bitRate = 64000;
+	}
    unpackagedBuffer_ = (unsigned char*)malloc (15000);
    gotUnpackagedFrame_ = 0;
    unpackagedSize_ = 0;
@@ -75,11 +71,16 @@ namespace erizo {
 
 
   ExternalOutput::~ExternalOutput(){
-    this->closeSink();
     printf("Destructor\n");
+    this->closeSink();
   }
 
   void ExternalOutput::closeSink() {
+    printf("ExternalOutput::closeSink\n");
+    if (context_!=NULL){
+      av_write_trailer(context_);
+      avformat_free_context(context_);
+    }
     if (unpackagedBuffer_ !=NULL){
       free(unpackagedBuffer_);
     }
@@ -93,6 +94,7 @@ namespace erizo {
 
 
 	int ExternalOutput::deliverAudioData(char* buf, int len){
+    printf("Deliver audio to EXTERNAL\n");
     return 0;
   }
 	int ExternalOutput::deliverVideoData(char* buf, int len){
@@ -105,19 +107,13 @@ namespace erizo {
         unpackagedBuffer_ += ret;
         if (gotUnpackagedFrame_) {
           unpackagedBuffer_ -= unpackagedSize_;
-          printf("Tengo un frame desempaquetado!! Size = %d\n",
-              unpackagedSize_);
-          printf("1\n");
           AVPacket avpkt;
-          printf("2\n");
           av_init_packet(&avpkt);
           avpkt.data = unpackagedBuffer_;
           avpkt.size = unpackagedSize_;
           avpkt.stream_index = 0;
-          printf("3\n");
           av_write_frame(context_, &avpkt);
           av_free_packet(&avpkt);
-          printf("4\n");
           gotUnpackagedFrame_ = 0;
           unpackagedSize_ = 0;
       }

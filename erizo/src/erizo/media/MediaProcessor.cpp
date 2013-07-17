@@ -12,8 +12,8 @@ namespace erizo {
     audioDecoder = 0;
     videoDecoder = 0;
 
-    audioUnpackager = 0;
-    videoUnpackager = 0;
+    audioUnpackager = 1;
+    videoUnpackager = 1;
     gotUnpackagedFrame_ = false;
     upackagedSize_ = 0;
     decodedBuffer_ = NULL;
@@ -271,7 +271,6 @@ namespace erizo {
         (unsigned char*) &inBuff[inBuffOffset], l);
     memcpy(outBuff, parsed->data, parsed->dataLength);
     if (head->getMarker()) {
-      printf("Marker\n");
       *gotFrame = 1;
     }
     return parsed->dataLength;
