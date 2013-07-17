@@ -18,10 +18,7 @@ set(CMAKE_CXX_FLAGS "-g -Wall")
 set(SSL_DIR /usr/local/ssl)
 set(SSL_INCLUDE_DIR ${SSL_DIR}/include)
 
-set(NICE_DIR /usr/local)
-set(NICE_INCLUDE_DIR /usr/local/include/nice)
-
-include_directories(${ERIZO_SOURCE_DIR} ${SSL_INCLUDE_DIR} ${NICE_INCLUDE_DIR})
+include_directories(${ERIZO_SOURCE_DIR} ${SSL_INCLUDE_DIR})
 
 file(GLOB_RECURSE ERIZO_SOURCES ${ERIZO_SOURCE_DIR}/*.h ${ERIZO_SOURCE_DIR}/*.c ${ERIZO_SOURCE_DIR}/*.cpp)
 
@@ -42,10 +39,8 @@ find_library(SRTP srtp)
 test_lib(${SRTP})
 
 # NICE
-# find_library(NICE nice)
-# test_lib(${NICE})
-
-set(NICE ${NICE_DIR}/lib/libnice.so.10.2.0)
+find_library(NICE nice)
+test_lib(${NICE})
 
 # GTHREAD
 find_library(GTHREAD gthread-2.0)

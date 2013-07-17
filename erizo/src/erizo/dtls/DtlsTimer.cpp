@@ -58,7 +58,6 @@ TestTimerContext::addTimer(DtlsTimer *timer, unsigned int lifetime)
 
    mExpiryTime=timeMs+lifetime;
 
-   cerr << "Setting a timer for " << lifetime << " ms from now" << endl;
 }
 
 long long

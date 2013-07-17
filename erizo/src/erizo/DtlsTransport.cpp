@@ -10,6 +10,8 @@
 
 #include "dtls/DtlsFactory.h"
 
+#include "rtputils.h"
+
 using namespace erizo;
 using namespace std;
 using namespace dtls;
@@ -78,10 +80,8 @@ void DtlsTransport::close() {
 void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {
     boost::mutex::scoped_lock lock(readMutex_);
     int length = len;
-    bool isFeedback = false;
     SrtpChannel *srtp = srtp_;
 
-    int recvSSRC = 0;
     if (DtlsTransport::isDtlsPacket(data, len)) {
       printf("Received DTLS message from %u\n", component_id);
       if (component_id == 1) {
@@ -89,95 +89,77 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
       } else {
         dtlsRtcp->read(reinterpret_cast<unsigned char*>(data), len);
       }
-        
+
       return;
-    }
-    memset(unprotectBuf_, 0, len);
-    memcpy(unprotectBuf_, data, len);
+    } else if (this->getTransportState() == TRANSPORT_READY) {
+      memset(unprotectBuf_, 0, len);
+      memcpy(unprotectBuf_, data, len);
 
-    if (dtlsRtcp != NULL && component_id == 2) {
-      srtp = srtcp_;
-    }
+      if (dtlsRtcp != NULL && component_id == 2) {
+        srtp = srtcp_;
+      }
 
-    if (srtp != NULL){
-        rtcpheader *chead = reinterpret_cast<rtcpheader*> (unprotectBuf_);
-        if (chead->packettype == 200) { //Sender Report
-          if (srtp->unprotectRtcp(unprotectBuf_, &length)<0)
-            return;
-          recvSSRC = ntohl(chead->ssrc);
-        } else if (chead->packettype == 201 || chead->packettype == 206){
-          if(srtp->unprotectRtcp(unprotectBuf_, &length)<0)
-            return;
-          recvSSRC = ntohl(chead->ssrcsource);
-          //printf("Feedback %d\n", chead->packettype);
-          isFeedback = true;
-          // OnFeedback
-        } else {
-          if (srtp == srtcp_) {
-            printf("Receiving RTP from RTCPChannel!!!!!!!!\n");
+      if (srtp != NULL){
+          rtcpheader *chead = reinterpret_cast<rtcpheader*> (unprotectBuf_);
+          if (chead->packettype == RTCP_Sender_PT || 
+              chead->packettype == RTCP_Receiver_PT || 
+              chead->packettype == RTCP_Feedback_PT){
+            if(srtp->unprotectRtcp(unprotectBuf_, &length)<0)
+              return;
+          } else {
+            if(srtp->unprotectRtp(unprotectBuf_, &length)<0)
+              return;
           }
-          if(srtp->unprotectRtp(unprotectBuf_, &length)<0)
-            return;
-        }
-    } else {
-      return;
-    }
-
-    if (length <= 0)
+      } else {
         return;
+      }
 
-    if (recvSSRC==0){
-        rtpheader* inHead = reinterpret_cast<rtpheader*> (unprotectBuf_);
-        recvSSRC= ntohl(inHead->ssrc);
+      if (length <= 0)
+          return;
+
+      getTransportListener()->onTransportData(unprotectBuf_, length, this);
     }
-
-    getTransportListener()->onTransportData(unprotectBuf_, length, isFeedback, recvSSRC, this);
 }
 
-void DtlsTransport::write(char* data, int len, int sinkSSRC) {
+void DtlsTransport::write(char* data, int len) {
    boost::mutex::scoped_lock lock(writeMutex_);
     int length = len;
     SrtpChannel *srtp = srtp_;
 
     int comp = 1;
+    if (this->getTransportState() == TRANSPORT_READY) {
+      memset(protectBuf_, 0, len);
+      memcpy(protectBuf_, data, len);
 
-    memset(protectBuf_, 0, len);
-    memcpy(protectBuf_, data, len);
+      rtcpheader *chead = reinterpret_cast<rtcpheader*> (protectBuf_);
+      if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_Feedback_PT) {
+        if (!rtcp_mux_) {
+          comp = 2;
+        }
+        if (dtlsRtcp != NULL) {
+          srtp = srtcp_;
+        }
+        if (srtp && nice_->iceState == NICE_READY) {
+          if(srtp->protectRtcp(protectBuf_, &length)<0) {
+            return;
+          }
+        }
+      }
+      else{
+        comp = 1;
 
-    rtcpheader *chead = reinterpret_cast<rtcpheader*> (protectBuf_);
-    if (chead->packettype == 200 || chead->packettype == 201 || chead->packettype == 206) {
-      chead->ssrc=htonl(sinkSSRC);
-      if (!rtcp_mux_) {
-        comp = 2;
-      }
-      if (dtlsRtcp != NULL) {
-        srtp = srtcp_;
-      }
-      if (srtp && nice_->iceState == NICE_READY) {
-        if(srtp->protectRtcp(protectBuf_, &length)<0) {
-          return;
+        if (srtp && nice_->iceState == NICE_READY) {
+          if(srtp->protectRtp(protectBuf_, &length)<0) {
+            return;
+          }
         }
       }
-    }
-    else{
-      //rtpheader* inHead = reinterpret_cast<rtpheader*> (protectBuf_);
-      //inHead->ssrc = htonl(sinkSSRC);
-      comp = 1;
-      rtpheader *head = (rtpheader*) data;
-        if (head->payloadtype == 0 && this->mediaType == VIDEO_TYPE) {
-          printf("Sending audio on video 2!!!!!! %d\n", head->payloadtype);  
-        }
-      if (srtp && nice_->iceState == NICE_READY) {
-        if(srtp->protectRtp(protectBuf_, &length)<0) {
-          return;
-        }
+      if (length <= 10) {
+        return;
       }
-    }
-    if (length <= 10) {
-      return;
-    }
-    if (nice_->iceState == NICE_READY) {
-        getTransportListener()->queueData(comp, protectBuf_, length, this);
+      if (nice_->iceState == NICE_READY) {
+          getTransportListener()->queueData(comp, protectBuf_, length, this);
+      }
     }
 }
 
@@ -199,7 +181,7 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
       if (dtlsRtcp == NULL) {
         readyRtcp = true;
       }
-    } 
+    }
     if (ctx == dtlsRtcp) {
       printf("Setting RTCP srtp params\n");
       srtcp_ = new SrtpChannel();
@@ -208,8 +190,8 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
     }
     if (readyRtp && readyRtcp) {
       updateTransportState(TRANSPORT_READY);
-    }  
-    
+    }
+
 }
 
 std::string DtlsTransport::getMyFingerprint() {
@@ -217,7 +199,7 @@ std::string DtlsTransport::getMyFingerprint() {
 }
 
 void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
-    cout << "New NICE state " << state << endl;
+    cout << "New NICE state " << state << " " << mediaType << " " << bundle_ << endl;
     if (state == NICE_CANDIDATES_GATHERED) {
       updateTransportState(TRANSPORT_STARTED);
     }
@@ -254,7 +236,6 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
 
 bool DtlsTransport::isDtlsPacket(const char* buf, int len) {
     int data = DtlsFactory::demuxPacket(reinterpret_cast<const unsigned char*>(buf),len);
-    //cout << "Checking DTLS: " << data << endl;
     switch(data)
     {
     case DtlsFactory::dtls:

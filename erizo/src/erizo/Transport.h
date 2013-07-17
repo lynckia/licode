@@ -14,7 +14,7 @@ namespace erizo {
 	class Transport;
 	class TransportListener {
 		public:
-			virtual void onTransportData(char* buf, int len, bool rtcp, unsigned int recvSSRC, Transport *transport) = 0;
+			virtual void onTransportData(char* buf, int len, Transport *transport) = 0;
 			virtual void queueData(int comp, const char* data, int len, Transport *transport) = 0;
 			virtual void updateState(TransportState state, Transport *transport) = 0;
 	};
@@ -29,7 +29,7 @@ namespace erizo {
 			}
 			virtual void updateIceState(IceState state, NiceConnection *conn) = 0;
 			virtual void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) = 0;
-			virtual void write(char* data, int len, int sinkSSRC) = 0;
+			virtual void write(char* data, int len) = 0;
 			virtual void processLocalSdp(SdpInfo *localSdp_) = 0;
 			virtual void close()=0;
 			void setTransportListener(TransportListener * listener) {

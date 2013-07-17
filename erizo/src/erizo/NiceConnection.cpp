@@ -163,14 +163,14 @@ void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
 }
 
 NiceConnection::NiceConnection(MediaType med,
-		const std::string &transport_name, int iceComponents):mediaType(med),
-    iceComponents_(iceComponents){
+		const std::string &transport_name, unsigned int iceComponents):mediaType(med),
+    iceComponents_(iceComponents) {
 	agent_ = NULL;
 	loop_ = NULL;
 	listener_ = NULL;
 	localCandidates = new std::vector<CandidateInfo>();
 	transportName = new std::string(transport_name);
-	for (int i = 1; i<=iceComponents; i++) {
+	for (unsigned int i = 1; i<=iceComponents; i++) {
 		comp_state_list[i] = NICE_INITIAL;
 	}
 	
@@ -226,22 +226,15 @@ void NiceConnection::init() {
 	g_type_init();
 	g_thread_init(NULL);
 
-	loop_ = g_main_loop_new(NULL, FALSE);
+	loop_ =  g_main_loop_new(g_main_context_new(), FALSE);
 //	nice_debug_enable( TRUE );
 	// Create a nice agent
 	agent_ = nice_agent_new(g_main_loop_get_context(loop_),
-		 NICE_COMPATIBILITY_RFC5245);
-	
+		NICE_COMPATIBILITY_RFC5245);
 	GValue controllingMode = { 0 };
 	g_value_init(&controllingMode, G_TYPE_BOOLEAN);
 	g_value_set_boolean(&controllingMode, false);
 	g_object_set_property(G_OBJECT( agent_ ), "controlling-mode", &controllingMode);
-
-	GValue fullMode = { 0 };
-	g_value_init(&fullMode, G_TYPE_BOOLEAN);
-	g_value_set_boolean(&fullMode, true);
-	g_object_set_property(G_OBJECT( agent_ ), "full-mode", &controllingMode);
-	
 
 //	NiceAddress* naddr = nice_address_new();
 //	nice_agent_add_local_address(agent_, naddr);
@@ -274,8 +267,10 @@ void NiceConnection::init() {
 	nice_agent_gather_candidates(agent_, 1);
 	nice_agent_attach_recv(agent_, 1, 1, g_main_loop_get_context(loop_),
 			cb_nice_recv, this);
-	nice_agent_attach_recv(agent_, 1, 2, g_main_loop_get_context(loop_),
+	if (iceComponents_ > 1) {
+		nice_agent_attach_recv(agent_, 1, 2, g_main_loop_get_context(loop_),
 			cb_nice_recv, this);
+	}
 
 	// Attach to the component to receive the data
 	g_main_loop_run(loop_);
@@ -286,7 +281,7 @@ bool NiceConnection::setRemoteCandidates(
 
 	printf("Setting remote candidates %d\n", candidates.size());
 
-	for (int compId = 1; compId <= iceComponents_; compId++) {
+	for (unsigned int compId = 1; compId <= iceComponents_; compId++) {
 
 		GSList* candList = NULL;
 
@@ -352,7 +347,7 @@ NiceConnectionListener* NiceConnection::getNiceListener() {
 void NiceConnection::updateComponentState(unsigned int compId, IceState state) {
 	comp_state_list[compId] = state;
 	if (state == NICE_READY) {
-		for (int i = 1; i<=iceComponents_; i++) {
+		for (unsigned int i = 1; i<=iceComponents_; i++) {
 			if (comp_state_list[i] != NICE_READY) {
 				return;
 			}

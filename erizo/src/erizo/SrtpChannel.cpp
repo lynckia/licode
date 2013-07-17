@@ -56,7 +56,7 @@ int SrtpChannel::protectRtp(char* buffer, int *len) {
 	} else {
     	rtcpheader* head = reinterpret_cast<rtcpheader*>(buffer);
     	
-		printf("Error SrtpChannel::protectRtp %u packettype %d pt %d\n", val,head->packettype, headrtp->payloadtype);
+		printf("Error SrtpChannel::protectRtp %u packettype %d pt %d seqnum %u\n", val,head->packettype, headrtp->payloadtype, headrtp->seqnum);
 		return -1;
 	}
 }

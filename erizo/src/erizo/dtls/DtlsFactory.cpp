@@ -69,9 +69,9 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
   }
 
   // Get our SSL structure from the store
-  SSL* ssl = reinterpret_cast<SSL*>(X509_STORE_CTX_get_ex_data(
-                                        store,
-                                        SSL_get_ex_data_X509_STORE_CTX_idx()));
+  //SSL* ssl = reinterpret_cast<SSL*>(X509_STORE_CTX_get_ex_data(
+  //                                      store,
+  //                                      SSL_get_ex_data_X509_STORE_CTX_idx()));
 
 
   // In peer-to-peer mode, no root cert / certificate authority was
@@ -79,7 +79,7 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
   // and therefore it will necessarily call here on the first cert it
   // tries to verify.
   if (!ok) {
-    X509* cert = X509_STORE_CTX_get_current_cert(store);
+    //X509* cert = X509_STORE_CTX_get_current_cert(store);
     int err = X509_STORE_CTX_get_error(store);
 
     cout << "Error: " << X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT << endl;
@@ -87,8 +87,8 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
     // peer-to-peer mode: allow the certificate to be self-signed,
     // assuming it matches the digest that was specified.
     if (err == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) {
-      unsigned char digest[EVP_MAX_MD_SIZE];
-      std::size_t digest_length;
+      //unsigned char digest[EVP_MAX_MD_SIZE];
+      //std::size_t digest_length;
 
       cout <<
               "Accepted self-signed peer certificate authority" << endl;
@@ -207,13 +207,12 @@ int createCert (const string& pAor, int expireDays, int keyLen, X509*& outCert, 
 
 void DtlsFactory::Init() {
   if (DtlsFactory::mCert == NULL) {
-    printf("SSL Initializing!!!!!!!!!!\n");
     SSL_library_init();
     SSL_load_error_strings();
     ERR_load_crypto_strings();
     //  srtp_init();
 
-    createCert("sip:client@example.com",365,1024,DtlsFactory::mCert,DtlsFactory::privkey);
+    createCert("sip:licode@lynckia.com",365,1024,DtlsFactory::mCert,DtlsFactory::privkey);
   }
 
 }

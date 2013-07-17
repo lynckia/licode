@@ -66,6 +66,10 @@ Erizo.VideoPlayer = function (spec) {
     that.video.setAttribute('style', 'width: 100%; height: 100%; position: absolute');
     that.video.setAttribute('autoplay', 'autoplay');
 
+    if (that.stream.local) {
+        that.video.volume = 0;
+    }
+
     if (that.elementID !== undefined) {
         document.getElementById(that.elementID).appendChild(that.div);
         that.container = document.getElementById(that.elementID);

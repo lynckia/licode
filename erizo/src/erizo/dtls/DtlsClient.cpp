@@ -72,8 +72,6 @@ void DtlsSocketContext::handshakeCompleted()
   char fprint[100];
   SRTP_PROTECTION_PROFILE *srtp_profile;
 
-  cout << ": Hey, amazing, it worked\n";
-
   if(mSocket->getRemoteFingerprint(fprint)){
     cout <<  ": Remote fingerprint == " << fprint << endl;
 

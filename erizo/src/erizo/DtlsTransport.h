@@ -18,7 +18,7 @@ namespace erizo {
 			std::string getMyFingerprint();
 			static bool isDtlsPacket(const char* buf, int len);
 			void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice);
-			void write(char* data, int len, int sinkSSRC);
+			void write(char* data, int len);
 			void writeDtls(dtls::DtlsSocketContext *ctx, const unsigned char* data, unsigned int len);
       		void onHandshakeCompleted(dtls::DtlsSocketContext *ctx, std::string clientKey, std::string serverKey, std::string srtp_profile);
       		void updateIceState(IceState state, NiceConnection *conn);

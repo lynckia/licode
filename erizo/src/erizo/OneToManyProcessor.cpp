@@ -43,7 +43,7 @@ namespace erizo {
       return 0;
 
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
-    if(head->packettype==201 || head->packettype==206){
+    if(head->packettype==RTCP_Receiver_PT || head->packettype==RTCP_Feedback_PT){
       printf("recibo feedback por donde no es %d\n", head->packettype);
       if (feedbackSink_){
         head->ssrc = htonl(publisher->getVideoSourceSSRC());
@@ -79,8 +79,8 @@ namespace erizo {
       const std::string& peerId) {
     printf("Adding subscriber\n");
     printf("From %u, %u \n", publisher->getAudioSourceSSRC() , publisher->getVideoSourceSSRC());
-    webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
-    webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
+    //webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
+    //webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
     printf("Subscribers ssrcs: Audio %u, video, %u from %u, %u \n", webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC(), this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
     FeedbackSource* fbsource = webRtcConn->getFeedbackSource();
 

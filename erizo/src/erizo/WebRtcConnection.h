@@ -23,7 +23,6 @@ enum WebRTCState {
 	INITIAL, STARTED, READY, FINISHED, FAILED
 };
 
-
 class WebRtcConnectionStateListener {
 public:
 	virtual ~WebRtcConnectionStateListener() {
@@ -91,7 +90,9 @@ public:
 	 */
 	WebRTCState getCurrentState();
 
-	void onTransportData(char* buf, int len, bool rtcp, unsigned int recvSSRC, Transport *transport);
+	void writeSsrc(char* buf, int len, int ssrc);
+
+	void onTransportData(char* buf, int len, Transport *transport);
 
 	void updateState(TransportState state, Transport * transport);
 
