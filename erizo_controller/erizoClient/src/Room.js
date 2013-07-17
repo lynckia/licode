@@ -233,12 +233,14 @@ Erizo.Room = function (spec) {
                             };
                             that.localStreams[id] = stream;
                             stream.room = that;
-                            callback();
+                            if (callback)
+                                callback();
                         } else {
                             L.Logger.info('Error when publishing the stream', answer);
                             // Unauth -1052488119
                             // Network -5
-                            callbackError(answer);
+                            if (callbackError)
+                                callbackError(answer);
                         }
 
                     });
