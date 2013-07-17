@@ -90,6 +90,9 @@ public:
 	int deliverAudioData(char* buf, int len);
 	int deliverVideoData(char* buf, int len);
 
+	int unpackageVideo(unsigned char* inBuff, int inBuffLen,
+			unsigned char* outBuff, int* gotFrame);
+
   void closeSink();
   void close();
 
@@ -139,8 +142,6 @@ private:
 
 	int unpackageAudio(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);
-	int unpackageVideo(unsigned char* inBuff, int inBuffLen,
-			unsigned char* outBuff, int* gotFrame);
 
 };
 class OutputProcessor: public RawDataReceiver {

@@ -49,6 +49,10 @@ namespace erizo{
       AVPacket        _packet;
       AVDictionary    *_optionsDict;
 
+      unsigned char* unpackagedBuffer_;
+      int gotUnpackagedFrame_;
+      int unpackagedSize_;
+
 
       AVFormatContext *context_;
       AVOutputFormat *oformat_;
