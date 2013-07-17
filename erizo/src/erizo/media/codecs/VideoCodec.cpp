@@ -1,15 +1,11 @@
 /**
- * VP8Codec.pp
+ * VideoCodec.pp
  */
 
 #include "VideoCodec.h"
 
-#include <string>
-
-#include <cstddef>
 #include <cstdio>
 #include <string.h>
-#include <boost/cstdint.hpp>
 
 namespace erizo {
   inline  AVCodecID

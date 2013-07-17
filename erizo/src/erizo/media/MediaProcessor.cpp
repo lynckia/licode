@@ -39,7 +39,7 @@ namespace erizo {
     }
     if (mediaInfo.hasAudio) {
       printf("Init AUDIO processor\n");
-      mediaInfo.audioCodec.codec = AUDIO_CODEC_PCM_MULAW_8;
+      mediaInfo.audioCodec.codec = AUDIO_CODEC_PCM_U8;
       decodedAudioBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
       unpackagedAudioBuffer_ = (unsigned char*) malloc(
           UNPACKAGED_BUFFER_SIZE);
@@ -170,8 +170,8 @@ namespace erizo {
       AVFrame frame;
       int got_frame = 0;
 
-      aDecoderContext->get_buffer = avcodec_default_get_buffer;
-      aDecoderContext->release_buffer = avcodec_default_release_buffer;
+//      aDecoderContext->get_buffer = avcodec_default_get_buffer;
+//      aDecoderContext->release_buffer = avcodec_default_release_buffer;
 
       len = avcodec_decode_audio4(aDecoderContext, &frame, &got_frame,
           &avpkt);
@@ -336,7 +336,7 @@ namespace erizo {
     if (mediaInfo.hasAudio) {
       
       printf("Init AUDIO processor\n");
-      mediaInfo.audioCodec.codec = AUDIO_CODEC_PCM_MULAW_8;
+      mediaInfo.audioCodec.codec = AUDIO_CODEC_PCM_U8;
       mediaInfo.audioCodec.sampleRate= 44100;
       mediaInfo.audioCodec.bitRate = 64000;
       encodedAudioBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
