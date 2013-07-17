@@ -212,7 +212,7 @@ Erizo.Room = function (spec) {
 
     // It publishes the stream provided as argument. Once it is added it throws a 
     // StreamEvent("stream-added").
-    that.publish = function (stream) {
+    that.publish = function (stream, callback, callbackError) {
 
         // 1- If the stream is not local we do nothing.
         if (stream.local && that.localStreams[stream.getID()] === undefined) {
@@ -233,8 +233,14 @@ Erizo.Room = function (spec) {
                             };
                             that.localStreams[id] = stream;
                             stream.room = that;
+                            if (callback)
+                                callback();
                         } else {
-                            L.Logger.info('Error when publishing the stream');
+                            L.Logger.info('Error when publishing the stream', answer);
+                            // Unauth -1052488119
+                            // Network -5
+                            if (callbackError)
+                                callbackError(answer);
                         }
 
                     });
