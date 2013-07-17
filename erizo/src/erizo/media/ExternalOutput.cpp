@@ -18,55 +18,55 @@ namespace erizo {
   }
 
   bool ExternalOutput::init(){
-   av_register_all();
-   avcodec_register_all();
-   context_ = avformat_alloc_context();
-   oformat_ = av_guess_format(NULL,  url.c_str(), NULL);
-   if (!oformat_){
-    printf("Error opening output file %s", url.c_str());
-    return false;
-   }
-   context_->oformat = oformat_;
-   url.copy(context_->filename, sizeof(context_->filename),0);
-   video_st = NULL;
-   audio_st = NULL;
-   if (oformat_->video_codec != AV_CODEC_ID_NONE) {
-     videoCodec_ = avcodec_find_encoder(oformat_->video_codec);
-     printf("Found Codec %s\n", videoCodec_->name);
-     if (videoCodec_==NULL){
-       printf("Could not find codec\n");
-       return false;
-     }
-     video_st = avformat_new_stream (context_, videoCodec_);
-     video_st->id = 0;
-     videoCodecCtx_ = video_st->codec;
-     videoCodecCtx_->codec_id = oformat_->video_codec;
-     videoCodecCtx_->width = 640;
-     videoCodecCtx_->height = 480;
-     videoCodecCtx_->time_base = (AVRational){1,24};
-     videoCodecCtx_->pix_fmt = PIX_FMT_YUV420P;
-     if (oformat_->flags & AVFMT_GLOBALHEADER){
-       videoCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
-     }
-     context_->streams[0] = video_st;
-     avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
-     avformat_write_header(context_, NULL);
-     printf("AVFORMAT CONFIGURED\n");
-   }
-   in = new InputProcessor();
-   MediaInfo m;
-//    m.processorType = RTP_ONLY;
-	m.hasVideo = false;
-  m.hasAudio = true;
-  if (m.hasAudio) {
-    m.audioCodec.sampleRate = 8000;
-		m.audioCodec.bitRate = 64000;
-	}
-   unpackagedBuffer_ = (unsigned char*)malloc (15000);
-   gotUnpackagedFrame_ = 0;
-   unpackagedSize_ = 0;
-   in->init(m, this);
-   return true;
+    av_register_all();
+    avcodec_register_all();
+    context_ = avformat_alloc_context();
+    oformat_ = av_guess_format(NULL,  url.c_str(), NULL);
+    if (!oformat_){
+      printf("Error opening output file %s", url.c_str());
+      return false;
+    }
+    context_->oformat = oformat_;
+    url.copy(context_->filename, sizeof(context_->filename),0);
+    video_st = NULL;
+    audio_st = NULL;
+    if (oformat_->video_codec != AV_CODEC_ID_NONE) {
+      videoCodec_ = avcodec_find_encoder(oformat_->video_codec);
+      printf("Found Codec %s\n", videoCodec_->name);
+      if (videoCodec_==NULL){
+        printf("Could not find codec\n");
+        return false;
+      }
+      video_st = avformat_new_stream (context_, videoCodec_);
+      video_st->id = 0;
+      videoCodecCtx_ = video_st->codec;
+      videoCodecCtx_->codec_id = oformat_->video_codec;
+      videoCodecCtx_->width = 640;
+      videoCodecCtx_->height = 480;
+      videoCodecCtx_->time_base = (AVRational){1,24};
+      videoCodecCtx_->pix_fmt = PIX_FMT_YUV420P;
+      if (oformat_->flags & AVFMT_GLOBALHEADER){
+        videoCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
+      }
+      context_->streams[0] = video_st;
+      avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
+      avformat_write_header(context_, NULL);
+      printf("AVFORMAT CONFIGURED\n");
+    }
+    in = new InputProcessor();
+    MediaInfo m;
+    //    m.processorType = RTP_ONLY;
+    m.hasVideo = false;
+    m.hasAudio = true;
+    if (m.hasAudio) {
+      m.audioCodec.sampleRate = 8000;
+      m.audioCodec.bitRate = 64000;
+    }
+    unpackagedBuffer_ = (unsigned char*)malloc (15000);
+    gotUnpackagedFrame_ = 0;
+    unpackagedSize_ = 0;
+    in->init(m, this);
+    return true;
   }
 
 
@@ -93,29 +93,29 @@ namespace erizo {
   }
 
 
-	int ExternalOutput::deliverAudioData(char* buf, int len){
+  int ExternalOutput::deliverAudioData(char* buf, int len){
     printf("Deliver audio to EXTERNAL\n");
     return 0;
   }
-	int ExternalOutput::deliverVideoData(char* buf, int len){
+  int ExternalOutput::deliverVideoData(char* buf, int len){
     if (in!=NULL){
-        int ret = in->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
-            unpackagedBuffer_, &gotUnpackagedFrame_);
-        if (ret < 0)
-          return 0;
-        unpackagedSize_ += ret;
-        unpackagedBuffer_ += ret;
-        if (gotUnpackagedFrame_) {
-          unpackagedBuffer_ -= unpackagedSize_;
-          AVPacket avpkt;
-          av_init_packet(&avpkt);
-          avpkt.data = unpackagedBuffer_;
-          avpkt.size = unpackagedSize_;
-          avpkt.stream_index = 0;
-          av_write_frame(context_, &avpkt);
-          av_free_packet(&avpkt);
-          gotUnpackagedFrame_ = 0;
-          unpackagedSize_ = 0;
+      int ret = in->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
+          unpackagedBuffer_, &gotUnpackagedFrame_);
+      if (ret < 0)
+        return 0;
+      unpackagedSize_ += ret;
+      unpackagedBuffer_ += ret;
+      if (gotUnpackagedFrame_) {
+        unpackagedBuffer_ -= unpackagedSize_;
+        AVPacket avpkt;
+        av_init_packet(&avpkt);
+        avpkt.data = unpackagedBuffer_;
+        avpkt.size = unpackagedSize_;
+        avpkt.stream_index = 0;
+        av_write_frame(context_, &avpkt);
+        av_free_packet(&avpkt);
+        gotUnpackagedFrame_ = 0;
+        unpackagedSize_ = 0;
       }
     }
     return 0;
