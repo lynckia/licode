@@ -177,14 +177,16 @@ NiceConnection::NiceConnection(MediaType med,
 }
 
 NiceConnection::~NiceConnection() {
-
+  printf("NiceConnection Destructor\n");
 	if (iceState != NICE_FINISHED)
 		this->close();
-	if (agent_)
+	if (agent_!=NULL){
 		g_object_unref(agent_);
-	if (localCandidates)
+    agent_ = NULL;
+  }
+	if (localCandidates!=NULL)
 		delete localCandidates;
-	if (transportName)
+	if (transportName!=NULL)
 		delete transportName;
 }
 
@@ -224,7 +226,6 @@ void NiceConnection::init() {
 	this->updateIceState(NICE_INITIAL);
 
 	g_type_init();
-	g_thread_init(NULL);
 
 	loop_ =  g_main_loop_new(g_main_context_new(), FALSE);
 //	nice_debug_enable( TRUE );
