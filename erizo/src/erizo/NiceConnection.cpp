@@ -109,7 +109,7 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 			default:
 				break;
 			}
-			cand_info.netProtocol = "UDP";
+			cand_info.netProtocol = "udp";
 			cand_info.transProtocol = std::string(*conn->transportName);
 			//cand_info.username = std::string(cand->username);
 			/*if (cand->username)
@@ -227,7 +227,8 @@ void NiceConnection::init() {
 
 	g_type_init();
 
-	loop_ =  g_main_loop_new(g_main_context_new(), FALSE);
+	//loop_ =  g_main_loop_new(g_main_context_new(), FALSE);
+	loop_ =  g_main_loop_new(NULL, FALSE);
 //	nice_debug_enable( TRUE );
 	// Create a nice agent
 	agent_ = nice_agent_new(g_main_loop_get_context(loop_),

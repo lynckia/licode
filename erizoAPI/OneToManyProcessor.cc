@@ -16,6 +16,7 @@ void OneToManyProcessor::Init(Handle<Object> target) {
   // Prototype
   tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setPublisher"), FunctionTemplate::New(setPublisher)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("getPublisherState"), FunctionTemplate::New(getPublisherState)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("hasPublisher"), FunctionTemplate::New(hasPublisher)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("addSubscriber"), FunctionTemplate::New(addSubscriber)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("removeSubscriber"), FunctionTemplate::New(removeSubscriber)->GetFunction());
@@ -60,6 +61,21 @@ Handle<Value> OneToManyProcessor::setPublisher(const Arguments& args) {
   me->setPublisher(ms);
 
   return scope.Close(Null());
+}
+
+Handle<Value> OneToManyProcessor::getPublisherState(const Arguments& args) {
+  HandleScope scope;
+
+  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
+  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+
+  erizo::MediaSource * ms = me->publisher;
+
+  erizo::WebRtcConnection* wr = (erizo::WebRtcConnection*)ms;
+
+  int state = wr->getCurrentState();
+
+  return scope.Close(Number::New(state));
 }
 
 Handle<Value> OneToManyProcessor::hasPublisher(const Arguments& args) {

@@ -29,6 +29,7 @@ namespace erizo {
   SdpInfo::SdpInfo() {
     isBundle = false;
     isRtcpMux = false;
+    isFingerprint = false;
     profile = AVPF;
     audioSsrc = 0;
     videoSsrc = 0;
@@ -201,7 +202,7 @@ namespace erizo {
           printedAudio = true;
         }
 
-        std::string generation = "";
+        std::string generation = " generation 0";
 
         sdp << "a=candidate:" << cand.foundation << " " << cand.componentId
           << " " << cand.netProtocol << " " << cand.priority << " "
@@ -284,7 +285,7 @@ namespace erizo {
           printedVideo = true;
         }
 
-        std::string generation = "";
+        std::string generation = " generation 0";
 
         sdp << "a=candidate:" << cand.foundation << " " << cand.componentId
           << " " << cand.netProtocol << " " << cand.priority << " "
@@ -299,6 +300,8 @@ namespace erizo {
     if (printedVideo) {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
+      sdp << "a=extmap:2 urn:ietf:params:rtp-hdrext:toffset" << endl;
+      sdp << "a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time" << endl;
 
       if (isFingerprint) {
         sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;

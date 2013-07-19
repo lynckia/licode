@@ -6,6 +6,7 @@
 
 #include "WebRtcConnection.h"
 #include "DtlsTransport.h"
+#include "SdesTransport.h"
 
 #include "SdpInfo.h"
 #include "rtputils.h"
@@ -30,11 +31,14 @@ namespace erizo {
     globalState_ = INITIAL;
     connStateListener_ = NULL;
 
-    sending = true;
+    sending_ = true;
     send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
 
     videoTransport_ = NULL;
     audioTransport_ = NULL;
+
+    deliverMediaBuffer_ = (char*)malloc(3000);
+
     printf("WebRtcConnection constructor end\n");
 
   }
@@ -42,6 +46,7 @@ namespace erizo {
   WebRtcConnection::~WebRtcConnection() {
 
     this->close();
+    free(deliverMediaBuffer_);
   }
 
   bool WebRtcConnection::init() {
@@ -55,8 +60,8 @@ namespace erizo {
     if (audioTransport_ != NULL) {
       audioTransport_->close();
     }
-    if (sending != false) {
-      sending = false;
+    if (sending_ != false) {
+      sending_ = false;
       send_Thread_.join();
     }
   }
@@ -72,7 +77,7 @@ namespace erizo {
   bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     printf("Set Remote SDP\n %s", sdp.c_str());
     remoteSdp_.initWithSdp(sdp);
-    std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
+    //std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
     video_ = (remoteSdp_.videoSsrc==0?false:true);
     audio_ = (remoteSdp_.audioSsrc==0?false:true);
 
@@ -90,58 +95,33 @@ namespace erizo {
 
     printf("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d \n", video_, remoteSdp_.videoSsrc, audio_, remoteSdp_.audioSsrc,  bundle_);
 
-    if (!remoteSdp_.isFingerprint && remoteSdp_.profile == SAVPF){
-        // TODO Add support for SDES
-        CryptoInfo crytpv;
-        crytpv.cipherSuite = std::string("AES_CM_128_HMAC_SHA1_80");
-        crytpv.mediaType = VIDEO_TYPE;
-        std::string keyv = SrtpChannel::generateBase64Key();
-        crytpv.keyParams = keyv;
-        crytpv.tag = 1;
-        localSdp_.addCrypto(crytpv);
-        //    audioSrtp_ = new SrtpChannel();
-        CryptoInfo crytpa;
-        crytpa.cipherSuite = std::string("AES_CM_128_HMAC_SHA1_80");
-        crytpa.mediaType = AUDIO_TYPE;
-        crytpa.tag = 1;
-        //    std::string keya = SrtpChannel::generateBase64Key();
-        crytpa.keyParams = keyv;
-        localSdp_.addCrypto(crytpa);
-    }
     printf("Setting SSRC to localSdp %u\n", this->getVideoSinkSSRC());
     localSdp_.videoSsrc = this->getVideoSinkSSRC();
     localSdp_.audioSsrc = this->getAudioSinkSSRC();
 
-    std::vector<CryptoInfo> crypto_local = localSdp_.getCryptoInfos();
-
-    for (unsigned int it = 0; it < crypto_remote.size(); it++) {
-      CryptoInfo cryptemp = crypto_remote[it];
-      if (cryptemp.mediaType == VIDEO_TYPE
-          && !cryptemp.cipherSuite.compare("AES_CM_128_HMAC_SHA1_80")) {
-        video_ = true;
-        cryptRemote_video = cryptemp;
-      } else if (cryptemp.mediaType == AUDIO_TYPE
-          && !cryptemp.cipherSuite.compare("AES_CM_128_HMAC_SHA1_80")) {
-        audio_ = true;
-        cryptRemote_audio = cryptemp;
-      }
-    }
-    for (unsigned int it = 0; it < crypto_local.size(); it++) {
-      CryptoInfo cryptemp = crypto_local[it];
-      if (cryptemp.mediaType == VIDEO_TYPE
-          && !cryptemp.cipherSuite.compare("AES_CM_128_HMAC_SHA1_80")) {
-        cryptLocal_video = cryptemp;
-      } else if (cryptemp.mediaType == AUDIO_TYPE
-          && !cryptemp.cipherSuite.compare("AES_CM_128_HMAC_SHA1_80")) {
-        cryptLocal_audio = cryptemp;
-      }
-    }
-
-    videoTransport_ = new DtlsTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this);
-    audioTransport_ = new DtlsTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this);
-
     this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
     this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
+
+    if (remoteSdp_.profile == SAVPF) {
+      if (remoteSdp_.isFingerprint) {
+        // DTLS-SRTP
+        videoTransport_ = new DtlsTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this);
+        audioTransport_ = new DtlsTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this);
+      } else {
+        // SDES
+        std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
+        for (unsigned int it = 0; it < crypto_remote.size(); it++) {
+          CryptoInfo cryptemp = crypto_remote[it];
+          if (cryptemp.mediaType == VIDEO_TYPE
+              && !cryptemp.cipherSuite.compare("AES_CM_128_HMAC_SHA1_80")) {
+          videoTransport_ = new SdesTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this);
+          } else if (cryptemp.mediaType == AUDIO_TYPE
+              && !cryptemp.cipherSuite.compare("AES_CM_128_HMAC_SHA1_80")) {
+            audioTransport_ = new SdesTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this);
+          }
+        }
+      }
+    }
 
     return true;
   }
@@ -181,15 +161,14 @@ namespace erizo {
       //redhead->payloadtype = remoteSdp_.inOutPTMap[redhead->payloadtype];
       if (!remoteSdp_.supportPayloadType(head->payloadtype)) {
         // Parse RED packet to VP8 packet.
-        char *media = (char*)malloc(len-1);
         // Copy header
-        memcpy(media, buf, 12);
+        memcpy(deliverMediaBuffer_, buf, 12);
         // Copy payload data
-        memcpy(media + 12, buf + 12 + 1, len - 12 - 1);
+        memcpy(deliverMediaBuffer_ + 12, buf + 12 + 1, len - 12 - 1);
         // Copy payload type
-        rtpheader *mediahead = (rtpheader*) media;
+        rtpheader *mediahead = (rtpheader*) deliverMediaBuffer_;
         mediahead->payloadtype = redhead->payloadtype;
-        buf = media;
+        buf = deliverMediaBuffer_;
         len = len - 1;
       }
     }
@@ -203,8 +182,13 @@ namespace erizo {
   int WebRtcConnection::deliverFeedback(char* buf, int len){
     // Check where to send the feedback
     rtcpheader *chead = (rtcpheader*) buf;
-    chead->ssrcsource=htonl(this->getVideoSourceSSRC());
-    writeSsrc(buf, len, this->getVideoSinkSSRC());
+    //printf("Feedback %d\n", chead->packettype);
+    writeSsrc(buf, len, chead->ssrcsource);
+    if (ntohl(chead->ssrcsource) == this->getVideoSinkSSRC()) {
+      chead->ssrcsource=htonl(this->getVideoSourceSSRC());
+    } else {
+      chead->ssrcsource=htonl(this->getAudioSinkSSRC());  
+    }
     if (bundle_){
       if (videoTransport_ != NULL) {
         videoTransport_->write(buf, len);
@@ -279,7 +263,7 @@ namespace erizo {
             printf("Video Source SSRC is %d\n", head->ssrc);
             this->setVideoSourceSSRC(head->ssrc);
           }
-          
+
           head->ssrc = htonl(this->getVideoSinkSSRC());
           videoSink_->deliverVideoData(buf, length);
         }
@@ -404,7 +388,7 @@ namespace erizo {
 
   void WebRtcConnection::sendLoop() {
 
-    while (sending == true) {
+    while (sending_ == true) {
       receiveVideoMutex_.lock();
       if (sendQueue_.size() > 0) {
         if (sendQueue_.front().type == AUDIO_PACKET && audioTransport_!=NULL) {

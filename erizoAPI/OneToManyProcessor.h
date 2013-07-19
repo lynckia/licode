@@ -3,6 +3,7 @@
 
 #include <node.h>
 #include <OneToManyProcessor.h>
+#include <WebRtcConnection.h>
 #include "MediaDefinitions.h"
 #include "WebRtcConnection.h"
 
@@ -36,6 +37,11 @@ class OneToManyProcessor : public MediaSink {
    * Param: the WebRtcConnection of the Publisher
    */
   static v8::Handle<v8::Value> setPublisher(const v8::Arguments& args);
+  /*
+   * Gets the Publisher state
+   * Param: none
+   */
+  static v8::Handle<v8::Value> getPublisherState(const v8::Arguments& args);
    /*
    * Returns true if OneToManyProcessor has a publisher
    */

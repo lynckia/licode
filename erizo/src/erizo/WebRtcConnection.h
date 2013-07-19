@@ -110,8 +110,9 @@ private:
 	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionStateListener* connStateListener_;
 	Transport *videoTransport_, *audioTransport_;
+	char *deliverMediaBuffer_;
 
-	bool sending;
+	bool sending_;
 	void sendLoop();
 
 };
