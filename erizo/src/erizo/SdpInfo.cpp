@@ -30,6 +30,8 @@ namespace erizo {
     isBundle = false;
     isRtcpMux = false;
     isFingerprint = false;
+    hasAudio = false;
+    hasVideo = false;
     profile = AVPF;
     audioSsrc = 0;
     videoSsrc = 0;
@@ -63,7 +65,7 @@ namespace erizo {
     opus.clockRate = 48000;
     opus.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(opus);
-/*
+
     RtpMap isac16;
     isac16.payloadType = ISAC_16000_PT;
     isac16.encodingName = "ISAC";
@@ -77,7 +79,7 @@ namespace erizo {
     isac32.clockRate = 32000;
     isac32.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(isac32);
-*/
+
     RtpMap pcmu;
     pcmu.payloadType = PCMU_8000_PT;
     pcmu.encodingName = "PCMU";
@@ -91,7 +93,7 @@ namespace erizo {
     pcma.clockRate = 8000;
     pcma.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(pcma);
-/*
+
     RtpMap cn8;
     cn8.payloadType = CN_8000_PT;
     cn8.encodingName = "CN";
@@ -119,7 +121,7 @@ namespace erizo {
     cn48.clockRate = 48000;
     cn48.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(cn48);
-*/
+
     RtpMap telephoneevent;
     telephoneevent.payloadType = TEL_8000_PT;
     telephoneevent.encodingName = "telephone-event";
@@ -217,7 +219,7 @@ namespace erizo {
     if (printedAudio) {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
-
+      //sdp << "a=ice-options:google-ice" << endl;
       if (isFingerprint) {
         sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
       }
@@ -296,10 +298,12 @@ namespace erizo {
         icePassword_ = cand.password;
       }
     }
-    //crypto audio
+    //crypto video
     if (printedVideo) {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
+      //sdp << "a=ice-options:google-ice" << endl;
+
       sdp << "a=extmap:2 urn:ietf:params:rtp-hdrext:toffset" << endl;
       sdp << "a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time" << endl;
 
@@ -326,9 +330,7 @@ namespace erizo {
           sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
               << rtp.clockRate <<"\n";
           if(rtp.encodingName == "VP8"){
-            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" ccm fir" << endl;
-            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" nack" << endl;
-            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" goog-remb" << endl;
+            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" ccm fir\na=rtcp-fb:"<< rtp.payloadType<<" nack\na=rtcp-fb:"<< rtp.payloadType<<" goog-remb\n";
           }
         }
       }
@@ -422,9 +424,11 @@ namespace erizo {
       }
       if (isVideo) {
         mtype = VIDEO_TYPE;
+        hasVideo = true;
       }
       if (isAudio) {
         mtype = AUDIO_TYPE;
+        hasAudio = true;
       }
       if (isCand != NULL) {
         char *pch;

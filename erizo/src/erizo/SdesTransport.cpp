@@ -79,19 +79,18 @@ void SdesTransport::onNiceData(unsigned int component_id, char* data, int len, N
         srtp = srtcp_;
       }
 
-      if (this->getTransportState() == TRANSPORT_READY){
-          rtcpheader *chead = reinterpret_cast<rtcpheader*> (unprotectBuf_);
-          if (chead->packettype == RTCP_Sender_PT ||
-              chead->packettype == RTCP_Receiver_PT ||
-              chead->packettype == RTCP_Feedback_PT){
-            if(srtp->unprotectRtcp(unprotectBuf_, &length)<0)
-              return;
-          } else {
-            if(srtp->unprotectRtp(unprotectBuf_, &length)<0)
-              return;
-          }
+      rtcpheader *chead = reinterpret_cast<rtcpheader*> (unprotectBuf_);
+      if (chead->packettype == RTCP_Sender_PT ||
+          chead->packettype == RTCP_Receiver_PT ||
+          chead->packettype == RTCP_Feedback_PT){
+        if (chead->packettype == RTCP_Feedback_PT){
+          printf("Feedback!!\n");
+        }
+        if(srtp->unprotectRtcp(unprotectBuf_, &length)<0)
+          return;
       } else {
-        return;
+        if(srtp->unprotectRtp(unprotectBuf_, &length)<0)
+          return;
       }
 
       if (length <= 0)

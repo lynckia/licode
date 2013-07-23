@@ -170,7 +170,7 @@ typedef struct {
     uint32_t length :16;
     uint32_t ssrc;
     uint32_t ssrcsource;
-    uint32_t fractionLost:8;
+    uint32_t fractionlost:8;
 } rtcpheader;
 
 //     0                   1                    2                   3

@@ -206,7 +206,7 @@ Erizo.ChromeCanaryStack = function (spec) {
 
                     var newOffer = sessionDescription.sdp;
 
-                    sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
+                    //sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
 
                     console.log("Changed", sessionDescription.sdp);
 

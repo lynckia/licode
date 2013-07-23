@@ -105,8 +105,12 @@ namespace erizo {
     if (remoteSdp_.profile == SAVPF) {
       if (remoteSdp_.isFingerprint) {
         // DTLS-SRTP
-        videoTransport_ = new DtlsTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this);
-        audioTransport_ = new DtlsTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this);
+        if (remoteSdp_.hasVideo) {
+          videoTransport_ = new DtlsTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this);
+        }
+        if (remoteSdp_.hasAudio) {
+          audioTransport_ = new DtlsTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this);
+        }
       } else {
         // SDES
         std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
@@ -114,7 +118,7 @@ namespace erizo {
           CryptoInfo cryptemp = crypto_remote[it];
           if (cryptemp.mediaType == VIDEO_TYPE
               && !cryptemp.cipherSuite.compare("AES_CM_128_HMAC_SHA1_80")) {
-          videoTransport_ = new SdesTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this);
+            videoTransport_ = new SdesTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this);
           } else if (cryptemp.mediaType == AUDIO_TYPE
               && !cryptemp.cipherSuite.compare("AES_CM_128_HMAC_SHA1_80")) {
             audioTransport_ = new SdesTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this);
@@ -158,6 +162,7 @@ namespace erizo {
     rtpheader *head = (rtpheader*) buf;
     if (head->payloadtype == RED_90000_PT) {
       redheader *redhead = (redheader*) (buf + 12);
+
       //redhead->payloadtype = remoteSdp_.inOutPTMap[redhead->payloadtype];
       if (!remoteSdp_.supportPayloadType(head->payloadtype)) {
         // Parse RED packet to VP8 packet.
@@ -182,13 +187,15 @@ namespace erizo {
   int WebRtcConnection::deliverFeedback(char* buf, int len){
     // Check where to send the feedback
     rtcpheader *chead = (rtcpheader*) buf;
-    //printf("Feedback %d\n", chead->packettype);
-    writeSsrc(buf, len, chead->ssrcsource);
-    if (ntohl(chead->ssrcsource) == this->getVideoSinkSSRC()) {
-      chead->ssrcsource=htonl(this->getVideoSourceSSRC());
+    //writeSsrc(buf, len, ntohl(chead->ssrcsource));
+    if (ntohl(chead->ssrcsource) == this->getVideoSourceSSRC()) {
+      chead->ssrc=htonl(this->getVideoSinkSSRC());
     } else {
-      chead->ssrcsource=htonl(this->getAudioSinkSSRC());  
+      chead->ssrc=htonl(this->getAudioSinkSSRC());
     }
+
+    printf("Feedback %d - %u - %u\n", chead->packettype, ntohl(chead->ssrc), ntohl(chead->ssrcsource));
+
     if (bundle_){
       if (videoTransport_ != NULL) {
         videoTransport_->write(buf, len);
@@ -232,6 +239,7 @@ namespace erizo {
         rtpheader *head = reinterpret_cast<rtpheader*> (buf);
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
         unsigned int recvSSRC = ntohl(head->ssrc);
+
         if (chead->packettype == RTCP_Sender_PT) { //Sender Report
           recvSSRC = ntohl(chead->ssrc);
         }
@@ -324,18 +332,20 @@ namespace erizo {
     }
 
     if (state == TRANSPORT_STARTED &&
-      audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_STARTED &&
-      videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_STARTED) {
-      videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
-      if (!bundle_) {
+      (!remoteSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_STARTED)) &&
+      (!remoteSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_STARTED))) {
+        if (remoteSdp_.hasVideo) {
+          videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
+        }
+      if (!bundle_ && remoteSdp_.hasAudio) {
         audioTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
       }
       temp = STARTED;
     }
 
     if (state == TRANSPORT_READY &&
-      audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_READY &&
-      videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_READY) {
+      (!remoteSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_READY)) &&
+      (!remoteSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_READY))) {
 
       temp = READY;
     }
@@ -346,9 +356,12 @@ namespace erizo {
           temp = STARTED;
       }
       if (state == TRANSPORT_READY) {
-          printf("Ready to send and receive media!!\n");
           temp = READY;
       }
+    }
+
+    if (temp == READY) {
+        printf("Ready to send and receive media!!\n");
     }
 
     if (temp < 0) {

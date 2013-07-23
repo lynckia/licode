@@ -104,9 +104,13 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
           if (chead->packettype == RTCP_Sender_PT || 
               chead->packettype == RTCP_Receiver_PT || 
               chead->packettype == RTCP_Feedback_PT){
+            if (chead->packettype == RTCP_Feedback_PT) {
+              printf("NACK received\n");
+            }
+
             if(srtp->unprotectRtcp(unprotectBuf_, &length)<0)
               return;
-          } else {
+         } else {
             if(srtp->unprotectRtp(unprotectBuf_, &length)<0)
               return;
           }

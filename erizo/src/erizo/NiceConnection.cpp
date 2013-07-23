@@ -111,8 +111,12 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 			}
 			cand_info.netProtocol = "udp";
 			cand_info.transProtocol = std::string(*conn->transportName);
-			//cand_info.username = std::string(cand->username);
-			/*if (cand->username)
+
+			cand_info.username = std::string(ufrag);
+
+			cand_info.password = std::string(upass);
+            /*
+			if (cand->username)
 				cand_info.username = std::string(cand->username);
 			else
 				cand_info.username = std::string("(null)");
@@ -122,9 +126,6 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
 			else
 				cand_info.password = std::string("(null)");
 			*/
-			cand_info.username = std::string(ufrag);
-
-			cand_info.password = std::string(upass);
 
 			conn->localCandidates->push_back(cand_info);
 		}

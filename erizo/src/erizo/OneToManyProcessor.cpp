@@ -79,8 +79,8 @@ namespace erizo {
       const std::string& peerId) {
     printf("Adding subscriber\n");
     printf("From %u, %u \n", publisher->getAudioSourceSSRC() , publisher->getVideoSourceSSRC());
-    //webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
-    //webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
+    webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
+    webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
     printf("Subscribers ssrcs: Audio %u, video, %u from %u, %u \n", webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC(), this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
     FeedbackSource* fbsource = webRtcConn->getFeedbackSource();
 

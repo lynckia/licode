@@ -150,6 +150,14 @@ public:
     */
     bool isBundle;
     /**
+    * Has audio
+    */
+    bool hasAudio;
+    /**
+    * Has video
+    */
+    bool hasVideo;
+    /**
     * Is there rtcp muxing
     */
     bool isRtcpMux;
