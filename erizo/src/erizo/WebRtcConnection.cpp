@@ -175,6 +175,7 @@ namespace erizo {
         mediahead->payloadtype = redhead->payloadtype;
         buf = deliverMediaBuffer_;
         len = len - 1;
+        //printf("Changing RED to VP8 - PT(%u) - F(%d)\n", redhead->payloadtype, redhead->follow);
       }
     }
     writeSsrc(buf, len, this->getVideoSinkSSRC());
@@ -257,8 +258,8 @@ namespace erizo {
           rtpheader *head = (rtpheader*) buf;
           // Firefox does not send SSRC in SDP
           if (this->getAudioSourceSSRC() == 0) {
-            printf("Audio Source SSRC is %d\n", head->ssrc);
-            this->setAudioSourceSSRC(head->ssrc);
+            printf("Audio Source SSRC is %d\n", ntohl(head->ssrc));
+            this->setAudioSourceSSRC(ntohl(head->ssrc));
           }
           head->ssrc = htonl(this->getAudioSinkSSRC());
           audioSink_->deliverAudioData(buf, length);
@@ -268,8 +269,8 @@ namespace erizo {
           rtpheader *head = (rtpheader*) buf;
           // Firefox does not send SSRC in SDP
           if (this->getVideoSourceSSRC() == 0) {
-            printf("Video Source SSRC is %d\n", head->ssrc);
-            this->setVideoSourceSSRC(head->ssrc);
+            printf("Video Source SSRC is %d\n", ntohl(head->ssrc));
+            this->setVideoSourceSSRC(ntohl(head->ssrc));
           }
 
           head->ssrc = htonl(this->getVideoSinkSSRC());
