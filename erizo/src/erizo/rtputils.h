@@ -124,6 +124,14 @@
 //      address, it must also choose a new SSRC identifier to avoid
 //      being interpreted as a looped source.
 
+// 0                   1                   2                   3
+//  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |      defined by profile       |           length              |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |                        header extension                       |
+// |                             ....                              |
+
 typedef struct {
     uint32_t cc :4;
     uint32_t extension :1;
@@ -134,6 +142,8 @@ typedef struct {
     uint32_t seqnum :16;
     uint32_t timestamp;
     uint32_t ssrc;
+    uint32_t extensionpayload:16;
+    uint32_t extensionlength:16;
 } rtpheader;
 
 //  0                   1                   2                   3
@@ -200,12 +210,17 @@ typedef struct {
 //
 //    block length:  10 bits Length in bytes of the corresponding data
 //        block excluding header.
-typedef struct {
+struct redheader {
     uint32_t payloadtype :7;
     uint32_t follow :1;
-    uint32_t ts :14;
-    uint32_t length :10;
-} redheader;
+    uint32_t tsLength :24;
+    uint32_t getTS() {
+        return (ntohl(tsLength) & 0xfffc00) >> 10;
+    }
+    uint32_t getLength() {
+        return (ntohl(tsLength) & 0x3ff);
+    }
+};
 
 // Payload types
 #define RTCP_Sender_PT      200 // RTCP Sender Report

@@ -245,6 +245,8 @@ var listen = function () {
                         socket.state = 'waitingOk';
                         answer = answer.replace(privateRegexp, publicIP);
                         callback(answer, id);
+                    }, function() {
+                        sendMsgToRoom(socket.room, 'onAddStream', socket.room.streams[id].getPublicStream());
                     });
 
                 } else if (options.state === 'ok' && socket.state === 'waitingOk') {
@@ -252,7 +254,6 @@ var listen = function () {
                     socket.state = 'sleeping';
                     socket.streams.push(options.streamId);
                     socket.room.streams[options.streamId] = st;
-                    sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
                 }
             } else {
                 id = Math.random() * 100000000000000000;

@@ -40,7 +40,7 @@ exports.WebRtcController = function () {
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
      */
-    initWebRtcConnection = function (wrtc, sdp, callback) {
+    initWebRtcConnection = function (wrtc, sdp, callback, onReady) {
 
         wrtc.init();
 
@@ -54,17 +54,26 @@ exports.WebRtcController = function () {
         var intervarId = setInterval(function () {
 
                 var state = wrtc.getCurrentState(), localSdp, answer;
-                console.log("Current WebRtcConnection state ", state);
 
-                if (state >= 1) {
+                if (state == 1) {
                     console.log('Get local SDP');
                     localSdp = wrtc.getLocalSdp();
 
                     answer = getRoap(localSdp, roap);
                     callback(answer);
 
+                    
+                }
+                if (state == 2) {
+                    if (onReady != undefined) {
+                        onReady();
+                    }
+                }
+
+                if (state >= 2) {
                     clearInterval(intervarId);
                 }
+
 
             }, INTERVAL_TIME_SDP);
     };
@@ -112,7 +121,7 @@ exports.WebRtcController = function () {
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
-    that.addPublisher = function (from, sdp, callback) {
+    that.addPublisher = function (from, sdp, callback, onReady) {
 
         if (publishers[from] === undefined) {
 
@@ -128,7 +137,7 @@ exports.WebRtcController = function () {
             wrtc.setVideoReceiver(muxer);
             muxer.setPublisher(wrtc);
 
-            initWebRtcConnection(wrtc, sdp, callback);
+            initWebRtcConnection(wrtc, sdp, callback, onReady);
 
             //console.log('Publishers: ', publishers);
             //console.log('Subscribers: ', subscribers);

@@ -160,22 +160,32 @@ namespace erizo {
   int WebRtcConnection::deliverVideoData(char* buf, int len) {
     boost::mutex::scoped_lock lock(receiveAudioMutex_);
     rtpheader *head = (rtpheader*) buf;
+    
     if (head->payloadtype == RED_90000_PT) {
-      redheader *redhead = (redheader*) (buf + 12);
+      int totalLength = 12;
+    
+      if (head->extension) {
+        totalLength += ntohs(head->extensionlength)*4 + 4; // RTP Extension header
+      }
+      int rtpHeaderLength = totalLength;
+      redheader *redhead = (redheader*) (buf + totalLength);
 
       //redhead->payloadtype = remoteSdp_.inOutPTMap[redhead->payloadtype];
       if (!remoteSdp_.supportPayloadType(head->payloadtype)) {
+        while (redhead->follow) {
+          totalLength += redhead->getLength() + 4; // RED header
+          redhead = (redheader*) (buf + totalLength);
+        }
         // Parse RED packet to VP8 packet.
-        // Copy header
-        memcpy(deliverMediaBuffer_, buf, 12);
+        // Copy RTP header
+        memcpy(deliverMediaBuffer_, buf, rtpHeaderLength);
         // Copy payload data
-        memcpy(deliverMediaBuffer_ + 12, buf + 12 + 1, len - 12 - 1);
+        memcpy(deliverMediaBuffer_ + totalLength, buf + totalLength + 1, len - totalLength - 1);
         // Copy payload type
         rtpheader *mediahead = (rtpheader*) deliverMediaBuffer_;
         mediahead->payloadtype = redhead->payloadtype;
         buf = deliverMediaBuffer_;
-        len = len - 1;
-        //printf("Changing RED to VP8 - PT(%u) - F(%d)\n", redhead->payloadtype, redhead->follow);
+        len = len - 1 - totalLength + rtpHeaderLength;
       }
     }
     writeSsrc(buf, len, this->getVideoSinkSSRC());
@@ -194,8 +204,6 @@ namespace erizo {
     } else {
       chead->ssrc=htonl(this->getAudioSinkSSRC());
     }
-
-    printf("Feedback %d - %u - %u\n", chead->packettype, ntohl(chead->ssrc), ntohl(chead->ssrcsource));
 
     if (bundle_){
       if (videoTransport_ != NULL) {
@@ -260,6 +268,7 @@ namespace erizo {
           if (this->getAudioSourceSSRC() == 0) {
             printf("Audio Source SSRC is %d\n", ntohl(head->ssrc));
             this->setAudioSourceSSRC(ntohl(head->ssrc));
+            this->updateState(TRANSPORT_READY, transport);
           }
           head->ssrc = htonl(this->getAudioSinkSSRC());
           audioSink_->deliverAudioData(buf, length);
@@ -271,6 +280,7 @@ namespace erizo {
           if (this->getVideoSourceSSRC() == 0) {
             printf("Video Source SSRC is %d\n", ntohl(head->ssrc));
             this->setVideoSourceSSRC(ntohl(head->ssrc));
+            this->updateState(TRANSPORT_READY, transport);
           }
 
           head->ssrc = htonl(this->getVideoSinkSSRC());
@@ -347,11 +357,15 @@ namespace erizo {
     if (state == TRANSPORT_READY &&
       (!remoteSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_READY)) &&
       (!remoteSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_READY))) {
+      if ((!remoteSdp_.hasAudio || this->getAudioSourceSSRC() != 0) &&
+          (!remoteSdp_.hasVideo || this->getVideoSourceSSRC() != 0)) {
+        temp = READY;
+      }
 
-      temp = READY;
+      
     }
 
-    if (transport == videoTransport_ && bundle_) {
+    if (transport != NULL && transport == videoTransport_ && bundle_) {
       if (state == TRANSPORT_STARTED) {
           videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
           temp = STARTED;
