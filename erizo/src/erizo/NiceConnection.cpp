@@ -183,8 +183,11 @@ NiceConnection::~NiceConnection() {
 		this->close();
 	if (agent_!=NULL){
 		g_object_unref(agent_);
-    agent_ = NULL;
-  }
+    	agent_ = NULL;
+  	}
+  	if (loop_ != NULL) {
+  		g_main_loop_unref (loop_);
+  	}
 	if (localCandidates!=NULL)
 		delete localCandidates;
 	if (transportName!=NULL)
@@ -227,13 +230,16 @@ void NiceConnection::init() {
 	this->updateIceState(NICE_INITIAL);
 
 	g_type_init();
-
-	//loop_ =  g_main_loop_new(g_main_context_new(), FALSE);
-	loop_ =  g_main_loop_new(NULL, FALSE);
+	printf("Creating Main Context\n");
+	context_ = g_main_context_new();
+	printf("Creating Main Loop\n");
+	loop_ =  g_main_loop_new(context_, FALSE);
+	printf("Creating Agent\n");
+	//loop_ =  g_main_loop_new(NULL, FALSE);
 //	nice_debug_enable( TRUE );
 	// Create a nice agent
-	agent_ = nice_agent_new(g_main_loop_get_context(loop_),
-		NICE_COMPATIBILITY_RFC5245);
+	//agent_ = nice_agent_new(g_main_loop_get_context(loop_), NICE_COMPATIBILITY_RFC5245);
+	agent_ = nice_agent_new(context_, NICE_COMPATIBILITY_RFC5245);
 	GValue controllingMode = { 0 };
 	g_value_init(&controllingMode, G_TYPE_BOOLEAN);
 	g_value_set_boolean(&controllingMode, false);
@@ -268,10 +274,10 @@ void NiceConnection::init() {
 //	nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)51000, (guint)52000);
 
 	nice_agent_gather_candidates(agent_, 1);
-	nice_agent_attach_recv(agent_, 1, 1, g_main_loop_get_context(loop_),
+	nice_agent_attach_recv(agent_, 1, 1, context_,
 			cb_nice_recv, this);
 	if (iceComponents_ > 1) {
-		nice_agent_attach_recv(agent_, 1, 2, g_main_loop_get_context(loop_),
+		nice_agent_attach_recv(agent_, 1, 2, context_,
 			cb_nice_recv, this);
 	}
 

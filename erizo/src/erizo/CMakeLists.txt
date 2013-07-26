@@ -41,6 +41,7 @@ test_lib(${SRTP})
 # NICE
 find_library(NICE nice)
 test_lib(${NICE})
+set (NICE /usr/local/lib/libnice.so)
 
 # GTHREAD
 find_library(GTHREAD gthread-2.0)

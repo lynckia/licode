@@ -48,9 +48,7 @@ namespace erizo {
 				printf("Updating transport state to %d\n", state);
 				state_ = state;
 				if (transpListener_ != NULL) {
-					printf("Updating transport state to %p\n", transpListener_);
 					transpListener_->updateState(state, this);
-					printf("Updating transport state to %d\n", state);
 				}
 			}
 			NiceConnection* getNiceConnection() {

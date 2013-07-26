@@ -30,9 +30,9 @@ namespace erizo {
 
     std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      memset(sendAudioBuffer_, 0, len);
-      memcpy(sendAudioBuffer_, buf, len);
-      (*it).second->deliverAudioData(sendAudioBuffer_, len);
+      //memset(sendAudioBuffer_, 0, len);
+      //memcpy(sendAudioBuffer_, buf, len);
+      (*it).second->deliverAudioData(buf, len);
     }
 
     return 0;
@@ -54,10 +54,10 @@ namespace erizo {
     std::map<std::string, MediaSink*>::iterator it;
     //printf("Sending video data to subscribers of %u\n", publisher->getVideoSourceSSRC());
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      memset(sendVideoBuffer_, 0, len);
-      memcpy(sendVideoBuffer_, buf, len);
+      //memset(sendVideoBuffer_, 0, len);
+      //memcpy(sendVideoBuffer_, buf, len);
       //printf(" Subscriber %u\n", (*it).second->getVideoSinkSSRC());
-      (*it).second->deliverVideoData(sendVideoBuffer_, len);
+      (*it).second->deliverVideoData(buf, len);
     }
     sentPackets_++;
     return 0;

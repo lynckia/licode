@@ -14,6 +14,8 @@
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainLoop GMainLoop;
+typedef struct _GMainContext GMainContext;
+
 
 namespace erizo {
 //forward declarations
@@ -112,6 +114,7 @@ private:
 	NiceAgent* agent_;
 	NiceConnectionListener* listener_;
 	GMainLoop* loop_;
+	GMainContext* context_;
 	boost::thread m_Thread_;
   	unsigned int iceComponents_;
   	std::map <uint, IceState> comp_state_list;

@@ -42,6 +42,7 @@ namespace erizo {
     vp8.payloadType = VP8_90000_PT;
     vp8.encodingName = "VP8";
     vp8.clockRate = 90000;
+    vp8.channels = 1;
     vp8.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(vp8);
 
@@ -49,6 +50,7 @@ namespace erizo {
     ulpfec.payloadType = ULP_90000_PT;
     ulpfec.encodingName = "ulpfec";
     ulpfec.clockRate = 90000;
+    ulpfec.channels = 1;
     ulpfec.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(ulpfec);
 
@@ -56,6 +58,7 @@ namespace erizo {
     red.payloadType = RED_90000_PT;
     red.encodingName = "red";
     red.clockRate = 90000;
+    red.channels = 1;
     red.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(red);
 
@@ -63,13 +66,15 @@ namespace erizo {
     opus.payloadType = OPUS_48000_PT;
     opus.encodingName = "opus";
     opus.clockRate = 48000;
+    opus.channels = 2;
     opus.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(opus);
-
+/*
     RtpMap isac16;
     isac16.payloadType = ISAC_16000_PT;
     isac16.encodingName = "ISAC";
     isac16.clockRate = 16000;
+    isac16.channels = 1;
     isac16.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(isac16);
 
@@ -77,6 +82,7 @@ namespace erizo {
     isac32.payloadType = ISAC_32000_PT;
     isac32.encodingName = "ISAC";
     isac32.clockRate = 32000;
+    isac32.channels = 1;
     isac32.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(isac32);
 
@@ -84,6 +90,7 @@ namespace erizo {
     pcmu.payloadType = PCMU_8000_PT;
     pcmu.encodingName = "PCMU";
     pcmu.clockRate = 8000;
+    pcmu.channels = 1;
     pcmu.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(pcmu);
 
@@ -91,6 +98,7 @@ namespace erizo {
     pcma.payloadType = PCMA_8000_PT;
     pcma.encodingName = "PCMA";
     pcma.clockRate = 8000;
+    pcma.channels = 1;
     pcma.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(pcma);
 
@@ -98,6 +106,7 @@ namespace erizo {
     cn8.payloadType = CN_8000_PT;
     cn8.encodingName = "CN";
     cn8.clockRate = 8000;
+    cn8.channels = 1;
     cn8.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(cn8);
 
@@ -105,6 +114,7 @@ namespace erizo {
     cn16.payloadType = CN_16000_PT;
     cn16.encodingName = "CN";
     cn16.clockRate = 16000;
+    cn16.channels = 1;
     cn16.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(cn16);
 
@@ -112,6 +122,7 @@ namespace erizo {
     cn32.payloadType = CN_32000_PT;
     cn32.encodingName = "CN";
     cn32.clockRate = 32000;
+    cn32.channels = 1;
     cn32.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(cn32);
 
@@ -119,13 +130,15 @@ namespace erizo {
     cn48.payloadType = CN_48000_PT;
     cn48.encodingName = "CN";
     cn48.clockRate = 48000;
+    cn48.channels = 1;
     cn48.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(cn48);
-
+*/
     RtpMap telephoneevent;
     telephoneevent.payloadType = TEL_8000_PT;
     telephoneevent.encodingName = "telephone-event";
     telephoneevent.clockRate = 8000;
+    telephoneevent.channels = 1;
     telephoneevent.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(telephoneevent);
 
@@ -238,10 +251,20 @@ namespace erizo {
 
       for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
         const RtpMap& rtp = internalPayloadVector_[it];
-        if (rtp.mediaType==AUDIO_TYPE)
-          sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
-            << rtp.clockRate <<"\n";
+        if (rtp.mediaType==AUDIO_TYPE) {
+          if (rtp.channels>1) {
+            sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
+              << rtp.clockRate << "/" << rtp.channels << endl;
+          } else {
+            sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
+              << rtp.clockRate << endl;
+          }
+          if(rtp.encodingName == "opus"){
+            sdp << "a=fmtp:"<< rtp.payloadType<<" minptime=10\n";
+          }
+        }
       }
+      sdp << "a=maxptime:60" << endl;
       sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<
         "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl<<
         "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl<<
