@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 find_package(PkgConfig)
 #functions
 function(test_lib LIB_NAME)
- if (${LIB_NAME} MATCHES "^.*-NOTFOUND")
-  message(FATAL_ERROR "lib not found: " ${LIB_NAME} " check README")
-  return()
- endif(${LIB_NAME} MATCHES "^.*-NOTFOUND")
+  if (${LIB_NAME} MATCHES "^.*-NOTFOUND")
+    message(FATAL_ERROR "lib not found: " ${LIB_NAME} " check README")
+    return()
+  endif(${LIB_NAME} MATCHES "^.*-NOTFOUND")
 endfunction(test_lib)
 project (ERIZO)
 
@@ -39,9 +39,13 @@ find_library(SRTP srtp)
 test_lib(${SRTP})
 
 # NICE
-find_library(NICE nice)
-test_lib(${NICE})
-set (NICE /usr/local/lib/libnice.so)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  find_library(NICE nice)
+  test_lib(${NICE})
+  set (OperatingSystem "Mac OS X")
+else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set (NICE /usr/local/lib/libnice.so)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 
 # GTHREAD
 find_library(GTHREAD gthread-2.0)
