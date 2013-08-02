@@ -117,7 +117,7 @@ private:
 	GMainContext* context_;
 	boost::thread m_Thread_;
   	unsigned int iceComponents_;
-  	std::map <uint, IceState> comp_state_list;
+  	std::map <unsigned int, IceState> comp_state_list;
 };
 
 } /* namespace erizo */
