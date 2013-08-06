@@ -91,7 +91,7 @@ public:
 	int deliverVideoData(char* buf, int len);
 
 	int unpackageVideo(unsigned char* inBuff, int inBuffLen,
-			unsigned char* outBuff, int* gotFrame);
+			unsigned char* outBuff, int* gotFrame, int* estimatedFps);
 
   void closeSink();
   void close();
@@ -100,6 +100,8 @@ private:
 
 	int audioDecoder;
 	int videoDecoder;
+
+  double lastVideoTs_;
 
 	MediaInfo mediaInfo;
 

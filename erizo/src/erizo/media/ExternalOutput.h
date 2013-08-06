@@ -52,6 +52,7 @@ namespace erizo{
       unsigned char* unpackagedBuffer_;
       int gotUnpackagedFrame_;
       int unpackagedSize_;
+      int prevEstimatedFps_;
 
 
       AVFormatContext *context_;

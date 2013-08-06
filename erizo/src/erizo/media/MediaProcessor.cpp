@@ -11,6 +11,7 @@ namespace erizo {
 
     audioDecoder = 0;
     videoDecoder = 0;
+    lastVideoTs_ = 0;
 
     audioUnpackager = 1;
     videoUnpackager = 1;
@@ -65,8 +66,9 @@ namespace erizo {
   }
   int InputProcessor::deliverVideoData(char* buf, int len) {
     if (videoUnpackager && videoDecoder) {
+      int estimatedFps=0;
       int ret = unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
-          unpackagedBuffer_, &gotUnpackagedFrame_);
+          unpackagedBuffer_, &gotUnpackagedFrame_, &estimatedFps);
       if (ret < 0)
         return 0;
       upackagedSize_ += ret;
@@ -242,7 +244,7 @@ namespace erizo {
   }
 
   int InputProcessor::unpackageVideo(unsigned char* inBuff, int inBuffLen,
-      unsigned char* outBuff, int *gotFrame) {
+      unsigned char* outBuff, int* gotFrame, int* estimatedFps) {
 
     if (videoUnpackager == 0) {
       printf("Unpackager not correctly initialized");
@@ -271,6 +273,13 @@ namespace erizo {
         (unsigned char*) &inBuff[inBuffOffset], l);
     memcpy(outBuff, parsed->data, parsed->dataLength);
     if (head->getMarker()) {
+      *estimatedFps = 0;
+      if (!lastVideoTs_){
+        lastVideoTs_ == head->getTimestamp();
+      }else{
+        *estimatedFps = 100000/(head->getTimestamp() - lastVideoTs_);
+      }
+      lastVideoTs_ = head->getTimestamp();
       *gotFrame = 1;
     }
     return parsed->dataLength;

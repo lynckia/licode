@@ -9,11 +9,13 @@
 
 namespace erizo {
   ExternalOutput::ExternalOutput(std::string outputUrl){
+    printf("Created ExternalOutput to %s\n", outputUrl.c_str());
     url = outputUrl;
     sinkfbSource_=NULL;
     unpackagedBuffer_ = NULL;
     audioSinkSSRC_ = 0;
     videoSinkSSRC_ = 0; 
+    prevEstimatedFps_ = 0;
 
   }
 
@@ -43,11 +45,12 @@ namespace erizo {
       videoCodecCtx_->codec_id = oformat_->video_codec;
       videoCodecCtx_->width = 640;
       videoCodecCtx_->height = 480;
-      videoCodecCtx_->time_base = (AVRational){1,24};
+      videoCodecCtx_->time_base = (AVRational){1,20};
       videoCodecCtx_->pix_fmt = PIX_FMT_YUV420P;
       if (oformat_->flags & AVFMT_GLOBALHEADER){
         videoCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
       }
+      oformat_->flags |= AVFMT_VARIABLE_FPS;
       context_->streams[0] = video_st;
       avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
       avformat_write_header(context_, NULL);
@@ -88,19 +91,27 @@ namespace erizo {
   }
 
   void ExternalOutput::receiveRawData(RawDataPacket& packet){
-    printf("rawdata received\n");
+//    printf("rawdata received\n");
     return;
   }
 
 
   int ExternalOutput::deliverAudioData(char* buf, int len){
-    printf("Deliver audio to EXTERNAL\n");
+//    printf("Deliver audio to EXTERNAL\n");
     return 0;
   }
+
   int ExternalOutput::deliverVideoData(char* buf, int len){
     if (in!=NULL){
+      int estimatedFps=0;
       int ret = in->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
-          unpackagedBuffer_, &gotUnpackagedFrame_);
+          unpackagedBuffer_, &gotUnpackagedFrame_, &estimatedFps);
+      //printf("Estimated FPS %d, previous %d\n", estimatedFps, prevEstimatedFps_);
+      if (estimatedFps!=0&&(estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2))){
+        //printf("OUT OF THRESHOLD changing context\n");
+        videoCodecCtx_->time_base = (AVRational){1,estimatedFps};
+        prevEstimatedFps_ = estimatedFps;
+      }
       if (ret < 0)
         return 0;
       unpackagedSize_ += ret;
