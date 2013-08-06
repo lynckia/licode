@@ -274,7 +274,7 @@ var listen = function () {
 
             socket.room.streams[options.streamId].addDataSubscriber(socket.id);
 
-            if (socket.room.streams[options.streamId].hasAudio() || socket.room.streams[options.streamId].hasVideo()) {
+            if (socket.room.streams[options.streamId].hasAudio() || socket.room.streams[options.streamId].hasVideo() || socket.room.streams[options.streamId].hasScreen()) {
                 socket.room.webRtcController.addSubscriber(socket.id, options.streamId, sdp, function (answer) {
                     answer = answer.replace(privateRegexp, publicIP);
                     callback(answer);
