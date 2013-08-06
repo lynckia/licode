@@ -284,7 +284,7 @@ Erizo.Room = function (spec) {
 
         if (!stream.local) {
 
-            if (stream.hasVideo() || stream.hasAudio()) {
+            if (stream.hasVideo() || stream.hasAudio() ||stream.hasScreen()) {
                 // 1- Subscribe to Stream
                 stream.pc = Erizo.Connection({callback: function (offer) {
                     sendSDPSocket('subscribe', {streamId: stream.getID()}, offer, function (answer) {
