@@ -9,6 +9,7 @@
 #include <string>
 
 #include "MediaDefinitions.h"
+#include "media/ExternalOutput.h"
 
 namespace erizo{
 
@@ -59,6 +60,7 @@ private:
 	unsigned int sentPackets_;
   std::string rtcpReceiverPeerId_;
   FeedbackSink* feedbackSink_;
+  ExternalOutput* recorder_;
 };
 
 } /* namespace erizo */
