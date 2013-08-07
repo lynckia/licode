@@ -189,7 +189,12 @@ var listen = function () {
                             room.sockets = [];
                             room.sockets.push(socket.id);
                             room.streams = {}; //streamId: Stream
-                            room.webRtcController = new controller.WebRtcController();
+                            if (tokenDB.p2p) {
+                                console.log('Token of p2p room');
+                                room.p2p = true;
+                            } else {
+                                room.webRtcController = new controller.WebRtcController();
+                            }
                             rooms[tokenDB.room] = room;
                             updateMyState();
                         } else {
