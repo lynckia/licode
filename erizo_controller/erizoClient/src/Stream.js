@@ -101,7 +101,7 @@ Erizo.Stream = function (spec) {
 
     that.show = function (elementID, options) {
         that.elementID = elementID;
-        if (that.hasVideo()) {
+        if (that.hasVideo() || this.hasScreen()) {
             // Draw on HTML
             if (elementID !== undefined) {
                 var player = new Erizo.VideoPlayer({id: that.getID(), stream: that, elementID: elementID, options: options});
