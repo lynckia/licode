@@ -34,6 +34,7 @@ namespace erizo{
       VideoDecoder inCodec_;
       unsigned char* decodedBuffer_;
       char* sendVideoBuffer_;
+      bool initContext();
       void encodeLoop();
 
       std::string url;
@@ -53,6 +54,7 @@ namespace erizo{
       int gotUnpackagedFrame_;
       int unpackagedSize_;
       int prevEstimatedFps_;
+      int warmupfpsCount_;
 
 
       AVFormatContext *context_;

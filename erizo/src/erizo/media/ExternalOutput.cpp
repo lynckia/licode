@@ -15,47 +15,25 @@ namespace erizo {
     unpackagedBuffer_ = NULL;
     audioSinkSSRC_ = 0;
     videoSinkSSRC_ = 0; 
+    videoCodec_ = NULL;;
     prevEstimatedFps_ = 0;
-
+    warmupfpsCount_ = 0;
   }
 
   bool ExternalOutput::init(){
+    printf("externalouput init begin\n");
     av_register_all();
     avcodec_register_all();
     context_ = avformat_alloc_context();
     oformat_ = av_guess_format(NULL,  url.c_str(), NULL);
     if (!oformat_){
-      printf("Error opening output file %s", url.c_str());
+      printf("Error opening output file %s\n", url.c_str());
       return false;
     }
     context_->oformat = oformat_;
     url.copy(context_->filename, sizeof(context_->filename),0);
     video_st = NULL;
     audio_st = NULL;
-    if (oformat_->video_codec != AV_CODEC_ID_NONE) {
-      videoCodec_ = avcodec_find_encoder(oformat_->video_codec);
-      printf("Found Codec %s\n", videoCodec_->name);
-      if (videoCodec_==NULL){
-        printf("Could not find codec\n");
-        return false;
-      }
-      video_st = avformat_new_stream (context_, videoCodec_);
-      video_st->id = 0;
-      videoCodecCtx_ = video_st->codec;
-      videoCodecCtx_->codec_id = oformat_->video_codec;
-      videoCodecCtx_->width = 640;
-      videoCodecCtx_->height = 480;
-      videoCodecCtx_->time_base = (AVRational){1,20};
-      videoCodecCtx_->pix_fmt = PIX_FMT_YUV420P;
-      if (oformat_->flags & AVFMT_GLOBALHEADER){
-        videoCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
-      }
-      oformat_->flags |= AVFMT_VARIABLE_FPS;
-      context_->streams[0] = video_st;
-      avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
-      avformat_write_header(context_, NULL);
-      printf("AVFORMAT CONFIGURED\n");
-    }
     in = new InputProcessor();
     MediaInfo m;
     //    m.processorType = RTP_ONLY;
@@ -69,6 +47,7 @@ namespace erizo {
     gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
     in->init(m, this);
+    printf("externalouput init end\n");
     return true;
   }
 
@@ -107,16 +86,20 @@ namespace erizo {
       int ret = in->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedBuffer_, &gotUnpackagedFrame_, &estimatedFps);
       //printf("Estimated FPS %d, previous %d\n", estimatedFps, prevEstimatedFps_);
-      if (estimatedFps!=0&&(estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2))){
-        //printf("OUT OF THRESHOLD changing context\n");
-        videoCodecCtx_->time_base = (AVRational){1,estimatedFps};
-        prevEstimatedFps_ = estimatedFps;
+      if (videoCodec_ == NULL) {
+        if (estimatedFps!=0&&(estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2))){
+          //printf("OUT OF THRESHOLD changing context\n");
+          prevEstimatedFps_ = estimatedFps;          
+        }
+        if (warmupfpsCount_++ >10){
+          this->initContext();
+        }
       }
       if (ret < 0)
         return 0;
       unpackagedSize_ += ret;
       unpackagedBuffer_ += ret;
-      if (gotUnpackagedFrame_) {
+      if (gotUnpackagedFrame_ && videoCodec_!=NULL) {
         unpackagedBuffer_ -= unpackagedSize_;
         AVPacket avpkt;
         av_init_packet(&avpkt);
@@ -130,6 +113,36 @@ namespace erizo {
       }
     }
     return 0;
+  }
+
+  bool ExternalOutput::initContext() {
+    printf("Init Context\n");
+    if (oformat_->video_codec != AV_CODEC_ID_NONE && videoCodec_ == NULL) {
+      videoCodec_ = avcodec_find_encoder(oformat_->video_codec);
+      printf("Found Codec %s\n", videoCodec_->name);
+      printf("Initing context with fps: %d\n", (int)prevEstimatedFps_);
+      if (videoCodec_==NULL){
+        printf("Could not find codec\n");
+        return false;
+      }
+      video_st = avformat_new_stream (context_, videoCodec_);
+      video_st->id = 0;
+      videoCodecCtx_ = video_st->codec;
+      videoCodecCtx_->codec_id = oformat_->video_codec;
+      videoCodecCtx_->width = 640;
+      videoCodecCtx_->height = 480;
+      videoCodecCtx_->time_base = (AVRational){1,(int)prevEstimatedFps_};
+      videoCodecCtx_->pix_fmt = PIX_FMT_YUV420P;
+      if (oformat_->flags & AVFMT_GLOBALHEADER){
+        videoCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
+      }
+      oformat_->flags |= AVFMT_VARIABLE_FPS;
+      context_->streams[0] = video_st;
+      avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
+      avformat_write_header(context_, NULL);
+      printf("AVFORMAT CONFIGURED\n");
+    }
+
   }
 
   void ExternalOutput::encodeLoop() {
