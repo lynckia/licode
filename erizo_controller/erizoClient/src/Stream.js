@@ -56,7 +56,7 @@ Erizo.Stream = function (spec) {
     // We need to call this method before we can publish it in the room.
     that.init = function () {
         try {
-            if (spec.audio || spec.video) {
+            if (spec.audio || spec.video || spec.screen) {
                 L.Logger.debug("Requested access to local media");
                 var opt = {video: spec.video, audio: spec.audio};
                 if (spec.screen) {
@@ -101,7 +101,7 @@ Erizo.Stream = function (spec) {
 
     that.show = function (elementID, options) {
         that.elementID = elementID;
-        if (that.hasVideo()) {
+        if (that.hasVideo() || this.hasScreen()) {
             // Draw on HTML
             if (elementID !== undefined) {
                 var player = new Erizo.VideoPlayer({id: that.getID(), stream: that, elementID: elementID, options: options});

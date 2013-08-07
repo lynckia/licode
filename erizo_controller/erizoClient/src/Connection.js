@@ -20,8 +20,8 @@ Erizo.Connection = function (spec) {
         // Firefox
         that.browser = "mozilla";
         that = Erizo.FirefoxStack(spec);
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "26" ||
-               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "27") {
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "27" ||
+               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "28") {
         // Google Chrome Stable.
         console.log("Stable!");
         that = Erizo.ChromeStableStack(spec);
