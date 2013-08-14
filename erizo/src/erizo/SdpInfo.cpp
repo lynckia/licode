@@ -87,7 +87,7 @@ namespace erizo {
             << " RTP/" << (profile==SAVPF?"SAVPF ":"AVPF ");// << "103 104 0 8 106 105 13 126\n"
           for (unsigned int it =0; it<payloadVector_.size(); it++){
             const RtpMap& payload_info = payloadVector_[it];
-            if (payload_info.mediaType == AUDIO_TYPE)
+            if (payload_info.mediaType == AUDIO_TYPE && payload_info.payloadType == 0)
               sdp << payload_info.payloadType <<" ";
 
           }
@@ -128,7 +128,7 @@ namespace erizo {
 
       for (unsigned int it = 0; it < payloadVector_.size(); it++) {
         const RtpMap& rtp = payloadVector_[it];
-        if (rtp.mediaType==AUDIO_TYPE)
+        if (rtp.mediaType==AUDIO_TYPE && rtp.payloadType == 0)
           sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
             << rtp.clockRate <<"\n";
       }
