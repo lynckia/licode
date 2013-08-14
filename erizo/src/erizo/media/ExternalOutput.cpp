@@ -38,7 +38,7 @@ namespace erizo {
     MediaInfo m;
     //    m.processorType = RTP_ONLY;
     m.hasVideo = false;
-    m.hasAudio = true;
+    m.hasAudio = false;
     if (m.hasAudio) {
       m.audioCodec.sampleRate = 8000;
       m.audioCodec.bitRate = 64000;
