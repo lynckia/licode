@@ -43,8 +43,6 @@ namespace erizo{
       boost::thread thread_, encodeThread_;
       std::queue<RawDataPacket> packetQueue_;
       AVStream        *video_st, *audio_st;
-      AVPacket        _packet;
-      AVDictionary    *_optionsDict;
       
       AudioEncoder* audioCoder_;
       unsigned char* unpackagedBuffer_;

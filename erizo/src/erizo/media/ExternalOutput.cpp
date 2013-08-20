@@ -18,6 +18,8 @@ namespace erizo {
     videoSinkSSRC_ = 0; 
     videoCodec_ = NULL;
     audioCodec_ = NULL;
+    video_st = NULL;
+    audio_st = NULL;
     audioCoder_ = NULL;
     prevEstimatedFps_ = 0;
     warmupfpsCount_ = 0;
@@ -72,6 +74,13 @@ namespace erizo {
     if (context_!=NULL){
       av_write_trailer(context_);
       avformat_free_context(context_);
+    }
+    //avcodec_close() and avformat_free_context()
+    if (videoCodec_!=NULL){
+      avcodec_close(videoCodecCtx_);
+    }
+    if (audioCodec_!=NULL){
+      avcodec_close(audioCodecCtx_);
     }
     if (unpackagedBuffer_ !=NULL){
       free(unpackagedBuffer_);
