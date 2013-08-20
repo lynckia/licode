@@ -15,7 +15,7 @@ namespace erizo {
       switch (codec)
       {
         case AUDIO_CODEC_PCM_U8: return AV_CODEC_ID_PCM_U8;
-        case AUDIO_CODEC_VORBIS: return AV_CODEC_ID_VORBIS;
+        case AUDIO_CODEC_VORBIS: printf("VORBIS\n");return AV_CODEC_ID_VORBIS;
         default: printf("Unknown Audio codec\n"); return AV_CODEC_ID_PCM_U8;
       }
     }
@@ -32,7 +32,9 @@ namespace erizo {
   }
 
   int AudioEncoder::initEncoder (const AudioCodecInfo& mediaInfo){
-    aCoder_ = avcodec_find_encoder(static_cast<AVCodecID>(mediaInfo.codec));
+
+    printf("Init audioEncoder begin\n");
+    aCoder_ = avcodec_find_encoder(AudioCodecID2ffmpegDecoderID(mediaInfo.codec));
     if (!aCoder_) {
       printf("Audio Codec not found\n");
       return false;
@@ -44,16 +46,18 @@ namespace erizo {
       return false;
     }
 
-    aCoderContext_->sample_fmt = AV_SAMPLE_FMT_S16;
-    aCoderContext_->bit_rate = mediaInfo.bitRate;
-    aCoderContext_->sample_rate = mediaInfo.sampleRate;
+    aCoderContext_->sample_fmt = AV_SAMPLE_FMT_FLT;
+    //aCoderContext_->bit_rate = mediaInfo.bitRate;
+    aCoderContext_->sample_rate = 8 /*mediaInfo.sampleRate*/;
     aCoderContext_->channels = 1;
-
-    if (avcodec_open2(aCoderContext_, aCoder_, NULL) < 0) {
-      printf("Error al abrir el coder de audio");
-      return false;
+    char errbuff[500];
+    int res = avcodec_open2(aCoderContext_, aCoder_, NULL);
+    if(res != 0){
+      av_strerror(res, (char*)(&errbuff), 500);
+      printf("fail when opening input %s\n", errbuff);
+      exit(res);
     }
-
+    printf("Init audioEncoder end\n");
   }
 
   int AudioEncoder::encodeAudio (unsigned char* inBuffer, int nSamples, 
@@ -150,7 +154,7 @@ namespace erizo {
     aDecoderContext_->channels = 1;
 
     if (avcodec_open2(aDecoderContext_, aDecoder_, NULL) < 0) {
-      printf("Error al abrir el decoder de audio\n");
+      printf("Error opening audio decoder\n");
       exit(0);
       return false;
     }
