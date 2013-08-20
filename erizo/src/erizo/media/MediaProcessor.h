@@ -93,6 +93,9 @@ public:
 	int unpackageVideo(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff, int* gotFrame, int* estimatedFps);
 
+	int unpackageAudio(unsigned char* inBuff, int inBuffLen,
+			unsigned char* outBuff);
+
   void closeSink();
   void close();
 
@@ -140,9 +143,6 @@ private:
 	bool initVideoUnpackager();
 
 	int decodeAudio(unsigned char* inBuff, int inBuffLen,
-			unsigned char* outBuff);
-
-	int unpackageAudio(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);
 
 };

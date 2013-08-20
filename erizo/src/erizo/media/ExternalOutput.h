@@ -6,6 +6,7 @@
 #include <queue>
 #include "../MediaDefinitions.h"
 #include "codecs/VideoCodec.h"
+#include "codecs/AudioCodec.h"
 #include "MediaProcessor.h"
 #include "boost/thread.hpp"
 
@@ -31,7 +32,6 @@ namespace erizo{
 
     private:
       OutputProcessor* op_;
-      VideoDecoder inCodec_;
       unsigned char* decodedBuffer_;
       char* sendVideoBuffer_;
       bool initContext();
@@ -42,15 +42,13 @@ namespace erizo{
 	    boost::mutex queueMutex_;
       boost::thread thread_, encodeThread_;
       std::queue<RawDataPacket> packetQueue_;
-      AVFormatContext *_formatCtx;
-      AVCodecContext  *_codecCtx;
-      AVCodec         *_codec;
-      AVFrame         *_frame;
       AVStream        *video_st, *audio_st;
       AVPacket        _packet;
       AVDictionary    *_optionsDict;
-
+      
+      AudioEncoder* audioCoder_;
       unsigned char* unpackagedBuffer_;
+      unsigned char* unpackagedAudioBuffer_;
       int gotUnpackagedFrame_;
       int unpackagedSize_;
       int prevEstimatedFps_;
@@ -59,8 +57,8 @@ namespace erizo{
 
       AVFormatContext *context_;
       AVOutputFormat *oformat_;
-      AVCodec *videoCodec_; 
-      AVCodecContext *videoCodecCtx_;
+      AVCodec *videoCodec_, *audioCodec_; 
+      AVCodecContext *videoCodecCtx_, *audioCodecCtx_;
       InputProcessor *in;
     
 

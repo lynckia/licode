@@ -65,7 +65,7 @@ namespace erizo {
     printf("SET PUBLISHER\n");
     this->publisher = webRtcConn;
     feedbackSink_ = publisher->getFeedbackSink();
-    recorder_ = new ExternalOutput("/tmp/prueba.webm");
+    recorder_ = new ExternalOutput("/tmp/prueba.mkv");
     recorder_->init();
     this->addSubscriber(recorder_,"1");
   }
