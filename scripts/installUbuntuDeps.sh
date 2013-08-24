@@ -12,6 +12,7 @@ install_apt_deps(){
   sudo apt-get update
   sudo apt-get install curl git make gcc g++ libssl-dev cmake libnice10 libnice-dev libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev rabbitmq-server mongodb openjdk-6-jre curl
   sudo npm install -g node-gyp
+  sudo chown -R `whoami` ~/.npm ~/tmp/
 }
 
 install_openssl(){
