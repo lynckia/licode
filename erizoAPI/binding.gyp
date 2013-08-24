@@ -11,7 +11,7 @@
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',        # -fno-exceptions
               'GCC_ENABLE_CPP_RTTI': 'YES',              # -fno-rtti
               'OTHER_CFLAGS': [
-              '-g -O3',
+              '-g -O3'
             ],
           },
         }, { # OS!="mac"

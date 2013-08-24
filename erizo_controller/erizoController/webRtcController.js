@@ -1,6 +1,6 @@
 /*global require, exports, console, setInterval, clearInterval*/
 
-var addon = require('./../../erizoAPI/build/Release/addon');
+var addon = require('./../../erizoAPI/build/Debug/addon');
 var config = require('./../../licode_config');
 
 exports.WebRtcController = function () {

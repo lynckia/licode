@@ -12,7 +12,7 @@ Erizo.ChromeStableStack = function (spec) {
         "iceServers": []
     };
 
-    that.con = undefined; //{'optional': [{'DtlsSrtpKeyAgreement': 'true'}]};
+    that.con = {'optional': [{'DtlsSrtpKeyAgreement': 'true'}]};
 
     if (spec.stunServerUrl !== undefined) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});

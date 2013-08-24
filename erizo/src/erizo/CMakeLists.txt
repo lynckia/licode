@@ -16,7 +16,7 @@ set(ERIZO_VERSION_MINOR 1)
 set(CMAKE_CXX_FLAGS "-g -Wall")
 
 set(SSL_DIR /usr/local/ssl)
-set(SSL_INCLUDE_DIR ${SSL_DIR}/include)
+set(SSL_INCLUDE_DIR ${SSL_DIR}/include/openssl)
 
 include_directories(${ERIZO_SOURCE_DIR} ${SSL_INCLUDE_DIR})
 
@@ -52,5 +52,5 @@ find_library(GTHREAD gthread-2.0)
 test_lib(${GTHREAD})
 
 # OPENSSL
-set(SSL ${SSL_DIR}/lib/libssl.a ${SSL_DIR}/lib/libcrypto.a)
-target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL})
+set(SSL_LIB ${SSL_DIR}/lib/libssl.a ${SSL_DIR}/lib/libcrypto.a)
+target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL_LIB})
