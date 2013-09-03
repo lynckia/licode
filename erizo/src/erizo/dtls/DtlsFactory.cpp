@@ -224,7 +224,7 @@ DtlsFactory::DtlsFactory()
     mTimerContext = std::auto_ptr<TestTimerContext>(new TestTimerContext());
 
 
-    cout << "Created the factories\n";
+    cout << "Creating Dtls factory\n";
 
     int r;
     mContext=SSL_CTX_new(DTLSv1_client_method());
@@ -243,11 +243,16 @@ DtlsFactory::DtlsFactory()
     SSL_CTX_set_verify(mContext, SSL_VERIFY_PEER |SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
                      SSLVerifyCallback);
 
-    SSL_CTX_set_session_cache_mode(mContext, SSL_SESS_CACHE_OFF);
-    SSL_CTX_set_options(mContext, SSL_OP_NO_TICKET);
+    //SSL_CTX_set_session_cache_mode(mContext, SSL_SESS_CACHE_OFF);
+    //SSL_CTX_set_options(mContext, SSL_OP_NO_TICKET);
     // Set SRTP profiles
     r=SSL_CTX_set_tlsext_use_srtp(mContext, DefaultSrtpProfile);
     assert(r==0);
+
+    SSL_CTX_set_verify_depth (mContext, 2);
+    SSL_CTX_set_read_ahead(mContext, 1);
+
+    cout << "Dtls factory created \n";
 }
 
 DtlsFactory::~DtlsFactory()

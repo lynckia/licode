@@ -161,6 +161,8 @@ void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
 	printf(
 			"cb_new_selected_pair for stream %u, comp %u, lfound %s, rfound %s \n",
 			stream_id, component_id, lfoundation, rfoundation);
+	NiceConnection *conn = (NiceConnection*) user_data;
+	conn->updateComponentState(component_id, NICE_READY);
 }
 
 NiceConnection::NiceConnection(MediaType med,

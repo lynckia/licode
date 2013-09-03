@@ -8,7 +8,6 @@ CURRENT_DIR=`pwd`
 echo $LD_LIBRARY_PATH
 
 cd $ROOT/erizoController
-#valgrind node erizoController.js &
 node erizoController.js &
 
 cd $CURRENT_DIR

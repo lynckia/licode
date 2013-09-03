@@ -47,11 +47,15 @@ DtlsSocket::DtlsSocket(std::auto_ptr<DtlsSocketContext> socketContext, DtlsFacto
    mSocketType(type),
    mHandshakeCompleted(false)
 {
+   printf("Creating Dtls Socket\n");
    mSocketContext->setDtlsSocket(this);
 
    assert(factory->mContext);
    mSsl=SSL_new(factory->mContext);
    assert(mSsl!=0);
+   printf("stats %ld\n", (long)mSsl->ctx);
+   mSsl->ctx = factory->mContext;
+   mSsl->session_ctx = factory->mContext;
 
    switch(type)
    {
@@ -76,6 +80,8 @@ DtlsSocket::DtlsSocket(std::auto_ptr<DtlsSocketContext> socketContext, DtlsFacto
    BIO_push(mOutBio,memBIO2);
 
    SSL_set_bio(mSsl,mInBio,mOutBio);
+   SSL_accept(mSsl);
+   printf("Dtls Socket created\n");
 }
 
 DtlsSocket::~DtlsSocket()
@@ -151,9 +157,11 @@ DtlsSocket::doHandshakeIteration()
    char errbuf[1024];
    int sslerr;
 
+   printf("SSL pointer %p\n", (void*)mSsl);
+
    if(mHandshakeCompleted)
       return;
-
+   
    r=SSL_do_handshake(mSsl);
    errbuf[0]=0;
    ERR_error_string_n(ERR_peek_error(),errbuf,sizeof(errbuf));
