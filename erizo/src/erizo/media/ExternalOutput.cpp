@@ -37,7 +37,7 @@ namespace erizo {
     }
     context_->oformat = oformat_;
     context_->oformat->video_codec = AV_CODEC_ID_VP8;
-    context_->oformat->audio_codec = AV_CODEC_ID_PCM_U8; 
+    context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW; 
     url.copy(context_->filename, sizeof(context_->filename),0);
     video_st = NULL;
     audio_st = NULL;
@@ -99,11 +99,11 @@ namespace erizo {
       if (videoCodec_ == NULL) {
         return 0;
       }
+      memset(unpackagedAudioBuffer_,0,15000);
       int ret = in->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedAudioBuffer_);
-      if (ret < 0)
+      if (ret <= 0)
         return 0;
-
       timeval time;
       gettimeofday(&time, NULL);
       long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
@@ -195,7 +195,7 @@ namespace erizo {
       audioCodecCtx_->codec_id = oformat_->audio_codec;
       audioCodecCtx_->sample_rate = 8000;
       audioCodecCtx_->channels = 1;
-      //audioCodecCtx_->sample_fmt = AV_SAMPLE_FMT_U8;
+//      audioCodecCtx_->sample_fmt = AV_SAMPLE_FMT_S8;
       if (oformat_->flags & AVFMT_GLOBALHEADER){
         audioCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
       }

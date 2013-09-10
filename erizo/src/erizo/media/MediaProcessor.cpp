@@ -35,7 +35,7 @@ namespace erizo {
           info.videoCodec.width * info.videoCodec.height * 3 / 2);
       unpackagedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
       if(!vDecoder.initDecoder(mediaInfo.videoCodec));
-        videoDecoder = 1; 
+      videoDecoder = 1; 
       if(!this->initVideoUnpackager());
     }
     if (mediaInfo.hasAudio) {
@@ -84,7 +84,7 @@ namespace erizo {
             decodedBuffer_,
             mediaInfo.videoCodec.width * mediaInfo.videoCodec.height * 3
             / 2, &gotDecodedFrame);
-        
+
         upackagedSize_ = 0;
         gotUnpackagedFrame_ = 0;
         printf("Bytes dec = %d\n", c);
@@ -172,8 +172,8 @@ namespace erizo {
       AVFrame frame;
       int got_frame = 0;
 
-//      aDecoderContext->get_buffer = avcodec_default_get_buffer;
-//      aDecoderContext->release_buffer = avcodec_default_release_buffer;
+      //      aDecoderContext->get_buffer = avcodec_default_get_buffer;
+      //      aDecoderContext->release_buffer = avcodec_default_release_buffer;
 
       len = avcodec_decode_audio4(aDecoderContext, &frame, &got_frame,
           &avpkt);
@@ -237,6 +237,14 @@ namespace erizo {
   int InputProcessor::unpackageAudio(unsigned char* inBuff, int inBuffLen,
       unsigned char* outBuff) {
 
+    RTPHeader* head = reinterpret_cast<RTPHeader*>(inBuff);
+    if (head->getPayloadType()!=0){
+      printf("PT AUDIO %d\n", head->getPayloadType());
+//      return -1;
+    }
+
+//    printf("Audio Timestamp %u\n", head->getTimestamp());
+
     int l = inBuffLen - RTPHeader::MIN_SIZE;
     memcpy(outBuff, &inBuff[RTPHeader::MIN_SIZE], l);
 
@@ -255,17 +263,18 @@ namespace erizo {
     *gotFrame = 0;
     RTPHeader* head = reinterpret_cast<RTPHeader*>(inBuff);
 
+//    printf("Video Timestamp %u\n", head->getTimestamp());
 
-//    printf("PT %d, ssrc %u, extension %d\n", head->getPayloadType(), head->getSSRC(),
-//        head->getExtension());
-//    if ( head->getSSRC() != 55543 /*&& head->payloadtype!=101*/) {
-//      return -1;
-//    }
+    //    printf("PT %d, ssrc %u, extension %d\n", head->getPayloadType(), head->getSSRC(),
+    //        head->getExtension());
+    //    if ( head->getSSRC() != 55543 /*&& head->payloadtype!=101*/) {
+    //      return -1;
+    //    }
     if (head->getPayloadType() != 100) {
       return -1;
     }
 
-//    printf("RTP header length: %d", head->getHeaderLength()); //Should include extensions
+    //    printf("RTP header length: %d", head->getHeaderLength()); //Should include extensions
     int l = inBuffLen - head->getHeaderLength();
     inBuffOffset+=head->getHeaderLength();
 
@@ -343,7 +352,7 @@ namespace erizo {
       this->initVideoPackager();
     }
     if (mediaInfo.hasAudio) {
-      
+
       printf("Init AUDIO processor\n");
       mediaInfo.audioCodec.codec = AUDIO_CODEC_PCM_U8;
       mediaInfo.audioCodec.sampleRate= 44100;
@@ -385,18 +394,18 @@ namespace erizo {
   void OutputProcessor::receiveRawData(RawDataPacket& packet) {
     int hasFrame = 0;
     if (packet.type == VIDEO) {
-//      printf("Encoding video: size %d\n", packet.length);
+      //      printf("Encoding video: size %d\n", packet.length);
       int a = vCoder.encodeVideo(packet.data, packet.length, encodedBuffer_,UNPACKAGED_BUFFER_SIZE,hasFrame);
       if (a > 0)
         int b = this->packageVideo(encodedBuffer_, a, packagedBuffer_);
     } else {
-//      int a = this->encodeAudio(packet.data, packet.length, &pkt);
-//      if (a > 0) {
-//        printf("GUAY a %d\n", a);
-//      }
+      //      int a = this->encodeAudio(packet.data, packet.length, &pkt);
+      //      if (a > 0) {
+      //        printf("GUAY a %d\n", a);
+      //      }
 
     }
-//    av_free_packet(&pkt);
+    //    av_free_packet(&pkt);
   }
 
   bool OutputProcessor::initAudioCoder() {
@@ -472,7 +481,7 @@ namespace erizo {
       return -1;
     }
 
-//    printf("To packetize %u\n", buffSize);
+    //    printf("To packetize %u\n", buffSize);
     if (buffSize <= 0)
       return -1;
     RtpVP8Fragmenter frag(inBuff, buffSize, 1100);
