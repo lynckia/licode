@@ -20,14 +20,14 @@ Erizo.Connection = function (spec) {
         // Firefox
         that.browser = "mozilla";
         that = Erizo.FirefoxStack(spec);
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "27" ||
-               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "28") {
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "28" ||
+               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "29") {
         // Google Chrome Stable.
         console.log("Stable!");
         that = Erizo.ChromeStableStack(spec);
         that.browser = "chrome-stable";
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "29" ||
-        window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "30") {
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "30" ||
+        window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "31") {
         // Google Chrome Canary.
         console.log("Canary!");
         that = Erizo.ChromeCanaryStack(spec);

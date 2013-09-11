@@ -19,6 +19,10 @@ N.API = (function (N) {
 
     createRoom = function (name, callback, callbackError, options, params) {
 
+        if (!options) {
+            options = {};
+        }
+
         send(function (roomRtn) {
             var room = JSON.parse(roomRtn);
             callback(room);

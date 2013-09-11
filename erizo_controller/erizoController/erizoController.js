@@ -189,7 +189,12 @@ var listen = function () {
                             room.sockets = [];
                             room.sockets.push(socket.id);
                             room.streams = {}; //streamId: Stream
-                            room.webRtcController = new controller.WebRtcController();
+                            if (tokenDB.p2p) {
+                                console.log('Token of p2p room');
+                                room.p2p = true;
+                            } else {
+                                room.webRtcController = new controller.WebRtcController();
+                            }
                             rooms[tokenDB.room] = room;
                             updateMyState();
                         } else {
@@ -209,7 +214,7 @@ var listen = function () {
                             }
                         }
 
-                        callback('success', {streams: streamList, id: socket.room.id, stunServerUrl: config.erizoController.stunServerUrl});
+                        callback('success', {streams: streamList, id: socket.room.id, p2p: socket.room.p2p, stunServerUrl: config.erizoController.stunServerUrl});
 
                     } else {
                         console.log('Invalid host');
@@ -238,7 +243,7 @@ var listen = function () {
         //Gets 'publish' messages on the socket in order to add new stream to the room.
         socket.on('publish', function (options, sdp, callback) {
             var id, st;
-            if (options.state !== 'data') {
+            if (options.state !== 'data' && !socket.room.p2p) {
                 if (options.state === 'offer' && socket.state === 'sleeping') {
                     id = Math.random() * 100000000000000000;
                     socket.room.webRtcController.addPublisher(id, sdp, function (answer) {
@@ -268,9 +273,13 @@ var listen = function () {
                         callback(result);
                     }
                 });
+            } else if (options.state === 'p2pSignaling') {
+                io.sockets.socket(options.subsSocket).emit('onPublishP2P', {sdp: sdp, streamId: options.streamId}, function(answer) {
+                    callback(answer);
+                });
             } else {
                 id = Math.random() * 100000000000000000;
-                st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
+                st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
                 socket.streams.push(id);
                 socket.room.streams[id] = st;
                 callback(undefined, id);
@@ -289,10 +298,19 @@ var listen = function () {
             socket.room.streams[options.streamId].addDataSubscriber(socket.id);
 
             if (socket.room.streams[options.streamId].hasAudio() || socket.room.streams[options.streamId].hasVideo() || socket.room.streams[options.streamId].hasScreen()) {
-                socket.room.webRtcController.addSubscriber(socket.id, options.streamId, sdp, function (answer) {
-                    answer = answer.replace(privateRegexp, publicIP);
-                    callback(answer);
-                });
+                
+                if (socket.room.p2p) {
+                    var s = socket.room.streams[options.streamId].getSocket();
+                    io.sockets.socket(s).emit('onSubscribeP2P', {streamId: options.streamId, subsSocket: socket.id}, function(offer) {
+                        callback(offer);
+                    });
+
+                } else {
+                    socket.room.webRtcController.addSubscriber(socket.id, options.streamId, sdp, function (answer) {
+                        answer = answer.replace(privateRegexp, publicIP);
+                        callback(answer);
+                    });
+                }
             } else {
                 callback(undefined);
             }
@@ -307,7 +325,9 @@ var listen = function () {
 
             if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
                 socket.state = 'sleeping';
-                socket.room.webRtcController.removePublisher(streamId);
+                if (!socket.room.p2p) {
+                    socket.room.webRtcController.removePublisher(streamId);
+                }
             }
 
             index = socket.streams.indexOf(streamId);
@@ -330,7 +350,9 @@ var listen = function () {
             socket.room.streams[to].removeDataSubscriber(socket.id);
 
             if (socket.room.streams[to].hasAudio() || socket.room.streams[to].hasVideo() || socket.room.streams[to].hasScreen()) {
-                socket.room.webRtcController.removeSubscriber(socket.id, to);
+                if (!socket.room.p2p) {
+                    socket.room.webRtcController.removeSubscriber(socket.id, to);
+                };
             }
 
         });
@@ -365,7 +387,10 @@ var listen = function () {
                         id = socket.streams[i];
 
                         if (socket.room.streams[id].hasAudio() || socket.room.streams[id].hasVideo() || socket.room.streams[id].hasScreen()) {
-                            socket.room.webRtcController.removeClient(socket.id, id);
+                            if (!socket.room.p2p) {
+                                socket.room.webRtcController.removeClient(socket.id, id);
+                            }
+                            
                         }
 
                         if (socket.room.streams[id]) {
