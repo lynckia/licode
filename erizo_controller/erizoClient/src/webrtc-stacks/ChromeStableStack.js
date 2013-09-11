@@ -12,6 +12,8 @@ Erizo.ChromeStableStack = function (spec) {
         "iceServers": []
     };
 
+    that.con = {'optional': [{'DtlsSrtpKeyAgreement': 'true'}]};
+
     if (spec.stunServerUrl !== undefined) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
     } 
@@ -25,7 +27,7 @@ Erizo.ChromeStableStack = function (spec) {
 
     that.roapSessionId = 103;
 
-    that.peerConnection = new WebkitRTCPeerConnection(that.pc_config);
+    that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
 
     that.peerConnection.onicecandidate = function (event) {
         console.log("PeerConnection: ", spec.session_id);

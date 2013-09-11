@@ -157,6 +157,7 @@ int ParseVP8Extension(erizo::RTPPayloadVP8* vp8, const unsigned char* dataPtr, i
 
 RTPPayloadVP8* RtpParser::parseVP8(unsigned char* data,
 		int dataLength) {
+	//printf("Parsing VP8 %d bytes\n", dataLength);
 	RTPPayloadVP8* vp8 = new RTPPayloadVP8; // = &parsedPacket.info.VP8;
 	const unsigned char* dataPtr = data;
 

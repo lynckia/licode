@@ -12,9 +12,15 @@ Erizo.ChromeCanaryStack = function (spec) {
         "iceServers": []
     };
 
+    that.con = {'optional': [{'DtlsSrtpKeyAgreement': 'true'}]};
+
     if (spec.stunServerUrl !== undefined) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
     } 
+
+    if (spec.turnServer !== undefined) {
+        that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
+    }
 
     that.mediaConstraints = {
         'mandatory': {
@@ -25,7 +31,7 @@ Erizo.ChromeCanaryStack = function (spec) {
 
     that.roapSessionId = 103;
 
-    that.peerConnection = new WebkitRTCPeerConnection(that.pc_config);
+    that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
 
     that.peerConnection.onicecandidate = function (event) {
         console.log("PeerConnection: ", spec.session_id);
@@ -48,7 +54,7 @@ Erizo.ChromeCanaryStack = function (spec) {
         }
     };
 
-    console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
+    //console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
 
     /**
      * This function processes signalling messages from the other side.
@@ -92,7 +98,7 @@ Erizo.ChromeCanaryStack = function (spec) {
                     sdp: msg.sdp,
                     type: 'answer'
                 };
-                console.log("Received ANSWER: ", sd);
+                console.log("Received ANSWER: ", sd.sdp);
                 that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
                 that.sendOK();
                 that.state = 'established';
@@ -199,6 +205,8 @@ Erizo.ChromeCanaryStack = function (spec) {
                 that.peerConnection.createOffer(function (sessionDescription) {
 
                     var newOffer = sessionDescription.sdp;
+
+                    //sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
 
                     console.log("Changed", sessionDescription.sdp);
 

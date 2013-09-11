@@ -1,9 +1,18 @@
 var serverUrl = "/";
 var localStream, room;
 
+function getParameterByName(name) {
+    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+        results = regex.exec(location.search);
+    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+}
+
 window.onload = function () {
 
-		localStream = Erizo.Stream({audio: true, video: true, data: true});
+    var screen = getParameterByName("screen");
+
+	localStream = Erizo.Stream({audio: true, video: true, data: true, screen: screen});
 
     var createToken = function(userName, role, callback) {
 
@@ -28,13 +37,12 @@ window.onload = function () {
         room = Erizo.Room({token: token});
 
         localStream.addEventListener("access-accepted", function () {
-            
             var subscribeToStreams = function (streams) {
                 for (var index in streams) {
                     var stream = streams[index];
                     if (localStream.getID() !== stream.getID()) {
                         room.subscribe(stream);
-                    } 
+                    }
                 }
             };
 

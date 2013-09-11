@@ -4,7 +4,7 @@ var rpc = require('./rpc/rpc');
 var controller = require('./webRtcController');
 var ST = require('./Stream');
 var io = require('socket.io').listen(8080);
-var config = require('./../../lynckia_config');
+var config = require('./../../licode_config');
 
 io.set('log level', 1);
 
@@ -238,31 +238,23 @@ var listen = function () {
         //Gets 'publish' messages on the socket in order to add new stream to the room.
         socket.on('publish', function (options, sdp, callback) {
             var id, st;
-            if (options.state === 'offer' || options.state === 'ok') {
+            if (options.state !== 'data') {
                 if (options.state === 'offer' && socket.state === 'sleeping') {
                     id = Math.random() * 100000000000000000;
                     socket.room.webRtcController.addPublisher(id, sdp, function (answer) {
                         socket.state = 'waitingOk';
                         answer = answer.replace(privateRegexp, publicIP);
                         callback(answer, id);
+                    }, function() {
+                        sendMsgToRoom(socket.room, 'onAddStream', socket.room.streams[id].getPublicStream());
                     });
 
                 } else if (options.state === 'ok' && socket.state === 'waitingOk') {
-                    st = new ST.Stream({id: options.streamId, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
+                    st = new ST.Stream({id: options.streamId, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
                     socket.state = 'sleeping';
                     socket.streams.push(options.streamId);
                     socket.room.streams[options.streamId] = st;
-                    sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
                 }
-
-            } else if (options.state === 'data') {
-                id = Math.random() * 100000000000000000;
-                st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
-                socket.streams.push(id);
-                socket.room.streams[id] = st;
-                callback(undefined, id);
-                sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
-
             } else if (options.state === 'url') {
                 id = Math.random() * 100000000000000000;
                 socket.room.webRtcController.addExternalInput(id, sdp, function (result) {
@@ -276,6 +268,14 @@ var listen = function () {
                         callback(result);
                     }
                 });
+            } else {
+                id = Math.random() * 100000000000000000;
+                st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
+                socket.streams.push(id);
+                socket.room.streams[id] = st;
+                callback(undefined, id);
+                sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
+
             }
         });
 
@@ -288,7 +288,7 @@ var listen = function () {
 
             socket.room.streams[options.streamId].addDataSubscriber(socket.id);
 
-            if (socket.room.streams[options.streamId].hasAudio() || socket.room.streams[options.streamId].hasVideo()) {
+            if (socket.room.streams[options.streamId].hasAudio() || socket.room.streams[options.streamId].hasVideo() || socket.room.streams[options.streamId].hasScreen()) {
                 socket.room.webRtcController.addSubscriber(socket.id, options.streamId, sdp, function (answer) {
                     answer = answer.replace(privateRegexp, publicIP);
                     callback(answer);
@@ -305,15 +305,9 @@ var listen = function () {
 
             sendMsgToRoom(socket.room, 'onRemoveStream', {id: streamId});
 
-            if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo()) {
+            if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
                 socket.state = 'sleeping';
                 socket.room.webRtcController.removePublisher(streamId);
-            }
-
-            for (i in socket.room.streams) {
-                if (socket.room.streams.hasOwnProperty(i)) {
-                    socket.room.streams[i].removeDataSubscriber(socket.id);
-                }
             }
 
             index = socket.streams.indexOf(streamId);
@@ -335,7 +329,7 @@ var listen = function () {
 
             socket.room.streams[to].removeDataSubscriber(socket.id);
 
-            if (socket.room.streams[to].hasAudio() || socket.room.streams[to].hasVideo()) {
+            if (socket.room.streams[to].hasAudio() || socket.room.streams[to].hasVideo() || socket.room.streams[to].hasScreen()) {
                 socket.room.webRtcController.removeSubscriber(socket.id, to);
             }
 
@@ -370,7 +364,7 @@ var listen = function () {
                     if (socket.streams.hasOwnProperty(i)) {
                         id = socket.streams[i];
 
-                        if (socket.room.streams[id].hasAudio() || socket.room.streams[id].hasVideo()) {
+                        if (socket.room.streams[id].hasAudio() || socket.room.streams[id].hasVideo() || socket.room.streams[id].hasScreen()) {
                             socket.room.webRtcController.removeClient(socket.id, id);
                         }
 

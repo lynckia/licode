@@ -1,6 +1,7 @@
 /*global require, exports, console, setInterval, clearInterval*/
 
 var addon = require('./../../erizoAPI/build/Release/addon');
+var config = require('./../../licode_config');
 
 exports.WebRtcController = function () {
     "use strict";
@@ -18,6 +19,7 @@ exports.WebRtcController = function () {
         getSdp,
         getRoap;
 
+
     /*
      * Given a WebRtcConnection waits for the state READY for ask it to send a FIR packet to its publisher. 
      */
@@ -26,11 +28,9 @@ exports.WebRtcController = function () {
         if (publishers[to] !== undefined) {
             var intervarId = setInterval(function () {
 
-                var state = wrtc.getCurrentState();
+                if (wrtc.getCurrentState() >= 2 && publishers[to].getPublisherState() >=2) {
 
-                if (state > 2) {
-
-                    //publishers[to].sendFIR();
+                    publishers[to].sendFIR();
                     clearInterval(intervarId);
                 }
 
@@ -41,28 +41,42 @@ exports.WebRtcController = function () {
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP. 
      */
-    initWebRtcConnection = function (wrtc, sdp, callback) {
+    initWebRtcConnection = function (wrtc, sdp, callback, onReady) {
 
         wrtc.init();
 
         var roap = sdp,
-            remoteSdp = getSdp(roap),
+            remoteSdp = getSdp(roap);
 
-            intervarId = setInterval(function () {
+        console.log('SDP remote: ', remoteSdp);
+
+        wrtc.setRemoteSdp(remoteSdp);
+
+        var sdpDelivered = false;
+
+        var intervarId = setInterval(function () {
 
                 var state = wrtc.getCurrentState(), localSdp, answer;
 
-                if (state > 0) {
-
-                    wrtc.setRemoteSdp(remoteSdp);
-                    //console.log('SDP remote: ', remoteSdp);
+                if (state == 1 && !sdpDelivered) {
+                    console.log('Get local SDP');
                     localSdp = wrtc.getLocalSdp();
 
                     answer = getRoap(localSdp, roap);
                     callback(answer);
+                    sdpDelivered = true;
 
+                }
+                if (state == 2) {
+                    if (onReady != undefined) {
+                        onReady();
+                    }
+                }
+
+                if (state >= 2) {
                     clearInterval(intervarId);
                 }
+
 
             }, INTERVAL_TIME_SDP);
     };
@@ -134,13 +148,12 @@ exports.WebRtcController = function () {
         }
     };
 
-
     /*
      * Adds a publisher to the room. This creates a new OneToManyProcessor
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
-    that.addPublisher = function (from, sdp, callback) {
+    that.addPublisher = function (from, sdp, callback, onReady) {
 
         if (publishers[from] === undefined) {
 
@@ -156,7 +169,7 @@ exports.WebRtcController = function () {
             wrtc.setVideoReceiver(muxer);
             muxer.setPublisher(wrtc);
 
-            initWebRtcConnection(wrtc, sdp, callback);
+            initWebRtcConnection(wrtc, sdp, callback, onReady);
 
             //console.log('Publishers: ', publishers);
             //console.log('Subscribers: ', subscribers);
@@ -167,7 +180,7 @@ exports.WebRtcController = function () {
     };
 
     /*
-     * Adds a subscriber to the room. This creates a new WebRtcConnection. 
+     * Adds a subscriber to the room. This creates a new WebRtcConnection.
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
      */
@@ -198,8 +211,11 @@ exports.WebRtcController = function () {
         if (subscribers[from] !== undefined && publishers[from] !== undefined) {
             console.log('Removing muxer', from);
             publishers[from].close();
+            console.log('Removing subscribers', from);
             delete subscribers[from];
+            console.log('Removing publisher', from);
             delete publishers[from];
+            console.log('Removed all');
         }
     };
 

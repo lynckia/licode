@@ -1,6 +1,6 @@
 /*global L, io, console*/
 /*
- * Class Room represents a Lynckia Room. It will handle the connection, local stream publication and 
+ * Class Room represents a Licode Room. It will handle the connection, local stream publication and 
  * remote stream subscription.
  * Typical Room initialization would be:
  * var room = Erizo.Room({token:'213h8012hwduahd-321ueiwqewq'});
@@ -96,13 +96,13 @@ Erizo.Room = function (spec) {
 
         delete io.sockets[host];
 
-        that.socket = io.connect(token.host, {reconnect: false});
+        that.socket = io.connect(token.host, {reconnect: false, secure: false});
 
         // We receive an event with a new stream in the room.
         // type can be "media" or "data"
         that.socket.on('onAddStream', function (arg) {
             console.log(arg);
-            var stream = Erizo.Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, attributes: arg.attributes}),
+            var stream = Erizo.Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, screen: arg.screen, attributes: arg.attributes}),
                 evt;
             that.remoteStreams[arg.id] = stream;
             evt = Erizo.StreamEvent({type: 'stream-added', stream: stream});
@@ -129,8 +129,10 @@ Erizo.Room = function (spec) {
         // The socket has disconnected
         that.socket.on('disconnect', function (argument) {
             L.Logger.info("Socket disconnected");
-            var disconnectEvt = Erizo.RoomEvent({type: "room-disconnected"});
-            that.dispatchEvent(disconnectEvt);
+            if (that.state !== DISCONNECTED) {
+                var disconnectEvt = Erizo.RoomEvent({type: "room-disconnected"});
+                that.dispatchEvent(disconnectEvt);
+            }
         });
 
         // First message with the token
@@ -185,7 +187,7 @@ Erizo.Room = function (spec) {
             for (index in streams) {
                 if (streams.hasOwnProperty(index)) {
                     arg = streams[index];
-                    stream = Erizo.Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, attributes: arg.attributes});
+                    stream = Erizo.Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, screen: arg.screen, attributes: arg.attributes});
                     streamList.push(stream);
                     that.remoteStreams[arg.id] = stream;
                 }
@@ -218,8 +220,8 @@ Erizo.Room = function (spec) {
         if (stream.local && that.localStreams[stream.getID()] === undefined) {
 
             // 2- Publish Media Stream to Erizo-Controller
-            if (stream.hasAudio() || stream.hasVideo()) {
 
+            if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
                 if (stream.url !== undefined) {
                     sendSDPSocket('publish', {state: 'url', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, stream.url, function (answer, id) {
                         
@@ -247,10 +249,10 @@ Erizo.Room = function (spec) {
 
                 } else {
                     stream.pc = Erizo.Connection({callback: function (offer) {
-                        sendSDPSocket('publish', {state: 'offer', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
+                        sendSDPSocket('publish', {state: 'offer', data: true, audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
                             stream.pc.onsignalingmessage = function (ok) {
                                 stream.pc.onsignalingmessage = function () {};
-                                sendSDPSocket('publish', {state: 'ok', streamId: id, data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, ok);
+                                sendSDPSocket('publish', {state: 'ok', streamId: id, data: true, audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, ok);
                                 L.Logger.info('Stream published');
                                 stream.getID = function () {
                                     return id;
@@ -263,14 +265,13 @@ Erizo.Room = function (spec) {
                             };
                             stream.pc.processSignalingMessage(answer);
                         });
-                    }, stunServerUrl: that.stunServerUrl});
+                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
                     stream.pc.addStream(stream.stream);
                 }
-
             } else if (stream.hasData()) {
                 // 3- Publish Data Stream
-                sendSDPSocket('publish', {state: 'data', data: true, audio: false, video: false, attributes: stream.getAttributes()}, undefined, function (answer, id) {
+                sendSDPSocket('publish', {state: 'data', data: true, audio: false, video: false, screen: false, attributes: stream.getAttributes()}, undefined, function (answer, id) {
                     L.Logger.info('Stream published');
                     stream.getID = function () {
                         return id;
@@ -309,14 +310,14 @@ Erizo.Room = function (spec) {
 
         if (!stream.local) {
 
-            if (stream.hasVideo() || stream.hasAudio()) {
+            if (stream.hasVideo() || stream.hasAudio() || stream.hasScreen()) {
                 // 1- Subscribe to Stream
                 stream.pc = Erizo.Connection({callback: function (offer) {
                     sendSDPSocket('subscribe', {streamId: stream.getID()}, offer, function (answer) {
                         stream.pc.processSignalingMessage(answer);
 
                     });
-                }, stunServerUrl: that.stunServerUrl});
+                }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
                 stream.pc.onaddstream = function (evt) {
                     // Draw on html

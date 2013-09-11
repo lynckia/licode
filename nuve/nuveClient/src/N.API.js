@@ -17,59 +17,59 @@ N.API = (function (N) {
         N.API.params.url = url;
     };
 
-    createRoom = function (name, callback, options, params) {
+    createRoom = function (name, callback, callbackError, options, params) {
 
         send(function (roomRtn) {
             var room = JSON.parse(roomRtn);
             callback(room);
-        }, 'POST', {name: name, options: options}, 'rooms', params);
+        }, callbackError, 'POST', {name: name, options: options}, 'rooms', params);
     };
 
-    getRooms = function (callback, params) {
-        send(callback, 'GET', undefined, 'rooms', params);
+    getRooms = function (callback, callbackError, params) {
+        send(callback, callbackError, 'GET', undefined, 'rooms', params);
     };
 
-    getRoom = function (room, callback, params) {
-        send(callback, 'GET', undefined, 'rooms/' + room, params);
+    getRoom = function (room, callback, callbackError, params) {
+        send(callback, callbackError, 'GET', undefined, 'rooms/' + room, params);
     };
 
-    deleteRoom = function (room, callback, params) {
-        send(callback, 'DELETE', undefined, 'rooms/' + room, params);
+    deleteRoom = function (room, callback, callbackError, params) {
+        send(callback, callbackError, 'DELETE', undefined, 'rooms/' + room, params);
     };
 
-    createToken = function (room, username, role, callback, params) {
-        send(callback, 'POST', undefined, 'rooms/' + room + "/tokens", params, username, role);
+    createToken = function (room, username, role, callback, callbackError, params) {
+        send(callback, callbackError, 'POST', undefined, 'rooms/' + room + "/tokens", params, username, role);
     };
 
-    createService = function (name, key, callback, params) {
-        send(callback, 'POST', {name: name, key: key}, 'services/', params);
+    createService = function (name, key, callback, callbackError, params) {
+        send(callback, callbackError, 'POST', {name: name, key: key}, 'services/', params);
     };
 
-    getServices = function (callback, params) {
-        send(callback, 'GET', undefined, 'services/', params);
+    getServices = function (callback, callbackError, params) {
+        send(callback, callbackError, 'GET', undefined, 'services/', params);
     };
 
-    getService = function (service, callback, params) {
-        send(callback, 'GET', undefined, 'services/' + service, params);
+    getService = function (service, callback, callbackError, params) {
+        send(callback, callbackError, 'GET', undefined, 'services/' + service, params);
     };
 
-    deleteService = function (service, callback, params) {
-        send(callback, 'DELETE', undefined, 'services/' + service, params);
+    deleteService = function (service, callback, callbackError, params) {
+        send(callback, callbackError, 'DELETE', undefined, 'services/' + service, params);
     };
 
-    getUsers = function (room, callback, params) {
-        send(callback, 'GET', undefined, 'rooms/' + room + '/users/', params);
+    getUsers = function (room, callback, callbackError, params) {
+        send(callback, callbackError, 'GET', undefined, 'rooms/' + room + '/users/', params);
     };
 
-    getUser = function (room, user, callback, params) {
-        send(callback, 'GET', undefined, 'rooms/' + room + '/users/' + user, params);
+    getUser = function (room, user, callback, callbackError, params) {
+        send(callback, callbackError, 'GET', undefined, 'rooms/' + room + '/users/' + user, params);
     };
 
-    deleteUser = function (room, user, callback, params) {
-        send(callback, 'DELETE', undefined, 'rooms/' + room + '/users/' + user);
+    deleteUser = function (room, user, callback, callbackError, params) {
+        send(callback, callbackError, 'DELETE', undefined, 'rooms/' + room + '/users/' + user);
     };
 
-    send = function (callback, method, body, url, params, username, role) {
+    send = function (callback, callbackError, method, body, url, params, username, role) {
         var service, key, timestamp, cnounce, toSign, header, signed, req;
 
         if (params === undefined) {
@@ -120,7 +120,28 @@ N.API = (function (N) {
 
         req.onreadystatechange = function () {
             if (req.readyState === 4) {
-                callback(req.responseText);
+                switch (req.status) {
+                    case 100:
+                    case 200:
+                    case 201:
+                    case 202:
+                    case 203:
+                    case 204:
+                    case 205:
+                        callback(req.responseText);
+                        break;
+                    case 400:
+                        if (callbackError !== undefined) callbackError("400 Bad Request");
+                        break;
+                    case 401:
+                        if (callbackError !== undefined) callbackError("401 Unauthorized");
+                        break;
+                    case 403:
+                        if (callbackError !== undefined) callbackError("403 Forbidden");
+                        break;
+                    default:
+                        if (callbackError !== undefined) callbackError(req.status + " Error" + req.responseText);
+                }
             }
         };
 

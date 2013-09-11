@@ -256,8 +256,8 @@ namespace erizo {
     RTPHeader* head = reinterpret_cast<RTPHeader*>(inBuff);
 
 
-//    printf("PT %d, ssrc %u, extension %d\n", head->getPayloadType(), head->getSSRC(),
-//        head->getExtension());
+    printf("PT %d, ssrc %u, marker %d\n", head->getPayloadType(), head->getSSRC(),
+        head->getMarker());
 //    if ( head->getSSRC() != 55543 /*&& head->payloadtype!=101*/) {
 //      return -1;
 //    }
@@ -265,7 +265,7 @@ namespace erizo {
       return -1;
     }
 
-//    printf("RTP header length: %d", head->getHeaderLength()); //Should include extensions
+    //printf("RTP header length: %d\n", head->getExtLength()); //Should include extensions
     int l = inBuffLen - head->getHeaderLength();
     inBuffOffset+=head->getHeaderLength();
 

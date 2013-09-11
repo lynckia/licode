@@ -4,7 +4,7 @@ var express = require('express'),
     N = require('./nuve'),
     fs = require("fs"),
     https = require("https"),
-    config = require('./../../lynckia_config');
+    config = require('./../../licode_config');
 
 var options = {
     key: fs.readFileSync('cert/key.pem').toString(),

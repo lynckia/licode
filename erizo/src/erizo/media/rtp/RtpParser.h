@@ -1,5 +1,5 @@
-#ifndef RTPUTILS_H_
-#define RTPUTILS_H_
+#ifndef RTPPARSER_H_
+#define RTPPARSER_H_
 
 namespace erizo {
 
@@ -37,4 +37,4 @@ public:
 };
 
 } /* namespace erizo */
-#endif /* RTPUTILS_H_ */
+#endif /* RTPPARSER_H_ */

@@ -25,7 +25,6 @@ echo [nuve] Done, node_modules installed
 cd ../nuveClient/tools
 
 ./compile.sh
-./compileDist.sh
 
 echo [nuve] Done, nuve.js compiled
 

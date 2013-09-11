@@ -1,6 +1,6 @@
 /*global window, console, clearInterval, setInterval, document, unescape, L, webkitURL*/
 /*
- * VideoPlayer represents a Lynckia video component that shows either a local or a remote video.
+ * VideoPlayer represents a Licode video component that shows either a local or a remote video.
  * Ex.: var player = VideoPlayer({id: id, stream: stream, elementID: elementID});
  * A VideoPlayer is also a View component.
  */
@@ -41,12 +41,13 @@ Erizo.VideoPlayer = function (spec) {
         that.parentNode.removeChild(that.div);
     };
 
-    window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
+    /*window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
         document.getElementById(key).value = unescape(value);
-    });
+    });*/
 
     L.Logger.debug('Creating URL from stream ' + that.stream);
-    that.stream_url = webkitURL.createObjectURL(that.stream);
+    var myURL = window.URL || webkitURL;
+    that.stream_url = myURL.createObjectURL(that.stream);
 
     // Container
     that.div = document.createElement('div');
@@ -64,6 +65,9 @@ Erizo.VideoPlayer = function (spec) {
     that.video.setAttribute('id', 'stream' + that.id);
     that.video.setAttribute('style', 'width: 100%; height: 100%; position: absolute');
     that.video.setAttribute('autoplay', 'autoplay');
+
+    if(spec.stream.local) 
+        that.video.volume = 0;
 
     if (that.elementID !== undefined) {
         document.getElementById(that.elementID).appendChild(that.div);
@@ -86,9 +90,31 @@ Erizo.VideoPlayer = function (spec) {
         var width = that.container.offsetWidth,
             height = that.container.offsetHeight;
 
-        if (width !== that.containerWidth || height !== that.containerHeight) {
+        if (!spec.stream.screen) {
 
-            if (width * (3 / 4) > height) {
+            if (width !== that.containerWidth || height !== that.containerHeight) {
+
+                if (width * (3 / 4) > height) {
+
+                    that.video.style.width = width + "px";
+                    that.video.style.height = (3 / 4) * width + "px";
+
+                    that.video.style.top = -((3 / 4) * width / 2 - height / 2) + "px";
+                    that.video.style.left = "0px";
+
+                } else {
+
+                    that.video.style.height = height + "px";
+                    that.video.style.width = (4 / 3) * height + "px";
+
+                    that.video.style.left = -((4 / 3) * height / 2 - width / 2) + "px";
+                    that.video.style.top = "0px";
+
+                }
+            }
+
+        } else {
+            if (width * (3 / 4) < height) {
 
                 that.video.style.width = width + "px";
                 that.video.style.height = (3 / 4) * width + "px";
@@ -106,10 +132,10 @@ Erizo.VideoPlayer = function (spec) {
 
             }
 
-            that.containerWidth = width;
-            that.containerHeight = height;
         }
 
+        that.containerWidth = width;
+        that.containerHeight = height;
 
     }, 500);
 

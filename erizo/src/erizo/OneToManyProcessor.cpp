@@ -4,12 +4,13 @@
 
 #include "OneToManyProcessor.h"
 #include "WebRtcConnection.h"
+#include "rtputils.h"
 
 namespace erizo {
   OneToManyProcessor::OneToManyProcessor() {
 
-      sendVideoBuffer_ = (char*) malloc(2000);
-      sendAudioBuffer_ = (char*) malloc(2000);
+      sendVideoBuffer_ = (char*) malloc(20000);
+      sendAudioBuffer_ = (char*) malloc(20000);
       publisher = NULL;
       feedbackSink_ = NULL;
       sentPackets_ = 0;
@@ -30,9 +31,9 @@ namespace erizo {
 
     std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      memset(sendAudioBuffer_, 0, len);
-      memcpy(sendAudioBuffer_, buf, len);
-      (*it).second->deliverAudioData(sendAudioBuffer_, len);
+      //memset(sendAudioBuffer_, 0, len);
+      //memcpy(sendAudioBuffer_, buf, len);
+      (*it).second->deliverAudioData(buf, len);
     }
 
     return 0;
@@ -43,8 +44,8 @@ namespace erizo {
       return 0;
 
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
-    if(head->packettype==201 || head->packettype==206){
-      printf("recibo feedback por donde no es\n");
+    if(head->packettype==RTCP_Receiver_PT || head->packettype==RTCP_Feedback_PT){
+      printf("recibo feedback por donde no es %d\n", head->packettype);
       if (feedbackSink_){
         head->ssrc = htonl(publisher->getVideoSourceSSRC());
         feedbackSink_->deliverFeedback(buf,len);
@@ -52,10 +53,12 @@ namespace erizo {
       return 0;
     }
     std::map<std::string, MediaSink*>::iterator it;
+    //printf("Sending video data to subscribers of %u\n", publisher->getVideoSourceSSRC());
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      memset(sendVideoBuffer_, 0, len);
-      memcpy(sendVideoBuffer_, buf, len);
-      (*it).second->deliverVideoData(sendVideoBuffer_, len);
+      //memset(sendVideoBuffer_, 0, len);
+      //memcpy(sendVideoBuffer_, buf, len);
+      //printf(" Subscriber %u\n", (*it).second->getVideoSinkSSRC());
+      (*it).second->deliverVideoData(buf, len);
     }
     sentPackets_++;
     return 0;
@@ -71,14 +74,7 @@ namespace erizo {
   }
 
   int OneToManyProcessor::deliverFeedback(char* buf, int len){
-    rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
-    if (feedbackSink_==NULL)
-      return 0;
-    if(head->packettype==201 || head->packettype==206){
-      head->ssrc = htonl(publisher->getVideoSourceSSRC());
-      feedbackSink_->deliverFeedback(buf,len);
-      return len;
-    }
+    feedbackSink_->deliverFeedback(buf,len);
     return 0;
 
   }

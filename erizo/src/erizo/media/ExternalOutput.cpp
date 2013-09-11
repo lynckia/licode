@@ -1,6 +1,7 @@
 #include "ExternalOutput.h"
 #include "../WebRtcConnection.h"
 #include "../RTPSink.h"
+#include "../rtputils.h"
 #include <cstdio>
 
 #include <boost/cstdint.hpp>
@@ -23,6 +24,8 @@ namespace erizo {
     audioCoder_ = NULL;
     prevEstimatedFps_ = 0;
     warmupfpsCount_ = 0;
+    deliverMediaBuffer_ = (char*)malloc(3000);
+    initTime_ = 0;
   }
 
   bool ExternalOutput::init(){
@@ -107,11 +110,14 @@ namespace erizo {
       timeval time;
       gettimeofday(&time, NULL);
       long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+      if (initTime_ == 0) {
+        initTime_ = millis;
+      }
       AVPacket avpkt;
       av_init_packet(&avpkt);
       avpkt.data = unpackagedAudioBuffer_;
       avpkt.size = ret;
-      avpkt.pts = millis;
+      avpkt.pts = millis - initTime_;
       avpkt.stream_index = 1;
       av_write_frame(context_, &avpkt);
       av_free_packet(&avpkt);
@@ -121,6 +127,34 @@ namespace erizo {
 
   int ExternalOutput::deliverVideoData(char* buf, int len){
     if (in!=NULL){
+        rtpheader *head = (rtpheader*) buf;
+        if (head->payloadtype == RED_90000_PT) {
+        int totalLength = 12;
+      
+        if (head->extension) {
+          totalLength += ntohs(head->extensionlength)*4 + 4; // RTP Extension header
+        }
+        int rtpHeaderLength = totalLength;
+        redheader *redhead = (redheader*) (buf + totalLength);
+
+        //redhead->payloadtype = remoteSdp_.inOutPTMap[redhead->payloadtype];
+        if (redhead->payloadtype == VP8_90000_PT) {
+          while (redhead->follow) {
+            totalLength += redhead->getLength() + 4; // RED header
+            redhead = (redheader*) (buf + totalLength);
+          }
+          // Parse RED packet to VP8 packet.
+          // Copy RTP header
+          memcpy(deliverMediaBuffer_, buf, rtpHeaderLength);
+          // Copy payload data
+          memcpy(deliverMediaBuffer_ + totalLength, buf + totalLength + 1, len - totalLength - 1);
+          // Copy payload type
+          rtpheader *mediahead = (rtpheader*) deliverMediaBuffer_;
+          mediahead->payloadtype = redhead->payloadtype;
+          buf = deliverMediaBuffer_;
+          len = len - 1 - totalLength + rtpHeaderLength;
+        }
+      }
       int estimatedFps=0;
       int ret = in->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedBuffer_, &gotUnpackagedFrame_, &estimatedFps);
@@ -143,12 +177,15 @@ namespace erizo {
         timeval time;
         gettimeofday(&time, NULL);
         long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+        if (initTime_ == 0) {
+          initTime_ = millis;
+        } 
         unpackagedBuffer_ -= unpackagedSize_;
         AVPacket avpkt;
         av_init_packet(&avpkt);
         avpkt.data = unpackagedBuffer_;
         avpkt.size = unpackagedSize_;
-        avpkt.pts = millis;
+        avpkt.pts = millis - initTime_;
         avpkt.stream_index = 0;
         av_write_frame(context_, &avpkt);
         av_free_packet(&avpkt);

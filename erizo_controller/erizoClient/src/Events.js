@@ -31,7 +31,7 @@ Erizo.EventDispatcher = function (spec) {
     };
 
     // It dispatch a new event to the event listeners, based on the type 
-    // of event. All events are intended to be LynckiaEvents.
+    // of event. All events are intended to be LicodeEvents.
     that.dispatchEvent = function (event) {
         var listener;
         L.Logger.debug("Event: " + event.type);
@@ -48,13 +48,13 @@ Erizo.EventDispatcher = function (spec) {
 // **** EVENTS ****
 
 /*
- * Class LynckiaEvent represents a generic Event in the library.
+ * Class LicodeEvent represents a generic Event in the library.
  * It handles the type of event, that is important when adding
  * event listeners to EventDispatchers and dispatching new events. 
- * A LynckiaEvent can be initialized this way:
- * var event = LynckiaEvent({type: "room-connected"});
+ * A LicodeEvent can be initialized this way:
+ * var event = LicodeEvent({type: "room-connected"});
  */
-Erizo.LynckiaEvent = function (spec) {
+Erizo.LicodeEvent = function (spec) {
     "use strict";
     var that = {};
 
@@ -66,7 +66,7 @@ Erizo.LynckiaEvent = function (spec) {
 
 /*
  * Class RoomEvent represents an Event that happens in a Room. It is a
- * LynckiaEvent.
+ * LicodeEvent.
  * It is usually initialized as:
  * var roomEvent = RoomEvent({type:"room-connected", streams:[stream1, stream2]});
  * Event types:
@@ -75,7 +75,7 @@ Erizo.LynckiaEvent = function (spec) {
  */
 Erizo.RoomEvent = function (spec) {
     "use strict";
-    var that = Erizo.LynckiaEvent(spec);
+    var that = Erizo.LicodeEvent(spec);
 
     // A list with the streams that are published in the room.
     that.streams = spec.streams;
@@ -84,7 +84,7 @@ Erizo.RoomEvent = function (spec) {
 };
 
 /*
- * Class StreamEvent represents an event related to a stream. It is a LynckiaEvent.
+ * Class StreamEvent represents an event related to a stream. It is a LicodeEvent.
  * It is usually initialized this way:
  * var streamEvent = StreamEvent({type:"stream-added", stream:stream1});
  * Event types:
@@ -93,7 +93,7 @@ Erizo.RoomEvent = function (spec) {
  */
 Erizo.StreamEvent = function (spec) {
     "use strict";
-    var that = Erizo.LynckiaEvent(spec);
+    var that = Erizo.LicodeEvent(spec);
 
     // The stream related to this event.
     that.stream = spec.stream;
@@ -104,7 +104,7 @@ Erizo.StreamEvent = function (spec) {
 };
 
 /*
- * Class PublisherEvent represents an event related to a publisher. It is a LynckiaEvent.
+ * Class PublisherEvent represents an event related to a publisher. It is a LicodeEvent.
  * It usually initializes as:
  * var publisherEvent = PublisherEvent({})
  * Event types:
@@ -112,7 +112,7 @@ Erizo.StreamEvent = function (spec) {
  */
 Erizo.PublisherEvent = function (spec) {
     "use strict";
-    var that = Erizo.LynckiaEvent(spec);
+    var that = Erizo.LicodeEvent(spec);
 
     return that;
 };

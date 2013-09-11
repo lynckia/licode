@@ -62,6 +62,8 @@ namespace erizo{
 
       int video_stream_index, bufflen;
       AVPacket avpacket;
+      char *deliverMediaBuffer_;
+      long initTime_;
   };
 }
 #endif /* EXTERNALOUTPUT_H_ */

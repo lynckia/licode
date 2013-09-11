@@ -13,6 +13,9 @@ Erizo.Stream = function (spec) {
     that.room = undefined;
     that.showing = false;
     that.local = false;
+    that.video = spec.video;
+    that.audio = spec.audio;
+    that.screen = spec.screen;
     if (spec.local === undefined || spec.local === true) {
         that.local = true;
     }
@@ -37,9 +40,14 @@ Erizo.Stream = function (spec) {
         return spec.video;
     };
 
-    // Indicates if the stream has video activated
+    // Indicates if the stream has data activated
     that.hasData = function () {
         return spec.data;
+    };
+
+    // Indicates if the stream has screen activated
+    that.hasScreen = function () {
+        return spec.screen;
     };
 
     // Sends data through this stream.
@@ -49,9 +57,13 @@ Erizo.Stream = function (spec) {
     // We need to call this method before we can publish it in the room.
     that.init = function () {
         try {
-            if ((spec.audio || spec.video) && spec.url === undefined) {
+            if ((spec.audio || spec.video || spec.screen) && spec.url === undefined) {
                 L.Logger.debug("Requested access to local media");
-                Erizo.GetUserMedia({video: spec.video, audio: spec.audio}, function (stream) {
+                var opt = {video: spec.video, audio: spec.audio};
+                if (spec.screen) {
+                    opt = {video:{mandatory: {chromeMediaSource: 'screen'}}};
+                }
+                Erizo.GetUserMedia(opt, function (stream) {
                 //navigator.webkitGetUserMedia("audio, video", function (stream) {
 
                     L.Logger.info("User has granted access to local media.");
@@ -82,15 +94,15 @@ Erizo.Stream = function (spec) {
             // Remove HTML element
             that.hide();
             if (that.stream !== undefined) {
-                that.stream.stop();       
+                that.stream.stop();
             }
-            that.stream = undefined; 
+            that.stream = undefined;
         }
     };
 
     that.show = function (elementID, options) {
         that.elementID = elementID;
-        if (that.hasVideo()) {
+        if (that.hasVideo() || this.hasScreen()) {
             // Draw on HTML
             if (elementID !== undefined) {
                 var player = new Erizo.VideoPlayer({id: that.getID(), stream: that, elementID: elementID, options: options});

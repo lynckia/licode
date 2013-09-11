@@ -21,12 +21,28 @@ install_brew_deps(){
   npm install -g node-gyp
 }
 
+install_openssl(){
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    curl -O http://www.openssl.org/source/openssl-1.0.1e.tar.gz
+    tar -zxvf openssl-1.0.1e.tar.gz
+    cd openssl-1.0.1e
+    ./configure
+    make
+    sudo make install
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_openssl
+  fi
+}
+
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O http://nice.freedesktop.org/releases/libnice-0.1.3.tar.gz
-    tar -zxvf libnice-0.1.3.tar.gz
-    cd libnice-0.1.3
+    curl -O http://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
+    tar -zxvf libnice-0.1.4.tar.gz
+    cd libnice-0.1.4
     echo nice_agent_set_port_range >> nice/libnice.sym
     ./configure
     make
@@ -38,10 +54,11 @@ install_libnice(){
   fi
 }
 
-
 pause "Installing homebrew... [press Enter]"
 install_homebrew
 pause "Installing deps via homebrew... [press Enter]"
 install_brew_deps
+pause 'Installing openssl... [press Enter]'
+install_openssl
 pause 'Installing libnice... [press Enter]'
 install_libnice

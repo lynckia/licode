@@ -161,7 +161,7 @@ public:
 	 * @return the length in 8 bit units
 	 */
 	inline int getHeaderLength() {
-		return MIN_SIZE + cc * 4 + extension * (4 + extLength * 4);
+		return MIN_SIZE + cc * 4 + extension * (4 + ntohs(extLength) * 4);
 	}
 
 
@@ -178,7 +178,6 @@ private:
 	uint32_t seqnum :16;
 	uint32_t timestamp;
 	uint32_t ssrc;
-	uint32_t csrc[3];
 	uint32_t extId :16;
 	uint32_t extLength :16;
 

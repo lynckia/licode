@@ -11,15 +11,30 @@
 
 #include "MediaDefinitions.h"
 #include "SdpInfo.h"
-#include "WebRtcConnection.h"
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainLoop GMainLoop;
+typedef struct _GMainContext GMainContext;
+
 
 namespace erizo {
 //forward declarations
 struct CandidateInfo;
 class WebRtcConnection;
+
+/**
+ * States of ICE
+ */
+enum IceState {
+	NICE_INITIAL, NICE_CANDIDATES_GATHERED, NICE_CANDIDATES_RECEIVED, NICE_READY, NICE_FINISHED, NICE_FAILED
+};
+
+class NiceConnectionListener {
+public: 
+	virtual void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* conn)=0;
+	virtual void updateIceState(IceState state, NiceConnection *conn)=0;
+};
+
 /**
  * An ICE connection via libNice
  * Represents an ICE Connection in an new thread.
@@ -34,7 +49,7 @@ public:
 	 * @param transportName The name of the transport protocol. Was used when WebRTC used video_rtp instead of just rtp.
    * @param iceComponents Number of ice components pero connection. Default is 1 (rtcp-mux).
 	 */
-	NiceConnection(MediaType med, const std::string &transportName, int iceComponents=1);
+	NiceConnection(MediaType med, const std::string &transportName, unsigned int iceComponents=1);
 	virtual ~NiceConnection();
 	/**
 	 * Join to the internal thread of the NiceConnection.
@@ -49,28 +64,29 @@ public:
 	 */
 	void close();
 	/**
-	 * Obtains the associated WebRtcConnection.
-	 * @return A pointer to the WebRtcConnection.
-	 */
-	WebRtcConnection* getWebRtcConnection();
-	/**
 	 * Sets the remote ICE Candidates.
 	 * @param candidates A vector containing the CandidateInfo.
 	 * @return true if successfull.
 	 */
 	bool setRemoteCandidates(std::vector<CandidateInfo> &candidates);
 	/**
-	 * Sets the associated WebRTCConnection.
-	 * @param connection Pointer to the WebRtcConenction.
+	 * Sets the associated Listener.
+	 * @param connection Pointer to the NiceConnectionListener.
 	 */
-	void setWebRtcConnection(WebRtcConnection *connection);
+	void setNiceListener(NiceConnectionListener *listener);
+
+	/**
+	 * Gets the associated Listener.
+	 * @param connection Pointer to the NiceConnectionListener.
+	 */
+	NiceConnectionListener* getNiceListener();
 	/**
 	 * Sends data via the ICE Connection.
 	 * @param buf Pointer to the data buffer.
 	 * @param len Length of the Buffer.
 	 * @return Bytes sent.
 	 */
-	int sendData(void* buf, int len);
+	int sendData(unsigned int compId, const void* buf, int len);
 
 	/**
 	 * The MediaType of the connection
@@ -90,16 +106,18 @@ public:
 	std::vector<CandidateInfo>* localCandidates;
 
 	void updateIceState(IceState state);
+	void updateComponentState(unsigned int compId, IceState state);
 
 
 private:
 	void init();
 	NiceAgent* agent_;
-	WebRtcConnection* conn_;
+	NiceConnectionListener* listener_;
 	GMainLoop* loop_;
+	GMainContext* context_;
 	boost::thread m_Thread_;
-  int iceComponents_;
-
+  	unsigned int iceComponents_;
+  	std::map <unsigned int, IceState> comp_state_list;
 };
 
 } /* namespace erizo */

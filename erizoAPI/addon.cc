@@ -1,4 +1,6 @@
+#ifndef BUILDING_NODE_EXTENSION
 #define BUILDING_NODE_EXTENSION
+#endif
 #include <node.h>
 #include "WebRtcConnection.h"
 #include "OneToManyProcessor.h"

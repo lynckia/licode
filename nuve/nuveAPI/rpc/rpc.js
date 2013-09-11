@@ -2,7 +2,7 @@
 var sys = require('util');
 var amqp = require('amqp');
 var rpcPublic = require('./rpcPublic');
-var config = require('./../../../lynckia_config');
+var config = require('./../../../licode_config');
 
 var TIMEOUT = 3000;
 
