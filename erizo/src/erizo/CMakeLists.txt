@@ -54,7 +54,8 @@ test_lib(${GTHREAD})
 set(SSL_LIB ${SSL_DIR}/lib/libssl.a ${SSL_DIR}/lib/libcrypto.a)
 target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL_LIB})
 
-# LIBAV
+# Libav for Linux
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 find_library(AVUTIL libavutil.dylib avutil PATHS /usr/local/lib)
 test_lib(${AVUTIL})
 set (LIBS ${AVUTIL})
@@ -65,5 +66,19 @@ find_library(AVFORMAT libavformat.dylib avformat PATHS /usr/local/lib)
 test_lib(${AVFORMAT})
 set (LIBS ${LIBS} ${AVFORMAT})
 message("AVLibs " ${LIBS})
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+# Libav for MAC
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  find_library(AVUTIL libavutil.dylib avutil)
+  test_lib(${AVUTIL})
+  set (LIBS ${LIBS} ${AVUTIL})
+  find_library(AVCODEC libavcodec.dylib avcodec)
+  test_lib(${AVCODEC})
+  set (LIBS ${LIBS} ${AVCODEC})
+  find_library(AVFORMAT libavformat.dylib avformat)
+  test_lib(${AVFORMAT})
+  set (LIBS ${LIBS} ${AVFORMAT})
+ENDIF(${cmake_system_name} MATCHES "Darwin")
 
 target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL_LIB} ${LIBS})
