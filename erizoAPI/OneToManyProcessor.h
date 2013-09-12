@@ -7,6 +7,7 @@
 #include "MediaDefinitions.h"
 #include "WebRtcConnection.h"
 #include "ExternalInput.h"
+#include "ExternalOutput.h"
 
 
 /*
@@ -39,6 +40,11 @@ class OneToManyProcessor : public MediaSink {
    * Param: the WebRtcConnection of the Publisher
    */
   static v8::Handle<v8::Value> setPublisher(const v8::Arguments& args);
+  /*
+   * Adds an ExternalOutput
+   * Param: The ExternalOutput   
+   */
+  static v8::Handle<v8::Value> addExternalOutput(const v8::Arguments& args);
   /*
    * Sets an External Publisher
    * Param: the ExternalInput of the Publisher

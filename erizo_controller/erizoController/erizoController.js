@@ -316,6 +316,15 @@ var listen = function () {
             }
 
         });
+        
+        //Gets 'startRecorder' messages
+        socket.on('startRecorder', function (streamId) {
+          console.log("erizoController.js: Starting recorder");
+            if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
+                socket.room.webRtcController.addExternalOutput(streamId);
+                console.log("erizoController.js: Recorder Started");
+            }
+        });
 
         //Gets 'unpublish' messages on the socket in order to remove a stream from the room.
         socket.on('unpublish', function (streamId) {

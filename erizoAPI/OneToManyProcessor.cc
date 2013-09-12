@@ -19,6 +19,7 @@ void OneToManyProcessor::Init(Handle<Object> target) {
   // Prototype
   tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setPublisher"), FunctionTemplate::New(setPublisher)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("addExternalOutput"), FunctionTemplate::New(addExternalOutput)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setExternalPublisher"), FunctionTemplate::New(setExternalPublisher)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getPublisherState"), FunctionTemplate::New(getPublisherState)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("hasPublisher"), FunctionTemplate::New(hasPublisher)->GetFunction());
@@ -120,6 +121,27 @@ Handle<Value> OneToManyProcessor::addSubscriber(const Arguments& args) {
 
   WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
   erizo::WebRtcConnection* wr = param->me;
+
+  erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
+
+// get the param
+  v8::String::Utf8Value param1(args[1]->ToString());
+
+// convert it to string
+  std::string peerId = std::string(*param1);
+  me->addSubscriber(ms, peerId);
+
+  return scope.Close(Null());
+}
+
+Handle<Value> OneToManyProcessor::addExternalOutput(const Arguments& args) {
+  HandleScope scope;
+
+  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
+  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+
+  ExternalOutput* param = ObjectWrap::Unwrap<ExternalOutput>(args[0]->ToObject());
+  erizo::ExternalOutput* wr = param->me;
 
   erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
 

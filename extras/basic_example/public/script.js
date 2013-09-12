@@ -13,7 +13,11 @@ window.onload = function () {
     var screen = getParameterByName("screen");
 
 	localStream = Erizo.Stream({audio: true, video: true, data: true, screen: screen});
-
+    var startRecording = function(){
+        if (room!=undefined){
+          room.startRecording(localStream)
+        }
+    }
     var createToken = function(userName, role, callback) {
 
         var req = new XMLHttpRequest();

@@ -148,6 +148,19 @@ exports.WebRtcController = function () {
         }
     };
 
+    that.addExternalOutput = function (to) {
+        var url = "/tmp/recording"+to+".mkv";
+        if (publishers[to] !== undefined && subscribers[to].indexOf(from) === -1 ) {
+            
+            console.log("Adding Recorder to " + to + " url " + url);
+            var wrtc = new addon.ExternalOutput(url);
+            wrtc.init();
+            publishers[to].addExternalOutput(wrtc);
+        }
+
+    };
+
+
     /*
      * Adds a publisher to the room. This creates a new OneToManyProcessor
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher

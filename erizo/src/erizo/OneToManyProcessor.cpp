@@ -68,9 +68,9 @@ namespace erizo {
     printf("SET PUBLISHER\n");
     this->publisher = webRtcConn;
     feedbackSink_ = publisher->getFeedbackSink();
-    recorder_ = new ExternalOutput("/tmp/prueba.mkv");
-    recorder_->init();
-    this->addSubscriber(recorder_,"1");
+//    recorder_ = new ExternalOutput("/tmp/prueba.mkv");
+//    recorder_->init();
+//    this->addSubscriber(recorder_,"1");
   }
 
   int OneToManyProcessor::deliverFeedback(char* buf, int len){
