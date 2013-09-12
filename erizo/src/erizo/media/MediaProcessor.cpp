@@ -265,8 +265,8 @@ namespace erizo {
 
 //    printf("Video Timestamp %u\n", head->getTimestamp());
 
-    printf("PT %d, ssrc %u, marker %d\n", head->getPayloadType(), head->getSSRC(),
-        head->getMarker());
+    //printf("PT %d, ssrc %u, marker %d\n", head->getPayloadType(), head->getSSRC(),
+        //head->getMarker());
 //    if ( head->getSSRC() != 55543 /*&& head->payloadtype!=101*/) {
 //      return -1;
 //    }
@@ -290,6 +290,7 @@ namespace erizo {
       lastVideoTs_ = head->getTimestamp();
       *gotFrame = 1;
     }
+    printf("Parsing %d - %d - %d\n", inBuffLen, head->getHeaderLength(), parsed->dataLength);
     return parsed->dataLength;
 
   }

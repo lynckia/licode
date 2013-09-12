@@ -46,7 +46,7 @@ namespace erizo {
     vp8.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(vp8);
 
-    RtpMap ulpfec;
+/*    RtpMap ulpfec;
     ulpfec.payloadType = ULP_90000_PT;
     ulpfec.encodingName = "ulpfec";
     ulpfec.clockRate = 90000;
@@ -61,7 +61,7 @@ namespace erizo {
     red.channels = 1;
     red.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(red);
-/*
+
     RtpMap opus;
     opus.payloadType = OPUS_48000_PT;
     opus.encodingName = "opus";
@@ -353,7 +353,7 @@ namespace erizo {
           sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
               << rtp.clockRate <<"\n";
           if(rtp.encodingName == "VP8"){
-            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" ccm fir\na=rtcp-fb:"<< rtp.payloadType<<" nack\na=rtcp-fb:"<< rtp.payloadType<<" goog-remb\n";
+            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" ccm fir\na=rtcp-fb:"<< rtp.payloadType<<" nack\n";
           }
         }
       }

@@ -16,7 +16,7 @@ namespace erizo {
     unpackagedBuffer_ = NULL;
     unpackagedAudioBuffer_ = NULL;
     audioSinkSSRC_ = 0;
-    videoSinkSSRC_ = 0; 
+    videoSinkSSRC_ = 0;
     videoCodec_ = NULL;
     audioCodec_ = NULL;
     video_st = NULL;
@@ -40,7 +40,7 @@ namespace erizo {
     }
     context_->oformat = oformat_;
     context_->oformat->video_codec = AV_CODEC_ID_VP8;
-    context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW; 
+    context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
     url.copy(context_->filename, sizeof(context_->filename),0);
     video_st = NULL;
     audio_st = NULL;
@@ -130,7 +130,7 @@ namespace erizo {
         rtpheader *head = (rtpheader*) buf;
         if (head->payloadtype == RED_90000_PT) {
         int totalLength = 12;
-      
+
         if (head->extension) {
           totalLength += ntohs(head->extensionlength)*4 + 4; // RTP Extension header
         }
@@ -162,7 +162,7 @@ namespace erizo {
       if (videoCodec_ == NULL) {
         if (estimatedFps!=0&&(estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2))){
           //printf("OUT OF THRESHOLD changing context\n");
-          prevEstimatedFps_ = estimatedFps;          
+          prevEstimatedFps_ = estimatedFps;
         }
         if (warmupfpsCount_++ >10){
           this->initContext();
@@ -172,14 +172,16 @@ namespace erizo {
         return 0;
       unpackagedSize_ += ret;
       unpackagedBuffer_ += ret;
+      printf("ret len %d\n", ret);
       if (gotUnpackagedFrame_ && videoCodec_!=NULL) {
+        printf("- size len %d\n", unpackagedSize_);
 
         timeval time;
         gettimeofday(&time, NULL);
         long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
         if (initTime_ == 0) {
           initTime_ = millis;
-        } 
+        }
         unpackagedBuffer_ -= unpackagedSize_;
         AVPacket avpkt;
         av_init_packet(&avpkt);
