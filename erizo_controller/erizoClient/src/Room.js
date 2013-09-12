@@ -286,6 +286,7 @@ Erizo.Room = function (spec) {
                             if (callbackError)
                                 callbackError(answer);
                         }
+                    });
 
                 } else if (that.p2p) {
                     sendSDPSocket('publish', {state: 'p2p', data: true, audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, undefined, function (answer, id) {
