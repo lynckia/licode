@@ -2,91 +2,92 @@ var serverUrl = "/";
 var localStream, room;
 
 function getParameterByName(name) {
-    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-        results = regex.exec(location.search);
-    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+  name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+  var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+      results = regex.exec(location.search);
+  return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+}
+
+function startRecording (){
+  if (room!=undefined){
+    room.startRecording(localStream)
+  }
 }
 
 window.onload = function () {
 
-    var screen = getParameterByName("screen");
+  var screen = getParameterByName("screen");
 
-	localStream = Erizo.Stream({audio: true, video: true, data: true, screen: screen});
-    var startRecording = function(){
-        if (room!=undefined){
-          room.startRecording(localStream)
-        }
-    }
-    var createToken = function(userName, role, callback) {
+  localStream = Erizo.Stream({audio: true, video: true, data: true, screen: screen});
+  var createToken = function(userName, role, callback) {
 
-        var req = new XMLHttpRequest();
-        var url = serverUrl + 'createToken/';
-        var body = {username: userName, role: role};
+    var req = new XMLHttpRequest();
+    var url = serverUrl + 'createToken/';
+    var body = {username: userName, role: role};
 
-        req.onreadystatechange = function () {
-            if (req.readyState === 4) {
-                callback(req.responseText);
-            }
-        };
-
-        req.open('POST', url, true);
-        req.setRequestHeader('Content-Type', 'application/json');
-        req.send(JSON.stringify(body));
+    req.onreadystatechange = function () {
+      if (req.readyState === 4) {
+        callback(req.responseText);
+      }
     };
 
-    createToken("user", "role", function (response) {
-        var token = response;
-        console.log(token);
-        room = Erizo.Room({token: token});
+    req.open('POST', url, true);
+    req.setRequestHeader('Content-Type', 'application/json');
+    req.send(JSON.stringify(body));
+  };
 
-        localStream.addEventListener("access-accepted", function () {
-            var subscribeToStreams = function (streams) {
-                for (var index in streams) {
-                    var stream = streams[index];
-                    if (localStream.getID() !== stream.getID()) {
-                        room.subscribe(stream);
-                    }
-                }
-            };
+  createToken("user", "role", function (response) {
+    var token = response;
+    console.log(token);
+    room = Erizo.Room({token: token});
 
-            room.addEventListener("room-connected", function (roomEvent) {
+    localStream.addEventListener("access-accepted", function () {
+      var subscribeToStreams = function (streams) {
+        for (var index in streams) {
+          var stream = streams[index];
+          if (localStream.getID() !== stream.getID()) {
+            room.subscribe(stream);
+          }
+        }
+      };
 
-                room.publish(localStream);
-                subscribeToStreams(roomEvent.streams);
-            });
+      room.addEventListener("room-connected", function (roomEvent) {
 
-            room.addEventListener("stream-subscribed", function(streamEvent) {
-                var stream = streamEvent.stream;
-                var div = document.createElement('div');
-                div.setAttribute("style", "width: 320px; height: 240px;");
-                div.setAttribute("id", "test" + stream.getID());
+        room.publish(localStream);
+        subscribeToStreams(roomEvent.streams);
+      });
 
-                document.body.appendChild(div);
-                stream.show("test" + stream.getID());
+      room.addEventListener("stream-subscribed", function(streamEvent) {
+        var stream = streamEvent.stream;
+        var div = document.createElement('div');
+        div.setAttribute("style", "width: 320px; height: 240px;");
+        div.setAttribute("id", "test" + stream.getID());
 
-            });
+        document.body.appendChild(div);
+        stream.show("test" + stream.getID());
 
-            room.addEventListener("stream-added", function (streamEvent) {
-                var streams = [];
-                streams.push(streamEvent.stream);
-                subscribeToStreams(streams);
-            });
+      });
 
-            room.addEventListener("stream-removed", function (streamEvent) {
-                // Remove stream from DOM
-                var stream = streamEvent.stream;
-                if (stream.elementID !== undefined) {
-                    var element = document.getElementById(stream.elementID);
-                    document.body.removeChild(element);
-                }
-            });
+      room.addEventListener("stream-added", function (streamEvent) {
+        var streams = [];
+        streams.push(streamEvent.stream);
+        subscribeToStreams(streams);
+      });
 
-            room.connect();
+      room.addEventListener("stream-removed", function (streamEvent) {
+        // Remove stream from DOM
+        var stream = streamEvent.stream;
+        if (stream.elementID !== undefined) {
+          var element = document.getElementById(stream.elementID);
+          document.body.removeChild(element);
+        }
+      });
 
-            localStream.show("myVideo");
+      room.connect();
 
-        });
-        localStream.init();
-    });   
+      localStream.show("myVideo");
+
+    });
+    localStream.init();
+  });   
 };

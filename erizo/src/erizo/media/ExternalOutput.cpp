@@ -171,10 +171,7 @@ namespace erizo {
         return 0;
       unpackagedSize_ += ret;
       unpackagedBuffer_ += ret;
-      printf("ret len %d\n", ret);
       if (gotUnpackagedFrame_ && videoCodec_!=NULL) {
-        printf("- size len %d\n", unpackagedSize_);
-
         timeval time;
         gettimeofday(&time, NULL);
         long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
