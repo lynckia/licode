@@ -76,16 +76,24 @@ namespace erizo {
     if (context_!=NULL){
       av_write_trailer(context_);
       avformat_free_context(context_);
+      context_=NULL;
     }
     //avcodec_close() and avformat_free_context()
     if (videoCodec_!=NULL){
       avcodec_close(videoCodecCtx_);
+      videoCodec_=NULL;
     }
     if (audioCodec_!=NULL){
       avcodec_close(audioCodecCtx_);
+      audioCodec_ = NULL;
     }
     if (unpackagedBuffer_ !=NULL){
       free(unpackagedBuffer_);
+      unpackagedBuffer_ = NULL;   
+    }
+    if (unpackagedAudioBuffer_ !=NULL){
+      free(unpackagedAudioBuffer_);
+      unpackagedAudioBuffer_ =NULL;
     }
     return;
   }
@@ -126,8 +134,8 @@ namespace erizo {
 
   int ExternalOutput::deliverVideoData(char* buf, int len){
     if (in!=NULL){
-        rtpheader *head = (rtpheader*) buf;
-        if (head->payloadtype == RED_90000_PT) {
+      rtpheader *head = (rtpheader*) buf;
+      if (head->payloadtype == RED_90000_PT) {
         int totalLength = 12;
 
         if (head->extension) {
@@ -159,7 +167,7 @@ namespace erizo {
           unpackagedBuffer_, &gotUnpackagedFrame_, &estimatedFps);
       //printf("Estimated FPS %d, previous %d\n", estimatedFps, prevEstimatedFps_);
       if (videoCodec_ == NULL) {
-        if (estimatedFps!=0&&(estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2))){
+        if ((estimatedFps!=0)&&((estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2)))){
           //printf("OUT OF THRESHOLD changing context\n");
           prevEstimatedFps_ = estimatedFps;
         }
@@ -230,7 +238,7 @@ namespace erizo {
       audioCodecCtx_->codec_id = oformat_->audio_codec;
       audioCodecCtx_->sample_rate = 8000;
       audioCodecCtx_->channels = 1;
-//      audioCodecCtx_->sample_fmt = AV_SAMPLE_FMT_S8;
+      //      audioCodecCtx_->sample_fmt = AV_SAMPLE_FMT_S8;
       if (oformat_->flags & AVFMT_GLOBALHEADER){
         audioCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
       }
@@ -241,7 +249,7 @@ namespace erizo {
       avformat_write_header(context_, NULL);
       printf("AVFORMAT CONFIGURED\n");
     }
-
+    return 0;
   }
 
   void ExternalOutput::encodeLoop() {
