@@ -153,10 +153,15 @@ Erizo.Stream = function (spec) {
         }
     };
 
-    that.getVideoFrameURL = function () {
+    that.getVideoFrameURL = function (format) {
         var canvas = getFrame();
         if (canvas !== null) {
-            return canvas.toDataURL();
+            if (format) {
+                return canvas.toDataURL(format);
+            } else {
+                return canvas.toDataURL();
+            }
+            
         } else {
             return null;
         }
