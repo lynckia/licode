@@ -32,8 +32,11 @@ void WebRtcConnection::Init(Handle<Object> target) {
 Handle<Value> WebRtcConnection::New(const Arguments& args) {
   HandleScope scope;
 
+  bool a = (args[0]->ToBoolean())->BooleanValue();
+  bool v = (args[1]->ToBoolean())->BooleanValue();
+
   WebRtcConnection* obj = new WebRtcConnection();
-  obj->me = new erizo::WebRtcConnection();
+  obj->me = new erizo::WebRtcConnection(a, v);
   obj->Wrap(args.This());
 
   return args.This();

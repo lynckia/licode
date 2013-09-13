@@ -42,7 +42,7 @@ public:
 	 * Constructor.
 	 * Constructs an empty WebRTCConnection without any configuration.
 	 */
-	WebRtcConnection();
+	WebRtcConnection(bool audioEnabled, bool videoEnabled);
 	/**
 	 * Destructor.
 	 */
@@ -114,6 +114,9 @@ private:
 
 	bool sending_;
 	void sendLoop();
+
+	bool audioEnabled_;
+	bool videoEnabled_;
 
 };
 
