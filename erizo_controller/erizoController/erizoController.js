@@ -234,7 +234,7 @@ var listen = function () {
             var sockets = socket.room.streams[msg.id].getDataSubscribers(), id;
             for (id in sockets) {
                 if (sockets.hasOwnProperty(id)) {
-                    console.log('Sending dataStream to', sockets[id], 'in stream ', msg.id, 'mensaje', msg.msg);
+                    //console.log('Sending dataStream to', sockets[id], 'in stream ', msg.id);
                     io.sockets.socket(sockets[id]).emit('onDataStream', msg);
                 }
             }
@@ -293,7 +293,7 @@ var listen = function () {
                     });
 
                 } else {
-                    socket.room.webRtcController.addSubscriber(socket.id, options.streamId, sdp, function (answer) {
+                    socket.room.webRtcController.addSubscriber(socket.id, options.streamId, options.audio, options.video, sdp, function (answer) {
                         answer = answer.replace(privateRegexp, publicIP);
                         callback(answer);
                     });

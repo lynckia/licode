@@ -130,7 +130,7 @@ exports.WebRtcController = function () {
             console.log("Adding publisher peer_id ", from);
 
             var muxer = new addon.OneToManyProcessor(),
-                wrtc = new addon.WebRtcConnection();
+                wrtc = new addon.WebRtcConnection(true, true);
 
             publishers[from] = muxer;
             subscribers[from] = [];
@@ -154,13 +154,16 @@ exports.WebRtcController = function () {
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
      */
-    that.addSubscriber = function (from, to, sdp, callback) {
+    that.addSubscriber = function (from, to, audio, video, sdp, callback) {
 
         if (publishers[to] !== undefined && subscribers[to].indexOf(from) === -1 && sdp.match('OFFER') !== null) {
 
             console.log("Adding subscriber from ", from, 'to ', to);
 
-            var wrtc = new addon.WebRtcConnection();
+            if (audio === undefined) audio = true;
+            if (video === undefined) video = true;
+
+            var wrtc = new addon.WebRtcConnection(audio, video);
 
             subscribers[to].push(from);
             publishers[to].addSubscriber(wrtc, from);

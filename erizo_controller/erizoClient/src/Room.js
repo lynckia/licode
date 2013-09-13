@@ -257,7 +257,10 @@ Erizo.Room = function (spec) {
 
     // It publishes the stream provided as argument. Once it is added it throws a 
     // StreamEvent("stream-added").
-    that.publish = function (stream) {
+    that.publish = function (stream, options) {
+
+        options = options || {};
+
         // 1- If the stream is not local we do nothing.
         if (stream.local && that.localStreams[stream.getID()] === undefined) {
 
@@ -295,7 +298,7 @@ Erizo.Room = function (spec) {
                             };
                             stream.pc.processSignalingMessage(answer);
                         });
-                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
+                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW});
 
                     stream.pc.addStream(stream.stream);
                 }
@@ -336,7 +339,9 @@ Erizo.Room = function (spec) {
     };
 
     // It subscribe to a remote stream and draws it inside the HTML tag given by the ID='elementID'
-    that.subscribe = function (stream) {
+    that.subscribe = function (stream, options) {
+
+        options = options || {};
 
         if (!stream.local) {
 
@@ -347,7 +352,7 @@ Erizo.Room = function (spec) {
                     sendSDPSocket('subscribe', {streamId: stream.getID()});
                 } else {
                     stream.pc = Erizo.Connection({callback: function (offer) {
-                        sendSDPSocket('subscribe', {streamId: stream.getID()}, offer, function (answer) {
+                        sendSDPSocket('subscribe', {streamId: stream.getID(), audio: options.audio, video: options.video}, offer, function (answer) {
                             stream.pc.processSignalingMessage(answer);
                         });
                     }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
