@@ -52,6 +52,22 @@ Erizo.ChromeStableStack = function (spec) {
 
     console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
 
+    var setMaxBW = function (sdp) {
+        if (spec.maxVideoBW) {
+            var a = sdp.match(/m=video.*\r\n/);
+            var r = a[0] + "b=AS:" + spec.maxVideoBW + "\r\n";
+            sdp = sdp.replace(a[0], r);
+        }
+
+        if (spec.maxAudioBW) {
+            var a = sdp.match(/m=audio.*\r\n/);
+            var r = a[0] + "b=AS:" + spec.maxAudioBW + "\r\n";
+            sdp = sdp.replace(a[0], r);
+        }
+
+        return sdp;
+    };
+
     /**
      * This function processes signalling messages from the other side.
      * @param {string} msgstring JSON-formatted string containing a ROAP message.
@@ -95,6 +111,9 @@ Erizo.ChromeStableStack = function (spec) {
                     type: 'answer'
                 };
                 console.log("Received ANSWER: ", sd);
+
+                sd.sdp = setMaxBW(sd.sdp);
+
                 that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
                 that.sendOK();
                 that.state = 'established';
@@ -200,10 +219,14 @@ Erizo.ChromeStableStack = function (spec) {
 
                 that.peerConnection.createOffer(function (sessionDescription) {
 
-                    var newOffer = sessionDescription.sdp;
+                    //sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
+                    
+                    sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
 
                     console.log("Changed", sessionDescription.sdp);
 
+                    var newOffer = sessionDescription.sdp;
+                    
                     if (newOffer !== that.prevOffer) {
 
                         that.peerConnection.setLocalDescription(sessionDescription);
