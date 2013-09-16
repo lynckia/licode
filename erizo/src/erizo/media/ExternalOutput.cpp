@@ -24,8 +24,13 @@ namespace erizo {
     audioCoder_ = NULL;
     prevEstimatedFps_ = 0;
     warmupfpsCount_ = 0;
+    sequenceNumberFIR_ = 0;
     deliverMediaBuffer_ = (char*)malloc(3000);
     initTime_ = 0;
+    lastTime_ = 0;
+
+    sinkfbSource_ = this;
+    fbSink_ = NULL;
   }
 
   bool ExternalOutput::init(){
@@ -117,6 +122,10 @@ namespace erizo {
       timeval time;
       gettimeofday(&time, NULL);
       long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+      if (millis -lastTime_ >2000){
+        this->sendFirPacket();
+        lastTime_ = millis;
+      }
       if (initTime_ == 0) {
         initTime_ = millis;
       }
@@ -250,6 +259,48 @@ namespace erizo {
       printf("AVFORMAT CONFIGURED\n");
     }
     return 0;
+  }
+
+  int ExternalOutput::sendFirPacket() {
+    if (fbSink_ != NULL) {
+      printf("SendingFIR\n");
+      sequenceNumberFIR_++; // do not increase if repetition
+      int pos = 0;
+      uint8_t rtcpPacket[50];
+      // add full intra request indicator
+      uint8_t FMT = 4;
+      rtcpPacket[pos++] = (uint8_t) 0x80 + FMT;
+      rtcpPacket[pos++] = (uint8_t) 206;
+
+      //Length of 4
+      rtcpPacket[pos++] = (uint8_t) 0;
+      rtcpPacket[pos++] = (uint8_t) (4);
+
+      // Add our own SSRC
+      uint32_t* ptr = reinterpret_cast<uint32_t*>(rtcpPacket + pos);
+      ptr[0] = htonl(this->getVideoSinkSSRC());
+      pos += 4;
+
+      rtcpPacket[pos++] = (uint8_t) 0;
+      rtcpPacket[pos++] = (uint8_t) 0;
+      rtcpPacket[pos++] = (uint8_t) 0;
+      rtcpPacket[pos++] = (uint8_t) 0;
+      // Additional Feedback Control Information (FCI)
+      uint32_t* ptr2 = reinterpret_cast<uint32_t*>(rtcpPacket + pos);
+      ptr2[0] = htonl(0);
+      pos += 4;
+
+      rtcpPacket[pos++] = (uint8_t) (sequenceNumberFIR_);
+      rtcpPacket[pos++] = (uint8_t) 0;
+      rtcpPacket[pos++] = (uint8_t) 0;
+      rtcpPacket[pos++] = (uint8_t) 0;
+
+      fbSink_->deliverFeedback((char*)rtcpPacket, pos);
+
+      return pos;
+    }
+
+    return -1;
   }
 
   void ExternalOutput::encodeLoop() {

@@ -199,8 +199,11 @@ namespace erizo {
   int WebRtcConnection::deliverFeedback(char* buf, int len){
     // Check where to send the feedback
     rtcpheader *chead = (rtcpheader*) buf;
+    if (chead->packettype == 206){ //We recreate the FIR Message
+      this->sendFirPacket();
+    }
     //writeSsrc(buf, len, ntohl(chead->ssrcsource));
-    if (ntohl(chead->ssrcsource) == this->getVideoSourceSSRC()) {
+    else if (ntohl(chead->ssrcsource) == this->getVideoSourceSSRC()) {
       chead->ssrc=htonl(this->getVideoSinkSSRC());
     } else {
       chead->ssrc=htonl(this->getAudioSinkSSRC());

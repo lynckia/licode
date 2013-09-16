@@ -18,7 +18,7 @@ extern "C" {
 namespace erizo{
   class WebRtcConnection;
 
-  class ExternalOutput : public MediaSink, public RawDataReceiver {
+  class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource {
 
     public:
       ExternalOutput (std::string outputUrl);
@@ -35,6 +35,7 @@ namespace erizo{
       unsigned char* decodedBuffer_;
       char* sendVideoBuffer_;
       bool initContext();
+      int sendFirPacket();
       void encodeLoop();
 
       std::string url;
@@ -51,6 +52,8 @@ namespace erizo{
       int unpackagedSize_;
       int prevEstimatedFps_;
       int warmupfpsCount_;
+      int sequenceNumberFIR_;
+      int lastTime_;
 
 
       AVFormatContext *context_;

@@ -156,10 +156,12 @@ exports.WebRtcController = function () {
             var wrtc = new addon.ExternalOutput(url);
             wrtc.init();
             publishers[to].addExternalOutput(wrtc);
+            /*
             setTimeout(function(){
               console.log("Sending FIR to start Recording: " + url);
               publishers[to].sendFIR();
             },200);
+            */
         }
 
     };
