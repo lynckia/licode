@@ -9,6 +9,8 @@
 #include <arpa/inet.h>
 
 namespace erizo {
+#define FIR_INTERVAL_MS 4000
+
   ExternalOutput::ExternalOutput(std::string outputUrl){
     printf("Created ExternalOutput to %s\n", outputUrl.c_str());
     url = outputUrl;
@@ -122,7 +124,7 @@ namespace erizo {
       timeval time;
       gettimeofday(&time, NULL);
       long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-      if (millis -lastTime_ >2000){
+      if (millis -lastTime_ >FIR_INTERVAL_MS){
         this->sendFirPacket();
         lastTime_ = millis;
       }
@@ -263,7 +265,6 @@ namespace erizo {
 
   int ExternalOutput::sendFirPacket() {
     if (fbSink_ != NULL) {
-      printf("SendingFIR\n");
       sequenceNumberFIR_++; // do not increase if repetition
       int pos = 0;
       uint8_t rtcpPacket[50];
@@ -271,7 +272,7 @@ namespace erizo {
       uint8_t FMT = 4;
       rtcpPacket[pos++] = (uint8_t) 0x80 + FMT;
       rtcpPacket[pos++] = (uint8_t) 206;
-
+      /*
       //Length of 4
       rtcpPacket[pos++] = (uint8_t) 0;
       rtcpPacket[pos++] = (uint8_t) (4);
@@ -294,9 +295,9 @@ namespace erizo {
       rtcpPacket[pos++] = (uint8_t) 0;
       rtcpPacket[pos++] = (uint8_t) 0;
       rtcpPacket[pos++] = (uint8_t) 0;
-
+      */
+      pos = 12;
       fbSink_->deliverFeedback((char*)rtcpPacket, pos);
-
       return pos;
     }
 
