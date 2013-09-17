@@ -23,7 +23,8 @@ Erizo.Room = function (spec) {
         removeStream,
         DISCONNECTED = 0,
         CONNECTING = 1,
-        CONNECTED = 2;
+        CONNECTED = 2,
+        recordingUrl;
 
     that.remoteStreams = {};
     that.localStreams = {};
@@ -341,9 +342,13 @@ Erizo.Room = function (spec) {
     };
 
     that.startRecording = function (stream){
-      //     socket.on('startRecorder', function (streamId) {
-      sendMessageSocket('startRecorder',stream.getID());
-      
+      recordingUrl = "/tmp/recording" + stream.getID() + ".mkv";
+      console.log("Start Recording " + recordingUrl);
+      sendMessageSocket('startRecorder',{to:stream.getID(), url: recordingUrl});      
+    }
+
+    that.stopRecording = function (stream){
+      sendMessageSocket('stopRecorder',{to:stream.getID(),url:recordingUrl});      
     }
 
     // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")

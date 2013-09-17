@@ -1,5 +1,5 @@
 var serverUrl = "/";
-var localStream, room;
+var localStream, room, recording;
 
 function getParameterByName(name) {
   name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
@@ -10,12 +10,18 @@ function getParameterByName(name) {
 
 function startRecording (){
   if (room!=undefined){
-    room.startRecording(localStream)
+    if (!recording){
+      room.startRecording(localStream);
+      recording = true;
+    }else{
+      room.stopRecording(localStream);
+      recording = false;
+    }
   }
 }
 
 window.onload = function () {
-
+  recording = false;
   var screen = getParameterByName("screen");
 
   localStream = Erizo.Stream({audio: true, video: true, data: true, screen: screen});

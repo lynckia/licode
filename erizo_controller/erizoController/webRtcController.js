@@ -12,6 +12,9 @@ exports.WebRtcController = function () {
         // {id: OneToManyProcessor}
         publishers = {},
 
+        // {id: ExternalOutput}
+        externalOutputs = {},
+
         INTERVAL_TIME_SDP = 100,
         INTERVAL_TIME_FIR = 100,
         waitForFIR,
@@ -148,24 +151,24 @@ exports.WebRtcController = function () {
         }
     };
 
-    that.addExternalOutput = function (to) {
-        var url = "/tmp/recording"+to+".mkv";
+    that.addExternalOutput = function (to, url) {
         if (publishers[to] !== undefined) {
-            
-            console.log("Adding Recorder to " + to + " url " + url);
-            var wrtc = new addon.ExternalOutput(url);
-            wrtc.init();
-            publishers[to].addExternalOutput(wrtc);
-            /*
-            setTimeout(function(){
-              console.log("Sending FIR to start Recording: " + url);
-              publishers[to].sendFIR();
-            },200);
-            */
+            console.log("Adding ExternalOutput to " + to + " url " + url);
+            var externalOutput = new addon.ExternalOutput(url);
+            externalOutput.init();
+            publishers[to].addExternalOutput(externalOutput, url);
+            externalOutputs[url] = externalOutput;
         }
 
     };
 
+    that.removeExternalOutput = function (to, url) {
+      if (externalOutputs[url] !== undefined && publishers[to]!=undefined) {
+        console.log("Stopping ExternalOutput: url " + url);
+        publishers[to].removeSubscriber(url);
+        delete externalOutputs[url];
+      }
+    };
 
     /*
      * Adds a publisher to the room. This creates a new OneToManyProcessor

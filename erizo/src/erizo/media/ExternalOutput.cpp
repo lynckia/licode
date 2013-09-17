@@ -102,6 +102,8 @@ namespace erizo {
       free(unpackagedAudioBuffer_);
       unpackagedAudioBuffer_ =NULL;
     }
+
+    printf("ExternalOutput closed Successfully\n");
     return;
   }
 
