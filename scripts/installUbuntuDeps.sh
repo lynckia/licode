@@ -47,6 +47,23 @@ install_libnice(){
   fi
 }
 
+install_mediadeps(){
+  sudo apt-get install libvpx. libx264.
+  if [ -d $LIB_DIR ]; then
+    curl -O https://www.libav.org/releases/libav-9.9.tar.gz
+    tar -zxvf libav-9.9.tar.gz
+    cd libav-9.9.tar.gz
+    ./configure --enable-shared --enable-gpl --enable-libvpx --enable-libx264
+    make
+    sudo make install
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_mediadeps
+  fi
+
+}
+
 pause "Installing deps via apt-get... [press Enter]"
 install_apt_deps
 
@@ -55,3 +72,6 @@ install_openssl
 
 pause "Installing libnice library...  [press Enter]"
 install_libnice
+
+pause "Installing media dependencies WARNING: USING GPL LIBRARIES FOR TRANSCODING.... [press Enter]"
+install_mediadeps
