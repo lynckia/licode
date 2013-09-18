@@ -121,7 +121,7 @@ namespace erizo {
     if (vCoderContext!=NULL)
       avcodec_close(vCoderContext);
     if (cPicture !=NULL)
-      av_frame_free(&cPicture);
+      avcodec_free_frame(&cPicture);
 
     return 0;
   }
@@ -285,7 +285,7 @@ decoding:
     if (vDecoderContext != NULL)
       avcodec_close(vDecoderContext);
     if (dPicture != NULL)
-      av_frame_free(&dPicture);
+      avcodec_free_frame(&dPicture);
     return 0;
   }
 
