@@ -50,7 +50,9 @@ Erizo.Stream = function (spec) {
     };
 
     // Sends data through this stream.
-    that.sendData = function (msg) {};
+    that.sendData = function (msg) {
+        L.Logger.error("Failed to send data. This Stream object has not that channel enabled.");
+    };
 
     // Initializes the stream and tries to retrieve a stream from local video and audio
     // We need to call this method before we can publish it in the room.

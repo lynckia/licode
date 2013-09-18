@@ -278,16 +278,20 @@ var listen = function () {
         //Gets 'subscribe' messages on the socket in order to add new subscriber to a determined stream (options.streamId).
         socket.on('subscribe', function (options, sdp, callback) {
 
-            if (socket.room.streams[options.streamId] === undefined) {
+            var stream = socket.room.streams[options.streamId];
+
+            if (stream === undefined) {
                 return;
             }
 
-            socket.room.streams[options.streamId].addDataSubscriber(socket.id);
-
-            if (socket.room.streams[options.streamId].hasAudio() || socket.room.streams[options.streamId].hasVideo() || socket.room.streams[options.streamId].hasScreen()) {
+            if (stream.hasData() && options.data !== false) {
+                stream.addDataSubscriber(socket.id);
+            }
+            
+            if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
                 
                 if (socket.room.p2p) {
-                    var s = socket.room.streams[options.streamId].getSocket();
+                    var s = stream.getSocket();
                     io.sockets.socket(s).emit('onSubscribeP2P', {streamId: options.streamId, subsSocket: socket.id}, function(offer) {
                         callback(offer);
                     });
