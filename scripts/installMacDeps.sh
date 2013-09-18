@@ -54,6 +54,23 @@ install_libnice(){
   fi
 }
 
+install_mediadeps(){
+  brew install yasm libvpx x264
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    curl -O https://www.libav.org/releases/libav-9.9.tar.gz
+    tar -zxvf libav-9.9.tar.gz
+    cd libav-9.9
+    ./configure --enable-shared --enable-gpl --enable-libvpx --enable-libx264
+    make
+    sudo make install
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_mediadeps
+  fi
+}
+
 pause "Installing homebrew... [press Enter]"
 install_homebrew
 pause "Installing deps via homebrew... [press Enter]"
@@ -62,3 +79,5 @@ pause 'Installing openssl... [press Enter]'
 install_openssl
 pause 'Installing libnice... [press Enter]'
 install_libnice
+pause "Installing media dependencies WARNING: USING GPL LIBRARIES FOR TRANSCODING.... [press Enter]"
+install_mediadeps
