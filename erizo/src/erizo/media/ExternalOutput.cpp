@@ -108,7 +108,6 @@ namespace erizo {
   }
 
   void ExternalOutput::receiveRawData(RawDataPacket& packet){
-    //    printf("rawdata received\n");
     return;
   }
 
@@ -116,6 +115,11 @@ namespace erizo {
   int ExternalOutput::deliverAudioData(char* buf, int len){
     if (in!=NULL){
       if (videoCodec_ == NULL) {
+        return 0;
+      }
+      rtpheader *head = (rtpheader*)buf;
+      //We dont need any other payload at this time
+      if(head->payloadtype != PCMU_8000_PT){
         return 0;
       }
       memset(unpackagedAudioBuffer_,0,15000);
