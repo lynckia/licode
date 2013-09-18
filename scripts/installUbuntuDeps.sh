@@ -50,6 +50,7 @@ install_libnice(){
 install_mediadeps(){
   sudo apt-get install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-9.9.tar.gz
     tar -zxvf libav-9.9.tar.gz
     cd libav-9.9
