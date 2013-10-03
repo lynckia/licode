@@ -27,7 +27,7 @@ install_openssl(){
     curl -O http://www.openssl.org/source/openssl-1.0.1e.tar.gz
     tar -zxvf openssl-1.0.1e.tar.gz
     cd openssl-1.0.1e
-    ./configure
+    ./config -fPIC --prefix=/usr/local
     make
     sudo make install
     cd $CURRENT_DIR
