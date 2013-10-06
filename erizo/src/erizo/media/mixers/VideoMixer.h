@@ -12,6 +12,8 @@
 #include "../../MediaDefinitions.h"
 #include "../MediaProcessor.h"
 
+#include "logger.h"
+
 
 namespace erizo{
 class WebRtcConnection;
@@ -22,6 +24,7 @@ class RTPSink;
  * Receives media from one publisher and retransmits it to every subscriber.
  */
 class VideoMixer : public MediaSink, public RawDataReceiver, public RTPDataReceiver {
+	DECLARE_LOGGER();
 public:
 	WebRtcConnection *subscriber;
 	std::map<int, WebRtcConnection*> publishers;
@@ -47,9 +50,9 @@ public:
 	int deliverAudioData(char* buf, int len);
 	int deliverVideoData(char* buf, int len);
 	void receiveRawData(RawDataPacket& packet);
-  void receiveRtpData(unsigned char* rtpdata, int len);
+  	void receiveRtpData(unsigned char* rtpdata, int len);
 
-  void closeSink();
+  	void closeSink();
 
 //	MediaProcessor *mp;
 	InputProcessor* ip;

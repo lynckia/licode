@@ -36,6 +36,7 @@ target_link_libraries(erizo ${Boost_LIBRARIES})
 # SRTP
 find_library(SRTP srtp)
 test_lib(${SRTP})
+message("LIBSRTP " ${SRTP})
 
 # NICE
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -81,4 +82,8 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (LIBS ${LIBS} ${AVFORMAT})
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL_LIB} ${LIBS})
+# LOG4CXX
+# find_library(LOG log4cxx)
+#test_lib(${LOG})
+
+target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL_LIB} ${LIBS} ${LOG})

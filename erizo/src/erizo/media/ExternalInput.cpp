@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 
 namespace erizo {
-  
+  DEFINE_LOGGER(ExternalInput, "media.ExternalInput");
   ExternalInput::ExternalInput(const std::string& inputUrl){
     sourcefbSink_=NULL;
     context_ = NULL;
@@ -18,7 +18,7 @@ namespace erizo {
   }
 
   ExternalInput::~ExternalInput(){
-    printf("Destructor EI\n");
+    ELOG_DEBUG("Destructor EI");
     this->closeSource();
   }
 
@@ -28,19 +28,19 @@ namespace erizo {
     avcodec_register_all();
     avformat_network_init();
     //open rtsp
-    printf("trying to open input\n");
+    ELOG_DEBUG("trying to open input");
     int res = avformat_open_input(&context_, url_.c_str(),NULL,NULL);
     char errbuff[500];
     printf ("RES %d\n", res);
     if(res != 0){
       av_strerror(res, (char*)(&errbuff), 500);
-      printf("fail when opening input %s\n", errbuff);
+      ELOG_DEBUG("fail when opening input %s", errbuff);
       return res;
     }
     res = avformat_find_stream_info(context_,NULL);
     if(res<0){
       av_strerror(res, (char*)(&errbuff), 500);
-      printf("fail when finding stream info %s\n", errbuff);
+      ELOG_DEBUG("fail when finding stream info %s", errbuff);
       return res;
     }
 
@@ -48,7 +48,7 @@ namespace erizo {
 
     int streamNo = av_find_best_stream(context_, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
     if (streamNo < 0){
-      printf("No video stream?\n");
+      ELOG_DEBUG("No video stream?");
       return streamNo;
     }
     sendVideoBuffer_ = (char*) malloc(2000);
@@ -79,7 +79,7 @@ namespace erizo {
     op_->init(om, this);
 
 
-    printf("Success initializing external input for codec %s\n", st->codec->codec_name);
+    ELOG_DEBUG("Success initializing external input for codec %s", st->codec->codec_name);
     av_init_packet(&avpacket_);
 
     AVStream* stream=NULL;
@@ -149,7 +149,7 @@ namespace erizo {
         op_->receiveRawData(packetQueue_.front());
         packetQueue_.pop();
 
-        //      printf("Queue Size! %d\n", packetQueue_.size());
+        //      ELOG_DEBUG("Queue Size! %d", packetQueue_.size());
         queueMutex_.unlock();
       } else {
         queueMutex_.unlock();

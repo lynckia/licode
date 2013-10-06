@@ -8,6 +8,7 @@
 #include "codecs/VideoCodec.h"
 #include "MediaProcessor.h"
 #include "boost/thread.hpp"
+#include "logger.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -18,7 +19,7 @@ namespace erizo{
   class WebRtcConnection;
 
   class ExternalInput : public MediaSource, public RTPDataReceiver {
-
+      DECLARE_LOGGER();
     public:
       ExternalInput (const std::string& inputUrl);
       virtual ~ExternalInput();

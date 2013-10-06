@@ -9,14 +9,18 @@
 #include <string.h>
 
 namespace erizo {
+
+  DEFINE_LOGGER(AudioEncoder, "media.codecs.AudioEncoder");
+  DEFINE_LOGGER(AudioDecoder, "media.codecs.AudioDecoder");
+
   inline  AVCodecID
     AudioCodecID2ffmpegDecoderID(AudioCodecID codec)
     {
       switch (codec)
       {
         case AUDIO_CODEC_PCM_U8: return AV_CODEC_ID_PCM_U8;
-        case AUDIO_CODEC_VORBIS: printf("VORBIS\n");return AV_CODEC_ID_VORBIS;
-        default: printf("Unknown Audio codec\n"); return AV_CODEC_ID_PCM_U8;
+        case AUDIO_CODEC_VORBIS: return AV_CODEC_ID_VORBIS;
+        default: return AV_CODEC_ID_PCM_U8;
       }
     }
 
@@ -27,22 +31,22 @@ namespace erizo {
   }
 
   AudioEncoder::~AudioEncoder(){
-    printf("AudioEncoder Destructor\n");
+    ELOG_DEBUG("AudioEncoder Destructor");
     this->closeEncoder();
   }
 
   int AudioEncoder::initEncoder (const AudioCodecInfo& mediaInfo){
 
-    printf("Init audioEncoder begin\n");
+    ELOG_DEBUG("Init audioEncoder begin");
     aCoder_ = avcodec_find_encoder(AudioCodecID2ffmpegDecoderID(mediaInfo.codec));
     if (!aCoder_) {
-      printf("Audio Codec not found\n");
+      ELOG_DEBUG("Audio Codec not found");
       return false;
     }
 
     aCoderContext_ = avcodec_alloc_context3(aCoder_);
     if (!aCoderContext_) {
-      printf("Memory error allocating audio coder context\n");
+      ELOG_DEBUG("Memory error allocating audio coder context");
       return false;
     }
 
@@ -54,10 +58,10 @@ namespace erizo {
     int res = avcodec_open2(aCoderContext_, aCoder_, NULL);
     if(res != 0){
       av_strerror(res, (char*)(&errbuff), 500);
-      printf("fail when opening input %s\n", errbuff);
+      ELOG_DEBUG("fail when opening input %s", errbuff);
       exit(res);
     }
-    printf("Init audioEncoder end\n");
+    ELOG_DEBUG("Init audioEncoder end");
   }
 
   int AudioEncoder::encodeAudio (unsigned char* inBuffer, int nSamples, 
@@ -67,7 +71,7 @@ namespace erizo {
     /* frame containing input raw audio */
     frame = avcodec_alloc_frame();
     if (!frame) {
-      fprintf(stderr, "could not allocate audio frame\n");
+      ELOG_ERROR("could not allocate audio frame");
       exit(1);
     }
     uint16_t* samples;
@@ -80,14 +84,14 @@ namespace erizo {
 
     /* the codec gives us the frame size, in samples,
      * we calculate the size of the samples buffer in bytes */
-    printf("channels %d, frame_size %d, sample_fmt %d\n",
+    ELOG_DEBUG("channels %d, frame_size %d, sample_fmt %d",
         aCoderContext_->channels, aCoderContext_->frame_size,
         aCoderContext_->sample_fmt);
     buffer_size = av_samples_get_buffer_size(NULL, aCoderContext_->channels,
         aCoderContext_->frame_size, aCoderContext_->sample_fmt, 0);
     samples = (uint16_t*) malloc(buffer_size);
     if (!samples) {
-      fprintf(stderr, "could not allocate %d bytes for samples buffer\n",
+      ELOG_ERROR("could not allocate %d bytes for samples buffer",
           buffer_size);
       exit(1);
     }
@@ -96,18 +100,18 @@ namespace erizo {
         aCoderContext_->sample_fmt, (const uint8_t*) samples, buffer_size,
         0);
     if (ret < 0) {
-      fprintf(stderr, "could not setup audio frame\n");
+      ELOG_ERROR("could not setup audio frame");
       exit(1);
     }
 
     ret = avcodec_encode_audio2(aCoderContext_, pkt, frame, &got_output);
     if (ret < 0) {
-      fprintf(stderr, "error encoding audio frame\n");
+      ELOG_ERROR("error encoding audio frame");
       exit(1);
     }
     if (got_output) {
       //fwrite(pkt.data, 1, pkt.size, f);
-      printf("Got OUTPUT\n");
+      ELOG_DEBUG("Got OUTPUT");
     }
 
     return ret;
@@ -131,20 +135,20 @@ namespace erizo {
   }
 
   AudioDecoder::~AudioDecoder(){
-    printf("AudioDecoder Destructor\n");
+    ELOG_DEBUG("AudioDecoder Destructor");
     this->closeDecoder();
   }
 
   int AudioDecoder::initDecoder (const AudioCodecInfo& info){
     aDecoder_ = avcodec_find_decoder(static_cast<AVCodecID>(info.codec));
     if (!aDecoder_) {
-      printf("Audio decoder not found");
+      ELOG_DEBUG("Audio decoder not found");
       return false;
     }
 
     aDecoderContext_ = avcodec_alloc_context3(aDecoder_);
     if (!aDecoderContext_) {
-      printf("Error allocating audio decoder context");
+      ELOG_DEBUG("Error allocating audio decoder context");
       return false;
     }
 
@@ -154,7 +158,7 @@ namespace erizo {
     aDecoderContext_->channels = 1;
 
     if (avcodec_open2(aDecoderContext_, aDecoder_, NULL) < 0) {
-      printf("Error opening audio decoder\n");
+      ELOG_DEBUG("Error opening audio decoder");
       exit(0);
       return false;
     }
@@ -200,8 +204,7 @@ namespace erizo {
             aDecoderContext_->channels, frame.nb_samples,
             aDecoderContext_->sample_fmt, 1);
         if (outSize < data_size) {
-          printf(
-              "output buffer size is too small for the current frame\n");
+          ELOG_DEBUG("output buffer size is too small for the current frame");
           return AVERROR(EINVAL);
         }
 
@@ -222,7 +225,7 @@ namespace erizo {
       }
 
       if (len < 0) {
-        printf("Error al decodificar audio\n");
+        ELOG_DEBUG("Error al decodificar audio");
         free(decBuff);
         return -1;
       }
@@ -242,7 +245,7 @@ namespace erizo {
     free(decBuff);
 
     if (outSize <= 0) {
-      printf("Error de decodificación de audio debido a tamaño incorrecto");
+      ELOG_DEBUG("Error de decodificación de audio debido a tamaño incorrecto");
       return -1;
     }
 

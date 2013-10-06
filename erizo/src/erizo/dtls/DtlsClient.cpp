@@ -26,6 +26,8 @@ extern "C"
 using namespace std;
 using namespace dtls;
 
+DEFINE_LOGGER(DtlsSocketContext, "dtls.DtlsSocketContext");
+
 //memory is only valid for duration of callback; must be copied if queueing
 //is required
 DtlsSocketContext::DtlsSocketContext() {
@@ -73,21 +75,12 @@ void DtlsSocketContext::handshakeCompleted()
   SRTP_PROTECTION_PROFILE *srtp_profile;
 
   if(mSocket->getRemoteFingerprint(fprint)){
-    cout <<  ": Remote fingerprint == " << fprint << endl;
+    ELOG_TRACE("Remote fingerprint == %s", fprint);
 
     bool check=mSocket->checkFingerprint(fprint,strlen(fprint));
-
-    cout <<  ": Fingerprint check == " << check << endl;
+    ELOG_DEBUG("Fingerprint check == %d", check);
 
     SrtpSessionKeys keys=mSocket->getSrtpSessionKeys();
-
-    cout << octet_string_hex_string(keys.clientMasterKey, keys.clientMasterKeyLen)
-         << "/";
-    cout << octet_string_hex_string(keys.clientMasterSalt, keys.clientMasterSaltLen) << endl;
-    cout << octet_string_hex_string(keys.serverMasterKey, keys.serverMasterKeyLen)
-         << "/";
-    cout << octet_string_hex_string(keys.serverMasterSalt, keys.serverMasterSaltLen)
-         << endl;
 
     unsigned char* cKey = (unsigned char*)malloc(keys.clientMasterKeyLen + keys.clientMasterSaltLen);
     unsigned char* sKey = (unsigned char*)malloc(keys.serverMasterKeyLen + keys.serverMasterSaltLen);
@@ -98,14 +91,12 @@ void DtlsSocketContext::handshakeCompleted()
     memcpy ( sKey, keys.serverMasterKey, keys.serverMasterKeyLen );
     memcpy ( sKey + keys.serverMasterKeyLen, keys.serverMasterSalt, keys.serverMasterSaltLen );
 
-    cout << octet_string_hex_string(cKey, keys.clientMasterKeyLen + keys.clientMasterSaltLen) << endl;
 
     std::string clientKey = g_base64_encode((const guchar*)cKey, keys.clientMasterKeyLen + keys.clientMasterSaltLen);
     std::string serverKey = g_base64_encode((const guchar*)sKey, keys.serverMasterKeyLen + keys.serverMasterSaltLen);
 
-
-    cout << "ClientKey: " << clientKey << endl;
-    cout << "ServerKey: " << serverKey << endl;
+    ELOG_DEBUG("ClientKey: %s", clientKey.c_str());
+    ELOG_DEBUG("ServerKey: %s", serverKey.c_str());
 
     free(cKey);
     free(sKey);
@@ -113,7 +104,7 @@ void DtlsSocketContext::handshakeCompleted()
     srtp_profile=mSocket->getSrtpProfile();
 
     if(srtp_profile){
-      cout <<  ": SRTP Extension negotiated profile="<<srtp_profile->name << endl;
+      ELOG_DEBUG("SRTP Extension negotiated profile=%s", srtp_profile->name);
     }
 
     if (receiver != NULL) {
@@ -121,12 +112,12 @@ void DtlsSocketContext::handshakeCompleted()
     }
   }
   else {
-    cout <<  ": Peer did not authenticate" << endl;
+    ELOG_DEBUG("Peer did not authenticate");
   }
 
 }
 
 void DtlsSocketContext::handshakeFailed(const char *err)
 {
-  cout <<  "Bummer, handshake failure "<<err<<endl;
+  ELOG_WARN("DTLS Handshake Failure");
 }

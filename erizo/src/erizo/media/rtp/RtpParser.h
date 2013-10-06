@@ -1,6 +1,8 @@
 #ifndef RTPPARSER_H_
 #define RTPPARSER_H_
 
+#include "logger.h"
+
 namespace erizo {
 
 typedef struct {
@@ -29,7 +31,7 @@ enum FrameTypes {
 };
 
 class RtpParser {
-
+	DECLARE_LOGGER();
 public:
 	RtpParser();
 	virtual ~RtpParser();

@@ -17,8 +17,6 @@
 #define OPENSSL_THREAD_DEFINES
 #include <openssl/opensslconf.h>
 
-#define RESIPROCATE_SUBSYSTEM Subsystem::SIP
-
 using namespace resip;
 using namespace std;
 
@@ -37,7 +35,6 @@ OpenSSLInit::init()
 
 OpenSSLInit::OpenSSLInit()
 {
-	cout << "Initializing SSL" << endl;
 	int locks = CRYPTO_num_locks();
    mMutexes = new boost::mutex[locks];
 	//mMutexes = new Mutex[locks];
@@ -97,12 +94,12 @@ resip_OpenSSLInit_lockingFunction(int mode, int n, const char* file, int line)
       OpenSSLInit::mMutexes[n].lock();
    }
    else
-   {      
+   {
       OpenSSLInit::mMutexes[n].unlock();
    }
 }
 
-unsigned long 
+unsigned long
 resip_OpenSSLInit_threadIdFunction()
 {
 #if defined(WIN32)
@@ -118,12 +115,12 @@ resip_OpenSSLInit_threadIdFunction()
    return 0;
 }
 
-CRYPTO_dynlock_value* 
+CRYPTO_dynlock_value*
 resip_OpenSSLInit_dynCreateFunction(char* file, int line)
 {
    CRYPTO_dynlock_value* dynLock = new CRYPTO_dynlock_value;
    dynLock->mutex = new boost::mutex;
-   return dynLock;   
+   return dynLock;
 }
 
 void
@@ -133,7 +130,7 @@ resip_OpenSSLInit_dynDestroyFunction(CRYPTO_dynlock_value* dynlock, const char* 
    delete dynlock;
 }
 
-void 
+void
 resip_OpenSSLInit_dynLockFunction(int mode, struct CRYPTO_dynlock_value* dynlock, const char* file, int line)
 {
    if (mode & CRYPTO_LOCK)

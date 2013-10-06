@@ -12,7 +12,7 @@ Erizo.ChromeCanaryStack = function (spec) {
         "iceServers": []
     };
 
-    that.con = {'optional': [{'DtlsSrtpKeyAgreement': 'true'}]};
+    that.con = {'optional': [{'DtlsSrtpKeyAgreement': false}]};
 
     if (spec.stunServerUrl !== undefined) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
@@ -206,6 +206,8 @@ Erizo.ChromeCanaryStack = function (spec) {
                     var newOffer = sessionDescription.sdp;
 
                     //sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
+                    sessionDescription.sdp = newOffer.replace(/a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
+                    sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
 
                     L.Logger.debug("Changed", sessionDescription.sdp);
 
@@ -232,7 +234,7 @@ Erizo.ChromeCanaryStack = function (spec) {
 
                 // Now able to send the offer we've already prepared.
                 that.prevOffer = that.peerConnection.localDescription.sdp;
-                L.Logger.debug("Sending OFFER: ", that.prevOffer);
+                L.Logger.debug("Sending OFFER: " + that.prevOffer);
                 //L.Logger.debug('Sent SDP is ' + that.prevOffer);
                 that.sendMessage('OFFER', that.prevOffer);
                 // Not done: Retransmission on non-response.

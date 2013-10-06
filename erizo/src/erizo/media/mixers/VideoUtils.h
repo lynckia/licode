@@ -7,7 +7,11 @@
 
 #include <boost/cstdint.hpp>
 
+#include "logger.h"
+
 class VideoUtils{
+
+  DECLARE_LOGGER();
 
   enum ImgFormat{
     I420P_FORMAT,

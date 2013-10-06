@@ -12,6 +12,7 @@
 
 using std::endl;
 namespace erizo {
+  DEFINE_LOGGER(SdpInfo, "SdpInfo");
 
   static const char *cand = "a=candidate:";
   static const char *crypto = "a=crypto:";
@@ -36,7 +37,7 @@ namespace erizo {
     audioSsrc = 0;
     videoSsrc = 0;
 
-    printf("Generating internal RtpMap\n");
+    ELOG_DEBUG("Generating internal RtpMap");
 
     RtpMap vp8;
     vp8.payloadType = VP8_90000_PT;
@@ -164,7 +165,7 @@ namespace erizo {
     char* msidtemp = static_cast<char*>(malloc(10));
     gen_random(msidtemp,10);
 
-    printf("Getting SDP\n");
+    ELOG_DEBUG("Getting SDP");
 
     std::ostringstream sdp;
     sdp << "v=0\n" << "o=- 0 0 IN IP4 127.0.0.1\n" << "s=\n" << "t=0 0\n";
@@ -364,7 +365,7 @@ namespace erizo {
         "a=ssrc:"<< videoSsrc << " label:" << msidtemp <<"v0"<<endl;
     }
     free (msidtemp);
-    printf("sdp local \n %s\n",sdp.str().c_str());
+    ELOG_DEBUG("sdp local \n %s",sdp.str().c_str());
     return sdp.str();
   }
 
@@ -431,7 +432,7 @@ namespace erizo {
       }
       if (isSAVPF){
         profile = SAVPF;
-        printf("PROFILE %s (1 SAVPF)\n", isSAVPF);
+        ELOG_DEBUG("PROFILE %s (1 SAVPF)", isSAVPF);
       }
       if (isFP){
         char *pch;
@@ -440,7 +441,7 @@ namespace erizo {
         pch = strtok(NULL, " ");
         fingerprint = std::string(pch);
         isFingerprint = true;
-        printf("Fingerprint %s \n", fingerprint.c_str());
+        ELOG_DEBUG("Fingerprint %s ", fingerprint.c_str());
       }
       if (isGroup) {
         isBundle = true;
@@ -466,7 +467,7 @@ namespace erizo {
         processCandidate(pieces, i - 1, mtype);
       }
       if (isCrypt) {
-        //	printf("crypt %s\n", isCrypt );
+        //	ELOG_DEBUG("crypt %s", isCrypt );
         CryptoInfo crypinfo;
         char *pch;
         pch = strtok(line, " :");
@@ -474,7 +475,7 @@ namespace erizo {
         int i = 0;
         while (pch != NULL) {
           pch = strtok(NULL, " :");
-          //				printf("cryptopiece %i es %s\n", i, pch);
+          //				ELOG_DEBUG("cryptopiece %i es %s", i, pch);
           cryptopiece[i++] = pch;
         }
 
@@ -531,7 +532,7 @@ namespace erizo {
             outInPTMap[PT] = rtp.payloadType;
             inOutPTMap[rtp.payloadType] = PT;
             found = true;
-            printf("Mapping %s/%d:%d to %s/%d:%d\n", codecname.c_str(), clock, PT, rtp.encodingName.c_str(), rtp.clockRate, rtp.payloadType);
+            ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d", codecname.c_str(), clock, PT, rtp.encodingName.c_str(), rtp.clockRate, rtp.payloadType);
           }
         }
         if (found) {

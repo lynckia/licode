@@ -6,6 +6,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread.hpp>
 
+#include "logger.h"
+
 #include "SrtpChannel.h"
 #include "SdpInfo.h"
 #include "MediaDefinitions.h"
@@ -37,6 +39,7 @@ public:
  * it comprises all the necessary Transport components.
  */
 class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink, public FeedbackSource, public TransportListener {
+	DECLARE_LOGGER();
 public:
 	/**
 	 * Constructor.

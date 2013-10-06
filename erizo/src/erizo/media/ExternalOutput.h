@@ -9,6 +9,7 @@
 #include "codecs/AudioCodec.h"
 #include "MediaProcessor.h"
 #include "boost/thread.hpp"
+#include "logger.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -19,7 +20,7 @@ namespace erizo{
   class WebRtcConnection;
 
   class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource {
-
+      DECLARE_LOGGER();
     public:
       ExternalOutput (std::string outputUrl);
       virtual ~ExternalOutput();

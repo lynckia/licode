@@ -7,7 +7,7 @@
 
 #include <memory>
 #include <string.h>
-extern "C" 
+extern "C"
 {
 #ifdef WIN32
 #include <srtp.h>
@@ -23,6 +23,8 @@ extern "C"
 #include <openssl/ssl.h>
 
 #include <boost/thread/mutex.hpp>
+
+#include "logger.h"
 
 namespace dtls
 {
@@ -46,16 +48,17 @@ class SrtpSessionKeys
 
 class DtlsSocket
 {
+   DECLARE_LOGGER();
    public:
       enum SocketType { Client, Server};
-      ~DtlsSocket(); 
+      ~DtlsSocket();
 
       // Inspects packet to see if it's a DTLS packet, if so continue processing
       bool handlePacketMaybe(const unsigned char* bytes, unsigned int len);
-      
+
       // Called by DtlSocketTimer when timer expires - causes a retransmission (forceRetransmit)
       void expired(DtlsSocketTimer*);
-      
+
       // Retrieves the finger print of the certificate presented by the remote party
       bool getRemoteFingerprint(char *fingerprint);
 
@@ -70,21 +73,21 @@ class DtlsSocket
       void startClient();
 
       // Returns the socket type: Client or Server
-      SocketType getSocketType() {return mSocketType;} 
+      SocketType getSocketType() {return mSocketType;}
 
       // Retreives the SRTP session keys from the Dtls session
       SrtpSessionKeys getSrtpSessionKeys();
 
       // Utility fn to compute a certificates fingerprint
       static void computeFingerprint(X509 *cert, char *fingerprint);
- 
+
       // Retrieves the DTLS negotiated SRTP profile - may return 0 if profile selection failed
-      SRTP_PROTECTION_PROFILE* getSrtpProfile();      
+      SRTP_PROTECTION_PROFILE* getSrtpProfile();
 
       // Creates SRTP session policies appropriately based on socket type (client vs server) and keys
       // extracted from the DTLS handshake process
-      void createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy_t& inboundPolicy);      
-      
+      void createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy_t& inboundPolicy);
+
       // returns true if the DTLS handshake has completed
       bool handshakeCompleted() { return mHandshakeCompleted; }
 
@@ -94,7 +97,7 @@ class DtlsSocket
       friend class DtlsFactory;
 
       // Causes an immediate handshake iteration to happen, which will retransmit the handshake
-      void forceRetransmit();     
+      void forceRetransmit();
 
       // Creates an SSL socket, and if client sets state to connect_state and if server sets state to accept_state.  Sets SSL BIO's.
       DtlsSocket(std::auto_ptr<DtlsSocketContext> socketContext, DtlsFactory* factory, enum SocketType);
@@ -104,20 +107,20 @@ class DtlsSocket
 
       // returns the amount of time between handshake retranmssions (500ms)
       int getReadTimeout();
-      
+
       // Internals
       std::auto_ptr<DtlsSocketContext> mSocketContext;
       DtlsFactory* mFactory;
       DtlsTimer *mReadTimer;  // Timer used during handshake process
-      
-      // OpenSSL context data    
-      SSL *mSsl;      
+
+      // OpenSSL context data
+      SSL *mSsl;
       BIO *mInBio;
       BIO *mOutBio;
-      
+
       SocketType mSocketType;
       bool mHandshakeCompleted;
-      boost::mutex handshakeMutex_; 
+      boost::mutex handshakeMutex_;
 };
 
 class DtlsReceiver
@@ -129,9 +132,10 @@ public:
 
 class DtlsSocketContext
 {
+   DECLARE_LOGGER();
    public:
       //memory is only valid for duration of callback; must be copied if queueing
-      //is required 
+      //is required
       DtlsSocketContext();
       virtual ~DtlsSocketContext();
       void setSocket(DtlsSocket *socket);
@@ -148,46 +152,46 @@ class DtlsSocketContext
       DtlsSocket *mSocket;
       DtlsReceiver *receiver;
       DtlsFactory *clientFactory;
-     
+
    private:
       friend class DtlsSocket;
-     
+
       void setDtlsSocket(DtlsSocket *sock) {mSocket=sock;}
 };
 
 }
 
-#endif 
+#endif
 /* ====================================================================
 
- Copyright (c) 2007-2008, Eric Rescorla and Derek MacDonald 
+ Copyright (c) 2007-2008, Eric Rescorla and Derek MacDonald
  All rights reserved.
- 
+
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are 
+ modification, are permitted provided that the following conditions are
  met:
- 
- 1. Redistributions of source code must retain the above copyright 
-    notice, this list of conditions and the following disclaimer. 
- 
+
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
  2. Redistributions in binary form must reproduce the above copyright
     notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution. 
- 
- 3. None of the contributors names may be used to endorse or promote 
-    products derived from this software without specific prior written 
-    permission. 
- 
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+    documentation and/or other materials provided with the distribution.
+
+ 3. None of the contributors names may be used to endorse or promote
+    products derived from this software without specific prior written
+    permission.
+
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  ==================================================================== */

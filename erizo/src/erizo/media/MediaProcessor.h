@@ -10,6 +10,7 @@
 #include "../MediaDefinitions.h"
 #include "codecs/Codecs.h"
 #include "codecs/VideoCodec.h"
+#include "logger.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -81,6 +82,7 @@ public:
 class RTPSink;
 
 class InputProcessor: MediaSink {
+	DECLARE_LOGGER();
 public:
 	InputProcessor();
 	virtual ~InputProcessor();
@@ -147,6 +149,7 @@ private:
 
 };
 class OutputProcessor: public RawDataReceiver {
+	DECLARE_LOGGER();
 public:
 
 	OutputProcessor();

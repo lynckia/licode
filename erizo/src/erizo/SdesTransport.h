@@ -4,10 +4,12 @@
 #include <string.h>
 #include "NiceConnection.h"
 #include "Transport.h"
+#include "logger.h"
 
 namespace erizo {
 	class SrtpChannel;
 	class SdesTransport : public Transport {
+		DECLARE_LOGGER();
 		public:
 			SdesTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, CryptoInfo *remoteCrypto, TransportListener *transportListener);
 			~SdesTransport();

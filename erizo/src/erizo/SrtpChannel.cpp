@@ -7,12 +7,19 @@
 
 #include "SrtpChannel.h"
 
+
+
 namespace erizo {
+    DEFINE_LOGGER(SrtpChannel, "SrtpChannel");
+    bool SrtpChannel::initialized = false;
 
 SrtpChannel::SrtpChannel() {
-
+  if (SrtpChannel::initialized != true) {
     srtp_init();
-    active_ = false;
+    SrtpChannel::initialized = true;
+  }
+
+  active_ = false;
   send_session_ = NULL;
   receive_session_ = NULL;
 }
@@ -29,7 +36,7 @@ SrtpChannel::~SrtpChannel() {
 }
 
 bool SrtpChannel::setRtpParams(char* sendingKey, char* receivingKey) {
-    printf("Configuring srtp local key %s remote key %s\n", sendingKey,
+    ELOG_DEBUG("Configuring srtp local key %s remote key %s", sendingKey,
             receivingKey);
     configureSrtpSession(&send_session_, sendingKey, SENDING);
     configureSrtpSession(&receive_session_, receivingKey, RECEIVING);
@@ -48,15 +55,14 @@ int SrtpChannel::protectRtp(char* buffer, int *len) {
 
     if (!active_)
         return 0;
-    rtpheader* headrtp = reinterpret_cast<rtpheader*>(buffer);
-    //printf("Protecting RTP seqnum %d pt %d\n", headrtp->seqnum, headrtp->payloadtype);
     int val = srtp_protect(send_session_, buffer, len);
     if (val == 0) {
         return 0;
     } else {
         rtcpheader* head = reinterpret_cast<rtcpheader*>(buffer);
+        rtpheader* headrtp = reinterpret_cast<rtpheader*>(buffer);
 
-        printf("Error SrtpChannel::protectRtp %u packettype %d pt %d seqnum %u\n", val,head->packettype, headrtp->payloadtype, headrtp->seqnum);
+        ELOG_WARN("Error SrtpChannel::protectRtp %u packettype %d pt %d seqnum %u", val,head->packettype, headrtp->payloadtype, headrtp->seqnum);
         return -1;
     }
 }
@@ -71,7 +77,7 @@ int SrtpChannel::unprotectRtp(char* buffer, int *len) {
     } else {
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buffer);
     rtpheader* headrtp = reinterpret_cast<rtpheader*>(buffer);
-        printf("Error SrtpChannel::unprotectRtp %u packettype %d pt %d\n", val,head->packettype, headrtp->payloadtype);
+        ELOG_WARN("Error SrtpChannel::unprotectRtp %u packettype %d pt %d", val,head->packettype, headrtp->payloadtype);
         return -1;
     }
 }
@@ -83,7 +89,7 @@ int SrtpChannel::protectRtcp(char* buffer, int *len) {
         return 0;
     } else {
         rtcpheader* head = reinterpret_cast<rtcpheader*>(buffer);
-        printf("Error SrtpChannel::protectRtcp %upackettype %d \n", val, head->packettype);
+        ELOG_WARN("Error SrtpChannel::protectRtcp %upackettype %d ", val, head->packettype);
         return -1;
     }
 }
@@ -94,7 +100,7 @@ int SrtpChannel::unprotectRtcp(char* buffer, int *len) {
     if (val == 0) {
         return 0;
     } else {
-        printf("Error SrtpChannel::unprotectRtcp %u\n", val);
+        ELOG_WARN("Error SrtpChannel::unprotectRtcp %u", val);
         return -1;
     }
 }
@@ -125,12 +131,11 @@ bool SrtpChannel::configureSrtpSession(srtp_t *session, const char* key,
     policy.window_size = 1024;
     policy.allow_repeat_tx = 1;
     policy.next = NULL;
-    //printf("auth_tag_len %d\n", policy.rtp.auth_tag_len);
+    //ELOG_DEBUG("auth_tag_len %d", policy.rtp.auth_tag_len);
 
     gsize len = 0;
     uint8_t *akey = (uint8_t*) g_base64_decode((gchar*) key, &len);
-    printf("set master key/salt to %s/", octet_string_hex_string(akey, 16));
-    printf("%s\n", octet_string_hex_string(akey + 16, 14));
+    ELOG_DEBUG("set master key/salt to %s/", octet_string_hex_string(akey, 16));
     // allocate and initialize the SRTP session
     policy.key = akey;
     srtp_create(session, &policy);

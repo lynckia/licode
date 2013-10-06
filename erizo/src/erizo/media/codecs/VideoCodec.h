@@ -6,6 +6,7 @@
 #define VIDEOCODEC_H_
 
 #include "Codecs.h"
+#include "logger.h"
 
 extern "C" {
 #include <libavutil/avutil.h>
@@ -20,6 +21,7 @@ extern "C" {
 namespace erizo {
 
   class VideoEncoder {
+    DECLARE_LOGGER();
     public:
       VideoEncoder();
       virtual ~VideoEncoder();
@@ -35,6 +37,7 @@ namespace erizo {
   };
 
   class VideoDecoder {
+    DECLARE_LOGGER();
     public:
       VideoDecoder();
       virtual ~VideoDecoder();

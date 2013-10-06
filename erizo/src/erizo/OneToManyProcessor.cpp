@@ -7,6 +7,7 @@
 #include "rtputils.h"
 
 namespace erizo {
+  DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
   OneToManyProcessor::OneToManyProcessor() {
 
       sendVideoBuffer_ = (char*) malloc(20000);
@@ -45,7 +46,7 @@ namespace erizo {
 
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
     if(head->packettype==RTCP_Receiver_PT || head->packettype==RTCP_Feedback_PT){
-      printf("recibo feedback por donde no es %d\n", head->packettype);
+      ELOG_WARN("Receiving Feedback in wrong path: %d", head->packettype);
       if (feedbackSink_){
         head->ssrc = htonl(publisher->getVideoSourceSSRC());
         feedbackSink_->deliverFeedback(buf,len);
@@ -53,11 +54,11 @@ namespace erizo {
       return 0;
     }
     std::map<std::string, MediaSink*>::iterator it;
-    //printf("Sending video data to subscribers of %u\n", publisher->getVideoSourceSSRC());
+    //ELOG_DEBUG("Sending video data to subscribers of %u", publisher->getVideoSourceSSRC());
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
       //memset(sendVideoBuffer_, 0, len);
       //memcpy(sendVideoBuffer_, buf, len);
-      //printf(" Subscriber %u\n", (*it).second->getVideoSinkSSRC());
+      //ELOG_DEBUG(" Subscriber %u", (*it).second->getVideoSinkSSRC());
       (*it).second->deliverVideoData(buf, len);
     }
     sentPackets_++;
@@ -65,7 +66,7 @@ namespace erizo {
   }
 
   void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
-    printf("SET PUBLISHER\n");
+    ELOG_DEBUG("SET PUBLISHER");
     this->publisher = webRtcConn;
     feedbackSink_ = publisher->getFeedbackSink();
 //    recorder_ = new ExternalOutput("/tmp/prueba.mkv");
@@ -74,22 +75,24 @@ namespace erizo {
   }
 
   int OneToManyProcessor::deliverFeedback(char* buf, int len){
-    feedbackSink_->deliverFeedback(buf,len);
+    if (feedbackSink_ != NULL) {
+      feedbackSink_->deliverFeedback(buf,len);
+    }
     return 0;
 
   }
 
   void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
-    printf("Adding subscriber\n");
-    printf("From %u, %u \n", publisher->getAudioSourceSSRC() , publisher->getVideoSourceSSRC());
+    ELOG_DEBUG("Adding subscriber");
+    ELOG_DEBUG("From %u, %u ", publisher->getAudioSourceSSRC() , publisher->getVideoSourceSSRC());
     webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
     webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
-    printf("Subscribers ssrcs: Audio %u, video, %u from %u, %u \n", webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC(), this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
+    ELOG_DEBUG("Subscribers ssrcs: Audio %u, video, %u from %u, %u ", webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC(), this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
     FeedbackSource* fbsource = webRtcConn->getFeedbackSource();
 
     if (fbsource!=NULL){
-      printf("adding fbsource************************************************\n\n\n");
+      ELOG_DEBUG("adding fbsource");
       fbsource->setFeedbackSink(this);
     }
     this->subscribers[peerId] = webRtcConn;
@@ -116,7 +119,7 @@ namespace erizo {
       (*it).second->closeSink();
     }
     this->publisher->closeSource();
-    printf("CloseSource Hecho!\n");
+    ELOG_DEBUG("CloseSource Done");
   }
 
 }/* namespace erizo */

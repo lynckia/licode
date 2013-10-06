@@ -11,6 +11,7 @@
 
 #include "MediaDefinitions.h"
 #include "SdpInfo.h"
+#include "logger.h"
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainLoop GMainLoop;
@@ -30,7 +31,7 @@ enum IceState {
 };
 
 class NiceConnectionListener {
-public: 
+public:
 	virtual void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* conn)=0;
 	virtual void updateIceState(IceState state, NiceConnection *conn)=0;
 };
@@ -41,6 +42,7 @@ public:
  *
  */
 class NiceConnection {
+	DECLARE_LOGGER();
 public:
 
 	/**
@@ -69,6 +71,12 @@ public:
 	 * @return true if successfull.
 	 */
 	bool setRemoteCandidates(std::vector<CandidateInfo> &candidates);
+	/**
+	 * Sets the local ICE Candidates. Called by C Nice functions.
+	 * @param candidates A vector containing the CandidateInfo.
+	 * @return true if successfull.
+	 */
+	void gatheringDone(uint stream_id);
 	/**
 	 * Sets the associated Listener.
 	 * @param connection Pointer to the NiceConnectionListener.

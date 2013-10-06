@@ -7,6 +7,9 @@
 
 namespace erizo {
 
+  DEFINE_LOGGER(InputProcessor, "media.InputProcessor");
+  DEFINE_LOGGER(OutputProcessor, "media.OutputProcessor");
+
   InputProcessor::InputProcessor() {
 
     audioDecoder = 0;
@@ -39,7 +42,7 @@ namespace erizo {
       if(!this->initVideoUnpackager());
     }
     if (mediaInfo.hasAudio) {
-      printf("Init AUDIO processor\n");
+      ELOG_DEBUG("Init AUDIO processor");
       mediaInfo.audioCodec.codec = AUDIO_CODEC_PCM_U8;
       decodedAudioBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
       unpackagedAudioBuffer_ = (unsigned char*) malloc(
@@ -52,11 +55,11 @@ namespace erizo {
 
   int InputProcessor::deliverAudioData(char* buf, int len) {
     if (audioDecoder && audioUnpackager) {
-      printf("Decoding audio\n");
+      ELOG_DEBUG("Decoding audio");
       int unp = unpackageAudio((unsigned char*) buf, len,
           unpackagedAudioBuffer_);
       int a = decodeAudio(unpackagedAudioBuffer_, unp, decodedAudioBuffer_);
-      printf("DECODED AUDIO a %d\n", a);
+      ELOG_DEBUG("DECODED AUDIO a %d", a);
       RawDataPacket p;
       p.data = decodedAudioBuffer_;
       p.type = AUDIO;
@@ -75,7 +78,7 @@ namespace erizo {
       unpackagedBuffer_ += ret;
       if (gotUnpackagedFrame_) {
         unpackagedBuffer_ -= upackagedSize_;
-        printf("Tengo un frame desempaquetado!! Size = %d\n",
+        ELOG_DEBUG("Tengo un frame desempaquetado!! Size = %d",
             upackagedSize_);
         int c;
         int gotDecodedFrame = 0;
@@ -87,9 +90,9 @@ namespace erizo {
 
         upackagedSize_ = 0;
         gotUnpackagedFrame_ = 0;
-        printf("Bytes dec = %d\n", c);
+        ELOG_DEBUG("Bytes dec = %d", c);
         if (gotDecodedFrame && c > 0) {
-          printf("Tengo un frame decodificado!!\n");
+          ELOG_DEBUG("Tengo un frame decodificado!!");
           gotDecodedFrame = 0;
           RawDataPacket p;
           p.data = decodedBuffer_;
@@ -107,13 +110,13 @@ namespace erizo {
 
     aDecoder = avcodec_find_decoder(static_cast<AVCodecID>(mediaInfo.audioCodec.codec));
     if (!aDecoder) {
-      printf("Decoder de audio no encontrado");
+      ELOG_DEBUG("Decoder de audio no encontrado");
       return false;
     }
 
     aDecoderContext = avcodec_alloc_context3(aDecoder);
     if (!aDecoderContext) {
-      printf("Error de memoria en decoder de audio");
+      ELOG_DEBUG("Error de memoria en decoder de audio");
       return false;
     }
 
@@ -123,7 +126,7 @@ namespace erizo {
     aDecoderContext->channels = 1;
 
     if (avcodec_open2(aDecoderContext, aDecoder, NULL) < 0) {
-      printf("Error al abrir el decoder de audio\n");
+      ELOG_DEBUG("Error al abrir el decoder de audio");
       exit(0);
       return false;
     }
@@ -147,7 +150,7 @@ namespace erizo {
       unsigned char* outBuff) {
 
     if (audioDecoder == 0) {
-      printf("No se han inicializado los parámetros del audioDecoder\n");
+      ELOG_DEBUG("No se han inicializado los parámetros del audioDecoder");
       return -1;
     }
 
@@ -183,8 +186,7 @@ namespace erizo {
             aDecoderContext->channels, frame.nb_samples,
             aDecoderContext->sample_fmt, 1);
         if (outSize < data_size) {
-          printf(
-              "output buffer size is too small for the current frame\n");
+          ELOG_DEBUG("output buffer size is too small for the current frame");
           return AVERROR(EINVAL);
         }
 
@@ -205,7 +207,7 @@ namespace erizo {
       }
 
       if (len < 0) {
-        printf("Error al decodificar audio\n");
+        ELOG_DEBUG("Error al decodificar audio");
         free(decBuff);
         return -1;
       }
@@ -225,7 +227,7 @@ namespace erizo {
     free(decBuff);
 
     if (outSize <= 0) {
-      printf("Error de decodificación de audio debido a tamaño incorrecto");
+      ELOG_DEBUG("Error de decodificación de audio debido a tamaño incorrecto");
       return -1;
     }
 
@@ -238,11 +240,11 @@ namespace erizo {
 
     RTPHeader* head = reinterpret_cast<RTPHeader*>(inBuff);
     if (head->getPayloadType()!=0){
-      printf("PT AUDIO %d\n", head->getPayloadType());
+      ELOG_DEBUG("PT AUDIO %d", head->getPayloadType());
 //      return -1;
     }
 
-//    printf("Audio Timestamp %u\n", head->getTimestamp());
+//    ELOG_DEBUG("Audio Timestamp %u", head->getTimestamp());
 
     int l = inBuffLen - RTPHeader::MIN_SIZE;
     memcpy(outBuff, &inBuff[RTPHeader::MIN_SIZE], l);
@@ -254,7 +256,7 @@ namespace erizo {
       unsigned char* outBuff, int* gotFrame, int* estimatedFps) {
 
     if (videoUnpackager == 0) {
-      printf("Unpackager not correctly initialized");
+      ELOG_DEBUG("Unpackager not correctly initialized");
       return -1;
     }
 
@@ -343,13 +345,13 @@ namespace erizo {
     if (mediaInfo.hasVideo) {
       this->mediaInfo.videoCodec.codec = VIDEO_CODEC_VP8;
       if (vCoder.initEncoder(mediaInfo.videoCodec)) {
-        printf("Error initing encoder\n");
+        ELOG_DEBUG("Error initing encoder");
       }
       this->initVideoPackager();
     }
     if (mediaInfo.hasAudio) {
 
-      printf("Init AUDIO processor\n");
+      ELOG_DEBUG("Init AUDIO processor");
       mediaInfo.audioCodec.codec = AUDIO_CODEC_PCM_U8;
       mediaInfo.audioCodec.sampleRate= 44100;
       mediaInfo.audioCodec.bitRate = 64000;
@@ -390,14 +392,14 @@ namespace erizo {
   void OutputProcessor::receiveRawData(RawDataPacket& packet) {
     int hasFrame = 0;
     if (packet.type == VIDEO) {
-      //      printf("Encoding video: size %d\n", packet.length);
+      //      ELOG_DEBUG("Encoding video: size %d", packet.length);
       int a = vCoder.encodeVideo(packet.data, packet.length, encodedBuffer_,UNPACKAGED_BUFFER_SIZE,hasFrame);
       if (a > 0)
         int b = this->packageVideo(encodedBuffer_, a, packagedBuffer_);
     } else {
       //      int a = this->encodeAudio(packet.data, packet.length, &pkt);
       //      if (a > 0) {
-      //        printf("GUAY a %d\n", a);
+      //        ELOG_DEBUG("GUAY a %d", a);
       //      }
 
     }
@@ -408,14 +410,14 @@ namespace erizo {
 
     aCoder = avcodec_find_encoder(static_cast<AVCodecID>(mediaInfo.audioCodec.codec));
     if (!aCoder) {
-      printf("Encoder de audio no encontrado");
+      ELOG_DEBUG("Encoder de audio no encontrado");
       exit(0);
       return false;
     }
 
     aCoderContext = avcodec_alloc_context3(aCoder);
     if (!aCoderContext) {
-      printf("Error de memoria en coder de audio");
+      ELOG_DEBUG("Error de memoria en coder de audio");
       exit(0);
       return false;
     }
@@ -426,7 +428,7 @@ namespace erizo {
     aCoderContext->channels = 1;
 
     if (avcodec_open2(aCoderContext, aCoder, NULL) < 0) {
-      printf("Error al abrir el coder de audio");
+      ELOG_DEBUG("Error al abrir el coder de audio");
       exit(0);
       return false;
     }
@@ -450,7 +452,7 @@ namespace erizo {
       unsigned char* outBuff) {
 
     if (audioPackager == 0) {
-      printf("No se ha inicializado el codec de output audio RTP");
+      ELOG_DEBUG("No se ha inicializado el codec de output audio RTP");
       return -1;
     }
 
@@ -473,11 +475,11 @@ namespace erizo {
 
   int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff) {
     if (videoPackager == 0) {
-      printf("No se ha inicailizado el codec de output vídeo RTP");
+      ELOG_DEBUG("No se ha inicailizado el codec de output vídeo RTP");
       return -1;
     }
 
-    //    printf("To packetize %u\n", buffSize);
+    //    ELOG_DEBUG("To packetize %u", buffSize);
     if (buffSize <= 0)
       return -1;
     RtpVP8Fragmenter frag(inBuff, buffSize, 1100);
@@ -512,7 +514,7 @@ namespace erizo {
       AVPacket* pkt) {
 
     if (audioCoder == 0) {
-      printf("No se han inicializado los parámetros del audioCoder");
+      ELOG_DEBUG("No se han inicializado los parámetros del audioCoder");
       return -1;
     }
 
@@ -520,7 +522,7 @@ namespace erizo {
     /* frame containing input raw audio */
     frame = avcodec_alloc_frame();
     if (!frame) {
-      fprintf(stderr, "could not allocate audio frame\n");
+      ELOG_ERROR("could not allocate audio frame");
       exit(1);
     }
     uint16_t* samples;
@@ -533,14 +535,14 @@ namespace erizo {
 
     /* the codec gives us the frame size, in samples,
      * we calculate the size of the samples buffer in bytes */
-    printf("channels %d, frame_size %d, sample_fmt %d\n",
+    ELOG_DEBUG("channels %d, frame_size %d, sample_fmt %d",
         aCoderContext->channels, aCoderContext->frame_size,
         aCoderContext->sample_fmt);
     buffer_size = av_samples_get_buffer_size(NULL, aCoderContext->channels,
         aCoderContext->frame_size, aCoderContext->sample_fmt, 0);
     samples = (uint16_t*) av_malloc(buffer_size);
     if (!samples) {
-      fprintf(stderr, "could not allocate %d bytes for samples buffer\n",
+      ELOG_ERROR("could not allocate %d bytes for samples buffer",
           buffer_size);
       exit(1);
     }
@@ -549,18 +551,18 @@ namespace erizo {
         aCoderContext->sample_fmt, (const uint8_t*) samples, buffer_size,
         0);
     if (ret < 0) {
-      fprintf(stderr, "could not setup audio frame\n");
+      ELOG_ERROR("could not setup audio frame");
       exit(1);
     }
 
     ret = avcodec_encode_audio2(aCoderContext, pkt, frame, &got_output);
     if (ret < 0) {
-      fprintf(stderr, "error encoding audio frame\n");
+      ELOG_ERROR("error encoding audio frame");
       exit(1);
     }
     if (got_output) {
       //fwrite(pkt.data, 1, pkt.size, f);
-      printf("Got OUTPUT\n");
+      ELOG_DEBUG("Got OUTPUT");
     }
 
     return ret;

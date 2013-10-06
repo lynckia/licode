@@ -8,6 +8,9 @@
 #include "../../WebRtcConnection.h"
 
 namespace erizo {
+
+  DEFINE_LOGGER(VideoMixer, "media.mixers.VideoMixer");
+
   VideoMixer::VideoMixer() {
 
       sendVideoBuffer_ = (char*) malloc(2000);
@@ -20,7 +23,7 @@ namespace erizo {
       MediaInfo m;
       m.proccessorType = RTP_ONLY;
       //	m.videoCodec.bitRate = 2000000;
-      //	printf("m.videoCodec.bitrate %d\n\n", m.videoCodec.bitRate);
+      //	ELOG_DEBUG("m.videoCodec.bitrate %d\n", m.videoCodec.bitRate);
       m.hasVideo = true;
       m.videoCodec.width = 640;
       m.videoCodec.height = 480;

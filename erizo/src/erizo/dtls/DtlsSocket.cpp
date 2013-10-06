@@ -18,6 +18,8 @@ const int SRTP_MASTER_KEY_BASE64_LEN = SRTP_MASTER_KEY_LEN * 4 / 3;
 const int SRTP_MASTER_KEY_KEY_LEN = 16;
 const int SRTP_MASTER_KEY_SALT_LEN = 14;
 
+DEFINE_LOGGER(DtlsSocket, "dtls.DtlsSocket");
+
 // Our local timers
 class dtls::DtlsSocketTimer : public DtlsTimer
 {
@@ -47,13 +49,12 @@ DtlsSocket::DtlsSocket(std::auto_ptr<DtlsSocketContext> socketContext, DtlsFacto
    mSocketType(type),
    mHandshakeCompleted(false)
 {
-   printf("Creating Dtls Socket\n");
+   ELOG_DEBUG("Creating Dtls Socket");
    mSocketContext->setDtlsSocket(this);
 
    assert(factory->mContext);
    mSsl=SSL_new(factory->mContext);
    assert(mSsl!=0);
-   printf("stats %ld\n", (long)mSsl->ctx);
    mSsl->ctx = factory->mContext;
    mSsl->session_ctx = factory->mContext;
 
@@ -81,7 +82,7 @@ DtlsSocket::DtlsSocket(std::auto_ptr<DtlsSocketContext> socketContext, DtlsFacto
 
    SSL_set_bio(mSsl,mInBio,mOutBio);
    SSL_accept(mSsl);
-   printf("Dtls Socket created\n");
+   ELOG_DEBUG("Dtls Socket created");
 }
 
 DtlsSocket::~DtlsSocket()
@@ -157,11 +158,9 @@ DtlsSocket::doHandshakeIteration()
    char errbuf[1024];
    int sslerr;
 
-   printf("SSL pointer %p\n", (void*)mSsl);
-
    if(mHandshakeCompleted)
       return;
-   
+
    r=SSL_do_handshake(mSsl);
    errbuf[0]=0;
    ERR_error_string_n(ERR_peek_error(),errbuf,sizeof(errbuf));
@@ -199,7 +198,7 @@ DtlsSocket::doHandshakeIteration()
 
       break;
    default:
-      cerr << "SSL error " << sslerr << endl;
+      ELOG_ERROR( "SSL error %d", sslerr );
 
       mSocketContext->handshakeFailed(errbuf);
       // Note: need to fall through to propagate alerts, if any
@@ -238,7 +237,7 @@ DtlsSocket::checkFingerprint(const char* fingerprint, unsigned int len)
 
    // used to be strncasecmp
    if(strncmp(fprint,fingerprint,len)){
-      cerr << "Fingerprint mismatch, got " << fprint << "expecting " << fingerprint << endl;
+      ELOG_WARN( "Fingerprint mismatch, got %s expecting %s", fprint, fingerprint );
       return false;
    }
 
@@ -356,20 +355,17 @@ DtlsSocket::createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy
    client_policy.key = client_master_key_and_salt;
    if (srtp_key.clientMasterKeyLen != key_len)
    {
-      cout << "error: unexpected client key length" << endl;
+      ELOG_WARN( "error: unexpected client key length" );
       assert(0);
    }
    if (srtp_key.clientMasterSaltLen != salt_len)
    {
-      cout << "error: unexpected client salt length" << endl;
+      ELOG_WARN( "error: unexpected client salt length" );
       assert(0);
    }
 
    memcpy(client_master_key_and_salt, srtp_key.clientMasterKey, key_len);
    memcpy(client_master_key_and_salt + key_len, srtp_key.clientMasterSalt, salt_len);
-
-   cout << "client master key and salt: " <<
-      octet_string_hex_string(client_master_key_and_salt, key_len + salt_len) << endl;
 
    /* initialize client SRTP policy from profile  */
    err_status_t err = crypto_policy_set_from_profile_for_rtp(&client_policy.rtp, profile);
@@ -384,19 +380,17 @@ DtlsSocket::createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy
 
    if (srtp_key.serverMasterKeyLen != key_len)
    {
-      cout << "error: unexpected server key length" << endl;
+      ELOG_WARN( "error: unexpected server key length" );
       assert(0);
    }
    if (srtp_key.serverMasterSaltLen != salt_len)
    {
-      cout << "error: unexpected salt length" << endl;
+      ELOG_WARN( "error: unexpected salt length" );
       assert(0);
    }
 
    memcpy(server_master_key_and_salt, srtp_key.serverMasterKey, key_len);
    memcpy(server_master_key_and_salt + key_len, srtp_key.serverMasterSalt, salt_len);
-   cout << "server master key and salt: " <<
-      octet_string_hex_string(server_master_key_and_salt, key_len + salt_len) << endl;
 
    /* initialize server SRTP policy from profile  */
    err = crypto_policy_set_from_profile_for_rtp(&server_policy.rtp, profile);

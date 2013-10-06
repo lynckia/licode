@@ -26,6 +26,9 @@ const char* DtlsFactory::DefaultSrtpProfile = "SRTP_AES128_CM_SHA1_80";
 X509 *DtlsFactory::mCert = NULL;
 EVP_PKEY *DtlsFactory::privkey = NULL;
 
+DEFINE_LOGGER(DtlsFactory, "dtls.DtlsFactory");
+log4cxx::LoggerPtr sslLogger(log4cxx::Logger::getLogger("dtls.SSL"));
+
 void
 SSLInfoCallback(const SSL* s, int where, int ret) {
   const char* str = "undefined";
@@ -36,17 +39,19 @@ SSLInfoCallback(const SSL* s, int where, int ret) {
     str = "SSL_accept";
   }
   if (where & SSL_CB_LOOP) {
-    cout <<  str << ":" << SSL_state_string_long(s) << endl;
+    ELOG_DEBUG2(sslLogger, "%s", SSL_state_string_long(s));
   } else if (where & SSL_CB_ALERT) {
     str = (where & SSL_CB_READ) ? "read" : "write";
-    cout <<  "SSL3 alert " << ret << " " << str
-      << ":" << SSL_alert_type_string_long(ret)
-      << ":" << SSL_alert_desc_string_long(ret) << endl;
+    ELOG_DEBUG2(sslLogger, "SSL3 alert %d - %s; %s : %s",
+      ret,
+      str,
+      SSL_alert_type_string_long(ret),
+      SSL_alert_desc_string_long(ret));
   } else if (where & SSL_CB_EXIT) {
     if (ret == 0) {
-      cout << str << ":failed in " << SSL_state_string_long(s) << endl;
+      ELOG_WARN2(sslLogger, "failed in %s", SSL_state_string_long(s));
     } else if (ret < 0) {
-      cout  << str << ":error in " << SSL_state_string_long(s) << endl;
+      ELOG_WARN2(sslLogger, "error in %s", SSL_state_string_long(s));
     }
   }
 }
@@ -54,18 +59,18 @@ SSLInfoCallback(const SSL* s, int where, int ret) {
 int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
 
   if (!ok) {
-    char data[256];
+    char data[256], data2[256];
     X509* cert = X509_STORE_CTX_get_current_cert(store);
     int depth = X509_STORE_CTX_get_error_depth(store);
     int err = X509_STORE_CTX_get_error(store);
-
-    cout << "Error with certificate at depth: " << depth;
     X509_NAME_oneline(X509_get_issuer_name(cert), data, sizeof(data));
-    cout << "  issuer  = " << data << endl;
-    X509_NAME_oneline(X509_get_subject_name(cert), data, sizeof(data));
-    cout << "  subject = " << data << endl;
-    cout << "  err     = " << err
-      << ":" << X509_verify_cert_error_string(err) << endl;
+    X509_NAME_oneline(X509_get_subject_name(cert), data2, sizeof(data2));
+    ELOG_DEBUG2(sslLogger, "Error with certificate at depth: %d, issuer: %s, subject: %s, err: %d : %s",
+      depth,
+      data,
+      data2,
+      err,
+      X509_verify_cert_error_string(err));
   }
 
   // Get our SSL structure from the store
@@ -82,7 +87,7 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
     //X509* cert = X509_STORE_CTX_get_current_cert(store);
     int err = X509_STORE_CTX_get_error(store);
 
-    cout << "Error: " << X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT << endl;
+    ELOG_DEBUG2(sslLogger, "Error: %d", X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT);
 
     // peer-to-peer mode: allow the certificate to be self-signed,
     // assuming it matches the digest that was specified.
@@ -90,8 +95,7 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
       //unsigned char digest[EVP_MAX_MD_SIZE];
       //std::size_t digest_length;
 
-      cout <<
-              "Accepted self-signed peer certificate authority" << endl;
+      ELOG_DEBUG2(sslLogger, "Accepted self-signed peer certificate authority");
       ok = 1;
 
       /* TODO
@@ -103,16 +107,15 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
                        &digest_length)) {
         Buffer computed_digest(digest, digest_length);
         if (computed_digest == stream->peer_certificate_digest_value_) {
-          cout <<
-              "Accepted self-signed peer certificate authority";
+          ELOG_DEBUG2(sslLogger, "Accepted self-signed peer certificate authority");
           ok = 1;
         }
       }
       */
     }
-  } 
+  }
   if (!ok) {
-    cout << "Ignoring cert error while verifying cert chain" << endl;
+    ELOG_DEBUG2(sslLogger, "Ignoring cert error while verifying cert chain");
     ok = 1;
   }
 
@@ -124,8 +127,9 @@ static const int KEY_LENGTH = 1024;
 int createCert (const string& pAor, int expireDays, int keyLen, X509*& outCert, EVP_PKEY*& outKey )
 {
    int ret;
-
-   cerr << "Generating new user cert for " << pAor << endl;
+   std::ostringstream info;
+   info << "Generating new user cert for" << pAor;
+   ELOG_DEBUG2(sslLogger, "%s", info.str().c_str());
    string aor = "sip:" + pAor;
 
    // Make sure that necessary algorithms exist:
@@ -224,7 +228,7 @@ DtlsFactory::DtlsFactory()
     mTimerContext = std::auto_ptr<TestTimerContext>(new TestTimerContext());
 
 
-    cout << "Creating Dtls factory\n";
+    ELOG_DEBUG("Creating Dtls factory");
 
     int r;
     mContext=SSL_CTX_new(DTLSv1_client_method());
@@ -252,7 +256,7 @@ DtlsFactory::DtlsFactory()
     SSL_CTX_set_verify_depth (mContext, 2);
     SSL_CTX_set_read_ahead(mContext, 1);
 
-    cout << "Dtls factory created \n";
+    ELOG_DEBUG("Dtls factory created");
 }
 
 DtlsFactory::~DtlsFactory()
@@ -271,7 +275,7 @@ DtlsFactory::createClient(std::auto_ptr<DtlsSocketContext> context)
 DtlsSocket*
 DtlsFactory::createServer(std::auto_ptr<DtlsSocketContext> context)
 {
-   return new DtlsSocket(context,this,DtlsSocket::Server);  
+   return new DtlsSocket(context,this,DtlsSocket::Server);
 }
 
 void
@@ -300,7 +304,7 @@ DtlsFactory::setCipherSuites(const char *str)
 }
 
 DtlsFactory::PacketType
-DtlsFactory::demuxPacket(const unsigned char *data, unsigned int len) 
+DtlsFactory::demuxPacket(const unsigned char *data, unsigned int len)
 {
    assert(len>=1);
 
@@ -317,34 +321,34 @@ DtlsFactory::demuxPacket(const unsigned char *data, unsigned int len)
 
 /* ====================================================================
 
- Copyright (c) 2007-2008, Eric Rescorla and Derek MacDonald 
+ Copyright (c) 2007-2008, Eric Rescorla and Derek MacDonald
  All rights reserved.
- 
+
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are 
+ modification, are permitted provided that the following conditions are
  met:
- 
- 1. Redistributions of source code must retain the above copyright 
-    notice, this list of conditions and the following disclaimer. 
- 
+
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
  2. Redistributions in binary form must reproduce the above copyright
     notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution. 
- 
- 3. None of the contributors names may be used to endorse or promote 
-    products derived from this software without specific prior written 
-    permission. 
- 
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+    documentation and/or other materials provided with the distribution.
+
+ 3. None of the contributors names may be used to endorse or promote
+    products derived from this software without specific prior written
+    permission.
+
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  ==================================================================== */

@@ -8,6 +8,7 @@
 #include "rtp/RtpHeader.h"
 
 namespace erizo {
+DEFINE_LOGGER(OneToManyTranscoder, "media.OneToManyTranscoder");
 OneToManyTranscoder::OneToManyTranscoder() {
 
 	sendVideoBuffer_ = (char*) malloc(2000);
@@ -20,7 +21,7 @@ OneToManyTranscoder::OneToManyTranscoder() {
 	MediaInfo m;
 	m.proccessorType = RTP_ONLY;
 //	m.videoCodec.bitRate = 2000000;
-//	printf("m.videoCodec.bitrate %d\n\n", m.videoCodec.bitRate);
+//	ELOG_DEBUG("m.videoCodec.bitrate %d\n", m.videoCodec.bitRate);
 	m.hasVideo = true;
 	m.videoCodec.width = 640;
 	m.videoCodec.height = 480;
@@ -30,7 +31,7 @@ OneToManyTranscoder::OneToManyTranscoder() {
 		m.audioCodec.bitRate = 64000;
 
 	}
-  printf("init ip\n");
+  ELOG_DEBUG("init ip");
 	ip->init(m, this);
 
 	MediaInfo om;
@@ -83,7 +84,7 @@ int OneToManyTranscoder::deliverVideoData(char* buf, int len) {
 	memcpy(sendVideoBuffer_, buf, len);
 
 	RTPHeader* theHead = reinterpret_cast<RTPHeader*>(buf);
-//	printf("extension %d pt %u\n", theHead->getExtension(),
+//	ELOG_DEBUG("extension %d pt %u", theHead->getExtension(),
 //			theHead->getPayloadType());
 
 	if (theHead->getPayloadType() == 100) {
@@ -112,12 +113,12 @@ int OneToManyTranscoder::deliverVideoData(char* buf, int len) {
 }
 
 void OneToManyTranscoder::receiveRawData(RawDataPacket& pkt) {
-//	printf("Received %d\n", pkt.length);
+//	ELOG_DEBUG("Received %d", pkt.length);
 	op->receiveRawData(pkt);
 }
 
 void OneToManyTranscoder::receiveRtpData(unsigned char*rtpdata, int len) {
-	printf("Received rtp data %d\n", len);
+	ELOG_DEBUG("Received rtp data %d", len);
 	memcpy(sendVideoBuffer_, rtpdata, len);
 
 	if (subscribers.empty() || len <= 0)

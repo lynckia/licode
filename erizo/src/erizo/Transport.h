@@ -35,7 +35,6 @@ namespace erizo {
 			virtual void processLocalSdp(SdpInfo *localSdp_) = 0;
 			virtual void close()=0;
 			void setTransportListener(TransportListener * listener) {
-				printf("Setting transport listener to  %p\n", listener);
 				transpListener_ = listener;
 			}
 			TransportListener* getTransportListener() {
@@ -45,7 +44,6 @@ namespace erizo {
 				return state_;
 			}
 			void updateTransportState(TransportState state) {
-				printf("Updating transport state to %d\n", state);
 				state_ = state;
 				if (transpListener_ != NULL) {
 					transpListener_->updateState(state, this);

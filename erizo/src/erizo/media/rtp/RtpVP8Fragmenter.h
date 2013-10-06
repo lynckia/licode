@@ -2,10 +2,12 @@
 #define RTPFRAGMENTER_H_
 
 #include <queue>
+#include "logger.h"
 
 namespace erizo {
 
 class RtpVP8Fragmenter {
+	DECLARE_LOGGER();
 public:
 	RtpVP8Fragmenter(unsigned char* data, unsigned int length, unsigned int maxLength);
 	virtual ~RtpVP8Fragmenter();

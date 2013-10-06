@@ -10,9 +10,10 @@
 
 namespace erizo {
 #define FIR_INTERVAL_MS 4000
+  DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 
   ExternalOutput::ExternalOutput(std::string outputUrl){
-    printf("Created ExternalOutput to %s\n", outputUrl.c_str());
+    ELOG_DEBUG("Created ExternalOutput to %s", outputUrl.c_str());
     url = outputUrl;
     sinkfbSource_=NULL;
     unpackagedBuffer_ = NULL;
@@ -41,7 +42,7 @@ namespace erizo {
     context_ = avformat_alloc_context();
     oformat_ = av_guess_format(NULL,  url.c_str(), NULL);
     if (!oformat_){
-      printf("Error opening output file %s\n", url.c_str());
+      ELOG_DEBUG("Error opening output file %s", url.c_str());
       return false;
     }
     context_->oformat = oformat_;
@@ -68,18 +69,18 @@ namespace erizo {
     gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
     in->init(m, this);
-    printf("externalouput init end\n");
+    ELOG_DEBUG("externalouput init end");
     return true;
   }
 
 
   ExternalOutput::~ExternalOutput(){
-    printf("Destructor\n");
+    ELOG_DEBUG("Destructor");
     this->closeSink();
   }
 
   void ExternalOutput::closeSink() {
-    printf("ExternalOutput::closeSink\n");
+    ELOG_DEBUG("ExternalOutput::closeSink");
     if (context_!=NULL){
       av_write_trailer(context_);
       avformat_free_context(context_);
@@ -103,7 +104,7 @@ namespace erizo {
       unpackagedAudioBuffer_ =NULL;
     }
 
-    printf("ExternalOutput closed Successfully\n");
+    ELOG_DEBUG("ExternalOutput closed Successfully");
     return;
   }
 
@@ -182,10 +183,10 @@ namespace erizo {
       int estimatedFps=0;
       int ret = in->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedBuffer_, &gotUnpackagedFrame_, &estimatedFps);
-      //printf("Estimated FPS %d, previous %d\n", estimatedFps, prevEstimatedFps_);
+      //ELOG_DEBUG("Estimated FPS %d, previous %d", estimatedFps, prevEstimatedFps_);
       if (videoCodec_ == NULL) {
         if ((estimatedFps!=0)&&((estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2)))){
-          //printf("OUT OF THRESHOLD changing context\n");
+          //ELOG_DEBUG("OUT OF THRESHOLD changing context");
           prevEstimatedFps_ = estimatedFps;
         }
         if (warmupfpsCount_++ >10){
@@ -220,13 +221,13 @@ namespace erizo {
     return 0;
   }
   bool ExternalOutput::initContext() {
-    printf("Init Context\n");
+    ELOG_DEBUG("Init Context");
     if (oformat_->video_codec != AV_CODEC_ID_NONE && videoCodec_ == NULL) {
       videoCodec_ = avcodec_find_encoder(oformat_->video_codec);
-      printf("Found Codec %s\n", videoCodec_->name);
-      printf("Initing context with fps: %d\n", (int)prevEstimatedFps_);
+      ELOG_DEBUG("Found Codec %s", videoCodec_->name);
+      ELOG_DEBUG("Initing context with fps: %d", (int)prevEstimatedFps_);
       if (videoCodec_==NULL){
-        printf("Could not find codec\n");
+        ELOG_DEBUG("Could not find codec");
         return false;
       }
       video_st = avformat_new_stream (context_, videoCodec_);
@@ -241,12 +242,12 @@ namespace erizo {
         videoCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
       }
       oformat_->flags |= AVFMT_VARIABLE_FPS;
-      printf("Init audio context\n");
+      ELOG_DEBUG("Init audio context");
 
       audioCodec_ = avcodec_find_encoder(oformat_->audio_codec);
-      printf("Found Audio Codec %s\n", audioCodec_->name);
+      ELOG_DEBUG("Found Audio Codec %s", audioCodec_->name);
       if (audioCodec_==NULL){
-        printf("Could not find audio codec\n");
+        ELOG_DEBUG("Could not find audio codec");
         return false;
       }
       audio_st = avformat_new_stream (context_, audioCodec_);
@@ -264,7 +265,7 @@ namespace erizo {
       context_->streams[1] = audio_st;
       avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
       avformat_write_header(context_, NULL);
-      printf("AVFORMAT CONFIGURED\n");
+      ELOG_DEBUG("AVFORMAT CONFIGURED");
     }
     return 0;
   }

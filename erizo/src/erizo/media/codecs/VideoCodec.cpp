@@ -8,6 +8,10 @@
 #include <string.h>
 
 namespace erizo {
+
+  DEFINE_LOGGER(VideoEncoder, "media.codecs.VideoEncoder");
+  DEFINE_LOGGER(VideoDecoder, "media.codecs.VideoDecoder");
+
   inline  AVCodecID
     VideoCodecID2ffmpegDecoderID(VideoCodecID codec)
     {
@@ -16,7 +20,7 @@ namespace erizo {
         case VIDEO_CODEC_H264: return AV_CODEC_ID_H264;
         case VIDEO_CODEC_VP8: return AV_CODEC_ID_VP8;
         case VIDEO_CODEC_MPEG4: return AV_CODEC_ID_MPEG4;
-        default: printf("Unknown codec\n"); return AV_CODEC_ID_VP8;
+        default: return AV_CODEC_ID_VP8;
       }
     }
 
@@ -34,13 +38,13 @@ namespace erizo {
   int VideoEncoder::initEncoder(const VideoCodecInfo& info){
     vCoder = avcodec_find_encoder(VideoCodecID2ffmpegDecoderID(info.codec));
     if (!vCoder) {
-      printf("Video codec not found for encoder");
+      ELOG_DEBUG("Video codec not found for encoder");
       return -1;
     }
 
     vCoderContext = avcodec_alloc_context3(vCoder);
     if (!vCoderContext) {
-      printf("Error allocating vCoderContext");
+      ELOG_DEBUG("Error allocating vCoderContext");
       return -2;
     }
 
@@ -68,17 +72,17 @@ namespace erizo {
     vCoderContext->thread_count = 4;
 
     if (avcodec_open2(vCoderContext, vCoder, NULL) < 0) {
-      printf("Error opening video decoder");
+      ELOG_DEBUG("Error opening video decoder");
       return -3;
     }
 
     cPicture = avcodec_alloc_frame();
     if (!cPicture) {
-      printf("Error allocating video frame");
+      ELOG_DEBUG("Error allocating video frame");
       return -4;
     }
 
-    printf("videoCoder configured successfully %d x %d\n", vCoderContext->width,
+    ELOG_DEBUG("videoCoder configured successfully %d x %d", vCoderContext->width,
         vCoderContext->height);
     return 0;
   }
@@ -86,7 +90,7 @@ namespace erizo {
   int VideoEncoder::encodeVideo (unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength, int& hasFrame){
 
     int size = vCoderContext->width * vCoderContext->height;
-    //    printf("vCoderContext width %d\n", vCoderContext->width);
+    //    ELOG_DEBUG("vCoderContext width %d", vCoderContext->width);
 
     cPicture->pts = AV_NOPTS_VALUE;
     cPicture->data[0] = inBuffer;
@@ -103,11 +107,11 @@ namespace erizo {
 
     int ret = 0;
     int got_packet = 0;
-    //    printf(
-    //        "Before encoding inBufflen %d, size %d, codecontext width %d pkt->size%d\n",
+    //    ELOG_DEBUG(
+    //        "Before encoding inBufflen %d, size %d, codecontext width %d pkt->size%d",
     //        inLength, size, vCoderContext->width, pkt.size);
     ret = avcodec_encode_video2(vCoderContext, &pkt, cPicture, &got_packet);
-    //    printf("Encoded video size %u, ret %d, got_packet %d, pts %lld, dts %lld\n",
+    //    ELOG_DEBUG("Encoded video size %u, ret %d, got_packet %d, pts %lld, dts %lld",
     //        pkt.size, ret, got_packet, pkt.pts, pkt.dts);
     if (!ret && got_packet && vCoderContext->coded_frame) {
       vCoderContext->coded_frame->pts = pkt.pts;
@@ -121,7 +125,7 @@ namespace erizo {
     if (vCoderContext!=NULL)
       avcodec_close(vCoderContext);
     if (cPicture !=NULL)
-      avcodec_free_frame(&cPicture);
+      av_frame_free(&cPicture);
 
     return 0;
   }
@@ -139,16 +143,16 @@ namespace erizo {
   }
 
   int VideoDecoder::initDecoder (const VideoCodecInfo& info){
-    printf("Init Decoder\n");
+    ELOG_DEBUG("Init Decoder");
     vDecoder = avcodec_find_decoder(VideoCodecID2ffmpegDecoderID(info.codec));
     if (!vDecoder) {
-      printf("Error getting video decoder\n");
+      ELOG_DEBUG("Error getting video decoder");
       return -1;
     }
 
     vDecoderContext = avcodec_alloc_context3(vDecoder);
     if (!vDecoderContext) {
-      printf("Error getting allocating decoder context");
+      ELOG_DEBUG("Error getting allocating decoder context");
       return -1;
     }
 
@@ -156,13 +160,13 @@ namespace erizo {
     vDecoderContext->height = info.height;
 
     if (avcodec_open2(vDecoderContext, vDecoder, NULL) < 0) {
-      printf("Error opening video decoder\n");
+      ELOG_DEBUG("Error opening video decoder");
       return -1;
     }
 
     dPicture = avcodec_alloc_frame();
     if (!dPicture) {
-      printf("Error allocating video frame\n");
+      ELOG_DEBUG("Error allocating video frame");
       return -1;
     }
 
@@ -170,22 +174,22 @@ namespace erizo {
   }
 
   int VideoDecoder::initDecoder (AVCodecContext* context){
-    printf("Init Decoder\n");
+    ELOG_DEBUG("Init Decoder");
     vDecoder = avcodec_find_decoder(context->codec_id);
     if (!vDecoder) {
-      printf("Error getting video decoder\n");
+      ELOG_DEBUG("Error getting video decoder");
       return -1;
     }
     vDecoderContext = context;
 
     if (avcodec_open2(vDecoderContext, vDecoder, NULL) < 0) {
-      printf("Error opening video decoder\n");
+      ELOG_DEBUG("Error opening video decoder");
       return -1;
     }
 
     dPicture = avcodec_alloc_frame();
     if (!dPicture) {
-      printf("Error allocating video frame\n");
+      ELOG_DEBUG("Error allocating video frame");
       return -1;
     }
 
@@ -195,7 +199,7 @@ namespace erizo {
   int VideoDecoder::decodeVideo(unsigned char* inBuff, int inBuffLen,
       unsigned char* outBuff, int outBuffLen, int* gotFrame){
     if (vDecoder == 0 || vDecoderContext == 0){
-      printf("Init Codec First\n");
+      ELOG_DEBUG("Init Codec First");
       return -1;
     }
 
@@ -216,7 +220,7 @@ namespace erizo {
           &avpkt);
 
       if (len < 0) {
-        printf("Error decoding video frame\n");
+        ELOG_DEBUG("Error decoding video frame");
         return -1;
       }
 
@@ -285,7 +289,7 @@ decoding:
     if (vDecoderContext != NULL)
       avcodec_close(vDecoderContext);
     if (dPicture != NULL)
-      avcodec_free_frame(&dPicture);
+      av_frame_free(&dPicture);
     return 0;
   }
 

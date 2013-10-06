@@ -12,10 +12,11 @@
 #include "rtputils.h"
 
 namespace erizo {
+  DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
   WebRtcConnection::WebRtcConnection() {
 
-    printf("WebRtcConnection constructor\n");
+    ELOG_DEBUG("WebRtcConnection constructor");
     video_ = 0;
     audio_ = 0;
     sequenceNumberFIR_ = 0;
@@ -39,7 +40,7 @@ namespace erizo {
 
     deliverMediaBuffer_ = (char*)malloc(3000);
 
-    printf("WebRtcConnection constructor end\n");
+    ELOG_DEBUG("WebRtcConnection constructor end");
 
   }
 
@@ -76,7 +77,7 @@ namespace erizo {
   }
 
   bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
-    printf("Set Remote SDP\n %s", sdp.c_str());
+    ELOG_DEBUG("Set Remote SDP %s", sdp.c_str());
     remoteSdp_.initWithSdp(sdp);
     //std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
     video_ = (remoteSdp_.videoSsrc==0?false:true);
@@ -88,15 +89,15 @@ namespace erizo {
     CryptoInfo cryptRemote_audio;
 
     bundle_ = remoteSdp_.isBundle;
-    printf("Is bundle? %d %d \n", bundle_, true);
+    ELOG_DEBUG("Is bundle? %d %d ", bundle_, true);
     std::vector<RtpMap> payloadRemote = remoteSdp_.getPayloadInfos();
     localSdp_.getPayloadInfos() = remoteSdp_.getPayloadInfos();
     localSdp_.isBundle = bundle_;
     localSdp_.isRtcpMux = remoteSdp_.isRtcpMux;
 
-    printf("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d \n", video_, remoteSdp_.videoSsrc, audio_, remoteSdp_.audioSsrc,  bundle_);
+    ELOG_DEBUG("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d", video_, remoteSdp_.videoSsrc, audio_, remoteSdp_.audioSsrc,  bundle_);
 
-    printf("Setting SSRC to localSdp %u\n", this->getVideoSinkSSRC());
+    ELOG_DEBUG("Setting SSRC to localSdp %u", this->getVideoSinkSSRC());
     localSdp_.videoSsrc = this->getVideoSinkSSRC();
     localSdp_.audioSsrc = this->getAudioSinkSSRC();
 
@@ -132,15 +133,15 @@ namespace erizo {
   }
 
   std::string WebRtcConnection::getLocalSdp() {
-    printf("Getting SDP\n");
+    ELOG_DEBUG("Getting SDP");
     if (videoTransport_ != NULL) {
       videoTransport_->processLocalSdp(&localSdp_);
     }
-    printf("Video SDP done.\n");
+    ELOG_DEBUG("Video SDP done.");
     if (!bundle_ && audioTransport_ != NULL) {
       audioTransport_->processLocalSdp(&localSdp_);
     }
-    printf("Audio SDP done.\n");
+    ELOG_DEBUG("Audio SDP done.");
     localSdp_.profile = remoteSdp_.profile;
     return localSdp_.getSdp();
   }
@@ -264,14 +265,14 @@ namespace erizo {
         } else if (recvSSRC==this->getAudioSourceSSRC() || recvSSRC==this->getAudioSinkSSRC()) {
           audioSink_->deliverAudioData(buf, length);
         } else {
-          printf("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring\n", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
+          ELOG_DEBUG("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
         }
       } else if (transport->mediaType == AUDIO_TYPE) {
         if (audioSink_ != NULL) {
           rtpheader *head = (rtpheader*) buf;
           // Firefox does not send SSRC in SDP
           if (this->getAudioSourceSSRC() == 0) {
-            printf("Audio Source SSRC is %d\n", ntohl(head->ssrc));
+            ELOG_DEBUG("Audio Source SSRC is %d", ntohl(head->ssrc));
             this->setAudioSourceSSRC(ntohl(head->ssrc));
             this->updateState(TRANSPORT_READY, transport);
           }
@@ -283,7 +284,7 @@ namespace erizo {
           rtpheader *head = (rtpheader*) buf;
           // Firefox does not send SSRC in SDP
           if (this->getVideoSourceSSRC() == 0) {
-            printf("Video Source SSRC is %d\n", ntohl(head->ssrc));
+            ELOG_DEBUG("Video Source SSRC is %d", ntohl(head->ssrc));
             this->setVideoSourceSSRC(ntohl(head->ssrc));
             this->updateState(TRANSPORT_READY, transport);
           }
@@ -296,7 +297,7 @@ namespace erizo {
   }
 
   int WebRtcConnection::sendFirPacket() {
-    printf("SendingFIR\n");
+    ELOG_DEBUG("SendingFIR");
     sequenceNumberFIR_++; // do not increase if repetition
     int pos = 0;
     uint8_t rtcpPacket[50];
@@ -380,8 +381,8 @@ namespace erizo {
       }
     }
 
-    if (temp == READY) {
-      printf("Ready to send and receive media!!\n");
+    if (temp == READY && globalState_ != temp) {
+      ELOG_INFO("Ready to send and receive media");
     }
 
     if (temp < 0) {

@@ -6,6 +6,7 @@
 #define AUDIOCODEC_H_
 
 #include "Codecs.h"
+#include "logger.h"
 
 extern "C" {
 #include <libavutil/avutil.h>
@@ -15,6 +16,7 @@ extern "C" {
 namespace erizo {
 
   class AudioEncoder {
+    DECLARE_LOGGER();
     public:
       AudioEncoder();
       virtual ~AudioEncoder();
@@ -29,6 +31,7 @@ namespace erizo {
   };
 
   class AudioDecoder {
+    DECLARE_LOGGER();
     public:
       AudioDecoder();
       virtual ~AudioDecoder();

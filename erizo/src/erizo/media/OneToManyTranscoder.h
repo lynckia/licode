@@ -10,6 +10,7 @@
 
 #include "../MediaDefinitions.h"
 #include "MediaProcessor.h"
+#include "../logger.h"
 
 
 namespace erizo{
@@ -21,6 +22,7 @@ class RTPSink;
  * Receives media from one publisher and retransmits it to every subscriber.
  */
 class OneToManyTranscoder : public MediaSink, public RawDataReceiver, public RTPDataReceiver {
+	DECLARE_LOGGER();
 public:
 	MediaSource* publisher;
 	std::map<std::string, MediaSink*> subscribers;

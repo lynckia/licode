@@ -20,6 +20,8 @@
 
 namespace erizo {
 
+	DEFINE_LOGGER(RtpParser, "media.rtp.RtpParser");
+
 RtpParser::RtpParser() {
 }
 
@@ -127,7 +129,7 @@ int ParseVP8Extension(erizo::RTPPayloadVP8* vp8, const unsigned char* dataPtr, i
 	vp8->hasTID = (*dataPtr & 0x20) ? true : false; // T bit
 	vp8->hasKeyIdx = (*dataPtr & 0x10) ? true : false; // K bit
 
-	//printf("Parsing extension haspic %d, hastl0 %d, has TID %d, has Key %d \n",vp8->hasPictureID,vp8->hasTl0PicIdx, vp8->hasTID, vp8->hasKeyIdx  );
+	//ELOG_DEBUG("Parsing extension haspic %d, hastl0 %d, has TID %d, has Key %d ",vp8->hasPictureID,vp8->hasTl0PicIdx, vp8->hasTID, vp8->hasKeyIdx  );
 
 	// Advance dataPtr and decrease remaining payload size
 	dataPtr++;
@@ -157,7 +159,7 @@ int ParseVP8Extension(erizo::RTPPayloadVP8* vp8, const unsigned char* dataPtr, i
 
 RTPPayloadVP8* RtpParser::parseVP8(unsigned char* data,
 		int dataLength) {
-	//printf("Parsing VP8 %d bytes\n", dataLength);
+	//ELOG_DEBUG("Parsing VP8 %d bytes", dataLength);
 	RTPPayloadVP8* vp8 = new RTPPayloadVP8; // = &parsedPacket.info.VP8;
 	const unsigned char* dataPtr = data;
 
@@ -167,7 +169,7 @@ RTPPayloadVP8* RtpParser::parseVP8(unsigned char* data,
 	vp8->beginningOfPartition = (*dataPtr & 0x10) ? true : false; // S bit
 	vp8->partitionID = (*dataPtr & 0x0F); // PartID field
 
-	//printf("X: %d N %d S %d PartID %d\n", extension, vp8->nonReferenceFrame, vp8->beginningOfPartition, vp8->partitionID);
+	//ELOG_DEBUG("X: %d N %d S %d PartID %d", extension, vp8->nonReferenceFrame, vp8->beginningOfPartition, vp8->partitionID);
 
 	if (vp8->partitionID > 8) {
 		// Weak check for corrupt data: PartID MUST NOT be larger than 8.
@@ -184,11 +186,11 @@ RTPPayloadVP8* RtpParser::parseVP8(unsigned char* data,
 			return vp8;
 		dataPtr += parsedBytes;
 		dataLength -= parsedBytes;
-		//printf("Parsed bytes in extension %d\n", parsedBytes);
+		//ELOG_DEBUG("Parsed bytes in extension %d", parsedBytes);
 	}
 
 	if (dataLength <= 0) {
-		printf("Error parsing VP8 payload descriptor; payload too short\n");
+		ELOG_DEBUG("Error parsing VP8 payload descriptor; payload too short");
 		return vp8;
 	}
 

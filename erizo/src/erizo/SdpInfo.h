@@ -9,6 +9,8 @@
 #include <vector>
 #include <map>
 
+#include "logger.h"
+
 namespace erizo {
 /**
  * ICE candidate types
@@ -93,6 +95,7 @@ struct RtpMap {
  * Used to parse and generate SDPs
  */
 class SdpInfo {
+    DECLARE_LOGGER();
 public:
     /**
      * Constructor

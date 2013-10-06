@@ -14,6 +14,8 @@
 #define MAX_WIDTH  4096
 #define MAX_HEIGHT 4096
 
+ DEFINE_LOGGER(VideoUtils, "erizo.media.mixers.VideoUtils");
+
 
 inline void
 vRescaleP(unsigned char *inBuff,
@@ -99,7 +101,7 @@ VideoUtils::vRescale(unsigned char *inBuff,
     case I420P_FORMAT:
         if (outBuffLen < outW*outH*3/2)
         {
-            printf("vRescale:: needed %d, outBuffLen = %d\n",
+            ELOG_DEBUG("vRescale:: needed %d, outBuffLen = %d",
                    outW*outH*3/2,
                    outBuffLen
                   );
@@ -148,7 +150,7 @@ VideoUtils::vRescale(unsigned char *inBuff,
     case BGR24_FORMAT:
         if (outBuffLen < outW*outH*3)
         {
-            printf("vRescale:: needed %d, outBuffLen = %d\n",
+            ELOG_DEBUG("vRescale:: needed %d, outBuffLen = %d",
                    outW*outH*3,
                    outBuffLen
                   );
@@ -170,7 +172,7 @@ VideoUtils::vRescale(unsigned char *inBuff,
         return outW*outH*3;
 
     default:
-        fprintf(stderr, "vRescale: not implemented for %d\n", format);
+        ELOG_WARN("vRescale: not implemented for %d", format);
         abort();
     }
     return -1;
@@ -244,8 +246,8 @@ VideoUtils::vPutImage(unsigned char *inBuff,
 {
     if ((outW > totalW) || (outH > totalH))
     {
-        printf("vPutImage : output resolution greater"
-               " than total image resolution!\n"
+        ELOG_DEBUG("vPutImage : output resolution greater"
+               " than total image resolution!"
               );
         return -1;
     }
@@ -267,13 +269,13 @@ VideoUtils::vPutImage(unsigned char *inBuff,
         BPP = 3;
         break;
     default:
-        printf("vPutImage : unknown format %d\n", format);
+        ELOG_DEBUG("vPutImage : unknown format %d", format);
         abort();
     }
 
     if (outBuffLen < outW*outH*BPP*factor)
     {
-        printf("vPutImage :: needed %f, outBuffLen = %d\n",
+        ELOG_DEBUG("vPutImage :: needed %f, outBuffLen = %d",
                totalW*totalH*BPP*factor,
                outBuffLen
               );
@@ -301,7 +303,7 @@ VideoUtils::vPutImage(unsigned char *inBuff,
 
         if (ret<=0)
         {
-            printf("vPutImage : vRescale failed\n");
+            ELOG_DEBUG("vPutImage : vRescale failed");
             delete [] image;
             return -1;
         }
@@ -377,7 +379,7 @@ VideoUtils::vPutImage(unsigned char *inBuff,
         break;
 
     default:
-        printf("vPutImage : unknown format\n");
+        ELOG_DEBUG("vPutImage : unknown format");
         abort();
     }
 
@@ -489,7 +491,7 @@ VideoUtils::vSetMaskRect(unsigned char *mask,
         break;
 
     default:
-        printf("vSetMaskRect : unknown format\n");
+        ELOG_DEBUG("vSetMaskRect : unknown format");
         abort();
     }
 }
@@ -521,13 +523,13 @@ VideoUtils::vSetMask(unsigned char *outBuff,
         BPP = 3;
         break;
     default:
-        printf("vPutImage : unknown format\n");
+        ELOG_DEBUG("vPutImage : unknown format");
         abort();
     }
 
     if (outBuffLen < totalW*totalH*BPP*factor)
     {
-        printf("vSetMask :: needed %f, outBuffLen = %d\n",
+        ELOG_DEBUG("vSetMask :: needed %f, outBuffLen = %d",
                totalW*totalH*BPP*factor,
                outBuffLen
               );
@@ -636,7 +638,7 @@ VideoUtils::vSetMask(unsigned char *outBuff,
         break;
 
     default:
-        printf("vSetMask : unknown format\n");
+        ELOG_DEBUG("vSetMask : unknown format");
         abort();
     }
 
