@@ -1,8 +1,20 @@
 #!/bin/bash
 LIB_DIR=libdeps
 CURRENT_DIR=`pwd`
+PREFIX_DIR=/usr/local
 pause() {
   read -p "$*"
+}
+
+parse_arguments(){
+  while [ "$1" != "" ]; do
+    case $1 in
+      "--enable-gpl")
+        ENABLE_GPL=true
+        ;;
+    esac
+    shift
+  done
 }
 
 install_apt_deps(){
@@ -21,7 +33,7 @@ install_openssl(){
     curl -O http://www.openssl.org/source/openssl-1.0.1e.tar.gz
     tar -zxvf openssl-1.0.1e.tar.gz
     cd openssl-1.0.1e
-    ./config -fPIC
+    ./config --prefix=$PREFIX_DIR -fPIC
     make
     sudo make install
     cd $CURRENT_DIR
@@ -37,7 +49,7 @@ install_libnice(){
     curl -O http://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
     tar -zxvf libnice-0.1.4.tar.gz
     cd libnice-0.1.4
-    ./configure
+    ./configure --prefix=$PREFIX_DIR
     make
     sudo make install
     cd $CURRENT_DIR
@@ -54,7 +66,7 @@ install_mediadeps(){
     curl -O https://www.libav.org/releases/libav-9.9.tar.gz
     tar -zxvf libav-9.9.tar.gz
     cd libav-9.9
-    ./configure --enable-shared --enable-gpl --enable-libvpx --enable-libx264
+    ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264
     make
     sudo make install
     cd $CURRENT_DIR
@@ -65,6 +77,27 @@ install_mediadeps(){
 
 }
 
+install_mediadeps_nogpl(){
+  sudo apt-get install yasm libvpx.
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    curl -O https://www.libav.org/releases/libav-9.9.tar.gz
+    tar -zxvf libav-9.9.tar.gz
+    cd libav-9.9
+    ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx
+    make
+    sudo make install
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_mediadeps_nogpl
+  fi
+}
+
+
+parse_arguments $*
+
+
 pause "Installing deps via apt-get... [press Enter]"
 install_apt_deps
 
@@ -74,5 +107,10 @@ install_openssl
 pause "Installing libnice library...  [press Enter]"
 install_libnice
 
-pause "Installing media dependencies WARNING: USING GPL LIBRARIES FOR TRANSCODING.... [press Enter]"
-install_mediadeps
+if [ "$ENABLE_GPL" = "true" ]; then
+  pause "GPL libraries enabled"
+  install_mediadeps
+else
+  pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
+  install_mediadeps_nogpl
+fi
