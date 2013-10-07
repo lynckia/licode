@@ -95,7 +95,7 @@ install_mediadeps_nogpl(){
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
-    install_mediadeps
+    install_mediadeps_nogpl
   fi
 }
 
