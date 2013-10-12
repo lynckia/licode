@@ -7,3 +7,5 @@ node_modules/
 site
 .DS_Store
 scripts/libdeps/
+.project
+.settings/
