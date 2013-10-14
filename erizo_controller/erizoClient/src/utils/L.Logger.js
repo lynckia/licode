@@ -31,7 +31,7 @@ L.Logger = (function (L) {
     };
 
     // Generic function to print logs for a given level: L.Logger.[DEBUG, TRACE, INFO, WARNING, ERROR]
-    log = function (level, msg) {
+    log = function (level) {
         var out = '';
         if (level < L.Logger.logLevel) {
             return;
@@ -47,38 +47,67 @@ L.Logger = (function (L) {
         } else if (level === L.Logger.ERROR) {
             out = out + "ERROR";
         }
-
-        out = out + ": " + msg;
+        out = out + ": ";
+        var args = [];
+        for (var i = 0; i < arguments.length; i++) {
+            args[i] = arguments[i];
+        }
+        var tempArgs = args.slice(1);
+        var args = [out].concat(tempArgs);
         if (L.Logger.panel !== undefined) {
-            L.Logger.panel.value = L.Logger.panel.value + "\n" + out;
+            var tmp = '';
+            for (var idx = 0; idx < args.length; idx++) {
+                tmp = tmp + args[idx];
+            }
+            L.Logger.panel.value = L.Logger.panel.value + "\n" + tmp;
         } else {
-            console.log(out);
+            console.log.apply(console, args);
         }
     };
 
     // It prints debug logs
-    debug = function (msg) {
-        L.Logger.log(L.Logger.DEBUG, msg);
+    debug = function () {
+        var args = [];
+        for (var i = 0; i < arguments.length; i++) {
+            args[i] = arguments[i];
+        }
+        L.Logger.log.apply(L.Logger,[L.Logger.DEBUG].concat(args));
     };
 
     // It prints trace logs
-    trace = function (msg) {
-        L.Logger.log(L.Logger.TRACE, msg);
+    trace = function () {
+        var args = [];
+        for (var i = 0; i < arguments.length; i++) {
+            args[i] = arguments[i];
+        }
+        L.Logger.log.apply(L.Logger,[L.Logger.TRACE].concat(args));
     };
 
     // It prints info logs
-    info = function (msg) {
-        L.Logger.log(L.Logger.INFO, msg);
+    info = function () {
+        var args = [];
+        for (var i = 0; i < arguments.length; i++) {
+            args[i] = arguments[i];
+        }
+        L.Logger.log.apply(L.Logger,[L.Logger.INFO].concat(args));
     };
 
     // It prints warning logs
-    warning = function (msg) {
-        L.Logger.log(L.Logger.WARNING, msg);
+    warning = function () {
+        var args = [];
+        for (var i = 0; i < arguments.length; i++) {
+            args[i] = arguments[i];
+        }
+        L.Logger.log.apply(L.Logger,[L.Logger.WARNING].concat(args));
     };
 
     // It prints error logs
-    error = function (msg) {
-        L.Logger.log(L.Logger.ERROR, msg);
+    error = function () {
+        var args = [];
+        for (var i = 0; i < arguments.length; i++) {
+            args[i] = arguments[i];
+        }
+        L.Logger.log.apply(L.Logger,[L.Logger.ERROR].concat(args));
     };
 
     return {

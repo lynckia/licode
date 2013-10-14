@@ -66,7 +66,7 @@ exports.authenticate = function (req, res, next) {
 
         // Get the service from the data base.
         serviceRegistry.getService(params.serviceid, function (serv) {
-            if (serv === undefined) {
+            if (serv === undefined || serv === null) {
                 console.log('[Auth] Unknow service:', params.serviceid);
                 res.send(401, {'WWW-Authenticate': challengeReq});
                 return;

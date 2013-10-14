@@ -87,6 +87,8 @@ Erizo.Room = function (spec) {
     sendDataSocket = function (stream, msg) {
         if (stream.local) {
             sendMessageSocket("sendDataStream", {id: stream.getID(), msg: msg});
+        } else {
+            L.Logger.error("You can not send data through a remote stream");
         }
     };
 
@@ -256,7 +258,8 @@ Erizo.Room = function (spec) {
 
     // It publishes the stream provided as argument. Once it is added it throws a
     // StreamEvent("stream-added").
-    that.publish = function (stream, callback, callbackError) {
+    that.publish = function (stream, options, callback, callbackError) {
+        options = options || {};
 
         // 1- If the stream is not local we do nothing.
         if (stream.local && that.localStreams[stream.getID()] === undefined) {
@@ -289,43 +292,47 @@ Erizo.Room = function (spec) {
                     });
 
                 } else if (that.p2p) {
-                    sendSDPSocket('publish', {state: 'p2p', data: true, audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, undefined, function (answer, id) {
+                    sendSDPSocket('publish', {state: 'p2p', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, undefined, function (answer, id) {
                         L.Logger.info('Stream published');
                         stream.getID = function () {
                             return id;
                         };
-                        stream.sendData = function (msg) {
-                            sendDataSocket(stream, msg);
-                        };
+                        if (stream.hasData()) {
+                            stream.sendData = function (msg) {
+                                sendDataSocket(stream, msg);
+                            };
+                        }
                         that.localStreams[id] = stream;
                         stream.room = that;
                     });
 
                 } else {
                     stream.pc = Erizo.Connection({callback: function (offer) {
-                        sendSDPSocket('publish', {state: 'offer', data: true, audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
+                        sendSDPSocket('publish', {state: 'offer', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
                             stream.pc.onsignalingmessage = function (ok) {
                                 stream.pc.onsignalingmessage = function () {};
-                                sendSDPSocket('publish', {state: 'ok', streamId: id, data: true, audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, ok);
+                                sendSDPSocket('publish', {state: 'ok', streamId: id, data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, ok);
                                 L.Logger.info('Stream published');
                                 stream.getID = function () {
                                     return id;
                                 };
-                                stream.sendData = function (msg) {
-                                    sendDataSocket(stream, msg);
-                                };
+                                if (stream.hasData()) {
+                                    stream.sendData = function (msg) {
+                                        sendDataSocket(stream, msg);
+                                    };
+                                }
                                 that.localStreams[id] = stream;
                                 stream.room = that;
                             };
                             stream.pc.processSignalingMessage(answer);
                         });
-                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
+                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW});
 
                     stream.pc.addStream(stream.stream);
                 }
             } else if (stream.hasData()) {
                 // 3- Publish Data Stream
-                sendSDPSocket('publish', {state: 'data', data: true, audio: false, video: false, screen: false, attributes: stream.getAttributes()}, undefined, function (answer, id) {
+                sendSDPSocket('publish', {state: 'data', data: stream.hasData(), audio: false, video: false, screen: false, attributes: stream.getAttributes()}, undefined, function (answer, id) {
                     L.Logger.info('Stream published');
                     stream.getID = function () {
                         return id;
@@ -370,7 +377,9 @@ Erizo.Room = function (spec) {
     };
 
     // It subscribe to a remote stream and draws it inside the HTML tag given by the ID='elementID'
-    that.subscribe = function (stream) {
+    that.subscribe = function (stream, options) {
+
+        options = options || {};
 
         if (!stream.local) {
 
@@ -381,7 +390,7 @@ Erizo.Room = function (spec) {
                     sendSDPSocket('subscribe', {streamId: stream.getID()});
                 } else {
                     stream.pc = Erizo.Connection({callback: function (offer) {
-                        sendSDPSocket('subscribe', {streamId: stream.getID()}, offer, function (answer) {
+                        sendSDPSocket('subscribe', {streamId: stream.getID(), audio: options.audio, video: options.video, data: options.data}, offer, function (answer) {
                             stream.pc.processSignalingMessage(answer);
                         });
                     }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
@@ -394,12 +403,15 @@ Erizo.Room = function (spec) {
                         that.dispatchEvent(evt2);
                     };
                 }
-            } else if (stream.hasData()) {
-                sendSDPSocket('subscribe', {streamId: stream.getID()}, undefined, function (answer) {
+            } else if (stream.hasData() && options.data !== false) {
+                sendSDPSocket('subscribe', {streamId: stream.getID(), data: options.data}, undefined, function (answer) {
                     L.Logger.info('Stream subscribed');
                     var evt = Erizo.StreamEvent({type: 'stream-subscribed', stream: stream});
                     that.dispatchEvent(evt);
                 });
+            } else {
+                L.Logger.info("Subscribing to anything");
+                return;
             }
 
             // Subscribe to stream stream

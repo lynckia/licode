@@ -18,6 +18,10 @@ Erizo.ChromeStableStack = function (spec) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
     } 
 
+    if (spec.turnServer !== undefined) {
+        that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
+    }
+
     that.mediaConstraints = {
         'mandatory': {
             'OfferToReceiveVideo': 'true',
@@ -40,7 +44,6 @@ Erizo.ChromeStableStack = function (spec) {
                 that.ices = 0;
             }
             that.ices = that.ices + 1;
-            L.Logger.debug(that.ices);
             if (that.ices >= 1 && that.moreIceComing) {
                 that.moreIceComing = false;
                 that.markActionNeeded();
@@ -50,7 +53,23 @@ Erizo.ChromeStableStack = function (spec) {
         }
     };
 
-    L.Logger.debug("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
+    //L.Logger.debug("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
+
+    var setMaxBW = function (sdp) {
+        if (spec.maxVideoBW) {
+            var a = sdp.match(/m=video.*\r\n/);
+            var r = a[0] + "b=AS:" + spec.maxVideoBW + "\r\n";
+            sdp = sdp.replace(a[0], r);
+        }
+
+        if (spec.maxAudioBW) {
+            var a = sdp.match(/m=audio.*\r\n/);
+            var r = a[0] + "b=AS:" + spec.maxAudioBW + "\r\n";
+            sdp = sdp.replace(a[0], r);
+        }
+
+        return sdp;
+    };
 
     /**
      * This function processes signalling messages from the other side.
@@ -94,7 +113,10 @@ Erizo.ChromeStableStack = function (spec) {
                     sdp: msg.sdp,
                     type: 'answer'
                 };
-                L.Logger.debug("Received ANSWER: ", sd);
+                L.Logger.debug("Received ANSWER: ", sd.sdp);
+
+                sd.sdp = setMaxBW(sd.sdp);
+
                 that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
                 that.sendOK();
                 that.state = 'established';
@@ -200,9 +222,14 @@ Erizo.ChromeStableStack = function (spec) {
 
                 that.peerConnection.createOffer(function (sessionDescription) {
 
-                    var newOffer = sessionDescription.sdp;
+                    //sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
+                    //sessionDescription.sdp = newOffer.replace(/a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
+                    //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
 
+                    sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
                     L.Logger.debug("Changed", sessionDescription.sdp);
+
+                    var newOffer = sessionDescription.sdp;
 
                     if (newOffer !== that.prevOffer) {
 
@@ -227,7 +254,7 @@ Erizo.ChromeStableStack = function (spec) {
 
                 // Now able to send the offer we've already prepared.
                 that.prevOffer = that.peerConnection.localDescription.sdp;
-                L.Logger.debug("Sending OFFER: ", that.prevOffer);
+                L.Logger.debug("Sending OFFER: " + that.prevOffer);
                 //L.Logger.debug('Sent SDP is ' + that.prevOffer);
                 that.sendMessage('OFFER', that.prevOffer);
                 // Not done: Retransmission on non-response.

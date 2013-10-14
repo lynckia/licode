@@ -14,7 +14,7 @@
 namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
-  WebRtcConnection::WebRtcConnection() {
+  WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled) {
 
     ELOG_DEBUG("WebRtcConnection constructor");
     video_ = 0;
@@ -37,6 +37,9 @@ namespace erizo {
 
     videoTransport_ = NULL;
     audioTransport_ = NULL;
+
+    audioEnabled_ = audioEnabled;
+    videoEnabled_ = videoEnabled;
 
     deliverMediaBuffer_ = (char*)malloc(3000);
 
@@ -151,10 +154,14 @@ namespace erizo {
     writeSsrc(buf, len, this->getAudioSinkSSRC());
     if (bundle_){
       if (videoTransport_ != NULL) {
-        videoTransport_->write(buf, len);
+        if (audioEnabled_ == true) {
+          videoTransport_->write(buf, len);
+        }
       }
     } else if (audioTransport_ != NULL) {
-      audioTransport_->write(buf, len);
+      if (audioEnabled_ == true) {
+        audioTransport_->write(buf, len);
+      }
     }
     return len;
   }
@@ -192,7 +199,9 @@ namespace erizo {
     }
     writeSsrc(buf, len, this->getVideoSinkSSRC());
     if (videoTransport_ != NULL) {
-      videoTransport_->write(buf, len);
+      if (videoEnabled_ == true) {
+        videoTransport_->write(buf, len);
+      }
     }
     return len;
   }
