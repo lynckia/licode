@@ -29,7 +29,7 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost cmake node mongodb rabbitmq
+  brew install glib pkg-config boost cmake node mongodb rabbitmq log4cxx
   npm install -g node-gyp
 }
 

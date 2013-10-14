@@ -83,7 +83,7 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 # LOG4CXX
-# find_library(LOG log4cxx)
-#test_lib(${LOG})
+find_library(LOG log4cxx)
+test_lib(${LOG})
 
 target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL_LIB} ${LIBS} ${LOG})
