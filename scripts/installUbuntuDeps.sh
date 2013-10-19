@@ -1,7 +1,14 @@
 #!/bin/bash
-LIB_DIR=libdeps
+SCRIPT=`pwd`/$0
+FILENAME=`basename $SCRIPT`
+PATHNAME=`dirname $SCRIPT`
+ROOT=$PATHNAME/..
+BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
-PREFIX_DIR=/usr/local
+
+LIB_DIR=$BUILD_DIR/libdeps
+PREFIX_DIR=$LIB_DIR/build/
+
 pause() {
   read -p "$*"
 }
@@ -97,6 +104,7 @@ install_mediadeps_nogpl(){
 
 parse_arguments $*
 
+mkdir -p $PREFIX_DIR
 
 pause "Installing deps via apt-get... [press Enter]"
 install_apt_deps

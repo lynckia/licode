@@ -6,13 +6,15 @@ PATHNAME=`dirname $SCRIPT`
 ROOT=$PATHNAME/..
 BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
+LIB_DIR=$BUILD_DIR/libdeps
+PREFIX_DIR=$LIB_DIR/build/
 
 pause() {
   read -p "$*"
 }
 install_libsrtp(){
   cd $ROOT/third_party/srtp
-  CFLAGS="-fPIC" ./configure
+  CFLAGS="-fPIC" ./configure --prefix=$PREFIX_DIR
   make
   sudo make uninstall
   sudo make install

@@ -14,10 +14,9 @@ set(ERIZO_VERSION_MAJOR 0)
 set(ERIZO_VERSION_MINOR 1)
 set(CMAKE_CXX_FLAGS "-g -Wall")
 
-set(SSL_DIR /usr/local/ssl)
-set(SSL_INCLUDE_DIR ${SSL_DIR}/include/openssl)
+set(LIB_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/libdeps/build/lib/)
 
-include_directories(${ERIZO_SOURCE_DIR} ${SSL_INCLUDE_DIR})
+include_directories(${ERIZO_SOURCE_DIR})
 
 file(GLOB_RECURSE ERIZO_SOURCES ${ERIZO_SOURCE_DIR}/*.h ${ERIZO_SOURCE_DIR}/*.c ${ERIZO_SOURCE_DIR}/*.cpp)
 
@@ -33,57 +32,39 @@ set (BOOST_LIBS thread regex system)
 find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
 target_link_libraries(erizo ${Boost_LIBRARIES})
 
-# SRTP
-find_library(SRTP srtp)
-test_lib(${SRTP})
-message("LIBSRTP " ${SRTP})
-
-# NICE
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  find_library(NICE nice)
-  test_lib(${NICE})
-  set (OperatingSystem "Mac OS X")
-else(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  set (NICE /usr/local/lib/libnice.so)
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
-
 # GTHREAD
 find_library(GTHREAD gthread-2.0)
 test_lib(${GTHREAD})
 
-# OPENSSL
-set(SSL_LIB ${SSL_DIR}/lib/libssl.a ${SSL_DIR}/lib/libcrypto.a)
-target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL_LIB})
+# SRTP
+find_library(SRTP srtp HINTS ${LIB_DIRS})
+test_lib(${SRTP})
 
-# Libav for Linux
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-find_library(AVUTIL libavutil.dylib avutil PATHS /usr/local/lib)
+# NICE
+find_library(NICE nice HINTS ${LIB_DIRS})
+test_lib(${NICE})
+
+# OPENSSL
+find_library(SSL ssl HINTS ${LIB_DIRS})
+test_lib(${SSL})
+find_library(CRYPTO crypto HINTS ${LIB_DIRS})
+test_lib(${CRYPTO})
+
+# Libav
+find_library(AVUTIL libavutil.dylib avutil HINTS ${LIB_DIRS})
 test_lib(${AVUTIL})
 set (LIBS ${AVUTIL})
-find_library(AVCODEC libavcodec.dylib avcodec PATHS /usr/local/lib)
+find_library(AVCODEC libavcodec.dylib avcodec HINTS ${LIB_DIRS})
 test_lib(${AVCODEC})
 set (LIBS ${LIBS} ${AVCODEC})
-find_library(AVFORMAT libavformat.dylib avformat PATHS /usr/local/lib)
+find_library(AVFORMAT libavformat.dylib avformat HINTS ${LIB_DIRS})
 test_lib(${AVFORMAT})
 set (LIBS ${LIBS} ${AVFORMAT})
-message("AVLibs " ${LIBS})
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
-# Libav for MAC
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  find_library(AVUTIL libavutil.dylib avutil)
-  test_lib(${AVUTIL})
-  set (LIBS ${LIBS} ${AVUTIL})
-  find_library(AVCODEC libavcodec.dylib avcodec)
-  test_lib(${AVCODEC})
-  set (LIBS ${LIBS} ${AVCODEC})
-  find_library(AVFORMAT libavformat.dylib avformat)
-  test_lib(${AVFORMAT})
-  set (LIBS ${LIBS} ${AVFORMAT})
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 # LOG4CXX
 find_library(LOG log4cxx)
 test_lib(${LOG})
 
-target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL_LIB} ${LIBS} ${LOG})
+message("Libs ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG}")
+
+target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG})
