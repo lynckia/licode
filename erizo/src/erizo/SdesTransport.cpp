@@ -173,6 +173,7 @@ void SdesTransport::updateIceState(IceState state, NiceConnection *conn) {
 void SdesTransport::processLocalSdp(SdpInfo *localSdp_) {
   ELOG_DEBUG( "Processing Local SDP in SDES Transport" );
   std::vector<CandidateInfo> *cands;
+  bool printedAudio = false;
   localSdp_->isFingerprint = false;
   localSdp_->addCrypto(cryptoLocal_);
   if (nice_->iceState >= NICE_CANDIDATES_GATHERED) {
@@ -187,12 +188,15 @@ void SdesTransport::processLocalSdp(SdpInfo *localSdp_) {
         ELOG_DEBUG("Adding bundle candidate! %d", cand.mediaType);
         cand.mediaType = AUDIO_TYPE;
         localSdp_->addCandidate(cand);
-        CryptoInfo temp;
-        temp.cipherSuite = cryptoLocal_.cipherSuite;
-        temp.mediaType = AUDIO_TYPE;
-        temp.keyParams = cryptoLocal_.keyParams;
-        temp.tag = 1;
-        localSdp_->addCrypto(temp);
+        if (!printedAudio) {
+          CryptoInfo temp;
+          temp.cipherSuite = cryptoLocal_.cipherSuite;
+          temp.mediaType = AUDIO_TYPE;
+          temp.keyParams = cryptoLocal_.keyParams;
+          temp.tag = 1;
+          localSdp_->addCrypto(temp);
+          printedAudio = true;
+        }
       }
     }
   }

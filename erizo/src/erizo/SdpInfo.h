@@ -71,8 +71,10 @@ public:
     std::string foundation;
     std::string hostAddress;
     std::string relayAddress;
+    std::string baseAddress;
     int hostPort;
     int relayPort;
+    int basePort;
     std::string netProtocol;
     HostType hostType;
     std::string transProtocol;

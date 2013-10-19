@@ -220,10 +220,21 @@ namespace erizo {
 
         std::string generation = " generation 0";
 
-        sdp << "a=candidate:" << cand.foundation << " " << cand.componentId
-          << " " << cand.netProtocol << " " << cand.priority << " "
-          << cand.hostAddress << " " << cand.hostPort << " typ "
-          << hostType_str << generation  << endl;
+        int comps = cand.componentId;
+        if (isRtcpMux) {
+          comps++;
+        }
+        for (int idx = 1; idx <= comps; idx++) {
+          sdp << "a=candidate:" << cand.foundation << " " << idx
+              << " " << cand.netProtocol << " " << cand.priority << " "
+              << cand.hostAddress << " " << cand.hostPort << " typ "
+              << hostType_str;
+          if (cand.hostType == SRLFX) {
+            //raddr 192.168.0.12 rport 50483
+            sdp << " raddr " << cand.baseAddress << " rport " << cand.basePort;
+          }
+          sdp << generation  << endl;
+        }
 
         iceUsername_ = cand.username;
         icePassword_ = cand.password;
@@ -312,11 +323,21 @@ namespace erizo {
         }
 
         std::string generation = " generation 0";
-
-        sdp << "a=candidate:" << cand.foundation << " " << cand.componentId
-          << " " << cand.netProtocol << " " << cand.priority << " "
-          << cand.hostAddress << " " << cand.hostPort << " typ "
-          << hostType_str << generation  << endl;
+        int comps = cand.componentId;
+        if (isRtcpMux) {
+          comps++;
+        }
+        for (int idx = 1; idx <= comps; idx++) {
+          sdp << "a=candidate:" << cand.foundation << " " << idx
+              << " " << cand.netProtocol << " " << cand.priority << " "
+              << cand.hostAddress << " " << cand.hostPort << " typ "
+              << hostType_str;
+          if (cand.hostType == SRLFX) {
+            //raddr 192.168.0.12 rport 50483
+            sdp << " raddr " << cand.baseAddress << " rport " << cand.basePort;
+          }
+          sdp << generation  << endl;
+        }
 
         iceUsername_ = cand.username;
         icePassword_ = cand.password;

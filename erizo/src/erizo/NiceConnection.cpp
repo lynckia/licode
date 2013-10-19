@@ -54,7 +54,7 @@ void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
 
 NiceConnection::NiceConnection(MediaType med,
 		const std::string &transport_name, unsigned int iceComponents, const std::string& stunServer,
-    	int stunPort, int minPort, int maxPort):mediaType(med), iceComponents_(iceComponents), 
+    	int stunPort, int minPort, int maxPort):mediaType(med), iceComponents_(iceComponents),
     	stunServer_(stunServer), stunPort_ (stunPort), minPort_(minPort), maxPort_(maxPort) {
 	agent_ = NULL;
 	loop_ = NULL;
@@ -274,13 +274,13 @@ void NiceConnection::gatheringDone(uint stream_id) {
 	//ELOG_DEBUG("Candidates---------------------------------------------------->");
 	while (lcands != NULL) {
 		for (iterator = lcands; iterator; iterator = iterator->next) {
-			char address[40];
+			char address[40], baseAddress[40];
 			cand = (NiceCandidate*) iterator->data;
 			nice_address_to_string(&cand->addr, address);
+			nice_address_to_string(&cand->base_addr, baseAddress);
 			if (strstr(address, ":") != NULL) {
 				ELOG_DEBUG("Ignoring IPV6 candidate %s", address);
 				continue;
-
 			}
 //			ELOG_DEBUG("foundation %s", cand->foundation);
 //			ELOG_DEBUG("compid %u", cand->component_id);
@@ -308,6 +308,8 @@ void NiceConnection::gatheringDone(uint stream_id) {
 				break;
 			case NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
 				cand_info.hostType = SRLFX;
+				cand_info.baseAddress = std::string(baseAddress);
+				cand_info.basePort = nice_address_get_port(&cand->base_addr);
 				break;
 			case NICE_CANDIDATE_TYPE_PEER_REFLEXIVE:
 				cand_info.hostType = PRFLX;
