@@ -306,9 +306,9 @@ var listen = function () {
             if (stream.hasData() && options.data !== false) {
                 stream.addDataSubscriber(socket.id);
             }
-            
+
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-                
+
                 if (socket.room.p2p) {
                     var s = stream.getSocket();
                     io.sockets.socket(s).emit('onSubscribeP2P', {streamId: options.streamId, subsSocket: socket.id}, function(offer) {

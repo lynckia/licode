@@ -164,7 +164,7 @@ Erizo.Stream = function (spec) {
             } else {
                 return canvas.toDataURL();
             }
-            
+
         } else {
             return null;
         }

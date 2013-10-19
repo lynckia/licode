@@ -15,7 +15,7 @@ using namespace std;
 
 DEFINE_LOGGER(SdesTransport, "SdesTransport");
 
-SdesTransport::SdesTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, CryptoInfo *remoteCrypto, TransportListener *transportListener):Transport(med, transport_name, bundle, rtcp_mux, transportListener) {
+SdesTransport::SdesTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, CryptoInfo *remoteCrypto, TransportListener *transportListener, const std::string &stunServer, int stunPort, int minPort, int maxPort):Transport(med, transport_name, bundle, rtcp_mux, transportListener, stunServer, stunPort, minPort, maxPort) {
     ELOG_DEBUG("Initializing SdesTransport")
     updateTransportState(TRANSPORT_INITIAL);
 
@@ -41,7 +41,7 @@ SdesTransport::SdesTransport(MediaType med, const std::string &transport_name, b
     cryptoLocal_.tag = 1;
     cryptoRemote_ = *remoteCrypto;
 
-    nice_ = new NiceConnection(med, transport_name, comps);
+    nice_ = new NiceConnection(med, transport_name, comps,  stunServer, stunPort, minPort, maxPort);
     nice_->setNiceListener(this);
     nice_->start();
 }

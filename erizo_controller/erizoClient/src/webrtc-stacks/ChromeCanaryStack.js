@@ -16,7 +16,7 @@ Erizo.ChromeCanaryStack = function (spec) {
 
     if (spec.stunServerUrl !== undefined) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
-    } 
+    }
 
     if (spec.turnServer !== undefined) {
         that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
@@ -218,7 +218,7 @@ Erizo.ChromeCanaryStack = function (spec) {
         if (that.actionNeeded) {
             if (that.state === 'new' || that.state === 'established') {
                 // See if the current offer is the same as what we already sent.
-                // If not, no change is needed.   
+                // If not, no change is needed.
 
                 that.peerConnection.createOffer(function (sessionDescription) {
 

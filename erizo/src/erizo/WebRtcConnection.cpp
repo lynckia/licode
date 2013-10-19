@@ -14,9 +14,9 @@
 namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
-  WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled) {
+  WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort) {
 
-    ELOG_DEBUG("WebRtcConnection constructor");
+    ELOG_WARN("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", stunServer.c_str(), stunPort, minPort, maxPort);
     video_ = 0;
     audio_ = 0;
     sequenceNumberFIR_ = 0;
@@ -42,6 +42,11 @@ namespace erizo {
     videoEnabled_ = videoEnabled;
 
     deliverMediaBuffer_ = (char*)malloc(3000);
+
+    stunServer_ = stunServer;
+    stunPort_ = stunPort;
+    minPort_ = minPort;
+    maxPort_ = maxPort;
 
     ELOG_DEBUG("WebRtcConnection constructor end");
 
@@ -111,10 +116,10 @@ namespace erizo {
       if (remoteSdp_.isFingerprint) {
         // DTLS-SRTP
         if (remoteSdp_.hasVideo) {
-          videoTransport_ = new DtlsTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this);
+          videoTransport_ = new DtlsTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
         }
         if (remoteSdp_.hasAudio) {
-          audioTransport_ = new DtlsTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this);
+          audioTransport_ = new DtlsTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
         }
       } else {
         // SDES
@@ -123,10 +128,10 @@ namespace erizo {
           CryptoInfo cryptemp = crypto_remote[it];
           if (cryptemp.mediaType == VIDEO_TYPE
               && !cryptemp.cipherSuite.compare("AES_CM_128_HMAC_SHA1_80")) {
-            videoTransport_ = new SdesTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this);
+            videoTransport_ = new SdesTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this, stunServer_, stunPort_, minPort_, maxPort_);
           } else if (!bundle_ && cryptemp.mediaType == AUDIO_TYPE
               && !cryptemp.cipherSuite.compare("AES_CM_128_HMAC_SHA1_80")) {
-            audioTransport_ = new SdesTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this);
+            audioTransport_ = new SdesTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this, stunServer_, stunPort_, minPort_, maxPort_);
           }
         }
       }

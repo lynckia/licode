@@ -30,27 +30,27 @@ class Nuve
     	return send('POST', nil, 'rooms/' + room + '/tokens', username, role)
     end
 
-    def createService (name, key) 
+    def createService (name, key)
     	return send('POST', {'name' => name, 'key' => key}, 'services/', '', '');
     end
 
-    def getServices () 
+    def getServices ()
 		return send('GET', nil, 'services/', '', '');
     end
 
-    def getService (service) 
+    def getService (service)
    		return send('GET', nil, 'services/' + service, '', '');
     end
 
-    def deleteService (service) 
+    def deleteService (service)
     	return send('DELETE', nil, 'services/' + service, '', '');
     end
 
-    def getUsers (room) 
+    def getUsers (room)
     	return send('GET', nil, 'rooms/' + room + '/users/', '', '');
     end
 
-	private 
+	private
 	def send (method, body, url, username, role)
 
 		uri = URI(@url + url)
@@ -70,7 +70,7 @@ class Nuve
             header +=  role
 
             toSign += ',' + username + ',' + role
-			
+
 		end
 
 		signed = calculateSignature(toSign, @key)
@@ -87,8 +87,8 @@ class Nuve
         if body != nil
         	request = Net::HTTP::Post.new(uri.request_uri,  {'Authorization' => header, 'Content-Type' => 'application/json'})
         	request.set_form_data(body)
-        
-        else 
+
+        else
         	if method == 'GET'
         		request = Net::HTTP::Get.new(uri.request_uri,  {'Authorization' => header})
         	elsif method == 'POST'
@@ -99,10 +99,10 @@ class Nuve
         end
 
 		Net::HTTP.start(uri.host, uri.port) do |http|
-		  response = http.request(request) 
+		  response = http.request(request)
 		  return response.body
 		end
-		
+
 	end
 
 	private

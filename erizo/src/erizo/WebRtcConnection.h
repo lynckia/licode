@@ -45,7 +45,7 @@ public:
 	 * Constructor.
 	 * Constructs an empty WebRTCConnection without any configuration.
 	 */
-	WebRtcConnection(bool audioEnabled, bool videoEnabled);
+	WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort);
 	/**
 	 * Destructor.
 	 */
@@ -120,6 +120,9 @@ private:
 
 	bool audioEnabled_;
 	bool videoEnabled_;
+
+	int stunPort_, minPort_, maxPort_;
+	std::string stunServer_;
 
 };
 

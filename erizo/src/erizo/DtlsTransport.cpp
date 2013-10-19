@@ -18,7 +18,7 @@ using namespace dtls;
 
 DEFINE_LOGGER(DtlsTransport, "DtlsTransport");
 
-DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener):Transport(med, transport_name, bundle, rtcp_mux, transportListener) {
+DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, const std::string &stunServer, int stunPort, int minPort, int maxPort):Transport(med, transport_name, bundle, rtcp_mux, transportListener, stunServer, stunPort, minPort, maxPort) {
     ELOG_DEBUG( "Initializing DtlsTransport" );
     updateTransportState(TRANSPORT_INITIAL);
 
@@ -45,7 +45,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
       dtlsRtcp->setDtlsReceiver(this);
     }
     bundle_ = bundle;
-    nice_ = new NiceConnection(med, transport_name, comps);
+    nice_ = new NiceConnection(med, transport_name, comps, stunServer, stunPort, minPort, maxPort);
     nice_->setNiceListener(this);
     nice_->start();
 }

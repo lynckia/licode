@@ -31,12 +31,22 @@ void WebRtcConnection::Init(Handle<Object> target) {
 
 Handle<Value> WebRtcConnection::New(const Arguments& args) {
   HandleScope scope;
+  if (args.Length()<4){
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
+    return args.This();
+  }
+//	webrtcconnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort);
 
   bool a = (args[0]->ToBoolean())->BooleanValue();
   bool v = (args[1]->ToBoolean())->BooleanValue();
+  String::Utf8Value param(args[2]->ToString());
+  std::string stunServer = std::string(*param);
+  int stunPort = args[3]->IntegerValue();
+  int minPort = args[4]->IntegerValue();
+  int maxPort = args[5]->IntegerValue();
 
   WebRtcConnection* obj = new WebRtcConnection();
-  obj->me = new erizo::WebRtcConnection(a, v);
+  obj->me = new erizo::WebRtcConnection(a, v, stunServer,stunPort,minPort,maxPort);
   obj->Wrap(args.This());
 
   return args.This();
@@ -73,7 +83,7 @@ Handle<Value> WebRtcConnection::setRemoteSdp(const Arguments& args) {
   String::Utf8Value param(args[0]->ToString());
   std::string sdp = std::string(*param);
 
-  bool r = me->setRemoteSdp(sdp); 
+  bool r = me->setRemoteSdp(sdp);
 
   return scope.Close(Boolean::New(r));
 }

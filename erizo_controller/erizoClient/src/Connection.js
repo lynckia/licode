@@ -42,7 +42,6 @@ Erizo.Connection = function (spec) {
     return that;
 };
 
-
 Erizo.GetUserMedia = function (config, callback, error) {
     "use strict";
 
