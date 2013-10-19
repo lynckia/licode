@@ -16,7 +16,7 @@ set(CMAKE_CXX_FLAGS "-g -Wall")
 
 set(LIB_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/libdeps/build/lib/)
 
-include_directories(${ERIZO_SOURCE_DIR})
+include_directories(${ERIZO_SOURCE_DIR} ${LIB_DIRS}../include/)
 
 file(GLOB_RECURSE ERIZO_SOURCES ${ERIZO_SOURCE_DIR}/*.h ${ERIZO_SOURCE_DIR}/*.c ${ERIZO_SOURCE_DIR}/*.cpp)
 
@@ -51,13 +51,13 @@ find_library(CRYPTO crypto HINTS ${LIB_DIRS})
 test_lib(${CRYPTO})
 
 # Libav
-find_library(AVUTIL libavutil.dylib avutil HINTS ${LIB_DIRS})
+find_library(AVUTIL avutil HINTS ${LIB_DIRS})
 test_lib(${AVUTIL})
 set (LIBS ${AVUTIL})
-find_library(AVCODEC libavcodec.dylib avcodec HINTS ${LIB_DIRS})
+find_library(AVCODEC avcodec HINTS ${LIB_DIRS})
 test_lib(${AVCODEC})
 set (LIBS ${LIBS} ${AVCODEC})
-find_library(AVFORMAT libavformat.dylib avformat HINTS ${LIB_DIRS})
+find_library(AVFORMAT avformat HINTS ${LIB_DIRS})
 test_lib(${AVFORMAT})
 set (LIBS ${LIBS} ${AVFORMAT})
 

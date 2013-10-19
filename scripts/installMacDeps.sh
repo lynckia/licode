@@ -41,7 +41,7 @@ install_openssl(){
     cd openssl-1.0.1e
     ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -fPIC
     make
-    sudo make install
+    make install
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -58,7 +58,7 @@ install_libnice(){
     echo nice_agent_set_port_range >> nice/libnice.sym
     ./configure --prefix=$PREFIX_DIR
     make
-    sudo make install
+    make install
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -75,7 +75,7 @@ install_mediadeps(){
     cd libav-9.9
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264
     make
-    sudo make install
+    make install
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -92,7 +92,7 @@ install_mediadeps_nogpl(){
     cd libav-9.9
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx
     make
-    sudo make install
+    make install
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
