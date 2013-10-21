@@ -16,8 +16,8 @@ install_libsrtp(){
   cd $ROOT/third_party/srtp
   CFLAGS="-fPIC" ./configure --prefix=$PREFIX_DIR
   make
-  sudo make uninstall
-  sudo make install
+  make uninstall
+  make install
   cd $CURRENT_DIR
 }
 
