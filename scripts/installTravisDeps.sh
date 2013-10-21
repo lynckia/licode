@@ -22,7 +22,8 @@ parse_arguments(){
 
 install_apt_deps(){
   sudo apt-get install -qq make gcc libssl-dev cmake libsrtp0-dev libsrtp0 libnice10 libnice-dev libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev curl
-  sudo /usr/bin/npm install -g node-gyp
+  #sudo /usr/bin/npm install -g node-gyp
+  ls ./build/
   sudo chown -R `whoami` ~/.npm ~/tmp/
 }
 
@@ -30,10 +31,10 @@ install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O http://www.openssl.org/source/openssl-1.0.1e.tar.gz
-    tar -zxvf openssl-1.0.1e.tar.gz
+    tar -zxvf openssl-1.0.1e.tar.gz > /dev/null 2> /dev/null
     cd openssl-1.0.1e
     ./config --prefix=$PREFIX_DIR -fPIC
-    make -s
+    make -s V=0
     sudo make install
     cd $CURRENT_DIR
   else
@@ -46,10 +47,10 @@ install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O http://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
-    tar -zxvf libnice-0.1.4.tar.gz
+    tar -zxvf libnice-0.1.4.tar.gz > /dev/null 2> /dev/null
     cd libnice-0.1.4
     ./configure --prefix=$PREFIX_DIR
-    make -s
+    make -s V=0
     sudo make install
     cd $CURRENT_DIR
   else
@@ -63,10 +64,10 @@ install_mediadeps(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-9.9.tar.gz
-    tar -zxvf libav-9.9.tar.gz
+    tar -zxvf libav-9.9.tar.gz > /dev/null 2> /dev/null
     cd libav-9.9
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264
-    make -s
+    make -s V=0
     sudo make install
     cd $CURRENT_DIR
   else
@@ -81,10 +82,10 @@ install_mediadeps_nogpl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-9.9.tar.gz
-    tar -zxvf libav-9.9.tar.gz
+    tar -zxvf libav-9.9.tar.gz > /dev/null 2> /dev/null
     cd libav-9.9
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx
-    make -s
+    make -s V=0
     sudo make install
     cd $CURRENT_DIR
   else
