@@ -1,12 +1,16 @@
-/*global require, console, setInterval, clearInterval, Buffer, exports*/
+/*global require, logger. setInterval, clearInterval, Buffer, exports*/
 var crypto = require('crypto');
 var rpc = require('./rpc/rpc');
 var controller = require('./webRtcController');
 var ST = require('./Stream');
-var io = require('socket.io').listen(8080);
+var http = require('http');
+var server = http.createServer();
+var io = require('socket.io').listen(server, {log:false});
 var config = require('./../../licode_config');
+var logger = require('./logger').logger;
+server.listen(8080);
 
-io.set('log level', 1);
+io.set('log level', 0);
 
 var nuveKey = config.nuve.superserviceKey;
 
@@ -33,7 +37,7 @@ var checkSignature = function (token, key) {
     var calculatedSignature = calculateSignature(token, key);
 
     if (calculatedSignature !== token.signature) {
-        console.log('Auth fail. Invalid signature.');
+        logger.info('Auth fail. Invalid signature.');
         return false;
     } else {
         return true;
@@ -50,7 +54,7 @@ var sendMsgToRoom = function (room, type, arg) {
         id;
     for (id in sockets) {
         if (sockets.hasOwnProperty(id)) {
-            console.log('Sending message to', sockets[id], 'in room ', room.id);
+            logger.info('Sending message to', sockets[id], 'in room ', room.id);
             io.sockets.socket(sockets[id]).emit(type, arg);
         }
     }
@@ -88,11 +92,11 @@ var addToCloudHandler = function (callback) {
     rpc.callRpc('nuve', 'addNewErizoController', {cloudProvider: config.cloudProvider.name, ip: publicIP}, function (msg) {
 
         if (msg === 'timeout') {
-            console.log('CloudHandler does not respond');
+            logger.info('CloudHandler does not respond');
             return;
         }
         if (msg == 'error') {
-            console.log('Error in communication with cloudProvider');
+            logger.info('Error in communication with cloudProvider');
         }
 
         publicIP = msg.publicIP;
@@ -103,7 +107,7 @@ var addToCloudHandler = function (callback) {
 
             rpc.callRpc('nuve', 'keepAlive', myId, function (result) {
                 if (result === 'whoareyou') {
-                    console.log('I don`t exist in cloudHandler. I`m going to be killed');
+                    logger.info('I don`t exist in cloudHandler. I`m going to be killed');
                     clearInterval(intervarId);
                     rpc.callRpc('nuve', 'killMe', publicIP, function () {});
                 }
@@ -119,11 +123,11 @@ var addToCloudHandler = function (callback) {
 //*******************************************************************
 //       When adding or removing rooms we use an algorithm to check the state
 //       If there is a state change we send a message to cloudHandler
-//      
-//       States: 
+//
+//       States:
 //            0: Not available
 //            1: Warning
-//            2: Available 
+//            2: Available
 //*******************************************************************
 var updateMyState = function () {
     "use strict";
@@ -159,10 +163,10 @@ var listen = function () {
 
     io.sockets.on('connection', function (socket) {
 
-        console.log("Socket connect ", socket.id);
+        logger.info("Socket connect ", socket.id);
 
-        // Gets 'token' messages on the socket. Checks the signature and ask nuve if it is valid. 
-        // Then registers it in the room and callback to the client. 
+        // Gets 'token' messages on the socket. Checks the signature and ask nuve if it is valid.
+        // Then registers it in the room and callback to the client.
         socket.on('token', function (token, callback) {
 
             var tokenDB, user, streamList = [], index;
@@ -172,12 +176,12 @@ var listen = function () {
                 rpc.callRpc('nuve', 'deleteToken', token.tokenId, function (resp) {
 
                     if (resp === 'error') {
-                        console.log('Token does not exist');
+                        logger.info('Token does not exist');
                         callback('error', 'Token does not exist');
                         socket.disconnect();
 
                     } else if (resp === 'timeout') {
-                        console.log('Nuve does not respond');
+                        logger.info('Nuve does not respond');
                         callback('error', 'Nuve does not respond');
                         socket.disconnect();
 
@@ -190,7 +194,7 @@ var listen = function () {
                             room.sockets.push(socket.id);
                             room.streams = {}; //streamId: Stream
                             if (tokenDB.p2p) {
-                                console.log('Token of p2p room');
+                                logger.info('Token of p2p room');
                                 room.p2p = true;
                             } else {
                                 room.webRtcController = new controller.WebRtcController();
@@ -206,7 +210,7 @@ var listen = function () {
                         socket.streams = []; //[list of streamIds]
                         socket.state = 'sleeping';
 
-                        console.log('OK, Valid token');
+                        logger.info('OK, Valid token');
 
                         for (index in socket.room.streams) {
                             if (socket.room.streams.hasOwnProperty(index)) {
@@ -217,7 +221,7 @@ var listen = function () {
                         callback('success', {streams: streamList, id: socket.room.id, p2p: socket.room.p2p, stunServerUrl: config.erizoController.stunServerUrl});
 
                     } else {
-                        console.log('Invalid host');
+                        logger.info('Invalid host');
                         callback('error', 'Invalid host');
                         socket.disconnect();
                     }
@@ -229,12 +233,12 @@ var listen = function () {
             }
         });
 
-        //Gets 'ssendDataStream' messages on the socket in order to write a message in a dataStream.
+        //Gets 'sendDataStream' messages on the socket in order to write a message in a dataStream.
         socket.on('sendDataStream', function (msg) {
             var sockets = socket.room.streams[msg.id].getDataSubscribers(), id;
             for (id in sockets) {
                 if (sockets.hasOwnProperty(id)) {
-                    //console.log('Sending dataStream to', sockets[id], 'in stream ', msg.id);
+                    logger.info('Sending dataStream to', sockets[id], 'in stream ', msg.id, 'mensaje', msg.msg);
                     io.sockets.socket(sockets[id]).emit('onDataStream', msg);
                 }
             }
@@ -243,7 +247,20 @@ var listen = function () {
         //Gets 'publish' messages on the socket in order to add new stream to the room.
         socket.on('publish', function (options, sdp, callback) {
             var id, st;
-            if (options.state !== 'data' && !socket.room.p2p) {
+            if (options.state === 'url') {
+                id = Math.random() * 100000000000000000;
+                socket.room.webRtcController.addExternalInput(id, sdp, function (result) {
+                    if (result === 'success') {
+                        st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
+                        socket.streams.push(id);
+                        socket.room.streams[id] = st;
+                        callback(result, id);
+                        sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
+                    } else {
+                        callback(result);
+                    }
+                });
+            } else if (options.state !== 'data' && !socket.room.p2p) {
                 if (options.state === 'offer' && socket.state === 'sleeping') {
                     id = Math.random() * 100000000000000000;
                     socket.room.webRtcController.addPublisher(id, sdp, function (answer) {
@@ -251,7 +268,9 @@ var listen = function () {
                         answer = answer.replace(privateRegexp, publicIP);
                         callback(answer, id);
                     }, function() {
-                        sendMsgToRoom(socket.room, 'onAddStream', socket.room.streams[id].getPublicStream());
+                        if (socket.room.streams[id] !== undefined) {
+                            sendMsgToRoom(socket.room, 'onAddStream', socket.room.streams[id].getPublicStream());
+                        }
                     });
 
                 } else if (options.state === 'ok' && socket.state === 'waitingOk') {
@@ -271,8 +290,8 @@ var listen = function () {
                 socket.room.streams[id] = st;
                 callback(undefined, id);
                 sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
-            }
 
+            }
         });
 
         //Gets 'subscribe' messages on the socket in order to add new subscriber to a determined stream (options.streamId).
@@ -287,9 +306,9 @@ var listen = function () {
             if (stream.hasData() && options.data !== false) {
                 stream.addDataSubscriber(socket.id);
             }
-            
+
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-                
+
                 if (socket.room.p2p) {
                     var s = stream.getSocket();
                     io.sockets.socket(s).emit('onSubscribeP2P', {streamId: options.streamId, subsSocket: socket.id}, function(offer) {
@@ -306,6 +325,22 @@ var listen = function () {
                 callback(undefined);
             }
 
+        });
+
+        //Gets 'startRecorder' messages
+        socket.on('startRecorder', function (options) {
+          var streamId = options.to;
+          var url = options.url;
+          logger.info("erizoController.js: Starting recorder streamID " + streamId + " url " + url);
+            if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
+                socket.room.webRtcController.addExternalOutput(streamId, url);
+                logger.info("erizoController.js: Recorder Started");
+            }
+        });
+
+        socket.on('stopRecorder', function (options) {
+          logger.info("erizoController.js: Stoping recorder to streamId " + options.to + " url " + options.url);
+          socket.room.webRtcController.removeExternalOutput(options.to, options.url);
         });
 
         //Gets 'unpublish' messages on the socket in order to remove a stream from the room.
@@ -348,11 +383,11 @@ var listen = function () {
 
         });
 
-        //When a client leaves the room erizoController removes its streams from the room if exists.  
+        //When a client leaves the room erizoController removes its streams from the room if exists.
         socket.on('disconnect', function () {
             var i, index, id;
 
-            console.log('Socket disconnect ', socket.id);
+            logger.info('Socket disconnect ', socket.id);
 
             for (i in socket.streams) {
                 if (socket.streams.hasOwnProperty(i)) {
@@ -381,7 +416,7 @@ var listen = function () {
                             if (!socket.room.p2p) {
                                 socket.room.webRtcController.removeClient(socket.id, id);
                             }
-                            
+
                         }
 
                         if (socket.room.streams[id]) {
@@ -392,7 +427,7 @@ var listen = function () {
             }
 
             if (socket.room !== undefined && socket.room.sockets.length === 0) {
-                console.log('Empty room ', socket.room.id, '. Deleting it');
+                logger.info('Empty room ', socket.room.id, '. Deleting it');
                 delete rooms[socket.room.id];
                 updateMyState();
             }
@@ -443,10 +478,10 @@ exports.deleteRoom = function (room, callback) {
             rooms[room].webRtcController.removeClient(sockets[id]);
         }
     }
-    console.log('Deleting room ', room, rooms);
+    logger.info('Deleting room ', room, rooms);
     delete rooms[room];
     updateMyState();
-    console.log('1 Deleting room ', room, rooms);
+    logger.info('1 Deleting room ', room, rooms);
     callback('Success');
 };
 

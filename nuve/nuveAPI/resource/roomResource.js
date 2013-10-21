@@ -74,5 +74,4 @@ exports.deleteRoom = function (req, res) {
             }
         }
     });
-
 };

@@ -7,12 +7,14 @@
 #include "WebRtcConnection.h"
 #include "NiceConnection.h"
 #include "Transport.h"
+#include "logger.h"
 
 namespace erizo {
 	class SrtpChannel;
 	class DtlsTransport : dtls::DtlsReceiver, public Transport {
+		DECLARE_LOGGER();
 		public:
-			DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener);
+			DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, const std::string &stunServer, int stunPort, int minPort, int maxPort);
 			~DtlsTransport();
 			void connectionStateChanged(IceState newState);
 			std::string getMyFingerprint();

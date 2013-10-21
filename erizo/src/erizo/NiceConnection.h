@@ -11,11 +11,13 @@
 
 #include "MediaDefinitions.h"
 #include "SdpInfo.h"
+#include "logger.h"
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainLoop GMainLoop;
 typedef struct _GMainContext GMainContext;
 
+typedef unsigned int uint;
 
 namespace erizo {
 //forward declarations
@@ -30,7 +32,7 @@ enum IceState {
 };
 
 class NiceConnectionListener {
-public: 
+public:
 	virtual void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* conn)=0;
 	virtual void updateIceState(IceState state, NiceConnection *conn)=0;
 };
@@ -41,6 +43,7 @@ public:
  *
  */
 class NiceConnection {
+	DECLARE_LOGGER();
 public:
 
 	/**
@@ -49,7 +52,9 @@ public:
 	 * @param transportName The name of the transport protocol. Was used when WebRTC used video_rtp instead of just rtp.
    * @param iceComponents Number of ice components pero connection. Default is 1 (rtcp-mux).
 	 */
-	NiceConnection(MediaType med, const std::string &transportName, unsigned int iceComponents=1);
+	NiceConnection(MediaType med, const std::string &transportName, unsigned int iceComponents=1,
+		const std::string& stunServer = "", int stunPort = 3478, int minPort = 0, int maxPort = 65535);
+
 	virtual ~NiceConnection();
 	/**
 	 * Join to the internal thread of the NiceConnection.
@@ -69,6 +74,12 @@ public:
 	 * @return true if successfull.
 	 */
 	bool setRemoteCandidates(std::vector<CandidateInfo> &candidates);
+	/**
+	 * Sets the local ICE Candidates. Called by C Nice functions.
+	 * @param candidates A vector containing the CandidateInfo.
+	 * @return true if successfull.
+	 */
+	void gatheringDone(uint stream_id);
 	/**
 	 * Sets the associated Listener.
 	 * @param connection Pointer to the NiceConnectionListener.
@@ -118,6 +129,8 @@ private:
 	boost::thread m_Thread_;
   	unsigned int iceComponents_;
   	std::map <unsigned int, IceState> comp_state_list;
+	int stunPort_, minPort_, maxPort_;
+	std::string stunServer_;
 };
 
 } /* namespace erizo */

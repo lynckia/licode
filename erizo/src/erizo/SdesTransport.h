@@ -4,12 +4,14 @@
 #include <string.h>
 #include "NiceConnection.h"
 #include "Transport.h"
+#include "logger.h"
 
 namespace erizo {
 	class SrtpChannel;
 	class SdesTransport : public Transport {
+		DECLARE_LOGGER();
 		public:
-			SdesTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, CryptoInfo *remoteCrypto, TransportListener *transportListener);
+			SdesTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, CryptoInfo *remoteCrypto, TransportListener *transportListener, const std::string &stunServer, int stunPort, int minPort, int maxPort);
 			~SdesTransport();
 			void connectionStateChanged(IceState newState);
 			void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice);

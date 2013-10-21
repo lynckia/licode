@@ -9,6 +9,8 @@
 #include <string>
 
 #include "MediaDefinitions.h"
+#include "media/ExternalOutput.h"
+#include "logger.h"
 
 namespace erizo{
 
@@ -19,6 +21,8 @@ class WebRtcConnection;
  * Receives media from one publisher and retransmits it to every subscriber.
  */
 class OneToManyProcessor : public MediaSink, public FeedbackSink {
+	DECLARE_LOGGER();
+
 public:
 	MediaSource *publisher;
 	std::map<std::string, MediaSink*> subscribers;
@@ -59,6 +63,7 @@ private:
 	unsigned int sentPackets_;
   std::string rtcpReceiverPeerId_;
   FeedbackSink* feedbackSink_;
+  ExternalOutput* recorder_;
 };
 
 } /* namespace erizo */

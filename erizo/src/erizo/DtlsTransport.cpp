@@ -16,8 +16,10 @@ using namespace erizo;
 using namespace std;
 using namespace dtls;
 
-DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener):Transport(med, transport_name, bundle, rtcp_mux, transportListener) {
-    cout << "Initializing DtlsTransport" << endl;
+DEFINE_LOGGER(DtlsTransport, "DtlsTransport");
+
+DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, const std::string &stunServer, int stunPort, int minPort, int maxPort):Transport(med, transport_name, bundle, rtcp_mux, transportListener, stunServer, stunPort, minPort, maxPort) {
+    ELOG_DEBUG( "Initializing DtlsTransport" );
     updateTransportState(TRANSPORT_INITIAL);
 
     readyRtp = false;
@@ -43,7 +45,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
       dtlsRtcp->setDtlsReceiver(this);
     }
     bundle_ = bundle;
-    nice_ = new NiceConnection(med, transport_name, comps);
+    nice_ = new NiceConnection(med, transport_name, comps, stunServer, stunPort, minPort, maxPort);
     nice_->setNiceListener(this);
     nice_->start();
 }
@@ -83,7 +85,7 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
     SrtpChannel *srtp = srtp_;
 
     if (DtlsTransport::isDtlsPacket(data, len)) {
-      printf("Received DTLS message from %u\n", component_id);
+      ELOG_DEBUG("Received DTLS message from %u", component_id);
       if (component_id == 1) {
         dtlsRtp->read(reinterpret_cast<unsigned char*>(data), len);
       } else {
@@ -105,7 +107,7 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
               chead->packettype == RTCP_Receiver_PT || 
               chead->packettype == RTCP_Feedback_PT){
             if (chead->packettype == RTCP_Feedback_PT) {
-              printf("NACK received\n");
+               ELOG_DEBUG("NACK received");
             }
 
             if(srtp->unprotectRtcp(unprotectBuf_, &length)<0)
@@ -172,13 +174,13 @@ void DtlsTransport::writeDtls(DtlsSocketContext *ctx, const unsigned char* data,
   if (ctx == dtlsRtcp) {
     comp = 2;
   }
-  printf("Sending DTLS message to %d\n", comp);
+   ELOG_DEBUG("Sending DTLS message to %d", comp);
   nice_->sendData(comp, data, len);
 }
 
 void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey,std::string serverKey, std::string srtp_profile) {
     if (ctx == dtlsRtp) {
-      printf("Setting RTP srtp params\n");
+       ELOG_DEBUG("Setting RTP srtp params");
       srtp_ = new SrtpChannel();
       srtp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str());
       readyRtp = true;
@@ -187,7 +189,7 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
       }
     }
     if (ctx == dtlsRtcp) {
-      printf("Setting RTCP srtp params\n");
+       ELOG_DEBUG("Setting RTCP srtp params");
       srtcp_ = new SrtpChannel();
       srtcp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str());
       readyRtcp = true;
@@ -203,7 +205,7 @@ std::string DtlsTransport::getMyFingerprint() {
 }
 
 void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
-    cout << "New NICE state " << state << " " << mediaType << " " << bundle_ << endl;
+    ELOG_DEBUG( "New NICE state %d %d %d", state, mediaType, bundle_ );
     if (state == NICE_CANDIDATES_GATHERED) {
       updateTransportState(TRANSPORT_STARTED);
     }
@@ -216,26 +218,26 @@ void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
 }
 
 void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
-  cout << "Processing Local SDP in DTLS Transport" << endl;
+  ELOG_DEBUG( "Processing Local SDP in DTLS Transport" );
   std::vector<CandidateInfo> *cands;
   localSdp_->isFingerprint = true;
   localSdp_->fingerprint = getMyFingerprint();
   if (nice_->iceState >= NICE_CANDIDATES_GATHERED) {
     cands = nice_->localCandidates;
-    cout << " Candidates: " << cands->size() << endl;
+    ELOG_DEBUG( "Candidates: %d", cands->size() );
     for (unsigned int it = 0; it < cands->size(); it++) {
       CandidateInfo cand = cands->at(it);
       cand.isBundle = bundle_;
       // TODO Check if bundle
       localSdp_->addCandidate(cand);
       if (cand.isBundle) {
-        printf("Adding bundle candidate! %d\n", cand.mediaType);
+         ELOG_DEBUG("Adding bundle candidate! %d", cand.mediaType);
         cand.mediaType = AUDIO_TYPE;
         localSdp_->addCandidate(cand);
       }
     }
   }
-  cout << "Processed Local SDP in DTLS Transport" << endl;
+  ELOG_DEBUG( "Processed Local SDP in DTLS Transport" );
 }
 
 bool DtlsTransport::isDtlsPacket(const char* buf, int len) {

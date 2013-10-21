@@ -24,8 +24,12 @@ namespace erizo {
 		public:
 			NiceConnection *nice_;
 			MediaType mediaType;
-			Transport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener) {
+			Transport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, const std::string &stunServer, int stunPort, int minPort, int maxPort) {
 				this->mediaType = med;
+				this->stunServer_ = stunServer;
+				this->stunPort_ = stunPort;
+				this->minPort_ = minPort;
+				this->maxPort_ = maxPort;
 				transpListener_ = transportListener;
 				rtcp_mux_ = rtcp_mux;
 			}
@@ -35,7 +39,6 @@ namespace erizo {
 			virtual void processLocalSdp(SdpInfo *localSdp_) = 0;
 			virtual void close()=0;
 			void setTransportListener(TransportListener * listener) {
-				printf("Setting transport listener to  %p\n", listener);
 				transpListener_ = listener;
 			}
 			TransportListener* getTransportListener() {
@@ -45,7 +48,6 @@ namespace erizo {
 				return state_;
 			}
 			void updateTransportState(TransportState state) {
-				printf("Updating transport state to %d\n", state);
 				state_ = state;
 				if (transpListener_ != NULL) {
 					transpListener_->updateState(state, this);
@@ -65,6 +67,10 @@ namespace erizo {
 			TransportListener *transpListener_;
 
 			TransportState state_;
+
+			int stunPort_, minPort_, maxPort_;
+
+			std::string stunServer_;
 
 			friend class NiceConnection;
 	};

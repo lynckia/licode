@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 #include <srtp/srtp.h>
 #include "rtputils.h"
+#include "logger.h"
 
 namespace erizo {
 
@@ -17,6 +18,8 @@ namespace erizo {
  * Represents a SRTP Channel with keys for protecting and unprotecting RTP and RTCP data.
  */
 class SrtpChannel {
+	DECLARE_LOGGER();
+	static bool initialized;
 
 public:
 	/**

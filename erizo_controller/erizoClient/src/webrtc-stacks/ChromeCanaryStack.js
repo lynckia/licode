@@ -12,11 +12,11 @@ Erizo.ChromeCanaryStack = function (spec) {
         "iceServers": []
     };
 
-    that.con = {'optional': [{'DtlsSrtpKeyAgreement': 'true'}]};
+    that.con = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
 
     if (spec.stunServerUrl !== undefined) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
-    } 
+    }
 
     if (spec.turnServer !== undefined) {
         that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
@@ -34,17 +34,16 @@ Erizo.ChromeCanaryStack = function (spec) {
     that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
 
     that.peerConnection.onicecandidate = function (event) {
-        console.log("PeerConnection: ", spec.session_id);
+        L.Logger.debug("PeerConnection: ", spec.session_id);
         if (!event.candidate) {
             // At the moment, we do not renegotiate when new candidates
             // show up after the more flag has been false once.
-            console.log("State: " + that.peerConnection.iceGatheringState);
+            L.Logger.debug("State: " + that.peerConnection.iceGatheringState);
 
             if (that.ices === undefined) {
                 that.ices = 0;
             }
             that.ices = that.ices + 1;
-            console.log(that.ices);
             if (that.ices >= 1 && that.moreIceComing) {
                 that.moreIceComing = false;
                 that.markActionNeeded();
@@ -54,7 +53,23 @@ Erizo.ChromeCanaryStack = function (spec) {
         }
     };
 
-    //console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
+    //L.Logger.debug("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
+
+    var setMaxBW = function (sdp) {
+        if (spec.maxVideoBW) {
+            var a = sdp.match(/m=video.*\r\n/);
+            var r = a[0] + "b=AS:" + spec.maxVideoBW + "\r\n";
+            sdp = sdp.replace(a[0], r);
+        }
+
+        if (spec.maxAudioBW) {
+            var a = sdp.match(/m=audio.*\r\n/);
+            var r = a[0] + "b=AS:" + spec.maxAudioBW + "\r\n";
+            sdp = sdp.replace(a[0], r);
+        }
+
+        return sdp;
+    };
 
     var setMaxBW = function (sdp) {
         if (spec.maxVideoBW) {
@@ -80,7 +95,7 @@ Erizo.ChromeCanaryStack = function (spec) {
         // Offer: Check for glare and resolve.
         // Answer/OK: Remove retransmit for the msg this is an answer to.
         // Send back "OK" if this was an Answer.
-        console.log('Activity on conn ' + that.sessionId);
+        L.Logger.debug('Activity on conn ' + that.sessionId);
         var msg = JSON.parse(msgstring), sd, regExp, exp;
         that.incomingMessage = msg;
 
@@ -106,7 +121,7 @@ Erizo.ChromeCanaryStack = function (spec) {
                 //regExp = new RegExp(/m=video[\w\W]*\r\n/g);
 
                 //exp = msg.sdp.match(regExp);
-                //console.log(exp);
+                //L.Logger.debug(exp);
 
                 //msg.sdp = msg.sdp.replace(regExp, exp + "b=AS:100\r\n");
 
@@ -114,7 +129,7 @@ Erizo.ChromeCanaryStack = function (spec) {
                     sdp: msg.sdp,
                     type: 'answer'
                 };
-                console.log("Received ANSWER: ", sd.sdp);
+                L.Logger.debug("Received ANSWER: ", sd.sdp);
 
                 sd.sdp = setMaxBW(sd.sdp);
 
@@ -219,15 +234,18 @@ Erizo.ChromeCanaryStack = function (spec) {
         if (that.actionNeeded) {
             if (that.state === 'new' || that.state === 'established') {
                 // See if the current offer is the same as what we already sent.
-                // If not, no change is needed.   
+                // If not, no change is needed.
 
                 that.peerConnection.createOffer(function (sessionDescription) {
 
                     //sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
+                    //sessionDescription.sdp = newOffer.replace(/a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
+                    //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
 
                     sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
-                
-                    console.log("Changed", sessionDescription.sdp);
+                    L.Logger.debug("Changed", sessionDescription.sdp);
+
+                    var newOffer = sessionDescription.sdp;
 
                     var newOffer = sessionDescription.sdp;
 
@@ -239,7 +257,7 @@ Erizo.ChromeCanaryStack = function (spec) {
                         that.markActionNeeded();
                         return;
                     } else {
-                        console.log('Not sending a new offer');
+                        L.Logger.debug('Not sending a new offer');
                     }
 
                 }, null, that.mediaConstraints);
@@ -254,8 +272,8 @@ Erizo.ChromeCanaryStack = function (spec) {
 
                 // Now able to send the offer we've already prepared.
                 that.prevOffer = that.peerConnection.localDescription.sdp;
-                console.log("Sending OFFER: ", that.prevOffer);
-                //console.log('Sent SDP is ' + that.prevOffer);
+                L.Logger.debug("Sending OFFER: " + that.prevOffer);
+                //L.Logger.debug('Sent SDP is ' + that.prevOffer);
                 that.sendMessage('OFFER', that.prevOffer);
                 // Not done: Retransmission on non-response.
                 that.state = 'offer-sent';
@@ -268,7 +286,7 @@ Erizo.ChromeCanaryStack = function (spec) {
 
                     if (!that.iceStarted) {
                         var now = new Date();
-                        console.log(now.getTime() + ': Starting ICE in responder');
+                        L.Logger.debug(now.getTime() + ': Starting ICE in responder');
                         that.iceStarted = true;
                     } else {
                         that.markActionNeeded();

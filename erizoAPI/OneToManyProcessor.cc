@@ -19,6 +19,8 @@ void OneToManyProcessor::Init(Handle<Object> target) {
   // Prototype
   tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setPublisher"), FunctionTemplate::New(setPublisher)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("addExternalOutput"), FunctionTemplate::New(addExternalOutput)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("setExternalPublisher"), FunctionTemplate::New(setExternalPublisher)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getPublisherState"), FunctionTemplate::New(getPublisherState)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("hasPublisher"), FunctionTemplate::New(hasPublisher)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("addSubscriber"), FunctionTemplate::New(addSubscriber)->GetFunction());
@@ -34,6 +36,7 @@ Handle<Value> OneToManyProcessor::New(const Arguments& args) {
 
   OneToManyProcessor* obj = new OneToManyProcessor();
   obj->me = new erizo::OneToManyProcessor();
+  obj->msink = obj->me;
 
   obj->Wrap(args.This());
 
@@ -59,6 +62,20 @@ Handle<Value> OneToManyProcessor::setPublisher(const Arguments& args) {
 
   WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
   erizo::WebRtcConnection* wr = (erizo::WebRtcConnection*)param->me;
+
+  erizo::MediaSource* ms = dynamic_cast<erizo::MediaSource*>(wr);
+  me->setPublisher(ms);
+
+  return scope.Close(Null());
+}
+Handle<Value> OneToManyProcessor::setExternalPublisher(const Arguments& args) {
+  HandleScope scope;
+
+  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
+  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+
+  ExternalInput* param = ObjectWrap::Unwrap<ExternalInput>(args[0]->ToObject());
+  erizo::ExternalInput* wr = (erizo::ExternalInput*)param->me;
 
   erizo::MediaSource* ms = dynamic_cast<erizo::MediaSource*>(wr);
   me->setPublisher(ms);
@@ -104,6 +121,27 @@ Handle<Value> OneToManyProcessor::addSubscriber(const Arguments& args) {
 
   WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
   erizo::WebRtcConnection* wr = param->me;
+
+  erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
+
+// get the param
+  v8::String::Utf8Value param1(args[1]->ToString());
+
+// convert it to string
+  std::string peerId = std::string(*param1);
+  me->addSubscriber(ms, peerId);
+
+  return scope.Close(Null());
+}
+
+Handle<Value> OneToManyProcessor::addExternalOutput(const Arguments& args) {
+  HandleScope scope;
+
+  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
+  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+
+  ExternalOutput* param = ObjectWrap::Unwrap<ExternalOutput>(args[0]->ToObject());
+  erizo::ExternalOutput* wr = param->me;
 
   erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
 

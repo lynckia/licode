@@ -9,6 +9,8 @@
 #include <vector>
 #include <map>
 
+#include "logger.h"
+
 namespace erizo {
 /**
  * ICE candidate types
@@ -69,8 +71,10 @@ public:
     std::string foundation;
     std::string hostAddress;
     std::string relayAddress;
+    std::string baseAddress;
     int hostPort;
     int relayPort;
+    int basePort;
     std::string netProtocol;
     HostType hostType;
     std::string transProtocol;
@@ -93,6 +97,7 @@ struct RtpMap {
  * Used to parse and generate SDPs
  */
 class SdpInfo {
+    DECLARE_LOGGER();
 public:
     /**
      * Constructor

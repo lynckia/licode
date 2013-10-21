@@ -6,6 +6,7 @@ cd erizoController
 
 npm install amqp
 npm install socket.io
+npm install winston
 
 echo [erizo_controller] Done, node_modules installed
 

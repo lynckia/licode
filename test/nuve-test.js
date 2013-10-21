@@ -69,6 +69,7 @@ describe('server', function () {
 
         room.connect();
 
+        room.publish(localStream);
         waitsFor(function () {
             return callback.callCount > 0;
         });
@@ -81,10 +82,10 @@ describe('server', function () {
     it('should publish stream in room', function () {
         var callback = jasmine.createSpy("publishroom");
 
-        room.publish(localStream);
-
+         waits(20000);
         room.addEventListener("stream-added", function(msg) {
-            remoteStream = msg.stream;
+            remoteStream = [];
+            remoteStream.push(msg.stream);
             callback();
         });
 
@@ -103,12 +104,14 @@ describe('server', function () {
         room.addEventListener("stream-subscribed", function() {
             callback();
         });
-
-        room.subscribe(remoteStream);
-
+        
+         for (var index in remoteStream) {
+             var stream = remoteStream[index];
+             room.subscribe(stream);
+          }
         waitsFor(function () {
             return callback.callCount > 0;
-        });
+        },"stream-subscribed should trigged", 20000);
 
         runs(function () {
             expect(callback).toHaveBeenCalled();
@@ -120,12 +123,12 @@ describe('server', function () {
         divg.setAttribute("id", "myDiv");
         document.body.appendChild(divg);
 
-        remoteStream.show('myDiv');
+        localStream.show('myDiv');
 
         waits(500);
 
         runs(function () {
-            var video = document.getElementById('stream' + remoteStream.getID());
+            var video = document.getElementById('stream' + localStream.getID());
             expect(video.getAttribute("url")).toBeDefined();
         });
     });

@@ -2,8 +2,8 @@
   'targets': [
   {
     'target_name': 'addon',
-      'sources': [ 'addon.cc', 'WebRtcConnection.cc', 'OneToManyProcessor.cc' ],
-      'include_dirs' : ['$(ERIZO_HOME)/src/erizo'],
+      'sources': [ 'addon.cc', 'WebRtcConnection.cc', 'OneToManyProcessor.cc', 'ExternalInput.cc', 'ExternalOutput.cc', 'OneToManyTranscoder.cc' ],
+      'include_dirs' : ['$(ERIZO_HOME)/src/erizo', '$(ERIZO_HOME)/../build/libdeps/build/include'],
       'libraries': ['-L$(ERIZO_HOME)/build/erizo', '-lerizo'],
       'conditions': [
         [ 'OS=="mac"', {
@@ -11,7 +11,7 @@
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',        # -fno-exceptions
               'GCC_ENABLE_CPP_RTTI': 'YES',              # -fno-rtti
               'OTHER_CFLAGS': [
-              '-g -O3'
+              '-g -O3',
             ],
           },
         }, { # OS!="mac"

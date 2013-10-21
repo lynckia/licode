@@ -1,6 +1,6 @@
 /*global L, io, console*/
 /*
- * Class Room represents a Licode Room. It will handle the connection, local stream publication and 
+ * Class Room represents a Licode Room. It will handle the connection, local stream publication and
  * remote stream subscription.
  * Typical Room initialization would be:
  * var room = Erizo.Room({token:'213h8012hwduahd-321ueiwqewq'});
@@ -23,7 +23,8 @@ Erizo.Room = function (spec) {
         removeStream,
         DISCONNECTED = 0,
         CONNECTING = 1,
-        CONNECTED = 2;
+        CONNECTED = 2,
+        recordingUrl;
 
     that.remoteStreams = {};
     that.localStreams = {};
@@ -68,7 +69,7 @@ Erizo.Room = function (spec) {
 
     // Private functions
 
-    // It removes the stream from HTML and close the PeerConnection associated 
+    // It removes the stream from HTML and close the PeerConnection associated
     removeStream = function (stream) {
         if (stream.stream !== undefined) {
 
@@ -104,7 +105,6 @@ Erizo.Room = function (spec) {
         // We receive an event with a new stream in the room.
         // type can be "media" or "data"
         that.socket.on('onAddStream', function (arg) {
-            console.log(arg);
             var stream = Erizo.Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, screen: arg.screen, attributes: arg.attributes}),
                 evt;
             that.remoteStreams[arg.id] = stream;
@@ -132,7 +132,7 @@ Erizo.Room = function (spec) {
 
         that.socket.on('onPublishP2P', function (arg, callback) {
             var myStream = that.remoteStreams[arg.streamId];
-            
+
             myStream.pc = Erizo.Connection({callback: function (offer) {}, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
             myStream.pc.onsignalingmessage = function (answer) {
@@ -231,7 +231,6 @@ Erizo.Room = function (spec) {
             for (index in streams) {
                 if (streams.hasOwnProperty(index)) {
                     arg = streams[index];
-                    console.log(arg);
                     stream = Erizo.Stream({streamID: arg.id, local: false, audio: arg.audio, video: arg.video, data: arg.data, screen: arg.screen, attributes: arg.attributes});
                     streamList.push(stream);
                     that.remoteStreams[arg.id] = stream;
@@ -257,10 +256,14 @@ Erizo.Room = function (spec) {
         that.dispatchEvent(disconnectEvt);
     };
 
-    // It publishes the stream provided as argument. Once it is added it throws a 
+    // It publishes the stream provided as argument. Once it is added it throws a
     // StreamEvent("stream-added").
+<<<<<<< HEAD
     that.publish = function (stream, options) {
 
+=======
+    that.publish = function (stream, options, callback, callbackError) {
+>>>>>>> master
         options = options || {};
 
         // 1- If the stream is not local we do nothing.
@@ -268,8 +271,31 @@ Erizo.Room = function (spec) {
 
             // 2- Publish Media Stream to Erizo-Controller
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
+                if (stream.url !== undefined) {
+                    sendSDPSocket('publish', {state: 'url', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, stream.url, function (answer, id) {
 
-                if (that.p2p) {
+                        if (answer === 'success') {
+                            L.Logger.info('Stream published');
+                            stream.getID = function () {
+                                return id;
+                            };
+                            stream.sendData = function (msg) {
+                                sendDataSocket(stream, msg);
+                            };
+                            that.localStreams[id] = stream;
+                            stream.room = that;
+                            if (callback)
+                                callback();
+                        } else {
+                            L.Logger.info('Error when publishing the stream', answer);
+                            // Unauth -1052488119
+                            // Network -5
+                            if (callbackError)
+                                callbackError(answer);
+                        }
+                    });
+
+                } else if (that.p2p) {
                     sendSDPSocket('publish', {state: 'p2p', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, undefined, function (answer, id) {
                         L.Logger.info('Stream published');
                         stream.getID = function () {
@@ -324,6 +350,16 @@ Erizo.Room = function (spec) {
             }
         }
     };
+
+    that.startRecording = function (stream){
+      recordingUrl = "/tmp/recording" + stream.getID() + ".mkv";
+      L.Logger.debug("Start Recording " + recordingUrl);
+      sendMessageSocket('startRecorder',{to:stream.getID(), url: recordingUrl});
+    }
+
+    that.stopRecording = function (stream){
+      sendMessageSocket('stopRecorder',{to:stream.getID(),url:recordingUrl});
+    }
 
     // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
     that.unpublish = function (stream) {

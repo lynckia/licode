@@ -8,7 +8,7 @@
 #include <SdpInfo.h>
 #include <WebRtcConnection.h>
 #include <NiceConnection.h>
-
+#include "Test.h"
 #include "pc/Observer.h"
 
 using namespace erizo;
@@ -16,11 +16,13 @@ using namespace erizo;
 int publisherid = 0;
 int main() {
 
-	SDPReceiver* receiver = new SDPReceiver();
-	Observer *subscriber = new Observer("subscriber", receiver);
-	new Observer("publisher", receiver);
-	subscriber->wait();
-	return 0;
+	new Test();
+
+//	SDPReceiver* receiver = new SDPReceiver();
+//	Observer *subscriber = new Observer("subscriber", receiver);
+//	new Observer("publisher", receiver);
+//	subscriber->wait();
+//	return 0;
 }
 
 SDPReceiver::SDPReceiver() {

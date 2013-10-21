@@ -2,6 +2,7 @@
 
 var addon = require('./../../erizoAPI/build/Release/addon');
 var config = require('./../../licode_config');
+var logger = require('./logger').logger;
 
 exports.WebRtcController = function () {
     "use strict";
@@ -12,6 +13,9 @@ exports.WebRtcController = function () {
         // {id: OneToManyProcessor}
         publishers = {},
 
+        // {id: ExternalOutput}
+        externalOutputs = {},
+
         INTERVAL_TIME_SDP = 100,
         INTERVAL_TIME_FIR = 100,
         waitForFIR,
@@ -19,8 +23,9 @@ exports.WebRtcController = function () {
         getSdp,
         getRoap;
 
+
     /*
-     * Given a WebRtcConnection waits for the state READY for ask it to send a FIR packet to its publisher.
+     * Given a WebRtcConnection waits for the state READY for ask it to send a FIR packet to its publisher. 
      */
     waitForFIR = function (wrtc, to) {
 
@@ -38,7 +43,7 @@ exports.WebRtcController = function () {
     };
 
     /*
-     * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
+     * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP. 
      */
     initWebRtcConnection = function (wrtc, sdp, callback, onReady) {
 
@@ -46,8 +51,6 @@ exports.WebRtcController = function () {
 
         var roap = sdp,
             remoteSdp = getSdp(roap);
-
-        console.log('SDP remote: ', remoteSdp);
 
         wrtc.setRemoteSdp(remoteSdp);
 
@@ -58,7 +61,6 @@ exports.WebRtcController = function () {
                 var state = wrtc.getCurrentState(), localSdp, answer;
 
                 if (state == 1 && !sdpDelivered) {
-                    console.log('Get local SDP');
                     localSdp = wrtc.getLocalSdp();
 
                     answer = getRoap(localSdp, roap);
@@ -118,6 +120,54 @@ exports.WebRtcController = function () {
         return answer;
     };
 
+    that.addExternalInput = function (from, url, callback) {
+
+        if (publishers[from] === undefined) {
+
+            logger.info("Adding external input peer_id ", from);
+
+            var muxer = new addon.OneToManyProcessor(),
+                ei = new addon.ExternalInput(url);
+
+            publishers[from] = muxer;
+            subscribers[from] = [];
+
+            ei.setAudioReceiver(muxer);
+            ei.setVideoReceiver(muxer);
+            muxer.setExternalPublisher(ei);
+
+            var answer = ei.init();
+
+            if (answer >= 0) {
+                callback('success');
+            } else {
+                callback(answer);
+            }
+
+        } else {
+            logger.info("Publisher already set for", from);
+        }
+    };
+
+    that.addExternalOutput = function (to, url) {
+        if (publishers[to] !== undefined) {
+            logger.info("Adding ExternalOutput to " + to + " url " + url);
+            var externalOutput = new addon.ExternalOutput(url);
+            externalOutput.init();
+            publishers[to].addExternalOutput(externalOutput, url);
+            externalOutputs[url] = externalOutput;
+        }
+
+    };
+
+    that.removeExternalOutput = function (to, url) {
+      if (externalOutputs[url] !== undefined && publishers[to]!=undefined) {
+        logger.info("Stopping ExternalOutput: url " + url);
+        publishers[to].removeSubscriber(url);
+        delete externalOutputs[url];
+      }
+    };
+
     /*
      * Adds a publisher to the room. This creates a new OneToManyProcessor
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
@@ -127,10 +177,10 @@ exports.WebRtcController = function () {
 
         if (publishers[from] === undefined) {
 
-            console.log("Adding publisher peer_id ", from);
+            logger.info("Adding publisher peer_id ", from);
 
             var muxer = new addon.OneToManyProcessor(),
-                wrtc = new addon.WebRtcConnection(true, true);
+                wrtc = new addon.WebRtcConnection(true, true, config.erizo.stunserver, config.erizo.stunport, config.erizo.minport, config.erizo.maxport);
 
             publishers[from] = muxer;
             subscribers[from] = [];
@@ -141,11 +191,11 @@ exports.WebRtcController = function () {
 
             initWebRtcConnection(wrtc, sdp, callback, onReady);
 
-            //console.log('Publishers: ', publishers);
-            //console.log('Subscribers: ', subscribers);
+            //logger.info('Publishers: ', publishers);
+            //logger.info('Subscribers: ', subscribers);
 
         } else {
-            console.log("Publisher already set for", from);
+            logger.info("Publisher already set for", from);
         }
     };
 
@@ -158,12 +208,12 @@ exports.WebRtcController = function () {
 
         if (publishers[to] !== undefined && subscribers[to].indexOf(from) === -1 && sdp.match('OFFER') !== null) {
 
-            console.log("Adding subscriber from ", from, 'to ', to);
+            logger.info("Adding subscriber from ", from, 'to ', to);
 
             if (audio === undefined) audio = true;
             if (video === undefined) video = true;
 
-            var wrtc = new addon.WebRtcConnection(audio, video);
+            var wrtc = new addon.WebRtcConnection(audio, video, config.erizo.stunserver, config.erizo.stunport, config.erizo.minport, config.erizo.maxport);
 
             subscribers[to].push(from);
             publishers[to].addSubscriber(wrtc, from);
@@ -171,8 +221,8 @@ exports.WebRtcController = function () {
             initWebRtcConnection(wrtc, sdp, callback);
             waitForFIR(wrtc, to);
 
-            //console.log('Publishers: ', publishers);
-            //console.log('Subscribers: ', subscribers);
+            //logger.info('Publishers: ', publishers);
+            //logger.info('Subscribers: ', subscribers);
         }
     };
 
@@ -182,13 +232,13 @@ exports.WebRtcController = function () {
     that.removePublisher = function (from) {
 
         if (subscribers[from] !== undefined && publishers[from] !== undefined) {
-            console.log('Removing muxer', from);
+            logger.info('Removing muxer', from);
             publishers[from].close();
-            console.log('Removing subscribers', from);
+            logger.info('Removing subscribers', from);
             delete subscribers[from];
-            console.log('Removing publisher', from);
+            logger.info('Removing publisher', from);
             delete publishers[from];
-            console.log('Removed all');
+            logger.info('Removed all');
         }
     };
 
@@ -199,7 +249,7 @@ exports.WebRtcController = function () {
 
         var index = subscribers[to].indexOf(from);
         if (index !== -1) {
-            console.log('Removing subscriber ', from, 'to muxer ', to);
+            logger.info('Removing subscriber ', from, 'to muxer ', to);
             publishers[to].removeSubscriber(from);
             subscribers[to].splice(index, 1);
         }
@@ -212,12 +262,12 @@ exports.WebRtcController = function () {
 
         var key, index;
 
-        console.log('Removing client ', from);
+        logger.info('Removing client ', from);
         for (key in subscribers) {
             if (subscribers.hasOwnProperty(key)) {
                 index = subscribers[key].indexOf(from);
                 if (index !== -1) {
-                    console.log('Removing subscriber ', from, 'to muxer ', key);
+                    logger.info('Removing subscriber ', from, 'to muxer ', key);
                     publishers[key].removeSubscriber(from);
                     subscribers[key].splice(index, 1);
                 }
@@ -225,7 +275,7 @@ exports.WebRtcController = function () {
         }
 
         if (subscribers[streamId] !== undefined && publishers[streamId] !== undefined) {
-            console.log('Removing muxer', streamId);
+            logger.info('Removing muxer', streamId);
             publishers[streamId].close();
             delete subscribers[streamId];
             delete publishers[streamId];

@@ -2,10 +2,10 @@
 var vows = require('vows'),
     assert = require('assert'),
     N = require('../extras/basic_example/nuve'),
-    config = require('../lynckia_config');
+    config = require('../licode_config');
 
-vows.describe('lynckia').addBatch({
-    "Lynckia service": {
+vows.describe('licode').addBatch({
+    "Licode service": {
         topic: function () {
             "use strict";
             return null;

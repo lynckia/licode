@@ -20,23 +20,16 @@ Erizo.Connection = function (spec) {
         // Firefox
         that.browser = "mozilla";
         that = Erizo.FirefoxStack(spec);
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "28" ||
-               window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "29") {
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] <= 30) {
         // Google Chrome Stable.
-        console.log("Stable!");
+        L.Logger.debug("Stable!");
         that = Erizo.ChromeStableStack(spec);
         that.browser = "chrome-stable";
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "30" ||
-        window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] === "31") {
+    } else if (window.navigator.userAgent.toLowerCase().indexOf("chrome")>=0) {
         // Google Chrome Canary.
-        console.log("Canary!");
+        L.Logger.debug("Canary!");
         that = Erizo.ChromeCanaryStack(spec);
         that.browser = "chrome-canary";
-    }  else if (window.navigator.userAgent.toLowerCase().indexOf("chrome")>=0) {
-        // Probably Google Chrome Stable.
-        console.log("Probably stable!");
-        that = Erizo.ChromeStableStack(spec);
-        that.browser = "chrome-stable";
     }  else if (window.navigator.appVersion.match(/Bowser\/([\w\W]*?)\./)[1] === "25") {
         // Bowser
         that.browser = "bowser";
@@ -62,5 +55,4 @@ Erizo.GetUserMedia = function (config, callback, error) {
     } else {
         navigator.getMedia(config, callback, error);
     }
-
 };

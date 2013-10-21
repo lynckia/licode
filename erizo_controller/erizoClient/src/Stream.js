@@ -9,6 +9,7 @@ Erizo.Stream = function (spec) {
     var that = Erizo.EventDispatcher(spec),
         getFrame;
     that.stream = spec.stream;
+    that.url = spec.url;
     that.room = undefined;
     that.showing = false;
     that.local = false;
@@ -58,7 +59,7 @@ Erizo.Stream = function (spec) {
     // We need to call this method before we can publish it in the room.
     that.init = function () {
         try {
-            if (spec.audio || spec.video || spec.screen) {
+            if ((spec.audio || spec.video || spec.screen) && spec.url === undefined) {
                 L.Logger.debug("Requested access to local media");
                 var opt = {video: spec.video, audio: spec.audio};
                 if (spec.screen) {
@@ -163,7 +164,6 @@ Erizo.Stream = function (spec) {
             } else {
                 return canvas.toDataURL();
             }
-            
         } else {
             return null;
         }

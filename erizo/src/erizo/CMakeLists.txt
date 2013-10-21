@@ -9,16 +9,14 @@ function(test_lib LIB_NAME)
 endfunction(test_lib)
 project (ERIZO)
 
-message("current source dir " ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/")
 set(ERIZO_VERSION_MAJOR 0)
 set(ERIZO_VERSION_MINOR 1)
 set(CMAKE_CXX_FLAGS "-g -Wall")
 
-set(SSL_DIR /usr/local/ssl)
-set(SSL_INCLUDE_DIR ${SSL_DIR}/include/openssl)
+set(LIB_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/libdeps/build/lib/)
 
-include_directories(${ERIZO_SOURCE_DIR} ${SSL_INCLUDE_DIR})
+include_directories(${ERIZO_SOURCE_DIR} ${LIB_DIRS}../include/)
 
 file(GLOB_RECURSE ERIZO_SOURCES ${ERIZO_SOURCE_DIR}/*.h ${ERIZO_SOURCE_DIR}/*.c ${ERIZO_SOURCE_DIR}/*.cpp)
 
@@ -30,27 +28,43 @@ include_directories(${GLIB_INCLUDE_DIRS})
 target_link_libraries(erizo ${GLIB_LIBRARIES})
 
 # BOOST
-set (BOOST_LIBS system thread regex)
+set (BOOST_LIBS thread regex system)
 find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
 target_link_libraries(erizo ${Boost_LIBRARIES})
-
-# SRTP
-find_library(SRTP srtp)
-test_lib(${SRTP})
-
-# NICE
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  find_library(NICE nice)
-  test_lib(${NICE})
-  set (OperatingSystem "Mac OS X")
-else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  set (NICE /usr/local/lib/libnice.so)
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 
 # GTHREAD
 find_library(GTHREAD gthread-2.0)
 test_lib(${GTHREAD})
 
+# SRTP
+find_library(SRTP srtp HINTS ${LIB_DIRS})
+test_lib(${SRTP})
+
+# NICE
+find_library(NICE nice HINTS ${LIB_DIRS})
+test_lib(${NICE})
+
 # OPENSSL
-set(SSL_LIB ${SSL_DIR}/lib/libssl.a ${SSL_DIR}/lib/libcrypto.a)
-target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL_LIB})
+find_library(SSL ssl HINTS ${LIB_DIRS})
+test_lib(${SSL})
+find_library(CRYPTO crypto HINTS ${LIB_DIRS})
+test_lib(${CRYPTO})
+
+# Libav
+find_library(AVUTIL avutil HINTS ${LIB_DIRS})
+test_lib(${AVUTIL})
+set (LIBS ${AVUTIL})
+find_library(AVCODEC avcodec HINTS ${LIB_DIRS})
+test_lib(${AVCODEC})
+set (LIBS ${LIBS} ${AVCODEC})
+find_library(AVFORMAT avformat HINTS ${LIB_DIRS})
+test_lib(${AVFORMAT})
+set (LIBS ${LIBS} ${AVFORMAT})
+
+# LOG4CXX
+find_library(LOG log4cxx)
+test_lib(${LOG})
+
+message("Libs ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG}")
+
+target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG})

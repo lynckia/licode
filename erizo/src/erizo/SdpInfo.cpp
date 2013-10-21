@@ -12,6 +12,7 @@
 
 using std::endl;
 namespace erizo {
+  DEFINE_LOGGER(SdpInfo, "SdpInfo");
 
   static const char *cand = "a=candidate:";
   static const char *crypto = "a=crypto:";
@@ -36,7 +37,7 @@ namespace erizo {
     audioSsrc = 0;
     videoSsrc = 0;
 
-    printf("Generating internal RtpMap\n");
+    ELOG_DEBUG("Generating internal RtpMap");
 
     RtpMap vp8;
     vp8.payloadType = VP8_90000_PT;
@@ -46,7 +47,7 @@ namespace erizo {
     vp8.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(vp8);
 
-    RtpMap ulpfec;
+/*    RtpMap ulpfec;
     ulpfec.payloadType = ULP_90000_PT;
     ulpfec.encodingName = "ulpfec";
     ulpfec.clockRate = 90000;
@@ -69,7 +70,7 @@ namespace erizo {
     opus.channels = 2;
     opus.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(opus);
-/*
+
     RtpMap isac16;
     isac16.payloadType = ISAC_16000_PT;
     isac16.encodingName = "ISAC";
@@ -85,7 +86,7 @@ namespace erizo {
     isac32.channels = 1;
     isac32.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(isac32);
-
+*/
     RtpMap pcmu;
     pcmu.payloadType = PCMU_8000_PT;
     pcmu.encodingName = "PCMU";
@@ -93,7 +94,7 @@ namespace erizo {
     pcmu.channels = 1;
     pcmu.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(pcmu);
-
+/*
     RtpMap pcma;
     pcma.payloadType = PCMA_8000_PT;
     pcma.encodingName = "PCMA";
@@ -164,7 +165,7 @@ namespace erizo {
     char* msidtemp = static_cast<char*>(malloc(10));
     gen_random(msidtemp,10);
 
-    printf("Getting SDP\n");
+    ELOG_DEBUG("Getting SDP");
 
     std::ostringstream sdp;
     sdp << "v=0\n" << "o=- 0 0 IN IP4 127.0.0.1\n" << "s=\n" << "t=0 0\n";
@@ -219,10 +220,21 @@ namespace erizo {
 
         std::string generation = " generation 0";
 
-        sdp << "a=candidate:" << cand.foundation << " " << cand.componentId
-          << " " << cand.netProtocol << " " << cand.priority << " "
-          << cand.hostAddress << " " << cand.hostPort << " typ "
-          << hostType_str << generation  << endl;
+        int comps = cand.componentId;
+        if (isRtcpMux) {
+          comps++;
+        }
+        for (int idx = 1; idx <= comps; idx++) {
+          sdp << "a=candidate:" << cand.foundation << " " << idx
+              << " " << cand.netProtocol << " " << cand.priority << " "
+              << cand.hostAddress << " " << cand.hostPort << " typ "
+              << hostType_str;
+          if (cand.hostType == SRLFX) {
+            //raddr 192.168.0.12 rport 50483
+            sdp << " raddr " << cand.baseAddress << " rport " << cand.basePort;
+          }
+          sdp << generation  << endl;
+        }
 
         iceUsername_ = cand.username;
         icePassword_ = cand.password;
@@ -311,11 +323,21 @@ namespace erizo {
         }
 
         std::string generation = " generation 0";
-
-        sdp << "a=candidate:" << cand.foundation << " " << cand.componentId
-          << " " << cand.netProtocol << " " << cand.priority << " "
-          << cand.hostAddress << " " << cand.hostPort << " typ "
-          << hostType_str << generation  << endl;
+        int comps = cand.componentId;
+        if (isRtcpMux) {
+          comps++;
+        }
+        for (int idx = 1; idx <= comps; idx++) {
+          sdp << "a=candidate:" << cand.foundation << " " << idx
+              << " " << cand.netProtocol << " " << cand.priority << " "
+              << cand.hostAddress << " " << cand.hostPort << " typ "
+              << hostType_str;
+          if (cand.hostType == SRLFX) {
+            //raddr 192.168.0.12 rport 50483
+            sdp << " raddr " << cand.baseAddress << " rport " << cand.basePort;
+          }
+          sdp << generation  << endl;
+        }
 
         iceUsername_ = cand.username;
         icePassword_ = cand.password;
@@ -353,7 +375,7 @@ namespace erizo {
           sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
               << rtp.clockRate <<"\n";
           if(rtp.encodingName == "VP8"){
-            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" ccm fir\na=rtcp-fb:"<< rtp.payloadType<<" nack\na=rtcp-fb:"<< rtp.payloadType<<" goog-remb\n";
+            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" ccm fir\na=rtcp-fb:"<< rtp.payloadType<<" nack\n";
           }
         }
       }
@@ -364,7 +386,7 @@ namespace erizo {
         "a=ssrc:"<< videoSsrc << " label:" << msidtemp <<"v0"<<endl;
     }
     free (msidtemp);
-    printf("sdp local \n %s\n",sdp.str().c_str());
+    ELOG_DEBUG("sdp local \n %s",sdp.str().c_str());
     return sdp.str();
   }
 
@@ -431,7 +453,7 @@ namespace erizo {
       }
       if (isSAVPF){
         profile = SAVPF;
-        printf("PROFILE %s (1 SAVPF)\n", isSAVPF);
+        ELOG_DEBUG("PROFILE %s (1 SAVPF)", isSAVPF);
       }
       if (isFP){
         char *pch;
@@ -440,7 +462,7 @@ namespace erizo {
         pch = strtok(NULL, " ");
         fingerprint = std::string(pch);
         isFingerprint = true;
-        printf("Fingerprint %s \n", fingerprint.c_str());
+        ELOG_DEBUG("Fingerprint %s ", fingerprint.c_str());
       }
       if (isGroup) {
         isBundle = true;
@@ -466,7 +488,7 @@ namespace erizo {
         processCandidate(pieces, i - 1, mtype);
       }
       if (isCrypt) {
-        //	printf("crypt %s\n", isCrypt );
+        //	ELOG_DEBUG("crypt %s", isCrypt );
         CryptoInfo crypinfo;
         char *pch;
         pch = strtok(line, " :");
@@ -474,7 +496,7 @@ namespace erizo {
         int i = 0;
         while (pch != NULL) {
           pch = strtok(NULL, " :");
-          //				printf("cryptopiece %i es %s\n", i, pch);
+          //				ELOG_DEBUG("cryptopiece %i es %s", i, pch);
           cryptopiece[i++] = pch;
         }
 
@@ -531,7 +553,7 @@ namespace erizo {
             outInPTMap[PT] = rtp.payloadType;
             inOutPTMap[rtp.payloadType] = PT;
             found = true;
-            printf("Mapping %s/%d:%d to %s/%d:%d\n", codecname.c_str(), clock, PT, rtp.encodingName.c_str(), rtp.clockRate, rtp.payloadType);
+            ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d", codecname.c_str(), clock, PT, rtp.encodingName.c_str(), rtp.clockRate, rtp.payloadType);
           }
         }
         if (found) {

@@ -6,6 +6,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread.hpp>
 
+#include "logger.h"
+
 #include "SrtpChannel.h"
 #include "SdpInfo.h"
 #include "MediaDefinitions.h"
@@ -37,12 +39,13 @@ public:
  * it comprises all the necessary Transport components.
  */
 class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink, public FeedbackSource, public TransportListener {
+	DECLARE_LOGGER();
 public:
 	/**
 	 * Constructor.
 	 * Constructs an empty WebRTCConnection without any configuration.
 	 */
-	WebRtcConnection(bool audioEnabled, bool videoEnabled);
+	WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort);
 	/**
 	 * Destructor.
 	 */
@@ -118,6 +121,12 @@ private:
 	bool audioEnabled_;
 	bool videoEnabled_;
 
+<<<<<<< HEAD
+=======
+	int stunPort_, minPort_, maxPort_;
+	std::string stunServer_;
+
+>>>>>>> master
 };
 
 } /* namespace erizo */
