@@ -2,7 +2,7 @@ language: node_js
 node_js:
   - 0.8
 before_install:
-  - sudo apt-get install -qq make gcc libssl-dev cmake libsrtp0-dev libsrtp0 libnice10 libnice-dev libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev
+  - ./scripts/installTravisDeps.sh
   - ./scripts/installErizo.sh
   - ./scripts/installNuve.sh
   - ./scripts/installBasicExample.sh
@@ -12,3 +12,8 @@ before_install:
   - ./.travis/scripts/install_chrome.sh
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
+cache:
+  apt: true
+  directories: 
+  - ./node-modules/
+  - ./build/
