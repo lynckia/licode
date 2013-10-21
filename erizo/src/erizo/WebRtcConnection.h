@@ -6,18 +6,23 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread.hpp>
 
+#include "logger.h"
+
 #include "SrtpChannel.h"
 #include "SdpInfo.h"
 #include "MediaDefinitions.h"
+#include "Transport.h"
 
 namespace erizo {
 
-class NiceConnection;
+class Transport;
+class TransportListener;
+
 /**
  * States of ICE
  */
-enum IceState {
-	INITIAL, CANDIDATES_GATHERED, CANDIDATES_RECEIVED, READY, FINISHED, FAILED
+enum WebRTCState {
+	INITIAL, STARTED, READY, FINISHED, FAILED
 };
 
 class WebRtcConnectionStateListener {
@@ -25,24 +30,22 @@ public:
 	virtual ~WebRtcConnectionStateListener() {
 	}
 	;
-	virtual void connectionStateChanged(IceState newState)=0;
+	virtual void connectionStateChanged(WebRTCState newState)=0;
 
 };
 
 /**
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
- * it comprises all the necessary ICE and SRTP components.
+ * it comprises all the necessary Transport components.
  */
-class WebRtcConnection: public MediaReceiver, public NiceReceiver {
+class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink, public FeedbackSource, public TransportListener {
+	DECLARE_LOGGER();
 public:
-	unsigned int localAudioSsrc_, localVideoSsrc_;
-	unsigned int remoteAudioSSRC_, remoteVideoSSRC_;
-
 	/**
 	 * Constructor.
 	 * Constructs an empty WebRTCConnection without any configuration.
 	 */
-	WebRtcConnection(const std::string &stunServer, int stunPort, int minPort, int maxPort);
+	WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort);
 	/**
 	 * Destructor.
 	 */
@@ -57,6 +60,8 @@ public:
 	 * The object cannot be used after this call.
 	 */
 	void close();
+  void closeSink();
+  void closeSource();
 	/**
 	 * Sets the SDP of the remote peer.
 	 * @param sdp The SDP.
@@ -69,27 +74,10 @@ public:
 	 */
 	std::string getLocalSdp();
 
-	int receiveAudioData(char* buf, int len);
-	int receiveVideoData(char* buf, int len);
-	/**
-	 * Sets a MediaReceiver that is going to receive Audio Data
-	 * @param receiv The MediaReceiver to send audio to.
-	 */
-	void setAudioReceiver(MediaReceiver *receiv);
-	/**
-	 * Sets a MediaReceiver that is going to receive Video Data
-	 * @param receiv The MediaReceiver
-	 */
-	void setVideoReceiver(MediaReceiver *receiv);
-	/**
-	 * Method to Receive data from a NiceConnection
-	 * @param buf The data buffer
-	 * @param len The length of the buffer
-	 * @param nice The NiceConnection orgi
-	 * @return
-	 */
+	int deliverAudioData(char* buf, int len);
+	int deliverVideoData(char* buf, int len);
 
-	int receiveNiceData(char* buf, int len, NiceConnection *nice);
+    int deliverFeedback(char* buf, int len);
 
 	/**
 	 * Sends a FIR Packet (RFC 5104) asking for a keyframe
@@ -103,31 +91,38 @@ public:
 	 * Gets the current state of the Ice Connection
 	 * @return
 	 */
-	IceState getCurrentState();
+	WebRTCState getCurrentState();
+
+	void writeSsrc(char* buf, int len, int ssrc);
+
+	void onTransportData(char* buf, int len, Transport *transport);
+
+	void updateState(TransportState state, Transport * transport);
+
+	void queueData(int comp, const char* data, int len, Transport *transport);
 
 private:
 	SdpInfo remoteSdp_;
 	SdpInfo localSdp_;
-	NiceConnection* audioNice_;
-	NiceConnection* videoNice_;
-	SrtpChannel* audioSrtp_;
-	SrtpChannel* videoSrtp_;
-	IceState globalIceState_;
 
-	MediaReceiver* audioReceiver_;
-	MediaReceiver* videoReceiver_;
+	WebRTCState globalState_;
+
 	int video_, audio_, bundle_, sequenceNumberFIR_;
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_, updateStateMutex_;
 	boost::thread send_Thread_;
-	std::queue<packet> sendQueue_;
+	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionStateListener* connStateListener_;
+	Transport *videoTransport_, *audioTransport_;
+	char *deliverMediaBuffer_;
 
-	void updateState(IceState newState, NiceConnection* niceConn);
-
-	bool sending;
+	bool sending_;
 	void sendLoop();
 
-	friend class NiceConnection;
+	bool audioEnabled_;
+	bool videoEnabled_;
+
+	int stunPort_, minPort_, maxPort_;
+	std::string stunServer_;
 
 };
 

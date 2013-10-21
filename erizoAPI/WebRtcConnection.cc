@@ -1,4 +1,7 @@
+#ifndef BUILDING_NODE_EXTENSION
 #define BUILDING_NODE_EXTENSION
+#endif
+
 #include <node.h>
 #include "WebRtcConnection.h"
 
@@ -32,15 +35,18 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
     ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
     return args.This();
   }
-//	webrtcconnection(const std::string &stunserver, int stunport, int minport, int maxport);
-  String::Utf8Value param(args[0]->ToString());
+//	webrtcconnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort);
+
+  bool a = (args[0]->ToBoolean())->BooleanValue();
+  bool v = (args[1]->ToBoolean())->BooleanValue();
+  String::Utf8Value param(args[2]->ToString());
   std::string stunServer = std::string(*param);
-  int stunPort = args[1]->IntegerValue();
-  int minPort = args[2]->IntegerValue();
-  int maxPort = args[3]->IntegerValue();
+  int stunPort = args[3]->IntegerValue();
+  int minPort = args[4]->IntegerValue();
+  int maxPort = args[5]->IntegerValue();
 
   WebRtcConnection* obj = new WebRtcConnection();
-  obj->me = new erizo::WebRtcConnection(stunServer,stunPort,minPort,maxPort);
+  obj->me = new erizo::WebRtcConnection(a, v, stunServer,stunPort,minPort,maxPort);
   obj->Wrap(args.This());
 
   return args.This();
@@ -77,7 +83,7 @@ Handle<Value> WebRtcConnection::setRemoteSdp(const Arguments& args) {
   String::Utf8Value param(args[0]->ToString());
   std::string sdp = std::string(*param);
 
-  bool r = me->setRemoteSdp(sdp); 
+  bool r = me->setRemoteSdp(sdp);
 
   return scope.Close(Boolean::New(r));
 }
@@ -100,10 +106,10 @@ Handle<Value> WebRtcConnection::setAudioReceiver(const Arguments& args) {
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
   erizo::WebRtcConnection *me = obj->me;
 
-  MediaReceiver* param = ObjectWrap::Unwrap<MediaReceiver>(args[0]->ToObject());
-  erizo::MediaReceiver *mr = param->me;
+  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(args[0]->ToObject());
+  erizo::MediaSink *mr = param->msink;
 
-  me-> setAudioReceiver(mr);
+  me-> setAudioSink(mr);
 
   return scope.Close(Null());
 }
@@ -114,10 +120,10 @@ Handle<Value> WebRtcConnection::setVideoReceiver(const Arguments& args) {
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
   erizo::WebRtcConnection *me = obj->me;
 
-  MediaReceiver* param = ObjectWrap::Unwrap<MediaReceiver>(args[0]->ToObject());
-  erizo::MediaReceiver *mr = param->me;
+  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(args[0]->ToObject());
+  erizo::MediaSink *mr = param->msink;
 
-  me-> setVideoReceiver(mr);
+  me-> setVideoSink(mr);
 
   return scope.Close(Null());
 }

@@ -3,8 +3,11 @@
 
 #include <node.h>
 #include <OneToManyProcessor.h>
-#include "MediaReceiver.h"
+#include <WebRtcConnection.h>
+#include "MediaDefinitions.h"
 #include "WebRtcConnection.h"
+#include "ExternalInput.h"
+#include "ExternalOutput.h"
 
 
 /*
@@ -13,9 +16,10 @@
  * Represents a OneToMany connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class OneToManyProcessor : public MediaReceiver {
+class OneToManyProcessor : public MediaSink {
  public:
   static void Init(v8::Handle<v8::Object> target);
+  erizo::OneToManyProcessor* me;
 
  private:
   OneToManyProcessor();
@@ -36,6 +40,21 @@ class OneToManyProcessor : public MediaReceiver {
    * Param: the WebRtcConnection of the Publisher
    */
   static v8::Handle<v8::Value> setPublisher(const v8::Arguments& args);
+  /*
+   * Adds an ExternalOutput
+   * Param: The ExternalOutput   
+   */
+  static v8::Handle<v8::Value> addExternalOutput(const v8::Arguments& args);
+  /*
+   * Sets an External Publisher
+   * Param: the ExternalInput of the Publisher
+   */
+  static v8::Handle<v8::Value> setExternalPublisher(const v8::Arguments& args);
+  /*
+   * Gets the Publisher state
+   * Param: none
+   */
+  static v8::Handle<v8::Value> getPublisherState(const v8::Arguments& args);
    /*
    * Returns true if OneToManyProcessor has a publisher
    */

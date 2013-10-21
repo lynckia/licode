@@ -4,14 +4,16 @@
 
 #include "OneToManyProcessor.h"
 #include "WebRtcConnection.h"
+#include "rtputils.h"
 
 namespace erizo {
-  OneToManyProcessor::OneToManyProcessor() :
-    MediaReceiver() {
+  DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
+  OneToManyProcessor::OneToManyProcessor() {
 
-      sendVideoBuffer_ = (char*) malloc(2000);
-      sendAudioBuffer_ = (char*) malloc(2000);
+      sendVideoBuffer_ = (char*) malloc(20000);
+      sendAudioBuffer_ = (char*) malloc(20000);
       publisher = NULL;
+      feedbackSink_ = NULL;
       sentPackets_ = 0;
 
     }
@@ -24,89 +26,100 @@ namespace erizo {
       delete sendAudioBuffer_;
   }
 
-  int OneToManyProcessor::receiveAudioData(char* buf, int len) {
-
+  int OneToManyProcessor::deliverAudioData(char* buf, int len) {
     if (subscribers.empty() || len <= 0)
       return 0;
 
-    std::map<std::string, WebRtcConnection*>::iterator it;
+    std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      memset(sendAudioBuffer_, 0, len);
-      memcpy(sendAudioBuffer_, buf, len);
-      (*it).second->receiveAudioData(sendAudioBuffer_, len);
+      //memset(sendAudioBuffer_, 0, len);
+      //memcpy(sendAudioBuffer_, buf, len);
+      (*it).second->deliverAudioData(buf, len);
     }
 
     return 0;
   }
 
-  int OneToManyProcessor::receiveVideoData(char* buf, int len) {
+  int OneToManyProcessor::deliverVideoData(char* buf, int len) {
     if (subscribers.empty() || len <= 0)
       return 0;
+
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
-    if(head->packettype==201 || head->packettype==206){
-      int offset = 0;
-      /*
-      rtcpheader* head2;
-
-      while (offset<len){
-        head2 = reinterpret_cast<rtcpheader*>(&buf[offset]);
-        if (head2->packettype==206 && head2->blockcount==1){
-          //printf("NACK\n");
-        }
-        offset+=(ntohs(head2->length)+1)*4;
+    if(head->packettype==RTCP_Receiver_PT || head->packettype==RTCP_Feedback_PT){
+      ELOG_WARN("Receiving Feedback in wrong path: %d", head->packettype);
+      if (feedbackSink_){
+        head->ssrc = htonl(publisher->getVideoSourceSSRC());
+        feedbackSink_->deliverFeedback(buf,len);
       }
-      */
-
-      head->ssrc = htonl(publisher->localVideoSsrc_);
-      publisher->receiveVideoData(buf,len);
       return 0;
     }
-
-    std::map<std::string, WebRtcConnection*>::iterator it;
+    std::map<std::string, MediaSink*>::iterator it;
+    //ELOG_DEBUG("Sending video data to subscribers of %u", publisher->getVideoSourceSSRC());
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      memset(sendVideoBuffer_, 0, len);
-      memcpy(sendVideoBuffer_, buf, len);
-      (*it).second->receiveVideoData(sendVideoBuffer_, len);
+      //memset(sendVideoBuffer_, 0, len);
+      //memcpy(sendVideoBuffer_, buf, len);
+      //ELOG_DEBUG(" Subscriber %u", (*it).second->getVideoSinkSSRC());
+      (*it).second->deliverVideoData(buf, len);
     }
-
     sentPackets_++;
     return 0;
   }
 
-  void OneToManyProcessor::setPublisher(WebRtcConnection* webRtcConn) {
-
+  void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
+    ELOG_DEBUG("SET PUBLISHER");
     this->publisher = webRtcConn;
+    feedbackSink_ = publisher->getFeedbackSink();
+//    recorder_ = new ExternalOutput("/tmp/prueba.mkv");
+//    recorder_->init();
+//    this->addSubscriber(recorder_,"1");
   }
 
-  void OneToManyProcessor::addSubscriber(WebRtcConnection* webRtcConn,
+  int OneToManyProcessor::deliverFeedback(char* buf, int len){
+    if (feedbackSink_ != NULL) {
+      feedbackSink_->deliverFeedback(buf,len);
+    }
+    return 0;
+
+  }
+
+  void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
-    printf("Adding subscriber\n");
-    webRtcConn->localAudioSsrc_ = this->publisher->remoteAudioSSRC_;
-    webRtcConn->localVideoSsrc_ = this->publisher->remoteVideoSSRC_;
-//    if (this->subscribers.empty()|| this->rtcpReceiverPeerId_.empty()){
-      printf("Adding rtcp\n");
-  //    this->rtcpReceiverPeerId_= peerId;
-      webRtcConn->setVideoReceiver(this);
-    //}
+    ELOG_DEBUG("Adding subscriber");
+    ELOG_DEBUG("From %u, %u ", publisher->getAudioSourceSSRC() , publisher->getVideoSourceSSRC());
+    webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
+    webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
+    ELOG_DEBUG("Subscribers ssrcs: Audio %u, video, %u from %u, %u ", webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC(), this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
+    FeedbackSource* fbsource = webRtcConn->getFeedbackSource();
+
+    if (fbsource!=NULL){
+      ELOG_DEBUG("adding fbsource");
+      fbsource->setFeedbackSink(this);
+    }
     this->subscribers[peerId] = webRtcConn;
   }
 
   void OneToManyProcessor::removeSubscriber(const std::string& peerId) {
-//    if (!rtcpReceiverPeerId_.compare(peerId)){
-//      rtcpReceiverPeerId_.clear();
-//    }
     if (this->subscribers.find(peerId) != subscribers.end()) {
-      this->subscribers[peerId]->close();
+      this->subscribers[peerId]->closeSink();
       this->subscribers.erase(peerId);
     }
   }
 
+  void OneToManyProcessor::closeSink(){
+    this->close();
+  }
+
+  void OneToManyProcessor::close(){
+    this->closeAll();
+  }
+
   void OneToManyProcessor::closeAll() {
-    std::map<std::string, WebRtcConnection*>::iterator it;
+    std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      (*it).second->close();
+      (*it).second->closeSink();
     }
-    this->publisher->close();
+    this->publisher->closeSource();
+    ELOG_DEBUG("CloseSource Done");
   }
 
 }/* namespace erizo */

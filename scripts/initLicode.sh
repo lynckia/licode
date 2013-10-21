@@ -19,7 +19,7 @@ cd $ROOT/nuve
 
 sleep 2
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/erizo/build/erizo:$ROOT/erizo
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/erizo/build/erizo:$ROOT/erizo:$ROOT/build/libdeps/build/lib
 export ERIZO_HOME=$ROOT/erizo/
 
 cd $ROOT/erizo_controller
