@@ -9,3 +9,4 @@ site
 scripts/libdeps/
 .project
 .settings/
+libdeps/

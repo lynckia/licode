@@ -6,11 +6,11 @@ var databaseUrl = config.nuve.dataBaseURL;
 /*
  * Data base collections and its fields are:
  * 
- * room {name: '', _id: ObjectId}
+ * room {name: '', [p2p: bool], _id: ObjectId}
  *
  * service {name: '', key: '', rooms: Array[room], testRoom: room, testToken: token, _id: ObjectId}
  *
- * token {host: '', userName: '', room: '', role: '', service: '', creationDate: Date(), [use: int], _id: ObjectId}
+ * token {host: '', userName: '', room: '', role: '', service: '', creationDate: Date(), [use: int], [p2p: bool], _id: ObjectId}
  *
  */
 var collections = ["rooms", "tokens", "services"];

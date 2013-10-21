@@ -5,7 +5,6 @@
 More info at:
 http://www.lynckia.com/licode
 
-
 ## License
 
 The MIT License

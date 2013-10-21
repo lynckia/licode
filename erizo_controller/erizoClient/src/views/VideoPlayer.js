@@ -46,7 +46,8 @@ Erizo.VideoPlayer = function (spec) {
     });*/
 
     L.Logger.debug('Creating URL from stream ' + that.stream);
-    that.stream_url = webkitURL.createObjectURL(that.stream);
+    var myURL = window.URL || webkitURL;
+    that.stream_url = myURL.createObjectURL(that.stream);
 
     // Container
     that.div = document.createElement('div');
@@ -64,6 +65,9 @@ Erizo.VideoPlayer = function (spec) {
     that.video.setAttribute('id', 'stream' + that.id);
     that.video.setAttribute('style', 'width: 100%; height: 100%; position: absolute');
     that.video.setAttribute('autoplay', 'autoplay');
+    if(spec.stream.local) 
+        that.video.volume = 0;
+
     if(spec.stream.local) 
         that.video.volume = 0;
 
@@ -89,7 +93,6 @@ Erizo.VideoPlayer = function (spec) {
             height = that.container.offsetHeight;
 
         if (!spec.stream.screen) {
-
             if (width !== that.containerWidth || height !== that.containerHeight) {
 
                 if (width * (3 / 4) > height) {

@@ -2,6 +2,7 @@ var sys = require('util');
 var amqp = require('amqp');
 var rpcPublic = require('./rpcPublic');
 var config = require('./../../../licode_config');
+var logger = require('./../logger').logger;
 
 var TIMEOUT = 2000;
 
@@ -26,20 +27,20 @@ exports.connect = function(callback) {
 	connection = amqp.createConnection(addr);
 	connection.on('ready', function () {
 
-		//Create a direct exchange 
+		//Create a direct exchange
 		exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
-			console.log('Exchange ' + exchange.name + ' is open');
+			logger.info('Exchange ' + exchange.name + ' is open');
 
 			//Create the queue for send messages
 	  		clientQueue = connection.queue('', function (q) {
-			  	console.log('ClientQueue ' + q.name + ' is open');
+			  	logger.info('ClientQueue ' + q.name + ' is open');
 
 			 	clientQueue.bind('rpcExchange', clientQueue.name);
 
 			  	clientQueue.subscribe(function (message) {
 
 			  		if(map[message.corrID] !== undefined) {
-				
+
 						map[message.corrID].fn(message.data);
 						clearTimeout(map[message.corrID].to);
 						delete map[message.corrID];
@@ -56,10 +57,10 @@ exports.bind = function(id, callback) {
 
 	//Create the queue for receive messages
 	var q = connection.queue(id, function (queueCreated) {
-	  	console.log('Queue ' + queueCreated.name + ' is open');
+	  	logger.info('Queue ' + queueCreated.name + ' is open');
 
 	  	q.bind('rpcExchange', id);
-  		q.subscribe(function (message) { 
+  		q.subscribe(function (message) {
 
     		rpcPublic[message.method](message.args, function(result) {
 
@@ -84,9 +85,9 @@ exports.callRpc = function(to, method, args, callback) {
 	map[corrID].to = setTimeout(callbackError, TIMEOUT, corrID);
 
 	var send = {method: method, args: args, corrID: corrID, replyTo: clientQueue.name };
- 	
+
  	exc.publish(to, send);
-	
+
 }
 
 var callbackError = function(corrID) {

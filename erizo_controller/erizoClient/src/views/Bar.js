@@ -67,8 +67,6 @@ Erizo.Bar = function (spec) {
     that.link.appendChild(that.logo);
 
     // Speaker component
-    console.log("Screen: ", spec.stream.screen);
-
     if (!spec.stream.screen && (spec.options === undefined || spec.options.speaker === undefined || spec.options.speaker === true)) {
         that.speaker = new Erizo.Speaker({elementID: 'subbar_' + that.id, id: that.id, stream: spec.stream, video: spec.video});
     }

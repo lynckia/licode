@@ -9,6 +9,7 @@ Erizo.Stream = function (spec) {
     var that = Erizo.EventDispatcher(spec),
         getFrame;
     that.stream = spec.stream;
+    that.url = spec.url;
     that.room = undefined;
     that.showing = false;
     that.local = false;
@@ -50,13 +51,15 @@ Erizo.Stream = function (spec) {
     };
 
     // Sends data through this stream.
-    that.sendData = function (msg) {};
+    that.sendData = function (msg) {
+        L.Logger.error("Failed to send data. This Stream object has not that channel enabled.");
+    };
 
     // Initializes the stream and tries to retrieve a stream from local video and audio
     // We need to call this method before we can publish it in the room.
     that.init = function () {
         try {
-            if (spec.audio || spec.video || spec.screen) {
+            if ((spec.audio || spec.video || spec.screen) && spec.url === undefined) {
                 L.Logger.debug("Requested access to local media");
                 var opt = {video: spec.video, audio: spec.audio};
                 if (spec.screen) {
@@ -153,10 +156,15 @@ Erizo.Stream = function (spec) {
         }
     };
 
-    that.getVideoFrameURL = function () {
+    that.getVideoFrameURL = function (format) {
         var canvas = getFrame();
         if (canvas !== null) {
-            return canvas.toDataURL();
+            if (format) {
+                return canvas.toDataURL(format);
+            } else {
+                return canvas.toDataURL();
+            }
+
         } else {
             return null;
         }
