@@ -265,7 +265,6 @@ Erizo.Room = function (spec) {
         if (stream.local && that.localStreams[stream.getID()] === undefined) {
 
             // 2- Publish Media Stream to Erizo-Controller
-
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
                 if (stream.url !== undefined) {
                     sendSDPSocket('publish', {state: 'url', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, stream.url, function (answer, id) {

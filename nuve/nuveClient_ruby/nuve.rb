@@ -14,7 +14,7 @@ class Nuve
 		return send('GET', nil, 'rooms', '', '')
 	end
 
-    def createRoom (name, options)
+    def createRoom (name, options={})
     	return send('POST', {'name' => name, 'options' => options}, 'rooms', '', '')
     end
 
