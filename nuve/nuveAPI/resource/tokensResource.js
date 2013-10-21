@@ -64,6 +64,10 @@ var generateToken = function (callback) {
     token.service = currentService._id;
     token.creationDate = new Date();
 
+    if (currentRoom.p2p) {
+        token.p2p = true;
+    }
+
     r = currentRoom._id;
     tr = undefined;
 

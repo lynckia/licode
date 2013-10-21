@@ -7,10 +7,12 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "rtputils.h"
 #include "SdpInfo.h"
 
 using std::endl;
 namespace erizo {
+  DEFINE_LOGGER(SdpInfo, "SdpInfo");
 
   static const char *cand = "a=candidate:";
   static const char *crypto = "a=crypto:";
@@ -23,13 +25,124 @@ namespace erizo {
   static const char *savpf = "SAVPF";
   static const char *rtpmap = "a=rtpmap:";
   static const char *rtcpmux = "a=rtcp-mux";
+  static const char *fp = "a=fingerprint";
 
   SdpInfo::SdpInfo() {
     isBundle = false;
     isRtcpMux = false;
+    isFingerprint = false;
+    hasAudio = false;
+    hasVideo = false;
     profile = AVPF;
     audioSsrc = 0;
     videoSsrc = 0;
+
+    ELOG_DEBUG("Generating internal RtpMap");
+
+    RtpMap vp8;
+    vp8.payloadType = VP8_90000_PT;
+    vp8.encodingName = "VP8";
+    vp8.clockRate = 90000;
+    vp8.channels = 1;
+    vp8.mediaType = VIDEO_TYPE;
+    internalPayloadVector_.push_back(vp8);
+
+/*    RtpMap ulpfec;
+    ulpfec.payloadType = ULP_90000_PT;
+    ulpfec.encodingName = "ulpfec";
+    ulpfec.clockRate = 90000;
+    ulpfec.channels = 1;
+    ulpfec.mediaType = VIDEO_TYPE;
+    internalPayloadVector_.push_back(ulpfec);
+
+    RtpMap red;
+    red.payloadType = RED_90000_PT;
+    red.encodingName = "red";
+    red.clockRate = 90000;
+    red.channels = 1;
+    red.mediaType = VIDEO_TYPE;
+    internalPayloadVector_.push_back(red);
+
+    RtpMap opus;
+    opus.payloadType = OPUS_48000_PT;
+    opus.encodingName = "opus";
+    opus.clockRate = 48000;
+    opus.channels = 2;
+    opus.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(opus);
+
+    RtpMap isac16;
+    isac16.payloadType = ISAC_16000_PT;
+    isac16.encodingName = "ISAC";
+    isac16.clockRate = 16000;
+    isac16.channels = 1;
+    isac16.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(isac16);
+
+    RtpMap isac32;
+    isac32.payloadType = ISAC_32000_PT;
+    isac32.encodingName = "ISAC";
+    isac32.clockRate = 32000;
+    isac32.channels = 1;
+    isac32.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(isac32);
+*/
+    RtpMap pcmu;
+    pcmu.payloadType = PCMU_8000_PT;
+    pcmu.encodingName = "PCMU";
+    pcmu.clockRate = 8000;
+    pcmu.channels = 1;
+    pcmu.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(pcmu);
+/*
+    RtpMap pcma;
+    pcma.payloadType = PCMA_8000_PT;
+    pcma.encodingName = "PCMA";
+    pcma.clockRate = 8000;
+    pcma.channels = 1;
+    pcma.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(pcma);
+
+    RtpMap cn8;
+    cn8.payloadType = CN_8000_PT;
+    cn8.encodingName = "CN";
+    cn8.clockRate = 8000;
+    cn8.channels = 1;
+    cn8.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(cn8);
+
+    RtpMap cn16;
+    cn16.payloadType = CN_16000_PT;
+    cn16.encodingName = "CN";
+    cn16.clockRate = 16000;
+    cn16.channels = 1;
+    cn16.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(cn16);
+
+    RtpMap cn32;
+    cn32.payloadType = CN_32000_PT;
+    cn32.encodingName = "CN";
+    cn32.clockRate = 32000;
+    cn32.channels = 1;
+    cn32.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(cn32);
+
+    RtpMap cn48;
+    cn48.payloadType = CN_48000_PT;
+    cn48.encodingName = "CN";
+    cn48.clockRate = 48000;
+    cn48.channels = 1;
+    cn48.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(cn48);
+*/
+    RtpMap telephoneevent;
+    telephoneevent.payloadType = TEL_8000_PT;
+    telephoneevent.encodingName = "telephone-event";
+    telephoneevent.clockRate = 8000;
+    telephoneevent.channels = 1;
+    telephoneevent.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(telephoneevent);
+
   }
 
   SdpInfo::~SdpInfo() {
@@ -52,6 +165,8 @@ namespace erizo {
     char* msidtemp = static_cast<char*>(malloc(10));
     gen_random(msidtemp,10);
 
+    ELOG_DEBUG("Getting SDP");
+
     std::ostringstream sdp;
     sdp << "v=0\n" << "o=- 0 0 IN IP4 127.0.0.1\n" << "s=\n" << "t=0 0\n";
 
@@ -61,6 +176,7 @@ namespace erizo {
      }
     //candidates audio
     bool printedAudio = false, printedVideo = false;
+
     for (unsigned int it = 0; it < candidateVector_.size(); it++) {
       const CandidateInfo& cand = candidateVector_[it];
       std::string hostType_str;
@@ -81,28 +197,44 @@ namespace erizo {
           hostType_str = "host";
           break;
       }
+
       if (cand.mediaType == AUDIO_TYPE) {
         if (!printedAudio) {
           sdp << "m=audio " << cand.hostPort
             << " RTP/" << (profile==SAVPF?"SAVPF ":"AVPF ");// << "103 104 0 8 106 105 13 126\n"
-          for (unsigned int it =0; it<payloadVector_.size(); it++){
-            const RtpMap& payload_info = payloadVector_[it];
+          for (unsigned int it =0; it<internalPayloadVector_.size(); it++){
+            const RtpMap& payload_info = internalPayloadVector_[it];
             if (payload_info.mediaType == AUDIO_TYPE)
               sdp << payload_info.payloadType <<" ";
 
           }
           sdp << "\n"
             << "c=IN IP4 " << cand.hostAddress
-            << endl << "a=rtcp:" << candidateVector_[0].hostPort
-            << " IN IP4 " << cand.hostAddress
             << endl;
+          if (isRtcpMux) {
+            sdp << "a=rtcp:" << candidateVector_[0].hostPort << " IN IP4 " << cand.hostAddress
+                << endl;
+          }
           printedAudio = true;
         }
 
-        sdp << "a=candidate:" << cand.foundation << " " << cand.componentId
-          << " " << cand.netProtocol << " " << cand.priority << " "
-          << cand.hostAddress << " " << cand.hostPort << " typ "
-          << hostType_str << " generation 0" << endl;
+        std::string generation = " generation 0";
+
+        int comps = cand.componentId;
+        if (isRtcpMux) {
+          comps++;
+        }
+        for (int idx = 1; idx <= comps; idx++) {
+          sdp << "a=candidate:" << cand.foundation << " " << idx
+              << " " << cand.netProtocol << " " << cand.priority << " "
+              << cand.hostAddress << " " << cand.hostPort << " typ "
+              << hostType_str;
+          if (cand.hostType == SRLFX) {
+            //raddr 192.168.0.12 rport 50483
+            sdp << " raddr " << cand.baseAddress << " rport " << cand.basePort;
+          }
+          sdp << generation  << endl;
+        }
 
         iceUsername_ = cand.username;
         icePassword_ = cand.password;
@@ -112,7 +244,10 @@ namespace erizo {
     if (printedAudio) {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
-      sdp << "a=ice-options:google-ice" <<endl;
+      //sdp << "a=ice-options:google-ice" << endl;
+      if (isFingerprint) {
+        sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
+      }
       sdp << "a=sendrecv" << endl;
       sdp << "a=mid:audio\n";
       if (isRtcpMux)
@@ -126,12 +261,22 @@ namespace erizo {
         }
       }
 
-      for (unsigned int it = 0; it < payloadVector_.size(); it++) {
-        const RtpMap& rtp = payloadVector_[it];
-        if (rtp.mediaType==AUDIO_TYPE)
-          sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
-            << rtp.clockRate <<"\n";
+      for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
+        const RtpMap& rtp = internalPayloadVector_[it];
+        if (rtp.mediaType==AUDIO_TYPE) {
+          if (rtp.channels>1) {
+            sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
+              << rtp.clockRate << "/" << rtp.channels << endl;
+          } else {
+            sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
+              << rtp.clockRate << endl;
+          }
+          if(rtp.encodingName == "opus"){
+            sdp << "a=fmtp:"<< rtp.payloadType<<" minptime=10\n";
+          }
+        }
       }
+      sdp << "a=maxptime:60" << endl;
       sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<
         "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl<<
         "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl<<
@@ -162,36 +307,57 @@ namespace erizo {
       if (cand.mediaType == VIDEO_TYPE) {
         if (!printedVideo) {
           sdp << "m=video " << cand.hostPort << " RTP/" << (profile==SAVPF?"SAVPF ":"AVPF "); //<<  "100 101 102 103\n"
-          for (unsigned int it =0; it<payloadVector_.size(); it++){
-            const RtpMap& payload_info = payloadVector_[it];
+
+          for (unsigned int it =0; it<internalPayloadVector_.size(); it++){
+            const RtpMap& payload_info = internalPayloadVector_[it];
             if (payload_info.mediaType == VIDEO_TYPE)
               sdp << payload_info.payloadType <<" ";
           }
 
-          sdp << "\n" << "c=IN IP4 " << cand.hostAddress
-            << endl << "a=rtcp:" << candidateVector_[0].hostPort
-            << " IN IP4 " << cand.hostAddress
-            << endl;
+          sdp << "\n" << "c=IN IP4 " << cand.hostAddress << endl;
+          if (isRtcpMux) {
+            sdp << "a=rtcp:" << candidateVector_[0].hostPort << " IN IP4 " << cand.hostAddress
+                << endl;
+          }
           printedVideo = true;
         }
 
-        sdp << "a=candidate:" << cand.foundation << " " << cand.componentId
-          << " " << cand.netProtocol << " " << cand.priority << " "
-          << cand.hostAddress << " " << cand.hostPort << " typ "
-          << hostType_str << " generation 0" << endl;
+        std::string generation = " generation 0";
+        int comps = cand.componentId;
+        if (isRtcpMux) {
+          comps++;
+        }
+        for (int idx = 1; idx <= comps; idx++) {
+          sdp << "a=candidate:" << cand.foundation << " " << idx
+              << " " << cand.netProtocol << " " << cand.priority << " "
+              << cand.hostAddress << " " << cand.hostPort << " typ "
+              << hostType_str;
+          if (cand.hostType == SRLFX) {
+            //raddr 192.168.0.12 rport 50483
+            sdp << " raddr " << cand.baseAddress << " rport " << cand.basePort;
+          }
+          sdp << generation  << endl;
+        }
 
         iceUsername_ = cand.username;
         icePassword_ = cand.password;
       }
     }
-    //crypto audio
+    //crypto video
     if (printedVideo) {
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
-      sdp << "a=ice-options:google-ice" <<endl;
+      //sdp << "a=ice-options:google-ice" << endl;
+
+      sdp << "a=extmap:2 urn:ietf:params:rtp-hdrext:toffset" << endl;
+      sdp << "a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time" << endl;
+
+      if (isFingerprint) {
+        sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
+      }
       sdp << "a=sendrecv" << endl;
       sdp << "a=mid:video\n";
-      if (isRtcpMux) 
+      if (isRtcpMux)
         sdp << "a=rtcp-mux\n";
       for (unsigned int it = 0; it < cryptoVector_.size(); it++) {
         const CryptoInfo& cryp_info = cryptoVector_[it];
@@ -202,13 +368,15 @@ namespace erizo {
         }
       }
 
-      for (unsigned int it = 0; it < payloadVector_.size(); it++) {
-        const RtpMap& rtp = payloadVector_[it];
-        if (rtp.mediaType==VIDEO_TYPE)
+      for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
+        const RtpMap& rtp = internalPayloadVector_[it];
+          if (rtp.mediaType==VIDEO_TYPE)
+          {
           sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
-            << rtp.clockRate <<"\n";
-        if (rtp.payloadType == 100) {
-          sdp << "a=rtcp-fb:100 ccm fir\n" <<  "a=rtcp-fb:100 nack\n"; 
+              << rtp.clockRate <<"\n";
+          if(rtp.encodingName == "VP8"){
+            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" ccm fir\na=rtcp-fb:"<< rtp.payloadType<<" nack\n";
+          }
         }
       }
 
@@ -218,8 +386,40 @@ namespace erizo {
         "a=ssrc:"<< videoSsrc << " label:" << msidtemp <<"v0"<<endl;
     }
     free (msidtemp);
-    printf("sdp local \n %s\n",sdp.str().c_str());
+    ELOG_DEBUG("sdp local \n %s",sdp.str().c_str());
     return sdp.str();
+  }
+
+  RtpMap *SdpInfo::getCodecByName(const std::string codecName, const unsigned int clockRate) {
+    for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
+      RtpMap& rtp = internalPayloadVector_[it];
+      if (rtp.encodingName == codecName && rtp.clockRate == clockRate) {
+        return &rtp;
+      }
+    }
+    return NULL;
+  }
+
+  bool SdpInfo::supportCodecByName(const std::string codecName, const unsigned int clockRate) {
+    RtpMap *rtp = getCodecByName(codecName, clockRate);
+    if (rtp != NULL) {
+      return supportPayloadType(rtp->payloadType);
+    }
+    return false;
+  }
+
+  bool SdpInfo::supportPayloadType(const int payloadType) {
+    if (inOutPTMap.count(payloadType) > 0) {
+
+      for (unsigned int it = 0; it < payloadVector_.size(); it++) {
+        const RtpMap& rtp = payloadVector_[it];
+        if (inOutPTMap[rtp.payloadType] == payloadType) {
+          return true;
+        }
+      }
+
+    }
+    return false;
   }
 
   bool SdpInfo::processSdp(const std::string& sdp) {
@@ -246,21 +446,34 @@ namespace erizo {
       char* isSAVPF = strstr(line, savpf);
       char* isRtpmap = strstr(line,rtpmap);
       char* isRtcpMuxchar = strstr(line,rtcpmux);
+      char* isFP = strstr(line,fp);
+
       if (isRtcpMuxchar){
         isRtcpMux = true;
       }
       if (isSAVPF){
         profile = SAVPF;
-        printf("PROFILE %s (1 SAVPF)\n", isSAVPF);
+        ELOG_DEBUG("PROFILE %s (1 SAVPF)", isSAVPF);
+      }
+      if (isFP){
+        char *pch;
+        pch = strtok(line, ":");
+        pch = strtok(NULL, " ");
+        pch = strtok(NULL, " ");
+        fingerprint = std::string(pch);
+        isFingerprint = true;
+        ELOG_DEBUG("Fingerprint %s ", fingerprint.c_str());
       }
       if (isGroup) {
         isBundle = true;
       }
       if (isVideo) {
         mtype = VIDEO_TYPE;
+        hasVideo = true;
       }
       if (isAudio) {
         mtype = AUDIO_TYPE;
+        hasAudio = true;
       }
       if (isCand != NULL) {
         char *pch;
@@ -275,7 +488,7 @@ namespace erizo {
         processCandidate(pieces, i - 1, mtype);
       }
       if (isCrypt) {
-        //	printf("crypt %s\n", isCrypt );
+        //	ELOG_DEBUG("crypt %s", isCrypt );
         CryptoInfo crypinfo;
         char *pch;
         pch = strtok(line, " :");
@@ -283,7 +496,7 @@ namespace erizo {
         int i = 0;
         while (pch != NULL) {
           pch = strtok(NULL, " :");
-          //				printf("cryptopiece %i es %s\n", i, pch);
+          //				ELOG_DEBUG("cryptopiece %i es %s", i, pch);
           cryptopiece[i++] = pch;
         }
 
@@ -319,7 +532,7 @@ namespace erizo {
       }
       // a=rtpmap:PT codec_name/clock_rate
       if(isRtpmap){
-        RtpMap theMap; 
+        RtpMap theMap;
         char* pch;
         pch = strtok(line, " : / \n");
         pch = strtok(NULL, " : / \n");
@@ -332,7 +545,20 @@ namespace erizo {
         theMap.encodingName = codecname;
         theMap.clockRate = clock;
         theMap.mediaType = mtype;
-        payloadVector_.push_back(theMap);
+
+        bool found = false;
+        for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
+          const RtpMap& rtp = internalPayloadVector_[it];
+          if (rtp.encodingName == codecname && rtp.clockRate == clock) {
+            outInPTMap[PT] = rtp.payloadType;
+            inOutPTMap[rtp.payloadType] = PT;
+            found = true;
+            ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d", codecname.c_str(), clock, PT, rtp.encodingName.c_str(), rtp.clockRate, rtp.payloadType);
+          }
+        }
+        if (found) {
+          payloadVector_.push_back(theMap);
+        }
       }
 
     }
@@ -373,7 +599,7 @@ namespace erizo {
 
     cand.netProtocol = pieces[2];
     // libnice does not support tcp candidates, we ignore them
-    if (cand.netProtocol.compare("udp")) {
+    if (cand.netProtocol.compare("UDP") && cand.netProtocol.compare("udp")) {
       return false;
     }
     //	a=candidate:0 1 udp 2130706432 138.4.4.143 52314 typ host  generation 0

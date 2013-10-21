@@ -8,36 +8,18 @@
 #include <string>
 #include <netinet/in.h>
 #include <srtp/srtp.h>
+#include "rtputils.h"
+#include "logger.h"
 
 namespace erizo {
 
-typedef struct {
-	uint32_t cc :4;
-	uint32_t extension :1;
-	uint32_t padding :1;
-	uint32_t version :2;
-	uint32_t payloadtype :7;
-	uint32_t marker :1;
-	uint32_t seqnum :16;
-	uint32_t timestamp;
-	uint32_t ssrc;
-} rtpheader;
-
-typedef struct {
-	uint32_t blockcount :5;
-	uint32_t padding :1;
-	uint32_t version :2;
-	uint32_t packettype :8;
-	uint32_t length :16;
-	uint32_t ssrc;
-  uint32_t ssrcsource;
-  uint32_t fractionLost:8;
-} rtcpheader;
 /**
  * A SRTP data Channel.
  * Represents a SRTP Channel with keys for protecting and unprotecting RTP and RTCP data.
  */
 class SrtpChannel {
+	DECLARE_LOGGER();
+	static bool initialized;
 
 public:
 	/**

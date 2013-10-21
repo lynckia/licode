@@ -32,7 +32,7 @@ exports.createRoom = function (req, res) {
         return;
     }
 
-    if (req.body.options === 'test') {
+    if (req.body.options.test) {
         if (currentService.testRoom !== undefined) {
             console.log('TestRoom already exists for service', currentService.name);
             res.send(currentService.testRoom);
@@ -48,10 +48,14 @@ exports.createRoom = function (req, res) {
         }
     } else {
         room = {name: req.body.name};
+        
+        if (req.body.options.p2p) {
+            room.p2p = true;
+        }
         roomRegistry.addRoom(room, function (result) {
             currentService.rooms.push(result);
             serviceRegistry.updateService(currentService);
-            console.log('Room created:', req.body.name, 'for service', currentService.name);
+            console.log('Room created:', req.body.name, 'for service', currentService.name, 'p2p = ', room.p2p);
             res.send(result);
         });
     }
