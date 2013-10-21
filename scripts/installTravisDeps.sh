@@ -9,10 +9,6 @@ CURRENT_DIR=`pwd`
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
-pause() {
-  read -p "$*"
-}
-
 parse_arguments(){
   while [ "$1" != "" ]; do
     case $1 in
@@ -102,19 +98,19 @@ parse_arguments $*
 
 mkdir -p $PREFIX_DIR
 
-pause "Installing deps via apt-get... [press Enter]"
+echo "Installing deps via apt-get... [press Enter]"
 install_apt_deps
 
-pause "Installing openssl library...  [press Enter]"
+echo "Installing openssl library...  [press Enter]"
 install_openssl
 
-pause "Installing libnice library...  [press Enter]"
+echo "Installing libnice library...  [press Enter]"
 install_libnice
 
 if [ "$ENABLE_GPL" = "true" ]; then
-  pause "GPL libraries enabled"
+  echo "GPL libraries enabled"
   install_mediadeps
 else
-  pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
+  echo "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
   install_mediadeps_nogpl
 fi
