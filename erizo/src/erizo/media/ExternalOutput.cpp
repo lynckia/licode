@@ -81,10 +81,9 @@ namespace erizo {
 
   void ExternalOutput::closeSink() {
     ELOG_DEBUG("ExternalOutput::closeSink");
-    if (context_!=NULL){
-      av_write_trailer(context_);
-      avformat_free_context(context_);
-      context_=NULL;
+    if (in !=NULL){
+      delete in;
+      in = NULL;
     }
     //avcodec_close() and avformat_free_context()
     if (videoCodec_!=NULL){
@@ -103,7 +102,11 @@ namespace erizo {
       free(unpackagedAudioBuffer_);
       unpackagedAudioBuffer_ =NULL;
     }
-
+    if (context_!=NULL){
+      av_write_trailer(context_);
+      avformat_free_context(context_);
+      context_=NULL;
+    }
     ELOG_DEBUG("ExternalOutput closed Successfully");
     return;
   }
