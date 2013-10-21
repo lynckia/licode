@@ -1,6 +1,6 @@
 language: node_js
 node_js:
-  - 0.8
+  - 0.11
 before_install:
   - ./scripts/installTravisDeps.sh
   - ./scripts/installErizo.sh
@@ -14,6 +14,6 @@ before_install:
   - sh -e /etc/init.d/xvfb start
 cache:
   apt: true
-  directories: 
-  - ./node-modules/
-  - ./build/
+  directories:
+  - node-modules/
+  - build/
