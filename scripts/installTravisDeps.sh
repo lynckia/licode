@@ -21,8 +21,8 @@ parse_arguments(){
 }
 
 install_apt_deps(){
-  sudo apt-get install -qq make gcc libssl-dev cmake libsrtp0-dev libsrtp0 libnice10 libnice-dev libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev curl openjdk-6-jre
-  sudo npm install -g node-gyp
+  sudo apt-get install -qq make gcc libssl-dev cmake libsrtp0-dev libsrtp0 libnice10 libnice-dev libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev curl
+  sudo /usr/bin/npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/
 }
 
@@ -33,7 +33,7 @@ install_openssl(){
     tar -zxvf openssl-1.0.1e.tar.gz
     cd openssl-1.0.1e
     ./config --prefix=$PREFIX_DIR -fPIC
-    make
+    make -s
     sudo make install
     cd $CURRENT_DIR
   else
@@ -49,7 +49,7 @@ install_libnice(){
     tar -zxvf libnice-0.1.4.tar.gz
     cd libnice-0.1.4
     ./configure --prefix=$PREFIX_DIR
-    make
+    make -s
     sudo make install
     cd $CURRENT_DIR
   else
@@ -66,7 +66,7 @@ install_mediadeps(){
     tar -zxvf libav-9.9.tar.gz
     cd libav-9.9
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264
-    make
+    make -s
     sudo make install
     cd $CURRENT_DIR
   else
@@ -84,7 +84,7 @@ install_mediadeps_nogpl(){
     tar -zxvf libav-9.9.tar.gz
     cd libav-9.9
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx
-    make
+    make -s
     sudo make install
     cd $CURRENT_DIR
   else
