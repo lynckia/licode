@@ -45,9 +45,6 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
   int minPort = args[4]->IntegerValue();
   int maxPort = args[5]->IntegerValue();
 
-  bool a = (args[0]->ToBoolean())->BooleanValue();
-  bool v = (args[1]->ToBoolean())->BooleanValue();
-
   WebRtcConnection* obj = new WebRtcConnection();
   obj->me = new erizo::WebRtcConnection(a, v, stunServer,stunPort,minPort,maxPort);
   obj->Wrap(args.This());
