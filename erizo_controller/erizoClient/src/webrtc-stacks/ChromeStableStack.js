@@ -239,21 +239,14 @@ Erizo.ChromeStableStack = function (spec) {
                 that.peerConnection.createOffer(function (sessionDescription) {
 
                     //sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
-<<<<<<< HEAD
-                    
-                    sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
-=======
                     //sessionDescription.sdp = newOffer.replace(/a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
                     //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
 
                     sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
                     L.Logger.debug("Changed", sessionDescription.sdp);
->>>>>>> master
 
                     var newOffer = sessionDescription.sdp;
 
-                    var newOffer = sessionDescription.sdp;
-                    
                     if (newOffer !== that.prevOffer) {
 
                         that.peerConnection.setLocalDescription(sessionDescription);

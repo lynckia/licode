@@ -121,12 +121,9 @@ private:
 	bool audioEnabled_;
 	bool videoEnabled_;
 
-<<<<<<< HEAD
-=======
 	int stunPort_, minPort_, maxPort_;
 	std::string stunServer_;
 
->>>>>>> master
 };
 
 } /* namespace erizo */

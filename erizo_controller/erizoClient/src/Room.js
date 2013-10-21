@@ -258,12 +258,7 @@ Erizo.Room = function (spec) {
 
     // It publishes the stream provided as argument. Once it is added it throws a
     // StreamEvent("stream-added").
-<<<<<<< HEAD
-    that.publish = function (stream, options) {
-
-=======
     that.publish = function (stream, options, callback, callbackError) {
->>>>>>> master
         options = options || {};
 
         // 1- If the stream is not local we do nothing.
