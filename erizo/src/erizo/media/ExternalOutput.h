@@ -54,7 +54,7 @@ namespace erizo{
       int prevEstimatedFps_;
       int warmupfpsCount_;
       int sequenceNumberFIR_;
-      int lastTime_;
+      unsigned long lastTime_;
 
 
       AVFormatContext *context_;
@@ -67,7 +67,7 @@ namespace erizo{
       int video_stream_index, bufflen;
       AVPacket avpacket;
       char *deliverMediaBuffer_;
-      long initTime_;
+      unsigned long initTime_;
   };
 }
 #endif /* EXTERNALOUTPUT_H_ */

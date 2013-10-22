@@ -62,6 +62,7 @@ namespace erizo {
       exit(res);
     }
     ELOG_DEBUG("Init audioEncoder end");
+    return true;
   }
 
   int AudioEncoder::encodeAudio (unsigned char* inBuffer, int nSamples, 
@@ -76,7 +77,7 @@ namespace erizo {
     }
     uint16_t* samples;
     int ret, got_output, buffer_size;
-    float t, tincr;
+//    float t, tincr;
 
     frame->nb_samples = aCoderContext_->frame_size;
     frame->format = aCoderContext_->sample_fmt;

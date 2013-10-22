@@ -53,11 +53,11 @@ namespace erizo {
   }
 
   int VideoMixer::deliverAudioData(char* buf, int len) {
-
+    return 0;
   }
 
   int VideoMixer::deliverVideoData(char* buf, int len) {
-
+    return 0;
   }
 
   void VideoMixer::receiveRawData(RawDataPacket& pkt) {
