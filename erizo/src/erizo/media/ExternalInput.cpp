@@ -44,7 +44,7 @@ namespace erizo {
       return res;
     }
 
-    VideoCodecInfo info;
+    //VideoCodecInfo info;
 
     int streamNo = av_find_best_stream(context_, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
     if (streamNo < 0){
@@ -83,8 +83,7 @@ namespace erizo {
     ELOG_DEBUG("Success initializing external input for codec %s", st->codec->codec_name);
     av_init_packet(&avpacket_);
 
-    AVStream* stream=NULL;
-    int cnt = 0;
+//    AVStream* stream=NULL;
 
     thread_ = boost::thread(&ExternalInput::receiveLoop, this);
     running_ = true;

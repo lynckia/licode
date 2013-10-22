@@ -69,7 +69,7 @@ namespace erizo {
     gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
     in->init(m, this);
-    ELOG_DEBUG("externalouput init end");
+    ELOG_DEBUG("Initialized successfully");
     return true;
   }
 
@@ -80,7 +80,7 @@ namespace erizo {
   }
 
   void ExternalOutput::closeSink() {
-    ELOG_DEBUG("ExternalOutput::closeSink");
+    ELOG_DEBUG("Closing Sink");
     if (in !=NULL){
       delete in;
       in = NULL;
@@ -320,7 +320,6 @@ namespace erizo {
       if (packetQueue_.size() > 0) {
         op_->receiveRawData(packetQueue_.front());
         packetQueue_.pop();
-
         queueMutex_.unlock();
       } else {
         queueMutex_.unlock();
