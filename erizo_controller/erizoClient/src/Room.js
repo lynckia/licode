@@ -364,7 +364,7 @@ Erizo.Room = function (spec) {
             // Media stream
             sendMessageSocket('unpublish', stream.getID());
             stream.room = undefined;
-            if (stream.hasAudio() || stream.hasVideo()) {
+            if ((stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) && stream.url === undefined) {
                 stream.pc.close();
                 stream.pc = undefined;
             }
