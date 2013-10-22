@@ -325,6 +325,7 @@ namespace erizo {
 
     encodedBuffer_ = NULL;
     packagedBuffer_ = NULL;
+    rtpBuffer_ = NULL;
 
     avcodec_register_all();
     av_register_all();
@@ -377,13 +378,13 @@ namespace erizo {
       vCoder.closeEncoder();
       videoCoder = 0;
     }
-    if (encodedBuffer_) {
+    if (encodedBuffer_!=NULL) {
       free(encodedBuffer_);
     }
-    if (packagedBuffer_) {
+    if (packagedBuffer_!=NULL) {
       free(packagedBuffer_);
     }
-    if (rtpBuffer_) {
+    if (rtpBuffer_!=NULL) {
       free(rtpBuffer_);
     }
   }
