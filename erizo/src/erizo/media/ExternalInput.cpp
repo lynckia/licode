@@ -34,13 +34,13 @@ namespace erizo {
     printf ("RES %d\n", res);
     if(res != 0){
       av_strerror(res, (char*)(&errbuff), 500);
-      ELOG_DEBUG("fail when opening input %s", errbuff);
+      ELOG_ERROR("Error opening input %s", errbuff);
       return res;
     }
     res = avformat_find_stream_info(context_,NULL);
     if(res<0){
       av_strerror(res, (char*)(&errbuff), 500);
-      ELOG_DEBUG("fail when finding stream info %s", errbuff);
+      ELOG_ERROR("Error finding stream info %s", errbuff);
       return res;
     }
 
@@ -48,7 +48,7 @@ namespace erizo {
 
     int streamNo = av_find_best_stream(context_, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
     if (streamNo < 0){
-      ELOG_DEBUG("No video stream?");
+      ELOG_ERROR("No stream found");
       return streamNo;
     }
     sendVideoBuffer_ = (char*) malloc(2000);
@@ -148,8 +148,6 @@ namespace erizo {
       if (packetQueue_.size() > 0) {
         op_->receiveRawData(packetQueue_.front());
         packetQueue_.pop();
-
-        //      ELOG_DEBUG("Queue Size! %d", packetQueue_.size());
         queueMutex_.unlock();
       } else {
         queueMutex_.unlock();
