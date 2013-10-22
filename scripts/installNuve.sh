@@ -21,7 +21,7 @@ populate_mongo(){
     mkdir -p "$DB_DIR"/db
   fi
   mongod --repair --dbpath $DB_DIR
-  mongod --dbpath $DB_DIR > $BUILD_DIR/mongo.log &
+  mongod --dbpath $DB_DIR --logpath $BUILD_DIR/mongo.log --fork
   sleep 5
 
   dbURL=`grep "config.nuve.dataBaseURL" $PATHNAME/licode_default.js`
@@ -36,6 +36,9 @@ populate_mongo(){
 
   SERVID=`echo $SERVID| cut -d'"' -f 2`
   SERVID=`echo $SERVID| cut -d'"' -f 1`
+
+  echo "Mongo Logs: "
+  cat $BUILD_DIR/mongo.log
 
   echo [licode] SuperService ID $SERVID
   echo [licode] SuperService KEY $SERVKEY

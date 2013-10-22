@@ -14,11 +14,7 @@ cd nuveAPI
 
 echo [nuve] Installing node_modules for nuve
 
-npm install amqp
-npm install express
-npm install mongodb
-npm install mongojs
-npm install aws-lib
+npm install --loglevel error amqp express mongodb mongojs aws-lib
 
 echo [nuve] Done, node_modules installed
 
