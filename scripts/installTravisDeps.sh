@@ -34,7 +34,7 @@ install_openssl(){
     cd openssl-1.0.1e
     ./config --prefix=$PREFIX_DIR -fPIC
     make -s V=0
-    sudo make install
+    make install
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -50,7 +50,7 @@ install_libnice(){
     cd libnice-0.1.4
     ./configure --prefix=$PREFIX_DIR
     make -s V=0
-    sudo make install
+    make install
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -67,7 +67,7 @@ install_mediadeps(){
     cd libav-9.9
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264
     make -s V=0
-    sudo make install
+    make install
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -85,7 +85,7 @@ install_mediadeps_nogpl(){
     cd libav-9.9
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx
     make -s V=0
-    sudo make install
+    make install
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -93,6 +93,14 @@ install_mediadeps_nogpl(){
   fi
 }
 
+install_libsrtp(){
+  cd $ROOT/third_party/srtp
+  CFLAGS="-fPIC" ./configure --prefix=$PREFIX_DIR
+  make -s V=0
+  make uninstall
+  make install
+  cd $CURRENT_DIR
+}
 
 parse_arguments $*
 
@@ -108,6 +116,9 @@ install_openssl
 
 echo "Installing libnice library...  [press Enter]"
 install_libnice
+
+echo "Installing libsrtp library...  [press Enter]"
+install_libsrtp
 
 if [ "$ENABLE_GPL" = "true" ]; then
   echo "GPL libraries enabled"
