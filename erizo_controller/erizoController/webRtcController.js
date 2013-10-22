@@ -31,12 +31,12 @@ exports.WebRtcController = function () {
 
         if (publishers[to] !== undefined) {
             var intervarId = setInterval(function () {
-
+              if (publishers[to]!==undefined){
                 if (wrtc.getCurrentState() >= 2 && publishers[to].getPublisherState() >=2) {
-
                     publishers[to].sendFIR();
                     clearInterval(intervarId);
                 }
+              }
 
             }, INTERVAL_TIME_FIR);
         }
