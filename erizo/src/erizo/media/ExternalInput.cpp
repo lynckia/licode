@@ -18,7 +18,7 @@ namespace erizo {
   }
 
   ExternalInput::~ExternalInput(){
-    ELOG_DEBUG("Destructor EI");
+    ELOG_DEBUG("Destructor ExternalInput %s" , url_.c_str());
     this->closeSource();
   }
 
@@ -28,7 +28,7 @@ namespace erizo {
     avcodec_register_all();
     avformat_network_init();
     //open rtsp
-    ELOG_DEBUG("trying to open input");
+    ELOG_DEBUG("Trying to open input from url %s", url_.c_str());
     int res = avformat_open_input(&context_, url_.c_str(),NULL,NULL);
     char errbuff[500];
     printf ("RES %d\n", res);
@@ -44,7 +44,7 @@ namespace erizo {
       return res;
     }
 
-    VideoCodecInfo info;
+    //VideoCodecInfo info;
 
     int streamNo = av_find_best_stream(context_, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
     if (streamNo < 0){
@@ -56,6 +56,7 @@ namespace erizo {
     video_stream_index_ = streamNo;
     AVStream* st = context_->streams[streamNo];    
     inCodec_.initDecoder(st->codec);
+
 
     bufflen_ = st->codec->width*st->codec->height*3/2;
     decodedBuffer_ = (unsigned char*) malloc(bufflen_);
@@ -82,8 +83,7 @@ namespace erizo {
     ELOG_DEBUG("Success initializing external input for codec %s", st->codec->codec_name);
     av_init_packet(&avpacket_);
 
-    AVStream* stream=NULL;
-    int cnt = 0;
+//    AVStream* stream=NULL;
 
     thread_ = boost::thread(&ExternalInput::receiveLoop, this);
     running_ = true;
@@ -92,6 +92,7 @@ namespace erizo {
   }
 
   void ExternalInput::closeSource() {
+    ELOG_DEBUG("Closing ExternalInput");
     running_ = false;
     encodeThread_.join();
     thread_.join();
@@ -102,6 +103,10 @@ namespace erizo {
       free(sendVideoBuffer_);
     if(decodedBuffer_!=NULL)
       free(decodedBuffer_);
+    if (op_!=NULL){
+      delete op_;
+    }
+    ELOG_DEBUG("ExternalInput closed");
   }
 
   int ExternalInput::sendFirPacket() {
