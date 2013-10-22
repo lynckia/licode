@@ -38,7 +38,7 @@ app.use(function (req, res, next) {
     }
 });
 
-N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3100/');
+N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3000/');
 
 var myRoom;
 
@@ -62,7 +62,6 @@ app.post('/createToken/', function (req, res) {
     var room = myRoom,
         username = req.body.username,
         role = req.body.role;
-    console.log("[basicServer] createToken", username, role);
     N.API.createToken(room, username, role, function (token) {
         console.log(token);
         res.send(token);
@@ -84,7 +83,7 @@ app.get('/getUsers/:room', function (req, res) {
     });
 });
 
-app.listen(3101);
+app.listen(3001);
 
 var server = https.createServer(options, app);
-server.listen(3104);
+server.listen(3004);
