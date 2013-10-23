@@ -95,6 +95,7 @@ var addNewAmazonErizoController = function(privateIP, callback) {
     var instaceId;
 
     if (config.cloudProvider.publicIP) {
+        console.log("[nuveAPI] Using configured publicIP", config.cloudProvider.publicIP);
         addNewPrivateErizoController(config.cloudProvider.publicIP, callback);
         return;
     }
