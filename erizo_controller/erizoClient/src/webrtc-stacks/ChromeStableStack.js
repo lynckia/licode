@@ -8,6 +8,7 @@ Erizo.ChromeStableStack = function (spec) {
     var that = {},
         WebkitRTCPeerConnection = webkitRTCPeerConnection;
 
+    console.log("[stable] ", spec);
     that.pc_config = {
         "iceServers": []
     };
@@ -34,7 +35,15 @@ Erizo.ChromeStableStack = function (spec) {
     that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
 
     that.peerConnection.onicecandidate = function (event) {
-        L.Logger.debug("PeerConnection: ", spec.session_id);
+        L.Logger.debug("[stable] onicecandidate PeerConnection: ", spec.session_id, event.candidate);
+        // HACK (bf) If no new ice candidates for 0.5s, stop waiting
+        clearTimeout(that.moreIceTimeout);
+        that.moreIceTimeout = setTimeout(function() {
+            if (that.moreIceComing) {
+                that.moreIceComing = false;
+                that.markActionNeeded();
+            }
+        }, 500);
         if (!event.candidate) {
             // At the moment, we do not renegotiate when new candidates
             // show up after the more flag has been false once.
@@ -47,6 +56,7 @@ Erizo.ChromeStableStack = function (spec) {
             if (that.ices >= 1 && that.moreIceComing) {
                 that.moreIceComing = false;
                 that.markActionNeeded();
+                clearTimeout(that.moreIceTimeout);
             }
         } else {
             that.iceCandidateCount += 1;
@@ -231,6 +241,7 @@ Erizo.ChromeStableStack = function (spec) {
      */
     that.onstablestate = function () {
         var mySDP, roapMessage = {};
+        console.log("[stable] onstablestate", that.state);
         if (that.actionNeeded) {
             if (that.state === 'new' || that.state === 'established') {
                 // See if the current offer is the same as what we already sent.
@@ -323,6 +334,7 @@ Erizo.ChromeStableStack = function (spec) {
      */
     that.sendMessage = function (operation, sdp) {
         var roapMessage = {};
+        console.log("[stable] sendMessage", operation, sdp);
         roapMessage.messageType = operation;
         roapMessage.sdp = sdp; // may be null or undefined
         if (operation === 'OFFER') {
