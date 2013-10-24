@@ -60,7 +60,7 @@ module.exports = function(config) {
     customLaunchers: {
       Chrome_with_fake_media: {
         base: 'Chrome',
-        flags: ['--disable-web-security --use-fake-ui-for-media-stream']
+        flags: ['--disable-web-security --use-fake-ui-for-media-stream --no-sandbox']
       }
     },
 
