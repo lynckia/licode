@@ -19,4 +19,4 @@ mkdir -p $USER_DIR"/Default/"
 cp .travis/Preferences $USER_DIR"/Default/"
 
 # Execute the command
-exec "$CMD" --user-data-dir="$USER_DIR" --no-default-browser-check --no-first-run --disable-default-apps --use-fake-ui-for-media-stream "$@"
+exec "$CMD" --no-first-run --use-fake-ui-for-media-stream "$@"
