@@ -201,19 +201,24 @@ namespace erizo {
           unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
       //          ELOG_DEBUG("Estimated FPS %d, previous %d", estimatedFps, prevEstimatedFps_);
 
+      if (ret < 0)
+        return 0;
+      
       if (videoCodec_ == NULL) {
         if ((estimatedFps!=0)&&((estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2)))){
           //          ELOG_DEBUG("OUT OF THRESHOLD changing context");
           prevEstimatedFps_ = estimatedFps;
         }
         if (warmupfpsCount_++ == 20){
-          this->initContext();
+          
+          if (!this->initContext()){
+            ELOG_ERROR("Contex cannot be initialized properly, closing...");
+            this->closeSink();
+          }
         }
         return 0;
       }
 
-      if (ret < 0)
-        return 0;
       unpackagedSize_ += ret;
       unpackagedBufferpart_ += ret;
       if (gotUnpackagedFrame_ && videoCodec_!=NULL) {
@@ -246,7 +251,7 @@ namespace erizo {
       ELOG_DEBUG("Found Codec %s", videoCodec_->name);
       ELOG_DEBUG("Initing context with fps: %d", (int)prevEstimatedFps_);
       if (videoCodec_==NULL){
-        ELOG_DEBUG("Could not find codec");
+        ELOG_ERROR("Could not find codec");
         return false;
       }
       video_st = avformat_new_stream (context_, videoCodec_);
@@ -266,7 +271,7 @@ namespace erizo {
       audioCodec_ = avcodec_find_encoder(oformat_->audio_codec);
       ELOG_DEBUG("Found Audio Codec %s", audioCodec_->name);
       if (audioCodec_==NULL){
-        ELOG_DEBUG("Could not find audio codec");
+        ELOG_ERROR("Could not find audio codec");
         return false;
       }
       audio_st = avformat_new_stream (context_, audioCodec_);
@@ -285,16 +290,16 @@ namespace erizo {
       aviores_ = avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
       if (aviores_<0){
         ELOG_ERROR("Error opening output file");
-        return aviores_;
+        return false;
       }
       writeheadres_ = avformat_write_header(context_, NULL);
       if (writeheadres_<0){
         ELOG_ERROR("Error writing header");
-        return writeheadres_;
+        return false;
       }
       ELOG_DEBUG("AVFORMAT CONFIGURED");
     }
-    return 0;
+    return true;
   }
 
   int ExternalOutput::sendFirPacket() {
