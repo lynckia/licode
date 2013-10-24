@@ -11,6 +11,7 @@ before_install:
   - ./scripts/initBasicExample.sh
   - ./.travis/scripts/install_chrome.sh
   - export DISPLAY=:99.0
+  - export CHROME_BIN=/usr/bin/google-chrome
   - sh -e /etc/init.d/xvfb start
 cache:
   apt: true

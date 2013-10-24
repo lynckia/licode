@@ -2,7 +2,6 @@
 describe('server', function () {
     "use strict";
     var room, createToken, token, localStream, remoteStream;
-
     createToken = function (userName, role, callback) {
 
         var req = new XMLHttpRequest(),
@@ -22,6 +21,7 @@ describe('server', function () {
     };
 
     beforeEach(function () {
+        L.Logger.setLogLevel(L.Logger.NONE);
     });
 
     it('should get token', function () {
