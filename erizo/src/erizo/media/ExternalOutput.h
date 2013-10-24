@@ -47,7 +47,7 @@ namespace erizo{
       AVStream        *video_st, *audio_st;
       
       AudioEncoder* audioCoder_;
-      unsigned char* unpackagedBuffer_;
+      unsigned char* unpackagedBuffer_,*unpackagedBufferpart_;
       unsigned char* unpackagedAudioBuffer_;
       int gotUnpackagedFrame_;
       int unpackagedSize_;
@@ -56,15 +56,16 @@ namespace erizo{
       int sequenceNumberFIR_;
       unsigned long lastTime_;
 
+      int video_stream_index, bufflen, aviores_, writeheadres_;
+
 
       AVFormatContext *context_;
       AVOutputFormat *oformat_;
       AVCodec *videoCodec_, *audioCodec_; 
       AVCodecContext *videoCodecCtx_, *audioCodecCtx_;
       InputProcessor *in;
-    
 
-      int video_stream_index, bufflen;
+
       AVPacket avpacket;
       char *deliverMediaBuffer_;
       unsigned long initTime_;

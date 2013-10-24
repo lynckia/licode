@@ -28,7 +28,12 @@ namespace erizo {
     prevEstimatedFps_ = 0;
     warmupfpsCount_ = 0;
     sequenceNumberFIR_ = 0;
+    aviores_ = -1;
+    writeheadres_=-1;
     deliverMediaBuffer_ = (char*)malloc(3000);
+    unpackagedBuffer_ = (unsigned char*)malloc (15000);
+    unpackagedBufferpart_ = unpackagedBuffer_;
+    unpackagedAudioBuffer_ = (unsigned char*)malloc(15000);
     initTime_ = 0;
     lastTime_ = 0;
 
@@ -40,6 +45,9 @@ namespace erizo {
     av_register_all();
     avcodec_register_all();
     context_ = avformat_alloc_context();
+    if (context_==NULL){
+      ELOG_ERROR("Error allocating memory for IO context");
+    }
     oformat_ = av_guess_format(NULL,  url.c_str(), NULL);
     if (!oformat_){
       ELOG_DEBUG("Error opening output file %s", url.c_str());
@@ -64,8 +72,6 @@ namespace erizo {
       if (!audioCoder_->initEncoder(m.audioCodec))
         exit(0);
     }
-    unpackagedBuffer_ = (unsigned char*)malloc (15000);
-    unpackagedAudioBuffer_ = (unsigned char*)malloc(15000);
     gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
     in->init(m, this);
@@ -85,7 +91,6 @@ namespace erizo {
       delete in;
       in = NULL;
     }
-    //avcodec_close() and avformat_free_context()
     if (videoCodec_!=NULL){
       avcodec_close(videoCodecCtx_);
       videoCodec_=NULL;
@@ -94,6 +99,18 @@ namespace erizo {
       avcodec_close(audioCodecCtx_);
       audioCodec_ = NULL;
     }
+    if (context_!=NULL){
+      if (writeheadres_>=0)
+        av_write_trailer(context_);
+      if (avio_close>=0)
+        avio_close(context_->pb);
+      avformat_free_context(context_);
+      context_=NULL;
+    }
+    if (deliverMediaBuffer_!=NULL){
+      free(deliverMediaBuffer_);
+      deliverMediaBuffer_=NULL;
+    }
     if (unpackagedBuffer_ !=NULL){
       free(unpackagedBuffer_);
       unpackagedBuffer_ = NULL;   
@@ -101,11 +118,6 @@ namespace erizo {
     if (unpackagedAudioBuffer_ !=NULL){
       free(unpackagedAudioBuffer_);
       unpackagedAudioBuffer_ =NULL;
-    }
-    if (context_!=NULL){
-      av_write_trailer(context_);
-      avformat_free_context(context_);
-      context_=NULL;
     }
     ELOG_DEBUG("ExternalOutput closed Successfully");
     return;
@@ -126,7 +138,7 @@ namespace erizo {
       if(head->payloadtype != PCMU_8000_PT){
         return 0;
       }
-      memset(unpackagedAudioBuffer_,0,15000);
+
       int ret = in->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedAudioBuffer_);
       if (ret <= 0)
@@ -149,6 +161,7 @@ namespace erizo {
       avpkt.stream_index = 1;
       av_write_frame(context_, &avpkt);
       av_free_packet(&avpkt);
+
     }
     return 0;
   }
@@ -185,21 +198,24 @@ namespace erizo {
       }
       int estimatedFps=0;
       int ret = in->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
-          unpackagedBuffer_, &gotUnpackagedFrame_, &estimatedFps);
+          unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
       //          ELOG_DEBUG("Estimated FPS %d, previous %d", estimatedFps, prevEstimatedFps_);
+
       if (videoCodec_ == NULL) {
         if ((estimatedFps!=0)&&((estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2)))){
           //          ELOG_DEBUG("OUT OF THRESHOLD changing context");
           prevEstimatedFps_ = estimatedFps;
         }
-        if (warmupfpsCount_++ >20){
+        if (warmupfpsCount_++ == 20){
           this->initContext();
         }
+        return 0;
       }
+
       if (ret < 0)
         return 0;
       unpackagedSize_ += ret;
-      unpackagedBuffer_ += ret;
+      unpackagedBufferpart_ += ret;
       if (gotUnpackagedFrame_ && videoCodec_!=NULL) {
         timeval time;
         gettimeofday(&time, NULL);
@@ -207,10 +223,10 @@ namespace erizo {
         if (initTime_ == 0) {
           initTime_ = millis;
         }
-        unpackagedBuffer_ -= unpackagedSize_;
+        unpackagedBufferpart_ -= unpackagedSize_;
         AVPacket avpkt;
         av_init_packet(&avpkt);
-        avpkt.data = unpackagedBuffer_;
+        avpkt.data = unpackagedBufferpart_;
         avpkt.size = unpackagedSize_;
         avpkt.pts = millis - initTime_;
         avpkt.stream_index = 0;
@@ -266,8 +282,16 @@ namespace erizo {
 
       context_->streams[0] = video_st;
       context_->streams[1] = audio_st;
-      avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
-      avformat_write_header(context_, NULL);
+      aviores_ = avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
+      if (aviores_<0){
+        ELOG_ERROR("Error opening output file");
+        return aviores_;
+      }
+      writeheadres_ = avformat_write_header(context_, NULL);
+      if (writeheadres_<0){
+        ELOG_ERROR("Error writing header");
+        return writeheadres_;
+      }
       ELOG_DEBUG("AVFORMAT CONFIGURED");
     }
     return 0;
