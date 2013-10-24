@@ -267,6 +267,7 @@ Erizo.Room = function (spec) {
             // 2- Publish Media Stream to Erizo-Controller
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
                 if (stream.url !== undefined) {
+                    console.log("[room] Re-sending publish", stream.url);
                     sendSDPSocket('publish', {state: 'url', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, stream.url, function (answer, id) {
 
                         if (answer === 'success') {
@@ -306,7 +307,9 @@ Erizo.Room = function (spec) {
                     });
 
                 } else {
+                    console.log("[room] Create connection");
                     stream.pc = Erizo.Connection({callback: function (offer) {
+                        console.log("[room] Erizo connection callback, about to publish");
                         sendSDPSocket('publish', {state: 'offer', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
                             stream.pc.onsignalingmessage = function (ok) {
                                 stream.pc.onsignalingmessage = function () {};
