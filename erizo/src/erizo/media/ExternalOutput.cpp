@@ -47,10 +47,11 @@ namespace erizo {
     context_ = avformat_alloc_context();
     if (context_==NULL){
       ELOG_ERROR("Error allocating memory for IO context");
+      return false;
     }
     oformat_ = av_guess_format(NULL,  url.c_str(), NULL);
     if (!oformat_){
-      ELOG_DEBUG("Error opening output file %s", url.c_str());
+      ELOG_ERROR("Error opening output file %s", url.c_str());
       return false;
     }
     context_->oformat = oformat_;
@@ -142,7 +143,7 @@ namespace erizo {
       int ret = in->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedAudioBuffer_);
       if (ret <= 0)
-        return 0;
+        return ret;
       timeval time;
       gettimeofday(&time, NULL);
       unsigned long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
@@ -161,6 +162,7 @@ namespace erizo {
       avpkt.stream_index = 1;
       av_write_frame(context_, &avpkt);
       av_free_packet(&avpkt);
+      return ret;
 
     }
     return 0;
@@ -304,6 +306,7 @@ namespace erizo {
 
   int ExternalOutput::sendFirPacket() {
     if (fbSink_ != NULL) {
+      ELOG_DEBUG("Sending FIR");
       sequenceNumberFIR_++; // do not increase if repetition
       int pos = 0;
       uint8_t rtcpPacket[50];
