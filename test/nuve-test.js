@@ -44,7 +44,7 @@ describe('server', function () {
     it('should get access to user media', function () {
         var callback = jasmine.createSpy("getusermedia");
 
-        localStream = Erizo.Stream({audio: true, video: true, data: true});
+        localStream = Erizo.Stream({audio: true, video: true, fake: true, data: true});
 
         localStream.addEventListener("access-accepted", callback);
 
