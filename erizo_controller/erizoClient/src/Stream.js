@@ -61,7 +61,7 @@ Erizo.Stream = function (spec) {
         try {
             if ((spec.audio || spec.video || spec.screen) && spec.url === undefined) {
                 L.Logger.debug("Requested access to local media");
-                var opt = {video: spec.video, audio: spec.audio};
+                var opt = {video: spec.video, audio: spec.audio, fake: spec.fake};
                 if (spec.screen) {
                     opt = {video:{mandatory: {chromeMediaSource: 'screen'}}};
                 }
