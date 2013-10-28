@@ -24,7 +24,7 @@ describe('server', function () {
     };
 
     beforeEach(function () {
-        L.Logger.setLogLevel(L.Logger.ALL);
+        L.Logger.setLogLevel(L.Logger.NONE);
     });
 
     it('should get token', function () {
@@ -84,8 +84,10 @@ describe('server', function () {
     it('should publish stream in room', function () {
         var callback = jasmine.createSpy("publishroom");
 
-        room.addEventListener("stream-added", function(msg) {
-            callback();
+        room.addEventListener("stream-added", function(event) {
+            if (localStream.getID() === event.stream.getID()) {
+                callback();
+            }
         });
         room.publish(localStream);
         waitsFor(function () {
@@ -103,6 +105,8 @@ describe('server', function () {
         room.addEventListener("stream-subscribed", function() {
             callback();
         });
+
+        var remoteStream = room.remoteStreams;
         
         for (var index in remoteStream) {
             var stream = remoteStream[index];
