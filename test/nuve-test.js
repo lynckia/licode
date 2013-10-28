@@ -2,6 +2,9 @@
 describe('server', function () {
     "use strict";
     var room, createToken, token, localStream, remoteStream;
+
+    var TIMEOUT=10000;
+
     createToken = function (userName, role, callback) {
 
         var req = new XMLHttpRequest(),
@@ -21,7 +24,7 @@ describe('server', function () {
     };
 
     beforeEach(function () {
-        L.Logger.setLogLevel(L.Logger.NONE);
+        L.Logger.setLogLevel(L.Logger.ALL);
     });
 
     it('should get token', function () {
@@ -34,7 +37,7 @@ describe('server', function () {
 
         waitsFor(function () {
             return callback.callCount > 0;
-        });
+        }, "The token shoud have been creaded", TIMEOUT);
 
         runs(function () {
             expect(callback).toHaveBeenCalled();
@@ -52,7 +55,7 @@ describe('server', function () {
 
         waitsFor(function () {
             return callback.callCount > 0;
-        });
+        }, "User media should have been accepted", TIMEOUT);
 
         runs(function () {
 
@@ -69,10 +72,9 @@ describe('server', function () {
 
         room.connect();
 
-        room.publish(localStream);
         waitsFor(function () {
             return callback.callCount > 0;
-        });
+        }, "Client should be connected to room", TIMEOUT);
 
         runs(function () {
             expect(callback).toHaveBeenCalled();
@@ -82,16 +84,13 @@ describe('server', function () {
     it('should publish stream in room', function () {
         var callback = jasmine.createSpy("publishroom");
 
-         waits(20000);
         room.addEventListener("stream-added", function(msg) {
-            remoteStream = [];
-            remoteStream.push(msg.stream);
             callback();
         });
-
+        room.publish(localStream);
         waitsFor(function () {
             return callback.callCount > 0;
-        });
+        }, "Stream should be published in room", TIMEOUT);
 
         runs(function () {
             expect(callback).toHaveBeenCalled();
@@ -105,13 +104,13 @@ describe('server', function () {
             callback();
         });
         
-         for (var index in remoteStream) {
-             var stream = remoteStream[index];
-             room.subscribe(stream);
-          }
+        for (var index in remoteStream) {
+            var stream = remoteStream[index];
+            room.subscribe(stream);
+        }
         waitsFor(function () {
             return callback.callCount > 0;
-        },"stream-subscribed should trigged", 20000);
+        }, "Stream should be subscribed to stream", 20000);
 
         runs(function () {
             expect(callback).toHaveBeenCalled();
@@ -142,7 +141,7 @@ describe('server', function () {
 
         waitsFor(function () {
             return callback.callCount > 0;
-        });
+        }, "Client should be disconnected from room", TIMEOUT);
 
         runs(function () {
             expect(callback).toHaveBeenCalled();
