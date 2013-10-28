@@ -17,3 +17,5 @@ cache:
   directories:
   - node-modules/
   - build/
+addons:
+  firefox: "24.0"
