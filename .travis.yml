@@ -6,11 +6,11 @@ before_install:
   - ./scripts/installErizo.sh
   - ./scripts/installNuve.sh
   - ./scripts/installBasicExample.sh
-  - ./scripts/initLicode.sh
+  - ./.travis/scripts/initLicode.sh
   - sleep 10
   - ./scripts/initBasicExample.sh
+  - sleep 10
   - export DISPLAY=:99.0
-  - export CHROME_BIN=/usr/bin/google-chrome
   - sh -e /etc/init.d/xvfb start
 cache:
   apt: true
