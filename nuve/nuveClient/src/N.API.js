@@ -98,7 +98,9 @@ N.API = (function (N) {
 
         header = 'MAuth realm=http://marte3.dit.upm.es,mauth_signature_method=HMAC_SHA1';
 
-        if (username !== '' && role !== '') {
+        if (username && role) {
+
+            username = formatString(username);
 
             header += ',mauth_username=';
             header +=  username;
@@ -168,6 +170,13 @@ N.API = (function (N) {
         hex = hash.toString(CryptoJS.enc.Hex);
         signed = N.Base64.encodeBase64(hex);
         return signed;
+    };
+
+    formatString = function(s){
+        var r = s.toLowerCase();
+        non_asciis = {'a': '[àáâãäå]', 'ae': 'æ', 'c': 'ç', 'e': '[èéêë]', 'i': '[ìíîï]', 'n': 'ñ', 'o': '[òóôõö]', 'oe': 'œ', 'u': '[ùúûűü]', 'y': '[ýÿ]'};
+        for (i in non_asciis) { r = r.replace(new RegExp(non_asciis[i], 'g'), i); }
+        return r;
     };
 
     return {
