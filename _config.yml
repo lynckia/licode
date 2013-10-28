@@ -6,6 +6,7 @@ exclude:
   - Rakefile
   - Gemfile
   - .gitignore
+  - node_modules
 baseurl: /
 domain: lynckia.com
 title: Licode - Open Source Communication Provider
