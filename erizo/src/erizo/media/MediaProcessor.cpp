@@ -65,7 +65,9 @@ namespace erizo {
       p.type = AUDIO;
       p.length = a;
       rawReceiver_->receiveRawData(p);
+      return a;
     }
+    return 0;
   }
   int InputProcessor::deliverVideoData(char* buf, int len) {
     if (videoUnpackager && videoDecoder) {
@@ -100,10 +102,11 @@ namespace erizo {
           p.type = VIDEO;
           rawReceiver_->receiveRawData(p);
         }
+
+        return c;
       }
-      return 1;
     }
-    return 1;
+    return 0;
   }
 
   bool InputProcessor::initAudioDecoder() {
@@ -241,10 +244,10 @@ namespace erizo {
     RTPHeader* head = reinterpret_cast<RTPHeader*>(inBuff);
     if (head->getPayloadType()!=0){
       ELOG_DEBUG("PT AUDIO %d", head->getPayloadType());
-//      return -1;
+      //      return -1;
     }
 
-//    ELOG_DEBUG("Audio Timestamp %u", head->getTimestamp());
+    //    ELOG_DEBUG("Audio Timestamp %u", head->getTimestamp());
 
     int l = inBuffLen - RTPHeader::MIN_SIZE;
     memcpy(outBuff, &inBuff[RTPHeader::MIN_SIZE], l);
@@ -265,10 +268,10 @@ namespace erizo {
     RTPHeader* head = reinterpret_cast<RTPHeader*>(inBuff);
 
 
-        //head->getMarker());
-//    if ( head->getSSRC() != 55543 /*&& head->payloadtype!=101*/) {
-//      return -1;
-//    }
+    //head->getMarker());
+    //    if ( head->getSSRC() != 55543 /*&& head->payloadtype!=101*/) {
+    //      return -1;
+    //    }
     if (head->getPayloadType() != 100) {
       return -1;
     }
@@ -281,9 +284,7 @@ namespace erizo {
     memcpy(outBuff, parsed->data, parsed->dataLength);
     if (head->getMarker()) {
       *estimatedFps = 0;
-      if (!lastVideoTs_){
-        lastVideoTs_ == head->getTimestamp();
-      }else{
+      if (lastVideoTs_){
         *estimatedFps = 100000/(head->getTimestamp() - lastVideoTs_);
       }
       lastVideoTs_ = head->getTimestamp();
@@ -325,6 +326,7 @@ namespace erizo {
 
     encodedBuffer_ = NULL;
     packagedBuffer_ = NULL;
+    rtpBuffer_ = NULL;
 
     avcodec_register_all();
     av_register_all();
@@ -377,13 +379,13 @@ namespace erizo {
       vCoder.closeEncoder();
       videoCoder = 0;
     }
-    if (encodedBuffer_) {
+    if (encodedBuffer_!=NULL) {
       free(encodedBuffer_);
     }
-    if (packagedBuffer_) {
+    if (packagedBuffer_!=NULL) {
       free(packagedBuffer_);
     }
-    if (rtpBuffer_) {
+    if (rtpBuffer_!=NULL) {
       free(rtpBuffer_);
     }
   }
@@ -395,7 +397,7 @@ namespace erizo {
       //      ELOG_DEBUG("Encoding video: size %d", packet.length);
       int a = vCoder.encodeVideo(packet.data, packet.length, encodedBuffer_,UNPACKAGED_BUFFER_SIZE,hasFrame);
       if (a > 0)
-        int b = this->packageVideo(encodedBuffer_, a, packagedBuffer_);
+        this->packageVideo(encodedBuffer_, a, packagedBuffer_);
     } else {
       //      int a = this->encodeAudio(packet.data, packet.length, &pkt);
       //      if (a > 0) {
@@ -471,6 +473,7 @@ namespace erizo {
     memcpy(&rtpBuffer_[head.getHeaderLength()], inBuff, inBuffLen);
     //			sink_->sendData(rtpBuffer_, l);
     //	rtpReceiver_->receiveRtpData(rtpBuffer_, (inBuffLen + RTP_HEADER_LEN));
+    return (inBuffLen+head.getHeaderLength());
   }
 
   int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff) {
@@ -527,7 +530,7 @@ namespace erizo {
     }
     uint16_t* samples;
     int ret, got_output, buffer_size;
-    float t, tincr;
+    //float t, tincr;
 
     frame->nb_samples = aCoderContext->frame_size;
     frame->format = aCoderContext->sample_fmt;

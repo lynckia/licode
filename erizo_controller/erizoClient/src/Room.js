@@ -225,6 +225,7 @@ Erizo.Room = function (spec) {
             that.p2p = response.p2p;
             roomId = response.id;
             that.stunServerUrl = response.stunServerUrl;
+            that.turnServer = response.turnServer;
             that.state = CONNECTED;
 
             // 2- Retrieve list of streams
@@ -265,7 +266,6 @@ Erizo.Room = function (spec) {
         if (stream.local && that.localStreams[stream.getID()] === undefined) {
 
             // 2- Publish Media Stream to Erizo-Controller
-
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
                 if (stream.url !== undefined) {
                     sendSDPSocket('publish', {state: 'url', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, stream.url, function (answer, id) {
@@ -365,7 +365,7 @@ Erizo.Room = function (spec) {
             // Media stream
             sendMessageSocket('unpublish', stream.getID());
             stream.room = undefined;
-            if (stream.hasAudio() || stream.hasVideo()) {
+            if ((stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) && stream.url === undefined) {
                 stream.pc.close();
                 stream.pc = undefined;
             }

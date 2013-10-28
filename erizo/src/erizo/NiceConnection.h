@@ -129,8 +129,8 @@ private:
 	boost::thread m_Thread_;
   	unsigned int iceComponents_;
   	std::map <unsigned int, IceState> comp_state_list;
-	int stunPort_, minPort_, maxPort_;
 	std::string stunServer_;
+	int stunPort_, minPort_, maxPort_;
 };
 
 } /* namespace erizo */

@@ -3,7 +3,7 @@
 SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`
 PATHNAME=`dirname $SCRIPT`
-ROOT=$PATHNAME/..
+ROOT=$PATHNAME/../..
 BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
 EXTRAS=$ROOT/extras
@@ -17,7 +17,7 @@ sudo rabbitmq-server > $BUILD_DIR/rabbit.log &
 cd $ROOT/nuve
 ./initNuve.sh
 
-sleep 5
+sleep 15
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/erizo/build/erizo:$ROOT/erizo:$ROOT/build/libdeps/build/lib
 export ERIZO_HOME=$ROOT/erizo/

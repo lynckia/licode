@@ -1,7 +1,7 @@
 exec = require('child_process').exec
 task 'test', 'run all tests suites', ->
     console.log 'Running front-end tests'
-    chrome_bin = "DISPLAY=:99"
+    chrome_bin = "DISPLAY=:99.0"
     testacular = "#{__dirname}/node_modules/testacular/bin/testacular"
     browsers = '.travis/chrome-start.sh'
     options = "--single-run --browsers=#{browsers}"

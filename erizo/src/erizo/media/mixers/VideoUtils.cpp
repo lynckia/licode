@@ -405,13 +405,13 @@ vSetMaskRectP(unsigned char *mask,
 {
     unsigned lineSize1 = W*BPP;
     unsigned lineSize2 = totalW*BPP;
-    unsigned initRectPos1 = 0;
+//    unsigned initRectPos1 = 0;
     unsigned initRectPos2 = lineSize2*posY + posX*BPP;
-    unsigned position1 = 0;
+//    unsigned position1 = 0;
     unsigned position2 = 0;
     for(unsigned i = 0; i < H; i++)
     {
-        position1 = initRectPos1 + lineSize1*i; //save image1 position
+//        position1 = initRectPos1 + lineSize1*i; //save image1 position
         position2 = initRectPos2 + lineSize2*i; //save image2 position
         for (unsigned j = 0; j < lineSize1; j+=BPP)
         {

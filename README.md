@@ -1,6 +1,6 @@
 # Licode
 
-[![Build Status](https://travis-ci.org/ging/lynckia.png)](https://travis-ci.org/ging/lynckia)
+[![Build Status](https://travis-ci.org/ging/licode.png)](https://travis-ci.org/ging/licode)
 
 More info at:
 http://www.lynckia.com/licode

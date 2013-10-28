@@ -11,6 +11,6 @@ EXTRAS=$ROOT/extras
 
 cd $EXTRAS/basic_example
 
-npm install express
+npm install --loglevel error express
 
 cd $CURRENT_DIR
