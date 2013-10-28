@@ -224,7 +224,7 @@ namespace erizo {
         if (isRtcpMux) {
           comps++;
         }
-        for (int idx = 1; idx <= comps; idx++) {
+        for (int idx = cand.componentId; idx <= comps; idx++) {
           sdp << "a=candidate:" << cand.foundation << " " << idx
               << " " << cand.netProtocol << " " << cand.priority << " "
               << cand.hostAddress << " " << cand.hostPort << " typ "
@@ -327,7 +327,7 @@ namespace erizo {
         if (isRtcpMux) {
           comps++;
         }
-        for (int idx = 1; idx <= comps; idx++) {
+        for (int idx = cand.componentId; idx <= comps; idx++) {
           sdp << "a=candidate:" << cand.foundation << " " << idx
               << " " << cand.netProtocol << " " << cand.priority << " "
               << cand.hostAddress << " " << cand.hostPort << " typ "
