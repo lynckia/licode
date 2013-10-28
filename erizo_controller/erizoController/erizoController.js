@@ -218,7 +218,12 @@ var listen = function () {
                             }
                         }
 
-                        callback('success', {streams: streamList, id: socket.room.id, p2p: socket.room.p2p, stunServerUrl: config.erizoController.stunServerUrl});
+                        callback('success', {streams: streamList, 
+                                            id: socket.room.id, 
+                                            p2p: socket.room.p2p, 
+                                            stunServerUrl: config.erizoController.stunServerUrl,
+                                            turnServer: config.erizoController.turnServer
+                                            });
 
                     } else {
                         logger.info('Invalid host');

@@ -225,6 +225,7 @@ Erizo.Room = function (spec) {
             that.p2p = response.p2p;
             roomId = response.id;
             that.stunServerUrl = response.stunServerUrl;
+            that.turnServer = response.turnServer;
             that.state = CONNECTED;
 
             // 2- Retrieve list of streams
