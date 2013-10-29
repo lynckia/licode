@@ -18,7 +18,7 @@ Erizo.ChromeStableStack = function (spec) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
     } 
 
-    if (spec.turnServer !== undefined) {
+    if ((spec.turnServer || {}).url) {
         that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
     }
 
