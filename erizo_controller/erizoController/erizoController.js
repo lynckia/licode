@@ -89,35 +89,50 @@ var addToCloudHandler = function (callback) {
     publicIP = addresses[0];
     privateRegexp = new RegExp(publicIP, 'g');
 
-    rpc.callRpc('nuve', 'addNewErizoController', {cloudProvider: config.cloudProvider.name, ip: publicIP}, function (msg) {
-
-        if (msg === 'timeout') {
-            logger.info('CloudHandler does not respond');
+    var addECToCloudHandler = function(attempt) {
+        if (attempt <= 0) {
             return;
         }
-        if (msg == 'error') {
-            logger.info('Error in communication with cloudProvider');
-        }
 
-        publicIP = msg.publicIP;
-        myId = msg.id;
-        myState = 2;
+        rpc.callRpc('nuve', 'addNewErizoController', {cloudProvider: config.cloudProvider.name, ip: publicIP}, function (msg) {
 
-        var intervarId = setInterval(function () {
+            if (msg === 'timeout') {
+                logger.info('CloudHandler does not respond');
 
-            rpc.callRpc('nuve', 'keepAlive', myId, function (result) {
-                if (result === 'whoareyou') {
-                    logger.info('I don`t exist in cloudHandler. I`m going to be killed');
-                    clearInterval(intervarId);
-                    rpc.callRpc('nuve', 'killMe', publicIP, function () {});
-                }
-            });
+                // We'll try it more!
+                setTimeout(function() {
+                    attempt = attempt - 1;
+                    addECToCloudHandler(attempt);
+                }, 3000);
+                return;
+            }
+            if (msg == 'error') {
+                logger.info('Error in communication with cloudProvider');
+            }
 
-        }, INTERVAL_TIME_KEEPALIVE);
+            publicIP = msg.publicIP;
+            myId = msg.id;
+            myState = 2;
 
-        callback();
+            var intervarId = setInterval(function () {
 
-    });
+                rpc.callRpc('nuve', 'keepAlive', myId, function (result) {
+                    if (result === 'whoareyou') {
+
+                        // TODO: It should try to register again in Cloud Handler. But taking into account current rooms, users, ...
+                        logger.info('I don`t exist in cloudHandler. I`m going to be killed');
+                        clearInterval(intervarId);
+                        rpc.callRpc('nuve', 'killMe', publicIP, function () {});
+                    }
+                });
+
+            }, INTERVAL_TIME_KEEPALIVE);
+
+            callback();
+
+        });
+    };
+    addECToCloudHandler(5);
 };
 
 //*******************************************************************

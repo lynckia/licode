@@ -1,4 +1,4 @@
-var N = require('../extras/basic_example/nuve'),
+var N = require('../nuve/nuveClient/dist/nuve'),
 	config = require('../licode_config');
 
  var TIMEOUT=10000,
