@@ -3,24 +3,18 @@ describe('server', function () {
     "use strict";
     var room, createToken, token, localStream, remoteStream;
 
-    var TIMEOUT=10000;
+    var TIMEOUT=10000,
+        ROOM_NAME="myTestRoom",
+        id;
 
-    createToken = function (userName, role, callback) {
+    createToken = function (userName, role, callback, callbackError) {
+        var id;
 
-        var req = new XMLHttpRequest(),
-            serverUrl = "http://localhost:3001/",
-            url = serverUrl + 'createToken/',
-            body = {username: userName, role: role};
-
-        req.onreadystatechange = function () {
-            if (req.readyState === 4) {
-                callback(req.responseText);
-            }
-        };
-
-        req.open('POST', url, true);
-        req.setRequestHeader('Content-Type', 'application/json');
-        req.send(JSON.stringify(body));
+        N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3000/');
+        N.API.createRoom(ROOM_NAME, function(room) {
+            id = room._id;
+            N.API.createToken(id, "user", "role", callback, callbackError);
+        });
     };
 
     beforeEach(function () {
@@ -29,18 +23,25 @@ describe('server', function () {
 
     it('should get token', function () {
         var callback = jasmine.createSpy("token");
+        var received = false;
+        var obtained = false;
 
         createToken("user", "role", function(_token) {
             callback();
             token = _token;
+            obtained = true;
+            received = true;
+        }, function(error) {
+            obtained = false;
+            received = true;
         });
 
         waitsFor(function () {
-            return callback.callCount > 0;
+            return received;
         }, "The token shoud have been creaded", TIMEOUT);
 
         runs(function () {
-            expect(callback).toHaveBeenCalled();
+            expect(obtained).toBe(true);
         });
     });
 
@@ -151,4 +152,20 @@ describe('server', function () {
             expect(callback).toHaveBeenCalled();
         });
     });
+
+    it ('should delete room', function() {
+        N.API.deleteRoom(id, function(result) {
+            id = undefined;
+        }, function(error) {
+
+        });
+
+        waitsFor(function () {
+            return id === undefined;
+        }, "Nuve should have created the room", TIMEOUT);
+
+        runs(function () {
+            expect(id).toBe(undefined);
+        });
+    })
 });
