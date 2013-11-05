@@ -14,8 +14,8 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      '../test/erizo-test.js',
-      '../extras/basic_example/public/erizo.js'
+      'erizo-test.js',
+      '../erizo_controller/erizoClient/dist/erizo.js'
     ],
 
 
