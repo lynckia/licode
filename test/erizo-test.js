@@ -8,8 +8,7 @@ describe('server', function () {
         id;
 
     createToken = function (userName, role, callback, callbackError) {
-        var id;
-
+        console.log(config.nuve.superserviceID);
         N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3000/');
         N.API.createRoom(ROOM_NAME, function(room) {
             id = room._id;
