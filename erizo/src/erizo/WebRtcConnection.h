@@ -93,8 +93,6 @@ public:
 	 */
 	WebRTCState getCurrentState();
 
-	void writeSsrc(char* buf, int len, int ssrc);
-
 	void onTransportData(char* buf, int len, Transport *transport);
 
 	void updateState(TransportState state, Transport * transport);
@@ -117,7 +115,9 @@ private:
 
 	bool sending_;
 	void sendLoop();
-
+	void writeSsrc(char* buf, int len, unsigned int ssrc);
+  void processRtcpHeaders(char* buf, int len, unsigned int ssrc);
+  
 	bool audioEnabled_;
 	bool videoEnabled_;
 

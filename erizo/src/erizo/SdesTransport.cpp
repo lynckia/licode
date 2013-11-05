@@ -85,10 +85,8 @@ void SdesTransport::onNiceData(unsigned int component_id, char* data, int len, N
       rtcpheader *chead = reinterpret_cast<rtcpheader*> (unprotectBuf_);
       if (chead->packettype == RTCP_Sender_PT ||
           chead->packettype == RTCP_Receiver_PT ||
-          chead->packettype == RTCP_Feedback_PT){
-        if (chead->packettype == RTCP_Feedback_PT){
-          ELOG_DEBUG("Feedback!!");
-        }
+          chead->packettype == RTCP_PS_Feedback_PT||
+          chead->packettype == RTCP_RTP_Feedback_PT){
         if(srtp->unprotectRtcp(unprotectBuf_, &length)<0)
           return;
       } else {
@@ -114,7 +112,8 @@ void SdesTransport::write(char* data, int len) {
       memcpy(protectBuf_, data, len);
 
       rtcpheader *chead = reinterpret_cast<rtcpheader*> (protectBuf_);
-      if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_Feedback_PT) {
+      if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_PS_Feedback_PT
+          || chead->packettype == RTCP_RTP_Feedback_PT) {
         if (!rtcp_mux_) {
           comp = 2;
         }
