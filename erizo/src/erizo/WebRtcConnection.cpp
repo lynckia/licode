@@ -339,7 +339,6 @@ namespace erizo {
     rtcpPacket[pos++] = (uint8_t) 0;
     rtcpPacket[pos++] = (uint8_t) 0;
 
-    rtcpheader* chead = reinterpret_cast<rtcpheader*>(rtcpPacket);
     if (videoTransport_ != NULL) {
       videoTransport_->write((char*)rtcpPacket, pos);
     }
@@ -435,14 +434,12 @@ namespace erizo {
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;
-    int packetnum = 0;
     do{
       movingBuf+=rtcpLength;
       rtcpheader *chead= reinterpret_cast<rtcpheader*>(movingBuf);
       rtcpLength= (ntohs(chead->length)+1)*4;      
       totalLength+= rtcpLength;
       chead->ssrc=htonl(ssrc);
-     // ELOG_DEBUG ("RTP Receiver Report %d length %d bufferlen %d packetnum %d", chead->packettype, rtcpLength, len, packetnum++);
       if (chead->packettype == RTCP_PS_Feedback_PT){
         firheader *thefir = reinterpret_cast<firheader*>(movingBuf);
         if (thefir->fmt == 4){ // It is a FIR Packet, we generate it
