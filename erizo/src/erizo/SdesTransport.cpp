@@ -47,26 +47,12 @@ SdesTransport::SdesTransport(MediaType med, const std::string &transport_name, b
 }
 
 SdesTransport::~SdesTransport() {
-
-  this->close();
-
+  delete srtp_;
+  delete srtcp_;
+  delete nice_;
   free(protectBuf_);
   free(unprotectBuf_);
 
-}
-
-void SdesTransport::close() {
-  if (srtp_ != NULL) {
-    free(srtp_);
-  }
-  if (srtcp_ != NULL) {
-    free(srtcp_);
-  }
-  if (nice_ != NULL) {
-     nice_->close();
-     nice_->join();
-     delete nice_;
-  }
 }
 
 void SdesTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {

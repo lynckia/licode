@@ -47,13 +47,10 @@ namespace erizo {
     stunPort_ = stunPort;
     minPort_ = minPort;
     maxPort_ = maxPort;
-
-    ELOG_DEBUG("WebRtcConnection constructor end");
-
   }
 
   WebRtcConnection::~WebRtcConnection() {
-
+    ELOG_DEBUG("WebRtcConnection Destructor");
     this->close();
     free(deliverMediaBuffer_);
   }
@@ -63,20 +60,17 @@ namespace erizo {
   }
 
   void WebRtcConnection::close() {
-
-    if (videoTransport_ != NULL) {
-      videoTransport_->close();
-    }
-    if (audioTransport_ != NULL) {
-      audioTransport_->close();
-    }
-    if (sending_ != false) {
-      sending_ = false;
-      send_Thread_.join();
-    }
+    ELOG_DEBUG("WebRtcConnection Close");
+    sending_ = false;
+    delete videoTransport_;
+    videoTransport_=NULL;
+    delete audioTransport_;
+    audioTransport_= NULL;
+    send_Thread_.join();
   }
 
   void WebRtcConnection::closeSink(){
+    ELOG_WARN ("closeSink");
     this->close();
   }
 
@@ -453,9 +447,10 @@ namespace erizo {
   void WebRtcConnection::sendLoop() {
 
     while (sending_ == true) {
+      //    while (!boost::this_thread::interruption_requested()){
       receiveVideoMutex_.lock();
       if (sendQueue_.size() > 0) {
-        if (sendQueue_.front().type == AUDIO_PACKET && audioTransport_!=NULL) {
+        if (sendQueue_.front().type == AUDIO_PACKET) {
           audioTransport_->writeOnNice(sendQueue_.front().comp, sendQueue_.front().data,
               sendQueue_.front().length);
         } else {
@@ -469,6 +464,9 @@ namespace erizo {
         usleep(1000);
       }
     }
-  }
+
+    receiveVideoMutex_.unlock();
+    ELOG_WARN("thread ended");
+    }
 }
 /* namespace erizo */

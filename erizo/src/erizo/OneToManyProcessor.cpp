@@ -10,20 +10,21 @@ namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
   OneToManyProcessor::OneToManyProcessor() {
 
-      sendVideoBuffer_ = (char*) malloc(20000);
-      sendAudioBuffer_ = (char*) malloc(20000);
-      publisher = NULL;
-      feedbackSink_ = NULL;
-      sentPackets_ = 0;
+    sendVideoBuffer_ = (char*) malloc(20000);
+    sendAudioBuffer_ = (char*) malloc(20000);
+    publisher = NULL;
+    feedbackSink_ = NULL;
+    sentPackets_ = 0;
 
-    }
+  }
 
   OneToManyProcessor::~OneToManyProcessor() {
+    ELOG_WARN ("OneToManyProcessor destructor");
     this->closeAll();
-    if (sendVideoBuffer_)
-      delete sendVideoBuffer_;
-    if (sendAudioBuffer_)
-      delete sendAudioBuffer_;
+    if (sendVideoBuffer_!=NULL)
+      free(sendVideoBuffer_);
+    if (sendAudioBuffer_!=NULL)
+      free(sendAudioBuffer_);
   }
 
   int OneToManyProcessor::deliverAudioData(char* buf, int len) {
@@ -32,8 +33,6 @@ namespace erizo {
 
     std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      //memset(sendAudioBuffer_, 0, len);
-      //memcpy(sendAudioBuffer_, buf, len);
       (*it).second->deliverAudioData(buf, len);
     }
 
@@ -54,11 +53,7 @@ namespace erizo {
       return 0;
     }
     std::map<std::string, MediaSink*>::iterator it;
-    //ELOG_DEBUG("Sending video data to subscribers of %u", publisher->getVideoSourceSSRC());
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      //memset(sendVideoBuffer_, 0, len);
-      //memcpy(sendVideoBuffer_, buf, len);
-      //ELOG_DEBUG(" Subscriber %u", (*it).second->getVideoSinkSSRC());
       (*it).second->deliverVideoData(buf, len);
     }
     sentPackets_++;
@@ -69,9 +64,6 @@ namespace erizo {
     ELOG_DEBUG("SET PUBLISHER");
     this->publisher = webRtcConn;
     feedbackSink_ = publisher->getFeedbackSink();
-//    recorder_ = new ExternalOutput("/tmp/prueba.mkv");
-//    recorder_->init();
-//    this->addSubscriber(recorder_,"1");
   }
 
   int OneToManyProcessor::deliverFeedback(char* buf, int len){
@@ -106,14 +98,17 @@ namespace erizo {
   }
 
   void OneToManyProcessor::closeSink(){
+    ELOG_WARN ("OneToManyProcessor closeSink");
     this->close();
   }
 
   void OneToManyProcessor::close(){
+    ELOG_WARN ("OneToManyProcessor close");
     this->closeAll();
   }
 
   void OneToManyProcessor::closeAll() {
+    ELOG_WARN ("OneToManyProcessor closeAll");
     std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
       (*it).second->closeSink();

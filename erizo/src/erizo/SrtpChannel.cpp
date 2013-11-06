@@ -25,25 +25,23 @@ SrtpChannel::SrtpChannel() {
 }
 
 SrtpChannel::~SrtpChannel() {
-
-    if (send_session_ != NULL) {
-        srtp_dealloc(send_session_);
-    }
-    if (receive_session_ != NULL) {
-        srtp_dealloc(receive_session_);
-    }
-
+  active_ = false;
+  if (send_session_ != NULL) {
+    srtp_dealloc(send_session_);
+  }
+  if (receive_session_ != NULL) {
+    srtp_dealloc(receive_session_);
+  }
 }
 
 bool SrtpChannel::setRtpParams(char* sendingKey, char* receivingKey) {
     ELOG_DEBUG("Configuring srtp local key %s remote key %s", sendingKey,
             receivingKey);
-    configureSrtpSession(&send_session_, sendingKey, SENDING);
-    configureSrtpSession(&receive_session_, receivingKey, RECEIVING);
-
-
+  if (configureSrtpSession(&send_session_, sendingKey, SENDING) && configureSrtpSession(&receive_session_, receivingKey, RECEIVING)){
     active_ = true;
     return active_;
+  }
+  return false; 
 }
 
 bool SrtpChannel::setRtcpParams(char* sendingKey, char* receivingKey) {
@@ -138,9 +136,11 @@ bool SrtpChannel::configureSrtpSession(srtp_t *session, const char* key,
     ELOG_DEBUG("set master key/salt to %s/", octet_string_hex_string(akey, 16));
     // allocate and initialize the SRTP session
     policy.key = akey;
-    srtp_create(session, &policy);
-//  return res!=0? false:true;
-    return true;
+    int res = srtp_create(session, &policy);
+    if (res!=0){
+      ELOG_ERROR("Failed to create srtp session");
+    }
+    return res!=0? false:true;
 }
 
 } /*namespace erizo */

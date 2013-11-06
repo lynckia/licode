@@ -113,7 +113,7 @@ private:
 	Transport *videoTransport_, *audioTransport_;
 	char *deliverMediaBuffer_;
 
-	bool sending_;
+	volatile bool sending_;
 	void sendLoop();
 	void writeSsrc(char* buf, int len, unsigned int ssrc);
   void processRtcpHeaders(char* buf, int len, unsigned int ssrc);
