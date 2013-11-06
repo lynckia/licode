@@ -88,10 +88,9 @@ namespace erizo {
 
   void ExternalOutput::closeSink() {
     ELOG_DEBUG("Closing Sink");
-    if (in !=NULL){
-      delete in;
-      in = NULL;
-    }
+    delete in;
+    in = NULL;
+    
     if (videoCodec_!=NULL){
       avcodec_close(videoCodecCtx_);
       videoCodec_=NULL;

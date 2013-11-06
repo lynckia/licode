@@ -466,7 +466,6 @@ namespace erizo {
     }
 
     receiveVideoMutex_.unlock();
-    ELOG_WARN("thread ended");
     }
 }
 /* namespace erizo */
