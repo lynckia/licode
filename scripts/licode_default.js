@@ -42,5 +42,8 @@ config.cloudProvider.host = '';
 config.cloudProvider.accessKey = '';
 config.cloudProvider.secretAccessKey = '';
 
+// Roles to be used by services
+config.roles = {"presenter":["publish", "subscribe", "record"], "viewer":["subscribe"]};
+
 var module = module || {};
 module.exports = config;

@@ -49,7 +49,7 @@ window.onload = function () {
     req.send(JSON.stringify(body));
   };
 
-  createToken("user", "role", function (response) {
+  createToken("user", "presenter", function (response) {
     var token = response;
     console.log(token);
     room = Erizo.Room({token: token});
