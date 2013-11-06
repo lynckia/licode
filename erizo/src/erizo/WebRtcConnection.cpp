@@ -50,7 +50,7 @@ namespace erizo {
   }
 
   WebRtcConnection::~WebRtcConnection() {
-    ELOG_WARN("WebRtcConnection Destructor");
+    ELOG_DEBUG("WebRtcConnection Destructor");
     sending_ = false;
     delete videoTransport_;
     videoTransport_=NULL;
