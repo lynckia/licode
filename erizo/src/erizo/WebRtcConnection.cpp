@@ -50,34 +50,20 @@ namespace erizo {
   }
 
   WebRtcConnection::~WebRtcConnection() {
-    ELOG_DEBUG("WebRtcConnection Destructor");
-    this->close();
-    free(deliverMediaBuffer_);
-  }
-
-  bool WebRtcConnection::init() {
-    return true;
-  }
-
-  void WebRtcConnection::close() {
-    ELOG_DEBUG("WebRtcConnection Close");
+    ELOG_WARN("WebRtcConnection Destructor");
     sending_ = false;
     delete videoTransport_;
     videoTransport_=NULL;
     delete audioTransport_;
     audioTransport_= NULL;
     send_Thread_.join();
+    free(deliverMediaBuffer_);
   }
 
-  void WebRtcConnection::closeSink(){
-    ELOG_DEBUG ("closeSink");
-    this->close();
+  bool WebRtcConnection::init() {
+    return true;
   }
-
-  void WebRtcConnection::closeSource(){
-    this->close();
-  }
-
+  
   bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     ELOG_DEBUG("Set Remote SDP %s", sdp.c_str());
     remoteSdp_.initWithSdp(sdp);

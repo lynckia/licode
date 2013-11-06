@@ -143,28 +143,23 @@ void OneToManyTranscoder::addSubscriber(MediaSink* webRtcConn,
 	this->subscribers[peerId] = webRtcConn;
 }
 
-void OneToManyTranscoder::removeSubscriber(const std::string& peerId) {
-	if (this->subscribers.find(peerId) != subscribers.end()) {
-		this->subscribers[peerId]->closeSink();
-		this->subscribers.erase(peerId);
-	}
-}
+  void OneToManyTranscoder::removeSubscriber(const std::string& peerId) {
+    if (this->subscribers.find(peerId) != subscribers.end()) {
+      delete this->subscribers[peerId];      
+      this->subscribers.erase(peerId);
+    }
+  }
 
-void OneToManyTranscoder::closeSink(){
-  this->closeAll();
-}
-
-void OneToManyTranscoder::close() {
-  this->closeAll();
-}
-
-void OneToManyTranscoder::closeAll() {
-	std::map<std::string, MediaSink*>::iterator it;
-	for (it = subscribers.begin(); it != subscribers.end(); it++) {
-		(*it).second->closeSink();
-	}
-	this->publisher->closeSource();
-}
+  void OneToManyTranscoder::closeAll() {
+    ELOG_WARN ("OneToManyProcessor closeAll");
+    std::map<std::string, MediaSink*>::iterator it;
+    for (it = subscribers.begin(); it != subscribers.end(); it++) {
+//      (*it).second->closeSink();
+      subscribers.erase(it);
+      delete (*it).second;
+    }
+    delete this->publisher;
+  }
 
 }/* namespace erizo */
 

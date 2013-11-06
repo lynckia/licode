@@ -83,10 +83,6 @@ namespace erizo {
 
   ExternalOutput::~ExternalOutput(){
     ELOG_DEBUG("Destructor");
-    this->closeSink();
-  }
-
-  void ExternalOutput::closeSink() {
     ELOG_DEBUG("Closing Sink");
     delete in;
     in = NULL;
@@ -214,7 +210,7 @@ namespace erizo {
           
           if (!this->initContext()){
             ELOG_ERROR("Contex cannot be initialized properly, closing...");
-            this->closeSink();
+            return -1;
           }
         }
         return 0;

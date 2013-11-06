@@ -56,13 +56,6 @@ public:
 	 */
 	bool init();
 	/**
-	 * Closes the webRTC connection.
-	 * The object cannot be used after this call.
-	 */
-	void close();
-  void closeSink();
-  void closeSource();
-	/**
 	 * Sets the SDP of the remote peer.
 	 * @param sdp The SDP.
 	 * @return true if the SDP was received correctly.

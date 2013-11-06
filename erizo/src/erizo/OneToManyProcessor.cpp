@@ -92,29 +92,20 @@ namespace erizo {
 
   void OneToManyProcessor::removeSubscriber(const std::string& peerId) {
     if (this->subscribers.find(peerId) != subscribers.end()) {
-      this->subscribers[peerId]->closeSink();
+      delete this->subscribers[peerId];      
       this->subscribers.erase(peerId);
     }
   }
 
-  void OneToManyProcessor::closeSink(){
-    ELOG_WARN ("OneToManyProcessor closeSink");
-    this->close();
-  }
-
-  void OneToManyProcessor::close(){
-    ELOG_WARN ("OneToManyProcessor close");
-    this->closeAll();
-  }
-
   void OneToManyProcessor::closeAll() {
-    ELOG_WARN ("OneToManyProcessor closeAll");
+    ELOG_DEBUG ("OneToManyProcessor closeAll");
     std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      (*it).second->closeSink();
+//      (*it).second->closeSink();
+      delete (*it).second;
+      subscribers.erase(it);
     }
-    this->publisher->closeSource();
-    ELOG_DEBUG("CloseSource Done");
+    delete this->publisher;
   }
 
 }/* namespace erizo */

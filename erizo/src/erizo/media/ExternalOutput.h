@@ -28,8 +28,6 @@ namespace erizo{
 	    int deliverAudioData(char* buf, int len);
 	    int deliverVideoData(char* buf, int len);
       void receiveRawData(RawDataPacket& packet);
-      void closeSink();
-
 
     private:
       OutputProcessor* op_;
