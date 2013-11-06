@@ -70,7 +70,7 @@ namespace erizo {
   }
 
   void WebRtcConnection::closeSink(){
-    ELOG_WARN ("closeSink");
+    ELOG_DEBUG ("closeSink");
     this->close();
   }
 

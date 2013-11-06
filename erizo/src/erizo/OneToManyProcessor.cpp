@@ -19,7 +19,7 @@ namespace erizo {
   }
 
   OneToManyProcessor::~OneToManyProcessor() {
-    ELOG_WARN ("OneToManyProcessor destructor");
+    ELOG_DEBUG ("OneToManyProcessor destructor");
     this->closeAll();
     if (sendVideoBuffer_!=NULL)
       free(sendVideoBuffer_);
