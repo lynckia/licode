@@ -32,6 +32,8 @@ exports.createRoom = function (req, res) {
         return;
     }
 
+    req.body.options = req.body.options || {};
+
     if (req.body.options.test) {
         if (currentService.testRoom !== undefined) {
             console.log('TestRoom already exists for service', currentService.name);

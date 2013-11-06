@@ -219,7 +219,7 @@ exports.WebRtcController = function () {
             publishers[to].addSubscriber(wrtc, from);
 
             initWebRtcConnection(wrtc, sdp, callback);
-            waitForFIR(wrtc, to);
+//            waitForFIR(wrtc, to);
 
             //logger.info('Publishers: ', publishers);
             //logger.info('Subscribers: ', subscribers);

@@ -57,17 +57,9 @@ public:
 
 	virtual ~NiceConnection();
 	/**
-	 * Join to the internal thread of the NiceConnection.
-	 */
-	void join();
-	/**
 	 * Starts Gathering candidates in a new thread.
 	 */
 	void start();
-	/**
-	 * Closes the connection. It renders the object unusable.
-	 */
-	void close();
 	/**
 	 * Sets the remote ICE Candidates.
 	 * @param candidates A vector containing the CandidateInfo.

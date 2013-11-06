@@ -28,8 +28,6 @@ namespace erizo{
 	    int deliverAudioData(char* buf, int len);
 	    int deliverVideoData(char* buf, int len);
       void receiveRawData(RawDataPacket& packet);
-      void closeSink();
-
 
     private:
       OutputProcessor* op_;
@@ -47,8 +45,6 @@ namespace erizo{
       AVStream        *video_st, *audio_st;
       
       AudioEncoder* audioCoder_;
-      unsigned char* unpackagedBuffer_,*unpackagedBufferpart_;
-      unsigned char* unpackagedAudioBuffer_;
       int gotUnpackagedFrame_;
       int unpackagedSize_;
       int prevEstimatedFps_;
@@ -67,7 +63,10 @@ namespace erizo{
 
 
       AVPacket avpacket;
-      char *deliverMediaBuffer_;
+      unsigned char* unpackagedBufferpart_;
+      unsigned char deliverMediaBuffer_[3000];
+      unsigned char unpackagedBuffer_[15000];
+      unsigned char unpackagedAudioBuffer_[15000];
       unsigned long initTime_;
   };
 }

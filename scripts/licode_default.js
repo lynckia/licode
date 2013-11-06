@@ -42,4 +42,5 @@ config.cloudProvider.host = '';
 config.cloudProvider.accessKey = '';
 config.cloudProvider.secretAccessKey = '';
 
+var module = module || {};
 module.exports = config;

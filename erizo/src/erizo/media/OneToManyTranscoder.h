@@ -53,13 +53,6 @@ public:
 //	MediaProcessor *mp;
 	InputProcessor* ip;
 	OutputProcessor* op;
-  
-  void closeSink();
-  void close();
-	/**
-	 * Closes all the subscribers and the publisher, the object is useless after this
-	 */
-	void closeAll();
 
 private:
 	char* sendVideoBuffer_;
@@ -73,6 +66,10 @@ private:
 	void sendHead(WebRtcConnection* conn);
 	RtpParser pars;
 	unsigned int sentPackets_;
+	/**
+	 * Closes all the subscribers and the publisher, the object is useless after this
+	 */
+	void closeAll();
 };
 
 } /* namespace erizo */

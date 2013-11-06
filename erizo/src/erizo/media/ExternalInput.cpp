@@ -19,7 +19,21 @@ namespace erizo {
 
   ExternalInput::~ExternalInput(){
     ELOG_DEBUG("Destructor ExternalInput %s" , url_.c_str());
-    this->closeSource();
+    ELOG_DEBUG("Closing ExternalInput");
+    running_ = false;
+    encodeThread_.join();
+    thread_.join();
+    av_free_packet(&avpacket_);
+    if (context_!=NULL)
+      avformat_free_context(context_);
+    if (sendVideoBuffer_!=NULL)
+      free(sendVideoBuffer_);
+    if(decodedBuffer_!=NULL)
+      free(decodedBuffer_);
+    if (op_!=NULL){
+      delete op_;
+    }
+    ELOG_DEBUG("ExternalInput closed");
   }
 
   int ExternalInput::init(){
@@ -89,24 +103,6 @@ namespace erizo {
     running_ = true;
     encodeThread_ = boost::thread(&ExternalInput::encodeLoop, this);
     return true;
-  }
-
-  void ExternalInput::closeSource() {
-    ELOG_DEBUG("Closing ExternalInput");
-    running_ = false;
-    encodeThread_.join();
-    thread_.join();
-    av_free_packet(&avpacket_);
-    if (context_!=NULL)
-      avformat_free_context(context_);
-    if (sendVideoBuffer_!=NULL)
-      free(sendVideoBuffer_);
-    if(decodedBuffer_!=NULL)
-      free(decodedBuffer_);
-    if (op_!=NULL){
-      delete op_;
-    }
-    ELOG_DEBUG("ExternalInput closed");
   }
 
   int ExternalInput::sendFirPacket() {

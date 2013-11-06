@@ -14,7 +14,8 @@
     "karma-coffee-preprocessor": "~0.1.0",
     "karma-phantomjs-launcher": "~0.1.0",
     "karma": "~0.10.2",
-    "karma-chrome-launcher": "~0.1.0"
+    "karma-chrome-launcher": "~0.1.0",
+    "jasmine-node": "~1.11.0"
   },
   "contributors": [
     {
@@ -31,6 +32,6 @@
     }
   ],
   "scripts": {
-    "test": "karma start .travis/karma.conf.js"
+    "test": " ./node_modules/jasmine-node/bin/jasmine-node test/;karma start test/karma.conf.js"
   }
 }

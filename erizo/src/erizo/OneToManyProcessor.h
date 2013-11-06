@@ -50,13 +50,6 @@ public:
 
   int deliverFeedback(char* buf, int len);
 
-  void close();
-  void closeSink();
-	/**
-	 * Closes all the subscribers and the publisher, the object is useless after this
-	 */
-	void closeAll();
-
 private:
 	char* sendVideoBuffer_;
 	char* sendAudioBuffer_;
@@ -64,6 +57,7 @@ private:
   std::string rtcpReceiverPeerId_;
   FeedbackSink* feedbackSink_;
   ExternalOutput* recorder_;
+  void closeAll();
 };
 
 } /* namespace erizo */

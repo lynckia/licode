@@ -14,8 +14,10 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      '../test/nuve-test.js',
-      '../extras/basic_example/public/erizo.js'
+      'erizo-test.js',
+      '../erizo_controller/erizoClient/dist/erizo.js',
+      '../nuve/nuveClient/build/nuve.js',
+      '../licode_config.js'
     ],
 
 
@@ -55,12 +57,16 @@ module.exports = function(config) {
     // - Safari (only Mac)
     // - PhantomJS
     // - IE (only Windows)
-    browsers: ['Firefox'],
+    browsers: ['Chrome_with_fake_media'],
 
     customLaunchers: {
       Chrome_with_fake_media: {
         base: 'Chrome',
-        flags: ['--disable-web-security --use-fake-ui-for-media-stream --no-sandbox']
+        flags: ['--use-fake-ui-for-media-stream']
+      },
+      Chrome_Canary_with_fake_media: {
+        base: 'Chrome Canary',
+        flags: ['--use-fake-ui-for-media-stream']
       }
     },
 

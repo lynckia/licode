@@ -39,6 +39,10 @@ app.get('/test', function (req, res) {
     res.render('test');
 });
 
+app.options('*', function(req, res) {
+    res.send(200);
+});
+
 app.get('*', nuveAuthenticator.authenticate);
 app.post('*', nuveAuthenticator.authenticate);
 app.delete('*', nuveAuthenticator.authenticate);
