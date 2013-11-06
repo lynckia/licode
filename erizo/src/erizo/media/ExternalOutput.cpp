@@ -16,8 +16,6 @@ namespace erizo {
     ELOG_DEBUG("Created ExternalOutput to %s", outputUrl.c_str());
     url = outputUrl;
     sinkfbSource_=NULL;
-    unpackagedBuffer_ = NULL;
-    unpackagedAudioBuffer_ = NULL;
     audioSinkSSRC_ = 0;
     videoSinkSSRC_ = 0;
     videoCodec_ = NULL;
@@ -30,10 +28,7 @@ namespace erizo {
     sequenceNumberFIR_ = 0;
     aviores_ = -1;
     writeheadres_=-1;
-    deliverMediaBuffer_ = (char*)malloc(3000);
-    unpackagedBuffer_ = (unsigned char*)malloc (15000);
     unpackagedBufferpart_ = unpackagedBuffer_;
-    unpackagedAudioBuffer_ = (unsigned char*)malloc(15000);
     initTime_ = 0;
     lastTime_ = 0;
 
@@ -102,18 +97,6 @@ namespace erizo {
         avio_close(context_->pb);
       avformat_free_context(context_);
       context_=NULL;
-    }
-    if (deliverMediaBuffer_!=NULL){
-      free(deliverMediaBuffer_);
-      deliverMediaBuffer_=NULL;
-    }
-    if (unpackagedBuffer_ !=NULL){
-      free(unpackagedBuffer_);
-      unpackagedBuffer_ = NULL;   
-    }
-    if (unpackagedAudioBuffer_ !=NULL){
-      free(unpackagedAudioBuffer_);
-      unpackagedAudioBuffer_ =NULL;
     }
     ELOG_DEBUG("ExternalOutput closed Successfully");
     return;
@@ -189,7 +172,7 @@ namespace erizo {
           // Copy payload type
           rtpheader *mediahead = (rtpheader*) deliverMediaBuffer_;
           mediahead->payloadtype = redhead->payloadtype;
-          buf = deliverMediaBuffer_;
+          buf = reinterpret_cast<char*>(deliverMediaBuffer_);
           len = len - 1 - totalLength + rtpHeaderLength;
         }
       }
