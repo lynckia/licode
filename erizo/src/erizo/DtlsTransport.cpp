@@ -34,8 +34,6 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
 
   srtp_ = NULL;
   srtcp_ = NULL;
-  protectBuf_ =reinterpret_cast<char*>(malloc(10000));
-  unprotectBuf_ =reinterpret_cast<char*>(malloc(10000));
   int comps = 1;
   if (!rtcp_mux) {
     comps = 2;
@@ -66,10 +64,6 @@ DtlsTransport::~DtlsTransport() {
   srtp_=NULL;
   delete srtcp_;
   srtcp_=NULL;
-
-  free(protectBuf_);
-  free(unprotectBuf_);
-
 }
 
 void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {

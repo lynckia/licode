@@ -27,7 +27,8 @@ namespace erizo {
     void processLocalSdp(SdpInfo *localSdp_);
 
     private:
-    char* protectBuf_, *unprotectBuf_;
+    char protectBuf_[5000];
+    char unprotectBuf_[5000];
     dtls::DtlsSocketContext *dtlsRtp, *dtlsRtcp;
     boost::mutex writeMutex_, readMutex_;
     SrtpChannel *srtp_, *srtcp_;
