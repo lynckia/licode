@@ -12,10 +12,13 @@
 namespace erizo {
     DEFINE_LOGGER(SrtpChannel, "SrtpChannel");
     bool SrtpChannel::initialized = false;
+    boost::mutex SrtpChannel::sessionMutex_;
 
 SrtpChannel::SrtpChannel() {
+  boost::mutex::scoped_lock lock(SrtpChannel::sessionMutex_);
   if (SrtpChannel::initialized != true) {
-    srtp_init();
+    int res = srtp_init();
+    ELOG_DEBUG("Initialized SRTP library %d", res);
     SrtpChannel::initialized = true;
   }
 
@@ -113,7 +116,6 @@ std::string SrtpChannel::generateBase64Key() {
 
 bool SrtpChannel::configureSrtpSession(srtp_t *session, const char* key,
         enum TransmissionType type) {
-
     srtp_policy_t policy;
     memset(&policy, 0, sizeof(policy));
     crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtp);
@@ -138,7 +140,7 @@ bool SrtpChannel::configureSrtpSession(srtp_t *session, const char* key,
     policy.key = akey;
     int res = srtp_create(session, &policy);
     if (res!=0){
-      ELOG_ERROR("Failed to create srtp session");
+      ELOG_ERROR("Failed to create srtp session with %s, %d", octet_string_hex_string(akey, 16), res);
     }
     return res!=0? false:true;
 }

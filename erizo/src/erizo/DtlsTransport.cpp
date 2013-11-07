@@ -34,8 +34,6 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
 
   srtp_ = NULL;
   srtcp_ = NULL;
-  protectBuf_ =reinterpret_cast<char*>(malloc(10000));
-  unprotectBuf_ =reinterpret_cast<char*>(malloc(10000));
   int comps = 1;
   if (!rtcp_mux) {
     comps = 2;
@@ -66,10 +64,6 @@ DtlsTransport::~DtlsTransport() {
   srtp_=NULL;
   delete srtcp_;
   srtcp_=NULL;
-
-  free(protectBuf_);
-  free(unprotectBuf_);
-
 }
 
 void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {
@@ -171,10 +165,15 @@ void DtlsTransport::writeDtls(DtlsSocketContext *ctx, const unsigned char* data,
 }
 
 void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey,std::string serverKey, std::string srtp_profile) {
+  boost::mutex::scoped_lock lock(sessionMutex_);
   if (ctx == dtlsRtp) {
     ELOG_DEBUG("Setting RTP srtp params");
     srtp_ = new SrtpChannel();
-    readyRtp = srtp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str());
+    if (srtp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str())) {
+      readyRtp = true;
+    } else {
+      updateTransportState(TRANSPORT_FAILED);
+    }
     if (dtlsRtcp == NULL) {
       readyRtcp = true;
     }
@@ -182,7 +181,11 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
   if (ctx == dtlsRtcp) {
     ELOG_DEBUG("Setting RTCP srtp params");
     srtcp_ = new SrtpChannel();
-    readyRtcp = srtcp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str());
+    if (srtcp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str())) {
+      readyRtcp = true;
+    } else {
+      updateTransportState(TRANSPORT_FAILED);
+    }
   }
   if (readyRtp && readyRtcp) {
     updateTransportState(TRANSPORT_READY);
