@@ -13,9 +13,6 @@ namespace erizo {
 
   VideoMixer::VideoMixer() {
 
-      sendVideoBuffer_ = (char*) malloc(2000);
-      sendAudioBuffer_ = (char*) malloc(2000);
-
       subscriber = NULL;
       sentPackets_ = 0;
       ip = new InputProcessor();
@@ -43,13 +40,7 @@ namespace erizo {
 
   VideoMixer::~VideoMixer() {
 
-    if (sendVideoBuffer_)
-      delete sendVideoBuffer_;
-    if (sendAudioBuffer_)
-      delete sendAudioBuffer_;
-    if (sink_) {
-      delete sink_;
-    }
+    delete sink_;
   }
 
   int VideoMixer::deliverAudioData(char* buf, int len) {

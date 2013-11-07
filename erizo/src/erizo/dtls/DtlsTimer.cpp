@@ -49,8 +49,7 @@ long long getTimeMS() {
 void
 TestTimerContext::addTimer(DtlsTimer *timer, unsigned int lifetime)
 {
-   if(mTimer)
-      delete mTimer;
+   delete mTimer;
 
    mTimer=timer;
 

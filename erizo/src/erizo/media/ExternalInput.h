@@ -32,7 +32,7 @@ namespace erizo{
       OutputProcessor* op_;
       VideoDecoder inCodec_;
       unsigned char* decodedBuffer_;
-      char* sendVideoBuffer_;
+      char sendVideoBuffer_[2000];
 
       std::string url_;
       bool running_;

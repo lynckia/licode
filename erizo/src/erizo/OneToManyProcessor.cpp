@@ -9,9 +9,6 @@
 namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
   OneToManyProcessor::OneToManyProcessor() {
-
-    sendVideoBuffer_ = (char*) malloc(20000);
-    sendAudioBuffer_ = (char*) malloc(20000);
     publisher = NULL;
     feedbackSink_ = NULL;
     sentPackets_ = 0;
@@ -21,10 +18,6 @@ namespace erizo {
   OneToManyProcessor::~OneToManyProcessor() {
     ELOG_DEBUG ("OneToManyProcessor destructor");
     this->closeAll();
-    if (sendVideoBuffer_!=NULL)
-      free(sendVideoBuffer_);
-    if (sendAudioBuffer_!=NULL)
-      free(sendAudioBuffer_);
   }
 
   int OneToManyProcessor::deliverAudioData(char* buf, int len) {
