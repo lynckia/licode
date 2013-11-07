@@ -11,8 +11,6 @@ namespace erizo {
 DEFINE_LOGGER(OneToManyTranscoder, "media.OneToManyTranscoder");
 OneToManyTranscoder::OneToManyTranscoder() {
 
-	sendVideoBuffer_ = (char*) malloc(2000);
-	sendAudioBuffer_ = (char*) malloc(2000);
 
 	publisher = NULL;
 	sentPackets_ = 0;
@@ -56,13 +54,7 @@ OneToManyTranscoder::OneToManyTranscoder() {
 
 OneToManyTranscoder::~OneToManyTranscoder() {
 	this->closeAll();
-	if (sendVideoBuffer_)
-		delete sendVideoBuffer_;
-	if (sendAudioBuffer_)
-		delete sendAudioBuffer_;
-	if (sink_) {
-		delete sink_;
-	}
+	delete sink_;
 }
 
 int OneToManyTranscoder::deliverAudioData(char* buf, int len) {

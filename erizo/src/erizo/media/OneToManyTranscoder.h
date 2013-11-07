@@ -55,11 +55,8 @@ public:
 	OutputProcessor* op;
 
 private:
-	char* sendVideoBuffer_;
-	char* sendAudioBuffer_;
-	char* unpackagedBuffer_;
-	char* decodedBuffer_;
-	char* codedBuffer_;
+	char sendVideoBuffer_[2000];
+	char sendAudioBuffer_[2000];
 	RTPSink* sink_;
 	std::vector<dataPacket> head;
 	int gotFrame_,gotDecodedFrame_, size_;

@@ -12,7 +12,6 @@ namespace erizo {
   ExternalInput::ExternalInput(const std::string& inputUrl){
     sourcefbSink_=NULL;
     context_ = NULL;
-    sendVideoBuffer_=NULL;
     running_ = false;
     url_ = inputUrl;
   }
@@ -26,8 +25,6 @@ namespace erizo {
     av_free_packet(&avpacket_);
     if (context_!=NULL)
       avformat_free_context(context_);
-    if (sendVideoBuffer_!=NULL)
-      free(sendVideoBuffer_);
     if(decodedBuffer_!=NULL)
       free(decodedBuffer_);
     if (op_!=NULL){
@@ -65,7 +62,6 @@ namespace erizo {
       ELOG_ERROR("No stream found");
       return streamNo;
     }
-    sendVideoBuffer_ = (char*) malloc(2000);
 
     video_stream_index_ = streamNo;
     AVStream* st = context_->streams[streamNo];    

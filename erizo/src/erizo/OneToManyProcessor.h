@@ -51,8 +51,8 @@ public:
   int deliverFeedback(char* buf, int len);
 
 private:
-	char* sendVideoBuffer_;
-	char* sendAudioBuffer_;
+	char sendVideoBuffer_[2000];
+	char sendAudioBuffer_[2000];
 	unsigned int sentPackets_;
   std::string rtcpReceiverPeerId_;
   FeedbackSink* feedbackSink_;
