@@ -165,6 +165,7 @@ void DtlsTransport::writeDtls(DtlsSocketContext *ctx, const unsigned char* data,
 }
 
 void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey,std::string serverKey, std::string srtp_profile) {
+  boost::mutex::scoped_lock lock(sessionMutex_);
   if (ctx == dtlsRtp) {
     ELOG_DEBUG("Setting RTP srtp params");
     srtp_ = new SrtpChannel();

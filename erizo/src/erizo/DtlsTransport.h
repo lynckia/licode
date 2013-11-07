@@ -30,7 +30,7 @@ namespace erizo {
     char protectBuf_[5000];
     char unprotectBuf_[5000];
     dtls::DtlsSocketContext *dtlsRtp, *dtlsRtcp;
-    boost::mutex writeMutex_, readMutex_;
+    boost::mutex writeMutex_, readMutex_, sessionMutex_;
     SrtpChannel *srtp_, *srtcp_;
     bool readyRtp, readyRtcp;
     bool bundle_;
