@@ -432,26 +432,25 @@ namespace erizo {
 
   void WebRtcConnection::sendLoop() {
 
-    while (sending_ == true) {
-      //    while (!boost::this_thread::interruption_requested()){
-      receiveVideoMutex_.lock();
-      if (sendQueue_.size() > 0) {
-        if (sendQueue_.front().type == AUDIO_PACKET) {
-          audioTransport_->writeOnNice(sendQueue_.front().comp, sendQueue_.front().data,
-              sendQueue_.front().length);
+      while (sending_ == true) {
+        //    while (!boost::this_thread::interruption_requested()){
+        receiveVideoMutex_.lock();
+        if (sendQueue_.size() > 0) {
+          if (sendQueue_.front().type == AUDIO_PACKET) {
+            audioTransport_->writeOnNice(sendQueue_.front().comp, sendQueue_.front().data,
+                sendQueue_.front().length);
+          } else {
+            videoTransport_->writeOnNice(sendQueue_.front().comp, sendQueue_.front().data,
+                sendQueue_.front().length);
+          }
+          sendQueue_.pop();
+          receiveVideoMutex_.unlock();
         } else {
-          videoTransport_->writeOnNice(sendQueue_.front().comp, sendQueue_.front().data,
-              sendQueue_.front().length);
+          receiveVideoMutex_.unlock();
+          usleep(1000);
         }
-        sendQueue_.pop();
-        receiveVideoMutex_.unlock();
-      } else {
-        receiveVideoMutex_.unlock();
-        usleep(1000);
       }
-    }
 
-    receiveVideoMutex_.unlock();
     }
 }
 /* namespace erizo */
