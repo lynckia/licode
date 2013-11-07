@@ -10,7 +10,7 @@ LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
 pause() {
-  read -p "$*"
+  echo "$*"
 }
 
 parse_arguments(){
@@ -26,6 +26,7 @@ parse_arguments(){
 
 install_apt_deps(){
   sudo apt-get install python-software-properties
+  sudo apt-get install cmake
   sudo apt-get install software-properties-common
   sudo add-apt-repository ppa:chris-lea/node.js
   sudo apt-get update
