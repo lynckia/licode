@@ -334,7 +334,19 @@ namespace erizo {
   void WebRtcConnection::updateState(TransportState state, Transport * transport) {
     boost::mutex::scoped_lock lock(updateStateMutex_);
     WebRTCState temp = INITIAL;
+    ELOG_INFO("Update Transport State %d", state);
     if (audioTransport_ == NULL && videoTransport_ == NULL) {
+      return;
+    }
+
+    if (state == TRANSPORT_FAILED) {
+      temp = FAILED;
+      ELOG_INFO("WebRtcConnection failed.");
+    }
+
+    
+    if (globalState_ == FAILED) {
+      // if current state is failed we don't use
       return;
     }
 

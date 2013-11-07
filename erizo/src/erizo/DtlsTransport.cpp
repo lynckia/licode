@@ -174,7 +174,11 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
   if (ctx == dtlsRtp) {
     ELOG_DEBUG("Setting RTP srtp params");
     srtp_ = new SrtpChannel();
-    readyRtp = srtp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str());
+    if (srtp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str())) {
+      readyRtp = true;
+    } else {
+      updateTransportState(TRANSPORT_FAILED);
+    }
     if (dtlsRtcp == NULL) {
       readyRtcp = true;
     }
@@ -182,7 +186,11 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
   if (ctx == dtlsRtcp) {
     ELOG_DEBUG("Setting RTCP srtp params");
     srtcp_ = new SrtpChannel();
-    readyRtcp = srtcp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str());
+    if (srtcp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str())) {
+      readyRtcp = true;
+    } else {
+      updateTransportState(TRANSPORT_FAILED);
+    }
   }
   if (readyRtp && readyRtcp) {
     updateTransportState(TRANSPORT_READY);
