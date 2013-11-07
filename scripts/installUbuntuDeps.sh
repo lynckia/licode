@@ -9,6 +9,8 @@ CURRENT_DIR=`pwd`
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
+set -e
+
 pause() {
   echo "$*"
 }
@@ -25,12 +27,12 @@ parse_arguments(){
 }
 
 install_apt_deps(){
-  sudo apt-get install python-software-properties
-  sudo apt-get install cmake
-  sudo apt-get install software-properties-common
-  sudo add-apt-repository ppa:chris-lea/node.js
-  sudo apt-get update
-  sudo apt-get install git make gcc g++ libssl-dev cmake libnice10 libnice-dev libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl
+  sudo apt-get -y install python-software-properties
+  sudo apt-get -y install cmake
+  sudo apt-get -y install software-properties-common
+  sudo add-apt-repository -y ppa:chris-lea/node.js
+  sudo apt-get -y update
+  sudo apt-get -y install git make gcc g++ libssl-dev cmake libnice10 libnice-dev libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl
   sudo npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/
 }
@@ -68,7 +70,7 @@ install_libnice(){
 }
 
 install_mediadeps(){
-  sudo apt-get install yasm libvpx. libx264.
+  sudo apt-get -y install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-9.9.tar.gz
@@ -86,7 +88,7 @@ install_mediadeps(){
 }
 
 install_mediadeps_nogpl(){
-  sudo apt-get install yasm libvpx.
+  sudo apt-get -y install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-9.9.tar.gz
