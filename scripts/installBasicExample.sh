@@ -13,4 +13,7 @@ cd $EXTRAS/basic_example
 
 npm install --loglevel debug express
 
+cp -r $ROOT/erizo_controller/erizoClient/dist/erizo.js $EXTRAS/basic_example/public/
+cp -r $ROOT/nuve/nuveClient/dist/nuve.js $EXTRAS/basic_example/
+
 cd $CURRENT_DIR
