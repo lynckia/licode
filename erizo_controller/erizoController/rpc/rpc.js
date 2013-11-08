@@ -40,9 +40,8 @@ exports.connect = function(callback) {
 			  	clientQueue.subscribe(function (message) {
 
 			  		if(map[message.corrID] !== undefined) {
-
+			  			clearTimeout(map[message.corrID].to);
 						map[message.corrID].fn(message.data);
-						clearTimeout(map[message.corrID].to);
 						delete map[message.corrID];
 					}
 			  	});
