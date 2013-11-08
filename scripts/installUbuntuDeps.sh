@@ -9,8 +9,6 @@ CURRENT_DIR=`pwd`
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
-set -e
-
 pause() {
   echo "$*"
 }
