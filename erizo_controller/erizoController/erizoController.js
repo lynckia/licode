@@ -8,6 +8,8 @@ var server = http.createServer();
 var io = require('socket.io').listen(server, {log:false});
 var config = require('./../../licode_config');
 var logger = require('./logger').logger;
+var Permission = require('./permission');
+
 server.listen(8080);
 
 io.set('log level', 0);
@@ -220,8 +222,14 @@ var listen = function () {
                             rooms[tokenDB.room].sockets.push(socket.id);
                         }
                         user = {name: tokenDB.userName, role: tokenDB.role};
-                        socket.room = rooms[tokenDB.room];
                         socket.user = user;
+                        var permissions = config.roles[tokenDB.role] || [];
+                        socket.user.permissions = {};
+                        for (var i in permissions) {
+                            var permission = permissions[i];
+                            socket.user.permissions[permission] = true;
+                        }
+                        socket.room = rooms[tokenDB.room];
                         socket.streams = []; //[list of streamIds]
                         socket.state = 'sleeping';
 
@@ -267,6 +275,10 @@ var listen = function () {
         //Gets 'publish' messages on the socket in order to add new stream to the room.
         socket.on('publish', function (options, sdp, callback) {
             var id, st;
+            if (!socket.user.permissions[Permission.PUBLISH]) {
+		callback('error', 'unauthorized');
+                return;
+            }
             if (options.state === 'url') {
                 id = Math.random() * 100000000000000000;
                 socket.room.webRtcController.addExternalInput(id, sdp, function (result) {
@@ -316,7 +328,10 @@ var listen = function () {
 
         //Gets 'subscribe' messages on the socket in order to add new subscriber to a determined stream (options.streamId).
         socket.on('subscribe', function (options, sdp, callback) {
-
+            if (!socket.user.permissions[Permission.SUBSCRIBE]) {
+                callback('error', 'unauthorized');
+                return;
+            }
             var stream = socket.room.streams[options.streamId];
 
             if (stream === undefined) {
@@ -349,6 +364,10 @@ var listen = function () {
 
         //Gets 'startRecorder' messages
         socket.on('startRecorder', function (options) {
+          if (!socket.user.permissions[Permission.RECORD]) {
+              callback('error', 'unauthorized');
+              return;
+          }
           var streamId = options.to;
           var url = options.url;
           logger.info("erizoController.js: Starting recorder streamID " + streamId + " url " + url);
@@ -359,12 +378,20 @@ var listen = function () {
         });
 
         socket.on('stopRecorder', function (options) {
+          if (!socket.user.permissions[Permission.RECORD]) {
+              callback('error', 'unauthorized');
+              return;
+          }
           logger.info("erizoController.js: Stoping recorder to streamId " + options.to + " url " + options.url);
           socket.room.webRtcController.removeExternalOutput(options.to, options.url);
         });
 
         //Gets 'unpublish' messages on the socket in order to remove a stream from the room.
         socket.on('unpublish', function (streamId) {
+            if (!socket.user.permissions[Permission.PUBLISH]) {
+                callback('error', 'unauthorized');
+                return;
+            }
             var i, index;
 
             sendMsgToRoom(socket.room, 'onRemoveStream', {id: streamId});
@@ -388,7 +415,10 @@ var listen = function () {
 
         //Gets 'unsubscribe' messages on the socket in order to remove a subscriber from a determined stream (to).
         socket.on('unsubscribe', function (to) {
-
+            if (!socket.user.permissions[Permission.SUBSCRIBE]) {
+                callback('error', 'unauthorized');
+                return;
+            }
             if (socket.room.streams[to] === undefined) {
                 return;
             }

@@ -57,7 +57,6 @@ public:
   FeedbackSource* getFeedbackSource(){
     return sinkfbSource_;
   };
-  virtual void closeSink()=0;
 	virtual ~MediaSink(){};
 };
 
@@ -89,7 +88,6 @@ public:
   void setVideoSourceSSRC (unsigned int ssrc){videoSourceSSRC_ = ssrc;};
   unsigned int getAudioSourceSSRC (){return audioSourceSSRC_;};
   void setAudioSourceSSRC (unsigned int ssrc){audioSourceSSRC_ = ssrc;};
-  virtual void closeSource()=0;
 	virtual ~MediaSource(){};
 };
 

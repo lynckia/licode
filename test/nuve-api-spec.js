@@ -1,4 +1,4 @@
-var N = require('../extras/basic_example/nuve'),
+var N = require('../nuve/nuveClient/dist/nuve'),
 	config = require('../licode_config');
 
  var TIMEOUT=10000,
@@ -93,7 +93,7 @@ describe("nuve", function () {
     it("should create tokens for users in normal rooms", function () {
     	var obtained = false;
     	var received = false;
-        N.API.createToken(id, "user", "role", function(token) {
+        N.API.createToken(id, "user", "presenter", function(token) {
             obtained = true;
             received = true;
         }, function(error) {

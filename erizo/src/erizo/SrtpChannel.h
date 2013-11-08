@@ -8,6 +8,7 @@
 #include <string>
 #include <netinet/in.h>
 #include <srtp/srtp.h>
+#include <boost/thread/mutex.hpp>
 #include "rtputils.h"
 #include "logger.h"
 
@@ -20,6 +21,7 @@ namespace erizo {
 class SrtpChannel {
 	DECLARE_LOGGER();
 	static bool initialized;
+	static boost::mutex sessionMutex_;
 
 public:
 	/**
