@@ -1,0 +1,99 @@
+.meeting_version_rest {
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background: #F8F8F8;
+    -moz-box-shadow: 0 -4px 4px rgba(0, 0, 0, 0.1);
+    -webkit-box-shadow: 0 -4px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 -4px 4px rgba(0, 0, 0, 0.1);
+}
+
+#meeting_version_panel {
+    text-align: center;
+    padding-top: 75px;
+}
+
+.intermittent {
+    animation: interm 3s infinite;
+    -moz-animation: interm 3s infinite;
+    -webkit-animation: interm 3s infinite;
+    -o-animation: interm 3s infinite;
+    -ms-animation: interm 3s infinite;
+}
+
+#meeting {
+    position: relative;
+}
+
+#chat {
+    height: 95%;
+    position: relative;
+    text-align: left;
+}
+
+#video_grid{
+    height: 95%;
+    border: 1px solid #012C79;
+}
+
+#username_txt {
+    padding-left: 3px;
+}
+
+#chat_body {
+
+    background-color: white;
+    position: absolute;
+    bottom: 41px;
+    top: 0px;
+    padding: 10px;
+    overflow-y: auto;
+    border: 1px solid #012C79;
+    width: 92%;
+    font-size: 14px;
+}
+
+#chat_message {
+
+    position: absolute;
+    bottom: 0px;
+    padding: 10px;
+    border: 1px solid #012C79;
+    width: 92%;
+ 
+    font-size: 14px;
+  
+}
+
+.grid_element_border {
+    float: left;
+    position: relative;
+    background-color: #012C79;
+}
+.grid_element {
+    position: absolute;
+    bottom: 1px;
+    top: 1px;
+    right: 1px;
+    left: 1px;
+}
+
+.chat_name {
+    font-weight: bold;
+    float: left;
+    padding-right: 3px;
+}
+
+.chat_italic {
+    font-style: italic;
+}
+
+@-webkit-keyframes interm {
+  from { box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 1px 5px rgba(0,0,0,.25), 0 2px 10px rgba(0,68,204,.5); }
+  50% {  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 1px 5px rgba(0,0,0,.25), 0 2px 25px rgba(0,68,204,.9); }
+  to {   box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 1px 5px rgba(0,0,0,.25), 0 2px 10px rgba(0,68,204,.5); }
+}
+@-moz-keyframes interm {
+  from { box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 1px 5px rgba(0,0,0,.25), 0 2px 10px rgba(0,68,204,.5); }
+  50% {  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 1px 5px rgba(0,0,0,.25), 0 2px 25px rgba(0,68,204,.9); }
+  to {   box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 1px 5px rgba(0,0,0,.25), 0 2px 10px rgba(0,68,204,.5); }
+}

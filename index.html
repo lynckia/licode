@@ -1,20 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="utf-8"> 
-	
-	<title>Lynckia</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="stylesheet" href="css/bootstrap.css" type="text/css">
-	<link rel="stylesheet" href="css/bootstrap-responsive.css" type="text/css">
-	<link rel="stylesheet" href="css/style.css" type="text/css">
-	
-	
+    <meta charset="utf-8"> 
+    
+    <title>Lynckia</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/bootstrap.css" type="text/css">
+    <link rel="stylesheet" href="css/bootstrap-responsive.css" type="text/css">
+    <link rel="stylesheet" href="css/style.css" type="text/css">
+
+    <link rel="stylesheet" href="css/licode_demo.css" type="text/css">
+    <script src="js/licode_demo.js"></script>
+    <script src="http://rosendo.dit.upm.es:4001/javascripts/erizo.js"></script>
+    
+    
 </head>
 <body>
-	<a href="#" class="scrollup">Scroll</a>
-	<div class="top_float"></div>
-	<div class="clear"></div>
+    <a href="#" class="scrollup">Scroll</a>
+    <div class="top_float"></div>
+    <div class="clear"></div>
     
     <header id="home">
         <div class="container-fluid">
@@ -22,10 +26,10 @@
                 <div class="container">
                     <div class="row">
                         <div class="logo_holder ">
-                        	<a href="index.html"><img src="images/logo.png" title=" " alt=" "/></a>
+                            <a href="index.html"><img src="images/logo.png" title=" " alt=" "/></a>
                         </div>
                         <div class="menu_holder">
-                        	<ul class="visible-phone">
+                            <ul class="visible-phone">
                                 <li>
                                     <select id="phone_menu">
                                         <option value="#home">Home</option>
@@ -36,8 +40,12 @@
                                 </li>
                             </ul>
                             <ul class="menu visible-desktop visible-tablet">
-                            	<li class="active parent">
-                                	<a href="#home" id="trigger-home" class="lsf scroll" data-placement="top" data-original-title="HOME">home</a>
+                                <li id="meeting_version_menu" class="parent hide">
+                                    <a href="#meeting" id="trigger-home" class="lsf scroll" data-placement="top" data-original-title="MEETING">call</a>
+
+                                </li>
+                                <li id="home_menu" class="active parent">
+                                    <a href="#home" id="trigger-home" class="lsf scroll" data-placement="top" data-original-title="HOME">home</a>
 
                                 </li>
                                 <li class="parent">
@@ -52,154 +60,188 @@
             </div>
         </div>
     </header>
-    
-    <div class="clear"></div>
 
+    <div id="meeting_version_panel" class="hide">
+
+        <div id="meeting" class="container-fluid portfolio">
+            <div class="row-fluid">
+                <div class="container">
+                    <div class="row">
+                        <div class="span12">
+                            <div class="main_heading">Meeting<span><strong>&nbsp; / &nbsp;</strong>Welcome to our meeting service</span></div>
+                        </div>
+                    </div>
+
+                    <div id="meeting_version_form" class="row">
+                        <hr>
+                        <div class="form-inline">
+                            <p>Please, enter your name to connect to the meeting room: </p>
+                            <input id="meeting_version_username" type="text" class="form-control" placeholder="Your name" required="">
+                         
+                            <button id="meeting_version_button" type="button" class="btn">Connect</button>
+                        </div>
+                         <hr>
+                    </div>
                     
-    
-    
-    <div class="container-fluid welcome_txt">
-    	<div class="row-fluid">
-        	<div class="container">
-            	<div class="row">
-                	<div class="span6">
-                        <div class="clear"></div>
-                        <div class="span9">
-                        <div class="clear"></div>
-                        <img class="firstimage" src="images/star.png" title=" " alt=" "/>
-                    </div>
+                    <div id="meeting_version_conference" class="row hide">
+                        <div id="video_grid" class="span9">
+                            
+                            
+                        </div>
+                        <div id="chat" class="span3">
 
+                            <div id="chat_body"></div>
+                            <input id="chat_message" name="mensaje" rows="1" placeholder="Chat message">
+                            
+                        </div>
                     </div>
-                    <div class="span6">
-                        <div class="sub_heading">Web Real Time Communications Solutions</div>
-                        <hr>
-                    	<p>In today's web systems and applications real-time communication is a key factor and a very atractive resource for the users. From Lynckia we are going to design an ad-hoc solution for your service according to its specific requirements. And this solution will be based on our main product Licode, leveraged by an Open Source community which is downloading and testing the software every day.</p>
-                        <hr>
-                        <div class="double_break"></div>
-                        
-                                </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <div id="meeting_version_rest">
+    
+        <div class="container-fluid welcome_txt">
+            <div class="row-fluid">
+                <div class="container">
+                    <div class="row">
+                        <div class="span6">
+                            <div class="clear"></div>
+                            <div class="span9">
+                                <div class="clear"></div>
+                                <img class="firstimage" src="images/star.png" title=" " alt=" "/>
+                            </div>
+
+                        </div>
+                        <div class="span6">
+                            <div class="sub_heading">Web Real Time Communications Solutions</div>
+                            <hr>
+                            <p>In today's web systems and applications real-time communication is a key factor and a very atractive resource for the users. From Lynckia we are going to design an ad-hoc solution for your service according to its specific requirements. And this solution will be based on our main product Licode, leveraged by an Open Source community which is downloading and testing the software every day.</p>
+                            <hr>
+                            <div class="double_break"></div>
+                            
+                        </div>
+                    </div>
+                </div>           
+            </div>
+        </div>
+
+        <div class="clear"></div>               
+        <div class="horizontal_seperator"></div>
+        <div class="clear"></div>
+
+        <div id="licode" class="container-fluid portfolio">
+            <div class="row-fluid">
+                <div class="container">
+                    <div class="row">
+                        <div class="span12">
+                            <div class="main_heading">Licode<span><strong>&nbsp; / &nbsp;</strong>Open Source WebRTC Communications Platform</span></div>
+                            <div class="promo">
+                                <p>Licode is our main core software platform. It is an Open Source project that allows you to include real-time communications like streaming or videoconference in your web application in a very easy an fast way. If you want to know more about Licode don't doubt in visit its website!</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="span8 new_project">
+                            <div class="active_image">
+                                <a href="licode/" target="_blank"><img src="images/promo1.png"  alt=" " /></a>
+                            </div>
+                            <div class="double_break"></div>
+     
+                            <div class="single_break"></div>
+
+                            
+                        </div>
+                        <div class="span4">
+                            <div class="sub_heading">Built on top of WebRTC</div>
+                            <div class="single_break"></div>
+                            <p>Licode is based on WebRTC technologies. It is 100% compatible with latest stable versions of Google Chrome. Your users will be able to talk from their web browsers with no need to installing anything.</p>
+                            <div class="sub_heading">Easy, fast and scalable.</div>
+                            <div class="single_break"></div>
+                            <p>Easy, fast and scalable.You don't need to care about complicated real-time infrastructures. Licode provides a fast development of real-time communications features based on HTML5. And we make it 100% scalable.</p>
+                            <div class="sub_heading">Videoconference, Streaming, Recording.</div>
+                            <div class="single_break"></div>
+                            <p>Licode allows you to include videoconference rooms on your web. But you can also implement streaming, recording and any other real-time multimedia features you dreamt of!</p>
+                            <div class="single_break"></div>
+                            <a href="licode/" target="_blank" class="button">Project Website</a>
+                            <hr/>      
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="team" class="container-fluid main">
+            <div class="row-fluid">
+                <div class="container">
+                    <div class="row">
+                        <div class="span12">
+                            <div class="main_heading">Our Team</div>
+                            <div class="promo">
+                                <p>We are a team of engineers with more than ten years of experience in videoconference and real time systems. We designed services in multiple technologies during these years. Now, we are totally focused on web communications to offer the best solution to the requirements of your company. </p>
                             </div>
                         </div>
                         
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-     <div class="clear"></div>               
-    <div class="horizontal_seperator"></div>
-    <div class="clear"></div>
-    
-    <div id="licode" class="container-fluid portfolio">
-        <div class="row-fluid">
-            <div class="container">
-                <div class="row">
-                    <div class="span12">
-                        <div class="main_heading">Licode<span><strong>&nbsp; / &nbsp;</strong>Open Source WebRTC Communications Platform</span></div>
-                        <div class="promo">
-                            <p>Licode is our main core software platform. It is an Open Source project that allows you to include real-time communications like streaming or videoconference in your web application in a very easy an fast way. If you want to know more about Licode don't doubt in visit its website!</p>
+                    <div class="row">
+                        <div class="span4 team">
+                            <img src="images/team/001.jpg" title=" " alt=" "/>
+                            <div class="clear"></div>
+                            <div class="sub_heading">Javier Cerviño</div>
+                            <div class="clear"></div>
+                            <h4>FrontEnd Developer</h4>
+                            <div class="clear"></div>
+                            <p></p>
+                             <div class="single_break"></div>
+                             <div class="social-icons2">
+                                <a href="http://www.linkedin.com/profile/view?id=36508164&locale=es_ES&trk=tyah" target="_blank" target=data-placement="top" data-original-title="LINKEDIN">i</a>
+                                <a href="http://twitter.com/jcague" target="_blank" data-placement="top" data-original-title="TWITTER">l</a>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="span8 new_project">
-                        <div class="active_image">
-                            <a href="licode/" target="_blank"><img src="images/promo1.png"  alt=" " /></a>
+                        <div class="span4 team">
+                            <img src="images/team/002.jpg" title=" " alt=" "/>
+                            <div class="clear"></div>
+                            <div class="sub_heading">Pedro Rodríguez</div>
+                            <div class="clear"></div>
+                            <h4>BackEnd Developer </h4>
+                            <div class="clear"></div>
+                            <p></p>
+                            <div class="single_break"></div>
+                            <div class="social-icons2">
+                                <a href="http://www.linkedin.com/profile/view?id=148057752&locale=es_ES&trk=tyah" target="_blank" data-placement="top" data-original-title="LINKEDIN">i</a>
+                                <a href="http://twitter.com/lodoyun" target="_blank" data-placement="top" data-original-title="TWITTER">l</a>
+                            </div>
                         </div>
-                        <div class="double_break"></div>
- 
-                        <div class="single_break"></div>
-
-                        
-                    </div>
-                    <div class="span4">
-                        <div class="sub_heading">Built on top of WebRTC</div>
-                        <div class="single_break"></div>
-                        <p>Licode is based on WebRTC technologies. It is 100% compatible with latest stable versions of Google Chrome. Your users will be able to talk from their web browsers with no need to installing anything.</p>
-                        <div class="sub_heading">Easy, fast and scalable.</div>
-                        <div class="single_break"></div>
-                        <p>Easy, fast and scalable.You don't need to care about complicated real-time infrastructures. Licode provides a fast development of real-time communications features based on HTML5. And we make it 100% scalable.</p>
-                        <div class="sub_heading">Videoconference, Streaming, Recording.</div>
-                        <div class="single_break"></div>
-                        <p>Licode allows you to include videoconference rooms on your web. But you can also implement streaming, recording and any other real-time multimedia features you dreamt of!</p>
-                        <div class="single_break"></div>
-                        <a href="licode/" target="_blank" class="button">Project Website</a>
-                        <hr/>      
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="team" class="container-fluid main">
-        <div class="row-fluid">
-            <div class="container">
-                <div class="row">
-                    <div class="span12">
-                        <div class="main_heading">Our Team</div>
-                        <div class="promo">
-                            <p>We are a team of engineers with more than ten years of experience in videoconference and real time systems. We designed services in multiple technologies during these years. Now, we are totally focused on web communications to offer the best solution to the requirements of your company. </p>
-                        </div>
-                    </div>
-                    
-                </div>
-                <div class="row">
-                    <div class="span4 team">
-                        <img src="images/team/001.jpg" title=" " alt=" "/>
-                        <div class="clear"></div>
-                        <div class="sub_heading">Javier Cerviño</div>
-                        <div class="clear"></div>
-                        <h4>FrontEnd Developer</h4>
-                        <div class="clear"></div>
-                        <p></p>
-                         <div class="single_break"></div>
-                         <div class="social-icons2">
-                            <a href="http://www.linkedin.com/profile/view?id=36508164&locale=es_ES&trk=tyah" target="_blank" target=data-placement="top" data-original-title="LINKEDIN">i</a>
-                            <a href="http://twitter.com/jcague" target="_blank" data-placement="top" data-original-title="TWITTER">l</a>
-                        </div>
-                    </div>
-                    <div class="span4 team">
-                        <img src="images/team/002.jpg" title=" " alt=" "/>
-                        <div class="clear"></div>
-                        <div class="sub_heading">Pedro Rodríguez</div>
-                        <div class="clear"></div>
-                        <h4>BackEnd Developer </h4>
-                        <div class="clear"></div>
-                        <p></p>
-                        <div class="single_break"></div>
-                        <div class="social-icons2">
-                            <a href="http://www.linkedin.com/profile/view?id=148057752&locale=es_ES&trk=tyah" target="_blank" data-placement="top" data-original-title="LINKEDIN">i</a>
-                            <a href="http://twitter.com/lodoyun" target="_blank" data-placement="top" data-original-title="TWITTER">l</a>
-                        </div>
-                    </div>
-                    <div class="span4 team">
-                        <img src="images/team/003.jpg" title=" " alt=" "/>
-                        <div class="clear"></div>
-                        <div class="sub_heading">Álvaro Alonso</div>
-                        <div class="clear"></div>
-                        <h4>BackEnd Developer</h4>
-                        <div class="clear"></div>
-                        <p></p>
-                        <div class="single_break"></div>
-                        <div class="social-icons2">
-                            <a href="http://www.linkedin.com/profile/view?id=227240998&trk=tab_pro" target="_blank" data-placement="top" data-original-title="LINKEDIN">i</a>
-                            <a href="http://twitter.com/larsonalonso" target="_blank" data-placement="top" data-original-title="TWITTER">l</a>
+                        <div class="span4 team">
+                            <img src="images/team/003.jpg" title=" " alt=" "/>
+                            <div class="clear"></div>
+                            <div class="sub_heading">Álvaro Alonso</div>
+                            <div class="clear"></div>
+                            <h4>BackEnd Developer</h4>
+                            <div class="clear"></div>
+                            <p></p>
+                            <div class="single_break"></div>
+                            <div class="social-icons2">
+                                <a href="http://www.linkedin.com/profile/view?id=227240998&trk=tab_pro" target="_blank" data-placement="top" data-original-title="LINKEDIN">i</a>
+                                <a href="http://twitter.com/larsonalonso" target="_blank" data-placement="top" data-original-title="TWITTER">l</a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="clear"></div>
-    <div class="horizontal_seperator"></div>
-    <div class="clear"></div>
+        <div class="clear"></div>
+        <div class="horizontal_seperator"></div>
+        <div class="clear"></div>
+
+    </div>
 
     <div class="sub_footer">
-    	<div id="contact" class="container-fluid contact">
+        <div id="contact" class="container-fluid contact">
         <div class="row-fluid">
             <div class="container">
                 <div class="row">
@@ -257,17 +299,17 @@
     </div>
     </div>
     
-	<script src="js/jquery-1.8.2.min.js"></script>
-	<script src="js/jquery.easing.1.3.js"></script>
-	<script src="js/bootstrap.min.js"></script>
+    <script src="js/jquery-1.8.2.min.js"></script>
+    <script src="js/jquery.easing.1.3.js"></script>
+    <script src="js/bootstrap.min.js"></script>
     <script src="js/form-validation.js"></script>
     
     
     <!-- jQuery KenBurn Slider  -->
-	<script type="text/javascript" src="js/jquery.themepunch.plugins.min.js"></script>
+    <script type="text/javascript" src="js/jquery.themepunch.plugins.min.js"></script>
     <script type="text/javascript" src="js/jquery.themepunch.revolution.min.js"></script>
     
-	<script src="js/script.js"></script>
+    <script src="js/script.js"></script>
     <script type="text/javascript" src="http://twitter.com/javascripts/blogger.js">  
 </script>
 <script type="text/javascript" src="https://api.twitter.com/1/statuses/user_timeline.json?screen_name=Lynckia&amp;include_rts=1&amp;callback=twitterCallback2&amp;count=3">  </script>
@@ -299,9 +341,9 @@ jQuery(document).ready(function($) {
  
     });
 </script>
-	
-	
+    
+    
 
-	
+    
 </body>
 </html>
