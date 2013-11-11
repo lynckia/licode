@@ -48,7 +48,7 @@ namespace erizo {
   void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
       gchar *lfoundation, gchar *rfoundation, gpointer user_data) {
     NiceConnection *conn = (NiceConnection*) user_data;
-    conn->updateComponentState(component_id, NICE_READY);
+    //conn->updateComponentState(component_id, NICE_READY);
   }
 
   NiceConnection::NiceConnection(MediaType med,
@@ -95,7 +95,7 @@ namespace erizo {
   }
 
   int NiceConnection::sendData(unsigned int compId, const void* buf, int len) {
-
+    boost::mutex::scoped_lock lock(writeMutex_);
     int val = -1;
     if (iceState == NICE_READY) {
       val = nice_agent_send(agent_, 1, compId, len, reinterpret_cast<const gchar*>(buf));
@@ -186,7 +186,6 @@ namespace erizo {
         NiceCandidateType nice_cand_type;
         CandidateInfo cinfo = candidates[it];
         if (cinfo.mediaType != this->mediaType
-            || this->transportName->compare(cinfo.transProtocol)
             || cinfo.componentId != compId)
           continue;
 
@@ -354,7 +353,7 @@ namespace erizo {
   }
 
   void NiceConnection::updateComponentState(unsigned int compId, IceState state) {
-    ELOG_DEBUG("NICE Component State Changed %u - %u", compId, state);
+    ELOG_DEBUG("%s - NICE Component State Changed %u - %u", transportName->c_str(), compId, state);
     comp_state_list[compId] = state;
     if (state == NICE_READY) {
       for (unsigned int i = 1; i<=iceComponents_; i++) {
@@ -367,7 +366,7 @@ namespace erizo {
   }
 
   void NiceConnection::updateIceState(IceState state) {
-    ELOG_DEBUG("NICE State Changed %u", state);
+    ELOG_DEBUG("%s - NICE State Changed %u", transportName->c_str(), state);
     this->iceState = state;
     if (this->listener_ != NULL)
       this->listener_->updateIceState(state, this);

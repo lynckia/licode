@@ -93,11 +93,14 @@ Erizo.FirefoxStack = function (spec) {
 
                 //msg.sdp = msg.sdp.replace(regExp, exp + "b=AS:100\r\n");
 
+                msg.sdp = msg.sdp.replace(/ generation 0/g, "");
+                msg.sdp = msg.sdp.replace(/ udp /g, " UDP ");
+
                 sd = {
                     sdp: msg.sdp,
                     type: 'answer'
                 };
-                L.Logger.debug("Received ANSWER: ", sd);
+                L.Logger.debug("Received ANSWER: ", sd.sdp);
                 that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
                 that.sendOK();
                 that.state = 'established';
