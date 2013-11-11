@@ -48,7 +48,7 @@ namespace erizo {
   void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
       gchar *lfoundation, gchar *rfoundation, gpointer user_data) {
     NiceConnection *conn = (NiceConnection*) user_data;
-    //conn->updateComponentState(component_id, NICE_READY);
+    conn->updateComponentState(component_id, NICE_READY);
   }
 
   NiceConnection::NiceConnection(MediaType med,
