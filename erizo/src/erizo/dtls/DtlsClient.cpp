@@ -31,6 +31,7 @@ DEFINE_LOGGER(DtlsSocketContext, "dtls.DtlsSocketContext");
 //memory is only valid for duration of callback; must be copied if queueing
 //is required
 DtlsSocketContext::DtlsSocketContext() {
+  started = false;
 }
 
 DtlsSocketContext::~DtlsSocketContext(){
@@ -51,6 +52,7 @@ std::string DtlsSocketContext::getFingerprint() {
 }
 
 void DtlsSocketContext::start() {
+  started = true;
   mSocket->startClient();
 }
 

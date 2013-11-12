@@ -3,6 +3,8 @@
 
 #include <string.h>
 #include <boost/thread/mutex.hpp>
+#include <boost/asio/deadline_timer.hpp>
+#include <boost/asio.hpp>
 #include "dtls/DtlsSocket.h"
 #include "WebRtcConnection.h"
 #include "NiceConnection.h"
@@ -11,6 +13,7 @@
 
 namespace erizo {
   class SrtpChannel;
+  class Resender;
   class DtlsTransport : dtls::DtlsReceiver, public Transport {
     DECLARE_LOGGER();
     public:
@@ -34,7 +37,29 @@ namespace erizo {
     SrtpChannel *srtp_, *srtcp_;
     bool readyRtp, readyRtcp;
     bool bundle_;
+    boost::scoped_ptr<Resender> rtcpResender, rtpResender;
+
     friend class Transport;
+  };
+
+  class Resender {
+    DECLARE_LOGGER();
+  public:
+    Resender(NiceConnection *nice, unsigned int comp, const unsigned char* data, unsigned int len);
+    virtual ~Resender();
+    void start();
+    void run();
+    void cancel();
+
+    void resend(const boost::system::error_code& ec);
+  private:
+    NiceConnection *nice_;
+    unsigned int comp_;
+    const unsigned char* data_;
+    unsigned int len_;
+    boost::asio::io_service service;
+    boost::asio::deadline_timer *timer;
+    boost::scoped_ptr<boost::thread> thread_;
   };
 }
 #endif

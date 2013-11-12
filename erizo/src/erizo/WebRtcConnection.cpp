@@ -96,10 +96,10 @@ namespace erizo {
       if (remoteSdp_.isFingerprint) {
         // DTLS-SRTP
         if (remoteSdp_.hasVideo) {
-          videoTransport_ = new DtlsTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
+          videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
         }
         if (remoteSdp_.hasAudio) {
-          audioTransport_ = new DtlsTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
+          audioTransport_ = new DtlsTransport(AUDIO_TYPE, "audio", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
         }
       } else {
         // SDES
@@ -108,10 +108,10 @@ namespace erizo {
           CryptoInfo cryptemp = crypto_remote[it];
           if (cryptemp.mediaType == VIDEO_TYPE
               && !cryptemp.cipherSuite.compare("AES_CM_128_HMAC_SHA1_80")) {
-            videoTransport_ = new SdesTransport(VIDEO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this, stunServer_, stunPort_, minPort_, maxPort_);
+            videoTransport_ = new SdesTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this, stunServer_, stunPort_, minPort_, maxPort_);
           } else if (!bundle_ && cryptemp.mediaType == AUDIO_TYPE
               && !cryptemp.cipherSuite.compare("AES_CM_128_HMAC_SHA1_80")) {
-            audioTransport_ = new SdesTransport(AUDIO_TYPE, "", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this, stunServer_, stunPort_, minPort_, maxPort_);
+            audioTransport_ = new SdesTransport(AUDIO_TYPE, "audio", bundle_, remoteSdp_.isRtcpMux, &cryptemp, this, stunServer_, stunPort_, minPort_, maxPort_);
           }
         }
       }
@@ -264,7 +264,7 @@ namespace erizo {
           if (this->getAudioSourceSSRC() == 0) {
             ELOG_DEBUG("Audio Source SSRC is %u", ntohl(head->ssrc));
             this->setAudioSourceSSRC(ntohl(head->ssrc));
-            this->updateState(TRANSPORT_READY, transport);
+            //this->updateState(TRANSPORT_READY, transport);
           }
           head->ssrc = htonl(this->getAudioSinkSSRC());
           audioSink_->deliverAudioData(buf, length);
@@ -276,7 +276,7 @@ namespace erizo {
           if (this->getVideoSourceSSRC() == 0) {
             ELOG_DEBUG("Video Source SSRC is %u", ntohl(head->ssrc));
             this->setVideoSourceSSRC(ntohl(head->ssrc));
-            this->updateState(TRANSPORT_READY, transport);
+            //this->updateState(TRANSPORT_READY, transport);
           }
 
           head->ssrc = htonl(this->getVideoSinkSSRC());
@@ -334,7 +334,7 @@ namespace erizo {
   void WebRtcConnection::updateState(TransportState state, Transport * transport) {
     boost::mutex::scoped_lock lock(updateStateMutex_);
     WebRTCState temp = globalState_;
-    ELOG_DEBUG("Update Transport State %d", state);
+    ELOG_INFO("Update Transport State %s to %d", transport->transport_name.c_str(), state);
     if (audioTransport_ == NULL && videoTransport_ == NULL) {
       return;
     }
@@ -365,6 +365,7 @@ namespace erizo {
     if (state == TRANSPORT_READY &&
         (!remoteSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_READY)) &&
         (!remoteSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_READY))) {
+        // WebRTCConnection will be ready only when all channels are ready.
         temp = READY;
     }
 
@@ -381,14 +382,18 @@ namespace erizo {
     if (temp == READY && globalState_ != temp) {
       ELOG_INFO("Ready to send and receive media");
     }
+
     if (audioTransport_ != NULL && videoTransport_ != NULL) {
-      ELOG_INFO("Update Transport State end, %d - %d, %d - %d, %d - %d, %d - %d", 
-        audioTransport_->getTransportState(), 
-        videoTransport_->getTransportState(), 
+      ELOG_INFO("%s - Update Transport State end, %d - %d, %d - %d, %d - %d", 
+        transport->transport_name.c_str(),
+        (int)audioTransport_->getTransportState(), 
+        (int)videoTransport_->getTransportState(), 
         this->getAudioSourceSSRC(),
         this->getVideoSourceSSRC(),
-        temp, globalState_);
+        (int)temp, 
+        (int)globalState_);
     }
+    
     if (temp < 0) {
       return;
     }

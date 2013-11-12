@@ -1,6 +1,5 @@
 #include "ExternalOutput.h"
 #include "../WebRtcConnection.h"
-#include "../RTPSink.h"
 #include "../rtputils.h"
 #include <cstdio>
 
@@ -179,18 +178,19 @@ namespace erizo {
       int estimatedFps=0;
       int ret = in->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
-      //          ELOG_DEBUG("Estimated FPS %d, previous %d", estimatedFps, prevEstimatedFps_);
 
       if (ret < 0)
         return 0;
       
       if (videoCodec_ == NULL) {
         if ((estimatedFps!=0)&&((estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2)))){
-          //          ELOG_DEBUG("OUT OF THRESHOLD changing context");
           prevEstimatedFps_ = estimatedFps;
         }
         if (warmupfpsCount_++ == 20){
-          
+          if (prevEstimatedFps_==0){
+            warmupfpsCount_ = 0;
+            return 0;
+          }
           if (!this->initContext()){
             ELOG_ERROR("Contex cannot be initialized properly, closing...");
             return -1;

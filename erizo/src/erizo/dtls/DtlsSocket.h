@@ -134,6 +134,7 @@ class DtlsSocketContext
 {
    DECLARE_LOGGER();
    public:
+      bool started;
       //memory is only valid for duration of callback; must be copied if queueing
       //is required
       DtlsSocketContext();

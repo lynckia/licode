@@ -54,6 +54,9 @@ exports.createRoom = function (req, res) {
         if (req.body.options.p2p) {
             room.p2p = true;
         }
+        if (req.body.options.data) {
+            room.data = req.body.options.data;
+        }
         roomRegistry.addRoom(room, function (result) {
             currentService.rooms.push(result);
             serviceRegistry.updateService(currentService);
