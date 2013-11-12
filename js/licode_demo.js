@@ -1,4 +1,4 @@
-var serverUrl = "http://rosendo.dit.upm.es:4001/";
+var serverUrl = "http://chotis2.dit.upm.es/";
 
 var DEMO = {};
 var localStream = undefined;
