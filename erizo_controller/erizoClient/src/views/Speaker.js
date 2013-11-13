@@ -1,9 +1,9 @@
 /*global window, console, document */
 /*
- * Speaker represents the volume icon that will be shown in the VideoPlayer, for example.
- * It manages the volume level of the video tag given in the constructor.
+ * Speaker represents the volume icon that will be shown in the mediaPlayer, for example.
+ * It manages the volume level of the media tag given in the constructor.
  * Every Speaker is a View.
- * Ex.: var speaker = Speaker({elementID: element, video: videoTag, id: id});
+ * Ex.: var speaker = Speaker({elementID: element, media: mediaTag, id: id});
  */
 var Erizo = Erizo || {};
 Erizo.Speaker = function (spec) {
@@ -20,8 +20,8 @@ Erizo.Speaker = function (spec) {
     // DOM element in which the Speaker will be appended
     that.elementID = spec.elementID;
 
-    // Video tag
-    that.video = spec.video;
+    // media tag
+    that.media = spec.media;
 
     // Speaker id
     that.id = spec.id;
@@ -52,7 +52,7 @@ Erizo.Speaker = function (spec) {
         that.picker.step = 10;
         that.picker.value = lastVolume;
         that.div.appendChild(that.picker);
-        that.video.volume = that.picker.value / 100;
+        that.media.volume = that.picker.value / 100;
 
         that.picker.oninput = function (evt) {
             if (that.picker.value > 0) {
@@ -62,7 +62,7 @@ Erizo.Speaker = function (spec) {
                 muted = true;
                 that.icon.setAttribute('src', that.url + '/assets/mute48.png');
             }
-            that.video.volume = that.picker.value / 100;
+            that.media.volume = that.picker.value / 100;
         };
 
         // Private functions
@@ -75,14 +75,14 @@ Erizo.Speaker = function (spec) {
             that.icon.setAttribute('src', that.url + '/assets/mute48.png');
             lastVolume = that.picker.value;
             that.picker.value = 0;
-            that.video.volume = 0;
+            that.media.volume = 0;
         };
 
         unmute = function () {
             muted = false;
             that.icon.setAttribute('src', that.url + '/assets/sound48.png');
             that.picker.value = lastVolume;
-            that.video.volume = that.picker.value / 100;
+            that.media.volume = that.picker.value / 100;
         };
 
         that.icon.onclick = function (evt) {

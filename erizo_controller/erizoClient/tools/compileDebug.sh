@@ -14,5 +14,6 @@ cat ../src/utils/L.Logger.js >> $FILE
 cat ../src/utils/L.Base64.js >> $FILE
 cat ../src/views/View.js >> $FILE
 cat ../src/views/VideoPlayer.js >> $FILE
+cat ../src/views/AudioPlayer.js >> $FILE
 cat ../src/views/Bar.js >> $FILE
 cat ../src/views/Speaker.js >> $FILE
