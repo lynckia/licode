@@ -61,24 +61,14 @@ Erizo.AudioPlayer = function (spec) {
         // Container
         that.div = document.createElement('div');
         that.div.setAttribute('id', 'player_' + that.id);
-        that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; background-color: black; overflow: hidden;');
-
-         // Loader icon
-        that.loader = document.createElement('img');
-        that.loader.setAttribute('style', 'width: 16px; height: 16px; position: absolute; top: 50%; left: 50%; margin-top: -8px; margin-left: -8px');
-        that.loader.setAttribute('id', 'back_' + that.id);
-        that.loader.setAttribute('src', that.url + '/assets/loader.gif');
+        that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; overflow: hidden;');
 
         document.getElementById(that.elementID).appendChild(that.div);
         that.container = document.getElementById(that.elementID);
 
         that.parentNode = that.div.parentNode;
 
-        that.div.appendChild(that.loader);
         that.div.appendChild(that.audio);
-
-        that.containerWidth = 0;
-        that.containerHeight = 0;
 
         // Bottom Bar
         that.bar = new Erizo.Bar({elementID: 'player_' + that.id, id: that.id, stream: spec.stream, media: that.audio, options: spec.options});
@@ -99,60 +89,6 @@ Erizo.AudioPlayer = function (spec) {
     }
 
     that.audio.src = that.stream_url;
-    
-
-    // that.resize = setInterval(function () {
-
-    //     var width = that.container.offsetWidth,
-    //         height = that.container.offsetHeight;
-
-    //     if (!spec.stream.screen) {
-    //         if (width !== that.containerWidth || height !== that.containerHeight) {
-
-    //             if (width * (3 / 4) > height) {
-
-    //                 that.video.style.width = width + "px";
-    //                 that.video.style.height = (3 / 4) * width + "px";
-
-    //                 that.video.style.top = -((3 / 4) * width / 2 - height / 2) + "px";
-    //                 that.video.style.left = "0px";
-
-    //             } else {
-
-    //                 that.video.style.height = height + "px";
-    //                 that.video.style.width = (4 / 3) * height + "px";
-
-    //                 that.video.style.left = -((4 / 3) * height / 2 - width / 2) + "px";
-    //                 that.video.style.top = "0px";
-
-    //             }
-    //         }
-
-    //     } else {
-    //         if (width * (3 / 4) < height) {
-
-    //             that.video.style.width = width + "px";
-    //             that.video.style.height = (3 / 4) * width + "px";
-
-    //             that.video.style.top = -((3 / 4) * width / 2 - height / 2) + "px";
-    //             that.video.style.left = "0px";
-
-    //         } else {
-
-    //             that.video.style.height = height + "px";
-    //             that.video.style.width = (4 / 3) * height + "px";
-
-    //             that.video.style.left = -((4 / 3) * height / 2 - width / 2) + "px";
-    //             that.video.style.top = "0px";
-
-    //         }
-
-    //     }
-
-    //     that.containerWidth = width;
-    //     that.containerHeight = height;
-
-    // }, 500);
 
     return that;
 };
