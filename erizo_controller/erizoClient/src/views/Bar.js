@@ -1,7 +1,7 @@
 /*global window, document, clearTimeout, setTimeout */
 
 /*
- * Bar represents the bottom menu bar of every VideoPlayer.
+ * Bar represents the bottom menu bar of every mediaPlayer.
  * It contains a Speaker and an icon.
  * Every Bar is a View.
  * Ex.: var bar = Bar({elementID: element, id: id});
@@ -68,7 +68,7 @@ Erizo.Bar = function (spec) {
 
     // Speaker component
     if (!spec.stream.screen && (spec.options === undefined || spec.options.speaker === undefined || spec.options.speaker === true)) {
-        that.speaker = new Erizo.Speaker({elementID: 'subbar_' + that.id, id: that.id, stream: spec.stream, video: spec.video});
+        that.speaker = new Erizo.Speaker({elementID: 'subbar_' + that.id, id: that.id, stream: spec.stream, media: spec.media});
     }
 
     that.display();
