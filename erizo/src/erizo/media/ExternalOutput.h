@@ -17,6 +17,7 @@ extern "C" {
 }
 
 namespace erizo{
+#define UNPACKAGE_BUFFER_SIZE 100000
   class WebRtcConnection;
 
   class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource {
@@ -50,7 +51,7 @@ namespace erizo{
       int prevEstimatedFps_;
       int warmupfpsCount_;
       int sequenceNumberFIR_;
-      unsigned long lastTime_;
+      unsigned long long lastTime_;
 
       int video_stream_index, bufflen, aviores_, writeheadres_;
 
@@ -65,9 +66,9 @@ namespace erizo{
       AVPacket avpacket;
       unsigned char* unpackagedBufferpart_;
       unsigned char deliverMediaBuffer_[3000];
-      unsigned char unpackagedBuffer_[15000];
-      unsigned char unpackagedAudioBuffer_[15000];
-      unsigned long initTime_;
+      unsigned char unpackagedBuffer_[UNPACKAGE_BUFFER_SIZE];
+      unsigned char unpackagedAudioBuffer_[UNPACKAGE_BUFFER_SIZE];
+      unsigned long long initTime_;
   };
 }
 #endif /* EXTERNALOUTPUT_H_ */

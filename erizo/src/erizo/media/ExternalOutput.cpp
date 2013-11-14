@@ -9,6 +9,7 @@
 
 namespace erizo {
 #define FIR_INTERVAL_MS 4000
+
   DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 
   ExternalOutput::ExternalOutput(std::string outputUrl){
@@ -81,14 +82,6 @@ namespace erizo {
     delete in;
     in = NULL;
     
-    if (videoCodec_!=NULL){
-      avcodec_close(videoCodecCtx_);
-      videoCodec_=NULL;
-    }
-    if (audioCodec_!=NULL){
-      avcodec_close(audioCodecCtx_);
-      audioCodec_ = NULL;
-    }
     if (context_!=NULL){
       if (writeheadres_>=0)
         av_write_trailer(context_);
@@ -96,6 +89,14 @@ namespace erizo {
         avio_close(context_->pb);
       avformat_free_context(context_);
       context_=NULL;
+    }
+    if (videoCodec_!=NULL){
+      avcodec_close(videoCodecCtx_);
+      videoCodec_=NULL;
+    }
+    if (audioCodec_!=NULL){
+      avcodec_close(audioCodecCtx_);
+      audioCodec_ = NULL;
     }
     ELOG_DEBUG("ExternalOutput closed Successfully");
     return;
@@ -123,13 +124,19 @@ namespace erizo {
         return ret;
       timeval time;
       gettimeofday(&time, NULL);
-      unsigned long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+      unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
       if (millis -lastTime_ >FIR_INTERVAL_MS){
         this->sendFirPacket();
         lastTime_ = millis;
       }
       if (initTime_ == 0) {
-        initTime_ = millis;
+        initTime_ = millis;      
+      }
+      if (millis < initTime_){
+        ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
+      }
+      if (ret > UNPACKAGE_BUFFER_SIZE){
+        ELOG_ERROR("Unpackaged Audio size too big %d", ret);
       }
       AVPacket avpkt;
       av_init_packet(&avpkt);
@@ -192,7 +199,7 @@ namespace erizo {
             return 0;
           }
           if (!this->initContext()){
-            ELOG_ERROR("Contex cannot be initialized properly, closing...");
+            ELOG_ERROR("Context cannot be initialized properly, closing...");
             return -1;
           }
         }
@@ -201,14 +208,22 @@ namespace erizo {
 
       unpackagedSize_ += ret;
       unpackagedBufferpart_ += ret;
+      if (unpackagedSize_ > UNPACKAGE_BUFFER_SIZE){
+        ELOG_ERROR("Unpackaged size bigget than buffer %d", unpackagedSize_);
+      }
       if (gotUnpackagedFrame_ && videoCodec_!=NULL) {
         timeval time;
         gettimeofday(&time, NULL);
-        long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+        unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
         if (initTime_ == 0) {
           initTime_ = millis;
         }
+        if (millis < initTime_)
+        {
+          ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
+        }
         unpackagedBufferpart_ -= unpackagedSize_;
+
         AVPacket avpkt;
         av_init_packet(&avpkt);
         avpkt.data = unpackagedBufferpart_;
@@ -219,6 +234,7 @@ namespace erizo {
         av_free_packet(&avpkt);
         gotUnpackagedFrame_ = 0;
         unpackagedSize_ = 0;
+        unpackagedBufferpart_ = unpackagedBuffer_;
 
       }
     }
@@ -284,7 +300,7 @@ namespace erizo {
 
   int ExternalOutput::sendFirPacket() {
     if (fbSink_ != NULL) {
-      ELOG_DEBUG("Sending FIR");
+      //ELOG_DEBUG("Sending FIR");
       sequenceNumberFIR_++; // do not increase if repetition
       int pos = 0;
       uint8_t rtcpPacket[50];
