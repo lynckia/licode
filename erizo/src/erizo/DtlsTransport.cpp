@@ -264,12 +264,12 @@ void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
 
 void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
   ELOG_DEBUG( "Processing Local SDP in DTLS Transport" );
-  std::vector<CandidateInfo> *cands;
   localSdp_->isFingerprint = true;
   localSdp_->fingerprint = getMyFingerprint();
   if (nice_->iceState >= NICE_CANDIDATES_GATHERED) {
-    cands = nice_->localCandidates;
-    ELOG_DEBUG( "Candidates: %d", cands->size() );
+
+    boost::shared_ptr<std::vector<CandidateInfo> > cands = nice_->localCandidates;
+    ELOG_DEBUG( "Candidates: %lu", cands->size() );
     for (unsigned int it = 0; it < cands->size(); it++) {
       CandidateInfo cand = cands->at(it);
       cand.isBundle = bundle_;

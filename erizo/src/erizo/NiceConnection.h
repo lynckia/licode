@@ -98,7 +98,7 @@ public:
 	/**
 	 * The transport name
 	 */
-	std::string *transportName;
+  boost::scoped_ptr<std::string> transportName;
 	/**
 	 * The state of the ice Connection
 	 */
@@ -106,7 +106,7 @@ public:
 	/**
 	 * The Obtained local candidates.
 	 */
-	std::vector<CandidateInfo>* localCandidates;
+  boost::shared_ptr<std::vector<CandidateInfo> > localCandidates;
 
 	void updateIceState(IceState state);
 	void updateComponentState(unsigned int compId, IceState state);

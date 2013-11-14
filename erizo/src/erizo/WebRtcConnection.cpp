@@ -41,8 +41,6 @@ namespace erizo {
     audioEnabled_ = audioEnabled;
     videoEnabled_ = videoEnabled;
 
-    deliverMediaBuffer_ = (char*)malloc(3000);
-
     stunServer_ = stunServer;
     stunPort_ = stunPort;
     minPort_ = minPort;
@@ -57,7 +55,6 @@ namespace erizo {
     delete audioTransport_;
     audioTransport_= NULL;
     send_Thread_.join();
-    free(deliverMediaBuffer_);
   }
 
   bool WebRtcConnection::init() {
