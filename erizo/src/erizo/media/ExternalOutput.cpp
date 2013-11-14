@@ -9,6 +9,7 @@
 
 namespace erizo {
 #define FIR_INTERVAL_MS 4000
+
   DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 
   ExternalOutput::ExternalOutput(std::string outputUrl){
@@ -134,6 +135,9 @@ namespace erizo {
       if (millis < initTime_){
         ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
       }
+      if (ret > UNPACKAGE_BUFFER_SIZE){
+        ELOG_ERROR("Unpackaged Audio size too big %d", ret);
+      }
       AVPacket avpkt;
       av_init_packet(&avpkt);
       avpkt.data = unpackagedAudioBuffer_;
@@ -204,6 +208,9 @@ namespace erizo {
 
       unpackagedSize_ += ret;
       unpackagedBufferpart_ += ret;
+      if (unpackagedSize_ > UNPACKAGE_BUFFER_SIZE){
+        ELOG_ERROR("Unpackaged size bigget than buffer %d", unpackagedSize_);
+      }
       if (gotUnpackagedFrame_ && videoCodec_!=NULL) {
         timeval time;
         gettimeofday(&time, NULL);
@@ -293,7 +300,7 @@ namespace erizo {
 
   int ExternalOutput::sendFirPacket() {
     if (fbSink_ != NULL) {
-      ELOG_DEBUG("Sending FIR");
+      //ELOG_DEBUG("Sending FIR");
       sequenceNumberFIR_++; // do not increase if repetition
       int pos = 0;
       uint8_t rtcpPacket[50];
