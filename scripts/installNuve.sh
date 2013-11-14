@@ -43,12 +43,9 @@ populate_mongo(){
   echo [licode] SuperService ID $SERVID
   echo [licode] SuperService KEY $SERVKEY
 
-  cd $BUILD_DIR
-  replacement=s/_auto_generated_ID_/${SERVID}/
-  sed $replacement $PATHNAME/licode_default.js > $BUILD_DIR/licode_1.js
-  replacement=s/_auto_generated_KEY_/${SERVKEY}/
-  sed $replacement $BUILD_DIR/licode_1.js > $ROOT/licode_config.js
-  rm $BUILD_DIR/licode_1.js
+  perl -pi -e "s/_auto_generated_ID_/$SERVID/s; s/_auto_generated_KEY_/$SERVKEY/s;" $ROOT/licode_config.js
+  echo "updated $ROOT/licode_config.js with nuve superservice id/key"
+
 }
 
 install_nuve
