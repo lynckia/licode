@@ -23,6 +23,7 @@ extern "C"
 #include <openssl/ssl.h>
 
 #include <boost/thread/mutex.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "logger.h"
 
@@ -100,7 +101,7 @@ class DtlsSocket
       void forceRetransmit();
 
       // Creates an SSL socket, and if client sets state to connect_state and if server sets state to accept_state.  Sets SSL BIO's.
-      DtlsSocket(std::auto_ptr<DtlsSocketContext> socketContext, DtlsFactory* factory, enum SocketType);
+      DtlsSocket(boost::shared_ptr<DtlsSocketContext> socketContext, DtlsFactory* factory, enum SocketType);
 
       // Give CPU cyces to the handshake process - checks current state and acts appropraitely
       void doHandshakeIteration();
@@ -109,7 +110,7 @@ class DtlsSocket
       int getReadTimeout();
 
       // Internals
-      std::auto_ptr<DtlsSocketContext> mSocketContext;
+      boost::shared_ptr<DtlsSocketContext> mSocketContext;
       DtlsFactory* mFactory;
       DtlsTimer *mReadTimer;  // Timer used during handshake process
 
@@ -141,7 +142,6 @@ class DtlsSocketContext
       virtual ~DtlsSocketContext();
       void setSocket(DtlsSocket *socket);
       void start();
-      void stop();
       void read(const unsigned char* data, unsigned int len);
       void write(const unsigned char* data, unsigned int len);
       void handshakeCompleted();

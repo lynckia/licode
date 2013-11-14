@@ -6,6 +6,7 @@
 #define DtlsFactory_h
 
 #include <memory>
+#include <boost/shared_ptr.hpp>
 #include "DtlsTimer.h"
 #include <openssl/evp.h>
 #include "logger.h"
@@ -33,10 +34,10 @@ class DtlsFactory
      ~DtlsFactory();
 
      // Creates a new DtlsSocket to be used as a client
-     DtlsSocket* createClient(std::auto_ptr<DtlsSocketContext> context);
+     DtlsSocket* createClient(boost::shared_ptr<DtlsSocketContext> context);
 
      // Creates a new DtlsSocket to be used as a server
-     DtlsSocket* createServer(std::auto_ptr<DtlsSocketContext> context);
+     DtlsSocket* createServer(boost::shared_ptr<DtlsSocketContext> context);
 
      // Returns the fingerprint of the user cert that was passed into the constructor
      void getMyCertFingerprint(char *fingerprint);

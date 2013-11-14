@@ -276,6 +276,9 @@ namespace erizo {
           }
         }
       }
+      if (audioSsrc == 0) {
+        audioSsrc = 44444;
+      }
       sdp << "a=maxptime:60" << endl;
       sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<
         "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl<<
@@ -379,7 +382,9 @@ namespace erizo {
           }
         }
       }
-
+      if (videoSsrc == 0) {
+        videoSsrc = 55543;
+      }
       sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<
         "a=ssrc:"<< videoSsrc << " msid:"<< msidtemp << " v0"<< endl<<
         "a=ssrc:"<< videoSsrc << " mslabel:"<< msidtemp << endl<<

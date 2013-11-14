@@ -35,9 +35,6 @@ DtlsSocketContext::DtlsSocketContext() {
 }
 
 DtlsSocketContext::~DtlsSocketContext(){
-}
-
-void DtlsSocketContext::stop() {
   delete mSocket;
 }
 

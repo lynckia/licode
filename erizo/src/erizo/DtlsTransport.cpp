@@ -70,10 +70,9 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
   readyRtp = false;
   readyRtcp = false;
 
-  dtlsRtp = new DtlsSocketContext();
-  dtlsRtcp = NULL;
+  dtlsRtp.reset(new DtlsSocketContext());
 
-  DtlsSocket *mSocket=(new DtlsFactory())->createClient(std::auto_ptr<DtlsSocketContext>(dtlsRtp));
+  DtlsSocket *mSocket=(new DtlsFactory())->createClient(dtlsRtp);
   dtlsRtp->setSocket(mSocket);
   dtlsRtp->setDtlsReceiver(this);
 
@@ -82,8 +81,8 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
   int comps = 1;
   if (!rtcp_mux) {
     comps = 2;
-    dtlsRtcp = new DtlsSocketContext();
-    mSocket=(new DtlsFactory())->createClient(std::auto_ptr<DtlsSocketContext>(dtlsRtcp));
+    dtlsRtcp.reset(new DtlsSocketContext());
+    mSocket=(new DtlsFactory())->createClient(dtlsRtcp);
     dtlsRtcp->setSocket(mSocket);
     dtlsRtcp->setDtlsReceiver(this);
   }
@@ -98,14 +97,6 @@ DtlsTransport::~DtlsTransport() {
 
   delete nice_;
   nice_ = NULL;
-  if (dtlsRtp != NULL) {
-    dtlsRtp->stop();
-    //      delete dtlsRtp;
-  }
-  if (dtlsRtcp != NULL) {
-    dtlsRtcp->stop();
-    //      delete dtlsRtcp;
-  }
   delete srtp_;
   srtp_=NULL;
   delete srtcp_;
@@ -204,7 +195,7 @@ void DtlsTransport::write(char* data, int len) {
 
 void DtlsTransport::writeDtls(DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) {
   int comp = 1;
-  if (ctx == dtlsRtcp) {
+  if (ctx == dtlsRtcp.get()) {
     comp = 2;
     rtcpResender.reset(new Resender(nice_, comp, data, len));
     rtcpResender->start();
@@ -220,7 +211,7 @@ void DtlsTransport::writeDtls(DtlsSocketContext *ctx, const unsigned char* data,
 
 void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey,std::string serverKey, std::string srtp_profile) {
   boost::mutex::scoped_lock lock(sessionMutex_);
-  if (ctx == dtlsRtp) {
+  if (ctx == dtlsRtp.get()) {
     ELOG_DEBUG("%s - Setting RTP srtp params", transport_name.c_str());
     srtp_ = new SrtpChannel();
     if (srtp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str())) {
@@ -232,7 +223,7 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
       readyRtcp = true;
     }
   }
-  if (ctx == dtlsRtcp) {
+  if (ctx == dtlsRtcp.get()) {
     ELOG_DEBUG("%s - Setting RTCP srtp params", transport_name.c_str());
     srtcp_ = new SrtpChannel();
     if (srtcp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str())) {

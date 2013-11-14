@@ -226,9 +226,9 @@ namespace erizo {
   }
 
   void WebRtcConnection::onTransportData(char* buf, int len, Transport *transport) {
-    boost::mutex::scoped_lock lock(writeMutex_);
     if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL)
       return;
+    boost::mutex::scoped_lock lock(writeMutex_);
     int length = len;
     rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
     if (chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_PS_Feedback_PT || chead->packettype == RTCP_RTP_Feedback_PT){
@@ -407,6 +407,8 @@ namespace erizo {
   }
 
   void WebRtcConnection::queueData(int comp, const char* buf, int length, Transport *transport) {
+    if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL) //we don't enqueue data if there is nothing to receive it
+      return;
     receiveVideoMutex_.lock();
     if (sendQueue_.size() < 1000) {
       dataPacket p_;
