@@ -406,7 +406,7 @@ namespace erizo {
   void WebRtcConnection::queueData(int comp, const char* buf, int length, Transport *transport) {
     if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL) //we don't enqueue data if there is nothing to receive it
       return;
-    receiveVideoMutex_.lock();
+    boost::mutex::scoped_lock lock(receiveVideoMutex_);
     if (sendQueue_.size() < 1000) {
       dataPacket p_;
       memset(p_.data, 0, length);
@@ -421,7 +421,6 @@ namespace erizo {
       p_.length = length;
       sendQueue_.push(p_);
     }
-    receiveVideoMutex_.unlock();
   }
 
   WebRTCState WebRtcConnection::getCurrentState() {
