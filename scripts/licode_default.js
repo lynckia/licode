@@ -35,4 +35,8 @@ config.cloudProvider.host = '';
 config.cloudProvider.accessKey = '';
 config.cloudProvider.secretAccessKey = '';
 
+var network_config  = require("./licode_config/network")
+config.minervaHost = network_config.minervaHost;
+config.cloudProvider.publicIP = network_config.publicIP;
+
 module.exports = config;
