@@ -24,7 +24,7 @@ populate_mongo(){
   mongod --dbpath $DB_DIR --logpath $BUILD_DIR/mongo.log --fork
   sleep 5
 
-  dbURL=`grep "config.nuve.dataBaseURL" $ROOT/licode_config.js`
+  dbURL=`grep "config.nuve.dataBaseURL" $PATHNAME/licode_default.js`
 
   dbURL=`echo $dbURL| cut -d'"' -f 2`
   dbURL=`echo $dbURL| cut -d'"' -f 1`
