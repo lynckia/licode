@@ -7,6 +7,12 @@ ROOT=$PATHNAME/..
 BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
 
+# Restart everything
+sudo supervisorctl stop nuve
+sudo supervisorctl stop erizo
+sudo supervisorctl stop licode_basic_server
+
+
 pause() {
   read -p "$*"
 }
@@ -55,8 +61,10 @@ echo [nuve] Done, nuve.js compiled
 
 cd $CURRENT_DIR
 
-# Start it up
-pkill node
-scripts/initLicode.sh
-scripts/initBasicExample.sh
+
+sudo pkill node # Just in case
+
+sudo supervisorctl start nuve
+sudo supervisorctl start erizo
+sudo supervisorctl start licode_basic_server
 
