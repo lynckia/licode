@@ -140,12 +140,12 @@ namespace erizo {
     if (bundle_){
       if (videoTransport_ != NULL) {
         if (audioEnabled_ == true) {
-          videoTransport_->write(buf, len);
+          this->queueData(0, buf, len, videoTransport_);
         }
       }
     } else if (audioTransport_ != NULL) {
       if (audioEnabled_ == true) {
-        audioTransport_->write(buf, len);
+        this->queueData(0, buf, len, audioTransport_);
       }
     }
     return len;
@@ -185,7 +185,7 @@ namespace erizo {
     writeSsrc(buf, len, this->getVideoSinkSSRC());
     if (videoTransport_ != NULL) {
       if (videoEnabled_ == true) {
-        videoTransport_->write(buf, len);
+        this->queueData(0, buf, len, videoTransport_);
       }
     }
     return len;
@@ -203,12 +203,12 @@ namespace erizo {
 
     if (bundle_){
       if (videoTransport_ != NULL) {
-        videoTransport_->write(buf, len);
+        this->queueData(0, buf, len, videoTransport_);
       }
     } else {
       // TODO: Check where to send the feedback
       if (videoTransport_ != NULL) {
-        videoTransport_->write(buf, len);
+        this->queueData(0, buf, len, videoTransport_);
       }
     }
     return len;
@@ -452,23 +452,25 @@ namespace erizo {
   }
 
   void WebRtcConnection::sendLoop() {
-
+      
+      int delay = 10000;
       while (sending_ == true) {
         //    while (!boost::this_thread::interruption_requested()){
-        receiveVideoMutex_.lock();
         if (sendQueue_.size() > 0) {
-          if (sendQueue_.front().type == AUDIO_PACKET) {
-            audioTransport_->writeOnNice(sendQueue_.front().comp, sendQueue_.front().data,
-                sendQueue_.front().length);
+          receiveVideoMutex_.lock();
+          if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
+            videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
           } else {
-            videoTransport_->writeOnNice(sendQueue_.front().comp, sendQueue_.front().data,
-                sendQueue_.front().length);
+            audioTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
           }
           sendQueue_.pop();
           receiveVideoMutex_.unlock();
         } else {
-          receiveVideoMutex_.unlock();
-          usleep(1000);
+          //struct timeval tv;
+          //tv.tv_sec = 0;
+          //tv.tv_usec = delay;
+          //select(0,NULL,NULL,NULL,&tv);
+          usleep(delay);
         }
       }
 
