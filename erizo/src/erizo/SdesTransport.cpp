@@ -157,13 +157,12 @@ void SdesTransport::updateIceState(IceState state, NiceConnection *conn) {
 
 void SdesTransport::processLocalSdp(SdpInfo *localSdp_) {
   ELOG_DEBUG( "Processing Local SDP in SDES Transport" );
-  std::vector<CandidateInfo> *cands;
   bool printedAudio = false;
   localSdp_->isFingerprint = false;
   localSdp_->addCrypto(cryptoLocal_);
   if (nice_->iceState >= NICE_CANDIDATES_GATHERED) {
-    cands = nice_->localCandidates;
-     ELOG_DEBUG( " Candidates: %d" , cands->size() );
+    boost::shared_ptr<std::vector<CandidateInfo> > cands = nice_->localCandidates;
+    ELOG_DEBUG( " Candidates: %lu" , cands->size() );
     for (unsigned int it = 0; it < cands->size(); it++) {
       CandidateInfo cand = cands->at(it);
       cand.isBundle = bundle_;
