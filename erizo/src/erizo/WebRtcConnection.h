@@ -117,6 +117,8 @@ private:
 	int stunPort_, minPort_, maxPort_;
 	std::string stunServer_;
 
+	boost::condition_variable cond_;
+
 };
 
 } /* namespace erizo */

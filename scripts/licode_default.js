@@ -17,6 +17,10 @@ config.nuve.testErizoController = 'localhost:8080';
 //Use undefined to run clients without Stun 
 config.erizoController.stunServerUrl = 'stun:stun.l.google.com:19302';
 
+config.erizoController.defaultVideoBW = 300;
+config.erizoController.maxVideoBW = 300;
+
+
 //Use undefined to run clients without Turn
 config.erizoController.turnServer = {};
 config.erizoController.turnServer.url = '';

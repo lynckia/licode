@@ -136,7 +136,7 @@ Erizo.Room = function (spec) {
         that.socket.on('onPublishP2P', function (arg, callback) {
             var myStream = that.remoteStreams[arg.streamId];
 
-            myStream.pc = Erizo.Connection({callback: function (offer) {}, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
+            myStream.pc = Erizo.Connection({callback: function (offer) {}, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW});
 
             myStream.pc.onsignalingmessage = function (answer) {
                 myStream.pc.onsignalingmessage = function () {};
@@ -230,6 +230,8 @@ Erizo.Room = function (spec) {
             that.stunServerUrl = response.stunServerUrl;
             that.turnServer = response.turnServer;
             that.state = CONNECTED;
+            spec.defaultVideoBW = response.defaultVideoBW;
+            spec.maxVideoBW = response.maxVideoBW;
 
             // 2- Retrieve list of streams
             for (index in streams) {
@@ -264,6 +266,12 @@ Erizo.Room = function (spec) {
     // StreamEvent("stream-added").
     that.publish = function (stream, options, callback, callbackError) {
         options = options || {};
+
+        var maxVideoBW;
+        options.maxVideoBW = options.maxVideoBW || spec.defaultVideoBW;
+        if (options.maxVideoBW > spec.maxVideoBW) {
+            options.maxVideoBW = spec.maxVideoBW;
+        }
 
         // 1- If the stream is not local we do nothing.
         if (stream.local && that.localStreams[stream.getID()] === undefined) {
@@ -314,10 +322,11 @@ Erizo.Room = function (spec) {
                     });
 
                 } else {
+
                     stream.pc = Erizo.Connection({callback: function (offer) {
                         sendSDPSocket('publish', {state: 'offer', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
                             if (answer === 'error') {
-				if (callbackError)
+                                if (callbackError)
                                     callbackError(answer);
                                 return;
                             }
