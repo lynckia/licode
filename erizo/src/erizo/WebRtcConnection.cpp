@@ -49,13 +49,17 @@ namespace erizo {
 
   WebRtcConnection::~WebRtcConnection() {
     ELOG_DEBUG("WebRtcConnection Destructor");
-    sending_ = false;
-    cond_.notify_one();
+    videoSink_ = NULL;
+    audioSink_ = NULL;
+    fbSink_ = NULL;
     delete videoTransport_;
     videoTransport_=NULL;
     delete audioTransport_;
     audioTransport_= NULL;
+    sending_ = false;
+    cond_.notify_one();
     send_Thread_.join();
+    boost::mutex::scoped_lock lock(receiveVideoMutex_);
   }
 
   bool WebRtcConnection::init() {
@@ -422,7 +426,6 @@ namespace erizo {
       p_.length = length;
       sendQueue_.push(p_);
     }
-    receiveVideoMutex_.unlock();
     cond_.notify_one();
   }
 
@@ -451,27 +454,27 @@ namespace erizo {
   }
 
   void WebRtcConnection::sendLoop() {
-      
-      while (sending_ == true) {
 
-        boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
-        while (sendQueue_.size() == 0) {
-          cond_.wait(lock);
-          if (sending_ == false) {
-            lock.unlock();
-            return;
-          }
+    while (sending_ == true) {
+
+      boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
+      while (sendQueue_.size() == 0) {
+        cond_.wait(lock);
+        if (sending_ == false) {
+          lock.unlock();
+          return;
         }
-          
-        if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
-          videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
-        } else {
-          audioTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
-        }
-        sendQueue_.pop();
-        lock.unlock();
       }
 
+      if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
+        videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
+      } else {
+        audioTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
+      }
+      sendQueue_.pop();
+      lock.unlock();
     }
+
+  }
 }
 /* namespace erizo */
