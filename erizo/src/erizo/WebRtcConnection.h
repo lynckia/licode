@@ -117,7 +117,7 @@ private:
 	int stunPort_, minPort_, maxPort_;
 	std::string stunServer_;
 
-	struct timeval tv_;
+	boost::condition_variable cond_;
 
 };
 

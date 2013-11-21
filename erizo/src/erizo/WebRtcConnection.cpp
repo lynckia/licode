@@ -52,6 +52,7 @@ namespace erizo {
   WebRtcConnection::~WebRtcConnection() {
     ELOG_DEBUG("WebRtcConnection Destructor");
     sending_ = false;
+    cond_.notify_one();
     delete videoTransport_;
     videoTransport_=NULL;
     delete audioTransport_;
@@ -425,6 +426,7 @@ namespace erizo {
       sendQueue_.push(p_);
     }
     receiveVideoMutex_.unlock();
+    cond_.notify_one();
   }
 
   WebRTCState WebRtcConnection::getCurrentState() {
@@ -453,25 +455,24 @@ namespace erizo {
 
   void WebRtcConnection::sendLoop() {
       
-      int delay = 10000;
       while (sending_ == true) {
-        //    while (!boost::this_thread::interruption_requested()){
-        if (sendQueue_.size() > 0) {
-          receiveVideoMutex_.lock();
-          if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
-            videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
-          } else {
-            audioTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
+
+        boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
+        while (sendQueue_.size() == 0) {
+          cond_.wait(lock);
+          if (sending_ == false) {
+            lock.unlock();
+            return;
           }
-          sendQueue_.pop();
-          receiveVideoMutex_.unlock();
-        } else {
-          //struct timeval tv;
-          //tv.tv_sec = 0;
-          //tv.tv_usec = delay;
-          //select(0,NULL,NULL,NULL,&tv);
-          usleep(delay);
         }
+          
+        if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
+          videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
+        } else {
+          audioTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
+        }
+        sendQueue_.pop();
+        lock.unlock();
       }
 
     }
