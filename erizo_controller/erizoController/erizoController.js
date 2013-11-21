@@ -243,7 +243,9 @@ var listen = function () {
 
                         callback('success', {streams: streamList, 
                                             id: socket.room.id, 
-                                            p2p: socket.room.p2p, 
+                                            p2p: socket.room.p2p,
+                                            defaultVideoBW: config.erizoController.defaultVideoBW,
+                                            maxVideoBW: config.erizoController.maxVideoBW,
                                             stunServerUrl: config.erizoController.stunServerUrl,
                                             turnServer: config.erizoController.turnServer
                                             });

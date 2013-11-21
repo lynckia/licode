@@ -24,7 +24,7 @@ window.onload = function () {
   recording = false;
   var screen = getParameterByName("screen");
 
-  localStream = Erizo.Stream({audio: true, video: true, data: true, screen: screen});
+  localStream = Erizo.Stream({audio: true, video: true, data: true, screen: screen, videoSize: [640, 480, 640, 480]});
   var createToken = function(userName, role, callback) {
 
     var req = new XMLHttpRequest();
@@ -59,7 +59,7 @@ window.onload = function () {
 
       room.addEventListener("room-connected", function (roomEvent) {
 
-        room.publish(localStream);
+        room.publish(localStream, {maxVideoBW: 300});
         subscribeToStreams(roomEvent.streams);
       });
 
