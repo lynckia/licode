@@ -137,7 +137,6 @@ namespace erizo {
   }
 
   int WebRtcConnection::deliverAudioData(char* buf, int len) {
-    boost::mutex::scoped_lock lock(receiveAudioMutex_);
     writeSsrc(buf, len, this->getAudioSinkSSRC());
     if (bundle_){
       if (videoTransport_ != NULL) {
@@ -154,39 +153,39 @@ namespace erizo {
   }
 
   int WebRtcConnection::deliverVideoData(char* buf, int len) {
-    boost::mutex::scoped_lock lock(receiveAudioMutex_);
     rtpheader *head = (rtpheader*) buf;
-
-    if (head->payloadtype == RED_90000_PT) {
-      int totalLength = 12;
-
-      if (head->extension) {
-        totalLength += ntohs(head->extensionlength)*4 + 4; // RTP Extension header
-      }
-      int rtpHeaderLength = totalLength;
-      redheader *redhead = (redheader*) (buf + totalLength);
-
-      //redhead->payloadtype = remoteSdp_.inOutPTMap[redhead->payloadtype];
-      if (!remoteSdp_.supportPayloadType(head->payloadtype)) {
-        while (redhead->follow) {
-          totalLength += redhead->getLength() + 4; // RED header
-          redhead = (redheader*) (buf + totalLength);
-        }
-        // Parse RED packet to VP8 packet.
-        // Copy RTP header
-        memcpy(deliverMediaBuffer_, buf, rtpHeaderLength);
-        // Copy payload data
-        memcpy(deliverMediaBuffer_ + totalLength, buf + totalLength + 1, len - totalLength - 1);
-        // Copy payload type
-        rtpheader *mediahead = (rtpheader*) deliverMediaBuffer_;
-        mediahead->payloadtype = redhead->payloadtype;
-        buf = deliverMediaBuffer_;
-        len = len - 1 - totalLength + rtpHeaderLength;
-      }
-    }
     writeSsrc(buf, len, this->getVideoSinkSSRC());
     if (videoTransport_ != NULL) {
       if (videoEnabled_ == true) {
+
+        if (head->payloadtype == RED_90000_PT) {
+          int totalLength = 12;
+
+          if (head->extension) {
+            totalLength += ntohs(head->extensionlength)*4 + 4; // RTP Extension header
+          }
+          int rtpHeaderLength = totalLength;
+          redheader *redhead = (redheader*) (buf + totalLength);
+
+          //redhead->payloadtype = remoteSdp_.inOutPTMap[redhead->payloadtype];
+          if (!remoteSdp_.supportPayloadType(head->payloadtype)) {
+            while (redhead->follow) {
+              totalLength += redhead->getLength() + 4; // RED header
+              redhead = (redheader*) (buf + totalLength);
+            }
+            // Parse RED packet to VP8 packet.
+            // Copy RTP header
+            memcpy(deliverMediaBuffer_, buf, rtpHeaderLength);
+            // Copy payload data
+            memcpy(deliverMediaBuffer_ + totalLength, buf + totalLength + 1, len - totalLength - 1);
+            // Copy payload type
+            rtpheader *mediahead = (rtpheader*) deliverMediaBuffer_;
+            mediahead->payloadtype = redhead->payloadtype;
+            buf = deliverMediaBuffer_;
+            len = len - 1 - totalLength + rtpHeaderLength;
+          }
+        }
+    
         this->queueData(0, buf, len, videoTransport_);
       }
     }
