@@ -14,17 +14,17 @@ set(ERIZO_VERSION_MAJOR 0)
 set(ERIZO_VERSION_MINOR 1)
 set(CMAKE_CXX_FLAGS "-g -Wall")
 
-set(LIB_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/libdeps/build/lib/)
+set(LIB_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/../../../build/libdeps/build/lib/")
 
-include_directories(${ERIZO_SOURCE_DIR} ${LIB_DIRS}../include/)
+include_directories("${ERIZO_SOURCE_DIR}" "${LIB_DIRS}../include/")
 
-file(GLOB_RECURSE ERIZO_SOURCES ${ERIZO_SOURCE_DIR}/*.h ${ERIZO_SOURCE_DIR}/*.c ${ERIZO_SOURCE_DIR}/*.cpp)
+file(GLOB_RECURSE ERIZO_SOURCES "${ERIZO_SOURCE_DIR}/*.h" "${ERIZO_SOURCE_DIR}/*.c" "${ERIZO_SOURCE_DIR}/*.cpp")
 
 add_library(erizo SHARED ${ERIZO_SOURCES})
 
 # GLIB
 find_package(Glib REQUIRED)
-include_directories(${GLIB_INCLUDE_DIRS})
+include_directories("${GLIB_INCLUDE_DIRS}")
 target_link_libraries(erizo ${GLIB_LIBRARIES})
 
 # BOOST
@@ -37,27 +37,27 @@ find_library(GTHREAD gthread-2.0)
 test_lib(${GTHREAD})
 
 # SRTP
-find_library(SRTP srtp HINTS ${LIB_DIRS})
+find_library(SRTP srtp HINTS "${LIB_DIRS}")
 test_lib(${SRTP})
 
 # NICE
-find_library(NICE nice HINTS ${LIB_DIRS})
+find_library(NICE nice HINTS "${LIB_DIRS}")
 test_lib(${NICE})
 
 # OPENSSL
-find_library(SSL ssl HINTS ${LIB_DIRS})
+find_library(SSL ssl HINTS "${LIB_DIRS}")
 test_lib(${SSL})
-find_library(CRYPTO crypto HINTS ${LIB_DIRS})
+find_library(CRYPTO crypto HINTS "${LIB_DIRS}")
 test_lib(${CRYPTO})
 
 # Libav
-find_library(AVUTIL avutil HINTS ${LIB_DIRS})
+find_library(AVUTIL avutil HINTS "${LIB_DIRS}")
 test_lib(${AVUTIL})
 set (LIBS ${AVUTIL})
-find_library(AVCODEC avcodec HINTS ${LIB_DIRS})
+find_library(AVCODEC avcodec HINTS "${LIB_DIRS}")
 test_lib(${AVCODEC})
 set (LIBS ${LIBS} ${AVCODEC})
-find_library(AVFORMAT avformat HINTS ${LIB_DIRS})
+find_library(AVFORMAT avformat HINTS "${LIB_DIRS}")
 test_lib(${AVFORMAT})
 set (LIBS ${LIBS} ${AVFORMAT})
 
@@ -65,6 +65,6 @@ set (LIBS ${LIBS} ${AVFORMAT})
 find_library(LOG log4cxx)
 test_lib(${LOG})
 
-message("Libs ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG}")
+#message("Libs ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG}")
 
 target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG})
