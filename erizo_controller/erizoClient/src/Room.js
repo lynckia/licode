@@ -426,10 +426,10 @@ Erizo.Room = function (spec) {
                                 return;
                             }
                             // For compatibility with only audio in Firefox
-                            if (answer.match(/a=sendrecv\\r\\na=mid:video/)) {
+                            /*if (answer.match(/a=sendrecv\\r\\na=mid:video/)) {
                                 answer = answer.replace(/a=sendrecv\\r\\na=mid:video/, 'a=recvonly\\r\\na=mid:video');
-                                answer = answer.split('a=ssrc:55543')[0] + '"}';
-                            }
+                                answer = answer.split('a=ssrc:55543')[0]; + '"}';
+                            }*/
                             
                             stream.pc.processSignalingMessage(answer);
                         });
