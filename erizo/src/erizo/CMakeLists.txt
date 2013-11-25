@@ -24,7 +24,7 @@ add_library(erizo SHARED ${ERIZO_SOURCES})
 
 # GLIB
 find_package(Glib REQUIRED)
-include_directories("${GLIB_INCLUDE_DIRS}")
+include_directories(${GLIB_INCLUDE_DIRS})
 target_link_libraries(erizo ${GLIB_LIBRARIES})
 
 # BOOST
