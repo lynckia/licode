@@ -136,7 +136,7 @@ Erizo.Room = function (spec) {
         that.socket.on('onPublishP2P', function (arg, callback) {
             var myStream = that.remoteStreams[arg.streamId];
 
-            myStream.pc = Erizo.Connection({callback: function (offer) {}, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW});
+            myStream.pc = Erizo.Connection({callback: function (offer) {}, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, maxAudioBW: spec.maxAudioBW, maxVideoBW: spec.maxVideoBW});
 
             myStream.pc.onsignalingmessage = function (answer) {
                 myStream.pc.onsignalingmessage = function () {};
@@ -303,6 +303,9 @@ Erizo.Room = function (spec) {
                     });
 
                 } else if (that.p2p) {
+                    // We save them now to be used when actually publishing in P2P mode.
+                    spec.maxAudioBW = options.maxAudioBW;
+                    spec.maxVideoBW = options.maxVideoBW;
                     sendSDPSocket('publish', {state: 'p2p', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, undefined, function (answer, id) {
                         if (answer === 'error') {
                             if (callbackError)
