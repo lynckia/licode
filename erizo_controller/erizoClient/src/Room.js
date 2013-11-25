@@ -413,9 +413,15 @@ Erizo.Room = function (spec) {
                                     callbackError(answer);
                                 return;
                             }
+                            // For compatibility with only audio in Firefox
+                            if (answer.match(/a=sendrecv\\r\\na=mid:video/)) {
+                                answer = answer.replace(/a=sendrecv\\r\\na=mid:video/, 'a=recvonly\\r\\na=mid:video');
+                                answer = answer.split('a=ssrc:55543')[0] + '"}';
+                            }
+                            
                             stream.pc.processSignalingMessage(answer);
                         });
-                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
+                    }, audio: stream.hasAudio(), video: stream.hasVideo(), videostunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
                     stream.pc.onaddstream = function (evt) {
                         // Draw on html
