@@ -17,7 +17,7 @@ extern "C" {
 }
 
 namespace erizo{
-#define UNPACKAGE_BUFFER_SIZE 100000
+#define UNPACKAGE_BUFFER_SIZE 200000
   class WebRtcConnection;
 
   class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource {
