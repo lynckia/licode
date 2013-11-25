@@ -49,6 +49,7 @@ namespace erizo {
 
     private:
       AVCodec* vDecoder;
+      bool initWithContext_;
       AVCodecContext* vDecoderContext;
       AVFrame* dPicture;
   };
