@@ -19,11 +19,19 @@ Erizo.FirefoxStack = function (spec) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
     } 
 
+    if (spec.audio === undefined) {
+        spec.audio = true;
+    }
+
+    if (spec.video === undefined) {
+        spec.video = true;
+    }
+
     that.mediaConstraints = {
         optional: [],
         mandatory: {
-            OfferToReceiveAudio: true,
-            OfferToReceiveVideo: true,
+            OfferToReceiveAudio: spec.audio,
+            OfferToReceiveVideo: spec.video,
             MozDontOfferDataChannel: true
         }
     };
