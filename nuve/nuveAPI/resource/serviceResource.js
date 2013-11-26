@@ -1,6 +1,5 @@
 /*global exports, require, console*/
 var serviceRegistry = require('./../mdb/serviceRegistry');
-var BSON = require('mongodb').BSONPure;
 
 /*
  * Gets the service and checks if it is superservice. Only superservice can do actions about services.
