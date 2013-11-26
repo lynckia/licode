@@ -22,10 +22,18 @@ Erizo.ChromeCanaryStack = function (spec) {
         that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
     }
 
+    if (spec.audio === undefined || spec.nop2p) {
+        spec.audio = true;
+    }
+
+    if (spec.video === undefined || spec.nop2p) {
+        spec.video = true;
+    }
+
     that.mediaConstraints = {
         'mandatory': {
-            'OfferToReceiveVideo': 'true',
-            'OfferToReceiveAudio': 'true'
+            'OfferToReceiveVideo': spec.video,
+            'OfferToReceiveAudio': spec.audio
         }
     };
 

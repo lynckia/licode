@@ -127,7 +127,7 @@ Erizo.Room = function (spec) {
 
                     myStream.pc.processSignalingMessage(answer);
                 });
-            }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
+            }, audio: myStream.hasAudio(), video: myStream.hasVideo(), stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
             myStream.pc.addStream(myStream.stream);
 
@@ -426,14 +426,14 @@ Erizo.Room = function (spec) {
                                 return;
                             }
                             // For compatibility with only audio in Firefox
-                            /*if (answer.match(/a=sendrecv\\r\\na=mid:video/)) {
+                            if (answer.match(/a=ssrc:55543/)) {
                                 answer = answer.replace(/a=sendrecv\\r\\na=mid:video/, 'a=recvonly\\r\\na=mid:video');
-                                answer = answer.split('a=ssrc:55543')[0]; + '"}';
-                            }*/
+                                answer = answer.split('a=ssrc:55543')[0] + '"}';
+                            }
                             
                             stream.pc.processSignalingMessage(answer);
                         });
-                    }, audio: stream.hasAudio(), video: stream.hasVideo(), videostunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
+                    }, nop2p: true, audio: stream.hasAudio(), video: stream.hasVideo(), videostunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
                     stream.pc.onaddstream = function (evt) {
                         // Draw on html
