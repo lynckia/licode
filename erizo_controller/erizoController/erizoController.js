@@ -282,7 +282,7 @@ var listen = function () {
                 return;
             }
             if (options.state === 'url') {
-                id = Math.random() * 100000000000000000;
+                id = Math.random() * 1000000000000000000;
                 socket.room.webRtcController.addExternalInput(id, sdp, function (result) {
                     if (result === 'success') {
                         st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
@@ -296,7 +296,7 @@ var listen = function () {
                 });
             } else if (options.state !== 'data' && !socket.room.p2p) {
                 if (options.state === 'offer' && socket.state === 'sleeping') {
-                    id = Math.random() * 100000000000000000;
+                    id = Math.random() * 1000000000000000000;
                     socket.room.webRtcController.addPublisher(id, sdp, function (answer) {
                         socket.state = 'waitingOk';
                         answer = answer.replace(privateRegexp, publicIP);
@@ -318,7 +318,7 @@ var listen = function () {
                     callback(answer);
                 });
             } else {
-                id = Math.random() * 100000000000000000;
+                id = Math.random() * 1000000000000000000;
                 st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
                 socket.streams.push(id);
                 socket.room.streams[id] = st;
