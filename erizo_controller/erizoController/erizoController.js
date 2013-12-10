@@ -294,6 +294,11 @@ var listen = function () {
             }
         });
 
+        socket.on("renegotiate", function(id, sdp, callback) {
+           console.log("[erizoController] received renegotiate");            
+           socket.room.webRtcController.renegotiate(id, sdp, callback);
+        });
+
         //Gets 'subscribe' messages on the socket in order to add new subscriber to a determined stream (options.streamId).
         socket.on('subscribe', function (options, sdp, callback) {
 

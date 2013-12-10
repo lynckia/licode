@@ -328,7 +328,9 @@ Erizo.Room = function (spec) {
                             };
                             stream.pc.processSignalingMessage(answer);
                         });
-                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW});
+                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer,
+                    maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW, 
+                    audioCodec: options.audioCodec, audioHz: options.audioHz, audioBitrate: options.audioBitrate});
 
                     stream.pc.addStream(stream.stream);
                 }
@@ -348,6 +350,20 @@ Erizo.Room = function (spec) {
             }
         }
     };
+
+    that.renegotiate = function(stream) {
+        console.log("[renegotiate] state of pc", stream.pc.state);
+        stream.pc.onsignalingmessage = function(offer) {
+            sendSDPSocket('renegotiate', stream.getID(), offer, function(answer) {
+                console.log("[room] renegotiate, received answer");
+                stream.pc.onsignalingmessage = function() {};
+                stream.pc.processSignalingMessage(answer);
+            });
+        };
+        stream.pc.markActionNeeded();
+    };
+
+
 
     that.startRecording = function (stream){
       recordingUrl = "/tmp/recording" + stream.getID() + ".mkv";
