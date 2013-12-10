@@ -29,7 +29,6 @@ config.erizo.stunport = 0;
 config.erizo.minport = 0;
 config.erizo.maxport = 0;
 
-config.cloudProvider.name = '';
 //In Amazon Ec2 instances you can specify the zone host. By default is 'ec2.us-east-1a.amazonaws.com' 
 config.cloudProvider.host = '';
 config.cloudProvider.accessKey = '';
@@ -39,4 +38,14 @@ var network_config  = require("./licode_config/network")
 config.minervaHost = network_config.minervaHost;
 config.cloudProvider.publicIP = network_config.publicIP;
 
+if(network_config.cloudProviderName) {
+	config.cloudProvider.name = network_config.cloudProviderName;
+} else {
+	config.cloudProvider.name = '';
+}
+
+// Roles to be used by services
+config.roles = {"presenter":["publish", "subscribe", "record"], "viewer":["subscribe"]};
+
+var module = module || {};
 module.exports = config;
