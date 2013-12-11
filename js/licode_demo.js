@@ -127,8 +127,8 @@ window.onload = function () {
 
     DEMO.send_chat_message = function() {
         if(messText.value.match (/\S/)) {
-            if (localStream) {
-                localStream.sendData({msg: messText.value, name: my_name});
+            if (DEMO.chat_stream) {
+                DEMO.chat_stream.sendData({msg: messText.value, name: my_name});
             }
             add_text_to_chat(my_name + ': ', 'name');
             add_text_to_chat(messText.value, '');
