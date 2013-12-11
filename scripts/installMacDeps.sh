@@ -40,7 +40,7 @@ install_openssl(){
     tar -zxvf openssl-1.0.1e.tar.gz
     cd openssl-1.0.1e
     ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -fPIC
-    make
+    make -s V=0
     make install
     cd $CURRENT_DIR
   else
@@ -57,13 +57,22 @@ install_libnice(){
     cd libnice-0.1.4
     echo nice_agent_set_port_range >> nice/libnice.sym
     ./configure --prefix=$PREFIX_DIR
-    make
+    make -s V=0
     make install
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
     install_libnice
   fi
+}
+
+install_libsrtp(){
+  cd $ROOT/third_party/srtp
+  CFLAGS="-fPIC" ./configure --prefix=$PREFIX_DIR
+  make -s V=0
+  make uninstall
+  make install
+  cd $CURRENT_DIR
 }
 
 install_mediadeps(){
@@ -74,7 +83,7 @@ install_mediadeps(){
     tar -zxvf libav-9.9.tar.gz
     cd libav-9.9
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264
-    make
+    make -s V=0
     make install
     cd $CURRENT_DIR
   else
@@ -91,7 +100,7 @@ install_mediadeps_nogpl(){
     tar -zxvf libav-9.9.tar.gz
     cd libav-9.9
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx
-    make
+    make -s V=0
     make install
     cd $CURRENT_DIR
   else
@@ -115,6 +124,9 @@ install_openssl
 
 pause 'Installing libnice... [press Enter]'
 install_libnice
+
+pause 'Installing libsrtp... [press Enter]'
+install_libsrtp
 
 if [ "$ENABLE_GPL" = "true" ]; then
   pause "GPL libraries enabled, installing media dependencies..."

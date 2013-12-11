@@ -5,6 +5,7 @@ var serviceRegistry = require('./../mdb/serviceRegistry');
 var dataBase = require('./../mdb/dataBase');
 var crypto = require('crypto');
 var cloudHandler = require('../cloudHandler');
+var config = require('./../../../licode_config');
 
 var currentService;
 var currentRoom;
@@ -114,7 +115,8 @@ var generateToken = function (callback) {
                 return;
             }
 
-            token.host = ec.ip + ':8080';
+            token.host = config.minervaHost + ":443";
+            //token.host = ec.ip + ':8080';
 
             tokenRegistry.addToken(token, function (id) {
 

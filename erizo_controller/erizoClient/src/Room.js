@@ -96,11 +96,11 @@ Erizo.Room = function (spec) {
     connectSocket = function (token, callback, error) {
         // Once we have connected
 
-        var host = 'http://' + token.host;
+        var host = 'https://' + token.host;
 
         delete io.sockets[host];
 
-        that.socket = io.connect(token.host, {reconnect: false, secure: false});
+        that.socket = io.connect(host, {reconnect: false, secure: true});
 
         // We receive an event with a new stream in the room.
         // type can be "media" or "data"
@@ -267,6 +267,7 @@ Erizo.Room = function (spec) {
             // 2- Publish Media Stream to Erizo-Controller
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
                 if (stream.url !== undefined) {
+                    console.log("[room] Re-sending publish", stream.url);
                     sendSDPSocket('publish', {state: 'url', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, stream.url, function (answer, id) {
 
                         if (answer === 'success') {
@@ -306,7 +307,9 @@ Erizo.Room = function (spec) {
                     });
 
                 } else {
+                    console.log("[room] Create connection");
                     stream.pc = Erizo.Connection({callback: function (offer) {
+                        console.log("[room] Erizo connection callback, about to publish");
                         sendSDPSocket('publish', {state: 'offer', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
                             stream.pc.onsignalingmessage = function (ok) {
                                 stream.pc.onsignalingmessage = function () {};
@@ -325,7 +328,9 @@ Erizo.Room = function (spec) {
                             };
                             stream.pc.processSignalingMessage(answer);
                         });
-                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW});
+                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer,
+                    maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW, 
+                    audioCodec: options.audioCodec, audioHz: options.audioHz, audioBitrate: options.audioBitrate});
 
                     stream.pc.addStream(stream.stream);
                 }
@@ -346,6 +351,20 @@ Erizo.Room = function (spec) {
         }
     };
 
+    that.renegotiate = function(stream) {
+        console.log("[renegotiate] state of pc", stream.pc.state);
+        stream.pc.onsignalingmessage = function(offer) {
+            sendSDPSocket('renegotiate', stream.getID(), offer, function(answer) {
+                console.log("[room] renegotiate, received answer");
+                stream.pc.onsignalingmessage = function() {};
+                stream.pc.processSignalingMessage(answer);
+            });
+        };
+        stream.pc.markActionNeeded();
+    };
+
+
+
     that.startRecording = function (stream){
       recordingUrl = "/tmp/recording" + stream.getID() + ".mkv";
       L.Logger.debug("Start Recording " + recordingUrl);
@@ -364,7 +383,7 @@ Erizo.Room = function (spec) {
             // Media stream
             sendMessageSocket('unpublish', stream.getID());
             stream.room = undefined;
-            if (stream.hasAudio() || stream.hasVideo()) {
+            if ((stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) && stream.url === undefined) {
                 stream.pc.close();
                 stream.pc = undefined;
             }

@@ -69,7 +69,7 @@ namespace erizo {
     gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
     in->init(m, this);
-    ELOG_DEBUG("externalouput init end");
+    ELOG_DEBUG("Initialized successfully");
     return true;
   }
 
@@ -80,7 +80,7 @@ namespace erizo {
   }
 
   void ExternalOutput::closeSink() {
-    ELOG_DEBUG("ExternalOutput::closeSink");
+    ELOG_DEBUG("Closing Sink");
     if (in !=NULL){
       delete in;
       in = NULL;
@@ -133,7 +133,7 @@ namespace erizo {
         return 0;
       timeval time;
       gettimeofday(&time, NULL);
-      long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+      unsigned long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
       if (millis -lastTime_ >FIR_INTERVAL_MS){
         this->sendFirPacket();
         lastTime_ = millis;
@@ -186,13 +186,13 @@ namespace erizo {
       int estimatedFps=0;
       int ret = in->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedBuffer_, &gotUnpackagedFrame_, &estimatedFps);
-      //ELOG_DEBUG("Estimated FPS %d, previous %d", estimatedFps, prevEstimatedFps_);
+      //          ELOG_DEBUG("Estimated FPS %d, previous %d", estimatedFps, prevEstimatedFps_);
       if (videoCodec_ == NULL) {
         if ((estimatedFps!=0)&&((estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2)))){
-          //ELOG_DEBUG("OUT OF THRESHOLD changing context");
+          //          ELOG_DEBUG("OUT OF THRESHOLD changing context");
           prevEstimatedFps_ = estimatedFps;
         }
-        if (warmupfpsCount_++ >10){
+        if (warmupfpsCount_++ >20){
           this->initContext();
         }
       }
@@ -320,7 +320,6 @@ namespace erizo {
       if (packetQueue_.size() > 0) {
         op_->receiveRawData(packetQueue_.front());
         packetQueue_.pop();
-
         queueMutex_.unlock();
       } else {
         queueMutex_.unlock();

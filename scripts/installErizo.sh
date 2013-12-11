@@ -12,14 +12,6 @@ PREFIX_DIR=$LIB_DIR/build/
 pause() {
   read -p "$*"
 }
-install_libsrtp(){
-  cd $ROOT/third_party/srtp
-  CFLAGS="-fPIC" ./configure --prefix=$PREFIX_DIR
-  make
-  make uninstall
-  make install
-  cd $CURRENT_DIR
-}
 
 install_erizo(){
   cd $ROOT/erizo
@@ -41,8 +33,6 @@ install_erizo_controller(){
   cd $CURRENT_DIR
 }
 
-echo 'Installing libsrtp...'
-install_libsrtp
 echo 'Installing erizo...'
 install_erizo
 echo 'Installing erizoAPI...'

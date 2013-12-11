@@ -31,12 +31,12 @@ exports.WebRtcController = function () {
 
         if (publishers[to] !== undefined) {
             var intervarId = setInterval(function () {
-
+              if (publishers[to]!==undefined){
                 if (wrtc.getCurrentState() >= 2 && publishers[to].getPublisherState() >=2) {
-
                     publishers[to].sendFIR();
                     clearInterval(intervarId);
                 }
+              }
 
             }, INTERVAL_TIME_FIR);
         }
@@ -130,6 +130,7 @@ exports.WebRtcController = function () {
                 ei = new addon.ExternalInput(url);
 
             publishers[from] = muxer;
+            publishers[from + "-wrtc"] = wrtc;
             subscribers[from] = [];
 
             ei.setAudioReceiver(muxer);
@@ -197,6 +198,17 @@ exports.WebRtcController = function () {
         } else {
             logger.info("Publisher already set for", from);
         }
+    };
+
+    that.renegotiate = function (from, sdp, callback, onReady) {
+        var wrtc, roap, remoteSdp, localSdp, answer;
+        wrtc = publishers[from + "-wrtc"];
+        logger.info("Renegotiating peer_id", from, wrtc, wrtc.getCurrentState());
+        roap = sdp, remoteSdp = getSdp(roap);
+        //wrtc.setRemoteSdp(remoteSdp);
+        localSdp = wrtc.getLocalSdp();
+        answer = getRoap(localSdp, roap);
+        callback(answer);
     };
 
     /*
