@@ -25,7 +25,7 @@ parse_arguments(){
 }
 
 install_homebrew(){
-  ruby -e "$(curl -fsSkL raw.github.com/mxcl/homebrew/go)"
+  ruby -e "$(curl -fsSkL raw.github.com/mxcl/homebrew/go/install)"
 }
 
 install_brew_deps(){
