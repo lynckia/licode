@@ -15,7 +15,7 @@ Erizo.ChromeCanaryStack = function (spec) {
     that.maxAudioBW = spec.maxAudioBW;
     that.audioCodec = spec.audioCodec;
     that.opusHz = spec.opusHz;
-    that.opusBitrate = spec.opusBitrate;        
+    that.opusBitrate = spec.opusBitrate;
 
     that.con = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
 
@@ -87,15 +87,15 @@ Erizo.ChromeCanaryStack = function (spec) {
     };
 
     var setMaxBW = function (sdp) {
-        if (spec.maxVideoBW) {
+        if (that.maxVideoBW) {
             var a = sdp.match(/m=video.*\r\n/);
-            var r = a[0] + "b=AS:" + spec.maxVideoBW + "\r\n";
+            var r = a[0] + "b=AS:" + that.maxVideoBW + "\r\n";
             sdp = sdp.replace(a[0], r);
         }
 
-        if (spec.maxAudioBW) {
+        if (that.maxAudioBW) {
             var a = sdp.match(/m=audio.*\r\n/);
-            var r = a[0] + "b=AS:" + spec.maxAudioBW + "\r\n";
+            var r = a[0] + "b=AS:" + that.maxAudioBW + "\r\n";
             sdp = sdp.replace(a[0], r);
         }
         return sdp;
@@ -292,7 +292,7 @@ Erizo.ChromeCanaryStack = function (spec) {
                     sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
                     sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
                     
-                    L.Logger.debug("Changed", sessionDescription.sdp);
+                    //L.Logger.debug("Changed", sessionDescription.sdp);
 
                     var newOffer = sessionDescription.sdp;
 

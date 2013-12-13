@@ -354,9 +354,9 @@ Erizo.Room = function (spec) {
     that.renegotiate = function(stream) {
         console.log("[renegotiate] state of pc", stream.pc.state);
         stream.pc.onsignalingmessage = function(offer) {
+            stream.pc.onsignalingmessage = function() {};
             sendSDPSocket('renegotiate', stream.getID(), offer, function(answer) {
                 console.log("[room] renegotiate, received answer");
-                stream.pc.onsignalingmessage = function() {};
                 stream.pc.processSignalingMessage(answer);
             });
         };

@@ -130,7 +130,6 @@ exports.WebRtcController = function () {
                 ei = new addon.ExternalInput(url);
 
             publishers[from] = muxer;
-            publishers[from + "-wrtc"] = wrtc;
             subscribers[from] = [];
 
             ei.setAudioReceiver(muxer);
@@ -184,6 +183,7 @@ exports.WebRtcController = function () {
                 wrtc = new addon.WebRtcConnection(true, true, config.erizo.stunserver, config.erizo.stunport, config.erizo.minport, config.erizo.maxport);
 
             publishers[from] = muxer;
+            publishers[from + "-wrtc"] = wrtc;            
             subscribers[from] = [];
 
             wrtc.setAudioReceiver(muxer);
@@ -201,6 +201,7 @@ exports.WebRtcController = function () {
     };
 
     that.renegotiate = function (from, sdp, callback, onReady) {
+        console.log("[webrtcController] renegotiate");
         var wrtc, roap, remoteSdp, localSdp, answer;
         wrtc = publishers[from + "-wrtc"];
         logger.info("Renegotiating peer_id", from, wrtc, wrtc.getCurrentState());
