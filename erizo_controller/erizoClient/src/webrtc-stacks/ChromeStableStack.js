@@ -291,7 +291,7 @@ Erizo.ChromeStableStack = function (spec) {
                     sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
                     sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
 
-                    L.Logger.debug("Changed", sessionDescription.sdp);
+                    //L.Logger.debug("Changed", sessionDescription.sdp);
 
                     var newOffer = sessionDescription.sdp;
 
@@ -371,7 +371,7 @@ Erizo.ChromeStableStack = function (spec) {
      */
     that.sendMessage = function (operation, sdp) {
         var roapMessage = {};
-        console.log("[stable] sendMessage", operation, sdp);
+        console.log("[stable] sendMessage", operation);
         roapMessage.messageType = operation;
         roapMessage.sdp = sdp; // may be null or undefined
         if (operation === 'OFFER') {
