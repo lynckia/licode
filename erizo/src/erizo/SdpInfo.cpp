@@ -61,7 +61,7 @@ namespace erizo {
     red.clockRate = 90000;
     red.channels = 1;
     red.mediaType = VIDEO_TYPE;
-    internalPayloadVector_.push_back(red);
+    internalPayloadVector_.push_back(red); */
 
     RtpMap opus;
     opus.payloadType = OPUS_48000_PT;
@@ -86,7 +86,7 @@ namespace erizo {
     isac32.channels = 1;
     isac32.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(isac32);
-*/
+
     RtpMap pcmu;
     pcmu.payloadType = PCMU_8000_PT;
     pcmu.encodingName = "PCMU";
