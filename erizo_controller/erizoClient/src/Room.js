@@ -433,7 +433,7 @@ Erizo.Room = function (spec) {
                             
                             stream.pc.processSignalingMessage(answer);
                         });
-                    }, nop2p: true, audio: stream.hasAudio(), video: stream.hasVideo(), videostunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
+                    }, nop2p: true, audio: stream.hasAudio(), video: stream.hasVideo(), stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
                     stream.pc.onaddstream = function (evt) {
                         // Draw on html
