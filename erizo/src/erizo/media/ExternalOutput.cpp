@@ -12,12 +12,10 @@ namespace erizo {
 
   DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 
-  ExternalOutput::ExternalOutput(std::string outputUrl){
+  ExternalOutput::ExternalOutput(const std::string& outputUrl) :
+    url(outputUrl)
+  {
     ELOG_DEBUG("Created ExternalOutput to %s", outputUrl.c_str());
-    url = outputUrl;
-    sinkfbSource_=NULL;
-    audioSinkSSRC_ = 0;
-    videoSinkSSRC_ = 0;
     videoCodec_ = NULL;
     audioCodec_ = NULL;
     video_st = NULL;
