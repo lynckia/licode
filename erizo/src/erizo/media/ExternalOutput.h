@@ -23,7 +23,7 @@ namespace erizo{
   class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource {
       DECLARE_LOGGER();
     public:
-      ExternalOutput (std::string outputUrl);
+      ExternalOutput(const std::string& outputUrl);
       virtual ~ExternalOutput();
       bool init();
 	    int deliverAudioData(char* buf, int len);

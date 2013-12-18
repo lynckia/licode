@@ -24,17 +24,19 @@ struct dataPacket{
 
 class FeedbackSink{
 public:
+  virtual ~FeedbackSink() = 0;
   virtual int deliverFeedback(char* buf, int len)=0;
 };
+
+inline FeedbackSink::~FeedbackSink() {}
 
 class FeedbackSource{
 protected:
   FeedbackSink* fbSink_;
 public:
-  virtual void setFeedbackSink(FeedbackSink* sink){
+  void setFeedbackSink(FeedbackSink* sink) {
     fbSink_ = sink;
   };
-
 };
 
 /*
@@ -56,9 +58,12 @@ public:
   void setAudioSinkSSRC (unsigned int ssrc){audioSinkSSRC_ = ssrc;};
   FeedbackSource* getFeedbackSource(){
     return sinkfbSource_;
-  };
-	virtual ~MediaSink(){};
+  };  
+  MediaSink() : audioSinkSSRC_(0), videoSinkSSRC_(0), sinkfbSource_(nullptr) {}
+  virtual ~MediaSink() = 0; 
 };
+
+inline MediaSink::~MediaSink() {}
 
 /**
  * A MediaSource is any class that produces audio or video data.
