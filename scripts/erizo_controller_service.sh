@@ -12,4 +12,9 @@ export ERIZO_HOME=$ROOT/erizo/
 sleep 2
 
 cd $ROOT/erizo_controller/erizoController
-node erizoController.js
+
+until node erizoController.js; do
+    echo "node erizoController.js crashed with exit code $?.  Respawning.." >&2
+    sleep 1
+done
+
