@@ -21,6 +21,8 @@ var LIMIT_N_ROOMS = config.erizoController.limit_n_rooms;
 
 var INTERVAL_TIME_KEEPALIVE = config.erizoController.interval_time_keepAlive;
 
+var BINDED_INTERFACE_NAME = config.erizoController.networkInterface;
+
 var myId;
 var rooms = {};
 var myState;
@@ -81,7 +83,9 @@ var addToCloudHandler = function (callback) {
                 if (interfaces[k].hasOwnProperty(k2)) {
                     address = interfaces[k][k2];
                     if (address.family === 'IPv4' && !address.internal) {
-                        addresses.push(address.address);
+                        if(k == BINDED_INTERFACE_NAME || !BINDED_INTERFACE_NAME){
+                            addresses.push(address.address);
+                        }
                     }
                 }
             }
