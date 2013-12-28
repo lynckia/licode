@@ -1,5 +1,5 @@
+set -e
 
-# Build Erizo
 SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`
 PATHNAME=`dirname $SCRIPT`
@@ -44,6 +44,7 @@ install_erizo_controller(){
   cd $CURRENT_DIR
 }
 
+# Build Erizo 
 install_erizo
 install_erizo_api
 install_erizo_controller
