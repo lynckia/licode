@@ -9,6 +9,25 @@ CURRENT_DIR=`pwd`
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
+
+prepare_build_dir() {
+    ACTUAL_BUILD_DIR=$ROOT/../licode_build
+
+    if [ ! -d $ACTUAL_BUILD_DIR ]; then
+      if [ -d $BUILD_DIR ]; then
+        mv $BUILD_DIR $ACTUAL_BUILD_DIR
+      else
+        mkdir $ACTUAL_BUILD_DIR
+      fi
+    fi
+    if [ -d $BUILD_DIR ]; then
+      rm -rf $BUILD_DIR
+    fi
+    if [ ! -L $BUILD_DIR ]; then
+      ln -s ../licode_build $BUILD_DIR
+    fi
+}
+
 pause() {
   echo "$*"
 }
@@ -114,6 +133,8 @@ install_libsrtp(){
 parse_arguments $*
 
 mkdir -p $PREFIX_DIR
+
+prepare_build_dir
 
 pause "Installing deps via apt-get... [press Enter]"
 install_apt_deps
