@@ -13,12 +13,12 @@
               'OTHER_CFLAGS': [
               '-g -O3',
             ],
+            'OTHER_CPLUSPLUSFLAGS' : ['-stdlib=libc++'],
           },
         }, { # OS!="mac"
           'cflags!' : ['-fno-exceptions'],
-          'cflags_cc' : ['-Wall', '-O3', '-g'],
+          'cflags_cc' : ['-Wall', '-O3', '-g' , '-std=c++11'],
           'cflags_cc!' : ['-fno-exceptions']
-
         }],
         ]
   }

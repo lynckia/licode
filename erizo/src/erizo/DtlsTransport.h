@@ -58,7 +58,7 @@ namespace erizo {
     const unsigned char* data_;
     unsigned int len_;
     boost::asio::io_service service;
-    boost::asio::deadline_timer *timer;
+    boost::asio::deadline_timer timer;
     boost::scoped_ptr<boost::thread> thread_;
   };
 }

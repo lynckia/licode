@@ -19,27 +19,26 @@ using namespace dtls;
 DEFINE_LOGGER(DtlsTransport, "DtlsTransport");
 DEFINE_LOGGER(Resender, "Resender");
 
-Resender::Resender(NiceConnection *nice, unsigned int comp, const unsigned char* data, unsigned int len):nice_(nice),comp_(comp), data_(data),len_(len) {
-  timer = new boost::asio::deadline_timer(service);
+Resender::Resender(NiceConnection *nice, unsigned int comp, const unsigned char* data, unsigned int len) : 
+  nice_(nice), comp_(comp), data_(data),len_(len), timer(service) {
 }
 
 Resender::~Resender() {
-  timer->cancel();
+  timer.cancel();
   thread_->join();
-  delete timer;
 }
 
 void Resender::cancel() {
-  timer->cancel();
+  timer.cancel();
 }
 
 void Resender::start() {
-  timer->cancel();
+  timer.cancel();
   if (thread_.get()!=NULL) {
     thread_->join();
   }
-  timer->expires_from_now(boost::posix_time::seconds(3));
-  timer->async_wait(boost::bind(&Resender::resend, this, boost::asio::placeholders::error));
+  timer.expires_from_now(boost::posix_time::seconds(3));
+  timer.async_wait(boost::bind(&Resender::resend, this, boost::asio::placeholders::error));
   thread_.reset(new boost::thread(boost::bind(&Resender::run, this)));
 }
 
@@ -47,8 +46,7 @@ void Resender::run() {
   service.run();
 }
 
-void Resender::resend(const boost::system::error_code& ec) {
-  
+void Resender::resend(const boost::system::error_code& ec) {  
   if (ec == boost::asio::error::operation_aborted) {
     if (nice_ != NULL) {
       ELOG_DEBUG("%s - Cancelled", nice_->transportName->c_str());
@@ -60,7 +58,6 @@ void Resender::resend(const boost::system::error_code& ec) {
     ELOG_WARN("%s - Resending DTLS message to %d", nice_->transportName->c_str(), comp_);
     nice_->sendData(comp_, data_, len_);
   }
-
 }
 
 DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, const std::string &stunServer, int stunPort, int minPort, int maxPort):Transport(med, transport_name, bundle, rtcp_mux, transportListener, stunServer, stunPort, minPort, maxPort) {
