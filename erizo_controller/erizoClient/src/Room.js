@@ -116,20 +116,31 @@ Erizo.Room = function (spec) {
         that.socket.on('onSubscribeP2P', function (arg) {
             var myStream = that.localStreams[arg.streamId];
 
-            myStream.pc = Erizo.Connection({callback: function (offer) {
+            if (myStream.pc === undefined) {
+                myStream.pc = {};
+            }
+
+            myStream.pc[arg.subsSocket] = Erizo.Connection({callback: function (offer) {
                 sendSDPSocket('publish', {state: 'p2pSignaling', streamId: arg.streamId, subsSocket: arg.subsSocket}, offer, function (answer, id) {
                     if (answer === 'error') {
                         if (callbackError) callbackError(answer);
                     }
-                    myStream.pc.onsignalingmessage = function (ok) {
-                        myStream.pc.onsignalingmessage = function () {};
+                    myStream.pc[arg.subsSocket].onsignalingmessage = function (ok) {
+                        myStream.pc[arg.subsSocket].onsignalingmessage = function () {};
                     };
 
-                    myStream.pc.processSignalingMessage(answer);
+                    myStream.pc[arg.subsSocket].processSignalingMessage(answer);
                 });
             }, audio: myStream.hasAudio(), video: myStream.hasVideo(), stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
-            myStream.pc.addStream(myStream.stream);
+            myStream.pc[arg.subsSocket].addStream(myStream.stream);
+
+            myStream.pc[arg.subsSocket].oniceconnectionstatechange = function (state) {
+                if (state === 'disconnected') {
+                    myStream.pc[arg.subsSocket].close();
+                    delete myStream.pc[arg.subsSocket];
+                }
+            };
 
         });
 

@@ -365,6 +365,12 @@ Erizo.ChromeStableStack = function (spec) {
         }
     };
 
+    that.peerConnection.oniceconnectionstatechange = function (e) {
+        if (that.oniceconnectionstatechange) {
+            that.oniceconnectionstatechange(e.currentTarget.iceConnectionState);
+        }   
+    };
+
     // Variables that are part of the public interface of PeerConnection
     // in the 28 January 2012 version of the webrtc specification.
     that.onaddstream = null;
