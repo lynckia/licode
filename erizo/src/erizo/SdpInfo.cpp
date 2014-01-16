@@ -335,7 +335,7 @@ namespace erizo {
               << " " << cand.netProtocol << " " << cand.priority << " "
               << cand.hostAddress << " " << cand.hostPort << " typ "
               << hostType_str;
-          if (cand.hostType == SRLFX) {
+          if (cand.hostType == SRLFX||cand.hostType == RELAY) {
             //raddr 192.168.0.12 rport 50483
             sdp << " raddr " << cand.baseAddress << " rport " << cand.basePort;
           }
@@ -602,8 +602,10 @@ namespace erizo {
     if (cand.netProtocol.compare("UDP") && cand.netProtocol.compare("udp")) {
       return false;
     }
-    //	a=candidate:0 1 udp 2130706432 138.4.4.143 52314 typ host  generation 0
+    //	a=candidate:0 1 udp 2130706432 1383 52314 typ host  generation 0
     //		        0 1 2    3            4          5     6  7    8          9
+    // 
+    // a=candidate:1367696781 1 udp 33562367 138. 49462 typ relay raddr 138.4 rport 53531 generation 0
     cand.priority = (unsigned int) strtoul(pieces[3], NULL, 10);
     cand.hostAddress = std::string(pieces[4]);
     cand.hostPort = (unsigned int) strtoul(pieces[5], NULL, 10);
@@ -636,8 +638,9 @@ namespace erizo {
     }
 
     if (type == 3) {
-      cand.relayAddress = std::string(pieces[8]);
-      cand.relayPort = (unsigned int) strtoul(pieces[9], NULL, 10);
+      cand.relayAddress = std::string(pieces[9]);
+      cand.relayPort = (unsigned int) strtoul(pieces[11], NULL, 10);
+      ELOG_DEBUG("Parsing relay address %s, %u \n", cand.relayAddress.c_str(), cand.relayPort);
     }
     candidateVector_.push_back(cand);
     return true;

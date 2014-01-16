@@ -138,8 +138,11 @@ namespace erizo {
       g_value_set_uint(&val2, stunPort_);
       g_object_set_property(G_OBJECT( agent_ ), "stun-server-port", &val2);
 
-      ELOG_WARN("Stun Server %s:%d", stunServer_.c_str(), stunPort_);
+      ELOG_DEBUG("Setting STUN server %s:%d", stunServer_.c_str(), stunPort_);
     }
+
+    //Configure TURN 
+
 
     // Connect the signals
     g_signal_connect( G_OBJECT( agent_ ), "candidate-gathering-done",
@@ -155,9 +158,21 @@ namespace erizo {
     nice_agent_add_stream(agent_, iceComponents_);
     // Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
     if (minPort_!=0 && maxPort_!=0){
+      ELOG_DEBUG("Setting port range: %d to %d\n", minPort_, maxPort_);
       nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)minPort_, (guint)maxPort_);
     }
 
+    if (false){
+      ELOG_DEBUG("Setting TURN\n");
+      nice_agent_set_relay_info              (agent_,
+                                                         1,
+                                                         1,
+                                                         "",
+                                                         0,
+                                                         "il",
+                                                         "i",
+                                                         NICE_RELAY_TYPE_TURN_UDP);
+    }
     nice_agent_gather_candidates(agent_, 1);
     nice_agent_attach_recv(agent_, 1, 1, context_,
         cb_nice_recv, this);
@@ -183,6 +198,7 @@ namespace erizo {
       for (unsigned int it = 0; it < candidates.size(); it++) {
         NiceCandidateType nice_cand_type;
         CandidateInfo cinfo = candidates[it];
+        TurnServer turn;
         if (cinfo.mediaType != this->mediaType
             || cinfo.componentId != compId)
           continue;
@@ -198,8 +214,16 @@ namespace erizo {
             nice_cand_type = NICE_CANDIDATE_TYPE_PEER_REFLEXIVE;
             break;
           case RELAY:
-            nice_cand_type = NICE_CANDIDATE_TYPE_RELAYED;
-            break;
+            {
+              ELOG_DEBUG("Setting remote relay candidate %s, %u\n", cinfo.relayAddress.c_str(),cinfo.relayPort);
+              NiceAddress* taddr = nice_address_new();
+              nice_cand_type = NICE_CANDIDATE_TYPE_RELAYED;
+              nice_address_set_from_string(taddr, cinfo.relayAddress.c_str());
+              nice_address_set_port(taddr, cinfo.relayPort);
+              turn.server = *taddr;
+
+              break;
+            }
           default:
             nice_cand_type = NICE_CANDIDATE_TYPE_HOST;
             break;
@@ -218,6 +242,10 @@ namespace erizo {
         thecandidate->component_id = cinfo.componentId;
         thecandidate->priority = cinfo.priority;
         thecandidate->transport = NICE_CANDIDATE_TRANSPORT_UDP;
+        if (cinfo.hostType == RELAY){
+          thecandidate->turn = &turn;          
+          thecandidate->base_addr = turn.server;
+        }
         candList = g_slist_append(candList, thecandidate);
         ELOG_DEBUG("New Candidate SET %s %d", cinfo.hostAddress.c_str(), cinfo.hostPort);
 
@@ -304,8 +332,19 @@ namespace erizo {
             cand_info.hostType = PRFLX;
             break;
           case NICE_CANDIDATE_TYPE_RELAYED:
-            ELOG_DEBUG("WARNING TURN NOT IMPLEMENTED YET");
+            char turnAddres[40];
+            ELOG_DEBUG("TURN LOCAL CANDIDATE");
+            nice_address_to_string(&cand->turn->server,turnAddres);
+        		ELOG_DEBUG("address %s", address);
+        		ELOG_DEBUG("baseAddress %s", baseAddress);
+        		ELOG_DEBUG("stream_id %u", cand->stream_id);
+        		ELOG_DEBUG("priority %u", cand->priority);
+        		ELOG_DEBUG("TURN ADDRESS %s", turnAddres);
+           
             cand_info.hostType = RELAY;
+            cand_info.baseAddress = std::string(baseAddress);
+            cand_info.basePort = nice_address_get_port(&cand->base_addr);
+
             break;
           default:
             break;
