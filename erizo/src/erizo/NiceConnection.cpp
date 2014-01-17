@@ -198,7 +198,6 @@ namespace erizo {
       for (unsigned int it = 0; it < candidates.size(); it++) {
         NiceCandidateType nice_cand_type;
         CandidateInfo cinfo = candidates[it];
-        TurnServer turn;
         if (cinfo.mediaType != this->mediaType
             || cinfo.componentId != compId)
           continue;
@@ -207,56 +206,50 @@ namespace erizo {
           case HOST:
             nice_cand_type = NICE_CANDIDATE_TYPE_HOST;
             break;
-          case SRLFX:
+          case SRFLX:
             nice_cand_type = NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
             break;
           case PRFLX:
             nice_cand_type = NICE_CANDIDATE_TYPE_PEER_REFLEXIVE;
             break;
           case RELAY:
-            {
-              ELOG_DEBUG("Setting remote relay candidate %s, %u\n", cinfo.relayAddress.c_str(),cinfo.relayPort);
-              NiceAddress* taddr = nice_address_new();
-              nice_cand_type = NICE_CANDIDATE_TYPE_RELAYED;
-              nice_address_set_from_string(taddr, cinfo.relayAddress.c_str());
-              nice_address_set_port(taddr, cinfo.relayPort);
-              turn.server = *taddr;
-
-              break;
-            }
+            nice_cand_type = NICE_CANDIDATE_TYPE_RELAYED;
+            break;
           default:
             nice_cand_type = NICE_CANDIDATE_TYPE_HOST;
             break;
         }
-
         NiceCandidate* thecandidate = nice_candidate_new(nice_cand_type);
-        NiceAddress* naddr = nice_address_new();
-        nice_address_set_from_string(naddr, cinfo.hostAddress.c_str());
-        nice_address_set_port(naddr, cinfo.hostPort);
-        thecandidate->addr = *naddr;
         sprintf(thecandidate->foundation, "%s", cinfo.foundation.c_str());
-
         thecandidate->username = strdup(cinfo.username.c_str());
         thecandidate->password = strdup(cinfo.password.c_str());
         thecandidate->stream_id = (guint) 1;
         thecandidate->component_id = cinfo.componentId;
         thecandidate->priority = cinfo.priority;
         thecandidate->transport = NICE_CANDIDATE_TRANSPORT_UDP;
-        if (cinfo.hostType == RELAY){
-          thecandidate->turn = &turn;          
-          thecandidate->base_addr = turn.server;
+        nice_address_set_from_string(&thecandidate->addr, cinfo.hostAddress.c_str());
+        nice_address_set_port(&thecandidate->addr, cinfo.hostPort);
+        
+        if (cinfo.hostType == RELAY||cinfo.hostType==SRFLX){
+          nice_address_set_from_string(&thecandidate->base_addr, cinfo.rAddress.c_str());
+          nice_address_set_port(&thecandidate->base_addr, cinfo.rPort);
+          ELOG_DEBUG("Adding remote candidate type %d addr %s port %d raddr %s rport %d", cinfo.hostType, cinfo.hostAddress.c_str(), cinfo.hostPort,
+              cinfo.rAddress.c_str(), cinfo.rPort);
+        }else{
+          ELOG_DEBUG("Adding remote candidate type %d addr %s port %d", cinfo.hostType, cinfo.hostAddress.c_str(), cinfo.hostPort);
         }
-        candList = g_slist_append(candList, thecandidate);
-        ELOG_DEBUG("New Candidate SET %s %d", cinfo.hostAddress.c_str(), cinfo.hostPort);
-
+        candList = g_slist_prepend(candList, thecandidate);
       }
+
       nice_agent_set_remote_candidates(agent_, (guint) 1, compId, candList);
+      g_slist_free_full(candList, (GDestroyNotify)&nice_candidate_free);
     }
 
-    ELOG_DEBUG("Candidates SET");
+    ELOG_DEBUG("Finished setting candidates\n");
     this->updateIceState(NICE_CANDIDATES_RECEIVED);
     return true;
   }
+
 
   void NiceConnection::gatheringDone(uint stream_id) {
     int currentCompId = 1;
@@ -324,9 +317,9 @@ namespace erizo {
             cand_info.hostType = HOST;
             break;
           case NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
-            cand_info.hostType = SRLFX;
-            cand_info.baseAddress = std::string(baseAddress);
-            cand_info.basePort = nice_address_get_port(&cand->base_addr);
+            cand_info.hostType = SRFLX;
+            cand_info.rAddress = std::string(baseAddress);
+            cand_info.rPort = nice_address_get_port(&cand->base_addr);
             break;
           case NICE_CANDIDATE_TYPE_PEER_REFLEXIVE:
             cand_info.hostType = PRFLX;
@@ -342,8 +335,8 @@ namespace erizo {
         		ELOG_DEBUG("TURN ADDRESS %s", turnAddres);
            
             cand_info.hostType = RELAY;
-            cand_info.baseAddress = std::string(baseAddress);
-            cand_info.basePort = nice_address_get_port(&cand->base_addr);
+            cand_info.rAddress = std::string(baseAddress);
+            cand_info.rPort = nice_address_get_port(&cand->base_addr);
 
             break;
           default:

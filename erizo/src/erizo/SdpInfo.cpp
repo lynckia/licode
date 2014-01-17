@@ -184,7 +184,7 @@ namespace erizo {
         case HOST:
           hostType_str = "host";
           break;
-        case SRLFX:
+        case SRFLX:
           hostType_str = "srflx";
           break;
         case PRFLX:
@@ -229,9 +229,9 @@ namespace erizo {
               << " " << cand.netProtocol << " " << cand.priority << " "
               << cand.hostAddress << " " << cand.hostPort << " typ "
               << hostType_str;
-          if (cand.hostType == SRLFX) {
+          if (cand.hostType == SRFLX) {
             //raddr 192.168.0.12 rport 50483
-            sdp << " raddr " << cand.baseAddress << " rport " << cand.basePort;
+            sdp << " raddr " << cand.rAddress << " rport " << cand.rPort;
           }
           sdp << generation  << endl;
         }
@@ -294,7 +294,7 @@ namespace erizo {
         case HOST:
           hostType_str = "host";
           break;
-        case SRLFX:
+        case SRFLX:
           hostType_str = "srflx";
           break;
         case PRFLX:
@@ -335,9 +335,9 @@ namespace erizo {
               << " " << cand.netProtocol << " " << cand.priority << " "
               << cand.hostAddress << " " << cand.hostPort << " typ "
               << hostType_str;
-          if (cand.hostType == SRLFX||cand.hostType == RELAY) {
+          if (cand.hostType == SRFLX||cand.hostType == RELAY) {
             //raddr 192.168.0.12 rport 50483
-            sdp << " raddr " << cand.baseAddress << " rport " << cand.basePort;
+            sdp << " raddr " << cand.rAddress << " rport " << cand.rPort;
           }
           sdp << generation  << endl;
         }
@@ -592,7 +592,7 @@ namespace erizo {
   bool SdpInfo::processCandidate(char** pieces, int size, MediaType mediaType) {
 
     CandidateInfo cand;
-    const char* types_str[10] = { "host", "srflx", "prflx", "relay" };
+    static const char* types_str[] = { "host", "srflx", "prflx", "relay" };
     cand.mediaType = mediaType;
     cand.foundation = pieces[0];
     cand.componentId = (unsigned int) strtoul(pieces[1], NULL, 10);
@@ -624,7 +624,7 @@ namespace erizo {
         cand.hostType = HOST;
         break;
       case 1:
-        cand.hostType = SRLFX;
+        cand.hostType = SRFLX;
         break;
       case 2:
         cand.hostType = PRFLX;
@@ -637,10 +637,10 @@ namespace erizo {
         break;
     }
 
-    if (type == 3) {
-      cand.relayAddress = std::string(pieces[9]);
-      cand.relayPort = (unsigned int) strtoul(pieces[11], NULL, 10);
-      ELOG_DEBUG("Parsing relay address %s, %u \n", cand.relayAddress.c_str(), cand.relayPort);
+    if (cand.hostType == SRFLX || cand.hostType==RELAY) {
+      cand.rAddress = std::string(pieces[9]);
+      cand.rPort = (unsigned int) strtoul(pieces[11], NULL, 10);
+      ELOG_DEBUG("Parsing raddr srlfx or relay %s, %u \n", cand.rAddress.c_str(), cand.rPort);
     }
     candidateVector_.push_back(cand);
     return true;
