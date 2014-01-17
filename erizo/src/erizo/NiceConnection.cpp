@@ -398,6 +398,15 @@ namespace erizo {
   void NiceConnection::updateIceState(IceState state) {
     ELOG_DEBUG("%s - NICE State Changed %u", transportName->c_str(), state);
     this->iceState = state;
+    if (state == NICE_READY){
+      char ipaddr[30];
+      NiceCandidate* local, *remote;
+      nice_agent_get_selected_pair(agent_, 1, 1, &local, &remote); 
+      nice_address_to_string(&local->addr, ipaddr);
+      ELOG_DEBUG("Selected pair:\nlocal candidate addr: %s:%d",ipaddr, nice_address_get_port(&local->addr));
+      nice_address_to_string(&remote->addr, ipaddr);
+      ELOG_DEBUG("remote candidate addr: %s:%d",ipaddr, nice_address_get_port(&remote->addr));
+    }
     if (this->listener_ != NULL)
       this->listener_->updateIceState(state, this);
   }
