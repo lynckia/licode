@@ -263,11 +263,11 @@ namespace erizo {
       ELOG_DEBUG("Init audio context");
 
       audioCodec_ = avcodec_find_encoder(oformat_->audio_codec);
-      ELOG_DEBUG("Found Audio Codec %s", audioCodec_->name);
       if (audioCodec_==NULL){
         ELOG_ERROR("Could not find audio codec");
         return false;
       }
+      ELOG_DEBUG("Found Audio Codec %s", audioCodec_->name);
       audio_st = avformat_new_stream (context_, audioCodec_);
       audio_st->id = 1;
       audioCodecCtx_ = audio_st->codec;
