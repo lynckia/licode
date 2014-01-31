@@ -32,7 +32,7 @@ exports.WebRtcController = function () {
         if (publishers[to] !== undefined) {
             var intervarId = setInterval(function () {
               if (publishers[to]!==undefined){
-                if (wrtc.getCurrentState() >= 2 && publishers[to].getPublisherState() >=2) {
+                if (wrtc.getCurrentState() >= 103 && publishers[to].getPublisherState() >=103) {
                     publishers[to].sendFIR();
                     clearInterval(intervarId);
                 }
@@ -48,17 +48,28 @@ exports.WebRtcController = function () {
     initWebRtcConnection = function (wrtc, sdp, callback, onReady) {
 
         wrtc.init();
-        addon.webrtcEvent.on = function (newStatus){
-          console.log("EN JAVASCRIPT " + newStatus );
-        };
 
         var roap = sdp,
             remoteSdp = getSdp(roap);
-
         wrtc.setRemoteSdp(remoteSdp);
-
         var sdpDelivered = false;
+        addon.webrtcEvent.on = function (newStatus){
+          var localSdp, answer;
+          console.log("webrtc Addon status" + newStatus );
+          if (newStatus === 102 && !sdpDelivered) {
+            localSdp = wrtc.getLocalSdp();
+            answer = getRoap(localSdp, roap);
+            callback(answer);
+            sdpDelivered = true;
 
+          }
+          if (newStatus === 103) {
+            if (onReady != undefined) {
+              onReady();
+            }
+          }
+        };
+/*
         var intervarId = setInterval(function () {
 
                 var state = wrtc.getCurrentState(), localSdp, answer;
@@ -83,6 +94,7 @@ exports.WebRtcController = function () {
 
 
             }, INTERVAL_TIME_SDP);
+            */
     };
 
     /*
