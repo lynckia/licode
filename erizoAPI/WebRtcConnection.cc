@@ -24,7 +24,7 @@ void WebRtcConnection::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setAudioReceiver"), FunctionTemplate::New(setAudioReceiver)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setVideoReceiver"), FunctionTemplate::New(setVideoReceiver)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getCurrentState"), FunctionTemplate::New(getCurrentState)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("setCallback"), FunctionTemplate::New(setCallback)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("getEvents"), FunctionTemplate::New(getEvents)->GetFunction());
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("WebRtcConnection"), constructor);
@@ -86,7 +86,7 @@ Handle<Value> WebRtcConnection::init(const Arguments& args) {
 }
 
 
-Handle<Value> WebRtcConnection::setCallback(const Arguments& args) {
+Handle<Value> WebRtcConnection::getEvents(const Arguments& args) {
   HandleScope scope;
 
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
@@ -172,10 +172,7 @@ void WebRtcConnection::after_cb(uv_async_t *handle, int status){
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
   printf("WebRTC Update received %d\n", obj->message);
-  //Local<Value> args[] = {Integer::New(*(int*)handle->data)};
   Local<Value> args[] = {Integer::New(obj->message)};
-//  node::MakeCallback(context_obj, "on", 1, args);
-//
   if (obj->hasCallback_) 
     obj->eventCallback->Call(Context::GetCurrent()->Global(), 1, args);
 }

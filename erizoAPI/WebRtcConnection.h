@@ -73,7 +73,7 @@ class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventLi
   /*
    * Sets a Callback to receive events
    */
-  static v8::Handle<v8::Value> setCallback(const v8::Arguments& args);
+  static v8::Handle<v8::Value> getEvents(const v8::Arguments& args);
   
   static void after_cb(uv_async_t *handle, int status);
  
