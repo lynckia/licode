@@ -63,7 +63,7 @@ exports.WebRtcController = function () {
 
                 var state = wrtc.getCurrentState(), localSdp, answer;
 
-                if (state == 1 && !sdpDelivered) {
+                if (state == 102 && !sdpDelivered) {
                     localSdp = wrtc.getLocalSdp();
 
                     answer = getRoap(localSdp, roap);
@@ -71,13 +71,13 @@ exports.WebRtcController = function () {
                     sdpDelivered = true;
 
                 }
-                if (state == 2) {
+                if (state == 103) {
                     if (onReady != undefined) {
                         onReady();
                     }
                 }
 
-                if (state >= 2) {
+                if (state >= 103) {
                     clearInterval(intervarId);
                 }
 
