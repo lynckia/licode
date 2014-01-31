@@ -19,13 +19,15 @@ class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventLi
 
   erizo::WebRtcConnection *me;
   int message;
-//  static v8::Persistent<v8::Object> context_obj;
+
  private:
   WebRtcConnection();
   ~WebRtcConnection();
+  
+  v8::Persistent<v8::Function> eventCallback;
 
   uv_async_t async;
-  static bool initialized;
+  bool hasCallback_;
   /*
    * Constructor.
    * Constructs an empty WebRtcConnection without any configuration.
@@ -67,7 +69,12 @@ class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventLi
    * Returns the state.
    */
   static v8::Handle<v8::Value> getCurrentState(const v8::Arguments& args);
-
+  
+  /*
+   * Sets a Callback to receive events
+   */
+  static v8::Handle<v8::Value> setCallback(const v8::Arguments& args);
+  
   static void after_cb(uv_async_t *handle, int status);
  
 	virtual void notify(erizo::WebRTCEvent event);

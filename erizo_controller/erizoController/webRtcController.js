@@ -53,7 +53,7 @@ exports.WebRtcController = function () {
             remoteSdp = getSdp(roap);
         wrtc.setRemoteSdp(remoteSdp);
         var sdpDelivered = false;
-        addon.webrtcEvent.on = function (newStatus){
+        wrtc.setCallback( function (newStatus){
           var localSdp, answer;
           console.log("webrtc Addon status" + newStatus );
           if (newStatus === 102 && !sdpDelivered) {
@@ -68,7 +68,7 @@ exports.WebRtcController = function () {
               onReady();
             }
           }
-        };
+        });
 /*
         var intervarId = setInterval(function () {
 
