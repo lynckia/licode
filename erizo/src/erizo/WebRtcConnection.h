@@ -21,16 +21,17 @@ class TransportListener;
 /**
  * States of ICE
  */
-enum WebRTCState {
-	INITIAL, STARTED, READY, FINISHED, FAILED
+enum WebRTCEvent {
+  CONN_INITIAL = 101, CONN_STARTED = 102, CONN_READY = 103, CONN_FINISHED = 104, 
+  CONN_FAILED = 500
 };
 
-class WebRtcConnectionStateListener {
+class WebRtcConnectionEventListener {
 public:
-	virtual ~WebRtcConnectionStateListener() {
+	virtual ~WebRtcConnectionEventListener() {
 	}
 	;
-	virtual void connectionStateChanged(WebRTCState newState)=0;
+	virtual void notify(WebRTCEvent newEvent)=0;
 
 };
 
@@ -70,7 +71,7 @@ public:
 	int deliverAudioData(char* buf, int len);
 	int deliverVideoData(char* buf, int len);
 
-    int deliverFeedback(char* buf, int len);
+  int deliverFeedback(char* buf, int len);
 
 	/**
 	 * Sends a FIR Packet (RFC 5104) asking for a keyframe
@@ -78,13 +79,13 @@ public:
 	 */
 	int sendFirPacket();
 
-	void setWebRTCConnectionStateListener(
-			WebRtcConnectionStateListener* listener);
+	void setWebRTCConnectionEventListener(
+			WebRtcConnectionEventListener* listener);
 	/**
 	 * Gets the current state of the Ice Connection
 	 * @return
 	 */
-	WebRTCState getCurrentState();
+	WebRTCEvent getCurrentState();
 
 	void onTransportData(char* buf, int len, Transport *transport);
 
@@ -96,13 +97,13 @@ private:
 	SdpInfo remoteSdp_;
 	SdpInfo localSdp_;
 
-	WebRTCState globalState_;
+	WebRTCEvent globalState_;
 
 	int video_, audio_, bundle_, sequenceNumberFIR_;
 	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_, updateStateMutex_;
 	boost::thread send_Thread_;
 	std::queue<dataPacket> sendQueue_;
-	WebRtcConnectionStateListener* connStateListener_;
+	WebRtcConnectionEventListener* connEventListener_;
 	Transport *videoTransport_, *audioTransport_;
 	char deliverMediaBuffer_[3000];
 

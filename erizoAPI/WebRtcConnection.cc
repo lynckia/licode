@@ -2,7 +2,6 @@
 #define BUILDING_NODE_EXTENSION
 #endif
 
-#include <node.h>
 #include "WebRtcConnection.h"
 
 
@@ -10,6 +9,8 @@ using namespace v8;
 
 WebRtcConnection::WebRtcConnection() {};
 WebRtcConnection::~WebRtcConnection() {};
+bool WebRtcConnection::initialized = false;
+Persistent<Object> context_obj;
 
 void WebRtcConnection::Init(Handle<Object> target) {
   // Prepare constructor template
@@ -27,6 +28,12 @@ void WebRtcConnection::Init(Handle<Object> target) {
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("WebRtcConnection"), constructor);
+
+  if (!initialized){
+    context_obj = Persistent<Object>::New(Object::New());
+    target->Set(String::New("webrtcEvent"),context_obj);
+    initialized = true;
+  }
 }
 
 Handle<Value> WebRtcConnection::New(const Arguments& args) {
@@ -44,11 +51,12 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
   int stunPort = args[3]->IntegerValue();
   int minPort = args[4]->IntegerValue();
   int maxPort = args[5]->IntegerValue();
-
   WebRtcConnection* obj = new WebRtcConnection();
   obj->me = new erizo::WebRtcConnection(a, v, stunServer,stunPort,minPort,maxPort);
+  obj->me->setWebRTCConnectionEventListener(obj);
   obj->Wrap(args.This());
-
+  uv_async_init(uv_default_loop(), &obj->async, &WebRtcConnection::after_cb); 
+  obj->message = 0;
   return args.This();
 }
 
@@ -57,6 +65,7 @@ Handle<Value> WebRtcConnection::close(const Arguments& args) {
 
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
   erizo::WebRtcConnection *me = obj->me;
+  uv_close((uv_handle_t*)&obj->async, NULL);
 
   delete me;
 
@@ -137,4 +146,17 @@ Handle<Value> WebRtcConnection::getCurrentState(const Arguments& args) {
   int state = me->getCurrentState();
 
   return scope.Close(Number::New(state));
+}
+
+void WebRtcConnection::notify(erizo::WebRTCEvent event){
+  this->message=event;
+  async.data = &this->message;
+  uv_async_send (&async);
+}
+void WebRtcConnection::after_cb(uv_async_t *handle, int status){
+
+  HandleScope scope;
+  printf("WebRTC Update received %d\n", (*(int*)handle->data));
+  Local<Value> args[] = {Integer::New(*(int*)handle->data)};
+  node::MakeCallback(context_obj, "on", 1, args);
 }

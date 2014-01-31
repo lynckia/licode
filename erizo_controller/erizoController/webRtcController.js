@@ -48,6 +48,9 @@ exports.WebRtcController = function () {
     initWebRtcConnection = function (wrtc, sdp, callback, onReady) {
 
         wrtc.init();
+        addon.webrtcEvent.on = function (newStatus){
+          console.log("EN JAVASCRIPT " + newStatus );
+        };
 
         var roap = sdp,
             remoteSdp = getSdp(roap);

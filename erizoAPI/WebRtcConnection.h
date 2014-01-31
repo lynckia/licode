@@ -13,16 +13,19 @@
  * A WebRTC Connection. This class represents a WebRtcConnection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary ICE and SRTP components.
  */
-class WebRtcConnection : public node::ObjectWrap {
+class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventListener  {
  public:
   static void Init(v8::Handle<v8::Object> target);
 
   erizo::WebRtcConnection *me;
-
+  int message;
+//  static v8::Persistent<v8::Object> context_obj;
  private:
   WebRtcConnection();
   ~WebRtcConnection();
 
+  uv_async_t async;
+  static bool initialized;
   /*
    * Constructor.
    * Constructs an empty WebRtcConnection without any configuration.
@@ -64,7 +67,10 @@ class WebRtcConnection : public node::ObjectWrap {
    * Returns the state.
    */
   static v8::Handle<v8::Value> getCurrentState(const v8::Arguments& args);
+
+  static void after_cb(uv_async_t *handle, int status);
  
+	virtual void notify(erizo::WebRTCEvent event);
 };
 
 #endif

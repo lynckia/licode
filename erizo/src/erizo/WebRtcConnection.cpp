@@ -29,8 +29,8 @@ namespace erizo {
     sourcefbSink_ = this;
     sinkfbSource_ = this;
 
-    globalState_ = INITIAL;
-    connStateListener_ = NULL;
+    globalState_ = CONN_INITIAL;
+    connEventListener_ = NULL;
 
     sending_ = true;
     send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
@@ -49,6 +49,7 @@ namespace erizo {
 
   WebRtcConnection::~WebRtcConnection() {
     ELOG_DEBUG("WebRtcConnection Destructor");
+    boost::mutex::scoped_lock lock(receiveVideoMutex_);
     videoSink_ = NULL;
     audioSink_ = NULL;
     fbSink_ = NULL;
@@ -59,7 +60,11 @@ namespace erizo {
     sending_ = false;
     cond_.notify_one();
     send_Thread_.join();
-    boost::mutex::scoped_lock lock(receiveVideoMutex_);
+    globalState_ = CONN_FINISHED;
+    if (connEventListener_ != NULL){
+      connEventListener_->notify(globalState_);
+      connEventListener_ = NULL;
+    }
   }
 
   bool WebRtcConnection::init() {
@@ -195,7 +200,7 @@ namespace erizo {
   int WebRtcConnection::deliverFeedback(char* buf, int len){
     // Check where to send the feedback
     rtcpheader *chead = (rtcpheader*) buf;
-    ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, ntohl(chead->ssrc), ntohl(chead->ssrcsource));
+//    ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, ntohl(chead->ssrc), ntohl(chead->ssrcsource));
     if (ntohl(chead->ssrcsource) == this->getAudioSourceSSRC()) {
         writeSsrc(buf,len,this->getAudioSinkSSRC());      
     } else {
@@ -246,7 +251,7 @@ namespace erizo {
         unsigned int recvSSRC = ntohl(head->ssrc);
 
         if (chead->packettype == RTCP_Sender_PT) { //Sender Report
-          ELOG_DEBUG ("RTP Sender Report %d length %d ", chead->packettype, ntohs(chead->length));
+//          ELOG_DEBUG ("RTP Sender Report %d length %d ", chead->packettype, ntohs(chead->length));
           recvSSRC = ntohl(chead->ssrc);
         }
 
@@ -327,26 +332,26 @@ namespace erizo {
     return pos;
   }
 
-  void WebRtcConnection::setWebRTCConnectionStateListener(
-      WebRtcConnectionStateListener* listener) {
-    this->connStateListener_ = listener;
+  void WebRtcConnection::setWebRTCConnectionEventListener(
+      WebRtcConnectionEventListener* listener) {
+    this->connEventListener_ = listener;
   }
 
   void WebRtcConnection::updateState(TransportState state, Transport * transport) {
     boost::mutex::scoped_lock lock(updateStateMutex_);
-    WebRTCState temp = globalState_;
+    WebRTCEvent temp = globalState_;
     ELOG_INFO("Update Transport State %s to %d", transport->transport_name.c_str(), state);
     if (audioTransport_ == NULL && videoTransport_ == NULL) {
       return;
     }
 
     if (state == TRANSPORT_FAILED) {
-      temp = FAILED;
+      temp = CONN_FAILED;
       ELOG_INFO("WebRtcConnection failed.");
     }
 
     
-    if (globalState_ == FAILED) {
+    if (globalState_ == CONN_FAILED) {
       // if current state is failed we don't use
       return;
     }
@@ -360,27 +365,27 @@ namespace erizo {
       if (!bundle_ && remoteSdp_.hasAudio) {
         audioTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
       }
-      temp = STARTED;
+      temp = CONN_STARTED;
     }
 
     if (state == TRANSPORT_READY &&
         (!remoteSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_READY)) &&
         (!remoteSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_READY))) {
         // WebRTCConnection will be ready only when all channels are ready.
-        temp = READY;
+        temp = CONN_READY;
     }
 
     if (transport != NULL && transport == videoTransport_ && bundle_) {
       if (state == TRANSPORT_STARTED) {
         videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
-        temp = STARTED;
+        temp = CONN_STARTED;
       }
       if (state == TRANSPORT_READY) {
-        temp = READY;
+        temp = CONN_READY;
       }
     }
 
-    if (temp == READY && globalState_ != temp) {
+    if (temp == CONN_READY && globalState_ != temp) {
       ELOG_INFO("Ready to send and receive media");
     }
 
@@ -399,12 +404,12 @@ namespace erizo {
       return;
     }
 
-    if (temp == globalState_ || (temp == STARTED && globalState_ == READY))
+    if (temp == globalState_ || (temp == CONN_STARTED && globalState_ == CONN_READY))
       return;
 
     globalState_ = temp;
-    if (connStateListener_ != NULL)
-      connStateListener_->connectionStateChanged(globalState_);
+    if (connEventListener_ != NULL)
+      connEventListener_->notify(globalState_);
   }
 
   void WebRtcConnection::queueData(int comp, const char* buf, int length, Transport *transport) {
@@ -428,7 +433,7 @@ namespace erizo {
     cond_.notify_one();
   }
 
-  WebRTCState WebRtcConnection::getCurrentState() {
+  WebRTCEvent WebRtcConnection::getCurrentState() {
     return globalState_;
   }
 
