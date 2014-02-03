@@ -10,9 +10,10 @@ EXTRAS=$ROOT/extras
 
 export PATH=$PATH:/usr/local/sbin
 
-sudo echo
-
-sudo rabbitmq-server > $BUILD_DIR/rabbit.log &
+if ! pgrep -q -f rabbitmq; then
+  sudo echo
+  sudo rabbitmq-server > $BUILD_DIR/rabbit.log &
+fi
 
 cd $ROOT/nuve
 ./initNuve.sh
