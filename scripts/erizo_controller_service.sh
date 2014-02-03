@@ -13,8 +13,13 @@ sleep 2
 
 cd $ROOT/erizo_controller/erizoController
 
-until node erizoController.js; do
-    echo "node erizoController.js crashed with exit code $?.  Respawning.." >&2
-    sleep 1
+while node erizoController.js; do
+  echo "node erizoController.js exited unexpectedly.  Respawning." >&2
+  until node erizoController.js; do
+      echo "node erizoController.js crashed with exit code $?.  Respawning." >&2
+      sleep 1
+  done
 done
+
+
 
