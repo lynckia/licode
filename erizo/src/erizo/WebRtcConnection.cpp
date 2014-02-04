@@ -49,7 +49,6 @@ namespace erizo {
 
   WebRtcConnection::~WebRtcConnection() {
     ELOG_DEBUG("WebRtcConnection Destructor");
-    boost::mutex::scoped_lock lock(receiveVideoMutex_);
     videoSink_ = NULL;
     audioSink_ = NULL;
     fbSink_ = NULL;
@@ -65,6 +64,7 @@ namespace erizo {
       connEventListener_->notify(globalState_);
       connEventListener_ = NULL;
     }
+    boost::mutex::scoped_lock lock(receiveVideoMutex_);
   }
 
   bool WebRtcConnection::init() {
