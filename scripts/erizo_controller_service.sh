@@ -20,6 +20,3 @@ while node erizoController.js; do
       sleep 1
   done
 done
-
-
-
