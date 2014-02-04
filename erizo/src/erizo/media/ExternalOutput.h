@@ -17,19 +17,18 @@ extern "C" {
 }
 
 namespace erizo{
+#define UNPACKAGE_BUFFER_SIZE 200000
   class WebRtcConnection;
 
   class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource {
       DECLARE_LOGGER();
     public:
-      ExternalOutput (std::string outputUrl);
+      ExternalOutput(const std::string& outputUrl);
       virtual ~ExternalOutput();
       bool init();
 	    int deliverAudioData(char* buf, int len);
 	    int deliverVideoData(char* buf, int len);
       void receiveRawData(RawDataPacket& packet);
-      void closeSink();
-
 
     private:
       OutputProcessor* op_;
@@ -47,14 +46,14 @@ namespace erizo{
       AVStream        *video_st, *audio_st;
       
       AudioEncoder* audioCoder_;
-      unsigned char* unpackagedBuffer_;
-      unsigned char* unpackagedAudioBuffer_;
       int gotUnpackagedFrame_;
       int unpackagedSize_;
       int prevEstimatedFps_;
       int warmupfpsCount_;
       int sequenceNumberFIR_;
-      unsigned long lastTime_;
+      unsigned long long lastTime_;
+
+      int video_stream_index, bufflen, aviores_, writeheadres_;
 
 
       AVFormatContext *context_;
@@ -62,12 +61,14 @@ namespace erizo{
       AVCodec *videoCodec_, *audioCodec_; 
       AVCodecContext *videoCodecCtx_, *audioCodecCtx_;
       InputProcessor *in;
-    
 
-      int video_stream_index, bufflen;
+
       AVPacket avpacket;
-      char *deliverMediaBuffer_;
-      unsigned long initTime_;
+      unsigned char* unpackagedBufferpart_;
+      unsigned char deliverMediaBuffer_[3000];
+      unsigned char unpackagedBuffer_[UNPACKAGE_BUFFER_SIZE];
+      unsigned char unpackagedAudioBuffer_[UNPACKAGE_BUFFER_SIZE/10];
+      unsigned long long initTime_;
   };
 }
 #endif /* EXTERNALOUTPUT_H_ */

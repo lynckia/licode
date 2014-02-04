@@ -12,14 +12,20 @@ namespace erizo {
   ExternalInput::ExternalInput(const std::string& inputUrl){
     sourcefbSink_=NULL;
     context_ = NULL;
-    sendVideoBuffer_=NULL;
     running_ = false;
     url_ = inputUrl;
   }
 
   ExternalInput::~ExternalInput(){
     ELOG_DEBUG("Destructor ExternalInput %s" , url_.c_str());
-    this->closeSource();
+    ELOG_DEBUG("Closing ExternalInput");
+    running_ = false;
+    thread_.join();
+    encodeThread_.join();
+    av_free_packet(&avpacket_);
+    if (context_!=NULL)
+      avformat_free_context(context_);
+    ELOG_DEBUG("ExternalInput closed");
   }
 
   int ExternalInput::init(){
@@ -51,7 +57,6 @@ namespace erizo {
       ELOG_ERROR("No stream found");
       return streamNo;
     }
-    sendVideoBuffer_ = (char*) malloc(2000);
 
     video_stream_index_ = streamNo;
     AVStream* st = context_->streams[streamNo];    
@@ -59,7 +64,8 @@ namespace erizo {
 
 
     bufflen_ = st->codec->width*st->codec->height*3/2;
-    decodedBuffer_ = (unsigned char*) malloc(bufflen_);
+    decodedBuffer_.reset((unsigned char*) malloc(bufflen_));
+
 
     MediaInfo om;
     om.proccessorType = RTP_ONLY;
@@ -76,7 +82,7 @@ namespace erizo {
       om.audioCodec.bitRate = 64000;
     }
 
-    op_ = new OutputProcessor();
+    op_.reset(new OutputProcessor());
     op_->init(om, this);
 
 
@@ -89,24 +95,6 @@ namespace erizo {
     running_ = true;
     encodeThread_ = boost::thread(&ExternalInput::encodeLoop, this);
     return true;
-  }
-
-  void ExternalInput::closeSource() {
-    ELOG_DEBUG("Closing ExternalInput");
-    running_ = false;
-    encodeThread_.join();
-    thread_.join();
-    av_free_packet(&avpacket_);
-    if (context_!=NULL)
-      avformat_free_context(context_);
-    if (sendVideoBuffer_!=NULL)
-      free(sendVideoBuffer_);
-    if(decodedBuffer_!=NULL)
-      free(decodedBuffer_);
-    if (op_!=NULL){
-      delete op_;
-    }
-    ELOG_DEBUG("ExternalInput closed");
   }
 
   int ExternalInput::sendFirPacket() {
@@ -128,10 +116,10 @@ namespace erizo {
     while(av_read_frame(context_,&avpacket_)>=0&& running_==true){//read 100 frames
       if(avpacket_.stream_index == video_stream_index_){//packet is video               
         //        packet.stream_index = stream->id;
-        inCodec_.decodeVideo(avpacket_.data, avpacket_.size, decodedBuffer_, bufflen_, &gotDecodedFrame);
+        inCodec_.decodeVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get(), bufflen_, &gotDecodedFrame);
         RawDataPacket packetR;
         if (gotDecodedFrame){
-          packetR.data = decodedBuffer_;
+          packetR.data = decodedBuffer_.get();
           packetR.length = bufflen_;
           packetR.type = VIDEO;
           queueMutex_.lock();
@@ -156,7 +144,7 @@ namespace erizo {
         queueMutex_.unlock();
       } else {
         queueMutex_.unlock();
-        usleep(1000);
+        usleep(10000);
       }
     }
   }

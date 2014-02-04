@@ -42,7 +42,7 @@ int dummy_cb(int d, X509_STORE_CTX *x)
    return 1;
 }
 
-DtlsSocket::DtlsSocket(std::auto_ptr<DtlsSocketContext> socketContext, DtlsFactory* factory, enum SocketType type):
+DtlsSocket::DtlsSocket(boost::shared_ptr<DtlsSocketContext> socketContext, DtlsFactory* factory, enum SocketType type):
    mSocketContext(socketContext),
    mFactory(factory),
    mReadTimer(0),

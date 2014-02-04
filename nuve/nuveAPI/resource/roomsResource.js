@@ -32,6 +32,8 @@ exports.createRoom = function (req, res) {
         return;
     }
 
+    req.body.options = req.body.options || {};
+
     if (req.body.options.test) {
         if (currentService.testRoom !== undefined) {
             console.log('TestRoom already exists for service', currentService.name);
@@ -51,6 +53,9 @@ exports.createRoom = function (req, res) {
         
         if (req.body.options.p2p) {
             room.p2p = true;
+        }
+        if (req.body.options.data) {
+            room.data = req.body.options.data;
         }
         roomRegistry.addRoom(room, function (result) {
             currentService.rooms.push(result);

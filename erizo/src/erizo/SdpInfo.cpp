@@ -47,13 +47,7 @@ namespace erizo {
     vp8.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(vp8);
 
-/*    RtpMap ulpfec;
-    ulpfec.payloadType = ULP_90000_PT;
-    ulpfec.encodingName = "ulpfec";
-    ulpfec.clockRate = 90000;
-    ulpfec.channels = 1;
-    ulpfec.mediaType = VIDEO_TYPE;
-    internalPayloadVector_.push_back(ulpfec);
+/*
 
     RtpMap red;
     red.payloadType = RED_90000_PT;
@@ -61,8 +55,17 @@ namespace erizo {
     red.clockRate = 90000;
     red.channels = 1;
     red.mediaType = VIDEO_TYPE;
-    internalPayloadVector_.push_back(red); */
+    internalPayloadVector_.push_back(red);
 
+    RtpMap ulpfec;
+    ulpfec.payloadType = ULP_90000_PT;
+    ulpfec.encodingName = "ulpfec";
+    ulpfec.clockRate = 90000;
+    ulpfec.channels = 1;
+    ulpfec.mediaType = VIDEO_TYPE;
+    internalPayloadVector_.push_back(ulpfec);
+    */
+    
     RtpMap opus;
     opus.payloadType = OPUS_48000_PT;
     opus.encodingName = "opus";
@@ -162,7 +165,7 @@ namespace erizo {
   }
 
   std::string SdpInfo::getSdp() {
-    char* msidtemp = static_cast<char*>(malloc(10));
+    char msidtemp [10];
     gen_random(msidtemp,10);
 
     ELOG_DEBUG("Getting SDP");
@@ -184,7 +187,7 @@ namespace erizo {
         case HOST:
           hostType_str = "host";
           break;
-        case SRLFX:
+        case SRFLX:
           hostType_str = "srflx";
           break;
         case PRFLX:
@@ -224,14 +227,14 @@ namespace erizo {
         if (isRtcpMux) {
           comps++;
         }
-        for (int idx = 1; idx <= comps; idx++) {
+        for (int idx = cand.componentId; idx <= comps; idx++) {
           sdp << "a=candidate:" << cand.foundation << " " << idx
               << " " << cand.netProtocol << " " << cand.priority << " "
               << cand.hostAddress << " " << cand.hostPort << " typ "
               << hostType_str;
-          if (cand.hostType == SRLFX) {
+          if (cand.hostType == SRFLX) {
             //raddr 192.168.0.12 rport 50483
-            sdp << " raddr " << cand.baseAddress << " rport " << cand.basePort;
+            sdp << " raddr " << cand.rAddress << " rport " << cand.rPort;
           }
           sdp << generation  << endl;
         }
@@ -276,6 +279,9 @@ namespace erizo {
           }
         }
       }
+      if (audioSsrc == 0) {
+        audioSsrc = 44444;
+      }
       sdp << "a=maxptime:60" << endl;
       sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<
         "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl<<
@@ -291,7 +297,7 @@ namespace erizo {
         case HOST:
           hostType_str = "host";
           break;
-        case SRLFX:
+        case SRFLX:
           hostType_str = "srflx";
           break;
         case PRFLX:
@@ -327,14 +333,14 @@ namespace erizo {
         if (isRtcpMux) {
           comps++;
         }
-        for (int idx = 1; idx <= comps; idx++) {
+        for (int idx = cand.componentId; idx <= comps; idx++) {
           sdp << "a=candidate:" << cand.foundation << " " << idx
               << " " << cand.netProtocol << " " << cand.priority << " "
               << cand.hostAddress << " " << cand.hostPort << " typ "
               << hostType_str;
-          if (cand.hostType == SRLFX) {
+          if (cand.hostType == SRFLX||cand.hostType == RELAY) {
             //raddr 192.168.0.12 rport 50483
-            sdp << " raddr " << cand.baseAddress << " rport " << cand.basePort;
+            sdp << " raddr " << cand.rAddress << " rport " << cand.rPort;
           }
           sdp << generation  << endl;
         }
@@ -375,17 +381,18 @@ namespace erizo {
           sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
               << rtp.clockRate <<"\n";
           if(rtp.encodingName == "VP8"){
-            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" ccm fir\na=rtcp-fb:"<< rtp.payloadType<<" nack\n";
+            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" ccm fir\na=rtcp-fb:"<< rtp.payloadType<<" nack\na=rtcp-fb:" << rtp.payloadType<<" goog-remb\n" ;
           }
         }
       }
-
+      if (videoSsrc == 0) {
+        videoSsrc = 55543;
+      }
       sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<
         "a=ssrc:"<< videoSsrc << " msid:"<< msidtemp << " v0"<< endl<<
         "a=ssrc:"<< videoSsrc << " mslabel:"<< msidtemp << endl<<
         "a=ssrc:"<< videoSsrc << " label:" << msidtemp <<"v0"<<endl;
     }
-    free (msidtemp);
     ELOG_DEBUG("sdp local \n %s",sdp.str().c_str());
     return sdp.str();
   }
@@ -426,10 +433,10 @@ namespace erizo {
 
     std::string strLine;
     std::istringstream iss(sdp);
-    char* line = (char*) malloc(1000);
-    char** pieces = (char**) malloc(10000);
-    char** cryptopiece = (char**) malloc(5000);
 
+    char line[500];
+    char* pieces[100];
+    char* cryptopiece[100];
     MediaType mtype = OTHER;
 
     while (std::getline(iss, strLine)) {
@@ -563,10 +570,6 @@ namespace erizo {
 
     }
 
-    free(line);
-    free(pieces);
-    free(cryptopiece);
-
     for (unsigned int i = 0; i < candidateVector_.size(); i++) {
       CandidateInfo& c = candidateVector_[i];
       c.username = iceUsername_;
@@ -592,7 +595,7 @@ namespace erizo {
   bool SdpInfo::processCandidate(char** pieces, int size, MediaType mediaType) {
 
     CandidateInfo cand;
-    const char* types_str[10] = { "host", "srflx", "prflx", "relay" };
+    static const char* types_str[] = { "host", "srflx", "prflx", "relay" };
     cand.mediaType = mediaType;
     cand.foundation = pieces[0];
     cand.componentId = (unsigned int) strtoul(pieces[1], NULL, 10);
@@ -602,8 +605,10 @@ namespace erizo {
     if (cand.netProtocol.compare("UDP") && cand.netProtocol.compare("udp")) {
       return false;
     }
-    //	a=candidate:0 1 udp 2130706432 138.4.4.143 52314 typ host  generation 0
+    //	a=candidate:0 1 udp 2130706432 1383 52314 typ host  generation 0
     //		        0 1 2    3            4          5     6  7    8          9
+    // 
+    // a=candidate:1367696781 1 udp 33562367 138. 49462 typ relay raddr 138.4 rport 53531 generation 0
     cand.priority = (unsigned int) strtoul(pieces[3], NULL, 10);
     cand.hostAddress = std::string(pieces[4]);
     cand.hostPort = (unsigned int) strtoul(pieces[5], NULL, 10);
@@ -622,7 +627,7 @@ namespace erizo {
         cand.hostType = HOST;
         break;
       case 1:
-        cand.hostType = SRLFX;
+        cand.hostType = SRFLX;
         break;
       case 2:
         cand.hostType = PRFLX;
@@ -635,9 +640,10 @@ namespace erizo {
         break;
     }
 
-    if (type == 3) {
-      cand.relayAddress = std::string(pieces[8]);
-      cand.relayPort = (unsigned int) strtoul(pieces[9], NULL, 10);
+    if (cand.hostType == SRFLX || cand.hostType==RELAY) {
+      cand.rAddress = std::string(pieces[9]);
+      cand.rPort = (unsigned int) strtoul(pieces[11], NULL, 10);
+      ELOG_DEBUG("Parsing raddr srlfx or relay %s, %u \n", cand.rAddress.c_str(), cand.rPort);
     }
     candidateVector_.push_back(cand);
     return true;

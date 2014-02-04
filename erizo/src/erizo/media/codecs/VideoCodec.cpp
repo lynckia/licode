@@ -136,6 +136,7 @@ namespace erizo {
     vDecoder = NULL;
     vDecoderContext = NULL;
     dPicture = NULL;
+    initWithContext_=false;
   }
 
   VideoDecoder::~VideoDecoder(){
@@ -173,8 +174,9 @@ namespace erizo {
     return 0;
   }
 
-  int VideoDecoder::initDecoder (AVCodecContext* context){
-    ELOG_DEBUG("Init Decoder");
+  int VideoDecoder::initDecoder (AVCodecContext* context){    
+    ELOG_DEBUG("Init Decoder with context");
+    initWithContext_=true;
     vDecoder = avcodec_find_decoder(context->codec_id);
     if (!vDecoder) {
       ELOG_DEBUG("Error getting video decoder");
@@ -286,7 +288,7 @@ decoding:
   }
 
   int VideoDecoder::closeDecoder(){
-    if (vDecoderContext != NULL)
+    if (!initWithContext_ && vDecoderContext != NULL)
       avcodec_close(vDecoderContext);
     if (dPicture != NULL)
       avcodec_free_frame(&dPicture);

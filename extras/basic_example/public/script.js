@@ -20,18 +20,11 @@ function startRecording (){
   }
 }
 
-function getParameterByName(name) {
-    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-        results = regex.exec(location.search);
-    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
-}
-
 window.onload = function () {
   recording = false;
   var screen = getParameterByName("screen");
 
-  localStream = Erizo.Stream({audio: true, video: true, data: true, screen: screen});
+  localStream = Erizo.Stream({audio: true, video: true, data: true, screen: screen, videoSize: [640, 480, 640, 480]});
   var createToken = function(userName, role, callback) {
 
     var req = new XMLHttpRequest();
@@ -49,7 +42,7 @@ window.onload = function () {
     req.send(JSON.stringify(body));
   };
 
-  createToken("user", "role", function (response) {
+  createToken("user", "presenter", function (response) {
     var token = response;
     console.log(token);
     room = Erizo.Room({token: token});
@@ -66,7 +59,7 @@ window.onload = function () {
 
       room.addEventListener("room-connected", function (roomEvent) {
 
-        room.publish(localStream);
+        room.publish(localStream, {maxVideoBW: 300});
         subscribeToStreams(roomEvent.streams);
       });
 

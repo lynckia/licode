@@ -19,11 +19,19 @@ Erizo.FirefoxStack = function (spec) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
     } 
 
+    if (spec.audio === undefined) {
+        spec.audio = true;
+    }
+
+    if (spec.video === undefined) {
+        spec.video = true;
+    }
+
     that.mediaConstraints = {
         optional: [],
         mandatory: {
-            OfferToReceiveAudio: true,
-            OfferToReceiveVideo: true,
+            OfferToReceiveAudio: spec.audio,
+            OfferToReceiveVideo: spec.video,
             MozDontOfferDataChannel: true
         }
     };
@@ -93,11 +101,14 @@ Erizo.FirefoxStack = function (spec) {
 
                 //msg.sdp = msg.sdp.replace(regExp, exp + "b=AS:100\r\n");
 
+                msg.sdp = msg.sdp.replace(/ generation 0/g, "");
+                msg.sdp = msg.sdp.replace(/ udp /g, " UDP ");
+
                 sd = {
                     sdp: msg.sdp,
                     type: 'answer'
                 };
-                L.Logger.debug("Received ANSWER: ", sd);
+                L.Logger.debug("Received ANSWER: ", sd.sdp);
                 that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
                 that.sendOK();
                 that.state = 'established';
@@ -349,6 +360,12 @@ Erizo.FirefoxStack = function (spec) {
         if (that.onremovestream) {
             that.onremovestream(stream);
         }
+    };
+
+    that.peerConnection.oniceconnectionstatechange = function (e) {
+        if (that.oniceconnectionstatechange) {
+            that.oniceconnectionstatechange(e.currentTarget.iceConnectionState);
+        }   
     };
 
     // Variables that are part of the public interface of PeerConnection

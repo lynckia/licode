@@ -20,10 +20,10 @@ RTPSink::RTPSink(const std::string& url, const std::string& port) {
 
 RTPSink::~RTPSink() {
 
-	free(ioservice_);
-	free(resolver_);
-	free(socket_);
-	free(query_);
+	delete ioservice_;
+	delete resolver_;
+	delete socket_;
+	delete query_;
 
 }
 

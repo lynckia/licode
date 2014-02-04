@@ -248,8 +248,11 @@ namespace erizo {
     }
 
     //    ELOG_DEBUG("Audio Timestamp %u", head->getTimestamp());
-
     int l = inBuffLen - RTPHeader::MIN_SIZE;
+    if (l<0){
+      ELOG_ERROR ("Error unpackaging audio");
+      return 0;
+    }
     memcpy(outBuff, &inBuff[RTPHeader::MIN_SIZE], l);
 
     return l;
@@ -290,8 +293,9 @@ namespace erizo {
       lastVideoTs_ = head->getTimestamp();
       *gotFrame = 1;
     }
-    return parsed->dataLength;
-
+    int ret = parsed->dataLength;
+    delete parsed;
+    return ret;
   }
 
   void InputProcessor::closeSink(){

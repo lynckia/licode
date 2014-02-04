@@ -1,4 +1,6 @@
+#ifndef BUILDING_NODE_EXTENSION
 #define BUILDING_NODE_EXTENSION
+#endif
 #include <node.h>
 #include "OneToManyTranscoder.h"
 
@@ -88,7 +90,6 @@ Handle<Value> OneToManyTranscoder::addSubscriber(const Arguments& args) {
   WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(args[0]->ToObject());
   erizo::WebRtcConnection* wr = param->me;
 
-  erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
 // get the param
   v8::String::Utf8Value param1(args[1]->ToString());
 

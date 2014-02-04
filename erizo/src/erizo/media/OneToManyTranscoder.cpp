@@ -11,8 +11,6 @@ namespace erizo {
 DEFINE_LOGGER(OneToManyTranscoder, "media.OneToManyTranscoder");
 OneToManyTranscoder::OneToManyTranscoder() {
 
-	sendVideoBuffer_ = (char*) malloc(2000);
-	sendAudioBuffer_ = (char*) malloc(2000);
 
 	publisher = NULL;
 	sentPackets_ = 0;
@@ -56,13 +54,7 @@ OneToManyTranscoder::OneToManyTranscoder() {
 
 OneToManyTranscoder::~OneToManyTranscoder() {
 	this->closeAll();
-	if (sendVideoBuffer_)
-		delete sendVideoBuffer_;
-	if (sendAudioBuffer_)
-		delete sendAudioBuffer_;
-	if (sink_) {
-		delete sink_;
-	}
+	delete sink_;
 }
 
 int OneToManyTranscoder::deliverAudioData(char* buf, int len) {
@@ -143,28 +135,23 @@ void OneToManyTranscoder::addSubscriber(MediaSink* webRtcConn,
 	this->subscribers[peerId] = webRtcConn;
 }
 
-void OneToManyTranscoder::removeSubscriber(const std::string& peerId) {
-	if (this->subscribers.find(peerId) != subscribers.end()) {
-		this->subscribers[peerId]->closeSink();
-		this->subscribers.erase(peerId);
-	}
-}
+  void OneToManyTranscoder::removeSubscriber(const std::string& peerId) {
+    if (this->subscribers.find(peerId) != subscribers.end()) {
+      delete this->subscribers[peerId];      
+      this->subscribers.erase(peerId);
+    }
+  }
 
-void OneToManyTranscoder::closeSink(){
-  this->closeAll();
-}
-
-void OneToManyTranscoder::close() {
-  this->closeAll();
-}
-
-void OneToManyTranscoder::closeAll() {
-	std::map<std::string, MediaSink*>::iterator it;
-	for (it = subscribers.begin(); it != subscribers.end(); it++) {
-		(*it).second->closeSink();
-	}
-	this->publisher->closeSource();
-}
+  void OneToManyTranscoder::closeAll() {
+    ELOG_WARN ("OneToManyProcessor closeAll");
+    std::map<std::string, MediaSink*>::iterator it;
+    for (it = subscribers.begin(); it != subscribers.end(); it++) {
+//      (*it).second->closeSink();
+      subscribers.erase(it);
+      delete (*it).second;
+    }
+    delete this->publisher;
+  }
 
 }/* namespace erizo */
 
