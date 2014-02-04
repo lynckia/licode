@@ -16,7 +16,7 @@ namespace erizo {
  * ICE candidate types
  */
 enum HostType {
-    HOST, SRLFX, PRFLX, RELAY
+    HOST, SRFLX, PRFLX, RELAY
 };
 /**
  * Channel types
@@ -70,11 +70,9 @@ public:
     unsigned int componentId;
     std::string foundation;
     std::string hostAddress;
-    std::string relayAddress;
-    std::string baseAddress;
+    std::string rAddress;
     int hostPort;
-    int relayPort;
-    int basePort;
+    int rPort;
     std::string netProtocol;
     HostType hostType;
     std::string transProtocol;

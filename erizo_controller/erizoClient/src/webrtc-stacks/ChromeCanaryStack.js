@@ -23,14 +23,22 @@ Erizo.ChromeCanaryStack = function (spec) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
     }
 
-    if (spec.turnServer !== undefined) {
+    if ((spec.turnServer || {}).url) {
         that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
+    }
+
+    if (spec.audio === undefined || spec.nop2p) {
+        spec.audio = true;
+    }
+
+    if (spec.video === undefined || spec.nop2p) {
+        spec.video = true;
     }
 
     that.mediaConstraints = {
         'mandatory': {
-            'OfferToReceiveVideo': 'true',
-            'OfferToReceiveAudio': 'true'
+            'OfferToReceiveVideo': spec.video,
+            'OfferToReceiveAudio': spec.audio
         }
     };
 
@@ -422,6 +430,12 @@ Erizo.ChromeCanaryStack = function (spec) {
         if (that.onremovestream) {
             that.onremovestream(stream);
         }
+    };
+
+    that.peerConnection.oniceconnectionstatechange = function (e) {
+        if (that.oniceconnectionstatechange) {
+            that.oniceconnectionstatechange(e.currentTarget.iceConnectionState);
+        }   
     };
 
     // Variables that are part of the public interface of PeerConnection

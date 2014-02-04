@@ -183,6 +183,45 @@ typedef struct {
     uint32_t fractionlost:8;
 } rtcpheader;
 
+
+//    0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |V=2|P|   FMT   |       PT      |          length               |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |                  SSRC of packet sender                        |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |                  SSRC of media source                         |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   :            Feedback Control Information (FCI)                 :
+//   :                                                               :
+
+//   The Feedback Control Information (FCI) for the Full Intra Request
+//   consists of one or more FCI entries, the content of which is depicted
+//   in Figure 4.  The length of the FIR feedback message MUST be set to
+//   2+2*N, where N is the number of FCI entries.
+//
+//    0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |                              SSRC                             |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   | Seq nr.       |    Reserved                                   |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+typedef struct {
+    uint32_t fmt :5;
+    uint32_t padding :1;
+    uint32_t version :2;
+    uint32_t packettype :8;
+    uint32_t length :16;
+    uint32_t ssrc;
+    uint32_t ssrcofmediasource;
+    uint32_t ssrc_fir;
+} firheader;
+
+
 //     0                   1                    2                   3
 //     0 1 2 3 4 5 6 7 8 9 0 1 2 3  4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -224,8 +263,9 @@ struct redheader {
 
 // Payload types
 #define RTCP_Sender_PT      200 // RTCP Sender Report
-#define RTCP_Receiver_PT    201 // RTCP Sender Report
-#define RTCP_Feedback_PT    206 // RTCP Feddback Packet
+#define RTCP_Receiver_PT    201 // RTCP Receiver Report
+#define RTCP_RTP_Feedback_PT 205 // RTCP Transport Layer Feedback Packet
+#define RTCP_PS_Feedback_PT    206 // RTCP Payload Specific Feedback Packet
 
 #define VP8_90000_PT        100 // VP8 Video Codec
 #define RED_90000_PT        116 // REDundancy (RFC 2198)

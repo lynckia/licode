@@ -8,6 +8,8 @@ var server = http.createServer();
 var io = require('socket.io').listen(server, {log:false});
 var config = require('./../../licode_config');
 var logger = require('./logger').logger;
+var Permission = require('./permission');
+
 server.listen(8080);
 
 io.set('log level', 0);
@@ -89,35 +91,50 @@ var addToCloudHandler = function (callback) {
     publicIP = addresses[0];
     privateRegexp = new RegExp(publicIP, 'g');
 
-    rpc.callRpc('nuve', 'addNewErizoController', {cloudProvider: config.cloudProvider.name, ip: publicIP}, function (msg) {
-
-        if (msg === 'timeout') {
-            logger.info('CloudHandler does not respond');
+    var addECToCloudHandler = function(attempt) {
+        if (attempt <= 0) {
             return;
         }
-        if (msg == 'error') {
-            logger.info('Error in communication with cloudProvider');
-        }
 
-        publicIP = msg.publicIP;
-        myId = msg.id;
-        myState = 2;
+        rpc.callRpc('nuve', 'addNewErizoController', {cloudProvider: config.cloudProvider.name, ip: publicIP}, function (msg) {
 
-        var intervarId = setInterval(function () {
+            if (msg === 'timeout') {
+                logger.info('CloudHandler does not respond');
 
-            rpc.callRpc('nuve', 'keepAlive', myId, function (result) {
-                if (result === 'whoareyou') {
-                    logger.info('I don`t exist in cloudHandler. I`m going to be killed');
-                    clearInterval(intervarId);
-                    rpc.callRpc('nuve', 'killMe', publicIP, function () {});
-                }
-            });
+                // We'll try it more!
+                setTimeout(function() {
+                    attempt = attempt - 1;
+                    addECToCloudHandler(attempt);
+                }, 3000);
+                return;
+            }
+            if (msg == 'error') {
+                logger.info('Error in communication with cloudProvider');
+            }
 
-        }, INTERVAL_TIME_KEEPALIVE);
+            publicIP = msg.publicIP;
+            myId = msg.id;
+            myState = 2;
 
-        callback();
+            var intervarId = setInterval(function () {
 
-    });
+                rpc.callRpc('nuve', 'keepAlive', myId, function (result) {
+                    if (result === 'whoareyou') {
+
+                        // TODO: It should try to register again in Cloud Handler. But taking into account current rooms, users, ...
+                        logger.info('I don`t exist in cloudHandler. I`m going to be killed');
+                        clearInterval(intervarId);
+                        rpc.callRpc('nuve', 'killMe', publicIP, function () {});
+                    }
+                });
+
+            }, INTERVAL_TIME_KEEPALIVE);
+
+            callback();
+
+        });
+    };
+    addECToCloudHandler(5);
 };
 
 //*******************************************************************
@@ -205,8 +222,14 @@ var listen = function () {
                             rooms[tokenDB.room].sockets.push(socket.id);
                         }
                         user = {name: tokenDB.userName, role: tokenDB.role};
-                        socket.room = rooms[tokenDB.room];
                         socket.user = user;
+                        var permissions = config.roles[tokenDB.role] || [];
+                        socket.user.permissions = {};
+                        for (var i in permissions) {
+                            var permission = permissions[i];
+                            socket.user.permissions[permission] = true;
+                        }
+                        socket.room = rooms[tokenDB.room];
                         socket.streams = []; //[list of streamIds]
                         socket.state = 'sleeping';
 
@@ -218,7 +241,14 @@ var listen = function () {
                             }
                         }
 
-                        callback('success', {streams: streamList, id: socket.room.id, p2p: socket.room.p2p, stunServerUrl: config.erizoController.stunServerUrl});
+                        callback('success', {streams: streamList, 
+                                            id: socket.room.id, 
+                                            p2p: socket.room.p2p,
+                                            defaultVideoBW: config.erizoController.defaultVideoBW,
+                                            maxVideoBW: config.erizoController.maxVideoBW,
+                                            stunServerUrl: config.erizoController.stunServerUrl,
+                                            turnServer: config.erizoController.turnServer
+                                            });
 
                     } else {
                         logger.info('Invalid host');
@@ -247,8 +277,12 @@ var listen = function () {
         //Gets 'publish' messages on the socket in order to add new stream to the room.
         socket.on('publish', function (options, sdp, callback) {
             var id, st;
+            if (!socket.user.permissions[Permission.PUBLISH]) {
+		callback('error', 'unauthorized');
+                return;
+            }
             if (options.state === 'url') {
-                id = Math.random() * 100000000000000000;
+                id = Math.random() * 1000000000000000000;
                 socket.room.webRtcController.addExternalInput(id, sdp, function (result) {
                     if (result === 'success') {
                         st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
@@ -262,7 +296,7 @@ var listen = function () {
                 });
             } else if (options.state !== 'data' && !socket.room.p2p) {
                 if (options.state === 'offer' && socket.state === 'sleeping') {
-                    id = Math.random() * 100000000000000000;
+                    id = Math.random() * 1000000000000000000;
                     socket.room.webRtcController.addPublisher(id, sdp, function (answer) {
                         socket.state = 'waitingOk';
                         answer = answer.replace(privateRegexp, publicIP);
@@ -284,7 +318,7 @@ var listen = function () {
                     callback(answer);
                 });
             } else {
-                id = Math.random() * 100000000000000000;
+                id = Math.random() * 1000000000000000000;
                 st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
                 socket.streams.push(id);
                 socket.room.streams[id] = st;
@@ -301,7 +335,10 @@ var listen = function () {
 
         //Gets 'subscribe' messages on the socket in order to add new subscriber to a determined stream (options.streamId).
         socket.on('subscribe', function (options, sdp, callback) {
-
+            if (!socket.user.permissions[Permission.SUBSCRIBE]) {
+                callback('error', 'unauthorized');
+                return;
+            }
             var stream = socket.room.streams[options.streamId];
 
             if (stream === undefined) {
@@ -334,6 +371,10 @@ var listen = function () {
 
         //Gets 'startRecorder' messages
         socket.on('startRecorder', function (options) {
+          if (!socket.user.permissions[Permission.RECORD]) {
+              callback('error', 'unauthorized');
+              return;
+          }
           var streamId = options.to;
           var url = options.url;
           logger.info("erizoController.js: Starting recorder streamID " + streamId + " url " + url);
@@ -344,12 +385,20 @@ var listen = function () {
         });
 
         socket.on('stopRecorder', function (options) {
+          if (!socket.user.permissions[Permission.RECORD]) {
+              callback('error', 'unauthorized');
+              return;
+          }
           logger.info("erizoController.js: Stoping recorder to streamId " + options.to + " url " + options.url);
           socket.room.webRtcController.removeExternalOutput(options.to, options.url);
         });
 
         //Gets 'unpublish' messages on the socket in order to remove a stream from the room.
         socket.on('unpublish', function (streamId) {
+            if (!socket.user.permissions[Permission.PUBLISH]) {
+                callback('error', 'unauthorized');
+                return;
+            }
             var i, index;
 
             sendMsgToRoom(socket.room, 'onRemoveStream', {id: streamId});
@@ -373,7 +422,10 @@ var listen = function () {
 
         //Gets 'unsubscribe' messages on the socket in order to remove a subscriber from a determined stream (to).
         socket.on('unsubscribe', function (to) {
-
+            if (!socket.user.permissions[Permission.SUBSCRIBE]) {
+                callback('error', 'unauthorized');
+                return;
+            }
             if (socket.room.streams[to] === undefined) {
                 return;
             }

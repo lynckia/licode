@@ -53,26 +53,20 @@ public:
 //	MediaProcessor *mp;
 	InputProcessor* ip;
 	OutputProcessor* op;
-  
-  void closeSink();
-  void close();
-	/**
-	 * Closes all the subscribers and the publisher, the object is useless after this
-	 */
-	void closeAll();
 
 private:
-	char* sendVideoBuffer_;
-	char* sendAudioBuffer_;
-	char* unpackagedBuffer_;
-	char* decodedBuffer_;
-	char* codedBuffer_;
+	char sendVideoBuffer_[2000];
+	char sendAudioBuffer_[2000];
 	RTPSink* sink_;
 	std::vector<dataPacket> head;
 	int gotFrame_,gotDecodedFrame_, size_;
 	void sendHead(WebRtcConnection* conn);
 	RtpParser pars;
 	unsigned int sentPackets_;
+	/**
+	 * Closes all the subscribers and the publisher, the object is useless after this
+	 */
+	void closeAll();
 };
 
 } /* namespace erizo */

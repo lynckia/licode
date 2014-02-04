@@ -267,13 +267,13 @@ DtlsFactory::~DtlsFactory()
 
 
 DtlsSocket*
-DtlsFactory::createClient(std::auto_ptr<DtlsSocketContext> context)
+DtlsFactory::createClient(boost::shared_ptr<DtlsSocketContext> context)
 {
    return new DtlsSocket(context,this,DtlsSocket::Client);
 }
 
 DtlsSocket*
-DtlsFactory::createServer(std::auto_ptr<DtlsSocketContext> context)
+DtlsFactory::createServer(boost::shared_ptr<DtlsSocketContext> context)
 {
    return new DtlsSocket(context,this,DtlsSocket::Server);
 }

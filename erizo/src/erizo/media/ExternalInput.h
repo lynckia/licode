@@ -26,14 +26,13 @@ namespace erizo{
       int init();
       void receiveRtpData(unsigned char* rtpdata, int len);
       int sendFirPacket();
-      void closeSource();
 
 
     private:
-      OutputProcessor* op_;
+      boost::scoped_ptr<OutputProcessor> op_;
       VideoDecoder inCodec_;
-      unsigned char* decodedBuffer_;
-      char* sendVideoBuffer_;
+      boost::scoped_ptr<unsigned char> decodedBuffer_;
+      char sendVideoBuffer_[2000];
 
       std::string url_;
       bool running_;

@@ -56,13 +56,6 @@ public:
 	 */
 	bool init();
 	/**
-	 * Closes the webRTC connection.
-	 * The object cannot be used after this call.
-	 */
-	void close();
-  void closeSink();
-  void closeSource();
-	/**
 	 * Sets the SDP of the remote peer.
 	 * @param sdp The SDP.
 	 * @return true if the SDP was received correctly.
@@ -93,8 +86,6 @@ public:
 	 */
 	WebRTCState getCurrentState();
 
-	void writeSsrc(char* buf, int len, int ssrc);
-
 	void onTransportData(char* buf, int len, Transport *transport);
 
 	void updateState(TransportState state, Transport * transport);
@@ -113,16 +104,20 @@ private:
 	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionStateListener* connStateListener_;
 	Transport *videoTransport_, *audioTransport_;
-	char *deliverMediaBuffer_;
+	char deliverMediaBuffer_[3000];
 
-	bool sending_;
+	volatile bool sending_;
 	void sendLoop();
-
+	void writeSsrc(char* buf, int len, unsigned int ssrc);
+  void processRtcpHeaders(char* buf, int len, unsigned int ssrc);
+  
 	bool audioEnabled_;
 	bool videoEnabled_;
 
 	int stunPort_, minPort_, maxPort_;
 	std::string stunServer_;
+
+	boost::condition_variable cond_;
 
 };
 

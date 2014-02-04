@@ -1,6 +1,5 @@
 #include "ExternalOutput.h"
 #include "../WebRtcConnection.h"
-#include "../RTPSink.h"
 #include "../rtputils.h"
 #include <cstdio>
 
@@ -10,16 +9,13 @@
 
 namespace erizo {
 #define FIR_INTERVAL_MS 4000
+
   DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 
-  ExternalOutput::ExternalOutput(std::string outputUrl){
+  ExternalOutput::ExternalOutput(const std::string& outputUrl) :
+    url(outputUrl)
+  {
     ELOG_DEBUG("Created ExternalOutput to %s", outputUrl.c_str());
-    url = outputUrl;
-    sinkfbSource_=NULL;
-    unpackagedBuffer_ = NULL;
-    unpackagedAudioBuffer_ = NULL;
-    audioSinkSSRC_ = 0;
-    videoSinkSSRC_ = 0;
     videoCodec_ = NULL;
     audioCodec_ = NULL;
     video_st = NULL;
@@ -28,7 +24,9 @@ namespace erizo {
     prevEstimatedFps_ = 0;
     warmupfpsCount_ = 0;
     sequenceNumberFIR_ = 0;
-    deliverMediaBuffer_ = (char*)malloc(3000);
+    aviores_ = -1;
+    writeheadres_=-1;
+    unpackagedBufferpart_ = unpackagedBuffer_;
     initTime_ = 0;
     lastTime_ = 0;
 
@@ -40,9 +38,13 @@ namespace erizo {
     av_register_all();
     avcodec_register_all();
     context_ = avformat_alloc_context();
+    if (context_==NULL){
+      ELOG_ERROR("Error allocating memory for IO context");
+      return false;
+    }
     oformat_ = av_guess_format(NULL,  url.c_str(), NULL);
     if (!oformat_){
-      ELOG_DEBUG("Error opening output file %s", url.c_str());
+      ELOG_ERROR("Error opening output file %s", url.c_str());
       return false;
     }
     context_->oformat = oformat_;
@@ -64,8 +66,6 @@ namespace erizo {
       if (!audioCoder_->initEncoder(m.audioCodec))
         exit(0);
     }
-    unpackagedBuffer_ = (unsigned char*)malloc (15000);
-    unpackagedAudioBuffer_ = (unsigned char*)malloc(15000);
     gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
     in->init(m, this);
@@ -76,16 +76,18 @@ namespace erizo {
 
   ExternalOutput::~ExternalOutput(){
     ELOG_DEBUG("Destructor");
-    this->closeSink();
-  }
-
-  void ExternalOutput::closeSink() {
     ELOG_DEBUG("Closing Sink");
-    if (in !=NULL){
-      delete in;
-      in = NULL;
+    delete in;
+    in = NULL;
+    
+    if (context_!=NULL){
+      if (writeheadres_>=0)
+        av_write_trailer(context_);
+      if (avio_close>=0)
+        avio_close(context_->pb);
+      avformat_free_context(context_);
+      context_=NULL;
     }
-    //avcodec_close() and avformat_free_context()
     if (videoCodec_!=NULL){
       avcodec_close(videoCodecCtx_);
       videoCodec_=NULL;
@@ -93,19 +95,6 @@ namespace erizo {
     if (audioCodec_!=NULL){
       avcodec_close(audioCodecCtx_);
       audioCodec_ = NULL;
-    }
-    if (unpackagedBuffer_ !=NULL){
-      free(unpackagedBuffer_);
-      unpackagedBuffer_ = NULL;   
-    }
-    if (unpackagedAudioBuffer_ !=NULL){
-      free(unpackagedAudioBuffer_);
-      unpackagedAudioBuffer_ =NULL;
-    }
-    if (context_!=NULL){
-      av_write_trailer(context_);
-      avformat_free_context(context_);
-      context_=NULL;
     }
     ELOG_DEBUG("ExternalOutput closed Successfully");
     return;
@@ -126,20 +115,26 @@ namespace erizo {
       if(head->payloadtype != PCMU_8000_PT){
         return 0;
       }
-      memset(unpackagedAudioBuffer_,0,15000);
+
       int ret = in->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedAudioBuffer_);
       if (ret <= 0)
-        return 0;
+        return ret;
       timeval time;
       gettimeofday(&time, NULL);
-      unsigned long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+      unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
       if (millis -lastTime_ >FIR_INTERVAL_MS){
         this->sendFirPacket();
         lastTime_ = millis;
       }
       if (initTime_ == 0) {
-        initTime_ = millis;
+        initTime_ = millis;      
+      }
+      if (millis < initTime_){
+        ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
+      }
+      if (ret > UNPACKAGE_BUFFER_SIZE){
+        ELOG_ERROR("Unpackaged Audio size too big %d", ret);
       }
       AVPacket avpkt;
       av_init_packet(&avpkt);
@@ -149,6 +144,8 @@ namespace erizo {
       avpkt.stream_index = 1;
       av_write_frame(context_, &avpkt);
       av_free_packet(&avpkt);
+      return ret;
+
     }
     return 0;
   }
@@ -179,38 +176,55 @@ namespace erizo {
           // Copy payload type
           rtpheader *mediahead = (rtpheader*) deliverMediaBuffer_;
           mediahead->payloadtype = redhead->payloadtype;
-          buf = deliverMediaBuffer_;
+          buf = reinterpret_cast<char*>(deliverMediaBuffer_);
           len = len - 1 - totalLength + rtpHeaderLength;
         }
       }
       int estimatedFps=0;
       int ret = in->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
-          unpackagedBuffer_, &gotUnpackagedFrame_, &estimatedFps);
-      //          ELOG_DEBUG("Estimated FPS %d, previous %d", estimatedFps, prevEstimatedFps_);
-      if (videoCodec_ == NULL) {
-        if ((estimatedFps!=0)&&((estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2)))){
-          //          ELOG_DEBUG("OUT OF THRESHOLD changing context");
-          prevEstimatedFps_ = estimatedFps;
-        }
-        if (warmupfpsCount_++ >20){
-          this->initContext();
-        }
-      }
+          unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
+
       if (ret < 0)
         return 0;
+      
+      if (videoCodec_ == NULL) {
+        if ((estimatedFps!=0)&&((estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2)))){
+          prevEstimatedFps_ = estimatedFps;
+        }
+        if (warmupfpsCount_++ == 20){
+          if (prevEstimatedFps_==0){
+            warmupfpsCount_ = 0;
+            return 0;
+          }
+          if (!this->initContext()){
+            ELOG_ERROR("Context cannot be initialized properly, closing...");
+            return -1;
+          }
+        }
+        return 0;
+      }
+
       unpackagedSize_ += ret;
-      unpackagedBuffer_ += ret;
+      unpackagedBufferpart_ += ret;
+      if (unpackagedSize_ > UNPACKAGE_BUFFER_SIZE){
+        ELOG_ERROR("Unpackaged size bigget than buffer %d", unpackagedSize_);
+      }
       if (gotUnpackagedFrame_ && videoCodec_!=NULL) {
         timeval time;
         gettimeofday(&time, NULL);
-        long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+        unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
         if (initTime_ == 0) {
           initTime_ = millis;
         }
-        unpackagedBuffer_ -= unpackagedSize_;
+        if (millis < initTime_)
+        {
+          ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
+        }
+        unpackagedBufferpart_ -= unpackagedSize_;
+
         AVPacket avpkt;
         av_init_packet(&avpkt);
-        avpkt.data = unpackagedBuffer_;
+        avpkt.data = unpackagedBufferpart_;
         avpkt.size = unpackagedSize_;
         avpkt.pts = millis - initTime_;
         avpkt.stream_index = 0;
@@ -218,6 +232,7 @@ namespace erizo {
         av_free_packet(&avpkt);
         gotUnpackagedFrame_ = 0;
         unpackagedSize_ = 0;
+        unpackagedBufferpart_ = unpackagedBuffer_;
 
       }
     }
@@ -230,7 +245,7 @@ namespace erizo {
       ELOG_DEBUG("Found Codec %s", videoCodec_->name);
       ELOG_DEBUG("Initing context with fps: %d", (int)prevEstimatedFps_);
       if (videoCodec_==NULL){
-        ELOG_DEBUG("Could not find codec");
+        ELOG_ERROR("Could not find codec");
         return false;
       }
       video_st = avformat_new_stream (context_, videoCodec_);
@@ -248,11 +263,11 @@ namespace erizo {
       ELOG_DEBUG("Init audio context");
 
       audioCodec_ = avcodec_find_encoder(oformat_->audio_codec);
-      ELOG_DEBUG("Found Audio Codec %s", audioCodec_->name);
       if (audioCodec_==NULL){
-        ELOG_DEBUG("Could not find audio codec");
+        ELOG_ERROR("Could not find audio codec");
         return false;
       }
+      ELOG_DEBUG("Found Audio Codec %s", audioCodec_->name);
       audio_st = avformat_new_stream (context_, audioCodec_);
       audio_st->id = 1;
       audioCodecCtx_ = audio_st->codec;
@@ -266,15 +281,24 @@ namespace erizo {
 
       context_->streams[0] = video_st;
       context_->streams[1] = audio_st;
-      avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
-      avformat_write_header(context_, NULL);
+      aviores_ = avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
+      if (aviores_<0){
+        ELOG_ERROR("Error opening output file");
+        return false;
+      }
+      writeheadres_ = avformat_write_header(context_, NULL);
+      if (writeheadres_<0){
+        ELOG_ERROR("Error writing header");
+        return false;
+      }
       ELOG_DEBUG("AVFORMAT CONFIGURED");
     }
-    return 0;
+    return true;
   }
 
   int ExternalOutput::sendFirPacket() {
     if (fbSink_ != NULL) {
+      //ELOG_DEBUG("Sending FIR");
       sequenceNumberFIR_++; // do not increase if repetition
       int pos = 0;
       uint8_t rtcpPacket[50];

@@ -44,12 +44,11 @@ parse_arguments(){
 }
 
 install_apt_deps(){
-  sudo apt-get -y install python-software-properties
-  sudo apt-get -y install cmake
-  sudo apt-get -y install software-properties-common
+  sudo apt-get install -y python-software-properties
+  sudo apt-get install -y software-properties-common
   sudo add-apt-repository -y ppa:chris-lea/node.js
   sudo apt-get -y update
-  sudo apt-get -y install git make gcc g++ libssl-dev cmake libnice10 libnice-dev libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl
+  sudo apt-get -y install git make gcc g++ libssl-dev cmake libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl
   sudo npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/
 }
@@ -76,6 +75,7 @@ install_libnice(){
     curl -O http://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
     tar -zxvf libnice-0.1.4.tar.gz
     cd libnice-0.1.4
+    patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
     ./configure --prefix=$PREFIX_DIR
     make -s V=0
     make install
