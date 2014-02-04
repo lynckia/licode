@@ -62,9 +62,10 @@ echo [nuve] Done, nuve.js compiled
 
 cd $CURRENT_DIR
 
-
+echo "Killing exising processes"
 sudo pkill node # Just in case
 
+echo "Restarting"
 sudo supervisorctl start nuve
 sudo supervisorctl start erizo
 sudo supervisorctl start licode_basic_server
