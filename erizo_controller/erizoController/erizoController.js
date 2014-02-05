@@ -74,7 +74,6 @@ var addToCloudHandler = function (callback) {
         k2,
         address;
 
-
     for (k in interfaces) {
         if (interfaces.hasOwnProperty(k)) {
             for (k2 in interfaces[k]) {
@@ -87,7 +86,6 @@ var addToCloudHandler = function (callback) {
             }
         }
     }
-
     publicIP = addresses[0];
     privateRegexp = new RegExp(publicIP, 'g');
 
@@ -134,7 +132,25 @@ var addToCloudHandler = function (callback) {
 
         });
     };
-    addECToCloudHandler(5);
+
+    if (config.cloudProvider.name === 'amazon') {
+        http.get('http://169.254.169.254/latest/meta-data/public-ipv4', function (response) {
+            var content = '';
+            response.on('data', function(chunk) {
+                content += chunk;
+            });
+            response.on('end', function() {
+                console.log('public IP: ', content);
+                publicIP = content;
+                addECToCloudHandler(5);
+            });
+        }).on('error', function(err) {
+            console.log('Error: ', err);
+        });
+    } else {
+        addECToCloudHandler(5);
+    }
+
 };
 
 //*******************************************************************
