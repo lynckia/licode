@@ -88,7 +88,7 @@ var addToCloudHandler = function (callback) {
         }
     }
     
-    if (config.erizoController.publicIP===undefined){        
+    if (config.erizoController.publicIP===''){        
       publicIP = addresses[0];
     }else{
       publicIP = config.erizoController.publicIP;
