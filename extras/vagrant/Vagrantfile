@@ -1,0 +1,49 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# We get the publicIP of this machine to pass it to ErizoController
+require 'socket'
+def my_first_private_ipv4
+    Socket.ip_address_list.detect{|intf| intf.ipv4_private?}
+end
+def my_first_public_ipv4
+    Socket.ip_address_list.detect{|intf| intf.ipv4? and !intf.ipv4_loopback? and !intf.ipv4_multicast? and !intf.ipv4_private?}
+end
+
+ip= my_first_public_ipv4.ip_address unless my_first_public_ipv4.nil?
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  # All Vagrant configuration is done here. The most common configuration
+  # options are documented and commented below. For a complete reference,
+  # please see the online documentation at vagrantup.com.
+
+  # Every Vagrant virtual environment requires a box to build off of.
+  config.vm.box = "base"
+
+  config.vm.provision :shell, :path => "bootstrap.sh", :args => ip
+
+  # The url from where the 'config.vm.box' box will be fetched if it
+  # doesn't already exist on the user's system.
+  config.vm.box_url = "http://files.vagrantup.com/precise32.box"
+
+  config.vm.network :forwarded_port, guest: 3000, host: 3000
+  config.vm.network :forwarded_port, guest: 3001, host: 3001
+  config.vm.network :forwarded_port, guest: 3004, host: 3004
+  config.vm.network :forwarded_port, guest: 8080, host: 8080
+
+  # port forwarding for licode
+  for i in 30000..31000
+    config.vm.network :forwarded_port, guest: i, host: i, protocol: 'udp'
+  end
+
+  ## More than 1 Core
+  # vb.customize ["modifyvm", :id, "--ioapic", "on"]
+  # config.vm.provider :virtualbox do |vb|
+  # vb.customize ["modifyvm", :id, "--memory", "2048"]
+  # vb.customize ["modifyvm", :id, "--cpus", "2"]   
+
+
+end
