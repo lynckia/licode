@@ -25,6 +25,7 @@ parse_arguments(){
 }
 
 install_apt_deps(){
+  sudo apt-get update
   sudo apt-get install -qq python-software-properties
   sudo apt-get install -qq software-properties-common
   sudo add-apt-repository ppa:chris-lea/node.js
@@ -121,9 +122,7 @@ install_libnice
 install_libsrtp
 
 if [ "$ENABLE_GPL" = "true" ]; then
-  pause "GPL libraries enabled"
   install_mediadeps
 else
-  pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
   install_mediadeps_nogpl
 fi
