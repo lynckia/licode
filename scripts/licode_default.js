@@ -15,17 +15,31 @@ config.nuve.superserviceKey = '_auto_generated_KEY_';
 config.nuve.testErizoController = 'localhost:8080';
 
 //Use undefined to run clients without Stun 
-config.erizoController.stunServerUrl = 'stun:stun.l.google.com:19302';
+var network_config  = require("./licode_config/network")
+
+if(network_config.haveLocalTurnServer) {
+  config.erizoController.stunServerUrl = 'stun:' + network_config.minervaHost + ':3478';  
+} 
+else {
+  config.erizoController.stunServerUrl = 'stun:stun.l.google.com:19302';
+}
 
 config.erizoController.defaultVideoBW = 300;
 config.erizoController.maxVideoBW = 300;
 
-
+var turnServer = {};
+config.erizoController.turnServer = turnServer;
+if(network_config.haveLocalTurnServer) {
+  turnServer.url = 'turn:' + network_config.minervaHost + ':3478';
+  turnServer.username = 'licode';
+  turnServer.password = 'licode';
+}
+else {
 //Use undefined to run clients without Turn
-config.erizoController.turnServer = {};
-config.erizoController.turnServer.url = '';
-config.erizoController.turnServer.username = '';
-config.erizoController.turnServer.password = '';
+  turnServer.url = ''; 
+  turnServer.username = ''; 
+  turnServer.password = ''; 
+}
 
 config.erizoController.warning_n_rooms = 15;
 config.erizoController.limit_n_rooms = 20;
@@ -45,15 +59,10 @@ config.cloudProvider.host = '';
 config.cloudProvider.accessKey = '';
 config.cloudProvider.secretAccessKey = '';
 
-var network_config  = require("./licode_config/network")
 config.minervaHost = network_config.minervaHost;
 config.cloudProvider.publicIP = network_config.publicIP;
 
-if(network_config.cloudProviderName) {
-	config.cloudProvider.name = network_config.cloudProviderName;
-} else {
-	config.cloudProvider.name = '';
-}
+config.cloudProvider.name = network_config.cloudProviderName;
 
 // Roles to be used by services
 config.roles = {"presenter":["publish", "subscribe", "record"], "viewer":["subscribe"]};
