@@ -17,12 +17,7 @@ config.nuve.testErizoController = 'localhost:8080';
 //Use undefined to run clients without Stun 
 var network_config  = require("./licode_config/network")
 
-if(network_config.haveLocalTurnServer) {
-  config.erizoController.stunServerUrl = 'stun:' + network_config.minervaHost + ':3478';  
-} 
-else {
-  config.erizoController.stunServerUrl = 'stun:stun.l.google.com:19302';
-}
+config.erizoController.stunServerUrl = 'stun:av.minervaproject.com:3478';  
 
 config.erizoController.defaultVideoBW = 300;
 config.erizoController.maxVideoBW = 300;
