@@ -29,7 +29,6 @@ namespace erizo {
     unpackagedBufferpart_ = unpackagedBuffer_;
     initTime_ = 0;
     lastTime_ = 0;
-
     sinkfbSource_ = this;
     fbSink_ = NULL;
   }
@@ -69,6 +68,8 @@ namespace erizo {
     gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
     in->init(m, this);
+    thread_ = boost::thread(&ExternalOutput::sendLoop, this);
+    sending_ = true;
     ELOG_DEBUG("Initialized successfully");
     return true;
   }
@@ -79,6 +80,7 @@ namespace erizo {
     ELOG_DEBUG("Closing Sink");
     delete in;
     in = NULL;
+    
     
     if (context_!=NULL){
       if (writeheadres_>=0)
@@ -94,10 +96,14 @@ namespace erizo {
     }
     if (audioCodec_!=NULL){
       avcodec_close(audioCodecCtx_);
-      audioCodec_ = NULL;
+      audioCodec_ = NULL;    
     }
+
+    sending_ = false;
+    cond_.notify_one();
+    thread_.join();
+    /* boost::unique_lock<boost::mutex> lock(queueMutex_); */
     ELOG_DEBUG("ExternalOutput closed Successfully");
-    return;
   }
 
   void ExternalOutput::receiveRawData(RawDataPacket& packet){
@@ -105,7 +111,7 @@ namespace erizo {
   }
 
 
-  int ExternalOutput::deliverAudioData(char* buf, int len){
+  int ExternalOutput::writeAudioData(char* buf, int len){
     if (in!=NULL){
       if (videoCodec_ == NULL) {
         return 0;
@@ -150,7 +156,7 @@ namespace erizo {
     return 0;
   }
 
-  int ExternalOutput::deliverVideoData(char* buf, int len){
+  int ExternalOutput::writeVideoData(char* buf, int len){
     if (in!=NULL){
       rtpheader *head = (rtpheader*) buf;
       if (head->payloadtype == RED_90000_PT) {
@@ -238,6 +244,18 @@ namespace erizo {
     }
     return 0;
   }
+
+  int ExternalOutput::deliverAudioData(char* buf, int len) {
+    this->queueData(buf,len,AUDIO_PACKET);
+    return 0;
+  }
+
+  int ExternalOutput::deliverVideoData(char* buf, int len) {
+    this->queueData(buf,len,VIDEO_PACKET);
+    return 0;
+  }
+
+
   bool ExternalOutput::initContext() {
     ELOG_DEBUG("Init Context");
     if (oformat_->video_codec != AV_CODEC_ID_NONE && videoCodec_ == NULL) {
@@ -296,9 +314,27 @@ namespace erizo {
     return true;
   }
 
+  void ExternalOutput::queueData(char* buffer, int length, packetType type){
+    if (in==NULL) {
+      return;
+    }
+    boost::mutex::scoped_lock lock(queueMutex_);
+    
+    if (packetQueue_.size()>1000){
+      return;
+    }
+    dataPacket p;
+    memset(p.data, 0,length);
+    memcpy(p.data, buffer, length);
+    p.type = type;
+    p.length = length;
+    packetQueue_.push(p);
+    cond_.notify_one();
+    
+  }
+
   int ExternalOutput::sendFirPacket() {
     if (fbSink_ != NULL) {
-      //ELOG_DEBUG("Sending FIR");
       sequenceNumberFIR_++; // do not increase if repetition
       int pos = 0;
       uint8_t rtcpPacket[50];
@@ -306,30 +342,6 @@ namespace erizo {
       uint8_t FMT = 4;
       rtcpPacket[pos++] = (uint8_t) 0x80 + FMT;
       rtcpPacket[pos++] = (uint8_t) 206;
-      /*
-      //Length of 4
-      rtcpPacket[pos++] = (uint8_t) 0;
-      rtcpPacket[pos++] = (uint8_t) (4);
-
-      // Add our own SSRC
-      uint32_t* ptr = reinterpret_cast<uint32_t*>(rtcpPacket + pos);
-      ptr[0] = htonl(this->getVideoSinkSSRC());
-      pos += 4;
-
-      rtcpPacket[pos++] = (uint8_t) 0;
-      rtcpPacket[pos++] = (uint8_t) 0;
-      rtcpPacket[pos++] = (uint8_t) 0;
-      rtcpPacket[pos++] = (uint8_t) 0;
-      // Additional Feedback Control Information (FCI)
-      uint32_t* ptr2 = reinterpret_cast<uint32_t*>(rtcpPacket + pos);
-      ptr2[0] = htonl(0);
-      pos += 4;
-
-      rtcpPacket[pos++] = (uint8_t) (sequenceNumberFIR_);
-      rtcpPacket[pos++] = (uint8_t) 0;
-      rtcpPacket[pos++] = (uint8_t) 0;
-      rtcpPacket[pos++] = (uint8_t) 0;
-      */
       pos = 12;
       fbSink_->deliverFeedback((char*)rtcpPacket, pos);
       return pos;
@@ -338,17 +350,36 @@ namespace erizo {
     return -1;
   }
 
-  void ExternalOutput::encodeLoop() {
-    while (running == true) {
-      queueMutex_.lock();
-      if (packetQueue_.size() > 0) {
-        op_->receiveRawData(packetQueue_.front());
-        packetQueue_.pop();
-        queueMutex_.unlock();
-      } else {
-        queueMutex_.unlock();
-        usleep(1000);
+  void ExternalOutput::sendLoop() {
+    /* while (sending_ == true) { */
+    /*   queueMutex_.lock(); */
+    /*   if (packetQueue_.size() > 0) { */
+    /*     op_->receiveRawData(packetQueue_.front()); */
+    /*     packetQueue_.pop(); */
+    /*     queueMutex_.unlock(); */
+    /*   } else { */
+    /*     queueMutex_.unlock(); */
+    /*     usleep(1000); */
+    /*   } */
+    /* } */
+
+    while (sending_ == true) {
+      boost::unique_lock<boost::mutex> lock(queueMutex_);
+      while (packetQueue_.size() == 0) {
+        cond_.wait(lock);
+        if (sending_ == false) {
+          lock.unlock();
+          return;
+        }
       }
+
+      if (packetQueue_.front().type == VIDEO_PACKET) {
+        this->writeVideoData(packetQueue_.front().data, packetQueue_.front().length);
+      } else {
+        this->writeAudioData(packetQueue_.front().data, packetQueue_.front().length);
+      }
+      packetQueue_.pop();
+      lock.unlock();
     }
   }
 
