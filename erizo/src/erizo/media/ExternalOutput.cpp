@@ -365,12 +365,10 @@ namespace erizo {
 
     while (sending_ == true) {
       boost::unique_lock<boost::mutex> lock(queueMutex_);
-      ELOG_DEBUG("LOCK");
       while (packetQueue_.size() == 0) {
         cond_.wait(lock);
         if (sending_ == false) {
           lock.unlock();
-          ELOG_DEBUG("UNLOCK1");
           return;
         }
       }
@@ -382,7 +380,6 @@ namespace erizo {
       }
       packetQueue_.pop();
       lock.unlock();
-      ELOG_DEBUG("UNLOCK2");
     }
   }
 
