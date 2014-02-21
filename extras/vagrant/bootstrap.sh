@@ -2,7 +2,7 @@
 sudo apt-get install -y git
 cd /vagrant
 git clone https://github.com/ging/licode.git
-./licode/scripts/installUbuntuDepsUnattended.sh
+./licode/scripts/installUbuntuDepsUnattended.sh --cleanup
 ./licode/scripts/installErizo.sh
 ./licode/scripts/installNuve.sh
 ./licode/scripts/installBasicExample.sh
