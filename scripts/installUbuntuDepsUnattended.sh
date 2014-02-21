@@ -19,6 +19,9 @@ parse_arguments(){
       "--enable-gpl")
         ENABLE_GPL=true
         ;;
+      "--cleanup")
+        CLEANUP=true
+        ;;
     esac
     shift
   done
@@ -112,6 +115,14 @@ install_libsrtp(){
   cd $CURRENT_DIR
 }
 
+cleanup(){  
+  if [ -d $LIB_DIR ]; then
+    rm -r libnice*
+    rm -r libav*
+    rm -r openssl*
+  fi
+}
+
 parse_arguments $*
 
 mkdir -p $PREFIX_DIR
@@ -125,4 +136,9 @@ if [ "$ENABLE_GPL" = "true" ]; then
   install_mediadeps
 else
   install_mediadeps_nogpl
+fi
+
+if [ "$CLEANUP" = "true" ]; then
+  echo "Cleaning up..."
+  cleanup
 fi
