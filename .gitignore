@@ -16,3 +16,4 @@ erizo_controller
 npm-debug.log
 third_party
 libdeps
+extras/vagrant
