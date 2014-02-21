@@ -10,7 +10,7 @@ EXTRAS=$ROOT/extras
 
 export PATH=$PATH:/usr/local/sbin
 
-if ! pgrep -q -f rabbitmq; then
+if ! pgrep -f rabbitmq; then
   sudo echo
   sudo rabbitmq-server > $BUILD_DIR/rabbit.log &
 fi

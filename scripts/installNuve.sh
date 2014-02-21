@@ -16,7 +16,7 @@ install_nuve(){
 
 populate_mongo(){
 
-  if ! pgrep -q mongod; then
+  if ! pgrep mongod; then
     echo [licode] Starting mongodb
     if [ ! -d "$DB_DIR" ]; then
       mkdir -p "$DB_DIR"/db
