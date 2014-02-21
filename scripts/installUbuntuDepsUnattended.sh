@@ -117,9 +117,11 @@ install_libsrtp(){
 
 cleanup(){  
   if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
     rm -r libnice*
     rm -r libav*
     rm -r openssl*
+    cd $CURRENT_DIR
   fi
 }
 
