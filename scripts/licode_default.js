@@ -24,17 +24,9 @@ config.erizoController.maxVideoBW = 300;
 
 var turnServer = {};
 config.erizoController.turnServer = turnServer;
-if(network_config.haveLocalTurnServer) {
-  turnServer.url = 'turn:' + network_config.minervaHost + ':3478';
-  turnServer.username = 'licode';
-  turnServer.password = 'licode';
-}
-else {
-//Use undefined to run clients without Turn
-  turnServer.url = ''; 
-  turnServer.username = ''; 
-  turnServer.password = ''; 
-}
+turnServer.url = 'turn:av.minervaprojet.com:3478';
+turnServer.username = 'licode';
+turnServer.password = 'licode';
 
 config.erizoController.warning_n_rooms = 15;
 config.erizoController.limit_n_rooms = 20;
