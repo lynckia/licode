@@ -24,7 +24,7 @@ config.erizoController.maxVideoBW = 300;
 
 var turnServer = {};
 config.erizoController.turnServer = turnServer;
-turnServer.url = 'turn:av.minervaprojet.com:3478';
+turnServer.url = 'turn:av.minervaproject.com:3478';
 turnServer.username = 'licode';
 turnServer.password = 'licode';
 
