@@ -1,6 +1,5 @@
 /*global require, exports, console*/
 var db = require('./dataBase').db;
-var BSON = require('mongodb').BSONPure;
 
 /*
  * Gets a list of the tokens in the data base.
@@ -20,7 +19,7 @@ var getList = exports.getList = function (callback) {
 var getToken = exports.getToken = function (id, callback) {
     "use strict";
 
-    db.tokens.findOne({_id: new BSON.ObjectID(id)}, function (err, token) {
+    db.tokens.findOne({_id: db.ObjectId(id)}, function (err, token) {
         if (token == null) {
             token = undefined;
             console.log('Token ', id, ' not found');
@@ -64,7 +63,7 @@ var removeToken = exports.removeToken = function (id, callback) {
 
     hasToken(id, function (hasT) {
         if (hasT) {
-            db.tokens.remove({_id: new BSON.ObjectID(id)}, function (error, removed) {
+            db.tokens.remove({_id: db.ObjectId(id)}, function (error, removed) {
                 if (error) console.log('MongoDB: Error removing token: ', error);
                 callback();
             });

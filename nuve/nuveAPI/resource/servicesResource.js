@@ -1,6 +1,5 @@
 /*global exports, require, console*/
 var serviceRegistry = require('./../mdb/serviceRegistry');
-var BSON = require('mongodb').BSONPure;
 
 var currentService;
 
