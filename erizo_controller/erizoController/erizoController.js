@@ -87,15 +87,15 @@ var addToCloudHandler = function (callback) {
             }
         }
     }
+
+    privateRegexp = new RegExp(addresses[0], 'g');
     
-    if (config.erizoController.publicIP === '' || config.erizoController.publicIP ===undefined){        
+    if (config.erizoController.publicIP === '' || config.erizoController.publicIP === undefined){        
         publicIP = addresses[0];
-    }else{
+    } else {
         publicIP = config.erizoController.publicIP;
     }
-
-    privateRegexp = new RegExp(publicIP, 'g');
-
+    
     var addECToCloudHandler = function(attempt) {
         if (attempt <= 0) {
             return;
