@@ -6,8 +6,9 @@
 
 namespace erizo{
 
-  typedef std::map< int, unsigned char *> PACKETQUEUE;
-  typedef std::map< int, int > LENGTHQ;
+  class dataPacket; 
+
+  typedef std::map< int, dataPacket* > PACKETQUEUE;
 
   /**
    * Esta clase se encarga de cuando llega un paquete pasarselo al playchannel si es el siguiente en el flujo o
@@ -16,6 +17,7 @@ namespace erizo{
    */
   class RtpPacketQueue
   {
+    DECLARE_LOGGER();
     public:
 
       /**
@@ -31,14 +33,20 @@ namespace erizo{
       /**
        * Método para procesar paquetes recibidos.
        */
-      void packetReceived(const unsigned char *data, int length);
+      void packetReceived(const char *data, int length);
+      /**
+       * Envia el primer paque de la cola
+       */
+      dataPacket* getFirst(void);
+
+      int getSize();
 
     private:
 
       /**
        * Guarda un paquete en la cola de paquetes
        */
-      void enqueuePacket(const unsigned char *data, int length, uint16_t nseq);
+      void enqueuePacket(const char *data, int length, uint16_t nseq);
 
       /**
        * Comprueba si hay que enviar alguno de los paquetes de la cola
@@ -50,10 +58,6 @@ namespace erizo{
        */
       void cleanQueue(void);
 
-      /**
-       * Envia el primer paque de la cola
-       */
-      void sendFirst(void);
 
       /**
        * Numero maximo de diferencia entre un paquete y otro.
@@ -77,10 +81,6 @@ namespace erizo{
        */
       PACKETQUEUE queue;
 
-      /**
-       * cola con las longitudes de los paquetes
-       */
-      LENGTHQ lqueue;
 
       /**
        * Ultimo número de secuencia enviado hacia el playchannel

@@ -1,10 +1,17 @@
+#include <cstring>
+#include <boost/shared_ptr.hpp>
+
+
+#include "../../MediaDefinitions.h"
+#include "../../logger.h"
 #include "RtpPacketQueue.h"
 #include "RtpHeader.h"
 
-#include <cstring>
 
 namespace erizo{
 
+  DEFINE_LOGGER(RtpPacketQueue, "RtpPacketQueue");
+  
   // -----------------------------------------------------------------------------
   // RtpPacketQueue::RtpPacketQueue
   //
@@ -31,7 +38,7 @@ namespace erizo{
   //
   // -----------------------------------------------------------------------------
   //
-  void RtpPacketQueue::packetReceived(const unsigned char *data, int length)
+  void RtpPacketQueue::packetReceived(const char *data, int length)
   {
     //channel->packetReceived2(data, length);
     //return;
@@ -66,7 +73,7 @@ namespace erizo{
     {
       // Jump in nseq, enqueue
       enqueuePacket(data, length, nseq);
-      checkQueue();
+//      checkQueue();
     }
     else if (nseqdiff == 1)
     {
@@ -74,7 +81,7 @@ namespace erizo{
       // channel->packetReceived2(data, length);
       lastNseq = nseq;
       lastTs = ts;
-      checkQueue();
+//      checkQueue();
     }
     else if (nseqdiff < 0)
     {
@@ -93,12 +100,19 @@ namespace erizo{
   // -----------------------------------------------------------------------------
   //
   void
-    RtpPacketQueue::enqueuePacket(const unsigned char *data, int length, uint16_t nseq)
+    RtpPacketQueue::enqueuePacket(const char *data, int length, uint16_t nseq)
     {
+      boost::shared_ptr<dataPacket> packet(new dataPacket());
+      memcpy(packet->data, data, length);
+      packet->length = length;
+    /*
       unsigned char *buf = new unsigned char[length];
       memcpy(buf, data, length);
       queue.insert(PACKETQUEUE::value_type(nseq, buf));
       lqueue.insert(LENGTHQ::value_type(nseq, length));
+      */
+      queue.insert(PACKETQUEUE::value_type(nseq,packet.get()));
+
     }
 
   // -----------------------------------------------------------------------------
@@ -106,20 +120,21 @@ namespace erizo{
   //
   // -----------------------------------------------------------------------------
   //
+  
   void
     RtpPacketQueue::checkQueue(void)
     {
       // Max size reached, send first
       if (queue.size() >= MAX_SIZE)
       {
-        sendFirst();
+        //sendFirst();
       }
       // recorrer la cola para ver si hay paquetes que pueden ser enviados
       while (queue.size() > 0)
       {
         if (queue.begin()->first == lastNseq + 1)
         {
-          sendFirst();
+          //sendFirst();
         }
         else
         {
@@ -139,11 +154,8 @@ namespace erizo{
       // vaciar el mapa
       while (queue.size() > 0)
       {
-        unsigned char *data = queue.begin()->second;
         queue.erase(queue.begin());
-        delete[] data;
       }
-      lqueue.clear();
     }
 
   // -----------------------------------------------------------------------------
@@ -151,21 +163,26 @@ namespace erizo{
   //
   // -----------------------------------------------------------------------------
   //
-  void
-    RtpPacketQueue::sendFirst(void)
+  dataPacket *RtpPacketQueue::getFirst(void)
     {
-      unsigned char *data = queue.begin()->second;
-      int length = lqueue.begin()->second;
+      dataPacket *packet = queue.begin()->second;
+      if (packet == NULL){
+        return packet;
+      }
 
-      const RTPHeader *header = reinterpret_cast<const RTPHeader*>(data);
+      const RTPHeader *header = reinterpret_cast<const RTPHeader*>(packet->data);
       lastNseq = queue.begin()->first;
       lastTs = header->getTimestamp();
 
       //channel->packetReceived2(data, length);
       queue.erase(queue.begin());
-      lqueue.erase(lqueue.begin());
+      return packet;
 
-      delete []data;
     }
+
+    int RtpPacketQueue::getSize(){
+      return queue.size();      
+    }
+
 
 } /* namespace erizo */

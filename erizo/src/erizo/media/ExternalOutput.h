@@ -5,6 +5,7 @@
 #include <map>
 #include <queue>
 #include "../MediaDefinitions.h"
+#include "rtp/RtpPacketQueue.h"
 #include "codecs/VideoCodec.h"
 #include "codecs/AudioCodec.h"
 #include "MediaProcessor.h"
@@ -32,8 +33,10 @@ namespace erizo{
 
     private:
       OutputProcessor* op_;
+      RtpPacketQueue audioQueue_, videoQueue_;
       unsigned char* decodedBuffer_;
       char* sendVideoBuffer_;
+      
 
       std::string url;
       volatile bool sending_;

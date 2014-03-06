@@ -319,16 +319,11 @@ namespace erizo {
       return;
     }
     boost::mutex::scoped_lock lock(queueMutex_);
-    
-    if (packetQueue_.size()>1000){
-      return;
+    if (type == VIDEO_PACKET){
+      videoQueue_.packetReceived(buffer, length);
+    }else{
+      audioQueue_.packetReceived(buffer, length);
     }
-    dataPacket p;
-    memset(p.data, 0,length);
-    memcpy(p.data, buffer, length);
-    p.type = type;
-    p.length = length;
-    packetQueue_.push(p);
     cond_.notify_one();
     
   }
@@ -365,7 +360,7 @@ namespace erizo {
 
     while (sending_ == true) {
       boost::unique_lock<boost::mutex> lock(queueMutex_);
-      while (packetQueue_.size() == 0) {
+      while ((!audioQueue_.getSize())&&(!videoQueue_.getSize())) {
         cond_.wait(lock);
         if (sending_ == false) {
           lock.unlock();
@@ -373,11 +368,23 @@ namespace erizo {
         }
       }
 
+      dataPacket *audioP = audioQueue_.getFirst();
+      dataPacket *videoP = videoQueue_.getFirst();
+      if (videoP){
+        this->writeVideoData(videoP->data, videoP->length);
+      }
+      if (audioP){
+        this->writeAudioData(audioP->data, audioP->length);
+      }
+
+      /*
       if (packetQueue_.front().type == VIDEO_PACKET) {
         this->writeVideoData(packetQueue_.front().data, packetQueue_.front().length);
       } else {
         this->writeAudioData(packetQueue_.front().data, packetQueue_.front().length);
       }
+*/
+      
       packetQueue_.pop();
       lock.unlock();
     }
