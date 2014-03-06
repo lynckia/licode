@@ -1,6 +1,6 @@
 require 'net/http'
 require 'base64'
-require 'hmac-sha1'
+require 'openssl'
 
 class Nuve
 
@@ -107,9 +107,9 @@ class Nuve
 
 	private
 	def calculateSignature (toSign, key)
-		hmac = HMAC::SHA1.new(key)
-		hex = hmac.update(toSign)
-		signed   = Base64.encode64("#{hex}")
+		digest = OpenSSL::Digest.new('sha1')
+		hex = OpenSSL::HMAC.hexdigest(digest, key, toSign)
+		signed   = Base64.encode64(hex)
 		return signed
 	end
 
