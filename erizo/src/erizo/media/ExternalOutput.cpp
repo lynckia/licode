@@ -367,16 +367,17 @@ namespace erizo {
           return;
         }
       }
-
-      dataPacket *audioP = audioQueue_.getFirst();
-      dataPacket *videoP = videoQueue_.getFirst();
-      if (videoP){
-        this->writeVideoData(videoP->data, videoP->length);
-      }
-      if (audioP){
+      if (audioQueue_.getSize()){
+        ELOG_DEBUG("Getting Audio packet");
+        boost::shared_ptr<dataPacket> audioP = audioQueue_.getFirst();
         this->writeAudioData(audioP->data, audioP->length);
       }
+      if (videoQueue_.getSize()) {
+        ELOG_DEBUG("Getting Video packet");
+        boost::shared_ptr<dataPacket> videoP = videoQueue_.getFirst();
+        this->writeVideoData(videoP->data, videoP->length);
 
+      }
       /*
       if (packetQueue_.front().type == VIDEO_PACKET) {
         this->writeVideoData(packetQueue_.front().data, packetQueue_.front().length);
@@ -385,7 +386,6 @@ namespace erizo {
       }
 */
       
-      packetQueue_.pop();
       lock.unlock();
     }
   }

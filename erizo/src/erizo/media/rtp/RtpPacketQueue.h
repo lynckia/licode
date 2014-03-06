@@ -2,13 +2,15 @@
 #define __RTPPACKETQUEUE_H__
 
 #include <map>
+#include <boost/shared_ptr.hpp>
+
 #include "logger.h"
 
 namespace erizo{
 
   class dataPacket; 
 
-  typedef std::map< int, dataPacket* > PACKETQUEUE;
+  typedef std::map< int, boost::shared_ptr<dataPacket>> PACKETQUEUE;
 
   /**
    * Esta clase se encarga de cuando llega un paquete pasarselo al playchannel si es el siguiente en el flujo o
@@ -37,7 +39,7 @@ namespace erizo{
       /**
        * Envia el primer paque de la cola
        */
-      dataPacket* getFirst(void);
+      boost::shared_ptr<dataPacket> getFirst(void);
 
       int getSize();
 
@@ -74,7 +76,7 @@ namespace erizo{
       /**
        * Tamaño de la cola de paquetes
        */
-      static const int MAX_SIZE = 10;
+      static const unsigned int MAX_SIZE = 10;
 
       /**
        * cola de paquets

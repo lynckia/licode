@@ -1,9 +1,7 @@
 #include <cstring>
-#include <boost/shared_ptr.hpp>
 
 
 #include "../../MediaDefinitions.h"
-#include "../../logger.h"
 #include "RtpPacketQueue.h"
 #include "RtpHeader.h"
 
@@ -65,6 +63,7 @@ namespace erizo{
     {
       // new flow, process and clean queue
       //channel->packetReceived2(data, length);
+      ELOG_DEBUG("Max diff reached, cleaning queue");
       lastNseq = nseq;
       lastTs = ts;
       cleanQueue();
@@ -72,6 +71,7 @@ namespace erizo{
     else if (nseqdiff > 1)
     {
       // Jump in nseq, enqueue
+      ELOG_DEBUG("Jump in nseq");
       enqueuePacket(data, length, nseq);
 //      checkQueue();
     }
@@ -81,15 +81,18 @@ namespace erizo{
       // channel->packetReceived2(data, length);
       lastNseq = nseq;
       lastTs = ts;
+      enqueuePacket(data, length, nseq);
 //      checkQueue();
     }
     else if (nseqdiff < 0)
     {
+      ELOG_DEBUG("Old Packet Received");
       // old packet, discard?
       // stats?
     }
     else if (nseqdiff == 0)
     {
+      ELOG_DEBUG("Duplicate Packet received");
       //duplicate packet, process (for stats)?
     }
   }
@@ -111,7 +114,7 @@ namespace erizo{
       queue.insert(PACKETQUEUE::value_type(nseq, buf));
       lqueue.insert(LENGTHQ::value_type(nseq, length));
       */
-      queue.insert(PACKETQUEUE::value_type(nseq,packet.get()));
+      queue.insert(PACKETQUEUE::value_type(nseq,packet));
 
     }
 
@@ -151,6 +154,7 @@ namespace erizo{
   void
     RtpPacketQueue::cleanQueue(void)
     {
+      ELOG_DEBUG("Cleaning queue");
       // vaciar el mapa
       while (queue.size() > 0)
       {
@@ -163,26 +167,22 @@ namespace erizo{
   //
   // -----------------------------------------------------------------------------
   //
-  dataPacket *RtpPacketQueue::getFirst(void)
+  boost::shared_ptr<dataPacket> RtpPacketQueue::getFirst(void)
     {
-      dataPacket *packet = queue.begin()->second;
-      if (packet == NULL){
+//      dataPacket *packet = queue.begin()->second;
+      boost::shared_ptr<dataPacket> packet = queue.begin()->second;
+      if (packet.get() == NULL){
         return packet;
       }
-
       const RTPHeader *header = reinterpret_cast<const RTPHeader*>(packet->data);
       lastNseq = queue.begin()->first;
       lastTs = header->getTimestamp();
-
-      //channel->packetReceived2(data, length);
       queue.erase(queue.begin());
       return packet;
-
     }
 
     int RtpPacketQueue::getSize(){
-      return queue.size();      
+      uint16_t size = queue.size();
+      return size;      
     }
-
-
 } /* namespace erizo */
