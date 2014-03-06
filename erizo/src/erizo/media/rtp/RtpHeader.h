@@ -8,6 +8,8 @@
 #ifndef RTPHEADER_H_
 #define RTPHEADER_H_
 
+#include <arpa/inet.h>
+
 class RTPHeader {
 public:
 	// constants
