@@ -3,7 +3,6 @@
 
 #include <string> 
 #include <map>
-#include <queue>
 #include "../MediaDefinitions.h"
 #include "rtp/RtpPacketQueue.h"
 #include "codecs/VideoCodec.h"
@@ -43,7 +42,6 @@ namespace erizo{
 	    boost::mutex queueMutex_;
       boost::thread thread_;
     	boost::condition_variable cond_;
-      std::queue<dataPacket> packetQueue_;
       AVStream        *video_st, *audio_st;
       
       AudioEncoder* audioCoder_;

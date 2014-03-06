@@ -1,71 +1,53 @@
 #include <cstring>
 
-
-#include "../../MediaDefinitions.h"
 #include "RtpPacketQueue.h"
+#include "../../MediaDefinitions.h"
 #include "RtpHeader.h"
 
 
 namespace erizo{
 
   DEFINE_LOGGER(RtpPacketQueue, "RtpPacketQueue");
-  
-  // -----------------------------------------------------------------------------
-  // RtpPacketQueue::RtpPacketQueue
-  //
-  // -----------------------------------------------------------------------------
-  //
+
   RtpPacketQueue::RtpPacketQueue()
-    : lastNseq(0), lastTs(0)
+    : lastNseq_(0), lastTs_(0)
   {
   }
 
-
-  // -----------------------------------------------------------------------------
-  // RtpPacketQueue::~RtpPacketQueue
-  //
-  // -----------------------------------------------------------------------------
-  //
   RtpPacketQueue::~RtpPacketQueue(void)
   {
     cleanQueue();
   }
 
-  // -----------------------------------------------------------------------------
-  // RtpPacketQueue::packetReceived
-  //
-  // -----------------------------------------------------------------------------
-  //
-  void RtpPacketQueue::packetReceived(const char *data, int length)
+  void RtpPacketQueue::pushPacket(const char *data, int length)
   {
-    //channel->packetReceived2(data, length);
-    //return;
 
     const RTPHeader *header = reinterpret_cast<const RTPHeader*>(data);
     uint16_t nseq = header->getSeqNumber();
     uint32_t ts = header->getTimestamp();
 
-    long long int ltsdiff = (long long int)ts - (long long int)lastTs;
+    long long int ltsdiff = (long long int)ts - (long long int)lastTs_;
     int tsdiff = (int)ltsdiff;
-    int nseqdiff = nseq - lastNseq;
+    int nseqdiff = nseq - lastNseq_;
     /*
     // nseq sequence cicle test
     if ( abs(nseqdiff) > ( USHRT_MAX - MAX_DIFF ) )
     {
-    NOTIFY("Vuelta del NSeq ns=%d last=%d\n", nseq, lastNseq);
+    NOTIFY("Vuelta del NSeq ns=%d last=%d\n", nseq, lastNseq_);
     if (nseqdiff > 0)
     nseqdiff-= (USHRT_MAX + 1);
     else
     nseqdiff+= (USHRT_MAX + 1);
     }
     */
+
     if (abs(tsdiff) > MAX_DIFF_TS || abs(nseqdiff) > MAX_DIFF )
     {
       // new flow, process and clean queue
-      //channel->packetReceived2(data, length);
-      ELOG_DEBUG("Max diff reached, cleaning queue");
-      lastNseq = nseq;
-      lastTs = ts;
+      ELOG_DEBUG("Max diff reached, new Flow? nsqediff %d , tsdiff %d", nseqdiff, tsdiff);
+      ELOG_DEBUG("PT %d", header->getPayloadType());
+      lastNseq_ = nseq;
+      lastTs_ = ts;
       cleanQueue();
     }
     else if (nseqdiff > 1)
@@ -73,16 +55,13 @@ namespace erizo{
       // Jump in nseq, enqueue
       ELOG_DEBUG("Jump in nseq");
       enqueuePacket(data, length, nseq);
-//      checkQueue();
     }
     else if (nseqdiff == 1)
     {
       // next packet, process
-      // channel->packetReceived2(data, length);
-      lastNseq = nseq;
-      lastTs = ts;
+      lastNseq_ = nseq;
+      lastTs_ = ts;
       enqueuePacket(data, length, nseq);
-//      checkQueue();
     }
     else if (nseqdiff < 0)
     {
@@ -97,92 +76,39 @@ namespace erizo{
     }
   }
 
-  // -----------------------------------------------------------------------------
-  // RtpPacketQueue::enqueuePacket
-  //
-  // -----------------------------------------------------------------------------
-  //
-  void
-    RtpPacketQueue::enqueuePacket(const char *data, int length, uint16_t nseq)
-    {
-      boost::shared_ptr<dataPacket> packet(new dataPacket());
-      memcpy(packet->data, data, length);
-      packet->length = length;
-    /*
-      unsigned char *buf = new unsigned char[length];
-      memcpy(buf, data, length);
-      queue.insert(PACKETQUEUE::value_type(nseq, buf));
-      lqueue.insert(LENGTHQ::value_type(nseq, length));
-      */
-      queue.insert(PACKETQUEUE::value_type(nseq,packet));
-
+  void RtpPacketQueue::enqueuePacket(const char *data, int length, uint16_t nseq)
+  {
+    if (queue_.size() > MAX_SIZE) { // if queue is growing too much, we start again
+      cleanQueue();
     }
 
-  // -----------------------------------------------------------------------------
-  // RtpPacketQueue::checkQueue
-  //
-  // -----------------------------------------------------------------------------
-  //
-  
-  void
-    RtpPacketQueue::checkQueue(void)
-    {
-      // Max size reached, send first
-      if (queue.size() >= MAX_SIZE)
-      {
-        //sendFirst();
-      }
-      // recorrer la cola para ver si hay paquetes que pueden ser enviados
-      while (queue.size() > 0)
-      {
-        if (queue.begin()->first == lastNseq + 1)
-        {
-          //sendFirst();
-        }
-        else
-        {
-          break;
-        }
-      }
-    }
+    boost::shared_ptr<dataPacket> packet(new dataPacket());
+    memcpy(packet->data, data, length);
+    packet->length = length;
+    queue_.insert(std::map< int, boost::shared_ptr<dataPacket>>::value_type(nseq,packet));
 
-  // -----------------------------------------------------------------------------
-  // RtpPacketQueue::cleanQueue
-  //
-  // -----------------------------------------------------------------------------
-  //
-  void
-    RtpPacketQueue::cleanQueue(void)
-    {
-      ELOG_DEBUG("Cleaning queue");
-      // vaciar el mapa
-      while (queue.size() > 0)
-      {
-        queue.erase(queue.begin());
-      }
-    }
+  }
 
-  // -----------------------------------------------------------------------------
-  // RtpPacketQueue::sendFirst
-  //
-  // -----------------------------------------------------------------------------
-  //
-  boost::shared_ptr<dataPacket> RtpPacketQueue::getFirst(void)
-    {
-//      dataPacket *packet = queue.begin()->second;
-      boost::shared_ptr<dataPacket> packet = queue.begin()->second;
-      if (packet.get() == NULL){
-        return packet;
-      }
-      const RTPHeader *header = reinterpret_cast<const RTPHeader*>(packet->data);
-      lastNseq = queue.begin()->first;
-      lastTs = header->getTimestamp();
-      queue.erase(queue.begin());
+  void RtpPacketQueue::cleanQueue()
+  {
+    queue_.clear();
+  }
+
+  boost::shared_ptr<dataPacket> RtpPacketQueue::popPacket()
+  {
+    boost::shared_ptr<dataPacket> packet = queue_.begin()->second;
+    if (packet.get() == NULL){
       return packet;
     }
+    const RTPHeader *header = reinterpret_cast<const RTPHeader*>(packet->data);
+    lastNseq_ = queue_.begin()->first;
+    lastTs_ = header->getTimestamp();
+    queue_.erase(queue_.begin());
+    return packet;
+  }
 
-    int RtpPacketQueue::getSize(){
-      uint16_t size = queue.size();
-      return size;      
-    }
+  int RtpPacketQueue::getSize(){
+    uint16_t size = queue_.size();
+    return size;      
+  }
 } /* namespace erizo */

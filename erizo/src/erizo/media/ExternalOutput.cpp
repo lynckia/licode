@@ -246,11 +246,19 @@ namespace erizo {
   }
 
   int ExternalOutput::deliverAudioData(char* buf, int len) {
+    rtcpheader *head = reinterpret_cast<rtcpheader*>(buf);
+    if (head->isRtcp()){
+      return 0;
+    }
     this->queueData(buf,len,AUDIO_PACKET);
     return 0;
   }
 
   int ExternalOutput::deliverVideoData(char* buf, int len) {
+    rtcpheader *head = reinterpret_cast<rtcpheader*>(buf);
+    if (head->isRtcp()){
+      return 0;
+    }
     this->queueData(buf,len,VIDEO_PACKET);
     return 0;
   }
@@ -320,9 +328,9 @@ namespace erizo {
     }
     boost::mutex::scoped_lock lock(queueMutex_);
     if (type == VIDEO_PACKET){
-      videoQueue_.packetReceived(buffer, length);
+      videoQueue_.pushPacket(buffer, length);
     }else{
-      audioQueue_.packetReceived(buffer, length);
+      audioQueue_.pushPacket(buffer, length);
     }
     cond_.notify_one();
     
@@ -368,13 +376,11 @@ namespace erizo {
         }
       }
       if (audioQueue_.getSize()){
-        ELOG_DEBUG("Getting Audio packet");
-        boost::shared_ptr<dataPacket> audioP = audioQueue_.getFirst();
+        boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
         this->writeAudioData(audioP->data, audioP->length);
       }
       if (videoQueue_.getSize()) {
-        ELOG_DEBUG("Getting Video packet");
-        boost::shared_ptr<dataPacket> videoP = videoQueue_.getFirst();
+        boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
         this->writeVideoData(videoP->data, videoP->length);
 
       }
