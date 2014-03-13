@@ -436,6 +436,8 @@ namespace erizo {
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;
+    ELOG_DEBUG("RTCP PACKET");
+    statsListener_->notifyStats("Hola + RTCPPPP");
     do{
       movingBuf+=rtcpLength;
       rtcpheader *chead= reinterpret_cast<rtcpheader*>(movingBuf);

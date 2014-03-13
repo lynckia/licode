@@ -67,6 +67,9 @@ exports.WebRtcController = function () {
         var roap = sdp,
             remoteSdp = getSdp(roap);
         wrtc.setRemoteSdp(remoteSdp);
+
+        wrtc.getStats(function (newStats){
+        });
         var sdpDelivered = false;
     };
 

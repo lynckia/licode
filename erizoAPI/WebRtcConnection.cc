@@ -24,16 +24,17 @@ void WebRtcConnection::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setAudioReceiver"), FunctionTemplate::New(setAudioReceiver)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setVideoReceiver"), FunctionTemplate::New(setVideoReceiver)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getCurrentState"), FunctionTemplate::New(getCurrentState)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("getStats"), FunctionTemplate::New(getStats)->GetFunction());
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("WebRtcConnection"), constructor);
-/*
-  if (!initialized){
-    context_obj = Persistent<Object>::New(Object::New());
-    target->Set(String::New("webrtcEvent"),context_obj);
-    initialized = true;
-  }
-  */
+  /*
+     if (!initialized){
+     context_obj = Persistent<Object>::New(Object::New());
+     target->Set(String::New("webrtcEvent"),context_obj);
+     initialized = true;
+     }
+     */
 }
 
 
@@ -43,7 +44,7 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
     ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
     return args.This();
   }
-//	webrtcconnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort);
+  //	webrtcconnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort);
 
   bool a = (args[0]->ToBoolean())->BooleanValue();
   bool v = (args[1]->ToBoolean())->BooleanValue();
@@ -55,10 +56,11 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
   WebRtcConnection* obj = new WebRtcConnection();
   obj->me = new erizo::WebRtcConnection(a, v, stunServer,stunPort,minPort,maxPort);
   obj->me->setWebRtcConnectionEventListener(obj);
-  obj->me->setWebRtcConnectionStatsListener(obj);
   obj->Wrap(args.This());
-  uv_async_init(uv_default_loop(), &obj->async, &WebRtcConnection::after_cb); 
+  uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
+  uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 
   obj->message = 0;
+  obj->statsMsg = "";
   return args.This();
 }
 
@@ -67,7 +69,8 @@ Handle<Value> WebRtcConnection::close(const Arguments& args) {
 
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
   erizo::WebRtcConnection *me = obj->me;
-  uv_close((uv_handle_t*)&obj->async, NULL);
+  uv_close((uv_handle_t*)&obj->async_, NULL);
+  uv_close((uv_handle_t*)&obj->asyncStats_, NULL);
 
   delete me;
 
@@ -81,10 +84,8 @@ Handle<Value> WebRtcConnection::init(const Arguments& args) {
   erizo::WebRtcConnection *me = obj->me;
 
   bool r = me->init();
+  obj->eventCallback_ = Persistent<Function>::New(Local<Function>::Cast(args[0]));
 
-  obj->hasCallback_ = true;
-  obj->eventCallback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
-  
   return scope.Close(Boolean::New(r));
 }
 
@@ -153,26 +154,46 @@ Handle<Value> WebRtcConnection::getCurrentState(const Arguments& args) {
   return scope.Close(Number::New(state));
 }
 
+Handle<Value> WebRtcConnection::getStats(const v8::Arguments& args){
+  HandleScope scope;
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+  obj->me->setWebRtcConnectionStatsListener(obj);
+  obj->hasCallback_ = true;
+  obj->statsCallback_ = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+
+  return scope.Close(Null());
+
+}
+
 void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message) {
   this->message=event;
-  async.data = this;
-  uv_async_send (&async);
+  async_.data = this;
+  uv_async_send (&async_);
 }
 
 void WebRtcConnection::notifyStats(const std::string& message) {
-  /*
-  this->message=event;
-  async.data = this;
-  uv_async_send (&async);
-  */
+  this->statsMsg=message;
+  asyncStats_.data = this;
+  uv_async_send (&asyncStats_);
+
 }
 
-void WebRtcConnection::after_cb(uv_async_t *handle, int status){
+void WebRtcConnection::eventsCallback(uv_async_t *handle, int status){
 
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
   printf("WebRTC Update received %d\n", obj->message);
   Local<Value> args[] = {Integer::New(obj->message)};
+  obj->eventCallback_->Call(Context::GetCurrent()->Global(), 1, args);
+}
+
+void WebRtcConnection::statsCallback(uv_async_t *handle, int status){
+
+  HandleScope scope;
+  WebRtcConnection* obj = (WebRtcConnection*)handle->data;
+  printf("WebRTC Stats received %s\n", obj->statsMsg.c_str());
+
+  Local<Value> args[] = {String::NewSymbol(obj->statsMsg.c_str())};
   if (obj->hasCallback_) 
-    obj->eventCallback->Call(Context::GetCurrent()->Global(), 1, args);
+    obj->statsCallback_->Call(Context::GetCurrent()->Global(), 1, args);
 }
