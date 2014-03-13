@@ -47,13 +47,7 @@ exports.WebRtcController = function () {
      */
     initWebRtcConnection = function (wrtc, sdp, callback, onReady) {
 
-        wrtc.init();
-
-        var roap = sdp,
-            remoteSdp = getSdp(roap);
-        wrtc.setRemoteSdp(remoteSdp);
-        var sdpDelivered = false;
-        wrtc.getEvents( function (newStatus){
+        wrtc.init( function (newStatus){
           var localSdp, answer;
           console.log("webrtc Addon status" + newStatus );
           if (newStatus === 102 && !sdpDelivered) {
@@ -69,6 +63,11 @@ exports.WebRtcController = function () {
             }
           }
         });
+
+        var roap = sdp,
+            remoteSdp = getSdp(roap);
+        wrtc.setRemoteSdp(remoteSdp);
+        var sdpDelivered = false;
     };
 
     /*

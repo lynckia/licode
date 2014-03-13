@@ -24,7 +24,6 @@ void WebRtcConnection::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setAudioReceiver"), FunctionTemplate::New(setAudioReceiver)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setVideoReceiver"), FunctionTemplate::New(setVideoReceiver)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getCurrentState"), FunctionTemplate::New(getCurrentState)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("getEvents"), FunctionTemplate::New(getEvents)->GetFunction());
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("WebRtcConnection"), constructor);
@@ -82,19 +81,10 @@ Handle<Value> WebRtcConnection::init(const Arguments& args) {
 
   bool r = me->init();
 
-  return scope.Close(Boolean::New(r));
-}
-
-
-Handle<Value> WebRtcConnection::getEvents(const Arguments& args) {
-  HandleScope scope;
-
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
-
   obj->hasCallback_ = true;
   obj->eventCallback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
-
-  return scope.Close(Null());
+  
+  return scope.Close(Boolean::New(r));
 }
 
 Handle<Value> WebRtcConnection::setRemoteSdp(const Arguments& args) {
@@ -162,7 +152,7 @@ Handle<Value> WebRtcConnection::getCurrentState(const Arguments& args) {
   return scope.Close(Number::New(state));
 }
 
-void WebRtcConnection::notify(erizo::WebRTCEvent event){
+void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message){
   this->message=event;
   async.data = this;
   uv_async_send (&async);

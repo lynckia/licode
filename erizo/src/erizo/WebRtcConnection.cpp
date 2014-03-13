@@ -61,7 +61,7 @@ namespace erizo {
     send_Thread_.join();
     globalState_ = CONN_FINISHED;
     if (connEventListener_ != NULL){
-      connEventListener_->notify(globalState_);
+      connEventListener_->notifyEvent(globalState_);
       connEventListener_ = NULL;
     }
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
@@ -409,7 +409,7 @@ namespace erizo {
 
     globalState_ = temp;
     if (connEventListener_ != NULL)
-      connEventListener_->notify(globalState_);
+      connEventListener_->notifyEvent(globalState_);
   }
 
   void WebRtcConnection::queueData(int comp, const char* buf, int length, Transport *transport) {

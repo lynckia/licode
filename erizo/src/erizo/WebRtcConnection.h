@@ -19,7 +19,7 @@ class Transport;
 class TransportListener;
 
 /**
- * States of ICE
+ * WebRTC Events
  */
 enum WebRTCEvent {
   CONN_INITIAL = 101, CONN_STARTED = 102, CONN_READY = 103, CONN_FINISHED = 104, 
@@ -31,10 +31,18 @@ public:
 	virtual ~WebRtcConnectionEventListener() {
 	}
 	;
-	virtual void notify(WebRTCEvent newEvent)=0;
+	virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message="")=0;
 
 };
 
+class WebRtcConnectionStatsListener {
+public:
+	virtual ~WebRtcConnectionStatsListener() {
+	}
+	;
+	virtual void notifyStats(const std::string& message="")=0;
+
+};
 /**
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary Transport components.

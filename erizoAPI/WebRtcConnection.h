@@ -39,7 +39,7 @@ class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventLi
    */
   static v8::Handle<v8::Value> close(const v8::Arguments& args);
   /*
-   * Inits the WebRtcConnection by starting ICE Candidate Gathering.
+   * Inits the WebRtcConnection and passes the callback to get Events.
    * Returns true if the candidates are gathered.
    */
   static v8::Handle<v8::Value> init(const v8::Arguments& args);  
@@ -70,14 +70,9 @@ class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventLi
    */
   static v8::Handle<v8::Value> getCurrentState(const v8::Arguments& args);
   
-  /*
-   * Sets a Callback to receive events
-   */
-  static v8::Handle<v8::Value> getEvents(const v8::Arguments& args);
-  
   static void after_cb(uv_async_t *handle, int status);
  
-	virtual void notify(erizo::WebRTCEvent event);
+	virtual void notifyEvent(erizo::WebRTCEvent event, const std::string& message="");
 };
 
 #endif
