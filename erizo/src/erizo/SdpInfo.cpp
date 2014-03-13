@@ -229,7 +229,7 @@ namespace erizo {
               << " " << cand.netProtocol << " " << cand.priority << " "
               << cand.hostAddress << " " << cand.hostPort << " typ "
               << hostType_str;
-          if (cand.hostType == SRFLX) {
+          if (cand.hostType == SRFLX || cand.hostType == RELAY) {
             //raddr 192.168.0.12 rport 50483
             sdp << " raddr " << cand.rAddress << " rport " << cand.rPort;
           }

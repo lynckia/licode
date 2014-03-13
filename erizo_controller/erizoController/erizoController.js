@@ -21,6 +21,8 @@ var LIMIT_N_ROOMS = config.erizoController.limit_n_rooms;
 
 var INTERVAL_TIME_KEEPALIVE = config.erizoController.interval_time_keepAlive;
 
+var BINDED_INTERFACE_NAME = config.erizoController.networkInterface;
+
 var myId;
 var rooms = {};
 var myState;
@@ -81,15 +83,22 @@ var addToCloudHandler = function (callback) {
                 if (interfaces[k].hasOwnProperty(k2)) {
                     address = interfaces[k][k2];
                     if (address.family === 'IPv4' && !address.internal) {
-                        addresses.push(address.address);
+                        if (k === BINDED_INTERFACE_NAME || !BINDED_INTERFACE_NAME) {
+                            addresses.push(address.address);
+                        }
                     }
                 }
             }
         }
     }
 
-    publicIP = addresses[0];
-    privateRegexp = new RegExp(publicIP, 'g');
+    privateRegexp = new RegExp(addresses[0], 'g');
+    
+    if (config.erizoController.publicIP === '' || config.erizoController.publicIP === undefined){        
+        publicIP = addresses[0];
+    } else {
+        publicIP = config.erizoController.publicIP;
+    }
 
     var addECToCloudHandler = function(attempt) {
         if (attempt <= 0) {
@@ -460,13 +469,17 @@ var listen = function () {
                     socket.room.sockets.splice(index, 1);
                 }
 
+                if (socket.room.webRtcController) {
+                    socket.room.webRtcController.removeSubscriptions(socket.id);
+                }
+
                 for (i in socket.streams) {
                     if (socket.streams.hasOwnProperty(i)) {
                         id = socket.streams[i];
 
                         if (socket.room.streams[id].hasAudio() || socket.room.streams[id].hasVideo() || socket.room.streams[id].hasScreen()) {
                             if (!socket.room.p2p) {
-                                socket.room.webRtcController.removeClient(socket.id, id);
+                                socket.room.webRtcController.removePublisher(id);
                             }
 
                         }
@@ -517,7 +530,9 @@ exports.getUsersInRoom = function (room, callback) {
 exports.deleteRoom = function (room, callback) {
     "use strict";
 
-    var sockets, id;
+    var sockets, streams, id, j;
+
+    logger.info('Deleting room ', room);
 
     if (rooms[room] === undefined) {
         callback('Success');
@@ -527,13 +542,24 @@ exports.deleteRoom = function (room, callback) {
 
     for (id in sockets) {
         if (sockets.hasOwnProperty(id)) {
-            rooms[room].webRtcController.removeClient(sockets[id]);
+            rooms[room].webRtcController.removeSubscriptions(sockets[id]);
         }
     }
-    logger.info('Deleting room ', room, rooms);
+
+    streams = rooms[room].streams;
+
+    for (j in streams) {
+        if (streams[j].hasAudio() || streams[j].hasVideo() || streams[j].hasScreen()) {
+            if (!room.p2p) {
+                rooms[room].webRtcController.removePublisher(j);
+            }
+
+        }
+    }
+
     delete rooms[room];
     updateMyState();
-    logger.info('1 Deleting room ', room, rooms);
+    logger.info('Deleted room ', room, rooms);
     callback('Success');
 };
 

@@ -20,6 +20,12 @@ config.erizoController.stunServerUrl = 'stun:stun.l.google.com:19302';
 config.erizoController.defaultVideoBW = 300;
 config.erizoController.maxVideoBW = 300;
 
+//Public erizoController IP for websockets (useful when behind NATs)
+//Use '' to automatically get IP from the interface
+config.erizoController.publicIP = '';
+
+// Use the name of the inferface you want to bind to for websockets
+// config.erizoController.networkInterface = 'eth1'
 
 //Use undefined to run clients without Turn
 config.erizoController.turnServer = {};
