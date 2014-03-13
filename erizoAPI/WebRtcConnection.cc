@@ -54,7 +54,8 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
   int maxPort = args[5]->IntegerValue();
   WebRtcConnection* obj = new WebRtcConnection();
   obj->me = new erizo::WebRtcConnection(a, v, stunServer,stunPort,minPort,maxPort);
-  obj->me->setWebRTCConnectionEventListener(obj);
+  obj->me->setWebRtcConnectionEventListener(obj);
+  obj->me->setWebRtcConnectionStatsListener(obj);
   obj->Wrap(args.This());
   uv_async_init(uv_default_loop(), &obj->async, &WebRtcConnection::after_cb); 
   obj->message = 0;
@@ -152,11 +153,20 @@ Handle<Value> WebRtcConnection::getCurrentState(const Arguments& args) {
   return scope.Close(Number::New(state));
 }
 
-void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message){
+void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message) {
   this->message=event;
   async.data = this;
   uv_async_send (&async);
 }
+
+void WebRtcConnection::notifyStats(const std::string& message) {
+  /*
+  this->message=event;
+  async.data = this;
+  uv_async_send (&async);
+  */
+}
+
 void WebRtcConnection::after_cb(uv_async_t *handle, int status){
 
   HandleScope scope;

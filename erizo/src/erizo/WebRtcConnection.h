@@ -40,8 +40,7 @@ public:
 	virtual ~WebRtcConnectionStatsListener() {
 	}
 	;
-	virtual void notifyStats(const std::string& message="")=0;
-
+	virtual void notifyStats(const std::string& message)=0;
 };
 /**
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
@@ -86,9 +85,23 @@ public:
 	 * @return the size of the data sent
 	 */
 	int sendFirPacket();
+  
+  /**
+   * Sets the Event Listener for this WebRtcConnection
+   */
 
-	void setWebRTCConnectionEventListener(
-			WebRtcConnectionEventListener* listener);
+	inline void setWebRtcConnectionEventListener(
+			WebRtcConnectionEventListener* listener){
+    this->connEventListener_ = listener;
+  }
+	
+  /**
+   * Sets the Stats Listener for this WebRtcConnection
+   */
+  inline void setWebRtcConnectionStatsListener(
+			WebRtcConnectionStatsListener* listener){
+    this->statsListener_ = listener;
+  }
 	/**
 	 * Gets the current state of the Ice Connection
 	 * @return
@@ -112,6 +125,7 @@ private:
 	boost::thread send_Thread_;
 	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionEventListener* connEventListener_;
+  WebRtcConnectionStatsListener* statsListener_;
 	Transport *videoTransport_, *audioTransport_;
 	char deliverMediaBuffer_[3000];
 

@@ -332,11 +332,6 @@ namespace erizo {
     return pos;
   }
 
-  void WebRtcConnection::setWebRTCConnectionEventListener(
-      WebRtcConnectionEventListener* listener) {
-    this->connEventListener_ = listener;
-  }
-
   void WebRtcConnection::updateState(TransportState state, Transport * transport) {
     boost::mutex::scoped_lock lock(updateStateMutex_);
     WebRTCEvent temp = globalState_;
