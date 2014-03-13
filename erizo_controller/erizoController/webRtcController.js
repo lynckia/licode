@@ -69,6 +69,7 @@ exports.WebRtcController = function () {
         wrtc.setRemoteSdp(remoteSdp);
 
         wrtc.getStats(function (newStats){
+          console.log("newStats " + newStats);
         });
         var sdpDelivered = false;
     };

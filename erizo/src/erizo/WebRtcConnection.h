@@ -12,6 +12,7 @@
 #include "SdpInfo.h"
 #include "MediaDefinitions.h"
 #include "Transport.h"
+#include "Stats.h"
 
 namespace erizo {
 
@@ -117,6 +118,8 @@ public:
 private:
 	SdpInfo remoteSdp_;
 	SdpInfo localSdp_;
+
+  Stats thisStats_;
 
 	WebRTCEvent globalState_;
 

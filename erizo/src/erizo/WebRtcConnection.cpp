@@ -237,6 +237,10 @@ namespace erizo {
     boost::mutex::scoped_lock lock(writeMutex_);
     int length = len;
     rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
+    if (chead->packettype == RTCP_Receiver_PT){
+      thisStats_.setFragmentLost (chead->fractionlost);
+      statsListener_->notifyStats(thisStats_.getString());
+    }
     if (chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_PS_Feedback_PT || chead->packettype == RTCP_RTP_Feedback_PT){
       if (fbSink_ != NULL) {
         fbSink_->deliverFeedback(buf,length);
@@ -437,7 +441,6 @@ namespace erizo {
     int rtcpLength = 0;
     int totalLength = 0;
     ELOG_DEBUG("RTCP PACKET");
-    statsListener_->notifyStats("Hola + RTCPPPP");
     do{
       movingBuf+=rtcpLength;
       rtcpheader *chead= reinterpret_cast<rtcpheader*>(movingBuf);
