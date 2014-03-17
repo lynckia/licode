@@ -190,7 +190,6 @@ namespace erizo {
             len = len - 1 - totalLength + rtpHeaderLength;
           }
         }
-    
         this->queueData(0, buf, len, videoTransport_);
       }
     }
@@ -239,15 +238,17 @@ namespace erizo {
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
     
     // PROCESS STATS
-    if (chead->packettype == RTCP_Receiver_PT){
-      thisStats_.setFragmentLost (chead->getFractionLost());
-      thisStats_.setPacketsLost (chead->getLostPackets());
-      thisStats_.setJitter (chead->getJitter());
-      statsListener_->notifyStats(thisStats_.getString());
-    }else if (chead->packettype == RTCP_Sender_PT){
-      thisStats_.setRtcpPacketSent(chead->getPacketsSent());
-      thisStats_.setRtcpBytesSent(chead->getOctetsSent());
-      statsListener_->notifyStats(thisStats_.getString());
+    if (this->statsListener_){ // if there is no listener we dont process stats
+      if (chead->packettype == RTCP_Receiver_PT){
+        thisStats_.setFragmentLost (chead->getFractionLost());
+        thisStats_.setPacketsLost (chead->getLostPackets());
+        thisStats_.setJitter (chead->getJitter());
+        statsListener_->notifyStats(thisStats_.getString());
+      }else if (chead->packettype == RTCP_Sender_PT){
+        thisStats_.setRtcpPacketSent(chead->getPacketsSent());
+        thisStats_.setRtcpBytesSent(chead->getOctetsSent());
+        statsListener_->notifyStats(thisStats_.getString());
+      }
     }
    
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
@@ -261,22 +262,19 @@ namespace erizo {
         // Check incoming SSRC
         RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
         RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-//        unsigned int recvSSRC = ntohl(head->ssrc);
-        
-        unsigned int recvSSRC = head->getSSRC();
-
+        unsigned int recvSSRC;
         if (chead->packettype == RTCP_Sender_PT) { //Sender Report
-//          ELOG_DEBUG ("RTP Sender Report %d length %d ", chead->packettype, ntohs(chead->length));
-          recvSSRC = ntohl(chead->ssrc);
+          recvSSRC = chead->getSSRC();
+        }else{
+          recvSSRC = head->getSSRC();
         }
-
         // Deliver data
         if (recvSSRC==this->getVideoSourceSSRC() || recvSSRC==this->getVideoSinkSSRC()) {
           videoSink_->deliverVideoData(buf, length);
         } else if (recvSSRC==this->getAudioSourceSSRC() || recvSSRC==this->getAudioSinkSSRC()) {
           audioSink_->deliverAudioData(buf, length);
         } else {
-          ELOG_DEBUG("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
+          ELOG_ERROR("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
         }
       } else if (transport->mediaType == AUDIO_TYPE) {
         if (audioSink_ != NULL) {
