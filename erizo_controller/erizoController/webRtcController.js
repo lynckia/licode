@@ -45,7 +45,7 @@ exports.WebRtcController = function () {
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP. 
      */
-    initWebRtcConnection = function (wrtc, sdp, callback, onReady) {
+    initWebRtcConnection = function (wrtc, sdp, callback, onReady, id) {
 
         wrtc.init( function (newStatus){
           var localSdp, answer;
@@ -69,7 +69,7 @@ exports.WebRtcController = function () {
         wrtc.setRemoteSdp(remoteSdp);
 
         wrtc.getStats(function (newStats){
-          console.log("newStats " + newStats);
+          console.log("newStats for id " + id + "\n" + newStats);
         });
         var sdpDelivered = false;
     };
@@ -181,7 +181,7 @@ exports.WebRtcController = function () {
             wrtc.setVideoReceiver(muxer);
             muxer.setPublisher(wrtc);
 
-            initWebRtcConnection(wrtc, sdp, callback, onReady);
+            initWebRtcConnection(wrtc, sdp, callback, onReady, from);
 
             //logger.info('Publishers: ', publishers);
             //logger.info('Subscribers: ', subscribers);
@@ -210,7 +210,7 @@ exports.WebRtcController = function () {
             subscribers[to].push(from);
             publishers[to].addSubscriber(wrtc, from);
 
-            initWebRtcConnection(wrtc, sdp, callback);
+            initWebRtcConnection(wrtc, sdp, callback, undefined, from);
 //            waitForFIR(wrtc, to);
 
             //logger.info('Publishers: ', publishers);
