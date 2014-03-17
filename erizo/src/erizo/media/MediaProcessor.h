@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <string>
 
-#include "rtp/RtpParser.h"
+#include "rtp/RtpVP8Parser.h"
 #include "../MediaDefinitions.h"
 #include "codecs/Codecs.h"
 #include "codecs/VideoCodec.h"
@@ -137,7 +137,7 @@ private:
 
 	RawDataReceiver* rawReceiver_;
 
-	erizo::RtpParser pars;
+	erizo::RtpVP8Parser pars;
 
 	bool initAudioDecoder();
 
@@ -197,7 +197,7 @@ private:
 	AVFormatContext* vOutputFormatContext;
 	AVOutputFormat* vOutputFormat;
 
-	RtpParser pars;
+	RtpVP8Parser pars;
 
 	bool initAudioCoder();
 

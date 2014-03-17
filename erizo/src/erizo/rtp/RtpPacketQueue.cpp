@@ -1,8 +1,8 @@
 #include <cstring>
 
 #include "RtpPacketQueue.h"
-#include "../../MediaDefinitions.h"
-#include "../../rtputils.h"
+#include "../MediaDefinitions.h"
+#include "RtpHeaders.h"
 
 
 namespace erizo{

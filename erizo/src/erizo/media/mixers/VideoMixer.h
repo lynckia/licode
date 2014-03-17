@@ -69,7 +69,7 @@ private:
 	std::vector<dataPacket> head;
 	int gotFrame_,gotDecodedFrame_, size_;
 	void sendHead(WebRtcConnection* conn);
-	RtpParser pars;
+	RtpVP8Parser pars;
 	unsigned int sentPackets_;
 };
 

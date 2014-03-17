@@ -9,7 +9,8 @@
 #include <netinet/in.h>
 #include <srtp/srtp.h>
 #include <boost/thread/mutex.hpp>
-#include "rtputils.h"
+
+#include "rtp/RtpHeaders.h"
 #include "logger.h"
 
 namespace erizo {

@@ -1,6 +1,5 @@
 #include "ExternalInput.h"
 #include "../WebRtcConnection.h"
-#include "../RTPSink.h"
 #include <cstdio>
 
 #include <boost/cstdint.hpp>

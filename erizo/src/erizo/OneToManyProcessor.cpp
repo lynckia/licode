@@ -4,7 +4,7 @@
 
 #include "OneToManyProcessor.h"
 #include "WebRtcConnection.h"
-#include "rtputils.h"
+#include "rtp/RtpHeaders.h"
 
 namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");

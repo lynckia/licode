@@ -16,16 +16,16 @@
 #include <cstdio>
 #include <string>
 
-#include "RtpParser.h"
+#include "RtpVP8Parser.h"
 
 namespace erizo {
 
-	DEFINE_LOGGER(RtpParser, "media.rtp.RtpParser");
+	DEFINE_LOGGER(RtpVP8Parser, "media.rtp.RtpVP8Parser");
 
-RtpParser::RtpParser() {
+RtpVP8Parser::RtpVP8Parser() {
 }
 
-RtpParser::~RtpParser() {
+RtpVP8Parser::~RtpVP8Parser() {
 
 }
 
@@ -157,7 +157,7 @@ int ParseVP8Extension(erizo::RTPPayloadVP8* vp8, const unsigned char* dataPtr, i
 	return parsedBytes;
 }
 
-RTPPayloadVP8* RtpParser::parseVP8(unsigned char* data,
+RTPPayloadVP8* RtpVP8Parser::parseVP8(unsigned char* data,
 		int dataLength) {
 	//ELOG_DEBUG("Parsing VP8 %d bytes", dataLength);
 	RTPPayloadVP8* vp8 = new RTPPayloadVP8; // = &parsedPacket.info.VP8;

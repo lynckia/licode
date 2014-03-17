@@ -10,7 +10,7 @@
 
 #include "dtls/DtlsFactory.h"
 
-#include "rtputils.h"
+#include "rtp/RtpHeaders.h"
 
 using namespace erizo;
 using namespace std;

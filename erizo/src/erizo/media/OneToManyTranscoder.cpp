@@ -4,8 +4,8 @@
 
 #include "OneToManyTranscoder.h"
 #include "../WebRtcConnection.h"
-#include "../RTPSink.h"
-#include "../rtputils.h"
+#include "../rtp/RTPSink.h"
+#include "../rtp/RtpHeaders.h"
 
 namespace erizo {
 DEFINE_LOGGER(OneToManyTranscoder, "media.OneToManyTranscoder");

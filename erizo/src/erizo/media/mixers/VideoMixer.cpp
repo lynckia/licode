@@ -4,7 +4,7 @@
 
 #include "VideoMixer.h"
 #include "VideoUtils.h"
-#include "../../RTPSink.h"
+#include "../../rtp/RTPSink.h"
 #include "../../WebRtcConnection.h"
 
 namespace erizo {

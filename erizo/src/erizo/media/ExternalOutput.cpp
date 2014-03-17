@@ -1,11 +1,11 @@
-#include "ExternalOutput.h"
-#include "../WebRtcConnection.h"
-#include "../rtputils.h"
 #include <cstdio>
-
 #include <boost/cstdint.hpp>
 #include <sys/time.h>
 #include <arpa/inet.h>
+
+#include "ExternalOutput.h"
+#include "../WebRtcConnection.h"
+#include "../rtp/RtpHeaders.h"
 
 namespace erizo {
 #define FIR_INTERVAL_MS 4000

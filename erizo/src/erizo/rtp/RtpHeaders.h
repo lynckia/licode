@@ -1,9 +1,9 @@
 /*
- * rtputils.h
+ * RtpHeaders.h
  */
 
-#ifndef RTPUTILS_H_
-#define RTPUTILS_H_
+#ifndef RTPHEADERS_H_
+#define RTPHEADERS_H_
 
 #include <netinet/in.h>
 
@@ -263,4 +263,4 @@ namespace erizo{
   };
 } /*namespace erizo*/
 
-#endif /* RTPUTILS_H */
+#endif /* RTPHEADERS_H_ */

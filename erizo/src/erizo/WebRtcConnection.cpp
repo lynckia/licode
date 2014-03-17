@@ -9,7 +9,7 @@
 #include "SdesTransport.h"
 
 #include "SdpInfo.h"
-#include "rtputils.h"
+#include "rtp/RtpHeaders.h"
 
 namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");

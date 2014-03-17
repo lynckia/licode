@@ -1,8 +1,8 @@
 #include <string>
 
 #include "MediaProcessor.h"
-#include "rtp/RtpVP8Fragmenter.h"
-#include "../rtputils.h"
+#include "../rtp/RtpVP8Fragmenter.h"
+#include "../rtp/RtpHeaders.h"
 #include "codecs/VideoCodec.h"
 
 namespace erizo {
