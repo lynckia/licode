@@ -14,11 +14,11 @@ namespace erizo{
    
     public:
       Stats(unsigned long int ssrc=0):SSRC_(ssrc){
-        theStats_["packetsLost"]=0;
-        theStats_["fragmentLost"]=0;
-        theStats_["rtcpPacketCount"]=0;
-        theStats_["rtcpBytesCount"]=0;
-        theStats_["jitter"]=0;
+        /* theStats_["packetsLost"]=0; */
+        /* theStats_["fragmentLost"]=0; */
+        /* theStats_["rtcpPacketSent"]=0; */
+        /* theStats_["rtcpBytesSent"]=0; */
+        /* theStats_["jitter"]=0; */
       };
       int getPacketsLost(){
         return static_cast<int>(theStats_["packetsLost"]);
@@ -34,18 +34,18 @@ namespace erizo{
         theStats_["fragmentLost"] = fragment;
       };
 
-      unsigned int getRtcpPacketCount(){
-        return theStats_["rtcpPacketCount"];
+      unsigned int getRtcpPacketSent(){
+        return theStats_["rtcpPacketSent"];
       };
-      void setRtcpPacketCount(unsigned int count){
-        theStats_["rtcpPacketCount"] = count;
+      void setRtcpPacketSent(unsigned int count){
+        theStats_["rtcpPacketSent"] = count;
       };
 
-      unsigned int getRtcpBytesCount(){
-        return theStats_["rtcpBytesCount"];
+      unsigned int getRtcpBytesSent(){
+        return theStats_["rtcpBytesSent"];
       };
-      void setRtcpBytesCount(unsigned int count){
-        theStats_["rtcpBytesCount"] = count;
+      void setRtcpBytesSent(unsigned int count){
+        theStats_["rtcpBytesSent"] = count;
       };
       unsigned int getJitter(){
         return theStats_["jitter"];

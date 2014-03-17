@@ -9,10 +9,13 @@
 
 namespace erizo{
   // Payload types
-#define RTCP_Sender_PT      200 // RTCP Sender Report
-#define RTCP_Receiver_PT    201 // RTCP Receiver Report
+#define RTCP_Sender_PT       200 // RTCP Sender Report
+#define RTCP_Receiver_PT     201 // RTCP Receiver Report
+#define RTCP_SDES_PT         202
+#define RTCP_BYE             203
+#define RTCP_APP             204 
 #define RTCP_RTP_Feedback_PT 205 // RTCP Transport Layer Feedback Packet
-#define RTCP_PS_Feedback_PT    206 // RTCP Payload Specific Feedback Packet
+#define RTCP_PS_Feedback_PT  206 // RTCP Payload Specific Feedback Packet
 
 #define VP8_90000_PT        100 // VP8 Video Codec
 #define RED_90000_PT        116 // REDundancy (RFC 2198)
@@ -125,6 +128,8 @@ namespace erizo{
   // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   // |                     SSRC of packet sender                     |
   // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+  //
+  // RECEIVER REPORT
   // |                 SSRC_1 (SSRC of first source)                 | report
   // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ block
   // | fraction lost |       cumulative number of packets lost       |   1
@@ -143,6 +148,19 @@ namespace erizo{
   // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
   // |                  profile-specific extensions                  |
   // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  //
+  // SENDER REPORT
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |            NTP timestamp, most significant word NTS           |
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |             NTP timestamp, least significant word             |
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |                       RTP timestamp RTS                       |
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |                   sender's packet count SPC                   |
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |                    sender's octet count SOC                   |
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
   class RtcpHeader {
     public:
@@ -152,33 +170,62 @@ namespace erizo{
       uint32_t packettype :8;
       uint32_t length :16;
       uint32_t ssrc;
-      uint32_t ssrcsource;
-      /* RECEIVER REPORT DATA*/
-      uint32_t fractionlost:8;
-      int32_t lost:24;
-      uint32_t highestseqnum;
-      uint32_t jitter;
-      uint32_t lastSR;
-      
-      inline bool isFeedback(void){
+      union report_t {
+        struct receiverReport_t {
+          uint32_t ssrcsource;
+          /* RECEIVER REPORT DATA*/
+          uint32_t fractionlost:8;
+          int32_t lost:24;
+          uint32_t highestseqnum;
+          uint32_t jitter;
+          uint32_t lastsr;
+        } receiverReport;
+
+        struct senderReport_t {
+          uint64_t ntptimestamp;
+          uint32_t rtprts;
+          uint32_t packetsent;
+          uint32_t octetssent;
+        } senderReport;
+      } report;
+
+      inline bool isFeedback(void) {
         return (packettype==RTCP_Receiver_PT || 
             packettype==RTCP_PS_Feedback_PT ||
             packettype == RTCP_RTP_Feedback_PT);
       }
-      inline bool isRtcp(void){        
+      inline bool isRtcp(void) {        
         return (packettype == RTCP_Sender_PT || 
             packettype == RTCP_Receiver_PT || 
             packettype == RTCP_PS_Feedback_PT||
             packettype == RTCP_RTP_Feedback_PT);
       }
-      inline int getLostPackets(){
-        return ntohl(lost);
+      inline uint16_t getLength() {
+        return ntohs(length);
       }
-      inline uint32_t getHighestSeqnum(){
-        return ntohl(highestseqnum);
+      inline uint32_t getSSRC(){
+        return ntohl(ssrc);
       }
-      inline uint32_t getJitter(){
-        return ntohl(jitter);
+      inline uint32_t getSourceSSRC(){
+        return ntohl(report.receiverReport.ssrcsource);
+      }
+      inline int getFractionLost() {
+        return ntohl(report.receiverReport.fractionlost);
+      }
+      inline int getLostPackets() {
+        return ntohl(report.receiverReport.lost);
+      }
+      inline uint32_t getHighestSeqnum() {
+        return ntohl(report.receiverReport.highestseqnum);
+      }
+      inline uint32_t getJitter() {
+        return ntohl(report.receiverReport.jitter);
+      }
+      inline uint32_t getPacketsSent(){
+        return ntohl(report.senderReport.packetsent);
+      }
+      inline uint32_t getOctetsSent(){
+        return ntohl(report.senderReport.octetssent);
       }
   };
 

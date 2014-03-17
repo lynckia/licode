@@ -200,9 +200,9 @@ namespace erizo {
   int WebRtcConnection::deliverFeedback(char* buf, int len){
     // Check where to send the feedback
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-    ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, ntohl(chead->ssrc), ntohl(chead->ssrcsource));
-    if (ntohl(chead->ssrcsource) == this->getAudioSourceSSRC()) {
-        writeSsrc(buf,len,this->getAudioSinkSSRC());      
+    ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, chead->getSSRC(), chead->getSourceSSRC());
+    if (chead->getSourceSSRC() == this->getAudioSourceSSRC()) {
+        writeSsrc(buf,len,this->getAudioSinkSSRC());
     } else {
         writeSsrc(buf,len,this->getVideoSinkSSRC());      
     }
@@ -237,13 +237,20 @@ namespace erizo {
     boost::mutex::scoped_lock lock(writeMutex_);
     int length = len;
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+    
+    // PROCESS STATS
     if (chead->packettype == RTCP_Receiver_PT){
-      thisStats_.setFragmentLost (chead->fractionlost);
+      thisStats_.setFragmentLost (chead->getFractionLost());
       thisStats_.setPacketsLost (chead->getLostPackets());
       thisStats_.setJitter (chead->getJitter());
       statsListener_->notifyStats(thisStats_.getString());
-    } 
-    
+    }else if (chead->packettype == RTCP_Sender_PT){
+      thisStats_.setRtcpPacketSent(chead->getPacketsSent());
+      thisStats_.setRtcpBytesSent(chead->getOctetsSent());
+      statsListener_->notifyStats(thisStats_.getString());
+    }
+   
+    // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
       if (fbSink_ != NULL) {
         fbSink_->deliverFeedback(buf,length);
@@ -251,11 +258,12 @@ namespace erizo {
     } else {
       // RTP or RTCP Sender Report
       if (bundle_) {
-
         // Check incoming SSRC
         RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
         RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-        unsigned int recvSSRC = ntohl(head->ssrc);
+//        unsigned int recvSSRC = ntohl(head->ssrc);
+        
+        unsigned int recvSSRC = head->getSSRC();
 
         if (chead->packettype == RTCP_Sender_PT) { //Sender Report
 //          ELOG_DEBUG ("RTP Sender Report %d length %d ", chead->packettype, ntohs(chead->length));

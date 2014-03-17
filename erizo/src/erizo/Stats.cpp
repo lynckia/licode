@@ -11,10 +11,14 @@ namespace erizo {
     std::ostringstream theString;
     theString << "{";
     for (std::map<std::string, unsigned int>::iterator it=theStats_.begin(); it!=theStats_.end(); ++it){
-      theString << "\"" << it->first << "\":\"" << it->second << "\",\n";
+      theString << "\"" << it->first << "\":\"" << it->second << "\"";
+      if (++it != theStats_.end()){
+        theString << ",\n";
+      }
+      --it;
     }
-    theString << "}";
+    theString << "\n}";
     return theString.str(); 
   }
-
 }
+
