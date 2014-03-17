@@ -239,7 +239,7 @@ namespace erizo {
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
     if (chead->packettype == RTCP_Receiver_PT){
       thisStats_.setFragmentLost (chead->fractionlost);
-      thisStats_.setPacketsLost (chead->getLost());
+      thisStats_.setPacketsLost (chead->getLostPackets());
       thisStats_.setJitter (chead->getJitter());
       statsListener_->notifyStats(thisStats_.getString());
     } 
@@ -275,11 +275,11 @@ namespace erizo {
           RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
           // Firefox does not send SSRC in SDP
           if (this->getAudioSourceSSRC() == 0) {
-            ELOG_DEBUG("Audio Source SSRC is %u", ntohl(head->ssrc));
-            this->setAudioSourceSSRC(ntohl(head->ssrc));
+            ELOG_DEBUG("Audio Source SSRC is %u", head->getSSRC());
+            this->setAudioSourceSSRC(head->getSSRC());
             //this->updateState(TRANSPORT_READY, transport);
           }
-          head->ssrc = htonl(this->getAudioSinkSSRC());
+          head->setSSRC(this->getAudioSinkSSRC());
           audioSink_->deliverAudioData(buf, length);
         }
       } else if (transport->mediaType == VIDEO_TYPE) {
@@ -287,12 +287,11 @@ namespace erizo {
           RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
           // Firefox does not send SSRC in SDP
           if (this->getVideoSourceSSRC() == 0) {
-            ELOG_DEBUG("Video Source SSRC is %u", ntohl(head->ssrc));
-            this->setVideoSourceSSRC(ntohl(head->ssrc));
+            ELOG_DEBUG("Video Source SSRC is %u", head->getSSRC());
+            this->setVideoSourceSSRC(head->getSSRC());
             //this->updateState(TRANSPORT_READY, transport);
           }
-
-          head->ssrc = htonl(this->getVideoSinkSSRC());
+          head->setSSRC(this->getVideoSinkSSRC());
           videoSink_->deliverVideoData(buf, length);
         }
       }
@@ -420,7 +419,6 @@ namespace erizo {
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
     if (sendQueue_.size() < 1000) {
       dataPacket p_;
-      memset(p_.data, 0, length);
       memcpy(p_.data, buf, length);
       p_.comp = comp;
       if (transport->mediaType == VIDEO_TYPE) {

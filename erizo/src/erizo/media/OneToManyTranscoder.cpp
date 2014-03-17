@@ -63,7 +63,6 @@ int OneToManyTranscoder::deliverAudioData(char* buf, int len) {
 
 	std::map<std::string, MediaSink*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
-		memset(sendAudioBuffer_, 0, len);
 		memcpy(sendAudioBuffer_, buf, len);
 		(*it).second->deliverAudioData(sendAudioBuffer_, len);
 	}
@@ -72,7 +71,6 @@ int OneToManyTranscoder::deliverAudioData(char* buf, int len) {
 }
 
 int OneToManyTranscoder::deliverVideoData(char* buf, int len) {
-	memset(sendVideoBuffer_, 0, len);
 	memcpy(sendVideoBuffer_, buf, len);
 
 	RtpHeader* theHead = reinterpret_cast<RtpHeader*>(buf);

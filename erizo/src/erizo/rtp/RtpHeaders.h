@@ -171,7 +171,7 @@ namespace erizo{
             packettype == RTCP_PS_Feedback_PT||
             packettype == RTCP_RTP_Feedback_PT);
       }
-      inline int getLost(){
+      inline int getLostPackets(){
         return ntohl(lost);
       }
       inline uint32_t getHighestSeqnum(){
