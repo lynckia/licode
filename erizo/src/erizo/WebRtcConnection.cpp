@@ -158,7 +158,7 @@ namespace erizo {
   }
 
   int WebRtcConnection::deliverVideoData(char* buf, int len) {
-    rtpheader *head = (rtpheader*) buf;
+    RtpHeader *head = reinterpret_cast<RtpHeader*>(buf);
     writeSsrc(buf, len, this->getVideoSinkSSRC());
     if (videoTransport_ != NULL) {
       if (videoEnabled_ == true) {
@@ -170,13 +170,13 @@ namespace erizo {
             totalLength += ntohs(head->extensionlength)*4 + 4; // RTP Extension header
           }
           int rtpHeaderLength = totalLength;
-          redheader *redhead = (redheader*) (buf + totalLength);
+          RedHeader *redhead = reinterpret_cast<RedHeader*> ((buf + totalLength));
 
           //redhead->payloadtype = remoteSdp_.inOutPTMap[redhead->payloadtype];
           if (!remoteSdp_.supportPayloadType(head->payloadtype)) {
             while (redhead->follow) {
               totalLength += redhead->getLength() + 4; // RED header
-              redhead = (redheader*) (buf + totalLength);
+              redhead = reinterpret_cast<RedHeader*> ((buf + totalLength));
             }
             // Parse RED packet to VP8 packet.
             // Copy RTP header
@@ -184,7 +184,7 @@ namespace erizo {
             // Copy payload data
             memcpy(deliverMediaBuffer_ + totalLength, buf + totalLength + 1, len - totalLength - 1);
             // Copy payload type
-            rtpheader *mediahead = (rtpheader*) deliverMediaBuffer_;
+            RtpHeader *mediahead = reinterpret_cast<RtpHeader*> (deliverMediaBuffer_);
             mediahead->payloadtype = redhead->payloadtype;
             buf = deliverMediaBuffer_;
             len = len - 1 - totalLength + rtpHeaderLength;
@@ -199,7 +199,7 @@ namespace erizo {
 
   int WebRtcConnection::deliverFeedback(char* buf, int len){
     // Check where to send the feedback
-    rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
+    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
     ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, ntohl(chead->ssrc), ntohl(chead->ssrcsource));
     if (ntohl(chead->ssrcsource) == this->getAudioSourceSSRC()) {
         writeSsrc(buf,len,this->getAudioSinkSSRC());      
@@ -221,8 +221,8 @@ namespace erizo {
   }
 
   void WebRtcConnection::writeSsrc(char* buf, int len, unsigned int ssrc) {
-    rtpheader *head = reinterpret_cast<rtpheader*> (buf);
-    rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
+    RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
+    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
     //if it is RTCP we check it it is a compound packet
     if (chead->isRtcp()) {
         processRtcpHeaders(buf,len,ssrc);
@@ -236,7 +236,7 @@ namespace erizo {
       return;
     boost::mutex::scoped_lock lock(writeMutex_);
     int length = len;
-    rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
+    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
     if (chead->packettype == RTCP_Receiver_PT){
       thisStats_.setFragmentLost (chead->fractionlost);
       thisStats_.setPacketsLost (chead->getLost());
@@ -244,7 +244,7 @@ namespace erizo {
       statsListener_->notifyStats(thisStats_.getString());
     } 
     
-    if (chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_PS_Feedback_PT || chead->packettype == RTCP_RTP_Feedback_PT){
+    if (chead->isFeedback()){
       if (fbSink_ != NULL) {
         fbSink_->deliverFeedback(buf,length);
       }
@@ -253,8 +253,8 @@ namespace erizo {
       if (bundle_) {
 
         // Check incoming SSRC
-        rtpheader *head = reinterpret_cast<rtpheader*> (buf);
-        rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
+        RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
+        RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
         unsigned int recvSSRC = ntohl(head->ssrc);
 
         if (chead->packettype == RTCP_Sender_PT) { //Sender Report
@@ -272,7 +272,7 @@ namespace erizo {
         }
       } else if (transport->mediaType == AUDIO_TYPE) {
         if (audioSink_ != NULL) {
-          rtpheader *head = (rtpheader*) buf;
+          RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
           // Firefox does not send SSRC in SDP
           if (this->getAudioSourceSSRC() == 0) {
             ELOG_DEBUG("Audio Source SSRC is %u", ntohl(head->ssrc));
@@ -284,7 +284,7 @@ namespace erizo {
         }
       } else if (transport->mediaType == VIDEO_TYPE) {
         if (videoSink_ != NULL) {
-          rtpheader *head = (rtpheader*) buf;
+          RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
           // Firefox does not send SSRC in SDP
           if (this->getVideoSourceSSRC() == 0) {
             ELOG_DEBUG("Video Source SSRC is %u", ntohl(head->ssrc));
@@ -443,15 +443,14 @@ namespace erizo {
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;
-    ELOG_DEBUG("RTCP PACKET");
     do{
       movingBuf+=rtcpLength;
-      rtcpheader *chead= reinterpret_cast<rtcpheader*>(movingBuf);
+      RtcpHeader *chead= reinterpret_cast<RtcpHeader*>(movingBuf);
       rtcpLength= (ntohs(chead->length)+1)*4;      
       totalLength+= rtcpLength;
       chead->ssrc=htonl(ssrc);
       if (chead->packettype == RTCP_PS_Feedback_PT){
-        firheader *thefir = reinterpret_cast<firheader*>(movingBuf);
+        FirHeader *thefir = reinterpret_cast<FirHeader*>(movingBuf);
         if (thefir->fmt == 4){ // It is a FIR Packet, we generate it
           //ELOG_DEBUG("Feedback FIR packet, changed source %u sourcessrc to %u fmt %d", ssrc, sourcessrc, thefir->fmt);
           this->sendFirPacket();

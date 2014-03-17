@@ -36,8 +36,8 @@ namespace erizo {
     if (subscribers.empty() || len <= 0)
       return 0;
 
-    rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
-    if(head->packettype==RTCP_Receiver_PT || head->packettype==RTCP_PS_Feedback_PT|| head->packettype == RTCP_RTP_Feedback_PT){
+    RtcpHeader* head = reinterpret_cast<RtcpHeader*>(buf);
+    if(head->isFeedback()){
       ELOG_WARN("Receiving Feedback in wrong path: %d", head->packettype);
       if (feedbackSink_){
         head->ssrc = htonl(publisher->getVideoSourceSSRC());

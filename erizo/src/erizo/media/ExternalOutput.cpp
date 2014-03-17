@@ -116,13 +116,13 @@ namespace erizo {
       if (videoCodec_ == NULL) {
         return 0;
       }
-      rtpheader *head = (rtpheader*)buf;
+      RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
       //We dont need any other payload at this time
       if(head->payloadtype != PCMU_8000_PT){
         return 0;
       }
 
-      int ret = in->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
+      int ret = in->unpackageAudio(reinterpret_cast<unsigned char*> (buf), len,
           unpackagedAudioBuffer_);
       if (ret <= 0)
         return ret;
@@ -158,7 +158,7 @@ namespace erizo {
 
   int ExternalOutput::writeVideoData(char* buf, int len){
     if (in!=NULL){
-      rtpheader *head = (rtpheader*) buf;
+      RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
       if (head->payloadtype == RED_90000_PT) {
         int totalLength = 12;
 
@@ -166,13 +166,13 @@ namespace erizo {
           totalLength += ntohs(head->extensionlength)*4 + 4; // RTP Extension header
         }
         int rtpHeaderLength = totalLength;
-        redheader *redhead = (redheader*) (buf + totalLength);
+        RedHeader *redhead = reinterpret_cast<RedHeader*> ((buf + totalLength));
 
         //redhead->payloadtype = remoteSdp_.inOutPTMap[redhead->payloadtype];
         if (redhead->payloadtype == VP8_90000_PT) {
           while (redhead->follow) {
             totalLength += redhead->getLength() + 4; // RED header
-            redhead = (redheader*) (buf + totalLength);
+            redhead = reinterpret_cast<RedHeader*> ((buf + totalLength));
           }
           // Parse RED packet to VP8 packet.
           // Copy RTP header
@@ -180,14 +180,14 @@ namespace erizo {
           // Copy payload data
           memcpy(deliverMediaBuffer_ + totalLength, buf + totalLength + 1, len - totalLength - 1);
           // Copy payload type
-          rtpheader *mediahead = (rtpheader*) deliverMediaBuffer_;
+          RtpHeader *mediahead = reinterpret_cast<RtpHeader*> (deliverMediaBuffer_);
           mediahead->payloadtype = redhead->payloadtype;
-          buf = reinterpret_cast<char*>(deliverMediaBuffer_);
+          buf = reinterpret_cast<char*> (deliverMediaBuffer_);
           len = len - 1 - totalLength + rtpHeaderLength;
         }
       }
       int estimatedFps=0;
-      int ret = in->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
+      int ret = in->unpackageVideo(reinterpret_cast<unsigned char*> (buf), len,
           unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
 
       if (ret < 0)
@@ -246,7 +246,7 @@ namespace erizo {
   }
 
   int ExternalOutput::deliverAudioData(char* buf, int len) {
-    rtcpheader *head = reinterpret_cast<rtcpheader*>(buf);
+    RtcpHeader *head = reinterpret_cast<RtcpHeader*> (buf);
     if (head->isRtcp()){
       return 0;
     }
@@ -255,7 +255,7 @@ namespace erizo {
   }
 
   int ExternalOutput::deliverVideoData(char* buf, int len) {
-    rtcpheader *head = reinterpret_cast<rtcpheader*>(buf);
+    RtcpHeader *head = reinterpret_cast<RtcpHeader*> (buf);
     if (head->isRtcp()){
       return 0;
     }

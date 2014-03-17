@@ -2,7 +2,7 @@
 
 #include "MediaProcessor.h"
 #include "rtp/RtpVP8Fragmenter.h"
-#include "rtp/RtpHeader.h"
+#include "../rtputils.h"
 #include "codecs/VideoCodec.h"
 
 namespace erizo {
@@ -241,19 +241,19 @@ namespace erizo {
   int InputProcessor::unpackageAudio(unsigned char* inBuff, int inBuffLen,
       unsigned char* outBuff) {
 
-    RTPHeader* head = reinterpret_cast<RTPHeader*>(inBuff);
+    RtpHeader* head = reinterpret_cast<RtpHeader*>(inBuff);
     if (head->getPayloadType()!=0){
       ELOG_DEBUG("PT AUDIO %d", head->getPayloadType());
       //      return -1;
     }
 
     //    ELOG_DEBUG("Audio Timestamp %u", head->getTimestamp());
-    int l = inBuffLen - RTPHeader::MIN_SIZE;
+    int l = inBuffLen - RtpHeader::MIN_SIZE;
     if (l<0){
       ELOG_ERROR ("Error unpackaging audio");
       return 0;
     }
-    memcpy(outBuff, &inBuff[RTPHeader::MIN_SIZE], l);
+    memcpy(outBuff, &inBuff[RtpHeader::MIN_SIZE], l);
 
     return l;
   }
@@ -268,7 +268,7 @@ namespace erizo {
 
     int inBuffOffset = 0;
     *gotFrame = 0;
-    RTPHeader* head = reinterpret_cast<RTPHeader*>(inBuff);
+    RtpHeader* head = reinterpret_cast<RtpHeader*>(inBuff);
 
 
     //head->getMarker());
@@ -467,7 +467,7 @@ namespace erizo {
     gettimeofday(&time, NULL);
     long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
 
-    RTPHeader head;
+    RtpHeader head;
     head.setSeqNumber(seqnum_++);
     head.setTimestamp(millis*8);
     head.setSSRC(55543);
@@ -500,7 +500,7 @@ namespace erizo {
     do {
       outlen = 0;
       frag.getPacket(outBuff, &outlen, &lastFrame);
-      RTPHeader rtpHeader;
+      RtpHeader rtpHeader;
       rtpHeader.setMarker(lastFrame?1:0);
       rtpHeader.setSeqNumber(seqnum_++);
       rtpHeader.setTimestamp(millis*90);

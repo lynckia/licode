@@ -2,7 +2,7 @@
 
 #include "RtpPacketQueue.h"
 #include "../../MediaDefinitions.h"
-#include "RtpHeader.h"
+#include "../../rtputils.h"
 
 
 namespace erizo{
@@ -22,7 +22,7 @@ namespace erizo{
   void RtpPacketQueue::pushPacket(const char *data, int length)
   {
 
-    const RTPHeader *header = reinterpret_cast<const RTPHeader*>(data);
+    const RtpHeader *header = reinterpret_cast<const RtpHeader*>(data);
     uint16_t nseq = header->getSeqNumber();
     uint32_t ts = header->getTimestamp();
 
@@ -100,7 +100,7 @@ namespace erizo{
     if (packet.get() == NULL){
       return packet;
     }
-    const RTPHeader *header = reinterpret_cast<const RTPHeader*>(packet->data);
+    const RtpHeader *header = reinterpret_cast<const RtpHeader*>(packet->data);
     lastNseq_ = queue_.begin()->first;
     lastTs_ = header->getTimestamp();
     queue_.erase(queue_.begin());

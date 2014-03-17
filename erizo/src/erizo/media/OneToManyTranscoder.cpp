@@ -5,7 +5,7 @@
 #include "OneToManyTranscoder.h"
 #include "../WebRtcConnection.h"
 #include "../RTPSink.h"
-#include "rtp/RtpHeader.h"
+#include "../rtputils.h"
 
 namespace erizo {
 DEFINE_LOGGER(OneToManyTranscoder, "media.OneToManyTranscoder");
@@ -75,7 +75,7 @@ int OneToManyTranscoder::deliverVideoData(char* buf, int len) {
 	memset(sendVideoBuffer_, 0, len);
 	memcpy(sendVideoBuffer_, buf, len);
 
-	RTPHeader* theHead = reinterpret_cast<RTPHeader*>(buf);
+	RtpHeader* theHead = reinterpret_cast<RtpHeader*>(buf);
 //	ELOG_DEBUG("extension %d pt %u", theHead->getExtension(),
 //			theHead->getPayloadType());
 
