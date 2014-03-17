@@ -182,7 +182,6 @@ void WebRtcConnection::eventsCallback(uv_async_t *handle, int status){
 
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
-  printf("WebRTC Update received %d\n", obj->message);
   Local<Value> args[] = {Integer::New(obj->message)};
   obj->eventCallback_->Call(Context::GetCurrent()->Global(), 1, args);
 }
@@ -191,7 +190,6 @@ void WebRtcConnection::statsCallback(uv_async_t *handle, int status){
 
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
-  printf("WebRTC Stats received %s\n", obj->statsMsg.c_str());
 
   Local<Value> args[] = {String::NewSymbol(obj->statsMsg.c_str())};
   if (obj->hasCallback_) 

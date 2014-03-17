@@ -18,12 +18,13 @@ namespace erizo{
         theStats_["fragmentLost"]=0;
         theStats_["rtcpPacketCount"]=0;
         theStats_["rtcpBytesCount"]=0;
+        theStats_["jitter"]=0;
       };
-      unsigned int getPacketsLost(){
-        return theStats_["packetsLost"];
+      int getPacketsLost(){
+        return static_cast<int>(theStats_["packetsLost"]);
       };
-      void setPacketsLost(unsigned int packets){
-        theStats_["packetsLost"] = packets;
+      void setPacketsLost(int packets){
+        theStats_["packetsLost"] = static_cast<unsigned int>(packets);
       };
       
       unsigned int getFragmentLost(){
@@ -46,7 +47,13 @@ namespace erizo{
       void setRtcpBytesCount(unsigned int count){
         theStats_["rtcpBytesCount"] = count;
       };
-    
+      unsigned int getJitter(){
+        return theStats_["jitter"];
+      };
+      void setJitter(unsigned int count){
+        theStats_["jitter"] = count;
+      };
+
       std::string getString();
 
     private:

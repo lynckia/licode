@@ -201,7 +201,12 @@ namespace erizo{
     uint32_t length :16;
     uint32_t ssrc;
     uint32_t ssrcsource;
+    /* RECEIVER REPORT DATA*/
     uint32_t fractionlost:8;
+    int32_t lost:24;
+    uint32_t highestseqnum;
+    uint32_t jitter;
+    uint32_t lastSR;
     bool isRtcp(){        
       if (packettype == RTCP_Sender_PT || 
           packettype == RTCP_Receiver_PT || 
@@ -210,6 +215,15 @@ namespace erizo{
         return true;
       }
       return false;
+    }
+    int getLost(){
+      return ntohl(lost);
+    }
+    uint32_t getHighestSeqnum(){
+      return ntohl(highestseqnum);
+    }
+    uint32_t getJitter(){
+      return ntohl(jitter);
     }
   } rtcpheader;
 

@@ -239,8 +239,11 @@ namespace erizo {
     rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
     if (chead->packettype == RTCP_Receiver_PT){
       thisStats_.setFragmentLost (chead->fractionlost);
+      thisStats_.setPacketsLost (chead->getLost());
+      thisStats_.setJitter (chead->getJitter());
       statsListener_->notifyStats(thisStats_.getString());
-    }
+    } 
+    
     if (chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_PS_Feedback_PT || chead->packettype == RTCP_RTP_Feedback_PT){
       if (fbSink_ != NULL) {
         fbSink_->deliverFeedback(buf,length);
