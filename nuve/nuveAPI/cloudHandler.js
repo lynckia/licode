@@ -192,12 +192,12 @@ exports.getUsersInRoom = function (roomId, callback) {
     }
 
     var rpcID = erizoControllers[rooms[roomId]].rpcID;
-    rpc.callRpc(rpcID, 'getUsersInRoom', roomId, function (users) {
+    rpc.callRpc(rpcID, 'getUsersInRoom', roomId, {"callback": function (users) {
         if (users === 'timeout') {
             users = '?';
         }
         callback(users);
-    });
+    }});
 };
 
 exports.deleteRoom = function (roomId, callback) {
@@ -209,7 +209,7 @@ exports.deleteRoom = function (roomId, callback) {
     }
 
     var rpcID = erizoControllers[rooms[roomId]].rpcID;
-    rpc.callRpc(rpcID, 'deleteRoom', roomId, function (result) {
+    rpc.callRpc(rpcID, 'deleteRoom', roomId, {"callback": function (result) {
         callback(result);
-    });
+    }});
 };

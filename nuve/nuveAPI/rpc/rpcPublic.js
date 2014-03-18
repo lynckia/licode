@@ -15,7 +15,7 @@ exports.deleteToken = function (id, callback) {
     tokenRegistry.getToken(id, function (token) {
 
         if (token === undefined) {
-            callback('error');
+            callback('callback', 'error');
         } else {
 
             if (token.use !== undefined) {
@@ -29,7 +29,7 @@ exports.deleteToken = function (id, callback) {
                         serviceRegistry.updateService(service);
                         tokenRegistry.removeToken(id, function () {
                             console.log('TestToken expiration time. Deleting ', token._id, 'from room ', token.room, ' of service ', token.service);
-                            callback('error');
+                            callback('callback', 'error');
                         });
 
                     });
@@ -37,13 +37,13 @@ exports.deleteToken = function (id, callback) {
                     token.use += 1;
                     tokenRegistry.updateToken(token);
                     console.log('Using (', token.use, ') testToken ', token._id, 'for testRoom ', token.room, ' of service ', token.service);
-                    callback(token);
+                    callback('callback', token);
                 }
 
             } else {
                 tokenRegistry.removeToken(id, function () {
                     console.log('Consumed token ', token._id, 'from room ', token.room, ' of service ', token.service);
-                    callback(token);
+                    callback('callback', token);
                 });
             }
         }
@@ -52,22 +52,22 @@ exports.deleteToken = function (id, callback) {
 
 exports.addNewErizoController = function(msg, callback) {
     cloudHandler.addNewErizoController(msg, function (id) {
-        callback(id);   
+        callback('callback', id);   
     });
 }
 
 exports.keepAlive = function(id, callback) {
     cloudHandler.keepAlive(id, function(result) {
-        callback(result);
+        callback('callback', result);
     });
 }
 
 exports.setInfo = function(params, callback) {
     cloudHandler.setInfo(params);
-    callback();
+    callback('callback');
 }
 
 exports.killMe = function(ip, callback) {
     cloudHandler.killMe(ip);
-    callback();
+    callback('callback');
 }

@@ -42,9 +42,8 @@ exports.connect = function () {
                 q.bind('rpcExchange', 'nuve');
                 q.subscribe(function (message) {
 
-                    rpcPublic[message.method](message.args, function (result) {
-
-                        exc.publish(message.replyTo, {data: result, corrID: message.corrID});
+                    rpcPublic[message.method](message.args, function (type, result) {
+                        exc.publish(message.replyTo, {data: result, corrID: message.corrID, type: type});
                     });
 
                 });
@@ -60,7 +59,7 @@ exports.connect = function () {
 
                     if (map[message.corrID] !== undefined) {
 
-                        map[message.corrID].fn(message.data);
+                        map[message.corrID].fn[message.type](message.data);
                         clearTimeout(map[message.corrID].to);
                         delete map[message.corrID];
                     }
@@ -82,12 +81,12 @@ var callbackError = function (corrID) {
 /*
  * Calls remotely the 'method' function defined in rpcPublic of 'to'.
  */
-exports.callRpc = function (to, method, args, callback) {
+exports.callRpc = function (to, method, args, callbacks) {
     "use strict";
 
     corrID += 1;
     map[corrID] = {};
-    map[corrID].fn = callback;
+    map[corrID].fn = callbacks;
     map[corrID].to = setTimeout(callbackError, TIMEOUT, corrID);
 
     var send = {method: method, args: args, corrID: corrID, replyTo: clientQueue.name};

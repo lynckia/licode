@@ -3,21 +3,21 @@ var erizoController = require('./../erizoController');
 /*
  * This function is called remotely from nuve to get a list of the users in a determined room.
  */
-exports.getUsersInRoom = function(id, callback) {
+exports.setPublisher = function(id, callback) {
 
     erizoController.getUsersInRoom(id, function(users) {
 
         //console.log('Users for room ', id, ' are ', users);
         if(users == undefined) {
-            callback("callback", 'error');
+            callback('error');
         } else {
-            callback("callback", users);
+            callback(users);
         }
     });
 }
 
-exports.deleteRoom = function(roomId, callback) {
+exports.addSubscriber = function(roomId, callback) {
     erizoController.deleteRoom(roomId, function(result) {
-        callback("callback", result);
+        callback(result);
     });
 }

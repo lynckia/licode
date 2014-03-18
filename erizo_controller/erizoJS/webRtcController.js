@@ -4,7 +4,7 @@ var addon = require('./../../erizoAPI/build/Release/addon');
 var config = require('./../../licode_config');
 var logger = require('./../common/logger').logger;
 
-exports.WebRtcController = function (spec) {
+exports.Room = function () {
     "use strict";
 
     var that = {},
@@ -18,29 +18,11 @@ exports.WebRtcController = function (spec) {
 
         INTERVAL_TIME_SDP = 100,
         INTERVAL_TIME_FIR = 100,
-        waitForFIR,
         initWebRtcConnection,
         getSdp,
         getRoap;
 
-
-    /*
-     * Given a WebRtcConnection waits for the state READY for ask it to send a FIR packet to its publisher. 
-     */
-    waitForFIR = function (wrtc, to) {
-
-        if (publishers[to] !== undefined) {
-            var intervarId = setInterval(function () {
-              if (publishers[to]!==undefined){
-                if (wrtc.getCurrentState() >= 103 && publishers[to].getPublisherState() >=103) {
-                    publishers[to].sendFIR();
-                    clearInterval(intervarId);
-                }
-              }
-
-            }, INTERVAL_TIME_FIR);
-        }
-    };
+    // PRIVATE FUNCTIONS
 
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP. 
@@ -112,6 +94,10 @@ exports.WebRtcController = function (spec) {
         return answer;
     };
 
+    // PUBLIC FUNCTIONS
+    /*
+     * Adds and external input to the room. Typically with an URL of type: "rtsp://host"
+     */
     that.addExternalInput = function (from, url, callback) {
 
         if (publishers[from] === undefined) {
@@ -141,6 +127,9 @@ exports.WebRtcController = function (spec) {
         }
     };
 
+    /*
+     * Adds and external output to the room. Typically a file to which it will record the publisher's stream.
+     */
     that.addExternalOutput = function (to, url) {
         if (publishers[to] !== undefined) {
             logger.info("Adding ExternalOutput to " + to + " url " + url);
@@ -152,6 +141,9 @@ exports.WebRtcController = function (spec) {
 
     };
 
+    /*
+     * Removes an external output.
+     */
     that.removeExternalOutput = function (to, url) {
       if (externalOutputs[url] !== undefined && publishers[to]!=undefined) {
         logger.info("Stopping ExternalOutput: url " + url);
