@@ -239,16 +239,7 @@ namespace erizo {
     
     // PROCESS STATS
     if (this->statsListener_){ // if there is no listener we dont process stats
-      if (chead->packettype == RTCP_Receiver_PT){
-        thisStats_.setFragmentLost (chead->getFractionLost());
-        thisStats_.setPacketsLost (chead->getLostPackets());
-        thisStats_.setJitter (chead->getJitter());
-        statsListener_->notifyStats(thisStats_.getString());
-      }else if (chead->packettype == RTCP_Sender_PT){
-        thisStats_.setRtcpPacketSent(chead->getPacketsSent());
-        thisStats_.setRtcpBytesSent(chead->getOctetsSent());
-        statsListener_->notifyStats(thisStats_.getString());
-      }
+      thisStats_.processRtcpStats(chead);
     }
    
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)

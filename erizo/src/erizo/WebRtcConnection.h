@@ -102,6 +102,7 @@ public:
   inline void setWebRtcConnectionStatsListener(
 			WebRtcConnectionStatsListener* listener){
     this->statsListener_ = listener;
+    this->thisStats_.setPeriodicStats(STATS_INTERVAL, listener);
   }
 	/**
 	 * Gets the current state of the Ice Connection
@@ -116,6 +117,7 @@ public:
 	void queueData(int comp, const char* data, int len, Transport *transport);
 
 private:
+  static const int STATS_INTERVAL = 5000;
 	SdpInfo remoteSdp_;
 	SdpInfo localSdp_;
 

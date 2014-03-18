@@ -7,19 +7,38 @@
 
 #include <string>
 #include <map>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread.hpp>
+
+#include "rtp/RtpHeaders.h"
 
 namespace erizo{
+
+  class WebRtcConnectionStatsListener;
 
   class Stats{
    
     public:
       Stats(unsigned long int ssrc=0):SSRC_(ssrc){
-        /* theStats_["packetsLost"]=0; */
-        /* theStats_["fragmentLost"]=0; */
-        /* theStats_["rtcpPacketSent"]=0; */
-        /* theStats_["rtcpBytesSent"]=0; */
-        /* theStats_["jitter"]=0; */
       };
+
+      virtual ~Stats();
+
+      void processRtcpStats(RtcpHeader* chead);
+      std::string getStats();
+      void setPeriodicStats(int intervalMillis, WebRtcConnectionStatsListener* listener);
+
+
+    private:
+      std::map <std::string, unsigned int> theStats_;
+      unsigned long int SSRC_;
+      unsigned int fragmentLostValues_;      
+      boost::mutex mapMutex_;
+      WebRtcConnectionStatsListener* theListener_;      
+	    boost::thread statsThread_;
+      int interval_;
+      bool runningStats_;
+
       int getPacketsLost(){
         return static_cast<int>(theStats_["packetsLost"]);
       };
@@ -30,8 +49,8 @@ namespace erizo{
       unsigned int getFragmentLost(){
         return theStats_["packetsLost"];
       };
-      void setFragmentLost(unsigned int fragment){
-        theStats_["fragmentLost"] = fragment;
+      void addFragmentLost(unsigned int fragment){
+        theStats_["fragmentLost"] += fragment;
       };
 
       unsigned int getRtcpPacketSent(){
@@ -54,11 +73,7 @@ namespace erizo{
         theStats_["jitter"] = count;
       };
 
-      std::string getString();
-
-    private:
-      std::map <std::string, unsigned int> theStats_;
-      unsigned long int SSRC_;
+      void sendStats();
   };
 
 }

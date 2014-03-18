@@ -3,11 +3,35 @@
  *
  */
 
-#include "Stats.h"
 #include <sstream>
+
+#include "Stats.h"
+#include "WebRtcConnection.h"
+
 namespace erizo {
- 
-  std::string Stats::getString(){
+
+
+  Stats::~Stats(){
+    if (runningStats_){
+      runningStats_ = false;
+      statsThread_.join();
+    }
+  }
+  
+  void Stats::processRtcpStats(RtcpHeader* chead) {    
+    boost::mutex::scoped_lock lock(mapMutex_);
+    if (chead->packettype == RTCP_Receiver_PT){
+      addFragmentLost (chead->getFractionLost());
+      setPacketsLost (chead->getLostPackets());
+      setJitter (chead->getJitter());
+    }else if (chead->packettype == RTCP_Sender_PT){
+      setRtcpPacketSent(chead->getPacketsSent());
+      setRtcpBytesSent(chead->getOctetsSent());
+    }
+  }
+  
+  std::string Stats::getStats() {    
+    boost::mutex::scoped_lock lock(mapMutex_);
     std::ostringstream theString;
     theString << "{";
     for (std::map<std::string, unsigned int>::iterator it=theStats_.begin(); it!=theStats_.end(); ++it){
@@ -18,7 +42,26 @@ namespace erizo {
       --it;
     }
     theString << "\n}";
+
+    std::map<std::string, unsigned int>::iterator search = theStats_.find("fragmentLost");
+    if (search != theStats_.end()) {
+      search->second = 0;
+    }
     return theString.str(); 
+  }
+
+  void Stats::setPeriodicStats(int intervalMillis, WebRtcConnectionStatsListener* listener) {
+    theListener_ = listener;
+    interval_ = intervalMillis*1000;
+    runningStats_ = true;
+    statsThread_ = boost::thread(&Stats::sendStats, this);
+  }
+
+  void Stats::sendStats(){
+    while(runningStats_){
+      theListener_->notifyStats(this->getStats());
+      usleep(interval_);
+    }
   }
 }
 
