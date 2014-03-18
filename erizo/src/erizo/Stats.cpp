@@ -54,16 +54,24 @@ namespace erizo {
 
   void Stats::setPeriodicStats(int intervalMillis, WebRtcConnectionStatsListener* listener) {
     theListener_ = listener;
-    interval_ = intervalMillis*1000;
-    runningStats_ = true;
-    ELOG_DEBUG("Starting periodic stats report with interval %d", intervalMillis);
-    statsThread_ = boost::thread(&Stats::sendStats, this);
+    iterationsPerTick_ = static_cast<int>((intervalMillis*1000)/SLEEP_INTERVAL_);
+    if (!runningStats_){
+      runningStats_ = true;
+      ELOG_DEBUG("Starting periodic stats report with interval %d, iterationsPerTick %d", intervalMillis, iterationsPerTick_);
+      statsThread_ = boost::thread(&Stats::sendStats, this);
+    }else{
+      ELOG_DEBUG("Stats already started, chaning listener and interval");
+    }
   }
 
-  void Stats::sendStats(){
-    while(runningStats_){
-      theListener_->notifyStats(this->getStats());
-      usleep(interval_);
+  void Stats::sendStats() {
+    while(runningStats_) {
+      if (++currentIterations_ == (iterationsPerTick_)){
+        theListener_->notifyStats(this->getStats());
+
+        currentIterations_ =0;
+      }
+      usleep(SLEEP_INTERVAL_);
     }
   }
 }

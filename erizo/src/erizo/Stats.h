@@ -32,12 +32,14 @@ namespace erizo{
 
     private:
     std::map <std::string, unsigned int> theStats_;
+    static const int SLEEP_INTERVAL_ = 100000;
     unsigned long int SSRC_;
     unsigned int fragmentLostValues_;      
     boost::mutex mapMutex_;
     WebRtcConnectionStatsListener* theListener_;      
     boost::thread statsThread_;
-    int interval_;
+    int iterationsPerTick_;
+    int currentIterations_;
     bool runningStats_;
 
     int getPacketsLost(){
