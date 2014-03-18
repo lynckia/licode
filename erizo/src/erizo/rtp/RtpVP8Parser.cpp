@@ -20,7 +20,7 @@
 
 namespace erizo {
 
-	DEFINE_LOGGER(RtpVP8Parser, "media.rtp.RtpVP8Parser");
+	DEFINE_LOGGER(RtpVP8Parser, "rtp.RtpVP8Parser");
 
 RtpVP8Parser::RtpVP8Parser() {
 }

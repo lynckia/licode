@@ -7,7 +7,7 @@
 
 namespace erizo{
 
-  DEFINE_LOGGER(RtpPacketQueue, "RtpPacketQueue");
+  DEFINE_LOGGER(RtpPacketQueue, "rtp.RtpPacketQueue");
 
   RtpPacketQueue::RtpPacketQueue()
     : lastNseq_(0), lastTs_(0)

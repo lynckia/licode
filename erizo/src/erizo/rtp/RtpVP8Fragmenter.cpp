@@ -6,7 +6,7 @@
 #define VP8 1
 namespace erizo {
 
-DEFINE_LOGGER(RtpVP8Fragmenter, "media.rtp.RtpVP8Fragmenter");
+DEFINE_LOGGER(RtpVP8Fragmenter, "rtp.RtpVP8Fragmenter");
 
 RtpVP8Fragmenter::RtpVP8Fragmenter(unsigned char* data, unsigned int length,
 		unsigned int maxLength) :

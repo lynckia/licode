@@ -10,11 +10,13 @@
 
 namespace erizo {
 
+  DEFINE_LOGGER(Stats, "Stats");
 
   Stats::~Stats(){
     if (runningStats_){
       runningStats_ = false;
       statsThread_.join();
+      ELOG_DEBUG("Stopped periodic stats report");
     }
   }
   
@@ -54,6 +56,7 @@ namespace erizo {
     theListener_ = listener;
     interval_ = intervalMillis*1000;
     runningStats_ = true;
+    ELOG_DEBUG("Starting periodic stats report with interval %d", intervalMillis);
     statsThread_ = boost::thread(&Stats::sendStats, this);
   }
 
