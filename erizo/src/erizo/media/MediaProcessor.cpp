@@ -347,6 +347,7 @@ namespace erizo {
     encodedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
     packagedBuffer_ = (unsigned char*) malloc(PACKAGED_BUFFER_SIZE);
     rtpBuffer_ = (unsigned char*) malloc(PACKAGED_BUFFER_SIZE);
+    rtpAudioBuffer_ = (unsigned char*) malloc(PACKAGED_BUFFER_SIZE);
     if(info.processorType == PACKAGE_ONLY){
       this->initVideoPackager();
       this->initAudioPackager();
@@ -395,6 +396,9 @@ namespace erizo {
     }
     if (rtpBuffer_!=NULL) {
       free(rtpBuffer_);
+    }
+    if (rtpAudioBuffer_!=NULL) {
+      free(rtpAudioBuffer_);
     }
   }
 
@@ -449,6 +453,7 @@ namespace erizo {
 
   bool OutputProcessor::initAudioPackager() {
     audioPackager = 1;
+    audioSeqnum_ = 0;
     return true;
   }
 
@@ -472,13 +477,17 @@ namespace erizo {
     long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
 
     RtpHeader head;
-    head.setSeqNumber(seqnum_++);
-    head.setTimestamp(millis*8);
-    head.setSSRC(55543);
+    head.setSeqNumber(audioSeqnum_++);
+//    head.setTimestamp(millis*8);
+    head.setMarker(1);
+    head.setTimestamp(audioSeqnum_*160);
+    head.setSSRC(44444);
     head.setPayloadType(0);
 
-    memcpy (rtpBuffer_, &head, head.getHeaderLength());
-    memcpy(&rtpBuffer_[head.getHeaderLength()], inBuff, inBuffLen);
+//    memcpy (rtpAudioBuffer_, &head, head.getHeaderLength());
+//    memcpy(&rtpAudioBuffer_[head.getHeaderLength()], inBuff, inBuffLen);
+    memcpy (outBuff, &head, head.getHeaderLength());
+    memcpy(&outBuff[head.getHeaderLength()], inBuff, inBuffLen);
     //			sink_->sendData(rtpBuffer_, l);
     //	rtpReceiver_->receiveRtpData(rtpBuffer_, (inBuffLen + RTP_HEADER_LEN));
     return (inBuffLen+head.getHeaderLength());

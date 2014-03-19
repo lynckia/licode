@@ -51,23 +51,35 @@ namespace erizo {
 
     //VideoCodecInfo info;
 
+    MediaInfo om;
+    AVStream *st, *audio_st;
+    
+    
     int streamNo = av_find_best_stream(context_, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
     if (streamNo < 0){
-      ELOG_ERROR("No Video stream found");
+      ELOG_WARN("No Video stream found");
       //return streamNo;
+    }else{
+      om.hasVideo = true;
+      video_stream_index_ = streamNo;
+      st = context_->streams[streamNo]; 
     }
 
     int audioStreamNo = av_find_best_stream(context_, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
     if (audioStreamNo < 0){
-      ELOG_ERROR("No Audio stream found");
+      ELOG_WARN("No Audio stream found");
       //return streamNo;
+    }else{
+      om.hasAudio = true;
+      audio_stream_index_ = audioStreamNo;
+      audio_st = context_->streams[audio_stream_index_];
+      ELOG_DEBUG(" HAS AUDIO, audio time base = %d / %d ", audio_st->time_base.num, audio_st->time_base.den);
+      audio_time_base_ = st->time_base.den;
     }
 
-    video_stream_index_ = streamNo;
-    AVStream* st = context_->streams[streamNo]; 
-
+    
     if (st->codec->codec_id==AV_CODEC_ID_VP8){
-      ELOG_DEBUG("No need for transcoding, already VP8");
+      ELOG_DEBUG("No need for video transcoding, already VP8");      
       video_time_base_ = st->time_base.den;
       needTranscoding_=false;
       decodedBuffer_.reset((unsigned char*) malloc(100000));
@@ -84,7 +96,6 @@ namespace erizo {
       decodedBuffer_.reset((unsigned char*) malloc(bufflen_));
 
 
-      MediaInfo om;
       om.processorType = RTP_ONLY;
       om.videoCodec.codec = VIDEO_CODEC_VP8;
       om.videoCodec.bitRate = 1000000;
@@ -135,9 +146,9 @@ namespace erizo {
     int length;
     float sleepTimeSecs;
     while(av_read_frame(context_,&avpacket_)>=0&& running_==true){//read 100 frames
-      if(avpacket_.stream_index == video_stream_index_){//packet is video               
-        //        packet.stream_index = stream->id;
-        if (needTranscoding_){
+      if (needTranscoding_){
+        if(avpacket_.stream_index == video_stream_index_){//packet is video               
+          //        packet.stream_index = stream->id;
           inCodec_.decodeVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get(), bufflen_, &gotDecodedFrame);
           RawDataPacket packetR;
           if (gotDecodedFrame){
@@ -149,15 +160,19 @@ namespace erizo {
             queueMutex_.unlock();
             gotDecodedFrame=0;
           }
-        }else{
-//          ELOG_DEBUG("Read packet from file %d , duration %d",avpacket_.size, avpacket_.duration);
-          length = op_->packageVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get());
-          if (length>0){
-            videoSink_->deliverVideoData(reinterpret_cast<char*>(decodedBuffer_.get()),length);
-          }
-            
+        }
+      }else{
+        if(avpacket_.stream_index == video_stream_index_){//packet is video               
+          op_->packageVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get());
           sleepTimeSecs = (((float)avpacket_.duration/video_time_base_));
           usleep(sleepTimeSecs*1000000);
+        }else{
+          if(avpacket_.stream_index == audio_stream_index_){//packet is audio
+          length = op_->packageAudio(avpacket_.data, avpacket_.size, decodedBuffer_.get());
+          if (length>0){
+            audioSink_->deliverAudioData(reinterpret_cast<char*>(decodedBuffer_.get()),length);
+          }
+          }
         }
       }
       av_free_packet(&avpacket_);

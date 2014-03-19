@@ -74,6 +74,12 @@ namespace erizo{
           // No implementation required
       }
 
+      inline uint8_t getVersion() const {
+        return version;
+      }
+      inline void setVersion(uint8_t aVersion) {
+        version = aVersion;
+      }
       inline uint8_t getMarker() const {
         return marker;
       }

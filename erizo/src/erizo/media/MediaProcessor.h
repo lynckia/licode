@@ -172,6 +172,7 @@ private:
 	int videoPackager;
 
 	unsigned int seqnum_;
+  unsigned int audioSeqnum_;
 
 	unsigned long timestamp_;
 
