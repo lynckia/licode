@@ -6,7 +6,7 @@ npm install --loglevel error amqp socket.io winston
 
 echo [erizo_controller] Done, node_modules installed
 
-cd ../erizoClient/tools
+cd ./erizoClient/tools
 
 ./compile.sh
 ./compilefc.sh

@@ -77,7 +77,11 @@ exports.RoomController = function (spec) {
             rpc.callRpc("ErizoJS_" + publisher_id, "addExternalOutput", args, undefined);
 
             // Track external outputs
-            externalOutputs[url] = externalOutput;
+            externalOutputs[url] = publisher_id;
+
+            // Track publisher locally
+            publishers[publisher_id] = publisher_id;
+            subscribers[publisher_id] = [];
         }
 
     };
