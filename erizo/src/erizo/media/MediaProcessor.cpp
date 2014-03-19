@@ -464,7 +464,7 @@ namespace erizo {
   }
 
   int OutputProcessor::packageAudio(unsigned char* inBuff, int inBuffLen,
-      unsigned char* outBuff) {
+      unsigned char* outBuff, long int pts) {
 
     if (audioPackager == 0) {
       ELOG_DEBUG("No se ha inicializado el codec de output audio RTP");
@@ -480,7 +480,11 @@ namespace erizo {
     head.setSeqNumber(audioSeqnum_++);
 //    head.setTimestamp(millis*8);
     head.setMarker(1);
-    head.setTimestamp(audioSeqnum_*160);
+    if (pts==0){
+      head.setTimestamp(audioSeqnum_*160);
+    }else{
+      head.setTimestamp(pts*8);
+    }
     head.setSSRC(44444);
     head.setPayloadType(0);
 
@@ -493,7 +497,8 @@ namespace erizo {
     return (inBuffLen+head.getHeaderLength());
   }
 
-  int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff) {
+  int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff, 
+      long int pts) {
     if (videoPackager == 0) {
       ELOG_DEBUG("No se ha inicailizado el codec de output vídeo RTP");
       return -1;
@@ -516,7 +521,11 @@ namespace erizo {
       RtpHeader rtpHeader;
       rtpHeader.setMarker(lastFrame?1:0);
       rtpHeader.setSeqNumber(seqnum_++);
-      rtpHeader.setTimestamp(millis*90);
+      if (pts==0){
+        rtpHeader.setTimestamp(millis*90);
+      }else{
+        rtpHeader.setTimestamp(pts*90);
+      }
       rtpHeader.setSSRC(55543);
       rtpHeader.setPayloadType(100);
       memcpy(rtpBuffer_, &rtpHeader, rtpHeader.getHeaderLength());

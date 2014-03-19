@@ -13,6 +13,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/mathematics.h>
 }
 
 namespace erizo{
@@ -45,6 +46,9 @@ namespace erizo{
       int video_stream_index_,video_time_base_;
       int audio_stream_index_, audio_time_base_;
       int bufflen_;
+
+      long int lastPts_,lastAudioPts_;
+      long int startTime_;
 
 
       void receiveLoop();

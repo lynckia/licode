@@ -20,7 +20,8 @@ namespace erizo {
     ELOG_DEBUG("Closing ExternalInput");
     running_ = false;
     thread_.join();
-    encodeThread_.join();
+    if (needTranscoding_)
+      encodeThread_.join();
     av_free_packet(&avpacket_);
     if (context_!=NULL)
       avformat_free_context(context_);
@@ -141,10 +142,18 @@ namespace erizo {
   }
 
   void ExternalInput::receiveLoop(){
+
+    /** RATE EMU
+             int64_t pts = av_rescale(ist->pts, 1000000, AV_TIME_BASE);
+>             int64_t now = av_gettime() - ist->start;
+>             if (pts > now)
+>                 usleep(pts - now);
+     */
     av_read_play(context_);//play RTSP
     int gotDecodedFrame = 0;
     int length;
     float sleepTimeSecs;
+    startTime_ = av_gettime();
     while(av_read_frame(context_,&avpacket_)>=0&& running_==true){//read 100 frames
       if (needTranscoding_){
         if(avpacket_.stream_index == video_stream_index_){//packet is video               
@@ -163,17 +172,27 @@ namespace erizo {
         }
       }else{
         if(avpacket_.stream_index == video_stream_index_){//packet is video               
-          op_->packageVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get());
-          sleepTimeSecs = (((float)avpacket_.duration/video_time_base_));
-          usleep(sleepTimeSecs*1000000);
-        }else{
-          if(avpacket_.stream_index == audio_stream_index_){//packet is audio
+          int64_t pts = av_rescale(lastPts_, 1000000, (long int)video_time_base_);
+          int64_t now = av_gettime() - startTime_;
+          if (pts > now)
+            av_usleep(pts - now);
+          lastPts_ = avpacket_.pts;
+          op_->packageVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get(), avpacket_.pts);
+        }else if(avpacket_.stream_index == audio_stream_index_){//packet is audio
+          
+          int64_t pts = av_rescale(lastAudioPts_, 1000000, (long int)audio_time_base_);
+          int64_t now = av_gettime() - startTime_;
+          if (pts > now)
+            av_usleep(pts - now);
+          lastAudioPts_ = avpacket_.pts;
+          
           length = op_->packageAudio(avpacket_.data, avpacket_.size, decodedBuffer_.get());
           if (length>0){
             audioSink_->deliverAudioData(reinterpret_cast<char*>(decodedBuffer_.get()),length);
           }
-          }
+
         }
+        
       }
       av_free_packet(&avpacket_);
       av_init_packet(&avpacket_);
