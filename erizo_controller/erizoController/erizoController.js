@@ -225,6 +225,24 @@ var listen = function () {
                                 room.p2p = true;
                             } else {
                                 room.controller = controller.RoomController({rpc: rpc});
+                                room.controller.addEventListener(function(type, event) {
+                                    // TODO Send message to room? Handle ErizoJS disconnection.
+                                    if (type === "unpublish") {
+                                        var streamId = event;
+                                        logger.info("ErizoJS stopped", streamId);
+                                        sendMsgToRoom(room, 'onRemoveStream', {id: streamId});
+                                        room.controller.removePublisher(streamId);
+
+                                        var index = socket.streams.indexOf(streamId);
+                                        if (index !== -1) {
+                                            socket.streams.splice(index, 1);
+                                        }
+                                        if (room.streams[streamId]) {
+                                            delete room.streams[streamId];
+                                        }
+                                    }
+                                    
+                                });
                             }
                             rooms[tokenDB.room] = room;
                             updateMyState();
@@ -288,14 +306,14 @@ var listen = function () {
         socket.on('publish', function (options, sdp, callback) {
             var id, st;
             if (!socket.user.permissions[Permission.PUBLISH]) {
-		callback('error', 'unauthorized');
+                callback('error', 'unauthorized');
                 return;
             }
             if (options.state === 'url') {
                 id = Math.random() * 1000000000000000000;
                 socket.room.controller.addExternalInput(id, sdp, function (result) {
                     if (result === 'success') {
-                        st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
+                        st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
                         socket.streams.push(id);
                         socket.room.streams[id] = st;
                         callback(result, id);
@@ -319,7 +337,7 @@ var listen = function () {
                     });
 
                 } else if (options.state === 'ok' && socket.state === 'waitingOk') {
-                    st = new ST.Stream({id: options.streamId, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
+                    st = new ST.Stream({id: options.streamId, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
                     socket.state = 'sleeping';
                     socket.streams.push(options.streamId);
                     socket.room.streams[options.streamId] = st;

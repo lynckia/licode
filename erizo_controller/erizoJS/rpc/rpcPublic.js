@@ -1,23 +1,16 @@
-var erizoController = require('./../erizoController');
+var roomController = require('./../roomController');
+var logger = require('./../../common/logger').logger;
 
 /*
- * This function is called remotely from nuve to get a list of the users in a determined room.
+ * This function is called remotely from Erizo Controller.
  */
-exports.setPublisher = function(id, callback) {
 
-    erizoController.getUsersInRoom(id, function(users) {
+// Here we extend RoomController API with functions to manage ErizoJS.
+var controller = roomController.RoomController();
 
-        //console.log('Users for room ', id, ' are ', users);
-        if(users == undefined) {
-            callback('error');
-        } else {
-            callback(users);
-        }
-    });
-}
+exports = controller;
 
-exports.addSubscriber = function(roomId, callback) {
-    erizoController.deleteRoom(roomId, function(result) {
-        callback(result);
-    });
-}
+exports.keepAlive = function(callback) {
+    logger.info("KeepAlive from ErizoController");
+    callback('callback', true);
+};

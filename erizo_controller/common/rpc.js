@@ -69,6 +69,7 @@ exports.bind = function(id, callback) {
 
 	  	q.bind('rpcExchange', id, callback);
   		q.subscribe(function (message) {
+  			message.args = message.args || [];
             message.args.push(function(type, result) {
                 exc.publish(message.replyTo, {data: result, corrID: message.corrID, type: type});
             });

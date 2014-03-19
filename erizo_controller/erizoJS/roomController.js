@@ -4,7 +4,8 @@ var addon = require('./../../erizoAPI/build/Release/addon');
 var config = require('./../../licode_config');
 var logger = require('./../common/logger').logger;
 
-exports.RoomController = function () {
+
+exports.RoomController = function (spec) {
     "use strict";
 
     var that = {},
@@ -18,28 +19,48 @@ exports.RoomController = function () {
 
         INTERVAL_TIME_SDP = 100,
         INTERVAL_TIME_FIR = 100,
+        INTERVAL_TIME_KILL = 30*60*1000, // Timeout to kill itself after a timeout since the publisher leaves room.
+        waitForFIR,
         initWebRtcConnection,
         getSdp,
         getRoap;
 
-    // PRIVATE FUNCTIONS
+
+    /*
+     * Given a WebRtcConnection waits for the state READY for ask it to send a FIR packet to its publisher. 
+     */
+    waitForFIR = function (wrtc, to) {
+
+        if (publishers[to] !== undefined) {
+            var intervarId = setInterval(function () {
+              if (publishers[to]!==undefined){
+                if (wrtc.getCurrentState() >= 103 && publishers[to].getPublisherState() >=103) {
+                    publishers[to].sendFIR();
+                    clearInterval(intervarId);
+                }
+              }
+
+            }, INTERVAL_TIME_FIR);
+        }
+    };
 
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP. 
      */
-    initWebRtcConnection = function (id, wrtc, sdp, callback) {
-        logger.info("Initializing WebRTCConnection");
+    initWebRtcConnection = function (wrtc, sdp, callback, id) {
+
         wrtc.init( function (newStatus){
           var localSdp, answer;
           logger.info("webrtc Addon status" + newStatus );
           if (newStatus === 102 && !sdpDelivered) {
             localSdp = wrtc.getLocalSdp();
             answer = getRoap(localSdp, roap);
-            callback("callback", answer);
+            callback('callback', answer);
             sdpDelivered = true;
+
           }
           if (newStatus === 103) {
-            callback("onReady");
+            callback('onReady');
           }
         });
 
@@ -91,21 +112,17 @@ exports.RoomController = function () {
         return answer;
     };
 
-    // PUBLIC FUNCTIONS
-    /*
-     * Adds and external input to the room. Typically with an URL of type: "rtsp://host"
-     */
-    that.addExternalInput = function (publisher_id, url, callback) {
+    that.addExternalInput = function (from, url, callback) {
 
-        if (publishers[publisher_id] === undefined) {
+        if (publishers[from] === undefined) {
 
-            logger.info("Adding external input peer_id ", publisher_id);
+            logger.info("Adding external input peer_id ", from);
 
             var muxer = new addon.OneToManyProcessor(),
                 ei = new addon.ExternalInput(url);
 
-            publishers[publisher_id] = muxer;
-            subscribers[publisher_id] = [];
+            publishers[from] = muxer;
+            subscribers[from] = [];
 
             ei.setAudioReceiver(muxer);
             ei.setVideoReceiver(muxer);
@@ -120,31 +137,25 @@ exports.RoomController = function () {
             }
 
         } else {
-            logger.info("Publisher already set for", publisher_id);
+            logger.info("Publisher already set for", from);
         }
     };
 
-    /*
-     * Adds and external output to the room. Typically a file to which it will record the publisher's stream.
-     */
-    that.addExternalOutput = function (publisher_id, url) {
-        if (publishers[publisher_id] !== undefined) {
-            logger.info("Adding ExternalOutput to " + publisher_id + " url " + url);
+    that.addExternalOutput = function (to, url) {
+        if (publishers[to] !== undefined) {
+            logger.info("Adding ExternalOutput to " + to + " url " + url);
             var externalOutput = new addon.ExternalOutput(url);
             externalOutput.init();
-            publishers[publisher_id].addExternalOutput(externalOutput, url);
+            publishers[to].addExternalOutput(externalOutput, url);
             externalOutputs[url] = externalOutput;
         }
 
     };
 
-    /*
-     * Removes an external output.
-     */
-    that.removeExternalOutput = function (publisher_id, url) {
-      if (externalOutputs[url] !== undefined && publishers[publisher_id]!=undefined) {
-        logger.info("Subscribing ExternalOutput: url " + url);
-        publishers[publisher_id].removeSubscriber(url);
+    that.removeExternalOutput = function (to, url) {
+      if (externalOutputs[url] !== undefined && publishers[to]!=undefined) {
+        logger.info("Stopping ExternalOutput: url " + url);
+        publishers[to].removeSubscriber(url);
         delete externalOutputs[url];
       }
     };
@@ -154,29 +165,29 @@ exports.RoomController = function () {
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
-    that.addPublisher = function (publisher_id, sdp, callback) {
+    that.addPublisher = function (from, sdp, callback) {
 
-        if (publishers[publisher_id] === undefined) {
+        if (publishers[from] === undefined) {
 
-            logger.info("Adding publisher peer_id ", publisher_id, " with sdp: ", sdp);
+            logger.info("Adding publisher peer_id ", from);
 
             var muxer = new addon.OneToManyProcessor(),
                 wrtc = new addon.WebRtcConnection(true, true, config.erizo.stunserver, config.erizo.stunport, config.erizo.minport, config.erizo.maxport);
 
-            publishers[publisher_id] = muxer;
-            subscribers[publisher_id] = [];
+            publishers[from] = muxer;
+            subscribers[from] = [];
 
             wrtc.setAudioReceiver(muxer);
             wrtc.setVideoReceiver(muxer);
             muxer.setPublisher(wrtc);
 
-            initWebRtcConnection(publisher_id, wrtc, sdp, callback);
+            initWebRtcConnection(wrtc, sdp, callback, from);
 
             //logger.info('Publishers: ', publishers);
             //logger.info('Subscribers: ', subscribers);
 
         } else {
-            logger.info("Publisher already set for", publisher_id);
+            logger.info("Publisher already set for", from);
         }
     };
 
@@ -185,23 +196,19 @@ exports.RoomController = function () {
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
      */
-    that.addSubscriber = function (subscriber_id, publisher_id, audio, video, sdp, callback) {
+    that.addSubscriber = function (from, to, audio, video, sdp, callback) {
 
-        if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1 && sdp.match('OFFER') !== null) {
+        if (publishers[to] !== undefined && subscribers[to].indexOf(from) === -1 && sdp.match('OFFER') !== null) {
 
-            logger.info("Adding subscriber ", subscriber_id, ' to ', publisher_id);
-
-            if (audio === undefined) audio = true;
-            if (video === undefined) video = true;
+            logger.info("Adding subscriber from ", from, 'to ', to, 'audio', audio, 'video', video);
 
             var wrtc = new addon.WebRtcConnection(audio, video, config.erizo.stunserver, config.erizo.stunport, config.erizo.minport, config.erizo.maxport);
 
-            subscribers[publisher_id].push(subscriber_id);
-            publishers[publisher_id].addSubscriber(wrtc, subscriber_id);
-            console.log(wrtc, publishers[publisher_id], subscriber_id);
+            subscribers[to].push(from);
+            publishers[to].addSubscriber(wrtc, from);
 
-            initWebRtcConnection(subscriber_id, wrtc, sdp, callback);
-//            waitForFIR(wrtc, publisher_id);
+            initWebRtcConnection(wrtc, sdp, callback, from);
+//            waitForFIR(wrtc, to);
 
             //logger.info('Publishers: ', publishers);
             //logger.info('Subscribers: ', subscribers);
@@ -211,18 +218,16 @@ exports.RoomController = function () {
     /*
      * Removes a publisher from the room. This also deletes the associated OneToManyProcessor.
      */
-    that.removePublisher = function (publisher_id) {
+    that.removePublisher = function (from) {
 
-        if (subscribers[publisher_id] !== undefined && publishers[publisher_id] !== undefined) {
-            logger.info('Removing muxer', publisher_id);
-            publishers[publisher_id].close();
-            logger.info('Removing subscribers', publisher_id);
-            delete subscribers[publisher_id];
-            logger.info('Removing publisher', publisher_id);
-            delete publishers[publisher_id];
-            logger.info('Removed all');
-
-            // We end this process.
+        if (subscribers[from] !== undefined && publishers[from] !== undefined) {
+            logger.info('Removing muxer', from);
+            publishers[from].close();
+            logger.info('Removing subscribers', from);
+            delete subscribers[from];
+            logger.info('Removing publisher', from);
+            delete publishers[from];
+            logger.info('Removed all. Killing process.');
             process.exit(0);
         }
     };
@@ -230,31 +235,31 @@ exports.RoomController = function () {
     /*
      * Removes a subscriber from the room. This also removes it from the associated OneToManyProcessor.
      */
-    that.removeSubscriber = function (subscriber_id, publisher_id) {
+    that.removeSubscriber = function (from, to) {
 
-        var index = subscribers[publisher_id].indexOf(subscriber_id);
+        var index = subscribers[to].indexOf(from);
         if (index !== -1) {
-            logger.info('Removing subscriber ', subscriber_id, 'to muxer ', publisher_id);
-            publishers[publisher_id].removeSubscriber(subscriber_id);
-            subscribers[publisher_id].splice(index, 1);
+            logger.info('Removing subscriber ', from, 'to muxer ', to);
+            publishers[to].removeSubscriber(from);
+            subscribers[to].splice(index, 1);
         }
     };
 
     /*
      * Removes all the subscribers related with a client.
      */
-    that.removeSubscriptions = function (subscriber_id) {
+    that.removeSubscriptions = function (from) {
 
-        var publisher_id, index;
+        var key, index;
 
-        logger.info('Removing subscriptions of ', subscriber_id);
-        for (publisher_id in subscribers) {
-            if (subscribers.hasOwnProperty(publisher_id)) {
-                index = subscribers[publisher_id].indexOf(subscriber_id);
+        logger.info('Removing subscriptions of ', from);
+        for (key in subscribers) {
+            if (subscribers.hasOwnProperty(key)) {
+                index = subscribers[key].indexOf(from);
                 if (index !== -1) {
-                    logger.info('Removing subscriber ', subscriber_id, 'to muxer ', publisher_id);
-                    publishers[publisher_id].removeSubscriber(subscriber_id);
-                    subscribers[publisher_id].splice(index, 1);
+                    logger.info('Removing subscriber ', from, 'to muxer ', key);
+                    publishers[key].removeSubscriber(from);
+                    subscribers[key].splice(index, 1);
                 }
             }
         }

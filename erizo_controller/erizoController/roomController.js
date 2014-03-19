@@ -18,10 +18,36 @@ exports.RoomController = function (spec) {
 
     var rpc = spec.rpc;
 
+    var KEELALIVE_INTERVAL = 5*1000;
+
+    var eventListeners = [];
+
+    var sendKeepAlive = function() {
+        for (var publisher_id in publishers) {
+            rpc.callRpc("ErizoJS_" + publisher_id, "keepAlive", [], {callback: function(ok) {
+                if (ok !== true) {
+                    dispatchEvent("unpublish", publisher_id);
+                }
+            }});
+        }
+    }
+
+    var keepAliveLoop = setInterval(sendKeepAlive, KEELALIVE_INTERVAL);
+
     var createErizoJS = function(publisher_id, callback) {
     	rpc.callRpc("ErizoAgent", "createErizoJS", [publisher_id], {callback: callback});
     };
 
+    var dispatchEvent = function(type, event) {
+        for (var event_id in eventListeners) {
+            eventListeners[event_id](type, event);    
+        }
+        
+    };
+
+    that.addEventListener = function(eventListener) {
+        eventListeners.push(eventListener);
+    };
 
     that.addExternalInput = function (publisher_id, url, callback) {
 
@@ -106,6 +132,9 @@ exports.RoomController = function (spec) {
         if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1 && sdp.match('OFFER') !== null) {
 
             logger.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id);
+
+            if (audio === undefined) audio = true;
+            if (video === undefined) video = true;
 
             var args = [subscriber_id, publisher_id, audio, video, sdp];
 

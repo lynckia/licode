@@ -19,27 +19,11 @@ var removeChild = function(id) {
 var api = {
     createErizoJS: function(id, callback) {
         console.log("Running process");
-        var erizoProcess = spawn('node', ['./../erizoJS/erizoJS.js', id, ' & ']);
-
-        erizoProcess.stdout.on('data', function (data) {
-            if (data + "" === "ErizoJS started") {
-                console.log("Everything ok", m);
-                callback('callback');
-            }
-            console.log('' + data);
-        });
-
-        erizoProcess.stderr.on('data', function (data) {
-            console.log('' + data);
-        });
-
-        erizoProcess.on('close', function (code) {
-          if (code !== 0) {
-            console.log('ErizoJS process ' + id + ' exited with code ' + code);
-          }
-        });
-
-        
+        var fs = require('fs');
+        var out = fs.openSync('./out.log', 'a');
+        var err = fs.openSync('./out.log', 'a');
+        var erizoProcess = spawn('node', ['./../erizoJS/erizoJS.js', id], { detached: true, stdio: [ 'ignore', out, err ] });
+        erizoProcess.unref();
     }
 };
 
