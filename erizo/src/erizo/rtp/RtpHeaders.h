@@ -68,6 +68,12 @@ namespace erizo{
       uint32_t extensionpayload:16;
       uint32_t extensionlength:16;
 
+      inline RtpHeader() :
+        cc(0), extension(0), padding(0), version(2), payloadtype(0), marker(
+            0), seqnum(0), timestamp(0), ssrc(0), extensionpayload(0), extensionlength(0) {
+          // No implementation required
+      }
+
       inline uint8_t getMarker() const {
         return marker;
       }
