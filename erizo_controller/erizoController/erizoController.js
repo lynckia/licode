@@ -216,6 +216,7 @@ var listen = function () {
                         tokenDB = resp;
                         if (rooms[tokenDB.room] === undefined) {
                             var room = {};
+
                             room.id = tokenDB.room;
                             room.sockets = [];
                             room.sockets.push(socket.id);
@@ -228,12 +229,13 @@ var listen = function () {
                                 room.controller.addEventListener(function(type, event) {
                                     // TODO Send message to room? Handle ErizoJS disconnection.
                                     if (type === "unpublish") {
-                                        var streamId = event;
+                                        var streamId = parseInt(event); // It's supposed to be an integer.
                                         logger.info("ErizoJS stopped", streamId);
                                         sendMsgToRoom(room, 'onRemoveStream', {id: streamId});
                                         room.controller.removePublisher(streamId);
 
                                         var index = socket.streams.indexOf(streamId);
+                                        console.log(socket.streams, streamId, index);
                                         if (index !== -1) {
                                             socket.streams.splice(index, 1);
                                         }
@@ -499,6 +501,8 @@ var listen = function () {
                 for (i in socket.streams) {
                     if (socket.streams.hasOwnProperty(i)) {
                         id = socket.streams[i];
+
+                        console.log(id);
 
                         if (socket.room.streams[id].hasAudio() || socket.room.streams[id].hasVideo() || socket.room.streams[id].hasScreen()) {
                             if (!socket.room.p2p) {
