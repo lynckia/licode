@@ -36,12 +36,14 @@ namespace erizo{
 
       std::string url_;
       bool running_;
+      bool needTranscoding_;
 	    boost::mutex queueMutex_;
       boost::thread thread_, encodeThread_;
       std::queue<RawDataPacket> packetQueue_;
       AVFormatContext* context_;
       AVPacket avpacket_;
       int video_stream_index_, bufflen_;
+      int video_time_base_;
 
 
       void receiveLoop();

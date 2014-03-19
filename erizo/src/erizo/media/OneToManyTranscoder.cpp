@@ -17,7 +17,7 @@ OneToManyTranscoder::OneToManyTranscoder() {
 	ip = new InputProcessor();
 	sink_ = new RTPSink("127.0.0.1", "50000");
 	MediaInfo m;
-	m.proccessorType = RTP_ONLY;
+	m.processorType = RTP_ONLY;
 //	m.videoCodec.bitRate = 2000000;
 //	ELOG_DEBUG("m.videoCodec.bitrate %d\n", m.videoCodec.bitRate);
 	m.hasVideo = true;
@@ -33,7 +33,7 @@ OneToManyTranscoder::OneToManyTranscoder() {
 	ip->init(m, this);
 
 	MediaInfo om;
-	om.proccessorType = RTP_ONLY;
+	om.processorType = RTP_ONLY;
 	om.videoCodec.bitRate = 2000000;
 	om.videoCodec.width = 640;
 	om.videoCodec.height = 480;

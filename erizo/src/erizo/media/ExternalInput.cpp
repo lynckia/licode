@@ -53,46 +53,66 @@ namespace erizo {
 
     int streamNo = av_find_best_stream(context_, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
     if (streamNo < 0){
-      ELOG_ERROR("No stream found");
-      return streamNo;
+      ELOG_ERROR("No Video stream found");
+      //return streamNo;
+    }
+
+    int audioStreamNo = av_find_best_stream(context_, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+    if (audioStreamNo < 0){
+      ELOG_ERROR("No Audio stream found");
+      //return streamNo;
     }
 
     video_stream_index_ = streamNo;
-    AVStream* st = context_->streams[streamNo];    
-    inCodec_.initDecoder(st->codec);
+    AVStream* st = context_->streams[streamNo]; 
+
+    if (st->codec->codec_id==AV_CODEC_ID_VP8){
+      ELOG_DEBUG("No need for transcoding, already VP8");
+      video_time_base_ = st->time_base.den;
+      needTranscoding_=false;
+      decodedBuffer_.reset((unsigned char*) malloc(100000));
+      MediaInfo om;
+      om.processorType = PACKAGE_ONLY;
+      op_.reset(new OutputProcessor());
+      op_->init(om,this);
+    }else{
+      needTranscoding_=true;
+      inCodec_.initDecoder(st->codec);
 
 
-    bufflen_ = st->codec->width*st->codec->height*3/2;
-    decodedBuffer_.reset((unsigned char*) malloc(bufflen_));
+      bufflen_ = st->codec->width*st->codec->height*3/2;
+      decodedBuffer_.reset((unsigned char*) malloc(bufflen_));
 
 
-    MediaInfo om;
-    om.proccessorType = RTP_ONLY;
-    om.videoCodec.codec = VIDEO_CODEC_VP8;
-    om.videoCodec.bitRate = 1000000;
-    om.videoCodec.width = 640;
-    om.videoCodec.height = 480;
-    om.videoCodec.frameRate = 20;
-    om.hasVideo = true;
+      MediaInfo om;
+      om.processorType = RTP_ONLY;
+      om.videoCodec.codec = VIDEO_CODEC_VP8;
+      om.videoCodec.bitRate = 1000000;
+      om.videoCodec.width = 640;
+      om.videoCodec.height = 480;
+      om.videoCodec.frameRate = 20;
+      om.hasVideo = true;
 
-    om.hasAudio = false;
-    if (om.hasAudio) {
-      om.audioCodec.sampleRate = 8000;
-      om.audioCodec.bitRate = 64000;
+      om.hasAudio = false;
+      if (om.hasAudio) {
+        om.audioCodec.sampleRate = 8000;
+        om.audioCodec.bitRate = 64000;
+      }
+
+      op_.reset(new OutputProcessor());
+      op_->init(om, this);
     }
 
-    op_.reset(new OutputProcessor());
-    op_->init(om, this);
-
-
-    ELOG_DEBUG("Success initializing external input for codec %s", st->codec->codec_name);
     av_init_packet(&avpacket_);
 
 //    AVStream* stream=NULL;
 
+    ELOG_DEBUG("Initializing external input for codec %s", st->codec->codec_name);
     thread_ = boost::thread(&ExternalInput::receiveLoop, this);
     running_ = true;
-    encodeThread_ = boost::thread(&ExternalInput::encodeLoop, this);
+    if (needTranscoding_)
+      encodeThread_ = boost::thread(&ExternalInput::encodeLoop, this);
+ 
     return true;
   }
 
@@ -112,19 +132,32 @@ namespace erizo {
   void ExternalInput::receiveLoop(){
     av_read_play(context_);//play RTSP
     int gotDecodedFrame = 0;
+    int length;
+    float sleepTimeSecs;
     while(av_read_frame(context_,&avpacket_)>=0&& running_==true){//read 100 frames
       if(avpacket_.stream_index == video_stream_index_){//packet is video               
         //        packet.stream_index = stream->id;
-        inCodec_.decodeVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get(), bufflen_, &gotDecodedFrame);
-        RawDataPacket packetR;
-        if (gotDecodedFrame){
-          packetR.data = decodedBuffer_.get();
-          packetR.length = bufflen_;
-          packetR.type = VIDEO;
-          queueMutex_.lock();
-          packetQueue_.push(packetR);
-          queueMutex_.unlock();
-          gotDecodedFrame=0;
+        if (needTranscoding_){
+          inCodec_.decodeVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get(), bufflen_, &gotDecodedFrame);
+          RawDataPacket packetR;
+          if (gotDecodedFrame){
+            packetR.data = decodedBuffer_.get();
+            packetR.length = bufflen_;
+            packetR.type = VIDEO;
+            queueMutex_.lock();
+            packetQueue_.push(packetR);
+            queueMutex_.unlock();
+            gotDecodedFrame=0;
+          }
+        }else{
+//          ELOG_DEBUG("Read packet from file %d , duration %d",avpacket_.size, avpacket_.duration);
+          length = op_->packageVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get());
+          if (length>0){
+            videoSink_->deliverVideoData(reinterpret_cast<char*>(decodedBuffer_.get()),length);
+          }
+            
+          sleepTimeSecs = (((float)avpacket_.duration/video_time_base_));
+          usleep(sleepTimeSecs*1000000);
         }
       }
       av_free_packet(&avpacket_);

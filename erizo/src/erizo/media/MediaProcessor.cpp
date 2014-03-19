@@ -347,7 +347,11 @@ namespace erizo {
     encodedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
     packagedBuffer_ = (unsigned char*) malloc(PACKAGED_BUFFER_SIZE);
     rtpBuffer_ = (unsigned char*) malloc(PACKAGED_BUFFER_SIZE);
-
+    if(info.processorType == PACKAGE_ONLY){
+      this->initVideoPackager();
+      this->initAudioPackager();
+      return 0;
+    }
     if (mediaInfo.hasVideo) {
       this->mediaInfo.videoCodec.codec = VIDEO_CODEC_VP8;
       if (vCoder.initEncoder(mediaInfo.videoCodec)) {

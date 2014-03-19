@@ -35,7 +35,6 @@ namespace erizo {
   int OneToManyProcessor::deliverVideoData(char* buf, int len) {
     if (subscribers.empty() || len <= 0)
       return 0;
-
     RtcpHeader* head = reinterpret_cast<RtcpHeader*>(buf);
     if(head->isFeedback()){
       ELOG_WARN("Receiving Feedback in wrong path: %d", head->packettype);
