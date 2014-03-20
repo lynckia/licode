@@ -13,6 +13,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/mathematics.h>
 }
 
 namespace erizo{
@@ -36,12 +37,18 @@ namespace erizo{
 
       std::string url_;
       bool running_;
+      bool needTranscoding_;
 	    boost::mutex queueMutex_;
       boost::thread thread_, encodeThread_;
       std::queue<RawDataPacket> packetQueue_;
       AVFormatContext* context_;
       AVPacket avpacket_;
-      int video_stream_index_, bufflen_;
+      int video_stream_index_,video_time_base_;
+      int audio_stream_index_, audio_time_base_;
+      int bufflen_;
+
+      long int lastPts_,lastAudioPts_;
+      long int startTime_;
 
 
       void receiveLoop();
