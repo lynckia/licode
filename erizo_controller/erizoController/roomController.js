@@ -55,6 +55,7 @@ exports.RoomController = function (spec) {
 
             logger.info("Adding external input peer_id ", publisher_id);
 
+            createErizoJS(publisher_id, function() {
             // then we call its addPublisher method.
 	        var args = [publisher_id, url];
 	        rpc.callRpc("ErizoJS_" + publisher_id, "addExternalInput", args, {callback: callback});
@@ -63,6 +64,7 @@ exports.RoomController = function (spec) {
             publishers[publisher_id] = publisher_id;
             subscribers[publisher_id] = [];
 
+            });
         } else {
             logger.info("Publisher already set for", publisher_id);
         }
@@ -72,7 +74,6 @@ exports.RoomController = function (spec) {
         if (publishers[publisher_id] !== undefined) {
             logger.info("Adding ExternalOutput to " + publisher_id + " url " + url);
 
-            createErizoJS(publisher_id, function() {
 
                 var args = [publisher_id, url];
 
@@ -84,7 +85,6 @@ exports.RoomController = function (spec) {
                 // Track publisher locally
                 publishers[publisher_id] = publisher_id;
                 subscribers[publisher_id] = [];
-            });
         }
 
     };
