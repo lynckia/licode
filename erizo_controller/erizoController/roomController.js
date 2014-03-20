@@ -72,16 +72,19 @@ exports.RoomController = function (spec) {
         if (publishers[publisher_id] !== undefined) {
             logger.info("Adding ExternalOutput to " + publisher_id + " url " + url);
 
-            var args = [publisher_id, url];
+            createErizoJS(publisher_id, function() {
 
-            rpc.callRpc("ErizoJS_" + publisher_id, "addExternalOutput", args, undefined);
+                var args = [publisher_id, url];
 
-            // Track external outputs
-            externalOutputs[url] = publisher_id;
+                rpc.callRpc("ErizoJS_" + publisher_id, "addExternalOutput", args, undefined);
 
-            // Track publisher locally
-            publishers[publisher_id] = publisher_id;
-            subscribers[publisher_id] = [];
+                // Track external outputs
+                externalOutputs[url] = publisher_id;
+
+                // Track publisher locally
+                publishers[publisher_id] = publisher_id;
+                subscribers[publisher_id] = [];
+            });
         }
 
     };
