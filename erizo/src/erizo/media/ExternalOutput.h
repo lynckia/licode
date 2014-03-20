@@ -37,6 +37,7 @@ namespace erizo{
       char* sendVideoBuffer_;
       std::string url;
       bool sending_;
+      bool hasVideo_;
 	    boost::mutex queueMutex_;
       boost::thread thread_;
     	boost::condition_variable cond_;

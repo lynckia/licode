@@ -21,6 +21,7 @@ namespace erizo {
     video_st = NULL;
     audio_st = NULL;
     audioCoder_ = NULL;
+    hasVideo_ = true;
     prevEstimatedFps_ = 0;
     warmupfpsCount_ = 0;
     sequenceNumberFIR_ = 0;
@@ -46,9 +47,6 @@ namespace erizo {
       ELOG_ERROR("Error opening output file %s", url.c_str());
       return false;
     }
-    context_->oformat = oformat_;
-    context_->oformat->video_codec = AV_CODEC_ID_VP8;
-    context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
     url.copy(context_->filename, sizeof(context_->filename),0);
     video_st = NULL;
     audio_st = NULL;
@@ -113,7 +111,14 @@ namespace erizo {
 
   int ExternalOutput::writeAudioData(char* buf, int len){
     if (in!=NULL){
-      if (videoCodec_ == NULL) {
+      if (audioCodec_ == NULL) {
+        if (warmupfpsCount_>=100){
+          hasVideo_ = false;
+          if (!this->initContext()){
+            ELOG_ERROR("Context cannot be initialized properly, closing...");
+            return -1;
+          }
+        }
         return 0;
       }
       RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
@@ -129,7 +134,7 @@ namespace erizo {
       timeval time;
       gettimeofday(&time, NULL);
       unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-      if (millis -lastTime_ >FIR_INTERVAL_MS){
+      if (millis -lastTime_ >FIR_INTERVAL_MS && (hasVideo_)){
         this->sendFirPacket();
         lastTime_ = millis;
       }
@@ -147,7 +152,8 @@ namespace erizo {
       avpkt.data = unpackagedAudioBuffer_;
       avpkt.size = ret;
       avpkt.pts = millis - initTime_;
-      avpkt.stream_index = 1;
+      avpkt.dts = avpkt.pts;
+      avpkt.stream_index = hasVideo_?1:0;
       av_write_frame(context_, &avpkt);
       av_free_packet(&avpkt);
       return ret;
@@ -197,11 +203,12 @@ namespace erizo {
         if ((estimatedFps!=0)&&((estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2)))){
           prevEstimatedFps_ = estimatedFps;
         }
-        if (warmupfpsCount_++ == 20){
+        if (warmupfpsCount_ >= 50){
           if (prevEstimatedFps_==0){
             warmupfpsCount_ = 0;
             return 0;
           }
+          hasVideo_=true;
           if (!this->initContext()){
             ELOG_ERROR("Context cannot be initialized properly, closing...");
             return -1;
@@ -247,6 +254,7 @@ namespace erizo {
 
   int ExternalOutput::deliverAudioData(char* buf, int len) {
     RtcpHeader *head = reinterpret_cast<RtcpHeader*> (buf);
+    warmupfpsCount_++;
     if (head->isRtcp()){
       return 0;
     }
@@ -256,6 +264,7 @@ namespace erizo {
 
   int ExternalOutput::deliverVideoData(char* buf, int len) {
     RtcpHeader *head = reinterpret_cast<RtcpHeader*> (buf);
+    warmupfpsCount_++;
     if (head->isRtcp()){
       return 0;
     }
@@ -266,28 +275,35 @@ namespace erizo {
 
   bool ExternalOutput::initContext() {
     ELOG_DEBUG("Init Context");
+    context_->oformat = oformat_;
+    if (hasVideo_){
+      context_->oformat->video_codec = AV_CODEC_ID_VP8;
+    }
+    context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
     if (oformat_->video_codec != AV_CODEC_ID_NONE && videoCodec_ == NULL) {
-      videoCodec_ = avcodec_find_encoder(oformat_->video_codec);
-      ELOG_DEBUG("Found Codec %s", videoCodec_->name);
-      ELOG_DEBUG("Initing context with fps: %d", (int)prevEstimatedFps_);
-      if (videoCodec_==NULL){
-        ELOG_ERROR("Could not find codec");
-        return false;
+      if (hasVideo_){
+        videoCodec_ = avcodec_find_encoder(oformat_->video_codec);
+        ELOG_DEBUG("Found Codec %s", videoCodec_->name);
+        ELOG_DEBUG("Initing context with fps: %d", (int)prevEstimatedFps_);
+        if (videoCodec_==NULL){
+          ELOG_ERROR("Could not find codec");
+          return false;
+        }
+        video_st = avformat_new_stream (context_, videoCodec_);
+        video_st->id = 0;
+        videoCodecCtx_ = video_st->codec;
+        videoCodecCtx_->codec_id = oformat_->video_codec;
+        videoCodecCtx_->width = 640;
+        videoCodecCtx_->height = 480;
+        videoCodecCtx_->time_base = (AVRational){1,(int)prevEstimatedFps_};
+        videoCodecCtx_->pix_fmt = PIX_FMT_YUV420P;
+        if (oformat_->flags & AVFMT_GLOBALHEADER){
+          videoCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
+        }
+        oformat_->flags |= AVFMT_VARIABLE_FPS;
       }
-      video_st = avformat_new_stream (context_, videoCodec_);
-      video_st->id = 0;
-      videoCodecCtx_ = video_st->codec;
-      videoCodecCtx_->codec_id = oformat_->video_codec;
-      videoCodecCtx_->width = 640;
-      videoCodecCtx_->height = 480;
-      videoCodecCtx_->time_base = (AVRational){1,(int)prevEstimatedFps_};
-      videoCodecCtx_->pix_fmt = PIX_FMT_YUV420P;
-      if (oformat_->flags & AVFMT_GLOBALHEADER){
-        videoCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
-      }
-      oformat_->flags |= AVFMT_VARIABLE_FPS;
       ELOG_DEBUG("Init audio context");
-
+      
       audioCodec_ = avcodec_find_encoder(oformat_->audio_codec);
       if (audioCodec_==NULL){
         ELOG_ERROR("Could not find audio codec");
@@ -304,9 +320,13 @@ namespace erizo {
       if (oformat_->flags & AVFMT_GLOBALHEADER){
         audioCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
       }
-
-      context_->streams[0] = video_st;
-      context_->streams[1] = audio_st;
+      if(hasVideo_){
+        context_->streams[0] = video_st;
+        context_->streams[1] = audio_st;
+      } else{
+        ELOG_ERROR("No Video");        
+        context_->streams[0] = audio_st;
+      }
       aviores_ = avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
       if (aviores_<0){
         ELOG_ERROR("Error opening output file");
@@ -354,18 +374,6 @@ namespace erizo {
   }
 
   void ExternalOutput::sendLoop() {
-    /* while (sending_ == true) { */
-    /*   queueMutex_.lock(); */
-    /*   if (packetQueue_.size() > 0) { */
-    /*     op_->receiveRawData(packetQueue_.front()); */
-    /*     packetQueue_.pop(); */
-    /*     queueMutex_.unlock(); */
-    /*   } else { */
-    /*     queueMutex_.unlock(); */
-    /*     usleep(1000); */
-    /*   } */
-    /* } */
-
     while (sending_ == true) {
       boost::unique_lock<boost::mutex> lock(queueMutex_);
       while ((!audioQueue_.getSize())&&(!videoQueue_.getSize())) {
@@ -384,14 +392,6 @@ namespace erizo {
         this->writeVideoData(videoP->data, videoP->length);
 
       }
-      /*
-      if (packetQueue_.front().type == VIDEO_PACKET) {
-        this->writeVideoData(packetQueue_.front().data, packetQueue_.front().length);
-      } else {
-        this->writeAudioData(packetQueue_.front().data, packetQueue_.front().length);
-      }
-*/
-      
       lock.unlock();
     }
   }
