@@ -8,11 +8,13 @@
 
 namespace erizo {
   DEFINE_LOGGER(ExternalInput, "media.ExternalInput");
-  ExternalInput::ExternalInput(const std::string& inputUrl){
+  ExternalInput::ExternalInput(const std::string& inputUrl):url_(inputUrl){
     sourcefbSink_=NULL;
     context_ = NULL;
     running_ = false;
-    url_ = inputUrl;
+    needTranscoding_ = false;
+    lastPts_ = 0;
+    lastAudioPts_=0;
   }
 
   ExternalInput::~ExternalInput(){
@@ -34,6 +36,8 @@ namespace erizo {
     avcodec_register_all();
     avformat_network_init();
     //open rtsp
+    av_init_packet(&avpacket_);
+    avpacket_.data = NULL;
     ELOG_DEBUG("Trying to open input from url %s", url_.c_str());
     int res = avformat_open_input(&context_, url_.c_str(),NULL,NULL);
     char errbuff[500];
@@ -143,21 +147,16 @@ namespace erizo {
 
   void ExternalInput::receiveLoop(){
 
-    /** RATE EMU
-             int64_t pts = av_rescale(ist->pts, 1000000, AV_TIME_BASE);
->             int64_t now = av_gettime() - ist->start;
->             if (pts > now)
->                 usleep(pts - now);
-     */
     av_read_play(context_);//play RTSP
     int gotDecodedFrame = 0;
     int length;
-    float sleepTimeSecs;
     startTime_ = av_gettime();
-    while(av_read_frame(context_,&avpacket_)>=0&& running_==true){//read 100 frames
+
+    ELOG_DEBUG("Start playing external output %s", url_.c_str() );
+    while(av_read_frame(context_,&avpacket_)>=0&& running_==true){
+      AVPacket orig_pkt = avpacket_;
       if (needTranscoding_){
         if(avpacket_.stream_index == video_stream_index_){//packet is video               
-          //        packet.stream_index = stream->id;
           inCodec_.decodeVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get(), bufflen_, &gotDecodedFrame);
           RawDataPacket packetR;
           if (gotDecodedFrame){
@@ -172,30 +171,29 @@ namespace erizo {
         }
       }else{
         if(avpacket_.stream_index == video_stream_index_){//packet is video               
+          // av_rescale(input, new_scale, old_scale)
           int64_t pts = av_rescale(lastPts_, 1000000, (long int)video_time_base_);
           int64_t now = av_gettime() - startTime_;
-          if (pts > now)
+          if (pts > now){
             av_usleep(pts - now);
+          }
           lastPts_ = avpacket_.pts;
           op_->packageVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get(), avpacket_.pts);
         }else if(avpacket_.stream_index == audio_stream_index_){//packet is audio
-          
+
           int64_t pts = av_rescale(lastAudioPts_, 1000000, (long int)audio_time_base_);
           int64_t now = av_gettime() - startTime_;
-          if (pts > now)
+          if (pts > now){
             av_usleep(pts - now);
+          }
           lastAudioPts_ = avpacket_.pts;
-          
-          length = op_->packageAudio(avpacket_.data, avpacket_.size, decodedBuffer_.get());
+          length = op_->packageAudio(avpacket_.data, avpacket_.size, decodedBuffer_.get(), avpacket_.pts);
           if (length>0){
             audioSink_->deliverAudioData(reinterpret_cast<char*>(decodedBuffer_.get()),length);
           }
-
         }
-        
       }
-      av_free_packet(&avpacket_);
-      av_init_packet(&avpacket_);
+      av_free_packet(&orig_pkt);
     }
     running_=false;
     av_read_pause(context_);

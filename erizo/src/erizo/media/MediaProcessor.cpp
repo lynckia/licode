@@ -5,6 +5,10 @@
 #include "../rtp/RtpHeaders.h"
 #include "codecs/VideoCodec.h"
 
+extern "C" {
+#include <libavutil/mathematics.h>
+}
+
 namespace erizo {
 
   DEFINE_LOGGER(InputProcessor, "media.InputProcessor");
@@ -481,9 +485,11 @@ namespace erizo {
 //    head.setTimestamp(millis*8);
     head.setMarker(1);
     if (pts==0){
-      head.setTimestamp(audioSeqnum_*160);
+//      head.setTimestamp(audioSeqnum_*160);
+      head.setTimestamp(av_rescale(audioSeqnum_, 8, 1));
     }else{
-      head.setTimestamp(pts*8);
+//      head.setTimestamp(pts*8);
+      head.setTimestamp(av_rescale(pts, 8000,1000));
     }
     head.setSSRC(44444);
     head.setPayloadType(0);
@@ -515,6 +521,7 @@ namespace erizo {
     long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
     //		timestamp_ += 90000 / mediaInfo.videoCodec.frameRate;
 
+          //int64_t pts = av_rescale(lastPts_, 1000000, (long int)video_time_base_);
     do {
       outlen = 0;
       frag.getPacket(outBuff, &outlen, &lastFrame);
@@ -522,9 +529,10 @@ namespace erizo {
       rtpHeader.setMarker(lastFrame?1:0);
       rtpHeader.setSeqNumber(seqnum_++);
       if (pts==0){
-        rtpHeader.setTimestamp(millis*90);
+          rtpHeader.setTimestamp(av_rescale(millis, 90000, 1000)); 
       }else{
-        rtpHeader.setTimestamp(pts*90);
+          rtpHeader.setTimestamp(av_rescale(pts, 90000, 1000)); 
+        
       }
       rtpHeader.setSSRC(55543);
       rtpHeader.setPayloadType(100);
