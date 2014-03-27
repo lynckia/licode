@@ -47,8 +47,8 @@ namespace erizo{
       int audio_stream_index_, audio_time_base_;
       int bufflen_;
 
-      long int lastPts_,lastAudioPts_;
-      long int startTime_;
+      int64_t lastPts_,lastAudioPts_;
+      int64_t startTime_;
 
 
       void receiveLoop();
