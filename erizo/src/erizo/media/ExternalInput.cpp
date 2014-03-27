@@ -73,17 +73,20 @@ namespace erizo {
     int audioStreamNo = av_find_best_stream(context_, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
     if (audioStreamNo < 0){
       ELOG_WARN("No Audio stream found");
+      ELOG_DEBUG("Has video, audio stream number %d. time base = %d / %d ", video_stream_index_, st->time_base.num, st->time_base.den);
       //return streamNo;
     }else{
       om.hasAudio = true;
       audio_stream_index_ = audioStreamNo;
       audio_st = context_->streams[audio_stream_index_];
-      ELOG_DEBUG(" HAS AUDIO, audio time base = %d / %d ", audio_st->time_base.num, audio_st->time_base.den);
-      audio_time_base_ = st->time_base.den;
+      ELOG_DEBUG("Has Audio, audio stream number %d. time base = %d / %d ", audio_stream_index_, audio_st->time_base.num, audio_st->time_base.den);
+      audio_time_base_ = audio_st->time_base.den;
+      if (!om.hasVideo)
+        st = audio_st;
     }
 
-    
-    if (st->codec->codec_id==AV_CODEC_ID_VP8){
+     
+    if (st->codec->codec_id==AV_CODEC_ID_VP8 || !om.hasVideo){
       ELOG_DEBUG("No need for video transcoding, already VP8");      
       video_time_base_ = st->time_base.den;
       needTranscoding_=false;
@@ -95,7 +98,6 @@ namespace erizo {
     }else{
       needTranscoding_=true;
       inCodec_.initDecoder(st->codec);
-
 
       bufflen_ = st->codec->width*st->codec->height*3/2;
       decodedBuffer_.reset((unsigned char*) malloc(bufflen_));
