@@ -21,6 +21,7 @@ namespace erizo{
     DECLARE_LOGGER();
     public:
     Stats(unsigned long int ssrc=0):SSRC_(ssrc){
+      currentIterations_ = 0;
     };
 
     virtual ~Stats();
