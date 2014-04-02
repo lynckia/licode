@@ -1,11 +1,11 @@
 /*global require, logger. setInterval, clearInterval, Buffer, exports*/
 var rpc = require('./../common/rpc');
-var controller = require('./roomController');
+var controller = require('./erizoJSController');
 var logger = require('./../common/logger').logger;
 
-var room = controller.RoomController();
+var ejsController = controller.ErizoJSController();
 
-room.keepAlive = function(callback) {
+ejsController.keepAlive = function(callback) {
     logger.info("KeepAlive from ErizoController");
     callback('callback', true);
 };
@@ -13,7 +13,7 @@ room.keepAlive = function(callback) {
 rpc.connect(function () {
     "use strict";
 
-    rpc.setPublicRPC(room);
+    rpc.setPublicRPC(ejsController);
 
     var rpcID = process.argv[2];
 

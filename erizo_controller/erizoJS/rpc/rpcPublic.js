@@ -1,4 +1,4 @@
-var roomController = require('./../roomController');
+var erizoJSController = require('./../erizoJSController');
 var logger = require('./../../common/logger').logger;
 
 /*
@@ -6,7 +6,7 @@ var logger = require('./../../common/logger').logger;
  */
 
 // Here we extend RoomController API with functions to manage ErizoJS.
-var controller = roomController.RoomController();
+var controller = erizoJSController.ErizoJSController();
 
 exports = controller;
 

@@ -10,3 +10,4 @@ scripts/libdeps/
 libdeps/
 extras/vagrant/.vagrant
 extras/vagrant/licode/
+erizo_controller/erizoAgent/out.log

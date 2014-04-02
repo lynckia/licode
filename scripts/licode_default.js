@@ -37,6 +37,9 @@ config.erizoController.warning_n_rooms = 15;
 config.erizoController.limit_n_rooms = 20;
 config.erizoController.interval_time_keepAlive = 1000;
 
+// If true, erizoController sends stats to rabbitMQ queue "stats_handler" 
+config.erizoController.sendStats = false; 
+
 //STUN server IP address and port to be used by the server.
 //if '' is used, the address is discovered locally
 config.erizo.stunserver = '';

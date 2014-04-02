@@ -265,6 +265,10 @@ var listen = function () {
 
                         logger.info('OK, Valid token');
 
+                        if (!tokenDB.p2p && config.erizoController.sendStats) {
+                            rpc.callRpc('stats_handler', 'event', {room: tokenDB.room, user: socket.id, type: 'connection'});
+                        }
+
                         for (index in socket.room.streams) {
                             if (socket.room.streams.hasOwnProperty(index)) {
                                 streamList.push(socket.room.streams[index].getPublicStream());
@@ -336,6 +340,9 @@ var listen = function () {
                         if (socket.room.streams[id] !== undefined) {
                             sendMsgToRoom(socket.room, 'onAddStream', socket.room.streams[id].getPublicStream());
                         }
+                        if (config.erizoController.sendStats) {
+                            rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'publish', stream: id});
+                        }
                     });
 
                 } else if (options.state === 'ok' && socket.state === 'waitingOk') {
@@ -386,9 +393,11 @@ var listen = function () {
                 } else {
                     socket.room.controller.addSubscriber(socket.id, options.streamId, options.audio, options.video, sdp, function (answer) {
                         answer = answer.replace(privateRegexp, publicIP);
-                        console.log("Added", answer);
                         callback(answer);
                     }, function() {
+                        if (config.erizoController.sendStats) {
+                            rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'publish', stream: options.streamId});
+                        }
                         logger.info("Subscriber added");
                     });
                 }
@@ -436,6 +445,9 @@ var listen = function () {
                 socket.state = 'sleeping';
                 if (!socket.room.p2p) {
                     socket.room.controller.removePublisher(streamId);
+                    if (config.erizoController.sendStats) {
+                        rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'unpublish', stream: streamId});
+                    }
                 }
             }
 
@@ -464,6 +476,9 @@ var listen = function () {
             if (socket.room.streams[to].hasAudio() || socket.room.streams[to].hasVideo() || socket.room.streams[to].hasScreen()) {
                 if (!socket.room.p2p) {
                     socket.room.controller.removeSubscriber(socket.id, to);
+                    if (config.erizoController.sendStats) {
+                        rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'unsubscribe', stream: to});
+                    }
                 };
             }
 
@@ -502,11 +517,12 @@ var listen = function () {
                     if (socket.streams.hasOwnProperty(i)) {
                         id = socket.streams[i];
 
-                        console.log(id);
-
                         if (socket.room.streams[id].hasAudio() || socket.room.streams[id].hasVideo() || socket.room.streams[id].hasScreen()) {
                             if (!socket.room.p2p) {
                                 socket.room.controller.removePublisher(id);
+                                if (config.erizoController.sendStats) {
+                                    rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'unpublish', stream: id});
+                                }
                             }
 
                         }
@@ -516,6 +532,10 @@ var listen = function () {
                         }
                     }
                 }
+            }
+
+            if (!socket.room.p2p && config.erizoController.sendStats) {
+                rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'disconnection'});
             }
 
             if (socket.room !== undefined && socket.room.sockets.length === 0) {

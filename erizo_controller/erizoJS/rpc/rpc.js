@@ -1,6 +1,5 @@
 var sys = require('util');
 var amqp = require('amqp');
-var room = require('../webRtcController');
 var config = require('./../../../licode_config');
 var logger = require('./../../common/logger').logger;
 
@@ -61,7 +60,7 @@ exports.bind = function(id, callback) {
 	  	q.bind('rpcExchange', id);
   		q.subscribe(function (message) {
 
-    		RoomController()[message.method](message.args, function(result) {
+    		ErizoJSController()[message.method](message.args, function(result) {
 
     			exc.publish(message.replyTo, {data: result, corrID: message.corrID});
     		});
