@@ -22,13 +22,17 @@ exports.RoomController = function (spec) {
 
     var eventListeners = [];
 
+    var callbackFor = function(publisher_id) {
+        return function(ok) {
+            if (ok !== true) {
+                dispatchEvent("unpublish", publisher_id);
+            }
+        }
+    }
+
     var sendKeepAlive = function() {
         for (var publisher_id in publishers) {
-            rpc.callRpc("ErizoJS_" + publisher_id, "keepAlive", [], {callback: function(ok) {
-                if (ok !== true) {
-                    dispatchEvent("unpublish", publisher_id);
-                }
-            }});
+            rpc.callRpc("ErizoJS_" + publisher_id, "keepAlive", [], {callback: callbackFor(publisher_id)});
         }
     }
 
