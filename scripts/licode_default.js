@@ -23,6 +23,11 @@ config.erizoController.maxVideoBW = 300;
 //Public erizoController IP for websockets (useful when behind NATs)
 //Use '' to automatically get IP from the interface
 config.erizoController.publicIP = '';
+//Use '' to use the public IP address instead of a hostname
+config.erizoController.hostname = '';
+config.erizoController.port = 8080;
+//Use true if clients communicate with erizoController over SSL
+config.erizoController.ssl = false;
 
 // Use the name of the inferface you want to bind to for websockets
 // config.erizoController.networkInterface = 'eth1'

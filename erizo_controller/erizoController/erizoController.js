@@ -105,7 +105,14 @@ var addToCloudHandler = function (callback) {
             return;
         }
 
-        rpc.callRpc('nuve', 'addNewErizoController', {cloudProvider: config.cloudProvider.name, ip: publicIP}, function (msg) {
+        var controller = {
+            cloudProvider: config.cloudProvider.name,
+            ip: publicIP,
+            hostname: config.erizoController.hostname,
+            port: config.erizoController.port,
+            ssl: config.erizoController.ssl
+        };
+        rpc.callRpc('nuve', 'addNewErizoController', controller, function (msg) {
 
             if (msg === 'timeout') {
                 logger.info('CloudHandler does not respond');
