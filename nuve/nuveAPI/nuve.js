@@ -15,6 +15,8 @@ var servicesResource = require('./resource/servicesResource');
 var serviceResource = require('./resource/serviceResource');
 var usersResource = require('./resource/usersResource');
 var userResource = require('./resource/userResource');
+var erizosResource = require('./resource/erizosResource');
+var erizoResource = require('./resource/erizoResource');
 
 app.use(express.static(__dirname + '/public'));
 app.use(express.bodyParser());
@@ -65,5 +67,9 @@ app.get('/rooms/:room/users', usersResource.getList);
 
 app.get('/rooms/:room/users/:user', userResource.getUser);
 app.delete('/rooms/:room/users/:user', userResource.deleteUser);
+
+app.get('/erizos', erizosResource.represent);
+
+app.get('/erizos/:erizo/stats', erizoResource.getStats);
 
 app.listen(3000);

@@ -1,6 +1,15 @@
 var erizoController = require('./../erizoController');
 
 /*
+ * This function is called remotely from nuve to get general statistics.
+ */
+exports.getStatistics = function(args, callback) {
+    erizoController.getStatistics(function (stats) {
+        callback(stats)
+    });
+}
+
+/*
  * This function is called remotely from nuve to get a list of the users in a determined room.
  */
 exports.getUsersInRoom = function(id, callback) {

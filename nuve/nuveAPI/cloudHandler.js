@@ -183,6 +183,42 @@ exports.getErizoControllerForRoom = function (roomId, callback) {
 
 };
 
+exports.getErizoControllers = function (callback) {
+    "use strict";
+
+    var controllers = [];
+    for (var id in erizoControllers) {
+        var controller = erizoControllers[id];
+
+        controllers.push({
+            id: id,
+            state: controller.state,
+            keepAlive: controller.keepAlive,
+            publicIP: controller.ip
+        });
+    }
+
+    callback(controllers);
+};
+
+exports.getStatsForErizoController = function (controllerId, callback) {
+    "use strict";
+
+    if (erizoControllers[controllerId] === undefined) {
+        callback({});
+        return;
+    }
+
+    var rpcId = erizoControllers[controllerId].rpcID;
+    rpc.callRpc(rpcId, 'getStatistics', undefined, function(stats) {
+        if (stats === 'timeout') {
+            stats = '?';
+        }
+        callback(stats);
+    });
+};
+
+
 exports.getUsersInRoom = function (roomId, callback) {
     "use strict";
 

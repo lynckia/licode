@@ -63,6 +63,14 @@ class Nuve:
         response = self.send('DELETE',  None, '/rooms/' + room + '/users/' + user, params)
         return response
 
+    def getErizos(self, params=None):
+        response = self.send('GET', None, '/erizos/', params)
+        return response
+
+    def getErizoStats(self, erizo, params=None):
+        response = self.send('GET', None, '/erizos/' + erizo + '/stats/', params)
+        return response
+
 
     def send(self, method, body, url, params=None, username="", role=""):
         if (params == None):
