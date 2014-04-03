@@ -103,6 +103,23 @@ Handle<Value> WebRtcConnection::setRemoteSdp(const Arguments& args) {
   return scope.Close(Boolean::New(r));
 }
 
+Handle<Value> WebRtcConnection::addRemoteCandidate(const Arguments& args) {
+  HandleScope scope;
+
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+  erizo::WebRtcConnection *me = obj->me;
+
+  String::Utf8Value param(args[0]->ToString());
+  std::string mid = std::string(*param);
+
+  String::Utf8Value param2(args[1]->ToString());
+  std::string sdp = std::string(*param2);
+
+  bool r = me->addRemoteCandidate(mid, sdp);
+
+  return scope.Close(Boolean::New(r));
+}
+
 Handle<Value> WebRtcConnection::getLocalSdp(const Arguments& args) {
   HandleScope scope;
 

@@ -143,6 +143,42 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
   }
 }
 
+void DtlsTransport::onCandidate(const CandidateInfo &candidate, NiceConnection *conn) {
+  std::string generation = " generation 0";
+  std::string hostType_str;
+  std::ostringstream sdp;
+  switch (candidate.hostType) {
+    case HOST:
+      hostType_str = "host";
+      break;
+    case SRFLX:
+      hostType_str = "srflx";
+      break;
+    case PRFLX:
+      hostType_str = "prflx";
+      break;
+    case RELAY:
+      hostType_str = "relay";
+      break;
+    default:
+      hostType_str = "host";
+      break;
+  }
+  sdp << "a=candidate:" << candidate.foundation << " " << candidate.componentId
+      << " " << candidate.netProtocol << " " << candidate.priority << " "
+      << candidate.hostAddress << " " << candidate.hostPort << " typ "
+      << hostType_str;
+  
+  if (candidate.hostType == SRFLX || candidate.hostType == RELAY) {
+    //raddr 192.168.0.12 rport 50483
+    sdp << " raddr " << candidate.rAddress << " rport " << candidate.rPort;
+  }
+  
+  sdp << generation  << endl;
+  
+  getTransportListener()->onCandidate(sdp.str(), this);
+}
+
 void DtlsTransport::write(char* data, int len) {
   boost::mutex::scoped_lock lock(writeMutex_);
   if (nice_==NULL)
@@ -260,22 +296,6 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
   ELOG_DEBUG( "Processing Local SDP in DTLS Transport" );
   localSdp_->isFingerprint = true;
   localSdp_->fingerprint = getMyFingerprint();
-  if (nice_->iceState >= NICE_CANDIDATES_GATHERED) {
-
-    boost::shared_ptr<std::vector<CandidateInfo> > cands = nice_->localCandidates;
-    ELOG_DEBUG( "Candidates: %lu", cands->size() );
-    for (unsigned int it = 0; it < cands->size(); it++) {
-      CandidateInfo cand = cands->at(it);
-      cand.isBundle = bundle_;
-      // TODO Check if bundle
-      localSdp_->addCandidate(cand);
-      if (cand.isBundle) {
-        ELOG_DEBUG("Adding bundle candidate! %d", cand.mediaType);
-        cand.mediaType = AUDIO_TYPE;
-        localSdp_->addCandidate(cand);
-      }
-    }
-  }
   ELOG_DEBUG( "Processed Local SDP in DTLS Transport" );
 }
 
