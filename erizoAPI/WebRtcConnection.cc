@@ -20,6 +20,7 @@ void WebRtcConnection::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("init"), FunctionTemplate::New(init)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setRemoteSdp"), FunctionTemplate::New(setRemoteSdp)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("addRemoteCandidate"), FunctionTemplate::New(addRemoteCandidate)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getLocalSdp"), FunctionTemplate::New(getLocalSdp)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setAudioReceiver"), FunctionTemplate::New(setAudioReceiver)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setVideoReceiver"), FunctionTemplate::New(setVideoReceiver)->GetFunction());
@@ -59,7 +60,8 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
   obj->Wrap(args.This());
   uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
   uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 
-  obj->message = 0;
+  obj->eventMsg = "";
+  obj->eventSt = 0;
   obj->statsMsg = "";
   return args.This();
 }
@@ -183,7 +185,8 @@ Handle<Value> WebRtcConnection::getStats(const v8::Arguments& args){
 }
 
 void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message) {
-  this->message=event;
+  this->eventSt = event; 
+  this->eventMsg = message;
   async_.data = this;
   uv_async_send (&async_);
 }
@@ -199,7 +202,34 @@ void WebRtcConnection::eventsCallback(uv_async_t *handle, int status){
 
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
-  Local<Value> args[] = {Integer::New(obj->message)};
+
+  std::stringstream out;
+  out << obj->eventSt;
+
+  if (obj->eventMsg == "") {
+    obj->eventMsg = "undefined";
+  }
+
+  std::map <std::string, std::string> object;
+  object["status"] = out.str();
+  object["message"] = obj->eventMsg;
+
+  std::ostringstream theString;
+  theString << "{";
+  for (std::map<std::string, std::string>::iterator it=object.begin(); it!=object.end(); ++it){
+    theString << "\"" << it->first << "\":\"" << it->second << "\"";
+    if (++it != object.end()){
+      theString << ",\n";
+    }
+    --it;
+  }
+  theString << "\n}";
+  
+
+  std::string st = "";
+  st.append(theString.str());
+  Local<Value> args[] = {String::NewSymbol(st.c_str())};
+  //{Integer::New(obj->eventSt), String::NewSymbol(obj->eventMsg.c_str())};
   obj->eventCallback_->Call(Context::GetCurrent()->Global(), 1, args);
 }
 

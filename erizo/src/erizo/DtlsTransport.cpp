@@ -276,7 +276,7 @@ std::string DtlsTransport::getMyFingerprint() {
 
 void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
   ELOG_DEBUG( "%s - New NICE state %d %d %d", transport_name.c_str(), state, mediaType, bundle_);
-  if (state == NICE_CANDIDATES_GATHERED && this->getTransportState() != TRANSPORT_STARTED) {
+  if (state == NICE_INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
     updateTransportState(TRANSPORT_STARTED);
   }
   if (state == NICE_READY) {

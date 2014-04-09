@@ -105,12 +105,25 @@ exports.RoomController = function (spec) {
       }
     };
 
+    that.processSignaling = function (streamId, peerId, msg) {
+        logger.info("Sending signaling mess to erizoJS of st ", streamId, ' of peer ', peerId);
+        if (publishers[streamId] !== undefined) {
+
+            logger.info("Sending signaling mess to erizoJS of st ", streamId, ' of peer ', peerId);
+
+            var args = [streamId, peerId, msg];
+
+            rpc.callRpc("ErizoJS_" + streamId, "processSignaling", args, {});
+
+        }
+    };
+
     /*
      * Adds a publisher to the room. This creates a new OneToManyProcessor
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
-    that.addPublisher = function (publisher_id, sdp, callback, onReady) {
+    that.addPublisher = function (publisher_id, callback) {
 
         if (publishers[publisher_id] === undefined) {
 
@@ -118,10 +131,13 @@ exports.RoomController = function (spec) {
 
             // We create a new ErizoJS with the publisher_id.
             createErizoJS(publisher_id, function() {
-            	console.log("Erizo created");
+            	
             	// then we call its addPublisher method.
-	            var args = [publisher_id, sdp];
-	            rpc.callRpc("ErizoJS_" + publisher_id, "addPublisher", args, {callback: callback, onReady: onReady});
+	            var args = [publisher_id];
+	            rpc.callRpc("ErizoJS_" + publisher_id, "addPublisher", args, {callback: function(msg) {
+                    console.log("Erizo started");
+                    callback(msg);
+                }});
 
 	            // Track publisher locally
 	            publishers[publisher_id] = publisher_id;
@@ -138,9 +154,9 @@ exports.RoomController = function (spec) {
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
      */
-    that.addSubscriber = function (subscriber_id, publisher_id, audio, video, sdp, callback, onReady) {
+    that.addSubscriber = function (subscriber_id, publisher_id, audio, video, callback) {
 
-        if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1 && sdp.match('OFFER') !== null) {
+        if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1) {
 
             logger.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id);
 
@@ -149,7 +165,7 @@ exports.RoomController = function (spec) {
 
             var args = [subscriber_id, publisher_id, audio, video, sdp];
 
-            rpc.callRpc("ErizoJS_" + publisher_id, "addSubscriber", args, {callback: callback, onReady: onReady});
+            rpc.callRpc("ErizoJS_" + publisher_id, "addSubscriber", args, {callback: callback});
 
             // Track subscriber locally
             subscribers[publisher_id].push(subscriber_id);

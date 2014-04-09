@@ -59,7 +59,7 @@ namespace erizo {
     send_Thread_.join();
     globalState_ = CONN_FINISHED;
     if (connEventListener_ != NULL){
-      connEventListener_->notifyEvent(globalState_);
+      connEventListener_->notifyEvent(globalState_, "");
       connEventListener_ = NULL;
     }
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
@@ -116,6 +116,7 @@ namespace erizo {
     // TODO Check type of transport.
     SdpInfo tempSdp;
     tempSdp.initWithSdp(sdp);
+
     if (mid == "audio" && !bundle_) {
       audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
     } else {
@@ -140,7 +141,7 @@ namespace erizo {
   std::string WebRtcConnection::getJSONCandidate(const std::string& mid, const std::string& sdp) {
     std::map <std::string, std::string> object;
     object["sdpMid"] = mid;
-    object["sdp"] = sdp;
+    object["candidate"] = sdp;
 
     std::ostringstream theString;
     theString << "{";
@@ -435,8 +436,13 @@ namespace erizo {
       return;
 
     globalState_ = temp;
-    if (connEventListener_ != NULL)
-      connEventListener_->notifyEvent(globalState_);
+    if (connEventListener_ != NULL) {
+      connEventListener_->notifyEvent(globalState_, "");
+      // if (globalState_ == CONN_SDP) {
+      //   std::string object = this->getLocalSdp();
+      //   connEventListener_->notifyEvent(CONN_SDP, object);
+      // }
+    }
   }
 
   void WebRtcConnection::queueData(int comp, const char* buf, int length, Transport *transport) {

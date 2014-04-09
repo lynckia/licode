@@ -18,7 +18,8 @@ class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventLi
   static void Init(v8::Handle<v8::Object> target);
 
   erizo::WebRtcConnection *me;
-  int message;
+  int eventSt;
+  std::string eventMsg;
   std::string statsMsg;
 
  private:

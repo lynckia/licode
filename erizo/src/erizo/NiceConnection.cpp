@@ -282,7 +282,7 @@ namespace erizo {
           nice_address_to_string(&cand->addr, address);
           nice_address_to_string(&cand->base_addr, baseAddress);
           if (strstr(address, ":") != NULL) {
-            ELOG_DEBUG("Ignoring IPV6 candidate %s", address);
+            //ELOG_DEBUG("Ignoring IPV6 candidate %s", address);
             continue;
           }
           //      ELOG_DEBUG("foundation %s", cand->foundation);

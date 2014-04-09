@@ -6,7 +6,6 @@ var logger = require('./../common/logger').logger;
 var ejsController = controller.ErizoJSController();
 
 ejsController.keepAlive = function(callback) {
-    logger.info("KeepAlive from ErizoController");
     callback('callback', true);
 };
 

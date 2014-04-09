@@ -23,7 +23,7 @@ class TransportListener;
  * WebRTC Events
  */
 enum WebRTCEvent {
-  CONN_INITIAL = 101, CONN_STARTED = 102, CONN_READY = 103, CONN_FINISHED = 104, CONN_CANDIDATE = 201,
+  CONN_INITIAL = 101, CONN_STARTED = 102, CONN_READY = 103, CONN_FINISHED = 104, CONN_CANDIDATE = 201, CONN_SDP = 202,
   CONN_FAILED = 500
 };
 
@@ -32,7 +32,7 @@ public:
     virtual ~WebRtcConnectionEventListener() {
     }
     ;
-    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message="")=0;
+    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message)=0;
 
 };
 

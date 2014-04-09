@@ -23,12 +23,12 @@ Erizo.Connection = function (spec) {
     } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] <= 33) {
         // Google Chrome Stable.
         L.Logger.debug("Stable!");
-        that = Erizo.ChromeStableStack(spec);
+        that = Erizo.ChromeJSEPStack(spec);
         that.browser = "chrome-stable";
     } else if (window.navigator.userAgent.toLowerCase().indexOf("chrome")>=0) {
         // Google Chrome Canary.
         L.Logger.debug("Canary!");
-        that = Erizo.ChromeCanaryStack(spec);
+        that = Erizo.ChromeJSEPStack(spec);
         that.browser = "chrome-canary";
     }  else if (window.navigator.appVersion.match(/Bowser\/([\w\W]*?)\./)[1] === "25") {
         // Bowser

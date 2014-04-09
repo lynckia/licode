@@ -308,6 +308,11 @@ var listen = function () {
             }
         });
 
+        socket.on('signaling_message', function (msg) {
+            socket.room.controller.processSignaling(msg.streamId, socket.id, msg.msg);
+        });
+
+
         //Gets 'publish' messages on the socket in order to add new stream to the room.
         socket.on('publish', function (options, sdp, callback) {
             var id, st;
@@ -315,8 +320,11 @@ var listen = function () {
                 callback('error', 'unauthorized');
                 return;
             }
+
+            id = Math.random() * 1000000000000000000;
+
             if (options.state === 'url') {
-                id = Math.random() * 1000000000000000000;
+                
                 socket.room.controller.addExternalInput(id, sdp, function (result) {
                     if (result === 'success') {
                         st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
@@ -328,41 +336,43 @@ var listen = function () {
                         callback(result);
                     }
                 });
-            } else if (options.state !== 'data' && !socket.room.p2p) {
-                if (options.state === 'offer' && socket.state === 'sleeping') {
-                    id = Math.random() * 1000000000000000000;
-                    socket.room.controller.addPublisher(id, sdp, function (answer) {
-                        socket.state = 'waitingOk';
-                        answer = answer.replace(privateRegexp, publicIP);
-                        callback(answer, id);
-                    }, function() {
-                        console.log("OnReady");
-                        if (socket.room.streams[id] !== undefined) {
-                            sendMsgToRoom(socket.room, 'onAddStream', socket.room.streams[id].getPublicStream());
-                        }
+            } else if (options.state === 'erizo') {
+                logger.info("New publisher");
+                
+                socket.room.controller.addPublisher(id, function (signMess) {
+
+                    if (signMess.type === 'initializing') {
+                        callback(undefined, id);
+                        st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
+                        socket.streams.push(id);
+                        socket.room.streams[id] = st;
+                        
+                        sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
+
                         if (config.erizoController.sendStats) {
                             rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'publish', stream: id});
                         }
-                    });
+                        return;
+                    }
 
-                } else if (options.state === 'ok' && socket.state === 'waitingOk') {
-                    st = new ST.Stream({id: options.streamId, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
-                    socket.state = 'sleeping';
-                    socket.streams.push(options.streamId);
-                    socket.room.streams[options.streamId] = st;
-                }
+                    if (signMess.type === 'candidate') {
+                        signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
+                    }
+
+                    console.log(';;;;;;;;;;;;;;; VOY ', signMess);
+                    socket.emit('signaling_message', {mess: signMess, streamId: id});
+                });
+
             } else if (options.state === 'p2pSignaling') {
                 io.sockets.socket(options.subsSocket).emit('onPublishP2P', {sdp: sdp, streamId: options.streamId}, function(answer) {
                     callback(answer);
                 });
             } else {
-                id = Math.random() * 1000000000000000000;
                 st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
                 socket.streams.push(id);
                 socket.room.streams[id] = st;
-                callback(undefined, id);
+                callback(id);
                 sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
-
             }
         });
 
@@ -391,15 +401,19 @@ var listen = function () {
                     });
 
                 } else {
-                    socket.room.controller.addSubscriber(socket.id, options.streamId, options.audio, options.video, sdp, function (answer) {
-                        answer = answer.replace(privateRegexp, publicIP);
-                        callback(answer);
-                    }, function() {
-                        if (config.erizoController.sendStats) {
-                            rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'publish', stream: options.streamId});
+                    socket.room.controller.addSubscriber(socket.id, options.streamId, options.audio, options.video, function (signMess) {
+                        // TODO: esta bien???
+                        if (signMess.type === 'candidate') {
+                            signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
                         }
-                        logger.info("Subscriber added");
+                        socket.emit('signaling_message', {mess: signMess, streamId: options.streamId});
                     });
+
+                    if (config.erizoController.sendStats) {
+                        rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'publish', stream: options.streamId});
+                    }
+                    logger.info("Subscriber added");
+                    callback('');
                 }
             } else {
                 callback(undefined);
