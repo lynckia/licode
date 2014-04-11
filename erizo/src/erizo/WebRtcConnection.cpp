@@ -71,7 +71,7 @@ namespace erizo {
   
   bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     ELOG_DEBUG("Set Remote SDP %s", sdp.c_str());
-    remoteSdp_.initWithSdp(sdp);
+    remoteSdp_.initWithSdp(sdp, "");
     //std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
     video_ = (remoteSdp_.videoSsrc==0?false:true);
     audio_ = (remoteSdp_.audioSsrc==0?false:true);
@@ -103,7 +103,7 @@ namespace erizo {
         if (remoteSdp_.hasVideo) {
           videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
         }
-        if (remoteSdp_.hasAudio) {
+        if (remoteSdp_.hasAudio && !bundle_) {
           audioTransport_ = new DtlsTransport(AUDIO_TYPE, "audio", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
         }
       }
@@ -115,8 +115,10 @@ namespace erizo {
   bool WebRtcConnection::addRemoteCandidate(const std::string &mid, const std::string &sdp) {
     // TODO Check type of transport.
     SdpInfo tempSdp;
-    tempSdp.initWithSdp(sdp);
-
+    std::string username, password;
+    remoteSdp_.getCredentials(&username, &password);
+    tempSdp.setCredentials(username, password);
+    tempSdp.initWithSdp(sdp, mid);
     if (mid == "audio" && !bundle_) {
       audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
     } else {
@@ -125,15 +127,12 @@ namespace erizo {
   }
 
   std::string WebRtcConnection::getLocalSdp() {
-    ELOG_DEBUG("Getting SDP");
     if (videoTransport_ != NULL) {
       videoTransport_->processLocalSdp(&localSdp_);
     }
-    ELOG_DEBUG("Video SDP done.");
     if (!bundle_ && audioTransport_ != NULL) {
       audioTransport_->processLocalSdp(&localSdp_);
     }
-    ELOG_DEBUG("Audio SDP done.");
     localSdp_.profile = remoteSdp_.profile;
     return localSdp_.getSdp();
   }
@@ -148,15 +147,16 @@ namespace erizo {
     for (std::map<std::string, std::string>::iterator it=object.begin(); it!=object.end(); ++it){
       theString << "\"" << it->first << "\":\"" << it->second << "\"";
       if (++it != object.end()){
-        theString << ",\n";
+        theString << ",";
       }
       --it;
     }
-    theString << "\n}";
+    theString << "}";
     return theString.str();
   }
 
   void WebRtcConnection::onCandidate(const std::string& sdp, Transport *transport) {
+    boost::mutex::scoped_lock lock(updateStateMutex_);
     if (connEventListener_ != NULL) {
       if (!bundle_) {
         std::string object = this->getJSONCandidate(transport->transport_name, sdp);
@@ -229,7 +229,7 @@ namespace erizo {
   int WebRtcConnection::deliverFeedback(char* buf, int len){
     // Check where to send the feedback
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-    ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, chead->getSSRC(), chead->getSourceSSRC());
+    //ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, chead->getSSRC(), chead->getSourceSSRC());
     if (chead->getSourceSSRC() == this->getAudioSourceSSRC()) {
         writeSsrc(buf,len,this->getAudioSinkSSRC());
     } else {
@@ -427,6 +427,8 @@ namespace erizo {
         (int)temp, 
         (int)globalState_);
     }
+
+    
     
     if (temp < 0) {
       return;
@@ -438,10 +440,14 @@ namespace erizo {
     globalState_ = temp;
     if (connEventListener_ != NULL) {
       connEventListener_->notifyEvent(globalState_, "");
-      // if (globalState_ == CONN_SDP) {
-      //   std::string object = this->getLocalSdp();
-      //   connEventListener_->notifyEvent(CONN_SDP, object);
-      // }
+    }
+
+    if (globalState_ == CONN_STARTED && connEventListener_ != NULL) {
+      ELOG_INFO("Getting SDP answer");
+      std::string object = this->getLocalSdp();
+      ELOG_INFO("Sending SDP answer");
+      connEventListener_->notifyEvent(CONN_SDP, object);
+      ELOG_INFO("Sent");
     }
   }
 

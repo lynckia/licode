@@ -37,8 +37,6 @@ namespace erizo {
     audioSsrc = 0;
     videoSsrc = 0;
 
-    ELOG_DEBUG("Generating internal RtpMap");
-
     RtpMap vp8;
     vp8.payloadType = VP8_90000_PT;
     vp8.encodingName = "VP8";
@@ -148,8 +146,8 @@ namespace erizo {
   SdpInfo::~SdpInfo() {
   }
 
-  bool SdpInfo::initWithSdp(const std::string& sdp) {
-    processSdp(sdp);
+  bool SdpInfo::initWithSdp(const std::string& sdp, const std::string& media) {
+    processSdp(sdp, media);
     return true;
   }
   void SdpInfo::addCandidate(const CandidateInfo& info) {
@@ -159,6 +157,16 @@ namespace erizo {
 
   void SdpInfo::addCrypto(const CryptoInfo& info) {
     cryptoVector_.push_back(info);
+  }
+
+  void SdpInfo::setCredentials(const std::string username, const std::string password) {
+    iceUsername_ = std::string(username);
+    icePassword_ = std::string(password);
+  }
+
+  void SdpInfo::getCredentials(std::string *username, std::string *password) {
+    *username = std::string(iceUsername_);
+    *password = std::string(icePassword_);
   }
 
   std::string SdpInfo::getSdp() {
@@ -175,73 +183,21 @@ namespace erizo {
       sdp << "a=msid-semantic: WMS "<< msidtemp << endl;
      }
     //candidates audio
-    bool printedAudio = false, printedVideo = false;
+    bool printedAudio = true, printedVideo = true;
 
-    for (unsigned int it = 0; it < candidateVector_.size(); it++) {
-      const CandidateInfo& cand = candidateVector_[it];
-      std::string hostType_str;
-      switch (cand.hostType) {
-        case HOST:
-          hostType_str = "host";
-          break;
-        case SRFLX:
-          hostType_str = "srflx";
-          break;
-        case PRFLX:
-          hostType_str = "prflx";
-          break;
-        case RELAY:
-          hostType_str = "relay";
-          break;
-        default:
-          hostType_str = "host";
-          break;
-      }
-
-      if (cand.mediaType == AUDIO_TYPE) {
-        if (!printedAudio) {
-          sdp << "m=audio " << cand.hostPort
-            << " RTP/" << (profile==SAVPF?"SAVPF ":"AVPF ");// << "103 104 0 8 106 105 13 126\n"
-          for (unsigned int it =0; it<internalPayloadVector_.size(); it++){
-            const RtpMap& payload_info = internalPayloadVector_[it];
-            if (payload_info.mediaType == AUDIO_TYPE)
-              sdp << payload_info.payloadType <<" ";
-
-          }
-          sdp << "\n"
-            << "c=IN IP4 " << cand.hostAddress
-            << endl;
-          if (isRtcpMux) {
-            sdp << "a=rtcp:" << candidateVector_[0].hostPort << " IN IP4 " << cand.hostAddress
-                << endl;
-          }
-          printedAudio = true;
-        }
-
-        std::string generation = " generation 0";
-
-        int comps = cand.componentId;
-        if (isRtcpMux) {
-          comps++;
-        }
-        for (int idx = cand.componentId; idx <= comps; idx++) {
-          sdp << "a=candidate:" << cand.foundation << " " << idx
-              << " " << cand.netProtocol << " " << cand.priority << " "
-              << cand.hostAddress << " " << cand.hostPort << " typ "
-              << hostType_str;
-          if (cand.hostType == SRFLX || cand.hostType == RELAY) {
-            //raddr 192.168.0.12 rport 50483
-            sdp << " raddr " << cand.rAddress << " rport " << cand.rPort;
-          }
-          sdp << generation  << endl;
-        }
-
-        iceUsername_ = cand.username;
-        icePassword_ = cand.password;
-      }
-    }
-    //crypto audio
     if (printedAudio) {
+      sdp << "m=audio 1 RTP/" << (profile==SAVPF?"SAVPF ":"AVPF ");// << "103 104 0 8 106 105 13 126\n"
+      for (unsigned int it =0; it<internalPayloadVector_.size(); it++){
+        const RtpMap& payload_info = internalPayloadVector_[it];
+        if (payload_info.mediaType == AUDIO_TYPE)
+          sdp << payload_info.payloadType <<" ";
+      }
+      sdp << "\n"
+          << "c=IN IP4 0.0.0.0" << endl;
+      if (isRtcpMux) {
+        sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
+      }
+
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
       //sdp << "a=ice-options:google-ice" << endl;
@@ -287,67 +243,21 @@ namespace erizo {
 
     }
 
-    for (unsigned int it = 0; it < candidateVector_.size(); it++) {
-      const CandidateInfo& cand = candidateVector_[it];
-      std::string hostType_str;
-      switch (cand.hostType) {
-        case HOST:
-          hostType_str = "host";
-          break;
-        case SRFLX:
-          hostType_str = "srflx";
-          break;
-        case PRFLX:
-          hostType_str = "prflx";
-          break;
-        case RELAY:
-          hostType_str = "relay";
-          break;
-        default:
-          hostType_str = "host";
-          break;
-      }
-      if (cand.mediaType == VIDEO_TYPE) {
-        if (!printedVideo) {
-          sdp << "m=video " << cand.hostPort << " RTP/" << (profile==SAVPF?"SAVPF ":"AVPF "); //<<  "100 101 102 103\n"
-
-          for (unsigned int it =0; it<internalPayloadVector_.size(); it++){
-            const RtpMap& payload_info = internalPayloadVector_[it];
-            if (payload_info.mediaType == VIDEO_TYPE)
-              sdp << payload_info.payloadType <<" ";
-          }
-
-          sdp << "\n" << "c=IN IP4 " << cand.hostAddress << endl;
-          if (isRtcpMux) {
-            sdp << "a=rtcp:" << candidateVector_[0].hostPort << " IN IP4 " << cand.hostAddress
-                << endl;
-          }
-          printedVideo = true;
-        }
-
-        std::string generation = " generation 0";
-        int comps = cand.componentId;
-        if (isRtcpMux) {
-          comps++;
-        }
-        for (int idx = cand.componentId; idx <= comps; idx++) {
-          sdp << "a=candidate:" << cand.foundation << " " << idx
-              << " " << cand.netProtocol << " " << cand.priority << " "
-              << cand.hostAddress << " " << cand.hostPort << " typ "
-              << hostType_str;
-          if (cand.hostType == SRFLX||cand.hostType == RELAY) {
-            //raddr 192.168.0.12 rport 50483
-            sdp << " raddr " << cand.rAddress << " rport " << cand.rPort;
-          }
-          sdp << generation  << endl;
-        }
-
-        iceUsername_ = cand.username;
-        icePassword_ = cand.password;
-      }
-    }
-    //crypto video
+    
     if (printedVideo) {
+      sdp << "m=video 1 RTP/" << (profile==SAVPF?"SAVPF ":"AVPF "); //<<  "100 101 102 103\n"
+
+      for (unsigned int it =0; it<internalPayloadVector_.size(); it++){
+        const RtpMap& payload_info = internalPayloadVector_[it];
+        if (payload_info.mediaType == VIDEO_TYPE)
+          sdp << payload_info.payloadType <<" ";
+      }
+
+      sdp << "\n" << "c=IN IP4 0.0.0.0" << endl;
+      if (isRtcpMux) {
+        sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
+      }
+
       sdp << "a=ice-ufrag:" << iceUsername_ << endl;
       sdp << "a=ice-pwd:" << icePassword_ << endl;
       //sdp << "a=ice-options:google-ice" << endl;
@@ -426,7 +336,7 @@ namespace erizo {
     return false;
   }
 
-  bool SdpInfo::processSdp(const std::string& sdp) {
+  bool SdpInfo::processSdp(const std::string& sdp, const std::string& media) {
 
     std::string strLine;
     std::istringstream iss(sdp);
@@ -435,6 +345,11 @@ namespace erizo {
     char* pieces[100];
     char* cryptopiece[100];
     MediaType mtype = OTHER;
+    if (media == "audio") {
+      mtype = AUDIO_TYPE;
+    } else if (media == "video") {
+      mtype = VIDEO_TYPE;
+    }
 
     while (std::getline(iss, strLine)) {
       const char* theline = strLine.c_str();
@@ -513,15 +428,15 @@ namespace erizo {
       }
       if (isUser) {
         char* pch;
-        pch = strtok(line, " : \n");
-        pch = strtok(NULL, " : \n");
+        pch = strtok(line, " : \r\n");
+        pch = strtok(NULL, " : \r\n");
         iceUsername_ = std::string(pch);
 
       }
       if (isPass) {
         char* pch;
-        pch = strtok(line, " : \n");
-        pch = strtok(NULL, ": \n");
+        pch = strtok(line, " : \r\n");
+        pch = strtok(NULL, " : \r\n");
         icePassword_ = std::string(pch);
       }
       if (isSsrc) {
@@ -590,7 +505,7 @@ namespace erizo {
   }
 
   bool SdpInfo::processCandidate(char** pieces, int size, MediaType mediaType) {
-
+    ELOG_DEBUG("Processing candidate");
     CandidateInfo cand;
     static const char* types_str[] = { "host", "srflx", "prflx", "relay" };
     cand.mediaType = mediaType;

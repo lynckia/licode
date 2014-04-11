@@ -26,6 +26,9 @@ exports.ErizoJSController = function (spec) {
         getRoap;
 
 
+    var CONN_INITIAL = 101, CONN_STARTED = 102, CONN_READY = 103, CONN_FINISHED = 104, CONN_CANDIDATE = 201, CONN_SDP = 202, CONN_FAILED = 500;
+
+
     /*
      * Given a WebRtcConnection waits for the state READY for ask it to send a FIR packet to its publisher. 
      */
@@ -34,7 +37,8 @@ exports.ErizoJSController = function (spec) {
         if (publishers[to] !== undefined) {
             var intervarId = setInterval(function () {
               if (publishers[to]!==undefined){
-                if (wrtc.getCurrentState() >= 103 && publishers[to].muxer.getPublisherState() >=103) {
+                if (wrtc.getCurrentState() >= CONN_READY && publishers[to].muxer.getPublisherState() >=CONN_READY) {
+                    logger.info("Sending FIR");
                     publishers[to].muxer.sendFIR();
                     clearInterval(intervarId);
                 }
@@ -55,10 +59,9 @@ exports.ErizoJSController = function (spec) {
             });
         }
 
-        wrtc.init( function (jsonMessage){
-          var newStatus = JSON.parse(jsonMessage).status;
-          var mess = JSON.parse(jsonMessage).message;
-          logger.info("webrtc Addon status" + newStatus + mess);
+        wrtc.init( function (newStatus, mess){
+          logger.info("webrtc Addon status", newStatus, mess);
+          
           // if (newStatus === 102 && !sdpDelivered) {
           //   localSdp = wrtc.getLocalSdp();
           //   answer = getRoap(localSdp, roap);
@@ -70,20 +73,20 @@ exports.ErizoJSController = function (spec) {
           //   callback('onReady');
           // }
 
-          if (newStatus == 101) {
+          if (newStatus == CONN_INITIAL) {
             callback('callback', {type: 'started'});
 
-          } else if (newStatus == 202) {
-            //console.log('111111111111111111 ', wrtc.getLocalSdp());
+          } else if (newStatus == CONN_SDP) {
+            logger.debug('Sending SDP', mess);
             callback('callback', {type: 'answer', sdp: mess});
 
-          } else if (newStatus == 201) {
+          } else if (newStatus == CONN_CANDIDATE) {
             callback('callback', {type: 'candidate', candidate: mess});
-          } else if (newStatus == 102) {
-            callback('callback', {type: 'answer', sdp: wrtc.getLocalSdp()});
+          } else if (newStatus == CONN_STARTED) {
           }
 
         });
+        logger.info("initializing");
 
         callback('callback', {type: 'initializing'});
 
@@ -181,10 +184,8 @@ exports.ErizoJSController = function (spec) {
     };
 
     that.processSignaling = function (streamId, peerId, msg) {
-        
+        logger.info("Process Signaling message: ", streamId, peerId, msg);
         if (publishers[streamId] !== undefined) {
-
-            
 
             if (subscribers[streamId][peerId]) {
                 if (msg.type === 'offer') {
@@ -196,7 +197,6 @@ exports.ErizoJSController = function (spec) {
                 if (msg.type === 'offer') {
                     publishers[streamId].wrtc.setRemoteSdp(msg.sdp);
                 } else if (msg.type === 'candidate') {
-                    console.log('PROCESS CAND', msg);
                     publishers[streamId].wrtc.addRemoteCandidate(msg.candidate.sdpMid, msg.candidate.candidate);
                 } 
             }
@@ -251,8 +251,8 @@ exports.ErizoJSController = function (spec) {
             subscribers[to][from] = wrtc;
             publishers[to].muxer.addSubscriber(wrtc, from);
 
-            initWebRtcConnection(wrtc, sdp, callback, to, from);
-//            waitForFIR(wrtc, to);
+            initWebRtcConnection(wrtc, callback, to, from);
+            waitForFIR(wrtc, to);
 
             //logger.info('Publishers: ', publishers);
             //logger.info('Subscribers: ', subscribers);

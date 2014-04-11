@@ -235,7 +235,6 @@ var listen = function () {
                                         room.controller.removePublisher(streamId);
 
                                         var index = socket.streams.indexOf(streamId);
-                                        console.log(socket.streams, streamId, index);
                                         if (index !== -1) {
                                             socket.streams.splice(index, 1);
                                         }
@@ -359,7 +358,6 @@ var listen = function () {
                         signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
                     }
 
-                    console.log(';;;;;;;;;;;;;;; VOY ', signMess);
                     socket.emit('signaling_message', {mess: signMess, streamId: id});
                 });
 
@@ -378,6 +376,7 @@ var listen = function () {
 
         //Gets 'subscribe' messages on the socket in order to add new subscriber to a determined stream (options.streamId).
         socket.on('subscribe', function (options, sdp, callback) {
+            logger.info("Subscribing", options, callback);
             if (!socket.user.permissions[Permission.SUBSCRIBE]) {
                 callback('error', 'unauthorized');
                 return;
@@ -402,18 +401,24 @@ var listen = function () {
 
                 } else {
                     socket.room.controller.addSubscriber(socket.id, options.streamId, options.audio, options.video, function (signMess) {
-                        // TODO: esta bien???
+
+                        if (signMess.type === 'initializing') {
+                            logger.info("Initializing subscriber");
+                            callback('initializing');
+
+                            if (config.erizoController.sendStats) {
+                                rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'publish', stream: id});
+                            }
+                            return;
+                        }
+
                         if (signMess.type === 'candidate') {
                             signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
                         }
-                        socket.emit('signaling_message', {mess: signMess, streamId: options.streamId});
+                        socket.emit('signaling_message', {mess: signMess, peerId: options.streamId});
                     });
 
-                    if (config.erizoController.sendStats) {
-                        rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'publish', stream: options.streamId});
-                    }
                     logger.info("Subscriber added");
-                    callback('');
                 }
             } else {
                 callback(undefined);

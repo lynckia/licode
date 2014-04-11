@@ -135,7 +135,6 @@ exports.RoomController = function (spec) {
             	// then we call its addPublisher method.
 	            var args = [publisher_id];
 	            rpc.callRpc("ErizoJS_" + publisher_id, "addPublisher", args, {callback: function(msg) {
-                    console.log("Erizo started");
                     callback(msg);
                 }});
 
@@ -163,9 +162,11 @@ exports.RoomController = function (spec) {
             if (audio === undefined) audio = true;
             if (video === undefined) video = true;
 
-            var args = [subscriber_id, publisher_id, audio, video, sdp];
+            var args = [subscriber_id, publisher_id, audio, video];
 
-            rpc.callRpc("ErizoJS_" + publisher_id, "addSubscriber", args, {callback: callback});
+            rpc.callRpc("ErizoJS_" + publisher_id, "addSubscriber", args, {callback: function(msg) {
+                callback(msg);
+            }});
 
             // Track subscriber locally
             subscribers[publisher_id].push(subscriber_id);

@@ -20,8 +20,8 @@ var api = {
     createErizoJS: function(id, callback) {
         console.log("Running process");
         var fs = require('fs');
-        var out = fs.openSync('./out.log', 'a');
-        var err = fs.openSync('./out.log', 'a');
+        var out = fs.openSync('./'+id+'.log', 'a');
+        var err = fs.openSync('./'+id+'.log', 'a');
         var erizoProcess = spawn('node', ['./../erizoJS/erizoJS.js', id], { detached: true, stdio: [ 'ignore', out, err ] });
         erizoProcess.unref();
     }

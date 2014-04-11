@@ -79,6 +79,11 @@ public:
 	 */
 	void getCandidate(uint stream_id, uint component_id, const std::string &foundation);
 	/**
+	 * Get local ICE credentials.
+	 * @param username and password where credentials will be stored
+	 */
+	void getLocalCredentials(std::string *username, std::string *password);
+	/**
 	 * Sets the associated Listener.
 	 * @param connection Pointer to the NiceConnectionListener.
 	 */
@@ -130,6 +135,7 @@ private:
   	std::map <unsigned int, IceState> comp_state_list;
 	std::string stunServer_;
 	int stunPort_, minPort_, maxPort_;
+	std::string ufrag_, upass_;
 };
 
 } /* namespace erizo */

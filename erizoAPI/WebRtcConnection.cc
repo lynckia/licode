@@ -9,6 +9,7 @@ using namespace v8;
 
 WebRtcConnection::WebRtcConnection() {};
 WebRtcConnection::~WebRtcConnection() {};
+boost::mutex WebRtcConnection::mutex_;
 //bool WebRtcConnection::initialized = false;
 
 void WebRtcConnection::Init(Handle<Object> target) {
@@ -60,8 +61,8 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
   obj->Wrap(args.This());
   uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
   uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 
-  obj->eventMsg = "";
-  obj->eventSt = 0;
+  //obj->eventMsg = "";
+  //obj->eventSt = 0;
   obj->statsMsg = "";
   return args.This();
 }
@@ -84,9 +85,8 @@ Handle<Value> WebRtcConnection::init(const Arguments& args) {
 
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
   erizo::WebRtcConnection *me = obj->me;
-
-  bool r = me->init();
   obj->eventCallback_ = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+  bool r = me->init();
 
   return scope.Close(Boolean::New(r));
 }
@@ -185,52 +185,33 @@ Handle<Value> WebRtcConnection::getStats(const v8::Arguments& args){
 }
 
 void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message) {
-  this->eventSt = event; 
-  this->eventMsg = message;
+  boost::mutex::scoped_lock lock(WebRtcConnection::mutex_);
+  this->eventSts.push(event);
+  this->eventMsgs.push(message);
   async_.data = this;
+  printf("Sending async\n");
   uv_async_send (&async_);
+  printf("Sent async\n");
 }
 
 void WebRtcConnection::notifyStats(const std::string& message) {
   this->statsMsg=message;
   asyncStats_.data = this;
   uv_async_send (&asyncStats_);
-
 }
 
 void WebRtcConnection::eventsCallback(uv_async_t *handle, int status){
-
+  boost::mutex::scoped_lock lock(WebRtcConnection::mutex_);
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
-
-  std::stringstream out;
-  out << obj->eventSt;
-
-  if (obj->eventMsg == "") {
-    obj->eventMsg = "undefined";
+  while (!obj->eventSts.empty()) {
+    printf("Sending\n");
+    Local<Value> args[] = {Integer::New(obj->eventSts.front()), String::NewSymbol(obj->eventMsgs.front().c_str())};
+    obj->eventCallback_->Call(Context::GetCurrent()->Global(), 2, args);
+    obj->eventMsgs.pop();
+    obj->eventSts.pop();
+    printf("Sent\n");
   }
-
-  std::map <std::string, std::string> object;
-  object["status"] = out.str();
-  object["message"] = obj->eventMsg;
-
-  std::ostringstream theString;
-  theString << "{";
-  for (std::map<std::string, std::string>::iterator it=object.begin(); it!=object.end(); ++it){
-    theString << "\"" << it->first << "\":\"" << it->second << "\"";
-    if (++it != object.end()){
-      theString << ",\n";
-    }
-    --it;
-  }
-  theString << "\n}";
-  
-
-  std::string st = "";
-  st.append(theString.str());
-  Local<Value> args[] = {String::NewSymbol(st.c_str())};
-  //{Integer::New(obj->eventSt), String::NewSymbol(obj->eventMsg.c_str())};
-  obj->eventCallback_->Call(Context::GetCurrent()->Global(), 1, args);
 }
 
 void WebRtcConnection::statsCallback(uv_async_t *handle, int status){

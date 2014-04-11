@@ -55,6 +55,14 @@ Erizo.ChromeJSEPStack = function (spec) {
         return sdp;
     };
 
+    /**
+     * Closes the connection.
+     */
+    that.close = function () {
+        that.state = 'closed';
+        that.peerConnection.close();
+    };
+
     that.peerConnection.onicecandidate =  function (event) {
         if (event.candidate) {
 
@@ -87,6 +95,7 @@ Erizo.ChromeJSEPStack = function (spec) {
 
     var setLocalDesc = function (sessionDescription) {
         sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
+        sessionDescription.sdp = sessionDescription.sdp.replace(/a=ice-options:google-ice\r\n/g, "");
         spec.callback(sessionDescription);
         localDesc = sessionDescription;
         //that.peerConnection.setLocalDescription(sessionDescription);
@@ -99,9 +108,11 @@ Erizo.ChromeJSEPStack = function (spec) {
     that.addStream = function (stream) {
         that.peerConnection.addStream(stream);
     };
+    spec.candidates = [];
+    spec.remoteDescriptionSet = false;
 
     that.processSignalingMessage = function (msg) {
-
+        console.log("Process Signaling Message", msg);
 
         // if (msg.type === 'offer') {
         //     msg.sdp = setMaxBW(msg.sdp);
@@ -124,10 +135,25 @@ Erizo.ChromeJSEPStack = function (spec) {
 
             that.peerConnection.setLocalDescription(localDesc);
             that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg));
+            spec.remoteDescriptionSet = true;
+            console.log("Candidates to be added: ", spec.candidates.length, spec.candidates);
+            while (spec.candidates.length > 0) {
+                that.peerConnection.addIceCandidate(spec.candidates.pop());
+            }
 
         } else if (msg.type === 'candidate') {
-            var candidate = new RTCIceCandidate(msg);
-            that.peerConnection.addIceCandidate(candidate);
+            try {
+                var obj = JSON.parse(msg.candidate);
+                var candidate = new RTCIceCandidate(obj);
+                if (spec.remoteDescriptionSet) {
+                    that.peerConnection.addIceCandidate(candidate);
+                } else {
+                    spec.candidates.push(candidate);
+                    console.log("Candidates stored: ", spec.candidates.length, spec.candidates);
+                }
+            } catch(e) {
+                L.Logger.error("Error parsing candidate", msg.candidate);
+            }
         }
     }
 

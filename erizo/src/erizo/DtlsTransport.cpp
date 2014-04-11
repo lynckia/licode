@@ -174,7 +174,7 @@ void DtlsTransport::onCandidate(const CandidateInfo &candidate, NiceConnection *
     sdp << " raddr " << candidate.rAddress << " rport " << candidate.rPort;
   }
   
-  sdp << generation  << endl;
+  sdp << generation;
   
   getTransportListener()->onCandidate(sdp.str(), this);
 }
@@ -296,7 +296,11 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
   ELOG_DEBUG( "Processing Local SDP in DTLS Transport" );
   localSdp_->isFingerprint = true;
   localSdp_->fingerprint = getMyFingerprint();
-  ELOG_DEBUG( "Processed Local SDP in DTLS Transport" );
+  std::string username;
+  std::string password;
+  nice_->getLocalCredentials(&username, &password);
+  localSdp_->setCredentials(username, password);
+  ELOG_DEBUG( "Processed Local SDP in DTLS Transport with credentials %s, %s", username.c_str(), password.c_str());
 }
 
 bool DtlsTransport::isDtlsPacket(const char* buf, int len) {
