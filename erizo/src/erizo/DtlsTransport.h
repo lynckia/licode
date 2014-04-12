@@ -51,11 +51,12 @@ namespace erizo {
     void start();
     void run();
     void cancel();
-
+    int getStatus();
     void resend(const boost::system::error_code& ec);
   private:
     NiceConnection *nice_;
     unsigned int comp_;
+    int sent_;
     const unsigned char* data_;
     unsigned int len_;
     boost::asio::io_service service;

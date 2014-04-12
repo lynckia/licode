@@ -21,6 +21,7 @@ DEFINE_LOGGER(Resender, "Resender");
 
 Resender::Resender(NiceConnection *nice, unsigned int comp, const unsigned char* data, unsigned int len) : 
   nice_(nice), comp_(comp), data_(data),len_(len), timer(service) {
+  sent_ = 0;
 }
 
 Resender::~Resender() {
@@ -30,9 +31,11 @@ Resender::~Resender() {
 
 void Resender::cancel() {
   timer.cancel();
+  sent_ = 1;
 }
 
 void Resender::start() {
+  sent_ = 0;
   timer.cancel();
   if (thread_.get()!=NULL) {
     thread_->join();
@@ -46,6 +49,10 @@ void Resender::run() {
   service.run();
 }
 
+int Resender::getStatus() {
+  return sent_;
+}
+
 void Resender::resend(const boost::system::error_code& ec) {  
   if (ec == boost::asio::error::operation_aborted) {
     if (nice_ != NULL) {
@@ -56,7 +63,12 @@ void Resender::resend(const boost::system::error_code& ec) {
   
   if (nice_ != NULL) {
     ELOG_WARN("%s - Resending DTLS message to %d", nice_->transportName->c_str(), comp_);
-    nice_->sendData(comp_, data_, len_);
+    int val = nice_->sendData(comp_, data_, len_);
+    if (val < 0) {
+       sent_ = -1;
+    } else {
+       sent_ = 2;
+    }
   }
 }
 
@@ -281,11 +293,11 @@ void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
   }
   if (state == NICE_READY) {
     ELOG_DEBUG("%s - Nice ready", transport_name.c_str());
-    if (!dtlsRtp->started) {
+    if (!dtlsRtp->started || rtpResender->getStatus() < 0) {
       ELOG_DEBUG("%s - DTLSRTP Start", transport_name.c_str());
       dtlsRtp->start();
     }
-    if (dtlsRtcp != NULL && !dtlsRtcp->started) {
+    if (dtlsRtcp != NULL && (!dtlsRtcp->started || rtcpResender->getStatus() < 0)) {
       ELOG_DEBUG("%s - DTLSRTCP Start", transport_name.c_str());
       dtlsRtcp->start();
     }
