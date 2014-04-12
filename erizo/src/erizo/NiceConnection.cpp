@@ -9,9 +9,13 @@
 #include "NiceConnection.h"
 #include "SdpInfo.h"
 
-namespace erizo {
-  DEFINE_LOGGER(NiceConnection, "NiceConnection");
 
+// If true (and configured properly below) erizo will generate relay candidates for itself MOSTLY USEFUL WHEN ERIZO ITSELF IS BEHIND A NAT
+#define SERVER_SIDE_TURN 0
+
+namespace erizo {
+  
+  DEFINE_LOGGER(NiceConnection, "NiceConnection");
   guint stream_id;
   GSList* lcands;
   int streamsGathered;
@@ -141,9 +145,6 @@ namespace erizo {
       ELOG_DEBUG("Setting STUN server %s:%d", stunServer_.c_str(), stunPort_);
     }
 
-    //Configure TURN 
-
-
     // Connect the signals
     g_signal_connect( G_OBJECT( agent_ ), "candidate-gathering-done",
         G_CALLBACK( cb_candidate_gathering_done ), this);
@@ -154,24 +155,27 @@ namespace erizo {
 
     // Create a new stream and start gathering candidates
     ELOG_DEBUG("Adding Stream... Number of components %d", iceComponents_);
-
     nice_agent_add_stream(agent_, iceComponents_);
+    
     // Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
+   
     if (minPort_!=0 && maxPort_!=0){
       ELOG_DEBUG("Setting port range: %d to %d\n", minPort_, maxPort_);
       nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)minPort_, (guint)maxPort_);
     }
-
-    if (false){
-      ELOG_DEBUG("Setting TURN\n");
-      nice_agent_set_relay_info              (agent_,
-                                                         1,
-                                                         1,
-                                                         "",
-                                                         0,
-                                                         "il",
-                                                         "i",
-                                                         NICE_RELAY_TYPE_TURN_UDP);
+    
+    if (SERVER_SIDE_TURN){
+        for (int i = 1; i < (iceComponents_ +1); i++){
+          ELOG_DEBUG("Setting TURN Comp %d\n", i);
+          nice_agent_set_relay_info     (agent_,
+              1,
+              i,
+              "",      // TURN Server IP
+              3479,    // TURN Server PORT
+              "",      // Username
+              "",      // Pass
+              NICE_RELAY_TYPE_TURN_UDP); 
+        }
     }
     nice_agent_gather_candidates(agent_, 1);
     nice_agent_attach_recv(agent_, 1, 1, context_,

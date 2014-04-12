@@ -22,6 +22,14 @@ config.erizoController.stunServerUrl = 'stun:av.minervaproject.com:3478';
 config.erizoController.defaultVideoBW = 300;
 config.erizoController.maxVideoBW = 300;
 
+//Public erizoController IP for websockets (useful when behind NATs)
+//Use '' to automatically get IP from the interface
+config.erizoController.publicIP = '';
+
+// Use the name of the inferface you want to bind to for websockets
+// config.erizoController.networkInterface = 'eth1'
+
+//Use undefined to run clients without Turn
 var turnServer = {};
 config.erizoController.turnServer = turnServer;
 turnServer.url = 'turn:av.minervaproject.com:3478';

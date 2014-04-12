@@ -3,8 +3,8 @@
 
 #include <string> 
 #include <map>
-#include <queue>
 #include "../MediaDefinitions.h"
+#include "rtp/RtpPacketQueue.h"
 #include "codecs/VideoCodec.h"
 #include "codecs/AudioCodec.h"
 #include "MediaProcessor.h"
@@ -32,17 +32,16 @@ namespace erizo{
 
     private:
       OutputProcessor* op_;
+      RtpPacketQueue audioQueue_, videoQueue_;
       unsigned char* decodedBuffer_;
       char* sendVideoBuffer_;
-      bool initContext();
-      int sendFirPacket();
-      void encodeLoop();
+      
 
       std::string url;
-      bool running;
+      volatile bool sending_;
 	    boost::mutex queueMutex_;
-      boost::thread thread_, encodeThread_;
-      std::queue<RawDataPacket> packetQueue_;
+      boost::thread thread_;
+    	boost::condition_variable cond_;
       AVStream        *video_st, *audio_st;
       
       AudioEncoder* audioCoder_;
@@ -55,13 +54,11 @@ namespace erizo{
 
       int video_stream_index, bufflen, aviores_, writeheadres_;
 
-
       AVFormatContext *context_;
       AVOutputFormat *oformat_;
       AVCodec *videoCodec_, *audioCodec_; 
       AVCodecContext *videoCodecCtx_, *audioCodecCtx_;
       InputProcessor *in;
-
 
       AVPacket avpacket;
       unsigned char* unpackagedBufferpart_;
@@ -69,6 +66,14 @@ namespace erizo{
       unsigned char unpackagedBuffer_[UNPACKAGE_BUFFER_SIZE];
       unsigned char unpackagedAudioBuffer_[UNPACKAGE_BUFFER_SIZE/10];
       unsigned long long initTime_;
+      
+      
+      bool initContext();
+      int sendFirPacket();
+      void queueData(char* buffer, int length, packetType type);
+      void sendLoop();
+	    int writeAudioData(char* buf, int len);
+	    int writeVideoData(char* buf, int len);
   };
 }
 #endif /* EXTERNALOUTPUT_H_ */

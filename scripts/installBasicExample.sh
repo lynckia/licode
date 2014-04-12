@@ -13,7 +13,7 @@ EXTRAS=$ROOT/extras
 
 cd $EXTRAS/basic_example
 
-npm install --loglevel debug express
+npm install --loglevel error express@3.4.8
 
 cp -r $ROOT/erizo_controller/erizoClient/dist/erizo.js $EXTRAS/basic_example/public/
 cp -r $ROOT/nuve/nuveClient/dist/nuve.js $EXTRAS/basic_example/

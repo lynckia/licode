@@ -1,0 +1,9 @@
+sudo sendip -p ipv4 -is 10.219.7.40 -p udp -us 3478 -ud 49235 -d "Hello" -v 70.36.82.8
+
+sudo tcpdump -i any -nS udp and src host 54.203.56.210
+
+
+clear && sudo tcpdump -n udp and dst host  10.225.175.119 | pv -latb -i 0.1 -N "Incoming UDP Packets [total] [elapsed] [average rate]" > /dev/null
+
+clear && sudo tcpdump -n udp and src host  10.225.175.119 | pv -latb -i 0.1 -N "Outgoing UDP Packets [total] [elapsed] [average rate]" > /dev/null
+
