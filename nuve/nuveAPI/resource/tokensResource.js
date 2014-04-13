@@ -129,10 +129,7 @@ var generateToken = function (callback) {
                 token.host = ec.ip;
             }
 
-            if ((ec.ssl && (ec.port != 443))
-                || (!ec.ssl && (ec.port != 80))) {
-                token.host += ':' + ec.port;
-            }
+            token.host += ':' + ec.port;
 
             tokenRegistry.addToken(token, function (id) {
 
