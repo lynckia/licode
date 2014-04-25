@@ -409,13 +409,20 @@ var listen = function () {
 
         //Gets 'startRecorder' messages
         socket.on('startRecorder', function (options) {
-          if (!socket.user.permissions[Permission.RECORD]) {
-              callback('error', 'unauthorized');
-              return;
-          }
-          var streamId = options.to;
-          var url = options.url;
-          logger.info("erizoController.js: Starting recorder streamID " + streamId + " url " + url);
+            if (!socket.user.permissions[Permission.RECORD]) {
+                callback('error', 'unauthorized');
+                return;
+            }
+            var streamId = options.to;
+            var path = options.path;
+            var url = "/tmp/recording" + streamId + ".mkv";
+
+            if (path) {
+                url = path + "/recording" + streamId + ".mkv";
+            }
+
+            logger.info("erizoController.js: Starting recorder streamID " + streamId + " url " + url);
+            
             if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
                 socket.room.controller.addExternalOutput(streamId, url);
                 logger.info("erizoController.js: Recorder Started");
@@ -423,12 +430,12 @@ var listen = function () {
         });
 
         socket.on('stopRecorder', function (options) {
-          if (!socket.user.permissions[Permission.RECORD]) {
-              callback('error', 'unauthorized');
-              return;
-          }
-          logger.info("erizoController.js: Stoping recorder to streamId " + options.to + " url " + options.url);
-          socket.room.controller.removeExternalOutput(options.to, options.url);
+            if (!socket.user.permissions[Permission.RECORD]) {
+                callback('error', 'unauthorized');
+                return;
+            }
+            logger.info("erizoController.js: Stoping recorder to streamId " + options.to + " url " + options.url);
+            socket.room.controller.removeExternalOutput(options.to, options.url);
         });
 
         //Gets 'unpublish' messages on the socket in order to remove a stream from the room.

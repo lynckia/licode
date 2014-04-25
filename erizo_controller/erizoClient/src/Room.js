@@ -387,14 +387,13 @@ Erizo.Room = function (spec) {
         }
     };
 
-    that.startRecording = function (stream){
-      recordingUrl = "/tmp/recording" + stream.getID() + ".mkv";
-      L.Logger.debug("Start Recording " + recordingUrl);
-      sendMessageSocket('startRecorder',{to:stream.getID(), url: recordingUrl});
+    that.startRecording = function (stream, path) {
+        L.Logger.debug("Start Recording stream: " + stream.getID());
+        sendMessageSocket('startRecorder',{to:stream.getID(), path: path});
     }
 
     that.stopRecording = function (stream){
-      sendMessageSocket('stopRecorder',{to:stream.getID(),url:recordingUrl});
+        sendMessageSocket('stopRecorder',{to:stream.getID(), url:recordingUrl});
     }
 
     // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
