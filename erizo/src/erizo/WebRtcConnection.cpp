@@ -196,7 +196,7 @@ namespace erizo {
 
   int WebRtcConnection::deliverFeedback(char* buf, int len){
     // Check where to send the feedback
-    rtcpheader *chead = (rtcpheader*) buf;
+    rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
     ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, ntohl(chead->ssrc), ntohl(chead->ssrcsource));
     if (ntohl(chead->ssrcsource) == this->getAudioSourceSSRC()) {
         writeSsrc(buf,len,this->getAudioSinkSSRC());      
@@ -218,10 +218,10 @@ namespace erizo {
   }
 
   void WebRtcConnection::writeSsrc(char* buf, int len, unsigned int ssrc) {
-    rtpheader *head = (rtpheader*) buf;
+    rtpheader *head = reinterpret_cast<rtpheader*> (buf);
     rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
     //if it is RTCP we check it it is a compound packet
-    if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_PS_Feedback_PT || chead->packettype == RTCP_RTP_Feedback_PT) {
+    if (chead->isRtcp()) {
         processRtcpHeaders(buf,len,ssrc);
     } else {
       head->ssrc=htonl(ssrc);
@@ -248,7 +248,7 @@ namespace erizo {
         unsigned int recvSSRC = ntohl(head->ssrc);
 
         if (chead->packettype == RTCP_Sender_PT) { //Sender Report
-          ELOG_DEBUG ("RTP Sender Report %d length %d ", chead->packettype, ntohs(chead->length));
+//          ELOG_DEBUG ("RTP Sender Report %d length %d ", chead->packettype, ntohs(chead->length));
           recvSSRC = ntohl(chead->ssrc);
         }
 

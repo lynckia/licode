@@ -3,8 +3,8 @@
 
 #include <string> 
 #include <map>
-#include <queue>
 #include "../MediaDefinitions.h"
+#include "rtp/RtpPacketQueue.h"
 #include "codecs/VideoCodec.h"
 #include "codecs/AudioCodec.h"
 #include "MediaProcessor.h"
@@ -32,15 +32,16 @@ namespace erizo{
 
     private:
       OutputProcessor* op_;
+      RtpPacketQueue audioQueue_, videoQueue_;
       unsigned char* decodedBuffer_;
       char* sendVideoBuffer_;
+      
 
       std::string url;
       volatile bool sending_;
 	    boost::mutex queueMutex_;
       boost::thread thread_;
     	boost::condition_variable cond_;
-      std::queue<dataPacket> packetQueue_;
       AVStream        *video_st, *audio_st;
       
       AudioEncoder* audioCoder_;
