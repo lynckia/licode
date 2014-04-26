@@ -60,6 +60,8 @@ namespace erizo {
     cond_.notify_one();
     send_Thread_.join();
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
+    boost::mutex::scoped_lock lock2(writeMutex_);
+    boost::mutex::scoped_lock lock3(updateStateMutex_);
   }
 
   bool WebRtcConnection::init() {
