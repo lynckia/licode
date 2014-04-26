@@ -98,6 +98,9 @@ DtlsTransport::~DtlsTransport() {
   srtp_=NULL;
   delete srtcp_;
   srtcp_=NULL;
+  boost::mutex::scoped_lock lockr(readMutex_);
+  boost::mutex::scoped_lock lockw(writeMutex_);
+  boost::mutex::scoped_lock locks(sessionMutex_);
 }
 
 void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {

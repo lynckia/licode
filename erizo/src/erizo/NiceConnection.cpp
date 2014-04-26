@@ -89,6 +89,7 @@ namespace erizo {
       g_main_loop_unref (loop_);
       loop_=NULL;
     }
+    boost::mutex::scoped_lock lock(writeMutex_);
   }
 
   void NiceConnection::start() {
