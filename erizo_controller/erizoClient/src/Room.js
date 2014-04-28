@@ -131,7 +131,7 @@ Erizo.Room = function (spec) {
 
                     myStream.pc[arg.subsSocket].processSignalingMessage(answer);
                 });
-            }, audio: myStream.hasAudio(), video: myStream.hasVideo(), stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
+            }, audio: myStream.hasAudio(), video: myStream.hasVideo(), stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, clientServerMode: that.clientServerMode});
 
             myStream.pc[arg.subsSocket].addStream(myStream.stream);
 
@@ -147,7 +147,7 @@ Erizo.Room = function (spec) {
         that.socket.on('onPublishP2P', function (arg, callback) {
             var myStream = that.remoteStreams[arg.streamId];
 
-            myStream.pc = Erizo.Connection({callback: function (offer) {}, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, maxAudioBW: spec.maxAudioBW, maxVideoBW: spec.maxVideoBW});
+            myStream.pc = Erizo.Connection({callback: function (offer) {}, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, clientServerMode: that.clientServerMode, maxAudioBW: spec.maxAudioBW, maxVideoBW: spec.maxVideoBW});
 
             myStream.pc.onsignalingmessage = function (answer) {
                 myStream.pc.onsignalingmessage = function () {};
@@ -239,6 +239,7 @@ Erizo.Room = function (spec) {
             that.p2p = response.p2p;
             roomId = response.id;
             that.stunServerUrl = response.stunServerUrl;
+            that.clientServerMode = response.clientServerMode;
             that.turnServer = response.turnServer;
             that.state = CONNECTED;
             spec.defaultVideoBW = response.defaultVideoBW;
@@ -363,7 +364,7 @@ Erizo.Room = function (spec) {
                             };
                             stream.pc.processSignalingMessage(answer);
                         });
-                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer,
+                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, clientServerMode: that.clientServerMode,
                     maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW,
                     audioCodec: options.audioCodec, audioHz: options.audioHz, audioBitrate: options.audioBitrate});
 
@@ -466,7 +467,7 @@ Erizo.Room = function (spec) {
                             
                             stream.pc.processSignalingMessage(answer);
                         });
-                    }, nop2p: true, audio: stream.hasAudio(), video: stream.hasVideo(), stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
+                    }, nop2p: true, audio: stream.hasAudio(), video: stream.hasVideo(), stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, clientServerMode: that.clientServerMode});
 
                     stream.pc.onaddstream = function (evt) {
                         // Draw on html

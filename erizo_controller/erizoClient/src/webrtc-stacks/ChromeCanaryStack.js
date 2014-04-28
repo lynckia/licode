@@ -19,15 +19,23 @@ Erizo.ChromeCanaryStack = function (spec) {
 
     that.con = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
 
-    // if (spec.stunServerUrl !== undefined) {
-    //     that.pc_config.iceServers.push({"url": spec.stunServerUrl});
-    // }
+    // In client-server mode, the Licode host always has a static IP, and STUN/TURN is not necessary.
+    if(!spec.clientServerMode) {
+        L.Logger.debug("Not client-server mode.");
+        if (spec.stunServerUrl !== undefined) {
+            that.pc_config.iceServers.push({"url": spec.stunServerUrl});
+        }
+        else {
+            L.Logger.debug("No STUN servers defined.  Unless both peers are on the same LAN or have public IPs, a successful peer connection is not guaranteed.");
+        }
 
-    // if ((spec.turnServer || {}).url) {
-    //     that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
-    // }
-
-    console.log("PC Config",that.pc_config);
+        if ((spec.turnServer || {}).url) {
+            that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
+        }
+    }
+    else {
+        L.Logger.debug("Client server mode.  Skipping STUN/TURN.");
+    }
 
     if (spec.audio === undefined || spec.nop2p) {
         spec.audio = true;
@@ -55,7 +63,6 @@ Erizo.ChromeCanaryStack = function (spec) {
         that.moreIceTimeout = setTimeout(function() {
             if (that.moreIceComing) {
                 that.moreIceComing = false;
-                console.log("[debug] No more ice coming.")
                 that.markActionNeeded();
             }
         }, 500);
@@ -71,22 +78,14 @@ Erizo.ChromeCanaryStack = function (spec) {
             that.ices = that.ices + 1;
             if (that.ices >= 1 && that.moreIceComing) {
                 that.moreIceComing = false;
-                console.log("[debug] No more ice coming.")
                 that.markActionNeeded();
                 clearTimeout(that.moreIceTimeout);
             }
         } else {
             var type = event.candidate.candidate.split(" ")[7];
-            if( type != "relay" ) {
-                console.log("ICE  -  Created " + type + " candidate should be ignored: TURN only mode.");
-            } else {
-                console.log("ICE  - Sending " + type + " candidate." );
-            }
             that.iceCandidateCount += 1;
         }
     };
-
-    //L.Logger.debug("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
 
     var setMaxBW = function (sdp) {
         if (that.maxVideoBW) {
@@ -153,28 +152,27 @@ Erizo.ChromeCanaryStack = function (spec) {
 
     var pruneIceCandidates = function(sdp) {
 
-        /* Remove all relay and server reflexive ice candidates */
-        /* Not necessary because we don't set any stun/turn servers */
-        // var regExp = new RegExp(/a=candidate:.+?typ (relay|srflx).+?/g);
-        // sdp = sdp.replace(regExp,"");
-
         /* Remove all TCP candidates.  Who needs em?! */
-        var regExp = new RegExp(/a=candidate:\d+\s\d\stcp.+?/g);
+        var regExp = new RegExp(/a=candidate:\d+\s\d\stcp.+/g);
         sdp = sdp.replace(regExp,"");
 
-        /* 
-        Replace all remaining canidates with fake IPs.  Whaaaat??  
-        This forces use of a server reflexive candidate.
-        During connectivity checks, all the pings the browser sends to the licode
-        server will fail because the IP is bogus.  But the browser will send a ping to 
-        the licode server's static IP which will succeed, and the server will
-        thereby discover a single valid server reflexive ICE candidate from that packet's
-        origin IP/port, and unless our NAT is completely disfunctional traffic on that
-        endpoint will be allowed through, and all will be well.  
-        */
+        if(spec.clientServerMode) {
+            L.Logger.debug("Client server mode.  Pruning ice candidates.");
+            /* 
+            Remove all ICE candidates.  Whaaaat??  
+            This forces use of a server reflexive candidate.
+            During connectivity checks, the browser will send a ping to 
+            the licode server's static IP which will succeed, and the server will
+            thereby discover a single valid endpoint from that packet's
+            origin IP/port, and use it as a server-reflexive candidate if it is the
+            controlling ICE agent, or just use it is is the controlled ICE agent,
+            and unless our NAT is completely disfunctional traffic on that
+            endpoint will be allowed through, and all will be well.  
+            */
+            var regExp = new RegExp(/a=candidate:.+?typ .+/g);
+            sdp = sdp.replace(regExp,"");
 
-        var regExp = new RegExp(/\d+\.\d+.\d+.\d+(?=\s\d+\styp host)/g);
-        sdp = sdp.replace(regExp,"1.1.1.1");
+        }
 
         return sdp;
     };
@@ -323,10 +321,8 @@ Erizo.ChromeCanaryStack = function (spec) {
      * to the remote party using our onsignalingmessage function.
      */
     that.onstablestate = function () {
-        console.log("On stable state called", that.state, that.actionNeeded);
         var mySDP, roapMessage = {};
         if (that.actionNeeded) {
-            console.log("A");
             if (that.state === 'new' || that.state === 'established') {
                 // See if the current offer is the same as what we already sent.
                 // If not, no change is needed.
@@ -344,15 +340,13 @@ Erizo.ChromeCanaryStack = function (spec) {
                     var newOffer = sessionDescription.sdp;
 
                     if (newOffer !== that.prevOffer) {
-                        console.log("Initial session description",sessionDescription.sdp);
+                        L.Logger.debug("New session description on createOffer", sessionDescription.sdp);
                         that.peerConnection.setLocalDescription(sessionDescription);
                         that.prevOffer = that.peerConnection.localDescription.sdp;
 
                         if (that.moreIceComing) {
-                            console.log("[debug] Still preparing offer");
                             that.state = 'preparing-offer';
                         } else {
-                            console.log("[debug] setting state from new/established to ice-gathering-finished");
                             that.state = 'ice-gathering-finished'
                         }
                         that.markActionNeeded();
@@ -363,11 +357,9 @@ Erizo.ChromeCanaryStack = function (spec) {
 
             } else if (that.state === 'preparing-offer') {
                 if (that.moreIceComing) {
-                    console.log("[debug] Still preparing offer");
-                    // that.markActionNeeded();                    
                     return;
                 } else {
-                    console.log("[debug] setting state to ice-gathering-finished!");
+                    L.Logger.debug("ice-gathering-finished");
 
                     that.peerConnection.createOffer(function (sessionDescription) {
 
@@ -380,12 +372,11 @@ Erizo.ChromeCanaryStack = function (spec) {
 
                         sessionDescription.sdp = pruneIceCandidates(sessionDescription.sdp);
 
-                        // that.sessionDescription = sessionDescription;
-                        console.log("Final session description",sessionDescription.sdp);
+                        L.Logger.debug("Setting local description after ICE finished",sessionDescription.sdp);
                         that.peerConnection.setLocalDescription(sessionDescription);
-                        that.prevOffer = that.peerConnection.localDescription.sdp;
+                        that.prevOffer = sessionDescription.sdp;
 
-                        console.log("[debug] setting state to ice-gathering-finished B");
+                        L.Logger.debug("setting state to ice-gathering-finished");
                         that.state = 'ice-gathering-finished'
                         that.markActionNeeded();
                         return;          
@@ -396,50 +387,6 @@ Erizo.ChromeCanaryStack = function (spec) {
 
             } else if (that.state === 'ice-gathering-finished') {
 
-
-
-
-                // console.log("[debug] And ice gathering finished state");
-
-                // var sessionDescription = that.peerConnection.localDescription;
-                // var regExp = new RegExp(/a=candidate:.+?typ host.+?/g);
-                // var sdp = sessionDescription.sdp.replace(regExp,"");
-
-                // console.log("[canary] setting description", sdp);
-                // that.peerConnection.setLocalDescription(new RTCSessionDescription({sdp: sdp, type: "offer"}));
-                // console.log("[canary] set description", that.peerConnection.localDescription.sdp);
-
-
-                // var newOffer = sessionDescription.sdp;
-
-                // if (newOffer !== that.prevOffer) {
-                    // throw new Error("break");
-
-                // } else {
-                //     L.Logger.debug('Not sending a new offer');
-                // }
-                // Now able to send the offer we've already prepared.
-
-                // // var regExp = new RegExp(/a=candidate/g);
-                // var sdp = "foo";
-                // that.peerConnection.localDescription.sdp = sdp;//that.peerConnection.localDescription.sdp.replace(regExp,"FOO");
-                // console.log("SDP is ", sdp, that.peerConnection.localDescription.sdp);
-
-                // that.peerConnection.setLocalDescription(that.peerConnection.localDescription);
-
-                // that.prevOffer = that.peerConnection.localDescription.sdp;
-                // window.sdp = that.prevOffer;
-                // console.log("SDP now" + that.prevOffer);
-                // throw new Error("break");
-
-//regExp = new RegExp(/m=video[\w\W]*\r\n/g);
-
-                //exp = msg.sdp.match(regExp);
-                //L.Logger.debug(exp);
-
-                //msg.sdp = msg.sdp.replace(regExp, exp + "b=AS:100\r\n");
-
-
                 L.Logger.debug("Sending OFFER: " + that.prevOffer);
                 //L.Logger.debug('Sent SDP is ' + that.prevOffer);
                 that.sendMessage('OFFER', that.prevOffer);
@@ -449,7 +396,7 @@ Erizo.ChromeCanaryStack = function (spec) {
             } else if (that.state === 'offer-received') {
 
                 that.peerConnection.createAnswer(function (sessionDescription) {
-                    console.log("Have session description sdp in createAnswer", sessionDescription.sdp);
+                    L.Logger.debug("Have session description sdp in createAnswer", sessionDescription.sdp);
                     that.peerConnection.setLocalDescription(sessionDescription);
                     that.state = 'offer-received-preparing-answer';
 
