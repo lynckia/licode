@@ -256,8 +256,7 @@ var listen = function () {
                                             defaultVideoBW: config.erizoController.defaultVideoBW,
                                             maxVideoBW: config.erizoController.maxVideoBW,
                                             stunServerUrl: config.erizoController.stunServerUrl,
-                                            turnServer: config.erizoController.turnServer,
-                                            clientServerMode: config.erizoController.clientServerMode
+                                            turnServer: config.erizoController.turnServer
                                             });
 
                     } else {

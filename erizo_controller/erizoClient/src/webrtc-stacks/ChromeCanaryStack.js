@@ -19,22 +19,12 @@ Erizo.ChromeCanaryStack = function (spec) {
 
     that.con = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
 
-    // In client-server mode, the Licode host always has a static IP, and STUN/TURN is not necessary.
-    if(!spec.clientServerMode) {
-        L.Logger.debug("Not client-server mode.");
-        if (spec.stunServerUrl !== undefined) {
-            that.pc_config.iceServers.push({"url": spec.stunServerUrl});
-        }
-        else {
-            L.Logger.debug("No STUN servers defined.  Unless both peers are on the same LAN or have public IPs, a successful peer connection is not guaranteed.");
-        }
-
-        if ((spec.turnServer || {}).url) {
-            that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
-        }
+    if (spec.stunServerUrl !== undefined) {
+        that.pc_config.iceServers.push({"url": spec.stunServerUrl});
     }
-    else {
-        L.Logger.debug("Client server mode.  Skipping STUN/TURN.");
+
+    if ((spec.turnServer || {}).url) {
+        that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
     }
 
     if (spec.audio === undefined || spec.nop2p) {
@@ -57,7 +47,7 @@ Erizo.ChromeCanaryStack = function (spec) {
     that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
 
     that.peerConnection.onicecandidate = function (event) {
-        L.Logger.debug("PeerConnection: ", spec.session_id);
+        L.Logger.debug("Have ice candidate for session: ", spec.session_id);
         // HACK (bf) If no new ice candidates for 0.5s, stop waiting
         clearTimeout(that.moreIceTimeout);
         that.moreIceTimeout = setTimeout(function() {
@@ -155,24 +145,6 @@ Erizo.ChromeCanaryStack = function (spec) {
         /* Remove all TCP candidates.  Who needs em?! */
         var regExp = new RegExp(/a=candidate:\d+\s\d\stcp.+/g);
         sdp = sdp.replace(regExp,"");
-
-        if(spec.clientServerMode) {
-            L.Logger.debug("Client server mode.  Pruning ice candidates.");
-            /* 
-            Remove all ICE candidates.  Whaaaat??  
-            This forces use of a server reflexive candidate.
-            During connectivity checks, the browser will send a ping to 
-            the licode server's static IP which will succeed, and the server will
-            thereby discover a single valid endpoint from that packet's
-            origin IP/port, and use it as a server-reflexive candidate if it is the
-            controlling ICE agent, or just use it is is the controlled ICE agent,
-            and unless our NAT is completely disfunctional traffic on that
-            endpoint will be allowed through, and all will be well.  
-            */
-            var regExp = new RegExp(/a=candidate:.+?typ .+/g);
-            sdp = sdp.replace(regExp,"");
-
-        }
 
         return sdp;
     };
@@ -340,7 +312,7 @@ Erizo.ChromeCanaryStack = function (spec) {
                     var newOffer = sessionDescription.sdp;
 
                     if (newOffer !== that.prevOffer) {
-                        L.Logger.debug("New session description on createOffer", sessionDescription.sdp);
+                        L.Logger.debug("Have new SDP on createOffer");
                         that.peerConnection.setLocalDescription(sessionDescription);
                         that.prevOffer = that.peerConnection.localDescription.sdp;
 
@@ -370,9 +342,8 @@ Erizo.ChromeCanaryStack = function (spec) {
                         sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
                         sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
 
-                        // sessionDescription.sdp = pruneIceCandidates(sessionDescription.sdp);
+                        sessionDescription.sdp = pruneIceCandidates(sessionDescription.sdp);
 
-                        L.Logger.debug("Setting local description after ICE finished",sessionDescription.sdp);
                         that.peerConnection.setLocalDescription(sessionDescription);
                         that.prevOffer = sessionDescription.sdp;
 
