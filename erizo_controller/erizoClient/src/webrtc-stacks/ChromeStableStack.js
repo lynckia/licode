@@ -47,11 +47,11 @@ Erizo.ChromeStableStack = function (spec) {
     that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
 
     that.peerConnection.onicecandidate = function (event) {
-        L.Logger.debug("[stable] onicecandidate PeerConnection: ", spec.session_id, event.candidate);
+        console.log("[stable] onicecandidate PeerConnection: ", spec.session_id, event.candidate);
         if (!event.candidate) {
             // At the moment, we do not renegotiate when new candidates
             // show up after the more flag has been false once.
-            L.Logger.debug("State: " + that.peerConnection.iceGatheringState);
+            console.log("State: " + that.peerConnection.iceGatheringState);
 
             if (that.ices === undefined) {
                 that.ices = 0;
@@ -62,11 +62,18 @@ Erizo.ChromeStableStack = function (spec) {
                 that.markActionNeeded();
             }
         } else {
+            var type = event.candidate.candidate.split(" ")[7];
+            if( type != "relay" ) {
+                trace("ICE  -  Created " + type + " candidate should be ignored: TURN only mode.");
+            } else {
+                trace("ICE  - Sending " + type + " candidate." );
+            }
+
             that.iceCandidateCount += 1;
         }
     };
 
-    //L.Logger.debug("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
+    //console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
 
     var setMaxBW = function (sdp) {
         if (that.maxVideoBW) {
@@ -138,7 +145,7 @@ Erizo.ChromeStableStack = function (spec) {
         // Offer: Check for glare and resolve.
         // Answer/OK: Remove retransmit for the msg this is an answer to.
         // Send back "OK" if this was an Answer.
-        L.Logger.debug('Activity on conn ' + that.sessionId);
+        console.log('Activity on conn ' + that.sessionId);
         var msg = JSON.parse(msgstring), sd, regExp, exp;
         that.incomingMessage = msg;
 
@@ -164,7 +171,7 @@ Erizo.ChromeStableStack = function (spec) {
                 //regExp = new RegExp(/m=video[\w\W]*\r\n/g);
 
                 //exp = msg.sdp.match(regExp);
-                //L.Logger.debug(exp);
+                //console.log(exp);
 
                 //msg.sdp = msg.sdp.replace(regExp, exp + "b=AS:100\r\n");
 
@@ -172,7 +179,7 @@ Erizo.ChromeStableStack = function (spec) {
                     sdp: msg.sdp,
                     type: 'answer'
                 };
-                L.Logger.debug("Received ANSWER: ", sd.sdp);
+                console.log("Received ANSWER: ", sd.sdp);
 
                 sd.sdp = setMaxBW(sd.sdp);
                 sd.sdp = setAudioCodec(sd.sdp);
@@ -287,10 +294,13 @@ Erizo.ChromeStableStack = function (spec) {
                     //sessionDescription.sdp = newOffer.replace(/a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
                     //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
 
+
+                    
+
                     sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
                     sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
 
-                    //L.Logger.debug("Changed", sessionDescription.sdp);
+                    console.log("Changed sessionDescription.sdp", sessionDescription.sdp);
 
                     var newOffer = sessionDescription.sdp;
 
@@ -302,7 +312,7 @@ Erizo.ChromeStableStack = function (spec) {
                         that.markActionNeeded();
                         return;
                     } else {
-                        L.Logger.debug('Not sending a new offer');
+                        console.log('Not sending a new offer');
                     }
 
                 }, null, that.mediaConstraints);
@@ -317,8 +327,8 @@ Erizo.ChromeStableStack = function (spec) {
 
                 // Now able to send the offer we've already prepared.
                 that.prevOffer = that.peerConnection.localDescription.sdp;
-                L.Logger.debug("Sending OFFER: " + that.prevOffer);
-                //L.Logger.debug('Sent SDP is ' + that.prevOffer);
+                console.log("Sending OFFER: " + that.prevOffer);
+                //console.log('Sent SDP is ' + that.prevOffer);
                 that.sendMessage('OFFER', that.prevOffer);
                 // Not done: Retransmission on non-response.
                 that.state = 'offer-sent';
@@ -331,7 +341,7 @@ Erizo.ChromeStableStack = function (spec) {
 
                     if (!that.iceStarted) {
                         var now = new Date();
-                        L.Logger.debug(now.getTime() + ': Starting ICE in responder');
+                        console.log(now.getTime() + ': Starting ICE in responder');
                         that.iceStarted = true;
                     } else {
                         that.markActionNeeded();
@@ -346,6 +356,7 @@ Erizo.ChromeStableStack = function (spec) {
                 }
 
                 mySDP = that.peerConnection.localDescription.sdp;
+                console.log("my SDP is",mySDP);
 
                 that.sendMessage('ANSWER', mySDP);
                 that.state = 'established';
