@@ -49,6 +49,13 @@ namespace erizo {
 
   WebRtcConnection::~WebRtcConnection() {
     ELOG_DEBUG("WebRtcConnection Destructor");
+    sending_ = false;
+    cond_.notify_one();
+    send_Thread_.join();
+    boost::mutex::scoped_lock lock(receiveVideoMutex_);
+    boost::mutex::scoped_lock lock2(writeMutex_);
+    boost::mutex::scoped_lock lock3(updateStateMutex_);
+    globalState_ = FINISHED;
     videoSink_ = NULL;
     audioSink_ = NULL;
     fbSink_ = NULL;
@@ -56,12 +63,6 @@ namespace erizo {
     videoTransport_=NULL;
     delete audioTransport_;
     audioTransport_= NULL;
-    sending_ = false;
-    cond_.notify_one();
-    send_Thread_.join();
-    boost::mutex::scoped_lock lock(receiveVideoMutex_);
-    boost::mutex::scoped_lock lock2(writeMutex_);
-    boost::mutex::scoped_lock lock3(updateStateMutex_);
   }
 
   bool WebRtcConnection::init() {
@@ -125,6 +126,7 @@ namespace erizo {
   }
 
   std::string WebRtcConnection::getLocalSdp() {
+    boost::mutex::scoped_lock lock(updateStateMutex_);
     ELOG_DEBUG("Getting SDP");
     if (videoTransport_ != NULL) {
       videoTransport_->processLocalSdp(&localSdp_);

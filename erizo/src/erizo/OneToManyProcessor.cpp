@@ -26,7 +26,10 @@ namespace erizo {
 
     std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      (*it).second->deliverAudioData(buf, len);
+      MediaSink *ptr = (*it).second;
+      if (ptr != NULL) {
+        ptr->deliverAudioData(buf, len);
+      }
     }
 
     return 0;
@@ -47,7 +50,9 @@ namespace erizo {
     }
     std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      (*it).second->deliverVideoData(buf, len);
+      if((*it).second != NULL) {
+        (*it).second->deliverVideoData(buf, len);
+      }
     }
     sentPackets_++;
     return 0;
@@ -95,8 +100,10 @@ namespace erizo {
     std::map<std::string, MediaSink*>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
 //      (*it).second->closeSink();
-      delete (*it).second;
-      subscribers.erase(it);
+      if ((*it).second != NULL) {
+        delete (*it).second;
+        subscribers.erase(it);
+      }
     }
     delete this->publisher;
   }

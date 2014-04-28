@@ -71,16 +71,19 @@ namespace erizo {
   }
 
   NiceConnection::~NiceConnection() {
-    ELOG_DEBUG("NiceConnection Destructor");
-    if (iceState != NICE_FINISHED){
-      if (loop_ != NULL){
-        if (g_main_loop_is_running(loop_)){
-          g_main_loop_quit(loop_);
-        }
+    IceState state = iceState;
+    ELOG_DEBUG("NiceConnection Destructor, %d", state);
+    iceState = NICE_FINISHED;
+    if (loop_ != NULL){
+      if (g_main_loop_is_running(loop_)){
+        g_main_loop_quit(loop_);
       }
-      iceState = NICE_FINISHED;
     }
-    m_Thread_.join();
+    if (m_Thread_.joinable()) {
+      m_Thread_.interrupt();
+      ELOG_WARN("Nice %d", state);
+      m_Thread_.join();
+    }
     if (agent_!=NULL){
       g_object_unref(agent_);
       agent_ = NULL;
@@ -90,6 +93,23 @@ namespace erizo {
       loop_=NULL;
     }
     boost::mutex::scoped_lock lock(writeMutex_);
+  }
+
+  void NiceConnection::close() {
+    iceState = NICE_FINISHED;
+    if (loop_ != NULL){
+      if (g_main_loop_is_running(loop_)){
+        g_main_loop_quit(loop_);
+      }
+    }
+    if (agent_!=NULL){
+      g_object_unref(agent_);
+      agent_ = NULL;
+    }
+    if (loop_ != NULL) {
+      g_main_loop_unref (loop_);
+      loop_=NULL;
+    }    
   }
 
   void NiceConnection::start() {
@@ -110,7 +130,6 @@ namespace erizo {
   }
 
   void NiceConnection::init() {
-
     streamsGathered = 0;
     this->updateIceState(NICE_INITIAL);
 
@@ -185,9 +204,13 @@ namespace erizo {
       nice_agent_attach_recv(agent_, 1, 2, context_,
           cb_nice_recv, this);
     }
-
     // Attach to the component to receive the data
-    g_main_loop_run(loop_);
+    if (iceState != NICE_FINISHED) {
+      g_main_loop_run(loop_);
+    } else {
+      ELOG_DEBUG("NICE FINISHED on start!!");
+      close();
+    }
   }
 
   bool NiceConnection::setRemoteCandidates(
@@ -257,6 +280,9 @@ namespace erizo {
 
 
   void NiceConnection::gatheringDone(uint stream_id) {
+    if (iceState == NICE_FINISHED) {
+      return;
+    }
     int currentCompId = 1;
     lcands = nice_agent_get_local_candidates(agent_, stream_id, currentCompId++);
     NiceCandidate *cand;
@@ -401,6 +427,10 @@ namespace erizo {
   }
 
   void NiceConnection::updateIceState(IceState state) {
+    if (iceState == NICE_FINISHED) {
+      close();
+      return;
+    }
     ELOG_DEBUG("%s - NICE State Changed %u", transportName->c_str(), state);
     this->iceState = state;
     if (state == NICE_READY){

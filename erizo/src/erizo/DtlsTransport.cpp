@@ -24,8 +24,13 @@ Resender::Resender(NiceConnection *nice, unsigned int comp, const unsigned char*
 }
 
 Resender::~Resender() {
+  ELOG_ERROR("Resender destructor");
   timer.cancel();
-  thread_->join();
+  if (thread_.get()!=NULL) {
+    ELOG_ERROR("Resender destructor, joining thread");
+    thread_->join();
+    ELOG_ERROR("Resender thread terminated on destructor");
+  }
 }
 
 void Resender::cancel() {
@@ -35,7 +40,9 @@ void Resender::cancel() {
 void Resender::start() {
   timer.cancel();
   if (thread_.get()!=NULL) {
+    ELOG_ERROR("Starting Resender, joining thread to terminate");
     thread_->join();
+    ELOG_ERROR("Thread terminated on start");
   }
   timer.expires_from_now(boost::posix_time::seconds(3));
   timer.async_wait(boost::bind(&Resender::resend, this, boost::asio::placeholders::error));
@@ -57,6 +64,7 @@ void Resender::resend(const boost::system::error_code& ec) {
   if (nice_ != NULL) {
     ELOG_WARN("%s - Resending DTLS message to %d", nice_->transportName->c_str(), comp_);
     nice_->sendData(comp_, data_, len_);
+    ELOG_WARN("%s - Resent", nice_->transportName->c_str());
   }
 }
 
@@ -111,10 +119,14 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
   if (DtlsTransport::isDtlsPacket(data, len)) {
     ELOG_DEBUG("%s - Received DTLS message from %u", transport_name.c_str(), component_id);
     if (component_id == 1) {
-      rtpResender->cancel();
+      if (rtpResender.get()!=NULL) {
+        rtpResender->cancel();
+      }
       dtlsRtp->read(reinterpret_cast<unsigned char*>(data), len);
     } else {
-      rtcpResender->cancel();
+      if (rtcpResender.get()!=NULL) {
+        rtcpResender->cancel();
+      }
       dtlsRtcp->read(reinterpret_cast<unsigned char*>(data), len);
     }
     return;
