@@ -314,7 +314,7 @@ Erizo.ChromeCanaryStack = function (spec) {
                     if (newOffer !== that.prevOffer) {
                         L.Logger.debug("Have new SDP on createOffer");
                         that.peerConnection.setLocalDescription(sessionDescription);
-                        that.prevOffer = that.peerConnection.localDescription.sdp;
+                        that.prevOffer = sessionDescription.sdp;
 
                         if (that.moreIceComing) {
                             that.state = 'preparing-offer';
