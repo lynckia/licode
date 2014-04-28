@@ -17,7 +17,23 @@ config.nuve.testErizoController = 'localhost:8080';
 //Use undefined to run clients without Stun 
 var network_config  = require("./licode_config/network")
 
-config.erizoController.stunServerUrl = 'stun:av.minervaproject.com:3478';  
+if(network_config.clientServerMode !== undefined) {
+  config.erizoController.clientServerMode = network_config.clientServerMode;  
+}
+else {
+  config.erizoController.clientServerMode = true;    
+}
+
+if(!config.erizoController.clientServerMode) {
+  config.erizoController.stunServerUrl = 'stun:av.minervaproject.com:3478';  
+
+  //Use undefined to run clients without Turn
+  var turnServer = {};
+  config.erizoController.turnServer = turnServer;
+  turnServer.url = 'turn:54.203.250.41:3478'; // static IP of av.minervaproject.com
+  turnServer.username = 'licode';
+  turnServer.password = 'licode';  
+}
 
 config.erizoController.defaultVideoBW = 300;
 config.erizoController.maxVideoBW = 300;
@@ -28,13 +44,6 @@ config.erizoController.publicIP = '';
 
 // Use the name of the inferface you want to bind to for websockets
 // config.erizoController.networkInterface = 'eth1'
-
-//Use undefined to run clients without Turn
-var turnServer = {};
-config.erizoController.turnServer = turnServer;
-turnServer.url = 'turn:av.minervaproject.com:3478';
-turnServer.username = 'licode';
-turnServer.password = 'licode';
 
 config.erizoController.warning_n_rooms = 15;
 config.erizoController.limit_n_rooms = 20;
