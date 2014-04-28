@@ -22,7 +22,7 @@ namespace erizo {
   };
   class Transport : public NiceConnectionListener {
     public:
-      NiceConnection *nice_;
+      boost::shared_ptr<NiceConnection> nice_;
       MediaType mediaType;
       std::string transport_name;
       Transport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, const std::string &stunServer, int stunPort, int minPort, int maxPort) {
@@ -58,14 +58,11 @@ namespace erizo {
           transpListener_->updateState(state, this);
         }
       }
-      NiceConnection* getNiceConnection() {
-        return nice_;
-      }
       void writeOnNice(int comp, void* buf, int len) {
-        getNiceConnection()->sendData(comp, buf, len);
+        nice_->sendData(comp, buf, len);
       }
       bool setRemoteCandidates(std::vector<CandidateInfo> &candidates) {
-        return getNiceConnection()->setRemoteCandidates(candidates);
+        return nice_->setRemoteCandidates(candidates);
       }
       bool rtcp_mux_;
     private:

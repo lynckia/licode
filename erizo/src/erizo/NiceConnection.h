@@ -114,7 +114,7 @@ public:
 
 private:
 	void init();
-        void close();
+  void close();
 	NiceAgent* agent_;
 	NiceConnectionListener* listener_;
 	GMainLoop* loop_;

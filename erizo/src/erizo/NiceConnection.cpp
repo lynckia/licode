@@ -24,7 +24,7 @@ namespace erizo {
 
   void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
       guint len, gchar* buf, gpointer user_data) {
-
+    if (user_data==NULL)return;
     NiceConnection* nicecon = (NiceConnection*) user_data;
     nicecon->getNiceListener()->onNiceData(component_id, reinterpret_cast<char*> (buf), static_cast<unsigned int> (len),
         (NiceConnection*) user_data);
@@ -72,16 +72,24 @@ namespace erizo {
 
   NiceConnection::~NiceConnection() {
     IceState state = iceState;
-    ELOG_DEBUG("NiceConnection Destructor, %d", state);
+    ELOG_DEBUG("NiceConnection Destructor, %d, %p", state, this);
     iceState = NICE_FINISHED;
     if (loop_ != NULL){
       if (g_main_loop_is_running(loop_)){
         g_main_loop_quit(loop_);
+        
+        nice_agent_attach_recv(agent_, 1, 1, context_,
+            NULL, this);
+        if (iceComponents_ > 1) {
+          nice_agent_attach_recv(agent_, 1, 2, context_,
+              NULL, this);
+        }
+        ELOG_WARN("g_main_loop_quit %d, %p", state, this);
       }
     }
     if (m_Thread_.joinable()) {
       m_Thread_.interrupt();
-      ELOG_WARN("Nice %d", state);
+      ELOG_WARN("Nice %d, %p", state, this);
       m_Thread_.join();
     }
     if (agent_!=NULL){
@@ -92,6 +100,7 @@ namespace erizo {
       g_main_loop_unref (loop_);
       loop_=NULL;
     }
+    ELOG_WARN("Mutex %d, %p", state, this);
     boost::mutex::scoped_lock lock(writeMutex_);
   }
 
@@ -136,7 +145,7 @@ namespace erizo {
     g_type_init();
     ELOG_DEBUG("Creating Main Context");
     context_ = g_main_context_new();
-    ELOG_DEBUG("Creating Main Loop");
+    ELOG_DEBUG("Creating Main Loop %p", this);
     loop_ =  g_main_loop_new(context_, FALSE);
     ELOG_DEBUG("Creating Agent");
     //loop_ =  g_main_loop_new(NULL, FALSE);
