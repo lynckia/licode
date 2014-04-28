@@ -370,7 +370,7 @@ Erizo.ChromeCanaryStack = function (spec) {
                         sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
                         sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
 
-                        sessionDescription.sdp = pruneIceCandidates(sessionDescription.sdp);
+                        // sessionDescription.sdp = pruneIceCandidates(sessionDescription.sdp);
 
                         L.Logger.debug("Setting local description after ICE finished",sessionDescription.sdp);
                         that.peerConnection.setLocalDescription(sessionDescription);
