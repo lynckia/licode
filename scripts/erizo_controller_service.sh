@@ -13,6 +13,9 @@ sleep 2
 
 cd $ROOT/erizo_controller/erizoController
 
+ulimit -n 4096
+ulimit -c unlimited
+
 while node erizoController.js; do
   echo "node erizoController.js exited unexpectedly.  Respawning." >&2
   until node erizoController.js; do
