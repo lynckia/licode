@@ -33,5 +33,8 @@
   ],
   "scripts": {
     "test": " ./node_modules/jasmine-node/bin/jasmine-node test/;karma start test/karma.conf.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.0.2"
   }
 }
