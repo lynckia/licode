@@ -24,7 +24,7 @@ config.erizoController.maxVideoBW = 300;
 
 //Public erizoController IP for websockets (useful when behind NATs)
 //Use '' to automatically get IP from the interface
-config.erizoController.publicIP = '';
+config.erizoController.publicIP = network_config.publicIP;
 
 // Use the name of the inferface you want to bind to for websockets
 // config.erizoController.networkInterface = 'eth1'
@@ -48,8 +48,8 @@ config.erizo.stunserver = '';
 config.erizo.stunport = 0;
 
 //note, this won't work with all versions of libnice. With 0 all the available ports are used
-config.erizo.minport = 0;
-config.erizo.maxport = 0;
+config.erizo.minport = 63000;
+config.erizo.maxport = 63999;
 
 //In Amazon Ec2 instances you can specify the zone host. By default is 'ec2.us-east-1a.amazonaws.com' 
 config.cloudProvider.host = '';
