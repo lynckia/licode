@@ -9,7 +9,7 @@
 namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
   OneToManyProcessor::OneToManyProcessor() {
-    publisher = NULL;
+    ELOG_DEBUG ("OneToManyProcessor constructor");
     feedbackSink_ = NULL;
     sentPackets_ = 0;
 
@@ -17,25 +17,27 @@ namespace erizo {
 
   OneToManyProcessor::~OneToManyProcessor() {
     ELOG_DEBUG ("OneToManyProcessor destructor");
+    boost::mutex::scoped_lock lock(monitor_);
     this->closeAll();
   }
 
   int OneToManyProcessor::deliverAudioData(char* buf, int len) {
+ //   ELOG_DEBUG ("OneToManyProcessor deliverAudio");
+    boost::mutex::scoped_lock lock(monitor_);
     if (subscribers.empty() || len <= 0)
       return 0;
 
-    std::map<std::string, MediaSink*>::iterator it;
+    std::map<std::string, sink_ptr>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      MediaSink *ptr = (*it).second;
-      if (ptr != NULL) {
-        ptr->deliverAudioData(buf, len);
-      }
+      (*it).second->deliverAudioData(buf, len);
     }
 
     return 0;
   }
 
   int OneToManyProcessor::deliverVideoData(char* buf, int len) {
+//    ELOG_DEBUG ("OneToManyProcessor deliverVideo");
+    boost::mutex::scoped_lock lock(monitor_);
     if (subscribers.empty() || len <= 0)
       return 0;
 
@@ -48,7 +50,7 @@ namespace erizo {
       }
       return 0;
     }
-    std::map<std::string, MediaSink*>::iterator it;
+    std::map<std::string, sink_ptr>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
       if((*it).second != NULL) {
         (*it).second->deliverVideoData(buf, len);
@@ -60,11 +62,14 @@ namespace erizo {
 
   void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
     ELOG_DEBUG("SET PUBLISHER");
-    this->publisher = webRtcConn;
+    boost::mutex::scoped_lock lock(monitor_);
+    this->publisher.reset(webRtcConn);
     feedbackSink_ = publisher->getFeedbackSink();
   }
 
   int OneToManyProcessor::deliverFeedback(char* buf, int len){
+    boost::mutex::scoped_lock lock(monitor_);
+    ELOG_DEBUG("Deliver Feedback");
     if (feedbackSink_ != NULL) {
       feedbackSink_->deliverFeedback(buf,len);
     }
@@ -75,6 +80,7 @@ namespace erizo {
   void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
     ELOG_DEBUG("Adding subscriber");
+    boost::mutex::scoped_lock lock(monitor_);
     ELOG_DEBUG("From %u, %u ", publisher->getAudioSourceSSRC() , publisher->getVideoSourceSSRC());
     webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
     webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
@@ -85,27 +91,28 @@ namespace erizo {
       ELOG_DEBUG("adding fbsource");
       fbsource->setFeedbackSink(this);
     }
-    this->subscribers[peerId] = webRtcConn;
+    this->subscribers[peerId] = sink_ptr(webRtcConn);
   }
 
   void OneToManyProcessor::removeSubscriber(const std::string& peerId) {
+    ELOG_DEBUG("Remove subscriber");
+    boost::mutex::scoped_lock lock(monitor_);
     if (this->subscribers.find(peerId) != subscribers.end()) {
-      delete this->subscribers[peerId];      
       this->subscribers.erase(peerId);
     }
   }
 
   void OneToManyProcessor::closeAll() {
     ELOG_DEBUG ("OneToManyProcessor closeAll");
-    std::map<std::string, MediaSink*>::iterator it;
-    for (it = subscribers.begin(); it != subscribers.end(); it++) {
-//      (*it).second->closeSink();
-      if ((*it).second != NULL) {
-        delete (*it).second;
-        subscribers.erase(it);
-      }
-    }
-    delete this->publisher;
+    /* std::map<std::string, MediaSink*>::iterator it; */
+    /* for (it = subscribers.begin(); it != subscribers.end(); it++) { */
+/* //      (*it).second->closeSink(); */
+    /*   if ((*it).second != NULL) { */
+    /*     delete (*it).second; */
+    /*     subscribers.erase(it); */
+    /*   } */
+    /* } */
+    subscribers.clear();  
   }
 
 }/* namespace erizo */

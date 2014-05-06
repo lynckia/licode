@@ -32,8 +32,6 @@ namespace erizo {
     globalState_ = INITIAL;
     connStateListener_ = NULL;
 
-    sending_ = true;
-    send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
 
     videoTransport_ = NULL;
     audioTransport_ = NULL;
@@ -45,11 +43,15 @@ namespace erizo {
     stunPort_ = stunPort;
     minPort_ = minPort;
     maxPort_ = maxPort;
+    
+    sending_ = true;
+    send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
   }
 
   WebRtcConnection::~WebRtcConnection() {
     ELOG_DEBUG("WebRtcConnection Destructor");
     sending_ = false;
+    this->queueData(-1,NULL,-1,NULL);
     cond_.notify_one();
     send_Thread_.join();
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
@@ -325,6 +327,8 @@ namespace erizo {
     rtcpPacket[pos++] = (uint8_t) 0;
 
     if (videoTransport_ != NULL) {
+
+      boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
       videoTransport_->write((char*)rtcpPacket, pos);
     }
 
@@ -415,6 +419,18 @@ namespace erizo {
     if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL) //we don't enqueue data if there is nothing to receive it
       return;
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
+    if (sending_==false)
+      return;
+    if (comp == -1){
+      sending_ = false;
+      std::queue<dataPacket> empty;
+      std::swap( sendQueue_, empty);
+      dataPacket p_;
+      p_.comp = -1;
+      sendQueue_.push(p_);
+      cond_.notify_one();
+      return;
+    }
     if (sendQueue_.size() < 1000) {
       dataPacket p_;
       memset(p_.data, 0, length);
@@ -468,7 +484,13 @@ namespace erizo {
           return;
         }
       }
-
+      if(sendQueue_.front().comp ==-1){
+        sending_ =  false;
+        ELOG_DEBUG("Finishing send Thread, packet -1");
+        sendQueue_.pop();
+        lock.unlock();
+        return;
+      }
       if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
         videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
       } else {

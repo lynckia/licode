@@ -37,7 +37,11 @@ namespace erizo {
     boost::scoped_ptr<SrtpChannel> srtp_, srtcp_;
     bool readyRtp, readyRtcp;
     bool bundle_;
+    bool running_;
     boost::scoped_ptr<Resender> rtcpResender, rtpResender;
+    boost::thread getNice_Thread_;
+    void getNiceDataLoop();
+    dataPacket p_;
 
     friend class Transport;
   };

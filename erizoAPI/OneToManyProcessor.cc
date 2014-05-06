@@ -89,7 +89,7 @@ Handle<Value> OneToManyProcessor::getPublisherState(const Arguments& args) {
   OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  erizo::MediaSource * ms = me->publisher;
+  erizo::MediaSource * ms = me->publisher.get();
 
   erizo::WebRtcConnection* wr = (erizo::WebRtcConnection*)ms;
 

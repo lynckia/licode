@@ -24,8 +24,8 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
 	DECLARE_LOGGER();
 
 public:
-	MediaSource *publisher;
-	std::map<std::string, MediaSink*> subscribers;
+	std::map<std::string, boost::shared_ptr<MediaSink>> subscribers;
+  boost::shared_ptr<MediaSource> publisher;
 
 	OneToManyProcessor();
 	virtual ~OneToManyProcessor();
@@ -51,10 +51,12 @@ public:
   int deliverFeedback(char* buf, int len);
 
 private:
+  typedef boost::shared_ptr<MediaSink> sink_ptr;
 	char sendVideoBuffer_[2000];
 	char sendAudioBuffer_[2000];
 	unsigned int sentPackets_;
   std::string rtcpReceiverPeerId_;
+  boost::mutex monitor_;
   FeedbackSink* feedbackSink_;
   ExternalOutput* recorder_;
   void closeAll();

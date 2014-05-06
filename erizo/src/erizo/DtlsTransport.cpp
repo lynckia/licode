@@ -70,6 +70,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
 
   readyRtp = false;
   readyRtcp = false;
+  running_ = false;
 
   dtlsRtp.reset(new DtlsSocketContext());
 
@@ -86,21 +87,30 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
     dtlsRtcp->setDtlsReceiver(this);
   }
   bundle_ = bundle;
-  nice_.reset(new NiceConnection(med, transport_name, comps, stunServer, stunPort, minPort, maxPort));
+  nice_.reset(new NiceConnection(med, transport_name, this, comps, stunServer, stunPort, minPort, maxPort));
   nice_->setNiceListener(this);
   nice_->start();
+  running_ =true;
+  getNice_Thread_ = boost::thread(&DtlsTransport::getNiceDataLoop, this);
+
 }
 
 DtlsTransport::~DtlsTransport() {
-  ELOG_DEBUG("DTLSTransport destructor");
-
+  ELOG_DEBUG("DTLSTransport destructor - joining thread");
+  running_ = false;
+  getNice_Thread_.join();
+  ELOG_DEBUG("DTLSTransport destructor - closing nice");
+  nice_->close();
+  ELOG_DEBUG("DTLSTransport dest before join");
+  ELOG_DEBUG("DTLSTransport dest after join");
+  
   boost::mutex::scoped_lock lockr(readMutex_);
   boost::mutex::scoped_lock lockw(writeMutex_);
   boost::mutex::scoped_lock locks(sessionMutex_);
+  ELOG_DEBUG("DTLSTransport destructor END");
 }
 
 void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {
-  boost::mutex::scoped_lock lock(readMutex_);
   int length = len;
   SrtpChannel *srtp = srtp_.get();
 
@@ -169,7 +179,7 @@ void DtlsTransport::write(char* data, int len) {
       if (dtlsRtcp != NULL) {
         srtp = srtcp_.get();
       }
-      if (srtp && nice_->iceState == NICE_READY) {
+      if (srtp && nice_->checkIceState() == NICE_READY) {
         if(srtp->protectRtcp(protectBuf_, &length)<0) {
           return;
         }
@@ -178,7 +188,7 @@ void DtlsTransport::write(char* data, int len) {
     else{
       comp = 1;
 
-      if (srtp && nice_->iceState == NICE_READY) {
+      if (srtp && nice_->checkIceState() == NICE_READY) {
         if(srtp->protectRtp(protectBuf_, &length)<0) {
           return;
         }
@@ -187,7 +197,7 @@ void DtlsTransport::write(char* data, int len) {
     if (length <= 10) {
       return;
     }
-    if (nice_->iceState == NICE_READY) {
+    if (nice_->checkIceState() == NICE_READY) {
       this->writeOnNice(comp, protectBuf_, length);
     }
   }
@@ -266,7 +276,7 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
   ELOG_DEBUG( "Processing Local SDP in DTLS Transport" );
   localSdp_->isFingerprint = true;
   localSdp_->fingerprint = getMyFingerprint();
-  if (nice_->iceState >= NICE_CANDIDATES_GATHERED) {
+  if (nice_->checkIceState() >= NICE_CANDIDATES_GATHERED) {
 
     boost::shared_ptr<std::vector<CandidateInfo> > cands = nice_->localCandidates;
     ELOG_DEBUG( "Candidates: %lu", cands->size() );
@@ -285,6 +295,17 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
   ELOG_DEBUG( "Processed Local SDP in DTLS Transport" );
 }
 
+void DtlsTransport::getNiceDataLoop(){
+  while(running_ == true){
+    dataPacket p = nice_->getPacket();
+    if (p.length <=0)
+      return;
+    p_.length = p.length;
+    p_.comp = p.comp;
+    memcpy(p_.data, p.data, p.length);
+    this->onNiceData(p.comp, p.data, p.length, NULL);
+  }
+}
 bool DtlsTransport::isDtlsPacket(const char* buf, int len) {
   int data = DtlsFactory::demuxPacket(reinterpret_cast<const unsigned char*>(buf),len);
   switch(data)
