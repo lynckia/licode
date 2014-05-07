@@ -14,7 +14,7 @@ OneToManyTranscoder::OneToManyTranscoder() {
 
 	publisher = NULL;
 	sentPackets_ = 0;
-	ip = new InputProcessor();
+    ip_ = new InputProcessor();
 	sink_ = new RTPSink("127.0.0.1", "50000");
 	MediaInfo m;
 	m.proccessorType = RTP_ONLY;
@@ -24,13 +24,9 @@ OneToManyTranscoder::OneToManyTranscoder() {
 	m.videoCodec.width = 640;
 	m.videoCodec.height = 480;
 	m.hasAudio = false;
-	if (m.hasAudio) {
-		m.audioCodec.sampleRate = 8000;
-		m.audioCodec.bitRate = 64000;
 
-	}
   ELOG_DEBUG("init ip");
-	ip->init(m, this);
+    ip_->init(m, this);
 
 	MediaInfo om;
 	om.proccessorType = RTP_ONLY;
@@ -42,19 +38,23 @@ OneToManyTranscoder::OneToManyTranscoder() {
 //	om.url = "file://tmp/test.mp4";
 
 	om.hasAudio = false;
-	if (om.hasAudio) {
-		om.audioCodec.sampleRate = 8000;
-		om.audioCodec.bitRate = 64000;
-	}
 
-	op = new OutputProcessor();
-	op->init(om, this);
+    op_ = new OutputProcessor();
+    op_->init(om, this);
 
 }
 
 OneToManyTranscoder::~OneToManyTranscoder() {
 	this->closeAll();
-	delete sink_;
+    if (sink_ != NULL) {
+        delete sink_; sink_ = NULL;
+    }
+    if (ip_ != NULL) {
+        delete ip_; ip_ = NULL;
+    }
+    if (op_ != NULL) {
+        delete op_; op_ = NULL;
+    }
 }
 
 int OneToManyTranscoder::deliverAudioData(char* buf, int len) {
@@ -78,7 +78,7 @@ int OneToManyTranscoder::deliverVideoData(char* buf, int len) {
 //			theHead->getPayloadType());
 
 	if (theHead->getPayloadType() == 100) {
-		ip->deliverVideoData(sendVideoBuffer_, len);
+        ip_->deliverVideoData(sendVideoBuffer_, len);
 	} else {
 		this->receiveRtpData((unsigned char*) buf, len);
 	}
@@ -104,7 +104,7 @@ int OneToManyTranscoder::deliverVideoData(char* buf, int len) {
 
 void OneToManyTranscoder::receiveRawData(RawDataPacket& pkt) {
 //	ELOG_DEBUG("Received %d", pkt.length);
-	op->receiveRawData(pkt);
+    op_->receiveRawData(pkt);
 }
 
 void OneToManyTranscoder::receiveRtpData(unsigned char*rtpdata, int len) {
@@ -118,7 +118,6 @@ void OneToManyTranscoder::receiveRtpData(unsigned char*rtpdata, int len) {
 //	}
 	std::map<std::string, MediaSink*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
-		memcpy(sendVideoBuffer_, rtpdata, len);
 		(*it).second->deliverVideoData(sendVideoBuffer_, len);
 	}
 	sentPackets_++;
