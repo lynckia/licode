@@ -119,7 +119,6 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
     }
     return;
   } else if (this->getTransportState() == TRANSPORT_READY) {
-    memset(unprotectBuf_, 0, len);
     memcpy(unprotectBuf_, data, len);
 
     if (dtlsRtcp != NULL && component_id == 2) {
@@ -156,11 +155,9 @@ void DtlsTransport::write(char* data, int len) {
   int length = len;
   SrtpChannel *srtp = srtp_.get();
 
-  int comp = 1;
   if (this->getTransportState() == TRANSPORT_READY) {
-    memset(protectBuf_, 0, len);
     memcpy(protectBuf_, data, len);
-
+    int comp = 1;
     rtcpheader *chead = reinterpret_cast<rtcpheader*> (protectBuf_);
     if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_PS_Feedback_PT||chead->packettype == RTCP_RTP_Feedback_PT) {
       if (!rtcp_mux_) {
