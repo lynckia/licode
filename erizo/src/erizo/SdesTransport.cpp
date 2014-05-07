@@ -64,7 +64,6 @@ void SdesTransport::onNiceData(unsigned int component_id, char* data, int len, N
     SrtpChannel *srtp = srtp_;
 
     if (this->getTransportState() == TRANSPORT_READY) {
-      memset(unprotectBuf_, 0, len);
       memcpy(unprotectBuf_, data, len);
 
       if (component_id == 2) {
@@ -94,7 +93,6 @@ void SdesTransport::write(char* data, int len) {
 
     int comp = 1;
     if (this->getTransportState() == TRANSPORT_READY) {
-      memset(protectBuf_, 0, len);
       memcpy(protectBuf_, data, len);
 
       rtcpheader *chead = reinterpret_cast<rtcpheader*> (protectBuf_);

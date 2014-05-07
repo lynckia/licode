@@ -415,15 +415,9 @@ namespace erizo {
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
     if (sendQueue_.size() < 1000) {
       dataPacket p_;
-      memset(p_.data, 0, length);
       memcpy(p_.data, buf, length);
       p_.comp = comp;
-      if (transport->mediaType == VIDEO_TYPE) {
-        p_.type = VIDEO_PACKET;
-      } else {
-        p_.type = AUDIO_PACKET;
-      }
-
+      p_.type = (transport->mediaType == VIDEO_TYPE) ? VIDEO_PACKET : AUDIO_PACKET;
       p_.length = length;
       sendQueue_.push(p_);
     }
