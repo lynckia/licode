@@ -39,8 +39,15 @@ namespace erizo {
     }
 
   VideoMixer::~VideoMixer() {
-
-    delete sink_;
+      if (ip != NULL) {
+          delete ip; ip = NULL;
+      }
+      if (sink_ != NULL) {
+            delete sink_; sink_ = NULL;
+      }
+      if (op != NULL) {
+          delete op; op = NULL;
+      }
   }
 
   int VideoMixer::deliverAudioData(char* buf, int len) {

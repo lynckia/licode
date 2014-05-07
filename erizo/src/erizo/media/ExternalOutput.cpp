@@ -52,7 +52,7 @@ namespace erizo {
     url.copy(context_->filename, sizeof(context_->filename),0);
     video_st = NULL;
     audio_st = NULL;
-    in = new InputProcessor();
+    in_ = new InputProcessor();
     MediaInfo m;
     //    m.processorType = RTP_ONLY;
     m.hasVideo = false;
@@ -60,7 +60,7 @@ namespace erizo {
 
     gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
-    in->init(m, this);
+    in_->init(m, this);
     thread_ = boost::thread(&ExternalOutput::sendLoop, this);
     sending_ = true;
     ELOG_DEBUG("Initialized successfully");
@@ -71,8 +71,10 @@ namespace erizo {
   ExternalOutput::~ExternalOutput(){
     ELOG_DEBUG("Destructor");
     ELOG_DEBUG("Closing Sink");
-    delete in;
-    in = NULL;
+    if (in_ != NULL) {
+        delete in_;
+        in_ = NULL;
+    }
     
     
     if (context_!=NULL){
@@ -105,7 +107,7 @@ namespace erizo {
 
 
   int ExternalOutput::writeAudioData(char* buf, int len){
-    if (in!=NULL){
+    if (in_!=NULL){
       if (videoCodec_ == NULL) {
         return 0;
       }
@@ -115,7 +117,7 @@ namespace erizo {
         return 0;
       }
 
-      int ret = in->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
+      int ret = in_->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedAudioBuffer_);
       if (ret <= 0)
         return ret;
@@ -150,7 +152,7 @@ namespace erizo {
   }
 
   int ExternalOutput::writeVideoData(char* buf, int len){
-    if (in!=NULL){
+    if (in_!=NULL){
       rtpheader *head = (rtpheader*) buf;
       if (head->payloadtype == RED_90000_PT) {
         int totalLength = 12;
@@ -180,7 +182,7 @@ namespace erizo {
         }
       }
       int estimatedFps=0;
-      int ret = in->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
+      int ret = in_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
 
       if (ret < 0)
@@ -316,7 +318,7 @@ namespace erizo {
   }
 
   void ExternalOutput::queueData(char* buffer, int length, packetType type){
-    if (in==NULL) {
+    if (in_==NULL) {
       return;
     }
     boost::mutex::scoped_lock lock(queueMutex_);

@@ -58,7 +58,7 @@ namespace erizo{
       AVOutputFormat *oformat_;
       AVCodec *videoCodec_, *audioCodec_; 
       AVCodecContext *videoCodecCtx_, *audioCodecCtx_;
-      InputProcessor *in;
+      InputProcessor *in_;
 
       AVPacket avpacket;
       unsigned char* unpackagedBufferpart_;
