@@ -64,7 +64,7 @@ namespace erizo {
 
 
     bufflen_ = st->codec->width*st->codec->height*3/2;
-    decodedBuffer_.reset((unsigned char*) malloc(bufflen_));
+    decodedBuffer_.reset(new unsigned char[bufflen_]);
 
 
     MediaInfo om;

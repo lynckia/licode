@@ -133,7 +133,6 @@ namespace erizo {
 
     if (avcodec_open2(aDecoderContext, aDecoder, NULL) < 0) {
       ELOG_DEBUG("Error al abrir el decoder de audio");
-      exit(0);
       return false;
     }
     audioDecoder = 1;
@@ -438,14 +437,12 @@ namespace erizo {
     aCoder = avcodec_find_encoder(static_cast<AVCodecID>(mediaInfo.audioCodec.codec));
     if (!aCoder) {
       ELOG_DEBUG("Encoder de audio no encontrado");
-      exit(0);
       return false;
     }
 
     aCoderContext = avcodec_alloc_context3(aCoder);
     if (!aCoderContext) {
       ELOG_DEBUG("Error de memoria en coder de audio");
-      exit(0);
       return false;
     }
 
@@ -456,7 +453,6 @@ namespace erizo {
 
     if (avcodec_open2(aCoderContext, aCoder, NULL) < 0) {
       ELOG_DEBUG("Error al abrir el coder de audio");
-      exit(0);
       return false;
     }
 
@@ -538,22 +534,18 @@ namespace erizo {
     return 0;
   }
 
-  int OutputProcessor::encodeAudio(unsigned char* inBuff, int nSamples,
-      AVPacket* pkt) {
+  int OutputProcessor::encodeAudio(unsigned char* inBuff, int nSamples, AVPacket* pkt) {
 
     if (audioCoder == 0) {
       ELOG_DEBUG("No se han inicializado los parámetros del audioCoder");
       return -1;
     }
 
-    AVFrame *frame;
-    /* frame containing input raw audio */
-    frame = avcodec_alloc_frame();
+    AVFrame *frame = avcodec_alloc_frame();
     if (!frame) {
       ELOG_ERROR("could not allocate audio frame");
-      exit(1);
+      return -1;
     }
-    uint16_t* samples;
     int ret, got_output, buffer_size;
     //float t, tincr;
 
@@ -568,11 +560,11 @@ namespace erizo {
         aCoderContext->sample_fmt);
     buffer_size = av_samples_get_buffer_size(NULL, aCoderContext->channels,
         aCoderContext->frame_size, aCoderContext->sample_fmt, 0);
-    samples = (uint16_t*) av_malloc(buffer_size);
+    uint16_t* samples = (uint16_t*) av_malloc(buffer_size);
     if (!samples) {
       ELOG_ERROR("could not allocate %d bytes for samples buffer",
           buffer_size);
-      exit(1);
+      return -1;
     }
     /* setup the data pointers in the AVFrame */
     ret = avcodec_fill_audio_frame(frame, aCoderContext->channels,
@@ -580,13 +572,13 @@ namespace erizo {
         0);
     if (ret < 0) {
       ELOG_ERROR("could not setup audio frame");
-      exit(1);
+      return ret;
     }
 
     ret = avcodec_encode_audio2(aCoderContext, pkt, frame, &got_output);
     if (ret < 0) {
       ELOG_ERROR("error encoding audio frame");
-      exit(1);
+      return ret;
     }
     if (got_output) {
       //fwrite(pkt.data, 1, pkt.size, f);

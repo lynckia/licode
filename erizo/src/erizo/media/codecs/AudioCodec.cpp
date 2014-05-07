@@ -59,25 +59,19 @@ namespace erizo {
     if(res != 0){
       av_strerror(res, (char*)(&errbuff), 500);
       ELOG_DEBUG("fail when opening input %s", errbuff);
-      exit(res);
+      return -1;
     }
     ELOG_DEBUG("Init audioEncoder end");
     return true;
   }
 
-  int AudioEncoder::encodeAudio (unsigned char* inBuffer, int nSamples, 
-      AVPacket* pkt){
-
-    AVFrame *frame;
-    /* frame containing input raw audio */
-    frame = avcodec_alloc_frame();
+  int AudioEncoder::encodeAudio (unsigned char* inBuffer, int nSamples, AVPacket* pkt) {
+    AVFrame *frame = avcodec_alloc_frame();
     if (!frame) {
       ELOG_ERROR("could not allocate audio frame");
-      exit(1);
+      return 0;
     }
-    uint16_t* samples;
     int ret, got_output, buffer_size;
-//    float t, tincr;
 
     frame->nb_samples = aCoderContext_->frame_size;
     frame->format = aCoderContext_->sample_fmt;
@@ -90,25 +84,26 @@ namespace erizo {
         aCoderContext_->sample_fmt);
     buffer_size = av_samples_get_buffer_size(NULL, aCoderContext_->channels,
         aCoderContext_->frame_size, aCoderContext_->sample_fmt, 0);
-    samples = (uint16_t*) malloc(buffer_size);
+    uint16_t* samples = (uint16_t*) malloc(buffer_size);
     if (!samples) {
-      ELOG_ERROR("could not allocate %d bytes for samples buffer",
-          buffer_size);
-      exit(1);
+      ELOG_ERROR("could not allocate %d bytes for samples buffer",buffer_size);
+      return 0;
     }
     /* setup the data pointers in the AVFrame */
     ret = avcodec_fill_audio_frame(frame, aCoderContext_->channels,
         aCoderContext_->sample_fmt, (const uint8_t*) samples, buffer_size,
         0);
     if (ret < 0) {
-      ELOG_ERROR("could not setup audio frame");
-      exit(1);
+        free(samples);
+        ELOG_ERROR("could not setup audio frame");
+        return 0;
     }
 
     ret = avcodec_encode_audio2(aCoderContext_, pkt, frame, &got_output);
     if (ret < 0) {
       ELOG_ERROR("error encoding audio frame");
-      exit(1);
+      free(samples);
+      return 0;
     }
     if (got_output) {
       //fwrite(pkt.data, 1, pkt.size, f);
@@ -160,7 +155,6 @@ namespace erizo {
 
     if (avcodec_open2(aDecoderContext_, aDecoder_, NULL) < 0) {
       ELOG_DEBUG("Error opening audio decoder");
-      exit(0);
       return false;
     }
     return true;
@@ -252,7 +246,6 @@ namespace erizo {
     }
 
     return decSize;
-    return 0;
   }
   int AudioDecoder::closeDecoder(){
     if (aDecoderContext_!=NULL){

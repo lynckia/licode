@@ -53,9 +53,12 @@ SdesTransport::~SdesTransport() {
     if (srtcp_ != NULL) {
         delete srtcp_; srtcp_ = NULL;
     }
-  free(protectBuf_);
-  free(unprotectBuf_);
-
+    if (protectBuf_ != NULL) {
+        free(protectBuf_); protectBuf_ = NULL;
+    }
+    if (unprotectBuf_ != NULL) {
+        free(unprotectBuf_); unprotectBuf_ = NULL;
+    }
 }
 
 void SdesTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {

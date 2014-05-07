@@ -57,14 +57,7 @@ namespace erizo {
     //    m.processorType = RTP_ONLY;
     m.hasVideo = false;
     m.hasAudio = false;
-    if (m.hasAudio) {
-      m.audioCodec.sampleRate = 8000;
-      m.audioCodec.bitRate = 64000;
-      m.audioCodec.codec = AUDIO_CODEC_VORBIS;
-      audioCoder_ = new AudioEncoder();
-      if (!audioCoder_->initEncoder(m.audioCodec))
-        exit(0);
-    }
+
     gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
     in->init(m, this);
