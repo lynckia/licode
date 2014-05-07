@@ -47,8 +47,12 @@ SdesTransport::SdesTransport(MediaType med, const std::string &transport_name, b
 }
 
 SdesTransport::~SdesTransport() {
-  delete srtp_;
-  delete srtcp_;
+    if (srtp_ != NULL) {
+        delete srtp_; srtp_ = NULL;
+    }
+    if (srtcp_ != NULL) {
+        delete srtcp_; srtcp_ = NULL;
+    }
   free(protectBuf_);
   free(unprotectBuf_);
 

@@ -21,6 +21,9 @@ namespace erizo {
     gotUnpackagedFrame_ = false;
     upackagedSize_ = 0;
     decodedBuffer_ = NULL;
+    unpackagedBuffer_ = NULL;
+    decodedAudioBuffer_ = NULL;
+    unpackagedAudioBuffer_ = NULL;
 
     av_register_all();
   }
@@ -316,7 +319,10 @@ namespace erizo {
       videoDecoder = 0;
     }
     if (decodedBuffer_ != NULL) {
-      free(decodedBuffer_);
+      free(decodedBuffer_); decodedBuffer_ = NULL;
+    }
+    if (unpackagedBuffer_ != NULL) {
+        free(unpackagedBuffer_); unpackagedBuffer_ = NULL;
     }
   }
 
@@ -332,6 +338,8 @@ namespace erizo {
     encodedBuffer_ = NULL;
     packagedBuffer_ = NULL;
     rtpBuffer_ = NULL;
+    encodedAudioBuffer_ = NULL;
+    packagedAudioBuffer_ = NULL;
 
     avcodec_register_all();
     av_register_all();
@@ -385,13 +393,19 @@ namespace erizo {
       videoCoder = 0;
     }
     if (encodedBuffer_!=NULL) {
-      free(encodedBuffer_);
+      free(encodedBuffer_); encodedBuffer_ = NULL;
     }
     if (packagedBuffer_!=NULL) {
-      free(packagedBuffer_);
+      free(packagedBuffer_); packagedBuffer_ = NULL;
     }
     if (rtpBuffer_!=NULL) {
-      free(rtpBuffer_);
+      free(rtpBuffer_); rtpBuffer_ = NULL;
+    }
+    if (encodedAudioBuffer_ != NULL) {
+        free(encodedAudioBuffer_); encodedAudioBuffer_ = NULL;
+    }
+    if (packagedAudioBuffer_ != NULL) {
+        free(packagedAudioBuffer_); packagedAudioBuffer_ = NULL;
     }
   }
 

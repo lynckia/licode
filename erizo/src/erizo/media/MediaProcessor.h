@@ -176,7 +176,6 @@ private:
 
 	unsigned char* encodedAudioBuffer_;
 	unsigned char* packagedAudioBuffer_;
-	unsigned char* rtpAudioBuffer_;
 
 	MediaInfo mediaInfo;
 
