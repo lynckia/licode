@@ -27,6 +27,9 @@ extern "C"
 
 #include "logger.h"
 
+const int SRTP_MASTER_KEY_KEY_LEN = 16;
+const int SRTP_MASTER_KEY_SALT_LEN = 14;
+
 namespace dtls
 {
 class DtlsFactory;
@@ -36,7 +39,31 @@ class DtlsSocketTimer;
 
 class SrtpSessionKeys
 {
-   public:
+public:
+    SrtpSessionKeys() {
+        clientMasterKey = new unsigned char[SRTP_MASTER_KEY_KEY_LEN];
+        clientMasterKeyLen = 0;
+        clientMasterSalt = new unsigned char[SRTP_MASTER_KEY_SALT_LEN];
+        clientMasterSaltLen = 0;
+        serverMasterKey = new unsigned char[SRTP_MASTER_KEY_KEY_LEN];
+        serverMasterKeyLen = 0;
+        serverMasterSalt = new unsigned char[SRTP_MASTER_KEY_SALT_LEN];
+        serverMasterSaltLen = 0;
+    }
+    ~SrtpSessionKeys() {
+        if(clientMasterKey) {
+            delete[] clientMasterKey; clientMasterKey = NULL;
+        }
+        if(serverMasterKey) {
+            delete[] serverMasterKey; serverMasterKey = NULL;
+        }
+        if( clientMasterSalt) {
+            delete[] clientMasterSalt; clientMasterSalt = NULL;
+        }
+        if(serverMasterSalt) {
+            delete[] serverMasterSalt; serverMasterSalt = NULL;
+        }
+    }
       unsigned char *clientMasterKey;
       int clientMasterKeyLen;
       unsigned char *serverMasterKey;
@@ -77,7 +104,7 @@ class DtlsSocket
       SocketType getSocketType() {return mSocketType;}
 
       // Retreives the SRTP session keys from the Dtls session
-      SrtpSessionKeys getSrtpSessionKeys();
+      SrtpSessionKeys* getSrtpSessionKeys();
 
       // Utility fn to compute a certificates fingerprint
       static void computeFingerprint(X509 *cert, char *fingerprint);

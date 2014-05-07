@@ -79,26 +79,27 @@ void DtlsSocketContext::handshakeCompleted()
     bool check=mSocket->checkFingerprint(fprint,strlen(fprint));
     ELOG_DEBUG("Fingerprint check == %d", check);
 
-    SrtpSessionKeys keys=mSocket->getSrtpSessionKeys();
+    SrtpSessionKeys* keys=mSocket->getSrtpSessionKeys();
 
-    unsigned char* cKey = (unsigned char*)malloc(keys.clientMasterKeyLen + keys.clientMasterSaltLen);
-    unsigned char* sKey = (unsigned char*)malloc(keys.serverMasterKeyLen + keys.serverMasterSaltLen);
+    unsigned char* cKey = (unsigned char*)malloc(keys->clientMasterKeyLen + keys->clientMasterSaltLen);
+    unsigned char* sKey = (unsigned char*)malloc(keys->serverMasterKeyLen + keys->serverMasterSaltLen);
 
-    memcpy ( cKey, keys.clientMasterKey, keys.clientMasterKeyLen );
-    memcpy ( cKey + keys.clientMasterKeyLen, keys.clientMasterSalt, keys.clientMasterSaltLen );
+    memcpy ( cKey, keys->clientMasterKey, keys->clientMasterKeyLen );
+    memcpy ( cKey + keys->clientMasterKeyLen, keys->clientMasterSalt, keys->clientMasterSaltLen );
 
-    memcpy ( sKey, keys.serverMasterKey, keys.serverMasterKeyLen );
-    memcpy ( sKey + keys.serverMasterKeyLen, keys.serverMasterSalt, keys.serverMasterSaltLen );
+    memcpy ( sKey, keys->serverMasterKey, keys->serverMasterKeyLen );
+    memcpy ( sKey + keys->serverMasterKeyLen, keys->serverMasterSalt, keys->serverMasterSaltLen );
 
 
-    std::string clientKey = g_base64_encode((const guchar*)cKey, keys.clientMasterKeyLen + keys.clientMasterSaltLen);
-    std::string serverKey = g_base64_encode((const guchar*)sKey, keys.serverMasterKeyLen + keys.serverMasterSaltLen);
+    std::string clientKey = g_base64_encode((const guchar*)cKey, keys->clientMasterKeyLen + keys->clientMasterSaltLen);
+    std::string serverKey = g_base64_encode((const guchar*)sKey, keys->serverMasterKeyLen + keys->serverMasterSaltLen);
 
     ELOG_DEBUG("ClientKey: %s", clientKey.c_str());
     ELOG_DEBUG("ServerKey: %s", serverKey.c_str());
 
     free(cKey);
     free(sKey);
+    delete keys;
 
     srtp_profile=mSocket->getSrtpProfile();
 

@@ -15,8 +15,6 @@ using namespace std;
 using namespace dtls;
 
 const int SRTP_MASTER_KEY_BASE64_LEN = SRTP_MASTER_KEY_LEN * 4 / 3;
-const int SRTP_MASTER_KEY_KEY_LEN = 16;
-const int SRTP_MASTER_KEY_SALT_LEN = 14;
 
 DEFINE_LOGGER(DtlsSocket, "dtls.DtlsSocket");
 
@@ -250,22 +248,13 @@ DtlsSocket::getMyCertFingerprint(char *fingerprint)
    mFactory->getMyCertFingerprint(fingerprint);
 }
 
-SrtpSessionKeys
+SrtpSessionKeys*
 DtlsSocket::getSrtpSessionKeys()
 {
    //TODO: probably an exception candidate
    assert(mHandshakeCompleted);
 
-   SrtpSessionKeys keys;
-   memset(&keys, 0x00, sizeof(keys));
-   keys.clientMasterKey = new unsigned char[SRTP_MASTER_KEY_KEY_LEN];
-   keys.clientMasterKeyLen = 0;
-   keys.clientMasterSalt = new unsigned char[SRTP_MASTER_KEY_SALT_LEN];
-   keys.clientMasterSaltLen = 0;
-   keys.serverMasterKey = new unsigned char[SRTP_MASTER_KEY_KEY_LEN];
-   keys.serverMasterKeyLen = 0;
-   keys.serverMasterSalt = new unsigned char[SRTP_MASTER_KEY_SALT_LEN];
-   keys.serverMasterSaltLen = 0;
+   SrtpSessionKeys* keys = new SrtpSessionKeys();
 
    unsigned char material[SRTP_MASTER_KEY_LEN << 1];
    if (!SSL_export_keying_material(
@@ -279,18 +268,18 @@ DtlsSocket::getSrtpSessionKeys()
 
    size_t offset = 0;
 
-   memcpy(keys.clientMasterKey, &material[offset], SRTP_MASTER_KEY_KEY_LEN);
+   memcpy(keys->clientMasterKey, &material[offset], SRTP_MASTER_KEY_KEY_LEN);
    offset += SRTP_MASTER_KEY_KEY_LEN;
-   memcpy(keys.serverMasterKey, &material[offset], SRTP_MASTER_KEY_KEY_LEN);
+   memcpy(keys->serverMasterKey, &material[offset], SRTP_MASTER_KEY_KEY_LEN);
    offset += SRTP_MASTER_KEY_KEY_LEN;
-   memcpy(keys.clientMasterSalt, &material[offset], SRTP_MASTER_KEY_SALT_LEN);
+   memcpy(keys->clientMasterSalt, &material[offset], SRTP_MASTER_KEY_SALT_LEN);
    offset += SRTP_MASTER_KEY_SALT_LEN;
-   memcpy(keys.serverMasterSalt, &material[offset], SRTP_MASTER_KEY_SALT_LEN);
+   memcpy(keys->serverMasterSalt, &material[offset], SRTP_MASTER_KEY_SALT_LEN);
    offset += SRTP_MASTER_KEY_SALT_LEN;
-   keys.clientMasterKeyLen = SRTP_MASTER_KEY_KEY_LEN;
-   keys.serverMasterKeyLen = SRTP_MASTER_KEY_KEY_LEN;
-   keys.clientMasterSaltLen = SRTP_MASTER_KEY_SALT_LEN;
-   keys.serverMasterSaltLen = SRTP_MASTER_KEY_SALT_LEN;
+   keys->clientMasterKeyLen = SRTP_MASTER_KEY_KEY_LEN;
+   keys->serverMasterKeyLen = SRTP_MASTER_KEY_KEY_LEN;
+   keys->clientMasterSaltLen = SRTP_MASTER_KEY_SALT_LEN;
+   keys->serverMasterSaltLen = SRTP_MASTER_KEY_SALT_LEN;
 
    return keys;
 }
@@ -350,22 +339,22 @@ DtlsSocket::createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy
    server_policy.window_size = 128;
    server_policy.allow_repeat_tx = 1;
 
-   SrtpSessionKeys srtp_key = getSrtpSessionKeys();
+   SrtpSessionKeys* srtp_key = getSrtpSessionKeys();
    /* set client_write key */
    client_policy.key = client_master_key_and_salt;
-   if (srtp_key.clientMasterKeyLen != key_len)
+   if (srtp_key->clientMasterKeyLen != key_len)
    {
       ELOG_WARN( "error: unexpected client key length" );
       assert(0);
    }
-   if (srtp_key.clientMasterSaltLen != salt_len)
+   if (srtp_key->clientMasterSaltLen != salt_len)
    {
       ELOG_WARN( "error: unexpected client salt length" );
       assert(0);
    }
 
-   memcpy(client_master_key_and_salt, srtp_key.clientMasterKey, key_len);
-   memcpy(client_master_key_and_salt + key_len, srtp_key.clientMasterSalt, salt_len);
+   memcpy(client_master_key_and_salt, srtp_key->clientMasterKey, key_len);
+   memcpy(client_master_key_and_salt + key_len, srtp_key->clientMasterSalt, salt_len);
 
    /* initialize client SRTP policy from profile  */
    err_status_t err = crypto_policy_set_from_profile_for_rtp(&client_policy.rtp, profile);
@@ -378,19 +367,21 @@ DtlsSocket::createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy
    /* set server_write key */
    server_policy.key = server_master_key_and_salt;
 
-   if (srtp_key.serverMasterKeyLen != key_len)
+   if (srtp_key->serverMasterKeyLen != key_len)
    {
       ELOG_WARN( "error: unexpected server key length" );
       assert(0);
    }
-   if (srtp_key.serverMasterSaltLen != salt_len)
+   if (srtp_key->serverMasterSaltLen != salt_len)
    {
       ELOG_WARN( "error: unexpected salt length" );
       assert(0);
    }
 
-   memcpy(server_master_key_and_salt, srtp_key.serverMasterKey, key_len);
-   memcpy(server_master_key_and_salt + key_len, srtp_key.serverMasterSalt, salt_len);
+   memcpy(server_master_key_and_salt, srtp_key->serverMasterKey, key_len);
+   memcpy(server_master_key_and_salt + key_len, srtp_key->serverMasterSalt, salt_len);
+
+   delete srtp_key;
 
    /* initialize server SRTP policy from profile  */
    err = crypto_policy_set_from_profile_for_rtp(&server_policy.rtp, profile);
