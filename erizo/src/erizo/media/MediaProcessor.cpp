@@ -22,6 +22,7 @@ namespace erizo {
     upackagedSize_ = 0;
     decodedBuffer_ = NULL;
     unpackagedBuffer_ = NULL;
+    unpackagedBufferPtr_ = NULL;
     decodedAudioBuffer_ = NULL;
     unpackagedAudioBuffer_ = NULL;
 
@@ -39,7 +40,7 @@ namespace erizo {
       mediaInfo.videoCodec.codec = VIDEO_CODEC_VP8;
       decodedBuffer_ = (unsigned char*) malloc(
           info.videoCodec.width * info.videoCodec.height * 3 / 2);
-      unpackagedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
+      unpackagedBufferPtr_ = unpackagedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
       if(!vDecoder.initDecoder(mediaInfo.videoCodec));
       videoDecoder = 1; 
       if(!this->initVideoUnpackager());
@@ -76,19 +77,18 @@ namespace erizo {
     if (videoUnpackager && videoDecoder) {
       int estimatedFps=0;
       int ret = unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
-          unpackagedBuffer_, &gotUnpackagedFrame_, &estimatedFps);
+          unpackagedBufferPtr_, &gotUnpackagedFrame_, &estimatedFps);
       if (ret < 0)
         return 0;
       upackagedSize_ += ret;
-      unpackagedBuffer_ += ret;
+      unpackagedBufferPtr_ += ret;
       if (gotUnpackagedFrame_) {
-        unpackagedBuffer_ -= upackagedSize_;
-        ELOG_DEBUG("Tengo un frame desempaquetado!! Size = %d",
-            upackagedSize_);
+        unpackagedBufferPtr_ -= upackagedSize_;
+        ELOG_DEBUG("Tengo un frame desempaquetado!! Size = %d", upackagedSize_);
         int c;
         int gotDecodedFrame = 0;
 
-        c = vDecoder.decodeVideo(unpackagedBuffer_, upackagedSize_,
+        c = vDecoder.decodeVideo(unpackagedBufferPtr_, upackagedSize_,
             decodedBuffer_,
             mediaInfo.videoCodec.width * mediaInfo.videoCodec.height * 3
             / 2, &gotDecodedFrame);
@@ -323,6 +323,12 @@ namespace erizo {
     }
     if (unpackagedBuffer_ != NULL) {
         free(unpackagedBuffer_); unpackagedBuffer_ = NULL;
+    }
+    if (unpackagedAudioBuffer_ != NULL) {
+        free(unpackagedAudioBuffer_); unpackagedAudioBuffer_ = NULL;
+    }
+    if (decodedAudioBuffer_ != NULL) {
+        free(decodedAudioBuffer_); decodedAudioBuffer_ = NULL;
     }
   }
 

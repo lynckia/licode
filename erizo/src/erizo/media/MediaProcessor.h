@@ -118,6 +118,7 @@ private:
 
 	unsigned char* decodedBuffer_;
 	unsigned char* unpackagedBuffer_;
+    unsigned char* unpackagedBufferPtr_;
 
 	unsigned char* decodedAudioBuffer_;
 	unsigned char* unpackagedAudioBuffer_;
@@ -128,7 +129,7 @@ private:
 
 	AVFormatContext* aInputFormatContext;
 	AVInputFormat* aInputFormat;
-  VideoDecoder vDecoder;
+   VideoDecoder vDecoder;
 
 	RTPInfo* vRTPInfo;
 
