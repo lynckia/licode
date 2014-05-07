@@ -143,13 +143,12 @@ void OneToManyTranscoder::addSubscriber(MediaSink* webRtcConn,
   }
 
   void OneToManyTranscoder::closeAll() {
-    ELOG_WARN ("OneToManyProcessor closeAll");
-    std::map<std::string, MediaSink*>::iterator it;
-    for (it = subscribers.begin(); it != subscribers.end(); it++) {
-//      (*it).second->closeSink();
-      subscribers.erase(it);
-      delete (*it).second;
-    }
+      ELOG_WARN ("OneToManyTranscoder closeAll");
+      std::map<std::string, MediaSink*>::iterator it = subscribers.begin();
+      while( it != subscribers.end()) {
+        delete (*it).second;
+        it = subscribers.erase(it);
+      }
     delete this->publisher;
   }
 
