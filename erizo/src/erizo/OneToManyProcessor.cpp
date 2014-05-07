@@ -97,13 +97,12 @@ namespace erizo {
 
   void OneToManyProcessor::closeAll() {
     ELOG_DEBUG ("OneToManyProcessor closeAll");
-    std::map<std::string, MediaSink*>::iterator it;
-    for (it = subscribers.begin(); it != subscribers.end(); it++) {
-//      (*it).second->closeSink();
+    std::map<std::string, MediaSink*>::iterator it = subscribers.begin();
+    while(it != subscribers.end()) {
       if ((*it).second != NULL) {
         delete (*it).second;
-        subscribers.erase(it);
       }
+      it = subscribers.erase(it);
     }
     delete this->publisher;
   }
