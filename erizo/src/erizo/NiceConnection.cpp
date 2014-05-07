@@ -97,6 +97,10 @@ namespace erizo {
       g_main_loop_unref (loop_);
       loop_=NULL;
     }
+    if (context_ != NULL) {
+        g_main_context_unref(context_);
+        context_ = NULL;
+    }
     ELOG_WARN("Mutex %d, %p", state, this);
     boost::mutex::scoped_lock lock(writeMutex_);
   }
@@ -115,7 +119,11 @@ namespace erizo {
     if (loop_ != NULL) {
       g_main_loop_unref (loop_);
       loop_=NULL;
-    }    
+    }
+    if (context_ != NULL) {
+        g_main_context_unref(context_);
+        context_ = NULL;
+    }
   }
 
   void NiceConnection::start() {
