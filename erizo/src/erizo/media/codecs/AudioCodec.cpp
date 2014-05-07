@@ -206,6 +206,7 @@ namespace erizo {
             aDecoderContext_->sample_fmt, 1);
         if (outSize < data_size) {
           ELOG_DEBUG("output buffer size is too small for the current frame");
+          free(decBuff);
           return AVERROR(EINVAL);
         }
 
