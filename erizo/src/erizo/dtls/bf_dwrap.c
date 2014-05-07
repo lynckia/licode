@@ -60,9 +60,12 @@ static int dwrap_new(BIO *bi)
 
 static int dwrap_free(BIO *a)
 {
-   if(a) return 0;
+   if(a == NULL) return 0;
 
-   free(a);
+   OPENSSL_free(a->ptr);
+   a->ptr = NULL;
+   a->init = 0;
+   a->flags = 0;
    return 1;
 }
 
