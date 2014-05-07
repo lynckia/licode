@@ -405,6 +405,11 @@ namespace erizo {
       lcands = nice_agent_get_local_candidates(agent_, stream_id,
           currentCompId++);
     }
+
+    // According to libnice, this is how these must be free'd
+    g_free(ufrag);
+    g_free(upass);
+
     ELOG_INFO("candidate_gathering done with %lu candidates", localCandidates->size());
 
     if (localCandidates->size()==0){
