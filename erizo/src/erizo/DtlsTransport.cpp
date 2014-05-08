@@ -99,7 +99,6 @@ DtlsTransport::~DtlsTransport() {
   running_ = false;
   nice_->close();
   getNice_Thread_.join();
-  boost::mutex::scoped_lock lockr(readMutex_);
   boost::mutex::scoped_lock lockw(writeMutex_);
   boost::mutex::scoped_lock locks(sessionMutex_);
   ELOG_DEBUG("DTLSTransport destructor END");
