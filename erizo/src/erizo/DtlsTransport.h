@@ -34,7 +34,7 @@ namespace erizo {
     char unprotectBuf_[5000];
     boost::shared_ptr<dtls::DtlsSocketContext> dtlsRtp, dtlsRtcp;
     boost::mutex writeMutex_, readMutex_, sessionMutex_;
-    SrtpChannel *srtp_, *srtcp_;
+    boost::scoped_ptr<SrtpChannel> srtp_, srtcp_;
     bool readyRtp, readyRtcp;
     bool bundle_;
     boost::scoped_ptr<Resender> rtcpResender, rtpResender;
@@ -45,7 +45,7 @@ namespace erizo {
   class Resender {
     DECLARE_LOGGER();
   public:
-    Resender(NiceConnection *nice, unsigned int comp, const unsigned char* data, unsigned int len);
+    Resender(boost::shared_ptr<NiceConnection> nice, unsigned int comp, const unsigned char* data, unsigned int len);
     virtual ~Resender();
     void start();
     void run();
@@ -53,7 +53,7 @@ namespace erizo {
 
     void resend(const boost::system::error_code& ec);
   private:
-    NiceConnection *nice_;
+    boost::shared_ptr<NiceConnection> nice_;
     unsigned int comp_;
     const unsigned char* data_;
     unsigned int len_;

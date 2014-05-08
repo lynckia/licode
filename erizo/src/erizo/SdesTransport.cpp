@@ -41,18 +41,24 @@ SdesTransport::SdesTransport(MediaType med, const std::string &transport_name, b
     cryptoLocal_.tag = 1;
     cryptoRemote_ = *remoteCrypto;
 
-    nice_ = new NiceConnection(med, transport_name, comps,  stunServer, stunPort, minPort, maxPort);
+    nice_.reset(new NiceConnection(med, transport_name, comps,  stunServer, stunPort, minPort, maxPort));
     nice_->setNiceListener(this);
     nice_->start();
 }
 
 SdesTransport::~SdesTransport() {
-  delete srtp_;
-  delete srtcp_;
-  delete nice_;
-  free(protectBuf_);
-  free(unprotectBuf_);
-
+    if (srtp_ != NULL) {
+        delete srtp_; srtp_ = NULL;
+    }
+    if (srtcp_ != NULL) {
+        delete srtcp_; srtcp_ = NULL;
+    }
+    if (protectBuf_ != NULL) {
+        free(protectBuf_); protectBuf_ = NULL;
+    }
+    if (unprotectBuf_ != NULL) {
+        free(unprotectBuf_); unprotectBuf_ = NULL;
+    }
 }
 
 void SdesTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {
@@ -61,7 +67,6 @@ void SdesTransport::onNiceData(unsigned int component_id, char* data, int len, N
     SrtpChannel *srtp = srtp_;
 
     if (this->getTransportState() == TRANSPORT_READY) {
-      memset(unprotectBuf_, 0, len);
       memcpy(unprotectBuf_, data, len);
 
       if (component_id == 2) {
@@ -91,7 +96,6 @@ void SdesTransport::write(char* data, int len) {
 
     int comp = 1;
     if (this->getTransportState() == TRANSPORT_READY) {
-      memset(protectBuf_, 0, len);
       memcpy(protectBuf_, data, len);
 
       rtcpheader *chead = reinterpret_cast<rtcpheader*> (protectBuf_);
