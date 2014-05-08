@@ -59,10 +59,14 @@ namespace erizo {
     videoSink_ = NULL;
     audioSink_ = NULL;
     fbSink_ = NULL;
-    delete videoTransport_;
-    videoTransport_=NULL;
-    delete audioTransport_;
-    audioTransport_= NULL;
+    if (videoTransport_) {
+        delete videoTransport_;
+        videoTransport_=NULL;
+    }
+    if (audioTransport_) {
+        delete audioTransport_;
+        audioTransport_= NULL;
+    }
   }
 
   bool WebRtcConnection::init() {
@@ -76,14 +80,8 @@ namespace erizo {
     video_ = (remoteSdp_.videoSsrc==0?false:true);
     audio_ = (remoteSdp_.audioSsrc==0?false:true);
 
-    CryptoInfo cryptLocal_video;
-    CryptoInfo cryptLocal_audio;
-    CryptoInfo cryptRemote_video;
-    CryptoInfo cryptRemote_audio;
-
     bundle_ = remoteSdp_.isBundle;
     ELOG_DEBUG("Is bundle? %d %d ", bundle_, true);
-    std::vector<RtpMap> payloadRemote = remoteSdp_.getPayloadInfos();
     localSdp_.getPayloadInfos() = remoteSdp_.getPayloadInfos();
     localSdp_.isBundle = bundle_;
     localSdp_.isRtcpMux = remoteSdp_.isRtcpMux;
@@ -417,15 +415,9 @@ namespace erizo {
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
     if (sendQueue_.size() < 1000) {
       dataPacket p_;
-      memset(p_.data, 0, length);
       memcpy(p_.data, buf, length);
       p_.comp = comp;
-      if (transport->mediaType == VIDEO_TYPE) {
-        p_.type = VIDEO_PACKET;
-      } else {
-        p_.type = AUDIO_PACKET;
-      }
-
+      p_.type = (transport->mediaType == VIDEO_TYPE) ? VIDEO_PACKET : AUDIO_PACKET;
       p_.length = length;
       sendQueue_.push(p_);
     }

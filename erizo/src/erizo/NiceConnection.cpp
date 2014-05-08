@@ -55,13 +55,10 @@ namespace erizo {
     conn->updateComponentState(component_id, NICE_READY);
   }
 
-  NiceConnection::NiceConnection(MediaType med,
-      const std::string &transport_name, unsigned int iceComponents, const std::string& stunServer,
-      int stunPort, int minPort, int maxPort):mediaType(med), iceComponents_(iceComponents),
-  stunServer_(stunServer), stunPort_ (stunPort), minPort_(minPort), maxPort_(maxPort) {
-    agent_ = NULL;
-    loop_ = NULL;
-    listener_ = NULL;
+  NiceConnection::NiceConnection(MediaType med, const std::string &transport_name, unsigned int iceComponents, const std::string& stunServer,
+                                  int stunPort, int minPort, int maxPort)
+     :  iceState(NICE_INITIAL), agent_(NULL), listener_(NULL),loop_(NULL), context_(NULL), mediaType(med), iceComponents_(iceComponents),
+             stunServer_(stunServer), stunPort_ (stunPort), minPort_(minPort), maxPort_(maxPort) {
     localCandidates.reset(new std::vector<CandidateInfo>());
     transportName.reset(new std::string(transport_name));
     for (unsigned int i = 1; i<=iceComponents; i++) {
@@ -100,6 +97,10 @@ namespace erizo {
       g_main_loop_unref (loop_);
       loop_=NULL;
     }
+    if (context_ != NULL) {
+        g_main_context_unref(context_);
+        context_ = NULL;
+    }
     ELOG_WARN("Mutex %d, %p", state, this);
     boost::mutex::scoped_lock lock(writeMutex_);
   }
@@ -118,7 +119,11 @@ namespace erizo {
     if (loop_ != NULL) {
       g_main_loop_unref (loop_);
       loop_=NULL;
-    }    
+    }
+    if (context_ != NULL) {
+        g_main_context_unref(context_);
+        context_ = NULL;
+    }
   }
 
   void NiceConnection::start() {
@@ -405,6 +410,11 @@ namespace erizo {
       lcands = nice_agent_get_local_candidates(agent_, stream_id,
           currentCompId++);
     }
+
+    // According to libnice, this is how these must be free'd
+    g_free(ufrag);
+    g_free(upass);
+
     ELOG_INFO("candidate_gathering done with %lu candidates", localCandidates->size());
 
     if (localCandidates->size()==0){
