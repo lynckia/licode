@@ -71,10 +71,8 @@ namespace erizo {
   ExternalOutput::~ExternalOutput(){
     ELOG_DEBUG("Destructor");
     ELOG_DEBUG("Closing Sink");
-    if (in_ != NULL) {
-        delete in_;
-        in_ = NULL;
-    }
+    delete in_;
+    in_ = NULL;
     
     
     if (context_!=NULL){
