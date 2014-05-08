@@ -31,9 +31,11 @@ SrtpChannel::~SrtpChannel() {
   active_ = false;
   if (send_session_ != NULL) {
     srtp_dealloc(send_session_);
+    send_session_ = NULL;
   }
   if (receive_session_ != NULL) {
     srtp_dealloc(receive_session_);
+    receive_session_ = NULL;
   }
 }
 

@@ -26,7 +26,7 @@ namespace erizo {
       return 0;
 
     std::map<std::string, sink_ptr>::iterator it;
-    for (it = subscribers.begin(); it != subscribers.end(); it++) {
+    for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       (*it).second->deliverAudioData(buf, len);
     }
 
@@ -47,7 +47,7 @@ namespace erizo {
       return 0;
     }
     std::map<std::string, sink_ptr>::iterator it;
-    for (it = subscribers.begin(); it != subscribers.end(); it++) {
+    for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       if((*it).second != NULL) {
         (*it).second->deliverVideoData(buf, len);
       }
