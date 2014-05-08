@@ -26,8 +26,6 @@ namespace erizo{
       ExternalOutput(const std::string& outputUrl);
       virtual ~ExternalOutput();
       bool init();
-	    int deliverAudioData(char* buf, int len);
-	    int deliverVideoData(char* buf, int len);
       void receiveRawData(RawDataPacket& packet);
 
     private:
@@ -72,6 +70,8 @@ namespace erizo{
       int sendFirPacket();
       void queueData(char* buffer, int length, packetType type);
       void sendLoop();
+	    int deliverAudioData_(char* buf, int len);
+	    int deliverVideoData_(char* buf, int len);
 	    int writeAudioData(char* buf, int len);
 	    int writeVideoData(char* buf, int len);
   };

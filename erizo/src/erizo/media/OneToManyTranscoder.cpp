@@ -57,7 +57,7 @@ OneToManyTranscoder::~OneToManyTranscoder() {
     }
 }
 
-int OneToManyTranscoder::deliverAudioData(char* buf, int len) {
+int OneToManyTranscoder::deliverAudioData_(char* buf, int len) {
 	if (subscribers.empty() || len <= 0)
 		return 0;
 
@@ -70,7 +70,7 @@ int OneToManyTranscoder::deliverAudioData(char* buf, int len) {
 	return 0;
 }
 
-int OneToManyTranscoder::deliverVideoData(char* buf, int len) {
+int OneToManyTranscoder::deliverVideoData_(char* buf, int len) {
 	memcpy(sendVideoBuffer_, buf, len);
 
 	RTPHeader* theHead = reinterpret_cast<RTPHeader*>(buf);

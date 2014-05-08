@@ -32,8 +32,6 @@ namespace erizo {
     globalState_ = INITIAL;
     connStateListener_ = NULL;
 
-    sending_ = true;
-    send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
 
     videoTransport_ = NULL;
     audioTransport_ = NULL;
@@ -45,13 +43,19 @@ namespace erizo {
     stunPort_ = stunPort;
     minPort_ = minPort;
     maxPort_ = maxPort;
+    
+    sending_ = true;
+    send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
   }
 
   WebRtcConnection::~WebRtcConnection() {
-    ELOG_DEBUG("WebRtcConnection Destructor");
+    ELOG_INFO("WebRtcConnection Destructor");
     sending_ = false;
+    this->queueData(-1,NULL,-1,NULL);
     cond_.notify_one();
     send_Thread_.join();
+    delete audioTransport_;
+    audioTransport_= NULL;
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
     boost::mutex::scoped_lock lock2(writeMutex_);
     boost::mutex::scoped_lock lock3(updateStateMutex_);
@@ -138,7 +142,7 @@ namespace erizo {
     return localSdp_.getSdp();
   }
 
-  int WebRtcConnection::deliverAudioData(char* buf, int len) {
+  int WebRtcConnection::deliverAudioData_(char* buf, int len) {
     writeSsrc(buf, len, this->getAudioSinkSSRC());
     if (bundle_){
       if (videoTransport_ != NULL) {
@@ -154,7 +158,7 @@ namespace erizo {
     return len;
   }
 
-  int WebRtcConnection::deliverVideoData(char* buf, int len) {
+  int WebRtcConnection::deliverVideoData_(char* buf, int len) {
     rtpheader *head = (rtpheader*) buf;
     writeSsrc(buf, len, this->getVideoSinkSSRC());
     if (videoTransport_ != NULL) {
@@ -194,7 +198,7 @@ namespace erizo {
     return len;
   }
 
-  int WebRtcConnection::deliverFeedback(char* buf, int len){
+  int WebRtcConnection::deliverFeedback_(char* buf, int len){
     // Check where to send the feedback
     rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
     ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, ntohl(chead->ssrc), ntohl(chead->ssrcsource));
@@ -229,8 +233,9 @@ namespace erizo {
   }
 
   void WebRtcConnection::onTransportData(char* buf, int len, Transport *transport) {
-    if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL)
+    if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL){
       return;
+    }
     boost::mutex::scoped_lock lock(writeMutex_);
     int length = len;
     rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
@@ -323,6 +328,8 @@ namespace erizo {
     rtcpPacket[pos++] = (uint8_t) 0;
 
     if (videoTransport_ != NULL) {
+
+      boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
       videoTransport_->write((char*)rtcpPacket, pos);
     }
 
@@ -344,7 +351,11 @@ namespace erizo {
 
     if (state == TRANSPORT_FAILED) {
       temp = FAILED;
-      ELOG_INFO("WebRtcConnection failed.");
+      globalState_ = FAILED;
+      sending_ = false;
+      boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
+      cond_.notify_one();
+      ELOG_INFO("WebRtcConnection failed, stopped sending");
     }
 
     
@@ -413,6 +424,18 @@ namespace erizo {
     if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL) //we don't enqueue data if there is nothing to receive it
       return;
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
+    if (sending_==false)
+      return;
+    if (comp == -1){
+      sending_ = false;
+      std::queue<dataPacket> empty;
+      std::swap( sendQueue_, empty);
+      dataPacket p_;
+      p_.comp = -1;
+      sendQueue_.push(p_);
+      cond_.notify_one();
+      return;
+    }
     if (sendQueue_.size() < 1000) {
       dataPacket p_;
       memcpy(p_.data, buf, length);
@@ -460,7 +483,13 @@ namespace erizo {
           return;
         }
       }
-
+      if(sendQueue_.front().comp ==-1){
+        sending_ =  false;
+        ELOG_DEBUG("Finishing send Thread, packet -1");
+        sendQueue_.pop();
+        lock.unlock();
+        return;
+      }
       if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
         videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
       } else {

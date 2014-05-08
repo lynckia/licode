@@ -4,6 +4,7 @@
 
 #ifndef MEDIADEFINITIONS_H_
 #define MEDIADEFINITIONS_H_
+#include <boost/thread/mutex.hpp>
 
 namespace erizo{
 
@@ -22,19 +23,29 @@ struct dataPacket{
   packetType type;
 };
 
-class FeedbackSink{
-public:
-  virtual ~FeedbackSink() = 0;
-  virtual int deliverFeedback(char* buf, int len)=0;
+class Monitor {
+  protected:
+    boost::mutex myMonitor_;
 };
 
-inline FeedbackSink::~FeedbackSink() {}
+class FeedbackSink: public virtual Monitor{
+public:
+  virtual ~FeedbackSink() {};
+  int deliverFeedback(char* buf, int len){
+    boost::mutex::scoped_lock myMonitor_;
+    return this->deliverFeedback_(buf,len);
+  };
+private:
+  virtual int deliverFeedback_(char* buf, int len)=0;
+};
 
-class FeedbackSource{
+
+class FeedbackSource: public virtual Monitor{
 protected:
   FeedbackSink* fbSink_;
 public:
   void setFeedbackSink(FeedbackSink* sink) {
+    boost::mutex::scoped_lock myMonitor_;
     fbSink_ = sink;
   };
 };
@@ -42,7 +53,7 @@ public:
 /*
  * A MediaSink 
  */
-class MediaSink{
+class MediaSink: public virtual Monitor{
 protected:
   //SSRCs received by the SINK
   unsigned int audioSinkSSRC_;
@@ -50,25 +61,47 @@ protected:
   //Is it able to provide Feedback
   FeedbackSource* sinkfbSource_;
 public:
-	virtual int deliverAudioData(char* buf, int len)=0;
-	virtual int deliverVideoData(char* buf, int len)=0;
-  unsigned int getVideoSinkSSRC (){return videoSinkSSRC_;};
-  void setVideoSinkSSRC (unsigned int ssrc){videoSinkSSRC_ = ssrc;};
-  unsigned int getAudioSinkSSRC (){return audioSinkSSRC_;};
-  void setAudioSinkSSRC (unsigned int ssrc){audioSinkSSRC_ = ssrc;};
+	int deliverAudioData(char* buf, int len){
+    boost::mutex::scoped_lock myMonitor_;
+    return this->deliverAudioData_(buf, len);
+  };
+	int deliverVideoData(char* buf, int len){
+    boost::mutex::scoped_lock myMonitor_;
+    return this->deliverVideoData_(buf, len);
+  };
+  unsigned int getVideoSinkSSRC (){
+    boost::mutex::scoped_lock myMonitor_;
+    return videoSinkSSRC_;
+  };
+  void setVideoSinkSSRC (unsigned int ssrc){
+    boost::mutex::scoped_lock myMonitor_;
+    videoSinkSSRC_ = ssrc;
+  };
+  unsigned int getAudioSinkSSRC (){
+    boost::mutex::scoped_lock myMonitor_;
+    return audioSinkSSRC_;
+  };
+  void setAudioSinkSSRC (unsigned int ssrc){
+    boost::mutex::scoped_lock myMonitor_;
+    audioSinkSSRC_ = ssrc;
+  };
   FeedbackSource* getFeedbackSource(){
+    boost::mutex::scoped_lock myMonitor_;
     return sinkfbSource_;
-  };  
+  }; 
   MediaSink() : audioSinkSSRC_(0), videoSinkSSRC_(0), sinkfbSource_(nullptr) {}
-  virtual ~MediaSink() = 0; 
+  virtual ~MediaSink() {}; 
+private:
+	virtual int deliverAudioData_(char* buf, int len)=0;
+	virtual int deliverVideoData_(char* buf, int len)=0;
+
 };
 
-inline MediaSink::~MediaSink() {}
 
 /**
  * A MediaSource is any class that produces audio or video data.
  */
-class MediaSource{
+class MediaSource: public virtual Monitor{
 protected: 
   //SSRCs coming from the source
     unsigned int videoSourceSSRC_;
@@ -79,20 +112,35 @@ protected:
     FeedbackSink* sourcefbSink_;
 public:
   void setAudioSink(MediaSink* audioSink){
+    boost::mutex::scoped_lock myMonitor_;
     this->audioSink_ = audioSink;
   };
   void setVideoSink(MediaSink* videoSink){
+    boost::mutex::scoped_lock myMonitor_;
     this->videoSink_ = videoSink;
   };
 
   FeedbackSink* getFeedbackSink(){
+    boost::mutex::scoped_lock myMonitor_;
     return sourcefbSink_;
   };
   virtual int sendFirPacket()=0;
-  unsigned int getVideoSourceSSRC (){return videoSourceSSRC_;};
-  void setVideoSourceSSRC (unsigned int ssrc){videoSourceSSRC_ = ssrc;};
-  unsigned int getAudioSourceSSRC (){return audioSourceSSRC_;};
-  void setAudioSourceSSRC (unsigned int ssrc){audioSourceSSRC_ = ssrc;};
+  unsigned int getVideoSourceSSRC (){
+    boost::mutex::scoped_lock myMonitor_;
+    return videoSourceSSRC_;
+  };
+  void setVideoSourceSSRC (unsigned int ssrc){
+    boost::mutex::scoped_lock myMonitor_;
+    videoSourceSSRC_ = ssrc;
+  };
+  unsigned int getAudioSourceSSRC (){
+    boost::mutex::scoped_lock myMonitor_;
+    return audioSourceSSRC_;
+  };
+  void setAudioSourceSSRC (unsigned int ssrc){
+    boost::mutex::scoped_lock myMonitor_;
+    audioSourceSSRC_ = ssrc;
+  };
 	virtual ~MediaSource(){};
 };
 

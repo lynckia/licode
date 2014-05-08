@@ -9,7 +9,7 @@
 namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
   OneToManyProcessor::OneToManyProcessor() {
-    publisher = NULL;
+    ELOG_DEBUG ("OneToManyProcessor constructor");
     feedbackSink_ = NULL;
     sentPackets_ = 0;
 
@@ -20,35 +20,33 @@ namespace erizo {
     this->closeAll();
   }
 
-  int OneToManyProcessor::deliverAudioData(char* buf, int len) {
+  int OneToManyProcessor::deliverAudioData_(char* buf, int len) {
+ //   ELOG_DEBUG ("OneToManyProcessor deliverAudio");
     if (subscribers.empty() || len <= 0)
       return 0;
 
-    std::map<std::string, MediaSink*>::iterator it;
+    std::map<std::string, sink_ptr>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
-      MediaSink *ptr = (*it).second;
-      if (ptr != NULL) {
-        ptr->deliverAudioData(buf, len);
-      }
+      (*it).second->deliverAudioData(buf, len);
     }
 
     return 0;
   }
 
-  int OneToManyProcessor::deliverVideoData(char* buf, int len) {
+  int OneToManyProcessor::deliverVideoData_(char* buf, int len) {
     if (subscribers.empty() || len <= 0)
       return 0;
 
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
     if(head->packettype==RTCP_Receiver_PT || head->packettype==RTCP_PS_Feedback_PT|| head->packettype == RTCP_RTP_Feedback_PT){
       ELOG_WARN("Receiving Feedback in wrong path: %d", head->packettype);
-      if (feedbackSink_){
+      if (feedbackSink_!=NULL){
         head->ssrc = htonl(publisher->getVideoSourceSSRC());
         feedbackSink_->deliverFeedback(buf,len);
       }
       return 0;
     }
-    std::map<std::string, MediaSink*>::iterator it;
+    std::map<std::string, sink_ptr>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); it++) {
       if((*it).second != NULL) {
         (*it).second->deliverVideoData(buf, len);
@@ -59,22 +57,23 @@ namespace erizo {
   }
 
   void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
-    ELOG_DEBUG("SET PUBLISHER");
-    this->publisher = webRtcConn;
+    boost::mutex::scoped_lock lock(myMonitor_);
+    this->publisher.reset(webRtcConn);
     feedbackSink_ = publisher->getFeedbackSink();
   }
 
-  int OneToManyProcessor::deliverFeedback(char* buf, int len){
-    if (feedbackSink_ != NULL) {
+  int OneToManyProcessor::deliverFeedback_(char* buf, int len){
+    if (feedbackSink_ != NULL){
+      ELOG_DEBUG("Deliver Feedback");
       feedbackSink_->deliverFeedback(buf,len);
     }
     return 0;
-
   }
 
   void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
     ELOG_DEBUG("Adding subscriber");
+    boost::mutex::scoped_lock lock(myMonitor_);
     ELOG_DEBUG("From %u, %u ", publisher->getAudioSourceSSRC() , publisher->getVideoSourceSSRC());
     webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
     webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
@@ -85,26 +84,36 @@ namespace erizo {
       ELOG_DEBUG("adding fbsource");
       fbsource->setFeedbackSink(this);
     }
-    this->subscribers[peerId] = webRtcConn;
+    this->subscribers[peerId] = sink_ptr(webRtcConn);
   }
 
   void OneToManyProcessor::removeSubscriber(const std::string& peerId) {
+    ELOG_DEBUG("Remove subscriber");
+    boost::mutex::scoped_lock lock(myMonitor_);
     if (this->subscribers.find(peerId) != subscribers.end()) {
-      delete this->subscribers[peerId];      
       this->subscribers.erase(peerId);
     }
   }
 
   void OneToManyProcessor::closeAll() {
+    boost::unique_lock<boost::mutex> lock(myMonitor_);
+    feedbackSink_ = NULL;
+    publisher.reset();
     ELOG_DEBUG ("OneToManyProcessor closeAll");
-    std::map<std::string, MediaSink*>::iterator it = subscribers.begin();
-    while(it != subscribers.end()) {
+    std::map<std::string, boost::shared_ptr<MediaSink>>::iterator it = subscribers.begin();
+    while (it != subscribers.end()) {
       if ((*it).second != NULL) {
-        delete (*it).second;
+        FeedbackSource* fbsource = (*it).second->getFeedbackSource();
+        if (fbsource!=NULL){
+          fbsource->setFeedbackSink(NULL);
+        }
       }
       it = subscribers.erase(it);
     }
-    delete this->publisher;
+    lock.unlock();
+    lock.lock();
+    subscribers.clear();
+    ELOG_DEBUG ("ClosedAll media in this OneToMany");
   }
 
 }/* namespace erizo */

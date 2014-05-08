@@ -50,11 +50,13 @@ public:
 	 * Destructor.
 	 */
 	virtual ~WebRtcConnection();
+
 	/**
 	 * Inits the WebConnection by starting ICE Candidate Gathering.
 	 * @return True if the candidates are gathered.
 	 */
 	bool init();
+  void close();
 	/**
 	 * Sets the SDP of the remote peer.
 	 * @param sdp The SDP.
@@ -67,10 +69,6 @@ public:
 	 */
 	std::string getLocalSdp();
 
-	int deliverAudioData(char* buf, int len);
-	int deliverVideoData(char* buf, int len);
-
-    int deliverFeedback(char* buf, int len);
 
 	/**
 	 * Sends a FIR Packet (RFC 5104) asking for a keyframe
@@ -106,10 +104,14 @@ private:
 	Transport *videoTransport_, *audioTransport_;
 	char deliverMediaBuffer_[3000];
 
-	volatile bool sending_;
+	bool sending_, closed_;
 	void sendLoop();
 	void writeSsrc(char* buf, int len, unsigned int ssrc);
   void processRtcpHeaders(char* buf, int len, unsigned int ssrc);
+	int deliverAudioData_(char* buf, int len);
+	int deliverVideoData_(char* buf, int len);
+  int deliverFeedback_(char* buf, int len);
+
   
 	bool audioEnabled_;
 	bool videoEnabled_;
