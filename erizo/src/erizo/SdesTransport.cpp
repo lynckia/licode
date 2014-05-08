@@ -42,7 +42,6 @@ SdesTransport::SdesTransport(MediaType med, const std::string &transport_name, b
     cryptoRemote_ = *remoteCrypto;
 
     nice_.reset(new NiceConnection(med, transport_name, this, comps,  stunServer, stunPort, minPort, maxPort));
-    nice_->setNiceListener(this);
     nice_->start();
 }
 

@@ -53,7 +53,7 @@ namespace erizo {
     return 0;
   }
 
-  int InputProcessor::deliverAudioData(char* buf, int len) {
+  int InputProcessor::deliverAudioData_(char* buf, int len) {
     if (audioDecoder && audioUnpackager) {
       ELOG_DEBUG("Decoding audio");
       int unp = unpackageAudio((unsigned char*) buf, len,
@@ -69,7 +69,7 @@ namespace erizo {
     }
     return 0;
   }
-  int InputProcessor::deliverVideoData(char* buf, int len) {
+  int InputProcessor::deliverVideoData_(char* buf, int len) {
     if (videoUnpackager && videoDecoder) {
       int estimatedFps=0;
       int ret = unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,

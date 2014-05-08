@@ -41,7 +41,7 @@ namespace erizo {
     boost::scoped_ptr<Resender> rtcpResender, rtpResender;
     boost::thread getNice_Thread_;
     void getNiceDataLoop();
-    dataPacket p_;
+    packetPtr p_;
 
     friend class Transport;
   };

@@ -22,6 +22,7 @@ typedef unsigned int uint;
 
 namespace erizo {
 //forward declarations
+typedef boost::shared_ptr<dataPacket> packetPtr;
 class CandidateInfo;
 class WebRtcConnection;
 
@@ -86,11 +87,6 @@ public:
 	 * @return true if successfull.
 	 */
 	void gatheringDone(uint stream_id);
-	/**
-	 * Sets the associated Listener.
-	 * @param connection Pointer to the NiceConnectionListener.
-	 */
-	void setNiceListener(NiceConnectionListener *listener);
 
 	/**
 	 * Sends data via the ICE Connection.
@@ -107,26 +103,25 @@ public:
 
   void queueData(unsigned int component_id, char* buf, unsigned int len);
 
-  dataPacket getPacket();
+  packetPtr getPacket();
   void close();
 
 private:
 	void init();
 	NiceAgent* agent_;
 	NiceConnectionListener* listener_;
-  std::queue<dataPacket> niceQueue_;
+  std::queue<packetPtr> niceQueue_;
 	GMainLoop* loop_;
 	GMainContext* context_;
 	boost::thread m_Thread_;
 	IceState iceState_;
-	boost::mutex sendDataMutex_, queueMutex_;
-  boost::mutex agentMutex_;
+	boost::mutex queueMutex_, agentMutex_;
   boost::recursive_mutex stateMutex_;
 	boost::condition_variable cond_;
   unsigned int iceComponents_;
   std::map <unsigned int, IceState> comp_state_list_;
 	std::string stunServer_;
-  bool closed_;
+  bool running_;
 	int stunPort_, minPort_, maxPort_;
 };
 

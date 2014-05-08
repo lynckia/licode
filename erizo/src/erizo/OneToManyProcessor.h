@@ -45,10 +45,7 @@ public:
 	 * @param peerId the peerId
 	 */
 	void removeSubscriber(const std::string& peerId);
-	int deliverAudioData(char* buf, int len);
-	int deliverVideoData(char* buf, int len);
 
-  int deliverFeedback(char* buf, int len);
 
 private:
   typedef boost::shared_ptr<MediaSink> sink_ptr;
@@ -56,9 +53,11 @@ private:
 	char sendAudioBuffer_[2000];
 	unsigned int sentPackets_;
   std::string rtcpReceiverPeerId_;
-  boost::mutex monitor_;
   FeedbackSink* feedbackSink_;
-  ExternalOutput* recorder_;
+	
+  int deliverAudioData_(char* buf, int len);
+	int deliverVideoData_(char* buf, int len);
+  int deliverFeedback_(char* buf, int len);
   void closeAll();
 };
 

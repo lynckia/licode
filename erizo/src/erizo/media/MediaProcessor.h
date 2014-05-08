@@ -81,7 +81,7 @@ public:
 
 class RTPSink;
 
-class InputProcessor: MediaSink {
+class InputProcessor: public MediaSink {
 	DECLARE_LOGGER();
 public:
 	InputProcessor();
@@ -89,8 +89,6 @@ public:
 
 	int init(const MediaInfo& info, RawDataReceiver* receiver);
 
-	int deliverAudioData(char* buf, int len);
-	int deliverVideoData(char* buf, int len);
 
 	int unpackageVideo(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff, int* gotFrame, int* estimatedFps);
@@ -143,6 +141,8 @@ private:
 
 	bool initAudioUnpackager();
 	bool initVideoUnpackager();
+	int deliverAudioData_(char* buf, int len);
+	int deliverVideoData_(char* buf, int len);
 
 	int decodeAudio(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);

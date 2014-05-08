@@ -5,6 +5,7 @@
 #include <glib.h>
 #include <nice/nice.h>
 #include <cstdio>
+#include <poll.h>
 
 #include "NiceConnection.h"
 #include "SdpInfo.h"
@@ -22,6 +23,9 @@ namespace erizo {
   int rec, sen;
   int length;
 
+  int timed_poll(GPollFD* fds, guint nfds, gint timeout){
+    return poll((pollfd*)fds,nfds,500);
+  }
   void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
       guint len, gchar* buf, gpointer user_data) {
     if (user_data==NULL||len==0)return;
@@ -45,7 +49,6 @@ namespace erizo {
     } else if (state == NICE_COMPONENT_STATE_FAILED) {
       NiceConnection *conn = (NiceConnection*) user_data;
       conn->updateIceState(NICE_FAILED);
-      conn->close();
     }
 
   }
@@ -61,6 +64,7 @@ namespace erizo {
       int stunPort, int minPort, int maxPort):mediaType(med), listener_(listener), iceComponents_(iceComponents),
   stunServer_(stunServer), stunPort_ (stunPort), minPort_(minPort), maxPort_(maxPort) {
     agent_ = NULL;
+    context_ = NULL;
     loop_ = NULL;
     iceState_ = NICE_INITIAL;
     localCandidates.reset(new std::vector<CandidateInfo>());
@@ -68,18 +72,21 @@ namespace erizo {
     for (unsigned int i = 1; i<=iceComponents; i++) {
       comp_state_list_[i] = NICE_INITIAL;
     }
-
+    running_ = true;
     m_Thread_ = boost::thread(&NiceConnection::init, this);
   }
 
   NiceConnection::~NiceConnection() {
+    ELOG_DEBUG("NiceConnection Destructor");
     this->close();
+    boost::mutex::scoped_lock lock(queueMutex_);
+    ELOG_DEBUG("NiceConnection Destructor END");
   }
   struct queue_not_empty
   {
-    std::queue<dataPacket>& queue;
+    std::queue<packetPtr>& queue;
 
-    queue_not_empty(std::queue<dataPacket>& queue_):
+    queue_not_empty(std::queue<packetPtr>& queue_):
       queue(queue_)
     {}
     bool operator()() const
@@ -87,67 +94,53 @@ namespace erizo {
       return !queue.empty();
     }
   };
-  dataPacket NiceConnection::getPacket(){
+  packetPtr NiceConnection::getPacket(){
       boost::unique_lock<boost::mutex> lock(queueMutex_);
       boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::milliseconds(1000);
       if(!cond_.timed_wait(lock,timeout, queue_not_empty(niceQueue_))){
-        dataPacket p;
-        p.length=0;
+        packetPtr p (new dataPacket());
+        p->length=0;
         return p;
       }
       if(!niceQueue_.empty()){
-        dataPacket p (niceQueue_.front());
+        packetPtr p (niceQueue_.front());
         niceQueue_.pop();
         return  p;
-      }else{
-        dataPacket p;
-        p.length=0;
-        return p;
-        ELOG_ERROR("Esto no deberia pasar");
       }
+      packetPtr p (new dataPacket());
+      p->length=0;
+      return p;
   }
 
   void NiceConnection::close() {
     if(this->checkIceState()==NICE_FINISHED){
-      ELOG_DEBUG("Nice Connection already closed %p", this);
       return;
     }
+    running_ = false;
+    ELOG_WARN("Close Nice before mutex %p", this);
+    boost::unique_lock<boost::mutex> lock(agentMutex_);
     this->updateIceState(NICE_FINISHED);
     listener_ = NULL;
-    if (loop_ != NULL){
-      if (g_main_loop_is_running(loop_)){
-        g_main_loop_quit(loop_);
-        
-        nice_agent_attach_recv(agent_, 1, 1, context_,
-            NULL, this);
-        if (iceComponents_ > 1) {
-          nice_agent_attach_recv(agent_, 1, 2, context_,
-              NULL, this);
-        }
-        while (g_main_context_pending(context_)){
-          
-          ELOG_DEBUG("PENDING!!!");
-          g_main_context_dispatch(context_);
-        }
-        ELOG_WARN("g_main_loop_quit %p", this);
-      }
-    }
     ELOG_WARN("Close Nice before join %p", this);
-    m_Thread_.join();
+    boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::milliseconds(1000);
+    if (!m_Thread_.timed_join(timeout) ){
+      ELOG_DEBUG("Taking too long to close thread, trying to interrupt");
+      m_Thread_.interrupt();
+    }
     ELOG_WARN("Close Nice after join %p", this);
     if (agent_!=NULL){
       g_object_unref(agent_);
       agent_ = NULL;
     }
-    if (loop_ != NULL) {
-      g_main_loop_unref (loop_);
-      loop_=NULL;
-    }
     if (context_!=NULL) {
       g_main_context_unref(context_);
+      context_=NULL;
     }
+    lock.unlock();
+    ELOG_WARN("Close Nice antes lock queue%p", this);
     boost::unique_lock<boost::mutex> lockqueue(queueMutex_);
     cond_.notify_one();
+    ELOG_WARN("Close Nice antes post queue%p", this);
     
   }
 
@@ -158,10 +151,10 @@ namespace erizo {
     boost::mutex::scoped_lock(queueMutex_);
     if (this->checkIceState() == NICE_READY){
       if (niceQueue_.size() < 1000 && len>0) {
-        dataPacket p_;
-        memcpy(p_.data, buf, len);
-        p_.comp = component_id;
-        p_.length = len;
+        packetPtr p_ (new dataPacket());
+        memcpy(p_->data, buf, len);
+        p_->comp = component_id;
+        p_->length = len;
         niceQueue_.push(p_);
         cond_.notify_one();
       }
@@ -170,7 +163,7 @@ namespace erizo {
   }
   int NiceConnection::sendData(unsigned int compId, const void* buf, int len) {
     int val = -1;
-    boost::mutex::scoped_lock(sendDataMutex_);
+    boost::mutex::scoped_lock(agentMutex_);
     if (this->checkIceState() == NICE_READY) {
       val = nice_agent_send(agent_, 1, compId, len, reinterpret_cast<const gchar*>(buf));
     }
@@ -181,15 +174,23 @@ namespace erizo {
   }
 
   void NiceConnection::init() {
-
+    ELOG_DEBUG("AGENT MUTEX INIT");
+    if(this->checkIceState() != NICE_INITIAL){
+      ELOG_DEBUG("Initing NiceConnection not in INITIAL state, exiting...");
+      return;
+    };
+    boost::unique_lock<boost::mutex> lock(agentMutex_);
+    if(!running_)
+      return;
     streamsGathered = 0;
     this->updateIceState(NICE_INITIAL);
 
     g_type_init();
     ELOG_DEBUG("Creating Main Context");
     context_ = g_main_context_new();
-    ELOG_DEBUG("Creating Main Loop %p", this);
-    loop_ =  g_main_loop_new(context_, FALSE);
+    ELOG_DEBUG("Setting poll funct");
+    g_main_context_set_poll_func(context_,timed_poll);
+    /* loop_ =  g_main_loop_new(context_, FALSE); */
     ELOG_DEBUG("Creating Agent");
     //loop_ =  g_main_loop_new(NULL, FALSE);
     //	nice_debug_enable( TRUE );
@@ -249,26 +250,36 @@ namespace erizo {
               NICE_RELAY_TYPE_TURN_UDP); 
         }
     }
+    ELOG_DEBUG("Gathering candidates %p", this);
     nice_agent_gather_candidates(agent_, 1);
-    nice_agent_attach_recv(agent_, 1, 1, context_,
-        cb_nice_recv, this);
-    if (iceComponents_ > 1) {
-      nice_agent_attach_recv(agent_, 1, 2, context_,
+    if(agent_){      
+      nice_agent_attach_recv(agent_, 1, 1, context_,
           cb_nice_recv, this);
+      if (iceComponents_ > 1) {
+        nice_agent_attach_recv(agent_, 1, 2, context_,
+            cb_nice_recv, this);
+      }
+    }else{
+      running_=false;
     }
     // Attach to the component to receive the data
-    if (this->checkIceState() != NICE_INITIAL) {
-      ELOG_DEBUG("NICE RUN STARTED %p", this);
-      g_main_loop_run(loop_);
-      ELOG_DEBUG("NICE RUN FINISHED %p", this);
-    } else {
-      ELOG_DEBUG("NICE FINISHED on start!!");
-      this->close();
+    lock.unlock();
+    while(running_){
+      boost::unique_lock<boost::mutex> lockContext(agentMutex_);
+      if(this->checkIceState()>=NICE_FINISHED)
+        break;
+      g_main_context_iteration(context_, true);
+      lockContext.unlock();
     }
+    ELOG_DEBUG("LibNice thread finished");
   }
 
   bool NiceConnection::setRemoteCandidates(
       std::vector<CandidateInfo> &candidates) {
+    if(agent_==NULL){
+      running_=false;
+      return false;
+    }
 
     ELOG_DEBUG("Setting remote candidates %lu", candidates.size());
     for (unsigned int compId = 1; compId <= iceComponents_; compId++) {
@@ -332,9 +343,12 @@ namespace erizo {
 
 
   void NiceConnection::gatheringDone(uint stream_id) {
-    if (this->checkIceState() == NICE_FINISHED) {
+    if (this->checkIceState() >= NICE_FINISHED) {
+      ELOG_DEBUG("gathering Done after FINISHED");
+      nice_agent_remove_stream (agent_,1);
       return;
     }
+    ELOG_DEBUG("Gathering Done %p", this);
     int currentCompId = 1;
     lcands = nice_agent_get_local_candidates(agent_, stream_id, currentCompId++);
     NiceCandidate *cand;
@@ -372,7 +386,7 @@ namespace erizo {
         nice_address_to_string(&cand->addr, address);
         nice_address_to_string(&cand->base_addr, baseAddress);
         if (strstr(address, ":") != NULL) {
-          ELOG_DEBUG("Ignoring IPV6 candidate %s", address);
+          ELOG_DEBUG("Ignoring IPV6 candidate %s %p", address, this);
           continue;
         }
         //			ELOG_DEBUG("foundation %s", cand->foundation);
@@ -448,7 +462,7 @@ namespace erizo {
       lcands = nice_agent_get_local_candidates(agent_, stream_id,
           currentCompId++);
     }
-    ELOG_INFO("candidate_gathering done with %lu candidates", localCandidates->size());
+    ELOG_INFO("candidate_gathering done with %lu candidates %p", localCandidates->size(), this);
 
     if (localCandidates->size()==0){
       ELOG_WARN("No local candidates found, check your network connection");
@@ -477,10 +491,18 @@ namespace erizo {
 
   void NiceConnection::updateIceState(IceState state) {
     boost::unique_lock<boost::recursive_mutex> lock(stateMutex_);
+    if(iceState_==state)
+      return;
+
+    this->iceState_ = state;
     if (iceState_ == NICE_FINISHED) {
       return;
+    }else if (iceState_ == NICE_FAILED){
+      ELOG_ERROR ("******************************************************+ICE FAILED.... ");
+      this->listener_->updateIceState(iceState_,this);
+      this->running_=false;
     }
-    ELOG_DEBUG("%s - NICE State Changed %u", transportName->c_str(), state);
+    ELOG_DEBUG("%s - NICE State Changed %u %p", transportName->c_str(), state, this);
     this->iceState_ = state;
     if (state == NICE_READY){
       char ipaddr[30];

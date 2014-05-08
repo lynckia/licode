@@ -21,7 +21,7 @@ DEFINE_LOGGER(Resender, "Resender");
 
 Resender::Resender(boost::shared_ptr<NiceConnection> nice, unsigned int comp, const unsigned char* data, unsigned int len) : 
   nice_(nice), comp_(comp), data_(data),len_(len), timer(service) {
-}
+  }
 
 Resender::~Resender() {
   ELOG_ERROR("Resender destructor");
@@ -88,7 +88,6 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
   }
   bundle_ = bundle;
   nice_.reset(new NiceConnection(med, transport_name, this, comps, stunServer, stunPort, minPort, maxPort));
-  nice_->setNiceListener(this);
   nice_->start();
   running_ =true;
   getNice_Thread_ = boost::thread(&DtlsTransport::getNiceDataLoop, this);
@@ -96,14 +95,12 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
 }
 
 DtlsTransport::~DtlsTransport() {
-  ELOG_DEBUG("DTLSTransport destructor - joining thread");
+  ELOG_DEBUG("DtlsTransport destructor");
   running_ = false;
-  getNice_Thread_.join();
-  ELOG_DEBUG("DTLSTransport destructor - closing nice");
   nice_->close();
-  ELOG_DEBUG("DTLSTransport dest before join");
-  ELOG_DEBUG("DTLSTransport dest after join");
-  
+  ELOG_DEBUG("DtlsTransport destructor2");
+  getNice_Thread_.join();
+  ELOG_DEBUG("DtlsTransport destructor3");
   boost::mutex::scoped_lock lockr(readMutex_);
   boost::mutex::scoped_lock lockw(writeMutex_);
   boost::mutex::scoped_lock locks(sessionMutex_);
@@ -113,7 +110,6 @@ DtlsTransport::~DtlsTransport() {
 void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {
   int length = len;
   SrtpChannel *srtp = srtp_.get();
-
   if (DtlsTransport::isDtlsPacket(data, len)) {
     ELOG_DEBUG("%s - Received DTLS message from %u", transport_name.c_str(), component_id);
     if (component_id == 1) {
@@ -135,25 +131,27 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
     if (dtlsRtcp != NULL && component_id == 2) {
       srtp = srtcp_.get();
     }
-
     if (srtp != NULL){
       rtcpheader *chead = reinterpret_cast<rtcpheader*> (unprotectBuf_);
       if (chead->packettype == RTCP_Sender_PT || 
           chead->packettype == RTCP_Receiver_PT || 
           chead->packettype == RTCP_PS_Feedback_PT||
           chead->packettype == RTCP_RTP_Feedback_PT){
-        if(srtp->unprotectRtcp(unprotectBuf_, &length)<0)
+        if(srtp->unprotectRtcp(unprotectBuf_, &length)<0){
           return;
+        }
       } else {
-        if(srtp->unprotectRtp(unprotectBuf_, &length)<0)
+        if(srtp->unprotectRtp(unprotectBuf_, &length)<0){
           return;
+        }
       }
     } else {
       return;
     }
 
-    if (length <= 0)
+    if (length <= 0){
       return;
+    }
 
     getTransportListener()->onTransportData(unprotectBuf_, length, this);
   }
@@ -213,7 +211,7 @@ void DtlsTransport::writeDtls(DtlsSocketContext *ctx, const unsigned char* data,
     rtpResender.reset(new Resender(nice_, comp, data, len));
     rtpResender->start();
   }
-      
+
   ELOG_DEBUG("%s - Sending DTLS message to %d", transport_name.c_str(), comp);
 
   nice_->sendData(comp, data, len);
@@ -257,7 +255,13 @@ std::string DtlsTransport::getMyFingerprint() {
 void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
   ELOG_DEBUG( "%s - New NICE state %d %d %d", transport_name.c_str(), state, mediaType, bundle_);
   if (state == NICE_CANDIDATES_GATHERED && this->getTransportState() != TRANSPORT_STARTED) {
+    ELOG_DEBUG("UpdateTransportState %p",this);
     updateTransportState(TRANSPORT_STARTED);
+  }
+  if(state == NICE_FAILED){
+    ELOG_DEBUG("Nice Failed, no more reading packets");
+    updateTransportState(TRANSPORT_FAILED);
+    running_ = false;
   }
   if (state == NICE_READY) {
     ELOG_DEBUG("%s - Nice ready", transport_name.c_str());
@@ -297,13 +301,11 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
 
 void DtlsTransport::getNiceDataLoop(){
   while(running_ == true){
-    dataPacket p = nice_->getPacket();
-    if (p.length <=0)
+    p_ = nice_->getPacket();
+    if (p_->length <=0){
       return;
-    p_.length = p.length;
-    p_.comp = p.comp;
-    memcpy(p_.data, p.data, p.length);
-    this->onNiceData(p.comp, p.data, p.length, NULL);
+    }
+    this->onNiceData(p_->comp, p_->data, p_->length, NULL);
   }
 }
 bool DtlsTransport::isDtlsPacket(const char* buf, int len) {

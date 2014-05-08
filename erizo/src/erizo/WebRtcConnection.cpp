@@ -49,11 +49,15 @@ namespace erizo {
   }
 
   WebRtcConnection::~WebRtcConnection() {
-    ELOG_DEBUG("WebRtcConnection Destructor");
+    ELOG_INFO("WebRtcConnection Destructor");
     sending_ = false;
     this->queueData(-1,NULL,-1,NULL);
     cond_.notify_one();
     send_Thread_.join();
+    delete videoTransport_;
+    videoTransport_=NULL;
+    delete audioTransport_;
+    audioTransport_= NULL;
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
     boost::mutex::scoped_lock lock2(writeMutex_);
     boost::mutex::scoped_lock lock3(updateStateMutex_);
@@ -61,10 +65,7 @@ namespace erizo {
     videoSink_ = NULL;
     audioSink_ = NULL;
     fbSink_ = NULL;
-    delete videoTransport_;
-    videoTransport_=NULL;
-    delete audioTransport_;
-    audioTransport_= NULL;
+    ELOG_INFO("WebRtcConnection Destructor END");
   }
 
   bool WebRtcConnection::init() {
@@ -142,7 +143,7 @@ namespace erizo {
     return localSdp_.getSdp();
   }
 
-  int WebRtcConnection::deliverAudioData(char* buf, int len) {
+  int WebRtcConnection::deliverAudioData_(char* buf, int len) {
     writeSsrc(buf, len, this->getAudioSinkSSRC());
     if (bundle_){
       if (videoTransport_ != NULL) {
@@ -158,7 +159,7 @@ namespace erizo {
     return len;
   }
 
-  int WebRtcConnection::deliverVideoData(char* buf, int len) {
+  int WebRtcConnection::deliverVideoData_(char* buf, int len) {
     rtpheader *head = (rtpheader*) buf;
     writeSsrc(buf, len, this->getVideoSinkSSRC());
     if (videoTransport_ != NULL) {
@@ -198,7 +199,7 @@ namespace erizo {
     return len;
   }
 
-  int WebRtcConnection::deliverFeedback(char* buf, int len){
+  int WebRtcConnection::deliverFeedback_(char* buf, int len){
     // Check where to send the feedback
     rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
     ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, ntohl(chead->ssrc), ntohl(chead->ssrcsource));
@@ -233,8 +234,9 @@ namespace erizo {
   }
 
   void WebRtcConnection::onTransportData(char* buf, int len, Transport *transport) {
-    if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL)
+    if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL){
       return;
+    }
     boost::mutex::scoped_lock lock(writeMutex_);
     int length = len;
     rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
@@ -350,7 +352,11 @@ namespace erizo {
 
     if (state == TRANSPORT_FAILED) {
       temp = FAILED;
-      ELOG_INFO("WebRtcConnection failed.");
+      globalState_ = FAILED;
+      sending_ = false;
+      boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
+      cond_.notify_one();
+      ELOG_INFO("WebRtcConnection failed, stopped sending");
     }
 
     

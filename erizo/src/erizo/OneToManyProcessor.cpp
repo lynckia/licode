@@ -17,13 +17,11 @@ namespace erizo {
 
   OneToManyProcessor::~OneToManyProcessor() {
     ELOG_DEBUG ("OneToManyProcessor destructor");
-    boost::mutex::scoped_lock lock(monitor_);
     this->closeAll();
   }
 
-  int OneToManyProcessor::deliverAudioData(char* buf, int len) {
+  int OneToManyProcessor::deliverAudioData_(char* buf, int len) {
  //   ELOG_DEBUG ("OneToManyProcessor deliverAudio");
-    boost::mutex::scoped_lock lock(monitor_);
     if (subscribers.empty() || len <= 0)
       return 0;
 
@@ -35,16 +33,14 @@ namespace erizo {
     return 0;
   }
 
-  int OneToManyProcessor::deliverVideoData(char* buf, int len) {
-//    ELOG_DEBUG ("OneToManyProcessor deliverVideo");
-    boost::mutex::scoped_lock lock(monitor_);
+  int OneToManyProcessor::deliverVideoData_(char* buf, int len) {
     if (subscribers.empty() || len <= 0)
       return 0;
 
     rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
     if(head->packettype==RTCP_Receiver_PT || head->packettype==RTCP_PS_Feedback_PT|| head->packettype == RTCP_RTP_Feedback_PT){
       ELOG_WARN("Receiving Feedback in wrong path: %d", head->packettype);
-      if (feedbackSink_){
+      if (feedbackSink_!=NULL){
         head->ssrc = htonl(publisher->getVideoSourceSSRC());
         feedbackSink_->deliverFeedback(buf,len);
       }
@@ -62,25 +58,24 @@ namespace erizo {
 
   void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
     ELOG_DEBUG("SET PUBLISHER");
-    boost::mutex::scoped_lock lock(monitor_);
+    boost::mutex::scoped_lock lock(myMonitor_);
     this->publisher.reset(webRtcConn);
     feedbackSink_ = publisher->getFeedbackSink();
+    ELOG_DEBUG("SET PUBLISHER2");
   }
 
-  int OneToManyProcessor::deliverFeedback(char* buf, int len){
-    boost::mutex::scoped_lock lock(monitor_);
-    ELOG_DEBUG("Deliver Feedback");
-    if (feedbackSink_ != NULL) {
+  int OneToManyProcessor::deliverFeedback_(char* buf, int len){
+    if (feedbackSink_ != NULL){
+      ELOG_DEBUG("Deliver Feedback");
       feedbackSink_->deliverFeedback(buf,len);
     }
     return 0;
-
   }
 
   void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
     ELOG_DEBUG("Adding subscriber");
-    boost::mutex::scoped_lock lock(monitor_);
+    boost::mutex::scoped_lock lock(myMonitor_);
     ELOG_DEBUG("From %u, %u ", publisher->getAudioSourceSSRC() , publisher->getVideoSourceSSRC());
     webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
     webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
@@ -96,23 +91,31 @@ namespace erizo {
 
   void OneToManyProcessor::removeSubscriber(const std::string& peerId) {
     ELOG_DEBUG("Remove subscriber");
-    boost::mutex::scoped_lock lock(monitor_);
+    boost::mutex::scoped_lock lock(myMonitor_);
     if (this->subscribers.find(peerId) != subscribers.end()) {
       this->subscribers.erase(peerId);
     }
   }
 
   void OneToManyProcessor::closeAll() {
+    boost::unique_lock<boost::mutex> lock(myMonitor_);
+    feedbackSink_ = NULL;
+    publisher.reset();
     ELOG_DEBUG ("OneToManyProcessor closeAll");
-    /* std::map<std::string, MediaSink*>::iterator it; */
-    /* for (it = subscribers.begin(); it != subscribers.end(); it++) { */
-/* //      (*it).second->closeSink(); */
-    /*   if ((*it).second != NULL) { */
-    /*     delete (*it).second; */
-    /*     subscribers.erase(it); */
-    /*   } */
-    /* } */
-    subscribers.clear();  
+    std::map<std::string, boost::shared_ptr<MediaSink>>::iterator it;
+    for (it = subscribers.begin(); it != subscribers.end(); it++) {
+      if ((*it).second != NULL) {
+        FeedbackSource* fbsource = (*it).second->getFeedbackSource();
+        if (fbsource!=NULL){
+          fbsource->setFeedbackSink(NULL);
+        }
+        /* subscribers.erase(it); */
+      }
+    }
+    lock.unlock();
+    lock.lock();
+    subscribers.clear();
+    ELOG_DEBUG ("FINITO closeAll");
   }
 
 }/* namespace erizo */

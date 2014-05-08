@@ -45,8 +45,6 @@ public:
 	 * @param peerId the peerId
 	 */
 	void removeSubscriber(const std::string& peerId);
-	int deliverAudioData(char* buf, int len);
-	int deliverVideoData(char* buf, int len);
 	void receiveRawData(RawDataPacket& packet);
 	void receiveRtpData(unsigned char*rtpdata, int len);
 
@@ -63,6 +61,8 @@ private:
 	void sendHead(WebRtcConnection* conn);
 	RtpParser pars;
 	unsigned int sentPackets_;
+	int deliverAudioData_(char* buf, int len);
+	int deliverVideoData_(char* buf, int len);
 	/**
 	 * Closes all the subscribers and the publisher, the object is useless after this
 	 */
