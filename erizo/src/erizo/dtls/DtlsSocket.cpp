@@ -50,11 +50,11 @@ DtlsSocket::DtlsSocket(boost::shared_ptr<DtlsSocketContext> socketContext, DtlsF
    ELOG_DEBUG("Creating Dtls Socket");
    mSocketContext->setDtlsSocket(this);
 
-   assert(factory->mContext);
-   mSsl=SSL_new(factory->mContext);
+   assert(mFactory->mContext);
+   mSsl=SSL_new(mFactory->mContext);
    assert(mSsl!=0);
-   mSsl->ctx = factory->mContext;
-   mSsl->session_ctx = factory->mContext;
+   mSsl->ctx = mFactory->mContext;
+   mSsl->session_ctx = mFactory->mContext;
 
    switch(type)
    {
@@ -94,6 +94,10 @@ DtlsSocket::~DtlsSocket()
       mSsl = NULL;
    }
 
+   // Ownership of the factory is basically transferred to DtlsSocket.
+   delete mFactory;
+   mFactory = NULL;
+
 }
 
 void
@@ -122,11 +126,10 @@ DtlsSocket::handlePacketMaybe(const unsigned char* bytes, unsigned int len)
    if(pType!=DtlsFactory::dtls)
       return false;
 
-   int r;
    BIO_reset(mInBio);
    BIO_reset(mOutBio);
 
-   r=BIO_write(mInBio,bytes,len);
+   int r = BIO_write(mInBio,bytes,len);
    assert(r==(int)len);  // Can't happen
 
    // Note: we must catch any below exceptions--if there are any
@@ -164,9 +167,8 @@ DtlsSocket::doHandshakeIteration()
    ERR_error_string_n(ERR_peek_error(),errbuf,sizeof(errbuf));
 
    // See what was written
-   int outBioLen;
    unsigned char *outBioData;
-   outBioLen=BIO_get_mem_data(mOutBio,&outBioData);
+   int outBioLen = BIO_get_mem_data(mOutBio,&outBioData);
 
    // Now handle handshake errors */
    switch(sslerr=SSL_get_error(mSsl,r))

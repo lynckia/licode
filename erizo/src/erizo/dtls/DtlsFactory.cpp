@@ -126,7 +126,6 @@ static const int KEY_LENGTH = 1024;
 
 int createCert (const string& pAor, int expireDays, int keyLen, X509*& outCert, EVP_PKEY*& outKey )
 {
-   int ret;
    std::ostringstream info;
    info << "Generating new user cert for" << pAor;
    ELOG_DEBUG2(sslLogger, "%s", info.str().c_str());
@@ -148,7 +147,7 @@ int createCert (const string& pAor, int expireDays, int keyLen, X509*& outCert, 
    //RSA* rsa = RSA_generate_key(keyLen, RSA_F4, NULL, NULL);
    assert(rsa);    // couldn't make key pair
 
-   ret = EVP_PKEY_set1_RSA(privkey, rsa);
+   int ret = EVP_PKEY_set1_RSA(privkey, rsa);
    assert(ret);
 
    X509* cert = X509_new();
@@ -230,15 +229,14 @@ DtlsFactory::DtlsFactory()
 
     ELOG_DEBUG("Creating Dtls factory");
 
-    int r;
     mContext=SSL_CTX_new(DTLSv1_client_method());
     assert(mContext);
 
-    r=SSL_CTX_use_certificate(mContext, mCert);
-    assert(r==1);
+    int r = SSL_CTX_use_certificate(mContext, mCert);
+    assert(r == 1);
 
-    r=SSL_CTX_use_PrivateKey(mContext, privkey);
-    assert(r==1);
+    r = SSL_CTX_use_PrivateKey(mContext, privkey);
+    assert(r == 1);
 
     SSL_CTX_set_cipher_list(mContext, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
 
@@ -287,19 +285,14 @@ DtlsFactory::getMyCertFingerprint(char *fingerprint)
 void
 DtlsFactory::setSrtpProfiles(const char *str)
 {
-   int r;
-
-   r=SSL_CTX_set_tlsext_use_srtp(mContext,str);
-
+   int r = SSL_CTX_set_tlsext_use_srtp(mContext,str);
    assert(r==0);
 }
 
 void
 DtlsFactory::setCipherSuites(const char *str)
 {
-   int r;
-
-   r=SSL_CTX_set_cipher_list(mContext,str);
+   int r = SSL_CTX_set_cipher_list(mContext,str);
    assert(r==1);
 }
 

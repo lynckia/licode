@@ -93,10 +93,9 @@ void SdesTransport::write(char* data, int len) {
     int length = len;
     SrtpChannel *srtp = srtp_;
 
-    int comp = 1;
     if (this->getTransportState() == TRANSPORT_READY) {
       memcpy(protectBuf_, data, len);
-
+      int comp = 1;
       rtcpheader *chead = reinterpret_cast<rtcpheader*> (protectBuf_);
       if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_PS_Feedback_PT
           || chead->packettype == RTCP_RTP_Feedback_PT) {
