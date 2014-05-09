@@ -298,10 +298,9 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
 void DtlsTransport::getNiceDataLoop(){
   while(running_ == true){
     p_ = nice_->getPacket();
-    if (p_->length <=0){
-      return;
+    if (p_->length > 0) {
+        this->onNiceData(p_->comp, p_->data, p_->length, NULL);
     }
-    this->onNiceData(p_->comp, p_->data, p_->length, NULL);
   }
 }
 bool DtlsTransport::isDtlsPacket(const char* buf, int len) {
