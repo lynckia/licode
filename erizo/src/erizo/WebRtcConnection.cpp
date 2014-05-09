@@ -208,15 +208,8 @@ namespace erizo {
         writeSsrc(buf,len,this->getVideoSinkSSRC());      
     }
 
-    if (bundle_){
-      if (videoTransport_ != NULL) {
-        this->queueData(0, buf, len, videoTransport_);
-      }
-    } else {
-      // TODO: Check where to send the feedback
-      if (videoTransport_ != NULL) {
-        this->queueData(0, buf, len, videoTransport_);
-      }
+    if (videoTransport_ != NULL) {
+      this->queueData(0, buf, len, videoTransport_);
     }
     return len;
   }

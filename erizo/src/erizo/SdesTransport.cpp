@@ -46,18 +46,10 @@ SdesTransport::SdesTransport(MediaType med, const std::string &transport_name, b
 }
 
 SdesTransport::~SdesTransport() {
-    if (srtp_ != NULL) {
-        delete srtp_; srtp_ = NULL;
-    }
-    if (srtcp_ != NULL) {
-        delete srtcp_; srtcp_ = NULL;
-    }
-    if (protectBuf_ != NULL) {
-        free(protectBuf_); protectBuf_ = NULL;
-    }
-    if (unprotectBuf_ != NULL) {
-        free(unprotectBuf_); unprotectBuf_ = NULL;
-    }
+    delete srtp_; srtp_ = NULL;
+    delete srtcp_; srtcp_ = NULL;
+    free(protectBuf_); protectBuf_ = NULL;
+    free(unprotectBuf_); unprotectBuf_ = NULL;
 }
 
 void SdesTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {
@@ -93,10 +85,9 @@ void SdesTransport::write(char* data, int len) {
     int length = len;
     SrtpChannel *srtp = srtp_;
 
-    int comp = 1;
     if (this->getTransportState() == TRANSPORT_READY) {
       memcpy(protectBuf_, data, len);
-
+      int comp = 1;
       rtcpheader *chead = reinterpret_cast<rtcpheader*> (protectBuf_);
       if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_PS_Feedback_PT
           || chead->packettype == RTCP_RTP_Feedback_PT) {

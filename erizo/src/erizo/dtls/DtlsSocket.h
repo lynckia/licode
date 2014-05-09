@@ -167,24 +167,19 @@ class DtlsSocketContext
       //is required
       DtlsSocketContext();
       virtual ~DtlsSocketContext();
-      void setSocket(DtlsSocket *socket);
       void start();
       void read(const unsigned char* data, unsigned int len);
       void write(const unsigned char* data, unsigned int len);
       void handshakeCompleted();
       void handshakeFailed(const char *err);
       void setDtlsReceiver(DtlsReceiver *recv);
+      void setDtlsSocket(DtlsSocket *sock) {mSocket = sock;}
       std::string getFingerprint();
 
    protected:
       DtlsSocket *mSocket;
       DtlsReceiver *receiver;
       DtlsFactory *clientFactory;
-
-   private:
-      friend class DtlsSocket;
-
-      void setDtlsSocket(DtlsSocket *sock) {mSocket=sock;}
 };
 
 }

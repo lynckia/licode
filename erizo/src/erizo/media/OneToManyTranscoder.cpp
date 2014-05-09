@@ -46,15 +46,9 @@ OneToManyTranscoder::OneToManyTranscoder() {
 
 OneToManyTranscoder::~OneToManyTranscoder() {
 	this->closeAll();
-    if (sink_ != NULL) {
-        delete sink_; sink_ = NULL;
-    }
-    if (ip_ != NULL) {
-        delete ip_; ip_ = NULL;
-    }
-    if (op_ != NULL) {
-        delete op_; op_ = NULL;
-    }
+    delete sink_; sink_ = NULL;
+    delete ip_; ip_ = NULL;
+    delete op_; op_ = NULL;
 }
 
 int OneToManyTranscoder::deliverAudioData_(char* buf, int len) {
