@@ -114,7 +114,7 @@ var generateToken = function (callback) {
                 return;
             }
 
-            token.host = ec.ip + ':8080';
+            token.host =  dataBase.testErizoController;
 
             tokenRegistry.addToken(token, function (id) {
 
