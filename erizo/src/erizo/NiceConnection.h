@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <queue>
 #include <boost/thread.hpp>
 
 #include "MediaDefinitions.h"
@@ -21,6 +22,7 @@ typedef unsigned int uint;
 
 namespace erizo {
 //forward declarations
+typedef boost::shared_ptr<dataPacket> packetPtr;
 class CandidateInfo;
 class WebRtcConnection;
 
@@ -47,12 +49,25 @@ class NiceConnection {
 public:
 
 	/**
+	 * The MediaType of the connection
+	 */
+	MediaType mediaType;
+	/**
+	 * The transport name
+	 */
+  boost::scoped_ptr<std::string> transportName;
+	/**
+	 * The Obtained local candidates.
+	 */
+  boost::shared_ptr<std::vector<CandidateInfo> > localCandidates;
+
+	/**
 	 * Constructs a new NiceConnection.
 	 * @param med The MediaType of the connection.
 	 * @param transportName The name of the transport protocol. Was used when WebRTC used video_rtp instead of just rtp.
    * @param iceComponents Number of ice components pero connection. Default is 1 (rtcp-mux).
 	 */
-	NiceConnection(MediaType med, const std::string &transportName, unsigned int iceComponents=1,
+	NiceConnection(MediaType med, const std::string &transportName, NiceConnectionListener* listener, unsigned int iceComponents=1,
 		const std::string& stunServer = "", int stunPort = 3478, int minPort = 0, int maxPort = 65535);
 
 	virtual ~NiceConnection();
@@ -72,17 +87,7 @@ public:
 	 * @return true if successfull.
 	 */
 	void gatheringDone(uint stream_id);
-	/**
-	 * Sets the associated Listener.
-	 * @param connection Pointer to the NiceConnectionListener.
-	 */
-	void setNiceListener(NiceConnectionListener *listener);
 
-	/**
-	 * Gets the associated Listener.
-	 * @param connection Pointer to the NiceConnectionListener.
-	 */
-	NiceConnectionListener* getNiceListener();
 	/**
 	 * Sends data via the ICE Connection.
 	 * @param buf Pointer to the data buffer.
@@ -91,38 +96,32 @@ public:
 	 */
 	int sendData(unsigned int compId, const void* buf, int len);
 
-	/**
-	 * The MediaType of the connection
-	 */
-	MediaType mediaType;
-	/**
-	 * The transport name
-	 */
-  boost::scoped_ptr<std::string> transportName;
-	/**
-	 * The state of the ice Connection
-	 */
-	IceState iceState;
-	/**
-	 * The Obtained local candidates.
-	 */
-  boost::shared_ptr<std::vector<CandidateInfo> > localCandidates;
 
 	void updateIceState(IceState state);
+  IceState checkIceState();
 	void updateComponentState(unsigned int compId, IceState state);
 
+  void queueData(unsigned int component_id, char* buf, int len);
+
+  packetPtr getPacket();
+  void close();
 
 private:
 	void init();
 	NiceAgent* agent_;
 	NiceConnectionListener* listener_;
+  std::queue<packetPtr> niceQueue_;
 	GMainLoop* loop_;
 	GMainContext* context_;
 	boost::thread m_Thread_;
-	boost::mutex writeMutex_;
-  	unsigned int iceComponents_;
-  	std::map <unsigned int, IceState> comp_state_list;
+	IceState iceState_;
+	boost::mutex queueMutex_, agentMutex_;
+  boost::recursive_mutex stateMutex_;
+	boost::condition_variable cond_;
+  unsigned int iceComponents_;
+  std::map <unsigned int, IceState> comp_state_list_;
 	std::string stunServer_;
+  bool running_;
 	int stunPort_, minPort_, maxPort_;
 };
 

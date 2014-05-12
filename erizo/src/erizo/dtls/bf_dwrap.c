@@ -60,15 +60,18 @@ static int dwrap_new(BIO *bi)
 
 static int dwrap_free(BIO *a)
 {
-   if(a) return 0;
+   if(a == NULL) return 0;
 
-   free(a);
+   OPENSSL_free(a->ptr);
+   a->ptr = NULL;
+   a->init = 0;
+   a->flags = 0;
    return 1;
 }
 
 static int dwrap_read(BIO *b, char *out, int outl)
 {
-   int ret, ret2;
+   int ret;
    if(!b || !out) {
     return 0;
    }
@@ -79,7 +82,6 @@ static int dwrap_read(BIO *b, char *out, int outl)
    ret=BIO_read(b->next_bio,out,outl);
 
    if(ret<=0) {
-//      ret2=BIO_read(b->next_bio,out,outl);
       BIO_copy_next_retry(b);
    }
 

@@ -14,7 +14,7 @@ OneToManyTranscoder::OneToManyTranscoder() {
 
 	publisher = NULL;
 	sentPackets_ = 0;
-	ip = new InputProcessor();
+    ip_ = new InputProcessor();
 	sink_ = new RTPSink("127.0.0.1", "50000");
 	MediaInfo m;
 	m.processorType = RTP_ONLY;
@@ -24,13 +24,9 @@ OneToManyTranscoder::OneToManyTranscoder() {
 	m.videoCodec.width = 640;
 	m.videoCodec.height = 480;
 	m.hasAudio = false;
-	if (m.hasAudio) {
-		m.audioCodec.sampleRate = 8000;
-		m.audioCodec.bitRate = 64000;
 
-	}
   ELOG_DEBUG("init ip");
-	ip->init(m, this);
+    ip_->init(m, this);
 
 	MediaInfo om;
 	om.processorType = RTP_ONLY;
@@ -42,22 +38,20 @@ OneToManyTranscoder::OneToManyTranscoder() {
 //	om.url = "file://tmp/test.mp4";
 
 	om.hasAudio = false;
-	if (om.hasAudio) {
-		om.audioCodec.sampleRate = 8000;
-		om.audioCodec.bitRate = 64000;
-	}
 
-	op = new OutputProcessor();
-	op->init(om, this);
+    op_ = new OutputProcessor();
+    op_->init(om, this);
 
 }
 
 OneToManyTranscoder::~OneToManyTranscoder() {
 	this->closeAll();
-	delete sink_;
+    delete sink_; sink_ = NULL;
+    delete ip_; ip_ = NULL;
+    delete op_; op_ = NULL;
 }
 
-int OneToManyTranscoder::deliverAudioData(char* buf, int len) {
+int OneToManyTranscoder::deliverAudioData_(char* buf, int len) {
 	if (subscribers.empty() || len <= 0)
 		return 0;
 
@@ -70,7 +64,7 @@ int OneToManyTranscoder::deliverAudioData(char* buf, int len) {
 	return 0;
 }
 
-int OneToManyTranscoder::deliverVideoData(char* buf, int len) {
+int OneToManyTranscoder::deliverVideoData_(char* buf, int len) {
 	memcpy(sendVideoBuffer_, buf, len);
 
 	RtpHeader* theHead = reinterpret_cast<RtpHeader*>(buf);
@@ -78,7 +72,7 @@ int OneToManyTranscoder::deliverVideoData(char* buf, int len) {
 //			theHead->getPayloadType());
 
 	if (theHead->getPayloadType() == 100) {
-		ip->deliverVideoData(sendVideoBuffer_, len);
+        ip_->deliverVideoData(sendVideoBuffer_, len);
 	} else {
 		this->receiveRtpData((unsigned char*) buf, len);
 	}
@@ -104,7 +98,7 @@ int OneToManyTranscoder::deliverVideoData(char* buf, int len) {
 
 void OneToManyTranscoder::receiveRawData(RawDataPacket& pkt) {
 //	ELOG_DEBUG("Received %d", pkt.length);
-	op->receiveRawData(pkt);
+    op_->receiveRawData(pkt);
 }
 
 void OneToManyTranscoder::receiveRtpData(unsigned char*rtpdata, int len) {
@@ -118,7 +112,6 @@ void OneToManyTranscoder::receiveRtpData(unsigned char*rtpdata, int len) {
 //	}
 	std::map<std::string, MediaSink*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
-		memcpy(sendVideoBuffer_, rtpdata, len);
 		(*it).second->deliverVideoData(sendVideoBuffer_, len);
 	}
 	sentPackets_++;
@@ -141,13 +134,12 @@ void OneToManyTranscoder::addSubscriber(MediaSink* webRtcConn,
   }
 
   void OneToManyTranscoder::closeAll() {
-    ELOG_WARN ("OneToManyProcessor closeAll");
-    std::map<std::string, MediaSink*>::iterator it;
-    for (it = subscribers.begin(); it != subscribers.end(); it++) {
-//      (*it).second->closeSink();
-      subscribers.erase(it);
-      delete (*it).second;
-    }
+      ELOG_WARN ("OneToManyTranscoder closeAll");
+      std::map<std::string, MediaSink*>::iterator it = subscribers.begin();
+      while( it != subscribers.end()) {
+        delete (*it).second;
+        it = subscribers.erase(it);
+      }
     delete this->publisher;
   }
 

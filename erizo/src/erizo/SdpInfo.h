@@ -188,7 +188,7 @@ public:
 
 private:
     bool processSdp(const std::string& sdp);
-    bool processCandidate(char** pieces, int size, MediaType mediaType);
+    bool processCandidate(std::vector<std::string>& pieces, MediaType mediaType);
     void gen_random(char* s, int len);
     std::vector<CandidateInfo> candidateVector_;
     std::vector<CryptoInfo> cryptoVector_;

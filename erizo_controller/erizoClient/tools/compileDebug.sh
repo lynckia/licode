@@ -12,6 +12,7 @@ cat ../src/Stream.js >> $FILE
 cat ../src/Room.js >> $FILE
 cat ../src/utils/L.Logger.js >> $FILE
 cat ../src/utils/L.Base64.js >> $FILE
+cat ../src/utils/L.Resizer.js >> $FILE
 cat ../src/views/View.js >> $FILE
 cat ../src/views/VideoPlayer.js >> $FILE
 cat ../src/views/AudioPlayer.js >> $FILE

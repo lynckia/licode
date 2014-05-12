@@ -9,6 +9,7 @@
 
 #include "rtp/RtpHeaders.h"
 #include "SdpInfo.h"
+#include "StringUtil.h"
 
 using std::endl;
 namespace erizo {
@@ -428,123 +429,103 @@ namespace erizo {
 
   bool SdpInfo::processSdp(const std::string& sdp) {
 
-    std::string strLine;
+    std::string line;
     std::istringstream iss(sdp);
 
-    char line[500];
-    char* pieces[100];
-    char* cryptopiece[100];
     MediaType mtype = OTHER;
 
-    while (std::getline(iss, strLine)) {
-      const char* theline = strLine.c_str();
-      sprintf(line, "%s\n", theline);
-      char* isVideo = strstr(line, video);
-      char* isAudio = strstr(line, audio);
-      char* isGroup = strstr(line, group);
-      char* isCand = strstr(line, cand);
-      char* isCrypt = strstr(line, crypto);
-      char* isUser = strstr(line, ice_user);
-      char* isPass = strstr(line, ice_pass);
-      char* isSsrc = strstr(line, ssrctag);
-      char* isSAVPF = strstr(line, savpf);
-      char* isRtpmap = strstr(line,rtpmap);
-      char* isRtcpMuxchar = strstr(line,rtcpmux);
-      char* isFP = strstr(line,fp);
+    while (std::getline(iss, line)) {
+      size_t isVideo = line.find(video);
+      size_t isAudio = line.find(audio);
+      size_t isGroup = line.find(group);
+      size_t isCand = line.find(cand);
+      size_t isCrypt = line.find(crypto);
+      size_t isUser = line.find(ice_user);
+      size_t isPass = line.find(ice_pass);
+      size_t isSsrc = line.find(ssrctag);
+      size_t isSAVPF = line.find(savpf);
+      size_t isRtpmap = line.find(rtpmap);
+      size_t isRtcpMuxchar = line.find(rtcpmux);
+      size_t isFP = line.find(fp);
 
-      if (isRtcpMuxchar){
+      ELOG_DEBUG("current line -> %s", line.c_str());
+
+      if (isRtcpMuxchar != std::string::npos){
         isRtcpMux = true;
       }
-      if (isSAVPF){
+      if (isSAVPF != std::string::npos){
         profile = SAVPF;
-        ELOG_DEBUG("PROFILE %s (1 SAVPF)", isSAVPF);
+        ELOG_DEBUG("PROFILE %s (1 SAVPF)", line.substr(isSAVPF).c_str());
       }
-      if (isFP){
-        char *pch;
-        pch = strtok(line, ":");
-        pch = strtok(NULL, " ");
-        pch = strtok(NULL, " ");
-        fingerprint = std::string(pch);
+      if (isFP != std::string::npos){
+        std::vector<std::string> parts;
+
+        // FIXME add error checking here
+        parts = stringutil::splitOneOf(line, ":", 1);
+        parts = stringutil::splitOneOf(parts[1], " ");
+
+        fingerprint = parts[1];
         isFingerprint = true;
         ELOG_DEBUG("Fingerprint %s ", fingerprint.c_str());
       }
-      if (isGroup) {
+      if (isGroup != std::string::npos) {
         isBundle = true;
       }
-      if (isVideo) {
+      if (isVideo != std::string::npos) {
         mtype = VIDEO_TYPE;
         hasVideo = true;
       }
-      if (isAudio) {
+      if (isAudio != std::string::npos) {
         mtype = AUDIO_TYPE;
         hasAudio = true;
       }
-      if (isCand != NULL) {
-        char *pch;
-        pch = strtok(line, " :");
-        pieces[0] = pch;
-        int i = 0;
-        while (pch != NULL) {
-          pch = strtok(NULL, " :");
-          pieces[i++] = pch;
-        }
-
-        processCandidate(pieces, i - 1, mtype);
+      if (isCand != std::string::npos) {
+        std::vector<std::string> pieces = stringutil::splitOneOf(line, " :");
+        processCandidate(pieces, mtype);
       }
-      if (isCrypt) {
-        //	ELOG_DEBUG("crypt %s", isCrypt );
+      if (isCrypt != std::string::npos) {
         CryptoInfo crypinfo;
-        char *pch;
-        pch = strtok(line, " :");
-        cryptopiece[0] = pch;
-        int i = 0;
-        while (pch != NULL) {
-          pch = strtok(NULL, " :");
-          //				ELOG_DEBUG("cryptopiece %i es %s", i, pch);
-          cryptopiece[i++] = pch;
-        }
+        std::vector<std::string> cryptopiece = stringutil::splitOneOf(line, " :");
 
-        crypinfo.cipherSuite = std::string(cryptopiece[1]);
-        crypinfo.keyParams = std::string(cryptopiece[3]);
+        // FIXME: add error checking here
+        crypinfo.cipherSuite = cryptopiece[2];
+        crypinfo.keyParams = cryptopiece[4];
         crypinfo.mediaType = mtype;
         cryptoVector_.push_back(crypinfo);
-        //			sprintf(key, "%s",cryptopiece[3]);
-        //				keys = g_slist_append(keys,key);
+        ELOG_DEBUG("Crypto Info: %s %s %d", crypinfo.cipherSuite.c_str(),
+                   crypinfo.keyParams.c_str(),
+                   crypinfo.mediaType);
       }
-      if (isUser) {
-        char* pch;
-        pch = strtok(line, " : \n");
-        pch = strtok(NULL, " : \n");
-        iceUsername_ = std::string(pch);
-
+      if (isUser != std::string::npos) {
+        std::vector<std::string> parts = stringutil::splitOneOf(line, ":", 1);
+        // FIXME add error checking
+        iceUsername_ = parts[1];
+        ELOG_DEBUG("ICE username: %s", iceUsername_.c_str());
       }
-      if (isPass) {
-        char* pch;
-        pch = strtok(line, " : \n");
-        pch = strtok(NULL, ": \n");
-        icePassword_ = std::string(pch);
+      if (isPass != std::string::npos) {
+        std::vector<std::string> parts = stringutil::splitOneOf(line, ":", 1);
+        // FIXME add error checking
+        icePassword_ = parts[1];
+        ELOG_DEBUG("ICE password: %s", icePassword_.c_str());
       }
-      if (isSsrc) {
-        char* pch;
-        pch = strtok(line, " : \n");
-        pch = strtok(NULL, ": \n");
+      if (isSsrc != std::string::npos) {
+        std::vector<std::string> parts = stringutil::splitOneOf(line, " :\n", 2);
+        // FIXME add error checking
         if (mtype == VIDEO_TYPE) {
-          videoSsrc = strtoul(pch, NULL, 10);
+          videoSsrc = strtoul(parts[1].c_str(), NULL, 10);
+          ELOG_DEBUG("video ssrc: %u", videoSsrc);
         } else if (mtype == AUDIO_TYPE) {
-          audioSsrc = strtoul(pch, NULL, 10);
+          audioSsrc = strtoul(parts[1].c_str(), NULL, 10);
+          ELOG_DEBUG("audio ssrc: %u", audioSsrc);
         }
       }
       // a=rtpmap:PT codec_name/clock_rate
-      if(isRtpmap){
+      if(isRtpmap != std::string::npos){
+        std::vector<std::string> parts = stringutil::splitOneOf(line, " :/\n", 4);
         RtpMap theMap;
-        char* pch;
-        pch = strtok(line, " : / \n");
-        pch = strtok(NULL, " : / \n");
-        unsigned int PT = strtoul(pch, NULL, 10);
-        pch = strtok(NULL, " : / \n");
-        std::string codecname(pch);
-        pch = strtok(NULL, " : / \n");
-        unsigned int clock = strtoul(pch, NULL, 10);
+        unsigned int PT = strtoul(parts[1].c_str(), NULL, 10);
+        std::string codecname = parts[2];
+        unsigned int clock = strtoul(parts[3].c_str(), NULL, 10);
         theMap.payloadType = PT;
         theMap.encodingName = codecname;
         theMap.clockRate = clock;
@@ -589,16 +570,17 @@ namespace erizo {
     return payloadVector_;
   }
 
-  bool SdpInfo::processCandidate(char** pieces, int size, MediaType mediaType) {
+  bool SdpInfo::processCandidate(std::vector<std::string>& pieces, MediaType mediaType) {
 
     CandidateInfo cand;
     static const char* types_str[] = { "host", "srflx", "prflx", "relay" };
     cand.mediaType = mediaType;
-    cand.foundation = pieces[0];
-    cand.componentId = (unsigned int) strtoul(pieces[1], NULL, 10);
+    cand.foundation = pieces[1];
+    cand.componentId = (unsigned int) strtoul(pieces[2].c_str(), NULL, 10);
 
-    cand.netProtocol = pieces[2];
+    cand.netProtocol = pieces[3];
     // libnice does not support tcp candidates, we ignore them
+    ELOG_DEBUG("cand.netProtocol=%s", cand.netProtocol.c_str());
     if (cand.netProtocol.compare("UDP") && cand.netProtocol.compare("udp")) {
       return false;
     }
@@ -606,16 +588,16 @@ namespace erizo {
     //		        0 1 2    3            4          5     6  7    8          9
     // 
     // a=candidate:1367696781 1 udp 33562367 138. 49462 typ relay raddr 138.4 rport 53531 generation 0
-    cand.priority = (unsigned int) strtoul(pieces[3], NULL, 10);
-    cand.hostAddress = std::string(pieces[4]);
-    cand.hostPort = (unsigned int) strtoul(pieces[5], NULL, 10);
-    if (strcmp(pieces[6], "typ")) {
+    cand.priority = (unsigned int) strtoul(pieces[4].c_str(), NULL, 10);
+    cand.hostAddress = pieces[5];
+    cand.hostPort = (unsigned int) strtoul(pieces[6].c_str(), NULL, 10);
+    if (pieces[7] != "typ") {
       return false;
     }
     unsigned int type = 1111;
     int p;
     for (p = 0; p < 4; p++) {
-      if (!strcmp(pieces[7], types_str[p])) {
+      if (pieces[8] == types_str[p]) {
         type = p;
       }
     }
@@ -637,9 +619,19 @@ namespace erizo {
         break;
     }
 
+    ELOG_DEBUG( "Candidate Info: foundation=%s, componentId=%u, netProtocol=%s, "
+                "priority=%u, hostAddress=%s, hostPort=%u, hostType=%u",
+                cand.foundation.c_str(),
+                cand.componentId,
+                cand.netProtocol.c_str(),
+                cand.priority,
+                cand.hostAddress.c_str(),
+                cand.hostPort,
+                cand.hostType);
+
     if (cand.hostType == SRFLX || cand.hostType==RELAY) {
-      cand.rAddress = std::string(pieces[9]);
-      cand.rPort = (unsigned int) strtoul(pieces[11], NULL, 10);
+      cand.rAddress = pieces[10];
+      cand.rPort = (unsigned int) strtoul(pieces[12].c_str(), NULL, 10);
       ELOG_DEBUG("Parsing raddr srlfx or relay %s, %u \n", cand.rAddress.c_str(), cand.rPort);
     }
     candidateVector_.push_back(cand);
