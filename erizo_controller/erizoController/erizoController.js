@@ -302,8 +302,20 @@ var listen = function () {
             var sockets = socket.room.streams[msg.id].getDataSubscribers(), id;
             for (id in sockets) {
                 if (sockets.hasOwnProperty(id)) {
-                    logger.info('Sending dataStream to', sockets[id], 'in stream ', msg.id, 'mensaje', msg.msg);
+                    logger.info('Sending dataStream to', sockets[id], 'in stream ', msg.id);
                     io.sockets.socket(sockets[id]).emit('onDataStream', msg);
+                }
+            }
+        });
+
+        //Gets 'updateStreamAttributes' messages on the socket in order to update attributes from the stream.
+        socket.on('updateStreamAttributes', function (msg) {
+            var sockets = socket.room.streams[msg.id].getDataSubscribers(), id;
+            socket.room.streams[msg.id].setAttributes(msg.attrs);
+            for (id in sockets) {
+                if (sockets.hasOwnProperty(id)) {
+                    logger.info('Sending new attributes to', sockets[id], 'in stream ', msg.id);
+                    io.sockets.socket(sockets[id]).emit('onUpdateAttributeStream', msg);
                 }
             }
         });

@@ -20,6 +20,7 @@ Erizo.Room = function (spec) {
         sendMessageSocket,
         sendSDPSocket,
         sendDataSocket,
+        updateAttributes,
         removeStream,
         DISCONNECTED = 0,
         CONNECTING = 1,
@@ -90,6 +91,15 @@ Erizo.Room = function (spec) {
         } else {
             L.Logger.error("You can not send data through a remote stream");
         }
+    };
+
+    updateAttributes = function(stream, attrs) {
+        if (stream.local) {
+            stream.updateLocalAttributes(attrs);
+            sendMessageSocket("updateStreamAttributes", {id: stream.getID(), attrs: attrs});
+        } else {
+            L.Logger.error("You can not update attributes in a remote stream");
+        }  
     };
 
     // It connects to the server through socket.io
@@ -170,6 +180,14 @@ Erizo.Room = function (spec) {
         that.socket.on('onDataStream', function (arg) {
             var stream = that.remoteStreams[arg.id],
                 evt = Erizo.StreamEvent({type: 'stream-data', msg: arg.msg, stream: stream});
+            stream.dispatchEvent(evt);
+        });
+
+        // We receive an event of new data in one of the streams
+        that.socket.on('onUpdateAttributeStream', function (arg) {
+            var stream = that.remoteStreams[arg.id],
+                evt = Erizo.StreamEvent({type: 'stream-attributes-update', attrs: arg.attrs, stream: stream});
+            stream.updateLocalAttributes(arg.attrs);
             stream.dispatchEvent(evt);
         });
 
@@ -300,6 +318,9 @@ Erizo.Room = function (spec) {
                             stream.sendData = function (msg) {
                                 sendDataSocket(stream, msg);
                             };
+                            stream.setAttributes = function (attrs) {
+                                updateAttributes(stream, attrs);
+                            };
                             that.localStreams[id] = stream;
                             stream.room = that;
                             if (callback)
@@ -331,6 +352,10 @@ Erizo.Room = function (spec) {
                                 sendDataSocket(stream, msg);
                             };
                         }
+                        stream.setAttributes = function (attrs) {
+                            updateAttributes(stream, attrs);
+                        };
+
                         that.localStreams[id] = stream;
                         stream.room = that;
                     });
@@ -356,6 +381,9 @@ Erizo.Room = function (spec) {
                                         sendDataSocket(stream, msg);
                                     };
                                 }
+                                stream.setAttributes = function (attrs) {
+                                    updateAttributes(stream, attrs);
+                                };
                                 that.localStreams[id] = stream;
                                 stream.room = that;
                             };
@@ -379,6 +407,9 @@ Erizo.Room = function (spec) {
                     };
                     stream.sendData = function (msg) {
                         sendDataSocket(stream, msg);
+                    };
+                    stream.setAttributes = function (attrs) {
+                        updateAttributes(stream, attrs);
                     };
                     that.localStreams[id] = stream;
                     stream.room = that;
@@ -412,6 +443,8 @@ Erizo.Room = function (spec) {
 
             stream.getID = function () {};
             stream.sendData = function (msg) {};
+            stream.setAttributes = function (attrs) {};
+
         }
     };
 
