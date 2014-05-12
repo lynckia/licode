@@ -31,8 +31,18 @@ Erizo.Stream = function (spec) {
         return spec.streamID;
     };
 
+    // Get attributes of this stream.
     that.getAttributes = function () {
         return spec.attributes;
+    };
+
+    // Changes the attributes of this stream in the room.
+    that.setAttributes = function(attrs) {
+        L.Logger.error("Failed to set attributes data. This Stream object has not been published.");
+    };
+
+    that.updateLocalAttributes = function(attrs) {
+        spec.attributes = attrs;
     };
 
     // Indicates if the stream has audio activated
