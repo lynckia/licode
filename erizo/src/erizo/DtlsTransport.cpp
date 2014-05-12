@@ -24,12 +24,12 @@ Resender::Resender(boost::shared_ptr<NiceConnection> nice, unsigned int comp, co
   }
 
 Resender::~Resender() {
-  ELOG_ERROR("Resender destructor");
+  ELOG_DEBUG("Resender destructor");
   timer.cancel();
   if (thread_.get()!=NULL) {
-    ELOG_ERROR("Resender destructor, joining thread");
+    ELOG_DEBUG("Resender destructor, joining thread");
     thread_->join();
-    ELOG_ERROR("Resender thread terminated on destructor");
+    ELOG_DEBUG("Resender thread terminated on destructor");
   }
 }
 
@@ -100,8 +100,11 @@ DtlsTransport::~DtlsTransport() {
   ELOG_DEBUG("DtlsTransport destructor");
   running_ = false;
   nice_->close();
+  ELOG_DEBUG("Join thread getNice");
   getNice_Thread_.join();
+  ELOG_DEBUG("writeMutex");
   boost::mutex::scoped_lock lockw(writeMutex_);
+  ELOG_DEBUG("sessionMutex");
   boost::mutex::scoped_lock locks(sessionMutex_);
   ELOG_DEBUG("DTLSTransport destructor END");
 }
@@ -256,8 +259,8 @@ void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
   }
   if(state == NICE_FAILED){
     ELOG_DEBUG("Nice Failed, no more reading packets");
-    updateTransportState(TRANSPORT_FAILED);
     running_ = false;
+    updateTransportState(TRANSPORT_FAILED);
   }
   if (state == NICE_READY) {
     ELOG_DEBUG("%s - Nice ready", transport_name.c_str());
@@ -300,6 +303,10 @@ void DtlsTransport::getNiceDataLoop(){
     p_ = nice_->getPacket();
     if (p_->length > 0) {
         this->onNiceData(p_->comp, p_->data, p_->length, NULL);
+    }
+    if (p_->length == -1){    
+      running_=false;
+      return;
     }
   }
 }
