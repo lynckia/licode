@@ -114,29 +114,20 @@ namespace erizo {
         }
         return 0;
       }
+
+      timeval time;
+      gettimeofday(&time, NULL);
       RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
       //We dont need any other payload at this time
       if(head->payloadtype != PCMU_8000_PT){
         return 0;
       }
-
+      
+      unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
       int ret = in_->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedAudioBuffer_);
       if (ret <= 0)
         return ret;
-      timeval time;
-      gettimeofday(&time, NULL);
-      unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-      if (millis -lastTime_ >FIR_INTERVAL_MS && (hasVideo_)){
-        this->sendFirPacket();
-        lastTime_ = millis;
-      }
-      if (initTime_ == 0) {
-        initTime_ = millis;      
-      }
-      if (millis < initTime_){
-        ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
-      }
       if (ret > UNPACKAGE_BUFFER_SIZE){
         ELOG_ERROR("Unpackaged Audio size too big %d", ret);
       }
@@ -375,6 +366,20 @@ namespace erizo {
           lock.unlock();
           return;
         }
+      }
+      timeval time;
+      gettimeofday(&time, NULL);
+      unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+      if (millis -lastTime_ >FIR_INTERVAL_MS && (hasVideo_)){
+        ELOG_DEBUG("SendingFIR");
+        this->sendFirPacket();
+        lastTime_ = millis;
+      }
+      if (initTime_ == 0) {
+        initTime_ = millis;      
+      }
+      if (millis < initTime_){
+        ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
       }
       if (audioQueue_.getSize()){
         boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
