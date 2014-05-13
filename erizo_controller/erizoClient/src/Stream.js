@@ -80,62 +80,30 @@ Erizo.Stream = function (spec) {
           if (videoOpt == true && that.videoSize !== undefined) {
             videoOpt = {mandatory: {minWidth: that.videoSize[0], minHeight: that.videoSize[1], maxWidth: that.videoSize[2], maxHeight: that.videoSize[3]}};
           }
-          var opt = {video: videoOpt, audio: spec.audio, fake: spec.fake};
-          if (spec.screen) {
-            var extensionId = "okeephmleflklcdebijnponpabbmmgeo";
+          var opt = {video: videoOpt, audio: spec.audio, fake: spec.fake, screen: spec.screen};
+          L.Logger.debug(opt);
+          Erizo.GetUserMedia(opt, function (stream) {
+            //navigator.webkitGetUserMedia("audio, video", function (stream) {
 
-            chrome.runtime.sendMessage(extensionId,{getStream:true}, function (response){
-              console.log(response);
-              var theId = response.streamId;
-              if (theId !== undefined){
-                opt = {video: {mandatory: {chromeMediaSource: 'desktop',  chromeMediaSourceId: theId }}};
+            L.Logger.info("User has granted access to local media.");
+            that.stream = stream;
 
-                Erizo.GetUserMedia(opt, function (stream) {
-                  //navigator.webkitGetUserMedia("audio, video", function (stream) {
+            var streamEvent = Erizo.StreamEvent({type: "access-accepted"});
+            that.dispatchEvent(streamEvent);
 
-                  L.Logger.info("User has granted access to local media.");
-                  that.stream = stream;
-
-                  var streamEvent = Erizo.StreamEvent({type: "access-accepted"});
-                  that.dispatchEvent(streamEvent);
-
-                }, function (error) {
-                  L.Logger.error("Failed to get access to local media. Error code was " + error.code + ".");
-                  var streamEvent = Erizo.StreamEvent({type: "access-denied"});
-                  that.dispatchEvent(streamEvent);
-                });
-                }else{
-                  L.Logger.error("Failed to get access to local media. Error code was " + error.code + ".");
-                  var streamEvent = Erizo.StreamEvent({type: "access-denied"});
-                  that.dispatchEvent(streamEvent);
-                }
-                });
-            }
-            if(!spec.screen){
-              L.Logger.debug(opt);
-              Erizo.GetUserMedia(opt, function (stream) {
-                //navigator.webkitGetUserMedia("audio, video", function (stream) {
-
-                L.Logger.info("User has granted access to local media.");
-                that.stream = stream;
-
-                var streamEvent = Erizo.StreamEvent({type: "access-accepted"});
-                that.dispatchEvent(streamEvent);
-
-              }, function (error) {
-                L.Logger.error("Failed to get access to local media. Error code was " + error.code + ".");
-                var streamEvent = Erizo.StreamEvent({type: "access-denied"});
-                that.dispatchEvent(streamEvent);
-              });
-              }
-              } else {
-                var streamEvent = Erizo.StreamEvent({type: "access-accepted"});
-                that.dispatchEvent(streamEvent);
-              }
-              } catch (e) {
-                L.Logger.error("Error accessing to local media", e);
-              }
-        };
+          }, function (error) {
+            L.Logger.error("Failed to get access to local media. Error code was " + error.code + ".");
+            var streamEvent = Erizo.StreamEvent({type: "access-denied"});
+            that.dispatchEvent(streamEvent);
+          });
+          } else {
+            var streamEvent = Erizo.StreamEvent({type: "access-accepted"});
+            that.dispatchEvent(streamEvent);
+          }
+          } catch (e) {
+            L.Logger.error("Error accessing to local media", e);
+          }
+      };
 
     that.close = function () {
         if (that.local) {

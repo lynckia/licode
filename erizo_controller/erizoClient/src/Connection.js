@@ -20,12 +20,12 @@ Erizo.Connection = function (spec) {
         // Firefox
         that.browser = "mozilla";
         that = Erizo.FirefoxStack(spec);
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] <= 33) {
+    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 26) {
         // Google Chrome Stable.
-        L.Logger.debug("Stable!");
+        L.Logger.debug("Stable");
         that = Erizo.ChromeStableStack(spec);
         that.browser = "chrome-stable";
-    } else if (window.navigator.userAgent.toLowerCase().indexOf("chrome")>=0) {
+    } else if (window.navigator.userAgent.toLowerCase().indexOf("chrome")>=40) {
         // Google Chrome Canary.
         L.Logger.debug("Canary!");
         that = Erizo.ChromeCanaryStack(spec);
@@ -50,9 +50,24 @@ Erizo.GetUserMedia = function (config, callback, error) {
                        navigator.mozGetUserMedia ||
                        navigator.msGetUserMedia);
 
-    if (typeof module !== 'undefined' && module.exports) {
+    if (config.screen){
+        L.Logger.debug("Screen access requested");
+        if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 34){
+          L.Logger.debug("Screen access on chrome stable, looking for extension");
+          var extensionId = "okeephmleflklcdebijnponpabbmmgeo";
+          chrome.runtime.sendMessage(extensionId,{getStream:true}, function (response){
+              L.Logger.debug("The ID of the screen stream is ID");
+              console.log(response);
+              var theId = response.streamId;
+              config = {video: {mandatory: {chromeMediaSource: 'desktop',  chromeMediaSourceId: theId }}};
+              navigator.getMedia(config,callback,error);
+          });
+        }
+    }else{
+      if (typeof module !== 'undefined' && module.exports) {
         L.Logger.error('Video/audio streams not supported in erizofc yet');
-    } else {
+      } else {
         navigator.getMedia(config, callback, error);
+      }
     }
 };
