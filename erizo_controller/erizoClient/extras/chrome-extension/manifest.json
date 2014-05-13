@@ -1,0 +1,27 @@
+{
+   "manifest_version": 2,
+   "minimum_chrome_version": "34",
+   "name": "Lynckia Screensharing",
+   "permissions": [ "desktopCapture" ],
+   "short_name": "Screen sharing for lynckia",
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "0.0.0.1",
+
+   "background": {
+      "persistent": true,
+      "scripts": [ "script.js" ]
+   },
+   "description": "Extension to allow screen sharing in Licode applications.",
+   "externally_connectable": {
+      "matches": [ "*://*.dit.upm.es/*"]
+   },
+   "icons": {
+      "128": "lynckia_icon_128.png",
+      "16": "lynckia_icon_16.png",
+      "48": "lynckia_icon_48.png"
+   },
+   "browser_action":{
+     "default_icon": "lynckia_icon_16.png"
+   }
+}
+
