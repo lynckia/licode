@@ -3,6 +3,7 @@ var config = {}
 config.rabbit = {};
 config.nuve = {};
 config.erizoController = {};
+config.erizoAgent = {};
 config.cloudProvider = {};
 config.erizo = {};
 
@@ -42,6 +43,11 @@ config.erizoController.sendStats = false;
 
 // If undefined, the path will be /tmp/
 config.erizoController.recording_path = undefined; 
+
+// Max processes that ErizoAgent can run
+config.erizoAgent.maxProcesses 	  = 1;
+// Number of precesses that ErizoAgent runs when it starts. Always lower than or equals to maxProcesses.
+config.erizoAgent.prerunProcesses = 1;
 
 //STUN server IP address and port to be used by the server.
 //if '' is used, the address is discovered locally
