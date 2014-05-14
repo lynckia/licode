@@ -52,27 +52,29 @@ Erizo.GetUserMedia = function (config, callback, error) {
 
     if (config.screen){
       L.Logger.debug("Screen access requested");
-      if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 34){
-        L.Logger.debug("Screen access on chrome stable, looking for extension");
-        var extensionId = "okeephmleflklcdebijnponpabbmmgeo";
-        try{
-          chrome.runtime.sendMessage(extensionId,{getStream:true}, function (response){
-            if (response==undefined){
-              L.Logger.debug("Access to screen denied");
-              var theError = {code:"Access to screen denied"};
-              error(theError);
-              return;
-            }
-            var theId = response.streamId;
-            config = {video: {mandatory: {chromeMediaSource: 'desktop',  chromeMediaSourceId: theId }}};
-            navigator.getMedia(config,callback,error);
-          });
-        } catch (e){
-          L.Logger.debug("Lynckia screensharing plugin is not accessible ");
-          var theError = {code:"no_plugin_present"};
-          error(theError);
-          return;
-        }
+      if (!window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 34){
+        error({code:"This browser does not support screen sharing"});
+        return;
+      }
+      L.Logger.debug("Screen access on chrome stable, looking for extension");
+      var extensionId = "okeephmleflklcdebijnponpabbmmgeo";
+      try{
+        chrome.runtime.sendMessage(extensionId,{getStream:true}, function (response){
+          if (response==undefined){
+            L.Logger.debug("Access to screen denied");
+            var theError = {code:"Access to screen denied"};
+            error(theError);
+            return;
+          }
+          var theId = response.streamId;
+          config = {video: {mandatory: {chromeMediaSource: 'desktop',  chromeMediaSourceId: theId }}};
+          navigator.getMedia(config,callback,error);
+        });
+      } catch (e){
+        L.Logger.debug("Lynckia screensharing plugin is not accessible ");
+        var theError = {code:"no_plugin_present"};
+        error(theError);
+        return;
       }
     }else{
       if (typeof module !== 'undefined' && module.exports) {
