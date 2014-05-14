@@ -232,8 +232,17 @@ exports.ErizoJSController = function (spec) {
             delete subscribers[from];
             logger.info('Removing publisher', from);
             delete publishers[from];
-            logger.info('Removed all. Killing process.');
-            process.exit(0);
+            var count = 0;
+            for (var k in publishers) {
+                if (publishers.hasOwnProperty(k)) {
+                   ++count;
+                }
+            }
+            logger.info("Publishers: ", count);
+            if (count === 0)  {
+                logger.info('Removed all publishers. Killing process.');
+                process.exit(0);
+            }
         }
     };
 
