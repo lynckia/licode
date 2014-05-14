@@ -327,9 +327,18 @@ var listen = function () {
                 callback('error', 'unauthorized');
                 return;
             }
-            if (options.state === 'url') {
+            if (options.state === 'url' || options.state === 'recording') {
                 id = Math.random() * 1000000000000000000;
-                socket.room.controller.addExternalInput(id, sdp, function (result) {
+                var url = sdp;
+                if (options.state === 'recording') {
+                    var recordingId = sdp;
+                    if (config.erizoController.recording_path) {
+                        url = config.erizoController.recording_path + recordingId + '.mkv';
+                    } else {
+                        url = '/tmp/' + recordingId + '.mkv';
+                    }
+                }
+                socket.room.controller.addExternalInput(id, url, function (result) {
                     if (result === 'success') {
                         st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
                         socket.streams.push(id);
@@ -420,34 +429,54 @@ var listen = function () {
         });
 
         //Gets 'startRecorder' messages
-        socket.on('startRecorder', function (options) {
+        socket.on('startRecorder', function (options, callback) {
             if (!socket.user.permissions[Permission.RECORD]) {
                 callback('error', 'unauthorized');
                 return;
             }
             var streamId = options.to;
-            var path = options.path;
-            var url = "/tmp/recording" + streamId + ".mkv";
+            var recordingId = Math.random() * 1000000000000000000;
+            var url; 
 
-            if (path) {
-                url = path + "/recording" + streamId + ".mkv";
+            if (config.erizoController.recording_path) {
+                url = config.erizoController.recording_path + recordingId + '.mkv';
+            } else {
+                url = '/tmp/' + recordingId + '.mkv';
             }
-
-            logger.info("erizoController.js: Starting recorder streamID " + streamId + " url " + url);
+            
+            logger.info("erizoController.js: Starting recorder streamID " + streamId + "url ", url);
             
             if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
-                socket.room.controller.addExternalOutput(streamId, url);
-                logger.info("erizoController.js: Recorder Started");
+                socket.room.controller.addExternalOutput(streamId, url, function (result) {
+                    if (result === 'success') {
+                        logger.info("erizoController.js: Recorder Started");
+                        callback('success', recordingId);
+                    } else {
+                        callback('error', 'This stream is not published in this room');
+                    }
+                });
+                
+            } else {
+                callback('error', 'Stream can not be recorded');
             }
         });
 
-        socket.on('stopRecorder', function (options) {
+        socket.on('stopRecorder', function (options, callback) {
             if (!socket.user.permissions[Permission.RECORD]) {
                 callback('error', 'unauthorized');
                 return;
             }
-            logger.info("erizoController.js: Stoping recorder to streamId " + options.to + " url " + options.url);
-            socket.room.controller.removeExternalOutput(options.to, options.url);
+            var recordingId = options.id;
+            var url;
+
+            if (config.erizoController.recording_path) {
+                url = config.erizoController.recording_path + recordingId + '.mkv';
+            } else {
+                url = '/tmp/' + recordingId + '.mkv';
+            }
+
+            logger.info("erizoController.js: Stoping recording  " + recordingId + " url " + url);
+            socket.room.controller.removeExternalOutput(url, callback);
         });
 
         //Gets 'unpublish' messages on the socket in order to remove a stream from the room.

@@ -74,35 +74,42 @@ exports.RoomController = function (spec) {
         }
     };
 
-    that.addExternalOutput = function (publisher_id, url) {
+    that.addExternalOutput = function (publisher_id, url, callback) {
         if (publishers[publisher_id] !== undefined) {
             logger.info("Adding ExternalOutput to " + publisher_id + " url " + url);
 
+            var args = [publisher_id, url];
 
-                var args = [publisher_id, url];
+            rpc.callRpc("ErizoJS_" + publisher_id, "addExternalOutput", args, undefined);
 
-                rpc.callRpc("ErizoJS_" + publisher_id, "addExternalOutput", args, undefined);
+            // Track external outputs
+            externalOutputs[url] = publisher_id;
 
-                // Track external outputs
-                externalOutputs[url] = publisher_id;
-
-                // Track publisher locally
-                publishers[publisher_id] = publisher_id;
-                subscribers[publisher_id] = [];
+            // Track publisher locally
+            publishers[publisher_id] = publisher_id;
+            subscribers[publisher_id] = [];
+            callback('success');
+        } else {
+            callback('error');
         }
 
     };
 
-    that.removeExternalOutput = function (publisher_id, url) {
-      if (externalOutputs[url] !== undefined && publishers[publisher_id]!=undefined) {
-        logger.info("Stopping ExternalOutput: url " + url);
+    that.removeExternalOutput = function (url, callback) {
+        var publisher_id = externalOutputs[url];
 
-        var args = [publisher_id, url];
-        rpc.callRpc("ErizoJS_" + publisher_id, "removeExternalOutput", args, undefined);
+        if (publisher_id !== undefined && publishers[publisher_id] != undefined) {
+            logger.info("Stopping ExternalOutput: url " + url);
 
-        // Remove track
-        delete externalOutputs[url];
-      }
+            var args = [publisher_id, url];
+            rpc.callRpc("ErizoJS_" + publisher_id, "removeExternalOutput", args, undefined);
+
+            // Remove track
+            delete externalOutputs[url];
+            callback('success');
+        } else {
+            callback('error', 'This stream is not being recorded');
+        }
     };
 
     /*

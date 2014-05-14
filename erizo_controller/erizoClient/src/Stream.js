@@ -11,6 +11,7 @@ Erizo.Stream = function (spec) {
 
     that.stream = spec.stream;
     that.url = spec.url;
+    that.recording = spec.recording;
     that.room = undefined;
     that.showing = false;
     that.local = false;

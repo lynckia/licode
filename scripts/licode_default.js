@@ -40,6 +40,9 @@ config.erizoController.interval_time_keepAlive = 1000;
 // If true, erizoController sends stats to rabbitMQ queue "stats_handler" 
 config.erizoController.sendStats = false; 
 
+// If undefined, the path will be /tmp/
+config.erizoController.recording_path = undefined; 
+
 //STUN server IP address and port to be used by the server.
 //if '' is used, the address is discovered locally
 config.erizo.stunserver = '';

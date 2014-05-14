@@ -49,8 +49,6 @@ exports.ErizoJSController = function (spec) {
      */
     initWebRtcConnection = function (wrtc, sdp, callback, id_pub, id_sub) {
 
-        logger.info("***********AYAYYAYAYAYYAYAYA ********** " + id_pub, id_sub);
-
         if (config.erizoController.sendStats) {
             wrtc.getStats(function (newStats){
                 rpc.callRpc('stats_handler', 'stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats)});
@@ -154,7 +152,6 @@ exports.ErizoJSController = function (spec) {
             publishers[to].addExternalOutput(externalOutput, url);
             externalOutputs[url] = externalOutput;
         }
-
     };
 
     that.removeExternalOutput = function (to, url) {

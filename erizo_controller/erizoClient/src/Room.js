@@ -24,8 +24,7 @@ Erizo.Room = function (spec) {
         removeStream,
         DISCONNECTED = 0,
         CONNECTING = 1,
-        CONNECTED = 2,
-        recordingUrl;
+        CONNECTED = 2;
 
     that.remoteStreams = {};
     that.localStreams = {};
@@ -307,8 +306,17 @@ Erizo.Room = function (spec) {
 
             // 2- Publish Media Stream to Erizo-Controller
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-                if (stream.url !== undefined) {
-                    sendSDPSocket('publish', {state: 'url', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, stream.url, function (answer, id) {
+                if (stream.url !== undefined || stream.recording !== undefined) {
+                    var type;
+                    var arg;
+                    if (stream.url) {
+                        type = 'url';
+                        arg = stream.url;
+                    } else {
+                        type = 'recording';
+                        arg = stream.recording;
+                    }
+                    sendSDPSocket('publish', {state: type, data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, arg, function (answer, id) {
 
                         if (answer === 'success') {
                             L.Logger.info('Stream published');
@@ -418,13 +426,13 @@ Erizo.Room = function (spec) {
         }
     };
 
-    that.startRecording = function (stream, path) {
-        L.Logger.debug("Start Recording stream: " + stream.getID());
-        sendMessageSocket('startRecorder',{to:stream.getID(), path: path});
+    that.startRecording = function (stream, callback, callbackError) {
+        L.Logger.debug("Start Recording streamaa: " + stream.getID());
+        sendMessageSocket('startRecorder', {to: stream.getID()}, callback, callbackError);
     }
 
-    that.stopRecording = function (stream){
-        sendMessageSocket('stopRecorder',{to:stream.getID(), url:recordingUrl});
+    that.stopRecording = function (recordingId, callback, callbackError) {
+        sendMessageSocket('stopRecorder', {id: recordingId}, callback, callbackError);
     }
 
     // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
