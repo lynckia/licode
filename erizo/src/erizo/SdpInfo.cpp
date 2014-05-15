@@ -65,7 +65,7 @@ namespace erizo {
     ulpfec.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(ulpfec);
     */
-    
+
     RtpMap opus;
     opus.payloadType = OPUS_48000_PT;
     opus.encodingName = "opus";
@@ -381,7 +381,7 @@ namespace erizo {
           sdp << "a=rtpmap:"<<rtp.payloadType << " " << rtp.encodingName << "/"
               << rtp.clockRate <<"\n";
           if(rtp.encodingName == "VP8"){
-            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" ccm fir\na=rtcp-fb:"<< rtp.payloadType<<" nack\na=rtcp-fb:" << rtp.payloadType<<" goog-remb\n" ;
+            sdp << "a=rtcp-fb:"<< rtp.payloadType<<" ccm fir\n" ;
           }
         }
       }
@@ -607,7 +607,7 @@ namespace erizo {
     }
     //	a=candidate:0 1 udp 2130706432 1383 52314 typ host  generation 0
     //		        0 1 2    3            4          5     6  7    8          9
-    // 
+    //
     // a=candidate:1367696781 1 udp 33562367 138. 49462 typ relay raddr 138.4 rport 53531 generation 0
     cand.priority = (unsigned int) strtoul(pieces[3], NULL, 10);
     cand.hostAddress = std::string(pieces[4]);
