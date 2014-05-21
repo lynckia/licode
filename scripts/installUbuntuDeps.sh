@@ -74,9 +74,9 @@ install_mediadeps(){
   sudo apt-get install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-9.9.tar.gz
-    tar -zxvf libav-9.9.tar.gz
-    cd libav-9.9
+    curl -O https://www.libav.org/releases/libav-9.13.tar.gz
+    tar -zxvf libav-9.13.tar.gz
+    cd libav-9.13
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264
     make -s V=0
     make install
