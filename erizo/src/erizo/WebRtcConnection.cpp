@@ -233,13 +233,14 @@ namespace erizo {
     }
     boost::mutex::scoped_lock lock(writeMutex_);
     int length = len;
-    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
     
     // PROCESS STATS
     if (this->statsListener_){ // if there is no listener we dont process stats
-      thisStats_.processRtcpStats(chead);
+      RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
+      if (head->payloadtype != RED_90000_PT && head->payloadtype != PCMU_8000_PT)     
+        thisStats_.processRtcpStats(buf, length);
     }
-   
+    RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
       if (fbSink_ != NULL) {
