@@ -25,11 +25,6 @@ Erizo.Connection = function (spec) {
         L.Logger.debug("Stable");
         that = Erizo.ChromeStableStack(spec);
         that.browser = "chrome-stable";
-    } else if (window.navigator.userAgent.toLowerCase().indexOf("chrome")>=40) {
-        // Google Chrome Canary.
-        L.Logger.debug("Canary!");
-        that = Erizo.ChromeCanaryStack(spec);
-        that.browser = "chrome-canary";
     }  else if (window.navigator.appVersion.match(/Bowser\/([\w\W]*?)\./)[1] === "25") {
         // Bowser
         that.browser = "bowser";
