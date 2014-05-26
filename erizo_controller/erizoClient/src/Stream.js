@@ -76,7 +76,7 @@ Erizo.Stream = function (spec) {
 
                     if(spec.desktopStreamId) {
                         opt.video.mandatory.chromeMediaSource = 'desktop';
-                        opt.video.mandatory.chromeMediaSourceId = Erizo.desktopStreamId;
+                        opt.video.mandatory.chromeMediaSourceId = spec.desktopStreamId;
                     }
                 }
                 L.Logger.debug("Calling GetUserMedia with options", opt);
