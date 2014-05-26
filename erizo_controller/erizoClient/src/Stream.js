@@ -72,9 +72,14 @@ Erizo.Stream = function (spec) {
                 }
                 var opt = {video: videoOpt, audio: spec.audio, fake: spec.fake};
                 if (spec.screen) {
-                    opt = {video: {mandatory: {chromeMediaSource: 'screen', maxWidth: screen.availWidth, maxHeight: screen.availHeight}}};
+                     opt = {video: {mandatory: {chromeMediaSource: 'screen', maxWidth: screen.availWidth, maxHeight: screen.availHeight, maxFrameRate: 30, minFrameRate: 30}}};
+
+                    if(spec.desktopStreamId) {
+                        opt.video.mandatory.chromeMediaSource = 'desktop';
+                        opt.video.mandatory.chromeMediaSourceId = Erizo.desktopStreamId;
+                    }
                 }
-                L.Logger.debug(opt);
+                L.Logger.debug("Calling GetUserMedia with options", opt);
                 Erizo.GetUserMedia(opt, function (stream) {
                 //navigator.webkitGetUserMedia("audio, video", function (stream) {
 
