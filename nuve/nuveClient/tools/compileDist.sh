@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 java -jar compiler.jar --js ../lib/xmlhttprequest.js --js_output_file ../dist/xmlhttprequest.js
 
 TARGET=../dist/nuve.js

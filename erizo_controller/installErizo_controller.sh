@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo [erizo_controller] Installing node_modules for erizo_controller
 
 cd erizoController

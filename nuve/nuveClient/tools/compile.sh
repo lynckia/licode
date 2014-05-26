@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 mkdir -p ../dist
 mkdir -p ../build
 
