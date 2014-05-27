@@ -20,11 +20,8 @@ namespace erizo {
     audioCodec_ = NULL;
     video_st = NULL;
     audio_st = NULL;
-    audioCoder_ = NULL;
     prevEstimatedFps_ = 0;
     warmupfpsCount_ = 0;
-    sequenceNumberFIR_ = 0;
-    aviores_ = -1;
     writeheadres_=-1;
     unpackagedBufferpart_ = unpackagedBuffer_;
     initTime_ = 0;
@@ -52,7 +49,7 @@ namespace erizo {
     url.copy(context_->filename, sizeof(context_->filename),0);
     video_st = NULL;
     audio_st = NULL;
-    in_ = new InputProcessor();
+    inputProcessor_ = new InputProcessor();
     MediaInfo m;
     //    m.processorType = RTP_ONLY;
     m.hasVideo = false;
@@ -60,7 +57,7 @@ namespace erizo {
 
     gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
-    in_->init(m, this);
+    inputProcessor_->init(m, this);
     thread_ = boost::thread(&ExternalOutput::sendLoop, this);
     sending_ = true;
     ELOG_DEBUG("Initialized successfully");
@@ -71,8 +68,8 @@ namespace erizo {
   ExternalOutput::~ExternalOutput(){
     ELOG_DEBUG("Destructor");
     ELOG_DEBUG("Closing Sink");
-    delete in_;
-    in_ = NULL;
+    delete inputProcessor_;
+    inputProcessor_ = NULL;
     
     
     if (context_!=NULL){
@@ -105,7 +102,7 @@ namespace erizo {
 
 
   int ExternalOutput::writeAudioData(char* buf, int len){
-    if (in_!=NULL){
+    if (inputProcessor_!=NULL){
       if (videoCodec_ == NULL) {
         return 0;
       }
@@ -115,7 +112,7 @@ namespace erizo {
         return 0;
       }
 
-      int ret = in_->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
+      int ret = inputProcessor_->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedAudioBuffer_);
       if (ret <= 0)
         return ret;
@@ -150,7 +147,7 @@ namespace erizo {
   }
 
   int ExternalOutput::writeVideoData(char* buf, int len){
-    if (in_!=NULL){
+    if (inputProcessor_!=NULL){
       rtpheader *head = (rtpheader*) buf;
       if (head->payloadtype == RED_90000_PT) {
         int totalLength = 12;
@@ -180,7 +177,7 @@ namespace erizo {
         }
       }
       int estimatedFps=0;
-      int ret = in_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
+      int ret = inputProcessor_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
 
       if (ret < 0)
@@ -300,8 +297,7 @@ namespace erizo {
 
       context_->streams[0] = video_st;
       context_->streams[1] = audio_st;
-      aviores_ = avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE);
-      if (aviores_<0){
+      if (avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE) < 0){
         ELOG_ERROR("Error opening output file");
         return false;
       }
@@ -316,7 +312,7 @@ namespace erizo {
   }
 
   void ExternalOutput::queueData(char* buffer, int length, packetType type){
-    if (in_==NULL) {
+    if (inputProcessor_==NULL) {
       return;
     }
     boost::mutex::scoped_lock lock(queueMutex_);
@@ -331,7 +327,6 @@ namespace erizo {
 
   int ExternalOutput::sendFirPacket() {
     if (fbSink_ != NULL) {
-      sequenceNumberFIR_++; // do not increase if repetition
       int pos = 0;
       uint8_t rtcpPacket[50];
       // add full intra request indicator
@@ -347,18 +342,6 @@ namespace erizo {
   }
 
   void ExternalOutput::sendLoop() {
-    /* while (sending_ == true) { */
-    /*   queueMutex_.lock(); */
-    /*   if (packetQueue_.size() > 0) { */
-    /*     op_->receiveRawData(packetQueue_.front()); */
-    /*     packetQueue_.pop(); */
-    /*     queueMutex_.unlock(); */
-    /*   } else { */
-    /*     queueMutex_.unlock(); */
-    /*     usleep(1000); */
-    /*   } */
-    /* } */
-
     while (sending_ == true) {
       boost::unique_lock<boost::mutex> lock(queueMutex_);
       while ((!audioQueue_.getSize())&&(!videoQueue_.getSize())) {
@@ -377,17 +360,9 @@ namespace erizo {
         this->writeVideoData(videoP->data, videoP->length);
 
       }
-      /*
-      if (packetQueue_.front().type == VIDEO_PACKET) {
-        this->writeVideoData(packetQueue_.front().data, packetQueue_.front().length);
-      } else {
-        this->writeAudioData(packetQueue_.front().data, packetQueue_.front().length);
-      }
-*/
-      
+
       lock.unlock();
     }
   }
-
 }
 

@@ -29,11 +29,7 @@ namespace erizo{
       void receiveRawData(RawDataPacket& packet);
 
     private:
-      OutputProcessor* op_;
       RtpPacketQueue audioQueue_, videoQueue_;
-      unsigned char* decodedBuffer_;
-      char* sendVideoBuffer_;
-      
 
       std::string url;
       volatile bool sending_;
@@ -42,21 +38,19 @@ namespace erizo{
     	boost::condition_variable cond_;
       AVStream        *video_st, *audio_st;
       
-      AudioEncoder* audioCoder_;
       int gotUnpackagedFrame_;
       int unpackagedSize_;
       int prevEstimatedFps_;
       int warmupfpsCount_;
-      int sequenceNumberFIR_;
       unsigned long long lastTime_;
 
-      int video_stream_index, bufflen, aviores_, writeheadres_;
+      int writeheadres_;
 
       AVFormatContext *context_;
       AVOutputFormat *oformat_;
       AVCodec *videoCodec_, *audioCodec_; 
       AVCodecContext *videoCodecCtx_, *audioCodecCtx_;
-      InputProcessor *in_;
+      InputProcessor *inputProcessor_;
 
       AVPacket avpacket;
       unsigned char* unpackagedBufferpart_;
