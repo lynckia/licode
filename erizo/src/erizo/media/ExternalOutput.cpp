@@ -66,11 +66,9 @@ bool ExternalOutput::init(){
 
 
 ExternalOutput::~ExternalOutput(){
-    ELOG_DEBUG("Destructor");
-    ELOG_DEBUG("Closing Sink");
+    ELOG_DEBUG("ExternalOutput Destructing");
     delete inputProcessor_;
     inputProcessor_ = NULL;
-    
     
     if (context_!=NULL){
         if (writeheadres_>=0)
@@ -80,11 +78,13 @@ ExternalOutput::~ExternalOutput(){
         avformat_free_context(context_);
         context_=NULL;
     }
-    if (videoCodec_!=NULL){
+
+    if (videoCodec_ != NULL){
         avcodec_close(videoCodecCtx_);
         videoCodec_=NULL;
     }
-    if (audioCodec_!=NULL){
+
+    if (audioCodec_ != NULL){
         avcodec_close(audioCodecCtx_);
         audioCodec_ = NULL;
     }
@@ -92,11 +92,10 @@ ExternalOutput::~ExternalOutput(){
     sending_ = false;
     cond_.notify_one();
     thread_.join();
-    /* boost::unique_lock<boost::mutex> lock(queueMutex_); */
     ELOG_DEBUG("ExternalOutput closed Successfully");
 }
 
-void ExternalOutput::receiveRawData(RawDataPacket& packet){
+void ExternalOutput::receiveRawData(RawDataPacket& /*packet*/){
     return;
 }
 
