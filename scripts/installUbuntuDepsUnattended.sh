@@ -91,7 +91,7 @@ install_mediadeps(){
     curl -O https://www.libav.org/releases/libav-9.13.tar.gz
     tar -zxvf libav-9.13.tar.gz
     cd libav-9.13
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --libx264 --enable-libopus
     make -s V=0
     make install
     cd $CURRENT_DIR
@@ -110,7 +110,7 @@ install_mediadeps_nogpl(){
     curl -O https://www.libav.org/releases/libav-9.13.tar.gz
     tar -zxvf libav-9.13.tar.gz
     cd libav-9.13
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libopus
     make -s V=0
     make install
     cd $CURRENT_DIR
