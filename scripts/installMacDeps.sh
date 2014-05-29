@@ -36,9 +36,9 @@ install_brew_deps(){
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O http://www.openssl.org/source/openssl-1.0.1e.tar.gz
-    tar -zxvf openssl-1.0.1e.tar.gz
-    cd openssl-1.0.1e
+    curl -O http://www.openssl.org/source/openssl-1.0.1g.tar.gz
+    tar -zxvf openssl-1.0.1g.tar.gz
+    cd openssl-1.0.1g
     ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -fPIC
     make -s V=0
     make install
