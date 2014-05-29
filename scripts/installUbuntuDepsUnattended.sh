@@ -84,6 +84,7 @@ install_opus(){
 }
 
 install_mediadeps(){
+  install_opus
   sudo apt-get -qq install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
@@ -102,6 +103,7 @@ install_mediadeps(){
 }
 
 install_mediadeps_nogpl(){
+  install_opus
   sudo apt-get -qq install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
