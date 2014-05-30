@@ -34,6 +34,13 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
     for (it=queue_.begin(); it != queue_.end(); ++it) {
         const RTPHeader *header = reinterpret_cast<const RTPHeader*>((*it)->data);
         uint16_t sequenceNumber = header->getSeqNumber();
+
+        if (sequenceNumber == currentSequenceNumber) {
+            // We already have this sequence number in the queue.
+            ELOG_INFO("RTPPacketQueue -- discarding duplicate sample %d", currentSequenceNumber);
+            break;
+        }
+
         if (this->rtpSequenceLessThan(sequenceNumber, currentSequenceNumber)) {
             queue_.insert(it, packet);
             break;
