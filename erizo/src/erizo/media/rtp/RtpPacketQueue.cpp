@@ -29,29 +29,26 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
     memcpy(packet->data, data, length);
     packet->length = length;
 
-    if( queue_.size() == 0) {
-        queue_.push_front(packet);
-    } else {
-        // let's insert this packet where it belongs in the queue.
-        std::list<boost::shared_ptr<dataPacket> >::iterator it;
-        for (it=queue_.begin(); it != queue_.end(); ++it) {
-            const RTPHeader *header = reinterpret_cast<const RTPHeader*>((*it)->data);
-            uint16_t sequenceNumber = header->getSeqNumber();
-            if (this->rtpSequenceLessThan(sequenceNumber, currentSequenceNumber)) {
-                queue_.insert(it, packet);
-                break;
-            }
+    // let's insert this packet where it belongs in the queue.
+    std::list<boost::shared_ptr<dataPacket> >::iterator it;
+    for (it=queue_.begin(); it != queue_.end(); ++it) {
+        const RTPHeader *header = reinterpret_cast<const RTPHeader*>((*it)->data);
+        uint16_t sequenceNumber = header->getSeqNumber();
+        if (this->rtpSequenceLessThan(sequenceNumber, currentSequenceNumber)) {
+            queue_.insert(it, packet);
+            break;
         }
+    }
 
-        if (it == queue_.end()) {
-            // something old.
-            queue_.push_back(packet);
-        }
+    if (it == queue_.end()) {
+        // something old, or queue is empty.
+        queue_.push_back(packet);
+    }
 
-        // Enforce our max queue size.
-        while(queue_.size() >= this->MAX_SIZE) {
-            queue_.pop_back();  // remove oldest samples.
-        }
+    // Enforce our max queue size.
+    while(queue_.size() >= this->MAX_SIZE) {
+        ELOG_DEBUG("RtpPacketQueue - Discarding a sample due to hitting MAX_SIZE");
+        queue_.pop_back();  // remove oldest samples.
     }
 }
 
