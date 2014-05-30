@@ -27,20 +27,23 @@ exports.RoomController = function (spec) {
 
     var eventListeners = [];
 
-    var callbackFor = function(erizo_id) {
+    var callbackFor = function(erizo_id, publisher_id) {
         return function(ok) {
             if (ok !== true) {
                 dispatchEvent("unpublish", erizo_id);
+                rpc.callRpc("ErizoAgent", "deleteErizoJS", [erizo_id], {callback: function(){
+                    delete erizos[publisher_id];
+                }});
             }
         }
-    }
+    };
 
     var sendKeepAlive = function() {
         for (var publisher_id in erizos) {
             var erizo_id = erizos[publisher_id];
-            rpc.callRpc(getErizoQueue(publisher_id), "keepAlive", [], {callback: callbackFor(erizo_id)});
+            rpc.callRpc(getErizoQueue(publisher_id), "keepAlive", [], {callback: callbackFor(erizo_id, publisher_id)});
         }
-    }
+    };
 
     var keepAliveLoop = setInterval(sendKeepAlive, KEELALIVE_INTERVAL);
 

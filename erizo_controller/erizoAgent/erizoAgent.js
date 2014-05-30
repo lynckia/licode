@@ -65,6 +65,8 @@ var idle_erizos = [];
 
 var erizos = [];
 
+var processes = {};
+
 var guid = (function() {
   function s4() {
     return Math.floor((1 + Math.random()) * 0x10000)
@@ -102,9 +104,20 @@ var launchErizoJS = function() {
         } else if (index2 > -1) {
             erizos.splice(index2, 1);
         }
+        delete processes[id];
         fillErizos();
     });
+    processes[id] = erizoProcess;
     idle_erizos.push(id);
+};
+
+var dropErizoJS = function(erizo_id, callback) {
+   if (processes.hasOwnProperty(erizo_id)) {
+      var process = processes[erizo_id];
+      process.kill();
+      delete processes[erizo_id];
+      callback("callback", "ok");
+   }
 };
 
 var fillErizos = function() {
@@ -131,6 +144,13 @@ var api = {
             
         } catch (error) {
             console.log("Error in ErizoAgent:", error);
+        }
+    },
+    deleteErizoJS: function(id, callback) {
+        try {
+            dropErizoJS(id, callback);
+        } catch(err) {
+            log.error("Error stopping ErizoJS");
         }
     }
 };
