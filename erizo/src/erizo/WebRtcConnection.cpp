@@ -17,8 +17,6 @@ namespace erizo {
   WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort) {
 
     ELOG_WARN("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", stunServer.c_str(), stunPort, minPort, maxPort);
-    video_ = 0;
-    audio_ = 0;
     sequenceNumberFIR_ = 0;
     bundle_ = false;
     this->setVideoSinkSSRC(55543);
@@ -81,8 +79,8 @@ namespace erizo {
     ELOG_DEBUG("Set Remote SDP %s", sdp.c_str());
     remoteSdp_.initWithSdp(sdp);
     //std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
-    video_ = (remoteSdp_.videoSsrc==0?false:true);
-    audio_ = (remoteSdp_.audioSsrc==0?false:true);
+    int video = (remoteSdp_.videoSsrc==0?false:true);
+    int audio = (remoteSdp_.audioSsrc==0?false:true);
 
     bundle_ = remoteSdp_.isBundle;
     ELOG_DEBUG("Is bundle? %d %d ", bundle_, true);
@@ -90,7 +88,7 @@ namespace erizo {
     localSdp_.isBundle = bundle_;
     localSdp_.isRtcpMux = remoteSdp_.isRtcpMux;
 
-    ELOG_DEBUG("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d", video_, remoteSdp_.videoSsrc, audio_, remoteSdp_.audioSsrc,  bundle_);
+    ELOG_DEBUG("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d", video, remoteSdp_.videoSsrc, audio, remoteSdp_.audioSsrc,  bundle_);
 
     ELOG_DEBUG("Setting SSRC to localSdp %u", this->getVideoSinkSSRC());
     localSdp_.videoSsrc = this->getVideoSinkSSRC();
