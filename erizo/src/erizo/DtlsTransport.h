@@ -42,8 +42,6 @@ namespace erizo {
     boost::thread getNice_Thread_;
     void getNiceDataLoop();
     packetPtr p_;
-
-    friend class Transport;
   };
 
   class Resender {

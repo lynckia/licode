@@ -50,7 +50,7 @@ namespace erizo {
     url.copy(context_->filename, sizeof(context_->filename),0);
     video_st = NULL;
     audio_st = NULL;
-    in_ = new InputProcessor();
+    inputProcessor_ = new InputProcessor();
     MediaInfo m;
     //    m.processorType = RTP_ONLY;
     m.hasVideo = false;
@@ -58,7 +58,7 @@ namespace erizo {
 
     gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
-    in_->init(m, this);
+    inputProcessor_->init(m, this);
     thread_ = boost::thread(&ExternalOutput::sendLoop, this);
     sending_ = true;
     ELOG_DEBUG("Initialized successfully");
@@ -69,8 +69,8 @@ namespace erizo {
   ExternalOutput::~ExternalOutput(){
     ELOG_DEBUG("Destructor");
     ELOG_DEBUG("Closing Sink");
-    delete in_;
-    in_ = NULL;
+    delete inputProcessor_;
+    inputProcessor_ = NULL;
     
     
     if (context_!=NULL){
@@ -103,7 +103,7 @@ namespace erizo {
 
 
   int ExternalOutput::writeAudioData(char* buf, int len){
-    if (in_!=NULL){
+    if (inputProcessor_!=NULL){
       if (audioCodec_ == NULL) {
         if (warmupfpsCount_>=100){
           hasVideo_ = false;
@@ -124,7 +124,7 @@ namespace erizo {
       }
       
       unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-      int ret = in_->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
+      int ret = inputProcessor_->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedAudioBuffer_);
       if (ret <= 0)
         return ret;
@@ -147,7 +147,7 @@ namespace erizo {
   }
 
   int ExternalOutput::writeVideoData(char* buf, int len){
-    if (in_!=NULL){
+    if (inputProcessor_!=NULL){
       RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
       if (head->payloadtype == RED_90000_PT) {
         int totalLength = 12;
@@ -177,7 +177,7 @@ namespace erizo {
         }
       }
       int estimatedFps=0;
-      int ret = in_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
+      int ret = inputProcessor_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
 
       if (ret < 0)
@@ -327,7 +327,7 @@ namespace erizo {
   }
 
   void ExternalOutput::queueData(char* buffer, int length, packetType type){
-    if (in_==NULL) {
+    if (inputProcessor_==NULL) {
       return;
     }
     boost::mutex::scoped_lock lock(queueMutex_);
@@ -395,4 +395,5 @@ namespace erizo {
   }
 
 }
+
 

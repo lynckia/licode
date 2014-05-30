@@ -7,109 +7,82 @@
 
 namespace erizo{
 
-  DEFINE_LOGGER(RtpPacketQueue, "rtp.RtpPacketQueue");
+DEFINE_LOGGER(RtpPacketQueue, "rtp.RtpPacketQueue");
 
-  RtpPacketQueue::RtpPacketQueue()
-    : lastNseq_(0), lastTs_(0)
-  {
-  }
+RtpPacketQueue::RtpPacketQueue()
+{
+}
 
-  RtpPacketQueue::~RtpPacketQueue(void)
-  {
-    cleanQueue();
-  }
+RtpPacketQueue::~RtpPacketQueue(void)
+{
+    queue_.clear();
+}
 
-  void RtpPacketQueue::pushPacket(const char *data, int length)
-  {
+void RtpPacketQueue::pushPacket(const char *data, int length)
+{
+    const RtpHeader *currentHeader = reinterpret_cast<const RtpHeader*>(data);
+    uint16_t currentSequenceNumber = currentHeader->getSeqNumber();
 
-    const RtpHeader *header = reinterpret_cast<const RtpHeader*>(data);
-    uint16_t nseq = header->getSeqNumber();
-    uint32_t ts = header->getTimestamp();
-
-    long long int ltsdiff = (long long int)ts - (long long int)lastTs_;
-    int tsdiff = (int)ltsdiff;
-    int nseqdiff = nseq - lastNseq_;
-    /*
-    // nseq sequence cicle test
-    if ( abs(nseqdiff) > ( USHRT_MAX - MAX_DIFF ) )
-    {
-    NOTIFY("Vuelta del NSeq ns=%d last=%d\n", nseq, lastNseq_);
-    if (nseqdiff > 0)
-    nseqdiff-= (USHRT_MAX + 1);
-    else
-    nseqdiff+= (USHRT_MAX + 1);
-    }
-    */
-
-    if (abs(tsdiff) > MAX_DIFF_TS || abs(nseqdiff) > MAX_DIFF )
-    {
-      // new flow, process and clean queue
-      ELOG_DEBUG("Max diff reached, new Flow? nsqediff %d , tsdiff %d", nseqdiff, tsdiff);
-      ELOG_DEBUG("PT %d", header->getPayloadType());
-      lastNseq_ = nseq;
-      lastTs_ = ts;
-      cleanQueue();
-      enqueuePacket(data, length, nseq);
-    }
-    else if (nseqdiff > 1)
-    {
-      // Jump in nseq, enqueue
-      ELOG_DEBUG("Jump in nseq");
-      enqueuePacket(data, length, nseq);
-    }
-    else if (nseqdiff == 1)
-    {
-      // next packet, process
-      lastNseq_ = nseq;
-      lastTs_ = ts;
-      enqueuePacket(data, length, nseq);
-    }
-    else if (nseqdiff < 0)
-    {
-      ELOG_DEBUG("Old Packet Received");
-      // old packet, discard?
-      // stats?
-    }
-    else if (nseqdiff == 0)
-    {
-      ELOG_DEBUG("Duplicate Packet received");
-      //duplicate packet, process (for stats)?
-    }
-  }
-
-  void RtpPacketQueue::enqueuePacket(const char *data, int length, uint16_t nseq)
-  {
-    if (queue_.size() > MAX_SIZE) { // if queue is growing too much, we start again
-      cleanQueue();
-    }
-
+    // TODO this should be a secret of the dataPacket class.  It should maintain its own memory
+    // and copy stuff as necessary.
     boost::shared_ptr<dataPacket> packet(new dataPacket());
     memcpy(packet->data, data, length);
     packet->length = length;
-    queue_.insert(std::map< int, boost::shared_ptr<dataPacket>>::value_type(nseq,packet));
 
-  }
+    if( queue_.size() == 0) {
+        queue_.push_front(packet);
+    } else {
+        // let's insert this packet where it belongs in the queue.
+        std::list<boost::shared_ptr<dataPacket> >::iterator it;
+        for (it=queue_.begin(); it != queue_.end(); ++it) {
+            const RtpHeader *header = reinterpret_cast<const RtpHeader*>((*it)->data);
+            uint16_t sequenceNumber = header->getSeqNumber();
+            if (this->rtpSequenceLessThan(sequenceNumber, currentSequenceNumber)) {
+                queue_.insert(it, packet);
+                break;
+            }
+        }
 
-  void RtpPacketQueue::cleanQueue()
-  {
-    queue_.clear();
-  }
+        if (it == queue_.end()) {
+            // something old.
+            queue_.push_back(packet);
+        }
 
-  boost::shared_ptr<dataPacket> RtpPacketQueue::popPacket()
-  {
-    boost::shared_ptr<dataPacket> packet = queue_.begin()->second;
-    if (packet.get() == NULL){
-      return packet;
+        // Enforce our max queue size.
+        while(queue_.size() >= this->MAX_SIZE) {
+            queue_.pop_back();  // remove oldest samples.
+        }
     }
-    const RtpHeader *header = reinterpret_cast<const RtpHeader*>(packet->data);
-    lastNseq_ = queue_.begin()->first;
-    lastTs_ = header->getTimestamp();
-    queue_.erase(queue_.begin());
-    return packet;
-  }
+}
 
-  int RtpPacketQueue::getSize(){
-    uint16_t size = queue_.size();
-    return size;      
-  }
+// It's a party foul to call this without checking size first
+// TODO fix that....lame.
+boost::shared_ptr<dataPacket> RtpPacketQueue::popPacket()
+{
+    boost::shared_ptr<dataPacket> packet = queue_.back();
+    queue_.pop_back();
+    return packet;
+}
+
+int RtpPacketQueue::getSize(){
+    return queue_.size();
+}
+
+// Implements x < y, taking into account RTP sequence number wrap
+// The general idea is if there's a very large difference between
+// x and y, that implies that the larger one is actually "less than"
+// the smaller one.
+//
+// I picked 0x8000 as my "very large" threshold because it splits
+// 0xffff, so it seems like a logical choice.
+bool RtpPacketQueue::rtpSequenceLessThan(uint16_t x, uint16_t y) {
+    int diff = y - x;
+    if (diff > 0) {
+        return (diff < 0x8000);
+    } else if (diff < 0) {
+        return (diff < -0x8000);
+    } else { // diff == 0
+        return false;
+    }
+}
 } /* namespace erizo */
