@@ -1,7 +1,9 @@
 var log4js = require('log4js'); 
 var config = require('./../../licode_config');
 
-var log_file = config.logger.config_file ||  "../log4js_configuration.json";
+GLOBAL.config.logger = GLOBAL.config.logger || {};
+
+var log_file = GLOBAL.config.logger.config_file ||  "../log4js_configuration.json";
 
 log4js.configure(log_file);
 

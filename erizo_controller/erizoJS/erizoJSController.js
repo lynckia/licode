@@ -1,18 +1,11 @@
 /*global require, exports, , setInterval, clearInterval*/
 
 var addon = require('./../../erizoAPI/build/Release/addon');
-var config = require('./../../licode_config');
 var logger = require('./../common/logger').logger;
 var rpc = require('./../common/rpc');
 
 // Logger
 var log = logger.getLogger("ErizoJSController");
-
-config.erizo = config.erizo || {};
-config.erizo.stunserver = config.erizo.stunserver || '';
-config.erizo.stunport = config.erizo.stunport || 0;
-config.erizo.minport = config.erizo.minport || 0;
-config.erizo.maxport = config.erizo.maxport || 0;
 
 exports.ErizoJSController = function (spec) {
     "use strict";
@@ -58,7 +51,7 @@ exports.ErizoJSController = function (spec) {
      */
     initWebRtcConnection = function (wrtc, sdp, callback, id_pub, id_sub) {
 
-        if (config.erizoController.sendStats) {
+        if (GLOBAL.config.erizoController.sendStats) {
             wrtc.getStats(function (newStats){
                 rpc.callRpc('stats_handler', 'stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats)});
             });
@@ -183,7 +176,7 @@ exports.ErizoJSController = function (spec) {
             log.info("Adding publisher peer_id ", from);
 
             var muxer = new addon.OneToManyProcessor(),
-                wrtc = new addon.WebRtcConnection(true, true, config.erizo.stunserver, config.erizo.stunport, config.erizo.minport, config.erizo.maxport);
+                wrtc = new addon.WebRtcConnection(true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport);
 
             publishers[from] = muxer;
             subscribers[from] = [];
@@ -213,7 +206,7 @@ exports.ErizoJSController = function (spec) {
 
             log.info("Adding subscriber from ", from, 'to ', to, 'audio', audio, 'video', video);
 
-            var wrtc = new addon.WebRtcConnection(audio, video, config.erizo.stunserver, config.erizo.stunport, config.erizo.minport, config.erizo.maxport);
+            var wrtc = new addon.WebRtcConnection(audio, video, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport);
 
             subscribers[to].push(from);
             publishers[to].addSubscriber(wrtc, from);

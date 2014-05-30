@@ -1,19 +1,62 @@
 /*global require, logger. setInterval, clearInterval, Buffer, exports*/
-var rpc = require('./../common/rpc');
-var logger = require('./../common/logger').logger;
-
-// Logger
-var log = logger.getLogger("ErizoAgent");
+var Getopt = require('node-getopt');
 
 var spawn = require('child_process').spawn;
 
 var config = require('./../../licode_config');
 
 // Configuration default values
-config.erizoAgent = config.erizoAgent || {};
-config.erizoAgent.maxProcesses = config.erizoAgent.maxProcesses || 1;
-config.erizoAgent.prerunProcesses = config.erizoAgent.prerunProcesses || 1;
-    
+GLOBAL.config = config || {};
+GLOBAL.config.erizoAgent = GLOBAL.config.erizoAgent || {};
+GLOBAL.config.erizoAgent.maxProcesses = GLOBAL.config.erizoAgent.maxProcesses || 1;
+GLOBAL.config.erizoAgent.prerunProcesses = GLOBAL.config.erizoAgent.prerunProcesses || 1;
+
+// Parse command line arguments
+var getopt = new Getopt([
+  ['r' , 'rabbit-host=ARG'            , 'RabbitMQ Host'],
+  ['g' , 'rabbit-port=ARG'            , 'RabbitMQ Port'],
+  ['l' , 'logging-config-file=ARG'    , 'Logging Config File'],
+  ['M' , 'maxProcesses=ARG'          , 'Stun Server URL'],
+  ['P' , 'prerunProcesses=ARG'         , 'Default video Bandwidth'],
+  ['h' , 'help'                       , 'display this help']
+]);
+
+opt = getopt.parse(process.argv.slice(2));
+
+for (var prop in opt.options) {
+    if (opt.options.hasOwnProperty(prop)) {
+        var value = opt.options[prop];
+        switch (prop) {
+            case "help":
+                getopt.showHelp();
+                process.exit(0);
+                break;
+            case "rabbit-host":
+                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
+                GLOBAL.config.rabbit.host = value;
+                break;
+            case "rabbit-port":
+                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
+                GLOBAL.config.rabbit.port = value;
+                break;
+            case "logging-config-file":
+                GLOBAL.config.logger = GLOBAL.config.logger || {};
+                GLOBAL.config.logger.config_file = value;
+                break;
+            default:
+                GLOBAL.config.erizoAgent[prop] = value;
+                break;
+        }
+    }
+}
+
+// Load submodules with updated config
+var logger = require('./../common/logger').logger;
+var rpc = require('./../common/rpc');
+
+// Logger
+var log = logger.getLogger("ErizoAgent");
+
 var childs = [];
 
 var SEARCH_INTERVAL = 5000;
@@ -65,7 +108,7 @@ var launchErizoJS = function() {
 };
 
 var fillErizos = function() {
-    for (var i = idle_erizos.length; i<config.erizoAgent.prerunProcesses; i++) {
+    for (var i = idle_erizos.length; i<GLOBAL.config.erizoAgent.prerunProcesses; i++) {
         launchErizoJS();
     }
 };
@@ -77,7 +120,7 @@ var api = {
             callback("callback", erizo_id);
 
             // We re-use Erizos
-            if ((erizos.length + idle_erizos.length + 1) >= config.erizoAgent.maxProcesses) {
+            if ((erizos.length + idle_erizos.length + 1) >= GLOBAL.config.erizoAgent.maxProcesses) {
                 idle_erizos.push(erizo_id);
             } else {
                 erizos.push(erizo_id);

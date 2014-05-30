@@ -1,15 +1,14 @@
 var sys = require('util');
 var amqp = require('amqp');
-var config = require('./../../licode_config');
 var logger = require('./logger').logger;
 
 // Logger
 var log = logger.getLogger("RPC");
 
 // Configuration default values
-config.rabbit = config.rabbit || {};
-config.rabbit.host = config.rabbit.host || 'localhost';
-config.rabbit.port = config.rabbit.port || 5672;
+GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
+GLOBAL.config.rabbit.host = GLOBAL.config.rabbit.host || 'localhost';
+GLOBAL.config.rabbit.port = GLOBAL.config.rabbit.port || 5672;
 
 var TIMEOUT = 5000;
 
@@ -25,11 +24,11 @@ var clientQueue;
 var addr = {};
 var rpcPublic = {};
 
-if (config.rabbit.url !== undefined) {
-    addr.url = config.rabbit.url;
+if (GLOBAL.config.rabbit.url !== undefined) {
+    addr.url = GLOBAL.config.rabbit.url;
 } else {
-    addr.host = config.rabbit.host;
-    addr.port = config.rabbit.port;
+    addr.host = GLOBAL.config.rabbit.host;
+    addr.port = GLOBAL.config.rabbit.port;
 }
 
 exports.setPublicRPC = function(methods) {

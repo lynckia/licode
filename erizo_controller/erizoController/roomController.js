@@ -1,7 +1,6 @@
 /*global require, exports, console, setInterval, clearInterval*/
 
 var addon = require('./../../erizoAPI/build/Release/addon');
-var config = require('./../../licode_config');
 var logger = require('./../common/logger').logger;
 
 // Logger

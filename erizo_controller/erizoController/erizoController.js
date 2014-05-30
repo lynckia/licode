@@ -1,53 +1,105 @@
 /*global require, logger. setInterval, clearInterval, Buffer, exports*/
 var crypto = require('crypto');
-var rpc = require('./../common/rpc');
 var rpcPublic = require('./rpc/rpcPublic');
-var controller = require('./roomController');
 var ST = require('./Stream');
 var http = require('http');
 var server = http.createServer();
 var io = require('socket.io').listen(server, {log:false});
 var config = require('./../../licode_config');
-var logger = require('./../common/logger').logger;
 var Permission = require('./permission');
+var Getopt = require('node-getopt');
+
+// Configuration default values
+GLOBAL.config = config || {};
+GLOBAL.config.erizoController = GLOBAL.config.erizoController || {};
+GLOBAL.config.erizoController.stunServerUrl = GLOBAL.config.erizoController.stunServerUrl || 'stun:stun.l.google.com:19302';
+GLOBAL.config.erizoController.defaultVideoBW = GLOBAL.config.erizoController.defaultVideoBW || 300;
+GLOBAL.config.erizoController.maxVideoBW = GLOBAL.config.erizoController.maxVideoBW || 300;
+GLOBAL.config.erizoController.publicIP = GLOBAL.config.erizoController.publicIP || '';
+GLOBAL.config.erizoController.hostname = GLOBAL.config.erizoController.hostname|| '';
+GLOBAL.config.erizoController.port = GLOBAL.config.erizoController.port || 8080;
+GLOBAL.config.erizoController.ssl = GLOBAL.config.erizoController.ssl || false;
+GLOBAL.config.erizoController.turnServer = GLOBAL.config.erizoController.turnServer || undefined;
+if (config.erizoController.turnServer !== undefined) {
+    GLOBAL.config.erizoController.turnServer.url = GLOBAL.config.erizoController.turnServer.url || '';
+    GLOBAL.config.erizoController.turnServer.username = GLOBAL.config.erizoController.turnServer.username || '';
+    GLOBAL.config.erizoController.turnServer.password = GLOBAL.config.erizoController.turnServer.password || '';
+}
+GLOBAL.config.erizoController.warning_n_rooms = GLOBAL.config.erizoController.warning_n_rooms || 15;
+GLOBAL.config.erizoController.limit_n_rooms = GLOBAL.config.erizoController.limit_n_rooms || 20;
+GLOBAL.config.erizoController.interval_time_keepAlive = GLOBAL.config.erizoController.interval_time_keepAlive || 1000;
+GLOBAL.config.erizoController.sendStats = GLOBAL.config.erizoController.sendStats || false; 
+GLOBAL.config.erizoController.recording_path = GLOBAL.config.erizoController.recording_path || undefined; 
+GLOBAL.config.erizoController.roles = GLOBAL.config.erizoController.roles || {"presenter":["publish", "subscribe", "record"], "viewer":["subscribe"]};
+
+// Parse command line arguments
+var getopt = new Getopt([
+  ['r' , 'rabbit-host=ARG'            , 'RabbitMQ Host'],
+  ['g' , 'rabbit-port=ARG'            , 'RabbitMQ Port'],
+  ['l' , 'logging-config-file=ARG'    , 'Logging Config File'],
+  ['t' , 'stunServerUrl=ARG'          , 'Stun Server URL'],
+  ['b' , 'defaultVideoBW=ARG'         , 'Default video Bandwidth'],
+  ['M' , 'maxVideoBW=ARG'             , 'Max video bandwidth'],
+  ['i' , 'publicIP=ARG'               , 'Erizo Controller\'s public IP'],
+  ['H' , 'hostname=ARG'               , 'Erizo Controller\'s hostname'],
+  ['p' , 'port'                       , 'Port where Erizo Controller will listen to new connections.'],
+  ['S' , 'ssl'                        , 'Erizo Controller\'s hostname'],
+  ['T' , 'turn-url'                   , 'Turn server\'s URL.'],
+  ['U' , 'turn-username'              , 'Turn server\'s username.'],
+  ['P' , 'turn-password'              , 'Turn server\'s password.'],
+  ['R' , 'recording_path'             , 'Recording path.'],
+  ['h' , 'help'                       , 'display this help']
+]);
+
+opt = getopt.parse(process.argv.slice(2));
+
+for (var prop in opt.options) {
+    if (opt.options.hasOwnProperty(prop)) {
+        var value = opt.options[prop];
+        switch (prop) {
+            case "help":
+                getopt.showHelp();
+                process.exit(0);
+                break;
+            case "rabbit-host":
+                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
+                GLOBAL.config.rabbit.host = value;
+                break;
+            case "rabbit-port":
+                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
+                GLOBAL.config.rabbit.port = value;
+                break;
+            case "logging-config-file":
+                GLOBAL.config.logger = GLOBAL.config.logger || {};
+                GLOBAL.config.logger.config_file = value;
+                break;
+            default:
+                GLOBAL.config.erizoController[prop] = value;
+                break;
+        }
+    }
+}
+
+// Load submodules with updated config
+var logger = require('./../common/logger').logger;
+var rpc = require('./../common/rpc');
+var controller = require('./roomController');
 
 // Logger
 var log = logger.getLogger("ErizoController");
-
-// Configuration default values
-config.erizoController = config.erizoController || {};
-config.erizoController.stunServerUrl = config.erizoController.stunServerUrl || 'stun:stun.l.google.com:19302';
-config.erizoController.defaultVideoBW = config.erizoController.defaultVideoBW || 300;
-config.erizoController.maxVideoBW = config.erizoController.maxVideoBW || 300;
-config.erizoController.publicIP = config.erizoController.publicIP || '';
-config.erizoController.hostname = config.erizoController.hostname|| '';
-config.erizoController.port = config.erizoController.port || 8080;
-config.erizoController.ssl = config.erizoController.ssl || false;
-config.erizoController.turnServer = config.erizoController.turnServer || undefined;
-if (config.erizoController.turnServer !== undefined) {
-    config.erizoController.turnServer.url = config.erizoController.turnServer.url || '';
-    config.erizoController.turnServer.username = config.erizoController.turnServer.username || '';
-    config.erizoController.turnServer.password = config.erizoController.turnServer.password || '';
-}
-config.erizoController.warning_n_rooms = config.erizoController.warning_n_rooms || 15;
-config.erizoController.limit_n_rooms = config.erizoController.limit_n_rooms || 20;
-config.erizoController.interval_time_keepAlive = config.erizoController.interval_time_keepAlive || 1000;
-config.erizoController.sendStats = config.erizoController.sendStats || false; 
-config.erizoController.recording_path = config.erizoController.recording_path || undefined; 
-config.erizoController.roles = config.erizoController.roles || {"presenter":["publish", "subscribe", "record"], "viewer":["subscribe"]};
 
 server.listen(8080);
 
 io.set('log level', 0);
 
-var nuveKey = config.nuve.superserviceKey;
+var nuveKey = GLOBAL.config.nuve.superserviceKey;
 
-var WARNING_N_ROOMS = config.erizoController.warning_n_rooms;
-var LIMIT_N_ROOMS = config.erizoController.limit_n_rooms;
+var WARNING_N_ROOMS = GLOBAL.config.erizoController.warning_n_rooms;
+var LIMIT_N_ROOMS = GLOBAL.config.erizoController.limit_n_rooms;
 
-var INTERVAL_TIME_KEEPALIVE = config.erizoController.interval_time_keepAlive;
+var INTERVAL_TIME_KEEPALIVE = GLOBAL.config.erizoController.interval_time_keepAlive;
 
-var BINDED_INTERFACE_NAME = config.erizoController.networkInterface;
+var BINDED_INTERFACE_NAME = GLOBAL.config.erizoController.networkInterface;
 
 var myId;
 var rooms = {};
@@ -120,10 +172,10 @@ var addToCloudHandler = function (callback) {
 
     privateRegexp = new RegExp(addresses[0], 'g');
     
-    if (config.erizoController.publicIP === '' || config.erizoController.publicIP === undefined){        
+    if (GLOBAL.config.erizoController.publicIP === '' || GLOBAL.config.erizoController.publicIP === undefined){        
         publicIP = addresses[0];
     } else {
-        publicIP = config.erizoController.publicIP;
+        publicIP = GLOBAL.config.erizoController.publicIP;
     }
 
     var addECToCloudHandler = function(attempt) {
@@ -132,11 +184,11 @@ var addToCloudHandler = function (callback) {
         }
 
         var controller = {
-            cloudProvider: config.cloudProvider.name,
+            cloudProvider: GLOBAL.config.cloudProvider.name,
             ip: publicIP,
-            hostname: config.erizoController.hostname,
-            port: config.erizoController.port,
-            ssl: config.erizoController.ssl
+            hostname: GLOBAL.config.erizoController.hostname,
+            port: GLOBAL.config.erizoController.port,
+            ssl: GLOBAL.config.erizoController.ssl
         };
         rpc.callRpc('nuve', 'addNewErizoController', controller, {callback: function (msg) {
 
@@ -284,7 +336,7 @@ var listen = function () {
                         }
                         user = {name: tokenDB.userName, role: tokenDB.role};
                         socket.user = user;
-                        var permissions = config.erizoController.roles[tokenDB.role] || [];
+                        var permissions = GLOBAL.config.erizoController.roles[tokenDB.role] || [];
                         socket.user.permissions = {};
                         for (var i in permissions) {
                             var permission = permissions[i];
@@ -296,7 +348,7 @@ var listen = function () {
 
                         log.debug('OK, Valid token');
 
-                        if (!tokenDB.p2p && config.erizoController.sendStats) {
+                        if (!tokenDB.p2p && GLOBAL.config.erizoController.sendStats) {
                             rpc.callRpc('stats_handler', 'event', {room: tokenDB.room, user: socket.id, type: 'connection'});
                         }
 
@@ -309,10 +361,10 @@ var listen = function () {
                         callback('success', {streams: streamList, 
                                             id: socket.room.id, 
                                             p2p: socket.room.p2p,
-                                            defaultVideoBW: config.erizoController.defaultVideoBW,
-                                            maxVideoBW: config.erizoController.maxVideoBW,
-                                            stunServerUrl: config.erizoController.stunServerUrl,
-                                            turnServer: config.erizoController.turnServer
+                                            defaultVideoBW: GLOBAL.config.erizoController.defaultVideoBW,
+                                            maxVideoBW: GLOBAL.config.erizoController.maxVideoBW,
+                                            stunServerUrl: GLOBAL.config.erizoController.stunServerUrl,
+                                            turnServer: GLOBAL.config.erizoController.turnServer
                                             });
 
                     } else {
@@ -364,8 +416,8 @@ var listen = function () {
                 var url = sdp;
                 if (options.state === 'recording') {
                     var recordingId = sdp;
-                    if (config.erizoController.recording_path) {
-                        url = config.erizoController.recording_path + recordingId + '.mkv';
+                    if (GLOBAL.config.erizoController.recording_path) {
+                        url = GLOBAL.config.erizoController.recording_path + recordingId + '.mkv';
                     } else {
                         url = '/tmp/' + recordingId + '.mkv';
                     }
@@ -392,7 +444,7 @@ var listen = function () {
                         if (socket.room.streams[id] !== undefined) {
                             sendMsgToRoom(socket.room, 'onAddStream', socket.room.streams[id].getPublicStream());
                         }
-                        if (config.erizoController.sendStats) {
+                        if (GLOBAL.config.erizoController.sendStats) {
                             rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'publish', stream: id});
                         }
                     });
@@ -447,7 +499,7 @@ var listen = function () {
                         answer = answer.replace(privateRegexp, publicIP);
                         callback(answer);
                     }, function() {
-                        if (config.erizoController.sendStats) {
+                        if (GLOBAL.config.erizoController.sendStats) {
                             rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'publish', stream: options.streamId});
                         }
                         log.info("Subscriber added");
@@ -469,8 +521,8 @@ var listen = function () {
             var recordingId = Math.random() * 1000000000000000000;
             var url; 
 
-            if (config.erizoController.recording_path) {
-                url = config.erizoController.recording_path + recordingId + '.mkv';
+            if (GLOBAL.config.erizoController.recording_path) {
+                url = GLOBAL.config.erizoController.recording_path + recordingId + '.mkv';
             } else {
                 url = '/tmp/' + recordingId + '.mkv';
             }
@@ -500,8 +552,8 @@ var listen = function () {
             var recordingId = options.id;
             var url;
 
-            if (config.erizoController.recording_path) {
-                url = config.erizoController.recording_path + recordingId + '.mkv';
+            if (GLOBAL.config.erizoController.recording_path) {
+                url = GLOBAL.config.erizoController.recording_path + recordingId + '.mkv';
             } else {
                 url = '/tmp/' + recordingId + '.mkv';
             }
@@ -524,7 +576,7 @@ var listen = function () {
                 socket.state = 'sleeping';
                 if (!socket.room.p2p) {
                     socket.room.controller.removePublisher(streamId);
-                    if (config.erizoController.sendStats) {
+                    if (GLOBAL.config.erizoController.sendStats) {
                         rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'unpublish', stream: streamId});
                     }
                 }
@@ -555,7 +607,7 @@ var listen = function () {
             if (socket.room.streams[to].hasAudio() || socket.room.streams[to].hasVideo() || socket.room.streams[to].hasScreen()) {
                 if (!socket.room.p2p) {
                     socket.room.controller.removeSubscriber(socket.id, to);
-                    if (config.erizoController.sendStats) {
+                    if (GLOBAL.config.erizoController.sendStats) {
                         rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'unsubscribe', stream: to});
                     }
                 };
@@ -599,7 +651,7 @@ var listen = function () {
                         if (socket.room.streams[id].hasAudio() || socket.room.streams[id].hasVideo() || socket.room.streams[id].hasScreen()) {
                             if (!socket.room.p2p) {
                                 socket.room.controller.removePublisher(id);
-                                if (config.erizoController.sendStats) {
+                                if (GLOBAL.config.erizoController.sendStats) {
                                     rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'unpublish', stream: id});
                                 }
                             }
@@ -613,7 +665,7 @@ var listen = function () {
                 }
             }
 
-            if (!socket.room.p2p && config.erizoController.sendStats) {
+            if (!socket.room.p2p && GLOBAL.config.erizoController.sendStats) {
                 rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'disconnection'});
             }
 

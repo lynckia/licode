@@ -3,9 +3,10 @@
     { 
       "type": "console",
       "layout": {
-        "type": "basic",
+        "type": "pattern",
+        "pattern": "%d  - %p: %c - %m",
         "replaceConsole": true
-      } 
+      }
     }
   ],
   "levels": {
