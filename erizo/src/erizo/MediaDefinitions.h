@@ -18,7 +18,7 @@ enum packetType{
 
 struct dataPacket{
   int comp;
-	char data[1200];
+    char data[1500];
 	int length;
   packetType type;
 };
@@ -30,7 +30,7 @@ class Monitor {
 
 class FeedbackSink: public virtual Monitor{
 public:
-  virtual ~FeedbackSink() {};
+  virtual ~FeedbackSink() {}
   int deliverFeedback(char* buf, int len){
     boost::mutex::scoped_lock myMonitor_;
     return this->deliverFeedback_(buf,len);
