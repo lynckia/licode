@@ -1,6 +1,11 @@
 /*global require, exports, Buffer*/
 var crypto = require('crypto');
 
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("MAuthParser");
+
 /*
  * Parses a string header to a json with the fields of the authentication header.
  */

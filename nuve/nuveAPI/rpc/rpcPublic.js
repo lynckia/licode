@@ -2,6 +2,10 @@
 var tokenRegistry = require('./../mdb/tokenRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var cloudHandler = require('./../cloudHandler');
+var logger = require('../logger').logger;
+
+// Logger
+var log = logger.getLogger("RPCPublic");
 
 /*
  * This function is used to consume a token. Removes it from the data base and returns to erizoController.
@@ -28,7 +32,7 @@ exports.deleteToken = function (id, callback) {
                         delete service.testToken;
                         serviceRegistry.updateService(service);
                         tokenRegistry.removeToken(id, function () {
-                            console.log('TestToken expiration time. Deleting ', token._id, 'from room ', token.room, ' of service ', token.service);
+                            log.info('TestToken expiration time. Deleting ', token._id, 'from room ', token.room, ' of service ', token.service);
                             callback('callback', 'error');
                         });
 
@@ -36,13 +40,13 @@ exports.deleteToken = function (id, callback) {
                 } else {
                     token.use += 1;
                     tokenRegistry.updateToken(token);
-                    console.log('Using (', token.use, ') testToken ', token._id, 'for testRoom ', token.room, ' of service ', token.service);
+                    log.info('Using (', token.use, ') testToken ', token._id, 'for testRoom ', token.room, ' of service ', token.service);
                     callback('callback', token);
                 }
 
             } else {
                 tokenRegistry.removeToken(id, function () {
-                    console.log('Consumed token ', token._id, 'from room ', token.room, ' of service ', token.service);
+                    log.info('Consumed token ', token._id, 'from room ', token.room, ' of service ', token.service);
                     callback('callback', token);
                 });
             }

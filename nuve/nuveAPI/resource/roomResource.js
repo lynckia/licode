@@ -3,6 +3,11 @@ var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var cloudHandler = require('../cloudHandler');
 
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("RoomResource");
+
 var currentService;
 var currentRoom;
 
@@ -30,10 +35,10 @@ exports.represent = function (req, res) {
         if (currentService === undefined) {
             res.send('Client unathorized', 401);
         } else if (currentRoom === undefined) {
-            console.log('Room ', req.params.room, ' does not exist');
+            log.info('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
         } else {
-            console.log('Representing room ', currentRoom._id, 'of service ', currentService._id);
+            log.info('Representing room ', currentRoom._id, 'of service ', currentService._id);
             res.send(currentRoom);
         }
     });
@@ -49,7 +54,7 @@ exports.deleteRoom = function (req, res) {
         if (currentService === undefined) {
             res.send('Client unathorized', 401);
         } else if (currentRoom === undefined) {
-            console.log('Room ', req.params.room, ' does not exist');
+            log.info('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
         } else {
             var id = '',
@@ -68,7 +73,7 @@ exports.deleteRoom = function (req, res) {
             if (index !== -1) {
                 currentService.rooms.splice(index, 1);
                 serviceRegistry.updateService(currentService);
-                console.log('Room ', id, ' deleted for service ', currentService._id);
+                log.info('Room ', id, ' deleted for service ', currentService._id);
                 cloudHandler.deleteRoom(id, function () {});
                 res.send('Room deleted');
             }

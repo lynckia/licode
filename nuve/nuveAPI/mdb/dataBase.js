@@ -1,6 +1,17 @@
 /*global require, exports*/
 var config = require('./../../../licode_config');
 
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("Database");
+
+config.nuve = config.nuve || {};
+config.nuve.dataBaseURL = config.nuve.dataBaseURL || "localhost/nuvedb";
+config.nuve.superserviceID = config.nuve.superserviceID || '';
+config.nuve.superserviceKey = config.nuve.superserviceKey || '';
+config.nuve.testErizoController = config.nuve.testErizoController || 'localhost:8080';
+
 var databaseUrl = config.nuve.dataBaseURL;
 
 /*

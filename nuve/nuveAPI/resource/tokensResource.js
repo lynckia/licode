@@ -5,6 +5,10 @@ var serviceRegistry = require('./../mdb/serviceRegistry');
 var dataBase = require('./../mdb/dataBase');
 var crypto = require('crypto');
 var cloudHandler = require('../cloudHandler');
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("TokensResource");
 
 var currentService;
 var currentRoom;
@@ -18,7 +22,7 @@ var doInit = function (roomId, callback) {
     currentService = require('./../auth/nuveAuthenticator').service;
 
     serviceRegistry.getRoomForService(roomId, currentService, function (room) {
-        //console.log(room);
+        //log.info(room);
         currentRoom = room;
         callback();
     });
@@ -89,7 +93,7 @@ var generateToken = function (callback) {
             token.use = 0;
             token.host = dataBase.testErizoController;
 
-            console.log('Creating testToken');
+            log.info('Creating testToken');
 
             tokenRegistry.addToken(token, function (id) {
 
@@ -106,7 +110,7 @@ var generateToken = function (callback) {
 
             token = currentService.testToken;
 
-            console.log('TestToken already exists, sending it', token);
+            log.info('TestToken already exists, sending it', token);
 
             tokenS = getTokenString(token._id, token);
             callback(tokenS);
@@ -149,11 +153,11 @@ exports.create = function (req, res) {
     doInit(req.params.room, function () {
 
         if (currentService === undefined) {
-            console.log('Service not found');
+            log.info('Service not found');
             res.send('Service not found', 404);
             return;
         } else if (currentRoom === undefined) {
-            console.log('Room ', req.params.room, ' does not exist');
+            log.info('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
             return;
         }
@@ -168,7 +172,7 @@ exports.create = function (req, res) {
                 res.send('CloudHandler does not respond', 401);
                 return;
             }
-            console.log('Created token for room ', currentRoom._id, 'and service ', currentService._id);
+            log.info('Created token for room ', currentRoom._id, 'and service ', currentService._id);
             res.send(tokenS);
         });
     });

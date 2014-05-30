@@ -1,6 +1,11 @@
 /*global require, console, setInterval, clearInterval, exports*/
 var rpc = require('./rpc/rpc');
 var config = require('./../../licode_config');
+var logger = require('./logger').logger;
+
+// Logger
+var log = logger.getLogger("CloudHandler");
+
 var ec2;
 
 var INTERVAL_TIME_EC_READY = 100;
@@ -48,7 +53,7 @@ var recalculatePriority = function () {
     ecQueue = newEcQueue;
 
     if (ecQueue.length === 0 || (available === 0 && warnings < 2)) {
-        console.log('[CLOUD HANDLER]: Warning! No erizoController is available.');
+        log.info('[CLOUD HANDLER]: Warning! No erizoController is available.');
     }
 
 },
@@ -61,7 +66,7 @@ var recalculatePriority = function () {
             if (erizoControllers.hasOwnProperty(ec)) {
                 erizoControllers[ec].keepAlive += 1;
                 if (erizoControllers[ec].keepAlive > MAX_KA_COUNT) {
-                    console.log('ErizoController', ec, ' in ', erizoControllers[ec].ip, 'does not respond. Deleting it.');
+                    log.info('ErizoController', ec, ' in ', erizoControllers[ec].ip, 'does not respond. Deleting it.');
                     delete erizoControllers[ec];
                     for (room in rooms) {
                         if (rooms.hasOwnProperty(room)) {
@@ -101,16 +106,16 @@ var addNewAmazonErizoController = function(privateIP, callback) {
         }
         ec2 = require('aws-lib').createEC2Client(config.cloudProvider.accessKey, config.cloudProvider.secretAccessKey, opt);
     }
-    console.log('private ip ', privateIP);
+    log.info('private ip ', privateIP);
 
     ec2.call('DescribeInstances', {'Filter.1.Name':'private-ip-address', 'Filter.1.Value':privateIP}, function (err, response) {
 
         if (err) {
-            console.log('Error: ', err);
+            log.info('Error: ', err);
             callback('error');
         } else if (response) {
             publicIP = response.reservationSet.item.instancesSet.item.ipAddress;
-            console.log('public IP: ', publicIP);
+            log.info('public IP: ', publicIP);
             addNewPrivateErizoController(publicIP, hostname, port, ssl, callback);
         }
     });
@@ -130,7 +135,7 @@ var addNewPrivateErizoController = function (ip, hostname, port, ssl, callback) 
         port: port,
         ssl: ssl
     };
-    console.log('New erizocontroller (', id, ') in: ', erizoControllers[id].ip);
+    log.info('New erizocontroller (', id, ') in: ', erizoControllers[id].ip);
     recalculatePriority();
     callback({id: id, publicIP: ip, hostname: hostname, port: port, ssl: ssl});
 };
@@ -141,11 +146,11 @@ exports.keepAlive = function (id, callback) {
 
     if (erizoControllers[id] === undefined) {
         result = 'whoareyou';
-        console.log('I received a keepAlive mess from a removed erizoController');
+        log.info('I received a keepAlive mess from a removed erizoController');
     } else {
         erizoControllers[id].keepAlive = 0;
         result = 'ok';
-        //console.log('KA: ', id);
+        //log.info('KA: ', id);
     }
     callback(result);
 };
@@ -153,7 +158,7 @@ exports.keepAlive = function (id, callback) {
 exports.setInfo = function (params) {
     "use strict";
 
-    console.log('Received info ', params,    '.Recalculating erizoControllers priority');
+    log.info('Received info ', params,    '.Recalculating erizoControllers priority');
     erizoControllers[params.id].state = params.state;
     recalculatePriority();
 };
@@ -161,7 +166,7 @@ exports.setInfo = function (params) {
 exports.killMe = function (ip) {
     "use strict";
 
-    console.log('[CLOUD HANDLER]: ErizoController in host ', ip, 'does not respond.');
+    log.info('[CLOUD HANDLER]: ErizoController in host ', ip, 'does not respond.');
 
 };
 

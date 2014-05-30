@@ -1,0 +1,15 @@
+{
+  "appenders": [
+    { 
+      "type": "console",
+      "layout": {
+        "type": "basic",
+        "replaceConsole": true
+      } 
+    }
+  ],
+  "levels": {
+  	"ErizoController": "INFO",
+  	"RPC": "INFO"
+  }
+}

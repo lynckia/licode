@@ -1,5 +1,9 @@
 /*global exports, require, console*/
 var serviceRegistry = require('./../mdb/serviceRegistry');
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("ServiceResource");
 
 /*
  * Gets the service and checks if it is superservice. Only superservice can do actions about services.
@@ -28,7 +32,7 @@ exports.represent = function (req, res) {
 
     doInit(req.params.service, function (serv) {
         if (serv === 'error') {
-            console.log('Service ', req.params.service, ' not authorized for this action');
+            log.info('Service ', req.params.service, ' not authorized for this action');
             res.send('Service not authorized for this action', 401);
             return;
         }
@@ -36,7 +40,7 @@ exports.represent = function (req, res) {
             res.send('Service not found', 404);
             return;
         }
-        console.log('Representing service ', serv._id);
+        log.info('Representing service ', serv._id);
         res.send(serv);
     });
 };
@@ -49,7 +53,7 @@ exports.deleteService = function (req, res) {
 
     doInit(req.params.service, function (serv) {
         if (serv === 'error') {
-            console.log('Service ', req.params.service, ' not authorized for this action');
+            log.info('Service ', req.params.service, ' not authorized for this action');
             res.send('Service not authorized for this action', 401);
             return;
         }
@@ -60,7 +64,7 @@ exports.deleteService = function (req, res) {
         var id = '';
         id += serv._id;
         serviceRegistry.removeService(id);
-        console.log('Serveice ', id, ' deleted');
+        log.info('Serveice ', id, ' deleted');
         res.send('Service deleted');
     });
 };

@@ -3,10 +3,14 @@ var rpc = require('./../common/rpc');
 var controller = require('./erizoJSController');
 var logger = require('./../common/logger').logger;
 
+// Logger
+var log = logger.getLogger("ErizoJS");
+
+
 var ejsController = controller.ErizoJSController();
 
 ejsController.keepAlive = function(callback) {
-    logger.info("KeepAlive from ErizoController");
+    log.info("KeepAlive from ErizoController");
     callback('callback', true);
 };
 
@@ -17,10 +21,10 @@ rpc.connect(function () {
 
     var rpcID = process.argv[2];
 
-    console.log("ID: ErizoJS_" + rpcID);
+    log.info("ID: ErizoJS_" + rpcID);
 
     rpc.bind("ErizoJS_" + rpcID, function() {
-        console.log("ErizoJS started");
+        log.info("ErizoJS started");
         
     });
 

@@ -2,7 +2,7 @@
 
 echo [erizo_controller] Installing node_modules for erizo_controller
 
-npm install --loglevel error amqp socket.io@0.9.16 winston
+npm install --loglevel error amqp socket.io@0.9.16 log4js 
 
 echo [erizo_controller] Done, node_modules installed
 

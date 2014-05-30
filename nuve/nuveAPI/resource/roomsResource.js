@@ -2,6 +2,11 @@
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("RoomsResource");
+
 var currentService;
 
 /*
@@ -27,7 +32,7 @@ exports.createRoom = function (req, res) {
         return;
     }
     if (req.body.name === undefined) {
-        console.log('Invalid room');
+        log.info('Invalid room');
         res.send('Invalid room', 404);
         return;
     }
@@ -36,7 +41,7 @@ exports.createRoom = function (req, res) {
 
     if (req.body.options.test) {
         if (currentService.testRoom !== undefined) {
-            console.log('TestRoom already exists for service', currentService.name);
+            log.info('TestRoom already exists for service', currentService.name);
             res.send(currentService.testRoom);
         } else {
             room = {name: 'testRoom'};
@@ -44,7 +49,7 @@ exports.createRoom = function (req, res) {
                 currentService.testRoom = result;
                 currentService.rooms.push(result);
                 serviceRegistry.updateService(currentService);
-                console.log('TestRoom created for service', currentService.name);
+                log.info('TestRoom created for service', currentService.name);
                 res.send(result);
             });
         }
@@ -60,7 +65,7 @@ exports.createRoom = function (req, res) {
         roomRegistry.addRoom(room, function (result) {
             currentService.rooms.push(result);
             serviceRegistry.updateService(currentService);
-            console.log('Room created:', req.body.name, 'for service', currentService.name, 'p2p = ', room.p2p);
+            log.info('Room created:', req.body.name, 'for service', currentService.name, 'p2p = ', room.p2p);
             res.send(result);
         });
     }
@@ -77,7 +82,7 @@ exports.represent = function (req, res) {
         res.send('Service not found', 404);
         return;
     }
-    console.log('Representing rooms for service ', currentService._id);
+    log.info('Representing rooms for service ', currentService._id);
 
     res.send(currentService.rooms);
 };

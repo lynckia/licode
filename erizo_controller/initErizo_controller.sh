@@ -5,8 +5,6 @@ FILENAME=`basename $SCRIPT`
 ROOT=`dirname $SCRIPT`
 CURRENT_DIR=`pwd`
 
-echo $LD_LIBRARY_PATH
-
 cd $ROOT/erizoController
 node erizoController.js &
 

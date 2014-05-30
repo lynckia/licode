@@ -5,6 +5,15 @@ var config = require('./../../licode_config');
 var logger = require('./../common/logger').logger;
 var rpc = require('./../common/rpc');
 
+// Logger
+var log = logger.getLogger("ErizoJSController");
+
+config.erizo = config.erizo || {};
+config.erizo.stunserver = config.erizo.stunserver || '';
+config.erizo.stunport = config.erizo.stunport || 0;
+config.erizo.minport = config.erizo.minport || 0;
+config.erizo.maxport = config.erizo.maxport || 0;
+
 exports.ErizoJSController = function (spec) {
     "use strict";
 
@@ -57,7 +66,7 @@ exports.ErizoJSController = function (spec) {
 
         wrtc.init( function (newStatus){
           var localSdp, answer;
-          logger.info("webrtc Addon status" + newStatus );
+          log.info("webrtc Addon status" + newStatus );
           if (newStatus === 102 && !sdpDelivered) {
             localSdp = wrtc.getLocalSdp();
             answer = getRoap(localSdp, roap);
@@ -119,7 +128,7 @@ exports.ErizoJSController = function (spec) {
 
         if (publishers[from] === undefined) {
 
-            logger.info("Adding external input peer_id ", from);
+            log.info("Adding external input peer_id ", from);
 
             var muxer = new addon.OneToManyProcessor(),
                 ei = new addon.ExternalInput(url);
@@ -140,13 +149,13 @@ exports.ErizoJSController = function (spec) {
             }
 
         } else {
-            logger.info("Publisher already set for", from);
+            log.info("Publisher already set for", from);
         }
     };
 
     that.addExternalOutput = function (to, url) {
         if (publishers[to] !== undefined) {
-            logger.info("Adding ExternalOutput to " + to + " url " + url);
+            log.info("Adding ExternalOutput to " + to + " url " + url);
             var externalOutput = new addon.ExternalOutput(url);
             externalOutput.init();
             publishers[to].addExternalOutput(externalOutput, url);
@@ -156,7 +165,7 @@ exports.ErizoJSController = function (spec) {
 
     that.removeExternalOutput = function (to, url) {
       if (externalOutputs[url] !== undefined && publishers[to]!=undefined) {
-        logger.info("Stopping ExternalOutput: url " + url);
+        log.info("Stopping ExternalOutput: url " + url);
         publishers[to].removeSubscriber(url);
         delete externalOutputs[url];
       }
@@ -171,7 +180,7 @@ exports.ErizoJSController = function (spec) {
 
         if (publishers[from] === undefined) {
 
-            logger.info("Adding publisher peer_id ", from);
+            log.info("Adding publisher peer_id ", from);
 
             var muxer = new addon.OneToManyProcessor(),
                 wrtc = new addon.WebRtcConnection(true, true, config.erizo.stunserver, config.erizo.stunport, config.erizo.minport, config.erizo.maxport);
@@ -185,11 +194,11 @@ exports.ErizoJSController = function (spec) {
 
             initWebRtcConnection(wrtc, sdp, callback, from);
 
-            //logger.info('Publishers: ', publishers);
-            //logger.info('Subscribers: ', subscribers);
+            //log.info('Publishers: ', publishers);
+            //log.info('Subscribers: ', subscribers);
 
         } else {
-            logger.info("Publisher already set for", from);
+            log.info("Publisher already set for", from);
         }
     };
 
@@ -202,7 +211,7 @@ exports.ErizoJSController = function (spec) {
 
         if (publishers[to] !== undefined && subscribers[to].indexOf(from) === -1 && sdp.match('OFFER') !== null) {
 
-            logger.info("Adding subscriber from ", from, 'to ', to, 'audio', audio, 'video', video);
+            log.info("Adding subscriber from ", from, 'to ', to, 'audio', audio, 'video', video);
 
             var wrtc = new addon.WebRtcConnection(audio, video, config.erizo.stunserver, config.erizo.stunport, config.erizo.minport, config.erizo.maxport);
 
@@ -212,8 +221,8 @@ exports.ErizoJSController = function (spec) {
             initWebRtcConnection(wrtc, sdp, callback, to, from);
 //            waitForFIR(wrtc, to);
 
-            //logger.info('Publishers: ', publishers);
-            //logger.info('Subscribers: ', subscribers);
+            //log.info('Publishers: ', publishers);
+            //log.info('Subscribers: ', subscribers);
         }
     };
 
@@ -223,11 +232,11 @@ exports.ErizoJSController = function (spec) {
     that.removePublisher = function (from) {
 
         if (subscribers[from] !== undefined && publishers[from] !== undefined) {
-            logger.info('Removing muxer', from);
+            log.info('Removing muxer', from);
             publishers[from].close();
-            logger.info('Removing subscribers', from);
+            log.info('Removing subscribers', from);
             delete subscribers[from];
-            logger.info('Removing publisher', from);
+            log.info('Removing publisher', from);
             delete publishers[from];
             var count = 0;
             for (var k in publishers) {
@@ -235,9 +244,9 @@ exports.ErizoJSController = function (spec) {
                    ++count;
                 }
             }
-            logger.info("Publishers: ", count);
+            log.info("Publishers: ", count);
             if (count === 0)  {
-                logger.info('Removed all publishers. Killing process.');
+                log.info('Removed all publishers. Killing process.');
                 process.exit(0);
             }
         }
@@ -250,7 +259,7 @@ exports.ErizoJSController = function (spec) {
 
         var index = subscribers[to].indexOf(from);
         if (index !== -1) {
-            logger.info('Removing subscriber ', from, 'to muxer ', to);
+            log.info('Removing subscriber ', from, 'to muxer ', to);
             publishers[to].removeSubscriber(from);
             subscribers[to].splice(index, 1);
         }
@@ -263,12 +272,12 @@ exports.ErizoJSController = function (spec) {
 
         var key, index;
 
-        logger.info('Removing subscriptions of ', from);
+        log.info('Removing subscriptions of ', from);
         for (key in subscribers) {
             if (subscribers.hasOwnProperty(key)) {
                 index = subscribers[key].indexOf(from);
                 if (index !== -1) {
-                    logger.info('Removing subscriber ', from, 'to muxer ', key);
+                    log.info('Removing subscriber ', from, 'to muxer ', key);
                     publishers[key].removeSubscriber(from);
                     subscribers[key].splice(index, 1);
                 }

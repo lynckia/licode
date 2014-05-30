@@ -4,6 +4,10 @@ var addon = require('./../../erizoAPI/build/Release/addon');
 var config = require('./../../licode_config');
 var logger = require('./../common/logger').logger;
 
+// Logger
+var log = logger.getLogger("RoomController");
+
+
 exports.RoomController = function (spec) {
     "use strict";
 
@@ -43,7 +47,7 @@ exports.RoomController = function (spec) {
 
     var createErizoJS = function(publisher_id, callback) {
     	rpc.callRpc("ErizoAgent", "createErizoJS", [publisher_id], {callback: function(erizo_id) {
-            console.log("Answer", erizo_id);
+            log.debug("Answer", erizo_id);
             erizos[publisher_id] = erizo_id;
             callback();
         }});
@@ -68,7 +72,7 @@ exports.RoomController = function (spec) {
 
         if (publishers[publisher_id] === undefined) {
 
-            logger.info("Adding external input peer_id ", publisher_id);
+            log.info("Adding external input peer_id ", publisher_id);
 
             createErizoJS(publisher_id, function() {
             // then we call its addPublisher method.
@@ -81,13 +85,13 @@ exports.RoomController = function (spec) {
 
             });
         } else {
-            logger.info("Publisher already set for", publisher_id);
+            log.info("Publisher already set for", publisher_id);
         }
     };
 
     that.addExternalOutput = function (publisher_id, url, callback) {
         if (publishers[publisher_id] !== undefined) {
-            logger.info("Adding ExternalOutput to " + publisher_id + " url " + url);
+            log.info("Adding ExternalOutput to " + publisher_id + " url " + url);
 
             var args = [publisher_id, url];
 
@@ -110,7 +114,7 @@ exports.RoomController = function (spec) {
         var publisher_id = externalOutputs[url];
 
         if (publisher_id !== undefined && publishers[publisher_id] != undefined) {
-            logger.info("Stopping ExternalOutput: url " + url);
+            log.info("Stopping ExternalOutput: url " + url);
 
             var args = [publisher_id, url];
             rpc.callRpc(getErizoQueue(publisher_id), "removeExternalOutput", args, undefined);
@@ -132,11 +136,11 @@ exports.RoomController = function (spec) {
 
         if (publishers[publisher_id] === undefined) {
 
-            logger.info("Adding publisher peer_id ", publisher_id);
+            log.info("Adding publisher peer_id ", publisher_id);
 
             // We create a new ErizoJS with the publisher_id.
             createErizoJS(publisher_id, function(erizo_id) {
-            	console.log("Erizo created");
+            	log.info("Erizo created");
             	// then we call its addPublisher method.
 	            var args = [publisher_id, sdp];
 	            rpc.callRpc(getErizoQueue(publisher_id), "addPublisher", args, {callback: callback, onReady: onReady});
@@ -147,7 +151,7 @@ exports.RoomController = function (spec) {
             });
 
         } else {
-            logger.info("Publisher already set for", publisher_id);
+            log.info("Publisher already set for", publisher_id);
         }
     };
 
@@ -160,7 +164,7 @@ exports.RoomController = function (spec) {
 
         if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1 && sdp.match('OFFER') !== null) {
 
-            logger.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id);
+            log.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id);
 
             if (audio === undefined) audio = true;
             if (video === undefined) video = true;
@@ -180,17 +184,17 @@ exports.RoomController = function (spec) {
     that.removePublisher = function (publisher_id) {
 
         if (subscribers[publisher_id] !== undefined && publishers[publisher_id] !== undefined) {
-            logger.info('Removing muxer', publisher_id);
+            log.info('Removing muxer', publisher_id);
 
             var args = [publisher_id];
             rpc.callRpc(getErizoQueue(publisher_id), "removePublisher", args, undefined);
 
             // Remove tracks
-            logger.info('Removing subscribers', publisher_id);
+            log.info('Removing subscribers', publisher_id);
             delete subscribers[publisher_id];
-            logger.info('Removing publisher', publisher_id);
+            log.info('Removing publisher', publisher_id);
             delete publishers[publisher_id];
-            logger.info('Removed all');
+            log.info('Removed all');
             delete erizos[publisher_id];
         }
     };
@@ -202,7 +206,7 @@ exports.RoomController = function (spec) {
 
         var index = subscribers[publisher_id].indexOf(subscriber_id);
         if (index !== -1) {
-            logger.info('Removing subscriber ', subscriber_id, 'to muxer ', publisher_id);
+            log.info('Removing subscriber ', subscriber_id, 'to muxer ', publisher_id);
 
             var args = [subscriber_id, publisher_id];
             rpc.callRpc(getErizoQueue(publisher_id), "removeSubscriber", args, undefined);
@@ -219,14 +223,14 @@ exports.RoomController = function (spec) {
 
         var publisher_id, index;
 
-        logger.info('Removing subscriptions of ', subscriber_id);
+        log.info('Removing subscriptions of ', subscriber_id);
 
 
         for (publisher_id in subscribers) {
             if (subscribers.hasOwnProperty(publisher_id)) {
                 index = subscribers[publisher_id].indexOf(subscriber_id);
                 if (index !== -1) {
-                    logger.info('Removing subscriber ', subscriber_id, 'to muxer ', publisher_id);
+                    log.info('Removing subscriber ', subscriber_id, 'to muxer ', publisher_id);
 
                     var args = [subscriber_id, publisher_id];
             		rpc.callRpc(getErizoQueue(publisher_id), "removeSubscriber", args, undefined);

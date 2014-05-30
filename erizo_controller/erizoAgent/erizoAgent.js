@@ -2,9 +2,17 @@
 var rpc = require('./../common/rpc');
 var logger = require('./../common/logger').logger;
 
+// Logger
+var log = logger.getLogger("ErizoAgent");
+
 var spawn = require('child_process').spawn;
 
 var config = require('./../../licode_config');
+
+// Configuration default values
+config.erizoAgent = config.erizoAgent || {};
+config.erizoAgent.maxProcesses = config.erizoAgent.maxProcesses || 1;
+config.erizoAgent.prerunProcesses = config.erizoAgent.prerunProcesses || 1;
     
 var childs = [];
 

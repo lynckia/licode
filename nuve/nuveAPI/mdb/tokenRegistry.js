@@ -1,6 +1,11 @@
 /*global require, exports, console*/
 var db = require('./dataBase').db;
 
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("TokenRegistry");
+
 /*
  * Gets a list of the tokens in the data base.
  */
@@ -9,7 +14,7 @@ var getList = exports.getList = function (callback) {
 
     db.tokens.find({}).toArray(function (err, tokens) {
         if (err || !tokens) {
-            console.log('Empty list');
+            log.info('Empty list');
         } else {
             callback(tokens);
         }
@@ -22,7 +27,7 @@ var getToken = exports.getToken = function (id, callback) {
     db.tokens.findOne({_id: db.ObjectId(id)}, function (err, token) {
         if (token == null) {
             token = undefined;
-            console.log('Token ', id, ' not found');
+            log.info('Token ', id, ' not found');
         }
         if (callback !== undefined) {
             callback(token);
@@ -50,7 +55,7 @@ exports.addToken = function (token, callback) {
     "use strict";
 
     db.tokens.save(token, function (error, saved) {
-        if (error) console.log('MongoDB: Error adding token: ', error);
+        if (error) log.info('MongoDB: Error adding token: ', error);
         callback(saved._id);
     });
 };
@@ -64,7 +69,7 @@ var removeToken = exports.removeToken = function (id, callback) {
     hasToken(id, function (hasT) {
         if (hasT) {
             db.tokens.remove({_id: db.ObjectId(id)}, function (error, removed) {
-                if (error) console.log('MongoDB: Error removing token: ', error);
+                if (error) log.info('MongoDB: Error removing token: ', error);
                 callback();
             });
             
@@ -79,7 +84,7 @@ exports.updateToken = function (token) {
     "use strict";
 
     db.tokens.save(token, function (error, saved) {
-        if (error) console.log('MongoDB: Error updating token: ', error);
+        if (error) log.info('MongoDB: Error updating token: ', error);
     });
 };
 
@@ -99,7 +104,7 @@ exports.removeOldTokens = function () {
                 dif = time - tokenTime;
 
                 if (dif > 3*60*1000) {
-                    console.log('Removing old token ', token._id, 'from room ', token.room, ' of service ', token.service);
+                    log.info('Removing old token ', token._id, 'from room ', token.room, ' of service ', token.service);
                     removeToken(token._id + '', function() {});
                 }
             }
