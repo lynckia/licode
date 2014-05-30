@@ -24,7 +24,8 @@ public:
 private:
     static const unsigned int MAX_SIZE = 100;
     std::list<boost::shared_ptr<dataPacket> > queue_;
-    uint16_t lastSequenceNumber_;
+    uint16_t lastSequenceNumberGiven_;
+    bool poppedData_;
     bool rtpSequenceLessThan(uint16_t x, uint16_t y);
 };
 } /* namespace erizo */

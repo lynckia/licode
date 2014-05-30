@@ -9,7 +9,7 @@ namespace erizo{
 
 DEFINE_LOGGER(RtpPacketQueue, "RtpPacketQueue");
 
-RtpPacketQueue::RtpPacketQueue()
+RtpPacketQueue::RtpPacketQueue() : poppedData_(false)
 {
 }
 
@@ -22,6 +22,12 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
 {
     const RTPHeader *currentHeader = reinterpret_cast<const RTPHeader*>(data);
     uint16_t currentSequenceNumber = currentHeader->getSeqNumber();
+
+    if(poppedData_ && (rtpSequenceLessThan(currentSequenceNumber, lastSequenceNumberGiven_) || currentSequenceNumber == lastSequenceNumberGiven_)) {
+        // this sequence number is less than the stuff we've already handed out, which means it's too late to be of any value.
+        ELOG_WARN("RTPPacketQueue -- discarding very late sample %d", currentSequenceNumber);
+        return;
+    }
 
     // TODO this should be a secret of the dataPacket class.  It should maintain its own memory
     // and copy stuff as necessary.
@@ -65,6 +71,11 @@ boost::shared_ptr<dataPacket> RtpPacketQueue::popPacket()
 {
     boost::shared_ptr<dataPacket> packet = queue_.back();
     queue_.pop_back();
+
+    const RTPHeader *header = reinterpret_cast<const RTPHeader*>(packet->data);
+    this->lastSequenceNumberGiven_ = header->getSeqNumber();
+    poppedData_ = true;
+
     return packet;
 }
 
