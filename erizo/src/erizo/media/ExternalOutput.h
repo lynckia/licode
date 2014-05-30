@@ -30,13 +30,11 @@ public:
 
 private:
     RtpPacketQueue audioQueue_, videoQueue_;
-
-    std::string url_;
     volatile bool sending_;
     boost::mutex queueMutex_;
     boost::thread thread_;
     boost::condition_variable cond_;
-    AVStream *video_st, *audio_st;
+    AVStream *video_stream_, *audio_stream_;
 
     int gotUnpackagedFrame_;
     int unpackagedSize_;
@@ -48,7 +46,6 @@ private:
 
     AVFormatContext *context_;
     AVCodec *videoCodec_, *audioCodec_;
-    AVCodecContext *videoCodecCtx_, *audioCodecCtx_;
     InputProcessor *inputProcessor_;
 
     AVPacket avpacket;

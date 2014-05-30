@@ -12,14 +12,35 @@ namespace erizo {
 
 DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 
-ExternalOutput::ExternalOutput(const std::string& outputUrl) :
-    url_(outputUrl)
+ExternalOutput::ExternalOutput(const std::string& outputUrl)
 {
     ELOG_DEBUG("Created ExternalOutput to %s", outputUrl.c_str());
+
+    // TODO these should really only be called once per application run
+    av_register_all();
+    avcodec_register_all();
+
+
+    context_ = avformat_alloc_context();
+    if (context_==NULL){
+        ELOG_ERROR("Error allocating memory for IO context");
+    } else {
+
+        outputUrl.copy(context_->filename, sizeof(context_->filename),0);
+
+        context_->oformat = av_guess_format(NULL,  context_->filename, NULL);
+        if (!context_->oformat){
+            ELOG_ERROR("Error guessing format %s", context_->filename);
+        } else {
+            context_->oformat->video_codec = AV_CODEC_ID_VP8;
+            context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
+        }
+    }
+
     videoCodec_ = NULL;
     audioCodec_ = NULL;
-    video_st = NULL;
-    audio_st = NULL;
+    video_stream_ = NULL;
+    audio_stream_ = NULL;
     prevEstimatedFps_ = 0;
     warmupfpsCount_ = 0;
     writeheadres_=-1;
@@ -28,34 +49,15 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl) :
     lastTime_ = 0;
     sinkfbSource_ = this;
     fbSink_ = NULL;
+    gotUnpackagedFrame_ = 0;
+    unpackagedSize_ = 0;
 }
 
 bool ExternalOutput::init(){
-    av_register_all();
-    avcodec_register_all();
-    context_ = avformat_alloc_context();
-    if (context_==NULL){
-        ELOG_ERROR("Error allocating memory for IO context");
-        return false;
-    }
-    context_->oformat = av_guess_format(NULL,  url_.c_str(), NULL);
-    if (!context_->oformat){
-        ELOG_ERROR("Error guessing format %s", url_.c_str());
-        return false;
-    }
-
-    context_->oformat->video_codec = AV_CODEC_ID_VP8;
-    context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
-    url_.copy(context_->filename, sizeof(context_->filename),0);
-    video_st = NULL;
-    audio_st = NULL;
     inputProcessor_ = new InputProcessor();
     MediaInfo m;
     m.hasVideo = false;
     m.hasAudio = false;
-
-    gotUnpackagedFrame_ = 0;
-    unpackagedSize_ = 0;
     inputProcessor_->init(m, this);
     thread_ = boost::thread(&ExternalOutput::sendLoop, this);
     sending_ = true;
@@ -66,26 +68,27 @@ bool ExternalOutput::init(){
 
 ExternalOutput::~ExternalOutput(){
     ELOG_DEBUG("ExternalOutput Destructing");
+
     delete inputProcessor_;
     inputProcessor_ = NULL;
     
     if (context_!=NULL){
-        if (writeheadres_>=0)
+        if (writeheadres_ >= 0)
             av_write_trailer(context_);
-        if (avio_close>=0)
+        if (avio_close >= 0)
             avio_close(context_->pb);
         avformat_free_context(context_);
-        context_=NULL;
+        context_ = NULL;
     }
 
-    if (videoCodec_ != NULL){
-        avcodec_close(videoCodecCtx_);
-        videoCodec_=NULL;
+    if (video_stream_->codec != NULL){
+        avcodec_close(video_stream_->codec);
+        video_stream_->codec=NULL;
     }
 
-    if (audioCodec_ != NULL){
-        avcodec_close(audioCodecCtx_);
-        audioCodec_ = NULL;
+    if (audio_stream_->codec != NULL){
+        avcodec_close(audio_stream_->codec);
+        audio_stream_->codec = NULL;
     }
 
     sending_ = false;
@@ -262,16 +265,15 @@ bool ExternalOutput::initContext() {
             ELOG_ERROR("Could not find codec");
             return false;
         }
-        video_st = avformat_new_stream (context_, videoCodec_);
-        video_st->id = 0;
-        videoCodecCtx_ = video_st->codec;
-        videoCodecCtx_->codec_id = context_->oformat->video_codec;
-        videoCodecCtx_->width = 640;
-        videoCodecCtx_->height = 480;
-        videoCodecCtx_->time_base = (AVRational){1,(int)prevEstimatedFps_};
-    videoCodecCtx_->pix_fmt = PIX_FMT_YUV420P;
+        video_stream_ = avformat_new_stream (context_, videoCodec_);
+        video_stream_->id = 0;
+        video_stream_->codec->codec_id = context_->oformat->video_codec;
+        video_stream_->codec->width = 640;
+        video_stream_->codec->height = 480;
+        video_stream_->codec->time_base = (AVRational){1,(int)prevEstimatedFps_};
+    video_stream_->codec->pix_fmt = PIX_FMT_YUV420P;
     if (context_->oformat->flags & AVFMT_GLOBALHEADER){
-        videoCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
+        video_stream_->codec->flags|=CODEC_FLAG_GLOBAL_HEADER;
     }
     context_->oformat->flags |= AVFMT_VARIABLE_FPS;
     ELOG_DEBUG("Init audio context");
@@ -282,19 +284,18 @@ bool ExternalOutput::initContext() {
         return false;
     }
     ELOG_DEBUG("Found Audio Codec %s", audioCodec_->name);
-    audio_st = avformat_new_stream (context_, audioCodec_);
-    audio_st->id = 1;
-    audioCodecCtx_ = audio_st->codec;
-    audioCodecCtx_->codec_id = context_->oformat->audio_codec;
-    audioCodecCtx_->sample_rate = 8000;
-    audioCodecCtx_->channels = 1;
+    audio_stream_ = avformat_new_stream (context_, audioCodec_);
+    audio_stream_->id = 1;
+    audio_stream_->codec->codec_id = context_->oformat->audio_codec;
+    audio_stream_->codec->sample_rate = 8000;
+    audio_stream_->codec->channels = 1;
     //      audioCodecCtx_->sample_fmt = AV_SAMPLE_FMT_S8;
     if (context_->oformat->flags & AVFMT_GLOBALHEADER){
-        audioCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
+        audio_stream_->codec->flags|=CODEC_FLAG_GLOBAL_HEADER;
     }
 
-    context_->streams[0] = video_st;
-    context_->streams[1] = audio_st;
+    context_->streams[0] = video_stream_;
+    context_->streams[1] = audio_stream_;
     if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0){
         ELOG_ERROR("Error opening output file");
         return false;
