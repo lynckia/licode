@@ -241,18 +241,9 @@ namespace erizo {
 
   }
 
-  int InputProcessor::unpackageAudio(unsigned char* inBuff, int inBuffLen,
-      unsigned char* outBuff) {
-
-    RTPHeader* head = reinterpret_cast<RTPHeader*>(inBuff);
-    if (head->getPayloadType()!=0){
-      ELOG_DEBUG("PT AUDIO %d", head->getPayloadType());
-      //      return -1;
-    }
-
-    //    ELOG_DEBUG("Audio Timestamp %u", head->getTimestamp());
+  int InputProcessor::unpackageAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff) {
     int l = inBuffLen - RTPHeader::MIN_SIZE;
-    if (l<0){
+    if (l < 0){
       ELOG_ERROR ("Error unpackaging audio");
       return 0;
     }

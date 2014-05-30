@@ -2,7 +2,6 @@
 #define EXTERNALOUTPUT_H_
 
 #include <string> 
-#include <map>
 #include "../MediaDefinitions.h"
 #include "rtp/RtpPacketQueue.h"
 #include "codecs/VideoCodec.h"
@@ -30,7 +29,7 @@ public:
 
 private:
     RtpPacketQueue audioQueue_, videoQueue_;
-    volatile bool sending_;
+    volatile bool recording_;
     boost::mutex queueMutex_;
     boost::thread thread_;
     boost::condition_variable cond_;
@@ -40,7 +39,7 @@ private:
     int unpackagedSize_;
     int prevEstimatedFps_;
     int warmupfpsCount_;
-    unsigned long long lastTime_;
+    unsigned long long lastFullIntraFrameRequest_;
 
     int writeheadres_;
 
@@ -62,8 +61,8 @@ private:
     void sendLoop();
     int deliverAudioData_(char* buf, int len);
     int deliverVideoData_(char* buf, int len);
-    int writeAudioData(char* buf, int len);
-    int writeVideoData(char* buf, int len);
+    void writeAudioData(char* buf, int len);
+    void writeVideoData(char* buf, int len);
 };
 }
 #endif /* EXTERNALOUTPUT_H_ */
