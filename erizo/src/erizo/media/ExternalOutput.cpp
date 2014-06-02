@@ -40,7 +40,6 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl)
 
     video_stream_ = NULL;
     audio_stream_ = NULL;
-    writeheadres_=-1;
     unpackagedBufferpart_ = unpackagedBuffer_;
     initTimeVideo_ = -1;
     initTimeAudio_ = -1;
@@ -75,7 +74,7 @@ ExternalOutput::~ExternalOutput(){
     delete inputProcessor_;
     inputProcessor_ = NULL;
 
-    if (context_!=NULL && writeheadres_ >= 0)
+    if (context_ != NULL)
         av_write_trailer(context_);
 
     if (video_stream_->codec != NULL){
@@ -269,8 +268,8 @@ bool ExternalOutput::initContext() {
             ELOG_ERROR("Error opening output file");
             return false;
         }
-        writeheadres_ = avformat_write_header(context_, NULL);
-        if (writeheadres_<0){
+
+        if (avformat_write_header(context_, NULL) < 0){
             ELOG_ERROR("Error writing header");
             return false;
         }

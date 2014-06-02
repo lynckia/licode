@@ -39,8 +39,6 @@ private:
     int prevEstimatedFps_;
     unsigned long long lastFullIntraFrameRequest_;
 
-    int writeheadres_;
-
     AVFormatContext *context_;
     InputProcessor *inputProcessor_;
 
