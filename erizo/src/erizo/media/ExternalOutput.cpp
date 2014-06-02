@@ -136,15 +136,20 @@ void ExternalOutput::writeAudioData(char* buf, int len){
     if (ret <= 0)
         return;
 
-//    ELOG_DEBUG("Writing audio frame %d, input timebase: %d/%d, target timebase: %d/%d", (int)(head->getTimestamp() - initTimeAudio_),
+//    ELOG_DEBUG("Writing audio frame %d with timestamp %u, input timebase: %d/%d, target timebase: %d/%d",head->getSeqNumber(), head->getTimestamp(),
 //               audio_stream_->codec->time_base.num, audio_stream_->codec->time_base.den,    // timebase we requested
 //               audio_stream_->time_base.num, audio_stream_->time_base.den);                 // actual timebase
 
+    long long currentTimestamp = head->getTimestamp();
+    if (currentTimestamp - initTimeAudio_ < 0) {
+        // we wrapped.  add 2^32 to correct this.  We only handle a single wrap around since that's 13 hours of recording, minimum.
+        currentTimestamp += 0xFFFFFFFF;
+    }
     AVPacket avpkt;
     av_init_packet(&avpkt);
     avpkt.data = unpackagedAudioBuffer_;
     avpkt.size = ret;
-    avpkt.pts = (head->getTimestamp() - initTimeAudio_) / (audio_stream_->codec->time_base.den / audio_stream_->time_base.den);
+    avpkt.pts = (currentTimestamp - initTimeAudio_) / (audio_stream_->codec->time_base.den / audio_stream_->time_base.den);
     avpkt.stream_index = 1;
     av_write_frame(context_, &avpkt);
     av_free_packet(&avpkt);
@@ -196,12 +201,18 @@ void ExternalOutput::writeVideoData(char* buf, int len){
     if (gotUnpackagedFrame) {
         unpackagedBufferpart_ -= unpackagedSize_;
 
-        long long timestampToWrite = (head->getTimestamp() - initTimeVideo_) / (90000 / video_stream_->time_base.den);  // All of our video offerings are using a 90khz clock.
-
-//        ELOG_DEBUG("Writing video frame %d with timestamp %d, length %d, input timebase: %d/%d, target timebase: %d/%d", head->getSeqNumber(),
-//                   (int)timestampToWrite, unpackagedSize_,
+//        ELOG_DEBUG("Writing video frame %d with timestamp %u, length %d, input timebase: %d/%d, target timebase: %d/%d", head->getSeqNumber(),
+//                   head->getTimestamp(), unpackagedSize_,
 //                   video_stream_->codec->time_base.num, video_stream_->codec->time_base.den,    // timebase we requested
 //                   video_stream_->time_base.num, video_stream_->time_base.den);                 // actual timebase
+
+        long long currentTimestamp = head->getTimestamp();
+        if (currentTimestamp - initTimeVideo_ < 0) {
+            // we wrapped.  add 2^32 to correct this.  We only handle a single wrap around since that's ~13 hours of recording, minimum.
+            currentTimestamp += 0xFFFFFFFF;
+        }
+
+        long long timestampToWrite = (currentTimestamp - initTimeVideo_) / (90000 / video_stream_->time_base.den);  // All of our video offerings are using a 90khz clock.
 
         AVPacket avpkt;
         av_init_packet(&avpkt);
