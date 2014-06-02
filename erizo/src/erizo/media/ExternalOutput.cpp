@@ -6,6 +6,7 @@
 #include <boost/cstdint.hpp>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#include "rtp/RtpHeader.h"
 
 namespace erizo {
 #define FIR_INTERVAL_MS 4000
@@ -45,7 +46,8 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl)
     warmupfpsCount_ = 0;
     writeheadres_=-1;
     unpackagedBufferpart_ = unpackagedBuffer_;
-    initTime_ = 0;
+    initTimeVideo_ = -1;
+    initTimeAudio_ = -1;
     lastFullIntraFrameRequest_ = 0;
     sinkfbSource_ = this;
     fbSink_ = NULL;
@@ -104,14 +106,14 @@ void ExternalOutput::receiveRawData(RawDataPacket& /*packet*/){
 
 
 void ExternalOutput::writeAudioData(char* buf, int len){
-    rtpheader *head = (rtpheader*)buf;
+    RTPHeader* head = reinterpret_cast<RTPHeader*>(buf);
 
     // Figure out our audio codec.
     if(context_->oformat->audio_codec == AV_CODEC_ID_NONE) {
         //We dont need any other payload at this time
-        if(head->payloadtype == PCMU_8000_PT){
+        if(head->getPayloadType() == PCMU_8000_PT){
             context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
-        } else if (head->payloadtype == OPUS_48000_PT) {
+        } else if (head->getPayloadType() == OPUS_48000_PT) {
             context_->oformat->audio_codec = AV_CODEC_ID_OPUS;
         }
     }
@@ -123,43 +125,39 @@ void ExternalOutput::writeAudioData(char* buf, int len){
     int ret = inputProcessor_->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len, unpackagedAudioBuffer_);
     if (ret <= 0)
         return;
-    timeval time;
-    gettimeofday(&time, NULL);
-    unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-    if (millis -lastFullIntraFrameRequest_ >FIR_INTERVAL_MS){
-        this->sendFirPacket();
-        lastFullIntraFrameRequest_ = millis;
+
+        timeval time;
+        gettimeofday(&time, NULL);
+        unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+        if (millis -lastFullIntraFrameRequest_ >FIR_INTERVAL_MS){
+            this->sendFirPacket();
+            lastFullIntraFrameRequest_ = millis;
+        }
+
+    if (initTimeAudio_ == -1) {
+        initTimeAudio_ = head->getTimestamp();
     }
-    if (initTime_ == 0) {
-        initTime_ = millis;
-    }
-    if (millis < initTime_){
-        ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
-    }
-    if (ret > UNPACKAGE_BUFFER_SIZE){
-        ELOG_ERROR("Unpackaged Audio size too big %d", ret);
-    }
+
+//    ELOG_DEBUG("Writing audio frame %d, input timebase: %d/%d, target timebase: %d/%d", (int)(head->getTimestamp() - initTimeAudio_),
+//               audio_stream_->codec->time_base.num, audio_stream_->codec->time_base.den,    // timebase we requested
+//               audio_stream_->time_base.num, audio_stream_->time_base.den);                 // actual timebase
+
     AVPacket avpkt;
     av_init_packet(&avpkt);
     avpkt.data = unpackagedAudioBuffer_;
     avpkt.size = ret;
-    avpkt.pts = millis - initTime_;
+    avpkt.pts = (head->getTimestamp() - initTimeAudio_) / (audio_stream_->codec->time_base.den / audio_stream_->time_base.den);
     avpkt.stream_index = 1;
     av_write_frame(context_, &avpkt);
     av_free_packet(&avpkt);
 }
 
 void ExternalOutput::writeVideoData(char* buf, int len){
-    rtpheader *head = (rtpheader*) buf;
-    if (head->payloadtype == RED_90000_PT) {
-        int totalLength = 12;
-
-        if (head->extension) {
-            totalLength += ntohs(head->extensionlength)*4 + 4; // RTP Extension header
-        }
+    RTPHeader* head = reinterpret_cast<RTPHeader*>(buf);
+    if (head->getPayloadType() == RED_90000_PT) {
+        int totalLength = head->getHeaderLength();
         int rtpHeaderLength = totalLength;
         redheader *redhead = (redheader*) (buf + totalLength);
-
         if (redhead->payloadtype == VP8_90000_PT) {
             while (redhead->follow) {
                 totalLength += redhead->getLength() + 4; // RED header
@@ -171,16 +169,15 @@ void ExternalOutput::writeVideoData(char* buf, int len){
             // Copy payload data
             memcpy(deliverMediaBuffer_ + totalLength, buf + totalLength + 1, len - totalLength - 1);
             // Copy payload type
-            rtpheader *mediahead = (rtpheader*) deliverMediaBuffer_;
-            mediahead->payloadtype = redhead->payloadtype;
+            RTPHeader *mediahead = reinterpret_cast<RTPHeader*>(deliverMediaBuffer_);
+            mediahead->setPayloadType(redhead->payloadtype);
             buf = reinterpret_cast<char*>(deliverMediaBuffer_);
             len = len - 1 - totalLength + rtpHeaderLength;
         }
     }
-    int estimatedFps=0;
-    int ret = inputProcessor_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
-                                              unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
 
+    int estimatedFps=0;
+    int ret = inputProcessor_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len, unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
     if (ret < 0)
         return;
 
@@ -201,27 +198,25 @@ void ExternalOutput::writeVideoData(char* buf, int len){
 
     unpackagedSize_ += ret;
     unpackagedBufferpart_ += ret;
-    if (unpackagedSize_ > UNPACKAGE_BUFFER_SIZE){
-        ELOG_ERROR("Unpackaged size bigget than buffer %d", unpackagedSize_);
-    }
+
     if (gotUnpackagedFrame_ && videoCodec_ != NULL) {
-        timeval time;
-        gettimeofday(&time, NULL);
-        unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-        if (initTime_ == 0) {
-            initTime_ = millis;
-        }
-        if (millis < initTime_)
-        {
-            ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
+        if (initTimeVideo_ == -1) {
+            initTimeVideo_ = head->getTimestamp();
         }
         unpackagedBufferpart_ -= unpackagedSize_;
+
+        long long timestampToWrite = (head->getTimestamp() - initTimeVideo_) / (90000 / video_stream_->time_base.den);  // All of our video offerings are using a 90khz clock.
+
+//        ELOG_DEBUG("Writing video frame %d with timestamp %d, length %d, input timebase: %d/%d, target timebase: %d/%d", head->getSeqNumber(),
+//                   (int)timestampToWrite, unpackagedSize_,
+//                   video_stream_->codec->time_base.num, video_stream_->codec->time_base.den,    // timebase we requested
+//                   video_stream_->time_base.num, video_stream_->time_base.den);                 // actual timebase
 
         AVPacket avpkt;
         av_init_packet(&avpkt);
         avpkt.data = unpackagedBufferpart_;
         avpkt.size = unpackagedSize_;
-        avpkt.pts = millis - initTime_;
+        avpkt.pts = timestampToWrite;
         avpkt.stream_index = 0;
         av_write_frame(context_, &avpkt);
         av_free_packet(&avpkt);
@@ -258,7 +253,7 @@ bool ExternalOutput::initContext() {
         video_stream_->codec->codec_id = context_->oformat->video_codec;
         video_stream_->codec->width = 640;
         video_stream_->codec->height = 480;
-        video_stream_->codec->time_base = (AVRational){1,(int)prevEstimatedFps_};
+        video_stream_->codec->time_base = (AVRational){1,(int)prevEstimatedFps_};   // TODO this seems wrong.
         video_stream_->codec->pix_fmt = PIX_FMT_YUV420P;
         if (context_->oformat->flags & AVFMT_GLOBALHEADER){
             video_stream_->codec->flags|=CODEC_FLAG_GLOBAL_HEADER;
@@ -275,6 +270,7 @@ bool ExternalOutput::initContext() {
         audio_stream_->id = 1;
         audio_stream_->codec->codec_id = context_->oformat->audio_codec;
         audio_stream_->codec->sample_rate = context_->oformat->audio_codec == AV_CODEC_ID_PCM_MULAW ? 8000 : 48000; // TODO is it always 48 khz for opus?
+        audio_stream_->codec->time_base = (AVRational) { 1, audio_stream_->codec->sample_rate };
         audio_stream_->codec->channels = context_->oformat->audio_codec == AV_CODEC_ID_PCM_MULAW ? 1 : 2;   // TODO is it always two channels for opus?
         if (context_->oformat->flags & AVFMT_GLOBALHEADER){
             audio_stream_->codec->flags|=CODEC_FLAG_GLOBAL_HEADER;
@@ -335,7 +331,7 @@ int ExternalOutput::sendFirPacket() {
 void ExternalOutput::sendLoop() {
     while (recording_) {
         boost::unique_lock<boost::mutex> lock(queueMutex_);
-        while ((audioQueue_.getSize() < 15)&&(videoQueue_.getSize() < 15)) {
+        while ((audioQueue_.getSize() < 30)&&(videoQueue_.getSize() < 30)) {
             cond_.wait(lock);
             if (!recording_) {
                 lock.unlock();

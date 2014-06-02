@@ -52,7 +52,8 @@ private:
     unsigned char deliverMediaBuffer_[3000];
     unsigned char unpackagedBuffer_[UNPACKAGE_BUFFER_SIZE];
     unsigned char unpackagedAudioBuffer_[UNPACKAGE_BUFFER_SIZE/10];
-    unsigned long long initTime_;
+    long long initTimeVideo_;
+    long long initTimeAudio_;
 
 
     bool initContext();
