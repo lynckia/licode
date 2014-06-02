@@ -38,8 +38,6 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl)
         }
     }
 
-    videoCodec_ = NULL;
-    audioCodec_ = NULL;
     video_stream_ = NULL;
     audio_stream_ = NULL;
     prevEstimatedFps_ = 0;
@@ -118,7 +116,7 @@ void ExternalOutput::writeAudioData(char* buf, int len){
         }
     }
 
-    if (videoCodec_ == NULL) {
+    if (video_stream_ == NULL) {
         return;
     }
 
@@ -181,7 +179,7 @@ void ExternalOutput::writeVideoData(char* buf, int len){
     if (ret < 0)
         return;
 
-    if (videoCodec_ == NULL) {
+    if (video_stream_ == NULL) {
         if ((estimatedFps!=0)&&((estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2)))){
             prevEstimatedFps_ = estimatedFps;
         }
@@ -199,7 +197,7 @@ void ExternalOutput::writeVideoData(char* buf, int len){
     unpackagedSize_ += ret;
     unpackagedBufferpart_ += ret;
 
-    if (gotUnpackagedFrame_ && videoCodec_ != NULL) {
+    if (gotUnpackagedFrame_ && video_stream_ != NULL) {
         if (initTimeVideo_ == -1) {
             initTimeVideo_ = head->getTimestamp();
         }
@@ -240,15 +238,15 @@ int ExternalOutput::deliverVideoData_(char* buf, int len) {
 bool ExternalOutput::initContext() {
     if (context_->oformat->video_codec != AV_CODEC_ID_NONE &&
             context_->oformat->audio_codec != AV_CODEC_ID_NONE &&
-            videoCodec_ == NULL &&
-            audioCodec_ == NULL) {
-        videoCodec_ = avcodec_find_encoder(context_->oformat->video_codec);
-        ELOG_DEBUG("Found Video Codec %s, initializing context with fps %d", videoCodec_->name, prevEstimatedFps_);
-        if (videoCodec_==NULL){
+            video_stream_ == NULL &&
+            audio_stream_ == NULL) {
+        AVCodec* videoCodec = avcodec_find_encoder(context_->oformat->video_codec);
+        ELOG_DEBUG("Found Video Codec %s, initializing context with fps %d", videoCodec->name, prevEstimatedFps_);
+        if (videoCodec==NULL){
             ELOG_ERROR("Could not find video codec");
             return false;
         }
-        video_stream_ = avformat_new_stream (context_, videoCodec_);
+        video_stream_ = avformat_new_stream (context_, videoCodec);
         video_stream_->id = 0;
         video_stream_->codec->codec_id = context_->oformat->video_codec;
         video_stream_->codec->width = 640;
@@ -260,13 +258,13 @@ bool ExternalOutput::initContext() {
         }
         context_->oformat->flags |= AVFMT_VARIABLE_FPS;
 
-        audioCodec_ = avcodec_find_encoder(context_->oformat->audio_codec);
-        if (audioCodec_==NULL){
+        AVCodec* audioCodec = avcodec_find_encoder(context_->oformat->audio_codec);
+        if (audioCodec==NULL){
             ELOG_ERROR("Could not find audio codec");
             return false;
         }
-        ELOG_DEBUG("Found Audio Codec %s", audioCodec_->name);
-        audio_stream_ = avformat_new_stream (context_, audioCodec_);
+        ELOG_DEBUG("Found Audio Codec %s", audioCodec->name);
+        audio_stream_ = avformat_new_stream (context_, audioCodec);
         audio_stream_->id = 1;
         audio_stream_->codec->codec_id = context_->oformat->audio_codec;
         audio_stream_->codec->sample_rate = context_->oformat->audio_codec == AV_CODEC_ID_PCM_MULAW ? 8000 : 48000; // TODO is it always 48 khz for opus?

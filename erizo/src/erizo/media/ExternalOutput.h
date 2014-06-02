@@ -44,7 +44,6 @@ private:
     int writeheadres_;
 
     AVFormatContext *context_;
-    AVCodec *videoCodec_, *audioCodec_;
     InputProcessor *inputProcessor_;
 
     AVPacket avpacket;
