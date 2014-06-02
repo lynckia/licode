@@ -40,8 +40,6 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl)
 
     video_stream_ = NULL;
     audio_stream_ = NULL;
-    prevEstimatedFps_ = 0;
-    warmupfpsCount_ = 0;
     writeheadres_=-1;
     unpackagedBufferpart_ = unpackagedBuffer_;
     initTimeVideo_ = -1;
@@ -49,7 +47,6 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl)
     lastFullIntraFrameRequest_ = 0;
     sinkfbSource_ = this;
     fbSink_ = NULL;
-    gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
     inputProcessor_ = new InputProcessor();
 }
@@ -174,30 +171,22 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         }
     }
 
-    int estimatedFps=0;
-    int ret = inputProcessor_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len, unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
+    int gotUnpackagedFrame = false;
+    int ret = inputProcessor_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len, unpackagedBufferpart_, &gotUnpackagedFrame);
     if (ret < 0)
         return;
 
     if (video_stream_ == NULL) {
-        if ((estimatedFps!=0)&&((estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2)))){
-            prevEstimatedFps_ = estimatedFps;
-        }
-        if (warmupfpsCount_++ > 20){
-            if (prevEstimatedFps_==0){
-                warmupfpsCount_ = 0;
-                return;
-            }
-            if (!this->initContext()){
-                return;
-            }
+        if (!this->initContext()){
+            // could not init our context yet.
+            return;
         }
     }
 
     unpackagedSize_ += ret;
     unpackagedBufferpart_ += ret;
 
-    if (gotUnpackagedFrame_ && video_stream_ != NULL) {
+    if (gotUnpackagedFrame && video_stream_ != NULL) {
         if (initTimeVideo_ == -1) {
             initTimeVideo_ = head->getTimestamp();
         }
@@ -218,7 +207,6 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         avpkt.stream_index = 0;
         av_write_frame(context_, &avpkt);
         av_free_packet(&avpkt);
-        gotUnpackagedFrame_ = 0;
         unpackagedSize_ = 0;
         unpackagedBufferpart_ = unpackagedBuffer_;
     }
@@ -241,7 +229,7 @@ bool ExternalOutput::initContext() {
             video_stream_ == NULL &&
             audio_stream_ == NULL) {
         AVCodec* videoCodec = avcodec_find_encoder(context_->oformat->video_codec);
-        ELOG_DEBUG("Found Video Codec %s, initializing context with fps %d", videoCodec->name, prevEstimatedFps_);
+        ELOG_DEBUG("Found Video Codec %s", videoCodec->name);
         if (videoCodec==NULL){
             ELOG_ERROR("Could not find video codec");
             return false;
@@ -251,7 +239,8 @@ bool ExternalOutput::initContext() {
         video_stream_->codec->codec_id = context_->oformat->video_codec;
         video_stream_->codec->width = 640;
         video_stream_->codec->height = 480;
-        video_stream_->codec->time_base = (AVRational){1,(int)prevEstimatedFps_};   // TODO this seems wrong.
+        video_stream_->codec->time_base = (AVRational){1,30};   // A decent guess here suffices; if processing the file with ffmpeg,
+                                                                // use -vsync 0 to force it not to duplicate frames.
         video_stream_->codec->pix_fmt = PIX_FMT_YUV420P;
         if (context_->oformat->flags & AVFMT_GLOBALHEADER){
             video_stream_->codec->flags|=CODEC_FLAG_GLOBAL_HEADER;

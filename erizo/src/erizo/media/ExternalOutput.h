@@ -35,10 +35,8 @@ private:
     boost::condition_variable cond_;
     AVStream *video_stream_, *audio_stream_;
 
-    int gotUnpackagedFrame_;
     int unpackagedSize_;
     int prevEstimatedFps_;
-    int warmupfpsCount_;
     unsigned long long lastFullIntraFrameRequest_;
 
     int writeheadres_;
