@@ -102,6 +102,18 @@ void ExternalOutput::receiveRawData(RawDataPacket& /*packet*/){
 void ExternalOutput::writeAudioData(char* buf, int len){
     RTPHeader* head = reinterpret_cast<RTPHeader*>(buf);
 
+    if (initTimeAudio_ == -1) {
+        initTimeAudio_ = head->getTimestamp();
+    }
+
+    timeval time;
+    gettimeofday(&time, NULL);
+    unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+    if (millis -lastFullIntraFrameRequest_ >FIR_INTERVAL_MS){
+        this->sendFirPacket();
+        lastFullIntraFrameRequest_ = millis;
+    }
+
     // Figure out our audio codec.
     if(context_->oformat->audio_codec == AV_CODEC_ID_NONE) {
         //We dont need any other payload at this time
@@ -112,25 +124,17 @@ void ExternalOutput::writeAudioData(char* buf, int len){
         }
     }
 
-    if (video_stream_ == NULL) {
+    // check if we can initialize our context
+    this->initContext();
+
+    if (audio_stream_ == NULL) {
+        // not yet.
         return;
     }
 
     int ret = inputProcessor_->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len, unpackagedAudioBuffer_);
     if (ret <= 0)
         return;
-
-        timeval time;
-        gettimeofday(&time, NULL);
-        unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-        if (millis -lastFullIntraFrameRequest_ >FIR_INTERVAL_MS){
-            this->sendFirPacket();
-            lastFullIntraFrameRequest_ = millis;
-        }
-
-    if (initTimeAudio_ == -1) {
-        initTimeAudio_ = head->getTimestamp();
-    }
 
 //    ELOG_DEBUG("Writing audio frame %d, input timebase: %d/%d, target timebase: %d/%d", (int)(head->getTimestamp() - initTimeAudio_),
 //               audio_stream_->codec->time_base.num, audio_stream_->codec->time_base.den,    // timebase we requested
@@ -170,25 +174,26 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         }
     }
 
+    if (initTimeVideo_ == -1) {
+        initTimeVideo_ = head->getTimestamp();
+    }
+
     int gotUnpackagedFrame = false;
     int ret = inputProcessor_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len, unpackagedBufferpart_, &gotUnpackagedFrame);
     if (ret < 0)
         return;
 
+    this->initContext();
+
     if (video_stream_ == NULL) {
-        if (!this->initContext()){
-            // could not init our context yet.
-            return;
-        }
+        // could not init our context yet.
+        return;
     }
 
     unpackagedSize_ += ret;
     unpackagedBufferpart_ += ret;
 
-    if (gotUnpackagedFrame && video_stream_ != NULL) {
-        if (initTimeVideo_ == -1) {
-            initTimeVideo_ = head->getTimestamp();
-        }
+    if (gotUnpackagedFrame) {
         unpackagedBufferpart_ -= unpackagedSize_;
 
         long long timestampToWrite = (head->getTimestamp() - initTimeVideo_) / (90000 / video_stream_->time_base.den);  // All of our video offerings are using a 90khz clock.
@@ -317,7 +322,7 @@ int ExternalOutput::sendFirPacket() {
 void ExternalOutput::sendLoop() {
     while (recording_) {
         boost::unique_lock<boost::mutex> lock(queueMutex_);
-        while ((audioQueue_.getSize() < 30)&&(videoQueue_.getSize() < 30)) {
+        while ((audioQueue_.getSize() < 60)&&(videoQueue_.getSize() < 60)) {
             cond_.wait(lock);
             if (!recording_) {
                 lock.unlock();
@@ -334,6 +339,17 @@ void ExternalOutput::sendLoop() {
         }
 
         lock.unlock();
+    }
+
+    // Drain the queues, we're bailing.
+    boost::unique_lock<boost::mutex> lock(queueMutex_);
+    while (audioQueue_.getSize()){
+        boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
+        this->writeAudioData(audioP->data, audioP->length);
+    }
+    while (videoQueue_.getSize()) {
+        boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
+        this->writeVideoData(videoP->data, videoP->length);
     }
 }
 }

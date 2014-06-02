@@ -22,7 +22,7 @@ public:
     int getSize();
 
 private:
-    static const unsigned int MAX_SIZE = 100;
+    static const unsigned int MAX_SIZE = 200;
     std::list<boost::shared_ptr<dataPacket> > queue_;
     uint16_t lastSequenceNumberGiven_;
     bool poppedData_;
