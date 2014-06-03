@@ -169,3 +169,24 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueRespectsMax)
     BOOST_CHECK(queue.getSize() == max);
     BOOST_CHECK(queue.hasData() == true);
 }
+
+BOOST_AUTO_TEST_CASE(rtpPacketQueueRejectsDuplicatePackets)
+{
+    erizo::RtpPacketQueue queue;
+    // Add ten packets.
+    for(uint16_t x = 0; x < 10; x++) {
+        RTPHeader header;
+        header.setSeqNumber(x);
+        queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+    }
+
+    // Let's try to add 5, 6, 7, 8, and 9 again.
+    for(int x = 5; x < 10; x++) {
+        RTPHeader header;
+        header.setSeqNumber(x);
+        queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+    }
+
+    // We should only see ten packets, because those should all have been rejected.
+    BOOST_CHECK(queue.getSize() == 10);
+}
