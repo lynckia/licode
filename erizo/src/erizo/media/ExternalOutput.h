@@ -1,11 +1,8 @@
 #ifndef EXTERNALOUTPUT_H_
 #define EXTERNALOUTPUT_H_
 
-#include <string> 
 #include "../MediaDefinitions.h"
 #include "rtp/RtpPacketQueue.h"
-#include "codecs/VideoCodec.h"
-#include "codecs/AudioCodec.h"
 #include "MediaProcessor.h"
 #include "boost/thread.hpp"
 #include "logger.h"
@@ -30,19 +27,17 @@ public:
 private:
     RtpPacketQueue audioQueue_, videoQueue_;
     volatile bool recording_;
-    boost::mutex queueMutex_;
+    boost::mutex mtx_;  // a mutex we use to signal our writer thread that data is waiting.
     boost::thread thread_;
     boost::condition_variable cond_;
     AVStream *video_stream_, *audio_stream_;
 
-    int unpackagedSize_;
-    int prevEstimatedFps_;
     unsigned long long lastFullIntraFrameRequest_;
 
     AVFormatContext *context_;
     InputProcessor *inputProcessor_;
 
-    AVPacket avpacket;
+    int unpackagedSize_;
     unsigned char* unpackagedBufferpart_;
     unsigned char deliverMediaBuffer_[3000];
     unsigned char unpackagedBuffer_[UNPACKAGE_BUFFER_SIZE];

@@ -1,11 +1,7 @@
 #include "ExternalOutput.h"
 #include "../WebRtcConnection.h"
 #include "../rtputils.h"
-#include <cstdio>
-
-#include <boost/cstdint.hpp>
 #include <sys/time.h>
-#include <arpa/inet.h>
 #include "rtp/RtpHeader.h"
 
 namespace erizo {
@@ -15,7 +11,7 @@ DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 
 ExternalOutput::ExternalOutput(const std::string& outputUrl)
 {
-    ELOG_DEBUG("Created ExternalOutput to %s", outputUrl.c_str());
+    ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
 
     // TODO these should really only be called once per application run
     av_register_all();
@@ -63,7 +59,7 @@ bool ExternalOutput::init(){
 
 
 ExternalOutput::~ExternalOutput(){
-    ELOG_DEBUG("ExternalOutput Destructing");
+    ELOG_DEBUG("Destructing");
 
     // Stop our thread so we can safely nuke libav stuff and close our
     // our file.
@@ -91,7 +87,7 @@ ExternalOutput::~ExternalOutput(){
         context_ = NULL;
     }
 
-    ELOG_DEBUG("ExternalOutput closed Successfully");
+    ELOG_DEBUG("Closed Successfully");
 }
 
 void ExternalOutput::receiveRawData(RawDataPacket& /*packet*/){
@@ -289,7 +285,7 @@ bool ExternalOutput::initContext() {
             ELOG_ERROR("Error writing header");
             return false;
         }
-        ELOG_DEBUG("AVFORMAT CONFIGURED");
+        ELOG_DEBUG("avformat configured");
     }
 
     return true;
@@ -304,7 +300,6 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
         return;
     }
 
-    boost::mutex::scoped_lock lock(queueMutex_);
     if (type == VIDEO_PACKET){
         videoQueue_.pushPacket(buffer, length);
     }else{
@@ -315,7 +310,7 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
 
 int ExternalOutput::sendFirPacket() {
     if (fbSink_ != NULL) {
-        ELOG_DEBUG("ExternalOutput, sending Full Intra-frame Request");
+        ELOG_DEBUG("sending Full Intra-frame Request");
         int pos = 0;
         uint8_t rtcpPacket[50];
         // add full intra request indicator
@@ -332,15 +327,14 @@ int ExternalOutput::sendFirPacket() {
 
 void ExternalOutput::sendLoop() {
     while (recording_) {
-        boost::unique_lock<boost::mutex> lock(queueMutex_);
-        while ((audioQueue_.getSize() < 60)&&(videoQueue_.getSize() < 60)) {
+        boost::unique_lock<boost::mutex> lock(mtx_);
+        while ((audioQueue_.getSize() < 60) && (videoQueue_.getSize() < 60)) {
             cond_.wait(lock);
             if (!recording_) {
-                lock.unlock();
                 return;
             }
         }
-        if (audioQueue_.getSize()){
+        if (audioQueue_.getSize()) {
             boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
             this->writeAudioData(audioP->data, audioP->length);
         }
@@ -348,20 +342,19 @@ void ExternalOutput::sendLoop() {
             boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
             this->writeVideoData(videoP->data, videoP->length);
         }
-
-        lock.unlock();
     }
 
     // Drain the queues, we're bailing.
-    boost::unique_lock<boost::mutex> lock(queueMutex_);
     while (audioQueue_.getSize()){
         boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
         this->writeAudioData(audioP->data, audioP->length);
     }
+
     while (videoQueue_.getSize()) {
         boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
         this->writeVideoData(videoP->data, videoP->length);
     }
+
 }
 }
 

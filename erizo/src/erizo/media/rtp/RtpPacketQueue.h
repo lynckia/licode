@@ -3,6 +3,7 @@
 
 #include <list>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/mutex.hpp>
 #include "logger.h"
 
 namespace erizo{
@@ -22,7 +23,8 @@ public:
     int getSize();
 
 private:
-    static const unsigned int MAX_SIZE = 200;
+    boost::mutex queueMutex_;
+    static const unsigned int MAX_SIZE = 120;
     std::list<boost::shared_ptr<dataPacket> > queue_;
     uint16_t lastSequenceNumberGiven_;
     bool poppedData_;

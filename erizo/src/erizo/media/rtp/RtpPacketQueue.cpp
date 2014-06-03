@@ -1,9 +1,6 @@
-#include <cstring>
-
 #include "RtpPacketQueue.h"
 #include "../../MediaDefinitions.h"
 #include "RtpHeader.h"
-
 
 namespace erizo{
 
@@ -25,7 +22,7 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
 
     if(poppedData_ && (rtpSequenceLessThan(currentSequenceNumber, lastSequenceNumberGiven_) || currentSequenceNumber == lastSequenceNumberGiven_)) {
         // this sequence number is less than the stuff we've already handed out, which means it's too late to be of any value.
-        ELOG_WARN("RTPPacketQueue -- discarding very late sample %d", currentSequenceNumber);
+        ELOG_WARN("RTPPacketQueue(%u - %u), discarding very late sample %d that is <= %d.  Current queue depth is %d",currentHeader->getSSRC(),currentHeader->getPayloadType(), currentSequenceNumber, lastSequenceNumberGiven_, this->getSize());
         return;
     }
 
@@ -36,6 +33,8 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
     packet->length = length;
 
     // let's insert this packet where it belongs in the queue.
+    boost::mutex::scoped_lock lock(queueMutex_);
+
     std::list<boost::shared_ptr<dataPacket> >::iterator it;
     for (it=queue_.begin(); it != queue_.end(); ++it) {
         const RTPHeader *header = reinterpret_cast<const RTPHeader*>((*it)->data);
@@ -69,6 +68,7 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
 // TODO fix that....lame.
 boost::shared_ptr<dataPacket> RtpPacketQueue::popPacket()
 {
+    boost::mutex::scoped_lock lock(queueMutex_);
     boost::shared_ptr<dataPacket> packet = queue_.back();
     queue_.pop_back();
 
@@ -80,6 +80,7 @@ boost::shared_ptr<dataPacket> RtpPacketQueue::popPacket()
 }
 
 int RtpPacketQueue::getSize(){
+    boost::mutex::scoped_lock lock(queueMutex_);
     return queue_.size();
 }
 
