@@ -305,7 +305,11 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
     }else{
         audioQueue_.pushPacket(buffer, length);
     }
-    cond_.notify_one();
+
+    if( audioQueue_.hasData() && videoQueue_.hasData()) {
+        // We've got a fair chunk of data available.  Notify our writer thread to get to work.
+        cond_.notify_one();
+    }
 }
 
 int ExternalOutput::sendFirPacket() {
@@ -328,18 +332,12 @@ int ExternalOutput::sendFirPacket() {
 void ExternalOutput::sendLoop() {
     while (recording_) {
         boost::unique_lock<boost::mutex> lock(mtx_);
-        while ((audioQueue_.getSize() < 20) || (videoQueue_.getSize() < 20)) {
-            cond_.wait(lock);
-            if (!recording_) {
-                lock.unlock();
-                return;
-            }
-        }
-        while (audioQueue_.getSize() >= 20) {
+        cond_.wait(lock);
+        while (audioQueue_.hasData()) {
             boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
             this->writeAudioData(audioP->data, audioP->length);
         }
-        while (videoQueue_.getSize() >= 20) {
+        while (videoQueue_.hasData()) {
             boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
             this->writeVideoData(videoP->data, videoP->length);
         }

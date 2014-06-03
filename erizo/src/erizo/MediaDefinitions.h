@@ -89,7 +89,7 @@ public:
         boost::mutex::scoped_lock myMonitor_;
         return sinkfbSource_;
     }
-    MediaSink() : audioSinkSSRC_(0), videoSinkSSRC_(0), sinkfbSource_(nullptr) {}
+    MediaSink() : audioSinkSSRC_(0), videoSinkSSRC_(0), sinkfbSource_(NULL) {}
     virtual ~MediaSink() {}
 private:
     virtual int deliverAudioData_(char* buf, int len)=0;

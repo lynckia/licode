@@ -6,8 +6,13 @@ namespace erizo{
 
 DEFINE_LOGGER(RtpPacketQueue, "RtpPacketQueue");
 
-RtpPacketQueue::RtpPacketQueue() : lastSequenceNumberGiven_(-1)
+RtpPacketQueue::RtpPacketQueue(unsigned int max, unsigned int depth) : lastSequenceNumberGiven_(-1), max_(max), depth_(depth)
 {
+    if(depth_ >= max_) {
+        ELOG_WARN("invalid configuration, depth_: %d, max_: %d; reset to defaults", depth_, max_);
+        depth_ = erizo::DEFAULT_DEPTH;
+        max_ = erizo::DEFAULT_MAX;
+    }
 }
 
 RtpPacketQueue::~RtpPacketQueue(void)
@@ -22,6 +27,7 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
 
     if(lastSequenceNumberGiven_ >= 0 && (rtpSequenceLessThan(currentSequenceNumber, (uint16_t)lastSequenceNumberGiven_) || currentSequenceNumber == lastSequenceNumberGiven_)) {
         // this sequence number is less than the stuff we've already handed out, which means it's too late to be of any value.
+        // TODO adaptive depth?
         ELOG_WARN("SSRC:%u, Payload: %u, discarding very late sample %d that is <= %d.  Current queue depth is %d",currentHeader->getSSRC(),currentHeader->getPayloadType(), currentSequenceNumber, lastSequenceNumberGiven_, this->getSize());
         return;
     }
@@ -58,27 +64,38 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
     }
 
     // Enforce our max queue size.
-    while(queue_.size() >= this->MAX_SIZE) {
+    while(queue_.size() > max_) {
         ELOG_DEBUG("RtpPacketQueue - Discarding a sample due to hitting MAX_SIZE");
         queue_.pop_back();  // remove oldest samples.
     }
 }
 
-// It's a party foul to call this without checking size first
-// TODO fix that....lame.
-boost::shared_ptr<dataPacket> RtpPacketQueue::popPacket()
+// pops a packet off the queue, respecting the specified queue depth.
+boost::shared_ptr<dataPacket> RtpPacketQueue::popPacket(bool ignore_depth)
 {
+    boost::shared_ptr<dataPacket> packet;
+
     boost::mutex::scoped_lock lock(queueMutex_);
-    boost::shared_ptr<dataPacket> packet = queue_.back();
-    queue_.pop_back();
-    const RTPHeader *header = reinterpret_cast<const RTPHeader*>(packet->data);
-    lastSequenceNumberGiven_ = (int)header->getSeqNumber();
+    if (queue_.size() > 0) {
+        if (ignore_depth || queue_.size() >= depth_) {
+            packet = queue_.back();
+            queue_.pop_back();
+            const RTPHeader *header = reinterpret_cast<const RTPHeader*>(packet->data);
+            lastSequenceNumberGiven_ = (int)header->getSeqNumber();
+        }
+    }
+
     return packet;
 }
 
-int RtpPacketQueue::getSize(){
+int RtpPacketQueue::getSize() {
     boost::mutex::scoped_lock lock(queueMutex_);
     return queue_.size();
+}
+
+bool RtpPacketQueue::hasData() {
+    boost::mutex::scoped_lock lock(queueMutex_);
+    return queue_.size() >= depth_;
 }
 
 // Implements x < y, taking into account RTP sequence number wrap
