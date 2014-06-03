@@ -7,8 +7,6 @@
 #include <boost/thread.hpp>
 
 #include "logger.h"
-
-#include "SrtpChannel.h"
 #include "SdpInfo.h"
 #include "MediaDefinitions.h"
 #include "Transport.h"

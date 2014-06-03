@@ -328,33 +328,23 @@ int ExternalOutput::sendFirPacket() {
 void ExternalOutput::sendLoop() {
     while (recording_) {
         boost::unique_lock<boost::mutex> lock(mtx_);
-        while ((audioQueue_.getSize() < 60) && (videoQueue_.getSize() < 60)) {
+        while ((audioQueue_.getSize() < 20) || (videoQueue_.getSize() < 20)) {
             cond_.wait(lock);
             if (!recording_) {
+                lock.unlock();
                 return;
             }
         }
-        if (audioQueue_.getSize()) {
+        while (audioQueue_.getSize() >= 20) {
             boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
             this->writeAudioData(audioP->data, audioP->length);
         }
-        if (videoQueue_.getSize()) {
+        while (videoQueue_.getSize() >= 20) {
             boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
             this->writeVideoData(videoP->data, videoP->length);
         }
+        lock.unlock();
     }
-
-    // Drain the queues, we're bailing.
-    while (audioQueue_.getSize()){
-        boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
-        this->writeAudioData(audioP->data, audioP->length);
-    }
-
-    while (videoQueue_.getSize()) {
-        boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
-        this->writeVideoData(videoP->data, videoP->length);
-    }
-
 }
 }
 
