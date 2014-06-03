@@ -7,6 +7,7 @@
 #include <media/rtp/RtpHeader.h>
 #include <MediaDefinitions.h>
 
+/*---------- RtpPacketQueue TESTS ----------*/
 BOOST_AUTO_TEST_CASE(rtpPacketQueueDefaults)
 {
     erizo::RtpPacketQueue queue;
@@ -29,6 +30,8 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueBasicBehavior)
     // If we try to pop this packet, we should get back a null shared_ptr object.
     boost::shared_ptr<erizo::dataPacket> packet = queue.popPacket();
     BOOST_CHECK(packet == 0);
+    BOOST_CHECK(queue.getSize() == 1);
+    BOOST_CHECK(queue.hasData() == false);
 
     // If we use the override in popPacket, we should get back header.
     packet = queue.popPacket(true);
