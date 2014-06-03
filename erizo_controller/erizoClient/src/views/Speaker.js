@@ -34,11 +34,11 @@ Erizo.Speaker = function (spec) {
     that.div.setAttribute('style', 'width: 40%; height: 100%; max-width: 32px; position: absolute; right: 0;z-index:0;');
 
     // Volume icon 
-    that.icon = document.createElement('img');
-    that.icon.setAttribute('id', 'volume_' + that.id);
-    that.icon.setAttribute('src', that.url + '/assets/sound48.png');
-    that.icon.setAttribute('style', 'width: 80%; height: 100%; position: absolute;');
-    that.div.appendChild(that.icon);
+    // that.icon = document.createElement('img');
+    // that.icon.setAttribute('id', 'volume_' + that.id);
+    // that.icon.setAttribute('src', that.url + '/assets/sound48.png');
+    // that.icon.setAttribute('style', 'width: 80%; height: 100%; position: absolute;');
+    // that.div.appendChild(that.icon);
 
 
     if (!that.stream.local) {

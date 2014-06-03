@@ -55,10 +55,10 @@ Erizo.VideoPlayer = function (spec) {
     that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; background-color: black; overflow: hidden;');
 
     // Loader icon
-    that.loader = document.createElement('img');
-    that.loader.setAttribute('style', 'width: 16px; height: 16px; position: absolute; top: 50%; left: 50%; margin-top: -8px; margin-left: -8px');
-    that.loader.setAttribute('id', 'back_' + that.id);
-    that.loader.setAttribute('src', that.url + '/assets/loader.gif');
+    // that.loader = document.createElement('img');
+    // that.loader.setAttribute('style', 'width: 16px; height: 16px; position: absolute; top: 50%; left: 50%; margin-top: -8px; margin-left: -8px');
+    // that.loader.setAttribute('id', 'back_' + that.id);
+    // that.loader.setAttribute('src', that.url + '/assets/loader.gif');
 
     // Video tag
     that.video = document.createElement('video');
@@ -79,7 +79,7 @@ Erizo.VideoPlayer = function (spec) {
 
     that.parentNode = that.div.parentNode;
 
-    that.div.appendChild(that.loader);
+    // that.div.appendChild(that.loader);
     that.div.appendChild(that.video);
 
     that.containerWidth = 0;
