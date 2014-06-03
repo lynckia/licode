@@ -80,6 +80,31 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueCorrectlyHandlesSequenceNumberRollover)
         BOOST_CHECK(poppedHeader->getSeqNumber() == x);
         x += 1;
     }
+
+    BOOST_CHECK(queue.getSize() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(rtpPacketQueueCorrectlyHandlesSequenceNumberRolloverBackwards)
+{
+    erizo::RtpPacketQueue queue;
+    // We'll start at 5 and subtract till we're at 65530.  Then make sure we get back what we put in.
+    uint16_t x = 4;     // has to be 4, or we have an off-by-one error
+    while(x != 65529) { // has to be 29, or have have an off-by-one error
+        RTPHeader header;
+        header.setSeqNumber(x);
+        x -= 1;
+        queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+    }
+
+    x = 65530;
+    while( x != 5) {
+        boost::shared_ptr<erizo::dataPacket> packet = queue.popPacket(true); // override our default pop behavior so we can validate these are ordered
+        const RTPHeader *poppedHeader = reinterpret_cast<const RTPHeader*>(packet->data);
+        BOOST_CHECK(poppedHeader->getSeqNumber() == x);
+        x += 1;
+    }
+
+    BOOST_CHECK(queue.getSize() == 0);
 }
 
 BOOST_AUTO_TEST_CASE(rtpPacketQueueDoesNotPushSampleLessThanWhatHasBeenPopped)
@@ -141,7 +166,6 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueRespectsMax)
         queue.pushPacket((const char *)&header, sizeof(RTPHeader));
     }
 
-    // Should have (depth - 1) samples.  We should not be ready yet.
     BOOST_CHECK(queue.getSize() == max);
     BOOST_CHECK(queue.hasData() == true);
 }
