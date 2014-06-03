@@ -17,7 +17,6 @@ class RtpPacketQueue
 public:
     RtpPacketQueue();
     virtual ~RtpPacketQueue(void);
-
     void  pushPacket(const char *data, int length);
     boost::shared_ptr<dataPacket> popPacket();
     int getSize();
@@ -26,8 +25,7 @@ private:
     boost::mutex queueMutex_;
     static const unsigned int MAX_SIZE = 120;
     std::list<boost::shared_ptr<dataPacket> > queue_;
-    uint16_t lastSequenceNumberGiven_;
-    bool poppedData_;
+    int lastSequenceNumberGiven_;
     bool rtpSequenceLessThan(uint16_t x, uint16_t y);
 };
 } /* namespace erizo */

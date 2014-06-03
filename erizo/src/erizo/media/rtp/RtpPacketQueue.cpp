@@ -6,7 +6,7 @@ namespace erizo{
 
 DEFINE_LOGGER(RtpPacketQueue, "RtpPacketQueue");
 
-RtpPacketQueue::RtpPacketQueue() : poppedData_(false)
+RtpPacketQueue::RtpPacketQueue() : lastSequenceNumberGiven_(-1)
 {
 }
 
@@ -20,9 +20,9 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
     const RTPHeader *currentHeader = reinterpret_cast<const RTPHeader*>(data);
     uint16_t currentSequenceNumber = currentHeader->getSeqNumber();
 
-    if(poppedData_ && (rtpSequenceLessThan(currentSequenceNumber, lastSequenceNumberGiven_) || currentSequenceNumber == lastSequenceNumberGiven_)) {
+    if(lastSequenceNumberGiven_ >= 0 && (rtpSequenceLessThan(currentSequenceNumber, (uint16_t)lastSequenceNumberGiven_) || currentSequenceNumber == lastSequenceNumberGiven_)) {
         // this sequence number is less than the stuff we've already handed out, which means it's too late to be of any value.
-        ELOG_WARN("RTPPacketQueue(%u - %u), discarding very late sample %d that is <= %d.  Current queue depth is %d",currentHeader->getSSRC(),currentHeader->getPayloadType(), currentSequenceNumber, lastSequenceNumberGiven_, this->getSize());
+        ELOG_WARN("SSRC:%u, Payload: %u, discarding very late sample %d that is <= %d.  Current queue depth is %d",currentHeader->getSSRC(),currentHeader->getPayloadType(), currentSequenceNumber, lastSequenceNumberGiven_, this->getSize());
         return;
     }
 
@@ -42,7 +42,7 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
 
         if (sequenceNumber == currentSequenceNumber) {
             // We already have this sequence number in the queue.
-            ELOG_INFO("RTPPacketQueue -- discarding duplicate sample %d", currentSequenceNumber);
+            ELOG_INFO("discarding duplicate sample %d", currentSequenceNumber);
             break;
         }
 
@@ -71,11 +71,8 @@ boost::shared_ptr<dataPacket> RtpPacketQueue::popPacket()
     boost::mutex::scoped_lock lock(queueMutex_);
     boost::shared_ptr<dataPacket> packet = queue_.back();
     queue_.pop_back();
-
     const RTPHeader *header = reinterpret_cast<const RTPHeader*>(packet->data);
-    this->lastSequenceNumberGiven_ = header->getSeqNumber();
-    poppedData_ = true;
-
+    lastSequenceNumberGiven_ = (int)header->getSeqNumber();
     return packet;
 }
 
