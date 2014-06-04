@@ -3,6 +3,11 @@ var db = require('./../mdb/dataBase').db;
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var mauthParser = require('./mauthParser');
 
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("NuveAuthenticator");
+
 var cache = {};
 
 var checkTimestamp = function (ser, params) {
@@ -24,8 +29,8 @@ var checkTimestamp = function (ser, params) {
     newC = params.cnonce;
 
     if (newTS < lastTS || (lastTS === newTS && lastC === newC)) {
-        console.log('Last timestamp: ', lastTS, ' and new: ', newTS);
-        console.log('Last cnonce: ', lastC, ' and new: ', newC);
+        log.info('Last timestamp: ', lastTS, ' and new: ', newTS);
+        log.info('Last cnonce: ', lastC, ' and new: ', newC);
         return false;
     }
 
@@ -67,7 +72,7 @@ exports.authenticate = function (req, res, next) {
         // Get the service from the data base.
         serviceRegistry.getService(params.serviceid, function (serv) {
             if (serv === undefined || serv === null) {
-                console.log('[Auth] Unknow service:', params.serviceid);
+                log.info('[Auth] Unknow service:', params.serviceid);
                 res.send(401, {'WWW-Authenticate': challengeReq});
                 return;
             }
@@ -76,7 +81,7 @@ exports.authenticate = function (req, res, next) {
 
             // Check if timestam and cnonce are valids in order to avoid duplicate requests.
             if (!checkTimestamp(serv, params)) {
-                console.log('[Auth] Invalid timestamp or cnonce');
+                log.info('[Auth] Invalid timestamp or cnonce');
                 res.send(401, {'WWW-Authenticate': challengeReq});
                 return;
             }
@@ -96,7 +101,7 @@ exports.authenticate = function (req, res, next) {
                 next();
 
             } else {
-                console.log('[Auth] Wrong credentials');
+                log.info('[Auth] Wrong credentials');
                 res.send(401, {'WWW-Authenticate': challengeReq});
                 return;
             }
@@ -104,7 +109,7 @@ exports.authenticate = function (req, res, next) {
         });
 
     } else {
-        console.log('[Auth] MAuth header not presented');
+        log.info('[Auth] MAuth header not presented');
         res.send(401, {'WWW-Authenticate': challengeReq});
         return;
     }

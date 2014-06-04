@@ -63,10 +63,19 @@ Erizo.ChromeJSEPStack = function (spec) {
         that.peerConnection.close();
     };
 
+    spec.localCandidates = [];
+
     that.peerConnection.onicecandidate =  function (event) {
         if (event.candidate) {
 
-            spec.callback({type:'candidate', candidate: event.candidate});
+            if (spec.remoteDescriptionSet) {
+                spec.callback({type:'candidate', candidate: event.candidate});
+            } else {
+                spec.localCandidates.push(event.candidate);
+                console.log("Local Candidates stored: ", spec.localCandidates.length, spec.localCandidates);
+            }
+
+            
 
             // sendMessage({type: 'candidate',
             //        label: event.candidate.sdpMLineIndex,
@@ -77,7 +86,7 @@ Erizo.ChromeJSEPStack = function (spec) {
         } else {
             console.log("End of candidates.");
         }
-    }
+    };
 
     that.peerConnection.onaddstream = function (stream) {
         if (that.onaddstream) {
@@ -108,7 +117,8 @@ Erizo.ChromeJSEPStack = function (spec) {
     that.addStream = function (stream) {
         that.peerConnection.addStream(stream);
     };
-    spec.candidates = [];
+    spec.remoteCandidates = [];
+
     spec.remoteDescriptionSet = false;
 
     that.processSignalingMessage = function (msg) {
@@ -134,12 +144,18 @@ Erizo.ChromeJSEPStack = function (spec) {
             //msg.sdp = setMaxBW(msg.sdp);
 
             that.peerConnection.setLocalDescription(localDesc);
-            that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg));
-            spec.remoteDescriptionSet = true;
-            console.log("Candidates to be added: ", spec.candidates.length, spec.candidates);
-            while (spec.candidates.length > 0) {
-                that.peerConnection.addIceCandidate(spec.candidates.pop());
-            }
+            that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg), function() {
+                spec.remoteDescriptionSet = true;
+                console.log("Candidates to be added: ", spec.remoteCandidates.length, spec.remoteCandidates);
+                while (spec.remoteCandidates.length > 0) {
+                    that.peerConnection.addIceCandidate(spec.remoteCandidates.pop());
+                }
+
+                while(spec.localCandidates.length > 0) {
+                    spec.callback({type:'candidate', candidate: spec.remoteCandidates.pop()});
+                }
+
+            });
 
         } else if (msg.type === 'candidate') {
             try {
@@ -148,8 +164,8 @@ Erizo.ChromeJSEPStack = function (spec) {
                 if (spec.remoteDescriptionSet) {
                     that.peerConnection.addIceCandidate(candidate);
                 } else {
-                    spec.candidates.push(candidate);
-                    console.log("Candidates stored: ", spec.candidates.length, spec.candidates);
+                    spec.remoteCandidates.push(candidate);
+                    console.log("Candidates stored: ", spec.remoteCandidates.length, spec.remoteCandidates);
                 }
             } catch(e) {
                 L.Logger.error("Error parsing candidate", msg.candidate);

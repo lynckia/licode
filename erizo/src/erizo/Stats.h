@@ -26,13 +26,15 @@ namespace erizo{
 
     virtual ~Stats();
 
-    void processRtcpStats(RtcpHeader* chead);
+    void processRtcpStats(char* buf, int length);
     std::string getStats();
     void setPeriodicStats(int intervalMillis, WebRtcConnectionStatsListener* listener);
 
 
     private:
-    std::map <std::string, unsigned int> theStats_;
+    typedef std::map<std::string, unsigned int> singleSSRCstatsMap_t;
+    typedef std::map <unsigned int, singleSSRCstatsMap_t> fullStatsMap_t;
+    fullStatsMap_t theStats_;
     static const int SLEEP_INTERVAL_ = 100000;
     unsigned long int SSRC_;
     unsigned int fragmentLostValues_;      
@@ -43,38 +45,40 @@ namespace erizo{
     int currentIterations_;
     bool runningStats_;
 
-    int getPacketsLost(){
-      return static_cast<int>(theStats_["packetsLost"]);
+    void processRtcpStats(RtcpHeader* chead);
+
+    int getPacketsLost(unsigned int ssrc){
+      return static_cast<int>(theStats_[ssrc]["packetsLost"]);
     };
-    void setPacketsLost(int packets){
-      theStats_["packetsLost"] = static_cast<unsigned int>(packets);
+    void setPacketsLost(int packets, unsigned int ssrc){
+      theStats_[ssrc]["packetsLost"] = static_cast<unsigned int>(packets);
     };
 
-    unsigned int getFragmentLost(){
-      return theStats_["packetsLost"];
+    unsigned int getFragmentLost(unsigned int ssrc){
+      return theStats_[ssrc]["packetsLost"];
     };
-    void addFragmentLost(unsigned int fragment){
-      theStats_["fragmentLost"] += fragment;
-    };
-
-    unsigned int getRtcpPacketSent(){
-      return theStats_["rtcpPacketSent"];
-    };
-    void setRtcpPacketSent(unsigned int count){
-      theStats_["rtcpPacketSent"] = count;
+    void addFragmentLost(unsigned int fragment, unsigned int SSRC){
+      theStats_[SSRC]["fragmentLost"] += fragment;
     };
 
-    unsigned int getRtcpBytesSent(){
-      return theStats_["rtcpBytesSent"];
+    unsigned int getRtcpPacketSent(unsigned int ssrc){
+      return theStats_[ssrc]["rtcpPacketSent"];
     };
-    void setRtcpBytesSent(unsigned int count){
-      theStats_["rtcpBytesSent"] = count;
+    void setRtcpPacketSent(unsigned int count, unsigned int ssrc){
+      theStats_[ssrc]["rtcpPacketSent"] = count;
     };
-    unsigned int getJitter(){
-      return theStats_["jitter"];
+
+    unsigned int getRtcpBytesSent(unsigned int ssrc){
+      return theStats_[ssrc]["rtcpBytesSent"];
     };
-    void setJitter(unsigned int count){
-      theStats_["jitter"] = count;
+    void setRtcpBytesSent(unsigned int count, unsigned int ssrc){
+      theStats_[ssrc]["rtcpBytesSent"] = count;
+    };
+    unsigned int getJitter(unsigned int ssrc){
+      return theStats_[ssrc]["jitter"];
+    };
+    void setJitter(unsigned int count, unsigned int ssrc){
+      theStats_[ssrc]["jitter"] = count;
     };
 
     void sendStats();

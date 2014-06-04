@@ -19,16 +19,32 @@ namespace erizo {
       ELOG_DEBUG("Stopped periodic stats report");
     }
   }
+  void Stats::processRtcpStats(char* buf, int length) {
+    boost::mutex::scoped_lock lock(mapMutex_);    
+    char* movingBuf = buf;
+    int rtcpLength = 0;
+    int totalLength = 0;
+    do{
+      movingBuf+=rtcpLength;
+      RtcpHeader *chead= reinterpret_cast<RtcpHeader*>(movingBuf);
+      rtcpLength= (ntohs(chead->length)+1)*4;      
+      totalLength+= rtcpLength;
+      this->processRtcpStats(chead);
+    } while(totalLength<length);
+  }
   
   void Stats::processRtcpStats(RtcpHeader* chead) {    
-    boost::mutex::scoped_lock lock(mapMutex_);
+    unsigned int ssrc = chead->getSSRC();
+    ELOG_DEBUG("RTCP Packet: PT %d, SSRC %u,  block count %d ",chead->packettype,chead->getSSRC(), chead->getBlockCount()); 
     if (chead->packettype == RTCP_Receiver_PT){
-      addFragmentLost (chead->getFractionLost());
-      setPacketsLost (chead->getLostPackets());
-      setJitter (chead->getJitter());
+      addFragmentLost (chead->getFractionLost(), ssrc);
+      setPacketsLost (chead->getLostPackets(), ssrc);
+      setJitter (chead->getJitter(), ssrc);
     }else if (chead->packettype == RTCP_Sender_PT){
-      setRtcpPacketSent(chead->getPacketsSent());
-      setRtcpBytesSent(chead->getOctetsSent());
+      setRtcpPacketSent(chead->getPacketsSent(), ssrc);
+      setRtcpBytesSent(chead->getOctetsSent(), ssrc);
+    }else if (chead->packettype == 206){
+      ELOG_DEBUG("REMB packet mantissa %u, exp %u", chead->getBrMantis(), chead->getBrExp());
     }
   }
   
@@ -36,17 +52,22 @@ namespace erizo {
     boost::mutex::scoped_lock lock(mapMutex_);
     std::ostringstream theString;
     theString << "{";
-    for (std::map<std::string, unsigned int>::iterator it=theStats_.begin(); it!=theStats_.end(); ++it){
-      theString << "\"" << it->first << "\":\"" << it->second << "\"";
-      if (++it != theStats_.end()){
-        theString << ",\n";
+    for (fullStatsMap_t::iterator itssrc=theStats_.begin(); itssrc!=theStats_.end(); ++itssrc){
+      int currentSSRC = itssrc->first;
+      theString << "\"ssrc\":\"" << currentSSRC << "\",\n";
+      for (singleSSRCstatsMap_t::iterator it=theStats_[currentSSRC].begin(); it!=theStats_[currentSSRC].end(); ++it){
+        theString << "\"" << it->first << "\":\"" << it->second << "\"";
+        if (++it != theStats_[currentSSRC].end()){
+          theString << ",\n";
+        }
+        --itssrc;
       }
-      --it;
+
     }
     theString << "\n}";
 
-    std::map<std::string, unsigned int>::iterator search = theStats_.find("fragmentLost");
-    if (search != theStats_.end()) {
+    std::map<std::string, unsigned int>::iterator search = theStats_[0].find("fragmentLost");
+    if (search != theStats_[0].end()) {
       search->second = 0;
     }
     return theString.str(); 

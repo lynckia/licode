@@ -1,6 +1,10 @@
 /*global require, exports, console*/
 var db = require('./dataBase').db;
 
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("ServiceRegistry");
 
 /*
  * Gets a list of the services in the data base.
@@ -9,7 +13,7 @@ exports.getList = function (callback) {
     "use strict";
     db.services.find({}).toArray(function (err, services) {
         if (err || !services) {
-            console.log('Empty list');
+            log.info('Empty list');
         } else {
             callback(services);
         }
@@ -20,7 +24,7 @@ var getService = exports.getService = function (id, callback) {
     "use strict";
     db.services.findOne({_id: db.ObjectId(id)}, function (err, service) {
         if (service === undefined) {
-            console.log("Service not found");
+            log.info("Service not found");
         }
         if (callback !== undefined) {
             callback(service);
@@ -47,7 +51,7 @@ exports.addService = function (service, callback) {
     "use strict";
     service.rooms = [];
     db.services.save(service, function (error, saved) {
-        if (error) console.log('MongoDB: Error adding service: ', error);
+        if (error) log.info('MongoDB: Error adding service: ', error);
         callback(saved._id);
     });
 };
@@ -58,7 +62,7 @@ exports.addService = function (service, callback) {
 exports.updateService = function (service) {
     "use strict";
     db.services.save(service, function (error, saved) {
-        if (error) console.log('MongoDB: Error updating service: ', error);
+        if (error) log.info('MongoDB: Error updating service: ', error);
     });
 };
 
@@ -70,7 +74,7 @@ exports.removeService = function (id) {
     hasService(id, function (hasS) {
         if (hasS) {
             db.services.remove({_id: db.ObjectId(id)}, function (error, saved) {
-                if (error) console.log('MongoDB: Error removing service: ', error);
+                if (error) log.info('MongoDB: Error removing service: ', error);
             });
         }
     });

@@ -3,6 +3,15 @@ var sys = require('util');
 var amqp = require('amqp');
 var rpcPublic = require('./rpcPublic');
 var config = require('./../../../licode_config');
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("RPC");
+
+// Configuration default values
+config.rabbit = config.rabbit || {};
+config.rabbit.host = config.rabbit.host || 'localhost';
+config.rabbit.port = config.rabbit.port || 5672;
 
 var TIMEOUT = 3000;
 
@@ -29,15 +38,15 @@ exports.connect = function () {
     connection.on('ready', function () {
         "use strict";
 
-        console.log('Conected to rabbitMQ server');
+        log.info('Conected to rabbitMQ server');
 
         //Create a direct exchange 
         exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
-            console.log('Exchange ' + exchange.name + ' is open');
+            log.info('Exchange ' + exchange.name + ' is open');
 
             //Create the queue for receive messages
             var q = connection.queue('nuveQueue', function (queue) {
-                console.log('Queue ' + queue.name + ' is open');
+                log.info('Queue ' + queue.name + ' is open');
 
                 q.bind('rpcExchange', 'nuve');
                 q.subscribe(function (message) {
@@ -51,7 +60,7 @@ exports.connect = function () {
 
             //Create the queue for send messages
             clientQueue = connection.queue('', function (q) {
-                console.log('ClientQueue ' + q.name + ' is open');
+                log.info('ClientQueue ' + q.name + ' is open');
 
                 clientQueue.bind('rpcExchange', clientQueue.name);
 

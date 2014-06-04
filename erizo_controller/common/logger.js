@@ -1,19 +1,10 @@
-var winston = require('winston');
+var log4js = require('log4js'); 
+var config = require('./../../licode_config');
 
-var logger = function() {
-  var rt = new winston.Logger({
-      transports: [
-        new winston.transports.Console({
-          handleExceptions: true,
-          timestamp: true,
-          colorize: false
-        })
-      ],
-      exitOnError: false
-    });
-    return rt;
-}();
+GLOBAL.config.logger = GLOBAL.config.logger || {};
 
-logger.info("Initialized logger");
+var log_file = GLOBAL.config.logger.config_file ||  "../log4js_configuration.json";
 
-exports.logger = logger;
+log4js.configure(log_file);
+
+exports.logger = log4js;

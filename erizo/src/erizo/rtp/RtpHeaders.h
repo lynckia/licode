@@ -161,7 +161,7 @@ namespace erizo{
   // |                  profile-specific extensions                  |
   // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   //
-  // SENDER REPORT
+  // SENDER REPORT // PT = 200
   // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   // |            NTP timestamp, most significant word NTS           |
   // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -173,6 +173,39 @@ namespace erizo{
   // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   // |                    sender's octet count SOC                   |
   // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // 0                   1                   2                   3
+  // 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |V=2|P|    SC   |  PT=SDES=202  |             length            | header
+  // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+  // |                          SSRC/CSRC_1                          | chunk 1
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |                           SDES items                          |
+  // |                              ...                              |
+  // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+  // |                          SSRC/CSRC_2                          | chunk 2
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |                           SDES items                          |
+  // |                              ...                              |
+  // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+  //
+  //
+  //
+  //0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |V=2|P| FMT=15  |   PT=206      |             length            |
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |                  SSRC of packet sender                        |
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |                  SSRC of media source                         |
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |  Unique identifier 'R' 'E' 'M' 'B'                            |
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |  Num SSRC     | BR Exp    |  BR Mantissa                      | max= mantissa*2^exp
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |   SSRC feedback                                               |
+  // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  // |  ...                                                          |
 
   class RtcpHeader {
     public:
@@ -191,6 +224,7 @@ namespace erizo{
           uint32_t highestseqnum;
           uint32_t jitter;
           uint32_t lastsr;
+          uint32_t delaysincelast;
         } receiverReport;
 
         struct senderReport_t {
@@ -198,7 +232,19 @@ namespace erizo{
           uint32_t rtprts;
           uint32_t packetsent;
           uint32_t octetssent;
+          struct receiverReport_t rrlist[1];
         } senderReport;
+        
+        struct remb_t{
+          uint32_t ssrcsource;
+          uint32_t uniqueid;
+          uint32_t numssrc:8;
+          uint32_t brexp:6;
+          uint32_t brmantis:18; //0x3FFFF
+          uint32_t ssrcfeedb;
+
+        } rembPacket;
+
       } report;
 
       inline bool isFeedback(void) {
@@ -211,6 +257,9 @@ namespace erizo{
             packettype == RTCP_Receiver_PT || 
             packettype == RTCP_PS_Feedback_PT||
             packettype == RTCP_RTP_Feedback_PT);
+      }
+      inline uint8_t getBlockCount(){
+        return (uint8_t)blockcount;
       }
       inline uint16_t getLength() {
         return ntohs(length);
@@ -238,6 +287,12 @@ namespace erizo{
       }
       inline uint32_t getOctetsSent(){
         return ntohl(report.senderReport.octetssent);
+      }
+      inline uint32_t getBrMantis(){
+        return ntohl(report.rembPacket.brmantis);
+      }
+      inline uint32_t getBrExp(){
+        return report.rembPacket.brexp;
       }
   };
 

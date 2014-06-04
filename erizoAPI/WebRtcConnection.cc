@@ -189,9 +189,7 @@ void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& 
   this->eventSts.push(event);
   this->eventMsgs.push(message);
   async_.data = this;
-  printf("Sending async\n");
   uv_async_send (&async_);
-  printf("Sent async\n");
 }
 
 void WebRtcConnection::notifyStats(const std::string& message) {
@@ -205,12 +203,10 @@ void WebRtcConnection::eventsCallback(uv_async_t *handle, int status){
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
   while (!obj->eventSts.empty()) {
-    printf("Sending\n");
     Local<Value> args[] = {Integer::New(obj->eventSts.front()), String::NewSymbol(obj->eventMsgs.front().c_str())};
     obj->eventCallback_->Call(Context::GetCurrent()->Global(), 2, args);
     obj->eventMsgs.pop();
     obj->eventSts.pop();
-    printf("Sent\n");
   }
 }
 

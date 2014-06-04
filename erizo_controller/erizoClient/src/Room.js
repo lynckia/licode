@@ -20,11 +20,11 @@ Erizo.Room = function (spec) {
         sendMessageSocket,
         sendSDPSocket,
         sendDataSocket,
+        updateAttributes,
         removeStream,
         DISCONNECTED = 0,
         CONNECTING = 1,
-        CONNECTED = 2,
-        recordingUrl;
+        CONNECTED = 2;
 
     that.remoteStreams = {};
     that.localStreams = {};
@@ -92,15 +92,20 @@ Erizo.Room = function (spec) {
         }
     };
 
+    updateAttributes = function(stream, attrs) {
+        if (stream.local) {
+            stream.updateLocalAttributes(attrs);
+            sendMessageSocket("updateStreamAttributes", {id: stream.getID(), attrs: attrs});
+        } else {
+            L.Logger.error("You can not update attributes in a remote stream");
+        }  
+    };
+
     // It connects to the server through socket.io
     connectSocket = function (token, callback, error) {
         // Once we have connected
-
-        var host = 'http://' + token.host;
-
-        delete io.sockets[host];
-
-        that.socket = io.connect(token.host, {reconnect: false, secure: false});
+        console.log(token);
+        that.socket = io.connect(token.host, {reconnect: false, secure: token.secure, 'force new connection': true});
 
         // We receive an event with a new stream in the room.
         // type can be "media" or "data"
@@ -170,6 +175,14 @@ Erizo.Room = function (spec) {
         that.socket.on('onDataStream', function (arg) {
             var stream = that.remoteStreams[arg.id],
                 evt = Erizo.StreamEvent({type: 'stream-data', msg: arg.msg, stream: stream});
+            stream.dispatchEvent(evt);
+        });
+
+        // We receive an event of new data in one of the streams
+        that.socket.on('onUpdateAttributeStream', function (arg) {
+            var stream = that.remoteStreams[arg.id],
+                evt = Erizo.StreamEvent({type: 'stream-attributes-update', attrs: arg.attrs, stream: stream});
+            stream.updateLocalAttributes(arg.attrs);
             stream.dispatchEvent(evt);
         });
 
@@ -304,8 +317,17 @@ Erizo.Room = function (spec) {
 
             // 2- Publish Media Stream to Erizo-Controller
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-                if (stream.url !== undefined) {
-                    sendSDPSocket('publish', {state: 'url', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, stream.url, function (answer, id) {
+                if (stream.url !== undefined || stream.recording !== undefined) {
+                    var type;
+                    var arg;
+                    if (stream.url) {
+                        type = 'url';
+                        arg = stream.url;
+                    } else {
+                        type = 'recording';
+                        arg = stream.recording;
+                    }
+                    sendSDPSocket('publish', {state: type, data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, arg, function (answer, id) {
 
                         if (answer === 'success') {
                             L.Logger.info('Stream published');
@@ -314,6 +336,9 @@ Erizo.Room = function (spec) {
                             };
                             stream.sendData = function (msg) {
                                 sendDataSocket(stream, msg);
+                            };
+                            stream.setAttributes = function (attrs) {
+                                updateAttributes(stream, attrs);
                             };
                             that.localStreams[id] = stream;
                             stream.room = that;
@@ -346,6 +371,10 @@ Erizo.Room = function (spec) {
                                 sendDataSocket(stream, msg);
                             };
                         }
+                        stream.setAttributes = function (attrs) {
+                            updateAttributes(stream, attrs);
+                        };
+
                         that.localStreams[id] = stream;
                         stream.room = that;
                     });
@@ -394,6 +423,9 @@ Erizo.Room = function (spec) {
                     stream.sendData = function (msg) {
                         sendDataSocket(stream, msg);
                     };
+                    stream.setAttributes = function (attrs) {
+                        updateAttributes(stream, attrs);
+                    };
                     that.localStreams[id] = stream;
                     stream.room = that;
                 });
@@ -401,14 +433,13 @@ Erizo.Room = function (spec) {
         }
     };
 
-    that.startRecording = function (stream){
-      recordingUrl = "/tmp/recording" + stream.getID() + ".mkv";
-      L.Logger.debug("Start Recording " + recordingUrl);
-      sendMessageSocket('startRecorder',{to:stream.getID(), url: recordingUrl});
+    that.startRecording = function (stream, callback, callbackError) {
+        L.Logger.debug("Start Recording streamaa: " + stream.getID());
+        sendMessageSocket('startRecorder', {to: stream.getID()}, callback, callbackError);
     }
 
-    that.stopRecording = function (stream){
-      sendMessageSocket('stopRecorder',{to:stream.getID(),url:recordingUrl});
+    that.stopRecording = function (recordingId, callback, callbackError) {
+        sendMessageSocket('stopRecorder', {id: recordingId}, callback, callbackError);
     }
 
     // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
@@ -427,6 +458,8 @@ Erizo.Room = function (spec) {
 
             stream.getID = function () {};
             stream.sendData = function (msg) {};
+            stream.setAttributes = function (attrs) {};
+
         }
     };
 

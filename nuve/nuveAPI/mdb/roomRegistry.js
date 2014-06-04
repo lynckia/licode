@@ -1,13 +1,17 @@
 /*global require, exports, console*/
 var db = require('./dataBase').db;
 
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("RoomRegistry");
 
 var getRoom = exports.getRoom = function (id, callback) {
     "use strict";
 
     db.rooms.findOne({_id: db.ObjectId(id)}, function (err, room) {
         if (room === undefined) {
-            console.log('Room ', id, ' not found');
+            log.warn('Room ', id, ' not found');
         }
         if (callback !== undefined) {
             callback(room);
@@ -34,7 +38,7 @@ exports.addRoom = function (room, callback) {
     "use strict";
 
     db.rooms.save(room, function (error, saved) {
-        if (error) console.log('MongoDB: Error adding room: ', error);
+        if (error) log.warn('MongoDB: Error adding room: ', error);
         callback(saved);
     });
 };
@@ -47,7 +51,7 @@ exports.removeRoom = function (id) {
     hasRoom(id, function (hasR) {
         if (hasR) {
             db.rooms.remove({_id: db.ObjectId(id)}, function (error, removed) {
-                if (error) console.log('MongoDB: Error romoving room: ', error);
+                if (error) log.warn('MongoDB: Error romoving room: ', error);
             });
         }
     });

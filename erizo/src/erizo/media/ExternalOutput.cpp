@@ -50,22 +50,15 @@ namespace erizo {
     url.copy(context_->filename, sizeof(context_->filename),0);
     video_st = NULL;
     audio_st = NULL;
-    in = new InputProcessor();
+    inputProcessor_ = new InputProcessor();
     MediaInfo m;
     //    m.processorType = RTP_ONLY;
     m.hasVideo = false;
     m.hasAudio = false;
-    if (m.hasAudio) {
-      m.audioCodec.sampleRate = 8000;
-      m.audioCodec.bitRate = 64000;
-      m.audioCodec.codec = AUDIO_CODEC_VORBIS;
-      audioCoder_ = new AudioEncoder();
-      if (!audioCoder_->initEncoder(m.audioCodec))
-        exit(0);
-    }
+
     gotUnpackagedFrame_ = 0;
     unpackagedSize_ = 0;
-    in->init(m, this);
+    inputProcessor_->init(m, this);
     thread_ = boost::thread(&ExternalOutput::sendLoop, this);
     sending_ = true;
     ELOG_DEBUG("Initialized successfully");
@@ -76,8 +69,8 @@ namespace erizo {
   ExternalOutput::~ExternalOutput(){
     ELOG_DEBUG("Destructor");
     ELOG_DEBUG("Closing Sink");
-    delete in;
-    in = NULL;
+    delete inputProcessor_;
+    inputProcessor_ = NULL;
     
     
     if (context_!=NULL){
@@ -110,7 +103,7 @@ namespace erizo {
 
 
   int ExternalOutput::writeAudioData(char* buf, int len){
-    if (in!=NULL){
+    if (inputProcessor_!=NULL){
       if (audioCodec_ == NULL) {
         if (warmupfpsCount_>=100){
           hasVideo_ = false;
@@ -121,29 +114,20 @@ namespace erizo {
         }
         return 0;
       }
+
+      timeval time;
+      gettimeofday(&time, NULL);
       RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
       //We dont need any other payload at this time
       if(head->payloadtype != PCMU_8000_PT){
         return 0;
       }
-
-      int ret = in->unpackageAudio(reinterpret_cast<unsigned char*> (buf), len,
+      
+      unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+      int ret = inputProcessor_->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedAudioBuffer_);
       if (ret <= 0)
         return ret;
-      timeval time;
-      gettimeofday(&time, NULL);
-      unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-      if (millis -lastTime_ >FIR_INTERVAL_MS && (hasVideo_)){
-        this->sendFirPacket();
-        lastTime_ = millis;
-      }
-      if (initTime_ == 0) {
-        initTime_ = millis;      
-      }
-      if (millis < initTime_){
-        ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
-      }
       if (ret > UNPACKAGE_BUFFER_SIZE){
         ELOG_ERROR("Unpackaged Audio size too big %d", ret);
       }
@@ -163,7 +147,7 @@ namespace erizo {
   }
 
   int ExternalOutput::writeVideoData(char* buf, int len){
-    if (in!=NULL){
+    if (inputProcessor_!=NULL){
       RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
       if (head->payloadtype == RED_90000_PT) {
         int totalLength = 12;
@@ -193,7 +177,7 @@ namespace erizo {
         }
       }
       int estimatedFps=0;
-      int ret = in->unpackageVideo(reinterpret_cast<unsigned char*> (buf), len,
+      int ret = inputProcessor_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
           unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
 
       if (ret < 0)
@@ -252,7 +236,7 @@ namespace erizo {
     return 0;
   }
 
-  int ExternalOutput::deliverAudioData(char* buf, int len) {
+  int ExternalOutput::deliverAudioData_(char* buf, int len) {
     RtcpHeader *head = reinterpret_cast<RtcpHeader*> (buf);
     warmupfpsCount_++;
     if (head->isRtcp()){
@@ -262,7 +246,7 @@ namespace erizo {
     return 0;
   }
 
-  int ExternalOutput::deliverVideoData(char* buf, int len) {
+  int ExternalOutput::deliverVideoData_(char* buf, int len) {
     RtcpHeader *head = reinterpret_cast<RtcpHeader*> (buf);
     warmupfpsCount_++;
     if (head->isRtcp()){
@@ -343,7 +327,7 @@ namespace erizo {
   }
 
   void ExternalOutput::queueData(char* buffer, int length, packetType type){
-    if (in==NULL) {
+    if (inputProcessor_==NULL) {
       return;
     }
     boost::mutex::scoped_lock lock(queueMutex_);
@@ -383,6 +367,20 @@ namespace erizo {
           return;
         }
       }
+      timeval time;
+      gettimeofday(&time, NULL);
+      unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+      if (millis -lastTime_ >FIR_INTERVAL_MS && (hasVideo_)){
+        ELOG_DEBUG("SendingFIR");
+        this->sendFirPacket();
+        lastTime_ = millis;
+      }
+      if (initTime_ == 0) {
+        initTime_ = millis;      
+      }
+      if (millis < initTime_){
+        ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
+      }
       if (audioQueue_.getSize()){
         boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
         this->writeAudioData(audioP->data, audioP->length);
@@ -397,4 +395,5 @@ namespace erizo {
   }
 
 }
+
 

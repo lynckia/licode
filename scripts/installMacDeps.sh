@@ -36,9 +36,9 @@ install_brew_deps(){
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O http://www.openssl.org/source/openssl-1.0.1e.tar.gz
-    tar -zxvf openssl-1.0.1e.tar.gz
-    cd openssl-1.0.1e
+    curl -O http://www.openssl.org/source/openssl-1.0.1g.tar.gz
+    tar -zxvf openssl-1.0.1g.tar.gz
+    cd openssl-1.0.1g
     ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -fPIC
     make -s V=0
     make install
@@ -77,13 +77,13 @@ install_libsrtp(){
 }
 
 install_mediadeps(){
-  brew install yasm libvpx x264
+  brew install yasm libvpx x264 opus
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-9.9.tar.gz
-    tar -zxvf libav-9.9.tar.gz
-    cd libav-9.9
-    ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264
+    curl -O https://www.libav.org/releases/libav-9.13.tar.gz
+    tar -zxvf libav-9.13.tar.gz
+    cd libav-9.13
+    ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
     make -s V=0
     make install
     cd $CURRENT_DIR
@@ -94,13 +94,13 @@ install_mediadeps(){
 }
 
 install_mediadeps_nogpl(){
-  brew install yasm libvpx
+  brew install yasm libvpx opus
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-9.9.tar.gz
-    tar -zxvf libav-9.9.tar.gz
-    cd libav-9.9
-    ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx
+    curl -O https://www.libav.org/releases/libav-9.13.tar.gz
+    tar -zxvf libav-9.13.tar.gz
+    cd libav-9.13
+    ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus
     make -s V=0
     make install
     cd $CURRENT_DIR

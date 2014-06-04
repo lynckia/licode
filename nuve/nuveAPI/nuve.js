@@ -2,6 +2,11 @@
 var express = require('express');
 var db = require('./mdb/dataBase').db;
 var rpc = require('./rpc/rpc');
+var logger = require('./logger').logger;
+
+// Logger
+var log = logger.getLogger("Nuve");
+
 var app = express();
 
 rpc.connect();

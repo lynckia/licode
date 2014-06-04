@@ -30,8 +30,6 @@ namespace erizo {
     globalState_ = CONN_INITIAL;
     connEventListener_ = NULL;
 
-    sending_ = true;
-    send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
 
     videoTransport_ = NULL;
     audioTransport_ = NULL;
@@ -43,18 +41,15 @@ namespace erizo {
     stunPort_ = stunPort;
     minPort_ = minPort;
     maxPort_ = maxPort;
+    
+    sending_ = true;
+    send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
   }
 
   WebRtcConnection::~WebRtcConnection() {
-    ELOG_DEBUG("WebRtcConnection Destructor");
-    videoSink_ = NULL;
-    audioSink_ = NULL;
-    fbSink_ = NULL;
-    delete videoTransport_;
-    videoTransport_=NULL;
-    delete audioTransport_;
-    audioTransport_= NULL;
+    ELOG_INFO("WebRtcConnection Destructor");
     sending_ = false;
+    this->queueData(-1,NULL,-1,NULL);
     cond_.notify_one();
     send_Thread_.join();
     globalState_ = CONN_FINISHED;
@@ -63,6 +58,20 @@ namespace erizo {
       connEventListener_ = NULL;
     }
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
+    boost::mutex::scoped_lock lock2(writeMutex_);
+    boost::mutex::scoped_lock lock3(updateStateMutex_);
+    globalState_ = CONN_FINISHED;
+    videoSink_ = NULL;
+    audioSink_ = NULL;
+    fbSink_ = NULL;
+    if (videoTransport_) {
+        delete videoTransport_;
+        videoTransport_=NULL;
+    }
+    if (audioTransport_) {
+        delete audioTransport_;
+        audioTransport_= NULL;
+    }
   }
 
   bool WebRtcConnection::init() {
@@ -76,14 +85,8 @@ namespace erizo {
     video_ = (remoteSdp_.videoSsrc==0?false:true);
     audio_ = (remoteSdp_.audioSsrc==0?false:true);
 
-    CryptoInfo cryptLocal_video;
-    CryptoInfo cryptLocal_audio;
-    CryptoInfo cryptRemote_video;
-    CryptoInfo cryptRemote_audio;
-
     bundle_ = remoteSdp_.isBundle;
     ELOG_DEBUG("Is bundle? %d %d ", bundle_, true);
-    std::vector<RtpMap> payloadRemote = remoteSdp_.getPayloadInfos();
     localSdp_.getPayloadInfos() = remoteSdp_.getPayloadInfos();
     localSdp_.isBundle = bundle_;
     localSdp_.isRtcpMux = remoteSdp_.isRtcpMux;
@@ -119,14 +122,15 @@ namespace erizo {
     remoteSdp_.getCredentials(&username, &password);
     tempSdp.setCredentials(username, password);
     tempSdp.initWithSdp(sdp, mid);
-    if (mid == "audio" && !bundle_) {
-      audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
-    } else {
+    if (mid == "video") {
       videoTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
+    } else if (mid == "audio" && !bundle_) {
+      audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
     }
   }
 
   std::string WebRtcConnection::getLocalSdp() {
+    ELOG_DEBUG("Getting SDP");
     if (videoTransport_ != NULL) {
       videoTransport_->processLocalSdp(&localSdp_);
     }
@@ -171,7 +175,7 @@ namespace erizo {
     }
   }
 
-  int WebRtcConnection::deliverAudioData(char* buf, int len) {
+  int WebRtcConnection::deliverAudioData_(char* buf, int len) {
     writeSsrc(buf, len, this->getAudioSinkSSRC());
     if (bundle_){
       if (videoTransport_ != NULL) {
@@ -187,7 +191,7 @@ namespace erizo {
     return len;
   }
 
-  int WebRtcConnection::deliverVideoData(char* buf, int len) {
+  int WebRtcConnection::deliverVideoData_(char* buf, int len) {
     RtpHeader *head = reinterpret_cast<RtpHeader*>(buf);
     writeSsrc(buf, len, this->getVideoSinkSSRC());
     if (videoTransport_ != NULL) {
@@ -226,7 +230,7 @@ namespace erizo {
     return len;
   }
 
-  int WebRtcConnection::deliverFeedback(char* buf, int len){
+  int WebRtcConnection::deliverFeedback_(char* buf, int len){
     // Check where to send the feedback
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
     //ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, chead->getSSRC(), chead->getSourceSSRC());
@@ -236,15 +240,8 @@ namespace erizo {
         writeSsrc(buf,len,this->getVideoSinkSSRC());      
     }
 
-    if (bundle_){
-      if (videoTransport_ != NULL) {
-        this->queueData(0, buf, len, videoTransport_);
-      }
-    } else {
-      // TODO: Check where to send the feedback
-      if (videoTransport_ != NULL) {
-        this->queueData(0, buf, len, videoTransport_);
-      }
+    if (videoTransport_ != NULL) {
+      this->queueData(0, buf, len, videoTransport_);
     }
     return len;
   }
@@ -261,17 +258,19 @@ namespace erizo {
   }
 
   void WebRtcConnection::onTransportData(char* buf, int len, Transport *transport) {
-    if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL)
+    if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL){
       return;
+    }
     boost::mutex::scoped_lock lock(writeMutex_);
     int length = len;
-    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
     
     // PROCESS STATS
     if (this->statsListener_){ // if there is no listener we dont process stats
-      thisStats_.processRtcpStats(chead);
+      RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
+      if (head->payloadtype != RED_90000_PT && head->payloadtype != PCMU_8000_PT)     
+        thisStats_.processRtcpStats(buf, length);
     }
-   
+    RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
       if (fbSink_ != NULL) {
@@ -359,6 +358,8 @@ namespace erizo {
     rtcpPacket[pos++] = (uint8_t) 0;
 
     if (videoTransport_ != NULL) {
+
+      boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
       videoTransport_->write((char*)rtcpPacket, pos);
     }
 
@@ -375,7 +376,12 @@ namespace erizo {
 
     if (state == TRANSPORT_FAILED) {
       temp = CONN_FAILED;
-      ELOG_INFO("WebRtcConnection failed.");
+      globalState_ = CONN_FAILED;
+      sending_ = false;
+      ELOG_INFO("WebRtcConnection failed, stopped sending");
+      boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
+      cond_.notify_one();
+      ELOG_INFO("WebRtcConnection failed, stopped sending");
     }
 
     
@@ -455,16 +461,23 @@ namespace erizo {
     if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL) //we don't enqueue data if there is nothing to receive it
       return;
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
+    if (sending_==false)
+      return;
+    if (comp == -1){
+      sending_ = false;
+      std::queue<dataPacket> empty;
+      std::swap( sendQueue_, empty);
+      dataPacket p_;
+      p_.comp = -1;
+      sendQueue_.push(p_);
+      cond_.notify_one();
+      return;
+    }
     if (sendQueue_.size() < 1000) {
       dataPacket p_;
       memcpy(p_.data, buf, length);
       p_.comp = comp;
-      if (transport->mediaType == VIDEO_TYPE) {
-        p_.type = VIDEO_PACKET;
-      } else {
-        p_.type = AUDIO_PACKET;
-      }
-
+      p_.type = (transport->mediaType == VIDEO_TYPE) ? VIDEO_PACKET : AUDIO_PACKET;
       p_.length = length;
       sendQueue_.push(p_);
     }
@@ -507,7 +520,13 @@ namespace erizo {
           return;
         }
       }
-
+      if(sendQueue_.front().comp ==-1){
+        sending_ =  false;
+        ELOG_DEBUG("Finishing send Thread, packet -1");
+        sendQueue_.pop();
+        lock.unlock();
+        return;
+      }
       if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
         videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
       } else {

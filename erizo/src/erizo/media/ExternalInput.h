@@ -32,7 +32,7 @@ namespace erizo{
     private:
       boost::scoped_ptr<OutputProcessor> op_;
       VideoDecoder inCodec_;
-      boost::scoped_ptr<unsigned char> decodedBuffer_;
+      boost::scoped_array<unsigned char> decodedBuffer_;
       char sendVideoBuffer_[2000];
 
       std::string url_;
