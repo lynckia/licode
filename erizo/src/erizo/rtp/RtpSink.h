@@ -9,15 +9,19 @@
 #define RTPSINK_H_
 
 #include <boost/asio.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread.hpp>
+#include <queue>
 
 #include "../MediaDefinitions.h"
+#include "../logger.h"
 
 namespace erizo {
 
 class RtpSink: public MediaSink {
-public:
+  DECLARE_LOGGER();
+  public:
 	RtpSink(const std::string& url, const std::string& port);
-	int sendData(unsigned char* buffer, int len);
 	virtual ~RtpSink();
 
 private:
@@ -29,10 +33,18 @@ private:
   boost::scoped_ptr<boost::asio::io_service> ioservice_;
 	boost::asio::ip::udp::resolver::iterator iterator_;
 
+  boost::thread send_Thread_;
+	boost::condition_variable cond_;
+  boost::mutex queueMutex_;
+  std::queue<dataPacket> sendQueue_;
+  bool sending_;
+
   int deliverAudioData_(char* buf, int len);
   int deliverVideoData_(char* buf, int len);
+	int sendData(char* buffer, int len);
+  void sendLoop();
+	void queueData(const char* buffer, int len, packetType type);
 };
-
 
 } /* namespace erizo */
 #endif /* RTPSINK_H_ */

@@ -10,6 +10,7 @@
 using boost::asio::ip::udp;
 
 namespace erizo {
+DEFINE_LOGGER(RtpSource, "RtpSource");
 
 RtpSource::RtpSource(const int port) {
   socket_.reset(new boost::asio::ip::udp::socket(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), port)));

@@ -12,13 +12,15 @@
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 #include "../MediaDefinitions.h"
+#include "../logger.h"
 
 namespace erizo {
 
 class RtpSource: public MediaSource {
+	DECLARE_LOGGER();
+
 public:
-	RtpSource(const int port);
-  
+  RtpSource(const int port);  
 	virtual ~RtpSource();
 
 private:
