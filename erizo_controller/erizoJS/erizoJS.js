@@ -1,9 +1,6 @@
 /*global require, logger. setInterval, clearInterval, Buffer, exports*/
 var Getopt = require('node-getopt');
 var config = require('./../../licode_config');
-var SegfaultHandler = require('segfault-handler');
-
-SegfaultHandler.registerHandler();
 
 GLOBAL.config = config || {};
 GLOBAL.config.erizo = GLOBAL.config.erizo || {};
