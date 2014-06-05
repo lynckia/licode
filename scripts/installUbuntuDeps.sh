@@ -60,6 +60,7 @@ install_libnice(){
     tar -zxvf libnice-0.1.4.tar.gz
     cd libnice-0.1.4
     patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
+    patch -p1 < $PATHNAME/libnice-014.patch1
     ./configure --prefix=$PREFIX_DIR
     make -s V=0
     make install
