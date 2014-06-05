@@ -21,6 +21,13 @@ typedef struct _GMainContext GMainContext;
 typedef unsigned int uint;
 
 namespace erizo {
+
+#define NICE_STREAM_MAX_UFRAG   256 + 1  /* ufrag + NULL */
+#define NICE_STREAM_MAX_UNAME   256 * 2 + 1 + 1 /* 2*ufrag + colon + NULL */
+#define NICE_STREAM_MAX_PWD     256 + 1  /* pwd + NULL */
+#define NICE_STREAM_DEF_UFRAG   4 + 1    /* ufrag + NULL */
+#define NICE_STREAM_DEF_PWD     22 + 1   /* pwd + NULL */
+
 //forward declarations
 typedef boost::shared_ptr<dataPacket> packetPtr;
 class CandidateInfo;

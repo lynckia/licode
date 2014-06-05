@@ -2,7 +2,6 @@
  * NiceConnection.cpp
  */
 
-#include <glib.h>
 #include <nice/nice.h>
 #include <cstdio>
 #include <poll.h>
@@ -232,7 +231,14 @@ namespace erizo {
 
     // Create a new stream and start gathering candidates
     ELOG_DEBUG("Adding Stream... Number of components %d", iceComponents_);
+    //nice_agent_set_local_credentials (
+  //NiceAgent *agent,
+  //guint stream_id,
+  //gchar *ufrag, gchar *pwd)
     nice_agent_add_stream(agent_, iceComponents_);
+    nice_agent_set_local_credentials(agent_,1, "hola","password");
+
+ 
 
     gchar *ufrag, *upass;
     nice_agent_get_local_credentials(agent_, 1, &ufrag, &upass);
