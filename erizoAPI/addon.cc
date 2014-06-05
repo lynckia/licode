@@ -7,6 +7,7 @@
 #include "OneToManyTranscoder.h"
 #include "ExternalInput.h"
 #include "ExternalOutput.h"
+#include "RtpSink.h"
 
 using namespace v8;
 
@@ -16,6 +17,7 @@ void InitAll(Handle<Object> target) {
   OneToManyTranscoder::Init(target);
   ExternalInput::Init(target);
   ExternalOutput::Init(target);
+  RtpSink::Init(target);
 }
 
 NODE_MODULE(addon, InitAll)

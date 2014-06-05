@@ -2,7 +2,7 @@
   'targets': [
   {
     'target_name': 'addon',
-      'sources': [ 'addon.cc', 'WebRtcConnection.cc', 'OneToManyProcessor.cc', 'ExternalInput.cc', 'ExternalOutput.cc', 'OneToManyTranscoder.cc' ],
+      'sources': [ 'addon.cc', 'WebRtcConnection.cc', 'OneToManyProcessor.cc', 'ExternalInput.cc', 'ExternalOutput.cc', 'RtpSink.cc', 'OneToManyTranscoder.cc' ],
       'include_dirs' : ['$(ERIZO_HOME)/src/erizo', '$(ERIZO_HOME)/../build/libdeps/build/include'],
       'libraries': ['-L$(ERIZO_HOME)/build/erizo', '-lerizo'],
       'conditions': [
