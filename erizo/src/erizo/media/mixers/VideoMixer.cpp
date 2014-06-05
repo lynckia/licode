@@ -4,7 +4,6 @@
 
 #include "VideoMixer.h"
 #include "VideoUtils.h"
-#include "../../rtp/RTPSink.h"
 #include "../../WebRtcConnection.h"
 
 namespace erizo {
@@ -16,7 +15,6 @@ namespace erizo {
       subscriber = NULL;
       sentPackets_ = 0;
       ip = new InputProcessor();
-      sink_ = new RTPSink("127.0.0.1", "50000");
       MediaInfo m;
       m.processorType = RTP_ONLY;
       //	m.videoCodec.bitRate = 2000000;
@@ -40,7 +38,6 @@ namespace erizo {
 
   VideoMixer::~VideoMixer() {
     delete ip; ip = NULL;
-    delete sink_; sink_ = NULL;
     delete op; op = NULL;
   }
 

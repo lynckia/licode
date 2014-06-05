@@ -412,7 +412,7 @@ var listen = function () {
         //Gets 'publish' messages on the socket in order to add new stream to the room.
         socket.on('publish', function (options, sdp, callback) {
             var id, st;
-            if (!socket.user.permissions[Permission.PUBLISH]) {
+            if (socket.user === undefined || !socket.user.permissions[Permission.PUBLISH]) {
                 callback('error', 'unauthorized');
                 return;
             }
@@ -482,7 +482,7 @@ var listen = function () {
         //Gets 'subscribe' messages on the socket in order to add new subscriber to a determined stream (options.streamId).
         socket.on('subscribe', function (options, sdp, callback) {
             log.info("Subscribing", options, callback);
-            if (!socket.user.permissions[Permission.SUBSCRIBE]) {
+            if (socket.user === undefined || !socket.user.permissions[Permission.SUBSCRIBE]) {
                 callback('error', 'unauthorized');
                 return;
             }
@@ -533,7 +533,7 @@ var listen = function () {
 
         //Gets 'startRecorder' messages
         socket.on('startRecorder', function (options, callback) {
-            if (!socket.user.permissions[Permission.RECORD]) {
+            if (socket.user === undefined || !socket.user.permissions[Permission.RECORD]) {
                 callback('error', 'unauthorized');
                 return;
             }
@@ -565,7 +565,7 @@ var listen = function () {
         });
 
         socket.on('stopRecorder', function (options, callback) {
-            if (!socket.user.permissions[Permission.RECORD]) {
+            if (socket.user === undefined || !socket.user.permissions[Permission.RECORD]) {
                 callback('error', 'unauthorized');
                 return;
             }
@@ -584,8 +584,13 @@ var listen = function () {
 
         //Gets 'unpublish' messages on the socket in order to remove a stream from the room.
         socket.on('unpublish', function (streamId) {
-            if (!socket.user.permissions[Permission.PUBLISH]) {
+            if (socket.user === undefined || !socket.user.permissions[Permission.PUBLISH]) {
                 callback('error', 'unauthorized');
+                return;
+            }
+
+            // Stream has been already deleted or it does not exist
+            if (socket.room.streams[streamId] === undefined) {
                 return;
             }
             var i, index;

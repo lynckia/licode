@@ -4,7 +4,6 @@
 
 #include "OneToManyTranscoder.h"
 #include "../WebRtcConnection.h"
-#include "../rtp/RTPSink.h"
 #include "../rtp/RtpHeaders.h"
 
 namespace erizo {
@@ -15,7 +14,6 @@ OneToManyTranscoder::OneToManyTranscoder() {
 	publisher = NULL;
 	sentPackets_ = 0;
     ip_ = new InputProcessor();
-	sink_ = new RTPSink("127.0.0.1", "50000");
 	MediaInfo m;
 	m.processorType = RTP_ONLY;
 //	m.videoCodec.bitRate = 2000000;
@@ -46,7 +44,6 @@ OneToManyTranscoder::OneToManyTranscoder() {
 
 OneToManyTranscoder::~OneToManyTranscoder() {
 	this->closeAll();
-    delete sink_; sink_ = NULL;
     delete ip_; ip_ = NULL;
     delete op_; op_ = NULL;
 }
