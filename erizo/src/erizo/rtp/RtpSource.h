@@ -16,22 +16,29 @@
 
 namespace erizo {
 
-class RtpSource: public MediaSource {
+class RtpSource: public MediaSource, public FeedbackSink {
 	DECLARE_LOGGER();
 
 public:
-  RtpSource(const int port);  
+  RtpSource(const int mediaPort, const std::string& feedbackDir, 
+      const std::string& feedbackPort);
 	virtual ~RtpSource();
 
 private:
 
   static const int LENGTH = 1500;
-  boost::scoped_ptr<boost::asio::ip::udp::socket> socket_;
+  boost::scoped_ptr<boost::asio::ip::udp::socket> socket_, fbSocket_;
+  boost::scoped_ptr<boost::asio::ip::udp::resolver> resolver_;
+  boost::scoped_ptr<boost::asio::ip::udp::resolver::query> query_;
+	boost::asio::ip::udp::resolver::iterator iterator_;
 	boost::asio::io_service io_service_;
   boost::thread rtpSource_thread_;
   char* buffer_[LENGTH];
   bool running_;
-	void getDataLoop();
+  void handleReceive(const::boost::system::error_code& error, 
+    size_t bytes_recvd);
+  void eventLoop();
+  int deliverFeedback_(char* buf, int len);
 };
 
 
