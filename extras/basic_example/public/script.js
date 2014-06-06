@@ -8,16 +8,23 @@ function getParameterByName(name) {
   return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 }
 
+function playRtp() {
+  if (room !== undefined){
+    var stream = Erizo.Stream({audio:true, video:true, data: true, port:50000});
+    room.publish(stream);
+  }
+}
+
 function startRecording () {
   if (room !== undefined){
     if (!recording){
-      room.startRecording(localStream, function(id) {
+      room.startRtpSink(localStream, function(id) {
         recording = true;
         recordingId = id;
       });
       
     } else {
-      room.stopRecording(recordingId);
+      room.stopRtpSink(recordingId);
       recording = false;
     }
   }

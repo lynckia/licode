@@ -422,6 +422,15 @@ Erizo.Room = function (spec) {
         }
     };
 
+    that.startRtpSink = function (stream, callback, callbackError) {
+        L.Logger.debug("Start RTPSINK streamaa: " + stream.getID());
+        sendMessageSocket('startRtpSink', {to: stream.getID()}, callback, callbackError);
+    }
+
+    that.stopRtpSink = function (recordingId, callback, callbackError) {
+        sendMessageSocket('stopRtpSink', {id: recordingId}, callback, callbackError);
+    }
+
     that.startRecording = function (stream, callback, callbackError) {
         L.Logger.debug("Start Recording streamaa: " + stream.getID());
         sendMessageSocket('startRecorder', {to: stream.getID()}, callback, callbackError);

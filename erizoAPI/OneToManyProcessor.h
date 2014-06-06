@@ -8,6 +8,8 @@
 #include "WebRtcConnection.h"
 #include "ExternalInput.h"
 #include "ExternalOutput.h"
+#include "RtpSink.h"
+#include "RtpSource.h"
 
 
 /*
@@ -46,10 +48,20 @@ class OneToManyProcessor : public MediaSink {
    */
   static v8::Handle<v8::Value> addExternalOutput(const v8::Arguments& args);
   /*
+   * Adds an RtpSink
+   * Param: The RtpSink   
+   */
+  static v8::Handle<v8::Value> addRtpSink(const v8::Arguments& args);
+  /*
    * Sets an External Publisher
    * Param: the ExternalInput of the Publisher
    */
   static v8::Handle<v8::Value> setExternalPublisher(const v8::Arguments& args);
+  /*
+   * Sets an Rtp Publisher
+   * Param: the RtpSource of the Publisher
+   */
+  static v8::Handle<v8::Value> setRtpPublisher(const v8::Arguments& args);
   /*
    * Gets the Publisher state
    * Param: none

@@ -91,6 +91,65 @@ exports.RoomController = function (spec) {
         }
     };
 
+    that.addRtpSource = function (publisher_id, port, fbUrl, fbPort, callback) {
+
+        if (publishers[publisher_id] === undefined) {
+
+            log.info("Adding  peer_id ", publisher_id);
+
+            createErizoJS(publisher_id, function() {
+            // then we call its addPublisher method.
+              var args = [publisher_id, url];
+              rpc.callRpc(getErizoQueue(publisher_id), "addRtpSource", args, {callback: callback});
+
+	        // Track publisher locally
+            publishers[publisher_id] = publisher_id;
+            subscribers[publisher_id] = [];
+
+            });
+        } else {
+            log.info("Publisher already set for", publisher_id);
+        }
+    };
+
+    that.addRtpSink = function (publisher_id, url, port, fbPort, callback) {
+        if (publishers[publisher_id] !== undefined) {
+            log.info("Adding RtpSink to " + publisher_id + " url " + url);
+
+            var args = [publisher_id, url, port, fbPort];
+
+            rpc.callRpc(getErizoQueue(publisher_id), "addRtpSink", args, undefined);
+
+            // Track external outputs
+            externalOutputs[url] = publisher_id;
+
+            // Track publisher locally
+            publishers[publisher_id] = publisher_id;
+            subscribers[publisher_id] = [];
+            callback('success');
+        } else {
+            callback('error');
+        }
+
+    };
+
+    that.removeRtpSink = function (url, callback) {
+        var publisher_id = externalOutputs[url];
+
+        if (publisher_id !== undefined && publishers[publisher_id] != undefined) {
+            log.info("Stopping ExternalOutput: url " + url);
+
+            var args = [publisher_id, url];
+            rpc.callRpc(getErizoQueue(publisher_id), "removeRtpSink", args, undefined);
+
+            // Remove track
+            delete externalOutputs[url];
+            callback('success');
+        } else {
+            callback('error', 'This stream is not being recorded');
+        }
+    };
+    
     that.addExternalOutput = function (publisher_id, url, callback) {
         if (publishers[publisher_id] !== undefined) {
             log.info("Adding ExternalOutput to " + publisher_id + " url " + url);

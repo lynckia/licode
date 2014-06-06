@@ -34,6 +34,10 @@ namespace erizo {
 
   }
 
+  int RtpSource::sendFirPacket(){
+    return 0;
+  }
+
   int RtpSource::deliverFeedback_(char* buf, int len){
     fbSocket_->send_to(boost::asio::buffer(buf, len), *iterator_);
     return len;
@@ -43,6 +47,7 @@ namespace erizo {
   void RtpSource::handleReceive(const::boost::system::error_code& error, 
       size_t bytes_recvd) {
     if (bytes_recvd>0&&this->videoSink_){
+      ELOG_DEBUG("Receiving data %lu", bytes_recvd);
       this->videoSink_->deliverVideoData((char*)buffer_, (int)bytes_recvd);
     }
   }

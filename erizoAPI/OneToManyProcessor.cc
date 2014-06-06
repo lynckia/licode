@@ -20,7 +20,9 @@ void OneToManyProcessor::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setPublisher"), FunctionTemplate::New(setPublisher)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("addExternalOutput"), FunctionTemplate::New(addExternalOutput)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("addRtpSink"), FunctionTemplate::New(addRtpSink)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setExternalPublisher"), FunctionTemplate::New(setExternalPublisher)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("setRtpPublisher"), FunctionTemplate::New(setRtpPublisher)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getPublisherState"), FunctionTemplate::New(getPublisherState)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("hasPublisher"), FunctionTemplate::New(hasPublisher)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("addSubscriber"), FunctionTemplate::New(addSubscriber)->GetFunction());
@@ -68,6 +70,7 @@ Handle<Value> OneToManyProcessor::setPublisher(const Arguments& args) {
 
   return scope.Close(Null());
 }
+
 Handle<Value> OneToManyProcessor::setExternalPublisher(const Arguments& args) {
   HandleScope scope;
 
@@ -76,6 +79,21 @@ Handle<Value> OneToManyProcessor::setExternalPublisher(const Arguments& args) {
 
   ExternalInput* param = ObjectWrap::Unwrap<ExternalInput>(args[0]->ToObject());
   erizo::ExternalInput* wr = (erizo::ExternalInput*)param->me;
+
+  erizo::MediaSource* ms = dynamic_cast<erizo::MediaSource*>(wr);
+  me->setPublisher(ms);
+
+  return scope.Close(Null());
+}
+
+Handle<Value> OneToManyProcessor::setRtpPublisher(const Arguments& args) {
+  HandleScope scope;
+
+  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
+  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+
+  RtpSource* param = ObjectWrap::Unwrap<RtpSource>(args[0]->ToObject());
+  erizo::RtpSource* wr = (erizo::RtpSource*)param->me;
 
   erizo::MediaSource* ms = dynamic_cast<erizo::MediaSource*>(wr);
   me->setPublisher(ms);
@@ -142,6 +160,27 @@ Handle<Value> OneToManyProcessor::addExternalOutput(const Arguments& args) {
 
   ExternalOutput* param = ObjectWrap::Unwrap<ExternalOutput>(args[0]->ToObject());
   erizo::ExternalOutput* wr = param->me;
+
+  erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
+
+// get the param
+  v8::String::Utf8Value param1(args[1]->ToString());
+
+// convert it to string
+  std::string peerId = std::string(*param1);
+  me->addSubscriber(ms, peerId);
+
+  return scope.Close(Null());
+}
+
+Handle<Value> OneToManyProcessor::addRtpSink(const Arguments& args) {
+  HandleScope scope;
+
+  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(args.This());
+  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+
+  RtpSink* param = ObjectWrap::Unwrap<RtpSink>(args[0]->ToObject());
+  erizo::RtpSink* wr = param->me;
 
   erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
 

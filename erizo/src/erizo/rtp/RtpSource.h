@@ -22,6 +22,7 @@ class RtpSource: public MediaSource, public FeedbackSink {
 public:
   RtpSource(const int mediaPort, const std::string& feedbackDir, 
       const std::string& feedbackPort);
+  int sendFirPacket();
 	virtual ~RtpSource();
 
 private:
@@ -43,4 +44,4 @@ private:
 
 
 } /* namespace erizo */
-#endif /* RTPSINK_H_ */
+#endif /* RTPSOURCE_H_ */

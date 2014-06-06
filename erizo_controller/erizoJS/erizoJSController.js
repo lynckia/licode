@@ -157,10 +157,57 @@ exports.ErizoJSController = function (spec) {
     };
 
     that.removeExternalOutput = function (to, url) {
-      if (externalOutputs[url] !== undefined && publishers[to]!=undefined) {
-        log.info("Stopping ExternalOutput: url " + url);
-        publishers[to].removeSubscriber(url);
-        delete externalOutputs[url];
+      if (externaloutputs[url] !== undefined && publishers[to]!=undefined) {
+        log.info("stopping externaloutput: url " + url);
+        publishers[to].removesubscriber(url);
+        delete externaloutputs[url];
+      }
+    };
+
+    that.addRtpSource = function (from, port, fbUrl, fbPort, callback) {
+
+        if (publishers[from] === undefined) {
+
+            log.info("Adding RTP input peer_id ", from);
+
+            var muxer = new addon.OneToManyProcessor(),
+                ei = new addon.RtpSource(port, fbUrl, fbPort);
+
+            publishers[from] = muxer;
+            subscribers[from] = [];
+
+            ei.setAudioReceiver(muxer);
+            ei.setVideoReceiver(muxer);
+            muxer.setRtpPublisher(ei);
+
+            var answer = ei.init();
+
+            if (answer >= 0) {
+                callback('callback', 'success');
+            } else {
+                callback('callback', answer);
+            }
+
+        } else {
+            log.info("Publisher already set for", from);
+        }
+    };
+
+    that.addRtpSink = function (to, url, port, feedbackPort) {
+        if (publishers[to] !== undefined) {
+            log.info("Adding RtpSink to " + to + " url " + url);
+            var rtpSink = new addon.RtpSink(url, port, feedbackPort);
+            rtpSink.init();
+            publishers[to].addRtpSink(rtpSink, url);
+            externalOutputs[url] = rtpSink;
+        }
+    };
+
+    that.removeRtpSink = function (to, url) {
+      if (externaloutputs[url] !== undefined && publishers[to]!=undefined) {
+        log.info("stopping RtpSink: url " + url);
+        publishers[to].removesubscriber(url);
+        delete externaloutputs[url];
       }
     };
 

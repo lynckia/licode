@@ -433,6 +433,22 @@ var listen = function () {
                         callback(result);
                     }
                 });
+            } else if (options.port!==undefined){
+              var url = "127.0.0.1";
+              var port = options.port;
+              var fbport = 50001;
+              socket.room.controller.addRtpSource(id, url, port, fbport ,function (result) {
+                if (result === 'success') {
+                  st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
+                  socket.streams.push(id);
+                  socket.room.streams[id] = st;
+                  callback(result, id);
+                  sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
+                } else {
+                  callback(result);
+                }
+              });
+               
             } else if (options.state !== 'data' && !socket.room.p2p) {
                 if (options.state === 'offer' && socket.state === 'sleeping') {
                     id = Math.random() * 1000000000000000000;
@@ -509,6 +525,46 @@ var listen = function () {
                 callback(undefined);
             }
 
+        });
+
+        socket.on('startRtpSink', function (options, callback) {
+            if (socket.user === undefined || !socket.user.permissions[Permission.RECORD]) {
+                callback('error', 'unauthorized');
+                return;
+            }
+            var streamId = options.to;
+            var url = "127.0.0.1";
+            var port = "50000";
+            var fbPort = "50001";
+
+            
+            log.info("erizoController.js: Starting RTPSINK streamid " + streamId + "url ", url);
+            
+            if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
+                socket.room.controller.addRtpSink(streamId, url, port, fbPort, function (result) {
+                    if (result === 'success') {
+                        log.info("erizoController.js: RtpSink Started");
+                        callback('success', streamId);
+                    } else {
+                        callback('error', 'This stream is not published in this room');
+                    }
+                });
+                
+            } else {
+                callback('error', 'Stream can not be forwarded');
+            }
+        });
+
+        socket.on('stopRtpSink', function (options, callback) {
+            if (socket.user === undefined || !socket.user.permissions[Permission.RECORD]) {
+                callback('error', 'unauthorized');
+                return;
+            }
+            var recordingId = options.id;
+            var url = "127.0.0.1";
+
+            log.info("erizoController.js: Stoping recording  " + recordingId + " url " + url);
+            socket.room.controller.removeRtpSink(url, callback);
         });
 
         //Gets 'startRecorder' messages
