@@ -411,6 +411,7 @@ var listen = function () {
                 callback('error', 'unauthorized');
                 return;
             }
+            log.info("socket.on publish");
             if (options.state === 'url' || options.state === 'recording') {
                 id = Math.random() * 1000000000000000000;
                 var url = sdp;
@@ -433,11 +434,13 @@ var listen = function () {
                         callback(result);
                     }
                 });
-            } else if (options.port!==undefined){
+            } else if (options.attributes && options.attributes.port!==undefined){
+              log.info ("THIS IS TRYING TO PUBLISH RTPSOURCE");
               var url = "127.0.0.1";
-              var port = options.port;
+              var port = options.attributes.port;
               var fbport = 50001;
-              socket.room.controller.addRtpSource(id, url, port, fbport ,function (result) {
+              id = Math.random() * 1000000000000000000;
+              socket.room.controller.addRtpSource(id, port, url, fbport ,function (result) {
                 if (result === 'success') {
                   st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, attributes: options.attributes});
                   socket.streams.push(id);

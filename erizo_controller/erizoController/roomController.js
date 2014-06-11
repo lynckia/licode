@@ -92,6 +92,7 @@ exports.RoomController = function (spec) {
     };
 
     that.addRtpSource = function (publisher_id, port, fbUrl, fbPort, callback) {
+         log.info("Adding RtpSource " + publisher_id + " port " + port);
 
         if (publishers[publisher_id] === undefined) {
 
@@ -99,7 +100,7 @@ exports.RoomController = function (spec) {
 
             createErizoJS(publisher_id, function() {
             // then we call its addPublisher method.
-              var args = [publisher_id, url];
+              var args = [publisher_id,port, fbUrl, fbPort];
               rpc.callRpc(getErizoQueue(publisher_id), "addRtpSource", args, {callback: callback});
 
 	        // Track publisher locally

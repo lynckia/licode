@@ -11,15 +11,16 @@ using boost::asio::ip::udp;
 namespace erizo {
   DEFINE_LOGGER(RtpSink, "RtpSink");
 
-  RtpSink::RtpSink(const std::string& url, const std::string& port, int feedbackPort) {
+  RtpSink::RtpSink(const std::string& url, const std::string& port, int feedbackPort) {   
+    ELOG_DEBUG("Starting RtpSink %s : %s, %d", url.c_str(), port.c_str(), feedbackPort);
+    sinkfbSource_ = this;
     resolver_.reset(new udp::resolver(io_service_));
     socket_.reset(new udp::socket(io_service_, udp::endpoint(udp::v4(), 0)));
     fbSocket_.reset(new udp::socket(io_service_, udp::endpoint(udp::v4(), feedbackPort)));
     query_.reset(new udp::resolver::query(udp::v4(), url.c_str(), port.c_str()));
     iterator_ = resolver_->resolve(*query_);
     sending_ =true;
-    boost::asio::ip::udp::endpoint sender_endpoint;
-    fbSocket_->async_receive_from(boost::asio::buffer(buffer_, LENGTH), sender_endpoint, 
+    fbSocket_->async_receive_from(boost::asio::buffer(buffer_, LENGTH), sender_endpoint_, 
         boost::bind(&RtpSink::handleReceive, this, boost::asio::placeholders::error,
           boost::asio::placeholders::bytes_transferred));
     send_Thread_ = boost::thread(&RtpSink::sendLoop, this);
@@ -89,13 +90,19 @@ namespace erizo {
 
   void RtpSink::handleReceive(const::boost::system::error_code& error, 
       size_t bytes_recvd) {
+//    ELOG_DEBUG("Received Feedback %lu", bytes_recvd);
     if (bytes_recvd>0&&this->fbSink_){
       this->fbSink_->deliverFeedback((char*)buffer_, (int)bytes_recvd);
     }
+    fbSocket_->async_receive_from(boost::asio::buffer(buffer_, LENGTH), sender_endpoint_, 
+        boost::bind(&RtpSink::handleReceive, this, boost::asio::placeholders::error,
+          boost::asio::placeholders::bytes_transferred));
+      ELOG_DEBUG("Scheduled again");
   }
   
   void RtpSink::serviceLoop() {
     io_service_.run();
+    ELOG_DEBUG("IOSERVICE RUN STOPPED");
   }
 
 } /* namespace erizo */

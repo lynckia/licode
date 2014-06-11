@@ -32,6 +32,7 @@ private:
   boost::scoped_ptr<boost::asio::ip::udp::resolver::query> query_;
 	boost::asio::ip::udp::resolver::iterator iterator_;
   boost::asio::io_service io_service_;
+  boost::asio::ip::udp::endpoint sender_endpoint_;
 
   boost::thread send_Thread_, receive_Thread_;
 	boost::condition_variable cond_;

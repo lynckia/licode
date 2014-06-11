@@ -10,7 +10,7 @@ function getParameterByName(name) {
 
 function playRtp() {
   if (room !== undefined){
-    var stream = Erizo.Stream({audio:true, video:true, data: true, port:50000});
+    var stream = Erizo.Stream({audio:true, video:true, data: true, attributes:{port:50000}});
     room.publish(stream);
   }
 }
