@@ -546,7 +546,7 @@ var listen = function () {
 
         socket.on('stopRecorder', function (options, callback) {
             if (socket.user === undefined || !socket.user.permissions[Permission.RECORD]) {
-                callback('error', 'unauthorized');
+                if (callback) callback('error', 'unauthorized');
                 return;
             }
             var recordingId = options.id;
@@ -563,9 +563,9 @@ var listen = function () {
         });
 
         //Gets 'unpublish' messages on the socket in order to remove a stream from the room.
-        socket.on('unpublish', function (streamId) {
+        socket.on('unpublish', function (streamId,. callback) {
             if (socket.user === undefined || !socket.user.permissions[Permission.PUBLISH]) {
-                callback('error', 'unauthorized');
+                if (callback) callback('error', 'unauthorized');
                 return;
             }
 
@@ -598,9 +598,9 @@ var listen = function () {
         });
 
         //Gets 'unsubscribe' messages on the socket in order to remove a subscriber from a determined stream (to).
-        socket.on('unsubscribe', function (to) {
+        socket.on('unsubscribe', function (to, callback) {
             if (!socket.user.permissions[Permission.SUBSCRIBE]) {
-                callback('error', 'unauthorized');
+                if (callback) callback('error', 'unauthorized');
                 return;
             }
             if (socket.room.streams[to] === undefined) {
