@@ -1,12 +1,8 @@
 #ifndef EXTERNALOUTPUT_H_
 #define EXTERNALOUTPUT_H_
 
-#include <string> 
-#include <map>
 #include "../MediaDefinitions.h"
 #include "rtp/RtpPacketQueue.h"
-#include "codecs/VideoCodec.h"
-#include "codecs/AudioCodec.h"
 #include "MediaProcessor.h"
 #include "boost/thread.hpp"
 #include "logger.h"
@@ -30,38 +26,24 @@ public:
 
 private:
     RtpPacketQueue audioQueue_, videoQueue_;
-
-    std::string url;
-    bool sending_, hasVideo_;
-    boost::mutex queueMutex_;
+    volatile bool recording_;
+    boost::mutex mtx_;  // a mutex we use to signal our writer thread that data is waiting.
     boost::thread thread_;
     boost::condition_variable cond_;
-    AVStream *video_st, *audio_st;
+    AVStream *video_stream_, *audio_stream_;
 
-    int gotUnpackagedFrame_;
-    int unpackagedSize_;
-    int prevEstimatedFps_;
-    int warmupfpsCount_;
-    int aviores_;
-    unsigned long long lastTime_;
-
-    int writeheadres_;
+    unsigned long long lastFullIntraFrameRequest_;
 
     AVFormatContext *context_;
-    AVOutputFormat *oformat_;
-    AVCodec *videoCodec_, *audioCodec_;
-    AVCodecContext *videoCodecCtx_, *audioCodecCtx_;
     InputProcessor *inputProcessor_;
-    
-    AudioEncoder* audioCoder_;
 
-    AVPacket avpacket;
+    int unpackagedSize_;
     unsigned char* unpackagedBufferpart_;
     unsigned char deliverMediaBuffer_[3000];
     unsigned char unpackagedBuffer_[UNPACKAGE_BUFFER_SIZE];
     unsigned char unpackagedAudioBuffer_[UNPACKAGE_BUFFER_SIZE/10];
-    unsigned long long initTime_;
-    unsigned int sequenceNumberFIR_;
+    long long initTimeVideo_;
+    long long initTimeAudio_;
 
 
     bool initContext();
@@ -70,8 +52,8 @@ private:
     void sendLoop();
     int deliverAudioData_(char* buf, int len);
     int deliverVideoData_(char* buf, int len);
-    int writeAudioData(char* buf, int len);
-    int writeVideoData(char* buf, int len);
+    void writeAudioData(char* buf, int len);
+    void writeVideoData(char* buf, int len);
 };
 }
 #endif /* EXTERNALOUTPUT_H_ */
