@@ -1,98 +1,93 @@
 #include "ExternalOutput.h"
 #include "../WebRtcConnection.h"
 #include "../rtputils.h"
-#include <cstdio>
-
-#include <boost/cstdint.hpp>
 #include <sys/time.h>
-#include <arpa/inet.h>
+#include "rtp/RtpHeader.h"
 
 namespace erizo {
 #define FIR_INTERVAL_MS 4000
 
 DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 
-ExternalOutput::ExternalOutput(const std::string& outputUrl) :
-    url(outputUrl)
+ExternalOutput::ExternalOutput(const std::string& outputUrl)
 {
-    ELOG_DEBUG("Created ExternalOutput to %s", outputUrl.c_str());
-    videoCodec_ = NULL;
-    audioCodec_ = NULL;
-    video_st = NULL;
-    audio_st = NULL;
-    prevEstimatedFps_ = 0;
-    warmupfpsCount_ = 0;
-    writeheadres_=-1;
-    unpackagedBufferpart_ = unpackagedBuffer_;
-    initTime_ = 0;
-    lastTime_ = 0;
-    sinkfbSource_ = this;
-    fbSink_ = NULL;
-}
+    ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
 
-bool ExternalOutput::init(){
+    // TODO these should really only be called once per application run
     av_register_all();
     avcodec_register_all();
+
+
     context_ = avformat_alloc_context();
     if (context_==NULL){
         ELOG_ERROR("Error allocating memory for IO context");
-        return false;
+    } else {
+
+        outputUrl.copy(context_->filename, sizeof(context_->filename),0);
+
+        context_->oformat = av_guess_format(NULL,  context_->filename, NULL);
+        if (!context_->oformat){
+            ELOG_ERROR("Error guessing format %s", context_->filename);
+        } else {
+            context_->oformat->video_codec = AV_CODEC_ID_VP8;
+            context_->oformat->audio_codec = AV_CODEC_ID_NONE; // We'll figure this out once we start receiving data; it's either PCM or OPUS
+        }
     }
-    oformat_ = av_guess_format(NULL,  url.c_str(), NULL);
-    if (!oformat_){
-        ELOG_ERROR("Error opening output file %s", url.c_str());
-        return false;
-    }
-    context_->oformat = oformat_;
-    context_->oformat->video_codec = AV_CODEC_ID_VP8;
-    context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
-    url.copy(context_->filename, sizeof(context_->filename),0);
-    video_st = NULL;
-    audio_st = NULL;
+
+    video_stream_ = NULL;
+    audio_stream_ = NULL;
+    unpackagedBufferpart_ = unpackagedBuffer_;
+    initTimeVideo_ = -1;
+    initTimeAudio_ = -1;
+    lastFullIntraFrameRequest_ = 0;
+    sinkfbSource_ = this;
+    fbSink_ = NULL;
+    unpackagedSize_ = 0;
     inputProcessor_ = new InputProcessor();
+}
+
+bool ExternalOutput::init(){
     MediaInfo m;
-    //    m.processorType = RTP_ONLY;
     m.hasVideo = false;
     m.hasAudio = false;
-
-    gotUnpackagedFrame_ = 0;
-    unpackagedSize_ = 0;
     inputProcessor_->init(m, this);
     thread_ = boost::thread(&ExternalOutput::sendLoop, this);
-    sending_ = true;
+    recording_ = true;
     ELOG_DEBUG("Initialized successfully");
     return true;
 }
 
 
 ExternalOutput::~ExternalOutput(){
-    ELOG_DEBUG("ExternalOutput Destructing");
-    delete inputProcessor_;
-    inputProcessor_ = NULL;
-    
-    if (context_!=NULL){
-        if (writeheadres_>=0)
-            av_write_trailer(context_);
-        if (avio_close>=0)
-            avio_close(context_->pb);
-        avformat_free_context(context_);
-        context_=NULL;
-    }
+    ELOG_DEBUG("Destructing");
 
-    if (videoCodec_ != NULL){
-        avcodec_close(videoCodecCtx_);
-        videoCodec_=NULL;
-    }
-
-    if (audioCodec_ != NULL){
-        avcodec_close(audioCodecCtx_);
-        audioCodec_ = NULL;
-    }
-
-    sending_ = false;
+    // Stop our thread so we can safely nuke libav stuff and close our
+    // our file.
+    recording_ = false;
     cond_.notify_one();
     thread_.join();
-    ELOG_DEBUG("ExternalOutput closed Successfully");
+
+    delete inputProcessor_;
+    inputProcessor_ = NULL;
+
+    if (context_ != NULL)
+        av_write_trailer(context_);
+
+    if (video_stream_->codec != NULL){
+        avcodec_close(video_stream_->codec);
+    }
+
+    if (audio_stream_->codec != NULL){
+        avcodec_close(audio_stream_->codec);
+    }
+
+    if (context_ != NULL){
+        avio_close(context_->pb);
+        avformat_free_context(context_);
+        context_ = NULL;
+    }
+
+    ELOG_DEBUG("Closed Successfully");
 }
 
 void ExternalOutput::receiveRawData(RawDataPacket& /*packet*/){
@@ -100,232 +95,226 @@ void ExternalOutput::receiveRawData(RawDataPacket& /*packet*/){
 }
 
 
-int ExternalOutput::writeAudioData(char* buf, int len){
-    if (inputProcessor_!=NULL){
-        if (videoCodec_ == NULL) {
-            return 0;
-        }
-        rtpheader *head = (rtpheader*)buf;
-        //We dont need any other payload at this time
-        if(head->payloadtype != PCMU_8000_PT){
-            return 0;
-        }
+void ExternalOutput::writeAudioData(char* buf, int len){
+    RTPHeader* head = reinterpret_cast<RTPHeader*>(buf);
 
-        int ret = inputProcessor_->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len,
-                                                  unpackagedAudioBuffer_);
-        if (ret <= 0)
-            return ret;
-        timeval time;
-        gettimeofday(&time, NULL);
-        unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-        if (millis -lastTime_ >FIR_INTERVAL_MS){
-            this->sendFirPacket();
-            lastTime_ = millis;
-        }
-        if (initTime_ == 0) {
-            initTime_ = millis;
-        }
-        if (millis < initTime_){
-            ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
-        }
-        if (ret > UNPACKAGE_BUFFER_SIZE){
-            ELOG_ERROR("Unpackaged Audio size too big %d", ret);
-        }
-        AVPacket avpkt;
-        av_init_packet(&avpkt);
-        avpkt.data = unpackagedAudioBuffer_;
-        avpkt.size = ret;
-        avpkt.pts = millis - initTime_;
-        avpkt.stream_index = 1;
-        av_write_frame(context_, &avpkt);
-        av_free_packet(&avpkt);
-        return ret;
-
+    if (initTimeAudio_ == -1) {
+        initTimeAudio_ = head->getTimestamp();
     }
-    return 0;
+
+    timeval time;
+    gettimeofday(&time, NULL);
+    unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+    if (millis -lastFullIntraFrameRequest_ >FIR_INTERVAL_MS){
+        this->sendFirPacket();
+        lastFullIntraFrameRequest_ = millis;
+    }
+
+    // Figure out our audio codec.
+    if(context_->oformat->audio_codec == AV_CODEC_ID_NONE) {
+        //We dont need any other payload at this time
+        if(head->getPayloadType() == PCMU_8000_PT){
+            context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
+        } else if (head->getPayloadType() == OPUS_48000_PT) {
+            context_->oformat->audio_codec = AV_CODEC_ID_OPUS;
+        }
+    }
+
+    // check if we can initialize our context
+    this->initContext();
+
+    if (audio_stream_ == NULL) {
+        // not yet.
+        return;
+    }
+
+    int ret = inputProcessor_->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len, unpackagedAudioBuffer_);
+    if (ret <= 0)
+        return;
+
+//    ELOG_DEBUG("Writing audio frame %d with timestamp %u, input timebase: %d/%d, target timebase: %d/%d",head->getSeqNumber(), head->getTimestamp(),
+//               audio_stream_->codec->time_base.num, audio_stream_->codec->time_base.den,    // timebase we requested
+//               audio_stream_->time_base.num, audio_stream_->time_base.den);                 // actual timebase
+
+    long long currentTimestamp = head->getTimestamp();
+    if (currentTimestamp - initTimeAudio_ < 0) {
+        // we wrapped.  add 2^32 to correct this.  We only handle a single wrap around since that's 13 hours of recording, minimum.
+        currentTimestamp += 0xFFFFFFFF;
+    }
+    AVPacket avpkt;
+    av_init_packet(&avpkt);
+    avpkt.data = unpackagedAudioBuffer_;
+    avpkt.size = ret;
+    avpkt.pts = (currentTimestamp - initTimeAudio_) / (audio_stream_->codec->time_base.den / audio_stream_->time_base.den);
+    avpkt.stream_index = 1;
+    av_write_frame(context_, &avpkt);
+    av_free_packet(&avpkt);
 }
 
-int ExternalOutput::writeVideoData(char* buf, int len){
-    if (inputProcessor_!=NULL){
-        rtpheader *head = (rtpheader*) buf;
-        if (head->payloadtype == RED_90000_PT) {
-            int totalLength = 12;
-
-            if (head->extension) {
-                totalLength += ntohs(head->extensionlength)*4 + 4; // RTP Extension header
+void ExternalOutput::writeVideoData(char* buf, int len){
+    RTPHeader* head = reinterpret_cast<RTPHeader*>(buf);
+    if (head->getPayloadType() == RED_90000_PT) {
+        int totalLength = head->getHeaderLength();
+        int rtpHeaderLength = totalLength;
+        redheader *redhead = (redheader*) (buf + totalLength);
+        if (redhead->payloadtype == VP8_90000_PT) {
+            while (redhead->follow) {
+                totalLength += redhead->getLength() + 4; // RED header
+                redhead = (redheader*) (buf + totalLength);
             }
-            int rtpHeaderLength = totalLength;
-            redheader *redhead = (redheader*) (buf + totalLength);
-
-            //redhead->payloadtype = remoteSdp_.inOutPTMap[redhead->payloadtype];
-            if (redhead->payloadtype == VP8_90000_PT) {
-                while (redhead->follow) {
-                    totalLength += redhead->getLength() + 4; // RED header
-                    redhead = (redheader*) (buf + totalLength);
-                }
-                // Parse RED packet to VP8 packet.
-                // Copy RTP header
-                memcpy(deliverMediaBuffer_, buf, rtpHeaderLength);
-                // Copy payload data
-                memcpy(deliverMediaBuffer_ + totalLength, buf + totalLength + 1, len - totalLength - 1);
-                // Copy payload type
-                rtpheader *mediahead = (rtpheader*) deliverMediaBuffer_;
-                mediahead->payloadtype = redhead->payloadtype;
-                buf = reinterpret_cast<char*>(deliverMediaBuffer_);
-                len = len - 1 - totalLength + rtpHeaderLength;
-            }
-        }
-        int estimatedFps=0;
-        int ret = inputProcessor_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
-                                                  unpackagedBufferpart_, &gotUnpackagedFrame_, &estimatedFps);
-
-        if (ret < 0)
-            return 0;
-
-        if (videoCodec_ == NULL) {
-            if ((estimatedFps!=0)&&((estimatedFps < prevEstimatedFps_*(1-0.2))||(estimatedFps > prevEstimatedFps_*(1+0.2)))){
-                prevEstimatedFps_ = estimatedFps;
-            }
-            if (warmupfpsCount_++ == 20){
-                if (prevEstimatedFps_==0){
-                    warmupfpsCount_ = 0;
-                    return 0;
-                }
-                if (!this->initContext()){
-                    ELOG_ERROR("Context cannot be initialized properly, closing...");
-                    return -1;
-                }
-            }
-            return 0;
-        }
-
-        unpackagedSize_ += ret;
-        unpackagedBufferpart_ += ret;
-        if (unpackagedSize_ > UNPACKAGE_BUFFER_SIZE){
-            ELOG_ERROR("Unpackaged size bigget than buffer %d", unpackagedSize_);
-        }
-        if (gotUnpackagedFrame_ && videoCodec_ != NULL) {
-            timeval time;
-            gettimeofday(&time, NULL);
-            unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-            if (initTime_ == 0) {
-                initTime_ = millis;
-            }
-            if (millis < initTime_)
-            {
-                ELOG_WARN("initTime is smaller than currentTime, possible problems when recording ");
-            }
-            unpackagedBufferpart_ -= unpackagedSize_;
-
-            AVPacket avpkt;
-            av_init_packet(&avpkt);
-            avpkt.data = unpackagedBufferpart_;
-            avpkt.size = unpackagedSize_;
-            avpkt.pts = millis - initTime_;
-            avpkt.stream_index = 0;
-            av_write_frame(context_, &avpkt);
-            av_free_packet(&avpkt);
-            gotUnpackagedFrame_ = 0;
-            unpackagedSize_ = 0;
-            unpackagedBufferpart_ = unpackagedBuffer_;
-
+            // Parse RED packet to VP8 packet.
+            // Copy RTP header
+            memcpy(deliverMediaBuffer_, buf, rtpHeaderLength);
+            // Copy payload data
+            memcpy(deliverMediaBuffer_ + totalLength, buf + totalLength + 1, len - totalLength - 1);
+            // Copy payload type
+            RTPHeader *mediahead = reinterpret_cast<RTPHeader*>(deliverMediaBuffer_);
+            mediahead->setPayloadType(redhead->payloadtype);
+            buf = reinterpret_cast<char*>(deliverMediaBuffer_);
+            len = len - 1 - totalLength + rtpHeaderLength;
         }
     }
-    return 0;
+
+    if (initTimeVideo_ == -1) {
+        initTimeVideo_ = head->getTimestamp();
+    }
+
+    int gotUnpackagedFrame = false;
+    int ret = inputProcessor_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len, unpackagedBufferpart_, &gotUnpackagedFrame);
+    if (ret < 0)
+        return;
+
+    this->initContext();
+
+    if (video_stream_ == NULL) {
+        // could not init our context yet.
+        return;
+    }
+
+    unpackagedSize_ += ret;
+    unpackagedBufferpart_ += ret;
+
+    if (gotUnpackagedFrame) {
+        unpackagedBufferpart_ -= unpackagedSize_;
+
+//        ELOG_DEBUG("Writing video frame %d with timestamp %u, length %d, input timebase: %d/%d, target timebase: %d/%d", head->getSeqNumber(),
+//                   head->getTimestamp(), unpackagedSize_,
+//                   video_stream_->codec->time_base.num, video_stream_->codec->time_base.den,    // timebase we requested
+//                   video_stream_->time_base.num, video_stream_->time_base.den);                 // actual timebase
+
+        long long currentTimestamp = head->getTimestamp();
+        if (currentTimestamp - initTimeVideo_ < 0) {
+            // we wrapped.  add 2^32 to correct this.  We only handle a single wrap around since that's ~13 hours of recording, minimum.
+            currentTimestamp += 0xFFFFFFFF;
+        }
+
+        long long timestampToWrite = (currentTimestamp - initTimeVideo_) / (90000 / video_stream_->time_base.den);  // All of our video offerings are using a 90khz clock.
+
+        AVPacket avpkt;
+        av_init_packet(&avpkt);
+        avpkt.data = unpackagedBufferpart_;
+        avpkt.size = unpackagedSize_;
+        avpkt.pts = timestampToWrite;
+        avpkt.stream_index = 0;
+        av_write_frame(context_, &avpkt);
+        av_free_packet(&avpkt);
+        unpackagedSize_ = 0;
+        unpackagedBufferpart_ = unpackagedBuffer_;
+    }
 }
 
 int ExternalOutput::deliverAudioData_(char* buf, int len) {
-    rtcpheader *head = reinterpret_cast<rtcpheader*>(buf);
-    if (head->isRtcp()){
-        return 0;
-    }
     this->queueData(buf,len,AUDIO_PACKET);
     return 0;
 }
 
 int ExternalOutput::deliverVideoData_(char* buf, int len) {
-    rtcpheader *head = reinterpret_cast<rtcpheader*>(buf);
-    if (head->isRtcp()){
-        return 0;
-    }
     this->queueData(buf,len,VIDEO_PACKET);
     return 0;
 }
 
 
 bool ExternalOutput::initContext() {
-    ELOG_DEBUG("Init Context");
-    if (oformat_->video_codec != AV_CODEC_ID_NONE && videoCodec_ == NULL) {
-        videoCodec_ = avcodec_find_encoder(oformat_->video_codec);
-        ELOG_DEBUG("Found Codec %s", videoCodec_->name);
-        ELOG_DEBUG("Initing context with fps: %d", (int)prevEstimatedFps_);
-        if (videoCodec_==NULL){
-            ELOG_ERROR("Could not find codec");
+    if (context_->oformat->video_codec != AV_CODEC_ID_NONE &&
+            context_->oformat->audio_codec != AV_CODEC_ID_NONE &&
+            video_stream_ == NULL &&
+            audio_stream_ == NULL) {
+        AVCodec* videoCodec = avcodec_find_encoder(context_->oformat->video_codec);
+        ELOG_DEBUG("Found Video Codec %s", videoCodec->name);
+        if (videoCodec==NULL){
+            ELOG_ERROR("Could not find video codec");
             return false;
         }
-        video_st = avformat_new_stream (context_, videoCodec_);
-        video_st->id = 0;
-        videoCodecCtx_ = video_st->codec;
-        videoCodecCtx_->codec_id = oformat_->video_codec;
-        videoCodecCtx_->width = 640;
-        videoCodecCtx_->height = 480;
-        videoCodecCtx_->time_base = (AVRational){1,(int)prevEstimatedFps_};
-    videoCodecCtx_->pix_fmt = PIX_FMT_YUV420P;
-    if (oformat_->flags & AVFMT_GLOBALHEADER){
-        videoCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
-    }
-    oformat_->flags |= AVFMT_VARIABLE_FPS;
-    ELOG_DEBUG("Init audio context");
+        video_stream_ = avformat_new_stream (context_, videoCodec);
+        video_stream_->id = 0;
+        video_stream_->codec->codec_id = context_->oformat->video_codec;
+        video_stream_->codec->width = 640;
+        video_stream_->codec->height = 480;
+        video_stream_->codec->time_base = (AVRational){1,30};   // A decent guess here suffices; if processing the file with ffmpeg,
+                                                                // use -vsync 0 to force it not to duplicate frames.
+        video_stream_->codec->pix_fmt = PIX_FMT_YUV420P;
+        if (context_->oformat->flags & AVFMT_GLOBALHEADER){
+            video_stream_->codec->flags|=CODEC_FLAG_GLOBAL_HEADER;
+        }
+        context_->oformat->flags |= AVFMT_VARIABLE_FPS;
 
-    audioCodec_ = avcodec_find_encoder(oformat_->audio_codec);
-    if (audioCodec_==NULL){
-        ELOG_ERROR("Could not find audio codec");
-        return false;
-    }
-    ELOG_DEBUG("Found Audio Codec %s", audioCodec_->name);
-    audio_st = avformat_new_stream (context_, audioCodec_);
-    audio_st->id = 1;
-    audioCodecCtx_ = audio_st->codec;
-    audioCodecCtx_->codec_id = oformat_->audio_codec;
-    audioCodecCtx_->sample_rate = 8000;
-    audioCodecCtx_->channels = 1;
-    //      audioCodecCtx_->sample_fmt = AV_SAMPLE_FMT_S8;
-    if (oformat_->flags & AVFMT_GLOBALHEADER){
-        audioCodecCtx_->flags|=CODEC_FLAG_GLOBAL_HEADER;
+        AVCodec* audioCodec = avcodec_find_encoder(context_->oformat->audio_codec);
+        if (audioCodec==NULL){
+            ELOG_ERROR("Could not find audio codec");
+            return false;
+        }
+        ELOG_DEBUG("Found Audio Codec %s", audioCodec->name);
+        audio_stream_ = avformat_new_stream (context_, audioCodec);
+        audio_stream_->id = 1;
+        audio_stream_->codec->codec_id = context_->oformat->audio_codec;
+        audio_stream_->codec->sample_rate = context_->oformat->audio_codec == AV_CODEC_ID_PCM_MULAW ? 8000 : 48000; // TODO is it always 48 khz for opus?
+        audio_stream_->codec->time_base = (AVRational) { 1, audio_stream_->codec->sample_rate };
+        audio_stream_->codec->channels = context_->oformat->audio_codec == AV_CODEC_ID_PCM_MULAW ? 1 : 2;   // TODO is it always two channels for opus?
+        if (context_->oformat->flags & AVFMT_GLOBALHEADER){
+            audio_stream_->codec->flags|=CODEC_FLAG_GLOBAL_HEADER;
+        }
+
+        context_->streams[0] = video_stream_;
+        context_->streams[1] = audio_stream_;
+        if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0){
+            ELOG_ERROR("Error opening output file");
+            return false;
+        }
+
+        if (avformat_write_header(context_, NULL) < 0){
+            ELOG_ERROR("Error writing header");
+            return false;
+        }
+        ELOG_DEBUG("avformat configured");
     }
 
-    context_->streams[0] = video_st;
-    context_->streams[1] = audio_st;
-    if (avio_open(&context_->pb, url.c_str(), AVIO_FLAG_WRITE) < 0){
-        ELOG_ERROR("Error opening output file");
-        return false;
-    }
-    writeheadres_ = avformat_write_header(context_, NULL);
-    if (writeheadres_<0){
-        ELOG_ERROR("Error writing header");
-        return false;
-    }
-    ELOG_DEBUG("AVFORMAT CONFIGURED");
-}
-return true;
+    return true;
 }
 
 void ExternalOutput::queueData(char* buffer, int length, packetType type){
-    if (inputProcessor_==NULL) {
+    if (!recording_) {
         return;
     }
-    boost::mutex::scoped_lock lock(queueMutex_);
+    rtcpheader *head = reinterpret_cast<rtcpheader*>(buffer);
+    if (head->isRtcp()){
+        return;
+    }
+
     if (type == VIDEO_PACKET){
         videoQueue_.pushPacket(buffer, length);
     }else{
         audioQueue_.pushPacket(buffer, length);
     }
-    cond_.notify_one();
-    
+
+    if( audioQueue_.hasData() && videoQueue_.hasData()) {
+        // We've got a fair chunk of data available.  Notify our writer thread to get to work.
+        cond_.notify_one();
+    }
 }
 
 int ExternalOutput::sendFirPacket() {
     if (fbSink_ != NULL) {
+        ELOG_DEBUG("sending Full Intra-frame Request");
         int pos = 0;
         uint8_t rtcpPacket[50];
         // add full intra request indicator
@@ -341,25 +330,17 @@ int ExternalOutput::sendFirPacket() {
 }
 
 void ExternalOutput::sendLoop() {
-    while (sending_ == true) {
-        boost::unique_lock<boost::mutex> lock(queueMutex_);
-        while ((audioQueue_.getSize() < 15)&&(videoQueue_.getSize() < 15)) {
-            cond_.wait(lock);
-            if (sending_ == false) {
-                lock.unlock();
-                return;
-            }
-        }
-        if (audioQueue_.getSize()){
+    while (recording_) {
+        boost::unique_lock<boost::mutex> lock(mtx_);
+        cond_.wait(lock);
+        while (audioQueue_.hasData()) {
             boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
             this->writeAudioData(audioP->data, audioP->length);
         }
-        if (videoQueue_.getSize()) {
+        while (videoQueue_.hasData()) {
             boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
             this->writeVideoData(videoP->data, videoP->length);
-
         }
-
         lock.unlock();
     }
 }
