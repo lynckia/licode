@@ -164,6 +164,11 @@ exports.RoomController = function (spec) {
      */
     that.addSubscriber = function (subscriber_id, publisher_id, audio, video, sdp, callback, onReady) {
 
+        if (sdp === null || subscriber_id === null) {
+            callback("error");
+            return;
+        }
+
         if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1 && sdp.match('OFFER') !== null) {
 
             log.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id);

@@ -670,7 +670,7 @@ var listen = function () {
                 }
             }
 
-            if (!socket.room.p2p && GLOBAL.config.erizoController.sendStats) {
+            if (socket.room !== undefined && !socket.room.p2p && GLOBAL.config.erizoController.sendStats) {
                 rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'disconnection'});
             }
 
