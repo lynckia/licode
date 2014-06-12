@@ -563,7 +563,7 @@ var listen = function () {
         });
 
         //Gets 'unpublish' messages on the socket in order to remove a stream from the room.
-        socket.on('unpublish', function (streamId,. callback) {
+        socket.on('unpublish', function (streamId, callback) {
             if (socket.user === undefined || !socket.user.permissions[Permission.PUBLISH]) {
                 if (callback) callback('error', 'unauthorized');
                 return;
