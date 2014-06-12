@@ -37,6 +37,8 @@ class RtpSink: public node::ObjectWrap {
    * Returns true ready
    */
   static v8::Handle<v8::Value> init(const v8::Arguments& args);  
+  
+  static v8::Handle<v8::Value> getFeedbackPort(const v8::Arguments& args);
 };
 
 #endif

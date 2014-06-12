@@ -536,18 +536,13 @@ var listen = function () {
                 return;
             }
             var streamId = options.to;
-            var url = "127.0.0.1";
-            var port = "50000";
-            var fbPort = "50001";
-
-            
-            log.info("erizoController.js: Starting RTPSINK streamid " + streamId + "url ", url);
+            log.info("erizoController.js: Starting RTPSINK streamid " + streamId + "url ", options.url);
             
             if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
-                socket.room.controller.addRtpSink(streamId, url, port, fbPort, function (result) {
+                socket.room.controller.addRtpSink(streamId, options.url, options.port, options.fbPort, function (result, thePort) {
                     if (result === 'success') {
-                        log.info("erizoController.js: RtpSink Started");
-                        callback('success', streamId);
+                        log.info("erizoController.js: RtpSink Started on port ", thePort);
+                        callback('success', {streamId: streamId, port:thePort});
                     } else {
                         callback('error', 'This stream is not published in this room');
                     }

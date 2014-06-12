@@ -18,9 +18,10 @@ function playRtp() {
 function startRecording () {
   if (room !== undefined){
     if (!recording){
-      room.startRtpSink(localStream, function(id) {
+      room.startRtpSink(localStream, "127.0.0.1", "50000",0, function(msg) {
+        console.log("ID " + msg.streamId + "THE PORT " + msg.port);
         recording = true;
-        recordingId = id;
+        recordingId = msg.streamId;
       });
       
     } else {

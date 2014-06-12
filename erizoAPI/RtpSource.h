@@ -47,6 +47,7 @@ class RtpSource: public node::ObjectWrap {
    * Param: the MediaReceiver
    */
   static v8::Handle<v8::Value> setVideoReceiver(const v8::Arguments& args);
+  static v8::Handle<v8::Value> getMediaPort(const v8::Arguments& args);
 };
 
 #endif

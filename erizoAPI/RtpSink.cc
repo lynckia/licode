@@ -18,7 +18,7 @@ void RtpSink::Init(Handle<Object> target) {
   // Prototype
   tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("init"), FunctionTemplate::New(init)->GetFunction());
-
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("getFeedbackPort"), FunctionTemplate::New(getFeedbackPort)->GetFunction());
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("RtpSink"), constructor);
 }
@@ -56,8 +56,16 @@ Handle<Value> RtpSink::close(const Arguments& args) {
 Handle<Value> RtpSink::init(const Arguments& args) {
   HandleScope scope;
 
-
   int r = 0;
   return scope.Close(Integer::New(r));
 }
 
+Handle<Value> RtpSink::getFeedbackPort(const Arguments& args) {
+  HandleScope scope;
+
+  RtpSink* obj = ObjectWrap::Unwrap<RtpSink>(args.This());
+  erizo::RtpSink *me = (erizo::RtpSink*)obj->me;
+
+  
+  return scope.Close(Integer::New(me->getFeedbackPort()));
+}

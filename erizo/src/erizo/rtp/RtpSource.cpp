@@ -13,17 +13,19 @@ using boost::asio::ip::udp;
 namespace erizo {
   DEFINE_LOGGER(RtpSource, "RtpSource");
 
-  RtpSource::RtpSource(const int mediaPort, const std::string& feedbackDir, 
-      const std::string& feedbackPort):feedbackDir_(feedbackDir), feedbackPort_(feedbackPort){
+  RtpSource::RtpSource(const int mediaPort, const std::string& feedbackDir="", 
+      const int feedbackPort=0):mediaPort_(mediaPort),feedbackDir_(feedbackDir), feedbackPort_(feedbackPort){
     sequenceNumberFIR_ = 0;
-    ELOG_DEBUG("Starting RTPSOURCE. MediaPort %d, feedbackIP %s, feedBackPort %s", mediaPort, feedbackDir.c_str(), 
-        feedbackPort.c_str());
+    ELOG_DEBUG("Starting RTPSOURCE. MediaPort %d, feedbackIP %s, feedBackPort %u", mediaPort, feedbackDir.c_str(), 
+        feedbackPort);
     sourcefbSink_ = this;
+    if  (feedbackPort_){
+      fbSocket_.reset(new udp::socket(io_service_sync_, udp::endpoint(udp::v4(), 0)));
+    }
+    receive_endpoint_ = boost::asio::ip::udp::endpoint(udp::v4(),(unsigned short)mediaPort_);
+    ELOG_DEBUG("The mediaPort is %u", mediaPort_);
     socket_.reset(new udp::socket(io_service_, 
-          udp::endpoint(udp::v4(), 
-            mediaPort)));
-    resolver_.reset(new udp::resolver(io_service_));
-    fbSocket_.reset(new udp::socket(io_service_sync_, udp::endpoint(udp::v4(), 60000)));
+          receive_endpoint_));
     socket_->async_receive_from(boost::asio::buffer(buffer_, LENGTH), sender_endpoint_, 
         boost::bind(&RtpSource::handleReceive, this, boost::asio::placeholders::error,
           boost::asio::placeholders::bytes_transferred));
@@ -35,6 +37,15 @@ namespace erizo {
     io_service_.stop();
     rtpSource_thread_.join();
 
+  }
+  unsigned int RtpSource::getMediaPort(){
+    return socket_->local_endpoint().port();
+  }
+
+  void RtpSource::setFeedbackInfo(const std::string& feedbackDir, const int feedbackPort){
+    feedbackDir_ = feedbackDir;
+    feedbackPort_ = feedbackPort; 
+    fbSocket_.reset(new udp::socket(io_service_sync_, udp::endpoint(udp::v4(), 0)));
   }
 
   int RtpSource::sendFirPacket(){/*
@@ -84,7 +95,7 @@ namespace erizo {
       
       try{
         boost::asio::ip::udp::endpoint destination(
-        boost::asio::ip::address::from_string(feedbackDir_),50001);
+        boost::asio::ip::address::from_string(feedbackDir_),feedbackPort_);
         fbSocket_->send_to(boost::asio::buffer(buf, len),destination);
       } catch(std::exception& e){        
         ELOG_ERROR("Error %s", e.what());

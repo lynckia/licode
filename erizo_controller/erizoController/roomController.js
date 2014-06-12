@@ -119,15 +119,18 @@ exports.RoomController = function (spec) {
 
             var args = [publisher_id, url, port, fbPort];
 
-            rpc.callRpc(getErizoQueue(publisher_id), "addRtpSink", args, undefined);
+            rpc.callRpc(getErizoQueue(publisher_id), "addRtpSink", args, {callback: function(thePort) {
+              log.debug("THE PORT ", thePort);
+              // Track external outputs
+              externalOutputs[url] = publisher_id;
 
-            // Track external outputs
-            externalOutputs[url] = publisher_id;
+              // Track publisher locally
+              publishers[publisher_id] = publisher_id;
+              subscribers[publisher_id] = [];
+              callback('success', thePort);
+            }});
 
-            // Track publisher locally
-            publishers[publisher_id] = publisher_id;
-            subscribers[publisher_id] = [];
-            callback('success');
+
         } else {
             callback('error');
         }

@@ -20,6 +20,7 @@ void RtpSource::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("init"), FunctionTemplate::New(init)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setAudioReceiver"), FunctionTemplate::New(setAudioReceiver)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setVideoReceiver"), FunctionTemplate::New(setVideoReceiver)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("getMediaPort"), FunctionTemplate::New(getMediaPort)->GetFunction());
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("RtpSource"), constructor);
@@ -32,8 +33,11 @@ Handle<Value> RtpSource::New(const Arguments& args) {
 
   v8::String::Utf8Value param(args[1]->ToString());
   std::string fbUrl = std::string(*param);
+  /*
   v8::String::Utf8Value param1(args[2]->ToString());
   std::string fbPort = std::string(*param1);
+  */
+  int fbPort = args[2]->IntegerValue();
 
   RtpSource* obj = new RtpSource();
   obj->me = new erizo::RtpSource(mediaPort, fbUrl, fbPort);
@@ -91,4 +95,14 @@ Handle<Value> RtpSource::setVideoReceiver(const Arguments& args) {
   me->setVideoSink(mr);
 
   return scope.Close(Null());
+}
+
+Handle<Value> RtpSource::getMediaPort(const Arguments& args) {
+  HandleScope scope;
+
+  RtpSource* obj = ObjectWrap::Unwrap<RtpSource>(args.This());
+  erizo::RtpSource *me = (erizo::RtpSource*)obj->me;
+
+  
+  return scope.Close(Integer::New(me->getMediaPort()));
 }

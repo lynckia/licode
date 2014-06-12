@@ -53,6 +53,7 @@ exports.ErizoJSController = function (spec) {
 
         if (GLOBAL.config.erizoController.sendStats) {
             wrtc.getStats(function (newStats){
+                log.warn("STATS: " + newStats);
                 rpc.callRpc('stats_handler', 'stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats)});
             });
         }
@@ -193,13 +194,14 @@ exports.ErizoJSController = function (spec) {
         }
     };
 
-    that.addRtpSink = function (to, url, port, feedbackPort) {
+    that.addRtpSink = function (to, url, port, feedbackPort, callback) {
         if (publishers[to] !== undefined) {
             log.info("Adding RtpSink to " + to + " url " + url);
             var rtpSink = new addon.RtpSink(url, port, feedbackPort);
             rtpSink.init();
             publishers[to].addRtpSink(rtpSink, url);
             externalOutputs[url] = rtpSink;
+            callback('callback',rtpSink.getFeedbackPort());
         }
     };
 

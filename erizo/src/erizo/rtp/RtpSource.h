@@ -21,20 +21,19 @@ class RtpSource: public MediaSource, public FeedbackSink {
 
 public:
   RtpSource(const int mediaPort, const std::string& feedbackDir, 
-      const std::string& feedbackPort);
+      const int feedbackPort);
+  void setFeedbackInfo(const std::string& feedbackDir, const int feedbackPort);
+  unsigned int getMediaPort();
   int sendFirPacket();
 	virtual ~RtpSource();
 
 private:
-
-  std::string feedbackDir_, feedbackPort_;
+  unsigned int mediaPort_, sequenceNumberFIR_;
+  std::string feedbackDir_;
+  int feedbackPort_;
   static const int LENGTH = 1500;
-  unsigned int sequenceNumberFIR_;
   boost::scoped_ptr<boost::asio::ip::udp::socket> socket_, fbSocket_;
-  boost::scoped_ptr<boost::asio::ip::udp::resolver> resolver_;
-  boost::scoped_ptr<boost::asio::ip::udp::resolver::query> query_;
-  boost::asio::ip::udp::endpoint sender_endpoint_;
-	boost::asio::ip::udp::resolver::iterator iterator_;
+  boost::asio::ip::udp::endpoint sender_endpoint_, receive_endpoint_;
 	boost::asio::io_service io_service_;
 	boost::asio::io_service io_service_sync_;
   boost::thread rtpSource_thread_;

@@ -16,13 +16,15 @@ namespace erizo {
     sinkfbSource_ = this;
     resolver_.reset(new udp::resolver(io_service_));
     socket_.reset(new udp::socket(io_service_, udp::endpoint(udp::v4(), 0)));
-    fbSocket_.reset(new udp::socket(io_service_, udp::endpoint(udp::v4(), feedbackPort)));
+    fb_endpoint_ = udp::endpoint (udp::v4(), feedbackPort);
+    fbSocket_.reset(new udp::socket(io_service_, fb_endpoint_));
     query_.reset(new udp::resolver::query(udp::v4(), url.c_str(), port.c_str()));
     iterator_ = resolver_->resolve(*query_);
     sending_ =true;
     fbSocket_->async_receive_from(boost::asio::buffer(buffer_, LENGTH), sender_endpoint_, 
         boost::bind(&RtpSink::handleReceive, this, boost::asio::placeholders::error,
           boost::asio::placeholders::bytes_transferred));
+    feedbackPort_ = sender_endpoint_.port();
     send_Thread_ = boost::thread(&RtpSink::sendLoop, this);
     receive_Thread_ = boost::thread(&RtpSink::serviceLoop, this);
 
@@ -33,6 +35,11 @@ namespace erizo {
     send_Thread_.join();
     io_service_.stop();
     receive_Thread_.join();
+  }
+
+  unsigned short RtpSink::getFeedbackPort(){
+    return fbSocket_->local_endpoint().port();
+    
   }
 
   int RtpSink::deliverVideoData_(char* buf, int len){

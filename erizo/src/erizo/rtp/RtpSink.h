@@ -23,6 +23,7 @@ class RtpSink: public MediaSink, public FeedbackSource {
   public:
 	RtpSink(const std::string& url, const std::string& port, int feedbackPort);
 	virtual ~RtpSink();
+  unsigned short getFeedbackPort();
 
 private:
 
@@ -32,13 +33,14 @@ private:
   boost::scoped_ptr<boost::asio::ip::udp::resolver::query> query_;
 	boost::asio::ip::udp::resolver::iterator iterator_;
   boost::asio::io_service io_service_;
-  boost::asio::ip::udp::endpoint sender_endpoint_;
+  boost::asio::ip::udp::endpoint sender_endpoint_, fb_endpoint_;
 
   boost::thread send_Thread_, receive_Thread_;
 	boost::condition_variable cond_;
   boost::mutex queueMutex_;
   std::queue<dataPacket> sendQueue_;
   bool sending_;
+  unsigned short feedbackPort_;
 
   static const int LENGTH = 1500;
   char* buffer_[LENGTH];
