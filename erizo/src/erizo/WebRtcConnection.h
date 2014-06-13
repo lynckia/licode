@@ -7,8 +7,6 @@
 #include <boost/thread.hpp>
 
 #include "logger.h"
-
-#include "SrtpChannel.h"
 #include "SdpInfo.h"
 #include "MediaDefinitions.h"
 #include "Transport.h"
@@ -122,8 +120,8 @@ private:
 
 	WebRTCEvent globalState_;
 
-	int video_, audio_, bundle_, sequenceNumberFIR_;
-	boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_, updateStateMutex_;
+    int bundle_, sequenceNumberFIR_;
+    boost::mutex writeMutex_, receiveVideoMutex_, updateStateMutex_;
 	boost::thread send_Thread_;
 	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionEventListener* connEventListener_;
@@ -131,7 +129,7 @@ private:
 	Transport *videoTransport_, *audioTransport_;
 	char deliverMediaBuffer_[3000];
 
-	bool sending_, closed_;
+    bool sending_;
 	void sendLoop();
 	void writeSsrc(char* buf, int len, unsigned int ssrc);
   void processRtcpHeaders(char* buf, int len, unsigned int ssrc);

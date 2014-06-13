@@ -91,7 +91,7 @@ public:
 
 
 	int unpackageVideo(unsigned char* inBuff, int inBuffLen,
-			unsigned char* outBuff, int* gotFrame, int* estimatedFps);
+            unsigned char* outBuff, int* gotFrame);
 
 	int unpackageAudio(unsigned char* inBuff, int inBuffLen,
 			unsigned char* outBuff);

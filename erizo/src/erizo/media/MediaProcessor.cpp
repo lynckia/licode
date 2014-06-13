@@ -79,9 +79,7 @@ namespace erizo {
   }
   int InputProcessor::deliverVideoData_(char* buf, int len) {
     if (videoUnpackager && videoDecoder) {
-      int estimatedFps=0;
-      int ret = unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
-          unpackagedBufferPtr_, &gotUnpackagedFrame_, &estimatedFps);
+      int ret = unpackageVideo(reinterpret_cast<unsigned char*>(buf), len, unpackagedBufferPtr_, &gotUnpackagedFrame_);
       if (ret < 0)
         return 0;
       upackagedSize_ += ret;
@@ -93,9 +91,9 @@ namespace erizo {
         int gotDecodedFrame = 0;
 
         c = vDecoder.decodeVideo(unpackagedBufferPtr_, upackagedSize_,
-            decodedBuffer_,
-            mediaInfo.videoCodec.width * mediaInfo.videoCodec.height * 3
-            / 2, &gotDecodedFrame);
+                                 decodedBuffer_,
+                                 mediaInfo.videoCodec.width * mediaInfo.videoCodec.height * 3 / 2,
+                                 &gotDecodedFrame);
 
         upackagedSize_ = 0;
         gotUnpackagedFrame_ = 0;
@@ -245,18 +243,9 @@ namespace erizo {
 
   }
 
-  int InputProcessor::unpackageAudio(unsigned char* inBuff, int inBuffLen,
-      unsigned char* outBuff) {
-
-    RtpHeader* head = reinterpret_cast<RtpHeader*>(inBuff);
-    if (head->getPayloadType()!=0){
-      ELOG_DEBUG("PT AUDIO %d", head->getPayloadType());
-      //      return -1;
-    }
-
-    //    ELOG_DEBUG("Audio Timestamp %u", head->getTimestamp());
+  int InputProcessor::unpackageAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff) {
     int l = inBuffLen - RtpHeader::MIN_SIZE;
-    if (l<0){
+    if (l < 0){
       ELOG_ERROR ("Error unpackaging audio");
       return 0;
     }
@@ -265,8 +254,7 @@ namespace erizo {
     return l;
   }
 
-  int InputProcessor::unpackageVideo(unsigned char* inBuff, int inBuffLen,
-      unsigned char* outBuff, int* gotFrame, int* estimatedFps) {
+  int InputProcessor::unpackageVideo(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff, int* gotFrame) {
 
     if (videoUnpackager == 0) {
       ELOG_DEBUG("Unpackager not correctly initialized");
@@ -276,12 +264,6 @@ namespace erizo {
     int inBuffOffset = 0;
     *gotFrame = 0;
     RtpHeader* head = reinterpret_cast<RtpHeader*>(inBuff);
-
-
-    //head->getMarker());
-    //    if ( head->getSSRC() != 55543 /*&& head->payloadtype!=101*/) {
-    //      return -1;
-    //    }
     if (head->getPayloadType() != 100) {
       return -1;
     }
@@ -289,15 +271,9 @@ namespace erizo {
     int l = inBuffLen - head->getHeaderLength();
     inBuffOffset+=head->getHeaderLength();
 
-    erizo::RTPPayloadVP8* parsed = pars.parseVP8(
-        (unsigned char*) &inBuff[inBuffOffset], l);
+    erizo::RTPPayloadVP8* parsed = pars.parseVP8((unsigned char*) &inBuff[inBuffOffset], l);
     memcpy(outBuff, parsed->data, parsed->dataLength);
     if (head->getMarker()) {
-      *estimatedFps = 0;
-      if (lastVideoTs_){
-        *estimatedFps = 100000/(head->getTimestamp() - lastVideoTs_);
-      }
-      lastVideoTs_ = head->getTimestamp();
       *gotFrame = 1;
     }
     int ret = parsed->dataLength;
