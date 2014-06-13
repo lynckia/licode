@@ -72,14 +72,15 @@ ExternalOutput::~ExternalOutput(){
     delete inputProcessor_;
     inputProcessor_ = NULL;
 
-    if (context_ != NULL)
+    if (audio_stream_ != NULL && video_stream_ != NULL && context_ != NULL){
         av_write_trailer(context_);
+    }
 
-    if (video_stream_->codec != NULL){
+    if (video_stream_ && video_stream_->codec != NULL){
         avcodec_close(video_stream_->codec);
     }
 
-    if (audio_stream_->codec != NULL){
+    if (audio_stream_ && audio_stream_->codec != NULL){
         avcodec_close(audio_stream_->codec);
     }
 
