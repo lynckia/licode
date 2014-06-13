@@ -61,7 +61,7 @@ L.Logger = (function (L) {
             }
             L.Logger.panel.value = L.Logger.panel.value + "\n" + tmp;
         } else {
-            console.log.apply(console, args);
+            con.log.apply(this, args);
         }
     };
 
