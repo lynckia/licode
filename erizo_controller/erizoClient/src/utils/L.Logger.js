@@ -53,7 +53,7 @@ L.Logger = (function (L) {
             args[i] = arguments[i];
         }
         var tempArgs = args.slice(1);
-        var args = [out].concat(tempArgs);
+        args = [out].concat(tempArgs);
         if (L.Logger.panel !== undefined) {
             var tmp = '';
             for (var idx = 0; idx < args.length; idx++) {
@@ -61,7 +61,7 @@ L.Logger = (function (L) {
             }
             L.Logger.panel.value = L.Logger.panel.value + "\n" + tmp;
         } else {
-            con.log.apply(this, args);
+            console.log.apply(this, args);
         }
     };
 
