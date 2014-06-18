@@ -20,7 +20,6 @@ namespace erizo {
   }
   void Stats::processRtcpStats(char* buf, int length) {
     boost::mutex::scoped_lock lock(mapMutex_);    
-    ELOG_DEBUG("ProcessRTcpStats"); 
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;
@@ -35,7 +34,7 @@ namespace erizo {
   
   void Stats::processRtcpStats(RtcpHeader* chead) {    
     unsigned int ssrc = chead->getSSRC();
-    ELOG_DEBUG("RTCP Packet: PT %d, SSRC %u,  block count %d ",chead->packettype,chead->getSSRC(), chead->getBlockCount()); 
+//    ELOG_DEBUG("RTCP Packet: PT %d, SSRC %u,  block count %d ",chead->packettype,chead->getSSRC(), chead->getBlockCount()); 
     if (chead->packettype == RTCP_Receiver_PT){
       addFragmentLost (chead->getFractionLost(), ssrc);
       setPacketsLost (chead->getLostPackets(), ssrc);
@@ -44,7 +43,7 @@ namespace erizo {
       setRtcpPacketSent(chead->getPacketsSent(), ssrc);
       setRtcpBytesSent(chead->getOctetsSent(), ssrc);
     }else if (chead->packettype == 206){
-      ELOG_DEBUG("REMB packet mantissa %u, exp %u", chead->getBrMantis(), chead->getBrExp());
+      //ELOG_DEBUG("REMB packet mantissa %u, exp %u", chead->getBrMantis(), chead->getBrExp());
     }
   }
  
@@ -52,20 +51,22 @@ namespace erizo {
   std::string Stats::getStats() {
     boost::mutex::scoped_lock lock(mapMutex_);
     std::ostringstream theString;
-    theString << "stats :[";
-    for (fullStatsMap_t::iterator itssrc=theStats_.begin(); itssrc!=theStats_.end(); itssrc++){
+    theString << "[";
+    for (fullStatsMap_t::iterator itssrc=theStats_.begin(); itssrc!=theStats_.end();){
       unsigned long int currentSSRC = itssrc->first;
       theString << "{\"ssrc\":\"" << currentSSRC << "\",\n";
         for (singleSSRCstatsMap_t::iterator it=theStats_[currentSSRC].begin(); it!=theStats_[currentSSRC].end();){
           theString << "\"" << it->first << "\":\"" << it->second << "\"";
-          if (it++ != theStats_[currentSSRC].end()){
+          if (++it != theStats_[currentSSRC].end()){
             theString << ",\n";
           }          
         }
         theString << "}";
+        if (++itssrc != theStats_.end()){
+          theString << ",";
+        }
       }
     theString << "]";
-    ELOG_DEBUG("Stats %s", theString.str().c_str());
     return theString.str(); 
   }
 
