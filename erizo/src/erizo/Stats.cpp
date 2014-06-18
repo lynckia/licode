@@ -11,7 +11,6 @@
 namespace erizo {
 
   DEFINE_LOGGER(Stats, "Stats");
-
   Stats::~Stats(){
     if (runningStats_){
       runningStats_ = false;
@@ -21,6 +20,7 @@ namespace erizo {
   }
   void Stats::processRtcpStats(char* buf, int length) {
     boost::mutex::scoped_lock lock(mapMutex_);    
+    ELOG_DEBUG("ProcessRTcpStats"); 
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;
@@ -47,29 +47,25 @@ namespace erizo {
       ELOG_DEBUG("REMB packet mantissa %u, exp %u", chead->getBrMantis(), chead->getBrExp());
     }
   }
-  
+ 
+  // TODO: MAke a proper JSON array, one object per SSRC
   std::string Stats::getStats() {    
     boost::mutex::scoped_lock lock(mapMutex_);
     std::ostringstream theString;
-    theString << "{";
-    for (fullStatsMap_t::iterator itssrc=theStats_.begin(); itssrc!=theStats_.end(); ++itssrc){
-      int currentSSRC = itssrc->first;
+    theString << ""stats":[";
+    for (fullStatsMap_t::iterator itssrc=theStats_.begin(); itssrc!=theStats_.end(); itssrc++){
+      unsigned long int currentSSRC = itssrc->first;
+      ELOG_DEBUG("currentSSRC %lu", currentSSRC);
       theString << "\"ssrc\":\"" << currentSSRC << "\",\n";
-      for (singleSSRCstatsMap_t::iterator it=theStats_[currentSSRC].begin(); it!=theStats_[currentSSRC].end(); ++it){
+      for (singleSSRCstatsMap_t::iterator it=theStats_[currentSSRC].begin(); it!=theStats_[currentSSRC].end(); it++){
         theString << "\"" << it->first << "\":\"" << it->second << "\"";
         if (++it != theStats_[currentSSRC].end()){
           theString << ",\n";
         }
-        --itssrc;
       }
-
     }
-    theString << "\n}";
-
-    std::map<std::string, unsigned int>::iterator search = theStats_[0].find("fragmentLost");
-    if (search != theStats_[0].end()) {
-      search->second = 0;
-    }
+    theString << "\n]";
+    ELOG_DEBUG("Stats %s", theString.str().c_str());
     return theString.str(); 
   }
 
@@ -81,13 +77,13 @@ namespace erizo {
       ELOG_DEBUG("Starting periodic stats report with interval %d, iterationsPerTick %d", intervalMillis, iterationsPerTick_);
       statsThread_ = boost::thread(&Stats::sendStats, this);
     }else{
-      ELOG_DEBUG("Stats already started, chaning listener and interval");
+      ELOG_DEBUG("Stats already started, changing listener and interval");
     }
   }
 
   void Stats::sendStats() {
     while(runningStats_) {
-      if (++currentIterations_ == (iterationsPerTick_)){
+      if (++currentIterations_ >= (iterationsPerTick_)){
         theListener_->notifyStats(this->getStats());
 
         currentIterations_ =0;

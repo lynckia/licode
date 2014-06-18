@@ -203,14 +203,12 @@ namespace erizo {
   int WebRtcConnection::deliverFeedback_(char* buf, int len){
     // Check where to send the feedback
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-    ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, chead->getSSRC(), chead->getSourceSSRC());
+    //ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, chead->getSSRC(), chead->getSourceSSRC());
     if (chead->getSourceSSRC() == this->getAudioSourceSSRC()) {
         writeSsrc(buf,len,this->getAudioSinkSSRC());
     } else {
         writeSsrc(buf,len,this->getVideoSinkSSRC());      
     }
-    ELOG_DEBUG("received Feedback---- CHANGED type %u ssrc %u, sourcessrc %u", chead->packettype, chead->getSSRC(), chead->getSourceSSRC());
-
     if (videoTransport_ != NULL) {
       this->queueData(0, buf, len, videoTransport_);
     }
@@ -238,8 +236,9 @@ namespace erizo {
     // PROCESS STATS
     if (this->statsListener_){ // if there is no listener we dont process stats
       RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
-      if (head->payloadtype != RED_90000_PT && head->payloadtype != PCMU_8000_PT)     
+      if (head->payloadtype != RED_90000_PT && head->payloadtype != PCMU_8000_PT){
         thisStats_.processRtcpStats(buf, length);
+      }
     }
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
