@@ -53,6 +53,7 @@ private:
   void handleReceive(const::boost::system::error_code& error, 
       size_t bytes_recvd);
 	void queueData(const char* buffer, int len, packetType type);
+  void clearQueue();
 };
 
 } /* namespace erizo */

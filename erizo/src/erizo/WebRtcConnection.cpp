@@ -209,6 +209,7 @@ namespace erizo {
     } else {
         writeSsrc(buf,len,this->getVideoSinkSSRC());      
     }
+    ELOG_DEBUG("received Feedback---- CHANGED type %u ssrc %u, sourcessrc %u", chead->packettype, chead->getSSRC(), chead->getSourceSSRC());
 
     if (videoTransport_ != NULL) {
       this->queueData(0, buf, len, videoTransport_);
@@ -451,7 +452,6 @@ namespace erizo {
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;
-    ELOG_DEBUG("Process RTCPHeaders");
     do{
       movingBuf+=rtcpLength;
       RtcpHeader *chead= reinterpret_cast<RtcpHeader*>(movingBuf);

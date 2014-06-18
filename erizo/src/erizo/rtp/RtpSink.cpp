@@ -31,9 +31,10 @@ namespace erizo {
   }
 
   RtpSink::~RtpSink() {
-    sending_ = false;
-    send_Thread_.join();
+    ELOG_DEBUG("RtpSink destructor");
+    this->clearQueue();
     io_service_.stop();
+    send_Thread_.join();
     receive_Thread_.join();
   }
 
@@ -71,6 +72,15 @@ namespace erizo {
     cond_.notify_one();
   }
 
+  void RtpSink::clearQueue(){
+    boost::mutex::scoped_lock lock(queueMutex_);
+    sending_ = false;
+    std::queue<dataPacket> empty;
+    std::swap( sendQueue_, empty );
+    cond_.notify_one();
+    return;
+  }
+
   void RtpSink::sendLoop(){
     while (sending_ == true) {
 
@@ -104,7 +114,6 @@ namespace erizo {
     fbSocket_->async_receive_from(boost::asio::buffer(buffer_, LENGTH), sender_endpoint_, 
         boost::bind(&RtpSink::handleReceive, this, boost::asio::placeholders::error,
           boost::asio::placeholders::bytes_transferred));
-      ELOG_DEBUG("Scheduled again");
   }
   
   void RtpSink::serviceLoop() {

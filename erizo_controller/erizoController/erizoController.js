@@ -436,9 +436,13 @@ var listen = function () {
                 });
             } else if (options.attributes && options.attributes.port!==undefined){
               log.info ("THIS IS TRYING TO PUBLISH RTPSOURCE");
-              var url = "127.0.0.1";
               var port = options.attributes.port;
               var fbport = 50001;
+              var url = "127.0.0.1";
+              if (options.attributes.feedbackPort!==undefined && options.attributes.feedbackDir !== undefined){
+                fbport = options.attributes.feedbackPort;
+                url = options.attributes.feedbackDir;
+              }
               id = Math.random() * 1000000000000000000;
               socket.room.controller.addRtpSource(id, port, url, fbport ,function (result) {
                 if (result === 'success') {

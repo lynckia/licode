@@ -63,7 +63,7 @@ namespace erizo {
 
   int OneToManyProcessor::deliverFeedback_(char* buf, int len){
     if (feedbackSink_ != NULL){
-      ELOG_DEBUG("Deliver Feedback");
+//      ELOG_DEBUG("Deliver Feedback");
       feedbackSink_->deliverFeedback(buf,len);
     }
     return 0;
@@ -109,6 +109,7 @@ namespace erizo {
       }
       it = subscribers.erase(it);
     }
+    // TODO: MIRAR
     lock.unlock();
     lock.lock();
     subscribers.clear();

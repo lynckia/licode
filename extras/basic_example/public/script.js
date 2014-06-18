@@ -1,5 +1,6 @@
 var serverUrl = "/";
 var localStream, room, recording, recordingId;
+var thePort;
 
 function getParameterByName(name) {
   name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
@@ -9,8 +10,11 @@ function getParameterByName(name) {
 }
 
 function playRtp() {
+  if (thePort===undefined){
+    return;
+  }
   if (room !== undefined){
-    var stream = Erizo.Stream({audio:true, video:true, data: true, attributes:{port:50000}});
+    var stream = Erizo.Stream({audio:true, video:true, data: true, attributes:{port:50000, feedbackDir: "127.0.0.1", feedbackPort: thePort}});
     room.publish(stream);
   }
 }
@@ -21,6 +25,7 @@ function startRecording () {
       room.startRtpSink(localStream, "127.0.0.1", "50000",0, function(msg) {
         console.log("ID " + msg.streamId + "THE PORT " + msg.port);
         recording = true;
+        thePort = msg.port;
         recordingId = msg.streamId;
       });
       
