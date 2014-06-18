@@ -49,22 +49,22 @@ namespace erizo {
   }
  
   // TODO: MAke a proper JSON array, one object per SSRC
-  std::string Stats::getStats() {    
+  std::string Stats::getStats() {
     boost::mutex::scoped_lock lock(mapMutex_);
     std::ostringstream theString;
-    theString << ""stats":[";
+    theString << "stats :[";
     for (fullStatsMap_t::iterator itssrc=theStats_.begin(); itssrc!=theStats_.end(); itssrc++){
       unsigned long int currentSSRC = itssrc->first;
-      ELOG_DEBUG("currentSSRC %lu", currentSSRC);
-      theString << "\"ssrc\":\"" << currentSSRC << "\",\n";
-      for (singleSSRCstatsMap_t::iterator it=theStats_[currentSSRC].begin(); it!=theStats_[currentSSRC].end(); it++){
-        theString << "\"" << it->first << "\":\"" << it->second << "\"";
-        if (++it != theStats_[currentSSRC].end()){
-          theString << ",\n";
+      theString << "{\"ssrc\":\"" << currentSSRC << "\",\n";
+        for (singleSSRCstatsMap_t::iterator it=theStats_[currentSSRC].begin(); it!=theStats_[currentSSRC].end();){
+          theString << "\"" << it->first << "\":\"" << it->second << "\"";
+          if (it++ != theStats_[currentSSRC].end()){
+            theString << ",\n";
+          }          
         }
+        theString << "}";
       }
-    }
-    theString << "\n]";
+    theString << "]";
     ELOG_DEBUG("Stats %s", theString.str().c_str());
     return theString.str(); 
   }
