@@ -86,13 +86,13 @@ Erizo.Speaker = function (spec) {
             that.media.volume = that.picker.value / 100;
         };
 
-        that.icon.onclick = function (evt) {
+        /*that.icon.onclick = function (evt) {
             if (muted) {
                 unmute();
             } else {
                 mute();
             }
-        }
+        }*/
 
         // Public functions
         that.div.onmouseover = function (evt) {
@@ -119,13 +119,13 @@ Erizo.Speaker = function (spec) {
             that.stream.stream.getAudioTracks()[0].enabled = true;
         };
 
-        that.icon.onclick = function (evt) {
+        /*that.icon.onclick = function (evt) {
             if (muted) {
                 unmute();
             } else {
                 mute();
             }
-        }
+        }*/
     }
   
 
