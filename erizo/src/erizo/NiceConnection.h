@@ -101,7 +101,7 @@ public:
   IceState checkIceState();
 	void updateComponentState(unsigned int compId, IceState state);
 
-  void queueData(unsigned int component_id, char* buf, unsigned int len);
+  void queueData(unsigned int component_id, char* buf, int len);
 
   packetPtr getPacket();
   void close();

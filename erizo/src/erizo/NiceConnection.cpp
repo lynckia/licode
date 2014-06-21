@@ -24,7 +24,7 @@ namespace erizo {
   int length;
 
   int timed_poll(GPollFD* fds, guint nfds, gint timeout){
-    return poll((pollfd*)fds,nfds,500);
+    return poll((pollfd*)fds,nfds,200);
   }
   void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
       guint len, gchar* buf, gpointer user_data) {
@@ -92,7 +92,7 @@ namespace erizo {
   };
   packetPtr NiceConnection::getPacket(){
       boost::unique_lock<boost::mutex> lock(queueMutex_);
-      boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::milliseconds(1000);
+      boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::milliseconds(300);
       if(!cond_.timed_wait(lock,timeout, queue_not_empty(niceQueue_))){
         packetPtr p (new dataPacket());
         p->length=0;
@@ -117,9 +117,10 @@ namespace erizo {
     boost::unique_lock<boost::mutex> lock(agentMutex_);
     this->updateIceState(NICE_FINISHED);
     listener_ = NULL;
-    boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::milliseconds(1000);
+    boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::milliseconds(500);
+    ELOG_DEBUG("m_thread join %p", this);
     if (!m_Thread_.timed_join(timeout) ){
-      ELOG_DEBUG("Taking too long to close thread, trying to interrupt");
+      ELOG_DEBUG("Taking too long to close thread, trying to interrupt %p", this);
       m_Thread_.interrupt();
     }
     if (agent_!=NULL){
@@ -131,18 +132,17 @@ namespace erizo {
       context_=NULL;
     }
     lock.unlock();
-    boost::unique_lock<boost::mutex> lockqueue(queueMutex_);
-    cond_.notify_one();
+    this->queueData(1, NULL, -1 );
     ELOG_DEBUG("Nice Closed %p", this);
   }
 
   void NiceConnection::start() {
   }
 
-  void NiceConnection::queueData(unsigned int component_id, char* buf, unsigned int len){
+  void NiceConnection::queueData(unsigned int component_id, char* buf, int len){
     boost::mutex::scoped_lock(queueMutex_);
     if (this->checkIceState() == NICE_READY){
-      if (niceQueue_.size() < 1000 && len>0) {
+      if (niceQueue_.size() < 1000 ) {
         packetPtr p_ (new dataPacket());
         memcpy(p_->data, buf, len);
         p_->comp = component_id;
@@ -167,7 +167,7 @@ namespace erizo {
 
   void NiceConnection::init() {
     if(this->checkIceState() != NICE_INITIAL){
-      ELOG_DEBUG("Initing NiceConnection not in INITIAL state, exiting...");
+      ELOG_DEBUG("Initing NiceConnection not in INITIAL state, exiting... %p", this);
       return;
     };
     boost::unique_lock<boost::mutex> lock(agentMutex_);
@@ -260,7 +260,7 @@ namespace erizo {
       g_main_context_iteration(context_, true);
       lockContext.unlock();
     }
-    ELOG_DEBUG("LibNice thread finished");
+    ELOG_DEBUG("LibNice thread finished %p", this);
   }
 
   bool NiceConnection::setRemoteCandidates(
@@ -491,7 +491,7 @@ namespace erizo {
     if (iceState_ == NICE_FINISHED) {
       return;
     }else if (iceState_ == NICE_FAILED){
-      ELOG_WARN ("Ice Failed");
+      ELOG_WARN ("Ice Failed %p", this);
       this->listener_->updateIceState(iceState_,this);
       this->running_=false;
     }
