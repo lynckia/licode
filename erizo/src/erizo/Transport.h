@@ -22,20 +22,14 @@ namespace erizo {
   };
   class Transport : public NiceConnectionListener {
     public:
-      NiceConnection *nice_;
+      boost::shared_ptr<NiceConnection> nice_;
       MediaType mediaType;
       std::string transport_name;
-      Transport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, const std::string &stunServer, int stunPort, int minPort, int maxPort) {
-        this->transport_name = transport_name;
-        this->mediaType = med;
-        this->stunServer_ = stunServer;
-        this->stunPort_ = stunPort;
-        this->minPort_ = minPort;
-        this->maxPort_ = maxPort;
-        transpListener_ = transportListener;
-        rtcp_mux_ = rtcp_mux;
+      Transport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, const std::string &stunServer, int stunPort, int minPort, int maxPort) :
+        mediaType(med), transport_name(transport_name),rtcp_mux_(rtcp_mux), transpListener_(transportListener), stunPort_(stunPort), minPort_(minPort), maxPort_(maxPort), stunServer_(stunServer)
+      {
       }
-      virtual ~Transport(){};
+      virtual ~Transport(){}
       virtual void updateIceState(IceState state, NiceConnection *conn) = 0;
       virtual void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) = 0;
       virtual void write(char* data, int len) = 0;
@@ -58,14 +52,11 @@ namespace erizo {
           transpListener_->updateState(state, this);
         }
       }
-      NiceConnection* getNiceConnection() {
-        return nice_;
-      }
       void writeOnNice(int comp, void* buf, int len) {
-        getNiceConnection()->sendData(comp, buf, len);
+        nice_->sendData(comp, buf, len);
       }
       bool setRemoteCandidates(std::vector<CandidateInfo> &candidates) {
-        return getNiceConnection()->setRemoteCandidates(candidates);
+        return nice_->setRemoteCandidates(candidates);
       }
       bool rtcp_mux_;
     private:
@@ -76,8 +67,6 @@ namespace erizo {
       int stunPort_, minPort_, maxPort_;
 
       std::string stunServer_;
-
-      friend class NiceConnection;
   };
-};
+}
 #endif
