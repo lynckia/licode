@@ -96,11 +96,15 @@ Erizo.Room = function (spec) {
     connectSocket = function (token, callback, error) {
         // Once we have connected
 
+        /*<<<<<<< HEAD
         var host = 'https://' + token.host;
 
         delete io.sockets[host];
 
         that.socket = io.connect(host, {reconnect: false, secure: true});
+        =======*/
+        that.socket = io.connect(token.host, {reconnect: false, secure: token.secure});
+        //>>>>>>> 72aeb39
 
         // We receive an event with a new stream in the room.
         // type can be "media" or "data"

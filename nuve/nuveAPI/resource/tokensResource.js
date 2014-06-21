@@ -32,7 +32,12 @@ var getTokenString = function (id, token) {
         hex = crypto.createHmac('sha1', dataBase.nuveKey).update(toSign).digest('hex'),
         signed = (new Buffer(hex)).toString('base64'),
 
-        tokenJ = {tokenId: id, host: token.host, signature: signed},
+        tokenJ = {
+            tokenId: id,
+            host: token.host,
+            secure: token.secure,
+            signature: signed
+        },
         tokenS = (new Buffer(JSON.stringify(tokenJ))).toString('base64');
 
     return tokenS;
@@ -64,6 +69,9 @@ var generateToken = function (callback) {
     token.role = role;
     token.service = currentService._id;
     token.creationDate = new Date();
+
+    // Values to be filled from the erizoController
+    token.secure = false;
 
     if (currentRoom.p2p) {
         token.p2p = true;
@@ -117,6 +125,7 @@ var generateToken = function (callback) {
 
             token.host = config.minervaHost + ":443";
             //token.host = ec.ip + ':8080';
+            token.secure = true;
 
             tokenRegistry.addToken(token, function (id) {
 
