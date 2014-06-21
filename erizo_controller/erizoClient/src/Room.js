@@ -103,7 +103,7 @@ Erizo.Room = function (spec) {
 
         that.socket = io.connect(host, {reconnect: false, secure: true});
         =======*/
-        that.socket = io.connect(token.host, {reconnect: false, secure: false, 'force new connection': true});
+        that.socket = io.connect(token.host, {reconnect: false, secure: token.secure, 'force new connection': true});
         //>>>>>>> 72aeb39
 
         // We receive an event with a new stream in the room.
