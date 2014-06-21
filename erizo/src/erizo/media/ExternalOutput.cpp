@@ -204,7 +204,7 @@ int ExternalOutput::writeVideoData(char* buf, int len){
         if (unpackagedSize_ > UNPACKAGE_BUFFER_SIZE){
             ELOG_ERROR("Unpackaged size bigget than buffer %d", unpackagedSize_);
         }
-        if (gotUnpackagedFrame_ && videoCodec_!=NULL) {
+        if (gotUnpackagedFrame_ && videoCodec_ != NULL) {
             timeval time;
             gettimeofday(&time, NULL);
             unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
@@ -343,7 +343,7 @@ int ExternalOutput::sendFirPacket() {
 void ExternalOutput::sendLoop() {
     while (sending_ == true) {
         boost::unique_lock<boost::mutex> lock(queueMutex_);
-        while ((!audioQueue_.getSize())&&(!videoQueue_.getSize())) {
+        while ((audioQueue_.getSize() < 15)&&(videoQueue_.getSize() < 15)) {
             cond_.wait(lock);
             if (sending_ == false) {
                 lock.unlock();
