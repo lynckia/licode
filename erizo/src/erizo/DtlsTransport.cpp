@@ -1,15 +1,11 @@
 /*
  * DtlsConnection.cpp
  */
-#include <iostream>
-#include <cassert>
 
 #include "DtlsTransport.h"
-#include "NiceConnection.h"
 #include "SrtpChannel.h"
 
 #include "dtls/DtlsFactory.h"
-
 #include "rtputils.h"
 
 using namespace erizo;

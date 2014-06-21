@@ -138,7 +138,7 @@ int ParseVP8Extension(erizo::RTPPayloadVP8* vp8, const unsigned char* dataPtr, i
 
 	if (vp8->hasPictureID) {
 		if (ParseVP8PictureID(vp8, &dataPtr, &dataLength, &parsedBytes) != 0) {
-			return -1;
+            return -1;
 		}
 	}
 
