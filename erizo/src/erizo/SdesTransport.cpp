@@ -41,24 +41,15 @@ SdesTransport::SdesTransport(MediaType med, const std::string &transport_name, b
     cryptoLocal_.tag = 1;
     cryptoRemote_ = *remoteCrypto;
 
-    nice_.reset(new NiceConnection(med, transport_name, comps,  stunServer, stunPort, minPort, maxPort));
-    nice_->setNiceListener(this);
+    nice_.reset(new NiceConnection(med, transport_name, this, comps,  stunServer, stunPort, minPort, maxPort));
     nice_->start();
 }
 
 SdesTransport::~SdesTransport() {
-    if (srtp_ != NULL) {
-        delete srtp_; srtp_ = NULL;
-    }
-    if (srtcp_ != NULL) {
-        delete srtcp_; srtcp_ = NULL;
-    }
-    if (protectBuf_ != NULL) {
-        free(protectBuf_); protectBuf_ = NULL;
-    }
-    if (unprotectBuf_ != NULL) {
-        free(unprotectBuf_); unprotectBuf_ = NULL;
-    }
+    delete srtp_; srtp_ = NULL;
+    delete srtcp_; srtcp_ = NULL;
+    free(protectBuf_); protectBuf_ = NULL;
+    free(unprotectBuf_); unprotectBuf_ = NULL;
 }
 
 void SdesTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {
@@ -94,10 +85,9 @@ void SdesTransport::write(char* data, int len) {
     int length = len;
     SrtpChannel *srtp = srtp_;
 
-    int comp = 1;
     if (this->getTransportState() == TRANSPORT_READY) {
       memcpy(protectBuf_, data, len);
-
+      int comp = 1;
       rtcpheader *chead = reinterpret_cast<rtcpheader*> (protectBuf_);
       if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_PS_Feedback_PT
           || chead->packettype == RTCP_RTP_Feedback_PT) {
@@ -107,7 +97,7 @@ void SdesTransport::write(char* data, int len) {
         if (srtcp_ != NULL) {
           srtp = srtcp_;
         }
-        if (srtp && nice_->iceState == NICE_READY) {
+        if (srtp && nice_->checkIceState() == NICE_READY) {
           if(srtp->protectRtcp(protectBuf_, &length)<0) {
             return;
           }
@@ -116,7 +106,7 @@ void SdesTransport::write(char* data, int len) {
       else{
         comp = 1;
 
-        if (srtp && nice_->iceState == NICE_READY) {
+        if (srtp && nice_->checkIceState() == NICE_READY) {
           if(srtp->protectRtp(protectBuf_, &length)<0) {
             return;
           }
@@ -125,7 +115,7 @@ void SdesTransport::write(char* data, int len) {
       if (length <= 10) {
         return;
       }
-      if (nice_->iceState == NICE_READY) {
+      if (nice_->checkIceState() == NICE_READY) {
           getTransportListener()->queueData(comp, protectBuf_, length, this);
       }
     }
@@ -161,7 +151,7 @@ void SdesTransport::processLocalSdp(SdpInfo *localSdp_) {
   bool printedAudio = false;
   localSdp_->isFingerprint = false;
   localSdp_->addCrypto(cryptoLocal_);
-  if (nice_->iceState >= NICE_CANDIDATES_GATHERED) {
+  if (nice_->checkIceState() >= NICE_CANDIDATES_GATHERED) {
     boost::shared_ptr<std::vector<CandidateInfo> > cands = nice_->localCandidates;
     ELOG_DEBUG( " Candidates: %lu" , cands->size() );
     for (unsigned int it = 0; it < cands->size(); it++) {

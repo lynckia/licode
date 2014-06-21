@@ -11,7 +11,6 @@
 #include <openssl/srtp.h>
 
 #include "DtlsSocket.h"
-#include "DtlsFactory.h"
 #include "DtlsTimer.h"
 #include "bf_dwrap.h"
 
@@ -36,10 +35,7 @@ DtlsSocketContext::DtlsSocketContext() {
 
 DtlsSocketContext::~DtlsSocketContext(){
   delete mSocket;
-}
-
-void DtlsSocketContext::setSocket(DtlsSocket *socket) {
-  mSocket=socket;
+  mSocket = NULL;
 }
 
 std::string DtlsSocketContext::getFingerprint() {

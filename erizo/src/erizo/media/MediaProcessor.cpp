@@ -57,7 +57,7 @@ namespace erizo {
     return 0;
   }
 
-  int InputProcessor::deliverAudioData(char* buf, int len) {
+  int InputProcessor::deliverAudioData_(char* buf, int len) {
     if (audioDecoder && audioUnpackager) {
       ELOG_DEBUG("Decoding audio");
       int unp = unpackageAudio((unsigned char*) buf, len,
@@ -73,7 +73,7 @@ namespace erizo {
     }
     return 0;
   }
-  int InputProcessor::deliverVideoData(char* buf, int len) {
+  int InputProcessor::deliverVideoData_(char* buf, int len) {
     if (videoUnpackager && videoDecoder) {
       int estimatedFps=0;
       int ret = unpackageVideo(reinterpret_cast<unsigned char*>(buf), len,
@@ -317,18 +317,10 @@ namespace erizo {
       vDecoder.closeDecoder();      
       videoDecoder = 0;
     }
-    if (decodedBuffer_ != NULL) {
-      free(decodedBuffer_); decodedBuffer_ = NULL;
-    }
-    if (unpackagedBuffer_ != NULL) {
-        free(unpackagedBuffer_); unpackagedBuffer_ = NULL;
-    }
-    if (unpackagedAudioBuffer_ != NULL) {
-        free(unpackagedAudioBuffer_); unpackagedAudioBuffer_ = NULL;
-    }
-    if (decodedAudioBuffer_ != NULL) {
-        free(decodedAudioBuffer_); decodedAudioBuffer_ = NULL;
-    }
+    free(decodedBuffer_); decodedBuffer_ = NULL;
+    free(unpackagedBuffer_); unpackagedBuffer_ = NULL;
+    free(unpackagedAudioBuffer_); unpackagedAudioBuffer_ = NULL;
+    free(decodedAudioBuffer_); decodedAudioBuffer_ = NULL;
   }
 
   OutputProcessor::OutputProcessor() {
@@ -397,21 +389,12 @@ namespace erizo {
       vCoder.closeEncoder();
       videoCoder = 0;
     }
-    if (encodedBuffer_!=NULL) {
-      free(encodedBuffer_); encodedBuffer_ = NULL;
-    }
-    if (packagedBuffer_!=NULL) {
-      free(packagedBuffer_); packagedBuffer_ = NULL;
-    }
-    if (rtpBuffer_!=NULL) {
-      free(rtpBuffer_); rtpBuffer_ = NULL;
-    }
-    if (encodedAudioBuffer_ != NULL) {
-        free(encodedAudioBuffer_); encodedAudioBuffer_ = NULL;
-    }
-    if (packagedAudioBuffer_ != NULL) {
-        free(packagedAudioBuffer_); packagedAudioBuffer_ = NULL;
-    }
+
+    free(encodedBuffer_); encodedBuffer_ = NULL;
+    free(packagedBuffer_); packagedBuffer_ = NULL;
+    free(rtpBuffer_); rtpBuffer_ = NULL;
+    free(encodedAudioBuffer_); encodedAudioBuffer_ = NULL;
+    free(packagedAudioBuffer_); packagedAudioBuffer_ = NULL;
   }
 
 

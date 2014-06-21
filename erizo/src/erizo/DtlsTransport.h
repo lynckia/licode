@@ -33,11 +33,15 @@ namespace erizo {
     char protectBuf_[5000];
     char unprotectBuf_[5000];
     boost::shared_ptr<dtls::DtlsSocketContext> dtlsRtp, dtlsRtcp;
-    boost::mutex writeMutex_, readMutex_, sessionMutex_;
+    boost::mutex writeMutex_,sessionMutex_;
     boost::scoped_ptr<SrtpChannel> srtp_, srtcp_;
     bool readyRtp, readyRtcp;
     bool bundle_;
+    bool running_;
     boost::scoped_ptr<Resender> rtcpResender, rtpResender;
+    boost::thread getNice_Thread_;
+    void getNiceDataLoop();
+    packetPtr p_;
 
     friend class Transport;
   };

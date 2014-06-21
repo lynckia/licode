@@ -46,18 +46,12 @@ OneToManyTranscoder::OneToManyTranscoder() {
 
 OneToManyTranscoder::~OneToManyTranscoder() {
 	this->closeAll();
-    if (sink_ != NULL) {
-        delete sink_; sink_ = NULL;
-    }
-    if (ip_ != NULL) {
-        delete ip_; ip_ = NULL;
-    }
-    if (op_ != NULL) {
-        delete op_; op_ = NULL;
-    }
+    delete sink_; sink_ = NULL;
+    delete ip_; ip_ = NULL;
+    delete op_; op_ = NULL;
 }
 
-int OneToManyTranscoder::deliverAudioData(char* buf, int len) {
+int OneToManyTranscoder::deliverAudioData_(char* buf, int len) {
 	if (subscribers.empty() || len <= 0)
 		return 0;
 
@@ -70,7 +64,7 @@ int OneToManyTranscoder::deliverAudioData(char* buf, int len) {
 	return 0;
 }
 
-int OneToManyTranscoder::deliverVideoData(char* buf, int len) {
+int OneToManyTranscoder::deliverVideoData_(char* buf, int len) {
 	memcpy(sendVideoBuffer_, buf, len);
 
 	RTPHeader* theHead = reinterpret_cast<RTPHeader*>(buf);

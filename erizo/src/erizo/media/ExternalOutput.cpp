@@ -71,10 +71,8 @@ namespace erizo {
   ExternalOutput::~ExternalOutput(){
     ELOG_DEBUG("Destructor");
     ELOG_DEBUG("Closing Sink");
-    if (in_ != NULL) {
-        delete in_;
-        in_ = NULL;
-    }
+    delete in_;
+    in_ = NULL;
     
     
     if (context_!=NULL){
@@ -240,7 +238,7 @@ namespace erizo {
     return 0;
   }
 
-  int ExternalOutput::deliverAudioData(char* buf, int len) {
+  int ExternalOutput::deliverAudioData_(char* buf, int len) {
     rtcpheader *head = reinterpret_cast<rtcpheader*>(buf);
     if (head->isRtcp()){
       return 0;
@@ -249,7 +247,7 @@ namespace erizo {
     return 0;
   }
 
-  int ExternalOutput::deliverVideoData(char* buf, int len) {
+  int ExternalOutput::deliverVideoData_(char* buf, int len) {
     rtcpheader *head = reinterpret_cast<rtcpheader*>(buf);
     if (head->isRtcp()){
       return 0;
