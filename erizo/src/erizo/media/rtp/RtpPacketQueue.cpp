@@ -49,6 +49,7 @@ namespace erizo{
       lastNseq_ = nseq;
       lastTs_ = ts;
       cleanQueue();
+      enqueuePacket(data, length, nseq);
     }
     else if (nseqdiff > 1)
     {
