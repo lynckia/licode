@@ -28,7 +28,6 @@ namespace erizo {
     bool readyRtp, readyRtcp;
     bool bundle_;
     CryptoInfo cryptoLocal_, cryptoRemote_;
-    friend class Transport;
   };
 }
 #endif

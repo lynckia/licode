@@ -65,7 +65,6 @@ namespace erizo {
     ulpfec.channels = 1;
     ulpfec.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(ulpfec);
-    */
 
     RtpMap opus;
     opus.payloadType = OPUS_48000_PT;
@@ -74,7 +73,7 @@ namespace erizo {
     opus.channels = 2;
     opus.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(opus);
-
+/*
     RtpMap isac16;
     isac16.payloadType = ISAC_16000_PT;
     isac16.encodingName = "ISAC";
