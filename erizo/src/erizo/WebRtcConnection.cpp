@@ -243,8 +243,9 @@ namespace erizo {
         rtcpheader *chead = reinterpret_cast<rtcpheader*> (buf);
         unsigned int recvSSRC = ntohl(head->ssrc);
 
-        if (chead->packettype == RTCP_Sender_PT) { //Sender Report
-//          ELOG_DEBUG ("RTP Sender Report %d length %d ", chead->packettype, ntohs(chead->length));
+        if (chead->packettype == RTCP_Sender_PT) { 
+          // Sender Report
+          // ELOG_DEBUG ("RTP Sender Report %d length %d ", chead->packettype, ntohs(chead->length));
           recvSSRC = ntohl(chead->ssrc);
         }
 
