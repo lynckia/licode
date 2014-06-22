@@ -16,6 +16,9 @@ cd $ROOT/erizo_controller/erizoController
 ulimit -n 4096
 ulimit -c unlimited
 
+# if you run into c++ seg faults, use this instead of the while block in dev (type run at gdb prompt)
+# gdb --args node erizoController.js
+
 while node erizoController.js; do
   echo "node erizoController.js exited unexpectedly.  Respawning." >&2
   until node erizoController.js; do
