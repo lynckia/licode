@@ -32,7 +32,7 @@ install_apt_deps(){
   sudo apt-get install software-properties-common
   sudo add-apt-repository ppa:chris-lea/node.js
   sudo apt-get update
-  sudo apt-get install git make gcc g++ libssl-dev cmake libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev
+  sudo apt-get install git make gcc g++ libssl-dev cmake libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl
   sudo npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/
 }
@@ -40,9 +40,9 @@ install_apt_deps(){
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O http://www.openssl.org/source/openssl-1.0.1e.tar.gz
-    tar -zxvf openssl-1.0.1e.tar.gz
-    cd openssl-1.0.1e
+    curl -O http://www.openssl.org/source/openssl-1.0.1g.tar.gz
+    tar -zxvf openssl-1.0.1g.tar.gz
+    cd openssl-1.0.1g
     ./config --prefix=$PREFIX_DIR -fPIC
     make -s V=0
     make install
@@ -107,7 +107,7 @@ install_mediadeps_nogpl(){
     curl -O https://www.libav.org/releases/libav-9.13.tar.gz
     tar -zxvf libav-9.13.tar.gz
     cd libav-9.13
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx
     make -s V=0
     make install
     cd $CURRENT_DIR
