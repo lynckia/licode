@@ -89,14 +89,14 @@ exports.addNewErizoController = function (msg, callback) {
     
 };
 
-var addNewAmazonErizoController = function(privateIP, callback) {
+var addNewAmazonErizoController = function(privateIP, hostname, port, ssl, callback) {
     
     var publicIP;
     var instaceId;
 
     if (config.cloudProvider.publicIP) {
         console.log("[nuveAPI] Using configured publicIP", config.cloudProvider.publicIP);
-        addNewPrivateErizoController(config.cloudProvider.publicIP, callback);
+        addNewPrivateErizoController(config.cloudProvider.publicIP, hostname, port, ssl, callback);
         return;
     }
 
@@ -120,7 +120,7 @@ var addNewAmazonErizoController = function(privateIP, callback) {
             addNewPrivateErizoController(publicIP, hostname, port, ssl, callback);
         }
     });
-}
+};
 
 var addNewPrivateErizoController = function (ip, hostname, port, ssl, callback) {
     "use strict";
