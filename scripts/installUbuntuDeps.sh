@@ -120,7 +120,7 @@ install_mediadeps(){
 }
 
 install_mediadeps_nogpl(){
-  sudo apt-get -y install yasm libvpx.
+  sudo apt-get -y install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-9.13.tar.gz
