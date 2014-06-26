@@ -1,5 +1,6 @@
 /*global exports, require, console, Buffer, __dirname*/
 var express = require('express');
+var bodyParser = require('body-parser');
 var db = require('./mdb/dataBase').db;
 var rpc = require('./rpc/rpc');
 var app = express();
@@ -17,7 +18,10 @@ var usersResource = require('./resource/usersResource');
 var userResource = require('./resource/userResource');
 
 app.use(express.static(__dirname + '/public'));
-app.use(express.bodyParser());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
 app.set('view engine', 'ejs');
 app.set('view options', {
     layout: false
