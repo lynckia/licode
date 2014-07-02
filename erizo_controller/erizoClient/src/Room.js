@@ -355,6 +355,9 @@ Erizo.Room = function (spec) {
                                 }
                                 that.localStreams[id] = stream;
                                 stream.room = that;
+                                if (callback)
+                                    callback();
+
                             };
                             stream.pc.processSignalingMessage(answer);
                         });
