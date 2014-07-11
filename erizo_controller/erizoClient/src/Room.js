@@ -299,7 +299,7 @@ Erizo.Room = function (spec) {
                             that.localStreams[id] = stream;
                             stream.room = that;
                             if (callback)
-                                callback();
+                                setTimeout(callback, 1);
                         } else {
                             L.Logger.info('Error when publishing the stream', answer);
                             // Unauth -1052488119
@@ -356,7 +356,7 @@ Erizo.Room = function (spec) {
                                 that.localStreams[id] = stream;
                                 stream.room = that;
                                 if (callback)
-                                    callback();
+                                    setTimeout(callback, 1);
 
                             };
                             stream.pc.processSignalingMessage(answer);
@@ -411,6 +411,7 @@ Erizo.Room = function (spec) {
       recordingUrl = "/tmp/recording" + stream.getID() + ".mkv";
       L.Logger.debug("Start Recording " + recordingUrl);
       sendMessageSocket('startRecorder',{to:stream.getID(), url: recordingUrl});
+      return recordingUrl;
     }
 
     that.stopRecording = function (stream){
