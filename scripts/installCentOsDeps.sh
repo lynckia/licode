@@ -80,9 +80,9 @@ install_opus(){
 install_vpx(){
   [ -d $LIB_DIR ] || mkdir -p $LIB_DIR
   cd $LIB_DIR
-  curl -O https://webm.googlecode.com/files/libvpx-v1.2.0.tar.bz2
-  tar -xf libvpx-v1.2.0.tar.bz2
-  cd libvpx-v1.2.0
+  curl -O https://webm.googlecode.com/files/libvpx-v1.0.0.tar.bz2
+  tar -xf libvpx-v1.0.0.tar.bz2
+  cd libvpx-v1.0.0
   ./configure --prefix=$PREFIX_DIR --enable-vp8 --enable-shared --enable-pic
   make -s V=0
   make install
