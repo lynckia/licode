@@ -24,13 +24,13 @@ Erizo.VideoPlayer = function (spec) {
     that.elementID = spec.elementID;
 
     // Private functions
-    onmouseover = function (evt) {
+    /*onmouseover = function (evt) {
         that.bar.display();
     };
 
     onmouseout = function (evt) {
         that.bar.hide();
-    };
+    };*/
 
     // Public functions
 
@@ -143,7 +143,7 @@ Erizo.VideoPlayer = function (spec) {
     that.resize();
 
     // Bottom Bar
-    that.bar = new Erizo.Bar({elementID: 'player_' + that.id, id: that.id, stream: spec.stream, media: that.video, options: spec.options});
+    //that.bar = new Erizo.Bar({elementID: 'player_' + that.id, id: that.id, stream: spec.stream, media: that.video, options: spec.options});
 
     that.div.onmouseover = onmouseover;
     that.div.onmouseout = onmouseout;
