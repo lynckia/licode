@@ -28,7 +28,7 @@ parse_arguments(){
 }
 
 install_apt_deps(){
-  sudo yum install git make gcc openssl-devel cmake pkgconfig nodejs boost-devel boost-regex boost-thread boost-system log4cxx-devel rabbitmq-server mongodb mongodb-server curl boost-test tar xz libffi-devel npm yasm
+  sudo yum install git make gcc openssl-devel cmake pkgconfig nodejs boost-devel boost-regex boost-thread boost-system log4cxx-devel rabbitmq-server mongodb mongodb-server curl boost-test tar xz libffi-devel npm yasm java-1.7.0-openjdk
   sudo chown -R `whoami` ~/.npm ~/tmp/
 }
 
