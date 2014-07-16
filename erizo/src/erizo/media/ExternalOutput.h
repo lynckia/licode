@@ -42,8 +42,30 @@ private:
     unsigned char deliverMediaBuffer_[3000];
     unsigned char unpackagedBuffer_[UNPACKAGE_BUFFER_SIZE];
     unsigned char unpackagedAudioBuffer_[UNPACKAGE_BUFFER_SIZE/10];
-    long long initTimeVideo_;
-    long long initTimeAudio_;
+
+    // Timestamping strategy: we use the RTP timestamps so we don't have to restamp and we're not
+    // subject to error due to the RTP packet queue depth and playout.
+    //
+    // However, the units of our audio and video RTP timestamps are not comparable because:
+    //
+    // 1. RTP timestamps start at a random value
+    // 2. The units are completely different.  Video is typically on a 90khz clock, whereas audio
+    //    typically follows whatever the sample rate is (e.g. 8khz for PCMU, 48khz for Opus, etc.)
+    //
+    // So, our strategy is to keep track of the first audio and video timestamps we encounter so we
+    // can adjust subsequent timestamps by that much so our timestamps roughly start at zero.
+    //
+    // Audio and video can also start at different times, and it's possible video wouldn't even arrive
+    // at all (or arrive late) so we also need to keep track of a start time offset.  We also need to track
+    // this *before* stuff enters the RTP packet queue, since that guy will mess with the timing of stuff that's
+    // outputted in an attempt to re-order incoming packets.  So when we receive an audio or video packet,
+    // we set firstDataReceived_.  We then use that to compute audio/videoStartTimeOffset_ appropriately,
+    // and that value is added to every timestamp we write.
+    long long firstVideoTimestamp_;
+    long long firstAudioTimestamp_;
+    long long firstDataReceived_;
+    long long videoOffsetMsec_;
+    long long audioOffsetMsec_;
 
 
     bool initContext();
