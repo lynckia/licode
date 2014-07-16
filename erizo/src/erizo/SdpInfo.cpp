@@ -514,7 +514,7 @@ namespace erizo {
         if ((mtype == VIDEO_TYPE) && (videoSsrc == 0)) {
           videoSsrc = strtoul(parts[1].c_str(), NULL, 10);
           ELOG_DEBUG("video ssrc: %u", videoSsrc);
-        } else if ((mtype == VIDEO_TYPE) && (videoSsrc == 0)) {
+        } else if ((mtype == AUDIO_TYPE) && (audioSsrc == 0)) {
           audioSsrc = strtoul(parts[1].c_str(), NULL, 10);
           ELOG_DEBUG("audio ssrc: %u", audioSsrc);
         }
