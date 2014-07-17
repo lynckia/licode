@@ -11,7 +11,12 @@ namespace erizo {
 
   DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 
-ExternalOutput::ExternalOutput(const std::string& outputUrl)
+// We'll allow our audioQueue to be significantly larger than our video queue
+// This is safe because A) audio is a lot smaller, so it isn't a big deal to hold on to a lot of it and
+// B) our audio sample rate is typically 20 msec packets; video is anywhere from 33 to 100 msec (30 to 10 fps)
+// Allowing the audio queue to hold more will help prevent loss of data when the video framerate is low.
+ExternalOutput::ExternalOutput(const std::string& outputUrl) : audioQueue_(600, 60), videoQueue_(120, 60), video_stream_(NULL), audio_stream_(NULL),
+    firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1)
 {
     ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
 
@@ -36,11 +41,7 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl)
         }
     }
 
-    video_stream_ = NULL;
-    audio_stream_ = NULL;
     unpackagedBufferpart_ = unpackagedBuffer_;
-    initTimeVideo_ = -1;
-    initTimeAudio_ = -1;
     lastFullIntraFrameRequest_ = 0;
     sinkfbSource_ = this;
     fbSink_ = NULL;
@@ -57,7 +58,7 @@ bool ExternalOutput::init(){
     recording_ = true;
     ELOG_DEBUG("Initialized successfully");
     return true;
-  }
+}
 
 
 ExternalOutput::~ExternalOutput(){
@@ -93,15 +94,16 @@ ExternalOutput::~ExternalOutput(){
     ELOG_DEBUG("Closed Successfully");
 }
 
-  void ExternalOutput::receiveRawData(RawDataPacket& packet){
+void ExternalOutput::receiveRawData(RawDataPacket& /*packet*/){
     return;
-  }
+}
+
 
 void ExternalOutput::writeAudioData(char* buf, int len){
     RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);
 
-    if (initTimeAudio_ == -1) {
-        initTimeAudio_ = head->getTimestamp();
+    if (firstAudioTimestamp_ == -1) {
+        firstAudioTimestamp_ = head->getTimestamp();
     }
 
     timeval time;
@@ -134,20 +136,26 @@ void ExternalOutput::writeAudioData(char* buf, int len){
     if (ret <= 0)
         return;
 
-//    ELOG_DEBUG("Writing audio frame %d with timestamp %u, input timebase: %d/%d, target timebase: %d/%d",head->getSeqNumber(), head->getTimestamp(),
-//               audio_stream_->codec->time_base.num, audio_stream_->codec->time_base.den,    // timebase we requested
-//               audio_stream_->time_base.num, audio_stream_->time_base.den);                 // actual timebase
-
     long long currentTimestamp = head->getTimestamp();
-    if (currentTimestamp - initTimeAudio_ < 0) {
+    if (currentTimestamp - firstAudioTimestamp_ < 0) {
         // we wrapped.  add 2^32 to correct this.  We only handle a single wrap around since that's 13 hours of recording, minimum.
         currentTimestamp += 0xFFFFFFFF;
     }
+
+    long long timestampToWrite = (currentTimestamp - firstAudioTimestamp_) / (audio_stream_->codec->time_base.den / audio_stream_->time_base.den);
+    // Adjust for our start time offset
+    timestampToWrite += audioOffsetMsec_ / (1000 / audio_stream_->time_base.den);   // in practice, our timebase den is 1000, so this operation is a no-op.
+
+//    ELOG_DEBUG("Writing audio frame %d with timestamp %u, normalized timestamp %u, audio offset msec %u, length %d, input timebase: %d/%d, target timebase: %d/%d",
+//               head->getSeqNumber(), head->getTimestamp(), timestampToWrite, audioOffsetMsec_, ret,
+//               audio_stream_->codec->time_base.num, audio_stream_->codec->time_base.den,    // timebase we requested
+//               audio_stream_->time_base.num, audio_stream_->time_base.den);                 // actual timebase
+
     AVPacket avpkt;
     av_init_packet(&avpkt);
     avpkt.data = unpackagedAudioBuffer_;
     avpkt.size = ret;
-    avpkt.pts = (currentTimestamp - initTimeAudio_) / (audio_stream_->codec->time_base.den / audio_stream_->time_base.den);
+    avpkt.pts = timestampToWrite;
     avpkt.stream_index = 1;
     av_write_frame(context_, &avpkt);
     av_free_packet(&avpkt);
@@ -177,8 +185,8 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         }
     }
 
-    if (initTimeVideo_ == -1) {
-        initTimeVideo_ = head->getTimestamp();
+    if (firstVideoTimestamp_ == -1) {
+        firstVideoTimestamp_ = head->getTimestamp();
     }
 
     int gotUnpackagedFrame = false;
@@ -199,18 +207,21 @@ void ExternalOutput::writeVideoData(char* buf, int len){
     if (gotUnpackagedFrame) {
         unpackagedBufferpart_ -= unpackagedSize_;
 
-//        ELOG_DEBUG("Writing video frame %d with timestamp %u, length %d, input timebase: %d/%d, target timebase: %d/%d", head->getSeqNumber(),
-//                   head->getTimestamp(), unpackagedSize_,
-//                   video_stream_->codec->time_base.num, video_stream_->codec->time_base.den,    // timebase we requested
-//                   video_stream_->time_base.num, video_stream_->time_base.den);                 // actual timebase
-
         long long currentTimestamp = head->getTimestamp();
-        if (currentTimestamp - initTimeVideo_ < 0) {
+        if (currentTimestamp - firstVideoTimestamp_ < 0) {
             // we wrapped.  add 2^32 to correct this.  We only handle a single wrap around since that's ~13 hours of recording, minimum.
             currentTimestamp += 0xFFFFFFFF;
         }
 
-        long long timestampToWrite = (currentTimestamp - initTimeVideo_) / (90000 / video_stream_->time_base.den);  // All of our video offerings are using a 90khz clock.
+        long long timestampToWrite = (currentTimestamp - firstVideoTimestamp_) / (90000 / video_stream_->time_base.den);  // All of our video offerings are using a 90khz clock.
+
+        // Adjust for our start time offset
+        timestampToWrite += videoOffsetMsec_ / (1000 / video_stream_->time_base.den);   // in practice, our timebase den is 1000, so this operation is a no-op.
+
+//        ELOG_DEBUG("Writing video frame %d with timestamp %u, normalized timestamp %u, video offset msec %u, length %d, input timebase: %d/%d, target timebase: %d/%d",
+//                   head->getSeqNumber(), head->getTimestamp(), timestampToWrite, videoOffsetMsec_, unpackagedSize_,
+//                   video_stream_->codec->time_base.num, video_stream_->codec->time_base.den,    // timebase we requested
+//                   video_stream_->time_base.num, video_stream_->time_base.den);                 // actual timebase
 
         AVPacket avpkt;
         av_init_packet(&avpkt);
@@ -228,12 +239,13 @@ void ExternalOutput::writeVideoData(char* buf, int len){
 int ExternalOutput::deliverAudioData_(char* buf, int len) {
     this->queueData(buf,len,AUDIO_PACKET);
     return 0;
-  }
+}
 
 int ExternalOutput::deliverVideoData_(char* buf, int len) {
     this->queueData(buf,len,VIDEO_PACKET);
     return 0;
-  }
+}
+
 
 bool ExternalOutput::initContext() {
     if (context_->oformat->video_codec != AV_CODEC_ID_NONE &&
@@ -241,7 +253,6 @@ bool ExternalOutput::initContext() {
             video_stream_ == NULL &&
             audio_stream_ == NULL) {
         AVCodec* videoCodec = avcodec_find_encoder(context_->oformat->video_codec);
-        ELOG_DEBUG("Found Video Codec %s", videoCodec->name);
         if (videoCodec==NULL){
             ELOG_ERROR("Could not find video codec");
             return false;
@@ -264,7 +275,7 @@ bool ExternalOutput::initContext() {
             ELOG_ERROR("Could not find audio codec");
             return false;
         }
-        ELOG_DEBUG("Found Audio Codec %s", audioCodec->name);
+
         audio_stream_ = avformat_new_stream (context_, audioCodec);
         audio_stream_->id = 1;
         audio_stream_->codec->codec_id = context_->oformat->audio_codec;
@@ -286,7 +297,6 @@ bool ExternalOutput::initContext() {
             ELOG_ERROR("Error writing header");
             return false;
         }
-        ELOG_DEBUG("avformat configured");
     }
 
     return true;
@@ -302,21 +312,39 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
         return;
     }
 
-    if (type == VIDEO_PACKET){
-      videoQueue_.pushPacket(buffer, length);
-    }else{
-      audioQueue_.pushPacket(buffer, length);
+    if (firstDataReceived_ == -1) {
+        timeval time;
+        gettimeofday(&time, NULL);
+        firstDataReceived_ = (time.tv_sec * 1000) + (time.tv_usec / 1000);
     }
 
-    if( audioQueue_.hasData() && videoQueue_.hasData()) {
-        // We've got a fair chunk of data available.  Notify our writer thread to get to work.
+    if (type == VIDEO_PACKET){
+        if(this->videoOffsetMsec_ == -1) {
+            timeval time;
+            gettimeofday(&time, NULL);
+            videoOffsetMsec_ = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - firstDataReceived_;
+            ELOG_DEBUG("File %s, video offset msec: %u", context_->filename, videoOffsetMsec_);
+        }
+        videoQueue_.pushPacket(buffer, length);
+    }else{
+        if(this->audioOffsetMsec_ == -1) {
+            timeval time;
+            gettimeofday(&time, NULL);
+            audioOffsetMsec_ = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - firstDataReceived_;
+            ELOG_DEBUG("File %s, audio offset msec: %u", context_->filename, audioOffsetMsec_);
+        }
+        audioQueue_.pushPacket(buffer, length);
+    }
+
+    if( audioQueue_.hasData() || videoQueue_.hasData()) {
+        // One or both of our queues has enough data to write stuff out.  Notify our writer.
         cond_.notify_one();
     }
 }
 
-  int ExternalOutput::sendFirPacket() {
+int ExternalOutput::sendFirPacket() {
     if (fbSink_ != NULL) {
-        ELOG_DEBUG("sending Full Intra-frame Request");
+        // ELOG_DEBUG("sending Full Intra-frame Request");
         int pos = 0;
         uint8_t rtcpPacket[50];
         // add full intra request indicator
@@ -329,7 +357,7 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
     }
 
     return -1;
-  }
+}
 
 void ExternalOutput::sendLoop() {
     while (recording_) {
@@ -345,8 +373,16 @@ void ExternalOutput::sendLoop() {
         }
         lock.unlock();
     }
-  }
 
+    // Since we're bailing, let's completely drain our queues of all data.
+    while (audioQueue_.getSize() > 0) {
+        boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket(true); // ignore our minimum depth check
+        this->writeAudioData(audioP->data, audioP->length);
+    }
+    while (videoQueue_.getSize() > 0) {
+        boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket(true); // ignore our minimum depth check
+        this->writeVideoData(videoP->data, videoP->length);
+    }
 }
-
+}
 

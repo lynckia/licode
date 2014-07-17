@@ -511,10 +511,10 @@ namespace erizo {
       if (isSsrc != std::string::npos) {
         std::vector<std::string> parts = stringutil::splitOneOf(line, " :\n", 2);
         // FIXME add error checking
-        if (mtype == VIDEO_TYPE) {
+        if ((mtype == VIDEO_TYPE) && (videoSsrc == 0)) {
           videoSsrc = strtoul(parts[1].c_str(), NULL, 10);
           ELOG_DEBUG("video ssrc: %u", videoSsrc);
-        } else if (mtype == AUDIO_TYPE) {
+        } else if ((mtype == AUDIO_TYPE) && (audioSsrc == 0)) {
           audioSsrc = strtoul(parts[1].c_str(), NULL, 10);
           ELOG_DEBUG("audio ssrc: %u", audioSsrc);
         }
