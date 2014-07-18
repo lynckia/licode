@@ -61,8 +61,15 @@ L.Logger = (function (L) {
             }
             L.Logger.panel.value = L.Logger.panel.value + "\n" + tmp;
         } else {
-            if (window.con && window.con.log) {
-                window.con.log(args);
+            if (window.con && window.con.log && window.con.warn && window.con.error) {
+                args[0] = "[erizo]";
+                if (level === L.Logger.ERROR) {
+                    window.con.error.apply(this, args);
+                } else if (level === L.Logger.WARNING) {
+                    window.con.warn.apply(this, args);
+                } else {
+                    window.con.log.apply(this, args);
+                }
             } else {
                 console.log(args);
             }
