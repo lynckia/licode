@@ -23,7 +23,10 @@ var checkTimestamp = function (ser, params) {
     lastC = lastParams.cnonce;
     newC = params.cnonce;
 
-    if (newTS < lastTS || (lastTS === newTS && lastC === newC)) {
+    // BF: The newTS < lastTS was causing our create-video-token 500 errors
+    // Not sure the rationale for the check
+    //if (newTS < lastTS || (lastTS === newTS && lastC === newC)) {
+    if (lastTS === newTS && lastC === newC) {
         console.log('Last timestamp: ', lastTS, ' and new: ', newTS);
         console.log('Last cnonce: ', lastC, ' and new: ', newC);
         return false;
