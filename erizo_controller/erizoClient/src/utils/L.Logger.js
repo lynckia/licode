@@ -61,7 +61,11 @@ L.Logger = (function (L) {
             }
             L.Logger.panel.value = L.Logger.panel.value + "\n" + tmp;
         } else {
-            console.log(args);
+            if (window.con && window.con.log) {
+                window.con.log(args);
+            } else {
+                console.log(args);
+            }
         }
     };
 
