@@ -191,7 +191,6 @@ exports.RoomController = function (spec) {
     that.removePublisher = function (publisher_id) {
 
         if (subscribers[publisher_id] !== undefined && publishers[publisher_id] !== undefined) {
-            log.info('Removing muxer', publisher_id);
 
             var args = [publisher_id];
             rpc.callRpc(getErizoQueue(publisher_id), "removePublisher", args, undefined);
@@ -203,6 +202,7 @@ exports.RoomController = function (spec) {
             delete publishers[publisher_id];
             log.info('Removed all');
             delete erizos[publisher_id];
+            log.info('Removing muxer', publisher_id, ' muxers left ', Object.keys(publishers).length );
         }
     };
 

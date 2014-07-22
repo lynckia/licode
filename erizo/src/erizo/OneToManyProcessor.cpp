@@ -63,7 +63,6 @@ namespace erizo {
 
   int OneToManyProcessor::deliverFeedback_(char* buf, int len){
     if (feedbackSink_ != NULL){
-      ELOG_DEBUG("Deliver Feedback");
       feedbackSink_->deliverFeedback(buf,len);
     }
     return 0;
