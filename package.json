@@ -13,9 +13,13 @@
     "karma-requirejs": "~0.1.0",
     "karma-coffee-preprocessor": "~0.1.0",
     "karma-phantomjs-launcher": "~0.1.0",
-    "karma": "~0.10.2",
+    "karma": "~0.12.17",
     "karma-chrome-launcher": "~0.1.0",
-    "jasmine-node": "~1.11.0"
+    "jasmine-node": "~1.11.0",
+    "aws-lib": "~0.3.0",
+    "amqp": "~0.2.0",
+    "express": "~3.5.1",
+    "mongojs": "~0.11.1"
   },
   "contributors": [
     {
