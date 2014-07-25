@@ -27,6 +27,22 @@ parse_arguments(){
   done
 }
 
+check_proxy(){
+  if [ -z "$http_proxy" ]; then
+    echo "No http proxy set, doing nothing"
+  else
+    echo "http proxy configured, configuring npm"
+    npm config set proxy $http_proxy
+  fi  
+
+  if [ -z "$https_proxy" ]; then
+    echo "No https proxy set, doing nothing"
+  else
+    echo "https proxy configured, configuring npm"
+    npm config set https-proxy $https_proxy
+  fi  
+}
+
 install_apt_deps(){
   sudo yum install git make gcc openssl-devel cmake pkgconfig nodejs boost-devel boost-regex boost-thread boost-system log4cxx-devel rabbitmq-server mongodb mongodb-server curl boost-test tar xz libffi-devel npm yasm java-1.7.0-openjdk
   sudo chown -R `whoami` ~/.npm ~/tmp/
@@ -166,6 +182,8 @@ mkdir -p $PREFIX_DIR
 
 pause "Installing deps via apt-get... [press Enter]"
 install_apt_deps
+
+check_proxy
 
 pause "Installing glib2 library...  [press Enter]"
 install_glib2
