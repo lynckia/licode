@@ -119,7 +119,7 @@ Erizo.VideoPlayer = function (spec) {
     that.video.setAttribute('style', 'width: 100%; height: 100%; position: absolute');
     that.video.setAttribute('autoplay', 'autoplay');
 
-    if(spec.stream.local) 
+    if(spec.stream.local)
         that.video.volume = 0;
 
     if (that.elementID !== undefined) {
@@ -138,9 +138,8 @@ Erizo.VideoPlayer = function (spec) {
     that.containerWidth = 0;
     that.containerHeight = 0;
 
-    that.resizer = new L.ResizeSensor(that.container, that.resize);
-
-    that.resize();
+    // that.resizer = new L.ResizeSensor(that.container, that.resize);
+    // that.resize();
 
     // Bottom Bar
     //that.bar = new Erizo.Bar({elementID: 'player_' + that.id, id: that.id, stream: spec.stream, media: that.video, options: spec.options});
