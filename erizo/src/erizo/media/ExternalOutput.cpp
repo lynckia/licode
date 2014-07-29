@@ -1,5 +1,3 @@
-#include "ExternalOutput.h"
-#include "../WebRtcConnection.h"
 #include <sys/time.h>
 
 #include "ExternalOutput.h"
@@ -15,7 +13,7 @@ namespace erizo {
 // This is safe because A) audio is a lot smaller, so it isn't a big deal to hold on to a lot of it and
 // B) our audio sample rate is typically 20 msec packets; video is anywhere from 33 to 100 msec (30 to 10 fps)
 // Allowing the audio queue to hold more will help prevent loss of data when the video framerate is low.
-ExternalOutput::ExternalOutput(const std::string& outputUrl) : audioQueue_(600, 60), videoQueue_(120, 60), video_stream_(NULL), audio_stream_(NULL),
+ExternalOutput::ExternalOutput(const std::string& outputUrl) : audioQueue_(600, 60), videoQueue_(120, 60), inited_(false), video_stream_(NULL), audio_stream_(NULL),
     firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1)
 {
     ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
@@ -108,11 +106,6 @@ void ExternalOutput::writeAudioData(char* buf, int len){
 
     timeval time;
     gettimeofday(&time, NULL);
-    unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-    if (millis -lastFullIntraFrameRequest_ >FIR_INTERVAL_MS){
-        this->sendFirPacket();
-        lastFullIntraFrameRequest_ = millis;
-    }
 
     // Figure out our audio codec.
     if(context_->oformat->audio_codec == AV_CODEC_ID_NONE) {
@@ -124,8 +117,7 @@ void ExternalOutput::writeAudioData(char* buf, int len){
         }
     }
 
-    // check if we can initialize our context
-    this->initContext();
+    initContext();
 
     if (audio_stream_ == NULL) {
         // not yet.
@@ -146,10 +138,10 @@ void ExternalOutput::writeAudioData(char* buf, int len){
     // Adjust for our start time offset
     timestampToWrite += audioOffsetMsec_ / (1000 / audio_stream_->time_base.den);   // in practice, our timebase den is 1000, so this operation is a no-op.
 
-//    ELOG_DEBUG("Writing audio frame %d with timestamp %u, normalized timestamp %u, audio offset msec %u, length %d, input timebase: %d/%d, target timebase: %d/%d",
-//               head->getSeqNumber(), head->getTimestamp(), timestampToWrite, audioOffsetMsec_, ret,
-//               audio_stream_->codec->time_base.num, audio_stream_->codec->time_base.den,    // timebase we requested
-//               audio_stream_->time_base.num, audio_stream_->time_base.den);                 // actual timebase
+    /* ELOG_DEBUG("Writing audio frame %d with timestamp %u, normalized timestamp %u, audio offset msec %u, length %d, input timebase: %d/%d, target timebase: %d/%d", */
+    /*            head->getSeqNumber(), head->getTimestamp(), timestampToWrite, audioOffsetMsec_, ret, */
+    /*            audio_stream_->codec->time_base.num, audio_stream_->codec->time_base.den,    // timebase we requested */
+    /*            audio_stream_->time_base.num, audio_stream_->time_base.den);                 // actual timebase */
 
     AVPacket avpkt;
     av_init_packet(&avpkt);
@@ -191,10 +183,12 @@ void ExternalOutput::writeVideoData(char* buf, int len){
 
     int gotUnpackagedFrame = false;
     int ret = inputProcessor_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len, unpackagedBufferpart_, &gotUnpackagedFrame);
-    if (ret < 0)
+    if (ret < 0){
+        ELOG_ERROR("Error Unpackaging Video");
         return;
+    }
 
-    this->initContext();
+    initContext();
 
     if (video_stream_ == NULL) {
         // could not init our context yet.
@@ -218,10 +212,10 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         // Adjust for our start time offset
         timestampToWrite += videoOffsetMsec_ / (1000 / video_stream_->time_base.den);   // in practice, our timebase den is 1000, so this operation is a no-op.
 
-//        ELOG_DEBUG("Writing video frame %d with timestamp %u, normalized timestamp %u, video offset msec %u, length %d, input timebase: %d/%d, target timebase: %d/%d",
-//                   head->getSeqNumber(), head->getTimestamp(), timestampToWrite, videoOffsetMsec_, unpackagedSize_,
-//                   video_stream_->codec->time_base.num, video_stream_->codec->time_base.den,    // timebase we requested
-//                   video_stream_->time_base.num, video_stream_->time_base.den);                 // actual timebase
+        /* ELOG_DEBUG("Writing video frame %d with timestamp %u, normalized timestamp %u, video offset msec %u, length %d, input timebase: %d/%d, target timebase: %d/%d", */
+        /*            head->getSeqNumber(), head->getTimestamp(), timestampToWrite, videoOffsetMsec_, unpackagedSize_, */
+        /*            video_stream_->codec->time_base.num, video_stream_->codec->time_base.den,    // timebase we requested */
+        /*            video_stream_->time_base.num, video_stream_->time_base.den);                 // actual timebase */
 
         AVPacket avpkt;
         av_init_packet(&avpkt);
@@ -248,11 +242,13 @@ int ExternalOutput::deliverVideoData_(char* buf, int len) {
 
 
 bool ExternalOutput::initContext() {
-    if (context_->oformat->video_codec != AV_CODEC_ID_NONE &&
+    
+  if (context_->oformat->video_codec != AV_CODEC_ID_NONE &&
             context_->oformat->audio_codec != AV_CODEC_ID_NONE &&
             video_stream_ == NULL &&
             audio_stream_ == NULL) {
-        AVCodec* videoCodec = avcodec_find_encoder(context_->oformat->video_codec);
+
+      AVCodec* videoCodec = avcodec_find_encoder(context_->oformat->video_codec);
         if (videoCodec==NULL){
             ELOG_ERROR("Could not find video codec");
             return false;
@@ -316,22 +312,30 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
         timeval time;
         gettimeofday(&time, NULL);
         firstDataReceived_ = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+        if (this->getAudioSinkSSRC() == 0){
+          ELOG_DEBUG("No audio detected");
+          context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
+        }
+    }
+    
+    timeval time; 
+    gettimeofday(&time, NULL);
+    unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+    if (millis -lastFullIntraFrameRequest_ >FIR_INTERVAL_MS){
+      this->sendFirPacket();
+      lastFullIntraFrameRequest_ = millis;
     }
 
     if (type == VIDEO_PACKET){
         if(this->videoOffsetMsec_ == -1) {
-            timeval time;
-            gettimeofday(&time, NULL);
             videoOffsetMsec_ = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - firstDataReceived_;
-            ELOG_DEBUG("File %s, video offset msec: %u", context_->filename, videoOffsetMsec_);
+            ELOG_DEBUG("File %s, video offset msec: %llu", context_->filename, videoOffsetMsec_);
         }
         videoQueue_.pushPacket(buffer, length);
     }else{
         if(this->audioOffsetMsec_ == -1) {
-            timeval time;
-            gettimeofday(&time, NULL);
             audioOffsetMsec_ = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - firstDataReceived_;
-            ELOG_DEBUG("File %s, audio offset msec: %u", context_->filename, audioOffsetMsec_);
+            ELOG_DEBUG("File %s, audio offset msec: %llu", context_->filename, audioOffsetMsec_);
         }
         audioQueue_.pushPacket(buffer, length);
     }
@@ -360,29 +364,32 @@ int ExternalOutput::sendFirPacket() {
 }
 
 void ExternalOutput::sendLoop() {
-    while (recording_) {
-        boost::unique_lock<boost::mutex> lock(mtx_);
-        cond_.wait(lock);
-        while (audioQueue_.hasData()) {
-            boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
-            this->writeAudioData(audioP->data, audioP->length);
-        }
-        while (videoQueue_.hasData()) {
-            boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
-            this->writeVideoData(videoP->data, videoP->length);
-        }
-        lock.unlock();
+  while (recording_) {
+    boost::unique_lock<boost::mutex> lock(mtx_);
+    cond_.wait(lock);
+    while (audioQueue_.hasData()) {
+      boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
+      this->writeAudioData(audioP->data, audioP->length);
     }
+    while (videoQueue_.hasData()) {
+      boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
+      this->writeVideoData(videoP->data, videoP->length);
+    }
+    if (!inited_ && firstDataReceived_!=-1){
+      inited_ = true;
+    }
+    lock.unlock();
+  }
 
-    // Since we're bailing, let's completely drain our queues of all data.
-    while (audioQueue_.getSize() > 0) {
-        boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket(true); // ignore our minimum depth check
-        this->writeAudioData(audioP->data, audioP->length);
-    }
-    while (videoQueue_.getSize() > 0) {
-        boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket(true); // ignore our minimum depth check
-        this->writeVideoData(videoP->data, videoP->length);
-    }
+  // Since we're bailing, let's completely drain our queues of all data.
+  while (audioQueue_.getSize() > 0) {
+    boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket(true); // ignore our minimum depth check
+    this->writeAudioData(audioP->data, audioP->length);
+  }
+  while (videoQueue_.getSize() > 0) {
+    boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket(true); // ignore our minimum depth check
+    this->writeVideoData(videoP->data, videoP->length);
+  }
 }
 }
 

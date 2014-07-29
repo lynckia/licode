@@ -26,7 +26,7 @@ public:
 
 private:
     RtpPacketQueue audioQueue_, videoQueue_;
-    volatile bool recording_;
+    bool recording_, inited_;
     boost::mutex mtx_;  // a mutex we use to signal our writer thread that data is waiting.
     boost::thread thread_;
     boost::condition_variable cond_;
