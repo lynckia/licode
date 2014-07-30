@@ -458,13 +458,13 @@ namespace erizo {
     head.setMarker(1);
     if (pts==0){
 //      head.setTimestamp(audioSeqnum_*160);
-      head.setTimestamp(av_rescale(audioSeqnum_, 8, 1));
+      head.setTimestamp(av_rescale(audioSeqnum_, (mediaInfo.audioCodec.sampleRate/1000), 1));
     }else{
 //      head.setTimestamp(pts*8);
-      head.setTimestamp(av_rescale(pts, 8000,1000));
+      head.setTimestamp(av_rescale(pts, mediaInfo.audioCodec.sampleRate,1000));
     }
     head.setSSRC(44444);
-    head.setPayloadType(0);
+    head.setPayloadType(mediaInfo.rtpAudioInfo.PT);
 
 //    memcpy (rtpAudioBuffer_, &head, head.getHeaderLength());
 //    memcpy(&rtpAudioBuffer_[head.getHeaderLength()], inBuff, inBuffLen);
