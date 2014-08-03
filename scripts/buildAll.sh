@@ -37,14 +37,14 @@ install_erizo_controller(){
 
   cd erizoClient/tools
 
-  sudo ./compile.sh
+  sudo ./compileDebug.sh
   sudo ./compilefc.sh
 
   echo [erizo_controller] Done, erizo.js compiled
   cd $CURRENT_DIR
 }
 
-# Build Erizo 
+# Build Erizo
 install_erizo
 install_erizo_api
 install_erizo_controller
