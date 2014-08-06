@@ -435,13 +435,12 @@ room.startRecording(localStream, function(recordingId) {
           </pre>
 
           <h3 id="recordStreamStop">Stop Recording</h3>
-          <p>Stop the recording of a stream. You must provide the identificator of the recording (recordingId).
+          <p>Stop the recording of a stream. You must provide the identificator of the recording: <code>recordingId</code>.
           <div class="bs-docs-example">
-            Stop the recording
+            Stop the recording.
           </div>         
           <pre class="prettyprint linenums">
-room.stopRecording(recordingId);
-          </pre>
+room.stopRecording(recordingId);</pre>
 
           <h3 id="getStreamsByAttribute">Get Streams by attribute</h3>
           <p>You can search remote streams by attribute. A remote stream is a room stream you have previously subscribed to.
