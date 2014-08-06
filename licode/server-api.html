@@ -96,6 +96,8 @@ N.API.init(serviceId, serviceKey, nuve_host);</pre>
           <ul>
             <li><code>Room.name</code>: the name of the room.</li>
             <li><code>Room._id</code>: an unique identifier for the room.</li>
+            <li><code>Room.p2p</code> (optional): boolean that indicates if the room is a peer - to - peer room. In p2p rooms server side is only user for signalling.</li>
+            <li><code>Room.data</code> (optional): additional metadata for the room.</li>
           </ul>
           <p>In your service you can create a room, get a list of rooms that you have created, get the info about a determined room or delete a room when you don't need it.</p>
 
@@ -117,6 +119,14 @@ var roomName = 'myP2PRoom';
 N.API.createRoom(roomName, function(room) {
   console.log('P2P room created with id: ', room._id);
 }, errorCallback, {p2p: true});</pre>
+
+<p>You can include metadata when creating the room. This metadata will be stored in <code>Room.data</code> field of the room.</p>
+          <pre class="prettyprint linenums">
+var roomName = 'myRoomWithMetadata';
+
+N.API.createRoom(roomName, function(room) {
+  console.log('P2P room created with id: ', room._id);
+}, errorCallback, {data: {room_color: 'red', room_description: 'Room for testing metadata'}});</pre>
 
           <h3>Get Rooms</h3>
           <p>You can ask Nuve for a list of the rooms in your service:</p>
