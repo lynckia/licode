@@ -313,7 +313,7 @@ var room = Erizo.Room({token:'213h8012hwduahd-321ueiwqewq'});</pre>
                 </tr>
                 <tr>
                   <td><a href="#publishStream">publish(stream)</a></td>
-                  <td>It publishes the local stream given by <code>stream</code>.</td>
+                  <td>It publishes the <code>stream</code>.</td>
                 </tr>
                 <tr>
                   <td><a href="#subscribeStream">subscribe(stream)</a></td>
@@ -330,6 +330,14 @@ var room = Erizo.Room({token:'213h8012hwduahd-321ueiwqewq'});</pre>
                 <tr>
                   <td><a href="#disconnectRoom">disconnect()</a></td>
                   <td>It disconnects from the room.</td>
+                </tr>
+                <tr>
+                  <td><a href="#recordStreamStart">startRecording(stream)</a></td>
+                  <td>Starts recording the stream.</td>
+                </tr>
+                <tr>
+                  <td><a href="#recordStreamStop">stopRecording(recordingId)</a></td>
+                  <td>Stops a recording identified by its <code>recordingId</code>.</td>
                 </tr>
                 <tr>
                   <td><a href="#getStreamsByAttribute">getSreamsByAttribute(name, value)</a></td>
@@ -412,6 +420,27 @@ room.addEventListener("stream-removed", function(event) {
           </div>
 <pre class="prettyprint linenums">
 room.disconnect();</pre>
+
+          <h3 id="recordStreamStart">Start Recording</h3>
+          <p>Start the recording of a stream in the server in the path specified in licode_config.js
+          <p>The recording will stored in a .mkv file using VP8 codec for video and PCMU or OPUS for audio, depending on the server configuration. This file can be played directly or streamed into a Licode room.
+          <p>Licode will keep recording until stopRecording is called or the stream is removed from the room.
+          <div class="bs-docs-example">
+            Start the recording of the local stream.
+          </div>         
+          <pre class="prettyprint linenums">
+room.startRecording(localStream, function(recordingId) {
+  console.log("Recording started, the id of the recording is ", recordingId);
+});
+          </pre>
+
+          <h3 id="recordStreamStop">Stop Recording</h3>
+          <p>Stop the recording of a stream. You must provide the identificator of the recording: <code>recordingId</code>.
+          <div class="bs-docs-example">
+            Stop the recording.
+          </div>         
+          <pre class="prettyprint linenums">
+room.stopRecording(recordingId);</pre>
 
           <h3 id="getStreamsByAttribute">Get Streams by attribute</h3>
           <p>You can search remote streams by attribute. A remote stream is a room stream you have previously subscribed to.
