@@ -503,7 +503,6 @@ var streams = room.getStreamsByAttribute('type', 'public');
             <li>Event 'room-disconnected' shows that the user has been already disconnected.</li>
             <li>Event 'stream-added' indicates that there is a new stream available in the room.</li>
             <li>Event 'stream-removed' shows that a previous available stream has been removed from the room.</li>
-            <li>Event 'stream-attributes-update' notifies when the owner of the given stream updates its attributes</li>
           </ul>
           <p>The client could receive any event when it is connected.
           <div class="bs-docs-example">
@@ -515,7 +514,6 @@ room.addEventListener("room-connected", function(evt){...});
 room.addEventListener("room-disconnected", function(evt){...});
 room.addEventListener("stream-added", function(evt){...});
 room.addEventListener("stream-removed", function(evt){...});
-room.addEventListener("stream-attributes-update", function(evt){...});
 room.connect();</pre>
 
 
@@ -593,6 +591,7 @@ room.addEventListener("room-connected", function(evt){...});</pre>
             <li><em>stream-added</em>: indicates that there is a new stream available in the room.</li>
             <li><em>stream-removed</em>: shows that a previous available stream has been removed from the room.</li>
             <li><em>stream-data</em>: thrown by the stream it indicates new data received in the stream.</li>
+            <li><em>stream-attributes-update</em>: notifies when the owner of the given stream updates its attributes</li>
           </ul>
           <p> They all are dispatched by Room objects.</p>
           <p>
@@ -609,7 +608,7 @@ var streamEvent = Erizo.StreamEvent({type:"stream-added", stream:stream1});</pre
 room.addEventListener("stream-removed", function(evt){...});</pre>
 
           <div class="bs-docs-example">
-            <code>access-accepted</code> and <code>stream-data</code> is dispatched by Stream objects, so you need to add event listeners to them.
+            <code>access-accepted</code>, <code>stream-data</code> and <code>stream-attributes-update</code> is dispatched by Stream objects, so you need to add event listeners to them.
           </div>
 <pre class="prettyprint linenums">
 stream.addEventListener("access-accepted", function(evt){...});
@@ -617,7 +616,11 @@ stream.addEventListener("access-accepted", function(evt){...});
 stream.addEventListener("stream-data", function(evt){
   console.log('Received data ', evt.msg, 'from stream ', evt.stream.getAttributes().name);
 });
+
+room.addEventListener("stream-attributes-update", function(evt){...});
 </pre>
+
+
 
         </section>
 
