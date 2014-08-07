@@ -76,7 +76,7 @@ clientapi: true
           </div>
           <p class="lead"> It will handle the WebRTC (audio, video and/or data) stream, identify it, and where it should be drawn.</p>
           <p>They could be local or remote. Licode internally creates remote streams through the <a href="#room">Erizo.Room</a> APIs.
-          <p>It will identify each local and remote streams with <code>stream.getID()</code> and it controls where it should be drawn in the HTML page according to <code>stream.show()</code> (just in case they are video/audio streams).
+          <p>It will identify each local and remote streams with <code>stream.getID()</code> and it controls where it should be drawn in the HTML page according to <code>stream.play()</code> (just in case they are video/audio streams).
 
           <p>You need to initialize the Stream before you can use it in the Room. Typical initializacion of Stream is:
 <pre class="prettyprint linenums">
@@ -90,9 +90,14 @@ clientapi: true
  <p>
           Note that, if you use a Stream this way, the client that will share its sreen must access to your web app using a secure connection (with https protocol).</p>
 
+          <p>You can also specify some constraints about the video size when creating a stream. In order to do this you need to include a <code>videoSize</code> parameter that is an array with the following format: <code>[minWidth, minHeight, maxWidth, maxHeight]</code>
+<pre class="prettyprint linenums">
+ var stream = Erizo.Stream({video: true, audio: true, videoSize: [320, 240, 640, 480]});</pre>
+ <p>
+
           <p> You can access the next variables in a stream object:</p>
           <ul>
-            <li><code>stream.showing</code> to check whether the stream is locally showing our video.</li>
+            <li><code>stream.showing</code> to check whether the stream is locally playing our video/audio.</li>
             <li><code>stream.room</code> to know with which room it is connected.</li>
             <li><code>stream.local</code> to know if the given stream is local or remote.</li>
           </ul>
@@ -129,11 +134,11 @@ clientapi: true
                   <td>Closes the local stream.</td>
                 </tr>
                 <tr>
-                  <td><a href="#showStream">show(elementID, options)</a></td>
-                  <td>Draws the video in the HTML.</td>
+                  <td><a href="#showStream">play(elementID, options)</a></td>
+                  <td>Draws the video or starts playing the audio in the HTML.</td>
                 </tr>
                 <tr>
-                  <td><a href="#hideStream">hide()</a></td>
+                  <td><a href="#hideStream">stop()</a></td>
                   <td>Removes the video from the HTML.</td>
                 </tr>
                 <tr>
@@ -167,7 +172,7 @@ stream.hasData();</pre>
 
           <h3 id="initStream">Initialize the Stream</h3>
 
-          <p>It initializes the stream and tries to retrieve a stream from local video and audio (in case you activate them). <p>You need to call this method before you can publish the in the room or showing it at local.
+          <p>It initializes the stream and tries to retrieve a stream from local video and audio (in case you activate them). <p>You need to call this method before you can publish the in the room or playing it at local.
 
           <div class="bs-docs-example">
           You first create the stream and now you need to initialize it (line 1). Then you need to add an event listener to know when the user has granted access to the webcam and microphone (line 2). You will receive an <em>access-accepted</em> or and <em>access-denied</em> event.
@@ -187,7 +192,7 @@ stream.addEventListener('access-denied', function(event) {
           <p>It closes a local stream. 
           <p>If the stream has audio and/or video this method also stops the capture of your camera and microphone.  
           <p>If the stream is published in a room this method also unpublish it.
-          <p>If the stream is showing in a div this method also hides it.
+          <p>If the stream is playing in a div this method also stops it.
 
           <div class="bs-docs-example">
           You can close a local stream previously initialized with this code.
@@ -195,26 +200,33 @@ stream.addEventListener('access-denied', function(event) {
 <pre class="prettyprint linenums">
 stream.close();
 </pre>
-          <h3 id="showStream">Show our local video in the HTML</h3>
+          <h3 id="showStream">Play our local stream in the HTML</h3>
 
-          <p>It starts showing the video at once at the given <code>elementID</code>.
+          <p>It starts playing the video/audio at once at the given <code>elementID</code>. It automatically creates an audio/video HTML tag.
 
           <div class="bs-docs-example">
-          You can show the video only when you have already received the <em>access-accepted</em> event. And you need to pass the <code>elementID</code> as argument. You can optionally hide the volume slider with the <code>options</code> argument.
+          You can play the video/audio only when you have already received the <em>access-accepted</em> event. And you need to pass the <code>elementID</code> as argument. You can optionally hide the volume slider with the <code>options</code> argument.
           </div>
 <pre class="prettyprint linenums">
-stream.show(elementID, {speaker: false});
+stream.play(elementID, {speaker: false});
 </pre>
 
-          <h3 id="hideStream">Remove the local video from the HTML</h3>
-
-          <p>It stops showing the video.
-
           <div class="bs-docs-example">
-          You can stop to show the video in the HTML with this code.
+          By default video streams are automatically adapted to the div that contains them. But it sometimes implies that the video will be croped. If you don't want to crop the video you can do like this: 
           </div>
 <pre class="prettyprint linenums">
-stream.hide();
+stream.play(elementID, {crop: false});
+</pre>
+
+          <h3 id="hideStream">Remove the local stream from the HTML</h3>
+
+          <p>It stops playing the video/audio.
+
+          <div class="bs-docs-example">
+          You can stop to play the video/audio in the HTML with this code.
+          </div>
+<pre class="prettyprint linenums">
+stream.stop();
 </pre>
 
           <h3 id="sendData">Send Data through the stream</h3>
@@ -380,13 +392,24 @@ room.addEventListener("stream-added", function(event) {
           <p>In this case you will need an object of the <a href="#stream">Stream</a> class, that we receive with that event.
           <div class="bs-docs-example">
             You first need to connect to a room, and receive an event with the stream you want to subscribe. 
-            <p> NOTE: You can subscribe to the stream you are publishing, but you will receive it with delay. We recommend you to use the <a href="#stream">Stream</a> API to show directly your local streams.
+            <p> NOTE: You can subscribe to the stream you are publishing, but you will receive it with delay. We recommend you to use the <a href="#stream">Stream</a> API to play directly your local streams.
           </div>
 <pre class="prettyprint linenums">
 room.addEventListener("stream-subscribed", function(streamEvt) {
   console.log("Stream subscribed");
 });
 room.subscribe(stream);</pre>
+
+          <p>You can choose which components (audio/video) of the stream you want to subscribe to using the second parameter of <code>subscribe</code> method.
+          <div class="bs-docs-example">
+            Here we are going to subscribe to the audio but not to the video.
+          </div>
+<pre class="prettyprint linenums">
+room.addEventListener("stream-subscribed", function(streamEvt) {
+  console.log("Stream subscribed");
+});
+room.subscribe(stream, {audio: true, video: false});</pre>
+
 
           <h3 id="unsubscribeStream">Unsubscribe from a remote stream</h3>
           <p>You can unsubscribe from a stream you are currently subscribed.
@@ -625,7 +648,7 @@ stream.addEventListener("stream-data", function(evt){
                   div.setAttribute("id", "test" + stream.getID());
 
                   document.body.appendChild(div);
-                  stream.show("test" + stream.getID());
+                  stream.play("test" + stream.getID());
               });
 
               room.addEventListener("stream-added", function (streamEvent) {
@@ -644,7 +667,7 @@ stream.addEventListener("stream-data", function(evt){
               });
 
               room.connect();
-              localStream.show("myVideo");
+              localStream.play("myVideo");
           });
           localStream.init();
       };
