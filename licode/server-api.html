@@ -91,7 +91,7 @@ N.API.init(serviceId, serviceKey, nuve_host);</pre>
             <h1>Rooms</h1>
           </div>
           <p class="lead">A Room object represent a videoconference room. In a room participate users that can interchange their streams. Each participant can publish his stream and/or subscribe to the other streams published in the room.</p>
-          
+
           <p>A Room object has the following properties:</p>
           <ul>
             <li><code>Room.name</code>: the name of the room.</li>
@@ -144,7 +144,7 @@ var roomId = '30121g51113e74fff3115502';
 
 N.API.getRoom(roomId, function(resp) {
   var room= JSON.parse(resp);
-  console.log('Room name: ', room.name):
+  console.log('Room name: ', room.name);
 }, errorCallback);</pre>
 
           <h3>Delete Room</h3>
@@ -153,9 +153,9 @@ N.API.getRoom(roomId, function(resp) {
 var roomId = '30121g51113e74fff3115502';
 
 N.API.deleteRoom(roomId, function(result) {
-  console.log('Result: ', result):
+  console.log('Result: ', result);
 }, errorCallback);</pre>
-          
+
         </section>
 
 
@@ -167,7 +167,7 @@ N.API.deleteRoom(roomId, function(result) {
             <h1>Tokens</h1>
           </div>
           <p class="lead">A Token is a string that allows you to add a new participant to a determined room.</p>
-        
+
           <p>When you want to add a new participant to a room, you need to create a new token than you will consume in the <a href="./client-api.html">client-side API</a>. To create a token you need to specify a name and a role for the new participant.</p>
 
           <ul>
@@ -198,7 +198,7 @@ N.API.createToken(roomId, name, role, function(token) {
           </div>
 
           <p class="lead">A user User object represents a participant in a videoconference room.</p>
-          
+
           <p>A User object has the following properties:</p>
           <ul>
             <li><code>User.name</code>: the name specified when you created the token.</li>
@@ -233,16 +233,16 @@ N.API.getUsers(roomId, function(users) {
           <p class="lead">Here you can obtain a Service in order to create your own videoconference rooms.</p>
 
           <p>Fill the following fields and we send you and email with your ServiceId and your ServiceKey:</p>
-          
+
           <p>Name:</p>
           <input type="text" id="name" class="span3">
           <p>Email address:</p>
           <input type="text" id="email" class="span3">
-  
+
           <p><a class="btn btn-large btn-primary" onclick="createService();">Get Service Id</a></p>
           <div id="servMsg"></div>
-    
-          
+
+
         </section>-->
 
                 <!-- Examples
@@ -254,7 +254,7 @@ N.API.getUsers(roomId, function(users) {
           <p class="lead">With a deep intro into the contents out of the way, we can focus putting Server API to use. To do that, we'll utilize a basic example that includes everything we mentioned in the previous section.</p>
           <p>Now, here's a look at a typical server application implemented in Node.js:</p>
           <div class="row-fluid">
-            
+
             <div class="span8">
               <pre class="prettyprint linenums:1">
 var N = require('nuve');
