@@ -88,13 +88,22 @@ clientapi: true
 <pre class="prettyprint linenums">
  var stream = Erizo.Stream({screen: true, data: true, attributes: {name:'myStream'}});</pre>
  <p>
-          Note that, if you use a Stream this way, the client that will share its sreen must access to your web app using a secure connection (with https protocol).</p>
+ Note that, if you use a Stream this way, the client that will share its sreen must access to your web app using a secure connection (with https protocol) and use a screensharing plugin as explained <a href="http://lynckia.com/licode/plugin.html">here</a>.</p>
 
           <p>You can also specify some constraints about the video size when creating a stream. In order to do this you need to include a <code>videoSize</code> parameter that is an array with the following format: <code>[minWidth, minHeight, maxWidth, maxHeight]</code>
 <pre class="prettyprint linenums">
  var stream = Erizo.Stream({video: true, audio: true, videoSize: [320, 240, 640, 480]});</pre>
  <p>
 
+ <p> Also, you can create a stream to publish an external source to the Licode session. At this point, RTSP and files are supported, depending on the Codec (only H.264 for RTSP and VP8 + (OPUS or PCMU8) for files. You can create an external stream by using the <code>url</code> variable. These streams can be then published just as if they were a local stream.</p>
+ <p> For instance, to create a stream from a rtsp source:</p>
+<pre class="prettyprint linenums">
+ var stream = Erizo.Stream({video: true, audio: false, url:"rtsp://user:pass@the_server_url:port"});</pre>
+ <p>
+ <p> Or, to create a stream from a .mkv file:</p>
+<pre class="prettyprint linenums">
+ var stream = Erizo.Stream({video: true, audio: false, url:"file:///path_to_file/movie.mkv"});</pre>
+ <p>
           <p> You can access the next variables in a stream object:</p>
           <ul>
             <li><code>stream.showing</code> to check whether the stream is locally playing our video/audio.</li>
@@ -406,6 +415,12 @@ room.addEventListener("stream-added", function(event) {
     console.log("Published!!!");
   }
 });</pre>
+            <p><code>room.publish</code> also allows to set a bandwidth limit for the localStream. We do this by passing the <code>maxVideoBW</code> variable as an option. The BW is expressed in Kbps. Keep in mind that the field <code>config.erizoController.defaultVideoBW</code>
+            in the server configuration has higher priority than this one.</p>
+
+            <pre class="prettyprint linenums">
+room.publish(localStream, {maxVideoBW:300});
+</pre>
 
           <h3 id="subscribeStream">Subscribe to a remote stream</h3>
           <p>It subscribes to a remote stream in the room.
@@ -485,6 +500,17 @@ room.startRecording(localStream, function(recordingId) {
           </div>
           <pre class="prettyprint linenums">
 room.stopRecording(recordingId);</pre>
+
+          <h3 id="playRecording">Playing recorded streams</h3>
+          <p>There are two ways of playing a recorded stream. Both of them involve the creation of an external stream. You can either set the <code>url</code> variable to the path of the recorded file or use the <code>recordingId</code> as a variable.
+          <div class="bs-docs-example">
+            Play a recording from full path (url) or by using its <code>recordingId</code>.
+          </div>
+         <pre class="prettyprint linenums">
+var stream = Erizo.Stream({video: true, audio: false, url:"file:///path_to_file/previousRecording.mkv"});
+room.publish(stream);
+var stream2 = Erizo.Stream({audio:true, video:true, recording: 'asda2131231'});
+room.publish(stream2);</pre>
 
           <h3 id="getStreamsByAttribute">Get Streams by attribute</h3>
           <p>You can search remote streams by attribute. A remote stream is a room stream you have previously subscribed to.
