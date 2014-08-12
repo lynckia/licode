@@ -341,10 +341,6 @@ var listen = function () {
                         for (var right in permissions) {
                             socket.user.permissions[right] = permissions[right];
                         }
-//                        for (var i in permissions) {
-//                            var permission = permissions[i];
-//                            socket.user.permissions[permission] = true;
-//                        }
                         console.log("Permission: ", permissions);
                         console.log("User perms: ",socket.user.permissions);
                         socket.room = rooms[tokenDB.room];
