@@ -106,8 +106,7 @@ namespace erizo {
           fbsource->setFeedbackSink(NULL);
         }
       }
-      subscribers.erase(it);
-      it++;
+      subscribers.erase(it++);
     }
     lock.unlock();
     lock.lock();
