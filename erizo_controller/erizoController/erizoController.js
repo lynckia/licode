@@ -341,8 +341,6 @@ var listen = function () {
                         for (var right in permissions) {
                             socket.user.permissions[right] = permissions[right];
                         }
-                        console.log("Permission: ", permissions);
-                        console.log("User perms: ",socket.user.permissions);
                         socket.room = rooms[tokenDB.room];
                         socket.streams = []; //[list of streamIds]
                         socket.state = 'sleeping';
