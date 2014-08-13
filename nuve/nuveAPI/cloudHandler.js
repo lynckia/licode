@@ -205,7 +205,7 @@ exports.getUsersInRoom = function (roomId, callback) {
     }
 
     var rpcID = erizoControllers[rooms[roomId]].rpcID;
-    rpc.callRpc(rpcID, 'getUsersInRoom', roomId, {"callback": function (users) {
+    rpc.callRpc(rpcID, 'getUsersInRoom', [roomId], {"callback": function (users) {
         if (users === 'timeout') {
             users = '?';
         }
@@ -222,7 +222,7 @@ exports.deleteRoom = function (roomId, callback) {
     }
 
     var rpcID = erizoControllers[rooms[roomId]].rpcID;
-    rpc.callRpc(rpcID, 'deleteRoom', roomId, {"callback": function (result) {
+    rpc.callRpc(rpcID, 'deleteRoom', [roomId], {"callback": function (result) {
         callback(result);
     }});
 };
