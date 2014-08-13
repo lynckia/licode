@@ -412,12 +412,11 @@ var listen = function () {
                 callback('error', 'unauthorized');
                 return;
             }
-            if (socket.user.permissions[Permission.PUBLISH] !== true)
-            {
+            if (socket.user.permissions[Permission.PUBLISH] !== true) {
                 var permissions = socket.user.permissions[Permission.PUBLISH];
-                for (var right in permissions)
-                {
-                    (options[right] === true) && (permissions[right] === false)? options[right] = false : options[right];
+                for (var right in permissions) {
+                    if ((options[right] === true) && (permissions[right] === false))
+                        return callback('error', 'unauthorized');
                 }
             }
             if (options.state === 'url' || options.state === 'recording') {
@@ -485,12 +484,11 @@ var listen = function () {
                 callback('error', 'unauthorized');
                 return;
             }
-            if (socket.user.permissions[Permission.SUBSCRIBE] !== true)
-            {
+            if (socket.user.permissions[Permission.SUBSCRIBE] !== true) {
                 var permissions = socket.user.permissions[Permission.SUBSCRIBE];
-                for (var right in permissions)
-                {
-                    (options[right] === true) && (permissions[right] === false)? options[right] = false : options[right];
+                for (var right in permissions) {
+                    if ((options[right] === true) && (permissions[right] === false))
+                        return callback('error', 'unauthorized');
                 }
             }
 
