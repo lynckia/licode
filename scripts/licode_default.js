@@ -65,7 +65,10 @@ config.erizoController.limit_n_rooms = 20; // default value: 20
 config.erizoController.interval_time_keepAlive = 1000; // default value: 1000
 
 // Roles to be used by services
-config.erizoController.roles = {"presenter":["publish", "subscribe", "record"], "viewer":["subscribe"]}; // default value: {"presenter":["publish", "subscribe", "record"], "viewer":["subscribe"]}
+config.erizoController.roles =
+{"presenter": {"publish": true, "subscribe": true, "record": true},
+    "viewer": {"subscribe": true},
+    "viewerWithData": {"subscribe": true, "publish": {"audio": false, "video": false, "screen": false, "data": true}}}; // default value: {"presenter":{"publish": true, "subscribe":true, "record":true}, "viewer":{"subscribe":true}, "viewerWithData":{"subscribe":true, "publish":{"audio":false,"video":false,"screen":false,"data":true}}}
 
 // If true, erizoController sends stats to rabbitMQ queue "stats_handler" 
 config.erizoController.sendStats = false; // default value: false

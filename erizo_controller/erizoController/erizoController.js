@@ -28,9 +28,9 @@ if (config.erizoController.turnServer !== undefined) {
 GLOBAL.config.erizoController.warning_n_rooms = GLOBAL.config.erizoController.warning_n_rooms || 15;
 GLOBAL.config.erizoController.limit_n_rooms = GLOBAL.config.erizoController.limit_n_rooms || 20;
 GLOBAL.config.erizoController.interval_time_keepAlive = GLOBAL.config.erizoController.interval_time_keepAlive || 1000;
-GLOBAL.config.erizoController.sendStats = GLOBAL.config.erizoController.sendStats || false; 
-GLOBAL.config.erizoController.recording_path = GLOBAL.config.erizoController.recording_path || undefined; 
-GLOBAL.config.erizoController.roles = GLOBAL.config.erizoController.roles || {"presenter":["publish", "subscribe", "record"], "viewer":["subscribe"]};
+GLOBAL.config.erizoController.sendStats = GLOBAL.config.erizoController.sendStats || false;
+GLOBAL.config.erizoController.recording_path = GLOBAL.config.erizoController.recording_path || undefined;
+GLOBAL.config.erizoController.roles = GLOBAL.config.erizoController.roles || {"presenter":{"publish": true, "subscribe":true, "record":true}, "viewer":{"subscribe":true}, "viewerWithData":{"subscribe":true, "publish":{"audio":false,"video":false,"screen":false,"data":true}}};
 
 // Parse command line arguments
 var getopt = new Getopt([
@@ -127,7 +127,7 @@ var checkSignature = function (token, key) {
 };
 
 /*
- * Sends a massege of type 'type' to all sockets in a determined room.
+ * Sends a message of type 'type' to all sockets in a determined room.
  */
 var sendMsgToRoom = function (room, type, arg) {
     "use strict";
@@ -171,8 +171,8 @@ var addToCloudHandler = function (callback) {
     }
 
     privateRegexp = new RegExp(addresses[0], 'g');
-    
-    if (GLOBAL.config.erizoController.publicIP === '' || GLOBAL.config.erizoController.publicIP === undefined){        
+
+    if (GLOBAL.config.erizoController.publicIP === '' || GLOBAL.config.erizoController.publicIP === undefined){
         publicIP = addresses[0];
     } else {
         publicIP = GLOBAL.config.erizoController.publicIP;
@@ -326,7 +326,7 @@ var listen = function () {
                                             delete room.streams[streamId];
                                         }
                                     }
-                                    
+
                                 });
                             }
                             rooms[tokenDB.room] = room;
@@ -338,9 +338,8 @@ var listen = function () {
                         socket.user = user;
                         var permissions = GLOBAL.config.erizoController.roles[tokenDB.role] || [];
                         socket.user.permissions = {};
-                        for (var i in permissions) {
-                            var permission = permissions[i];
-                            socket.user.permissions[permission] = true;
+                        for (var right in permissions) {
+                            socket.user.permissions[right] = permissions[right];
                         }
                         socket.room = rooms[tokenDB.room];
                         socket.streams = []; //[list of streamIds]
@@ -358,8 +357,8 @@ var listen = function () {
                             }
                         }
 
-                        callback('success', {streams: streamList, 
-                                            id: socket.room.id, 
+                        callback('success', {streams: streamList,
+                                            id: socket.room.id,
                                             p2p: socket.room.p2p,
                                             defaultVideoBW: GLOBAL.config.erizoController.defaultVideoBW,
                                             maxVideoBW: GLOBAL.config.erizoController.maxVideoBW,
@@ -410,6 +409,13 @@ var listen = function () {
             if (socket.user === undefined || !socket.user.permissions[Permission.PUBLISH]) {
                 callback('error', 'unauthorized');
                 return;
+            }
+            if (socket.user.permissions[Permission.PUBLISH] !== true) {
+                var permissions = socket.user.permissions[Permission.PUBLISH];
+                for (var right in permissions) {
+                    if ((options[right] === true) && (permissions[right] === false))
+                        return callback('error', 'unauthorized');
+                }
             }
             if (options.state === 'url' || options.state === 'recording') {
                 id = Math.random() * 1000000000000000000;
@@ -476,6 +482,14 @@ var listen = function () {
                 callback('error', 'unauthorized');
                 return;
             }
+            if (socket.user.permissions[Permission.SUBSCRIBE] !== true) {
+                var permissions = socket.user.permissions[Permission.SUBSCRIBE];
+                for (var right in permissions) {
+                    if ((options[right] === true) && (permissions[right] === false))
+                        return callback('error', 'unauthorized');
+                }
+            }
+
             var stream = socket.room.streams[options.streamId];
 
             if (stream === undefined) {
@@ -519,16 +533,16 @@ var listen = function () {
             }
             var streamId = options.to;
             var recordingId = Math.random() * 1000000000000000000;
-            var url; 
+            var url;
 
             if (GLOBAL.config.erizoController.recording_path) {
                 url = GLOBAL.config.erizoController.recording_path + recordingId + '.mkv';
             } else {
                 url = '/tmp/' + recordingId + '.mkv';
             }
-            
+
             log.info("erizoController.js: Starting recorder streamID " + streamId + "url ", url);
-            
+
             if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
                 socket.room.controller.addExternalOutput(streamId, url, function (result) {
                     if (result === 'success') {
@@ -538,7 +552,7 @@ var listen = function () {
                         callback('error', 'This stream is not published in this room');
                     }
                 });
-                
+
             } else {
                 callback('error', 'Stream can not be recorded');
             }
