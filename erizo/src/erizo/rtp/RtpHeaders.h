@@ -74,6 +74,10 @@ namespace erizo{
           // No implementation required
       }
 
+      inline uint8_t hasPadding() const {
+        return padding;
+      }
+
       inline uint8_t getVersion() const {
         return version;
       }

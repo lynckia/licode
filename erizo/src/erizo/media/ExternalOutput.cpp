@@ -168,7 +168,7 @@ void ExternalOutput::writeVideoData(char* buf, int len){
             // Copy RTP header
             memcpy(deliverMediaBuffer_, buf, rtpHeaderLength);
             // Copy payload data
-            memcpy(deliverMediaBuffer_ + totalLength, buf + totalLength + 1, len - totalLength - 1);
+            memcpy(deliverMediaBuffer_ + rtpHeaderLength, buf + totalLength + 1, len - totalLength - 1);
             // Copy payload type
             RtpHeader *mediahead = reinterpret_cast<RtpHeader*>(deliverMediaBuffer_);
             mediahead->setPayloadType(redhead->payloadtype);
@@ -306,6 +306,14 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
     RtcpHeader *head = reinterpret_cast<RtcpHeader*>(buffer);
     if (head->isRtcp()){
         return;
+    }
+
+    // if this packet has any padding, strip it off so we don't have to deal with it downstream.
+    RtpHeader* h = reinterpret_cast<RtpHeader*>(buffer);
+    if (h->hasPadding()) {
+        uint8_t paddingCount = (uint8_t) buffer[length - 1];    // padding count is in the last byte of the payload, and includes itself.
+        //ELOG_DEBUG("Padding byte set, old length: %d, new length: %d", length, length - paddingCount);
+        length -= paddingCount;
     }
 
     if (firstDataReceived_ == -1) {
