@@ -36,7 +36,7 @@ config.nuve.testErizoController = 'localhost:8080'; // default value: 'localhost
 config.erizoController = {};
 
 //Use undefined to run clients without Stun
-var network_config  = require("./licode_config/network")
+var network_config  = require("./licode_config/network");
 
 config.erizoController.stunServerUrl = network_config.stunServerUrl;
 
@@ -47,6 +47,7 @@ config.erizoController.maxVideoBW = 300; //default value: 300
 //Public erizoController IP for websockets (useful when behind NATs)
 //Use '' to automatically get IP from the interface
 config.erizoController.publicIP = network_config.publicIP;
+config.minervaHost = network_config.minervaHost;
 //Use '' to use the public IP address instead of a hostname
 config.erizoController.hostname = '';
 config.erizoController.port = 443;
