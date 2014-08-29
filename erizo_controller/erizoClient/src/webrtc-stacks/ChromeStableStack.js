@@ -15,13 +15,13 @@ Erizo.ChromeStableStack = function (spec) {
     that.maxAudioBW = spec.maxAudioBW;
     that.audioCodec = spec.audioCodec;
     that.opusHz = spec.opusHz;
-    that.opusBitrate = spec.opusBitrate;   
+    that.opusBitrate = spec.opusBitrate;
 
     that.con = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
 
     if (spec.stunServerUrl !== undefined) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
-    } 
+    }
 
     if ((spec.turnServer || {}).url) {
         that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
@@ -47,11 +47,20 @@ Erizo.ChromeStableStack = function (spec) {
     that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
 
     that.peerConnection.onicecandidate = function (event) {
-        console.log("[stable] onicecandidate PeerConnection: ", spec.session_id, event.candidate);
+        L.Logger.debug("Have ice candidate for session: ", spec.session_id);
+        // HACK (bf) If no new ice candidates for 0.5s, stop waiting
+        clearTimeout(that.moreIceTimeout);
+        that.moreIceTimeout = setTimeout(function() {
+            if (that.moreIceComing) {
+                that.moreIceComing = false;
+                that.markActionNeeded();
+            }
+        }, 500);
+
         if (!event.candidate) {
             // At the moment, we do not renegotiate when new candidates
             // show up after the more flag has been false once.
-            console.log("State: " + that.peerConnection.iceGatheringState);
+            L.Logger.debug("State: " + that.peerConnection.iceGatheringState);
 
             if (that.ices === undefined) {
                 that.ices = 0;
@@ -60,20 +69,13 @@ Erizo.ChromeStableStack = function (spec) {
             if (that.ices >= 1 && that.moreIceComing) {
                 that.moreIceComing = false;
                 that.markActionNeeded();
+                clearTimeout(that.moreIceTimeout);
             }
         } else {
             var type = event.candidate.candidate.split(" ")[7];
-            if( type != "relay" ) {
-                trace("ICE  -  Created " + type + " candidate should be ignored: TURN only mode.");
-            } else {
-                trace("ICE  - Sending " + type + " candidate." );
-            }
-
             that.iceCandidateCount += 1;
         }
     };
-
-    //console.log("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
 
     var setMaxBW = function (sdp) {
         if (that.maxVideoBW) {
@@ -92,19 +94,20 @@ Erizo.ChromeStableStack = function (spec) {
     };
 
     var setMaxBW = function (sdp) {
-        if (spec.maxVideoBW) {
+        if (that.maxVideoBW) {
             var a = sdp.match(/m=video.*\r\n/);
-            var r = a[0] + "b=AS:" + spec.maxVideoBW + "\r\n";
+            var r = a[0] + "b=AS:" + that.maxVideoBW + "\r\n";
             sdp = sdp.replace(a[0], r);
         }
 
-        if (spec.maxAudioBW) {
+        if (that.maxAudioBW) {
             var a = sdp.match(/m=audio.*\r\n/);
-            var r = a[0] + "b=AS:" + spec.maxAudioBW + "\r\n";
+            var r = a[0] + "b=AS:" + that.maxAudioBW + "\r\n";
             sdp = sdp.replace(a[0], r);
         }
         return sdp;
     };
+
 
     var setAudioCodec = function(sdp) {
         var temp;
@@ -115,14 +118,14 @@ Erizo.ChromeStableStack = function (spec) {
             } else {
                 if (that.opusHz) {
                     temp = sdp.match(".*opus.*\r\na=fmtp.*");
-                    sdp = sdp.replace(temp, temp + 
-                        "; maxplaybackrate=" + that.opusHz + 
+                    sdp = sdp.replace(temp, temp +
+                        "; maxplaybackrate=" + that.opusHz +
                         "; sprop-maxcapturerate=" + that.opusHz);
                 }
                 if (that.opusBitrate) {
                     temp = sdp.match(".*opus.*\r\na=fmtp.*");
-                    sdp = sdp.replace(temp, temp + 
-                        "; maxaveragebitrate=" + that.opusBitrate);                    
+                    sdp = sdp.replace(temp, temp +
+                        "; maxaveragebitrate=" + that.opusBitrate);
                 }
             }
             if (that.audioCodec !== "ISAC/32000") {
@@ -137,6 +140,15 @@ Erizo.ChromeStableStack = function (spec) {
         return sdp;
     };
 
+    var pruneIceCandidates = function(sdp) {
+
+        /* Remove all TCP candidates.  Who needs em?! */
+        var regExp = new RegExp(/a=candidate:\d+\s\d\stcp.+/g);
+        sdp = sdp.replace(regExp,"");
+
+        return sdp;
+    };
+
     /**
      * This function processes signalling messages from the other side.
      * @param {string} msgstring JSON-formatted string containing a ROAP message.
@@ -145,7 +157,7 @@ Erizo.ChromeStableStack = function (spec) {
         // Offer: Check for glare and resolve.
         // Answer/OK: Remove retransmit for the msg this is an answer to.
         // Send back "OK" if this was an Answer.
-        console.log('Activity on conn ' + that.sessionId);
+        L.Logger.debug('Activity on conn ' + that.sessionId, msgstring);
         var msg = JSON.parse(msgstring), sd, regExp, exp;
         that.incomingMessage = msg;
 
@@ -171,7 +183,7 @@ Erizo.ChromeStableStack = function (spec) {
                 //regExp = new RegExp(/m=video[\w\W]*\r\n/g);
 
                 //exp = msg.sdp.match(regExp);
-                //console.log(exp);
+                //L.Logger.debug(exp);
 
                 //msg.sdp = msg.sdp.replace(regExp, exp + "b=AS:100\r\n");
 
@@ -179,7 +191,7 @@ Erizo.ChromeStableStack = function (spec) {
                     sdp: msg.sdp,
                     type: 'answer'
                 };
-                console.log("Received ANSWER: ", sd.sdp);
+                L.Logger.debug("Received ANSWER: ", sd.sdp);
 
                 sd.sdp = setMaxBW(sd.sdp);
                 sd.sdp = setAudioCodec(sd.sdp);
@@ -282,11 +294,11 @@ Erizo.ChromeStableStack = function (spec) {
      */
     that.onstablestate = function () {
         var mySDP, roapMessage = {};
-        console.log("[stable] onstablestate", that.state);
         if (that.actionNeeded) {
             if (that.state === 'new' || that.state === 'established') {
                 // See if the current offer is the same as what we already sent.
-                // If not, no change is needed.   
+                // If not, no change is needed.
+                // Don't do anything until we have the ICE candidates.
 
                 that.peerConnection.createOffer(function (sessionDescription) {
 
@@ -294,41 +306,60 @@ Erizo.ChromeStableStack = function (spec) {
                     //sessionDescription.sdp = newOffer.replace(/a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
                     //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
 
-
-                    
-
                     sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
                     sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
-
-                    console.log("Changed sessionDescription.sdp", sessionDescription.sdp);
 
                     var newOffer = sessionDescription.sdp;
 
                     if (newOffer !== that.prevOffer) {
-
+                        L.Logger.debug("Have new SDP on createOffer");
                         that.peerConnection.setLocalDescription(sessionDescription);
+                        that.prevOffer = sessionDescription.sdp;
 
-                        that.state = 'preparing-offer';
+                        if (that.moreIceComing) {
+                            that.state = 'preparing-offer';
+                        } else {
+                            that.state = 'ice-gathering-finished'
+                        }
                         that.markActionNeeded();
                         return;
-                    } else {
-                        console.log('Not sending a new offer');
                     }
 
                 }, null, that.mediaConstraints);
 
-
             } else if (that.state === 'preparing-offer') {
-                // Don't do anything until we have the ICE candidates.
                 if (that.moreIceComing) {
                     return;
+                } else {
+                    L.Logger.debug("ice-gathering-finished");
+
+                    that.peerConnection.createOffer(function (sessionDescription) {
+
+                        //sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
+                        //sessionDescription.sdp = newOffer.replace(/a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
+                        //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
+
+                        sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
+                        sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
+
+                        sessionDescription.sdp = pruneIceCandidates(sessionDescription.sdp);
+
+                        that.peerConnection.setLocalDescription(sessionDescription);
+                        that.prevOffer = sessionDescription.sdp;
+
+                        L.Logger.debug("setting state to ice-gathering-finished");
+                        that.state = 'ice-gathering-finished'
+                        that.markActionNeeded();
+                        return;
+
+                    }, null, that.mediaConstraints);
+
                 }
 
+            } else if (that.state === 'ice-gathering-finished') {
 
-                // Now able to send the offer we've already prepared.
-                that.prevOffer = that.peerConnection.localDescription.sdp;
-                console.log("Sending OFFER: " + that.prevOffer);
-                //console.log('Sent SDP is ' + that.prevOffer);
+                L.Logger.debug("Sending OFFER: " + that.prevOffer);
+                //L.Logger.debug('Sent SDP is ' + that.prevOffer);
                 that.sendMessage('OFFER', that.prevOffer);
                 // Not done: Retransmission on non-response.
                 that.state = 'offer-sent';
@@ -336,12 +367,13 @@ Erizo.ChromeStableStack = function (spec) {
             } else if (that.state === 'offer-received') {
 
                 that.peerConnection.createAnswer(function (sessionDescription) {
+                    L.Logger.debug("Have session description sdp in createAnswer", sessionDescription.sdp);
                     that.peerConnection.setLocalDescription(sessionDescription);
                     that.state = 'offer-received-preparing-answer';
 
                     if (!that.iceStarted) {
                         var now = new Date();
-                        console.log(now.getTime() + ': Starting ICE in responder');
+                        L.Logger.debug(now.getTime() + ': Starting ICE in responder');
                         that.iceStarted = true;
                     } else {
                         that.markActionNeeded();
@@ -356,7 +388,6 @@ Erizo.ChromeStableStack = function (spec) {
                 }
 
                 mySDP = that.peerConnection.localDescription.sdp;
-                console.log("my SDP is",mySDP);
 
                 that.sendMessage('ANSWER', mySDP);
                 that.state = 'established';
@@ -381,7 +412,6 @@ Erizo.ChromeStableStack = function (spec) {
      */
     that.sendMessage = function (operation, sdp) {
         var roapMessage = {};
-        console.log("[stable] sendMessage", operation);
         roapMessage.messageType = operation;
         roapMessage.sdp = sdp; // may be null or undefined
         if (operation === 'OFFER') {
@@ -435,7 +465,7 @@ Erizo.ChromeStableStack = function (spec) {
     that.peerConnection.oniceconnectionstatechange = function (e) {
         if (that.oniceconnectionstatechange) {
             that.oniceconnectionstatechange(e.currentTarget.iceConnectionState);
-        }   
+        }
     };
 
     // Variables that are part of the public interface of PeerConnection
