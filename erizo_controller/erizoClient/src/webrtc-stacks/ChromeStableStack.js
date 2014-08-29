@@ -157,7 +157,10 @@ Erizo.ChromeStableStack = function (spec) {
         // Offer: Check for glare and resolve.
         // Answer/OK: Remove retransmit for the msg this is an answer to.
         // Send back "OK" if this was an Answer.
-        L.Logger.debug('Activity on conn ' + that.sessionId, msgstring);
+        L.Logger.debug('Activity on connection for session ' + that.sessionId);
+        if(msgstring === "timeout") {
+            throw new Error("Timeout received on signaling channel for session ", that.sessionId);
+        }
         var msg = JSON.parse(msgstring), sd, regExp, exp;
         that.incomingMessage = msg;
 

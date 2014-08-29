@@ -49,7 +49,10 @@ exports.RoomController = function (spec) {
 
     var createErizoJS = function(publisher_id, callback) {
     	rpc.callRpc("ErizoAgent", "createErizoJS", [publisher_id], {callback: function(erizo_id) {
-            log.debug("Answer", erizo_id);
+            if(erizo_id === "timeout") {
+                throw new Error("Timeout in RPC call to createErizoJs for publisher" + publisher_id);
+            }
+            log.debug("Answer for id ", erizo_id);
             erizos[publisher_id] = erizo_id;
             callback();
         }});
@@ -61,9 +64,9 @@ exports.RoomController = function (spec) {
 
     var dispatchEvent = function(type, event) {
         for (var event_id in eventListeners) {
-            eventListeners[event_id](type, event);    
+            eventListeners[event_id](type, event);
         }
-        
+
     };
 
     that.addEventListener = function(eventListener) {
@@ -115,7 +118,7 @@ exports.RoomController = function (spec) {
     that.removeExternalOutput = function (url, callback) {
         var publisher_id = externalOutputs[url];
 
-        if (publisher_id !== undefined && publishers[publisher_id] != undefined) {
+        if (publisher_id !== undefined && publishers[publisher_id] !== undefined) {
             log.info("Stopping ExternalOutput: url " + url);
 
             var args = [publisher_id, url];
