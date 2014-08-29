@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <string>
 
-#include "rtp/RtpParser.h"
+#include "rtp/RtpVP8Parser.h"
 #include "../MediaDefinitions.h"
 #include "codecs/Codecs.h"
 #include "codecs/VideoCodec.h"
@@ -28,7 +28,7 @@ struct RTPInfo {
 };
 
 enum ProcessorType {
-	RTP_ONLY, AVF
+	RTP_ONLY, AVF, PACKAGE_ONLY
 };
 
 enum DataType {
@@ -45,7 +45,7 @@ struct MediaInfo {
 	std::string url;
 	bool hasVideo;
 	bool hasAudio;
-	ProcessorType proccessorType;
+	ProcessorType processorType;
 	RTPInfo rtpVideoInfo;
 	RTPInfo rtpAudioInfo;
 	VideoCodecInfo videoCodec;
@@ -136,7 +136,7 @@ private:
 
 	RawDataReceiver* rawReceiver_;
 
-	erizo::RtpParser pars;
+	erizo::RtpVP8Parser pars;
 
 	bool initAudioDecoder();
 
@@ -159,6 +159,12 @@ public:
   void close();
 	void receiveRawData(RawDataPacket& packet);
 
+  int packageAudio(unsigned char* inBuff, int inBuffLen,
+			unsigned char* outBuff, long int pts = 0);
+
+	int packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff,
+      long int pts = 0);
+
 private:
 
 	int audioCoder;
@@ -168,6 +174,7 @@ private:
 	int videoPackager;
 
 	unsigned int seqnum_;
+  unsigned int audioSeqnum_;
 
 	unsigned long timestamp_;
 
@@ -197,7 +204,7 @@ private:
 	AVFormatContext* vOutputFormatContext;
 	AVOutputFormat* vOutputFormat;
 
-	RtpParser pars;
+	RtpVP8Parser pars;
 
 	bool initAudioCoder();
 
@@ -207,10 +214,6 @@ private:
 	int encodeAudio(unsigned char* inBuff, int nSamples,
 			AVPacket* pkt);
 
-	int packageAudio(unsigned char* inBuff, int inBuffLen,
-			unsigned char* outBuff);
-
-	int packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff);
 };
 } /* namespace erizo */
 

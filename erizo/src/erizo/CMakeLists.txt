@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.6)
 find_package(PkgConfig)
 #functions
 function(test_lib LIB_NAME)
@@ -34,7 +34,7 @@ find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
 target_link_libraries(erizo ${Boost_LIBRARIES})
 
 # GTHREAD
-find_library(GTHREAD gthread-2.0)
+find_library(GTHREAD gthread-2.0 HINTS "${LIB_DIRS}")
 test_lib(${GTHREAD})
 
 # SRTP

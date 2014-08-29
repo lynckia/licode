@@ -11,6 +11,7 @@ Erizo.Stream = function (spec) {
 
     that.stream = spec.stream;
     that.url = spec.url;
+    that.recording = spec.recording;
     that.room = undefined;
     that.showing = false;
     that.local = false;
@@ -18,6 +19,7 @@ Erizo.Stream = function (spec) {
     that.audio = spec.audio;
     that.screen = spec.screen;
     that.videoSize = spec.videoSize;
+    that.extensionId = spec.extensionId;
     if (that.videoSize !== undefined && (!(that.videoSize instanceof Array) || that.videoSize.length != 4)) {
         throw Error("Invalid Video Size");
     }
@@ -31,8 +33,18 @@ Erizo.Stream = function (spec) {
         return spec.streamID;
     };
 
+    // Get attributes of this stream.
     that.getAttributes = function () {
         return spec.attributes;
+    };
+
+    // Changes the attributes of this stream in the room.
+    that.setAttributes = function(attrs) {
+        L.Logger.error("Failed to set attributes data. This Stream object has not been published.");
+    };
+
+    that.updateLocalAttributes = function(attrs) {
+        spec.attributes = attrs;
     };
 
     // Indicates if the stream has audio activated
@@ -100,8 +112,8 @@ Erizo.Stream = function (spec) {
             }
         } catch (e) {
             L.Logger.error("Error accessing to local media", e);
-        }
-    };
+          }
+      };
 
     that.close = function () {
         if (that.local) {

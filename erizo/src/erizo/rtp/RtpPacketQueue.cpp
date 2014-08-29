@@ -1,10 +1,11 @@
 #include "RtpPacketQueue.h"
-#include "../../MediaDefinitions.h"
-#include "RtpHeader.h"
+#include "../MediaDefinitions.h"
+#include "RtpHeaders.h"
+#include <cstring>
 
 namespace erizo{
 
-DEFINE_LOGGER(RtpPacketQueue, "RtpPacketQueue");
+DEFINE_LOGGER(RtpPacketQueue, "rtp.RtpPacketQueue");
 
 RtpPacketQueue::RtpPacketQueue(unsigned int max, unsigned int depth) : lastSequenceNumberGiven_(-1), max_(max), depth_(depth)
 {
@@ -22,7 +23,7 @@ RtpPacketQueue::~RtpPacketQueue(void)
 
 void RtpPacketQueue::pushPacket(const char *data, int length)
 {
-    const RTPHeader *currentHeader = reinterpret_cast<const RTPHeader*>(data);
+    const RtpHeader *currentHeader = reinterpret_cast<const RtpHeader*>(data);
     uint16_t currentSequenceNumber = currentHeader->getSeqNumber();
 
     if(lastSequenceNumberGiven_ >= 0 && (rtpSequenceLessThan(currentSequenceNumber, (uint16_t)lastSequenceNumberGiven_) || currentSequenceNumber == lastSequenceNumberGiven_)) {
@@ -40,10 +41,9 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
 
     // let's insert this packet where it belongs in the queue.
     boost::mutex::scoped_lock lock(queueMutex_);
-
     std::list<boost::shared_ptr<dataPacket> >::iterator it;
     for (it=queue_.begin(); it != queue_.end(); ++it) {
-        const RTPHeader *header = reinterpret_cast<const RTPHeader*>((*it)->data);
+        const RtpHeader *header = reinterpret_cast<const RtpHeader*>((*it)->data);
         uint16_t sequenceNumber = header->getSeqNumber();
 
         if (sequenceNumber == currentSequenceNumber) {
@@ -80,7 +80,7 @@ boost::shared_ptr<dataPacket> RtpPacketQueue::popPacket(bool ignore_depth)
         if (ignore_depth || queue_.size() >= depth_) {
             packet = queue_.back();
             queue_.pop_back();
-            const RTPHeader *header = reinterpret_cast<const RTPHeader*>(packet->data);
+            const RtpHeader *header = reinterpret_cast<const RtpHeader*>(packet->data);
             lastSequenceNumberGiven_ = (int)header->getSeqNumber();
         }
     }

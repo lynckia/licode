@@ -1,5 +1,5 @@
-#ifndef RTPPARSER_H_
-#define RTPPARSER_H_
+#ifndef RTPVP8PARSER_H_
+#define RTPVP8PARSER_H_
 
 #include "logger.h"
 
@@ -30,13 +30,13 @@ enum FrameTypes {
 	kPFrame // Delta frame
 };
 
-class RtpParser {
+class RtpVP8Parser {
 	DECLARE_LOGGER();
 public:
-	RtpParser();
-	virtual ~RtpParser();
+	RtpVP8Parser();
+	virtual ~RtpVP8Parser();
 	erizo::RTPPayloadVP8* parseVP8(unsigned char* data, int datalength);
 };
 
 } /* namespace erizo */
-#endif /* RTPPARSER_H_ */
+#endif /* RTPVP8PARSER_H_ */

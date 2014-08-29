@@ -1,5 +1,5 @@
 var serverUrl = "/";
-var localStream, room, recording;
+var localStream, room, recording, recordingId;
 
 function getParameterByName(name) {
   name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
@@ -8,13 +8,16 @@ function getParameterByName(name) {
   return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 }
 
-function startRecording (){
-  if (room!=undefined){
+function startRecording () {
+  if (room !== undefined){
     if (!recording){
-      room.startRecording(localStream);
-      recording = true;
-    }else{
-      room.stopRecording(localStream);
+      room.startRecording(localStream, function(id) {
+        recording = true;
+        recordingId = id;
+      });
+
+    } else {
+      room.stopRecording(recordingId);
       recording = false;
     }
   }

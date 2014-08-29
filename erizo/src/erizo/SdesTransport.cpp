@@ -8,7 +8,7 @@
 #include "NiceConnection.h"
 #include "SrtpChannel.h"
 
-#include "rtputils.h"
+#include "rtp/RtpHeaders.h"
 
 using namespace erizo;
 using namespace std;
@@ -64,7 +64,7 @@ void SdesTransport::onNiceData(unsigned int component_id, char* data, int len, N
         srtp = srtcp_;
       }
 
-      rtcpheader *chead = reinterpret_cast<rtcpheader*> (unprotectBuf_);
+      RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (unprotectBuf_);
       if (chead->isRtcp()){
         if(srtp->unprotectRtcp(unprotectBuf_, &length)<0)
           return;
@@ -88,7 +88,7 @@ void SdesTransport::write(char* data, int len) {
     if (this->getTransportState() == TRANSPORT_READY) {
       memcpy(protectBuf_, data, len);
       int comp = 1;
-      rtcpheader *chead = reinterpret_cast<rtcpheader*> (protectBuf_);
+      RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (protectBuf_);
       if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_PS_Feedback_PT
           || chead->packettype == RTCP_RTP_Feedback_PT) {
         if (!rtcp_mux_) {

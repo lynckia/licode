@@ -13,16 +13,24 @@
  * A WebRTC Connection. This class represents a WebRtcConnection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary ICE and SRTP components.
  */
-class WebRtcConnection : public node::ObjectWrap {
+class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventListener, erizo::WebRtcConnectionStatsListener  {
  public:
   static void Init(v8::Handle<v8::Object> target);
 
   erizo::WebRtcConnection *me;
+  int message;
+  std::string statsMsg;
 
  private:
   WebRtcConnection();
   ~WebRtcConnection();
+  
+  v8::Persistent<v8::Function> eventCallback_;
+  v8::Persistent<v8::Function> statsCallback_;
 
+  uv_async_t async_;
+  uv_async_t asyncStats_;
+  bool hasCallback_;
   /*
    * Constructor.
    * Constructs an empty WebRtcConnection without any configuration.
@@ -34,7 +42,7 @@ class WebRtcConnection : public node::ObjectWrap {
    */
   static v8::Handle<v8::Value> close(const v8::Arguments& args);
   /*
-   * Inits the WebRtcConnection by starting ICE Candidate Gathering.
+   * Inits the WebRtcConnection and passes the callback to get Events.
    * Returns true if the candidates are gathered.
    */
   static v8::Handle<v8::Value> init(const v8::Arguments& args);  
@@ -64,7 +72,15 @@ class WebRtcConnection : public node::ObjectWrap {
    * Returns the state.
    */
   static v8::Handle<v8::Value> getCurrentState(const v8::Arguments& args);
+
+
+  static v8::Handle<v8::Value> getStats(const v8::Arguments& args);
+  
+  static void eventsCallback(uv_async_t *handle, int status);
+  static void statsCallback(uv_async_t *handle, int status);
  
+	virtual void notifyEvent(erizo::WebRTCEvent event, const std::string& message="");
+	virtual void notifyStats(const std::string& message);
 };
 
 #endif

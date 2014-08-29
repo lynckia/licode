@@ -1,9 +1,13 @@
 #include <string>
 
 #include "MediaProcessor.h"
-#include "rtp/RtpVP8Fragmenter.h"
-#include "rtp/RtpHeader.h"
+#include "../rtp/RtpVP8Fragmenter.h"
+#include "../rtp/RtpHeaders.h"
 #include "codecs/VideoCodec.h"
+
+extern "C" {
+#include <libavutil/mathematics.h>
+}
 
 namespace erizo {
 
@@ -240,12 +244,12 @@ namespace erizo {
   }
 
   int InputProcessor::unpackageAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff) {
-    int l = inBuffLen - RTPHeader::MIN_SIZE;
+    int l = inBuffLen - RtpHeader::MIN_SIZE;
     if (l < 0){
       ELOG_ERROR ("Error unpackaging audio");
       return 0;
     }
-    memcpy(outBuff, &inBuff[RTPHeader::MIN_SIZE], l);
+    memcpy(outBuff, &inBuff[RtpHeader::MIN_SIZE], l);
 
     return l;
   }
@@ -259,7 +263,7 @@ namespace erizo {
 
     int inBuffOffset = 0;
     *gotFrame = 0;
-    RTPHeader* head = reinterpret_cast<RTPHeader*>(inBuff);
+    RtpHeader* head = reinterpret_cast<RtpHeader*>(inBuff);
     if (head->getPayloadType() != 100) {
       return -1;
     }
@@ -329,7 +333,11 @@ namespace erizo {
     encodedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
     packagedBuffer_ = (unsigned char*) malloc(PACKAGED_BUFFER_SIZE);
     rtpBuffer_ = (unsigned char*) malloc(PACKAGED_BUFFER_SIZE);
-
+    if(info.processorType == PACKAGE_ONLY){
+      this->initVideoPackager();
+      this->initAudioPackager();
+      return 0;
+    }
     if (mediaInfo.hasVideo) {
       this->mediaInfo.videoCodec.codec = VIDEO_CODEC_VP8;
       if (vCoder.initEncoder(mediaInfo.videoCodec)) {
@@ -421,6 +429,7 @@ namespace erizo {
 
   bool OutputProcessor::initAudioPackager() {
     audioPackager = 1;
+    audioSeqnum_ = 0;
     return true;
   }
 
@@ -431,7 +440,7 @@ namespace erizo {
   }
 
   int OutputProcessor::packageAudio(unsigned char* inBuff, int inBuffLen,
-      unsigned char* outBuff) {
+      unsigned char* outBuff, long int pts) {
 
     if (audioPackager == 0) {
       ELOG_DEBUG("No se ha inicializado el codec de output audio RTP");
@@ -443,20 +452,31 @@ namespace erizo {
     gettimeofday(&time, NULL);
     long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
 
-    RTPHeader head;
-    head.setSeqNumber(seqnum_++);
-    head.setTimestamp(millis*8);
-    head.setSSRC(55543);
-    head.setPayloadType(0);
+    RtpHeader head;
+    head.setSeqNumber(audioSeqnum_++);
+//    head.setTimestamp(millis*8);
+    head.setMarker(1);
+    if (pts==0){
+//      head.setTimestamp(audioSeqnum_*160);
+      head.setTimestamp(av_rescale(audioSeqnum_, (mediaInfo.audioCodec.sampleRate/1000), 1));
+    }else{
+//      head.setTimestamp(pts*8);
+      head.setTimestamp(av_rescale(pts, mediaInfo.audioCodec.sampleRate,1000));
+    }
+    head.setSSRC(44444);
+    head.setPayloadType(mediaInfo.rtpAudioInfo.PT);
 
-    memcpy (rtpBuffer_, &head, head.getHeaderLength());
-    memcpy(&rtpBuffer_[head.getHeaderLength()], inBuff, inBuffLen);
+//    memcpy (rtpAudioBuffer_, &head, head.getHeaderLength());
+//    memcpy(&rtpAudioBuffer_[head.getHeaderLength()], inBuff, inBuffLen);
+    memcpy (outBuff, &head, head.getHeaderLength());
+    memcpy(&outBuff[head.getHeaderLength()], inBuff, inBuffLen);
     //			sink_->sendData(rtpBuffer_, l);
     //	rtpReceiver_->receiveRtpData(rtpBuffer_, (inBuffLen + RTP_HEADER_LEN));
     return (inBuffLen+head.getHeaderLength());
   }
 
-  int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff) {
+  int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff, 
+      long int pts) {
     if (videoPackager == 0) {
       ELOG_DEBUG("No se ha inicailizado el codec de output vídeo RTP");
       return -1;
@@ -473,13 +493,19 @@ namespace erizo {
     long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
     //		timestamp_ += 90000 / mediaInfo.videoCodec.frameRate;
 
+          //int64_t pts = av_rescale(lastPts_, 1000000, (long int)video_time_base_);
     do {
       outlen = 0;
       frag.getPacket(outBuff, &outlen, &lastFrame);
-      RTPHeader rtpHeader;
+      RtpHeader rtpHeader;
       rtpHeader.setMarker(lastFrame?1:0);
       rtpHeader.setSeqNumber(seqnum_++);
-      rtpHeader.setTimestamp(millis*90);
+      if (pts==0){
+          rtpHeader.setTimestamp(av_rescale(millis, 90000, 1000)); 
+      }else{
+          rtpHeader.setTimestamp(av_rescale(pts, 90000, 1000)); 
+        
+      }
       rtpHeader.setSSRC(55543);
       rtpHeader.setPayloadType(100);
       memcpy(rtpBuffer_, &rtpHeader, rtpHeader.getHeaderLength());

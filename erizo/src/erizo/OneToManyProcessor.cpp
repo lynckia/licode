@@ -4,7 +4,7 @@
 
 #include "OneToManyProcessor.h"
 #include "WebRtcConnection.h"
-#include "rtputils.h"
+#include "rtp/RtpHeaders.h"
 
 namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
@@ -36,9 +36,8 @@ namespace erizo {
   int OneToManyProcessor::deliverVideoData_(char* buf, int len) {
     if (subscribers.empty() || len <= 0)
       return 0;
-
-    rtcpheader* head = reinterpret_cast<rtcpheader*>(buf);
-    if(head->packettype==RTCP_Receiver_PT || head->packettype==RTCP_PS_Feedback_PT|| head->packettype == RTCP_RTP_Feedback_PT){
+    RtcpHeader* head = reinterpret_cast<RtcpHeader*>(buf);
+    if(head->isFeedback()){
       ELOG_WARN("Receiving Feedback in wrong path: %d", head->packettype);
       if (feedbackSink_!=NULL){
         head->ssrc = htonl(publisher->getVideoSourceSSRC());
@@ -64,7 +63,6 @@ namespace erizo {
 
   int OneToManyProcessor::deliverFeedback_(char* buf, int len){
     if (feedbackSink_ != NULL){
-      ELOG_DEBUG("Deliver Feedback");
       feedbackSink_->deliverFeedback(buf,len);
     }
     return 0;
@@ -108,7 +106,7 @@ namespace erizo {
           fbsource->setFeedbackSink(NULL);
         }
       }
-      it = subscribers.erase(it);
+      subscribers.erase(it++);
     }
     lock.unlock();
     lock.lock();

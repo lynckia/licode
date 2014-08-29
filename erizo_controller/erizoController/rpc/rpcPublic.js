@@ -7,17 +7,16 @@ exports.getUsersInRoom = function(id, callback) {
 
     erizoController.getUsersInRoom(id, function(users) {
 
-        //console.log('Users for room ', id, ' are ', users);
         if(users == undefined) {
-            callback('error');
+            callback("callback", 'error');
         } else {
-            callback(users);
+            callback("callback", users);
         }
     });
 }
 
 exports.deleteRoom = function(roomId, callback) {
     erizoController.deleteRoom(roomId, function(result) {
-        callback(result);
+        callback("callback", result);
     });
 }

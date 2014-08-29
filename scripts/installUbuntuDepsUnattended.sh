@@ -27,6 +27,22 @@ parse_arguments(){
   done
 }
 
+check_proxy(){
+  if [ -z "$http_proxy" ]; then
+    echo "No http proxy set, doing nothing"
+  else
+    echo "http proxy configured, configuring npm"
+    npm config set proxy $http_proxy
+  fi  
+
+  if [ -z "$https_proxy" ]; then
+    echo "No https proxy set, doing nothing"
+  else
+    echo "https proxy configured, configuring npm"
+    npm config set https-proxy $https_proxy
+  fi  
+}
+
 install_apt_deps(){
   sudo apt-get update
   sudo apt-get install -qq python-software-properties
@@ -41,9 +57,9 @@ install_apt_deps(){
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O http://www.openssl.org/source/openssl-1.0.1e.tar.gz
-    tar -zxvf openssl-1.0.1e.tar.gz
-    cd openssl-1.0.1e
+    curl -O http://www.openssl.org/source/openssl-1.0.1g.tar.gz
+    tar -zxvf openssl-1.0.1g.tar.gz
+    cd openssl-1.0.1g
     ./config --prefix=$PREFIX_DIR -fPIC
     make -s V=0
     make install
@@ -84,6 +100,7 @@ install_opus(){
 }
 
 install_mediadeps(){
+  install_opus
   sudo apt-get -qq install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
@@ -102,13 +119,14 @@ install_mediadeps(){
 }
 
 install_mediadeps_nogpl(){
+  install_opus
   sudo apt-get -qq install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-9.13.tar.gz
     tar -zxvf libav-9.13.tar.gz
     cd libav-9.13
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libopus
     make -s V=0
     make install
     cd $CURRENT_DIR
@@ -142,6 +160,7 @@ parse_arguments $*
 mkdir -p $PREFIX_DIR
 
 install_apt_deps
+check_proxy
 install_openssl
 install_libnice
 install_libsrtp

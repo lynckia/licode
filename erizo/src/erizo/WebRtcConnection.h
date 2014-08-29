@@ -10,6 +10,7 @@
 #include "SdpInfo.h"
 #include "MediaDefinitions.h"
 #include "Transport.h"
+#include "Stats.h"
 
 namespace erizo {
 
@@ -17,21 +18,29 @@ class Transport;
 class TransportListener;
 
 /**
- * States of ICE
+ * WebRTC Events
  */
-enum WebRTCState {
-	INITIAL, STARTED, READY, FINISHED, FAILED
+enum WebRTCEvent {
+  CONN_INITIAL = 101, CONN_STARTED = 102, CONN_READY = 103, CONN_FINISHED = 104, 
+  CONN_FAILED = 500
 };
 
-class WebRtcConnectionStateListener {
+class WebRtcConnectionEventListener {
 public:
-	virtual ~WebRtcConnectionStateListener() {
+	virtual ~WebRtcConnectionEventListener() {
 	}
 	;
-	virtual void connectionStateChanged(WebRTCState newState)=0;
+	virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message="")=0;
 
 };
 
+class WebRtcConnectionStatsListener {
+public:
+	virtual ~WebRtcConnectionStatsListener() {
+	}
+	;
+	virtual void notifyStats(const std::string& message)=0;
+};
 /**
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary Transport components.
@@ -67,20 +76,34 @@ public:
 	 */
 	std::string getLocalSdp();
 
-
 	/**
 	 * Sends a FIR Packet (RFC 5104) asking for a keyframe
 	 * @return the size of the data sent
 	 */
 	int sendFirPacket();
+  
+  /**
+   * Sets the Event Listener for this WebRtcConnection
+   */
 
-	void setWebRTCConnectionStateListener(
-			WebRtcConnectionStateListener* listener);
+	inline void setWebRtcConnectionEventListener(
+			WebRtcConnectionEventListener* listener){
+    this->connEventListener_ = listener;
+  }
+	
+  /**
+   * Sets the Stats Listener for this WebRtcConnection
+   */
+  inline void setWebRtcConnectionStatsListener(
+			WebRtcConnectionStatsListener* listener){
+    this->statsListener_ = listener;
+    this->thisStats_.setPeriodicStats(STATS_INTERVAL, listener);
+  }
 	/**
 	 * Gets the current state of the Ice Connection
 	 * @return
 	 */
-	WebRTCState getCurrentState();
+	WebRTCEvent getCurrentState();
 
 	void onTransportData(char* buf, int len, Transport *transport);
 
@@ -89,16 +112,20 @@ public:
 	void queueData(int comp, const char* data, int len, Transport *transport);
 
 private:
+  static const int STATS_INTERVAL = 5000;
 	SdpInfo remoteSdp_;
 	SdpInfo localSdp_;
 
-	WebRTCState globalState_;
+  Stats thisStats_;
+
+	WebRTCEvent globalState_;
 
     int bundle_, sequenceNumberFIR_;
     boost::mutex writeMutex_, receiveVideoMutex_, updateStateMutex_;
 	boost::thread send_Thread_;
 	std::queue<dataPacket> sendQueue_;
-	WebRtcConnectionStateListener* connStateListener_;
+	WebRtcConnectionEventListener* connEventListener_;
+  WebRtcConnectionStatsListener* statsListener_;
 	Transport *videoTransport_, *audioTransport_;
 	char deliverMediaBuffer_[3000];
 

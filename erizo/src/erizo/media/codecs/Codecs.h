@@ -13,6 +13,7 @@ namespace erizo{
 
   enum AudioCodecID{
     AUDIO_CODEC_PCM_U8,
+    AUDIO_CODEC_OPUS,
     AUDIO_CODEC_VORBIS
   };
 

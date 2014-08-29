@@ -25,6 +25,7 @@ export ERIZO_HOME=$ROOT/erizo/
 
 cd $ROOT/erizo_controller
 ./initErizo_controller.sh
+./initErizo_agent.sh
 
 cp $ROOT/erizo_controller/erizoClient/dist/erizo.js $EXTRAS/basic_example/public/
 cp $ROOT/nuve/nuveClient/dist/nuve.js $EXTRAS/basic_example/

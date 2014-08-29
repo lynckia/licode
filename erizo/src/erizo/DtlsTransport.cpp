@@ -6,7 +6,8 @@
 #include "SrtpChannel.h"
 
 #include "dtls/DtlsFactory.h"
-#include "rtputils.h"
+#include "rtp/RtpHeaders.h"
+//#include "rtputils.h"
 
 using namespace erizo;
 using namespace std;
@@ -129,11 +130,8 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
       srtp = srtcp_.get();
     }
     if (srtp != NULL){
-      rtcpheader *chead = reinterpret_cast<rtcpheader*> (unprotectBuf_);
-      if (chead->packettype == RTCP_Sender_PT || 
-          chead->packettype == RTCP_Receiver_PT || 
-          chead->packettype == RTCP_PS_Feedback_PT||
-          chead->packettype == RTCP_RTP_Feedback_PT){
+      RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (unprotectBuf_);
+      if (chead->isRtcp()){
         if(srtp->unprotectRtcp(unprotectBuf_, &length)<0){
           return;
         }
@@ -164,8 +162,8 @@ void DtlsTransport::write(char* data, int len) {
   if (this->getTransportState() == TRANSPORT_READY) {
     memcpy(protectBuf_, data, len);
     int comp = 1;
-    rtcpheader *chead = reinterpret_cast<rtcpheader*> (protectBuf_);
-    if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_Receiver_PT || chead->packettype == RTCP_PS_Feedback_PT||chead->packettype == RTCP_RTP_Feedback_PT) {
+    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (protectBuf_);
+    if (chead->isRtcp()) {
       if (!rtcp_mux_) {
         comp = 2;
       }

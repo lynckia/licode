@@ -4,8 +4,7 @@
 
 #include "OneToManyTranscoder.h"
 #include "../WebRtcConnection.h"
-#include "../RTPSink.h"
-#include "rtp/RtpHeader.h"
+#include "../rtp/RtpHeaders.h"
 
 namespace erizo {
 DEFINE_LOGGER(OneToManyTranscoder, "media.OneToManyTranscoder");
@@ -15,9 +14,8 @@ OneToManyTranscoder::OneToManyTranscoder() {
 	publisher = NULL;
 	sentPackets_ = 0;
     ip_ = new InputProcessor();
-	sink_ = new RTPSink("127.0.0.1", "50000");
 	MediaInfo m;
-	m.proccessorType = RTP_ONLY;
+	m.processorType = RTP_ONLY;
 //	m.videoCodec.bitRate = 2000000;
 //	ELOG_DEBUG("m.videoCodec.bitrate %d\n", m.videoCodec.bitRate);
 	m.hasVideo = true;
@@ -29,7 +27,7 @@ OneToManyTranscoder::OneToManyTranscoder() {
     ip_->init(m, this);
 
 	MediaInfo om;
-	om.proccessorType = RTP_ONLY;
+	om.processorType = RTP_ONLY;
 	om.videoCodec.bitRate = 2000000;
 	om.videoCodec.width = 640;
 	om.videoCodec.height = 480;
@@ -46,7 +44,6 @@ OneToManyTranscoder::OneToManyTranscoder() {
 
 OneToManyTranscoder::~OneToManyTranscoder() {
 	this->closeAll();
-    delete sink_; sink_ = NULL;
     delete ip_; ip_ = NULL;
     delete op_; op_ = NULL;
 }
@@ -67,7 +64,7 @@ int OneToManyTranscoder::deliverAudioData_(char* buf, int len) {
 int OneToManyTranscoder::deliverVideoData_(char* buf, int len) {
 	memcpy(sendVideoBuffer_, buf, len);
 
-	RTPHeader* theHead = reinterpret_cast<RTPHeader*>(buf);
+	RtpHeader* theHead = reinterpret_cast<RtpHeader*>(buf);
 //	ELOG_DEBUG("extension %d pt %u", theHead->getExtension(),
 //			theHead->getPayloadType());
 
@@ -138,7 +135,7 @@ void OneToManyTranscoder::addSubscriber(MediaSink* webRtcConn,
       std::map<std::string, MediaSink*>::iterator it = subscribers.begin();
       while( it != subscribers.end()) {
         delete (*it).second;
-        it = subscribers.erase(it);
+        subscribers.erase(it++);
       }
     delete this->publisher;
   }

@@ -1,6 +1,10 @@
 /*global exports, require, console, Buffer*/
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("UserResource");
 
 var currentService;
 var currentRoom;

@@ -3,6 +3,11 @@ var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var cloudHandler = require('../cloudHandler');
 
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("UsersResource");
+
 var currentService;
 var currentRoom;
 
@@ -33,12 +38,12 @@ exports.getList = function (req, res) {
             res.send('Service not found', 404);
             return;
         } else if (currentRoom === undefined) {
-            console.log('Room ', req.params.room, ' does not exist');
+            log.info('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
             return;
         }
 
-        console.log('Representing users for room ', currentRoom._id, 'and service', currentService._id);
+        log.info('Representing users for room ', currentRoom._id, 'and service', currentService._id);
         cloudHandler.getUsersInRoom (currentRoom._id, function (users) {
             if (users === 'error') {
                 res.send('CloudHandler does not respond', 401);

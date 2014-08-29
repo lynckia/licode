@@ -1,5 +1,9 @@
 /*global exports, require, console*/
 var serviceRegistry = require('./../mdb/serviceRegistry');
+var logger = require('./../logger').logger;
+
+// Logger
+var log = logger.getLogger("ServicesResource");
 
 var currentService;
 
@@ -22,13 +26,13 @@ exports.create = function (req, res) {
     "use strict";
 
     if (!doInit()) {
-        console.log('Service ', currentService._id, ' not authorized for this action');
+        log.info('Service ', currentService._id, ' not authorized for this action');
         res.send('Service not authorized for this action', 401);
         return;
     }
 
     serviceRegistry.addService(req.body, function (result) {
-        console.log('Service created: ', req.body.name);
+        log.info('Service created: ', req.body.name);
         res.send(result);
     });
 };
@@ -40,13 +44,13 @@ exports.represent = function (req, res) {
     "use strict";
 
     if (!doInit()) {
-        console.log('Service ', currentService, ' not authorized for this action');
+        log.info('Service ', currentService, ' not authorized for this action');
         res.send('Service not authorized for this action', 401);
         return;
     }
 
     serviceRegistry.getList(function (list) {
-        console.log('Representing services');
+        log.info('Representing services');
         res.send(list);
     });
 };

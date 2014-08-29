@@ -3,8 +3,8 @@
 #include <boost/test/unit_test.hpp>
 
 // Headers for RtpPacketQueue.h tests
-#include <media/rtp/RtpPacketQueue.h>
-#include <media/rtp/RtpHeader.h>
+#include <rtp/RtpPacketQueue.h>
+#include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 
 /*---------- RtpPacketQueue TESTS ----------*/
@@ -19,9 +19,9 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueBasicBehavior)
 {
     erizo::RtpPacketQueue queue;
 
-    RTPHeader header;
+    erizo::RtpHeader header;
     header.setSeqNumber(12);
-    queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+    queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
 
     // We should have one packet, and we're not ready to pop any data.
     BOOST_CHECK(queue.getSize() == 1);
@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueBasicBehavior)
 
     // If we use the override in popPacket, we should get back header.
     packet = queue.popPacket(true);
-    const RTPHeader *poppedHeader = reinterpret_cast<const RTPHeader*>(packet->data);
+    const erizo::RtpHeader *poppedHeader = reinterpret_cast<const erizo::RtpHeader*>(packet->data);
     BOOST_CHECK(poppedHeader->getSeqNumber() == 12);
 
     // Validate our size and that we have no data to offer.
@@ -48,14 +48,14 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueCorrectlyReordersSamples)
     erizo::RtpPacketQueue queue;
     // Add sequence numbers 10 9 8 7 6 5 4 3 2 1.
     for(int x = 10; x >0; x--) {
-        RTPHeader header;
+        erizo::RtpHeader header;
         header.setSeqNumber(x);
-        queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+        queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
     }
 
     for(int x = 1; x <=10; x++) {
         boost::shared_ptr<erizo::dataPacket> packet = queue.popPacket(true); // override our default pop behavior so we can validate these are ordered
-        const RTPHeader *poppedHeader = reinterpret_cast<const RTPHeader*>(packet->data);
+        const erizo::RtpHeader *poppedHeader = reinterpret_cast<const erizo::RtpHeader*>(packet->data);
         BOOST_CHECK(poppedHeader->getSeqNumber() == x);
     }
 }
@@ -67,16 +67,16 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueCorrectlyHandlesSequenceNumberRollover)
     // samples.
     uint16_t x = 65530;
     while(x != 5) {
-        RTPHeader header;
+        erizo::RtpHeader header;
         header.setSeqNumber(x);
         x += 1;
-        queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+        queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
     }
 
     x = 65530;
     while( x != 5) {
         boost::shared_ptr<erizo::dataPacket> packet = queue.popPacket(true); // override our default pop behavior so we can validate these are ordered
-        const RTPHeader *poppedHeader = reinterpret_cast<const RTPHeader*>(packet->data);
+        const erizo::RtpHeader *poppedHeader = reinterpret_cast<const erizo::RtpHeader*>(packet->data);
         BOOST_CHECK(poppedHeader->getSeqNumber() == x);
         x += 1;
     }
@@ -90,16 +90,16 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueCorrectlyHandlesSequenceNumberRolloverBackwar
     // We'll start at 5 and subtract till we're at 65530.  Then make sure we get back what we put in.
     uint16_t x = 4;     // has to be 4, or we have an off-by-one error
     while(x != 65529) { // has to be 29, or have have an off-by-one error
-        RTPHeader header;
+        erizo::RtpHeader header;
         header.setSeqNumber(x);
         x -= 1;
-        queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+        queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
     }
 
     x = 65530;
     while( x != 5) {
         boost::shared_ptr<erizo::dataPacket> packet = queue.popPacket(true); // override our default pop behavior so we can validate these are ordered
-        const RTPHeader *poppedHeader = reinterpret_cast<const RTPHeader*>(packet->data);
+        const erizo::RtpHeader *poppedHeader = reinterpret_cast<const erizo::RtpHeader*>(packet->data);
         BOOST_CHECK(poppedHeader->getSeqNumber() == x);
         x += 1;
     }
@@ -111,9 +111,9 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueDoesNotPushSampleLessThanWhatHasBeenPopped)
 {
     erizo::RtpPacketQueue queue;
 
-    RTPHeader header;
+    erizo::RtpHeader header;
     header.setSeqNumber(12);
-    queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+    queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
 
     // Pop this packet
     queue.popPacket(true);
@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueDoesNotPushSampleLessThanWhatHasBeenPopped)
     // Then try to add a packet with a lower sequence number.  This packet should not have
     // been added to the queue.
     header.setSeqNumber(11);
-    queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+    queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
     BOOST_CHECK(queue.getSize() == 0);
     BOOST_CHECK(queue.hasData() == false);
 }
@@ -134,9 +134,9 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueMakesDataAvailableOnceEnoughSamplesPushed)
     uint16_t x = 0;
 
     for(x = 0; x < (depth - 1); x++) {
-        RTPHeader header;
+        erizo::RtpHeader header;
         header.setSeqNumber(x);
-        queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+        queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
     }
 
     // Should have (depth - 1) samples.  We should not be ready yet.
@@ -144,9 +144,9 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueMakesDataAvailableOnceEnoughSamplesPushed)
     BOOST_CHECK(queue.hasData() == false);
 
     // Add one more sample, verify that we have 5, and hasData now returns true.
-    RTPHeader header;
+    erizo::RtpHeader header;
     header.setSeqNumber(++x);
-    queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+    queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
 
     BOOST_CHECK(queue.getSize() == depth);
     BOOST_CHECK(queue.hasData() == true);
@@ -161,9 +161,9 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueRespectsMax)
 
     // let's push ten times the max.
     for(uint16_t x = 0; x < (max * 10); x++) {
-        RTPHeader header;
+        erizo::RtpHeader header;
         header.setSeqNumber(x);
-        queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+        queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
     }
 
     BOOST_CHECK(queue.getSize() == max);
@@ -175,16 +175,16 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueRejectsDuplicatePackets)
     erizo::RtpPacketQueue queue;
     // Add ten packets.
     for(uint16_t x = 0; x < 10; x++) {
-        RTPHeader header;
+        erizo::RtpHeader header;
         header.setSeqNumber(x);
-        queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+        queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
     }
 
     // Let's try to add 5, 6, 7, 8, and 9 again.
     for(int x = 5; x < 10; x++) {
-        RTPHeader header;
+        erizo::RtpHeader header;
         header.setSeqNumber(x);
-        queue.pushPacket((const char *)&header, sizeof(RTPHeader));
+        queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
     }
 
     // We should only see ten packets, because those should all have been rejected.
