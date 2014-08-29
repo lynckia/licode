@@ -10,6 +10,7 @@ CURRENT_DIR=`pwd`
 # Restart everything
 sudo supervisorctl stop nuve
 sudo supervisorctl stop erizo
+sudo supervisorctl stop erizo_agent
 sudo supervisorctl stop licode_basic_server
 
 
@@ -68,5 +69,6 @@ sudo pkill node || echo "" # Just in case
 echo "Starting supervisor services"
 sudo supervisorctl start nuve
 sudo supervisorctl start erizo
+sudo supervisorctl start erizo_agent
 sudo supervisorctl start licode_basic_server
 
