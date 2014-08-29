@@ -41,7 +41,7 @@ namespace erizo {
     stunPort_ = stunPort;
     minPort_ = minPort;
     maxPort_ = maxPort;
-    
+
     sending_ = true;
     send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
   }
@@ -77,7 +77,7 @@ namespace erizo {
   bool WebRtcConnection::init() {
     return true;
   }
-  
+
   bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     ELOG_DEBUG("Set Remote SDP %s", sdp.c_str());
     remoteSdp_.initWithSdp(sdp);
@@ -205,7 +205,7 @@ namespace erizo {
     if (chead->getSourceSSRC() == this->getAudioSourceSSRC()) {
         writeSsrc(buf,len,this->getAudioSinkSSRC());
     } else {
-        writeSsrc(buf,len,this->getVideoSinkSSRC());      
+        writeSsrc(buf,len,this->getVideoSinkSSRC());
     }
 
     if (videoTransport_ != NULL) {
@@ -231,11 +231,11 @@ namespace erizo {
     }
     boost::mutex::scoped_lock lock(writeMutex_);
     int length = len;
-    
+
     // PROCESS STATS
     if (this->statsListener_){ // if there is no listener we dont process stats
       RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
-      if (head->payloadtype != RED_90000_PT && head->payloadtype != PCMU_8000_PT)     
+      if (head->payloadtype != RED_90000_PT && head->payloadtype != PCMU_8000_PT)
         thisStats_.processRtcpStats(buf, length);
     }
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
@@ -352,7 +352,7 @@ namespace erizo {
       ELOG_INFO("WebRtcConnection failed, stopped sending");
     }
 
-    
+
     if (globalState_ == CONN_FAILED) {
       // if current state is failed we don't use
       return;
@@ -392,16 +392,16 @@ namespace erizo {
     }
 
     if (audioTransport_ != NULL && videoTransport_ != NULL) {
-      ELOG_INFO("%s - Update Transport State end, %d - %d, %d - %d, %d - %d", 
+      ELOG_INFO("%s - Update Transport State end, %d - %d, %d - %d, %d - %d",
         transport->transport_name.c_str(),
-        (int)audioTransport_->getTransportState(), 
-        (int)videoTransport_->getTransportState(), 
+        (int)audioTransport_->getTransportState(),
+        (int)videoTransport_->getTransportState(),
         this->getAudioSourceSSRC(),
         this->getVideoSourceSSRC(),
-        (int)temp, 
+        (int)temp,
         (int)globalState_);
     }
-    
+
     if (temp < 0) {
       return;
     }
@@ -452,7 +452,7 @@ namespace erizo {
     do{
       movingBuf+=rtcpLength;
       RtcpHeader *chead= reinterpret_cast<RtcpHeader*>(movingBuf);
-      rtcpLength= (ntohs(chead->length)+1)*4;      
+      rtcpLength= (ntohs(chead->length)+1)*4;
       totalLength+= rtcpLength;
       chead->ssrc=htonl(ssrc);
       if (chead->packettype == RTCP_PS_Feedback_PT){

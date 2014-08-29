@@ -4,6 +4,7 @@
 #include "../MediaDefinitions.h"
 #include "rtp/RtpPacketQueue.h"
 #include "MediaProcessor.h"
+#include "rtp/RtpHeaders.h"
 #include "boost/thread.hpp"
 #include "logger.h"
 
@@ -37,6 +38,7 @@ private:
     AVFormatContext *context_;
     InputProcessor *inputProcessor_;
 
+    bool avformatConfigured_;
     int unpackagedSize_;
     unsigned char* unpackagedBufferpart_;
     unsigned char deliverMediaBuffer_[3000];
@@ -69,6 +71,7 @@ private:
 
 
     bool initContext();
+    bool checkFirTimer(RtpHeader* head);
     int sendFirPacket();
     void queueData(char* buffer, int length, packetType type);
     void sendLoop();

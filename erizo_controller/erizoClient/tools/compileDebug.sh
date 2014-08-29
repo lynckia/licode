@@ -1,6 +1,7 @@
 #!/bin/bash
+set -e
 FILE=../dist/erizo.js
-rm $FILE
+rm -f $FILE
 cat ../lib/socket.io.js >> $FILE
 cat ../src/Events.js >> $FILE
 cat ../src/webrtc-stacks/FcStack.js >> $FILE
@@ -18,3 +19,4 @@ cat ../src/views/VideoPlayer.js >> $FILE
 cat ../src/views/AudioPlayer.js >> $FILE
 cat ../src/views/Bar.js >> $FILE
 cat ../src/views/Speaker.js >> $FILE
+cp ../dist/erizo.js ../../../extras/basic_example/public

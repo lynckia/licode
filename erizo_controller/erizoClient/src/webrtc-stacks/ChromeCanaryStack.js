@@ -11,6 +11,11 @@ Erizo.ChromeCanaryStack = function (spec) {
     that.pc_config = {
         "iceServers": []
     };
+    that.maxVideoBW = spec.maxVideoBW;
+    that.maxAudioBW = spec.maxAudioBW;
+    that.audioCodec = spec.audioCodec;
+    that.opusHz = spec.opusHz;
+    that.opusBitrate = spec.opusBitrate;
 
     that.con = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
 
@@ -42,7 +47,16 @@ Erizo.ChromeCanaryStack = function (spec) {
     that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
 
     that.peerConnection.onicecandidate = function (event) {
-        L.Logger.debug("PeerConnection: ", spec.session_id);
+        L.Logger.debug("Have ice candidate for session: ", spec.session_id);
+        // HACK (bf) If no new ice candidates for 0.5s, stop waiting
+        clearTimeout(that.moreIceTimeout);
+        that.moreIceTimeout = setTimeout(function() {
+            if (that.moreIceComing) {
+                that.moreIceComing = false;
+                that.markActionNeeded();
+            }
+        }, 500);
+
         if (!event.candidate) {
             // At the moment, we do not renegotiate when new candidates
             // show up after the more flag has been false once.
@@ -55,26 +69,82 @@ Erizo.ChromeCanaryStack = function (spec) {
             if (that.ices >= 1 && that.moreIceComing) {
                 that.moreIceComing = false;
                 that.markActionNeeded();
+                clearTimeout(that.moreIceTimeout);
             }
         } else {
+            var type = event.candidate.candidate.split(" ")[7];
             that.iceCandidateCount += 1;
         }
     };
 
-    //L.Logger.debug("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
+    var setMaxBW = function (sdp) {
+        if (that.maxVideoBW) {
+            var a = sdp.match(/m=video.*\r\n/);
+            var r = a[0] + "b=AS:" + that.maxVideoBW + "\r\n";
+            sdp = sdp.replace(a[0], r);
+        }
+
+        if (that.maxAudioBW) {
+            var a = sdp.match(/m=audio.*\r\n/);
+            var r = a[0] + "b=AS:" + that.maxAudioBW + "\r\n";
+            sdp = sdp.replace(a[0], r);
+        }
+
+        return sdp;
+    };
 
     var setMaxBW = function (sdp) {
-        if (spec.maxVideoBW) {
+        if (that.maxVideoBW) {
             var a = sdp.match(/m=video.*\r\n/);
-            var r = a[0] + "b=AS:" + spec.maxVideoBW + "\r\n";
+            var r = a[0] + "b=AS:" + that.maxVideoBW + "\r\n";
             sdp = sdp.replace(a[0], r);
         }
 
-        if (spec.maxAudioBW) {
+        if (that.maxAudioBW) {
             var a = sdp.match(/m=audio.*\r\n/);
-            var r = a[0] + "b=AS:" + spec.maxAudioBW + "\r\n";
+            var r = a[0] + "b=AS:" + that.maxAudioBW + "\r\n";
             sdp = sdp.replace(a[0], r);
         }
+        return sdp;
+    };
+
+
+    var setAudioCodec = function(sdp) {
+        var temp;
+        if (that.audioCodec) {
+            if (that.audioCodec !== "opus") {
+                temp = sdp.match(".*opus.*\r\na=fmtp.*\r\n");
+                sdp = sdp.replace(temp, "");
+            } else {
+                if (that.opusHz) {
+                    temp = sdp.match(".*opus.*\r\na=fmtp.*");
+                    sdp = sdp.replace(temp, temp + 
+                        "; maxplaybackrate=" + that.opusHz + 
+                        "; sprop-maxcapturerate=" + that.opusHz);
+                }
+                if (that.opusBitrate) {
+                    temp = sdp.match(".*opus.*\r\na=fmtp.*");
+                    sdp = sdp.replace(temp, temp + 
+                        "; maxaveragebitrate=" + that.opusBitrate);                    
+                }
+            }
+            if (that.audioCodec !== "ISAC/32000") {
+                temp = sdp.match(".*ISAC/32000\r\n");
+                sdp = sdp.replace(temp, "");
+            }
+            if (that.audioCodec !== "ISAC/16000") {
+                temp = sdp.match(".*ISAC/16000\r\n");
+                sdp = sdp.replace(temp, "");
+            }
+        }
+        return sdp;
+    };
+
+    var pruneIceCandidates = function(sdp) {
+
+        /* Remove all TCP candidates.  Who needs em?! */
+        var regExp = new RegExp(/a=candidate:\d+\s\d\stcp.+/g);
+        sdp = sdp.replace(regExp,"");
 
         return sdp;
     };
@@ -124,6 +194,7 @@ Erizo.ChromeCanaryStack = function (spec) {
                 L.Logger.debug("Received ANSWER: ", sd.sdp);
 
                 sd.sdp = setMaxBW(sd.sdp);
+                sd.sdp = setAudioCodec(sd.sdp);
 
                 that.peerConnection.setRemoteDescription(new RTCSessionDescription(sd));
                 that.sendOK();
@@ -227,6 +298,7 @@ Erizo.ChromeCanaryStack = function (spec) {
             if (that.state === 'new' || that.state === 'established') {
                 // See if the current offer is the same as what we already sent.
                 // If not, no change is needed.
+                // Don't do anything until we have the ICE candidates.
 
                 that.peerConnection.createOffer(function (sessionDescription) {
 
@@ -235,33 +307,57 @@ Erizo.ChromeCanaryStack = function (spec) {
                     //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
 
                     sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
-                    L.Logger.debug("Changed", sessionDescription.sdp);
+                    sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
 
                     var newOffer = sessionDescription.sdp;
 
                     if (newOffer !== that.prevOffer) {
-
+                        L.Logger.debug("Have new SDP on createOffer");
                         that.peerConnection.setLocalDescription(sessionDescription);
+                        that.prevOffer = sessionDescription.sdp;
 
-                        that.state = 'preparing-offer';
+                        if (that.moreIceComing) {
+                            that.state = 'preparing-offer';
+                        } else {
+                            that.state = 'ice-gathering-finished'
+                        }
                         that.markActionNeeded();
-                        return;
-                    } else {
-                        L.Logger.debug('Not sending a new offer');
+                        return;          
                     }
 
                 }, null, that.mediaConstraints);
 
-
             } else if (that.state === 'preparing-offer') {
-                // Don't do anything until we have the ICE candidates.
                 if (that.moreIceComing) {
                     return;
+                } else {
+                    L.Logger.debug("ice-gathering-finished");
+
+                    that.peerConnection.createOffer(function (sessionDescription) {
+
+                        //sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
+                        //sessionDescription.sdp = newOffer.replace(/a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
+                        //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
+
+                        sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
+                        sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
+
+                        sessionDescription.sdp = pruneIceCandidates(sessionDescription.sdp);
+
+                        that.peerConnection.setLocalDescription(sessionDescription);
+                        that.prevOffer = sessionDescription.sdp;
+
+                        L.Logger.debug("setting state to ice-gathering-finished");
+                        that.state = 'ice-gathering-finished'
+                        that.markActionNeeded();
+                        return;          
+
+                    }, null, that.mediaConstraints);
+
                 }
 
+            } else if (that.state === 'ice-gathering-finished') {
 
-                // Now able to send the offer we've already prepared.
-                that.prevOffer = that.peerConnection.localDescription.sdp;
                 L.Logger.debug("Sending OFFER: " + that.prevOffer);
                 //L.Logger.debug('Sent SDP is ' + that.prevOffer);
                 that.sendMessage('OFFER', that.prevOffer);
@@ -271,6 +367,7 @@ Erizo.ChromeCanaryStack = function (spec) {
             } else if (that.state === 'offer-received') {
 
                 that.peerConnection.createAnswer(function (sessionDescription) {
+                    L.Logger.debug("Have session description sdp in createAnswer", sessionDescription.sdp);
                     that.peerConnection.setLocalDescription(sessionDescription);
                     that.state = 'offer-received-preparing-answer';
 

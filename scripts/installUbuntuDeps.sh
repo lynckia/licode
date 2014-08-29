@@ -9,8 +9,27 @@ CURRENT_DIR=`pwd`
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
+
+prepare_build_dir() {
+    ACTUAL_BUILD_DIR=$ROOT/../licode_build
+
+    if [ ! -d $ACTUAL_BUILD_DIR ]; then
+      if [ -d $BUILD_DIR ]; then
+        mv $BUILD_DIR $ACTUAL_BUILD_DIR
+      else
+        mkdir $ACTUAL_BUILD_DIR
+      fi
+    fi
+    if [ -d $BUILD_DIR ]; then
+      rm -rf $BUILD_DIR
+    fi
+    if [ ! -L $BUILD_DIR ]; then
+      ln -s ../licode_build $BUILD_DIR
+    fi
+}
+
 pause() {
-  read -p "$*"
+  echo "$*"
 }
 
 parse_arguments(){
@@ -44,11 +63,11 @@ check_proxy(){
 }
 
 install_apt_deps(){
-  sudo apt-get install python-software-properties
-  sudo apt-get install software-properties-common
-  sudo add-apt-repository ppa:chris-lea/node.js
-  sudo apt-get update
-  sudo apt-get install git make gcc g++ libssl-dev cmake libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev
+  sudo apt-get install -y python-software-properties
+  sudo apt-get install -y software-properties-common
+  sudo add-apt-repository -y ppa:chris-lea/node.js
+  sudo apt-get -y update
+  sudo apt-get -y install git make gcc g++ libssl-dev cmake libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev
   sudo npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/
 }
@@ -99,7 +118,7 @@ install_opus(){
 }
 
 install_mediadeps(){
-  sudo apt-get install yasm libvpx. libx264.
+  sudo apt-get -y install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-9.13.tar.gz
@@ -117,7 +136,7 @@ install_mediadeps(){
 }
 
 install_mediadeps_nogpl(){
-  sudo apt-get install yasm libvpx.
+  sudo apt-get -y install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-9.13.tar.gz
@@ -157,6 +176,8 @@ parse_arguments $*
 
 
 mkdir -p $PREFIX_DIR
+
+prepare_build_dir
 
 pause "Installing deps via apt-get... [press Enter]"
 install_apt_deps

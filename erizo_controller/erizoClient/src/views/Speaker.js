@@ -34,11 +34,11 @@ Erizo.Speaker = function (spec) {
     that.div.setAttribute('style', 'width: 40%; height: 100%; max-width: 32px; position: absolute; right: 0;z-index:0;');
 
     // Volume icon 
-    that.icon = document.createElement('img');
-    that.icon.setAttribute('id', 'volume_' + that.id);
-    that.icon.setAttribute('src', that.url + '/assets/sound48.png');
-    that.icon.setAttribute('style', 'width: 80%; height: 100%; position: absolute;');
-    that.div.appendChild(that.icon);
+    // that.icon = document.createElement('img');
+    // that.icon.setAttribute('id', 'volume_' + that.id);
+    // that.icon.setAttribute('src', that.url + '/assets/sound48.png');
+    // that.icon.setAttribute('style', 'width: 80%; height: 100%; position: absolute;');
+    // that.div.appendChild(that.icon);
 
 
     if (!that.stream.local) {
@@ -86,13 +86,13 @@ Erizo.Speaker = function (spec) {
             that.media.volume = that.picker.value / 100;
         };
 
-        that.icon.onclick = function (evt) {
+        /*that.icon.onclick = function (evt) {
             if (muted) {
                 unmute();
             } else {
                 mute();
             }
-        }
+        }*/
 
         // Public functions
         that.div.onmouseover = function (evt) {
@@ -119,13 +119,13 @@ Erizo.Speaker = function (spec) {
             that.stream.stream.getAudioTracks()[0].enabled = true;
         };
 
-        that.icon.onclick = function (evt) {
+        /*that.icon.onclick = function (evt) {
             if (muted) {
                 unmute();
             } else {
                 mute();
             }
-        }
+        }*/
     }
   
 

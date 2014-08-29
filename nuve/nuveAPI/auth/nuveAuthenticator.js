@@ -28,7 +28,10 @@ var checkTimestamp = function (ser, params) {
     lastC = lastParams.cnonce;
     newC = params.cnonce;
 
-    if (newTS < lastTS || (lastTS === newTS && lastC === newC)) {
+    // BF: The newTS < lastTS was causing our create-video-token 500 errors
+    // Not sure the rationale for the check
+    //if (newTS < lastTS || (lastTS === newTS && lastC === newC)) {
+    if (lastTS === newTS && lastC === newC) {
         log.info('Last timestamp: ', lastTS, ' and new: ', newTS);
         log.info('Last cnonce: ', lastC, ' and new: ', newC);
         return false;
@@ -54,8 +57,8 @@ var checkSignature = function (params, key) {
 };
 
 /*
- * This function has the logic needed for authenticate a nuve request. 
- * If the authentication success exports the service and the user and role (if needed). Else send back 
+ * This function has the logic needed for authenticate a nuve request.
+ * If the authentication success exports the service and the user and role (if needed). Else send back
  * a response with an authentication request to the client.
  */
 exports.authenticate = function (req, res, next) {
@@ -86,7 +89,7 @@ exports.authenticate = function (req, res, next) {
                 return;
             }
 
-            // Check if the signature is valid. 
+            // Check if the signature is valid.
             if (checkSignature(params, key)) {
 
                 if (params.username !== undefined && params.role !== undefined) {

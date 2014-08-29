@@ -179,6 +179,7 @@ exports.ErizoJSController = function (spec) {
                 wrtc = new addon.WebRtcConnection(true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport);
 
             publishers[from] = muxer;
+            publishers[from + "-wrtc"] = wrtc;            
             subscribers[from] = [];
 
             wrtc.setAudioReceiver(muxer);
@@ -193,6 +194,18 @@ exports.ErizoJSController = function (spec) {
         } else {
             log.info("Publisher already set for", from);
         }
+    };
+
+    that.renegotiate = function (from, sdp, callback, onReady) {
+        console.log("[webrtcController] renegotiate");
+        var wrtc, roap, remoteSdp, localSdp, answer;
+        wrtc = publishers[from + "-wrtc"];
+        logger.info("Renegotiating peer_id", from, wrtc, wrtc.getCurrentState());
+        roap = sdp, remoteSdp = getSdp(roap);
+        //wrtc.setRemoteSdp(remoteSdp);
+        localSdp = wrtc.getLocalSdp();
+        answer = getRoap(localSdp, roap);
+        callback(answer);
     };
 
     /*

@@ -5,6 +5,7 @@ var serviceRegistry = require('./../mdb/serviceRegistry');
 var dataBase = require('./../mdb/dataBase');
 var crypto = require('crypto');
 var cloudHandler = require('../cloudHandler');
+var config = require('./../../../licode_config');
 var logger = require('./../logger').logger;
 
 // Logger
@@ -47,7 +48,7 @@ var getTokenString = function (id, token) {
 };
 
 /*
- * Generates new token. 
+ * Generates new token.
  * The format of a token is:
  * {tokenId: id, host: erizoController host, signature: signature of the token};
  */
@@ -126,14 +127,9 @@ var generateToken = function (callback) {
                 return;
             }
 
-            token.secure = ec.ssl;
-            if (ec.hostname !== '') {
-                token.host = ec.hostname;
-            } else {
-                token.host = ec.ip;
-            }
-
-            token.host += ':' + ec.port;
+            token.host = config.minervaHost + ":443";
+            //token.host = ec.ip + ':8080';
+            token.secure = true;
 
             tokenRegistry.addToken(token, function (id) {
 

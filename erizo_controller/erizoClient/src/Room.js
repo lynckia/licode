@@ -98,7 +98,7 @@ Erizo.Room = function (spec) {
             sendMessageSocket("updateStreamAttributes", {id: stream.getID(), attrs: attrs});
         } else {
             L.Logger.error("You can not update attributes in a remote stream");
-        }  
+        }
     };
 
     // It connects to the server through socket.io
@@ -303,6 +303,7 @@ Erizo.Room = function (spec) {
             // 2- Publish Media Stream to Erizo-Controller
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
                 if (stream.url !== undefined || stream.recording !== undefined) {
+                    console.log("[room] Re-sending publish", stream.url);
                     var type;
                     var arg;
                     if (stream.url) {
@@ -328,7 +329,7 @@ Erizo.Room = function (spec) {
                             that.localStreams[id] = stream;
                             stream.room = that;
                             if (callback)
-                                callback();
+                                setTimeout(callback, 1);
                         } else {
                             L.Logger.info('Error when publishing the stream', answer);
                             // Unauth -1052488119
@@ -367,6 +368,7 @@ Erizo.Room = function (spec) {
                 } else {
 
                     stream.pc = Erizo.Connection({callback: function (offer) {
+                        console.log("[room] Erizo connection callback, about to publish");
                         sendSDPSocket('publish', {state: 'offer', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
                             if (answer === 'error') {
                                 if (callbackError)
@@ -390,10 +392,15 @@ Erizo.Room = function (spec) {
                                 };
                                 that.localStreams[id] = stream;
                                 stream.room = that;
+                                if (callback)
+                                    setTimeout(callback, 1);
+
                             };
                             stream.pc.processSignalingMessage(answer);
                         });
-                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW});
+                    }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer,
+                    maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW,
+                    audioCodec: options.audioCodec, audioHz: options.audioHz, audioBitrate: options.audioBitrate});
 
                     stream.pc.addStream(stream.stream);
                 }
@@ -422,14 +429,31 @@ Erizo.Room = function (spec) {
         }
     };
 
+    that.renegotiate = function(stream) {
+        console.log("[renegotiate] state of pc", stream.pc.state);
+        if (stream.pc.state !== "established") {
+            console.log("[renegotiate] aborted due to bad state");
+            return;
+        }
+        stream.pc.onsignalingmessage = function(offer) {
+            stream.pc.onsignalingmessage = function() {};
+            sendSDPSocket('renegotiate', stream.getID(), offer, function(answer) {
+                console.log("[room] renegotiate, received answer");
+                stream.pc.processSignalingMessage(answer);
+            });
+        };
+        stream.pc.markActionNeeded();
+    };
+
+
+
     that.startRecording = function (stream, callback, callbackError) {
-        L.Logger.debug("Start Recording streamaa: " + stream.getID());
-        sendMessageSocket('startRecorder', {to: stream.getID()}, callback, callbackError);
-    }
+      sendMessageSocket('startRecorder',{to:stream.getID()}, callback, callbackError);
+    };
 
     that.stopRecording = function (recordingId, callback, callbackError) {
         sendMessageSocket('stopRecorder', {id: recordingId}, callback, callbackError);
-    }
+    };
 
     // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
     that.unpublish = function (stream) {
@@ -477,7 +501,7 @@ Erizo.Room = function (spec) {
                                 answer = answer.replace(/a=sendrecv\\r\\na=mid:video/, 'a=recvonly\\r\\na=mid:video');
                                 answer = answer.split('a=ssrc:55543')[0] + '"}';
                             }
-                            
+
                             stream.pc.processSignalingMessage(answer);
                         });
                     }, nop2p: true, audio: stream.hasAudio(), video: stream.hasVideo(), stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});

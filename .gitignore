@@ -1,7 +1,10 @@
-build/
+npm-debug.log
+build
+licode_config/
 licode_config.js
 extras/basic_example/node_modules
 extras/basic_example/public/erizo.js
+extras/basic_example/public/nuveServiceConfig.py
 extras/basic_example/nuve.js
 node_modules/
 site
@@ -10,5 +13,6 @@ scripts/libdeps/
 libdeps/
 extras/vagrant/.vagrant
 extras/vagrant/licode/
+erizo_controller/erizoController/core
 erizo_controller/erizoAgent/out.log
 erizo_controller/erizoAgent/erizo-*.log
