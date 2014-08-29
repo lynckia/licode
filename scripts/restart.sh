@@ -3,13 +3,13 @@
 sudo pkill node
 
 sudo supervisorctl stop licode_basic_server
-sudo supervisorctl stop erizo_controller
-sudo supervisorctl start erizo_agent
+sudo supervisorctl stop erizo
+sudo supervisorctl start agent_erizo
 sudo supervisorctl stop nuve
 
 sudo supervisorctl start nuve
 sleep 1
-sudo supervisorctl start erizo_controller
-sudo supervisorctl start erizo_agent
+sudo supervisorctl start erizo
+sudo supervisorctl start agent_erizo
 sleep 1
 sudo supervisorctl start licode_basic_server
