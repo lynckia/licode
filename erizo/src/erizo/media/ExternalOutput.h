@@ -4,7 +4,7 @@
 #include "../MediaDefinitions.h"
 #include "rtp/RtpPacketQueue.h"
 #include "MediaProcessor.h"
-#include "rtp/RtpHeader.h"
+#include "rtp/RtpHeaders.h"
 #include "boost/thread.hpp"
 #include "logger.h"
 
@@ -71,7 +71,7 @@ private:
 
 
     bool initContext();
-    bool checkFirTimer(RTPHeader* head);
+    bool checkFirTimer(RtpHeader* head);
     int sendFirPacket();
     void queueData(char* buffer, int length, packetType type);
     void sendLoop();
