@@ -449,12 +449,11 @@ Erizo.Room = function (spec) {
 
     that.startRecording = function (stream, callback, callbackError) {
       sendMessageSocket('startRecorder',{to:stream.getID()}, callback, callbackError);
-      return recordingUrl;
-    }
+    };
 
     that.stopRecording = function (recordingId, callback, callbackError) {
         sendMessageSocket('stopRecorder', {id: recordingId}, callback, callbackError);
-    }
+    };
 
     // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
     that.unpublish = function (stream) {
