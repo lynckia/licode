@@ -12,8 +12,7 @@ Erizo.Speaker = function (spec) {
         show,
         mute,
         unmute,
-        lastVolume = 50,
-        muted = false;
+        lastVolume = 50;
 
     // Variables
 
@@ -54,13 +53,14 @@ Erizo.Speaker = function (spec) {
         that.picker.orient = "vertical"; //  FireFox supports range sliders as of version 23
         that.div.appendChild(that.picker);
         that.media.volume = that.picker.value / 100;
+        that.media.muted = false;
 
         that.picker.oninput = function (evt) {
             if (that.picker.value > 0) {
-                muted = false;
+                that.media.muted = false;
                 that.icon.setAttribute('src', that.url + '/assets/sound48.png');
             } else {
-                muted = true;
+                that.media.muted = true;
                 that.icon.setAttribute('src', that.url + '/assets/mute48.png');
             }
             that.media.volume = that.picker.value / 100;
@@ -72,22 +72,22 @@ Erizo.Speaker = function (spec) {
         };
 
         mute = function () {
-            muted = true;
             that.icon.setAttribute('src', that.url + '/assets/mute48.png');
             lastVolume = that.picker.value;
             that.picker.value = 0;
             that.media.volume = 0;
+            that.media.muted = true;
         };
 
         unmute = function () {
-            muted = false;
             that.icon.setAttribute('src', that.url + '/assets/sound48.png');
             that.picker.value = lastVolume;
             that.media.volume = that.picker.value / 100;
+            that.media.muted = false;
         };
 
         that.icon.onclick = function (evt) {
-            if (muted) {
+            if (that.media.muted) {
                 unmute();
             } else {
                 mute();
