@@ -11,7 +11,6 @@
 namespace erizo {
 
   DEFINE_LOGGER(Stats, "Stats");
-
   Stats::~Stats(){
     if (runningStats_){
       runningStats_ = false;
@@ -35,7 +34,7 @@ namespace erizo {
   
   void Stats::processRtcpStats(RtcpHeader* chead) {    
     unsigned int ssrc = chead->getSSRC();
-    ELOG_DEBUG("RTCP Packet: PT %d, SSRC %u,  block count %d ",chead->packettype,chead->getSSRC(), chead->getBlockCount()); 
+//    ELOG_DEBUG("RTCP Packet: PT %d, SSRC %u,  block count %d ",chead->packettype,chead->getSSRC(), chead->getBlockCount()); 
     if (chead->packettype == RTCP_Receiver_PT){
       addFragmentLost (chead->getFractionLost(), ssrc);
       setPacketsLost (chead->getLostPackets(), ssrc);
@@ -44,32 +43,30 @@ namespace erizo {
       setRtcpPacketSent(chead->getPacketsSent(), ssrc);
       setRtcpBytesSent(chead->getOctetsSent(), ssrc);
     }else if (chead->packettype == 206){
-      ELOG_DEBUG("REMB packet mantissa %u, exp %u", chead->getBrMantis(), chead->getBrExp());
+      //ELOG_DEBUG("REMB packet mantissa %u, exp %u", chead->getBrMantis(), chead->getBrExp());
     }
   }
-  
-  std::string Stats::getStats() {    
+ 
+  // TODO: MAke a proper JSON array, one object per SSRC
+  std::string Stats::getStats() {
     boost::mutex::scoped_lock lock(mapMutex_);
     std::ostringstream theString;
-    theString << "{";
-    for (fullStatsMap_t::iterator itssrc=theStats_.begin(); itssrc!=theStats_.end(); ++itssrc){
-      int currentSSRC = itssrc->first;
-      theString << "\"ssrc\":\"" << currentSSRC << "\",\n";
-      for (singleSSRCstatsMap_t::iterator it=theStats_[currentSSRC].begin(); it!=theStats_[currentSSRC].end(); ++it){
-        theString << "\"" << it->first << "\":\"" << it->second << "\"";
-        if (++it != theStats_[currentSSRC].end()){
-          theString << ",\n";
+    theString << "[";
+    for (fullStatsMap_t::iterator itssrc=theStats_.begin(); itssrc!=theStats_.end();){
+      unsigned long int currentSSRC = itssrc->first;
+      theString << "{\"ssrc\":\"" << currentSSRC << "\",\n";
+        for (singleSSRCstatsMap_t::iterator it=theStats_[currentSSRC].begin(); it!=theStats_[currentSSRC].end();){
+          theString << "\"" << it->first << "\":\"" << it->second << "\"";
+          if (++it != theStats_[currentSSRC].end()){
+            theString << ",\n";
+          }          
         }
-        --itssrc;
+        theString << "}";
+        if (++itssrc != theStats_.end()){
+          theString << ",";
+        }
       }
-
-    }
-    theString << "\n}";
-
-    std::map<std::string, unsigned int>::iterator search = theStats_[0].find("fragmentLost");
-    if (search != theStats_[0].end()) {
-      search->second = 0;
-    }
+    theString << "]";
     return theString.str(); 
   }
 
@@ -81,13 +78,13 @@ namespace erizo {
       ELOG_DEBUG("Starting periodic stats report with interval %d, iterationsPerTick %d", intervalMillis, iterationsPerTick_);
       statsThread_ = boost::thread(&Stats::sendStats, this);
     }else{
-      ELOG_DEBUG("Stats already started, chaning listener and interval");
+      ELOG_DEBUG("Stats already started, changing listener and interval");
     }
   }
 
   void Stats::sendStats() {
     while(runningStats_) {
-      if (++currentIterations_ == (iterationsPerTick_)){
+      if (++currentIterations_ >= (iterationsPerTick_)){
         theListener_->notifyStats(this->getStats());
 
         currentIterations_ =0;

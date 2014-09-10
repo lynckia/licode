@@ -22,6 +22,8 @@ namespace erizo{
     public:
     Stats(unsigned long int ssrc=0):SSRC_(ssrc){
       currentIterations_ = 0;
+      runningStats_ = false;
+      fragmentLostValues_ = 0;
     };
 
     virtual ~Stats();
@@ -32,11 +34,11 @@ namespace erizo{
 
 
     private:
-    typedef std::map<std::string, unsigned int> singleSSRCstatsMap_t;
-    typedef std::map <unsigned int, singleSSRCstatsMap_t> fullStatsMap_t;
+    typedef std::map<std::string, unsigned long int> singleSSRCstatsMap_t;
+    typedef std::map <unsigned long int, singleSSRCstatsMap_t> fullStatsMap_t;
     fullStatsMap_t theStats_;
     static const int SLEEP_INTERVAL_ = 100000;
-    unsigned long int SSRC_;
+    unsigned int SSRC_;
     unsigned int fragmentLostValues_;      
     boost::mutex mapMutex_;
     WebRtcConnectionStatsListener* theListener_;      
