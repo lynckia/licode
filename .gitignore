@@ -1,3 +1,4 @@
+npm-debug.log
 build/
 licode_config.js
 extras/basic_example/node_modules
@@ -10,5 +11,6 @@ scripts/libdeps/
 libdeps/
 extras/vagrant/.vagrant
 extras/vagrant/licode/
+erizo_controller/erizoController/core
 erizo_controller/erizoAgent/out.log
 erizo_controller/erizoAgent/erizo-*.log
