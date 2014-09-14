@@ -1,4 +1,7 @@
-var config = {}
+var config = {};
+
+/* Read up host-specic network configuration */
+var network_config = require("./licode_config/host");
 
 /*********************************************************
  COMMON CONFIGURATION
@@ -15,8 +18,8 @@ config.logger.config_file = '../log4js_configuration.json'; //default value: "..
  It's used by Nuve and ErizoController
 **********************************************************/
 config.cloudProvider = {};
-config.cloudProvider.name = '';
-//In Amazon Ec2 instances you can specify the zone host. By default is 'ec2.us-east-1a.amazonaws.com' 
+config.cloudProvider.name = network_config.cloudProviderName;
+//In Amazon Ec2 instances you can specify the zone host. By default is 'ec2.us-east-1a.amazonaws.com'
 config.cloudProvider.host = '';
 config.cloudProvider.accessKey = '';
 config.cloudProvider.secretAccessKey = '';
@@ -35,21 +38,24 @@ config.nuve.testErizoController = 'localhost:8080'; // default value: 'localhost
 **********************************************************/
 config.erizoController = {};
 
-//Use undefined to run clients without Stun 
-config.erizoController.stunServerUrl = 'stun:stun.l.google.com:19302'; // default value: 'stun:stun.l.google.com:19302'
+config.erizoController.stunServerUrl = '';
 
 // Default and max video bandwidth parameters to be used by clients
 config.erizoController.defaultVideoBW = 300; //default value: 300
 config.erizoController.maxVideoBW = 300; //default value: 300
 
-// Public erizoController IP for websockets (useful when behind NATs)
-// Use '' to automatically get IP from the interface
-config.erizoController.publicIP = ''; //default value: ''
-// Use '' to use the public IP address instead of a hostname
-config.erizoController.hostname = ''; //default value: ''
+//Public erizoController IP for websockets (useful when behind NATs)
+//Use '' to automatically get IP from the interface
+config.erizoController.publicIP = network_config.publicIP;
+//Use '' to use the public IP address instead of a hostname
+config.erizoController.hostname = network_config.publicHostname;
 config.erizoController.port = 8080; //default value: 8080
 // Use true if clients communicate with erizoController over SSL
 config.erizoController.ssl = false; //default value: false
+
+// Not really necessary
+config.minervaHost = network_config.publicHostname;
+
 
 // Use the name of the inferface you want to bind to for websockets
 // config.erizoController.networkInterface = 'eth1' // default value: undefined
@@ -70,7 +76,7 @@ config.erizoController.roles =
     "viewer": {"subscribe": true},
     "viewerWithData": {"subscribe": true, "publish": {"audio": false, "video": false, "screen": false, "data": true}}}; // default value: {"presenter":{"publish": true, "subscribe":true, "record":true}, "viewer":{"subscribe":true}, "viewerWithData":{"subscribe":true, "publish":{"audio":false,"video":false,"screen":false,"data":true}}}
 
-// If true, erizoController sends stats to rabbitMQ queue "stats_handler" 
+// If true, erizoController sends stats to rabbitMQ queue "stats_handler"
 config.erizoController.sendStats = false; // default value: false
 
 // If undefined, the path will be /tmp/
@@ -82,7 +88,7 @@ config.erizoController.recording_path = undefined; // default value: undefined
 config.erizoAgent = {};
 
 // Max processes that ErizoAgent can run
-config.erizoAgent.maxProcesses 	  = 1; // default value: 1
+config.erizoAgent.maxProcesses    = 1; // default value: 1
 // Number of precesses that ErizoAgent runs when it starts. Always lower than or equals to maxProcesses.
 config.erizoAgent.prerunProcesses = 1; // default value: 1
 
@@ -97,8 +103,8 @@ config.erizo.stunserver = ''; // default value: ''
 config.erizo.stunport = 0; // default value: 0
 
 //note, this won't work with all versions of libnice. With 0 all the available ports are used
-config.erizo.minport = 0; // default value: 0
-config.erizo.maxport = 0; // default value: 0
+config.erizo.minport = network_config.minport;
+config.erizo.maxport = network_config.maxport;
 
 /***** END *****/
 // Following lines are always needed.
