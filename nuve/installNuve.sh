@@ -14,7 +14,10 @@ cd nuveAPI
 
 echo [nuve] Installing node_modules for nuve
 
-npm install --loglevel error amqp express@3 mongojs aws-lib log4js node-getopt
+
+# this is in ging master.  But I added these to package.json to version lock.
+#npm install --loglevel error amqp express@3 mongojs aws-lib log4js node-getopt
+npm install --loglevel error
 
 echo [nuve] Done, node_modules installed
 
