@@ -59,7 +59,7 @@ populate_mongo(){
   mkdir -p $ROOT/licode_config;
 
   if [ ! -f "$ROOT/licode_config/host.js" ]; then
-    cp $PATHNAME/default_host_config.js $ROOT/licode_config/host.js
+    cp $PATHNAME/host_default.js $ROOT/licode_config/host.js
   fi
 
 }

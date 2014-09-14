@@ -1,7 +1,7 @@
 var config = {};
 
 /* Read up host-specic network configuration */
-var network_config = require("./licode_config/host");
+var host_config = require("./licode_config/host");
 
 /*********************************************************
  COMMON CONFIGURATION
@@ -18,7 +18,7 @@ config.logger.config_file = '../log4js_configuration.json'; //default value: "..
  It's used by Nuve and ErizoController
 **********************************************************/
 config.cloudProvider = {};
-config.cloudProvider.name = network_config.cloudProviderName;
+config.cloudProvider.name = host_config.cloudProviderName;
 //In Amazon Ec2 instances you can specify the zone host. By default is 'ec2.us-east-1a.amazonaws.com'
 config.cloudProvider.host = '';
 config.cloudProvider.accessKey = '';
@@ -38,7 +38,8 @@ config.nuve.testErizoController = 'localhost:8080'; // default value: 'localhost
 **********************************************************/
 config.erizoController = {};
 
-config.erizoController.stunServerUrl = '';
+//Use undefined to run clients without Stun
+config.erizoController.stunServerUrl = 'stun:stun.l.google.com:19302'; // default value: 'stun:stun.l.google.com:19302'
 
 // Default and max video bandwidth parameters to be used by clients
 config.erizoController.defaultVideoBW = 300; //default value: 300
@@ -46,15 +47,15 @@ config.erizoController.maxVideoBW = 300; //default value: 300
 
 //Public erizoController IP for websockets (useful when behind NATs)
 //Use '' to automatically get IP from the interface
-config.erizoController.publicIP = network_config.publicIP;
+config.erizoController.publicIP = host_config.publicIP;
 //Use '' to use the public IP address instead of a hostname
-config.erizoController.hostname = network_config.publicHostname;
+config.erizoController.hostname = host_config.publicHostname;
 config.erizoController.port = 8080; //default value: 8080
 // Use true if clients communicate with erizoController over SSL
 config.erizoController.ssl = false; //default value: false
 
 // Not really necessary
-config.minervaHost = network_config.publicHostname;
+config.minervaHost = host_config.publicHostname;
 
 
 // Use the name of the inferface you want to bind to for websockets
@@ -103,8 +104,8 @@ config.erizo.stunserver = ''; // default value: ''
 config.erizo.stunport = 0; // default value: 0
 
 //note, this won't work with all versions of libnice. With 0 all the available ports are used
-config.erizo.minport = network_config.minport;
-config.erizo.maxport = network_config.maxport;
+config.erizo.minport = host_config.minport;
+config.erizo.maxport = host_config.maxport;
 
 /***** END *****/
 // Following lines are always needed.

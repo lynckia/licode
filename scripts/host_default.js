@@ -17,7 +17,7 @@ host_config.publicIP = '';
 /* Override this if you are using a cloud provider (e.g. 'amazon') */
 host_config.cloudProviderName = '';
 
-// override if you don't want to use defaults.
+/* override if you don't want to use licode's default port range */
 host_config.minport = 0;
 host_config.maxport = 0;
 
