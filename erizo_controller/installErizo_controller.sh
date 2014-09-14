@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo [erizo_controller] Installing node_modules for erizo_controller
 
 npm install --loglevel error amqp socket.io@0.9.16 log4js node-getopt

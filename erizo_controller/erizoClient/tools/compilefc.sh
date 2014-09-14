@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ -d $LIB_DIR ]; then
 	rm -rf ../build
 fi
