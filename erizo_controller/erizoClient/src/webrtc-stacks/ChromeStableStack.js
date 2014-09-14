@@ -42,7 +42,16 @@ Erizo.ChromeStableStack = function (spec) {
     that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
 
     that.peerConnection.onicecandidate = function (event) {
-        L.Logger.debug("PeerConnection: ", spec.session_id);
+        L.Logger.debug("Have ice candidate for session: ", spec.session_id);
+        // HACK (bf) If no new ice candidates for 0.5s, stop waiting
+        clearTimeout(that.moreIceTimeout);
+        that.moreIceTimeout = setTimeout(function() {
+            if (that.moreIceComing) {
+                that.moreIceComing = false;
+                that.markActionNeeded();
+            }
+        }, 500);
+
         if (!event.candidate) {
             // At the moment, we do not renegotiate when new candidates
             // show up after the more flag has been false once.
@@ -55,6 +64,7 @@ Erizo.ChromeStableStack = function (spec) {
             if (that.ices >= 1 && that.moreIceComing) {
                 that.moreIceComing = false;
                 that.markActionNeeded();
+                clearTimeout(that.moreIceTimeout);
             }
         } else {
             that.iceCandidateCount += 1;
@@ -87,7 +97,10 @@ Erizo.ChromeStableStack = function (spec) {
         // Offer: Check for glare and resolve.
         // Answer/OK: Remove retransmit for the msg this is an answer to.
         // Send back "OK" if this was an Answer.
-        L.Logger.debug('Activity on conn ' + that.sessionId);
+        L.Logger.debug('Activity on connection for session ' + that.sessionId);
+        if(msgstring === "timeout") {
+            throw new Error("Timeout received on signaling channel for session ", that.sessionId);
+        }
         var msg = JSON.parse(msgstring), sd, regExp, exp;
         that.incomingMessage = msg;
 
@@ -226,7 +239,8 @@ Erizo.ChromeStableStack = function (spec) {
         if (that.actionNeeded) {
             if (that.state === 'new' || that.state === 'established') {
                 // See if the current offer is the same as what we already sent.
-                // If not, no change is needed.   
+                // If not, no change is needed.
+                // Don't do anything until we have the ICE candidates.
 
                 that.peerConnection.createOffer(function (sessionDescription) {
 
@@ -235,33 +249,57 @@ Erizo.ChromeStableStack = function (spec) {
                     //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
 
                     sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
-                    L.Logger.debug("Changed", sessionDescription.sdp);
+                    sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
 
                     var newOffer = sessionDescription.sdp;
 
                     if (newOffer !== that.prevOffer) {
-
+                        L.Logger.debug("Have new SDP on createOffer");
                         that.peerConnection.setLocalDescription(sessionDescription);
+                        that.prevOffer = sessionDescription.sdp;
 
-                        that.state = 'preparing-offer';
+                        if (that.moreIceComing) {
+                            that.state = 'preparing-offer';
+                        } else {
+                            that.state = 'ice-gathering-finished'
+                        }
                         that.markActionNeeded();
                         return;
-                    } else {
-                        L.Logger.debug('Not sending a new offer');
                     }
 
                 }, null, that.mediaConstraints);
 
-
             } else if (that.state === 'preparing-offer') {
-                // Don't do anything until we have the ICE candidates.
                 if (that.moreIceComing) {
                     return;
+                } else {
+                    L.Logger.debug("ice-gathering-finished");
+
+                    that.peerConnection.createOffer(function (sessionDescription) {
+
+                        //sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
+                        //sessionDescription.sdp = newOffer.replace(/a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
+                        //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
+
+                        sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
+                        sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
+
+                        sessionDescription.sdp = pruneIceCandidates(sessionDescription.sdp);
+
+                        that.peerConnection.setLocalDescription(sessionDescription);
+                        that.prevOffer = sessionDescription.sdp;
+
+                        L.Logger.debug("setting state to ice-gathering-finished");
+                        that.state = 'ice-gathering-finished'
+                        that.markActionNeeded();
+                        return;
+
+                    }, null, that.mediaConstraints);
+
                 }
 
+            } else if (that.state === 'ice-gathering-finished') {
 
-                // Now able to send the offer we've already prepared.
-                that.prevOffer = that.peerConnection.localDescription.sdp;
                 L.Logger.debug("Sending OFFER: " + that.prevOffer);
                 //L.Logger.debug('Sent SDP is ' + that.prevOffer);
                 that.sendMessage('OFFER', that.prevOffer);
@@ -271,6 +309,7 @@ Erizo.ChromeStableStack = function (spec) {
             } else if (that.state === 'offer-received') {
 
                 that.peerConnection.createAnswer(function (sessionDescription) {
+                    L.Logger.debug("Have session description sdp in createAnswer", sessionDescription.sdp);
                     that.peerConnection.setLocalDescription(sessionDescription);
                     that.state = 'offer-received-preparing-answer';
 
@@ -368,7 +407,7 @@ Erizo.ChromeStableStack = function (spec) {
     that.peerConnection.oniceconnectionstatechange = function (e) {
         if (that.oniceconnectionstatechange) {
             that.oniceconnectionstatechange(e.currentTarget.iceConnectionState);
-        }   
+        }
     };
 
     // Variables that are part of the public interface of PeerConnection
