@@ -722,6 +722,36 @@ exports.getUsersInRoom = function (room, callback) {
 };
 
 /*
+ *Gets a list of users in a determined room.
+ */
+exports.deleteUser = function (user, room, callback) {
+    "use strict";
+
+    var users = [], sockets, id;
+    
+     if (rooms[room] === undefined) {
+         callback('Success');
+         return;
+     }
+
+    sockets = rooms[room].sockets;
+
+    for (id in sockets) {
+        if (sockets.hasOwnProperty(id)) {
+            
+            if (io.sockets.socket(sockets[id]).user === undefined || io.sockets.socket(sockets[id]).user.name === user ){
+                io.sockets.socket(sockets[id]).disconnect();
+            }
+            
+        }
+    }
+
+    log.info('Deleted user', user);
+    callback('Success');
+};
+
+
+/*
  * Delete a determined room.
  */
 exports.deleteRoom = function (room, callback) {

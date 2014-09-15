@@ -20,3 +20,13 @@ exports.deleteRoom = function(roomId, callback) {
         callback("callback", result);
     });
 }
+
+exports.deleteUser = function(args, callback) {
+
+    var user = args.user;
+    var roomId = args.roomId;
+    erizoController.deleteUser(user, roomId, function(result) {
+         callback("callback", result);
+    });
+    
+}

@@ -45,7 +45,7 @@ exports.represent = function (req, res) {
 };
 
 /*
- * Delete Room. Removes a determined room from the data base and asks cloudHandler to remove ir from erizoController.
+ * Delete Room. Removes a determined room from the data base and asks cloudHandler to remove it from erizoController.
  */
 exports.deleteRoom = function (req, res) {
     "use strict";

@@ -1,6 +1,8 @@
 /*global exports, require, console, Buffer*/
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
+var cloudHandler = require('../cloudHandler');
+
 var logger = require('./../logger').logger;
 
 // Logger
@@ -42,7 +44,26 @@ exports.getUser = function (req, res) {
 
         var user = req.params.user;
 
-        //Consultar RabbitMQ
+        
+        cloudHandler.getUsersInRoom (currentRoom._id, function (users) {
+            if (users === 'error') {
+                res.send('CloudHandler does not respond', 401);
+                return;
+            }
+            for (var index in users){
+                
+                if (users[index].name === user){
+                    res.send(users[index]);
+                }
+
+            }
+
+            res.send('User does not exist', 404);
+            return;
+            
+
+        });
+
     });
 };
 
@@ -64,6 +85,11 @@ exports.deleteUser = function (req, res) {
         }
 
         var user = req.params.user;
+        
+
+
+        cloudHandler.deleteUser (user, currentRoom._id, function(){});
+        res.send('User deleted');
 
         //Consultar RabbitMQ
     });
