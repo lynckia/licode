@@ -3,6 +3,7 @@
 #include "ExternalOutput.h"
 #include "../WebRtcConnection.h"
 #include "../rtp/RtpHeaders.h"
+#include "../rtp/RtpVP8Parser.h"
 
 namespace erizo {
 #define FIR_INTERVAL_MS 4000
@@ -14,7 +15,7 @@ namespace erizo {
 // B) our audio sample rate is typically 20 msec packets; video is anywhere from 33 to 100 msec (30 to 10 fps)
 // Allowing the audio queue to hold more will help prevent loss of data when the video framerate is low.
 ExternalOutput::ExternalOutput(const std::string& outputUrl) : audioQueue_(600, 60), videoQueue_(120, 60), inited_(false), video_stream_(NULL), audio_stream_(NULL),
-    firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1)
+    firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), vp8SearchState_(lookingForStart), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1)
 {
     ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
 
@@ -44,14 +45,12 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl) : audioQueue_(600, 
     sinkfbSource_ = this;
     fbSink_ = NULL;
     unpackagedSize_ = 0;
-    inputProcessor_ = new InputProcessor();
 }
 
 bool ExternalOutput::init(){
     MediaInfo m;
     m.hasVideo = false;
     m.hasAudio = false;
-    inputProcessor_->init(m, this);
     thread_ = boost::thread(&ExternalOutput::sendLoop, this);
     recording_ = true;
     ELOG_DEBUG("Initialized successfully");
@@ -67,9 +66,6 @@ ExternalOutput::~ExternalOutput(){
     recording_ = false;
     cond_.notify_one();
     thread_.join();
-
-    delete inputProcessor_;
-    inputProcessor_ = NULL;
 
     if (audio_stream_ != NULL && video_stream_ != NULL && context_ != NULL){
         av_write_trailer(context_);
@@ -99,7 +95,13 @@ void ExternalOutput::receiveRawData(RawDataPacket& /*packet*/){
 
 void ExternalOutput::writeAudioData(char* buf, int len){
     RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);
+    uint16_t currentAudioSequenceNumber = head->getSeqNumber();
+    if (currentAudioSequenceNumber != lastAudioSequenceNumber_ + 1) {
+        // Something screwy.  We should always see sequence numbers incrementing monotonically.
+        ELOG_DEBUG("Unexpected audio sequence number; current %d, previous %d", currentAudioSequenceNumber, lastAudioSequenceNumber_);
+    }
 
+    lastAudioSequenceNumber_ = currentAudioSequenceNumber;
     if (firstAudioTimestamp_ == -1) {
         firstAudioTimestamp_ = head->getTimestamp();
     }
@@ -124,10 +126,6 @@ void ExternalOutput::writeAudioData(char* buf, int len){
         return;
     }
 
-    int ret = inputProcessor_->unpackageAudio(reinterpret_cast<unsigned char*>(buf), len, unpackagedAudioBuffer_);
-    if (ret <= 0)
-        return;
-
     long long currentTimestamp = head->getTimestamp();
     if (currentTimestamp - firstAudioTimestamp_ < 0) {
         // we wrapped.  add 2^32 to correct this.  We only handle a single wrap around since that's 13 hours of recording, minimum.
@@ -145,8 +143,8 @@ void ExternalOutput::writeAudioData(char* buf, int len){
 
     AVPacket avpkt;
     av_init_packet(&avpkt);
-    avpkt.data = unpackagedAudioBuffer_;
-    avpkt.size = ret;
+    avpkt.data = (uint8_t*) buf + head->getHeaderLength();
+    avpkt.size = len - head->getHeaderLength();
     avpkt.pts = timestampToWrite;
     avpkt.stream_index = 1;
     av_write_frame(context_, &avpkt);
@@ -155,23 +153,38 @@ void ExternalOutput::writeAudioData(char* buf, int len){
 
 void ExternalOutput::writeVideoData(char* buf, int len){
     RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);
+
+    uint16_t currentVideoSeqNumber = head->getSeqNumber();
+    if (currentVideoSeqNumber != lastVideoSequenceNumber_ + 1) {
+        // Something screwy.  We should always see sequence numbers incrementing monotonically.
+        ELOG_DEBUG("Unexpected video sequence number; current %d, previous %d", currentVideoSeqNumber, lastVideoSequenceNumber_);
+        // Set our search state to look for the start of a frame, and discard what we currently have (if anything).  it's now worthless.
+        vp8SearchState_ = lookingForStart;
+        unpackagedSize_ = 0;
+        unpackagedBufferpart_ = unpackagedBuffer_;
+    }
+
+    lastVideoSequenceNumber_ = currentVideoSeqNumber;
+
     if (head->getPayloadType() == RED_90000_PT) {
         int totalLength = head->getHeaderLength();
         int rtpHeaderLength = totalLength;
         RedHeader *redhead = reinterpret_cast<RedHeader*>(buf + totalLength);
+        ELOG_DEBUG("Received RED packet, payloadType: %d ", redhead->payloadtype);
         if (redhead->payloadtype == VP8_90000_PT) {
             while (redhead->follow) {
                 totalLength += redhead->getLength() + 4; // RED header
                 redhead = reinterpret_cast<RedHeader*>(buf + totalLength);
             }
-            // Parse RED packet to VP8 packet.
+
             // Copy RTP header
             memcpy(deliverMediaBuffer_, buf, rtpHeaderLength);
-            // Copy payload data
-            memcpy(deliverMediaBuffer_ + totalLength, buf + totalLength + 1, len - totalLength - 1);
+            // Copy payload data - the +/- 1 is to account for the primary encoding block header, which is effectively
+            // a normal RED header, but minus the timestamp and block-length fields for a total length of one octet.
+            memcpy(deliverMediaBuffer_ + rtpHeaderLength, buf + totalLength + 1, len - totalLength - 1);
             // Copy payload type
-            RtpHeader *mediahead = reinterpret_cast<RtpHeader*>(deliverMediaBuffer_);
-            mediahead->setPayloadType(redhead->payloadtype);
+            head = reinterpret_cast<RtpHeader*>(deliverMediaBuffer_);
+            head->setPayloadType(redhead->payloadtype);
             buf = reinterpret_cast<char*>(deliverMediaBuffer_);
             len = len - 1 - totalLength + rtpHeaderLength;
         }
@@ -181,24 +194,84 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         firstVideoTimestamp_ = head->getTimestamp();
     }
 
-    int gotUnpackagedFrame = false;
-    int ret = inputProcessor_->unpackageVideo(reinterpret_cast<unsigned char*>(buf), len, unpackagedBufferpart_, &gotUnpackagedFrame);
-    if (ret < 0){
-        ELOG_ERROR("Error Unpackaging Video");
-        return;
+    RtpVP8Parser parser;
+    erizo::RTPPayloadVP8* payload = parser.parseVP8(reinterpret_cast<unsigned char*>(buf + head->getHeaderLength()), len - head->getHeaderLength());
+
+    bool endOfFrame = (head->getMarker() > 0);
+    bool startOfFrame = payload->beginningOfPartition;
+
+    bool deliver = false;
+    switch(vp8SearchState_) {
+    case lookingForStart:
+        if(startOfFrame && endOfFrame) {
+            // This packet is a standalone frame.  Send it on.  Look for start.
+            unpackagedSize_ = 0;
+            unpackagedBufferpart_ = unpackagedBuffer_;
+            memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
+            unpackagedSize_ += payload->dataLength;
+            unpackagedBufferpart_ += payload->dataLength;
+            deliver = true;
+        } else if (!startOfFrame && !endOfFrame) {
+            // This is neither the start nor the end of a frame.  Reset our buffers.  Look for start.
+            unpackagedSize_ = 0;
+            unpackagedBufferpart_ = unpackagedBuffer_;
+        } else if (startOfFrame && !endOfFrame) {
+            // Found start frame.  Copy to buffers.  Look for our end.
+            memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
+            unpackagedSize_ += payload->dataLength;
+            unpackagedBufferpart_ += payload->dataLength;
+            vp8SearchState_ = lookingForEnd;
+        } else { // (!startOfFrame && endOfFrame)
+            // We got the end of a frame.  Reset our buffers.
+            unpackagedSize_ = 0;
+            unpackagedBufferpart_ = unpackagedBuffer_;
+        }
+        break;
+    case lookingForEnd:
+        if(startOfFrame && endOfFrame) {
+            // Unexpected.  We were looking for the end of a frame, and got a whole new frame.
+            // Reset our buffers, send this frame on, and go to the looking for start state.
+            vp8SearchState_ = lookingForStart;
+            unpackagedSize_ = 0;
+            unpackagedBufferpart_ = unpackagedBuffer_;
+            memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
+            unpackagedSize_ += payload->dataLength;
+            unpackagedBufferpart_ += payload->dataLength;
+            deliver = true;
+        } else if (!startOfFrame && !endOfFrame) {
+            // This is neither the start nor the end.  Add it to our unpackage buffer.
+            memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
+            unpackagedSize_ += payload->dataLength;
+            unpackagedBufferpart_ += payload->dataLength;
+        } else if (startOfFrame && !endOfFrame) {
+            // Unexpected.  We got the start of a frame.  Clear out our buffer, toss this payload in, and continue looking for the end.
+            unpackagedSize_ = 0;
+            unpackagedBufferpart_ = unpackagedBuffer_;
+            memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
+            unpackagedSize_ += payload->dataLength;
+            unpackagedBufferpart_ += payload->dataLength;
+        } else { // (!startOfFrame && endOfFrame)
+            // Got the end of a frame.  Let's deliver and start looking for the start of a frame.
+            vp8SearchState_ = lookingForStart;
+            memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
+            unpackagedSize_ += payload->dataLength;
+            unpackagedBufferpart_ += payload->dataLength;
+            deliver = true;
+        }
+        break;
     }
 
-    initContext();
+    delete payload;
 
+    //ELOG_DEBUG("Parsed VP8 payload, endOfFrame: %d, startOfFrame: %d, partitionId: %d", endOfFrame, startOfFrame, partitionId);
+
+    this->initContext();
     if (video_stream_ == NULL) {
         // could not init our context yet.
         return;
     }
 
-    unpackagedSize_ += ret;
-    unpackagedBufferpart_ += ret;
-
-    if (gotUnpackagedFrame) {
+    if (deliver) {
         unpackagedBufferpart_ -= unpackagedSize_;
 
         long long currentTimestamp = head->getTimestamp();
@@ -306,6 +379,14 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
     RtcpHeader *head = reinterpret_cast<RtcpHeader*>(buffer);
     if (head->isRtcp()){
         return;
+    }
+
+    // if this packet has any padding, strip it off so we don't have to deal with it downstream.
+    RtpHeader* h = reinterpret_cast<RtpHeader*>(buffer);
+    if (h->hasPadding()) {
+        uint8_t paddingCount = (uint8_t) buffer[length - 1];    // padding count is in the last byte of the payload, and includes itself.
+        //ELOG_DEBUG("Padding byte set, old length: %d, new length: %d", length, length - paddingCount);
+        length -= paddingCount;
     }
 
     if (firstDataReceived_ == -1) {

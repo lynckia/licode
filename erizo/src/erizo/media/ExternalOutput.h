@@ -16,6 +16,13 @@ namespace erizo{
 #define UNPACKAGE_BUFFER_SIZE 200000
 class WebRtcConnection;
 
+
+// Our search state for VP8 frames.
+enum vp8SearchState {
+    lookingForStart,
+    lookingForEnd
+};
+
 class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource {
     DECLARE_LOGGER();
 public:
@@ -35,13 +42,11 @@ private:
     unsigned long long lastFullIntraFrameRequest_;
 
     AVFormatContext *context_;
-    InputProcessor *inputProcessor_;
 
     int unpackagedSize_;
     unsigned char* unpackagedBufferpart_;
     unsigned char deliverMediaBuffer_[3000];
     unsigned char unpackagedBuffer_[UNPACKAGE_BUFFER_SIZE];
-    unsigned char unpackagedAudioBuffer_[UNPACKAGE_BUFFER_SIZE/10];
 
     // Timestamping strategy: we use the RTP timestamps so we don't have to restamp and we're not
     // subject to error due to the RTP packet queue depth and playout.
@@ -67,6 +72,16 @@ private:
     long long videoOffsetMsec_;
     long long audioOffsetMsec_;
 
+
+    // The last sequence numbers we received for audio and video.  Allows us to react to packet loss.
+    uint16_t lastVideoSequenceNumber_;
+    uint16_t lastAudioSequenceNumber_;
+
+    // our VP8 frame search state.  We're always looking for either the beginning or the end of a frame.
+    // Note: VP8 purportedly has two packetization schemes; per-frame and per-partition.  A frame is
+    // composed of one or more partitions.  However, we don't seem to be sent anything but partition 0
+    // so the second scheme seems not applicable.  Too bad.
+    vp8SearchState vp8SearchState_;
 
     bool initContext();
     int sendFirPacket();
