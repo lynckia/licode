@@ -163,6 +163,7 @@ exports.RoomController = function (spec) {
      * OneToManyProcessor.
      */
     that.addSubscriber = function (subscriber_id, publisher_id, audio, video, sdp, callback, onReady) {
+        if (typeof sdp != 'string') sdp = JSON.stringify(sdp);
 
         if (sdp === null || subscriber_id === null) {
             callback("error");
