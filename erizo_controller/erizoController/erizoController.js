@@ -735,22 +735,31 @@ exports.deleteUser = function (user, room, callback) {
      }
 
     sockets = rooms[room].sockets;
+    var sockets_to_delete = [];
 
     for (id in sockets) {
         if (sockets.hasOwnProperty(id)) {
             if (io.sockets.socket(sockets[id]).user.name === user){
-                io.sockets.socket(sockets[id]).disconnect();
-                log.info('Deleted user', user);
-                callback('Success');
-                return;
-
+                sockets_to_delete.push(sockets[id]);
             }
-            
         }
     }
-    log.error('User', user, 'does not exist');
-    callback('User does not exist', 404);
-    return;
+
+    for (var s in sockets_to_delete) {
+        
+        log.info('Deleted user', io.sockets.socket(sockets_to_delete[s]).user.name);
+        io.sockets.socket(sockets_to_delete[s]).disconnect();
+    }
+
+    if (sockets_to_delete.length !== 0) {
+        callback('Success');
+        return;
+    }
+    else {
+        log.error('User', user, 'does not exist');
+        callback('User does not exist', 404);
+        return;
+    }
 
     
 };
