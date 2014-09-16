@@ -738,16 +738,21 @@ exports.deleteUser = function (user, room, callback) {
 
     for (id in sockets) {
         if (sockets.hasOwnProperty(id)) {
-            
-            if (io.sockets.socket(sockets[id]).user === undefined || io.sockets.socket(sockets[id]).user.name === user ){
+            if (io.sockets.socket(sockets[id]).user.name === user){
                 io.sockets.socket(sockets[id]).disconnect();
+                log.info('Deleted user', user);
+                callback('Success');
+                return;
+
             }
             
         }
     }
+    log.error('User', user, 'does not exist');
+    callback('User does not exist', 404);
+    return;
 
-    log.info('Deleted user', user);
-    callback('Success');
+    
 };
 
 

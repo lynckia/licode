@@ -37,7 +37,7 @@ exports.getUser = function (req, res) {
             res.send('Service not found', 404);
             return;
         } else if (currentRoom === undefined) {
-            console.log('Room ', req.params.room, ' does not exist');
+            log.info('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
             return;
         }
@@ -53,11 +53,13 @@ exports.getUser = function (req, res) {
             for (var index in users){
                 
                 if (users[index].name === user){
+                    log.info('Found user', user);
                     res.send(users[index]);
+                    return;
                 }
 
             }
-
+            log.error('User', req.params.user, 'does not exist')
             res.send('User does not exist', 404);
             return;
             
@@ -79,7 +81,7 @@ exports.deleteUser = function (req, res) {
             res.send('Service not found', 404);
             return;
         } else if (currentRoom === undefined) {
-            console.log('Room ', req.params.room, ' does not exist');
+            log.info('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
             return;
         }
@@ -88,8 +90,16 @@ exports.deleteUser = function (req, res) {
         
 
 
-        cloudHandler.deleteUser (user, currentRoom._id, function(){});
-        res.send('User deleted');
+        cloudHandler.deleteUser (user, currentRoom._id, function(result){
+            if(result === 'User does not exist'){
+                res.send(result, 404);
+            }
+            else {
+                res.send(result);
+                return;
+            }
+        });
+        
 
         //Consultar RabbitMQ
     });
