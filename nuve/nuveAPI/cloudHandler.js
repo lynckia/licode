@@ -230,11 +230,6 @@ exports.deleteRoom = function (roomId, callback) {
 exports.deleteUser = function (user, roomId, callback) {
     "use strict";
 
-    // if (getUsersInRoom(rooms[roomId])[user] === undefined) {
-    //     callback('Success');
-    //     return;
-    // }
-
     var rpcID = erizoControllers[rooms[roomId]].rpcID;
     rpc.callRpc(rpcID, 'deleteUser', [{user: user, roomId:roomId}], {"callback": function (result) {
         callback(result);
