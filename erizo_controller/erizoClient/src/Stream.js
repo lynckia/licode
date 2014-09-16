@@ -107,6 +107,26 @@ Erizo.Stream = function (spec) {
           }
       };
 
+    // copies anothers stream source
+    that.initCopy = function (original) {
+        if (original.local) {
+            that.url = original.url;
+            that.video = original.video;
+            that.audio = original.audio;
+            that.videoSize = original.videoSize;
+            that.stream = original.stream;
+            if (that.stream === undefined) {
+                var streamEvent = Erizo.StreamEvent({type: "access-denied"});
+                that.dispatchEvent(streamEvent);
+            } else {
+                var streamEvent = Erizo.StreamEvent({type: "access-accepted" });
+                that.dispatchEvent(streamEvent);
+            }
+        } else {
+            L.Logger.error("Copying a non-local media stream!")
+        }
+    }
+
     that.close = function () {
         if (that.local) {
             if (that.room !== undefined) {
