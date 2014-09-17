@@ -50,6 +50,14 @@ class Nuve
     	return send('GET', nil, 'rooms/' + room + '/users/', '', '');
     end
 
+    def getErizos ()
+      return send('GET', nil, 'erizos/', '', '');
+    end
+
+    def getErizoStats (erizo)
+      return send('GET', nil, 'erizos/' + erizo + '/stats/', '', '');
+    end
+
 	private
 	def send (method, body, url, username, role)
 

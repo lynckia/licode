@@ -697,6 +697,26 @@ var listen = function () {
     });
 };
 
+/*
+ * Fetch general statistics.
+ */
+exports.getStatistics = function (callback) {
+    "use strict";
+
+    var stats = {
+        rooms: 0,
+        connections: 0
+    };
+
+    for (var room in rooms) {
+        if (rooms.hasOwnProperty(room)) {
+            stats.rooms += 1;
+            stats.connections += rooms[room].sockets.length;
+        }
+    }
+
+    callback(stats);
+};
 
 /*
  *Gets a list of users in a determined room.

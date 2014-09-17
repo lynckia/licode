@@ -3,7 +3,7 @@ var N = N || {};
 
 N.API = (function (N) {
     "use strict";
-    var createRoom, getRooms, getRoom, deleteRoom, createToken, createService, getServices, getService, deleteService, getUsers, getUser, deleteUser, params, send, calculateSignature, init;
+    var createRoom, getRooms, getRoom, deleteRoom, createToken, createService, getServices, getService, deleteService, getUsers, getUser, deleteUser, getErizos, getErizoStats, params, send, calculateSignature, init;
 
     params = {
         service: undefined,
@@ -71,6 +71,14 @@ N.API = (function (N) {
 
     deleteUser = function (room, user, callback, callbackError, params) {
         send(callback, callbackError, 'DELETE', undefined, 'rooms/' + room + '/users/' + user);
+    };
+
+    getErizos = function (callback, callbackError, params) {
+        send(callback, callbackError, 'GET', undefined, 'erizos');
+    };
+
+    getErizoStats = function (erizo, callback, callbackError, params) {
+        send(callback, callbackError, 'GET', undefined, 'erizos/' + erizo + '/stats');
     };
 
     send = function (callback, callbackError, method, body, url, params, username, role) {
@@ -193,6 +201,8 @@ N.API = (function (N) {
         deleteService: deleteService,
         getUsers: getUsers,
         getUser: getUser,
-        deleteUser: deleteUser
+        deleteUser: deleteUser,
+        getErizos: getErizos,
+        getErizoStats: getErizoStats
     };
 }(N));
