@@ -1,6 +1,8 @@
 /*global exports, require, console, Buffer*/
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
+var cloudHandler = require('../cloudHandler');
+
 var logger = require('./../logger').logger;
 
 // Logger
@@ -35,14 +37,35 @@ exports.getUser = function (req, res) {
             res.send('Service not found', 404);
             return;
         } else if (currentRoom === undefined) {
-            console.log('Room ', req.params.room, ' does not exist');
+            log.info('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
             return;
         }
 
         var user = req.params.user;
 
-        //Consultar RabbitMQ
+        
+        cloudHandler.getUsersInRoom (currentRoom._id, function (users) {
+            if (users === 'error') {
+                res.send('CloudHandler does not respond', 401);
+                return;
+            }
+            for (var index in users){
+                
+                if (users[index].name === user){
+                    log.info('Found user', user);
+                    res.send(users[index]);
+                    return;
+                }
+
+            }
+            log.error('User', req.params.user, 'does not exist')
+            res.send('User does not exist', 404);
+            return;
+            
+
+        });
+
     });
 };
 
@@ -58,12 +81,25 @@ exports.deleteUser = function (req, res) {
             res.send('Service not found', 404);
             return;
         } else if (currentRoom === undefined) {
-            console.log('Room ', req.params.room, ' does not exist');
+            log.info('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
             return;
         }
 
         var user = req.params.user;
+        
+
+
+        cloudHandler.deleteUser (user, currentRoom._id, function(result){
+            if(result === 'User does not exist'){
+                res.send(result, 404);
+            }
+            else {
+                res.send(result);
+                return;
+            }
+        });
+        
 
         //Consultar RabbitMQ
     });

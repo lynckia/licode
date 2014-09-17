@@ -226,3 +226,13 @@ exports.deleteRoom = function (roomId, callback) {
         callback(result);
     }});
 };
+
+exports.deleteUser = function (user, roomId, callback) {
+    "use strict";
+
+    var rpcID = erizoControllers[rooms[roomId]].rpcID;
+    rpc.callRpc(rpcID, 'deleteUser', [{user: user, roomId:roomId}], {"callback": function (result) {
+        callback(result);
+    }});
+};
+

@@ -70,7 +70,7 @@ N.API = (function (N) {
     };
 
     deleteUser = function (room, user, callback, callbackError, params) {
-        send(callback, callbackError, 'DELETE', undefined, 'rooms/' + room + '/users/' + user);
+        send(callback, callbackError, 'DELETE', undefined, 'rooms/' + room + '/users/' + user, params);
     };
 
     send = function (callback, callbackError, method, body, url, params, username, role) {
