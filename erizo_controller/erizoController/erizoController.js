@@ -348,7 +348,7 @@ var listen = function () {
                         log.debug('OK, Valid token');
 
                         if (!tokenDB.p2p && GLOBAL.config.erizoController.sendStats) {
-                            rpc.callRpc('stats_handler', 'event', {room: tokenDB.room, user: socket.id, type: 'connection'});
+                            rpc.callRpc('stats_handler', 'event', [{room: tokenDB.room, user: socket.id, type: 'connection'}]);
                         }
 
                         for (index in socket.room.streams) {
@@ -451,7 +451,7 @@ var listen = function () {
                             sendMsgToRoom(socket.room, 'onAddStream', socket.room.streams[id].getPublicStream());
                         }
                         if (GLOBAL.config.erizoController.sendStats) {
-                            rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'publish', stream: id});
+                            rpc.callRpc('stats_handler', 'event', [{room: socket.room.id, user: socket.id, type: 'publish', stream: id}]);
                         }
                     });
 
@@ -514,7 +514,7 @@ var listen = function () {
                         callback(answer);
                     }, function() {
                         if (GLOBAL.config.erizoController.sendStats) {
-                            rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'publish', stream: options.streamId});
+                            rpc.callRpc('stats_handler', 'event', [{room: socket.room.id, user: socket.id, type: 'publish', stream: options.streamId}]);
                         }
                         log.info("Subscriber added");
                     });
@@ -596,7 +596,7 @@ var listen = function () {
                 if (!socket.room.p2p) {
                     socket.room.controller.removePublisher(streamId);
                     if (GLOBAL.config.erizoController.sendStats) {
-                        rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'unpublish', stream: streamId});
+                        rpc.callRpc('stats_handler', 'event', [{room: socket.room.id, user: socket.id, type: 'unpublish', stream: streamId}]);
                     }
                 }
             }
@@ -627,7 +627,7 @@ var listen = function () {
                 if (!socket.room.p2p) {
                     socket.room.controller.removeSubscriber(socket.id, to);
                     if (GLOBAL.config.erizoController.sendStats) {
-                        rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'unsubscribe', stream: to});
+                        rpc.callRpc('stats_handler', 'event', [{room: socket.room.id, user: socket.id, type: 'unsubscribe', stream: to}]);
                     }
                 };
             }
@@ -671,7 +671,7 @@ var listen = function () {
                             if (!socket.room.p2p) {
                                 socket.room.controller.removePublisher(id);
                                 if (GLOBAL.config.erizoController.sendStats) {
-                                    rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'unpublish', stream: id});
+                                    rpc.callRpc('stats_handler', 'event', [{room: socket.room.id, user: socket.id, type: 'unpublish', stream: id}]);
                                 }
                             }
 
@@ -685,7 +685,7 @@ var listen = function () {
             }
 
             if (socket.room !== undefined && !socket.room.p2p && GLOBAL.config.erizoController.sendStats) {
-                rpc.callRpc('stats_handler', 'event', {room: socket.room.id, user: socket.id, type: 'disconnection'});
+                rpc.callRpc('stats_handler', 'event', [{room: socket.room.id, user: socket.id, type: 'disconnection'}]);
             }
 
             if (socket.room !== undefined && socket.room.sockets.length === 0) {
@@ -728,7 +728,7 @@ exports.deleteUser = function (user, room, callback) {
     "use strict";
 
     var users = [], sockets, id;
-    
+
      if (rooms[room] === undefined) {
          callback('Success');
          return;
@@ -746,7 +746,7 @@ exports.deleteUser = function (user, room, callback) {
     }
 
     for (var s in sockets_to_delete) {
-        
+
         log.info('Deleted user', io.sockets.socket(sockets_to_delete[s]).user.name);
         io.sockets.socket(sockets_to_delete[s]).disconnect();
     }
@@ -761,7 +761,7 @@ exports.deleteUser = function (user, room, callback) {
         return;
     }
 
-    
+
 };
 
 
