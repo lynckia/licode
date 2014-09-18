@@ -514,7 +514,7 @@ var listen = function () {
                         callback(answer);
                     }, function() {
                         if (GLOBAL.config.erizoController.sendStats) {
-                            rpc.callRpc('stats_handler', 'event', [{room: socket.room.id, user: socket.id, type: 'publish', stream: options.streamId}]);
+                            rpc.callRpc('stats_handler', 'event', [{room: socket.room.id, user: socket.id, type: 'subscribe', stream: options.streamId}]);
                         }
                         log.info("Subscriber added");
                     });
