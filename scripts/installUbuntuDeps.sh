@@ -9,10 +9,6 @@ CURRENT_DIR=`pwd`
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
-pause() {
-  read -p "$*"
-}
-
 parse_arguments(){
   while [ "$1" != "" ]; do
     case $1 in
@@ -33,14 +29,14 @@ check_proxy(){
   else
     echo "http proxy configured, configuring npm"
     npm config set proxy $http_proxy
-  fi  
+  fi
 
   if [ -z "$https_proxy" ]; then
     echo "No https proxy set, doing nothing"
   else
     echo "https proxy configured, configuring npm"
     npm config set https-proxy $https_proxy
-  fi  
+  fi
 }
 
 install_apt_deps(){
@@ -143,7 +139,7 @@ install_libsrtp(){
 }
 
 
-cleanup(){  
+cleanup(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     rm -r libnice*
@@ -158,28 +154,28 @@ parse_arguments $*
 
 mkdir -p $PREFIX_DIR
 
-pause "Installing deps via apt-get... [press Enter]"
+echo "Installing deps via apt-get... [press Enter]"
 install_apt_deps
 
 check_proxy
 
-pause "Installing openssl library...  [press Enter]"
+echo "Installing openssl library...  [press Enter]"
 install_openssl
 
-pause "Installing libnice library...  [press Enter]"
+echo "Installing libnice library...  [press Enter]"
 install_libnice
 
-pause "Installing libsrtp library...  [press Enter]"
+echo "Installing libsrtp library...  [press Enter]"
 install_libsrtp
 
-pause "Installing opus library...  [press Enter]"
+echo "Installing opus library...  [press Enter]"
 install_opus
 
 if [ "$ENABLE_GPL" = "true" ]; then
-  pause "GPL libraries enabled"
+  echo "GPL libraries enabled"
   install_mediadeps
 else
-  pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
+  echo "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
   install_mediadeps_nogpl
 fi
 
