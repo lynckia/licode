@@ -28,7 +28,7 @@ namespace erizo{
 
     virtual ~Stats();
 
-    void processRtcpStats(char* buf, int length);
+    void processRtcpPacket(char* buf, int length);
     std::string getStats();
     void setPeriodicStats(int intervalMillis, WebRtcConnectionStatsListener* listener);
 
@@ -47,7 +47,7 @@ namespace erizo{
     int currentIterations_;
     bool runningStats_;
 
-    void processRtcpStats(RtcpHeader* chead);
+    void processRtcpPacket(RtcpHeader* chead);
 
     int getPacketsLost(unsigned int ssrc){
       return static_cast<int>(theStats_[ssrc]["packetsLost"]);

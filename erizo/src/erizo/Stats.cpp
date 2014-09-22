@@ -18,7 +18,7 @@ namespace erizo {
       ELOG_DEBUG("Stopped periodic stats report");
     }
   }
-  void Stats::processRtcpStats(char* buf, int length) {
+  void Stats::processRtcpPacket(char* buf, int length) {
     boost::mutex::scoped_lock lock(mapMutex_);    
     char* movingBuf = buf;
     int rtcpLength = 0;
@@ -28,11 +28,11 @@ namespace erizo {
       RtcpHeader *chead= reinterpret_cast<RtcpHeader*>(movingBuf);
       rtcpLength= (ntohs(chead->length)+1)*4;      
       totalLength+= rtcpLength;
-      this->processRtcpStats(chead);
+      this->processRtcpPacket(chead);
     } while(totalLength<length);
   }
   
-  void Stats::processRtcpStats(RtcpHeader* chead) {    
+  void Stats::processRtcpPacket(RtcpHeader* chead) {    
     unsigned int ssrc = chead->getSSRC();
 //    ELOG_DEBUG("RTCP Packet: PT %d, SSRC %u,  block count %d ",chead->packettype,chead->getSSRC(), chead->getBlockCount()); 
     if (chead->packettype == RTCP_Receiver_PT){
@@ -47,7 +47,6 @@ namespace erizo {
     }
   }
  
-  // TODO: MAke a proper JSON array, one object per SSRC
   std::string Stats::getStats() {
     boost::mutex::scoped_lock lock(mapMutex_);
     std::ostringstream theString;
@@ -71,14 +70,14 @@ namespace erizo {
   }
 
   void Stats::setPeriodicStats(int intervalMillis, WebRtcConnectionStatsListener* listener) {
-    theListener_ = listener;
-    iterationsPerTick_ = static_cast<int>((intervalMillis*1000)/SLEEP_INTERVAL_);
     if (!runningStats_){
+      theListener_ = listener;
+      iterationsPerTick_ = static_cast<int>((intervalMillis*1000)/SLEEP_INTERVAL_);
       runningStats_ = true;
       ELOG_DEBUG("Starting periodic stats report with interval %d, iterationsPerTick %d", intervalMillis, iterationsPerTick_);
       statsThread_ = boost::thread(&Stats::sendStats, this);
     }else{
-      ELOG_DEBUG("Stats already started, changing listener and interval");
+      ELOG_ERROR("Stats already started");
     }
   }
 

@@ -236,7 +236,7 @@ namespace erizo {
     if (this->statsListener_){ // if there is no listener we dont process stats
       RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
       if (head->payloadtype != RED_90000_PT && head->payloadtype != PCMU_8000_PT)     
-        thisStats_.processRtcpStats(buf, length);
+        thisStats_.processRtcpPacket(buf, length);
     }
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
