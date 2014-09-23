@@ -16,7 +16,7 @@ Erizo.ChromeStableStack = function (spec) {
 
     if (spec.stunServerUrl !== undefined) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
-    } 
+    }
 
     if ((spec.turnServer || {}).url) {
         that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
@@ -43,14 +43,6 @@ Erizo.ChromeStableStack = function (spec) {
 
     that.peerConnection.onicecandidate = function (event) {
         L.Logger.debug("Have ice candidate for session: ", spec.session_id);
-        // HACK (bf) If no new ice candidates for 0.5s, stop waiting
-        clearTimeout(that.moreIceTimeout);
-        that.moreIceTimeout = setTimeout(function() {
-            if (that.moreIceComing) {
-                that.moreIceComing = false;
-                that.markActionNeeded();
-            }
-        }, 500);
 
         if (!event.candidate) {
             // At the moment, we do not renegotiate when new candidates
@@ -64,7 +56,6 @@ Erizo.ChromeStableStack = function (spec) {
             if (that.ices >= 1 && that.moreIceComing) {
                 that.moreIceComing = false;
                 that.markActionNeeded();
-                clearTimeout(that.moreIceTimeout);
             }
         } else {
             that.iceCandidateCount += 1;
@@ -276,10 +267,6 @@ Erizo.ChromeStableStack = function (spec) {
                     L.Logger.debug("ice-gathering-finished");
 
                     that.peerConnection.createOffer(function (sessionDescription) {
-
-                        //sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
-                        //sessionDescription.sdp = newOffer.replace(/a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
-                        //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
 
                         sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
                         sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
