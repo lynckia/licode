@@ -447,6 +447,11 @@ var listen = function () {
                         answer = answer.replace(privateRegexp, publicIP);
                         callback(answer, id);
                     }, function() {
+                        st = new ST.Stream({id: id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
+                        socket.state = 'sleeping';
+                        socket.streams.push(id);
+                        socket.room.streams[id] = st;
+
                         if (socket.room.streams[id] !== undefined) {
                             sendMsgToRoom(socket.room, 'onAddStream', socket.room.streams[id].getPublicStream());
                         }
@@ -456,10 +461,6 @@ var listen = function () {
                     });
 
                 } else if (options.state === 'ok' && socket.state === 'waitingOk') {
-                    st = new ST.Stream({id: options.streamId, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
-                    socket.state = 'sleeping';
-                    socket.streams.push(options.streamId);
-                    socket.room.streams[options.streamId] = st;
                 }
             } else if (options.state === 'p2pSignaling') {
                 io.sockets.socket(options.subsSocket).emit('onPublishP2P', {sdp: sdp, streamId: options.streamId}, function(answer) {
