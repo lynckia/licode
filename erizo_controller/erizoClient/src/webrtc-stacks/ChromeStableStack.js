@@ -271,8 +271,6 @@ Erizo.ChromeStableStack = function (spec) {
                         sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
                         sessionDescription.sdp = setAudioCodec(sessionDescription.sdp);
 
-                        sessionDescription.sdp = pruneIceCandidates(sessionDescription.sdp);
-
                         that.peerConnection.setLocalDescription(sessionDescription);
                         that.prevOffer = sessionDescription.sdp;
 
