@@ -98,7 +98,9 @@ namespace erizo {
     localSdp_.audioSsrc = this->getAudioSinkSSRC();
 
     this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
+    this->thisStats_.setVideoSourceSSRC(this->getVideoSourceSSRC());
     this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
+    this->thisStats_.setAudioSourceSSRC(this->getAudioSourceSSRC());
 
     if (remoteSdp_.profile == SAVPF) {
       if (remoteSdp_.isFingerprint) {
