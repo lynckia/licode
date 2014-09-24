@@ -346,7 +346,7 @@ namespace erizo {
 
     if (state == TRANSPORT_FAILED) {
       temp = CONN_FAILED;
-      globalState_ = CONN_FAILED;
+      //globalState_ = CONN_FAILED;
       sending_ = false;
       ELOG_INFO("WebRtcConnection failed, stopped sending");
       boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
