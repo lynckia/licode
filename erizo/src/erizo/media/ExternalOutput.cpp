@@ -170,7 +170,7 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         int totalLength = head->getHeaderLength();
         int rtpHeaderLength = totalLength;
         RedHeader *redhead = reinterpret_cast<RedHeader*>(buf + totalLength);
-        ELOG_DEBUG("Received RED packet, payloadType: %d ", redhead->payloadtype);
+//        ELOG_DEBUG("Received RED packet, payloadType: %d ", redhead->payloadtype);
         if (redhead->payloadtype == VP8_90000_PT) {
             while (redhead->follow) {
                 totalLength += redhead->getLength() + 4; // RED header

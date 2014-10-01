@@ -5,6 +5,11 @@
 
 namespace erizo {
 
+enum FrameTypes {
+	kIFrame, // key frame
+	kPFrame // Delta frame
+};
+
 typedef struct {
 	bool nonReferenceFrame;
 	bool beginningOfPartition;
@@ -20,15 +25,11 @@ typedef struct {
 	int keyIdx;
 	int frameWidth;
 	int frameHeight;
+  FrameTypes frameType;
 
 	const unsigned char* data;
 	unsigned int dataLength;
 } RTPPayloadVP8;
-
-enum FrameTypes {
-	kIFrame, // key frame
-	kPFrame // Delta frame
-};
 
 class RtpVP8Parser {
 	DECLARE_LOGGER();
