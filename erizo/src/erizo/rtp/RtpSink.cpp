@@ -63,29 +63,25 @@ namespace erizo {
     cond_.notify_one();
   }
 
-  void RtpSink::sendLoop(){
-    while (sending_ == true) {
-
-      boost::unique_lock<boost::mutex> lock(queueMutex_);
-      while (sendQueue_.size() == 0) {
-        cond_.wait(lock);
-        if (sending_ == false) {
-          lock.unlock();
-          return;
+    void RtpSink::sendLoop(){
+        while (sending_ ) {
+            boost::unique_lock<boost::mutex> lock(queueMutex_);
+            while (sendQueue_.size() == 0) {
+                cond_.wait(lock);
+                if (!sending_) {
+                    return;
+                }
+            }
+            if(sendQueue_.front().comp ==-1){
+                sending_ =  false;
+                ELOG_DEBUG("Finishing send Thread, packet -1");
+                sendQueue_.pop();
+                return;
+            }
+            this->sendData(sendQueue_.front().data, sendQueue_.front().length);
+            sendQueue_.pop();
         }
-      }
-      if(sendQueue_.front().comp ==-1){
-        sending_ =  false;
-        ELOG_DEBUG("Finishing send Thread, packet -1");
-        sendQueue_.pop();
-        lock.unlock();
-        return;
-      }
-      this->sendData(sendQueue_.front().data, sendQueue_.front().length);
-      sendQueue_.pop();
-      lock.unlock();
     }
-  }
 
   void RtpSink::handleReceive(const::boost::system::error_code& error, 
       size_t bytes_recvd) {

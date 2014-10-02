@@ -169,87 +169,88 @@ namespace erizo {
       ELOG_DEBUG("Initing NiceConnection not in INITIAL state, exiting... %p", this);
       return;
     };
-    boost::unique_lock<boost::mutex> lock(agentMutex_);
-    if(!running_)
-      return;
+    {
+        boost::unique_lock<boost::mutex> lock(agentMutex_);
+        if(!running_)
+          return;
 
-    this->updateIceState(NICE_INITIAL);
+        this->updateIceState(NICE_INITIAL);
 
-    g_type_init();
-    context_ = g_main_context_new();
-    g_main_context_set_poll_func(context_,timed_poll);
-    /* loop_ =  g_main_loop_new(context_, FALSE); */
-    ELOG_DEBUG("Creating Agent");
-    //loop_ =  g_main_loop_new(NULL, FALSE);
-    //	nice_debug_enable( TRUE );
-    // Create a nice agent
-    //agent_ = nice_agent_new(g_main_loop_get_context(loop_), NICE_COMPATIBILITY_RFC5245);
-    agent_ = nice_agent_new(context_, NICE_COMPATIBILITY_RFC5245);
-    GValue controllingMode = { 0 };
-    g_value_init(&controllingMode, G_TYPE_BOOLEAN);
-    g_value_set_boolean(&controllingMode, false);
-    g_object_set_property(G_OBJECT( agent_ ), "controlling-mode", &controllingMode);
+        g_type_init();
+        context_ = g_main_context_new();
+        g_main_context_set_poll_func(context_,timed_poll);
+        /* loop_ =  g_main_loop_new(context_, FALSE); */
+        ELOG_DEBUG("Creating Agent");
+        //loop_ =  g_main_loop_new(NULL, FALSE);
+        //	nice_debug_enable( TRUE );
+        // Create a nice agent
+        //agent_ = nice_agent_new(g_main_loop_get_context(loop_), NICE_COMPATIBILITY_RFC5245);
+        agent_ = nice_agent_new(context_, NICE_COMPATIBILITY_RFC5245);
+        GValue controllingMode = { 0 };
+        g_value_init(&controllingMode, G_TYPE_BOOLEAN);
+        g_value_set_boolean(&controllingMode, false);
+        g_object_set_property(G_OBJECT( agent_ ), "controlling-mode", &controllingMode);
 
-    //	NiceAddress* naddr = nice_address_new();
-    //	nice_agent_add_local_address(agent_, naddr);
+        //	NiceAddress* naddr = nice_address_new();
+        //	nice_agent_add_local_address(agent_, naddr);
 
-    if (stunServer_.compare("") != 0 && stunPort_!=0){
-      GValue val = { 0 }, val2 = { 0 };
-      g_value_init(&val, G_TYPE_STRING);
-      g_value_set_string(&val, stunServer_.c_str());
-      g_object_set_property(G_OBJECT( agent_ ), "stun-server", &val);
+        if (stunServer_.compare("") != 0 && stunPort_!=0){
+          GValue val = { 0 }, val2 = { 0 };
+          g_value_init(&val, G_TYPE_STRING);
+          g_value_set_string(&val, stunServer_.c_str());
+          g_object_set_property(G_OBJECT( agent_ ), "stun-server", &val);
 
-      g_value_init(&val2, G_TYPE_UINT);
-      g_value_set_uint(&val2, stunPort_);
-      g_object_set_property(G_OBJECT( agent_ ), "stun-server-port", &val2);
+          g_value_init(&val2, G_TYPE_UINT);
+          g_value_set_uint(&val2, stunPort_);
+          g_object_set_property(G_OBJECT( agent_ ), "stun-server-port", &val2);
 
-      ELOG_DEBUG("Setting STUN server %s:%d", stunServer_.c_str(), stunPort_);
-    }
+          ELOG_DEBUG("Setting STUN server %s:%d", stunServer_.c_str(), stunPort_);
+        }
 
-    // Connect the signals
-    g_signal_connect( G_OBJECT( agent_ ), "candidate-gathering-done",
-        G_CALLBACK( cb_candidate_gathering_done ), this);
-    g_signal_connect( G_OBJECT( agent_ ), "component-state-changed",
-        G_CALLBACK( cb_component_state_changed ), this);
-    g_signal_connect( G_OBJECT( agent_ ), "new-selected-pair",
-        G_CALLBACK( cb_new_selected_pair ), this);
+        // Connect the signals
+        g_signal_connect( G_OBJECT( agent_ ), "candidate-gathering-done",
+            G_CALLBACK( cb_candidate_gathering_done ), this);
+        g_signal_connect( G_OBJECT( agent_ ), "component-state-changed",
+            G_CALLBACK( cb_component_state_changed ), this);
+        g_signal_connect( G_OBJECT( agent_ ), "new-selected-pair",
+            G_CALLBACK( cb_new_selected_pair ), this);
 
-    // Create a new stream and start gathering candidates
-    ELOG_DEBUG("Adding Stream... Number of components %d", iceComponents_);
-    nice_agent_add_stream(agent_, iceComponents_);
-    
-    // Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
-   
-    if (minPort_!=0 && maxPort_!=0){
-      ELOG_DEBUG("Setting port range: %d to %d\n", minPort_, maxPort_);
-      nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)minPort_, (guint)maxPort_);
-    }
-    
-    if (SERVER_SIDE_TURN){
-        for (int i = 1; i < (iceComponents_ +1); i++){
-          ELOG_DEBUG("Setting TURN Comp %d\n", i);
-          nice_agent_set_relay_info     (agent_,
-              1,
-              i,
-              "",      // TURN Server IP
-              3479,    // TURN Server PORT
-              "",      // Username
-              "",      // Pass
-              NICE_RELAY_TYPE_TURN_UDP); 
+        // Create a new stream and start gathering candidates
+        ELOG_DEBUG("Adding Stream... Number of components %d", iceComponents_);
+        nice_agent_add_stream(agent_, iceComponents_);
+
+        // Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
+
+        if (minPort_!=0 && maxPort_!=0){
+          ELOG_DEBUG("Setting port range: %d to %d\n", minPort_, maxPort_);
+          nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)minPort_, (guint)maxPort_);
+        }
+
+        if (SERVER_SIDE_TURN){
+            for (int i = 1; i < (iceComponents_ +1); i++){
+              ELOG_DEBUG("Setting TURN Comp %d\n", i);
+              nice_agent_set_relay_info     (agent_,
+                  1,
+                  i,
+                  "",      // TURN Server IP
+                  3479,    // TURN Server PORT
+                  "",      // Username
+                  "",      // Pass
+                  NICE_RELAY_TYPE_TURN_UDP);
+            }
+        }
+        ELOG_DEBUG("Gathering candidates %p", this);
+        nice_agent_gather_candidates(agent_, 1);
+        if(agent_){
+          nice_agent_attach_recv(agent_, 1, 1, context_, cb_nice_recv, this);
+          if (iceComponents_ > 1) {
+            nice_agent_attach_recv(agent_, 1, 2, context_,cb_nice_recv, this);
+          }
+        }else{
+          running_=false;
         }
     }
-    ELOG_DEBUG("Gathering candidates %p", this);
-    nice_agent_gather_candidates(agent_, 1);
-    if(agent_){      
-      nice_agent_attach_recv(agent_, 1, 1, context_, cb_nice_recv, this);
-      if (iceComponents_ > 1) {
-        nice_agent_attach_recv(agent_, 1, 2, context_,cb_nice_recv, this);
-      }
-    }else{
-      running_=false;
-    }
     // Attach to the component to receive the data
-    lock.unlock();
     while(running_){
       boost::unique_lock<boost::mutex> lockContext(agentMutex_);
       if(this->checkIceState()>=NICE_FINISHED)

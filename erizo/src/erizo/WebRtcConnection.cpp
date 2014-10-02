@@ -468,33 +468,27 @@ namespace erizo {
   }
 
   void WebRtcConnection::sendLoop() {
-
-    while (sending_ == true) {
-
-      boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
-      while (sendQueue_.size() == 0) {
-        cond_.wait(lock);
-        if (sending_ == false) {
-          lock.unlock();
-          return;
-        }
+      while (sending_) {
+          boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
+          while (sendQueue_.size() == 0) {
+              cond_.wait(lock);
+              if (!sending_) {
+                  return;
+              }
+          }
+          if(sendQueue_.front().comp ==-1){
+              sending_ =  false;
+              ELOG_DEBUG("Finishing send Thread, packet -1");
+              sendQueue_.pop();
+              return;
+          }
+          if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
+              videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
+          } else {
+              audioTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
+          }
+          sendQueue_.pop();
       }
-      if(sendQueue_.front().comp ==-1){
-        sending_ =  false;
-        ELOG_DEBUG("Finishing send Thread, packet -1");
-        sendQueue_.pop();
-        lock.unlock();
-        return;
-      }
-      if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
-        videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
-      } else {
-        audioTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
-      }
-      sendQueue_.pop();
-      lock.unlock();
-    }
-
   }
 }
 /* namespace erizo */

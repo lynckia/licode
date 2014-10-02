@@ -459,7 +459,6 @@ void ExternalOutput::sendLoop() {
     if (!inited_ && firstDataReceived_!=-1){
       inited_ = true;
     }
-    lock.unlock();
   }
 
   // Since we're bailing, let's completely drain our queues of all data.
