@@ -17,11 +17,7 @@
 namespace erizo {
   
   DEFINE_LOGGER(NiceConnection, "NiceConnection");
-  guint stream_id;
   GSList* lcands;
-  int streamsGathered;
-  int rec, sen;
-  int length;
 
   int timed_poll(GPollFD* fds, guint nfds, gint timeout){
     return poll((pollfd*)fds,nfds,200);
@@ -114,7 +110,6 @@ namespace erizo {
     }
     running_ = false;
     ELOG_DEBUG("Closing nice  %p", this);
-    boost::unique_lock<boost::mutex> lock(agentMutex_);
     this->updateIceState(NICE_FINISHED);
     listener_ = NULL;
     boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::milliseconds(500);
@@ -123,15 +118,19 @@ namespace erizo {
       ELOG_DEBUG("Taking too long to close thread, trying to interrupt %p", this);
       m_Thread_.interrupt();
     }
-    if (agent_!=NULL){
-      g_object_unref(agent_);
-      agent_ = NULL;
+
+    {   // New scope for lock.
+        boost::unique_lock<boost::mutex> lock(agentMutex_);
+        if (agent_!=NULL){
+          g_object_unref(agent_);
+          agent_ = NULL;
+        }
+        if (context_!=NULL) {
+          g_main_context_unref(context_);
+          context_=NULL;
+        }
     }
-    if (context_!=NULL) {
-      g_main_context_unref(context_);
-      context_=NULL;
-    }
-    lock.unlock();
+
     this->queueData(1, NULL, -1 );
     ELOG_DEBUG("Nice Closed %p", this);
   }
@@ -140,8 +139,8 @@ namespace erizo {
   }
 
   void NiceConnection::queueData(unsigned int component_id, char* buf, int len){
-    boost::mutex::scoped_lock(queueMutex_);
     if (this->checkIceState() == NICE_READY){
+      boost::mutex::scoped_lock(queueMutex_);
       if (niceQueue_.size() < 1000 ) {
         packetPtr p_ (new dataPacket());
         memcpy(p_->data, buf, len);
@@ -155,8 +154,8 @@ namespace erizo {
   }
   int NiceConnection::sendData(unsigned int compId, const void* buf, int len) {
     int val = -1;
-    boost::mutex::scoped_lock(agentMutex_);
     if (this->checkIceState() == NICE_READY) {
+      boost::mutex::scoped_lock(agentMutex_);
       val = nice_agent_send(agent_, 1, compId, len, reinterpret_cast<const gchar*>(buf));
     }
     if (val != len) {
@@ -173,7 +172,7 @@ namespace erizo {
     boost::unique_lock<boost::mutex> lock(agentMutex_);
     if(!running_)
       return;
-    streamsGathered = 0;
+
     this->updateIceState(NICE_INITIAL);
 
     g_type_init();
@@ -242,11 +241,9 @@ namespace erizo {
     ELOG_DEBUG("Gathering candidates %p", this);
     nice_agent_gather_candidates(agent_, 1);
     if(agent_){      
-      nice_agent_attach_recv(agent_, 1, 1, context_,
-          cb_nice_recv, this);
+      nice_agent_attach_recv(agent_, 1, 1, context_, cb_nice_recv, this);
       if (iceComponents_ > 1) {
-        nice_agent_attach_recv(agent_, 1, 2, context_,
-            cb_nice_recv, this);
+        nice_agent_attach_recv(agent_, 1, 2, context_,cb_nice_recv, this);
       }
     }else{
       running_=false;
@@ -258,7 +255,6 @@ namespace erizo {
       if(this->checkIceState()>=NICE_FINISHED)
         break;
       g_main_context_iteration(context_, true);
-      lockContext.unlock();
     }
     ELOG_DEBUG("LibNice thread finished %p", this);
   }
@@ -370,7 +366,7 @@ namespace erizo {
     //ELOG_DEBUG("Candidates---------------------------------------------------->");
     while (lcands != NULL) {
       for (iterator = lcands; iterator; iterator = iterator->next) {
-        char address[40], baseAddress[40];
+        char address[NICE_ADDRESS_STRING_LEN], baseAddress[NICE_ADDRESS_STRING_LEN];
         cand = (NiceCandidate*) iterator->data;
         nice_address_to_string(&cand->addr, address);
         nice_address_to_string(&cand->base_addr, baseAddress);
@@ -411,7 +407,7 @@ namespace erizo {
             cand_info.hostType = PRFLX;
             break;
           case NICE_CANDIDATE_TYPE_RELAYED:
-            char turnAddres[40];
+            char turnAddres[NICE_ADDRESS_STRING_LEN];
             ELOG_DEBUG("TURN LOCAL CANDIDATE");
             nice_address_to_string(&cand->turn->server,turnAddres);
         		ELOG_DEBUG("address %s", address);
@@ -483,32 +479,37 @@ namespace erizo {
   }
 
   void NiceConnection::updateIceState(IceState state) {
-    boost::unique_lock<boost::recursive_mutex> lock(stateMutex_);
-    if(iceState_==state)
-      return;
+      { // New scope for our lock
+          boost::unique_lock<boost::recursive_mutex> lock(stateMutex_);
+          if(iceState_==state)
+              return;
 
-    this->iceState_ = state;
-    if (iceState_ == NICE_FINISHED) {
-      return;
-    }else if (iceState_ == NICE_FAILED){
-      ELOG_WARN ("Ice Failed %p", this);
-      this->listener_->updateIceState(iceState_,this);
-      this->running_=false;
-    }
-    ELOG_DEBUG("%s - NICE State Changed %u %p", transportName->c_str(), state, this);
-    this->iceState_ = state;
-    if (state == NICE_READY){
-      char ipaddr[30];
-      NiceCandidate* local, *remote;
-      nice_agent_get_selected_pair(agent_, 1, 1, &local, &remote); 
-      nice_address_to_string(&local->addr, ipaddr);
-      ELOG_DEBUG("Selected pair:\nlocal candidate addr: %s:%d",ipaddr, nice_address_get_port(&local->addr));
-      nice_address_to_string(&remote->addr, ipaddr);
-      ELOG_DEBUG("remote candidate addr: %s:%d",ipaddr, nice_address_get_port(&remote->addr));
-    }
-    lock.unlock();
-    if (this->listener_ != NULL)
-      this->listener_->updateIceState(state, this);
+          ELOG_INFO("%s - NICE State Changing from %u to %u %p", transportName->c_str(), this->iceState_, state, this);
+          this->iceState_ = state;
+          switch( iceState_) {
+          case NICE_FINISHED:
+              return;
+          case NICE_FAILED:
+              this->running_=false;
+              break;
+
+          case NICE_READY:
+              char ipaddr[NICE_ADDRESS_STRING_LEN];
+              NiceCandidate* local, *remote;
+              nice_agent_get_selected_pair(agent_, 1, 1, &local, &remote);
+              nice_address_to_string(&local->addr, ipaddr);
+              ELOG_INFO("Selected pair:\nlocal candidate addr: %s:%d",ipaddr, nice_address_get_port(&local->addr));
+              nice_address_to_string(&remote->addr, ipaddr);
+              ELOG_INFO("remote candidate addr: %s:%d",ipaddr, nice_address_get_port(&remote->addr));
+              break;
+          default:
+              break;
+          }
+      }
+
+      // Important: send this outside our state lock.  Otherwise, serious risk of deadlock.
+      if (this->listener_ != NULL)
+          this->listener_->updateIceState(state, this);
   }
 
 } /* namespace erizo */
