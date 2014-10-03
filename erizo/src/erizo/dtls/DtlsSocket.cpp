@@ -97,24 +97,18 @@ DtlsSocket::~DtlsSocket()
    // Ownership of the factory is basically transferred to DtlsSocket.
    delete mFactory;
    mFactory = NULL;
-
 }
 
 void
 DtlsSocket::expired(DtlsSocketTimer* timer)
 {
    forceRetransmit();
-   //delete timer;
-
-   //assert(timer == mReadTimer);
-   //mReadTimer = 0;
 }
 
 void
 DtlsSocket::startClient()
 {
    assert(mSocketType == Client);
-
    doHandshakeIteration();
 }
 
@@ -155,14 +149,13 @@ void
 DtlsSocket::doHandshakeIteration()
 {
    boost::mutex::scoped_lock lock(handshakeMutex_);
-   int r;
    char errbuf[1024];
    int sslerr;
 
    if(mHandshakeCompleted)
       return;
 
-   r=SSL_do_handshake(mSsl);
+   int r=SSL_do_handshake(mSsl);
    errbuf[0]=0;
    ERR_error_string_n(ERR_peek_error(),errbuf,sizeof(errbuf));
 
@@ -193,7 +186,7 @@ DtlsSocket::doHandshakeIteration()
       {
          if(mReadTimer) mReadTimer->invalidate();
          mReadTimer=new DtlsSocketTimer(0,this);
-         mFactory->mTimerContext->addTimer(mReadTimer,getReadTimeout());
+         mFactory->mTimerContext->addTimer(mReadTimer,500);
       }
 
       break;
@@ -216,14 +209,12 @@ DtlsSocket::doHandshakeIteration()
 bool
 DtlsSocket::getRemoteFingerprint(char *fprint)
 {
-   X509 *x;
-
-   x=SSL_get_peer_certificate(mSsl);
+   X509* x = SSL_get_peer_certificate(mSsl);
    if(!x) // No certificate
       return false;
 
    computeFingerprint(x,fprint);
-
+   X509_free(x);
    return true;
 }
 
@@ -414,13 +405,6 @@ DtlsSocket::createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy
    //    memset(client_master_key_and_salt, 0x00, SRTP_MAX_KEY_LEN);
    //    memset(server_master_key_and_salt, 0x00, SRTP_MAX_KEY_LEN);
    //    memset(&srtp_key, 0x00, sizeof(srtp_key));
-}
-
-// Wrapper for currently nonexistent OpenSSL fxn
-int
-DtlsSocket::getReadTimeout()
-{
-   return 500;
 }
 
 /* ====================================================================

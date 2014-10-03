@@ -100,9 +100,6 @@ class DtlsSocket
       // For client sockets only - causes a client handshake to start (doHandshakeIteration)
       void startClient();
 
-      // Returns the socket type: Client or Server
-      SocketType getSocketType() {return mSocketType;}
-
       // Retreives the SRTP session keys from the Dtls session
       SrtpSessionKeys* getSrtpSessionKeys();
 
@@ -115,9 +112,6 @@ class DtlsSocket
       // Creates SRTP session policies appropriately based on socket type (client vs server) and keys
       // extracted from the DTLS handshake process
       void createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy_t& inboundPolicy);
-
-      // returns true if the DTLS handshake has completed
-      bool handshakeCompleted() { return mHandshakeCompleted; }
 
       DtlsSocketContext* getSocketContext() { return mSocketContext.get(); }
 
@@ -132,9 +126,6 @@ class DtlsSocket
 
       // Give CPU cyces to the handshake process - checks current state and acts appropraitely
       void doHandshakeIteration();
-
-      // returns the amount of time between handshake retranmssions (500ms)
-      int getReadTimeout();
 
       // Internals
       boost::shared_ptr<DtlsSocketContext> mSocketContext;
