@@ -16,8 +16,7 @@
 
 namespace erizo {
   
-  DEFINE_LOGGER(NiceConnection, "NiceConnection");
-  GSList* lcands;
+  DEFINE_LOGGER(NiceConnection, "NiceConnection")
 
   int timed_poll(GPollFD* fds, guint nfds, gint timeout){
     return poll((pollfd*)fds,nfds,200);
@@ -336,51 +335,20 @@ namespace erizo {
     }
     ELOG_DEBUG("Gathering Done %p", this);
     int currentCompId = 1;
-    lcands = nice_agent_get_local_candidates(agent_, stream_id, currentCompId++);
-    NiceCandidate *cand;
-    GSList* iterator;
+    GSList* lcands = nice_agent_get_local_candidates(agent_, stream_id, currentCompId++);
     gchar *ufrag = NULL, *upass = NULL;
     nice_agent_get_local_credentials(agent_, stream_id, &ufrag, &upass);
-    //////False candidate for testing when there is no network (like in the train) :)
-    /*
-       NiceCandidate* thecandidate = nice_candidate_new(NICE_CANDIDATE_TYPE_HOST);
-       NiceAddress* naddr = nice_address_new();
-       nice_address_set_from_string(naddr, "127.0.0.1");
-       nice_address_set_port(naddr, 50000);
-       thecandidate->addr = *naddr;
-       char* uname = (char*) malloc(50);
-       char* pass = (char*) malloc(50);
-       sprintf(thecandidate->foundation, "%s", "1");
-       sprintf(uname, "%s", "Pedro");
-       sprintf(pass, "%s", "oooo");
-
-       thecandidate->username = uname;
-       thecandidate->password = pass;
-       thecandidate->stream_id = (guint) 1;
-       thecandidate->component_id = 1;
-       thecandidate->priority = 1000;
-       thecandidate->transport = NICE_CANDIDATE_TRANSPORT_UDP;
-       lcands = g_slist_append(lcands, thecandidate);
-       */
-
-    //	ELOG_DEBUG("gathering done %u",stream_id);
-    //ELOG_DEBUG("Candidates---------------------------------------------------->");
     while (lcands != NULL) {
-      for (iterator = lcands; iterator; iterator = iterator->next) {
+      for (GSList* iterator = lcands; iterator; iterator = iterator->next) {
         char address[NICE_ADDRESS_STRING_LEN], baseAddress[NICE_ADDRESS_STRING_LEN];
-        cand = (NiceCandidate*) iterator->data;
+        NiceCandidate *cand = (NiceCandidate*) iterator->data;
         nice_address_to_string(&cand->addr, address);
         nice_address_to_string(&cand->base_addr, baseAddress);
         if (strstr(address, ":") != NULL) {
           ELOG_DEBUG("Ignoring IPV6 candidate %s %p", address, this);
           continue;
         }
-        //			ELOG_DEBUG("foundation %s", cand->foundation);
-        //			ELOG_DEBUG("compid %u", cand->component_id);
-        //			ELOG_DEBUG("stream_id %u", cand->stream_id);
-        //			ELOG_DEBUG("priority %u", cand->priority);
-        //			ELOG_DEBUG("username %s", cand->username);
-        //			ELOG_DEBUG("password %s", cand->password);
+
         CandidateInfo cand_info;
         cand_info.componentId = cand->component_id;
         cand_info.foundation = cand->foundation;
@@ -420,33 +388,20 @@ namespace erizo {
             cand_info.hostType = RELAY;
             cand_info.rAddress = std::string(baseAddress);
             cand_info.rPort = nice_address_get_port(&cand->base_addr);
-
             break;
           default:
             break;
         }
         cand_info.netProtocol = "udp";
         cand_info.transProtocol = std::string(*transportName.get());
-
         cand_info.username = std::string(ufrag);
-
         cand_info.password = std::string(upass);
-        /*
-           if (cand->username)
-           cand_info.username = std::string(cand->username);
-           else
-           cand_info.username = std::string("(null)");
-
-           if (cand->password)
-           cand_info.password = std::string(cand->password);
-           else
-           cand_info.password = std::string("(null)");
-           */
-
         localCandidates->push_back(cand_info);
       }
-      lcands = nice_agent_get_local_candidates(agent_, stream_id,
-          currentCompId++);
+      // for nice_agent_get_local_candidates,  the caller owns the returned GSList as well as the candidates contained within it.
+      // let's free everything in the list, as well as the list.
+      g_slist_free_full(lcands, (GDestroyNotify)&nice_candidate_free);
+      lcands = nice_agent_get_local_candidates(agent_, stream_id, currentCompId++);
     }
     // According to libnice, this is how these must be free'd
     g_free(ufrag);
