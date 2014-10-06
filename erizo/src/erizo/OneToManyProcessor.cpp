@@ -98,7 +98,7 @@ namespace erizo {
     feedbackSink_ = NULL;
     publisher.reset();
     ELOG_DEBUG ("OneToManyProcessor closeAll");
-    std::map<std::string, boost::shared_ptr<MediaSink>>::iterator it = subscribers.begin();
+    std::map<std::string, boost::shared_ptr<MediaSink> >::iterator it = subscribers.begin();
     while (it != subscribers.end()) {
       if ((*it).second != NULL) {
         FeedbackSource* fbsource = (*it).second->getFeedbackSource();
@@ -108,8 +108,6 @@ namespace erizo {
       }
       subscribers.erase(it++);
     }
-    lock.unlock();
-    lock.lock();
     subscribers.clear();
     ELOG_DEBUG ("ClosedAll media in this OneToMany");
   }

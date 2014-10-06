@@ -257,9 +257,9 @@ void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
     updateTransportState(TRANSPORT_FAILED);
   }
   if (state == NICE_READY) {
-    ELOG_DEBUG("%s - Nice ready", transport_name.c_str());
-    if (!dtlsRtp->started) {
-      ELOG_DEBUG("%s - DTLSRTP Start", transport_name.c_str());
+    ELOG_INFO("%s - Nice ready", transport_name.c_str());
+    if (dtlsRtp && !dtlsRtp->started) {
+      ELOG_INFO("%s - DTLSRTP Start", transport_name.c_str());
       dtlsRtp->start();
     }
     if (dtlsRtcp != NULL && !dtlsRtcp->started) {
