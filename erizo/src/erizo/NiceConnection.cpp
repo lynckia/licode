@@ -56,7 +56,7 @@ namespace erizo {
 
   NiceConnection::NiceConnection(MediaType med, const std::string &transport_name,NiceConnectionListener* listener, unsigned int iceComponents, const std::string& stunServer,
                                   int stunPort, int minPort, int maxPort)
-     : mediaType(med), agent_(NULL), listener_(listener), loop_(NULL), context_(NULL), iceState_(NICE_INITIAL), iceComponents_(iceComponents),
+     : mediaType(med), agent_(NULL), listener_(listener), context_(NULL), iceState_(NICE_INITIAL), iceComponents_(iceComponents),
              stunServer_(stunServer), stunPort_ (stunPort), minPort_(minPort), maxPort_(maxPort) {
     localCandidates.reset(new std::vector<CandidateInfo>());
     transportName.reset(new std::string(transport_name));
