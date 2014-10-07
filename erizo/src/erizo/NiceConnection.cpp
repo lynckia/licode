@@ -85,12 +85,23 @@ namespace erizo {
     }
   };
   packetPtr NiceConnection::getPacket(){
+      if(this->checkIceState()==NICE_FINISHED || !running_) {
+          packetPtr p (new dataPacket());
+          p->length=-1;
+          return p;
+      }
       boost::unique_lock<boost::mutex> lock(queueMutex_);
       boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::milliseconds(300);
       if(!cond_.timed_wait(lock,timeout, queue_not_empty(niceQueue_))){
         packetPtr p (new dataPacket());
         p->length=0;
         return p;
+      }
+
+      if(this->checkIceState()==NICE_FINISHED || !running_) {
+          packetPtr p (new dataPacket());
+          p->length=-1;
+          return p;
       }
       if(!niceQueue_.empty()){
         packetPtr p (niceQueue_.front());
@@ -109,6 +120,7 @@ namespace erizo {
     running_ = false;
     ELOG_DEBUG("Closing nice  %p", this);
     this->updateIceState(NICE_FINISHED);
+    cond_.notify_one();
     listener_ = NULL;
     boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::milliseconds(500);
     ELOG_DEBUG("m_thread join %p", this);
@@ -117,19 +129,15 @@ namespace erizo {
       m_Thread_.interrupt();
     }
 
-    {   // New scope for lock.
-        boost::unique_lock<boost::mutex> lock(agentMutex_);
-        if (agent_!=NULL){
-          g_object_unref(agent_);
-          agent_ = NULL;
-        }
-        if (context_!=NULL) {
-          g_main_context_unref(context_);
-          context_=NULL;
-        }
+    if (agent_!=NULL){
+      g_object_unref(agent_);
+      agent_ = NULL;
+    }
+    if (context_!=NULL) {
+      g_main_context_unref(context_);
+      context_=NULL;
     }
 
-    this->queueData(1, NULL, -1 );
     ELOG_DEBUG("Nice Closed %p", this);
   }
 
@@ -137,7 +145,7 @@ namespace erizo {
   }
 
   void NiceConnection::queueData(unsigned int component_id, char* buf, int len){
-    if (this->checkIceState() == NICE_READY){
+    if (this->checkIceState() == NICE_READY && running_){
       boost::mutex::scoped_lock(queueMutex_);
       if (niceQueue_.size() < 1000 ) {
         packetPtr p_ (new dataPacket());
@@ -152,7 +160,7 @@ namespace erizo {
   }
   int NiceConnection::sendData(unsigned int compId, const void* buf, int len) {
     int val = -1;
-    if (this->checkIceState() == NICE_READY) {
+    if (this->checkIceState() == NICE_READY && running_) {
       boost::mutex::scoped_lock(agentMutex_);
       val = nice_agent_send(agent_, 1, compId, len, reinterpret_cast<const gchar*>(buf));
     }
@@ -251,7 +259,7 @@ namespace erizo {
     // Attach to the component to receive the data
     while(running_){
       boost::unique_lock<boost::mutex> lockContext(agentMutex_);
-      if(this->checkIceState()>=NICE_FINISHED)
+      if(this->checkIceState()>=NICE_FINISHED || !running_)
         break;
       g_main_context_iteration(context_, true);
     }
