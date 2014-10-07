@@ -70,7 +70,6 @@ namespace erizo {
   NiceConnection::~NiceConnection() {
     ELOG_DEBUG("NiceConnection Destructor");
     this->close();
-    boost::mutex::scoped_lock lock(queueMutex_);
     ELOG_DEBUG("NiceConnection Destructor END");
   }
   struct queue_not_empty

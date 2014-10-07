@@ -57,9 +57,6 @@ namespace erizo {
       connEventListener_->notifyEvent(globalState_);
       connEventListener_ = NULL;
     }
-    boost::mutex::scoped_lock lock(receiveVideoMutex_);
-    boost::mutex::scoped_lock lock2(writeMutex_);
-    boost::mutex::scoped_lock lock3(updateStateMutex_);
     globalState_ = CONN_FINISHED;
     videoSink_ = NULL;
     audioSink_ = NULL;

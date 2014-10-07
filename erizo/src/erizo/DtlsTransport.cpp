@@ -99,10 +99,6 @@ DtlsTransport::~DtlsTransport() {
   nice_->close();
   ELOG_DEBUG("Join thread getNice");
   getNice_Thread_.join();
-  ELOG_DEBUG("writeMutex");
-  boost::mutex::scoped_lock lockw(writeMutex_);
-  ELOG_DEBUG("sessionMutex");
-  boost::mutex::scoped_lock locks(sessionMutex_);
   ELOG_DEBUG("DTLSTransport destructor END");
 }
 
@@ -293,7 +289,7 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
 }
 
 void DtlsTransport::getNiceDataLoop(){
-  while(running_ == true){
+  while(running_){
     p_ = nice_->getPacket();
     if (p_->length > 0) {
         this->onNiceData(p_->comp, p_->data, p_->length, NULL);
