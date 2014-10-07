@@ -53,7 +53,9 @@ exports.ErizoJSController = function (spec) {
 
         if (GLOBAL.config.erizoController.sendStats) {
             wrtc.getStats(function (newStats){
-                rpc.callRpc('stats_handler', 'stats', [{pub: id_pub, subs: id_sub, stats: JSON.parse(newStats)}]);
+                log.info("Received RTCP stats: ", newStats);
+                var timeStamp = new Date();
+                rpc.callRpc('stats_handler', 'stats', [{pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()}]);
             });
         }
 
