@@ -15,7 +15,6 @@
 #include "logger.h"
 
 typedef struct _NiceAgent NiceAgent;
-typedef struct _GMainLoop GMainLoop;
 typedef struct _GMainContext GMainContext;
 
 typedef unsigned int uint;
@@ -110,8 +109,7 @@ private:
 	void init();
 	NiceAgent* agent_;
 	NiceConnectionListener* listener_;
-  std::queue<packetPtr> niceQueue_;
-	GMainLoop* loop_;
+    std::queue<packetPtr> niceQueue_;
 	GMainContext* context_;
 	boost::thread m_Thread_;
 	IceState iceState_;
