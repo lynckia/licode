@@ -430,13 +430,13 @@ namespace erizo {
   }
 
   IceState NiceConnection::checkIceState(){
-    boost::unique_lock<boost::recursive_mutex> lock(stateMutex_);
+    boost::mutex::scoped_lock lock(stateMutex_);
     return iceState_;
   }
 
   void NiceConnection::updateIceState(IceState state) {
       { // New scope for our lock
-          boost::unique_lock<boost::recursive_mutex> lock(stateMutex_);
+          boost::mutex::scoped_lock lock(stateMutex_);
           if(iceState_==state)
               return;
 
