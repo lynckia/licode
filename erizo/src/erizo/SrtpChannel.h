@@ -72,11 +72,6 @@ public:
 	 * @return true if everything is ok
 	 */
 	bool setRtcpParams(char* sendingKey, char* receivingKey);
-	/**
-	 * Generates a valid key and encodes it in Base64
-	 * @return The new key
-	 */
-	static std::string generateBase64Key();
 
 private:
 	enum TransmissionType {

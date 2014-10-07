@@ -86,9 +86,15 @@ void DtlsSocketContext::handshakeCompleted()
     memcpy ( sKey, keys->serverMasterKey, keys->serverMasterKeyLen );
     memcpy ( sKey + keys->serverMasterKeyLen, keys->serverMasterSalt, keys->serverMasterSaltLen );
 
+    // g_base64_encode must be free'd with g_free.  Also, std::string's assignment operator does *not* take
+    // ownership of the passed in ptr; under the hood it copies up to the first null character.
+    gchar* temp = g_base64_encode((const guchar*)cKey, keys->clientMasterKeyLen + keys->clientMasterSaltLen);
+    std::string clientKey = temp;
+    g_free(temp); temp = NULL;
 
-    std::string clientKey = g_base64_encode((const guchar*)cKey, keys->clientMasterKeyLen + keys->clientMasterSaltLen);
-    std::string serverKey = g_base64_encode((const guchar*)sKey, keys->serverMasterKeyLen + keys->serverMasterSaltLen);
+    temp = g_base64_encode((const guchar*)sKey, keys->serverMasterKeyLen + keys->serverMasterSaltLen);
+    std::string serverKey = temp;
+    g_free(temp); temp = NULL;
 
     ELOG_DEBUG("ClientKey: %s", clientKey.c_str());
     ELOG_DEBUG("ServerKey: %s", serverKey.c_str());

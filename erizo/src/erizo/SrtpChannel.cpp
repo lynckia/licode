@@ -108,14 +108,6 @@ int SrtpChannel::unprotectRtcp(char* buffer, int *len) {
     }
 }
 
-std::string SrtpChannel::generateBase64Key() {
-
-    unsigned char key[30];
-    crypto_get_random(key, 30);
-    gchar* base64key = g_base64_encode((guchar*) key, 30);
-    return std::string(base64key);
-}
-
 bool SrtpChannel::configureSrtpSession(srtp_t *session, const char* key,
         enum TransmissionType type) {
     srtp_policy_t policy;
@@ -144,6 +136,7 @@ bool SrtpChannel::configureSrtpSession(srtp_t *session, const char* key,
     if (res!=0){
       ELOG_ERROR("Failed to create srtp session with %s, %d", octet_string_hex_string(akey, 16), res);
     }
+    g_free(akey); akey = NULL;
     return res!=0? false:true;
 }
 

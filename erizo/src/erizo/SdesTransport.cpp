@@ -34,7 +34,6 @@ SdesTransport::SdesTransport(MediaType med, const std::string &transport_name, b
 
     cryptoLocal_.cipherSuite = std::string("AES_CM_128_HMAC_SHA1_80");
     cryptoLocal_.mediaType = med;
-    //std::string keyv = SrtpChannel::generateBase64Key();
     std::string keyv = "eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3";
     ELOG_DEBUG("Key generated: %s", keyv.c_str());
     cryptoLocal_.keyParams = keyv;
