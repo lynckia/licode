@@ -26,11 +26,8 @@ namespace erizo {
     fbSink_ = NULL;
     sourcefbSink_ = this;
     sinkfbSource_ = this;
-
     globalState_ = CONN_INITIAL;
     connEventListener_ = NULL;
-
-
     videoTransport_ = NULL;
     audioTransport_ = NULL;
 
@@ -49,7 +46,6 @@ namespace erizo {
   WebRtcConnection::~WebRtcConnection() {
     ELOG_INFO("WebRtcConnection Destructor");
     sending_ = false;
-    this->queueData(-1,NULL,-1,NULL);
     cond_.notify_one();
     send_Thread_.join();
     globalState_ = CONN_FINISHED;
@@ -61,14 +57,10 @@ namespace erizo {
     videoSink_ = NULL;
     audioSink_ = NULL;
     fbSink_ = NULL;
-    if (videoTransport_) {
-        delete videoTransport_;
-        videoTransport_=NULL;
-    }
-    if (audioTransport_) {
-        delete audioTransport_;
-        audioTransport_= NULL;
-    }
+    delete videoTransport_;
+    videoTransport_=NULL;
+    delete audioTransport_;
+    audioTransport_= NULL;
   }
 
   bool WebRtcConnection::init() {

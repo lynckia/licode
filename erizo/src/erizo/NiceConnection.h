@@ -113,7 +113,7 @@ private:
 	GMainContext* context_;
 	boost::thread m_Thread_;
 	IceState iceState_;
-    boost::mutex queueMutex_, agentMutex_, stateMutex_;
+    boost::mutex queueMutex_, stateMutex_;
 	boost::condition_variable cond_;
   unsigned int iceComponents_;
   std::map <unsigned int, IceState> comp_state_list_;
