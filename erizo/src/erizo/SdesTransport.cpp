@@ -79,7 +79,7 @@ void SdesTransport::onNiceData(unsigned int component_id, char* data, int len, N
 }
 
 void SdesTransport::write(char* data, int len) {
-   //boost::mutex::scoped_lock lock(writeMutex_);
+    boost::mutex::scoped_lock lock(writeMutex_);
     int length = len;
     SrtpChannel *srtp = srtp_;
 

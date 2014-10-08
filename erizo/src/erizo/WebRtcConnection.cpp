@@ -327,8 +327,6 @@ namespace erizo {
     rtcpPacket[pos++] = (uint8_t) 0;
 
     if (videoTransport_ != NULL) {
-
-      boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
       videoTransport_->write((char*)rtcpPacket, pos);
     }
 
@@ -347,8 +345,7 @@ namespace erizo {
       temp = CONN_FAILED;
       //globalState_ = CONN_FAILED;
       sending_ = false;
-      ELOG_INFO("WebRtcConnection failed, stopped sending");
-      boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
+      ELOG_INFO("WebRtcConnection failed, stopping sending");
       cond_.notify_one();
       ELOG_INFO("WebRtcConnection failed, stopped sending");
     }
@@ -416,10 +413,10 @@ namespace erizo {
   }
 
   void WebRtcConnection::queueData(int comp, const char* buf, int length, Transport *transport) {
-    if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL) //we don't enqueue data if there is nothing to receive it
+    if ((audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL) || !sending_) //we don't enqueue data if there is nothing to receive it
       return;
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
-    if (sending_==false)
+    if (!sending_)
       return;
     if (comp == -1){
       sending_ = false;
@@ -468,25 +465,31 @@ namespace erizo {
 
   void WebRtcConnection::sendLoop() {
       while (sending_) {
-          boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
-          while (sendQueue_.size() == 0) {
-              cond_.wait(lock);
-              if (!sending_) {
+          dataPacket p;
+          {
+              boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
+              while (sendQueue_.size() == 0) {
+                  cond_.wait(lock);
+                  if (!sending_) {
+                      return;
+                  }
+              }
+              if(sendQueue_.front().comp ==-1){
+                  sending_ =  false;
+                  ELOG_DEBUG("Finishing send Thread, packet -1");
+                  sendQueue_.pop();
                   return;
               }
-          }
-          if(sendQueue_.front().comp ==-1){
-              sending_ =  false;
-              ELOG_DEBUG("Finishing send Thread, packet -1");
+
+              p = sendQueue_.front();
               sendQueue_.pop();
-              return;
           }
-          if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
-              videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
+
+          if (bundle_ || p.type == VIDEO_PACKET) {
+              videoTransport_->write(p.data, p.length);
           } else {
-              audioTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
+              audioTransport_->write(p.data, p.length);
           }
-          sendQueue_.pop();
       }
   }
 }
