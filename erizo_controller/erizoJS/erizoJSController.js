@@ -50,6 +50,7 @@ exports.ErizoJSController = function (spec) {
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
      */
     initWebRtcConnection = function (wrtc, sdp, callback, id_pub, id_sub) {
+        if(typeof sdp != 'string') sdp = JSON.stringify(sdp); // fixes some issues with sending json object as json, and not as string
 
         if (GLOBAL.config.erizoController.sendStats) {
             wrtc.getStats(function (newStats){
@@ -203,6 +204,7 @@ exports.ErizoJSController = function (spec) {
      * OneToManyProcessor.
      */
     that.addSubscriber = function (from, to, audio, video, sdp, callback) {
+        if (typeof sdp != 'string') sdp = JSON.stringify(sdp);
 
         if (publishers[to] !== undefined && subscribers[to].indexOf(from) === -1 && sdp.match('OFFER') !== null) {
 
