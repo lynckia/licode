@@ -270,23 +270,13 @@ namespace erizo {
       } else if (transport->mediaType == VIDEO_TYPE) {
         if (videoSink_ != NULL) {
           RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
-          RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-           // Firefox does not send SSRC in SDP
+          // Firefox does not send SSRC in SDP
           if (this->getVideoSourceSSRC() == 0) {
-            unsigned int recvSSRC;
-            if (chead->packettype == RTCP_Sender_PT) { //Sender Report
-              recvSSRC = chead->getSSRC();
-            } else {
-              recvSSRC = head->getSSRC();
-            }
-            ELOG_DEBUG("Video Source SSRC is %u", recvSSRC);
-            this->setVideoSourceSSRC(recvSSRC);
+            ELOG_DEBUG("Video Source SSRC is %u", head->getSSRC());
+            this->setVideoSourceSSRC(head->getSSRC());
             //this->updateState(TRANSPORT_READY, transport);
           }
-          // change ssrc for RTP packets, don't touch here if RTCP
-          if (chead->packettype != RTCP_Sender_PT) {
-            head->setSSRC(this->getVideoSinkSSRC());
-          }
+          head->setSSRC(this->getVideoSinkSSRC());
           videoSink_->deliverVideoData(buf, length);
         }
       }
