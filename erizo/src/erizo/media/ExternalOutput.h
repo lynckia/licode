@@ -3,6 +3,7 @@
 
 #include "../MediaDefinitions.h"
 #include "rtp/RtpPacketQueue.h"
+#include "rtp/webrtc/fec_receiver_impl.h"
 #include "MediaProcessor.h"
 #include "boost/thread.hpp"
 #include "logger.h"
@@ -23,7 +24,7 @@ enum vp8SearchState {
     lookingForEnd
 };
 
-class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource {
+class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource, public webrtc::RtpData {
     DECLARE_LOGGER();
 public:
     ExternalOutput(const std::string& outputUrl);
@@ -31,7 +32,14 @@ public:
     bool init();
     void receiveRawData(RawDataPacket& packet);
 
+    // webrtc::RtpData callbacks.  This is for Forward Error Correction (per rfc5109) handling.
+    virtual bool OnRecoveredPacket(const uint8_t* packet, int packet_length);
+    virtual int32_t OnReceivedPayloadData( const uint8_t* payload_data,
+                                           const uint16_t payload_size,
+                                           const webrtc::WebRtcRTPHeader* rtp_header);
+
 private:
+    webrtc::FecReceiverImpl  fec_receiver_;
     RtpPacketQueue audioQueue_, videoQueue_;
     bool recording_, inited_;
     boost::mutex mtx_;  // a mutex we use to signal our writer thread that data is waiting.
