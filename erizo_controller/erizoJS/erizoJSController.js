@@ -32,7 +32,7 @@ exports.ErizoJSController = function (spec) {
 
 
     /*
-     * Given a WebRtcConnection waits for the state READY for ask it to send a FIR packet to its publisher. 
+     * Given a WebRtcConnection waits for the state READY for ask it to send a FIR packet to its publisher.
      */
     waitForFIR = function (wrtc, to) {
 
@@ -51,13 +51,15 @@ exports.ErizoJSController = function (spec) {
     };
 
     /*
-     * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP. 
+     * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
      */
     initWebRtcConnection = function (wrtc, callback, id_pub, id_sub) {
 
         if (GLOBAL.config.erizoController.sendStats) {
             wrtc.getStats(function (newStats){
-                rpc.callRpc('stats_handler', 'stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats)});
+                log.info("Received RTCP stats: ", newStats);
+                var timeStamp = new Date();
+                rpc.callRpc('stats_handler', 'stats', [{pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()}]);
             });
         }
 

@@ -15,8 +15,6 @@ namespace erizo {
   WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort) {
 
     ELOG_WARN("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", stunServer.c_str(), stunPort, minPort, maxPort);
-    video_ = 0;
-    audio_ = 0;
     sequenceNumberFIR_ = 0;
     bundle_ = false;
     this->setVideoSinkSSRC(55543);
@@ -82,8 +80,8 @@ namespace erizo {
     ELOG_DEBUG("Set Remote SDP %s", sdp.c_str());
     remoteSdp_.initWithSdp(sdp, "");
     //std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
-    video_ = (remoteSdp_.videoSsrc==0?false:true);
-    audio_ = (remoteSdp_.audioSsrc==0?false:true);
+    int video = (remoteSdp_.videoSsrc==0?false:true);
+    int audio = (remoteSdp_.audioSsrc==0?false:true);
 
     bundle_ = remoteSdp_.isBundle;
     ELOG_DEBUG("Is bundle? %d %d ", bundle_, true);
@@ -91,14 +89,16 @@ namespace erizo {
     localSdp_.isBundle = bundle_;
     localSdp_.isRtcpMux = remoteSdp_.isRtcpMux;
 
-    ELOG_DEBUG("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d", video_, remoteSdp_.videoSsrc, audio_, remoteSdp_.audioSsrc,  bundle_);
+    ELOG_DEBUG("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d", video, remoteSdp_.videoSsrc, audio, remoteSdp_.audioSsrc,  bundle_);
 
     ELOG_DEBUG("Setting SSRC to localSdp %u", this->getVideoSinkSSRC());
     localSdp_.videoSsrc = this->getVideoSinkSSRC();
     localSdp_.audioSsrc = this->getAudioSinkSSRC();
 
     this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
+    this->thisStats_.setVideoSourceSSRC(this->getVideoSourceSSRC());
     this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
+    this->thisStats_.setAudioSourceSSRC(this->getAudioSourceSSRC());
 
     if (remoteSdp_.profile == SAVPF) {
       if (remoteSdp_.isFingerprint) {
@@ -233,7 +233,7 @@ namespace erizo {
   int WebRtcConnection::deliverFeedback_(char* buf, int len){
     // Check where to send the feedback
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-    //ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, chead->getSSRC(), chead->getSourceSSRC());
+//    ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, chead->getSSRC(), chead->getSourceSSRC());
     if (chead->getSourceSSRC() == this->getAudioSourceSSRC()) {
         writeSsrc(buf,len,this->getAudioSinkSSRC());
     } else {
@@ -268,7 +268,7 @@ namespace erizo {
     if (this->statsListener_){ // if there is no listener we dont process stats
       RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
       if (head->payloadtype != RED_90000_PT && head->payloadtype != PCMU_8000_PT)     
-        thisStats_.processRtcpStats(buf, length);
+        thisStats_.processRtcpPacket(buf, length);
     }
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
@@ -311,13 +311,23 @@ namespace erizo {
       } else if (transport->mediaType == VIDEO_TYPE) {
         if (videoSink_ != NULL) {
           RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
-          // Firefox does not send SSRC in SDP
+          RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+           // Firefox does not send SSRC in SDP
           if (this->getVideoSourceSSRC() == 0) {
-            ELOG_DEBUG("Video Source SSRC is %u", head->getSSRC());
-            this->setVideoSourceSSRC(head->getSSRC());
+            unsigned int recvSSRC;
+            if (chead->packettype == RTCP_Sender_PT) { //Sender Report
+              recvSSRC = chead->getSSRC();
+            } else {
+              recvSSRC = head->getSSRC();
+            }
+            ELOG_DEBUG("Video Source SSRC is %u", recvSSRC);
+            this->setVideoSourceSSRC(recvSSRC);
             //this->updateState(TRANSPORT_READY, transport);
           }
-          head->setSSRC(this->getVideoSinkSSRC());
+          // change ssrc for RTP packets, don't touch here if RTCP
+          if (chead->packettype != RTCP_Sender_PT) {
+            head->setSSRC(this->getVideoSinkSSRC());
+          }
           videoSink_->deliverVideoData(buf, length);
         }
       }
@@ -376,7 +386,7 @@ namespace erizo {
 
     if (state == TRANSPORT_FAILED) {
       temp = CONN_FAILED;
-      globalState_ = CONN_FAILED;
+      //globalState_ = CONN_FAILED;
       sending_ = false;
       ELOG_INFO("WebRtcConnection failed, stopped sending");
       boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
@@ -509,33 +519,27 @@ namespace erizo {
   }
 
   void WebRtcConnection::sendLoop() {
-
-    while (sending_ == true) {
-
-      boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
-      while (sendQueue_.size() == 0) {
-        cond_.wait(lock);
-        if (sending_ == false) {
-          lock.unlock();
-          return;
-        }
+      while (sending_) {
+          boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
+          while (sendQueue_.size() == 0) {
+              cond_.wait(lock);
+              if (!sending_) {
+                  return;
+              }
+          }
+          if(sendQueue_.front().comp ==-1){
+              sending_ =  false;
+              ELOG_DEBUG("Finishing send Thread, packet -1");
+              sendQueue_.pop();
+              return;
+          }
+          if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
+              videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
+          } else {
+              audioTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
+          }
+          sendQueue_.pop();
       }
-      if(sendQueue_.front().comp ==-1){
-        sending_ =  false;
-        ELOG_DEBUG("Finishing send Thread, packet -1");
-        sendQueue_.pop();
-        lock.unlock();
-        return;
-      }
-      if (sendQueue_.front().type == VIDEO_PACKET || bundle_) {
-        videoTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
-      } else {
-        audioTransport_->write(sendQueue_.front().data, sendQueue_.front().length);
-      }
-      sendQueue_.pop();
-      lock.unlock();
-    }
-
   }
 }
 /* namespace erizo */

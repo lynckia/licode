@@ -6,7 +6,6 @@
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio.hpp>
 #include "dtls/DtlsSocket.h"
-#include "WebRtcConnection.h"
 #include "NiceConnection.h"
 #include "Transport.h"
 #include "logger.h"

@@ -27,13 +27,29 @@ parse_arguments(){
   done
 }
 
+check_proxy(){
+  if [ -z "$http_proxy" ]; then
+    echo "No http proxy set, doing nothing"
+  else
+    echo "http proxy configured, configuring npm"
+    npm config set proxy $http_proxy
+  fi  
+
+  if [ -z "$https_proxy" ]; then
+    echo "No https proxy set, doing nothing"
+  else
+    echo "https proxy configured, configuring npm"
+    npm config set https-proxy $https_proxy
+  fi  
+}
+
 install_apt_deps(){
   sudo apt-get update
   sudo apt-get install -qq python-software-properties
   sudo apt-get install -qq software-properties-common
   sudo add-apt-repository ppa:chris-lea/node.js
   sudo apt-get update
-  sudo apt-get install -qq git make gcc g++ libssl-dev cmake libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl
+  sudo apt-get install -qq git make gcc g++ libssl-dev cmake libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev
   sudo npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/
 }
@@ -110,7 +126,7 @@ install_mediadeps_nogpl(){
     curl -O https://www.libav.org/releases/libav-9.13.tar.gz
     tar -zxvf libav-9.13.tar.gz
     cd libav-9.13
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libopus
     make -s V=0
     make install
     cd $CURRENT_DIR
@@ -144,6 +160,7 @@ parse_arguments $*
 mkdir -p $PREFIX_DIR
 
 install_apt_deps
+check_proxy
 install_openssl
 install_libnice
 install_libsrtp

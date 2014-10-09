@@ -135,7 +135,7 @@ void OneToManyTranscoder::addSubscriber(MediaSink* webRtcConn,
       std::map<std::string, MediaSink*>::iterator it = subscribers.begin();
       while( it != subscribers.end()) {
         delete (*it).second;
-        it = subscribers.erase(it);
+        subscribers.erase(it++);
       }
     delete this->publisher;
   }

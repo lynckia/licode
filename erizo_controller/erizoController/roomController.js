@@ -176,6 +176,10 @@ exports.RoomController = function (spec) {
      * OneToManyProcessor.
      */
     that.addSubscriber = function (subscriber_id, publisher_id, audio, video, callback) {
+        if (subscriber_id === null){
+          callback("Error: null subscriber_id");
+          return;
+        }
 
         if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1) {
 
@@ -199,7 +203,6 @@ exports.RoomController = function (spec) {
     that.removePublisher = function (publisher_id) {
 
         if (subscribers[publisher_id] !== undefined && publishers[publisher_id] !== undefined) {
-            log.info('Removing muxer', publisher_id);
 
             var args = [publisher_id];
             rpc.callRpc(getErizoQueue(publisher_id), "removePublisher", args, undefined);
@@ -211,6 +214,7 @@ exports.RoomController = function (spec) {
             delete publishers[publisher_id];
             log.info('Removed all');
             delete erizos[publisher_id];
+            log.info('Removing muxer', publisher_id, ' muxers left ', Object.keys(publishers).length );
         }
     };
 

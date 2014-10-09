@@ -1,16 +1,13 @@
 /*
  * DtlsConnection.cpp
  */
-#include <iostream>
-#include <cassert>
 
 #include "DtlsTransport.h"
-#include "NiceConnection.h"
 #include "SrtpChannel.h"
 
 #include "dtls/DtlsFactory.h"
-
 #include "rtp/RtpHeaders.h"
+//#include "rtputils.h"
 
 using namespace erizo;
 using namespace std;
@@ -308,9 +305,9 @@ void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
     updateTransportState(TRANSPORT_FAILED);
   }
   if (state == NICE_READY) {
-    ELOG_DEBUG("%s - Nice ready", transport_name.c_str());
-    if (!dtlsRtp->started || rtpResender->getStatus() < 0) {
-      ELOG_DEBUG("%s - DTLSRTP Start", transport_name.c_str());
+    ELOG_INFO("%s - Nice ready", transport_name.c_str());
+    if (dtlsRtp && !dtlsRtp->started) {
+      ELOG_INFO("%s - DTLSRTP Start", transport_name.c_str());
       dtlsRtp->start();
     }
     if (dtlsRtcp != NULL && (!dtlsRtcp->started || rtcpResender->getStatus() < 0)) {

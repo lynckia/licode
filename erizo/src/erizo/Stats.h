@@ -20,32 +20,37 @@ namespace erizo{
   class Stats{
     DECLARE_LOGGER();
     public:
-    Stats(unsigned long int ssrc=0):SSRC_(ssrc){
-      currentIterations_ = 0;
+    Stats(): currentIterations_(0), runningStats_(false){
     };
 
     virtual ~Stats();
 
-    void processRtcpStats(char* buf, int length);
+    void processRtcpPacket(char* buf, int length);
     std::string getStats();
+    // The video and audio SSRCs of the Client
+    void setVideoSourceSSRC(unsigned int ssrc){
+      videoSSRC_ = ssrc;
+    };
+    void setAudioSourceSSRC(unsigned int ssrc){
+      audioSSRC_ = ssrc;
+    };
     void setPeriodicStats(int intervalMillis, WebRtcConnectionStatsListener* listener);
 
 
     private:
-    typedef std::map<std::string, unsigned int> singleSSRCstatsMap_t;
-    typedef std::map <unsigned int, singleSSRCstatsMap_t> fullStatsMap_t;
+    typedef std::map<std::string, unsigned long int> singleSSRCstatsMap_t;
+    typedef std::map <unsigned long int, singleSSRCstatsMap_t> fullStatsMap_t;
     fullStatsMap_t theStats_;
     static const int SLEEP_INTERVAL_ = 100000;
-    unsigned long int SSRC_;
-    unsigned int fragmentLostValues_;      
     boost::mutex mapMutex_;
     WebRtcConnectionStatsListener* theListener_;      
     boost::thread statsThread_;
     int iterationsPerTick_;
     int currentIterations_;
+    unsigned int videoSSRC_, audioSSRC_;
     bool runningStats_;
 
-    void processRtcpStats(RtcpHeader* chead);
+    void processRtcpPacket(RtcpHeader* chead);
 
     int getPacketsLost(unsigned int ssrc){
       return static_cast<int>(theStats_[ssrc]["packetsLost"]);
@@ -54,11 +59,11 @@ namespace erizo{
       theStats_[ssrc]["packetsLost"] = static_cast<unsigned int>(packets);
     };
 
-    unsigned int getFragmentLost(unsigned int ssrc){
-      return theStats_[ssrc]["packetsLost"];
+    unsigned int getFractionLost(unsigned int ssrc){
+      return theStats_[ssrc]["fractionLost"];
     };
-    void addFragmentLost(unsigned int fragment, unsigned int SSRC){
-      theStats_[SSRC]["fragmentLost"] += fragment;
+    void setFractionLost(unsigned int fragment, unsigned int SSRC){
+      theStats_[SSRC]["fractionLost"] = fragment;
     };
 
     unsigned int getRtcpPacketSent(unsigned int ssrc){
@@ -79,6 +84,12 @@ namespace erizo{
     };
     void setJitter(unsigned int count, unsigned int ssrc){
       theStats_[ssrc]["jitter"] = count;
+    };
+    unsigned int getSourceSSRC (unsigned int sourceSSRC, unsigned int ssrc){
+      return theStats_[ssrc]["sourceSsrc"];
+    };
+    void setSourceSSRC (unsigned int sourceSSRC, unsigned int ssrc){
+      theStats_[ssrc]["sourceSsrc"] = sourceSSRC;
     };
 
     void sendStats();

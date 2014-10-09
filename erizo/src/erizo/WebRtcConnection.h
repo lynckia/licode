@@ -7,8 +7,6 @@
 #include <boost/thread.hpp>
 
 #include "logger.h"
-
-#include "SrtpChannel.h"
 #include "SdpInfo.h"
 #include "MediaDefinitions.h"
 #include "Transport.h"
@@ -133,24 +131,25 @@ private:
 
   Stats thisStats_;
 
-    WebRTCEvent globalState_;
+	WebRTCEvent globalState_;
 
-    int video_, audio_, bundle_, sequenceNumberFIR_;
-    boost::mutex writeMutex_, receiveAudioMutex_, receiveVideoMutex_, updateStateMutex_;
-    boost::thread send_Thread_;
-    std::queue<dataPacket> sendQueue_;
-    WebRtcConnectionEventListener* connEventListener_;
-    WebRtcConnectionStatsListener* statsListener_;
-    Transport *videoTransport_, *audioTransport_;
-    char deliverMediaBuffer_[3000];
-    bool sending_, closed_;
-    void sendLoop();
-    void writeSsrc(char* buf, int len, unsigned int ssrc);
-    void processRtcpHeaders(char* buf, int len, unsigned int ssrc);
-    int deliverAudioData_(char* buf, int len);
-    int deliverVideoData_(char* buf, int len);
-    int deliverFeedback_(char* buf, int len);
-    std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
+  int bundle_, sequenceNumberFIR_;
+  boost::mutex writeMutex_, receiveVideoMutex_, updateStateMutex_;
+	boost::thread send_Thread_;
+	std::queue<dataPacket> sendQueue_;
+	WebRtcConnectionEventListener* connEventListener_;
+  WebRtcConnectionStatsListener* statsListener_;
+	Transport *videoTransport_, *audioTransport_;
+	char deliverMediaBuffer_[3000];
+
+  bool sending_;
+	void sendLoop();
+	void writeSsrc(char* buf, int len, unsigned int ssrc);
+  void processRtcpHeaders(char* buf, int len, unsigned int ssrc);
+	int deliverAudioData_(char* buf, int len);
+	int deliverVideoData_(char* buf, int len);
+  int deliverFeedback_(char* buf, int len);
+  std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
 
   
     bool audioEnabled_;

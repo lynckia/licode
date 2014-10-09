@@ -81,6 +81,18 @@ namespace erizo {
       audio_st = context_->streams[audio_stream_index_];
       ELOG_DEBUG("Has Audio, audio stream number %d. time base = %d / %d ", audio_stream_index_, audio_st->time_base.num, audio_st->time_base.den);
       audio_time_base_ = audio_st->time_base.den;
+      ELOG_DEBUG("Audio Time base %d", audio_time_base_);
+      if (audio_st->codec->codec_id==AV_CODEC_ID_PCM_MULAW){
+        ELOG_DEBUG("PCM U8");
+        om.audioCodec.sampleRate=8000;
+        om.audioCodec.codec = AUDIO_CODEC_PCM_U8;
+        om.rtpAudioInfo.PT = PCMU_8000_PT; 
+      }else if (audio_st->codec->codec_id == AV_CODEC_ID_OPUS){
+        ELOG_DEBUG("OPUS");
+        om.audioCodec.sampleRate=48000;
+        om.audioCodec.codec = AUDIO_CODEC_OPUS;
+        om.rtpAudioInfo.PT = OPUS_48000_PT; 
+      }
       if (!om.hasVideo)
         st = audio_st;
     }
@@ -93,6 +105,17 @@ namespace erizo {
       decodedBuffer_.reset((unsigned char*) malloc(100000));
       MediaInfo om;
       om.processorType = PACKAGE_ONLY;
+      if (audio_st->codec->codec_id==AV_CODEC_ID_PCM_MULAW){
+        ELOG_DEBUG("PCM U8");
+        om.audioCodec.sampleRate=8000;
+        om.audioCodec.codec = AUDIO_CODEC_PCM_U8;
+        om.rtpAudioInfo.PT = PCMU_8000_PT; 
+      }else if (audio_st->codec->codec_id == AV_CODEC_ID_OPUS){
+        ELOG_DEBUG("OPUS");
+        om.audioCodec.sampleRate=48000;
+        om.audioCodec.codec = AUDIO_CODEC_OPUS;
+        om.rtpAudioInfo.PT = OPUS_48000_PT; 
+      }
       op_.reset(new OutputProcessor());
       op_->init(om,this);
     }else{
@@ -154,7 +177,7 @@ namespace erizo {
     int length;
     startTime_ = av_gettime();
 
-    ELOG_DEBUG("Start playing external output %s", url_.c_str() );
+    ELOG_DEBUG("Start playing external input %s", url_.c_str() );
     while(av_read_frame(context_,&avpacket_)>=0&& running_==true){
       AVPacket orig_pkt = avpacket_;
       if (needTranscoding_){
@@ -182,7 +205,6 @@ namespace erizo {
           lastPts_ = avpacket_.pts;
           op_->packageVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get(), avpacket_.pts);
         }else if(avpacket_.stream_index == audio_stream_index_){//packet is audio
-
           int64_t pts = av_rescale(lastAudioPts_, 1000000, (long int)audio_time_base_);
           int64_t now = av_gettime() - startTime_;
           if (pts > now){
