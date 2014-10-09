@@ -14,8 +14,8 @@ namespace erizo {
 // This is safe because A) audio is a lot smaller, so it isn't a big deal to hold on to a lot of it and
 // B) our audio sample rate is typically 20 msec packets; video is anywhere from 33 to 100 msec (30 to 10 fps)
 // Allowing the audio queue to hold more will help prevent loss of data when the video framerate is low.
-ExternalOutput::ExternalOutput(const std::string& outputUrl) : audioQueue_(600, 60), videoQueue_(120, 60), inited_(false), video_stream_(NULL), audio_stream_(NULL),
-    firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), vp8SearchState_(lookingForStart), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1)
+ExternalOutput::ExternalOutput(const std::string& outputUrl) : fec_receiver_(this), audioQueue_(600, 60), videoQueue_(120, 60), inited_(false), video_stream_(NULL), audio_stream_(NULL),
+    firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1), vp8SearchState_(lookingForStart)
 {
     ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
 
@@ -90,6 +90,16 @@ ExternalOutput::~ExternalOutput(){
 
 void ExternalOutput::receiveRawData(RawDataPacket& /*packet*/){
     return;
+}
+// This is called by our fec_ object once it recovers a packet.
+bool ExternalOutput::OnRecoveredPacket(const uint8_t* rtp_packet, int rtp_packet_length) {
+    videoQueue_.pushPacket((const char*)rtp_packet, rtp_packet_length);
+    return true;
+}
+
+int32_t ExternalOutput::OnReceivedPayloadData(const uint8_t* payload_data, const uint16_t payload_size, const webrtc::WebRtcRTPHeader* rtp_header) {
+    // Unused by WebRTC's FEC implementation; just something we have to implement.
+    return 0;
 }
 
 
@@ -166,33 +176,11 @@ void ExternalOutput::writeVideoData(char* buf, int len){
 
     lastVideoSequenceNumber_ = currentVideoSeqNumber;
 
-    if (head->getPayloadType() == RED_90000_PT) {
-        int totalLength = head->getHeaderLength();
-        int rtpHeaderLength = totalLength;
-        RedHeader *redhead = reinterpret_cast<RedHeader*>(buf + totalLength);
-//        ELOG_DEBUG("Received RED packet, payloadType: %d ", redhead->payloadtype);
-        if (redhead->payloadtype == VP8_90000_PT) {
-            while (redhead->follow) {
-                totalLength += redhead->getLength() + 4; // RED header
-                redhead = reinterpret_cast<RedHeader*>(buf + totalLength);
-            }
-
-            // Copy RTP header
-            memcpy(deliverMediaBuffer_, buf, rtpHeaderLength);
-            // Copy payload data - the +/- 1 is to account for the primary encoding block header, which is effectively
-            // a normal RED header, but minus the timestamp and block-length fields for a total length of one octet.
-            memcpy(deliverMediaBuffer_ + rtpHeaderLength, buf + totalLength + 1, len - totalLength - 1);
-            // Copy payload type
-            head = reinterpret_cast<RtpHeader*>(deliverMediaBuffer_);
-            head->setPayloadType(redhead->payloadtype);
-            buf = reinterpret_cast<char*>(deliverMediaBuffer_);
-            len = len - 1 - totalLength + rtpHeaderLength;
-        }
-    }
-
     if (firstVideoTimestamp_ == -1) {
         firstVideoTimestamp_ = head->getTimestamp();
     }
+
+    // TODO we should be tearing off RTP padding here, if it exists.  But WebRTC currently does not use padding.
 
     RtpVP8Parser parser;
     erizo::RTPPayloadVP8* payload = parser.parseVP8(reinterpret_cast<unsigned char*>(buf + head->getHeaderLength()), len - head->getHeaderLength());
@@ -381,14 +369,6 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
         return;
     }
 
-    // if this packet has any padding, strip it off so we don't have to deal with it downstream.
-    RtpHeader* h = reinterpret_cast<RtpHeader*>(buffer);
-    if (h->hasPadding()) {
-        uint8_t paddingCount = (uint8_t) buffer[length - 1];    // padding count is in the last byte of the payload, and includes itself.
-        //ELOG_DEBUG("Padding byte set, old length: %d, new length: %d", length, length - paddingCount);
-        length -= paddingCount;
-    }
-
     if (firstDataReceived_ == -1) {
         timeval time;
         gettimeofday(&time, NULL);
@@ -412,7 +392,22 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
             videoOffsetMsec_ = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - firstDataReceived_;
             ELOG_DEBUG("File %s, video offset msec: %llu", context_->filename, videoOffsetMsec_);
         }
-        videoQueue_.pushPacket(buffer, length);
+
+        // If this is a red header, let's push it to our fec_receiver_, which will spit out frames in one of our other callbacks.
+        // Otherwise, just stick it straight into the video queue.
+        RtpHeader* h = reinterpret_cast<RtpHeader*>(buffer);
+        if (h->getPayloadType() == RED_90000_PT) {
+            // The only things AddReceivedRedPacket uses are headerLength and sequenceNumber.  Unfortunately the amount of crap
+            // we would have to pull in from the WebRtc project to fully construct a webrtc::RTPHeader object is obscene.  So
+            // let's just do this hacky fix.
+            webrtc::RTPHeader hackyHeader;
+            hackyHeader.headerLength = h->getHeaderLength();
+            hackyHeader.sequenceNumber = h->getSeqNumber();
+            fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*)buffer, length, ULP_90000_PT);
+            fec_receiver_.ProcessReceivedFec();
+        } else {
+            videoQueue_.pushPacket(buffer, length);
+        }
     }else{
         if(this->audioOffsetMsec_ == -1) {
             audioOffsetMsec_ = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - firstDataReceived_;
