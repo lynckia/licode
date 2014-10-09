@@ -41,7 +41,6 @@ SdesTransport::SdesTransport(MediaType med, const std::string &transport_name, b
     cryptoRemote_ = *remoteCrypto;
 
     nice_.reset(new NiceConnection(med, transport_name, this, comps,  stunServer, stunPort, minPort, maxPort));
-    nice_->start();
 }
 
 SdesTransport::~SdesTransport() {
@@ -80,7 +79,7 @@ void SdesTransport::onNiceData(unsigned int component_id, char* data, int len, N
 }
 
 void SdesTransport::write(char* data, int len) {
-   //boost::mutex::scoped_lock lock(writeMutex_);
+    boost::mutex::scoped_lock lock(writeMutex_);
     int length = len;
     SrtpChannel *srtp = srtp_;
 

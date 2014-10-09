@@ -15,7 +15,6 @@
 #include "logger.h"
 
 typedef struct _NiceAgent NiceAgent;
-typedef struct _GMainLoop GMainLoop;
 typedef struct _GMainContext GMainContext;
 
 typedef unsigned int uint;
@@ -110,13 +109,11 @@ private:
 	void init();
 	NiceAgent* agent_;
 	NiceConnectionListener* listener_;
-  std::queue<packetPtr> niceQueue_;
-	GMainLoop* loop_;
+    std::queue<packetPtr> niceQueue_;
 	GMainContext* context_;
 	boost::thread m_Thread_;
 	IceState iceState_;
-	boost::mutex queueMutex_, agentMutex_;
-  boost::recursive_mutex stateMutex_;
+    boost::mutex queueMutex_, stateMutex_;
 	boost::condition_variable cond_;
   unsigned int iceComponents_;
   std::map <unsigned int, IceState> comp_state_list_;
