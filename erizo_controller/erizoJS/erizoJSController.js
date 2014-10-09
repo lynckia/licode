@@ -38,7 +38,7 @@ exports.ErizoJSController = function (spec) {
 
         if (publishers[to] !== undefined) {
             var intervarId = setInterval(function () {
-              if (publishers[to]!==undefined){
+              if (publishers[to] !== undefined){
                 if (wrtc.getCurrentState() >= CONN_READY && publishers[to].muxer.getPublisherState() >=CONN_READY) {
                     log.info("Sending FIR");
                     publishers[to].muxer.sendFIR();
@@ -179,9 +179,9 @@ exports.ErizoJSController = function (spec) {
     };
 
     that.removeExternalOutput = function (to, url) {
-      if (externalOutputs[url] !== undefined && publishers[to]!=undefined) {
+      if (externalOutputs[url] !== undefined && publishers[to] !== undefined) {
         log.info("Stopping ExternalOutput: url " + url);
-        publishers[to].removeSubscriber(url);
+        publishers[to].muxer.removeSubscriber(url);
         delete externalOutputs[url];
       }
     };
@@ -293,11 +293,10 @@ exports.ErizoJSController = function (spec) {
      */
     that.removeSubscriber = function (from, to) {
 
-        var index = subscribers[to].indexOf(from);
-        if (index !== -1) {
+        if (subscribers[to][from]) {
             log.info('Removing subscriber ', from, 'to muxer ', to);
-            publishers[to].removeSubscriber(from);
-            subscribers[to].splice(index, 1);
+            publishers[to].muxer.removeSubscriber(from);
+            delete subscribers[to][from];
         }
     };
 
@@ -311,11 +310,10 @@ exports.ErizoJSController = function (spec) {
         log.info('Removing subscriptions of ', from);
         for (key in subscribers) {
             if (subscribers.hasOwnProperty(key)) {
-                index = subscribers[key].indexOf(from);
-                if (index !== -1) {
+                 if (subscribers[to][from]) {
                     log.info('Removing subscriber ', from, 'to muxer ', key);
-                    publishers[key].removeSubscriber(from);
-                    subscribers[key].splice(index, 1);
+                    publishers[key].muxer.removeSubscriber(from);
+                    delete subscribers[key][from];
                 }
             }
         }
