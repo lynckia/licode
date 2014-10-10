@@ -14,8 +14,8 @@
 namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
-  WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort) {
-
+  WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort)
+      : fec_receiver_(this) {
     ELOG_WARN("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", stunServer.c_str(), stunPort, minPort, maxPort);
     sequenceNumberFIR_ = 0;
     bundle_ = false;
@@ -150,40 +150,36 @@ namespace erizo {
     return len;
   }
 
+
+  // This is called by our fec_ object when it recovers a packet.
+  bool WebRtcConnection::OnRecoveredPacket(const uint8_t* rtp_packet, int rtp_packet_length) {
+      this->queueData(0, (const char*) rtp_packet, rtp_packet_length, videoTransport_);
+      return true;
+  }
+
+  int32_t WebRtcConnection::OnReceivedPayloadData(const uint8_t* /*payload_data*/, const uint16_t /*payload_size*/, const webrtc::WebRtcRTPHeader* /*rtp_header*/) {
+      // Unused by WebRTC's FEC implementation; just something we have to implement.
+      return 0;
+  }
+
   int WebRtcConnection::deliverVideoData_(char* buf, int len) {
-    RtpHeader *head = reinterpret_cast<RtpHeader*>(buf);
     writeSsrc(buf, len, this->getVideoSinkSSRC());
     if (videoTransport_ != NULL) {
       if (videoEnabled_ == true) {
-
-        if (head->payloadtype == RED_90000_PT) {
-          int totalLength = 12;
-
-          if (head->extension) {
-            totalLength += ntohs(head->extensionlength)*4 + 4; // RTP Extension header
+          RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
+          if (h->getPayloadType() == RED_90000_PT && !remoteSdp_.supportPayloadType(RED_90000_PT)) {
+              // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
+              // Let's go ahead and run this through our fec receiver to convert it to raw VP8
+              webrtc::RTPHeader hackyHeader;
+              hackyHeader.headerLength = h->getHeaderLength();
+              hackyHeader.sequenceNumber = h->getSeqNumber();
+              // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback, be sure to memcpy out of webrtc's buffers
+              if (fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*) buf, len, ULP_90000_PT) == 0) {
+                  fec_receiver_.ProcessReceivedFec();
+              }
+            } else {
+              this->queueData(0, buf, len, videoTransport_);
           }
-          int rtpHeaderLength = totalLength;
-          RedHeader *redhead = reinterpret_cast<RedHeader*> ((buf + totalLength));
-
-          //redhead->payloadtype = remoteSdp_.inOutPTMap[redhead->payloadtype];
-          if (!remoteSdp_.supportPayloadType(head->payloadtype)) {
-            while (redhead->follow) {
-              totalLength += redhead->getLength() + 4; // RED header
-              redhead = reinterpret_cast<RedHeader*> ((buf + totalLength));
-            }
-            // Parse RED packet to VP8 packet.
-            // Copy RTP header
-            memcpy(deliverMediaBuffer_, buf, rtpHeaderLength);
-            // Copy payload data
-            memcpy(deliverMediaBuffer_ + totalLength, buf + totalLength + 1, len - totalLength - 1);
-            // Copy payload type
-            RtpHeader *mediahead = reinterpret_cast<RtpHeader*> (deliverMediaBuffer_);
-            mediahead->payloadtype = redhead->payloadtype;
-            buf = deliverMediaBuffer_;
-            len = len - 1 - totalLength + rtpHeaderLength;
-          }
-        }
-        this->queueData(0, buf, len, videoTransport_);
       }
     }
     return len;
