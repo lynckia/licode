@@ -11,8 +11,6 @@ namespace erizo {
   OneToManyProcessor::OneToManyProcessor() {
     ELOG_DEBUG ("OneToManyProcessor constructor");
     feedbackSink_ = NULL;
-    sentPackets_ = 0;
-
   }
 
   OneToManyProcessor::~OneToManyProcessor() {
@@ -51,7 +49,6 @@ namespace erizo {
         (*it).second->deliverVideoData(buf, len);
       }
     }
-    sentPackets_++;
     return 0;
   }
 

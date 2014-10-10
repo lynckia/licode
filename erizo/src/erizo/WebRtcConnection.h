@@ -121,7 +121,7 @@ private:
 	WebRTCEvent globalState_;
 
     int bundle_, sequenceNumberFIR_;
-    boost::mutex writeMutex_, receiveVideoMutex_, updateStateMutex_;
+    boost::mutex receiveVideoMutex_, updateStateMutex_;
 	boost::thread send_Thread_;
 	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionEventListener* connEventListener_;

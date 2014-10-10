@@ -220,20 +220,18 @@ namespace erizo {
     if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL){
       return;
     }
-    boost::mutex::scoped_lock lock(writeMutex_);
-    int length = len;
     
     // PROCESS STATS
     if (this->statsListener_){ // if there is no listener we dont process stats
       RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
       if (head->payloadtype != RED_90000_PT && head->payloadtype != PCMU_8000_PT)     
-        thisStats_.processRtcpPacket(buf, length);
+        thisStats_.processRtcpPacket(buf, len);
     }
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
       if (fbSink_ != NULL) {
-        fbSink_->deliverFeedback(buf,length);
+        fbSink_->deliverFeedback(buf,len);
       }
     } else {
       // RTP or RTCP Sender Report
@@ -249,9 +247,9 @@ namespace erizo {
         }
         // Deliver data
         if (recvSSRC==this->getVideoSourceSSRC() || recvSSRC==this->getVideoSinkSSRC()) {
-          videoSink_->deliverVideoData(buf, length);
+          videoSink_->deliverVideoData(buf, len);
         } else if (recvSSRC==this->getAudioSourceSSRC() || recvSSRC==this->getAudioSinkSSRC()) {
-          audioSink_->deliverAudioData(buf, length);
+          audioSink_->deliverAudioData(buf, len);
         } else {
           ELOG_ERROR("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
         }
@@ -265,7 +263,7 @@ namespace erizo {
             //this->updateState(TRANSPORT_READY, transport);
           }
           head->setSSRC(this->getAudioSinkSSRC());
-          audioSink_->deliverAudioData(buf, length);
+          audioSink_->deliverAudioData(buf, len);
         }
       } else if (transport->mediaType == VIDEO_TYPE) {
         if (videoSink_ != NULL) {
@@ -287,7 +285,7 @@ namespace erizo {
           if (chead->packettype != RTCP_Sender_PT) {
             head->setSSRC(this->getVideoSinkSSRC());
           }
-          videoSink_->deliverVideoData(buf, length);
+          videoSink_->deliverVideoData(buf, len);
         }
       }
     }
