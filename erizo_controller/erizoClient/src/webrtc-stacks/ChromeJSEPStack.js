@@ -165,7 +165,7 @@ Erizo.ChromeJSEPStack = function (spec) {
                     that.peerConnection.addIceCandidate(candidate);
                 } else {
                     spec.remoteCandidates.push(candidate);
-                    console.log("Candidates stored: ", spec.remoteCandidates.length, spec.remoteCandidates);
+//                    console.log("Candidates stored: ", spec.remoteCandidates.length, spec.remoteCandidates);
                 }
             } catch(e) {
                 L.Logger.error("Error parsing candidate", msg.candidate);

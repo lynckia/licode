@@ -23,7 +23,6 @@ namespace erizo {
   void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
       guint len, gchar* buf, gpointer user_data) {
     if (user_data==NULL||len==0)return;
-    printf("Received data\n");
     NiceConnection* nicecon = (NiceConnection*) user_data;
     nicecon->queueData(component_id, reinterpret_cast<char*> (buf), static_cast<unsigned int> (len));
   }
@@ -62,7 +61,7 @@ namespace erizo {
 
   NiceConnection::NiceConnection(MediaType med, const std::string &transport_name,NiceConnectionListener* listener, unsigned int iceComponents, const std::string& stunServer,
                                   int stunPort, int minPort, int maxPort)
-     : mediaType(med), agent_(NULL), listener_(listener), context_(NULL), iceState_(NICE_INITIAL), iceComponents_(iceComponents),
+     : mediaType(med), agent_(NULL), listener_(listener), context_(NULL), iceState_(NICE_CREATED), iceComponents_(iceComponents),
              stunServer_(stunServer), stunPort_ (stunPort), minPort_(minPort), maxPort_(maxPort) {
     localCandidates.reset(new std::vector<CandidateInfo>());
     transportName.reset(new std::string(transport_name));
@@ -173,14 +172,13 @@ namespace erizo {
   }
 
   void NiceConnection::init() {
-    if(this->checkIceState() != NICE_INITIAL){
+    if(this->checkIceState() != NICE_CREATED){
       ELOG_DEBUG("Initializing NiceConnection not in INITIAL state, exiting... %p", this);
       return;
     };
     if(!running_)
       return;
 
-    this->updateIceState(NICE_INITIAL);
 
     g_type_init();
     context_ = g_main_context_new();
@@ -237,6 +235,8 @@ namespace erizo {
     upass_ = std::string(upass);
     // Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
 
+    this->updateIceState(NICE_INITIAL);
+    
     if (minPort_!=0 && maxPort_!=0){
       ELOG_DEBUG("Setting port range: %d to %d\n", minPort_, maxPort_);
       nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)minPort_, (guint)maxPort_);

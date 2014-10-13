@@ -11,6 +11,7 @@
 #include "MediaDefinitions.h"
 #include "Transport.h"
 #include "Stats.h"
+#include "rtp/webrtc/fec_receiver_impl.h"
 
 namespace erizo {
 
@@ -45,8 +46,8 @@ public:
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary Transport components.
  */
-class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink, public FeedbackSource, public TransportListener {
-    DECLARE_LOGGER();
+class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink, public FeedbackSource, public TransportListener, public webrtc::RtpData {
+	DECLARE_LOGGER();
 public:
     /**
      * Constructor.
@@ -124,6 +125,11 @@ public:
 
     void onCandidate(const std::string& sdp, Transport *transport);
 
+
+    // webrtc::RtpHeader overrides.
+    int32_t OnReceivedPayloadData(const uint8_t* payloadData, const uint16_t payloadSize,const webrtc::WebRtcRTPHeader* rtpHeader);
+    bool OnRecoveredPacket(const uint8_t* packet, int packet_length);
+
 private:
   static const int STATS_INTERVAL = 5000;
     SdpInfo remoteSdp_;
@@ -134,13 +140,12 @@ private:
 	WebRTCEvent globalState_;
 
   int bundle_, sequenceNumberFIR_;
-  boost::mutex writeMutex_, receiveVideoMutex_, updateStateMutex_;
-	boost::thread send_Thread_;
+  boost::mutex receiveVideoMutex_, updateStateMutex_;
+  boost::thread send_Thread_;
 	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionEventListener* connEventListener_;
   WebRtcConnectionStatsListener* statsListener_;
 	Transport *videoTransport_, *audioTransport_;
-	char deliverMediaBuffer_[3000];
 
   bool sending_;
 	void sendLoop();
@@ -158,8 +163,8 @@ private:
     int stunPort_, minPort_, maxPort_;
     std::string stunServer_;
 
-    boost::condition_variable cond_;
-
+	boost::condition_variable cond_;
+  webrtc::FecReceiverImpl fec_receiver_;
 };
 
 } /* namespace erizo */
