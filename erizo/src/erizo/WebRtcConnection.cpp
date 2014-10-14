@@ -149,7 +149,6 @@ namespace erizo {
   }
 
   void WebRtcConnection::onCandidate(const std::string& sdp, Transport *transport) {
-    boost::mutex::scoped_lock lock(updateStateMutex_);
     if (connEventListener_ != NULL) {
       if (!bundle_) {
         std::string object = this->getJSONCandidate(transport->transport_name, sdp);

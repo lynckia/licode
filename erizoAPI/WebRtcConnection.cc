@@ -8,8 +8,9 @@
 using namespace v8;
 
 WebRtcConnection::WebRtcConnection() {};
-WebRtcConnection::~WebRtcConnection() {};
-boost::mutex WebRtcConnection::mutex_;
+WebRtcConnection::~WebRtcConnection() {
+  printf("WebRTCCONN API DESTRUCTOR ***************************\n");
+};
 //bool WebRtcConnection::initialized = false;
 
 void WebRtcConnection::Init(Handle<Object> target) {
@@ -68,20 +69,19 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
 }
 
 Handle<Value> WebRtcConnection::close(const Arguments& args) {
+  printf("close*********************************\n");
   HandleScope scope;
 
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
-  erizo::WebRtcConnection *me = obj->me;
   uv_close((uv_handle_t*)&obj->async_, NULL);
   uv_close((uv_handle_t*)&obj->asyncStats_, NULL);
-
-  delete me;
 
   return scope.Close(Null());
 }
 
 Handle<Value> WebRtcConnection::init(const Arguments& args) {
   HandleScope scope;
+  printf("INIT*********************************\n");
 
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
   erizo::WebRtcConnection *me = obj->me;
@@ -185,7 +185,7 @@ Handle<Value> WebRtcConnection::getStats(const v8::Arguments& args){
 }
 
 void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message) {
-  boost::mutex::scoped_lock lock(WebRtcConnection::mutex_);
+  boost::mutex::scoped_lock lock(mutex);
   this->eventSts.push(event);
   this->eventMsgs.push(message);
   async_.data = this;
@@ -193,15 +193,18 @@ void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& 
 }
 
 void WebRtcConnection::notifyStats(const std::string& message) {
+  boost::mutex::scoped_lock lock(mutex);
   this->statsMsg=message;
   asyncStats_.data = this;
   uv_async_send (&asyncStats_);
 }
 
 void WebRtcConnection::eventsCallback(uv_async_t *handle, int status){
-  boost::mutex::scoped_lock lock(WebRtcConnection::mutex_);
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
+  if (!obj)
+    return;
+  boost::mutex::scoped_lock lock(obj->mutex);
   while (!obj->eventSts.empty()) {
     Local<Value> args[] = {Integer::New(obj->eventSts.front()), String::NewSymbol(obj->eventMsgs.front().c_str())};
     obj->eventCallback_->Call(Context::GetCurrent()->Global(), 2, args);
@@ -214,6 +217,9 @@ void WebRtcConnection::statsCallback(uv_async_t *handle, int status){
 
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
+  if (!obj)
+    return;
+  boost::mutex::scoped_lock lock(obj->mutex);
 
   Local<Value> args[] = {String::NewSymbol(obj->statsMsg.c_str())};
   if (obj->hasCallback_) 

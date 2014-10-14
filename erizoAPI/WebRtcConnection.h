@@ -22,6 +22,7 @@ class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventLi
   std::queue<int> eventSts;
   std::queue<std::string> eventMsgs;
   std::string statsMsg;
+  boost::mutex mutex;
 
  private:
   WebRtcConnection();
@@ -32,7 +33,6 @@ class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventLi
 
   uv_async_t async_;
   uv_async_t asyncStats_;
-  static boost::mutex mutex_;
   bool hasCallback_;
   /*
    * Constructor.

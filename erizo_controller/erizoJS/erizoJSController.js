@@ -269,8 +269,16 @@ exports.ErizoJSController = function (spec) {
 
         if (subscribers[from] !== undefined && publishers[from] !== undefined) {
             log.info('Removing muxer', from);
+            for (var key in subscribers[from]) {
+              if (subscribers[from].hasOwnProperty(key)){
+                log.info("Iterating and closing ", key,  subscribers[from], subscribers[from][key]);
+                subscribers[from][key].close();
+              }
+            }
             publishers[from].muxer.close();
+            publishers[from].wrtc.close();
             log.info('Removing subscribers', from);
+                
             delete subscribers[from];
             log.info('Removing publisher', from);
             delete publishers[from];
@@ -296,6 +304,7 @@ exports.ErizoJSController = function (spec) {
         if (subscribers[to][from]) {
             log.info('Removing subscriber ', from, 'to muxer ', to);
             publishers[to].muxer.removeSubscriber(from);
+            subscribers[to][from].close();
             delete subscribers[to][from];
         }
     };

@@ -452,7 +452,6 @@ namespace erizo {
 
   void NiceConnection::updateIceState(IceState state) {
       { // New scope for our lock
-          boost::mutex::scoped_lock lock(stateMutex_);
           if(iceState_==state)
               return;
 
