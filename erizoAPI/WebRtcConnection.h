@@ -18,8 +18,10 @@ class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventLi
   static void Init(v8::Handle<v8::Object> target);
 
   erizo::WebRtcConnection *me;
-  int message;
+  std::queue<int> eventSts;
+  std::queue<std::string> eventMsgs;
   std::string statsMsg;
+  boost::mutex statsMutex, eventsMutex;
 
  private:
   WebRtcConnection();
