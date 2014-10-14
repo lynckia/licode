@@ -20,7 +20,7 @@ exports.ErizoJSController = function (spec) {
         externalOutputs = {},
 
         INTERVAL_TIME_SDP = 100,
-        INTERVAL_TIME_FIR = 100,
+        INTERVAL_TIME_FIR = 800,
         INTERVAL_TIME_KILL = 30*60*1000, // Timeout to kill itself after a timeout since the publisher leaves room.
         waitForFIR,
         initWebRtcConnection,
