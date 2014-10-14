@@ -9,7 +9,6 @@ using namespace v8;
 
 WebRtcConnection::WebRtcConnection() {};
 WebRtcConnection::~WebRtcConnection() {
-  printf("WebRTCCONN API DESTRUCTOR ***************************\n");
 };
 //bool WebRtcConnection::initialized = false;
 
@@ -69,7 +68,6 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
 }
 
 Handle<Value> WebRtcConnection::close(const Arguments& args) {
-  printf("close*********************************\n");
   HandleScope scope;
 
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
@@ -81,7 +79,6 @@ Handle<Value> WebRtcConnection::close(const Arguments& args) {
 
 Handle<Value> WebRtcConnection::init(const Arguments& args) {
   HandleScope scope;
-  printf("INIT*********************************\n");
 
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
   erizo::WebRtcConnection *me = obj->me;
