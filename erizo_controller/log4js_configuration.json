@@ -12,6 +12,7 @@
   "levels": {
   	"ErizoController": "DEBUG",
   	"RPC": "INFO",
-        "ErizoJS": "INFO"
+    "ErizoJS": "DEBUG", 
+    "ErizoJSController": "DEBUG"
   }
 }

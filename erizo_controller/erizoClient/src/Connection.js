@@ -22,8 +22,8 @@ Erizo.Connection = function (spec) {
         that = Erizo.FirefoxStack(spec);
     } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 26) {
         // Google Chrome Stable.
-        L.Logger.debug("JSEP!");
-        that = Erizo.ChromeJSEPStack(spec);
+        L.Logger.debug("Stable!");
+        that = Erizo.ChromeStableStack(spec);
         that.browser = "chrome-stable";
     }  else if (window.navigator.appVersion.match(/Bowser\/([\w\W]*?)\./)[1] === "25") {
         // Bowser
