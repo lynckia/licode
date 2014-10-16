@@ -53,8 +53,8 @@ namespace erizo {
   void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id,
       gpointer user_data) {
 
-  //  NiceConnection *conn = (NiceConnection*) user_data;
-    //conn->gatheringDone(stream_id);
+    NiceConnection *conn = (NiceConnection*) user_data;
+    conn->gatheringDone(stream_id);
   }
 
   void cb_component_state_changed(NiceAgent *agent, guint stream_id,
@@ -75,14 +75,14 @@ namespace erizo {
     conn->updateComponentState(component_id, NICE_READY);
   }
 
-  NiceConnection::NiceConnection(MediaType med, const std::string &transport_name,NiceConnectionListener* listener, unsigned int iceComponents, const std::string& stunServer,
-                                  int stunPort, int minPort, int maxPort)
+  NiceConnection::NiceConnection(MediaType med, const std::string &transport_name,NiceConnectionListener* listener, 
+      unsigned int iceComponents, const std::string& stunServer, int stunPort, int minPort, int maxPort)
      : mediaType(med), agent_(NULL), listener_(listener), context_(NULL), iceState_(NICE_INITIAL), iceComponents_(iceComponents),
              stunServer_(stunServer), stunPort_ (stunPort), minPort_(minPort), maxPort_(maxPort) {
 
     localCandidates.reset(new std::vector<CandidateInfo>());
     transportName.reset(new std::string(transport_name));
-    for (unsigned int i = 1; i<=iceComponents; i++) {
+    for (unsigned int i = 1; i<=iceComponents_; i++) {
       comp_state_list_[i] = NICE_INITIAL;
     }
     
@@ -142,7 +142,7 @@ namespace erizo {
     }
 
     if (SERVER_SIDE_TURN){
-        for (int i = 1; i < (iceComponents_ +1); i++){
+        for (unsigned int i = 1; i <= iceComponents_ ; i++){
           ELOG_DEBUG("Setting TURN Comp %d\n", i);
           nice_agent_set_relay_info     (agent_,
               1,
@@ -157,16 +157,16 @@ namespace erizo {
     ELOG_DEBUG("Gathering candidates %p", this);
     nice_agent_gather_candidates(agent_, 1);
     if(agent_){
-      nice_agent_attach_recv(agent_, 1, 1, context_, cb_nice_recv, this);
-      if (iceComponents_ > 1) {
-        nice_agent_attach_recv(agent_, 1, 2, context_,cb_nice_recv, this);
+      for (unsigned int i = 1; i<=iceComponents_; i++){
+        nice_agent_attach_recv(agent_, 1, i, context_, cb_nice_recv, this);
       }
       running_ = true;
-    }else{
+    }
+    else{
       running_=false;
     }
-    m_Thread_ = boost::thread(&NiceConnection::init, this);
-  }
+  m_Thread_ = boost::thread(&NiceConnection::init, this);
+}
 
   NiceConnection::~NiceConnection() {
     ELOG_DEBUG("NiceConnection Destructor");
@@ -328,8 +328,11 @@ namespace erizo {
     nice_agent_set_remote_candidates(agent_, (guint) 1, currentCompId, candList);
     g_slist_free_full(candList, (GDestroyNotify)&nice_candidate_free);
     
-    //this->updateIceState(NICE_CANDIDATES_RECEIVED);
     return true;
+  }
+
+  void NiceConnection::gatheringDone(uint stream_id){
+    ELOG_DEBUG("Gathering done for stream %u", stream_id);
   }
 
   void NiceConnection::getCandidate(uint stream_id, uint component_id, const std::string &foundation) {
@@ -411,10 +414,6 @@ namespace erizo {
     *password = std::string(upass_);
   }
 
-  void NiceConnection::gatheringDone(uint stream_id) {
-   
-  }
-
   void NiceConnection::setNiceListener(NiceConnectionListener *listener) {
     this->listener_ = listener;
   }
@@ -441,36 +440,35 @@ namespace erizo {
   }
 
   void NiceConnection::updateIceState(IceState state) {
-      { // New scope for our lock
-          if(iceState_==state)
-              return;
 
-          ELOG_INFO("%s - NICE State Changing from %u to %u %p", transportName->c_str(), this->iceState_, state, this);
-          this->iceState_ = state;
-          switch( iceState_) {
-          case NICE_FINISHED:
-              return;
-          case NICE_FAILED:
-              this->running_=false;
-              break;
+    if(iceState_==state)
+      return;
 
-          case NICE_READY:
-              char ipaddr[NICE_ADDRESS_STRING_LEN];
-              NiceCandidate* local, *remote;
-              nice_agent_get_selected_pair(agent_, 1, 1, &local, &remote);
-              nice_address_to_string(&local->addr, ipaddr);
-              ELOG_INFO("Selected pair:\nlocal candidate addr: %s:%d",ipaddr, nice_address_get_port(&local->addr));
-              nice_address_to_string(&remote->addr, ipaddr);
-              ELOG_INFO("remote candidate addr: %s:%d",ipaddr, nice_address_get_port(&remote->addr));
-              break;
-          default:
-              break;
-          }
-      }
+    ELOG_INFO("%s - NICE State Changing from %u to %u %p", transportName->c_str(), this->iceState_, state, this);
+    this->iceState_ = state;
+    switch( iceState_) {
+      case NICE_FINISHED:
+        return;
+      case NICE_FAILED:
+        this->running_=false;
+        break;
 
-      // Important: send this outside our state lock.  Otherwise, serious risk of deadlock.
-      if (this->listener_ != NULL)
-          this->listener_->updateIceState(state, this);
+      case NICE_READY:
+        char ipaddr[NICE_ADDRESS_STRING_LEN];
+        NiceCandidate* local, *remote;
+        nice_agent_get_selected_pair(agent_, 1, 1, &local, &remote);
+        nice_address_to_string(&local->addr, ipaddr);
+        ELOG_INFO("Selected pair:\nlocal candidate addr: %s:%d",ipaddr, nice_address_get_port(&local->addr));
+        nice_address_to_string(&remote->addr, ipaddr);
+        ELOG_INFO("remote candidate addr: %s:%d",ipaddr, nice_address_get_port(&remote->addr));
+        break;
+      default:
+        break;
+    }
+
+    // Important: send this outside our state lock.  Otherwise, serious risk of deadlock.
+    if (this->listener_ != NULL)
+      this->listener_->updateIceState(state, this);
   }
 
 } /* namespace erizo */

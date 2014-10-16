@@ -13,7 +13,7 @@ namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
   WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort, WebRtcConnectionEventListener* listener)
-      : fec_receiver_(this), connEventListener_(listener) {
+      : connEventListener_(listener), fec_receiver_(this){
     ELOG_WARN("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", stunServer.c_str(), stunPort, minPort, maxPort);
     sequenceNumberFIR_ = 0;
     bundle_ = false;
@@ -99,10 +99,7 @@ namespace erizo {
         }
       }
     }
-   ELOG_INFO("Getting SDP answer");
-   std::string object = this->getLocalSdp();
-   ELOG_INFO("Sending SDP answer");
-   ELOG_INFO("Sent");
+    std::string object = this->getLocalSdp();
     if (!remoteSdp_.getCandidateInfos().empty()){
       if (remoteSdp_.hasVideo) {
         videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
@@ -111,8 +108,10 @@ namespace erizo {
         audioTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
       }
     }
-   if (connEventListener_)
-     connEventListener_->notifyEvent(CONN_SDP, object);
+
+    if (connEventListener_){
+      connEventListener_->notifyEvent(CONN_SDP, object);
+    }
 
     return true;
   }
@@ -124,11 +123,13 @@ namespace erizo {
     remoteSdp_.getCredentials(&username, &password);
     tempSdp.setCredentials(username, password);
     tempSdp.initWithSdp(sdp, mid);
+    bool res;
     if (mid == "video") {
-      videoTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
+      res = videoTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
     } else if (!bundle_ && mid == "audio") {
-      audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
+      res = audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
     }
+    return res;
   }
 
   std::string WebRtcConnection::getLocalSdp() {
@@ -374,6 +375,7 @@ namespace erizo {
     WebRTCEvent temp = globalState_;
     ELOG_INFO("Update Transport State %s to %d", transport->transport_name.c_str(), state);
     if (audioTransport_ == NULL && videoTransport_ == NULL) {
+      ELOG_ERROR("Update Transport State with Transport NULL, this should not happen!");
       return;
     }
 
@@ -423,19 +425,12 @@ namespace erizo {
         (int)globalState_);
     }
     
-    if (temp < 0) {
-      return;
-    }
-
     if (temp == globalState_ || (temp == CONN_STARTED && globalState_ == CONN_READY))
       return;
 
     globalState_ = temp;
     if (connEventListener_ != NULL) {
       connEventListener_->notifyEvent(globalState_, "");
-    }
-
-    if (globalState_ == CONN_STARTED && connEventListener_ != NULL) {
     }
   }
 
