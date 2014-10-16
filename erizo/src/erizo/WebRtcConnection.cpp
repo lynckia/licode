@@ -120,8 +120,8 @@ namespace erizo {
     // TODO Check type of transport.
     SdpInfo tempSdp;
     std::string username, password;
-    remoteSdp_.getCredentials(&username, &password);
-    tempSdp.setCredentials(username, password);
+    remoteSdp_.getCredentials(username, password, VIDEO_TYPE);
+    tempSdp.setCredentials(username, password, VIDEO_TYPE);
     tempSdp.initWithSdp(sdp, mid);
     bool res;
     if (mid == "video") {

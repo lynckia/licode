@@ -90,7 +90,7 @@ namespace erizo {
     context_ = g_main_context_new();
     g_main_context_set_poll_func(context_,timed_poll);
     ELOG_DEBUG("Creating Agent");
-    //	nice_debug_enable( TRUE );
+//    nice_debug_enable( TRUE );
     // Create a nice agent
     agent_ = nice_agent_new(context_, NICE_COMPATIBILITY_RFC5245);
     GValue controllingMode = { 0 };
@@ -280,6 +280,8 @@ namespace erizo {
     for (unsigned int it = 0; it < candidates.size(); it++) {
       NiceCandidateType nice_cand_type;
       CandidateInfo cinfo = candidates[it];
+      if (cinfo.componentId !=1)
+        continue;
 
       switch (cinfo.hostType) {
         case HOST:
@@ -315,17 +317,20 @@ namespace erizo {
         ELOG_DEBUG("Adding remote candidate type %d addr %s port %d raddr %s rport %d", cinfo.hostType, cinfo.hostAddress.c_str(), cinfo.hostPort,
             cinfo.rAddress.c_str(), cinfo.rPort);
       }else{
-        ELOG_DEBUG("Adding remote candidate type %d addr %s port %d priority %d componentId %d", 
+        ELOG_DEBUG("Adding remote candidate type %d addr %s port %d priority %d componentId %d, username %s, pass %s", 
           cinfo.hostType, 
           cinfo.hostAddress.c_str(), 
           cinfo.hostPort, 
           cinfo.priority, 
-          cinfo.componentId
+          cinfo.componentId,
+          cinfo.username.c_str(),
+          cinfo.password.c_str()
           );
       }
       candList = g_slist_prepend(candList, thecandidate);
     }
-    nice_agent_set_remote_candidates(agent_, (guint) 1, currentCompId, candList);
+    //TODO: Set Component Id properly, now fixed at 1 
+    nice_agent_set_remote_candidates(agent_, (guint) 1, 1, candList);
     g_slist_free_full(candList, (GDestroyNotify)&nice_candidate_free);
     
     return true;
@@ -412,9 +417,9 @@ namespace erizo {
 
   }
 
-  void NiceConnection::getLocalCredentials(std::string *username, std::string *password) {
-    *username = std::string(ufrag_);
-    *password = std::string(upass_);
+  void NiceConnection::getLocalCredentials(std::string& username, std::string& password) {
+    username.replace(0, username.length(),ufrag_);
+    password.replace(0, username.length(), upass_);
   }
 
   void NiceConnection::setNiceListener(NiceConnectionListener *listener) {

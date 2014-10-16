@@ -103,7 +103,7 @@ public:
 	 * Get local ICE credentials.
 	 * @param username and password where credentials will be stored
 	 */
-	void getLocalCredentials(std::string *username, std::string *password);
+	void getLocalCredentials(std::string& username, std::string& password);
 	/**
 	 * Sets the associated Listener.
 	 * @param connection Pointer to the NiceConnectionListener.

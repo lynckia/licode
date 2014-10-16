@@ -315,8 +315,8 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
   localSdp_->fingerprint = getMyFingerprint();
   std::string username;
   std::string password;
-  nice_->getLocalCredentials(&username, &password);
-  localSdp_->setCredentials(username, password);
+  nice_->getLocalCredentials(username, password);
+  localSdp_->setCredentials(username, password, this->mediaType);
   ELOG_DEBUG( "Processed Local SDP in DTLS Transport with credentials %s, %s", username.c_str(), password.c_str());
 }
 

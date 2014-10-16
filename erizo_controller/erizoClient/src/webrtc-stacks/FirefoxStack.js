@@ -166,11 +166,11 @@ Erizo.FirefoxStack = function (spec) {
                 obj.candidate = obj.candidate.replace(/ udp /g, " UDP ");
                 obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex);
                 var candidate = new RTCIceCandidate(obj);
+
                 if (spec.remoteDescriptionSet) {
                     that.peerConnection.addIceCandidate(candidate);
                 } else {
                     spec.remoteCandidates.push(candidate);
-//                    console.log("Candidates stored: ", spec.remoteCandidates.length, spec.remoteCandidates);
                 }
             } catch(e) {
                 L.Logger.error("Error parsing candidate", msg.candidate, e);

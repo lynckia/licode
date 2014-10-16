@@ -160,14 +160,40 @@ namespace erizo {
     cryptoVector_.push_back(info);
   }
 
-  void SdpInfo::setCredentials(const std::string username, const std::string password) {
-    iceUsername_ = std::string(username);
-    icePassword_ = std::string(password);
+  void SdpInfo::setCredentials(const std::string& username, const std::string& password, MediaType media) {
+    switch(media){
+      case(VIDEO_TYPE):
+        iceVideoUsername_ = std::string(username);
+        iceVideoPassword_ = std::string(password);
+        break;
+      case(AUDIO_TYPE):
+        iceAudioUsername_ = std::string(username);
+        iceAudioPassword_ = std::string(password);
+        break;
+      default:
+        iceVideoUsername_ = std::string(username);
+        iceVideoPassword_ = std::string(password);
+        iceAudioUsername_ = std::string(username);
+        iceAudioPassword_ = std::string(password);
+        break;
+    }
   }
 
-  void SdpInfo::getCredentials(std::string *username, std::string *password) {
-    *username = std::string(iceUsername_);
-    *password = std::string(icePassword_);
+  void SdpInfo::getCredentials(std::string& username, std::string& password, MediaType media) {
+    switch(media){
+      case(VIDEO_TYPE):
+        username.replace(0, username.length(),iceVideoUsername_);
+        password.replace(0, username.length(),iceVideoPassword_);
+        break;
+      case(AUDIO_TYPE):
+        username.replace(0, username.length(),iceAudioUsername_);
+        password.replace(0, username.length(),iceAudioPassword_);
+        break;
+      default:
+        username.replace(0, username.length(),iceVideoUsername_);
+        password.replace(0, username.length(),iceVideoPassword_);
+        break;
+    }
   }
 
   std::string SdpInfo::getSdp() {
@@ -198,9 +224,13 @@ namespace erizo {
       if (isRtcpMux) {
         sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
       }
-
-      sdp << "a=ice-ufrag:" << iceUsername_ << endl;
-      sdp << "a=ice-pwd:" << icePassword_ << endl;
+      if(iceAudioUsername_.size()>0){
+        sdp << "a=ice-ufrag:" << iceAudioUsername_ << endl;
+        sdp << "a=ice-pwd:" << iceAudioPassword_ << endl;
+      }else{
+        sdp << "a=ice-ufrag:" << iceVideoUsername_ << endl;
+        sdp << "a=ice-pwd:" << iceVideoPassword_ << endl;
+      }
       //sdp << "a=ice-options:google-ice" << endl;
       if (isFingerprint) {
         sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
@@ -259,8 +289,8 @@ namespace erizo {
         sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
       }
 
-      sdp << "a=ice-ufrag:" << iceUsername_ << endl;
-      sdp << "a=ice-pwd:" << icePassword_ << endl;
+      sdp << "a=ice-ufrag:" << iceVideoUsername_ << endl;
+      sdp << "a=ice-pwd:" << iceVideoPassword_ << endl;
       //sdp << "a=ice-options:google-ice" << endl;
 
       sdp << "a=extmap:2 urn:ietf:params:rtp-hdrext:toffset" << endl;
@@ -414,14 +444,16 @@ namespace erizo {
       if (isUser != std::string::npos) {
         std::vector<std::string> parts = stringutil::splitOneOf(stringutil::splitOneOf(line, ":", 1)[1], "\r", 1);
         // FIXME add error checking
-        iceUsername_ = parts[0];
-        ELOG_DEBUG("ICE username: %s", iceUsername_.c_str());
+        // TODO Check if video or audio
+        iceVideoUsername_ = parts[0];
+        ELOG_DEBUG("ICE username: %s", iceVideoUsername_.c_str());
       }
       if (isPass != std::string::npos) {
         std::vector<std::string> parts = stringutil::splitOneOf(stringutil::splitOneOf(line, ":", 1)[1], "\r", 1);
         // FIXME add error checking
-        icePassword_ = parts[0];
-        ELOG_DEBUG("ICE password: %s", icePassword_.c_str());
+        // TODO Check if video or audio
+        iceVideoPassword_ = parts[0];
+        ELOG_DEBUG("ICE password: %s", iceVideoPassword_.c_str());
       }
       if (isSsrc != std::string::npos) {
         std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
@@ -465,8 +497,8 @@ namespace erizo {
 
     for (unsigned int i = 0; i < candidateVector_.size(); i++) {
       CandidateInfo& c = candidateVector_[i];
-      c.username = iceUsername_;
-      c.password = icePassword_;
+      c.username = iceVideoUsername_;
+      c.password = iceVideoPassword_;
       c.isBundle = isBundle;
     }
 

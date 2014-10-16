@@ -139,9 +139,9 @@ public:
      */
     std::string getSdp();
 
-    void setCredentials(const std::string username, const std::string password);
+    void setCredentials(const std::string& username, const std::string& password, MediaType media);
 
-    void getCredentials(std::string *username, std::string *password);
+    void getCredentials(std::string& username, std::string& password, MediaType media);
 
     RtpMap* getCodecByName(const std::string codecName, const unsigned int clockRate);
 
@@ -198,8 +198,8 @@ private:
     std::vector<CryptoInfo> cryptoVector_;
     std::vector<RtpMap> payloadVector_;
     std::vector<RtpMap> internalPayloadVector_;
-    std::string iceUsername_;
-    std::string icePassword_;
+    std::string iceVideoUsername_, iceAudioUsername_;
+    std::string iceVideoPassword_, iceAudioPassword_;
 };
 }/* namespace erizo */
 #endif /* SDPPROCESSOR_H_ */
