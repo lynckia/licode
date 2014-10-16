@@ -97,7 +97,7 @@ namespace erizo {
         if (remoteSdp_.hasVideo) {
           videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
         }
-        if (remoteSdp_.hasAudio) {
+        if (!bundle_ && remoteSdp_.hasAudio) {
           audioTransport_ = new DtlsTransport(AUDIO_TYPE, "audio", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
         }
       } else {
