@@ -12,8 +12,8 @@
 namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
-  WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort)
-      : fec_receiver_(this) {
+  WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort, WebRtcConnectionEventListener* listener)
+      : fec_receiver_(this), connEventListener_(listener) {
     ELOG_WARN("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", stunServer.c_str(), stunPort, minPort, maxPort);
     sequenceNumberFIR_ = 0;
     bundle_ = false;
@@ -25,7 +25,6 @@ namespace erizo {
     sourcefbSink_ = this;
     sinkfbSource_ = this;
     globalState_ = CONN_INITIAL;
-    connEventListener_ = NULL;
     videoTransport_ = NULL;
     audioTransport_ = NULL;
 
@@ -95,11 +94,25 @@ namespace erizo {
         if (remoteSdp_.hasVideo) {
           videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
         }
-        if (remoteSdp_.hasAudio && !bundle_) {
+        if (!bundle_ && remoteSdp_.hasAudio) {
           audioTransport_ = new DtlsTransport(AUDIO_TYPE, "audio", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
         }
       }
     }
+   ELOG_INFO("Getting SDP answer");
+   std::string object = this->getLocalSdp();
+   ELOG_INFO("Sending SDP answer");
+   ELOG_INFO("Sent");
+    if (!remoteSdp_.getCandidateInfos().empty()){
+      if (remoteSdp_.hasVideo) {
+        videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
+      }
+      if (!bundle_ && remoteSdp_.hasAudio) {
+        audioTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
+      }
+    }
+   if (connEventListener_)
+     connEventListener_->notifyEvent(CONN_SDP, object);
 
     return true;
   }
@@ -113,7 +126,7 @@ namespace erizo {
     tempSdp.initWithSdp(sdp, mid);
     if (mid == "video") {
       videoTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
-    } else if (mid == "audio" && !bundle_) {
+    } else if (!bundle_ && mid == "audio") {
       audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
     }
   }
@@ -379,18 +392,6 @@ namespace erizo {
       return;
     }
 
-    if (state == TRANSPORT_STARTED &&
-        (!remoteSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_STARTED)) &&
-        (!remoteSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_STARTED))) {
-      if (remoteSdp_.hasVideo) {
-        //videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
-      }
-      if (!bundle_ && remoteSdp_.hasAudio) {
-        //audioTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
-      }
-      temp = CONN_STARTED;
-    }
-
     if (state == TRANSPORT_READY &&
         (!remoteSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_READY)) &&
         (!remoteSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_READY))) {
@@ -400,7 +401,6 @@ namespace erizo {
 
     if (transport != NULL && transport == videoTransport_ && bundle_) {
       if (state == TRANSPORT_STARTED) {
-        //videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
         temp = CONN_STARTED;
       }
       if (state == TRANSPORT_READY) {
@@ -422,8 +422,6 @@ namespace erizo {
         (int)temp, 
         (int)globalState_);
     }
-
-    
     
     if (temp < 0) {
       return;
@@ -438,11 +436,6 @@ namespace erizo {
     }
 
     if (globalState_ == CONN_STARTED && connEventListener_ != NULL) {
-      ELOG_INFO("Getting SDP answer");
-      std::string object = this->getLocalSdp();
-      ELOG_INFO("Sending SDP answer");
-      connEventListener_->notifyEvent(CONN_SDP, object);
-      ELOG_INFO("Sent");
     }
   }
 

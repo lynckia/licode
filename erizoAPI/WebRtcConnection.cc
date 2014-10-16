@@ -56,8 +56,7 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
   int minPort = args[4]->IntegerValue();
   int maxPort = args[5]->IntegerValue();
   WebRtcConnection* obj = new WebRtcConnection();
-  obj->me = new erizo::WebRtcConnection(a, v, stunServer,stunPort,minPort,maxPort);
-  obj->me->setWebRtcConnectionEventListener(obj);
+  obj->me = new erizo::WebRtcConnection(a, v, stunServer,stunPort,minPort,maxPort, obj);
   obj->Wrap(args.This());
   uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
   uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 
