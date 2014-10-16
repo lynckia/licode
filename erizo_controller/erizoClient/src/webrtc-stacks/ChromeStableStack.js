@@ -69,7 +69,6 @@ Erizo.ChromeStableStack = function (spec) {
         if (event.candidate) {
 
             if (!event.candidate.candidate.match(/a=/)) {
-                console.log('pongo la aaaaaaaaaaa');
                 event.candidate.candidate ="a="+event.candidate.candidate;
             };
 
