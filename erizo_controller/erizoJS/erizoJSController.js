@@ -86,7 +86,8 @@ exports.ErizoJSController = function (spec) {
 
           } else if (newStatus == CONN_CANDIDATE) {
             callback('callback', {type: 'candidate', candidate: mess});
-          } else if (newStatus == CONN_STARTED) {
+          } else if (newStatus == CONN_READY) {
+            publishers[id_pub].muxer.sendFIR();
           }
 
         });
@@ -255,7 +256,6 @@ exports.ErizoJSController = function (spec) {
             publishers[to].muxer.addSubscriber(wrtc, from);
 
             initWebRtcConnection(wrtc, callback, to, from);
-            waitForFIR(wrtc, to);
 
             //log.info('Publishers: ', publishers);
             //log.info('Subscribers: ', subscribers);
