@@ -7,6 +7,10 @@ var rpc = require('./../common/rpc');
 // Logger
 var log = logger.getLogger("ErizoJSController");
 
+// Log segfaults
+var SegfaultHandler = require('segfault-handler');
+SegfaultHandler.registerHandler();
+
 exports.ErizoJSController = function (spec) {
     "use strict";
 

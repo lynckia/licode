@@ -88,10 +88,6 @@ var controller = require('./roomController');
 // Logger
 var log = logger.getLogger("ErizoController");
 
-// Log segfaults
-var SegfaultHandler = require('segfault-handler');
-SegfaultHandler.registerHandler();
-
 server.listen(8080);
 
 io.set('log level', 0);
