@@ -108,19 +108,19 @@ Erizo.Speaker = function (spec) {
     } else {
 
         mute = function () {
-            muted = true;
+            that.media.muted = true;
             that.icon.setAttribute('src', that.url + '/assets/mute48.png');
             that.stream.stream.getAudioTracks()[0].enabled = false;
         };
 
         unmute = function () {
-            muted = false;
+            that.media.muted = false;
             that.icon.setAttribute('src', that.url + '/assets/sound48.png');
             that.stream.stream.getAudioTracks()[0].enabled = true;
         };
 
         that.icon.onclick = function (evt) {
-            if (muted) {
+            if (that.media.muted) {
                 unmute();
             } else {
                 mute();
