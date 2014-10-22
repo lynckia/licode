@@ -5,6 +5,7 @@
 #include <boost/cstdint.hpp>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#include "libavutil/time.h"
 
 namespace erizo {
   DEFINE_LOGGER(ExternalInput, "media.ExternalInput");
