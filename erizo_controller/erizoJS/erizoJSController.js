@@ -64,7 +64,7 @@ exports.ErizoJSController = function (spec) {
         }
 
         wrtc.init( function (newStatus, mess){
-            log.info("webrtc Addon status", newStatus, mess);
+            log.info("webrtc Addon status ", newStatus, mess, "id pub", id_pub, "id_sub", id_sub );
 
             if (GLOBAL.config.erizoController.report.connection_events) {
                 var timeStamp = new Date();
@@ -81,7 +81,8 @@ exports.ErizoJSController = function (spec) {
             } else if (newStatus == CONN_CANDIDATE) {
                 callback('callback', {type: 'candidate', candidate: mess});
             } else if (newStatus == CONN_READY) {
-                publishers[id_pub].muxer.sendFIR();
+        //        log.info("Sending FIR from publisher", id_pub);
+//                publishers[id_pub].muxer.sendFIR();
             }
 
         });
