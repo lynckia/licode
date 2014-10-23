@@ -59,20 +59,21 @@ namespace erizo {
 
   void cb_component_state_changed(NiceAgent *agent, guint stream_id,
       guint component_id, guint state, gpointer user_data) {
-    if (state == NICE_COMPONENT_STATE_READY) {
+    if (state == NICE_COMPONENT_STATE_CONNECTED) {
       NiceConnection *conn = (NiceConnection*) user_data;
       conn->updateComponentState(component_id, NICE_READY);
     } else if (state == NICE_COMPONENT_STATE_FAILED) {
       NiceConnection *conn = (NiceConnection*) user_data;
-      conn->updateIceState(NICE_FAILED);
+      printf("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIL");
+//      conn->updateIceState(NICE_FAILED);
     }
 
   }
 
   void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
       gchar *lfoundation, gchar *rfoundation, gpointer user_data) {
-    NiceConnection *conn = (NiceConnection*) user_data;
-    conn->updateComponentState(component_id, NICE_READY);
+//    NiceConnection *conn = (NiceConnection*) user_data;
+//    conn->updateComponentState(component_id, NICE_READY);
   }
 
   NiceConnection::NiceConnection(MediaType med, const std::string &transport_name,NiceConnectionListener* listener, 
@@ -90,7 +91,7 @@ namespace erizo {
     context_ = g_main_context_new();
     g_main_context_set_poll_func(context_,timed_poll);
     ELOG_DEBUG("Creating Agent");
-//    nice_debug_enable( TRUE );
+    nice_debug_enable( FALSE );
     // Create a nice agent
     agent_ = nice_agent_new(context_, NICE_COMPATIBILITY_RFC5245);
     GValue controllingMode = { 0 };
@@ -463,13 +464,6 @@ namespace erizo {
         break;
 
       case NICE_READY:
-        char ipaddr[NICE_ADDRESS_STRING_LEN];
-        NiceCandidate* local, *remote;
-        nice_agent_get_selected_pair(agent_, 1, 1, &local, &remote);
-        nice_address_to_string(&local->addr, ipaddr);
-        ELOG_INFO("Selected pair:\nlocal candidate addr: %s:%d",ipaddr, nice_address_get_port(&local->addr));
-        nice_address_to_string(&remote->addr, ipaddr);
-        ELOG_INFO("remote candidate addr: %s:%d",ipaddr, nice_address_get_port(&remote->addr));
         break;
       default:
         break;
@@ -478,6 +472,23 @@ namespace erizo {
     // Important: send this outside our state lock.  Otherwise, serious risk of deadlock.
     if (this->listener_ != NULL)
       this->listener_->updateIceState(state, this);
+  }
+
+  CandidatePair NiceConnection::getSelectedPair(){
+    char ipaddr[NICE_ADDRESS_STRING_LEN];
+    CandidatePair selectedPair;
+    NiceCandidate* local, *remote;
+    nice_agent_get_selected_pair(agent_, 1, 1, &local, &remote);
+    nice_address_to_string(&local->addr, ipaddr);
+    selectedPair.erizoCandidateIp = std::string(ipaddr);
+    selectedPair.erizoCandidatePort = nice_address_get_port(&local->addr);
+    ELOG_INFO("Selected pair:\nlocal candidate addr: %s:%d",ipaddr, nice_address_get_port(&local->addr));
+    nice_address_to_string(&remote->addr, ipaddr);
+    selectedPair.clientCandidateIp = std::string(ipaddr);
+    selectedPair.clientCandidatePort = nice_address_get_port(&remote->addr);
+    ELOG_INFO("remote candidate addr: %s:%d",ipaddr, nice_address_get_port(&remote->addr));
+    return selectedPair;
+
   }
 
 } /* namespace erizo */

@@ -299,7 +299,6 @@ namespace erizo {
           if (this->getAudioSourceSSRC() == 0) {
             ELOG_DEBUG("Audio Source SSRC is %u", head->getSSRC());
             this->setAudioSourceSSRC(head->getSSRC());
-            //this->updateState(TRANSPORT_READY, transport);
           }
           head->setSSRC(this->getAudioSinkSSRC());
           audioSink_->deliverAudioData(buf, len);
@@ -318,7 +317,6 @@ namespace erizo {
             }
             ELOG_DEBUG("Video Source SSRC is %u", recvSSRC);
             this->setVideoSourceSSRC(recvSSRC);
-            //this->updateState(TRANSPORT_READY, transport);
           }
           // change ssrc for RTP packets, don't touch here if RTCP
           if (chead->packettype != RTCP_Sender_PT) {
@@ -364,54 +362,64 @@ namespace erizo {
     rtcpPacket[pos++] = (uint8_t) 0;
 
     if (videoTransport_ != NULL) {
+      if (videoTransport_->getTransportState()!=TRANSPORT_READY)
+        ELOG_DEBUG("Sending FIR when not READY %d", videoTransport_->getTransportState());
       videoTransport_->write((char*)rtcpPacket, pos);
     }
-
     return pos;
+
   }
 
   void WebRtcConnection::updateState(TransportState state, Transport * transport) {
     boost::mutex::scoped_lock lock(updateStateMutex_);
     WebRTCEvent temp = globalState_;
+    std::string msg = "";
     ELOG_INFO("Update Transport State %s to %d", transport->transport_name.c_str(), state);
     if (audioTransport_ == NULL && videoTransport_ == NULL) {
       ELOG_ERROR("Update Transport State with Transport NULL, this should not happen!");
       return;
     }
-
-    if (state == TRANSPORT_FAILED) {
-      temp = CONN_FAILED;
-      //globalState_ = CONN_FAILED;
-      sending_ = false;
-      ELOG_INFO("WebRtcConnection failed, stopping sending");
-      cond_.notify_one();
-      ELOG_INFO("WebRtcConnection failed, stopped sending");
-    }
-
     
+
     if (globalState_ == CONN_FAILED) {
-      // if current state is failed we don't use
+      // if current state is failed -> noop
       return;
     }
 
-    if (state == TRANSPORT_READY &&
-        (!remoteSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_READY)) &&
-        (!remoteSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_READY))) {
-        // WebRTCConnection will be ready only when all channels are ready.
-        temp = CONN_READY;
-    }
+    switch (state){
+      case TRANSPORT_STARTED:
+        if (bundle_){
+          temp = CONN_STARTED;
+        }else{
+          if ((!remoteSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_STARTED)) &&
+            (!remoteSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_STARTED))) {
+              // WebRTCConnection will be ready only when all channels are ready.
+              temp = CONN_STARTED;
+            }
+        }
+        break;
+      case TRANSPORT_READY:
+        if (bundle_){
+          temp = CONN_READY;
 
-    if (transport != NULL && transport == videoTransport_ && bundle_) {
-      if (state == TRANSPORT_STARTED) {
-        temp = CONN_STARTED;
-      }
-      if (state == TRANSPORT_READY) {
-        temp = CONN_READY;
-      }
-    }
-
-    if (temp == CONN_READY && globalState_ != temp) {
-      ELOG_INFO("Ready to send and receive media");
+        }else{
+          if ((!remoteSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_READY)) &&
+            (!remoteSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_READY))) {
+              // WebRTCConnection will be ready only when all channels are ready.
+              temp = CONN_READY;            
+            }
+        }
+        break;
+      case TRANSPORT_FAILED:
+        temp = CONN_FAILED;
+        sending_ = false;
+        ELOG_INFO("WebRtcConnection failed, stopping sending");
+        cond_.notify_one();
+        ELOG_INFO("WebRtcConnection failed, stopped sending");
+        break;
+      default:
+        ELOG_DEBUG("New state %d", state);
+        break;
     }
 
     if (audioTransport_ != NULL && videoTransport_ != NULL) {
@@ -425,12 +433,13 @@ namespace erizo {
         (int)globalState_);
     }
     
-    if (temp == globalState_ || (temp == CONN_STARTED && globalState_ == CONN_READY))
+    if (globalState_ == temp)
       return;
 
     globalState_ = temp;
+
     if (connEventListener_ != NULL) {
-      connEventListener_->notifyEvent(globalState_, "");
+      connEventListener_->notifyEvent(globalState_, msg);
     }
   }
 

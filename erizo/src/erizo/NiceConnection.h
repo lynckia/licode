@@ -32,6 +32,12 @@ typedef boost::shared_ptr<dataPacket> packetPtr;
 class CandidateInfo;
 class WebRtcConnection;
 
+struct CandidatePair{
+  std::string erizoCandidateIp;
+  int erizoCandidatePort;
+  std::string clientCandidateIp;
+  int clientCandidatePort;
+};
 /**
  * States of ICE
  */
@@ -123,11 +129,14 @@ public:
 	int sendData(unsigned int compId, const void* buf, int len);
 
 
+
 	void updateIceState(IceState state);
   IceState checkIceState();
 	void updateComponentState(unsigned int compId, IceState state);
 
   void queueData(unsigned int component_id, char* buf, int len);
+  
+  CandidatePair getSelectedPair();
 
   packetPtr getPacket();
   void close();
