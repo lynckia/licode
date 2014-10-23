@@ -65,8 +65,14 @@ exports.ErizoJSController = function (spec) {
         }
 
         wrtc.init( function (newStatus){
+
           var localSdp, answer;
           log.info("webrtc Addon status" + newStatus );
+
+          if (GLOBAL.config.erizoController.sendStats) {
+            var timeStamp = new Date();
+            rpc.callRpc('stats_handler', 'event', {pub: id_pub, subs: id_sub, type: 'connection_status', status: newStatus, timestamp:timeStamp.getTime()});
+          }
           if (newStatus === 102 && !sdpDelivered) {
             localSdp = wrtc.getLocalSdp();
             answer = getRoap(localSdp, roap);
