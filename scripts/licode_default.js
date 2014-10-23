@@ -70,8 +70,12 @@ config.erizoController.roles =
     "viewer": {"subscribe": true},
     "viewerWithData": {"subscribe": true, "publish": {"audio": false, "video": false, "screen": false, "data": true}}}; // default value: {"presenter":{"publish": true, "subscribe":true, "record":true}, "viewer":{"subscribe":true}, "viewerWithData":{"subscribe":true, "publish":{"audio":false,"video":false,"screen":false,"data":true}}}
 
-// If true, erizoController sends stats to rabbitMQ queue "stats_handler" 
-config.erizoController.sendStats = false; // default value: false
+// If true, erizoController sends report to rabbitMQ queue "report_handler" 
+config.erizoController.report = {
+    session_events: false, 		// Session level events -- default value: false
+    connection_events: false, 	// Connection (ICE) level events -- default value: false
+    rtcp_stats: false				// RTCP stats -- default value: false
+}; 
 
 // If undefined, the path will be /tmp/
 config.erizoController.recording_path = undefined; // default value: undefined

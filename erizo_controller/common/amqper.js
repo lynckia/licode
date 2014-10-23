@@ -3,7 +3,7 @@ var amqp = require('amqp');
 var logger = require('./logger').logger;
 
 // Logger
-var log = logger.getLogger("RPC");
+var log = logger.getLogger("AMQPER");
 
 // Configuration default values
 GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
@@ -17,9 +17,7 @@ var REMOVAL_TIMEOUT = 300000;
 
 var corrID = 0;
 var map = {};   //{corrID: {fn: callback, to: timeout}}
-var connection;
-var exc;
-var clientQueue;
+var connection, rpc_exc, broadcast_exc, clientQueue;
 
 var addr = {};
 var rpcPublic = {};
@@ -42,11 +40,11 @@ exports.connect = function(callback) {
     connection.on('ready', function () {
 
         //Create a direct exchange
-        exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
+        rpc_exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
             try {
                 log.info('Exchange ' + exchange.name + ' is open');
 
-                //Create the queue for send messages
+                //Create the queue for receiving messages
                 clientQueue = connection.queue('', function (q) {
                     log.info('ClientQueue ' + q.name + ' is open');
 
@@ -72,9 +70,18 @@ exports.connect = function(callback) {
 
                 });
             } catch (err) {
-                logger.error("Error in exchange ", exchange.name, " - error - ", err);
+                log.error("Error in exchange ", exchange.name, " - error - ", err);
             }
         });
+
+        //Create a fanout exchange
+        broadcast_exc = connection.exchange('broadcastExchange', {type: 'topic'}, function (exchange) {
+            log.info('Exchange ' + exchange.name + ' is open');
+        });
+    });
+
+    connection.on('error', function(e) {
+       log.error('Connection error...', e);
     });
 }
 
@@ -91,7 +98,7 @@ exports.bind = function(id, callback) {
                     log.debug("New message received", message);
                     message.args = message.args || [];
                     message.args.push(function(type, result) {
-                        exc.publish(message.replyTo, {data: result, corrID: message.corrID, type: type});
+                        rpc_exc.publish(message.replyTo, {data: result, corrID: message.corrID, type: type});
                     });
                     rpcPublic[message.method].apply(rpcPublic, message.args);
                 } catch (error) {
@@ -100,10 +107,35 @@ exports.bind = function(id, callback) {
 
             });
         } catch (err) {
-            logger.error("Error in exchange ", exchange.name, " - error - ", err);
+            log.error("Error in exchange ", exchange.name, " - error - ", err);
         }
 
     });
+}
+
+//Subscribe to 'topic'
+exports.bind_broadcast = function(id, callback) {
+
+    //Create the queue for receive messages
+    var q = connection.queue('', function (queueCreated) {
+        try {
+            log.info('Queue ' + queueCreated.name + ' is open');
+
+            q.bind('broadcastExchange', id);
+            q.subscribe(function (m){callback(m)});
+            
+        } catch (err) {
+            log.error("Error in exchange ", exchange.name, " - error - ", err);
+        }
+
+    });
+}
+
+/*
+ * Publish broadcast messages to 'topic'
+ */
+exports.broadcast = function(topic, message) {
+    broadcast_exc.publish(topic, message);
 }
 
 /*
@@ -115,7 +147,7 @@ exports.callRpc = function(to, method, args, callbacks) {
     map[corrID] = {};
     map[corrID].fn = callbacks;
     map[corrID].to = setTimeout(callbackError, TIMEOUT, corrID);
-    exc.publish(to, {method: method, args: args, corrID: corrID, replyTo: clientQueue.name});
+    rpc_exc.publish(to, {method: method, args: args, corrID: corrID, replyTo: clientQueue.name});
 
 }
 

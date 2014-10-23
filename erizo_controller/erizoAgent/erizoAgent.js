@@ -52,7 +52,7 @@ for (var prop in opt.options) {
 
 // Load submodules with updated config
 var logger = require('./../common/logger').logger;
-var rpc = require('./../common/rpc');
+var amqper = require('./../common/amqper');
 
 // Logger
 var log = logger.getLogger("ErizoAgent");
@@ -157,14 +157,14 @@ var api = {
 
 fillErizos();
 
-rpc.connect(function () {
+amqper.connect(function () {
     "use strict";
-    rpc.setPublicRPC(api);
+    amqper.setPublicRPC(api);
 
     var rpcID = "ErizoAgent";
     
 
-    rpc.bind(rpcID);
+    amqper.bind(rpcID);
 
 });
 

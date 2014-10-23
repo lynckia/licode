@@ -2,7 +2,7 @@
 
 var addon = require('./../../erizoAPI/build/Release/addon');
 var logger = require('./../common/logger').logger;
-var rpc = require('./../common/rpc');
+var amqper = require('./../common/amqper');
 
 // Logger
 var log = logger.getLogger("ErizoJSController");
@@ -39,7 +39,7 @@ exports.ErizoJSController = function (spec) {
         if (publishers[to] !== undefined) {
             var intervarId = setInterval(function () {
               if (publishers[to] !== undefined){
-                if (wrtc.getCurrentState() >= CONN_READY && publishers[to].muxer.getPublisherState() >=CONN_READY) {
+                if (wrtc.getCurrentState() >= CONN_READY && publishers[to].muxer.getPublisherState() >= CONN_READY) {
                     log.info("Sending FIR");
                     publishers[to].muxer.sendFIR();
                     clearInterval(intervarId);
@@ -55,51 +55,39 @@ exports.ErizoJSController = function (spec) {
      */
     initWebRtcConnection = function (wrtc, callback, id_pub, id_sub) {
 
-        if (GLOBAL.config.erizoController.sendStats) {
+        if (GLOBAL.config.erizoController.report.rtcp_stats) {
             wrtc.getStats(function (newStats){
                 log.info("Received RTCP stats: ", newStats);
                 var timeStamp = new Date();
-                rpc.callRpc('stats_handler', 'stats', [{pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()}]);
+                amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
             });
         }
 
         wrtc.init( function (newStatus, mess){
-          log.info("webrtc Addon status", newStatus, mess);
-          
-          // if (newStatus === 102 && !sdpDelivered) {
-          //   localSdp = wrtc.getLocalSdp();
-          //   answer = getRoap(localSdp, roap);
-          //   callback('callback', answer);
-          //   sdpDelivered = true;
+            log.info("webrtc Addon status", newStatus, mess);
 
-          // }
-          // if (newStatus === 103) {
-          //   callback('onReady');
-          // }
+            if (GLOBAL.config.erizoController.report.connection_events) {
+                var timeStamp = new Date();
+                amqper.broadcast('event', {pub: id_pub, subs: id_sub, type: 'connection_status', status: newStatus, timestamp:timeStamp.getTime()});
+            }
 
-          if (newStatus == CONN_INITIAL) {
-            callback('callback', {type: 'started'});
+            if (newStatus == CONN_INITIAL) {
+                callback('callback', {type: 'started'});
 
-          } else if (newStatus == CONN_SDP) {
-            log.debug('Sending SDP', mess);
-            callback('callback', {type: 'answer', sdp: mess});
+            } else if (newStatus == CONN_SDP) {
+                log.debug('Sending SDP', mess);
+                callback('callback', {type: 'answer', sdp: mess});
 
-          } else if (newStatus == CONN_CANDIDATE) {
-            callback('callback', {type: 'candidate', candidate: mess});
-          } else if (newStatus == CONN_READY) {
-            publishers[id_pub].muxer.sendFIR();
-          }
+            } else if (newStatus == CONN_CANDIDATE) {
+                callback('callback', {type: 'candidate', candidate: mess});
+            } else if (newStatus == CONN_READY) {
+                publishers[id_pub].muxer.sendFIR();
+            }
 
         });
         log.info("initializing");
 
         callback('callback', {type: 'initializing'});
-
-        // var roap = sdp,
-        //     remoteSdp = getSdp(roap);
-        // wrtc.setRemoteSdp(remoteSdp);
-
-        // var sdpDelivered = false;
     };
 
     /*
