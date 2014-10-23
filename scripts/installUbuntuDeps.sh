@@ -9,10 +9,6 @@ CURRENT_DIR=`pwd`
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
-pause() {
-  read -p "$*"
-}
-
 parse_arguments(){
   while [ "$1" != "" ]; do
     case $1 in
@@ -33,22 +29,22 @@ check_proxy(){
   else
     echo "http proxy configured, configuring npm"
     npm config set proxy $http_proxy
-  fi  
+  fi
 
   if [ -z "$https_proxy" ]; then
     echo "No https proxy set, doing nothing"
   else
     echo "https proxy configured, configuring npm"
     npm config set https-proxy $https_proxy
-  fi  
+  fi
 }
 
 install_apt_deps(){
-  sudo apt-get install python-software-properties
-  sudo apt-get install software-properties-common
-  sudo add-apt-repository ppa:chris-lea/node.js
-  sudo apt-get update
-  sudo apt-get install git make gcc g++ libssl-dev cmake libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev
+  sudo apt-get install -y python-software-properties
+  sudo apt-get install -y software-properties-common
+  sudo add-apt-repository -y ppa:chris-lea/node.js
+  sudo apt-get -y update
+  sudo apt-get -y install git make gcc g++ libssl-dev cmake libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev
   sudo npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/
 }
@@ -99,7 +95,7 @@ install_opus(){
 }
 
 install_mediadeps(){
-  sudo apt-get install yasm libvpx. libx264.
+  sudo apt-get -y install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-9.13.tar.gz
@@ -117,7 +113,7 @@ install_mediadeps(){
 }
 
 install_mediadeps_nogpl(){
-  sudo apt-get install yasm libvpx.
+  sudo apt-get -y install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-9.13.tar.gz
@@ -143,7 +139,7 @@ install_libsrtp(){
 }
 
 
-cleanup(){  
+cleanup(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     rm -r libnice*
@@ -158,28 +154,28 @@ parse_arguments $*
 
 mkdir -p $PREFIX_DIR
 
-pause "Installing deps via apt-get... [press Enter]"
+echo "Installing deps via apt-get... [press Enter]"
 install_apt_deps
 
 check_proxy
 
-pause "Installing openssl library...  [press Enter]"
+echo "Installing openssl library...  [press Enter]"
 install_openssl
 
-pause "Installing libnice library...  [press Enter]"
+echo "Installing libnice library...  [press Enter]"
 install_libnice
 
-pause "Installing libsrtp library...  [press Enter]"
+echo "Installing libsrtp library...  [press Enter]"
 install_libsrtp
 
-pause "Installing opus library...  [press Enter]"
+echo "Installing opus library...  [press Enter]"
 install_opus
 
 if [ "$ENABLE_GPL" = "true" ]; then
-  pause "GPL libraries enabled"
+  echo "GPL libraries enabled"
   install_mediadeps
 else
-  pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
+  echo "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
   install_mediadeps_nogpl
 fi
 
