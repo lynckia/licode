@@ -312,7 +312,7 @@ Erizo.Room = function (spec) {
                         type = 'recording';
                         arg = stream.recording;
                     }
-                    sendSDPSocket('publish', {state: type, data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, arg, function (answer, id) {
+                    sendSDPSocket('publish', {state: type, data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, arg, function (answer, id) {
 
                         if (answer === 'success') {
                             L.Logger.info('Stream published');
@@ -367,7 +367,7 @@ Erizo.Room = function (spec) {
                 } else {
 
                     stream.pc = Erizo.Connection({callback: function (offer) {
-                        sendSDPSocket('publish', {state: 'offer', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, offer, function (answer, id) {
+                        sendSDPSocket('publish', {state: 'offer', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, offer, function (answer, id) {
                             if (answer === 'error') {
                                 if (callbackError)
                                     callbackError(answer);
