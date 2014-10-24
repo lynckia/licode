@@ -512,14 +512,14 @@ var listen = function () {
                     });
 
                 } else {
+                    if (GLOBAL.config.erizoController.sendStats) {
+                        var timeStamp = new Date();
+                        rpc.callRpc('stats_handler', 'event', [{room: socket.room.id, user: socket.id, type: 'subscribe', stream: options.streamId, timestamp: timeStamp.getTime()}]);
+                    }
                     socket.room.controller.addSubscriber(socket.id, options.streamId, options.audio, options.video, sdp, function (answer) {
                         answer = answer.replace(privateRegexp, publicIP);
                         callback(answer);
                     }, function() {
-                        if (GLOBAL.config.erizoController.sendStats) {
-                            var timeStamp = new Date();
-                            rpc.callRpc('stats_handler', 'event', [{room: socket.room.id, user: socket.id, type: 'subscribe', stream: options.streamId, timestamp: timeStamp.getTime()}]);
-                        }
                         log.info("Subscriber added");
                     });
                 }

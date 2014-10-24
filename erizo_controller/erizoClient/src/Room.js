@@ -466,6 +466,7 @@ Erizo.Room = function (spec) {
                     sendSDPSocket('subscribe', {streamId: stream.getID()});
                 } else {
                     stream.pc = Erizo.Connection({callback: function (offer) {
+                        if (JSON.parse(offer).messageType !== 'OFFER') return;
                         sendSDPSocket('subscribe', {streamId: stream.getID(), audio: options.audio, video: options.video, data: options.data}, offer, function (answer) {
                             if (answer === 'error') {
                                 if (callbackError)
