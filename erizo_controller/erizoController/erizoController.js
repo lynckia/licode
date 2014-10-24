@@ -443,6 +443,10 @@ var listen = function () {
             } else if (options.state !== 'data' && !socket.room.p2p) {
                 if (options.state === 'offer' && socket.state === 'sleeping') {
                     id = Math.random() * 1000000000000000000;
+                    if (GLOBAL.config.erizoController.sendStats) {
+                        var timeStamp = new Date();
+                        rpc.callRpc('stats_handler', 'event', [{room: socket.room.id, user: socket.id, type: 'publish', stream: id, timestamp: timeStamp.getTime()}]);
+                    }
                     socket.room.controller.addPublisher(id, sdp, function (answer) {
                         socket.state = 'waitingOk';
                         answer = answer.replace(privateRegexp, publicIP);
@@ -455,10 +459,6 @@ var listen = function () {
 
                         if (socket.room.streams[id] !== undefined) {
                             sendMsgToRoom(socket.room, 'onAddStream', socket.room.streams[id].getPublicStream());
-                        }
-                        if (GLOBAL.config.erizoController.sendStats) {
-                            var timeStamp = new Date();
-                            rpc.callRpc('stats_handler', 'event', [{room: socket.room.id, user: socket.id, type: 'publish', stream: id, timestamp: timeStamp.getTime()}]);
                         }
                     });
 

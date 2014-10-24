@@ -71,7 +71,7 @@ exports.ErizoJSController = function (spec) {
 
           if (GLOBAL.config.erizoController.sendStats) {
             var timeStamp = new Date();
-            rpc.callRpc('stats_handler', 'event', {pub: id_pub, subs: id_sub, type: 'connection_status', status: newStatus, timestamp:timeStamp.getTime()});
+            rpc.callRpc('stats_handler', 'event', [{pub: id_pub, subs: id_sub, type: 'connection_status', status: newStatus, timestamp:timeStamp.getTime()}]);
           }
           if (newStatus === 102 && !sdpDelivered) {
             localSdp = wrtc.getLocalSdp();
