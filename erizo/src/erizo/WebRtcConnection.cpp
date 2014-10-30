@@ -206,7 +206,6 @@ namespace erizo {
   }
 
   int WebRtcConnection::deliverVideoData_(char* buf, int len) {
-    writeSsrc(buf, len, this->getVideoSinkSSRC());
     if (videoTransport_ != NULL) {
       if (videoEnabled_ == true) {
           RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
@@ -285,9 +284,9 @@ namespace erizo {
           recvSSRC = head->getSSRC();
         }
         // Deliver data
-        if (recvSSRC==this->getVideoSourceSSRC() || recvSSRC==this->getVideoSinkSSRC()) {
+        if (recvSSRC==this->getVideoSourceSSRC()) {
           videoSink_->deliverVideoData(buf, len);
-        } else if (recvSSRC==this->getAudioSourceSSRC() || recvSSRC==this->getAudioSinkSSRC()) {
+        } else if (recvSSRC==this->getAudioSourceSSRC()) {
           audioSink_->deliverAudioData(buf, len);
         } else {
           ELOG_ERROR("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
@@ -300,7 +299,6 @@ namespace erizo {
             ELOG_DEBUG("Audio Source SSRC is %u", head->getSSRC());
             this->setAudioSourceSSRC(head->getSSRC());
           }
-          head->setSSRC(this->getAudioSinkSSRC());
           audioSink_->deliverAudioData(buf, len);
         }
       } else if (transport->mediaType == VIDEO_TYPE) {
@@ -319,9 +317,6 @@ namespace erizo {
             this->setVideoSourceSSRC(recvSSRC);
           }
           // change ssrc for RTP packets, don't touch here if RTCP
-          if (chead->packettype != RTCP_Sender_PT) {
-            head->setSSRC(this->getVideoSinkSSRC());
-          }
           videoSink_->deliverVideoData(buf, len);
         }
       }
