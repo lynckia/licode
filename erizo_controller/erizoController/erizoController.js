@@ -383,6 +383,10 @@ var listen = function () {
 
         //Gets 'sendDataStream' messages on the socket in order to write a message in a dataStream.
         socket.on('sendDataStream', function (msg) {
+            if  (socket.room.streams[msg.id] === undefined){
+              log.warn('Trying to send Data from a non-initialized stream ', msg);
+              return;
+            }
             var sockets = socket.room.streams[msg.id].getDataSubscribers(), id;
             for (id in sockets) {
                 if (sockets.hasOwnProperty(id)) {
@@ -399,6 +403,10 @@ var listen = function () {
 
         //Gets 'updateStreamAttributes' messages on the socket in order to update attributes from the stream.
         socket.on('updateStreamAttributes', function (msg) {
+            if  (socket.room.streams[msg.id] === undefined){
+              log.warn('Trying to update atributes from a non-initialized stream ', msg);
+              return;
+            }
             var sockets = socket.room.streams[msg.id].getDataSubscribers(), id;
             socket.room.streams[msg.id].setAttributes(msg.attrs);
             for (id in sockets) {
