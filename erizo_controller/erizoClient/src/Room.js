@@ -381,7 +381,7 @@ Erizo.Room = function (spec) {
 
                 } else {
 
-                    sendSDPSocket('publish', {state: 'erizo', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes()}, undefined, function (answer, id) {
+                    sendSDPSocket('publish', {state: 'erizo', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, undefined, function (answer, id) {
                         if (answer === 'error') {
                             if (callbackError)
                                 callbackError(answer);
