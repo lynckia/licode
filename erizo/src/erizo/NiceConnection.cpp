@@ -64,8 +64,7 @@ namespace erizo {
       conn->updateComponentState(component_id, NICE_READY);
     } else if (state == NICE_COMPONENT_STATE_FAILED) {
       NiceConnection *conn = (NiceConnection*) user_data;
-      printf("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIL");
-//      conn->updateIceState(NICE_FAILED);
+      conn->updateComponentState(component_id, NICE_FAILED);
     }
 
   }
@@ -440,6 +439,13 @@ namespace erizo {
           return;
         }
       }
+    }else if (state == NICE_FAILED){
+      ELOG_ERROR("NICE Component %u FAILED", compId);
+      for (unsigned int i = 1; i<=iceComponents_; i++) {
+        if (comp_state_list_[i] != NICE_FAILED) {
+          return;
+        }
+      }
     }
     this->updateIceState(state);
   }
@@ -459,7 +465,7 @@ namespace erizo {
       case NICE_FINISHED:
         return;
       case NICE_FAILED:
-        ELOG_ERROR("Nice Failed");
+        ELOG_ERROR("Nice Failed, stopping ICE");
         this->running_=false;
         break;
 

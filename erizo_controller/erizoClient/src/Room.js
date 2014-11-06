@@ -205,6 +205,14 @@ Erizo.Room = function (spec) {
             }
         });
 
+        that.socket.on('connection_failed', function(arg){
+            L.Logger.info("ICE Connection Failed");
+            if (that.state !== DISCONNECTED) {
+                  var disconnectEvt = Erizo.RoomEvent({type: "stream-failed"});
+                  that.dispatchEvent(disconnectEvt);
+            }
+        });
+
         that.socket.on('signaling_message', function (arg) {
             var stream;
             if (arg.peerId) {

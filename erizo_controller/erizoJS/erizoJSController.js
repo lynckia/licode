@@ -83,6 +83,8 @@ exports.ErizoJSController = function (spec) {
             } else if (newStatus == CONN_READY) {
         //        log.info("Sending FIR from publisher", id_pub);
 //                publishers[id_pub].muxer.sendFIR();
+            }else if (newStatus == CONN_FAILED){
+              callback('callback', {type: 'failed'});
             }
 
         });

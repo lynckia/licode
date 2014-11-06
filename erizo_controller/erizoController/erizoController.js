@@ -473,9 +473,43 @@ var listen = function () {
                         }
                         return;
                     }
+                    // If the connection failed we remove the stream
+                    if (signMess.type ==='failed'){ 
+
+                        if (socket.room.streams[id] === undefined) {
+                            return;
+                        }
+                       
+                        log.info("IceConnection Failed on publisher, removing " , id);
+                        var i, index;
+                        var streamId = id;
+                        socket.emit('connection_failed',{});
+                        sendMsgToRoom(socket.room, 'onRemoveStream', {id: streamId});
+
+                        if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
+                            socket.state = 'sleeping';
+                            if (!socket.room.p2p) {
+                                socket.room.controller.removePublisher(streamId);
+                                if (GLOBAL.config.erizoController.report.session_events) {
+                                    var timeStamp = new Date();
+                                    amqper.broadcast('event', {room: socket.room.id, user: socket.id, type: 'failed', stream: streamId, timestamp: timeStamp.getTime()});
+                                }
+                            }
+                        }
+
+                        index = socket.streams.indexOf(streamId);
+                        if (index !== -1) {
+                            socket.streams.splice(index, 1);
+                        }
+                        if (socket.room.streams[streamId]) {
+                            delete socket.room.streams[streamId];
+                        }
+                        return;
+
+                    }
 
                     if (signMess.type === 'candidate') {
-                        signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
+                          signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
                     }
 
                     socket.emit('signaling_message', {mess: signMess, streamId: id});
