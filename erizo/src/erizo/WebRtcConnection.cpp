@@ -122,14 +122,29 @@ namespace erizo {
   std::string WebRtcConnection::getLocalSdp() {
     boost::mutex::scoped_lock lock(updateStateMutex_);
     ELOG_DEBUG("Getting SDP");
-    if (videoTransport_ != NULL) {
-      videoTransport_->processLocalSdp(&localSdp_);
+    if(bundle_) {
+        ELOG_DEBUG("Bundled Transports!")
+        if( videoTransport_ != NULL) {
+            videoTransport_->processLocalSdp(&localSdp_);
+            ELOG_DEBUG("Video SDP done.");
+        } else if( audioTransport_ != NULL) {
+            audioTransport_->processLocalSdp(&localSdp_);
+            ELOG_DEBUG("Audio SDP done.");
+        }
+        else {
+            ELOG_WARN("Bundle mode, but no audio or video transports?");
+        }
+    } else {
+        if (videoTransport_ != NULL) {
+            videoTransport_->processLocalSdp(&localSdp_);
+            ELOG_DEBUG("Video SDP done.");
+        }
+        if (audioTransport_ != NULL) {
+            audioTransport_->processLocalSdp(&localSdp_);
+            ELOG_DEBUG("Video SDP done.");
+        }
     }
-    ELOG_DEBUG("Video SDP done.");
-    if (!bundle_ && audioTransport_ != NULL) {
-      audioTransport_->processLocalSdp(&localSdp_);
-    }
-    ELOG_DEBUG("Audio SDP done.");
+
     localSdp_.profile = remoteSdp_.profile;
     return localSdp_.getSdp();
   }
