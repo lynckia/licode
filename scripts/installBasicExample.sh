@@ -11,5 +11,7 @@ EXTRAS=$ROOT/extras
 
 cd $EXTRAS/basic_example
 
+cp -r ${ROOT}/erizo_controller/erizoClient/dist/assets public/
+
 npm install --loglevel error express body-parser morgan errorhandler
 cd $CURRENT_DIR
