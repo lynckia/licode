@@ -9,8 +9,8 @@ We have changed the format in which roles are defined in Licode's installation. 
 
 ```javascript
 config.roles = {
-  "teacher":{"publish": true, "subscribe": true, "record": true},
-  {"subscribe": true}
+  "teacher": {"publish": true, "subscribe": true, "record": true},
+  "student": {"subscribe": true}
 };
 ```
 We can edit the roles in the configuration file that we can find at `licode/licode_config.js` once installed.
