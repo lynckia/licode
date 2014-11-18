@@ -243,9 +243,11 @@ namespace erizo {
         }
         // Deliver data
         if (recvSSRC==this->getVideoSourceSSRC() || recvSSRC==this->getVideoSinkSSRC()) {
-          videoSink_->deliverVideoData(buf, len);
+          if(videoSink_ != NULL)
+            videoSink_->deliverVideoData(buf, len);
         } else if (recvSSRC==this->getAudioSourceSSRC() || recvSSRC==this->getAudioSinkSSRC()) {
-          audioSink_->deliverAudioData(buf, len);
+          if(audioSink_ != NULL)
+            audioSink_->deliverAudioData(buf, len);
         } else {
           ELOG_ERROR("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
         }
