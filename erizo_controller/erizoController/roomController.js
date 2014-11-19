@@ -30,7 +30,7 @@ exports.RoomController = function (spec) {
     var callbackFor = function(erizo_id, publisher_id) {
         return function(ok) {
             if (ok !== true) {
-                dispatchEvent("unpublish", erizo_id);
+                dispatchEvent("unpublish", publisher_id);
                 rpc.callRpc("ErizoAgent", "deleteErizoJS", [erizo_id], {callback: function(){
                     delete erizos[publisher_id];
                 }});
