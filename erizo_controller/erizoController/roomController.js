@@ -60,7 +60,7 @@ exports.RoomController = function (spec) {
 
     var getErizoJS = function(callback) {
     	amqper.callRpc("ErizoAgent", "createErizoJS", [], {callback: function(erizo_id) {
-            log.debug("Answer", erizo_id);
+            log.info("Using Erizo", erizo_id);
             if (!erizos[erizo_id]) {
                 erizos[erizo_id] = {publishers: [], ka_count: 0};
             }

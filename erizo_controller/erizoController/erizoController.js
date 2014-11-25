@@ -279,7 +279,7 @@ var listen = function () {
         // Then registers it in the room and callback to the client.
         socket.on('token', function (token, callback) {
 
-            log.debug("New token", token);
+            //log.debug("New token", token);
 
             var tokenDB, user, streamList = [], index;
 
@@ -533,7 +533,7 @@ var listen = function () {
 
         //Gets 'subscribe' messages on the socket in order to add new subscriber to a determined stream (options.streamId).
         socket.on('subscribe', function (options, sdp, callback) {
-            log.info("Subscribing", options, callback);
+            //log.info("Subscribing", options, callback);
             if (socket.user === undefined || !socket.user.permissions[Permission.SUBSCRIBE]) {
                 callback('error', 'unauthorized');
                 return;
