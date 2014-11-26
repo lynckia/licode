@@ -28,12 +28,9 @@ Erizo.FirefoxStack = function (spec) {
     }
 
     that.mediaConstraints = {
-        optional: [],
-        mandatory: {
-            OfferToReceiveAudio: spec.audio,
-            OfferToReceiveVideo: spec.video,
-            MozDontOfferDataChannel: true
-        }
+            offerToReceiveAudio: spec.audio,
+            offerToReceiveVideo: spec.video,
+            mozDontOfferDataChannel: true
     };
 
     that.roapSessionId = 103;
