@@ -57,7 +57,6 @@ exports.ErizoJSController = function (spec) {
 
         if (GLOBAL.config.erizoController.report.rtcp_stats) {
             wrtc.getStats(function (newStats){
-                log.info("Received RTCP stats: ", newStats);
                 var timeStamp = new Date();
                 amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
             });
