@@ -41,14 +41,19 @@ var myRoom;
 N.API.getRooms(function(roomlist) {
     "use strict";
     var rooms = JSON.parse(roomlist);
-    console.log(rooms.length);
-    if (rooms.length === 0) {
+    console.log(rooms.length); //check and see if one of these rooms is 'myRoom'
+    for (var room in rooms) {
+        if (room.name === 'myRoom'){
+            myRoom = room._id;
+        }
+    }
+    if (!myRoom) {
+
         N.API.createRoom('myRoom', function(roomID) {
             myRoom = roomID._id;
             console.log('Created room ', myRoom);
         });
     } else {
-        myRoom = rooms[0]._id;
         console.log('Using room ', myRoom);
     }
 });
