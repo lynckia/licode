@@ -235,6 +235,10 @@ Erizo.ChromeStableStack = function (spec) {
                     //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
 
                     sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
+                    sessionDescription.sdp = sessionDescription.sdp.replace(/a=rtpmap:100 VP8\/90000/g,"a=rtpmap:120 VP8/90000");
+                    sessionDescription.sdp = sessionDescription.sdp.replace(/a=fmtp:96 apt=100/g,"a=fmtp:96 apt=120");
+                    sessionDescription.sdp = sessionDescription.sdp.replace(/m=video 1 RTP\/SAVPF 100/g,"m=video 1 RTP/SAVPF 120");
+                    sessionDescription.sdp = sessionDescription.sdp.replace(/a=rtcp-fb:100/g,"a=rtcp-fb:120");
                     L.Logger.debug("Changed", sessionDescription.sdp);
 
                     var newOffer = sessionDescription.sdp;

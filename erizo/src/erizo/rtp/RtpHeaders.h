@@ -17,7 +17,7 @@ namespace erizo{
 #define RTCP_RTP_Feedback_PT 205 // RTCP Transport Layer Feedback Packet
 #define RTCP_PS_Feedback_PT  206 // RTCP Payload Specific Feedback Packet
 
-#define VP8_90000_PT        100 // VP8 Video Codec
+#define VP8_90000_PT        120 // VP8 Video Codec
 #define RED_90000_PT        116 // REDundancy (RFC 2198)
 #define ULP_90000_PT        117 // ULP/FEC
 #define ISAC_16000_PT       103 // ISAC Audio Codec
