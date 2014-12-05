@@ -138,8 +138,9 @@ namespace erizo {
     writeSsrc(buf, len, this->getAudioSinkSSRC());
     RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
+    int internalPT = -1;
     if (!chead->isRtcp()) {
-        int internalPT = h->getPayloadType();
+        internalPT = h->getPayloadType();
         std::map<const int, int>::iterator found = remoteSdp_.inOutPTMap.find(internalPT);
         if (found != remoteSdp_.inOutPTMap.end()) {
             int externalPT = found->second;
@@ -156,6 +157,9 @@ namespace erizo {
       if (audioEnabled_ == true) {
         this->queueData(0, buf, len, audioTransport_);
       }
+    }
+    if (internalPT != -1) {
+      h->setPayloadType(internalPT);
     }
     return len;
   }
@@ -178,8 +182,9 @@ namespace erizo {
       if (videoEnabled_ == true) {
           RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
 RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
+int internalPT = -1;
 if (!chead->isRtcp()) {
-    int internalPT = h->getPayloadType();
+    internalPT = h->getPayloadType();
     std::map<const int, int>::iterator found = remoteSdp_.inOutPTMap.find(internalPT);
     if (found != remoteSdp_.inOutPTMap.end()) {
         int externalPT = found->second;
@@ -199,6 +204,9 @@ if (!chead->isRtcp()) {
             } else {
               this->queueData(0, buf, len, videoTransport_);
           }
+if (internalPT != -1) {
+  h->setPayloadType(internalPT);
+}
       }
     }
     return len;
@@ -243,18 +251,6 @@ if (!chead->isRtcp()) {
         thisStats_.processRtcpPacket(buf, len);
     }
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
-    {
-        RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
-        if (!chead->isRtcp()) {
-          int externalPT = h->getPayloadType();
-          std::map<const int, int>::iterator found = remoteSdp_.outInPTMap.find(externalPT);
-          if (found != remoteSdp_.outInPTMap.end()) {
-              int internalPT = found->second;
-              h->setPayloadType(internalPT);
-          } else {
-          }
-        }
-    }
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
       if (fbSink_ != NULL) {
