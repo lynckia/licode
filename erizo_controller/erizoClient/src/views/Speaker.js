@@ -50,7 +50,7 @@ Erizo.Speaker = function (spec) {
         that.picker.max = 100;
         that.picker.step = 10;
         that.picker.value = lastVolume;
-        that.picker.orient = "vertical"; //  FireFox supports range sliders as of version 23
+        that.picker.setAttribute("orient", "vertical"); //  FireFox supports range sliders as of version 23
         that.div.appendChild(that.picker);
         that.media.volume = that.picker.value / 100;
         that.media.muted = false;
@@ -68,7 +68,7 @@ Erizo.Speaker = function (spec) {
 
         // Private functions
         show = function (displaying) {
-            that.picker.setAttribute('style', 'width: 32px; height: 100px; position: absolute; bottom: 90%; z-index: 1;' + that.div.offsetHeight + 'px; right: 0px; -webkit-appearance: slider-vertical; display: ' + displaying);
+            that.picker.setAttribute('style', 'background: transparent; width: 32px; height: 100px; position: absolute; bottom: 90%; z-index: 1;' + that.div.offsetHeight + 'px; right: 0px; -webkit-appearance: slider-vertical; display: ' + displaying);
         };
 
         mute = function () {
