@@ -136,6 +136,17 @@ namespace erizo {
 
   int WebRtcConnection::deliverAudioData_(char* buf, int len) {
     writeSsrc(buf, len, this->getAudioSinkSSRC());
+    RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
+    RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
+    int internalPT = -1;
+    if (!chead->isRtcp()) {
+        internalPT = h->getPayloadType();
+        std::map<const int, int>::iterator found = remoteSdp_.inOutPTMap.find(internalPT);
+        if (found != remoteSdp_.inOutPTMap.end()) {
+            int externalPT = found->second;
+            h->setPayloadType(externalPT);
+        }
+    }
     if (bundle_){
       if (videoTransport_ != NULL) {
         if (audioEnabled_ == true) {
@@ -146,6 +157,9 @@ namespace erizo {
       if (audioEnabled_ == true) {
         this->queueData(0, buf, len, audioTransport_);
       }
+    }
+    if (internalPT != -1) {
+      h->setPayloadType(internalPT);
     }
     return len;
   }
@@ -167,6 +181,16 @@ namespace erizo {
     if (videoTransport_ != NULL) {
       if (videoEnabled_ == true) {
           RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
+RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
+int internalPT = -1;
+if (!chead->isRtcp()) {
+    internalPT = h->getPayloadType();
+    std::map<const int, int>::iterator found = remoteSdp_.inOutPTMap.find(internalPT);
+    if (found != remoteSdp_.inOutPTMap.end()) {
+        int externalPT = found->second;
+        h->setPayloadType(externalPT);
+    }
+}
           if (h->getPayloadType() == RED_90000_PT && !remoteSdp_.supportPayloadType(RED_90000_PT)) {
               // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
               // Let's go ahead and run this through our fec receiver to convert it to raw VP8
@@ -180,6 +204,9 @@ namespace erizo {
             } else {
               this->queueData(0, buf, len, videoTransport_);
           }
+if (internalPT != -1) {
+  h->setPayloadType(internalPT);
+}
       }
     }
     return len;
