@@ -136,6 +136,16 @@ namespace erizo {
 
   int WebRtcConnection::deliverAudioData_(char* buf, int len) {
     writeSsrc(buf, len, this->getAudioSinkSSRC());
+    RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
+    RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
+    if (!chead->isRtcp()) {
+        int internalPT = h->getPayloadType();
+        std::map<const int, int>::iterator found = remoteSdp_.inOutPTMap.find(internalPT);
+        if (found != remoteSdp_.inOutPTMap.end()) {
+            int externalPT = found->second;
+            h->setPayloadType(externalPT);
+        }
+    }
     if (bundle_){
       if (videoTransport_ != NULL) {
         if (audioEnabled_ == true) {
@@ -167,6 +177,15 @@ namespace erizo {
     if (videoTransport_ != NULL) {
       if (videoEnabled_ == true) {
           RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
+RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
+if (!chead->isRtcp()) {
+    int internalPT = h->getPayloadType();
+    std::map<const int, int>::iterator found = remoteSdp_.inOutPTMap.find(internalPT);
+    if (found != remoteSdp_.inOutPTMap.end()) {
+        int externalPT = found->second;
+        h->setPayloadType(externalPT);
+    }
+}
           if (h->getPayloadType() == RED_90000_PT && !remoteSdp_.supportPayloadType(RED_90000_PT)) {
               // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
               // Let's go ahead and run this through our fec receiver to convert it to raw VP8
@@ -224,6 +243,18 @@ namespace erizo {
         thisStats_.processRtcpPacket(buf, len);
     }
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
+    {
+        RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
+        if (!chead->isRtcp()) {
+          int externalPT = h->getPayloadType();
+          std::map<const int, int>::iterator found = remoteSdp_.outInPTMap.find(externalPT);
+          if (found != remoteSdp_.outInPTMap.end()) {
+              int internalPT = found->second;
+              h->setPayloadType(internalPT);
+          } else {
+          }
+        }
+    }
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
       if (fbSink_ != NULL) {
