@@ -114,7 +114,7 @@ void SdesTransport::write(char* data, int len) {
         return;
       }
       if (nice_->checkIceState() == NICE_READY) {
-          getTransportListener()->queueData(comp, protectBuf_, length, this);
+          getTransportListener()->queueData(comp, protectBuf_, length, this, OTHER_PACKET);
       }
     }
 }

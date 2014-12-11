@@ -138,12 +138,42 @@ public:
      * @return The SDP in string format.
      */
     std::string getSdp();
+    /**
+     * @brief map external payload type to an internal id
+     * @param externalPT The audio payload type as coming from this source
+     * @return The internal payload id
+     */
+    int getAudioInternalPT(int externalPT);
+    /**
+     * @brief map external payload type to an internal id
+     * @param externalPT The video payload type as coming from this source
+     * @return The internal payload id
+     */
+    int getVideoInternalPT(int externalPT);
+    /**
+     * @brief map internal payload id to an external payload type
+     * @param internalPT The payload type id used internally
+     * @return The external payload type as provided to this source
+     */
+    int getAudioExternalPT(int internalPT);
+    /**
+     * @brief map internal payload it to an external payload type
+     * @param internalPT The payload id as used internally
+     * @return The external video payload type
+     */
+    int getVideoExternalPT(int internalPT);
 
     RtpMap* getCodecByName(const std::string codecName, const unsigned int clockRate);
 
     bool supportCodecByName(const std::string codecName, const unsigned int clockRate);
 
     bool supportPayloadType(const int payloadType);
+
+    /**
+     * @brief copies relevant information from the offer sdp for which this will be an answer sdp
+     * @param offerSdp The offer SDP as received via signaling and parsed
+     */
+    void setOfferSdp(SdpInfo *offerSdp);
 
     /**
      * The audio and video SSRCs for this particular SDP.

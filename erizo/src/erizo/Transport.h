@@ -17,7 +17,7 @@ namespace erizo {
   class TransportListener {
     public:
       virtual void onTransportData(char* buf, int len, Transport *transport) = 0;
-      virtual void queueData(int comp, const char* data, int len, Transport *transport) = 0;
+      virtual void queueData(int comp, const char* data, int len, Transport *transport, packetType type) = 0;
       virtual void updateState(TransportState state, Transport *transport) = 0;
   };
   class Transport : public NiceConnectionListener {
