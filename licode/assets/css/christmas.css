@@ -24,7 +24,7 @@
 
 .christmas { 
   background-color: #fff;
-  background-image: url('/assets/img/snow.png'), url('/assets/img/snow3.png'), url('/assets/img/snow2.png');
+  background-image: url('/licode/assets/img/snow.png'), url('/licode/assets/img/snow3.png'), url('/licode/assets/img/snow2.png');
   -webkit-animation: snow 20s linear infinite;
   -moz-animation: snow 20s linear infinite;
   -ms-animation: snow 20s linear infinite;
