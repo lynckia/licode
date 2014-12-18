@@ -112,6 +112,14 @@ Erizo.ChromeStableStack = function (spec) {
         //that.peerConnection.setLocalDescription(sessionDescription);
     }
 
+    var setLocalDescp2p = function (sessionDescription) {
+        sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
+        sessionDescription.sdp = sessionDescription.sdp.replace(/a=ice-options:google-ice\r\n/g, "");
+        spec.callback(sessionDescription);
+        localDesc = sessionDescription;
+        that.peerConnection.setLocalDescription(sessionDescription);
+    }
+
     that.createOffer = function () {
         that.peerConnection.createOffer(setLocalDesc, null, that.mediaConstraints);
     };
@@ -124,15 +132,15 @@ Erizo.ChromeStableStack = function (spec) {
     spec.remoteDescriptionSet = false;
 
     that.processSignalingMessage = function (msg) {
-        console.log("Process Signaling Message", msg);
+        //console.log("Process Signaling Message", msg);
 
-        // if (msg.type === 'offer') {
-        //     msg.sdp = setMaxBW(msg.sdp);
-        //     that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg));
-        //     that.peerConnection.createAnswer(setLocalAndSendMessage, null, sdpConstraints);
-        // } else 
-
-        if (msg.type === 'answer') {
+        if (msg.type === 'offer') {
+            msg.sdp = setMaxBW(msg.sdp);
+            that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg));
+            that.peerConnection.createAnswer(setLocalDescp2p, null, that.mediaConstraints);
+            spec.remoteDescriptionSet = true;
+        
+        } else if (msg.type === 'answer') {
 
 
             // // For compatibility with only audio in Firefox Revisar
@@ -162,7 +170,12 @@ Erizo.ChromeStableStack = function (spec) {
 
         } else if (msg.type === 'candidate') {
             try {
-                var obj = JSON.parse(msg.candidate);
+                var obj;
+                if (typeof(msg.candidate) === 'object') {
+                    obj = msg.candidate;
+                } else {
+                    obj = JSON.parse(msg.candidate);
+                }
                 obj.candidate = obj.candidate.replace(/a=/g, "");
                 obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex);
                 var candidate = new RTCIceCandidate(obj);

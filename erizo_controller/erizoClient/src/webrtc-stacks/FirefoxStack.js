@@ -46,22 +46,13 @@ Erizo.FirefoxStack = function (spec) {
 
     that.peerConnection.onicecandidate =  function (event) {
         if (event.candidate) {
-          L.Logger.info("EVENT CANDIDATE " , event.candidate);  
+          //L.Logger.info("EVENT CANDIDATE " , event.candidate);  
           if (spec.remoteDescriptionSet) {
                 spec.callback({type:'candidate', candidate: event.candidate});
             } else {
                 spec.localCandidates.push(event.candidate);
                 console.log("Local Candidates stored: ", spec.localCandidates.length, spec.localCandidates);
             }
-
-            
-
-            // sendMessage({type: 'candidate',
-            //        label: event.candidate.sdpMLineIndex,
-            //        id: event.candidate.sdpMid,
-            //        candidate: event.candidate.candidate});
-
-
         } else {
             console.log("End of candidates.");
         }
@@ -111,6 +102,14 @@ Erizo.FirefoxStack = function (spec) {
         localDesc = sessionDescription;
     }
 
+    var setLocalDescp2p = function (sessionDescription) {
+        sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
+        sessionDescription.sdp = sessionDescription.sdp.replace(/a=ice-options:google-ice\r\n/g, "");
+        spec.callback(sessionDescription);
+        localDesc = sessionDescription;
+        that.peerConnection.setLocalDescription(localDesc);
+    }
+
     that.createOffer = function () {
         that.peerConnection.createOffer(setLocalDesc, function(error){
           L.Logger.error("Error", error);
@@ -133,16 +132,18 @@ Erizo.FirefoxStack = function (spec) {
     };
 
     that.processSignalingMessage = function (msg) {
-//        console.log("Process Signaling Message", msg);
+        
+        //console.log("Process Signaling Message", msg);
 
-        // if (msg.type === 'offer') {
-        //     msg.sdp = setMaxBW(msg.sdp);
-        //     that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg));
-        //     that.peerConnection.createAnswer(setLocalAndSendMessage, null, sdpConstraints);
-        // } else 
+        if (msg.type === 'offer') {
+            msg.sdp = setMaxBW(msg.sdp);
+            that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg));
+            that.peerConnection.createAnswer(setLocalDescp2p, function(error){
+                L.Logger.error("Error", error);
+            }, that.mediaConstraints);
+            spec.remoteDescriptionSet = true;
 
-        if (msg.type === 'answer') {
-
+        } else if (msg.type === 'answer') {
 
             // // For compatibility with only audio in Firefox Revisar
             // if (answer.match(/a=ssrc:55543/)) {
@@ -170,13 +171,18 @@ Erizo.FirefoxStack = function (spec) {
         } else if (msg.type === 'candidate') {
           
             try {
-                var obj = JSON.parse(msg.candidate);
+                var obj;
+                if (typeof(msg.candidate) === 'object') {
+                    obj = msg.candidate;
+                } else {
+                    obj = JSON.parse(msg.candidate);
+                }
                 obj.candidate = obj.candidate.replace(/ generation 0/g, "");
                 obj.candidate = obj.candidate.replace(/ udp /g, " UDP ");
                 obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex);
                 var candidate = new RTCIceCandidate(obj);
                 candidate.sdpMLineIndex = candidate.sdpMid=="audio"?0:1;
-                console.log("Remote Candidate",candidate);
+                //console.log("Remote Candidate",candidate);
 
                 if (spec.remoteDescriptionSet) {
                     that.peerConnection.addIceCandidate(candidate);

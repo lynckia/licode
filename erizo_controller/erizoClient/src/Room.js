@@ -117,59 +117,73 @@ Erizo.Room = function (spec) {
             that.dispatchEvent(evt);
         });
 
+        that.socket.on('signaling_message_erizo', function (arg) {
+            var stream;
+            if (arg.peerId) {
+                stream = that.remoteStreams[arg.peerId];
+            } else {
+                stream = that.localStreams[arg.streamId];
+            }
+             
+            if (stream) {
+                stream.pc.processSignalingMessage(arg.mess);
+            }
+        });
 
-        that.socket.on('onSubscribeP2P', function (arg) {
+        that.socket.on('signaling_message_peer', function (arg) {
+
+            var stream = that.localStreams[arg.streamId];
+
+            if (stream) {
+                stream.pc[arg.peerSocket].processSignalingMessage(arg.msg);
+            } else {
+                stream = that.remoteStreams[arg.streamId];
+
+                if (!stream.pc) {
+                    create_remote_pc(stream, arg.peerSocket);
+                }   
+                stream.pc.processSignalingMessage(arg.msg);
+            }
+        });
+
+        that.socket.on('publish_me', function (arg) {
             var myStream = that.localStreams[arg.streamId];
 
             if (myStream.pc === undefined) {
                 myStream.pc = {};
             }
 
-            myStream.pc[arg.subsSocket] = Erizo.Connection({callback: function (offer) {
-                sendSDPSocket('publish', {state: 'p2pSignaling', streamId: arg.streamId, subsSocket: arg.subsSocket}, offer, function (answer, id) {
-                    if (answer === 'error') {
-                        if (callbackError) callbackError(answer);
-                    }
-                    myStream.pc[arg.subsSocket].onsignalingmessage = function (ok) {
-                        myStream.pc[arg.subsSocket].onsignalingmessage = function () {};
-                    };
-
-                    myStream.pc[arg.subsSocket].processSignalingMessage(answer);
-                });
+            myStream.pc[arg.peerSocket] = Erizo.Connection({callback: function (msg) {
+                sendSDPSocket('signaling_message', {streamId: arg.streamId, peerSocket: arg.peerSocket, msg: msg});
             }, audio: myStream.hasAudio(), video: myStream.hasVideo(), stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
-            myStream.pc[arg.subsSocket].addStream(myStream.stream);
 
-            myStream.pc[arg.subsSocket].oniceconnectionstatechange = function (state) {
+            myStream.pc[arg.peerSocket].oniceconnectionstatechange = function (state) {
                 if (state === 'disconnected') {
-                    myStream.pc[arg.subsSocket].close();
-                    delete myStream.pc[arg.subsSocket];
+                    myStream.pc[arg.peerSocket].close();
+                    delete myStream.pc[arg.peerSocket];
                 }
             };
 
+            myStream.pc[arg.peerSocket].addStream(myStream.stream);
+            myStream.pc[arg.peerSocket].createOffer();
         });
 
-        that.socket.on('onPublishP2P', function (arg, callback) {
-            var myStream = that.remoteStreams[arg.streamId];
+        var create_remote_pc = function (stream, peerSocket) {
 
-            myStream.pc = Erizo.Connection({callback: function (offer) {}, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, maxAudioBW: spec.maxAudioBW, maxVideoBW: spec.maxVideoBW});
+            stream.pc = Erizo.Connection({callback: function (msg) {
+                sendSDPSocket('signaling_message', {streamId: stream.getID(), peerSocket: peerSocket, msg: msg});
+            }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, maxAudioBW: spec.maxAudioBW, maxVideoBW: spec.maxVideoBW});
 
-            myStream.pc.onsignalingmessage = function (answer) {
-                myStream.pc.onsignalingmessage = function () {};
-                callback(answer);
-            };
-
-            myStream.pc.processSignalingMessage(arg.sdp);
-
-            myStream.pc.onaddstream = function (evt) {
+            stream.pc.onaddstream = function (evt) {
                 // Draw on html
                 L.Logger.info('Stream subscribed');
-                myStream.stream = evt.stream;
-                var evt2 = Erizo.StreamEvent({type: 'stream-subscribed', stream: myStream});
+                stream.stream = evt.stream;
+                var evt2 = Erizo.StreamEvent({type: 'stream-subscribed', stream: stream});
                 that.dispatchEvent(evt2);
             };
 
-        });
+        }
 
         // We receive an event of new data in one of the streams
         that.socket.on('onDataStream', function (arg) {
@@ -210,21 +224,6 @@ Erizo.Room = function (spec) {
             if (that.state !== DISCONNECTED) {
                   var disconnectEvt = Erizo.RoomEvent({type: "stream-failed"});
                   that.dispatchEvent(disconnectEvt);
-            }
-        });
-
-        that.socket.on('signaling_message', function (arg) {
-            var stream;
-            if (arg.peerId) {
-                stream = that.remoteStreams[arg.peerId];
-            } else {
-                stream = that.localStreams[arg.streamId];
-            }
-             
-
-            console.log('SOCKE SID', arg.mess);
-            if (stream) {
-                stream.pc.processSignalingMessage(arg.mess);
             }
         });
 
@@ -365,10 +364,10 @@ Erizo.Room = function (spec) {
                     // We save them now to be used when actually publishing in P2P mode.
                     spec.maxAudioBW = options.maxAudioBW;
                     spec.maxVideoBW = options.maxVideoBW;
-                    sendSDPSocket('publish', {state: 'p2p', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, undefined, function (answer, id) {
-                        if (answer === 'error') {
+                    sendSDPSocket('publish', {state: 'p2p', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, undefined, function (id) {
+                        if (id === 'error') {
                             if (callbackError)
-                                callbackError(answer);
+                                callbackError(id);
                         }
                         L.Logger.info('Stream published');
                         stream.getID = function () {

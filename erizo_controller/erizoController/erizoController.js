@@ -401,9 +401,12 @@ var listen = function () {
         });
 
         socket.on('signaling_message', function (msg) {
-            socket.room.controller.processSignaling(msg.streamId, socket.id, msg.msg);
+            if (socket.room.p2p) {
+                io.sockets.socket(msg.peerSocket).emit('signaling_message_peer', {streamId: msg.streamId, peerSocket: socket.id, msg: msg.msg});
+            } else {
+                socket.room.controller.processSignaling(msg.streamId, socket.id, msg.msg);
+            }
         });
-
 
         //Gets 'updateStreamAttributes' messages on the socket in order to update attributes from the stream.
         socket.on('updateStreamAttributes', function (msg) {
@@ -516,11 +519,7 @@ var listen = function () {
                           signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
                     }
 
-                    socket.emit('signaling_message', {mess: signMess, streamId: id});
-                });
-            } else if (options.state === 'p2pSignaling') {
-                io.sockets.socket(options.subsSocket).emit('onPublishP2P', {sdp: sdp, streamId: options.streamId}, function(answer) {
-                    callback(answer);
+                    socket.emit('signaling_message_erizo', {mess: signMess, streamId: id});
                 });
             } else {
                 st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
@@ -560,9 +559,7 @@ var listen = function () {
 
                 if (socket.room.p2p) {
                     var s = stream.getSocket();
-                    io.sockets.socket(s).emit('onSubscribeP2P', {streamId: options.streamId, subsSocket: socket.id}, function(offer) {
-                        callback(offer);
-                    });
+                    io.sockets.socket(s).emit('publish_me', {streamId: options.streamId, peerSocket: socket.id});
 
                 } else {
                     socket.room.controller.addSubscriber(socket.id, options.streamId, options.audio, options.video, function (signMess) {
@@ -581,7 +578,7 @@ var listen = function () {
                         if (signMess.type === 'candidate') {
                             signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
                         }
-                        socket.emit('signaling_message', {mess: signMess, peerId: options.streamId});
+                        socket.emit('signaling_message_erizo', {mess: signMess, peerId: options.streamId});
                     });
 
                     log.info("Subscriber added");
