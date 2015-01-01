@@ -164,7 +164,9 @@ namespace erizo {
   }
 
   std::string SdpInfo::getSdp() {
-    char msidtemp [10];
+    char msidtemp [11];
+    // Note that the generated string is a character less than the char array
+    // to allow for a terminating null character.
     gen_random(msidtemp,10);
 
     ELOG_DEBUG("Getting SDP");
