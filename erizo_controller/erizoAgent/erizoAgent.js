@@ -88,14 +88,15 @@ var removeChild = function(id) {
 };
 
 var launchErizoJS = function() {
-    console.log("Running process");
     var id = guid();
+    log.debug("Running process with id " + id);
     var fs = require('fs');
     var out = fs.openSync('./erizo-' + id + '.log', 'a');
     var err = fs.openSync('./erizo-' + id + '.log', 'a');
     var erizoProcess = spawn('node', ['./../erizoJS/erizoJS.js', id], { detached: true, stdio: [ 'ignore', out, err ] });
     erizoProcess.unref();
     erizoProcess.on('close', function (code) {
+      log.debug("Closing process with id " + id);
         var index = idle_erizos.indexOf(id);
         var index2 = erizos.indexOf(id);
         if (index > -1) {
