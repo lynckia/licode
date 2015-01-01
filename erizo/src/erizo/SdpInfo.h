@@ -210,11 +210,11 @@ public:
     /**
     * Mapping from internal PT (key) to external PT (value)
     */
-    std::map<const int, int> inOutPTMap;
+    std::map<int, int> inOutPTMap;
     /**
     * Mapping from external PT (key) to intermal PT (value)
     */
-    std::map<const int, int> outInPTMap;
+    std::map<int, int> outInPTMap;
 
 private:
     bool processSdp(const std::string& sdp);
