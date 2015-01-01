@@ -14,6 +14,6 @@ include_directories(${ERIZO_TEST_SOURCE_DIR}/../erizo)
 link_directories(${ERIZO_TEST_SOURCE_DIR}/../../build)
 
 set (BOOST_LIBS thread regex system)
-find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
+find_package(Boost COMPONENTS ${BOOST_LIBS} system unit_test_framework REQUIRED)
 target_link_libraries(test ${Boost_LIBRARIES})
 target_link_libraries(test ${EXTRA_LIBS})
