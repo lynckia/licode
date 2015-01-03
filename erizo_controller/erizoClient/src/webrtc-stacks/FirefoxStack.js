@@ -19,6 +19,10 @@ Erizo.FirefoxStack = function (spec) {
         that.pc_config.iceServers.push({"url": spec.stunServerUrl});
     } 
 
+    if ((spec.turnServer || {}).url) {
+        that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
+    }
+
     if (spec.audio === undefined) {
         spec.audio = true;
     }
@@ -35,7 +39,7 @@ Erizo.FirefoxStack = function (spec) {
 
     that.roapSessionId = 103;
 
-    that.peerConnection = new WebkitRTCPeerConnection();
+    that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
 
     that.peerConnection.onicecandidate = function (event) {
         L.Logger.debug("PeerConnection: ", spec.session_id);
