@@ -483,9 +483,9 @@ namespace erizo {
         }
         if (externalPT != internalPT) {
             h->setPayloadType(internalPT);
-            ELOG_ERROR("onTransportData mapping %i to %i", externalPT, internalPT);
+//            ELOG_ERROR("onTransportData mapping %i to %i", externalPT, internalPT);
         } else {
-            ELOG_ERROR("onTransportData did not find mapping for %i", externalPT);
+//            ELOG_ERROR("onTransportData did not find mapping for %i", externalPT);
         }
       }
   }
