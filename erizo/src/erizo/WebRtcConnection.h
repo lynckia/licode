@@ -87,6 +87,11 @@ public:
     int deliverVideoData(char* buf, int len);
 
     int deliverFeedback(char* buf, int len);
+  
+    // changes the outgoing payload type for in the given data packet
+    void changeDeliverPayloadType(dataPacket *dp, packetType type);
+    // parses incoming payload type, replaces occurence in buf
+    void parseIncomingPayloadType(char *buf, int len, packetType type);
 
     /**
      * Sends a FIR Packet (RFC 5104) asking for a keyframe
@@ -121,7 +126,7 @@ public:
 
     void updateState(TransportState state, Transport * transport);
 
-    void queueData(int comp, const char* data, int len, Transport *transport);
+    void queueData(int comp, const char* data, int len, Transport *transport, packetType type);
 
     void onCandidate(const std::string& sdp, Transport *transport);
 

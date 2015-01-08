@@ -46,13 +46,19 @@ Erizo.FirefoxStack = function (spec) {
 
     that.peerConnection.onicecandidate =  function (event) {
         if (event.candidate) {
-          //L.Logger.info("EVENT CANDIDATE " , event.candidate);  
-          if (spec.remoteDescriptionSet) {
+
+            if (!event.candidate.candidate.match(/a=/)) {
+                event.candidate.candidate ="a="+event.candidate.candidate;
+            };
+            event.candidate.sdpMid = event.candidate.sdpMLineIndex == 0?"audio":"video";
+
+            if (spec.remoteDescriptionSet) {
                 spec.callback({type:'candidate', candidate: event.candidate});
             } else {
                 spec.localCandidates.push(event.candidate);
                 console.log("Local Candidates stored: ", spec.localCandidates.length, spec.localCandidates);
             }
+
         } else {
             console.log("End of candidates.");
         }
@@ -163,6 +169,7 @@ Erizo.FirefoxStack = function (spec) {
                 }
 
                 while(spec.localCandidates.length > 0) {
+                  L.Logger.info("Sending Candidate");
                   spec.callback({type:'candidate', candidate: spec.localCandidates.pop()});
                 }
               });
