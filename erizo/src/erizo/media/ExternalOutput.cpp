@@ -403,8 +403,11 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
             webrtc::RTPHeader hackyHeader;
             hackyHeader.headerLength = h->getHeaderLength();
             hackyHeader.sequenceNumber = h->getSeqNumber();
-            fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*)buffer, length, ULP_90000_PT);
-            fec_receiver_.ProcessReceivedFec();
+
+            // AddReceivedRedPacket returns 0 if there's data to process
+            if(0 == fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*)buffer, length, ULP_90000_PT)) {
+                fec_receiver_.ProcessReceivedFec();
+            }
         } else {
             videoQueue_.pushPacket(buffer, length);
         }
