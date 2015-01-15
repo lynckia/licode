@@ -12,6 +12,7 @@ Erizo.ChromeStableStack = function (spec) {
         "iceServers": []
     };
 
+
     that.con = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
 
     if (spec.stunServerUrl !== undefined) {
@@ -22,25 +23,29 @@ Erizo.ChromeStableStack = function (spec) {
         that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
     }
 
-    if (spec.audio === undefined || spec.nop2p) {
+    if (spec.audio === undefined) {
         spec.audio = true;
     }
 
-    if (spec.video === undefined || spec.nop2p) {
+    if (spec.video === undefined) {
         spec.video = true;
     }
 
     that.mediaConstraints = {
-        'mandatory': {
+        mandatory : {
             'OfferToReceiveVideo': spec.video,
             'OfferToReceiveAudio': spec.audio
         }
     };
+    
+    var errorCallback = function(message){
+      console.log("Error in Stack ", message);
+    }
 
     that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
     
     var setMaxBW = function (sdp) {
-        if (spec.maxVideoBW) {
+        if (spec.video && spec.maxVideoBW) {
             var a = sdp.match(/m=video.*\r\n/);
             if (a == null){
               a = sdp.match(/m=video.*\n/);
@@ -49,7 +54,7 @@ Erizo.ChromeStableStack = function (spec) {
             sdp = sdp.replace(a[0], r);
         }
 
-        if (spec.maxAudioBW) {
+        if (spec.audio && spec.maxAudioBW) {
             var a = sdp.match(/m=audio.*\r\n/);
             if (a == null){
               a = sdp.match(/m=audio.*\n/);
@@ -120,8 +125,13 @@ Erizo.ChromeStableStack = function (spec) {
         that.peerConnection.setLocalDescription(sessionDescription);
     }
 
-    that.createOffer = function () {
-        that.peerConnection.createOffer(setLocalDesc, null, that.mediaConstraints);
+    that.createOffer = function (isSubscribe) {
+      if (isSubscribe===true){
+          that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
+      }else{
+          that.peerConnection.createOffer(setLocalDesc, errorCallback);
+      }
+
     };
 
     that.addStream = function (stream) {

@@ -316,7 +316,12 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
   std::string username;
   std::string password;
   nice_->getLocalCredentials(username, password);
-  localSdp_->setCredentials(username, password, this->mediaType);
+  if (bundle_){
+    localSdp_->setCredentials(username, password, VIDEO_TYPE);
+    localSdp_->setCredentials(username, password, AUDIO_TYPE);
+  }else{
+     localSdp_->setCredentials(username, password, this->mediaType);
+  }
   ELOG_DEBUG( "Processed Local SDP in DTLS Transport with credentials %s, %s", username.c_str(), password.c_str());
 }
 

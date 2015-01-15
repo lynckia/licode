@@ -267,8 +267,7 @@ namespace erizo {
     ELOG_DEBUG("LibNice thread finished %p", this);
   }
 
-  bool NiceConnection::setRemoteCandidates(
-      std::vector<CandidateInfo> &candidates) {
+  bool NiceConnection::setRemoteCandidates(std::vector<CandidateInfo> &candidates, bool isBundle) {
     if(agent_==NULL){
       running_=false;
       return false;
@@ -280,7 +279,8 @@ namespace erizo {
     for (unsigned int it = 0; it < candidates.size(); it++) {
       NiceCandidateType nice_cand_type;
       CandidateInfo cinfo = candidates[it];
-      if (cinfo.componentId !=1 || cinfo.mediaType!=this->mediaType)
+      //If bundle we will add the candidates regardless the mediaType
+      if (cinfo.componentId !=1 || (!isBundle && cinfo.mediaType!=this->mediaType ))
         continue;
 
       switch (cinfo.hostType) {

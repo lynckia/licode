@@ -93,7 +93,7 @@ public:
 	 * @param candidates A vector containing the CandidateInfo.
 	 * @return true if successfull.
 	 */
-	bool setRemoteCandidates(std::vector<CandidateInfo> &candidates);
+	bool setRemoteCandidates(std::vector<CandidateInfo> &candidates, bool isBundle);
 	/**
 	 * Sets the local ICE Candidates. Called by C Nice functions.
 	 * @param candidates A vector containing the CandidateInfo.

@@ -212,7 +212,12 @@ namespace erizo {
     sdp << "t=0 0\n";
 
     if (isBundle) {
-      sdp << "a=group:BUNDLE audio video\n";
+      sdp << "a=group:BUNDLE";
+      if (this->hasAudio)
+        sdp << " audio";
+      if (this->hasVideo)
+        sdp << " video";
+      sdp << "\n";
       sdp << "a=msid-semantic: WMS "<< msidtemp << endl;
      }
     //candidates audio

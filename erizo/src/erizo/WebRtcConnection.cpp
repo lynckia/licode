@@ -90,7 +90,7 @@ namespace erizo {
     if (remoteSdp_.profile == SAVPF) {
       if (remoteSdp_.isFingerprint) {
         // DTLS-SRTP
-        if (remoteSdp_.hasVideo) {
+        if (remoteSdp_.hasVideo||bundle_) {
           videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
         }
         if (!bundle_ && remoteSdp_.hasAudio) {
@@ -106,10 +106,10 @@ namespace erizo {
     if (!remoteSdp_.getCandidateInfos().empty()){
       ELOG_DEBUG("There are candidate in the SDP: Setting Remote Candidates!!!!");
       if (remoteSdp_.hasVideo) {
-        videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
+        videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos(), bundle_);
       }
       if (!bundle_ && remoteSdp_.hasAudio) {
-        audioTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos());
+        audioTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos(), bundle_);
       }
     }
 
@@ -136,10 +136,10 @@ namespace erizo {
     bool res;
     if (theType == VIDEO_TYPE||bundle_){
       ELOG_DEBUG("Setting VIDEO CANDIDATE" );
-      res = videoTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
+      res = videoTransport_->setRemoteCandidates(tempSdp.getCandidateInfos(), bundle_);
     } else if (theType==AUDIO_TYPE){
       ELOG_DEBUG("Setting AUDIO CANDIDATE");
-      res = audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
+      res = audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos(), bundle_);
     }else{
       ELOG_ERROR("Cannot add remote candidate with no Media (video or audio)");
     }

@@ -22,11 +22,11 @@ Erizo.BowserStack = function (spec) {
         that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
     }
 
-    if (spec.audio === undefined || spec.nop2p) {
+    if (spec.audio === undefined) {
         spec.audio = true;
     }
 
-    if (spec.video === undefined || spec.nop2p) {
+    if (spec.video === undefined) {
         spec.video = true;
     }
 

@@ -58,8 +58,8 @@ namespace erizo {
       void writeOnNice(int comp, void* buf, int len) {
         nice_->sendData(comp, buf, len);
       }
-      bool setRemoteCandidates(std::vector<CandidateInfo> &candidates) {
-        return nice_->setRemoteCandidates(candidates);
+      bool setRemoteCandidates(std::vector<CandidateInfo> &candidates, bool isBundle) {
+        return nice_->setRemoteCandidates(candidates, isBundle);
       }
       bool rtcp_mux_;
     private:
