@@ -417,10 +417,10 @@ Erizo.Room = function (spec) {
                 }
             } else if (stream.hasData()) {
                 // 3- Publish Data Stream
-                sendSDPSocket('publish', {state: 'data', data: stream.hasData(), audio: false, video: false, screen: false, attributes: stream.getAttributes()}, undefined, function (answer, id) {
-                    if (answer === 'error') {
+                sendSDPSocket('publish', {state: 'data', data: stream.hasData(), audio: false, video: false, screen: false, attributes: stream.getAttributes()}, undefined, function (id) {
+                    if (id === 'error') {
                         if (callbackError)
-                            callbackError(answer);
+                            callbackError(id);
                         return;
                     }
                     L.Logger.info('Stream published');
