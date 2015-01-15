@@ -47,8 +47,6 @@ private:
     boost::condition_variable cond_;
     AVStream *video_stream_, *audio_stream_;
 
-    unsigned long long lastFullIntraFrameRequest_;
-
     AVFormatContext *context_;
 
     int unpackagedSize_;
@@ -90,6 +88,7 @@ private:
     // composed of one or more partitions.  However, we don't seem to be sent anything but partition 0
     // so the second scheme seems not applicable.  Too bad.
     vp8SearchState vp8SearchState_;
+    bool needToSendFir_;
 
     bool initContext();
     int sendFirPacket();

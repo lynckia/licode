@@ -158,11 +158,13 @@ Erizo.ChromeStableStack = function (spec) {
                 spec.remoteDescriptionSet = true;
                 console.log("Candidates to be added: ", spec.remoteCandidates.length, spec.remoteCandidates);
                 while (spec.remoteCandidates.length > 0) {
-                  that.peerConnection.addIceCandidate(spec.remoteCandidates.pop());
+                // IMPORTANT: preserve ordering of candidates
+                  that.peerConnection.addIceCandidate(spec.remoteCandidates.shift());
                 }
                 console.log("Local candidates to send:" , spec.localCandidates.length);
                 while(spec.localCandidates.length > 0) {
-                  spec.callback({type:'candidate', candidate: spec.localCandidates.pop()});
+                // IMPORTANT: preserve ordering of candidates
+                  spec.callback({type:'candidate', candidate: spec.localCandidates.shift()});
                 }
 
               });

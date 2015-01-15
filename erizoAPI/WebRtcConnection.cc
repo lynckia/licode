@@ -73,6 +73,14 @@ Handle<Value> WebRtcConnection::close(const Arguments& args) {
   uv_close((uv_handle_t*)&obj->async_, NULL);
   uv_close((uv_handle_t*)&obj->asyncStats_, NULL);
 
+
+  if(!uv_is_closing((uv_handle_t*)&obj->async_)) {
+    uv_close((uv_handle_t*)&obj->async_, NULL);
+  }
+  if(!uv_is_closing((uv_handle_t*)&obj->asyncStats_)) {
+ 	uv_close((uv_handle_t*)&obj->asyncStats_, NULL);
+  }
+
   return scope.Close(Null());
 }
 
