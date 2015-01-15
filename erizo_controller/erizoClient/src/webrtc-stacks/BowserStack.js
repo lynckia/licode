@@ -131,8 +131,12 @@ Erizo.BowserStack = function (spec) {
         that.peerConnection.setLocalDescription(sessionDescription);
     }
 
-    that.createOffer = function () {
+    that.createOffer = function (isSubscribe) {
+      if (isSubscribe===true)
         that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
+      else
+        that.peerConnection.createOffer(setLocalDesc, errorCallback);
+
     };
 
     that.addStream = function (stream) {

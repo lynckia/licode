@@ -60,8 +60,8 @@ namespace erizo {
   void cb_component_state_changed(NiceAgent *agent, guint stream_id,
       guint component_id, guint state, gpointer user_data) {
     if (state == NICE_COMPONENT_STATE_CONNECTED) {
-      NiceConnection *conn = (NiceConnection*) user_data;
-      conn->updateComponentState(component_id, NICE_READY);
+//      NiceConnection *conn = (NiceConnection*) user_data;
+//      conn->updateComponentState(component_id, NICE_READY);
     } else if (state == NICE_COMPONENT_STATE_FAILED) {
       NiceConnection *conn = (NiceConnection*) user_data;
       conn->updateComponentState(component_id, NICE_FAILED);
@@ -71,8 +71,8 @@ namespace erizo {
 
   void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
       gchar *lfoundation, gchar *rfoundation, gpointer user_data) {
-//    NiceConnection *conn = (NiceConnection*) user_data;
-//    conn->updateComponentState(component_id, NICE_READY);
+    NiceConnection *conn = (NiceConnection*) user_data;
+    conn->updateComponentState(component_id, NICE_READY);
   }
 
   NiceConnection::NiceConnection(MediaType med, const std::string &transport_name,NiceConnectionListener* listener, 

@@ -505,7 +505,7 @@ Erizo.Room = function (spec) {
                             var evt2 = Erizo.StreamEvent({type: 'stream-subscribed', stream: stream});
                             that.dispatchEvent(evt2);
                         };
-                        stream.pc.createOffer();
+                        stream.pc.createOffer(true);
                     });
 
                 }
