@@ -46,7 +46,7 @@ namespace erizo {
     vp8.clockRate = 90000;
     vp8.channels = 1;
     vp8.mediaType = VIDEO_TYPE;
-    internalPayloadVector_.push_back(vp8);
+    internalVideoPayloadVector_.push_back(vp8);
 
     RtpMap red;
     red.payloadType = RED_90000_PT;
@@ -54,7 +54,7 @@ namespace erizo {
     red.clockRate = 90000;
     red.channels = 1;
     red.mediaType = VIDEO_TYPE;
-    internalPayloadVector_.push_back(red);
+    internalVideoPayloadVector_.push_back(red);
 
     RtpMap ulpfec;
     ulpfec.payloadType = ULP_90000_PT;
@@ -62,7 +62,7 @@ namespace erizo {
     ulpfec.clockRate = 90000;
     ulpfec.channels = 1;
     ulpfec.mediaType = VIDEO_TYPE;
-    internalPayloadVector_.push_back(ulpfec);
+    internalVideoPayloadVector_.push_back(ulpfec);
 /*
     RtpMap opus;
     opus.payloadType = OPUS_48000_PT;
@@ -70,7 +70,7 @@ namespace erizo {
     opus.clockRate = 48000;
     opus.channels = 2;
     opus.mediaType = AUDIO_TYPE;
-    internalPayloadVector_.push_back(opus);
+    internalVideoPayloadVector_.push_back(opus);
 
     RtpMap isac16;
     isac16.payloadType = ISAC_16000_PT;
@@ -78,7 +78,7 @@ namespace erizo {
     isac16.clockRate = 16000;
     isac16.channels = 1;
     isac16.mediaType = AUDIO_TYPE;
-    internalPayloadVector_.push_back(isac16);
+    internalVideoPayloadVector_.push_back(isac16);
 
     RtpMap isac32;
     isac32.payloadType = ISAC_32000_PT;
@@ -86,7 +86,7 @@ namespace erizo {
     isac32.clockRate = 32000;
     isac32.channels = 1;
     isac32.mediaType = AUDIO_TYPE;
-    internalPayloadVector_.push_back(isac32);
+    internalVideoPayloadVector_.push_back(isac32);
 */
     RtpMap pcmu;
     pcmu.payloadType = PCMU_8000_PT;
@@ -94,7 +94,7 @@ namespace erizo {
     pcmu.clockRate = 8000;
     pcmu.channels = 1;
     pcmu.mediaType = AUDIO_TYPE;
-    internalPayloadVector_.push_back(pcmu);
+    internalAudioPayloadVector_.push_back(pcmu);
 /*
     RtpMap pcma;
     pcma.payloadType = PCMA_8000_PT;
@@ -102,7 +102,7 @@ namespace erizo {
     pcma.clockRate = 8000;
     pcma.channels = 1;
     pcma.mediaType = AUDIO_TYPE;
-    internalPayloadVector_.push_back(pcma);
+    internalAudioPayloadVector_.push_back(pcma);
 
     RtpMap cn8;
     cn8.payloadType = CN_8000_PT;
@@ -110,7 +110,7 @@ namespace erizo {
     cn8.clockRate = 8000;
     cn8.channels = 1;
     cn8.mediaType = AUDIO_TYPE;
-    internalPayloadVector_.push_back(cn8);
+    internalAudioPayloadVector_.push_back(cn8);
 
     RtpMap cn16;
     cn16.payloadType = CN_16000_PT;
@@ -118,7 +118,7 @@ namespace erizo {
     cn16.clockRate = 16000;
     cn16.channels = 1;
     cn16.mediaType = AUDIO_TYPE;
-    internalPayloadVector_.push_back(cn16);
+    internalAudioPayloadVector_.push_back(cn16);
 
     RtpMap cn32;
     cn32.payloadType = CN_32000_PT;
@@ -126,7 +126,7 @@ namespace erizo {
     cn32.clockRate = 32000;
     cn32.channels = 1;
     cn32.mediaType = AUDIO_TYPE;
-    internalPayloadVector_.push_back(cn32);
+    internalAudioPayloadVector_.push_back(cn32);
 
     RtpMap cn48;
     cn48.payloadType = CN_48000_PT;
@@ -134,7 +134,7 @@ namespace erizo {
     cn48.clockRate = 48000;
     cn48.channels = 1;
     cn48.mediaType = AUDIO_TYPE;
-    internalPayloadVector_.push_back(cn48);
+    internalAudioPayloadVector_.push_back(cn48);
 */
     RtpMap telephoneevent;
     telephoneevent.payloadType = TEL_8000_PT;
@@ -142,7 +142,7 @@ namespace erizo {
     telephoneevent.clockRate = 8000;
     telephoneevent.channels = 1;
     telephoneevent.mediaType = AUDIO_TYPE;
-    internalPayloadVector_.push_back(telephoneevent);
+    internalAudioPayloadVector_.push_back(telephoneevent);
 
   }
 
@@ -218,10 +218,10 @@ namespace erizo {
 
     if (printedAudio) {
       sdp << "m=audio 1 RTP/" << (profile==SAVPF?"SAVPF ":"AVPF ");// << "103 104 0 8 106 105 13 126\n"
-      for (unsigned int it =0; it<internalPayloadVector_.size(); it++){
-        const RtpMap& payload_info = internalPayloadVector_[it];
+      for (unsigned int it =0; it<internalAudioPayloadVector_.size(); it++){
+        const RtpMap& payload_info = internalAudioPayloadVector_[it];
         if (payload_info.mediaType == AUDIO_TYPE)
-          sdp << getAudioExternalPT(payload_info.payloadType) <<" ";
+          sdp << getAudioExternalPT(payload_info.payloadType) <<((it+1==internalAudioPayloadVector_.size())?"":" ");
       }
       sdp << "\n"
           << "c=IN IP4 0.0.0.0" << endl;
@@ -253,8 +253,8 @@ namespace erizo {
         }
       }
 
-      for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
-        const RtpMap& rtp = internalPayloadVector_[it];
+      for (unsigned int it = 0; it < internalAudioPayloadVector_.size(); it++) {
+        const RtpMap& rtp = internalAudioPayloadVector_[it];
         if (rtp.mediaType==AUDIO_TYPE) {
           int payloadType = getAudioExternalPT(rtp.payloadType);
           if (rtp.channels>1) {
@@ -285,10 +285,10 @@ namespace erizo {
     if (printedVideo) {
       sdp << "m=video 1 RTP/" << (profile==SAVPF?"SAVPF ":"AVPF "); //<<  "100 101 102 103\n"
 
-      for (unsigned int it =0; it<internalPayloadVector_.size(); it++){
-        const RtpMap& payload_info = internalPayloadVector_[it];
+      for (unsigned int it =0; it<internalVideoPayloadVector_.size(); it++){
+        const RtpMap& payload_info = internalVideoPayloadVector_[it];
         if (payload_info.mediaType == VIDEO_TYPE)
-          sdp << getVideoExternalPT(payload_info.payloadType) <<" ";
+          sdp << getVideoExternalPT(payload_info.payloadType) <<((it+1==internalVideoPayloadVector_.size())?"":" ");
       }
 
       sdp << "\n" << "c=IN IP4 0.0.0.0" << endl;
@@ -319,8 +319,8 @@ namespace erizo {
         }
       }
 
-      for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
-        const RtpMap& rtp = internalPayloadVector_[it];
+      for (unsigned int it = 0; it < internalVideoPayloadVector_.size(); it++) {
+        const RtpMap& rtp = internalVideoPayloadVector_[it];
           if (rtp.mediaType==VIDEO_TYPE) {
             int payloadType = getVideoExternalPT(rtp.payloadType);
             sdp << "a=rtpmap:"<<payloadType << " " << rtp.encodingName << "/"
@@ -343,8 +343,14 @@ namespace erizo {
   }
 
   RtpMap *SdpInfo::getCodecByName(const std::string codecName, const unsigned int clockRate) {
-    for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
-      RtpMap& rtp = internalPayloadVector_[it];
+    for (unsigned int it = 0; it < internalVideoPayloadVector_.size(); it++) {
+      RtpMap& rtp = internalVideoPayloadVector_[it];
+      if (rtp.encodingName == codecName && rtp.clockRate == clockRate) {
+        return &rtp;
+      }
+    }
+    for (unsigned int it = 0; it < internalAudioPayloadVector_.size(); it++) {
+      RtpMap& rtp = internalAudioPayloadVector_[it];
       if (rtp.encodingName == codecName && rtp.clockRate == clockRate) {
         return &rtp;
       }
@@ -458,16 +464,30 @@ namespace erizo {
       if (isUser != std::string::npos) {
         std::vector<std::string> parts = stringutil::splitOneOf(stringutil::splitOneOf(line, ":", 1)[1], "\r", 1);
         // FIXME add error checking
-        // TODO Check if video or audio
-        iceVideoUsername_ = parts[0];
-        ELOG_DEBUG("ICE username: %s", iceVideoUsername_.c_str());
+        if (mtype == VIDEO_TYPE){
+          iceVideoUsername_ = parts[0];
+          ELOG_DEBUG("ICE Video username: %s", iceVideoUsername_.c_str());
+        }else if (mtype == AUDIO_TYPE){
+          iceAudioUsername_ = parts[0];
+          ELOG_DEBUG("ICE Audio username: %s", iceAudioUsername_.c_str());
+        }else{
+          ELOG_DEBUG("Unknown media type for ICE credentials, looks like Firefox");
+          iceVideoUsername_ = parts[0];
+        }
       }
       if (isPass != std::string::npos) {
         std::vector<std::string> parts = stringutil::splitOneOf(stringutil::splitOneOf(line, ":", 1)[1], "\r", 1);
         // FIXME add error checking
-        // TODO Check if video or audio
-        iceVideoPassword_ = parts[0];
-        ELOG_DEBUG("ICE password: %s", iceVideoPassword_.c_str());
+        if (mtype == VIDEO_TYPE){
+          iceVideoPassword_ = parts[0];
+          ELOG_DEBUG("ICE Video password: %s", iceVideoPassword_.c_str());
+        }else if (mtype == AUDIO_TYPE){
+          iceAudioPassword_ = parts[0];
+          ELOG_DEBUG("ICE Audio password: %s", iceAudioPassword_.c_str());
+        }else{
+          ELOG_DEBUG("Unknown media type for ICE credentials, looks like Firefox");
+          iceVideoPassword_ = parts[0];
+        }
       }
       if (isSsrc != std::string::npos) {
         std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
@@ -493,8 +513,17 @@ namespace erizo {
         theMap.mediaType = mtype;
 
         bool found = false;
-        for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
-          const RtpMap& rtp = internalPayloadVector_[it];
+        for (unsigned int it = 0; it < internalVideoPayloadVector_.size(); it++) {
+          const RtpMap& rtp = internalVideoPayloadVector_[it];
+          if (rtp.encodingName == codecname && rtp.clockRate == clock) {
+            outInPTMap[PT] = rtp.payloadType;
+            inOutPTMap[rtp.payloadType] = PT;
+            found = true;
+            ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d", codecname.c_str(), clock, PT, rtp.encodingName.c_str(), rtp.clockRate, rtp.payloadType);
+          }
+        }
+        for (unsigned int it = 0; it < internalAudioPayloadVector_.size(); it++) {
+          const RtpMap& rtp = internalAudioPayloadVector_[it];
           if (rtp.encodingName == codecname && rtp.clockRate == clock) {
             outInPTMap[PT] = rtp.payloadType;
             inOutPTMap[rtp.payloadType] = PT;
@@ -508,12 +537,29 @@ namespace erizo {
       }
 
     }
-
+    // If there is no video or audio credentials we use the ones we have
+    if (iceVideoUsername_.empty() && iceAudioUsername_.empty()){
+      ELOG_ERROR("No valid credentials for ICE")
+    }else if (iceVideoUsername_.empty()){
+      ELOG_DEBUG("Video credentials empty, setting the audio ones");
+      iceVideoUsername_ = iceAudioUsername_;
+      iceVideoPassword_ = iceAudioPassword_;
+    }else if (iceAudioUsername_.empty()){
+      ELOG_DEBUG("Audio credentials empty, setting the video ones");
+      iceAudioUsername_ = iceVideoUsername_;
+      iceAudioPassword_ = iceVideoPassword_;
+    }
+    
     for (unsigned int i = 0; i < candidateVector_.size(); i++) {
-      CandidateInfo& c = candidateVector_[i];
-      c.username = iceVideoUsername_;
-      c.password = iceVideoPassword_;
-      c.isBundle = isBundle;
+        CandidateInfo& c = candidateVector_[i];
+        c.isBundle = isBundle;
+        if (c.mediaType == VIDEO_TYPE){
+          c.username = iceVideoUsername_;
+          c.password = iceVideoPassword_;
+        }else{
+          c.username = iceAudioUsername_;
+          c.password = iceAudioPassword_;
+        }
     }
 
     return true;

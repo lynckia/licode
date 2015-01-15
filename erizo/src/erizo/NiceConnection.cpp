@@ -275,12 +275,12 @@ namespace erizo {
     }
     GSList* candList = NULL;
     int currentCompId = 1;
-    ELOG_DEBUG("Setting remote candidates %lu", candidates.size());
+    ELOG_DEBUG("Setting remote candidates %lu, mediatype %d", candidates.size(), this->mediaType);
 
     for (unsigned int it = 0; it < candidates.size(); it++) {
       NiceCandidateType nice_cand_type;
       CandidateInfo cinfo = candidates[it];
-      if (cinfo.componentId !=1)
+      if (cinfo.componentId !=1 || cinfo.mediaType!=this->mediaType)
         continue;
 
       switch (cinfo.hostType) {
@@ -440,7 +440,7 @@ namespace erizo {
         }
       }
     }else if (state == NICE_FAILED){
-      ELOG_ERROR("NICE Component %u FAILED", compId);
+      ELOG_ERROR("%s - NICE Component %u FAILED", transportName->c_str(), compId);
       for (unsigned int i = 1; i<=iceComponents_; i++) {
         if (comp_state_list_[i] != NICE_FAILED) {
           return;
