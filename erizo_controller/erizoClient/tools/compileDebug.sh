@@ -7,6 +7,7 @@ cat ../src/webrtc-stacks/FcStack.js >> $FILE
 cat ../src/webrtc-stacks/ChromeStableStack.js >> $FILE
 cat ../src/webrtc-stacks/ChromeCanaryStack.js >> $FILE
 cat ../src/webrtc-stacks/FirefoxStack.js >> $FILE
+cat ../src/webrtc-stacks/BowserStack.js >> $FILE
 cat ../src/Connection.js >> $FILE
 cat ../src/Stream.js >> $FILE
 cat ../src/Room.js >> $FILE
