@@ -471,17 +471,13 @@ var listen = function () {
                         st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
                         socket.streams.push(id);
                         socket.room.streams[id] = st;
-                        
-                        sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
 
                         if (GLOBAL.config.erizoController.report.session_events) {
                             var timeStamp = new Date();
                             amqper.broadcast('event', {room: socket.room.id, user: socket.id, name: socket.user.name, type: 'publish', stream: id, timestamp: timeStamp.getTime()});
                         }
                         return;
-                    }
-                    // If the connection failed we remove the stream
-                    if (signMess.type ==='failed'){ 
+                    } else if (signMess.type ==='failed'){
 
                         if (socket.room.streams[id] === undefined) {
                             return;
@@ -513,10 +509,10 @@ var listen = function () {
                         }
                         return;
 
-                    }
-
-                    if (signMess.type === 'candidate') {
-                          signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
+                    } else if (signMess.type === 'candidate') {
+                        signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
+                    } else if (signMess.type === 'ready') {
+                        sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
                     }
 
                     socket.emit('signaling_message_erizo', {mess: signMess, streamId: id});
