@@ -39,6 +39,8 @@ namespace erizo {
     profile = AVPF;
     audioSsrc = 0;
     videoSsrc = 0;
+    videoSdpMLine = -1;
+    audioSdpMLine = -1;
 
     RtpMap vp8;
     vp8.payloadType = VP8_90000_PT;
@@ -216,7 +218,7 @@ namespace erizo {
     //candidates audio
     bool printedAudio = true, printedVideo = true;
 
-    if (printedAudio) {
+    if (printedAudio && this->hasAudio) {
       sdp << "m=audio 1 RTP/" << (profile==SAVPF?"SAVPF ":"AVPF ");// << "103 104 0 8 106 105 13 126\n"
       for (unsigned int it =0; it<internalAudioPayloadVector_.size(); it++){
         const RtpMap& payload_info = internalAudioPayloadVector_[it];
@@ -282,7 +284,7 @@ namespace erizo {
 
     }
     
-    if (printedVideo) {
+    if (printedVideo && this->hasVideo) {
       sdp << "m=video 1 RTP/" << (profile==SAVPF?"SAVPF ":"AVPF "); //<<  "100 101 102 103\n"
 
       for (unsigned int it =0; it<internalVideoPayloadVector_.size(); it++){
@@ -382,15 +384,22 @@ namespace erizo {
 
   void SdpInfo::setOfferSdp(SdpInfo *offerSdp) {
     if (offerSdp == NULL) return;
-
+    
+    this->videoSdpMLine = offerSdp->videoSdpMLine;
+    this->audioSdpMLine = offerSdp->audioSdpMLine;
     this->inOutPTMap = offerSdp->inOutPTMap;
     this->outInPTMap = offerSdp->outInPTMap;
+    this->hasVideo = offerSdp->hasVideo;
+    this->hasAudio = offerSdp->hasAudio;
+
+
   }
 
   bool SdpInfo::processSdp(const std::string& sdp, const std::string& media) {
 
     std::string line;
     std::istringstream iss(sdp);
+    int mlineNum = -1;
 
     MediaType mtype = OTHER;
     if (media == "audio") {
@@ -437,10 +446,14 @@ namespace erizo {
         isBundle = true;
       }
       if (isVideo != std::string::npos) {
+        videoSdpMLine = ++mlineNum; 
+        ELOG_DEBUG("sdp has video, mline = %d",videoSdpMLine);
         mtype = VIDEO_TYPE;
         hasVideo = true;
       }
       if (isAudio != std::string::npos) {
+        audioSdpMLine = ++mlineNum; 
+        ELOG_DEBUG("sdp has audio, mline = %d",audioSdpMLine);
         mtype = AUDIO_TYPE;
         hasAudio = true;
       }

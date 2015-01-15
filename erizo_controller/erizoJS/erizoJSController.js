@@ -76,7 +76,7 @@ exports.ErizoJSController = function (spec) {
                     break;
 
                 case CONN_SDP:
-                    log.debug('Sending SDP', mess);
+//                    log.debug('Sending SDP', mess);
                     callback('callback', {type: 'answer', sdp: mess});
                     break;
                     
@@ -191,13 +191,13 @@ exports.ErizoJSController = function (spec) {
                 if (msg.type === 'offer') {
                     subscribers[streamId][peerId].setRemoteSdp(msg.sdp);
                 } else if (msg.type === 'candidate') {
-                    subscribers[streamId][peerId].addRemoteCandidate(msg.candidate.sdpMid, msg.candidate.candidate);
+                    subscribers[streamId][peerId].addRemoteCandidate(msg.candidate.sdpMid, msg.candidate.sdpMLineIndex , msg.candidate.candidate);
                 } 
             } else {
                 if (msg.type === 'offer') {
                     publishers[streamId].wrtc.setRemoteSdp(msg.sdp);
                 } else if (msg.type === 'candidate') {
-                    publishers[streamId].wrtc.addRemoteCandidate(msg.candidate.sdpMid, msg.candidate.candidate);
+                    publishers[streamId].wrtc.addRemoteCandidate(msg.candidate.sdpMid, msg.candidate.sdpMLineIndex, msg.candidate.candidate);
                 } 
             }
             

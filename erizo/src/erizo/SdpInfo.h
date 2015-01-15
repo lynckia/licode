@@ -219,6 +219,11 @@ public:
     * Mapping from external PT (key) to intermal PT (value)
     */
     std::map<const int, int> outInPTMap;
+    /*
+     * MLines for video and audio
+     */
+    int videoSdpMLine;
+    int audioSdpMLine;
 
 private:
     bool processSdp(const std::string& sdp, const std::string& media);

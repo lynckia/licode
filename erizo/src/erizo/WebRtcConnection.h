@@ -76,7 +76,7 @@ public:
      * @param sdp The candidate in SDP format.
      * @return true if the SDP was received correctly.
      */
-    bool addRemoteCandidate(const std::string &mid, const std::string &sdp);
+    bool addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp);
     /**
      * Obtains the local SDP.
      * @return The SDP as a string.

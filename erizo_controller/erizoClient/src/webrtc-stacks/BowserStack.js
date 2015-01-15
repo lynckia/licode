@@ -77,7 +77,6 @@ Erizo.BowserStack = function (spec) {
                 event.candidate.candidate ="a="+event.candidate.candidate;
             };
 
-            event.candidate.sdpMid = event.candidate.sdpMLineIndex == 0?"audio":"video";
             
             if (spec.remoteDescriptionSet) {
                 spec.callback({type:'candidate', candidate: event.candidate});
@@ -196,7 +195,6 @@ Erizo.BowserStack = function (spec) {
                 obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex);
                 obj.sdpMLineIndex = obj.sdpMid=="audio"?0:1;
                 var candidate = new RTCIceCandidate(obj);
-                candidate.sdpMLineIndex = candidate.sdpMid=="audio"?0:1;
                 console.log("Remote Candidate",candidate);
                 if (spec.remoteDescriptionSet) {
                     that.peerConnection.addIceCandidate(candidate, function(){}, errorCallback);

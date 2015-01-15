@@ -50,7 +50,6 @@ Erizo.FirefoxStack = function (spec) {
             if (!event.candidate.candidate.match(/a=/)) {
                 event.candidate.candidate ="a="+event.candidate.candidate;
             };
-            event.candidate.sdpMid = event.candidate.sdpMLineIndex == 0?"audio":"video";
 
             if (spec.remoteDescriptionSet) {
                 spec.callback({type:'candidate', candidate: event.candidate});
@@ -190,7 +189,6 @@ Erizo.FirefoxStack = function (spec) {
                 obj.candidate = obj.candidate.replace(/ udp /g, " UDP ");
                 obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex);
                 var candidate = new RTCIceCandidate(obj);
-                candidate.sdpMLineIndex = candidate.sdpMid=="audio"?0:1;
                 //console.log("Remote Candidate",candidate);
 
                 if (spec.remoteDescriptionSet) {

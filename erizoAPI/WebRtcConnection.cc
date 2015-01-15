@@ -118,10 +118,12 @@ Handle<Value> WebRtcConnection::addRemoteCandidate(const Arguments& args) {
   String::Utf8Value param(args[0]->ToString());
   std::string mid = std::string(*param);
 
-  String::Utf8Value param2(args[1]->ToString());
+  int sdpMLine = args[1]->IntegerValue();
+  
+  String::Utf8Value param2(args[2]->ToString());
   std::string sdp = std::string(*param2);
 
-  bool r = me->addRemoteCandidate(mid, sdp);
+  bool r = me->addRemoteCandidate(mid, sdpMLine, sdp);
 
   return scope.Close(Boolean::New(r));
 }

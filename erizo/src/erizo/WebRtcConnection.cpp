@@ -116,19 +116,29 @@ namespace erizo {
     return true;
   }
 
-  bool WebRtcConnection::addRemoteCandidate(const std::string &mid, const std::string &sdp) {
+  bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp) {
     // TODO Check type of transport.
-    ELOG_DEBUG("Adding remote Candidate %s",sdp.c_str());
-    MediaType theType = mid.compare("video")?AUDIO_TYPE:VIDEO_TYPE;
+    ELOG_DEBUG("Adding remote Candidate %s, mid %s, sdpMLine %d",sdp.c_str(), mid.c_str(), mLineIndex);
+    MediaType theType;
+    std::string theMid;
+    if ((!mid.compare("video"))||(mLineIndex ==remoteSdp_.videoSdpMLine)){
+      theType = VIDEO_TYPE;
+      theMid = "video";
+    }else{
+      theType = AUDIO_TYPE;
+      theMid = "audio";
+    }
     SdpInfo tempSdp;
     std::string username, password;
     remoteSdp_.getCredentials(username, password, theType);
     tempSdp.setCredentials(username, password, theType);
-    tempSdp.initWithSdp(sdp, mid);
+    tempSdp.initWithSdp(sdp, theMid);
     bool res;
-    if (mid == "video") {
+    if (theType == VIDEO_TYPE||bundle_){
+      ELOG_DEBUG("Setting VIDEO CANDIDATE" );
       res = videoTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
-    } else if (!bundle_ && mid == "audio") {
+    } else if (theType==AUDIO_TYPE){
+      ELOG_DEBUG("Setting AUDIO CANDIDATE");
       res = audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
     }else{
       ELOG_ERROR("Cannot add remote candidate with no Media (video or audio)");
@@ -152,6 +162,9 @@ namespace erizo {
     std::map <std::string, std::string> object;
     object["sdpMid"] = mid;
     object["candidate"] = sdp;
+    char lineIndex[1];
+    sprintf(lineIndex,"%d",(mid.compare("video")?localSdp_.audioSdpMLine:localSdp_.videoSdpMLine));
+    object["sdpMLineIndex"] = std::string(lineIndex);
 
     std::ostringstream theString;
     theString << "{";
@@ -173,10 +186,14 @@ namespace erizo {
         std::string object = this->getJSONCandidate(transport->transport_name, sdp);
         connEventListener_->notifyEvent(CONN_CANDIDATE, object);
       } else {
-        std::string object = this->getJSONCandidate("audio", sdp);
-        connEventListener_->notifyEvent(CONN_CANDIDATE, object);
-        std::string object2 = this->getJSONCandidate("video", sdp);
-        connEventListener_->notifyEvent(CONN_CANDIDATE, object2);
+        if (remoteSdp_.hasAudio){
+          std::string object = this->getJSONCandidate("audio", sdp);
+          connEventListener_->notifyEvent(CONN_CANDIDATE, object);
+        }
+        if (remoteSdp_.hasVideo){
+          std::string object2 = this->getJSONCandidate("video", sdp);
+          connEventListener_->notifyEvent(CONN_CANDIDATE, object2);
+        }
       }
       
     }
