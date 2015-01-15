@@ -70,22 +70,28 @@ exports.ErizoJSController = function (spec) {
                 amqper.broadcast('event', {pub: id_pub, subs: id_sub, type: 'connection_status', status: newStatus, timestamp:timeStamp.getTime()});
             }
 
-            if (newStatus == CONN_INITIAL) {
-                callback('callback', {type: 'started'});
+            switch(newStatus) {
+                case CONN_INITIAL:
+                    callback('callback', {type: 'started'});
+                    break;
 
-            } else if (newStatus == CONN_SDP) {
-                log.debug('Sending SDP', mess);
-                callback('callback', {type: 'answer', sdp: mess});
+                case CONN_SDP:
+                    log.debug('Sending SDP', mess);
+                    callback('callback', {type: 'answer', sdp: mess});
+                    break;
+                    
+                case CONN_CANDIDATE:
+                    callback('callback', {type: 'candidate', candidate: mess});
+                    break;
 
-            } else if (newStatus == CONN_CANDIDATE) {
-                callback('callback', {type: 'candidate', candidate: mess});
-            } else if (newStatus == CONN_READY) {
-        //        log.info("Sending FIR from publisher", id_pub);
-//                publishers[id_pub].muxer.sendFIR();
-            }else if (newStatus == CONN_FAILED){
-              callback('callback', {type: 'failed'});
+                case CONN_FAILED:
+                    callback('callback', {type: 'failed'});
+                    break;
+
+                case CONN_READY:
+                    callback('callback', {type: 'ready'});
+                    break;
             }
-
         });
         log.info("initializing");
 

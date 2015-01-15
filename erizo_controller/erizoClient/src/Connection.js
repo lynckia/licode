@@ -20,12 +20,22 @@ Erizo.Connection = function (spec) {
         // Firefox
         that.browser = "mozilla";
         that = Erizo.FirefoxStack(spec);
-    } else if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 26) {
-        // Google Chrome Stable.
-        L.Logger.debug("Stable!");
-        that = Erizo.ChromeStableStack(spec);
+    }else if (window.navigator.userAgent.match("Bowser") !==null){
+        L.Logger.debug("Bowser Stack");
+        that = Erizo.BowserStack(spec);
+        that.browser = "chrome-stable";    
+    }else if (window.navigator.userAgent.match("Chrome") !==null) {
+        if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 26) {
+            // Google Chrome Stable.
+            L.Logger.debug("Stable!");
+            that = Erizo.ChromeStableStack(spec);
+            that.browser = "chrome-stable";
+        }
+    } else if (window.navigator.userAgent.match("Safari") !== null) {
+        L.Logger.debug("Safari, using Bowser Stack");
+        that = Erizo.BowserStack(spec);
         that.browser = "chrome-stable";
-    }  else if (window.navigator.appVersion.match(/Bowser\/([\w\W]*?)\./)[1] === "25") {
+    } else if (window.navigator.appVersion.match(/Bowser\/([\w\W]*?)\./)[1] === "25") {
         // Bowser
         that.browser = "bowser";
     } else {

@@ -227,7 +227,8 @@ private:
     std::vector<CandidateInfo> candidateVector_;
     std::vector<CryptoInfo> cryptoVector_;
     std::vector<RtpMap> payloadVector_;
-    std::vector<RtpMap> internalPayloadVector_;
+    std::vector<RtpMap> internalVideoPayloadVector_;
+    std::vector<RtpMap> internalAudioPayloadVector_;
     std::string iceVideoUsername_, iceAudioUsername_;
     std::string iceVideoPassword_, iceAudioPassword_;
 };

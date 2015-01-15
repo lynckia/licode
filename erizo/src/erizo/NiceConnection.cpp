@@ -60,8 +60,8 @@ namespace erizo {
   void cb_component_state_changed(NiceAgent *agent, guint stream_id,
       guint component_id, guint state, gpointer user_data) {
     if (state == NICE_COMPONENT_STATE_CONNECTED) {
-      NiceConnection *conn = (NiceConnection*) user_data;
-      conn->updateComponentState(component_id, NICE_READY);
+//      NiceConnection *conn = (NiceConnection*) user_data;
+//      conn->updateComponentState(component_id, NICE_READY);
     } else if (state == NICE_COMPONENT_STATE_FAILED) {
       NiceConnection *conn = (NiceConnection*) user_data;
       conn->updateComponentState(component_id, NICE_FAILED);
@@ -71,8 +71,8 @@ namespace erizo {
 
   void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
       gchar *lfoundation, gchar *rfoundation, gpointer user_data) {
-//    NiceConnection *conn = (NiceConnection*) user_data;
-//    conn->updateComponentState(component_id, NICE_READY);
+    NiceConnection *conn = (NiceConnection*) user_data;
+    conn->updateComponentState(component_id, NICE_READY);
   }
 
   NiceConnection::NiceConnection(MediaType med, const std::string &transport_name,NiceConnectionListener* listener, 
@@ -275,12 +275,12 @@ namespace erizo {
     }
     GSList* candList = NULL;
     int currentCompId = 1;
-    ELOG_DEBUG("Setting remote candidates %lu", candidates.size());
+    ELOG_DEBUG("Setting remote candidates %lu, mediatype %d", candidates.size(), this->mediaType);
 
     for (unsigned int it = 0; it < candidates.size(); it++) {
       NiceCandidateType nice_cand_type;
       CandidateInfo cinfo = candidates[it];
-      if (cinfo.componentId !=1)
+      if (cinfo.componentId !=1 || cinfo.mediaType!=this->mediaType)
         continue;
 
       switch (cinfo.hostType) {
@@ -440,7 +440,7 @@ namespace erizo {
         }
       }
     }else if (state == NICE_FAILED){
-      ELOG_ERROR("NICE Component %u FAILED", compId);
+      ELOG_ERROR("%s - NICE Component %u FAILED", transportName->c_str(), compId);
       for (unsigned int i = 1; i<=iceComponents_; i++) {
         if (comp_state_list_[i] != NICE_FAILED) {
           return;

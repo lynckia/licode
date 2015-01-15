@@ -165,12 +165,14 @@ Erizo.FirefoxStack = function (spec) {
               that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg), function() {
                 spec.remoteDescriptionSet = true;
                 while (spec.remoteCandidates.length > 0) {
-                  that.peerConnection.addIceCandidate(spec.remoteCandidates.pop());
+                // IMPORTANT: preserve ordering of candidates
+                  that.peerConnection.addIceCandidate(spec.remoteCandidates.shift());
                 }
 
                 while(spec.localCandidates.length > 0) {
                   L.Logger.info("Sending Candidate");
-                  spec.callback({type:'candidate', candidate: spec.localCandidates.pop()});
+                  // IMPORTANT: preserve ordering of candidates
+                  spec.callback({type:'candidate', candidate: spec.localCandidates.shift()});
                 }
               });
             });

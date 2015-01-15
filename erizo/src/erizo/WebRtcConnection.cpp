@@ -68,8 +68,6 @@ namespace erizo {
     ELOG_DEBUG("Set Remote SDP %s", sdp.c_str());
     remoteSdp_.initWithSdp(sdp, "");
     //std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
-    int video = (remoteSdp_.videoSsrc==0?false:true);
-    int audio = (remoteSdp_.audioSsrc==0?false:true);
 
     bundle_ = remoteSdp_.isBundle;
     ELOG_DEBUG("Is bundle? %d %d ", bundle_, true);
@@ -78,7 +76,7 @@ namespace erizo {
     localSdp_.isRtcpMux = remoteSdp_.isRtcpMux;
     localSdp_.setOfferSdp(&remoteSdp_);
         
-    ELOG_DEBUG("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d", video, remoteSdp_.videoSsrc, audio, remoteSdp_.audioSsrc,  bundle_);
+    ELOG_DEBUG("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d", remoteSdp_.hasVideo, remoteSdp_.videoSsrc, remoteSdp_.hasAudio, remoteSdp_.audioSsrc,  bundle_);
 
     ELOG_DEBUG("Setting SSRC to localSdp %u", this->getVideoSinkSSRC());
     localSdp_.videoSsrc = this->getVideoSinkSSRC();
@@ -101,6 +99,10 @@ namespace erizo {
       }
     }
     std::string object = this->getLocalSdp();
+    if (connEventListener_){
+      connEventListener_->notifyEvent(CONN_SDP, object);
+    }
+
     if (!remoteSdp_.getCandidateInfos().empty()){
       ELOG_DEBUG("There are candidate in the SDP: Setting Remote Candidates!!!!");
       if (remoteSdp_.hasVideo) {
@@ -111,25 +113,25 @@ namespace erizo {
       }
     }
 
-    if (connEventListener_){
-      connEventListener_->notifyEvent(CONN_SDP, object);
-    }
-
     return true;
   }
 
   bool WebRtcConnection::addRemoteCandidate(const std::string &mid, const std::string &sdp) {
     // TODO Check type of transport.
+    ELOG_DEBUG("Adding remote Candidate %s",sdp.c_str());
+    MediaType theType = mid.compare("video")?AUDIO_TYPE:VIDEO_TYPE;
     SdpInfo tempSdp;
     std::string username, password;
-    remoteSdp_.getCredentials(username, password, VIDEO_TYPE);
-    tempSdp.setCredentials(username, password, VIDEO_TYPE);
+    remoteSdp_.getCredentials(username, password, theType);
+    tempSdp.setCredentials(username, password, theType);
     tempSdp.initWithSdp(sdp, mid);
     bool res;
     if (mid == "video") {
       res = videoTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
     } else if (!bundle_ && mid == "audio") {
       res = audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos());
+    }else{
+      ELOG_ERROR("Cannot add remote candidate with no Media (video or audio)");
     }
     return res;
   }
@@ -165,6 +167,7 @@ namespace erizo {
   }
 
   void WebRtcConnection::onCandidate(const std::string& sdp, Transport *transport) {
+    ELOG_DEBUG("On Candidate %s", sdp.c_str());
     if (connEventListener_ != NULL) {
       if (!bundle_) {
         std::string object = this->getJSONCandidate(transport->transport_name, sdp);

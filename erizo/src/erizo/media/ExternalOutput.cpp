@@ -6,7 +6,6 @@
 #include "../rtp/RtpVP8Parser.h"
 
 namespace erizo {
-#define FIR_INTERVAL_MS 4000
 
   DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 
@@ -15,7 +14,7 @@ namespace erizo {
 // B) our audio sample rate is typically 20 msec packets; video is anywhere from 33 to 100 msec (30 to 10 fps)
 // Allowing the audio queue to hold more will help prevent loss of data when the video framerate is low.
 ExternalOutput::ExternalOutput(const std::string& outputUrl) : fec_receiver_(this), audioQueue_(600, 60), videoQueue_(120, 60), inited_(false), video_stream_(NULL), audio_stream_(NULL),
-    firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1), vp8SearchState_(lookingForStart)
+    firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1), vp8SearchState_(lookingForStart), needToSendFir_(true)
 {
     ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
 
@@ -41,7 +40,6 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl) : fec_receiver_(thi
     }
 
     unpackagedBufferpart_ = unpackagedBuffer_;
-    lastFullIntraFrameRequest_ = 0;
     sinkfbSource_ = this;
     fbSink_ = NULL;
     unpackagedSize_ = 0;
@@ -378,17 +376,16 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
           context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
         }
     }
-    
-    timeval time; 
-    gettimeofday(&time, NULL);
-    unsigned long long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-    if (millis -lastFullIntraFrameRequest_ >FIR_INTERVAL_MS){
-      this->sendFirPacket();
-      lastFullIntraFrameRequest_ = millis;
+
+    if (needToSendFir_) {
+        this->sendFirPacket();
+        needToSendFir_ = false;
     }
 
     if (type == VIDEO_PACKET){
         if(this->videoOffsetMsec_ == -1) {
+            timeval time;
+            gettimeofday(&time, NULL);
             videoOffsetMsec_ = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - firstDataReceived_;
             ELOG_DEBUG("File %s, video offset msec: %llu", context_->filename, videoOffsetMsec_);
         }
@@ -403,13 +400,18 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
             webrtc::RTPHeader hackyHeader;
             hackyHeader.headerLength = h->getHeaderLength();
             hackyHeader.sequenceNumber = h->getSeqNumber();
-            fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*)buffer, length, ULP_90000_PT);
-            fec_receiver_.ProcessReceivedFec();
+
+            // AddReceivedRedPacket returns 0 if there's data to process
+            if(0 == fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*)buffer, length, ULP_90000_PT)) {
+                fec_receiver_.ProcessReceivedFec();
+            }
         } else {
             videoQueue_.pushPacket(buffer, length);
         }
     }else{
         if(this->audioOffsetMsec_ == -1) {
+            timeval time;
+            gettimeofday(&time, NULL);
             audioOffsetMsec_ = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - firstDataReceived_;
             ELOG_DEBUG("File %s, audio offset msec: %llu", context_->filename, audioOffsetMsec_);
         }
@@ -424,7 +426,6 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
 
 int ExternalOutput::sendFirPacket() {
     if (fbSink_ != NULL) {
-        // ELOG_DEBUG("sending Full Intra-frame Request");
         int pos = 0;
         uint8_t rtcpPacket[50];
         // add full intra request indicator
