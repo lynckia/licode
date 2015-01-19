@@ -90,6 +90,12 @@ config.erizoAgent.maxProcesses 	  = 1; // default value: 1
 // Number of precesses that ErizoAgent runs when it starts. Always lower than or equals to maxProcesses.
 config.erizoAgent.prerunProcesses = 1; // default value: 1
 
+// Public erizoAgent IP for ICE candidates (useful when behind NATs)
+// Use '' to automatically get IP from the interface
+config.erizoAgent.publicIP = ''; //default value: ''
+// Use the name of the inferface you want to bind for ICE candidates
+// config.erizoAgent.networkInterface = 'eth1' // default value: undefined
+
 /*********************************************************
  ERIZO JS CONFIGURATION
 **********************************************************/

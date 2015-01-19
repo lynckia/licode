@@ -81,6 +81,7 @@ exports.ErizoJSController = function (spec) {
                     break;
                     
                 case CONN_CANDIDATE:
+                    mess = mess.replace(that.privateRegexp, that.publicIP);
                     callback('callback', {type: 'candidate', candidate: mess});
                     break;
 

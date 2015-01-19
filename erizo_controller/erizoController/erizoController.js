@@ -509,8 +509,8 @@ var listen = function () {
                         }
                         return;
 
-                    } else if (signMess.type === 'candidate') {
-                        signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
+                    // } else if (signMess.type === 'candidate') {
+                    //     signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
                     } else if (signMess.type === 'ready') {
                         sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
                     }
@@ -571,9 +571,9 @@ var listen = function () {
                             return;
                         }
 
-                        if (signMess.type === 'candidate') {
-                            signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
-                        }
+                        // if (signMess.type === 'candidate') {
+                        //     signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
+                        // }
                         socket.emit('signaling_message_erizo', {mess: signMess, peerId: options.streamId});
                     });
 

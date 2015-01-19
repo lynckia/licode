@@ -65,6 +65,9 @@ ejsController.keepAlive = function(callback) {
     callback('callback', true);
 };
 
+ejsController.privateRegexp = new RegExp(process.argv[3], 'g');
+ejsController.publicIP = process.argv[4];
+
 amqper.connect(function () {
     "use strict";
     try {
