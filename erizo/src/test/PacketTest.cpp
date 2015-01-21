@@ -1,5 +1,3 @@
-#define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE erizo
 #include <boost/test/unit_test.hpp>
 
 // Headers for RtpPacketQueue.h tests
@@ -7,6 +5,7 @@
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 
+BOOST_AUTO_TEST_SUITE( erizoPacket )
 /*---------- RtpPacketQueue TESTS ----------*/
 BOOST_AUTO_TEST_CASE(rtpPacketQueueDefaults)
 {
@@ -190,3 +189,6 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueRejectsDuplicatePackets)
     // We should only see ten packets, because those should all have been rejected.
     BOOST_CHECK(queue.getSize() == 10);
 }
+
+BOOST_AUTO_TEST_SUITE_END()
+
