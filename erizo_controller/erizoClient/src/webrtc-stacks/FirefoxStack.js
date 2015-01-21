@@ -40,7 +40,7 @@ Erizo.FirefoxStack = function (spec) {
 
     that.roapSessionId = 103;
 
-    that.peerConnection = new WebkitRTCPeerConnection(that.pc_config.iceServers);
+    that.peerConnection = new WebkitRTCPeerConnection(that.pc_config);
 
     spec.localCandidates = [];
 
