@@ -87,7 +87,7 @@ Erizo.BowserStack = function (spec) {
 
         } else {
             
-            spec.callback(that.peerConnection.localDescription);
+          //  spec.callback(that.peerConnection.localDescription);
             console.log("End of candidates." , that.peerConnection.localDescription);
         }
     };
@@ -111,19 +111,19 @@ Erizo.BowserStack = function (spec) {
     var localDesc;
 
     var setLocalDesc = function (sessionDescription) {
-//        sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
+        sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
 //        sessionDescription.sdp = sessionDescription.sdp.replace(/a=ice-options:google-ice\r\n/g, "");
         console.log("Set local description", sessionDescription.sdp);
         localDesc = sessionDescription;
         that.peerConnection.setLocalDescription(localDesc, function(){
           console.log("The final LocalDesc", that.peerConnection.localDescription);
-//          spec.callback(that.peerConnection.localDescription);
+          spec.callback(that.peerConnection.localDescription);
         }, errorCallback);
         //that.peerConnection.setLocalDescription(sessionDescription);
     }
 
     var setLocalDescp2p = function (sessionDescription) {
-//        sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
+        sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
 //        sessionDescription.sdp = sessionDescription.sdp.replace(/a=ice-options:google-ice\r\n/g, "");
         spec.callback(sessionDescription);
         localDesc = sessionDescription;
@@ -148,36 +148,29 @@ Erizo.BowserStack = function (spec) {
        console.log("Process Signaling Message", msg);
 
         if (msg.type === 'offer') {
-//            msg.sdp = setMaxBW(msg.sdp);
+            msg.sdp = setMaxBW(msg.sdp);
             that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg));
             that.peerConnection.createAnswer(setLocalDescp2p, null, that.mediaConstraints);
             spec.remoteDescriptionSet = true;
         
         } else if (msg.type === 'answer') {
 
-
-            // // For compatibility with only audio in Firefox Revisar
-            // if (answer.match(/a=ssrc:55543/)) {
-            //     answer = answer.replace(/a=sendrecv\\r\\na=mid:video/, 'a=recvonly\\r\\na=mid:video');
-            //     answer = answer.split('a=ssrc:55543')[0] + '"}';
-            // }
-
             console.log("Set remote description", msg.sdp);
 
-//            msg.sdp = setMaxBW(msg.sdp);
+            msg.sdp = setMaxBW(msg.sdp);
 
             that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg), function() {
               spec.remoteDescriptionSet = true;
               console.log("Candidates to be added: ", spec.remoteCandidates.length);
               while (spec.remoteCandidates.length > 0) {
                 console.log("Candidate :",spec.remoteCandidates[spec.remoteCandidates.length-1]);
-                that.peerConnection.addIceCandidate(spec.remoteCandidates.pop(), function(){}, errorCallback);
+                that.peerConnection.addIceCandidate(spec.remoteCandidates.shift(), function(){}, errorCallback);
                
               }
 //              console.log("Local candidates to send:" , spec.localCandidates.length);
-//              while(spec.localCandidates.length > 0) {
-//                spec.callback({type:'candidate', candidate: spec.localCandidates.pop()});
-//              }
+              while(spec.localCandidates.length > 0) {
+                spec.callback({type:'candidate', candidate: spec.localCandidates.shift()});
+              }
 
             }, function(){console.log("Error Setting Remote Description");});
 
@@ -190,8 +183,9 @@ Erizo.BowserStack = function (spec) {
                 } else {
                     obj = JSON.parse(msg.candidate);
                 }
-                obj.candidate = obj.candidate.replace(/ generation 0/g, "");
-                obj.candidate = obj.candidate.replace(/ udp /g, " UDP ");
+//                obj.candidate = obj.candidate.replace(/ generation 0/g, "");
+//                obj.candidate = obj.candidate.replace(/ udp /g, " UDP ");
+                obj.candidate = obj.candidate.replace(/a=/g, "");
                 obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex);
                 obj.sdpMLineIndex = obj.sdpMid=="audio"?0:1;
                 var candidate = new RTCIceCandidate(obj);
