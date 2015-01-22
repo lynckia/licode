@@ -76,7 +76,7 @@ namespace erizo {
       return -3;
     }
 
-    cPicture = avcodec_alloc_frame();
+    cPicture = av_frame_alloc();
     if (!cPicture) {
       ELOG_DEBUG("Error allocating video frame");
       return -4;
@@ -125,7 +125,7 @@ namespace erizo {
     if (vCoderContext!=NULL)
       avcodec_close(vCoderContext);
     if (cPicture !=NULL)
-      avcodec_free_frame(&cPicture);
+      av_frame_free(&cPicture);
 
     return 0;
   }
@@ -165,7 +165,7 @@ namespace erizo {
       return -1;
     }
 
-    dPicture = avcodec_alloc_frame();
+    dPicture = av_frame_alloc();
     if (!dPicture) {
       ELOG_DEBUG("Error allocating video frame");
       return -1;
@@ -189,7 +189,7 @@ namespace erizo {
       return -1;
     }
 
-    dPicture = avcodec_alloc_frame();
+    dPicture = av_frame_alloc();
     if (!dPicture) {
       ELOG_DEBUG("Error allocating video frame");
       return -1;
@@ -291,7 +291,7 @@ decoding:
     if (!initWithContext_ && vDecoderContext != NULL)
       avcodec_close(vDecoderContext);
     if (dPicture != NULL)
-      avcodec_free_frame(&dPicture);
+      av_frame_free(&dPicture);
     return 0;
   }
 

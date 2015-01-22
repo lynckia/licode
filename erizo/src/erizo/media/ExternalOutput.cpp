@@ -140,14 +140,14 @@ void ExternalOutput::writeAudioData(char* buf, int len){
         currentTimestamp += 0xFFFFFFFF;
     }
 
-    long long timestampToWrite = (currentTimestamp - firstAudioTimestamp_) / (audio_stream_->codec->time_base.den / audio_stream_->time_base.den);
+    long long timestampToWrite = (currentTimestamp - firstAudioTimestamp_) / (audio_stream_->codec->sample_rate / audio_stream_->time_base.den);    // generally 48000 / 1000 for the denominator portion, at least for opus
     // Adjust for our start time offset
     timestampToWrite += audioOffsetMsec_ / (1000 / audio_stream_->time_base.den);   // in practice, our timebase den is 1000, so this operation is a no-op.
 
-    /* ELOG_DEBUG("Writing audio frame %d with timestamp %u, normalized timestamp %u, audio offset msec %u, length %d, input timebase: %d/%d, target timebase: %d/%d", */
-    /*            head->getSeqNumber(), head->getTimestamp(), timestampToWrite, audioOffsetMsec_, ret, */
-    /*            audio_stream_->codec->time_base.num, audio_stream_->codec->time_base.den,    // timebase we requested */
-    /*            audio_stream_->time_base.num, audio_stream_->time_base.den);                 // actual timebase */
+//     ELOG_INFO("Writing audio frame %d with timestamp %u, normalized timestamp %u, audio offset msec %u, length %d, input timebase: %d/%d, target timebase: %d/%d",
+//                head->getSeqNumber(), head->getTimestamp(), timestampToWrite, audioOffsetMsec_, len - head->getHeaderLength(),
+//                1, audio_stream_->codec->sample_rate,    // timebase we requested
+//                audio_stream_->time_base.num, audio_stream_->time_base.den);                 // actual timebase
 
     AVPacket avpkt;
     av_init_packet(&avpkt);
@@ -273,7 +273,7 @@ void ExternalOutput::writeVideoData(char* buf, int len){
 
         /* ELOG_DEBUG("Writing video frame %d with timestamp %u, normalized timestamp %u, video offset msec %u, length %d, input timebase: %d/%d, target timebase: %d/%d", */
         /*            head->getSeqNumber(), head->getTimestamp(), timestampToWrite, videoOffsetMsec_, unpackagedSize_, */
-        /*            video_stream_->codec->time_base.num, video_stream_->codec->time_base.den,    // timebase we requested */
+        /*            video_stream_->time_base.num, video_stream_->time_base.den,    // timebase we requested */
         /*            video_stream_->time_base.num, video_stream_->time_base.den);                 // actual timebase */
 
         AVPacket avpkt;
@@ -317,8 +317,8 @@ bool ExternalOutput::initContext() {
         video_stream_->codec->codec_id = context_->oformat->video_codec;
         video_stream_->codec->width = 640;
         video_stream_->codec->height = 480;
-        video_stream_->codec->time_base = (AVRational){1,30};   // A decent guess here suffices; if processing the file with ffmpeg,
-                                                                // use -vsync 0 to force it not to duplicate frames.
+        video_stream_->time_base = (AVRational){1,30};   // A decent guess here suffices; if processing the file with ffmpeg,
+                                                         // use -vsync 0 to force it not to duplicate frames.
         video_stream_->codec->pix_fmt = PIX_FMT_YUV420P;
         if (context_->oformat->flags & AVFMT_GLOBALHEADER){
             video_stream_->codec->flags|=CODEC_FLAG_GLOBAL_HEADER;
@@ -335,7 +335,7 @@ bool ExternalOutput::initContext() {
         audio_stream_->id = 1;
         audio_stream_->codec->codec_id = context_->oformat->audio_codec;
         audio_stream_->codec->sample_rate = context_->oformat->audio_codec == AV_CODEC_ID_PCM_MULAW ? 8000 : 48000; // TODO is it always 48 khz for opus?
-        audio_stream_->codec->time_base = (AVRational) { 1, audio_stream_->codec->sample_rate };
+        audio_stream_->time_base = (AVRational) { 1, audio_stream_->codec->sample_rate };
         audio_stream_->codec->channels = context_->oformat->audio_codec == AV_CODEC_ID_PCM_MULAW ? 1 : 2;   // TODO is it always two channels for opus?
         if (context_->oformat->flags & AVFMT_GLOBALHEADER){
             audio_stream_->codec->flags|=CODEC_FLAG_GLOBAL_HEADER;

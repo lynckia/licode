@@ -110,9 +110,9 @@ install_mediadeps(){
   sudo apt-get install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-9.13.tar.gz
-    tar -zxf libav-9.13.tar.gz
-    cd libav-9.13
+    curl -O https://www.libav.org/releases/libav-11.1.tar.gz
+    tar -zxf libav-11.1.tar.gz
+    cd libav-11.1
     PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig CPATH=${PREFIX_DIR}/include ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
     make -s V=0
     make install
@@ -128,9 +128,9 @@ install_mediadeps_nogpl(){
 #  sudo apt-get install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-9.13.tar.gz
-    tar -zxf libav-9.13.tar.gz
-    cd libav-9.13
+    curl -O https://www.libav.org/releases/libav-11.1.tar.gz
+    tar -zxf libav-11.1.tar.gz
+    cd libav-11.1
     PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig CPATH=${PREFIX_DIR}/include ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libopus --enable-libvpx
     CPATH=${PREFIX_DIR}/include make -s V=0
     make install
