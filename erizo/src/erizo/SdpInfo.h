@@ -228,6 +228,7 @@ public:
      */
     int videoSdpMLine;
     int audioSdpMLine;
+    int videoCodecs, audioCodecs;
 
 private:
     bool processSdp(const std::string& sdp, const std::string& media);
@@ -235,8 +236,7 @@ private:
     void gen_random(char* s, int len);
     std::vector<CandidateInfo> candidateVector_;
     std::vector<CryptoInfo> cryptoVector_;
-    std::vector<RtpMap> internalVideoPayloadVector_;
-    std::vector<RtpMap> internalAudioPayloadVector_;
+    std::vector<RtpMap> internalPayloadVector_;
     std::string iceVideoUsername_, iceAudioUsername_;
     std::string iceVideoPassword_, iceAudioPassword_;
 };
