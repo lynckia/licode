@@ -67,7 +67,6 @@ namespace erizo {
   bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     ELOG_DEBUG("Set Remote SDP %s", sdp.c_str());
     remoteSdp_.initWithSdp(sdp, "");
-    //std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
 
     bundle_ = remoteSdp_.isBundle;
     ELOG_DEBUG("Is bundle? %d", bundle_);
@@ -87,12 +86,15 @@ namespace erizo {
 
     if (remoteSdp_.profile == SAVPF) {
       if (remoteSdp_.isFingerprint) {
-        // DTLS-SRTP
         if (remoteSdp_.hasVideo||bundle_) {
-          videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
+          std::string username, password;
+          remoteSdp_.getCredentials(username, password, VIDEO_TYPE);
+          videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_, username, password);
         }
         if (!bundle_ && remoteSdp_.hasAudio) {
-          audioTransport_ = new DtlsTransport(AUDIO_TYPE, "audio", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_);
+          std::string username, password;
+          remoteSdp_.getCredentials(username, password, AUDIO_TYPE);
+          audioTransport_ = new DtlsTransport(AUDIO_TYPE, "audio", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_, username, password);
         }
       }
     }

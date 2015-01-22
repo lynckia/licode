@@ -81,7 +81,7 @@ public:
    * @param iceComponents Number of ice components pero connection. Default is 1 (rtcp-mux).
 	 */
 	NiceConnection(MediaType med, const std::string &transportName, NiceConnectionListener* listener, unsigned int iceComponents=1,
-		const std::string& stunServer = "", int stunPort = 3478, int minPort = 0, int maxPort = 65535);
+		const std::string& stunServer = "", int stunPort = 3478, int minPort = 0, int maxPort = 65535, std::string username = "", std::string password = "");
 
 	virtual ~NiceConnection();
 	/**
