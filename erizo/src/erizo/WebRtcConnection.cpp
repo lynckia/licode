@@ -70,15 +70,13 @@ namespace erizo {
     //std::vector<CryptoInfo> crypto_remote = remoteSdp_.getCryptoInfos();
 
     bundle_ = remoteSdp_.isBundle;
-    ELOG_DEBUG("Is bundle? %d %d ", bundle_, true);
-    localSdp_.getPayloadInfos() = remoteSdp_.getPayloadInfos();
-    localSdp_.isBundle = bundle_;
-    localSdp_.isRtcpMux = remoteSdp_.isRtcpMux;
-    localSdp_.setOfferSdp(&remoteSdp_);
+    ELOG_DEBUG("Is bundle? %d", bundle_);
+    localSdp_.setOfferSdp(remoteSdp_);
         
     ELOG_DEBUG("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d", remoteSdp_.hasVideo, remoteSdp_.videoSsrc, remoteSdp_.hasAudio, remoteSdp_.audioSsrc,  bundle_);
 
     ELOG_DEBUG("Setting SSRC to localSdp %u", this->getVideoSinkSSRC());
+
     localSdp_.videoSsrc = this->getVideoSinkSSRC();
     localSdp_.audioSsrc = this->getAudioSinkSSRC();
 
