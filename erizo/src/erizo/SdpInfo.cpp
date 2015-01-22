@@ -29,6 +29,7 @@ namespace erizo {
   static const char *rtpmap = "a=rtpmap:";
   static const char *rtcpmux = "a=rtcp-mux";
   static const char *fp = "a=fingerprint";
+  static const char *rtcpfb = "a=rtcp-fb:";
 
   SdpInfo::SdpInfo() {
     isBundle = false;
@@ -342,8 +343,10 @@ namespace erizo {
             int payloadType = rtp.payloadType;
             sdp << "a=rtpmap:"<<payloadType << " " << rtp.encodingName << "/"
               << rtp.clockRate <<"\n";
-            if(rtp.encodingName == "VP8"){
-              sdp << "a=rtcp-fb:"<< payloadType<<" ccm fir\na=rtcp-fb:"<< payloadType<<" nack\na=rtcp-fb:" << payloadType<<" goog-remb\n" ;
+            if(!rtp.feedbackTypes.empty()){
+              for (unsigned int itFb = 0; itFb < rtp.feedbackTypes.size(); itFb++){
+                sdp << "a=rtcp-fb:" << payloadType << " " << rtp.feedbackTypes[itFb] << "\n";
+              }
             }
         }
       }
@@ -434,6 +437,7 @@ namespace erizo {
       size_t isRtpmap = line.find(rtpmap);
       size_t isRtcpMuxchar = line.find(rtcpmux);
       size_t isFP = line.find(fp);
+      size_t isFeedback = line.find(rtcpfb);
 
       ELOG_DEBUG("current line -> %s", line.c_str());
 
@@ -556,6 +560,19 @@ namespace erizo {
             audioCodecs++;
 
           payloadVector.push_back(theMap);
+        }
+      }
+
+      if(isFeedback != std::string::npos){
+        std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
+        unsigned int PT = strtoul(parts[1].c_str(), NULL, 10);
+        std::string feedback = parts[2];
+        for (unsigned int it = 0; it < payloadVector.size(); it++){
+          RtpMap& rtp = payloadVector[it];
+          if (rtp.payloadType == PT){
+            ELOG_DEBUG("Adding %s feedback to pt %u", feedback.c_str(), PT);
+            rtp.feedbackTypes.push_back(feedback);
+          }
         }
       }
 

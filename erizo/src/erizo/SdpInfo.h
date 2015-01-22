@@ -54,7 +54,6 @@ public:
      * The MediaType
      */
     MediaType mediaType;
-
 };
 /**
  * Contains the information of an ICE Candidate
@@ -89,6 +88,7 @@ struct RtpMap {
   unsigned int clockRate;
   MediaType mediaType;
   unsigned int channels;
+  std::vector<std::string> feedbackTypes;
 };
 /**
  * Contains the information of a single SDP.
