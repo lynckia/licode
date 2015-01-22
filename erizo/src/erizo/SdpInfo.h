@@ -54,7 +54,6 @@ public:
      * The MediaType
      */
     MediaType mediaType;
-
 };
 /**
  * Contains the information of an ICE Candidate
@@ -89,6 +88,7 @@ struct RtpMap {
   unsigned int clockRate;
   MediaType mediaType;
   unsigned int channels;
+  std::vector<std::string> feedbackTypes;
 };
 /**
  * Contains the information of a single SDP.
@@ -132,7 +132,7 @@ public:
     * Gets the payloadType information
     * @return A vector containing the PT-codec information
     */
-    std::vector<RtpMap>& getPayloadInfos();
+    const std::vector<RtpMap>& getPayloadInfos();
     /**
      * Gets the actual SDP.
      * @return The SDP in string format.
@@ -177,7 +177,7 @@ public:
      * @brief copies relevant information from the offer sdp for which this will be an answer sdp
      * @param offerSdp The offer SDP as received via signaling and parsed
      */
-    void setOfferSdp(SdpInfo *offerSdp);
+    void setOfferSdp(const SdpInfo& offerSdp);
 
     /**
      * The audio and video SSRCs for this particular SDP.
@@ -219,11 +219,16 @@ public:
     * Mapping from external PT (key) to intermal PT (value)
     */
     std::map<const int, int> outInPTMap;
+    /**
+     * The negotiated payload list
+     */
+    std::vector<RtpMap> payloadVector;
     /*
      * MLines for video and audio
      */
     int videoSdpMLine;
     int audioSdpMLine;
+    int videoCodecs, audioCodecs;
 
 private:
     bool processSdp(const std::string& sdp, const std::string& media);
@@ -231,9 +236,7 @@ private:
     void gen_random(char* s, int len);
     std::vector<CandidateInfo> candidateVector_;
     std::vector<CryptoInfo> cryptoVector_;
-    std::vector<RtpMap> payloadVector_;
-    std::vector<RtpMap> internalVideoPayloadVector_;
-    std::vector<RtpMap> internalAudioPayloadVector_;
+    std::vector<RtpMap> internalPayloadVector_;
     std::string iceVideoUsername_, iceAudioUsername_;
     std::string iceVideoPassword_, iceAudioPassword_;
 };
