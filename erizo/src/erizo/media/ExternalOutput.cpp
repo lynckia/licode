@@ -7,13 +7,8 @@
 
 namespace erizo {
 
-  DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
-
-// We'll allow our audioQueue to be significantly larger than our video queue
-// This is safe because A) audio is a lot smaller, so it isn't a big deal to hold on to a lot of it and
-// B) our audio sample rate is typically 20 msec packets; video is anywhere from 33 to 100 msec (30 to 10 fps)
-// Allowing the audio queue to hold more will help prevent loss of data when the video framerate is low.
-ExternalOutput::ExternalOutput(const std::string& outputUrl) : fec_receiver_(this), audioQueue_(600, 60), videoQueue_(120, 60), inited_(false), video_stream_(NULL), audio_stream_(NULL),
+DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
+ExternalOutput::ExternalOutput(const std::string& outputUrl) : fec_receiver_(this), audioQueue_(5.0, 10.0), videoQueue_(5.0, 10.0), inited_(false), video_stream_(NULL), audio_stream_(NULL),
     firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1), vp8SearchState_(lookingForStart), needToSendFir_(true)
 {
     ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
@@ -21,6 +16,8 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl) : fec_receiver_(thi
     // TODO these should really only be called once per application run
     av_register_all();
     avcodec_register_all();
+
+    videoQueue_.setTimebase(90000); // our video timebase is easy: always 90 khz.  We'll set audio once we receive a packet and can inspect its header.
 
 
     context_ = avformat_alloc_context();
@@ -104,7 +101,7 @@ int32_t ExternalOutput::OnReceivedPayloadData(const uint8_t* payload_data, const
 void ExternalOutput::writeAudioData(char* buf, int len){
     RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);
     uint16_t currentAudioSequenceNumber = head->getSeqNumber();
-    if (currentAudioSequenceNumber != lastAudioSequenceNumber_ + 1) {
+    if (firstAudioTimestamp_ != -1 && currentAudioSequenceNumber != lastAudioSequenceNumber_ + 1) {
         // Something screwy.  We should always see sequence numbers incrementing monotonically.
         ELOG_DEBUG("Unexpected audio sequence number; current %d, previous %d", currentAudioSequenceNumber, lastAudioSequenceNumber_);
     }
@@ -414,6 +411,14 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
             gettimeofday(&time, NULL);
             audioOffsetMsec_ = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - firstDataReceived_;
             ELOG_DEBUG("File %s, audio offset msec: %llu", context_->filename, audioOffsetMsec_);
+
+            // Let's also take a moment to set our audio queue timebase.
+            RtpHeader* h = reinterpret_cast<RtpHeader*>(buffer);
+            if(h->getPayloadType() == PCMU_8000_PT){
+                audioQueue_.setTimebase(8000);
+            } else if (h->getPayloadType() == OPUS_48000_PT) {
+                audioQueue_.setTimebase(48000);
+            }
         }
         audioQueue_.pushPacket(buffer, length);
     }
