@@ -10,8 +10,8 @@ namespace erizo{
 //forward declaration
 class dataPacket;
 
-static const unsigned int DEFAULT_MAX = 120;
-static const unsigned int DEFAULT_DEPTH = 30;
+static const double DEFAULT_DEPTH = 3.0;
+static const double DEFAULT_MAX = 5.0;
 
 // This class implements a packet reordering queue. Here's what it does:
 //
@@ -26,8 +26,10 @@ static const unsigned int DEFAULT_DEPTH = 30;
 // 6. Is threadsafe.  All public methods lock to ensure the container isn't fouled by multithreaded
 //    access.  This also prevents a minimal amount of locking in calling classes, which prevents
 //    blocking of worker threads.
+// 7. Manages queue depth.  It won't return data until depth (which is % of seconds) is attained, and
+//    will prevent the queue from growing over max seconds.
 //
-// Usage is pretty straight-forward:
+// Usage is straight-forward:
 //
 // 1. instantiate and push incoming data with pushPacket().
 // 2. check if data is ready to be popped by calling hasData().
@@ -38,20 +40,28 @@ class RtpPacketQueue
     DECLARE_LOGGER();
 
 public:
-    RtpPacketQueue(unsigned int max = DEFAULT_MAX, unsigned int depth = DEFAULT_DEPTH );
-    virtual ~RtpPacketQueue(void);
-    void  pushPacket(const char *data, int length);
+    RtpPacketQueue(double depthInSeconds = DEFAULT_DEPTH, double maxDepthInSeconds = DEFAULT_MAX );
+    ~RtpPacketQueue(void);
+    void setTimebase(unsigned int timebase);
+    void pushPacket(const char *data, int length);
     boost::shared_ptr<dataPacket> popPacket(bool ignore_depth = false);
     int getSize();  // total size of all items in the queue
     bool hasData(); // whether or not current queue depth is >= depth_
 
 private:
+    // Only used internally; does the math to calculate our current depth based on the supplied timebase.
+    // Must be called with queueMutex_ locked.
+    double getDepthInSeconds();
+
     boost::mutex queueMutex_;
     std::list<boost::shared_ptr<dataPacket> > queue_;
     int lastSequenceNumberGiven_;
     bool rtpSequenceLessThan(uint16_t x, uint16_t y);
-    unsigned int max_;       // The max size we allow the queue to grow before discarding samples
-    unsigned int depth_;     // The depth at which pop packet functions.
+
+    // We use a timebase so we can understand how many seconds of data we have in our queue.
+    unsigned int timebase_;
+    double depthInSeconds_;
+    double maxDepthInSeconds_;
 };
 } /* namespace erizo */
 

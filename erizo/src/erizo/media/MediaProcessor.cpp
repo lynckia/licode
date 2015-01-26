@@ -526,7 +526,7 @@ namespace erizo {
       return -1;
     }
 
-    AVFrame *frame = avcodec_alloc_frame();
+    AVFrame *frame = av_frame_alloc();
     if (!frame) {
       ELOG_ERROR("could not allocate audio frame");
       return -1;

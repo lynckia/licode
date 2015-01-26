@@ -80,9 +80,9 @@ install_mediadeps(){
   brew install yasm libvpx x264 opus
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-9.13.tar.gz
-    tar -zxvf libav-9.13.tar.gz
-    cd libav-9.13
+    curl -O https://www.libav.org/releases/libav-11.1.tar.gz
+    tar -zxvf libav-11.1.tar.gz
+    cd libav-11.1
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
     make -s V=0
     make install
@@ -97,9 +97,9 @@ install_mediadeps_nogpl(){
   brew install yasm libvpx opus
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-9.13.tar.gz
-    tar -zxvf libav-9.13.tar.gz
-    cd libav-9.13
+    curl -O https://www.libav.org/releases/libav-11.1.tar.gz
+    tar -zxvf libav-11.1.tar.gz
+    cd libav-11.1
     ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus
     make -s V=0
     make install

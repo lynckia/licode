@@ -66,7 +66,7 @@ namespace erizo {
   }
 
   int AudioEncoder::encodeAudio (unsigned char* inBuffer, int nSamples, AVPacket* pkt) {
-    AVFrame *frame = avcodec_alloc_frame();
+    AVFrame *frame = av_frame_alloc();
     if (!frame) {
       ELOG_ERROR("could not allocate audio frame");
       return 0;
@@ -118,7 +118,7 @@ namespace erizo {
       avcodec_close(aCoderContext_);
     }
     if (aFrame_!=NULL){
-      avcodec_free_frame(&aFrame_);
+      av_frame_free(&aFrame_);
     }
     return 0;
   }
@@ -252,7 +252,7 @@ namespace erizo {
       avcodec_close(aDecoderContext_);
     }
     if (dFrame_!=NULL){
-      avcodec_free_frame(&dFrame_);
+      av_frame_free(&dFrame_);
     }
     return 0;
   }

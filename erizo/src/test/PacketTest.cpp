@@ -123,18 +123,27 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueDoesNotPushSampleLessThanWhatHasBeenPopped)
     queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
     BOOST_CHECK(queue.getSize() == 0);
     BOOST_CHECK(queue.hasData() == false);
+
+    // Then try to add a packet with the same sequence number.  This packet should not have
+    // been added to the queue.
+    header.setSeqNumber(12);
+    queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
+    BOOST_CHECK(queue.getSize() == 0);
+    BOOST_CHECK(queue.hasData() == false);
 }
 
 BOOST_AUTO_TEST_CASE(rtpPacketQueueMakesDataAvailableOnceEnoughSamplesPushed)
 {
     unsigned int max = 10, depth = 5;
-    erizo::RtpPacketQueue queue(max, depth);  // max and depth.
+    erizo::RtpPacketQueue queue(depth, max);  // max and depth.
+    queue.setTimebase(1);
 
     uint16_t x = 0;
 
     for(x = 0; x < (depth - 1); x++) {
         erizo::RtpHeader header;
         header.setSeqNumber(x);
+        queue.setTimebase(1);
         queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
     }
 
@@ -145,6 +154,7 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueMakesDataAvailableOnceEnoughSamplesPushed)
     // Add one more sample, verify that we have 5, and hasData now returns true.
     erizo::RtpHeader header;
     header.setSeqNumber(++x);
+    header.setTimestamp(++x);
     queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
 
     BOOST_CHECK(queue.getSize() == depth);
@@ -154,18 +164,19 @@ BOOST_AUTO_TEST_CASE(rtpPacketQueueMakesDataAvailableOnceEnoughSamplesPushed)
 BOOST_AUTO_TEST_CASE(rtpPacketQueueRespectsMax)
 {
     unsigned int max = 10, depth = 5;
-    erizo::RtpPacketQueue queue(max, depth);  // max and depth.
-
+    erizo::RtpPacketQueue queue(depth, max);  // max and depth.
+    queue.setTimebase(1);   // dummy timebase.
     uint16_t x = 0;
 
     // let's push ten times the max.
     for(uint16_t x = 0; x < (max * 10); x++) {
         erizo::RtpHeader header;
         header.setSeqNumber(x);
+        header.setTimestamp(x);
         queue.pushPacket((const char *)&header, sizeof(erizo::RtpHeader));
     }
 
-    BOOST_CHECK(queue.getSize() == max);
+    BOOST_CHECK(queue.getSize() == (max + 1));
     BOOST_CHECK(queue.hasData() == true);
 }
 
