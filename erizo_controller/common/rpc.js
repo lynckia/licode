@@ -10,6 +10,9 @@ GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
 GLOBAL.config.rabbit.host = GLOBAL.config.rabbit.host || 'localhost';
 GLOBAL.config.rabbit.port = GLOBAL.config.rabbit.port || 5672;
 
+GLOBAL.config.rabbit.login = GLOBAL.config.rabbit.login || 'guest';
+GLOBAL.config.rabbit.password = GLOBAL.config.rabbit.password || 'guest';
+
 var TIMEOUT = 5000;
 
 // This timeout shouldn't be too low because it won't listen to onReady responses from ErizoJS
@@ -30,6 +33,9 @@ if (GLOBAL.config.rabbit.url !== undefined) {
     addr.host = GLOBAL.config.rabbit.host;
     addr.port = GLOBAL.config.rabbit.port;
 }
+
+addr.login = GLOBAL.config.rabbit.login;
+addr.password = GLOBAL.config.rabbit.password;
 
 exports.setPublicRPC = function(methods) {
     rpcPublic = methods;

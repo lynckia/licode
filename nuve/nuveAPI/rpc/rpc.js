@@ -13,6 +13,9 @@ config.rabbit = config.rabbit || {};
 config.rabbit.host = config.rabbit.host || 'localhost';
 config.rabbit.port = config.rabbit.port || 5672;
 
+config.rabbit.login = config.rabbit.login || 'guest';
+config.rabbit.password = config.rabbit.password || 'guest';
+
 var TIMEOUT = 3000;
 
 var corrID = 0;
@@ -30,6 +33,9 @@ if (config.rabbit.url !== undefined) {
     addr.host = config.rabbit.host;
     addr.port = config.rabbit.port;
 }
+
+addr.login = config.rabbit.login;
+addr.password = config.rabbit.password;
 
 exports.connect = function () {
 
