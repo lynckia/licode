@@ -145,17 +145,17 @@ private:
 	void init();
 	NiceAgent* agent_;
 	NiceConnectionListener* listener_;
-  std::queue<packetPtr> niceQueue_;
-  unsigned int candsDelivered_;
+  	std::queue<packetPtr> niceQueue_;
+  	unsigned int candsDelivered_;
 
 	GMainContext* context_;
 	boost::thread m_Thread_;
 	IceState iceState_;
-  boost::mutex queueMutex_, stateMutex_;
+  	boost::mutex queueMutex_;
 	boost::condition_variable cond_;
-  unsigned int iceComponents_;
-  std::map <unsigned int, IceState> comp_state_list_;
-  bool running_;
+  	unsigned int iceComponents_;
+  	std::map <unsigned int, IceState> comp_state_list_;
+  	bool running_;
 	std::string ufrag_, upass_;
 };
 
