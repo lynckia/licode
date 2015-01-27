@@ -152,8 +152,7 @@ void ExternalOutput::writeAudioData(char* buf, int len){
     avpkt.size = len - head->getHeaderLength();
     avpkt.pts = timestampToWrite;
     avpkt.stream_index = 1;
-    av_write_frame(context_, &avpkt);
-    av_free_packet(&avpkt);
+    av_interleaved_write_frame(context_, &avpkt);   // takes ownership of the packet
 }
 
 void ExternalOutput::writeVideoData(char* buf, int len){
@@ -279,8 +278,7 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         avpkt.size = unpackagedSize_;
         avpkt.pts = timestampToWrite;
         avpkt.stream_index = 0;
-        av_write_frame(context_, &avpkt);
-        av_free_packet(&avpkt);
+        av_interleaved_write_frame(context_, &avpkt);   // takes ownership of the packet
         unpackagedSize_ = 0;
         unpackagedBufferpart_ = unpackagedBuffer_;
     }
