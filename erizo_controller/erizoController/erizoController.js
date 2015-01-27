@@ -470,7 +470,6 @@ var listen = function () {
                         callback(undefined, id);
                         st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
                         socket.streams.push(id);
-                        socket.room.streams[id] = st;
 
                         if (GLOBAL.config.erizoController.report.session_events) {
                             var timeStamp = new Date();
@@ -478,40 +477,24 @@ var listen = function () {
                         }
                         return;
                     } else if (signMess.type ==='failed'){
-
-                        if (socket.room.streams[id] === undefined) {
-                            return;
-                        }
-                       
                         log.info("IceConnection Failed on publisher, removing " , id);
-                        var i, index;
-                        var streamId = id;
                         socket.emit('connection_failed',{});
-                        sendMsgToRoom(socket.room, 'onRemoveStream', {id: streamId});
-
-                        if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
-                            socket.state = 'sleeping';
-                            if (!socket.room.p2p) {
-                                socket.room.controller.removePublisher(streamId);
-                                if (GLOBAL.config.erizoController.report.session_events) {
-                                    var timeStamp = new Date();
-                                    amqper.broadcast('event', {room: socket.room.id, user: socket.id, type: 'failed', stream: streamId, timestamp: timeStamp.getTime()});
-                                }
+                        socket.state = 'sleeping';
+                        if (!socket.room.p2p) {
+                            socket.room.controller.removePublisher(streamId);
+                            if (GLOBAL.config.erizoController.report.session_events) {
+                                var timeStamp = new Date();
+                                amqper.broadcast('event', {room: socket.room.id, user: socket.id, type: 'failed', stream: streamId, timestamp: timeStamp.getTime()});
                             }
                         }
 
-                        index = socket.streams.indexOf(streamId);
+                        var index = socket.streams.indexOf(streamId);
                         if (index !== -1) {
                             socket.streams.splice(index, 1);
                         }
-                        if (socket.room.streams[streamId]) {
-                            delete socket.room.streams[streamId];
-                        }
                         return;
-
-                    // } else if (signMess.type === 'candidate') {
-                    //     signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
                     } else if (signMess.type === 'ready') {
+                        socket.room.streams[id] = st;
                         sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
                     }
 
