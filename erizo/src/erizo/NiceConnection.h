@@ -155,9 +155,7 @@ private:
 	boost::condition_variable cond_;
   unsigned int iceComponents_;
   std::map <unsigned int, IceState> comp_state_list_;
-	std::string stunServer_;
   bool running_;
-	int stunPort_, minPort_, maxPort_;
 	std::string ufrag_, upass_;
 };
 

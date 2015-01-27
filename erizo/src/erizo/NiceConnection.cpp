@@ -77,8 +77,7 @@ namespace erizo {
 
   NiceConnection::NiceConnection(MediaType med, const std::string &transport_name,NiceConnectionListener* listener, 
       unsigned int iceComponents, const std::string& stunServer, int stunPort, int minPort, int maxPort, std::string username, std::string password)
-     : mediaType(med), agent_(NULL), listener_(listener), candsDelivered_(0), context_(NULL), iceState_(NICE_INITIAL), iceComponents_(iceComponents),
-             stunServer_(stunServer), stunPort_ (stunPort), minPort_(minPort), maxPort_(maxPort) {
+     : mediaType(med), agent_(NULL), listener_(listener), candsDelivered_(0), context_(NULL), iceState_(NICE_INITIAL), iceComponents_(iceComponents) {
 
     localCandidates.reset(new std::vector<CandidateInfo>());
     transportName.reset(new std::string(transport_name));
@@ -104,17 +103,17 @@ namespace erizo {
     g_object_set_property(G_OBJECT( agent_ ), "max-connectivity-checks", &checks);
 
 
-    if (stunServer_.compare("") != 0 && stunPort_!=0){
+    if (stunServer.compare("") != 0 && stunPort!=0){
       GValue val = { 0 }, val2 = { 0 };
       g_value_init(&val, G_TYPE_STRING);
-      g_value_set_string(&val, stunServer_.c_str());
+      g_value_set_string(&val, stunServer.c_str());
       g_object_set_property(G_OBJECT( agent_ ), "stun-server", &val);
 
       g_value_init(&val2, G_TYPE_UINT);
-      g_value_set_uint(&val2, stunPort_);
+      g_value_set_uint(&val2, stunPort);
       g_object_set_property(G_OBJECT( agent_ ), "stun-server-port", &val2);
 
-      ELOG_DEBUG("Setting STUN server %s:%d", stunServer_.c_str(), stunPort_);
+      ELOG_DEBUG("Setting STUN server %s:%d", stunServer.c_str(), stunPort);
     }
 
     // Connect the signals
@@ -139,9 +138,9 @@ namespace erizo {
     nice_agent_set_remote_credentials(agent_, (guint) 1, username.c_str(), password.c_str());
 
     // Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
-    if (minPort_!=0 && maxPort_!=0){
-      ELOG_DEBUG("Setting port range: %d to %d\n", minPort_, maxPort_);
-      nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)minPort_, (guint)maxPort_);
+    if (minPort!=0 && maxPort!=0){
+      ELOG_DEBUG("Setting port range: %d to %d\n", minPort, maxPort);
+      nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)minPort, (guint)maxPort);
     }
 
     if (SERVER_SIDE_TURN){
