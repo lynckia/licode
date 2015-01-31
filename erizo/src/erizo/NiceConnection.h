@@ -9,6 +9,7 @@
 #include <vector>
 #include <queue>
 #include <boost/thread.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "MediaDefinitions.h"
 #include "SdpInfo.h"

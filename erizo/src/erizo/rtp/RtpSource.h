@@ -11,6 +11,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
+#include <boost/scoped_ptr.hpp>
 #include "../MediaDefinitions.h"
 #include "../logger.h"
 
