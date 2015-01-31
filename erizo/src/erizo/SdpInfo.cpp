@@ -155,8 +155,7 @@ namespace erizo {
   }
 
   bool SdpInfo::initWithSdp(const std::string& sdp, const std::string& media) {
-    processSdp(sdp, media);
-    return true;
+    return processSdp(sdp, media);
   }
   void SdpInfo::addCandidate(const CandidateInfo& info) {
     candidateVector_.push_back(info);
@@ -580,6 +579,7 @@ namespace erizo {
     // If there is no video or audio credentials we use the ones we have
     if (iceVideoUsername_.empty() && iceAudioUsername_.empty()){
       ELOG_ERROR("No valid credentials for ICE")
+      return false;
     }else if (iceVideoUsername_.empty()){
       ELOG_DEBUG("Video credentials empty, setting the audio ones");
       iceVideoUsername_ = iceAudioUsername_;
