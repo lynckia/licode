@@ -1,4 +1,5 @@
 build/
+licode_config/
 licode_config.js
 extras/basic_example/node_modules
 extras/basic_example/public/erizo.js

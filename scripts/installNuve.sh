@@ -54,6 +54,14 @@ populate_mongo(){
   replacement=s/_auto_generated_KEY_/${SERVKEY}/
   sed $replacement $BUILD_DIR/licode_1.js > $ROOT/licode_config.js
   rm $BUILD_DIR/licode_1.js
+
+  # Write network-config file
+  mkdir -p $ROOT/licode_config;
+
+  if [ ! -f "$ROOT/licode_config/host.js" ]; then
+    cp $PATHNAME/host_default.js $ROOT/licode_config/host.js
+  fi
+
 }
 
 install_nuve
