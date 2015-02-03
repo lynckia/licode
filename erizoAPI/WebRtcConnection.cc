@@ -182,12 +182,29 @@ Handle<Value> WebRtcConnection::getCurrentState(const Arguments& args) {
 Handle<Value> WebRtcConnection::getStats(const v8::Arguments& args){
   HandleScope scope;
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
-  obj->me->setWebRtcConnectionStatsListener(obj);
-  obj->hasCallback_ = true;
-  obj->statsCallback_ = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+  if (args.Length()==0){
+    printf("NO ARGS! , calling getJSONStats************************************\n");
+    std::string lastStats = obj->me->getJSONStats();
+    return scope.Close(String::NewSymbol(lastStats.c_str()));
+  }else{
+    printf("ARGS! , SETTING CALLBACK**********************************************\n");
+    obj->me->setWebRtcConnectionStatsListener(obj);
+    obj->hasCallback_ = true;
+    obj->statsCallback_ = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+    return scope.Close(Null());
+  }
+}
 
-  return scope.Close(Null());
+Handle<Value> WebRtcConnection::getLastStats(const v8::Arguments& args){
 
+  HandleScope scope;
+
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+  erizo::WebRtcConnection *me = obj->me;
+
+  std::string lastStats = me->getJSONStats();
+
+  return scope.Close(String::NewSymbol(lastStats.c_str()));
 }
 
 void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message) {

@@ -11,15 +11,17 @@
 namespace erizo {
 
   DEFINE_LOGGER(Stats, "Stats");
-  Stats::~Stats(){
-    if (runningStats_){
-      runningStats_ = false;
-      statsThread_.join();
-      ELOG_DEBUG("Stopped periodic stats report");
-    }
+  
+  Stats::Stats(){ 
+    ELOG_DEBUG("Constructor Stats");
+    theListener_ = NULL;
   }
+  Stats::~Stats(){
+    ELOG_DEBUG("Destructor Stats");
+  }
+
   void Stats::processRtcpPacket(char* buf, int length) {
-    boost::mutex::scoped_lock lock(mapMutex_);    
+    boost::recursive_mutex::scoped_lock lock(mapMutex_);
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;
@@ -30,28 +32,57 @@ namespace erizo {
       totalLength+= rtcpLength;
       this->processRtcpPacket(chead);
     } while(totalLength<length);
+    sendStats();
   }
   
   void Stats::processRtcpPacket(RtcpHeader* chead) {    
     unsigned int ssrc = chead->getSSRC();
-    
-//    ELOG_DEBUG("RTCP Packet: PT %d, SSRC %u,  block count %d ",chead->packettype,chead->getSSRC(), chead->getBlockCount()); 
-    if (chead->packettype == RTCP_Receiver_PT){
-      setFractionLost (chead->getFractionLost(), ssrc);
-      setPacketsLost (chead->getLostPackets(), ssrc);
-      setJitter (chead->getJitter(), ssrc);
-      setSourceSSRC(chead->getSourceSSRC(), ssrc);
-    }else if (chead->packettype == RTCP_Sender_PT){
-      setRtcpPacketSent(chead->getPacketsSent(), ssrc);
-      setRtcpBytesSent(chead->getOctetsSent(), ssrc);
-    }else{
-//      ELOG_DEBUG("REMB packet mantissa %u, exp %u", chead->getBrMantis(), chead->getBrExp());
-//      ELOG_DEBUG("Packet not RR or SR going through stats %d", chead->packettype);
+
+    ELOG_DEBUG("RTCP SubPacket: PT %d, SSRC %u,  block count %d ",chead->packettype,chead->getSSRC(), chead->getBlockCount()); 
+    switch(chead->packettype){
+      case RTCP_SDES_PT:
+        ELOG_DEBUG("SDES");
+      case RTCP_Receiver_PT:
+        setFractionLost (chead->getFractionLost(), ssrc);
+        setPacketsLost (chead->getLostPackets(), ssrc);
+        setJitter (chead->getJitter(), ssrc);
+        setSourceSSRC(chead->getSourceSSRC(), ssrc);
+        break;
+      case RTCP_Sender_PT:
+        setRtcpPacketSent(chead->getPacketsSent(), ssrc);
+        setRtcpBytesSent(chead->getOctetsSent(), ssrc);
+        break;
+      case RTCP_RTP_Feedback_PT:
+        ELOG_DEBUG("RTP FB: Usually NACKs: %u", chead->getBlockCount());
+        break;
+      case RTCP_PS_Feedback_PT:
+        ELOG_DEBUG("RTCP PS FB TYPE: %u", chead->getBlockCount() );
+        switch(chead->getBlockCount()){
+          case RTCP_PLI_FMT:
+            ELOG_DEBUG("PLI Message");
+            break;
+          case RTCP_SLI_FMT:
+            ELOG_DEBUG("SLI Message");
+            break;
+          case RTCP_FIR_FMT:
+            ELOG_DEBUG("FIR Message");
+            break;
+          case RTCP_AFB:
+            ELOG_DEBUG("AFB Message, possibly REMB");
+            break;
+          default:
+            ELOG_WARN("Unsupported RTCP_PS FB TYPE %u",chead->getBlockCount());
+
+        }
+        break;
+      default:
+        ELOG_DEBUG("Unknown RTCP Packet, %d", chead->packettype);
+        break;
     }
   }
  
   std::string Stats::getStats() {
-    boost::mutex::scoped_lock lock(mapMutex_);
+    boost::recursive_mutex::scoped_lock lock(mapMutex_);
     std::ostringstream theString;
     theString << "[";
     for (fullStatsMap_t::iterator itssrc=theStats_.begin(); itssrc!=theStats_.end();){
@@ -76,28 +107,10 @@ namespace erizo {
     theString << "]";
     return theString.str(); 
   }
-
-  void Stats::setPeriodicStats(int intervalMillis, WebRtcConnectionStatsListener* listener) {
-    if (!runningStats_){
-      theListener_ = listener;
-      iterationsPerTick_ = static_cast<int>((intervalMillis*1000)/SLEEP_INTERVAL_);
-      runningStats_ = true;
-      ELOG_DEBUG("Starting periodic stats report with interval %d, iterationsPerTick %d", intervalMillis, iterationsPerTick_);
-      statsThread_ = boost::thread(&Stats::sendStats, this);
-    }else{
-      ELOG_ERROR("Stats already started");
-    }
-  }
-
+  
   void Stats::sendStats() {
-    while(runningStats_) {
-      if (++currentIterations_ >= (iterationsPerTick_)){
-        theListener_->notifyStats(this->getStats());
-
-        currentIterations_ =0;
-      }
-      usleep(SLEEP_INTERVAL_);
-    }
+    if(theListener_!=NULL)
+      theListener_->notifyStats(this->getStats());
   }
 }
 

@@ -17,6 +17,11 @@ namespace erizo{
 #define RTCP_RTP_Feedback_PT 205 // RTCP Transport Layer Feedback Packet
 #define RTCP_PS_Feedback_PT  206 // RTCP Payload Specific Feedback Packet
 
+#define RTCP_PLI_FMT           1
+#define RTCP_SLI_FMT           2
+#define RTCP_FIR_FMT           4
+#define RTCP_AFB              15
+
 #define VP8_90000_PT        100 // VP8 Video Codec
 #define RED_90000_PT        116 // REDundancy (RFC 2198)
 #define ULP_90000_PT        117 // ULP/FEC
@@ -238,6 +243,16 @@ namespace erizo{
           uint32_t octetssent;
           struct receiverReport_t rrlist[1];
         } senderReport;
+// Generic NACK RTCP_RTP_FB + (FMT 1)rfc4585
+//      0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |            PID                |             BLP               |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        struct genericNack_t{
+          uint32_t pid :16;
+          uint32_t blp :16;
+        } nackPacket;
         
         struct remb_t{
           uint32_t ssrcsource;
@@ -257,10 +272,10 @@ namespace erizo{
             packettype == RTCP_RTP_Feedback_PT);
       }
       inline bool isRtcp(void) {        
-        return (packettype == RTCP_Sender_PT || 
-            packettype == RTCP_Receiver_PT || 
-            packettype == RTCP_PS_Feedback_PT||
-            packettype == RTCP_RTP_Feedback_PT);
+        return (packettype == RTCP_Sender_PT ||
+            packettype == RTCP_APP ||
+            isFeedback()            
+            );
       }
       inline uint8_t getBlockCount(){
         return (uint8_t)blockcount;

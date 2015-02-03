@@ -20,9 +20,8 @@ namespace erizo{
   class Stats{
     DECLARE_LOGGER();
     public:
-    Stats(): currentIterations_(0), runningStats_(false){
-    };
-
+    
+    Stats();
     virtual ~Stats();
 
     void processRtcpPacket(char* buf, int length);
@@ -34,23 +33,21 @@ namespace erizo{
     void setAudioSourceSSRC(unsigned int ssrc){
       audioSSRC_ = ssrc;
     };
-    void setPeriodicStats(int intervalMillis, WebRtcConnectionStatsListener* listener);
-
-
+    inline void setStatsListener(WebRtcConnectionStatsListener* listener){
+      this->theListener_ = listener;
+    }
+    
     private:
     typedef std::map<std::string, unsigned long int> singleSSRCstatsMap_t;
     typedef std::map <unsigned long int, singleSSRCstatsMap_t> fullStatsMap_t;
     fullStatsMap_t theStats_;
     static const int SLEEP_INTERVAL_ = 100000;
-    boost::mutex mapMutex_;
-    WebRtcConnectionStatsListener* theListener_;      
-    boost::thread statsThread_;
-    int iterationsPerTick_;
-    int currentIterations_;
+    boost::recursive_mutex mapMutex_;
+    WebRtcConnectionStatsListener* theListener_;
     unsigned int videoSSRC_, audioSSRC_;
-    bool runningStats_;
 
     void processRtcpPacket(RtcpHeader* chead);
+
 
     int getPacketsLost(unsigned int ssrc){
       return static_cast<int>(theStats_[ssrc]["packetsLost"]);

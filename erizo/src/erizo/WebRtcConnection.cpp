@@ -200,7 +200,6 @@ namespace erizo {
   }
 
   int WebRtcConnection::deliverAudioData_(char* buf, int len) {
-    writeSsrc(buf, len, this->getAudioSinkSSRC());
     if (bundle_){
       if (videoTransport_ != NULL) {
         if (audioEnabled_ == true) {
@@ -252,7 +251,7 @@ namespace erizo {
   int WebRtcConnection::deliverFeedback_(char* buf, int len){
     // Check where to send the feedback
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-//    ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, chead->getSSRC(), chead->getSourceSSRC());
+    ELOG_DEBUG("received Feedback type %u ssrc %u, sourcessrc %u", chead->packettype, chead->getSSRC(), chead->getSourceSSRC());
     if (chead->getSourceSSRC() == this->getAudioSourceSSRC()) {
         writeSsrc(buf,len,this->getAudioSinkSSRC());
     } else {
@@ -281,13 +280,11 @@ namespace erizo {
       return;
     }
     
-    // PROCESS STATS
-    if (this->statsListener_){ // if there is no listener we dont process stats
-      RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
-      if (head->payloadtype != RED_90000_PT && head->payloadtype != PCMU_8000_PT)     
-        thisStats_.processRtcpPacket(buf, len);
-    }
+    // PROCESS RTCP
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
+    if (chead->isRtcp())     
+      thisStats_.processRtcpPacket(buf, len);
+
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
       if (fbSink_ != NULL) {
@@ -541,6 +538,10 @@ namespace erizo {
 
   WebRTCEvent WebRtcConnection::getCurrentState() {
     return globalState_;
+  }
+
+  std::string WebRtcConnection::getJSONStats(){
+    return thisStats_.getStats();
   }
 
   void WebRtcConnection::processRtcpHeaders(char* buf, int len, unsigned int ssrc){
