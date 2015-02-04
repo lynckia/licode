@@ -131,17 +131,18 @@ namespace erizo {
     SdpInfo tempSdp;
     std::string username, password;
     remoteSdp_.getCredentials(username, password, theType);
-    tempSdp.setCredentials(username, password, theType);
-    tempSdp.initWithSdp(sdp, theMid);
-    bool res;
-    if (theType == VIDEO_TYPE||bundle_){
-      ELOG_DEBUG("Setting VIDEO CANDIDATE" );
-      res = videoTransport_->setRemoteCandidates(tempSdp.getCandidateInfos(), bundle_);
-    } else if (theType==AUDIO_TYPE){
-      ELOG_DEBUG("Setting AUDIO CANDIDATE");
-      res = audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos(), bundle_);
-    }else{
-      ELOG_ERROR("Cannot add remote candidate with no Media (video or audio)");
+    tempSdp.setCredentials(username, password, OTHER);
+    bool res = false;
+    if(tempSdp.initWithSdp(sdp, theMid)){
+      if (theType == VIDEO_TYPE||bundle_){
+        ELOG_DEBUG("Setting VIDEO CANDIDATE" );
+        res = videoTransport_->setRemoteCandidates(tempSdp.getCandidateInfos(), bundle_);
+      } else if (theType==AUDIO_TYPE){
+        ELOG_DEBUG("Setting AUDIO CANDIDATE");
+        res = audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos(), bundle_);
+      }else{
+        ELOG_ERROR("Cannot add remote candidate with no Media (video or audio)");
+      }
     }
     return res;
   }
