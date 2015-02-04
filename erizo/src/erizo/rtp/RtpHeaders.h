@@ -200,7 +200,7 @@ namespace erizo{
   //
   //
   //
-  //0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+  //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
   // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   // |V=2|P| FMT=15  |   PT=206      |             length            |
   // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -250,16 +250,17 @@ namespace erizo{
 //   |            PID                |             BLP               |
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         struct genericNack_t{
-          uint32_t pid :16;
-          uint32_t blp :16;
+          uint16_t pid;
+          uint16_t blp;
         } nackPacket;
         
         struct remb_t{
           uint32_t ssrcsource;
           uint32_t uniqueid;
           uint32_t numssrc:8;
-          uint32_t brexp:6;
-          uint32_t brmantis:18; //0x3FFFF
+
+          uint32_t brLength :24;
+         
           uint32_t ssrcfeedb;
 
         } rembPacket;
@@ -289,11 +290,11 @@ namespace erizo{
       inline uint32_t getSourceSSRC(){
         return ntohl(report.receiverReport.ssrcsource);
       }
-      inline int getFractionLost() {
-        return ntohl(report.receiverReport.fractionlost);
+      inline uint8_t getFractionLost() {
+        return (uint8_t)(report.receiverReport.fractionlost);
       }
-      inline int getLostPackets() {
-        return ntohl(report.receiverReport.lost);
+      inline uint32_t getLostPackets() {
+        return ntohl(report.receiverReport.lost)>>8;
       }
       inline uint32_t getHighestSeqnum() {
         return ntohl(report.receiverReport.highestseqnum);
@@ -307,11 +308,21 @@ namespace erizo{
       inline uint32_t getOctetsSent(){
         return ntohl(report.senderReport.octetssent);
       }
-      inline uint32_t getBrMantis(){
-        return ntohl(report.rembPacket.brmantis);
+      uint16_t getNackPid(){
+        return ntohs(report.nackPacket.pid);
       }
-      inline uint32_t getBrExp(){
-        return report.rembPacket.brexp;
+      uint16_t getNackBlp(){
+        return ntohs(report.nackPacket.blp);
+      }
+      inline uint32_t getBrExp(){ 
+        //remove the 0s added by nothl (8) + the 18 bits of Mantissa 
+        return (ntohl(report.rembPacket.brLength)>>26);
+      }
+      inline uint32_t getBrMantis(){        
+        return (ntohl(report.rembPacket.brLength)>>8 & 0x3ffff);
+      }
+      inline uint8_t getNumSSRC(){
+        return report.rembPacket.numssrc;
       }
   };
 
@@ -388,10 +399,11 @@ namespace erizo{
       uint32_t follow :1;
       uint32_t tsLength :24;
       uint32_t getTS() {
-        return (ntohl(tsLength) & 0xfffc00) >> 10;
+        // remove the 8 bits added by nothl + the 10 from length 
+        return (ntohl(tsLength) & 0xfffc0000) >> 18;
       }
       uint32_t getLength() {
-        return (ntohl(tsLength) & 0x3ff);
+        return (ntohl(tsLength) & 0x3ff00);
       }
   };
 } /*namespace erizo*/

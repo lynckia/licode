@@ -25,6 +25,7 @@ namespace erizo {
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;
+    
     do{
       movingBuf+=rtcpLength;
       RtcpHeader *chead= reinterpret_cast<RtcpHeader*>(movingBuf);
@@ -54,6 +55,7 @@ namespace erizo {
         break;
       case RTCP_RTP_Feedback_PT:
         ELOG_DEBUG("RTP FB: Usually NACKs: %u", chead->getBlockCount());
+        ELOG_DEBUG("PLI %u BLP %u", chead->getNackPid(), chead->getNackBlp());
         break;
       case RTCP_PS_Feedback_PT:
         ELOG_DEBUG("RTCP PS FB TYPE: %u", chead->getBlockCount() );
@@ -68,11 +70,22 @@ namespace erizo {
             ELOG_DEBUG("FIR Message");
             break;
           case RTCP_AFB:
-            ELOG_DEBUG("AFB Message, possibly REMB");
-            break;
+            {
+              char *uniqueId = (char*)&chead->report.rembPacket.uniqueid;
+              if (!strncmp(uniqueId,"REMB", 4)){
+                uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
+                ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps", chead->getNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate);
+
+                
+              }
+              else{
+                ELOG_DEBUG("Not remb")
+              }
+              break;
+            }
           default:
             ELOG_WARN("Unsupported RTCP_PS FB TYPE %u",chead->getBlockCount());
-
+            break;
         }
         break;
       default:
