@@ -250,6 +250,7 @@ namespace erizo{
 //   |            PID                |             BLP               |
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         struct genericNack_t{
+          uint32_t ssrcsource;
           uint16_t pid;
           uint16_t blp;
         } nackPacket;

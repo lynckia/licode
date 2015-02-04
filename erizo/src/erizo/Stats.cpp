@@ -56,7 +56,7 @@ namespace erizo {
         break;
       case RTCP_RTP_Feedback_PT:
         ELOG_DEBUG("RTP FB: Usually NACKs: %u", chead->getBlockCount());
-        ELOG_DEBUG("PLI %u BLP %u", chead->getNackPid(), chead->getNackBlp());
+        ELOG_DEBUG("PID %u BLP %u", chead->getNackPid(), chead->getNackBlp());
         accountNACKMessage(ssrc);
         break;
       case RTCP_PS_Feedback_PT:
