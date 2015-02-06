@@ -49,7 +49,7 @@ Erizo.getBrowser = function () {
         }
     } else if (window.navigator.userAgent.match("Safari") !== null) {
         browser = "bowser";
-    } else if (window.navigator.userAgent.match("WebKit") !== null) {
+    } else if (window.navigator.userAgent.match("AppleWebKit") !== null) {
         browser = "bowser";
     }
     return browser;
