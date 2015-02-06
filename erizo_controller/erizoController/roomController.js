@@ -192,7 +192,7 @@ exports.RoomController = function (spec) {
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
      */
-    that.addSubscriber = function (subscriber_id, publisher_id, audio, video, callback) {
+    that.addSubscriber = function (subscriber_id, publisher_id, options, callback) {
         if (subscriber_id === null){
           callback("Error: null subscriber_id");
           return;
@@ -202,10 +202,10 @@ exports.RoomController = function (spec) {
 
             log.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id);
 
-            if (audio === undefined) audio = true;
-            if (video === undefined) video = true;
+            if (options.audio === undefined) options.audio = true;
+            if (options.video === undefined) options.video = true;
 
-            var args = [subscriber_id, publisher_id, audio, video];
+            var args = [subscriber_id, publisher_id, options];
 
             amqper.callRpc(getErizoQueue(publisher_id), "addSubscriber", args, {callback: callback});
 

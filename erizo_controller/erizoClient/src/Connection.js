@@ -11,41 +11,53 @@ Erizo.Connection = function (spec) {
     spec.session_id = (Erizo.sessionId += 1);
 
     // Check which WebRTC Stack is installed.
-    that.browser = "";
+    that.browser = Erizo.getBrowser();
 
     if (typeof module !== 'undefined' && module.exports) {
         L.Logger.error('Publish/subscribe video/audio streams not supported in erizofc yet');
         that = Erizo.FcStack(spec);
-    } else if (window.navigator.userAgent.match("Firefox") !== null) {
-        // Firefox
-        that.browser = "mozilla";
+    } else if (that.browser === 'mozilla') {
+        L.Logger.debug("Firefox Stack");
         that = Erizo.FirefoxStack(spec);
-    }else if (window.navigator.userAgent.match("Bowser") !==null){
+    } else if (that.browser === 'bowser'){
         L.Logger.debug("Bowser Stack");
-        that = Erizo.BowserStack(spec);
-        that.browser = "chrome-stable";    
-    }else if (window.navigator.userAgent.match("Chrome") !==null) {
-        if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 26) {
-            // Google Chrome Stable.
-            L.Logger.debug("Stable!");
-            that = Erizo.ChromeStableStack(spec);
-            that.browser = "chrome-stable";
-        }
-    } else if (window.navigator.userAgent.match("Safari") !== null) {
-        L.Logger.debug("Safari, using Bowser Stack");
-        that = Erizo.BowserStack(spec);
-        that.browser = "chrome-stable";
-    } else if (window.navigator.appVersion.match(/Bowser\/([\w\W]*?)\./)[1] === "25") {
-        // Bowser
-        that.browser = "bowser";
+        that = Erizo.BowserStack(spec); 
+    } else if (that.browser === 'chrome-stable') {
+        L.Logger.debug("Stable!");
+        that = Erizo.ChromeStableStack(spec);
     } else {
-        // None.
         that.browser = "none";
         throw "WebRTC stack not available";
     }
 
     return that;
 };
+
+Erizo.getBrowser = function () {
+  "use strict";
+
+    var browser = "";
+
+    if (window.navigator.userAgent.match("Firefox") !== null) {
+        // Firefox
+        browser = "mozilla";
+    } else if (window.navigator.userAgent.match("Bowser") !==null){
+        browser = "bowser";    
+    } else if (window.navigator.userAgent.match("Chrome") !==null) {
+        if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 26) {
+            browser = "chrome-stable";
+        }
+    } else if (window.navigator.userAgent.match("Safari") !== null) {
+        browser = "bowser";
+    } else if (window.navigator.appVersion.match(/Bowser\/([\w\W]*?)\./)[1] === "25") {
+        browser = "bowser";
+    } else {
+        browser = "none";
+    }
+
+    return browser;
+};
+
 
 Erizo.GetUserMedia = function (config, callback, error) {
     "use strict";

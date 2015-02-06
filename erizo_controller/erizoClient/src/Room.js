@@ -484,7 +484,7 @@ Erizo.Room = function (spec) {
                     sendSDPSocket('subscribe', {streamId: stream.getID()});
                 } else {
 
-                    sendSDPSocket('subscribe', {streamId: stream.getID(), audio: options.audio, video: options.video, data: options.data}, undefined, function (resp) {
+                    sendSDPSocket('subscribe', {streamId: stream.getID(), audio: options.audio, video: options.video, data: options.data, browser: Erizo.getBrowser()}, undefined, function (resp) {
                         L.Logger.info('Subscriber added');
                         if (resp === 'error') {
                             if (callbackError)
@@ -495,7 +495,7 @@ Erizo.Room = function (spec) {
                           
                         stream.pc = Erizo.Connection({callback: function (message) {
                             L.Logger.info("Sending message", message);
-                            sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: message}, undefined, function () {});
+                            sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: message, browser: stream.pc.browser}, undefined, function () {});
                         }, nop2p: true, audio: stream.hasAudio(), video: stream.hasVideo(), stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
                         stream.pc.onaddstream = function (evt) {

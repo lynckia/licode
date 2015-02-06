@@ -35,7 +35,7 @@ exports.ErizoJSController = function (spec) {
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
      */
-    initWebRtcConnection = function (wrtc, callback, id_pub, id_sub) {
+    initWebRtcConnection = function (wrtc, callback, id_pub, id_sub, browser) {
 
         if (GLOBAL.config.erizoController.report.rtcp_stats) {
           var intervalId = setInterval(function () {
@@ -84,6 +84,11 @@ exports.ErizoJSController = function (spec) {
                     break;
 
                 case CONN_READY:
+                    // If I'm a subscriber and I'm bowser, I ask for a PLI
+                    if (id_sub && browser === 'bowser') {
+                        log.info('SENDING PLI from ', id_pub, ' to ', id_sub);
+                        //publishers[id_pub].muxer.sendPLI();
+                    }
                     callback('callback', {type: 'ready'});
                     break;
             }
@@ -235,18 +240,18 @@ exports.ErizoJSController = function (spec) {
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
      */
-    that.addSubscriber = function (from, to, audio, video, callback) {
+    that.addSubscriber = function (from, to, options, callback) {
 
         if (publishers[to] !== undefined && subscribers[to][from] === undefined) {
 
-            log.info("Adding subscriber from ", from, 'to ', to, 'audio', audio, 'video', video);
+            log.info("Adding subscriber from ", from, 'to ', to, 'audio', options.audio, 'video', options.video);
 
-            var wrtc = new addon.WebRtcConnection(audio, video, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport);
+            var wrtc = new addon.WebRtcConnection(options.audio, options.video, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport);
 
             subscribers[to][from] = wrtc;
             publishers[to].muxer.addSubscriber(wrtc, from);
 
-            initWebRtcConnection(wrtc, callback, to, from);
+            initWebRtcConnection(wrtc, callback, to, from, options.browser);
 
             //log.info('Publishers: ', publishers);
             //log.info('Subscribers: ', subscribers);

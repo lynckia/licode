@@ -516,6 +516,7 @@ var listen = function () {
                 callback('error', 'unauthorized');
                 return;
             }
+
             if (socket.user.permissions[Permission.SUBSCRIBE] !== true) {
                 var permissions = socket.user.permissions[Permission.SUBSCRIBE];
                 for (var right in permissions) {
@@ -541,7 +542,7 @@ var listen = function () {
                     io.sockets.socket(s).emit('publish_me', {streamId: options.streamId, peerSocket: socket.id});
 
                 } else {
-                    socket.room.controller.addSubscriber(socket.id, options.streamId, options.audio, options.video, function (signMess) {
+                    socket.room.controller.addSubscriber(socket.id, options.streamId, options, function (signMess) {
 
                         if (signMess.type === 'initializing') {
                             log.info("Initializing subscriber");
