@@ -46,7 +46,6 @@ public:
 	 */
 	void removeSubscriber(const std::string& peerId);
 
-
 private:
   typedef boost::shared_ptr<MediaSink> sink_ptr;
   FeedbackSink* feedbackSink_;

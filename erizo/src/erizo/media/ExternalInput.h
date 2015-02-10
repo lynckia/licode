@@ -27,7 +27,7 @@ namespace erizo{
       virtual ~ExternalInput();
       int init();
       void receiveRtpData(unsigned char* rtpdata, int len);
-      int sendFirPacket();
+      int sendPLI();
 
 
     private:

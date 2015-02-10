@@ -74,21 +74,6 @@ int OneToManyTranscoder::deliverVideoData_(char* buf, int len) {
 		this->receiveRtpData((unsigned char*) buf, len);
 	}
 
-//	if (subscribers.empty() || len <= 0)
-//		return 0;
-//	if (sentPackets_ % 500 == 0) {
-//		publisher->sendFirPacket();
-//	}
-//	std::map<int, WebRtcConnection*>::iterator it;
-//	for (it = subscribers.begin(); it != subscribers.end(); it++) {
-//		memset(sendVideoBuffer_, 0, len);
-//		memcpy(sendVideoBuffer_, buf, len);
-//		(*it).second->receiveVideoData(sendVideoBuffer_, len);
-//	}
-//	memset(sendVideoBuffer_, 0, len);
-//	memcpy(sendVideoBuffer_, buf, len);
-//	sink_->sendData((unsigned char*)sendVideoBuffer_,len);
-
 	sentPackets_++;
 	return 0;
 }
@@ -104,9 +89,6 @@ void OneToManyTranscoder::receiveRtpData(unsigned char*rtpdata, int len) {
 
 	if (subscribers.empty() || len <= 0)
 		return;
-//	if (sentPackets_ % 500 == 0) {
-//		publisher->sendFirPacket();
-//	}
 	std::map<std::string, MediaSink*>::iterator it;
 	for (it = subscribers.begin(); it != subscribers.end(); it++) {
 		(*it).second->deliverVideoData(sendVideoBuffer_, len);

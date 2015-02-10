@@ -265,9 +265,16 @@ namespace erizo{
           uint32_t ssrcfeedb;
 
         } rembPacket;
+        
+        struct pli_t{
+          uint32_t ssrcsource;
+          uint32_t fci;
+        } pli;
 
       } report;
-
+      inline RtcpHeader(): blockcount(0), padding(0), version(2), packettype (0), length(0),
+     ssrc(0){
+      };
       inline bool isFeedback(void) {
         return (packettype==RTCP_Receiver_PT || 
             packettype==RTCP_PS_Feedback_PT ||
@@ -279,20 +286,41 @@ namespace erizo{
             isFeedback()            
             );
       }
+      inline uint8_t getPacketType(){
+        return packettype;
+      }
+      inline void setPacketType(uint8_t pt){
+        packettype = pt;
+      }
       inline uint8_t getBlockCount(){
         return (uint8_t)blockcount;
+      }
+      inline void setBlockCount(uint8_t count){
+        blockcount = count;
       }
       inline uint16_t getLength() {
         return ntohs(length);
       }
+      inline void setLength(uint16_t theLength) {
+        length = htons(theLength);
+      }
       inline uint32_t getSSRC(){
         return ntohl(ssrc);
+      }
+      inline void setSSRC(uint32_t ssrc){
+        ssrc = htonl(ssrc);
       }
       inline uint32_t getSourceSSRC(){
         return ntohl(report.receiverReport.ssrcsource);
       }
+      inline void setSourceSSRC(uint32_t sourceSsrc){
+        report.receiverReport.ssrcsource = htonl(sourceSsrc);
+      }
       inline uint8_t getFractionLost() {
-        return (uint8_t)(report.receiverReport.fractionlost);
+        return (uint8_t)report.receiverReport.fractionlost;
+      }
+      inline void setFractionLost(uint8_t fractionLost){
+        report.receiverReport.fractionlost = fractionLost;
       }
       inline uint32_t getLostPackets() {
         return ntohl(report.receiverReport.lost)>>8;
@@ -325,6 +353,13 @@ namespace erizo{
       inline uint8_t getNumSSRC(){
         return report.rembPacket.numssrc;
       }
+      inline uint32_t getFCI(){
+        return ntohl(report.pli.fci);
+      }
+      inline void setFCI(uint32_t fci){
+        report.pli.fci = htonl(fci);
+      }
+
   };
 
 

@@ -21,7 +21,6 @@ void OneToManyTranscoder::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("hasPublisher"), FunctionTemplate::New(hasPublisher)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("addSubscriber"), FunctionTemplate::New(addSubscriber)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("removeSubscriber"), FunctionTemplate::New(removeSubscriber)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("sendFIR"), FunctionTemplate::New(sendFIR)->GetFunction());
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("OneToManyTranscoder"), constructor);
@@ -116,13 +115,3 @@ Handle<Value> OneToManyTranscoder::removeSubscriber(const Arguments& args) {
   return scope.Close(Null());
 }
 
-Handle<Value> OneToManyTranscoder::sendFIR(const Arguments& args) {
-  HandleScope scope;
-
-  OneToManyTranscoder* obj = ObjectWrap::Unwrap<OneToManyTranscoder>(args.This());
-  erizo::OneToManyTranscoder *me = (erizo::OneToManyTranscoder*)obj->me;
-
-  me->publisher->sendFirPacket();
-  
-  return scope.Close(Null());
-}

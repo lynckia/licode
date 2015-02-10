@@ -94,10 +94,10 @@ public:
     void parseIncomingPayloadType(char *buf, int len, packetType type);
 
     /**
-     * Sends a FIR Packet (RFC 5104) asking for a keyframe
+     * Sends a PLI Packet 
      * @return the size of the data sent
      */
-    int sendFirPacket();
+    int sendPLI();
   
   /**
    * Sets the Event Listener for this WebRtcConnection
@@ -155,7 +155,6 @@ private:
   bool sending_;
 	void sendLoop();
 	void writeSsrc(char* buf, int len, unsigned int ssrc);
-  void processRtcpHeaders(char* buf, int len, unsigned int ssrc);
 	int deliverAudioData_(char* buf, int len);
 	int deliverVideoData_(char* buf, int len);
   int deliverFeedback_(char* buf, int len);

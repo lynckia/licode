@@ -120,7 +120,7 @@ public:
         boost::mutex::scoped_lock lock(myMonitor_);
         return sourcefbSink_;
     }
-    virtual int sendFirPacket()=0;
+    virtual int sendPLI()=0;
     unsigned int getVideoSourceSSRC (){
         boost::mutex::scoped_lock lock(myMonitor_);
         return videoSourceSSRC_;

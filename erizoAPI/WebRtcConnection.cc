@@ -27,6 +27,7 @@ void WebRtcConnection::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setVideoReceiver"), FunctionTemplate::New(setVideoReceiver)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getCurrentState"), FunctionTemplate::New(getCurrentState)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getStats"), FunctionTemplate::New(getStats)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("generatePLIPacket"), FunctionTemplate::New(generatePLIPacket)->GetFunction());
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("WebRtcConnection"), constructor);
@@ -197,16 +198,15 @@ Handle<Value> WebRtcConnection::getStats(const v8::Arguments& args){
   }
 }
 
-Handle<Value> WebRtcConnection::getLastStats(const v8::Arguments& args){
+Handle<Value> WebRtcConnection::generatePLIPacket(const v8::Arguments& args){
 
   HandleScope scope;
 
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
   erizo::WebRtcConnection *me = obj->me;
+  me->sendPLI();
 
-  std::string lastStats = me->getJSONStats();
-
-  return scope.Close(String::NewSymbol(lastStats.c_str()));
+  return scope.Close(Null());
 }
 
 void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message) {

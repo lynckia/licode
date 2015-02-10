@@ -154,7 +154,7 @@ namespace erizo {
     return true;
   }
 
-  int ExternalInput::sendFirPacket() {
+  int ExternalInput::sendPLI() {
     return 0;
   }
 

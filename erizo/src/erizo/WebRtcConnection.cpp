@@ -269,9 +269,18 @@ namespace erizo {
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
     //if it is RTCP we check it it is a compound packet
     if (chead->isRtcp()) {
-        processRtcpHeaders(buf,len,ssrc);
+      char* movingBuf = buf;
+      int rtcpLength = 0;
+      int totalLength = 0;
+      do{
+        movingBuf+=rtcpLength;
+        RtcpHeader *chead= reinterpret_cast<RtcpHeader*>(movingBuf);
+        rtcpLength= (ntohs(chead->length)+1)*4;      
+        totalLength+= rtcpLength;
+        chead->ssrc=htonl(ssrc);
+      } while(totalLength<len);
     } else {
-      head->ssrc=htonl(ssrc);
+      head->setSSRC(ssrc);
     }
   }
 
@@ -282,8 +291,9 @@ namespace erizo {
     
     // PROCESS RTCP
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
-    if (chead->isRtcp())     
+    if (chead->isRtcp()) {    
       thisStats_.processRtcpPacket(buf, len);
+    }
 
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
@@ -354,7 +364,18 @@ namespace erizo {
     }
   }
 
-  int WebRtcConnection::sendFirPacket() {
+  int WebRtcConnection::sendPLI() {
+    RtcpHeader thePLI;
+    thePLI.setPacketType(RTCP_PS_Feedback_PT);
+    thePLI.setBlockCount(1);
+    thePLI.setSSRC(this->getVideoSinkSSRC());
+    thePLI.setSourceSSRC(this->getVideoSourceSSRC());
+    thePLI.setLength(2);
+    char *buf = reinterpret_cast<char*>(&thePLI);
+    this->deliverFeedback_(buf, (thePLI.getLength()+1)*4);
+    return (thePLI.getLength()+1)*4; 
+    
+    /*
     ELOG_DEBUG("Generating FIR Packet");
     sequenceNumberFIR_++; // do not increase if repetition
     int pos = 0;
@@ -393,6 +414,7 @@ namespace erizo {
       videoTransport_->write((char*)rtcpPacket, pos);
     }
     return pos;
+    */
 
   }
 
@@ -542,26 +564,6 @@ namespace erizo {
 
   std::string WebRtcConnection::getJSONStats(){
     return thisStats_.getStats();
-  }
-
-  void WebRtcConnection::processRtcpHeaders(char* buf, int len, unsigned int ssrc){
-    char* movingBuf = buf;
-    int rtcpLength = 0;
-    int totalLength = 0;
-    do{
-      movingBuf+=rtcpLength;
-      RtcpHeader *chead= reinterpret_cast<RtcpHeader*>(movingBuf);
-      rtcpLength= (ntohs(chead->length)+1)*4;      
-      totalLength+= rtcpLength;
-      chead->ssrc=htonl(ssrc);
-      if (chead->packettype == RTCP_PS_Feedback_PT){
-        FirHeader *thefir = reinterpret_cast<FirHeader*>(movingBuf);
-        if (thefir->fmt == 4){ // It is a FIR Packet, we generate it
-          //ELOG_DEBUG("Feedback FIR packet, changed source %u sourcessrc to %u fmt %d", ssrc, sourcessrc, thefir->fmt);
-          this->sendFirPacket();
-        }
-      }
-    } while(totalLength<len);
   }
 
   void WebRtcConnection::sendLoop() {

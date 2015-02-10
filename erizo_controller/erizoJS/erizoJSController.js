@@ -20,7 +20,6 @@ exports.ErizoJSController = function (spec) {
         externalOutputs = {},
 
         INTERVAL_TIME_SDP = 100,
-        INTERVAL_TIME_FIR = 800,
         INTERVAL_TIME_KILL = 30*60*1000, // Timeout to kill itself after a timeout since the publisher leaves room.
         INTERVAL_STATS = 3000,
         initWebRtcConnection,
@@ -53,7 +52,7 @@ exports.ErizoJSController = function (spec) {
                 var timeStamp = new Date();
                 amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
             });
-          */
+            */
         }
 
         wrtc.init( function (newStatus, mess){
@@ -86,8 +85,8 @@ exports.ErizoJSController = function (spec) {
                 case CONN_READY:
                     // If I'm a subscriber and I'm bowser, I ask for a PLI
                     if (id_sub && browser === 'bowser') {
-                        log.info('SENDING PLI from ', id_pub, ' to ', id_sub);
-                        //publishers[id_pub].muxer.sendPLI();
+                        log.info('SENDING PLI from ', id_pub, ' to BOWSER ', id_sub);
+                        publishers[id_pub].wrtc.generatePLIPacket();
                     }
                     callback('callback', {type: 'ready'});
                     break;
