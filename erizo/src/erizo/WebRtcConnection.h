@@ -22,7 +22,7 @@ class TransportListener;
  * WebRTC Events
  */
 enum WebRTCEvent {
-  CONN_INITIAL = 101, CONN_STARTED = 102, CONN_READY = 103, CONN_FINISHED = 104, CONN_CANDIDATE = 201, CONN_SDP = 202,
+  CONN_INITIAL = 101, CONN_STARTED = 102,CONN_GATHERED = 103, CONN_READY = 104, CONN_FINISHED = 105, CONN_CANDIDATE = 201, CONN_SDP = 202,
   CONN_FAILED = 500
 };
 
@@ -53,7 +53,7 @@ public:
      * Constructor.
      * Constructs an empty WebRTCConnection without any configuration.
      */
-    WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort, WebRtcConnectionEventListener* listener);
+    WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort,bool trickleEnabled,WebRtcConnectionEventListener* listener);
     /**
      * Destructor.
      */
@@ -129,7 +129,7 @@ public:
 
     void queueData(int comp, const char* data, int len, Transport *transport, packetType type);
 
-    void onCandidate(const std::string& sdp, Transport *transport);
+    void onCandidate(const CandidateInfo& cand, Transport *transport);
 
 
     // webrtc::RtpHeader overrides.
@@ -163,6 +163,7 @@ private:
   
     bool audioEnabled_;
     bool videoEnabled_;
+    bool trickleEnabled_;
 
     int stunPort_, minPort_, maxPort_;
     std::string stunServer_;

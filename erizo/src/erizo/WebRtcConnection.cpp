@@ -12,7 +12,7 @@
 namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
-  WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort, WebRtcConnectionEventListener* listener)
+  WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort, bool trickleEnabled,WebRtcConnectionEventListener* listener)
       : connEventListener_(listener), fec_receiver_(this){
     ELOG_WARN("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", stunServer.c_str(), stunPort, minPort, maxPort);
     sequenceNumberFIR_ = 0;
@@ -30,6 +30,7 @@ namespace erizo {
 
     audioEnabled_ = audioEnabled;
     videoEnabled_ = videoEnabled;
+    trickleEnabled_ = trickleEnabled;
 
     stunServer_ = stunServer;
     stunPort_ = stunPort;
@@ -98,9 +99,12 @@ namespace erizo {
         }
       }
     }
-    std::string object = this->getLocalSdp();
-    if (connEventListener_){
-      connEventListener_->notifyEvent(CONN_SDP, object);
+    
+    if(trickleEnabled_){
+      std::string object = this->getLocalSdp();
+      if (connEventListener_){
+        connEventListener_->notifyEvent(CONN_SDP, object);
+      }
     }
 
     if (!remoteSdp_.getCandidateInfos().empty()){
@@ -180,23 +184,26 @@ namespace erizo {
     return theString.str();
   }
 
-  void WebRtcConnection::onCandidate(const std::string& sdp, Transport *transport) {
+  void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transport) {
+    std::string sdp = localSdp_.addCandidate(cand);
     ELOG_DEBUG("On Candidate %s", sdp.c_str());
-    if (connEventListener_ != NULL) {
-      if (!bundle_) {
-        std::string object = this->getJSONCandidate(transport->transport_name, sdp);
-        connEventListener_->notifyEvent(CONN_CANDIDATE, object);
-      } else {
-        if (remoteSdp_.hasAudio){
-          std::string object = this->getJSONCandidate("audio", sdp);
+    if(trickleEnabled_){
+      if (connEventListener_ != NULL) {
+        if (!bundle_) {
+          std::string object = this->getJSONCandidate(transport->transport_name, sdp);
           connEventListener_->notifyEvent(CONN_CANDIDATE, object);
+        } else {
+          if (remoteSdp_.hasAudio){
+            std::string object = this->getJSONCandidate("audio", sdp);
+            connEventListener_->notifyEvent(CONN_CANDIDATE, object);
+          }
+          if (remoteSdp_.hasVideo){
+            std::string object2 = this->getJSONCandidate("video", sdp);
+            connEventListener_->notifyEvent(CONN_CANDIDATE, object2);
+          }
         }
-        if (remoteSdp_.hasVideo){
-          std::string object2 = this->getJSONCandidate("video", sdp);
-          connEventListener_->notifyEvent(CONN_CANDIDATE, object2);
-        }
+        
       }
-      
     }
   }
 
@@ -423,7 +430,7 @@ namespace erizo {
     WebRTCEvent temp = globalState_;
     std::string msg = "";
     ELOG_INFO("Update Transport State %s to %d", transport->transport_name.c_str(), state);
-    if (audioTransport_ == NULL && videoTransport_ == NULL) {
+    if (videoTransport_ == NULL && audioTransport_ == NULL) {
       ELOG_ERROR("Update Transport State with Transport NULL, this should not happen!");
       return;
     }
@@ -446,6 +453,23 @@ namespace erizo {
             }
         }
         break;
+      case TRANSPORT_GATHERED:
+        if (bundle_){
+          if(!trickleEnabled_){
+            temp = CONN_GATHERED;
+            msg = this->getLocalSdp();
+          }
+        }else{
+          if ((!remoteSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_GATHERED)) &&
+            (!remoteSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_GATHERED))) {
+              // WebRTCConnection will be ready only when all channels are ready.
+              if(!trickleEnabled_){
+                temp = CONN_GATHERED;
+                msg = this->getLocalSdp();
+              }
+            }
+        }
+        break;
       case TRANSPORT_READY:
         if (bundle_){
           temp = CONN_READY;
@@ -463,7 +487,6 @@ namespace erizo {
         sending_ = false;
         ELOG_INFO("WebRtcConnection failed, stopping sending");
         cond_.notify_one();
-        ELOG_INFO("WebRtcConnection failed, stopped sending");
         break;
       default:
         ELOG_DEBUG("New state %d", state);

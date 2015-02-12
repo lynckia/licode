@@ -9,7 +9,7 @@
  * States of Transport
  */
 enum TransportState {
-  TRANSPORT_INITIAL, TRANSPORT_STARTED, TRANSPORT_READY, TRANSPORT_FINISHED, TRANSPORT_FAILED
+  TRANSPORT_INITIAL, TRANSPORT_STARTED,TRANSPORT_GATHERED, TRANSPORT_READY, TRANSPORT_FINISHED, TRANSPORT_FAILED
 };
 
 namespace erizo {
@@ -19,7 +19,7 @@ namespace erizo {
       virtual void onTransportData(char* buf, int len, Transport *transport) = 0;
       virtual void queueData(int comp, const char* data, int len, Transport *transport, packetType type) = 0;
       virtual void updateState(TransportState state, Transport *transport) = 0;
-      virtual void onCandidate(const std::string& sdp, Transport *transport) = 0;
+      virtual void onCandidate(const CandidateInfo& cand, Transport *transport) = 0;
 
   };
   class Transport : public NiceConnectionListener {

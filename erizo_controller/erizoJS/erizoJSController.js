@@ -27,7 +27,7 @@ exports.ErizoJSController = function (spec) {
         getRoap;
 
 
-    var CONN_INITIAL = 101, CONN_STARTED = 102, CONN_READY = 103, CONN_FINISHED = 104, CONN_CANDIDATE = 201, CONN_SDP = 202, CONN_FAILED = 500;
+    var CONN_INITIAL = 101, CONN_STARTED = 102,CONN_GATHERED = 103, CONN_READY = 104, CONN_FINISHED = 105, CONN_CANDIDATE = 201, CONN_SDP = 202, CONN_FAILED = 500;
 
 
 
@@ -69,6 +69,7 @@ exports.ErizoJSController = function (spec) {
                     break;
 
                 case CONN_SDP:
+                case CONN_GATHERED:
 //                    log.debug('Sending SDP', mess);
                     callback('callback', {type: 'answer', sdp: mess});
                     break;
@@ -215,7 +216,7 @@ exports.ErizoJSController = function (spec) {
             log.info("Adding publisher peer_id ", from);
 
             var muxer = new addon.OneToManyProcessor(),
-                wrtc = new addon.WebRtcConnection(true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport);
+                wrtc = new addon.WebRtcConnection(true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false);
 
             publishers[from] = {muxer: muxer, wrtc: wrtc};
             subscribers[from] = {};
@@ -245,7 +246,7 @@ exports.ErizoJSController = function (spec) {
 
             log.info("Adding subscriber from ", from, 'to ', to, 'audio', options.audio, 'video', options.video);
 
-            var wrtc = new addon.WebRtcConnection(options.audio, options.video, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport);
+            var wrtc = new addon.WebRtcConnection(options.audio, options.video, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false);
 
             subscribers[to][from] = wrtc;
             publishers[to].muxer.addSubscriber(wrtc, from);

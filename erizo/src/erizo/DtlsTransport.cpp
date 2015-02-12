@@ -158,40 +158,10 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
 }
 
 void DtlsTransport::onCandidate(const CandidateInfo &candidate, NiceConnection *conn) {
-  std::string generation = " generation 0";
-  std::string hostType_str;
-  std::ostringstream sdp;
-  switch (candidate.hostType) {
-    case HOST:
-      hostType_str = "host";
-      break;
-    case SRFLX:
-      hostType_str = "srflx";
-      break;
-    case PRFLX:
-      hostType_str = "prflx";
-      break;
-    case RELAY:
-      hostType_str = "relay";
-      break;
-    default:
-      hostType_str = "host";
-      break;
-  }
-  sdp << "a=candidate:" << candidate.foundation << " " << candidate.componentId
-      << " " << candidate.netProtocol << " " << candidate.priority << " "
-      << candidate.hostAddress << " " << candidate.hostPort << " typ "
-      << hostType_str;
-  
-  if (candidate.hostType == SRFLX || candidate.hostType == RELAY) {
-    //raddr 192.168.0.12 rport 50483
-    sdp << " raddr " << candidate.rAddress << " rport " << candidate.rPort;
-  }
-  
-  sdp << generation;
-  
-  getTransportListener()->onCandidate(sdp.str(), this);
+  getTransportListener()->onCandidate(candidate, this);
 }
+  
+
 
 void DtlsTransport::write(char* data, int len) {
   boost::mutex::scoped_lock lock(writeMutex_);
@@ -287,16 +257,19 @@ std::string DtlsTransport::getMyFingerprint() {
 }
 
 void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
-  ELOG_DEBUG( "%s - New NICE state %d %d %d", transport_name.c_str(), state, mediaType, bundle_);
+  ELOG_DEBUG( "%s - New NICE state state: %d - Media: %d - is Bundle: %d", transport_name.c_str(), state, mediaType, bundle_);
   if (state == NICE_INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
     updateTransportState(TRANSPORT_STARTED);
   }
-  if(state == NICE_FAILED){
+  else if (state == NICE_CANDIDATES_RECEIVED && this->getTransportState() != TRANSPORT_GATHERED) {
+    updateTransportState(TRANSPORT_GATHERED);
+  }
+  else if(state == NICE_FAILED){
     ELOG_DEBUG("Nice Failed, no more reading packets");
     running_ = false;
     updateTransportState(TRANSPORT_FAILED);
   }
-  if (state == NICE_READY) {
+  else if (state == NICE_READY) {
     ELOG_INFO("%s - Nice ready", transport_name.c_str());
     if (dtlsRtp && !dtlsRtp->started) {
       ELOG_INFO("%s - DTLSRTP Start", transport_name.c_str());
