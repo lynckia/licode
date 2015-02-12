@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 2.6)
 
 project (ERIZO_ALL)
-set (COMPILE_EXAMPLES OFF)
-set (COMPILE_TEST ON)
-add_subdirectory("${ERIZO_ALL_SOURCES}erizo")
+option (COMPILE_EXAMPLES "COMPILE_EXAMPLES" OFF)
+option (COMPILE_TEST "COMPILE_TEST" OFF)
+
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 find_package (Doxygen)
 if(DOXYGEN_FOUND)
@@ -15,15 +16,19 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 
+#global variable
+set(THIRD_PARTY_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/include/")
+set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/")
+
+#erizo
+add_subdirectory("${ERIZO_ALL_SOURCES}erizo")
+
+#examples
 if(COMPILE_EXAMPLES)
-  include_directories("${ERIZO_ALL_SOURCES}erizo")
-  set (EXTRA_LIBS ${EXTRA_LIBS} erizo)
   add_subdirectory("${ERIZO_ALL_SOURCES}examples")
 endif(COMPILE_EXAMPLES)
 
+#tests
 if(COMPILE_TEST)
-  find_package(Boost COMPONENTS system unit_test_framework REQUIRED)
-  set (EXTRA_LIBS ${EXTRA_LIBS} erizo)
-  include_directories("${ERIZO_ALL_SOURCES}erizo")
   add_subdirectory("${ERIZO_ALL_SOURCES}test")
 endif(COMPILE_TEST)
