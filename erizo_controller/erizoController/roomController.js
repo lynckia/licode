@@ -139,9 +139,9 @@ exports.RoomController = function (spec) {
 
             // Remove track
             delete externalOutputs[url];
-            callback('success');
+            callback(true);
         } else {
-            callback('error', 'This stream is not being recorded');
+            callback(undefined, 'This stream is not being recorded');
         }
     };
 
