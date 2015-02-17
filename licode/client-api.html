@@ -422,6 +422,20 @@ room.addEventListener("stream-added", function(event) {
 room.publish(localStream, {maxVideoBW:300});
 </pre>
 
+            <p>In <code>room.publish</code> you can include a callback with two parameters, <code>id</code> and <code>error</code>. If the stream has been published, <code>id</code> contains the id of that stream. On the other hand, if there has been any kind of error, <code>id</code> is <em>undefined</em> and the error is described in <code>error</code>.</p>
+            <div class="bs-docs-example">
+              Using the callback to catch possible problems
+            </div>
+            <pre class="prettyprint linenums">
+room.publish(localStream, {maxVideoBW:300}, function(id, error){
+  if (id === undefined){
+    console.log("Error publishing stream", error);
+  } else {
+    console.log("Published stream", id);
+  }
+});            </pre>
+
+
           <h3 id="subscribeStream">Subscribe to a remote stream</h3>
           <p>It subscribes to a remote stream in the room.
           <p>For subscribing to a stream you first need to connect to the room and know which streams are available in the room. So as we have already seen we first need to add an event listener to receive <em>stream-added</em> events.
@@ -446,6 +460,18 @@ room.addEventListener("stream-subscribed", function(streamEvt) {
 });
 room.subscribe(stream, {audio: true, video: false});</pre>
 
+      <p>In <code>room.subscribe</code> you can include a callback with two parameters, <code>result</code> and <code>error</code>. If the stream has been subscribed, <code>result</code> is <em>true</em>. On the other hand, if there has been any kind of error, <code>result</code> is <em>undefined</em> and the error is described in <code>error</code>.</p>
+            <div class="bs-docs-example">
+              Using the callback to catch possible problems
+            </div>
+            <pre class="prettyprint linenums">
+room.subscribe(stream, {audio: true, video: false}, function(result, error){
+  if (result === undefined){
+    console.log("Error subscribing to stream", error);
+  } else {
+    console.log("Stream subscribed!");
+  }
+});</pre>
 
           <h3 id="unsubscribeStream">Unsubscribe from a remote stream</h3>
           <p>You can unsubscribe from a stream you are currently subscribed.
@@ -455,6 +481,19 @@ room.subscribe(stream, {audio: true, video: false});</pre>
           </div>
 <pre class="prettyprint linenums">
 room.unsubscribe(stream);</pre>
+
+      <p>In <code>room.unsubscribe</code> you can include a callback with two parameters, <code>result</code> and <code>error</code>. If the stream has been unsubscribed, <code>result</code> is <em>true</em>. On the other hand, if there has been any kind of error, <code>result</code> is <em>undefined</em> and the error is described in <code>error</code>.</p>
+            <div class="bs-docs-example">
+              Using the callback to catch possible problems
+            </div>
+            <pre class="prettyprint linenums">
+room.unsubscribe(stream, function(result, error){
+  if (result === undefined){
+    console.log("Error unsubscribing", error);
+  } else {
+    console.log("Stream unsubscribed!");
+  }
+});</pre>
 
           <h3 id="unpublishStream">Unpublish a local stream</h3>
           <p>You can unpublish your stream given in <code>stream</code> when your are connected to a room and you are currently publishing it.
@@ -468,6 +507,18 @@ room.unpublish(localStream);
 room.addEventListener("stream-removed", function(event) {
   if (localStream.getID() === event.stream.getID()) {
     console.log("Unpublished!!!");
+  }
+});</pre>
+      <p>In <code>room.unpublish</code> you can include a callback with two parameters, <code>result</code> and <code>error</code>. If the stream has been unpublished, <code>result</code> is <em>true</em>. On the other hand, if there has been any kind of error, <code>result</code> is <em>undefined</em> and the error is described in <code>error</code>.</p>
+            <div class="bs-docs-example">
+              Using the callback to catch possible problems
+            </div>
+            <pre class="prettyprint linenums">
+room.unpublish(localStream, function(result, error){
+  if (result === undefined){
+    console.log("Error unpublishing", error);
+  } else {
+    console.log("Stream unpublished!");
   }
 });</pre>
 
@@ -488,10 +539,13 @@ room.disconnect();</pre>
             Start the recording of the local stream.
           </div>
           <pre class="prettyprint linenums">
-room.startRecording(localStream, function(recordingId) {
-  console.log("Recording started, the id of the recording is ", recordingId);
-});
-          </pre>
+room.startRecording(localStream, function(recordingId, error) {
+  if (recordingId === undefined){
+    console.log("Error", error);
+  } else {
+    console.log("Recording started, the id of the recording is ", recordingId);
+  }
+});          </pre>
 
           <h3 id="recordStreamStop">Stop Recording</h3>
           <p>Stop the recording of a stream. You must provide the identificator of the recording: <code>recordingId</code>.
@@ -499,7 +553,13 @@ room.startRecording(localStream, function(recordingId) {
             Stop the recording.
           </div>
           <pre class="prettyprint linenums">
-room.stopRecording(recordingId);</pre>
+room.stopRecording(recordingId, function(result, error){
+  if (result === undefined){
+    console.log("Error", error);
+  } else {
+    console.log("Stopped recording!");
+  }
+});</pre>
 
           <h3 id="playRecording">Playing recorded streams</h3>
           <p>There are two ways of playing a recorded stream. Both of them involve the creation of an external stream. You can either set the <code>url</code> variable to the path of the recorded file or use the <code>recordingId</code> as a variable.
