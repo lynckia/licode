@@ -238,11 +238,16 @@ Erizo.Room = function (spec) {
                 if (callback !== undefined) {
                     callback(msg);
                 }
-            } else {
+            } else if (respType === "error"){
                 if (error !== undefined) {
                     error(msg);
                 }
+            } else {
+                if (callback !== undefined) {
+                    callback(respType, msg);
+                }
             }
+
         });
     };
 
