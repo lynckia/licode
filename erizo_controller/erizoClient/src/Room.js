@@ -450,12 +450,29 @@ Erizo.Room = function (spec) {
     // Returns callback(id, error)
     that.startRecording = function (stream, callback) {
         L.Logger.debug("Start Recording streamaa: " + stream.getID());
-        sendMessageSocket('startRecorder', {to: stream.getID()}, callback);
+        sendMessageSocket('startRecorder', {to: stream.getID()}, function(id, error){
+            if (id === null){
+                L.Logger.error('Error on start recording', error);
+                if (callback) callback(undefined, error);
+                return;
+            }
+
+            L.Logger.info('Start recording', id);
+            if (callback) callback(id);
+        });
     }
 
     // Returns callback(id, error)
     that.stopRecording = function (recordingId, callback) {
-        sendMessageSocket('stopRecorder', {id: recordingId}, callback);
+        sendMessageSocket('stopRecorder', {id: recordingId}, function(result, error){
+            if (result === null){
+                L.Logger.error('Error on stop recording', error);
+                if (callback) callback(undefined, error);
+                return;
+            }
+            L.Logger.info('Stop recording');
+            if (callback) callback(true);
+        });
     }
 
     // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
@@ -464,7 +481,18 @@ Erizo.Room = function (spec) {
         // Unpublish stream from Erizo-Controller
         if (stream.local) {
             // Media stream
-            sendMessageSocket('unpublish', stream.getID(), callback);
+            sendMessageSocket('unpublish', stream.getID(), function(result, error){
+                if (result === null){
+                    L.Logger.error('Error unpublishing stream', error);
+                    if (callback) callback(undefined, error);
+                    return;
+                }
+
+                L.Logger.info('Stream unpublished');
+                if (callback) callback(true);
+
+
+            });
             stream.room = undefined;
             if ((stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) && stream.url === undefined) {
                 stream.pc.close();
