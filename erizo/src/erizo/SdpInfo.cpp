@@ -157,11 +157,46 @@ namespace erizo {
   bool SdpInfo::initWithSdp(const std::string& sdp, const std::string& media) {
     return processSdp(sdp, media);
   }
-  void SdpInfo::addCandidate(const CandidateInfo& info) {
+  std::string SdpInfo::addCandidate(const CandidateInfo& info) {
     candidateVector_.push_back(info);
-
+    return stringifyCandidate(info);
   }
+  
+  std::string SdpInfo::stringifyCandidate(const CandidateInfo & candidate){
+    std::string generation = " generation 0";
+    std::string hostType_str;
+    std::ostringstream sdp;
+    switch (candidate.hostType) {
+      case HOST:
+        hostType_str = "host";
+        break;
+      case SRFLX:
+        hostType_str = "srflx";
+        break;
+      case PRFLX:
+        hostType_str = "prflx";
+        break;
+      case RELAY:
+        hostType_str = "relay";
+        break;
+      default:
+        hostType_str = "host";
+        break;
+    }
+    sdp << "a=candidate:" << candidate.foundation << " " << candidate.componentId
+        << " " << candidate.netProtocol << " " << candidate.priority << " "
+        << candidate.hostAddress << " " << candidate.hostPort << " typ "
+        << hostType_str;
 
+    if (candidate.hostType == SRFLX || candidate.hostType == RELAY) {
+      //raddr 192.168.0.12 rport 50483
+      sdp << " raddr " << candidate.rAddress << " rport " << candidate.rPort;
+    }
+
+    sdp << generation;
+    return sdp.str();
+  }
+  
   void SdpInfo::addCrypto(const CryptoInfo& info) {
     cryptoVector_.push_back(info);
   }
@@ -242,6 +277,10 @@ namespace erizo {
       if (isRtcpMux) {
         sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
       }
+      for (unsigned int it = 0; it < candidateVector_.size(); it++) {
+          if(candidateVector_[it].mediaType == AUDIO_TYPE || isBundle)
+            sdp << this->stringifyCandidate(candidateVector_[it]) << endl;
+      }
       if(iceAudioUsername_.size()>0){
         sdp << "a=ice-ufrag:" << iceAudioUsername_ << endl;
         sdp << "a=ice-pwd:" << iceAudioPassword_ << endl;
@@ -311,6 +350,10 @@ namespace erizo {
       sdp << "\n" << "c=IN IP4 0.0.0.0" << endl;
       if (isRtcpMux) {
         sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
+      }
+      for (unsigned int it = 0; it < candidateVector_.size(); it++) {
+          if(candidateVector_[it].mediaType == VIDEO_TYPE)
+            sdp << this->stringifyCandidate(candidateVector_[it]) << endl;
       }
 
       sdp << "a=ice-ufrag:" << iceVideoUsername_ << endl;

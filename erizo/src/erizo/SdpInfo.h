@@ -112,7 +112,7 @@ public:
      * Adds a new candidate.
      * @param info The CandidateInfo containing the new candidate
      */
-    void addCandidate(const CandidateInfo& info);
+    std::string addCandidate(const CandidateInfo& info);
     /**
      * Adds SRTP info.
      * @param info The CryptoInfo containing the information.
@@ -233,6 +233,7 @@ public:
 private:
     bool processSdp(const std::string& sdp, const std::string& media);
     bool processCandidate(std::vector<std::string>& pieces, MediaType mediaType);
+    std::string stringifyCandidate(const CandidateInfo & candidate);
     void gen_random(char* s, int len);
     std::vector<CandidateInfo> candidateVector_;
     std::vector<CryptoInfo> cryptoVector_;

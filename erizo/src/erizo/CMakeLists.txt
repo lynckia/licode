@@ -15,9 +15,7 @@ set(ERIZO_VERSION_MAJOR 0)
 set(ERIZO_VERSION_MINOR 1)
 set(CMAKE_CXX_FLAGS "-g -Wall -std=c++0x")
 
-set(LIB_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/../../../build/libdeps/build/lib/")
-
-include_directories("${ERIZO_SOURCE_DIR}" "${LIB_DIRS}../include/")
+include_directories("${ERIZO_SOURCE_DIR}" "${THIRD_PARTY_INCLUDE}")
 
 file(GLOB_RECURSE ERIZO_SOURCES "${ERIZO_SOURCE_DIR}/*.h" "${ERIZO_SOURCE_DIR}/*.c" "${ERIZO_SOURCE_DIR}/*.cpp" "${ERIZO_SOURCE_DIR}/*.cc")
 
@@ -34,31 +32,31 @@ find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
 target_link_libraries(erizo ${Boost_LIBRARIES})
 
 # GTHREAD
-find_library(GTHREAD gthread-2.0 HINTS "${LIB_DIRS}")
+find_library(GTHREAD gthread-2.0 HINTS "${THIRD_PARTY_LIB}")
 test_lib(${GTHREAD})
 
 # SRTP
-find_library(SRTP srtp HINTS "${LIB_DIRS}")
+find_library(SRTP srtp HINTS "${THIRD_PARTY_LIB}")
 test_lib(${SRTP})
 
 # NICE
-find_library(NICE nice HINTS "${LIB_DIRS}")
+find_library(NICE nice HINTS "${THIRD_PARTY_LIB}")
 test_lib(${NICE})
 
 # OPENSSL
-find_library(SSL ssl HINTS "${LIB_DIRS}")
+find_library(SSL ssl HINTS "${THIRD_PARTY_LIB}")
 test_lib(${SSL})
-find_library(CRYPTO crypto HINTS "${LIB_DIRS}")
+find_library(CRYPTO crypto HINTS "${THIRD_PARTY_LIB}")
 test_lib(${CRYPTO})
 
 # Libav
-find_library(AVUTIL avutil HINTS "${LIB_DIRS}")
+find_library(AVUTIL avutil HINTS "${THIRD_PARTY_LIB}")
 test_lib(${AVUTIL})
 set (LIBS ${AVUTIL})
-find_library(AVCODEC avcodec HINTS "${LIB_DIRS}")
+find_library(AVCODEC avcodec HINTS "${THIRD_PARTY_LIB}")
 test_lib(${AVCODEC})
 set (LIBS ${LIBS} ${AVCODEC})
-find_library(AVFORMAT avformat HINTS "${LIB_DIRS}")
+find_library(AVFORMAT avformat HINTS "${THIRD_PARTY_LIB}")
 test_lib(${AVFORMAT})
 set (LIBS ${LIBS} ${AVFORMAT})
 
