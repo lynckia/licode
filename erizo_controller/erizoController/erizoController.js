@@ -51,6 +51,9 @@ var getopt = new Getopt([
   ['h' , 'help'                       , 'display this help']
 ]);
 
+var PUBLISHER_INITAL = 101, PUBLISHER_READY = 104;
+
+
 opt = getopt.parse(process.argv.slice(2));
 
 for (var prop in opt.options) {
@@ -358,7 +361,9 @@ var listen = function () {
 
                         for (index in socket.room.streams) {
                             if (socket.room.streams.hasOwnProperty(index)) {
-                                streamList.push(socket.room.streams[index].getPublicStream());
+                                if (socket.room.streams[index].status == PUBLISHER_READY){
+                                    streamList.push(socket.room.streams[index].getPublicStream());
+                                }
                             }
                         }
 
@@ -471,6 +476,8 @@ var listen = function () {
                         callback(id);
                         st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
                         socket.streams.push(id);
+                        socket.room.streams[id] = st;
+                        st.status = PUBLISHER_INITAL;
 
                         if (GLOBAL.config.erizoController.report.session_events) {
                             var timeStamp = new Date();
@@ -495,7 +502,7 @@ var listen = function () {
                         }
                         return;
                     } else if (signMess.type === 'ready') {
-                        socket.room.streams[id] = st;
+                        st.status = PUBLISHER_READY;
                         sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
                     }
 

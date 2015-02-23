@@ -43,7 +43,7 @@ exports.ErizoJSController = function (spec) {
               console.log("Stopping stats");
               clearInterval(intervalId);
             }
-            console.log("new STATS ", newStats);
+           // console.log("new STATS ", newStats);
             var timeStamp = new Date();
             amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
           }, INTERVAL_STATS);
