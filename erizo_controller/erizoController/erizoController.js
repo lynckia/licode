@@ -512,6 +512,7 @@ var listen = function () {
                 st = new ST.Stream({id: id, socket: socket.id, audio: options.audio, video: options.video, data: options.data, screen: options.screen, attributes: options.attributes});
                 socket.streams.push(id);
                 socket.room.streams[id] = st;
+                st.status = PUBLISHER_READY;
                 callback(id);
                 sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
             }
