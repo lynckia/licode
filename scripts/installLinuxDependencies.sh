@@ -125,8 +125,8 @@ install_apt_deps(){
       sudo yum install log4cplus-devel log4cpp-devel
       sudo yum install log4cxx-devel
       sudo yum install log4cxx
-      checkOrInstallnpm node-gyp
-      checkOrInstallnpm pm2 --unsafe-perm
+      #TODO: Check JDK package
+      checkOrInstallnpm node-gyp     
       ;;
     Debian )
       sudo apt-get update
@@ -162,8 +162,8 @@ install_apt_deps(){
       checkOrInstallaptitude mongodb
       checkOrInstallaptitude rabbitmq-server
       checkOrInstallaptitude libboost-test-dev
+      checkOrInstallaptitude openjdk-6-jre
       checkOrInstallnpm node-gyp
-      checkOrInstallnpm pm2 --unsafe-perm
       ;;
   esac
   sudo chown -R `whoami` ~/.npm ~/tmp/
