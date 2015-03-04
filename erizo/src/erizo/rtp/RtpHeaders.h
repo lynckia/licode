@@ -24,6 +24,7 @@ namespace erizo{
 
 #define VP8_90000_PT        100 // VP8 Video Codec
 #define RED_90000_PT        116 // REDundancy (RFC 2198)
+#define RTX_90000_PT        96  // RTX packet
 #define ULP_90000_PT        117 // ULP/FEC
 #define ISAC_16000_PT       103 // ISAC Audio Codec
 #define ISAC_32000_PT       104 // ISAC Audio Codec
@@ -139,6 +140,20 @@ namespace erizo{
       }
       inline int getHeaderLength() {
         return MIN_SIZE + cc * 4 + extension * (4 + ntohs(extensionlength) * 4);
+      }
+  };
+
+  class RtpRtxHeader {
+    public:
+
+      RtpHeader rtpHeader;
+      uint16_t osn;
+
+      inline uint16_t getOsn(){
+        return ntohs (osn);
+      }
+      inline void setOs (uint16_t theOsn){
+        osn = htons (theOsn);
       }
   };
 

@@ -89,6 +89,7 @@ struct RtpMap {
   MediaType mediaType;
   unsigned int channels;
   std::vector<std::string> feedbackTypes;
+  std::map<std::string, std::string> formatParameters;
 };
 /**
  * Contains the information of a single SDP.
@@ -182,7 +183,7 @@ public:
     /**
      * The audio and video SSRCs for this particular SDP.
      */
-    unsigned int audioSsrc, videoSsrc;
+    unsigned int audioSsrc, videoSsrc, videoRtxSsrc;
     /**
     * Is it Bundle
     */
