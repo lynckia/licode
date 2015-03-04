@@ -3,8 +3,8 @@ var crypto = require('crypto');
 var rpcPublic = require('./rpc/rpcPublic');
 var ST = require('./Stream');
 var http = require('http');
-var server = http.createServer();
-var io = require('socket.io').listen(server, {log:false});
+var https = require('https');
+var fs = require("fs");
 var config = require('./../../licode_config');
 var Permission = require('./permission');
 var Getopt = require('node-getopt');
@@ -91,7 +91,24 @@ var controller = require('./roomController');
 // Logger
 var log = logger.getLogger("ErizoController");
 
-server.listen(8080);
+// Instantiate the server
+if(GLOBAL.config.erizoController.ssl){
+    if(!GLOBAL.config.erizoController.sslKey || !GLOBAL.config.erizoController.sslCert)
+        log.warn('SSL key and certification needs to be provided in licode_config as sslKey & sslCert');
+        var server = http.createServer();
+    else{
+        var options = {
+            key: fs.readFileSync(GLOBAL.config.erizoController.sslKey).toString(),
+            cert: fs.readFileSync(GLOBAL.config.erizoController.sslCert).toString()
+        };
+        var server = https.createServer(options);
+    }
+}
+else
+    var server = http.createServer();
+
+server.listen(GLOBAL.config.erizoController.port);
+var io = require('socket.io').listen(server, {log:false});
 
 io.set('log level', 0);
 
