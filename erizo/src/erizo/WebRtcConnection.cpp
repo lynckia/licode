@@ -298,7 +298,6 @@ namespace erizo {
     
     // PROCESS RTCP
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
-    RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
     if (chead->isRtcp()) {    
       thisStats_.processRtcpPacket(buf, len);
     }
@@ -312,11 +311,8 @@ namespace erizo {
       // RTP or RTCP Sender Report
       if (bundle_) {
         // Check incoming SSRC
-        if (head->getPayloadType()== RTX_90000_PT){
-          RtpRtxHeader* rtxHead = reinterpret_cast<RtpRtxHeader*>(buf);
-          ELOG_DEBUG("RTX Packet or PT %u, SN %u SSRC %u OSN %u" , rtxHead->rtpHeader.getPayloadType(), 
-              rtxHead->rtpHeader.getSeqNumber(), rtxHead->rtpHeader.getSSRC(), rtxHead->getOsn());
-        }
+        RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
+        RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
         unsigned int recvSSRC;
         if (chead->packettype == RTCP_Sender_PT) { //Sender Report
           recvSSRC = chead->getSSRC();
@@ -330,9 +326,6 @@ namespace erizo {
         } else if (recvSSRC==this->getAudioSourceSSRC()) {
           parseIncomingPayloadType(buf, len, AUDIO_PACKET);
           audioSink_->deliverAudioData(buf, len);
-        } else if (recvSSRC == this->localSdp_.videoRtxSsrc){
-          ELOG_DEBUG("RTX Packet");
-          videoSink_->deliverVideoData(buf,len);
         } else {
           ELOG_ERROR("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
         }
