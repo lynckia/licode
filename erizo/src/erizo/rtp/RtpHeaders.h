@@ -358,6 +358,20 @@ namespace erizo{
       uint16_t getNackBlp(){
         return ntohs(report.nackPacket.blp);
       }
+      inline void setREMBBitRate(uint64_t bitRate){
+        uint64_t max = 0x3FFFF; // 18 bits
+        uint16_t exp = 0;
+        while ( bitRate >= max && exp < 64){
+          exp+=1;
+          max = max << 1;
+        }
+        uint64_t mantissa = bitRate >> exp;
+        exp = exp&0x3F;
+        mantissa = mantissa&0x3FFFF;
+        uint32_t line = mantissa + (exp << 18);
+        report.rembPacket.brLength = htonl(line)>>8;
+
+      }
       inline uint32_t getBrExp(){ 
         //remove the 0s added by nothl (8) + the 18 bits of Mantissa 
         return (ntohl(report.rembPacket.brLength)>>26);
