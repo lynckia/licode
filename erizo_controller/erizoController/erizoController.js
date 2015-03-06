@@ -504,6 +504,8 @@ var listen = function () {
                     } else if (signMess.type === 'ready') {
                         st.status = PUBLISHER_READY;
                         sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
+                    } else if (signMess === 'timeout') {
+                        callback(undefined, 'No ErizoAgents available');
                     }
 
                     socket.emit('signaling_message_erizo', {mess: signMess, streamId: id});

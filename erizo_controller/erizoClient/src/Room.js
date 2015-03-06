@@ -397,6 +397,7 @@ Erizo.Room = function (spec) {
                     sendSDPSocket('publish', {state: 'erizo', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, undefined, function (id, error) {
 
                         if (id === null) {
+                            L.Logger.error('Error when publishing the stream: ', error);
                             if (callback)
                                 callback(undefined, error);
                             return;
