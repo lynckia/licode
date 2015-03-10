@@ -322,7 +322,7 @@ var listen = function () {
                                         room.controller.removePublisher(streamId);
 
                                         for (var s in room.sockets) {
-                                            var streams = io.sockets.in(room.sockets[s]).streams;
+                                            var streams = io.sockets.connected[room.sockets[s]].streams;
                                             var index = streams.indexOf(streamId);
                                             if (index !== -1) {
                                                 streams.splice(index, 1);
