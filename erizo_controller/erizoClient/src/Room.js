@@ -412,6 +412,9 @@ Erizo.Room = function (spec) {
                                 sendDataSocket(stream, msg);
                             };
                         }
+                        stream.setAttributes = function (attrs) {
+                            updateAttributes(stream, attrs);
+                        };
                         that.localStreams[id] = stream;
                         stream.room = that;
 
