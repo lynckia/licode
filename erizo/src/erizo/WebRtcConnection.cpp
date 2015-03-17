@@ -285,6 +285,12 @@ namespace erizo {
         rtcpLength= (ntohs(chead->length)+1)*4;      
         totalLength+= rtcpLength;
         chead->ssrc=htonl(ssrc);
+        if (chead->packettype == RTCP_PS_Feedback_PT){
+          FirHeader *thefir = reinterpret_cast<FirHeader*>(movingBuf);
+          if (thefir->fmt == 4){ // It is a FIR Packet, we generate it
+            this->sendPLI();
+          }
+        }
       } while(totalLength<len);
     } else {
       head->setSSRC(ssrc);
