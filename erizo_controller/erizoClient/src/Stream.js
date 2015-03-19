@@ -19,6 +19,7 @@ Erizo.Stream = function (spec) {
     that.audio = spec.audio;
     that.screen = spec.screen;
     that.videoSize = spec.videoSize;
+    that.videoOptions = spec.videoOptions || {mandatory: {}, optional: []};
     that.extensionId = spec.extensionId;
     if (that.videoSize !== undefined && (!(that.videoSize instanceof Array) || that.videoSize.length != 4)) {
         throw Error("Invalid Video Size");
@@ -78,11 +79,15 @@ Erizo.Stream = function (spec) {
       try {
         if ((spec.audio || spec.video || spec.screen) && spec.url === undefined) {
           L.Logger.debug("Requested access to local media");
-          var videoOpt = spec.video;
-          if (videoOpt == true && that.videoSize !== undefined) {
-            videoOpt = {mandatory: {minWidth: that.videoSize[0], minHeight: that.videoSize[1], maxWidth: that.videoSize[2], maxHeight: that.videoSize[3]}};
+          if (spec.video == true) {
+            if(that.videoSize !== undefined) {
+              that.videoOptions.mandatory.minWidth  = that.videoSize[0];
+              that.videoOptions.mandatory.minHeight = that.videoSize[1];
+              that.videoOptions.mandatory.maxWidth  = that.videoSize[2];
+              that.videoOptions.mandatory.maxHeight = that.videoSize[3];
+            }
           }
-          var opt = {video: videoOpt, audio: spec.audio, fake: spec.fake, screen: spec.screen, extensionId:that.extensionId};
+          var opt = {video:that.videoOptions, audio:spec.audio, fake:spec.fake, screen:spec.screen, extensionId:that.extensionId};
           L.Logger.debug(opt);
           Erizo.GetUserMedia(opt, function (stream) {
             //navigator.webkitGetUserMedia("audio, video", function (stream) {
