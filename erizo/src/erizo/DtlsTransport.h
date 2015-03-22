@@ -5,6 +5,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio.hpp>
+#include <boost/scoped_ptr.hpp>
 #include "dtls/DtlsSocket.h"
 #include "NiceConnection.h"
 #include "Transport.h"

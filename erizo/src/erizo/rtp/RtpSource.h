@@ -10,6 +10,7 @@
 #define RTPSOURCE_H_
 
 #include <boost/asio.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 #include "../MediaDefinitions.h"
 #include "../logger.h"
