@@ -47,9 +47,13 @@ config.erizoController.maxVideoBW = 300; //default value: 300
 config.erizoController.publicIP = ''; //default value: ''
 // Use '' to use the public IP address instead of a hostname
 config.erizoController.hostname = ''; //default value: ''
+// Use 443 if clients communicate with erizoController over SSL
 config.erizoController.port = 8080; //default value: 8080
 // Use true if clients communicate with erizoController over SSL
 config.erizoController.ssl = false; //default value: false
+
+config.erizoController.sslKey = ''; // SSL Key file . e.g: /etc/httpd/certs/domain_server.key
+config.erizoController.sslCert = ''; // SSL Certification file . e.g: /etc/httpd/certs/domain_server.crt
 
 // Use the name of the inferface you want to bind to for websockets
 // config.erizoController.networkInterface = 'eth1' // default value: undefined
