@@ -736,7 +736,7 @@ namespace erizo {
   int SdpInfo::getAudioInternalPT(int externalPT) {
       // should use separate mapping for video and audio at the very least
       // standard requires separate mappings for each media, even!
-      std::map<const int, int>::iterator found = outInPTMap.find(externalPT);
+      std::map<int, int>::iterator found = outInPTMap.find(externalPT);
       if (found != outInPTMap.end()) {
           return found->second;
       }
@@ -753,7 +753,7 @@ namespace erizo {
   int SdpInfo::getAudioExternalPT(int internalPT) {
     // should use separate mapping for video and audio at the very least
     // standard requires separate mappings for each media, even!
-    std::map<const int, int>::iterator found = inOutPTMap.find(internalPT);
+    std::map<int, int>::iterator found = inOutPTMap.find(internalPT);
     if (found != inOutPTMap.end()) {
         return found->second;
     }

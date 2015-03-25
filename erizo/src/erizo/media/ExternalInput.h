@@ -1,6 +1,7 @@
 #ifndef EXTERNALINPUT_H_
 #define EXTERNALINPUT_H_
 
+#include <boost/scoped_ptr.hpp>
 #include <string> 
 #include <map>
 #include <queue>

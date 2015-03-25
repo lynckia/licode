@@ -9,6 +9,7 @@
 #define RTPSINK_H_
 
 #include <boost/asio.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread.hpp>
 #include <queue>

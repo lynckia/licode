@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 
 #include "MediaDefinitions.h"
