@@ -42,6 +42,74 @@ public:
     ;
     virtual void notifyStats(const std::string& message)=0;
 };
+
+
+class RtcpData {
+  // lost packets - list and length
+  public:
+    uint32_t *nackList;
+    int nackLen;
+
+    // current values - tracks packet lost for fraction calculation
+    uint32_t packetCount;
+
+    uint32_t ssrc;
+    uint32_t totalPacketsLost;
+    uint32_t ratioLost:8;
+    uint32_t highestSeqNumReceived;
+    uint32_t sequenceCycles:16;
+    uint32_t sequenceNumber:16;
+    uint32_t lastSr;
+    uint32_t delaySinceLastSr;
+    uint32_t jitter;
+    // last SR field
+    uint32_t lastSrTimestamp;
+    // required to properly calculate DLSR
+    struct timeval lastSrReception;
+
+    // to prevent sending too many reports, track time of last
+    struct timeval lastRrSent;
+    // flag to send receiver report
+    bool requestRr;
+    bool hasSentFirstRr;
+
+    // time based data flow limits
+    float allowedSize, desiredSize;
+    struct timeval lastUpdated, lastSent;
+    // should send pli?
+    bool shouldSendPli;
+    struct timeval lastPliSent;
+
+    bool shouldSendREMB;
+    struct timeval lastREMBSent;
+
+    void reset(){
+      packetCount = 0;
+      ratioLost = 0;
+      sequenceCycles = 0;
+      sequenceNumber = 0;
+      lastSrTimestamp = 0;
+      requestRr = false;
+      hasSentFirstRr = false;
+      allowedSize = 0;
+      desiredSize = 0;
+      shouldSendPli = false;
+      shouldSendREMB = false;
+      highestSeqNumReceived = 0;
+      lastRrSent = (struct timeval){0};
+      lastPliSent = (struct timeval){0};
+    }
+
+    RtcpData(){
+      reset();
+    }
+
+    // lock for any blocking data change
+    boost::mutex dataLock;
+};
+
+
+
 /**
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary Transport components.
@@ -97,8 +165,8 @@ public:
      * Sends a PLI Packet 
      * @return the size of the data sent
      */
-    int sendPLI();
-  
+    int sendPLI();  
+    int sendREMB(uint32_t bitrate);
   /**
    * Sets the Event Listener for this WebRtcConnection
    */
@@ -131,6 +199,9 @@ public:
 
     void onCandidate(const CandidateInfo& cand, Transport *transport);
 
+    void checkRtcpFb();
+
+    void sendReceiverReport();
 
     // webrtc::RtpHeader overrides.
     int32_t OnReceivedPayloadData(const uint8_t* payloadData, const uint16_t payloadSize,const webrtc::WebRtcRTPHeader* rtpHeader);
@@ -138,15 +209,19 @@ public:
 
 private:
   static const int STATS_INTERVAL = 5000;
-    SdpInfo remoteSdp_;
-    SdpInfo localSdp_;
+  static const int RTCP_PERIOD = 720;
+  static const int PLI_THRESHOLD = 50;
+  static const int BITRATE_THRESHOLD = 400000;
+
+  SdpInfo remoteSdp_;
+  SdpInfo localSdp_;
 
   Stats thisStats_;
 
 	WebRTCEvent globalState_;
 
   int bundle_, sequenceNumberFIR_;
-  boost::mutex receiveVideoMutex_, updateStateMutex_;
+  boost::mutex receiveVideoMutex_, updateStateMutex_, feedbackMutex_;
   boost::thread send_Thread_;
 	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionEventListener* connEventListener_;
@@ -158,15 +233,17 @@ private:
 	int deliverAudioData_(char* buf, int len);
 	int deliverVideoData_(char* buf, int len);
   int deliverFeedback_(char* buf, int len);
+  void analyzeFeedback(char* buf, int len);
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
+  RtcpData rtcpData_;
 
   
-    bool audioEnabled_;
-    bool videoEnabled_;
-    bool trickleEnabled_;
+  bool audioEnabled_;
+  bool videoEnabled_;
+  bool trickleEnabled_;
 
-    int stunPort_, minPort_, maxPort_;
-    std::string stunServer_;
+  int stunPort_, minPort_, maxPort_;
+  std::string stunServer_;
 
 	boost::condition_variable cond_;
   webrtc::FecReceiverImpl fec_receiver_;

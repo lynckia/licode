@@ -274,9 +274,7 @@ namespace erizo{
           uint32_t ssrcsource;
           uint32_t uniqueid;
           uint32_t numssrc:8;
-
           uint32_t brLength :24;
-         
           uint32_t ssrcfeedb;
 
         } rembPacket;
@@ -340,14 +338,39 @@ namespace erizo{
       inline uint32_t getLostPackets() {
         return ntohl(report.receiverReport.lost)>>8;
       }
+      inline void setLostPackets(uint32_t lost) {
+        report.receiverReport.lost = htonl(lost);
+      }
       inline uint32_t getHighestSeqnum() {
         return ntohl(report.receiverReport.highestseqnum);
+      }
+      inline void setHighestSeqnum(uint32_t highest) {
+        report.receiverReport.highestseqnum = htonl(highest);
       }
       inline uint32_t getJitter() {
         return ntohl(report.receiverReport.jitter);
       }
+      inline void setJitter(uint32_t jitter) {
+        report.receiverReport.jitter = htonl(jitter);
+      }
+      inline uint32_t getLastSr(){
+        return ntohl(report.receiverReport.lastsr);
+      }
+      inline void setLastSr(uint32_t lastsr) {
+        report.receiverReport.lastsr = htonl(lastsr);
+      }
+      inline uint32_t getDelaySinceLastSr(){
+        return ntohl (report.receiverReport.delaysincelast);
+      }
+      inline void setDelaySinceLastSr(uint32_t delaylastsr) {
+        report.receiverReport.delaysincelast = htonl(delaylastsr);
+      }
+
       inline uint32_t getPacketsSent(){
         return ntohl(report.senderReport.packetsent);
+      }
+      inline void setPacketsSent(uint32_t packetssent){
+        report.senderReport.packetsent = htonl(packetssent);
       }
       inline uint32_t getOctetsSent(){
         return ntohl(report.senderReport.octetssent);
@@ -379,8 +402,17 @@ namespace erizo{
       inline uint32_t getBrMantis(){        
         return (ntohl(report.rembPacket.brLength)>>8 & 0x3ffff);
       }
-      inline uint8_t getNumSSRC(){
+      inline uint8_t getREMBNumSSRC(){
         return report.rembPacket.numssrc;
+      }
+      inline void setREMBNumSSRC(uint8_t num){
+        report.rembPacket.numssrc = num;
+      }
+      inline uint32_t getREMBFeedSSRC(){
+        return ntohl(report.rembPacket.ssrcfeedb);
+      }
+      inline void setREMBFeedSSRC(uint32_t ssrc){
+         report.rembPacket.ssrcfeedb = htonl(ssrc);
       }
       inline uint32_t getFCI(){
         return ntohl(report.pli.fci);

@@ -79,7 +79,7 @@ namespace erizo {
               char *uniqueId = (char*)&chead->report.rembPacket.uniqueid;
               if (!strncmp(uniqueId,"REMB", 4)){
                 uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
-                ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps", chead->getNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate);
+                ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps", chead->getREMBNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate);
                 setBandwidth(bitrate, ssrc);
               }
               else{
