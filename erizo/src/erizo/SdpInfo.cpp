@@ -331,9 +331,9 @@ namespace erizo {
           for (std::map<std::string, std::string>::const_iterator theIt = rtp.formatParameters.begin(); 
               theIt != rtp.formatParameters.end(); theIt++){
             if (theIt->first.compare("none")){
-              sdp << "a=fmtp:" << payloadType << theIt->first << "=" << theIt->second << endl;
+              sdp << "a=fmtp:" << payloadType << " " << theIt->first << "=" << theIt->second << endl;
             }else{
-              sdp << "a=fmtp:" << payloadType << theIt->second << endl;
+              sdp << "a=fmtp:" << payloadType << " " << theIt->second << endl;
             }
         
           }
