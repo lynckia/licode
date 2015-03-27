@@ -60,6 +60,7 @@ class RtcpData {
     uint32_t sequenceCycles:16;
     uint32_t sequenceNumber:16;
     uint32_t lastSr;
+    uint64_t reportedBandwidth;
     uint32_t delaySinceLastSr;
     uint32_t jitter;
     // last SR field
@@ -95,6 +96,7 @@ class RtcpData {
       desiredSize = 0;
       shouldSendPli = false;
       shouldSendREMB = false;
+      reportedBandwidth = 0;
       highestSeqNumReceived = 0;
       lastRrSent = (struct timeval){0};
       lastPliSent = (struct timeval){0};

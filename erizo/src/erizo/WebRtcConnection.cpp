@@ -519,10 +519,7 @@ namespace erizo {
                   char *uniqueId = (char*)&chead->report.rembPacket.uniqueid;
                   if (!strncmp(uniqueId,"REMB", 4)){
                     uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
-//                    rtcpData_.shouldSendREMB = true;
-                    ELOG_DEBUG("Len %u", len);
-                    ELOG_DEBUG("REMB PACKET PT %u, BC %u, length %u",chead->getPacketType(), chead->getBlockCount(), chead->getLength());
-                    ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps, feedbackssrc %u", chead->getREMBNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate, chead->getREMBFeedSSRC());
+                    rtcpData_.reportedBandwidth = bitrate;
                     rtcpData_.shouldSendREMB = true;
                     ELOG_DEBUG("Should send Packet REMB");
                   }
@@ -572,7 +569,7 @@ namespace erizo {
       if(rtcpData_.shouldSendREMB){
         unsigned int sincelast = (now.tv_sec - rtcpData_.lastREMBSent.tv_sec) * 1000 + (now.tv_usec - rtcpData_.lastREMBSent.tv_usec) / 1000;
         ELOG_DEBUG("SHOULD SEND REMB, SINCE LAST %u ms, SENDING", sincelast);
-        int theLen = this->addREMB((char*)packet, length, 500000);
+        int theLen = this->addREMB((char*)packet, length, rtcpData_.reportedBandwidth);
         rtcpData_.shouldSendREMB = false;
         rtcpData_.lastREMBSent = now;
         length+=theLen;
