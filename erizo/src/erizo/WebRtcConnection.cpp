@@ -403,28 +403,29 @@ namespace erizo {
     
   }
 
-  int WebRtcConnection::sendREMB(uint32_t bitrate){
+  int WebRtcConnection::addREMB(char* buf, int len, uint32_t bitrate){
+    buf+=len;
     RtcpHeader theREMB;
     theREMB.setPacketType(RTCP_PS_Feedback_PT);
     theREMB.setBlockCount(RTCP_AFB);
-    memcpy(&theREMB.report.rembPacket.uniqueid, "REMB", 32);
+    memcpy(&theREMB.report.rembPacket.uniqueid, "REMB", 4);
+    
+    char *uniqueId = (char*)&theREMB.report.rembPacket.uniqueid;
+    if (!strncmp(uniqueId,"REMB", 4)){
+      ELOG_DEBUG("It is correct");
+    }
 
     theREMB.setSSRC(this->getVideoSinkSSRC());
     theREMB.setSourceSSRC(this->getVideoSourceSSRC());
     theREMB.setLength(5);
     theREMB.setREMBBitRate(500000);
     theREMB.setREMBNumSSRC(1);
-    theREMB.setREMBFeedSSRC(this->getVideoSinkSSRC());
-    char *buf = reinterpret_cast<char*>(&theREMB);
-    int len = (theREMB.getLength()+1)*4;
+    theREMB.setREMBFeedSSRC(this->getVideoSourceSSRC());
+    int rembLength = (theREMB.getLength()+1)*4;
+
+    memcpy(buf, (uint8_t*)&theREMB, rembLength);
     //this->deliverFeedback_(buf, (thePLI.getLength()+1)*4);
-    if (theREMB.getSourceSSRC() == this->getAudioSourceSSRC()) {
-        writeSsrc(buf,len,this->getAudioSinkSSRC());
-    } else {
-        writeSsrc(buf,len,this->getVideoSinkSSRC());      
-    }
-    this->queueData(0, buf, len , videoTransport_, OTHER_PACKET);
-    return len; 
+    return (len+rembLength); 
   }
   void WebRtcConnection::analyzeFeedback(char *buf, int len) {
 
@@ -437,6 +438,7 @@ namespace erizo {
       int rtcpLength = 0;
       int totalLength = 0;
       do {
+        ELOG_DEBUG("part");
         movingBuf+=rtcpLength;
         chead = reinterpret_cast<RtcpHeader*>(movingBuf);
         rtcpLength = (ntohs(chead->length)+1) * 4;
@@ -517,8 +519,12 @@ namespace erizo {
                   char *uniqueId = (char*)&chead->report.rembPacket.uniqueid;
                   if (!strncmp(uniqueId,"REMB", 4)){
                     uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
+//                    rtcpData_.shouldSendREMB = true;
+                    ELOG_DEBUG("Len %u", len);
+                    ELOG_DEBUG("REMB PACKET PT %u, BC %u, length %u",chead->getPacketType(), chead->getBlockCount(), chead->getLength());
+                    ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps, feedbackssrc %u", chead->getREMBNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate, chead->getREMBFeedSSRC());
                     rtcpData_.shouldSendREMB = true;
-                    ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps", chead->getREMBNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate);
+                    ELOG_DEBUG("Should send Packet REMB");
                   }
                   else{
                     ELOG_DEBUG("Unsupported AFB Packet not REMB")
@@ -562,12 +568,21 @@ namespace erizo {
       rtcpHead.setLength(7);
       rtcpHead.setBlockCount(1);
       int length = (rtcpHead.getLength()+1)*4;
+      memcpy(packet, (uint8_t*)&rtcpHead, length);
+      if(rtcpData_.shouldSendREMB){
+        unsigned int sincelast = (now.tv_sec - rtcpData_.lastREMBSent.tv_sec) * 1000 + (now.tv_usec - rtcpData_.lastREMBSent.tv_usec) / 1000;
+        ELOG_DEBUG("SHOULD SEND REMB, SINCE LAST %u ms, SENDING", sincelast);
+        int theLen = this->addREMB((char*)packet, length, 500000);
+        rtcpData_.shouldSendREMB = false;
+        rtcpData_.lastREMBSent = now;
+        length+=theLen;
+        rtcpHead.setLength((length/4)-1);
+      }
       if (rtcpHead.getSourceSSRC() == this->getAudioSourceSSRC()) {
         writeSsrc((char*)packet,length,this->getAudioSinkSSRC());
       } else {
         writeSsrc((char*)packet,length,this->getVideoSinkSSRC());      
       }
-      memcpy(packet, (uint8_t*)&rtcpHead, length);
       this->queueData(0, (char*)packet, length, videoTransport_, OTHER_PACKET);
       rtcpData_.lastRrSent = now;
     }
@@ -583,11 +598,6 @@ namespace erizo {
 
     }
 
-    if(rtcpData_.shouldSendREMB){
-      ELOG_DEBUG("SHOUDL SEND REMB, SENDING....");
-      rtcpData_.shouldSendREMB = false;
-      this->sendREMB(500000);
-    }
   }
 
   void WebRtcConnection::sendReceiverReport() {

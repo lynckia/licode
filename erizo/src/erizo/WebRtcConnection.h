@@ -98,6 +98,7 @@ class RtcpData {
       highestSeqNumReceived = 0;
       lastRrSent = (struct timeval){0};
       lastPliSent = (struct timeval){0};
+      lastREMBSent = (struct timeval){0};
     }
 
     RtcpData(){
@@ -166,7 +167,7 @@ public:
      * @return the size of the data sent
      */
     int sendPLI();  
-    int sendREMB(uint32_t bitrate);
+    int addREMB(char* buf, int len, uint32_t bitrate);
   /**
    * Sets the Event Listener for this WebRtcConnection
    */
