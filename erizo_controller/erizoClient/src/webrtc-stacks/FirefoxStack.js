@@ -82,8 +82,10 @@ Erizo.FirefoxStack = function (spec) {
             if (a == null){
               a = sdp.match(/m=video.*\n/);
             }
-            var r = a[0] + "b=AS:" + spec.maxVideoBW + "\r\n";
-            sdp = sdp.replace(a[0], r);
+            if (a && (a.length > 0)) {
+                var r = a[0] + "b=AS:" + spec.maxVideoBW + "\r\n";
+                sdp = sdp.replace(a[0], r);
+            }
         }
 
         if (spec.audio && spec.maxAudioBW) {
@@ -91,8 +93,10 @@ Erizo.FirefoxStack = function (spec) {
             if (a == null){
               a = sdp.match(/m=audio.*\n/);
             }
-            var r = a[0] + "b=AS:" + spec.maxAudioBW + "\r\n";
-            sdp = sdp.replace(a[0], r);
+            if (a && (a.length > 0)) {
+                var r = a[0] + "b=AS:" + spec.maxAudioBW + "\r\n";
+                sdp = sdp.replace(a[0], r);
+            }
         }
 
         return sdp;
