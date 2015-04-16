@@ -219,7 +219,7 @@ public:
     */
     bool isRtcpMux;
     
-    StreamDirection direction;
+    StreamDirection videoDirection, audioDirection;
     /**
     * RTP Profile type
     */
