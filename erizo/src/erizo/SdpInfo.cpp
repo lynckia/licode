@@ -312,7 +312,7 @@ namespace erizo {
       if (isFingerprint) {
         sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
       }
-      switch (this->direction){
+      switch (this->audioDirection){
         case SENDONLY:
           sdp << "a=sendonly" << endl;
           break;
@@ -409,7 +409,7 @@ namespace erizo {
       if (isFingerprint) {
         sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
       }
-      switch (this->direction){
+      switch (this->videoDirection){
         case SENDONLY:
           sdp << "a=sendonly" << endl;
           break;
@@ -522,18 +522,32 @@ namespace erizo {
     this->hasVideo = offerSdp.hasVideo;
     this->hasAudio = offerSdp.hasAudio;
     this->bundleTags = offerSdp.bundleTags;
-    switch(offerSdp.direction){
+    switch(offerSdp.videoDirection){
       case SENDONLY:
-        this->direction = RECVONLY;
+        this->videoDirection = RECVONLY;
         break;
       case RECVONLY:
-        this->direction = SENDONLY;
+        this->videoDirection = SENDONLY;
         break;
       case SENDRECV:
-        this->direction = SENDRECV;
+        this->videoDirection = SENDRECV;
         break;
       default:
-        this->direction = SENDRECV;
+        this->videoDirection = SENDRECV;
+        break;
+    }
+    switch(offerSdp.audioDirection){
+      case SENDONLY:
+        this->audioDirection = RECVONLY;
+        break;
+      case RECVONLY:
+        this->audioDirection = SENDONLY;
+        break;
+      case SENDRECV:
+        this->audioDirection = SENDRECV;
+        break;
+      default:
+        this->audioDirection = SENDRECV;
         break;
     }
     if (offerSdp.videoRtxSsrc != 0){
@@ -586,13 +600,25 @@ namespace erizo {
       // At this point we support only one direction per SDP
       // Any other combination does not make sense at this point in Licode
       if (isRecvOnly != std::string::npos){
-        ELOG_DEBUG("RecvOnly sdp")
-        this->direction = RECVONLY;
+        ELOG_DEBUG("RecvOnly sdp")        
+          if (mtype == AUDIO_TYPE){
+            this->audioDirection = RECVONLY;
+          }else{
+            this->videoDirection = RECVONLY;
+          }
       }else if(isSendOnly != std::string::npos){
-        this->direction = SENDONLY;
-        ELOG_DEBUG("SendOnly sdp")
+        ELOG_DEBUG("SendOnly sdp")        
+          if (mtype == AUDIO_TYPE){
+            this->audioDirection = SENDONLY;
+          }else{
+            this->videoDirection = SENDONLY;
+          }
       }else if (isSendRecv != std::string::npos){
-        this->direction = SENDRECV;
+        if (mtype == AUDIO_TYPE){
+          this->audioDirection = SENDRECV;
+        }else{
+          this->videoDirection = SENDRECV;
+        }
         ELOG_DEBUG("SendRecv sdp")
       }
 
