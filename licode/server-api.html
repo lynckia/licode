@@ -131,7 +131,8 @@ N.API.createRoom(roomName, function(room) {
           <h3>Get Rooms</h3>
           <p>You can ask Nuve for a list of the rooms in your service:</p>
           <pre class="prettyprint linenums">
-N.API.getRooms(function(rooms) {
+N.API.getRooms(function(roomList) {
+  var rooms = JSON.parse(roomList);
   for(var i in rooms) {
     console.log('Room ', i, ':', rooms[i].name);
   }
