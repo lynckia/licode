@@ -109,7 +109,6 @@ Erizo.FirefoxStack = function (spec) {
     }
 
     var changeOrder = function(sessionDescription) {
-        console.log("Before change", sessionDescription.sdp);
         var matches = sessionDescription.sdp.match(/^.*(rtcp-fb).*$/gm);
         var lines = "";
         for (var i in matches){
