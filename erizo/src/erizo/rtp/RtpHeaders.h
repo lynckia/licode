@@ -375,11 +375,17 @@ namespace erizo{
       inline uint32_t getOctetsSent(){
         return ntohl(report.senderReport.octetssent);
       }
-      uint16_t getNackPid(){
+      inline uint16_t getNackPid(){
         return ntohs(report.nackPacket.pid);
       }
-      uint16_t getNackBlp(){
+      inline void setNackPid(uint16_t pid){
+        report.nackPacket.pid = htons(pid);
+      }
+      inline uint16_t getNackBlp(){
         return ntohs(report.nackPacket.blp);
+      }
+      inline void setNackBlp(uint16_t blp){
+        report.nackPacket.blp = htons(blp);
       }
       inline void setREMBBitRate(uint64_t bitRate){
         uint64_t max = 0x3FFFF; // 18 bits

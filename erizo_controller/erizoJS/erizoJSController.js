@@ -21,15 +21,27 @@ exports.ErizoJSController = function (spec) {
 
         INTERVAL_TIME_SDP = 100,
         INTERVAL_TIME_KILL = 30*60*1000, // Timeout to kill itself after a timeout since the publisher leaves room.
-        INTERVAL_STATS = 3000,
+        INTERVAL_STATS = 1000,
         initWebRtcConnection,
         getSdp,
+        calculateAverage,
         getRoap;
 
 
     var CONN_INITIAL = 101, CONN_STARTED = 102,CONN_GATHERED = 103, CONN_READY = 104, CONN_FINISHED = 105, CONN_CANDIDATE = 201, CONN_SDP = 202, CONN_FAILED = 500;
 
+    var LOWERBANDWIDTH= 200000;
 
+    calculateAverage = function (values) { 
+      if (values.length === undefined)
+        return 0;
+      var cnt = values.length;
+      var tot = parseInt(0);
+      for (var i = 0; i < values.length; i++){
+          tot+=parseInt(values[i]);
+      }
+      return Math.ceil(tot/cnt);
+    };
 
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
@@ -37,13 +49,39 @@ exports.ErizoJSController = function (spec) {
     initWebRtcConnection = function (wrtc, callback, id_pub, id_sub, browser) {
 
         if (GLOBAL.config.erizoController.report.rtcp_stats) {
+          wrtc.bwValues = [];
+          var isReporting = true;
+          var lowerThres = Math.floor(LOWERBANDWIDTH*(1-0.1));
+          var upperThres = Math.ceil(LOWERBANDWIDTH*(1+0.1));
           var intervalId = setInterval(function () {
             var newStats = wrtc.getStats();
             if (newStats == null){
               console.log("Stopping stats");
               clearInterval(intervalId);
+              return;
             }
-           // console.log("new STATS ", newStats);
+            var theStats = JSON.parse(newStats);
+            for (var i = 0; i < theStats.length; i++){
+              if(theStats[i].hasOwnProperty('bandwidth')){  
+                console.log("Reporting bandwidth", theStats[i].bandwidth, " is feedback on", isReporting, "min", lowerThres);
+                wrtc.bwValues.push(theStats[i].bandwidth);
+                if (wrtc.bwValues.length > 3){
+                  wrtc.bwValues.shift();
+                }
+                var average = calculateAverage(wrtc.bwValues);
+                console.log("Reporting average", average, " is feedback on", isReporting===true);
+                if(average>0 && (average < lowerThres) && (isReporting === true)){
+                  wrtc.setFeedbackReports(false);
+                  isReporting = false;
+                  console.log("Reporting Insufficient bandwidth, disabling reports", average);
+                  callback('callback', {type:'insufficientBandwidth'});
+                } else if (average >= (LOWERBANDWIDTH*(1+0.2)) && isReporting === false){
+                  console.log("Reporting Bandwidth recovered, enabling reports", average);
+                  isReporting = true;
+                  wrtc.setFeedbackReports(true);
+                }
+              }
+            }
             var timeStamp = new Date();
             amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
           }, INTERVAL_STATS);

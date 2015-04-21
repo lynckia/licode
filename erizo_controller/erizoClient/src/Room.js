@@ -130,6 +130,10 @@ Erizo.Room = function (spec) {
             }
         });
 
+        that.socket.on('insufficient_bandwidth', function (arg){
+          console.log("INSUFFICIENT BANDWIDTH!!!!!");
+        });
+
         that.socket.on('signaling_message_peer', function (arg) {
 
             var stream = that.localStreams[arg.streamId];

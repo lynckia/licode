@@ -28,6 +28,7 @@ void WebRtcConnection::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getCurrentState"), FunctionTemplate::New(getCurrentState)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getStats"), FunctionTemplate::New(getStats)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("generatePLIPacket"), FunctionTemplate::New(generatePLIPacket)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("setFeedbackReports"), FunctionTemplate::New(setFeedbackReports)->GetFunction());
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("WebRtcConnection"), constructor);
@@ -206,6 +207,18 @@ Handle<Value> WebRtcConnection::generatePLIPacket(const v8::Arguments& args){
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
   erizo::WebRtcConnection *me = obj->me;
   me->sendPLI();
+
+  return scope.Close(Null());
+}
+
+Handle<Value> WebRtcConnection::setFeedbackReports(const v8::Arguments& args){
+  HandleScope scope;
+  
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+  erizo::WebRtcConnection *me = obj->me;
+  
+  bool v = (args[0]->ToBoolean())->BooleanValue();
+  me->setFeedbackReports(v);
 
   return scope.Close(Null());
 }

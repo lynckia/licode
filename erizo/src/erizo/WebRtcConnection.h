@@ -52,6 +52,7 @@ class RtcpData {
 
     // current values - tracks packet lost for fraction calculation
     uint32_t packetCount;
+    uint16_t rrsReceivedInPeriod;
 
     uint32_t ssrc;
     uint32_t totalPacketsLost;
@@ -76,7 +77,7 @@ class RtcpData {
 
     // time based data flow limits
     float allowedSize, desiredSize;
-    struct timeval lastUpdated, lastSent;
+    struct timeval lastUpdated, lastSent, lastSrUpdated;
     // should send pli?
     bool shouldSendPli;
     struct timeval lastPliSent;
@@ -84,7 +85,31 @@ class RtcpData {
     bool shouldSendREMB;
     struct timeval lastREMBSent;
 
+    bool shouldSendNACK;
+    uint16_t nackSeqnum;
+    uint16_t nackBlp;
+
     void reset(){
+      ratioLost = 0;
+      sequenceCycles = 0;
+      sequenceNumber = 0;
+      lastSrTimestamp = 0;
+      lastSr = 0;
+      delaySinceLastSr = 0;
+      requestRr = false;
+      hasSentFirstRr = false;
+      allowedSize = 0;
+      jitter = 0;
+      desiredSize = 0;
+      shouldSendPli = false;
+      shouldSendREMB = false;
+      reportedBandwidth = 0;
+      rrsReceivedInPeriod = 0;
+//      highestSeqNumReceived = 0;
+      reportedBandwidth = 0;
+    }
+
+    RtcpData(){
       packetCount = 0;
       ratioLost = 0;
       sequenceCycles = 0;
@@ -97,14 +122,11 @@ class RtcpData {
       shouldSendPli = false;
       shouldSendREMB = false;
       reportedBandwidth = 0;
+      rrsReceivedInPeriod = 0;
       highestSeqNumReceived = 0;
       lastRrSent = (struct timeval){0};
       lastPliSent = (struct timeval){0};
       lastREMBSent = (struct timeval){0};
-    }
-
-    RtcpData(){
-      reset();
     }
 
     // lock for any blocking data change
@@ -170,6 +192,7 @@ public:
      */
     int sendPLI();  
     int addREMB(char* buf, int len, uint32_t bitrate);
+    int addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc);
   /**
    * Sets the Event Listener for this WebRtcConnection
    */
@@ -206,15 +229,19 @@ public:
 
     void sendReceiverReport();
 
+    void setFeedbackReports(bool shouldSendFb){
+      this->shouldSendFeedback_ = shouldSendFb;
+    };
+
+
     // webrtc::RtpHeader overrides.
     int32_t OnReceivedPayloadData(const uint8_t* payloadData, const uint16_t payloadSize,const webrtc::WebRtcRTPHeader* rtpHeader);
     bool OnRecoveredPacket(const uint8_t* packet, int packet_length);
 
 private:
   static const int STATS_INTERVAL = 5000;
-  static const int RTCP_PERIOD = 720;
+  static const int RTCP_PERIOD = 50;
   static const int PLI_THRESHOLD = 50;
-  static const int BITRATE_THRESHOLD = 400000;
 
   SdpInfo remoteSdp_;
   SdpInfo localSdp_;
@@ -238,12 +265,13 @@ private:
   int deliverFeedback_(char* buf, int len);
   void analyzeFeedback(char* buf, int len);
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
-  RtcpData rtcpData_;
+  std::map<uint32_t, boost::shared_ptr<RtcpData>> rtcpData_;
 
   
   bool audioEnabled_;
   bool videoEnabled_;
   bool trickleEnabled_;
+  bool shouldSendFeedback_;
 
   int stunPort_, minPort_, maxPort_;
   std::string stunServer_;

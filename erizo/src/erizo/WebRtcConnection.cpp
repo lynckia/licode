@@ -28,6 +28,8 @@ namespace erizo {
     videoTransport_ = NULL;
     audioTransport_ = NULL;
 
+    shouldSendFeedback_ = true;
+
     audioEnabled_ = audioEnabled;
     videoEnabled_ = videoEnabled;
     trickleEnabled_ = trickleEnabled;
@@ -84,6 +86,8 @@ namespace erizo {
     this->thisStats_.setVideoSourceSSRC(this->getVideoSourceSSRC());
     this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
     this->thisStats_.setAudioSourceSSRC(this->getAudioSourceSSRC());
+    this->rtcpData_[this->getAudioSourceSSRC()] = boost::shared_ptr<RtcpData>(new RtcpData);
+    this->rtcpData_[this->getVideoSourceSSRC()] = boost::shared_ptr<RtcpData>(new RtcpData);
 
     if (remoteSdp_.profile == SAVPF) {
       if (remoteSdp_.isFingerprint) {
@@ -308,13 +312,13 @@ namespace erizo {
     
     // PROCESS RTCP
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
-    if (chead->isRtcp()) {    
+    if (chead->isRtcp()) {
       thisStats_.processRtcpPacket(buf, len);
     }
 
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
-      if (fbSink_ != NULL) {
+      if (fbSink_ != NULL && shouldSendFeedback_) {
         fbSink_->deliverFeedback(buf,len);
       }
     } else {
@@ -410,15 +414,10 @@ namespace erizo {
     theREMB.setBlockCount(RTCP_AFB);
     memcpy(&theREMB.report.rembPacket.uniqueid, "REMB", 4);
     
-    char *uniqueId = (char*)&theREMB.report.rembPacket.uniqueid;
-    if (!strncmp(uniqueId,"REMB", 4)){
-      ELOG_DEBUG("It is correct");
-    }
-
     theREMB.setSSRC(this->getVideoSinkSSRC());
     theREMB.setSourceSSRC(this->getVideoSourceSSRC());
     theREMB.setLength(5);
-    theREMB.setREMBBitRate(500000);
+    theREMB.setREMBBitRate(bitrate);
     theREMB.setREMBNumSSRC(1);
     theREMB.setREMBFeedSSRC(this->getVideoSourceSSRC());
     int rembLength = (theREMB.getLength()+1)*4;
@@ -427,18 +426,46 @@ namespace erizo {
     //this->deliverFeedback_(buf, (thePLI.getLength()+1)*4);
     return (len+rembLength); 
   }
+
+  int WebRtcConnection::addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc){
+    ELOG_DEBUG("Adding NACK");
+    buf+=len;
+    RtcpHeader theNACK;
+    theNACK.setPacketType(RTCP_RTP_Feedback_PT);
+    theNACK.setBlockCount(1);
+    theNACK.setNackPid(seqNum);
+    theNACK.setNackBlp(blp);
+    
+    uint32_t ssrc = (sourceSsrc==this->getAudioSourceSSRC())?this->getAudioSinkSSRC():this->getVideoSinkSSRC();
+    theNACK.setSSRC(ssrc);    
+    theNACK.setSourceSSRC(sourceSsrc);
+    theNACK.setLength(3);
+    int nackLength = (theNACK.getLength()+1)*4;
+
+    memcpy(buf, (uint8_t*)&theNACK, nackLength);
+    //this->deliverFeedback_(buf, (thePLI.getLength()+1)*4);
+    return (len+nackLength); 
+  }
+  
   void WebRtcConnection::analyzeFeedback(char *buf, int len) {
 
-    boost::mutex::scoped_lock lock(rtcpData_.dataLock);
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
-    if (chead->isFeedback()) {
+    if (chead->isFeedback()) {      
+      uint32_t sourceSsrc = chead->getSourceSSRC();
+      if (rtcpData_.find(sourceSsrc) == rtcpData_.end()){
+        ELOG_DEBUG("RtcpData structure not yet created, creating");
+        rtcpData_[sourceSsrc] = boost::shared_ptr<RtcpData>(new RtcpData());
+      }
+      boost::shared_ptr<RtcpData> theData = rtcpData_[sourceSsrc];
+      boost::mutex::scoped_lock lock(theData->dataLock);
       struct timeval now;
-      rtcpData_.lastUpdated = now;
+      gettimeofday(&now, NULL);
       char* movingBuf = buf;
       int rtcpLength = 0;
       int totalLength = 0;
+      int partNum = 0;
       do {
-        ELOG_DEBUG("part");
+        theData->lastUpdated = now;
         movingBuf+=rtcpLength;
         chead = reinterpret_cast<RtcpHeader*>(movingBuf);
         rtcpLength = (ntohs(chead->length)+1) * 4;
@@ -448,19 +475,31 @@ namespace erizo {
             ELOG_DEBUG("SDES");
             break;
           case RTCP_Receiver_PT:
-
-            rtcpData_.ratioLost = rtcpData_.ratioLost > chead->getFractionLost()? rtcpData_.ratioLost: chead->getFractionLost();  
-            rtcpData_.totalPacketsLost = rtcpData_.totalPacketsLost > chead->getLostPackets()? rtcpData_.totalPacketsLost : chead->getLostPackets();
-            rtcpData_.highestSeqNumReceived = rtcpData_.highestSeqNumReceived > chead->getHighestSeqnum()? rtcpData_.highestSeqNumReceived : chead->getHighestSeqnum();
-            rtcpData_.jitter = rtcpData_.jitter > chead->getJitter()? rtcpData_.jitter: chead->getJitter();
-            rtcpData_.lastSr = rtcpData_.lastSr > chead->getLastSr()? rtcpData_.lastSr: chead->getLastSr();
-            rtcpData_.delaySinceLastSr = rtcpData_.delaySinceLastSr > chead->getDelaySinceLastSr()? rtcpData_.delaySinceLastSr : chead->getDelaySinceLastSr();
+            theData->rrsReceivedInPeriod++;
+            if (chead->getSourceSSRC() == this->getVideoSourceSSRC()){
+              ELOG_DEBUG("Analyzing Video RR: PacketLost %u, Ratio %u, partNum %d, blocks %d, sourceSSRC %u", chead->getLostPackets(), chead->getFractionLost(), partNum, chead->getBlockCount(), chead->getSourceSSRC());
+            }else{
+              ELOG_DEBUG("Analyzing Audio RR: PacketLost %u, Ratio %u, partNum %d, blocks %d, sourceSSRC %u", chead->getLostPackets(), chead->getFractionLost(), partNum, chead->getBlockCount(), chead->getSourceSSRC());
+            }
+            theData->ratioLost = theData->ratioLost > chead->getFractionLost()? theData->ratioLost: chead->getFractionLost();  
+            theData->totalPacketsLost = theData->totalPacketsLost > chead->getLostPackets()? theData->totalPacketsLost : chead->getLostPackets();
+            theData->highestSeqNumReceived = theData->highestSeqNumReceived > chead->getHighestSeqnum()? theData->highestSeqNumReceived : chead->getHighestSeqnum();
+            theData->jitter = theData->jitter > chead->getJitter()? theData->jitter: chead->getJitter();
+            if (theData->lastSr==0||chead->getLastSr()<theData->lastSr){
+              ELOG_DEBUG("Recording DLSR %u, lastSR %u", chead->getDelaySinceLastSr(), chead->getLastSr());
+              theData->lastSr = chead->getLastSr();
+              theData->delaySinceLastSr = chead->getDelaySinceLastSr();
+              theData->lastSrUpdated = now;
+            }
             break;
           case RTCP_RTP_Feedback_PT:
-            ELOG_DEBUG("RTP FB: Usually NACKs: %u", chead->getBlockCount());
+            ELOG_DEBUG("RTP FB: Usually NACKs: %u, partNum %d", chead->getBlockCount(), partNum);
             ELOG_DEBUG("PID %u BLP %u", chead->getNackPid(), chead->getNackBlp());
+            theData->shouldSendNACK = true;
+            theData->nackSeqnum = chead->getNackPid();
+            theData->nackBlp = chead->getNackBlp();
+            theData->requestRr = true;
             // NACK packet!
-            
             /*
                int len = chead->getLength() - 2;
                for (int k = 0; k < len; ++k) {
@@ -503,10 +542,9 @@ namespace erizo {
 //            ELOG_DEBUG("RTCP PS FB TYPE: %u", chead->getBlockCount() );
             switch(chead->getBlockCount()){
               case RTCP_PLI_FMT:
-//                ELOG_DEBUG("PLI Message");
+                ELOG_DEBUG("PLI Message, partNum %d", partNum);
                 // 1: PLI, 4: FIR
-                rtcpData_.shouldSendPli = true;
-                rtcpData_.requestRr = true;
+                theData->shouldSendPli = true;
                 break;
               case RTCP_SLI_FMT:
                 ELOG_DEBUG("SLI Message");
@@ -519,9 +557,9 @@ namespace erizo {
                   char *uniqueId = (char*)&chead->report.rembPacket.uniqueid;
                   if (!strncmp(uniqueId,"REMB", 4)){
                     uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
-                    rtcpData_.reportedBandwidth = bitrate;
-                    rtcpData_.shouldSendREMB = true;
-                    ELOG_DEBUG("Should send Packet REMB");
+//                    ELOG_DEBUG("Should send Packet REMB with bitRate: %lu , partNum %d", rtcpData_.reportedBandwidth, partNum);
+                    theData->reportedBandwidth = ((theData->reportedBandwidth < bitrate) && (theData->reportedBandwidth!=0))? theData->reportedBandwidth: bitrate;  
+                    theData->shouldSendREMB = true;
                   }
                   else{
                     ELOG_DEBUG("Unsupported AFB Packet not REMB")
@@ -538,63 +576,88 @@ namespace erizo {
             break;
         }
 
-
+        partNum++;
       } while (totalLength < len);
     }
   }
 
   void WebRtcConnection::checkRtcpFb(){
-    boost::mutex::scoped_lock lock(rtcpData_.dataLock);
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    int8_t packet[128]; // 128 is the max packet length
+    std::map<uint32_t, boost::shared_ptr<RtcpData>>::iterator it;
+    for (it = rtcpData_.begin(); it != rtcpData_.end(); it++){
+      boost::shared_ptr<RtcpData> rtcpData = it->second;
+      uint32_t sourceSsrc = it->first;
+      boost::mutex::scoped_lock lock(rtcpData->dataLock);
+      struct timeval now;
+      gettimeofday(&now, NULL);
+      int8_t packet[128]; // 128 is the max packet length
 
-    unsigned int dt = (now.tv_sec - rtcpData_.lastRrSent.tv_sec) * 1000 + (now.tv_usec - rtcpData_.lastRrSent.tv_usec) / 1000;
-    
-    if(dt >= RTCP_PERIOD && rtcpData_.highestSeqNumReceived > 0){  // Generate Full RTCP Packet
-      RtcpHeader rtcpHead;
-      rtcpHead.setPacketType(RTCP_Receiver_PT);
-      rtcpHead.setSSRC(this->getVideoSinkSSRC());
-      rtcpHead.setSourceSSRC(this->getVideoSourceSSRC());
-      rtcpHead.setFractionLost(rtcpData_.ratioLost);
-      rtcpHead.setHighestSeqnum(rtcpData_.highestSeqNumReceived);
-      rtcpHead.setLostPackets(rtcpData_.totalPacketsLost);
-      rtcpHead.setJitter(rtcpData_.jitter);
-      rtcpHead.setLastSr(rtcpData_.lastSr);
-      rtcpHead.setDelaySinceLastSr(rtcpData_.delaySinceLastSr);
-      rtcpHead.setLength(7);
-      rtcpHead.setBlockCount(1);
-      int length = (rtcpHead.getLength()+1)*4;
-      memcpy(packet, (uint8_t*)&rtcpHead, length);
-      if(rtcpData_.shouldSendREMB){
-        unsigned int sincelast = (now.tv_sec - rtcpData_.lastREMBSent.tv_sec) * 1000 + (now.tv_usec - rtcpData_.lastREMBSent.tv_usec) / 1000;
-        ELOG_DEBUG("SHOULD SEND REMB, SINCE LAST %u ms, SENDING", sincelast);
-        int theLen = this->addREMB((char*)packet, length, rtcpData_.reportedBandwidth);
-        rtcpData_.shouldSendREMB = false;
-        rtcpData_.lastREMBSent = now;
-        length+=theLen;
-        rtcpHead.setLength((length/4)-1);
+      unsigned int dt = (now.tv_sec - rtcpData->lastRrSent.tv_sec) * 1000 + (now.tv_usec - rtcpData->lastRrSent.tv_usec) / 1000;
+      unsigned int edlsr = (now.tv_sec - rtcpData->lastSrUpdated.tv_sec) * 1000 + (now.tv_usec - rtcpData->lastSrUpdated.tv_usec) / 1000;
+      if ((rtcpData->lastSr == 0)&&(rtcpData->requestRr)) {
+        ELOG_DEBUG("Skipping RR because lastSR ==0"); 
       }
-      if (rtcpHead.getSourceSSRC() == this->getAudioSourceSSRC()) {
-        writeSsrc((char*)packet,length,this->getAudioSinkSSRC());
-      } else {
-        writeSsrc((char*)packet,length,this->getVideoSinkSSRC());      
+      if((rtcpData->requestRr||dt >= RTCP_PERIOD) && rtcpData->lastSr > 0){  // Generate Full RTCP Packet
+        rtcpData->requestRr = false;
+        RtcpHeader rtcpHead;
+        rtcpHead.setPacketType(RTCP_Receiver_PT);
+        if (sourceSsrc == this->getAudioSourceSSRC()){
+          ELOG_DEBUG("Sending Audio RR: PacketLost %u, Ratio %u, DLSR %u, lastSR %u, DLSR Adjusted %u dt %u, rrsSinceLast %u", rtcpData->totalPacketsLost, rtcpData->ratioLost, rtcpData->delaySinceLastSr, rtcpData->lastSr, (rtcpData->delaySinceLastSr+edlsr), dt, rtcpData->rrsReceivedInPeriod);
+          rtcpHead.setSSRC(this->getAudioSinkSSRC());
+          rtcpHead.setSourceSSRC(this->getAudioSourceSSRC());
+        }else{
+          ELOG_DEBUG("Sending Video RR: PacketLost %u, Ratio %u, DLSR %u, lastSR %u, DLSR Adjusted %u dt %u, rrsSinceLast %u", rtcpData->totalPacketsLost, rtcpData->ratioLost, rtcpData->delaySinceLastSr, rtcpData->lastSr, (rtcpData->delaySinceLastSr+edlsr), dt, rtcpData->rrsReceivedInPeriod);
+          rtcpHead.setSSRC(this->getVideoSinkSSRC());
+          rtcpHead.setSourceSSRC(this->getVideoSourceSSRC());
+        }
+        rtcpHead.setFractionLost(rtcpData->ratioLost);
+        rtcpHead.setHighestSeqnum(rtcpData->highestSeqNumReceived);      
+        rtcpHead.setLostPackets(rtcpData->totalPacketsLost);
+        rtcpHead.setJitter(rtcpData->jitter);
+        rtcpHead.setLastSr(rtcpData->lastSr);
+        rtcpHead.setDelaySinceLastSr(rtcpData->delaySinceLastSr + ((edlsr*1000)/65536));
+        rtcpHead.setLength(7);
+        rtcpHead.setBlockCount(1);
+        int length = (rtcpHead.getLength()+1)*4;
+        memcpy(packet, (uint8_t*)&rtcpHead, length);
+        if(rtcpData->shouldSendNACK){
+          ELOG_DEBUG("SEND NACK, SENDING with Seqno: %u", rtcpData->nackSeqnum);
+          int theLen = this->addNACK((char*)packet, length, rtcpData->nackSeqnum, rtcpData->nackBlp, sourceSsrc);
+          rtcpData->shouldSendNACK = false;
+          rtcpData->nackSeqnum = 0;
+          length+=theLen;
+          rtcpHead.setLength((length/4)-1);
+        }
+        if(rtcpData->shouldSendREMB){
+          unsigned int sincelast = (now.tv_sec - rtcpData->lastREMBSent.tv_sec) * 1000 + (now.tv_usec - rtcpData->lastREMBSent.tv_usec) / 1000;
+          ELOG_DEBUG("SEND REMB, SINCE LAST %u ms, SENDING with BW: %lu", sincelast, rtcpData->reportedBandwidth);
+          int theLen = this->addREMB((char*)packet, length, rtcpData->reportedBandwidth);
+          rtcpData->shouldSendREMB = false;
+          rtcpData->reportedBandwidth = 0;
+          rtcpData->lastREMBSent = now;
+          length+=theLen;
+          rtcpHead.setLength((length/4)-1);
+        }
+        if (rtcpHead.getSourceSSRC() == this->getAudioSourceSSRC()) {
+          writeSsrc((char*)packet,length,this->getAudioSinkSSRC());
+        } else {
+          writeSsrc((char*)packet,length,this->getVideoSinkSSRC());      
+        }
+        this->queueData(0, (char*)packet, length, videoTransport_, OTHER_PACKET);
+        rtcpData->lastRrSent = now;
+        rtcpData->reset();
       }
-      this->queueData(0, (char*)packet, length, videoTransport_, OTHER_PACKET);
-      rtcpData_.lastRrSent = now;
+      if (rtcpData->shouldSendPli){
+        unsigned int sincelast = (now.tv_sec - rtcpData->lastPliSent.tv_sec) * 1000 + (now.tv_usec - rtcpData->lastPliSent.tv_usec) / 1000;
+        ELOG_DEBUG("Should send PLI!! %u", sincelast);
+        if (sincelast >= PLI_THRESHOLD){
+          ELOG_DEBUG("SENDING PLI");
+          this->sendPLI();
+          rtcpData->lastPliSent = now;
+          rtcpData->shouldSendPli = false;
+        }
+
+      }
     }
-    if (rtcpData_.shouldSendPli){
-      unsigned int sincelast = (now.tv_sec - rtcpData_.lastPliSent.tv_sec) * 1000 + (now.tv_usec - rtcpData_.lastPliSent.tv_usec) / 1000;
-      ELOG_DEBUG("Should send PLI!! %u", sincelast);
-      if (sincelast >= PLI_THRESHOLD){
-        ELOG_DEBUG("SENDING PLI");
-        this->sendPLI();
-        rtcpData_.lastPliSent = now;
-        rtcpData_.shouldSendPli = false;
-      }
-
-    }
-
   }
 
   void WebRtcConnection::sendReceiverReport() {
