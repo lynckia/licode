@@ -489,14 +489,14 @@ var listen = function () {
                         socket.emit('connection_failed',{});
                         socket.state = 'sleeping';
                         if (!socket.room.p2p) {
-                            socket.room.controller.removePublisher(streamId);
+                            socket.room.controller.removePublisher(id);
                             if (GLOBAL.config.erizoController.report.session_events) {
                                 var timeStamp = new Date();
-                                amqper.broadcast('event', {room: socket.room.id, user: socket.id, type: 'failed', stream: streamId, timestamp: timeStamp.getTime()});
+                                amqper.broadcast('event', {room: socket.room.id, user: socket.id, type: 'failed', stream: id, timestamp: timeStamp.getTime()});
                             }
                         }
 
-                        var index = socket.streams.indexOf(streamId);
+                        var index = socket.streams.indexOf(id);
                         if (index !== -1) {
                             socket.streams.splice(index, 1);
                         }
