@@ -48,49 +48,57 @@ exports.ErizoJSController = function (spec) {
      */
     initWebRtcConnection = function (wrtc, callback, id_pub, id_sub, browser) {
 
-        if (GLOBAL.config.erizoController.report.rtcp_stats) {
-          wrtc.bwValues = [];
-          var isReporting = true;
-          var lowerThres = Math.floor(LOWERBANDWIDTH*(1-0.1));
-          var upperThres = Math.ceil(LOWERBANDWIDTH*(1+0.1));
-          var intervalId = setInterval(function () {
-            var newStats = wrtc.getStats();
-            if (newStats == null){
-              console.log("Stopping stats");
-              clearInterval(intervalId);
-              return;
-            }
-            var theStats = JSON.parse(newStats);
-            for (var i = 0; i < theStats.length; i++){
-              if(theStats[i].hasOwnProperty('bandwidth')){  
-                console.log("Reporting bandwidth", theStats[i].bandwidth, " is feedback on", isReporting, "min", lowerThres);
-                wrtc.bwValues.push(theStats[i].bandwidth);
-                if (wrtc.bwValues.length > 3){
-                  wrtc.bwValues.shift();
-                }
-                var average = calculateAverage(wrtc.bwValues);
-                console.log("Reporting average", average, " is feedback on", isReporting===true);
-                if(average>0 && (average < lowerThres) && (isReporting === true)){
+        wrtc.bwValues = [];
+        var isReporting = true;
+        var lowerThres = Math.floor(LOWERBANDWIDTH*(1-0.1));
+        var upperThres = Math.ceil(LOWERBANDWIDTH*(1+0.1));
+        var strikes = 0;
+        var lastAverage, average;
+        var intervalId = setInterval(function () {
+          var newStats = wrtc.getStats();
+          if (newStats == null){
+            console.log("Stopping stats");
+            clearInterval(intervalId);
+            return;
+          }
+          var theStats = JSON.parse(newStats);
+          for (var i = 0; i < theStats.length; i++){
+            if(theStats[i].hasOwnProperty('bandwidth')){  
+              console.log("Reporting bandwidth", theStats[i].bandwidth, " is feedback on", isReporting, "min", lowerThres);
+              wrtc.bwValues.push(theStats[i].bandwidth);
+              if (wrtc.bwValues.length > 5){
+                wrtc.bwValues.shift();
+              }
+              average = calculateAverage(wrtc.bwValues);
+              console.log("Reporting average", average, " is feedback on", isReporting===true);
+              if(average < lastAverage && (average < lowerThres) && (isReporting === true)){
+                strikes++;
+                log.info("Sub", id_sub, "strike", strikes);
+                if(strikes >9){
                   wrtc.setFeedbackReports(false);
                   isReporting = false;
                   console.log("Reporting Insufficient bandwidth, disabling reports", average);
                   callback('callback', {type:'insufficientBandwidth'});
-                } else if (average >= (LOWERBANDWIDTH*(1+0.2)) && isReporting === false){
-                  console.log("Reporting Bandwidth recovered, enabling reports", average);
-                  isReporting = true;
-                  wrtc.setFeedbackReports(true);
+                }
+              } else if (average >= (LOWERBANDWIDTH*(1+0.2))){
+                strikes = 0;
+                if (isReporting === false){
+                    log.info("Reporting Bandwidth recovered, enabling reports", average);
+                    isReporting = true;
+                    wrtc.setFeedbackReports(true);
                 }
               }
+              lastAverage = average;
             }
-            var timeStamp = new Date();
-            amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
-          }, INTERVAL_STATS);
-          /*
+          }
+          var timeStamp = new Date();
+          amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
+        }, INTERVAL_STATS);
+        if (GLOBAL.config.erizoController.report.rtcp_stats) {
             wrtc.getStats(function (newStats){
                 var timeStamp = new Date();
                 amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
             });
-            */
         }
 
         wrtc.init( function (newStatus, mess){

@@ -67,66 +67,68 @@ class RtcpData {
     // last SR field
     uint32_t lastSrTimestamp;
     // required to properly calculate DLSR
-    struct timeval lastSrReception;
-
-    // to prevent sending too many reports, track time of last
-    struct timeval lastRrSent;
-    // flag to send receiver report
-    bool requestRr;
-    bool hasSentFirstRr;
+    uint16_t nackSeqnum;
+    uint16_t nackBlp;
 
     // time based data flow limits
     float allowedSize, desiredSize;
     struct timeval lastUpdated, lastSent, lastSrUpdated;
-    // should send pli?
+    struct timeval lastREMBSent, lastPliSent;
+    struct timeval lastSrReception;
+    // to prevent sending too many reports, track time of last
+    struct timeval lastRrSent;
+    
     bool shouldSendPli;
-    struct timeval lastPliSent;
-
     bool shouldSendREMB;
-    struct timeval lastREMBSent;
-
     bool shouldSendNACK;
-    uint16_t nackSeqnum;
-    uint16_t nackBlp;
+    // flag to send receiver report
+    bool requestRr;
+    bool hasSentFirstRr;
 
     void reset(){
       ratioLost = 0;
       sequenceCycles = 0;
       sequenceNumber = 0;
-      lastSrTimestamp = 0;
+//      lastSrTimestamp = 0;
       lastSr = 0;
-      delaySinceLastSr = 0;
+//      delaySinceLastSr = 0;
       requestRr = false;
-      hasSentFirstRr = false;
       allowedSize = 0;
       jitter = 0;
       desiredSize = 0;
-      shouldSendPli = false;
       shouldSendREMB = false;
-      reportedBandwidth = 0;
       rrsReceivedInPeriod = 0;
 //      highestSeqNumReceived = 0;
       reportedBandwidth = 0;
     }
 
     RtcpData(){
-      packetCount = 0;
+      packetCount = 0;        
+      rrsReceivedInPeriod = 0;
+      totalPacketsLost = 0;
       ratioLost = 0;
+      highestSeqNumReceived = 0;
       sequenceCycles = 0;
       sequenceNumber = 0;
+      lastSr = 0;
+      reportedBandwidth = 0;
+      delaySinceLastSr = 0;
+      jitter = 0;
       lastSrTimestamp = 0;
       requestRr = false;
       hasSentFirstRr = false;
       allowedSize = 0;
       desiredSize = 0;
+     
       shouldSendPli = false;
       shouldSendREMB = false;
-      reportedBandwidth = 0;
-      rrsReceivedInPeriod = 0;
-      highestSeqNumReceived = 0;
+      shouldSendNACK = false;
+      nackSeqnum = 0;
+      nackBlp = 0;
       lastRrSent = (struct timeval){0};
       lastPliSent = (struct timeval){0};
       lastREMBSent = (struct timeval){0};
+      lastSrReception = (struct timeval){0};
     }
 
     // lock for any blocking data change

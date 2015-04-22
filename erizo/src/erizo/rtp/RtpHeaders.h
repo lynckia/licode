@@ -320,8 +320,8 @@ namespace erizo{
       inline uint32_t getSSRC(){
         return ntohl(ssrc);
       }
-      inline void setSSRC(uint32_t ssrc){
-        ssrc = htonl(ssrc);
+      inline void setSSRC(uint32_t aSsrc){
+        ssrc = htonl(aSsrc);
       }
       inline uint32_t getSourceSSRC(){
         return ntohl(report.receiverReport.ssrcsource);
