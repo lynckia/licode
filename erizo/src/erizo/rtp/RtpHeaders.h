@@ -339,7 +339,7 @@ namespace erizo{
         return ntohl(report.receiverReport.lost)>>8;
       }
       inline void setLostPackets(uint32_t lost) {
-        report.receiverReport.lost = htonl(lost);
+        report.receiverReport.lost = htonl(lost)>>8;
       }
       inline uint32_t getHighestSeqnum() {
         return ntohl(report.receiverReport.highestseqnum);
