@@ -398,14 +398,6 @@ namespace erizo {
     thePLI.setLength(2);
     char *buf = reinterpret_cast<char*>(&thePLI);
     int len = (thePLI.getLength()+1)*4;
-    //this->deliverFeedback_(buf, (thePLI.getLength()+1)*4);
-   /*
-    if (thePLI.getSourceSSRC() == this->getAudioSourceSSRC()) {
-        writeSsrc(buf,len,this->getAudioSinkSSRC());
-    } else {
-        writeSsrc(buf,len,this->getVideoSinkSSRC());      
-    }
-    */
     this->queueData(0, buf, len , videoTransport_, OTHER_PACKET);
     return len; 
     
