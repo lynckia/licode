@@ -331,18 +331,25 @@ namespace erizo {
         unsigned int recvSSRC;
         if (chead->packettype == RTCP_Sender_PT) { //Sender Report
           recvSSRC = chead->getSSRC();
-          if(recvSSRC == this->getVideoSourceSSRC()){
-            struct timeval now;
-            gettimeofday(&now, NULL);
-            uint32_t ntp;
-            uint64_t theNTP = chead->getNtpTimestamp();
-            ntp = (theNTP & (0xFFFFFFFF0000))>>16;
-            senderReports_.push_back(boost::shared_ptr<SrData>( new SrData(ntp, now)));
-            // We only store the last 40 sr
-            if (senderReports_.size()>40){
-              senderReports_.pop_front();
-            }
+
+          if (rtcpData_.find(recvSSRC) == rtcpData_.end()){
+            ELOG_DEBUG("RtcpData structure not yet created, creating");
+            rtcpData_[recvSSRC] = boost::shared_ptr<RtcpData>(new RtcpData());
           }
+          
+          boost::shared_ptr<RtcpData> theData = rtcpData_[recvSSRC];
+          boost::mutex::scoped_lock lock(theData->dataLock);
+          struct timeval now;
+          gettimeofday(&now, NULL);
+          uint32_t ntp;
+          uint64_t theNTP = chead->getNtpTimestamp();
+          ntp = (theNTP & (0xFFFFFFFF0000))>>16;
+          theData->senderReports.push_back(boost::shared_ptr<SrData>( new SrData(ntp, now)));
+          // We only store the last 40 sr
+          if (theData->senderReports.size()>40){
+            theData->senderReports.pop_front();
+          }
+        
         }else{
           recvSSRC = head->getSSRC();
         }
@@ -498,7 +505,7 @@ namespace erizo {
             theData->jitter = theData->jitter > chead->getJitter()? theData->jitter: chead->getJitter();
             calculateLastSr = chead->getLastSr();
             calculatedlsr = (chead->getDelaySinceLastSr()*1000)/65536;
-            for (std::list<boost::shared_ptr<SrData>>::iterator it=senderReports_.begin(); it != senderReports_.end(); ++it){
+            for (std::list<boost::shared_ptr<SrData>>::iterator it=theData->senderReports.begin(); it != theData->senderReports.end(); ++it){
               if ((*it)->srNtp == calculateLastSr){  
                 uint64_t nowms = (now.tv_sec * 1000) + (now.tv_usec / 1000);
                 uint64_t sentts = ((*it)->timestamp.tv_sec * 1000) + ((*it)->timestamp.tv_usec / 1000);
@@ -508,7 +515,7 @@ namespace erizo {
             }
 
             if (theData->lastSr==0||theData->lastDelay < delay){
-              ELOG_DEBUG("Recording DLSR %u, lastSR %u calculated delay %u", chead->getDelaySinceLastSr(), chead->getLastSr(), delay);
+              ELOG_DEBUG("Recording DLSR %u, lastSR %u calculated delay %u for SSRC %u", chead->getDelaySinceLastSr(), chead->getLastSr(), delay, sourceSsrc);
               theData->lastSr = chead->getLastSr();
               theData->delaySinceLastSr = chead->getDelaySinceLastSr();
               theData->lastSrUpdated = now;

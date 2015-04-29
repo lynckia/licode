@@ -100,6 +100,8 @@ class RtcpData {
     bool requestRr;
     bool hasSentFirstRr;
 
+    std::list<boost::shared_ptr<SrData>> senderReports;
+
     void reset(){
       ratioLost = 0;
 //      lastSrTimestamp = 0;
@@ -287,7 +289,6 @@ private:
   int stunPort_, minPort_, maxPort_;
   std::string stunServer_;
   
-  std::list<boost::shared_ptr<SrData>> senderReports_;
 
 	boost::condition_variable cond_;
   webrtc::FecReceiverImpl fec_receiver_;
