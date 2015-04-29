@@ -12,6 +12,7 @@
 #include "Transport.h"
 #include "Stats.h"
 #include "rtp/webrtc/fec_receiver_impl.h"
+#include "rtp/RtcpProcessor.h"
 
 namespace erizo {
 
@@ -43,107 +44,7 @@ public:
     virtual void notifyStats(const std::string& message)=0;
 };
 
-class SrData {
-  public:
-    uint32_t srNtp;
-    struct timeval timestamp;
 
-    SrData() {
-      srNtp = 0;
-      timestamp = (struct timeval){0} ;
-    };
-    SrData(uint32_t srNTP, struct timeval theTimestamp){
-      this->srNtp = srNTP;
-      this->timestamp = theTimestamp;
-    }
-};
-
-
-class RtcpData {
-  // lost packets - list and length
-  public:
-    uint32_t *nackList;
-    int nackLen;
-
-    // current values - tracks packet lost for fraction calculation
-    uint32_t packetCount;
-    uint16_t rrsReceivedInPeriod;
-
-    uint32_t ssrc;
-    uint32_t totalPacketsLost;
-    uint32_t ratioLost:8;
-    uint32_t highestSeqNumReceived;
-    uint32_t lastSr;
-    uint64_t reportedBandwidth;
-    uint32_t delaySinceLastSr;
-    
-    uint32_t lastDelay;
-
-    uint32_t jitter;
-    // last SR field
-    uint32_t lastSrTimestamp;
-    // required to properly calculate DLSR
-    uint16_t nackSeqnum;
-    uint16_t nackBlp;
-
-    // time based data flow limits
-    struct timeval lastUpdated, lastSent, lastSrUpdated;
-    struct timeval lastREMBSent, lastPliSent;
-    struct timeval lastSrReception;
-    // to prevent sending too many reports, track time of last
-    struct timeval lastRrSent;
-    
-    bool shouldSendPli;
-    bool shouldSendREMB;
-    bool shouldSendNACK;
-    // flag to send receiver report
-    bool requestRr;
-    bool hasSentFirstRr;
-
-    std::list<boost::shared_ptr<SrData>> senderReports;
-
-    void reset(){
-      ratioLost = 0;
-//      lastSrTimestamp = 0;
-      lastSr = 0;
-//      delaySinceLastSr = 0;
-      requestRr = false;
-      jitter = 0;
-      rrsReceivedInPeriod = 0;
-//      highestSeqNumReceived = 0;
-      reportedBandwidth = 0;
-      lastDelay = 0;
-    }
-
-    RtcpData(){
-      packetCount = 0;        
-      rrsReceivedInPeriod = 0;
-      totalPacketsLost = 0;
-      ratioLost = 0;
-      highestSeqNumReceived = 0;
-      lastSr = 0;
-      reportedBandwidth = 0;
-      delaySinceLastSr = 0;
-      jitter = 0;
-      lastSrTimestamp = 0;
-      requestRr = false;
-      hasSentFirstRr = false;
-      lastDelay = 0;
-     
-      shouldSendPli = false;
-      shouldSendREMB = false;
-      shouldSendNACK = false;
-      nackSeqnum = 0;
-      nackBlp = 0;
-      lastRrSent = (struct timeval){0};
-      lastPliSent = (struct timeval){0};
-      lastREMBSent = (struct timeval){0};
-      lastSrReception = (struct timeval){0};
-    }
-
-    // lock for any blocking data change
-    boost::mutex dataLock;
-};
 
 
 
@@ -203,8 +104,6 @@ public:
      * @return the size of the data sent
      */
     int sendPLI();  
-    int addREMB(char* buf, int len, uint32_t bitrate);
-    int addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc);
   /**
    * Sets the Event Listener for this WebRtcConnection
    */
@@ -237,10 +136,6 @@ public:
 
     void onCandidate(const CandidateInfo& cand, Transport *transport);
 
-    void checkRtcpFb();
-
-    void sendReceiverReport();
-
     void setFeedbackReports(bool shouldSendFb){
       this->shouldSendFeedback_ = shouldSendFb;
     };
@@ -252,12 +147,11 @@ public:
 
 private:
   static const int STATS_INTERVAL = 5000;
-  static const int RTCP_PERIOD = 150;
-  static const int PLI_THRESHOLD = 50;
-  static const uint64_t NTPTOMSCONV = 4294967296;
   
   SdpInfo remoteSdp_;
   SdpInfo localSdp_;
+
+  boost::shared_ptr<RtcpProcessor> rtcpProcessor_;
 
   Stats thisStats_;
 
@@ -276,9 +170,7 @@ private:
 	int deliverAudioData_(char* buf, int len);
 	int deliverVideoData_(char* buf, int len);
   int deliverFeedback_(char* buf, int len);
-  void analyzeFeedback(char* buf, int len);
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
-  std::map<uint32_t, boost::shared_ptr<RtcpData>> rtcpData_;
 
   
   bool audioEnabled_;
