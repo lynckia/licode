@@ -75,7 +75,7 @@ exports.ErizoJSController = function (spec) {
                 strikes++;
                 log.info("Sub", id_sub, "strike", strikes);
                 if(strikes >9){
-                  wrtc.setFeedbackReports(false);
+//                  wrtc.setFeedbackReports(false);
                   isReporting = false;
                   console.log("Reporting Insufficient bandwidth, disabling reports", average);
                   callback('callback', {type:'insufficientBandwidth'});
@@ -85,7 +85,7 @@ exports.ErizoJSController = function (spec) {
                 if (isReporting === false){
                     log.info("Reporting Bandwidth recovered, enabling reports", average);
                     isReporting = true;
-                    wrtc.setFeedbackReports(true);
+            //        wrtc.setFeedbackReports(true);
                 }
               }
               lastAverage = average;

@@ -374,6 +374,9 @@ namespace erizo{
       }
       inline uint32_t getOctetsSent(){
         return ntohl(report.senderReport.octetssent);
+      }      
+      inline uint64_t getNtpTimestamp(){
+       return (((uint64_t)htonl(report.senderReport.ntptimestamp)) << 32) + htonl(report.senderReport.ntptimestamp >> 32);
       }
       inline uint16_t getNackPid(){
         return ntohs(report.nackPacket.pid);

@@ -43,6 +43,21 @@ public:
     virtual void notifyStats(const std::string& message)=0;
 };
 
+class SrData {
+  public:
+    uint32_t srNtp;
+    struct timeval timestamp;
+
+    SrData() {
+      srNtp = 0;
+      timestamp = (struct timeval){0} ;
+    };
+    SrData(uint32_t srNTP, struct timeval theTimestamp){
+      this->srNtp = srNTP;
+      this->timestamp = theTimestamp;
+    }
+};
+
 
 class RtcpData {
   // lost packets - list and length
@@ -58,11 +73,12 @@ class RtcpData {
     uint32_t totalPacketsLost;
     uint32_t ratioLost:8;
     uint32_t highestSeqNumReceived;
-    uint32_t sequenceCycles:16;
-    uint32_t sequenceNumber:16;
     uint32_t lastSr;
     uint64_t reportedBandwidth;
     uint32_t delaySinceLastSr;
+    
+    uint32_t lastDelay;
+
     uint32_t jitter;
     // last SR field
     uint32_t lastSrTimestamp;
@@ -71,7 +87,6 @@ class RtcpData {
     uint16_t nackBlp;
 
     // time based data flow limits
-    float allowedSize, desiredSize;
     struct timeval lastUpdated, lastSent, lastSrUpdated;
     struct timeval lastREMBSent, lastPliSent;
     struct timeval lastSrReception;
@@ -87,19 +102,15 @@ class RtcpData {
 
     void reset(){
       ratioLost = 0;
-      sequenceCycles = 0;
-      sequenceNumber = 0;
 //      lastSrTimestamp = 0;
       lastSr = 0;
 //      delaySinceLastSr = 0;
       requestRr = false;
-      allowedSize = 0;
       jitter = 0;
-      desiredSize = 0;
-      shouldSendREMB = false;
       rrsReceivedInPeriod = 0;
 //      highestSeqNumReceived = 0;
       reportedBandwidth = 0;
+      lastDelay = 0;
     }
 
     RtcpData(){
@@ -108,8 +119,6 @@ class RtcpData {
       totalPacketsLost = 0;
       ratioLost = 0;
       highestSeqNumReceived = 0;
-      sequenceCycles = 0;
-      sequenceNumber = 0;
       lastSr = 0;
       reportedBandwidth = 0;
       delaySinceLastSr = 0;
@@ -117,8 +126,7 @@ class RtcpData {
       lastSrTimestamp = 0;
       requestRr = false;
       hasSentFirstRr = false;
-      allowedSize = 0;
-      desiredSize = 0;
+      lastDelay = 0;
      
       shouldSendPli = false;
       shouldSendREMB = false;
@@ -242,9 +250,10 @@ public:
 
 private:
   static const int STATS_INTERVAL = 5000;
-  static const int RTCP_PERIOD = 50;
+  static const int RTCP_PERIOD = 150;
   static const int PLI_THRESHOLD = 50;
-
+  static const uint64_t NTPTOMSCONV = 4294967296;
+  
   SdpInfo remoteSdp_;
   SdpInfo localSdp_;
 
@@ -277,6 +286,8 @@ private:
 
   int stunPort_, minPort_, maxPort_;
   std::string stunServer_;
+  
+  std::list<boost::shared_ptr<SrData>> senderReports_;
 
 	boost::condition_variable cond_;
   webrtc::FecReceiverImpl fec_receiver_;
