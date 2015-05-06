@@ -12,7 +12,7 @@
 namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
   
-  WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort, bool trickleEnabled,WebRtcConnectionEventListener* listener)
+  WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort, bool trickleEnabled, WebRtcConnectionEventListener* listener)
       : connEventListener_(listener), fec_receiver_(this){
     ELOG_WARN("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", stunServer.c_str(), stunPort, minPort, maxPort);
     sequenceNumberFIR_ = 0;
@@ -120,6 +120,10 @@ namespace erizo {
       if (!bundle_ && remoteSdp_.hasAudio) {
         audioTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos(), bundle_);
       }
+    }
+
+    if (remoteSdp_.videoBandwidth !=0){
+      this->rtcpProcessor_->setVideoBW(remoteSdp_.videoBandwidth);
     }
 
     return true;

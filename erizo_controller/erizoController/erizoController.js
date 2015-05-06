@@ -470,7 +470,7 @@ var listen = function () {
             } else if (options.state === 'erizo') {
                 log.info("New publisher");
                 
-                socket.room.controller.addPublisher(id, function (signMess) {
+                socket.room.controller.addPublisher(id, options, function (signMess) {
 
                     if (signMess.type === 'initializing') {
                         callback(id);
@@ -568,7 +568,7 @@ var listen = function () {
                         }
                         if(signMess.type==='insufficientBandwidth'){
                           log.info("InsufficientBandwidth in erizoController");
-                          socket.emit('insufficient_bandwidth');
+                          socket.emit('onInsufficientBandwidth', {streamID:options.streamId});
                         }
 
                         // if (signMess.type === 'candidate') {

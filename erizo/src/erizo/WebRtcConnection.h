@@ -59,7 +59,7 @@ public:
      * Constructor.
      * Constructs an empty WebRTCConnection without any configuration.
      */
-    WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort,bool trickleEnabled,WebRtcConnectionEventListener* listener);
+    WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort,bool trickleEnabled, WebRtcConnectionEventListener* listener);
     /**
      * Destructor.
      */
@@ -180,10 +180,9 @@ private:
 
   int stunPort_, minPort_, maxPort_;
   std::string stunServer_;
-  
 
-	boost::condition_variable cond_;
   webrtc::FecReceiverImpl fec_receiver_;
+	boost::condition_variable cond_;
 };
 
 } /* namespace erizo */

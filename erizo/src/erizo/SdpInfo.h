@@ -251,6 +251,7 @@ public:
     int videoSdpMLine;
     int audioSdpMLine;
     int videoCodecs, audioCodecs;
+    unsigned int videoBandwidth;
 
 private:
     bool processSdp(const std::string& sdp, const std::string& media);

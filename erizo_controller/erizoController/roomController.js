@@ -161,11 +161,11 @@ exports.RoomController = function (spec) {
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
-    that.addPublisher = function (publisher_id, callback) {
+    that.addPublisher = function (publisher_id, options, callback) {
 
         if (publishers[publisher_id] === undefined) {
 
-            log.info("Adding publisher peer_id ", publisher_id);
+            log.info("Adding publisher peer_id ", publisher_id, "minVideoBW", options.minVideoBW);
 
             // We create a new ErizoJS with the publisher_id.
             getErizoJS(function(erizo_id) {
@@ -181,7 +181,7 @@ exports.RoomController = function (spec) {
                 subscribers[publisher_id] = [];
                 
                 // then we call its addPublisher method.
-                var args = [publisher_id];
+                var args = [publisher_id, options.minVideoBW];
                 amqper.callRpc(getErizoQueue(publisher_id), "addPublisher", args, {callback: callback});
 
                 erizos[erizo_id].publishers.push(publisher_id);

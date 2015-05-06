@@ -130,10 +130,6 @@ Erizo.Room = function (spec) {
             }
         });
 
-        that.socket.on('insufficient_bandwidth', function (arg){
-          console.log("INSUFFICIENT BANDWIDTH!!!!!");
-        });
-
         that.socket.on('signaling_message_peer', function (arg) {
 
             var stream = that.localStreams[arg.streamId];
@@ -188,6 +184,16 @@ Erizo.Room = function (spec) {
             };
 
         }
+
+        that.socket.on('onInsufficientBandwidth', function (arg){
+            console.log("InsufficientBandwidth on", arg.streamID, that.remoteStreams[arg.streamID]);
+            if(arg.streamID){
+                var stream = that.remoteStreams[arg.streamID];
+                
+                var evt = Erizo.RoomEvent({type:'insufficient-bandwidth', streams:stream});
+                that.dispatchEvent(evt);
+            }
+        });
 
         // We receive an event of new data in one of the streams
         that.socket.on('onDataStream', function (arg) {
@@ -327,6 +333,14 @@ Erizo.Room = function (spec) {
         if (options.maxVideoBW > spec.maxVideoBW) {
             options.maxVideoBW = spec.maxVideoBW;
         }
+        
+        if (options.minVideoBW === undefined){
+            options.minVideoBW = 0;
+        }
+
+        if (options.minVideoBW > spec.defaultVideoBW){
+            options.minVideoBW = spec.defaultVideoBW;
+        }
 
         // 1- If the stream is not local we do nothing.
         if (stream.local && that.localStreams[stream.getID()] === undefined) {
@@ -398,7 +412,7 @@ Erizo.Room = function (spec) {
 
                 } else {
 
-                    sendSDPSocket('publish', {state: 'erizo', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), attributes: stream.getAttributes()}, undefined, function (id, error) {
+                    sendSDPSocket('publish', {state: 'erizo', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), minVideoBW: options.minVideoBW, attributes: stream.getAttributes()}, undefined, function (id, error) {
 
                         if (id === null) {
                             L.Logger.error('Error when publishing the stream: ', error);

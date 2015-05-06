@@ -30,7 +30,7 @@ exports.ErizoJSController = function (spec) {
 
     var CONN_INITIAL = 101, CONN_STARTED = 102,CONN_GATHERED = 103, CONN_READY = 104, CONN_FINISHED = 105, CONN_CANDIDATE = 201, CONN_SDP = 202, CONN_FAILED = 500;
 
-    var LOWERBANDWIDTH= 200000;
+    
 
     calculateAverage = function (values) { 
       if (values.length === undefined)
@@ -50,55 +50,60 @@ exports.ErizoJSController = function (spec) {
 
         wrtc.bwValues = [];
         var isReporting = true;
-        var lowerThres = Math.floor(LOWERBANDWIDTH*(1-0.1));
-        var upperThres = Math.ceil(LOWERBANDWIDTH*(1+0.1));
         var strikes = 0;
         var lastAverage, average;
-        var intervalId = setInterval(function () {
-          var newStats = wrtc.getStats();
-          if (newStats == null){
-            console.log("Stopping stats");
-            clearInterval(intervalId);
-            return;
-          }
-          var theStats = JSON.parse(newStats);
-          for (var i = 0; i < theStats.length; i++){
-            if(theStats[i].hasOwnProperty('bandwidth')){  
-              console.log("Reporting bandwidth", theStats[i].bandwidth, " is feedback on", isReporting, "min", lowerThres);
-              wrtc.bwValues.push(theStats[i].bandwidth);
-              if (wrtc.bwValues.length > 5){
-                wrtc.bwValues.shift();
-              }
-              average = calculateAverage(wrtc.bwValues);
-              console.log("Reporting average", average, " is feedback on", isReporting===true);
-              if(average < lastAverage && (average < lowerThres) && (isReporting === true)){
-                strikes++;
-                log.info("Sub", id_sub, "strike", strikes);
-                if(strikes >9){
-//                  wrtc.setFeedbackReports(false);
-                  isReporting = false;
-                  console.log("Reporting Insufficient bandwidth, disabling reports", average);
-                  callback('callback', {type:'insufficientBandwidth'});
-                }
-              } else if (average >= (LOWERBANDWIDTH*(1+0.2))){
-                strikes = 0;
-                if (isReporting === false){
-                    log.info("Reporting Bandwidth recovered, enabling reports", average);
-                    isReporting = true;
-            //        wrtc.setFeedbackReports(true);
-                }
-              }
-              lastAverage = average;
+        if (wrtc.minVideoBW || GLOBAL.config.erizoController.report.rtcp_stats){
+            if (wrtc.minVideoBW){
+                wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
+                var lowerThres = Math.floor(wrtc.minVideoBW*(1-0.1));
+                var upperThres = Math.ceil(wrtc.minVideoBW*(1+0.1));
             }
-          }
-          var timeStamp = new Date();
-          amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
-        }, INTERVAL_STATS);
-        if (GLOBAL.config.erizoController.report.rtcp_stats) {
-            wrtc.getStats(function (newStats){
-                var timeStamp = new Date();
-                amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
-            });
+            var intervalId = setInterval(function () {
+                var newStats = wrtc.getStats();
+                if (newStats == null){
+                    console.log("Stopping stats");
+                    clearInterval(intervalId);
+                    return;
+                }
+
+                if (wrtc.minVideoBW){
+                    var theStats = JSON.parse(newStats);
+                    for (var i = 0; i < theStats.length; i++){
+                        if(theStats[i].hasOwnProperty('bandwidth')){  
+                            wrtc.bwValues.push(theStats[i].bandwidth);
+                            if (wrtc.bwValues.length > 5){
+                                wrtc.bwValues.shift();
+                            }
+                            average = calculateAverage(wrtc.bwValues);
+                            console.log("Reporting average", average, " is feedback on", isReporting===true, "min",lowerThres, "strikes", strikes);
+                            if(average <= lastAverage && (average < lowerThres) && (isReporting === true)){
+                                strikes++;
+                                log.info("Sub", id_sub, "strike", strikes);
+                                if(strikes > 2){
+                                    // wrtc.setFeedbackReports(false);
+                                    isReporting = false;
+                                    console.log("Reporting Insufficient bandwidth, disabling reports", average);
+                                    callback('callback', {type:'insufficientBandwidth'});
+                                }
+                            } else if (average >= upperThres){
+                                strikes = 0;
+                                if (isReporting === false){
+                                    log.info("Reporting Bandwidth recovered, enabling reports", average);
+                                    isReporting = true;
+                                    //        wrtc.setFeedbackReports(true);
+                                }
+                            }
+                            lastAverage = average;
+                        }
+                    }
+                }
+                if (GLOBAL.config.erizoController.report.rtcp_stats) {
+                    wrtc.getStats(function (newStats){
+                        var timeStamp = new Date();
+                        amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
+                    });
+                }
+            }, INTERVAL_STATS);
         }
 
         wrtc.init( function (newStatus, mess){
@@ -256,16 +261,16 @@ exports.ErizoJSController = function (spec) {
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
-    that.addPublisher = function (from, callback) {
+    that.addPublisher = function (from, minVideoBW, callback) {
 
         if (publishers[from] === undefined) {
 
-            log.info("Adding publisher peer_id ", from);
+            log.info("Adding publisher peer_id ", from, "minVideoBW", minVideoBW);
 
             var muxer = new addon.OneToManyProcessor(),
                 wrtc = new addon.WebRtcConnection(true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false);
 
-            publishers[from] = {muxer: muxer, wrtc: wrtc};
+            publishers[from] = {muxer: muxer, wrtc: wrtc, minVideoBW: minVideoBW};
             subscribers[from] = {};
 
             wrtc.setAudioReceiver(muxer);
@@ -297,6 +302,7 @@ exports.ErizoJSController = function (spec) {
 
             subscribers[to][from] = wrtc;
             publishers[to].muxer.addSubscriber(wrtc, from);
+            wrtc.minVideoBW = publishers[to].minVideoBW;
 
             initWebRtcConnection(wrtc, callback, to, from, options.browser);
 
