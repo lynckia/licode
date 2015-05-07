@@ -562,6 +562,7 @@ namespace erizo {
     std::string line;
     std::istringstream iss(sdp);
     int mlineNum = -1;
+    std::vector<std::string> tmpFeedbackVector;
 
     MediaType mtype = OTHER;
     if (media == "audio") {
@@ -781,16 +782,7 @@ namespace erizo {
       }
 
       if(isFeedback != std::string::npos){
-        std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
-        unsigned int PT = strtoul(parts[1].c_str(), NULL, 10);
-        std::string feedback = parts[2];
-        for (unsigned int it = 0; it < payloadVector.size(); it++){
-          RtpMap& rtp = payloadVector[it];
-          if (rtp.payloadType == PT){
-            ELOG_DEBUG("Adding %s feedback to pt %u", feedback.c_str(), PT);
-            rtp.feedbackTypes.push_back(feedback);
-          }
-        }
+        tmpFeedbackVector.push_back(line);
       }
 
       if (isFmtp != std::string::npos){
@@ -844,6 +836,21 @@ namespace erizo {
           c.password = iceAudioPassword_;
         }
     }
+
+    // Map the RTCP Feedback after we have built the payload vector
+    for (unsigned int fbi = 0; fbi < tmpFeedbackVector.size(); fbi++){
+      std::string line = tmpFeedbackVector[fbi];
+      std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
+      unsigned int PT = strtoul(parts[1].c_str(), NULL, 10);
+      std::string feedback = parts[2];
+      for (unsigned int it = 0; it < payloadVector.size(); it++){
+        RtpMap& rtp = payloadVector[it];
+        if (rtp.payloadType == PT){
+          ELOG_DEBUG("Adding %s feedback to pt %u", feedback.c_str(), PT);
+          rtp.feedbackTypes.push_back(feedback);
+        }
+      }
+    }    
 
     return true;
   }
