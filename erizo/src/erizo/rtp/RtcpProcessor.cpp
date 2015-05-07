@@ -5,7 +5,7 @@
 #include "RtcpProcessor.h"
 
 namespace erizo{
-  DEFINE_LOGGER(RtcpProcessor, "RtcpProcessor");
+  DEFINE_LOGGER(RtcpProcessor, "rtp.RtcpProcessor");
 
   RtcpProcessor::RtcpProcessor (MediaSink* msink, MediaSource* msource, int defaultBw):
     rtcpSink_(msink), rtcpSource_(msource), defaultBw_(defaultBw){
