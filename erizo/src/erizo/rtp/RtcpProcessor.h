@@ -46,6 +46,8 @@ namespace erizo {
     uint32_t lastSr;
     uint64_t reportedBandwidth;
     uint32_t delaySinceLastSr;
+
+    uint32_t nextPacketInMs;
     
     uint32_t lastDelay;
 
@@ -84,7 +86,8 @@ namespace erizo {
     }
 
     RtcpData(){
-      packetCount = 0;        
+      packetCount = 0;
+      nextPacketInMs = 0;
       rrsReceivedInPeriod = 0;
       totalPacketsLost = 0;
       ratioLost = 0;
@@ -129,7 +132,8 @@ class RtcpProcessor{
     int addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc);
 
   private:
-    static const int RTCP_PERIOD = 200;
+    static const int RR_AUDIO_PERIOD = 2000;
+    static const int RR_VIDEO_BASE = 1000; 
     static const int PLI_THRESHOLD = 50;
     static const int REMB_TIMEOUT = 2000;
     static const uint64_t NTPTOMSCONV = 4294967296;

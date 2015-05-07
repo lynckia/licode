@@ -220,7 +220,7 @@ namespace erizo{
       unsigned int dt = (now.tv_sec - rtcpData->lastRrSent.tv_sec) * 1000 + (now.tv_usec - rtcpData->lastRrSent.tv_usec) / 1000;
       unsigned int edlsr = (now.tv_sec - rtcpData->lastSrUpdated.tv_sec) * 1000 + (now.tv_usec - rtcpData->lastSrUpdated.tv_usec) / 1000;
 
-      if((rtcpData->requestRr||dt >= RTCP_PERIOD||rtcpData->shouldSendREMB) && rtcpData->lastSr > 0){  // Generate Full RTCP Packet
+      if((rtcpData->requestRr||dt >= rtcpData->nextPacketInMs ||rtcpData->shouldSendREMB) && rtcpData->lastSr > 0){  // Generate Full RTCP Packet
         bool shouldReset = false;
         uint8_t packet[128]; // 128 is the max packet length
         rtcpData->requestRr = false;
@@ -265,8 +265,6 @@ namespace erizo{
           rtcpData->lastREMBSent = now;
           length = theLen;
         }
-        if (dt>=RTCP_PERIOD)
-          shouldReset = true;
 
         // wrtcConn_->queueData(0, (char*)packet, length, videoTransport_, OTHER_PACKET);
         if  (sourceSsrc == rtcpSource_->getVideoSourceSSRC()){
@@ -275,6 +273,17 @@ namespace erizo{
           rtcpSink_->deliverAudioData((char*)packet, length);
         }
         rtcpData->lastRrSent = now;
+        if (dt>rtcpData->nextPacketInMs) // Every scheduled packet we reset
+          shouldReset = true;
+        // schedule next packet
+        float random = (rand()%100+50)/100.0;
+        if ( rtcpData->mediaType == AUDIO_TYPE){
+          rtcpData->nextPacketInMs = RR_AUDIO_PERIOD*random;
+          ELOG_DEBUG("Scheduled next Audio RR in %u ms", rtcpData->nextPacketInMs);
+        } else {
+          rtcpData->nextPacketInMs = (RR_VIDEO_BASE)*random;
+          ELOG_DEBUG("Scheduled next Video RR in %u ms", rtcpData->nextPacketInMs);
+        }
         if (shouldReset){
           rtcpData->reset();
         }
