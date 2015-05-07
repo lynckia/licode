@@ -138,6 +138,7 @@ class RtcpProcessor{
     static const int REMB_TIMEOUT = 2000;
     static const uint64_t NTPTOMSCONV = 4294967296;
     std::map<uint32_t, boost::shared_ptr<RtcpData>> rtcpData_;
+    boost::mutex mapLock_;
     MediaSink* rtcpSink_;  // The sink to send RRs
     MediaSource* rtcpSource_; // The source of SRs
     uint32_t defaultBw_;

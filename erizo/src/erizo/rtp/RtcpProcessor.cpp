@@ -13,6 +13,7 @@ namespace erizo{
   }
 
   void RtcpProcessor::addSourceSsrc(uint32_t ssrc){
+    boost::mutex::scoped_lock mlock(mapLock_);
     if (rtcpData_.find(ssrc) == rtcpData_.end()){
       this->rtcpData_[ssrc] = boost::shared_ptr<RtcpData>(new RtcpData());
       if (ssrc == this->rtcpSource_->getAudioSourceSSRC()){
@@ -31,11 +32,10 @@ namespace erizo{
 
   void RtcpProcessor::analyzeSr(RtcpHeader* chead){
     uint32_t recvSSRC = chead->getSSRC();
-    if (rtcpData_.find(recvSSRC) == rtcpData_.end()){
-      ELOG_DEBUG("SR RtcpData structure not yet created, creating, SSRC %u", recvSSRC);
-      this->addSourceSsrc(recvSSRC);
-    }
+    // We try to add it just in case it is not there yet (otherwise its noop)
+    this->addSourceSsrc(recvSSRC);
 
+    boost::mutex::scoped_lock mlock(mapLock_);
     boost::shared_ptr<RtcpData> theData = rtcpData_[recvSSRC];
     boost::mutex::scoped_lock lock(theData->dataLock);
     struct timeval now;
@@ -55,10 +55,10 @@ namespace erizo{
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
     if (chead->isFeedback()) {      
       uint32_t sourceSsrc = chead->getSourceSSRC();
-      if (rtcpData_.find(sourceSsrc) == rtcpData_.end()){
-        ELOG_DEBUG("RR RtcpData structure not yet created, creating %u", sourceSsrc);
-        this->addSourceSsrc(sourceSsrc);
-      }
+      // We try to add it just in case it is not there yet (otherwise its noop)
+      this->addSourceSsrc(sourceSsrc);
+
+      boost::mutex::scoped_lock mlock(mapLock_);
       boost::shared_ptr<RtcpData> theData = rtcpData_[sourceSsrc];
       boost::mutex::scoped_lock lock(theData->dataLock);
       struct timeval now;
@@ -209,6 +209,7 @@ namespace erizo{
 
 
   void RtcpProcessor::checkRtcpFb(){
+    boost::mutex::scoped_lock mlock(mapLock_);
     std::map<uint32_t, boost::shared_ptr<RtcpData>>::iterator it;
     for (it = rtcpData_.begin(); it != rtcpData_.end(); it++){
       boost::shared_ptr<RtcpData> rtcpData = it->second;
