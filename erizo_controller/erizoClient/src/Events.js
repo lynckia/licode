@@ -79,6 +79,7 @@ Erizo.RoomEvent = function (spec) {
 
     // A list with the streams that are published in the room.
     that.streams = spec.streams;
+    that.message = spec.message;
 
     return that;
 };
@@ -99,6 +100,7 @@ Erizo.StreamEvent = function (spec) {
     that.stream = spec.stream;
 
     that.msg = spec.msg;
+    that.bandwidth = spec.bandwidth;
 
     return that;
 };

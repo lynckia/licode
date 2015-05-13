@@ -61,13 +61,18 @@ window.onload = function () {
           var stream = streams[index];
           if (localStream.getID() !== stream.getID()) {
             room.subscribe(stream);
+            stream.addEventListener("bandwidth-alert", function (evt){
+                console.log("Bandwidth Alert", evt.msg, evt.bandwidth);
+            });
+            
+
           }
         }
       };
 
       room.addEventListener("room-connected", function (roomEvent) {
 
-        room.publish(localStream, {maxVideoBW: 300});
+        room.publish(localStream, {maxVideoBW: 3000, minVideoBW:500});
         subscribeToStreams(roomEvent.streams);
       });
 

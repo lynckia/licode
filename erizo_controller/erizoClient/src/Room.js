@@ -185,12 +185,12 @@ Erizo.Room = function (spec) {
 
         }
 
-        that.socket.on('onInsufficientBandwidth', function (arg){
-            console.log("InsufficientBandwidth on", arg.streamID, that.remoteStreams[arg.streamID]);
+        that.socket.on('onBandwidthAlert', function (arg){
+            L.Logger.info("Bandwidth Alert on", arg.streamID, "message", arg.message,"BW:", arg.bandwidth);
             if(arg.streamID){
                 var stream = that.remoteStreams[arg.streamID];
                 
-                var evt = Erizo.RoomEvent({type:'insufficient-bandwidth', streams:stream});
+                var evt = Erizo.StreamEvent({type:'bandwidth-alert', stream:stream, msg:arg.message, bandwidth: arg.bandwidth});
                 that.dispatchEvent(evt);
             }
         });

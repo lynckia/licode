@@ -142,6 +142,7 @@ class RtcpProcessor{
     MediaSink* rtcpSink_;  // The sink to send RRs
     MediaSource* rtcpSource_; // The source of SRs
     uint32_t defaultBw_;
+    uint8_t packet_[128];
 
 };
 

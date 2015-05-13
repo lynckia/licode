@@ -566,9 +566,8 @@ var listen = function () {
                             }
                             return;
                         }
-                        if(signMess.type==='insufficientBandwidth'){
-                          log.info("InsufficientBandwidth in erizoController");
-                          socket.emit('onInsufficientBandwidth', {streamID:options.streamId});
+                        if(signMess.type==='bandwidthAlert'){
+                          socket.emit('onBandwidthAlert', {streamID:options.streamId, message:signMess.message, bandwidth: signMess.bandwidth});
                         }
 
                         // if (signMess.type === 'candidate') {

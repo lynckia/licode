@@ -136,8 +136,9 @@ public:
 
     void onCandidate(const CandidateInfo& cand, Transport *transport);
 
-    void setFeedbackReports(bool shouldSendFb){
+    void setFeedbackReports(bool shouldSendFb, uint32_t rateControl=0){
       this->shouldSendFeedback_ = shouldSendFb;
+      this->rateControl_ = rateControl;
     };
 
 
@@ -177,12 +178,16 @@ private:
   bool videoEnabled_;
   bool trickleEnabled_;
   bool shouldSendFeedback_;
+  uint32_t rateControl_; //Target bitrate for hacky rate control in BPS 
 
   int stunPort_, minPort_, maxPort_;
   std::string stunServer_;
 
   webrtc::FecReceiverImpl fec_receiver_;
 	boost::condition_variable cond_;
+
+
+  struct timeval now_, mark_;
 };
 
 } /* namespace erizo */

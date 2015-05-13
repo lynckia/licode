@@ -51,11 +51,15 @@ exports.ErizoJSController = function (spec) {
         wrtc.bwValues = [];
         var isReporting = true;
         var strikes = 0;
-        var lastAverage, average;
+        var retries = 0;
+        var tryingSeconds = 0;
+        var lastAverage, average, recoverAverage;
+        var nextRetry = 0;
+        var isTrying = false;
         if (wrtc.minVideoBW || GLOBAL.config.erizoController.report.rtcp_stats){
             if (wrtc.minVideoBW){
                 wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
-                var lowerThres = Math.floor(wrtc.minVideoBW*(1-0.1));
+                var lowerThres = Math.floor(wrtc.minVideoBW*(1-0.2));
                 var upperThres = Math.ceil(wrtc.minVideoBW*(1+0.1));
             }
             var intervalId = setInterval(function () {
@@ -66,8 +70,14 @@ exports.ErizoJSController = function (spec) {
                     return;
                 }
 
+                var theStats = JSON.parse(newStats);
                 if (wrtc.minVideoBW){
-                    var theStats = JSON.parse(newStats);
+                    if (retries >= 5){
+                        console.log("We tried too many times, we assume it won't recover");
+                        wrtc.setFeedbackReports(false, 1);
+                        callback('callback', {type:'bandwidthAlert', message:'wont-recover', bandwidth: average});
+                        wrtc.minVideoBW = false;
+                    }
                     for (var i = 0; i < theStats.length; i++){
                         if(theStats[i].hasOwnProperty('bandwidth')){  
                             wrtc.bwValues.push(theStats[i].bandwidth);
@@ -75,22 +85,49 @@ exports.ErizoJSController = function (spec) {
                                 wrtc.bwValues.shift();
                             }
                             average = calculateAverage(wrtc.bwValues);
-                            console.log("Reporting average", average, " is feedback on", isReporting===true, "min",lowerThres, "strikes", strikes);
-                            if(average <= lastAverage && (average < lowerThres) && (isReporting === true)){
+//                            console.log("Reporting average", average, " is feedback on", isReporting===true, "min",lowerThres, "strikes", strikes, "theLastBW:", theStats[i].bandwidth);
+                            if(average <= lastAverage && (average < lowerThres)){
                                 strikes++;
-                                log.info("Sub", id_sub, "strike", strikes);
+                                log.info("Id Sub", id_sub, "is reporting lower bandwith",average , "for", strikes, "seconds");
                                 if(strikes > 2){
-                                    // wrtc.setFeedbackReports(false);
-                                    isReporting = false;
-                                    console.log("Reporting Insufficient bandwidth, disabling reports", average);
-                                    callback('callback', {type:'insufficientBandwidth'});
+                                    if (isReporting){
+                                        console.log("Reporting Insufficient bandwidth, disabling reports and scheduling retry, BW:", average);
+                                        recoverAverage = average/2;
+                                        wrtc.setFeedbackReports(false, recoverAverage);
+                                        isReporting = false;
+                                        callback('callback', {type:'bandwidthAlert', message:'insufficient', bandwidth: average});
+                                        nextRetry = strikes+30;
+
+                                    }else if (strikes == nextRetry && !isTrying){
+                                        console.log("Trying to recover with BW ", recoverAverage*2);
+                                        isTrying = true;                                        
+                                        retries++;
+//                                        wrtc.setFeedbackReports (false, upperThres);
+                                        wrtc.setFeedbackReports (false, recoverAverage*2);
+                                        tryingSeconds = strikes+10; //We try for 10 seconds (strikes);
+
+                                    }else if (isTrying){
+                                        if (theStats[i].bandwidth > lastAverage){ // We give it another second to recover
+                                            console.log("We are recovering, keep trying with bw", average);
+                                            tryingSeconds +=10;
+                                            wrtc.setFeedbackReports (false,average);
+                                        }
+                                        if (strikes >= tryingSeconds){
+                                            console.log("Unsuccessful recovery, cutting BW again to 0");
+                                            wrtc.setFeedbackReports(false, recoverAverage);
+                                            nextRetry = strikes + 30;
+                                            tryingSeconds = 0;
+                                            isTrying = false;
+                                        }
+                                    }
                                 }
                             } else if (average >= upperThres){
                                 strikes = 0;
                                 if (isReporting === false){
                                     log.info("Reporting Bandwidth recovered, enabling reports", average);
                                     isReporting = true;
-                                    //        wrtc.setFeedbackReports(true);
+                                    callback('callback', {type:'bandwidthAlert', message:'recovered', bandwidth: average});
+                                    wrtc.setFeedbackReports(true,0);
                                 }
                             }
                             lastAverage = average;
@@ -100,7 +137,7 @@ exports.ErizoJSController = function (spec) {
                 if (GLOBAL.config.erizoController.report.rtcp_stats) {
                     wrtc.getStats(function (newStats){
                         var timeStamp = new Date();
-                        amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
+                        amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: theStats, timestamp:timeStamp.getTime()});
                     });
                 }
             }, INTERVAL_STATS);

@@ -38,6 +38,10 @@ namespace erizo {
     stunPort_ = stunPort;
     minPort_ = minPort;
     maxPort_ = maxPort;
+
+    gettimeofday(&mark_, NULL);
+
+    rateControl_ = 0;
      
     sending_ = true;
     rtcpProcessor_ = boost::shared_ptr<RtcpProcessor> (new RtcpProcessor((MediaSink*)this, (MediaSource*) this));
@@ -113,7 +117,7 @@ namespace erizo {
     }
 
     if (!remoteSdp_.getCandidateInfos().empty()){
-      ELOG_DEBUG("There are candidate in the SDP: Setting Remote Candidates!!!!");
+      ELOG_DEBUG("There are candidate in the SDP: Setting Remote Candidates");
       if (remoteSdp_.hasVideo) {
         videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos(), bundle_);
       }
@@ -246,20 +250,21 @@ namespace erizo {
   int WebRtcConnection::deliverVideoData_(char* buf, int len) {
     if (videoTransport_ != NULL) {
       if (videoEnabled_ == true) {
-          RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
-          if (h->getPayloadType() == RED_90000_PT && !remoteSdp_.supportPayloadType(RED_90000_PT)) {
-              // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
-              // Let's go ahead and run this through our fec receiver to convert it to raw VP8
-              webrtc::RTPHeader hackyHeader;
-              hackyHeader.headerLength = h->getHeaderLength();
-              hackyHeader.sequenceNumber = h->getSeqNumber();
-              // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback, be sure to memcpy out of webrtc's buffers
-              if (fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*) buf, len, ULP_90000_PT) == 0) {
-                  fec_receiver_.ProcessReceivedFec();
-              }
-            } else {
-              this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
+  
+        RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
+        if (h->getPayloadType() == RED_90000_PT && !remoteSdp_.supportPayloadType(RED_90000_PT)) {
+          // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
+          // Let's go ahead and run this through our fec receiver to convert it to raw VP8
+          webrtc::RTPHeader hackyHeader;
+          hackyHeader.headerLength = h->getHeaderLength();
+          hackyHeader.sequenceNumber = h->getSeqNumber();
+          // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback, be sure to memcpy out of webrtc's buffers
+          if (fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*) buf, len, ULP_90000_PT) == 0) {
+            fec_receiver_.ProcessReceivedFec();
           }
+        } else {
+          this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
+        }
       }
     }
     return len;
@@ -549,10 +554,13 @@ namespace erizo {
       dataPacket p_;
       memcpy(p_.data, buf, length);
       p_.comp = comp;
-      p_.type = (transport->mediaType == VIDEO_TYPE) ? VIDEO_PACKET : AUDIO_PACKET;
+//      p_.type = (transport->mediaType == VIDEO_TYPE) ? VIDEO_PACKET : AUDIO_PACKET;
+      p_.type = type;
       p_.length = length;
       changeDeliverPayloadType(&p_, type);
       sendQueue_.push(p_);
+    }else{
+      ELOG_DEBUG("Discarding Packets");
     }
     cond_.notify_one();
   }
@@ -566,6 +574,9 @@ namespace erizo {
   }
 
   void WebRtcConnection::sendLoop() {
+    uint32_t partial_bitrate = 0;
+    uint64_t sentVideoBytes = 0;
+    uint64_t lastSecondVideoBytes = 0;
       while (sending_) {
           dataPacket p;
           {
@@ -588,6 +599,24 @@ namespace erizo {
           }
 
           if (bundle_ || p.type == VIDEO_PACKET) {
+            if (rateControl_){
+              if (p.type == VIDEO_PACKET){
+                if (rateControl_ == 1)
+                  continue;
+                gettimeofday(&now_, NULL);
+                uint64_t nowms = (now_.tv_sec * 1000) + (now_.tv_usec / 1000);
+                uint64_t markms = (mark_.tv_sec * 1000) + (mark_.tv_usec/1000);
+                if ((nowms - markms)>=100){
+                  mark_ = now_;
+                  lastSecondVideoBytes = sentVideoBytes;
+                }
+                partial_bitrate = ((sentVideoBytes - lastSecondVideoBytes)*8)*10;
+                if (partial_bitrate > this->rateControl_){
+                  continue;
+                }
+                sentVideoBytes+=p.length;
+              }
+            }
               videoTransport_->write(p.data, p.length);
           } else {
               audioTransport_->write(p.data, p.length);
