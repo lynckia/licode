@@ -12,7 +12,6 @@ Erizo.Connection = function (spec) {
 
     // Check which WebRTC Stack is installed.
     that.browser = Erizo.getBrowser();
-
     if (typeof module !== 'undefined' && module.exports) {
         L.Logger.error('Publish/subscribe video/audio streams not supported in erizofc yet');
         that = Erizo.FcStack(spec);
@@ -28,6 +27,12 @@ Erizo.Connection = function (spec) {
     } else {
         L.Logger.debug("None!");
         throw "WebRTC stack not available";
+    }
+    if (!that.updateSpec){
+        that.updateSpec = function(newSpec, callback){
+            L.Logger.error("Update Configuration not implemented in this platform");
+            callback ("unimplemented");
+        };
     }
 
     return that;
