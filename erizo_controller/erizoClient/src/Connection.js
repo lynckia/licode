@@ -30,8 +30,9 @@ Erizo.Connection = function (spec) {
     }
     if (!that.updateSpec){
         that.updateSpec = function(newSpec, callback){
-            L.Logger.error("Update Configuration not implemented in this platform");
-            callback ("unimplemented");
+            L.Logger.error("Update Configuration not implemented in this browser");
+            if (callback)
+                callback ("unimplemented");
         };
     }
 
