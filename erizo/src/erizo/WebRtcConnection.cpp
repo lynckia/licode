@@ -94,17 +94,19 @@ namespace erizo {
     rtcpProcessor_->addSourceSsrc(this->getAudioSourceSSRC());
     rtcpProcessor_->addSourceSsrc(this->getVideoSourceSSRC());
 
-    if (remoteSdp_.profile == SAVPF) {
-      if (remoteSdp_.isFingerprint) {
-        if (remoteSdp_.hasVideo||bundle_) {
-          std::string username, password;
-          remoteSdp_.getCredentials(username, password, VIDEO_TYPE);
-          videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_, username, password);
-        }
-        if (!bundle_ && remoteSdp_.hasAudio) {
-          std::string username, password;
-          remoteSdp_.getCredentials(username, password, AUDIO_TYPE);
-          audioTransport_ = new DtlsTransport(AUDIO_TYPE, "audio", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_, username, password);
+    if (!videoTransport_ && !audioTransport_){ // For now we don't re/check transports, if they are already created we leave them there
+      if (remoteSdp_.profile == SAVPF) {
+        if (remoteSdp_.isFingerprint) {
+          if (remoteSdp_.hasVideo||bundle_) {
+            std::string username, password;
+            remoteSdp_.getCredentials(username, password, VIDEO_TYPE);
+            videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_, username, password);
+          }
+          if (!bundle_ && remoteSdp_.hasAudio) {
+            std::string username, password;
+            remoteSdp_.getCredentials(username, password, AUDIO_TYPE);
+            audioTransport_ = new DtlsTransport(AUDIO_TYPE, "audio", bundle_, remoteSdp_.isRtcpMux, this, stunServer_, stunPort_, minPort_, maxPort_, username, password);
+          }
         }
       }
     }
@@ -127,6 +129,7 @@ namespace erizo {
     }
 
     if (remoteSdp_.videoBandwidth !=0){
+      ELOG_DEBUG("Setting remote bandwidth %u", remoteSdp_.videoBandwidth);
       this->rtcpProcessor_->setVideoBW(remoteSdp_.videoBandwidth);
     }
 
@@ -624,4 +627,5 @@ namespace erizo {
       }
   }
 }
+
 /* namespace erizo */

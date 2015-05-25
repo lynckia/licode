@@ -146,12 +146,12 @@ Erizo.ChromeStableStack = function (spec) {
     that.updateSpec = function (config, callback){
         if (config.maxVideoBW || config.maxAudioBW ){
             if (config.maxVideoBW){
-                console.log ("Maxvideo Requested", config.maxVideoBW, "limit", spec.limitMaxVideoBW);
+                L.Logger.debug ("Maxvideo Requested", config.maxVideoBW, "limit", spec.limitMaxVideoBW);
                 if (config.maxVideoBW > spec.limitMaxVideoBW) {
                     config.maxVideoBW = spec.limitMaxVideoBW;
                 }
                 spec.maxVideoBW = config.maxVideoBW; 
-                console.log ("Result", spec.maxVideoBW);
+                L.Logger.debug ("Result", spec.maxVideoBW);
             }
             if (config.maxAudioBW){
                 if (config.maxAudioBW > spec.limitMaxAudioBW) {
@@ -165,6 +165,7 @@ Erizo.ChromeStableStack = function (spec) {
                 remoteDesc.sdp = setMaxBW(remoteDesc.sdp);
                 that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc), function() {
                     spec.remoteDescriptionSet = true;
+                    spec.callback({type:'updatesdp', sdp: localDesc.sdp});
                     if (callback)
                         callback("success");
 
