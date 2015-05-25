@@ -71,43 +71,60 @@ Erizo.GetUserMedia = function (config, callback, error) {
                        navigator.msGetUserMedia);
 
     if (config.screen){
-      if (Erizo.getBrowser() === "mozilla"){
+
         L.Logger.debug("Screen access requested");
-        config = { video: { mediaSource: 'window' || 'screen' }};
-        navigator.getMedia(config,callback,error);
-      } else {
-        L.Logger.debug("Screen access requested");
-        if (!window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 34){
-          error({code:"This browser does not support screen sharing"});
-          return;
+        switch(Erizo.getBrowser()){
+            case "mozilla":
+                L.Logger.debug("Screen sharing in Firefox");
+                var theConfig = {};
+                if(config.video!= undefined){
+                    theConfig.video = config.video;
+                    theConfig.video.mediaSource = "'window' || 'screen'";
+                }else{
+                    theConfig = { video: { mediaSource: 'window' || 'screen' }};
+                }
+                navigator.getMedia(theConfig,callback,error);
+                break;
+            case "chrome-stable":
+                L.Logger.debug("Screen sharing in Chrome");
+                // Default extensionId - this extension is only usable in our server, please make your own extension
+                // based on the code in erizo_controller/erizoClient/extras/chrome-extension
+                var extensionId = "okeephmleflklcdebijnponpabbmmgeo";
+                if (config.extensionId){
+                    L.Logger.debug("extensionId supplied, using " + config.extensionId);
+                    extensionId = config.extensionId;
+                }
+                L.Logger.debug("Screen access on chrome stable, looking for extension");
+                try{
+                    chrome.runtime.sendMessage(extensionId,{getStream:true}, function (response){
+                        var theConfig = {};
+                        if (response==undefined){
+                            L.Logger.debug("Access to screen denied");
+                            var theError = {code:"Access to screen denied"};
+                            error(theError);
+                            return;
+                        }
+                        var theId = response.streamId;
+                        if(config.video.mandatory!= undefined){
+                            theConfig.video = config.video;                           
+                            theConfig.video.mandatory.chromeMediaSource = 'desktop';
+                            theConfig.video.mandatory.chromeMediaSourceId = theId;
+                            
+                        }else{
+                            theConfig = {video: {mandatory: {chromeMediaSource: 'desktop',  chromeMediaSourceId: theId }}};
+                        }
+                        navigator.getMedia(theConfig,callback,error);
+                    });
+                } catch (e){
+                    L.Logger.debug("Lynckia screensharing plugin is not accessible ");
+                    var theError = {code:"no_plugin_present"};
+                    error(theError);
+                    return;
+                }
+                break;
+            default:
+                L.Logger.debug("This browser does not support screenSharing");
         }
-        // Default extensionId - this extension is only usable in our server, please make your own extension
-        // based on the code in erizo_controller/erizoClient/extras/chrome-extension
-        var extensionId = "okeephmleflklcdebijnponpabbmmgeo";
-        if (config.extensionId){
-          L.Logger.debug("extensionId supplied, using " + config.extensionId);
-          extensionId = config.extensionId;
-        }
-        L.Logger.debug("Screen access on chrome stable, looking for extension");
-        try{
-          chrome.runtime.sendMessage(extensionId,{getStream:true}, function (response){
-            if (response==undefined){
-              L.Logger.debug("Access to screen denied");
-              var theError = {code:"Access to screen denied"};
-              error(theError);
-              return;
-            }
-            var theId = response.streamId;
-            config = {video: {mandatory: {chromeMediaSource: 'desktop',  chromeMediaSourceId: theId }}};
-            navigator.getMedia(config,callback,error);
-          });
-        } catch (e){
-          L.Logger.debug("Lynckia screensharing plugin is not accessible ");
-          var theError = {code:"no_plugin_present"};
-          error(theError);
-          return;
-        }
-      }
     } else {
       if (typeof module !== 'undefined' && module.exports) {
         L.Logger.error('Video/audio streams not supported in erizofc yet');
