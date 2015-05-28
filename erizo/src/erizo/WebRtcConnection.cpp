@@ -164,6 +164,10 @@ namespace erizo {
         ELOG_ERROR("Cannot add remote candidate with no Media (video or audio)");
       }
     }
+
+    for (uint8_t it = 0; it < tempSdp.getCandidateInfos().size(); it++){
+      remoteSdp_.addCandidate(tempSdp.getCandidateInfos()[it]);
+    }
     return res;
   }
 
@@ -469,6 +473,7 @@ namespace erizo {
       case TRANSPORT_FAILED:
         temp = CONN_FAILED;
         sending_ = false;
+        msg = remoteSdp_.getSdp();
         ELOG_INFO("WebRtcConnection failed, stopping sending");
         cond_.notify_one();
         break;
