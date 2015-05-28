@@ -30,7 +30,14 @@ exports.ErizoJSController = function (spec) {
 
     var CONN_INITIAL = 101, CONN_STARTED = 102,CONN_GATHERED = 103, CONN_READY = 104, CONN_FINISHED = 105, CONN_CANDIDATE = 201, CONN_SDP = 202, CONN_FAILED = 500;
 
-    
+    /* BW Status
+     * 0 - Stable 
+     * 1 - Insufficient Bandwidth 
+     * 2 - Trying recovery
+     * 3 - Won't recover
+     */
+
+    var BW_STABLE = 0, BW_INSUFFICIENT = 1, BW_RECOVERING = 2, BW_WONTRECOVER = 3;
 
     calculateAverage = function (values) { 
       if (values.length === undefined)
@@ -50,17 +57,18 @@ exports.ErizoJSController = function (spec) {
 
         wrtc.bwValues = [];
         var isReporting = true;
-        var strikes = 0;
+        var ticks = 0;
         var retries = 0;
-        var tryingSeconds = 0;
-        var lastAverage, average, recoverAverage;
+        var ticksToTry = 0;
+        var lastAverage, average, lastBWValue, toRecover;
         var nextRetry = 0;
-        var isTrying = false;
+        wrtc.bwStatus = BW_STABLE; 
+
         if (wrtc.minVideoBW || GLOBAL.config.erizoController.report.rtcp_stats){
             if (wrtc.minVideoBW){
                 wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
-                var lowerThres = Math.floor(wrtc.minVideoBW*(1-0.2));
-                var upperThres = Math.ceil(wrtc.minVideoBW*(1+0.1));
+                wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(1-0.2));
+                wrtc.upperThres = Math.ceil(wrtc.minVideoBW);
             }
             var intervalId = setInterval(function () {
                 var newStats = wrtc.getStats();
@@ -72,67 +80,94 @@ exports.ErizoJSController = function (spec) {
 
                 var theStats = JSON.parse(newStats);
                 if (wrtc.minVideoBW){
-                    if (retries >= 5){
-                        console.log("We tried too many times, we assume it won't recover");
-                        wrtc.setFeedbackReports(false, 1);
-                        callback('callback', {type:'bandwidthAlert', message:'wont-recover', bandwidth: average});
-                        wrtc.minVideoBW = false;
-                    }
-                    for (var i = 0; i < theStats.length; i++){
-                        if(theStats[i].hasOwnProperty('bandwidth')){  
-                            wrtc.bwValues.push(theStats[i].bandwidth);
+                    
+                    for (var i = 0; i < theStats.length; i++){ 
+                        if(theStats[i].hasOwnProperty('bandwidth')){   // Only one stream should have bandwidth
+                            lastBWValue = theStats[i].bandwidth;
+                            wrtc.bwValues.push(lastBWValue);
                             if (wrtc.bwValues.length > 5){
                                 wrtc.bwValues.shift();
                             }
                             average = calculateAverage(wrtc.bwValues);
-//                            console.log("Reporting average", average, " is feedback on", isReporting===true, "min",lowerThres, "strikes", strikes, "theLastBW:", theStats[i].bandwidth);
-                            if(average <= lastAverage && (average < lowerThres)){
-                                strikes++;
-                                log.info("Id Sub", id_sub, "is reporting lower bandwith",average , "for", strikes, "seconds");
-                                if(strikes > 2){
-                                    if (isReporting){
-                                        console.log("Reporting Insufficient bandwidth, disabling reports and scheduling retry, BW:", average);
-                                        recoverAverage = average/2;
-                                        wrtc.setFeedbackReports(false, recoverAverage);
-                                        isReporting = false;
-                                        callback('callback', {type:'bandwidthAlert', message:'insufficient', bandwidth: average});
-                                        nextRetry = strikes+30;
-
-                                    }else if (strikes == nextRetry && !isTrying){
-                                        console.log("Trying to recover with BW ", recoverAverage*2);
-                                        isTrying = true;                                        
-                                        retries++;
-//                                        wrtc.setFeedbackReports (false, upperThres);
-                                        wrtc.setFeedbackReports (false, recoverAverage*2);
-                                        tryingSeconds = strikes+10; //We try for 10 seconds (strikes);
-
-                                    }else if (isTrying){
-                                        if (theStats[i].bandwidth > lastAverage){ // We give it another second to recover
-                                            console.log("We are recovering, keep trying with bw", average);
-                                            tryingSeconds +=10;
-                                            wrtc.setFeedbackReports (false,average);
-                                        }
-                                        if (strikes >= tryingSeconds){
-                                            console.log("Unsuccessful recovery, cutting BW again to 0");
-                                            wrtc.setFeedbackReports(false, recoverAverage);
-                                            nextRetry = strikes + 30;
-                                            tryingSeconds = 0;
-                                            isTrying = false;
-                                        }
-                                    }
-                                }
-                            } else if (average >= upperThres){
-                                strikes = 0;
-                                if (isReporting === false){
-                                    log.info("Reporting Bandwidth recovered, enabling reports", average);
-                                    isReporting = true;
-                                    callback('callback', {type:'bandwidthAlert', message:'recovered', bandwidth: average});
-                                    wrtc.setFeedbackReports(true,0);
-                                }
-                            }
-                            lastAverage = average;
                         }
                     }
+                    toRecover = (average/4)<80000?(average/4):80000;
+                    switch (wrtc.bwStatus){
+                        case BW_STABLE:
+                            if(average <= lastAverage && (average < wrtc.lowerThres)){
+                                if (++ticks > 2){
+                                    log.debug("STABLE STATE, Bandwidth is insufficient, moving to state BW_INSUFFICIENT", average, "lowerThres", wrtc.lowerThres);
+                                    wrtc.bwStatus = BW_INSUFFICIENT;
+                                    wrtc.setFeedbackReports(false, toRecover);
+                                    ticks = 0;
+                                    callback('callback', {type:'bandwidthAlert', message:'insufficient', bandwidth: average});
+                                }
+                            }                            
+                            break;
+                        case BW_INSUFFICIENT:
+                            if(average > wrtc.upperThres){
+                                log.debug("BW_INSUFFICIENT State: we have recovered", average, "lowerThres", wrtc.lowerThres);
+                                ticks = 0;
+                                nextRetry = 0;
+                                retries = 0;
+                                isTrying = false;
+                                wrtc.bwStatus = BW_STABLE;
+                                wrtc.setFeedbackReports(true, 0);
+                                callback('callback', {type:'bandwidthAlert', message:'recovered', bandwidth: average});
+                            }
+                            else if (retries>=3){
+                                log.debug("BW_INSUFFICIENT State: moving to won't recover", average, "lowerThres", wrtc.lowerThres);
+                                wrtc.bwStatus = BW_WONTRECOVER; 
+                            }
+                            else if (nextRetry === 0){  //schedule next retry
+                                nextRetry = ticks + 20;
+                            }
+                            else if (++ticks == nextRetry){  // next retry is in order
+                                wrtc.bwStatus = BW_RECOVERING;
+                                ticksToTry = ticks + 10;
+                                wrtc.setFeedbackReports (false, average);                                
+                            }
+                            break;
+                        case BW_RECOVERING:
+                            log.debug("In recovering state lastValue", lastBWValue, "lastAverage", lastAverage, "lowerThres", wrtc.lowerThres);
+                            if(average > wrtc.upperThres){ 
+                                log.debug("BW_RECOVERING State: we have recovered", average, "lowerThres", wrtc.lowerThres);
+                                ticks = 0;
+                                nextRetry = 0;
+                                retries = 0;
+                                wrtc.bwStatus = BW_STABLE;
+                                wrtc.setFeedbackReports(true, 0);
+                                callback('callback', {type:'bandwidthAlert', message:'recovered', bandwidth: average});
+                            }
+                            else if (average> lastAverage){ //we are recovering
+                                log.debug("BW_RECOVERING State: we have improved, more trying time", average, "lowerThres", wrtc.lowerThres);
+                                wrtc.setFeedbackReports(false, average*(1+0.3));
+                                ticksToTry=ticks+10;
+
+                            }
+                            else if (++ticks >= ticksToTry){ //finish this retry
+                                log.debug("BW_RECOVERING State: Finished this retry", retries, average, "lowerThres", wrtc.lowerThres);
+                                ticksToTry = 0;
+                                nextRetry = 0;
+                                retries ++;
+                                wrtc.bwStatus = BW_INSUFFICIENT;
+                                wrtc.setFeedbackReports (false, toRecover);
+                            }
+                            break;
+                        case BW_WONTRECOVER:
+                            log.debug("BW_WONTRECOVER", average, "lowerThres", wrtc.lowerThres);
+                            ticks = 0;
+                            nextRetry = 0;
+                            retries = 0;
+                            wrtc.bwStatus = BW_STABLE;
+                            wrtc.minVideoBW = false;                      
+                            wrtc.setFeedbackReports (false, 1);
+                            callback('callback', {type:'bandwidthAlert', message:'wont-recover', bandwidth: average});
+                            break;
+                        default:
+                            log.error("Unknown BW status");
+                    }
+                    lastAverage = average;
                 }
                 if (GLOBAL.config.erizoController.report.rtcp_stats) {
                     wrtc.getStats(function (newStats){
@@ -281,7 +316,7 @@ exports.ErizoJSController = function (spec) {
                     subscribers[streamId][peerId].setRemoteSdp(msg.sdp);
                 } else if (msg.type === 'candidate') {
                     subscribers[streamId][peerId].addRemoteCandidate(msg.candidate.sdpMid, msg.candidate.sdpMLineIndex , msg.candidate.candidate);
-                } else if (msg.type === 'updatesdp'){
+                } else if (msg.type === 'updatestream'){
                     subscribers[streamId][peerId].setRemoteSdp(msg.sdp);
                 }
             } else {
@@ -289,8 +324,22 @@ exports.ErizoJSController = function (spec) {
                     publishers[streamId].wrtc.setRemoteSdp(msg.sdp);
                 } else if (msg.type === 'candidate') {
                     publishers[streamId].wrtc.addRemoteCandidate(msg.candidate.sdpMid, msg.candidate.sdpMLineIndex, msg.candidate.candidate);
-                } else if (msg.type === 'updatesdp'){
-                    publishers[streamId].wrtc.setRemoteSdp(msg.sdp);
+                } else if (msg.type === 'updatestream'){
+                    if (msg.sdp){
+                        publishers[streamId].wrtc.setRemoteSdp(msg.sdp);
+                    }
+                    if (msg.minVideoBW){
+                        log.debug("Updating minVideoBW to ", msg.minVideoBW);
+                        publishers[streamId].minVideoBW = msg.minVideoBW;
+                        for (var sub in subscribers[streamId]){
+                            log.debug("sub", sub);
+                            log.debug("updating subscriber BW from", subscribers[streamId][sub].minVideoBW, "to", msg.minVideoBW*1000 );
+                            var theConn = subscribers[streamId][sub];
+                            theConn.minVideoBW = msg.minVideoBW*1000; // We need it in bps
+                            theConn.lowerThres = Math.floor(theConn.minVideoBW*(1-0.2));
+                            theConn.upperThres = Math.ceil(theConn.minVideoBW*(1+0.1));
+                        }
+                    }
                 }
             }
             
