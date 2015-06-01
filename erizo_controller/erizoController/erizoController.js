@@ -492,7 +492,7 @@ var listen = function () {
                             socket.room.controller.removePublisher(id);
                             if (GLOBAL.config.erizoController.report.session_events) {
                                 var timeStamp = new Date();
-                                amqper.broadcast('event', {room: socket.room.id, user: socket.id, type: 'failed', stream: id, timestamp: timeStamp.getTime()});
+                                amqper.broadcast('event', {room: socket.room.id, user: socket.id, type: 'failed', stream: id, sdp: signMess.sdp, timestamp: timeStamp.getTime()});
                             }
                         }
 
