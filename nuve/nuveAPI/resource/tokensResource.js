@@ -119,7 +119,7 @@ var generateToken = function (callback) {
         }
     } else {
 
-        cloudHandler.getErizoControllerForRoom (currentRoom._id, function (ec) {
+        cloudHandler.getErizoControllerForRoom (currentRoom, function (ec) {
 
             if (ec === 'timeout') {
                 callback('error');
