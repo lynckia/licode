@@ -191,7 +191,7 @@ Erizo.Room = function (spec) {
                 var stream = that.remoteStreams[arg.streamID];
                 
                 var evt = Erizo.StreamEvent({type:'bandwidth-alert', stream:stream, msg:arg.message, bandwidth: arg.bandwidth});
-                that.dispatchEvent(evt);
+                stream.dispatchEvent(evt);
             }
         });
 
