@@ -76,14 +76,7 @@ namespace erizo {
 
     std::list<boost::shared_ptr<SrData>> senderReports;
 
-    void reset(){
-      ratioLost = 0;
-      requestRr = false;
-      jitter = 0;
-      rrsReceivedInPeriod = 0;
-      reportedBandwidth = 0;
-      lastDelay = lastDelay*0.8;
-    }
+    void reset();
 
     RtcpData(){
       packetCount = 0;
@@ -135,7 +128,7 @@ class RtcpProcessor{
     static const int RR_AUDIO_PERIOD = 2000;
     static const int RR_VIDEO_BASE = 1000; 
     static const int PLI_THRESHOLD = 50;
-    static const int REMB_TIMEOUT = 2000;
+    static const int REMB_TIMEOUT = 10000;
     static const uint64_t NTPTOMSCONV = 4294967296;
     std::map<uint32_t, boost::shared_ptr<RtcpData>> rtcpData_;
     boost::mutex mapLock_;
