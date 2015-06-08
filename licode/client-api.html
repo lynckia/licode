@@ -170,6 +170,10 @@ clientapi: true
                   <td><a href="#getVideoFrameURL">getVideoFrameURL()</a></td>
                   <td>It gets the URL of a Bitmap from the video.</td>
                 </tr>
+                <tr>
+                  <td><a href="#updateConfiguration">updateConfiguration(config, callback)</a></td>
+                  <td>Updates the spec of a stream</td>
+                </tr>
               </tbody>
           </table>
 
@@ -315,6 +319,21 @@ setInterval(function() {
         <h3 id="getVideoFrameURL">Get the URL of a frame from the video</h3>
 
           <p>It gets the URL of an image frame from the video.
+
+        <h3 id="updateConfiguration">Update the spec of a stream</h3>
+
+          <p>It updates the audio and video maximum bandwidth.
+
+          <div class="bs-docs-example">
+          You can update the maximun bandwidth of video and audio. These values are defined in the object passed to the function. You can also pass a callback function to get the final result.
+          </div>
+<pre class="prettyprint linenums">
+var config = {maxVideoBW: 300, maxAudioBW: 300};
+
+stream.updateConfiguration(config, function(result) {
+  console.log(result);
+})
+</pre>
 
         </section>
 
