@@ -266,8 +266,8 @@ namespace erizo{
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         struct genericNack_t{
           uint32_t ssrcsource;
-          uint16_t pid;
-          uint16_t blp;
+          uint32_t pid:16;
+          uint32_t blp:16;
         } nackPacket;
         
         struct remb_t{

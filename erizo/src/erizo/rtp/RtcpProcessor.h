@@ -61,7 +61,7 @@ namespace erizo {
     // time based data flow limits
     struct timeval lastUpdated, lastSent, lastSrUpdated;
     struct timeval lastREMBSent, lastPliSent;
-    struct timeval lastSrReception;
+    struct timeval lastSrReception, lastRrWasScheduled;
     // to prevent sending too many reports, track time of last
     struct timeval lastRrSent;
     
@@ -71,6 +71,7 @@ namespace erizo {
     // flag to send receiver report
     bool requestRr;
     bool hasSentFirstRr;
+    bool shouldReset;
 
     MediaType mediaType;
 
@@ -97,12 +98,14 @@ namespace erizo {
       shouldSendPli = false;
       shouldSendREMB = false;
       shouldSendNACK = false;
+      shouldReset = false;
       nackSeqnum = 0;
       nackBlp = 0;
       lastRrSent = (struct timeval){0, 0};
       lastPliSent = (struct timeval){0, 0};
       lastREMBSent = (struct timeval){0, 0};
       lastSrReception = (struct timeval){0, 0};
+      lastRrWasScheduled = (struct timeval){0, 0};
     }
 
     // lock for any blocking data change
@@ -122,13 +125,13 @@ class RtcpProcessor{
     void analyzeFeedback(char* buf, int len);
     void checkRtcpFb();
     int addREMB(char* buf, int len, uint32_t bitrate);
-    int addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc);
+    int addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc, uint32_t sinkSsrc);
 
   private:
     static const int RR_AUDIO_PERIOD = 2000;
     static const int RR_VIDEO_BASE = 1000; 
     static const int PLI_THRESHOLD = 50;
-    static const int REMB_TIMEOUT = 10000;
+    static const int REMB_TIMEOUT = 5000;
     static const uint64_t NTPTOMSCONV = 4294967296;
     std::map<uint32_t, boost::shared_ptr<RtcpData>> rtcpData_;
     boost::mutex mapLock_;
