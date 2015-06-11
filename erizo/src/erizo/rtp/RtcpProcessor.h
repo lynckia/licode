@@ -32,11 +32,7 @@ namespace erizo {
   class RtcpData {
   // lost packets - list and length
   public:
-    uint32_t *nackList;
-    int nackLen;
-
     // current values - tracks packet lost for fraction calculation
-    uint32_t packetCount;
     uint16_t rrsReceivedInPeriod;
 
     uint32_t ssrc;
@@ -59,8 +55,7 @@ namespace erizo {
     uint16_t nackBlp;
 
     // time based data flow limits
-    struct timeval lastUpdated, lastSent, lastSrUpdated;
-    struct timeval lastREMBSent, lastPliSent;
+    struct timeval lastSrUpdated, lastREMBSent;
     struct timeval lastSrReception, lastRrWasScheduled;
     // to prevent sending too many reports, track time of last
     struct timeval lastRrSent;
@@ -70,17 +65,15 @@ namespace erizo {
     bool shouldSendNACK;
     // flag to send receiver report
     bool requestRr;
-    bool hasSentFirstRr;
     bool shouldReset;
 
     MediaType mediaType;
 
     std::list<boost::shared_ptr<SrData>> senderReports;
 
-    void reset();
+    void reset(uint32_t bandwidth);
 
     RtcpData(){
-      packetCount = 0;
       nextPacketInMs = 0;
       rrsReceivedInPeriod = 0;
       totalPacketsLost = 0;
@@ -92,7 +85,6 @@ namespace erizo {
       jitter = 0;
       lastSrTimestamp = 0;
       requestRr = false;
-      hasSentFirstRr = false;
       lastDelay = 0;
      
       shouldSendPli = false;
@@ -102,7 +94,6 @@ namespace erizo {
       nackSeqnum = 0;
       nackBlp = 0;
       lastRrSent = (struct timeval){0, 0};
-      lastPliSent = (struct timeval){0, 0};
       lastREMBSent = (struct timeval){0, 0};
       lastSrReception = (struct timeval){0, 0};
       lastRrWasScheduled = (struct timeval){0, 0};
@@ -130,7 +121,6 @@ class RtcpProcessor{
   private:
     static const int RR_AUDIO_PERIOD = 2000;
     static const int RR_VIDEO_BASE = 1000; 
-    static const int PLI_THRESHOLD = 50;
     static const int REMB_TIMEOUT = 5000;
     static const uint64_t NTPTOMSCONV = 4294967296;
     std::map<uint32_t, boost::shared_ptr<RtcpData>> rtcpData_;

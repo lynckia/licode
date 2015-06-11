@@ -7,16 +7,17 @@
 namespace erizo{
   DEFINE_LOGGER(RtcpProcessor, "rtp.RtcpProcessor");
 
-  void RtcpData::reset(){
-      ratioLost = 0;
-      requestRr = false;
-      shouldReset = false;
-      jitter = 0;
-      rrsReceivedInPeriod = 0;
-      if (reportedBandwidth < 3000000)
-        reportedBandwidth = reportedBandwidth*2;
-      lastDelay = lastDelay*0.6;
-//      lastSr = 0;
+  void RtcpData::reset(uint32_t bandwidth){
+    printf("Reset: reportedBW %lu, therefBW %u\n", reportedBandwidth, bandwidth);
+    ratioLost = 0;
+    requestRr = false;
+    shouldReset = false;
+    jitter = 0;
+    rrsReceivedInPeriod = 0;
+    if (reportedBandwidth < bandwidth){
+      reportedBandwidth = reportedBandwidth*2 < bandwidth?reportedBandwidth*2:bandwidth;
+    }
+    lastDelay = lastDelay*0.6;
   }
 
   RtcpProcessor::RtcpProcessor (MediaSink* msink, MediaSource* msource, int defaultBw):
@@ -39,6 +40,7 @@ namespace erizo{
   }
 
   void RtcpProcessor::setVideoBW(uint32_t bandwidth){
+    ELOG_DEBUG("Setting Video BW %u", bandwidth);
     this->defaultBw_ = bandwidth;
   }
 
@@ -56,8 +58,8 @@ namespace erizo{
     uint64_t theNTP = chead->getNtpTimestamp();
     ntp = (theNTP & (0xFFFFFFFF0000))>>16;
     theData->senderReports.push_back(boost::shared_ptr<SrData>( new SrData(ntp, now)));
-    // We only store the last 40 sr
-    if (theData->senderReports.size()>40){
+    // We only store the last 20 sr
+    if (theData->senderReports.size()>20){
       theData->senderReports.pop_front();
     }
 
@@ -79,12 +81,9 @@ namespace erizo{
       int rtcpLength = 0;
       int totalLength = 0;
       int partNum = 0;
-
-
       uint32_t calculatedlsr, delay, calculateLastSr;
 
       do {
-        theData->lastUpdated = now;
         movingBuf+=rtcpLength;
         chead = reinterpret_cast<RtcpHeader*>(movingBuf);
         rtcpLength = (ntohs(chead->length)+1) * 4;
@@ -135,44 +134,6 @@ namespace erizo{
             theData->nackSeqnum = chead->getNackPid();
             theData->nackBlp = chead->getNackBlp();
             theData->requestRr = true;
-            // NACK packet!
-            /*
-               int len = chead->getLength() - 2;
-               for (int k = 0; k < len; ++k) {
-               uint16_t seqNum = ntohs(*((uint16_t*)(movingBuf + 12 + k * 4)));
-               addNackPacket(seqNum, pData);
-               uint16_t blp = ntohs(*((uint16_t*)(movingBuf + 14 + k * 4)));
-               ELOG_DEBUG("FeedbackPT: NACK %x - and: %x", seqNum, blp);
-               uint16_t bitmask = 1;
-               for (int i = 0; i < 16; ++i) {
-               if ((blp & bitmask) != 0) {
-               boost::mutex::scoped_lock lock(rtpPacketLock_);
-               int cur = seqNum + i;
-               bool resent = false;
-               if (pMediaSink != NULL && rtpPacketMemory_.size() > 0) {
-               int diff = rtpPacketMemory_.at(0).seqNumber - cur;
-               if (diff > 0x7fff) {
-               diff -= 0x10000;
-               } else if (diff < 0) {
-               diff += 0x10000;
-               }
-               if (0 <= diff && diff < rtpPacketMemory_.size()) {
-               if (rtpPacketMemory_[diff].isSet() && rtpPacketMemory_[diff].seqNumber == (uint16_t)cur) {
-               resent = true;
-               pMediaSink->deliverVideoData(rtpPacketMemory_[diff].buf, rtpPacketMemory_[diff].len);
-               }
-               }
-               ELOG_DEBUG("resent (%i) packet %x - diff: %i", resent, cur, diff);
-               }
-
-               if (!resent) {
-               addNackPacket(seqNum + i, pData);
-               }
-               }
-               bitmask *= 2;
-               }
-               }
-               */
             break;
           case RTCP_PS_Feedback_PT:
             //            ELOG_DEBUG("RTCP PS FB TYPE: %u", chead->getBlockCount() );
@@ -276,10 +237,9 @@ namespace erizo{
           }
 
           if(rtcpData->shouldSendREMB ){
-            ELOG_DEBUG("SEND REMB, SINCE LAST %u ms, SENDING with BW: %lu", sincelastREMB, rtcpData->reportedBandwidth);
+            ELOG_DEBUG("Sending Remb, since last %u ms, sending with BW: %lu", sincelastREMB, rtcpData->reportedBandwidth);
             int theLen = this->addREMB((char*)packet_, length, rtcpData->reportedBandwidth);
             rtcpData->shouldSendREMB = false;
-            //          rtcpData->reportedBandwidth = rtcpData->reportedBandwidth*1.2;
             rtcpData->lastREMBSent = now;
             length = theLen;
           }
@@ -304,12 +264,11 @@ namespace erizo{
         }
 
         if (rtcpData->shouldReset){
-          rtcpData->reset();
+          rtcpData->reset(this->defaultBw_);
         }
       }
       if (rtcpData->shouldSendPli){
         rtcpSource_->sendPLI();
-        rtcpData->lastPliSent = now;
         rtcpData->shouldSendPli = false;
       }
     }
@@ -342,8 +301,6 @@ namespace erizo{
     theNACK.setBlockCount(1);
     theNACK.setNackPid(seqNum);
     theNACK.setNackBlp(blp);
-
-//    uint32_t ssrc = (sourceSsrc==rtcpSource_->getAudioSourceSSRC())?rtcpSink_->getAudioSinkSSRC():rtcpSink_->getVideoSinkSSRC();
     theNACK.setSSRC(sinkSsrc);    
     theNACK.setSourceSSRC(sourceSsrc);
     theNACK.setLength(3);
