@@ -8,7 +8,6 @@ namespace erizo{
   DEFINE_LOGGER(RtcpProcessor, "rtp.RtcpProcessor");
 
   void RtcpData::reset(uint32_t bandwidth){
-    printf("Reset: reportedBW %lu, therefBW %u\n", reportedBandwidth, bandwidth);
     ratioLost = 0;
     requestRr = false;
     shouldReset = false;
