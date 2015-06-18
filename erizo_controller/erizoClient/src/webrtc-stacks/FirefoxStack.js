@@ -107,21 +107,8 @@ Erizo.FirefoxStack = function (spec) {
     var setLocalDesc = function (sessionDescription) {
         sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
         sessionDescription.sdp = sessionDescription.sdp.replace(/a=ice-options:google-ice\r\n/g, "");
-        sessionDescription = changeOrder(sessionDescription);
         spec.callback(sessionDescription);
         localDesc = sessionDescription;
-    }
-
-    var changeOrder = function(sessionDescription) {
-        var matches = sessionDescription.sdp.match(/^.*(rtcp-fb).*$/gm);
-        var lines = "";
-        for (var i in matches){
-            if (i == 0) lines += matches[i];
-            else lines += "\n\r" + matches[i];
-        }
-        sessionDescription.sdp = sessionDescription.sdp.replace(/^.*(rtcp-fb).*$\r\n/gm, "");
-        sessionDescription.sdp += lines;
-        return sessionDescription;
     }
 
     var setLocalDescp2p = function (sessionDescription) {
