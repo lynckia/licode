@@ -5,7 +5,6 @@ var logger = require('./../common/logger').logger;
 // Logger
 var log = logger.getLogger("RoomController");
 
-
 exports.RoomController = function (spec) {
     "use strict";
 
@@ -21,6 +20,7 @@ exports.RoomController = function (spec) {
         externalOutputs = {};
 
     var amqper = spec.amqper;
+    var ecch = spec.ecch;
 
     var KEEPALIVE_INTERVAL = 5*1000;
     var TIMEOUT_LIMIT = 2;
@@ -58,13 +58,13 @@ exports.RoomController = function (spec) {
     var keepAliveLoop = setInterval(sendKeepAlive, KEEPALIVE_INTERVAL);
 
     var getErizoJS = function(callback) {
-    	amqper.callRpc("ErizoAgent", "createErizoJS", [], {callback: function(erizo_id) {
+    	ecch.getErizoJS(function(erizo_id) {
             log.info("Using Erizo", erizo_id);
             if (!erizos[erizo_id] && erizo_id !== 'timeout') {
                 erizos[erizo_id] = {publishers: [], ka_count: 0};
             }
             callback(erizo_id);
-        }});
+        });
     };
 
     var getErizoQueue = function(publisher_id) {

@@ -83,6 +83,8 @@ var guid = (function() {
   };
 })();
 
+var my_erizo_agent_id = guid();
+
 var saveChild = function(id) {
     childs.push(id);
 };
@@ -211,13 +213,14 @@ fillErizos();
 
 amqper.connect(function () {
     "use strict";
+
     amqper.setPublicRPC(api);
-
-    var rpcID = "ErizoAgent";
-    
-
-    amqper.bind(rpcID);
-
+    amqper.bind("ErizoAgent");
+    amqper.bind("ErizoAgent_" + my_erizo_agent_id);
+    amqper.bind_broadcast("ErizoAgent", function(m, callback) {
+        console.log('+++++++++++++++++++++++++++++++ rec en broadcast', m, callback);
+        callback('guay' + my_erizo_agent_id);
+    });
 });
 
 /*
