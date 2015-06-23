@@ -29,7 +29,7 @@ config.nuve.dataBaseURL = "localhost/nuvedb"; // default value: 'localhost/nuved
 config.nuve.superserviceID = '_auto_generated_ID_'; // default value: ''
 config.nuve.superserviceKey = '_auto_generated_KEY_'; // default value: ''
 config.nuve.testErizoController = 'localhost:8080'; // default value: 'localhost:8080'
-// Cloud Handler policies are in nuve/nuveAPI/ch_policies/ folder
+// Nuve Cloud Handler policies are in nuve/nuveAPI/ch_policies/ folder
 config.nuve.cloudHandlerPolicy = 'default_policy.js'; // default value: 'default_policy.js'
 
 
@@ -82,6 +82,9 @@ config.erizoController.report = {
 
 // If undefined, the path will be /tmp/
 config.erizoController.recording_path = undefined; // default value: undefined
+
+// Erizo Controller Cloud Handler policies are in erizo_controller/erizoController/ch_policies/ folder
+config.erizoController.cloudHandlerPolicy = 'default_policy.js'; // default value: 'default_policy.js'
 
 /*********************************************************
  ERIZO AGENT CONFIGURATION

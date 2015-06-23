@@ -51,11 +51,23 @@ exports.Ecch = function (spec) {
 
 	var intervalId = setInterval(getErizoAgents, GET_EA_INTERVAL);
 
+	var getErizoAgent = undefined;
+
+	if (config.erizoController.cloudHandlerPolicy) {
+	    getErizoAgent = require('./ch_policies/' + config.erizoController.cloudHandlerPolicy).getErizoAgent;
+	}
+
 	that.getErizoJS = function(callback) {
 
-		// TODO: select erizo agent queue depending on custom script
+		// TODO: if an agent doesnt respond, select another one
 
-		amqper.callRpc("ErizoAgent", "createErizoJS", [], {callback: function(erizo_id) {
+		var agent_queue = "ErizoAgent";
+
+		if (getErizoAgent) {
+			agent_queue = getErizoAgent(agents);
+		}
+
+		amqper.callRpc(agent_queue, "createErizoJS", [], {callback: function(erizo_id) {
 	        callback(erizo_id);
 	    }});
 	};
