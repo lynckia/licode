@@ -5,6 +5,8 @@ var logger = require('./../common/logger').logger;
 // Logger
 var log = logger.getLogger("REPORTER");
 
+var os = require('os');
+
 exports.Reporter = function (spec) {
     "use strict";
 
@@ -26,10 +28,34 @@ exports.Reporter = function (spec) {
 
     var getStats = function () {
 
-    	// TODO: get real monitoring data
+        var cpus = os.cpus();
+
+        var user = 0;
+        var nice = 0;
+        var sys = 0;
+        var idle = 0;
+        var irq = 0;
+        var total = 0;
+
+        for(var cpu in cpus){
+            
+            user += cpus[cpu].times.user;
+            nice += cpus[cpu].times.nice;
+            sys += cpus[cpu].times.sys;
+            irq += cpus[cpu].times.irq;
+            idle += cpus[cpu].times.idle;
+        }
+
+        total = user + nice + sys + idle + irq;
+
+        var cpu =  1 - (idle / total);
+        var mem = 1 - (os.freemem() / os.totalmem());
+
     	var data = {
-    		cpu: '30'
+    		perc_cpu: cpu,
+            perc_mem: mem
     	};
+        
     	return data;
     };
 
