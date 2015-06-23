@@ -46,10 +46,10 @@ private:
     boost::thread thread_;
     boost::condition_variable cond_;
     AVStream *video_stream_, *audio_stream_;
-
     AVFormatContext *context_;
 
     int unpackagedSize_;
+    uint32_t videoSourceSsrc_;
     unsigned char* unpackagedBufferpart_;
     unsigned char deliverMediaBuffer_[3000];
     unsigned char unpackagedBuffer_[UNPACKAGE_BUFFER_SIZE];

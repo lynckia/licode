@@ -78,6 +78,7 @@ namespace erizo {
        rtx.mediaType = VIDEO_TYPE;
        internalPayloadVector_.push_back(rtx);
        */
+    
     RtpMap ulpfec;
     ulpfec.payloadType = ULP_90000_PT;
     ulpfec.encodingName = "ulpfec";
@@ -85,31 +86,30 @@ namespace erizo {
     ulpfec.channels = 1;
     ulpfec.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(ulpfec);
-    /*
-       RtpMap opus;
-       opus.payloadType = OPUS_48000_PT;
-       opus.encodingName = "opus";
-       opus.clockRate = 48000;
-       opus.channels = 2;
-       opus.mediaType = AUDIO_TYPE;
-       internalPayloadVector_.push_back(opus);
+    /*   
+    RtpMap opus;
+    opus.payloadType = OPUS_48000_PT;
+    opus.encodingName = "opus";
+    opus.clockRate = 48000;
+    opus.channels = 2;
+    opus.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(opus);
+    RtpMap isac16;
+    isac16.payloadType = ISAC_16000_PT;
+    isac16.encodingName = "ISAC";
+    isac16.clockRate = 16000;
+    isac16.channels = 1;
+    isac16.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(isac16);
 
-       RtpMap isac16;
-       isac16.payloadType = ISAC_16000_PT;
-       isac16.encodingName = "ISAC";
-       isac16.clockRate = 16000;
-       isac16.channels = 1;
-       isac16.mediaType = AUDIO_TYPE;
-       internalPayloadVector_.push_back(isac16);
-
-       RtpMap isac32;
-       isac32.payloadType = ISAC_32000_PT;
-       isac32.encodingName = "ISAC";
-       isac32.clockRate = 32000;
-       isac32.channels = 1;
-       isac32.mediaType = AUDIO_TYPE;
-       internalPayloadVector_.push_back(isac32);
-       */
+    RtpMap isac32;
+    isac32.payloadType = ISAC_32000_PT;
+    isac32.encodingName = "ISAC";
+    isac32.clockRate = 32000;
+    isac32.channels = 1;
+    isac32.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(isac32);
+*/
     RtpMap pcmu;
     pcmu.payloadType = PCMU_8000_PT;
     pcmu.encodingName = "PCMU";
@@ -117,48 +117,48 @@ namespace erizo {
     pcmu.channels = 1;
     pcmu.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(pcmu);
-    /*
-       RtpMap pcma;
-       pcma.payloadType = PCMA_8000_PT;
-       pcma.encodingName = "PCMA";
-       pcma.clockRate = 8000;
-       pcma.channels = 1;
-       pcma.mediaType = AUDIO_TYPE;
-       internalPayloadVector_.push_back(pcma);
+/*
+    RtpMap pcma;
+    pcma.payloadType = PCMA_8000_PT;
+    pcma.encodingName = "PCMA";
+    pcma.clockRate = 8000;
+    pcma.channels = 1;
+    pcma.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(pcma);
 
-       RtpMap cn8;
-       cn8.payloadType = CN_8000_PT;
-       cn8.encodingName = "CN";
-       cn8.clockRate = 8000;
-       cn8.channels = 1;
-       cn8.mediaType = AUDIO_TYPE;
-       internalPayloadVector_.push_back(cn8);
+    RtpMap cn8;
+    cn8.payloadType = CN_8000_PT;
+    cn8.encodingName = "CN";
+    cn8.clockRate = 8000;
+    cn8.channels = 1;
+    cn8.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(cn8);
 
-       RtpMap cn16;
-       cn16.payloadType = CN_16000_PT;
-       cn16.encodingName = "CN";
-       cn16.clockRate = 16000;
-       cn16.channels = 1;
-       cn16.mediaType = AUDIO_TYPE;
-       internalPayloadVector_.push_back(cn16);
+    RtpMap cn16;
+    cn16.payloadType = CN_16000_PT;
+    cn16.encodingName = "CN";
+    cn16.clockRate = 16000;
+    cn16.channels = 1;
+    cn16.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(cn16);
 
-       RtpMap cn32;
-       cn32.payloadType = CN_32000_PT;
-       cn32.encodingName = "CN";
-       cn32.clockRate = 32000;
-       cn32.channels = 1;
-       cn32.mediaType = AUDIO_TYPE;
-       internalPayloadVector_.push_back(cn32);
+    RtpMap cn32;
+    cn32.payloadType = CN_32000_PT;
+    cn32.encodingName = "CN";
+    cn32.clockRate = 32000;
+    cn32.channels = 1;
+    cn32.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(cn32);
 
-       RtpMap cn48;
-       cn48.payloadType = CN_48000_PT;
-       cn48.encodingName = "CN";
-       cn48.clockRate = 48000;
-       cn48.channels = 1;
-       cn48.mediaType = AUDIO_TYPE;
-       internalPayloadVector_.push_back(cn48);
-       */
-    RtpMap telephoneevent;
+    RtpMap cn48;
+    cn48.payloadType = CN_48000_PT;
+    cn48.encodingName = "CN";
+    cn48.clockRate = 48000;
+    cn48.channels = 1;
+    cn48.mediaType = AUDIO_TYPE;
+    internalPayloadVector_.push_back(cn48);
+    */
+      RtpMap telephoneevent;
     telephoneevent.payloadType = TEL_8000_PT;
     telephoneevent.encodingName = "telephone-event";
     telephoneevent.clockRate = 8000;
