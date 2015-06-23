@@ -129,7 +129,12 @@ exports.bind_broadcast = function(id, callback) {
                         rpc_exc.publish(body.replyTo, {data: result, corrID: body.corrID, type: 'callback'});
                     };
                 }
-                callback(body.message, answer);
+                if (body.message.method && rpcPublic[body.message.method]) {
+                    body.message.args.push(answer);
+                    rpcPublic[body.message.method].apply(rpcPublic, body.message.args);
+                } else {
+                    callback(body.message, answer);
+                }
             });
             
         } catch (err) {
@@ -141,6 +146,7 @@ exports.bind_broadcast = function(id, callback) {
 
 /*
  * Publish broadcast messages to 'topic'
+ * If message has the format {method: String, args: Array}. it will execute the RPC
  */
 exports.broadcast = function(topic, message, callback) {
     var body = {message: message};

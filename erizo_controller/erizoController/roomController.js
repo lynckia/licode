@@ -40,7 +40,7 @@ exports.RoomController = function (spec) {
                     for (var p in erizos[erizo_id].publishers) {
                         dispatchEvent("unpublish", erizos[erizo_id].publishers[p]);
                     }
-                    amqper.callRpc("ErizoAgent", "deleteErizoJS", [erizo_id], {callback: function(){}}); 
+                    ecch.deleteErizoJS(erizo_id);
                     delete erizos[erizo_id];
                 }
             } else {
