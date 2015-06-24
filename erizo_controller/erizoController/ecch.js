@@ -72,6 +72,8 @@ exports.Ecch = function (spec) {
 			agent_queue = getErizoAgent(agents);
 		}
 
+		log.info('Asking erizoJS to agent ', agent_queue);
+
 		amqper.callRpc(agent_queue, "createErizoJS", [], {callback: function(erizo_id) {
 	        callback(erizo_id);
 	    }});
