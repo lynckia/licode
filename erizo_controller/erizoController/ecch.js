@@ -7,6 +7,7 @@ var log = logger.getLogger("ECCH");
 
 var EA_TIMEOUT = 30000;
 var GET_EA_INTERVAL = 5000;
+var AGENTS_ATTEMPTS = 5;
 
 exports.Ecch = function (spec) {
     "use strict";
@@ -64,9 +65,7 @@ exports.Ecch = function (spec) {
 
 	that.getErizoJS = function(callback) {
 
-		// TODO: if an agent doesnt respond, select another one
-
-		var agent_queue = "ErizoAgent";
+		var agent_queue = 'ErizoAgent';
 
 		if (getErizoAgent) {
 			agent_queue = getErizoAgent(agents);
@@ -74,14 +73,34 @@ exports.Ecch = function (spec) {
 
 		log.info('Asking erizoJS to agent ', agent_queue);
 
-		amqper.callRpc(agent_queue, "createErizoJS", [], {callback: function(erizo_id) {
-	        callback(erizo_id);
+		amqper.callRpc(agent_queue, 'createErizoJS', [], {callback: function(erizo_id) {
+			if (erizo_id === 'timeout') {
+				try_again(0, callback);
+			} else {
+	        	callback(erizo_id);
+			}
+	    }});
+	};
+
+	var try_again = function (count, callback) {
+
+		if (count >= AGENTS_ATTEMPTS) {
+			callback('timeout');
+		}
+
+		log.warn('Agent selected not available, trying with another one...');
+				
+		amqper.callRpc('ErizoAgent', 'createErizoJS', [], {callback: function(erizo_id) {
+			if (erizo_id === 'timeout') {
+				try_again(count++, callback);
+			} else {
+				callback(erizo_id);
+			}
 	    }});
 	};
 
 	that.deleteErizoJS = function(erizo_id) {
         amqper.broadcast("ErizoAgent", {method: "deleteErizoJS", args: [erizo_id]}, function(){}); 
-
 	};
 
 	return that;
