@@ -19,6 +19,11 @@ exports.Ecch = function (spec) {
 	var getErizoAgents = function () {
 		amqper.broadcast('ErizoAgent', {method: 'getErizoAgents', args: []}, function (agent) {
 
+			if (agent === 'timeout') {
+				log.warn('No agents available');
+				return;
+			}
+
 			var new_agent = true;
 
 			for (var a in agents) {
