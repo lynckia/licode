@@ -89,11 +89,11 @@ exports.Ecch = function (spec) {
 			return;
 		}
 
-		log.warn('Agent selected not available, trying with another one...');
+		log.warn('Agent selected not available, trying with another one in ErizoAgent...');
 				
 		amqper.callRpc('ErizoAgent', 'createErizoJS', [], {callback: function(erizo_id) {
 			if (erizo_id === 'timeout') {
-				try_again(count++, callback);
+				try_again(++count, callback);
 			} else {
 				callback(erizo_id);
 			}
