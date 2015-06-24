@@ -86,6 +86,7 @@ exports.Ecch = function (spec) {
 
 		if (count >= AGENTS_ATTEMPTS) {
 			callback('timeout');
+			return;
 		}
 
 		log.warn('Agent selected not available, trying with another one...');
