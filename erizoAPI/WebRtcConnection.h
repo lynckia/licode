@@ -20,8 +20,8 @@ class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventLi
   erizo::WebRtcConnection *me;
   int eventSt;
   std::queue<int> eventSts;
-  std::queue<std::string> eventMsgs;
-  std::string statsMsg;
+  std::queue<std::string> eventMsgs, statsMsgs;
+
   boost::mutex mutex;
 
  private:
