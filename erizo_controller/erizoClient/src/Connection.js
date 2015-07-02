@@ -77,7 +77,7 @@ Erizo.GetUserMedia = function (config, callback, error) {
             case "mozilla":
                 L.Logger.debug("Screen sharing in Firefox");
                 var theConfig = {};
-                if(config.video!= undefined){
+                if(config.video.mandatory != undefined){
                     theConfig.video = config.video;
                     theConfig.video.mediaSource = 'window' || 'screen';
                 }else{
