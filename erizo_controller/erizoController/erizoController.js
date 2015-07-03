@@ -14,7 +14,9 @@ GLOBAL.config = config || {};
 GLOBAL.config.erizoController = GLOBAL.config.erizoController || {};
 GLOBAL.config.erizoController.stunServerUrl = GLOBAL.config.erizoController.stunServerUrl || 'stun:stun.l.google.com:19302';
 GLOBAL.config.erizoController.defaultVideoBW = GLOBAL.config.erizoController.defaultVideoBW || 300;
+GLOBAL.config.erizoController.defaultAudioBW = GLOBAL.config.erizoController.defaultAudioBW || 64;
 GLOBAL.config.erizoController.maxVideoBW = GLOBAL.config.erizoController.maxVideoBW || 300;
+GLOBAL.config.erizoController.maxAudioBW = GLOBAL.config.erizoController.maxAudioBW || 64;
 GLOBAL.config.erizoController.publicIP = GLOBAL.config.erizoController.publicIP || '';
 GLOBAL.config.erizoController.hostname = GLOBAL.config.erizoController.hostname|| '';
 GLOBAL.config.erizoController.port = GLOBAL.config.erizoController.port || 8080;
@@ -39,7 +41,9 @@ var getopt = new Getopt([
   ['l' , 'logging-config-file=ARG'    , 'Logging Config File'],
   ['t' , 'stunServerUrl=ARG'          , 'Stun Server URL'],
   ['b' , 'defaultVideoBW=ARG'         , 'Default video Bandwidth'],
+  ['a' , 'defaultAudioBW=ARG'         , 'Default audio Bandwidth'],
   ['M' , 'maxVideoBW=ARG'             , 'Max video bandwidth'],
+  ['A' , 'maxAudioBW=ARG'             , 'Max audio bandwidth'],
   ['i' , 'publicIP=ARG'               , 'Erizo Controller\'s public IP'],
   ['H' , 'hostname=ARG'               , 'Erizo Controller\'s hostname'],
   ['p' , 'port'                       , 'Port where Erizo Controller will listen to new connections.'],
@@ -371,7 +375,9 @@ var listen = function () {
                                             id: socket.room.id,
                                             p2p: socket.room.p2p,
                                             defaultVideoBW: GLOBAL.config.erizoController.defaultVideoBW,
+                                            defaultAudioBW: GLOBAL.config.erizoController.defaultAudioBW,
                                             maxVideoBW: GLOBAL.config.erizoController.maxVideoBW,
+                                            maxAudioBW: GLOBAL.config.erizoController.maxAudioBW,
                                             stunServerUrl: GLOBAL.config.erizoController.stunServerUrl,
                                             turnServer: GLOBAL.config.erizoController.turnServer
                                             });
