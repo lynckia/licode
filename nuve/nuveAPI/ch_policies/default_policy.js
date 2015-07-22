@@ -27,7 +27,7 @@ Returns
 	erizoControlerId: the key of the erizo controller selected from ec_list
 
 */
-exports.getErizoController = function (room, ec_list, ec_queue) {
+exports.getErizoController = function (room, ec_list, ec_queue, callback) {
 	var erizoControllerId = ec_queue[0];
-	return erizoControllerId;
+	callback(erizoControllerId);
 }
