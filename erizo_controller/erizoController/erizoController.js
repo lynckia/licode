@@ -731,18 +731,18 @@ var listen = function () {
                 for (i in socket.streams) {
                     if (socket.streams.hasOwnProperty(i)) {
                         id = socket.streams[i];
-                        if( socket.room.streams[id]) {
-                            // if (socket.room.streams[id].hasAudio() || socket.room.streams[id].hasVideo() || socket.room.streams[id].hasScreen()) {
-                            //     if (!socket.room.p2p) {
-                            //         socket.room.controller.removePublisher(id);
-                            //         if (GLOBAL.config.erizoController.report.session_events) {
-                            //             var timeStamp = new Date();
-                            //             amqper.broadcast('event', {room: socket.room.id, user: socket.id, type: 'unpublish', stream: id, timestamp: timeStamp.getTime()});
-                            //         }
-                            //     }
-                            // }
-                            //
-                            // delete socket.room.streams[id];
+                        if(socket.room.streams[id]) {
+                            if (socket.room.streams[id].hasAudio() || socket.room.streams[id].hasVideo() || socket.room.streams[id].hasScreen()) {
+                                if (!socket.room.p2p) {
+                                    socket.room.controller.removePublisher(id);
+                                    if (GLOBAL.config.erizoController.report.session_events) {
+                                        var timeStamp = new Date();
+                                        amqper.broadcast('event', {room: socket.room.id, user: socket.id, type: 'unpublish', stream: id, timestamp: timeStamp.getTime()});
+                                    }
+                                }
+                            }
+
+                            delete socket.room.streams[id];
                         }
                     }
                 }
