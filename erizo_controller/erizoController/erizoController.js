@@ -309,7 +309,8 @@ var listen = function () {
                          functioning to recover from such a disruption.  I know this isn't really common... but
                          if it crashes, at least we could recover from the crash once Nuve comes back online.
                         */
-                        socket.disconnect();
+
+                        //socket.disconnect();
                     } else if (token.host === resp.host) {
                         tokenDB = resp;
                         if (rooms[tokenDB.room] === undefined) {
