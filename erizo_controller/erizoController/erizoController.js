@@ -140,7 +140,9 @@ var sendMsgToRoom = function (room, type, arg) {
     for (id in sockets) {
         if (sockets.hasOwnProperty(id)) {
             log.info('Sending message to', sockets[id], 'in room ', room.id);
-            io.sockets.socket(sockets[id]).emit(type, arg);
+            if (io.sockets.connected[sockets[id]]) {
+              io.sockets.connected[sockets[id]].emit(type, arg);
+            }
         }
     }
 };
@@ -282,23 +284,32 @@ var listen = function () {
         // Then registers it in the room and callback to the client.
         socket.on('token', function (token, callback) {
 
-            //log.debug("New token", token);
+            log.debug("New token", token);
 
             var tokenDB, user, streamList = [], index;
 
             if (checkSignature(token, nuveKey)) {
-
-                amqper.callRpc('nuve', 'deleteToken', token.tokenId, {callback: function (resp) {
+                amqper.callRpc('nuve', 'useToken', token.tokenId, {callback: function (resp) {
                     if (resp === 'error') {
-                        log.info('Token does not exist');
-                        callback('error', 'Token does not exist');
+                        log.info('Token expired or does not exist');
+                        callback('error', 'Token expired or does not exist');
+                        // TODO: need to figure out a better way to handle this rather than
+                        // just disconnecting the socket each time a strange thing occurs.
+                        // the socket connection shouldn't be tethered to whether a token exists or not...
+                        // the events that emit should be validated and ensure authentication before executing.
+                        // this may happen a lot less frequently once we get token expirations set.
                         socket.disconnect();
-
                     } else if (resp === 'timeout') {
-                        log.warn('Nuve does not respond');
-                        callback('error', 'Nuve does not respond');
+                        log.warn('Nuve is not responding');
+                        callback('error', 'Nuve is not responding');
+                        /*
+                         TODO:
+                         I'm trying to think of a reason why disconnect the socket due to Nuve not responding.
+                         If Nuve starts responding, we have no way to tell the clients that it's back online and
+                         functioning to recover from such a disruption.  I know this isn't really common... but
+                         if it crashes, at least we could recover from the crash once Nuve comes back online.
+                        */
                         socket.disconnect();
-
                     } else if (token.host === resp.host) {
                         tokenDB = resp;
                         if (rooms[tokenDB.room] === undefined) {
@@ -322,7 +333,7 @@ var listen = function () {
                                         room.controller.removePublisher(streamId);
 
                                         for (var s in room.sockets) {
-                                            var streams = io.sockets.socket(room.sockets[s]).streams;
+                                            var streams = io.sockets.connected[room.sockets[s]].streams;
                                             var index = streams.indexOf(streamId);
                                             if (index !== -1) {
                                                 streams.splice(index, 1);
@@ -377,15 +388,15 @@ var listen = function () {
                                             });
 
                     } else {
-                        log.warn('Invalid host');
-                        callback('error', 'Invalid host');
+                        log.warn('Token contained invalid Nuve host.');
+                        callback('error', 'Token contained invalid Nuve host.');
+
                         socket.disconnect();
                     }
                 }});
-
             } else {
-                log.warn("Authentication error");
-                callback('error', 'Authentication error');
+                log.warn("Authentication failed for Nuve API.");
+                callback('error', 'Authentication failed for Nuve API.');
                 socket.disconnect();
             }
         });
@@ -400,14 +411,14 @@ var listen = function () {
             for (id in sockets) {
                 if (sockets.hasOwnProperty(id)) {
                     log.info('Sending dataStream to', sockets[id], 'in stream ', msg.id);
-                    io.sockets.socket(sockets[id]).emit('onDataStream', msg);
+                    io.sockets.connected[sockets[id]].emit('onDataStream', msg);
                 }
             }
         });
 
         socket.on('signaling_message', function (msg) {
             if (socket.room.p2p) {
-                io.sockets.socket(msg.peerSocket).emit('signaling_message_peer', {streamId: msg.streamId, peerSocket: socket.id, msg: msg.msg});
+                io.sockets.connected[msg.peerSocket].emit('signaling_message_peer', {streamId: msg.streamId, peerSocket: socket.id, msg: msg.msg});
             } else {
                 socket.room.controller.processSignaling(msg.streamId, socket.id, msg.msg);
             }
@@ -424,7 +435,7 @@ var listen = function () {
             for (id in sockets) {
                 if (sockets.hasOwnProperty(id)) {
                     log.info('Sending new attributes to', sockets[id], 'in stream ', msg.id);
-                    io.sockets.socket(sockets[id]).emit('onUpdateAttributeStream', msg);
+                    io.sockets.connected[sockets[id]].emit('onUpdateAttributeStream', msg);
                 }
             }
         });
@@ -443,7 +454,7 @@ var listen = function () {
                     if ((options[right] === true) && (permissions[right] === false))
                         return callback(null, 'Unauthorized');
                 }
-            } 
+            }
             id = Math.random() * 1000000000000000000;
 
             if (options.state === 'url' || options.state === 'recording') {
@@ -469,7 +480,7 @@ var listen = function () {
                 });
             } else if (options.state === 'erizo') {
                 log.info("New publisher");
-                
+
                 socket.room.controller.addPublisher(id, function (signMess) {
 
                     if (signMess.type === 'initializing') {
@@ -551,7 +562,7 @@ var listen = function () {
 
                 if (socket.room.p2p) {
                     var s = stream.getSocket();
-                    io.sockets.socket(s).emit('publish_me', {streamId: options.streamId, peerSocket: socket.id});
+                    io.sockets.connected[s].emit('publish_me', {streamId: options.streamId, peerSocket: socket.id});
 
                 } else {
                     socket.room.controller.addSubscriber(socket.id, options.streamId, options, function (signMess) {
@@ -614,7 +625,7 @@ var listen = function () {
                 callback(null, 'Stream can not be recorded');
             }
         });
-        
+
         // Gets 'stopRecorder' messages
         // Returns callback(result, error)
         socket.on('stopRecorder', function (options, callback) {
@@ -729,7 +740,7 @@ var listen = function () {
                 for (i in socket.streams) {
                     if (socket.streams.hasOwnProperty(i)) {
                         id = socket.streams[i];
-                        if( socket.room.streams[id]) {
+                        if(socket.room.streams[id]) {
                             if (socket.room.streams[id].hasAudio() || socket.room.streams[id].hasVideo() || socket.room.streams[id].hasScreen()) {
                                 if (!socket.room.p2p) {
                                     socket.room.controller.removePublisher(id);
@@ -777,7 +788,7 @@ exports.getUsersInRoom = function (room, callback) {
 
     for (id in sockets) {
         if (sockets.hasOwnProperty(id)) {
-            users.push(io.sockets.socket(sockets[id]).user);
+            users.push(io.sockets.connected[sockets[id]].user);
         }
     }
 
@@ -802,7 +813,7 @@ exports.deleteUser = function (user, room, callback) {
 
     for (id in sockets) {
         if (sockets.hasOwnProperty(id)) {
-            if (io.sockets.socket(sockets[id]).user.name === user){
+            if (io.sockets.connected[sockets[id]].user.name === user){
                 sockets_to_delete.push(sockets[id]);
             }
         }
@@ -810,8 +821,8 @@ exports.deleteUser = function (user, room, callback) {
 
     for (var s in sockets_to_delete) {
 
-        log.info('Deleted user', io.sockets.socket(sockets_to_delete[s]).user.name);
-        io.sockets.socket(sockets_to_delete[s]).disconnect();
+        log.info('Deleted user', io.sockets.connected[sockets_to_delete[s]].user.name);
+        io.sockets.connected[sockets_to_delete[s]].disconnect();
     }
 
     if (sockets_to_delete.length !== 0) {

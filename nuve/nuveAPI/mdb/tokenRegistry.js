@@ -53,7 +53,6 @@ var hasToken = exports.hasToken = function (id, callback) {
  */
 exports.addToken = function (token, callback) {
     "use strict";
-
     db.tokens.save(token, function (error, saved) {
         if (error) log.info('MongoDB: Error adding token: ', error);
         callback(saved._id);
@@ -72,7 +71,7 @@ var removeToken = exports.removeToken = function (id, callback) {
                 if (error) log.info('MongoDB: Error removing token: ', error);
                 callback();
             });
-            
+
         }
     });
 };
@@ -93,21 +92,23 @@ exports.removeOldTokens = function () {
 
     var i, token, time, tokenTime, dif;
 
-    db.tokens.find({'use':{$exists:false}}).toArray(function (err, tokens) {
-        if (err || !tokens) {
-            
-        } else {
-            for (i in tokens) {
-                token = tokens[i];
-                time = (new Date()).getTime();
-                tokenTime = token.creationDate.getTime();
-                dif = time - tokenTime;
-
-                if (dif > 3*60*1000) {
-                    log.info('Removing old token ', token._id, 'from room ', token.room, ' of service ', token.service);
-                    removeToken(token._id + '', function() {});
-                }
-            }
-        }
-    });
+    // db.tokens.find({'use':{$exists:false}}).toArray(function (err, tokens) {
+    //     if (err || !tokens) {
+    //
+    //     } else {
+    //         for (i in tokens) {
+    //             token = tokens[i];
+    //             time = (new Date()).getTime();
+    //             tokenTime = token.creationDate.getTime();
+    //             dif = time - tokenTime;
+    //
+    //             if (dif > 3*60*1000) {
+    //                 log.info('Removing old token ', token._id, 'from room ', token.room, ' of service ', token.service);
+    //                 removeToken(token._id + '', function() {});
+    //             }
+    //         }
+    //     }
+    // });
+    // HAPPENS AUTOMATICALLY NOW WITH expireAt
+    return true
 };

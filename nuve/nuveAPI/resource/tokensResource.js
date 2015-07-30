@@ -47,7 +47,7 @@ var getTokenString = function (id, token) {
 };
 
 /*
- * Generates new token. 
+ * Generates new token.
  * The format of a token is:
  * {tokenId: id, host: erizoController host, signature: signature of the token};
  */
@@ -72,6 +72,9 @@ var generateToken = function (callback) {
     token.role = role;
     token.service = currentService._id;
     token.creationDate = new Date();
+    token.p2p = false;
+    token.expireAt = new Date(new Date().getTime() + (24 * 60 * 60 * 1000)); // default is 24 hours
+    token.use = 0; // now all token's have a use count since they expire.
 
     // Values to be filled from the erizoController
     token.secure = false;
@@ -90,7 +93,7 @@ var generateToken = function (callback) {
     if (tr === r) {
 
         if (currentService.testToken === undefined) {
-            token.use = 0;
+
             token.host = dataBase.testErizoController;
 
             log.info('Creating testToken');
