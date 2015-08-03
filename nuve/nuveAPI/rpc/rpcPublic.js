@@ -11,17 +11,32 @@ var log = logger.getLogger("RPCPublic");
  * This function is used to consume a token. Removes it from the data base and returns to erizoController.
  * Also it removes old tokens.
  */
+ exports.useToken = function (id, callback) {
+     "use strict";
+
+     // tokenRegistry.removeOldTokens();
+
+     tokenRegistry.getToken(id, function (token) {
+        if (token === undefined) {
+             callback('callback', 'error');
+        } else {
+          token.use += 1;
+          tokenRegistry.updateToken(token);
+          log.info('Using (', token.use, ') testToken ', token._id, 'for testRoom ', token.room, ' of service ', token.service);
+          callback('callback', token);
+         }
+     });
+ };
 exports.deleteToken = function (id, callback) {
     "use strict";
 
-    tokenRegistry.removeOldTokens();
+    // tokenRegistry.removeOldTokens();
 
     tokenRegistry.getToken(id, function (token) {
 
         if (token === undefined) {
             callback('callback', 'error');
         } else {
-
             if (token.use !== undefined) {
                 //Is a test token
                 var time = ((new Date()).getTime()) - token.creationDate.getTime(),
@@ -46,7 +61,7 @@ exports.deleteToken = function (id, callback) {
 
             } else {
                 tokenRegistry.removeToken(id, function () {
-                    log.info('Consumed token ', token._id, 'from room ', token.room, ' of service ', token.service);
+                    log.info('Found token ', token._id, ' from room ', token.room, ' of service ', token.service);
                     callback('callback', token);
                 });
             }
@@ -56,7 +71,7 @@ exports.deleteToken = function (id, callback) {
 
 exports.addNewErizoController = function(msg, callback) {
     cloudHandler.addNewErizoController(msg, function (id) {
-        callback('callback', id);   
+        callback('callback', id);
     });
 }
 

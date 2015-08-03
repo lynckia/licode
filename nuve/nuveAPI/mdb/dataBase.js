@@ -16,17 +16,19 @@ var databaseUrl = config.nuve.dataBaseURL;
 
 /*
  * Data base collections and its fields are:
- * 
+ *
  * room {name: '', [p2p: bool], [data: {}], _id: ObjectId}
  *
  * service {name: '', key: '', rooms: Array[room], testRoom: room, testToken: token, _id: ObjectId}
  *
- * token {host: '', userName: '', room: '', role: '', service: '', creationDate: Date(), [use: int], [p2p: bool], _id: ObjectId}
+ * token {host: '', userName: '', room: '', role: '', service: '', expireAt: new Date('July 22, 2015 14:00:00'), creationDate: Date(), [use: int], [p2p: bool], _id: ObjectId}
  *
  */
 var collections = ["rooms", "tokens", "services"];
 var mongojs = require('mongojs');
-exports.db = mongojs(databaseUrl, collections);
+var db = mongojs(databaseUrl, collections);
+db.tokens.createIndex({ "expireAt": 1 },{ expireAfterSeconds: 0 });
+exports.db = db
 
 // Superservice ID
 exports.superService = config.nuve.superserviceID;
