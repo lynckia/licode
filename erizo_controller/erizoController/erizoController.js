@@ -16,6 +16,7 @@ GLOBAL.config.erizoController.publicIP = GLOBAL.config.erizoController.publicIP 
 GLOBAL.config.erizoController.hostname = GLOBAL.config.erizoController.hostname|| '';
 GLOBAL.config.erizoController.port = GLOBAL.config.erizoController.port || 8080;
 GLOBAL.config.erizoController.ssl = GLOBAL.config.erizoController.ssl || false;
+GLOBAL.config.erizoController.listen_ssl = GLOBAL.config.erizoController.listen_ssl || false;
 GLOBAL.config.erizoController.turnServer = GLOBAL.config.erizoController.turnServer || undefined;
 if (config.erizoController.turnServer !== undefined) {
     GLOBAL.config.erizoController.turnServer.url = GLOBAL.config.erizoController.turnServer.url || '';
@@ -40,7 +41,8 @@ var getopt = new Getopt([
   ['i' , 'publicIP=ARG'               , 'Erizo Controller\'s public IP'],
   ['H' , 'hostname=ARG'               , 'Erizo Controller\'s hostname'],
   ['p' , 'port'                       , 'Port where Erizo Controller will listen to new connections.'],
-  ['S' , 'ssl'                        , 'Erizo Controller\'s hostname'],
+  ['S' , 'ssl'                        , 'Enable SSL for clients'],
+  ['s' , 'listen_ssl'                 , 'Enable HTTPS in server'],
   ['T' , 'turn-url'                   , 'Turn server\'s URL.'],
   ['U' , 'turn-username'              , 'Turn server\'s username.'],
   ['P' , 'turn-password'              , 'Turn server\'s password.'],
@@ -90,7 +92,7 @@ var log = logger.getLogger("ErizoController");
 
 var server;
 
-if (GLOBAL.config.erizoController.ssl) {
+if (GLOBAL.config.erizoController.listen_ssl) {
     var https = require('https');
     var fs = require('fs');
     var options = {
