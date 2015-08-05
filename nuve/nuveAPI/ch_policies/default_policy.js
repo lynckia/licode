@@ -9,16 +9,16 @@ Params
 		_id: ObjectId
 		}
 
-	ec_list: array with erizo controller objects
-		{
-        ip: String,
-        rpcID: String,
-        state: Int,
-        keepAlive: Int,
-        hostname: String,
-        port: Int,
-        ssl: bool
-   	 	}
+	ec_list: available erizo controllers
+		{ erizoControllerId: {
+        	ip: String,
+        	rpcID: String,
+        	state: Int,
+        	keepAlive: Int,
+        	hostname: String,
+        	port: Int,
+        	ssl: bool
+   	 	}, ...}
 
    	ec_queue: array with erizo controllers priority according rooms load
 
