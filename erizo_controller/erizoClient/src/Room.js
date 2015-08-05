@@ -98,7 +98,7 @@ Erizo.Room = function (spec) {
             sendMessageSocket("updateStreamAttributes", {id: stream.getID(), attrs: attrs});
         } else {
             L.Logger.error("You can not update attributes in a remote stream");
-        }  
+        }
     };
 
     // It connects to the server through socket.io
@@ -124,8 +124,8 @@ Erizo.Room = function (spec) {
             } else {
                 stream = that.localStreams[arg.streamId];
             }
-             
-            if (stream) {
+
+            if (stream && stream.pc) {
                 stream.pc.processSignalingMessage(arg.mess);
             }
         });
@@ -141,7 +141,7 @@ Erizo.Room = function (spec) {
 
                 if (!stream.pc) {
                     create_remote_pc(stream, arg.peerSocket);
-                }   
+                }
                 stream.pc.processSignalingMessage(arg.msg);
             }
         });
@@ -422,11 +422,11 @@ Erizo.Room = function (spec) {
                             console.log("Sending message", message);
                             sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: message}, undefined, function () {});
                         }, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer, maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW, limitMaxAudioBW: spec.maxAudioBW, limitMaxVideoBW: spec.maxVideoBW,audio:stream.hasAudio(), video: stream.hasVideo()});
-                        
+
                         stream.pc.addStream(stream.stream);
                         stream.pc.createOffer();
                         if(callback) callback(id);
-                        
+
                     });
                 }
             } else if (stream.hasData()) {
@@ -541,7 +541,7 @@ Erizo.Room = function (spec) {
                         }
 
                         L.Logger.info('Subscriber added');
-                          
+
                         stream.pc = Erizo.Connection({callback: function (message) {
                             L.Logger.info("Sending message", message);
                             sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: message, browser: stream.pc.browser}, undefined, function () {});
