@@ -62,9 +62,6 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
   obj->Wrap(args.This());
   uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
   uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 
-  //obj->eventMsg = "";
-  //obj->eventSt = 0;
-  obj->statsMsg = "";
   return args.This();
 }
 
@@ -73,6 +70,8 @@ Handle<Value> WebRtcConnection::close(const Arguments& args) {
 
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
   obj->me = NULL;
+  obj->hasCallback_ = false;
+  
   uv_close((uv_handle_t*)&obj->async_, NULL);
   uv_close((uv_handle_t*)&obj->asyncStats_, NULL);
 
@@ -81,7 +80,7 @@ Handle<Value> WebRtcConnection::close(const Arguments& args) {
     uv_close((uv_handle_t*)&obj->async_, NULL);
   }
   if(!uv_is_closing((uv_handle_t*)&obj->asyncStats_)) {
- 	uv_close((uv_handle_t*)&obj->asyncStats_, NULL);
+    uv_close((uv_handle_t*)&obj->asyncStats_, NULL);
   }
 
   return scope.Close(Null());
@@ -219,9 +218,11 @@ void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& 
 }
 
 void WebRtcConnection::notifyStats(const std::string& message) {
+  if (!this->hasCallback_){
+    return;
+  }
   boost::mutex::scoped_lock lock(mutex);
-  // TODO: Add message queue
-  this->statsMsg=message;
+  this->statsMsgs.push(message);
   asyncStats_.data = this;
   uv_async_send (&asyncStats_);
 }
@@ -229,7 +230,7 @@ void WebRtcConnection::notifyStats(const std::string& message) {
 void WebRtcConnection::eventsCallback(uv_async_t *handle, int status){
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
-  if (!obj)
+  if (!obj || obj->me == NULL)
     return;
   boost::mutex::scoped_lock lock(obj->mutex);
   while (!obj->eventSts.empty()) {
@@ -244,11 +245,14 @@ void WebRtcConnection::statsCallback(uv_async_t *handle, int status){
 
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
-  if (!obj)
+  if (!obj || obj->me == NULL)
     return;
   boost::mutex::scoped_lock lock(obj->mutex);
-
-  Local<Value> args[] = {String::NewSymbol(obj->statsMsg.c_str())};
-  if (obj->hasCallback_) 
-    obj->statsCallback_->Call(Context::GetCurrent()->Global(), 1, args);
+  if (obj->hasCallback_) {
+    while(!obj->statsMsgs.empty()){
+      Local<Value> args[] = {String::NewSymbol(obj->statsMsgs.front().c_str())};
+      obj->statsCallback_->Call(Context::GetCurrent()->Global(), 1, args);
+      obj->statsMsgs.pop();
+    }
+  }
 }
