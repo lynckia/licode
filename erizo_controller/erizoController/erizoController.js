@@ -2,9 +2,6 @@
 var crypto = require('crypto');
 var rpcPublic = require('./rpc/rpcPublic');
 var ST = require('./Stream');
-var http = require('http');
-var server = http.createServer();
-var io = require('socket.io').listen(server, {log:false});
 var config = require('./../../licode_config');
 var Permission = require('./permission');
 var Getopt = require('node-getopt');
@@ -19,6 +16,7 @@ GLOBAL.config.erizoController.publicIP = GLOBAL.config.erizoController.publicIP 
 GLOBAL.config.erizoController.hostname = GLOBAL.config.erizoController.hostname|| '';
 GLOBAL.config.erizoController.port = GLOBAL.config.erizoController.port || 8080;
 GLOBAL.config.erizoController.ssl = GLOBAL.config.erizoController.ssl || false;
+GLOBAL.config.erizoController.listen_ssl = GLOBAL.config.erizoController.listen_ssl || false;
 GLOBAL.config.erizoController.turnServer = GLOBAL.config.erizoController.turnServer || undefined;
 if (config.erizoController.turnServer !== undefined) {
     GLOBAL.config.erizoController.turnServer.url = GLOBAL.config.erizoController.turnServer.url || '';
@@ -43,7 +41,8 @@ var getopt = new Getopt([
   ['i' , 'publicIP=ARG'               , 'Erizo Controller\'s public IP'],
   ['H' , 'hostname=ARG'               , 'Erizo Controller\'s hostname'],
   ['p' , 'port'                       , 'Port where Erizo Controller will listen to new connections.'],
-  ['S' , 'ssl'                        , 'Erizo Controller\'s hostname'],
+  ['S' , 'ssl'                        , 'Enable SSL for clients'],
+  ['s' , 'listen_ssl'                 , 'Enable HTTPS in server'],
   ['T' , 'turn-url'                   , 'Turn server\'s URL.'],
   ['U' , 'turn-username'              , 'Turn server\'s username.'],
   ['P' , 'turn-password'              , 'Turn server\'s password.'],
@@ -91,7 +90,23 @@ var controller = require('./roomController');
 // Logger
 var log = logger.getLogger("ErizoController");
 
-server.listen(8080);
+var server;
+
+if (GLOBAL.config.erizoController.listen_ssl) {
+    var https = require('https');
+    var fs = require('fs');
+    var options = {
+        key: fs.readFileSync('../../cert/key.pem').toString(),
+        cert: fs.readFileSync('../../cert/cert.pem').toString()
+    };
+    server = https.createServer(options);
+} else {
+    var http = require('http');
+    server = http.createServer();
+}
+
+server.listen(GLOBAL.config.erizoController.port);
+var io = require('socket.io').listen(server, {log:false});
 
 io.set('log level', 0);
 
