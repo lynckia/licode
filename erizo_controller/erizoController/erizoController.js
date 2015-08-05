@@ -16,6 +16,7 @@ GLOBAL.config.erizoController.publicIP = GLOBAL.config.erizoController.publicIP 
 GLOBAL.config.erizoController.hostname = GLOBAL.config.erizoController.hostname|| '';
 GLOBAL.config.erizoController.port = GLOBAL.config.erizoController.port || 8080;
 GLOBAL.config.erizoController.ssl = GLOBAL.config.erizoController.ssl || false;
+GLOBAL.config.erizoController.listen_port = GLOBAL.config.erizoController.listen_port || 8080;
 GLOBAL.config.erizoController.listen_ssl = GLOBAL.config.erizoController.listen_ssl || false;
 GLOBAL.config.erizoController.turnServer = GLOBAL.config.erizoController.turnServer || undefined;
 if (config.erizoController.turnServer !== undefined) {
@@ -40,8 +41,9 @@ var getopt = new Getopt([
   ['M' , 'maxVideoBW=ARG'             , 'Max video bandwidth'],
   ['i' , 'publicIP=ARG'               , 'Erizo Controller\'s public IP'],
   ['H' , 'hostname=ARG'               , 'Erizo Controller\'s hostname'],
-  ['p' , 'port'                       , 'Port where Erizo Controller will listen to new connections.'],
+  ['p' , 'port'                       , 'Port used by clients to reach Erizo Controller'],
   ['S' , 'ssl'                        , 'Enable SSL for clients'],
+  ['L' , 'listen_port'                , 'Port where Erizo Controller will listen to new connections.'],
   ['s' , 'listen_ssl'                 , 'Enable HTTPS in server'],
   ['T' , 'turn-url'                   , 'Turn server\'s URL.'],
   ['U' , 'turn-username'              , 'Turn server\'s username.'],
@@ -106,7 +108,7 @@ if (GLOBAL.config.erizoController.listen_ssl) {
     server = http.createServer();
 }
 
-server.listen(GLOBAL.config.erizoController.port);
+server.listen(GLOBAL.config.erizoController.listen_port);
 var io = require('socket.io').listen(server, {log:false});
 
 io.set('log level', 0);
