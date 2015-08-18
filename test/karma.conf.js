@@ -15,6 +15,7 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
       'erizo-test.js',
+      '../erizo_controller/erizoClient/dist/socket.io.js',
       '../erizo_controller/erizoClient/dist/erizo.js',
       '../nuve/nuveClient/build/nuve.js',
       '../licode_config.js'
