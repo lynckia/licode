@@ -563,7 +563,7 @@ Erizo.Room = function (spec) {
                         stream.pc = Erizo.Connection({callback: function (message) {
                             L.Logger.info("Sending message", message);
                             sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: message, browser: stream.pc.browser}, undefined, function () {});
-                        }, nop2p: true, audio: stream.hasAudio(), video: stream.hasVideo(), stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
+                        }, nop2p: true, audio: options.audio, video: options.video, stunServerUrl: that.stunServerUrl, turnServer: that.turnServer});
 
                         stream.pc.onaddstream = function (evt) {
                             // Draw on html
