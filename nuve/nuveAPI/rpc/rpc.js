@@ -31,6 +31,10 @@ if (config.rabbit.url !== undefined) {
     addr.port = config.rabbit.port;
 }
 
+if(config.rabbit.heartbeat !==undefined){
+    addr.heartbeat = config.rabbit.heartbeat;
+}
+
 exports.connect = function () {
 
     connection = amqp.createConnection(addr);

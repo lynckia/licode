@@ -29,6 +29,10 @@ if (GLOBAL.config.rabbit.url !== undefined) {
     addr.port = GLOBAL.config.rabbit.port;
 }
 
+if(GLOBAL.config.rabbit.heartbeat !==undefined){
+    addr.heartbeat = GLOBAL.config.rabbit.heartbeat;
+}
+
 exports.setPublicRPC = function(methods) {
     rpcPublic = methods;
 };

@@ -13,6 +13,7 @@ GLOBAL.config.erizo.maxport = GLOBAL.config.erizo.maxport || 0;
 var getopt = new Getopt([
   ['r' , 'rabbit-host=ARG'            , 'RabbitMQ Host'],
   ['g' , 'rabbit-port=ARG'            , 'RabbitMQ Port'],
+  ['b' , 'rabbit-heartbeat=ARG'       , 'RabbitMQ AMQP Heartbeat Timeout'],
   ['l' , 'logging-config-file=ARG'    , 'Logging Config File'],
   ['s' , 'stunserver=ARG'             , 'Stun Server hostname'],
   ['p' , 'stunport=ARG'               , 'Stun Server port'],
@@ -38,6 +39,10 @@ for (var prop in opt.options) {
             case "rabbit-port":
                 GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
                 GLOBAL.config.rabbit.port = value;
+                break;
+            case "rabbit-heartbeat":
+                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
+                GLOBAL.config.rabbit.heartbeat = value;
                 break;
             case "logging-config-file":
                 GLOBAL.config.logger = GLOBAL.config.logger || {};

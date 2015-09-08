@@ -19,6 +19,7 @@ var getopt = new Getopt([
   ['r' , 'rabbit-host=ARG'            , 'RabbitMQ Host'],
   ['g' , 'rabbit-port=ARG'            , 'RabbitMQ Port'],
   ['l' , 'logging-config-file=ARG'    , 'Logging Config File'],
+  ['b' , 'rabbit-heartbeat=ARG'       , 'RabbitMQ AMQP Heartbeat Timeout'],
   ['M' , 'maxProcesses=ARG'           , 'Stun Server URL'],
   ['P' , 'prerunProcesses=ARG'        , 'Default video Bandwidth'],
   ['m' , 'metadata=ARG'               , 'JSON metadata'],
@@ -44,6 +45,10 @@ for (var prop in opt.options) {
             case "rabbit-port":
                 GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
                 GLOBAL.config.rabbit.port = value;
+                break;
+            case "rabbit-heartbeat":
+                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
+                GLOBAL.config.rabbit.heartbeat = value;
                 break;
             case "logging-config-file":
                 GLOBAL.config.logger = GLOBAL.config.logger || {};
