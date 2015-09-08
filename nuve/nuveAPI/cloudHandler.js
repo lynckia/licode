@@ -8,7 +8,8 @@ var log = logger.getLogger("CloudHandler");
 
 var ec2;
 
-var INTERVAL_TIME_EC_READY = 100;
+var INTERVAL_TIME_EC_READY = 500;
+var TOTAL_ATTEMPTS_EC_READY = 20;
 var INTERVAL_TIME_CHECK_KA = 1000;
 var MAX_KA_COUNT = 10;
 
@@ -179,6 +180,7 @@ exports.killMe = function (ip) {
 exports.getErizoControllerForRoom = function (room, callback) {
     "use strict";
 
+
     var roomId = room._id;
 
     if (rooms[roomId] !== undefined) {
@@ -187,6 +189,7 @@ exports.getErizoControllerForRoom = function (room, callback) {
     }
 
     var id,
+        attempts = 0,
         intervarId = setInterval(function () {
 
         if (getErizoController) {
@@ -203,6 +206,12 @@ exports.getErizoControllerForRoom = function (room, callback) {
             recalculatePriority();
             clearInterval(intervarId);
         }
+
+        if (attempts > TOTAL_ATTEMPTS_EC_READY) {
+            clearInterval(intervarId);
+            callback('timeout');
+        }
+        attempts++; 
 
     }, INTERVAL_TIME_EC_READY);
 
