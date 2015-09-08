@@ -35,6 +35,7 @@ GLOBAL.config.erizoController.roles = GLOBAL.config.erizoController.roles || {"p
 var getopt = new Getopt([
   ['r' , 'rabbit-host=ARG'            , 'RabbitMQ Host'],
   ['g' , 'rabbit-port=ARG'            , 'RabbitMQ Port'],
+  ['b' , 'rabbit-heartbeat=ARG'       , 'RabbitMQ AMQP Heartbeat Timeout'],
   ['l' , 'logging-config-file=ARG'    , 'Logging Config File'],
   ['t' , 'stunServerUrl=ARG'          , 'Stun Server URL'],
   ['b' , 'defaultVideoBW=ARG'         , 'Default video Bandwidth'],
@@ -72,6 +73,10 @@ for (var prop in opt.options) {
             case "rabbit-port":
                 GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
                 GLOBAL.config.rabbit.port = value;
+                break;
+            case "rabbit-heartbeat":
+                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
+                GLOBAL.config.rabbit.heartbeat = value;
                 break;
             case "logging-config-file":
                 GLOBAL.config.logger = GLOBAL.config.logger || {};
