@@ -237,6 +237,11 @@ Erizo.Room = function (spec) {
             }
         });
 
+        that.socket.on('error', function(e){
+            L.Logger.error("Cannot connect to Erizo-Controller (socket.io error)", e);
+            error(e);
+        });
+
         // First message with the token
         sendMessageSocket('token', token, callback, error);
     };
@@ -313,6 +318,8 @@ Erizo.Room = function (spec) {
             that.dispatchEvent(connectEvt);
         }, function (error) {
             L.Logger.error("Not Connected! Error: " + error);
+            var connectEvt = Erizo.RoomEvent({type: "room-error"});
+            that.dispatchEvent(connectEvt);
         });
     };
 
