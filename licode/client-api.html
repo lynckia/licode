@@ -605,6 +605,7 @@ var streams = room.getStreamsByAttribute('type', 'public');
           <p>Room inherits EventDispatcher (see <a href="#events">events</a> for further information), for handling RoomEvents and StreamEvents. For example:</p>
           <ul>
             <li>Event 'room-connected' points out that the user has been successfully connected to the room.</li>
+            <li>Event 'room-error' indicates that there has been an error and it hasn't been possible to connect to the room.</li>
             <li>Event 'room-disconnected' shows that the user has been already disconnected.</li>
             <li>Event 'stream-added' indicates that there is a new stream available in the room.</li>
             <li>Event 'stream-removed' shows that a previous available stream has been removed from the room.</li>
@@ -616,6 +617,7 @@ var streams = room.getStreamsByAttribute('type', 'public');
 <pre class="prettyprint linenums">
 var room = Room({token:"..."});
 room.addEventListener("room-connected", function(evt){...});
+room.addEventListener("room-error", function(evt){...});
 room.addEventListener("room-disconnected", function(evt){...});
 room.addEventListener("stream-added", function(evt){...});
 room.addEventListener("stream-removed", function(evt){...});
@@ -671,6 +673,7 @@ var event = Erizo.LicodeEvent({type: "room-connected"});</pre>
           <p> These are the type of Room events thrown:</p>
           <ul>
             <li><em>room-connected</em>: points out that the user has been successfully connected to the room. This message also provides the list of streams that are currently published in the room.</li>
+            <li><em>room-error</em>: indicates that it hasn't been possible a succesufully connection to the room.</li>
             <li><em>room-disconnected</em>: shows that the user has been already disconnected.</li>
           </ul>
           <p> They are all dispatched by Room objects</p>
