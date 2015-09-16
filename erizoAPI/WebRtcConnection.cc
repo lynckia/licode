@@ -4,7 +4,6 @@
 
 #include "WebRtcConnection.h"
 
-
 using namespace v8;
 
 WebRtcConnection::WebRtcConnection() {};
@@ -44,7 +43,7 @@ void WebRtcConnection::Init(Handle<Object> target) {
 
 Handle<Value> WebRtcConnection::New(const Arguments& args) {
   HandleScope scope;
-  if (args.Length()<4){
+  if (args.Length()<7){
     ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
     return args.This();
   }
@@ -58,8 +57,30 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
   int minPort = args[4]->IntegerValue();
   int maxPort = args[5]->IntegerValue();
   bool t = (args[6]->ToBoolean())->BooleanValue();
+
+  erizo::IceConfig iceConfig;
+  if (args.Length()==11){
+    String::Utf8Value param2(args[7]->ToString());
+    std::string turnServer = std::string(*param2);
+    int turnPort = args[8]->IntegerValue();
+    String::Utf8Value param3(args[9]->ToString());
+    std::string turnUsername = std::string(*param3);
+    String::Utf8Value param4(args[10]->ToString());
+    std::string turnPass = std::string(*param4);
+    iceConfig.turnServer = turnServer;
+    iceConfig.turnPort = turnPort;
+    iceConfig.turnUsername = turnUsername;
+    iceConfig.turnPass = turnPass;
+  }
+
+
+  iceConfig.stunServer = stunServer;
+  iceConfig.stunPort = stunPort;
+  iceConfig.minPort = minPort;
+  iceConfig.maxPort = maxPort;
+
   WebRtcConnection* obj = new WebRtcConnection();
-  obj->me = new erizo::WebRtcConnection(a, v, stunServer,stunPort,minPort,maxPort,t, obj);
+  obj->me = new erizo::WebRtcConnection(a, v, iceConfig,t, obj);
   obj->Wrap(args.This());
   uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
   uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 

@@ -18,6 +18,7 @@ namespace erizo {
 
 class Transport;
 class TransportListener;
+class IceConfig;
 
 /**
  * WebRTC Events
@@ -59,7 +60,7 @@ public:
      * Constructor.
      * Constructs an empty WebRTCConnection without any configuration.
      */
-    WebRtcConnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort,bool trickleEnabled, WebRtcConnectionEventListener* listener);
+    WebRtcConnection(bool audioEnabled, bool videoEnabled, const IceConfig& iceConfig,bool trickleEnabled, WebRtcConnectionEventListener* listener);
     /**
      * Destructor.
      */
@@ -179,7 +180,8 @@ private:
   bool trickleEnabled_;
   bool shouldSendFeedback_;
   uint32_t rateControl_; //Target bitrate for hacky rate control in BPS 
-
+  
+  IceConfig iceConfig_;
   int stunPort_, minPort_, maxPort_;
   std::string stunServer_;
 

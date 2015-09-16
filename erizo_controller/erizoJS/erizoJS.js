@@ -15,10 +15,12 @@ var getopt = new Getopt([
   ['g' , 'rabbit-port=ARG'            , 'RabbitMQ Port'],
   ['b' , 'rabbit-heartbeat=ARG'       , 'RabbitMQ AMQP Heartbeat Timeout'],
   ['l' , 'logging-config-file=ARG'    , 'Logging Config File'],
-  ['s' , 'stunserver=ARG'             , 'Stun Server hostname'],
+  ['s' , 'stunserver=ARG'             , 'Stun Server IP'],
   ['p' , 'stunport=ARG'               , 'Stun Server port'],
   ['m' , 'minport=ARG'                , 'Minimum port'],
   ['M' , 'maxport=ARG'                , 'Maximum port'],
+  ['t' , 'turnserver=ARG'             , 'TURN server IP'],
+  ['T' , 'turnport=ARG'               , 'TURN server PORT'],
   ['h' , 'help'                       , 'display this help']
 ]);
 

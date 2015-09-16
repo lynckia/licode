@@ -121,6 +121,13 @@ config.erizo = {};
 config.erizo.stunserver = ''; // default value: ''
 config.erizo.stunport = 0; // default value: 0
 
+//TURN server IP address and port to be used by the server.
+//if '' is used, no relay for the server is used
+config.erizo.turnserver = ''; // default value: ''
+config.erizo.turnport = 0; // default value: 0
+config.erizo.turnusername = '';
+config.erizo.turnpass = '';
+
 //note, this won't work with all versions of libnice. With 0 all the available ports are used
 config.erizo.minport = 0; // default value: 0
 config.erizo.maxport = 0; // default value: 0

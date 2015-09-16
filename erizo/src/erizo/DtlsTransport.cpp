@@ -75,8 +75,8 @@ void Resender::resend(const boost::system::error_code& ec) {
 }
 
 DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, 
-    const std::string &stunServer, int stunPort, int minPort, int maxPort, std::string username, std::string password):
-  Transport(med, transport_name, bundle, rtcp_mux, transportListener, stunServer, stunPort, minPort, maxPort), 
+    const IceConfig& iceConfig, std::string username, std::string password):
+  Transport(med, transport_name, bundle, rtcp_mux, transportListener, iceConfig), 
   readyRtp(false), readyRtcp(false), running_(false) {
   ELOG_DEBUG( "Initializing DtlsTransport" );
 
@@ -96,7 +96,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
     (new DtlsFactory())->createClient(dtlsRtcp);
     dtlsRtcp->setDtlsReceiver(this);
   }
-  nice_.reset(new NiceConnection(med, transport_name, this, comps, stunServer, stunPort, minPort, maxPort, username, password));
+  nice_.reset(new NiceConnection(med, transport_name, this, comps, iceConfig_, username, password));
   running_ =true;
   getNice_Thread_ = boost::thread(&DtlsTransport::getNiceDataLoop, this);
 
