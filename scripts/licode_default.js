@@ -118,10 +118,13 @@ config.erizo = {};
 
 //STUN server IP address and port to be used by the server.
 //if '' is used, the address is discovered locally
+//Please note this is only needed if your server does not have a public IP
 config.erizo.stunserver = ''; // default value: ''
 config.erizo.stunport = 0; // default value: 0
 
 //TURN server IP address and port to be used by the server.
+//Please note this is not needed in most cases, setting TURN in erizoController for the clients
+//is the recommended configuration
 //if '' is used, no relay for the server is used
 config.erizo.turnserver = ''; // default value: ''
 config.erizo.turnport = 0; // default value: 0

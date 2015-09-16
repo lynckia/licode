@@ -8,6 +8,10 @@ GLOBAL.config.erizo.stunserver = GLOBAL.config.erizo.stunserver || '';
 GLOBAL.config.erizo.stunport = GLOBAL.config.erizo.stunport || 0;
 GLOBAL.config.erizo.minport = GLOBAL.config.erizo.minport || 0;
 GLOBAL.config.erizo.maxport = GLOBAL.config.erizo.maxport || 0;
+GLOBAL.config.erizo.turnserver = GLOBAL.config.erizo.turnserver || '';
+GLOBAL.config.erizo.turnport = GLOBAL.config.erizo.turnport || 0;
+GLOBAL.config.erizo.turnusername = GLOBAL.config.erizo.turnusername || '';
+GLOBAL.config.erizo.turnpass = GLOBAL.config.erizo.turnpass || '';
 
 // Parse command line arguments
 var getopt = new Getopt([
@@ -21,6 +25,8 @@ var getopt = new Getopt([
   ['M' , 'maxport=ARG'                , 'Maximum port'],
   ['t' , 'turnserver=ARG'             , 'TURN server IP'],
   ['T' , 'turnport=ARG'               , 'TURN server PORT'],
+  ['c' , 'turnusername=ARG'           , 'TURN username'],
+  ['C' , 'turnpass=ARG'               , 'TURN password'],
   ['h' , 'help'                       , 'display this help']
 ]);
 
