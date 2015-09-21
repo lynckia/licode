@@ -85,7 +85,8 @@ exports.connect = function(callback) {
     });
 
     connection.on('error', function(e) {
-       log.error('Connection error...', e);
+       log.error('Connection error...', e, " killing process.");
+       process.exit(1);
     });
 }
 
