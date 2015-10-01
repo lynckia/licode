@@ -182,6 +182,7 @@ exports.RoomController = function (spec) {
                 
                 // then we call its addPublisher method.
                 var args = [publisher_id, options.minVideoBW];
+                //TODO: Possible race condition if we got an old id
                 amqper.callRpc(getErizoQueue(publisher_id), "addPublisher", args, {callback: callback});
 
                 erizos[erizo_id].publishers.push(publisher_id);

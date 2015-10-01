@@ -82,6 +82,11 @@ exports.connect = function () {
         });
 
     });
+   
+    connection.on('error', function(e) {
+       log.error('Connection error...', e, " killing process.");
+       process.exit(1);
+    });
 }
 
 var callbackError = function (corrID) {

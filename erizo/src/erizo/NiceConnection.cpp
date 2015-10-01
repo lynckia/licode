@@ -76,7 +76,7 @@ namespace erizo {
   }
 
   NiceConnection::NiceConnection(MediaType med, const std::string &transport_name,NiceConnectionListener* listener, 
-      unsigned int iceComponents, const std::string& stunServer, int stunPort, int minPort, int maxPort, std::string username, std::string password)
+      unsigned int iceComponents, const IceConfig& iceConfig, std::string username, std::string password)
      : mediaType(med), agent_(NULL), listener_(listener), candsDelivered_(0), context_(NULL), iceState_(NICE_INITIAL), iceComponents_(iceComponents) {
 
     localCandidates.reset(new std::vector<CandidateInfo>());
@@ -103,17 +103,17 @@ namespace erizo {
     g_object_set_property(G_OBJECT( agent_ ), "max-connectivity-checks", &checks);
 
 
-    if (stunServer.compare("") != 0 && stunPort!=0){
+    if (iceConfig.stunServer.compare("") != 0 && iceConfig.stunPort!=0){
       GValue val = { 0 }, val2 = { 0 };
       g_value_init(&val, G_TYPE_STRING);
-      g_value_set_string(&val, stunServer.c_str());
+      g_value_set_string(&val, iceConfig.stunServer.c_str());
       g_object_set_property(G_OBJECT( agent_ ), "stun-server", &val);
 
       g_value_init(&val2, G_TYPE_UINT);
-      g_value_set_uint(&val2, stunPort);
+      g_value_set_uint(&val2, iceConfig.stunPort);
       g_object_set_property(G_OBJECT( agent_ ), "stun-server-port", &val2);
 
-      ELOG_DEBUG("Setting STUN server %s:%d", stunServer.c_str(), stunPort);
+      ELOG_DEBUG("Setting STUN server %s:%d", iceConfig.stunServer.c_str(), iceConfig.stunPort);
     }
 
     // Connect the signals
@@ -138,21 +138,23 @@ namespace erizo {
     nice_agent_set_remote_credentials(agent_, (guint) 1, username.c_str(), password.c_str());
 
     // Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
-    if (minPort!=0 && maxPort!=0){
-      ELOG_DEBUG("Setting port range: %d to %d\n", minPort, maxPort);
-      nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)minPort, (guint)maxPort);
+    if (iceConfig.minPort!=0 && iceConfig.maxPort!=0){
+      ELOG_DEBUG("Setting port range: %d to %d\n", iceConfig.minPort, iceConfig.maxPort);
+      nice_agent_set_port_range(agent_, (guint)1, (guint)1, (guint)iceConfig.minPort, (guint)iceConfig.maxPort);
     }
 
-    if (SERVER_SIDE_TURN){
+    if (iceConfig.turnServer.compare("") != 0 && iceConfig.turnPort!=0){
+        ELOG_DEBUG("Setting TURN server %s:%d", iceConfig.turnServer.c_str(), iceConfig.turnPort);
+        ELOG_DEBUG("Setting TURN credentials %s:%s", iceConfig.turnUsername.c_str(), iceConfig.turnPass.c_str());
+
         for (unsigned int i = 1; i <= iceComponents_ ; i++){
-          ELOG_DEBUG("Setting TURN Comp %d\n", i);
           nice_agent_set_relay_info     (agent_,
               1,
               i,
-              "",      // TURN Server IP
-              3479,    // TURN Server PORT
-              "",      // Username
-              "",      // Pass
+              iceConfig.turnServer.c_str(),      // TURN Server IP
+              iceConfig.turnPort,    // TURN Server PORT
+              iceConfig.turnUsername.c_str(),      // Username
+              iceConfig.turnPass.c_str(),      // Pass
               NICE_RELAY_TYPE_TURN_UDP);
         }
     }
