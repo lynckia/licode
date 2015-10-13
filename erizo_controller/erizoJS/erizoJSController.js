@@ -54,7 +54,7 @@ exports.ErizoJSController = function (spec) {
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
      */
-    initWebRtcConnection = function (wrtc, callback, id_pub, id_sub, browser) {
+    initWebRtcConnection = function (wrtc, callback, id_pub, id_sub, browser, createOffer) {
 
         wrtc.bwValues = [];
         var isReporting = true;
@@ -196,9 +196,12 @@ exports.ErizoJSController = function (spec) {
 
                 case CONN_SDP:
                 case CONN_GATHERED:
-//                    log.debug('Sending SDP', mess);
+                    log.debug('Sending SDP', mess);
                     mess = mess.replace(that.privateRegexp, that.publicIP);
-                    callback('callback', {type: 'answer', sdp: mess});
+                    if (createOffer)
+                        callback('callback', {type: 'offer', sdp: mess});
+                    else
+                        callback('callback', {type: 'answer', sdp: mess});
                     break;
                     
                 case CONN_CANDIDATE:
@@ -221,7 +224,10 @@ exports.ErizoJSController = function (spec) {
             }
         });
         log.info("initializing");
-
+        if (createOffer===true){
+            log.info("Creating Offer");
+            wrtc.createOffer();
+        }
         callback('callback', {type: 'initializing'});
     };
 
@@ -354,11 +360,11 @@ exports.ErizoJSController = function (spec) {
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
-    that.addPublisher = function (from, minVideoBW, callback) {
+    that.addPublisher = function (from, minVideoBW, createOffer, callback) {
 
         if (publishers[from] === undefined) {
 
-            log.info("Adding publisher peer_id ", from, "minVideoBW", minVideoBW);
+            log.info("Adding publisher peer_id ", from, "minVideoBW", minVideoBW, "createOffer", createOffer);
 
             var muxer = new addon.OneToManyProcessor(),
                 wrtc = new addon.WebRtcConnection(true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
@@ -371,7 +377,7 @@ exports.ErizoJSController = function (spec) {
             wrtc.setVideoReceiver(muxer);
             muxer.setPublisher(wrtc);
 
-            initWebRtcConnection(wrtc, callback, from);
+            initWebRtcConnection(wrtc, callback, from, undefined, undefined, createOffer);
 
             //log.info('Publishers: ', publishers);
             //log.info('Subscribers: ', subscribers);

@@ -229,7 +229,7 @@ DtlsFactory::DtlsFactory()
 
     ELOG_DEBUG("Creating Dtls factory");
 
-    mContext=SSL_CTX_new(DTLSv1_client_method());
+    mContext=SSL_CTX_new(DTLSv1_method());
     assert(mContext);
 
     int r = SSL_CTX_use_certificate(mContext, mCert);

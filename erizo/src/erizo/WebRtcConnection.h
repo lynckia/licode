@@ -78,6 +78,7 @@ public:
      */
     bool setRemoteSdp(const std::string &sdp);
 
+    bool createOffer();
     /**
      * Add new remote candidate (from remote peer).
      * @param sdp The candidate in SDP format.

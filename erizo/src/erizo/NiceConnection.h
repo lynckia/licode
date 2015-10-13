@@ -129,6 +129,13 @@ public:
 	 * @param username and password where credentials will be stored
 	 */
 	void getLocalCredentials(std::string& username, std::string& password);
+  
+	/**
+	 * Set remote credentials
+	 * @param username and password
+	 */
+  void setRemoteCredentials (const std::string& username, const std::string& password);
+
 	/**
 	 * Sets the associated Listener.
 	 * @param connection Pointer to the NiceConnectionListener.
@@ -146,6 +153,7 @@ public:
 	 * @return Bytes sent.
 	 */
 	int sendData(unsigned int compId, const void* buf, int len);
+
 
 
 

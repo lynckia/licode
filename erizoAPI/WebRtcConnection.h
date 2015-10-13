@@ -54,6 +54,8 @@ class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventLi
    * Param: the SDP.
    * Returns true if the SDP was received correctly.
    */
+  static v8::Handle<v8::Value> createOffer(const v8::Arguments& args);
+
   static v8::Handle<v8::Value> setRemoteSdp(const v8::Arguments& args);
   /**
      * Add new remote candidate (from remote peer).

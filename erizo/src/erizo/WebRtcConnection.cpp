@@ -65,12 +65,39 @@ namespace erizo {
   }
 
   bool WebRtcConnection::init() {
+    if (connEventListener_ != NULL) {
+      connEventListener_->notifyEvent(globalState_, "");
+    }
     return true;
   }
-  
+
+  bool WebRtcConnection::createOffer (){
+
+    bundle_ = true;
+    this->localSdp_.createOfferSdp();
+
+    ELOG_DEBUG("Creating sdp offer");
+    ELOG_DEBUG("Setting SSRC to localSdp %u", this->getVideoSinkSSRC());
+
+    localSdp_.videoSsrc = this->getVideoSinkSSRC();
+    localSdp_.audioSsrc = this->getAudioSinkSSRC();
+
+
+    if (!videoTransport_ ){ // For now we don't re/check transports, if they are already created we leave them there
+      videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, true, this, iceConfig_ , "", "", true);
+    }
+
+    if (connEventListener_ != NULL) {
+      std::string msg = this->getLocalSdp();
+      connEventListener_->notifyEvent(globalState_, msg);
+    }
+    return true;
+  }
+
   bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     ELOG_DEBUG("Set Remote SDP %s", sdp.c_str());
     remoteSdp_.initWithSdp(sdp, "");
+
 
     bundle_ = remoteSdp_.isBundle;
     ELOG_DEBUG("Is bundle? %d", bundle_);
@@ -90,22 +117,34 @@ namespace erizo {
     rtcpProcessor_->addSourceSsrc(this->getAudioSourceSSRC());
     rtcpProcessor_->addSourceSsrc(this->getVideoSourceSSRC());
 
-    if (!videoTransport_ && !audioTransport_){ // For now we don't re/check transports, if they are already created we leave them there
-      if (remoteSdp_.profile == SAVPF) {
-        if (remoteSdp_.isFingerprint) {
-          if (remoteSdp_.hasVideo||bundle_) {
-            std::string username, password;
-            remoteSdp_.getCredentials(username, password, VIDEO_TYPE);
-            videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, this, iceConfig_ , username, password);
+    if (remoteSdp_.profile == SAVPF) {
+      if (remoteSdp_.isFingerprint) {
+        if (remoteSdp_.hasVideo||bundle_) {
+          std::string username, password;
+          remoteSdp_.getCredentials(username, password, VIDEO_TYPE);
+          if (!videoTransport_){
+            ELOG_DEBUG("Creating videoTransport with creds %s, %s", username.c_str(), password.c_str());
+            videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, this, iceConfig_ , username, password, false);
+          }else{ 
+            ELOG_DEBUG("UPDATING videoTransport with creds %s, %s", username.c_str(), password.c_str());
+            videoTransport_->getNiceConnection()->setRemoteCredentials(username, password);
           }
-          if (!bundle_ && remoteSdp_.hasAudio) {
-            std::string username, password;
-            remoteSdp_.getCredentials(username, password, AUDIO_TYPE);
-            audioTransport_ = new DtlsTransport(AUDIO_TYPE, "audio", bundle_, remoteSdp_.isRtcpMux, this, iceConfig_, username, password);
+        }
+        if (!bundle_ && remoteSdp_.hasAudio) {
+          std::string username, password;
+          remoteSdp_.getCredentials(username, password, AUDIO_TYPE);
+          if (!audioTransport_){
+            ELOG_DEBUG("Creating audioTransport with creds %s, %s", username.c_str(), password.c_str());
+            audioTransport_ = new DtlsTransport(AUDIO_TYPE, "audio", bundle_, remoteSdp_.isRtcpMux, this, iceConfig_, username, password, false);
+          }else{
+            ELOG_DEBUG("UPDATING audioTransport with creds %s, %s", username.c_str(), password.c_str());
+            audioTransport_->getNiceConnection()->setRemoteCredentials(username, password);
           }
+
         }
       }
     }
+
     
     if(trickleEnabled_){
       std::string object = this->getLocalSdp();

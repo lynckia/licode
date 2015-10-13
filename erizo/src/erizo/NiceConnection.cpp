@@ -135,8 +135,10 @@ namespace erizo {
     upass_ = std::string(upass); g_free(upass);
 
     // Set our remote credentials.  This must be done *after* we add a stream.
-    nice_agent_set_remote_credentials(agent_, (guint) 1, username.c_str(), password.c_str());
-
+    if (username.compare("")!=0 && password.compare("")!=0){
+      ELOG_DEBUG("Setting remote credentials in constructor");
+      this->setRemoteCredentials(username, password);
+    }
     // Set Port Range ----> If this doesn't work when linking the file libnice.sym has to be modified to include this call
     if (iceConfig.minPort!=0 && iceConfig.maxPort!=0){
       ELOG_DEBUG("Setting port range: %d to %d\n", iceConfig.minPort, iceConfig.maxPort);
@@ -423,6 +425,11 @@ namespace erizo {
     password = upass_;
   }
 
+  void NiceConnection::setRemoteCredentials (const std::string& username, const std::string& password){
+    ELOG_DEBUG("Setting remote credentials %s, %s", username.c_str(), password.c_str());
+    nice_agent_set_remote_credentials(agent_, (guint) 1, username.c_str(), password.c_str());
+  }
+
   void NiceConnection::setNiceListener(NiceConnectionListener *listener) {
     this->listener_ = listener;
   }
@@ -432,7 +439,7 @@ namespace erizo {
   }
 
   void NiceConnection::updateComponentState(unsigned int compId, IceState state) {
-    ELOG_DEBUG("%s - NICE Component State Changed %u - %u", transportName->c_str(), compId, state);
+    ELOG_DEBUG("%s - NICE Component State Changed %u - %u, total comps %u", transportName->c_str(), compId, state, iceComponents_);
     comp_state_list_[compId] = state;
     if (state == NICE_READY) {
       for (unsigned int i = 1; i<=iceComponents_; i++) {

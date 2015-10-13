@@ -75,26 +75,41 @@ void Resender::resend(const boost::system::error_code& ec) {
 }
 
 DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, 
-    const IceConfig& iceConfig, std::string username, std::string password):
+    const IceConfig& iceConfig, std::string username, std::string password, bool isServer):
   Transport(med, transport_name, bundle, rtcp_mux, transportListener, iceConfig), 
   readyRtp(false), readyRtcp(false), running_(false) {
   ELOG_DEBUG( "Initializing DtlsTransport" );
 
   dtlsRtp.reset(new DtlsSocketContext());
 
+  isServer_ = isServer;
+
   // TODO the ownership of classes here is....really awkward. Basically, the DtlsFactory created here ends up being owned the the created client
   // which is in charge of nuking it.  All of the session state is tracked in the DtlsSocketContext.
   //
   // A much more sane architecture would be simply having the client _be_ the context.
-  (new DtlsFactory())->createClient(dtlsRtp);
-  dtlsRtp->setDtlsReceiver(this);
-
   int comps = 1;
-  if (!rtcp_mux) {
-    comps = 2;
-    dtlsRtcp.reset(new DtlsSocketContext());
-    (new DtlsFactory())->createClient(dtlsRtcp);
-    dtlsRtcp->setDtlsReceiver(this);
+  if (isServer_){
+    ELOG_DEBUG("CREATE OFFER, WE USE A SERVER");
+    (new DtlsFactory())->createServer(dtlsRtp);
+    dtlsRtp->setDtlsReceiver(this);
+
+    if (!rtcp_mux) {
+      comps = 2;
+      dtlsRtcp.reset(new DtlsSocketContext());
+      (new DtlsFactory())->createServer(dtlsRtcp);
+      dtlsRtcp->setDtlsReceiver(this);
+    }
+  }else{
+    (new DtlsFactory())->createClient(dtlsRtp);
+    dtlsRtp->setDtlsReceiver(this);
+
+    if (!rtcp_mux) {
+      comps = 2;
+      dtlsRtcp.reset(new DtlsSocketContext());
+      (new DtlsFactory())->createClient(dtlsRtcp);
+      dtlsRtcp->setDtlsReceiver(this);
+    }
   }
   nice_.reset(new NiceConnection(med, transport_name, this, comps, iceConfig_, username, password));
   running_ =true;
@@ -141,6 +156,7 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
           return;
         }
       } else {
+
         if(srtp->unprotectRtp(unprotectBuf_, &length)<0){
           return;
         }
@@ -152,7 +168,6 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
     if (length <= 0){
       return;
     }
-
     getTransportListener()->onTransportData(unprotectBuf_, length, this);
   }
 }
@@ -223,14 +238,19 @@ void DtlsTransport::writeDtls(DtlsSocketContext *ctx, const unsigned char* data,
 
 void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey,std::string serverKey, std::string srtp_profile) {
   boost::mutex::scoped_lock lock(sessionMutex_);
+  std::string temp;
+  if (isServer_){ // If we are server, we swap the keys
+    ELOG_DEBUG("It is server, we swap the keys");
+    clientKey.swap(serverKey);
+  }
   if (ctx == dtlsRtp.get()) {
-    ELOG_DEBUG("%s - Setting RTP srtp params", transport_name.c_str());
+    ELOG_DEBUG("%s - Setting RTP srtp params, is Server? %d", transport_name.c_str(), this->isServer_);
     srtp_.reset(new SrtpChannel());
-    if (srtp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str())) {
-      readyRtp = true;
-    } else {
-      updateTransportState(TRANSPORT_FAILED);
-    }
+      if (srtp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str())) {
+        readyRtp = true;
+      } else {
+        updateTransportState(TRANSPORT_FAILED);
+      }
     if (dtlsRtcp == NULL) {
       readyRtcp = true;
     }
@@ -271,11 +291,11 @@ void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
   }
   else if (state == NICE_READY) {
     ELOG_INFO("%s - Nice ready", transport_name.c_str());
-    if (dtlsRtp && !dtlsRtp->started) {
+    if (!isServer_ && dtlsRtp && !dtlsRtp->started) {
       ELOG_INFO("%s - DTLSRTP Start", transport_name.c_str());
       dtlsRtp->start();
     }
-    if (dtlsRtcp != NULL && (!dtlsRtcp->started || rtcpResender->getStatus() < 0)) {
+    if (!isServer_ && dtlsRtcp != NULL && (!dtlsRtcp->started || rtcpResender->getStatus() < 0)) {
       ELOG_DEBUG("%s - DTLSRTCP Start", transport_name.c_str());
       dtlsRtcp->start();
     }

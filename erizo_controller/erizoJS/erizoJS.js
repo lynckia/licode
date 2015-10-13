@@ -74,7 +74,6 @@ var log = logger.getLogger("ErizoJS");
 var ejsController = controller.ErizoJSController();
 
 ejsController.keepAlive = function(callback) {
-    log.debug("KeepAlive from ErizoController");
     callback('callback', true);
 };
 

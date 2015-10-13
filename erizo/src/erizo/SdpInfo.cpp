@@ -44,7 +44,7 @@ namespace erizo {
     isFingerprint = false;
     hasAudio = false;
     hasVideo = false;
-    profile = AVPF;
+    profile = SAVPF;
     audioSsrc = 0;
     videoSsrc = 0;
     videoRtxSsrc = 0;
@@ -508,6 +508,22 @@ namespace erizo {
 
     }
     return false;
+  }
+
+  void SdpInfo::createOfferSdp(){
+
+    this->payloadVector = internalPayloadVector_;
+    this->isBundle = true;
+    this->profile = SAVPF;
+    this->isRtcpMux = true;
+    this->videoSdpMLine = 0;
+    this->audioSdpMLine = 1;
+    this->hasVideo = true;
+    this->hasAudio = true;
+    this->videoDirection = SENDRECV;
+    this->audioDirection = SENDRECV;
+    this->videoRtxSsrc = 55555;
+    ELOG_DEBUG("Setting Offer SDP");
   }
 
   void SdpInfo::setOfferSdp(const SdpInfo& offerSdp) {
