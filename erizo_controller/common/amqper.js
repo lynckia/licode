@@ -79,7 +79,7 @@ exports.connect = function(callback) {
         });
 
         //Create a fanout exchange
-        broadcast_exc = connection.exchange('broadcastExchange', {type: 'topic'}, function (exchange) {
+        broadcast_exc = connection.exchange('broadcastExchange', {type: 'topic', autoDelete: false}, function (exchange) {
             log.info('Exchange ' + exchange.name + ' is open');
         });
     });
