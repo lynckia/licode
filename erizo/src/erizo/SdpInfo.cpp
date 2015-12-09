@@ -648,8 +648,9 @@ namespace erizo {
           ELOG_DEBUG("BUNDLE sdp");
           isBundle = true;
         }
-        if (parts.size()>=4){
-          for (unsigned int tagno=2; tagno<parts.size(); tagno++){
+        // number of parts will vary depending on whether audio and video are present in the bundle
+        if (parts.size() >= 3) {
+          for (unsigned int tagno=2; tagno<parts.size(); tagno++) {
             ELOG_DEBUG("Adding %s to bundle vector", parts[tagno].c_str());
             BundleTag theTag(parts[tagno], OTHER);
             bundleTags.push_back(theTag);
