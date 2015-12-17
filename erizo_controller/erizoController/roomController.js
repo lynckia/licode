@@ -80,7 +80,7 @@ exports.RoomController = function (spec) {
 
     // Prototype method to add a branch to a erizo Tree
     var shouldAddSurrogate = function(publisher_id, subscriber_id, options, callback){
-        //TODO: Create new erizoJS, assign it as surrogate of publisher_id (subscribe), return id
+        //Create new erizoJS, assign it as surrogate of publisher_id (subscribe), return id
         log.info("Adding a surrogate");
         getErizoJS(function(id){
             log.info("got a new Erizo with id", id);
@@ -310,7 +310,6 @@ exports.RoomController = function (spec) {
                 var args = [subscriber_id, publisher_id, options];
 
                 subscribers[publisher_id].push({id:subscriber_id});
-                //                amqper.callRpc(getErizoQueue(publisher_id, subscriber_id), "addSubscriber", args, {callback: callback});
                 amqper.callRpc(getErizoQueue(publisher_id, undefined), "addSubscriber", args, {callback: callback});
             }else{ // Will be used in the future to subscribe to erizo_tree // Will be used in the future to subscribe to erizo_treess
                 shouldAddSurrogate (publisher_id, subscriber_id, options, function(new_id){

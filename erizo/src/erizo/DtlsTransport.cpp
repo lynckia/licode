@@ -246,11 +246,11 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
   if (ctx == dtlsRtp.get()) {
     ELOG_DEBUG("%s - Setting RTP srtp params, is Server? %d", transport_name.c_str(), this->isServer_);
     srtp_.reset(new SrtpChannel());
-      if (srtp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str())) {
-        readyRtp = true;
-      } else {
-        updateTransportState(TRANSPORT_FAILED);
-      }
+    if (srtp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str())) {
+      readyRtp = true;
+    } else {
+      updateTransportState(TRANSPORT_FAILED);
+    }
     if (dtlsRtcp == NULL) {
       readyRtcp = true;
     }
