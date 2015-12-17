@@ -50,7 +50,6 @@ namespace erizo {
     boost::unique_lock<boost::mutex> lock(myMonitor_);
     if (subscribers.empty())
       return 0;
-    
     std::map<std::string, sink_ptr>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       if((*it).second != NULL) {
@@ -61,7 +60,6 @@ namespace erizo {
   }
 
   void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
-    ELOG_DEBUG("Set Publisher");
     boost::mutex::scoped_lock lock(myMonitor_);
     this->publisher.reset(webRtcConn);
     feedbackSink_ = publisher->getFeedbackSink();
