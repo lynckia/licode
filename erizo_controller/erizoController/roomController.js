@@ -78,7 +78,7 @@ exports.RoomController = function (spec) {
         
     };
 
-    // Prototype method to add a branch to a erizo Tree
+/*  Prototype method to add a branch to a erizo Tree
     var shouldAddSurrogate = function(publisher_id, subscriber_id, options, callback){
         //Create new erizoJS, assign it as surrogate of publisher_id (subscribe), return id
         log.info("Adding a surrogate");
@@ -169,7 +169,7 @@ exports.RoomController = function (spec) {
         });
 
     }
-
+*/
     that.addEventListener = function(eventListener) {
         eventListeners.push(eventListener);
     };
@@ -299,10 +299,9 @@ exports.RoomController = function (spec) {
         }
 
         if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1) {
-            // TODO Should add surrogate
             log.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id);
 
-            if (true){
+//            if (true){
 
                 if (options.audio === undefined) options.audio = true;
                 if (options.video === undefined) options.video = true;
@@ -311,7 +310,7 @@ exports.RoomController = function (spec) {
 
                 subscribers[publisher_id].push({id:subscriber_id});
                 amqper.callRpc(getErizoQueue(publisher_id, undefined), "addSubscriber", args, {callback: callback});
-            }else{ // Will be used in the future to subscribe to erizo_tree // Will be used in the future to subscribe to erizo_treess
+/*            }else{ // Prototype for erizo_trees
                 shouldAddSurrogate (publisher_id, subscriber_id, options, function(new_id){
                     log.info("Surrogate ?", new_id);
 
@@ -324,8 +323,10 @@ exports.RoomController = function (spec) {
                     amqper.callRpc(getErizoQueue(publisher_id, subscriber_id), "addSubscriber", args, {callback: callback});
                     // Track subscriber locally
                 });
+                
 
             }
+            */
         }
     };
 
