@@ -26,6 +26,9 @@ exports.Reporter = function (spec) {
         callback(data);
     };
 
+    var last_total = 0;
+    var last_idle = 0;
+
     var getStats = function () {
 
         var cpus = os.cpus();
@@ -48,8 +51,11 @@ exports.Reporter = function (spec) {
 
         total = user + nice + sys + idle + irq;
 
-        var cpu =  1 - (idle / total);
+        var cpu =  1 - ((idle - last_idle) / (total - last_total));
         var mem = 1 - (os.freemem() / os.totalmem());
+
+        last_total = total;
+        last_idle = idle;
 
     	var data = {
     		perc_cpu: cpu,

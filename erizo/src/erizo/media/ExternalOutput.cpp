@@ -286,15 +286,15 @@ void ExternalOutput::writeVideoData(char* buf, int len){
 }
 
 int ExternalOutput::deliverAudioData_(char* buf, int len) {
-    if (videoSourceSsrc_ == 0){    
-      RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
-      videoSourceSsrc_ = h->getSSRC();
-    }
     this->queueData(buf,len,AUDIO_PACKET);
     return 0;
 }
 
 int ExternalOutput::deliverVideoData_(char* buf, int len) {
+    if (videoSourceSsrc_ == 0){    
+      RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
+      videoSourceSsrc_ = h->getSSRC();
+    }
     this->queueData(buf,len,VIDEO_PACKET);
     return 0;
 }
@@ -376,7 +376,6 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
           context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
         }
     }
-
     if (needToSendFir_ && videoSourceSsrc_) {
         this->sendFirPacket();
         needToSendFir_ = false;
