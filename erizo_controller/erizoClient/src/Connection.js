@@ -12,7 +12,7 @@ Erizo.Connection = function (spec) {
 
     // Check which WebRTC Stack is installed.
     that.browser = Erizo.getBrowser();
-    if (typeof module !== 'undefined' && module.exports) {
+    if (that.browser === 'fake') {
         L.Logger.error('Publish/subscribe video/audio streams not supported in erizofc yet');
         that = Erizo.FcStack(spec);
     } else if (that.browser === 'mozilla') {
@@ -44,7 +44,9 @@ Erizo.getBrowser = function () {
 
     var browser = "none";
 
-    if (window.navigator.userAgent.match("Firefox") !== null) {
+    if (typeof module!=='undefined' && module.exports){
+        browser = "fake";
+    }else if (window.navigator.userAgent.match("Firefox") !== null) {
         // Firefox
         browser = "mozilla";
     } else if (window.navigator.userAgent.match("Bowser") !==null){
