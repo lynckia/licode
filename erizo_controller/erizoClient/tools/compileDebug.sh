@@ -1,7 +1,6 @@
 #!/bin/bash
 FILE=../dist/erizo.js
 rm $FILE
-cat ../lib/socket.io.js >> $FILE
 cat ../src/Events.js >> $FILE
 cat ../src/webrtc-stacks/FcStack.js >> $FILE
 cat ../src/webrtc-stacks/ChromeStableStack.js >> $FILE
