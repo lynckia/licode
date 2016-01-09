@@ -101,7 +101,7 @@ exports.addNewErizoController = function (msg, callback) {
     
 };
 
-var addNewAmazonErizoController = function(privateIP, callback) {
+var addNewAmazonErizoController = function(privateIP, hostname, port, ssl, callback) {
     
     var publicIP;
     var instaceId;
