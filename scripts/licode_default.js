@@ -49,11 +49,11 @@ config.erizoController.maxVideoBW = 300; //default value: 300
 
 // Public erizoController IP for websockets (useful when behind NATs)
 // Use '' to automatically get IP from the interface
-config.erizoController.publicIP = ''; //default value: ''
+config.erizoController.publicIP = ''; //default value: '' - if Amazon EC2 this is the Private IP
 
 // This configuration is used by the clients to reach erizoController 
 // Use '' to use the public IP address instead of a hostname
-config.erizoController.hostname = ''; //default value: ''
+config.erizoController.hostname = ''; //default value: '' - if Amazon EC2 this is the Public IP
 config.erizoController.port = 8080; //default value: 8080
 // Use true if clients communicate with erizoController over SSL
 config.erizoController.ssl = false; //default value: false
