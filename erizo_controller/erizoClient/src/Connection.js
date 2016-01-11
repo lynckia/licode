@@ -21,6 +21,9 @@ Erizo.Connection = function (spec) {
     } else if (that.browser === 'bowser'){
         L.Logger.debug("Bowser Stack");
         that = Erizo.BowserStack(spec); 
+    } else if (that.browser === 'ios'){
+        L.Logger.debug("iOS Stack");
+        that = Erizo.iOSStack(spec); 
     } else if (that.browser === 'chrome-stable') {
         L.Logger.debug("Stable!");
         that = Erizo.ChromeStableStack(spec);
@@ -57,6 +60,8 @@ Erizo.getBrowser = function () {
         }
     } else if (window.navigator.userAgent.match("Safari") !== null) {
         browser = "bowser";
+    } else if (window.navigator.userAgent.match("AppleWebKit") !== null && cordova) {
+        browser = "ios";
     } else if (window.navigator.userAgent.match("AppleWebKit") !== null) {
         browser = "bowser";
     }
@@ -66,6 +71,10 @@ Erizo.getBrowser = function () {
 
 Erizo.GetUserMedia = function (config, callback, error) {
     "use strict";
+
+    if (Erizo.getBrowser() === 'ios') {
+        navigator.getUserMedia = cordova.plugins.iosrtc.getUserMedia;
+    }
 
     navigator.getMedia = ( navigator.getUserMedia ||
                        navigator.webkitGetUserMedia ||
