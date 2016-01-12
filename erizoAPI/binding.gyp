@@ -12,7 +12,7 @@
               'GCC_ENABLE_CPP_RTTI': 'YES',              # -fno-rtti
               'MACOSX_DEPLOYMENT_TARGET' : '10.7',      #from MAC OS 10.7
               'OTHER_CFLAGS': [
-              '-g -O3 -stdlib=libc++',
+              '-g -O3 -stdlib=libc++ -std=c++0x',
             ]
           },
         }, { # OS!="mac"

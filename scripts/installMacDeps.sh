@@ -25,7 +25,11 @@ parse_arguments(){
 }
 
 install_homebrew(){
-  ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+  which -s brew
+  if [[ $? != 0 ]] ; then
+    # Install Homebrew
+    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+  fi
 }
 
 install_brew_deps(){
@@ -39,9 +43,9 @@ install_openssl(){
     curl -O http://www.openssl.org/source/openssl-1.0.1g.tar.gz
     tar -zxvf openssl-1.0.1g.tar.gz
     cd openssl-1.0.1g
-    ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -fPIC
+    ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -shared -fPIC
     make -s V=0
-    make install
+    make install_sw
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
