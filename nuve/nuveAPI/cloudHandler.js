@@ -29,15 +29,14 @@ var recalculatePriority = function () {
     //*******************************************************************
 
     var newEcQueue = [],
-        available = 0,
-        warnings = 0,
+        noAvailable = [],
+        warning = [],
         ec;
 
     for (ec in erizoControllers) {
         if (erizoControllers.hasOwnProperty(ec)) {
             if (erizoControllers[ec].state === 2) {
                 newEcQueue.push(ec);
-                available += 1;
             }
         }
     }
@@ -46,17 +45,26 @@ var recalculatePriority = function () {
         if (erizoControllers.hasOwnProperty(ec)) {
             if (erizoControllers[ec].state === 1) {
                 newEcQueue.push(ec);
-                warnings += 1;
+                warning.push(ec);
+            }
+            if (erizoControllers[ec].state === 0) {
+                noAvailable.push(ec);
             }
         }
     }
 
     ecQueue = newEcQueue;
 
-    if (ecQueue.length === 0 || (available === 0 && warnings < 2)) {
-        log.info('[CLOUD HANDLER]: Warning! No erizoController is available.');
+    if (ecQueue.length === 0) {
+        log.error('No erizoController is available.');
+    }
+    for (var w in warning) {
+        log.warn('Erizo Controller in ', erizoControllers[ec].ip, 'has reached the warning number of rooms');
     }
 
+    for (var n in noAvailable) {
+        log.warn('Erizo Controller in ', erizoControllers[ec].ip, 'has reached the limit number of rooms');
+    }
 },
 
 checkKA = function () {

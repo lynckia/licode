@@ -165,11 +165,12 @@ exports.create = function (req, res) {
         generateToken(function (tokenS) {
 
             if (tokenS === undefined) {
-                res.send('Name and role?', 401);
+                res.status(401).send('Name and role?');
                 return;
             }
             if (tokenS === 'error') {
-                res.send('CloudHandler does not respond', 401);
+                log.error('No Erizo Controller available. Error creating token');
+                res.status(404).send('No Erizo Controller found');
                 return;
             }
             log.info('Created token for room ', currentRoom._id, 'and service ', currentService._id);
