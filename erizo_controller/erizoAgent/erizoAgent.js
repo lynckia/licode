@@ -103,7 +103,7 @@ var removeChild = function(id) {
 };
 
 var launchErizoJS = function() {
-    console.log("Running process");
+    log.info("Running process");
     var id = guid();
     var fs = require('fs');
     var out = fs.openSync('./erizo-' + id + '.log', 'a');
@@ -119,8 +119,23 @@ var launchErizoJS = function() {
         } else if (index2 > -1) {
             erizos.splice(index2, 1);
         }
+        if (out!=undefined){
+            fs.close(out, function (message){
+                if (message){
+                    log.error("Error while closing log file", message);
+                }
+            }
+            );
+        }
+        if(err!=undefined){
+            fs.close(err, function (message){
+                if (message){
+                    log.error("Error while closing log file", message);
+                }
+            });
+        }
         delete processes[id];
-        fillErizos();
+        fillErizos();       
     });
 
     log.info('Launched new ErizoJS ', id);
@@ -129,7 +144,9 @@ var launchErizoJS = function() {
 };
 
 var dropErizoJS = function(erizo_id, callback) {
+    log.info("Dropping Erizo");
    if (processes.hasOwnProperty(erizo_id)) {
+      log.info("Dropping Erizo that was not closed before");
       var process = processes[erizo_id];
       process.kill();
       delete processes[erizo_id];
