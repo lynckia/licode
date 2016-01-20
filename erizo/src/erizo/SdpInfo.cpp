@@ -732,7 +732,7 @@ namespace erizo {
       }
       if (isMid!= std::string::npos){
         std::vector<std::string> parts = stringutil::splitOneOf(line, ": \r\n",4);
-        if (parts.size()>=2){
+        if (parts.size()>=2 && isBundle){
           std::string thisId = parts[1];
           for (uint8_t i = 0; i < bundleTags.size(); i++){
             if (!bundleTags[i].id.compare(thisId)){

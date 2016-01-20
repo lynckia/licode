@@ -441,7 +441,7 @@ namespace erizo {
     thePLI.setLength(2);
     char *buf = reinterpret_cast<char*>(&thePLI);
     int len = (thePLI.getLength()+1)*4;
-    this->queueData(0, buf, len , videoTransport_, OTHER_PACKET);
+    this->queueData(0, buf, len , videoTransport_, VIDEO_PACKET);
     return len; 
     
   }
