@@ -119,7 +119,9 @@ Erizo.Stream = function (spec) {
             // Remove HTML element
             that.hide();
             if (that.stream !== undefined) {
-                that.stream.stop();
+                that.stream.getTracks().forEach(function (track) {
+                    track.stop();
+                });
             }
             that.stream = undefined;
         }
