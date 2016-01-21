@@ -383,7 +383,13 @@ exports.RoomController = function (spec) {
 
         for (publisher_id in subscribers) {
             if (subscribers.hasOwnProperty(publisher_id)) {
-                index = subscribers[publisher_id].indexOf(subscriber_id);
+                index = -1;
+                for (var i=0; i < subscribers[publisher_id].length; i++) {
+                    if (subscribers[publisher_id][i].id === subscriber_id) {
+                        index = i;
+                        break;
+                    }
+                }
                 if (index !== -1) {
                     log.info('Removing subscriber ', subscriber_id, 'to muxer ', publisher_id);
 
