@@ -71,22 +71,33 @@ namespace erizo {
     return true;
   }
 
+  //TODO: Erizo Should accept hints to create the Offer
   bool WebRtcConnection::createOffer (){
 
-    bundle_ = true;
-    this->localSdp_.createOfferSdp();
+    bundle_ = false;
+    videoEnabled_ = false; 
+    this->localSdp_.createOfferSdp(videoEnabled_, audioEnabled_);
 
     ELOG_DEBUG("Creating sdp offer");
     ELOG_DEBUG("Setting SSRC to localSdp %u", this->getVideoSinkSSRC());
+    if (videoEnabled_)
+      localSdp_.videoSsrc = this->getVideoSinkSSRC();
+    if (audioEnabled_)
+      localSdp_.audioSsrc = this->getAudioSinkSSRC();
 
-    localSdp_.videoSsrc = this->getVideoSinkSSRC();
-    localSdp_.audioSsrc = this->getAudioSinkSSRC();
-
-
-    if (!videoTransport_ ){ // For now we don't re/check transports, if they are already created we leave them there
+    if (bundle_){
+      ELOG_DEBUG("Creating Bundle Offer");
       videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, true, this, iceConfig_ , "", "", true);
+    }else{
+      if (!videoTransport_ && videoEnabled_){ // For now we don't re/check transports, if they are already created we leave them there
+        ELOG_DEBUG("Creating Video transport for Offer");
+        videoTransport_ = new DtlsTransport(VIDEO_TYPE, "video", bundle_, true, this, iceConfig_ , "", "", true);
+      }
+      if (!audioTransport_ && audioEnabled_){
+        ELOG_DEBUG("Creating Audio transport for Offer");
+        audioTransport_ = new DtlsTransport(AUDIO_TYPE, "audio", bundle_, true, this, iceConfig_, "","", true);
+      }
     }
-
     if (connEventListener_ != NULL) {
       std::string msg = this->getLocalSdp();
       connEventListener_->notifyEvent(globalState_, msg);
@@ -483,8 +494,8 @@ namespace erizo {
             msg = this->getLocalSdp();
           }
         }else{
-          if ((!remoteSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_GATHERED)) &&
-            (!remoteSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_GATHERED))) {
+          if ((!localSdp_.hasAudio || (audioTransport_ != NULL && audioTransport_->getTransportState() == TRANSPORT_GATHERED)) &&
+            (!localSdp_.hasVideo || (videoTransport_ != NULL && videoTransport_->getTransportState() == TRANSPORT_GATHERED))) {
               // WebRTCConnection will be ready only when all channels are ready.
               if(!trickleEnabled_){
                 temp = CONN_GATHERED;

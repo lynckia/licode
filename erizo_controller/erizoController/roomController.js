@@ -269,13 +269,13 @@ exports.RoomController = function (spec) {
                     callback('timeout');
                     return;
                 }
-            	log.info("Erizo got", erizo_id);
+            	log.info("Got Erizo to publish in", erizo_id);
                 // Track publisher locally
                 publishers[publisher_id] = erizo_id;
                 subscribers[publisher_id] = [];
                 
                 // then we call its addPublisher method.
-                var args = [publisher_id, options.minVideoBW, false];
+                var args = [publisher_id, options.minVideoBW, options.createOffer];
                 //TODO: Possible race condition if we got an old id
                 amqper.callRpc(getErizoQueue(publisher_id), "addPublisher", args, {callback: callback});
 
