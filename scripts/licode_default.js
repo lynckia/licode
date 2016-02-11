@@ -45,7 +45,9 @@ config.erizoController.stunServerUrl = 'stun:stun.l.google.com:19302'; // defaul
 
 // Default and max video bandwidth parameters to be used by clients
 config.erizoController.defaultVideoBW = 300; //default value: 300
+config.erizoController.defaultAudioBW = 96;  //default value: 64
 config.erizoController.maxVideoBW = 300; //default value: 300
+config.erizoController.maxAudioBW = 96;  //default value: 64
 
 // Public erizoController IP for websockets (useful when behind NATs)
 // Use '' to automatically get IP from the interface
