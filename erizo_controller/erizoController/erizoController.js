@@ -9,7 +9,7 @@ var Getopt = require('node-getopt');
 // Configuration default values
 GLOBAL.config = config || {};
 GLOBAL.config.erizoController = GLOBAL.config.erizoController || {};
-GLOBAL.config.erizoController.stunServerUrl = GLOBAL.config.erizoController.stunServerUrl || 'stun:stun.l.google.com:19302';
+GLOBAL.config.erizoController.iceServers = GLOBAL.config.erizoController.iceServers || [{'url': 'stun:stun.l.google.com:19302'}];
 GLOBAL.config.erizoController.defaultVideoBW = GLOBAL.config.erizoController.defaultVideoBW || 300;
 GLOBAL.config.erizoController.maxVideoBW = GLOBAL.config.erizoController.maxVideoBW || 300;
 GLOBAL.config.erizoController.publicIP = GLOBAL.config.erizoController.publicIP || '';
@@ -19,11 +19,6 @@ GLOBAL.config.erizoController.ssl = GLOBAL.config.erizoController.ssl || false;
 GLOBAL.config.erizoController.listen_port = GLOBAL.config.erizoController.listen_port || 8080;
 GLOBAL.config.erizoController.listen_ssl = GLOBAL.config.erizoController.listen_ssl || false;
 GLOBAL.config.erizoController.turnServer = GLOBAL.config.erizoController.turnServer || undefined;
-if (config.erizoController.turnServer !== undefined) {
-    GLOBAL.config.erizoController.turnServer.url = GLOBAL.config.erizoController.turnServer.url || '';
-    GLOBAL.config.erizoController.turnServer.username = GLOBAL.config.erizoController.turnServer.username || '';
-    GLOBAL.config.erizoController.turnServer.password = GLOBAL.config.erizoController.turnServer.password || '';
-}
 GLOBAL.config.erizoController.warning_n_rooms = GLOBAL.config.erizoController.warning_n_rooms || 15;
 GLOBAL.config.erizoController.limit_n_rooms = GLOBAL.config.erizoController.limit_n_rooms || 20;
 GLOBAL.config.erizoController.interval_time_keepAlive = GLOBAL.config.erizoController.interval_time_keepAlive || 1000;
@@ -37,7 +32,7 @@ var getopt = new Getopt([
   ['g' , 'rabbit-port=ARG'            , 'RabbitMQ Port'],
   ['b' , 'rabbit-heartbeat=ARG'       , 'RabbitMQ AMQP Heartbeat Timeout'],
   ['l' , 'logging-config-file=ARG'    , 'Logging Config File'],
-  ['t' , 'stunServerUrl=ARG'          , 'Stun Server URL'],
+  ['t' , 'iceServers=ARG'             , 'Ice Servers URLs Array'],
   ['b' , 'defaultVideoBW=ARG'         , 'Default video Bandwidth'],
   ['M' , 'maxVideoBW=ARG'             , 'Max video bandwidth'],
   ['i' , 'publicIP=ARG'               , 'Erizo Controller\'s public IP'],
@@ -46,9 +41,6 @@ var getopt = new Getopt([
   ['S' , 'ssl'                        , 'Enable SSL for clients'],
   ['L' , 'listen_port'                , 'Port where Erizo Controller will listen to new connections.'],
   ['s' , 'listen_ssl'                 , 'Enable HTTPS in server'],
-  ['T' , 'turn-url'                   , 'Turn server\'s URL.'],
-  ['U' , 'turn-username'              , 'Turn server\'s username.'],
-  ['P' , 'turn-password'              , 'Turn server\'s password.'],
   ['R' , 'recording_path'             , 'Recording path.'],
   ['h' , 'help'                       , 'display this help']
 ]);
@@ -395,8 +387,7 @@ var listen = function () {
                                             p2p: socket.room.p2p,
                                             defaultVideoBW: GLOBAL.config.erizoController.defaultVideoBW,
                                             maxVideoBW: GLOBAL.config.erizoController.maxVideoBW,
-                                            stunServerUrl: GLOBAL.config.erizoController.stunServerUrl,
-                                            turnServer: GLOBAL.config.erizoController.turnServer
+                                            iceServers: GLOBAL.config.erizoController.iceServers
                                             });
 
                     } else {
