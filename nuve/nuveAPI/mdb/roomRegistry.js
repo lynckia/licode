@@ -43,6 +43,18 @@ exports.addRoom = function (room, callback) {
     });
 };
 
+
+/*
+ * Updates a determined room
+ */
+exports.updateRoom = function (id, room) {
+    "use strict";
+
+    db.rooms.update({_id: db.ObjectId(id)}, room, function (error, saved) {
+        if (error) log.warn('MongoDB: Error updating room: ', error);
+    });
+};
+
 /*
  * Removes a determined room from the data base.
  */

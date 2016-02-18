@@ -37,6 +37,10 @@ N.API = (function (N) {
         send(callback, callbackError, 'GET', undefined, 'rooms/' + room, params);
     };
 
+    updateRoom = function (room, name, callback, callbackError, options, params) {
+        send(callback, callbackError, 'PUT', {name: name, options: options}, 'rooms/' + room, params);
+    };
+
     deleteRoom = function (room, callback, callbackError, params) {
         send(callback, callbackError, 'DELETE', undefined, 'rooms/' + room, params);
     };
@@ -185,6 +189,7 @@ N.API = (function (N) {
         createRoom: createRoom,
         getRooms: getRooms,
         getRoom: getRoom,
+        updateRoom: updateRoom,
         deleteRoom: deleteRoom,
         createToken: createToken,
         createService: createService,

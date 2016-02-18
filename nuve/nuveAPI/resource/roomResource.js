@@ -45,6 +45,52 @@ exports.represent = function (req, res) {
 };
 
 /*
+ * Update Room.
+ */
+exports.updateRoom = function (req, res) {
+    "use strict";
+
+    doInit(req.params.room, function () {
+        if (currentService === undefined) {
+            res.send('Client unathorized', 401);
+        } else if (currentRoom === undefined) {
+            log.info('Room ', req.params.room, ' does not exist');
+            res.send('Room does not exist', 404);
+        } else {
+            var id = '',
+                array = currentService.rooms,
+                index = -1,
+                i;
+
+            id += currentRoom._id;
+            var room = currentRoom;
+
+
+            if (req.body.name) room.name = req.body.name;
+            if (req.body.options.p2p) room.p2p = req.body.options.p2p;
+            if (req.body.options.data) room.data = req.body.options.data;
+
+            roomRegistry.updateRoom(id, room);
+
+            for (i = 0; i < array.length; i += 1) {
+                if (array[i]._id === currentRoom._id) {
+                    index = i;
+                }
+            }
+            if (index !== -1) {
+
+                currentService.rooms[index] = room;
+                serviceRegistry.updateService(currentService);
+                log.info('Room ', id, ' updated for service ', currentService._id);
+                
+                res.send('Room Updated');
+            }
+        }
+    });
+};
+
+
+/*
  * Delete Room. Removes a determined room from the data base and asks cloudHandler to remove it from erizoController.
  */
 exports.deleteRoom = function (req, res) {
