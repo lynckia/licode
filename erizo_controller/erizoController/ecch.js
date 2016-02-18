@@ -40,6 +40,7 @@ exports.Ecch = function (spec) {
 				// New agent
 				agents[agent.info.id] = agent;
 				agents[agent.info.id].timeout = 0;
+				agents[agent.info.id].erizoJSs = [];
 			}
 
 			//console.log('all ', agents);
@@ -63,17 +64,34 @@ exports.Ecch = function (spec) {
 	    getErizoAgent = require('./ch_policies/' + config.erizoController.cloudHandlerPolicy).getErizoAgent;
 	}
 
-	that.getErizoJS = function(callback) {
+	that.getErizoJS = function(erizos, subscribers, callback) {
 
 		var agent_queue = 'ErizoAgent';
 
 		if (getErizoAgent) {
-			agent_queue = getErizoAgent(agents);
+			agent_queue = getErizoAgent(agents, erizos, subscribers);
 		}
 
 		log.info('Asking erizoJS to agent ', agent_queue);
 
 		amqper.callRpc(agent_queue, 'createErizoJS', [], {callback: function(erizo_id) {
+
+			// Solo en caso de usar algo diferente a round robin
+			if (agent_queue !== 'ErizoAgent') {
+
+				var agent_id;
+
+				for (var a in agents) {
+					if (agents[a].info.rpc_id === agent_queue) {
+						agent_id = a;
+					}
+				}
+				if (agents[agent_id].erizoJSs.indexOf(erizo_id) === -1) {
+					agents[agent_id].erizoJSs.push(erizo_id);
+					log.info('ErizoJS ', erizo_id, 'created in Agent', agent_id);
+				}
+			};
+
 			if (erizo_id === 'timeout') {
 				try_again(0, callback);
 			} else {

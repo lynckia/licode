@@ -58,7 +58,7 @@ exports.RoomController = function (spec) {
     var keepAliveLoop = setInterval(sendKeepAlive, KEEPALIVE_INTERVAL);
 
     var getErizoJS = function(callback) {
-    	ecch.getErizoJS(function(erizo_id) {
+    	ecch.getErizoJS(erizos, subscribers, function(erizo_id) {
             log.info("Using Erizo", erizo_id);
             if (!erizos[erizo_id] && erizo_id !== 'timeout') {
                 erizos[erizo_id] = {publishers: [], ka_count: 0};
