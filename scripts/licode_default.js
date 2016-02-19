@@ -40,8 +40,20 @@ config.nuve.cloudHandlerPolicy = 'default_policy.js'; // default value: 'default
 **********************************************************/
 config.erizoController = {};
 
-//Use undefined to run clients without Stun 
-config.erizoController.stunServerUrl = 'stun:stun.l.google.com:19302'; // default value: 'stun:stun.l.google.com:19302'
+// Use undefined to run clients without Ice Servers
+//
+// Stun servers format
+// {
+//     "url": url
+// }
+//
+// Turn servers format
+// {
+//     "username": username,
+//     "credential": password,
+//     "url": url
+// }
+config.erizoController.iceServers = [{'url': 'stun:stun.l.google.com:19302'}]; // default value: [{'url': 'stun:stun.l.google.com:19302'}]
 
 // Default and max video bandwidth parameters to be used by clients
 config.erizoController.defaultVideoBW = 300; //default value: 300
@@ -65,12 +77,6 @@ config.erizoController.listen_port = 8080; //default value: 8080
 
 // Use the name of the inferface you want to bind to for websockets
 // config.erizoController.networkInterface = 'eth1' // default value: undefined
-
-//Use undefined to run clients without Turn
-config.erizoController.turnServer = {}; // default value: undefined
-config.erizoController.turnServer.url = ''; // default value: null
-config.erizoController.turnServer.username = ''; // default value: null
-config.erizoController.turnServer.password = ''; // default value: null
 
 config.erizoController.warning_n_rooms = 15; // default value: 15
 config.erizoController.limit_n_rooms = 20; // default value: 20
