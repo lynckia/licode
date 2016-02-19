@@ -7,31 +7,31 @@ Till now, Licode configuration file allows only to configure a single Stun serve
 
 
 Use undefined to run clients without Ice Servers
-//
-Stun servers format
-{
-    "url": url
-}
-//
-Turn servers format
-{
-    "username": username,
-    "credential": password,
-    "url": url
-}
+
+	Stun servers format
+	{
+	    "url": url
+	}
+
+	Turn servers format
+	{
+	    "username": username,
+	    "credential": password,
+	    "url": url
+	}
 
 For instance: 
 
-config.erizoController.iceServers = [
-	{
-		'url': 'stun:stun.l.google.com:19302'
-	},
-	{
-		'url': 'stun:stun.mystunserver.com:19302'
-	},
-	{
-		'username': 'turn_username',
-		'credential': 'turn_password',
-		'url: 'turn:myturnserver.com:80?transport=tcp'
-	}
-];
+	config.erizoController.iceServers = [
+		{
+			'url': 'stun:stun.l.google.com:19302'
+		},
+		{
+			'url': 'stun:stun.mystunserver.com:19302'
+		},
+		{
+			'username': 'turn_username',
+			'credential': 'turn_password',
+			'url: 'turn:myturnserver.com:80?transport=tcp'
+		}
+	];
