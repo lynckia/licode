@@ -1,6 +1,8 @@
 /*global require, exports, console, setInterval, clearInterval*/
 
 var logger = require('./../common/logger').logger;
+var exec = require('child_process').exec;
+var usage = require('usage');
 
 // Logger
 var log = logger.getLogger("REPORTER");
@@ -27,6 +29,16 @@ exports.Reporter = function (spec) {
     };
 
     var getStats = function () {
+
+        for (var p in spec.processes) {
+            exec('pgrep -P ' + spec.processes[p].pid, function (error, stdout, stderr) {
+                usage.lookup(parseInt(stdout), { keepHistory: true }, function(err, result) {
+                    console.log(result.cpu);
+                });
+            });
+            
+        }
+
 
         var cpus = os.cpus();
 

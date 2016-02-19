@@ -163,7 +163,7 @@ var getErizo = function () {
 }
 
 // TODO: get metadata from a file
-var reporter = require('./erizoAgentReporter').Reporter({id: my_erizo_agent_id, metadata: metadata});
+var reporter = require('./erizoAgentReporter').Reporter({id: my_erizo_agent_id, metadata: metadata, processes: processes});
 
 var api = {
     createErizoJS: function(callback) {
