@@ -30,8 +30,8 @@ For instance:
 			'url': 'stun:stun.mystunserver.com:19302'
 		},
 		{
-			''username'': 'turn_username',
-			'credential': 'turn_password,
+			'username': 'turn_username',
+			'credential': 'turn_password',
 			'url: 'turn:myturnserver.com:80?transport=tcp'
 		}
 	];
