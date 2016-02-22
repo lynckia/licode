@@ -9,13 +9,14 @@ var EA_TIMEOUT = 30000;
 var GET_EA_INTERVAL = 5000;
 var AGENTS_ATTEMPTS = 5;
 
+var regresion = require('./ch_policies/regresion.js');
+
 exports.Ecch = function (spec) {
     "use strict";
 
     var that = {},
 	    amqper = spec.amqper,
 	    agents = {};
-
 
 	var getErizoAgents = function () {
 		amqper.broadcast('ErizoAgent', {method: 'getErizoAgents', args: []}, function (agent) {
@@ -29,7 +30,8 @@ exports.Ecch = function (spec) {
 
 			for (var a in agents) {
 				if (a === agent.info.id) {
-					// The agent is already registered, I update its stats and reset its 
+					// The agent is already registered, I update its stats and reset its
+					agents[a].otms = agent.otms;
 					agents[a].stats = agent.stats;
 					agents[a].timeout = 0;
 					new_agent = false;
@@ -43,8 +45,10 @@ exports.Ecch = function (spec) {
 				agents[agent.info.id].erizoJSs = [];
 			}
 
-			//console.log('all ', agents);
+			console.log('all ', agents);
 		});
+
+		regresion.update(agents, last_erizos, last_subscribers);
 
 		// Check agents timeout
 		for (var a in agents) {
@@ -64,7 +68,13 @@ exports.Ecch = function (spec) {
 	    getErizoAgent = require('./ch_policies/' + config.erizoController.cloudHandlerPolicy).getErizoAgent;
 	}
 
+	var last_erizos;
+	var last_subscribers;
+
 	that.getErizoJS = function(erizos, subscribers, callback) {
+
+		last_subscribers = subscribers;
+		last_erizos = erizos;
 
 		var agent_queue = 'ErizoAgent';
 

@@ -13,32 +13,51 @@ exports.Reporter = function (spec) {
     "use strict";
 
     var that = {},
-    	my_id = spec.id,
-    	my_meta = spec.metadata || {};
+        my_id = spec.id,
+        my_meta = spec.metadata || {};
 
     that.getErizoAgent = function (callback) {
-        var data = {
-        	info: {
-        		id: my_id,
-        		rpc_id: 'ErizoAgent_' + my_id
-        	},
-        	metadata: my_meta,
-        	stats: getStats()
-        };
-        callback(data);
+
+        getByProcess(0, {}, function (otms) {
+            var data = {
+                info: {
+                    id: my_id,
+                    rpc_id: 'ErizoAgent_' + my_id
+                },
+                metadata: my_meta,
+                stats: getStats(),
+                otms: otms
+            };
+            callback(data);
+        });
+
     };
 
-    var getStats = function () {
+    var getByProcess = function (index, otms, callback) {
 
-        for (var p in spec.processes) {
-            exec('pgrep -P ' + spec.processes[p].pid, function (error, stdout, stderr) {
+        console.log('Ppio', otms);
+        if (index === Object.keys(spec.processes).length) {
+            console.log('Hago el callback', otms);
+            callback(otms);
+        } else {
+            console.log('Getting by process', index, ' total', Object.keys(spec.processes).length);
+            var id = Object.keys(spec.processes)[index];
+            exec('pgrep -P ' + spec.processes[id].pid, function (error, stdout, stderr) {
                 usage.lookup(parseInt(stdout), { keepHistory: true }, function(err, result) {
-                    console.log(result.cpu);
+                    var res = result.cpu/os.cpus().length;
+                    console.log('Result id ', id, ':', res);
+                    otms[id] = res;
+                    console.log('OTMS', otms);
+                    getByProcess(++index, otms, callback);
                 });
             });
-            
         }
+    }
 
+    var last_total = 0;
+    var last_idle = 0;
+
+    var getStats = function () {
 
         var cpus = os.cpus();
 
@@ -60,16 +79,19 @@ exports.Reporter = function (spec) {
 
         total = user + nice + sys + idle + irq;
 
-        var cpu =  1 - (idle / total);
+        var cpu =  1 - ((idle - last_idle) / (total - last_total));
         var mem = 1 - (os.freemem() / os.totalmem());
 
-    	var data = {
-    		perc_cpu: cpu,
-            perc_mem: mem
-    	};
+        last_total = total;
+        last_idle = idle;
+
+        var data = {
+            perc_cpu: cpu*100,
+            perc_mem: mem*100
+        };
         
-    	return data;
+        return data;
     };
 
-	return that;
+    return that;
 };
