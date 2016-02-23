@@ -33,7 +33,7 @@ exports.createRoom = function (req, res) {
     }
     if (req.body.name === undefined) {
         log.info('Invalid room');
-        res.send('Invalid room', 404);
+        res.send('Invalid room', 400);
         return;
     }
 

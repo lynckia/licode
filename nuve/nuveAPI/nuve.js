@@ -55,6 +55,7 @@ app.options('*', function(req, res) {
 app.get('*', nuveAuthenticator.authenticate);
 app.post('*', nuveAuthenticator.authenticate);
 app.put('*', nuveAuthenticator.authenticate);
+app.patch('*', nuveAuthenticator.authenticate);
 app.delete('*', nuveAuthenticator.authenticate);
 
 app.post('/rooms', roomsResource.createRoom);
@@ -62,6 +63,7 @@ app.get('/rooms', roomsResource.represent);
 
 app.get('/rooms/:room', roomResource.represent);
 app.put('/rooms/:room', roomResource.updateRoom);
+app.patch('/rooms/:room', roomResource.patchRoom);
 app.delete('/rooms/:room', roomResource.deleteRoom);
 
 app.post('/rooms/:room/tokens', tokensResource.create);
