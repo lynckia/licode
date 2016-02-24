@@ -37,11 +37,12 @@ app.use(bodyParser.urlencoded({
 N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3000/');
 
 var myRoom;
+var rooms;
 
 N.API.getRooms(function(roomlist) {
     "use strict";
-    var rooms = JSON.parse(roomlist);
-    console.log(rooms.length); //check and see if one of these rooms is 'basicExampleRoom'
+    rooms = JSON.parse(roomlist);
+    console.log(rooms); //check and see if one of these rooms is 'basicExampleRoom'
     for (var room in rooms) {
         if (rooms[room].name === 'basicExampleRoom'){
             myRoom = rooms[room]._id;
@@ -74,12 +75,23 @@ app.get('/getUsers/:room', function(req, res) {
     });
 });
 
+var i = true;
 
 app.post('/createToken/', function(req, res) {
     "use strict";
     var room = myRoom,
         username = req.body.username,
         role = req.body.role;
+
+    console.log(rooms, i);
+
+    if (i) room = rooms[0]._id;
+    if (!i) room = rooms[1]._id;
+    
+    i = !i;
+
+    console.log(room);
+
     N.API.createToken(room, username, role, function(token) {
         console.log(token);
         res.send(token);

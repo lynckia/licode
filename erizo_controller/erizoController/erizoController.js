@@ -335,7 +335,7 @@ var listen = function () {
                                 log.debug('Token of p2p room');
                                 room.p2p = true;
                             } else {
-                                room.controller = controller.RoomController({amqper: amqper, ecch: ecch});
+                                room.controller = controller.RoomController({amqper: amqper, ecch: ecch, roomId: room.id});
                                 room.controller.addEventListener(function(type, event) {
                                     // TODO Send message to room? Handle ErizoJS disconnection.
                                     if (type === "unpublish") {

@@ -48,7 +48,7 @@ exports.Ecch = function (spec) {
 			console.log('all ', agents);
 		});
 
-		regresion.update(agents, last_erizos, last_subscribers);
+		regresion.update(agents, that.rooms);
 
 		// Check agents timeout
 		for (var a in agents) {
@@ -68,18 +68,15 @@ exports.Ecch = function (spec) {
 	    getErizoAgent = require('./ch_policies/' + config.erizoController.cloudHandlerPolicy).getErizoAgent;
 	}
 
-	var last_erizos;
-	var last_subscribers;
+	// {room1: {otm1: n_subs, otm2: n_subs}, room2: {otm3: n_subs, otm4: n_subs}}
+	that.rooms = {};
 
-	that.getErizoJS = function(erizos, subscribers, callback) {
-
-		last_subscribers = subscribers;
-		last_erizos = erizos;
+	that.getErizoJS = function(callback) {
 
 		var agent_queue = 'ErizoAgent';
 
 		if (getErizoAgent) {
-			agent_queue = getErizoAgent(agents, erizos, subscribers);
+			agent_queue = getErizoAgent(agents);
 		}
 
 		log.info('Asking erizoJS to agent ', agent_queue);

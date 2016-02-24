@@ -58,7 +58,14 @@ exports.RoomController = function (spec) {
     var keepAliveLoop = setInterval(sendKeepAlive, KEEPALIVE_INTERVAL);
 
     var getErizoJS = function(callback) {
-    	ecch.getErizoJS(erizos, subscribers, function(erizo_id) {
+    	ecch.getErizoJS(function(erizo_id) {
+
+            if (!ecch.rooms[spec.roomId]) {
+                ecch.rooms[spec.roomId] = {};
+            }
+
+            ecch.rooms[spec.roomId][erizo_id] = 0;
+
             log.info("Using Erizo", erizo_id);
             if (!erizos[erizo_id] && erizo_id !== 'timeout') {
                 erizos[erizo_id] = {publishers: [], ka_count: 0};
@@ -217,6 +224,9 @@ exports.RoomController = function (spec) {
 
             // Track subscriber locally
             subscribers[publisher_id].push(subscriber_id);
+
+
+            ecch.rooms[spec.roomId][publishers[publisher_id]] ++;;
         }
     };
 
@@ -233,6 +243,18 @@ exports.RoomController = function (spec) {
             // Remove tracks
             var index = erizos[publishers[publisher_id]].publishers.indexOf(publisher_id);
             erizos[publishers[publisher_id]].publishers.splice(index, 1);
+
+
+            console.log('======================0 ANTES', ecch.rooms[spec.roomId]);
+
+            delete ecch.rooms[spec.roomId][publishers[publisher_id]];
+
+            for (var o in ecch.rooms[spec.roomId]) {
+                ecch.rooms[spec.roomId][o] --;
+            }
+
+            console.log('======================0 DESPUES', ecch.rooms[spec.roomId]);
+
 
             log.info('Removing subscribers', publisher_id);
             delete subscribers[publisher_id];
