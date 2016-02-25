@@ -185,8 +185,8 @@ exports.RoomController = function (spec) {
     	        var args = [publisher_id, url];
 
                 // Track publisher locally
-                publishers[publisher_id] = {};
-                publishers[publisher_id].main = erizo_id;
+//                publishers[publisher_id] = {};
+                publishers[publisher_id] = erizo_id;
                 subscribers[publisher_id] = [];
     	        
                 amqper.callRpc(getErizoQueue(publisher_id), "addExternalInput", args, {callback: callback});
