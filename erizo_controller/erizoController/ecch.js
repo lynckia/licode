@@ -45,7 +45,7 @@ exports.Ecch = function (spec) {
 				agents[agent.info.id].erizoJSs = [];
 			}
 
-			console.log('all ', agents);
+			//console.log('all ', agents);
 		});
 
 		regresion.update(agents, that.rooms);
@@ -71,12 +71,12 @@ exports.Ecch = function (spec) {
 	// {room1: {otm1: n_subs, otm2: n_subs}, room2: {otm3: n_subs, otm4: n_subs}}
 	that.rooms = {};
 
-	that.getErizoJS = function(callback) {
+	that.getErizoJS = function(roomId, callback) {
 
 		var agent_queue = 'ErizoAgent';
 
 		if (getErizoAgent) {
-			agent_queue = getErizoAgent(agents);
+			agent_queue = getErizoAgent(agents, that.rooms, roomId);
 		}
 
 		log.info('Asking erizoJS to agent ', agent_queue);

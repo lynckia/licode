@@ -58,7 +58,7 @@ exports.RoomController = function (spec) {
     var keepAliveLoop = setInterval(sendKeepAlive, KEEPALIVE_INTERVAL);
 
     var getErizoJS = function(callback) {
-    	ecch.getErizoJS(function(erizo_id) {
+    	ecch.getErizoJS(spec.roomId, function(erizo_id) {
 
             if (!ecch.rooms[spec.roomId]) {
                 ecch.rooms[spec.roomId] = {};
@@ -244,17 +244,11 @@ exports.RoomController = function (spec) {
             var index = erizos[publishers[publisher_id]].publishers.indexOf(publisher_id);
             erizos[publishers[publisher_id]].publishers.splice(index, 1);
 
-
-            console.log('======================0 ANTES', ecch.rooms[spec.roomId]);
-
             delete ecch.rooms[spec.roomId][publishers[publisher_id]];
 
             for (var o in ecch.rooms[spec.roomId]) {
                 ecch.rooms[spec.roomId][o] --;
             }
-
-            console.log('======================0 DESPUES', ecch.rooms[spec.roomId]);
-
 
             log.info('Removing subscribers', publisher_id);
             delete subscribers[publisher_id];

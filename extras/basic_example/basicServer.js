@@ -85,12 +85,14 @@ app.post('/createToken/', function(req, res) {
 
     console.log(rooms, i);
 
-    if (i) room = rooms[0]._id;
-    if (!i) room = rooms[1]._id;
+    // if (i) room = rooms[0]._id;
+    // if (!i) room = rooms[1]._id;
     
-    i = !i;
+    // i = !i;
 
-    console.log(room);
+    // console.log(room);
+
+    room = rooms[0]._id;
 
     N.API.createToken(room, username, role, function(token) {
         console.log(token);
