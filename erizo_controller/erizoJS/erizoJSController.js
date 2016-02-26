@@ -50,7 +50,7 @@ exports.ErizoJSController = function (spec) {
         return Math.ceil(tot/cnt);
     };
 
-    var monitorMinVideoBw = function(wrtc){
+    var monitorMinVideoBw = function(wrtc, callback){
         wrtc.bwValues = [];
         var isReporting = true;
         var ticks = 0;
@@ -171,7 +171,7 @@ exports.ErizoJSController = function (spec) {
      */
     initWebRtcConnection = function (wrtc, callback, id_pub, id_sub, options) {
         if (wrtc.minVideoBW){
-            monitorMinVideoBw(wrtc);
+            monitorMinVideoBw(wrtc, callback);
         }
 
         if (GLOBAL.config.erizoController.report.rtcp_stats) {
