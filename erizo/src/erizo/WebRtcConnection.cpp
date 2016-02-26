@@ -308,19 +308,19 @@ namespace erizo {
     if (videoTransport_ != NULL) {
       if (videoEnabled_ == true) {
         RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
+        if (h->getPayloadType() == RED_90000_PT && (!remoteSdp_.supportPayloadType(RED_90000_PT) || slideShowMode_)) {
+          // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
+          // Let's go ahead and run this through our fec receiver to convert it to raw VP8
+          webrtc::RTPHeader hackyHeader;
+          hackyHeader.headerLength = h->getHeaderLength();
+          hackyHeader.sequenceNumber = h->getSeqNumber();
+          // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback, be sure to memcpy out of webrtc's buffers
+          if (fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*) buf, len, ULP_90000_PT) == 0) {
+            fec_receiver_.ProcessReceivedFec();
+          }
+        } else {
 
-        if (slideShowMode_){
-          if (h->getPayloadType() == RED_90000_PT ){
-            // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
-            // Let's go ahead and run this through our fec receiver to convert it to raw VP8
-            webrtc::RTPHeader hackyHeader;
-            hackyHeader.headerLength = h->getHeaderLength();
-            hackyHeader.sequenceNumber = h->getSeqNumber();
-            // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback, be sure to memcpy out of webrtc's buffers
-            if (fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*) buf, len, ULP_90000_PT) == 0) {
-              fec_receiver_.ProcessReceivedFec();
-            }
-          } else {
+          if (slideShowMode_){
             RtcpHeader* hc = reinterpret_cast<RtcpHeader*>(buf);
             RtpVP8Parser parser;
             RTPPayloadVP8* payload = parser.parseVP8(reinterpret_cast<unsigned char*>(buf + h->getHeaderLength()), len - h->getHeaderLength());
@@ -338,21 +338,8 @@ namespace erizo {
                 grace_=0;
               }
             } 
-          }
-        } else {
-          seqNo_ = h->getSeqNumber();
-          if (h->getPayloadType() == RED_90000_PT && (!remoteSdp_.supportPayloadType(RED_90000_PT) || slideShowMode_)) {
-            // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
-            // Let's go ahead and run this through our fec receiver to convert it to raw VP8
-            ELOG_DEBUG("Accumulating FEC");
-            webrtc::RTPHeader hackyHeader;
-            hackyHeader.headerLength = h->getHeaderLength();
-            hackyHeader.sequenceNumber = h->getSeqNumber();
-            // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback, be sure to memcpy out of webrtc's buffers
-            if (fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*) buf, len, ULP_90000_PT) == 0) {
-              fec_receiver_.ProcessReceivedFec();
-            }
           } else {
+            seqNo_ = h->getSeqNumber();
             this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
           }
         }
