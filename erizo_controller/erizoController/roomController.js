@@ -299,7 +299,8 @@ exports.RoomController = function (spec) {
         }
 
         if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1) {
-            log.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id);
+            log.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id, "options", options);
+            
 
 //            if (true){
 

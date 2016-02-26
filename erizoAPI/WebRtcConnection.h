@@ -90,6 +90,7 @@ class WebRtcConnection : public node::ObjectWrap, erizo::WebRtcConnectionEventLi
 
   static v8::Handle<v8::Value> setFeedbackReports(const v8::Arguments& args);
 
+  static v8::Handle<v8::Value> setSlideShowMode(const v8::Arguments& args);
 
   static v8::Handle<v8::Value> getStats(const v8::Arguments& args);  
 

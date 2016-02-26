@@ -143,6 +143,8 @@ public:
       this->rateControl_ = rateControl;
     };
 
+    void setSlideShowMode (bool state);
+
 
     // webrtc::RtpHeader overrides.
     int32_t OnReceivedPayloadData(const uint8_t* payloadData, const uint16_t payloadSize,const webrtc::WebRtcRTPHeader* rtpHeader);
@@ -160,7 +162,7 @@ private:
 
 	WebRTCEvent globalState_;
 
-  int bundle_, sequenceNumberFIR_;
+  int bundle_;
   boost::mutex receiveVideoMutex_, updateStateMutex_, feedbackMutex_;
   boost::thread send_Thread_;
 	std::queue<dataPacket> sendQueue_;
@@ -180,6 +182,7 @@ private:
   bool videoEnabled_;
   bool trickleEnabled_;
   bool shouldSendFeedback_;
+  bool slideShowMode_;
   uint32_t rateControl_; //Target bitrate for hacky rate control in BPS 
   
   IceConfig iceConfig_;

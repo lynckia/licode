@@ -557,7 +557,8 @@ Erizo.Room = function (spec) {
                     if(callback) callback(true);
                 } else {
 
-                    sendSDPSocket('subscribe', {streamId: stream.getID(), audio: options.audio, video: options.video, data: options.data, browser: Erizo.getBrowser(), createOffer: options.createOffer}, undefined, function (result, error) {
+                    sendSDPSocket('subscribe', {streamId: stream.getID(), audio: options.audio, video: options.video, data: options.data, browser: Erizo.getBrowser(), createOffer: options.createOffer,
+                    slideShowMode: options.slideShowMode}, undefined, function (result, error) {
                         if (result === null) {
                             L.Logger.error('Error subscribing to stream ', error);
                             if (callback)

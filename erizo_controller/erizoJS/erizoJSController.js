@@ -405,6 +405,9 @@ exports.ErizoJSController = function (spec) {
             subscribers[to][from] = wrtc;
             publishers[to].muxer.addSubscriber(wrtc, from);
             wrtc.minVideoBW = publishers[to].minVideoBW;
+            if (options.slideShowMode){
+                wrtc.setSlideShowMode(true);
+            }
 
             initWebRtcConnection(wrtc, callback, to, from, options);
 

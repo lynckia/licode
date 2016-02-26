@@ -16,7 +16,6 @@ namespace erizo {
       const IceConfig& iceConfig, bool trickleEnabled, WebRtcConnectionEventListener* listener)
       : connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this){
     ELOG_WARN("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
-    sequenceNumberFIR_ = 0;
     bundle_ = false;
     this->setVideoSinkSSRC(55543);
     this->setAudioSinkSSRC(44444);
@@ -30,6 +29,7 @@ namespace erizo {
     audioTransport_ = NULL;
 
     shouldSendFeedback_ = true;
+    slideShowMode_ = false;
 
     audioEnabled_ = audioEnabled;
     videoEnabled_ = videoEnabled;
@@ -617,6 +617,10 @@ namespace erizo {
       ELOG_DEBUG("Discarding Packets");
     }
     cond_.notify_one();
+  }
+
+  void WebRtcConnection::setSlideShowMode (bool state){
+    ELOG_DEBUG("Setting SlideShowMode %u", state);
   }
 
   WebRTCEvent WebRtcConnection::getCurrentState() {
