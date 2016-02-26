@@ -75,30 +75,39 @@ app.get('/getUsers/:room', function(req, res) {
     });
 });
 
-var i = true;
+var getRoom = function (callback) {
+    N.API.getRooms(function(roomlist) {
+        var rooms = JSON.parse(roomlist);
+        var nRooms = rooms.length;
+        nRooms = 3;
+        var room_id = rooms[Math.floor(Math.random() * (nRooms))]._id;
+
+        N.API.getUsers(room_id, function(userList) {
+            var nUsers = JSON.parse(userList).length;
+            if (nUsers < 6) {
+                console.log('Using room', room_id, 'with users:', nUsers);
+                callback(room_id);
+            } else {
+                getRoom(callback);
+            }
+        });
+    });
+}
+
 
 app.post('/createToken/', function(req, res) {
     "use strict";
-    var room = myRoom,
-        username = req.body.username,
+    var username = req.body.username,
         role = req.body.role;
 
-    console.log(rooms, i);
-
-    // if (i) room = rooms[0]._id;
-    // if (!i) room = rooms[1]._id;
-    
-    // i = !i;
-
-    // console.log(room);
-
-    room = rooms[0]._id;
-
-    N.API.createToken(room, username, role, function(token) {
-        console.log(token);
-        res.send(token);
+    getRoom (function (room) {
+        N.API.createToken(room, username, role, function(token) {
+            //console.log(token);
+            res.send(token);
+        });
     });
 });
+
 
 
 app.use(function(req, res, next) {
