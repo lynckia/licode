@@ -6,7 +6,7 @@ var logger = require('./../common/logger').logger;
 var log = logger.getLogger("ECCH");
 
 var EA_TIMEOUT = 30000;
-var GET_EA_INTERVAL = 5000;
+var GET_EA_INTERVAL = 7000;
 var AGENTS_ATTEMPTS = 5;
 
 var regresion = require('./ch_policies/regresion.js');
