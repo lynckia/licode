@@ -294,7 +294,8 @@ namespace erizo {
 
   // This is called by our fec_ object when it recovers a packet.
   bool WebRtcConnection::OnRecoveredPacket(const uint8_t* rtp_packet, int rtp_packet_length) {
-      this->queueData(0, (const char*) rtp_packet, rtp_packet_length, videoTransport_, VIDEO_PACKET);
+//      this->queueData(0, (const char*) rtp_packet, rtp_packet_length, videoTransport_, VIDEO_PACKET);
+      this->deliverVideoData_((char*)rtp_packet, rtp_packet_length);
       return true;
   }
 
@@ -309,28 +310,41 @@ namespace erizo {
         RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
 
         if (slideShowMode_){
-          RtcpHeader* hc = reinterpret_cast<RtcpHeader*>(buf);
-          RtpVP8Parser parser;
-          RTPPayloadVP8* payload = parser.parseVP8(reinterpret_cast<unsigned char*>(buf + h->getHeaderLength()), len - h->getHeaderLength());
-          if (hc->isRtcp()){ // IGNORE SRs?
-            return 0;
-            //this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
-          }
-          if (!payload->frameType){ // Its a keyframe
-            grace_=1;
-          }
-          if (grace_){ // We send until marker
-            h->setSeqNumber(seqNo_++);
-            this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
-            if (h->getMarker()){
-              grace_=0;
-            }
-          } 
-        } else {
-          seqNo_ = h->getSeqNumber();
-          if (h->getPayloadType() == RED_90000_PT && !remoteSdp_.supportPayloadType(RED_90000_PT)) {
+          if (h->getPayloadType() == RED_90000_PT ){
             // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
             // Let's go ahead and run this through our fec receiver to convert it to raw VP8
+            webrtc::RTPHeader hackyHeader;
+            hackyHeader.headerLength = h->getHeaderLength();
+            hackyHeader.sequenceNumber = h->getSeqNumber();
+            // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback, be sure to memcpy out of webrtc's buffers
+            if (fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*) buf, len, ULP_90000_PT) == 0) {
+              fec_receiver_.ProcessReceivedFec();
+            }
+          } else {
+            RtcpHeader* hc = reinterpret_cast<RtcpHeader*>(buf);
+            RtpVP8Parser parser;
+            RTPPayloadVP8* payload = parser.parseVP8(reinterpret_cast<unsigned char*>(buf + h->getHeaderLength()), len - h->getHeaderLength());
+            if (hc->isRtcp()){ // IGNORE SRs?
+              return 0;
+              //this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
+            }
+            if (!payload->frameType){ // Its a keyframe
+              grace_=1;
+            }
+            if (grace_){ // We send until marker
+              h->setSeqNumber(seqNo_++);
+              this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
+              if (h->getMarker()){
+                grace_=0;
+              }
+            } 
+          }
+        } else {
+          seqNo_ = h->getSeqNumber();
+          if (h->getPayloadType() == RED_90000_PT && (!remoteSdp_.supportPayloadType(RED_90000_PT) || slideShowMode_)) {
+            // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
+            // Let's go ahead and run this through our fec receiver to convert it to raw VP8
+            ELOG_DEBUG("Accumulating FEC");
             webrtc::RTPHeader hackyHeader;
             hackyHeader.headerLength = h->getHeaderLength();
             hackyHeader.sequenceNumber = h->getSeqNumber();
