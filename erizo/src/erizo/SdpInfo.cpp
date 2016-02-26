@@ -61,7 +61,7 @@ namespace erizo {
     vp8.channels = 1;
     vp8.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(vp8);
-
+/*
     RtpMap red;
     red.payloadType = RED_90000_PT;
     red.encodingName = "red";
@@ -69,7 +69,7 @@ namespace erizo {
     red.channels = 1;
     red.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(red);
-    /*
+    
        RtpMap rtx;
        rtx.payloadType = RTX_90000_PT;
        rtx.encodingName = "rtx";

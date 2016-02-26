@@ -8,6 +8,7 @@
 #include "DtlsTransport.h"
 #include "SdpInfo.h"
 #include "rtp/RtpHeaders.h"
+#include "rtp/RtpVP8Parser.h"
 
 namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
@@ -38,6 +39,8 @@ namespace erizo {
     gettimeofday(&mark_, NULL);
 
     rateControl_ = 0;
+    seqNo_ = 1000;
+    grace_=0;
      
     sending_ = true;
     rtcpProcessor_ = boost::shared_ptr<RtcpProcessor> (new RtcpProcessor((MediaSink*)this, (MediaSource*) this));
@@ -303,20 +306,69 @@ namespace erizo {
   int WebRtcConnection::deliverVideoData_(char* buf, int len) {
     if (videoTransport_ != NULL) {
       if (videoEnabled_ == true) {
-  
         RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
-        if (h->getPayloadType() == RED_90000_PT && !remoteSdp_.supportPayloadType(RED_90000_PT)) {
-          // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
-          // Let's go ahead and run this through our fec receiver to convert it to raw VP8
-          webrtc::RTPHeader hackyHeader;
-          hackyHeader.headerLength = h->getHeaderLength();
-          hackyHeader.sequenceNumber = h->getSeqNumber();
-          // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback, be sure to memcpy out of webrtc's buffers
-          if (fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*) buf, len, ULP_90000_PT) == 0) {
-            fec_receiver_.ProcessReceivedFec();
+
+        if (slideShowMode_){
+          gettimeofday(&now_, NULL);
+          uint64_t nowms = (now_.tv_sec * 1000) + (now_.tv_usec / 1000);
+          uint64_t markms = (mark_.tv_sec * 1000) + (mark_.tv_usec/1000);
+          if ((nowms - markms)>=2000){
+            mark_ = now_;
+            if (fbSink_ != NULL) {
+              ELOG_DEBUG("Sending PLI packet for slideShow");
+              RtcpHeader thePLI;
+              thePLI.setPacketType(RTCP_PS_Feedback_PT);
+              thePLI.setBlockCount(1);
+              thePLI.setSSRC(55543);
+              thePLI.setSourceSSRC(this->getVideoSourceSSRC());
+              thePLI.setLength(2);
+              char *buffer = reinterpret_cast<char*>(&thePLI);
+              int length = (thePLI.getLength()+1)*4;
+              fbSink_->deliverFeedback((char*)buffer, length);
+            }
           }
+          
+          RtcpHeader* hc = reinterpret_cast<RtcpHeader*>(buf);
+          RtpVP8Parser parser;
+          RTPPayloadVP8* payload = parser.parseVP8(reinterpret_cast<unsigned char*>(buf + h->getHeaderLength()), len - h->getHeaderLength());
+          ELOG_DEBUG("Analyzing packet, PT %u, Marker %u, noReferenceFrame %d", h->getPayloadType(), h->getMarker(),payload->nonReferenceFrame);
+          if (hc->isRtcp()){
+            ELOG_DEBUG("Is RTCP, no worries");
+            //this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
+          }
+          if (!payload->frameType){
+            grace_=0;
+            ELOG_DEBUG("KeyFrame, resetting Grace period");
+          }
+          if (grace_ <= 5){
+            grace_++;
+            h->setSeqNumber(seqNo_++);
+            ELOG_DEBUG("Sending Packet with SEQNO %u, grace %u", seqNo_, grace_);
+            this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
+            // videoTransport_->write(p.data, p.length);
+          } else {
+            ELOG_DEBUG("Ignoring Packet");
+            /*
+            h->setSeqNumber(seqNo_++);
+            this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
+            */
+          }
+
         } else {
-          this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
+          seqNo_ = h->getSeqNumber();
+          if (h->getPayloadType() == RED_90000_PT && !remoteSdp_.supportPayloadType(RED_90000_PT)) {
+            // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
+            // Let's go ahead and run this through our fec receiver to convert it to raw VP8
+            webrtc::RTPHeader hackyHeader;
+            hackyHeader.headerLength = h->getHeaderLength();
+            hackyHeader.sequenceNumber = h->getSeqNumber();
+            // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback, be sure to memcpy out of webrtc's buffers
+            if (fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*) buf, len, ULP_90000_PT) == 0) {
+              fec_receiver_.ProcessReceivedFec();
+            }
+          } else {
+            this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
+          }
         }
       }
     }
@@ -444,6 +496,7 @@ namespace erizo {
   }
 
   int WebRtcConnection::sendPLI() {
+    ELOG_DEBUG("Sending PLI");
     RtcpHeader thePLI;
     thePLI.setPacketType(RTCP_PS_Feedback_PT);
     thePLI.setBlockCount(1);
@@ -621,6 +674,7 @@ namespace erizo {
 
   void WebRtcConnection::setSlideShowMode (bool state){
     ELOG_DEBUG("Setting SlideShowMode %u", state);
+    slideShowMode_ = state;
   }
 
   WebRTCEvent WebRtcConnection::getCurrentState() {
@@ -657,7 +711,7 @@ namespace erizo {
           }
 
           if (bundle_ || p.type == VIDEO_PACKET) {
-            if (rateControl_){
+            if (rateControl_ && !slideShowMode_){
               if (p.type == VIDEO_PACKET){
                 if (rateControl_ == 1)
                   continue;
