@@ -312,10 +312,10 @@ namespace erizo {
           gettimeofday(&now_, NULL);
           uint64_t nowms = (now_.tv_sec * 1000) + (now_.tv_usec / 1000);
           uint64_t markms = (mark_.tv_sec * 1000) + (mark_.tv_usec/1000);
-          if ((nowms - markms)>=4000){
+          // Send Periodical PLIs
+          if ((nowms - markms)>=5000){
             mark_ = now_;
             if (fbSink_ != NULL) {
-              ELOG_DEBUG("Sending PLI packet for slideShow");
               RtcpHeader thePLI;
               thePLI.setPacketType(RTCP_PS_Feedback_PT);
               thePLI.setBlockCount(1);
@@ -331,27 +331,20 @@ namespace erizo {
           RtcpHeader* hc = reinterpret_cast<RtcpHeader*>(buf);
           RtpVP8Parser parser;
           RTPPayloadVP8* payload = parser.parseVP8(reinterpret_cast<unsigned char*>(buf + h->getHeaderLength()), len - h->getHeaderLength());
-          ELOG_DEBUG("Analyzing packet, PT %u, Marker %u, noReferenceFrame %d", h->getPayloadType(), h->getMarker(),payload->nonReferenceFrame);
-          if (hc->isRtcp()){
-            ELOG_DEBUG("Is RTCP, no worries");
+          if (hc->isRtcp()){ // IGNORE SRs?
+            return 0;
             //this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
           }
-          if (!payload->frameType){
+          if (!payload->frameType){ // Its a keyframe
             grace_=1;
-            ELOG_DEBUG("KeyFrame, resetting Grace period");
           }
-          if (grace_){
+          if (grace_){ // We send until marker
             h->setSeqNumber(seqNo_++);
-            ELOG_DEBUG("Sending Packet with SEQNO %u, grace %u", seqNo_, grace_);
             this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
             if (h->getMarker()){
               grace_=0;
-              ELOG_DEBUG("Grace period is over now");
             }
-          } else {
-            ELOG_DEBUG("Ignoring Packet");
-          }
-
+          } 
         } else {
           seqNo_ = h->getSeqNumber();
           if (h->getPayloadType() == RED_90000_PT && !remoteSdp_.supportPayloadType(RED_90000_PT)) {
@@ -425,7 +418,11 @@ namespace erizo {
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
       if (fbSink_ != NULL && shouldSendFeedback_) {
-        fbSink_->deliverFeedback(buf,len);
+        if (slideShowMode_){
+          ELOG_DEBUG("Not sending RTCP");
+        }else{
+          fbSink_->deliverFeedback(buf,len);
+        }
       }
     } else {
       // RTP or RTCP Sender Report
