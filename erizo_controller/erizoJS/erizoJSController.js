@@ -407,6 +407,13 @@ exports.ErizoJSController = function (spec) {
             wrtc.minVideoBW = publishers[to].minVideoBW;
             if (options.slideShowMode){
                 wrtc.setSlideShowMode(true);
+                wrtc.slideShowMode = true;
+                var wrtcPub = publishers[to].wrtc;
+                if (!wrtcPub.periodicPlis){
+                    wrtcPub.periodicPlis = setInterval(function (){
+                        wrtcPub.generatePLIPacket();
+                    }, 5000);
+                }
             }
 
             initWebRtcConnection(wrtc, callback, to, from, options);
@@ -428,6 +435,10 @@ exports.ErizoJSController = function (spec) {
                     log.info("Iterating and closing ", key,  subscribers[from], subscribers[from][key]);
                     subscribers[from][key].close();
                 }
+            }
+            if(publishers[from].periodicPlis!==undefined){
+                log.debug("Clearing periodic PLIs for publisher");
+                clearInterval (publishers[from].periodicPlis);
             }
             publishers[from].wrtc.close();
             publishers[from].muxer.close();
@@ -460,6 +471,17 @@ exports.ErizoJSController = function (spec) {
             subscribers[to][from].close();
             publishers[to].muxer.removeSubscriber(from);
             delete subscribers[to][from];
+        }
+
+        if (publishers[to].wrtc.periodicPlis!==undefined){
+            for (var i in subscribers[to]){
+                if(subscribers[to].slideShowMode === true){
+                    return;
+                }
+            }
+            log.debug("Clearing Pli interval as no more slideshows subscribers are present");
+            clearInterval(publishers[to].wrtc.periodicPlis);
+            publishers[to].wrtc.periodicPlis = undefined;
         }
     };
 

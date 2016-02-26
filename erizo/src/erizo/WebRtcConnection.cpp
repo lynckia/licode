@@ -309,25 +309,6 @@ namespace erizo {
         RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
 
         if (slideShowMode_){
-          gettimeofday(&now_, NULL);
-          uint64_t nowms = (now_.tv_sec * 1000) + (now_.tv_usec / 1000);
-          uint64_t markms = (mark_.tv_sec * 1000) + (mark_.tv_usec/1000);
-          // Send Periodical PLIs
-          if ((nowms - markms)>=5000){
-            mark_ = now_;
-            if (fbSink_ != NULL) {
-              RtcpHeader thePLI;
-              thePLI.setPacketType(RTCP_PS_Feedback_PT);
-              thePLI.setBlockCount(1);
-              thePLI.setSSRC(55543);
-              thePLI.setSourceSSRC(this->getVideoSourceSSRC());
-              thePLI.setLength(2);
-              char *buffer = reinterpret_cast<char*>(&thePLI);
-              int length = (thePLI.getLength()+1)*4;
-              fbSink_->deliverFeedback((char*)buffer, length);
-            }
-          }
-          
           RtcpHeader* hc = reinterpret_cast<RtcpHeader*>(buf);
           RtpVP8Parser parser;
           RTPPayloadVP8* payload = parser.parseVP8(reinterpret_cast<unsigned char*>(buf + h->getHeaderLength()), len - h->getHeaderLength());
@@ -417,12 +398,8 @@ namespace erizo {
 
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
-      if (fbSink_ != NULL && shouldSendFeedback_) {
-        if (slideShowMode_){
-          ELOG_DEBUG("Not sending RTCP");
-        }else{
-          fbSink_->deliverFeedback(buf,len);
-        }
+      if (fbSink_ != NULL && shouldSendFeedback_ && !slideShowMode_) {
+        fbSink_->deliverFeedback(buf,len);
       }
     } else {
       // RTP or RTCP Sender Report
