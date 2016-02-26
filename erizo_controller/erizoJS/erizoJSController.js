@@ -25,7 +25,6 @@ exports.ErizoJSController = function (spec) {
         MIN_RECOVER_BW = 50000,
         initWebRtcConnection,
         getSdp,
-        calculateAverage,
         getRoap;
 
 
@@ -40,7 +39,7 @@ exports.ErizoJSController = function (spec) {
 
     var BW_STABLE = 0, BW_INSUFFICIENT = 1, BW_RECOVERING = 2, BW_WONTRECOVER = 3;
 
-    calculateAverage = function (values) { 
+    var calculateAverage = function (values) { 
         if (values.length === undefined)
             return 0;
         var cnt = values.length;
@@ -60,7 +59,7 @@ exports.ErizoJSController = function (spec) {
         var lastAverage, average, lastBWValue, toRecover;
         var nextRetry = 0;
         wrtc.bwStatus = BW_STABLE;
-
+        log.debug("START Monitoring Video BW", wrtc.minVideoBW);
 
         wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
         wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(1-0.2));
@@ -176,6 +175,7 @@ exports.ErizoJSController = function (spec) {
         }
 
         if (GLOBAL.config.erizoController.report.rtcp_stats) {
+            log.debug("RTCP Stats Active");
             wrtc.getStats(function (newStats){
                 var timeStamp = new Date();
                 amqper.broadcast('stats', {pub: id_pub, subs: id_sub, stats: JSON.parse(newStats), timestamp:timeStamp.getTime()});
