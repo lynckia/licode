@@ -312,7 +312,7 @@ namespace erizo {
           gettimeofday(&now_, NULL);
           uint64_t nowms = (now_.tv_sec * 1000) + (now_.tv_usec / 1000);
           uint64_t markms = (mark_.tv_sec * 1000) + (mark_.tv_usec/1000);
-          if ((nowms - markms)>=2000){
+          if ((nowms - markms)>=4000){
             mark_ = now_;
             if (fbSink_ != NULL) {
               ELOG_DEBUG("Sending PLI packet for slideShow");
@@ -337,21 +337,19 @@ namespace erizo {
             //this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
           }
           if (!payload->frameType){
-            grace_=0;
+            grace_=1;
             ELOG_DEBUG("KeyFrame, resetting Grace period");
           }
-          if (grace_ <= 5){
-            grace_++;
+          if (grace_){
             h->setSeqNumber(seqNo_++);
             ELOG_DEBUG("Sending Packet with SEQNO %u, grace %u", seqNo_, grace_);
             this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
-            // videoTransport_->write(p.data, p.length);
+            if (h->getMarker()){
+              grace_=0;
+              ELOG_DEBUG("Grace period is over now");
+            }
           } else {
             ELOG_DEBUG("Ignoring Packet");
-            /*
-            h->setSeqNumber(seqNo_++);
-            this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
-            */
           }
 
         } else {
