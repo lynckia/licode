@@ -76,7 +76,7 @@ window.onload = function () {
 
       room.addEventListener("room-connected", function (roomEvent) {
 
-        room.publish(localStream, {maxVideoBW: 3000, minVideoBW:500});
+        //room.publish(localStream, {maxVideoBW: 3000, minVideoBW:500});
         subscribeToStreams(roomEvent.streams);
       });
 
