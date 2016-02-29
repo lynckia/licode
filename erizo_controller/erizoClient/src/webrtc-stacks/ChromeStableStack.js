@@ -168,10 +168,12 @@ Erizo.ChromeStableStack = function (spec) {
                 callback('error');
             });
         }
-        if (config.minVideoBW){
+        if (config.minVideoBW || (config.slideShowMode!==undefined)){
             L.Logger.debug ("MinVideo Changed to ", config.minVideoBW);
-            spec.callback({type:'updatestream', minVideoBW: config.minVideoBW});
-        }       
+            L.Logger.debug ("SlideShowMode Changed to ", config.slideShowMode);
+//            spec.callback({type:'updatestream', minVideoBW: config.minVideoBW});
+            spec.callback({type:'updatestream', config:config});            
+        }   
     };
 
     that.createOffer = function (isSubscribe) {

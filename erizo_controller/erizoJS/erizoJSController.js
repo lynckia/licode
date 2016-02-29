@@ -25,7 +25,9 @@ exports.ErizoJSController = function (spec) {
         MIN_RECOVER_BW = 50000,
         initWebRtcConnection,
         getSdp,
-        getRoap;
+        getRoap,
+        monitorMinVideoBw,
+        setSlideShow;
 
 
     var CONN_INITIAL = 101, CONN_STARTED = 102,CONN_GATHERED = 103, CONN_READY = 104, CONN_FINISHED = 105, CONN_CANDIDATE = 201, CONN_SDP = 202, CONN_FAILED = 500;
@@ -50,7 +52,11 @@ exports.ErizoJSController = function (spec) {
         return Math.ceil(tot/cnt);
     };
 
-    var monitorMinVideoBw = function(wrtc, callback){
+    /*
+     * Monitors BW from a subscriber and reacts accordingly
+     */
+
+    monitorMinVideoBw = function(wrtc, callback){
         wrtc.bwValues = [];
         var isReporting = true;
         var ticks = 0;
@@ -163,6 +169,41 @@ exports.ErizoJSController = function (spec) {
             lastAverage = average;
         }, INTERVAL_STATS);
     };
+
+
+    /*
+     * Enables/Disables slideshow mode for a subscriber
+     */
+    setSlideShow = function (slideShowMode, from, to){
+        log.info("Setting SlideShow", slideShowMode, from, to);
+        
+        var theWrtc = subscribers[to][from];
+        if (slideShowMode ===true){
+            theWrtc.setSlideShowMode(true);
+            theWrtc.slideShowMode = true;
+            var wrtcPub = publishers[to].wrtc;
+            if (!wrtcPub.periodicPlis){
+                wrtcPub.periodicPlis = setInterval(function (){
+                    wrtcPub.generatePLIPacket();
+                }, 5000);
+            }
+        }else{
+            theWrtc.setSlideShowMode(false);
+            theWrtc.slideShowMode = false;
+            if (publishers[to].wrtc.periodicPlis!==undefined){
+                for (var i in subscribers[to]){
+                    if(subscribers[to][i].slideShowMode === true){
+                        return;
+                    }
+                }
+
+                log.debug("Clearing Pli interval as no more slideshows subscribers are present");
+                clearInterval(publishers[to].wrtc.periodicPlis);
+                publishers[to].wrtc.periodicPlis = undefined;
+            }
+        }
+
+    }
 
 
 
@@ -319,15 +360,21 @@ exports.ErizoJSController = function (spec) {
 
     that.processSignaling = function (streamId, peerId, msg) {
         log.info("Process Signaling message: ", streamId, peerId, msg);
+        log.info("Subscribers", subscribers);
         if (publishers[streamId] !== undefined) {
-
             if (subscribers[streamId][peerId]) {
                 if (msg.type === 'offer') {
                     subscribers[streamId][peerId].setRemoteSdp(msg.sdp);
                 } else if (msg.type === 'candidate') {
                     subscribers[streamId][peerId].addRemoteCandidate(msg.candidate.sdpMid, msg.candidate.sdpMLineIndex , msg.candidate.candidate);
                 } else if (msg.type === 'updatestream'){
-                    subscribers[streamId][peerId].setRemoteSdp(msg.sdp);
+                    if(msg.sdp)
+                        subscribers[streamId][peerId].setRemoteSdp(msg.sdp);
+                    if (msg.config){
+                        if (msg.config.slideShowMode!==undefined){
+                            setSlideShow(msg.config.slideShowMode, peerId, streamId)
+                        }
+                    }
                 }
             } else {
                 if (msg.type === 'offer') {
@@ -338,16 +385,18 @@ exports.ErizoJSController = function (spec) {
                     if (msg.sdp){
                         publishers[streamId].wrtc.setRemoteSdp(msg.sdp);
                     }
-                    if (msg.minVideoBW){
-                        log.debug("Updating minVideoBW to ", msg.minVideoBW);
-                        publishers[streamId].minVideoBW = msg.minVideoBW;
-                        for (var sub in subscribers[streamId]){
-                            log.debug("sub", sub);
-                            log.debug("updating subscriber BW from", subscribers[streamId][sub].minVideoBW, "to", msg.minVideoBW*1000 );
-                            var theConn = subscribers[streamId][sub];
-                            theConn.minVideoBW = msg.minVideoBW*1000; // We need it in bps
-                            theConn.lowerThres = Math.floor(theConn.minVideoBW*(1-0.2));
-                            theConn.upperThres = Math.ceil(theConn.minVideoBW*(1+0.1));
+                    if (msg.options){
+                        if (options.minVideoBW){
+                            log.debug("Updating minVideoBW to ", msg.minVideoBW);
+                            publishers[streamId].minVideoBW = msg.minVideoBW;
+                            for (var sub in subscribers[streamId]){
+                                log.debug("sub", sub);
+                                log.debug("updating subscriber BW from", subscribers[streamId][sub].minVideoBW, "to", msg.minVideoBW*1000 );
+                                var theConn = subscribers[streamId][sub];
+                                theConn.minVideoBW = msg.minVideoBW*1000; // We need it in bps
+                                theConn.lowerThres = Math.floor(theConn.minVideoBW*(1-0.2));
+                                theConn.upperThres = Math.ceil(theConn.minVideoBW*(1+0.1));
+                            }
                         }
                     }
                 }
@@ -380,9 +429,6 @@ exports.ErizoJSController = function (spec) {
 
             initWebRtcConnection(wrtc, callback, from, undefined, options);
 
-            //log.info('Publishers: ', publishers);
-            //log.info('Subscribers: ', subscribers);
-
         } else {
             log.info("Publisher already set for", from);
         }
@@ -405,21 +451,11 @@ exports.ErizoJSController = function (spec) {
             subscribers[to][from] = wrtc;
             publishers[to].muxer.addSubscriber(wrtc, from);
             wrtc.minVideoBW = publishers[to].minVideoBW;
-            if (options.slideShowMode){
-                wrtc.setSlideShowMode(true);
-                wrtc.slideShowMode = true;
-                var wrtcPub = publishers[to].wrtc;
-                if (!wrtcPub.periodicPlis){
-                    wrtcPub.periodicPlis = setInterval(function (){
-                        wrtcPub.generatePLIPacket();
-                    }, 5000);
-                }
+            if (options.slideShowMode === true){
+                setSlideShow(true, from, to);
             }
 
             initWebRtcConnection(wrtc, callback, to, from, options);
-
-            //log.info('Publishers: ', publishers);
-            //log.info('Subscribers: ', subscribers);
         }
     };
 
@@ -475,7 +511,7 @@ exports.ErizoJSController = function (spec) {
 
         if (publishers[to].wrtc.periodicPlis!==undefined){
             for (var i in subscribers[to]){
-                if(subscribers[to].slideShowMode === true){
+                if(subscribers[to][i].slideShowMode === true){
                     return;
                 }
             }
