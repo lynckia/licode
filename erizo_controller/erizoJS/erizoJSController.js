@@ -360,7 +360,6 @@ exports.ErizoJSController = function (spec) {
 
     that.processSignaling = function (streamId, peerId, msg) {
         log.info("Process Signaling message: ", streamId, peerId, msg);
-        log.info("Subscribers", subscribers);
         if (publishers[streamId] !== undefined) {
             if (subscribers[streamId][peerId]) {
                 if (msg.type === 'offer') {
