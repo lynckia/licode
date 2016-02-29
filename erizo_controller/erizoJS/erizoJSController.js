@@ -385,15 +385,15 @@ exports.ErizoJSController = function (spec) {
                     if (msg.sdp){
                         publishers[streamId].wrtc.setRemoteSdp(msg.sdp);
                     }
-                    if (msg.options){
-                        if (options.minVideoBW){
-                            log.debug("Updating minVideoBW to ", msg.minVideoBW);
-                            publishers[streamId].minVideoBW = msg.minVideoBW;
+                    if (msg.config){
+                        if (msg.config.minVideoBW){
+                            log.debug("Updating minVideoBW to ", msg.config.minVideoBW);
+                            publishers[streamId].minVideoBW = msg.config.minVideoBW;
                             for (var sub in subscribers[streamId]){
                                 log.debug("sub", sub);
-                                log.debug("updating subscriber BW from", subscribers[streamId][sub].minVideoBW, "to", msg.minVideoBW*1000 );
+                                log.debug("updating subscriber BW from", subscribers[streamId][sub].minVideoBW, "to", msg.config.minVideoBW*1000 );
                                 var theConn = subscribers[streamId][sub];
-                                theConn.minVideoBW = msg.minVideoBW*1000; // We need it in bps
+                                theConn.minVideoBW = msg.config.minVideoBW*1000; // We need it in bps
                                 theConn.lowerThres = Math.floor(theConn.minVideoBW*(1-0.2));
                                 theConn.upperThres = Math.ceil(theConn.minVideoBW*(1+0.1));
                             }
