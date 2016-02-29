@@ -106,7 +106,9 @@ Erizo.Stream = function (spec) {
             that.dispatchEvent(streamEvent);
           }
           } catch (e) {
-            L.Logger.error("Error accessing to local media", e);
+            L.Logger.error("Failed to get access to local media. Error was " + e + ".");
+            var streamEvent = Erizo.StreamEvent({type: "access-denied"});
+            that.dispatchEvent(streamEvent);
           }
       };
 
