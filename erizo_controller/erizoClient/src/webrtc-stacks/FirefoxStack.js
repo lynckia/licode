@@ -117,6 +117,14 @@ Erizo.FirefoxStack = function (spec) {
         that.peerConnection.setLocalDescription(localDesc);
     }
 
+    that.updateSpec = function (config, callback){
+        if (config.minVideoBW || (config.slideShowMode!==undefined)){
+            L.Logger.debug ("MinVideo Changed to ", config.minVideoBW);
+            L.Logger.debug ("SlideShowMode Changed to ", config.slideShowMode);
+            spec.callback({type:'updatestream', config:config});            
+        }   
+    };
+
     that.createOffer = function (isSubscribe) {
         if (isSubscribe === true) {            
             that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);

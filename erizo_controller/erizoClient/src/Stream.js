@@ -217,7 +217,7 @@ Erizo.Stream = function (spec) {
         if (that.pc){
             that.pc.updateSpec(config, callback);
         } else {
-            return ("This stream has not been published, ignoring");
+            return ("This stream has no peerConnection attached, ignoring");
         }
     }
 
