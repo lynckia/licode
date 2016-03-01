@@ -363,6 +363,8 @@ Erizo.Room = function (spec) {
                         type = 'recording';
                         arg = stream.recording;
                     }
+                    L.Logger.info("Checking publish options for", stream.getID());
+                    stream.checkOptions(options);
                     sendSDPSocket('publish', {state: type, data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes(), createOffer: options.createOffer}, arg, function (id, error) {
 
                         if (id !== null) {
@@ -556,7 +558,8 @@ Erizo.Room = function (spec) {
                     sendSDPSocket('subscribe', {streamId: stream.getID()});
                     if(callback) callback(true);
                 } else {
-
+                    L.Logger.info("Checking subscribe options for", stream.getID());
+                    stream.checkOptions(options);
                     sendSDPSocket('subscribe', {streamId: stream.getID(), audio: options.audio, video: options.video, data: options.data, browser: Erizo.getBrowser(), createOffer: options.createOffer,
                     slideShowMode: options.slideShowMode}, undefined, function (result, error) {
                         if (result === null) {
