@@ -26,7 +26,7 @@ exports.Reporter = function (spec) {
             var partial = 0;
             var count = 0;
             for (var m in otms[o]) {
-                if (otms[o][m]) {
+                if (otms[o][m] !== undefined) {
                     partial = partial + otms[o][m];
                     count++;
                 }
