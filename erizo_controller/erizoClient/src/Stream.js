@@ -220,21 +220,26 @@ Erizo.Stream = function (spec) {
                 L.Logger.warning("Cannot update type of subscription");
                 config.video = undefined;
                 config.audio = undefined;
+                config.screen = undefined;
             }
         }else{  // on publish or subscribe
-            if (config.video === true && that.hasVideo() === false){
-                L.Logger.warning("Trying to subscribe to video when there is no video, won't subscribe to video");
-                config.video = false;
-            }
-            if (config.audio === true && that.hasAudio() === false){
-                L.Logger.warning("Trying to subscribe to audio when there is no audio, won't subscribe to audio");
-                config.audio = false;
+            if(that.local === false){ // check what we can subscribe to
+                if (config.video === true && that.hasVideo() === false){
+                    L.Logger.warning("Trying to subscribe to video when there is no video, won't subscribe to video");
+                    config.video = false;
+                }
+                if (config.audio === true && that.hasAudio() === false){
+                    L.Logger.warning("Trying to subscribe to audio when there is no audio, won't subscribe to audio");
+                    config.audio = false;
+                }
             }
         }
-        if (!that.hasVideo() && (config.slideShowMode === true)){
-            L.Logger.warning("Cannot enable slideShowMode if it is not a video subscription, please check your parameters");
-            config.slideShowMode = false;
-        }
+        if(that.local === false){
+            if (!that.hasVideo() && (config.slideShowMode === true)){
+                L.Logger.warning("Cannot enable slideShowMode if it is not a video subscription, please check your parameters");
+                config.slideShowMode = false;
+            }
+        } 
     };
 
     that.updateConfiguration = function (config, callback) {
