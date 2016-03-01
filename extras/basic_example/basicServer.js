@@ -9,6 +9,9 @@ var express = require('express'),
     https = require("https"),
         config = require('./../../licode_config');
 
+
+var launch = require('launch_instances.js');
+
 var options = {
     key: fs.readFileSync('../../cert/key.pem').toString(),
     cert: fs.readFileSync('../../cert/cert.pem').toString()
@@ -81,7 +84,7 @@ var getRoom = function (callback) {
     N.API.getRooms(function(roomlist) {
         var rooms = JSON.parse(roomlist);
         var nRooms = rooms.length;
-        nRooms = 3;
+        nRooms = 6;
         var room_id = rooms[Math.floor(Math.random() * (nRooms))]._id;
 
         N.API.getUsers(room_id, function(userList) {
@@ -90,6 +93,11 @@ var getRoom = function (callback) {
                 console.log('Using room', room_id, 'with users:', nUsers);
                 total_users++;
                 console.log('Total users connected', total_users);
+
+                if (total_users%15 === 0) {
+                    console.log('Arrancando nueva');
+                    launch.runInstance('c4.4xlarge');
+                }
                 callback(room_id);
             } else {
                 getRoom(callback);
