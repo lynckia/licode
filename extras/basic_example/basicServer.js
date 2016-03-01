@@ -80,38 +80,61 @@ app.get('/getUsers/:room', function(req, res) {
 
 var total_users = 0;
 
+var rooms_ex = ["561cfd822da1b5ba4aa3c76d","561cfd822da1b5ba4aa3c76d","561cfd872da1b5ba4aa3c76e","561cfd822da1b5ba4aa3c76d","561cfd872da1b5ba4aa3c76e","561cfd872da1b5ba4aa3c76e","561cfd872da1b5ba4aa3c76e","561cfd7e2da1b5ba4aa3c76b","561cfd8b2da1b5ba4aa3c76f","558a7e30b20185e7076ce0d5","561cfd7e2da1b5ba4aa3c76b","558a7e30b20185e7076ce0d5","558a7e30b20185e7076ce0d5","558a7e30b20185e7076ce0d5","561cfd802da1b5ba4aa3c76c","561cfd822da1b5ba4aa3c76d","561cfd872da1b5ba4aa3c76e","561cfd872da1b5ba4aa3c76e","561cfd8b2da1b5ba4aa3c76f","561cfd872da1b5ba4aa3c76e","558a7e30b20185e7076ce0d5","558a7e30b20185e7076ce0d5","561cfd872da1b5ba4aa3c76e","558a7e30b20185e7076ce0d5","561cfd822da1b5ba4aa3c76d","561cfd872da1b5ba4aa3c76e", "561cfd802da1b5ba4aa3c76c", "561cfd872da1b5ba4aa3c76e"];
+
 var getRoom = function (callback) {
-    N.API.getRooms(function(roomlist) {
-        var rooms = JSON.parse(roomlist);
-        var nRooms = rooms.length;
-        nRooms = 6;
-        var room_id = rooms[Math.floor(Math.random() * (nRooms))]._id;
 
-        N.API.getUsers(room_id, function(userList) {
-            var nUsers = JSON.parse(userList).length;
-            if (nUsers < 10) {
-                console.log('Using room', room_id, 'with users:', nUsers);
-                total_users++;
-                console.log('Total users connected', total_users);
+    var index = total_users;
 
-                if (total_users === 15) {
-                    console.log('Arrancando nueva');
-                    launch.runInstance('m4.4xlarge');
-                } 
+    total_users++;
 
-                if (total_users === 30) {
-                    console.log('Arrancando nueva');
-                    launch.runInstance('m4.2xlarge');
-                }
+    console.log('Total users connected', total_users);
 
+    if (total_users === 15) {
+        console.log('Arrancando nueva');
+        launch.runInstance('m4.4xlarge');
+    } 
 
-                callback(room_id);
-            } else {
-                getRoom(callback);
-            }
-        });
-    });
+    if (total_users === 30) {
+        console.log('Arrancando nueva');
+        launch.runInstance('m4.2xlarge');
+    }
+    
+    callback(rooms_ex[index]);
 }
+
+// var getRoom = function (callback) {
+//     N.API.getRooms(function(roomlist) {
+//         var rooms = JSON.parse(roomlist);
+//         var nRooms = rooms.length;
+//         nRooms = 6;
+//         var room_id = rooms[Math.floor(Math.random() * (nRooms))]._id;
+
+//         N.API.getUsers(room_id, function(userList) {
+//             var nUsers = JSON.parse(userList).length;
+//             if (nUsers < 10) {
+//                 console.log('Using room', room_id, 'with users:', nUsers);
+//                 total_users++;
+//                 console.log('Total users connected', total_users);
+
+//                 if (total_users === 15) {
+//                     console.log('Arrancando nueva');
+//                     launch.runInstance('m4.4xlarge');
+//                 } 
+
+//                 if (total_users === 30) {
+//                     console.log('Arrancando nueva');
+//                     launch.runInstance('m4.2xlarge');
+//                 }
+
+
+//                 callback(room_id);
+//             } else {
+//                 getRoom(callback);
+//             }
+//         });
+//     });
+// }
 
 
 app.post('/createToken/', function(req, res) {
