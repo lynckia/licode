@@ -24,10 +24,14 @@ exports.Reporter = function (spec) {
 
         for (var o in otms) {
             var partial = 0;
+            var count = 0;
             for (var m in otms[o]) {
-                partial = partial + otms[o][m];
+                if (otms[o][m]) {
+                    partial = partial + otms[o][m];
+                    count++;
+                }
             }
-            otms_respose[o] = partial;
+            otms_respose[o] = partial/count;
         }
 
         var data = {
