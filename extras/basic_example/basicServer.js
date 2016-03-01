@@ -75,6 +75,8 @@ app.get('/getUsers/:room', function(req, res) {
     });
 });
 
+var total_users = 0;
+
 var getRoom = function (callback) {
     N.API.getRooms(function(roomlist) {
         var rooms = JSON.parse(roomlist);
@@ -84,8 +86,10 @@ var getRoom = function (callback) {
 
         N.API.getUsers(room_id, function(userList) {
             var nUsers = JSON.parse(userList).length;
-            if (nUsers < 6) {
+            if (nUsers < 10) {
                 console.log('Using room', room_id, 'with users:', nUsers);
+                total_users++;
+                console.log('Total users connected', total_users);
                 callback(room_id);
             } else {
                 getRoom(callback);
