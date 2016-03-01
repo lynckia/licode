@@ -213,10 +213,35 @@ Erizo.Stream = function (spec) {
         }
     };
 
+    that.checkOptions = function (config, isUpdate){ 
+        //TODO: Check for any incompatible options
+        if (isUpdate === true){  // We are updating the stream
+            if (config.video || config.audio || config.screen){
+                L.Logger.warning("Cannot update type of subscription");
+                config.video = undefined;
+                config.audio = undefined;
+            }
+        }else{  // on publish or subscribe
+            if (config.video === true && that.hasVideo() === false){
+                L.Logger.warning("Trying to subscribe to video when there is no video, won't subscribe to video");
+                config.video = false;
+            }
+            if (config.audio === true && that.hasAudio() === false){
+                L.Logger.warning("Trying to subscribe to audio when there is no audio, won't subscribe to audio");
+                config.audio = false;
+            }
+        }
+        if (!that.hasVideo() && (config.slideShowMode === true)){
+            L.Logger.warning("Cannot enable slideShowMode if it is not a video subscription, please check your parameters");
+            config.slideShowMode = false;
+        }
+    };
+
     that.updateConfiguration = function (config, callback) {
         if (config === undefined)
             return;
         if (that.pc){
+            that.checkOptions(config, true);
             that.pc.updateSpec(config, callback);
         } else {
             return ("This stream has no peerConnection attached, ignoring");
