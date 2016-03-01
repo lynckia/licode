@@ -15,7 +15,9 @@ namespace erizo{
     jitter = 0;
     rrsReceivedInPeriod = 0;
     if (reportedBandwidth < bandwidth){
-      reportedBandwidth = reportedBandwidth*2 < bandwidth?reportedBandwidth*2:bandwidth;
+      reportedBandwidth = (reportedBandwidth*2 < bandwidth) ? reportedBandwidth*2:bandwidth;
+    }else{
+      reportedBandwidth = bandwidth;
     }
     lastDelay = lastDelay*0.6;
   }
@@ -40,7 +42,7 @@ namespace erizo{
   }
 
   void RtcpProcessor::setVideoBW(uint32_t bandwidth){
-    ELOG_DEBUG("Setting Video BW %u", bandwidth);
+    ELOG_DEBUG("REMB: Setting Max Video BW %u", bandwidth);
     this->defaultBw_ = bandwidth;
   }
 
@@ -155,7 +157,7 @@ namespace erizo{
                   if (!strncmp(uniqueId,"REMB", 4)){
                     uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
                     ELOG_DEBUG("Received REMB %lu", bitrate);
-                    if ((bitrate<theData->reportedBandwidth) || theData->reportedBandwidth==0){
+                    if ((bitrate < theData->reportedBandwidth) || theData->reportedBandwidth==0){
                       ELOG_DEBUG("Should send Packet REMB, before BR %lu, will send with Br %lu", theData->reportedBandwidth, bitrate);
                       theData->reportedBandwidth = bitrate;  
                       theData->shouldSendREMB = true;
@@ -237,7 +239,7 @@ namespace erizo{
           }
 
           if(rtcpData->shouldSendREMB ){
-            ELOG_DEBUG("Sending Remb, since last %u ms, sending with BW: %lu", sincelastREMB, rtcpData->reportedBandwidth);
+            ELOG_DEBUG("Sending REMB, since last %u ms, sending with BW: %lu", sincelastREMB, rtcpData->reportedBandwidth);
             int theLen = this->addREMB((char*)packet_, length, rtcpData->reportedBandwidth);
             rtcpData->shouldSendREMB = false;
             rtcpData->lastREMBSent = now;
