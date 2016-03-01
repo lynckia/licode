@@ -16,39 +16,56 @@ exports.Reporter = function (spec) {
         my_id = spec.id,
         my_meta = spec.metadata || {};
 
+    var otms = {};
+
     that.getErizoAgent = function (callback) {
 
-        getByProcess(0, {}, function (otms) {
-            var data = {
-                info: {
-                    id: my_id,
-                    rpc_id: 'ErizoAgent_' + my_id
-                },
-                metadata: my_meta,
-                stats: getStats(),
-                otms: otms
-            };
-            callback(data);
-        });
+        var otms_respose = {};
 
+        for (var o in otms) {
+            var partial = 0;
+            for (var m in otms[o]) {
+                partial = partial + otms[o][m];
+            }
+            otms_respose[o] = partial;
+        }
+
+        var data = {
+            info: {
+                id: my_id,
+                rpc_id: 'ErizoAgent_' + my_id
+            },
+            metadata: my_meta,
+            stats: getStats(),
+            otms: otms_respose
+        };
+
+        console.log('****', otms);
+
+        console.log('----', otms_respose);
+        callback(data);
     };
 
-    var getByProcess = function (index, otms, callback) {
+    var HISTORY = 2;
 
-        console.log('Ppio', otms);
+    var getByProcess = function (index) {
+
         if (index === Object.keys(spec.processes).length) {
-            console.log('Hago el callback', otms);
-            callback(otms);
+            setTimeout(function () {
+                getByProcess(0, {});
+            }, 3000);
         } else {
-            console.log('Getting by process', index, ' total', Object.keys(spec.processes).length);
             var id = Object.keys(spec.processes)[index];
             exec('pgrep -P ' + spec.processes[id].pid, function (error, stdout, stderr) {
                 usage.lookup(parseInt(stdout), { keepHistory: true }, function(err, result) {
                     var res = result.cpu/os.cpus().length;
-                    console.log('Result id ', id, ':', res);
-                    otms[id] = res;
-                    console.log('OTMS', otms);
-                    getByProcess(++index, otms, callback);
+                    if (!otms[id]) otms[id] = [];
+                    for (var i = 0; i < HISTORY; i++) {
+                        otms[id][i] = otms[id][i+1];
+                    }
+                    otms[id][HISTORY] = res;
+                    //console.log('OTMS', otms);
+                    getByProcess(++index);
                 });
             });
         }
@@ -92,6 +109,8 @@ exports.Reporter = function (spec) {
         
         return data;
     };
+
+    getByProcess(0);
 
     return that;
 };
