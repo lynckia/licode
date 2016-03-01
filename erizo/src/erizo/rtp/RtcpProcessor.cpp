@@ -3,6 +3,7 @@
  */
 
 #include "RtcpProcessor.h"
+#include <string.h>
 
 namespace erizo{
   DEFINE_LOGGER(RtcpProcessor, "rtp.RtcpProcessor");
