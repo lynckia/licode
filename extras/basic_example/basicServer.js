@@ -10,7 +10,7 @@ var express = require('express'),
         config = require('./../../licode_config');
 
 
-var launch = require('launch_instances.js');
+var launch = require('./launch_instances.js');
 
 var options = {
     key: fs.readFileSync('../../cert/key.pem').toString(),
@@ -94,10 +94,17 @@ var getRoom = function (callback) {
                 total_users++;
                 console.log('Total users connected', total_users);
 
-                if (total_users%15 === 0) {
+                if (total_users === 15) {
                     console.log('Arrancando nueva');
-                    launch.runInstance('c4.4xlarge');
+                    launch.runInstance('m4.4xlarge');
+                } 
+
+                if (total_users === 30) {
+                    console.log('Arrancando nueva');
+                    launch.runInstance('m4.2xlarge');
                 }
+
+
                 callback(room_id);
             } else {
                 getRoom(callback);
