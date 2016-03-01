@@ -50,14 +50,17 @@ exports.Reporter = function (spec) {
         callback(data);
     };
 
-    var HISTORY = 2;
+    // guarda hitory + 1
+    var HISTORY = 4;
+    // en ms
+    var INTERVAL = 1000;
 
     var getByProcess = function (index) {
 
         if (index === Object.keys(spec.processes).length) {
             setTimeout(function () {
                 getByProcess(0, {});
-            }, 3000);
+            }, INTERVAL);
         } else {
             var id = Object.keys(spec.processes)[index];
             exec('pgrep -P ' + spec.processes[id].pid, function (error, stdout, stderr) {
