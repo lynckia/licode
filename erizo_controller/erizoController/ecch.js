@@ -10,6 +10,7 @@ var GET_EA_INTERVAL = 7000;
 var AGENTS_ATTEMPTS = 5;
 
 var regresion = require('./ch_policies/regresion.js');
+var writef = require('./ch_policies/monit_policy.js').write_file;
 
 exports.Ecch = function (spec) {
     "use strict";
@@ -52,6 +53,9 @@ exports.Ecch = function (spec) {
 
 		// Check agents timeout
 		for (var a in agents) {
+
+			writef(a, '-', agents[a].stats.perc_cpu, '-');
+
 			agents[a].timeout ++;
 			if (agents[a].timeout > EA_TIMEOUT / GET_EA_INTERVAL) {
 				log.warn('Agent ', agents[a].info.id, ' does not respond. Deleting it.');
