@@ -80,7 +80,11 @@ app.get('/getUsers/:room', function(req, res) {
 
 var total_users = 0;
 
+// Exp 1
 //var rooms_ex = ["561cfd822da1b5ba4aa3c76d","561cfd822da1b5ba4aa3c76d","561cfd872da1b5ba4aa3c76e","561cfd822da1b5ba4aa3c76d","561cfd872da1b5ba4aa3c76e","561cfd872da1b5ba4aa3c76e","561cfd872da1b5ba4aa3c76e","561cfd7e2da1b5ba4aa3c76b","561cfd8b2da1b5ba4aa3c76f","558a7e30b20185e7076ce0d5","561cfd7e2da1b5ba4aa3c76b","558a7e30b20185e7076ce0d5","558a7e30b20185e7076ce0d5","558a7e30b20185e7076ce0d5","561cfd802da1b5ba4aa3c76c","561cfd822da1b5ba4aa3c76d","561cfd872da1b5ba4aa3c76e","561cfd872da1b5ba4aa3c76e","561cfd8b2da1b5ba4aa3c76f","561cfd872da1b5ba4aa3c76e","558a7e30b20185e7076ce0d5","558a7e30b20185e7076ce0d5","561cfd872da1b5ba4aa3c76e","558a7e30b20185e7076ce0d5","561cfd822da1b5ba4aa3c76d","561cfd872da1b5ba4aa3c76e", "561cfd802da1b5ba4aa3c76c", "561cfd872da1b5ba4aa3c76e"];
+
+//Exp 2
+//var rooms_ex = ["561cfd822da1b5ba4aa3c76d","561cfd822da1b5ba4aa3c76d","558a7e30b20185e7076ce0d5","561cfd822da1b5ba4aa3c76d","561cfd802da1b5ba4aa3c76c","561cfd802da1b5ba4aa3c76c","561cfd822da1b5ba4aa3c76d","558a7e30b20185e7076ce0d5","561cfd822da1b5ba4aa3c76d","561cfd8b2da1b5ba4aa3c76f","561cfd802da1b5ba4aa3c76c","561cfd822da1b5ba4aa3c76d","558a7e30b20185e7076ce0d5","561cfd872da1b5ba4aa3c76e","561cfd802da1b5ba4aa3c76c","561cfd822da1b5ba4aa3c76d","558a7e30b20185e7076ce0d5","561cfd802da1b5ba4aa3c76c","558a7e30b20185e7076ce0d5","561cfd8b2da1b5ba4aa3c76f","561cfd872da1b5ba4aa3c76e","561cfd8b2da1b5ba4aa3c76f","561cfd8b2da1b5ba4aa3c76f","561cfd8b2da1b5ba4aa3c76f","561cfd872da1b5ba4aa3c76e","558a7e30b20185e7076ce0d5","558a7e30b20185e7076ce0d5","561cfd872da1b5ba4aa3c76e","561cfd802da1b5ba4aa3c76c","561cfd872da1b5ba4aa3c76e","561cfd802da1b5ba4aa3c76c","561cfd8b2da1b5ba4aa3c76f","561cfd7e2da1b5ba4aa3c76b","561cfd872da1b5ba4aa3c76e","561cfd7e2da1b5ba4aa3c76b","561cfd7e2da1b5ba4aa3c76b","561cfd872da1b5ba4aa3c76e","561cfd872da1b5ba4aa3c76e","561cfd7e2da1b5ba4aa3c76b","561cfd822da1b5ba4aa3c76d","561cfd7e2da1b5ba4aa3c76b","558a7e30b20185e7076ce0d5","561cfd8b2da1b5ba4aa3c76f","561cfd8b2da1b5ba4aa3c76f","561cfd872da1b5ba4aa3c76e","558a7e30b20185e7076ce0d5","561cfd872da1b5ba4aa3c76e","561cfd8b2da1b5ba4aa3c76f","561cfd822da1b5ba4aa3c76d","558a7e30b20185e7076ce0d5"];
 
 // var getRoom = function (callback) {
 
@@ -98,6 +102,11 @@ var total_users = 0;
 //     if (total_users === 30) {
 //         console.log('Arrancando nueva');
 //         launch.runInstance('m4.2xlarge');
+//     }
+
+//     if (total_users === 45) {
+//         console.log('Arrancando nueva');
+//         launch.runInstance('c4.2xlarge');
 //     }
     
 //     callback(rooms_ex[index]);
