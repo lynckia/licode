@@ -184,7 +184,7 @@ private:
   bool shouldSendFeedback_;
   bool slideShowMode_;
   uint32_t rateControl_; //Target bitrate for hacky rate control in BPS 
-  uint16_t seqNo_, grace_;
+  uint16_t seqNo_, grace_, sendSeqNo_, jump_;
   
   IceConfig iceConfig_;
   int stunPort_, minPort_, maxPort_;

@@ -40,7 +40,9 @@ namespace erizo {
 
     rateControl_ = 0;
     seqNo_ = 1000;
-    grace_=0;
+    sendSeqNo_ = 0;
+    grace_= 0;
+    jump_ = 0;
      
     sending_ = true;
     rtcpProcessor_ = boost::shared_ptr<RtcpProcessor> (new RtcpProcessor((MediaSink*)this, (MediaSource*) this));
@@ -307,7 +309,14 @@ namespace erizo {
   int WebRtcConnection::deliverVideoData_(char* buf, int len) {
     if (videoTransport_ != NULL) {
       if (videoEnabled_ == true) {
+        RtcpHeader* hc = reinterpret_cast<RtcpHeader*>(buf);
+        if (hc->isRtcp()){
+          this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
+          return len;
+        }
+      
         RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
+        sendSeqNo_ = h->getSeqNumber();
         if (h->getPayloadType() == RED_90000_PT && (!remoteSdp_.supportPayloadType(RED_90000_PT) || slideShowMode_)) {
           // This is a RED/FEC payload, but our remote endpoint doesn't support that (most likely because it's firefox :/ )
           // Let's go ahead and run this through our fec receiver to convert it to raw VP8
@@ -333,13 +342,17 @@ namespace erizo {
             }
             if (grace_){ // We send until marker
               h->setSeqNumber(seqNo_++);
+              ELOG_DEBUG("Sending seqNo_: %u", seqNo_);
               this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
               if (h->getMarker()){
                 grace_=0;
               }
-            } 
+            }else{
+              jump_++;
+            }
           } else {
-            seqNo_ = h->getSeqNumber();
+            ELOG_DEBUG("Sending sendSeqNo_: %u - jump %u = %u", sendSeqNo_, jump_, (sendSeqNo_ - jump_));
+            h->setSeqNumber(sendSeqNo_ - jump_);
             this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET);
           }
         }
@@ -400,6 +413,14 @@ namespace erizo {
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
       if (fbSink_ != NULL && shouldSendFeedback_ && !slideShowMode_) {
+         
+        RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+        if (chead->getPacketType() == RTCP_Receiver_PT){
+          uint16_t theHighestSeqNo = chead->getHighestSeqnum();
+          uint32_t lostPackets = chead->getLostPackets();
+          ELOG_DEBUG("Receiver Report RTCP Packet %u, highestRecv %u, Jump %u calc %u lostPackets %u", theHighestSeqNo, sendSeqNo_, jump_, (theHighestSeqNo+jump_), lostPackets);
+          chead->setHighestSeqnum(theHighestSeqNo+jump_);
+        }
         fbSink_->deliverFeedback(buf,len);
       }
     } else {
@@ -647,6 +668,10 @@ namespace erizo {
 
   void WebRtcConnection::setSlideShowMode (bool state){
     ELOG_DEBUG("Setting SlideShowMode %u", state);
+    if (state){
+      seqNo_ = sendSeqNo_ - jump_;
+      ELOG_DEBUG("Setting seqNo_ %u", seqNo_);
+    }
     slideShowMode_ = state;
   }
 
