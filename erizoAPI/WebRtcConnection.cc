@@ -249,6 +249,11 @@ Handle<Value> WebRtcConnection::generatePLIPacket(const v8::Arguments& args){
   HandleScope scope;
 
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+
+  if(obj->me ==NULL){
+    return scope.Close(Null());
+  }
+
   erizo::WebRtcConnection *me = obj->me;
   me->sendPLI();
 
