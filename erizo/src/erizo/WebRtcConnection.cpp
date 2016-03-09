@@ -439,7 +439,11 @@ namespace erizo {
               case RTCP_RTP_Feedback_PT:
 //                ELOG_DEBUG("I'll ignore Rewriting seqNum in NACK, from %u to %u, partNum %u", chead->getNackPid(), chead->getNackPid()+seqNoOffset_, partNum);
                 chead->setNackPid(chead->getNackPid()+seqNoOffset_);
-                len = rtcpLength; //Ignore NACKs
+                if (partNum >0)
+                  len = totalLength - rtcpLength; //Ignore NACKs
+                else{
+                  ELOG_DEBUG("Im not ignoring this NACK");
+                }
 //                chead->setNackBlp(0);
                 break;
               case RTCP_PS_Feedback_PT:
