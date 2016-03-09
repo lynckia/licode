@@ -245,7 +245,8 @@ namespace erizo{
           /* RECEIVER REPORT DATA*/
           uint32_t fractionlost:8;
           int32_t lost:24;
-          uint32_t highestseqnum;
+          uint32_t seqnumcycles:16;
+          uint32_t highestseqnum:16;
           uint32_t jitter;
           uint32_t lastsr;
           uint32_t delaysincelast;
@@ -341,11 +342,17 @@ namespace erizo{
       inline void setLostPackets(uint32_t lost) {
         report.receiverReport.lost = htonl(lost)>>8;
       }
-      inline uint32_t getHighestSeqnum() {
-        return ntohl(report.receiverReport.highestseqnum);
+      inline uint16_t getSeqnumCycles() {
+        return ntohs(report.receiverReport.seqnumcycles);
       }
-      inline void setHighestSeqnum(uint32_t highest) {
-        report.receiverReport.highestseqnum = htonl(highest);
+      inline void setSeqnumCycles(uint16_t seqnumcycles) {
+        report.receiverReport.seqnumcycles = htons(seqnumcycles);
+      }
+      inline uint16_t getHighestSeqnum() {
+        return ntohs(report.receiverReport.highestseqnum);
+      }
+      inline void setHighestSeqnum(uint16_t highest) {
+        report.receiverReport.highestseqnum = htons(highest);
       }
       inline uint32_t getJitter() {
         return ntohl(report.receiverReport.jitter);

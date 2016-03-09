@@ -38,7 +38,8 @@ namespace erizo {
     uint32_t ssrc;
     uint32_t totalPacketsLost;
     uint32_t ratioLost:8;
-    uint32_t highestSeqNumReceived;
+    uint16_t highestSeqNumReceived;
+    uint16_t seqNumCycles;
     uint32_t lastSr;
     uint64_t reportedBandwidth;
     uint32_t delaySinceLastSr;
@@ -79,6 +80,7 @@ namespace erizo {
       totalPacketsLost = 0;
       ratioLost = 0;
       highestSeqNumReceived = 0;
+      seqNumCycles = 0;
       lastSr = 0;
       reportedBandwidth = 0;
       delaySinceLastSr = 0;
@@ -120,8 +122,8 @@ class RtcpProcessor{
 
   private:
     static const int RR_AUDIO_PERIOD = 2000;
-    static const int RR_VIDEO_BASE = 1000; 
-    static const int REMB_TIMEOUT = 5000;
+    static const int RR_VIDEO_BASE = 800; 
+    static const int REMB_TIMEOUT = 1000;
     static const uint64_t NTPTOMSCONV = 4294967296;
     std::map<uint32_t, boost::shared_ptr<RtcpData>> rtcpData_;
     boost::mutex mapLock_;
