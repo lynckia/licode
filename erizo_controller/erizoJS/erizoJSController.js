@@ -268,6 +268,9 @@ exports.ErizoJSController = function (spec) {
                         log.info('SENDING PLI from ', id_pub, ' to BOWSER ', id_sub);
                         publishers[id_pub].wrtc.generatePLIPacket();
                     }
+                    if (options.slideShowMode == true){
+                        setSlideShow(true, id_sub, id_pub);
+                    }
                     callback('callback', {type: 'ready'});
                     break;
             }
@@ -457,10 +460,6 @@ exports.ErizoJSController = function (spec) {
             subscribers[to][from] = wrtc;
             publishers[to].muxer.addSubscriber(wrtc, from);
             wrtc.minVideoBW = publishers[to].minVideoBW;
-            if (options.slideShowMode === true){
-                setSlideShow(true, from, to);
-            }
-
             initWebRtcConnection(wrtc, callback, to, from, options);
         }
     };
