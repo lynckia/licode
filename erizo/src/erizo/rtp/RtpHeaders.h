@@ -110,6 +110,12 @@ namespace erizo{
       inline void setExtension(uint8_t ext) {
         hasextension = ext;
       }
+      inline uint8_t getCc() const {
+        return cc;
+      }
+      inline void setCc (uint8_t theCc){
+        cc = theCc;
+      }
       inline uint8_t getPayloadType() const {
         return payloadtype;
       }

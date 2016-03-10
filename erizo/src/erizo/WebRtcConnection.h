@@ -177,6 +177,8 @@ private:
   int deliverFeedback_(char* buf, int len);
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
 
+  uint32_t stripRtcpHeaders(char* buf, int len);
+
   
   bool audioEnabled_;
   bool videoEnabled_;
