@@ -409,8 +409,6 @@ namespace erizo {
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
       if (fbSink_ != NULL && shouldSendFeedback_ && !slideShowMode_) {
-         
-        RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
         if (seqNoOffset_>0){
           char* movingBuf = buf;
           int rtcpLength = 0;
@@ -481,6 +479,19 @@ namespace erizo {
           recvSSRC = chead->getSSRC();             
         }else{
           recvSSRC = head->getSSRC();
+        }
+        if (false){
+          if (head->getExtension()){
+            if (head->getExtId()==0xBEDE && head->getExtLength() ==1){
+              ELOG_DEBUG("There is an extension %X, length %u", head->getExtId(), head->getExtLength());
+              gettimeofday(&now_, NULL);
+              uint64_t nowus = (now_.tv_sec * 1000000) + (now_.tv_usec / 1000000);
+              uint32_t absolute_send_time = static_cast<uint32_t>(
+                  ((static_cast<uint64_t>(nowus) << 18) + 500000) / 1000000) & 0x00FFFFFFul;
+              head->setAbsSendTime(absolute_send_time << 8);
+
+            }
+          }
         }
         // Deliver data
         if (recvSSRC==this->getVideoSourceSSRC()) {
