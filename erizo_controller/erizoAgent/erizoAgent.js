@@ -67,8 +67,14 @@ for (var prop in opt.options) {
 var logger = require('./../common/logger').logger;
 var amqper = require('./../common/amqper');
 
+var getErizoAgent = undefined;
+if (config.erizoController.cloudHandlerPolicy) {
+	getErizoAgent = require('./../erizoController/ch_policies/' + config.erizoController.cloudHandlerPolicy).getErizoAgent;
+} 
+var agent_queue = getErizoAgent!=undefined ? getErizoAgent() : "ErizoAgent"; 
+
 // Logger
-var log = logger.getLogger("ErizoAgent");
+var log = logger.getLogger(agent_queue);
 
 var childs = [];
 
@@ -245,7 +251,7 @@ amqper.connect(function () {
     "use strict";
 
     amqper.setPublicRPC(api);
-    amqper.bind("ErizoAgent");
+    amqper.bind(agent_queue);
     amqper.bind("ErizoAgent_" + my_erizo_agent_id);
     amqper.bind_broadcast("ErizoAgent", function (m) {
         log.warn('No method defined');

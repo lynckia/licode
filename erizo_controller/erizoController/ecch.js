@@ -63,14 +63,12 @@ exports.Ecch = function (spec) {
 	    getErizoAgent = require('./ch_policies/' + config.erizoController.cloudHandlerPolicy).getErizoAgent;
 	}
 
+	var agent_queue = 'ErizoAgent';
+	if (getErizoAgent) {
+		agent_queue = getErizoAgent(agents);
+	}
+
 	that.getErizoJS = function(callback) {
-
-		var agent_queue = 'ErizoAgent';
-
-		if (getErizoAgent) {
-			agent_queue = getErizoAgent(agents);
-		}
-
 		log.info('Asking erizoJS to agent ', agent_queue);
 
 		amqper.callRpc(agent_queue, 'createErizoJS', [], {callback: function(erizo_id) {
@@ -100,8 +98,10 @@ exports.Ecch = function (spec) {
 	    }});
 	};
 
+	// TODO probably use agent_queue and try_again method
 	that.deleteErizoJS = function(erizo_id) {
-        amqper.broadcast("ErizoAgent", {method: "deleteErizoJS", args: [erizo_id]}, function(){}); 
+		//amqper.broadcast(agent_queue, {method: "deleteErizoJS", args: [erizo_id]}, function(){});
+		amqper.broadcast('ErizoAgent', {method: "deleteErizoJS", args: [erizo_id]}, function(){});
 	};
 
 	return that;
