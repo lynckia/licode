@@ -130,6 +130,8 @@ namespace erizo {
     this->thisStats_.setVideoSourceSSRC(this->getVideoSourceSSRC());
     this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
     this->thisStats_.setAudioSourceSSRC(this->getAudioSourceSSRC());
+    this->audioEnabled_ = remoteSdp_.hasAudio;
+    this->videoEnabled_ = remoteSdp_.hasVideo;
     rtcpProcessor_->addSourceSsrc(this->getAudioSourceSSRC());
     rtcpProcessor_->addSourceSsrc(this->getVideoSourceSSRC());
 
