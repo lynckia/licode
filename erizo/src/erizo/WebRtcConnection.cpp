@@ -329,7 +329,7 @@ namespace erizo {
             fec_receiver_.ProcessReceivedFec();
           }
         } else {
-          slideShowMutex_.lock();
+//          slideShowMutex_.lock();
           if (slideShowMode_){
             RtpVP8Parser parser;
             RTPPayloadVP8* payload = parser.parseVP8(reinterpret_cast<unsigned char*>(buf + h->getHeaderLength()), len - h->getHeaderLength());
@@ -343,9 +343,9 @@ namespace erizo {
                 grace_=0;
               }              
             }
-            slideShowMutex_.unlock();
+//            slideShowMutex_.unlock();
           } else {
-            slideShowMutex_.unlock();
+//            slideShowMutex_.unlock();
             if (seqNoOffset_>0){
               //ELOG_DEBUG("Requesting rEwrite from %u with offset %u", sendSeqNo_, seqNoOffset_);
               this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET, (sendSeqNo_ - seqNoOffset_));
@@ -410,7 +410,7 @@ namespace erizo {
 
     // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
     if (chead->isFeedback()){
-      slideShowMutex_.lock();
+//      slideShowMutex_.lock();
       if (fbSink_ != NULL && shouldSendFeedback_ && !slideShowMode_) {
         if (seqNoOffset_>0){
           char* movingBuf = buf;
@@ -460,10 +460,10 @@ namespace erizo {
             partNum++;
           } while (totalLength < len);
         }
-        slideShowMutex_.unlock();
+//        slideShowMutex_.unlock();
         fbSink_->deliverFeedback(buf,len);
       } else {
-        slideShowMutex_.unlock();
+//        slideShowMutex_.unlock();
       }
     } else {
       // RTP or RTCP Sender Report
@@ -722,7 +722,7 @@ namespace erizo {
       changeDeliverPayloadType(&p_, type);
       if (seqNum){
         RtpHeader* h = reinterpret_cast<RtpHeader*>(&p_.data);
-        ELOG_DEBUG("Rewriting seqNum from %u, to %u", h->getSeqNumber(), seqNum);
+//        ELOG_DEBUG("Rewriting seqNum from %u, to %u", h->getSeqNumber(), seqNum);
         h->setSeqNumber(seqNum);
       }
       sendQueue_.push(p_);
@@ -733,7 +733,7 @@ namespace erizo {
   }
 
   void WebRtcConnection::setSlideShowMode (bool state){
-    boost::mutex::scoped_lock lock(slideShowMutex_);
+//    boost::mutex::scoped_lock lock(slideShowMutex_);
     ELOG_DEBUG("Setting SlideShowMode %u", state);
     if (slideShowMode_==state){
       return;
@@ -784,7 +784,7 @@ namespace erizo {
           }
 
           if (bundle_ || p.type == VIDEO_PACKET) {
-            slideShowMutex_.lock();
+//            slideShowMutex_.lock();
             if (rateControl_ && !slideShowMode_){
               if (p.type == VIDEO_PACKET){
                 if (rateControl_ == 1)
@@ -803,7 +803,7 @@ namespace erizo {
                 sentVideoBytes+=p.length;
               }
             }
-            slideShowMutex_.unlock();
+//            slideShowMutex_.unlock();
 
               videoTransport_->write(p.data, p.length);
           } else {
