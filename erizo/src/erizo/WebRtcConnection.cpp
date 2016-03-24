@@ -336,6 +336,7 @@ namespace erizo {
             if (!payload->frameType){ // Its a keyframe
               grace_=1;
             }
+            delete payload;
             if (grace_){ // We send until marker
               //              ELOG_DEBUG("Sending seqNo_: %u", seqNo_);
               this->queueData(0, buf, len, videoTransport_, VIDEO_PACKET, seqNo_++);
