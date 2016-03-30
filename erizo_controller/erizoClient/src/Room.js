@@ -317,7 +317,7 @@ Erizo.Room = function (spec) {
             that.dispatchEvent(connectEvt);
         }, function (error) {
             L.Logger.error("Not Connected! Error: " + error);
-            var connectEvt = Erizo.RoomEvent({type: "room-error"});
+            var connectEvt = Erizo.RoomEvent({type: "room-error", message:error});
             that.dispatchEvent(connectEvt);
         });
     };
