@@ -111,7 +111,7 @@ var launchErizoJS = function() {
     var erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, privateIP, publicIP], { detached: true, stdio: [ 'ignore', out, err ] });
     erizoProcess.unref();
     erizoProcess.on('close', function (code) {
-
+        log.info("ErizoJS", id, " has closed");
         var index = idle_erizos.indexOf(id);
         var index2 = erizos.indexOf(id);
         if (index > -1) {
@@ -144,9 +144,8 @@ var launchErizoJS = function() {
 };
 
 var dropErizoJS = function(erizo_id, callback) {
-    log.info("Dropping Erizo");
    if (processes.hasOwnProperty(erizo_id)) {
-      log.info("Dropping Erizo that was not closed before");
+      log.warn("Dropping Erizo that was not closed before, possible publisher/subscriber mismatch");
       var process = processes[erizo_id];
       process.kill();
       delete processes[erizo_id];
