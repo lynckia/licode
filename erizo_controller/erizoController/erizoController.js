@@ -198,6 +198,7 @@ var addToCloudHandler = function (callback) {
 
     var addECToCloudHandler = function(attempt) {
         if (attempt <= 0) {
+            log.error('FATAL:CloudHandler does not respond when trying to add myself to the pool. Won\'t retry again!');
             return;
         }
 
@@ -211,7 +212,7 @@ var addToCloudHandler = function (callback) {
         amqper.callRpc('nuve', 'addNewErizoController', controller, {callback: function (msg) {
 
             if (msg === 'timeout') {
-                log.info('CloudHandler does not respond');
+                log.warn('CloudHandler does not respond when trying to add myself to the pool... Retrying');
 
                 // We'll try it more!
                 setTimeout(function() {
@@ -221,8 +222,11 @@ var addToCloudHandler = function (callback) {
                 return;
             }
             if (msg == 'error') {
-                log.info('Error in communication with cloudProvider');
+                log.error('Error in communication with CloudHandler');
+                return;
             }
+
+            log.info("Succesfully added myself to a CloudHandler pool");
 
             publicIP = msg.publicIP;
             myId = msg.id;
@@ -234,7 +238,7 @@ var addToCloudHandler = function (callback) {
                     if (result === 'whoareyou') {
 
                         // TODO: It should try to register again in Cloud Handler. But taking into account current rooms, users, ...
-                        log.info('I don`t exist in cloudHandler. I`m going to be killed');
+                        log.error('This ErizoController does not exist in ClouldHandler.To avoid unexpected behavior this ErizoController will die');
                         clearInterval(intervarId);
                         amqper.callRpc('nuve', 'killMe', publicIP, {callback: function () {}});
                     }
@@ -272,8 +276,10 @@ var updateMyState = function () {
     if (nRooms < WARNING_N_ROOMS) {
         newState = 2;
     } else if (nRooms > LIMIT_N_ROOMS) {
+        log.warn("Room Limit", LIMIT_N_ROOMS,"reached no new rooms will be assigned to this ErizoController");
         newState = 0;
     } else {
+        log.warn("Room Warning number", WARNING_N_ROOMS," this ErizoController will accept more rooms until it reaches", LIMIT_N_ROOMS);
         newState = 1;
     }
 
@@ -291,7 +297,7 @@ var listen = function () {
     "use strict";
 
     io.sockets.on('connection', function (socket) {
-        log.info("Socket connect ", socket.id);
+        log.info("New ErizoClient connected ", socket.id);
 
         // Gets 'token' messages on the socket. Checks the signature and ask nuve if it is valid.
         // Then registers it in the room and callback to the client.
@@ -305,12 +311,12 @@ var listen = function () {
 
                 amqper.callRpc('nuve', 'deleteToken', token.tokenId, {callback: function (resp) {
                     if (resp === 'error') {
-                        log.info('Token does not exist');
+                        log.warn('Trying to use token that does not exist, disconnecting Client');
                         callback('error', 'Token does not exist');
                         socket.disconnect();
 
                     } else if (resp === 'timeout') {
-                        log.warn('Nuve does not respond');
+                        log.warn('Nuve does not respond token check, disconnecting client');
                         callback('error', 'Nuve does not respond');
                         socket.disconnect();
 
@@ -324,7 +330,7 @@ var listen = function () {
                             room.sockets.push(socket.id);
                             room.streams = {}; //streamId: Stream
                             if (tokenDB.p2p) {
-                                log.debug('Token of p2p room');
+                                log.debug('Token for p2p room');
                                 room.p2p = true;
                             } else {
                                 room.controller = controller.RoomController({amqper: amqper, ecch: ecch});
@@ -367,7 +373,7 @@ var listen = function () {
                         socket.streams = []; //[list of streamIds]
                         socket.state = 'sleeping';
 
-                        log.debug('OK, Valid token');
+                        log.debug('Client supplied a valid token');
 
                         if (!tokenDB.p2p && GLOBAL.config.erizoController.report.session_events) {
                             var timeStamp = new Date();
@@ -391,14 +397,14 @@ var listen = function () {
                                             });
 
                     } else {
-                        log.warn('Invalid host');
+                        log.warn('Token does not contain this host: Invalid host');
                         callback('error', 'Invalid host');
                         socket.disconnect();
                     }
                 }});
 
             } else {
-                log.warn("Authentication error");
+                log.warn("Token authentication error");
                 callback('error', 'Authentication error');
                 socket.disconnect();
             }
@@ -499,7 +505,7 @@ var listen = function () {
                         }
                         return;
                     } else if (signMess.type ==='failed'){
-                        log.info("IceConnection Failed on publisher, removing " , id);
+                        log.warn("IceConnection Failed on publisher, removing " , id);
                         socket.emit('connection_failed',{});
                         socket.state = 'sleeping';
                         if (!socket.room.p2p) {
@@ -518,8 +524,15 @@ var listen = function () {
                     } else if (signMess.type === 'ready') {
                         st.status = PUBLISHER_READY;
                         sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
-                    } else if (signMess === 'timeout') {
-                        callback(undefined, 'No ErizoAgents available');
+                    } else if (signMess === 'timeout-erizojs') {
+                        log.error("Error Trying to add Publisher: timeout when contacting ErizoJS");
+                        callback(undefined, 'ErizoJS is not reachable');
+                    } else if (signMess === 'timeout-agent'){
+                        log.error("Error Trying to add Publisher: timeout when contacting Agent");
+                        callback(undefined, 'ErizoAgent is not reachable');
+                    } else if (signMess === 'timeout'){
+                        log.error("Undefined RPC Timeout");
+                        callback(undefined, 'ErizoAgent or ErizoJS is not reachable');
                     }
 
                     socket.emit('signaling_message_erizo', {mess: signMess, streamId: id});
@@ -569,9 +582,8 @@ var listen = function () {
 
                 } else {
                     socket.room.controller.addSubscriber(socket.id, options.streamId, options, function (signMess) {
-
                         if (signMess.type === 'initializing') {
-                            log.info("Initializing subscriber");
+                            log.info("Initializing subscriber from",socket.id, "to", options.streamId);
                             callback(true);
 
                             if (GLOBAL.config.erizoController.report.session_events) {
@@ -579,18 +591,16 @@ var listen = function () {
                                 amqper.broadcast('event', {room: socket.room.id, user: socket.id, name: socket.user.name, type: 'subscribe', stream: options.streamId, timestamp: timeStamp.getTime()});
                             }
                             return;
-                        }
-                        if(signMess.type==='bandwidthAlert'){
-                          socket.emit('onBandwidthAlert', {streamID:options.streamId, message:signMess.message, bandwidth: signMess.bandwidth});
-                        }
+                        } else if (signMess.type === 'bandwidthAlert') {
+                            socket.emit('onBandwidthAlert', {streamID:options.streamId, message:signMess.message, bandwidth: signMess.bandwidth});
+                        } else if (signMess === 'timeout') {
+                            log.error("Error Trying to add Subscriber: timeout when contacting ErizoJS", options.streamId);
+                            callback(undefined, 'ErizoJS is not reachable');
+                        } 
 
-                        // if (signMess.type === 'candidate') {
-                        //     signMess.candidate = signMess.candidate.replace(privateRegexp, publicIP);
-                        // }
                         socket.emit('signaling_message_erizo', {mess: signMess, peerId: options.streamId});
                     });
-
-                    log.info("Subscriber added");
+                    log.info("Started Subscribe to ", options.streamId, "from",socket.id);
                 }
             } else {
                 callback(true);
@@ -623,7 +633,7 @@ var listen = function () {
                         log.info("erizoController.js: Recorder Started");
                         callback(recordingId);
                     } else {
-                        callback(null, 'This stream is not published in this room');
+                        callback(null, 'Unable to subscribe to stream for recording, publisher not present');
                     }
                 });
 
@@ -779,7 +789,7 @@ var listen = function () {
 
 
 /*
- *Gets a list of users in a determined room.
+ *Gets a list of users in a given room.
  */
 exports.getUsersInRoom = function (room, callback) {
     "use strict";
@@ -802,7 +812,7 @@ exports.getUsersInRoom = function (room, callback) {
 };
 
 /*
- *Gets a list of users in a determined room.
+ *Remove user from a room.
  */
 exports.deleteUser = function (user, room, callback) {
     "use strict";
@@ -846,7 +856,7 @@ exports.deleteUser = function (user, room, callback) {
 
 
 /*
- * Delete a determined room.
+ * Delete a room.
  */
 exports.deleteRoom = function (room, callback) {
     "use strict";
