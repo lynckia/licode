@@ -75,7 +75,7 @@ checkKA = function () {
         if (erizoControllers.hasOwnProperty(ec)) {
             erizoControllers[ec].keepAlive += 1;
             if (erizoControllers[ec].keepAlive > MAX_KA_COUNT) {
-                log.info('ErizoController', ec, ' in ', erizoControllers[ec].ip, 'does not respond. Deleting it.');
+                log.warn('ErizoController', ec, ' in ', erizoControllers[ec].ip, 'does not respond. Deleting it.');
                 delete erizoControllers[ec];
                 for (room in rooms) {
                     if (rooms.hasOwnProperty(room)) {
@@ -161,7 +161,7 @@ exports.keepAlive = function (id, callback) {
 
     if (erizoControllers[id] === undefined) {
         result = 'whoareyou';
-        log.info('I received a keepAlive mess from a removed erizoController');
+        log.warn('I received a keepAlive mess from an unknownb erizoController');
     } else {
         erizoControllers[id].keepAlive = 0;
         result = 'ok';
@@ -173,7 +173,7 @@ exports.keepAlive = function (id, callback) {
 exports.setInfo = function (params) {
     "use strict";
 
-    log.info('Received info ', params,    '.Recalculating erizoControllers priority');
+    log.info('Received info ', params, '. Recalculating erizoControllers priority');
     erizoControllers[params.id].state = params.state;
     recalculatePriority();
 };
@@ -181,7 +181,7 @@ exports.setInfo = function (params) {
 exports.killMe = function (ip) {
     "use strict";
 
-    log.info('[CLOUD HANDLER]: ErizoController in host ', ip, 'does not respond.');
+    log.info('[CLOUD HANDLER]: ErizoController in host ', ip, 'wants to be killed.');
 
 };
 
