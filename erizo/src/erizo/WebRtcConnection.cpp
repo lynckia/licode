@@ -16,7 +16,7 @@ namespace erizo {
   WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, 
       const IceConfig& iceConfig, bool trickleEnabled, WebRtcConnectionEventListener* listener)
       : connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this){
-    ELOG_WARN("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
+    ELOG_INFO("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
     bundle_ = false;
     this->setVideoSinkSSRC(55543);
     this->setAudioSinkSSRC(44444);
@@ -116,7 +116,6 @@ namespace erizo {
 
 
     bundle_ = remoteSdp_.isBundle;
-    ELOG_DEBUG("Is bundle? %d", bundle_);
     localSdp_.setOfferSdp(remoteSdp_);
         
     ELOG_DEBUG("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d", remoteSdp_.hasVideo, remoteSdp_.videoSsrc, remoteSdp_.hasAudio, remoteSdp_.audioSsrc,  bundle_);
@@ -367,34 +366,6 @@ namespace erizo {
     return len;
   }
 
-  void WebRtcConnection::writeSsrc(char* buf, int len, unsigned int ssrc) {
-    ELOG_DEBUG("LEN %d", len);
-    RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
-    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-    //if it is RTCP we check it it is a compound packet
-    if (chead->isRtcp()) {      
-      char* movingBuf = buf;
-      int rtcpLength = 0;
-      int totalLength = 0;
-      do{
-        movingBuf+=rtcpLength;
-        RtcpHeader *chead= reinterpret_cast<RtcpHeader*>(movingBuf);
-        rtcpLength= (ntohs(chead->length)+1)*4;      
-        totalLength+= rtcpLength;
-        ELOG_DEBUG("Is RTCP, prev SSRC %u, new %u, len %d ", chead->getSSRC(), ssrc, rtcpLength);
-        chead->ssrc=htonl(ssrc);
-        if (chead->packettype == RTCP_PS_Feedback_PT){
-          FirHeader *thefir = reinterpret_cast<FirHeader*>(movingBuf);
-          if (thefir->fmt == 4){ // It is a FIR Packet, we generate it
-            this->sendPLI();
-          }
-        }
-      } while(totalLength<len);
-    } else {
-      head->setSSRC(ssrc);
-    }
-  }
-
   void WebRtcConnection::onTransportData(char* buf, int len, Transport *transport) {
     if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL){
       return;
@@ -486,7 +457,7 @@ namespace erizo {
           parseIncomingPayloadType(buf, len, AUDIO_PACKET);
           audioSink_->deliverAudioData(buf, len);
         } else {
-          ELOG_ERROR("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
+          ELOG_WARN("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
         }
       } else if (transport->mediaType == AUDIO_TYPE) {
         if (audioSink_ != NULL) {
@@ -563,8 +534,6 @@ namespace erizo {
     return len; 
     
   }
-
-  
      
   void WebRtcConnection::updateState(TransportState state, Transport * transport) {
     boost::mutex::scoped_lock lock(updateStateMutex_);
@@ -575,13 +544,10 @@ namespace erizo {
       ELOG_ERROR("Update Transport State with Transport NULL, this should not happen!");
       return;
     }
-    
-
     if (globalState_ == CONN_FAILED) {
       // if current state is failed -> noop
       return;
     }
-
     switch (state){
       case TRANSPORT_STARTED:
         if (bundle_){
@@ -627,7 +593,7 @@ namespace erizo {
         temp = CONN_FAILED;
         sending_ = false;
         msg = remoteSdp_.getSdp();
-        ELOG_INFO("WebRtcConnection failed, stopping sending");
+        ELOG_ERROR("WebRtcConnection failed, stopping sending. Possibly ICE Connection Failure");
         cond_.notify_one();
         break;
       default:

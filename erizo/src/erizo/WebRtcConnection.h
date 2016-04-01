@@ -171,7 +171,6 @@ private:
 
   bool sending_;
 	void sendLoop();
-	void writeSsrc(char* buf, int len, unsigned int ssrc);
 	int deliverAudioData_(char* buf, int len);
 	int deliverVideoData_(char* buf, int len);
   int deliverFeedback_(char* buf, int len);

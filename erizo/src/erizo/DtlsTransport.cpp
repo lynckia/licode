@@ -40,9 +40,9 @@ void Resender::start() {
   sent_ = 0;
   timer.cancel();
   if (thread_.get()!=NULL) {
-    ELOG_ERROR("Starting Resender, joining thread to terminate");
+    ELOG_WARN("Starting Resender, joining thread to terminate");
     thread_->join();
-    ELOG_ERROR("Thread terminated on start");
+    ELOG_WARN("Thread terminated on start");
   }
   timer.expires_from_now(boost::posix_time::seconds(3));
   timer.async_wait(boost::bind(&Resender::resend, this, boost::asio::placeholders::error));
@@ -64,7 +64,7 @@ void Resender::resend(const boost::system::error_code& ec) {
   }
   
   if (nice_ != NULL) {
-    ELOG_WARN("%s - Resending DTLS message to %d", nice_->transportName->c_str(), comp_);
+    ELOG_DEBUG("%s - Resending DTLS message to %d", nice_->transportName->c_str(), comp_);
     int val = nice_->sendData(comp_, data_, len_);
     if (val < 0) {
        sent_ = -1;
