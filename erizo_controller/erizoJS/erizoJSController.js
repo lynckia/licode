@@ -231,7 +231,7 @@ exports.ErizoJSController = function (spec) {
         }
 
         wrtc.init( function (newStatus, mess){
-            log.info("webrtc Addon status ", newStatus, mess, "id pub", id_pub, "id_sub", id_sub );
+            log.debug("webrtc Addon status ", newStatus, mess, "id pub", id_pub, "id_sub", id_sub );
 
             if (GLOBAL.config.erizoController.report.connection_events) {
                 var timeStamp = new Date();
@@ -259,13 +259,15 @@ exports.ErizoJSController = function (spec) {
                     break;
 
                 case CONN_FAILED:
+                    log.warn("Connection id_pub:", id_pub, "idsub:",id_sub,"failed the ICE process");
                     callback('callback', {type: 'failed', sdp: mess});
                     break;
 
                 case CONN_READY:
+                    log.info("Connection id_pub:", id_pub, "idsub:",id_sub,"ready");
                     // If I'm a subscriber and I'm bowser, I ask for a PLI
                     if (id_sub && options.browser === 'bowser') {
-                        log.info('SENDING PLI from ', id_pub, ' to BOWSER ', id_sub);
+                        log.debug('SENDING PLI from ', id_pub, ' to BOWSER ', id_sub);
                         publishers[id_pub].wrtc.generatePLIPacket();
                     }
                     if (options.slideShowMode == true){
@@ -439,7 +441,7 @@ exports.ErizoJSController = function (spec) {
             initWebRtcConnection(wrtc, callback, from, undefined, options);
 
         } else {
-            log.info("Publisher already set for", from);
+            log.rttot("Publisher already set for", from);
         }
     };
 
@@ -470,23 +472,21 @@ exports.ErizoJSController = function (spec) {
     that.removePublisher = function (from) {
 
         if (subscribers[from] !== undefined && publishers[from] !== undefined) {
-            log.info('Removing muxer', from);
+            log.info('Removing muxer (publisher)', from);
             if(publishers[from].periodicPlis!==undefined){
                 log.debug("Clearing periodic PLIs for publisher");
                 clearInterval (publishers[from].periodicPlis);
             }
             for (var key in subscribers[from]) {
                 if (subscribers[from].hasOwnProperty(key)){
-                    log.info("Iterating and closing ", key,  subscribers[from], subscribers[from][key]);
+                    log.debug("Iterating and closing ", key,  subscribers[from], subscribers[from][key]);
                     subscribers[from][key].close();
                 }
             }
             publishers[from].wrtc.close();
             publishers[from].muxer.close();
-            log.info('Removing subscribers', from);
 
             delete subscribers[from];
-            log.info('Removing publisher', from);
             delete publishers[from];
             var count = 0;
             for (var k in publishers) {
@@ -494,7 +494,7 @@ exports.ErizoJSController = function (spec) {
                     ++count;
                 }
             }
-            log.info("Publishers: ", count);
+            log.debug("Remaining publishers: ", count);
             if (count === 0)  {
                 log.info('Removed all publishers. Killing process.');
                 process.exit(0);
