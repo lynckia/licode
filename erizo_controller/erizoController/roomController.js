@@ -282,8 +282,6 @@ exports.RoomController = function (spec) {
                     if (data === 'timeout'){
                         log.error("Can not contact ErizoJS", publisher_id , " failed add Publisher -- timeout");
                         callback('timeout-erizojs');
-                        publishers[publisher_id] = undefined;
-                        subscribers[publisher_id] = undefined
                         return;
                     }else{
                         callback(data);
