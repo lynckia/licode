@@ -65,7 +65,8 @@ int SrtpChannel::protectRtp(char* buffer, int *len) {
         RtcpHeader* head = reinterpret_cast<RtcpHeader*>(buffer);
         RtpHeader* headrtp = reinterpret_cast<RtpHeader*>(buffer);
 
-        ELOG_WARN("Error SrtpChannel::protectRtp %u packettype %d pt %d seqnum %u", val,head->packettype, headrtp->payloadtype, headrtp->seqnum);
+        if (val!=10) // Do not warn about reply errors
+          ELOG_WARN("Error SrtpChannel::protectRtp %u packettype %d pt %d seqnum %u", val,head->packettype, headrtp->payloadtype, headrtp->seqnum);
         return -1;
     }
 }
