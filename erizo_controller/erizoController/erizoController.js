@@ -488,7 +488,7 @@ var listen = function () {
                     }
                 });
             } else if (options.state === 'erizo') {
-                log.info("New publisher for id", id);
+                log.info("New publisher for id", id, "from client", socket.id);
                 
                 socket.room.controller.addPublisher(id, options, function (signMess) {
 
@@ -524,7 +524,7 @@ var listen = function () {
                     } else if (signMess.type === 'ready') {
                         st.status = PUBLISHER_READY;
                         sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
-                        log.info("Publisher", id, "is now ready");
+                        log.info("Publisher", id, "from client", socket.id, "is now ready");
                     } else if (signMess === 'timeout-erizojs') {
                         log.error("Error Trying to add Publisher: timeout when contacting ErizoJS");
                         callback(null, 'ErizoJS is not reachable');
@@ -598,7 +598,7 @@ var listen = function () {
                             socket.emit('connection_failed',{type:"subscribe"});
                             return;
                         } else if (signMess.type === 'ready') {
-                            log.info("Subscriber", socket.id, "to", options.streamId, "is now ready");
+                            log.info("Subscriber from client", socket.id, "to stream", options.streamId, "is now ready");
 
                         } else if (signMess.type === 'bandwidthAlert') {
                             socket.emit('onBandwidthAlert', {streamID:options.streamId, message:signMess.message, bandwidth: signMess.bandwidth});
