@@ -488,7 +488,7 @@ var listen = function () {
                     }
                 });
             } else if (options.state === 'erizo') {
-                log.info("New publisher");
+                log.info("New publisher for id", id);
                 
                 socket.room.controller.addPublisher(id, options, function (signMess) {
 
@@ -506,7 +506,7 @@ var listen = function () {
                         return;
                     } else if (signMess.type ==='failed'){
                         log.warn("IceConnection Failed on publisher, removing " , id);
-                        socket.emit('connection_failed',{});
+                        socket.emit('connection_failed',{type:'publish'});
                         socket.state = 'sleeping';
                         if (!socket.room.p2p) {
                             socket.room.controller.removePublisher(id);
@@ -524,15 +524,16 @@ var listen = function () {
                     } else if (signMess.type === 'ready') {
                         st.status = PUBLISHER_READY;
                         sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
+                        log.info("Publisher", id, "is now ready");
                     } else if (signMess === 'timeout-erizojs') {
                         log.error("Error Trying to add Publisher: timeout when contacting ErizoJS");
-                        callback(undefined, 'ErizoJS is not reachable');
+                        callback(null, 'ErizoJS is not reachable');
                     } else if (signMess === 'timeout-agent'){
                         log.error("Error Trying to add Publisher: timeout when contacting Agent");
-                        callback(undefined, 'ErizoAgent is not reachable');
+                        callback(null, 'ErizoAgent is not reachable');
                     } else if (signMess === 'timeout'){
                         log.error("Undefined RPC Timeout");
-                        callback(undefined, 'ErizoAgent or ErizoJS is not reachable');
+                        callback(null, 'ErizoAgent or ErizoJS is not reachable');
                     }
 
                     socket.emit('signaling_message_erizo', {mess: signMess, streamId: id});
@@ -591,11 +592,19 @@ var listen = function () {
                                 amqper.broadcast('event', {room: socket.room.id, user: socket.id, name: socket.user.name, type: 'subscribe', stream: options.streamId, timestamp: timeStamp.getTime()});
                             }
                             return;
+                        } else if (signMess.type ==='failed'){
+                            //TODO: Add Stats event
+                            log.warn("IceConnection Failed on subscriber" , socket.id , "alerting client");
+                            socket.emit('connection_failed',{type:"subscribe"});
+                            return;
+                        } else if (signMess.type === 'ready') {
+                            log.info("Subscriber", socket.id, "to", options.streamId, "is now ready");
+
                         } else if (signMess.type === 'bandwidthAlert') {
                             socket.emit('onBandwidthAlert', {streamID:options.streamId, message:signMess.message, bandwidth: signMess.bandwidth});
                         } else if (signMess === 'timeout') {
                             log.error("Error Trying to add Subscriber: timeout when contacting ErizoJS", options.streamId);
-                            callback(undefined, 'ErizoJS is not reachable');
+                            callback(null, 'ErizoJS is not reachable');
                         } 
 
                         socket.emit('signaling_message_erizo', {mess: signMess, peerId: options.streamId});

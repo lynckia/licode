@@ -323,12 +323,12 @@ exports.RoomController = function (spec) {
                         log.error("Can not contact to ErizoJS", publisher_id , " failed add Subscriber -- timeout");
                         callback('timeout');
                         return;
-                    }else{
-                        callback(data);
+                    }else if (data === 'initializing'){
+                        subscribers[publisher_id].push(subscriber_id);
                     }
+                    callback(data);
                 }});
 
-                subscribers[publisher_id].push(subscriber_id);
 /*            }else{ // Prototype for erizo_trees
                 shouldAddSurrogate (publisher_id, subscriber_id, options, function(new_id){
                     log.info("Surrogate ?", new_id);

@@ -231,10 +231,18 @@ Erizo.Room = function (spec) {
         });
 
         that.socket.on('connection_failed', function(arg){
-            L.Logger.error("ICE Connection Failed on publishing, disconnecting");
-            if (that.state !== DISCONNECTED) {
-                  var disconnectEvt = Erizo.RoomEvent({type: "stream-failed", message:"Publishing local stream failed ICE Checks"});
-                  that.dispatchEvent(disconnectEvt);
+            if (arg.type === 'publish'){
+                L.Logger.error("ICE Connection Failed on publishing, disconnecting");
+                if (that.state !== DISCONNECTED) {
+                    var disconnectEvt = Erizo.RoomEvent({type: "stream-failed", message:"Publishing local stream failed ICE Checks, disconnecting client"});
+                    that.dispatchEvent(disconnectEvt);
+                }
+            }else{
+                L.Logger.error("ICE Connection Failed on subscribe, alerting");
+                if (that.state !== DISCONNECTED) {
+                    var disconnectEvt = Erizo.RoomEvent({type: "stream-failed", message:"Subscriber failed the ICE Checks, cannot reach Licode for media"});
+                    that.dispatchEvent(disconnectEvt);
+                }
             }
         });
 
@@ -325,7 +333,7 @@ Erizo.Room = function (spec) {
 
     // It disconnects from the room, dispatching a new RoomEvent("room-disconnected")
     that.disconnect = function () {
-        Log.Logger.debug("Disconnection requested");
+        L.Logger.debug("Disconnection requested");
         // 1- Disconnect from room
         var disconnectEvt = Erizo.RoomEvent({type: "room-disconnected", message:"expected-disconnection"});
         that.dispatchEvent(disconnectEvt);
