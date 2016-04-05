@@ -24,6 +24,7 @@ exports.RoomController = function (spec) {
 
     var KEEPALIVE_INTERVAL = 5*1000;
     var TIMEOUT_LIMIT = 2;
+    var MAX_ERIZOJS_RETRIES = 2;
 
     var eventListeners = [];
 
@@ -250,12 +251,15 @@ exports.RoomController = function (spec) {
         }
     };
 
+
     /*
      * Adds a publisher to the room. This creates a new OneToManyProcessor
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
-    that.addPublisher = function (publisher_id, options, callback) {
+    that.addPublisher = function (publisher_id, options, callback, retries) {
+        if (retries === undefined)
+            retries = 0;
 
         if (publishers[publisher_id] === undefined) {
 
@@ -280,6 +284,13 @@ exports.RoomController = function (spec) {
                 
                 amqper.callRpc(getErizoQueue(publisher_id), "addPublisher", args, {callback: function (data){
                     if (data === 'timeout'){
+                        if (retries < MAX_ERIZOJS_RETRIES){
+                            publishers[publisher_id] = undefined;
+                            retries++;
+                            log.warn("ErizoJS timed out, trying again to publish", publisher_id, "number of tries", retries);
+                            that.addPublisher(publisher_id, options,callback);
+                            return;
+                        }
                         log.error("Can not contact ErizoJS", publisher_id , " failed add Publisher -- timeout");
                         callback('timeout-erizojs');
                         return;
@@ -301,11 +312,13 @@ exports.RoomController = function (spec) {
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
      */
-    that.addSubscriber = function (subscriber_id, publisher_id, options, callback) {
+    that.addSubscriber = function (subscriber_id, publisher_id, options, callback, retries) {
         if (subscriber_id === null){
           callback("Error: null subscriber_id");
           return;
         }
+        if (retries === undefined)
+            retries = 0;
 
         if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1) {
             log.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id, "options", options);
@@ -320,6 +333,12 @@ exports.RoomController = function (spec) {
                 //TODO: Potential problem here if erizoJS is not reachable
                 amqper.callRpc(getErizoQueue(publisher_id, undefined), "addSubscriber", args, {callback: function (data){
                     if (data === 'timeout'){
+                        if (retries < MAX_ERIZOJS_RETRIES){
+                            retries++;
+                            log.warn("ErizoJS timed out, trying again to subscribe to ", publisher_id, "from", subscriber_id, "number of tries", retries);
+                            that.addSubscriber(subscriber_id, publisher_id, options, callback, retries);
+                            return;
+                        }
                         log.error("Can not contact to ErizoJS", publisher_id , " failed add Subscriber -- timeout");
                         callback('timeout');
                         return;
