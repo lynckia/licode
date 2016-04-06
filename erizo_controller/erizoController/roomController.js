@@ -288,7 +288,7 @@ exports.RoomController = function (spec) {
                             publishers[publisher_id] = undefined;
                             retries++;
                             log.warn("ErizoJS timed out, trying again to publish", publisher_id, "number of tries", retries);
-                            that.addPublisher(publisher_id, options,callback);
+                            that.addPublisher(publisher_id, options,callback, retries);
                             return;
                         }
                         log.error("Can not contact ErizoJS", publisher_id , " failed add Publisher -- timeout");
