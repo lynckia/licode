@@ -528,12 +528,15 @@ var listen = function () {
                     } else if (signMess === 'timeout-erizojs') {
                         log.error("Error Trying to add Publisher: timeout when contacting ErizoJS");
                         callback(null, 'ErizoJS is not reachable');
+                        return;
                     } else if (signMess === 'timeout-agent'){
                         log.error("Error Trying to add Publisher: timeout when contacting Agent");
                         callback(null, 'ErizoAgent is not reachable');
+                        return;
                     } else if (signMess === 'timeout'){
                         log.error("Undefined RPC Timeout");
                         callback(null, 'ErizoAgent or ErizoJS is not reachable');
+                        return;
                     }
 
                     socket.emit('signaling_message_erizo', {mess: signMess, streamId: id});
@@ -605,6 +608,7 @@ var listen = function () {
                         } else if (signMess === 'timeout') {
                             log.error("Error Trying to add Subscriber: timeout when contacting ErizoJS", options.streamId);
                             callback(null, 'ErizoJS is not reachable');
+                            return;
                         } 
 
                         socket.emit('signaling_message_erizo', {mess: signMess, peerId: options.streamId});
