@@ -441,7 +441,7 @@ exports.ErizoJSController = function (spec) {
             initWebRtcConnection(wrtc, callback, from, undefined, options);
 
         } else {
-            log.rttot("Publisher already set for", from);
+            log.error("Publisher already set for", from);
         }
     };
 
