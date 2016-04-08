@@ -292,6 +292,9 @@ exports.RoomController = function (spec) {
                             return;
                         }
                         log.error("Can not contact ErizoJS", publisher_id , " failed add Publisher -- timeout");
+                        //TODO: Check what happens in ErizoJS, should have an unused publisher
+                        var index = erizos[publishers[publisher_id]].publishers.indexOf(publisher_id);
+                        erizos[publishers[publisher_id]].publishers.splice(index, 1);
                         callback('timeout-erizojs');
                         return;
                     }else{
