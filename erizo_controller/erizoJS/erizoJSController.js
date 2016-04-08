@@ -441,7 +441,8 @@ exports.ErizoJSController = function (spec) {
             initWebRtcConnection(wrtc, callback, from, undefined, options);
 
         } else {
-            log.error("Publisher already set for", from);
+            //TODO: Handle retry
+            log.warn("Publisher already set for", from, ". Publisher should reconnect");
         }
     };
 
@@ -452,18 +453,24 @@ exports.ErizoJSController = function (spec) {
      */
     that.addSubscriber = function (from, to, options, callback) {
 
-        if (publishers[to] !== undefined && subscribers[to][from] === undefined) {
-
-            log.info("Adding subscriber from ", from, 'to ', to, 'audio', options.audio, 'video', options.video);
-
-            var wrtc = new addon.WebRtcConnection(true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
-                    GLOBAL.config.erizo.turnserver, GLOBAL.config.erizo.turnport, GLOBAL.config.erizo.turnusername, GLOBAL.config.erizo.turnpass);
-
-            subscribers[to][from] = wrtc;
-            publishers[to].muxer.addSubscriber(wrtc, from);
-            wrtc.minVideoBW = publishers[to].minVideoBW;
-            initWebRtcConnection(wrtc, callback, to, from, options);
+        if (publishers[to] === undefined){
+            log.warn("Trying to subscribe ", from, " to unavailable publisher", to);
+            return;
         }
+        if (subscribers[to][from] !== undefined){
+            log.warn("This subscription from", from, "to", to, "is already made, will remove it first and resubscribe");
+            that.removeSubscriber(from,to);
+        }
+
+        log.info("Adding subscriber from ", from, 'to ', to, 'audio', options.audio, 'video', options.video);
+
+        var wrtc = new addon.WebRtcConnection(true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
+                GLOBAL.config.erizo.turnserver, GLOBAL.config.erizo.turnport, GLOBAL.config.erizo.turnusername, GLOBAL.config.erizo.turnpass);
+
+        subscribers[to][from] = wrtc;
+        publishers[to].muxer.addSubscriber(wrtc, from);
+        wrtc.minVideoBW = publishers[to].minVideoBW;
+        initWebRtcConnection(wrtc, callback, to, from, options);
     };
 
     /*
