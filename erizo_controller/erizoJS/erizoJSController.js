@@ -441,8 +441,20 @@ exports.ErizoJSController = function (spec) {
             initWebRtcConnection(wrtc, callback, from, undefined, options);
 
         } else {
-            //TODO: Handle retry
-            log.warn("Publisher already set for", from, ". Publisher should reconnect");
+            if (Object.keys(subscribers[from]).length === 0){
+                log.warn("Publisher already set for", from, "but no subscribers, will republish");
+                var wrtc = new addon.WebRtcConnection(true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
+                        GLOBAL.config.erizo.turnserver, GLOBAL.config.erizo.turnport, GLOBAL.config.erizo.turnusername, GLOBAL.config.erizo.turnpass);
+                var muxer = publishers[from].muxer;
+                publishers[from].wrtc = wrtc;
+                wrtc.setAudioReceiver(muxer);
+                wrtc.setVideoReceiver(muxer);
+                muxer.setPublisher(wrtc);
+                
+                initWebRtcConnection(wrtc, callback, from, undefined, options);
+            }else{
+                log.warn("Publisher already set for", from, "and has subscribers, ignoring");
+            }
         }
     };
 
@@ -453,8 +465,9 @@ exports.ErizoJSController = function (spec) {
      */
     that.addSubscriber = function (from, to, options, callback) {
 
-        if (publishers[to] === undefined){
+        if (publishers[to] === undefined){ 
             log.warn("Trying to subscribe ", from, " to unavailable publisher", to);
+            //We may need to notify the clients 
             return;
         }
         if (subscribers[to][from] !== undefined){
