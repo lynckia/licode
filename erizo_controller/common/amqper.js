@@ -10,7 +10,7 @@ GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
 GLOBAL.config.rabbit.host = GLOBAL.config.rabbit.host || 'localhost';
 GLOBAL.config.rabbit.port = GLOBAL.config.rabbit.port || 5672;
 
-var TIMEOUT = 5000;
+var TIMEOUT = 8000;
 
 // This timeout shouldn't be too low because it won't listen to onReady responses from ErizoJS
 var REMOVAL_TIMEOUT = 300000;
