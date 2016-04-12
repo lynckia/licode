@@ -24,7 +24,7 @@ exports.RoomController = function (spec) {
 
     var KEEPALIVE_INTERVAL = 5*1000;
     var TIMEOUT_LIMIT = 2;
-    var MAX_ERIZOJS_RETRIES = 2;
+    var MAX_ERIZOJS_RETRIES = 1;
 
     var eventListeners = [];
 
@@ -38,8 +38,8 @@ exports.RoomController = function (spec) {
 
                 if (erizos[erizo_id].ka_count > TIMEOUT_LIMIT) {
 
+                    log.error("Lost connection with ErizoJS", erizo_id,"will remove publishers", erizos[erizo_id].publishers);
                     for (var p in erizos[erizo_id].publishers) {
-                        log.error("Lost connection with ErizoJS, will remove publishers", erizo_id);
                         dispatchEvent("unpublish", erizos[erizo_id].publishers[p]);
                     }
                     ecch.deleteErizoJS(erizo_id);
@@ -186,13 +186,13 @@ exports.RoomController = function (spec) {
                 amqper.callRpc(getErizoQueue(publisher_id), "addPublisher", args, {callback: function (data){
                     if (data === 'timeout'){
                         if (retries < MAX_ERIZOJS_RETRIES){
+                            log.warn("ErizoJS timed out, trying again to publish", getErizoQueue(publisher_id), "number of tries", retries);
                             publishers[publisher_id] = undefined;
                             retries++;
-                            log.warn("ErizoJS timed out, trying again to publish", publisher_id, "number of tries", retries);
                             that.addPublisher(publisher_id, options,callback, retries);
                             return;
                         }
-                        log.error("Can not contact ErizoJS", publisher_id , " failed add Publisher -- timeout");
+                        log.error("Can not contact ErizoJS", getErizoQueue(publisher_id) , " failed add Publisher -- timeout");
                         var index = erizos[publishers[publisher_id]].publishers.indexOf(publisher_id);
                         erizos[publishers[publisher_id]].publishers.splice(index, 1);
                         callback('timeout-erizojs');
@@ -235,11 +235,11 @@ exports.RoomController = function (spec) {
                 if (data === 'timeout'){
                     if (retries < MAX_ERIZOJS_RETRIES){
                         retries++;
-                        log.warn("ErizoJS timed out, trying again to subscribe to ", publisher_id, "from", subscriber_id, "number of tries", retries);
+                        log.warn("ErizoJS timed out, trying again to subscribe to ", publisher_id, "in", getErizoQueue(publisher_id), "from", subscriber_id, "number of tries", retries);
                         that.addSubscriber(subscriber_id, publisher_id, options, callback, retries);
                         return;
                     }
-                    log.error("Can not contact to ErizoJS", publisher_id , " failed add Subscriber -- timeout");
+                    log.error("Can not contact to ErizoJS", getErizoQueue(publisher_id) , " failed add Subscriber", subscriber_id," -- timeout");
                     callback('timeout');
                     return;
                 }else if (data === 'initializing'){
