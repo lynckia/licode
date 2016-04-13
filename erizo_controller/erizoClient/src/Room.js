@@ -248,7 +248,7 @@ Erizo.Room = function (spec) {
 
         that.socket.on('error', function(e){
             L.Logger.error("Cannot connect to ErizoController (socket.io error)", e);
-            error('Erizo Controller not reachable');
+            error('Cannot connect to ErizoController (socket.io error)',e);
         });
 
         // First message with the token
