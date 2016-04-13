@@ -245,9 +245,8 @@ Erizo.Room = function (spec) {
                 }
             }
         });
-
+        
         that.socket.on('error', function(e){
-            L.Logger.error("Cannot connect to ErizoController (socket.io error)", e);
             error('Cannot connect to ErizoController (socket.io error)',e);
         });
 
