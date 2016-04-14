@@ -245,7 +245,7 @@ exports.RoomController = function (spec) {
                     log.error("Can not contact to ErizoJS", getErizoQueue(publisher_id) , " failed add Subscriber", subscriber_id," -- timeout");
                     callback('timeout');
                     return;
-                }else if (data === 'initializing'){
+                }else if (data.type === 'initializing'){
                     subscribers[publisher_id].push(subscriber_id);
                 }
                 callback(data);
