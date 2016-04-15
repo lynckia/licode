@@ -268,7 +268,7 @@ exports.RoomController = function (spec) {
                 var index = erizos[publishers[publisher_id]].publishers.indexOf(publisher_id);
                 erizos[publishers[publisher_id]].publishers.splice(index, 1);
             }else{
-                L.Logger.warn("Trying to update erizoJS corresponding to ", publisher_id, "but was already removed");
+                log.warn("Trying to update erizoJS corresponding to ", publisher_id, "but was already removed");
             }
             
             delete subscribers[publisher_id];
