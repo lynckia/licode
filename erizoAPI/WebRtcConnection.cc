@@ -95,10 +95,6 @@ Handle<Value> WebRtcConnection::close(const Arguments& args) {
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
   obj->me = NULL;
   obj->hasCallback_ = false;
-  
-  uv_close((uv_handle_t*)&obj->async_, NULL);
-  uv_close((uv_handle_t*)&obj->asyncStats_, NULL);
-
 
   if(!uv_is_closing((uv_handle_t*)&obj->async_)) {
     uv_close((uv_handle_t*)&obj->async_, NULL);
