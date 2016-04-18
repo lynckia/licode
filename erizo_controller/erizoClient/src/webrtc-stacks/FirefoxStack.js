@@ -6,9 +6,9 @@ Erizo.FirefoxStack = function (spec) {
     "use strict";
 
     var that = {},
-        WebkitRTCPeerConnection = mozRTCPeerConnection,
-        RTCSessionDescription = mozRTCSessionDescription,
-        RTCIceCandidate = mozRTCIceCandidate;
+        WebkitRTCPeerConnection = window.RTCPeerConnection,
+        RTCSessionDescription = window.RTCSessionDescription,
+        RTCIceCandidate = window.RTCIceCandidate;
 
     var hasStream = false;
 

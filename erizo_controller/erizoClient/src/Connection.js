@@ -67,9 +67,8 @@ Erizo.getBrowser = function () {
 Erizo.GetUserMedia = function (config, callback, error) {
     "use strict";
 
-    navigator.getMedia = ( navigator.getUserMedia ||
+    navigator.getMedia = (navigator.getUserMedia ||
                        navigator.webkitGetUserMedia ||
-                       navigator.mozGetUserMedia ||
                        navigator.msGetUserMedia);
 
     if (config.screen){
@@ -85,7 +84,7 @@ Erizo.GetUserMedia = function (config, callback, error) {
                 }else{
                     theConfig = { video: { mediaSource: 'window' || 'screen' }};
                 }
-                navigator.getMedia(theConfig,callback,error);
+                navigator.mediaDevices.getUserMedia(theConfig).then(callback).catch(error);
                 break;
             case "chrome-stable":
                 L.Logger.debug("Screen sharing in Chrome");
@@ -131,7 +130,11 @@ Erizo.GetUserMedia = function (config, callback, error) {
       if (typeof module !== 'undefined' && module.exports) {
         L.Logger.error('Video/audio streams not supported in erizofc yet');
       } else {
-        navigator.getMedia(config, callback, error);
+        if(Erizo.getBrowser()==="mozilla") {
+          navigator.mediaDevices.getUserMedia(config).then(callback).catch(error);
+        } else {
+          navigator.getMedia(config, callback, error);  
+        }
       }
     }
 };
