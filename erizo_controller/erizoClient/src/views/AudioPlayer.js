@@ -65,8 +65,14 @@ Erizo.AudioPlayer = function (spec) {
         that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; ' +
                               'overflow: hidden;');
 
-        document.getElementById(that.elementID).appendChild(that.div);
-        that.container = document.getElementById(that.elementID);
+        // Check for a passed DOM node.
+        if (typeof that.elementID == 'object' && typeof that.elementID.appendChild == 'function') {
+            that.container = that.elementID;
+        }
+        else {
+            that.container = document.getElementById(that.elementID);
+        }
+        that.container.appendChild(that.div);
 
         that.parentNode = that.div.parentNode;
 
