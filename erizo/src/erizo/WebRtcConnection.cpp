@@ -79,8 +79,9 @@ namespace erizo {
   //TODO: Erizo Should accept hints to create the Offer
   bool WebRtcConnection::createOffer (){
 
-    bundle_ = false;
-    videoEnabled_ = false; 
+    bundle_ = true;
+    videoEnabled_ = true;
+    audioEnabled_ = true;
     this->localSdp_.createOfferSdp(videoEnabled_, audioEnabled_);
 
     ELOG_DEBUG("Creating sdp offer");
@@ -662,8 +663,8 @@ namespace erizo {
 
 
   void WebRtcConnection::queueData(int comp, const char* buf, int length, Transport *transport, packetType type, uint16_t seqNum) {
-    if ((audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL) || !sending_) //we don't enqueue data if there is nothing to receive it
-      return;
+    //if ((audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL) || !sending_) //we don't enqueue data if there is nothing to receive it
+      //return;
     boost::mutex::scoped_lock lock(receiveVideoMutex_);
     if (!sending_)
       return;
@@ -685,7 +686,6 @@ namespace erizo {
 //      p_.type = (transport->mediaType == VIDEO_TYPE) ? VIDEO_PACKET : AUDIO_PACKET;
       p_.type = type;
       p_.length = length;
-
       changeDeliverPayloadType(&p_, type);
       if (seqNum){
         RtpHeader* h = reinterpret_cast<RtpHeader*>(&p_.data);

@@ -83,6 +83,7 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
 
   WebRtcConnection* obj = new WebRtcConnection();
   obj->me = new erizo::WebRtcConnection(a, v, iceConfig,t, obj);
+  obj->msink = obj->me;
   obj->Wrap(args.This());
   uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
   uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 
