@@ -83,7 +83,7 @@ Erizo.GetUserMedia = function (config, callback, error) {
                     theConfig.video = config.video;
                     theConfig.video.mediaSource = 'window' || 'screen';
                 }else{
-                    theConfig = { video: { mediaSource: 'window' || 'screen' }};
+                    theConfig = { audio: config.audio, video: { mediaSource: 'window' || 'screen' }};
                 }
                 navigator.getMedia(theConfig,callback,error);
                 break;
