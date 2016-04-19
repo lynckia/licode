@@ -162,7 +162,17 @@ namespace erizo {
         }
       }
     }
-
+    if (this->getCurrentState()>=CONN_GATHERED){
+      if (!remoteSdp_.getCandidateInfos().empty()){
+        ELOG_DEBUG("There are candidate in the remote SDP and we are GATHERED: Setting Remote Candidates");
+        if (remoteSdp_.hasVideo) {
+          videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos(), bundle_);
+        }
+        if (!bundle_ && remoteSdp_.hasAudio) {
+          audioTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos(), bundle_);
+        }
+      }
+    }
     
     if(trickleEnabled_){
       std::string object = this->getLocalSdp();
@@ -171,15 +181,6 @@ namespace erizo {
       }
     }
 
-    if (!remoteSdp_.getCandidateInfos().empty()){
-      ELOG_DEBUG("There are candidate in the SDP: Setting Remote Candidates");
-      if (remoteSdp_.hasVideo) {
-        videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos(), bundle_);
-      }
-      if (!bundle_ && remoteSdp_.hasAudio) {
-        audioTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos(), bundle_);
-      }
-    }
 
     if (remoteSdp_.videoBandwidth !=0){
       ELOG_DEBUG("Setting remote bandwidth %u", remoteSdp_.videoBandwidth);
@@ -563,6 +564,15 @@ namespace erizo {
         break;
       case TRANSPORT_GATHERED:
         if (bundle_){
+          if (!remoteSdp_.getCandidateInfos().empty()){
+            ELOG_DEBUG("There are candidates in the SDP that could not be passed before, passing them now");
+            if (remoteSdp_.hasVideo) {
+              videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos(), bundle_);
+            }
+            if (!bundle_ && remoteSdp_.hasAudio) {
+              audioTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos(), bundle_);
+            }
+          }
           if(!trickleEnabled_){
             temp = CONN_GATHERED;
             msg = this->getLocalSdp();
