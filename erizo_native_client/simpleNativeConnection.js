@@ -10,8 +10,8 @@ Erizo.Connection = NativeStack.FakeConnection;
 exports.ErizoSimpleNativeConnection = function (spec, callback){
     var that = {};
 
-    //  var localStreamConfig = spec.publishConfig || {video:false, audio:false, data: true},
-
+    var localStream = {};
+    localStream.getID = function(){ return 0};
     var createToken = function(userName, role, callback) {
 
         var req = new XMLHttpRequest();
@@ -34,6 +34,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
         for (var index in streams){
             if (streams[index].hasVideo()){
                 if (spec.subscribeConfig){
+                    console.log("Should subscribe");
                     room.subscribe(streams[index], spec.subscribeConfig);
                 }
             }
@@ -53,7 +54,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
                 console.log("Connected to room");
                 callback('room-connected');
                 subscribeToStreams(roomEvent.streams);
-                if (spec.publishConfig !== undefined){
+                if (spec.publishConfig){
                     console.log("Will publish with config", spec.publishConfig);
                     localStream = Erizo.Stream(spec.publishConfig);
                     room.publish(localStream, spec.publishConfig, function(id, message){
@@ -69,8 +70,8 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
                 console.log('stream added', roomEvent.stream.getID());
                 if (roomEvent.stream.getID()!==localStream.getID()){
                     var streams = [];
-                    streams.push(roomEvent.stream)
-                        subscribeToStreams(streams);
+                    streams.push(roomEvent.stream);
+                    subscribeToStreams(streams);
                 }
 
             });
