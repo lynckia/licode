@@ -7,7 +7,8 @@ exports.ErizoNativeConnection = function (spec){
     var that = {},
     wrtc, 
     initWebRtcConnection,
-    externalInput = undefined;
+    externalInput = undefined,
+    externalOutput = undefined;
     
     var CONN_INITIAL = 101, CONN_STARTED = 102,CONN_GATHERED = 103, CONN_READY = 104, CONN_FINISHED = 105, CONN_CANDIDATE = 201, CONN_SDP = 202, CONN_FAILED = 500;
     
@@ -19,6 +20,8 @@ exports.ErizoNativeConnection = function (spec){
                 case CONN_INITIAL:
                     if (spec.video && spec.video.file && !externalInput){
                         that.prepareVideo(spec.video.file);
+                    } else if (spec.video && spec.video.recording && !externalOutput){
+                        that.prepareRecording(spec.video.recording);
                     }
                     callback('callback', {type: 'started'});
                     break;
@@ -45,6 +48,10 @@ exports.ErizoNativeConnection = function (spec){
                         console.log("Will start External Input");
                         externalInput.init();
                     }
+                    if (externalOutput!==undefined){
+                        console.log("Will start External Output");
+                        externalOutput.init();
+                    }
                     break;
             }
         });
@@ -65,8 +72,13 @@ exports.ErizoNativeConnection = function (spec){
         externalInput.setVideoReceiver(wrtc);
     };
 
-
-
+    that.prepareRecording = function (url) {
+        console.log("Preparing Recording", url);
+        externalOutput = new addon.ExternalOutput(url);
+        wrtc.setVideoReceiver(externalOutput);
+        wrtc.setAudioReceiver(externalOutput);
+    };
+    
     that.setRemoteDescription = function (sdp) {
         console.log("RemoteDescription");
     };
@@ -79,7 +91,6 @@ exports.ErizoNativeConnection = function (spec){
                 if (info.type == 'offer') {
                      spec.callback({type:info.type, sdp: info.sdp});
                 }
-
             }, {});
 
             wrtc.createOffer();
@@ -87,9 +98,20 @@ exports.ErizoNativeConnection = function (spec){
             setTimeout(function(){
                 console.log("Passing delayed answer");
                 wrtc.setRemoteSdp(msg.sdp);
+                that.onaddstream({stream:{active:true}});
             }, 10);
         }
     };
+
+    that.close = function() {
+        if (externalOutput){
+            externalOutput.close();
+        }
+        if (externalInput!==undefined){
+            externalInput.close();
+        }
+        wrtc.close();
+    }
 
 
 

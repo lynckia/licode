@@ -36,6 +36,10 @@ var ErizoNativeConnection = require ("./nativeClient");
             console.error("Trying to close with no underlying PC!");
         }
     }
+    
+    that.stop = function(){
+        that.close();
+    }
 
     that.createOffer = function(isSubscribe){
         console.log("NATIVESTACK: CreateOffer");
@@ -52,6 +56,12 @@ var ErizoNativeConnection = require ("./nativeClient");
 
     that.sendSignalingMessage = function(msg){
         console.log("NATIVESTACK: Sending signaling Message");
+    };
+
+    that.peerConnection.onaddstream = function (stream) {
+        if (that.onaddstream) {
+            that.onaddstream(stream);
+        }
     };
 
     return that;
