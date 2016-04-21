@@ -8,9 +8,7 @@ var getopt = new Getopt([
 
 opt = getopt.parse(process.argv.slice(2));
 
-var metadata, serverurl, subscribers,
-    publishers, publishersAreSubscribers,
-    file, streamConfig;
+var streamConfig;
 
 for (var prop in opt.options) {
     if (opt.options.hasOwnProperty(prop)) {
@@ -34,9 +32,6 @@ if (streamConfig){
     console.log("Loading stream config file", streamConfig);
     streamConfig = require("./"+streamConfig)
 }
-
-publishersAreSubscribers = publishers || false;
-file = file || "file://vagrant/test_1000_pli.mkv";
 
 if (streamConfig.publishConfig){
     var streamPublishConfig = {
