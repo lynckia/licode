@@ -1,0 +1,17 @@
+{
+  "basicExampleUrl": "https://localhost/",
+  "publishConfig" : {
+    "video":{"file":"file:///YOUR_LICODE_COMPATIBLE_VIDEO_FILE.mkv"}, 
+    "audio":true, 
+    "data":true
+  },
+  "subscribeConfig" : {
+    "video": true,
+    "audio": true,
+    "data": true
+  },
+  "numPublishers": 1,
+  "numSubscribers" : 1,
+  "publishersAreSubscribers" : false,
+  "connectionCreationInterval" : 1000
+}
