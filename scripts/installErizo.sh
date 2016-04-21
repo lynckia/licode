@@ -21,14 +21,14 @@ Compile erizo libraries:
 - Erizo is the C++ core
 - Erizo API is the Javascript layer of Erizo (require Erizo to be compiled)
 - Erizo Controller implements the signaling, communication with clients and room management
-- Erizo Native Client is a node.js based Erizo client
+- Spine is a node.js based Erizo client
 
 OPTIONS:
    -h      Show this message
    -e      Compile Erizo
    -a      Compile Erizo API
    -c      Install Erizo node modules
-   -n      Install Erizo Native Client
+   -s      Install Spine
 EOF
 }
 
@@ -58,10 +58,10 @@ install_erizo_controller(){
   cd $CURRENT_DIR
 }
 
-install_erizo_native_client(){
+install_spine(){
   echo 'Installing erizo_native_client...'
-  cd $ROOT/erizo_native_client
-  ./installErizo_native_client.sh
+  cd $ROOT/spine
+  ./installSpine.sh
   cd $CURRENT_DIR
 }
 
@@ -71,7 +71,7 @@ then
   install_erizo
   install_erizo_api
   install_erizo_controller
-  install_erizo_native_client
+  install_spine
 else
   while getopts “heac” OPTION
   do
@@ -89,8 +89,8 @@ else
       c)
         install_erizo_controller
         ;;
-      n)
-        install_erizo_native_client
+      s)
+        install_spine
         ;;
       ?)
         usage
