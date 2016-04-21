@@ -32,11 +32,9 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
 
     var subscribeToStreams = function(streams){
         for (var index in streams){
-            if (streams[index].hasVideo()){
-                if (spec.subscribeConfig){
-                    console.log("Should subscribe");
-                    room.subscribe(streams[index], spec.subscribeConfig);
-                }
+            if (spec.subscribeConfig){
+                console.log("Should subscribe", spec.subscribeConfig);
+                room.subscribe(streams[index], spec.subscribeConfig);
             }
         }
     };
@@ -72,6 +70,14 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
                     var streams = [];
                     streams.push(roomEvent.stream);
                     subscribeToStreams(streams);
+                }
+
+            });
+
+            room.addEventListener("stream-removed", function(roomEvent) {
+                if (roomEvent.stream.getID()!==localStream.getID()){
+                    room.unsubscribe(roomEvent.stream);
+                    console.log('stream removed', roomEvent.stream.getID());
                 }
 
             });
