@@ -12,6 +12,12 @@ exports.ErizoNativeConnection = function (spec){
     
     var CONN_INITIAL = 101, CONN_STARTED = 102,CONN_GATHERED = 103, CONN_READY = 104, CONN_FINISHED = 105, CONN_CANDIDATE = 201, CONN_SDP = 202, CONN_FAILED = 500;
     
+    var generatePLIs = function(){
+        externalOutput.interval = setInterval ( function(){
+            wrtc.generatePLIPacket();
+        },1000);
+    }
+
     console.log("NativeConnection constructor", spec);
     initWebRtcConnection = function (callback, options) {
         wrtc.init( function (newStatus, mess){
@@ -51,6 +57,7 @@ exports.ErizoNativeConnection = function (spec){
                     if (externalOutput!==undefined){
                         console.log("Will start External Output");
                         externalOutput.init();
+                        generatePLIs();
                     }
                     break;
             }
@@ -64,7 +71,7 @@ exports.ErizoNativeConnection = function (spec){
     that.createOffer = function (config) {
 
     };
-
+    
     that.prepareVideo = function (url) {
         console.log("Preparing video", url);
         externalInput = new addon.ExternalInput(url);
@@ -106,6 +113,8 @@ exports.ErizoNativeConnection = function (spec){
     that.close = function() {
         if (externalOutput){
             externalOutput.close();
+            if(externalOutput.interval)
+                clearInterval(externalOutput.interval);
         }
         if (externalInput!==undefined){
             externalInput.close();
