@@ -1,5 +1,5 @@
 var Getopt = require('node-getopt');
-var efc = require ("../../spine/simpleNativeConnection");
+var efc = require ("./../spine/simpleNativeConnection");
 
 var getopt = new Getopt([
   ['s' , 'stream-config=ARG'             , 'file containing the stream config JSON'], 
@@ -66,6 +66,8 @@ var startStreams = function(stConf, num, time){
         console.log("Will start stream with config", stConf);
         efc.ErizoSimpleNativeConnection (stConf, function(msg){
             console.log("Getting Callback", msg);
+        }, function(msg){
+            console.error("Error message", msg);
         });
     }, time);
 };

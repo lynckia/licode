@@ -22,6 +22,9 @@ describe('Spine', function() {
                         done();
                         break;
                 }
+            },
+            function (error){
+                throw error
             }));
         });
     });
@@ -47,6 +50,8 @@ describe('Spine', function() {
                         done();
                         break;
                 }
+            }, function (error){
+                throw error;
             }));
 
         });
@@ -84,8 +89,15 @@ describe('Spine', function() {
                                             done();
                                             break;
                                     }
+                                },
+                                function (error){
+                                    throw error;
                                 }));
+
                 }
+            },
+            function (error){
+                throw error;
             }));
 
         });
@@ -93,7 +105,9 @@ describe('Spine', function() {
 
     afterEach(function(){
         while (spineConns.length>0){
-            spineConns.pop().close();
+            var theConn = spineConns.pop();
+            if (theConn.isActive)
+                theConn.close();
         }
     });
 

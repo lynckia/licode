@@ -8,11 +8,12 @@ Erizo.Connection = NativeStack.FakeConnection;
 var logger = require('./logger').logger;
 var log = logger.getLogger("ErizoSimpleNativeConnection");
 
-exports.ErizoSimpleNativeConnection = function (spec, callback){
+exports.ErizoSimpleNativeConnection = function (spec, callback, error){
     var that = {};
 
     var localStream = {};
     var room;
+    that.isActive = false;
     localStream.getID = function(){ return 0};
     var createToken = function(userName, role, callback) {
 
@@ -23,7 +24,12 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
 
         req.onreadystatechange = function () {
             if (req.readyState === 4) {
-                callback(req.responseText);
+                if (req.status===200){
+                    callback(req.responseText);
+                }else{
+                    log.error("Could not get token");
+                    callback("error");
+                }
             }
         };
 
@@ -45,7 +51,10 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
         
         createToken("name", "presenter", function (token) {
             log.info("Getting token", token);
-            
+            if (token==="error"){
+                error("Could not get token from nuve in " + spec.serverUrl);
+                return;
+            }; 
             room = Erizo.Room({token: token});
             var sendInterval;
 
@@ -53,14 +62,15 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
             room.addEventListener("room-connected", function(roomEvent) {
                 log.info("Connected to room");
                 callback('room-connected');
+                that.isActive = true;
                 subscribeToStreams(roomEvent.streams);
                 if (spec.publishConfig){
                     log.info("Will publish with config", spec.publishConfig);
                     localStream = Erizo.Stream(spec.publishConfig);
                     room.publish(localStream, spec.publishConfig, function(id, message){
                         if (id === undefined){
-                            log.info("ERROR", message);
-                            callback("Error "+message);
+                            log.error("ERROR when publishing", message);
+                            error(message);
                         }
                     });
                 }
@@ -93,12 +103,14 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
 
             room.addEventListener("room-error", function(roomEvent) {
                 log.error("Room Error", roomEvent.type, roomEvent.message);
-                callback("Error " + roomEvent.message);
+                isActive = false;
+                error(roomEvent.message);
             });
 
             room.addEventListener("room-disconnected", function(roomEvent) {
-                log.error("Room Disconnected", roomEvent.type, roomEvent.message);
-                callback("Error " + roomEvent.message);
+                isActive = false;
+                log.info("Room Disconnected", roomEvent.type, roomEvent.message);
+                callback(roomEvent.type+roomEvent.message);
             });
             
             room.connect();
@@ -111,6 +123,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
 
     that.close = function(){
         log.info("Close");
+        isActive = false;
         room.disconnect();
     };
 
