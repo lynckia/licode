@@ -1,8 +1,0 @@
-{
-  "name" : "erizo-native-tests",
-  "version": "0.1",
-  "private": true,
-  "dependencies": {
-    "node-getopt":"0.2.3"
-  }
-}

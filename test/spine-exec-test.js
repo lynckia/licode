@@ -29,7 +29,7 @@ for (var prop in opt.options) {
 }
 
 if (!streamConfig){
-    streamConfig = "testConfig.json"
+    streamConfig = "spineTestConfig.json"
 }
 
 console.log("Loading stream config file", streamConfig);
