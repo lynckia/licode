@@ -11,6 +11,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
     var that = {};
 
     var localStream = {};
+    var room;
     localStream.getID = function(){ return 0};
     var createToken = function(userName, role, callback) {
 
