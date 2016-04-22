@@ -5,7 +5,8 @@ var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest,
     NativeStack = require ('./NativeStack.js');
 
 Erizo.Connection = NativeStack.FakeConnection;
-
+var logger = require('./logger').logger;
+var log = logger.getLogger("ErizoSimpleNativeConnection");
 
 exports.ErizoSimpleNativeConnection = function (spec, callback){
     var that = {};
@@ -17,7 +18,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
 
         var req = new XMLHttpRequest();
         var url = spec.serverUrl + 'createToken/';
-        console.log("Url to createToken", url);
+        log.info("Url to createToken", url);
         var body = {username: userName, role: role};
 
         req.onreadystatechange = function () {
@@ -34,7 +35,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
     var subscribeToStreams = function(streams){
         for (var index in streams){
             if (spec.subscribeConfig){
-                console.log("Should subscribe", spec.subscribeConfig);
+                log.info("Should subscribe", spec.subscribeConfig);
                 room.subscribe(streams[index], spec.subscribeConfig);
             }
         }
@@ -43,22 +44,22 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
     var createConnection = function (){
         
         createToken("name", "presenter", function (token) {
-            console.log("Getting token", token);
+            log.info("Getting token", token);
             
             room = Erizo.Room({token: token});
             var sendInterval;
 
 
             room.addEventListener("room-connected", function(roomEvent) {
-                console.log("Connected to room");
+                log.info("Connected to room");
                 callback('room-connected');
                 subscribeToStreams(roomEvent.streams);
                 if (spec.publishConfig){
-                    console.log("Will publish with config", spec.publishConfig);
+                    log.info("Will publish with config", spec.publishConfig);
                     localStream = Erizo.Stream(spec.publishConfig);
                     room.publish(localStream, spec.publishConfig, function(id, message){
                         if (id === undefined){
-                            console.log("ERROR", message);
+                            log.info("ERROR", message);
                             callback("Error "+message);
                         }
                     });
@@ -66,7 +67,8 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
             });
 
             room.addEventListener("stream-added", function(roomEvent) {
-                console.log('stream added', roomEvent.stream.getID());
+                log.info('stream added', roomEvent.stream.getID());
+                callback('stream-added');
                 if (roomEvent.stream.getID()!==localStream.getID()){
                     var streams = [];
                     streams.push(roomEvent.stream);
@@ -76,12 +78,29 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
             });
 
             room.addEventListener("stream-removed", function(roomEvent) {
+                callback("stream-removed");
                 if (roomEvent.stream.getID()!==localStream.getID()){
                     room.unsubscribe(roomEvent.stream);
-                    console.log('stream removed', roomEvent.stream.getID());
+                    log.info('stream removed', roomEvent.stream.getID());
                 }
 
             });
+
+            room.addEventListener("stream-subscribed", function(roomEvent) {
+                log.info("stream-subscribed");
+                callback("stream-subscribed");
+            });
+
+            room.addEventListener("room-error", function(roomEvent) {
+                log.error("Room Error", roomEvent.type, roomEvent.message);
+                callback("Error " + roomEvent.message);
+            });
+
+            room.addEventListener("room-disconnected", function(roomEvent) {
+                log.error("Room Disconnected", roomEvent.type, roomEvent.message);
+                callback("Error " + roomEvent.message);
+            });
+            
             room.connect();
         });
 
@@ -91,7 +110,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback){
     }
 
     that.close = function(){
-        console.log("Close");
+        log.info("Close");
         room.disconnect();
     };
 

@@ -1,5 +1,8 @@
 var addon = require('./../erizoAPI/build/Release/addon');
 var licodeConfig = require('./../licode_config');
+var logger = require('./logger').logger;
+var log = logger.getLogger("NativeClient");
+
 GLOBAL.config = licodeConfig || {};
 
 exports.ErizoNativeConnection = function (spec){
@@ -18,10 +21,10 @@ exports.ErizoNativeConnection = function (spec){
         },1000);
     }
 
-    console.log("NativeConnection constructor", spec);
+    log.info("NativeConnection constructor", spec);
     initWebRtcConnection = function (callback, options) {
         wrtc.init( function (newStatus, mess){
-            console.log("webrtc Addon status ", newStatus);
+            log.info("webrtc Addon status ", newStatus);
             switch(newStatus) {
                 case CONN_INITIAL:
                     if (spec.video && spec.video.file && !externalInput){
@@ -44,18 +47,18 @@ exports.ErizoNativeConnection = function (spec){
                     break;
 
                 case CONN_FAILED:
-                    console.warn("Connection failed the ICE process");
+                    log.warn("Connection failed the ICE process");
                     //   callback('callback', {type: 'failed', sdp: mess});
                     break;
 
                 case CONN_READY:
-                    console.log("Connection ready");
+                    log.info("Connection ready");
                     if (externalInput!==undefined){
-                        console.log("Will start External Input");
+                        log.info("Will start External Input");
                         externalInput.init();
                     }
                     if (externalOutput!==undefined){
-                        console.log("Will start External Output");
+                        log.info("Will start External Output");
                         externalOutput.init();
                         generatePLIs();
                     }
@@ -73,28 +76,28 @@ exports.ErizoNativeConnection = function (spec){
     };
     
     that.prepareVideo = function (url) {
-        console.log("Preparing video", url);
+        log.info("Preparing video", url);
         externalInput = new addon.ExternalInput(url);
         externalInput.setAudioReceiver(wrtc);
         externalInput.setVideoReceiver(wrtc);
     };
 
     that.prepareRecording = function (url) {
-        console.log("Preparing Recording", url);
+        log.info("Preparing Recording", url);
         externalOutput = new addon.ExternalOutput(url);
         wrtc.setVideoReceiver(externalOutput);
         wrtc.setAudioReceiver(externalOutput);
     };
     
     that.setRemoteDescription = function (sdp) {
-        console.log("RemoteDescription");
+        log.info("RemoteDescription");
     };
 
     that.processSignallingMessage = function(msg) {
-        console.log("Receiving message", msg.type);
+        log.info("Receiving message", msg.type);
         if (msg.type === 'started'){
             initWebRtcConnection(function(mess, info){
-                console.log("Message from wrtc", info.type);
+                log.info("Message from wrtc", info.type);
                 if (info.type == 'offer') {
                      spec.callback({type:info.type, sdp: info.sdp});
                 }
@@ -103,7 +106,7 @@ exports.ErizoNativeConnection = function (spec){
             wrtc.createOffer();
         } else if (msg.type === 'answer'){
             setTimeout(function(){
-                console.log("Passing delayed answer");
+                log.info("Passing delayed answer");
                 wrtc.setRemoteSdp(msg.sdp);
                 that.onaddstream({stream:{active:true}});
             }, 10);

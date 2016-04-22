@@ -1,15 +1,18 @@
 /*global window, console, RTCSessionDescription, RoapConnection, webkitRTCPeerConnection*/
 
 var ErizoNativeConnection = require ("./nativeClient");
+// Logger
+var logger = require('./logger').logger;
+var log = logger.getLogger("NativeStack");
 
- var NativeStack = function (spec) {
+var NativeStack = function (spec) {
     "use strict";
-    
+
     var that = {};
-    console.log("Creating a NativeStack", spec);
+    log.info("Creating a NativeStack", spec);
 
     that.pc_config = {
-    "iceServers":[]
+        "iceServers":[]
     };
 
     if (spec.iceServers !== undefined) {
@@ -29,33 +32,33 @@ var ErizoNativeConnection = require ("./nativeClient");
     that.callback = undefined;
 
     that.close = function(){
-        console.log("Close NATIVE");
+        log.info("Close NATIVE");
         if (that.peerConnection){
             that.peerConnection.close();
         } else {
-            console.error("Trying to close with no underlying PC!");
+            log.error("Trying to close with no underlying PC!");
         }
     }
-    
+
     that.stop = function(){
         that.close();
     }
 
     that.createOffer = function(isSubscribe){
-        console.log("NATIVESTACK: CreateOffer");
+        log.info("NATIVESTACK: CreateOffer");
     };
 
     that.addStream = function(stream){
-        console.log("NATIVESTACK: addStream");
+        log.info("NATIVESTACK: addStream");
     };
-    
+
     that.processSignalingMessage = function(msg){
-        console.log("NATIVESTACK: processSignaling", msg.type);
+        log.info("NATIVESTACK: processSignaling", msg.type);
         that.peerConnection.processSignallingMessage(msg);
     };
 
     that.sendSignalingMessage = function(msg){
-        console.log("NATIVESTACK: Sending signaling Message");
+        log.info("NATIVESTACK: Sending signaling Message");
     };
 
     that.peerConnection.onaddstream = function (stream) {
@@ -67,14 +70,14 @@ var ErizoNativeConnection = require ("./nativeClient");
     return that;
 };
 exports.FakeConnection = function(spec){
-    console.log("Creating Connection");
+    log.info("Creating Connection");
     var session_id = 0;
     spec.session_id = session_id++;
     return NativeStack(spec); 
 };
 
 exports.GetUserMedia = function(opt, callback, error){
-    console.log("Fake getUserMedia to use with files", opt);
+    log.info("Fake getUserMedia to use with files", opt);
     if (that.peerConnection && opt.video.file){
         that.peerConnection.prepareVideo(opt.video.file);
     }
