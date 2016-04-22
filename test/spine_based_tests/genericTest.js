@@ -28,10 +28,12 @@ for (var prop in opt.options) {
     }
 }
 
-if (streamConfig){
-    console.log("Loading stream config file", streamConfig);
-    streamConfig = require("./"+streamConfig)
+if (!streamConfig){
+    streamConfig = "testConfig.json"
 }
+
+console.log("Loading stream config file", streamConfig);
+streamConfig = require("./"+streamConfig)
 
 if (streamConfig.publishConfig){
     var streamPublishConfig = {
@@ -61,6 +63,7 @@ var startStreams = function(stConf, num, time){
             console.log("All streams have been started");
             clearInterval(interval);
         }
+        console.log("Will start stream with config", stConf);
         efc.ErizoSimpleNativeConnection (stConf, function(msg){
             console.log("Getting Callback", msg);
         });
@@ -69,7 +72,8 @@ var startStreams = function(stConf, num, time){
 
 console.log("Starting ", streamConfig.numSubscribers, "subscriber streams",
         "and", streamConfig.numPublishers, "publisherStreams");
-if (streamPublishConfig && streamConfig.numPublishers)
-    startStreams(streamPublishConfig, streamConfig.numPublishers, streamConfig.connectionCreationInterval);
+
 if (streamSubscribeConfig && streamConfig.numSubscribers)
     startStreams(streamSubscribeConfig, streamConfig.numSubscribers, streamConfig.connectionCreationInterval);
+if (streamPublishConfig && streamConfig.numPublishers)
+    startStreams(streamPublishConfig, streamConfig.numPublishers, streamConfig.connectionCreationInterval);
