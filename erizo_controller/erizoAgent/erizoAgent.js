@@ -103,7 +103,7 @@ var removeChild = function(id) {
 };
 
 var launchErizoJS = function() {
-    log.info("Running process");
+    log.info("Launching a new ErizoJS process");
     var id = guid();
     var fs = require('fs');
     var out = fs.openSync('./erizo-' + id + '.log', 'a');
@@ -160,6 +160,15 @@ var fillErizos = function () {
             fillErizos();
         }
     }
+};
+
+var cleanErizos = function () {
+    log.info("Cleaning up all (killing) erizoJSs on SIGTERM or SIGINT", processes.length);
+    for (var p in processes){
+        log.info("killing process", processes[p].pid)
+        processes[p].kill();
+    }
+    process.exit(0);
 };
 
 var getErizo = function () {
@@ -230,6 +239,8 @@ for (k in interfaces) {
     }
 }
 
+
+
 privateIP = addresses[0];
 
 if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicIP === undefined){
@@ -237,6 +248,10 @@ if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicI
 } else {
     publicIP = GLOBAL.config.erizoAgent.publicIP;
 }
+
+// Will clean all erizoJS on those signals
+process.on('SIGINT', cleanErizos); 
+process.on('SIGTERM', cleanErizos);
 
 fillErizos();
 
@@ -250,17 +265,3 @@ amqper.connect(function () {
         log.warn('No method defined');
     });
 });
-
-/*
-setInterval(function() {
-    var search = spawn("ps", ['-aef']);
-
-    search.stdout.on('data', function(data) {
-
-    });
-
-    search.on('close', function (code) {
-
-    });
-}, SEARCH_INTERVAL);
-*/
