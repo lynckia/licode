@@ -1,0 +1,17 @@
+{
+  "appenders": [
+    { 
+      "type": "console",
+      "layout": {
+        "type": "pattern",
+        "pattern": "%d  - %p: %c - %m",
+        "replaceConsole": true
+      }
+    }
+  ],
+  "levels": {
+  	"NativeStack": "ERROR",
+  	"NativeClient": "ERROR",
+  	"ErizoSimpleNativeConnection": "INFO"
+  }
+}

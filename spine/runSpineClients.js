@@ -1,5 +1,5 @@
 var Getopt = require('node-getopt');
-var efc = require ("./../spine/simpleNativeConnection");
+var efc = require ("./simpleNativeConnection");
 
 var getopt = new Getopt([
   ['s' , 'stream-config=ARG'             , 'file containing the stream config JSON'], 
@@ -29,7 +29,7 @@ for (var prop in opt.options) {
 }
 
 if (!streamConfig){
-    streamConfig = "spineTestConfig.json"
+    streamConfig = "spineClientsConfig.json"
 }
 
 console.log("Loading stream config file", streamConfig);
