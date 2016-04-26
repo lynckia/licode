@@ -499,7 +499,6 @@ exports.ErizoJSController = function (spec) {
             }
             for (var key in subscribers[from]) {
                 if (subscribers[from].hasOwnProperty(key)){
-                    log.debug("Iterating and closing ", key,  subscribers[from], subscribers[from][key]);
                     subscribers[from][key].close();
                 }
             }

@@ -37,7 +37,7 @@ exports.RoomController = function (spec) {
                 erizos[erizo_id].ka_count ++;
 
                 if (erizos[erizo_id].ka_count > TIMEOUT_LIMIT) {
-                    if (erizos[erizo_id].publishers > 0){
+                    if (erizos[erizo_id].publishers.length > 0){
                         log.error("Lost connection with ErizoJS", erizo_id,"will remove publishers", erizos[erizo_id].publishers);
                         for (var p in erizos[erizo_id].publishers) {
                             dispatchEvent("unpublish", erizos[erizo_id].publishers[p]);
