@@ -1,4 +1,3 @@
-markdown: rdiscount
 permalink: licode/:title.html
 destination: ./site/
 auto: true
