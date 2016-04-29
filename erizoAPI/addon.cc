@@ -12,7 +12,6 @@
 void InitAll(v8::Local<v8::Object> exports) {
   WebRtcConnection::Init(exports);
   OneToManyProcessor::Init(exports);
-  OneToManyTranscoder::Init(exports);
   ExternalInput::Init(exports);
   ExternalOutput::Init(exports);
 }
