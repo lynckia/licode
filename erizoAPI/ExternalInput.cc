@@ -10,81 +10,63 @@ using namespace v8;
 ExternalInput::ExternalInput() {};
 ExternalInput::~ExternalInput() {};
 
-void ExternalInput::Init(Handle<Object> target) {
+void ExternalInput::Init(v8::Local<v8::Object> exports) {
   // Prepare constructor template
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("ExternalInput"));
+  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("ExternalInput").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   // Prototype
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("init"), FunctionTemplate::New(init)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("setAudioReceiver"), FunctionTemplate::New(setAudioReceiver)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("setVideoReceiver"), FunctionTemplate::New(setVideoReceiver)->GetFunction());
+  Nan::SetPrototypeMethod(tpl, "close", close);
+  Nan::SetPrototypeMethod(tpl, "init", close);
+  Nan::SetPrototypeMethod(tpl, "setAudioReceiver", close);
+  Nan::SetPrototypeMethod(tpl, "setVideoReceiver", close);
 
-  Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
-  target->Set(String::NewSymbol("ExternalInput"), constructor);
+  constructor.Reset(tpl->GetFunction());
+  exports->Set(Nan::New("ExternalInput").ToLocalChecked(), tpl->GetFunction());
 }
 
-Handle<Value> ExternalInput::New(const Arguments& args) {
-  HandleScope scope;
-
-  v8::String::Utf8Value param(args[0]->ToString());
+void ExternalInput::New(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string url = std::string(*param);
 
   ExternalInput* obj = new ExternalInput();
   obj->me = new erizo::ExternalInput(url);
-
-  obj->Wrap(args.This());
-
-  return args.This();
+  
+  obj->Wrap(info.This());
+  info.GetReturnValue().Set(info.This());
 }
 
-Handle<Value> ExternalInput::close(const Arguments& args) {
-  HandleScope scope;
-
-  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
+void ExternalInput::close(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 
   delete me;
-
-  return scope.Close(Null());
 }
 
-Handle<Value> ExternalInput::init(const Arguments& args) {
-  HandleScope scope;
-
-  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
-  erizo::ExternalInput *me = (erizo::ExternalInput*) obj->me;
-
-  int r = me->init();
-
-  return scope.Close(Integer::New(r));
-}
-
-Handle<Value> ExternalInput::setAudioReceiver(const Arguments& args) {
-  HandleScope scope;
-
-  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
+void ExternalInput::init(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 
-  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(args[0]->ToObject());
+  int r = me->init();
+  info.GetReturnValue().Set(Nan::New(r));
+}
+
+void ExternalInput::setAudioReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
+  erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
+
+  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::MediaSink *mr = param->msink;
 
   me->setAudioSink(mr);
-
-  return scope.Close(Null());
 }
 
-Handle<Value> ExternalInput::setVideoReceiver(const Arguments& args) {
-  HandleScope scope;
-
-  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(args.This());
+void ExternalInput::setVideoReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 
-  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(args[0]->ToObject());
+  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::MediaSink *mr = param->msink;
 
   me->setVideoSink(mr);
-
-  return scope.Close(Null());
 }

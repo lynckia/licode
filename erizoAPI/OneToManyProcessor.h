@@ -1,7 +1,7 @@
-#ifndef ONETOMANYPROCESSOR_H
-#define ONETOMANYPROCESSOR_H
+#ifndef API_ONETOMANYPROCESSOR_H
+#define API_ONETOMANYPROCESSOR_H
 
-#include <node.h>
+#include <nan.h>
 #include <OneToManyProcessor.h>
 #include <WebRtcConnection.h>
 #include "MediaDefinitions.h"
@@ -18,7 +18,7 @@
  */
 class OneToManyProcessor : public MediaSink {
  public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Local<v8::Object> exports);
   erizo::OneToManyProcessor* me;
 
  private:
@@ -29,47 +29,49 @@ class OneToManyProcessor : public MediaSink {
    * Constructor.
    * Constructs a OneToManyProcessor
    */
-  static v8::Handle<v8::Value> New(const v8::Arguments& args);
+  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Closes the OneToManyProcessor.
    * The object cannot be used after this call
    */
-  static v8::Handle<v8::Value> close(const v8::Arguments& args);
+  static void close(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Sets the Publisher
    * Param: the WebRtcConnection of the Publisher
    */
-  static v8::Handle<v8::Value> setPublisher(const v8::Arguments& args);
+  static void setPublisher(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Adds an ExternalOutput
    * Param: The ExternalOutput   
    */
-  static v8::Handle<v8::Value> addExternalOutput(const v8::Arguments& args);
+  static void addExternalOutput(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Sets an External Publisher
    * Param: the ExternalInput of the Publisher
    */
-  static v8::Handle<v8::Value> setExternalPublisher(const v8::Arguments& args);
+  static void setExternalPublisher(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Gets the Publisher state
    * Param: none
    */
-  static v8::Handle<v8::Value> getPublisherState(const v8::Arguments& args);
+  static void getPublisherState(const Nan::FunctionCallbackInfo<v8::Value>& info);
    /*
    * Returns true if OneToManyProcessor has a publisher
    */
-  static v8::Handle<v8::Value> hasPublisher(const v8::Arguments& args);
+  static void hasPublisher(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Sets the subscriber
    * Param1: the WebRtcConnection of the subscriber
    * Param2: an unique Id for the subscriber
    */
-  static v8::Handle<v8::Value> addSubscriber(const v8::Arguments& args);
+  static void addSubscriber(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Removes a subscriber given its peer id
    * Param: the peerId
    */
-  static v8::Handle<v8::Value> removeSubscriber(const v8::Arguments& args);
+  static void removeSubscriber(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  
+  static Nan::Persistent<v8::Function> constructor;
 };
 
 #endif

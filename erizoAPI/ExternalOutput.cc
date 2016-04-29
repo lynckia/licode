@@ -10,52 +10,42 @@ using namespace v8;
 ExternalOutput::ExternalOutput() {};
 ExternalOutput::~ExternalOutput() {};
 
-void ExternalOutput::Init(Handle<Object> target) {
+void ExternalOutput::Init(v8::Local<v8::Object> exports) {
   // Prepare constructor template
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("ExternalOutput"));
+  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("ExternalOutput").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   // Prototype
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("init"), FunctionTemplate::New(init)->GetFunction());
+  Nan::SetPrototypeMethod(tpl, "close", close);
+  Nan::SetPrototypeMethod(tpl, "init", close);
 
-  Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
-  target->Set(String::NewSymbol("ExternalOutput"), constructor);
+  constructor.Reset(tpl->GetFunction());
+  exports->Set(Nan::New("ExternalOutput").ToLocalChecked(), tpl->GetFunction());
 }
 
-Handle<Value> ExternalOutput::New(const Arguments& args) {
-  HandleScope scope;
-
-  v8::String::Utf8Value param(args[0]->ToString());
+void ExternalOutput::New(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string url = std::string(*param);
 
   ExternalOutput* obj = new ExternalOutput();
   obj->me = new erizo::ExternalOutput(url);
 
-  obj->Wrap(args.This());
-
-  return args.This();
+  obj->Wrap(info.This());
+  info.GetReturnValue().Set(info.This());
 }
 
-Handle<Value> ExternalOutput::close(const Arguments& args) {
-  HandleScope scope;
-
-  ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(args.This());
+void ExternalOutput::close(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(info.Holder());
   erizo::ExternalOutput *me = (erizo::ExternalOutput*)obj->me;
 
   delete me;
-
-  return scope.Close(Null());
 }
 
-Handle<Value> ExternalOutput::init(const Arguments& args) {
-  HandleScope scope;
-
-  ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(args.This());
-  erizo::ExternalOutput *me = (erizo::ExternalOutput*) obj->me;
+void ExternalOutput::init(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(info.Holder());
+  erizo::ExternalOutput *me = (erizo::ExternalOutput*)obj->me;
 
   int r = me->init();
-
-  return scope.Close(Integer::New(r));
+  info.GetReturnValue().Set(Nan::New(r));
 }
 

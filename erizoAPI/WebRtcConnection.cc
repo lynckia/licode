@@ -6,94 +6,95 @@
 
 using namespace v8;
 
-WebRtcConnection::WebRtcConnection() {};
+Nan::Persistent<Function> WebRtcConnection::constructor;
+
+WebRtcConnection::WebRtcConnection() {
+};
+
 WebRtcConnection::~WebRtcConnection() {
 };
-//bool WebRtcConnection::initialized = false;
 
-void WebRtcConnection::Init(Handle<Object> target) {
+void WebRtcConnection::Init(Local<Object> exports) {
   // Prepare constructor template
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("WebRtcConnection"));
+  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("WebRtcConnection").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
+  
   // Prototype
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("init"), FunctionTemplate::New(init)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("setRemoteSdp"), FunctionTemplate::New(setRemoteSdp)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("addRemoteCandidate"), FunctionTemplate::New(addRemoteCandidate)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("getLocalSdp"), FunctionTemplate::New(getLocalSdp)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("setAudioReceiver"), FunctionTemplate::New(setAudioReceiver)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("setVideoReceiver"), FunctionTemplate::New(setVideoReceiver)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("getCurrentState"), FunctionTemplate::New(getCurrentState)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("getStats"), FunctionTemplate::New(getStats)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("generatePLIPacket"), FunctionTemplate::New(generatePLIPacket)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("setFeedbackReports"), FunctionTemplate::New(setFeedbackReports)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("createOffer"), FunctionTemplate::New(createOffer)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("setSlideShowMode"), FunctionTemplate::New(setSlideShowMode)->GetFunction());
-
-  Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
-  target->Set(String::NewSymbol("WebRtcConnection"), constructor);
-  /*
-     if (!initialized){
-     context_obj = Persistent<Object>::New(Object::New());
-     target->Set(String::New("webrtcEvent"),context_obj);
-     initialized = true;
-     }
-     */
+  Nan::SetPrototypeMethod(tpl, "close", close);
+  Nan::SetPrototypeMethod(tpl, "init", init);
+  Nan::SetPrototypeMethod(tpl, "setRemoteSdp", setRemoteSdp);
+  Nan::SetPrototypeMethod(tpl, "addRemoteCandidate", addRemoteCandidate);
+  Nan::SetPrototypeMethod(tpl, "getLocalSdp", getLocalSdp);
+  Nan::SetPrototypeMethod(tpl, "setAudioReceiver", setAudioReceiver);
+  Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
+  Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
+  Nan::SetPrototypeMethod(tpl, "getStats", getStats);
+  Nan::SetPrototypeMethod(tpl, "generatePLIPacket", generatePLIPacket);
+  Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
+  Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
+  Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
+  
+  constructor.Reset(tpl->GetFunction());
+  exports->Set(Nan::New("WebRtcConnection").ToLocalChecked(), tpl->GetFunction());
 }
 
 
-Handle<Value> WebRtcConnection::New(const Arguments& args) {
-  HandleScope scope;
+void WebRtcConnection::New(const Nan::FunctionCallbackInfo<Value>& info) {
+ 
+  /*  TODO: Control number of args
   if (args.Length()<7){
     ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
-    return args.This();
   }
+  */
   //	webrtcconnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort);
+  
+  if (info.IsConstructCall()){
+    //Invoked as a constructor with 'new WebRTC()'
+    bool a = info[0]->BooleanValue();
+    bool v = info[1]->BooleanValue();
+    String::Utf8Value param(Nan::To<v8::String>(info[2]).ToLocalChecked());
+    std::string stunServer = std::string(*param);
+    int stunPort = info[3]->IntegerValue();
+    int minPort = info[4]->IntegerValue();
+    int maxPort = info[5]->IntegerValue();
+    bool t = (info[6]->ToBoolean())->BooleanValue();
 
-  bool a = (args[0]->ToBoolean())->BooleanValue();
-  bool v = (args[1]->ToBoolean())->BooleanValue();
-  String::Utf8Value param(args[2]->ToString());
-  std::string stunServer = std::string(*param);
-  int stunPort = args[3]->IntegerValue();
-  int minPort = args[4]->IntegerValue();
-  int maxPort = args[5]->IntegerValue();
-  bool t = (args[6]->ToBoolean())->BooleanValue();
+    erizo::IceConfig iceConfig;
+    if (info.Length()==11){
+      String::Utf8Value param2(Nan::To<v8::String>(info[7]).ToLocalChecked());
+      std::string turnServer = std::string(*param2);
+      int turnPort = info[8]->IntegerValue();
+      String::Utf8Value param3(Nan::To<v8::String>(info[9]).ToLocalChecked());
+      std::string turnUsername = std::string(*param3);
+      String::Utf8Value param4(Nan::To<v8::String>(info[10]).ToLocalChecked());
+      std::string turnPass = std::string(*param4);
+      iceConfig.turnServer = turnServer;
+      iceConfig.turnPort = turnPort;
+      iceConfig.turnUsername = turnUsername;
+      iceConfig.turnPass = turnPass;
+    }
 
-  erizo::IceConfig iceConfig;
-  if (args.Length()==11){
-    String::Utf8Value param2(args[7]->ToString());
-    std::string turnServer = std::string(*param2);
-    int turnPort = args[8]->IntegerValue();
-    String::Utf8Value param3(args[9]->ToString());
-    std::string turnUsername = std::string(*param3);
-    String::Utf8Value param4(args[10]->ToString());
-    std::string turnPass = std::string(*param4);
-    iceConfig.turnServer = turnServer;
-    iceConfig.turnPort = turnPort;
-    iceConfig.turnUsername = turnUsername;
-    iceConfig.turnPass = turnPass;
+
+    iceConfig.stunServer = stunServer;
+    iceConfig.stunPort = stunPort;
+    iceConfig.minPort = minPort;
+    iceConfig.maxPort = maxPort;
+
+    WebRtcConnection* obj = new WebRtcConnection();
+    obj->me = new erizo::WebRtcConnection(a, v, iceConfig,t, obj);
+    obj->msink = obj->me;
+    uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
+    uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 
+    obj->Wrap(info.This());
+    info.GetReturnValue().Set(info.This());
+  } else {
+   //TODO: Check what happens here  
   }
-
-
-  iceConfig.stunServer = stunServer;
-  iceConfig.stunPort = stunPort;
-  iceConfig.minPort = minPort;
-  iceConfig.maxPort = maxPort;
-
-  WebRtcConnection* obj = new WebRtcConnection();
-  obj->me = new erizo::WebRtcConnection(a, v, iceConfig,t, obj);
-  obj->msink = obj->me;
-  obj->Wrap(args.This());
-  uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
-  uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 
-  return args.This();
 }
 
-Handle<Value> WebRtcConnection::close(const Arguments& args) {
-  HandleScope scope;
-
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+void WebRtcConnection::close(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   obj->me = NULL;
   obj->hasCallback_ = false;
 
@@ -103,171 +104,140 @@ Handle<Value> WebRtcConnection::close(const Arguments& args) {
   if(!uv_is_closing((uv_handle_t*)&obj->asyncStats_)) {
     uv_close((uv_handle_t*)&obj->asyncStats_, NULL);
   }
-
-  return scope.Close(Null());
 }
 
-Handle<Value> WebRtcConnection::init(const Arguments& args) {
-  HandleScope scope;
-
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+void WebRtcConnection::init(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
-  obj->eventCallback_ = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+  
+  obj->eventCallback_ = Persistent<Function>::New(Local<Function>::Cast(info[0]));
   bool r = me->init();
-
-  return scope.Close(Boolean::New(r));
+  
+  info.GetReturnValue().Set(Nan::New(r));
 }
 
-Handle<Value> WebRtcConnection::createOffer(const Arguments& args) {
-  HandleScope scope;
-
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+void WebRtcConnection::createOffer(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
   bool r = me->createOffer();
-
-  return scope.Close(Boolean::New(r));
+  info.GetReturnValue().Set(Nan::New(r));
 }
 
-Handle<Value> WebRtcConnection::setSlideShowMode(const v8::Arguments& args){
-  HandleScope scope;
-  
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+void WebRtcConnection::setSlideShowMode(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
   
-  bool v = (args[0]->ToBoolean())->BooleanValue();
+  bool v = info[0]->BooleanValue();
   me->setSlideShowMode(v);
-
-  return scope.Close(Null());
+  info.GetReturnValue().Set(Nan::New(v));
 }
 
-Handle<Value> WebRtcConnection::setRemoteSdp(const Arguments& args) {
-  HandleScope scope;
-
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+void WebRtcConnection::setRemoteSdp(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
-  String::Utf8Value param(args[0]->ToString());
+  String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string sdp = std::string(*param);
 
   bool r = me->setRemoteSdp(sdp);
 
-  return scope.Close(Boolean::New(r));
+  info.GetReturnValue().Set(Nan::New(r));
 }
 
-Handle<Value> WebRtcConnection::addRemoteCandidate(const Arguments& args) {
-  HandleScope scope;
+void  WebRtcConnection::addRemoteCandidate(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
-  String::Utf8Value param(args[0]->ToString());
+  String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string mid = std::string(*param);
 
-  int sdpMLine = args[1]->IntegerValue();
+  int sdpMLine = info[1]->IntegerValue();
   
-  String::Utf8Value param2(args[2]->ToString());
+  String::Utf8Value param2(Nan::To<v8::String>(info[2]).ToLocalChecked());
   std::string sdp = std::string(*param2);
 
   bool r = me->addRemoteCandidate(mid, sdpMLine, sdp);
 
-  return scope.Close(Boolean::New(r));
+  info.GetReturnValue().Set(Nan::New(r));
 }
 
-Handle<Value> WebRtcConnection::getLocalSdp(const Arguments& args) {
-  HandleScope scope;
+void WebRtcConnection::getLocalSdp(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
   std::string sdp = me->getLocalSdp();
-
-  return scope.Close(String::NewSymbol(sdp.c_str()));
+  
+  info.GetReturnValue().Set(Nan::New(sdp.c_str()).ToLocalChecked());
 }
 
 
-Handle<Value> WebRtcConnection::setAudioReceiver(const Arguments& args) {
-  HandleScope scope;
-
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+void WebRtcConnection::setAudioReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
-  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(args[0]->ToObject());
+  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::MediaSink *mr = param->msink;
 
   me-> setAudioSink(mr);
-
-  return scope.Close(Null());
 }
 
-Handle<Value> WebRtcConnection::setVideoReceiver(const Arguments& args) {
-  HandleScope scope;
-
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+void WebRtcConnection::setVideoReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
-  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(args[0]->ToObject());
+  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::MediaSink *mr = param->msink;
 
   me-> setVideoSink(mr);
-
-  return scope.Close(Null());
 }
 
-Handle<Value> WebRtcConnection::getCurrentState(const Arguments& args) {
-  HandleScope scope;
+void WebRtcConnection::getCurrentState(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
   int state = me->getCurrentState();
-
-  return scope.Close(Number::New(state));
+  
+  info.GetReturnValue().Set(Nan::New(state));
 }
 
-Handle<Value> WebRtcConnection::getStats(const v8::Arguments& args){
-  HandleScope scope;
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+void WebRtcConnection::getStats(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   if (obj->me == NULL){ //Requesting stats when WebrtcConnection not available
-    return scope.Close(Null());
+    return; 
   }
-  if (args.Length()==0){
+  if (info.Length()==0){
     std::string lastStats = obj->me->getJSONStats();
-    return scope.Close(String::NewSymbol(lastStats.c_str()));
+    info.GetReturnValue().Set(Nan::New(lastStats.c_str()).ToLocalChecked());
   }else{
     obj->me->setWebRtcConnectionStatsListener(obj);
     obj->hasCallback_ = true;
-    obj->statsCallback_ = Persistent<Function>::New(Local<Function>::Cast(args[0]));
-    return scope.Close(Null());
+    obj->statsCallback_ = Persistent<Function>::New(Local<Function>::Cast(info[0]));
   }
 }
 
-Handle<Value> WebRtcConnection::generatePLIPacket(const v8::Arguments& args){
-
-  HandleScope scope;
-
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+void WebRtcConnection::generatePLIPacket(const Nan::FunctionCallbackInfo<v8::Value>& info){
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
 
   if(obj->me ==NULL){
-    return scope.Close(Null());
+    return;
   }
 
   erizo::WebRtcConnection *me = obj->me;
   me->sendPLI();
 
-  return scope.Close(Null());
+  return; 
 }
 
-Handle<Value> WebRtcConnection::setFeedbackReports(const v8::Arguments& args){
-  HandleScope scope;
-  
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+void WebRtcConnection::setFeedbackReports(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
   
-  bool v = (args[0]->ToBoolean())->BooleanValue();
-  int fbreps = args[1]->IntegerValue(); // From bps to Kbps
+  bool v = info[0]->BooleanValue();
+  int fbreps = info[1]->IntegerValue(); // From bps to Kbps
   me->setFeedbackReports(v, fbreps);
-
-  return scope.Close(Null());
 }
 
 void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message) {
@@ -288,21 +258,21 @@ void WebRtcConnection::notifyStats(const std::string& message) {
   uv_async_send (&asyncStats_);
 }
 
-void WebRtcConnection::eventsCallback(uv_async_t *handle, int status){
+void WebRtcConnection::eventsCallback(uv_async_t *handle, int status) {
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
   if (!obj || obj->me == NULL)
     return;
   boost::mutex::scoped_lock lock(obj->mutex);
   while (!obj->eventSts.empty()) {
-    Local<Value> args[] = {Integer::New(obj->eventSts.front()), String::NewSymbol(obj->eventMsgs.front().c_str())};
-    obj->eventCallback_->Call(Context::GetCurrent()->Global(), 2, args);
+    Local<Value> args[] = {Nan::New(obj->eventSts.front()),Nan::New(obj->eventMsgs.front().c_str()).ToLocalChecked()};
+    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), Nan::New(obj->eventCallback_), 2, args);
     obj->eventMsgs.pop();
     obj->eventSts.pop();
   }
 }
 
-void WebRtcConnection::statsCallback(uv_async_t *handle, int status){
+void WebRtcConnection::statsCallback(uv_async_t *handle, int status) {
 
   HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
@@ -311,8 +281,8 @@ void WebRtcConnection::statsCallback(uv_async_t *handle, int status){
   boost::mutex::scoped_lock lock(obj->mutex);
   if (obj->hasCallback_) {
     while(!obj->statsMsgs.empty()){
-      Local<Value> args[] = {String::NewSymbol(obj->statsMsgs.front().c_str())};
-      obj->statsCallback_->Call(Context::GetCurrent()->Global(), 1, args);
+      Local<Value> args[] = {Nan::New(obj->statsMsgs.front().c_str()).ToLocalChecked()};
+      Nan::MakeCallback(Nan::GetCurrentContext()->Global(), Nan::New(obj->statsCallback_), 1, args);
       obj->statsMsgs.pop();
     }
   }

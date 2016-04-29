@@ -1,7 +1,7 @@
-#ifndef WEBRTCCONNECTION_H
-#define WEBRTCCONNECTION_H
+#ifndef API_WEBRTCCONNECTION_H
+#define API_WEBRTCCONNECTION_H
 
-#include <node.h>
+#include <nan.h>
 #include <WebRtcConnection.h>
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
@@ -15,7 +15,7 @@
  */
 class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener, erizo::WebRtcConnectionStatsListener  {
  public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Local<v8::Object> exports);
 
   erizo::WebRtcConnection *me;
   int eventSt;
@@ -38,61 +38,63 @@ class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener,
    * Constructor.
    * Constructs an empty WebRtcConnection without any configuration.
    */
-  static v8::Handle<v8::Value> New(const v8::Arguments& args);
+  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Closes the webRTC connection.
    * The object cannot be used after this call.
    */
-  static v8::Handle<v8::Value> close(const v8::Arguments& args);
+  static void close(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Inits the WebRtcConnection and passes the callback to get Events.
    * Returns true if the candidates are gathered.
    */
-  static v8::Handle<v8::Value> init(const v8::Arguments& args);  
+  static void init(const Nan::FunctionCallbackInfo<v8::Value>& info);  
   /*
    * Sets the SDP of the remote peer.
    * Param: the SDP.
    * Returns true if the SDP was received correctly.
    */
-  static v8::Handle<v8::Value> createOffer(const v8::Arguments& args);
+  static void createOffer(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
-  static v8::Handle<v8::Value> setRemoteSdp(const v8::Arguments& args);
+  static void setRemoteSdp(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /**
      * Add new remote candidate (from remote peer).
      * @param sdp The candidate in SDP format.
      * @return true if the SDP was received correctly.
      */
-  static v8::Handle<v8::Value>  addRemoteCandidate(const v8::Arguments& args);
+  static void  addRemoteCandidate(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Obtains the local SDP.
    * Returns the SDP as a string.
    */
-  static v8::Handle<v8::Value> getLocalSdp(const v8::Arguments& args);
+  static void getLocalSdp(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Sets a MediaReceiver that is going to receive Audio Data
    * Param: the MediaReceiver to send audio to.
    */
-  static v8::Handle<v8::Value> setAudioReceiver(const v8::Arguments& args);
+  static void setAudioReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Sets a MediaReceiver that is going to receive Video Data
    * Param: the MediaReceiver
    */
-  static v8::Handle<v8::Value> setVideoReceiver(const v8::Arguments& args);
+  static void setVideoReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Gets the current state of the Ice Connection
    * Returns the state.
    */
-  static v8::Handle<v8::Value> getCurrentState(const v8::Arguments& args);
+  static void getCurrentState(const Nan::FunctionCallbackInfo<v8::Value>& info);
   /*
    * Request a PLI packet from this WRTCConn
    */
-  static v8::Handle<v8::Value> generatePLIPacket(const v8::Arguments& args);
+  static void generatePLIPacket(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
-  static v8::Handle<v8::Value> setFeedbackReports(const v8::Arguments& args);
+  static void setFeedbackReports(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
-  static v8::Handle<v8::Value> setSlideShowMode(const v8::Arguments& args);
+  static void setSlideShowMode(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
-  static v8::Handle<v8::Value> getStats(const v8::Arguments& args);  
+  static void getStats(const Nan::FunctionCallbackInfo<v8::Value>& info);  
+  
+  static Nan::Persistent<v8::Function> constructor;
 
   static void eventsCallback(uv_async_t *handle, int status);
   static void statsCallback(uv_async_t *handle, int status);
