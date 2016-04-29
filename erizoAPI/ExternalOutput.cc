@@ -7,6 +7,8 @@
 
 using namespace v8;
 
+Nan::Persistent<Function> ExternalOutput::constructor;
+
 ExternalOutput::ExternalOutput() {};
 ExternalOutput::~ExternalOutput() {};
 

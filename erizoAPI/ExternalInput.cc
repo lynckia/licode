@@ -7,6 +7,8 @@
 
 using namespace v8;
 
+Nan::Persistent<Function> ExternalInput::constructor;
+
 ExternalInput::ExternalInput() {};
 ExternalInput::~ExternalInput() {};
 
