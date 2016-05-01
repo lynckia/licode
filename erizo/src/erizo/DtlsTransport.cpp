@@ -40,9 +40,9 @@ void Resender::start() {
   sent_ = 0;
   timer.cancel();
   if (thread_.get()!=NULL) {
-    ELOG_ERROR("Starting Resender, joining thread to terminate");
+    ELOG_WARN("Starting Resender, joining thread to terminate");
     thread_->join();
-    ELOG_ERROR("Thread terminated on start");
+    ELOG_WARN("Thread terminated on start");
   }
   timer.expires_from_now(boost::posix_time::seconds(3));
   timer.async_wait(boost::bind(&Resender::resend, this, boost::asio::placeholders::error));
@@ -64,7 +64,7 @@ void Resender::resend(const boost::system::error_code& ec) {
   }
   
   if (nice_ != NULL) {
-    ELOG_WARN("%s - Resending DTLS message to %d", nice_->transportName->c_str(), comp_);
+    ELOG_DEBUG("%s - Resending DTLS message to %d", nice_->transportName->c_str(), comp_);
     int val = nice_->sendData(comp_, data_, len_);
     if (val < 0) {
        sent_ = -1;
@@ -77,12 +77,10 @@ void Resender::resend(const boost::system::error_code& ec) {
 DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, 
     const IceConfig& iceConfig, std::string username, std::string password, bool isServer):
   Transport(med, transport_name, bundle, rtcp_mux, transportListener, iceConfig), 
-  readyRtp(false), readyRtcp(false), running_(false) {
+  readyRtp(false), readyRtcp(false), running_(false), isServer_(isServer) {
   ELOG_DEBUG( "Initializing DtlsTransport" );
-
   dtlsRtp.reset(new DtlsSocketContext());
 
-  isServer_ = isServer;
 
   // TODO the ownership of classes here is....really awkward. Basically, the DtlsFactory created here ends up being owned the the created client
   // which is in charge of nuking it.  All of the session state is tracked in the DtlsSocketContext.
@@ -90,7 +88,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
   // A much more sane architecture would be simply having the client _be_ the context.
   int comps = 1;
   if (isServer_){
-    ELOG_DEBUG("CREATE OFFER, WE USE A SERVER");
+    ELOG_DEBUG("Creating a DTLS server: passive");
     (new DtlsFactory())->createServer(dtlsRtp);
     dtlsRtp->setDtlsReceiver(this);
 
@@ -101,6 +99,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
       dtlsRtcp->setDtlsReceiver(this);
     }
   }else{
+    ELOG_DEBUG("Creating a DTLS client: active");
     (new DtlsFactory())->createClient(dtlsRtp);
     dtlsRtp->setDtlsReceiver(this);
 

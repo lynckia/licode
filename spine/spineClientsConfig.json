@@ -1,0 +1,21 @@
+{
+  "basicExampleUrl": "https://localhost/",
+  "publishConfig" : {
+    "video":{"file":"file:///YOUR_LICODE_COMPATIBLE_TEST_FILE"}, 
+    "audio":true, 
+    "data":true
+  },
+  "subscribeConfig" : {
+    "video":{   
+      "recording":"file///YOUR_DESTINATION_FOR_RECORDING"
+    },
+    "video": true,
+    "audio": true,
+    "data": true
+  },
+  "numPublishers": 0,
+  "numSubscribers" : 1,
+  "publishersAreSubscribers" : true,
+  "connectionCreationInterval" : 500
+
+}

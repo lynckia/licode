@@ -15,16 +15,8 @@ Erizo.ChromeStableStack = function (spec) {
 
     that.con = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
 
-    if (spec.stunServerUrl !== undefined) {
-        that.pc_config.iceServers.push({"url": spec.stunServerUrl});
-    }
-
-    if ((spec.turnServer || {}).url) {
-        that.pc_config.iceServers.push({
-            "username": spec.turnServer.username,
-            "credential": spec.turnServer.password,
-            "url": spec.turnServer.url
-        });
+    if (spec.iceServers !== undefined) {
+        that.pc_config.iceServers = spec.iceServers;
     }
 
     if (spec.audio === undefined) {
@@ -43,7 +35,7 @@ Erizo.ChromeStableStack = function (spec) {
     };
 
     var errorCallback = function (message) {
-        console.log("Error in Stack ", message);
+        L.Logger.error("Error in Stack ", message);
     }
 
     that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
@@ -107,7 +99,7 @@ Erizo.ChromeStableStack = function (spec) {
             }
 
         } else {
-            console.log("End of candidates.");
+           L.Logger.info("Gathered all candidates.");
         }
     };
 
@@ -122,6 +114,12 @@ Erizo.ChromeStableStack = function (spec) {
             that.onremovestream(stream);
         }
     };
+  
+    that.peerConnection.oniceconnectionstatechange = function (ev) {
+        if (that.oniceconnectionstatechange){
+            that.oniceconnectionstatechange(ev);
+        }
+    }
 
     var localDesc;
     var remoteDesc;
@@ -176,10 +174,11 @@ Erizo.ChromeStableStack = function (spec) {
                 callback('error');
             });
         }
-        if (config.minVideoBW){
+        if (config.minVideoBW || (config.slideShowMode!==undefined)){
             L.Logger.debug ("MinVideo Changed to ", config.minVideoBW);
-            spec.callback({type:'updatestream', minVideoBW: config.minVideoBW});
-        }       
+            L.Logger.debug ("SlideShowMode Changed to ", config.slideShowMode);
+            spec.callback({type:'updatestream', config:config});            
+        }   
     };
 
     that.createOffer = function (isSubscribe) {
@@ -222,7 +221,9 @@ Erizo.ChromeStableStack = function (spec) {
             //     answer = answer.split('a=ssrc:55543')[0] + '"}';
             // }
 
-            console.log("Set remote and local description", msg.sdp);
+            L.Logger.info("Set remote and local description");
+            L.Logger.debug("Remote Description", msg.sdp);
+            L.Logger.debug("Local Description", localDesc.sdp);
 
             msg.sdp = setMaxBW(msg.sdp);
 
@@ -230,12 +231,12 @@ Erizo.ChromeStableStack = function (spec) {
             that.peerConnection.setLocalDescription(localDesc, function () {
                 that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg), function () {
                     spec.remoteDescriptionSet = true;
-                    console.log("Candidates to be added: ", spec.remoteCandidates.length, spec.remoteCandidates);
+                    L.Logger.info("Candidates to be added: ", spec.remoteCandidates.length, spec.remoteCandidates);
                     while (spec.remoteCandidates.length > 0) {
                         // IMPORTANT: preserve ordering of candidates
                         that.peerConnection.addIceCandidate(spec.remoteCandidates.shift());
                     }
-                    console.log("Local candidates to send:", spec.localCandidates.length);
+                    L.Logger.info("Local candidates to send:", spec.localCandidates.length);
                     while (spec.localCandidates.length > 0) {
                         // IMPORTANT: preserve ordering of candidates
                         spec.callback({type: 'candidate', candidate: spec.localCandidates.shift()});
@@ -259,7 +260,6 @@ Erizo.ChromeStableStack = function (spec) {
                     that.peerConnection.addIceCandidate(candidate);
                 } else {
                     spec.remoteCandidates.push(candidate);
-//                    console.log("Candidates stored: ", spec.remoteCandidates.length, spec.remoteCandidates);
                 }
             } catch (e) {
                 L.Logger.error("Error parsing candidate", msg.candidate);

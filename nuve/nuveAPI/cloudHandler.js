@@ -29,15 +29,14 @@ var recalculatePriority = function () {
     //*******************************************************************
 
     var newEcQueue = [],
-        available = 0,
-        warnings = 0,
+        noAvailable = [],
+        warning = [],
         ec;
 
     for (ec in erizoControllers) {
         if (erizoControllers.hasOwnProperty(ec)) {
             if (erizoControllers[ec].state === 2) {
                 newEcQueue.push(ec);
-                available += 1;
             }
         }
     }
@@ -46,17 +45,26 @@ var recalculatePriority = function () {
         if (erizoControllers.hasOwnProperty(ec)) {
             if (erizoControllers[ec].state === 1) {
                 newEcQueue.push(ec);
-                warnings += 1;
+                warning.push(ec);
+            }
+            if (erizoControllers[ec].state === 0) {
+                noAvailable.push(ec);
             }
         }
     }
 
     ecQueue = newEcQueue;
 
-    if (ecQueue.length === 0 || (available === 0 && warnings < 2)) {
-        log.info('[CLOUD HANDLER]: Warning! No erizoController is available.');
+    if (ecQueue.length === 0) {
+        log.error('No erizoController is available.');
+    }
+    for (var w in warning) {
+        log.warn('Erizo Controller in ', erizoControllers[ec].ip, 'has reached the warning number of rooms');
     }
 
+    for (var n in noAvailable) {
+        log.warn('Erizo Controller in ', erizoControllers[ec].ip, 'has reached the limit number of rooms');
+    }
 },
 
 checkKA = function () {
@@ -67,7 +75,7 @@ checkKA = function () {
         if (erizoControllers.hasOwnProperty(ec)) {
             erizoControllers[ec].keepAlive += 1;
             if (erizoControllers[ec].keepAlive > MAX_KA_COUNT) {
-                log.info('ErizoController', ec, ' in ', erizoControllers[ec].ip, 'does not respond. Deleting it.');
+                log.warn('ErizoController', ec, ' in ', erizoControllers[ec].ip, 'does not respond. Deleting it.');
                 delete erizoControllers[ec];
                 for (room in rooms) {
                     if (rooms.hasOwnProperty(room)) {
@@ -153,7 +161,7 @@ exports.keepAlive = function (id, callback) {
 
     if (erizoControllers[id] === undefined) {
         result = 'whoareyou';
-        log.info('I received a keepAlive mess from a removed erizoController');
+        log.warn('I received a keepAlive mess from an unknownb erizoController');
     } else {
         erizoControllers[id].keepAlive = 0;
         result = 'ok';
@@ -165,7 +173,7 @@ exports.keepAlive = function (id, callback) {
 exports.setInfo = function (params) {
     "use strict";
 
-    log.info('Received info ', params,    '.Recalculating erizoControllers priority');
+    log.info('Received info ', params, '. Recalculating erizoControllers priority');
     erizoControllers[params.id].state = params.state;
     recalculatePriority();
 };
@@ -173,7 +181,7 @@ exports.setInfo = function (params) {
 exports.killMe = function (ip) {
     "use strict";
 
-    log.info('[CLOUD HANDLER]: ErizoController in host ', ip, 'does not respond.');
+    log.info('[CLOUD HANDLER]: ErizoController in host ', ip, 'wants to be killed.');
 
 };
 

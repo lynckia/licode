@@ -134,7 +134,7 @@ public:
 
     void updateState(TransportState state, Transport * transport);
 
-    void queueData(int comp, const char* data, int len, Transport *transport, packetType type);
+    void queueData(int comp, const char* data, int len, Transport *transport, packetType type, uint16_t seqNum=0);
 
     void onCandidate(const CandidateInfo& cand, Transport *transport);
 
@@ -142,6 +142,8 @@ public:
       this->shouldSendFeedback_ = shouldSendFb;
       this->rateControl_ = rateControl;
     };
+
+    void setSlideShowMode (bool state);
 
 
     // webrtc::RtpHeader overrides.
@@ -160,27 +162,30 @@ private:
 
 	WebRTCEvent globalState_;
 
-  int bundle_, sequenceNumberFIR_;
-  boost::mutex receiveVideoMutex_, updateStateMutex_, feedbackMutex_;
+  int bundle_;
+  boost::mutex receiveVideoMutex_, updateStateMutex_; //, slideShowMutex_;
   boost::thread send_Thread_;
 	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionEventListener* connEventListener_;
-	Transport *videoTransport_, *audioTransport_;
+  boost::scoped_ptr<Transport> videoTransport_, audioTransport_;
 
   bool sending_;
 	void sendLoop();
-	void writeSsrc(char* buf, int len, unsigned int ssrc);
 	int deliverAudioData_(char* buf, int len);
 	int deliverVideoData_(char* buf, int len);
   int deliverFeedback_(char* buf, int len);
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
+
+  uint32_t stripRtpHeaders(char* buf, int len);
 
   
   bool audioEnabled_;
   bool videoEnabled_;
   bool trickleEnabled_;
   bool shouldSendFeedback_;
+  bool slideShowMode_;
   uint32_t rateControl_; //Target bitrate for hacky rate control in BPS 
+  uint16_t seqNo_, grace_, sendSeqNo_, seqNoOffset_;
   
   IceConfig iceConfig_;
   int stunPort_, minPort_, maxPort_;

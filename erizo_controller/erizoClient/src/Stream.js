@@ -78,7 +78,7 @@ Erizo.Stream = function (spec) {
     that.init = function () {
       try {
         if ((spec.audio || spec.video || spec.screen) && spec.url === undefined) {
-          L.Logger.debug("Requested access to local media");
+          L.Logger.info("Requested access to local media");
           var videoOpt = spec.video;
           if ((videoOpt == true || spec.screen == true) && that.videoSize !== undefined) {
             videoOpt = {mandatory: {minWidth: that.videoSize[0], minHeight: that.videoSize[1], maxWidth: that.videoSize[2], maxHeight: that.videoSize[3]}};
@@ -98,7 +98,7 @@ Erizo.Stream = function (spec) {
 
           }, function (error) {
             L.Logger.error("Failed to get access to local media. Error code was " + error.code + ".");
-            var streamEvent = Erizo.StreamEvent({type: "access-denied"});
+            var streamEvent = Erizo.StreamEvent({type: "access-denied", msg:error});
             that.dispatchEvent(streamEvent);
           });
           } else {
@@ -106,7 +106,9 @@ Erizo.Stream = function (spec) {
             that.dispatchEvent(streamEvent);
           }
           } catch (e) {
-            L.Logger.error("Error accessing to local media", e);
+            L.Logger.error("Failed to get access to local media. Error was " + e + ".");
+            var streamEvent = Erizo.StreamEvent({type: "access-denied", msg:e});
+            that.dispatchEvent(streamEvent);
           }
       };
 
@@ -119,7 +121,9 @@ Erizo.Stream = function (spec) {
             // Remove HTML element
             that.hide();
             if (that.stream !== undefined) {
-                that.stream.stop();
+                that.stream.getTracks().forEach(function (track) {
+                    track.stop();
+                });
             }
             that.stream = undefined;
         }
@@ -209,13 +213,43 @@ Erizo.Stream = function (spec) {
         }
     };
 
+    that.checkOptions = function (config, isUpdate){ 
+        //TODO: Check for any incompatible options
+        if (isUpdate === true){  // We are updating the stream
+            if (config.video || config.audio || config.screen){
+                L.Logger.warning("Cannot update type of subscription");
+                config.video = undefined;
+                config.audio = undefined;
+                config.screen = undefined;
+            }
+        }else{  // on publish or subscribe
+            if(that.local === false){ // check what we can subscribe to
+                if (config.video === true && that.hasVideo() === false){
+                    L.Logger.warning("Trying to subscribe to video when there is no video, won't subscribe to video");
+                    config.video = false;
+                }
+                if (config.audio === true && that.hasAudio() === false){
+                    L.Logger.warning("Trying to subscribe to audio when there is no audio, won't subscribe to audio");
+                    config.audio = false;
+                }
+            }
+        }
+        if(that.local === false){
+            if (!that.hasVideo() && (config.slideShowMode === true)){
+                L.Logger.warning("Cannot enable slideShowMode if it is not a video subscription, please check your parameters");
+                config.slideShowMode = false;
+            }
+        } 
+    };
+
     that.updateConfiguration = function (config, callback) {
         if (config === undefined)
             return;
         if (that.pc){
+            that.checkOptions(config, true);
             that.pc.updateSpec(config, callback);
         } else {
-            return ("This stream has not been published, ignoring");
+            return ("This stream has no peerConnection attached, ignoring");
         }
     }
 

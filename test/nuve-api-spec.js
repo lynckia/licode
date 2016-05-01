@@ -1,3 +1,4 @@
+var assert = require('chai').assert;
 var N = require('../nuve/nuveClient/dist/nuve'),
 	config = require('../licode_config');
 
@@ -7,6 +8,7 @@ var N = require('../nuve/nuveClient/dist/nuve'),
 var id;
 
 describe("nuve", function () {
+    this.timeout (TIMEOUT);
 
     beforeEach(function () {
         N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3000/');
@@ -19,20 +21,13 @@ describe("nuve", function () {
         N.API.init("Jose Antonio", config.nuve.superserviceKey, 'http://localhost:3000/');
 
         N.API.getRooms(function(rooms_) {
-            received = true;
             ok = true;
+            throw "Succeeded and it should fail with bad credentials";
         }, function(error) {
-        	received = true;
             ok = false;
+            done();
         });
 
-        waitsFor(function () {
-        	return received;
-        }, "Nuve should have answered", TIMEOUT);
-
-        runs(function () {
-            expect(ok).toBe(false);
-        });
     });
 
     it("should list rooms", function () {
@@ -40,179 +35,81 @@ describe("nuve", function () {
         var received = false, ok = false;
 
         N.API.getRooms(function(rooms_) {
-            received = true;
-            ok = true;
+            assert.isArray(rooms_, "This should be an array of rooms");
+            done();
         }, function(error) {
-        	received = true;
-            ok = false;
-        });
-
-        waitsFor(function () {
-        	return received;
-        }, "Nuve should have answered", TIMEOUT);
-
-        runs(function () {
-            expect(ok).toBe(true);
+            throw error;
         });
     });
 
     it("should create normal rooms", function () {
         N.API.createRoom(ROOM_NAME, function(room) {
-            id = room._id;
-        });
-
-        waitsFor(function () {
-            return id !== undefined;
-        }, "Nuve should have created the room", TIMEOUT);
-
-        runs(function () {
-            expect(id).toNotBe(undefined);
+            done();
         });
     });
 
     it("should get normal rooms", function () {
-    	var obtained = false;
-    	var received = false;
         N.API.getRoom(id, function(result) {
-            obtained = true;
-            received = true;
+            done();
         }, function(error) {
-        	obtained = false;
-        	received = true;
-        });
-
-        waitsFor(function () {
-            return received;
-        }, "Nuve should have created the room", TIMEOUT);
-
-        runs(function () {
-            expect(obtained).toBe(true);
+            throw error;
         });
     });
 
     it("should create tokens for users in normal rooms", function () {
-    	var obtained = false;
-    	var received = false;
         N.API.createToken(id, "user", "presenter", function(token) {
-            obtained = true;
-            received = true;
+            done();
         }, function(error) {
-        	obtained = false;
-        	received = true;
-        });
-
-        waitsFor(function () {
-            return received;
-        }, "Nuve should have created the room", TIMEOUT);
-
-        runs(function () {
-            expect(obtained).toBe(true);
+            throw error;
         });
     });
 
     it("should create tokens for users with special characters in normal rooms", function () {
-    	var obtained = false;
-    	var received = false;
         N.API.createToken(id, "user_with_$?üóñ", "role", function(token) {
-            obtained = true;
-            received = true;
+            done()
         }, function(error) {
-        	obtained = false;
-        	received = true;
-        });
-
-        waitsFor(function () {
-            return received;
-        }, "Nuve should have created the room", TIMEOUT);
-
-        runs(function () {
-            expect(obtained).toBe(true);
+            throw error;
         });
     });
 
     it("should get users in normal rooms", function () {
-    	var obtained = false;
-    	var received = false;
         N.API.getUsers(id, function(token) {
-            obtained = true;
-            received = true;
+            done()
         }, function(error) {
-        	obtained = false;
-        	received = true;
-        });
-
-        waitsFor(function () {
-            return received;
-        }, "Nuve should have created the room", TIMEOUT);
-
-        runs(function () {
-            expect(obtained).toBe(true);
+            throw error;
         });
     });
 
     it("should delete normal rooms", function () {
         N.API.deleteRoom(id, function(result) {
-            id = undefined;
+            done;
         }, function(error) {
-
+            throw error;
         });
 
-        waitsFor(function () {
-            return id === undefined;
-        }, "Nuve should have created the room", TIMEOUT);
-
-        runs(function () {
-            expect(id).toBe(undefined);
-        });
     });
 
     it("should create p2p rooms", function () {
         N.API.createRoom(ROOM_NAME, function(room) {
             id = room._id;
+            assert.notEqual(id, undefined, 'Did not provide a valid id');
+            done()
         }, function() {}, {p2p: true});
-
-        waitsFor(function () {
-            return id !== undefined;
-        }, "Nuve should have created the room", TIMEOUT);
-
-        runs(function () {
-            expect(id).toNotBe(undefined);
-        });
     });
 
     it("should get p2p rooms", function () {
-    	var obtained = false;
-    	var received = false;
         N.API.getRoom(id, function(result) {
-            obtained = true;
-            received = true;
+            done()
         }, function(error) {
-        	obtained = false;
-        	received = true;
-        });
-
-        waitsFor(function () {
-            return received;
-        }, "Nuve should have created the room", TIMEOUT);
-
-        runs(function () {
-            expect(obtained).toBe(true);
+            throw error;
         });
     });
 
     it("should delete p2p rooms", function () {
         N.API.deleteRoom(id, function(result) {
-            id = undefined;
+            done()
         }, function(error) {
-
-        });
-
-        waitsFor(function () {
-            return id === undefined;
-        }, "Nuve should have created the room", TIMEOUT);
-
-        runs(function () {
-            expect(id).toBe(undefined);
+            throw error;
         });
     });
 });

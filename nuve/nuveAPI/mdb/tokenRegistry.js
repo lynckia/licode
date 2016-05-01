@@ -55,7 +55,7 @@ exports.addToken = function (token, callback) {
     "use strict";
 
     db.tokens.save(token, function (error, saved) {
-        if (error) log.info('MongoDB: Error adding token: ', error);
+        if (error) log.warn('MongoDB: Error adding token: ', error);
         callback(saved._id);
     });
 };
@@ -69,7 +69,7 @@ var removeToken = exports.removeToken = function (id, callback) {
     hasToken(id, function (hasT) {
         if (hasT) {
             db.tokens.remove({_id: db.ObjectId(id)}, function (error, removed) {
-                if (error) log.info('MongoDB: Error removing token: ', error);
+                if (error) log.warn('MongoDB: Error removing token: ', error);
                 callback();
             });
             
@@ -84,7 +84,7 @@ exports.updateToken = function (token) {
     "use strict";
 
     db.tokens.save(token, function (error, saved) {
-        if (error) log.info('MongoDB: Error updating token: ', error);
+        if (error) log.warn('MongoDB: Error updating token: ', error);
     });
 };
 

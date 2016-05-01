@@ -16,12 +16,8 @@ Erizo.FirefoxStack = function (spec) {
         "iceServers": []
     };
 
-    if (spec.stunServerUrl !== undefined) {
-        that.pc_config.iceServers.push({"url": spec.stunServerUrl});
-    } 
-
-    if ((spec.turnServer || {}).url) {
-        that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
+    if (spec.iceServers !== undefined) {
+        that.pc_config.iceServers = spec.iceServers;
     }
 
     if (spec.audio === undefined) {
@@ -57,11 +53,11 @@ Erizo.FirefoxStack = function (spec) {
                 spec.callback({type:'candidate', candidate: event.candidate});
             } else {
                 spec.localCandidates.push(event.candidate);
-                console.log("Local Candidates stored: ", spec.localCandidates.length, spec.localCandidates);
+                L.Logger.debug("Local Candidates stored: ", spec.localCandidates.length, spec.localCandidates);
             }
 
         } else {
-            console.log("End of candidates.");
+            L.Logger.debug("Gathered all candidates for this pc");
         }
     };
 
@@ -121,6 +117,14 @@ Erizo.FirefoxStack = function (spec) {
         that.peerConnection.setLocalDescription(localDesc);
     }
 
+    that.updateSpec = function (config, callback){
+        if (config.minVideoBW || (config.slideShowMode!==undefined)){
+            L.Logger.debug ("MinVideo Changed to ", config.minVideoBW);
+            L.Logger.debug ("SlideShowMode Changed to ", config.slideShowMode);
+            spec.callback({type:'updatestream', config:config});            
+        }   
+    };
+
     that.createOffer = function (isSubscribe) {
         if (isSubscribe === true) {            
             that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
@@ -165,7 +169,9 @@ Erizo.FirefoxStack = function (spec) {
             //     answer = answer.split('a=ssrc:55543')[0] + '"}';
             // }
 
-            console.log("Set remote and local description", msg.sdp);
+            L.Logger.info("Set remote and local description");
+            L.Logger.debug("Local Description to set", localDesc.sdp);
+            L.Logger.debug("Remote Description to set", msg.sdp);
 
             msg.sdp = setMaxBW(msg.sdp);
 

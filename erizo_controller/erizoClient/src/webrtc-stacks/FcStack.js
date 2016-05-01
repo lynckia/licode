@@ -16,6 +16,7 @@ Erizo.FcStack = function (spec) {
 
     that.peerConnection = {};
     that.desc = {};
+    that.signalCallback = undefined;
 
     that.close = function(){
         console.log("Close FcStack");
@@ -31,17 +32,18 @@ Erizo.FcStack = function (spec) {
     
     that.processSignalingMessage = function(msg){
         console.log("FCSTACK: processSignaling", msg);
-        desc = msg;
+        if(that.signalCallback!==undefined)
+            that.signalCallback(msg);
     }
 
     that.sendSignalingMessage = function(msg){
         console.log("FCSTACK: Sending signaling Message", msg);
         spec.callback(msg);
     };
-
-    that.getDescription = function(){
-        return desc;
-    };
-    
+   
+    that.setSignalingCallback = function(callback){
+        console.log("FCSTACK: Setting signalling callback");
+        that.signalCallback = callback;
+    }
     return that;
 };

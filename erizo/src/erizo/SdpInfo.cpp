@@ -510,16 +510,29 @@ namespace erizo {
     return false;
   }
 
-  void SdpInfo::createOfferSdp(){
-
+  // TODO: Should provide hints
+  void SdpInfo::createOfferSdp(bool videoEnabled, bool audioEnabled){
+    ELOG_DEBUG("Creating offerSDP: video %d, audio %d", videoEnabled, audioEnabled);
     this->payloadVector = internalPayloadVector_;
     this->isBundle = true;
     this->profile = SAVPF;
     this->isRtcpMux = true;
-    this->videoSdpMLine = 0;
-    this->audioSdpMLine = 1;
-    this->hasVideo = true;
-    this->hasAudio = true;
+    if(videoEnabled)
+      this->videoSdpMLine = 0;
+    if(audioEnabled)
+      this->audioSdpMLine = 0;
+
+    for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
+      RtpMap& rtp = internalPayloadVector_[it];
+      if (rtp.mediaType == VIDEO_TYPE) {
+        videoCodecs++;
+      }else if (rtp.mediaType == AUDIO_TYPE){
+        audioCodecs++;
+      }
+    }
+
+    this->hasVideo = videoEnabled;
+    this->hasAudio = audioEnabled;
     this->videoDirection = SENDRECV;
     this->audioDirection = SENDRECV;
     this->videoRtxSsrc = 55555;
@@ -732,7 +745,7 @@ namespace erizo {
       }
       if (isMid!= std::string::npos){
         std::vector<std::string> parts = stringutil::splitOneOf(line, ": \r\n",4);
-        if (parts.size()>=2){
+        if (parts.size()>=2 && isBundle){
           std::string thisId = parts[1];
           for (uint8_t i = 0; i < bundleTags.size(); i++){
             if (!bundleTags[i].id.compare(thisId)){

@@ -88,7 +88,7 @@ namespace erizo {
     g_type_init();
     context_ = g_main_context_new();
     g_main_context_set_poll_func(context_,timed_poll);
-    ELOG_DEBUG("Creating Agent");
+    ELOG_DEBUG("Creating Nice Agent");
     nice_debug_enable( FALSE );
     // Create a nice agent
     agent_ = nice_agent_new(context_, NICE_COMPATIBILITY_RFC5245);

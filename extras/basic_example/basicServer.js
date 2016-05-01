@@ -83,6 +83,9 @@ app.post('/createToken/', function(req, res) {
     N.API.createToken(room, username, role, function(token) {
         console.log(token);
         res.send(token);
+    }, function(error) {
+        console.log(error);
+        res.status(401).send('No Erizo Controller found');
     });
 });
 

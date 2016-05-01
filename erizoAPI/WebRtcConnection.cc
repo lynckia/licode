@@ -29,6 +29,7 @@ void WebRtcConnection::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("generatePLIPacket"), FunctionTemplate::New(generatePLIPacket)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("setFeedbackReports"), FunctionTemplate::New(setFeedbackReports)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("createOffer"), FunctionTemplate::New(createOffer)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("setSlideShowMode"), FunctionTemplate::New(setSlideShowMode)->GetFunction());
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("WebRtcConnection"), constructor);
@@ -82,6 +83,7 @@ Handle<Value> WebRtcConnection::New(const Arguments& args) {
 
   WebRtcConnection* obj = new WebRtcConnection();
   obj->me = new erizo::WebRtcConnection(a, v, iceConfig,t, obj);
+  obj->msink = obj->me;
   obj->Wrap(args.This());
   uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
   uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 
@@ -94,10 +96,6 @@ Handle<Value> WebRtcConnection::close(const Arguments& args) {
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
   obj->me = NULL;
   obj->hasCallback_ = false;
-  
-  uv_close((uv_handle_t*)&obj->async_, NULL);
-  uv_close((uv_handle_t*)&obj->asyncStats_, NULL);
-
 
   if(!uv_is_closing((uv_handle_t*)&obj->async_)) {
     uv_close((uv_handle_t*)&obj->async_, NULL);
@@ -130,6 +128,17 @@ Handle<Value> WebRtcConnection::createOffer(const Arguments& args) {
   return scope.Close(Boolean::New(r));
 }
 
+Handle<Value> WebRtcConnection::setSlideShowMode(const v8::Arguments& args){
+  HandleScope scope;
+  
+  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+  erizo::WebRtcConnection *me = obj->me;
+  
+  bool v = (args[0]->ToBoolean())->BooleanValue();
+  me->setSlideShowMode(v);
+
+  return scope.Close(Null());
+}
 
 Handle<Value> WebRtcConnection::setRemoteSdp(const Arguments& args) {
   HandleScope scope;
@@ -237,6 +246,11 @@ Handle<Value> WebRtcConnection::generatePLIPacket(const v8::Arguments& args){
   HandleScope scope;
 
   WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(args.This());
+
+  if(obj->me ==NULL){
+    return scope.Close(Null());
+  }
+
   erizo::WebRtcConnection *me = obj->me;
   me->sendPLI();
 
