@@ -19,9 +19,9 @@ NAN_MODULE_INIT (ExternalInput::Init) {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   // Prototype
   Nan::SetPrototypeMethod(tpl, "close", close);
-  Nan::SetPrototypeMethod(tpl, "init", close);
-  Nan::SetPrototypeMethod(tpl, "setAudioReceiver", close);
-  Nan::SetPrototypeMethod(tpl, "setVideoReceiver", close);
+  Nan::SetPrototypeMethod(tpl, "init", init);
+  Nan::SetPrototypeMethod(tpl, "setAudioReceiver", setAudioReceiver);
+  Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("ExternalInput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());

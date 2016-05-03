@@ -19,7 +19,7 @@ NAN_MODULE_INIT (ExternalOutput::Init) {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   // Prototype
   Nan::SetPrototypeMethod(tpl, "close", close);
-  Nan::SetPrototypeMethod(tpl, "init", close);
+  Nan::SetPrototypeMethod(tpl, "init", init);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("ExternalOutput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());

@@ -22,13 +22,13 @@ NAN_MODULE_INIT (OneToManyProcessor::Init) {
 
   // Prototype
   Nan::SetPrototypeMethod(tpl, "close", close);
-  Nan::SetPrototypeMethod(tpl, "setPublisher", close);
-  Nan::SetPrototypeMethod(tpl, "addExternalOutput", close);
-  Nan::SetPrototypeMethod(tpl, "setExternalPublisher", close);
-  Nan::SetPrototypeMethod(tpl, "getPublisherState", close);
-  Nan::SetPrototypeMethod(tpl, "hasPublisher", close);
-  Nan::SetPrototypeMethod(tpl, "addSubscriber", close);
-  Nan::SetPrototypeMethod(tpl, "removeSubscriber", close);
+  Nan::SetPrototypeMethod(tpl, "setPublisher", setPublisher);
+  Nan::SetPrototypeMethod(tpl, "addExternalOutput", addExternalOutput);
+  Nan::SetPrototypeMethod(tpl, "setExternalPublisher", setExternalPublisher);
+  Nan::SetPrototypeMethod(tpl, "getPublisherState", getPublisherState);
+  Nan::SetPrototypeMethod(tpl, "hasPublisher", hasPublisher);
+  Nan::SetPrototypeMethod(tpl, "addSubscriber", addSubscriber);
+  Nan::SetPrototypeMethod(tpl, "removeSubscriber", removeSubscriber);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("OneToManyProcessor").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
