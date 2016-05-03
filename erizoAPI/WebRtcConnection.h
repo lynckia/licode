@@ -13,9 +13,9 @@
  * A WebRTC Connection. This class represents a WebRtcConnection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary ICE and SRTP components.
  */
-class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener, erizo::WebRtcConnectionStatsListener  {
+class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener, erizo::WebRtcConnectionStatsListener {
  public:
-  static void Init(v8::Local<v8::Object> exports);
+  static NAN_MODULE_INIT(Init);
 
   erizo::WebRtcConnection *me;
   int eventSt;
@@ -38,61 +38,61 @@ class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener,
    * Constructor.
    * Constructs an empty WebRtcConnection without any configuration.
    */
-  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(New);
   /*
    * Closes the webRTC connection.
    * The object cannot be used after this call.
    */
-  static void close(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(close);
   /*
    * Inits the WebRtcConnection and passes the callback to get Events.
    * Returns true if the candidates are gathered.
    */
-  static void init(const Nan::FunctionCallbackInfo<v8::Value>& info);  
+  static NAN_METHOD(init);
   /*
    * Sets the SDP of the remote peer.
    * Param: the SDP.
    * Returns true if the SDP was received correctly.
    */
-  static void createOffer(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(createOffer);
 
-  static void setRemoteSdp(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(setRemoteSdp);
   /**
      * Add new remote candidate (from remote peer).
      * @param sdp The candidate in SDP format.
      * @return true if the SDP was received correctly.
      */
-  static void  addRemoteCandidate(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(addRemoteCandidate);
   /*
    * Obtains the local SDP.
    * Returns the SDP as a string.
    */
-  static void getLocalSdp(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(getLocalSdp);
   /*
    * Sets a MediaReceiver that is going to receive Audio Data
    * Param: the MediaReceiver to send audio to.
    */
-  static void setAudioReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(setAudioReceiver);
   /*
    * Sets a MediaReceiver that is going to receive Video Data
    * Param: the MediaReceiver
    */
-  static void setVideoReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(setVideoReceiver);
   /*
    * Gets the current state of the Ice Connection
    * Returns the state.
    */
-  static void getCurrentState(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(getCurrentState);
   /*
    * Request a PLI packet from this WRTCConn
    */
-  static void generatePLIPacket(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(generatePLIPacket);
 
-  static void setFeedbackReports(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(setFeedbackReports);
 
-  static void setSlideShowMode(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(setSlideShowMode);
 
-  static void getStats(const Nan::FunctionCallbackInfo<v8::Value>& info);  
+  static NAN_METHOD(getStats);
   
   static Nan::Persistent<v8::Function> constructor;
 

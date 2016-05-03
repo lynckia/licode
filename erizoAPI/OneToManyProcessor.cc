@@ -4,7 +4,6 @@
 
 #include "OneToManyProcessor.h"
 
-
 using namespace v8;
 
 Nan::Persistent<Function> OneToManyProcessor::constructor;
@@ -15,7 +14,7 @@ OneToManyProcessor::OneToManyProcessor() {
 OneToManyProcessor::~OneToManyProcessor() {
 };
 
-void OneToManyProcessor::Init(v8::Local<v8::Object> exports) {
+NAN_MODULE_INIT (OneToManyProcessor::Init) {
   // Prepare constructor template
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("OneToManyProcessor").ToLocalChecked());
@@ -32,10 +31,10 @@ void OneToManyProcessor::Init(v8::Local<v8::Object> exports) {
   Nan::SetPrototypeMethod(tpl, "removeSubscriber", close);
 
   constructor.Reset(tpl->GetFunction());
-  exports->Set(Nan::New("OneToManyProcessor").ToLocalChecked(), tpl->GetFunction());
+  Nan::Set(target, Nan::New("OneToManyProcessor").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
-void OneToManyProcessor::New(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(OneToManyProcessor::New) {
   OneToManyProcessor* obj = new OneToManyProcessor();
   obj->me = new erizo::OneToManyProcessor();
   obj->msink = obj->me;
@@ -44,29 +43,29 @@ void OneToManyProcessor::New(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   info.GetReturnValue().Set(info.This());
 }
 
-void OneToManyProcessor::close(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
+NAN_METHOD(OneToManyProcessor::close) {
+  OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
   //TODO Make async 
   delete me;
 }
 
-void OneToManyProcessor::setPublisher(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
+NAN_METHOD(OneToManyProcessor::setPublisher) {
+  OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  WebRtcConnection* param = Nan::ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::WebRtcConnection* wr = (erizo::WebRtcConnection*)param->me;
 
   erizo::MediaSource* ms = dynamic_cast<erizo::MediaSource*>(wr);
   me->setPublisher(ms);
 }
 
-void OneToManyProcessor::addExternalOutput(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
+NAN_METHOD(OneToManyProcessor::addExternalOutput) {
+  OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  ExternalOutput* param = ObjectWrap::Unwrap<ExternalOutput>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  ExternalOutput* param = Nan::ObjectWrap::Unwrap<ExternalOutput>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::ExternalOutput* wr = param->me;
 
   erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
@@ -79,11 +78,11 @@ void OneToManyProcessor::addExternalOutput(const Nan::FunctionCallbackInfo<v8::V
   me->addSubscriber(ms, peerId);
 }
 
-void OneToManyProcessor::setExternalPublisher(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
+NAN_METHOD(OneToManyProcessor::setExternalPublisher) {
+  OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  ExternalInput* param = ObjectWrap::Unwrap<ExternalInput>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  ExternalInput* param = Nan::ObjectWrap::Unwrap<ExternalInput>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::ExternalInput* wr = (erizo::ExternalInput*)param->me;
 
   erizo::MediaSource* ms = dynamic_cast<erizo::MediaSource*>(wr);
@@ -91,8 +90,8 @@ void OneToManyProcessor::setExternalPublisher(const Nan::FunctionCallbackInfo<v8
 
 }
 
-void OneToManyProcessor::getPublisherState(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
+NAN_METHOD(OneToManyProcessor::getPublisherState) {
+  OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
   erizo::MediaSource * ms = me->publisher.get();
@@ -103,8 +102,8 @@ void OneToManyProcessor::getPublisherState(const Nan::FunctionCallbackInfo<v8::V
   info.GetReturnValue().Set(Nan::New(state));
 }
 
- void OneToManyProcessor::hasPublisher(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
+NAN_METHOD(OneToManyProcessor::hasPublisher) {
+  OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
   bool p = true;
@@ -116,11 +115,11 @@ void OneToManyProcessor::getPublisherState(const Nan::FunctionCallbackInfo<v8::V
   info.GetReturnValue().Set(Nan::New(p));
 }
 
- void OneToManyProcessor::addSubscriber(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
+NAN_METHOD(OneToManyProcessor::addSubscriber) {
+  OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  WebRtcConnection* param = Nan::ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::WebRtcConnection* wr = (erizo::WebRtcConnection*)param->me;
 
   erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
@@ -133,8 +132,8 @@ void OneToManyProcessor::getPublisherState(const Nan::FunctionCallbackInfo<v8::V
   me->addSubscriber(ms, peerId);
 }
 
-void OneToManyProcessor::removeSubscriber(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  OneToManyProcessor* obj = ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
+NAN_METHOD(OneToManyProcessor::removeSubscriber) {
+  OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
 // get the param

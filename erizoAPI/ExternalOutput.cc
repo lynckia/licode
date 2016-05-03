@@ -12,7 +12,7 @@ Nan::Persistent<Function> ExternalOutput::constructor;
 ExternalOutput::ExternalOutput() {};
 ExternalOutput::~ExternalOutput() {};
 
-void ExternalOutput::Init(v8::Local<v8::Object> exports) {
+NAN_MODULE_INIT (ExternalOutput::Init) {
   // Prepare constructor template
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("ExternalOutput").ToLocalChecked());
@@ -22,10 +22,10 @@ void ExternalOutput::Init(v8::Local<v8::Object> exports) {
   Nan::SetPrototypeMethod(tpl, "init", close);
 
   constructor.Reset(tpl->GetFunction());
-  exports->Set(Nan::New("ExternalOutput").ToLocalChecked(), tpl->GetFunction());
+  Nan::Set(target, Nan::New("ExternalOutput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
-void ExternalOutput::New(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(ExternalOutput::New) {
   v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string url = std::string(*param);
 
@@ -36,14 +36,14 @@ void ExternalOutput::New(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   info.GetReturnValue().Set(info.This());
 }
 
-void ExternalOutput::close(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(ExternalOutput::close) {
   ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(info.Holder());
   erizo::ExternalOutput *me = (erizo::ExternalOutput*)obj->me;
 
   delete me;
 }
 
-void ExternalOutput::init(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(ExternalOutput::init) {
   ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(info.Holder());
   erizo::ExternalOutput *me = (erizo::ExternalOutput*)obj->me;
 

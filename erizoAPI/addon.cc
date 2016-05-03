@@ -8,12 +8,11 @@
 #include "ExternalInput.h"
 #include "ExternalOutput.h"
 
-
-void InitAll(v8::Local<v8::Object> exports) {
-  WebRtcConnection::Init(exports);
-  OneToManyProcessor::Init(exports);
-  ExternalInput::Init(exports);
-  ExternalOutput::Init(exports);
+NAN_MODULE_INIT(InitAll){
+  WebRtcConnection::Init(target);
+  OneToManyProcessor::Init(target);
+  ExternalInput::Init(target);
+  ExternalOutput::Init(target);
 }
 
 NODE_MODULE(addon, InitAll)

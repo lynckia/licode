@@ -13,9 +13,9 @@
  * Represents a OneToMany connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class ExternalInput: public MediaSource {
+class ExternalInput : public Nan::ObjectWrap {
  public:
-  static void Init(v8::Local<v8::Object> exports);
+  static NAN_MODULE_INIT(Init);
   erizo::ExternalInput* me;
 
  private:
@@ -26,27 +26,27 @@ class ExternalInput: public MediaSource {
    * Constructor.
    * Constructs a ExternalInput
    */
-  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(New);
   /*
    * Closes the ExternalInput.
    * The object cannot be used after this call
    */
-  static void close(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(close);
   /*
    * Inits the ExternalInput 
    * Returns true ready
    */
-  static void init(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(init);
   /*
    * Sets a MediaSink that is going to receive Audio Data
    * Param: the MediaSink to send audio to.
    */
-  static void setAudioReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(setAudioReceiver);
   /*
    * Sets a MediaSink that is going to receive Video Data
    * Param: the MediaSink
    */
-  static void setVideoReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(setVideoReceiver);
   
   static Nan::Persistent<v8::Function> constructor;
 };

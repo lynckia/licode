@@ -12,7 +12,7 @@ Nan::Persistent<Function> ExternalInput::constructor;
 ExternalInput::ExternalInput() {};
 ExternalInput::~ExternalInput() {};
 
-void ExternalInput::Init(v8::Local<v8::Object> exports) {
+NAN_MODULE_INIT (ExternalInput::Init) {
   // Prepare constructor template
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("ExternalInput").ToLocalChecked());
@@ -24,10 +24,10 @@ void ExternalInput::Init(v8::Local<v8::Object> exports) {
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", close);
 
   constructor.Reset(tpl->GetFunction());
-  exports->Set(Nan::New("ExternalInput").ToLocalChecked(), tpl->GetFunction());
+  Nan::Set(target, Nan::New("ExternalInput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
-void ExternalInput::New(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(ExternalInput::New) {
   v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string url = std::string(*param);
 
@@ -38,14 +38,14 @@ void ExternalInput::New(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   info.GetReturnValue().Set(info.This());
 }
 
-void ExternalInput::close(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(ExternalInput::close) {
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 
   delete me;
 }
 
-void ExternalInput::init(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(ExternalInput::init) {
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 
@@ -53,7 +53,7 @@ void ExternalInput::init(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   info.GetReturnValue().Set(Nan::New(r));
 }
 
-void ExternalInput::setAudioReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(ExternalInput::setAudioReceiver) {
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 
@@ -63,7 +63,7 @@ void ExternalInput::setAudioReceiver(const Nan::FunctionCallbackInfo<v8::Value>&
   me->setAudioSink(mr);
 }
 
-void ExternalInput::setVideoReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(ExternalInput::setVideoReceiver) {
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 

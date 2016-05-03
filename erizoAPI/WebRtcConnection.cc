@@ -14,7 +14,7 @@ WebRtcConnection::WebRtcConnection() {
 WebRtcConnection::~WebRtcConnection() {
 };
 
-void WebRtcConnection::Init(Local<Object> exports) {
+NAN_MODULE_INIT (WebRtcConnection::Init) {
   // Prepare constructor template
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("WebRtcConnection").ToLocalChecked());
@@ -36,12 +36,11 @@ void WebRtcConnection::Init(Local<Object> exports) {
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
   
   constructor.Reset(tpl->GetFunction());
-  exports->Set(Nan::New("WebRtcConnection").ToLocalChecked(), tpl->GetFunction());
+  Nan::Set(target, Nan::New("WebRtcConnection").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
 
-void WebRtcConnection::New(const Nan::FunctionCallbackInfo<Value>& info) {
- 
+NAN_METHOD(WebRtcConnection::New) {
   /*  TODO: Control number of args
   if (args.Length()<7){
     ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
@@ -93,8 +92,8 @@ void WebRtcConnection::New(const Nan::FunctionCallbackInfo<Value>& info) {
   }
 }
 
-void WebRtcConnection::close(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::close) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   obj->me = NULL;
   obj->hasCallback_ = false;
 
@@ -106,8 +105,8 @@ void WebRtcConnection::close(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   }
 }
 
-void WebRtcConnection::init(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::init) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
   
   obj->eventCallback_ = Persistent<Function>::New(Local<Function>::Cast(info[0]));
@@ -116,15 +115,15 @@ void WebRtcConnection::init(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   info.GetReturnValue().Set(Nan::New(r));
 }
 
-void WebRtcConnection::createOffer(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::createOffer) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
   bool r = me->createOffer();
   info.GetReturnValue().Set(Nan::New(r));
 }
 
-void WebRtcConnection::setSlideShowMode(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::setSlideShowMode) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
   
   bool v = info[0]->BooleanValue();
@@ -132,8 +131,8 @@ void WebRtcConnection::setSlideShowMode(const Nan::FunctionCallbackInfo<v8::Valu
   info.GetReturnValue().Set(Nan::New(v));
 }
 
-void WebRtcConnection::setRemoteSdp(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::setRemoteSdp) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
   String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
@@ -144,9 +143,8 @@ void WebRtcConnection::setRemoteSdp(const Nan::FunctionCallbackInfo<v8::Value>& 
   info.GetReturnValue().Set(Nan::New(r));
 }
 
-void  WebRtcConnection::addRemoteCandidate(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
   String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
@@ -162,9 +160,8 @@ void  WebRtcConnection::addRemoteCandidate(const Nan::FunctionCallbackInfo<v8::V
   info.GetReturnValue().Set(Nan::New(r));
 }
 
-void WebRtcConnection::getLocalSdp(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::getLocalSdp) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
   std::string sdp = me->getLocalSdp();
@@ -173,29 +170,28 @@ void WebRtcConnection::getLocalSdp(const Nan::FunctionCallbackInfo<v8::Value>& i
 }
 
 
-void WebRtcConnection::setAudioReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::setAudioReceiver) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
-  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  MediaSink* param = Nan::ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::MediaSink *mr = param->msink;
 
-  me-> setAudioSink(mr);
+  me->setAudioSink(mr);
 }
 
-void WebRtcConnection::setVideoReceiver(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::setVideoReceiver) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
-  MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  MediaSink* param = Nan::ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::MediaSink *mr = param->msink;
 
-  me-> setVideoSink(mr);
+  me->setVideoSink(mr);
 }
 
-void WebRtcConnection::getCurrentState(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::getCurrentState) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
   int state = me->getCurrentState();
@@ -203,8 +199,8 @@ void WebRtcConnection::getCurrentState(const Nan::FunctionCallbackInfo<v8::Value
   info.GetReturnValue().Set(Nan::New(state));
 }
 
-void WebRtcConnection::getStats(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::getStats) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   if (obj->me == NULL){ //Requesting stats when WebrtcConnection not available
     return; 
   }
@@ -218,8 +214,8 @@ void WebRtcConnection::getStats(const Nan::FunctionCallbackInfo<v8::Value>& info
   }
 }
 
-void WebRtcConnection::generatePLIPacket(const Nan::FunctionCallbackInfo<v8::Value>& info){
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::generatePLIPacket) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
 
   if(obj->me ==NULL){
     return;
@@ -231,8 +227,8 @@ void WebRtcConnection::generatePLIPacket(const Nan::FunctionCallbackInfo<v8::Val
   return; 
 }
 
-void WebRtcConnection::setFeedbackReports(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  WebRtcConnection* obj = ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+NAN_METHOD(WebRtcConnection::setFeedbackReports) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
   
   bool v = info[0]->BooleanValue();

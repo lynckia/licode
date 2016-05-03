@@ -15,7 +15,7 @@
  */
 class ExternalOutput: public MediaSink {
  public:
-  static void Init(v8::Local<v8::Object> exports);
+  static NAN_MODULE_INIT(Init);
   erizo::ExternalOutput* me;
 
  private:
@@ -26,17 +26,17 @@ class ExternalOutput: public MediaSink {
    * Constructor.
    * Constructs a ExternalOutput
    */
-  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(New);
   /*
    * Closes the ExternalOutput.
    * The object cannot be used after this call
    */
-  static void close(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(close);
   /*
    * Inits the ExternalOutput 
    * Returns true ready
    */
-  static void init(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_METHOD(init);
   
   static Nan::Persistent<v8::Function> constructor;
 };
