@@ -74,4 +74,26 @@ class OneToManyProcessor : public MediaSink {
   static Nan::Persistent<v8::Function> constructor;
 };
 
+class AsyncDeleter : public Nan::AsyncWorker{
+  public:
+    AsyncDeleter (erizo::OneToManyProcessor* otm, Nan::Callback *callback);
+    ~AsyncDeleter() {};
+    void Execute();
+    void HandleOKCallback();
+  private:
+    erizo::OneToManyProcessor* otmToDelete_;
+    Nan::Callback* callback_;
+};
+
+class AsyncRemoveSubscriber : public Nan::AsyncWorker{
+  public:
+    AsyncRemoveSubscriber (erizo::OneToManyProcessor* otm, const std::string& peerId, Nan::Callback *callback);
+    ~AsyncRemoveSubscriber() {};
+    void Execute();
+    void HandleOKCallback();
+  private:
+    erizo::OneToManyProcessor* otm_;
+    std::string peerId_;
+    Nan::Callback* callback_;
+};
 #endif

@@ -46,8 +46,8 @@ NAN_METHOD(OneToManyProcessor::New) {
 NAN_METHOD(OneToManyProcessor::close) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
-  //TODO Make async 
-  delete me;
+  Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
+  Nan::AsyncQueueWorker(new  AsyncDeleter(me, callback));
 }
 
 NAN_METHOD(OneToManyProcessor::setPublisher) {
@@ -141,5 +141,42 @@ NAN_METHOD(OneToManyProcessor::removeSubscriber) {
 
 // convert it to string
   std::string peerId = std::string(*param1);
-  me->removeSubscriber(peerId);
+  Nan::AsyncQueueWorker(new  AsyncRemoveSubscriber(me, peerId, NULL));
 }
+
+// Async Delete OTM
+
+AsyncDeleter::AsyncDeleter(erizo::OneToManyProcessor* otm , Nan::Callback *callback):
+  AsyncWorker(callback), otmToDelete_(otm), callback_(callback){
+}
+void AsyncDeleter::Execute(){
+  delete otmToDelete_;
+};
+void AsyncDeleter::HandleOKCallback(){
+    HandleScope scope;
+    std::string msg("Delete successful");
+    Local<Value> argv[] = {
+      Nan::New(msg.c_str()).ToLocalChecked()
+    };
+
+    callback->Call(1, argv);
+};
+
+
+// Async remove Subscriber
+
+AsyncRemoveSubscriber::AsyncRemoveSubscriber(erizo::OneToManyProcessor* otm , const std::string& peerId, Nan::Callback *callback):
+  AsyncWorker(callback), otm_(otm), peerId_(peerId), callback_(callback){
+}
+void AsyncRemoveSubscriber::Execute(){
+  otm_->removeSubscriber(peerId_);
+};
+void AsyncRemoveSubscriber::HandleOKCallback(){
+    HandleScope scope;
+    std::string msg("Removal successful");
+    Local<Value> argv[] = {
+      Nan::New(msg.c_str()).ToLocalChecked()
+    };
+
+  //  callback->Call(1, argv);
+};

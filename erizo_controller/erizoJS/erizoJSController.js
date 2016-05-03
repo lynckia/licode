@@ -503,7 +503,9 @@ exports.ErizoJSController = function (spec) {
                 }
             }
             publishers[from].wrtc.close();
-            publishers[from].muxer.close();
+            publishers[from].muxer.close(function(message){
+                log.info("Muxer finished closing", message);
+            });
 
             delete subscribers[from];
             delete publishers[from];
