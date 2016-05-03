@@ -7,6 +7,52 @@
 using namespace v8;
 
 Nan::Persistent<Function> OneToManyProcessor::constructor;
+// Async Delete OTM
+
+// Classes for Async (not in node main thread) operations
+
+class AsyncDeleter : public Nan::AsyncWorker {
+  public:
+    AsyncDeleter (erizo::OneToManyProcessor* otm, Nan::Callback *callback):
+      AsyncWorker(callback), otmToDelete_(otm){
+      }
+    ~AsyncDeleter() {}
+    void Execute(){
+      delete otmToDelete_;
+    }
+    void HandleOKCallback() {
+      HandleScope scope;
+      std::string msg("OK");
+      if (callback){
+        Local<Value> argv[] = {
+          Nan::New(msg.c_str()).ToLocalChecked()
+        };
+
+        callback->Call(1, argv);
+      }
+    }
+  private:
+    erizo::OneToManyProcessor* otmToDelete_;
+    Nan::Callback* callback_;
+};
+
+class AsyncRemoveSubscriber : public Nan::AsyncWorker{
+  public:
+    AsyncRemoveSubscriber(erizo::OneToManyProcessor* otm , const std::string& peerId, Nan::Callback *callback):
+      AsyncWorker(callback), otm_(otm), peerId_(peerId), callback_(callback){
+      }
+    ~AsyncRemoveSubscriber() {}
+    void Execute() {
+      otm_->removeSubscriber(peerId_);
+    }
+    void HandleOKCallback() {
+      //We're not doing anything here ATM
+    }
+  private:
+    erizo::OneToManyProcessor* otm_;
+    std::string peerId_;
+    Nan::Callback* callback_;
+};
 
 OneToManyProcessor::OneToManyProcessor() {
 };
@@ -46,7 +92,13 @@ NAN_METHOD(OneToManyProcessor::New) {
 NAN_METHOD(OneToManyProcessor::close) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
-  Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
+  Nan::Callback *callback; 
+  if (info.Length()>=1){
+    callback =new Nan::Callback(info[0].As<Function>());
+  } else {
+    callback = NULL;
+  }
+
   Nan::AsyncQueueWorker(new  AsyncDeleter(me, callback));
 }
 
@@ -70,10 +122,10 @@ NAN_METHOD(OneToManyProcessor::addExternalOutput) {
 
   erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
 
-// get the param
+  // get the param
   v8::String::Utf8Value param1(Nan::To<v8::String>(info[1]).ToLocalChecked());
 
-// convert it to string
+  // convert it to string
   std::string peerId = std::string(*param1);
   me->addSubscriber(ms, peerId);
 }
@@ -111,7 +163,7 @@ NAN_METHOD(OneToManyProcessor::hasPublisher) {
   if(me->publisher == NULL) {
     p = false;
   }
-  
+
   info.GetReturnValue().Set(Nan::New(p));
 }
 
@@ -124,10 +176,10 @@ NAN_METHOD(OneToManyProcessor::addSubscriber) {
 
   erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
 
-// get the param
+  // get the param
   v8::String::Utf8Value param1(Nan::To<v8::String>(info[1]).ToLocalChecked());
 
-// convert it to string
+  // convert it to string
   std::string peerId = std::string(*param1);
   me->addSubscriber(ms, peerId);
 }
@@ -136,47 +188,12 @@ NAN_METHOD(OneToManyProcessor::removeSubscriber) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-// get the param
+  // get the param
   v8::String::Utf8Value param1(Nan::To<v8::String>(info[0]).ToLocalChecked());
 
-// convert it to string
+  // convert it to string
   std::string peerId = std::string(*param1);
   Nan::AsyncQueueWorker(new  AsyncRemoveSubscriber(me, peerId, NULL));
 }
 
-// Async Delete OTM
 
-AsyncDeleter::AsyncDeleter(erizo::OneToManyProcessor* otm , Nan::Callback *callback):
-  AsyncWorker(callback), otmToDelete_(otm), callback_(callback){
-}
-void AsyncDeleter::Execute(){
-  delete otmToDelete_;
-};
-void AsyncDeleter::HandleOKCallback(){
-    HandleScope scope;
-    std::string msg("Delete successful");
-    Local<Value> argv[] = {
-      Nan::New(msg.c_str()).ToLocalChecked()
-    };
-
-    callback->Call(1, argv);
-};
-
-
-// Async remove Subscriber
-
-AsyncRemoveSubscriber::AsyncRemoveSubscriber(erizo::OneToManyProcessor* otm , const std::string& peerId, Nan::Callback *callback):
-  AsyncWorker(callback), otm_(otm), peerId_(peerId), callback_(callback){
-}
-void AsyncRemoveSubscriber::Execute(){
-  otm_->removeSubscriber(peerId_);
-};
-void AsyncRemoveSubscriber::HandleOKCallback(){
-    HandleScope scope;
-    std::string msg("Removal successful");
-    Local<Value> argv[] = {
-      Nan::New(msg.c_str()).ToLocalChecked()
-    };
-
-  //  callback->Call(1, argv);
-};

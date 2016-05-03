@@ -14,41 +14,41 @@
  * Receives media from one publisher and retransmits it to every subscriber.
  */
 class ExternalInput : public Nan::ObjectWrap {
- public:
-  static NAN_MODULE_INIT(Init);
-  erizo::ExternalInput* me;
+  public:
+    static NAN_MODULE_INIT(Init);
+    erizo::ExternalInput* me;
 
- private:
-  ExternalInput();
-  ~ExternalInput();
+  private:
+    ExternalInput();
+    ~ExternalInput();
 
-  /*
-   * Constructor.
-   * Constructs a ExternalInput
-   */
-  static NAN_METHOD(New);
-  /*
-   * Closes the ExternalInput.
-   * The object cannot be used after this call
-   */
-  static NAN_METHOD(close);
-  /*
-   * Inits the ExternalInput 
-   * Returns true ready
-   */
-  static NAN_METHOD(init);
-  /*
-   * Sets a MediaSink that is going to receive Audio Data
-   * Param: the MediaSink to send audio to.
-   */
-  static NAN_METHOD(setAudioReceiver);
-  /*
-   * Sets a MediaSink that is going to receive Video Data
-   * Param: the MediaSink
-   */
-  static NAN_METHOD(setVideoReceiver);
-  
-  static Nan::Persistent<v8::Function> constructor;
+    /*
+     * Constructor.
+     * Constructs a ExternalInput
+     */
+    static NAN_METHOD(New);
+    /*
+     * Closes the ExternalInput.
+     * The object cannot be used after this call
+     */
+    static NAN_METHOD(close);
+    /*
+     * Inits the ExternalInput 
+     * Returns true ready
+     */
+    static NAN_METHOD(init);
+    /*
+     * Sets a MediaSink that is going to receive Audio Data
+     * Param: the MediaSink to send audio to.
+     */
+    static NAN_METHOD(setAudioReceiver);
+    /*
+     * Sets a MediaSink that is going to receive Video Data
+     * Param: the MediaSink
+     */
+    static NAN_METHOD(setVideoReceiver);
+
+    static Nan::Persistent<v8::Function> constructor;
 };
 
 #endif

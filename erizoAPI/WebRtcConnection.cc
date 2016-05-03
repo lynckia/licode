@@ -23,7 +23,7 @@ NAN_MODULE_INIT (WebRtcConnection::Init) {
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("WebRtcConnection").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
-  
+
   // Prototype
   Nan::SetPrototypeMethod(tpl, "close", close);
   Nan::SetPrototypeMethod(tpl, "init", init);
@@ -38,20 +38,18 @@ NAN_MODULE_INIT (WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
-  
+
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("WebRtcConnection").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
 
 NAN_METHOD(WebRtcConnection::New) {
-  /*  TODO: Control number of args
-  if (args.Length()<7){
+  if (info.Length()<7){
     ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
   }
-  */
   //	webrtcconnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort);
-  
+
   if (info.IsConstructCall()){
     //Invoked as a constructor with 'new WebRTC()'
     bool a = info[0]->BooleanValue();
@@ -92,7 +90,7 @@ NAN_METHOD(WebRtcConnection::New) {
     obj->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
   } else {
-   //TODO: Check what happens here  
+    //TODO: Check what happens here  
   }
 }
 
@@ -114,10 +112,10 @@ NAN_METHOD(WebRtcConnection::close) {
 NAN_METHOD(WebRtcConnection::init) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
-  
+
   obj->eventCallback_ = Persistent<Function>::New(Local<Function>::Cast(info[0]));
   bool r = me->init();
-  
+
   info.GetReturnValue().Set(Nan::New(r));
 }
 
@@ -131,7 +129,7 @@ NAN_METHOD(WebRtcConnection::createOffer) {
 NAN_METHOD(WebRtcConnection::setSlideShowMode) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
-  
+
   bool v = info[0]->BooleanValue();
   me->setSlideShowMode(v);
   info.GetReturnValue().Set(Nan::New(v));
@@ -157,7 +155,7 @@ NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
   std::string mid = std::string(*param);
 
   int sdpMLine = info[1]->IntegerValue();
-  
+
   String::Utf8Value param2(Nan::To<v8::String>(info[2]).ToLocalChecked());
   std::string sdp = std::string(*param2);
 
@@ -171,7 +169,7 @@ NAN_METHOD(WebRtcConnection::getLocalSdp) {
   erizo::WebRtcConnection *me = obj->me;
 
   std::string sdp = me->getLocalSdp();
-  
+
   info.GetReturnValue().Set(Nan::New(sdp.c_str()).ToLocalChecked());
 }
 
@@ -201,7 +199,7 @@ NAN_METHOD(WebRtcConnection::getCurrentState) {
   erizo::WebRtcConnection *me = obj->me;
 
   int state = me->getCurrentState();
-  
+
   info.GetReturnValue().Set(Nan::New(state));
 }
 
@@ -236,11 +234,13 @@ NAN_METHOD(WebRtcConnection::generatePLIPacket) {
 NAN_METHOD(WebRtcConnection::setFeedbackReports) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
-  
+
   bool v = info[0]->BooleanValue();
   int fbreps = info[1]->IntegerValue(); // From bps to Kbps
   me->setFeedbackReports(v, fbreps);
 }
+
+// Async methods
 
 void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message) {
   boost::mutex::scoped_lock lock(mutex);

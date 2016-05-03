@@ -9,6 +9,30 @@ using namespace v8;
 
 Nan::Persistent<Function> ExternalOutput::constructor;
 
+class AsyncDeleter : public Nan::AsyncWorker {
+  public:
+    AsyncDeleter (erizo::ExternalOutput* eoToDelete, Nan::Callback *callback):
+      AsyncWorker(callback), eoToDelete_(eoToDelete){
+      }
+    ~AsyncDeleter() {}
+    void Execute(){
+      delete eoToDelete_;
+    }
+    void HandleOKCallback() {
+      HandleScope scope;
+      std::string msg("OK");
+      if (callback){
+        Local<Value> argv[] = {
+          Nan::New(msg.c_str()).ToLocalChecked()
+        };
+        callback->Call(1, argv);
+      }
+    }
+  private:
+    erizo::ExternalOutput* eoToDelete_;
+    Nan::Callback* callback_;
+};
+
 ExternalOutput::ExternalOutput() {};
 ExternalOutput::~ExternalOutput() {};
 
@@ -40,10 +64,18 @@ NAN_METHOD(ExternalOutput::close) {
   ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(info.Holder());
   erizo::ExternalOutput *me = (erizo::ExternalOutput*)obj->me;
 
-  delete me;
+  Nan::Callback *callback; 
+  if (info.Length()>=1){
+    callback =new Nan::Callback(info[0].As<Function>());
+  } else {
+    callback = NULL;
+  }
+
+  Nan::AsyncQueueWorker(new  AsyncDeleter(me, callback));
 }
 
 NAN_METHOD(ExternalOutput::init) {
+  //TODO:Could potentially be slow, think about async'ing it  
   ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(info.Holder());
   erizo::ExternalOutput *me = (erizo::ExternalOutput*)obj->me;
 
