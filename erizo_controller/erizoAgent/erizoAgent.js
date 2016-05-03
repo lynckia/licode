@@ -166,7 +166,7 @@ var cleanErizos = function () {
     log.info("Cleaning up all (killing) erizoJSs on SIGTERM or SIGINT", processes.length);
     for (var p in processes){
         log.info("killing process", processes[p].pid)
-        processes[p].kill();
+        processes[p].kill('SIGKILL');
     }
     process.exit(0);
 };
