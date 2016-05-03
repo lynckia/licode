@@ -12,6 +12,10 @@ WebRtcConnection::WebRtcConnection() {
 };
 
 WebRtcConnection::~WebRtcConnection() {
+  if (me!=NULL){
+    me->setWebRtcConnectionStatsListener(NULL);
+    me->setWebRtcConnectionEventListener(NULL);
+  }
 };
 
 NAN_MODULE_INIT (WebRtcConnection::Init) {
@@ -94,6 +98,8 @@ NAN_METHOD(WebRtcConnection::New) {
 
 NAN_METHOD(WebRtcConnection::close) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  obj->me->setWebRtcConnectionStatsListener(NULL);
+  obj->me->setWebRtcConnectionEventListener(NULL);
   obj->me = NULL;
   obj->hasCallback_ = false;
 
