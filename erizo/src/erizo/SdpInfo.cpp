@@ -255,7 +255,7 @@ namespace erizo {
   }
 
   std::string SdpInfo::getSdp() {
-    char msidtemp [10];
+    char msidtemp [11];
     gen_random(msidtemp,10);
 
     ELOG_DEBUG("Getting SDP");
