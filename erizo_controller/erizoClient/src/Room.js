@@ -53,7 +53,13 @@ Erizo.Room = function (spec) {
         for (index in that.localStreams) {
             if (that.localStreams.hasOwnProperty(index)) {
                 stream = that.localStreams[index];
-                stream.pc.close();
+                if(that.p2p){
+                    for(var i in stream.pc){
+                        stream.pc[i].close();
+                    }
+                }else{
+                    stream.pc.close();
+                }
                 delete that.localStreams[index];
             }
         }
