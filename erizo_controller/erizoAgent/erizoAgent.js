@@ -245,6 +245,21 @@ privateIP = addresses[0];
 
 if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicIP === undefined){
     publicIP = addresses[0];
+    if(global.config.cloudProvider.name === 'amazon'){ 
+        var opt = {version: '2012-12-01'};
+        if (GLOBAL.config.cloudProvider.host !== '') {
+            opt.host = GLOBAL.config.cloudProvider.host;
+        }
+        ec2 = require('aws-lib').createEC2Client(GLOBAL.config.cloudProvider.accessKey, GLOBAL.config.cloudProvider.secretAccessKey, opt);
+        ec2.call('DescribeInstances', {'Filter.1.Name':'private-ip-address', 'Filter.1.Value':privateIP}, function (err, response) {
+            if (err) {
+                log.info('Error: ', err);
+            } else if (response) {
+                publicIP = response.reservationSet.item.instancesSet.item.ipAddress;
+                log.info('public IP: ', publicIP);
+            }
+        });
+    }
 } else {
     publicIP = GLOBAL.config.erizoAgent.publicIP;
 }
