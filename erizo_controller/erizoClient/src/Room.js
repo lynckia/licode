@@ -549,9 +549,16 @@ Erizo.Room = function (spec) {
             });
             var p2p = stream.room.p2p;
             stream.room = undefined;
-            if ((stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) && stream.url === undefined && !p2p) {
-                stream.pc.close();
-                stream.pc = undefined;
+            if ((stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) && stream.url === undefined) {
+                if(!p2p){
+                    stream.pc.close();
+                    stream.pc = undefined;
+                }else{
+                    for (var index in stream.pc){
+                        stream.pc[index].close();
+                        stream.pc[index] = undefined;
+                    }
+                }
             }
             delete that.localStreams[stream.getID()];
 
