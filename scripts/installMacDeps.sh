@@ -33,7 +33,7 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost libnice cmake mongodb rabbitmq yasm log4cxx
+  brew install glib pkg-config boost cmake mongodb rabbitmq yasm log4cxx
   npm install -g node-gyp
 }
 
@@ -131,6 +131,8 @@ install_brew_deps
 pause 'Installing openssl... [press Enter]'
 install_openssl
 
+pause 'Installing liblibnice... [press Enter]'
+install_libnice
 
 pause 'Installing libsrtp... [press Enter]'
 install_libsrtp
