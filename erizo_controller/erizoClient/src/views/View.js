@@ -11,6 +11,6 @@ Erizo.View = function (spec) {
     // Variables
 
     // URL where it will look for icons and assets
-    that.url = "http://chotis2.dit.upm.es:3000";
+    that.url = '';
     return that;
 };

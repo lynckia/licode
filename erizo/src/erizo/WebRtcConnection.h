@@ -163,19 +163,20 @@ private:
 	WebRTCEvent globalState_;
 
   int bundle_;
-  boost::mutex receiveVideoMutex_, updateStateMutex_;
+  boost::mutex receiveVideoMutex_, updateStateMutex_; //, slideShowMutex_;
   boost::thread send_Thread_;
 	std::queue<dataPacket> sendQueue_;
 	WebRtcConnectionEventListener* connEventListener_;
-	Transport *videoTransport_, *audioTransport_;
+  boost::scoped_ptr<Transport> videoTransport_, audioTransport_;
 
   bool sending_;
 	void sendLoop();
-	void writeSsrc(char* buf, int len, unsigned int ssrc);
 	int deliverAudioData_(char* buf, int len);
 	int deliverVideoData_(char* buf, int len);
   int deliverFeedback_(char* buf, int len);
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
+
+  uint32_t stripRtpHeaders(char* buf, int len);
 
   
   bool audioEnabled_;

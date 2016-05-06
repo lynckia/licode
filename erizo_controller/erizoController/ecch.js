@@ -19,7 +19,6 @@ exports.Ecch = function (spec) {
 
 	var getErizoAgents = function () {
 		amqper.broadcast('ErizoAgent', {method: 'getErizoAgents', args: []}, function (agent) {
-
 			if (agent === 'timeout') {
 				log.warn('No agents available');
 				return;
@@ -42,7 +41,6 @@ exports.Ecch = function (spec) {
 				agents[agent.info.id].timeout = 0;
 			}
 
-			//console.log('all ', agents);
 		});
 
 		// Check agents timeout
@@ -71,7 +69,7 @@ exports.Ecch = function (spec) {
 			agent_queue = getErizoAgent(agents);
 		}
 
-		log.info('Asking erizoJS to agent ', agent_queue);
+		log.info('Contacting Agent ', agent_queue, " for a new ErizoJS");
 
 		amqper.callRpc(agent_queue, 'createErizoJS', [], {callback: function(erizo_id) {
 			if (erizo_id === 'timeout') {

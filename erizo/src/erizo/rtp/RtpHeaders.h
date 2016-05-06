@@ -63,7 +63,7 @@ namespace erizo{
     public:
       static const int MIN_SIZE = 12;
       uint32_t cc :4;
-      uint32_t extension :1;
+      uint32_t hasextension :1;
       uint32_t padding :1;
       uint32_t version :2;
       uint32_t payloadtype :7;
@@ -73,9 +73,17 @@ namespace erizo{
       uint32_t ssrc;
       uint32_t extensionpayload:16;
       uint32_t extensionlength:16;
+      union extension_t {
+
+        struct absSendTime_t{
+          uint32_t abssendtime;
+        } absSendTime;
+
+      } extension;
+
 
       inline RtpHeader() :
-        cc(0), extension(0), padding(0), version(2), payloadtype(0), marker(
+        cc(0), hasextension(0), padding(0), version(2), payloadtype(0), marker(
             0), seqnum(0), timestamp(0), ssrc(0), extensionpayload(0), extensionlength(0) {
           // No implementation required
       }
@@ -97,10 +105,16 @@ namespace erizo{
         marker = aMarker;
       }
       inline uint8_t getExtension() const {
-        return extension;
+        return hasextension;
       }
       inline void setExtension(uint8_t ext) {
-        extension = ext;
+        hasextension = ext;
+      }
+      inline uint8_t getCc() const {
+        return cc;
+      }
+      inline void setCc (uint8_t theCc){
+        cc = theCc;
       }
       inline uint8_t getPayloadType() const {
         return payloadtype;
@@ -138,8 +152,14 @@ namespace erizo{
       inline void setExtLength(uint16_t extensionLength) {
         extensionlength = htons(extensionLength);
       }
+      inline uint32_t getAbsSendTime() {
+        return ntohl(extension.absSendTime.abssendtime);
+      }
+      inline void setAbsSendTime(uint32_t aTime) {
+        extension.absSendTime.abssendtime = htonl(aTime);
+      }
       inline int getHeaderLength() {
-        return MIN_SIZE + cc * 4 + extension * (4 + ntohs(extensionlength) * 4);
+        return MIN_SIZE + cc * 4 + hasextension * (4 + ntohs(extensionlength) * 4);
       }
   };
 

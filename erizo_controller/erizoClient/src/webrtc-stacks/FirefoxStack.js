@@ -53,11 +53,11 @@ Erizo.FirefoxStack = function (spec) {
                 spec.callback({type:'candidate', candidate: event.candidate});
             } else {
                 spec.localCandidates.push(event.candidate);
-                console.log("Local Candidates stored: ", spec.localCandidates.length, spec.localCandidates);
+                L.Logger.debug("Local Candidates stored: ", spec.localCandidates.length, spec.localCandidates);
             }
 
         } else {
-            console.log("End of candidates.");
+            L.Logger.debug("Gathered all candidates for this pc");
         }
     };
 
@@ -169,7 +169,9 @@ Erizo.FirefoxStack = function (spec) {
             //     answer = answer.split('a=ssrc:55543')[0] + '"}';
             // }
 
-            console.log("Set remote and local description", msg.sdp);
+            L.Logger.info("Set remote and local description");
+            L.Logger.debug("Local Description to set", localDesc.sdp);
+            L.Logger.debug("Remote Description to set", msg.sdp);
 
             msg.sdp = setMaxBW(msg.sdp);
 
