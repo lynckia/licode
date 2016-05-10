@@ -155,6 +155,11 @@ private:
   
   SdpInfo remoteSdp_;
   SdpInfo localSdp_;
+  bool audioEnabled_;
+  bool videoEnabled_;
+  bool trickleEnabled_;
+  bool shouldSendFeedback_;
+  bool slideShowMode_;
 
   boost::shared_ptr<RtcpProcessor> rtcpProcessor_;
 
@@ -179,11 +184,6 @@ private:
   uint32_t stripRtpHeaders(char* buf, int len);
 
   
-  bool audioEnabled_;
-  bool videoEnabled_;
-  bool trickleEnabled_;
-  bool shouldSendFeedback_;
-  bool slideShowMode_;
   uint32_t rateControl_; //Target bitrate for hacky rate control in BPS 
   uint16_t seqNo_, grace_, sendSeqNo_, seqNoOffset_;
   
