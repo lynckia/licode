@@ -1,18 +1,26 @@
 #ifndef MEDIARECEIVER_H
 #define MEDIARECEIVER_H
 
-#include <node.h>
+#include <nan.h>
 #include <MediaDefinitions.h>
 
 
 /*
- * Wrapper class of erizo::MediaReceiver
+ * Wrapper class of erizo::MediaSink
  */
-class MediaSink : public node::ObjectWrap {
-public:
+class MediaSink : public Nan::ObjectWrap {
+  public:
 
-  erizo::MediaSink* msink;
+    erizo::MediaSink* msink;
 };
 
+
+/*
+ * Wrapper class of erizo::MediaSource
+ */
+class MediaSource : public Nan::ObjectWrap {
+  public:
+    erizo::MediaSource* msource;
+};
 
 #endif

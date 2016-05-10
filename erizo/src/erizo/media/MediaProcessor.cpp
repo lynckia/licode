@@ -448,9 +448,9 @@ namespace erizo {
     }
 
 
-    timeval time;
-    gettimeofday(&time, NULL);
-    long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+//    timeval time;
+//    gettimeofday(&time, NULL);
+//    long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
 
     RtpHeader head;
     head.setSeqNumber(audioSeqnum_++);
@@ -482,7 +482,6 @@ namespace erizo {
       return -1;
     }
 
-    //    ELOG_DEBUG("To packetize %u", buffSize);
     if (buffSize <= 0)
       return -1;
     RtpVP8Fragmenter frag(inBuff, buffSize, 1100);
@@ -492,8 +491,8 @@ namespace erizo {
     gettimeofday(&time, NULL);
     long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
     //		timestamp_ += 90000 / mediaInfo.videoCodec.frameRate;
-
-          //int64_t pts = av_rescale(lastPts_, 1000000, (long int)video_time_base_);
+    //int64_t pts = av_rescale(lastPts_, 1000000, (long int)video_time_base_);
+    
     do {
       outlen = 0;
       frag.getPacket(outBuff, &outlen, &lastFrame);
@@ -512,7 +511,6 @@ namespace erizo {
       memcpy(&rtpBuffer_[rtpHeader.getHeaderLength()],outBuff, outlen);
 
       int l = outlen + rtpHeader.getHeaderLength();
-      //			sink_->sendData(rtpBuffer_, l);
       rtpReceiver_->receiveRtpData(rtpBuffer_, l);
     } while (!lastFrame);
 

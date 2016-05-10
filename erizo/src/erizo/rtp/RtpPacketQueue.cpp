@@ -11,7 +11,7 @@ RtpPacketQueue::RtpPacketQueue(double depthInSeconds, double maxDepthInSeconds) 
     lastSequenceNumberGiven_(-1), timebase_(0), depthInSeconds_(depthInSeconds), maxDepthInSeconds_(maxDepthInSeconds)
 {
     if(depthInSeconds_ >= maxDepthInSeconds_) {
-        ELOG_WARN("invalid configuration, depth_: %d, max_: %d; reset to defaults", depthInSeconds_, maxDepthInSeconds_);
+        ELOG_WARN("invalid configuration, depth_: %f, max_: %f; reset to defaults", depthInSeconds_, maxDepthInSeconds_);
         depthInSeconds_ = erizo::DEFAULT_DEPTH;
         maxDepthInSeconds_ = erizo::DEFAULT_MAX;
     }

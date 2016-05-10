@@ -7,55 +7,79 @@
 
 using namespace v8;
 
+Nan::Persistent<Function> ExternalOutput::constructor;
+
+class AsyncDeleter : public Nan::AsyncWorker {
+  public:
+    AsyncDeleter (erizo::ExternalOutput* eoToDelete, Nan::Callback *callback):
+      AsyncWorker(callback), eoToDelete_(eoToDelete){
+      }
+    ~AsyncDeleter() {}
+    void Execute(){
+      delete eoToDelete_;
+    }
+    void HandleOKCallback() {
+      HandleScope scope;
+      std::string msg("OK");
+      if (callback){
+        Local<Value> argv[] = {
+          Nan::New(msg.c_str()).ToLocalChecked()
+        };
+        callback->Call(1, argv);
+      }
+    }
+  private:
+    erizo::ExternalOutput* eoToDelete_;
+    Nan::Callback* callback_;
+};
+
 ExternalOutput::ExternalOutput() {};
 ExternalOutput::~ExternalOutput() {};
 
-void ExternalOutput::Init(Handle<Object> target) {
+NAN_MODULE_INIT (ExternalOutput::Init) {
   // Prepare constructor template
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("ExternalOutput"));
+  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("ExternalOutput").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   // Prototype
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("init"), FunctionTemplate::New(init)->GetFunction());
+  Nan::SetPrototypeMethod(tpl, "close", close);
+  Nan::SetPrototypeMethod(tpl, "init", init);
 
-  Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
-  target->Set(String::NewSymbol("ExternalOutput"), constructor);
+  constructor.Reset(tpl->GetFunction());
+  Nan::Set(target, Nan::New("ExternalOutput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
-Handle<Value> ExternalOutput::New(const Arguments& args) {
-  HandleScope scope;
-
-  v8::String::Utf8Value param(args[0]->ToString());
+NAN_METHOD(ExternalOutput::New) {
+  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string url = std::string(*param);
 
   ExternalOutput* obj = new ExternalOutput();
   obj->me = new erizo::ExternalOutput(url);
 
-  obj->Wrap(args.This());
-
-  return args.This();
+  obj->Wrap(info.This());
+  info.GetReturnValue().Set(info.This());
 }
 
-Handle<Value> ExternalOutput::close(const Arguments& args) {
-  HandleScope scope;
-
-  ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(args.This());
+NAN_METHOD(ExternalOutput::close) {
+  ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(info.Holder());
   erizo::ExternalOutput *me = (erizo::ExternalOutput*)obj->me;
 
-  delete me;
+  Nan::Callback *callback; 
+  if (info.Length()>=1){
+    callback =new Nan::Callback(info[0].As<Function>());
+  } else {
+    callback = NULL;
+  }
 
-  return scope.Close(Null());
+  Nan::AsyncQueueWorker(new  AsyncDeleter(me, callback));
 }
 
-Handle<Value> ExternalOutput::init(const Arguments& args) {
-  HandleScope scope;
-
-  ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(args.This());
-  erizo::ExternalOutput *me = (erizo::ExternalOutput*) obj->me;
+NAN_METHOD(ExternalOutput::init) {
+  //TODO:Could potentially be slow, think about async'ing it  
+  ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(info.Holder());
+  erizo::ExternalOutput *me = (erizo::ExternalOutput*)obj->me;
 
   int r = me->init();
-
-  return scope.Close(Integer::New(r));
+  info.GetReturnValue().Set(Nan::New(r));
 }
 
