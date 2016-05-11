@@ -37,6 +37,7 @@ namespace erizo {
       virtual void onCandidate(const CandidateInfo &candidate, NiceConnection *conn)=0;
       virtual void write(char* data, int len) = 0;
       virtual void processLocalSdp(SdpInfo *localSdp_) = 0;
+      virtual void start() = 0;
       virtual boost::shared_ptr<NiceConnection> getNiceConnection() { return nice_; };
       void setTransportListener(TransportListener * listener) {
         transpListener_ = listener;

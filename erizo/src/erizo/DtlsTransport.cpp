@@ -113,6 +113,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
   nice_.reset(new NiceConnection(med, transport_name, this, comps, iceConfig_, username, password));
   running_ =true;
   getNice_Thread_ = boost::thread(&DtlsTransport::getNiceDataLoop, this);
+  ELOG_DEBUG("DtlsTransport Created");
 
 }
 
@@ -124,6 +125,11 @@ DtlsTransport::~DtlsTransport() {
   getNice_Thread_.join();
   ELOG_DEBUG("DTLSTransport destructor END");
 }
+
+void DtlsTransport::start() {
+  ELOG_DEBUG("Starting ICE main loop");
+  nice_->start();
+};
 
 void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {
   int length = len;
@@ -324,6 +330,7 @@ void DtlsTransport::getNiceDataLoop(){
         this->onNiceData(p_->comp, p_->data, p_->length, NULL);
     }
     if (p_->length == -1){    
+      ELOG_DEBUG("Got an ending packet, will finish getPacket loop");
       running_=false;
       return;
     }

@@ -18,8 +18,8 @@ namespace erizo {
       : audioEnabled_ (audioEnabled), videoEnabled_(videoEnabled),connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this){
     ELOG_INFO("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
     bundle_ = false;
-    this->setVideoSinkSSRC(55543);
-    this->setAudioSinkSSRC(44444);
+    setVideoSinkSSRC(55543);
+    setAudioSinkSSRC(44444);
     videoSink_ = NULL;
     audioSink_ = NULL;
     fbSink_ = NULL;
@@ -41,8 +41,6 @@ namespace erizo {
     seqNoOffset_ = 0;
      
     sending_ = true;
-    rtcpProcessor_ = boost::shared_ptr<RtcpProcessor> (new RtcpProcessor((MediaSink*)this, (MediaSource*) this));
-    send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
   }
 
   WebRtcConnection::~WebRtcConnection() {
@@ -58,9 +56,12 @@ namespace erizo {
     videoSink_ = NULL;
     audioSink_ = NULL;
     fbSink_ = NULL;
+    ELOG_INFO("WebRtcConnection Destructor END");
   }
 
   bool WebRtcConnection::init() {
+    rtcpProcessor_ = boost::shared_ptr<RtcpProcessor> (new RtcpProcessor((MediaSink*)this, (MediaSource*) this));
+    send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
     if (connEventListener_ != NULL) {
       connEventListener_->notifyEvent(globalState_, "");
     }
@@ -85,14 +86,17 @@ namespace erizo {
     if (bundle_){
       ELOG_DEBUG("Creating Bundle Offer");
       videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", bundle_, true, this, iceConfig_ , "", "", true));
+      videoTransport_->start();
     }else{
       if (videoTransport_.get()==NULL && videoEnabled_){ // For now we don't re/check transports, if they are already created we leave them there
         ELOG_DEBUG("Creating Video transport for Offer");
         videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", bundle_, true, this, iceConfig_ , "", "", true));
+        videoTransport_->start();
       }
       if (audioTransport_.get()==NULL && audioEnabled_){
         ELOG_DEBUG("Creating Audio transport for Offer");
         audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", bundle_, true, this, iceConfig_, "","", true));
+        audioTransport_->start();
       }
     }
     if (connEventListener_ != NULL) {
@@ -132,6 +136,7 @@ namespace erizo {
           if (videoTransport_.get()==NULL){
             ELOG_DEBUG("Creating videoTransport with creds %s, %s", username.c_str(), password.c_str());
             videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", bundle_, remoteSdp_.isRtcpMux, this, iceConfig_ , username, password, false));
+            videoTransport_->start();
           }else{ 
             ELOG_DEBUG("UPDATING videoTransport with creds %s, %s", username.c_str(), password.c_str());
             videoTransport_->getNiceConnection()->setRemoteCredentials(username, password);
@@ -143,6 +148,7 @@ namespace erizo {
           if (audioTransport_.get()==NULL){
             ELOG_DEBUG("Creating audioTransport with creds %s, %s", username.c_str(), password.c_str());
             audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", bundle_, remoteSdp_.isRtcpMux, this, iceConfig_, username, password, false));
+            audioTransport_->start();
           }else{
             ELOG_DEBUG("UPDATING audioTransport with creds %s, %s", username.c_str(), password.c_str());
             audioTransport_->getNiceConnection()->setRemoteCredentials(username, password);
