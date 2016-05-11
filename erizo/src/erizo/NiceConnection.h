@@ -156,10 +156,7 @@ namespace erizo {
      * @return Bytes sent.
      */
     int sendData(unsigned int compId, const void* buf, int len);
-
-
-
-
+    
     void updateIceState(IceState state);
     IceState checkIceState();
     void updateComponentState(unsigned int compId, IceState state);
@@ -174,16 +171,18 @@ namespace erizo {
     private:
     void mainLoop();
     NiceAgent* agent_;
+    GMainContext* context_;
+    GMainLoop* loop_;
+    
     NiceConnectionListener* listener_;
     std::queue<packetPtr> niceQueue_;
     unsigned int candsDelivered_;
-
-    GMainContext* context_;
-    GMainLoop* loop_;
-    boost::thread m_Thread_;
     IceState iceState_;
+    
+    boost::thread m_Thread_;
     boost::mutex queueMutex_;
     boost::condition_variable cond_;
+   
     unsigned int iceComponents_;
     std::map <unsigned int, IceState> comp_state_list_;
     std::string ufrag_, upass_;

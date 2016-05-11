@@ -4,7 +4,6 @@
 
 #include <nice/nice.h>
 #include <cstdio>
-#include <poll.h>
 
 #include "NiceConnection.h"
 #include "SdpInfo.h"
@@ -17,19 +16,6 @@ namespace erizo {
 
   DEFINE_LOGGER(NiceConnection, "NiceConnection")
 
-
-    struct queue_not_empty
-    {
-      std::queue<packetPtr>& queue;
-
-      queue_not_empty(std::queue<packetPtr>& queue_):
-        queue(queue_)
-      {}
-      bool operator()() const
-      {
-        return !queue.empty();
-      }
-    };
 
   void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
       guint len, gchar* buf, gpointer user_data) {
@@ -55,8 +41,6 @@ namespace erizo {
   void cb_component_state_changed(NiceAgent *agent, guint stream_id,
       guint component_id, guint state, gpointer user_data) {
     if (state == NICE_COMPONENT_STATE_CONNECTED) {
-      //      NiceConnection *conn = (NiceConnection*) user_data;
-      //      conn->updateComponentState(component_id, NICE_READY);
     } else if (state == NICE_COMPONENT_STATE_FAILED) {
       NiceConnection *conn = (NiceConnection*) user_data;
       conn->updateComponentState(component_id, NICE_FAILED);
@@ -72,8 +56,8 @@ namespace erizo {
 
   NiceConnection::NiceConnection(MediaType med, const std::string &transport_name,NiceConnectionListener* listener, 
       unsigned int iceComponents, const IceConfig& iceConfig, std::string username, std::string password) : 
-    mediaType(med), agent_(NULL), listener_(listener), candsDelivered_(0), 
-    loop_(NULL), iceState_(NICE_INITIAL), iceComponents_(iceComponents) {
+    mediaType(med), agent_(NULL), loop_(NULL), listener_(listener), candsDelivered_(0), 
+    iceState_(NICE_INITIAL), iceComponents_(iceComponents) {
 
       localCandidates.reset(new std::vector<CandidateInfo>());
       transportName.reset(new std::string(transport_name));
@@ -175,7 +159,7 @@ namespace erizo {
     while(niceQueue_.empty()){
       cond_.wait(lock);
       if(this->checkIceState()>=NICE_FINISHED) {
-        ELOG_DEBUG("Sending empty packet, we're finished");
+        ELOG_DEBUG("Sending empty packet, NiceConnection won't send more packets");
         packetPtr p (new dataPacket());
         p->length=-1;
         return p;
@@ -201,7 +185,7 @@ namespace erizo {
       agent_ = NULL;
     }
     if (loop_!=NULL){
-      ELOG_DEBUG("Stopping and unrefing loop");
+      ELOG_DEBUG("Unrefing loop");
       g_main_loop_unref(loop_);
       loop_=NULL;
     }
@@ -251,7 +235,7 @@ namespace erizo {
   }
 
   void NiceConnection::mainLoop() {
-    // Attach to the component to receive the data
+    //Start gathering candidates and fire event loop
     nice_agent_gather_candidates(agent_, 1);   
     ELOG_DEBUG("Starting g_main_loop %p", this);
     loop_ = g_main_loop_new(context_, FALSE);
