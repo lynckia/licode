@@ -17,6 +17,7 @@
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainContext GMainContext;
+typedef struct _GMainLoop GMainLoop;
 
 typedef unsigned int uint;
 
@@ -45,6 +46,7 @@ class IceConfig {
     std::string turnServer, turnUsername, turnPass;
     std::string stunServer;
     uint16_t stunPort, turnPort, minPort, maxPort;
+    bool shouldTrickle;
     IceConfig(){
       turnServer = "";
       turnUsername = "";
@@ -54,6 +56,7 @@ class IceConfig {
       turnPort = 0;
       minPort = 0;
       maxPort = 0;
+      shouldTrickle = false;
     };
 };
 
@@ -176,6 +179,7 @@ private:
   	unsigned int candsDelivered_;
 
 	GMainContext* context_;
+	GMainLoop* loop_;
 	boost::thread m_Thread_;
 	IceState iceState_;
   	boost::mutex queueMutex_;

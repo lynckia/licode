@@ -60,7 +60,7 @@ public:
      * Constructor.
      * Constructs an empty WebRTCConnection without any configuration.
      */
-    WebRtcConnection(bool audioEnabled, bool videoEnabled, const IceConfig& iceConfig,bool trickleEnabled, WebRtcConnectionEventListener* listener);
+    WebRtcConnection(bool audioEnabled, bool videoEnabled, const IceConfig& iceConfig, WebRtcConnectionEventListener* listener);
     /**
      * Destructor.
      */

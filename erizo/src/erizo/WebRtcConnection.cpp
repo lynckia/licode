@@ -14,7 +14,7 @@ namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
   
   WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, 
-      const IceConfig& iceConfig, bool trickleEnabled, WebRtcConnectionEventListener* listener)
+      const IceConfig& iceConfig, WebRtcConnectionEventListener* listener)
       : audioEnabled_ (audioEnabled), videoEnabled_(videoEnabled),connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this){
     ELOG_INFO("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
     bundle_ = false;
@@ -27,9 +27,10 @@ namespace erizo {
     sinkfbSource_ = this;
     globalState_ = CONN_INITIAL;
 
+    trickleEnabled_ = iceConfig_.shouldTrickle;
+
     shouldSendFeedback_ = true;
     slideShowMode_ = false;
-    trickleEnabled_ = trickleEnabled;
 
     gettimeofday(&mark_, NULL);
 
@@ -622,7 +623,7 @@ namespace erizo {
       if (externalPT != internalPT) {
         h->setPayloadType(internalPT);
       } else {
-        ELOG_WARN("onTransportData did not find mapping for %i", externalPT);
+//        ELOG_WARN("onTransportData did not find mapping for %i", externalPT);
       }
     }
   }

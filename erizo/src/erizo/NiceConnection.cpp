@@ -31,11 +31,6 @@ namespace erizo {
     }
   };
 
-
-  int timed_poll(GPollFD* fds, guint nfds, gint timeout){
-    return poll((pollfd*)fds,nfds,200);
-  }
-
   void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
       guint len, gchar* buf, gpointer user_data) {
     if (user_data==NULL||len==0)return;
@@ -77,7 +72,7 @@ namespace erizo {
 
   NiceConnection::NiceConnection(MediaType med, const std::string &transport_name,NiceConnectionListener* listener, 
       unsigned int iceComponents, const IceConfig& iceConfig, std::string username, std::string password)
-     : mediaType(med), agent_(NULL), listener_(listener), candsDelivered_(0), context_(NULL), iceState_(NICE_INITIAL), iceComponents_(iceComponents) {
+     : mediaType(med), agent_(NULL), listener_(listener), candsDelivered_(0), loop_(NULL), iceState_(NICE_INITIAL), iceComponents_(iceComponents) {
 
     localCandidates.reset(new std::vector<CandidateInfo>());
     transportName.reset(new std::string(transport_name));
@@ -87,7 +82,6 @@ namespace erizo {
     
     g_type_init();
     context_ = g_main_context_new();
-    g_main_context_set_poll_func(context_,timed_poll);
     ELOG_DEBUG("Creating Nice Agent");
     nice_debug_enable( FALSE );
     // Create a nice agent
@@ -170,7 +164,7 @@ namespace erizo {
     else{
       running_=false;
     }
-  m_Thread_ = boost::thread(&NiceConnection::init, this);
+    m_Thread_ = boost::thread(&NiceConnection::init, this);
 }
 
   NiceConnection::~NiceConnection() {
@@ -214,6 +208,7 @@ namespace erizo {
     running_ = false;
     ELOG_DEBUG("Closing nice  %p", this);
     this->updateIceState(NICE_FINISHED);
+    g_main_loop_quit(loop_);
     cond_.notify_one();
     listener_ = NULL;
     boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::milliseconds(500);
@@ -226,6 +221,10 @@ namespace erizo {
     if (agent_!=NULL){
       g_object_unref(agent_);
       agent_ = NULL;
+    }
+    if (loop_!=NULL){
+      g_main_loop_unref(loop_);
+      loop_=NULL;
     }
     if (context_!=NULL) {
       g_main_context_unref(context_);
@@ -265,11 +264,8 @@ namespace erizo {
     ELOG_DEBUG("Gathering candidates %p", this);
     nice_agent_gather_candidates(agent_, 1);   
     // Attach to the component to receive the data
-    while(running_){
-      if(this->checkIceState()>=NICE_FINISHED || !running_)
-        break;
-      g_main_context_iteration(context_, true);
-    }
+    loop_ = g_main_loop_new(context_, FALSE);
+    g_main_loop_run(loop_);
     ELOG_DEBUG("LibNice thread finished %p", this);
   }
 
