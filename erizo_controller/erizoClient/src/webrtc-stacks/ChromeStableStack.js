@@ -63,7 +63,6 @@ Erizo.ChromeStableStack = function (spec) {
                 sdp = sdp.replace(a[0], r);
             }
         }
-
         return sdp;
     };
 
@@ -163,8 +162,8 @@ Erizo.ChromeStableStack = function (spec) {
             }
 
             localDesc.sdp = setMaxBW(localDesc.sdp);
-            if (config.renegotiate || config.maxAudioBW){
-                L.Logger.debug ("Updating with SDP renegotiation");
+            if (!config.noSdp || config.maxAudioBW){
+                L.Logger.debug ("Updating with SDP renegotiation", spec.maxVideoBW);
                 that.peerConnection.setLocalDescription(localDesc, function () {
                     remoteDesc.sdp = setMaxBW(remoteDesc.sdp);
                     that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc), function () {
