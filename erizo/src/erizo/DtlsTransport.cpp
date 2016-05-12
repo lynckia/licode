@@ -5,7 +5,6 @@
 #include "DtlsTransport.h"
 #include "SrtpChannel.h"
 
-#include "dtls/DtlsFactory.h"
 #include "rtp/RtpHeaders.h"
 //#include "rtputils.h"
 
@@ -89,24 +88,24 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
   int comps = 1;
   if (isServer_){
     ELOG_DEBUG("Creating a DTLS server: passive");
-    (new DtlsFactory())->createServer(dtlsRtp);
+    dtlsRtp->createServer();
     dtlsRtp->setDtlsReceiver(this);
 
     if (!rtcp_mux) {
       comps = 2;
       dtlsRtcp.reset(new DtlsSocketContext());
-      (new DtlsFactory())->createServer(dtlsRtcp);
+      dtlsRtcp->createServer();
       dtlsRtcp->setDtlsReceiver(this);
     }
   }else{
     ELOG_DEBUG("Creating a DTLS client: active");
-    (new DtlsFactory())->createClient(dtlsRtp);
+    dtlsRtp->createClient();
     dtlsRtp->setDtlsReceiver(this);
 
     if (!rtcp_mux) {
       comps = 2;
       dtlsRtcp.reset(new DtlsSocketContext());
-      (new DtlsFactory())->createClient(dtlsRtcp);
+      dtlsRtcp->createClient();
       dtlsRtcp->setDtlsReceiver(this);
     }
   }
@@ -337,10 +336,10 @@ void DtlsTransport::getNiceDataLoop(){
   }
 }
 bool DtlsTransport::isDtlsPacket(const char* buf, int len) {
-  int data = DtlsFactory::demuxPacket(reinterpret_cast<const unsigned char*>(buf),len);
+  int data = DtlsSocketContext::demuxPacket(reinterpret_cast<const unsigned char*>(buf),len);
   switch(data)
   {
-    case DtlsFactory::dtls:
+    case DtlsSocketContext::dtls:
       return true;
       break;
     default:
