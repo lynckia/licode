@@ -34,7 +34,7 @@ namespace erizo {
     private:
     char protectBuf_[5000];
     char unprotectBuf_[5000];
-    boost::shared_ptr<dtls::DtlsSocketContext> dtlsRtp, dtlsRtcp;
+    boost::scoped_ptr<dtls::DtlsSocketContext> dtlsRtp, dtlsRtcp;
     boost::mutex writeMutex_,sessionMutex_;
     boost::scoped_ptr<SrtpChannel> srtp_, srtcp_;
     bool readyRtp, readyRtcp;
