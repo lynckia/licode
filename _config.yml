@@ -1,3 +1,4 @@
+markdown: kramdown
 permalink: licode/:title.html
 destination: ./site/
 auto: true
