@@ -384,7 +384,8 @@ Erizo.Room = function (spec) {
                     }
                     L.Logger.info("Checking publish options for", stream.getID());
                     stream.checkOptions(options);
-                    sendSDPSocket('publish', {state: type, data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), attributes: stream.getAttributes(), createOffer: options.createOffer}, arg, function (id, error) {
+                    sendSDPSocket('publish', {state: type, data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), 
+                        attributes: stream.getAttributes(), createOffer: options.createOffer}, arg, function (id, error) {
 
                         if (id !== null) {
                             L.Logger.info('Stream published');
@@ -439,7 +440,9 @@ Erizo.Room = function (spec) {
 
                 } else {
                     L.Logger.info("Publishing to Erizo Normally, is createOffer", options.createOffer);
-                    sendSDPSocket('publish', {state: 'erizo', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), screen: stream.hasScreen(), minVideoBW: options.minVideoBW, attributes: stream.getAttributes(), createOffer: options.createOffer}, undefined, function (id, error) {
+                    sendSDPSocket('publish', {state: 'erizo', data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), 
+                        screen: stream.hasScreen(), minVideoBW: options.minVideoBW, attributes: stream.getAttributes(), 
+                        createOffer: options.createOffer, scheme: options.scheme}, undefined, function (id, error) {
 
                         if (id === null) {
                             L.Logger.error('Error when publishing the stream: ', error);
