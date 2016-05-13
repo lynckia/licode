@@ -505,21 +505,21 @@ exports.ErizoJSController = function (spec) {
             publishers[from].wrtc.close();
             publishers[from].muxer.close(function(message){
                 log.info("Muxer finished closing", message);
+                delete subscribers[from];
+                delete publishers[from];
+                var count = 0;
+                for (var k in publishers) {
+                    if (publishers.hasOwnProperty(k)) {
+                        ++count;
+                    }
+                }
+                log.debug("Remaining publishers: ", count);
+                if (count === 0)  {
+                    log.info('Removed all publishers. Killing process.');
+                    process.exit(0);
+                }
             });
 
-            delete subscribers[from];
-            delete publishers[from];
-            var count = 0;
-            for (var k in publishers) {
-                if (publishers.hasOwnProperty(k)) {
-                    ++count;
-                }
-            }
-            log.debug("Remaining publishers: ", count);
-            if (count === 0)  {
-                log.info('Removed all publishers. Killing process.');
-                process.exit(0);
-            }
         } else {
             log.warn("Trying to remove publisher", from, "that doesn't exist here");
         }
