@@ -78,11 +78,12 @@ exports.ErizoJSController = function (spec) {
      */
     initWebRtcConnection = function (wrtc, callback, id_pub, id_sub, options) {
         log.debug("Initing WebRTC Connection, minVideoBW", wrtc.minVideoBW);
+
         if (wrtc.minVideoBW){
-            var monitorMinVideoBw = {};
+            monitorMinVideoBw = {};
             if (wrtc.scheme){
                 try{
-                    monitorMinVideoBw = require("./adapt_schemes/"+options.scheme).MonitorSubscriber;
+                    monitorMinVideoBw = require("./adapt_schemes/"+wrtc.scheme).MonitorSubscriber(log);
                 } catch (e){
                     log.warn("Could not find adapt_scheme script, will use notify");
                     monitorMinVideoBw = require("./adapt_schemes/notify").MonitorSubscriber(log);
@@ -354,6 +355,7 @@ exports.ErizoJSController = function (spec) {
         subscribers[to][from] = wrtc;
         publishers[to].muxer.addSubscriber(wrtc, from);
         wrtc.minVideoBW = publishers[to].minVideoBW;
+        log.debug("Setting scheme to sub WRTC", publishers[to].scheme);
         wrtc.scheme = publishers[to].scheme;
         initWebRtcConnection(wrtc, callback, to, from, options);
     };

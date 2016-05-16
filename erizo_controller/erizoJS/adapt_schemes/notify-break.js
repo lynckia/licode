@@ -27,7 +27,6 @@ exports.MonitorSubscriber = function (log) {
 
     that.monitorMinVideoBw = function(wrtc, callback){
         wrtc.bwValues = [];
-        var onlyNotifyBW= true; //TODO: For now we only notify, study if we want to enable the rest
         var isReporting = true;
         var ticks = 0;
         var retries = 0;
