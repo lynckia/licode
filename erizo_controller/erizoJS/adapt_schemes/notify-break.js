@@ -42,7 +42,7 @@ exports.MonitorSubscriber = function (log) {
         var intervalId = setInterval(function () {
             var newStats = wrtc.getStats();
             if (newStats == null){
-                log.debug("Stopping stats");
+                log.debug("Stopping BW Monitoring");
                 clearInterval(intervalId);
                 return;
             }
@@ -62,7 +62,7 @@ exports.MonitorSubscriber = function (log) {
                 case BW_STABLE:
                     if(average <= lastAverage && (average < wrtc.lowerThres)){
                         if (++ticks > 2){
-                            log.debug("STABLE STATE, Bandwidth is insufficient, for too long, will stop sending feedback+ stop sending video", average, "lowerThres", wrtc.lowerThres);
+                            log.debug("STABLE STATE, Bandwidth is insufficient will stop sending video", average, "lowerThres", wrtc.lowerThres);
                             wrtc.bwStatus = BW_WONTRECOVER;
                             wrtc.setFeedbackReports(false, 1);
                             ticks = 0;
@@ -71,7 +71,7 @@ exports.MonitorSubscriber = function (log) {
                     }                            
                     break;
                 case BW_WONTRECOVER:
-                    log.debug("BW_WONTRECOVER", average, "lowerThres", wrtc.lowerThres);
+                    log.debug("Switched to audio-only mode with no recovery", average);
                     ticks = 0;
                     nextRetry = 0;
                     retries = 0;

@@ -43,7 +43,7 @@ exports.MonitorSubscriber = function (log) {
         var intervalId = setInterval(function () {
             var newStats = wrtc.getStats();
             if (newStats == null){
-                log.debug("Stopping stats");
+                log.debug("Stopping BW Monitoring");
                 clearInterval(intervalId);
                 return;
             }
@@ -98,7 +98,7 @@ exports.MonitorSubscriber = function (log) {
                     }
                     break;
                 case BW_RECOVERING:
-                    log.debug("In recovering state lastValue", lastBWValue, "lastAverage", lastAverage, "lowerThres", wrtc.lowerThres);
+                    log.debug("In RECOVERING state lastValue", lastBWValue, "lastAverage", lastAverage, "lowerThres", wrtc.lowerThres);
                     if(average > wrtc.upperThres){ 
                         log.debug("BW_RECOVERING State: we have recovered", average, "lowerThres", wrtc.lowerThres);
                         ticks = 0;

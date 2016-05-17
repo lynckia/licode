@@ -1,8 +1,7 @@
 exports.MonitorSubscriber = function (log) {
 
     var that = {},
-    INTERVAL_STATS = 1000,
-    MIN_RECOVER_BW = 50000;
+    INTERVAL_STATS = 1000;
 
     /* BW Status
      * 0 - Stable 
@@ -37,7 +36,7 @@ exports.MonitorSubscriber = function (log) {
         var intervalId = setInterval(function () {
             var newStats = wrtc.getStats();
             if (newStats == null){
-                log.debug("Stopping stats");
+                log.debug("Stopping BW Monitoring");
                 clearInterval(intervalId);
                 return;
             }
@@ -55,7 +54,7 @@ exports.MonitorSubscriber = function (log) {
             }
             if(average <= lastAverage && (average < wrtc.lowerThres)){
                 if (++ticks > 2){
-                    log.debug("STABLE STATE, Bandwidth is insufficient, moving to state BW_INSUFFICIENT", average, "lowerThres", wrtc.lowerThres);
+                    log.debug("Bandwidth is insufficient, will notify the client. Current average", average, "lowerThres", wrtc.lowerThres);
                     ticks = 0;
                     callback('callback', {type:'bandwidthAlert', message:'insufficient', bandwidth: average});
                 }
