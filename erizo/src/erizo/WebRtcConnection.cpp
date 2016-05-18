@@ -179,7 +179,7 @@ namespace erizo {
 
     if (remoteSdp_.videoBandwidth !=0){
       ELOG_DEBUG("Setting remote bandwidth %u", remoteSdp_.videoBandwidth);
-      this->rtcpProcessor_->setVideoBW(remoteSdp_.videoBandwidth*1000);
+      this->rtcpProcessor_->setMaxVideoBW(remoteSdp_.videoBandwidth*1000);
     }
 
     return true;
@@ -358,6 +358,11 @@ namespace erizo {
   void WebRtcConnection::onTransportData(char* buf, int len, Transport *transport) {
     if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL){
       return;
+    }
+
+    uint32_t bitRate = thisStats_.processRtpPacket (buf, len);
+    if (bitRate){
+      this->rtcpProcessor_->setPublisherBW(bitRate);
     }
     
     // PROCESS RTCP

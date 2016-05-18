@@ -140,6 +140,8 @@ public:
 
     void setFeedbackReports(bool shouldSendFb, uint32_t rateControl=0){
       this->shouldSendFeedback_ = shouldSendFb;
+      if (rateControl_ == 1)
+        this->videoEnabled_ = false;
       this->rateControl_ = rateControl;
     };
 

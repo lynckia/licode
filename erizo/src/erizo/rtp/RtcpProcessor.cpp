@@ -14,6 +14,7 @@ namespace erizo{
     shouldReset = false;
     jitter = 0;
     rrsReceivedInPeriod = 0;
+    printf("Resetting, reported REMB BW:%lu, bW %u \n\n", reportedBandwidth, bandwidth);
     if (reportedBandwidth < bandwidth){
       reportedBandwidth = (reportedBandwidth*2 < bandwidth) ? reportedBandwidth*2:bandwidth;
     }else{
@@ -22,8 +23,8 @@ namespace erizo{
     lastDelay = lastDelay*0.6;
   }
 
-  RtcpProcessor::RtcpProcessor (MediaSink* msink, MediaSource* msource, int defaultBw):
-    rtcpSink_(msink), rtcpSource_(msource), defaultBw_(defaultBw){
+  RtcpProcessor::RtcpProcessor (MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw):
+    rtcpSink_(msink), rtcpSource_(msource), maxVideoBw_(maxVideoBw), defaultVideoBw_(maxVideoBw/2){
     ELOG_DEBUG("Starting RtcpProcessor");
   }
 
@@ -41,11 +42,15 @@ namespace erizo{
     }
   }
 
-  void RtcpProcessor::setVideoBW(uint32_t bandwidth){
+  void RtcpProcessor::setMaxVideoBW(uint32_t bandwidth){
     ELOG_DEBUG("REMB: Setting Max Video BW %u", bandwidth);
-    this->defaultBw_ = bandwidth;
+    this->maxVideoBw_ = bandwidth;
   }
 
+  void RtcpProcessor::setPublisherBW(uint32_t bandwidth){
+    defaultVideoBw_ = bandwidth > maxVideoBw_? maxVideoBw_:bandwidth;
+  }
+  
   void RtcpProcessor::analyzeSr(RtcpHeader* chead){
     uint32_t recvSSRC = chead->getSSRC();
     // We try to add it just in case it is not there yet (otherwise its noop)
@@ -100,9 +105,9 @@ namespace erizo{
           case RTCP_Receiver_PT:
             theData->rrsReceivedInPeriod++;
             if (chead->getSourceSSRC() == rtcpSource_->getVideoSourceSSRC()){
-              ELOG_DEBUG("Analyzing Video RR: PacketLost %u, Ratio %u, partNum %d, blocks %d, sourceSSRC %u", chead->getLostPackets(), chead->getFractionLost(), partNum, chead->getBlockCount(), chead->getSourceSSRC());
+              ELOG_DEBUG("Analyzing Video RR: PacketLost %u, Ratio %u, partNum %d, blocks %d, sourceSSRC %u, ssrc %u", chead->getLostPackets(), chead->getFractionLost(), partNum, chead->getBlockCount(), chead->getSourceSSRC(), chead->getSSRC());
             }else{
-              ELOG_DEBUG("Analyzing Audio RR: PacketLost %u, Ratio %u, partNum %d, blocks %d, sourceSSRC %u", chead->getLostPackets(), chead->getFractionLost(), partNum, chead->getBlockCount(), chead->getSourceSSRC());
+              ELOG_DEBUG("Analyzing Audio RR: PacketLost %u, Ratio %u, partNum %d, blocks %d, sourceSSRC %u, ssrc %u", chead->getLostPackets(), chead->getFractionLost(), partNum, chead->getBlockCount(), chead->getSourceSSRC(), chead->getSSRC());
             }
             theData->ratioLost = theData->ratioLost > chead->getFractionLost()? theData->ratioLost: chead->getFractionLost();  
             theData->totalPacketsLost = theData->totalPacketsLost > chead->getLostPackets()? theData->totalPacketsLost : chead->getLostPackets();
@@ -237,6 +242,8 @@ namespace erizo{
         if (rtcpData->mediaType == VIDEO_TYPE){
           unsigned int sincelastREMB = (now.tv_sec - rtcpData->lastREMBSent.tv_sec) * 1000 + (now.tv_usec - rtcpData->lastREMBSent.tv_usec) / 1000;
           if (sincelastREMB > REMB_TIMEOUT){
+            // We dont have anymore RRs, we follow what the publisher is doing to avoid congestion
+            rtcpData->reportedBandwidth = defaultVideoBw_;
             rtcpData->shouldSendREMB = true;
           }
 
@@ -268,7 +275,7 @@ namespace erizo{
         }
 
         if (rtcpData->shouldReset){
-          rtcpData->reset(this->defaultBw_);
+          rtcpData->reset(this->maxVideoBw_);
         }
       }
       if (rtcpData->shouldSendPli){
