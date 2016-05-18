@@ -25,7 +25,6 @@ exports.ErizoJSController = function (spec) {
         initWebRtcConnection,
         getSdp,
         getRoap,
-        monitorMinVideoBw,
         setSlideShow;
 
 
@@ -80,7 +79,7 @@ exports.ErizoJSController = function (spec) {
         log.debug("Initing WebRTC Connection, minVideoBW", wrtc.minVideoBW);
 
         if (wrtc.minVideoBW){
-            monitorMinVideoBw = {};
+            var monitorMinVideoBw = {};
             if (wrtc.scheme){
                 try{
                     monitorMinVideoBw = require("./adapt_schemes/"+wrtc.scheme).MonitorSubscriber(log);
