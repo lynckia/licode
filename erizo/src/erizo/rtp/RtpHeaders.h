@@ -76,7 +76,8 @@ namespace erizo{
       union extension_t {
 
         struct absSendTime_t{
-          uint32_t abssendtime;
+          uint32_t abs_extension:8;
+          uint32_t abs_data:24;
         } absSendTime;
 
       } extension;
@@ -152,11 +153,17 @@ namespace erizo{
       inline void setExtLength(uint16_t extensionLength) {
         extensionlength = htons(extensionLength);
       }
+      inline uint8_t getAbsExt(){
+        return extension.absSendTime.abs_extension;
+      }
+      inline void setAbsExt(uint8_t ext){
+        extension.absSendTime.abs_extension = ext;
+      }
       inline uint32_t getAbsSendTime() {
-        return ntohl(extension.absSendTime.abssendtime);
+        return ntohl(extension.absSendTime.abs_data)>>8;
       }
       inline void setAbsSendTime(uint32_t aTime) {
-        extension.absSendTime.abssendtime = htonl(aTime);
+        extension.absSendTime.abs_data = htonl(aTime)>>8;
       }
       inline int getHeaderLength() {
         return MIN_SIZE + cc * 4 + hasextension * (4 + ntohs(extensionlength) * 4);
