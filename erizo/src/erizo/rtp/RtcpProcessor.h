@@ -125,13 +125,13 @@ class RtcpProcessor{
   private:
     static const int RR_AUDIO_PERIOD = 2000;
     static const int RR_VIDEO_BASE = 800; 
-    static const int REMB_TIMEOUT = 3000;
+    static const int REMB_TIMEOUT = 1000;
     static const uint64_t NTPTOMSCONV = 4294967296;
     std::map<uint32_t, boost::shared_ptr<RtcpData>> rtcpData_;
     boost::mutex mapLock_;
     MediaSink* rtcpSink_;  // The sink to send RRs
     MediaSource* rtcpSource_; // The source of SRs
-    uint32_t maxVideoBw_, publisherBw_, defaultVideoBw_;
+    uint32_t maxVideoBw_, defaultVideoBw_;
     uint8_t packet_[128];
 
 };
