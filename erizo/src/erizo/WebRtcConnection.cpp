@@ -486,10 +486,24 @@ namespace erizo {
         ELOG_DEBUG("Stripping extension copying %u in %u, size before %u, size after %d", headerSize+extensionSize, headerSize, len, len-extensionSize);
         memcpy (buf+headerSize,payload, len-headerSize-extensionSize);
         len = len - extensionSize;
-
       }
     }
     return len;
+  }
+
+  bool WebRtcConnection::setAbsSendTime(RtpHeader* head){
+    if (head->getExtension()){
+      if (head->getExtId()==0xBEDE && head->getExtLength() ==1){
+        struct timeval theNow;
+        gettimeofday(&theNow, NULL);
+        uint8_t seconds = theNow.tv_sec & 0x3F;
+        uint32_t absecs = theNow.tv_usec* ((1LL << 18)-1) *1e-6;
+        absecs = (seconds << 18) + absecs;
+        head->setAbsSendTime(absecs);
+        return 1;
+      }
+    }
+    return 0;
   }
 
   int WebRtcConnection::sendPLI() {

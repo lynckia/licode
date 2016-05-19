@@ -24,7 +24,6 @@ namespace erizo {
   }
 
   uint32_t Stats::processRtpPacket(char* buf, int len){
-    // compute TOTAL RTP bitrate
     rtpBytesReceived_+=len; 
     struct timeval now;
     gettimeofday(&now, NULL);

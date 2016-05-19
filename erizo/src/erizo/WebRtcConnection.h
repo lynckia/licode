@@ -184,6 +184,7 @@ private:
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
 
   uint32_t stripRtpHeaders(char* buf, int len);
+  bool setAbsSendTime(RtpHeader* head);
 
   
   uint32_t rateControl_; //Target bitrate for hacky rate control in BPS 
