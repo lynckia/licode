@@ -19,8 +19,6 @@ namespace erizo{
     }else{
       reportedBandwidth = bandwidth;
     }
-
-    printf("Reset! RESULT REMBO %lu\n", reportedBandwidth);
     lastDelay = lastDelay*0.6;
   }
 
