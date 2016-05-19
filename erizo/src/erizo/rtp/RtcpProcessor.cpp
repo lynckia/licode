@@ -243,7 +243,7 @@ namespace erizo{
           unsigned int sincelastREMB = (now.tv_sec - rtcpData->lastREMBSent.tv_sec) * 1000 + (now.tv_usec - rtcpData->lastREMBSent.tv_usec) / 1000;
           if (sincelastREMB > REMB_TIMEOUT){
             // We dont have anymore RRs, we follow what the publisher is doing to avoid congestion
-            rtcpData->reportedBandwidth = defaultVideoBw_;
+            //rtcpData->reportedBandwidth = defaultVideoBw_;
             rtcpData->shouldSendREMB = true;
           }
 
