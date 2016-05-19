@@ -79,7 +79,7 @@ exports.MonitorSubscriber = function (log) {
                     lastAverage = 0;
                     wrtc.minVideoBW = false;
                     wrtc.setFeedbackReports (false, 1);
-                    callback('callback', {type:'bandwidthAlert', message:'wont-recover', bandwidth: average});
+                    callback('callback', {type:'bandwidthAlert', message:'audio-only', bandwidth: average});
                     clearInterval(intervalId);
                     break;
                 default:

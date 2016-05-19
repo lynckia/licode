@@ -133,7 +133,7 @@ exports.MonitorSubscriber = function (log) {
                     wrtc.bwStatus = BW_STABLE;
                     wrtc.minVideoBW = false;                      
                     wrtc.setFeedbackReports (false, 1);
-                    callback('callback', {type:'bandwidthAlert', message:'wont-recover', bandwidth: average});
+                    callback('callback', {type:'bandwidthAlert', message:'audio-only', bandwidth: average});
                     break;
                 default:
                     log.error("Unknown BW status");
