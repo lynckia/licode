@@ -32,7 +32,7 @@ namespace erizo {
     uint64_t start = (bitRateCalculationStart_.tv_sec * 1000) + (bitRateCalculationStart_.tv_usec / 1000);
     uint64_t delay = nowms - start;
     if (delay > 2000){
-      receivedRtpBitrate_ = (8*rtpBytesReceived_*1000)/delay; // in bps
+      uint32_t receivedRtpBitrate_ = (8*rtpBytesReceived_*1000)/delay; // in kbps
       rtpBytesReceived_ = 0;
       gettimeofday(&bitRateCalculationStart_, NULL);
       return receivedRtpBitrate_; // in bps

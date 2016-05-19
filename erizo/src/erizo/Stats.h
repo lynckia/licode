@@ -39,9 +39,8 @@ namespace erizo{
     }
     
     private:
-    uint32_t rtpBytesReceived_;
+    uint64_t rtpBytesReceived_, packetsReceived_;
     struct timeval bitRateCalculationStart_;
-    uint32_t receivedRtpBitrate_;
 
     typedef std::map<std::string, uint64_t> singleSSRCstatsMap_t;
     typedef std::map <uint32_t, singleSSRCstatsMap_t> fullStatsMap_t;
