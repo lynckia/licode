@@ -188,7 +188,7 @@ private:
 
     //Utils
     std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
-    uint32_t stripRtpHeaders(char* buf, int len);
+    uint32_t stripRtpExtensions(char* buf, int len);
     bool setAbsSendTime(RtpHeader* head);
     // changes the outgoing payload type for in the given data packet
     void changeDeliverPayloadType(dataPacket *dp, packetType type);

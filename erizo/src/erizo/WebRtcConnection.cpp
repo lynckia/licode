@@ -360,10 +360,6 @@ namespace erizo {
       return;
     }
 
-    uint32_t bitRate = thisStats_.processRtpPacket (buf, len);
-    if (bitRate){
-      this->rtcpProcessor_->setPublisherBW(bitRate);
-    }
     
     // PROCESS RTCP
     RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
@@ -376,6 +372,10 @@ namespace erizo {
         recvSSRC = chead->getSSRC();
       }
     }else{
+      uint32_t bitRate = thisStats_.processRtpPacket (buf, len); // Take into account ALL RTP traffic
+      if (bitRate){
+        this->rtcpProcessor_->setPublisherBW(bitRate);
+      }
       recvSSRC = head->getSSRC();
     }
 
@@ -587,7 +587,6 @@ namespace erizo {
     if (sendQueue_.size() < 1000) {
       dataPacket p_;
       memcpy(p_.data, buf, length);
-//      length = stripRtpHeaders(p_.data, length);
       p_.comp = comp;
       p_.type = type;
       p_.length = length;
@@ -630,7 +629,7 @@ namespace erizo {
     return thisStats_.getStats();
   }
 
-  uint32_t WebRtcConnection::stripRtpHeaders(char* buf, int len){
+  uint32_t WebRtcConnection::stripRtpExtensions(char* buf, int len){
     RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);;
     if (head->getExtension()){
       if (head->getExtId()==0xBEDE && head->getExtLength() ==1){
