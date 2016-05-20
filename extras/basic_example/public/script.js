@@ -76,7 +76,7 @@ window.onload = function () {
 
       room.addEventListener("room-connected", function (roomEvent) {
 
-        room.publish(localStream, {maxVideoBW: 3000, minVideoBW:500});
+        room.publish(localStream, {maxVideoBW: 300}); 
         subscribeToStreams(roomEvent.streams);
       });
 
@@ -108,9 +108,7 @@ window.onload = function () {
       });
       
       room.addEventListener("stream-failed", function (streamEvent){
-          console.log("STREAM FAILED, DISCONNECTION");
-          room.disconnect();
-
+          console.log("Stream Failed, act accordingly");
       });
 
       room.connect();
