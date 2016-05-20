@@ -116,7 +116,7 @@ Erizo.ChromeStableStack = function (spec) {
   
     that.peerConnection.oniceconnectionstatechange = function (ev) {
         if (that.oniceconnectionstatechange){
-            that.oniceconnectionstatechange(ev);
+            that.oniceconnectionstatechange(ev.target.iceConnectionState);
         }
     }
 

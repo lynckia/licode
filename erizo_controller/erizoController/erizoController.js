@@ -506,7 +506,7 @@ var listen = function () {
                         return;
                     } else if (signMess.type ==='failed'){
                         log.warn("IceConnection Failed on publisher, removing " , id);
-                        socket.emit('connection_failed',{type:'publish'});
+                        socket.emit('connection_failed',{type:'publish', streamId: id});
                         socket.state = 'sleeping';
                         if (!socket.room.p2p) {
                             socket.room.controller.removePublisher(id);
@@ -598,7 +598,7 @@ var listen = function () {
                         } else if (signMess.type ==='failed'){
                             //TODO: Add Stats event
                             log.warn("IceConnection Failed on subscriber" , socket.id , "alerting client");
-                            socket.emit('connection_failed',{type:"subscribe"});
+                            socket.emit('connection_failed',{type:"subscribe", streamId: options.streamId});
                             return;
                         } else if (signMess.type === 'ready') {
                             log.info("Subscriber from client", socket.id, "to stream", options.streamId, "is now ready");

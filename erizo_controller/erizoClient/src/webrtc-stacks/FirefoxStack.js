@@ -61,6 +61,7 @@ Erizo.FirefoxStack = function (spec) {
         }
     };
 
+    
     that.peerConnection.onaddstream = function (stream) {
         if (that.onaddstream) {
             that.onaddstream(stream);
@@ -73,6 +74,11 @@ Erizo.FirefoxStack = function (spec) {
         }
     };
 
+    that.peerConnection.oniceconnectionstatechange = function (ev) {
+        if (that.oniceconnectionstatechange){
+            that.oniceconnectionstatechange(ev.target.iceConnectionState);
+        }
+    }
 
     var setMaxBW = function (sdp) {
         if (spec.video && spec.maxVideoBW) {
