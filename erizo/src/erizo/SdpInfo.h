@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <stdint.h>
 
 #include "logger.h"
 
@@ -109,6 +110,20 @@ struct RtpMap {
   std::vector<std::string> feedbackTypes;
   std::map<std::string, std::string> formatParameters;
 };
+/**
+ * A RTP extmap description
+ */
+class ExtMap {
+  public:
+    ExtMap (unsigned int theValue, std::string theUri): value(theValue), uri(theUri){
+    }
+    unsigned int value;
+    std::string uri;
+    StreamDirection direction;
+    std::string parameters;
+    MediaType mediaType;
+};
+
 /**
  * Contains the information of a single SDP.
  * Used to parse and generate SDPs
@@ -246,6 +261,7 @@ public:
      */
     std::vector<RtpMap> payloadVector;
     std::vector<BundleTag> bundleTags;
+    std::vector<ExtMap> extMapVector;
     /*
      * MLines for video and audio
      */
