@@ -327,7 +327,7 @@ namespace erizo {
           break;
       }
 
-      ELOG_DEBUG("Writing Extmap for AUDIO %u", extMapVector.size());
+      ELOG_DEBUG("Writing Extmap for AUDIO %lu", extMapVector.size());
       for (uint8_t i = 0; i < extMapVector.size(); i++){
         if (extMapVector[i].mediaType == AUDIO_TYPE){
           sdp << "a=extmap:" << extMapVector[i].value << " " << extMapVector[i].uri << endl;
@@ -413,7 +413,7 @@ namespace erizo {
       sdp << "a=ice-pwd:" << iceVideoPassword_ << endl;
       //sdp << "a=ice-options:google-ice" << endl;
 
-      ELOG_DEBUG("Writing Extmap for VIDEO %u", extMapVector.size());
+      ELOG_DEBUG("Writing Extmap for VIDEO %lu", extMapVector.size());
       for (uint8_t i = 0; i < extMapVector.size(); i++){
         if (extMapVector[i].mediaType == VIDEO_TYPE){
           sdp << "a=extmap:" << extMapVector[i].value << " " << extMapVector[i].uri << endl;
