@@ -13,6 +13,7 @@
 #include "Stats.h"
 #include "rtp/webrtc/fec_receiver_impl.h"
 #include "rtp/RtcpProcessor.h"
+#include "rtp/RtpExtensionProcessor.h"
 
 namespace erizo {
 
@@ -159,6 +160,7 @@ private:
     int bundle_;
     WebRtcConnectionEventListener* connEventListener_;
     IceConfig iceConfig_;
+    RtpExtensionProcessor extProcessor_;
 
     uint32_t rateControl_; //Target bitrate for hacky rate control in BPS 
     uint16_t seqNo_, grace_, sendSeqNo_, seqNoOffset_;
@@ -188,8 +190,6 @@ private:
 
     //Utils
     std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
-    uint32_t stripRtpExtensions(char* buf, int len);
-    bool setAbsSendTime(RtpHeader* head);
     // changes the outgoing payload type for in the given data packet
     void changeDeliverPayloadType(dataPacket *dp, packetType type);
     // parses incoming payload type, replaces occurence in buf

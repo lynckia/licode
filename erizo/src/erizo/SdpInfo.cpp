@@ -831,7 +831,7 @@ namespace erizo {
           std::vector<std::string> parts = stringutil::splitOneOf(line, " :=", 3); 
           if (parts.size()>=3){
             unsigned int id = strtoul(parts[2].c_str(), NULL, 10);
-            ExtMap anExt (id, parts[3]);
+            ExtMap anExt (id, parts[3].substr(0, parts[3].size()-1));
             anExt.mediaType = mtype;
             extMapVector.push_back(anExt);
           }

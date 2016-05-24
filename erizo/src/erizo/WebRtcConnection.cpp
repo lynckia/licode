@@ -112,6 +112,7 @@ namespace erizo {
 
     bundle_ = remoteSdp_.isBundle;
     localSdp_.setOfferSdp(remoteSdp_);
+    extProcessor_.setSdpInfo(localSdp_);
         
     ELOG_DEBUG("Video %d videossrc %u Audio %d audio ssrc %u Bundle %d", remoteSdp_.hasVideo, remoteSdp_.videoSsrc, remoteSdp_.hasAudio, remoteSdp_.audioSsrc,  bundle_);
     ELOG_DEBUG("Setting SSRC to localSdp %u", this->getVideoSinkSSRC());
@@ -629,38 +630,6 @@ namespace erizo {
     return thisStats_.getStats();
   }
 
-  uint32_t WebRtcConnection::stripRtpExtensions(char* buf, int len){
-    RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);;
-    if (head->getExtension()){
-      if (head->getExtId()==0xBEDE && head->getExtLength() ==1){
-        uint16_t headerSize = RtpHeader::MIN_SIZE + head->getCc()*4;
-        uint16_t extensionSize = 4+ head->getExtLength()*4;
-        char payload[1500];
-        memcpy(payload, buf+headerSize+extensionSize, len-headerSize-extensionSize);
-        head->setExtension(0);
-        ELOG_DEBUG("Stripping extension copying %u in %u, size before %u, size after %d", headerSize+extensionSize, headerSize, len, len-extensionSize);
-        memcpy (buf+headerSize,payload, len-headerSize-extensionSize);
-        len = len - extensionSize;
-      }
-    }
-    return len;
-  }
-
-  bool WebRtcConnection::setAbsSendTime(RtpHeader* head){
-    if (head->getExtension()){
-      if (head->getExtId()==0xBEDE && head->getExtLength() ==1){
-        struct timeval theNow;
-        gettimeofday(&theNow, NULL);
-        uint8_t seconds = theNow.tv_sec & 0x3F;
-        uint32_t absecs = theNow.tv_usec* ((1LL << 18)-1) *1e-6;
-        absecs = (seconds << 18) + absecs;
-        head->setAbsSendTime(absecs);
-        return 1;
-      }
-    }
-    return 0;
-  }
-  
   void WebRtcConnection::changeDeliverPayloadType(dataPacket *dp, packetType type) {
     RtpHeader* h = reinterpret_cast<RtpHeader*>(dp->data);
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(dp->data);
@@ -722,7 +691,6 @@ namespace erizo {
               p = sendQueue_.front();
               sendQueue_.pop();
           }
-
           if (bundle_ || p.type == VIDEO_PACKET) {
             if (rateControl_ && !slideShowMode_){
               if (p.type == VIDEO_PACKET){
@@ -742,9 +710,11 @@ namespace erizo {
                 sentVideoBytes+=p.length;
               }
             }
-              videoTransport_->write(p.data, p.length);
+            this->extProcessor_.processRtpExtensions(p);
+            videoTransport_->write(p.data, p.length);
           } else {
-              audioTransport_->write(p.data, p.length);
+            this->extProcessor_.processRtpExtensions(p);
+            audioTransport_->write(p.data, p.length);
           }
       }
   }
