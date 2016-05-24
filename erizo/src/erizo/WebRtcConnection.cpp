@@ -710,10 +710,10 @@ namespace erizo {
                 sentVideoBytes+=p.length;
               }
             }
-            this->extProcessor_.processRtpExtensions(p);
+//            this->extProcessor_.processRtpExtensions(p);
             videoTransport_->write(p.data, p.length);
           } else {
-            this->extProcessor_.processRtpExtensions(p);
+//            this->extProcessor_.processRtpExtensions(p);
             audioTransport_->write(p.data, p.length);
           }
       }
