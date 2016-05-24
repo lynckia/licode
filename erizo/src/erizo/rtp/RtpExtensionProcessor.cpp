@@ -13,6 +13,9 @@ namespace erizo{
     translationMap_[std::string("http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time")] = ABS_SEND_TIME;
     translationMap_[std::string("urn:ietf:params:rtp-hdrext:toffset")] = TOFFSET;
     translationMap_[std::string("urn:3gpp:video-orientation")] = VIDEO_ORIENTATION;
+    memset(extMapVideo_, 0, sizeof(uint32_t)*10);
+    memset(extMapAudio_, 0, sizeof(uint32_t)*10);
+     
   }
 
   RtpExtensionProcessor::~RtpExtensionProcessor(){
