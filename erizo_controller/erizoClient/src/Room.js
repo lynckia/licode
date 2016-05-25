@@ -639,7 +639,6 @@ Erizo.Room = function (spec) {
                         };
                         
                         stream.pc.oniceconnectionstatechange = function (state) {
-                            L.Logger.debug("State change", state);
                             if (state === 'failed') {
                                 if (that.state !== DISCONNECTED) {
                                     var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Subscribing stream failed after connection", stream:stream });
