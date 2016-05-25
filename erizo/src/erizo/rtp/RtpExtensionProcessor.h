@@ -27,7 +27,7 @@ namespace erizo {
     uint32_t processRtpExtensions(dataPacket& p);
 
     private:
-    uint8_t extMapVideo_[10], extMapAudio_[10];
+    int extMapVideo_[10], extMapAudio_[10];
     std::map<std::string, uint8_t> translationMap_;
     uint32_t processAbsSendTime(char* buf);
     uint32_t stripExtension (char* buf, int len);

@@ -9,13 +9,12 @@ namespace erizo{
   DEFINE_LOGGER(RtpExtensionProcessor, "RtpExtensionProcessor");
 
   RtpExtensionProcessor::RtpExtensionProcessor(){
-    translationMap_[std::string("urn:ietf:params:rtp-hdrext:ssrc-audio-level")] = SSRC_AUDIO_LEVEL;
-    translationMap_[std::string("http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time")] = ABS_SEND_TIME;
-    translationMap_[std::string("urn:ietf:params:rtp-hdrext:toffset")] = TOFFSET;
-    translationMap_[std::string("urn:3gpp:video-orientation")] = VIDEO_ORIENTATION;
-    memset(extMapVideo_, 0, sizeof(uint32_t)*10);
-    memset(extMapAudio_, 0, sizeof(uint32_t)*10);
-     
+    translationMap_["urn:ietf:params:rtp-hdrext:ssrc-audio-level"] = SSRC_AUDIO_LEVEL;
+    translationMap_["http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"] = ABS_SEND_TIME;
+    translationMap_["urn:ietf:params:rtp-hdrext:toffset"] = TOFFSET;
+    translationMap_["urn:3gpp:video-orientation"] = VIDEO_ORIENTATION;
+    memset(extMapVideo_, 0, sizeof(int)*10);
+    memset(extMapAudio_, 0, sizeof(int)*10);
   }
 
   RtpExtensionProcessor::~RtpExtensionProcessor(){
@@ -55,7 +54,7 @@ namespace erizo{
   uint32_t RtpExtensionProcessor::processRtpExtensions(dataPacket& p) {
     RtpHeader* head = reinterpret_cast<RtpHeader*>(p.data);
     uint32_t len = p.length;
-    uint8_t* extMap; 
+    int* extMap; 
     if (head->getExtension()){
       switch(p.type){
         case VIDEO_PACKET:
