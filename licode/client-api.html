@@ -441,6 +441,7 @@ room.addEventListener("stream-added", function(event) {
 room.publish(localStream, {maxVideoBW:300});
 </pre>
 
+
             <p>In <code>room.publish</code> you can include a callback with two parameters, <code>id</code> and <code>error</code>. If the stream has been published, <code>id</code> contains the id of that stream. On the other hand, if there has been any kind of error, <code>id</code> is <em>undefined</em> and the error is described in <code>error</code>.</p>
             <div class="bs-docs-example">
               Using the callback to catch possible problems
@@ -453,7 +454,7 @@ room.publish(localStream, {maxVideoBW:300}, function(id, error){
     console.log("Published stream", id);
   }
 });            </pre>
-
+ 
 
           <h3 id="subscribeStream">Subscribe to a remote stream</h3>
           <p>It subscribes to a remote stream in the room.
@@ -550,7 +551,49 @@ room.unpublish(localStream, function(result, error){
 <pre class="prettyprint linenums">
 room.disconnect();</pre>
 
-          <h3 id="recordStreamStart">Start Recording</h3>
+          <h3 id="quality">Managing Quality Adaptation</h3>
+          <p>By default, Licode will try to adapt the video quality of each publisher to the <em>worst</em> subscriber, that way, we ensure that all participants can partake in the conference. However, that means that video quality can be degraded for all the participants in a room if just one of them does not have enough bandwidth available.
+          <p>To solve this, Licode gives you a flexible way to configure the behaviour of the adaptation <em>per publisher</em>. You specify a <code>minVideoBW</code> when you publish a stream. This will set the minimum video bitrate, you can use this when you want to control the minimum video quality for a given stream. The <a href="#schemes">adaptation schemes</a> will define how Licode will react to a subscriber that is under the <code>minVideoBW</code> set for his publisher. If no <code>scheme</code> is specified, Licode will only notify subscribers via a <code>streamEvent</code>.
+
+                     <pre class="prettyprint linenums">
+room.publish(localStream, {maxVideoBW:2000, minVideoBW: 1000});</pre>
+         <h4 id="schemes">Schemes</h4>
+         <p>An adaptation scheme is a behaviour patter that Licode will use on the subscribers that report having less available bandwidth than what was configured via <code>minVideoBW</code>.
+         <p>Currently Licode implements three different adaptations schemes, one built on top of the other.
+         <ul>
+           <li><code>notify</code>: Licode will only notify periodically subscribers that are below<code>minVideoBW</code>. The possible messages, included in <code>streamEvent.msg</code> are:
+             <ul>
+               <li><em>insufficient</em>: Indicates the subscriber is not reporting enough bandwidth </li>
+             </ul></li>
+           <li><code>notify-break</code>: Licode will notify subscribers, stop adapting the publisher to problematic subscribers and relegate them to audio-only mode. The possible messages, included in <code>streamEvent.msg</code> are:
+             <ul>
+               <li><em>insufficient</em>: Indicates the subscriber is not reporting enough bandwidth </li>
+               <li><em>audio-only</em>: Licode will now send only audio to this subscriber and the publisher will not try to adapt Video quality. </li>
+             </ul></li>
+           <li><code>notify-break-recover</code>: Same as notify-break but Licode will periodically try to recover the subscriber's video.The possible messages, included in <code>streamEvent.msg</code> are:
+             <ul>
+               <li><em>insufficient</em>: Indicates the subscriber is not reporting enough bandwidth, Licode will stop sending Video to this subscriber and the publisher won't try to adapt. </li>
+               <li><em>recovered</em>: This stream has successfully recovered, reports more that minVideoBW and Licode will treat it as a stream with no bandwidth problems</li>
+               <li><em>audio-only</em>: Licode will stop trying to recover and send only audio to this subscriber and the publisher will not try to adapt Video quality. </li>
+             </ul></li>
+         </ul>
+         <p>You will have to set your desired scheme per publisher:
+                     <pre class="prettyprint linenums">
+room.publish(localStream, {maxVideoBW:2000, minVideoBW: 1000 scheme:"notify-break"});</pre>
+         
+                     <p>The default scheme is <code>notify</code>.
+
+                     <p>Licode uses <a href=#streamEvent><code>streamEvents</code></a> to notify clients, so you will need to listen to the following events to properly take advantage of the schemes in your application. These events are:
+
+         <ul>
+           <li><code>notify</code>: Licode will only notify periodically subscribers that are below<code>minVideoBW</code>.</li>
+           <li><code>notify-break</code>: Licode will notify subscribers, stop adapting the publisher to problematic subscribers and relegate them to audio-only mode.</li>
+           <li><code>notify-break-recover</code>: Same as notify-break but Licode will periodically try to recover the subscriber's video.</li>
+         </ul>
+
+
+
+<h3 id="recordStreamStart">Start Recording</h3>
           <p>Start the recording of a stream in the server in the path specified in licode_config.js
           <p>The recording will stored in a .mkv file using VP8 codec for video and PCMU or OPUS for audio, depending on the server configuration. This file can be played directly or streamed into a Licode room.
           <p>Licode will keep recording until stopRecording is called or the stream is removed from the room.
@@ -692,6 +735,7 @@ room.addEventListener("room-connected", function(evt){...});</pre>
           <h3 id="streamEvent">Stream Event</h3>
           <p> It represents an event related to a stream. </p>
           <p> You can access the related stream by <code>streamEvent.stream</code>.</p>
+          <p> Some of them have a more detailed message in <code>streamEvent.msg</code>.</p>
           <p> There are the different types of Stream events:</p>
           <ul>
             <li><em>access-accepted</em>: indicates that the user has accepted to share his camera and microphone.</li>
@@ -700,6 +744,15 @@ room.addEventListener("room-connected", function(evt){...});</pre>
             <li><em>stream-removed</em>: shows that a previous available stream has been removed from the room.</li>
             <li><em>stream-data</em>: thrown by the stream it indicates new data received in the stream.</li>
             <li><em>stream-attributes-update</em>: notifies when the owner of the given stream updates its attributes</li>
+            <li><em>bandwidth-alert</em>: thrown when a subscriber stream is reporting less than the <code>minVideoBW</code> specified in the publisher. The event has three parts:
+              <ul>
+                <li><code>streamEvent.stream</code> is the problematic subscribe stream.</li>
+                <li><code>streamEvent.bandwidth</code> is the available bandwidth reported by that stream.</li>
+                <li><code>streamEvent.msg</code> the <em>status</em> of that stream, depends on the adaptation <a href="quality">scheme</a>. </li>
+              </ul>
+            </li>
+            <li><em>stream-failed</em>: A stream has failed, either in the connection establishment or during the communication.</li>
+
           </ul>
           <p> They all are dispatched by Room objects.</p>
           <p>
