@@ -322,7 +322,8 @@ setInterval(function() {
 
         <h3 id="updateConfiguration">Update the spec of a stream</h3>
 
-          <p>It updates the audio and video maximum bandwidth.
+          <p>It updates the audio and video maximum bandwidth for a publisher.
+          <p>It can also be used in remote streams to toggle <code>slideShowMode</code>
 
           <div class="bs-docs-example">
           You can update the maximun bandwidth of video and audio. These values are defined in the object passed to the function. You can also pass a callback function to get the final result.
@@ -330,9 +331,15 @@ setInterval(function() {
 <pre class="prettyprint linenums">
 var config = {maxVideoBW: 300, maxAudioBW: 300};
 
-stream.updateConfiguration(config, function(result) {
+localstream.updateConfiguration(config, function(result) {
   console.log(result);
-})
+});
+
+// We can update options also on a remote stream
+
+remoteStream.updateConfiguration({slideShowMode:true}, function (result){
+console.log(result);
+});
 </pre>
 
         </section>
@@ -493,6 +500,17 @@ room.subscribe(stream, {audio: true, video: false}, function(result, error){
   }
 });</pre>
 
+            <p>When subscribing you can also configure the receiver to receive a lower bitrate Video stream from the publisher. We call this feature <em>slideShowMode</em>. By enabling it, this subscriber will receive one frame every two seconds from the publisher and won't affect the quality of other subscribers.
+            <pre class="prettyprint linenums">
+room.subscribe(stream, {audio: true, video: true, slideShowMode:true}, function(result, error){
+  if (result === undefined){
+    console.log("Error subscribing to stream", error);
+  } else {
+    console.log("Stream subscribed!");
+  }
+});</pre>
+            <p><code>SlideShowMode</code> can also be toggled on or off using <code>stream.updateConfiguration</code>. Keep in mind this will only work on remote streams (subscriptions).
+
           <h3 id="unsubscribeStream">Unsubscribe from a remote stream</h3>
           <p>You can unsubscribe from a stream you are currently subscribed.
           <p>Here apply the same requirements seen in the subscription.
@@ -591,6 +609,7 @@ room.publish(localStream, {maxVideoBW:2000, minVideoBW: 1000 scheme:"notify-brea
            <li><code>notify-break-recover</code>: Same as notify-break but Licode will periodically try to recover the subscriber's video.</li>
          </ul>
 
+         <p> Keep in mind you can use this in combination with <code>SlideShowMode</code> allowing for a wide variety of configurations.
 
 
 <h3 id="recordStreamStart">Start Recording</h3>
