@@ -48,6 +48,9 @@ exports.MonitorSubscriber = function (log) {
                 return;
             }
 
+            if (wrtc.slideShowMode===true)
+                return;
+            
             var theStats = JSON.parse(newStats);
             for (var i = 0; i < theStats.length; i++){ 
                 if(theStats[i].hasOwnProperty('bandwidth')){   // Only one stream should have bandwidth

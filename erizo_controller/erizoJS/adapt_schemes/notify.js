@@ -34,6 +34,7 @@ exports.MonitorSubscriber = function (log) {
         wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(1-0.2));
         wrtc.upperThres = Math.ceil(wrtc.minVideoBW);
         var intervalId = setInterval(function () {
+               
             var newStats = wrtc.getStats();
             if (newStats == null){
                 log.debug("Stopping BW Monitoring");
@@ -41,6 +42,9 @@ exports.MonitorSubscriber = function (log) {
                 return;
             }
 
+            if (wrtc.slideShowMode===true)
+                return;
+            
             var theStats = JSON.parse(newStats);
             for (var i = 0; i < theStats.length; i++){ 
                 if(theStats[i].hasOwnProperty('bandwidth')){   // Only one stream should have bandwidth
