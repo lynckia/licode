@@ -162,7 +162,7 @@ Erizo.ChromeStableStack = function (spec) {
             }
 
             localDesc.sdp = setMaxBW(localDesc.sdp);
-            if (!config.noSdp || config.maxAudioBW){
+            if (config.Sdp || config.maxAudioBW){
                 L.Logger.debug ("Updating with SDP renegotiation", spec.maxVideoBW);
                 that.peerConnection.setLocalDescription(localDesc, function () {
                     remoteDesc.sdp = setMaxBW(remoteDesc.sdp);

@@ -142,7 +142,7 @@ Erizo.FirefoxStack = function (spec) {
             }
 
             localDesc.sdp = setMaxBW(localDesc.sdp);
-            if (!config.noSdp){
+            if (config.Sdp){
                 L.Logger.error ("Cannot update with renegotiation in Firefox, try without renegotiation");
             } else {
                 L.Logger.debug ("Updating without renegotiation, newVideoBW:", spec.maxVideoBW, "newAudioBW:", spec.maxAudioBW);
