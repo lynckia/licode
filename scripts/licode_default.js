@@ -120,6 +120,8 @@ config.erizoAgent.prerunProcesses = 1; // default value: 1
 config.erizoAgent.publicIP = ''; //default value: ''
 // Use the name of the inferface you want to bind for ICE candidates
 // config.erizoAgent.networkInterface = 'eth1' // default value: undefined
+// Custom log directory for agent instance log files.
+// config.erizoAgent.instanceLogDir = '/path/to/dir';
 
 /*********************************************************
  ERIZO JS CONFIGURATION
