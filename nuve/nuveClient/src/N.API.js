@@ -3,10 +3,10 @@ var N = N || {};
 
 N.API = (function (N) {
     "use strict";
-    var createRoom, getRooms, getRoom, patchRoom, deleteRoom, 
-        createToken, createService, getServices, getService, 
-        deleteService, getUsers, getUser, deleteUser, params, 
-        send, calculateSignature, init;
+    var createRoom, getRooms, getRoom, updateRoom, patchRoom,
+        deleteRoom, createToken, createService, getServices,
+        getService, deleteService, getUsers, getUser, deleteUser,
+        params, send, calculateSignature, formatString, init;
 
     params = {
         service: undefined,
@@ -185,8 +185,8 @@ N.API = (function (N) {
 
     formatString = function(s){
         var r = s.toLowerCase();
-        non_asciis = {'a': '[àáâãäå]', 'ae': 'æ', 'c': 'ç', 'e': '[èéêë]', 'i': '[ìíîï]', 'n': 'ñ', 'o': '[òóôõö]', 'oe': 'œ', 'u': '[ùúûűü]', 'y': '[ýÿ]'};
-        for (i in non_asciis) { r = r.replace(new RegExp(non_asciis[i], 'g'), i); }
+        var non_asciis = {'a': '[àáâãäå]', 'ae': 'æ', 'c': 'ç', 'e': '[èéêë]', 'i': '[ìíîï]', 'n': 'ñ', 'o': '[òóôõö]', 'oe': 'œ', 'u': '[ùúûűü]', 'y': '[ýÿ]'};
+        for (var i in non_asciis) { r = r.replace(new RegExp(non_asciis[i], 'g'), i); }
         return r;
     };
 
