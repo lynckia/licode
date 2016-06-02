@@ -27,8 +27,8 @@ This project is built using CMake.
 
 The easiest way to build it is to use the provided scripts:
 - Run ./generateProject.sh to run cmake, test the dependencies and generate the Makefile.
-- Run ./buildProyect.sh to build the project after generating the Makefile. It simply runs make in the build directory.
-- Run ./generateEclipseProyect.sh to generate an Eclipse CDT project which can be imported and used to work with the code.
+- Run ./buildProject.sh to build the project after generating the Makefile. It simply runs make in the build directory.
+- Run ./generateEclipseProject.sh to generate an Eclipse CDT project which can be imported and used to work with the code.
 
 If doxygen is availabe a "doc" target is generated. HTML documentation can be built by running "make doc" in the build directory.
 
