@@ -31,7 +31,15 @@ Erizo.Stream = function (spec) {
     // Public functions
 
     that.getID = function () {
-        return spec.streamID;
+        var id;
+        // Unpublished local streams don't yet have an ID.
+        if (that.local && !spec.streamID) {
+            id = 'local';
+        }
+        else {
+            id = spec.streamID;
+        }
+        return id;
     };
 
     // Get attributes of this stream.
