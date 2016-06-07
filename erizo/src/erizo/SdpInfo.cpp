@@ -284,7 +284,12 @@ namespace erizo {
     bool printedAudio = true, printedVideo = true;
 
     if (printedAudio && this->hasAudio) {
-      sdp << "m=audio 1 RTP/" << (profile==SAVPF?"SAVPF ":"AVPF ");// << "103 104 0 8 106 105 13 126\n"
+      sdp << "m=audio 1";
+      if (profile==SAVPF){
+        sdp << " UDP/TLS/RTP/SAVPF "; 
+      } else {
+        sdp << " RTP/AVPF ";// << "103 104 0 8 106 105 13 126\n"
+      }
 
       int codecCounter=0;
       for (unsigned int it =0; it<payloadVector.size(); it++){
@@ -389,7 +394,12 @@ namespace erizo {
     }
 
     if (printedVideo && this->hasVideo) {
-      sdp << "m=video 1 RTP/" << (profile==SAVPF?"SAVPF ":"AVPF "); //<<  "100 101 102 103\n"
+      sdp << "m=video 1";
+      if (profile==SAVPF){
+        sdp << " UDP/TLS/RTP/SAVPF "; 
+      } else {
+        sdp << " RTP/AVPF ";
+      }
 
       int codecCounter = 0;      
       for (unsigned int it =0; it<payloadVector.size(); it++){
