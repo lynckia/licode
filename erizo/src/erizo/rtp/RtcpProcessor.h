@@ -3,6 +3,7 @@
 
 #include <map>
 #include <list>
+#include <set>
 #include <boost/shared_ptr.hpp>
 
 #include "logger.h"
@@ -11,6 +12,7 @@
 #include "rtp/RtpHeaders.h"
 
 namespace erizo {
+  static const int MAP_NACK_SIZE = 50; 
  
   // Forward declaration
 
@@ -72,6 +74,7 @@ namespace erizo {
     MediaType mediaType;
 
     std::list<boost::shared_ptr<SrData>> senderReports;
+    std::set<uint32_t> nackedPackets_;
 
     void reset(uint32_t bandwidth);
 

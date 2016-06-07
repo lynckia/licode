@@ -431,10 +431,10 @@ namespace erizo{
         report.nackPacket.pid = htons(pid);
       }
       inline uint16_t getNackBlp(){
-        return ntohs(report.nackPacket.blp);
+        return report.nackPacket.blp;
       }
       inline void setNackBlp(uint16_t blp){
-        report.nackPacket.blp = htons(blp);
+        report.nackPacket.blp = blp;
       }
       inline void setREMBBitRate(uint64_t bitRate){
         uint64_t max = 0x3FFFF; // 18 bits
