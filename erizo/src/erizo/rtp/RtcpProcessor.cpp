@@ -87,7 +87,7 @@ namespace erizo{
       uint16_t currentNackPos=0;
       uint16_t blp =0;
       uint32_t lostPacketSeq=0;
-      uint32_t calculatedlsr, delay, calculateLastSr;
+      uint32_t calculatedlsr, delay, calculateLastSr, extendedSeqNo;
 
       do {
         movingBuf+=rtcpLength;
@@ -110,8 +110,13 @@ namespace erizo{
             }
             theData->ratioLost = theData->ratioLost > chead->getFractionLost()? theData->ratioLost: chead->getFractionLost();  
             theData->totalPacketsLost = theData->totalPacketsLost > chead->getLostPackets()? theData->totalPacketsLost : chead->getLostPackets();
-            theData->highestSeqNumReceived = theData->highestSeqNumReceived > chead->getHighestSeqnum()? theData->highestSeqNumReceived : chead->getHighestSeqnum();
-            theData->seqNumCycles = theData->seqNumCycles > chead->getSeqnumCycles()? theData->seqNumCycles : chead->getSeqnumCycles();
+            extendedSeqNo = chead->getSeqnumCycles();
+            extendedSeqNo = (extendedSeqNo << 16) + chead->getHighestSeqnum();
+            if (extendedSeqNo > theData->extendedSeqNo){
+              theData->extendedSeqNo = extendedSeqNo;
+              theData->highestSeqNumReceived = chead->getHighestSeqnum();
+              theData->seqNumCycles = chead->getSeqnumCycles();
+            }
             theData->jitter = theData->jitter > chead->getJitter()? theData->jitter: chead->getJitter();
             calculateLastSr = chead->getLastSr();
             calculatedlsr = (chead->getDelaySinceLastSr()*1000)/65536;
@@ -177,6 +182,9 @@ namespace erizo{
                 theData->nackSeqnum = chead->getNackPid();
                 theData->nackBlp = chead->getNackBlp();
                 theData->requestRr = true;
+
+              } else {
+                ELOG_DEBUG("I'm ignoring a NACK");
               }
             }
             break;
@@ -258,7 +266,16 @@ namespace erizo{
           rtcpHead.setSSRC(rtcpSink_->getVideoSinkSSRC());
           rtcpHead.setSourceSSRC(rtcpSource_->getVideoSourceSSRC());
         }
-        rtcpHead.setFractionLost(rtcpData->ratioLost);
+        
+        //rtcpHead.setFractionLost(rtcpData->ratioLost);
+        //Calculate ratioLost
+        uint32_t packetsReceivedinInterval = rtcpData->extendedSeqNo - rtcpData->prevExtendedSeqNo;
+        uint32_t packetsLostInInterval = rtcpData->totalPacketsLost - rtcpData->prevTotalPacketsLost;
+        double ratio = (double)packetsLostInInterval/packetsReceivedinInterval;
+        rtcpHead.setFractionLost(ratio*256);
+        rtcpData->prevTotalPacketsLost = rtcpData->totalPacketsLost;
+        rtcpData->prevExtendedSeqNo = rtcpData->extendedSeqNo;
+        
         rtcpHead.setHighestSeqnum(rtcpData->highestSeqNumReceived);      
         rtcpHead.setSeqnumCycles(rtcpData->seqNumCycles);
         rtcpHead.setLostPackets(rtcpData->totalPacketsLost);
