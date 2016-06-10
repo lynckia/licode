@@ -1,31 +1,20 @@
 /*
- * RtcpProcessor.cpp
+ * RtcpAggregator.cpp
  */
 
-#include "RtcpProcessor.h"
+#include "RtcpAggregator.h"
 #include <string.h>
 
 namespace erizo{
-  DEFINE_LOGGER(RtcpProcessor, "rtp.RtcpProcessor");
+  DEFINE_LOGGER(RtcpAggregator, "rtp.RtcpAggregator");
 
-  void RtcpData::reset(uint32_t bandwidth){
-    ratioLost = 0;
-    requestRr = false;
-    shouldReset = false;
-    jitter = 0;
-    rrsReceivedInPeriod = 0;
-    if (reportedBandwidth > bandwidth){
-      reportedBandwidth = bandwidth;
-    }
-    lastDelay = lastDelay*0.6;
+
+  RtcpAggregator::RtcpAggregator (MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw):
+    RtcpProcessor(msink, msource, maxVideoBw), defaultVideoBw_(maxVideoBw/2){
+    ELOG_DEBUG("Starting RtcpAggregator");
   }
 
-  RtcpProcessor::RtcpProcessor (MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw):
-    rtcpSink_(msink), rtcpSource_(msource), maxVideoBw_(maxVideoBw), defaultVideoBw_(maxVideoBw/2){
-    ELOG_DEBUG("Starting RtcpProcessor");
-  }
-
-  void RtcpProcessor::addSourceSsrc(uint32_t ssrc){
+  void RtcpAggregator::addSourceSsrc(uint32_t ssrc){
     boost::mutex::scoped_lock mlock(mapLock_);
     if (rtcpData_.find(ssrc) == rtcpData_.end()){
       this->rtcpData_[ssrc] = boost::shared_ptr<RtcpData>(new RtcpData());
@@ -39,15 +28,15 @@ namespace erizo{
     }
   }
 
-  void RtcpProcessor::setMaxVideoBW(uint32_t bandwidth){
+  void RtcpAggregator::setMaxVideoBW(uint32_t bandwidth){
     this->maxVideoBw_ = bandwidth;
   }
 
-  void RtcpProcessor::setPublisherBW(uint32_t bandwidth){
+  void RtcpAggregator::setPublisherBW(uint32_t bandwidth){
     defaultVideoBw_ = (bandwidth*1.2) > maxVideoBw_? maxVideoBw_:(bandwidth*1.2);
   }
   
-  void RtcpProcessor::analyzeSr(RtcpHeader* chead){
+  void RtcpAggregator::analyzeSr(RtcpHeader* chead){
     uint32_t recvSSRC = chead->getSSRC();
     // We try to add it just in case it is not there yet (otherwise its noop)
     this->addSourceSsrc(recvSSRC);
@@ -67,7 +56,7 @@ namespace erizo{
     }
 
   }
-  void RtcpProcessor::analyzeFeedback(char *buf, int len) {
+  int RtcpAggregator::analyzeFeedback(char *buf, int len) {
 
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
     if (chead->isFeedback()) {      
@@ -233,10 +222,11 @@ namespace erizo{
         partNum++;
       } while (totalLength < len);
     }
+    return 0;
   }
 
 
-  void RtcpProcessor::checkRtcpFb(){
+  void RtcpAggregator::checkRtcpFb(){
     boost::mutex::scoped_lock mlock(mapLock_);
     std::map<uint32_t, boost::shared_ptr<RtcpData>>::iterator it;
     for (it = rtcpData_.begin(); it != rtcpData_.end(); it++){
@@ -329,7 +319,7 @@ namespace erizo{
         }
 
         if (rtcpData->shouldReset){
-          rtcpData->reset(this->defaultVideoBw_);
+          this->resetData(rtcpData, this->defaultVideoBw_);
         }
       }
       if (rtcpData->shouldSendPli){
@@ -339,7 +329,7 @@ namespace erizo{
     }
   }
 
-  int RtcpProcessor::addREMB(char* buf, int len, uint32_t bitrate){
+  int RtcpAggregator::addREMB(char* buf, int len, uint32_t bitrate){
     buf+=len;
     RtcpHeader theREMB;
     theREMB.setPacketType(RTCP_PS_Feedback_PT);
@@ -358,7 +348,7 @@ namespace erizo{
     return (len+rembLength); 
   }
 
-  int RtcpProcessor::addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc, uint32_t sinkSsrc){
+  int RtcpAggregator::addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc, uint32_t sinkSsrc){
     buf+=len;
     ELOG_DEBUG("Setting PID %u, BLP %u", seqNum , blp);
     RtcpHeader theNACK;
@@ -373,6 +363,18 @@ namespace erizo{
 
     memcpy(buf, (uint8_t*)&theNACK, nackLength);
     return (len+nackLength); 
+  }
+
+  void RtcpAggregator::resetData(boost::shared_ptr<RtcpData> data, uint32_t bandwidth){
+    data->ratioLost = 0;
+    data->requestRr = false;
+    data->shouldReset = false;
+    data->jitter = 0;
+    data->rrsReceivedInPeriod = 0;
+    if (data->reportedBandwidth > bandwidth){
+      data->reportedBandwidth = bandwidth;
+    }
+    data->lastDelay = data->lastDelay*0.6;
   }
 
 

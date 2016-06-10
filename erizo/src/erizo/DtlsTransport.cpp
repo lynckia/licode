@@ -6,7 +6,6 @@
 #include "SrtpChannel.h"
 
 #include "rtp/RtpHeaders.h"
-//#include "rtputils.h"
 
 using namespace erizo;
 using namespace std;

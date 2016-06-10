@@ -9,6 +9,8 @@
 #include "SdpInfo.h"
 #include "rtp/RtpHeaders.h"
 #include "rtp/RtpVP8Parser.h"
+#include "rtp/RtcpAggregator.h"
+#include "rtp/RtcpForwarder.h"
 
 namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
@@ -18,6 +20,7 @@ namespace erizo {
       : audioEnabled_ (audioEnabled), videoEnabled_(videoEnabled),connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this){
     ELOG_INFO("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
     bundle_ = false;
+    aggregateRtcp_ = false;
     setVideoSinkSSRC(55543);
     setAudioSinkSSRC(44444);
     videoSink_ = NULL;
@@ -60,7 +63,7 @@ namespace erizo {
   }
 
   bool WebRtcConnection::init() {
-    rtcpProcessor_ = boost::shared_ptr<RtcpProcessor> (new RtcpProcessor((MediaSink*)this, (MediaSource*) this));
+    rtcpProcessor_ = boost::shared_ptr<RtcpProcessor> (new RtcpForwarder((MediaSink*)this, (MediaSource*) this));
     send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
     if (connEventListener_ != NULL) {
       connEventListener_->notifyEvent(globalState_, "");
@@ -352,7 +355,24 @@ namespace erizo {
   }
 
   int WebRtcConnection::deliverFeedback_(char* buf, int len){
-    rtcpProcessor_->analyzeFeedback(buf,len);
+    int newLength = rtcpProcessor_->analyzeFeedback(buf,len);
+    if (newLength){
+      RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+      uint32_t recvSSRC = chead->getSourceSSRC();
+      if (recvSSRC==this->getVideoSourceSSRC()) {
+        this->queueData(0, buf, len, videoTransport_.get(), VIDEO_PACKET) ;
+      } else if (recvSSRC==this->getAudioSourceSSRC()) {
+        if (bundle_){
+          this->queueData(0, buf, len, videoTransport_.get(), AUDIO_PACKET);
+        }else{
+          this->queueData(0, buf, len, audioTransport_.get(), AUDIO_PACKET);
+        }
+
+      } else {
+        ELOG_WARN("Unknown SSRC %u, localVideo %u, remoteVideo %u, ignoring", recvSSRC, this->getVideoSourceSSRC(), this->getVideoSinkSSRC());
+      }
+      return newLength;
+    }
     return len;
   }
 
