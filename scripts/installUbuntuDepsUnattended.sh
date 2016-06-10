@@ -63,7 +63,7 @@ install_openssl(){
       cd openssl-1.0.1g
       ./config --prefix=$PREFIX_DIR -fPIC
       make -s V=0
-      make install
+      make install_sw
     else
       echo "openssl already installed"
     fi
