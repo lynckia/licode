@@ -9,6 +9,8 @@
 #include <openssl/ssl.h>
 #include <openssl/bn.h>
 #include <openssl/srtp.h>
+#include <openssl/opensslv.h>
+
 
 #include "DtlsSocket.h"
 #include "DtlsTimer.h"
@@ -220,8 +222,7 @@ DtlsSocketContext::DtlsSocketContext() {
 
   mTimerContext = std::auto_ptr<TestTimerContext>(new TestTimerContext());
 
-
-  ELOG_DEBUG("Creating Dtls factory");
+  ELOG_DEBUG("Creating Dtls factory, Openssl v %s", OPENSSL_VERSION_TEXT);
 
   mContext=SSL_CTX_new(DTLSv1_method());
   assert(mContext);
