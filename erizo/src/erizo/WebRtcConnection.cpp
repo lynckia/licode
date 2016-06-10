@@ -20,7 +20,6 @@ namespace erizo {
       : audioEnabled_ (audioEnabled), videoEnabled_(videoEnabled),connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this){
     ELOG_INFO("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
     bundle_ = false;
-    aggregateRtcp_ = false;
     setVideoSinkSSRC(55543);
     setAudioSinkSSRC(44444);
     videoSink_ = NULL;
