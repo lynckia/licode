@@ -56,10 +56,11 @@ install_apt_deps(){
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.openssl.org/source/old/1.0.1/openssl-1.0.1g.tar.gz
-    tar -zxvf openssl-1.0.1g.tar.gz
-    cd openssl-1.0.1g
-    ./config --prefix=$PREFIX_DIR -fPIC
+    curl -O https://www.openssl.org/source/openssl-1.0.2h.tar.gz
+    tar -zxvf openssl-1.0.2h.tar.gz
+    cd openssl-1.0.2h
+    CFLAGS="-fPIC" ./config --openssldir=$PREFIX_DIR shared
+    make depend
     make -s V=0
     make install_sw
     cd $CURRENT_DIR

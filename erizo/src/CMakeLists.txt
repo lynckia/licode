@@ -1,3 +1,4 @@
+
 cmake_minimum_required(VERSION 2.6)
 
 project (ERIZO_ALL)
@@ -19,7 +20,7 @@ endif(DOXYGEN_FOUND)
 #global variable
 set(THIRD_PARTY_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/include/")
 set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/")
-
+set (ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${THIRD_PARTY_LIB}")
 #erizo
 add_subdirectory("${ERIZO_ALL_SOURCES}erizo")
 
