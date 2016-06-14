@@ -114,7 +114,8 @@ namespace erizo{
               case RTCP_PLI_FMT:
                 ELOG_DEBUG("PLI Message, partNum %d", partNum);
                 // 1: PLI, 4: FIR
-                theData->shouldSendPli = true;
+                rtcpSource_->sendPLI();
+
                 break;
               case RTCP_SLI_FMT:
                 ELOG_DEBUG("SLI Message");
