@@ -38,6 +38,7 @@ namespace erizo {
       virtual void write(char* data, int len) = 0;
       virtual void processLocalSdp(SdpInfo *localSdp_) = 0;
       virtual void start() = 0;
+      virtual void close() = 0;
       virtual boost::shared_ptr<NiceConnection> getNiceConnection() { return nice_; };
       void setTransportListener(TransportListener * listener) {
         transpListener_ = listener;
@@ -67,8 +68,8 @@ namespace erizo {
     private:
       TransportListener *transpListener_;
 
-      TransportState state_;
     protected:
+      TransportState state_;
       IceConfig iceConfig_;
       bool bundle_;
   };

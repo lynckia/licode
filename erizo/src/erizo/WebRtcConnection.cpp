@@ -50,11 +50,16 @@ namespace erizo {
     sending_ = false;
     cond_.notify_one();
     send_Thread_.join();
+    if (videoTransport_.get()){
+      videoTransport_->close();
+    }
+    if (audioTransport_.get()){
+      audioTransport_->close();
+    }
     globalState_ = CONN_FINISHED;
     if (connEventListener_ != NULL){
       connEventListener_ = NULL;
     }
-    globalState_ = CONN_FINISHED;
     videoSink_ = NULL;
     audioSink_ = NULL;
     fbSink_ = NULL;

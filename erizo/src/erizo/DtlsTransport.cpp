@@ -112,10 +112,8 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
 
 DtlsTransport::~DtlsTransport() {
   ELOG_DEBUG("DtlsTransport destructor");
-  running_ = false;
-  nice_->close();
-  ELOG_DEBUG("Join thread getNice");
-  getNice_Thread_.join();
+  if (this->state_!=TRANSPORT_FINISHED)
+    this->close();
   ELOG_DEBUG("DTLSTransport destructor END");
 }
 
@@ -123,6 +121,16 @@ void DtlsTransport::start() {
   ELOG_DEBUG("Starting ICE main loop");
   nice_->start();
 };
+
+void DtlsTransport::close() {
+  ELOG_DEBUG("Closing DTLSTransport");
+  running_ = false;
+  nice_->setNiceListener(NULL);
+  nice_->close();
+  this->state_=TRANSPORT_FINISHED;
+  getNice_Thread_.join();
+  ELOG_DEBUG("Finished closing DtlsTransport");
+}
 
 void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {
   int length = len;

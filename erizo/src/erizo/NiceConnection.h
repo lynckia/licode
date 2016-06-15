@@ -180,12 +180,13 @@ namespace erizo {
     IceState iceState_;
     
     boost::thread m_Thread_;
-    boost::mutex queueMutex_;
+    boost::mutex queueMutex_, closeMutex_;
     boost::condition_variable cond_;
    
     unsigned int iceComponents_;
     std::map <unsigned int, IceState> comp_state_list_;
-    std::string ufrag_, upass_;
+    std::string ufrag_, upass_, username_, password_;
+    IceConfig iceConfig_;
   };
 
 } /* namespace erizo */

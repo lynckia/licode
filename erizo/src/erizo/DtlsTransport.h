@@ -23,6 +23,7 @@ namespace erizo {
     std::string getMyFingerprint();
     static bool isDtlsPacket(const char* buf, int len);
     void start();
+    void close();
     void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice);
     void onCandidate(const CandidateInfo &candidate, NiceConnection *conn);
     void write(char* data, int len);
