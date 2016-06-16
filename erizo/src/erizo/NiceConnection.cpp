@@ -99,20 +99,10 @@ namespace erizo {
     if (loop_!=NULL) {
       g_main_loop_quit(loop_);
     }
-    if (agent_!=NULL){
-      ELOG_DEBUG("Unrefing agent");
-      g_object_unref(agent_);
-      agent_ = NULL;
-    }
     if (loop_!=NULL){
       ELOG_DEBUG("Unrefing loop");
       g_main_loop_unref(loop_);
       loop_=NULL;
-    }
-    if (context_!=NULL) {
-      ELOG_DEBUG("Unrefing context");
-      g_main_context_unref(context_);
-      context_=NULL;
     }
     cond_.notify_one();
     listener_ = NULL;
@@ -121,6 +111,16 @@ namespace erizo {
     if (!m_Thread_.timed_join(timeout) ){
       ELOG_DEBUG("Taking too long to close thread, trying to interrupt %p", this);
       m_Thread_.interrupt();
+    }
+    if (agent_!=NULL){
+      ELOG_DEBUG("Unrefing agent");
+      g_object_unref(agent_);
+      agent_ = NULL;
+    }
+    if (context_!=NULL) {
+      ELOG_DEBUG("Unrefing context");
+      g_main_context_unref(context_);
+      context_=NULL;
     }
     ELOG_DEBUG("Nice Closed %p", this);
   }
@@ -161,7 +161,7 @@ namespace erizo {
       // Create a nice agent
       agent_ = nice_agent_new(context_, NICE_COMPATIBILITY_RFC5245);
       loop_ = g_main_loop_new(context_, FALSE);
-      ELOG_DEBUG("Starting Thread");
+      ELOG_DEBUG("Starting Main Loop Thread");
       m_Thread_ = boost::thread(&NiceConnection::mainLoop, this);
       GValue controllingMode = { 0 };
       g_value_init(&controllingMode, G_TYPE_BOOLEAN);
