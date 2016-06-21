@@ -119,9 +119,9 @@ exports.ErizoJSController = function (spec) {
                     log.debug('Sending SDP', mess);
                     mess = mess.replace(that.privateRegexp, that.publicIP);
                     if (options.createOffer)
-            callback('callback', {type: 'offer', sdp: mess});
+                        callback('callback', {type: 'offer', sdp: mess});
                     else
-            callback('callback', {type: 'answer', sdp: mess});
+                        callback('callback', {type: 'answer', sdp: mess});
                     break;
 
                 case CONN_CANDIDATE:

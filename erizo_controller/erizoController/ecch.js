@@ -71,11 +71,14 @@ exports.Ecch = function (spec) {
 
 		log.info('Contacting Agent ', agent_queue, " for a new ErizoJS");
 
-		amqper.callRpc(agent_queue, 'createErizoJS', [], {callback: function(erizo_id) {
+		amqper.callRpc(agent_queue, 'createErizoJS', [], {callback: function(resp) {
+			var erizo_id = resp.erizo_id;
+			var agent_id = resp.agent_id;
+			
 			if (erizo_id === 'timeout') {
 				try_again(0, callback);
 			} else {
-	        	callback(erizo_id);
+	        	callback(erizo_id, agent_id);
 			}
 	    }});
 	};

@@ -197,7 +197,7 @@ var api = {
 
             var erizo_id = getErizo();
             log.info('Get erizo JS', erizo_id);
-            callback("callback", erizo_id);
+            callback("callback", {erizo_id: erizo_id, agent_id: my_erizo_agent_id});
 
             erizos.push(erizo_id);
             fillErizos();
