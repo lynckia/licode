@@ -57,7 +57,8 @@ namespace erizo {
   NiceConnection::NiceConnection(MediaType med, const std::string &transport_name,NiceConnectionListener* listener, 
       unsigned int iceComponents, const IceConfig& iceConfig, std::string username, std::string password) : 
     mediaType(med), agent_(NULL), loop_(NULL), listener_(listener), candsDelivered_(0), 
-    iceState_(NICE_INITIAL), iceComponents_(iceComponents), username_(username), password_(password), iceConfig_(iceConfig) {
+    iceState_(NICE_INITIAL), iceComponents_(iceComponents), username_(username), password_(password), iceConfig_(iceConfig),
+  receivedLastCandidate_(false){
       localCandidates.reset(new std::vector<CandidateInfo>());
       transportName.reset(new std::string(transport_name));
       for (unsigned int i = 1; i<=iceComponents_; i++) {
@@ -428,11 +429,16 @@ namespace erizo {
         }
       }
     }else if (state == NICE_FAILED){
-      ELOG_ERROR("%s - NICE Component %u FAILED", transportName->c_str(), compId);
-      for (unsigned int i = 1; i<=iceComponents_; i++) {
-        if (comp_state_list_[i] != NICE_FAILED) {
-          return;
+      if (receivedLastCandidate_){
+        ELOG_WARN("%s - NICE Component %u FAILED", transportName->c_str(), compId);
+        for (unsigned int i = 1; i<=iceComponents_; i++) {
+          if (comp_state_list_[i] != NICE_FAILED) {
+            return;
+          }
         }
+      }else{
+        ELOG_DEBUG("NICE FAIL but we haven't received all candidates");
+        return;
       }
     }
     this->updateIceState(state);
@@ -487,4 +493,8 @@ namespace erizo {
 
   }
 
+  void NiceConnection::setReceivedLastCandidate(bool hasReceived){
+    ELOG_DEBUG("Setting hasReceivedLastCandidate %u", hasReceived);
+    this->receivedLastCandidate_ = hasReceived;
+  }
 } /* namespace erizo */

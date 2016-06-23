@@ -77,29 +77,34 @@ Erizo.ChromeStableStack = function (spec) {
     spec.localCandidates = [];
 
     that.peerConnection.onicecandidate = function (event) {
-        if (event.candidate) {
+        var candidateObject = {};
+        if (!event.candidate) {
+            L.Logger.info("Gathered all candidates. Sending END candidate");
+            candidateObject = {
+                sdpMLineIndex: -1 ,
+                sdpMid: "end",
+                candidate: "end"
+            };
+        }else{
 
             if (!event.candidate.candidate.match(/a=/)) {
                 event.candidate.candidate = "a=" + event.candidate.candidate;
-            }
-            ;
+            };
 
-            var candidateObject = {
+            candidateObject = {
                 sdpMLineIndex: event.candidate.sdpMLineIndex,
                 sdpMid: event.candidate.sdpMid,
                 candidate: event.candidate.candidate
             };
-
-            if (spec.remoteDescriptionSet) {
-                spec.callback({type: 'candidate', candidate: candidateObject});
-            } else {
-                spec.localCandidates.push(candidateObject);
-                L.Logger.info("Storing candidate: ", spec.localCandidates.length, candidateObject);
-            }
-
-        } else {
-           L.Logger.info("Gathered all candidates.");
         }
+
+        if (spec.remoteDescriptionSet) {
+            spec.callback({type: 'candidate', candidate: candidateObject});
+        } else {
+            spec.localCandidates.push(candidateObject);
+            L.Logger.info("Storing candidate: ", spec.localCandidates.length, candidateObject);
+        }
+
     };
 
     that.peerConnection.onaddstream = function (stream) {

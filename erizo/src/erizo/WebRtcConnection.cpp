@@ -198,6 +198,11 @@ namespace erizo {
     ELOG_DEBUG("Adding remote Candidate %s, mid %s, sdpMLine %d",sdp.c_str(), mid.c_str(), mLineIndex);
     MediaType theType;
     std::string theMid;
+    // Checking if it's the last candidate, only works in bundle.
+    if (mLineIndex == -1){ 
+      ELOG_DEBUG("All candidates received");
+      videoTransport_->getNiceConnection()->setReceivedLastCandidate(true);
+    }
     if ((!mid.compare("video"))||(mLineIndex ==remoteSdp_.videoSdpMLine)){
       theType = VIDEO_TYPE;
       theMid = "video";

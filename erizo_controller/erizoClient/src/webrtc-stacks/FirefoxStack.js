@@ -42,23 +42,28 @@ Erizo.FirefoxStack = function (spec) {
     spec.localCandidates = [];
 
     that.peerConnection.onicecandidate =  function (event) {
-        if (event.candidate) {
+        var candidateObject = {};
+        if (!event.candidate) {
+            L.Logger.info("Gathered all candidates. Sending END candidate");
+            candidateObject = {
+                sdpMLineIndex: -1 ,
+                sdpMid: "end",
+                candidate: "end"
+            };
+        }else{
             gotCandidate = true;
-
             if (!event.candidate.candidate.match(/a=/)) {
                 event.candidate.candidate ="a="+event.candidate.candidate;
             };
-
+            candidateObject = event.candidate; 
             if (spec.remoteDescriptionSet) {
-                spec.callback({type:'candidate', candidate: event.candidate});
+                spec.callback({type:'candidate', candidate: candidateObject});
             } else {
-                spec.localCandidates.push(event.candidate);
+                spec.localCandidates.push(candidateObject);
                 L.Logger.debug("Local Candidates stored: ", spec.localCandidates.length, spec.localCandidates);
             }
 
-        } else {
-            L.Logger.debug("Gathered all candidates for this pc");
-        }
+        } 
     };
 
     

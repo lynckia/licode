@@ -160,12 +160,10 @@ namespace erizo {
     void updateIceState(IceState state);
     IceState checkIceState();
     void updateComponentState(unsigned int compId, IceState state);
-
     void queueData(unsigned int component_id, char* buf, int len);
-
     CandidatePair getSelectedPair();
-
     packetPtr getPacket();
+    void setReceivedLastCandidate(bool hasReceived);
     void close();
 
     private:
@@ -187,6 +185,7 @@ namespace erizo {
     std::map <unsigned int, IceState> comp_state_list_;
     std::string ufrag_, upass_, username_, password_;
     IceConfig iceConfig_;
+    bool receivedLastCandidate_;
   };
 
 } /* namespace erizo */
