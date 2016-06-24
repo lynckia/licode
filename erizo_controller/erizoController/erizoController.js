@@ -110,7 +110,7 @@ if (GLOBAL.config.erizoController.listen_ssl) {
 server.listen(GLOBAL.config.erizoController.listen_port);
 var io = require('socket.io').listen(server, {log:false});
 
-io.set('log level', 0);
+io.set('transports', [ 'websocket' ])
 
 var nuveKey = GLOBAL.config.nuve.superserviceKey;
 
