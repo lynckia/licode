@@ -782,13 +782,13 @@ room.addEventListener("room-connected", function(evt){...});</pre>
 var streamEvent = Erizo.StreamEvent({type:"stream-added", stream:stream1});</pre>
 
           <div class="bs-docs-example">
-            <code>stream-added</code> and <code>stream-removed</code> are dispatched by Room objects, so you need to add event listeners to them.
+            <code>stream-added</code>, <code>stream-removed</code> and <code>stream-failed</code> are dispatched by Room objects, so you need to add event listeners to them.
           </div>
 <pre class="prettyprint linenums">
 room.addEventListener("stream-removed", function(evt){...});</pre>
 
           <div class="bs-docs-example">
-            <code>access-accepted</code>, <code>stream-data</code> and <code>stream-attributes-update</code> is dispatched by Stream objects, so you need to add event listeners to them.
+            <code>access-accepted</code>, <code>access-denied</code>, <code>stream-data</code>, <code>stream-attributes-update</code> and <code>bandwidth-alert</code> are dispatched by Stream objects, so you need to add event listeners to them.
           </div>
 <pre class="prettyprint linenums">
 stream.addEventListener("access-accepted", function(evt){...});
