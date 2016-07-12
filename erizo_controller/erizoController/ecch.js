@@ -75,7 +75,7 @@ exports.Ecch = function (spec) {
 			var erizo_id = resp.erizo_id;
 			var agent_id = resp.agent_id;
 			
-			if (erizo_id === 'timeout') {
+			if (resp === 'timeout') {
 				try_again(0, callback);
 			} else {
 	        	callback(erizo_id, agent_id);
