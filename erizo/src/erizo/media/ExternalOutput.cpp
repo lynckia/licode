@@ -98,6 +98,16 @@ int32_t ExternalOutput::OnReceivedPayloadData(const uint8_t* payload_data, const
     return 0;
 }
 
+bool ExternalOutput::bufferCheck(RTPPayloadVP8* payload){
+    if(payload->dataLength + unpackagedSize_ >= UNPACKAGE_BUFFER_SIZE){
+        ELOG_ERROR("Not enough buffer. Dropping frame. Please adjust your UNPACKAGE_BUFFER_SIZE in ExternalOutput.h");
+        unpackagedSize_ = 0;
+        unpackagedBufferpart_ = unpackagedBuffer_;
+        vp8SearchState_ = lookingForStart;
+        return false;
+    }
+    return true;
+}
 
 void ExternalOutput::writeAudioData(char* buf, int len){
     RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);
@@ -190,20 +200,24 @@ void ExternalOutput::writeVideoData(char* buf, int len){
             // This packet is a standalone frame.  Send it on.  Look for start.
             unpackagedSize_ = 0;
             unpackagedBufferpart_ = unpackagedBuffer_;
-            memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
-            unpackagedSize_ += payload->dataLength;
-            unpackagedBufferpart_ += payload->dataLength;
-            deliver = true;
+            if(bufferCheck(payload)){
+                memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
+                unpackagedSize_ += payload->dataLength;
+                unpackagedBufferpart_ += payload->dataLength;
+                deliver = true;
+            }
         } else if (!startOfFrame && !endOfFrame) {
             // This is neither the start nor the end of a frame.  Reset our buffers.  Look for start.
             unpackagedSize_ = 0;
             unpackagedBufferpart_ = unpackagedBuffer_;
         } else if (startOfFrame && !endOfFrame) {
             // Found start frame.  Copy to buffers.  Look for our end.
-            memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
-            unpackagedSize_ += payload->dataLength;
-            unpackagedBufferpart_ += payload->dataLength;
-            vp8SearchState_ = lookingForEnd;
+            if(bufferCheck(payload)){
+                memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
+                unpackagedSize_ += payload->dataLength;
+                unpackagedBufferpart_ += payload->dataLength;
+                vp8SearchState_ = lookingForEnd;
+            }
         } else { // (!startOfFrame && endOfFrame)
             // We got the end of a frame.  Reset our buffers.
             unpackagedSize_ = 0;
@@ -217,29 +231,37 @@ void ExternalOutput::writeVideoData(char* buf, int len){
             vp8SearchState_ = lookingForStart;
             unpackagedSize_ = 0;
             unpackagedBufferpart_ = unpackagedBuffer_;
-            memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
-            unpackagedSize_ += payload->dataLength;
-            unpackagedBufferpart_ += payload->dataLength;
-            deliver = true;
+            if(bufferCheck(payload)){
+                memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
+                unpackagedSize_ += payload->dataLength;
+                unpackagedBufferpart_ += payload->dataLength;
+                deliver = true;
+            }
         } else if (!startOfFrame && !endOfFrame) {
             // This is neither the start nor the end.  Add it to our unpackage buffer.
-            memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
-            unpackagedSize_ += payload->dataLength;
-            unpackagedBufferpart_ += payload->dataLength;
+            if(bufferCheck(payload)){
+                memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
+                unpackagedSize_ += payload->dataLength;
+                unpackagedBufferpart_ += payload->dataLength;
+            }
         } else if (startOfFrame && !endOfFrame) {
             // Unexpected.  We got the start of a frame.  Clear out our buffer, toss this payload in, and continue looking for the end.
             unpackagedSize_ = 0;
             unpackagedBufferpart_ = unpackagedBuffer_;
-            memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
-            unpackagedSize_ += payload->dataLength;
-            unpackagedBufferpart_ += payload->dataLength;
+            if(bufferCheck(payload)){
+                memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
+                unpackagedSize_ += payload->dataLength;
+                unpackagedBufferpart_ += payload->dataLength;
+            }
         } else { // (!startOfFrame && endOfFrame)
             // Got the end of a frame.  Let's deliver and start looking for the start of a frame.
             vp8SearchState_ = lookingForStart;
-            memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
-            unpackagedSize_ += payload->dataLength;
-            unpackagedBufferpart_ += payload->dataLength;
-            deliver = true;
+            if(bufferCheck(payload)){
+                memcpy(unpackagedBufferpart_, payload->data, payload->dataLength);
+                unpackagedSize_ += payload->dataLength;
+                unpackagedBufferpart_ += payload->dataLength;
+                deliver = true;
+            }
         }
         break;
     }
@@ -291,7 +313,7 @@ int ExternalOutput::deliverAudioData_(char* buf, int len) {
 }
 
 int ExternalOutput::deliverVideoData_(char* buf, int len) {
-    if (videoSourceSsrc_ == 0){    
+    if (videoSourceSsrc_ == 0){
       RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
       videoSourceSsrc_ = h->getSSRC();
     }
@@ -301,7 +323,7 @@ int ExternalOutput::deliverVideoData_(char* buf, int len) {
 
 
 bool ExternalOutput::initContext() {
-    
+
   if (context_->oformat->video_codec != AV_CODEC_ID_NONE &&
             context_->oformat->audio_codec != AV_CODEC_ID_NONE &&
             video_stream_ == NULL &&
@@ -442,7 +464,7 @@ int ExternalOutput::sendFirPacket() {
       char *buf = reinterpret_cast<char*>(&thePLI);
       int len = (thePLI.getLength()+1)*4;
       fbSink_->deliverFeedback((char*)buf, len);
-      return len; 
+      return len;
     }
     return -1;
 }
@@ -475,4 +497,3 @@ void ExternalOutput::sendLoop() {
   }
 }
 }
-
