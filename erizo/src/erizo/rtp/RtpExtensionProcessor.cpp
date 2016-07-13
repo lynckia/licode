@@ -6,7 +6,7 @@
 #include "time.h"
 
 namespace erizo{
-  DEFINE_LOGGER(RtpExtensionProcessor, "RtpExtensionProcessor");
+  DEFINE_LOGGER(RtpExtensionProcessor, "rtp.RtpExtensionProcessor");
 
   RtpExtensionProcessor::RtpExtensionProcessor(){
     translationMap_["urn:ietf:params:rtp-hdrext:ssrc-audio-level"] = SSRC_AUDIO_LEVEL;
