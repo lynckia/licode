@@ -41,7 +41,6 @@ namespace erizo {
     sendSeqNo_ = 0;
     grace_= 0;
     seqNoOffset_ = 0;
-     
     sending_ = true;
   }
 
@@ -389,7 +388,6 @@ namespace erizo {
     if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL){
       return;
     }
-
     
     // PROCESS RTCP
     RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
