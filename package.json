@@ -2,6 +2,8 @@
   "name": "licode",
   "version": "0.1.0",
   "description": "Open Source Communication Provider",
+  "license": "MIT",
+  "private": true,
   "devDependencies": {
     "vows": "0.6.x",
     "coffee-script": "1.4.x",

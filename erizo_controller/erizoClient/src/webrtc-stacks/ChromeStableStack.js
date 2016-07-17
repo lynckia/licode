@@ -63,7 +63,6 @@ Erizo.ChromeStableStack = function (spec) {
                 sdp = sdp.replace(a[0], r);
             }
         }
-
         return sdp;
     };
 
@@ -78,29 +77,34 @@ Erizo.ChromeStableStack = function (spec) {
     spec.localCandidates = [];
 
     that.peerConnection.onicecandidate = function (event) {
-        if (event.candidate) {
+        var candidateObject = {};
+        if (!event.candidate) {
+            L.Logger.info("Gathered all candidates. Sending END candidate");
+            candidateObject = {
+                sdpMLineIndex: -1 ,
+                sdpMid: "end",
+                candidate: "end"
+            };
+        }else{
 
             if (!event.candidate.candidate.match(/a=/)) {
                 event.candidate.candidate = "a=" + event.candidate.candidate;
-            }
-            ;
+            };
 
-            var candidateObject = {
+            candidateObject = {
                 sdpMLineIndex: event.candidate.sdpMLineIndex,
                 sdpMid: event.candidate.sdpMid,
                 candidate: event.candidate.candidate
             };
-
-            if (spec.remoteDescriptionSet) {
-                spec.callback({type: 'candidate', candidate: candidateObject});
-            } else {
-                spec.localCandidates.push(candidateObject);
-                L.Logger.info("Storing candidate: ", spec.localCandidates.length, candidateObject);
-            }
-
-        } else {
-           L.Logger.info("Gathered all candidates.");
         }
+
+        if (spec.remoteDescriptionSet) {
+            spec.callback({type: 'candidate', candidate: candidateObject});
+        } else {
+            spec.localCandidates.push(candidateObject);
+            L.Logger.info("Storing candidate: ", spec.localCandidates.length, candidateObject);
+        }
+
     };
 
     that.peerConnection.onaddstream = function (stream) {
@@ -117,7 +121,7 @@ Erizo.ChromeStableStack = function (spec) {
   
     that.peerConnection.oniceconnectionstatechange = function (ev) {
         if (that.oniceconnectionstatechange){
-            that.oniceconnectionstatechange(ev);
+            that.oniceconnectionstatechange(ev.target.iceConnectionState);
         }
     }
 
@@ -163,16 +167,23 @@ Erizo.ChromeStableStack = function (spec) {
             }
 
             localDesc.sdp = setMaxBW(localDesc.sdp);
-            that.peerConnection.setLocalDescription(localDesc, function () {
-                remoteDesc.sdp = setMaxBW(remoteDesc.sdp);
-                that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc), function () {
-                    spec.remoteDescriptionSet = true;
-                    spec.callback({type:'updatestream', sdp: localDesc.sdp});
+            if (config.Sdp || config.maxAudioBW){
+                L.Logger.debug ("Updating with SDP renegotiation", spec.maxVideoBW);
+                that.peerConnection.setLocalDescription(localDesc, function () {
+                    remoteDesc.sdp = setMaxBW(remoteDesc.sdp);
+                    that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc), function () {
+                        spec.remoteDescriptionSet = true;
+                        spec.callback({type:'updatestream', sdp: localDesc.sdp});
+                    });
+                }, function (error){
+                    L.Logger.error("Error updating configuration", error);
+                    callback('error');
                 });
-            }, function (error){
-                L.Logger.error("Error updating configuration", error);
-                callback('error');
-            });
+
+            } else {
+                L.Logger.debug ("Updating without SDP renegotiation, newVideoBW:", spec.maxVideoBW, "newAudioBW:", spec.maxAudioBW);
+                spec.callback({type:'updatestream', sdp: localDesc.sdp});
+            }
         }
         if (config.minVideoBW || (config.slideShowMode!==undefined)){
             L.Logger.debug ("MinVideo Changed to ", config.minVideoBW);

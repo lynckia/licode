@@ -58,12 +58,12 @@ install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     if [ ! -f ./openssl-1.0.1g.tar.gz ]; then
-      curl -O http://www.openssl.org/source/openssl-1.0.1g.tar.gz
+      curl -O https://www.openssl.org/source/old/1.0.1/openssl-1.0.1g.tar.gz
       tar -zxvf openssl-1.0.1g.tar.gz
       cd openssl-1.0.1g
       ./config --prefix=$PREFIX_DIR -fPIC
       make -s V=0
-      make install
+      make install_sw
     else
       echo "openssl already installed"
     fi

@@ -1,31 +1,20 @@
 /*
- * RtcpProcessor.cpp
+ * RtcpAggregator.cpp
  */
 
-#include "RtcpProcessor.h"
+#include "RtcpAggregator.h"
 #include <string.h>
 
 namespace erizo{
-  DEFINE_LOGGER(RtcpProcessor, "rtp.RtcpProcessor");
+  DEFINE_LOGGER(RtcpAggregator, "rtp.RtcpAggregator");
 
-  void RtcpData::reset(uint32_t bandwidth){
-    ratioLost = 0;
-    requestRr = false;
-    shouldReset = false;
-    jitter = 0;
-    rrsReceivedInPeriod = 0;
-    if (reportedBandwidth < bandwidth){
-      reportedBandwidth = reportedBandwidth*2 < bandwidth?reportedBandwidth*2:bandwidth;
-    }
-    lastDelay = lastDelay*0.6;
+
+  RtcpAggregator::RtcpAggregator (MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw):
+    RtcpProcessor(msink, msource, maxVideoBw), defaultVideoBw_(maxVideoBw/2){
+    ELOG_DEBUG("Starting RtcpAggregator");
   }
 
-  RtcpProcessor::RtcpProcessor (MediaSink* msink, MediaSource* msource, int defaultBw):
-    rtcpSink_(msink), rtcpSource_(msource), defaultBw_(defaultBw){
-    ELOG_DEBUG("Starting RtcpProcessor");
-  }
-
-  void RtcpProcessor::addSourceSsrc(uint32_t ssrc){
+  void RtcpAggregator::addSourceSsrc(uint32_t ssrc){
     boost::mutex::scoped_lock mlock(mapLock_);
     if (rtcpData_.find(ssrc) == rtcpData_.end()){
       this->rtcpData_[ssrc] = boost::shared_ptr<RtcpData>(new RtcpData());
@@ -39,12 +28,15 @@ namespace erizo{
     }
   }
 
-  void RtcpProcessor::setVideoBW(uint32_t bandwidth){
-    ELOG_DEBUG("Setting Video BW %u", bandwidth);
-    this->defaultBw_ = bandwidth;
+  void RtcpAggregator::setMaxVideoBW(uint32_t bandwidth){
+    this->maxVideoBw_ = bandwidth;
   }
 
-  void RtcpProcessor::analyzeSr(RtcpHeader* chead){
+  void RtcpAggregator::setPublisherBW(uint32_t bandwidth){
+    defaultVideoBw_ = (bandwidth*1.2) > maxVideoBw_? maxVideoBw_:(bandwidth*1.2);
+  }
+  
+  void RtcpAggregator::analyzeSr(RtcpHeader* chead){
     uint32_t recvSSRC = chead->getSSRC();
     // We try to add it just in case it is not there yet (otherwise its noop)
     this->addSourceSsrc(recvSSRC);
@@ -64,7 +56,7 @@ namespace erizo{
     }
 
   }
-  void RtcpProcessor::analyzeFeedback(char *buf, int len) {
+  int RtcpAggregator::analyzeFeedback(char *buf, int len) {
 
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
     if (chead->isFeedback()) {      
@@ -81,7 +73,10 @@ namespace erizo{
       int rtcpLength = 0;
       int totalLength = 0;
       int partNum = 0;
-      uint32_t calculatedlsr, delay, calculateLastSr;
+      uint16_t currentNackPos=0;
+      uint16_t blp =0;
+      uint32_t lostPacketSeq=0;
+      uint32_t calculatedlsr, delay, calculateLastSr, extendedSeqNo;
 
       do {
         movingBuf+=rtcpLength;
@@ -98,14 +93,19 @@ namespace erizo{
           case RTCP_Receiver_PT:
             theData->rrsReceivedInPeriod++;
             if (chead->getSourceSSRC() == rtcpSource_->getVideoSourceSSRC()){
-              ELOG_DEBUG("Analyzing Video RR: PacketLost %u, Ratio %u, partNum %d, blocks %d, sourceSSRC %u", chead->getLostPackets(), chead->getFractionLost(), partNum, chead->getBlockCount(), chead->getSourceSSRC());
+              ELOG_DEBUG("Analyzing Video RR: PacketLost %u, Ratio %u, partNum %d, blocks %d, sourceSSRC %u, ssrc %u", chead->getLostPackets(), chead->getFractionLost(), partNum, chead->getBlockCount(), chead->getSourceSSRC(), chead->getSSRC());
             }else{
-              ELOG_DEBUG("Analyzing Audio RR: PacketLost %u, Ratio %u, partNum %d, blocks %d, sourceSSRC %u", chead->getLostPackets(), chead->getFractionLost(), partNum, chead->getBlockCount(), chead->getSourceSSRC());
+              ELOG_DEBUG("Analyzing Audio RR: PacketLost %u, Ratio %u, partNum %d, blocks %d, sourceSSRC %u, ssrc %u", chead->getLostPackets(), chead->getFractionLost(), partNum, chead->getBlockCount(), chead->getSourceSSRC(), chead->getSSRC());
             }
             theData->ratioLost = theData->ratioLost > chead->getFractionLost()? theData->ratioLost: chead->getFractionLost();  
             theData->totalPacketsLost = theData->totalPacketsLost > chead->getLostPackets()? theData->totalPacketsLost : chead->getLostPackets();
-            theData->highestSeqNumReceived = theData->highestSeqNumReceived > chead->getHighestSeqnum()? theData->highestSeqNumReceived : chead->getHighestSeqnum();
-            theData->seqNumCycles = theData->seqNumCycles > chead->getSeqnumCycles()? theData->seqNumCycles : chead->getSeqnumCycles();
+            extendedSeqNo = chead->getSeqnumCycles();
+            extendedSeqNo = (extendedSeqNo << 16) + chead->getHighestSeqnum();
+            if (extendedSeqNo > theData->extendedSeqNo){
+              theData->extendedSeqNo = extendedSeqNo;
+              theData->highestSeqNumReceived = chead->getHighestSeqnum();
+              theData->seqNumCycles = chead->getSeqnumCycles();
+            }
             theData->jitter = theData->jitter > chead->getJitter()? theData->jitter: chead->getJitter();
             calculateLastSr = chead->getLastSr();
             calculatedlsr = (chead->getDelaySinceLastSr()*1000)/65536;
@@ -129,12 +129,53 @@ namespace erizo{
             }
             break;
           case RTCP_RTP_Feedback_PT:
-            ELOG_DEBUG("RTP FB: Usually NACKs: %u, partNum %d", chead->getBlockCount(), partNum);
-            ELOG_DEBUG("PID %u BLP %u", chead->getNackPid(), chead->getNackBlp());
-            theData->shouldSendNACK = true;
-            theData->nackSeqnum = chead->getNackPid();
-            theData->nackBlp = chead->getNackBlp();
-            theData->requestRr = true;
+            {
+              ELOG_DEBUG("RTP FB: Usually NACKs: %u, partNum %d", chead->getBlockCount(), partNum);
+              ELOG_DEBUG("NACK PID %u BLP %u", chead->getNackPid(), chead->getNackBlp());
+              // We analyze NACK to avoid sending repeated NACKs
+              blp = chead->getNackBlp();
+              theData->shouldSendNACK = false;
+              std::pair<std::set<uint32_t>::iterator,bool> ret;
+              ret = theData->nackedPackets_.insert(chead->getNackPid());
+              if (ret.second){
+                ELOG_DEBUG("We received PID NACK for unacked packet %u", chead->getNackPid());
+                theData->shouldSendNACK = true;
+              } else{
+                if (theData->nackedPackets_.size()>=MAP_NACK_SIZE){
+                  while(theData->nackedPackets_.size()>=MAP_NACK_SIZE){
+                    theData->nackedPackets_.erase(theData->nackedPackets_.begin());
+                  }
+                }
+                ELOG_DEBUG("We received PID NACK for ALREADY acked packet %u", chead->getNackPid());
+              }
+              if (blp != 0){
+                for (int i = 0; i<16; i++) {
+                  currentNackPos = blp & 0x0001;
+                  blp = blp >> 1;
+
+                  if (currentNackPos ==1){
+                    lostPacketSeq = chead->getNackPid() + 1 + i;
+                    ret = theData->nackedPackets_.insert(lostPacketSeq);
+                    if (ret.second){
+                      ELOG_DEBUG("We received NACK for unacked packet %u", lostPacketSeq);
+                    } else{
+                      ELOG_DEBUG("We received NACK for ALREADY acked packet %u", lostPacketSeq);
+
+                    }
+                    theData->shouldSendNACK |=ret.second;
+                  }
+                }
+              }
+              if (theData->shouldSendNACK){
+                ELOG_DEBUG("Will send NACK");
+                theData->nackSeqnum = chead->getNackPid();
+                theData->nackBlp = chead->getNackBlp();
+                theData->requestRr = true;
+
+              } else {
+                ELOG_DEBUG("I'm ignoring a NACK");
+              }
+            }
             break;
           case RTCP_PS_Feedback_PT:
             //            ELOG_DEBUG("RTCP PS FB TYPE: %u", chead->getBlockCount() );
@@ -156,10 +197,11 @@ namespace erizo{
                   if (!strncmp(uniqueId,"REMB", 4)){
                     uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
                     ELOG_DEBUG("Received REMB %lu", bitrate);
-                    if ((bitrate<theData->reportedBandwidth) || theData->reportedBandwidth==0){
-                      ELOG_DEBUG("Should send Packet REMB, before BR %lu, will send with Br %lu", theData->reportedBandwidth, bitrate);
-                      theData->reportedBandwidth = bitrate;  
+                    if (bitrate < defaultVideoBw_){
+                      theData->reportedBandwidth = bitrate;
                       theData->shouldSendREMB = true;
+                    }else{
+                      theData->reportedBandwidth = defaultVideoBw_;
                     }
                   }
                   else{
@@ -180,10 +222,11 @@ namespace erizo{
         partNum++;
       } while (totalLength < len);
     }
+    return 0;
   }
 
 
-  void RtcpProcessor::checkRtcpFb(){
+  void RtcpAggregator::checkRtcpFb(){
     boost::mutex::scoped_lock mlock(mapLock_);
     std::map<uint32_t, boost::shared_ptr<RtcpData>>::iterator it;
     for (it = rtcpData_.begin(); it != rtcpData_.end(); it++){
@@ -213,7 +256,16 @@ namespace erizo{
           rtcpHead.setSSRC(rtcpSink_->getVideoSinkSSRC());
           rtcpHead.setSourceSSRC(rtcpSource_->getVideoSourceSSRC());
         }
-        rtcpHead.setFractionLost(rtcpData->ratioLost);
+        
+        //rtcpHead.setFractionLost(rtcpData->ratioLost);
+        //Calculate ratioLost
+        uint32_t packetsReceivedinInterval = rtcpData->extendedSeqNo - rtcpData->prevExtendedSeqNo;
+        uint32_t packetsLostInInterval = rtcpData->totalPacketsLost - rtcpData->prevTotalPacketsLost;
+        double ratio = (double)packetsLostInInterval/packetsReceivedinInterval;
+        rtcpHead.setFractionLost(ratio*256);
+        rtcpData->prevTotalPacketsLost = rtcpData->totalPacketsLost;
+        rtcpData->prevExtendedSeqNo = rtcpData->extendedSeqNo;
+        
         rtcpHead.setHighestSeqnum(rtcpData->highestSeqNumReceived);      
         rtcpHead.setSeqnumCycles(rtcpData->seqNumCycles);
         rtcpHead.setLostPackets(rtcpData->totalPacketsLost);
@@ -235,11 +287,12 @@ namespace erizo{
         if (rtcpData->mediaType == VIDEO_TYPE){
           unsigned int sincelastREMB = (now.tv_sec - rtcpData->lastREMBSent.tv_sec) * 1000 + (now.tv_usec - rtcpData->lastREMBSent.tv_usec) / 1000;
           if (sincelastREMB > REMB_TIMEOUT){
+            // We dont have any more RRs, we follow what the publisher is doing to avoid congestion
             rtcpData->shouldSendREMB = true;
           }
 
           if(rtcpData->shouldSendREMB ){
-            ELOG_DEBUG("Sending Remb, since last %u ms, sending with BW: %lu", sincelastREMB, rtcpData->reportedBandwidth);
+            ELOG_DEBUG("Sending REMB, since last %u ms, sending with BW: %lu", sincelastREMB, rtcpData->reportedBandwidth);
             int theLen = this->addREMB((char*)packet_, length, rtcpData->reportedBandwidth);
             rtcpData->shouldSendREMB = false;
             rtcpData->lastREMBSent = now;
@@ -266,7 +319,7 @@ namespace erizo{
         }
 
         if (rtcpData->shouldReset){
-          rtcpData->reset(this->defaultBw_);
+          this->resetData(rtcpData, this->defaultVideoBw_);
         }
       }
       if (rtcpData->shouldSendPli){
@@ -276,7 +329,7 @@ namespace erizo{
     }
   }
 
-  int RtcpProcessor::addREMB(char* buf, int len, uint32_t bitrate){
+  int RtcpAggregator::addREMB(char* buf, int len, uint32_t bitrate){
     buf+=len;
     RtcpHeader theREMB;
     theREMB.setPacketType(RTCP_PS_Feedback_PT);
@@ -295,7 +348,7 @@ namespace erizo{
     return (len+rembLength); 
   }
 
-  int RtcpProcessor::addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc, uint32_t sinkSsrc){
+  int RtcpAggregator::addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc, uint32_t sinkSsrc){
     buf+=len;
     ELOG_DEBUG("Setting PID %u, BLP %u", seqNum , blp);
     RtcpHeader theNACK;
@@ -310,6 +363,18 @@ namespace erizo{
 
     memcpy(buf, (uint8_t*)&theNACK, nackLength);
     return (len+nackLength); 
+  }
+
+  void RtcpAggregator::resetData(boost::shared_ptr<RtcpData> data, uint32_t bandwidth){
+    data->ratioLost = 0;
+    data->requestRr = false;
+    data->shouldReset = false;
+    data->jitter = 0;
+    data->rrsReceivedInPeriod = 0;
+    if (data->reportedBandwidth > bandwidth){
+      data->reportedBandwidth = bandwidth;
+    }
+    data->lastDelay = data->lastDelay*0.6;
   }
 
 

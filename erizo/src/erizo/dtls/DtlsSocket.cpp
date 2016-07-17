@@ -6,7 +6,6 @@
 #include <cassert>
 #include <string.h>
 
-#include "DtlsFactory.h"
 #include "DtlsSocket.h"
 #include "DtlsTimer.h"
 #include "bf_dwrap.h"
@@ -40,21 +39,20 @@ int dummy_cb(int d, X509_STORE_CTX *x)
    return 1;
 }
 
-DtlsSocket::DtlsSocket(boost::shared_ptr<DtlsSocketContext> socketContext, DtlsFactory* factory, enum SocketType type):
+DtlsSocket::DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type):
    mSocketContext(socketContext),
-   mFactory(factory),
    mReadTimer(0),
    mSocketType(type),
    mHandshakeCompleted(false)
 {
    ELOG_DEBUG("Creating Dtls Socket");
    mSocketContext->setDtlsSocket(this);
-
-   assert(mFactory->mContext);
-   mSsl=SSL_new(mFactory->mContext);
+   SSL_CTX* mContext= mSocketContext->getSSLContext();
+   assert(mContext);
+   mSsl=SSL_new(mContext);
    assert(mSsl!=0);
-   mSsl->ctx = mFactory->mContext;
-   mSsl->session_ctx = mFactory->mContext;
+   mSsl->ctx = mContext;
+   mSsl->session_ctx = mContext;
 
    switch(type)
    {
@@ -85,18 +83,17 @@ DtlsSocket::DtlsSocket(boost::shared_ptr<DtlsSocketContext> socketContext, DtlsF
 
 DtlsSocket::~DtlsSocket()
 {
-   if(mReadTimer) mReadTimer->invalidate();
+  ELOG_DEBUG("Deleting Socket");
+  if(mReadTimer) mReadTimer->invalidate();
 
-   // Properly shutdown the socket and free it - note: this also free's the BIO's
-   if (mSsl != NULL) {
-      SSL_shutdown(mSsl);
-      SSL_free(mSsl);
-      mSsl = NULL;
-   }
-
-   // Ownership of the factory is basically transferred to DtlsSocket.
-   delete mFactory;
-   mFactory = NULL;
+  ELOG_DEBUG("Invalidated Timer");
+  // Properly shutdown the socket and free it - note: this also free's the BIO's
+  if (mSsl != NULL) {
+    ELOG_DEBUG("SSL Shutdown");
+    SSL_shutdown(mSsl);
+    SSL_free(mSsl);
+    mSsl = NULL;
+  }
 }
 
 void
@@ -115,9 +112,9 @@ DtlsSocket::startClient()
 bool
 DtlsSocket::handlePacketMaybe(const unsigned char* bytes, unsigned int len)
 {
-   DtlsFactory::PacketType pType=DtlsFactory::demuxPacket(bytes,len);
+   DtlsSocketContext::PacketType pType=DtlsSocketContext::demuxPacket(bytes,len);
 
-   if(pType!=DtlsFactory::dtls)
+   if(pType!=DtlsSocketContext::dtls)
       return false;
 
    BIO_reset(mInBio);
@@ -186,7 +183,7 @@ DtlsSocket::doHandshakeIteration()
       {
          if(mReadTimer) mReadTimer->invalidate();
          mReadTimer=new DtlsSocketTimer(0,this);
-         mFactory->mTimerContext->addTimer(mReadTimer,500);
+         mSocketContext->addTimerToContext(mReadTimer,500);
       }
 
       break;
@@ -238,7 +235,7 @@ DtlsSocket::checkFingerprint(const char* fingerprint, unsigned int len)
 void
 DtlsSocket::getMyCertFingerprint(char *fingerprint)
 {
-   mFactory->getMyCertFingerprint(fingerprint);
+   mSocketContext->getMyCertFingerprint(fingerprint);
 }
 
 SrtpSessionKeys*

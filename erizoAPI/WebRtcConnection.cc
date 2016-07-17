@@ -59,7 +59,7 @@ NAN_METHOD(WebRtcConnection::New) {
     int stunPort = info[3]->IntegerValue();
     int minPort = info[4]->IntegerValue();
     int maxPort = info[5]->IntegerValue();
-    bool t = (info[6]->ToBoolean())->BooleanValue();
+    bool trickle = (info[6]->ToBoolean())->BooleanValue();
 
     erizo::IceConfig iceConfig;
     if (info.Length()==11){
@@ -81,9 +81,10 @@ NAN_METHOD(WebRtcConnection::New) {
     iceConfig.stunPort = stunPort;
     iceConfig.minPort = minPort;
     iceConfig.maxPort = maxPort;
+    iceConfig.shouldTrickle = trickle;
 
     WebRtcConnection* obj = new WebRtcConnection();
-    obj->me = new erizo::WebRtcConnection(a, v, iceConfig,t, obj);
+    obj->me = new erizo::WebRtcConnection(a, v, iceConfig, obj);
     obj->msink = obj->me;
     uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
     uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 

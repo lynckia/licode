@@ -29,7 +29,7 @@ DtlsTimer::fire()
    {
       //memory mangement is overly tricky and possibly wrong...deleted by target
       //if valid is the contract. weak pointers would help.
-      delete this;
+      //delete this;
    }
 }
 
@@ -44,6 +44,12 @@ long long getTimeMS() {
   gettimeofday(&start, NULL);
   long timeMs = ((start.tv_sec) * 1000 + start.tv_usec/1000.0);
   return timeMs;
+}
+
+TestTimerContext::~TestTimerContext(){
+  if (mTimer)
+   delete mTimer;
+  mTimer = 0;
 }
 
 void

@@ -24,6 +24,7 @@ namespace erizo{
     Stats();
     virtual ~Stats();
 
+    uint32_t processRtpPacket(char* buf, int len);
     void processRtcpPacket(char* buf, int length);
     std::string getStats();
     // The video and audio SSRCs of the Client
@@ -38,6 +39,9 @@ namespace erizo{
     }
     
     private:
+    uint64_t rtpBytesReceived_, packetsReceived_;
+    struct timeval bitRateCalculationStart_;
+
     typedef std::map<std::string, uint64_t> singleSSRCstatsMap_t;
     typedef std::map <uint32_t, singleSSRCstatsMap_t> fullStatsMap_t;
     fullStatsMap_t statsPacket_;
@@ -47,6 +51,13 @@ namespace erizo{
 
     void processRtcpPacket(RtcpHeader* chead);
 
+    uint32_t getPacketsReceived(unsigned int ssrc){
+      return(statsPacket_[ssrc]["packetsReceived"]);
+    }
+
+    uint32_t getBitRateReceived(unsigned int ssrc){
+      return(statsPacket_[ssrc]["bitRateReceived"]);
+    }
 
     uint32_t getPacketsLost(unsigned int ssrc){
       return (statsPacket_[ssrc]["packetsLost"]);
@@ -118,6 +129,15 @@ namespace erizo{
           statsPacket_[ssrc]["NACK"]=1;
         }
     }
+
+    void accountRTPPacket(unsigned int ssrc){
+        if(statsPacket_[ssrc].count("receivedRTPPackets")){
+          statsPacket_[ssrc]["receivedRTPPackets"]++;
+        }else{
+          statsPacket_[ssrc]["receivedRTPPackets"]=1;
+        }
+    }
+
 
     unsigned int getSourceSSRC (unsigned int sourceSSRC, unsigned int ssrc){
       return statsPacket_[ssrc]["sourceSsrc"];

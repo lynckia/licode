@@ -73,14 +73,21 @@ namespace erizo{
       uint32_t ssrc;
       uint32_t extensionpayload:16;
       uint32_t extensionlength:16;
-      union extension_t {
+/*    RFC 5285
+        0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |       0xBE    |    0xDE       |           length=3            |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |  ID   | L=0   |     data      |  ID   |  L=1  |   data...
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            ...data   |    0 (pad)    |    0 (pad)    |  ID   | L=3   |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                          data                                 |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-        struct absSendTime_t{
-          uint32_t abssendtime;
-        } absSendTime;
-
-      } extension;
-
+*/
+      uint32_t extensions;
 
       inline RtpHeader() :
         cc(0), hasextension(0), padding(0), version(2), payloadtype(0), marker(
@@ -152,14 +159,26 @@ namespace erizo{
       inline void setExtLength(uint16_t extensionLength) {
         extensionlength = htons(extensionLength);
       }
-      inline uint32_t getAbsSendTime() {
-        return ntohl(extension.absSendTime.abssendtime);
-      }
-      inline void setAbsSendTime(uint32_t aTime) {
-        extension.absSendTime.abssendtime = htonl(aTime);
-      }
       inline int getHeaderLength() {
         return MIN_SIZE + cc * 4 + hasextension * (4 + ntohs(extensionlength) * 4);
+      }
+  };
+
+  class AbsSendTimeExtension {
+    public:
+      uint32_t ext_info:8;
+      uint32_t abs_data:24;
+      inline uint8_t getId(){
+        return ext_info >> 4;
+      }
+      inline uint8_t getLength(){
+        return (ext_info & 0x0F);
+      }
+      inline uint32_t getAbsSendTime() {
+        return ntohl(abs_data)>>8;
+      }
+      inline void setAbsSendTime(uint32_t aTime) {
+        abs_data = htonl(aTime)>>8;
       }
   };
 
@@ -412,10 +431,10 @@ namespace erizo{
         report.nackPacket.pid = htons(pid);
       }
       inline uint16_t getNackBlp(){
-        return ntohs(report.nackPacket.blp);
+        return report.nackPacket.blp;
       }
       inline void setNackBlp(uint16_t blp){
-        report.nackPacket.blp = htons(blp);
+        report.nackPacket.blp = blp;
       }
       inline void setREMBBitRate(uint64_t bitRate){
         uint64_t max = 0x3FFFF; // 18 bits

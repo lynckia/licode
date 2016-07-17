@@ -15,11 +15,30 @@ namespace erizo {
   Stats::Stats(){ 
     ELOG_DEBUG("Constructor Stats");
     theListener_ = NULL;
+    rtpBytesReceived_ = 0;
+    gettimeofday(&bitRateCalculationStart_, NULL);
   }
+  
   Stats::~Stats(){
     ELOG_DEBUG("Destructor Stats");
   }
 
+  uint32_t Stats::processRtpPacket(char* buf, int len){
+    rtpBytesReceived_+=len; 
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    uint64_t nowms = (now.tv_sec * 1000) + (now.tv_usec / 1000);
+    uint64_t start = (bitRateCalculationStart_.tv_sec * 1000) + (bitRateCalculationStart_.tv_usec / 1000);
+    uint64_t delay = nowms - start;
+    if (delay > 2000){
+      uint32_t receivedRtpBitrate_ = (8*rtpBytesReceived_*1000)/delay; // in kbps
+      rtpBytesReceived_ = 0;
+      gettimeofday(&bitRateCalculationStart_, NULL);
+      return receivedRtpBitrate_; // in bps
+    }
+    return 0;
+  }
+  
   void Stats::processRtcpPacket(char* buf, int length) {
     boost::recursive_mutex::scoped_lock lock(mapMutex_);
     char* movingBuf = buf;
@@ -79,7 +98,7 @@ namespace erizo {
               char *uniqueId = (char*)&chead->report.rembPacket.uniqueid;
               if (!strncmp(uniqueId,"REMB", 4)){
                 uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
-                ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps", chead->getREMBNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate);
+               // ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps", chead->getREMBNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate);
                 setBandwidth(bitrate, ssrc);
               }
               else{

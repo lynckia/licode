@@ -22,6 +22,8 @@ namespace erizo {
     void connectionStateChanged(IceState newState);
     std::string getMyFingerprint();
     static bool isDtlsPacket(const char* buf, int len);
+    void start();
+    void close();
     void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice);
     void onCandidate(const CandidateInfo &candidate, NiceConnection *conn);
     void write(char* data, int len);
@@ -33,7 +35,7 @@ namespace erizo {
     private:
     char protectBuf_[5000];
     char unprotectBuf_[5000];
-    boost::shared_ptr<dtls::DtlsSocketContext> dtlsRtp, dtlsRtcp;
+    boost::scoped_ptr<dtls::DtlsSocketContext> dtlsRtp, dtlsRtcp;
     boost::mutex writeMutex_,sessionMutex_;
     boost::scoped_ptr<SrtpChannel> srtp_, srtcp_;
     bool readyRtp, readyRtcp;

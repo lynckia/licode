@@ -13,6 +13,7 @@
 #include "Stats.h"
 #include "rtp/webrtc/fec_receiver_impl.h"
 #include "rtp/RtcpProcessor.h"
+#include "rtp/RtpExtensionProcessor.h"
 
 namespace erizo {
 
@@ -60,7 +61,7 @@ public:
      * Constructor.
      * Constructs an empty WebRTCConnection without any configuration.
      */
-    WebRtcConnection(bool audioEnabled, bool videoEnabled, const IceConfig& iceConfig,bool trickleEnabled, WebRtcConnectionEventListener* listener);
+    WebRtcConnection(bool audioEnabled, bool videoEnabled, const IceConfig& iceConfig, WebRtcConnectionEventListener* listener);
     /**
      * Destructor.
      */
@@ -93,13 +94,8 @@ public:
 
     int deliverAudioData(char* buf, int len);
     int deliverVideoData(char* buf, int len);
-
     int deliverFeedback(char* buf, int len);
   
-    // changes the outgoing payload type for in the given data packet
-    void changeDeliverPayloadType(dataPacket *dp, packetType type);
-    // parses incoming payload type, replaces occurence in buf
-    void parseIncomingPayloadType(char *buf, int len, packetType type);
 
     /**
      * Sends a PLI Packet 
@@ -140,62 +136,64 @@ public:
 
     void setFeedbackReports(bool shouldSendFb, uint32_t rateControl=0){
       this->shouldSendFeedback_ = shouldSendFb;
+      if (rateControl_ == 1)
+        this->videoEnabled_ = false;
       this->rateControl_ = rateControl;
     };
 
     void setSlideShowMode (bool state);
-
 
     // webrtc::RtpHeader overrides.
     int32_t OnReceivedPayloadData(const uint8_t* payloadData, const uint16_t payloadSize,const webrtc::WebRtcRTPHeader* rtpHeader);
     bool OnRecoveredPacket(const uint8_t* packet, int packet_length);
 
 private:
-  static const int STATS_INTERVAL = 5000;
   
-  SdpInfo remoteSdp_;
-  SdpInfo localSdp_;
+    SdpInfo remoteSdp_;
+    SdpInfo localSdp_;
+    bool audioEnabled_;
+    bool videoEnabled_;
+    bool trickleEnabled_;
+    bool shouldSendFeedback_;
+    bool slideShowMode_;
+    bool sending_;
+    int bundle_;
+    WebRtcConnectionEventListener* connEventListener_;
+    IceConfig iceConfig_;
+    RtpExtensionProcessor extProcessor_;
 
-  boost::shared_ptr<RtcpProcessor> rtcpProcessor_;
+    uint32_t rateControl_; //Target bitrate for hacky rate control in BPS 
+    uint16_t seqNo_, grace_, sendSeqNo_, seqNoOffset_;
 
-  Stats thisStats_;
+    int stunPort_, minPort_, maxPort_;
+    std::string stunServer_;
 
-	WebRTCEvent globalState_;
+    webrtc::FecReceiverImpl fec_receiver_;
+    boost::condition_variable cond_;
 
-  int bundle_;
-  boost::mutex receiveVideoMutex_, updateStateMutex_; //, slideShowMutex_;
-  boost::thread send_Thread_;
-	std::queue<dataPacket> sendQueue_;
-	WebRtcConnectionEventListener* connEventListener_;
-  boost::scoped_ptr<Transport> videoTransport_, audioTransport_;
+    struct timeval now_, mark_;
 
-  bool sending_;
-	void sendLoop();
-	int deliverAudioData_(char* buf, int len);
-	int deliverVideoData_(char* buf, int len);
-  int deliverFeedback_(char* buf, int len);
-  std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
+    boost::shared_ptr<RtcpProcessor> rtcpProcessor_;
+    boost::scoped_ptr<Transport> videoTransport_, audioTransport_;
+    
+    Stats thisStats_;
+    WebRTCEvent globalState_;
 
-  uint32_t stripRtpHeaders(char* buf, int len);
+    boost::mutex receiveVideoMutex_, updateStateMutex_; //, slideShowMutex_;
+    boost::thread send_Thread_;
+    std::queue<dataPacket> sendQueue_;
 
-  
-  bool audioEnabled_;
-  bool videoEnabled_;
-  bool trickleEnabled_;
-  bool shouldSendFeedback_;
-  bool slideShowMode_;
-  uint32_t rateControl_; //Target bitrate for hacky rate control in BPS 
-  uint16_t seqNo_, grace_, sendSeqNo_, seqNoOffset_;
-  
-  IceConfig iceConfig_;
-  int stunPort_, minPort_, maxPort_;
-  std::string stunServer_;
+    void sendLoop();
+    int deliverAudioData_(char* buf, int len);
+    int deliverVideoData_(char* buf, int len);
+    int deliverFeedback_(char* buf, int len);
 
-  webrtc::FecReceiverImpl fec_receiver_;
-	boost::condition_variable cond_;
-
-
-  struct timeval now_, mark_;
+    //Utils
+    std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
+    // changes the outgoing payload type for in the given data packet
+    void changeDeliverPayloadType(dataPacket *dp, packetType type);
+    // parses incoming payload type, replaces occurence in buf
+    void parseIncomingPayloadType(char *buf, int len, packetType type);
 };
 
 } /* namespace erizo */
