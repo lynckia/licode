@@ -450,8 +450,9 @@ namespace erizo {
 
   void NiceConnection::updateIceState(IceState state) {
 
-    if(state<=iceState_) {
-      ELOG_WARN("Unexpected change in iceState from %u to %u", iceState_, state);
+    if(state <= iceState_) {
+      if (state != NICE_READY)
+        ELOG_WARN("Unexpected change in iceState from %u to %u", iceState_, state);
       return;
     }
 
