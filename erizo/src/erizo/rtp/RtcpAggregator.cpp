@@ -11,8 +11,8 @@ namespace erizo{
 
   RtcpAggregator::RtcpAggregator (MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw):
     RtcpProcessor(msink, msource, maxVideoBw), defaultVideoBw_(maxVideoBw/2){
-    ELOG_DEBUG("Starting RtcpAggregator");
-  }
+      ELOG_DEBUG("Starting RtcpAggregator");
+    }
 
   void RtcpAggregator::addSourceSsrc(uint32_t ssrc){
     boost::mutex::scoped_lock mlock(mapLock_);
@@ -35,7 +35,7 @@ namespace erizo{
   void RtcpAggregator::setPublisherBW(uint32_t bandwidth){
     defaultVideoBw_ = (bandwidth*1.2) > maxVideoBw_? maxVideoBw_:(bandwidth*1.2);
   }
-  
+
   void RtcpAggregator::analyzeSr(RtcpHeader* chead){
     uint32_t recvSSRC = chead->getSSRC();
     // We try to add it just in case it is not there yet (otherwise its noop)
@@ -60,6 +60,10 @@ namespace erizo{
 
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
     if (chead->isFeedback()) {      
+      if (chead->getBlockCount() == 0 && (chead->getLength()+1) * 4  == len){
+        ELOG_DEBUG("Ignoring empty RR");
+        return 0;
+      }
       uint32_t sourceSsrc = chead->getSourceSSRC();
       // We try to add it just in case it is not there yet (otherwise its noop)
       this->addSourceSsrc(sourceSsrc);
@@ -256,7 +260,7 @@ namespace erizo{
           rtcpHead.setSSRC(rtcpSink_->getVideoSinkSSRC());
           rtcpHead.setSourceSSRC(rtcpSource_->getVideoSourceSSRC());
         }
-        
+
         //rtcpHead.setFractionLost(rtcpData->ratioLost);
         //Calculate ratioLost
         uint32_t packetsReceivedinInterval = rtcpData->extendedSeqNo - rtcpData->prevExtendedSeqNo;
@@ -265,7 +269,7 @@ namespace erizo{
         rtcpHead.setFractionLost(ratio*256);
         rtcpData->prevTotalPacketsLost = rtcpData->totalPacketsLost;
         rtcpData->prevExtendedSeqNo = rtcpData->extendedSeqNo;
-        
+
         rtcpHead.setHighestSeqnum(rtcpData->highestSeqNumReceived);      
         rtcpHead.setSeqnumCycles(rtcpData->seqNumCycles);
         rtcpHead.setLostPackets(rtcpData->totalPacketsLost);
@@ -307,7 +311,7 @@ namespace erizo{
         rtcpData->lastRrSent = now;
         if (dtScheduled>rtcpData->nextPacketInMs) // Every scheduled packet we reset
           rtcpData->shouldReset = true;
-          rtcpData->lastRrWasScheduled = now;
+        rtcpData->lastRrWasScheduled = now;
         // schedule next packet
         float random = (rand()%100+50)/100.0;
         if ( rtcpData->mediaType == AUDIO_TYPE){

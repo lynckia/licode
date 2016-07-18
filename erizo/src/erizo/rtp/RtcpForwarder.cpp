@@ -10,8 +10,8 @@ namespace erizo{
 
   RtcpForwarder::RtcpForwarder (MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw):
     RtcpProcessor(msink, msource, maxVideoBw), defaultVideoBw_(maxVideoBw/2){
-    ELOG_DEBUG("Starting RtcpForwarder");
-  }
+      ELOG_DEBUG("Starting RtcpForwarder");
+    }
 
   void RtcpForwarder::addSourceSsrc(uint32_t ssrc){
     boost::mutex::scoped_lock mlock(mapLock_);
@@ -33,7 +33,7 @@ namespace erizo{
 
   void RtcpForwarder::setPublisherBW(uint32_t bandwidth){
   }
-  
+
   void RtcpForwarder::analyzeSr(RtcpHeader* chead){
     uint32_t recvSSRC = chead->getSSRC();
     // We try to add it just in case it is not there yet (otherwise its noop)
@@ -57,6 +57,10 @@ namespace erizo{
   int RtcpForwarder::analyzeFeedback(char *buf, int len) {
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
     if (chead->isFeedback()) {      
+      if (chead->getBlockCount() == 0 && (chead->getLength()+1) * 4  == len){
+        ELOG_DEBUG("Ignoring empty RR");
+        return 0;
+      }
       uint32_t sourceSsrc = chead->getSourceSSRC();
       // We try to add it just in case it is not there yet (otherwise its noop)
       this->addSourceSsrc(sourceSsrc);
