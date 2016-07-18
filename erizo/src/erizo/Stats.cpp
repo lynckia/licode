@@ -63,6 +63,9 @@ namespace erizo {
       case RTCP_SDES_PT:
         ELOG_DEBUG("SDES");
         break;
+      case RTCP_BYE:
+        ELOG_DEBUG("RTCP BYE");
+        break;
       case RTCP_Receiver_PT:
         setFractionLost (chead->getFractionLost(), ssrc);
         setPacketsLost (chead->getLostPackets(), ssrc);
