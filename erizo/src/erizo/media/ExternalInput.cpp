@@ -217,6 +217,7 @@ namespace erizo {
       }
       av_free_packet(&orig_pkt);
     }
+    ELOG_DEBUG("Ended stream to play %s", url_.c_str());
     running_=false;
     av_read_pause(context_);
   }
