@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if [ -d $LIB_DIR ]; then
 	rm -rf ../build

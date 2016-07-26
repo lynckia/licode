@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 FILE=../dist/erizo.js
 rm $FILE
 cat ../lib/socket.io.js >> $FILE

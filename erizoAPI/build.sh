@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 if hash node-waf 2>/dev/null; then
   echo 'building with node-waf'
   rm -rf build

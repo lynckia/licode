@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 FILE=../build/erizofc.js
 TARGET=../dist/erizofc.js
 rm $FILE

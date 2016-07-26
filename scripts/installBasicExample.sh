@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`

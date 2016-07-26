@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`
 PATHNAME=`dirname $SCRIPT`
@@ -81,7 +81,7 @@ install_libsrtp(){
 }
 
 install_mediadeps(){
-  brew install opus libvpx x264 
+  brew install opus libvpx x264
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-11.6.tar.gz
@@ -100,7 +100,7 @@ install_mediadeps(){
 }
 
 install_mediadeps_nogpl(){
-  brew install opus libvpx 
+  brew install opus libvpx
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-11.6.tar.gz

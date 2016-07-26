@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo [erizo_controller] Installing node_modules for erizo_controller
 

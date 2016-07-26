@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 runcmake() {
    cmake ../src
    echo "Done"

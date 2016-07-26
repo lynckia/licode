@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`
 PATHNAME=`dirname $SCRIPT`
@@ -42,14 +42,14 @@ check_proxy(){
   else
     echo "http proxy configured, configuring npm"
     npm config set proxy $http_proxy
-  fi  
+  fi
 
   if [ -z "$https_proxy" ]; then
     echo "No https proxy set, doing nothing"
   else
     echo "https proxy configured, configuring npm"
     npm config set https-proxy $https_proxy
-  fi  
+  fi
 }
 
 os_type()
@@ -105,7 +105,7 @@ checkOrInstallnpm(){
 }
 
 install_apt_deps(){
-  echo "$(os_type) installation" 
+  echo "$(os_type) installation"
   case $(os_type) in
     CentOS )
       sudo yum install npm --enablerepo=epel
@@ -126,7 +126,7 @@ install_apt_deps(){
       sudo yum install log4cxx-devel
       sudo yum install log4cxx
       #TODO: Check JDK package
-      checkOrInstallnpm node-gyp     
+      checkOrInstallnpm node-gyp
       ;;
     Debian )
       sudo apt-get update
@@ -158,7 +158,7 @@ install_apt_deps(){
       checkOrInstallaptitude libvpx-dev
       checkOrInstallaptitude libtool
       checkOrInstallaptitude automake
-      checkOrInstallaptitude curl      
+      checkOrInstallaptitude curl
       checkOrInstallaptitude mongodb
       checkOrInstallaptitude rabbitmq-server
       checkOrInstallaptitude libboost-test-dev
@@ -202,7 +202,7 @@ install_libnice(){
       ./configure --prefix=$PREFIX_DIR
       make -s V=0
       make install
-    fi    
+    fi
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -280,7 +280,7 @@ install_libsrtp(){
   cd $CURRENT_DIR
 }
 
-cleanup(){  
+cleanup(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     rm -r libnice*
