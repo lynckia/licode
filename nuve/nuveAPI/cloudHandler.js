@@ -132,7 +132,7 @@ var addNewAmazonErizoController = function(privateIP, hostname, port, ssl, callb
             addNewPrivateErizoController(publicIP, hostname, port, ssl, callback);
         }
     });
-}
+};
 
 var addNewPrivateErizoController = function (ip, hostname, port, ssl, callback) {
     "use strict";
