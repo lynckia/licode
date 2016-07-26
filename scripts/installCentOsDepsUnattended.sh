@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`
 PATHNAME=`dirname $SCRIPT`
@@ -33,14 +33,14 @@ check_proxy(){
   else
     echo "http proxy configured, configuring npm"
     npm config set proxy $http_proxy
-  fi  
+  fi
 
   if [ -z "$https_proxy" ]; then
     echo "No https proxy set, doing nothing"
   else
     echo "https proxy configured, configuring npm"
     npm config set https-proxy $https_proxy
-  fi  
+  fi
 }
 
 install_apt_deps(){
@@ -71,7 +71,7 @@ install_libnice(){
     tar -zxvf libnice-0.1.4.tar.gz
     cd libnice-0.1.4
     patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR 
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR
     make -s V=0
     make install
     cd $CURRENT_DIR
@@ -157,7 +157,7 @@ install_glib2(){
     tar -xvf glib-2.38.2.tar.xz
     cd glib-2.38.2
     ./configure --prefix=$PREFIX_DIR
-    make 
+    make
     make install
     cd $CURRENT_DIR
   else
@@ -166,7 +166,7 @@ install_glib2(){
   fi
 
 }
-cleanup(){  
+cleanup(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     rm -r libnice*
