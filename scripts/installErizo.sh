@@ -12,6 +12,18 @@ PREFIX_DIR=$LIB_DIR/build/
 
 export ERIZO_HOME=$ROOT/erizo
 
+NODE_VERSION=`node -v`
+
+export ERIZO_HOME=$ROOT/erizo
+
+if [[ $NODE_VERSION != *"0.10"* ]]
+then
+  echo "================================================================"
+  echo "     WARNING: Your node version is curently $NODE_VERSION."
+  echo "     Licode only supports node version 0.10.x. Errors may occur."
+  echo "================================================================"
+fi
+
 usage()
 {
 cat << EOF
