@@ -8,10 +8,6 @@ BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
-
-
-export ERIZO_HOME=$ROOT/erizo
-
 NODE_VERSION=`node -v`
 
 export ERIZO_HOME=$ROOT/erizo
