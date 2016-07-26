@@ -17,11 +17,7 @@ config.logger.config_file = '../log4js_configuration.json'; //default value: "..
  It's used by Nuve and ErizoController
 **********************************************************/
 config.cloudProvider = {};
-config.cloudProvider.name = '';
-//In Amazon Ec2 instances you can specify the zone host. By default is 'ec2.us-east-1a.amazonaws.com' 
-config.cloudProvider.host = '';
-config.cloudProvider.accessKey = '';
-config.cloudProvider.secretAccessKey = '';
+config.cloudProvider.name = ''; // currently only 'amazon' supported
 
 /*********************************************************
  NUVE CONFIGURATION
