@@ -255,22 +255,22 @@ if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicI
         ec2.call('DescribeInstances', {'Filter.1.Name':'private-ip-address', 'Filter.1.Value':privateIP}, function (err, response) {
             if (err) {
                 log.info('Error: ', err);
+                fillErizos();
             } else if (response) {
                 publicIP = response.reservationSet.item.instancesSet.item.ipAddress;
                 log.info('public IP: ', publicIP);
+                fillErizos();
             }
         });
     }
 } else {
     publicIP = GLOBAL.config.erizoAgent.publicIP;
+    fillErizos();
 }
 
 // Will clean all erizoJS on those signals
 process.on('SIGINT', cleanErizos); 
 process.on('SIGTERM', cleanErizos);
-
-fillErizos();
-
 amqper.connect(function () {
     "use strict";
 
