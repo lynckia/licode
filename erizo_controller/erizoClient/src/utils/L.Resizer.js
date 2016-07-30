@@ -3,17 +3,17 @@
  * directory of this distribution and at
  * https://github.com/marcj/css-element-queries/blob/master/LICENSE.
  */
+
+var L = L || {};
 ;
 (function() {
-
-    this.L = this.L || {};
 
     /**
      *
      * @type {Function}
      * @constructor
      */
-    this.L.ElementQueries = function() {
+    L.ElementQueries = function() {
         /**
          *
          * @param element
@@ -242,7 +242,7 @@
      *
      * @constructor
      */
-    this.L.ResizeSensor = function(element, callback) {
+    L.ResizeSensor = function(element, callback) {
         /**
          * Adds a listener to the over/under-flow event.
          *
