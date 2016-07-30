@@ -20,7 +20,7 @@ Erizo.Connection = function (spec) {
         that = Erizo.FirefoxStack(spec);
     } else if (that.browser === 'bowser'){
         L.Logger.debug("Bowser Stack");
-        that = Erizo.BowserStack(spec); 
+        that = Erizo.BowserStack(spec);
     } else if (that.browser === 'chrome-stable') {
         L.Logger.debug("Chrome Stable Stack");
         that = Erizo.ChromeStableStack(spec);
@@ -44,13 +44,13 @@ Erizo.getBrowser = function () {
 
     var browser = "none";
 
-    if (typeof module!=='undefined' && module.exports){
+    if (typeof window === 'undefined' && module.exports){
         browser = "fake";
     }else if (window.navigator.userAgent.match("Firefox") !== null) {
         // Firefox
         browser = "mozilla";
     } else if (window.navigator.userAgent.match("Bowser") !==null){
-        browser = "bowser";    
+        browser = "bowser";
     } else if (window.navigator.userAgent.match("Chrome") !==null) {
         if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 26) {
             browser = "chrome-stable";
@@ -108,10 +108,10 @@ Erizo.GetUserMedia = function (config, callback, error) {
                         }
                         var theId = response.streamId;
                         if(config.video.mandatory!= undefined){
-                            theConfig.video = config.video;                           
+                            theConfig.video = config.video;
                             theConfig.video.mandatory.chromeMediaSource = 'desktop';
                             theConfig.video.mandatory.chromeMediaSourceId = theId;
-                            
+
                         }else{
                             theConfig = {video: {mandatory: {chromeMediaSource: 'desktop',  chromeMediaSourceId: theId }}};
                         }
@@ -128,11 +128,10 @@ Erizo.GetUserMedia = function (config, callback, error) {
                 L.Logger.error("This browser does not support ScreenSharing");
         }
     } else {
-      if (typeof module !== 'undefined' && module.exports) {
+      if (typeof window === 'undefined' && module.exports) {
         L.Logger.error('Video/audio streams not supported in erizofc yet');
       } else {
         navigator.getMedia(config, callback, error);
       }
     }
 };
-
