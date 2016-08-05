@@ -11,7 +11,6 @@ function getParameterByName(name) {
 function testConnection () {
   window.location = "/connection_test.html";
 }
-
 function startRecording () {
   if (room !== undefined){
     if (!recording){
@@ -30,6 +29,8 @@ function startRecording () {
 window.onload = function () {
   recording = false;
   var screen = getParameterByName("screen");
+  var roomName = getParameterByName("room") || "basicExampleRoom";
+  console.log("Selected Room", room);
   var config = {audio: true, video: true, data: true, screen: screen, videoSize: [640, 480, 640, 480]};
   // If we want screen sharing we have to put our Chrome extension id. The default one only works in our Lynckia test servers.
   // If we are not using chrome, the creation of the stream will fail regardless.
@@ -37,11 +38,11 @@ window.onload = function () {
     config.extensionId = "okeephmleflklcdebijnponpabbmmgeo";
   }
   localStream = Erizo.Stream(config);
-  var createToken = function(userName, role, callback) {
+  var createToken = function(userName, role, roomName, callback) {
 
     var req = new XMLHttpRequest();
     var url = serverUrl + 'createToken/';
-    var body = {username: userName, role: role};
+    var body = {username: userName, role: role, room:roomName};
 
     req.onreadystatechange = function () {
       if (req.readyState === 4) {
@@ -54,7 +55,7 @@ window.onload = function () {
     req.send(JSON.stringify(body));
   };
 
-  createToken("user", "presenter", function (response) {
+  createToken("user", "presenter", roomName, function (response) {
     var token = response;
     console.log(token);
     room = Erizo.Room({token: token});
