@@ -1,6 +1,7 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";  // We need this for testing with self signed certs
 
 var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest,
+    nodeUrl = require ('url'),
     Erizo = require('./erizofc'),
     NativeStack = require ('./NativeStack.js');
 
@@ -8,17 +9,29 @@ Erizo.Connection = NativeStack.FakeConnection;
 var logger = require('./logger').logger;
 var log = logger.getLogger("ErizoSimpleNativeConnection");
 
+
 exports.ErizoSimpleNativeConnection = function (spec, callback, error){
     var that = {};
 
     var localStream = {};
-    var room;
+    var room="";
     that.isActive = false;
     localStream.getID = function(){ return 0};
     var createToken = function(userName, role, callback) {
 
         var req = new XMLHttpRequest();
-        var url = spec.serverUrl + 'createToken/';
+        var theUrl = nodeUrl.parse(spec.serverUrl, true);
+        if (theUrl.protocol !=="https")
+            log.warn("Protocol is not https");
+        
+        if (theUrl.query.room){
+            room = theUrl.query.room;
+            log.info("will Connect to Room", room);
+        }
+
+        theUrl.pathname = theUrl.pathname + "createToken/";
+       
+        var url = nodeUrl.format(theUrl);
         log.info("Url to createToken", url);
         var body = {username: userName, role: role};
 
