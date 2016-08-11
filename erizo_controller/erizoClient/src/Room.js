@@ -487,7 +487,7 @@ Erizo.Room = function (spec) {
                         stream.pc.oniceconnectionstatechange = function (state) {
                             if (state === 'failed') {
                                 if (that.state !== DISCONNECTED && !stream.failed) {
-                                    L.Logger.warning("Stream", stream.getID(), "has failed after succesfuly ICE checks");
+                                    L.Logger.warning("Stream", stream.getID(), "has failed after succesful ICE checks");
                                     var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Publishing stream failed after connection", stream:stream });
                                     that.dispatchEvent(disconnectEvt);
                                     that.unpublish(stream);
