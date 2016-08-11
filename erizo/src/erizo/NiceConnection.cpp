@@ -437,7 +437,7 @@ namespace erizo {
           }
         }
       }else{
-        ELOG_DEBUG("NICE FAIL but we haven't received all candidates");
+        ELOG_WARN("NICE FAIL but we haven't received all candidates");
         return;
       }
     }
