@@ -12,6 +12,7 @@ GLOBAL.config.erizoAgent.maxProcesses = GLOBAL.config.erizoAgent.maxProcesses ||
 GLOBAL.config.erizoAgent.prerunProcesses = GLOBAL.config.erizoAgent.prerunProcesses === undefined ? 1 : GLOBAL.config.erizoAgent.prerunProcesses;
 GLOBAL.config.erizoAgent.publicIP = GLOBAL.config.erizoAgent.publicIP || '';
 GLOBAL.config.erizoAgent.instanceLogDir = GLOBAL.config.erizoAgent.instanceLogDir || '.';
+GLOBAL.config.erizoAgent.useIndividualLogFiles =  GLOBAL.config.erizoAgent.useIndividualLogFiles|| false;
 
 var BINDED_INTERFACE_NAME = GLOBAL.config.erizoAgent.networkInterface;
 
@@ -19,10 +20,11 @@ var BINDED_INTERFACE_NAME = GLOBAL.config.erizoAgent.networkInterface;
 var getopt = new Getopt([
   ['r' , 'rabbit-host=ARG'            , 'RabbitMQ Host'],
   ['g' , 'rabbit-port=ARG'            , 'RabbitMQ Port'],
-  ['l' , 'logging-config-file=ARG'    , 'Logging Config File'],
   ['b' , 'rabbit-heartbeat=ARG'       , 'RabbitMQ AMQP Heartbeat Timeout'],
-  ['M' , 'maxProcesses=ARG'           , 'Stun Server URL'],
-  ['P' , 'prerunProcesses=ARG'        , 'Default video Bandwidth'],
+  ['l' , 'logging-config-file=ARG'    , 'Logging Config File'],
+  ['M' , 'max-processes=ARG'           , 'Stun Server URL'],
+  ['P' , 'prerun-processes=ARG'        , 'Default video Bandwidth'],
+  ['I' , 'individual-logs'             , 'Use individual log files for ErizoJS processes'],
   ['m' , 'metadata=ARG'               , 'JSON metadata'],
   ['h' , 'help'                       , 'display this help']
 ]);
@@ -51,9 +53,18 @@ for (var prop in opt.options) {
                 GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
                 GLOBAL.config.rabbit.heartbeat = value;
                 break;
-            case "logging-config-file":
-                GLOBAL.config.logger = GLOBAL.config.logger || {};
-                GLOBAL.config.logger.config_file = value;
+            case "max-processes":
+                GLOBAL.config.erizoAgent = GLOBAL.config.erizoAgent || {};
+                GLOBAL.config.erizoAgent.maxProcesses = value;
+                break;
+            case "prerun-processes":
+                GLOBAL.config.erizoAgent = GLOBAL.config.erizoAgent || {};
+                GLOBAL.config.erizoAgent.prerunProcesses = value;
+                break;
+            case "individual-logs":
+                GLOBAL.config.erizoAgent = GLOBAL.config.erizoAgent || {};
+                GLOBAL.config.erizoAgent.useIndividualLogFiles = true;
+
                 break;
             case "metadata":
                 metadata = JSON.parse(value);
@@ -107,9 +118,18 @@ var launchErizoJS = function() {
     log.info("Launching a new ErizoJS process");
     var id = guid();
     var fs = require('fs');
-    var out = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
-    var err = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
-    var erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, privateIP, publicIP], { detached: true, stdio: [ 'ignore', out, err ] });
+    var erizoProcess, out, err;
+    if (GLOBAL.config.erizoAgent.useIndividualLogFiles){
+        out = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
+        err = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
+        erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, privateIP, publicIP], { detached: true, stdio: [ 'ignore', out, err ] });
+    }else{
+        erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, privateIP, publicIP], { detached: true, stdio: [ 'ignore', 'pipe', 'pipe' ] });
+        erizoProcess.stdout.setEncoding('utf8');
+        erizoProcess.stdout.on('data', function (message) {
+            console.log("[erizo-"+id+"]",message);
+        });
+    }
     erizoProcess.unref();
     erizoProcess.on('close', function (code) {
         log.info("ErizoJS", id, " has closed");
@@ -120,14 +140,15 @@ var launchErizoJS = function() {
         } else if (index2 > -1) {
             erizos.splice(index2, 1);
         }
+
         if (out!=undefined){
             fs.close(out, function (message){
                 if (message){
                     log.error("Error while closing log file", message);
                 }
-            }
-            );
+            });
         }
+
         if(err!=undefined){
             fs.close(err, function (message){
                 if (message){

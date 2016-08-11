@@ -118,15 +118,27 @@ config.erizoAgent.prerunProcesses = 1; // default value: 1
 // Public erizoAgent IP for ICE candidates (useful when behind NATs)
 // Use '' to automatically get IP from the interface
 config.erizoAgent.publicIP = ''; //default value: ''
+
 // Use the name of the inferface you want to bind for ICE candidates
 // config.erizoAgent.networkInterface = 'eth1' // default value: undefined
+
+//Use individual log files for each of the started erizoJS processes
+//This files will be named erizo-ERIZO_ID_HASH.log
+config.erizoAgent.useIndividualLogFiles = false;
+
 // Custom log directory for agent instance log files.
+// If useIndividualLogFiles is enabled, files will go here
+// Default is [licode_path]/erizo_controller/erizoAgent
 // config.erizoAgent.instanceLogDir = '/path/to/dir';
+
 
 /*********************************************************
  ERIZO JS CONFIGURATION
 **********************************************************/
 config.erizo = {};
+
+//Erizo Logs are piped through erizoAgent by default
+//you can control log levels in [licode_path]/erizo_controller/erizoAgent/log4cxx.properties
 
 //STUN server IP address and port to be used by the server.
 //if '' is used, the address is discovered locally
