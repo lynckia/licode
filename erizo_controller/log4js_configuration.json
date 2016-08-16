@@ -17,7 +17,6 @@
     "ErizoAgent": "INFO",
     "ErizoAgentReporter": "ERROR",
     "Ecch": "INFO",
-    "ErizoJS" : "DEBUG",
     "RoomController": "DEBUG",
     "RPCPublic":"ERROR"
   }
