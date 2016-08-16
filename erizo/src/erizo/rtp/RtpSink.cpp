@@ -9,7 +9,7 @@
 using boost::asio::ip::udp;
 
 namespace erizo {
-  DEFINE_LOGGER(RtpSink, "RtpSink");
+  DEFINE_LOGGER(RtpSink, "rtp.RtpSink");
 
   RtpSink::RtpSink(const std::string& url, const std::string& port, int feedbackPort) {
     resolver_.reset(new udp::resolver(io_service_));

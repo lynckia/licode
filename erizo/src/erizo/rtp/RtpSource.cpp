@@ -10,7 +10,7 @@
 using boost::asio::ip::udp;
 
 namespace erizo {
-  DEFINE_LOGGER(RtpSource, "RtpSource");
+  DEFINE_LOGGER(RtpSource, "rtp.RtpSource");
 
   RtpSource::RtpSource(const int mediaPort, const std::string& feedbackDir, 
       const std::string& feedbackPort){

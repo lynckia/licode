@@ -189,7 +189,7 @@ namespace erizo {
     }
 
     if (dataLength <= 0) {
-      ELOG_DEBUG("Error parsing VP8 payload descriptor; payload too short");
+      ELOG_WARN("Error parsing VP8 payload descriptor; payload too short");
       return vp8;
     }
 
@@ -203,7 +203,7 @@ namespace erizo {
     }
     if (0 == ParseVP8FrameSize(vp8, dataPtr, dataLength)) {
       if (vp8->frameWidth != 640){
-        ELOG_DEBUG("VP8 Frame width changed! = %d need postprocessing", vp8->frameWidth);
+        ELOG_WARN("VP8 Frame width changed! = %d need postprocessing", vp8->frameWidth);
       }
     }
     vp8->data = dataPtr;

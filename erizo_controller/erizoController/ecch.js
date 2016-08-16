@@ -3,7 +3,7 @@
 var logger = require('./../common/logger').logger;
 
 // Logger
-var log = logger.getLogger("ECCH");
+var log = logger.getLogger("Ecch");
 
 var EA_TIMEOUT = 30000;
 var GET_EA_INTERVAL = 5000;

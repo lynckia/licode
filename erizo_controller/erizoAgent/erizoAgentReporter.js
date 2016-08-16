@@ -3,7 +3,7 @@
 var logger = require('./../common/logger').logger;
 
 // Logger
-var log = logger.getLogger("REPORTER");
+var log = logger.getLogger("ErizoAgentReporter");
 
 var os = require('os');
 
