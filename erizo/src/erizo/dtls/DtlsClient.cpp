@@ -402,5 +402,6 @@ void DtlsSocketContext::handshakeCompleted()
 
 void DtlsSocketContext::handshakeFailed(const char *err)
 {
-  ELOG_WARN("DTLS Handshake Failure");
+  ELOG_WARN("DTLS Handshake Failure %s", err);
+  receiver->onHandshakeFailed(this, std::string(err));
 }

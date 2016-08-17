@@ -275,7 +275,12 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
     ELOG_DEBUG("%s - Ready!!!", transport_name.c_str());
     updateTransportState(TRANSPORT_READY);
   }
+}
 
+void DtlsTransport::onHandshakeFailed(DtlsSocketContext *ctx, const std::string error){
+  ELOG_WARN("%s - Handshake failed: error %s", transport_name.c_str(), error.c_str());
+  running_ = false;
+  updateTransportState(TRANSPORT_FAILED);
 }
 
 std::string DtlsTransport::getMyFingerprint() {

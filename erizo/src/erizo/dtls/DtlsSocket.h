@@ -140,8 +140,9 @@ class DtlsSocket
 class DtlsReceiver
 {
 public:
-      virtual void writeDtls(DtlsSocketContext *ctx, const unsigned char* data, unsigned int len)=0;
+      virtual void writeDtls(DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) = 0;
       virtual void onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey, std::string serverKey, std::string srtp_profile) = 0;
+      virtual void onHandshakeFailed(DtlsSocketContext *ctx, const std::string error) = 0;
 };
 
 class DtlsSocketContext

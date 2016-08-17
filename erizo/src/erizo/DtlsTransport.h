@@ -29,6 +29,7 @@ namespace erizo {
     void write(char* data, int len);
     void writeDtls(dtls::DtlsSocketContext *ctx, const unsigned char* data, unsigned int len);
     void onHandshakeCompleted(dtls::DtlsSocketContext *ctx, std::string clientKey, std::string serverKey, std::string srtp_profile);
+    void onHandshakeFailed(dtls::DtlsSocketContext *ctx, const std::string error);
     void updateIceState(IceState state, NiceConnection *conn);
     void processLocalSdp(SdpInfo *localSdp_);
 
