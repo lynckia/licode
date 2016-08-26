@@ -29,6 +29,12 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
     extended: true
 }));
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
 
 //app.set('views', __dirname + '/../views/');
 //disable layout
@@ -42,7 +48,6 @@ var defaultRoomName = "basicExampleRoom";
 var getOrCreateRoom = function (roomName, callback) {
 
     if (roomName == defaultRoomName && defaultRoom) {
-        console.log("It's the default Room", roomName);
         callback(defaultRoom);
         return;
     }
@@ -54,14 +59,12 @@ var getOrCreateRoom = function (roomName, callback) {
         for (var room in rooms) {
             if (rooms[room].name === roomName && rooms[room].data && rooms[room].data.basicExampleRoom){
                 theRoom = rooms[room]._id;
-                console.log("Found Room", roomName);
                 callback(theRoom);
                 return;
             }
         }
         N.API.createRoom(roomName, function (roomID) {
             theRoom = roomID._id;
-            console.log("Created Room", theRoom);
             callback(theRoom);
         }, function(){}, {data: {basicExampleRoom:true}});
     });
@@ -74,10 +77,8 @@ var deleteRoomsIfEmpty = function (theRooms, callback) {
     var theRoom = theRooms.pop()
     N.API.getUsers(theRoom._id, function(userlist){
         var users = JSON.parse(userlist);
-        console.log("Checking room", theRoom.name, "users", Object.keys(users).length);
         if (Object.keys(users).length === 0){
             N.API.deleteRoom(theRoom._id, function(res){
-                console.log("Deleted Room", theRoom.name);
                 if (theRooms.length > 0){
                     deleteRoomsIfEmpty(theRooms, callback);
                 }
@@ -91,7 +92,6 @@ var deleteRoomsIfEmpty = function (theRooms, callback) {
 }
 
 var cleanExampleRooms = function (callback) {
-    console.log("Cleaning old BasicExample Rooms");
     N.API.getRooms(function (roomlist) {
         "use strict";
         var rooms = JSON.parse(roomlist);
@@ -126,6 +126,7 @@ app.get('/getUsers/:room', function(req, res) {
 
 app.post('/createToken/', function(req, res) {
     "use strict";
+    console.log(req.body);
     var room = defaultRoomName;
     if (req.body.room && !isNaN(req.body.room))
         room = req.body.room
@@ -158,12 +159,11 @@ app.use(function(req, res, next) {
 });
 
 cleanExampleRooms(function(res) {
-    console.log("Rooms Clean");
     getOrCreateRoom(defaultRoomName, function (roomId) {
-        console.log("Got default Room", roomId);
         defaultRoom = roomId;
         app.listen(3001);
         var server = https.createServer(options, app);
+        console.log("BasicExample started");
         server.listen(3004);
 
     });
