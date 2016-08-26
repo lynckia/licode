@@ -43,7 +43,7 @@ exports.RoomController = function (spec) {
                             dispatchEvent("unpublish", erizos[erizo_id].publishers[p]);
                         }
                     } else {
-                        log.warn("ErizoJS", erizo_id, "is empty and does not respond, removing");
+                        log.debug("ErizoJS", erizo_id, "is empty and does not respond, removing");
                     }
                     ecch.deleteErizoJS(erizo_id);
                     delete erizos[erizo_id];
@@ -169,7 +169,7 @@ exports.RoomController = function (spec) {
 
         if (publishers[publisher_id] === undefined) {
 
-            log.info("Adding publisher peer_id ", publisher_id, "options", options);;
+            log.info("Adding publisher peer_id ", publisher_id, "options", JSON.stringify(options));;
 
             // We create a new ErizoJS with the publisher_id.
             getErizoJS(function(erizo_id, agent_id) {
@@ -230,7 +230,7 @@ exports.RoomController = function (spec) {
             retries = 0;
 
         if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1) {
-            log.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id, "options", options);
+            log.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id, "options", JSON.stringify(options));
 
             if (options.audio === undefined) options.audio = true;
             if (options.video === undefined) options.video = true;

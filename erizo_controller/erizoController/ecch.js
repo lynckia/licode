@@ -69,11 +69,12 @@ exports.Ecch = function (spec) {
 			agent_queue = getErizoAgent(agents);
 		}
 
-		log.info('Contacting Agent ', agent_queue, " for a new ErizoJS");
+		log.info("Contacting Agent ", agent_queue, " for a new ErizoJS");
 
 		amqper.callRpc(agent_queue, 'createErizoJS', [], {callback: function(resp) {
 			var erizo_id = resp.erizo_id;
 			var agent_id = resp.agent_id;
+            log.info('Got a new ErizoJS', erizo_id, "from Agent", agent_id);
 			
 			if (resp === 'timeout') {
 				try_again(0, callback);
@@ -102,6 +103,7 @@ exports.Ecch = function (spec) {
 	};
 
 	that.deleteErizoJS = function(erizo_id) {
+        log.info ("Deleting erizoJS", erizo_id);
         amqper.broadcast("ErizoAgent", {method: "deleteErizoJS", args: [erizo_id]}, function(){}); 
 	};
 
