@@ -284,15 +284,18 @@ exports.RoomController = function (spec) {
      * Removes a subscriber from the room. This also removes it from the associated OneToManyProcessor.
      */
     that.removeSubscriber = function (subscriber_id, publisher_id) {
+        if(subscribers[publisher_id]!==undefined){
+            var index = subscribers[publisher_id].indexOf(subscriber_id);
+            if (index !== -1) {
+                log.info('Removing subscriber ', subscriber_id, 'from muxer ', publisher_id);
 
-        var index = subscribers[publisher_id].indexOf(subscriber_id);
-        if (index !== -1) {
-            log.info('Removing subscriber ', subscriber_id, 'to muxer ', publisher_id);
+                var args = [subscriber_id, publisher_id];
+                amqper.callRpc(getErizoQueue(publisher_id), "removeSubscriber", args, undefined);
 
-            var args = [subscriber_id, publisher_id];
-            amqper.callRpc(getErizoQueue(publisher_id), "removeSubscriber", args, undefined);
-
-            subscribers[publisher_id].splice(index, 1);
+                subscribers[publisher_id].splice(index, 1);
+            }
+        } else {
+            log.warn("Trying to remove subscriber", subscriber_id, "from publisher", publisher_id,"but was not found.");
         }
     };
 
