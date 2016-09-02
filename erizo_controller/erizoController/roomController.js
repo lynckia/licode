@@ -24,7 +24,7 @@ exports.RoomController = function (spec) {
 
     var KEEPALIVE_INTERVAL = 5*1000;
     var TIMEOUT_LIMIT = 2;
-    var MAX_ERIZOJS_RETRIES = 1;
+    var MAX_ERIZOJS_RETRIES = 0;
 
     var eventListeners = [];
 
@@ -42,6 +42,7 @@ exports.RoomController = function (spec) {
                         for (var p in erizos[erizo_id].publishers) {
                             dispatchEvent("unpublish", erizos[erizo_id].publishers[p]);
                         }
+
                     } else {
                         log.debug("ErizoJS", erizo_id, "is empty and does not respond, removing");
                     }
@@ -236,8 +237,12 @@ exports.RoomController = function (spec) {
             if (options.video === undefined) options.video = true;
 
             var args = [subscriber_id, publisher_id, options];
-            //TODO: Potential problem here if erizoJS is not reachable
+            
             amqper.callRpc(getErizoQueue(publisher_id, undefined), "addSubscriber", args, {callback: function (data){
+                if (!publishers[publisher_id] && !subscribers[publisher_id]){
+                    //TODO: This is a paranoic log
+                    log.warn("addSubscriber rpc callback has arrived after", publisher_id, "was removed");
+                }
                 if (data === 'timeout'){
                     if (retries < MAX_ERIZOJS_RETRIES){
                         retries++;
@@ -245,7 +250,7 @@ exports.RoomController = function (spec) {
                         that.addSubscriber(subscriber_id, publisher_id, options, callback, retries);
                         return;
                     }
-                    log.error("Can not contact to ErizoJS", getErizoQueue(publisher_id) , " failed add Subscriber", subscriber_id," -- timeout");
+                    log.error("Can not contact ErizoJS", getErizoQueue(publisher_id) , " failed add Subscriber", subscriber_id," -- timeout");
                     callback('timeout');
                     return;
                 }else if (data.type === 'initializing'){

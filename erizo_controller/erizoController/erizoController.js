@@ -337,11 +337,11 @@ var listen = function () {
                             } else {
                                 room.controller = controller.RoomController({amqper: amqper, ecch: ecch});
                                 room.controller.addEventListener(function(type, event) {
-                                    // TODO Send message to room? Handle ErizoJS disconnection.
                                     if (type === "unpublish") {
                                         var streamId = parseInt(event); // It's supposed to be an integer.
-                                        log.info("ErizoJS stopped", streamId);
+                                        log.warn("ErizoJS --- notifying stream", streamId, "is removed");
                                         sendMsgToRoom(room, 'onRemoveStream', {id: streamId});
+                                        /*
                                         room.controller.removePublisher(streamId);
 
                                         for (var s in room.sockets) {
@@ -355,6 +355,7 @@ var listen = function () {
                                         if (room.streams[streamId]) {
                                             delete room.streams[streamId];
                                         }
+                                        */
                                     }
 
                                 });
@@ -517,6 +518,9 @@ var listen = function () {
                                 amqper.broadcast('event', {room: socket.room.id, user: socket.id, type: 'failed', stream: id, sdp: signMess.sdp, timestamp: timeStamp.getTime()});
                             }
                         }
+
+                        //We assume it does not have subscribers because, for now libnice will ONLY fail on establishment
+                        //TODO: If we upgrade libnice check if this is true and also notify subscribers
 
                         var index = socket.streams.indexOf(id);
                         if (index !== -1) {

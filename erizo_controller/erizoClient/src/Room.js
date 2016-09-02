@@ -221,17 +221,28 @@ Erizo.Room = function (spec) {
 
         // We receive an event of a stream removed from the room
         that.socket.on('onRemoveStream', function (arg) {
-            var stream = that.remoteStreams[arg.id],
-                evt;
-            if (stream.local)
-                console.log("Stream is local");
-            if (stream === undefined){
+            var stream = that.localStreams[arg.id];
+            if (stream && !stream.failed){
+                stream.failed = true
+                L.Logger.warning("We received a removeStream from our own stream -- probably erizoJS timed out");
+                var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Publishing local stream failed because of an Erizo Error", stream:stream});
+                that.dispatchEvent(disconnectEvt);
+                that.unpublish(stream);
+                
+                return;
+            }
+            stream = that.remoteStreams[arg.id];
+
+            if (stream && stream.failed){
+                L.Logger.info("Received onRemoveStream for a stream that we already marked as failed ", arg.id);
+                return;
+            }else if (!stream){
                 L.Logger.warning("Received a removeStream for", arg.id, "and it has not been registered here, ignoring.");
                 return;
             }
             delete that.remoteStreams[arg.id];
             removeStream(stream);
-            evt = Erizo.StreamEvent({type: 'stream-removed', stream: stream});
+            var evt = Erizo.StreamEvent({type: 'stream-removed', stream: stream});
             that.dispatchEvent(evt);
         });
 
@@ -494,10 +505,11 @@ Erizo.Room = function (spec) {
                         
                         stream.pc.addStream(stream.stream);
                         stream.pc.oniceconnectionstatechange = function (state) {
+                            //TODO --- No one is notifying the other subscribers that this is a failure --- they will only receive onRemoveStream
                             if (state === 'failed') {
                                 if (that.state !== DISCONNECTED && !stream.failed) {
                                     stream.failed=true;
-                                    L.Logger.warning("Stream", stream.getID(), "has failed after succesful ICE checks");
+                                    L.Logger.warning("Publishing Stream", stream.getID(), "has failed after successful ICE checks");
                                     var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Publishing stream failed after connection", stream:stream });
                                     that.dispatchEvent(disconnectEvt);
                                     that.unpublish(stream);
@@ -651,7 +663,8 @@ Erizo.Room = function (spec) {
                         stream.pc.oniceconnectionstatechange = function (state) {
                             if (state === 'failed') {
                                 if (that.state !== DISCONNECTED && !stream.failed) {
-                                    L.Logger.warning("Stream", stream.getID(), "has failed after succesful ICE checks");
+                                    stream.failed = true;
+                                    L.Logger.warning("Subscribing stream", stream.getID(), "has failed after successful ICE checks");
                                     var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Subscribing stream failed after connection", stream:stream });
                                     that.dispatchEvent(disconnectEvt);
                                     that.unsubscribe(stream);
