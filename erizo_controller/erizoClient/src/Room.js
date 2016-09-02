@@ -43,8 +43,10 @@ Erizo.Room = function (spec) {
                 stream = that.remoteStreams[index];
                 removeStream(stream);
                 delete that.remoteStreams[index];
-                evt2 = Erizo.StreamEvent({type: 'stream-removed', stream: stream});
-                that.dispatchEvent(evt2);
+                if (stream && !stream.failed){
+                    evt2 = Erizo.StreamEvent({type: 'stream-removed', stream: stream});
+                    that.dispatchEvent(evt2);
+                }
             }
         }
         that.remoteStreams = {};
@@ -87,6 +89,7 @@ Erizo.Room = function (spec) {
             if (stream.local) {
                 stream.stream.stop();
             }
+            delete stream.stream;
         }
     };
 
@@ -130,7 +133,7 @@ Erizo.Room = function (spec) {
                 stream = that.localStreams[arg.streamId];
             }
              
-            if (stream) {
+            if (stream && !stream.failed) {
                 stream.pc.processSignalingMessage(arg.mess);
             }
         });
@@ -139,7 +142,7 @@ Erizo.Room = function (spec) {
 
             var stream = that.localStreams[arg.streamId];
 
-            if (stream) {
+            if (stream && !stream.failed) {
                 stream.pc[arg.peerSocket].processSignalingMessage(arg.msg);
             } else {
                 stream = that.remoteStreams[arg.streamId];
@@ -193,7 +196,7 @@ Erizo.Room = function (spec) {
             L.Logger.info("Bandwidth Alert on", arg.streamID, "message", arg.message,"BW:", arg.bandwidth);
             if(arg.streamID){
                 var stream = that.remoteStreams[arg.streamID];
-                if (stream) {
+                if (stream && !stream.failed) {
                     var evt = Erizo.StreamEvent({type:'bandwidth-alert', stream:stream, msg:arg.message, bandwidth: arg.bandwidth});
                     stream.dispatchEvent(evt);
                 }
@@ -220,6 +223,8 @@ Erizo.Room = function (spec) {
         that.socket.on('onRemoveStream', function (arg) {
             var stream = that.remoteStreams[arg.id],
                 evt;
+            if (stream.local)
+                console.log("Stream is local");
             if (stream === undefined){
                 L.Logger.warning("Received a removeStream for", arg.id, "and it has not been registered here, ignoring.");
                 return;
@@ -298,11 +303,15 @@ Erizo.Room = function (spec) {
 
     // It sends a SDP message to the server using socket.io
     sendSDPSocket = function (type, options, sdp, callback) {
-        that.socket.emit(type, options, sdp, function (response, respCallback) {
-            if (callback !== undefined) {
-                callback(response, respCallback);
-            }
-        });
+        if (that.state !== DISCONNECTED){
+            that.socket.emit(type, options, sdp, function (response, respCallback) {
+                if (callback !== undefined) {
+                    callback(response, respCallback);
+                }
+            });
+        }else{
+            log.warning("Trying to send a message over a disconnected Socket");
+        }
     };
 
     // Public functions
@@ -487,6 +496,7 @@ Erizo.Room = function (spec) {
                         stream.pc.oniceconnectionstatechange = function (state) {
                             if (state === 'failed') {
                                 if (that.state !== DISCONNECTED && !stream.failed) {
+                                    stream.failed=true;
                                     L.Logger.warning("Stream", stream.getID(), "has failed after succesful ICE checks");
                                     var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Publishing stream failed after connection", stream:stream });
                                     that.dispatchEvent(disconnectEvt);
@@ -640,9 +650,11 @@ Erizo.Room = function (spec) {
                         
                         stream.pc.oniceconnectionstatechange = function (state) {
                             if (state === 'failed') {
-                                if (that.state !== DISCONNECTED) {
+                                if (that.state !== DISCONNECTED && !stream.failed) {
+                                    L.Logger.warning("Stream", stream.getID(), "has failed after succesful ICE checks");
                                     var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Subscribing stream failed after connection", stream:stream });
                                     that.dispatchEvent(disconnectEvt);
+                                    that.unsubscribe(stream);
                                 }
                             }
                         };
