@@ -341,7 +341,7 @@ bool ExternalOutput::initContext() {
         video_stream_->codec->height = 480;
         video_stream_->time_base = (AVRational){1,30};   // A decent guess here suffices; if processing the file with ffmpeg,
                                                          // use -vsync 0 to force it not to duplicate frames.
-        video_stream_->codec->pix_fmt = PIX_FMT_YUV420P;
+        video_stream_->codec->pix_fmt = AV_PIX_FMT_YUV420P;
         if (context_->oformat->flags & AVFMT_GLOBALHEADER){
             video_stream_->codec->flags|=CODEC_FLAG_GLOBAL_HEADER;
         }

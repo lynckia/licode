@@ -64,7 +64,7 @@ namespace erizo {
 
     vCoderContext->width = info.width;
     vCoderContext->height = info.height;
-    vCoderContext->pix_fmt = PIX_FMT_YUV420P;
+    vCoderContext->pix_fmt = AV_PIX_FMT_YUV420P;
     vCoderContext->time_base = (AVRational) {1, 90000};
     //
     vCoderContext->sample_aspect_ratio =

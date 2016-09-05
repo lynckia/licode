@@ -64,6 +64,10 @@ find_library(AVFORMAT avformat HINTS "${THIRD_PARTY_LIB}")
 test_lib(${AVFORMAT})
 set (LIBS ${LIBS} ${AVFORMAT})
 
+find_library(SWRESAMPLE swresample HINTS)
+test_lib(${SWRESAMPLE})
+set (LIBS ${LIBS} ${SWRESAMPLE})
+
 # LOG4CXX
 find_library(LOG log4cxx)
 test_lib(${LOG})
