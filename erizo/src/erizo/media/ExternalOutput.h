@@ -98,7 +98,6 @@ private:
     int deliverVideoData_(char* buf, int len);
     void writeAudioData(char* buf, int len);
     void writeVideoData(char* buf, int len);
-    bool bufferCheck(RTPPayloadVP8* payload);
 };
 }
 #endif /* EXTERNALOUTPUT_H_ */

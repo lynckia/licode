@@ -30,7 +30,6 @@ namespace erizo{
       void receiveRtpData(unsigned char* rtpdata, int len);
       int sendPLI();
 
-
     private:
       boost::scoped_ptr<OutputProcessor> op_;
       VideoDecoder inCodec_;
