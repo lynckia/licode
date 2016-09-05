@@ -240,8 +240,9 @@ exports.RoomController = function (spec) {
             
             amqper.callRpc(getErizoQueue(publisher_id, undefined), "addSubscriber", args, {callback: function (data){
                 if (!publishers[publisher_id] && !subscribers[publisher_id]){
-                    //TODO: This is a paranoic log
-                    log.warn("addSubscriber rpc callback has arrived after", publisher_id, "was removed");
+                    log.warn("addSubscriber rpc callback has arrived after", publisher_id, "was removed, we'll notify the clients");
+                    callback('timeout');
+                    return;
                 }
                 if (data === 'timeout'){
                     if (retries < MAX_ERIZOJS_RETRIES){
