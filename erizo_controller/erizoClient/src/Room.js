@@ -548,18 +548,18 @@ Erizo.Room = function (spec) {
         }
     };
 
-    // Returns callback(id, error)
+    // Returns callback(id, error, timestamp)
     that.startRecording = function (stream, callback) {
         L.Logger.debug("Start Recording stream: " + stream.getID());
-        sendMessageSocket('startRecorder', {to: stream.getID()}, function(id, error){
-            if (id === null){
+        sendMessageSocket('startRecorder', {to: stream.getID()}, function(result, error){
+            if (result && result.id){
+                L.Logger.info('Start recording', result.id);
+                if (callback) callback(result.id, undefined, result.timestamp);
+            } else {
                 L.Logger.error('Error on start recording', error);
-                if (callback) callback(undefined, error);
+                if (callback) callback(undefined, error, undefined);
                 return;
             }
-
-            L.Logger.info('Start recording', id);
-            if (callback) callback(id);
         });
     }
 

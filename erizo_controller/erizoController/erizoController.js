@@ -648,9 +648,10 @@ var listen = function () {
 
             if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
                 socket.room.controller.addExternalOutput(streamId, url, function (result) {
+                    var timestamp = new Date().getTime();
                     if (result === 'success') {
                         log.info("erizoController.js: Recorder Started");
-                        callback(recordingId);
+                        callback({id: recordingId, timestamp: timestamp}, null);
                     } else {
                         callback(null, 'Unable to subscribe to stream for recording, publisher not present');
                     }
