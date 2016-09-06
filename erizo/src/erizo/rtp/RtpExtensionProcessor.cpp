@@ -13,6 +13,7 @@ namespace erizo{
     translationMap_["http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"] = ABS_SEND_TIME;
     translationMap_["urn:ietf:params:rtp-hdrext:toffset"] = TOFFSET;
     translationMap_["urn:3gpp:video-orientation"] = VIDEO_ORIENTATION;
+    translationMap_["http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"]= PLAYBACK_TIME;
     memset(extMapVideo_, 0, sizeof(int)*10);
     memset(extMapAudio_, 0, sizeof(int)*10);
   }

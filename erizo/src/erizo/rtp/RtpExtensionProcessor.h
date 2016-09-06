@@ -13,7 +13,8 @@ namespace erizo {
     SSRC_AUDIO_LEVEL,     // urn:ietf:params:rtp-hdrext:ssrc-audio-level
     ABS_SEND_TIME,        // http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
     TOFFSET,              // urn:ietf:params:rtp-hdrext:toffset
-    VIDEO_ORIENTATION     // urn:3gpp:video-orientation 
+    VIDEO_ORIENTATION,    // urn:3gpp:video-orientation 
+    PLAYBACK_TIME         //  http://www.webrtc.org/experiments/rtp-hdrext/playout-delay
   };
 
   class RtpExtensionProcessor{
