@@ -625,7 +625,7 @@ Erizo.Room = function (spec) {
 
         options = options || {};
 
-        if (!stream.local) {
+        if (stream && !stream.local) {
 
             if (stream.hasVideo() || stream.hasAudio() || stream.hasScreen()) {
                 // 1- Subscribe to Stream
@@ -637,44 +637,44 @@ Erizo.Room = function (spec) {
                     L.Logger.info("Checking subscribe options for", stream.getID());
                     stream.checkOptions(options);
                     sendSDPSocket('subscribe', {streamId: stream.getID(), audio: options.audio, video: options.video, data: options.data, browser: Erizo.getBrowser(), createOffer: options.createOffer,
-                    slideShowMode: options.slideShowMode}, undefined, function (result, error) {
-                        if (result === null) {
-                            L.Logger.error('Error subscribing to stream ', error);
-                            if (callback)
-                                callback(undefined, error);
-                            return;
-                        }
-
-                        L.Logger.info('Subscriber added');
-                          
-                        stream.pc = Erizo.Connection({callback: function (message) {
-                            L.Logger.info("Sending message", message);
-                            sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: message, browser: stream.pc.browser}, undefined, function () {});
-                        }, nop2p: true, audio: options.audio, video: options.video, iceServers: that.iceServers});
-
-                        stream.pc.onaddstream = function (evt) {
-                            // Draw on html
-                            L.Logger.info('Stream subscribed');
-                            stream.stream = evt.stream;
-                            var evt2 = Erizo.StreamEvent({type: 'stream-subscribed', stream: stream});
-                            that.dispatchEvent(evt2);
-                        };
-                        
-                        stream.pc.oniceconnectionstatechange = function (state) {
-                            if (state === 'failed') {
-                                if (that.state !== DISCONNECTED && !stream.failed) {
-                                    stream.failed = true;
-                                    L.Logger.warning("Subscribing stream", stream.getID(), "has failed after successful ICE checks");
-                                    var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Subscribing stream failed after connection", stream:stream });
-                                    that.dispatchEvent(disconnectEvt);
-                                    that.unsubscribe(stream);
-                                }
+                        slideShowMode: options.slideShowMode}, undefined, function (result, error) {
+                            if (result === null) {
+                                L.Logger.error('Error subscribing to stream ', error);
+                                if (callback)
+                                    callback(undefined, error);
+                                return;
                             }
-                        };
-                        
-                        stream.pc.createOffer(true);
-                        if(callback) callback(true);
-                    });
+
+                            L.Logger.info('Subscriber added');
+
+                            stream.pc = Erizo.Connection({callback: function (message) {
+                                L.Logger.info("Sending message", message);
+                                sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: message, browser: stream.pc.browser}, undefined, function () {});
+                            }, nop2p: true, audio: options.audio, video: options.video, iceServers: that.iceServers});
+
+                            stream.pc.onaddstream = function (evt) {
+                                // Draw on html
+                                L.Logger.info('Stream subscribed');
+                                stream.stream = evt.stream;
+                                var evt2 = Erizo.StreamEvent({type: 'stream-subscribed', stream: stream});
+                                that.dispatchEvent(evt2);
+                            };
+
+                            stream.pc.oniceconnectionstatechange = function (state) {
+                                if (state === 'failed') {
+                                    if (that.state !== DISCONNECTED && !stream.failed) {
+                                        stream.failed = true;
+                                        L.Logger.warning("Subscribing stream", stream.getID(), "has failed after successful ICE checks");
+                                        var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Subscribing stream failed after connection", stream:stream });
+                                        that.dispatchEvent(disconnectEvt);
+                                        that.unsubscribe(stream);
+                                    }
+                                }
+                            };
+
+                            stream.pc.createOffer(true);
+                            if(callback) callback(true);
+                        });
 
                 }
             } else if (stream.hasData() && options.data !== false) {
@@ -691,12 +691,23 @@ Erizo.Room = function (spec) {
                     if(callback) callback(true);
                 });
             } else {
-                L.Logger.info("Subscribing to anything");
-                return;
             }
 
             // Subscribe to stream stream
             L.Logger.info("Subscribing to: " + stream.getID());
+        }else{
+            var error = "Error on subscribe";
+            if (!stream){
+                L.Logger.warning("Cannot subscribe to invalid stream", stream);
+                error = "Invalid or undefined stream";
+            }
+            else if (stream.local){
+                L.Logger.warning("Cannot subscribe to local stream, you should subscribe to the remote version of your local stream");
+                error = "Local copy of stream";
+            }
+            if (callback)
+                callback(undefined, error);
+            return;
         }
     };
 
