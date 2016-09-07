@@ -234,10 +234,10 @@ Erizo.Room = function (spec) {
             stream = that.remoteStreams[arg.id];
 
             if (stream && stream.failed){
-                L.Logger.info("Received onRemoveStream for a stream that we already marked as failed ", arg.id);
+                L.Logger.debug("Received onRemoveStream for a stream that we already marked as failed ", arg.id);
                 return;
             }else if (!stream){
-                L.Logger.warning("Received a removeStream for", arg.id, "and it has not been registered here, ignoring.");
+                L.Logger.debug("Received a removeStream for", arg.id, "and it has not been registered here, ignoring.");
                 return;
             }
             delete that.remoteStreams[arg.id];
@@ -258,26 +258,29 @@ Erizo.Room = function (spec) {
 
         that.socket.on('connection_failed', function(arg){
             if (arg.type === 'publish'){
-                L.Logger.error("ICE Connection Failed on publishing stream", arg.streamId);
+                L.Logger.error("ICE Connection Failed on publishing stream", arg.streamId, that.state);
                 if (that.state !== DISCONNECTED ) {
                     if(arg.streamId){
-                        var stream = that.localStreams[arg.id];
+                        var stream = that.localStreams[arg.streamId];
+                        L.Logger.info("THE STREAM IS ", stream);
                         if (stream && !stream.failed) {
                             stream.failed = true;
                             var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Publishing local stream failed ICE Checks", stream:stream});
                             that.dispatchEvent(disconnectEvt);
+                            that.unpublish(stream);
                         }
                     }
                 }
             }else{
-                L.Logger.error("ICE Connection Failed on subscribe, alerting");
+                L.Logger.error("ICE Connection Failed on subscribe stream", arg.streamId);
                 if (that.state !== DISCONNECTED) {
                     if(arg.streamId){
-                        var stream = remoteStreams[arg.streamId];
+                        var stream = that.remoteStreams[arg.streamId];
                         if (stream && !stream.failed) {
                             stream.failed = true;
                             var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Subscriber failed the ICE Checks, cannot reach Licode for media", stream:stream});
                             that.dispatchEvent(disconnectEvt);
+                            that.unsubscribe(stream);
                         }
                     }
                 }
@@ -505,7 +508,7 @@ Erizo.Room = function (spec) {
                         
                         stream.pc.addStream(stream.stream);
                         stream.pc.oniceconnectionstatechange = function (state) {
-                            //TODO --- No one is notifying the other subscribers that this is a failure --- they will only receive onRemoveStream
+                            //No one is notifying the other subscribers that this is a failure --- they will only receive onRemoveStream
                             if (state === 'failed') {
                                 if (that.state !== DISCONNECTED && stream && !stream.failed) {
                                     stream.failed=true;
@@ -662,7 +665,7 @@ Erizo.Room = function (spec) {
 
                             stream.pc.oniceconnectionstatechange = function (state) {
                                 if (state === 'failed') {
-                                    if (that.state !== DISCONNECTED && !stream.failed) {
+                                    if (that.state !== DISCONNECTED && stream &&!stream.failed) {
                                         stream.failed = true;
                                         L.Logger.warning("Subscribing stream", stream.getID(), "has failed after successful ICE checks");
                                         var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Subscribing stream failed after connection", stream:stream });
