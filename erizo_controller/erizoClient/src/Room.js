@@ -167,7 +167,7 @@ Erizo.Room = function (spec) {
 
 
             myStream.pc[arg.peerSocket].oniceconnectionstatechange = function (state) {
-                if (state === 'disconnected') {
+                if (state === 'failed') {
                     myStream.pc[arg.peerSocket].close();
                     delete myStream.pc[arg.peerSocket];
                 }
@@ -507,7 +507,7 @@ Erizo.Room = function (spec) {
                         stream.pc.oniceconnectionstatechange = function (state) {
                             //TODO --- No one is notifying the other subscribers that this is a failure --- they will only receive onRemoveStream
                             if (state === 'failed') {
-                                if (that.state !== DISCONNECTED && !stream.failed) {
+                                if (that.state !== DISCONNECTED && stream && !stream.failed) {
                                     stream.failed=true;
                                     L.Logger.warning("Publishing Stream", stream.getID(), "has failed after successful ICE checks");
                                     var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Publishing stream failed after connection", stream:stream });
