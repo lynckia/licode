@@ -68,11 +68,11 @@ config.erizoController.publicIP = ''; //default value: ''
 config.erizoController.hostname = ''; //default value: ''
 config.erizoController.port = 8080; //default value: 8080
 // Use true if clients communicate with erizoController over SSL
-config.erizoController.ssl = false; //default value: false
+config.erizoController.ssl = true; //default value: false
 
 // This configuration is used by erizoController server to listen for connections
 // Use true if erizoController listens in HTTPS.
-config.erizoController.listen_ssl = false; //default value: false
+config.erizoController.listen_ssl = true; //default value: false
 config.erizoController.listen_port = 8080; //default value: 8080
 
 // Custom location for SSL certificates. Default located in /cert
@@ -124,7 +124,7 @@ config.erizoAgent.publicIP = ''; //default value: ''
 
 //Use individual log files for each of the started erizoJS processes
 //This files will be named erizo-ERIZO_ID_HASH.log
-config.erizoAgent.useIndividualLogFiles = false;
+config.erizoAgent.useIndividualLogFiles = true;
 
 // Custom log directory for agent instance log files.
 // If useIndividualLogFiles is enabled, files will go here
