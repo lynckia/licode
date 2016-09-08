@@ -185,30 +185,30 @@ install_apt_deps
 
 check_proxy
 
-pause "Installing glib2 library...  [press Enter]"
-install_glib2
+#pause "Installing glib2 library...  [press Enter]"
+#install_glib2
 
-pause "Installing openssl library...  [press Enter]"
-install_openssl
+#pause "Installing openssl library...  [press Enter]"
+#install_openssl
 
-pause "Installing libnice library...  [press Enter]"
-install_libnice
+#pause "Installing libnice library...  [press Enter]"
+#install_libnice
 
-pause "Installing libsrtp library...  [press Enter]"
-install_libsrtp
+#pause "Installing libsrtp library...  [press Enter]"
+#install_libsrtp
 
-pause "Installing opus library...  [press Enter]"
+#pause "Installing opus library...  [press Enter]"
 
-install_opus
-install_vpx
+#install_opus
+#install_vpx
 
-if [ "$ENABLE_GPL" = "true" ]; then
-  pause "GPL libraries enabled"
-  install_mediadeps
-else
-  pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
-  install_mediadeps_nogpl
-fi
+#if [ "$ENABLE_GPL" = "true" ]; then
+#  pause "GPL libraries enabled"
+#  install_mediadeps
+#else
+#  pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
+#  install_mediadeps_nogpl
+#fi
 
 if [ "$CLEANUP" = "true" ]; then
   echo "Cleaning up..."
