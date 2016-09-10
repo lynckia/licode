@@ -1,5 +1,18 @@
 #!/bin/bash
 
+#open port to be accessed from other machine, on firewall.
+firewall-cmd --add-port=80/tcp
+firewall-cmd --add-port=8080/tcp
+firewall-cmd --add-port=3000/tcp
+firewall-cmd --add-port=3001/tcp
+firewall-cmd --add-port=3004/tcp
+
+/sbin/iptables -I INPUT -p tcp --dport 80 -j ACCEPT
+/sbin/iptables -I INPUT -p tcp --dport 8080 -j ACCEPT
+/sbin/iptables -I INPUT -p tcp --dport 3000 -j ACCEPT
+/sbin/iptables -I INPUT -p tcp --dport 3001 -j ACCEPT
+/sbin/iptables -I INPUT -p tcp --dport 3004 -j ACCEPT
+
 SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`
 PATHNAME=`dirname $SCRIPT`
