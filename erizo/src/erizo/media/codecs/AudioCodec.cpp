@@ -227,13 +227,13 @@ namespace erizo {
     }
 
     /**
-     * Load one audio frame from the FIFO buffer, encode and write it to the
-     * output file.
+     * Load one audio frame from the FIFO buffer, encode and save into the output packet.
      */
     int AudioDecoder::load_encode(AVPacket& output_packet)
     {
         /** Temporary storage of the output samples of the frame written to the file. */
         AVFrame *output_frame;
+
         /**
          * Use the maximum number of possible samples per frame.
          * If there is less than the maximum possible frame size in the FIFO
@@ -241,13 +241,15 @@ namespace erizo {
          */
         const int frame_size = FFMIN(av_audio_fifo_size(fifo),
                 output_codec_context->frame_size);
+
+        if (frame_size != output_codec_context->frame_size) return 0;
+
         /** Initialize temporary storage for one output frame. */
         if (init_output_frame(&output_frame, output_codec_context, frame_size))
         {
             ELOG_WARN(" init_output_frame failed!! frame_size=%d", frame_size);
             return 0;
         }
-
 
         /**
          * Read as many samples from the FIFO buffer as required to fill the frame.
@@ -258,7 +260,7 @@ namespace erizo {
             av_frame_free(&output_frame);
             return 0;
         }
-        
+
         ELOG_DEBUG("fifo read %d, now left %d", frame_size, av_audio_fifo_size(fifo));
 
         /** Encode one frame worth of audio samples. */
@@ -268,6 +270,12 @@ namespace erizo {
             ELOG_WARN("Failed to encode_audio_frame!!");
         }
         av_frame_free(&output_frame);
+
+        ELOG_DEBUG("Set output_packet.pts %ld", lastPts_);
+
+        output_packet.pts = lastPts_;
+
+        lastPts_ += frame_size; 
 
         return pktlen;
     }
@@ -326,7 +334,7 @@ namespace erizo {
         if ((error = swr_convert(resample_context,
                         converted_data, frame_size,
                         input_data    , frame_size)) < 0) {
-            ELOG_DEBUG("Could not convert input samples %s", get_error_text(error));
+            ELOG_WARN("Could not convert input samples %s", get_error_text(error));
             return error;
         }
 
@@ -362,6 +370,7 @@ namespace erizo {
     AudioDecoder::AudioDecoder(){
         codec_ = NULL;
         output_codec_context = NULL;
+        lastPts_ = 0;
     }
 
     AudioDecoder::~AudioDecoder(){
@@ -381,9 +390,8 @@ namespace erizo {
             return 0;
         }
 
-        ELOG_DEBUG("input sample_fmts[0] is %s", av_get_sample_fmt_name(codec_->sample_fmts[0]));
-        ELOG_DEBUG("input sample_fmt is %s", av_get_sample_fmt_name(input_codec_context->sample_fmt));
-        ELOG_DEBUG("input frame size is %d, bitrate=%d", input_codec_context->frame_size, input_codec_context->bit_rate);
+        ELOG_DEBUG("input sample_fmt is %s, frame_size %d, bitrate %d", av_get_sample_fmt_name(input_codec_context->sample_fmt),
+         input_codec_context->frame_size, input_codec_context->bit_rate);
 
         // Init output encoder as well.
         AVCodec *output_codec          = NULL;
@@ -420,11 +428,10 @@ namespace erizo {
             return 0;
         }
         
-        ELOG_DEBUG("output sample_fmts[0] is %s", av_get_sample_fmt_name(output_codec->sample_fmts[0]));
-        ELOG_DEBUG("output sample_fmt is %s", av_get_sample_fmt_name(output_codec_context->sample_fmt));
-        ELOG_DEBUG("output frame size is %d", output_codec_context->frame_size);
+        ELOG_DEBUG("output sample_fmt is %s, frame_size %d", av_get_sample_fmt_name(output_codec_context->sample_fmt),
+         output_codec_context->frame_size);
         
-        output_codec_context->frame_size = 960; //20ms. actually no need, as it already is
+        //output_codec_context->frame_size = 960; //20ms. actually no need, as it already is
         /** Initialize the resampler to be able to convert audio sample formats. */
         if (init_resampler(input_codec_context, output_codec_context))
         {
@@ -438,24 +445,30 @@ namespace erizo {
 
         return 1;
     }
-    int AudioDecoder::decodeAudio(AVPacket& input_packet, AVPacket& outPacket)    {
+
+      int AudioDecoder::getEncodedAudio(AVPacket& output_packet)
+      {
+          return load_encode(output_packet);
+      }
+
+    int AudioDecoder::decodeAudio(AVPacket& input_packet)    {
         ELOG_DEBUG("decoding input packet, size %d", input_packet.size);
         
         AVFrame* input_frame;
         init_frame(&input_frame);
 
-        int data_present;
+        int data_present=0;
         int error = avcodec_decode_audio4(input_codec_context, input_frame, &data_present,&input_packet);
 
         if (error < 0)
         {
-            ELOG_DEBUG("decoding error %s", get_error_text(error));
+            ELOG_WARN("decoding error %s", get_error_text(error));
             return error;
         }
 
         if (data_present <= 0)
         {
-            ELOG_DEBUG("data not present");
+            ELOG_WARN("data not present");
             return 0;
         }
 
@@ -465,7 +478,7 @@ namespace erizo {
         uint8_t **converted_input_samples = NULL;
         if (init_converted_samples(&converted_input_samples, output_codec_context, input_frame->nb_samples))
         {
-            ELOG_DEBUG("init_converted_samples fails");
+            ELOG_WARN("init_converted_samples fails");
             return 0;
         }
 
@@ -479,17 +492,16 @@ namespace erizo {
             return 0;
         }
 
+        lastPts_ = input_packet.pts - av_audio_fifo_size(fifo);
+
         /** Add converted input samples to the FIFO buffer for later processing. */
         if (add_samples_to_fifo(fifo, converted_input_samples,
                     input_frame->nb_samples))
         {
             ELOG_WARN("add_samples to fifo failed !!");
         }
-
-        outPacket.pts = input_packet.pts;
-
-        // meanwhile, encode; package
-        return load_encode(outPacket);
+        
+        return input_frame->nb_samples;
     }
 
     int AudioDecoder::closeDecoder(){

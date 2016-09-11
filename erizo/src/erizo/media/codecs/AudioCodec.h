@@ -43,7 +43,8 @@ namespace erizo {
       AudioDecoder();
       virtual ~AudioDecoder();
       int initDecoder(AVCodecContext* context, AVCodec* dec_codec);
-      int decodeAudio(AVPacket& input_packet, AVPacket& output_packet);
+      int decodeAudio(AVPacket& input_packet);
+      int getEncodedAudio(AVPacket& output_packet);
       int closeDecoder();
 
       ////////////////added func so logger inside available//////////////////
@@ -60,6 +61,7 @@ namespace erizo {
 
     private:
       AVCodec* codec_;
+      int64_t lastPts_;
   };
 }
 #endif /* AUDIOCODEC_H_ */

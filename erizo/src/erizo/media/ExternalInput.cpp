@@ -61,8 +61,6 @@ namespace erizo {
             return res;
         }
 
-        ELOG_DEBUG("url opened");
-
         MediaInfo om;
         AVStream *st, *audio_st;
         AVCodec* audioCodec = NULL;
@@ -181,7 +179,6 @@ namespace erizo {
         startTime_ = av_gettime();
 
         ELOG_INFO("Start playing external input %s", url_.c_str() );
-        ELOG_INFO("needTranscoding_=%d", needTranscoding_);
 
         while(av_read_frame(context_,&avpacket_)>=0&& running_==true){
             AVPacket orig_pkt = avpacket_;
@@ -191,7 +188,8 @@ namespace erizo {
                 int64_t pts = av_rescale(lastPts_, 1000000, (long int)video_time_base_);
                 int64_t now = av_gettime() - startTime_;         
                 if (pts > now){
-                    av_usleep(pts - now);
+                    //av_usleep(pts - now);
+                    ELOG_DEBUG("Speed control video, slept %ld = %ld-%ld", pts-now, pts, now);
                 }
                 lastPts_ = avpacket_.pts;
 
@@ -213,7 +211,8 @@ namespace erizo {
                 int64_t pts = av_rescale(lastAudioPts_, 1000000, (long int)audio_time_base_);
                 int64_t now = av_gettime() - startTime_;
                 if (pts > now){
-                    av_usleep(pts - now);
+                    //av_usleep(pts - now);
+                    ELOG_DEBUG("Speed control audio, slept %ld = %ld-%ld", pts-now, pts, now);
                 }
                 lastAudioPts_ = avpacket_.pts;
 
@@ -221,10 +220,11 @@ namespace erizo {
 
                 // decode, and send.
                 AVPacket outPacket;
-                int len = audioDecoder.decodeAudio(avpacket_, outPacket);
-                if (len > 0)
+                audioDecoder.decodeAudio(avpacket_);
+                
+                while (audioDecoder.getEncodedAudio(outPacket))
                 {
-                    op_->packageAudio(outPacket.data,outPacket.size, avpacket_.pts);
+                    op_->packageAudio(outPacket.data,outPacket.size, outPacket.pts);
                 }
             }
             av_free_packet(&orig_pkt);
