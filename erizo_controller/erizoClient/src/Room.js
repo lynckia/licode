@@ -596,11 +596,11 @@ Erizo.Room = function (spec) {
 
 
             });
-            var p2p = stream.room.p2p;
+            var p2p = stream.room && stream.room.p2p;
             stream.room = undefined;
             if ((stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) && stream.url === undefined) {
                 if(!p2p){
-                    stream.pc.close();
+                    if (stream.pc) stream.pc.close();
                     stream.pc = undefined;
                 }else{
                     for (var index in stream.pc){
@@ -693,8 +693,10 @@ Erizo.Room = function (spec) {
                     if(callback) callback(true);
                 });
             } else {
+                L.Logger.warning ("There's nothing to subscribe to");
+                if (callback) callback(undefined,"Nothing to subscribe to");
+                return;
             }
-
             // Subscribe to stream stream
             L.Logger.info("Subscribing to: " + stream.getID());
         }else{
@@ -718,7 +720,7 @@ Erizo.Room = function (spec) {
 
         // Unsubscribe from stream stream
         if (that.socket !== undefined) {
-            if (!stream.local) {
+            if (stream && !stream.local) {
                 sendMessageSocket('unsubscribe', stream.getID(), function (result, error) {
                     if (result === null) {
                         if (callback)
