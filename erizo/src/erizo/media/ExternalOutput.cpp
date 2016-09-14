@@ -315,7 +315,9 @@ int ExternalOutput::deliverAudioData_(char* buf, int len) {
 int ExternalOutput::deliverVideoData_(char* buf, int len) {
     if (videoSourceSsrc_ == 0){
       RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
-      videoSourceSsrc_ = h->getSSRC();
+      if (h->getPayloadType() == RED_90000_PT){
+          videoSourceSsrc_ = h->getSSRC();
+      }
     }
     this->queueData(buf,len,VIDEO_PACKET);
     return 0;
