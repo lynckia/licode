@@ -13,7 +13,7 @@ Erizo.Connection = function (spec) {
     // Check which WebRTC Stack is installed.
     that.browser = Erizo.getBrowser();
     if (that.browser === 'fake') {
-        L.Logger.warn('Publish/subscribe video/audio streams not supported in erizofc yet');
+        L.Logger.warning('Publish/subscribe video/audio streams not supported in erizofc yet');
         that = Erizo.FcStack(spec);
     } else if (that.browser === 'mozilla') {
         L.Logger.debug("Firefox Stack");
