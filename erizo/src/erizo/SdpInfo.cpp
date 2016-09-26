@@ -63,6 +63,7 @@ namespace erizo {
     vp8.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(vp8);
 
+    /*
     RtpMap red;
     red.payloadType = RED_90000_PT;
     red.encodingName = "red";
@@ -70,8 +71,8 @@ namespace erizo {
     red.channels = 1;
     red.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(red);
-    /*
-       RtpMap rtx;
+       
+    RtpMap rtx;
        rtx.payloadType = RTX_90000_PT;
        rtx.encodingName = "rtx";
        rtx.clockRate = 90000;
@@ -79,7 +80,7 @@ namespace erizo {
        rtx.mediaType = VIDEO_TYPE;
        internalPayloadVector_.push_back(rtx);
        */
-    
+   /* 
     RtpMap ulpfec;
     ulpfec.payloadType = ULP_90000_PT;
     ulpfec.encodingName = "ulpfec";
@@ -87,7 +88,7 @@ namespace erizo {
     ulpfec.channels = 1;
     ulpfec.mediaType = VIDEO_TYPE;
     internalPayloadVector_.push_back(ulpfec);
-       
+     */  
     RtpMap opus;
     opus.payloadType = OPUS_48000_PT;
     opus.encodingName = "opus";
@@ -120,7 +121,7 @@ namespace erizo {
     pcmu.channels = 1;
     pcmu.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(pcmu);
-/*
+
     RtpMap pcma;
     pcma.payloadType = PCMA_8000_PT;
     pcma.encodingName = "PCMA";
@@ -160,8 +161,8 @@ namespace erizo {
     cn48.channels = 1;
     cn48.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(cn48);
-    */
-      RtpMap telephoneevent;
+    
+    RtpMap telephoneevent;
     telephoneevent.payloadType = TEL_8000_PT;
     telephoneevent.encodingName = "telephone-event";
     telephoneevent.clockRate = 8000;
@@ -169,6 +170,7 @@ namespace erizo {
     telephoneevent.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(telephoneevent);
 
+    */
   }
 
   SdpInfo::~SdpInfo() {

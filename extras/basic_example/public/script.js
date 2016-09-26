@@ -117,7 +117,7 @@ window.onload = function () {
                         var streams = [];
                         streams.push(streamEvent.stream);
                         subscribeToStreams(streams);
-                        document.getElementById("recordButton").disabled = false;
+                        //document.getElementById("recordButton").disabled = false;
                         });
 
                 room.addEventListener("stream-removed", function (streamEvent) {

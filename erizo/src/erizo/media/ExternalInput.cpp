@@ -165,10 +165,10 @@ namespace erizo {
     }
 
     void ExternalInput::receiveRtpData(unsigned char*rtpdata, int len) {
-        if (audioSink_!=NULL){
+        if (videoSink_!=NULL){
             memcpy(sendVideoBuffer_, rtpdata, len);
             ELOG_DEBUG("deliver Video len %d", len);
-            audioSink_->deliverVideoData(sendVideoBuffer_, len);
+            videoSink_->deliverVideoData(sendVideoBuffer_, len);
         }
     }
 
@@ -178,7 +178,7 @@ namespace erizo {
         int gotDecodedFrame = 0;
         startTime_ = av_gettime();
 
-        ELOG_INFO("Start playing external input %s", url_.c_str() );
+        ELOG_INFO("Start playing external input %s, startTime %ld", url_.c_str(), startTime_);
 
         while(av_read_frame(context_,&avpacket_)>=0&& running_==true){
             AVPacket orig_pkt = avpacket_;
@@ -189,7 +189,7 @@ namespace erizo {
                 int64_t now = av_gettime() - startTime_;         
                 if (pts > now){
                     //av_usleep(pts - now);
-                    ELOG_DEBUG("Speed control video, slept %ld = %ld-%ld", pts-now, pts, now);
+                    //ELOG_DEBUG("Speed control video, slept %ld = %ld-%ld", pts-now, pts, now);
                 }
                 lastPts_ = avpacket_.pts;
 
@@ -209,9 +209,9 @@ namespace erizo {
             }
             else if(avpacket_.stream_index == audio_stream_index_){//packet is audio
                 int64_t pts = av_rescale(lastAudioPts_, 1000000, (long int)audio_time_base_);
-                int64_t now = av_gettime() - startTime_;
+                int64_t now = av_gettime() - startTime_ + 200;
                 if (pts > now){
-                    //av_usleep(pts - now);
+                    av_usleep(pts - now);
                     ELOG_DEBUG("Speed control audio, slept %ld = %ld-%ld", pts-now, pts, now);
                 }
                 lastAudioPts_ = avpacket_.pts;

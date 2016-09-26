@@ -6,6 +6,9 @@
 #include "WebRtcConnection.h"
 #include "rtp/RtpHeaders.h"
 
+int64_t audiossrc = 0;
+int64_t videossrc = 0;
+
 namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
   OneToManyProcessor::OneToManyProcessor() {
@@ -78,6 +81,8 @@ namespace erizo {
     ELOG_DEBUG("Adding subscriber");
     boost::mutex::scoped_lock lock(myMonitor_);
     ELOG_DEBUG("From %u, %u ", publisher->getAudioSourceSSRC() , publisher->getVideoSourceSSRC());
+    audiossrc = publisher->getAudioSourceSSRC();
+    videossrc = publisher->getVideoSourceSSRC();
     webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
     webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
     ELOG_DEBUG("Subscribers ssrcs: Audio %u, video, %u from %u, %u ", webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC(), this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());

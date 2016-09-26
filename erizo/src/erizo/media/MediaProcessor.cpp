@@ -12,6 +12,8 @@ extern "C" {
 #include <libavutil/mathematics.h>
 }
 
+extern int64_t audiossrc;
+extern int64_t videossrc;
 
 namespace erizo {
 
@@ -462,10 +464,12 @@ namespace erizo {
                 //ELOG_DEBUG("head.extensions = %hu", head.extensions);
 
                 // next timestamp will +FrameSize;
-            head.setSSRC(44444);
+            //head.setSSRC(44444);
+            head.setSSRC(audiossrc);
 
             //head.setPayloadType(mediaInfo.rtpAudioInfo.PT);
-            head.setPayloadType(109);
+            ///head.setPayloadType(109);
+            head.setPayloadType(111);
 
             memcpy(inBuff, &head, head.getHeaderLength());
             memcpy(&inBuff[head.getHeaderLength()], data, datalen);
@@ -501,13 +505,13 @@ namespace erizo {
             rtpHeader.setSeqNumber(seqnum_++);
             if (pts==0){
                 // the input pts is 0, todo:
-                // add pts as member of RawdataPacket.
                 rtpHeader.setTimestamp(av_rescale(millis, 90000, 1000)); 
             }else{
                 //rtpHeader.setTimestamp(av_rescale(pts, 90000, 1000)); 
 
             }
-            rtpHeader.setSSRC(55543);
+            //rtpHeader.setSSRC(55543);
+            rtpHeader.setSSRC(videossrc);
             rtpHeader.setPayloadType(100);
             memcpy(rtpBuffer_, &rtpHeader, rtpHeader.getHeaderLength());
             memcpy(&rtpBuffer_[rtpHeader.getHeaderLength()],outBuff, outlen);
