@@ -557,4 +557,4 @@ void ExternalOutput::sendLoop() {
     this->writeVideoData(videoP->data, videoP->length);
   }
 }
-}
+} 
