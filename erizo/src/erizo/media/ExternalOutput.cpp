@@ -185,7 +185,7 @@ void ExternalOutput::writeAudioData(char* buf, int len){
         ELOG_DEBUG("Write audio frame failed");
     }else{
         lastAudioNTPTs = ntpTimestamp;
-        lastAudioRTPTs = currentTimestamp;
+        lastAudioRTPTs = currentTimestamp + offset + videoOffset;
         additionalVideoOffset -= videoOffset;
     }
 }
@@ -348,9 +348,9 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         if (av_interleaved_write_frame(context_, &avpkt) < 0) {
                 ELOG_DEBUG("Write video frame failed");
         }else{
-                additionalAudioOffset -= audioOffset;
                 lastVideoNTPTs = ntpTimestamp;
-                lastVideoRTPTs = currentTimestamp + offset;
+                lastVideoRTPTs = currentTimestamp + offset + audioOffset;
+                additionalAudioOffset -= audioOffset;
         }
         unpackagedSize_ = 0;
         unpackagedBufferpart_ = unpackagedBuffer_;
