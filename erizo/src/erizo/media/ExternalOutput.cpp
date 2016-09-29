@@ -438,12 +438,14 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
 
     RtcpHeader *head = reinterpret_cast<RtcpHeader*>(buffer);
     if (head->isRtcp()){
-        if(head->getSSRC() == videoSourceSsrc_) {
-            // VIDEO
-            video_measurements.rtcp_Packets.push_back(*head);
-        }else{
-            // AUDIO
-            audio_measurements.rtcp_Packets.push_back(*head);
+        if (videoSourceSsrc_ != 0){
+            if(head->getSSRC() == videoSourceSsrc_) {
+                // VIDEO
+                video_measurements.rtcp_Packets.push_back(*head);
+            }else{
+                // AUDIO
+                audio_measurements.rtcp_Packets.push_back(*head);
+            }
         }
         return;
     }
