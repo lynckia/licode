@@ -10,7 +10,7 @@ namespace erizo {
 DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 ExternalOutput::ExternalOutput(const std::string& outputUrl) : fec_receiver_(this), audioQueue_(5.0, 10.0), videoQueue_(5.0, 10.0), inited_(false), video_stream_(NULL), audio_stream_(NULL),
     firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1), vp8SearchState_(lookingForStart), needToSendFir_(true),
-    video_measurements(), audio_measurements(), SU(), lastAudioRTPTs(0), lastAudioNTPTs(0), lastVideoRTPTs(0), lastVideoNTPTs(0), additionalAudioOffset(0), additionalVideoOffset(0)
+    video_measurements(), audio_measurements(), SU(), lastAudioRTPTs(0), lastAudioNTPTs(0), lastVideoRTPTs(0), lastVideoNTPTs(0), additionalAudioOffset(0), additionalVideoOffset(0), lastSentFir(0)
 {
     ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
 
@@ -152,7 +152,6 @@ void ExternalOutput::writeAudioData(char* buf, int len){
     if (video_measurements.rtcp_Packets.size() >= 2 && audio_measurements.rtcp_Packets.size() >= 2 && lastAudioRTPTs != 0){
         // Can calculate offset
         if(!SU.RtpToNtpMs(currentTimestamp, audio_measurements.rtcp_Packets, &ntpTimestamp)) {
-            ELOG_DEBUG("Non riesco a calcolare audioTS in NTP. Discarding");
             needToSendFir_ = true;
         }else if(lastAudioNTPTs != 0){
             offset = av_rescale_q((ntpTimestamp - lastAudioNTPTs), (AVRational){1,1000}, (AVRational){1, audio_stream_->codec->sample_rate}) - (currentTimestamp - lastAudioRTPTs);
@@ -182,7 +181,7 @@ void ExternalOutput::writeAudioData(char* buf, int len){
     avpkt.pts = timestampToWrite;
     avpkt.stream_index = 1;
     if (av_interleaved_write_frame(context_, &avpkt) < 0) {
-        ELOG_DEBUG("Write audio frame failed");
+        ELOG_ERROR("Write audio frame failed");
     }else{
         lastAudioNTPTs = ntpTimestamp;
         lastAudioRTPTs = currentTimestamp + offset + videoOffset;
@@ -315,7 +314,6 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         if (video_measurements.rtcp_Packets.size() >= 2 && audio_measurements.rtcp_Packets.size() >= 2 && lastVideoRTPTs != 0){
             // Can compute offset
             if(!SU.RtpToNtpMs(currentTimestamp, video_measurements.rtcp_Packets, &ntpTimestamp)) {
-                ELOG_DEBUG("Video: Cannot compute audioTS in NTP. Discarding");
                 needToSendFir_ = true;
             }else if(lastVideoNTPTs != 0){
                 offset = av_rescale_q((ntpTimestamp - lastVideoNTPTs), (AVRational){1,1000}, (AVRational){1,90000}) - (currentTimestamp - lastVideoRTPTs);
@@ -346,7 +344,7 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         avpkt.pts = timestampToWrite;
         avpkt.stream_index = 0;
         if (av_interleaved_write_frame(context_, &avpkt) < 0) {
-                ELOG_DEBUG("Write video frame failed");
+                ELOG_ERROR("Write video frame failed");
         }else{
                 lastVideoNTPTs = ntpTimestamp;
                 lastVideoRTPTs = currentTimestamp + offset + audioOffset;
@@ -459,9 +457,16 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
           context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
         }
     }
-    if (needToSendFir_ && videoSourceSsrc_) {
+
+    timeval time;
+    gettimeofday(&time, NULL);
+    uint64_t now = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+    // PROTECT AGAINST CONTINUOS FIR REQ.
+    if (needToSendFir_ && videoSourceSsrc_ && (now - lastSentFir) > 2000) {
         this->sendFirPacket();
         needToSendFir_ = false;
+        lastSentFir = now;
+        ELOG_DEBUG("Sending FIR");
     }
 
     if (type == VIDEO_PACKET){
@@ -557,4 +562,4 @@ void ExternalOutput::sendLoop() {
     this->writeVideoData(videoP->data, videoP->length);
   }
 }
-} 
+}

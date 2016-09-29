@@ -96,6 +96,7 @@ private:
     Measurements video_measurements, audio_measurements;
     SyncUtils SU;
     int64_t lastAudioRTPTs, lastAudioNTPTs, lastVideoRTPTs, lastVideoNTPTs, additionalAudioOffset, additionalVideoOffset;
+    uint64_t lastSentFir;
 
     bool initContext();
     int sendFirPacket();
