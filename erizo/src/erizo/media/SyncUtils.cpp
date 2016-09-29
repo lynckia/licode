@@ -26,12 +26,12 @@ namespace erizo {
   bool SyncUtils::RtpToNtpMs(uint32_t rtp_timestamp, std::vector<RtcpHeader>& rtcp, int64_t* rtp_timestamp_in_ms) {
           if (rtcp.size() < 2) {
                   ELOG_WARN("RtpToNtpMs: invoked with too few rtcp packets");
-                  *rtp_timestamp_in_ms = rtp_timestamp;
+                  *rtp_timestamp_in_ms = 0;
                   return false;
           }
           if (rtp_timestamp < rtcp[0].getRtpTimestamp()) {
                   ELOG_WARN("RtpToNtpMs: This packet is too early. Discard to avoid problems");
-                  *rtp_timestamp_in_ms = rtp_timestamp;
+                  *rtp_timestamp_in_ms = 0;
                   return false;
           }
           while(rtp_timestamp > rtcp[1].getRtpTimestamp() && rtcp.size() > 2) {

@@ -154,17 +154,15 @@ void ExternalOutput::writeAudioData(char* buf, int len){
         if(!SU.RtpToNtpMs(currentTimestamp, audio_measurements.rtcp_Packets, &ntpTimestamp)) {
             ELOG_DEBUG("Non riesco a calcolare audioTS in NTP. Discarding");
             needToSendFir_ = true;
-            return;
-        }
-        if(lastAudioNTPTs != 0){
+        }else if(lastAudioNTPTs != 0){
             offset = av_rescale_q((ntpTimestamp - lastAudioNTPTs), (AVRational){1,1000}, (AVRational){1, audio_stream_->codec->sample_rate}) - (currentTimestamp - lastAudioRTPTs);
             if (offset < 0){
                 ELOG_DEBUG("Audio - offset < 0 RtpTS: %ld, NtpTS: %ld, lastRtpTS: %ld, lastNtpTS: %ld, offset: %ld, add to video offset: %ld", currentTimestamp, ntpTimestamp, lastAudioRTPTs, lastAudioNTPTs, offset,av_rescale_q((-1 * offset),(AVRational){1,90000},(AVRational){1, audio_stream_->codec->sample_rate}) );
                 additionalAudioOffset +=  av_rescale_q((-1 * offset),(AVRational){1, audio_stream_->codec->sample_rate},(AVRational){1,90000});
                 offset = 0;
             }
+            audioOffsetMsec_ = 0;
         }
-        audioOffsetMsec_ = 0;
     }
 
     long long timestampToWrite = (currentTimestamp + offset + additionalVideoOffset - firstAudioTimestamp_) / (audio_stream_->codec->sample_rate / audio_stream_->time_base.den);    // generally 48000 / 1000 for the denominator portion, at least for opus
@@ -315,21 +313,19 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         int64_t ntpTimestamp = 0;
         int64_t audioOffset = additionalAudioOffset;
         if (video_measurements.rtcp_Packets.size() >= 2 && audio_measurements.rtcp_Packets.size() >= 2 && lastVideoRTPTs != 0){
-                // Can compute offset
-                if(!SU.RtpToNtpMs(currentTimestamp, video_measurements.rtcp_Packets, &ntpTimestamp)) {
-                        ELOG_DEBUG("Video: Cannot compute audioTS in NTP. Discarding");
-                        needToSendFir_ = true;
-                        return;
-                }
-                if(lastVideoNTPTs != 0){
-                        offset = av_rescale_q((ntpTimestamp - lastVideoNTPTs), (AVRational){1,1000}, (AVRational){1,90000}) - (currentTimestamp - lastVideoRTPTs);
-                        if (offset < 0){
-                                ELOG_DEBUG("Video - Offset <0 RtpTS: %ld, NtpTS: %ld, lastRtpTS: %ld, lastNtpTS: %ld, offset: %ld, da sommare ad audio: %ld", currentTimestamp, ntpTimestamp, lastVideoRTPTs, lastVideoNTPTs, offset,av_rescale_q((-1 * offset),(AVRational){1,90000},(AVRational){1, audio_stream_->codec->sample_rate}) );
-                                additionalVideoOffset += av_rescale_q((-1 * offset),(AVRational){1,90000},(AVRational){1, audio_stream_->codec->sample_rate});
-                                offset = 0;
-                        }
+            // Can compute offset
+            if(!SU.RtpToNtpMs(currentTimestamp, video_measurements.rtcp_Packets, &ntpTimestamp)) {
+                ELOG_DEBUG("Video: Cannot compute audioTS in NTP. Discarding");
+                needToSendFir_ = true;
+            }else if(lastVideoNTPTs != 0){
+                offset = av_rescale_q((ntpTimestamp - lastVideoNTPTs), (AVRational){1,1000}, (AVRational){1,90000}) - (currentTimestamp - lastVideoRTPTs);
+                if (offset < 0){
+                    ELOG_DEBUG("Video - Offset <0 RtpTS: %ld, NtpTS: %ld, lastRtpTS: %ld, lastNtpTS: %ld, offset: %ld, da sommare ad audio: %ld", currentTimestamp, ntpTimestamp, lastVideoRTPTs, lastVideoNTPTs, offset,av_rescale_q((-1 * offset),(AVRational){1,90000},(AVRational){1, audio_stream_->codec->sample_rate}) );
+                    additionalVideoOffset += av_rescale_q((-1 * offset),(AVRational){1,90000},(AVRational){1, audio_stream_->codec->sample_rate});
+                    offset = 0;
                 }
                 videoOffsetMsec_ = 0;
+            }
         }
 
         long long timestampToWrite = (currentTimestamp + offset + audioOffset - firstVideoTimestamp_) / (90000 / video_stream_->time_base.den);  // All of our video offerings are using a 90khz clock.
