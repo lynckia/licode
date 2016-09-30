@@ -90,7 +90,7 @@ namespace erizo {
   int VideoEncoder::encodeVideo (unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength, int& hasFrame){
 
     int size = vCoderContext->width * vCoderContext->height;
-    //    ELOG_DEBUG("vCoderContext width %d", vCoderContext->width);
+        ELOG_DEBUG("vCoderContext width %d, height %d", vCoderContext->width, vCoderContext->height);
 
     cPicture->pts = AV_NOPTS_VALUE;
     cPicture->data[0] = inBuffer;
@@ -100,6 +100,10 @@ namespace erizo {
     cPicture->linesize[1] = vCoderContext->width / 2;
     cPicture->linesize[2] = vCoderContext->width / 2;
 
+    cPicture->width = vCoderContext->width;
+    cPicture->height= vCoderContext->height;
+    cPicture->format = vCoderContext->pix_fmt;
+
     AVPacket pkt;
     av_init_packet(&pkt);
     pkt.data = outBuffer;
@@ -107,12 +111,12 @@ namespace erizo {
 
     int ret = 0;
     int got_packet = 0;
-    //    ELOG_DEBUG(
-    //        "Before encoding inBufflen %d, size %d, codecontext width %d pkt->size%d",
-    //        inLength, size, vCoderContext->width, pkt.size);
+        ELOG_DEBUG(
+            "Before encoding inBufflen %d, size %d, codecontext width %d pkt->size%d",
+            inLength, size, vCoderContext->width, pkt.size);
     ret = avcodec_encode_video2(vCoderContext, &pkt, cPicture, &got_packet);
-    //    ELOG_DEBUG("Encoded video size %u, ret %d, got_packet %d, pts %lld, dts %lld",
-    //        pkt.size, ret, got_packet, pkt.pts, pkt.dts);
+        ELOG_DEBUG("Encoded video size %u, ret %d, got_packet %d, pts %lld, dts %lld",
+            pkt.size, ret, got_packet, pkt.pts, pkt.dts);
     if (!ret && got_packet && vCoderContext->coded_frame) {
       vCoderContext->coded_frame->pts = pkt.pts;
       vCoderContext->coded_frame->key_frame =
