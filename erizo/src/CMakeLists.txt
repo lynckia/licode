@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
+include(ExternalProject)
 
 project (ERIZO_ALL)
 option (COMPILE_EXAMPLES "COMPILE_EXAMPLES" OFF)
@@ -32,3 +33,14 @@ endif(COMPILE_EXAMPLES)
 if(COMPILE_TEST)
   add_subdirectory("${ERIZO_ALL_SOURCES}test")
 endif(COMPILE_TEST)
+
+#external
+if(EXISTS "$ENV{ERIZO_EXTERNAL_MODULES}")
+  ExternalProject_Add(addons
+    SOURCE_DIR $ENV{ERIZO_EXTERNAL_MODULES}
+    DOWNLOAD_COMMAND ""
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build
+    BUILD_IN_SOURCE 1
+    INSTALL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build
+  )
+endif()
