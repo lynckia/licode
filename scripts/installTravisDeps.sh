@@ -20,9 +20,17 @@ parse_arguments(){
   done
 }
 
+check_result() {
+  if [ "$1" -eq 1 ]
+  then
+    exit 1
+  fi
+}
+
 install_apt_deps(){
-  sudo apt-get update --fix-missing
+  sudo apt-get update -qq --fix-missing
   sudo apt-get install -qq make gcc libssl-dev cmake libsrtp0-dev libsrtp0 libnice10 libnice-dev libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev curl
+  check_result $?
   npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/
 }
@@ -33,9 +41,8 @@ install_openssl(){
     curl -O http://www.openssl.org/source/openssl-1.0.1e.tar.gz
     tar -zxvf openssl-1.0.1e.tar.gz > /dev/null 2> /dev/null
     cd openssl-1.0.1e
-    ./config --prefix=$PREFIX_DIR -fPIC
-    make -s V=0
-    make install
+    ./config --prefix=$PREFIX_DIR -fPIC && make -s V=0 && make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -49,9 +56,8 @@ install_libnice(){
     curl -O http://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
     tar -zxvf libnice-0.1.4.tar.gz > /dev/null 2> /dev/null
     cd libnice-0.1.4
-    ./configure --prefix=$PREFIX_DIR
-    make -s V=0
-    make install
+    ./configure --prefix=$PREFIX_DIR && make -s V=0 && make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -66,9 +72,8 @@ install_mediadeps(){
     curl -O https://www.libav.org/releases/libav-9.9.tar.gz
     tar -zxvf libav-9.9.tar.gz > /dev/null 2> /dev/null
     cd libav-9.9
-    ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264
-    make -s V=0
-    make install
+    ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 && make -s V=0 && make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -84,9 +89,8 @@ install_mediadeps_nogpl(){
     curl -O https://www.libav.org/releases/libav-9.9.tar.gz
     tar -zxvf libav-9.9.tar.gz > /dev/null 2> /dev/null
     cd libav-9.9
-    ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx
-    make -s V=0
-    make install
+    ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx && make -s V=0 && make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -96,10 +100,8 @@ install_mediadeps_nogpl(){
 
 install_libsrtp(){
   cd $ROOT/third_party/srtp
-  CFLAGS="-fPIC" ./configure --prefix=$PREFIX_DIR
-  make -s V=0
-  make uninstall
-  make install
+  CFLAGS="-fPIC" ./configure --prefix=$PREFIX_DIR && make -s V=0 && make uninstall && make install
+  check_result $?
   cd $CURRENT_DIR
 }
 
