@@ -4,21 +4,23 @@ node_js:
 addons:
   apt:
     packages:
+      - git
       - make
       - gcc
+      - g++
       - libssl-dev
       - cmake
-      - libsrtp0-dev
-      - libsrtp0
-      - libnice10
-      -  libnice-dev
       - libglib2.0-dev
       - pkg-config
       - libboost-regex-dev
       - libboost-thread-dev
       - libboost-system-dev
       - liblog4cxx10-dev
+      - rabbitmq-server
+      - mongodb
+      - openjdk-6-jre
       - curl
+      - libboost-test-dev
       - yasm
       - libvpx.
       - libx264.
