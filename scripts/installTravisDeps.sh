@@ -28,9 +28,6 @@ check_result() {
 }
 
 install_apt_deps(){
-  sudo apt-get update -qq --fix-missing
-  sudo apt-get install -qq make gcc libssl-dev cmake libsrtp0-dev libsrtp0 libnice10 libnice-dev libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev curl
-  check_result $?
   npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/
 }
@@ -130,3 +127,5 @@ else
   echo "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
   install_mediadeps_nogpl
 fi
+
+echo "Done"
