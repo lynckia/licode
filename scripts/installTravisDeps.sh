@@ -133,6 +133,9 @@ install_libnice
 echo "Installing libsrtp library..."
 install_libsrtp
 
+echo "Installing opus library..."
+install_opus
+
 if [ "$ENABLE_GPL" = "true" ]; then
   echo "GPL libraries enabled"
   install_mediadeps
