@@ -109,16 +109,16 @@ ls ./build/libdeps/
 
 mkdir -p $PREFIX_DIR
 
-echo "Installing deps via apt-get... [press Enter]"
+echo "Installing deps via apt-get..."
 install_apt_deps
 
-echo "Installing openssl library...  [press Enter]"
+echo "Installing openssl library..."
 install_openssl
 
-echo "Installing libnice library...  [press Enter]"
+echo "Installing libnice library..."
 install_libnice
 
-echo "Installing libsrtp library...  [press Enter]"
+echo "Installing libsrtp library..."
 install_libsrtp
 
 if [ "$ENABLE_GPL" = "true" ]; then

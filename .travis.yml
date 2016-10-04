@@ -1,0 +1,14 @@
+language: node_js
+node_js:
+  - 0.10
+install:
+  - ./scripts/installTravisDeps.sh
+script:
+  - ./scripts/installErizo.sh
+  - ./scripts/installNuve.sh
+  - ./scripts/installBasicExample.sh
+cache:
+  apt: true
+  directories:
+  - node-modules/
+  - build/
