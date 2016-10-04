@@ -6,7 +6,6 @@ install:
 script:
   - ./scripts/installErizo.sh
   - ./scripts/installNuve.sh
-  - ./scripts/installBasicExample.sh
 cache:
   apt: true
   directories:
