@@ -17,7 +17,6 @@ addons:
       - libboost-system-dev
       - liblog4cxx10-dev
       - rabbitmq-server
-      - mongodb
       - openjdk-6-jre
       - curl
       - libboost-test-dev
