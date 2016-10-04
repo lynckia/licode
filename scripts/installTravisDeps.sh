@@ -30,8 +30,6 @@ check_result() {
 install_apt_deps(){
   npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/
-  sudo apt-get update -qq
-  sudo apt-get install -qq -y mongodb
 }
 
 install_openssl(){

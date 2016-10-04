@@ -1,6 +1,9 @@
 language: node_js
 node_js:
   - 0.10
+services:
+  - mongodb
+  - rabbitmq
 addons:
   apt:
     packages:
@@ -16,7 +19,6 @@ addons:
       - libboost-thread-dev
       - libboost-system-dev
       - liblog4cxx10-dev
-      - rabbitmq-server
       - openjdk-6-jre
       - curl
       - libboost-test-dev
