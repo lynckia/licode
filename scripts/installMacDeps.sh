@@ -31,6 +31,13 @@ parse_arguments(){
   done
 }
 
+check_result() {
+  if [ "$1" -eq 1 ]
+  then
+    exit 1
+  fi
+}
+
 install_homebrew(){
   which -s brew
   if [[ $? != 0 ]] ; then
@@ -40,7 +47,7 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost cmake mongodb rabbitmq yasm log4cxx
+  brew install glib pkg-config boost cmake yasm log4cxx
   npm install -g node-gyp
 }
 
@@ -50,9 +57,8 @@ install_openssl(){
     curl -O https://www.openssl.org/source/openssl-1.0.1g.tar.gz
     tar -zxvf openssl-1.0.1g.tar.gz
     cd openssl-1.0.1g
-    ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -shared -fPIC
-    make -s V=0
-    make install_sw
+    ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -shared -fPIC && make -s V=0 && make install_sw
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -66,11 +72,11 @@ install_libnice(){
     curl -O https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
     tar -zxvf libnice-0.1.4.tar.gz
     cd libnice-0.1.4
-    patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
-    echo nice_agent_set_port_range >> nice/libnice.sym
-    ./configure --prefix=$PREFIX_DIR
-    make -s V=0
-    make install
+    patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0 && \
+    patch -p1 < $PATHNAME/libnice-014.patch1
+    check_result $?
+    ./configure --prefix=$PREFIX_DIR && make -s V=0 && make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -81,9 +87,8 @@ install_libnice(){
 install_libsrtp(){
   cd $ROOT/third_party/srtp
   CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR
-  make -s V=0
-  make uninstall
-  make install
+  make -s V=0 && make uninstall && make install
+  check_result $?
   cd $CURRENT_DIR
 }
 
@@ -95,10 +100,11 @@ install_mediadeps(){
     tar -zxvf libav-11.6.tar.gz
     cd libav-11.6
     curl -O https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
-    patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
-    make -s V=0
+    patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch && \
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus && \
+    make -s V=0 && \
     make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -114,10 +120,11 @@ install_mediadeps_nogpl(){
     tar -zxvf libav-11.6.tar.gz
     cd libav-11.6
     curl -O https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
-    patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus
-    make -s V=0
+    patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch && \
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus && \
+    make -s V=0 && \
     make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
