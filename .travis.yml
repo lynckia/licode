@@ -24,6 +24,3 @@ install:
 script: ./scripts/installErizo.sh && ./scripts/installNuve.sh
 cache:
   apt: true
-  directories:
-  - node-modules/
-  - build/
