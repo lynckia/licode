@@ -297,9 +297,9 @@ exports.ErizoJSController = function (spec) {
         if (publishers[from] === undefined) {
 
             log.info("Adding publisher peer_id ", from, "minVideoBW", options.minVideoBW,"adaptation scheme", options.scheme);
-
+            var wrtcId = from;
             var muxer = new addon.OneToManyProcessor(),
-                wrtc = new addon.WebRtcConnection(true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
+                wrtc = new addon.WebRtcConnection(wrtcId, true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
                         GLOBAL.config.erizo.turnserver, GLOBAL.config.erizo.turnport, GLOBAL.config.erizo.turnusername, GLOBAL.config.erizo.turnpass);
 
             publishers[from] = {muxer: muxer, wrtc: wrtc, minVideoBW: options.minVideoBW, scheme:options.scheme};
@@ -314,7 +314,7 @@ exports.ErizoJSController = function (spec) {
         } else {
             if (Object.keys(subscribers[from]).length === 0){
                 log.warn("Publisher already set for", from, "but no subscribers, will republish");
-                var wrtc = new addon.WebRtcConnection(true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
+                var wrtc = new addon.WebRtcConnection(from, true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
                         GLOBAL.config.erizo.turnserver, GLOBAL.config.erizo.turnport, GLOBAL.config.erizo.turnusername, GLOBAL.config.erizo.turnpass);
                 var muxer = publishers[from].muxer;
                 publishers[from].wrtc = wrtc;
@@ -348,7 +348,9 @@ exports.ErizoJSController = function (spec) {
 
         log.info("Adding subscriber from ", from, 'to ', to, 'audio', options.audio, 'video', options.video);
 
-        var wrtc = new addon.WebRtcConnection(true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
+        var wrtcId = from+"_"+to;
+
+        var wrtc = new addon.WebRtcConnection(wrtcId, true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
                 GLOBAL.config.erizo.turnserver, GLOBAL.config.erizo.turnport, GLOBAL.config.erizo.turnusername, GLOBAL.config.erizo.turnpass);
 
         subscribers[to][from] = wrtc;

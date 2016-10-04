@@ -61,7 +61,7 @@ public:
      * Constructor.
      * Constructs an empty WebRTCConnection without any configuration.
      */
-    WebRtcConnection(bool audioEnabled, bool videoEnabled, const IceConfig& iceConfig, WebRtcConnectionEventListener* listener);
+    WebRtcConnection(const std::string wrtcId, bool audioEnabled, bool videoEnabled, const IceConfig& iceConfig, WebRtcConnectionEventListener* listener);
     /**
      * Destructor.
      */
@@ -149,6 +149,7 @@ public:
 
 private:
   
+    std::string wrtcId_;
     SdpInfo remoteSdp_;
     SdpInfo localSdp_;
     bool audioEnabled_;

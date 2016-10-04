@@ -15,10 +15,10 @@
 namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
   
-  WebRtcConnection::WebRtcConnection(bool audioEnabled, bool videoEnabled, 
+  WebRtcConnection::WebRtcConnection(std::string wrtcId, bool audioEnabled, bool videoEnabled, 
       const IceConfig& iceConfig, WebRtcConnectionEventListener* listener)
-      : audioEnabled_ (audioEnabled), videoEnabled_(videoEnabled),connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this){
-    ELOG_INFO("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d\n", iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
+      : wrtcId_ (wrtcId), audioEnabled_ (audioEnabled), videoEnabled_(videoEnabled),connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this){
+    ELOG_INFO("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d, id %s", iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort, wrtcId_.c_str());
     bundle_ = false;
     setVideoSinkSSRC(55543);
     setAudioSinkSSRC(44444);
