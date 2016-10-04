@@ -13,7 +13,7 @@ pause() {
   if [ "$UNATTENDED" == "true" ]; then
     echo "$*"
   else
-    read -p "$*"
+    read -p "$* [press Enter]"
   fi
 }
 
@@ -25,6 +25,9 @@ parse_arguments(){
         ;;
       "--unattended")
         UNATTENDED=true
+        ;;
+      "--disable-services")
+        DISABLE_SERVICES=true
         ;;
     esac
     shift
@@ -49,6 +52,9 @@ install_homebrew(){
 install_brew_deps(){
   brew install glib pkg-config boost cmake yasm log4cxx
   npm install -g node-gyp
+  if [ "$DISABLE_SERVICES" != "true" ]; then
+    brew install rabbitmq mongodb
+  fi
 }
 
 install_openssl(){
@@ -136,19 +142,19 @@ parse_arguments $*
 
 mkdir -p $LIB_DIR
 
-pause "Installing homebrew... [press Enter]"
+pause "Installing homebrew..."
 install_homebrew
 
-pause "Installing deps via homebrew... [press Enter]"
+pause "Installing deps via homebrew..."
 install_brew_deps
 
-pause 'Installing openssl... [press Enter]'
+pause 'Installing openssl...'
 install_openssl
 
-pause 'Installing liblibnice... [press Enter]'
+pause 'Installing liblibnice...'
 install_libnice
 
-pause 'Installing libsrtp... [press Enter]'
+pause 'Installing libsrtp...'
 install_libsrtp
 
 if [ "$ENABLE_GPL" = "true" ]; then
