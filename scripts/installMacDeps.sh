@@ -48,13 +48,13 @@ check_result() {
 install_homebrew_from_cache(){
   if [ -f cache/homebrew-cache.tar.gz ]; then
     tar xzf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar
-    brew link glib pkg-config boost cmake yasm log4cxx xz gettext libffi pcre
+    brew link glib pkg-config boost cmake yasm log4cxx
   fi
 }
 
 copy_homebrew_to_cache(){
   mkdir cache
-  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx xz gettext libffi pcre
+  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx
 }
 
 install_homebrew(){
