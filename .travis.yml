@@ -20,10 +20,8 @@ addons:
       - liblog4cxx10-dev
       - curl
       - yasm
-      - libvpx
-      - libx264
+      - libvpx.
+      - libx264.
 install:
   - ./scripts/installTravisDeps.sh
 script: ./scripts/installErizo.sh && ./scripts/installNuve.sh
-cache:
-  apt: true
