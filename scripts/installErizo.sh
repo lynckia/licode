@@ -64,7 +64,6 @@ install_erizo_api(){
   echo 'Installing erizoAPI...'
   cd $ROOT/erizoAPI
   npm install nan@2.3.2
-  export ERIZO_HOME=
   ./build.sh
   check_result $?
   cd $CURRENT_DIR
