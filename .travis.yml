@@ -29,6 +29,9 @@ addons:
       - libvpx.
       - libx264.
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   ./scripts/installMacDeps.sh;    fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; ./scripts/installTravisDeps.sh; fi
+  # OSX
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then   ./scripts/installMacDeps.sh;    fi
+
+  # LINUX
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./scripts/installTravisDeps.sh; fi
 script: ./scripts/installErizo.sh && ./scripts/installNuve.sh
