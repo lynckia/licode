@@ -10,7 +10,11 @@ LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
 pause() {
-  read -p "$*"
+  if [ "$UNATTENDED" == "true" ]; then
+    echo "$*"
+  else
+    read -p "$*"
+  fi
 }
 
 parse_arguments(){
@@ -18,6 +22,9 @@ parse_arguments(){
     case $1 in
       "--enable-gpl")
         ENABLE_GPL=true
+        ;;
+      "--unattended")
+        UNATTENDED=true
         ;;
     esac
     shift
@@ -81,7 +88,7 @@ install_libsrtp(){
 }
 
 install_mediadeps(){
-  brew install opus libvpx x264 
+  brew install opus libvpx x264
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-11.6.tar.gz
@@ -100,7 +107,7 @@ install_mediadeps(){
 }
 
 install_mediadeps_nogpl(){
-  brew install opus libvpx 
+  brew install opus libvpx
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-11.6.tar.gz
