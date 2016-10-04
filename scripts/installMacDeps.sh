@@ -54,7 +54,7 @@ install_homebrew_from_cache(){
 
 copy_homebrew_to_cache(){
   mkdir cache
-  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx
+  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx gettext
 }
 
 install_homebrew(){
@@ -69,7 +69,7 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost cmake yasm log4cxx
+  brew install glib pkg-config boost cmake yasm log4cxx gettext
   npm install -g node-gyp
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew install rabbitmq mongodb
