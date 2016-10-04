@@ -1,6 +1,6 @@
 language: node_js
 os:
-  - osx
+#  - osx  TODO Enable again once we add openssl, libnice, libsrtp and libav to cmake
   - linux
 cache:
   directories:
