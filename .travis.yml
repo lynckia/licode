@@ -2,6 +2,10 @@ language: node_js
 os:
   - osx
   - linux
+cache:
+  directories:
+  - node_modules
+  - cache
 node_js:
   - 0.10
 services:
@@ -30,7 +34,7 @@ addons:
       - libx264.
 before_install:
   # OSX
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then   ./scripts/installMacDeps.sh --unattended --disable-services;    fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then   ./scripts/installMacDeps.sh --unattended --disable-services --use-cache;    fi
 
   # LINUX
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./scripts/installTravisDeps.sh; fi

@@ -29,6 +29,10 @@ parse_arguments(){
       "--disable-services")
         DISABLE_SERVICES=true
         ;;
+      "--use-cache")
+        CACHE=true
+        ;;
+
     esac
     shift
   done
@@ -41,7 +45,21 @@ check_result() {
   fi
 }
 
+install_homebrew_from_cache(){
+  if [ -f cache/homebrew-cache.tar.gz ]; then
+    tar xzf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar
+  fi
+}
+
+copy_homebrew_to_cache(){
+  mkdir cache
+  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx
+}
+
 install_homebrew(){
+  if [ "$CACHE" == "true" ]; then
+    install_homebrew_from_cache
+  fi
   which -s brew
   if [[ $? != 0 ]] ; then
     # Install Homebrew
@@ -163,4 +181,8 @@ if [ "$ENABLE_GPL" = "true" ]; then
 else
   pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
   install_mediadeps_nogpl
+fi
+
+if [ "$CACHE" == "true" ]; then
+  copy_homebrew_to_cache
 fi
