@@ -11,6 +11,7 @@ DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 ExternalOutput::ExternalOutput(const std::string& outputUrl) : fec_receiver_(this), audioQueue_(5.0, 10.0), videoQueue_(5.0, 10.0), inited_(false), video_stream_(NULL), audio_stream_(NULL),
     firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1), vp8SearchState_(lookingForStart), needToSendFir_(true)
 {
+    UPDATE_LOG_CONTEXT(outputUrl);
     ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
 
     // TODO these should really only be called once per application run
@@ -26,7 +27,6 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl) : fec_receiver_(thi
     } else {
 
         outputUrl.copy(context_->filename, sizeof(context_->filename),0);
-
         context_->oformat = av_guess_format(NULL,  context_->filename, NULL);
         if (!context_->oformat){
             ELOG_ERROR("Error guessing format %s", context_->filename);
@@ -35,7 +35,7 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl) : fec_receiver_(thi
             context_->oformat->audio_codec = AV_CODEC_ID_NONE; // We'll figure this out once we start receiving data; it's either PCM or OPUS
         }
     }
-
+    url_ = outputUrl;
     unpackagedBufferpart_ = unpackagedBuffer_;
     sinkfbSource_ = this;
     fbSink_ = NULL;
@@ -44,6 +44,7 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl) : fec_receiver_(thi
 }
 
 bool ExternalOutput::init(){
+    UPDATE_LOG_CONTEXT(url_);
     MediaInfo m;
     m.hasVideo = false;
     m.hasAudio = false;
@@ -55,6 +56,7 @@ bool ExternalOutput::init(){
 
 
 ExternalOutput::~ExternalOutput(){
+    UPDATE_LOG_CONTEXT(url_);
     ELOG_DEBUG("Destructing");
 
     // Stop our thread so we can safely nuke libav stuff and close our
@@ -380,6 +382,7 @@ bool ExternalOutput::initContext() {
 }
 
 void ExternalOutput::queueData(char* buffer, int length, packetType type){
+    UPDATE_LOG_CONTEXT(url_);
     if (!recording_) {
         return;
     }
@@ -454,6 +457,7 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
 }
 
 int ExternalOutput::sendFirPacket() {
+    UPDATE_LOG_CONTEXT(url_);
     if (fbSink_ != NULL) {
       RtcpHeader thePLI;
       thePLI.setPacketType(RTCP_PS_Feedback_PT);
@@ -470,6 +474,7 @@ int ExternalOutput::sendFirPacket() {
 }
 
 void ExternalOutput::sendLoop() {
+  UPDATE_LOG_CONTEXT(url_);
   while (recording_) {
     boost::unique_lock<boost::mutex> lock(mtx_);
     cond_.wait(lock);

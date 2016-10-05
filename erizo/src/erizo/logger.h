@@ -23,11 +23,12 @@
 #include <stdio.h>
 
 #include <log4cxx/logger.h>
+#include <log4cxx/mdc.h>
 #include <log4cxx/helpers/exception.h>
 
  #define DECLARE_LOGGER() \
  static log4cxx::LoggerPtr logger;
-
+ 
  #define DEFINE_LOGGER(namespace, logName) \
  log4cxx::LoggerPtr namespace::logger = log4cxx::Logger::getLogger( logName );
 
@@ -100,5 +101,16 @@
 
 #define ELOG_FATAL(fmt, args...) \
     ELOG_FATAL2( logger, fmt, ##args );
+
+static const std::string LOG_CONTEXT_ID = "connId";
+
+static inline void UPDATE_LOG_CONTEXT(const std::string& value){
+    log4cxx::MDC::clear();
+    log4cxx::MDC::put(LOG_CONTEXT_ID, value);
+}
+
+static inline std::string GET_LOG_CONTEXT(){
+  return log4cxx::MDC::get(LOG_CONTEXT_ID);
+}
 
 #endif  /* __ELOG_H__ */

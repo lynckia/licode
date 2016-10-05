@@ -9,17 +9,18 @@
 namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
   OneToManyProcessor::OneToManyProcessor() {
+    UPDATE_LOG_CONTEXT("unassigned");
     ELOG_DEBUG ("OneToManyProcessor constructor");
     feedbackSink_ = NULL;
   }
 
   OneToManyProcessor::~OneToManyProcessor() {
+    UPDATE_LOG_CONTEXT(id_);
     ELOG_DEBUG ("OneToManyProcessor destructor");
     this->closeAll();
   }
 
   int OneToManyProcessor::deliverAudioData_(char* buf, int len) {
- //   ELOG_DEBUG ("OneToManyProcessor deliverAudio");
     if (len <= 0)
       return 0;
 
@@ -61,7 +62,10 @@ namespace erizo {
 
   void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
     boost::mutex::scoped_lock lock(myMonitor_);
+    id_ = webRtcConn->getSourceId();
+    UPDATE_LOG_CONTEXT(id_);
     this->publisher.reset(webRtcConn);
+
     feedbackSink_ = publisher->getFeedbackSink();
   }
 
@@ -75,6 +79,7 @@ namespace erizo {
 
   void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
+    UPDATE_LOG_CONTEXT(id_);
     ELOG_DEBUG("Adding subscriber");
     boost::mutex::scoped_lock lock(myMonitor_);
     ELOG_DEBUG("From %u, %u ", publisher->getAudioSourceSSRC() , publisher->getVideoSourceSSRC());
@@ -95,6 +100,7 @@ namespace erizo {
   }
 
   void OneToManyProcessor::removeSubscriber(const std::string& peerId) {
+    UPDATE_LOG_CONTEXT(id_);
     ELOG_DEBUG("Remove subscriber %s", peerId.c_str());
     boost::mutex::scoped_lock lock(myMonitor_);
     if (this->subscribers.find(peerId) != subscribers.end()) {
@@ -103,6 +109,7 @@ namespace erizo {
   }
 
   void OneToManyProcessor::closeAll() {
+    UPDATE_LOG_CONTEXT(id_);
     ELOG_DEBUG ("OneToManyProcessor closeAll");
     feedbackSink_ = NULL;
     publisher.reset();

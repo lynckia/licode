@@ -48,6 +48,7 @@ public:
 
 private:
   typedef boost::shared_ptr<MediaSink> sink_ptr;
+  std::string id_;
   FeedbackSink* feedbackSink_;
 	
   int deliverAudioData_(char* buf, int len);

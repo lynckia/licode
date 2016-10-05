@@ -59,6 +59,7 @@ namespace erizo {
     mediaType(med), agent_(NULL), loop_(NULL), listener_(listener), candsDelivered_(0), 
     iceState_(NICE_INITIAL), iceComponents_(iceComponents), username_(username), password_(password), iceConfig_(iceConfig),
   receivedLastCandidate_(false){
+      logContext_=GET_LOG_CONTEXT();
       localCandidates.reset(new std::vector<CandidateInfo>());
       transportName.reset(new std::string(transport_name));
       for (unsigned int i = 1; i<=iceComponents_; i++) {
@@ -245,6 +246,7 @@ namespace erizo {
 
   void NiceConnection::mainLoop() {
     //Start gathering candidates and fire event loop
+    UPDATE_LOG_CONTEXT(logContext_);
     ELOG_DEBUG("Starting g_ main_loop %p", this);
     if (agent_==NULL){
       return;
