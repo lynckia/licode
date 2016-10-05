@@ -37,6 +37,7 @@ OPTIONS:
    -a      Compile Erizo API
    -c      Install Erizo node modules
    -s      Install Spine
+   -t      Run Tests
 EOF
 }
 
@@ -85,6 +86,13 @@ install_spine(){
   cd $CURRENT_DIR
 }
 
+execute_tests(){
+  echo 'Testing erizo...'
+  cd $ROOT/erizo
+  ./runTests.sh
+  check_result $?
+  cd $CURRENT_DIR
+}
 
 if [ "$#" -eq 0 ]
 then
@@ -93,7 +101,7 @@ then
   install_erizo_controller
   install_spine
 else
-  while getopts “heac” OPTION
+  while getopts “heacst” OPTION
   do
     case $OPTION in
       h)
@@ -111,6 +119,9 @@ else
         ;;
       s)
         install_spine
+        ;;
+      t)
+        execute_tests
         ;;
       ?)
         usage

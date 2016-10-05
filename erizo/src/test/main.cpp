@@ -1,2 +1,4 @@
-#define BOOST_TEST_MODULE "C++ Unit tests for Erizo"
-#include <boost/test/included/unit_test.hpp>
+#define BOOST_TEST_DYN_LINK
+
+#define BOOST_TEST_MODULE erizo
+#include <boost/test/unit_test.hpp>
