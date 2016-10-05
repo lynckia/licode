@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 2.6)
 
 project (ERIZO_ALL)
 option (COMPILE_EXAMPLES "COMPILE_EXAMPLES" OFF)
-option (COMPILE_TEST "COMPILE_TEST" OFF)
 
 set(ERIZO_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
@@ -38,6 +37,4 @@ if(COMPILE_EXAMPLES)
 endif(COMPILE_EXAMPLES)
 
 #tests
-if(COMPILE_TEST)
-  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/test")
-endif(COMPILE_TEST)
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/test")

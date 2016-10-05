@@ -21,3 +21,10 @@ target_link_libraries(test erizo)
 set (BOOST_LIBS thread regex system unit_test_framework)
 find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
 target_link_libraries(test ${Boost_LIBRARIES})
+
+file(GLOB_RECURSE ERIZO_SOURCES_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+add_custom_target(check
+    test --detect_memory_leaks --report_level=detailed
+    WORKING_DIRECTORY "${ERIZO_TEST_BINARY_DIR}"
+    COMMENT "Running tests"
+)

@@ -38,4 +38,5 @@ before_install:
 
   # LINUX
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./scripts/installTravisDeps.sh; fi
-script: ./scripts/installErizo.sh && ./scripts/installNuve.sh
+install: ./scripts/installErizo.sh && ./scripts/installNuve.sh
+script: ./scripts/installErizo.sh -t
