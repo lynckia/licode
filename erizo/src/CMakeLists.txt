@@ -20,7 +20,7 @@ endif(DOXYGEN_FOUND)
 
 file(GLOB_RECURSE ERIZO_SOURCES_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 add_custom_target(lint
-    ${ERIZO_ROOT_DIR}/cpplint.py --linelength=120 ${ERIZO_SOURCES_FILES}
+    ${ERIZO_ROOT_DIR}/utils/cpplint.py --linelength=120 ${ERIZO_SOURCES_FILES}
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Executing lint"
 )
