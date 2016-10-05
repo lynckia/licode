@@ -43,6 +43,7 @@ namespace erizo {
     bool running_, isServer_;
     boost::scoped_ptr<Resender> rtcpResender, rtpResender;
     boost::thread getNice_Thread_;
+    std::string logContext_;
     void getNiceDataLoop();
     packetPtr p_;
   };
@@ -63,6 +64,7 @@ namespace erizo {
     int sent_;
     const unsigned char* data_;
     unsigned int len_;
+    std::string logContext_;
     boost::asio::io_service service;
     boost::asio::deadline_timer timer;
     boost::scoped_ptr<boost::thread> thread_;

@@ -53,6 +53,7 @@ private:
     unsigned char* unpackagedBufferpart_;
     unsigned char deliverMediaBuffer_[3000];
     unsigned char unpackagedBuffer_[UNPACKAGE_BUFFER_SIZE];
+    std::string url_;
 
     // Timestamping strategy: we use the RTP timestamps so we don't have to restamp and we're not
     // subject to error due to the RTP packet queue depth and playout.

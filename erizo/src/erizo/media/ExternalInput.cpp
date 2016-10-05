@@ -10,6 +10,8 @@
 namespace erizo {
   DEFINE_LOGGER(ExternalInput, "media.ExternalInput");
   ExternalInput::ExternalInput(const std::string& inputUrl):url_(inputUrl){
+    UPDATE_LOG_CONTEXT(inputUrl);
+    this->sourceId_ = inputUrl;
     sourcefbSink_=NULL;
     context_ = NULL;
     running_ = false;
@@ -19,6 +21,7 @@ namespace erizo {
   }
 
   ExternalInput::~ExternalInput(){
+    UPDATE_LOG_CONTEXT(url_);
     ELOG_DEBUG("Destructor ExternalInput %s" , url_.c_str());
     ELOG_DEBUG("Closing ExternalInput");
     running_ = false;
@@ -32,6 +35,7 @@ namespace erizo {
   }
 
   int ExternalInput::init(){
+    UPDATE_LOG_CONTEXT(url_);
     context_ = avformat_alloc_context();
     av_register_all();
     avcodec_register_all();
@@ -170,6 +174,7 @@ namespace erizo {
 
   void ExternalInput::receiveLoop(){
 
+    UPDATE_LOG_CONTEXT(url_);
     av_read_play(context_);//play RTSP
     int gotDecodedFrame = 0;
     int length;
@@ -223,6 +228,7 @@ namespace erizo {
   }
 
   void ExternalInput::encodeLoop() {
+    UPDATE_LOG_CONTEXT(url_);
     while (running_ == true) {
       queueMutex_.lock();
       if (packetQueue_.size() > 0) {

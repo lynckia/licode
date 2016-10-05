@@ -184,6 +184,7 @@ namespace erizo {
     unsigned int iceComponents_;
     std::map <unsigned int, IceState> comp_state_list_;
     std::string ufrag_, upass_, username_, password_;
+    std::string logContext_;
     IceConfig iceConfig_;
     bool receivedLastCandidate_;
   };

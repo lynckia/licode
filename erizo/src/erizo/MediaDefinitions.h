@@ -104,6 +104,7 @@ protected:
     unsigned int audioSourceSSRC_;
     MediaSink* videoSink_;
     MediaSink* audioSink_;
+    std::string sourceId_;
     //can it accept feedback
     FeedbackSink* sourcefbSink_;
 public:
@@ -121,6 +122,7 @@ public:
         return sourcefbSink_;
     }
     virtual int sendPLI()=0;
+
     unsigned int getVideoSourceSSRC (){
         boost::mutex::scoped_lock lock(myMonitor_);
         return videoSourceSSRC_;
@@ -137,6 +139,9 @@ public:
         boost::mutex::scoped_lock lock(myMonitor_);
         audioSourceSSRC_ = ssrc;
     }
+    const std::string& getSourceId(){
+      return sourceId_;
+    };
     virtual ~MediaSource(){}
 };
 

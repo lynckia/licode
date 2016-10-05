@@ -16,10 +16,12 @@ DEFINE_LOGGER(Resender, "Resender");
 
 Resender::Resender(boost::shared_ptr<NiceConnection> nice, unsigned int comp, const unsigned char* data, unsigned int len) : 
   nice_(nice), comp_(comp), data_(data),len_(len), timer(service) {
+    logContext_ = GET_LOG_CONTEXT();
     sent_ = 0;
   }
 
 Resender::~Resender() {
+  UPDATE_LOG_CONTEXT(logContext_);
   ELOG_DEBUG("Resender destructor");
   timer.cancel();
   if (thread_.get()!=NULL) {
@@ -35,6 +37,7 @@ void Resender::cancel() {
 }
 
 void Resender::start() {
+  UPDATE_LOG_CONTEXT(logContext_);
   sent_ = 0;
   timer.cancel();
   if (thread_.get()!=NULL) {
@@ -48,6 +51,7 @@ void Resender::start() {
 }
 
 void Resender::run() {
+  UPDATE_LOG_CONTEXT(logContext_);
   service.run();
 }
 
@@ -77,6 +81,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
   Transport(med, transport_name, bundle, rtcp_mux, transportListener, iceConfig), 
   readyRtp(false), readyRtcp(false), running_(false), isServer_(isServer) {
     ELOG_DEBUG( "Initializing DtlsTransport" );
+    logContext_ = GET_LOG_CONTEXT();
     dtlsRtp.reset(new DtlsSocketContext());
 
     int comps = 1;
@@ -330,6 +335,7 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
 }
 
 void DtlsTransport::getNiceDataLoop(){
+  UPDATE_LOG_CONTEXT(logContext_);
   while(running_){
     p_ = nice_->getPacket();
     if (p_->length > 0) {

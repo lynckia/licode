@@ -15,10 +15,13 @@
 namespace erizo {
   DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
   
-  WebRtcConnection::WebRtcConnection(std::string wrtcId, bool audioEnabled, bool videoEnabled, 
+  WebRtcConnection::WebRtcConnection(const std::string wrtcId, bool audioEnabled, bool videoEnabled, 
       const IceConfig& iceConfig, WebRtcConnectionEventListener* listener)
       : wrtcId_ (wrtcId), audioEnabled_ (audioEnabled), videoEnabled_(videoEnabled),connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this){
-    ELOG_INFO("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d, id %s", iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort, wrtcId_.c_str());
+    
+    UPDATE_LOG_CONTEXT(wrtcId);
+    this->sourceId_ = wrtcId;
+    ELOG_INFO("WebRtcConnection constructor stunserver %s stunPort %d minPort %d maxPort %d, id %s", iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort, wrtcId.c_str());
     bundle_ = false;
     setVideoSinkSSRC(55543);
     setAudioSinkSSRC(44444);
@@ -45,6 +48,7 @@ namespace erizo {
   }
 
   WebRtcConnection::~WebRtcConnection() {
+    UPDATE_LOG_CONTEXT(wrtcId_);
     ELOG_INFO("WebRtcConnection Destructor");
     sending_ = false;
     cond_.notify_one();
@@ -66,6 +70,7 @@ namespace erizo {
   }
 
   bool WebRtcConnection::init() {
+    UPDATE_LOG_CONTEXT(wrtcId_);
     rtcpProcessor_ = boost::shared_ptr<RtcpProcessor> (new RtcpForwarder((MediaSink*)this, (MediaSource*) this));
     send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
     if (connEventListener_ != NULL) {
@@ -76,7 +81,7 @@ namespace erizo {
 
   //TODO: Erizo Should accept hints to create the Offer
   bool WebRtcConnection::createOffer (){
-
+    UPDATE_LOG_CONTEXT(wrtcId_);
     bundle_ = true;
     videoEnabled_ = true;
     audioEnabled_ = true;
@@ -113,6 +118,7 @@ namespace erizo {
   }
 
   bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
+    UPDATE_LOG_CONTEXT(wrtcId_);
     ELOG_DEBUG("Set Remote SDP %s", sdp.c_str());
     remoteSdp_.initWithSdp(sdp, "");
 
@@ -194,6 +200,7 @@ namespace erizo {
 
   bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp) {
     // TODO Check type of transport.
+    UPDATE_LOG_CONTEXT(wrtcId_);
     ELOG_DEBUG("Adding remote Candidate %s, mid %s, sdpMLine %d",sdp.c_str(), mid.c_str(), mLineIndex);
     MediaType theType;
     std::string theMid;
@@ -233,6 +240,7 @@ namespace erizo {
   }
 
   std::string WebRtcConnection::getLocalSdp() {
+    UPDATE_LOG_CONTEXT(wrtcId_);
     ELOG_DEBUG("Getting SDP");
     if (videoTransport_ != NULL) {
       videoTransport_->processLocalSdp(&localSdp_);
@@ -245,6 +253,7 @@ namespace erizo {
   }
 
   std::string WebRtcConnection::getJSONCandidate(const std::string& mid, const std::string& sdp) {
+    UPDATE_LOG_CONTEXT(wrtcId_);
     std::map <std::string, std::string> object;
     object["sdpMid"] = mid;
     object["candidate"] = sdp;
@@ -388,7 +397,6 @@ namespace erizo {
     if (audioSink_ == NULL && videoSink_ == NULL && fbSink_==NULL){
       return;
     }
-    
     // PROCESS RTCP
     RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
@@ -485,6 +493,7 @@ namespace erizo {
 
 
   int WebRtcConnection::sendPLI() {
+    UPDATE_LOG_CONTEXT(wrtcId_);
     RtcpHeader thePLI;
     thePLI.setPacketType(RTCP_PS_Feedback_PT);
     thePLI.setBlockCount(1);
@@ -631,6 +640,7 @@ namespace erizo {
   }
 
   void WebRtcConnection::setSlideShowMode (bool state){
+    UPDATE_LOG_CONTEXT(wrtcId_);
     ELOG_DEBUG("Setting SlideShowMode %u", state);
     if (slideShowMode_==state){
       return;
@@ -654,6 +664,7 @@ namespace erizo {
   }
 
   std::string WebRtcConnection::getJSONStats(){
+    UPDATE_LOG_CONTEXT(wrtcId_);
     return thisStats_.getStats();
   }
 
@@ -695,6 +706,7 @@ namespace erizo {
   }
 
   void WebRtcConnection::sendLoop() {
+    UPDATE_LOG_CONTEXT(wrtcId_);
     uint32_t partial_bitrate = 0;
     uint64_t sentVideoBytes = 0;
     uint64_t lastSecondVideoBytes = 0;
