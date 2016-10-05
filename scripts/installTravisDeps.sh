@@ -20,9 +20,14 @@ parse_arguments(){
   done
 }
 
+check_result() {
+  if [ "$1" -eq 1 ]
+  then
+    exit 1
+  fi
+}
+
 install_apt_deps(){
-  sudo apt-get update --fix-missing
-  sudo apt-get install -qq make gcc libssl-dev cmake libsrtp0-dev libsrtp0 libnice10 libnice-dev libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev curl
   npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/
 }
@@ -30,12 +35,11 @@ install_apt_deps(){
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O http://www.openssl.org/source/openssl-1.0.1e.tar.gz
+    curl -O http://www.openssl.org/source/openssl-1.0.1g.tar.gz
     tar -zxvf openssl-1.0.1e.tar.gz > /dev/null 2> /dev/null
     cd openssl-1.0.1e
-    ./config --prefix=$PREFIX_DIR -fPIC
-    make -s V=0
-    make install
+    ./config --prefix=$PREFIX_DIR -fPIC && make -s V=0 && make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -46,12 +50,13 @@ install_openssl(){
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O http://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
-    tar -zxvf libnice-0.1.4.tar.gz > /dev/null 2> /dev/null
+    curl -O https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
+    tar -zxvf libnice-0.1.4.tar.gz
     cd libnice-0.1.4
-    ./configure --prefix=$PREFIX_DIR
-    make -s V=0
-    make install
+    patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0 && patch -p1 < $PATHNAME/libnice-014.patch1
+    check_result $?
+    ./configure --prefix=$PREFIX_DIR && make -s V=0 && make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -59,16 +64,27 @@ install_libnice(){
   fi
 }
 
+install_opus(){
+  [ -d $LIB_DIR ] || mkdir -p $LIB_DIR
+  cd $LIB_DIR
+  curl -O http://downloads.xiph.org/releases/opus/opus-1.1.tar.gz
+  tar -zxvf opus-1.1.tar.gz
+  cd opus-1.1
+  ./configure --prefix=$PREFIX_DIR && make -s V=0 && make install
+  check_result $?
+  cd $CURRENT_DIR
+}
+
 install_mediadeps(){
-  sudo apt-get install -qq yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-9.9.tar.gz
-    tar -zxvf libav-9.9.tar.gz > /dev/null 2> /dev/null
-    cd libav-9.9
-    ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264
-    make -s V=0
-    make install
+    curl -O https://www.libav.org/releases/libav-11.1.tar.gz
+    tar -zxvf libav-11.1.tar.gz
+    cd libav-11.1
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus && \
+      make -s V=0 && \
+      make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -78,15 +94,15 @@ install_mediadeps(){
 }
 
 install_mediadeps_nogpl(){
-  sudo apt-get install -qq yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-9.9.tar.gz
-    tar -zxvf libav-9.9.tar.gz > /dev/null 2> /dev/null
-    cd libav-9.9
-    ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx
-    make -s V=0
-    make install
+    curl -O https://www.libav.org/releases/libav-11.1.tar.gz
+    tar -zxvf libav-11.1.tar.gz
+    cd libav-11.1
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus && \
+      make -s V=0 && \
+      make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -96,10 +112,7 @@ install_mediadeps_nogpl(){
 
 install_libsrtp(){
   cd $ROOT/third_party/srtp
-  CFLAGS="-fPIC" ./configure --prefix=$PREFIX_DIR
-  make -s V=0
-  make uninstall
-  make install
+  CFLAGS="-fPIC" ./configure --prefix=$PREFIX_DIR && make -s V=0 && make install
   cd $CURRENT_DIR
 }
 
@@ -109,17 +122,20 @@ ls ./build/libdeps/
 
 mkdir -p $PREFIX_DIR
 
-echo "Installing deps via apt-get... [press Enter]"
+echo "Installing deps via apt-get..."
 install_apt_deps
 
-echo "Installing openssl library...  [press Enter]"
+echo "Installing openssl library..."
 install_openssl
 
-echo "Installing libnice library...  [press Enter]"
+echo "Installing libnice library..."
 install_libnice
 
-echo "Installing libsrtp library...  [press Enter]"
+echo "Installing libsrtp library..."
 install_libsrtp
+
+echo "Installing opus library..."
+install_opus
 
 if [ "$ENABLE_GPL" = "true" ]; then
   echo "GPL libraries enabled"
@@ -128,3 +144,5 @@ else
   echo "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
   install_mediadeps_nogpl
 fi
+
+echo "Done"

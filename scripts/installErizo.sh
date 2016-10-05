@@ -44,11 +44,19 @@ pause() {
   read -p "$*"
 }
 
+check_result() {
+  if [ "$1" -eq 1 ]
+  then
+    exit 1
+  fi
+}
+
 install_erizo(){
   echo 'Installing erizo...'
   cd $ROOT/erizo
   ./generateProject.sh
   ./buildProject.sh
+  check_result $?
   cd $CURRENT_DIR
 }
 
@@ -57,6 +65,7 @@ install_erizo_api(){
   cd $ROOT/erizoAPI
   npm install nan@2.3.2
   ./build.sh
+  check_result $?
   cd $CURRENT_DIR
 }
 
@@ -64,6 +73,7 @@ install_erizo_controller(){
   echo 'Installing erizoController...'
   cd $ROOT/erizo_controller
   ./installErizo_controller.sh
+  check_result $?
   cd $CURRENT_DIR
 }
 
@@ -71,6 +81,7 @@ install_spine(){
   echo 'Installing erizo_native_client...'
   cd $ROOT/spine
   ./installSpine.sh
+  check_result $?
   cd $CURRENT_DIR
 }
 
