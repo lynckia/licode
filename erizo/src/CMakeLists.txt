@@ -4,7 +4,9 @@ project (ERIZO_ALL)
 option (COMPILE_EXAMPLES "COMPILE_EXAMPLES" OFF)
 option (COMPILE_TEST "COMPILE_TEST" OFF)
 
+set(ERIZO_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
+set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 find_package (Doxygen)
 if(DOXYGEN_FOUND)
@@ -16,19 +18,26 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 
+file(GLOB_RECURSE ERIZO_SOURCES_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+add_custom_target(lint
+    ${ERIZO_ROOT_DIR}/utils/cpplint.py --linelength=120 ${ERIZO_SOURCES_FILES}
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    COMMENT "Executing lint"
+)
+
 #global variable
 set(THIRD_PARTY_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/include/")
 set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/")
 
 #erizo
-add_subdirectory("${ERIZO_ALL_SOURCES}erizo")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/erizo")
 
 #examples
 if(COMPILE_EXAMPLES)
-  add_subdirectory("${ERIZO_ALL_SOURCES}examples")
+  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/examples")
 endif(COMPILE_EXAMPLES)
 
 #tests
 if(COMPILE_TEST)
-  add_subdirectory("${ERIZO_ALL_SOURCES}test")
+  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/test")
 endif(COMPILE_TEST)
