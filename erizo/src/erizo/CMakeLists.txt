@@ -25,6 +25,8 @@ file(GLOB_RECURSE ERIZO_SOURCES "${ERIZO_SOURCE_DIR}/*.h" "${ERIZO_SOURCE_DIR}/*
 
 add_library(erizo SHARED ${ERIZO_SOURCES})
 
+add_dependencies(erizo ssl srtp nice libav)
+
 # GLIB
 find_package(Glib REQUIRED)
 include_directories(${GLIB_INCLUDE_DIRS})
@@ -47,12 +49,6 @@ test_lib(${SRTP})
 find_library(NICE nice HINTS "${THIRD_PARTY_LIB}")
 test_lib(${NICE})
 
-# OPENSSL
-find_library(SSL ssl HINTS "${THIRD_PARTY_LIB}")
-test_lib(${SSL})
-find_library(CRYPTO crypto HINTS "${THIRD_PARTY_LIB}")
-test_lib(${CRYPTO})
-
 # Libav
 find_library(AVUTIL avutil HINTS "${THIRD_PARTY_LIB}")
 test_lib(${AVUTIL})
@@ -68,6 +64,6 @@ set (LIBS ${LIBS} ${AVFORMAT})
 find_library(LOG log4cxx)
 test_lib(${LOG})
 
-#message("Libs ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG}")
+message("Libs ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG}")
 
 target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG})
