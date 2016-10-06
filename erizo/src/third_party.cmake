@@ -41,6 +41,8 @@ ExternalProject_Add(nice
   INSTALL_COMMAND make install
 )
 
+set(NICE ${THIRD_PARTY_LIB}libnice.a)
+
 ExternalProject_Add(srtp
   URL "${ERIZO_ROOT_DIR}/third_party/srtp"
   DOWNLOAD_DIR ${THIRD_PARTY}

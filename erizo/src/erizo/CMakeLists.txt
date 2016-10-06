@@ -49,7 +49,6 @@ test_lib(${SSL})
 test_lib(${CRYPTO})
 
 # NICE
-find_library(NICE nice HINTS "${THIRD_PARTY_LIB}")
 test_lib(${NICE})
 
 # Libav
