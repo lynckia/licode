@@ -26,7 +26,7 @@ add_custom_target(lint
 )
 
 #third_party
-include("third_party.cmake")
+include("third_party.cmake" NO_POLICY_SCOPE)
 
 #erizo
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/erizo")
