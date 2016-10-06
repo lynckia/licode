@@ -52,6 +52,8 @@ ExternalProject_Add(srtp
   INSTALL_COMMAND make uninstall && make install
 )
 
+set(SRTP ${THIRD_PARTY_LIB}libsrtp.a)
+
 set(OPUS_VERSION "1.1")
 ExternalProject_Add(opus
   URL "http://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz"
