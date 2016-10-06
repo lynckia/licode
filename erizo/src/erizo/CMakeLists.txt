@@ -52,20 +52,15 @@ test_lib(${CRYPTO})
 test_lib(${NICE})
 
 # Libav
-find_library(AVUTIL avutil HINTS "${THIRD_PARTY_LIB}")
 test_lib(${AVUTIL})
-set (LIBS ${AVUTIL})
-find_library(AVCODEC avcodec HINTS "${THIRD_PARTY_LIB}")
 test_lib(${AVCODEC})
-set (LIBS ${LIBS} ${AVCODEC})
-find_library(AVFORMAT avformat HINTS "${THIRD_PARTY_LIB}")
 test_lib(${AVFORMAT})
-set (LIBS ${LIBS} ${AVFORMAT})
+set (AVLIBS ${AVUTIL} ${AVCODEC} ${AVFORMAT})
 
 # LOG4CXX
 find_library(LOG log4cxx)
 test_lib(${LOG})
 
-message("Libs ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG}")
+message("Libs ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${AVLIBS} ${LOG}")
 
-target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG})
+target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${AVLIBS} ${LOG})

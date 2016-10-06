@@ -88,4 +88,6 @@ ExternalProject_Add(libav
   INSTALL_COMMAND make install
 )
 
-set(LIBS ${THIRD_PARTY_LIB}libavutil.a ${THIRD_PARTY_LIB}libavcodec.a ${THIRD_PARTY_LIB}libavformat.a)
+set(AVUTIL ${THIRD_PARTY_LIB}libavutil.a)
+set(AVCODEC ${THIRD_PARTY_LIB}libavcodec.a)
+set(AVFORMAT ${THIRD_PARTY_LIB}libavformat.a)
