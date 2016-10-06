@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
 
-project (ERIZO_THIRD_PARTY)
 #global variable
 set(THIRD_PARTY "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps")
 
