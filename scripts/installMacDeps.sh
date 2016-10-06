@@ -58,6 +58,7 @@ install_homebrew(){
 
 install_brew_deps(){
   brew install glib pkg-config boost cmake yasm log4cxx gettext
+  brew install libvpx
   npm install -g node-gyp
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew install rabbitmq mongodb

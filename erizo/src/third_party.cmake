@@ -86,6 +86,8 @@ ExternalProject_Add(opus
   INSTALL_COMMAND make install
 )
 
+set(OPUS ${THIRD_PARTY_LIB}libopus.a)
+
 option(ENABLE_GPL "ENABLE_GPL" OFF)
 set(LIBAV_VERSION "11.1")
 
@@ -94,13 +96,16 @@ if (ENABLE_GPL)
   set(LIBAV_CONFIGURE_EXTRA_ARGS "--enable-gpl --enable-libx264")
 endif(ENABLE_GPL)
 
+set(LIBAV_CFLAGS "-I${THIRD_PARTY_INCLUDE}")
+set(LIBAV_LDFLAGS "-L${OPUS}")
+
 ExternalProject_Add(buildlibav
   DEPENDS opus
   URL "https://www.libav.org/releases/libav-${LIBAV_VERSION}.tar.gz"
   DOWNLOAD_DIR ${THIRD_PARTY}
   SOURCE_DIR ${THIRD_PARTY}/libav-${LIBAV_VERSION}
   BINARY_DIR ${THIRD_PARTY}/libav-${LIBAV_VERSION}
-  CONFIGURE_COMMAND PKG_CONFIG_PATH=${THIRD_PARTY}/lib/pkgconfig ${THIRD_PARTY}/libav-${LIBAV_VERSION}/configure --prefix=${THIRD_PARTY_BUILD} ${LIBAV_CONFIGURE_EXTRA_ARGS} --enable-libvpx --enable-libopus
+  CONFIGURE_COMMAND ${THIRD_PARTY}/libav-${LIBAV_VERSION}/configure --prefix=${THIRD_PARTY_BUILD} ${LIBAV_CONFIGURE_EXTRA_ARGS} --enable-libvpx --enable-libopus --extra-cflags=${LIBAV_CFLAGS} --extra-ldflags=${LIBAV_LDFLAGS}
   BUILD_COMMAND make -s V=0
   INSTALL_DIR ${THIRD_PARTY_LIB}
   INSTALL_COMMAND make install

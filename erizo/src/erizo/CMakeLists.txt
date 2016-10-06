@@ -45,7 +45,7 @@ test_lib(${GTHREAD})
 find_library(LOG log4cxx)
 test_lib(${LOG})
 
-message("Libs ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${AVLIBS} ${LOG}")
+#message("Libs ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${AVLIBS} ${LOG}")
 
 target_link_libraries(erizo ${Boost_LIBRARIES} ${GTHREAD} ${LOG} ${GLIB_LIBRARIES} nice srtp ssl crypto avutil avcodec avformat)
 add_custom_command(TARGET erizo POST_BUILD
