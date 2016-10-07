@@ -75,18 +75,22 @@ set_target_properties (srtp PROPERTIES
                         )
 
 set(OPUS_VERSION "1.1")
-ExternalProject_Add(opus
+ExternalProject_Add(buildopus
   URL "http://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz"
   DOWNLOAD_DIR ${THIRD_PARTY}
   SOURCE_DIR ${THIRD_PARTY}/opus-${OPUS_VERSION}
   BINARY_DIR ${THIRD_PARTY}/opus-${OPUS_VERSION}
-  CONFIGURE_COMMAND ${THIRD_PARTY}/opus-${OPUS_VERSION}/configure --prefix=${THIRD_PARTY_BUILD}
+  CONFIGURE_COMMAND ${THIRD_PARTY}/opus-${OPUS_VERSION}/configure --enable-static --prefix=${THIRD_PARTY_BUILD}
   BUILD_COMMAND make -s V=0
   INSTALL_DIR ${THIRD_PARTY_LIB}
   INSTALL_COMMAND make install
 )
 
 set(OPUS ${THIRD_PARTY_LIB}libopus.a)
+add_library (opus STATIC IMPORTED)
+set_target_properties (opus PROPERTIES
+                        IMPORTED_LOCATION                   ${OPUS}
+                        )
 
 option(ENABLE_GPL "ENABLE_GPL" OFF)
 set(LIBAV_VERSION "11.1")
@@ -97,7 +101,6 @@ if (ENABLE_GPL)
 endif(ENABLE_GPL)
 
 set(LIBAV_CFLAGS "-I${THIRD_PARTY_INCLUDE}")
-set(LIBAV_LDFLAGS "-L${OPUS}")
 
 ExternalProject_Add(buildlibav
   DEPENDS opus
@@ -105,8 +108,8 @@ ExternalProject_Add(buildlibav
   DOWNLOAD_DIR ${THIRD_PARTY}
   SOURCE_DIR ${THIRD_PARTY}/libav-${LIBAV_VERSION}
   BINARY_DIR ${THIRD_PARTY}/libav-${LIBAV_VERSION}
-  CONFIGURE_COMMAND ${THIRD_PARTY}/libav-${LIBAV_VERSION}/configure --prefix=${THIRD_PARTY_BUILD} ${LIBAV_CONFIGURE_EXTRA_ARGS} --enable-libvpx --enable-libopus --extra-cflags=${LIBAV_CFLAGS} --extra-ldflags=${LIBAV_LDFLAGS}
-  BUILD_COMMAND make -s V=0
+  CONFIGURE_COMMAND ${THIRD_PARTY}/libav-${LIBAV_VERSION}/configure --prefix=${THIRD_PARTY_BUILD} ${LIBAV_CONFIGURE_EXTRA_ARGS} --enable-libvpx --enable-libopus
+  BUILD_COMMAND make
   INSTALL_DIR ${THIRD_PARTY_LIB}
   INSTALL_COMMAND make install
 )
