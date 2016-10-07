@@ -17,7 +17,8 @@ namespace erizo {
   class DtlsTransport : dtls::DtlsReceiver, public Transport {
     DECLARE_LOGGER();
     public:
-    DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, const IceConfig& iceConfig, std::string username, std::string password, bool isServer);
+    DtlsTransport(MediaType med, const std::string& transport_name, const std::string& connection_id, bool bundle, bool rtcp_mux, TransportListener *transportListener, 
+        const IceConfig& iceConfig, std::string username, std::string password, bool isServer);
     virtual ~DtlsTransport();
     void connectionStateChanged(IceState newState);
     std::string getMyFingerprint();
@@ -43,8 +44,12 @@ namespace erizo {
     bool running_, isServer_;
     boost::scoped_ptr<Resender> rtcpResender, rtpResender;
     boost::thread getNice_Thread_;
-    void getNiceDataLoop();
     packetPtr p_;
+    
+    void getNiceDataLoop();
+    inline const char* toLog() {
+      return (std::string("id: ")+connection_id_).c_str();
+    };
   };
 
   class Resender {
