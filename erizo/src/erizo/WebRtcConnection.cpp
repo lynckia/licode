@@ -194,6 +194,10 @@ namespace erizo {
 
   bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp) {
     // TODO Check type of transport.
+    if (videoTransport_ == NULL){
+      ELOG_ERROR("%s, message: Null videoTransport on addRemoteCandidate, globalState:%u", toLog(), globalState_);
+      return false;
+    }
     ELOG_DEBUG("Adding remote Candidate %s, mid %s, sdpMLine %d",sdp.c_str(), mid.c_str(), mLineIndex);
     MediaType theType;
     std::string theMid;
