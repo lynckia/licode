@@ -9,6 +9,7 @@
 #include "codecs/VideoCodec.h"
 #include "MediaProcessor.h"
 #include "boost/thread.hpp"
+#include "boost/scoped_ptr.hpp"
 #include "logger.h"
 
 extern "C" {
