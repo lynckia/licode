@@ -188,41 +188,34 @@ exports.killMe = function (ip) {
 exports.getErizoControllerForRoom = function (room, callback) {
     "use strict";
 
-
     var roomId = room._id;
+    // TODO Use attempts as is used in original code
+    var attempts = 0;
 
-    if (rooms[roomId] !== undefined) {
-        callback(erizoControllers[rooms[roomId]]);
-        return;
-    }
+    var intervarId
+    var setEcId = function (id) {
+        rooms[roomId] = id;
+        callback(erizoControllers[id]);
+        recalculatePriority();
+        clearInterval(intervarId);
+    };
 
-    var id,
-        attempts = 0,
+    if (getErizoController!=undefined) {
+        getErizoController(room, erizoControllers, ecQueue, function (id, forceSelected) {
+            if (!forceSelected && rooms[roomId] !== undefined) {
+                callback(erizoControllers[rooms[roomId]]);
+                return;
+            }
+
+            intervarId = setInterval(function () {
+                setEcId(id);
+            }, INTERVAL_TIME_EC_READY);
+        });
+    } else {
         intervarId = setInterval(function () {
-
-        if (getErizoController) {
-            id = getErizoController(room, erizoControllers, ecQueue);
-        } else {
-            id = ecQueue[0];
-        }
-
-        if (id !== undefined) {
-
-            rooms[roomId] = id;
-            callback(erizoControllers[id]);
-
-            recalculatePriority();
-            clearInterval(intervarId);
-        }
-
-        if (attempts > TOTAL_ATTEMPTS_EC_READY) {
-            clearInterval(intervarId);
-            callback('timeout');
-        }
-        attempts++; 
-
-    }, INTERVAL_TIME_EC_READY);
-
+            setEcId(id);
+        }, INTERVAL_TIME_EC_READY);
+    }
 };
 
 exports.getUsersInRoom = function (roomId, callback) {
