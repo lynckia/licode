@@ -184,7 +184,7 @@ namespace erizo {
         g_value_set_uint(&val2, iceConfig_.stunPort);
         g_object_set_property(G_OBJECT( agent_ ), "stun-server-port", &val2);
 
-        ELOG_DEBUG("%s, message:setting stun, stun_server: %s, stun_port: %d", toLog(), iceConfig_.stunServer.c_str(), iceConfig_.stunPort);
+        ELOG_DEBUG("%s, message:setting stun, stunServer: %s, stunPort: %d", toLog(), iceConfig_.stunServer.c_str(), iceConfig_.stunPort);
       }
 
       // Connect the signals
@@ -198,7 +198,7 @@ namespace erizo {
           G_CALLBACK( cb_new_candidate ), this);
 
       // Create a new stream and start gathering candidates
-      ELOG_DEBUG("%s, adding stream, iceComponents: %d", toLog(), iceComponents_);
+      ELOG_DEBUG("%s, message: adding stream, iceComponents: %d", toLog(), iceComponents_);
       nice_agent_add_stream(agent_, iceComponents_);
       gchar *ufrag = NULL, *upass = NULL;
       nice_agent_get_local_credentials(agent_, 1, &ufrag, &upass);
@@ -401,7 +401,7 @@ namespace erizo {
   }
 
   void NiceConnection::updateComponentState(unsigned int compId, IceState state) {
-    ELOG_DEBUG("%s, message: new ice component state, newComponentState: %u, transport_name: %s, componentId %u, iceComponents: %u", toLog(), state, transportName->c_str(), compId, iceComponents_);
+    ELOG_DEBUG("%s, message: new ice component state, newComponentState: %u, transportName: %s, componentId %u, iceComponents: %u", toLog(), state, transportName->c_str(), compId, iceComponents_);
     comp_state_list_[compId] = state;
     if (state == NICE_READY) {
       for (unsigned int i = 1; i<=iceComponents_; i++) {
@@ -411,7 +411,7 @@ namespace erizo {
       }
     }else if (state == NICE_FAILED){
       if (receivedLastCandidate_){
-        ELOG_WARN("%s, message: component failed, transport_name: %s, componentId: %u", toLog(), transportName->c_str(), compId);
+        ELOG_WARN("%s, message: component failed, transportName: %s, componentId: %u", toLog(), transportName->c_str(), compId);
         for (unsigned int i = 1; i<=iceComponents_; i++) {
           if (comp_state_list_[i] != NICE_FAILED) {
             return;
@@ -437,7 +437,7 @@ namespace erizo {
       return;
     }
 
-    ELOG_INFO("%s, message: iceState transition, transport_name: %s, iceState: %u, newIceState: %u, this: %p", toLog(), transportName->c_str(), 
+    ELOG_INFO("%s, message: iceState transition, transportName: %s, iceState: %u, newIceState: %u, this: %p", toLog(), transportName->c_str(), 
         this->iceState_, state, this);
     this->iceState_ = state;
     switch( iceState_) {

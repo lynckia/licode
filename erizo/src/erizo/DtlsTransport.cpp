@@ -76,7 +76,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     const IceConfig& iceConfig, std::string username, std::string password, bool isServer):
   Transport(med, transport_name, connection_id, bundle, rtcp_mux, transportListener, iceConfig),
   readyRtp(false), readyRtcp(false), running_(false), isServer_(isServer) {
-    ELOG_DEBUG( "%s, message: constructor, transport_name:%s, bundle:%d", toLog(), transport_name.c_str(), bundle);
+    ELOG_DEBUG( "%s, message: constructor, transportName:%s, bundle:%d", toLog(), transport_name.c_str(), bundle);
     dtlsRtp.reset(new DtlsSocketContext());
 
     int comps = 1;
@@ -136,7 +136,7 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
   int length = len;
   SrtpChannel *srtp = srtp_.get();
   if (DtlsTransport::isDtlsPacket(data, len)) {
-    ELOG_DEBUG("%s, message: Received DTLS message, transport_name: %s, component_id: %u",toLog(), transport_name.c_str(), component_id);
+    ELOG_DEBUG("%s, message: Received DTLS message, transportName: %s, component_id: %u",toLog(), transport_name.c_str(), component_id);
     if (component_id == 1) {
       if (rtpResender.get()!=NULL) {
         rtpResender->cancel();
@@ -237,7 +237,7 @@ void DtlsTransport::writeDtls(DtlsSocketContext *ctx, const unsigned char* data,
     rtpResender->start();
   }
 
-  ELOG_DEBUG("%s, message: Sending DTLS message, transport_name: %s, component_id: %d", toLog(), transport_name.c_str(), comp);
+  ELOG_DEBUG("%s, message: Sending DTLS message, transportName: %s, componentId: %d", toLog(), transport_name.c_str(), comp);
 
   nice_->sendData(comp, data, len);
 }
@@ -269,14 +269,14 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
       updateTransportState(TRANSPORT_FAILED);
     }
   }
-  ELOG_DEBUG("%s, message:HandShakeCompleted, transport_name:%s, readyRtp:%d, readyRtcp:%d", toLog(), transport_name.c_str(), readyRtp, readyRtcp);
+  ELOG_DEBUG("%s, message:HandShakeCompleted, transportName:%s, readyRtp:%d, readyRtcp:%d", toLog(), transport_name.c_str(), readyRtp, readyRtcp);
   if (readyRtp && readyRtcp) {
     updateTransportState(TRANSPORT_READY);
   }
 }
 
 void DtlsTransport::onHandshakeFailed(DtlsSocketContext *ctx, const std::string error){
-  ELOG_WARN("%s, message: Handshake failed, transport_name:%s, openSSLerror: %s", toLog(), transport_name.c_str(), error.c_str());
+  ELOG_WARN("%s, message: Handshake failed, transportName:%s, openSSLerror: %s", toLog(), transport_name.c_str(), error.c_str());
   running_ = false;
   updateTransportState(TRANSPORT_FAILED);
 }
@@ -286,7 +286,7 @@ std::string DtlsTransport::getMyFingerprint() {
 }
 
 void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
-  ELOG_DEBUG( "%s, message:NiceState, transport_name: %s, state: %d, bundle: %d", toLog(), transport_name.c_str(), state, bundle_);
+  ELOG_DEBUG( "%s, message:NiceState, transportName: %s, state: %d, bundle: %d", toLog(), transport_name.c_str(), state, bundle_);
   if (state == NICE_INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
     updateTransportState(TRANSPORT_STARTED);
   }
@@ -300,18 +300,18 @@ void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
   }
   else if (state == NICE_READY) {
     if (!isServer_ && dtlsRtp && !dtlsRtp->started) {
-      ELOG_INFO("%s, message: DTLSRTP Start, transport_name: %s", toLog(), transport_name.c_str());
+      ELOG_INFO("%s, message: DTLSRTP Start, transportName: %s", toLog(), transport_name.c_str());
       dtlsRtp->start();
     }
     if (!isServer_ && dtlsRtcp != NULL && (!dtlsRtcp->started || rtcpResender->getStatus() < 0)) {
-      ELOG_DEBUG("%s, message: DTLSRTCP Start, transport_name: %s", toLog(), transport_name.c_str());
+      ELOG_DEBUG("%s, message: DTLSRTCP Start, transportName: %s", toLog(), transport_name.c_str());
       dtlsRtcp->start();
     }
   }
 }
 
 void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
-  ELOG_DEBUG("%s, message: processing local sdp, transport_name: %s", toLog(), transport_name.c_str());
+  ELOG_DEBUG("%s, message: processing local sdp, transportName: %s", toLog(), transport_name.c_str());
   localSdp_->isFingerprint = true;
   localSdp_->fingerprint = getMyFingerprint();
   std::string username;
@@ -323,7 +323,7 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
   }else{
     localSdp_->setCredentials(username, password, this->mediaType);
   }
-  ELOG_DEBUG("%s, message: processed local sdp, transport_name: %s, ufrag: %s, pass: %s", toLog(), transport_name.c_str(), 
+  ELOG_DEBUG("%s, message: processed local sdp, transportName: %s, ufrag: %s, pass: %s", toLog(), transport_name.c_str(), 
       username.c_str(), password.c_str());
 }
 
