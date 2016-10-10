@@ -71,5 +71,5 @@ namespace erizo {
   void VideoMixer::closeAll() {
   }
 
-}/* namespace erizo */
+}  // namespace erizo
 

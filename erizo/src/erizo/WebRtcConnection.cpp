@@ -131,20 +131,23 @@ namespace erizo {
     if (remoteSdp_.profile == SAVPF) {
       if (remoteSdp_.isFingerprint) {
         if (remoteSdp_.hasVideo||bundle_) {
-          std::string username, password;
-          remoteSdp_.getCredentials(username, password, VIDEO_TYPE);
+          std::string username = remoteSdp_.getUsername(VIDEO_TYPE);
+          std::string password = remoteSdp_.getPassword(VIDEO_TYPE);
           if (videoTransport_.get() == NULL) {
-            ELOG_DEBUG("%s, message: Creating videoTransport, ufrag: %s, pass: %s", toLog(), username.c_str(), password.c_str());
-            videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, remoteSdp_.isRtcpMux, this, iceConfig_ , username, password, false));
+            ELOG_DEBUG("%s, message: Creating videoTransport, ufrag: %s, pass: %s",
+                        toLog(), username.c_str(), password.c_str());
+            videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, remoteSdp_.isRtcpMux,
+                                                    this, iceConfig_ , username, password, false));
             videoTransport_->start();
           } else {
-            ELOG_DEBUG("%s, message: Updating videoTransport, ufrag: %s, pass: %s", toLog(), username.c_str(), password.c_str());
+            ELOG_DEBUG("%s, message: Updating videoTransport, ufrag: %s, pass: %s",
+                        toLog(), username.c_str(), password.c_str());
             videoTransport_->getNiceConnection()->setRemoteCredentials(username, password);
           }
         }
         if (!bundle_ && remoteSdp_.hasAudio) {
-          std::string username, password;
-          remoteSdp_.getCredentials(username, password, AUDIO_TYPE);
+          std::string username = remoteSdp_.getUsername(AUDIO_TYPE);
+          std::string password = remoteSdp_.getPassword(AUDIO_TYPE);
           if (audioTransport_.get() == NULL) {
             ELOG_DEBUG("%s, message: Creating audioTransport, ufrag: %s, pass: %s", toLog(), username.c_str(), password.c_str());
             audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, remoteSdp_.isRtcpMux, this, iceConfig_, username, password, false));
@@ -207,8 +210,8 @@ namespace erizo {
       theMid = "audio";
     }
     SdpInfo tempSdp;
-    std::string username, password;
-    remoteSdp_.getCredentials(username, password, theType);
+    std::string username = remoteSdp_.getUsername(theType);
+    std::string password = remoteSdp_.getPassword(theType);
     tempSdp.setCredentials(username, password, OTHER);
     bool res = false;
     if (tempSdp.initWithSdp(sdp, theMid)) {

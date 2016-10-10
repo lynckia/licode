@@ -1,15 +1,19 @@
 /*
  * SDPProcessor.cpp
  */
+#include "SdpInfo.h"
+
+#include <stdio.h>
 
 #include <sstream>
-#include <stdio.h>
 #include <cstdlib>
 #include <cstring>
+#include <map>
+#include <string>
+#include <vector>
 
 #include "rtp/RtpHeaders.h"
-#include "SdpInfo.h"
-#include "StringUtil.h"
+#include "./StringUtil.h"
 
 using std::endl;
 namespace erizo {
@@ -166,7 +170,6 @@ namespace erizo {
     telephoneevent.channels = 1;
     telephoneevent.mediaType = AUDIO_TYPE;
     internalPayloadVector_.push_back(telephoneevent);
-
   }
 
   SdpInfo::~SdpInfo() {
@@ -238,25 +241,22 @@ namespace erizo {
     }
   }
 
-  void SdpInfo::getCredentials(std::string& username, std::string& password, MediaType media) {
-    switch (media) {
-      case(VIDEO_TYPE):
-        username.replace(0, username.length(), iceVideoUsername_);
-        password.replace(0, username.length(), iceVideoPassword_);
-        break;
-      case(AUDIO_TYPE):
-        username.replace(0, username.length(), iceAudioUsername_);
-        password.replace(0, username.length(), iceAudioPassword_);
-        break;
-      default:
-        username.replace(0, username.length(), iceVideoUsername_);
-        password.replace(0, username.length(), iceVideoPassword_);
-        break;
+  std::string SdpInfo::getUsername(MediaType media) const {
+    if (media == AUDIO_TYPE) {
+      return iceAudioUsername_;
     }
+    return iceVideoUsername_;
+  }
+
+  std::string SdpInfo::getPassword(MediaType media) const {
+    if (media == AUDIO_TYPE) {
+      return iceAudioPassword_;
+    }
+    return iceVideoPassword_;
   }
 
   std::string SdpInfo::getSdp() {
-    char msidtemp [11];
+    char msidtemp[11];
     gen_random(msidtemp, 10);
 
     ELOG_DEBUG("Getting SDP");
@@ -278,7 +278,7 @@ namespace erizo {
         sdp << " " << bundleTags[i].id;
       }
       sdp << "\n";
-      sdp << "a=msid-semantic: WMS "<< msidtemp << endl;
+      sdp << "a=msid-semantic: WMS " << msidtemp << endl;
     }
     // candidates audio
     bool printedAudio = true, printedVideo = true;
@@ -288,20 +288,20 @@ namespace erizo {
       if (profile == SAVPF) {
         sdp << " UDP/TLS/RTP/SAVPF ";
       } else {
-        sdp << " RTP/AVPF ";// << "103 104 0 8 106 105 13 126\n"
+        sdp << " RTP/AVPF ";  // << "103 104 0 8 106 105 13 126\n"
       }
 
       int codecCounter = 0;
-      for (unsigned int it =0; it<payloadVector.size(); it++) {
+      for (unsigned int it = 0; it < payloadVector.size(); it++) {
         const RtpMap& payload_info = payloadVector[it];
         if (payload_info.mediaType == AUDIO_TYPE) {
           codecCounter++;
-          sdp << payload_info.payloadType <<((codecCounter<audioCodecs)?" ":"");
+          sdp << payload_info.payloadType << ((codecCounter < audioCodecs) ? " " : "");
         }
       }
 
       sdp << "\n"
-        << "c=IN IP4 0.0.0.0" << endl;
+          << "c=IN IP4 0.0.0.0" << endl;
       if (isRtcpMux) {
         sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
       }
@@ -309,7 +309,7 @@ namespace erizo {
         if (candidateVector_[it].mediaType == AUDIO_TYPE || isBundle)
           sdp << this->stringifyCandidate(candidateVector_[it]) << endl;
       }
-      if (iceAudioUsername_.size()>0) {
+      if (iceAudioUsername_.size() > 0) {
         sdp << "a=ice-ufrag:" << iceAudioUsername_ << endl;
         sdp << "a=ice-pwd:" << iceAudioPassword_ << endl;
       } else {
@@ -339,7 +339,7 @@ namespace erizo {
         }
       }
 
-      if (bundleTags.size()>2) {
+      if (bundleTags.size() > 2) {
         ELOG_WARN("More bundleTags than supported, expect unexpected behaviour");
       }
       for (uint8_t i = 0; i < bundleTags.size(); i++) {
@@ -362,7 +362,7 @@ namespace erizo {
         const RtpMap& rtp = payloadVector[it];
         if (rtp.mediaType == AUDIO_TYPE) {
           int payloadType = rtp.payloadType;
-          if (rtp.channels>1) {
+          if (rtp.channels > 1) {
             sdp << "a=rtpmap:"<< payloadType << " " << rtp.encodingName << "/"
               << rtp.clockRate << "/" << rtp.channels << endl;
           } else {
@@ -376,7 +376,6 @@ namespace erizo {
             } else {
               sdp << "a=fmtp:" << payloadType << " " << theIt->second << endl;
             }
-
           }
         }
       }
@@ -386,11 +385,10 @@ namespace erizo {
       }
 
       sdp << "a=maxptime:60" << endl;
-      sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<
-        "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl<<
-        "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl<<
-        "a=ssrc:"<< audioSsrc << " label:" << msidtemp <<"a0"<<endl;
-
+      sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+        "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl <<
+        "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl <<
+        "a=ssrc:"<< audioSsrc << " label:" << msidtemp << "a0" << endl;
     }
 
     if (printedVideo && this->hasVideo) {
@@ -402,11 +400,11 @@ namespace erizo {
       }
 
       int codecCounter = 0;
-      for (unsigned int it =0; it<payloadVector.size(); it++) {
+      for (unsigned int it = 0; it < payloadVector.size(); it++) {
         const RtpMap& payload_info = payloadVector[it];
         if (payload_info.mediaType == VIDEO_TYPE) {
           codecCounter++;
-          sdp << payload_info.payloadType <<((codecCounter<videoCodecs)?" ":"");
+          sdp << payload_info.payloadType << ((codecCounter < videoCodecs) ? " " : "");
         }
       }
 
@@ -464,8 +462,8 @@ namespace erizo {
         const RtpMap& rtp = payloadVector[it];
         if (rtp.mediaType == VIDEO_TYPE) {
           int payloadType = rtp.payloadType;
-          sdp << "a=rtpmap:"<<payloadType << " " << rtp.encodingName << "/"
-            << rtp.clockRate <<"\n";
+          sdp << "a=rtpmap:" << payloadType << " " << rtp.encodingName << "/"
+              << rtp.clockRate <<"\n";
           if (!rtp.feedbackTypes.empty()) {
             for (unsigned int itFb = 0; itFb < rtp.feedbackTypes.size(); itFb++) {
               sdp << "a=rtcp-fb:" << payloadType << " " << rtp.feedbackTypes[itFb] << "\n";
@@ -478,22 +476,21 @@ namespace erizo {
             } else {
               sdp << "a=fmtp:" << payloadType << " " << theIt->second << endl;
             }
-
           }
         }
       }
       if (videoSsrc == 0) {
         videoSsrc = 55543;
       }
-      sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<
-        "a=ssrc:"<< videoSsrc << " msid:"<< msidtemp << " v0"<< endl<<
-        "a=ssrc:"<< videoSsrc << " mslabel:"<< msidtemp << endl<<
-        "a=ssrc:"<< videoSsrc << " label:" << msidtemp <<"v0"<<endl;
+      sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+             "a=ssrc:" << videoSsrc << " msid:"<< msidtemp << " v0"<< endl <<
+             "a=ssrc:" << videoSsrc << " mslabel:"<< msidtemp << endl <<
+             "a=ssrc:" << videoSsrc << " label:" << msidtemp << "v0" << endl;
       if (videoRtxSsrc != 0) {
-        sdp << "a=ssrc:" << videoRtxSsrc << " cname:o/i14u9pJrxRKAsu" << endl<<
-          "a=ssrc:"<< videoRtxSsrc << " msid:"<< msidtemp << " v0"<< endl<<
-          "a=ssrc:"<< videoRtxSsrc << " mslabel:"<< msidtemp << endl<<
-          "a=ssrc:"<< videoRtxSsrc << " label:" << msidtemp <<"v0"<<endl;
+        sdp << "a=ssrc:" << videoRtxSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+               "a=ssrc:" << videoRtxSsrc << " msid:" << msidtemp << " v0" << endl <<
+               "a=ssrc:" << videoRtxSsrc << " mslabel:" << msidtemp << endl <<
+               "a=ssrc:" << videoRtxSsrc << " label:" << msidtemp << "v0" << endl;
       }
     }
     ELOG_DEBUG("sdp local \n %s", sdp.str().c_str());
@@ -520,14 +517,12 @@ namespace erizo {
 
   bool SdpInfo::supportPayloadType(const int payloadType) {
     if (inOutPTMap.count(payloadType) > 0) {
-
       for (unsigned int it = 0; it < payloadVector.size(); it++) {
         const RtpMap& rtp = payloadVector[it];
         if (inOutPTMap[rtp.payloadType] == payloadType) {
           return true;
         }
       }
-
     }
     return false;
   }
@@ -610,11 +605,9 @@ namespace erizo {
     }
     */
     ELOG_DEBUG("Offer SDP successfully set");
-
   }
 
   bool SdpInfo::processSdp(const std::string& sdp, const std::string& media) {
-
     std::string line;
     std::istringstream iss(sdp);
     int mlineNum = -1;
@@ -705,7 +698,7 @@ namespace erizo {
         }
         // number of parts will vary depending on whether audio and video are present in the bundle
         if (parts.size() >= 3) {
-          for (unsigned int tagno=2; tagno<parts.size(); tagno++) {
+          for (unsigned int tagno = 2; tagno < parts.size(); tagno++) {
             ELOG_DEBUG("Adding %s to bundle vector", parts[tagno].c_str());
             BundleTag theTag(parts[tagno], OTHER);
             bundleTags.push_back(theTag);
@@ -827,7 +820,8 @@ namespace erizo {
             inOutPTMap[rtp.payloadType] = PT;
             theMap.channels = rtp.channels;
             found = true;
-            ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d", codecname.c_str(), clock, PT, rtp.encodingName.c_str(), rtp.clockRate, rtp.payloadType);
+            ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d",
+                       codecname.c_str(), clock, PT, rtp.encodingName.c_str(), rtp.clockRate, rtp.payloadType);
           }
         }
         if (found) {
@@ -843,7 +837,7 @@ namespace erizo {
           std::vector<std::string> parts = stringutil::splitOneOf(line, " :=", 3);
           if (parts.size() >= 3) {
             unsigned int id = strtoul(parts[2].c_str(), NULL, 10);
-            ExtMap anExt (id, parts[3].substr(0, parts[3].size()-1));
+            ExtMap anExt(id, parts[3].substr(0, parts[3].size()-1));
             anExt.mediaType = mtype;
             extMapVector.push_back(anExt);
           }
@@ -874,8 +868,6 @@ namespace erizo {
             }
           }
         } else if (parts.size() == 4) {
-
-
         }
       }
 
@@ -888,7 +880,6 @@ namespace erizo {
           }
         }
       }
-
     }
     // If there is no video or audio credentials we use the ones we have
     if (iceVideoUsername_.empty() && iceAudioUsername_.empty()) {
@@ -980,8 +971,7 @@ namespace erizo {
     return getAudioExternalPT(internalPT);
   }
 
-  bool SdpInfo::processCandidate(std::vector<std::string>& pieces, MediaType mediaType) {
-
+  bool SdpInfo::processCandidate(const std::vector<std::string>& pieces, MediaType mediaType) {
     CandidateInfo cand;
     static const char* types_str[] = { "host", "srflx", "prflx", "relay" };
     cand.mediaType = mediaType;
@@ -994,8 +984,8 @@ namespace erizo {
     if (cand.netProtocol.compare("UDP") && cand.netProtocol.compare("udp")) {
       return false;
     }
-    //	a=candidate:0 1 udp 2130706432 1383 52314 typ host  generation 0
-    //		        0 1 2    3            4          5     6  7    8          9
+    // a=candidate:0 1 udp 2130706432 1383 52314 typ host  generation 0
+    //             0 1 2    3            4          5     6  7    8          9
     //
     // a=candidate:1367696781 1 udp 33562367 138. 49462 typ relay raddr 138.4 rport 53531 generation 0
     cand.priority = (unsigned int) strtoul(pieces[4].c_str(), NULL, 10);
@@ -1029,7 +1019,7 @@ namespace erizo {
         break;
     }
 
-    ELOG_DEBUG( "Candidate Info: foundation=%s, componentId=%u, netProtocol=%s, "
+    ELOG_DEBUG("Candidate Info: foundation=%s, componentId=%u, netProtocol=%s, "
         "priority=%u, hostAddress=%s, hostPort=%u, hostType=%u",
         cand.foundation.c_str(),
         cand.componentId,
@@ -1060,4 +1050,4 @@ namespace erizo {
 
     s[len] = 0;
   }
-}/* namespace erizo */
+}  // namespace erizo

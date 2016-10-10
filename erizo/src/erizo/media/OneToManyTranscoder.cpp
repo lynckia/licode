@@ -122,5 +122,5 @@ void OneToManyTranscoder::addSubscriber(MediaSink* webRtcConn,
     delete this->publisher;
   }
 
-}/* namespace erizo */
+}  // namespace erizo
 

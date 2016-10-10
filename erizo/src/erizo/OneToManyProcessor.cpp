@@ -126,4 +126,4 @@ namespace erizo {
     ELOG_DEBUG("ClosedAll media in this OneToMany");
   }
 
-}/* namespace erizo */
+}  // namespace erizo
