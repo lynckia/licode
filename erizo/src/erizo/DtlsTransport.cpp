@@ -76,7 +76,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     const IceConfig& iceConfig, std::string username, std::string password, bool isServer):
   Transport(med, transport_name, connection_id, bundle, rtcp_mux, transportListener, iceConfig),
   readyRtp(false), readyRtcp(false), running_(false), isServer_(isServer) {
-    ELOG_DEBUG( "%s, message: constructor, transportName:%s, bundle:%d", toLog(), transport_name.c_str(), bundle);
+    ELOG_DEBUG( "%s, message: constructor, transportName:%s, isBundle:%d", toLog(), transport_name.c_str(), bundle);
     dtlsRtp.reset(new DtlsSocketContext());
 
     int comps = 1;
@@ -111,10 +111,10 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
   }
 
 DtlsTransport::~DtlsTransport() {
-  ELOG_DEBUG("%s, message: destructor", toLog());
+  ELOG_DEBUG("%s, message: destroying", toLog());
   if (this->state_!=TRANSPORT_FINISHED)
     this->close();
-  ELOG_DEBUG("%s, message: destructor END", toLog());
+  ELOG_DEBUG("%s, message: destroyed", toLog());
 }
 
 void DtlsTransport::start() {
@@ -136,7 +136,7 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
   int length = len;
   SrtpChannel *srtp = srtp_.get();
   if (DtlsTransport::isDtlsPacket(data, len)) {
-    ELOG_DEBUG("%s, message: Received DTLS message, transportName: %s, component_id: %u",toLog(), transport_name.c_str(), component_id);
+    ELOG_DEBUG("%s, message: Received DTLS message, transportName: %s, componentId: %u",toLog(), transport_name.c_str(), component_id);
     if (component_id == 1) {
       if (rtpResender.get()!=NULL) {
         rtpResender->cancel();
@@ -286,7 +286,7 @@ std::string DtlsTransport::getMyFingerprint() {
 }
 
 void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
-  ELOG_DEBUG( "%s, message:NiceState, transportName: %s, state: %d, bundle: %d", toLog(), transport_name.c_str(), state, bundle_);
+  ELOG_DEBUG( "%s, message:NiceState, transportName: %s, state: %d, isBundle: %d", toLog(), transport_name.c_str(), state, bundle_);
   if (state == NICE_INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
     updateTransportState(TRANSPORT_STARTED);
   }

@@ -248,7 +248,7 @@ namespace erizo {
       return;
     }
     g_main_loop_run(loop_);
-    ELOG_DEBUG("%s, message: Finished g_main_loop, this: %p", toLog(), this);
+    ELOG_DEBUG("%s, message: finished g_main_loop, this: %p", toLog(), this);
   }
 
   bool NiceConnection::setRemoteCandidates(std::vector<CandidateInfo> &candidates, bool isBundle) {
@@ -257,7 +257,7 @@ namespace erizo {
       return false;
     }
     GSList* candList = NULL;
-    ELOG_DEBUG("%s, message: setting remote candidates, candidate_size: %lu, mediatype: %d", toLog(), candidates.size(), this->mediaType);
+    ELOG_DEBUG("%s, message: setting remote candidates, candidateSize: %lu, mediaType: %d", toLog(), candidates.size(), this->mediaType);
 
     for (unsigned int it = 0; it < candidates.size(); it++) {
       NiceCandidateType nice_cand_type;
@@ -299,7 +299,7 @@ namespace erizo {
         ELOG_DEBUG("%s, message: adding relay or srflx remote candidate, hostType: %d, hostAddress: %s, hostPort %d, rAddress: %s, rPort: %d", toLog(), cinfo.hostType, cinfo.hostAddress.c_str(), 
             cinfo.hostPort, cinfo.rAddress.c_str(), cinfo.rPort);
       }else{
-        ELOG_DEBUG("%s, adding remote candidate, hostType: %d, hostAddress: %s, hostPort: %d, priority: %d, componentId: %d, ufrag: %s, pass: %s", 
+        ELOG_DEBUG("%s, message: adding remote candidate, hostType: %d, hostAddress: %s, hostPort: %d, priority: %d, componentId: %d, ufrag: %s, pass: %s", 
             toLog(), cinfo.hostType, cinfo.hostAddress.c_str(), cinfo.hostPort, cinfo.priority, cinfo.componentId, cinfo.username.c_str(),
             cinfo.password.c_str());
       }
@@ -418,7 +418,7 @@ namespace erizo {
           }
         }
       }else{
-        ELOG_WARN("%s, message: not received all candidates, newComponentState:%u", toLog(), state);
+        ELOG_WARN("%s, message: failed and not received all candidates, newComponentState:%u", toLog(), state);
         return;
       }
     }
@@ -433,7 +433,7 @@ namespace erizo {
 
     if(state <= iceState_) {
       if (state != NICE_READY)
-        ELOG_WARN("%s, message: unexpected ice state transition, iceState:%u  newIceState: %u", toLog(), iceState_, state);
+        ELOG_WARN("%s, message: unexpected ice state transition, iceState:%u,  newIceState: %u", toLog(), iceState_, state);
       return;
     }
 

@@ -82,7 +82,7 @@ namespace erizo {
     videoEnabled_ = true;
     audioEnabled_ = true;
     this->localSdp_.createOfferSdp(videoEnabled_, audioEnabled_);
-    ELOG_DEBUG("%s, message:Creating sdp offer, isBundle: %d", toLog(), bundle_);
+    ELOG_DEBUG("%s, message: Creating sdp offer, isBundle: %d", toLog(), bundle_);
     if (videoEnabled_)
       localSdp_.videoSsrc = this->getVideoSinkSSRC();
     if (audioEnabled_)
@@ -442,7 +442,7 @@ namespace erizo {
           parseIncomingPayloadType(buf, len, AUDIO_PACKET);
           audioSink_->deliverAudioData(buf, len);
         } else {
-          ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u", toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
+          ELOG_DEBUG("%s, unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u", toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
         }
       } else{ 
         if (transport->mediaType == AUDIO_TYPE) {
@@ -450,7 +450,7 @@ namespace erizo {
             parseIncomingPayloadType(buf, len, AUDIO_PACKET);
             // Firefox does not send SSRC in SDP
             if (this->getAudioSourceSSRC() == 0) {
-              ELOG_DEBUG("%s discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
+              ELOG_DEBUG("%s, discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
               this->setAudioSourceSSRC(recvSSRC);
             }
             audioSink_->deliverAudioData(buf, len);
@@ -460,7 +460,7 @@ namespace erizo {
             parseIncomingPayloadType(buf, len, VIDEO_PACKET);
             // Firefox does not send SSRC in SDP
             if (this->getVideoSourceSSRC() == 0) {
-              ELOG_DEBUG("%s discoveredVideoSourceSSRC:%u", toLog(), recvSSRC);
+              ELOG_DEBUG("%s, discoveredVideoSourceSSRC:%u", toLog(), recvSSRC);
               this->setVideoSourceSSRC(recvSSRC);
             }
             // change ssrc for RTP packets, don't touch here if RTCP
@@ -560,7 +560,7 @@ namespace erizo {
         cond_.notify_one();
         break;
       default:
-        ELOG_DEBUG("%s, message: Unacted on state, state %d", toLog(), state);
+        ELOG_DEBUG("%s, message: Doing nothing on state, state %d", toLog(), state);
         break;
     }
 
@@ -580,7 +580,7 @@ namespace erizo {
     globalState_ = temp;
 
     if (connEventListener_ != NULL) {
-      ELOG_INFO("%s, newGlobalState:%d", toLog(), globalState_);
+      ELOG_INFO("%s, newGlobalState: %d", toLog(), globalState_);
       connEventListener_->notifyEvent(globalState_, msg);
     }
   }
