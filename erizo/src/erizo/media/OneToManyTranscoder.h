@@ -23,7 +23,7 @@ class RTPSink;
  */
 class OneToManyTranscoder : public MediaSink, public RawDataReceiver, public RTPDataReceiver {
 	DECLARE_LOGGER();
-public:
+ public:
 	MediaSource* publisher;
 	std::map<std::string, MediaSink*> subscribers;
 
@@ -52,7 +52,7 @@ public:
     InputProcessor* ip_;
     OutputProcessor* op_;
 
-private:
+ private:
 	char sendVideoBuffer_[2000];
 	char sendAudioBuffer_[2000];
 	RTPSink* sink_;
@@ -69,5 +69,5 @@ private:
 	void closeAll();
 };
 
-} /* namespace erizo */
+}  // namespace erizo
 #endif /* ONETOMANYTRANSCODER_H_ */

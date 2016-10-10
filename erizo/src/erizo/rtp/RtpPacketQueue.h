@@ -7,7 +7,7 @@
 #include "logger.h"
 
 namespace erizo{
-//forward declaration
+// forward declaration
 class dataPacket;
 
 static const double DEFAULT_DEPTH = 3.0;
@@ -39,7 +39,7 @@ class RtpPacketQueue
 {
     DECLARE_LOGGER();
 
-public:
+ public:
     RtpPacketQueue(double depthInSeconds = DEFAULT_DEPTH, double maxDepthInSeconds = DEFAULT_MAX );
     ~RtpPacketQueue(void);
     void setTimebase(unsigned int timebase);
@@ -48,7 +48,7 @@ public:
     int getSize();  // total size of all items in the queue
     bool hasData(); // whether or not current queue depth is >= depth_
 
-private:
+ private:
     // Only used internally; does the math to calculate our current depth based on the supplied timebase.
     // Must be called with queueMutex_ locked.
     double getDepthInSeconds();
@@ -63,7 +63,7 @@ private:
     double depthInSeconds_;
     double maxDepthInSeconds_;
 };
-} /* namespace erizo */
+}  // namespace erizo
 
 #endif /* RTPPACKETQUEUE*/
 

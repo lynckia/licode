@@ -11,23 +11,23 @@ namespace erizo {
 
   enum RTPExtensions {
     SSRC_AUDIO_LEVEL,     // urn:ietf:params:rtp-hdrext:ssrc-audio-level
-    ABS_SEND_TIME,        // http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+    ABS_SEND_TIME,        // http:// www.webrtc.org/experiments/rtp-hdrext/abs-send-time
     TOFFSET,              // urn:ietf:params:rtp-hdrext:toffset
     VIDEO_ORIENTATION,    // urn:3gpp:video-orientation 
-    PLAYBACK_TIME         //  http://www.webrtc.org/experiments/rtp-hdrext/playout-delay
+    PLAYBACK_TIME         //  http:// www.webrtc.org/experiments/rtp-hdrext/playout-delay
   };
 
   class RtpExtensionProcessor{
     DECLARE_LOGGER();
 
-    public:
+ public:
     RtpExtensionProcessor();
     virtual ~RtpExtensionProcessor();
 
     void setSdpInfo (const SdpInfo& theInfo);
     uint32_t processRtpExtensions(dataPacket& p);
 
-    private:
+ private:
     int extMapVideo_[10], extMapAudio_[10];
     std::map<std::string, uint8_t> translationMap_;
     uint32_t processAbsSendTime(char* buf);
@@ -35,6 +35,6 @@ namespace erizo {
 
   };
 
-} /* namespace erizo */
+}  // namespace erizo
 
 #endif /* RTPEXTENSIONPROCESSOR_H_ */

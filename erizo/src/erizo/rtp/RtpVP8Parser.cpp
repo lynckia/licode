@@ -128,7 +128,7 @@ namespace erizo {
     vp8->hasTID = (*dataPtr & 0x20) ? true : false; // T bit
     vp8->hasKeyIdx = (*dataPtr & 0x10) ? true : false; // K bit
 
-    //ELOG_DEBUG("Parsing extension haspic %d, hastl0 %d, has TID %d, has Key %d ",vp8->hasPictureID,vp8->hasTl0PicIdx, vp8->hasTID, vp8->hasKeyIdx  );
+    // ELOG_DEBUG("Parsing extension haspic %d, hastl0 %d, has TID %d, has Key %d ", vp8->hasPictureID, vp8->hasTl0PicIdx, vp8->hasTID, vp8->hasKeyIdx  );
 
     // Advance dataPtr and decrease remaining payload size
     dataPtr++;
@@ -158,7 +158,7 @@ namespace erizo {
 
   RTPPayloadVP8* RtpVP8Parser::parseVP8(unsigned char* data,
       int dataLength) {
-    //ELOG_DEBUG("Parsing VP8 %d bytes", dataLength);
+    // ELOG_DEBUG("Parsing VP8 %d bytes", dataLength);
     RTPPayloadVP8* vp8 = new RTPPayloadVP8; // = &parsedPacket.info.VP8;
     const unsigned char* dataPtr = data;
 
@@ -168,7 +168,7 @@ namespace erizo {
     vp8->beginningOfPartition = (*dataPtr & 0x10) ? true : false; // S bit
     vp8->partitionID = (*dataPtr & 0x0F); // PartID field
 
-    //ELOG_DEBUG("X: %d N %d S %d PartID %d", extension, vp8->nonReferenceFrame, vp8->beginningOfPartition, vp8->partitionID);
+    // ELOG_DEBUG("X: %d N %d S %d PartID %d", extension, vp8->nonReferenceFrame, vp8->beginningOfPartition, vp8->partitionID);
 
     if (vp8->partitionID > 8) {
       // Weak check for corrupt data: PartID MUST NOT be larger than 8.
@@ -185,7 +185,7 @@ namespace erizo {
         return vp8;
       dataPtr += parsedBytes;
       dataLength -= parsedBytes;
-      //ELOG_DEBUG("Parsed bytes in extension %d", parsedBytes);
+      // ELOG_DEBUG("Parsed bytes in extension %d", parsedBytes);
     }
 
     if (dataLength <= 0) {
@@ -195,14 +195,14 @@ namespace erizo {
 
     // Read P bit from payload header (only at beginning of first partition)
     if (dataLength > 0 && vp8->beginningOfPartition && vp8->partitionID == 0) {
-      //parsedPacket.frameType = (*dataPtr & 0x01) ? kPFrame : kIFrame;
+      // parsedPacket.frameType = (*dataPtr & 0x01) ? kPFrame : kIFrame;
       vp8->frameType = (*dataPtr & 0x01) ? kPFrame : kIFrame;
     } else {
 
       vp8->frameType = kPFrame;
     }
     if (0 == ParseVP8FrameSize(vp8, dataPtr, dataLength)) {
-      if (vp8->frameWidth != 640){
+      if (vp8->frameWidth != 640) {
         ELOG_WARN("VP8 Frame width changed! = %d need postprocessing", vp8->frameWidth);
       }
     }
@@ -212,4 +212,3 @@ namespace erizo {
     return vp8;
   }
 }
-

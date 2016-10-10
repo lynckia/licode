@@ -8,13 +8,13 @@ namespace erizo {
 
 class RtpVP8Fragmenter {
 	DECLARE_LOGGER();
-public:
+ public:
 	RtpVP8Fragmenter(unsigned char* data, unsigned int length, unsigned int maxLength);
 	virtual ~RtpVP8Fragmenter();
 
 	int getPacket(unsigned char* data, unsigned int* length, bool* lastPacket);
 
-private:
+ private:
 	struct Fragment {
 		unsigned int position;
 		unsigned int size;
@@ -29,5 +29,5 @@ private:
 	std::queue<Fragment> fragmentQueue_;
 };
 
-} /* namespace erizo */
+}  // namespace erizo
 #endif /* RTPFRAGMENTER_H_ */

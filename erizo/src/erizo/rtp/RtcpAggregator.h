@@ -18,7 +18,7 @@ namespace erizo {
 class RtcpAggregator: public RtcpProcessor{
 	DECLARE_LOGGER();
   
-  public:
+ public:
     RtcpAggregator(MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw = 300000);
     virtual ~RtcpAggregator(){
     };
@@ -29,7 +29,7 @@ class RtcpAggregator: public RtcpProcessor{
     int analyzeFeedback(char* buf, int len);
     void checkRtcpFb();
 
-  private:
+ private:
     static const int RR_AUDIO_PERIOD = 2000;
     static const int RR_VIDEO_BASE = 800; 
     static const int REMB_TIMEOUT = 1000;
@@ -43,7 +43,7 @@ class RtcpAggregator: public RtcpProcessor{
     void resetData(boost::shared_ptr<RtcpData> data, uint32_t bandwidth);
 };
 
-} /* namespace erizo */
+}  // namespace erizo
 
 #endif /* RTCPAGGREGATOR_H_ */
 

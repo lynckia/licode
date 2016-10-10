@@ -81,7 +81,7 @@ static int dwrap_read(BIO *b, char *out, int outl)
 
    ret=BIO_read(b->next_bio,out,outl);
 
-   if(ret<=0) {
+   if(ret <= 0) {
       BIO_copy_next_retry(b);
    }
 
@@ -91,7 +91,7 @@ static int dwrap_read(BIO *b, char *out, int outl)
 static int dwrap_write(BIO *b, const char *in, int inl)
 {
 
-   if(!b || !in || (inl<=0)) {
+   if(!b || !in || (inl <= 0)) {
     return 0;
   }
 

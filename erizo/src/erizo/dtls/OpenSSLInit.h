@@ -5,9 +5,9 @@
   #include "config.h"
 #endif
 
-//#include "rutil/Mutex.h"
-//#include "rutil/RWMutex.h"
-//#include "rutil/Data.h"
+// #include "rutil/Mutex.h"
+// #include "rutil/RWMutex.h"
+// #include "rutil/Data.h"
 #include <cassert>
 #include <vector>
 #include <boost/thread/mutex.hpp>
@@ -36,9 +36,9 @@ namespace resip
 
 class OpenSSLInit
 {
-   public:
+ public:
       static bool init();
-   private:
+ private:
 	   OpenSSLInit();
 	   ~OpenSSLInit();
       friend void ::resip_OpenSSLInit_lockingFunction(int mode, int n, const char* file, int line);
@@ -47,7 +47,7 @@ class OpenSSLInit
       friend void ::resip_OpenSSLInit_dynDestroyFunction(CRYPTO_dynlock_value*, const char* file, int line);
       friend void ::resip_OpenSSLInit_dynLockFunction(int mode, struct CRYPTO_dynlock_value*, const char* file, int line);
 
-      //static Mutex* mMutexes;
+      // static Mutex* mMutexes;
       static boost::mutex* mMutexes;
       static volatile bool mInitialized;
 };

@@ -20,12 +20,12 @@ namespace erizo {
 class RtpSource: public MediaSource, public FeedbackSink {
 	DECLARE_LOGGER();
 
-public:
+ public:
   RtpSource(const int mediaPort, const std::string& feedbackDir, 
       const std::string& feedbackPort);
 	virtual ~RtpSource();
 
-private:
+ private:
 
   static const int LENGTH = 1500;
   boost::scoped_ptr<boost::asio::ip::udp::socket> socket_, fbSocket_;
@@ -43,5 +43,5 @@ private:
 };
 
 
-} /* namespace erizo */
+}  // namespace erizo
 #endif /* RTPSINK_H_ */

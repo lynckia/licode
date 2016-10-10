@@ -5,10 +5,10 @@
 #include "RtpExtensionProcessor.h"
 #include "time.h"
 
-namespace erizo{
+namespace erizo {
   DEFINE_LOGGER(RtpExtensionProcessor, "rtp.RtpExtensionProcessor");
 
-  RtpExtensionProcessor::RtpExtensionProcessor(){
+  RtpExtensionProcessor::RtpExtensionProcessor() {
     translationMap_["urn:ietf:params:rtp-hdrext:ssrc-audio-level"] = SSRC_AUDIO_LEVEL;
     translationMap_["http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"] = ABS_SEND_TIME;
     translationMap_["urn:ietf:params:rtp-hdrext:toffset"] = TOFFSET;
@@ -18,18 +18,18 @@ namespace erizo{
     memset(extMapAudio_, 0, sizeof(int)*10);
   }
 
-  RtpExtensionProcessor::~RtpExtensionProcessor(){
+  RtpExtensionProcessor::~RtpExtensionProcessor() {
   }
 
-  void RtpExtensionProcessor::setSdpInfo (const SdpInfo& theInfo){
+  void RtpExtensionProcessor::setSdpInfo (const SdpInfo& theInfo) {
     // We build the Extension Map
-    for (unsigned int i = 0; i < theInfo.extMapVector.size(); i++){
+    for (unsigned int i = 0; i < theInfo.extMapVector.size(); i++) {
       const ExtMap& theMap = theInfo.extMapVector[i];
       std::map<std::string, uint8_t>::iterator it;
-      switch(theMap.mediaType){
+      switch (theMap.mediaType) {
         case VIDEO_TYPE:
           it = translationMap_.find(theMap.uri);
-          if (it!=translationMap_.end()){
+          if (it != translationMap_.end()) {
             ELOG_DEBUG("Adding RTP Extension for video %s, value %u", theMap.uri.c_str(), theMap.value);
             extMapVideo_[theMap.value] = (*it).second;
           } else {
@@ -38,7 +38,7 @@ namespace erizo{
           break;
         case AUDIO_TYPE:
           it = translationMap_.find(theMap.uri);
-          if (it!=translationMap_.end()){
+          if (it != translationMap_.end()) {
             ELOG_DEBUG("Adding RTP Extension for Audio %s, value %u", theMap.uri.c_str(), theMap.value);
             extMapAudio_[theMap.value]=(*it).second;
           } else {
@@ -56,8 +56,8 @@ namespace erizo{
     RtpHeader* head = reinterpret_cast<RtpHeader*>(p.data);
     uint32_t len = p.length;
     int* extMap; 
-    if (head->getExtension()){
-      switch(p.type){
+    if (head->getExtension()) {
+      switch (p.type) {
         case VIDEO_PACKET:
           extMap = extMapVideo_;
           break;
@@ -70,18 +70,18 @@ namespace erizo{
           break;
       }
       uint16_t totalExtLength = head->getExtLength();
-      if (head->getExtId()==0xBEDE){
+      if (head->getExtId() == 0xBEDE) {
         char* extBuffer = (char*)&head->extensions;
         uint8_t extByte = 0;
         uint16_t currentPlace = 1;
         uint8_t extId = 0;
         uint8_t extLength = 0;
-        while(currentPlace < (totalExtLength*4)) {
+        while (currentPlace < (totalExtLength*4)) {
           extByte = (uint8_t)(*extBuffer);
           extId = extByte >> 4;
           extLength = extByte & 0x0F;
-          if (extId!=0 && extMap[extId] !=0){
-            switch(extMap[extId]){
+          if (extId != 0 && extMap[extId] != 0) {
+            switch (extMap[extId]) {
               case ABS_SEND_TIME:
                 processAbsSendTime(extBuffer);
                 break;
@@ -95,7 +95,7 @@ namespace erizo{
     return len;
   }
 
-  uint32_t RtpExtensionProcessor::processAbsSendTime(char* buf){
+  uint32_t RtpExtensionProcessor::processAbsSendTime(char* buf) {
     struct timeval theNow;
     AbsSendTimeExtension* head = reinterpret_cast<AbsSendTimeExtension*>(buf);
     gettimeofday(&theNow, NULL);
@@ -106,8 +106,8 @@ namespace erizo{
     return 0;
   }
 
-  uint32_t RtpExtensionProcessor::stripExtension (char* buf, int len){
-    //TODO
+  uint32_t RtpExtensionProcessor::stripExtension (char* buf, int len) {
+    // TODO
     return len;
   }
 

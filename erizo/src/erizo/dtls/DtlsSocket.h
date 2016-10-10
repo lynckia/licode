@@ -39,7 +39,7 @@ class DtlsTimerContext;
 
 class SrtpSessionKeys
 {
-public:
+ public:
     SrtpSessionKeys() {
         clientMasterKey = new unsigned char[SRTP_MASTER_KEY_KEY_LEN];
         clientMasterKeyLen = 0;
@@ -77,7 +77,7 @@ public:
 class DtlsSocket
 {
    DECLARE_LOGGER();
-   public:
+ public:
       enum SocketType { Client, Server};
       // Creates an SSL socket, and if client sets state to connect_state and if server sets state to accept_state.  Sets SSL BIO's.
       DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type);
@@ -115,7 +115,7 @@ class DtlsSocket
       // extracted from the DTLS handshake process
       void createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy_t& inboundPolicy);
 
-   private:
+ private:
       // Causes an immediate handshake iteration to happen, which will retransmit the handshake
       void forceRetransmit();
 
@@ -139,7 +139,7 @@ class DtlsSocket
 
 class DtlsReceiver
 {
-public:
+ public:
       virtual void writeDtls(DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) = 0;
       virtual void onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey, std::string serverKey, std::string srtp_profile) = 0;
       virtual void onHandshakeFailed(DtlsSocketContext *ctx, const std::string error) = 0;
@@ -148,10 +148,10 @@ public:
 class DtlsSocketContext
 {
    DECLARE_LOGGER();
-   public:
+ public:
       bool started;
-      //memory is only valid for duration of callback; must be copied if queueing
-      //is required
+      // memory is only valid for duration of callback; must be copied if queueing
+      // is required
       DtlsSocketContext();
       virtual ~DtlsSocketContext();
 
@@ -198,12 +198,12 @@ class DtlsSocketContext
 
      static void Init();
 
-   protected:
+ protected:
       DtlsSocket *mSocket;
       DtlsReceiver *receiver;
       std::auto_ptr<DtlsTimerContext> mTimerContext;
 
-   private:
+ private:
      // Creates a DTLS SSL Context and enables srtp extension, also sets the private and public key cert
 
      SSL_CTX* mContext;

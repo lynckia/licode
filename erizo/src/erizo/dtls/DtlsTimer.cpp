@@ -11,7 +11,7 @@ using namespace std;
 
 DtlsTimer::DtlsTimer(unsigned int seq)
 {
-   mValid=true;
+   mValid = true;
 }
 
 DtlsTimer::~DtlsTimer()
@@ -21,15 +21,15 @@ DtlsTimer::~DtlsTimer()
 void
 DtlsTimer::fire()
 {
-   if(mValid)
+   if (mValid)
    {
       expired();
    }
    else
    {
-      //memory mangement is overly tricky and possibly wrong...deleted by target
-      //if valid is the contract. weak pointers would help.
-      //delete this;
+      // memory mangement is overly tricky and possibly wrong...deleted by target
+      // if valid is the contract. weak pointers would help.
+      // delete this;
    }
 }
 
@@ -46,7 +46,7 @@ long long getTimeMS() {
   return timeMs;
 }
 
-TestTimerContext::~TestTimerContext(){
+TestTimerContext::~TestTimerContext() {
   if (mTimer)
    delete mTimer;
   mTimer = 0;
@@ -57,11 +57,11 @@ TestTimerContext::addTimer(DtlsTimer *timer, unsigned int lifetime)
 {
    delete mTimer;
 
-   mTimer=timer;
+   mTimer = timer;
 
    long timeMs = getTimeMS();
 
-   mExpiryTime=timeMs+lifetime;
+   mExpiryTime = timeMs + lifetime;
 
 }
 
@@ -70,9 +70,9 @@ TestTimerContext::getRemainingTime()
 {
    long long timeMs = getTimeMS();
 
-   if(mTimer)
+   if (mTimer)
    {
-      if(mExpiryTime<timeMs)
+      if (mExpiryTime<timeMs)
          return(0);
 
       return(mExpiryTime-timeMs);
@@ -92,12 +92,12 @@ TestTimerContext::updateTimer()
 {
    long long timeMs = getTimeMS();
 
-   if(mTimer)
+   if (mTimer)
    {
-      if(mExpiryTime<timeMs)
+      if (mExpiryTime<timeMs)
       {
-         DtlsTimer *tmpTimer=mTimer;
-         mTimer=0;
+         DtlsTimer *tmpTimer = mTimer;
+         mTimer = 0;
 
          fire(tmpTimer);
       }

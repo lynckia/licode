@@ -80,7 +80,7 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
   }
 
   // Get our SSL structure from the store
-  //SSL* ssl = reinterpret_cast<SSL*>(X509_STORE_CTX_get_ex_data(
+  // SSL* ssl = reinterpret_cast<SSL*>(X509_STORE_CTX_get_ex_data(
   //                                      store,
   //                                      SSL_get_ex_data_X509_STORE_CTX_idx()));
 
@@ -90,7 +90,7 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
   // and therefore it will necessarily call here on the first cert it
   // tries to verify.
   if (!ok) {
-    //X509* cert = X509_STORE_CTX_get_current_cert(store);
+    // X509* cert = X509_STORE_CTX_get_current_cert(store);
     int err = X509_STORE_CTX_get_error(store);
 
     ELOG_DEBUG2(sslLogger, "Error: %d", X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT);
@@ -98,8 +98,8 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
     // peer-to-peer mode: allow the certificate to be self-signed,
     // assuming it matches the digest that was specified.
     if (err == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) {
-      //unsigned char digest[EVP_MAX_MD_SIZE];
-      //std::size_t digest_length;
+      // unsigned char digest[EVP_MAX_MD_SIZE];
+      // std::size_t digest_length;
 
       ELOG_DEBUG2(sslLogger, "Accepted self-signed peer certificate authority");
       ok = 1;
@@ -150,7 +150,7 @@ int createCert (const string& pAor, int expireDays, int keyLen, X509*& outCert, 
 
    RSA_generate_key_ex(rsa, KEY_LENGTH, exponent, NULL);
 
-   //RSA* rsa = RSA_generate_key(keyLen, RSA_F4, NULL, NULL);
+   // RSA* rsa = RSA_generate_key(keyLen, RSA_F4, NULL, NULL);
    assert(rsa);    // couldn't make key pair
 
    int ret = EVP_PKEY_set1_RSA(privkey, rsa);
@@ -163,11 +163,11 @@ int createCert (const string& pAor, int expireDays, int keyLen, X509*& outCert, 
    X509_EXTENSION* ext = X509_EXTENSION_new();
 
    // set version to X509v3 (starts from 0)
-   //X509_set_version(cert, 0L);
+   // X509_set_version(cert, 0L);
 
    int serial = rand();  // get an int worth of randomness
-   assert(sizeof(int)==4);
-   ASN1_INTEGER_set(X509_get_serialNumber(cert),serial);
+   assert(sizeof(int) == 4);
+   ASN1_INTEGER_set(X509_get_serialNumber(cert), serial);
 
 //    ret = X509_NAME_add_entry_by_txt( subject, "O",  MBSTRING_ASC,
 //                                      (unsigned char *) domain.data(), domain.size(),
@@ -184,7 +184,7 @@ int createCert (const string& pAor, int expireDays, int keyLen, X509*& outCert, 
    assert(ret);
 
    const long duration = 60*60*24*expireDays;
-   X509_gmtime_adj(X509_get_notBefore(cert),0);
+   X509_gmtime_adj(X509_get_notBefore(cert), 0);
    X509_gmtime_adj(X509_get_notAfter(cert), duration);
 
    ret = X509_set_pubkey(cert, privkey);
@@ -224,7 +224,7 @@ DtlsSocketContext::DtlsSocketContext() {
 
   ELOG_DEBUG("Creating Dtls factory, Openssl v %s", OPENSSL_VERSION_TEXT);
 
-  mContext=SSL_CTX_new(DTLSv1_method());
+  mContext = SSL_CTX_new(DTLSv1_method());
   assert(mContext);
 
   int r = SSL_CTX_use_certificate(mContext, mCert);
@@ -240,11 +240,11 @@ DtlsSocketContext::DtlsSocketContext() {
   SSL_CTX_set_verify(mContext, SSL_VERIFY_PEER |SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
       SSLVerifyCallback);
 
-  //SSL_CTX_set_session_cache_mode(mContext, SSL_SESS_CACHE_OFF);
-  //SSL_CTX_set_options(mContext, SSL_OP_NO_TICKET);
+  // SSL_CTX_set_session_cache_mode(mContext, SSL_SESS_CACHE_OFF);
+  // SSL_CTX_set_options(mContext, SSL_OP_NO_TICKET);
   // Set SRTP profiles
-  r=SSL_CTX_set_tlsext_use_srtp(mContext, DefaultSrtpProfile);
-  assert(r==0);
+  r = SSL_CTX_set_tlsext_use_srtp(mContext, DefaultSrtpProfile);
+  assert(r == 0);
 
   SSL_CTX_set_verify_depth (mContext, 2);
   SSL_CTX_set_read_ahead(mContext, 1);
@@ -252,7 +252,7 @@ DtlsSocketContext::DtlsSocketContext() {
   ELOG_DEBUG("DtlsSocketContext created");
 }
 
-DtlsSocketContext::~DtlsSocketContext(){
+DtlsSocketContext::~DtlsSocketContext() {
   delete mSocket;
   mSocket = NULL;
   SSL_CTX_free(mContext);
@@ -264,51 +264,51 @@ void DtlsSocketContext::Init() {
     SSL_library_init();
     SSL_load_error_strings();
     ERR_load_crypto_strings();
-    createCert("sip:licode@lynckia.com",365,1024,DtlsSocketContext::mCert,DtlsSocketContext::privkey);
+    createCert("sip:licode@lynckia.com", 365, 1024, DtlsSocketContext::mCert, DtlsSocketContext::privkey);
   }
 }
 
 DtlsSocket* DtlsSocketContext::createClient()
 {
-   return new DtlsSocket(this,DtlsSocket::Client);
+   return new DtlsSocket(this, DtlsSocket::Client);
 }
 
 
 DtlsSocket* DtlsSocketContext::createServer()
 {
-   return new DtlsSocket(this,DtlsSocket::Server);
+   return new DtlsSocket(this, DtlsSocket::Server);
 }
 
 void DtlsSocketContext::getMyCertFingerprint(char *fingerprint)
 {
-   DtlsSocket::computeFingerprint(DtlsSocketContext::mCert,fingerprint);
+   DtlsSocket::computeFingerprint(DtlsSocketContext::mCert, fingerprint);
 }
 
 void DtlsSocketContext::setSrtpProfiles(const char *str)
 {
-   int r = SSL_CTX_set_tlsext_use_srtp(mContext,str);
-   assert(r==0);
+   int r = SSL_CTX_set_tlsext_use_srtp(mContext, str);
+   assert(r == 0);
 }
 
 void DtlsSocketContext::setCipherSuites(const char *str)
 {
-   int r = SSL_CTX_set_cipher_list(mContext,str);
-   assert(r==1);
+   int r = SSL_CTX_set_cipher_list(mContext, str);
+   assert(r == 1);
 }
 
-SSL_CTX* DtlsSocketContext::getSSLContext(){
+SSL_CTX* DtlsSocketContext::getSSLContext() {
   return mContext;
 }
 
 DtlsSocketContext::PacketType DtlsSocketContext::demuxPacket(const unsigned char *data, unsigned int len)
 {
-   assert(len>=1);
+   assert(len >= 1);
 
-   if((data[0]==0)   || (data[0]==1))
+   if ((data[0] == 0)   || (data[0] == 1))
       return stun;
-   if((data[0]>=128) && (data[0]<=191))
+   if ((data[0] >= 128) && (data[0] <= 191))
       return rtp;
-   if((data[0]>=20)  && (data[0]<=64))
+   if ((data[0] >= 20)  && (data[0] <= 64))
       return dtls;
 
    return unknown;
@@ -350,22 +350,22 @@ void DtlsSocketContext::handshakeCompleted()
   char fprint[100];
   SRTP_PROTECTION_PROFILE *srtp_profile;
 
-  if(mSocket->getRemoteFingerprint(fprint)){
+  if (mSocket->getRemoteFingerprint(fprint)) {
     ELOG_TRACE("Remote fingerprint == %s", fprint);
 
-    bool check=mSocket->checkFingerprint(fprint,strlen(fprint));
+    bool check = mSocket->checkFingerprint(fprint, strlen(fprint));
     ELOG_DEBUG("Fingerprint check == %d", check);
 
-    SrtpSessionKeys* keys=mSocket->getSrtpSessionKeys();
+    SrtpSessionKeys* keys = mSocket->getSrtpSessionKeys();
 
     unsigned char* cKey = (unsigned char*)malloc(keys->clientMasterKeyLen + keys->clientMasterSaltLen);
     unsigned char* sKey = (unsigned char*)malloc(keys->serverMasterKeyLen + keys->serverMasterSaltLen);
 
-    memcpy ( cKey, keys->clientMasterKey, keys->clientMasterKeyLen );
-    memcpy ( cKey + keys->clientMasterKeyLen, keys->clientMasterSalt, keys->clientMasterSaltLen );
+    memcpy (cKey, keys->clientMasterKey, keys->clientMasterKeyLen);
+    memcpy (cKey + keys->clientMasterKeyLen, keys->clientMasterSalt, keys->clientMasterSaltLen);
 
-    memcpy ( sKey, keys->serverMasterKey, keys->serverMasterKeyLen );
-    memcpy ( sKey + keys->serverMasterKeyLen, keys->serverMasterSalt, keys->serverMasterSaltLen );
+    memcpy (sKey, keys->serverMasterKey, keys->serverMasterKeyLen);
+    memcpy (sKey + keys->serverMasterKeyLen, keys->serverMasterSalt, keys->serverMasterSaltLen);
 
     // g_base64_encode must be free'd with g_free.  Also, std::string's assignment operator does *not* take
     // ownership of the passed in ptr; under the hood it copies up to the first null character.
@@ -384,9 +384,9 @@ void DtlsSocketContext::handshakeCompleted()
     free(sKey);
     delete keys;
 
-    srtp_profile=mSocket->getSrtpProfile();
+    srtp_profile = mSocket->getSrtpProfile();
 
-    if(srtp_profile){
+    if (srtp_profile) {
       ELOG_DEBUG("SRTP Extension negotiated profile=%s", srtp_profile->name);
     }
 

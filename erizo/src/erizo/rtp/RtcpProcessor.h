@@ -15,7 +15,7 @@ namespace erizo {
   // Forward declaration
 
   class SrData {
-    public:
+ public:
       uint32_t srNtp;
       struct timeval timestamp;
 
@@ -31,7 +31,7 @@ namespace erizo {
   
   class RtcpData {
   // lost packets - list and length
-  public:
+ public:
     // current values - tracks packet lost for fraction calculation
     uint16_t rrsReceivedInPeriod;
 
@@ -112,7 +112,7 @@ namespace erizo {
 };
 
 class RtcpProcessor{
-  public:
+ public:
     RtcpProcessor(MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw = 300000):
       rtcpSink_(msink), rtcpSource_(msource){
     };
@@ -125,13 +125,13 @@ class RtcpProcessor{
     virtual int analyzeFeedback(char* buf, int len) = 0;
     virtual void checkRtcpFb() = 0;
 
-  protected:
+ protected:
     MediaSink* rtcpSink_;  // The sink to send RRs
     MediaSource* rtcpSource_; // The source of SRs
     uint32_t maxVideoBw_; 
 
 };
 
-} /* namespace erizo */
+}  // namespace erizo
 
 #endif /* RTCPPROCESSOR_H_ */

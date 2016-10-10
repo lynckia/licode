@@ -33,11 +33,11 @@ typedef struct {
 
 class RtpVP8Parser {
 	DECLARE_LOGGER();
-public:
+ public:
 	RtpVP8Parser();
 	virtual ~RtpVP8Parser();
 	erizo::RTPPayloadVP8* parseVP8(unsigned char* data, int datalength);
 };
 
-} /* namespace erizo */
+}  // namespace erizo
 #endif /* RTPVP8PARSER_H_ */

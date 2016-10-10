@@ -52,13 +52,13 @@ namespace erizo {
   void VideoMixer::receiveRawData(RawDataPacket& pkt) {
   }
 
-  void VideoMixer::receiveRtpData(unsigned char* rtpdata, int len){
+  void VideoMixer::receiveRtpData(unsigned char* rtpdata, int len) {
   }
 
-  void VideoMixer::addPublisher(WebRtcConnection* webRtcConn, int peerSSRC){
+  void VideoMixer::addPublisher(WebRtcConnection* webRtcConn, int peerSSRC) {
   }
 
-  void VideoMixer::setSubscriber(WebRtcConnection* webRtcConn){
+  void VideoMixer::setSubscriber(WebRtcConnection* webRtcConn) {
   }
 
   void VideoMixer::removePublisher(int peerSSRC) {

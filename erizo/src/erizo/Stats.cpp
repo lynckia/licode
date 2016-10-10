@@ -11,26 +11,26 @@
 namespace erizo {
 
   DEFINE_LOGGER(Stats, "Stats");
-  
-  Stats::Stats(){ 
+
+  Stats::Stats() {
     ELOG_DEBUG("Constructor Stats");
     theListener_ = NULL;
     rtpBytesReceived_ = 0;
     gettimeofday(&bitRateCalculationStart_, NULL);
   }
-  
-  Stats::~Stats(){
+
+  Stats::~Stats() {
     ELOG_DEBUG("Destructor Stats");
   }
 
-  uint32_t Stats::processRtpPacket(char* buf, int len){
-    rtpBytesReceived_+=len; 
+  uint32_t Stats::processRtpPacket(char* buf, int len) {
+    rtpBytesReceived_+=len;
     struct timeval now;
     gettimeofday(&now, NULL);
     uint64_t nowms = (now.tv_sec * 1000) + (now.tv_usec / 1000);
     uint64_t start = (bitRateCalculationStart_.tv_sec * 1000) + (bitRateCalculationStart_.tv_usec / 1000);
     uint64_t delay = nowms - start;
-    if (delay > 2000){
+    if (delay > 2000) {
       uint32_t receivedRtpBitrate_ = (8*rtpBytesReceived_*1000)/delay; // in kbps
       rtpBytesReceived_ = 0;
       gettimeofday(&bitRateCalculationStart_, NULL);
@@ -38,28 +38,29 @@ namespace erizo {
     }
     return 0;
   }
-  
+
   void Stats::processRtcpPacket(char* buf, int length) {
     boost::recursive_mutex::scoped_lock lock(mapMutex_);
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;
-    
+
     do{
-      movingBuf+=rtcpLength;
-      RtcpHeader *chead= reinterpret_cast<RtcpHeader*>(movingBuf);
-      rtcpLength= (ntohs(chead->length)+1)*4;      
-      totalLength+= rtcpLength;
+      movingBuf += rtcpLength;
+      RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(movingBuf);
+      rtcpLength = (ntohs(chead->length) + 1) * 4;
+      totalLength += rtcpLength;
       this->processRtcpPacket(chead);
-    } while(totalLength<length);
+    } while (totalLength<length);
     sendStats();
   }
-  
-  void Stats::processRtcpPacket(RtcpHeader* chead) {    
+
+  void Stats::processRtcpPacket(RtcpHeader* chead) {
     unsigned int ssrc = chead->getSSRC();
 
-    ELOG_DEBUG("RTCP SubPacket: PT %d, SSRC %u,  block count %d ",chead->packettype,chead->getSSRC(), chead->getBlockCount()); 
-    switch(chead->packettype){
+    ELOG_DEBUG("RTCP SubPacket: PT %d, SSRC %u,  block count %d ",
+               chead->packettype, chead->getSSRC(), chead->getBlockCount());
+    switch (chead->packettype) {
       case RTCP_SDES_PT:
         ELOG_DEBUG("SDES");
         break;
@@ -83,7 +84,7 @@ namespace erizo {
         break;
       case RTCP_PS_Feedback_PT:
         ELOG_DEBUG("RTCP PS FB TYPE: %u", chead->getBlockCount() );
-        switch(chead->getBlockCount()){
+        switch (chead->getBlockCount()) {
           case RTCP_PLI_FMT:
             ELOG_DEBUG("PLI Message");
             accountPLIMessage(ssrc);
@@ -99,7 +100,7 @@ namespace erizo {
           case RTCP_AFB:
             {
               char *uniqueId = (char*)&chead->report.rembPacket.uniqueid;
-              if (!strncmp(uniqueId,"REMB", 4)){
+              if (!strncmp(uniqueId, "REMB", 4)) {
                 uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
                // ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps", chead->getREMBNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate);
                 setBandwidth(bitrate, ssrc);
@@ -110,7 +111,7 @@ namespace erizo {
               break;
             }
           default:
-            ELOG_WARN("Unsupported RTCP_PS FB TYPE %u",chead->getBlockCount());
+            ELOG_WARN("Unsupported RTCP_PS FB TYPE %u", chead->getBlockCount());
             break;
         }
         break;
@@ -119,37 +120,36 @@ namespace erizo {
         break;
     }
   }
- 
+
   std::string Stats::getStats() {
     boost::recursive_mutex::scoped_lock lock(mapMutex_);
     std::ostringstream theString;
     theString << "[";
-    for (fullStatsMap_t::iterator itssrc=statsPacket_.begin(); itssrc!=statsPacket_.end();){
+    for (fullStatsMap_t::iterator itssrc=statsPacket_.begin(); itssrc != statsPacket_.end();) {
       unsigned long int currentSSRC = itssrc->first;
       theString << "{\"ssrc\":\"" << currentSSRC << "\",\n";
-      if (currentSSRC == videoSSRC_){
+      if (currentSSRC == videoSSRC_) {
         theString << "\"type\":\"" << "video\",\n";
-      }else if (currentSSRC == audioSSRC_){
+      } else if (currentSSRC == audioSSRC_) {
         theString << "\"type\":\"" << "audio\",\n";
       }
-      for (singleSSRCstatsMap_t::iterator it=statsPacket_[currentSSRC].begin(); it!=statsPacket_[currentSSRC].end();){
+      for (singleSSRCstatsMap_t::iterator it=statsPacket_[currentSSRC].begin(); it != statsPacket_[currentSSRC].end();) {
         theString << "\"" << it->first << "\":\"" << it->second << "\"";
-        if (++it != statsPacket_[currentSSRC].end()){
+        if (++it != statsPacket_[currentSSRC].end()) {
           theString << ",\n";
-        }          
+        }
       }
       theString << "}";
-      if (++itssrc != statsPacket_.end()){
+      if (++itssrc != statsPacket_.end()) {
         theString << ",";
       }
     }
     theString << "]";
-    return theString.str(); 
+    return theString.str();
   }
-  
+
   void Stats::sendStats() {
-    if(theListener_!=NULL)
+    if (theListener_ != NULL)
       theListener_->notifyStats(this->getStats());
   }
 }
-

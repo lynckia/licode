@@ -10,7 +10,7 @@
 //
 // MIN macro
 //
-#define MIN(a,b) (a<b)?a:b
+#define MIN(a, b) (a < b) ? a:b
 #define MAX_WIDTH  4096
 #define MAX_HEIGHT 4096
 
@@ -29,16 +29,18 @@ vRescaleP(unsigned char *inBuff,
           unsigned int   BPP
          )
 {
-    if(!outW || !outH) return;
+    if (!outW || !outH) {
+      return;
+    }
 
-    float actualZoomX= (float)outW/(float)inW;
-    float actualZoomY= (float)outH/(float)inH;
+    float actualZoomX = (float)outW / (float)inW;
+    float actualZoomY = (float)outH / (float)inH;
 
-    unsigned zoomedWidth= int(inW*actualZoomX);
-    unsigned zoomedHeight= int(inH*actualZoomY);
+    unsigned zoomedWidth = int(inW * actualZoomX);
+    unsigned zoomedHeight = int(inH * actualZoomY);
 
-    unsigned croppedZoomedWidth = MIN(zoomedWidth,outW);
-    unsigned croppedZoomedHeight= MIN(zoomedHeight,outH);
+    unsigned croppedZoomedWidth = MIN(zoomedWidth, outW);
+    unsigned croppedZoomedHeight = MIN(zoomedHeight, outH);
 
     //
     // let start by zooming image
@@ -46,36 +48,36 @@ vRescaleP(unsigned char *inBuff,
     unsigned int xindex [MAX_WIDTH];
     unsigned int yindex [MAX_HEIGHT];
 
-    unsigned curry= 0;
-    float    deltaX= 1/actualZoomX;
-    float    deltaY= 1/actualZoomY;
+    unsigned curry = 0;
+    float    deltaX = 1 / actualZoomX;
+    float    deltaY = 1 / actualZoomY;
 
-    for(unsigned iter= 0; iter < croppedZoomedHeight; iter++)
+    for(unsigned iter = 0; iter < croppedZoomedHeight; iter++)
     {
         yindex[iter]= int(float(iter)*deltaY);
     }
 
-    for(unsigned iter= 0; iter < croppedZoomedWidth; iter++)
+    for(unsigned iter = 0; iter < croppedZoomedWidth; iter++)
     {
-        xindex[iter]= BPP*int(float(iter)*deltaX);
+        xindex[iter]= BPP * int(float(iter) * deltaX);
     }
 
-    for(unsigned iy= 0; iy< croppedZoomedHeight; iy++)
+    for(unsigned iy = 0; iy < croppedZoomedHeight; iy++)
     {
-        while(curry  < yindex[iy])
+        while (curry < yindex[iy])
         {
-            inBuff += inW*BPP;
+            inBuff += inW * BPP;
             curry++;
         }
-        for(unsigned ix= 0; ix< croppedZoomedWidth; ix++)
+        for(unsigned ix = 0; ix < croppedZoomedWidth; ix++)
         {
-            for (unsigned j = 0;j<BPP;j++)
+            for (unsigned j = 0; j < BPP; j++)
             {
-                *(outBuff+j) = *(inBuff+*(xindex + ix)+j);
+                *(outBuff + j) = *(inBuff + *(xindex + ix) + j);
             }
             outBuff += BPP;
         }
-        for(unsigned ix= croppedZoomedWidth; ix< outW; ix++)
+        for(unsigned ix = croppedZoomedWidth; ix < outW; ix++)
         {
             *outBuff = 0xff/2;
             outBuff++;
@@ -108,7 +110,7 @@ VideoUtils::vRescale(unsigned char *inBuff,
             return -1;
         }
 
-        //rescale luminance
+        // rescale luminance
         vRescaleP(inBuff,
                   inW*inH,
                   outBuff,
@@ -120,10 +122,10 @@ VideoUtils::vRescale(unsigned char *inBuff,
                   1 // Bytes Per Pixel
                  );
 
-        //rescale chroma U
-        vRescaleP(inBuff+inW*inH,
+        // rescale chroma U
+        vRescaleP(inBuff + inW * inH,
                   inW*inH*4,
-                  outBuff+outW*outH,
+                  outBuff + outW * outH,
                   outW*outH*4,
                   inW/2,
                   inH/2,
@@ -132,15 +134,15 @@ VideoUtils::vRescale(unsigned char *inBuff,
                   1 // Bytes Per Pixel
                  );
 
-        //rescale chroma V
-        vRescaleP(inBuff+inW*inH*5/4,
+        // rescale chroma V
+        vRescaleP(inBuff + inW * inH * 5 / 4,
                   inW*inH*4,
-                  outBuff+outW*outH*5/4,
-                  outW*outH*4,
-                  inW/2,
-                  inH/2,
-                  outW/2,
-                  outH/2,
+                  outBuff + outW * outH * 5 / 4,
+                  outW * outH * 4,
+                  inW / 2,
+                  inH / 2,
+                  outW / 2,
+                  outH / 2,
                   1 // Bytes Per Pixel
                  );
 
@@ -148,7 +150,7 @@ VideoUtils::vRescale(unsigned char *inBuff,
 
     case RGB24_FORMAT:
     case BGR24_FORMAT:
-        if (outBuffLen < outW*outH*3)
+        if (outBuffLen < outW * outH * 3)
         {
             ELOG_DEBUG("vRescale:: needed %d, outBuffLen = %d",
                    outW*outH*3,
@@ -157,11 +159,11 @@ VideoUtils::vRescale(unsigned char *inBuff,
             return -1;
         }
 
-        //rescale rgb plane
+        // rescale rgb plane
         vRescaleP(inBuff,
-                  inW*inH,
+                  inW * inH,
                   outBuff,
-                  outW*outH,
+                  outW * outH,
                   inW,
                   inH,
                   outW,
@@ -193,10 +195,10 @@ vPutImageP(unsigned char *inBuff,
            bool           invert
           )
 {
-    unsigned lineSize1 = W*BPP;
-    unsigned lineSize2 = totalW*BPP;
+    unsigned lineSize1 = W * BPP;
+    unsigned lineSize2 = totalW * BPP;
     unsigned initRectPos1 = 0;
-    unsigned initRectPos2 = lineSize2*Y + X*BPP;
+    unsigned initRectPos2 = lineSize2 * Y + X * BPP;
     unsigned position1 = 0;
     unsigned position2 = 0;
 
@@ -204,13 +206,13 @@ vPutImageP(unsigned char *inBuff,
     {
         for (unsigned i = 0; i < H; i++)
         {
-            position1 = initRectPos1 + lineSize1*i; //save image1 position
-            position2 = initRectPos2 + lineSize2*i; //save image2 position
+            position1 = initRectPos1 + lineSize1 * i; // save image1 position
+            position2 = initRectPos2 + lineSize2 * i; // save image2 position
             for (unsigned j = 0; j < lineSize1; j++)
             {
-                if (((bool)mask[position2+j])^invert)
+                if (((bool)mask[position2 + j]) ^ invert)
                 {
-                    outBuff[position2+j] = inBuff[position1+j]; //copy pixel
+                    outBuff[position2 + j] = inBuff[position1 + j]; // copy pixel
                 }
             }
         }
@@ -219,9 +221,9 @@ vPutImageP(unsigned char *inBuff,
     {
         for (unsigned i = 0; i < H; i++)
         {
-            position1 = initRectPos1 + lineSize1*i; //save image1 position
-            position2 = initRectPos2 + lineSize2*i; //save image2 position
-            memcpy(&outBuff[position2],&inBuff[position1],lineSize1); //copy line
+            position1 = initRectPos1 + lineSize1 * i; // save image1 position
+            position2 = initRectPos2 + lineSize2 * i; // save image2 position
+            memcpy(&outBuff[position2], &inBuff[position1], lineSize1); // copy line
         }
     }
 }
@@ -252,8 +254,8 @@ VideoUtils::vPutImage(unsigned char *inBuff,
         return -1;
     }
 
-    if (posX + outW>totalW) outW = totalW-posX;
-    if (posY + outH>totalH) outH = totalH-posY;
+    if (posX + outW > totalW) outW = totalW - posX;
+    if (posY + outH > totalH) outH = totalH - posY;
 
     double factor = 0;
     int BPP = 0;
@@ -273,10 +275,10 @@ VideoUtils::vPutImage(unsigned char *inBuff,
         abort();
     }
 
-    if (outBuffLen < outW*outH*BPP*factor)
+    if (outBuffLen < outW * outH * BPP * factor)
     {
         ELOG_DEBUG("vPutImage :: needed %f, outBuffLen = %d",
-               totalW*totalH*BPP*factor,
+               totalW * totalH * BPP * factor,
                outBuffLen
               );
         return -1;
@@ -288,7 +290,7 @@ VideoUtils::vPutImage(unsigned char *inBuff,
     if ((inW != outW) ||
         (inH != outH))
     {
-        len   = int(outW*outH*factor);
+        len   = int(outW * outH * factor);
         image = new unsigned char[len];
         int ret = vRescale (inBuff,
                             inBuffLen,
@@ -301,7 +303,7 @@ VideoUtils::vPutImage(unsigned char *inBuff,
                             format
                            );
 
-        if (ret<=0)
+        if (ret <= 0)
         {
             ELOG_DEBUG("vPutImage : vRescale failed");
             delete [] image;
@@ -313,9 +315,9 @@ VideoUtils::vPutImage(unsigned char *inBuff,
     {
     case I420P_FORMAT:
 
-        //put luminance plane
+        // put luminance plane
         vPutImageP(image,
-                   outW*outH*BPP,
+                   outW * outH * BPP,
                    outBuff,
                    outW,
                    outH,
@@ -328,33 +330,33 @@ VideoUtils::vPutImage(unsigned char *inBuff,
                    invert
                   );
 
-        //put chroma U plane
-        vPutImageP(image+outW*outH*BPP,
+        // put chroma U plane
+        vPutImageP(image + outW * outH * BPP,
                    outW*outH*BPP/4,
-                   outBuff+totalW*totalH*BPP,
-                   outW/2,
-                   outH/2,
-                   posX/2,
-                   posY/2,
-                   totalW/2,
-                   totalH/2,
+                   outBuff + totalW * totalH * BPP,
+                   outW / 2,
+                   outH / 2,
+                   posX / 2,
+                   posY / 2,
+                   totalW / 2,
+                   totalH / 2,
                    BPP,
-                   mask?mask+totalW*totalH*BPP:NULL,
+                   mask ? mask + totalW * totalH * BPP : NULL,
                    invert
                   );
 
-        //put chroma V plane
-        vPutImageP(image+outW*outH*BPP*5/4,
-                   outW*outH*BPP/4,
-                   outBuff+totalW*totalH*BPP*5/4,
-                   outW/2,
-                   outH/2,
-                   posX/2,
-                   posY/2,
-                   totalW/2,
-                   totalH/2,
+        // put chroma V plane
+        vPutImageP(image + outW * outH * BPP * 5 / 4,
+                   outW * outH * BPP / 4,
+                   outBuff + totalW * totalH * BPP * 5 / 4,
+                   outW / 2,
+                   outH / 2,
+                   posX / 2,
+                   posY / 2,
+                   totalW / 2,
+                   totalH / 2,
                    BPP,
-                   mask?mask+totalW*totalH*BPP*5/4:NULL,
+                   mask ? mask + totalW * totalH * BPP * 5 / 4 : NULL,
                    invert
                   );
         break;
@@ -362,9 +364,9 @@ VideoUtils::vPutImage(unsigned char *inBuff,
     case RGB24_FORMAT:
     case BGR24_FORMAT:
 
-        //put bgr plane
+        // put bgr plane
         vPutImageP(image,
-                   outW*outH*BPP,
+                   outW * outH * BPP,
                    outBuff,
                    outW,
                    outH,
@@ -388,7 +390,7 @@ VideoUtils::vPutImage(unsigned char *inBuff,
         delete[] image;
     }
 
-    return int(totalW*totalH*BPP*factor);
+    return int(totalW * totalH * BPP * factor);
 }
 
 inline void
@@ -404,20 +406,20 @@ vSetMaskRectP(unsigned char *mask,
              )
 {
     unsigned lineSize1 = W*BPP;
-    unsigned lineSize2 = totalW*BPP;
+    unsigned lineSize2 = totalW * BPP;
 //    unsigned initRectPos1 = 0;
-    unsigned initRectPos2 = lineSize2*posY + posX*BPP;
+    unsigned initRectPos2 = lineSize2 * posY + posX * BPP;
 //    unsigned position1 = 0;
     unsigned position2 = 0;
     for(unsigned i = 0; i < H; i++)
     {
-//        position1 = initRectPos1 + lineSize1*i; //save image1 position
-        position2 = initRectPos2 + lineSize2*i; //save image2 position
-        for (unsigned j = 0; j < lineSize1; j+=BPP)
+//        position1 = initRectPos1 + lineSize1*i; // save image1 position
+        position2 = initRectPos2 + lineSize2 * i; // save image2 position
+        for (unsigned j = 0; j < lineSize1; j += BPP)
         {
-            for (int k = 0;k<BPP;k++)
+            for (int k = 0; k < BPP; k++)
             {
-                mask[position2+j+k]= val;
+                mask[position2 + j + k]= val;
             }
         }
     }
@@ -452,23 +454,23 @@ VideoUtils::vSetMaskRect(unsigned char *mask,
                       val,
                       BPP
                      );
-        vSetMaskRectP(mask+totalW*totalH,
-                      W/2,
-                      H/2,
-                      posX/2,
-                      posY/2,
-                      totalW/2,
-                      totalH/2,
+        vSetMaskRectP(mask + totalW * totalH,
+                      W / 2,
+                      H / 2,
+                      posX / 2,
+                      posY / 2,
+                      totalW / 2,
+                      totalH / 2,
                       val,
                       BPP
                      );
-        vSetMaskRectP(mask+totalW*totalH*5/4,
-                      W/2,
-                      H/2,
-                      posX/2,
-                      posY/2,
-                      totalW/2,
-                      totalH/2,
+        vSetMaskRectP(mask + totalW * totalH * 5 / 4,
+                      W / 2,
+                      H / 2,
+                      posX / 2,
+                      posY / 2,
+                      totalW / 2,
+                      totalH / 2,
                       val,
                       BPP
                      );
@@ -530,7 +532,7 @@ VideoUtils::vSetMask(unsigned char *outBuff,
     if (outBuffLen < totalW*totalH*BPP*factor)
     {
         ELOG_DEBUG("vSetMask :: needed %f, outBuffLen = %d",
-               totalW*totalH*BPP*factor,
+               totalW * totalH * BPP * factor,
                outBuffLen
               );
         return -1;
@@ -539,13 +541,13 @@ VideoUtils::vSetMask(unsigned char *outBuff,
     unsigned char * image  = NULL;
     unsigned char * image2 = NULL;
 
-    int len= int(totalW*totalH*factor);
+    int len= int(totalW * totalH * factor);
     image  = new unsigned char[len];
     image2 = new unsigned char[len/4];
 
-    //luminance plane
+    // luminance plane
     vRescaleP(mask,
-              W*H,
+              W * H,
               image,
               len,
               W,
@@ -554,15 +556,15 @@ VideoUtils::vSetMask(unsigned char *outBuff,
               totalH,
               BPP
              );
-    //U and V planes
+    // U and V planes
     vRescaleP(mask,
-              W*H,
+              W * H,
               image2,
-              len/4,
+              len / 4,
               W,
               H,
-              totalW/2,
-              totalH/2,
+              totalW / 2,
+              totalH / 2,
               BPP
              );
 
@@ -570,9 +572,9 @@ VideoUtils::vSetMask(unsigned char *outBuff,
     {
     case I420P_FORMAT:
 
-        //put luminance plane
+        // put luminance plane
         vPutImageP(image,
-                   totalW*totalH*BPP,
+                   totalW * totalH * BPP,
                    outBuff,
                    totalW,
                    totalH,
@@ -585,31 +587,31 @@ VideoUtils::vSetMask(unsigned char *outBuff,
                    false
                   );
 
-        //put chroma U plane
+        // put chroma U plane
         vPutImageP(image2,
-                   totalW*totalH*BPP/4,
-                   outBuff+totalW*totalH*BPP,
-                   totalW/2,
-                   totalH/2,
+                   totalW * totalH * BPP / 4,
+                   outBuff + totalW * totalH * BPP,
+                   totalW / 2,
+                   totalH / 2,
                    0,
                    0,
-                   totalW/2,
-                   totalH/2,
+                   totalW / 2,
+                   totalH / 2,
                    BPP,
                    NULL,
                    false
                   );
 
-        //put chroma V plane
+        // put chroma V plane
         vPutImageP(image2,
-                   totalW*totalH*BPP/4,
-                   outBuff+totalW*totalH*BPP*5/4,
-                   totalW/2,
-                   totalH/2,
+                   totalW * totalH * BPP / 4,
+                   outBuff + totalW * totalH * BPP * 5 / 4,
+                   totalW / 2,
+                   totalH / 2,
                    0,
                    0,
-                   totalW/2,
-                   totalH/2,
+                   totalW / 2,
+                   totalH / 2,
                    BPP,
                    NULL,
                    false
@@ -620,9 +622,9 @@ VideoUtils::vSetMask(unsigned char *outBuff,
     case RGB24_FORMAT:
     case BGR24_FORMAT:
 
-        //put bgr plane
+        // put bgr plane
         vPutImageP(image,
-                   totalW*totalH*BPP,
+                   totalW * totalH * BPP,
                    outBuff,
                    totalW,
                    totalH,
@@ -647,4 +649,3 @@ VideoUtils::vSetMask(unsigned char *outBuff,
 
     return 0;
 }
-

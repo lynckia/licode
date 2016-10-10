@@ -5,36 +5,36 @@
 #include "RtcpForwarder.h"
 #include <string.h>
 
-namespace erizo{
+namespace erizo {
   DEFINE_LOGGER(RtcpForwarder, "rtp.RtcpForwarder");
 
   RtcpForwarder::RtcpForwarder (MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw):
-    RtcpProcessor(msink, msource, maxVideoBw), defaultVideoBw_(maxVideoBw/2){
+    RtcpProcessor(msink, msource, maxVideoBw), defaultVideoBw_(maxVideoBw/2) {
       ELOG_DEBUG("Starting RtcpForwarder");
     }
 
-  void RtcpForwarder::addSourceSsrc(uint32_t ssrc){
+  void RtcpForwarder::addSourceSsrc(uint32_t ssrc) {
     boost::mutex::scoped_lock mlock(mapLock_);
-    if (rtcpData_.find(ssrc) == rtcpData_.end()){
+    if (rtcpData_.find(ssrc) == rtcpData_.end()) {
       this->rtcpData_[ssrc] = boost::shared_ptr<RtcpData>(new RtcpData());
-      if (ssrc == this->rtcpSource_->getAudioSourceSSRC()){
+      if (ssrc == this->rtcpSource_->getAudioSourceSSRC()) {
         ELOG_DEBUG("Adding new Audio source SSRC %u", ssrc);
-        this->rtcpData_[ssrc]->mediaType = AUDIO_TYPE; 
-      }else{
+        this->rtcpData_[ssrc]->mediaType = AUDIO_TYPE;
+      } else {
         ELOG_DEBUG("Adding new Video source SSRC %u", ssrc);
         this->rtcpData_[ssrc]->mediaType = VIDEO_TYPE;
       }
     }
   }
 
-  void RtcpForwarder::setMaxVideoBW(uint32_t bandwidth){
+  void RtcpForwarder::setMaxVideoBW(uint32_t bandwidth) {
     this->maxVideoBw_ = bandwidth;
   }
 
-  void RtcpForwarder::setPublisherBW(uint32_t bandwidth){
+  void RtcpForwarder::setPublisherBW(uint32_t bandwidth) {
   }
 
-  void RtcpForwarder::analyzeSr(RtcpHeader* chead){
+  void RtcpForwarder::analyzeSr(RtcpHeader* chead) {
     uint32_t recvSSRC = chead->getSSRC();
     // We try to add it just in case it is not there yet (otherwise its noop)
     this->addSourceSsrc(recvSSRC);
@@ -49,15 +49,15 @@ namespace erizo{
     ntp = (theNTP & (0xFFFFFFFF0000))>>16;
     theData->senderReports.push_back(boost::shared_ptr<SrData>( new SrData(ntp, now)));
     // We only store the last 20 sr
-    if (theData->senderReports.size()>20){
+    if (theData->senderReports.size()>20) {
       theData->senderReports.pop_front();
     }
 
   }
   int RtcpForwarder::analyzeFeedback(char *buf, int len) {
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
-    if (chead->isFeedback()) {      
-      if (chead->getBlockCount() == 0 && (chead->getLength()+1) * 4  == len){
+    if (chead->isFeedback()) {
+      if (chead->getBlockCount() == 0 && (chead->getLength()+1) * 4  == len) {
         ELOG_DEBUG("Ignoring empty RR");
         return 0;
       }
@@ -77,7 +77,7 @@ namespace erizo{
         chead = reinterpret_cast<RtcpHeader*>(movingBuf);
         rtcpLength = (ntohs(chead->length)+1) * 4;
         totalLength += rtcpLength;
-        switch(chead->packettype){
+        switch (chead->packettype) {
           case RTCP_SDES_PT:
             ELOG_DEBUG("SDES");
             break;
@@ -85,23 +85,23 @@ namespace erizo{
             ELOG_DEBUG("BYE");
             break;
           case RTCP_Receiver_PT:
-            if (chead->getSourceSSRC() == rtcpSource_->getVideoSourceSSRC()){
-              ELOG_DEBUG("Analyzing Video RR: PacketLost %u, Ratio %u, currentBlock %d, blocks %d, sourceSSRC %u, ssrc %u changed to %u", 
-                  chead->getLostPackets(), 
-                  chead->getFractionLost(), 
-                  currentBlock, 
-                  chead->getBlockCount(), 
-                  chead->getSourceSSRC(), 
+            if (chead->getSourceSSRC() == rtcpSource_->getVideoSourceSSRC()) {
+              ELOG_DEBUG("Analyzing Video RR: PacketLost %u, Ratio %u, currentBlock %d, blocks %d, sourceSSRC %u, ssrc %u changed to %u",
+                  chead->getLostPackets(),
+                  chead->getFractionLost(),
+                  currentBlock,
+                  chead->getBlockCount(),
+                  chead->getSourceSSRC(),
                   chead->getSSRC(),
                   rtcpSink_->getVideoSinkSSRC());
               chead->setSSRC(rtcpSink_->getVideoSinkSSRC());
-            }else{
-              ELOG_DEBUG("Analyzing Audio RR: PacketLost %u, Ratio %u, currentBlock %d, blocks %d, sourceSSRC %u, ssrc %u changed to %u", 
-                  chead->getLostPackets(), 
-                  chead->getFractionLost(), 
-                  currentBlock, 
-                  chead->getBlockCount(), 
-                  chead->getSourceSSRC(), 
+            } else {
+              ELOG_DEBUG("Analyzing Audio RR: PacketLost %u, Ratio %u, currentBlock %d, blocks %d, sourceSSRC %u, ssrc %u changed to %u",
+                  chead->getLostPackets(),
+                  chead->getFractionLost(),
+                  currentBlock,
+                  chead->getBlockCount(),
+                  chead->getSourceSSRC(),
                   chead->getSSRC(),
                   rtcpSink_->getAudioSinkSSRC());
               chead->setSSRC(rtcpSink_->getAudioSinkSSRC());
@@ -114,7 +114,7 @@ namespace erizo{
             break;
           case RTCP_PS_Feedback_PT:
             //            ELOG_DEBUG("RTCP PS FB TYPE: %u", chead->getBlockCount() );
-            switch(chead->getBlockCount()){
+            switch (chead->getBlockCount()) {
               case RTCP_PLI_FMT:
                 ELOG_DEBUG("PLI Message, currentBlock %d", currentBlock);
                 // 1: PLI, 4: FIR
@@ -128,13 +128,13 @@ namespace erizo{
               case RTCP_AFB:
                 {
                   char *uniqueId = (char*)&chead->report.rembPacket.uniqueid;
-                  if (!strncmp(uniqueId,"REMB", 4)){
+                  if (!strncmp(uniqueId, "REMB", 4)) {
                     uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
                     uint64_t cappedBitrate = 0;
                     cappedBitrate = bitrate < maxVideoBw_? bitrate: maxVideoBw_;
-                    if (bitrate < maxVideoBw_){
+                    if (bitrate < maxVideoBw_) {
                       cappedBitrate = bitrate;
-                    }else{
+                    } else {
                       cappedBitrate = maxVideoBw_;
                     }
                     ELOG_DEBUG("Received REMB %lu, partnum %u, cappedBitrate %lu", bitrate, currentBlock, cappedBitrate);
@@ -146,7 +146,7 @@ namespace erizo{
                   break;
                 }
               default:
-                ELOG_WARN("Unsupported RTCP_PS FB TYPE %u",chead->getBlockCount());
+                ELOG_WARN("Unsupported RTCP_PS FB TYPE %u", chead->getBlockCount());
                 break;
             }
             break;
@@ -162,10 +162,10 @@ namespace erizo{
   }
 
 
-  void RtcpForwarder::checkRtcpFb(){
+  void RtcpForwarder::checkRtcpFb() {
   }
 
-  int RtcpForwarder::addREMB(char* buf, int len, uint32_t bitrate){
+  int RtcpForwarder::addREMB(char* buf, int len, uint32_t bitrate) {
     buf+=len;
     RtcpHeader theREMB;
     theREMB.setPacketType(RTCP_PS_Feedback_PT);
@@ -181,10 +181,10 @@ namespace erizo{
     int rembLength = (theREMB.getLength()+1)*4;
 
     memcpy(buf, (uint8_t*)&theREMB, rembLength);
-    return (len+rembLength); 
+    return (len+rembLength);
   }
 
-  int RtcpForwarder::addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc, uint32_t sinkSsrc){
+  int RtcpForwarder::addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc, uint32_t sinkSsrc) {
     buf+=len;
     ELOG_DEBUG("Setting PID %u, BLP %u", seqNum , blp);
     RtcpHeader theNACK;
@@ -192,13 +192,13 @@ namespace erizo{
     theNACK.setBlockCount(1);
     theNACK.setNackPid(seqNum);
     theNACK.setNackBlp(blp);
-    theNACK.setSSRC(sinkSsrc);    
+    theNACK.setSSRC(sinkSsrc);
     theNACK.setSourceSSRC(sourceSsrc);
     theNACK.setLength(3);
     int nackLength = (theNACK.getLength()+1)*4;
 
     memcpy(buf, (uint8_t*)&theNACK, nackLength);
-    return (len+nackLength); 
+    return (len+nackLength);
   }
 
 

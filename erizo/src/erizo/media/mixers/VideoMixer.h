@@ -25,7 +25,7 @@ class RTPSink;
  */
 class VideoMixer : public MediaSink, public RawDataReceiver, public RTPDataReceiver {
 	DECLARE_LOGGER();
-public:
+ public:
 	WebRtcConnection *subscriber;
 	std::map<int, WebRtcConnection*> publishers;
 
@@ -62,7 +62,7 @@ public:
 	 */
 	void closeAll();
 
-private:
+ private:
 	char sendVideoBuffer_[2000];
 	char sendAudioBuffer_[2000];
 	RTPSink* sink_;
@@ -73,5 +73,5 @@ private:
 	unsigned int sentPackets_;
 };
 
-} /* namespace erizo */
+}  // namespace erizo
 #endif /* VIDEOMIXER_H_ */

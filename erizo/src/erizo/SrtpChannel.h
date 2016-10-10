@@ -24,7 +24,7 @@ class SrtpChannel {
 	static bool initialized;
 	static boost::mutex sessionMutex_;
 
-public:
+ public:
 	/**
 	 * The constructor. At this point the class is only initialized but it still needs the Key pair.
 	 */
@@ -64,22 +64,21 @@ public:
 	 * @param receivingKey The key for unprotecting data
 	 * @return true if everything is ok
 	 */
-	bool setRtpParams(char* sendingKey, char* receivingKey);
+	bool setRtpParams(const std::string &sendingKey, const std::string &receivingKey);
 	/**
 	 * Sets a key pair for the RTCP channel
 	 * @param sendingKey The key for protecting data
 	 * @param receivingKey The key for unprotecting data
 	 * @return true if everything is ok
 	 */
-	bool setRtcpParams(char* sendingKey, char* receivingKey);
+	bool setRtcpParams(const std::string &sendingKey, const std::string &receivingKey);
 
-private:
+ private:
 	enum TransmissionType {
 		SENDING, RECEIVING
 	};
 
-	bool configureSrtpSession(srtp_t *session, const char* key,
-			enum TransmissionType type);
+	bool configureSrtpSession(srtp_t *session, const std::string &key, enum TransmissionType type);
 
 	bool active_;
 	srtp_t send_session_;
@@ -88,5 +87,5 @@ private:
 	srtp_t rtcp_receive_session_;
 };
 
-} /* namespace erizo */
+}  // namespace erizo
 #endif /* SRTPCHANNEL_H_ */

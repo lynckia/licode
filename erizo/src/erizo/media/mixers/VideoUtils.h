@@ -74,5 +74,5 @@ class VideoUtils{
         );
 };
 
-#endif //_VIDEOUTILS_H_
+#endif // _VIDEOUTILS_H_
 

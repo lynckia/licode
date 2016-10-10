@@ -24,18 +24,18 @@ namespace erizo {
       }
     }
 
-  VideoEncoder::VideoEncoder(){
+  VideoEncoder::VideoEncoder() {
     avcodec_register_all();
     vCoder = NULL;
     vCoderContext = NULL;
     cPicture = NULL;
   }
 
-  VideoEncoder::~VideoEncoder(){
+  VideoEncoder::~VideoEncoder() {
     this->closeEncoder();
   }
 
-  int VideoEncoder::initEncoder(const VideoCodecInfo& info){
+  int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
     vCoder = avcodec_find_encoder(VideoCodecID2ffmpegDecoderID(info.codec));
     if (!vCoder) {
       ELOG_DEBUG("Video codec not found for encoder");
@@ -56,8 +56,8 @@ namespace erizo {
     vCoderContext->profile = 3;
     //    vCoderContext->frame_skip_threshold = 30;
     vCoderContext->rc_buffer_aggressivity = 0.95;
-    //vCoderContext->rc_buffer_size = vCoderContext->bit_rate;
-    //vCoderContext->rc_initial_buffer_occupancy = vCoderContext->bit_rate / 2;
+    // vCoderContext->rc_buffer_size = vCoderContext->bit_rate;
+    // vCoderContext->rc_initial_buffer_occupancy = vCoderContext->bit_rate / 2;
     vCoderContext->rc_initial_buffer_occupancy = 500;
 
     vCoderContext->rc_buffer_size = 1000;
@@ -87,7 +87,7 @@ namespace erizo {
     return 0;
   }
 
-  int VideoEncoder::encodeVideo (unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength, int& hasFrame){
+  int VideoEncoder::encodeVideo (unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength, int& hasFrame) {
 
     int size = vCoderContext->width * vCoderContext->height;
     //    ELOG_DEBUG("vCoderContext width %d", vCoderContext->width);
@@ -122,28 +122,28 @@ namespace erizo {
   }
 
   int VideoEncoder::closeEncoder() {
-    if (vCoderContext!=NULL)
+    if (vCoderContext != NULL)
       avcodec_close(vCoderContext);
-    if (cPicture !=NULL)
+    if (cPicture != NULL)
       av_frame_free(&cPicture);
 
     return 0;
   }
 
 
-  VideoDecoder::VideoDecoder(){
+  VideoDecoder::VideoDecoder() {
     avcodec_register_all();
     vDecoder = NULL;
     vDecoderContext = NULL;
     dPicture = NULL;
-    initWithContext_=false;
+    initWithContext_ = false;
   }
 
-  VideoDecoder::~VideoDecoder(){
+  VideoDecoder::~VideoDecoder() {
     this->closeDecoder();
   }
 
-  int VideoDecoder::initDecoder (const VideoCodecInfo& info){
+  int VideoDecoder::initDecoder (const VideoCodecInfo& info) {
     ELOG_DEBUG("Init Decoder");
     vDecoder = avcodec_find_decoder(VideoCodecID2ffmpegDecoderID(info.codec));
     if (!vDecoder) {
@@ -174,9 +174,9 @@ namespace erizo {
     return 0;
   }
 
-  int VideoDecoder::initDecoder (AVCodecContext* context){    
+  int VideoDecoder::initDecoder (AVCodecContext* context) {
     ELOG_DEBUG("Init Decoder with context");
-    initWithContext_=true;
+    initWithContext_ = true;
     vDecoder = avcodec_find_decoder(context->codec_id);
     if (!vDecoder) {
       ELOG_DEBUG("Error getting video decoder");
@@ -199,8 +199,8 @@ namespace erizo {
   }
 
   int VideoDecoder::decodeVideo(unsigned char* inBuff, int inBuffLen,
-      unsigned char* outBuff, int outBuffLen, int* gotFrame){
-    if (vDecoder == 0 || vDecoderContext == 0){
+      unsigned char* outBuff, int outBuffLen, int* gotFrame) {
+    if (vDecoder == 0 || vDecoderContext == 0) {
       ELOG_DEBUG("Init Codec First");
       return -1;
     }
@@ -287,7 +287,7 @@ decoding:
     return outSize * 3 / 2;
   }
 
-  int VideoDecoder::closeDecoder(){
+  int VideoDecoder::closeDecoder() {
     if (!initWithContext_ && vDecoderContext != NULL)
       avcodec_close(vDecoderContext);
     if (dPicture != NULL)

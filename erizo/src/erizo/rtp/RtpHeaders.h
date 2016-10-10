@@ -60,7 +60,7 @@ namespace erizo{
   // |                             ....                              |
 
   class RtpHeader {
-    public:
+ public:
       static const int MIN_SIZE = 12;
       uint32_t cc :4;
       uint32_t hasextension :1;
@@ -165,7 +165,7 @@ namespace erizo{
   };
 
   class AbsSendTimeExtension {
-    public:
+ public:
       uint32_t ext_info:8;
       uint32_t abs_data:24;
       inline uint8_t getId(){
@@ -183,7 +183,7 @@ namespace erizo{
   };
 
   class RtpRtxHeader {
-    public:
+ public:
 
       RtpHeader rtpHeader;
       uint16_t osn;
@@ -271,7 +271,7 @@ namespace erizo{
   // |  ...                                                          |
 
   class RtcpHeader {
-    public:
+ public:
       uint32_t blockcount :5;
       uint32_t padding :1;
       uint32_t version :2;
@@ -329,8 +329,8 @@ namespace erizo{
      ssrc(0){
       };
       inline bool isFeedback(void) {
-        return (packettype==RTCP_Receiver_PT || 
-            packettype==RTCP_PS_Feedback_PT ||
+        return (packettype == RTCP_Receiver_PT || 
+            packettype == RTCP_PS_Feedback_PT ||
             packettype == RTCP_RTP_Feedback_PT);
       }
       inline bool isRtcp(void) {        
@@ -451,7 +451,7 @@ namespace erizo{
 
       }
       inline uint32_t getBrExp(){ 
-        //remove the 0s added by nothl (8) + the 18 bits of Mantissa 
+        // remove the 0s added by nothl (8) + the 18 bits of Mantissa 
         return (ntohl(report.rembPacket.brLength)>>26);
       }
       inline uint32_t getBrMantis(){        
@@ -506,7 +506,7 @@ namespace erizo{
 
 
   class FirHeader {
-    public: 
+ public: 
       uint32_t fmt :5;
       uint32_t padding :1;
       uint32_t version :2;
@@ -546,7 +546,7 @@ namespace erizo{
   //    block length:  10 bits Length in bytes of the corresponding data
   //        block excluding header.
   class RedHeader {
-    public:
+ public:
       uint32_t payloadtype :7;
       uint32_t follow :1;
       uint32_t tsLength :24;

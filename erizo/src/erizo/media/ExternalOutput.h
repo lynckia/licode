@@ -26,7 +26,7 @@ enum vp8SearchState {
 
 class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource, public webrtc::RtpData {
     DECLARE_LOGGER();
-public:
+ public:
     ExternalOutput(const std::string& outputUrl);
     virtual ~ExternalOutput();
     bool init();
@@ -38,7 +38,7 @@ public:
                                            const uint16_t payload_size,
                                            const webrtc::WebRtcRTPHeader* rtp_header);
 
-private:
+ private:
     webrtc::FecReceiverImpl  fec_receiver_;
     RtpPacketQueue audioQueue_, videoQueue_;
     bool recording_, inited_;

@@ -15,7 +15,7 @@ enum TransportState {
 namespace erizo {
   class Transport;
   class TransportListener {
-    public:
+ public:
       virtual void onTransportData(char* buf, int len, Transport *transport) = 0;
       virtual void queueData(int comp, const char* data, int len, Transport *transport, packetType type, uint16_t seqNum = 0) = 0;
       virtual void updateState(TransportState state, Transport *transport) = 0;
@@ -23,7 +23,7 @@ namespace erizo {
 
   };
   class Transport : public NiceConnectionListener {
-    public:
+ public:
       boost::shared_ptr<NiceConnection> nice_;
       MediaType mediaType;
       std::string transport_name;
@@ -34,7 +34,7 @@ namespace erizo {
       virtual ~Transport() {};
       virtual void updateIceState(IceState state, NiceConnection *conn) = 0;
       virtual void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) = 0;
-      virtual void onCandidate(const CandidateInfo &candidate, NiceConnection *conn)=0;
+      virtual void onCandidate(const CandidateInfo &candidate, NiceConnection *conn) = 0;
       virtual void write(char* data, int len) = 0;
       virtual void processLocalSdp(SdpInfo *localSdp_) = 0;
       virtual void start() = 0;
@@ -65,10 +65,10 @@ namespace erizo {
         return nice_->setRemoteCandidates(candidates, isBundle);
       };
       bool rtcp_mux_;
-    private:
+ private:
       TransportListener *transpListener_;
 
-    protected:
+ protected:
       std::string connection_id_;
       TransportState state_;
       IceConfig iceConfig_;

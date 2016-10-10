@@ -30,20 +30,20 @@ enum WebRTCEvent {
 };
 
 class WebRtcConnectionEventListener {
-public:
+ public:
     virtual ~WebRtcConnectionEventListener() {
     }
     ;
-    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message)=0;
+    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message) = 0;
 
 };
 
 class WebRtcConnectionStatsListener {
-public:
+ public:
     virtual ~WebRtcConnectionStatsListener() {
     }
     ;
-    virtual void notifyStats(const std::string& message)=0;
+    virtual void notifyStats(const std::string& message) = 0;
 };
 
 
@@ -56,7 +56,7 @@ public:
  */
 class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink, public FeedbackSource, public TransportListener, public webrtc::RtpData {
 	DECLARE_LOGGER();
-public:
+ public:
     /**
      * Constructor.
      * Constructs an empty WebRTCConnection without any configuration.
@@ -147,7 +147,7 @@ public:
     int32_t OnReceivedPayloadData(const uint8_t* payloadData, const uint16_t payloadSize,const webrtc::WebRtcRTPHeader* rtpHeader);
     bool OnRecoveredPacket(const uint8_t* packet, int packet_length);
 
-private:
+ private:
   
     std::string connection_id_;
     SdpInfo remoteSdp_;
@@ -163,7 +163,7 @@ private:
     IceConfig iceConfig_;
     RtpExtensionProcessor extProcessor_;
 
-    uint32_t rateControl_; //Target bitrate for hacky rate control in BPS 
+    uint32_t rateControl_; // Target bitrate for hacky rate control in BPS 
     uint16_t seqNo_, grace_, sendSeqNo_, seqNoOffset_;
 
     int stunPort_, minPort_, maxPort_;
@@ -180,7 +180,7 @@ private:
     Stats thisStats_;
     WebRTCEvent globalState_;
 
-    boost::mutex receiveVideoMutex_, updateStateMutex_; //, slideShowMutex_;
+    boost::mutex receiveVideoMutex_, updateStateMutex_; // , slideShowMutex_;
     boost::thread send_Thread_;
     std::queue<dataPacket> sendQueue_;
 
@@ -193,7 +193,7 @@ private:
       return (std::string("id: ")+connection_id_).c_str();
     };
 
-    //Utils
+    // Utils
     std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
     // changes the outgoing payload type for in the given data packet
     void changeDeliverPayloadType(dataPacket *dp, packetType type);
@@ -201,5 +201,5 @@ private:
     void parseIncomingPayloadType(char *buf, int len, packetType type);
 };
 
-} /* namespace erizo */
+}  // namespace erizo
 #endif /* WEBRTCCONNECTION_H_ */

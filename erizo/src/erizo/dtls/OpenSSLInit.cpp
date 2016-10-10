@@ -22,7 +22,7 @@ using namespace std;
 
 #include <iostream>
 
-static bool invokeOpenSSLInit = OpenSSLInit::init(); //.dcm. - only in h
+static bool invokeOpenSSLInit = OpenSSLInit::init(); // .dcm. - only in h
 volatile bool OpenSSLInit::mInitialized = false;
 boost::mutex* OpenSSLInit::mMutexes;
 EVP_MD_CTX *ctx_;
@@ -48,7 +48,7 @@ OpenSSLInit::OpenSSLInit()
 #endif
 #endif
 
-#if 0 //?dcm? -- not used by OpenSSL yet?
+#if 0 // ?dcm? -- not used by OpenSSL yet?
 	CRYPTO_set_dynlock_create_callback(::resip_OpenSSLInit_dynCreateFunction);
 	CRYPTO_set_dynlock_destroy_callback(::resip_OpenSSLInit_dynDestroyFunction);
 	CRYPTO_set_dynlock_lock_callback(::resip_OpenSSLInit_dynLockFunction);
@@ -78,8 +78,8 @@ OpenSSLInit::~OpenSSLInit()
 	CRYPTO_cleanup_all_ex_data();
 	EVP_cleanup();// Clean up data allocated during OpenSSL_add_all_algorithms
 
-    //!dcm! We know we have a leak; see BaseSecurity::~BaseSecurity for
-    //!details.
+    // !dcm! We know we have a leak; see BaseSecurity::~BaseSecurity for
+    // !details.
 //	CRYPTO_mem_leaks_fp(stderr);
 
 	delete [] mMutexes;
@@ -88,7 +88,7 @@ OpenSSLInit::~OpenSSLInit()
 void
 resip_OpenSSLInit_lockingFunction(int mode, int n, const char* file, int line)
 {
-   if(!resip::OpenSSLInit::mInitialized) return;
+   if (!resip::OpenSSLInit::mInitialized) return;
    if (mode & CRYPTO_LOCK)
    {
       OpenSSLInit::mMutexes[n].lock();

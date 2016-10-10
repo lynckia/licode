@@ -3,14 +3,14 @@
 #include "RtpHeaders.h"
 #include <cstring>
 
-namespace erizo{
+namespace erizo {
 
 DEFINE_LOGGER(RtpPacketQueue, "rtp.RtpPacketQueue");
 
 RtpPacketQueue::RtpPacketQueue(double depthInSeconds, double maxDepthInSeconds) :
     lastSequenceNumberGiven_(-1), timebase_(0), depthInSeconds_(depthInSeconds), maxDepthInSeconds_(maxDepthInSeconds)
 {
-    if(depthInSeconds_ >= maxDepthInSeconds_) {
+    if (depthInSeconds_ >= maxDepthInSeconds_) {
         ELOG_WARN("invalid configuration, depth_: %f, max_: %f; reset to defaults", depthInSeconds_, maxDepthInSeconds_);
         depthInSeconds_ = erizo::DEFAULT_DEPTH;
         maxDepthInSeconds_ = erizo::DEFAULT_MAX;
@@ -27,9 +27,9 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
     const RtpHeader *currentHeader = reinterpret_cast<const RtpHeader*>(data);
     uint16_t currentSequenceNumber = currentHeader->getSeqNumber();
 
-    if(lastSequenceNumberGiven_ >= 0 && (rtpSequenceLessThan(currentSequenceNumber, (uint16_t)lastSequenceNumberGiven_) || currentSequenceNumber == lastSequenceNumberGiven_)) {
+    if (lastSequenceNumberGiven_ >= 0 && (rtpSequenceLessThan(currentSequenceNumber, (uint16_t)lastSequenceNumberGiven_) || currentSequenceNumber == lastSequenceNumberGiven_)) {
         // this sequence number is less than the stuff we've already handed out, which means it's too late to be of any value.
-        ELOG_WARN("SSRC:%u, Payload: %u, discarding very late sample %d that is <= %d",currentHeader->getSSRC(),currentHeader->getPayloadType(), currentSequenceNumber, lastSequenceNumberGiven_);
+        ELOG_WARN("SSRC:%u, Payload: %u, discarding very late sample %d that is <= %d", currentHeader->getSSRC(), currentHeader->getPayloadType(), currentSequenceNumber, lastSequenceNumberGiven_);
         return;
     }
 
@@ -64,7 +64,7 @@ void RtpPacketQueue::pushPacket(const char *data, int length)
     }
 
     // Enforce our max queue size.
-    while(getDepthInSeconds() > maxDepthInSeconds_){
+    while (getDepthInSeconds() > maxDepthInSeconds_) {
         ELOG_WARN("RtpPacketQueue - Discarding a sample due to excessive queue depth");
         queue_.pop_back();  // remove oldest samples.
     }
@@ -102,7 +102,7 @@ double RtpPacketQueue::getDepthInSeconds() {
     // must be called while queueMutex_ is taken.  Private method.  Also, if no timebase has been set, this always
     // returns zero because we have no way of interpreting how much data is in the queue.
     double depth = 0.0;
-    if( timebase_ > 0 && queue_.size() > 1) {
+    if ( timebase_ > 0 && queue_.size() > 1) {
         const RtpHeader *oldest = reinterpret_cast<const RtpHeader*>(queue_.back()->data);
         const RtpHeader *newest = reinterpret_cast<const RtpHeader*>(queue_.front()->data);
         depth = ((double)(newest->getTimestamp() - oldest->getTimestamp())) / ((double)timebase_);

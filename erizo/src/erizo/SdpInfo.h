@@ -41,7 +41,7 @@ enum Profile {
  * SRTP info.
  */
 class CryptoInfo {
-public:
+ public:
     CryptoInfo() :
             tag(0) {
     }
@@ -66,7 +66,7 @@ public:
  * Contains the information of an ICE Candidate
  */
 class CandidateInfo {
-public:
+ public:
     CandidateInfo() :
             tag(0) {
     }
@@ -91,7 +91,7 @@ public:
  * A bundle tag
  */
 class BundleTag {
-  public:
+ public:
     BundleTag(std::string theId, MediaType theType):id(theId),mediaType(theType){
     };
     std::string id;
@@ -114,7 +114,7 @@ struct RtpMap {
  * A RTP extmap description
  */
 class ExtMap {
-  public:
+ public:
     ExtMap (unsigned int theValue, std::string theUri): value(theValue), uri(theUri){
     }
     unsigned int value;
@@ -130,7 +130,7 @@ class ExtMap {
  */
 class SdpInfo {
     DECLARE_LOGGER();
-public:
+ public:
     /**
      * Constructor
      */
@@ -270,7 +270,7 @@ public:
     int videoCodecs, audioCodecs;
     unsigned int videoBandwidth;
 
-private:
+ private:
     bool processSdp(const std::string& sdp, const std::string& media);
     bool processCandidate(std::vector<std::string>& pieces, MediaType mediaType);
     std::string stringifyCandidate(const CandidateInfo & candidate);

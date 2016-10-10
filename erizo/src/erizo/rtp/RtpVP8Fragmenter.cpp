@@ -2,7 +2,7 @@
 #include <cstdio>
 #include "RtpVP8Fragmenter.h"
 
-#define MAX_SIZE 1100 //max fragment size including vp8 payload descriptor
+#define MAX_SIZE 1100 // max fragment size including vp8 payload descriptor
 #define VP8 1
 namespace erizo {
 

@@ -55,16 +55,16 @@ struct MediaInfo {
 
 #define UNPACKAGED_BUFFER_SIZE 150000
 #define PACKAGED_BUFFER_SIZE 2000
-//class MediaProcessor{
+// class MediaProcessor{
 //	MediaProcessor();
 //	virtual ~Mediaprocessor();
-//private:
+// private:
 //	InputProcessor* input;
 //	OutputProcessor* output;
-//};
+// };
 
 class RawDataReceiver {
-public:
+ public:
 	virtual void receiveRawData(RawDataPacket& packet) = 0;
 	virtual ~RawDataReceiver() {
 	}
@@ -72,7 +72,7 @@ public:
 };
 
 class RTPDataReceiver {
-public:
+ public:
 	virtual void receiveRtpData(unsigned char* rtpdata, int len) = 0;
 	virtual ~RTPDataReceiver() {
 	}
@@ -83,7 +83,7 @@ class RTPSink;
 
 class InputProcessor: public MediaSink {
 	DECLARE_LOGGER();
-public:
+ public:
 	InputProcessor();
 	virtual ~InputProcessor();
 
@@ -99,7 +99,7 @@ public:
   void closeSink();
   void close();
 
-private:
+ private:
 
 	int audioDecoder;
 	int videoDecoder;
@@ -151,7 +151,7 @@ private:
 };
 class OutputProcessor: public RawDataReceiver {
 	DECLARE_LOGGER();
-public:
+ public:
 
 	OutputProcessor();
 	virtual ~OutputProcessor();
@@ -165,7 +165,7 @@ public:
 	int packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff,
       long int pts = 0);
 
-private:
+ private:
 
 	int audioCoder;
 	int videoCoder;
@@ -215,6 +215,6 @@ private:
 			AVPacket* pkt);
 
 };
-} /* namespace erizo */
+}  // namespace erizo
 
 #endif /* MEDIAPROCESSOR_H_ */

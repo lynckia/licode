@@ -19,7 +19,7 @@ namespace erizo{
 
   class Stats{
     DECLARE_LOGGER();
-    public:
+ public:
     
     Stats();
     virtual ~Stats();
@@ -38,7 +38,7 @@ namespace erizo{
       this->theListener_ = listener;
     }
     
-    private:
+ private:
     uint64_t rtpBytesReceived_, packetsReceived_;
     struct timeval bitRateCalculationStart_;
 

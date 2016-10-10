@@ -23,7 +23,7 @@ namespace erizo{
 
   class ExternalInput : public MediaSource, public RTPDataReceiver {
       DECLARE_LOGGER();
-    public:
+ public:
       ExternalInput (const std::string& inputUrl);
       virtual ~ExternalInput();
       int init();
@@ -31,7 +31,7 @@ namespace erizo{
       int sendPLI();
 
 
-    private:
+ private:
       boost::scoped_ptr<OutputProcessor> op_;
       VideoDecoder inCodec_;
       boost::scoped_array<unsigned char> decodedBuffer_;

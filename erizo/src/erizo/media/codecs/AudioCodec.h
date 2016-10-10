@@ -17,14 +17,14 @@ namespace erizo {
 
   class AudioEncoder {
     DECLARE_LOGGER();
-    public:
+ public:
       AudioEncoder();
       virtual ~AudioEncoder();
       int initEncoder (const AudioCodecInfo& info);
       int encodeAudio (unsigned char* inBuffer, int nSamples, AVPacket* pkt);
       int closeEncoder ();
 
-    private:
+ private:
       AVCodec* aCoder_;
       AVCodecContext* aCoderContext_;
       AVFrame* aFrame_;
@@ -32,7 +32,7 @@ namespace erizo {
 
   class AudioDecoder {
     DECLARE_LOGGER();
-    public:
+ public:
       AudioDecoder();
       virtual ~AudioDecoder();
       int initDecoder (const AudioCodecInfo& info);
@@ -41,7 +41,7 @@ namespace erizo {
           unsigned char* outBuff, int outBuffLen, int* gotFrame);
       int closeDecoder();
 
-    private:
+ private:
       AVCodec* aDecoder_;
       AVCodecContext* aDecoderContext_;
       AVFrame* dFrame_;

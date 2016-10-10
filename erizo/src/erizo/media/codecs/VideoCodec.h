@@ -16,17 +16,17 @@ extern "C" {
 #include <libavutil/avutil.h>
 #include <libavcodec/avcodec.h>
 }
-//Forward Declarations
+// Forward Declarations
 
-//struct AVCodec;
-//struct AVCodecContext;
-//struct AVFrame;
+// struct AVCodec;
+// struct AVCodecContext;
+// struct AVFrame;
 
 namespace erizo {
 
   class VideoEncoder {
     DECLARE_LOGGER();
-    public:
+ public:
       VideoEncoder();
       virtual ~VideoEncoder();
       int initEncoder (const VideoCodecInfo& info);
@@ -34,7 +34,7 @@ namespace erizo {
           unsigned char* outBuffer, int outLength, int& hasFrame);
       int closeEncoder ();
 
-    private:
+ private:
       AVCodec* vCoder;
       AVCodecContext* vCoderContext;
       AVFrame* cPicture;
@@ -42,7 +42,7 @@ namespace erizo {
 
   class VideoDecoder {
     DECLARE_LOGGER();
-    public:
+ public:
       VideoDecoder();
       virtual ~VideoDecoder();
       int initDecoder (const VideoCodecInfo& info);
@@ -51,7 +51,7 @@ namespace erizo {
           unsigned char* outBuff, int outBuffLen, int* gotFrame);
       int closeDecoder();
 
-    private:
+ private:
       AVCodec* vDecoder;
       bool initWithContext_;
       AVCodecContext* vDecoderContext;
