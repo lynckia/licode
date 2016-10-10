@@ -8,7 +8,8 @@ function(test_lib LIB_NAME)
 endfunction(test_lib)
 
 #include
-include_directories("${ERIZO_SOURCE_DIR}" "${THIRD_PARTY_INCLUDE}")
+include_directories("${ERIZO_SOURCE_DIR}" "${THIRD_PARTY_INCLUDE}" "${GMOCK_BUILD}/include")
+link_directories("${GMOCK_BUILD}/lib")
 
 set(CMAKE_CXX_FLAGS "-g -Wall -std=c++0x")
 

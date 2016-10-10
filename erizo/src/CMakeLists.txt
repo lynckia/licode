@@ -40,11 +40,11 @@ endif(COMPILE_EXAMPLES)
 
 #tests
 set(GMOCK_BUILD "${CMAKE_CURRENT_BINARY_DIR}/libdeps/gmock")
-
 set(GMOCK_VERSION "1.8.0")
 ExternalProject_Add(gtest
   URL "https://github.com/google/googletest/archive/release-${GMOCK_VERSION}.tar.gz"
   PREFIX ${GMOCK_BUILD}
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${GMOCK_BUILD}
 )
 
 enable_testing()
