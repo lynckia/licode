@@ -225,6 +225,7 @@ namespace erizo {
                 while (audioDecoder.getEncodedAudio(outPacket))
                 {
                     op_->packageAudio(outPacket.data,outPacket.size, outPacket.pts);
+                    av_free_packet(&outPacket);
                 }
             }
             av_free_packet(&orig_pkt);

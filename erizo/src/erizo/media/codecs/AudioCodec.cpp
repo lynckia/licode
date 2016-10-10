@@ -501,7 +501,11 @@ namespace erizo {
             ELOG_WARN("add_samples to fifo failed !!");
         }
         
-        return input_frame->nb_samples;
+        auto nb_samples = input_frame->nb_samples;
+
+        av_frame_free(&input_frame);
+
+        return nb_samples;
     }
 
     int AudioDecoder::closeDecoder(){
