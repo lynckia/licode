@@ -4,6 +4,7 @@
  */
 
 #include <sstream>
+#include <string>
 
 #include "Stats.h"
 #include "WebRtcConnection.h"
@@ -31,10 +32,10 @@ namespace erizo {
     uint64_t start = (bitRateCalculationStart_.tv_sec * 1000) + (bitRateCalculationStart_.tv_usec / 1000);
     uint64_t delay = nowms - start;
     if (delay > 2000) {
-      uint32_t receivedRtpBitrate_ = (8*rtpBytesReceived_*1000)/delay; // in kbps
+      uint32_t receivedRtpBitrate_ = (8 * rtpBytesReceived_ * 1000) / delay;  // in kbps
       rtpBytesReceived_ = 0;
       gettimeofday(&bitRateCalculationStart_, NULL);
-      return receivedRtpBitrate_; // in bps
+      return receivedRtpBitrate_;  // in bps
     }
     return 0;
   }
@@ -45,13 +46,13 @@ namespace erizo {
     int rtcpLength = 0;
     int totalLength = 0;
 
-    do{
+    do {
       movingBuf += rtcpLength;
       RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(movingBuf);
       rtcpLength = (ntohs(chead->length) + 1) * 4;
       totalLength += rtcpLength;
       this->processRtcpPacket(chead);
-    } while (totalLength<length);
+    } while (totalLength < length);
     sendStats();
   }
 
@@ -68,9 +69,9 @@ namespace erizo {
         ELOG_DEBUG("RTCP BYE");
         break;
       case RTCP_Receiver_PT:
-        setFractionLost (chead->getFractionLost(), ssrc);
-        setPacketsLost (chead->getLostPackets(), ssrc);
-        setJitter (chead->getJitter(), ssrc);
+        setFractionLost(chead->getFractionLost(), ssrc);
+        setPacketsLost(chead->getLostPackets(), ssrc);
+        setJitter(chead->getJitter(), ssrc);
         setSourceSSRC(chead->getSourceSSRC(), ssrc);
         break;
       case RTCP_Sender_PT:
@@ -99,13 +100,13 @@ namespace erizo {
             break;
           case RTCP_AFB:
             {
-              char *uniqueId = (char*)&chead->report.rembPacket.uniqueid;
+              char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
               if (!strncmp(uniqueId, "REMB", 4)) {
                 uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
-               // ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps", chead->getREMBNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate);
+                // ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps",
+                //             chead->getREMBNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate);
                 setBandwidth(bitrate, ssrc);
-              }
-              else{
+              } else {
                 ELOG_DEBUG("Unsupported AFB Packet not REMB")
               }
               break;
@@ -126,14 +127,15 @@ namespace erizo {
     std::ostringstream theString;
     theString << "[";
     for (fullStatsMap_t::iterator itssrc=statsPacket_.begin(); itssrc != statsPacket_.end();) {
-      unsigned long int currentSSRC = itssrc->first;
+      uint32_t currentSSRC = itssrc->first;
       theString << "{\"ssrc\":\"" << currentSSRC << "\",\n";
       if (currentSSRC == videoSSRC_) {
         theString << "\"type\":\"" << "video\",\n";
       } else if (currentSSRC == audioSSRC_) {
         theString << "\"type\":\"" << "audio\",\n";
       }
-      for (singleSSRCstatsMap_t::iterator it=statsPacket_[currentSSRC].begin(); it != statsPacket_[currentSSRC].end();) {
+      for (singleSSRCstatsMap_t::iterator it = statsPacket_[currentSSRC].begin();
+           it != statsPacket_[currentSSRC].end();) {
         theString << "\"" << it->first << "\":\"" << it->second << "\"";
         if (++it != statsPacket_[currentSSRC].end()) {
           theString << ",\n";
@@ -152,4 +154,4 @@ namespace erizo {
     if (theListener_ != NULL)
       theListener_->notifyStats(this->getStats());
   }
-}
+}  // namespace erizo
