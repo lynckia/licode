@@ -19,7 +19,7 @@ namespace erizo {
   }
 
   int OneToManyProcessor::deliverAudioData_(char* buf, int len) {
- //   ELOG_DEBUG ("OneToManyProcessor deliverAudio");
+    // ELOG_DEBUG ("OneToManyProcessor deliverAudio");
     if (len <= 0)
       return 0;
 
@@ -72,7 +72,6 @@ namespace erizo {
     return 0;
   }
 
-
   void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
     ELOG_DEBUG("Adding subscriber");
@@ -87,7 +86,7 @@ namespace erizo {
       ELOG_DEBUG("adding fbsource");
       fbsource->setFeedbackSink(this);
     }
-    if (this->subscribers.find(peerId) != subscribers.end()) { 
+    if (this->subscribers.find(peerId) != subscribers.end()) {
         ELOG_WARN("This OTM already has a subscriber with peerId %s, substituting it", peerId.c_str());
         this->subscribers.erase(peerId);
     }
@@ -122,4 +121,3 @@ namespace erizo {
   }
 
 }/* namespace erizo */
-
