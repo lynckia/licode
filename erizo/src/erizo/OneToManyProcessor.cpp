@@ -76,7 +76,6 @@ namespace erizo {
     return 0;
   }
 
-
   void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
     ELOG_DEBUG("Adding subscriber");
