@@ -61,7 +61,7 @@ public:
      * Constructor.
      * Constructs an empty WebRTCConnection without any configuration.
      */
-    WebRtcConnection(const std::string wrtcId, bool audioEnabled, bool videoEnabled, const IceConfig& iceConfig, WebRtcConnectionEventListener* listener);
+    WebRtcConnection(const std::string& connection_id, bool audioEnabled, bool videoEnabled, const IceConfig& iceConfig, WebRtcConnectionEventListener* listener);
     /**
      * Destructor.
      */
@@ -148,8 +148,7 @@ public:
     bool OnRecoveredPacket(const uint8_t* packet, int packet_length);
 
 private:
-
-    std::string wrtcId_;
+    std::string connection_id_;
     SdpInfo remoteSdp_;
     SdpInfo localSdp_;
     bool audioEnabled_;
@@ -188,6 +187,10 @@ private:
     int deliverAudioData_(char* buf, int len);
     int deliverVideoData_(char* buf, int len);
     int deliverFeedback_(char* buf, int len);
+
+    inline const char* toLog() {
+      return (std::string("id: ")+connection_id_).c_str();
+    };
 
     //Utils
     std::string getJSONCandidate(const std::string& mid, const std::string& sdp);

@@ -102,7 +102,7 @@ namespace erizo {
      * @param transportName The name of the transport protocol. Was used when WebRTC used video_rtp instead of just rtp.
      * @param iceComponents Number of ice components pero connection. Default is 1 (rtcp-mux).
      */
-    NiceConnection(MediaType med, const std::string &transportName, NiceConnectionListener* listener, unsigned int iceComponents,
+    NiceConnection(MediaType med, const std::string &transportName, const std::string& connection_id, NiceConnectionListener* listener, unsigned int iceComponents,
         const IceConfig& iceConfig, std::string username = "", std::string password = "");
 
     virtual ~NiceConnection();
@@ -167,7 +167,7 @@ namespace erizo {
     void close();
 
     private:
-    void mainLoop();
+    std::string connection_id_;
     NiceAgent* agent_;
     GMainContext* context_;
     GMainLoop* loop_;
@@ -186,6 +186,12 @@ namespace erizo {
     std::string ufrag_, upass_, username_, password_;
     IceConfig iceConfig_;
     bool receivedLastCandidate_;
+    
+    void mainLoop();
+    
+    inline const char* toLog() {
+      return (std::string("id: ")+connection_id_).c_str();
+    };
   };
 
 } /* namespace erizo */
