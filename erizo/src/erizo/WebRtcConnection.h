@@ -95,13 +95,13 @@ public:
     int deliverAudioData(char* buf, int len);
     int deliverVideoData(char* buf, int len);
     int deliverFeedback(char* buf, int len);
-  
+
 
     /**
-     * Sends a PLI Packet 
+     * Sends a PLI Packet
      * @return the size of the data sent
      */
-    int sendPLI();  
+    int sendPLI();
   /**
    * Sets the Event Listener for this WebRtcConnection
    */
@@ -110,7 +110,7 @@ public:
             WebRtcConnectionEventListener* listener){
     this->connEventListener_ = listener;
   }
-    
+
   /**
    * Sets the Stats Listener for this WebRtcConnection
    */
@@ -123,7 +123,7 @@ public:
      * @return
      */
     WebRTCEvent getCurrentState();
-    
+
     std::string getJSONStats();
 
     void onTransportData(char* buf, int len, Transport *transport);
@@ -148,7 +148,6 @@ public:
     bool OnRecoveredPacket(const uint8_t* packet, int packet_length);
 
 private:
-  
     std::string connection_id_;
     SdpInfo remoteSdp_;
     SdpInfo localSdp_;
@@ -163,7 +162,7 @@ private:
     IceConfig iceConfig_;
     RtpExtensionProcessor extProcessor_;
 
-    uint32_t rateControl_; //Target bitrate for hacky rate control in BPS 
+    uint32_t rateControl_; //Target bitrate for hacky rate control in BPS
     uint16_t seqNo_, grace_, sendSeqNo_, seqNoOffset_;
 
     int stunPort_, minPort_, maxPort_;
@@ -176,7 +175,7 @@ private:
 
     boost::shared_ptr<RtcpProcessor> rtcpProcessor_;
     boost::scoped_ptr<Transport> videoTransport_, audioTransport_;
-    
+
     Stats thisStats_;
     WebRTCEvent globalState_;
 

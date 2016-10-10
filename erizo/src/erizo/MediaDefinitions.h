@@ -98,7 +98,7 @@ private:
  * A MediaSource is any class that produces audio or video data.
  */
 class MediaSource: public virtual Monitor{
-protected: 
+protected:
     //SSRCs coming from the source
     unsigned int videoSourceSSRC_;
     unsigned int audioSourceSSRC_;
