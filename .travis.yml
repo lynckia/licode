@@ -2,6 +2,8 @@ language: node_js
 os:
 #  - osx  TODO Enable again once we add openssl, libnice, libsrtp and libav to cmake
   - linux
+sudo: required
+dist: trusty
 cache:
   directories:
   - node_modules
