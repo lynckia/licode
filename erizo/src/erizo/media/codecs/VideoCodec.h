@@ -22,6 +22,8 @@ extern "C" {
 // struct AVCodecContext;
 // struct AVFrame;
 
+using std::memcpy;
+
 namespace erizo {
 
 class VideoEncoder {

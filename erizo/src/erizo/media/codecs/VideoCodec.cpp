@@ -4,6 +4,7 @@
 #include "media/codecs/VideoCodec.h"
 
 #include <cstdio>
+#include <cstring>
 #include <string>
 
 namespace erizo {
