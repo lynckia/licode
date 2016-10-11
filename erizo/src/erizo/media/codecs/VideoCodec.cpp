@@ -7,6 +7,8 @@
 #include <cstring>
 #include <string>
 
+using std::memcpy;
+
 namespace erizo {
 
 DEFINE_LOGGER(VideoEncoder, "media.codecs.VideoEncoder");
