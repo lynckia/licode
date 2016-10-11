@@ -203,7 +203,7 @@ exports.ErizoJSController = function (spec) {
             var muxer = new addon.OneToManyProcessor(),
                 ei = new addon.ExternalInput(url);
 
-            publishers[from] = {muxer: muxer};
+            publishers[from] = {muxer: muxer, wrtc: ei};
             subscribers[from] = {};
 
             ei.setAudioReceiver(muxer);
@@ -412,7 +412,7 @@ exports.ErizoJSController = function (spec) {
             delete subscribers[to][from];
         }
 
-        if (publishers[to].wrtc.periodicPlis!==undefined){
+        if (publishers[to].wrtc && publishers[to].wrtc.periodicPlis){
             for (var i in subscribers[to]){
                 if(subscribers[to][i].slideShowMode === true){
                     return;
