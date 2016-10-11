@@ -5,11 +5,13 @@
 #include <nice/nice.h>
 #include <cstdio>
 #include <string>
+#include <cstring>
 #include <vector>
 
 #include "NiceConnection.h"
 #include "SdpInfo.h"
 
+using std::memcpy;
 
 // If true (and configured properly below) erizo will generate relay candidates for itself
 // MOSTLY USEFUL WHEN ERIZO ITSELF IS BEHIND A NAT

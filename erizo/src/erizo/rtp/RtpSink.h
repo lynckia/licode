@@ -49,7 +49,7 @@ class RtpSink: public MediaSink, public FeedbackSource {
   int sendData(char* buffer, int len);
   void sendLoop();
   void serviceLoop();
-  void handleReceive(const const::boost::system::error_code& error, size_t bytes_recvd);
+  void handleReceive(const::boost::system::error_code& error, size_t bytes_recvd);  // NOLINT
   void queueData(const char* buffer, int len, packetType type);
 };
 }  // namespace erizo

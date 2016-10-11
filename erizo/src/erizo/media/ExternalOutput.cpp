@@ -3,10 +3,13 @@
 #include <sys/time.h>
 
 #include <string>
+#include <cstring>
 
 #include "./WebRtcConnection.h"
 #include "rtp/RtpHeaders.h"
 #include "rtp/RtpVP8Parser.h"
+
+using std::memcpy;
 
 namespace erizo {
 

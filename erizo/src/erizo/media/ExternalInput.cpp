@@ -6,8 +6,11 @@
 #include <libavutil/time.h>
 
 #include <cstdio>
+#include <cstring>
 
 #include "./WebRtcConnection.h"
+
+using std::memcpy;
 
 namespace erizo {
 DEFINE_LOGGER(ExternalInput, "media.ExternalInput");

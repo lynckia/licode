@@ -12,6 +12,9 @@
 #include <set>
 #include <string>
 #include <utility>
+#include <cstring>
+
+using std::memcpy;
 
 namespace erizo {
 

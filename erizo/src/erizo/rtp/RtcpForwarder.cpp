@@ -4,6 +4,9 @@
 #include "rtp/RtcpForwarder.h"
 
 #include <string>
+#include <cstring>
+
+using std::memcpy;
 
 namespace erizo {
 DEFINE_LOGGER(RtcpForwarder, "rtp.RtcpForwarder");

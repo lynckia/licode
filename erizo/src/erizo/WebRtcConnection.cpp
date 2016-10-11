@@ -7,6 +7,7 @@
 #include <queue>
 #include <algorithm>
 #include <string>
+#include <cstring>
 
 #include "WebRtcConnection.h"
 #include "DtlsTransport.h"
@@ -15,6 +16,8 @@
 #include "rtp/RtpVP8Parser.h"
 #include "rtp/RtcpAggregator.h"
 #include "rtp/RtcpForwarder.h"
+
+using std::memcpy;
 
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");

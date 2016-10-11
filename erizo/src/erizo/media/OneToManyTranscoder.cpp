@@ -4,10 +4,13 @@
 
 #include <map>
 #include <string>
+#include <cstring>
 
 #include "media/OneToManyTranscoder.h"
 #include "./WebRtcConnection.h"
 #include "rtp/RtpHeaders.h"
+
+using std::memcpy;
 
 namespace erizo {
 

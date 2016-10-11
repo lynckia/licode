@@ -38,7 +38,7 @@ int RtpSource::deliverFeedback_(char* buf, int len) {
   return len;
 }
 
-void RtpSource::handleReceive(const const::boost::system::error_code& error, size_t bytes_recvd) {
+void RtpSource::handleReceive(const::boost::system::error_code& error, size_t bytes_recvd) { // NOLINT
   if (bytes_recvd > 0 && this->videoSink_) {
     this->videoSink_->deliverVideoData(reinterpret_cast<char*>(buffer_), static_cast<int>(bytes_recvd));
   }

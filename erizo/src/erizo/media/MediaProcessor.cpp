@@ -5,10 +5,13 @@ extern "C" {
 }
 
 #include <string>
+#include <cstring>
 
 #include "rtp/RtpVP8Fragmenter.h"
 #include "rtp/RtpHeaders.h"
 #include "media/codecs/VideoCodec.h"
+
+using std::memcpy;
 
 namespace erizo {
 

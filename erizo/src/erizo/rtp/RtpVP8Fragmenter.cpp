@@ -2,9 +2,12 @@
 
 #include <string>
 #include <cstdio>
+#include <cstring>
 
 #define MAX_SIZE 1100  // max fragment size including vp8 payload descriptor
 #define VP8 1
+
+using std::memcpy;
 
 namespace erizo {
 DEFINE_LOGGER(RtpVP8Fragmenter, "rtp.RtpVP8Fragmenter");

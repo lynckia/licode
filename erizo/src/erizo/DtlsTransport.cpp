@@ -5,6 +5,7 @@
 #include "DtlsTransport.h"
 
 #include <string>
+#include <cstring>
 
 #include "./SrtpChannel.h"
 #include "rtp/RtpHeaders.h"
@@ -15,6 +16,8 @@ using dtls::DtlsSocketContext;
 
 DEFINE_LOGGER(DtlsTransport, "DtlsTransport");
 DEFINE_LOGGER(Resender, "Resender");
+
+using std::memcpy;
 
 Resender::Resender(boost::shared_ptr<NiceConnection> nice, unsigned int comp,
                    const unsigned char* data, unsigned int len) :

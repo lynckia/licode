@@ -8,7 +8,9 @@
 #include "rtp/RtpSink.h"
 
 #include <string>
+#include <cstring>
 
+using std::memcpy;
 using boost::asio::ip::udp;
 
 namespace erizo {
@@ -85,7 +87,7 @@ namespace erizo {
     }
   }
 
-  void RtpSink::handleReceive(const const::boost::system::error_code& error, size_t bytes_recvd) {
+  void RtpSink::handleReceive(const::boost::system::error_code& error, size_t bytes_recvd) {  // NOLINT
     if (bytes_recvd > 0 && this->fbSink_) {
       this->fbSink_->deliverFeedback(reinterpret_cast<char*>(buffer_), static_cast<int>(bytes_recvd));
     }

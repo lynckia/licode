@@ -21,6 +21,7 @@ extern "C" {
 #include <iostream>
 #include <cassert>
 #include <string>
+#include <cstring>
 
 #include "./DtlsSocket.h"
 #include "./DtlsTimer.h"
@@ -28,6 +29,7 @@ extern "C" {
 
 using dtls::DtlsSocketContext;
 using dtls::DtlsSocket;
+using std::memcpy;
 
 const char* DtlsSocketContext::DefaultSrtpProfile = "SRTP_AES128_CM_SHA1_80";
 

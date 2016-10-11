@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cassert>
+#include <cstring>
 #include <string>
 
 #ifdef HAVE_CONFIG_H
@@ -15,6 +16,7 @@ const int SRTP_MASTER_KEY_BASE64_LEN = SRTP_MASTER_KEY_LEN * 4 / 3;
 
 using dtls::DtlsSocket;
 using dtls::SrtpSessionKeys;
+using std::memcpy;
 
 DEFINE_LOGGER(DtlsSocket, "dtls.DtlsSocket");
 

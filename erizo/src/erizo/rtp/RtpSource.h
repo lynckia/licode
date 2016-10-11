@@ -36,7 +36,7 @@ class RtpSource: public MediaSource, public FeedbackSink {
   boost::thread rtpSource_thread_;
   char* buffer_[LENGTH];
   bool running_;
-  void handleReceive(const const::boost::system::error_code& error, size_t bytes_recvd);
+  void handleReceive(const::boost::system::error_code& error, size_t bytes_recvd); // NOLINT
   void eventLoop();
   int deliverFeedback_(char* buf, int len);
 };

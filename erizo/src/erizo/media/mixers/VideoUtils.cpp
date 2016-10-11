@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <cstring>
 
 //
 // MIN macro
@@ -13,6 +14,8 @@
 #define MIN(a, b) (a < b) ? a:b
 #define MAX_WIDTH  4096
 #define MAX_HEIGHT 4096
+
+using std::memcpy;
 
 DEFINE_LOGGER(VideoUtils, "erizo.media.mixers.VideoUtils");
 

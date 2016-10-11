@@ -5,6 +5,8 @@
 #include "./MediaDefinitions.h"
 #include "rtp/RtpHeaders.h"
 
+using std::memcpy;
+
 namespace erizo {
 
 DEFINE_LOGGER(RtpPacketQueue, "rtp.RtpPacketQueue");
