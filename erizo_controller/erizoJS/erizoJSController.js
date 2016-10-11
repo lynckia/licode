@@ -203,7 +203,7 @@ exports.ErizoJSController = function (spec) {
             var muxer = new addon.OneToManyProcessor(),
                 ei = new addon.ExternalInput(url);
 
-            publishers[from] = {muxer: muxer, wrtc:ei};
+            publishers[from] = {muxer: muxer, wrtc: ei};
             subscribers[from] = {};
 
             ei.setAudioReceiver(muxer);
