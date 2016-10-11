@@ -9,7 +9,8 @@ namespace erizo {
 
 DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 ExternalOutput::ExternalOutput(const std::string& outputUrl) : fec_receiver_(this), audioQueue_(5.0, 10.0), videoQueue_(5.0, 10.0), inited_(false), video_stream_(NULL), audio_stream_(NULL),
-    firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1), vp8SearchState_(lookingForStart), needToSendFir_(true)
+    firstVideoTimestamp_(-1), firstAudioTimestamp_(-1), firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1), vp8SearchState_(lookingForStart), needToSendFir_(true),
+    video_measurements(), audio_measurements(), SU(), lastAudioRTPTs(0), lastAudioNTPTs(0), lastVideoRTPTs(0), lastVideoNTPTs(0), additionalAudioOffset(0), additionalVideoOffset(0), lastSentFir(0)
 {
     ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
 
@@ -122,9 +123,6 @@ void ExternalOutput::writeAudioData(char* buf, int len){
         firstAudioTimestamp_ = head->getTimestamp();
     }
 
-    timeval time;
-    gettimeofday(&time, NULL);
-
     // Figure out our audio codec.
     if(context_->oformat->audio_codec == AV_CODEC_ID_NONE) {
         //We dont need any other payload at this time
@@ -148,7 +146,26 @@ void ExternalOutput::writeAudioData(char* buf, int len){
         currentTimestamp += 0xFFFFFFFF;
     }
 
-    long long timestampToWrite = (currentTimestamp - firstAudioTimestamp_) / (audio_stream_->codec->sample_rate / audio_stream_->time_base.den);    // generally 48000 / 1000 for the denominator portion, at least for opus
+    int64_t offset = 0;
+    int64_t ntpTimestamp = 0;
+    int64_t videoOffset = additionalVideoOffset;
+    if (video_measurements.rtcp_Packets.size() >= 2 && audio_measurements.rtcp_Packets.size() >= 2 && lastAudioRTPTs != 0){
+        // Can calculate offset
+        if(!SU.RtpToNtpMs(currentTimestamp, audio_measurements.rtcp_Packets, &ntpTimestamp)) {
+            needToSendFir_ = true;
+        }else if(lastAudioNTPTs != 0){
+            offset = av_rescale_q((ntpTimestamp - lastAudioNTPTs), (AVRational){1,1000}, (AVRational){1, audio_stream_->codec->sample_rate}) - (currentTimestamp - lastAudioRTPTs);
+            if (offset < 0){
+                ELOG_DEBUG("Audio - offset < 0 RtpTS: %ld, NtpTS: %ld, lastRtpTS: %ld, lastNtpTS: %ld, offset: %ld, add to video offset: %ld", currentTimestamp, ntpTimestamp, lastAudioRTPTs, lastAudioNTPTs, offset,av_rescale_q((-1 * offset),(AVRational){1,90000},(AVRational){1, audio_stream_->codec->sample_rate}) );
+                additionalAudioOffset +=  av_rescale_q((-1 * offset),(AVRational){1, audio_stream_->codec->sample_rate},(AVRational){1,90000});
+                offset = 0;
+            }
+            audioOffsetMsec_ = 0;
+        }
+    }
+
+    long long timestampToWrite = (currentTimestamp + offset + additionalVideoOffset - firstAudioTimestamp_) / (audio_stream_->codec->sample_rate / audio_stream_->time_base.den);    // generally 48000 / 1000 for the denominator portion, at least for opus
+    ELOG_DEBUG("Audio: ts: %ld, offset: %ld, videoOffset: %ld, tot: %ld", head->getTimestamp(), offset , videoOffset, timestampToWrite);
     // Adjust for our start time offset
     timestampToWrite += audioOffsetMsec_ / (1000 / audio_stream_->time_base.den);   // in practice, our timebase den is 1000, so this operation is a no-op.
 
@@ -163,7 +180,13 @@ void ExternalOutput::writeAudioData(char* buf, int len){
     avpkt.size = len - head->getHeaderLength();
     avpkt.pts = timestampToWrite;
     avpkt.stream_index = 1;
-    av_interleaved_write_frame(context_, &avpkt);   // takes ownership of the packet
+    if (av_interleaved_write_frame(context_, &avpkt) < 0) {
+        ELOG_ERROR("Write audio frame failed");
+    }else{
+        lastAudioNTPTs = ntpTimestamp;
+        lastAudioRTPTs = currentTimestamp + offset + videoOffset;
+        additionalVideoOffset -= videoOffset;
+    }
 }
 
 void ExternalOutput::writeVideoData(char* buf, int len){
@@ -285,7 +308,26 @@ void ExternalOutput::writeVideoData(char* buf, int len){
             currentTimestamp += 0xFFFFFFFF;
         }
 
-        long long timestampToWrite = (currentTimestamp - firstVideoTimestamp_) / (90000 / video_stream_->time_base.den);  // All of our video offerings are using a 90khz clock.
+        int64_t offset = 0;
+        int64_t ntpTimestamp = 0;
+        int64_t audioOffset = additionalAudioOffset;
+        if (video_measurements.rtcp_Packets.size() >= 2 && audio_measurements.rtcp_Packets.size() >= 2 && lastVideoRTPTs != 0){
+            // Can compute offset
+            if(!SU.RtpToNtpMs(currentTimestamp, video_measurements.rtcp_Packets, &ntpTimestamp)) {
+                needToSendFir_ = true;
+            }else if(lastVideoNTPTs != 0){
+                offset = av_rescale_q((ntpTimestamp - lastVideoNTPTs), (AVRational){1,1000}, (AVRational){1,90000}) - (currentTimestamp - lastVideoRTPTs);
+                if (offset < 0){
+                    ELOG_DEBUG("Video - Offset <0 RtpTS: %ld, NtpTS: %ld, lastRtpTS: %ld, lastNtpTS: %ld, offset: %ld, da sommare ad audio: %ld", currentTimestamp, ntpTimestamp, lastVideoRTPTs, lastVideoNTPTs, offset,av_rescale_q((-1 * offset),(AVRational){1,90000},(AVRational){1, audio_stream_->codec->sample_rate}) );
+                    additionalVideoOffset += av_rescale_q((-1 * offset),(AVRational){1,90000},(AVRational){1, audio_stream_->codec->sample_rate});
+                    offset = 0;
+                }
+                videoOffsetMsec_ = 0;
+            }
+        }
+
+        long long timestampToWrite = (currentTimestamp + offset + audioOffset - firstVideoTimestamp_) / (90000 / video_stream_->time_base.den);  // All of our video offerings are using a 90khz clock.
+        ELOG_DEBUG("Video: ts: %ld, offset: %ld, audioOffset: %ld, tot: %ld", head->getTimestamp(), offset , audioOffset, timestampToWrite);
 
         // Adjust for our start time offset
         timestampToWrite += videoOffsetMsec_ / (1000 / video_stream_->time_base.den);   // in practice, our timebase den is 1000, so this operation is a no-op.
@@ -301,7 +343,13 @@ void ExternalOutput::writeVideoData(char* buf, int len){
         avpkt.size = unpackagedSize_;
         avpkt.pts = timestampToWrite;
         avpkt.stream_index = 0;
-        av_interleaved_write_frame(context_, &avpkt);   // takes ownership of the packet
+        if (av_interleaved_write_frame(context_, &avpkt) < 0) {
+                ELOG_ERROR("Write video frame failed");
+        }else{
+                lastVideoNTPTs = ntpTimestamp;
+                lastVideoRTPTs = currentTimestamp + offset + audioOffset;
+                additionalAudioOffset -= audioOffset;
+        }
         unpackagedSize_ = 0;
         unpackagedBufferpart_ = unpackagedBuffer_;
     }
@@ -315,7 +363,11 @@ int ExternalOutput::deliverAudioData_(char* buf, int len) {
 int ExternalOutput::deliverVideoData_(char* buf, int len) {
     if (videoSourceSsrc_ == 0){
       RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
-      videoSourceSsrc_ = h->getSSRC();
+      if (h->getPayloadType() == RED_90000_PT) {
+          videoSourceSsrc_ = h->getSSRC();
+      }else{
+          ELOG_DEBUG("Wrong payload to read SSRC. %u != 116", h->getPayloadType());
+      }
     }
     this->queueData(buf,len,VIDEO_PACKET);
     return 0;
@@ -386,6 +438,15 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
 
     RtcpHeader *head = reinterpret_cast<RtcpHeader*>(buffer);
     if (head->isRtcp()){
+        if (videoSourceSsrc_ != 0){
+            if(head->getSSRC() == videoSourceSsrc_) {
+                // VIDEO
+                video_measurements.rtcp_Packets.push_back(*head);
+            }else{
+                // AUDIO
+                audio_measurements.rtcp_Packets.push_back(*head);
+            }
+        }
         return;
     }
 
@@ -398,9 +459,16 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type){
           context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
         }
     }
-    if (needToSendFir_ && videoSourceSsrc_) {
+
+    timeval time;
+    gettimeofday(&time, NULL);
+    uint64_t now = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+    // PROTECT AGAINST CONTINUOS FIR REQ.
+    if (needToSendFir_ && videoSourceSsrc_ && (now - lastSentFir) > 2000) {
         this->sendFirPacket();
         needToSendFir_ = false;
+        lastSentFir = now;
+        ELOG_DEBUG("Sending FIR");
     }
 
     if (type == VIDEO_PACKET){

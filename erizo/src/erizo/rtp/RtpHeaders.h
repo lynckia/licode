@@ -13,7 +13,7 @@ namespace erizo{
 #define RTCP_Receiver_PT     201 // RTCP Receiver Report
 #define RTCP_SDES_PT         202
 #define RTCP_BYE             203
-#define RTCP_APP             204 
+#define RTCP_APP             204
 #define RTCP_RTP_Feedback_PT 205 // RTCP Transport Layer Feedback Packet
 #define RTCP_PS_Feedback_PT  206 // RTCP Payload Specific Feedback Packet
 
@@ -309,7 +309,7 @@ namespace erizo{
           uint32_t pid:16;
           uint32_t blp:16;
         } nackPacket;
-        
+
         struct remb_t{
           uint32_t ssrcsource;
           uint32_t uniqueid;
@@ -318,7 +318,7 @@ namespace erizo{
           uint32_t ssrcfeedb;
 
         } rembPacket;
-        
+
         struct pli_t{
           uint32_t ssrcsource;
           uint32_t fci;
@@ -329,14 +329,14 @@ namespace erizo{
      ssrc(0){
       };
       inline bool isFeedback(void) {
-        return (packettype==RTCP_Receiver_PT || 
+        return (packettype==RTCP_Receiver_PT ||
             packettype==RTCP_PS_Feedback_PT ||
             packettype == RTCP_RTP_Feedback_PT);
       }
-      inline bool isRtcp(void) {        
+      inline bool isRtcp(void) {
         return (packettype == RTCP_Sender_PT ||
             packettype == RTCP_APP ||
-            isFeedback()            
+            isFeedback()
             );
       }
       inline uint8_t getPacketType(){
@@ -420,9 +420,18 @@ namespace erizo{
       }
       inline uint32_t getOctetsSent(){
         return ntohl(report.senderReport.octetssent);
-      }      
+      }
       inline uint64_t getNtpTimestamp(){
-       return (((uint64_t)htonl(report.senderReport.ntptimestamp)) << 32) + htonl(report.senderReport.ntptimestamp >> 32);
+        return (((uint64_t)htonl(report.senderReport.ntptimestamp)) << 32) + htonl(report.senderReport.ntptimestamp >> 32);
+      }
+      inline uint32_t getNtpTimestampMSW() {
+        return htonl((uint32_t)report.senderReport.ntptimestamp);
+      }
+      inline uint32_t getNtpTimestampLSW() {
+        return htonl((uint32_t)(report.senderReport.ntptimestamp >> 32));
+      }
+      inline uint32_t getRtpTimestamp() {
+        return ntohl(report.senderReport.rtprts);
       }
       inline uint16_t getNackPid(){
         return ntohs(report.nackPacket.pid);
@@ -450,11 +459,11 @@ namespace erizo{
         report.rembPacket.brLength = htonl(line)>>8;
 
       }
-      inline uint32_t getBrExp(){ 
-        //remove the 0s added by nothl (8) + the 18 bits of Mantissa 
+      inline uint32_t getBrExp(){
+        //remove the 0s added by nothl (8) + the 18 bits of Mantissa
         return (ntohl(report.rembPacket.brLength)>>26);
       }
-      inline uint32_t getBrMantis(){        
+      inline uint32_t getBrMantis(){
         return (ntohl(report.rembPacket.brLength)>>8 & 0x3ffff);
       }
       inline uint8_t getREMBNumSSRC(){
@@ -506,7 +515,7 @@ namespace erizo{
 
 
   class FirHeader {
-    public: 
+    public:
       uint32_t fmt :5;
       uint32_t padding :1;
       uint32_t version :2;
@@ -551,7 +560,7 @@ namespace erizo{
       uint32_t follow :1;
       uint32_t tsLength :24;
       uint32_t getTS() {
-        // remove the 8 bits added by nothl + the 10 from length 
+        // remove the 8 bits added by nothl + the 10 from length
         return (ntohl(tsLength) & 0xfffc0000) >> 18;
       }
       uint32_t getLength() {

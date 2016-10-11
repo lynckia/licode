@@ -7,10 +7,13 @@
 #include "MediaProcessor.h"
 #include "boost/thread.hpp"
 #include "logger.h"
+#include "SyncUtils.h"
+
 
 extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
+    #include <libavcodec/avcodec.h>
+    #include <libavformat/avformat.h>
+    #include <libavutil/mathematics.h>
 }
 
 namespace erizo{
@@ -89,6 +92,11 @@ private:
     // so the second scheme seems not applicable.  Too bad.
     vp8SearchState vp8SearchState_;
     bool needToSendFir_;
+
+    Measurements video_measurements, audio_measurements;
+    SyncUtils SU;
+    int64_t lastAudioRTPTs, lastAudioNTPTs, lastVideoRTPTs, lastVideoNTPTs, additionalAudioOffset, additionalVideoOffset;
+    uint64_t lastSentFir;
 
     bool initContext();
     int sendFirPacket();
