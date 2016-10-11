@@ -74,7 +74,7 @@ for (var prop in opt.options) {
                 break;
             case "logging-config-file":
                 GLOBAL.config.logger = GLOBAL.config.logger || {};
-                GLOBAL.config.logger.config_file = value;
+                GLOBAL.config.logger.configFile = value;
                 break;
             default:
                 GLOBAL.config.erizoController[prop] = value;

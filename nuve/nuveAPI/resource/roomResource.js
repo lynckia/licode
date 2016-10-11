@@ -1,4 +1,5 @@
-/*global exports, require, console*/
+/*global exports, require*/
+'use strict';
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var cloudHandler = require('../cloudHandler');
@@ -6,7 +7,7 @@ var cloudHandler = require('../cloudHandler');
 var logger = require('./../logger').logger;
 
 // Logger
-var log = logger.getLogger("RoomResource");
+var log = logger.getLogger('RoomResource');
 
 var currentService;
 var currentRoom;
@@ -15,8 +16,6 @@ var currentRoom;
  * Gets the service and the room for the proccess of the request.
  */
 var doInit = function (roomId, callback) {
-    "use strict";
-
     currentService = require('./../auth/nuveAuthenticator').service;
 
     serviceRegistry.getRoomForService(roomId, currentService, function (room) {
@@ -29,8 +28,6 @@ var doInit = function (roomId, callback) {
  * Get Room. Represents a determined room.
  */
 exports.represent = function (req, res) {
-    "use strict";
-
     doInit(req.params.room, function () {
         if (currentService === undefined) {
             res.send('Client unathorized', 401);
@@ -48,15 +45,13 @@ exports.represent = function (req, res) {
  * Update Room.
  */
 exports.updateRoom = function (req, res) {
-    "use strict";
-
     doInit(req.params.room, function () {
         if (currentService === undefined) {
             res.send('Client unathorized', 401);
         } else if (currentRoom === undefined) {
             log.info('Room ', req.params.room, ' does not exist');
             res.send('Room does not exist', 404);
-        } else if (req.body.name === undefined) { 
+        } else if (req.body.name === undefined) {
             log.info('Invalid room');
             res.send('Invalid room', 400);
         } else {
@@ -91,7 +86,7 @@ exports.updateRoom = function (req, res) {
                 currentService.rooms[index] = room;
                 serviceRegistry.updateService(currentService);
                 log.info('Room ', id, ' updated for service ', currentService._id);
-                
+
                 res.send('Room Updated');
             }
         }
@@ -102,8 +97,6 @@ exports.updateRoom = function (req, res) {
  * Patch Room.
  */
 exports.patchRoom = function (req, res) {
-    "use strict";
-
     doInit(req.params.room, function () {
         if (currentService === undefined) {
             res.send('Client unathorized', 401);
@@ -139,7 +132,7 @@ exports.patchRoom = function (req, res) {
                 currentService.rooms[index] = room;
                 serviceRegistry.updateService(currentService);
                 log.info('Room ', id, ' updated for service ', currentService._id);
-                
+
                 res.send('Room Updated');
             }
         }
@@ -148,11 +141,10 @@ exports.patchRoom = function (req, res) {
 
 
 /*
- * Delete Room. Removes a determined room from the data base and asks cloudHandler to remove it from erizoController.
+ * Delete Room. Removes a determined room from the data base
+ * and asks cloudHandler to remove it from erizoController.
  */
 exports.deleteRoom = function (req, res) {
-    "use strict";
-
     doInit(req.params.room, function () {
         if (currentService === undefined) {
             res.send('Client unathorized', 401);
