@@ -8,16 +8,18 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_RTP_RTCP_SOURCE_FORWARD_ERROR_CORRECTION_H_
-#define WEBRTC_MODULES_RTP_RTCP_SOURCE_FORWARD_ERROR_CORRECTION_H_
+#ifndef ERIZO_SRC_ERIZO_RTP_WEBRTC_FORWARD_ERROR_CORRECTION_H_
+#define ERIZO_SRC_ERIZO_RTP_WEBRTC_FORWARD_ERROR_CORRECTION_H_
+
+#include <stdint.h>
 
 #include <list>
 #include <vector>
 
-//#include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
-//#include "webrtc/system_wrappers/interface/ref_count.h"
-#include "scoped_refptr.h"
-#include <stdint.h>
+// #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
+// #include "webrtc/system_wrappers/interface/ref_count.h"
+#include "rtp/webrtc/scoped_refptr.h"
+
 
 
 #define IP_PACKET_SIZE 1500    // we assume ethernet
@@ -321,4 +323,4 @@ class ForwardErrorCorrection {
   bool fec_packet_received_;
 };
 }  // namespace webrtc
-#endif  // WEBRTC_MODULES_RTP_RTCP_SOURCE_FORWARD_ERROR_CORRECTION_H_
+#endif  // ERIZO_SRC_ERIZO_RTP_WEBRTC_FORWARD_ERROR_CORRECTION_H_

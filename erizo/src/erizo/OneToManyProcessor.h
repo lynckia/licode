@@ -1,60 +1,60 @@
 /*
- * OneToManyProcessor.h
- */
+* OneToManyProcessor.h
+*/
 
-#ifndef ONETOMANYPROCESSOR_H_
-#define ONETOMANYPROCESSOR_H_
+#ifndef ERIZO_SRC_ERIZO_ONETOMANYPROCESSOR_H_
+#define ERIZO_SRC_ERIZO_ONETOMANYPROCESSOR_H_
 
 #include <map>
 #include <string>
 
-#include "MediaDefinitions.h"
+#include "./MediaDefinitions.h"
 #include "media/ExternalOutput.h"
-#include "logger.h"
+#include "./logger.h"
 
-namespace erizo{
+namespace erizo {
 
 class WebRtcConnection;
 
 /**
- * Represents a One to Many connection.
- * Receives media from one publisher and retransmits it to every subscriber.
- */
+* Represents a One to Many connection.
+* Receives media from one publisher and retransmits it to every subscriber.
+*/
 class OneToManyProcessor : public MediaSink, public FeedbackSink {
-	DECLARE_LOGGER();
+  DECLARE_LOGGER();
 
-public:
-    std::map<std::string, boost::shared_ptr<MediaSink> > subscribers;
+ public:
+  std::map<std::string, boost::shared_ptr<MediaSink> > subscribers;
   boost::shared_ptr<MediaSource> publisher;
 
-	OneToManyProcessor();
-	virtual ~OneToManyProcessor();
-	/**
-	 * Sets the Publisher
-	 * @param webRtcConn The WebRtcConnection of the Publisher
-	 */
-	void setPublisher(MediaSource* webRtcConn);
-	/**
-	 * Sets the subscriber
-	 * @param webRtcConn The WebRtcConnection of the subscriber
-	 * @param peerId An unique Id for the subscriber
-	 */
-	void addSubscriber(MediaSink* webRtcConn, const std::string& peerId);
-	/**
-	 * Eliminates the subscriber given its peer id
-	 * @param peerId the peerId
-	 */
-	void removeSubscriber(const std::string& peerId);
+  OneToManyProcessor();
+  virtual ~OneToManyProcessor();
+  /**
+  * Sets the Publisher
+  * @param webRtcConn The WebRtcConnection of the Publisher
+  */
+  void setPublisher(MediaSource* webRtcConn);
+  /**
+  * Sets the subscriber
+  * @param webRtcConn The WebRtcConnection of the subscriber
+  * @param peerId An unique Id for the subscriber
+  */
+  void addSubscriber(MediaSink* webRtcConn, const std::string& peerId);
+  /**
+  * Eliminates the subscriber given its peer id
+  * @param peerId the peerId
+  */
+  void removeSubscriber(const std::string& peerId);
 
-private:
+ private:
   typedef boost::shared_ptr<MediaSink> sink_ptr;
   FeedbackSink* feedbackSink_;
-	
+
   int deliverAudioData_(char* buf, int len);
-	int deliverVideoData_(char* buf, int len);
+  int deliverVideoData_(char* buf, int len);
   int deliverFeedback_(char* buf, int len);
   void closeAll();
 };
 
-} /* namespace erizo */
-#endif /* ONETOMANYPROCESSOR_H_ */
+}  // namespace erizo
+#endif  // ERIZO_SRC_ERIZO_ONETOMANYPROCESSOR_H_

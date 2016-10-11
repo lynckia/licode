@@ -2,11 +2,11 @@
  * VideoCodec.h
  */
 
-#ifndef VIDEOCODEC_H_
-#define VIDEOCODEC_H_
+#ifndef ERIZO_SRC_ERIZO_MEDIA_CODECS_VIDEOCODEC_H_
+#define ERIZO_SRC_ERIZO_MEDIA_CODECS_VIDEOCODEC_H_
 
-#include "Codecs.h"
-#include "logger.h"
+#include "media/codecs/Codecs.h"
+#include "./logger.h"
 
 extern "C" {
 #ifndef INT64_C
@@ -16,47 +16,48 @@ extern "C" {
 #include <libavutil/avutil.h>
 #include <libavcodec/avcodec.h>
 }
-//Forward Declarations
+// Forward Declarations
 
-//struct AVCodec;
-//struct AVCodecContext;
-//struct AVFrame;
+// struct AVCodec;
+// struct AVCodecContext;
+// struct AVFrame;
 
 namespace erizo {
 
-  class VideoEncoder {
-    DECLARE_LOGGER();
-    public:
-      VideoEncoder();
-      virtual ~VideoEncoder();
-      int initEncoder (const VideoCodecInfo& info);
-      int encodeVideo (unsigned char* inBuffer, int length, 
-          unsigned char* outBuffer, int outLength, int& hasFrame);
-      int closeEncoder ();
+class VideoEncoder {
+  DECLARE_LOGGER();
 
-    private:
-      AVCodec* vCoder;
-      AVCodecContext* vCoderContext;
-      AVFrame* cPicture;
-  };
+ public:
+  VideoEncoder();
+  virtual ~VideoEncoder();
+  int initEncoder(const VideoCodecInfo& info);
+  int encodeVideo(unsigned char* inBuffer, int length, unsigned char* outBuffer, int outLength);
+  int closeEncoder();
 
-  class VideoDecoder {
-    DECLARE_LOGGER();
-    public:
-      VideoDecoder();
-      virtual ~VideoDecoder();
-      int initDecoder (const VideoCodecInfo& info);
-      int initDecoder (AVCodecContext* context);
-      int decodeVideo(unsigned char* inBuff, int inBuffLen,
-          unsigned char* outBuff, int outBuffLen, int* gotFrame);
-      int closeDecoder();
+ private:
+  AVCodec* vCoder;
+  AVCodecContext* vCoderContext;
+  AVFrame* cPicture;
+};
 
-    private:
-      AVCodec* vDecoder;
-      bool initWithContext_;
-      AVCodecContext* vDecoderContext;
-      AVFrame* dPicture;
-  };
+class VideoDecoder {
+  DECLARE_LOGGER();
 
-}
-#endif /* VIDEOCODEC_H_ */
+ public:
+  VideoDecoder();
+  virtual ~VideoDecoder();
+  int initDecoder(const VideoCodecInfo& info);
+  int initDecoder(AVCodecContext* context);
+  int decodeVideo(unsigned char* inBuff, int inBuffLen,
+      unsigned char* outBuff, int outBuffLen, int* gotFrame);
+  int closeDecoder();
+
+ private:
+  AVCodec* vDecoder;
+  bool initWithContext_;
+  AVCodecContext* vDecoderContext;
+  AVFrame* dPicture;
+};
+
+}  // namespace erizo
+#endif  // ERIZO_SRC_ERIZO_MEDIA_CODECS_VIDEOCODEC_H_
