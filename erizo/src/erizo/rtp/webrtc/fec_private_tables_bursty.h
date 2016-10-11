@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_RTP_RTCP_SOURCE_FEC_PRIVATE_TABLES_BURSTY_H_
-#define WEBRTC_MODULES_RTP_RTCP_SOURCE_FEC_PRIVATE_TABLES_BURSTY_H_
+#ifndef ERIZO_SRC_ERIZO_RTP_WEBRTC_FEC_PRIVATE_TABLES_BURSTY_H_
+#define ERIZO_SRC_ERIZO_RTP_WEBRTC_FEC_PRIVATE_TABLES_BURSTY_H_
 
 // This file contains a set of packets masks for the FEC code. The masks in
 // this table are specifically designed to favor recovery of bursty/consecutive
@@ -28,7 +28,7 @@
 // #include "webrtc/typedefs.h"
 #include <stdint.h>
 
-namespace {
+namespace {  // NOLINT
 
 const uint8_t kMaskBursty1_1[2] = {
   0x80, 0x00
@@ -758,4 +758,4 @@ const uint8_t** kPacketMaskBurstyTbl[12] = {
 };
 
 }  // namespace
-#endif  // WEBRTC_MODULES_RTP_RTCP_SOURCE_FEC_PRIVATE_TABLES_BURSTY_H_
+#endif  // ERIZO_SRC_ERIZO_RTP_WEBRTC_FEC_PRIVATE_TABLES_BURSTY_H_
