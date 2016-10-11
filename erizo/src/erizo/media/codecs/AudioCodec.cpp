@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <string>
 
+using std::memcpy;
+
 namespace erizo {
 
 DEFINE_LOGGER(AudioEncoder, "media.codecs.AudioEncoder");
