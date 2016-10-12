@@ -68,7 +68,7 @@ exports.connect = function(callback) {
                                 }, REMOVAL_TIMEOUT);
                             }
                         } catch(err) {
-                            log.error("message: error porcessing message, queueName: " + clientQueue.name + ", errorMsg:" , err);
+                            log.error("message: error processing message, queueName: " + clientQueue.name + ", errorMsg:" , err);
                         }
                     });
 
