@@ -19,10 +19,13 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 
-file(GLOB_RECURSE ERIZO_SOURCES_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+set (ERIZO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/erizo)
+set (ERIZO_TEST ${CMAKE_CURRENT_SOURCE_DIR}/test)
+
+file(GLOB_RECURSE ERIZO_SOURCES_FILES ${ERIZO_SOURCE}/*.cpp ${ERIZO_SOURCE}/*.h ${ERIZO_TEST}/*.cpp)
 add_custom_target(lint
-    ${ERIZO_ROOT_DIR}/utils/cpplint.py --linelength=120 ${ERIZO_SOURCES_FILES}
-    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    ${ERIZO_ROOT_DIR}/utils/cpplint.py --filter=-legal/copyright,-build/include --linelength=120 ${ERIZO_SOURCES_FILES}
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "Executing lint"
 )
 

@@ -8,18 +8,18 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_RTP_RTCP_SOURCE_RTP_UTILITY_H_
-#define WEBRTC_MODULES_RTP_RTCP_SOURCE_RTP_UTILITY_H_
+#ifndef ERIZO_SRC_ERIZO_RTP_WEBRTC_RTP_UTILITY_H_
+#define ERIZO_SRC_ERIZO_RTP_WEBRTC_RTP_UTILITY_H_
 
-#include <stddef.h> // size_t, ptrdiff_t
+#include <stddef.h>  // size_t, ptrdiff_t
 #include <string.h>
 #include <stdint.h>
 
-//#include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
-//#include "webrtc/modules/rtp_rtcp/interface/receive_statistics.h"
-//#include "webrtc/modules/rtp_rtcp/source/rtp_header_extension.h"
-//#include "webrtc/modules/rtp_rtcp/source/rtp_rtcp_config.h"
-//#include "webrtc/typedefs.h"
+// #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
+// #include "webrtc/modules/rtp_rtcp/interface/receive_statistics.h"
+// #include "webrtc/modules/rtp_rtcp/source/rtp_header_extension.h"
+// #include "webrtc/modules/rtp_rtcp/source/rtp_rtcp_config.h"
+// #include "webrtc/typedefs.h"
 
 namespace webrtc {
 
@@ -27,7 +27,7 @@ const uint8_t kRtpMarkerBitMask = 0x80;
 
 
 // RTP
-enum {kRtpCsrcSize = 15}; // RFC 3550 page 13
+enum {kRtpCsrcSize = 15};  // RFC 3550 page 13
 
 struct RTPHeaderExtension {
   RTPHeaderExtension()
@@ -44,7 +44,7 @@ struct RTPHeaderExtension {
   uint32_t absoluteSendTime;
 
   // Audio Level includes both level in dBov and voiced/unvoiced bit. See:
-  // https://datatracker.ietf.org/doc/draft-lennox-avt-rtp-audio-level-exthdr/
+  // https:// datatracker.ietf.org/doc/draft-lennox-avt-rtp-audio-level-exthdr/
   bool hasAudioLevel;
   uint8_t audioLevel;
 };
@@ -77,8 +77,7 @@ struct RTPHeader {
   RTPHeaderExtension extension;
 };
 
-enum FrameType
-{
+enum FrameType {
     kFrameEmpty            = 0,
     kAudioFrameSpeech      = 1,
     kAudioFrameCN          = 2,
@@ -164,10 +163,10 @@ struct WebRtcRTPHeader {
   int64_t ntp_time_ms;
 };
 
-//RtpData* NullObjectRtpData();
-//RtpFeedback* NullObjectRtpFeedback();
-//RtpAudioFeedback* NullObjectRtpAudioFeedback();
-//ReceiveStatistics* NullObjectReceiveStatistics();
+// RtpData* NullObjectRtpData();
+// RtpFeedback* NullObjectRtpFeedback();
+// RtpAudioFeedback* NullObjectRtpAudioFeedback();
+// ReceiveStatistics* NullObjectReceiveStatistics();
 
 namespace RtpUtility {
 //    // January 1970, in NTP seconds.
@@ -349,4 +348,4 @@ namespace RtpUtility {
 
 }  // namespace webrtc
 
-#endif // WEBRTC_MODULES_RTP_RTCP_SOURCE_RTP_UTILITY_H_
+#endif  // ERIZO_SRC_ERIZO_RTP_WEBRTC_RTP_UTILITY_H_

@@ -4,7 +4,7 @@
 
 #ifndef TEST_H_
 #define TEST_H_
-namespace erizo{
+namespace erizo {
 class Test: public RawDataReceiver {
 public:
 	Test();

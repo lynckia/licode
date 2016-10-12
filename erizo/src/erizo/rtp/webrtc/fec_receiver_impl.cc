@@ -8,22 +8,22 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "fec_receiver_impl.h"
+#include "rtp/webrtc/fec_receiver_impl.h"
 
 #include <assert.h>
 
-//#include "webrtc/modules/rtp_rtcp/source/rtp_receiver_video.h"
-#include "rtp_utility.h"
-//#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
-//#include "webrtc/system_wrappers/interface/scoped_ptr.h"
-//#include "webrtc/system_wrappers/interface/logging.h"
+// #include "webrtc/modules/rtp_rtcp/source/rtp_receiver_video.h"
+#include "rtp/webrtc/rtp_utility.h"
+// #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+// #include "webrtc/system_wrappers/interface/scoped_ptr.h"
+// #include "webrtc/system_wrappers/interface/logging.h"
 
 // RFC 5109
 namespace webrtc {
 
-//FecReceiver* FecReceiver::Create(RtpData* callback) {
+// FecReceiver* FecReceiver::Create(RtpData* callback) {
 //  return new FecReceiverImpl(callback);
-//}
+// }
 
 FecReceiverImpl::FecReceiverImpl(RtpData* callback)
     :
@@ -102,7 +102,7 @@ int32_t FecReceiverImpl::AddReceivedRedPacket(
     if (timestamp_offset != 0) {
       // |timestampOffset| should be 0. However, it's possible this is the first
       // location a corrupt payload can be caught, so don't assert.
-      //LOG(LS_WARNING) << "Corrupt payload found.";
+      // LOG(LS_WARNING) << "Corrupt payload found.";
       delete received_packet;
       return -1;
     }
@@ -206,7 +206,6 @@ int32_t FecReceiverImpl::AddReceivedRedPacket(
 }
 
 int32_t FecReceiverImpl::ProcessReceivedFec() {
-
     crit_sect_.lock();
   if (!received_packet_list_.empty()) {
     // Send received media packet to VCM.

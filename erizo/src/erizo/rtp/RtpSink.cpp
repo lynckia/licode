@@ -5,7 +5,12 @@
  *      Author: pedro
  */
 
-#include "RtpSink.h"
+#include "rtp/RtpSink.h"
+
+#include <string>
+#include <cstring>
+
+using std::memcpy;
 using boost::asio::ip::udp;
 
 namespace erizo {
@@ -17,14 +22,13 @@ namespace erizo {
     fbSocket_.reset(new udp::socket(io_service_, udp::endpoint(udp::v4(), feedbackPort)));
     query_.reset(new udp::resolver::query(udp::v4(), url.c_str(), port.c_str()));
     iterator_ = resolver_->resolve(*query_);
-    sending_ =true;
+    sending_ = true;
     boost::asio::ip::udp::endpoint sender_endpoint;
-    fbSocket_->async_receive_from(boost::asio::buffer(buffer_, LENGTH), sender_endpoint, 
+    fbSocket_->async_receive_from(boost::asio::buffer(buffer_, LENGTH), sender_endpoint,
         boost::bind(&RtpSink::handleReceive, this, boost::asio::placeholders::error,
           boost::asio::placeholders::bytes_transferred));
     send_Thread_ = boost::thread(&RtpSink::sendLoop, this);
     receive_Thread_ = boost::thread(&RtpSink::serviceLoop, this);
-
   }
 
   RtpSink::~RtpSink() {
@@ -34,12 +38,12 @@ namespace erizo {
     receive_Thread_.join();
   }
 
-  int RtpSink::deliverVideoData_(char* buf, int len){
+  int RtpSink::deliverVideoData_(char* buf, int len) {
     this->queueData(buf, len, VIDEO_PACKET);
     return 0;
   }
 
-  int RtpSink::deliverAudioData_(char* buf, int len){
+  int RtpSink::deliverAudioData_(char* buf, int len) {
     this->queueData(buf, len, AUDIO_PACKET);
     return 0;
   }
@@ -49,9 +53,9 @@ namespace erizo {
     return len;
   }
 
-	void RtpSink::queueData(const char* buffer, int len, packetType type){
+  void RtpSink::queueData(const char* buffer, int len, packetType type) {
     boost::mutex::scoped_lock lock(queueMutex_);
-    if (sending_==false)
+    if (sending_ == false)
       return;
     if (sendQueue_.size() < 1000) {
       dataPacket p_;
@@ -63,33 +67,32 @@ namespace erizo {
     cond_.notify_one();
   }
 
-    void RtpSink::sendLoop(){
-        while (sending_ ) {
-            boost::unique_lock<boost::mutex> lock(queueMutex_);
-            while (sendQueue_.size() == 0) {
-                cond_.wait(lock);
-                if (!sending_) {
-                    return;
-                }
-            }
-            if(sendQueue_.front().comp ==-1){
-                sending_ =  false;
-                ELOG_DEBUG("Finishing send Thread, packet -1");
-                sendQueue_.pop();
-                return;
-            }
-            this->sendData(sendQueue_.front().data, sendQueue_.front().length);
-            sendQueue_.pop();
+  void RtpSink::sendLoop() {
+    while (sending_) {
+      boost::unique_lock<boost::mutex> lock(queueMutex_);
+      while (sendQueue_.size() == 0) {
+        cond_.wait(lock);
+        if (!sending_) {
+          return;
         }
-    }
-
-  void RtpSink::handleReceive(const::boost::system::error_code& error, 
-      size_t bytes_recvd) {
-    if (bytes_recvd>0&&this->fbSink_){
-      this->fbSink_->deliverFeedback((char*)buffer_, (int)bytes_recvd);
+      }
+      if (sendQueue_.front().comp ==-1) {
+        sending_ =  false;
+        ELOG_DEBUG("Finishing send Thread, packet -1");
+        sendQueue_.pop();
+        return;
+      }
+      this->sendData(sendQueue_.front().data, sendQueue_.front().length);
+      sendQueue_.pop();
     }
   }
-  
+
+  void RtpSink::handleReceive(const::boost::system::error_code& error, size_t bytes_recvd) {  // NOLINT
+    if (bytes_recvd > 0 && this->fbSink_) {
+      this->fbSink_->deliverFeedback(reinterpret_cast<char*>(buffer_), static_cast<int>(bytes_recvd));
+    }
+  }
+
   void RtpSink::serviceLoop() {
     io_service_.run();
   }

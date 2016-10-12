@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "rtp_utility.h"
+#include "rtp/webrtc/rtp_utility.h"
 
 #include <assert.h>
 #include <math.h>  // ceil
@@ -21,7 +21,7 @@
 #include <WinSock.h>  // timeval
 
 #include <MMSystem.h>  // timeGetTime
-#elif ((defined WEBRTC_LINUX) || (defined WEBRTC_MAC))
+#elif((defined WEBRTC_LINUX) || (defined WEBRTC_MAC))
 #include <sys/time.h>  // gettimeofday
 #include <time.h>
 #endif
@@ -29,14 +29,14 @@
 #include <stdio.h>
 #endif
 
-//#include "webrtc/system_wrappers/interface/tick_util.h"
-//#include "webrtc/system_wrappers/interface/logging.h"
+// #include "webrtc/system_wrappers/interface/tick_util.h"
+// #include "webrtc/system_wrappers/interface/logging.h"
 
 #if (defined(_DEBUG) && defined(_WIN32) && (_MSC_VER >= 1400))
 #define DEBUG_PRINT(...)           \
   {                                \
     char msg[256];                 \
-    sprintf(msg, __VA_ARGS__);     \
+    sprintf(msg, __VA_ARGS__);     \  // NOLINT
     OutputDebugString(msg);        \
   }
 #else
@@ -66,10 +66,10 @@
 // TODO(ajm): We'd prefer to control platform defines here, but this is
 // currently provided by the Android makefiles. Commented to avoid duplicate
 // definition warnings.
-//#define WEBRTC_ARCH_ARM
+// #define WEBRTC_ARCH_ARM
 // TODO(ajm): Chromium uses the following two defines. Should we switch?
-//#define WEBRTC_ARCH_ARM_FAMILY
-//#define WEBRTC_ARCH_ARMEL
+// #define WEBRTC_ARCH_ARM_FAMILY
+// #define WEBRTC_ARCH_ARMEL
 #define WEBRTC_ARCH_32_BITS
 #define WEBRTC_ARCH_LITTLE_ENDIAN
 #elif defined(__MIPSEL__)
@@ -97,25 +97,25 @@
 
 namespace webrtc {
 
-//RtpData* NullObjectRtpData() {
+// RtpData* NullObjectRtpData() {
 //  static NullRtpData null_rtp_data;
 //  return &null_rtp_data;
-//}
+// }
 
-//RtpFeedback* NullObjectRtpFeedback() {
+// RtpFeedback* NullObjectRtpFeedback() {
 //  static NullRtpFeedback null_rtp_feedback;
 //  return &null_rtp_feedback;
-//}
+// }
 
-//RtpAudioFeedback* NullObjectRtpAudioFeedback() {
+// RtpAudioFeedback* NullObjectRtpAudioFeedback() {
 //  static NullRtpAudioFeedback null_rtp_audio_feedback;
 //  return &null_rtp_audio_feedback;
-//}
+// }
 
-//ReceiveStatistics* NullObjectReceiveStatistics() {
+// ReceiveStatistics* NullObjectReceiveStatistics() {
 //  static NullReceiveStatistics null_receive_statistics;
 //  return &null_receive_statistics;
-//}
+// }
 
 namespace RtpUtility {
 
@@ -132,7 +132,7 @@ enum {
  * Time routines.
  */
 
-//uint32_t GetCurrentRTP(Clock* clock, uint32_t freq) {
+// uint32_t GetCurrentRTP(Clock* clock, uint32_t freq) {
 //  const bool use_global_clock = (clock == NULL);
 //  Clock* local_clock = clock;
 //  if (use_global_clock) {
@@ -144,21 +144,21 @@ enum {
 //    delete local_clock;
 //  }
 //  return ConvertNTPTimeToRTP(secs, frac, freq);
-//}
+// }
 
-//uint32_t ConvertNTPTimeToRTP(uint32_t NTPsec, uint32_t NTPfrac, uint32_t freq) {
+// uint32_t ConvertNTPTimeToRTP(uint32_t NTPsec, uint32_t NTPfrac, uint32_t freq) {
 //  float ftemp = (float)NTPfrac / (float)NTP_FRAC;
 //  uint32_t tmp = (uint32_t)(ftemp * freq);
 //  return NTPsec * freq + tmp;
-//}
+// }
 
-//uint32_t ConvertNTPTimeToMS(uint32_t NTPsec, uint32_t NTPfrac) {
+// uint32_t ConvertNTPTimeToMS(uint32_t NTPsec, uint32_t NTPfrac) {
 //  int freq = 1000;
 //  float ftemp = (float)NTPfrac / (float)NTP_FRAC;
 //  uint32_t tmp = (uint32_t)(ftemp * freq);
 //  uint32_t MStime = NTPsec * freq + tmp;
 //  return MStime;
-//}
+// }
 
 /*
  * Misc utility routines
@@ -239,7 +239,7 @@ uint32_t pow2(uint8_t exp) {
   return 1 << exp;
 }
 
-//void RTPPayload::SetType(RtpVideoCodecTypes videoType) {
+// void RTPPayload::SetType(RtpVideoCodecTypes videoType) {
 //  type = videoType;
 
 //  switch (type) {
@@ -264,18 +264,18 @@ uint32_t pow2(uint8_t exp) {
 //    default:
 //      break;
 //  }
-//}
+// }
 
-//RtpHeaderParser::RtpHeaderParser(const uint8_t* rtpData,
+// RtpHeaderParser::RtpHeaderParser(const uint8_t* rtpData,
 //                                 const size_t rtpDataLength)
 //    : _ptrRTPDataBegin(rtpData),
 //      _ptrRTPDataEnd(rtpData ? (rtpData + rtpDataLength) : NULL) {
-//}
+// }
 
-//RtpHeaderParser::~RtpHeaderParser() {
-//}
+// RtpHeaderParser::~RtpHeaderParser() {
+// }
 
-//bool RtpHeaderParser::RTCP() const {
+// bool RtpHeaderParser::RTCP() const {
 //  // 72 to 76 is reserved for RTP
 //  // 77 to 79 is not reserver but  they are not assigned we will block them
 //  // for RTCP 200 SR  == marker bit + 72
@@ -286,7 +286,7 @@ uint32_t pow2(uint8_t exp) {
 //  * FIR      full INTRA-frame request             192     [RFC2032]   supported
 //  * NACK     negative acknowledgement             193     [RFC2032]
 //  * IJ       Extended inter-arrival jitter report 195     [RFC-ietf-avt-rtp-toff
-//  * set-07.txt] http://tools.ietf.org/html/draft-ietf-avt-rtp-toffset-07
+//  * set-07.txt] http:// tools.ietf.org/html/draft-ietf-avt-rtp-toffset-07
 //  * SR       sender report                        200     [RFC3551]   supported
 //  * RR       receiver report                      201     [RFC3551]   supported
 //  * SDES     source description                   202     [RFC3551]   supported
@@ -348,9 +348,9 @@ uint32_t pow2(uint8_t exp) {
 //      break;
 //  }
 //  return RTCP;
-//}
+// }
 
-//bool RtpHeaderParser::ParseRtcp(RTPHeader* header) const {
+// bool RtpHeaderParser::ParseRtcp(RTPHeader* header) const {
 //  assert(header != NULL);
 
 //  const ptrdiff_t length = _ptrRTPDataEnd - _ptrRTPDataBegin;
@@ -377,9 +377,9 @@ uint32_t pow2(uint8_t exp) {
 //  header->headerLength = 4 + (len << 2);
 
 //  return true;
-//}
+// }
 
-//bool RtpHeaderParser::Parse(RTPHeader& header,
+// bool RtpHeaderParser::Parse(RTPHeader& header,
 //                            RtpHeaderExtensionMap* ptrExtensionMap) const {
 //  const ptrdiff_t length = _ptrRTPDataEnd - _ptrRTPDataBegin;
 //  if (length < kRtpMinParseLength) {
@@ -474,8 +474,8 @@ uint32_t pow2(uint8_t exp) {
 //    definedByProfile += *ptr++;
 
 //    uint16_t XLen = *ptr++ << 8;
-//    XLen += *ptr++; // in 32 bit words
-//    XLen *= 4; // in octs
+//    XLen += *ptr++;  // in 32 bit words
+//    XLen *= 4;  // in octs
 
 //    if (remain < (4 + XLen)) {
 //      return false;
@@ -490,9 +490,9 @@ uint32_t pow2(uint8_t exp) {
 //    header.headerLength += XLen;
 //  }
 //  return true;
-//}
+// }
 
-//void RtpHeaderParser::ParseOneByteExtensionHeader(
+// void RtpHeaderParser::ParseOneByteExtensionHeader(
 //    RTPHeader& header,
 //    const RtpHeaderExtensionMap* ptrExtensionMap,
 //    const uint8_t* ptrRTPDataExtensionEnd,
@@ -601,9 +601,9 @@ uint32_t pow2(uint8_t exp) {
 //    uint8_t num_bytes = ParsePaddingBytes(ptrRTPDataExtensionEnd, ptr);
 //    ptr += num_bytes;
 //  }
-//}
+// }
 
-//uint8_t RtpHeaderParser::ParsePaddingBytes(
+// uint8_t RtpHeaderParser::ParsePaddingBytes(
 //    const uint8_t* ptrRTPDataExtensionEnd,
 //    const uint8_t* ptr) const {
 //  uint8_t num_zero_bytes = 0;
@@ -615,19 +615,19 @@ uint32_t pow2(uint8_t exp) {
 //    num_zero_bytes++;
 //  }
 //  return num_zero_bytes;
-//}
+// }
 
-//RTPPayloadParser::RTPPayloadParser(const RtpVideoCodecTypes videoType,
+// RTPPayloadParser::RTPPayloadParser(const RtpVideoCodecTypes videoType,
 //                                   const uint8_t* payloadData,
 //                                   uint16_t payloadDataLength)
 //    : _dataPtr(payloadData),
 //      _dataLength(payloadDataLength),
 //      _videoType(videoType) {}
 
-//RTPPayloadParser::~RTPPayloadParser() {
-//}
+// RTPPayloadParser::~RTPPayloadParser() {
+// }
 
-//bool RTPPayloadParser::Parse(RTPPayload& parsedPacket) const {
+// bool RTPPayloadParser::Parse(RTPPayload& parsedPacket) const {
 //  parsedPacket.SetType(_videoType);
 
 //  switch (_videoType) {
@@ -638,38 +638,38 @@ uint32_t pow2(uint8_t exp) {
 //    default:
 //      return false;
 //  }
-//}
+// }
 
-//bool RTPPayloadParser::ParseGeneric(RTPPayload& /*parsedPacket*/) const {
+// bool RTPPayloadParser::ParseGeneric(RTPPayload& /*parsedPacket*/) const {
 //  return false;
-//}
+// }
 
-////
-//// VP8 format:
-////
-//// Payload descriptor
-////       0 1 2 3 4 5 6 7
-////      +-+-+-+-+-+-+-+-+
-////      |X|R|N|S|PartID | (REQUIRED)
-////      +-+-+-+-+-+-+-+-+
-//// X:   |I|L|T|K|  RSV  | (OPTIONAL)
-////      +-+-+-+-+-+-+-+-+
-//// I:   |   PictureID   | (OPTIONAL)
-////      +-+-+-+-+-+-+-+-+
-//// L:   |   TL0PICIDX   | (OPTIONAL)
-////      +-+-+-+-+-+-+-+-+
-//// T/K: |TID:Y| KEYIDX  | (OPTIONAL)
-////      +-+-+-+-+-+-+-+-+
-////
-//// Payload header (considered part of the actual payload, sent to decoder)
-////       0 1 2 3 4 5 6 7
-////      +-+-+-+-+-+-+-+-+
-////      |Size0|H| VER |P|
-////      +-+-+-+-+-+-+-+-+
-////      |      ...      |
-////      +               +
+// //
+// // VP8 format:
+// //
+// // Payload descriptor
+// //       0 1 2 3 4 5 6 7
+// //      +-+-+-+-+-+-+-+-+
+// //      |X|R|N|S|PartID | (REQUIRED)
+// //      +-+-+-+-+-+-+-+-+
+// // X:   |I|L|T|K|  RSV  | (OPTIONAL)
+// //      +-+-+-+-+-+-+-+-+
+// // I:   |   PictureID   | (OPTIONAL)
+// //      +-+-+-+-+-+-+-+-+
+// // L:   |   TL0PICIDX   | (OPTIONAL)
+// //      +-+-+-+-+-+-+-+-+
+// // T/K: |TID:Y| KEYIDX  | (OPTIONAL)
+// //      +-+-+-+-+-+-+-+-+
+// //
+// // Payload header (considered part of the actual payload, sent to decoder)
+// //       0 1 2 3 4 5 6 7
+// //      +-+-+-+-+-+-+-+-+
+// //      |Size0|H| VER |P|
+// //      +-+-+-+-+-+-+-+-+
+// //      |      ...      |
+// //      +               +
 
-//bool RTPPayloadParser::ParseVP8(RTPPayload& parsedPacket) const {
+// bool RTPPayloadParser::ParseVP8(RTPPayload& parsedPacket) const {
 //  RTPPayloadVP8* vp8 = &parsedPacket.info.VP8;
 //  const uint8_t* dataPtr = _dataPtr;
 //  int dataLength = _dataLength;
@@ -677,7 +677,7 @@ uint32_t pow2(uint8_t exp) {
 //  // Parse mandatory first byte of payload descriptor
 //  bool extension = (*dataPtr & 0x80) ? true : false;            // X bit
 //  vp8->nonReferenceFrame = (*dataPtr & 0x20) ? true : false;    // N bit
-//  vp8->beginningOfPartition = (*dataPtr & 0x10) ? true : false; // S bit
+//  vp8->beginningOfPartition = (*dataPtr & 0x10) ? true : false;  // S bit
 //  vp8->partitionID = (*dataPtr & 0x0F);          // PartID field
 
 //  if (vp8->partitionID > 8) {
@@ -713,9 +713,9 @@ uint32_t pow2(uint8_t exp) {
 //  parsedPacket.info.VP8.data       = dataPtr;
 //  parsedPacket.info.VP8.dataLength = dataLength;
 //  return true;
-//}
+// }
 
-//int RTPPayloadParser::ParseVP8FrameSize(RTPPayload& parsedPacket,
+// int RTPPayloadParser::ParseVP8FrameSize(RTPPayload& parsedPacket,
 //                                        const uint8_t* dataPtr,
 //                                        int dataLength) const {
 //  if (parsedPacket.frameType != kIFrame) {
@@ -731,16 +731,16 @@ uint32_t pow2(uint8_t exp) {
 //  vp8->frameWidth = ((dataPtr[7] << 8) + dataPtr[6]) & 0x3FFF;
 //  vp8->frameHeight = ((dataPtr[9] << 8) + dataPtr[8]) & 0x3FFF;
 //  return 0;
-//}
+// }
 
-//int RTPPayloadParser::ParseVP8Extension(RTPPayloadVP8* vp8,
+// int RTPPayloadParser::ParseVP8Extension(RTPPayloadVP8* vp8,
 //                                        const uint8_t* dataPtr,
 //                                        int dataLength) const {
 //  int parsedBytes = 0;
 //  if (dataLength <= 0) return -1;
 //  // Optional X field is present
-//  vp8->hasPictureID = (*dataPtr & 0x80) ? true : false; // I bit
-//  vp8->hasTl0PicIdx = (*dataPtr & 0x40) ? true : false; // L bit
+//  vp8->hasPictureID = (*dataPtr & 0x80) ? true : false;  // I bit
+//  vp8->hasTl0PicIdx = (*dataPtr & 0x40) ? true : false;  // L bit
 //  vp8->hasTID = (*dataPtr & 0x20) ? true : false;       // T bit
 //  vp8->hasKeyIdx = (*dataPtr & 0x10) ? true : false;    // K bit
 
@@ -767,9 +767,9 @@ uint32_t pow2(uint8_t exp) {
 //    }
 //  }
 //  return parsedBytes;
-//}
+// }
 
-//int RTPPayloadParser::ParseVP8PictureID(RTPPayloadVP8* vp8,
+// int RTPPayloadParser::ParseVP8PictureID(RTPPayloadVP8* vp8,
 //                                        const uint8_t** dataPtr,
 //                                        int* dataLength,
 //                                        int* parsedBytes) const {
@@ -786,9 +786,9 @@ uint32_t pow2(uint8_t exp) {
 //  (*parsedBytes)++;
 //  (*dataLength)--;
 //  return 0;
-//}
+// }
 
-//int RTPPayloadParser::ParseVP8Tl0PicIdx(RTPPayloadVP8* vp8,
+// int RTPPayloadParser::ParseVP8Tl0PicIdx(RTPPayloadVP8* vp8,
 //                                        const uint8_t** dataPtr,
 //                                        int* dataLength,
 //                                        int* parsedBytes) const {
@@ -798,9 +798,9 @@ uint32_t pow2(uint8_t exp) {
 //  (*parsedBytes)++;
 //  (*dataLength)--;
 //  return 0;
-//}
+// }
 
-//int RTPPayloadParser::ParseVP8TIDAndKeyIdx(RTPPayloadVP8* vp8,
+// int RTPPayloadParser::ParseVP8TIDAndKeyIdx(RTPPayloadVP8* vp8,
 //                                           const uint8_t** dataPtr,
 //                                           int* dataLength,
 //                                           int* parsedBytes) const {
@@ -816,7 +816,7 @@ uint32_t pow2(uint8_t exp) {
 //  (*parsedBytes)++;
 //  (*dataLength)--;
 //  return 0;
-//}
+// }
 
 }  // namespace RtpUtility
 

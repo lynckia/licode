@@ -10,7 +10,7 @@ using testing::_;
 using testing::Return;
 using testing::Eq;
 
-static const std::string kArbitraryPeerId = "111";
+static const char kArbitraryPeerId[] = "111";
 
 class MockPublisher: public erizo::MediaSource, public erizo::FeedbackSink {
  public:
