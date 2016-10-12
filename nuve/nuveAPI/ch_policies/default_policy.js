@@ -1,11 +1,12 @@
-/* 
+'use strict';
+/*
 Params
- 
+
 	room: room to which we need to assing a erizoController.
 		{
-		name: String, 
-		[p2p: bool], 
-		[data: Object], 
+		name: String,
+		[p2p: bool],
+		[data: Object],
 		_id: ObjectId
 		}
 
@@ -27,7 +28,7 @@ Returns
 	erizoControlerId: the key of the erizo controller selected from ec_list
 
 */
-exports.getErizoController = function (room, ec_list, ec_queue) {
-	var erizoControllerId = ec_queue[0];
-	return erizoControllerId;
-}
+exports.getErizoController = function (room, ecList, ecQueue) {
+  var erizoControllerId = ecQueue[0];
+  return erizoControllerId;
+};

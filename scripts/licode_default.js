@@ -10,7 +10,7 @@ config.rabbit.port = 5672; //default value: 5672
 // Sets the AQMP heartbeat timeout to detect dead TCP Connections
 config.rabbit.heartbeat = 8; //default value: 8 seconds, 0 to disable
 config.logger = {};
-config.logger.config_file = '../log4js_configuration.json'; //default value: "../log4js_configuration.json"
+config.logger.configFile = '../log4js_configuration.json'; //default value: "../log4js_configuration.json"
 
 /*********************************************************
  CLOUD PROVIDER CONFIGURATION
@@ -18,7 +18,7 @@ config.logger.config_file = '../log4js_configuration.json'; //default value: "..
 **********************************************************/
 config.cloudProvider = {};
 config.cloudProvider.name = '';
-//In Amazon Ec2 instances you can specify the zone host. By default is 'ec2.us-east-1a.amazonaws.com' 
+//In Amazon Ec2 instances you can specify the zone host. By default is 'ec2.us-east-1a.amazonaws.com'
 config.cloudProvider.host = '';
 config.cloudProvider.accessKey = '';
 config.cloudProvider.secretAccessKey = '';
@@ -63,7 +63,7 @@ config.erizoController.maxVideoBW = 300; //default value: 300
 // Use '' to automatically get IP from the interface
 config.erizoController.publicIP = ''; //default value: ''
 
-// This configuration is used by the clients to reach erizoController 
+// This configuration is used by the clients to reach erizoController
 // Use '' to use the public IP address instead of a hostname
 config.erizoController.hostname = ''; //default value: ''
 config.erizoController.port = 8080; //default value: 8080
@@ -92,12 +92,12 @@ config.erizoController.roles =
     "viewer": {"subscribe": true},
     "viewerWithData": {"subscribe": true, "publish": {"audio": false, "video": false, "screen": false, "data": true}}}; // default value: {"presenter":{"publish": true, "subscribe":true, "record":true}, "viewer":{"subscribe":true}, "viewerWithData":{"subscribe":true, "publish":{"audio":false,"video":false,"screen":false,"data":true}}}
 
-// If true, erizoController sends report to rabbitMQ queue "report_handler" 
+// If true, erizoController sends report to rabbitMQ queue "report_handler"
 config.erizoController.report = {
     session_events: false, 		// Session level events -- default value: false
     connection_events: false, 	// Connection (ICE) level events -- default value: false
     rtcp_stats: false				// RTCP stats -- default value: false
-}; 
+};
 
 // If undefined, the path will be /tmp/
 config.erizoController.recording_path = undefined; // default value: undefined
