@@ -420,8 +420,17 @@ class RtcpHeader {
   inline uint32_t getOctetsSent() {
     return ntohl(report.senderReport.octetssent);
   }
+  inline uint32_t getNtpTimestampMSW() {
+    return ntohl((uint32_t)report.senderReport.ntptimestamp);
+  }
+  inline uint32_t getNtpTimestampLSW() {
+    return ntohl((uint32_t)(report.senderReport.ntptimestamp >> 32));
+  }
+  inline uint32_t getRtpTimestamp() {
+    return ntohl(report.senderReport.rtprts);
+  }
   inline uint64_t getNtpTimestamp() {
-    return (((uint64_t)htonl(report.senderReport.ntptimestamp)) << 32) + htonl(report.senderReport.ntptimestamp >> 32);
+    return (((uint64_t)ntohl(report.senderReport.ntptimestamp)) << 32) + ntohl(report.senderReport.ntptimestamp >> 32);
   }
   inline uint16_t getNackPid() {
     return ntohs(report.nackPacket.pid);
