@@ -59,7 +59,7 @@ exports.connect = function(callback) {
                             log.debug("message: message received, queueName: " + clientQueue.name + ", message:", message);
 
                             if(map[message.corrID] !== undefined) {
-                                log.debug("message: Callback, messageType: " + message.type + ", messageData", message.data);
+                                log.debug("message: Callback, queueName: " + clientQueue.name + ", messageType: " + message.type + ", messageData", message.data);
                                 clearTimeout(map[message.corrID].to);
                                 if (message.type === "onReady") map[message.corrID].fn[message.type].call({});
                                 else map[message.corrID].fn[message.type].call({}, message.data);
@@ -95,12 +95,12 @@ exports.bind = function(id, callback) {
     //Create the queue for receive messages
     var q = connection.queue(id, function (queueCreated) {
         try {
-            log.info('message: Queue open, queuename: ' + q.name);
+            log.info('message: queue open, queuename: ' + q.name);
 
             q.bind('rpcExchange', id, callback);
             q.subscribe(function (message) {
                 try {
-                    log.debug("message: message received, queueName: " + q.name + ", mess: ", message);
+                    log.debug("message: message received, queueName: " + q.name + ", messageData: ", message);
                     message.args = message.args || [];
                     message.args.push(function(type, result) {
                         rpc_exc.publish(message.replyTo, {data: result, corrID: message.corrID, type: type});
@@ -124,7 +124,7 @@ exports.bind_broadcast = function(id, callback) {
     //Create the queue for receive messages
     var q = connection.queue('', function (queueCreated) {
         try {
-            log.info('message: broadcast queue open, queueName: ' + queueCreated.name);
+            log.info('message: broadcast queue open, queueName: ' + q.name);
 
             q.bind('broadcastExchange', id);
             q.subscribe(function (body){
