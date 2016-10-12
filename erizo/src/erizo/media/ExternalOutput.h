@@ -6,6 +6,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/mathematics.h>
 }
 
 #include <string>
@@ -16,6 +17,7 @@ extern "C" {
 #include "media/MediaProcessor.h"
 
 #include "./logger.h"
+#include "SyncUtils.h"
 
 namespace erizo {
 
