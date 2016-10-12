@@ -109,7 +109,6 @@ exports.ErizoJSController = function (spec) {
 
         wrtc.init( function (newStatus, mess){
             log.info("message: WebRtcConnection status update, id: " + wrtc.wrtcId + ", status: " + newStatus);
-            log.debug("message: WebRtcConnection status update, id: " + wrtc.wrtcId + ", status: " + newStatus + ", statusMessage: " + mess);
             if (GLOBAL.config.erizoController.report.connection_events) {
                 var timeStamp = new Date();
                 amqper.broadcast('event', {pub: id_pub, subs: id_sub, type: 'connection_status', status: newStatus, timestamp:timeStamp.getTime()});
