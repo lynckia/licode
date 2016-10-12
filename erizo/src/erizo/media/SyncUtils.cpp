@@ -46,7 +46,7 @@ namespace erizo {
     }
     // If the rtp timestamp is < of the first rtcp packet timestamp, return false. (discard this packet to avoid problems)
     if (rtp_timestamp < GetVectorPosition(0, rtcp, isVideo)) {
-            ELOG_WARN("RtpToNtpMs: isVideo: %d, This packet is too early. Discard to avoid problems %ld / %ld, next: %ld", isVideo, rtp_timestamp, GetVectorPosition(0,rtcp, isVideo), GetVectorPosition(1,rtcp, isVideo));
+            ELOG_DEBUG("RtpToNtpMs: isVideo: %d, This packet is too early. Discard to avoid problems %ld / %ld, next: %ld", isVideo, rtp_timestamp, GetVectorPosition(0,rtcp, isVideo), GetVectorPosition(1,rtcp, isVideo));
             return false;
     }
     // Discard all the old rtcp packets.
