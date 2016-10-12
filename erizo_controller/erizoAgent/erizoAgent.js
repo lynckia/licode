@@ -116,7 +116,7 @@ var removeChild = function(id) {
 
 var launchErizoJS = function() {
     var id = guid();
-    log.debug("message: launching ErizoJS, erizoId:", id);
+    log.debug("message: launching ErizoJS, erizoId: " + id);
     var fs = require('fs');
     var erizoProcess, out, err;
     if (GLOBAL.config.erizoAgent.useIndividualLogFiles){
@@ -132,7 +132,7 @@ var launchErizoJS = function() {
     }
     erizoProcess.unref();
     erizoProcess.on('close', function (code) {
-        log.info("message: closed, erizoId:", id);
+        log.info("message: closed, erizoId: " + id);
         var index = idle_erizos.indexOf(id);
         var index2 = erizos.indexOf(id);
         if (index > -1) {
@@ -144,7 +144,7 @@ var launchErizoJS = function() {
         if (out!=undefined){
             fs.close(out, function (message){
                 if (message){
-                    log.error("message: error closing log file, erizoId:", id, ", error:", message);
+                    log.error("message: error closing log file, erizoId: " + id + ", error:", message);
                 }
             });
         }
@@ -152,7 +152,7 @@ var launchErizoJS = function() {
         if(err!=undefined){
             fs.close(err, function (message){
                 if (message){
-                    log.error("message: error closing log file, erizoId:", id, ", error:", message);
+                    log.error("message: error closing log file, erizoId: " + id + ", error:", message);
                 }
             });
         }
@@ -160,14 +160,14 @@ var launchErizoJS = function() {
         fillErizos();       
     });
 
-    log.info('message: launched new ErizoJS, erizoId:', id);
+    log.info('message: launched new ErizoJS, erizoId: ' + id);
     processes[id] = erizoProcess;
     idle_erizos.push(id);
 };
 
 var dropErizoJS = function(erizo_id, callback) {
    if (processes.hasOwnProperty(erizo_id)) {
-      log.warn("message: Dropping Erizo that was not closed before, possible publisher/subscriber mismatch, erizoId:", erizo_id);
+      log.warn("message: Dropping Erizo that was not closed before - possible publisher/subscriber mismatch, erizoId:" + erizo_id);
       var process = processes[erizo_id];
       process.kill();
       delete processes[erizo_id];
@@ -185,9 +185,9 @@ var fillErizos = function () {
 };
 
 var cleanErizos = function () {
-    log.debug("message: killing erizoJSs on close, numProcesses:", processes.length);
+    log.debug("message: killing erizoJSs on close, numProcesses: " + processes.length);
     for (var p in processes){
-        log.debug("message: killing process, processId:", processes[p].pid)
+        log.debug("message: killing process, processId: " + processes[p].pid)
         processes[p].kill('SIGKILL');
     }
     process.exit(0);
@@ -217,21 +217,21 @@ var api = {
         try {
 
             var erizo_id = getErizo();
-            log.debug('message: createErizoJS returning, erizoId:', erizo_id);
+            log.debug('message: createErizoJS returning, erizoId: ' + erizo_id);
             callback("callback", {erizo_id: erizo_id, agent_id: my_erizo_agent_id});
 
             erizos.push(erizo_id);
             fillErizos();
 
         } catch (error) {
-            log.error("message: Error creating ErizoJS, error:", error);
+            log.error("message: error creating ErizoJS, error:", error);
         }
     },
     deleteErizoJS: function(id, callback) {
         try {
             dropErizoJS(id, callback);
         } catch(err) {
-            log.error("message: Error stopping ErizoJS, error:", error);
+            log.error("message: error stopping ErizoJS, error:", error);
         }
     },
     getErizoAgents: reporter.getErizoAgent
@@ -278,7 +278,7 @@ if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicI
                 log.error('message: EC2 call error, error:', err);
             } else if (response) {
                 publicIP = response.reservationSet.item.instancesSet.item.ipAddress;
-                log.info('message: Public IP form ec2, publicIp:', publicIP);
+                log.info('message: Public IP form ec2, publicIp: ' + publicIP);
             }
         });
     }
