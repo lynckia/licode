@@ -98,8 +98,9 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
 
   Measurements video_measurements, audio_measurements;
   SyncUtils SU;
-  long long lastAudioTS, lastVideoTS;
-  uint64_t video_first_rtcp_ntp_timeMSW, audio_first_rtcp_ntp_timeMSW,video_first_rtcp_ntp_timeLSW, audio_first_rtcp_ntp_timeLSW;
+  long long lastAudioTS, lastVideoTS; //NOLINT
+  uint64_t video_first_rtcp_ntp_timeMSW, audio_first_rtcp_ntp_timeMSW, video_first_rtcp_ntp_timeLSW,
+           audio_first_rtcp_ntp_timeLSW;
   uint32_t video_first_rtcp_time, audio_first_rtcp_time;
 
   bool initContext();
