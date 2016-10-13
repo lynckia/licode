@@ -411,7 +411,6 @@ exports.ErizoJSController = function (spec) {
 
         if (subscribers[to][from]) {
             log.info("message: removing subscriber, id: " + subscribers[to][from].wrtcId);
-            subscribers[to][from].close();
             publishers[to].muxer.removeSubscriber(from);
             delete subscribers[to][from];
         }
