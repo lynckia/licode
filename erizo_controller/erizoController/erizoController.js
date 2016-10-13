@@ -156,7 +156,7 @@ var sendMsgToRoom = function (room, type, arg) {
         id;
     for (id in sockets) {
         if (sockets.hasOwnProperty(id)) {
-            log.debug('message: sendMsgToRoom clientId: ' + sockets[id] + ', roomId:' + room.id + " messageType:", type);
+            log.debug('message: sendMsgToRoom, clientId: ' + sockets[id] + ', roomId: ' + room.id + ", messageType:", type);
             io.sockets.socket(sockets[id]).emit(type, arg);
         }
     }
@@ -281,7 +281,7 @@ var updateMyState = function () {
         log.warn("message: reached Room Limit, roomLimit:" + LIMIT_N_ROOMS);
         newState = 0;
     } else {
-        log.warn("message: reached Warning room limit warningRoomLimit: " + WARNING_N_ROOMS + ", roomLimit: " + LIMIT_N_ROOMS);
+        log.warn("message: reached Warning room limit, warningRoomLimit: " + WARNING_N_ROOMS + ", roomLimit: " + LIMIT_N_ROOMS);
         newState = 1;
     }
 
@@ -416,13 +416,13 @@ var listen = function () {
         //Gets 'sendDataStream' messages on the socket in order to write a message in a dataStream.
         socket.on('sendDataStream', function (msg) {
             if  (socket.room.streams[msg.id] === undefined){
-              log.warn('message: Trying to send Data from a non-initialized stream, clientId: ' + socket.id + ' dataMsg:', msg);
+              log.warn('message: Trying to send Data from a non-initialized stream, clientId: ' + socket.id + ', dataMsg:', msg);
               return;
             }
             var sockets = socket.room.streams[msg.id].getDataSubscribers(), id;
             for (id in sockets) {
                 if (sockets.hasOwnProperty(id)) {
-                    log.debug('message: sending dataStream clientId: ' + sockets[id] + ', dataStream: ' + msg.id);
+                    log.debug('message: sending dataStream, clientId: ' + sockets[id] + ', dataStream: ' + msg.id);
                     io.sockets.socket(sockets[id]).emit('onDataStream', msg);
                 }
             }
@@ -446,7 +446,7 @@ var listen = function () {
             socket.room.streams[msg.id].setAttributes(msg.attrs);
             for (id in sockets) {
                 if (sockets.hasOwnProperty(id)) {
-                    log.debug('message: Sending new attributesm clientId: ' + sockets[id] + ', streamId: ' + msg.id);
+                    log.debug('message: Sending new attributes, clientId: ' + sockets[id] + ', streamId: ' + msg.id);
                     io.sockets.socket(sockets[id]).emit('onUpdateAttributeStream', msg);
                 }
             }
@@ -652,7 +652,7 @@ var listen = function () {
             if (socket.room.streams[streamId].hasAudio() || socket.room.streams[streamId].hasVideo() || socket.room.streams[streamId].hasScreen()) {
                 socket.room.controller.addExternalOutput(streamId, url, function (result) {
                     if (result === 'success') {
-                        log.info("message: startRecorder state: RECORD_STARTED, streamId: " + streamId + ", url: " + url);
+                        log.info("message: startRecorder, state: RECORD_STARTED, streamId: " + streamId + ", url: " + url);
                         callback(recordingId);
                     } else {
                         log.warn("message: startRecorder stream not found, state: RECORD_FAILED, streamId: " + streamId + ", url: " + url);

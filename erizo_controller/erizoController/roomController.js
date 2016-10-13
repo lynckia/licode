@@ -228,7 +228,7 @@ exports.RoomController = function (spec) {
             retries = 0;
 
         if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1) {
-            log.info("message: addSubscriber streamId: " + publisher_id + ", clientId: " + subscriber_id + ", options: " + JSON.stringify(options));;
+            log.info("message: addSubscriber, streamId: " + publisher_id + ", clientId: " + subscriber_id + ", options: " + JSON.stringify(options));;
 
             if (options.audio === undefined) options.audio = true;
             if (options.video === undefined) options.video = true;
@@ -244,11 +244,11 @@ exports.RoomController = function (spec) {
                 if (data === 'timeout'){
                     if (retries < MAX_ERIZOJS_RETRIES){
                         retries++;
-                        log.warn("message: addSubscriber ErizoJS timeout, clientId: " + subscriber_id + ",streamId: " + publisher_id + ", erizoId: " + getErizoQueue(publisher_id) + ", retries: " + retries);
+                        log.warn("message: addSubscriber ErizoJS timeout, clientId: " + subscriber_id + ", streamId: " + publisher_id + ", erizoId: " + getErizoQueue(publisher_id) + ", retries: " + retries);
                         that.addSubscriber(subscriber_id, publisher_id, options, callback, retries);
                         return;
                     }
-                    log.warn("message: addSubscriber ErizoJS timeout no retry, clientId: " + subscriber_id + ",streamId: " + publisher_id + ", erizoId: " + getErizoQueue(publisher_id));
+                    log.warn("message: addSubscriber ErizoJS timeout no retry, clientId: " + subscriber_id + ", streamId: " + publisher_id + ", erizoId: " + getErizoQueue(publisher_id));
                     callback('timeout');
                     return;
                 }else if (data.type === 'initializing'){

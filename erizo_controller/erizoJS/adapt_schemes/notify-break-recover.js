@@ -100,7 +100,7 @@ exports.MonitorSubscriber = function (log) {
                     }
                     break;
                 case BW_RECOVERING:
-                    log.debug("message: trying to recover, id: " + wrtc.wrtcId + ", state:BW_RECOVERING, lastBandwidthValue: " + lastBWValue + ", lastAverageBandwidth: " + lastAverage + ", lowerThreshold: " + wrtc.lowerThres);
+                    log.debug("message: trying to recover, id: " + wrtc.wrtcId + ", state: BW_RECOVERING, lastBandwidthValue: " + lastBWValue + ", lastAverageBandwidth: " + lastAverage + ", lowerThreshold: " + wrtc.lowerThres);
                     if(average > wrtc.upperThres){ 
                         log.debug("message: recovered, id: " + wrtc.wrtcId + ", state: BW_RECOVERING, newState: BW_STABLE, averageBandwidth: " + average + ", lowerThreshold: " + wrtc.lowerThres);
                         ticks = 0;

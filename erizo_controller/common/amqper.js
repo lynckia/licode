@@ -95,7 +95,7 @@ exports.bind = function(id, callback) {
     //Create the queue for receive messages
     var q = connection.queue(id, function (queueCreated) {
         try {
-            log.info('message: queue open, queuename: ' + q.name);
+            log.info('message: queue open, queueName: ' + q.name);
 
             q.bind('rpcExchange', id, callback);
             q.subscribe(function (message) {

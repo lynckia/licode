@@ -361,7 +361,7 @@ exports.ErizoJSController = function (spec) {
         subscribers[to][from] = wrtc;
         publishers[to].muxer.addSubscriber(wrtc, from);
         wrtc.minVideoBW = publishers[to].minVideoBW;
-        log.debug("message: Setting scheme from publisher to subscriber id: " + wrtcId + ", scheme: " + publishers[to].scheme);
+        log.debug("message: Setting scheme from publisher to subscriber, id: " + wrtcId + ", scheme: " + publishers[to].scheme);
         wrtc.scheme = publishers[to].scheme;
         initWebRtcConnection(wrtc, callback, to, from, options);
     };

@@ -47,7 +47,7 @@ exports.Ecch = function (spec) {
 		for (var a in agents) {
 			agents[a].timeout ++;
 			if (agents[a].timeout > EA_TIMEOUT / GET_EA_INTERVAL) {
-				log.warn('code: agent timed out is being removed, code: ' + WARN_TIMEOUT + ', agentId: ' + agents[a].info.id);
+				log.warn('message: agent timed out is being removed, code: ' + WARN_TIMEOUT + ', agentId: ' + agents[a].info.id);
 				delete agents[a];
 			}
 		}
@@ -69,7 +69,7 @@ exports.Ecch = function (spec) {
 			agent_queue = getErizoAgent(agents);
 		}
 
-		log.info('message: createErizoJS agentId: ' + agent_queue);
+		log.info('message: createErizoJS, agentId: ' + agent_queue);
 
 		amqper.callRpc(agent_queue, 'createErizoJS', [], {callback: function(resp) {
 			var erizo_id = resp.erizo_id;
