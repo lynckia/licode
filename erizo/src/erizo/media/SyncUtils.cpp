@@ -31,7 +31,7 @@ namespace erizo {
     }
     if (firstRtpTimestamp != 0 && toReturn < firstRtpTimestamp) {
       toReturn += 0xFFFFFFFF;
-      ELOG_DEBUG("Timestamp Wrapped - isVideo: %d, firstRTPTimestamp: %ld, wrapped: %ld",
+      ELOG_DEBUG("Timestamp Wrapped - isVideo: %d, firstRTPTimestamp: %lld, wrapped: %lld",
       isVideo, firstRtpTimestamp, toReturn);
     }
     return toReturn;
@@ -50,13 +50,13 @@ namespace erizo {
     // If the rtp timestamp is < of the first rtcp packet timestamp, return false.
     // (discard this packet to avoid problems)
     if (rtp_timestamp < GetVectorPosition(0, rtcp, isVideo)) {
-      ELOG_WARN("RtpToNtpMs: isVideo: %d, This packet is too early. Discard to avoid problems %ld / %ld, next: %ld",
+      ELOG_WARN("RtpToNtpMs: isVideo: %d, This packet is too early. Discard to avoid problems %lld / %lld, next: %lld",
       isVideo, rtp_timestamp, GetVectorPosition(0, rtcp, isVideo), GetVectorPosition(1, rtcp, isVideo));
       return false;
     }
     // Discard all the old rtcp packets.
     while (rtcp.size() >1 && rtp_timestamp > GetVectorPosition(1, rtcp, isVideo)) {
-      ELOG_DEBUG("RtpToNtpMs: isVideo: %d, Drop an old rtcp packet. rtp: %ld, next rtcp: %ld",
+      ELOG_DEBUG("RtpToNtpMs: isVideo: %d, Drop an old rtcp packet. rtp: %lld, next rtcp: %lld",
       isVideo, rtp_timestamp, GetVectorPosition(1, rtcp, isVideo));
       rtcp.erase(rtcp.begin());
     }
