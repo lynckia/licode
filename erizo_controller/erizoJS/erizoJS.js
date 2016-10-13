@@ -87,14 +87,14 @@ amqper.connect(function () {
 
         var rpcID = process.argv[2];
 
-        log.info("ID: ErizoJS_" + rpcID);
+        log.info("message: Started, erizoId: " + rpcID);
 
         amqper.bind("ErizoJS_" + rpcID, function() {
-            log.info("ErizoJS bound to amqp queue");
+            log.debug("message: bound to amqp queue, queueId: ErizoJS_" + rpcID );
             
         });
     } catch (err) {
-        log.error("AMQP connection error", err);
+        log.error("message: AMQP connection error, error:", err);
     }
 
 });

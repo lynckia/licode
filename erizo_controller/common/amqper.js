@@ -46,20 +46,20 @@ exports.connect = function(callback) {
         //Create a direct exchange
         rpc_exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
             try {
-                log.info('Exchange ' + exchange.name + ' is open');
+                log.info('message: rpcExchange open, exchangeName: ' + exchange.name);
 
                 //Create the queue for receiving messages
                 clientQueue = connection.queue('', function (q) {
-                    log.info('ClientQueue ' + q.name + ' is open');
+                    log.info('message: clientqueue open, queuename: ' + q.name);
 
                     clientQueue.bind('rpcExchange', clientQueue.name, callback);
 
                     clientQueue.subscribe(function (message) {
                         try {
-                            log.debug("New message received", message);
+                            log.debug("message: message received, queueName: " + clientQueue.name + ", message:", message);
 
                             if(map[message.corrID] !== undefined) {
-                                log.debug("Callback", message.type, " - ", message.data);
+                                log.debug("message: Callback, queueName: " + clientQueue.name + ", messageType: " + message.type + ", messageData", message.data);
                                 clearTimeout(map[message.corrID].to);
                                 if (message.type === "onReady") map[message.corrID].fn[message.type].call({});
                                 else map[message.corrID].fn[message.type].call({}, message.data);
@@ -68,24 +68,24 @@ exports.connect = function(callback) {
                                 }, REMOVAL_TIMEOUT);
                             }
                         } catch(err) {
-                            log.error("Error processing response: ", err);
+                            log.error("message: error processing message, queueName: " + clientQueue.name + ", errorMsg:" , err);
                         }
                     });
 
                 });
             } catch (err) {
-                log.error("Error in exchange ", exchange.name, " - error - ", err);
+                log.error("message: exchange error, exchangeName: " + exchange.name + ", errorMsg: ", err);
             }
         });
 
         //Create a fanout exchange
         broadcast_exc = connection.exchange('broadcastExchange', {type: 'topic', autoDelete: false}, function (exchange) {
-            log.info('Exchange ' + exchange.name + ' is open');
+            log.info('message: exchange open, exchangeName: ' + exchange.name);
         });
     });
 
     connection.on('error', function(e) {
-       log.error('Connection error...', e, " killing process.");
+       log.error('message: AMQP connection error killing process, errorMsg: ', e);
        process.exit(1);
     });
 }
@@ -95,24 +95,24 @@ exports.bind = function(id, callback) {
     //Create the queue for receive messages
     var q = connection.queue(id, function (queueCreated) {
         try {
-            log.info('Queue ' + queueCreated.name + ' is open');
+            log.info('message: queue open, queueName: ' + q.name);
 
             q.bind('rpcExchange', id, callback);
             q.subscribe(function (message) {
                 try {
-                    log.debug("New message received", message);
+                    log.debug("message: message received, queueName: " + q.name + ", messageData: ", message);
                     message.args = message.args || [];
                     message.args.push(function(type, result) {
                         rpc_exc.publish(message.replyTo, {data: result, corrID: message.corrID, type: type});
                     });
                     rpcPublic[message.method].apply(rpcPublic, message.args);
                 } catch (error) {
-                    log.error("Error processing call: ", error);
+                    log.error("message: error processing call, queueName: " + q.name + ", errorMsg:" , error);
                 }
 
             });
         } catch (err) {
-            log.error("Error in exchange ", exchange.name, " - error - ", err);
+            log.error("message: exchange error, exchangeName: " + exchange.name + ", errorMsg: ", err);
         }
 
     });
@@ -124,7 +124,7 @@ exports.bind_broadcast = function(id, callback) {
     //Create the queue for receive messages
     var q = connection.queue('', function (queueCreated) {
         try {
-            log.info('Queue ' + queueCreated.name + ' is open');
+            log.info('message: broadcast queue open, queueName: ' + q.name);
 
             q.bind('broadcastExchange', id);
             q.subscribe(function (body){
@@ -143,7 +143,7 @@ exports.bind_broadcast = function(id, callback) {
             });
             
         } catch (err) {
-            log.error("Error in exchange ", exchange.name, " - error - ", err);
+            log.error("message: exchange error, exchangeName: " + exchange.name + ", errorMsg: ", err);
         }
 
     });

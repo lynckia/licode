@@ -35,7 +35,7 @@ exports.MonitorSubscriber = function (log) {
         var lastAverage, average, lastBWValue, toRecover;
         var nextRetry = 0;
         wrtc.bwStatus = BW_STABLE;
-        log.debug("Start wrtc adapt scheme - notify-break-recover", wrtc.minVideoBW);
+        log.info("message: Start wrtc adapt scheme, id: " + wrtc.wrtcId + ", scheme: notify-break-recover, minVideoBW: " + wrtc.minVideoBW);
 
         wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
         wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(1-0.2));
@@ -43,7 +43,6 @@ exports.MonitorSubscriber = function (log) {
         var intervalId = setInterval(function () {
             var newStats = wrtc.getStats();
             if (newStats == null){
-                log.debug("Stopping BW Monitoring");
                 clearInterval(intervalId);
                 return;
             }
@@ -67,7 +66,7 @@ exports.MonitorSubscriber = function (log) {
                 case BW_STABLE:
                     if(average <= lastAverage && (average < wrtc.lowerThres)){
                         if (++ticks > 2){
-                            log.debug("STABLE STATE, Bandwidth is insufficient, moving to state BW_INSUFFICIENT", average, "lowerThres", wrtc.lowerThres);
+                            log.debug("message: scheme state change, id: " + wrtc.wrtcId + ", previousState: BW_STABLE, newState: BW_INSUFFICIENT, averageBandwidth: " + average + ", lowerThreshold: " + wrtc.lowerThres);
                             if (!onlyNotifyBW){
                                 wrtc.bwStatus = BW_INSUFFICIENT;
                                 wrtc.setFeedbackReports(false, toRecover);
@@ -79,7 +78,7 @@ exports.MonitorSubscriber = function (log) {
                     break;
                 case BW_INSUFFICIENT:
                     if(average > wrtc.upperThres){
-                        log.debug("BW_INSUFFICIENT State: we have recovered", average, "lowerThres", wrtc.lowerThres);
+                        log.debug("message: scheme state change, id: " + wrtc.wrtcId + ", previousState: BW_INSUFFICIENT, newState: BW_STABLE, averageBandwidth: " + average + ", lowerThreshold: " + wrtc.lowerThres);
                         ticks = 0;
                         nextRetry = 0;
                         retries = 0;
@@ -88,7 +87,7 @@ exports.MonitorSubscriber = function (log) {
                         callback('callback', {type:'bandwidthAlert', message:'recovered', bandwidth: average});
                     }
                     else if (retries>=3){
-                        log.debug("BW_INSUFFICIENT State: moving to won't recover", average, "lowerThres", wrtc.lowerThres);
+                        log.debug("message: scheme state change, id: " + wrtc.wrtcId + ", previousState: BW_INSUFFICIENT, newState: WONT_RECOVER, averageBandwidth: " + average + ", lowerThreshold: " + wrtc.lowerThres);
                         wrtc.bwStatus = BW_WONTRECOVER; 
                     }
                     else if (nextRetry === 0){  //schedule next retry
@@ -101,9 +100,9 @@ exports.MonitorSubscriber = function (log) {
                     }
                     break;
                 case BW_RECOVERING:
-                    log.debug("In RECOVERING state lastValue", lastBWValue, "lastAverage", lastAverage, "lowerThres", wrtc.lowerThres);
+                    log.debug("message: trying to recover, id: " + wrtc.wrtcId + ", state: BW_RECOVERING, lastBandwidthValue: " + lastBWValue + ", lastAverageBandwidth: " + lastAverage + ", lowerThreshold: " + wrtc.lowerThres);
                     if(average > wrtc.upperThres){ 
-                        log.debug("BW_RECOVERING State: we have recovered", average, "lowerThres", wrtc.lowerThres);
+                        log.debug("message: recovered, id: " + wrtc.wrtcId + ", state: BW_RECOVERING, newState: BW_STABLE, averageBandwidth: " + average + ", lowerThreshold: " + wrtc.lowerThres);
                         ticks = 0;
                         nextRetry = 0;
                         retries = 0;
@@ -112,13 +111,13 @@ exports.MonitorSubscriber = function (log) {
                         callback('callback', {type:'bandwidthAlert', message:'recovered', bandwidth: average});
                     }
                     else if (average> lastAverage){ //we are recovering
-                        log.debug("BW_RECOVERING State: we have improved, more trying time", average, "lowerThres", wrtc.lowerThres);
+                        log.debug("message: bw improvement, id: " + wrtc.wrtcId + ", state: BW_RECOVERING, averageBandwidth: " + average + ", lowerThreshold: " + wrtc.lowerThres);
                         wrtc.setFeedbackReports(false, average*(1+0.3));
                         ticksToTry=ticks+10;
 
                     }
                     else if (++ticks >= ticksToTry){ //finish this retry
-                        log.debug("BW_RECOVERING State: Finished this retry", retries, average, "lowerThres", wrtc.lowerThres);
+                        log.debug("message: recovery tick passed, id: " + wrtc.wrtcId + ", state: BW_RECOVERING, numberOfRetries: " + retries + ", averageBandwidth: " + average + ", lowerThreshold: " + wrtc.lowerThres);
                         ticksToTry = 0;
                         nextRetry = 0;
                         retries++;
@@ -127,7 +126,7 @@ exports.MonitorSubscriber = function (log) {
                     }
                     break;
                 case BW_WONTRECOVER:
-                    log.debug("BW_WONTRECOVER", average, "lowerThres", wrtc.lowerThres);
+                    log.debug("message: Stop trying to recover, id: " + wrtc.wrtcId + ", state: BW_WONT_RECOVER, averageBandwidth: " + average + ", lowerThreshold: " + wrtc.lowerThres);
                     ticks = 0;
                     nextRetry = 0;
                     retries = 0;
@@ -139,7 +138,7 @@ exports.MonitorSubscriber = function (log) {
                     callback('callback', {type:'bandwidthAlert', message:'audio-only', bandwidth: average});
                     break;
                 default:
-                    log.error("Unknown BW status");
+                    log.error("message: Unknown BW status, id: " + wrtc.wrtcId);
             }
             lastAverage = average;
         }, INTERVAL_STATS);
