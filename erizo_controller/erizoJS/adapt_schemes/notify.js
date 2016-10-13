@@ -28,7 +28,7 @@ exports.MonitorSubscriber = function (log) {
         wrtc.bwValues = [];
         var ticks = 0;
         var lastAverage, average, lastBWValue, toRecover;
-        log.debug("Start wrtc adapt scheme - notify", wrtc.minVideoBW);
+        log.info("message: Start wrtc adapt scheme, id: " + wrtc.wrtcId + ", scheme: notify, minVideoBW: " + wrtc.minVideoBW);
 
         wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
         wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(1-0.2));
@@ -37,7 +37,6 @@ exports.MonitorSubscriber = function (log) {
                
             var newStats = wrtc.getStats();
             if (newStats == null){
-                log.debug("Stopping BW Monitoring");
                 clearInterval(intervalId);
                 return;
             }
@@ -58,7 +57,7 @@ exports.MonitorSubscriber = function (log) {
             }
             if(average <= lastAverage && (average < wrtc.lowerThres)){
                 if (++ticks > 2){
-                    log.debug("Bandwidth is insufficient, will notify the client. Current average", average, "lowerThres", wrtc.lowerThres);
+                    log.debug("message: Insufficient Bandwidth, id: " + wrtc.wrtcId + ", averageBandwidth: " + average + ", lowerThreshold: " + wrtc.lowerThres);
                     ticks = 0;
                     callback('callback', {type:'bandwidthAlert', message:'insufficient', bandwidth: average});
                 }

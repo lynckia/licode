@@ -1,15 +1,19 @@
 /*
  * SDPProcessor.cpp
  */
+#include "SdpInfo.h"
+
+#include <stdio.h>
 
 #include <sstream>
-#include <stdio.h>
 #include <cstdlib>
 #include <cstring>
+#include <map>
+#include <string>
+#include <vector>
 
 #include "rtp/RtpHeaders.h"
-#include "SdpInfo.h"
-#include "StringUtil.h"
+#include "./StringUtil.h"
 
 using std::endl;
 namespace erizo {
@@ -242,21 +246,18 @@ namespace erizo {
     }
   }
 
-  void SdpInfo::getCredentials(std::string& username, std::string& password, MediaType media) {
-    switch(media){
-      case(VIDEO_TYPE):
-        username.replace(0, username.length(),iceVideoUsername_);
-        password.replace(0, username.length(),iceVideoPassword_);
-        break;
-      case(AUDIO_TYPE):
-        username.replace(0, username.length(),iceAudioUsername_);
-        password.replace(0, username.length(),iceAudioPassword_);
-        break;
-      default:
-        username.replace(0, username.length(),iceVideoUsername_);
-        password.replace(0, username.length(),iceVideoPassword_);
-        break;
+  std::string SdpInfo::getUsername(MediaType media) const {
+    if (media == AUDIO_TYPE) {
+      return iceAudioUsername_;
     }
+    return iceVideoUsername_;
+    }
+
+  std::string SdpInfo::getPassword(MediaType media) const {
+    if (media == AUDIO_TYPE) {
+      return iceAudioPassword_;
+    }
+    return iceVideoPassword_;
   }
 
   std::string SdpInfo::getSdp() {
@@ -380,7 +381,6 @@ namespace erizo {
             }else{
               sdp << "a=fmtp:" << payloadType << " " << theIt->second << endl;
             }
-
           }
         }
       }
@@ -394,7 +394,6 @@ namespace erizo {
         "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl<<
         "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl<<
         "a=ssrc:"<< audioSsrc << " label:" << msidtemp <<"a0"<<endl;
-
     }
 
     if (printedVideo && this->hasVideo) {
@@ -482,7 +481,6 @@ namespace erizo {
             }else{
               sdp << "a=fmtp:" << payloadType << " " << theIt->second << endl;
             }
-
           }
         }
       }
@@ -524,19 +522,17 @@ namespace erizo {
 
   bool SdpInfo::supportPayloadType(const int payloadType) {
     if (inOutPTMap.count(payloadType) > 0) {
-
       for (unsigned int it = 0; it < payloadVector.size(); it++) {
         const RtpMap& rtp = payloadVector[it];
         if (inOutPTMap[rtp.payloadType] == payloadType) {
           return true;
         }
       }
-
     }
     return false;
   }
 
-  // TODO: Should provide hints
+  // TODO(pedro): Should provide hints
   void SdpInfo::createOfferSdp(bool videoEnabled, bool audioEnabled){
     ELOG_DEBUG("Creating offerSDP: video %d, audio %d", videoEnabled, audioEnabled);
     this->payloadVector = internalPayloadVector_;
@@ -614,11 +610,9 @@ namespace erizo {
     }
     */
     ELOG_DEBUG("Offer SDP successfully set");
-
   }
 
   bool SdpInfo::processSdp(const std::string& sdp, const std::string& media) {
-
     std::string line;
     std::istringstream iss(sdp);
     int mlineNum = -1;
@@ -831,7 +825,8 @@ namespace erizo {
             inOutPTMap[rtp.payloadType] = PT;
             theMap.channels = rtp.channels;
             found = true;
-            ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d", codecname.c_str(), clock, PT, rtp.encodingName.c_str(), rtp.clockRate, rtp.payloadType);
+            ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d",
+                       codecname.c_str(), clock, PT, rtp.encodingName.c_str(), rtp.clockRate, rtp.payloadType);
           }
         }
         if (found) {
@@ -878,8 +873,6 @@ namespace erizo {
             }
           }
         } else if (parts.size()==4){
-
-
         }
       }
 
@@ -892,7 +885,6 @@ namespace erizo {
           }
         }
       }
-
     }
     // If there is no video or audio credentials we use the ones we have
     if (iceVideoUsername_.empty() && iceAudioUsername_.empty()){
@@ -984,8 +976,7 @@ namespace erizo {
     return getAudioExternalPT(internalPT);
   }
 
-  bool SdpInfo::processCandidate(std::vector<std::string>& pieces, MediaType mediaType) {
-
+  bool SdpInfo::processCandidate(const std::vector<std::string>& pieces, MediaType mediaType) {
     CandidateInfo cand;
     static const char* types_str[] = { "host", "srflx", "prflx", "relay" };
     cand.mediaType = mediaType;
@@ -1064,5 +1055,4 @@ namespace erizo {
 
     s[len] = 0;
   }
-}/* namespace erizo */
-
+}  // namespace erizo

@@ -10,7 +10,11 @@ LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
 pause() {
-  read -p "$*"
+  if [ "$UNATTENDED" == "true" ]; then
+    echo "$*"
+  else
+    read -p "$* [press Enter]"
+  fi
 }
 
 parse_arguments(){
@@ -19,12 +23,44 @@ parse_arguments(){
       "--enable-gpl")
         ENABLE_GPL=true
         ;;
+      "--unattended")
+        UNATTENDED=true
+        ;;
+      "--disable-services")
+        DISABLE_SERVICES=true
+        ;;
+      "--use-cache")
+        CACHE=true
+        ;;
+
     esac
     shift
   done
 }
 
+check_result() {
+  if [ "$1" -eq 1 ]
+  then
+    exit 1
+  fi
+}
+
+install_homebrew_from_cache(){
+  if [ -f cache/homebrew-cache.tar.gz ]; then
+    tar xzf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar
+    brew link glib pkg-config boost cmake yasm log4cxx gettext
+  fi
+}
+
+copy_homebrew_to_cache(){
+  mkdir cache
+  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx gettext
+}
+
 install_homebrew(){
+  if [ "$CACHE" == "true" ]; then
+    install_homebrew_from_cache
+  fi
   which -s brew
   if [[ $? != 0 ]] ; then
     # Install Homebrew
@@ -33,8 +69,11 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost cmake mongodb rabbitmq yasm log4cxx
+  brew install glib pkg-config boost cmake yasm log4cxx gettext
   npm install -g node-gyp
+  if [ "$DISABLE_SERVICES" != "true" ]; then
+    brew install rabbitmq mongodb
+  fi
 }
 
 install_openssl(){
@@ -43,9 +82,8 @@ install_openssl(){
     curl -O https://www.openssl.org/source/openssl-1.0.1g.tar.gz
     tar -zxvf openssl-1.0.1g.tar.gz
     cd openssl-1.0.1g
-    ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -shared -fPIC
-    make -s V=0
-    make install_sw
+    ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -shared -fPIC && make -s V=0 && make install_sw
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -59,11 +97,11 @@ install_libnice(){
     curl -O https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
     tar -zxvf libnice-0.1.4.tar.gz
     cd libnice-0.1.4
-    patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
-    echo nice_agent_set_port_range >> nice/libnice.sym
-    ./configure --prefix=$PREFIX_DIR
-    make -s V=0
-    make install
+    patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0 && \
+    patch -p1 < $PATHNAME/libnice-014.patch1
+    check_result $?
+    ./configure --prefix=$PREFIX_DIR && make -s V=0 && make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -74,24 +112,24 @@ install_libnice(){
 install_libsrtp(){
   cd $ROOT/third_party/srtp
   CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR
-  make -s V=0
-  make uninstall
-  make install
+  make -s V=0 && make uninstall && make install
+  check_result $?
   cd $CURRENT_DIR
 }
 
 install_mediadeps(){
-  brew install opus libvpx x264 
+  brew install opus libvpx x264
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-11.6.tar.gz
     tar -zxvf libav-11.6.tar.gz
     cd libav-11.6
     curl -O https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
-    patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
-    make -s V=0
+    patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch && \
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus && \
+    make -s V=0 && \
     make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -100,17 +138,18 @@ install_mediadeps(){
 }
 
 install_mediadeps_nogpl(){
-  brew install opus libvpx 
+  brew install opus libvpx
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     curl -O https://www.libav.org/releases/libav-11.6.tar.gz
     tar -zxvf libav-11.6.tar.gz
     cd libav-11.6
     curl -O https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
-    patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus
-    make -s V=0
+    patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch && \
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus && \
+    make -s V=0 && \
     make install
+    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -122,19 +161,19 @@ parse_arguments $*
 
 mkdir -p $LIB_DIR
 
-pause "Installing homebrew... [press Enter]"
+pause "Installing homebrew..."
 install_homebrew
 
-pause "Installing deps via homebrew... [press Enter]"
+pause "Installing deps via homebrew..."
 install_brew_deps
 
-pause 'Installing openssl... [press Enter]'
+pause 'Installing openssl...'
 install_openssl
 
-pause 'Installing liblibnice... [press Enter]'
+pause 'Installing liblibnice...'
 install_libnice
 
-pause 'Installing libsrtp... [press Enter]'
+pause 'Installing libsrtp...'
 install_libsrtp
 
 if [ "$ENABLE_GPL" = "true" ]; then
@@ -143,4 +182,8 @@ if [ "$ENABLE_GPL" = "true" ]; then
 else
   pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
   install_mediadeps_nogpl
+fi
+
+if [ "$CACHE" == "true" ]; then
+  copy_homebrew_to_cache
 fi

@@ -8,10 +8,12 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef SYSTEM_WRAPPERS_INTERFACE_SCOPED_REFPTR_H_
-#define SYSTEM_WRAPPERS_INTERFACE_SCOPED_REFPTR_H_
+#ifndef ERIZO_SRC_ERIZO_RTP_WEBRTC_SCOPED_REFPTR_H_
+#define ERIZO_SRC_ERIZO_RTP_WEBRTC_SCOPED_REFPTR_H_
 
 #include <stddef.h>
+
+#include <utility>
 
 namespace webrtc {
 
@@ -71,7 +73,7 @@ class scoped_refptr {
   scoped_refptr() : ptr_(NULL) {
   }
 
-  scoped_refptr(T* p) : ptr_(p) {
+  explicit scoped_refptr(T* p) : ptr_(p) {
     if (ptr_)
       ptr_->AddRef();
   }
@@ -141,4 +143,4 @@ class scoped_refptr {
 };
 }  // namespace webrtc
 
-#endif  // SYSTEM_WRAPPERS_INTERFACE_SCOPED_REFPTR_H_
+#endif  // ERIZO_SRC_ERIZO_RTP_WEBRTC_SCOPED_REFPTR_H_

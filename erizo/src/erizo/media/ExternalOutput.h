@@ -1,22 +1,27 @@
-#ifndef EXTERNALOUTPUT_H_
-#define EXTERNALOUTPUT_H_
+#ifndef ERIZO_SRC_ERIZO_MEDIA_EXTERNALOUTPUT_H_
+#define ERIZO_SRC_ERIZO_MEDIA_EXTERNALOUTPUT_H_
 
-#include "../MediaDefinitions.h"
-#include "rtp/RtpPacketQueue.h"
-#include "rtp/webrtc/fec_receiver_impl.h"
-#include "MediaProcessor.h"
-#include "boost/thread.hpp"
-#include "logger.h"
+#include <boost/thread.hpp>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 }
 
-namespace erizo{
-#define UNPACKAGE_BUFFER_SIZE 200000
-class WebRtcConnection;
+#include <string>
 
+#include "./MediaDefinitions.h"
+#include "rtp/RtpPacketQueue.h"
+#include "rtp/webrtc/fec_receiver_impl.h"
+#include "media/MediaProcessor.h"
+
+#include "./logger.h"
+
+namespace erizo{
+
+#define UNPACKAGE_BUFFER_SIZE 200000
+
+class WebRtcConnection;
 
 // Our search state for VP8 frames.
 enum vp8SearchState {
@@ -26,11 +31,12 @@ enum vp8SearchState {
 
 class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource, public webrtc::RtpData {
     DECLARE_LOGGER();
+
 public:
-    ExternalOutput(const std::string& outputUrl);
+  explicit ExternalOutput(const std::string& outputUrl);
     virtual ~ExternalOutput();
     bool init();
-    void receiveRawData(RawDataPacket& packet);
+  void receiveRawData(const RawDataPacket& packet);
 
     // webrtc::RtpData callbacks.  This is for Forward Error Correction (per rfc5109) handling.
     virtual bool OnRecoveredPacket(const uint8_t* packet, int packet_length);
@@ -72,11 +78,11 @@ private:
     // outputted in an attempt to re-order incoming packets.  So when we receive an audio or video packet,
     // we set firstDataReceived_.  We then use that to compute audio/videoStartTimeOffset_ appropriately,
     // and that value is added to every timestamp we write.
-    long long firstVideoTimestamp_;
-    long long firstAudioTimestamp_;
-    long long firstDataReceived_;
-    long long videoOffsetMsec_;
-    long long audioOffsetMsec_;
+  long long firstVideoTimestamp_;  // NOLINT
+  long long firstAudioTimestamp_;  // NOLINT
+  long long firstDataReceived_;  // NOLINT
+  long long videoOffsetMsec_;  // NOLINT
+  long long audioOffsetMsec_;  // NOLINT
 
 
     // The last sequence numbers we received for audio and video.  Allows us to react to packet loss.
@@ -99,5 +105,5 @@ private:
     void writeAudioData(char* buf, int len);
     void writeVideoData(char* buf, int len);
 };
-}
-#endif /* EXTERNALOUTPUT_H_ */
+}  // namespace erizo
+#endif  // ERIZO_SRC_ERIZO_MEDIA_EXTERNALOUTPUT_H_

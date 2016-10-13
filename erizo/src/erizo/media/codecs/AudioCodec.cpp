@@ -1,13 +1,15 @@
 /**
  * AudioCodec.pp
  */
-
-#include "AudioCodec.h"
-#include "../../rtp/RtpHeaders.h"
+#include "rtp/RtpHeaders.h"
+#include "media/codecs/AudioCodec.h"
 
 #include <cstdio>
 #include <cstdlib>
-#include <string.h>
+#include <cstring>
+#include <string>
+
+using std::memcpy;
 
 #define OUTPUT_SAMPLE_RATE 48000
 #define OUTPUT_CHANNELS 2
@@ -20,11 +22,8 @@ namespace erizo {
     DEFINE_LOGGER(AudioEncoder, "media.codecs.AudioEncoder");
     DEFINE_LOGGER(AudioDecoder, "media.codecs.AudioDecoder");
 
-    inline  AVCodecID
-        AudioCodecID2ffmpegDecoderID(AudioCodecID codec)
-        {
-            switch (codec)
-            {
+inline AVCodecID AudioCodecID2ffmpegDecoderID(AudioCodecID codec) {
+  switch (codec) {
                 case AUDIO_CODEC_PCM_U8: return AV_CODEC_ID_PCM_U8;
                 case AUDIO_CODEC_VORBIS: return AV_CODEC_ID_VORBIS;
                 default: return AV_CODEC_ID_PCM_U8;
@@ -418,7 +417,6 @@ namespace erizo {
         output_codec_context->sample_fmt     = output_codec->sample_fmts[0]; //u8
         output_codec_context->bit_rate       = 510000;
         
-        
         /** Allow the use of the experimental feature */
         output_codec_context->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
 
@@ -514,4 +512,4 @@ namespace erizo {
         }
         return 0;
     }
-}
+}  // namespace erizo

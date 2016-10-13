@@ -1,15 +1,8 @@
-#ifndef EXTERNALINPUT_H_
-#define EXTERNALINPUT_H_
+#ifndef ERIZO_SRC_ERIZO_MEDIA_EXTERNALINPUT_H_
+#define ERIZO_SRC_ERIZO_MEDIA_EXTERNALINPUT_H_
 
 #include <boost/scoped_ptr.hpp>
-#include <string> 
-#include <map>
-#include <queue>
-#include "../MediaDefinitions.h"
-#include "codecs/VideoCodec.h"
-#include "MediaProcessor.h"
-#include "boost/thread.hpp"
-#include "logger.h"
+#include <boost/thread.hpp>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -18,13 +11,23 @@ extern "C" {
 #include <libavutil/time.h>
 }
 
+#include <string>
+#include <map>
+#include <queue>
+
+#include "./MediaDefinitions.h"
+#include "codecs/VideoCodec.h"
+#include "media/MediaProcessor.h"
+#include "./logger.h"
+
 namespace erizo{
   class WebRtcConnection;
 
   class ExternalInput : public MediaSource, public RTPDataReceiver {
       DECLARE_LOGGER();
+
     public:
-      ExternalInput (const std::string& inputUrl);
+  explicit ExternalInput(const std::string& inputUrl);
       virtual ~ExternalInput();
       int init();
       void receiveRtpData(unsigned char* rtpdata, int len);
@@ -54,7 +57,6 @@ namespace erizo{
 
       void receiveLoop();
       void encodeLoop();
-
   };
-}
-#endif /* EXTERNALINPUT_H_ */
+}  // namespace erizo
+#endif  // ERIZO_SRC_ERIZO_MEDIA_EXTERNALINPUT_H_

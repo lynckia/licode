@@ -1,11 +1,15 @@
+#ifndef ERIZO_SRC_ERIZO_DTLS_BF_DWRAP_H_
+#define ERIZO_SRC_ERIZO_DTLS_BF_DWRAP_H_
+
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "./config.h"
 #endif
 
-extern "C"
-{
+extern "C" {
      BIO_METHOD *BIO_f_dwrap(void);
 }
+
+#endif  // ERIZO_SRC_ERIZO_DTLS_BF_DWRAP_H_
 
 /* ====================================================================
 

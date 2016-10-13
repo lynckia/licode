@@ -1,26 +1,24 @@
-#ifndef MEDIAPROCESSOR_H_
-#define MEDIAPROCESSOR_H_
+#ifndef ERIZO_SRC_ERIZO_MEDIA_MEDIAPROCESSOR_H_
+#define ERIZO_SRC_ERIZO_MEDIA_MEDIAPROCESSOR_H_
 
 #include <boost/cstdint.hpp>
 #include <sys/time.h>
 #include <arpa/inet.h>
-#include <string>
-
-#include "rtp/RtpVP8Parser.h"
-#include "../MediaDefinitions.h"
-#include "codecs/Codecs.h"
-#include "codecs/VideoCodec.h"
-#include "logger.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
-
 }
 
+#include <string>
+
+#include "rtp/RtpVP8Parser.h"
+#include "./MediaDefinitions.h"
+#include "codecs/Codecs.h"
+#include "codecs/VideoCodec.h"
+#include "./logger.h"
+
 namespace erizo {
-
-
 struct RTPInfo {
 	enum AVCodecID codec;
 	unsigned int ssrc;
@@ -50,7 +48,6 @@ struct MediaInfo {
 	RTPInfo rtpAudioInfo;
 	VideoCodecInfo videoCodec;
 	AudioCodecInfo audioCodec;
-
 };
 
 #define UNPACKAGED_BUFFER_SIZE 150000
@@ -65,24 +62,21 @@ struct MediaInfo {
 
 class RawDataReceiver {
 public:
-	virtual void receiveRawData(RawDataPacket& packet) = 0;
-	virtual ~RawDataReceiver() {
-	}
-	;
+  virtual void receiveRawData(const RawDataPacket& packet) = 0;
+  virtual ~RawDataReceiver() {}
 };
 
 class RTPDataReceiver {
 public:
 	virtual void receiveRtpData(unsigned char* rtpdata, int len) = 0;
-	virtual ~RTPDataReceiver() {
-	}
-	;
+  virtual ~RTPDataReceiver() {}
 };
 
 class RTPSink;
 
 class InputProcessor: public MediaSink {
 	DECLARE_LOGGER();
+
 public:
 	InputProcessor();
 	virtual ~InputProcessor();
@@ -90,17 +84,14 @@ public:
 	int init(const MediaInfo& info, RawDataReceiver* receiver);
 
 
-	int unpackageVideo(unsigned char* inBuff, int inBuffLen,
-            unsigned char* outBuff, int* gotFrame);
+  int unpackageVideo(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff, int* gotFrame);
 
-	int unpackageAudio(unsigned char* inBuff, int inBuffLen,
-			unsigned char* outBuff);
+  int unpackageAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff);
 
   void closeSink();
   void close();
 
 private:
-
 	int audioDecoder;
 	int videoDecoder;
 
@@ -145,19 +136,17 @@ private:
 	int deliverAudioData_(char* buf, int len);
 	int deliverVideoData_(char* buf, int len);
 
-	int decodeAudio(unsigned char* inBuff, int inBuffLen,
-			unsigned char* outBuff);
-
+  int decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff);
 };
 class OutputProcessor: public RawDataReceiver {
 	DECLARE_LOGGER();
-public:
 
+ public:
 	OutputProcessor();
 	virtual ~OutputProcessor();
 	int init(const MediaInfo& info, RTPDataReceiver* rtpReceiver);
   void close();
-	void receiveRawData(RawDataPacket& packet);
+  void receiveRawData(const RawDataPacket& packet);
 
   int packageAudio(unsigned char* inBuff, int inBuffLen, long int pts = 0);
   int packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff,
@@ -176,7 +165,7 @@ private:
 	unsigned int seqnum_;
   unsigned int audioSeqnum_;
 
-	unsigned long timestamp_;
+  unsigned long timestamp_;  // NOLINT
 
 	unsigned char* encodedBuffer_;
 	unsigned char* packagedBuffer_;
@@ -194,7 +183,6 @@ private:
 
   VideoEncoder vCoder;
 
-
 	AVFormatContext* aOutputFormatContext;
 	AVOutputFormat* aOutputFormat;
 
@@ -211,10 +199,8 @@ private:
 	bool initAudioPackager();
 	bool initVideoPackager();
 
-	int encodeAudio(unsigned char* inBuff, int nSamples,
-			AVPacket* pkt);
-
+  int encodeAudio(unsigned char* inBuff, int nSamples, AVPacket* pkt);
 };
-} /* namespace erizo */
+}  // namespace erizo
 
-#endif /* MEDIAPROCESSOR_H_ */
+#endif  // ERIZO_SRC_ERIZO_MEDIA_MEDIAPROCESSOR_H_

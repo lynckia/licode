@@ -8,15 +8,15 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "forward_error_correction_internal.h"
+#include "rtp/webrtc/forward_error_correction_internal.h"
 
 #include <assert.h>
 #include <string.h>
 
-#include "fec_private_tables_bursty.h"
-#include "fec_private_tables_random.h"
+#include "rtp/webrtc/fec_private_tables_bursty.h"
+#include "rtp/webrtc/fec_private_tables_random.h"
 
-namespace {
+namespace {  // NOLINT
 
 // Allow for different modes of protection for packets in UEP case.
 enum ProtectionMode {
@@ -70,13 +70,12 @@ void FitSubMask(int num_mask_bytes, int num_sub_mask_bytes, int num_rows,
 // \param[out] packet_mask        A pointer to hold the output mask, of size
 //                                [0, x * num_mask_bytes],
 //                                where x >= end_row_fec.
-// TODO (marpan): This function is doing three things at the same time:
+// TODO(marpan): This function is doing three things at the same time:
 // shift within a byte, byte shift and resizing.
 // Split up into subroutines.
 void ShiftFitSubMask(int num_mask_bytes, int res_mask_bytes,
                      int num_column_shift, int end_row, const uint8_t* sub_mask,
                      uint8_t* packet_mask) {
-
   // Number of bit shifts within a byte
   const int num_bit_shifts = (num_column_shift % 8);
   const int num_byte_shifts = num_column_shift >> 3;
@@ -128,7 +127,6 @@ void ShiftFitSubMask(int num_mask_bytes, int res_mask_bytes,
     // For the first byte in the row (j=0 case).
     shift_right_curr_byte = sub_mask[pkt_mask_idx2] >> num_bit_shifts;
     packet_mask[pkt_mask_idx] = shift_right_curr_byte;
-
   }
 }
 }  // namespace
@@ -217,7 +215,6 @@ void RemainingPacketProtection(int num_media_packets, int num_fec_remaining,
   } else {
     assert(false);
   }
-
 }
 
 // Protection for important (first partition) packets
@@ -234,7 +231,6 @@ void ImportantPacketProtection(int num_fec_for_imp_packets, int num_imp_packets,
 
   FitSubMask(num_mask_bytes, num_imp_mask_bytes, num_fec_for_imp_packets,
              packet_mask_sub_1, packet_mask);
-
 }
 
 // This function sets the protection allocation: i.e., how many FEC packets
@@ -242,8 +238,7 @@ void ImportantPacketProtection(int num_fec_for_imp_packets, int num_imp_packets,
 // packets, number of FEC packets, and number of 1st partition packets.
 int SetProtectionAllocation(int num_media_packets, int num_fec_packets,
                             int num_imp_packets) {
-
-  // TODO (marpan): test different cases for protection allocation:
+  // TODO(marpan): test different cases for protection allocation:
 
   // Use at most (alloc_par * num_fec_packets) for important packets.
   float alloc_par = 0.5;
@@ -268,7 +263,7 @@ int SetProtectionAllocation(int num_media_packets, int num_fec_packets,
 // Current version has 3 modes (options) to build UEP mask from existing ones.
 // Various other combinations may be added in future versions.
 // Longer-term, we may add another set of tables specifically for UEP cases.
-// TODO (marpan): also consider modification of masks for bursty loss cases.
+// TODO(marpan): also consider modification of masks for bursty loss cases.
 
 // Mask is characterized as (#packets_to_protect, #fec_for_protection).
 // Protection factor defined as: (#fec_for_protection / #packets_to_protect).
@@ -310,9 +305,8 @@ void UnequalProtectionMask(int num_media_packets, int num_fec_packets,
                            int num_imp_packets, int num_mask_bytes,
                            uint8_t* packet_mask,
                            const PacketMaskTable& mask_table) {
-
   // Set Protection type and allocation
-  // TODO (marpan): test/update for best mode and some combinations thereof.
+  // TODO(marpan): test/update for best mode and some combinations thereof.
 
   ProtectionMode mode = kModeOverlap;
   int num_fec_for_imp_packets = 0;
@@ -341,7 +335,6 @@ void UnequalProtectionMask(int num_media_packets, int num_fec_packets,
                               num_fec_for_imp_packets, num_mask_bytes, mode,
                               packet_mask, mask_table);
   }
-
 }
 
 void GeneratePacketMasks(int num_media_packets, int num_fec_packets,
@@ -364,13 +357,11 @@ void GeneratePacketMasks(int num_media_packets, int num_fec_packets,
     memcpy(packet_mask, mask_table.fec_packet_mask_table()[
                             num_media_packets - 1][num_fec_packets - 1],
            num_fec_packets * num_mask_bytes);
-  } else  //UEP case
-      {
+  } else {  // UEP case
     UnequalProtectionMask(num_media_packets, num_fec_packets, num_imp_packets,
                           num_mask_bytes, packet_mask, mask_table);
-
   }  // End of UEP modification
-}  //End of GetPacketMasks
+}  // End of GetPacketMasks
 
 }  // namespace internal
 }  // namespace webrtc

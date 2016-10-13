@@ -1,0 +1,46 @@
+language: node_js
+os:
+#  - osx  TODO Enable again once we add openssl, libnice, libsrtp and libav to cmake
+  - linux
+sudo: required
+dist: trusty
+cache:
+  directories:
+  - node_modules
+  - cache
+node_js:
+  - 0.10
+services:
+  - mongodb
+  - rabbitmq
+addons:
+  apt:
+    packages:
+      - git
+      - make
+      - gcc
+      - g++
+      - libssl-dev
+      - cmake
+      - libglib2.0-dev
+      - pkg-config
+      - libboost-regex-dev
+      - libboost-thread-dev
+      - libboost-system-dev
+      - liblog4cxx10-dev
+      - openjdk-6-jre
+      - curl
+      - libboost-test-dev
+      - yasm
+      - libvpx.
+      - libx264.
+before_install:
+  # OSX
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then   ./scripts/installMacDeps.sh --unattended --disable-services --use-cache;    fi
+
+  # LINUX
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./scripts/installTravisDeps.sh; fi
+install: ./scripts/installErizo.sh && ./scripts/installNuve.sh && npm install
+script:
+  - ./scripts/installErizo.sh -t
+  - npm run lint || true

@@ -3,7 +3,11 @@
  */
 
 #include "OneToManyProcessor.h"
-#include "WebRtcConnection.h"
+
+#include <map>
+#include <string>
+
+#include "./WebRtcConnection.h"
 #include "rtp/RtpHeaders.h"
 
 int64_t audiossrc = 0;
@@ -75,7 +79,6 @@ namespace erizo {
     return 0;
   }
 
-
   void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
       const std::string& peerId) {
     ELOG_DEBUG("Adding subscriber");
@@ -85,7 +88,9 @@ namespace erizo {
     videossrc = publisher->getVideoSourceSSRC();
     webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
     webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
-    ELOG_DEBUG("Subscribers ssrcs: Audio %u, video, %u from %u, %u ", webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC(), this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
+    ELOG_DEBUG("Subscribers ssrcs: Audio %u, video, %u from %u, %u ",
+               webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC(),
+               this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
     FeedbackSource* fbsource = webRtcConn->getFeedbackSource();
 
     if (fbsource!=NULL){
@@ -126,5 +131,4 @@ namespace erizo {
     ELOG_DEBUG ("ClosedAll media in this OneToMany");
   }
 
-}/* namespace erizo */
-
+}  // namespace erizo

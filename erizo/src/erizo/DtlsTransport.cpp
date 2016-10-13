@@ -3,26 +3,32 @@
  */
 
 #include "DtlsTransport.h"
-#include "SrtpChannel.h"
 
+#include <string>
+#include <cstring>
+
+#include "./SrtpChannel.h"
 #include "rtp/RtpHeaders.h"
 
-using namespace erizo;
-using namespace std;
-using namespace dtls;
+using erizo::Resender;
+using erizo::DtlsTransport;
+using dtls::DtlsSocketContext;
 
 DEFINE_LOGGER(DtlsTransport, "DtlsTransport");
 DEFINE_LOGGER(Resender, "Resender");
 
-Resender::Resender(boost::shared_ptr<NiceConnection> nice, unsigned int comp, const unsigned char* data, unsigned int len) : 
-  nice_(nice), comp_(comp), data_(data),len_(len), timer(service) {
+using std::memcpy;
+
+Resender::Resender(boost::shared_ptr<NiceConnection> nice, unsigned int comp,
+                   const unsigned char* data, unsigned int len) :
+  nice_(nice), comp_(comp), data_(data), len_(len), timer(service) {
     sent_ = 0;
   }
 
 Resender::~Resender() {
   ELOG_DEBUG("Resender destructor");
   timer.cancel();
-  if (thread_.get()!=NULL) {
+  if (thread_.get() != NULL) {
     ELOG_DEBUG("Resender destructor, joining thread");
     thread_->join();
     ELOG_DEBUG("Resender thread terminated on destructor");
@@ -37,7 +43,7 @@ void Resender::cancel() {
 void Resender::start() {
   sent_ = 0;
   timer.cancel();
-  if (thread_.get()!=NULL) {
+  if (thread_.get() != NULL) {
     ELOG_WARN("Starting Resender, joining thread to terminate");
     thread_->join();
     ELOG_WARN("Thread terminated on start");
@@ -55,7 +61,7 @@ int Resender::getStatus() {
   return sent_;
 }
 
-void Resender::resend(const boost::system::error_code& ec) {  
+void Resender::resend(const boost::system::error_code& ec) {
   if (ec == boost::asio::error::operation_aborted) {
     ELOG_DEBUG("%s - Cancelled", nice_->transportName->c_str());
     return;
@@ -72,16 +78,17 @@ void Resender::resend(const boost::system::error_code& ec) {
   }
 }
 
-DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, bool bundle, bool rtcp_mux, TransportListener *transportListener, 
-    const IceConfig& iceConfig, std::string username, std::string password, bool isServer):
-  Transport(med, transport_name, bundle, rtcp_mux, transportListener, iceConfig), 
+DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, const std::string& connection_id,
+                            bool bundle, bool rtcp_mux, TransportListener *transportListener,
+                            const IceConfig& iceConfig, std::string username, std::string password, bool isServer):
+  Transport(med, transport_name, connection_id, bundle, rtcp_mux, transportListener, iceConfig),
   readyRtp(false), readyRtcp(false), running_(false), isServer_(isServer) {
-    ELOG_DEBUG( "Initializing DtlsTransport" );
+    ELOG_DEBUG("%s, message: constructor, transportName:%s, isBundle:%d", toLog(), transport_name.c_str(), bundle);
     dtlsRtp.reset(new DtlsSocketContext());
 
     int comps = 1;
-    if (isServer_){
-      ELOG_DEBUG("Creating a DTLS server: passive");
+    if (isServer_) {
+      ELOG_DEBUG("%s, message: creating  passive-server", toLog());
       dtlsRtp->createServer();
       dtlsRtp->setDtlsReceiver(this);
 
@@ -91,8 +98,8 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
         dtlsRtcp->createServer();
         dtlsRtcp->setDtlsReceiver(this);
       }
-    }else{
-      ELOG_DEBUG("Creating a DTLS client: active");
+    } else {
+      ELOG_DEBUG("%s, message: creating active-client", toLog());
       dtlsRtp->createClient();
       dtlsRtp->setDtlsReceiver(this);
 
@@ -103,47 +110,48 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, b
         dtlsRtcp->setDtlsReceiver(this);
       }
     }
-    nice_.reset(new NiceConnection(med, transport_name, this, comps, iceConfig_, username, password));
-    running_ =true;
+    nice_.reset(new NiceConnection(med, transport_name, connection_id_, this, comps, iceConfig_, username, password));
+    running_ = true;
     getNice_Thread_ = boost::thread(&DtlsTransport::getNiceDataLoop, this);
-    ELOG_DEBUG("DtlsTransport Created");
-
+    ELOG_DEBUG("%s, message: created", toLog());
   }
 
 DtlsTransport::~DtlsTransport() {
-  ELOG_DEBUG("DtlsTransport destructor");
-  if (this->state_!=TRANSPORT_FINISHED)
+  ELOG_DEBUG("%s, message: destroying", toLog());
+  if (this->state_ != TRANSPORT_FINISHED) {
     this->close();
-  ELOG_DEBUG("DTLSTransport destructor END");
+  }
+  ELOG_DEBUG("%s, message: destroyed", toLog());
 }
 
 void DtlsTransport::start() {
-  ELOG_DEBUG("Starting ICE main loop");
+  ELOG_DEBUG("%s, message: starting ice", toLog());
   nice_->start();
-};
+}
 
 void DtlsTransport::close() {
-  ELOG_DEBUG("Closing DTLSTransport");
+  ELOG_DEBUG("%s, message: closing", toLog());
   running_ = false;
   nice_->setNiceListener(NULL);
   nice_->close();
-  this->state_=TRANSPORT_FINISHED;
+  this->state_ = TRANSPORT_FINISHED;
   getNice_Thread_.join();
-  ELOG_DEBUG("Finished closing DtlsTransport");
+  ELOG_DEBUG("%s, message: closed", toLog());
 }
 
 void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {
   int length = len;
   SrtpChannel *srtp = srtp_.get();
   if (DtlsTransport::isDtlsPacket(data, len)) {
-    ELOG_DEBUG("%s - Received DTLS message from %u", transport_name.c_str(), component_id);
+    ELOG_DEBUG("%s, message: Received DTLS message, transportName: %s, componentId: %u",
+               toLog(), transport_name.c_str(), component_id);
     if (component_id == 1) {
-      if (rtpResender.get()!=NULL) {
+      if (rtpResender.get() != NULL) {
         rtpResender->cancel();
       }
       dtlsRtp->read(reinterpret_cast<unsigned char*>(data), len);
     } else {
-      if (rtcpResender.get()!=NULL) {
+      if (rtcpResender.get() != NULL) {
         rtcpResender->cancel();
       }
       dtlsRtcp->read(reinterpret_cast<unsigned char*>(data), len);
@@ -155,15 +163,14 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
     if (dtlsRtcp != NULL && component_id == 2) {
       srtp = srtcp_.get();
     }
-    if (srtp != NULL){
-      RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (unprotectBuf_);
-      if (chead->isRtcp()){
-        if(srtp->unprotectRtcp(unprotectBuf_, &length)<0){
+    if (srtp != NULL) {
+      RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(unprotectBuf_);
+      if (chead->isRtcp()) {
+        if (srtp->unprotectRtcp(unprotectBuf_, &length) < 0) {
           return;
         }
       } else {
-
-        if(srtp->unprotectRtp(unprotectBuf_, &length)<0){
+        if (srtp->unprotectRtp(unprotectBuf_, &length) < 0) {
           return;
         }
       }
@@ -171,7 +178,7 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
       return;
     }
 
-    if (length <= 0){
+    if (length <= 0) {
       return;
     }
     getTransportListener()->onTransportData(unprotectBuf_, length, this);
@@ -182,11 +189,9 @@ void DtlsTransport::onCandidate(const CandidateInfo &candidate, NiceConnection *
   getTransportListener()->onCandidate(candidate, this);
 }
 
-
-
 void DtlsTransport::write(char* data, int len) {
   boost::mutex::scoped_lock lock(writeMutex_);
-  if (nice_==NULL)
+  if (nice_ == NULL)
     return;
   int length = len;
   SrtpChannel *srtp = srtp_.get();
@@ -194,7 +199,7 @@ void DtlsTransport::write(char* data, int len) {
   if (this->getTransportState() == TRANSPORT_READY) {
     memcpy(protectBuf_, data, len);
     int comp = 1;
-    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (protectBuf_);
+    RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(protectBuf_);
     if (chead->isRtcp()) {
       if (!rtcp_mux_) {
         comp = 2;
@@ -203,16 +208,15 @@ void DtlsTransport::write(char* data, int len) {
         srtp = srtcp_.get();
       }
       if (srtp && nice_->checkIceState() == NICE_READY) {
-        if(srtp->protectRtcp(protectBuf_, &length)<0) {
+        if (srtp->protectRtcp(protectBuf_, &length) < 0) {
           return;
         }
       }
-    }
-    else{
+    } else {
       comp = 1;
 
       if (srtp && nice_->checkIceState() == NICE_READY) {
-        if(srtp->protectRtp(protectBuf_, &length)<0) {
+        if (srtp->protectRtp(protectBuf_, &length) < 0) {
           return;
         }
       }
@@ -237,22 +241,24 @@ void DtlsTransport::writeDtls(DtlsSocketContext *ctx, const unsigned char* data,
     rtpResender->start();
   }
 
-  ELOG_DEBUG("%s - Sending DTLS message to %d", transport_name.c_str(), comp);
+  ELOG_DEBUG("%s, message: Sending DTLS message, transportName: %s, componentId: %d",
+             toLog(), transport_name.c_str(), comp);
 
   nice_->sendData(comp, data, len);
 }
 
-void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey,std::string serverKey, std::string srtp_profile) {
+void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey, std::string serverKey,
+                                         std::string srtp_profile) {
   boost::mutex::scoped_lock lock(sessionMutex_);
   std::string temp;
-  if (isServer_){ // If we are server, we swap the keys
-    ELOG_DEBUG("It is server, we swap the keys");
+
+  if (isServer_) {  // If we are server, we swap the keys
+    ELOG_DEBUG("%s, message: swapping keys, isServer: %d", toLog(), isServer_);
     clientKey.swap(serverKey);
   }
   if (ctx == dtlsRtp.get()) {
-    ELOG_DEBUG("%s - Setting RTP srtp params, is Server? %d", transport_name.c_str(), this->isServer_);
     srtp_.reset(new SrtpChannel());
-    if (srtp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str())) {
+    if (srtp_->setRtpParams(clientKey, serverKey)) {
       readyRtp = true;
     } else {
       updateTransportState(TRANSPORT_FAILED);
@@ -262,23 +268,23 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
     }
   }
   if (ctx == dtlsRtcp.get()) {
-    ELOG_DEBUG("%s - Setting RTCP srtp params", transport_name.c_str());
     srtcp_.reset(new SrtpChannel());
-    if (srtcp_->setRtpParams((char*) clientKey.c_str(), (char*) serverKey.c_str())) {
+    if (srtcp_->setRtpParams(clientKey, serverKey)) {
       readyRtcp = true;
     } else {
       updateTransportState(TRANSPORT_FAILED);
     }
   }
-  ELOG_DEBUG("%s - Ready? %d %d", transport_name.c_str(), readyRtp, readyRtcp);
+  ELOG_DEBUG("%s, message:HandShakeCompleted, transportName:%s, readyRtp:%d, readyRtcp:%d",
+             toLog(), transport_name.c_str(), readyRtp, readyRtcp);
   if (readyRtp && readyRtcp) {
-    ELOG_DEBUG("%s - Ready!!!", transport_name.c_str());
     updateTransportState(TRANSPORT_READY);
   }
 }
 
-void DtlsTransport::onHandshakeFailed(DtlsSocketContext *ctx, const std::string error){
-  ELOG_WARN("%s - Handshake failed: error %s", transport_name.c_str(), error.c_str());
+void DtlsTransport::onHandshakeFailed(DtlsSocketContext *ctx, const std::string error) {
+  ELOG_WARN("%s, message: Handshake failed, transportName:%s, openSSLerror: %s",
+            toLog(), transport_name.c_str(), error.c_str());
   running_ = false;
   updateTransportState(TRANSPORT_FAILED);
 }
@@ -288,64 +294,60 @@ std::string DtlsTransport::getMyFingerprint() {
 }
 
 void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
-  ELOG_DEBUG( "%s - New NICE state state: %d - Media: %d - is Bundle: %d", transport_name.c_str(), state, mediaType, bundle_);
+  ELOG_DEBUG("%s, message:NiceState, transportName: %s, state: %d, isBundle: %d",
+             toLog(), transport_name.c_str(), state, bundle_);
   if (state == NICE_INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
     updateTransportState(TRANSPORT_STARTED);
-  }
-  else if (state == NICE_CANDIDATES_RECEIVED && this->getTransportState() != TRANSPORT_GATHERED) {
+  } else if (state == NICE_CANDIDATES_RECEIVED && this->getTransportState() != TRANSPORT_GATHERED) {
     updateTransportState(TRANSPORT_GATHERED);
-  }
-  else if(state == NICE_FAILED){
-    ELOG_DEBUG("Nice Failed, no more reading packets");
+  } else if (state == NICE_FAILED) {
+    ELOG_DEBUG("%s, message: Nice Failed", toLog());
     running_ = false;
     updateTransportState(TRANSPORT_FAILED);
-  }
-  else if (state == NICE_READY) {
-    ELOG_INFO("%s - Nice ready", transport_name.c_str());
+  } else if (state == NICE_READY) {
     if (!isServer_ && dtlsRtp && !dtlsRtp->started) {
-      ELOG_INFO("%s - DTLSRTP Start", transport_name.c_str());
+      ELOG_INFO("%s, message: DTLSRTP Start, transportName: %s", toLog(), transport_name.c_str());
       dtlsRtp->start();
     }
     if (!isServer_ && dtlsRtcp != NULL && (!dtlsRtcp->started || rtcpResender->getStatus() < 0)) {
-      ELOG_DEBUG("%s - DTLSRTCP Start", transport_name.c_str());
+      ELOG_DEBUG("%s, message: DTLSRTCP Start, transportName: %s", toLog(), transport_name.c_str());
       dtlsRtcp->start();
     }
   }
 }
 
 void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
-  ELOG_DEBUG( "Processing Local SDP in DTLS Transport" );
+  ELOG_DEBUG("%s, message: processing local sdp, transportName: %s", toLog(), transport_name.c_str());
   localSdp_->isFingerprint = true;
   localSdp_->fingerprint = getMyFingerprint();
-  std::string username;
-  std::string password;
-  nice_->getLocalCredentials(username, password);
-  if (bundle_){
+  std::string username = nice_->getLocalUsername();
+  std::string password = nice_->getLocalPassword();
+  if (bundle_) {
     localSdp_->setCredentials(username, password, VIDEO_TYPE);
     localSdp_->setCredentials(username, password, AUDIO_TYPE);
-  }else{
+  } else {
     localSdp_->setCredentials(username, password, this->mediaType);
   }
-  ELOG_DEBUG( "Processed Local SDP in DTLS Transport with credentials %s, %s", username.c_str(), password.c_str());
+  ELOG_DEBUG("%s, message: processed local sdp, transportName: %s, ufrag: %s, pass: %s",
+             toLog(), transport_name.c_str(), username.c_str(), password.c_str());
 }
 
-void DtlsTransport::getNiceDataLoop(){
-  while(running_){
+void DtlsTransport::getNiceDataLoop() {
+  while (running_) {
     p_ = nice_->getPacket();
     if (p_->length > 0) {
       this->onNiceData(p_->comp, p_->data, p_->length, NULL);
     }
-    if (p_->length == -1){    
-      ELOG_DEBUG("Got an ending packet, will finish getPacket loop");
-      running_=false;
+    if (p_->length == -1) {
+      ELOG_DEBUG("%s, message: closing packet loop", toLog());
+      running_ = false;
       return;
     }
   }
 }
 bool DtlsTransport::isDtlsPacket(const char* buf, int len) {
-  int data = DtlsSocketContext::demuxPacket(reinterpret_cast<const unsigned char*>(buf),len);
-  switch(data)
-  {
+  int data = DtlsSocketContext::demuxPacket(reinterpret_cast<const unsigned char*>(buf), len);
+  switch (data) {
     case DtlsSocketContext::dtls:
       return true;
       break;

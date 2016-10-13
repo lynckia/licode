@@ -8,9 +8,17 @@ BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
 DB_DIR="$BUILD_DIR"/db
 
+check_result() {
+  if [ "$1" -eq 1 ]
+  then
+    exit 1
+  fi
+}
+
 install_nuve(){
   cd $ROOT/nuve
   ./installNuve.sh
+  check_result $?
   cd $CURRENT_DIR
 }
 

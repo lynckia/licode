@@ -167,7 +167,7 @@ Erizo.Room = function (spec) {
 
 
             myStream.pc[arg.peerSocket].oniceconnectionstatechange = function (state) {
-                if (state === 'disconnected') {
+                if (state === 'failed') {
                     myStream.pc[arg.peerSocket].close();
                     delete myStream.pc[arg.peerSocket];
                 }
@@ -234,10 +234,10 @@ Erizo.Room = function (spec) {
             stream = that.remoteStreams[arg.id];
 
             if (stream && stream.failed){
-                L.Logger.info("Received onRemoveStream for a stream that we already marked as failed ", arg.id);
+                L.Logger.debug("Received onRemoveStream for a stream that we already marked as failed ", arg.id);
                 return;
             }else if (!stream){
-                L.Logger.warning("Received a removeStream for", arg.id, "and it has not been registered here, ignoring.");
+                L.Logger.debug("Received a removeStream for", arg.id, "and it has not been registered here, ignoring.");
                 return;
             }
             delete that.remoteStreams[arg.id];
@@ -258,26 +258,28 @@ Erizo.Room = function (spec) {
 
         that.socket.on('connection_failed', function(arg){
             if (arg.type === 'publish'){
-                L.Logger.error("ICE Connection Failed on publishing stream", arg.streamId);
+                L.Logger.error("ICE Connection Failed on publishing stream", arg.streamId, that.state);
                 if (that.state !== DISCONNECTED ) {
                     if(arg.streamId){
-                        var stream = that.localStreams[arg.id];
+                        var stream = that.localStreams[arg.streamId];
                         if (stream && !stream.failed) {
                             stream.failed = true;
                             var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Publishing local stream failed ICE Checks", stream:stream});
                             that.dispatchEvent(disconnectEvt);
+                            that.unpublish(stream);
                         }
                     }
                 }
             }else{
-                L.Logger.error("ICE Connection Failed on subscribe, alerting");
+                L.Logger.error("ICE Connection Failed on subscribe stream", arg.streamId);
                 if (that.state !== DISCONNECTED) {
                     if(arg.streamId){
-                        var stream = remoteStreams[arg.streamId];
+                        var stream = that.remoteStreams[arg.streamId];
                         if (stream && !stream.failed) {
                             stream.failed = true;
                             var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Subscriber failed the ICE Checks, cannot reach Licode for media", stream:stream});
                             that.dispatchEvent(disconnectEvt);
+                            that.unsubscribe(stream);
                         }
                     }
                 }
@@ -285,7 +287,8 @@ Erizo.Room = function (spec) {
         });
         
         that.socket.on('error', function(e){
-            error('Cannot connect to ErizoController (socket.io error)',e);
+            L.Logger.error ("Cannot connect to erizo Controller");
+            if (error) error('Cannot connect to ErizoController (socket.io error)',e);
         });
 
         // First message with the token
@@ -296,17 +299,11 @@ Erizo.Room = function (spec) {
     sendMessageSocket = function (type, msg, callback, error) {
         that.socket.emit(type, msg, function (respType, msg) {
             if (respType === "success") {
-                if (callback !== undefined) {
-                    callback(msg);
-                }
+                    if (callback) callback(msg);
             } else if (respType === "error"){
-                if (error !== undefined) {
-                    error(msg);
-                }
+                if (error) error(msg);
             } else {
-                if (callback !== undefined) {
-                    callback(respType, msg);
-                }
+                if (callback) callback(respType, msg);
             }
 
         });
@@ -316,12 +313,10 @@ Erizo.Room = function (spec) {
     sendSDPSocket = function (type, options, sdp, callback) {
         if (that.state !== DISCONNECTED){
             that.socket.emit(type, options, sdp, function (response, respCallback) {
-                if (callback !== undefined) {
-                    callback(response, respCallback);
-                }
+                if (callback) callback(response, respCallback);
             });
         }else{
-            log.warning("Trying to send a message over a disconnected Socket");
+            L.Logger.warning("Trying to send a message over a disconnected Socket");
         }
     };
 
@@ -390,7 +385,7 @@ Erizo.Room = function (spec) {
         if (options.maxVideoBW > spec.maxVideoBW) {
             options.maxVideoBW = spec.maxVideoBW;
         }
-        
+
         if (options.minVideoBW === undefined){
             options.minVideoBW = 0;
         }
@@ -400,7 +395,7 @@ Erizo.Room = function (spec) {
         }
 
         // 1- If the stream is not local we do nothing.
-        if (stream.local && that.localStreams[stream.getID()] === undefined) {
+        if (stream && stream.local && that.localStreams[stream.getID()] === undefined) {
 
             // 2- Publish Media Stream to Erizo-Controller
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
@@ -419,29 +414,29 @@ Erizo.Room = function (spec) {
                     sendSDPSocket('publish', {state: type, data: stream.hasData(), audio: stream.hasAudio(), video: stream.hasVideo(), 
                         attributes: stream.getAttributes(), createOffer: options.createOffer}, arg, function (id, error) {
 
-                        if (id !== null) {
-                            L.Logger.info('Stream published');
-                            stream.getID = function () {
-                                return id;
-                            };
-                            stream.sendData = function (msg) {
-                                sendDataSocket(stream, msg);
-                            };
-                            stream.setAttributes = function (attrs) {
-                                updateAttributes(stream, attrs);
-                            };
-                            that.localStreams[id] = stream;
-                            stream.room = that;
-                            if (callback)
-                                callback(id);
-                        } else {
-                            L.Logger.error('Error when publishing stream', error);
-                            // Unauth -1052488119
-                            // Network -5
-                            if (callback)
-                                callback(undefined, error);
-                        }
-                    });
+                            if (id !== null) {
+                                L.Logger.info('Stream published');
+                                stream.getID = function () {
+                                    return id;
+                                };
+                                stream.sendData = function (msg) {
+                                    sendDataSocket(stream, msg);
+                                };
+                                stream.setAttributes = function (attrs) {
+                                    updateAttributes(stream, attrs);
+                                };
+                                that.localStreams[id] = stream;
+                                stream.room = that;
+                                if (callback)
+                                    callback(id);
+                            } else {
+                                L.Logger.error('Error when publishing stream', error);
+                                // Unauth -1052488119
+                                // Network -5
+                                if (callback)
+                                    callback(undefined, error);
+                            }
+                        });
 
                 } else if (that.p2p) {
                     // We save them now to be used when actually publishing in P2P mode.
@@ -476,50 +471,49 @@ Erizo.Room = function (spec) {
                         screen: stream.hasScreen(), minVideoBW: options.minVideoBW, attributes: stream.getAttributes(), 
                         createOffer: options.createOffer, scheme: options.scheme}, undefined, function (id, error) {
 
-                        if (id === null) {
-                            L.Logger.error('Error when publishing the stream: ', error);
-                            if (callback)
-                                callback(undefined, error);
-                            return;
-                        }
-
-                        L.Logger.info('Stream assigned an Id, starting the publish process');
-                        stream.getID = function () {
-                            return id;
-                        };
-                        if (stream.hasData()) {
-                            stream.sendData = function (msg) {
-                                sendDataSocket(stream, msg);
-                            };
-                        }
-                        stream.setAttributes = function (attrs) {
-                            updateAttributes(stream, attrs);
-                        };
-                        that.localStreams[id] = stream;
-                        stream.room = that;
-
-                        stream.pc = Erizo.Connection({callback: function (message) {
-                            L.Logger.debug("Sending message", message);
-                            sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: message}, undefined, function () {});
-                        }, iceServers: that.iceServers, maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW, limitMaxAudioBW: spec.maxAudioBW, limitMaxVideoBW: spec.maxVideoBW,audio:stream.hasAudio(), video: stream.hasVideo()});
-                        
-                        stream.pc.addStream(stream.stream);
-                        stream.pc.oniceconnectionstatechange = function (state) {
-                            //TODO --- No one is notifying the other subscribers that this is a failure --- they will only receive onRemoveStream
-                            if (state === 'failed') {
-                                if (that.state !== DISCONNECTED && !stream.failed) {
-                                    stream.failed=true;
-                                    L.Logger.warning("Publishing Stream", stream.getID(), "has failed after successful ICE checks");
-                                    var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Publishing stream failed after connection", stream:stream });
-                                    that.dispatchEvent(disconnectEvt);
-                                    that.unpublish(stream);
-                                }
+                            if (id === null) {
+                                L.Logger.error('Error when publishing the stream: ', error);
+                                if (callback) callback(undefined, error);
+                                return;
                             }
-                        };
-                        if(!options.createOffer)
-                            stream.pc.createOffer();
-                        if(callback) callback(id);
-                    });
+
+                            L.Logger.info('Stream assigned an Id, starting the publish process');
+                            stream.getID = function () {
+                                return id;
+                            };
+                            if (stream.hasData()) {
+                                stream.sendData = function (msg) {
+                                    sendDataSocket(stream, msg);
+                                };
+                            }
+                            stream.setAttributes = function (attrs) {
+                                updateAttributes(stream, attrs);
+                            };
+                            that.localStreams[id] = stream;
+                            stream.room = that;
+
+                            stream.pc = Erizo.Connection({callback: function (message) {
+                                L.Logger.debug("Sending message", message);
+                                sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: message}, undefined, function () {});
+                            }, iceServers: that.iceServers, maxAudioBW: options.maxAudioBW, maxVideoBW: options.maxVideoBW, limitMaxAudioBW: spec.maxAudioBW, limitMaxVideoBW: spec.maxVideoBW,audio:stream.hasAudio(), video: stream.hasVideo()});
+
+                            stream.pc.addStream(stream.stream);
+                            stream.pc.oniceconnectionstatechange = function (state) {
+                                //No one is notifying the other subscribers that this is a failure --- they will only receive onRemoveStream
+                                if (state === 'failed') {
+                                    if (that.state !== DISCONNECTED && stream && !stream.failed) {
+                                        stream.failed=true;
+                                        L.Logger.warning("Publishing Stream", stream.getID(), "has failed after successful ICE checks");
+                                        var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Publishing stream failed after connection", stream:stream });
+                                        that.dispatchEvent(disconnectEvt);
+                                        that.unpublish(stream);
+                                    }
+                                }
+                            };
+                            if(!options.createOffer)
+                                stream.pc.createOffer();
+                            if(callback) callback(id);
+                        });
                 }
             } else if (stream.hasData()) {
                 // 3- Publish Data Stream
@@ -545,22 +539,30 @@ Erizo.Room = function (spec) {
                     if(callback) callback(id);
                 });
             }
+        } else {
+            L.Logger.error("Trying to publish invalid stream");
+            if(callback) callback(undefined,"Invalid Stream");
         }
     };
 
     // Returns callback(id, error)
     that.startRecording = function (stream, callback) {
-        L.Logger.debug("Start Recording stream: " + stream.getID());
-        sendMessageSocket('startRecorder', {to: stream.getID()}, function(id, error){
-            if (id === null){
-                L.Logger.error('Error on start recording', error);
-                if (callback) callback(undefined, error);
-                return;
-            }
+        if (stream){
+            L.Logger.debug("Start Recording stream: " + stream.getID());
+            sendMessageSocket('startRecorder', {to: stream.getID()}, function(id, error){
+                if (id === null){
+                    L.Logger.error('Error on start recording', error);
+                    if (callback) callback(undefined, error);
+                    return;
+                }
 
-            L.Logger.info('Start recording', id);
-            if (callback) callback(id);
-        });
+                L.Logger.info('Start recording', id);
+                if (callback) callback(id);
+            });
+        }else{
+            L.Logger.error("Trying to start recording on an invalid stream", stream);
+            if(callback) callback(undefined, "Invalid Stream");
+        }
     }
 
     // Returns callback(id, error)
@@ -580,7 +582,7 @@ Erizo.Room = function (spec) {
     that.unpublish = function (stream, callback) {
 
         // Unpublish stream from Erizo-Controller
-        if (stream.local) {
+        if (stream && stream.local) {
             // Media stream
             sendMessageSocket('unpublish', stream.getID(), function(result, error){
                 if (result === null){
@@ -594,11 +596,11 @@ Erizo.Room = function (spec) {
 
 
             });
-            var p2p = stream.room.p2p;
+            var p2p = stream.room && stream.room.p2p;
             stream.room = undefined;
             if ((stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) && stream.url === undefined) {
                 if(!p2p){
-                    stream.pc.close();
+                    if (stream.pc) stream.pc.close();
                     stream.pc = undefined;
                 }else{
                     for (var index in stream.pc){
@@ -625,7 +627,7 @@ Erizo.Room = function (spec) {
 
         options = options || {};
 
-        if (!stream.local) {
+        if (stream && !stream.local) {
 
             if (stream.hasVideo() || stream.hasAudio() || stream.hasScreen()) {
                 // 1- Subscribe to Stream
@@ -637,44 +639,44 @@ Erizo.Room = function (spec) {
                     L.Logger.info("Checking subscribe options for", stream.getID());
                     stream.checkOptions(options);
                     sendSDPSocket('subscribe', {streamId: stream.getID(), audio: options.audio, video: options.video, data: options.data, browser: Erizo.getBrowser(), createOffer: options.createOffer,
-                    slideShowMode: options.slideShowMode}, undefined, function (result, error) {
-                        if (result === null) {
-                            L.Logger.error('Error subscribing to stream ', error);
-                            if (callback)
-                                callback(undefined, error);
-                            return;
-                        }
-
-                        L.Logger.info('Subscriber added');
-                          
-                        stream.pc = Erizo.Connection({callback: function (message) {
-                            L.Logger.info("Sending message", message);
-                            sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: message, browser: stream.pc.browser}, undefined, function () {});
-                        }, nop2p: true, audio: options.audio, video: options.video, iceServers: that.iceServers});
-
-                        stream.pc.onaddstream = function (evt) {
-                            // Draw on html
-                            L.Logger.info('Stream subscribed');
-                            stream.stream = evt.stream;
-                            var evt2 = Erizo.StreamEvent({type: 'stream-subscribed', stream: stream});
-                            that.dispatchEvent(evt2);
-                        };
-                        
-                        stream.pc.oniceconnectionstatechange = function (state) {
-                            if (state === 'failed') {
-                                if (that.state !== DISCONNECTED && !stream.failed) {
-                                    stream.failed = true;
-                                    L.Logger.warning("Subscribing stream", stream.getID(), "has failed after successful ICE checks");
-                                    var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Subscribing stream failed after connection", stream:stream });
-                                    that.dispatchEvent(disconnectEvt);
-                                    that.unsubscribe(stream);
-                                }
+                        slideShowMode: options.slideShowMode}, undefined, function (result, error) {
+                            if (result === null) {
+                                L.Logger.error('Error subscribing to stream ', error);
+                                if (callback)
+                                    callback(undefined, error);
+                                return;
                             }
-                        };
-                        
-                        stream.pc.createOffer(true);
-                        if(callback) callback(true);
-                    });
+
+                            L.Logger.info('Subscriber added');
+
+                            stream.pc = Erizo.Connection({callback: function (message) {
+                                L.Logger.info("Sending message", message);
+                                sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: message, browser: stream.pc.browser}, undefined, function () {});
+                            }, nop2p: true, audio: options.audio, video: options.video, iceServers: that.iceServers});
+
+                            stream.pc.onaddstream = function (evt) {
+                                // Draw on html
+                                L.Logger.info('Stream subscribed');
+                                stream.stream = evt.stream;
+                                var evt2 = Erizo.StreamEvent({type: 'stream-subscribed', stream: stream});
+                                that.dispatchEvent(evt2);
+                            };
+
+                            stream.pc.oniceconnectionstatechange = function (state) {
+                                if (state === 'failed') {
+                                    if (that.state !== DISCONNECTED && stream &&!stream.failed) {
+                                        stream.failed = true;
+                                        L.Logger.warning("Subscribing stream", stream.getID(), "has failed after successful ICE checks");
+                                        var disconnectEvt = Erizo.StreamEvent({type: "stream-failed", msg:"Subscribing stream failed after connection", stream:stream });
+                                        that.dispatchEvent(disconnectEvt);
+                                        that.unsubscribe(stream);
+                                    }
+                                }
+                            };
+
+                            stream.pc.createOffer(true);
+                            if(callback) callback(true);
+                        });
 
                 }
             } else if (stream.hasData() && options.data !== false) {
@@ -691,12 +693,25 @@ Erizo.Room = function (spec) {
                     if(callback) callback(true);
                 });
             } else {
-                L.Logger.info("Subscribing to anything");
+                L.Logger.warning ("There's nothing to subscribe to");
+                if (callback) callback(undefined,"Nothing to subscribe to");
                 return;
             }
-
             // Subscribe to stream stream
             L.Logger.info("Subscribing to: " + stream.getID());
+        }else{
+            var error = "Error on subscribe";
+            if (!stream){
+                L.Logger.warning("Cannot subscribe to invalid stream", stream);
+                error = "Invalid or undefined stream";
+            }
+            else if (stream.local){
+                L.Logger.warning("Cannot subscribe to local stream, you should subscribe to the remote version of your local stream");
+                error = "Local copy of stream";
+            }
+            if (callback)
+                callback(undefined, error);
+            return;
         }
     };
 
@@ -705,7 +720,7 @@ Erizo.Room = function (spec) {
 
         // Unsubscribe from stream stream
         if (that.socket !== undefined) {
-            if (!stream.local) {
+            if (stream && !stream.local) {
                 sendMessageSocket('unsubscribe', stream.getID(), function (result, error) {
                     if (result === null) {
                         if (callback)

@@ -1,22 +1,21 @@
 /**
  * VideoCodec.pp
  */
-
-#include "VideoCodec.h"
+#include "media/codecs/VideoCodec.h"
 
 #include <cstdio>
-#include <string.h>
+#include <cstring>
+#include <string>
+
+using std::memcpy;
 
 namespace erizo {
 
   DEFINE_LOGGER(VideoEncoder, "media.codecs.VideoEncoder");
   DEFINE_LOGGER(VideoDecoder, "media.codecs.VideoDecoder");
 
-  inline  AVCodecID
-    VideoCodecID2ffmpegDecoderID(VideoCodecID codec)
-    {
-      switch (codec)
-      {
+inline AVCodecID VideoCodecID2ffmpegDecoderID(VideoCodecID codec) {
+  switch (codec) {
         case VIDEO_CODEC_H264: return AV_CODEC_ID_H264;
         case VIDEO_CODEC_VP8: return AV_CODEC_ID_VP8;
         case VIDEO_CODEC_MPEG4: return AV_CODEC_ID_MPEG4;
@@ -49,7 +48,7 @@ namespace erizo {
     }
 
     vCoderContext->bit_rate = info.bitRate;
-    vCoderContext->rc_min_rate = info.bitRate; //
+  vCoderContext->rc_min_rate = info.bitRate;
     vCoderContext->rc_max_rate = info.bitRate; // VPX_CBR
     vCoderContext->qmin = 0;
     vCoderContext->qmax = 40; // rc_quantifiers
@@ -66,9 +65,8 @@ namespace erizo {
     vCoderContext->height = info.height;
     vCoderContext->pix_fmt = AV_PIX_FMT_YUV420P;
     vCoderContext->time_base = (AVRational) {1, 90000};
-    //
-    vCoderContext->sample_aspect_ratio =
-      (AVRational) {info.width,info.height};
+
+  vCoderContext->sample_aspect_ratio = (AVRational) { info.width, info.height };
     vCoderContext->thread_count = 4;
 
     if (avcodec_open2(vCoderContext, vCoder, NULL) < 0) {
@@ -87,8 +85,7 @@ namespace erizo {
     return 0;
   }
 
-  int VideoEncoder::encodeVideo (unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength, int& hasFrame){
-
+int VideoEncoder::encodeVideo(unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength) {
     int size = vCoderContext->width * vCoderContext->height;
         ELOG_DEBUG("vCoderContext width %d, height %d", vCoderContext->width, vCoderContext->height);
 
@@ -221,7 +218,6 @@ namespace erizo {
     int len;
 
     while (avpkt.size > 0) {
-
       len = avcodec_decode_video2(vDecoderContext, dPicture, &got_picture,
           &avpkt);
 
@@ -243,7 +239,6 @@ namespace erizo {
     }
 
 decoding:
-
     int outSize = vDecoderContext->height * vDecoderContext->width;
 
     if (outBuffLen < (outSize * 3 / 2)) {
@@ -299,4 +294,4 @@ decoding:
     return 0;
   }
 
-}
+}  // namespace erizo

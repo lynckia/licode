@@ -1,13 +1,18 @@
-#include "ExternalInput.h"
-#include "../WebRtcConnection.h"
-#include <cstdio>
+#include "media/ExternalInput.h"
 
 #include "libavutil/opt.h"
 #include <boost/cstdint.hpp>
 #include <sys/time.h>
 #include <arpa/inet.h>
-#include "libavutil/time.h"
 #include "codecs/AudioCodec.h"
+#include <libavutil/time.h>
+
+#include <cstdio>
+#include <cstring>
+
+#include "./WebRtcConnection.h"
+
+using std::memcpy;
 
 namespace erizo {
 
@@ -173,7 +178,6 @@ namespace erizo {
     }
 
     void ExternalInput::receiveLoop(){
-
         av_read_play(context_);//play RTSP
         int gotDecodedFrame = 0;
         startTime_ = av_gettime();
@@ -248,5 +252,4 @@ namespace erizo {
             }
         }
     }
-}
-
+}  // namespace erizo

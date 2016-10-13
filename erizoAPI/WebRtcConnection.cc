@@ -45,30 +45,33 @@ NAN_MODULE_INIT (WebRtcConnection::Init) {
 
 
 NAN_METHOD(WebRtcConnection::New) {
-  if (info.Length()<7){
+  if (info.Length()<8){
     ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
   }
-  //	webrtcconnection(bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort);
+  //	webrtcconnection(std::string id, bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort);
 
   if (info.IsConstructCall()){
     //Invoked as a constructor with 'new WebRTC()'
-    bool a = info[0]->BooleanValue();
-    bool v = info[1]->BooleanValue();
-    String::Utf8Value param(Nan::To<v8::String>(info[2]).ToLocalChecked());
+
+    String::Utf8Value paramId(Nan::To<v8::String>(info[0]).ToLocalChecked());
+    std::string wrtcId = std::string(*paramId);
+    bool a = info[1]->BooleanValue();
+    bool v = info[2]->BooleanValue();
+    String::Utf8Value param(Nan::To<v8::String>(info[3]).ToLocalChecked());
     std::string stunServer = std::string(*param);
-    int stunPort = info[3]->IntegerValue();
-    int minPort = info[4]->IntegerValue();
-    int maxPort = info[5]->IntegerValue();
-    bool trickle = (info[6]->ToBoolean())->BooleanValue();
+    int stunPort = info[4]->IntegerValue();
+    int minPort = info[5]->IntegerValue();
+    int maxPort = info[6]->IntegerValue();
+    bool trickle = (info[7]->ToBoolean())->BooleanValue();
 
     erizo::IceConfig iceConfig;
-    if (info.Length()==11){
-      String::Utf8Value param2(Nan::To<v8::String>(info[7]).ToLocalChecked());
+    if (info.Length()==12){
+      String::Utf8Value param2(Nan::To<v8::String>(info[8]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
-      int turnPort = info[8]->IntegerValue();
-      String::Utf8Value param3(Nan::To<v8::String>(info[9]).ToLocalChecked());
+      int turnPort = info[9]->IntegerValue();
+      String::Utf8Value param3(Nan::To<v8::String>(info[10]).ToLocalChecked());
       std::string turnUsername = std::string(*param3);
-      String::Utf8Value param4(Nan::To<v8::String>(info[10]).ToLocalChecked());
+      String::Utf8Value param4(Nan::To<v8::String>(info[11]).ToLocalChecked());
       std::string turnPass = std::string(*param4);
       iceConfig.turnServer = turnServer;
       iceConfig.turnPort = turnPort;
@@ -84,7 +87,7 @@ NAN_METHOD(WebRtcConnection::New) {
     iceConfig.shouldTrickle = trickle;
 
     WebRtcConnection* obj = new WebRtcConnection();
-    obj->me = new erizo::WebRtcConnection(a, v, iceConfig, obj);
+    obj->me = new erizo::WebRtcConnection(wrtcId, a, v, iceConfig, obj);
     obj->msink = obj->me;
     uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
     uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 

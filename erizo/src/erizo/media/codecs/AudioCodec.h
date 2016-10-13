@@ -1,12 +1,8 @@
 /**
- * VideoCodec.h
+* AudioCodec.h
  */
-
-#ifndef AUDIOCODEC_H_
-#define AUDIOCODEC_H_
-
-#include "Codecs.h"
-#include "logger.h"
+#ifndef ERIZO_SRC_ERIZO_MEDIA_CODECS_AUDIOCODEC_H_
+#define ERIZO_SRC_ERIZO_MEDIA_CODECS_AUDIOCODEC_H_
 
 extern "C" {
 #include <libavutil/avutil.h>
@@ -22,10 +18,14 @@ extern "C" {
 
 }
 
+#include "./Codecs.h"
+#include "./logger.h"
+
 namespace erizo {
 
   class AudioEncoder {
     DECLARE_LOGGER();
+
     public:
       AudioEncoder();
       virtual ~AudioEncoder();
@@ -39,6 +39,7 @@ namespace erizo {
 
   class AudioDecoder {
     DECLARE_LOGGER();
+
     public:
       AudioDecoder();
       virtual ~AudioDecoder();
@@ -63,5 +64,6 @@ namespace erizo {
       AVCodec* codec_;
       int64_t lastPts_;
   };
-}
-#endif /* AUDIOCODEC_H_ */
+
+}  // namespace erizo
+#endif  // ERIZO_SRC_ERIZO_MEDIA_CODECS_AUDIOCODEC_H_

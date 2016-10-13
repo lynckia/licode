@@ -8,16 +8,29 @@ function(test_lib LIB_NAME)
 endfunction(test_lib)
 
 #include
-include_directories("${ERIZO_SOURCE_DIR}" "${THIRD_PARTY_INCLUDE}")
+include_directories("${ERIZO_SOURCE_DIR}" "${THIRD_PARTY_INCLUDE}" "${GMOCK_BUILD}/include")
+link_directories("${GMOCK_BUILD}/lib")
+
+set(CMAKE_CXX_FLAGS "-g -Wall -std=c++0x")
 
 project (ERIZO_TEST)
 file(GLOB_RECURSE ERIZO_TEST_SDPS ${ERIZO_TEST_SOURCE_DIR}/*.sdp)
 file(COPY ${ERIZO_TEST_SDPS} DESTINATION ${ERIZO_TEST_BINARY_DIR})
 file(COPY ${ERIZO_TEST_SOURCE_DIR}/log4cxx.properties DESTINATION ${ERIZO_TEST_BINARY_DIR})
 file(GLOB_RECURSE ERIZO_TEST_SOURCES ${ERIZO_TEST_SOURCE_DIR}/*.cpp ${ERIZO_TEST_SOURCE_DIR}/*.h)
-add_executable(test ${ERIZO_TEST_SOURCES})
-target_link_libraries(test erizo)
+add_executable(tests ${ERIZO_TEST_SOURCES})
+target_link_libraries(tests erizo)
 
-set (BOOST_LIBS thread regex system unit_test_framework)
+set (BOOST_LIBS thread regex system)
 find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
-target_link_libraries(test ${Boost_LIBRARIES})
+target_link_libraries(tests ${Boost_LIBRARIES} gtest_main gmock_main)
+
+add_test(NAME all
+         WORKING_DIRECTORY "${ERIZO_TEST_BINARY_DIR}"
+         COMMAND tests)
+
+add_custom_target(check
+    tests
+    WORKING_DIRECTORY "${ERIZO_TEST_BINARY_DIR}"
+    COMMENT "Running tests"
+)

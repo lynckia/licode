@@ -8,23 +8,22 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_RTP_RTCP_SOURCE_FEC_RECEIVER_IMPL_H_
-#define WEBRTC_MODULES_RTP_RTCP_SOURCE_FEC_RECEIVER_IMPL_H_
+#ifndef ERIZO_SRC_ERIZO_RTP_WEBRTC_FEC_RECEIVER_IMPL_H_
+#define ERIZO_SRC_ERIZO_RTP_WEBRTC_FEC_RECEIVER_IMPL_H_
 
 // This header is included to get the nested declaration of Packet structure.
 
-//#include "webrtc/modules/rtp_rtcp/interface/fec_receiver.h"
-//#include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
-#include "forward_error_correction.h"
-#include "rtp_utility.h"
+// #include "webrtc/modules/rtp_rtcp/interface/fec_receiver.h"
+// #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
+#include "rtp/webrtc/forward_error_correction.h"
+#include "rtp/webrtc/rtp_utility.h"
 #include "boost/thread.hpp"
-//#include "webrtc/typedefs.h"
+// #include "webrtc/typedefs.h"
 
 namespace webrtc {
 
-class RtpData
-{
-public:
+class RtpData {
+ public:
     virtual ~RtpData() {}
 
     virtual int32_t OnReceivedPayloadData(
@@ -40,7 +39,7 @@ class CriticalSectionWrapper;
 
 class FecReceiverImpl {
  public:
-  FecReceiverImpl(RtpData* callback);
+  explicit FecReceiverImpl(RtpData* callback);
   virtual ~FecReceiverImpl();
 
   int32_t AddReceivedRedPacket(const RTPHeader& rtp_header,
@@ -62,4 +61,4 @@ class FecReceiverImpl {
 };
 }  // namespace webrtc
 
-#endif  // WEBRTC_MODULES_RTP_RTCP_SOURCE_FEC_RECEIVER_IMPL_H_
+#endif  // ERIZO_SRC_ERIZO_RTP_WEBRTC_FEC_RECEIVER_IMPL_H_
