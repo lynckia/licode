@@ -184,7 +184,7 @@ void ExternalOutput::writeAudioData(char* buf, int len) {
   long long timestampToWrite = (currentTimestamp - firstAudioTimestamp_) /  // NOLINT
                                (audio_stream_->codec->sample_rate / audio_stream_->time_base.den);
   // generally 48000 / 1000 for the denominator portion, at least for opus
-  if (timestampToWrite < lastAudioTS) {
+  if (timestampToWrite <= lastAudioTS) {
           ELOG_WARN("AUDIO - Wanted to write a non increasing TS: discard this: %lld, last: %lld",
           timestampToWrite, lastAudioTS);
           return;
@@ -359,7 +359,7 @@ void ExternalOutput::writeVideoData(char* buf, int len) {
       long long timestampToWrite = (currentTimestamp - firstVideoTimestamp_) /  // NOLINT
                                                 (90000 / video_stream_->time_base.den);
 
-      if (timestampToWrite < lastVideoTS) {
+      if (timestampToWrite <= lastVideoTS) {
         ELOG_WARN("VIDEO - Wanted to write a non increasing TS - this: %lld, last: %lld", timestampToWrite, lastVideoTS);
         timestampToWrite = lastVideoTS + 10;
       }
