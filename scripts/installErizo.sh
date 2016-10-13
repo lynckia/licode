@@ -46,9 +46,9 @@ pause() {
 }
 
 check_result() {
-  if [ "$1" -eq 1 ]
+  if [ "$1" -ne 0 ]
   then
-    exit 1
+    exit $1
   fi
 }
 
