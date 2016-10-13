@@ -360,7 +360,8 @@ void ExternalOutput::writeVideoData(char* buf, int len) {
                                                 (90000 / video_stream_->time_base.den);
 
       if (timestampToWrite <= lastVideoTS) {
-        ELOG_WARN("VIDEO - Wanted to write a non increasing TS - this: %lld, last: %lld", timestampToWrite, lastVideoTS);
+        ELOG_WARN("VIDEO - Wanted to write a non increasing TS - this: %lld, last: %lld", 
+                  timestampToWrite, lastVideoTS);
         timestampToWrite = lastVideoTS + 10;
       }
 
