@@ -209,7 +209,7 @@ exports.ErizoJSController = function (spec) {
 
             ei.wrtcId = eiId;
 
-            publishers[from] = {muxer: muxer};
+            publishers[from] = {muxer: muxer, wrtc: ei};
             subscribers[from] = {};
 
             ei.setAudioReceiver(muxer);
@@ -382,7 +382,6 @@ exports.ErizoJSController = function (spec) {
                     subscribers[from][key].close();
                 }
             }
-            publishers[from].wrtc.close();
             publishers[from].muxer.close(function(message){
                 log.info("message: muxer closed succesfully, id: " + from + ", muxerMessage:", message);
                 delete subscribers[from];
@@ -412,7 +411,6 @@ exports.ErizoJSController = function (spec) {
 
         if (subscribers[to][from]) {
             log.info("message: removing subscriber, id: " + subscribers[to][from].wrtcId);
-            subscribers[to][from].close();
             publishers[to].muxer.removeSubscriber(from);
             delete subscribers[to][from];
         }
