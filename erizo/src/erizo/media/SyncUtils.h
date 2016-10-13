@@ -26,4 +26,4 @@ class SyncUtils {
      uint32_t firstVideoRtcpTimestamp, firstAudioRtcpTimestamp;
 };
 }  // namespace erizo
-#endif // ERIZO_SRC_ERIZO_MEDIA_SYNCUTILS_H_
+#endif  //  ERIZO_SRC_ERIZO_MEDIA_SYNCUTILS_H_
