@@ -19,7 +19,7 @@ class AsyncDeleter : public Nan::AsyncWorker {
       delete eiToDelete_;
     }
     void HandleOKCallback() {
-      HandleScope scope;
+      Nan::HandleScope scope;
       std::string msg("OK");
       if (callback){
         Local<Value> argv[] = {
@@ -66,7 +66,7 @@ NAN_METHOD(ExternalInput::close) {
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 
-  Nan::Callback *callback; 
+  Nan::Callback *callback;
   if (info.Length()>=1){
     callback =new Nan::Callback(info[0].As<Function>());
   } else {
@@ -77,7 +77,7 @@ NAN_METHOD(ExternalInput::close) {
 }
 
 NAN_METHOD(ExternalInput::init) {
-  //TODO:Could potentially be slow, think about async'ing it  
+  //TODO:Could potentially be slow, think about async'ing it
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 

@@ -45,8 +45,8 @@ NAN_MODULE_INIT (WebRtcConnection::Init) {
 
 
 NAN_METHOD(WebRtcConnection::New) {
-  if (info.Length()<8){
-    ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
+  if (info.Length()<8) {
+    Nan::ThrowError("Wrong number of arguments");
   }
   //	webrtcconnection(std::string id, bool audioEnabled, bool videoEnabled, const std::string &stunServer, int stunPort, int minPort, int maxPort);
 
@@ -89,12 +89,12 @@ NAN_METHOD(WebRtcConnection::New) {
     WebRtcConnection* obj = new WebRtcConnection();
     obj->me = new erizo::WebRtcConnection(wrtcId, a, v, iceConfig, obj);
     obj->msink = obj->me;
-    uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback); 
-    uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback); 
+    uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback);
+    uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback);
     obj->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
   } else {
-    //TODO: Check what happens here  
+    //TODO: Check what happens here
   }
 }
 
@@ -117,7 +117,7 @@ NAN_METHOD(WebRtcConnection::init) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
 
-  obj->eventCallback_ = Persistent<Function>::New(Local<Function>::Cast(info[0]));
+  obj->eventCallback_ = new Nan::Callback(info[0].As<Function>());
   bool r = me->init();
 
   info.GetReturnValue().Set(Nan::New(r));
@@ -210,7 +210,7 @@ NAN_METHOD(WebRtcConnection::getCurrentState) {
 NAN_METHOD(WebRtcConnection::getStats) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   if (obj->me == NULL){ //Requesting stats when WebrtcConnection not available
-    return; 
+    return;
   }
   if (info.Length()==0){
     std::string lastStats = obj->me->getJSONStats();
@@ -218,7 +218,7 @@ NAN_METHOD(WebRtcConnection::getStats) {
   }else{
     obj->me->setWebRtcConnectionStatsListener(obj);
     obj->hasCallback_ = true;
-    obj->statsCallback_ = Persistent<Function>::New(Local<Function>::Cast(info[0]));
+    obj->statsCallback_ = new Nan::Callback(info[0].As<Function>());;
   }
 }
 
@@ -232,7 +232,7 @@ NAN_METHOD(WebRtcConnection::generatePLIPacket) {
   erizo::WebRtcConnection *me = obj->me;
   me->sendPLI();
 
-  return; 
+  return;
 }
 
 NAN_METHOD(WebRtcConnection::setFeedbackReports) {
@@ -264,23 +264,22 @@ void WebRtcConnection::notifyStats(const std::string& message) {
   uv_async_send (&asyncStats_);
 }
 
-void WebRtcConnection::eventsCallback(uv_async_t *handle, int status) {
-  HandleScope scope;
+void WebRtcConnection::eventsCallback(uv_async_t *handle) {
+  Nan::HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
   if (!obj || obj->me == NULL)
     return;
   boost::mutex::scoped_lock lock(obj->mutex);
   while (!obj->eventSts.empty()) {
     Local<Value> args[] = {Nan::New(obj->eventSts.front()),Nan::New(obj->eventMsgs.front().c_str()).ToLocalChecked()};
-    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), Nan::New(obj->eventCallback_), 2, args);
+    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->eventCallback_->GetFunction(), 2, args);
     obj->eventMsgs.pop();
     obj->eventSts.pop();
   }
 }
 
-void WebRtcConnection::statsCallback(uv_async_t *handle, int status) {
-
-  HandleScope scope;
+void WebRtcConnection::statsCallback(uv_async_t *handle) {
+  Nan::HandleScope scope;
   WebRtcConnection* obj = (WebRtcConnection*)handle->data;
   if (!obj || obj->me == NULL)
     return;
@@ -288,7 +287,7 @@ void WebRtcConnection::statsCallback(uv_async_t *handle, int status) {
   if (obj->hasCallback_) {
     while(!obj->statsMsgs.empty()){
       Local<Value> args[] = {Nan::New(obj->statsMsgs.front().c_str()).ToLocalChecked()};
-      Nan::MakeCallback(Nan::GetCurrentContext()->Global(), Nan::New(obj->statsCallback_), 1, args);
+      Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->statsCallback_->GetFunction(), 1, args);
       obj->statsMsgs.pop();
     }
   }

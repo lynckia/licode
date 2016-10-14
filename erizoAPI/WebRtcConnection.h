@@ -28,8 +28,8 @@ class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener,
     WebRtcConnection();
     ~WebRtcConnection();
 
-    v8::Persistent<v8::Function> eventCallback_;
-    v8::Persistent<v8::Function> statsCallback_;
+    Nan::Callback *eventCallback_;
+    Nan::Callback *statsCallback_;
 
     uv_async_t async_;
     uv_async_t asyncStats_;
@@ -48,7 +48,7 @@ class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener,
      * Inits the WebRtcConnection and passes the callback to get Events.
      * Returns true if the candidates are gathered.
      */
-    static NAN_METHOD(init);  
+    static NAN_METHOD(init);
     /*
      * Creates an SDP Offer
      * Param: No params.
@@ -112,8 +112,8 @@ class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener,
 
     static Nan::Persistent<v8::Function> constructor;
 
-    static void eventsCallback(uv_async_t *handle, int status);
-    static void statsCallback(uv_async_t *handle, int status);
+    static void eventsCallback(uv_async_t *handle);
+    static void statsCallback(uv_async_t *handle);
 
     virtual void notifyEvent(erizo::WebRTCEvent event, const std::string& message="");
     virtual void notifyStats(const std::string& message);
