@@ -167,7 +167,7 @@ exports.RoomController = function (spec) {
 
         if (publishers[publisher_id] === undefined) {
 
-            log.info("message: addPublisher, streamId: " + publisher_id + ", options: " + logger.objectToLog(options));;
+            log.info("message: addPublisher, streamId: " + publisher_id + ", " + logger.objectToLog(options));;
 
             // We create a new ErizoJS with the publisher_id.
             getErizoJS(function(erizo_id, agent_id) {
@@ -228,7 +228,7 @@ exports.RoomController = function (spec) {
             retries = 0;
 
         if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1) {
-            log.info("message: addSubscriber, streamId: " + publisher_id + ", clientId: " + subscriber_id + ", options: " + logger.objectToLog(options));;
+            log.info("message: addSubscriber, streamId: " + publisher_id + ", clientId: " + subscriber_id + ", " + logger.objectToLog(options));;
 
             if (options.audio === undefined) options.audio = true;
             if (options.video === undefined) options.video = true;

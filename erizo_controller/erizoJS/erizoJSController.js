@@ -82,7 +82,7 @@ exports.ErizoJSController = function (spec) {
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
      */
     initWebRtcConnection = function (wrtc, callback, id_pub, id_sub, options) {
-        log.debug("message: Init WebRtcConnection, id: " + wrtc.wrtcId + ", options: " + logger.objectToLog(options));
+        log.debug("message: Init WebRtcConnection, id: " + wrtc.wrtcId + ", " + logger.objectToLog(options));
 
         if (wrtc.minVideoBW){
             var monitorMinVideoBw = {};
@@ -90,7 +90,7 @@ exports.ErizoJSController = function (spec) {
                 try{
                     monitorMinVideoBw = require("./adapt_schemes/"+wrtc.scheme).MonitorSubscriber(log);
                 } catch (e){
-                    log.warn("message: could not find custom adapt scheme, code: " + WARN_PRECOND_FAILED + " id:" + wrtc.wrtcId + ", scheme: " + logger.objectToLog(wrtc.scheme));
+                    log.warn("message: could not find custom adapt scheme, code: " + WARN_PRECOND_FAILED + " id:" + wrtc.wrtcId + ", scheme: " + wrtc.scheme);
                     monitorMinVideoBw = require("./adapt_schemes/notify").MonitorSubscriber(log);
                 }
             }else{
@@ -302,7 +302,7 @@ exports.ErizoJSController = function (spec) {
 
         if (publishers[from] === undefined) {
 
-            log.info("message: Adding publisher, streamId: " + from + ", options: " + logger.objectToLog(options));
+            log.info("message: Adding publisher, streamId: " + from + ", " + logger.objectToLog(options));
             var wrtcId = from;
             var muxer = new addon.OneToManyProcessor(),
                 wrtc = new addon.WebRtcConnection(wrtcId, true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
@@ -353,7 +353,7 @@ exports.ErizoJSController = function (spec) {
             that.removeSubscriber(from,to);
         }
         var wrtcId = from+"_"+to;
-        log.info("message: Adding subscriber id: " + wrtcId + ", options: " + logger.objectToLog(options));
+        log.info("message: Adding subscriber id: " + wrtcId + ", " + logger.objectToLog(options));
         var wrtc = new addon.WebRtcConnection(wrtcId, true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
                 GLOBAL.config.erizo.turnserver, GLOBAL.config.erizo.turnport, GLOBAL.config.erizo.turnusername, GLOBAL.config.erizo.turnpass);
 
@@ -384,7 +384,7 @@ exports.ErizoJSController = function (spec) {
             }
             publishers[from].wrtc.close();
             publishers[from].muxer.close(function(message){
-                log.info("message: muxer closed succesfully, id: " + from + ", muxerMessage: " + logger.objectToLog(message));
+                log.info("message: muxer closed succesfully, id: " + from + ", " + logger.objectToLog(message));
                 delete subscribers[from];
                 delete publishers[from];
                 var count = 0;

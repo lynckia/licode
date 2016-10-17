@@ -56,10 +56,10 @@ exports.connect = function(callback) {
 
                     clientQueue.subscribe(function (message) {
                         try {
-                            log.debug("message: message received, queueName: " + clientQueue.name + ", messageData: " + logger.objectToLog(message));
+                            log.debug("message: message received, queueName: " + clientQueue.name + ", " + logger.objectToLog(message));
 
                             if(map[message.corrID] !== undefined) {
-                                log.debug("message: Callback, queueName: " + clientQueue.name + ", messageType: " + message.type + ", messageData: " + logger.objectToLog(message.data));
+                                log.debug("message: Callback, queueName: " + clientQueue.name + ", messageType: " + message.type + ",  " + logger.objectToLog(message.data));
                                 clearTimeout(map[message.corrID].to);
                                 if (message.type === "onReady") map[message.corrID].fn[message.type].call({});
                                 else map[message.corrID].fn[message.type].call({}, message.data);
@@ -68,13 +68,13 @@ exports.connect = function(callback) {
                                 }, REMOVAL_TIMEOUT);
                             }
                         } catch(err) {
-                            log.error("message: error processing message, queueName: " + clientQueue.name + ", errorMsg: " + logger.objectToLog(err));
+                            log.error("message: error processing message, queueName: " + clientQueue.name + ", " + logger.objectToLog(err));
                         }
                     });
 
                 });
             } catch (err) {
-                log.error("message: exchange error, exchangeName: " + exchange.name + ", errorMsg: " + logger.objectToLog(err));
+                log.error("message: exchange error, exchangeName: " + exchange.name + ", " + logger.objectToLog(err));
             }
         });
 
@@ -85,7 +85,7 @@ exports.connect = function(callback) {
     });
 
     connection.on('error', function(e) {
-       log.error('message: AMQP connection error killing process, errorMsg: ' + logger.objectToLog(e));
+       log.error('message: AMQP connection error killing process, ' + logger.objectToLog(e));
        process.exit(1);
     });
 }
@@ -100,19 +100,19 @@ exports.bind = function(id, callback) {
             q.bind('rpcExchange', id, callback);
             q.subscribe(function (message) {
                 try {
-                    log.debug("message: message received, queueName: " + q.name + ", messageData: " + logger.objectToLog(message));
+                    log.debug("message: message received, queueName: " + q.name + ", " + logger.objectToLog(message));
                     message.args = message.args || [];
                     message.args.push(function(type, result) {
                         rpc_exc.publish(message.replyTo, {data: result, corrID: message.corrID, type: type});
                     });
                     rpcPublic[message.method].apply(rpcPublic, message.args);
                 } catch (error) {
-                    log.error("message: error processing call, queueName: " + q.name + ", errorMsg: " + logger.objectToLog(error));
+                    log.error("message: error processing call, queueName: " + q.name + ", " + logger.objectToLog(error));
                 }
 
             });
         } catch (err) {
-            log.error("message: exchange error, exchangeName: " + exchange.name + ", errorMsg: " + logger.ObjectToLog(err));
+            log.error("message: exchange error, exchangeName: " + exchange.name + ", " + logger.objectToLog(err));
         }
 
     });
@@ -143,7 +143,7 @@ exports.bind_broadcast = function(id, callback) {
             });
             
         } catch (err) {
-            log.error("message: exchange error, exchangeName: " + exchange.name + ", errorMsg: "+ logger.ObjectToLog(err));
+            log.error("message: exchange error, exchangeName: " + exchange.name + ", " + objectToLog(err));
         }
 
     });
