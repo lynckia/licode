@@ -24,13 +24,13 @@ var doInit = function () {
  */
 exports.create = function (req, res) {
     if (!doInit()) {
-        log.info('Service ', currentService._id, ' not authorized for this action');
+        log.info('message: createService - unauthorized, serviceId: ' + currentService._id);
         res.send('Service not authorized for this action', 401);
         return;
     }
 
     serviceRegistry.addService(req.body, function (result) {
-        log.info('Service created: ', req.body.name);
+        log.info('message: createService success, serviceName: ' + req.body.name);
         res.send(result);
     });
 };
@@ -40,13 +40,13 @@ exports.create = function (req, res) {
  */
 exports.represent = function (req, res) {
     if (!doInit()) {
-        log.info('Service ', currentService, ' not authorized for this action');
+        log.info('message: representService - not authorised, serviceId: ' + currentService._id);
         res.send('Service not authorized for this action', 401);
         return;
     }
 
     serviceRegistry.getList(function (list) {
-        log.info('Representing services');
+        log.info('message: representServices');
         res.send(list);
     });
 };

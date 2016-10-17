@@ -27,8 +27,8 @@ var checkTimestamp = function (ser, params) {
     newC = params.cnonce;
 
     if (newTS < lastTS || (lastTS === newTS && lastC === newC)) {
-        log.info('Last timestamp: ', lastTS, ' and new: ', newTS);
-        log.info('Last cnonce: ', lastC, ' and new: ', newC);
+        log.debug('message: checkTimestamp lastTimestamp: ' + lastTS + ', newTimestamp: ' + newTS + 
+            ', lastCnonce: ' + lastC + ', newCnonce: ' + newC);
         return false;
     }
 
@@ -66,7 +66,8 @@ exports.authenticate = function (req, res, next) {
         // Get the service from the data base.
         serviceRegistry.getService(params.serviceid, function (serv) {
             if (serv === undefined || serv === null) {
-                log.info('[Auth] Unknow service:', params.serviceid);
+                log.info('message: authenticate fail - unknown service, serviceId: ' + 
+                    params.serviceid);
                 res.status(401).send({'WWW-Authenticate': challengeReq});
                 return;
             }
@@ -75,7 +76,7 @@ exports.authenticate = function (req, res, next) {
 
             // Check if timestam and cnonce are valids in order to avoid duplicate requests.
             if (!checkTimestamp(serv, params)) {
-                log.info('[Auth] Invalid timestamp or cnonce');
+                log.info('message: authenticate fail - Invalid timestamp or cnonce');
                 res.status(401).send({'WWW-Authenticate': challengeReq});
                 return;
             }
@@ -95,7 +96,7 @@ exports.authenticate = function (req, res, next) {
                 next();
 
             } else {
-                log.info('[Auth] Wrong credentials');
+                log.info('message: authenticate fail - wrong credentials');
                 res.status(401).send({'WWW-Authenticate': challengeReq});
                 return;
             }
@@ -103,7 +104,7 @@ exports.authenticate = function (req, res, next) {
         });
 
     } else {
-        log.info('[Auth] MAuth header not presented');
+        log.info('message: authenticate fail - MAuth header not present');
         res.status(401).send({'WWW-Authenticate': challengeReq});
         return;
     }

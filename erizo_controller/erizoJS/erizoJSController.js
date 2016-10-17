@@ -95,8 +95,8 @@ exports.ErizoJSController = function (spec) {
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
      */
     initWebRtcConnection = function (wrtc, callback, idPub, idSub, options) {
-        log.debug('message: Init WebRtcConnection, ' +
-                  'id: ' + wrtc.wrtcId + ', options:',options);
+        log.debug('message: Init WebRtcConnection, id: ' + wrtc.wrtcId + ', ' +
+                  logger.objectToLog(options));
 
         if (wrtc.minVideoBW){
             var monitorMinVideoBw = {};
@@ -107,7 +107,8 @@ exports.ErizoJSController = function (spec) {
                 } catch (e){
                     log.warn('message: could not find custom adapt scheme, ' +
                              'code: ' + WARN_PRECOND_FAILED + ', ' +
-                             'id:' + wrtc.wrtcId + ', scheme:', wrtc.scheme);
+                             'id:' + wrtc.wrtcId + ', ' +
+                             'scheme: ' + wrtc.scheme);
                     monitorMinVideoBw = require('./adapt_schemes/notify').MonitorSubscriber(log);
                 }
             }else{
@@ -165,8 +166,12 @@ exports.ErizoJSController = function (spec) {
                     break;
 
                 case CONN_READY:
+<<<<<<< HEAD
                     log.debug('message: connection ready id: ' + wrtc.wrtcId + ', ' +
                               'status:', newStatus);
+=======
+                    log.debug("message: connection ready id: " + wrtc.wrtcId + ", status: " + newStatus);
+>>>>>>> master
                     // If I'm a subscriber and I'm bowser, I ask for a PLI
                     if (idSub && options.browser === 'bowser') {
                         publishers[idPub].wrtc.generatePLIPacket();
@@ -179,7 +184,11 @@ exports.ErizoJSController = function (spec) {
             }
         });
         if (options.createOffer===true){
+<<<<<<< HEAD
             log.debug('message: create offer requested, id:', wrtc.wrtcId);
+=======
+            log.debug("message: create offer requested, id: " + wrtc.wrtcId);
+>>>>>>> master
             wrtc.createOffer();
         }
         callback('callback', {type: 'initializing'});
@@ -309,9 +318,13 @@ exports.ErizoJSController = function (spec) {
                     }
                     if (msg.config){
                         if (msg.config.minVideoBW){
+<<<<<<< HEAD
                             log.debug('message: updating minVideoBW for publisher, ' +
                                       'id: ' + publishers[streamId].wrtcId + ', ' +
                                       'minVideoBW:', msg.config.minVideoBW);
+=======
+                            log.debug("message: updating minVideoBW for publisher, id: " + publishers[streamId].wrtcId + ", minVideoBW: " + msg.config.minVideoBW);
+>>>>>>> master
                             publishers[streamId].minVideoBW = msg.config.minVideoBW;
                             for (var sub in subscribers[streamId]){
                                 var theConn = subscribers[streamId][sub];
@@ -338,7 +351,11 @@ exports.ErizoJSController = function (spec) {
 
         if (publishers[from] === undefined) {
 
+<<<<<<< HEAD
             log.info('message: Adding publisher, streamId: ' + from + ', options:',options);
+=======
+            log.info("message: Adding publisher, streamId: " + from + ", " + logger.objectToLog(options));
+>>>>>>> master
             var wrtcId = from;
             muxer = new addon.OneToManyProcessor();
             wrtc = new addon.WebRtcConnection(wrtcId, true, true,
@@ -411,6 +428,7 @@ exports.ErizoJSController = function (spec) {
                      'code: ' + WARN_CONFLICT + ', streamId: ' + to + ', clientId: ' + from);
             that.removeSubscriber(from,to);
         }
+<<<<<<< HEAD
         var wrtcId = from + '_' + to;
         log.info('message: Adding subscriber id: ' + wrtcId + ', options:', options);
         var wrtc = new addon.WebRtcConnection(wrtcId, true, true,
@@ -422,6 +440,12 @@ exports.ErizoJSController = function (spec) {
                                               GLOBAL.config.erizo.turnport,
                                               GLOBAL.config.erizo.turnusername,
                                               GLOBAL.config.erizo.turnpass);
+=======
+        var wrtcId = from+"_"+to;
+        log.info("message: Adding subscriber id: " + wrtcId + ", " + logger.objectToLog(options));
+        var wrtc = new addon.WebRtcConnection(wrtcId, true, true, GLOBAL.config.erizo.stunserver, GLOBAL.config.erizo.stunport, GLOBAL.config.erizo.minport, GLOBAL.config.erizo.maxport,false,
+                GLOBAL.config.erizo.turnserver, GLOBAL.config.erizo.turnport, GLOBAL.config.erizo.turnusername, GLOBAL.config.erizo.turnpass);
+>>>>>>> master
 
         wrtc.wrtcId = wrtcId;
         subscribers[to][from] = wrtc;
@@ -451,8 +475,12 @@ exports.ErizoJSController = function (spec) {
             }
             publishers[from].wrtc.close();
             publishers[from].muxer.close(function(message){
+<<<<<<< HEAD
                 log.info('message: muxer closed succesfully, ' +
                          'id: ' + from + ', muxerMessage:', message);
+=======
+                log.info("message: muxer closed succesfully, id: " + from + ", " + logger.objectToLog(message));
+>>>>>>> master
                 delete subscribers[from];
                 delete publishers[from];
                 var count = 0;
@@ -504,6 +532,7 @@ exports.ErizoJSController = function (spec) {
      * Removes all the subscribers related with a client.
      */
     that.removeSubscriptions = function (from) {
+<<<<<<< HEAD
         log.info('message: removing subscriptions, peerId:', from);
         for (var to in subscribers) {
             if (subscribers.hasOwnProperty(to)) {
@@ -512,6 +541,18 @@ exports.ErizoJSController = function (spec) {
                               'id:', subscribers[to][from].wrtcId);
                     publishers[to].muxer.removeSubscriber(from);
                     delete subscribers[to][from];
+=======
+
+        var key;
+
+        log.info('message: removing subscriptions, peerId: ' + from);
+        for (key in subscribers) {
+            if (subscribers.hasOwnProperty(key)) {
+                if (subscribers[to][from]) {
+                    log.debug("message: removing subscription, id: " + subscribers[to][from].wrtcId);
+                    publishers[key].muxer.removeSubscriber(from);
+                    delete subscribers[key][from];
+>>>>>>> master
                 }
             }
         }

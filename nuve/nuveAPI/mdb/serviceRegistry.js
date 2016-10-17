@@ -13,7 +13,7 @@ var log = logger.getLogger('ServiceRegistry');
 exports.getList = function (callback) {
     db.services.find({}).toArray(function (err, services) {
         if (err || !services) {
-            log.info('Empty list');
+            log.info('message: service getList empty');
         } else {
             callback(services);
         }
@@ -23,7 +23,7 @@ exports.getList = function (callback) {
 var getService = exports.getService = function (id, callback) {
     db.services.findOne({_id: db.ObjectId(id)}, function (err, service) {
         if (service === undefined) {
-            log.info('Service not found');
+            log.info('message: getService service not found, serviceId ' + id);
         }
         if (callback !== undefined) {
             callback(service);
@@ -47,7 +47,7 @@ var hasService = exports.hasService = function (id, callback) {
 exports.addService = function (service, callback) {
     service.rooms = [];
     db.services.save(service, function (error, saved) {
-        if (error) log.info('MongoDB: Error adding service: ', error);
+        if (error) log.info('message: addService error, ' + logger.objectToLog(error));
         callback(saved._id);
     });
 };
@@ -57,7 +57,7 @@ exports.addService = function (service, callback) {
  */
 exports.updateService = function (service) {
     db.services.save(service, function (error) {
-        if (error) log.info('MongoDB: Error updating service: ', error);
+        if (error) log.info('message: updateService error, ' + logger.objectToLog(error));
     });
 };
 
@@ -68,7 +68,7 @@ exports.removeService = function (id) {
     hasService(id, function (hasS) {
         if (hasS) {
             db.services.remove({_id: db.ObjectId(id)}, function (error) {
-                if (error) log.info('MongoDB: Error removing service: ', error);
+                if (error) log.info('message: removeService error, ' + logger.objectToLog(error));
             });
         }
     });

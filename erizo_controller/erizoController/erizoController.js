@@ -156,7 +156,7 @@ var sendMsgToRoom = function (room, type, arg) {
         id;
     for (id in sockets) {
         if (sockets.hasOwnProperty(id)) {
-            log.debug('message: sendMsgToRoom, clientId: ' + sockets[id] + ', roomId: ' + room.id + ", messageType:", type);
+            log.debug('message: sendMsgToRoom, clientId: ' + sockets[id] + ', roomId: ' + room.id + ", " + logger.objectToLog(type));
             io.sockets.socket(sockets[id]).emit(type, arg);
         }
     }
@@ -416,7 +416,7 @@ var listen = function () {
         //Gets 'sendDataStream' messages on the socket in order to write a message in a dataStream.
         socket.on('sendDataStream', function (msg) {
             if  (socket.room.streams[msg.id] === undefined){
-              log.warn('message: Trying to send Data from a non-initialized stream, clientId: ' + socket.id + ', dataMsg:', msg);
+              log.warn('message: Trying to send Data from a non-initialized stream, clientId: ' + socket.id + ', ' + logger.objectToLog(msg));
               return;
             }
             var sockets = socket.room.streams[msg.id].getDataSubscribers(), id;
@@ -439,7 +439,7 @@ var listen = function () {
         //Gets 'updateStreamAttributes' messages on the socket in order to update attributes from the stream.
         socket.on('updateStreamAttributes', function (msg) {
             if  (socket.room.streams[msg.id] === undefined){
-              log.warn('message: Update attributes to a uninitialized stream, dataMsg:', msg);
+              log.warn('message: Update attributes to a uninitialized stream, ' + logger.objectToLog(msg));
               return;
             }
             var sockets = socket.room.streams[msg.id].getDataSubscribers(), id;
@@ -927,6 +927,6 @@ amqper.connect(function () {
 
         });
     } catch (error) {
-        log.info("message: Error in Erizo Controller, errorMsg: ", error);
+        log.info("message: Error in Erizo Controller, " + logger.objectToLog(error));
     }
 });
