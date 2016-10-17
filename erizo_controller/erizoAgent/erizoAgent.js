@@ -298,7 +298,7 @@ amqper.connect(function () {
     amqper.setPublicRPC(api);
     amqper.bind("ErizoAgent");
     amqper.bind("ErizoAgent_" + my_erizo_agent_id);
-    amqper.bind_broadcast("ErizoAgent", function (m) {
+    amqper.bindBroadcast("ErizoAgent", function (m) {
         log.warn('message: amqp no method defined');
     });
 });
