@@ -1,25 +1,25 @@
-/*global window, console, RTCSessionDescription, RoapConnection, webkitRTCPeerConnection*/
-
+/*global L, window, RTCSessionDescription, webkitRTCPeerConnection*/
+'use strict';
 var Erizo = Erizo || {};
 
 Erizo.ChromeRoapStack = function (spec) {
-    "use strict";
-
     var that = {},
         WebkitRTCPeerConnection = webkitRTCPeerConnection;
 
-    that.pc_config = {
-        "iceServers": []
+    that.pcConfig = {
+        'iceServers': []
     };
 
     that.con = {'optional': [{'DtlsSrtpKeyAgreement': true}]};
 
     if (spec.stunServerUrl !== undefined) {
-        that.pc_config.iceServers.push({"url": spec.stunServerUrl});
-    } 
+        that.pcConfig.iceServers.push({'url': spec.stunServerUrl});
+    }
 
     if ((spec.turnServer || {}).url) {
-        that.pc_config.iceServers.push({"username": spec.turnServer.username, "credential": spec.turnServer.password, "url": spec.turnServer.url});
+        that.pcConfig.iceServers.push({'username': spec.turnServer.username,
+                                       'credential': spec.turnServer.password,
+                                       'url': spec.turnServer.url});
     }
 
     if (spec.audio === undefined || spec.nop2p) {
@@ -39,14 +39,14 @@ Erizo.ChromeRoapStack = function (spec) {
 
     that.roapSessionId = 103;
 
-    that.peerConnection = new WebkitRTCPeerConnection(that.pc_config, that.con);
+    that.peerConnection = new WebkitRTCPeerConnection(that.pcConfig, that.con);
 
     that.peerConnection.onicecandidate = function (event) {
-        L.Logger.debug("PeerConnection: ", spec.session_id);
+        L.Logger.debug('PeerConnection: ', spec.sessionId);
         if (!event.candidate) {
             // At the moment, we do not renegotiate when new candidates
             // show up after the more flag has been false once.
-            L.Logger.debug("State: " + that.peerConnection.iceGatheringState);
+            L.Logger.debug('State: ' + that.peerConnection.iceGatheringState);
 
             if (that.ices === undefined) {
                 that.ices = 0;
@@ -61,21 +61,20 @@ Erizo.ChromeRoapStack = function (spec) {
         }
     };
 
-    //L.Logger.debug("Created webkitRTCPeerConnnection with config \"" + JSON.stringify(that.pc_config) + "\".");
-
     var setMaxBW = function (sdp) {
+        var r, a;
         if (spec.maxVideoBW) {
-            var a = sdp.match(/m=video.*\r\n/);
+            a = sdp.match(/m=video.*\r\n/);
             if (a && (a.length > 0)) {
-                var r = a[0] + "b=AS:" + spec.maxVideoBW + "\r\n";
+                r = a[0] + 'b=AS:' + spec.maxVideoBW + '\r\n';
                 sdp = sdp.replace(a[0], r);
             }
         }
 
         if (spec.maxAudioBW) {
-            var a = sdp.match(/m=audio.*\r\n/);
+            a = sdp.match(/m=audio.*\r\n/);
             if (a && (a.length > 0)) {
-                var r = a[0] + "b=AS:" + spec.maxAudioBW + "\r\n";
+                r = a[0] + 'b=AS:' + spec.maxAudioBW + '\r\n';
                 sdp = sdp.replace(a[0], r);
             }
         }
@@ -92,7 +91,7 @@ Erizo.ChromeRoapStack = function (spec) {
         // Answer/OK: Remove retransmit for the msg this is an answer to.
         // Send back "OK" if this was an Answer.
         L.Logger.debug('Activity on conn ' + that.sessionId);
-        var msg = JSON.parse(msgstring), sd, regExp, exp;
+        var msg = JSON.parse(msgstring), sd;
         that.incomingMessage = msg;
 
         if (that.state === 'new') {
@@ -108,7 +107,8 @@ Erizo.ChromeRoapStack = function (spec) {
                 // Allow other stuff to happen, then reply.
                 that.markActionNeeded();
             } else {
-                that.error('Illegal message for this state: ' + msg.messageType + ' in state ' + that.state);
+                that.error('Illegal message for this state: ' + msg.messageType +
+                           ' in state ' + that.state);
             }
 
         } else if (that.state === 'offer-sent') {
@@ -125,7 +125,7 @@ Erizo.ChromeRoapStack = function (spec) {
                     sdp: msg.sdp,
                     type: 'answer'
                 };
-                L.Logger.debug("Received ANSWER: ", sd.sdp);
+                L.Logger.debug('Received ANSWER: ', sd.sdp);
 
                 sd.sdp = setMaxBW(sd.sdp);
 
@@ -145,7 +145,8 @@ Erizo.ChromeRoapStack = function (spec) {
                 // Glare processing.
                 that.error('Not written yet');
             } else {
-                that.error('Illegal message for this state: ' + msg.messageType + ' in state ' + that.state);
+                that.error('Illegal message for this state: ' + msg.messageType +
+                           ' in state ' + that.state);
             }
 
         } else if (that.state === 'established') {
@@ -161,7 +162,8 @@ Erizo.ChromeRoapStack = function (spec) {
                 // Allow other stuff to happen, then reply.
                 that.markActionNeeded();
             } else {
-                that.error('Illegal message for this state: ' + msg.messageType + ' in state ' + that.state);
+                that.error('Illegal message for this state: ' + msg.messageType +
+                           ' in state ' + that.state);
             }
         }
     };
@@ -179,7 +181,7 @@ Erizo.ChromeRoapStack = function (spec) {
      * Removes a stream.
      * @param {MediaStream} stream The MediaStream to remove.
      */
-    that.removeStream = function (stream) {
+    that.removeStream = function () {
 //        var i;
 //        for (i = 0; i < that.peerConnection.localStreams.length; ++i) {
 //            if (that.localStreams[i] === stream) {
@@ -226,20 +228,16 @@ Erizo.ChromeRoapStack = function (spec) {
      * to the remote party using our onsignalingmessage function.
      */
     that.onstablestate = function () {
-        var mySDP, roapMessage = {};
+        var mySDP;
         if (that.actionNeeded) {
             if (that.state === 'new' || that.state === 'established') {
                 // See if the current offer is the same as what we already sent.
-                // If not, no change is needed.   
+                // If not, no change is needed.
 
                 that.peerConnection.createOffer(function (sessionDescription) {
 
-                    //sessionDescription.sdp = newOffer.replace(/a=ice-options:google-ice\r\n/g, "");
-                    //sessionDescription.sdp = newOffer.replace(/a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:0 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
-                    //sessionDescription.sdp = newOffer.replace(/a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:.*\r\n/g, "a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:eUMxlV2Ib6U8qeZot/wEKHw9iMzfKUYpOPJrNnu3\r\n");
-
                     sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
-                    L.Logger.debug("Changed", sessionDescription.sdp);
+                    L.Logger.debug('Changed', sessionDescription.sdp);
 
                     var newOffer = sessionDescription.sdp;
 
@@ -266,7 +264,7 @@ Erizo.ChromeRoapStack = function (spec) {
 
                 // Now able to send the offer we've already prepared.
                 that.prevOffer = that.peerConnection.localDescription.sdp;
-                L.Logger.debug("Sending OFFER: " + that.prevOffer);
+                L.Logger.debug('Sending OFFER: ' + that.prevOffer);
                 //L.Logger.debug('Sent SDP is ' + that.prevOffer);
                 that.sendMessage('OFFER', that.prevOffer);
                 // Not done: Retransmission on non-response.
@@ -372,7 +370,7 @@ Erizo.ChromeRoapStack = function (spec) {
     that.peerConnection.oniceconnectionstatechange = function (e) {
         if (that.oniceconnectionstatechange) {
             that.oniceconnectionstatechange(e.currentTarget.iceConnectionState);
-        }   
+        }
     };
 
     // Variables that are part of the public interface of PeerConnection

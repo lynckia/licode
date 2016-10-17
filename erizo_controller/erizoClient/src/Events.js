@@ -1,11 +1,11 @@
 /*global L*/
+'use strict';
 /*
  * Class EventDispatcher provides event handling to sub-classes.
  * It is inherited from Publisher, Room, etc.
  */
 var Erizo = Erizo || {};
 Erizo.EventDispatcher = function (spec) {
-    "use strict";
     var that = {};
     // Private vars
     spec.dispatcher = {};
@@ -30,11 +30,11 @@ Erizo.EventDispatcher = function (spec) {
         }
     };
 
-    // It dispatch a new event to the event listeners, based on the type 
+    // It dispatch a new event to the event listeners, based on the type
     // of event. All events are intended to be LicodeEvents.
     that.dispatchEvent = function (event) {
         var listener;
-        L.Logger.debug("Event: " + event.type);
+        L.Logger.debug('Event: ' + event.type);
         for (listener in spec.dispatcher.eventListeners[event.type]) {
             if (spec.dispatcher.eventListeners[event.type].hasOwnProperty(listener)) {
                 spec.dispatcher.eventListeners[event.type][listener](event);
@@ -50,12 +50,11 @@ Erizo.EventDispatcher = function (spec) {
 /*
  * Class LicodeEvent represents a generic Event in the library.
  * It handles the type of event, that is important when adding
- * event listeners to EventDispatchers and dispatching new events. 
+ * event listeners to EventDispatchers and dispatching new events.
  * A LicodeEvent can be initialized this way:
  * var event = LicodeEvent({type: "room-connected"});
  */
 Erizo.LicodeEvent = function (spec) {
-    "use strict";
     var that = {};
 
     // Event type. Examples are: 'room-connected', 'stream-added', etc.
@@ -74,7 +73,6 @@ Erizo.LicodeEvent = function (spec) {
  * 'room-disconnected' - shows that the user has been already disconnected.
  */
 Erizo.RoomEvent = function (spec) {
-    "use strict";
     var that = Erizo.LicodeEvent(spec);
 
     // A list with the streams that are published in the room.
@@ -93,7 +91,6 @@ Erizo.RoomEvent = function (spec) {
  * 'stream-removed' - shows that a previous available stream has been removed from the room.
  */
 Erizo.StreamEvent = function (spec) {
-    "use strict";
     var that = Erizo.LicodeEvent(spec);
 
     // The stream related to this event.
@@ -113,7 +110,6 @@ Erizo.StreamEvent = function (spec) {
  * 'access-accepted' - indicates that the user has accepted to share his camera and microphone
  */
 Erizo.PublisherEvent = function (spec) {
-    "use strict";
     var that = Erizo.LicodeEvent(spec);
 
     return that;
