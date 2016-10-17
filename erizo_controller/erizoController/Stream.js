@@ -1,7 +1,6 @@
 /*global exports*/
+'use strict';
 exports.Stream = function (spec) {
-    "use strict";
-
     var that = {},
         dataSubscribers = [];
 
@@ -65,7 +64,12 @@ exports.Stream = function (spec) {
 
     // Returns the public specification of this stream
     that.getPublicStream = function () {
-        return {id: spec.id, audio: spec.audio, video: spec.video, data: spec.data, screen: spec.screen, attributes: spec.attributes};
+        return {id: spec.id,
+                audio: spec.audio,
+                video: spec.video,
+                data: spec.data,
+                screen: spec.screen,
+                attributes: spec.attributes};
     };
 
     return that;
