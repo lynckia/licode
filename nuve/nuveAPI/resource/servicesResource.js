@@ -30,7 +30,7 @@ exports.create = function (req, res) {
     }
 
     serviceRegistry.addService(req.body, function (result) {
-        log.info('message: createService success, serviceName: ', req.body.name);
+        log.info('message: createService success, serviceName: ' + req.body.name);
         res.send(result);
     });
 };

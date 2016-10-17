@@ -83,7 +83,8 @@ exports.connect = function () {
     });
 
     connection.on('error', function(e) {
-       log.error('message: AMQP connection error killing process, errorMsg: ', e);
+       log.error('message: AMQP connection error killing process, errorMsg: ' + 
+           logger.objectToLog(e));
        process.exit(1);
     });
 };
