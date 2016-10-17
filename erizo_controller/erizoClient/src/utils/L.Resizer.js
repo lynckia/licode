@@ -7,7 +7,8 @@
  */
 (function() {
 
-    var L = L || {};
+    this.L = this.L || {};
+    var L = this.L;
 
     /**
      *

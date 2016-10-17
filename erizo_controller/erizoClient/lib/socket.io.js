@@ -1,4 +1,3 @@
-// jshint ignore:start
 /*! Socket.IO.js build:0.9.6, development. Copyright(c) 2011 LearnBoost <dev@learnboost.com> MIT Licensed */
 
 /**
@@ -3787,4 +3786,3 @@ var swfobject=function(){var D="undefined",r="object",S="Shockwave Flash",W="Sho
   , 'undefined' != typeof io ? io : module.parent.exports
   , this
 );
-// jshint ignore:end
