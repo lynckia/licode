@@ -34,13 +34,13 @@ exports.getList = function (req, res) {
             res.send('Service not found', 404);
             return;
         } else if (currentRoom === undefined) {
-            log.info('Room ', req.params.room, ' does not exist');
+            log.info('message: getUserList - room not found, roomId: ' + req.params.room);
             res.send('Room does not exist', 404);
             return;
         }
 
-        log.info('Representing users for room ', currentRoom._id,
-                 'and service', currentService._id);
+        log.info('message: getUsersList sucess, roomId: ' + currentRoom._id +
+                 ', serviceId: ' + currentService._id);
         cloudHandler.getUsersInRoom (currentRoom._id, function (users) {
             if (users === 'error') {
                 res.send('CloudHandler does not respond', 401);

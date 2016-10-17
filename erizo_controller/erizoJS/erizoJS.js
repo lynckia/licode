@@ -1,4 +1,5 @@
-/*global require, logger. setInterval, clearInterval, Buffer, exports*/
+/*global require*/
+'use strict';
 var Getopt = require('node-getopt');
 var config = require('./../../licode_config');
 
@@ -30,29 +31,29 @@ var getopt = new Getopt([
   ['h' , 'help'                       , 'display this help']
 ]);
 
-opt = getopt.parse(process.argv.slice(2));
+var opt = getopt.parse(process.argv.slice(2));
 
 for (var prop in opt.options) {
     if (opt.options.hasOwnProperty(prop)) {
         var value = opt.options[prop];
         switch (prop) {
-            case "help":
+            case 'help':
                 getopt.showHelp();
                 process.exit(0);
                 break;
-            case "rabbit-host":
+            case 'rabbit-host':
                 GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
                 GLOBAL.config.rabbit.host = value;
                 break;
-            case "rabbit-port":
+            case 'rabbit-port':
                 GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
                 GLOBAL.config.rabbit.port = value;
                 break;
-            case "rabbit-heartbeat":
+            case 'rabbit-heartbeat':
                 GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
                 GLOBAL.config.rabbit.heartbeat = value;
                 break;
-            case "logging-config-file":
+            case 'logging-config-file':
                 GLOBAL.config.logger = GLOBAL.config.logger || {};
                 GLOBAL.config.logger.configFile = value;
                 break;
@@ -69,7 +70,7 @@ var amqper = require('./../common/amqper');
 var controller = require('./erizoJSController');
 
 // Logger
-var log = logger.getLogger("ErizoJS");
+var log = logger.getLogger('ErizoJS');
 
 var ejsController = controller.ErizoJSController();
 
@@ -81,20 +82,19 @@ ejsController.privateRegexp = new RegExp(process.argv[3], 'g');
 ejsController.publicIP = process.argv[4];
 
 amqper.connect(function () {
-    "use strict";
     try {
         amqper.setPublicRPC(ejsController);
 
         var rpcID = process.argv[2];
 
-        log.info("message: Started, erizoId: " + rpcID);
+        log.info('message: Started, erizoId: ' + rpcID);
 
-        amqper.bind("ErizoJS_" + rpcID, function() {
-            log.debug("message: bound to amqp queue, queueId: ErizoJS_" + rpcID );
-            
+        amqper.bind('ErizoJS_' + rpcID, function() {
+            log.debug('message: bound to amqp queue, queueId: ErizoJS_' + rpcID );
+
         });
     } catch (err) {
-        log.error("message: AMQP connection error, error:", err);
+        log.error('message: AMQP connection error, ' + logger.objectToLog(err));
     }
 
 });

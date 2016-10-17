@@ -30,7 +30,7 @@ exports.createRoom = function (req, res) {
         return;
     }
     if (req.body.name === undefined) {
-        log.info('Invalid room');
+        log.info('message: createRoom - invalid room name');
         res.send('Invalid room', 400);
         return;
     }
@@ -39,7 +39,7 @@ exports.createRoom = function (req, res) {
 
     if (req.body.options.test) {
         if (currentService.testRoom !== undefined) {
-            log.info('TestRoom already exists for service', currentService.name);
+            log.info('message: testRoom already exists, serviceId: ' + currentService.name);
             res.send(currentService.testRoom);
         } else {
             room = {name: 'testRoom'};
@@ -47,7 +47,7 @@ exports.createRoom = function (req, res) {
                 currentService.testRoom = result;
                 currentService.rooms.push(result);
                 serviceRegistry.updateService(currentService);
-                log.info('TestRoom created for service', currentService.name);
+                log.info('message: testRoom created, serviceId: ' + currentService.name);
                 res.send(result);
             });
         }
@@ -63,8 +63,8 @@ exports.createRoom = function (req, res) {
         roomRegistry.addRoom(room, function (result) {
             currentService.rooms.push(result);
             serviceRegistry.updateService(currentService);
-            log.info('Room created:', req.body.name, 'for service',
-                     currentService.name, 'p2p = ', room.p2p);
+            log.info('message: createRoom success, roomName:' + req.body.name + ', serviceId: ' +
+                     currentService.name + ', p2p: ' + room.p2p);
             res.send(result);
         });
     }
@@ -79,7 +79,7 @@ exports.represent = function (req, res) {
         res.send('Service not found', 404);
         return;
     }
-    log.info('Representing rooms for service ', currentService._id);
+    log.info('message: representRooms, serviceId: ' + currentService._id);
 
     res.send(currentService.rooms);
 };
