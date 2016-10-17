@@ -94,7 +94,7 @@ amqper.connect(function () {
             
         });
     } catch (err) {
-        log.error("message: AMQP connection error, error:", err);
+        log.error("message: AMQP connection error, " + logger.objectToLog(err));
     }
 
 });
