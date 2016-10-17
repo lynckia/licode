@@ -32,10 +32,11 @@ exports.represent = function (req, res) {
         if (currentService === undefined) {
             res.send('Client unathorized', 401);
         } else if (currentRoom === undefined) {
-            log.info('Room ', req.params.room, ' does not exist');
+            log.info('message: representRoom - room does not exits, roomId: ' + req.params.room);
             res.send('Room does not exist', 404);
         } else {
-            log.info('Representing room ', currentRoom._id, 'of service ', currentService._id);
+            log.info('message: representRoom success, roomId: ' + currentRoom._id + 
+                ', serviceId: ' + currentService._id);
             res.send(currentRoom);
         }
     });
@@ -49,10 +50,10 @@ exports.updateRoom = function (req, res) {
         if (currentService === undefined) {
             res.send('Client unathorized', 401);
         } else if (currentRoom === undefined) {
-            log.info('Room ', req.params.room, ' does not exist');
+            log.info('message: updateRoom - room does not exist + roomId: ' + req.params.room);
             res.send('Room does not exist', 404);
         } else if (req.body.name === undefined) {
-            log.info('Invalid room');
+            log.info('message: updateRoom - Invalid room');
             res.send('Invalid room', 400);
         } else {
             var id = '',
@@ -85,8 +86,8 @@ exports.updateRoom = function (req, res) {
 
                 currentService.rooms[index] = room;
                 serviceRegistry.updateService(currentService);
-                log.info('Room ', id, ' updated for service ', currentService._id);
-
+                log.info('message: updateRoom  successful, roomId: ' + id + ', serviceId: ' + 
+                    currentService._id);
                 res.send('Room Updated');
             }
         }
@@ -101,7 +102,7 @@ exports.patchRoom = function (req, res) {
         if (currentService === undefined) {
             res.send('Client unathorized', 401);
         } else if (currentRoom === undefined) {
-            log.info('Room ', req.params.room, ' does not exist');
+            log.info('message: pachRoom - room does not exist, roomId : ' + req.params.room);
             res.send('Room does not exist', 404);
         } else {
             var id = '',
@@ -131,7 +132,8 @@ exports.patchRoom = function (req, res) {
 
                 currentService.rooms[index] = room;
                 serviceRegistry.updateService(currentService);
-                log.info('Room ', id, ' updated for service ', currentService._id);
+                log.info('message: patchRoom room successfully updated,  roomId: ' + id + 
+                    ', serviceId: ' + currentService._id);
 
                 res.send('Room Updated');
             }
@@ -149,7 +151,7 @@ exports.deleteRoom = function (req, res) {
         if (currentService === undefined) {
             res.send('Client unathorized', 401);
         } else if (currentRoom === undefined) {
-            log.info('Room ', req.params.room, ' does not exist');
+            log.info('message: deleteRoom - room does not exist, roomId: ' + req.params.room);
             res.send('Room does not exist', 404);
         } else {
             var id = '',
@@ -168,7 +170,8 @@ exports.deleteRoom = function (req, res) {
             if (index !== -1) {
                 currentService.rooms.splice(index, 1);
                 serviceRegistry.updateService(currentService);
-                log.info('Room ', id, ' deleted for service ', currentService._id);
+                log.info('message: deleteRoom - room successfully deleted, roomId: ' + id + 
+                    ', serviceId: ' + currentService._id);
                 cloudHandler.deleteRoom(id, function () {});
                 res.send('Room deleted');
             }

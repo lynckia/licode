@@ -30,7 +30,8 @@ var doInit = function (serv, callback) {
 exports.represent = function (req, res) {
     doInit(req.params.service, function (serv) {
         if (serv === 'error') {
-            log.info('Service ', req.params.service, ' not authorized for this action');
+            log.info('message: represent service - not authorized, serviceId: ' + 
+                req.params.service);
             res.send('Service not authorized for this action', 401);
             return;
         }
@@ -49,7 +50,7 @@ exports.represent = function (req, res) {
 exports.deleteService = function (req, res) {
     doInit(req.params.service, function (serv) {
         if (serv === 'error') {
-            log.info('Service ', req.params.service, ' not authorized for this action');
+            log.info('message: deleteService - not authorized, serviceId: ' + req.params.service);
             res.send('Service not authorized for this action', 401);
             return;
         }
@@ -60,7 +61,7 @@ exports.deleteService = function (req, res) {
         var id = '';
         id += serv._id;
         serviceRegistry.removeService(id);
-        log.info('Serveice ', id, ' deleted');
+        log.info('message: deleteService success, serviceId: ' + id);
         res.send('Service deleted');
     });
 };

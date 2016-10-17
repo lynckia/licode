@@ -40,15 +40,15 @@ exports.connect = function () {
     connection = amqp.createConnection(addr);
 
     connection.on('ready', function () {
-        log.info('Conected to rabbitMQ server');
+        log.info('message: AMQP connected');
 
         //Create a direct exchange
         exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
-            log.info('Exchange ' + exchange.name + ' is open');
+            log.info('message: rpcExchange open, exchangeName: ' + exchange.name);
 
             //Create the queue for receive messages
             var q = connection.queue('nuveQueue', function (queue) {
-                log.info('Queue ' + queue.name + ' is open');
+                log.info('message: queue open, queueName: ' + queue.name);
 
                 q.bind('rpcExchange', 'nuve');
                 q.subscribe(function (message) {
@@ -63,7 +63,7 @@ exports.connect = function () {
 
             //Create the queue for send messages
             clientQueue = connection.queue('', function (q) {
-                log.info('ClientQueue ' + q.name + ' is open');
+                log.info('message: clientQueue open, queueName: ' + q.name);
 
                 clientQueue.bind('rpcExchange', clientQueue.name);
 
@@ -83,7 +83,7 @@ exports.connect = function () {
     });
 
     connection.on('error', function(e) {
-       log.error('Connection error...', e, ' killing process.');
+       log.error('message: AMQP connection error killing process, errorMsg: ', e);
        process.exit(1);
     });
 };
