@@ -157,7 +157,7 @@ var launchErizoJS = function() {
             });
         }
         delete processes[id];
-        fillErizos();       
+        fillErizos();
     });
 
     log.info('message: launched new ErizoJS, erizoId: ' + id);
@@ -218,7 +218,7 @@ var api = {
 
             var erizo_id = getErizo();
             log.debug('message: createErizoJS returning, erizoId: ' + erizo_id);
-            callback("callback", {erizo_id: erizo_id, agent_id: my_erizo_agent_id});
+            callback("callback", {erizoId: erizo_id, agentId: my_erizo_agent_id});
 
             erizos.push(erizo_id);
             fillErizos();
@@ -241,8 +241,8 @@ var interfaces = require('os').networkInterfaces(),
     addresses = [],
     k,
     k2,
-    address, 
-    privateIP, 
+    address,
+    privateIP,
     publicIP;
 
 
@@ -267,7 +267,7 @@ privateIP = addresses[0];
 
 if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicIP === undefined){
     publicIP = addresses[0];
-    if(global.config.cloudProvider.name === 'amazon'){ 
+    if(global.config.cloudProvider.name === 'amazon'){
         var opt = {version: '2012-12-01'};
         if (GLOBAL.config.cloudProvider.host !== '') {
             opt.host = GLOBAL.config.cloudProvider.host;
@@ -287,7 +287,7 @@ if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicI
 }
 
 // Will clean all erizoJS on those signals
-process.on('SIGINT', cleanErizos); 
+process.on('SIGINT', cleanErizos);
 process.on('SIGTERM', cleanErizos);
 
 fillErizos();

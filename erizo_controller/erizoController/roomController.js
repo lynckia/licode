@@ -1,19 +1,17 @@
 /*global require, exports, console, setInterval, clearInterval*/
-
+'use strict';
 var logger = require('./../common/logger').logger;
 
 // Logger
-var log = logger.getLogger("RoomController");
+var log = logger.getLogger('RoomController');
 
 exports.RoomController = function (spec) {
-    "use strict";
-
     var that = {},
         // {id: array of subscribers}
         subscribers = {},
         // {id: erizoJS_id}
         publishers = {},
-        // {erizoJS_id: {publishers: [ids], ka_count: count}}
+        // {erizoJS_id: {publishers: [ids], kaCount: count}}
         erizos = {},
 
         // {id: ExternalOutput}
@@ -28,47 +26,49 @@ exports.RoomController = function (spec) {
 
     var eventListeners = [];
 
-    var callbackFor = function(erizo_id) {
+    var callbackFor = function(erizoId) {
 
         return function(ok) {
-            if (!erizos[erizo_id]) return;
+            if (!erizos[erizoId]) return;
 
             if (ok !== true) {
-                erizos[erizo_id].ka_count ++;
+                erizos[erizoId].kaCount ++;
 
-                if (erizos[erizo_id].ka_count > TIMEOUT_LIMIT) {
-                    if (erizos[erizo_id].publishers.length > 0){
-                        log.error("message: ErizoJS timed out will be removed, erizoId: " + erizo_id + ", publishersAffected:", erizos[erizo_id].publishers);
-                        for (var p in erizos[erizo_id].publishers) {
-                            dispatchEvent("unpublish", erizos[erizo_id].publishers[p]);
+                if (erizos[erizoId].kaCount > TIMEOUT_LIMIT) {
+                    if (erizos[erizoId].publishers.length > 0){
+                        log.error('message: ErizoJS timed out will be removed, ' +
+                                  'erizoId: ' + erizoId + ', ' +
+                                  'publishersAffected:', erizos[erizoId].publishers);
+                        for (var p in erizos[erizoId].publishers) {
+                            dispatchEvent('unpublish', erizos[erizoId].publishers[p]);
                         }
 
                     } else {
-                        log.debug("message: empty erizoJS removed, erizoId: " + erizo_id);
+                        log.debug('message: empty erizoJS removed, erizoId: ' + erizoId);
                     }
-                    ecch.deleteErizoJS(erizo_id);
-                    delete erizos[erizo_id];
+                    ecch.deleteErizoJS(erizoId);
+                    delete erizos[erizoId];
                 }
             } else {
-                erizos[erizo_id].ka_count = 0;
+                erizos[erizoId].kaCount = 0;
             }
-        }
+        };
     };
 
     var sendKeepAlive = function() {
         for (var e in erizos) {
-            amqper.callRpc("ErizoJS_" + e, "keepAlive", [], {callback: callbackFor(e)});
+            amqper.callRpc('ErizoJS_' + e, 'keepAlive', [], {callback: callbackFor(e)});
         }
     };
 
     var keepAliveLoop = setInterval(sendKeepAlive, KEEPALIVE_INTERVAL);
 
     var getErizoJS = function(callback) {
-    	ecch.getErizoJS(function(erizo_id, agent_id) {
-            if (!erizos[erizo_id] && erizo_id !== 'timeout') {
-                erizos[erizo_id] = {publishers: [], ka_count: 0};
+    	ecch.getErizoJS(function(erizoId, agentId) {
+            if (!erizos[erizoId] && erizoId !== 'timeout') {
+                erizos[erizoId] = {publishers: [], kaCount: 0};
             }
-            callback(erizo_id, agent_id);
+            callback(erizoId, agentId);
         });
     };
 
@@ -78,9 +78,9 @@ exports.RoomController = function (spec) {
 
     var dispatchEvent = function(type, event) {
         for (var event_id in eventListeners) {
-            eventListeners[event_id](type, event);    
+            eventListeners[event_id](type, event);
         }
-        
+
     };
 
     that.addEventListener = function(eventListener) {
@@ -93,17 +93,17 @@ exports.RoomController = function (spec) {
 
             log.info("message: addExternalInput,  streamId: " + publisher_id + ", url:" + url);
 
-            getErizoJS(function(erizo_id) {
+            getErizoJS(function(erizoId) {
                 // then we call its addPublisher method.
     	        var args = [publisher_id, url];
 
                 // Track publisher locally
-                publishers[publisher_id] = erizo_id;
+                publishers[publisher_id] = erizoId;
                 subscribers[publisher_id] = [];
-    	        
+
                 amqper.callRpc(getErizoQueue(publisher_id), "addExternalInput", args, {callback: callback});
 
-                erizos[erizo_id].publishers.push(publisher_id);
+                erizos[erizoId].publishers.push(publisher_id);
 
             });
         } else {
@@ -170,21 +170,21 @@ exports.RoomController = function (spec) {
             log.info("message: addPublisher, streamId: " + publisher_id + ", options: " + JSON.stringify(options));;
 
             // We create a new ErizoJS with the publisher_id.
-            getErizoJS(function(erizo_id, agent_id) {
+            getErizoJS(function(erizoId, agentId) {
 
-                if (erizo_id === 'timeout') {
-                    log.error('message: addPublisher ErizoAgent timeout, streamId: ' + publisher_id); 
+                if (erizoId === 'timeout') {
+                    log.error('message: addPublisher ErizoAgent timeout, streamId: ' + publisher_id);
                     callback('timeout-agent');
                     return;
                 }
-            	log.debug("message: addPublisher erizoJs assigned, erizoId: " + erizo_id + ", streamId: ", publisher_id);
+            	log.debug("message: addPublisher erizoJs assigned, erizoId: " + erizoId + ", streamId: ", publisher_id);
                 // Track publisher locally
                 // then we call its addPublisher method.
                 var args = [publisher_id, options];
-                publishers[publisher_id] = erizo_id;
+                publishers[publisher_id] = erizoId;
                 subscribers[publisher_id] = [];
-                
-                amqper.callRpc(getErizoQueue(publisher_id), "addPublisher", args, {callback: function (data){
+
+                amqper.callRpc(getErizoQueue(publisher_id), 'addPublisher', args, {callback: function (data){
                     if (data === 'timeout'){
                         if (retries < MAX_ERIZOJS_RETRIES){
                             log.warn("message: addPublisher ErizoJS timeout, streamId: " + publisher_id + ", erizoId: " + getErizoQueue(publisher_id) + ", retries: " + retries);
@@ -200,13 +200,13 @@ exports.RoomController = function (spec) {
                         return;
                     }else{
                         if (data.type === 'initializing') {
-                            data.agent_id = agent_id;
+                            data.agentId = agentId;
                         }
                         callback(data);
                     }
                 }});
 
-                erizos[erizo_id].publishers.push(publisher_id);
+                erizos[erizoId].publishers.push(publisher_id);
             });
 
         } else {
@@ -234,7 +234,7 @@ exports.RoomController = function (spec) {
             if (options.video === undefined) options.video = true;
 
             var args = [subscriber_id, publisher_id, options];
-            
+
             amqper.callRpc(getErizoQueue(publisher_id, undefined), "addSubscriber", args, {callback: function (data){
                 if (!publishers[publisher_id] && !subscribers[publisher_id]){
                     log.warn("message: addSubscriber rpc callback has arrived after publisher is removed, streamId: " + publisher_id + ", clientId: " + subscriber_id);
@@ -276,7 +276,7 @@ exports.RoomController = function (spec) {
             }else{
                 log.warn("message: removePublisher was already removed, publisherId: " + publisher_id + ", erizoId: " + getErizoQueue(publisher_id));
             }
-            
+
             delete subscribers[publisher_id];
             delete publishers[publisher_id];
             log.debug("message: removedPublisher, publisherId: " + publisher_id + ", publishersLeft: " + Object.keys(publishers).length );
