@@ -143,7 +143,7 @@ exports.bind_broadcast = function(id, callback) {
             });
             
         } catch (err) {
-            log.error("message: exchange error, exchangeName: " + exchange.name + ", " + objectToLog(err));
+            log.error("message: exchange error, exchangeName: " + exchange.name + ", " + logger.objectToLog(err));
         }
 
     });
