@@ -1,2 +1,6 @@
+erizo_controller/erizoClient/lib/socket.io.js
 nuve/nuveClient/build
 nuve/nuveClient/dist
+erizo_controller/erizoClient/dist/
+erizo_controller/erizoClient/build/
+erizo_controller/erizoClient/lib/

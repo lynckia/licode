@@ -1,5 +1,5 @@
-/*global window, document, clearTimeout, setTimeout */
-
+/*global document, clearTimeout, setTimeout */
+'use strict';
 /*
  * Bar represents the bottom menu bar of every mediaPlayer.
  * It contains a Speaker and an icon.
@@ -8,7 +8,6 @@
  */
 var Erizo = Erizo || {};
 Erizo.Bar = function (spec) {
-    "use strict";
     var that = Erizo.View({}),
         waiting,
         show;
@@ -28,7 +27,9 @@ Erizo.Bar = function (spec) {
 
     // Bottom bar
     that.bar = document.createElement('div');
-    that.bar.setAttribute('style', 'width: 100%; height: 15%; max-height: 30px; position: absolute; bottom: 0; right: 0; background-color: rgba(255,255,255,0.62)');
+    that.bar.setAttribute('style', 'width: 100%; height: 15%; max-height: 30px; ' +
+                                   'position: absolute; bottom: 0; right: 0; ' +
+                                   'background-color: rgba(255,255,255,0.62)');
     that.bar.setAttribute('id', 'subbar_' + that.id);
     that.bar.setAttribute('class', 'subbar');
 
@@ -39,7 +40,8 @@ Erizo.Bar = function (spec) {
     that.link.setAttribute('target', '_blank');
 
     that.logo = document.createElement('img');
-    that.logo.setAttribute('style', 'width: 100%; height: 100%; max-width: 30px; position: absolute; top: 0; left: 2px;');
+    that.logo.setAttribute('style', 'width: 100%; height: 100%; max-width: 30px; ' +
+                                    'position: absolute; top: 0; left: 2px;');
     that.logo.setAttribute('class', 'logo');
     that.logo.setAttribute('alt', 'Lynckia');
     that.logo.setAttribute('src', that.url + '/assets/star.svg');
@@ -52,7 +54,8 @@ Erizo.Bar = function (spec) {
             clearTimeout(waiting);
         }
 
-        that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; bottom: 0; right: 0; display:' + displaying);
+        that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; ' +
+                                       'bottom: 0; right: 0; display:' + displaying);
     };
 
     // Public functions
@@ -71,8 +74,13 @@ Erizo.Bar = function (spec) {
     that.link.appendChild(that.logo);
 
     // Speaker component
-    if (!spec.stream.screen && (spec.options === undefined || spec.options.speaker === undefined || spec.options.speaker === true)) {
-        that.speaker = new Erizo.Speaker({elementID: 'subbar_' + that.id, id: that.id, stream: spec.stream, media: spec.media});
+    if (!spec.stream.screen && (spec.options === undefined ||
+                                spec.options.speaker === undefined ||
+                                spec.options.speaker === true)) {
+        that.speaker = new Erizo.Speaker({elementID: 'subbar_' + that.id,
+                                          id: that.id,
+                                          stream: spec.stream,
+                                          media: spec.media});
     }
 
     that.display();

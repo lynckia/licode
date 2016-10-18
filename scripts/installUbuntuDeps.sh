@@ -33,14 +33,14 @@ check_proxy(){
   else
     echo "http proxy configured, configuring npm"
     npm config set proxy $http_proxy
-  fi  
+  fi
 
   if [ -z "$https_proxy" ]; then
     echo "No https proxy set, doing nothing"
   else
     echo "https proxy configured, configuring npm"
     npm config set https-proxy $https_proxy
-  fi  
+  fi
 }
 
 install_apt_deps(){
@@ -56,9 +56,9 @@ install_apt_deps(){
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.openssl.org/source/old/1.0.1/openssl-1.0.1g.tar.gz
-    tar -zxvf openssl-1.0.1g.tar.gz
-    cd openssl-1.0.1g
+    curl -O https://www.openssl.org/source/old/1.0.1/openssl-1.0.1l.tar.gz
+    tar -zxvf openssl-1.0.1l.tar.gz
+    cd openssl-1.0.1l
     ./config --prefix=$PREFIX_DIR -fPIC
     make -s V=0
     make install_sw
@@ -144,7 +144,7 @@ install_libsrtp(){
 }
 
 
-cleanup(){  
+cleanup(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     rm -r libnice*

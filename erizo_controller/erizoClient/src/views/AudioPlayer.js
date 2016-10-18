@@ -1,4 +1,5 @@
-/*global window, console, clearInterval, setInterval, document, unescape, L, webkitURL*/
+/*global window, document, L, webkitURL*/
+'use strict';
 /*
  * AudioPlayer represents a Licode Audio component that shows either a local or a remote Audio.
  * Ex.: var player = AudioPlayer({id: id, stream: stream, elementID: elementID});
@@ -6,8 +7,6 @@
  */
 var Erizo = Erizo || {};
 Erizo.AudioPlayer = function (spec) {
-    "use strict";
-
     var that = Erizo.View({}),
         onmouseover,
         onmouseout;
@@ -26,7 +25,7 @@ Erizo.AudioPlayer = function (spec) {
 
     L.Logger.debug('Creating URL from stream ' + that.stream);
     var myURL = window.URL || webkitURL;
-    that.stream_url = myURL.createObjectURL(that.stream);
+    that.streamUrl = myURL.createObjectURL(that.stream);
 
     // Audio tag
     that.audio = document.createElement('audio');
@@ -35,10 +34,10 @@ Erizo.AudioPlayer = function (spec) {
     that.audio.setAttribute('style', 'width: 100%; height: 100%; position: absolute');
     that.audio.setAttribute('autoplay', 'autoplay');
 
-    if(spec.stream.local) 
+    if(spec.stream.local)
         that.audio.volume = 0;
 
-    if(spec.stream.local) 
+    if(spec.stream.local)
         that.audio.volume = 0;
 
 
@@ -51,11 +50,11 @@ Erizo.AudioPlayer = function (spec) {
             that.parentNode.removeChild(that.div);
         };
 
-        onmouseover = function (evt) {
+        onmouseover = function () {
             that.bar.display();
         };
 
-        onmouseout = function (evt) {
+        onmouseout = function () {
             that.bar.hide();
         };
 
@@ -63,7 +62,8 @@ Erizo.AudioPlayer = function (spec) {
         that.div = document.createElement('div');
         that.div.setAttribute('id', 'player_' + that.id);
         that.div.setAttribute('class', 'player');
-        that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; overflow: hidden;');
+        that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; ' +
+                              'overflow: hidden;');
 
         document.getElementById(that.elementID).appendChild(that.div);
         that.container = document.getElementById(that.elementID);
@@ -73,7 +73,11 @@ Erizo.AudioPlayer = function (spec) {
         that.div.appendChild(that.audio);
 
         // Bottom Bar
-        that.bar = new Erizo.Bar({elementID: 'player_' + that.id, id: that.id, stream: spec.stream, media: that.audio, options: spec.options});
+        that.bar = new Erizo.Bar({elementID: 'player_' + that.id,
+                                  id: that.id,
+                                  stream: spec.stream,
+                                  media: that.audio,
+                                  options: spec.options});
 
         that.div.onmouseover = onmouseover;
         that.div.onmouseout = onmouseout;
@@ -90,7 +94,7 @@ Erizo.AudioPlayer = function (spec) {
         that.parentNode = document.body;
     }
 
-    that.audio.src = that.stream_url;
+    that.audio.src = that.streamUrl;
 
     return that;
 };
