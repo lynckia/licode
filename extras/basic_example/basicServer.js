@@ -1,13 +1,13 @@
 /*global require, __dirname, console*/
+'use strict';
 var express = require('express'),
     bodyParser = require('body-parser'),
     errorhandler = require('errorhandler'),
     morgan = require('morgan'),
-    net = require('net'),
     N = require('./nuve'),
-    fs = require("fs"),
-    https = require("https"),
-        config = require('./../../licode_config');
+    fs = require('fs'),
+    https = require('https'),
+    config = require('./../../licode_config');
 
 var options = {
     key: fs.readFileSync('../../cert/key.pem').toString(),
@@ -17,7 +17,6 @@ var options = {
 var app = express();
 
 // app.configure ya no existe
-"use strict";
 app.use(errorhandler({
     dumpExceptions: true,
     showStack: true
@@ -30,8 +29,8 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   next();
 });
 
@@ -43,21 +42,23 @@ app.use(function(req, res, next) {
 N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3000/');
 
 var defaultRoom;
-var defaultRoomName = "basicExampleRoom";
+var defaultRoomName = 'basicExampleRoom';
 
 var getOrCreateRoom = function (roomName, callback) {
 
-    if (roomName == defaultRoomName && defaultRoom) {
+    if (roomName === defaultRoomName && defaultRoom) {
         callback(defaultRoom);
         return;
     }
 
     N.API.getRooms(function (roomlist){
-        "use strict";
-        var theRoom = "";
+        var theRoom = '';
         var rooms = JSON.parse(roomlist);
         for (var room in rooms) {
-            if (rooms[room].name === roomName && rooms[room].data && rooms[room].data.basicExampleRoom){
+            if (rooms[room].name === roomName &&
+                rooms[room].data &&
+                rooms[room].data.basicExampleRoom){
+
                 theRoom = rooms[room]._id;
                 callback(theRoom);
                 return;
@@ -69,16 +70,17 @@ var getOrCreateRoom = function (roomName, callback) {
         }, function(){}, {data: {basicExampleRoom:true}});
     });
 };
+
 var deleteRoomsIfEmpty = function (theRooms, callback) {
-    if (theRooms.length == 0){
+    if (theRooms.length === 0){
         callback(true);
         return;
     }
-    var theRoom = theRooms.pop()
+    var theRoom = theRooms.pop();
     N.API.getUsers(theRoom._id, function(userlist){
         var users = JSON.parse(userlist);
         if (Object.keys(users).length === 0){
-            N.API.deleteRoom(theRoom._id, function(res){
+            N.API.deleteRoom(theRoom._id, function(){
                 if (theRooms.length > 0){
                     deleteRoomsIfEmpty(theRooms, callback);
                 }
@@ -89,34 +91,34 @@ var deleteRoomsIfEmpty = function (theRooms, callback) {
             }
         }
     });
-}
+};
 
 var cleanExampleRooms = function (callback) {
     N.API.getRooms(function (roomlist) {
-        "use strict";
         var rooms = JSON.parse(roomlist);
         var roomsToCheck = [];
         for (var room in rooms){
-            if (rooms[room].data && rooms[room].data.basicExampleRoom && rooms[room].name !== defaultRoomName){
+            if (rooms[room].data &&
+                rooms[room].data.basicExampleRoom &&
+                rooms[room].name !== defaultRoomName){
+
                 roomsToCheck.push(rooms[room]);
             }
         }
-        deleteRoomsIfEmpty (roomsToCheck, function (res) {
-            callback("done");
+        deleteRoomsIfEmpty (roomsToCheck, function () {
+            callback('done');
         });
     });
 
-}
+};
 
 app.get('/getRooms/', function(req, res) {
-    "use strict";
     N.API.getRooms(function(rooms) {
         res.send(rooms);
     });
 });
 
 app.get('/getUsers/:room', function(req, res) {
-    "use strict";
     var room = req.params.room;
     N.API.getUsers(room, function(users) {
         res.send(users);
@@ -125,11 +127,11 @@ app.get('/getUsers/:room', function(req, res) {
 
 
 app.post('/createToken/', function(req, res) {
-    "use strict";
     console.log(req.body);
     var room = defaultRoomName;
-    if (req.body.room && !isNaN(req.body.room))
-        room = req.body.room
+    if (req.body.room && !isNaN(req.body.room)) {
+        room = req.body.room;
+    }
 
     var username = req.body.username,
     role = req.body.role;
@@ -147,23 +149,22 @@ app.post('/createToken/', function(req, res) {
 
 
 app.use(function(req, res, next) {
-    "use strict";
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
     res.header('Access-Control-Allow-Headers', 'origin, content-type');
-    if (req.method == 'OPTIONS') {
+    if (req.method === 'OPTIONS') {
         res.send(200);
     } else {
         next();
     }
 });
 
-cleanExampleRooms(function(res) {
+cleanExampleRooms(function() {
     getOrCreateRoom(defaultRoomName, function (roomId) {
         defaultRoom = roomId;
         app.listen(3001);
         var server = https.createServer(options, app);
-        console.log("BasicExample started");
+        console.log('BasicExample started');
         server.listen(3004);
 
     });
