@@ -1,19 +1,21 @@
+/* globals $$, Elements */
+'use strict';
 /**
  * Copyright 2013 Marc J. Schmidt. See the LICENSE file at the top-level
  * directory of this distribution and at
  * https://github.com/marcj/css-element-queries/blob/master/LICENSE.
  */
-;
 (function() {
 
     this.L = this.L || {};
+    var L = this.L;
 
     /**
      *
      * @type {Function}
      * @constructor
      */
-    this.L.ElementQueries = function() {
+    L.ElementQueries = function() {
         /**
          *
          * @param element
@@ -40,24 +42,24 @@
             var units = value.replace(/[0-9]*/, '');
             value = parseFloat(value);
             switch (units) {
-                case "px":
+                case 'px':
                     return value;
-                case "em":
+                case 'em':
                     return value * getEmSize(element);
-                case "rem":
+                case 'rem':
                     return value * getEmSize();
                 // Viewport units!
                 // According to http://quirksmode.org/mobile/tableViewport.html
                 // documentElement.clientWidth/Height gets us the most reliable info
-                case "vw":
+                case 'vw':
                     return value * document.documentElement.clientWidth / 100;
-                case "vh":
+                case 'vh':
                     return value * document.documentElement.clientHeight / 100;
-                case "vmin":
-                case "vmax":
+                case 'vmin':
+                case 'vmax':
                     var vw = document.documentElement.clientWidth / 100;
                     var vh = document.documentElement.clientHeight / 100;
-                    var chooser = Math[units === "vmin" ? "min" : "max"];
+                    var chooser = Math[units === 'vmin' ? 'min' : 'max'];
                     return value * chooser(vw, vh);
                 default:
                     return value;
@@ -74,14 +76,23 @@
         function SetupInformation(element) {
             this.element = element;
             this.options = [];
-            var i, j, option, width = 0, height = 0, value, actualValue, attrValues, attrValue, attrName;
+            var i,
+                j,
+                option,
+                width = 0,
+                height = 0,
+                value,
+                actualValue,
+                attrValues,
+                attrValue,
+                attrName;
 
             /**
              * @param option {mode: 'min|max', property: 'width|height', value: '123px'}
              */
             this.addOption = function(option) {
                 this.options.push(option);
-            }
+            };
 
             var attributes = ['min-width', 'min-height', 'max-width', 'max-height'];
 
@@ -99,27 +110,29 @@
                     option = this.options[i];
                     value = convertToPx(this.element, option.value);
 
-                    actualValue = option.property == 'width' ? width : height;
+                    actualValue = option.property === 'width' ? width : height;
                     attrName = option.mode + '-' + option.property;
                     attrValue = '';
 
-                    if (option.mode == 'min' && actualValue >= value) {
+                    if (option.mode === 'min' && actualValue >= value) {
                         attrValue += option.value;
                     }
 
-                    if (option.mode == 'max' && actualValue <= value) {
+                    if (option.mode === 'max' && actualValue <= value) {
                         attrValue += option.value;
                     }
 
                     if (!attrValues[attrName]) attrValues[attrName] = '';
-                    if (attrValue && -1 === (' '+attrValues[attrName]+' ').indexOf(' ' + attrValue + ' ')) {
+                    if (attrValue && -1 === (' '+attrValues[attrName]+' ')
+                                              .indexOf(' ' + attrValue + ' ')) {
                         attrValues[attrName] += ' ' + attrValue;
                     }
                 }
 
                 for (var k in attributes) {
                     if (attrValues[attributes[k]]) {
-                        this.element.setAttribute(attributes[k], attrValues[attributes[k]].substr(1));
+                        this.element.setAttribute(attributes[k],
+                                                  attrValues[attributes[k]].substr(1));
                     } else {
                         this.element.removeAttribute(attributes[k]);
                     }
@@ -137,7 +150,7 @@
             } else {
                 element.elementQueriesSetupInformation = new SetupInformation(element);
                 element.elementQueriesSetupInformation.addOption(options);
-                new ResizeSensor(element, function() {
+                new L.ResizeSensor(element, function() {
                     element.elementQueriesSetupInformation.call();
                 });
             }
@@ -170,7 +183,7 @@
             }
         }
 
-        var regex = /,?([^,\n]*)\[[\s\t]*(min|max)-(width|height)[\s\t]*[~$\^]?=[\s\t]*"([^"]*)"[\s\t]*]([^\n\s\{]*)/mgi;
+        var regex = /,?([^,\n]*)\[[\s\t]*(min|max)-(width|height)[\s\t]*[~$\^]?=[\s\t]*"([^"]*)"[\s\t]*]([^\n\s\{]*)/mgi;  // jshint ignore:line
 
         /**
          * @param {String} css
@@ -202,9 +215,11 @@
                 for (var i = 0, j = rules.length; i < j; i++) {
                     if (1 === rules[i].type) {
                         selector = rules[i].selectorText || rules[i].cssText;
-                        if (-1 !== selector.indexOf('min-height') || -1 !== selector.indexOf('max-height')) {
+                        if (-1 !== selector.indexOf('min-height') ||
+                            -1 !== selector.indexOf('max-height')) {
                             extractQuery(selector);
-                        }else if(-1 !== selector.indexOf('min-width') || -1 !== selector.indexOf('max-width')) {
+                        } else if (-1 !== selector.indexOf('min-width') ||
+                                   -1 !== selector.indexOf('max-width')) {
                             extractQuery(selector);
                         }
                     } else if (4 === rules[i].type) {
@@ -215,17 +230,20 @@
         }
 
         /**
-         * Searches all css rules and setups the event listener to all elements with element query rules..
+         * Searches all css rules and setups the event listener
+         * to all elements with element query rules..
          */
         this.init = function() {
             for (var i = 0, j = document.styleSheets.length; i < j; i++) {
-                readRules(document.styleSheets[i].cssText || document.styleSheets[i].cssRules || document.styleSheets[i].rules);
+                readRules(document.styleSheets[i].cssText ||
+                          document.styleSheets[i].cssRules ||
+                          document.styleSheets[i].rules);
             }
-        }
-    }
+        };
+    };
 
     function init() {
-        new L.ElementQueries().init();
+        (new L.ElementQueries()).init();
     }
 
     if (window.addEventListener) {
@@ -242,7 +260,7 @@
      *
      * @constructor
      */
-    this.L.ResizeSensor = function(element, callback) {
+    L.ResizeSensor = function(element, callback) {
         /**
          * Adds a listener to the over/under-flow event.
          *
@@ -324,15 +342,11 @@
                     });
                 }
             } else {*/
-                var myResized = function() {
-                    if (setupSensor()) {
-                        element.resizedAttached.call();
-                    }
-                };
                 element.resizeSensor = document.createElement('div');
                 element.resizeSensor.className = 'resize-sensor';
                 var style =
-                    'position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow: hidden; z-index: -1;';
+                    'position: absolute; left: 0; top: 0; right: 0; bottom: 0; ' +
+                    'overflow: hidden; z-index: -1;';
                 element.resizeSensor.style.cssText = style;
                 element.resizeSensor.innerHTML =
                     '<div class="resize-sensor-overflow" style="' + style + '">' +
@@ -357,13 +371,13 @@
                         width = element.resizeSensor.offsetWidth,
                         height = element.resizeSensor.offsetHeight;
 
-                    if (x != width) {
+                    if (x !== width) {
                         firstStyle.width = (width - 1) + 'px';
                         lastStyle.width = (width + 1) + 'px';
                         change = true;
                         x = width;
                     }
-                    if (y != height) {
+                    if (y !== height) {
                         firstStyle.height = (height - 1) + 'px';
                         lastStyle.height = (height + 1) + 'px';
                         change = true;
@@ -372,6 +386,12 @@
                     return change;
                 }
 
+                var myResized = function() {
+                    if (setupSensor()) {
+                        element.resizedAttached.call();
+                    }
+                };
+
                 setupSensor();
                 addResizeListener(element.resizeSensor, myResized);
                 addResizeListener(element.resizeSensor.firstElementChild, myResized);
@@ -379,9 +399,9 @@
             /*}*/
         }
 
-        if ('array' === typeof element
-            || ('undefined' !== typeof jQuery && element instanceof jQuery) //jquery
-            || ('undefined' !== typeof Elements && element instanceof Elements) //mootools
+        if (Array === element.constructor ||
+            ('undefined' !== typeof jQuery && element instanceof jQuery) || //jquery
+            ('undefined' !== typeof Elements && element instanceof Elements) //mootools
             ) {
             var i = 0, j = element.length;
             for (; i < j; i++) {
@@ -390,6 +410,6 @@
         } else {
             attachResizeEvent(element, callback);
         }
-    }
+    };
 
 })();

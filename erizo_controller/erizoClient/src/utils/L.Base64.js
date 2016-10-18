@@ -1,7 +1,19 @@
+/* global unescape */
+'use strict';
 var L = L || {};
-L.Base64 = (function (L) {
-    "use strict";
-    var END_OF_INPUT, base64Chars, reverseBase64Chars, base64Str, base64Count, i, setBase64Str, readBase64, encodeBase64, readReverseBase64, ntos, decodeBase64;
+L.Base64 = (function () {
+    var END_OF_INPUT,
+        base64Chars,
+        reverseBase64Chars,
+        base64Str,
+        base64Count,
+        i,
+        setBase64Str,
+        readBase64,
+        encodeBase64,
+        readReverseBase64,
+        ntos,
+        decodeBase64;
 
     END_OF_INPUT = -1;
 
@@ -54,7 +66,8 @@ L.Base64 = (function (L) {
             if (inBuffer[1] !== END_OF_INPUT) {
                 result = result + (base64Chars [((inBuffer[0] << 4) & 0x30) | (inBuffer[1] >> 4)]);
                 if (inBuffer[2] !== END_OF_INPUT) {
-                    result = result + (base64Chars [((inBuffer[1] << 2) & 0x3c) | (inBuffer[2] >> 6)]);
+                    result = result +
+                              (base64Chars [((inBuffer[1] << 2) & 0x3c) | (inBuffer[2] >> 6)]);
                     result = result + (base64Chars[inBuffer[2] & 0x3F]);
                 } else {
                     result = result + (base64Chars[((inBuffer[1] << 2) & 0x3c)]);
@@ -98,19 +111,21 @@ L.Base64 = (function (L) {
     ntos = function (n) {
         n = n.toString(16);
         if (n.length === 1) {
-            n = "0" + n;
+            n = '0' + n;
         }
-        n = "%" + n;
+        n = '%' + n;
         return unescape(n);
     };
 
     decodeBase64 = function (str) {
         var result, inBuffer, done;
         setBase64Str(str);
-        result = "";
+        result = '';
         inBuffer = new Array(4);
         done = false;
-        while (!done && (inBuffer[0] = readReverseBase64()) !== END_OF_INPUT && (inBuffer[1] = readReverseBase64()) !== END_OF_INPUT) {
+        while (!done &&
+              (inBuffer[0] = readReverseBase64()) !== END_OF_INPUT &&
+              (inBuffer[1] = readReverseBase64()) !== END_OF_INPUT) {
             inBuffer[2] = readReverseBase64();
             inBuffer[3] = readReverseBase64();
             result = result + ntos((((inBuffer[0] << 2) & 0xff)| inBuffer[1] >> 4));
