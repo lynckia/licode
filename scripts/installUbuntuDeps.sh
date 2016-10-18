@@ -176,13 +176,13 @@ install_libsrtp
 pause "Installing opus library...  [press Enter]"
 install_opus
 
-if [ "$ENABLE_GPL" = "true" ]; then
-  pause "GPL libraries enabled"
-  install_mediadeps
-else
-  pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
-  install_mediadeps_nogpl
-fi
+#if [ "$ENABLE_GPL" = "true" ]; then
+#  pause "GPL libraries enabled"
+#  install_mediadeps
+#else
+#  pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
+#  install_mediadeps_nogpl
+#fi
 
 if [ "$CLEANUP" = "true" ]; then
   echo "Cleaning up..."
