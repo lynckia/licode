@@ -14,3 +14,4 @@ erizo_controller/erizoAgent/out.log
 erizo_controller/erizoAgent/erizo-*.log
 .project
 .cproject
+spine/erizofc.js
