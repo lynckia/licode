@@ -145,13 +145,13 @@ pause "prefix dir '$PREFIX_DIR'."
 #pause "Installing deps via yum... [press Enter]"
 #install_apt_deps
 
-check_proxy
+#check_proxy
 
 #pause "Installing openssl library...  [press Enter]"
 #install_openssl
 
-pause "Installing libnice library...  [press Enter]"
-install_libnice
+#pause "Installing libnice library...  [press Enter]"
+#install_libnice
 
 pause "Installing libsrtp library...  [press Enter]"
 install_libsrtp
