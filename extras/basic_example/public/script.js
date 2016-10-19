@@ -1,4 +1,6 @@
-var serverUrl = "/";
+/* globals Erizo */
+'use strict';
+var serverUrl = '/';
 var localStream, room, recording, recordingId;
 
 function showLegalCase()
@@ -107,12 +109,9 @@ window.onload = function () {
                         var div = document.createElement('div');
                         div.setAttribute("style", "width: 320px; height: 240px;");
                         div.setAttribute("id", "test" + stream.getID());
-
                         document.body.appendChild(div);
                         stream.show("test" + stream.getID());
-
                         });
-
                 room.addEventListener("stream-added", function (streamEvent) {
                         var streams = [];
                         streams.push(streamEvent.stream);
