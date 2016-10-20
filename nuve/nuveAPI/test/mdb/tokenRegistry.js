@@ -60,7 +60,7 @@ describe('Token Registry', function() {
   });
 
   it('should return true if the token is found in database when hasToken is called', function() {
-    var callback = sinon.spy();
+    var callback = sinon.stub();
     dataBase.db.tokens.findOne.callsArgWith(1, null, kArbitraryToken);
     tokenRegistry.hasToken(kArbitraryTokenId, callback);
 
@@ -82,21 +82,22 @@ describe('Token Registry', function() {
     expect(dataBase.db.tokens.save.calledOnce).to.be.true;  // jshint ignore:line
   });
 
-  it('should call remove on Database when removeToken is called and it exists', function() {
+  it('should not call remove on Database when removeToken is called ' +
+     'and it does not exist', function() {
     dataBase.db.tokens.findOne.callsArgWith(1, null, undefined);
     tokenRegistry.removeToken(kArbitraryTokenId);
 
     expect(dataBase.db.tokens.remove.called).to.be.false;  // jshint ignore:line
   });
 
-  it('should return true if the token is found when hasToken is called', function() {
+  it('should return true if the token is found when removeToken is called', function() {
     dataBase.db.tokens.findOne.callsArgWith(1, null, kArbitraryToken);
     tokenRegistry.removeToken(kArbitraryTokenId);
 
     expect(dataBase.db.tokens.remove.called).to.be.true;  // jshint ignore:line
   });
 
-  it('should remove a list of tokens when getList is called', function() {
+  it('should remove a list of tokens when removeOldTokens is called', function() {
     dataBase.db.tokens.findOne.callsArgWith(1, null, kArbitraryToken);
     dataBase.db.tokens.find.returns({
       toArray: function(cb) {

@@ -42,7 +42,7 @@ describe('Cloud Handler', function() {
     expect(callback.withArgs(expectedResult).callCount).to.equal(1);
   };
 
-  it('should success creating new private erizo controller', function() {
+  it('should succeed creating new private erizo controller', function() {
     var callback = sinon.stub();
     createPrivateErizoController(callback);
     expect(callback.callCount).to.equal(1);
@@ -62,7 +62,7 @@ describe('Cloud Handler', function() {
     expect(callback.withArgs('error').callCount).to.equal(1);
   });
 
-  it('should success creating new amazon erizo controller if awslib success', function() {
+  it('should succeed creating new amazon erizo controller if awslib success', function() {
     var arbitraryMessage = {
       cloudProvider: 'amazon',
       ip: '127.0.0.1',

@@ -52,7 +52,7 @@ describe('RpcPublic API', function() {
       });
     });
 
-    it('should success when removing a test token', function(done) {
+    it('should succeed when removing a test token', function(done) {
       var arbitraryToken = {use: 1, service: kArbitraryService};
       tokenRegistryMock.getToken.callsArgWithAsync(1, arbitraryToken);
       serviceRegistryMock.getService.callsArgWithAsync(1, kArbitraryService);
@@ -65,7 +65,7 @@ describe('RpcPublic API', function() {
       });
     });
 
-    it('should success when removing a token', function(done) {
+    it('should succeed when removing a token', function(done) {
       var arbitraryToken = {service: kArbitraryService};
       tokenRegistryMock.getToken.callsArgWithAsync(1, arbitraryToken);
       tokenRegistryMock.removeToken.callsArgAsync(1);

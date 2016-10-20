@@ -8,7 +8,7 @@ var expect  = require('chai').expect;
 
 var kArbitraryService = {'_id': '1', rooms: []};
 
-describe('Room Resource', function() {
+describe('Service Resource', function() {
   var app,
       serviceResource,
       serviceRegistryMock,
@@ -64,7 +64,7 @@ describe('Room Resource', function() {
         });
     });
 
-    it('should success if service exists', function(done) {
+    it('should succeed if service exists', function(done) {
       nuveAuthenticatorMock.service = kArbitraryService;
       dataBaseMock.superService = kArbitraryService._id;
       serviceRegistryMock.getService.callsArgWith(1, kArbitraryService);

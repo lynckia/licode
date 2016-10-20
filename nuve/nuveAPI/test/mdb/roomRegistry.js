@@ -48,7 +48,7 @@ describe('Room Registry', function() {
   });
 
   it('should return true if the room is found in database when hasRoom is called', function() {
-    var callback = sinon.spy();
+    var callback = sinon.stub();
     dataBase.db.rooms.findOne.callsArgWith(1, null, kArbitraryRoom);
     roomRegistry.hasRoom(kArbitraryRoomId, callback);
 

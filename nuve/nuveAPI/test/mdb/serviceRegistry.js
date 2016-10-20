@@ -60,7 +60,7 @@ describe('Service Registry', function() {
   });
 
   it('should return true if the service is found when hasService is called', function() {
-    var callback = sinon.spy();
+    var callback = sinon.stub();
     dataBase.db.services.findOne.callsArgWith(1, null, kArbitraryService);
     serviceRegistry.hasService(kArbitraryServiceId, callback);
 

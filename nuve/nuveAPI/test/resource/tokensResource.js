@@ -9,7 +9,7 @@ var kArbitraryRoom = {'_id': '1', name: '', options: {p2p: true, data: ''}};
 var kArbitraryService = {'_id': '1', rooms: [kArbitraryRoom]};
 var kArbitraryErizoController = {hostname: 'hostname', ssl: true, ip: '127.0.0.1', port: 3000};
 
-describe('Room Resource', function() {
+describe('Tokens Resource', function() {
   var app,
       tokensResource,
       serviceRegistryMock,
@@ -97,7 +97,7 @@ describe('Room Resource', function() {
     });
 
 
-    it('should success if service and room exists', function(done) {
+    it('should succeed if service and room exists', function(done) {
       nuveAuthenticatorMock.service = kArbitraryService;
       nuveAuthenticatorMock.user = 'username';
       serviceRegistryMock.getRoomForService.callsArgWith(2, kArbitraryRoom);

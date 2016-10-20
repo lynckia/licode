@@ -90,7 +90,7 @@ describe('User Resource', function() {
         });
     });
 
-    it('should success if user exists', function(done) {
+    it('should succeed if user exists', function(done) {
       serviceRegistryMock.getRoomForService.callsArgWith(2, kArbitraryRoom);
       nuveAuthenticatorMock.service = kArbitraryService;
       cloudHandlerMock.getUsersInRoom.callsArgWith(1, [kArbtiraryUser]);
@@ -142,7 +142,7 @@ describe('User Resource', function() {
         });
     });
 
-    it('should success if user exists', function(done) {
+    it('should succeed if user exists', function(done) {
       serviceRegistryMock.getRoomForService.callsArgWith(2, kArbitraryRoom);
       nuveAuthenticatorMock.service = kArbitraryService;
       cloudHandlerMock.deleteUser.callsArgWith(2, kArbtiraryUser);

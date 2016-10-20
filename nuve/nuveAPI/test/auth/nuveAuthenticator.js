@@ -87,7 +87,7 @@ describe('Nuve Authenticator', function() {
       });
   });
 
-  it('should succuess if signature is valid', function(done) {
+  it('should succeed if signature is valid', function(done) {
     request(app)
       .get('/arbitraryFunction')
       .set('Authorization',
@@ -162,7 +162,7 @@ describe('Nuve Authenticator', function() {
     });
   });
 
-  it('should success if timestamp changes between messages', function(done) {
+  it('should succeed if timestamp changes between messages', function(done) {
     var header = 'MAuth realm="",mauth_serviceid=1,mauth_signature_method=HMAC_SHA1,';
     async.series([
       function(next) {
@@ -191,7 +191,7 @@ describe('Nuve Authenticator', function() {
     });
   });
 
-  it('should success if cnonce changes between messages', function(done) {
+  it('should succeed if cnonce changes between messages', function(done) {
     var header = 'MAuth realm="",mauth_serviceid=1,mauth_signature_method=HMAC_SHA1,';
     async.series([
       function(next) {
