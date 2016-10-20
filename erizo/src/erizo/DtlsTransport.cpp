@@ -19,61 +19,63 @@ DEFINE_LOGGER(Resender, "Resender");
 
 using std::memcpy;
 
-Resender::Resender(boost::shared_ptr<NiceConnection> nice, unsigned int comp,
-                   const unsigned char* data, unsigned int len) :
-  nice_(nice), comp_(comp), data_(data), len_(len), timer(service) {
-    sent_ = 0;
-  }
+Resender::Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx, unsigned int resend_seconds,
+  unsigned int max_resends): transport_(transport), socket_context_(ctx),
+  resend_seconds_(resend_seconds), max_resends_(max_resends), timer(service) {
+}
 
 Resender::~Resender() {
-  ELOG_DEBUG("Resender destructor");
+  ELOG_DEBUG("message: ~Resender");
   timer.cancel();
   if (thread_.get() != NULL) {
-    ELOG_DEBUG("Resender destructor, joining thread");
+    ELOG_DEBUG("message: ~Resender joining thread");
     thread_->join();
-    ELOG_DEBUG("Resender thread terminated on destructor");
+    ELOG_DEBUG("message: ~Resender thread terminated ");
   }
 }
 
-void Resender::cancel() {
+void Resender::Cancel() {
+  ELOG_DEBUG("message: cancelled");
   timer.cancel();
-  sent_ = 1;
 }
 
-void Resender::start() {
-  sent_ = 0;
+void Resender::ScheduleResend(const unsigned char* data, unsigned int len) {
+  ELOG_DEBUG("message: Scheduling a new resender");
   timer.cancel();
+  memcpy(data_, data, len);
+  len_ = len;
+  transport_->writeDtlsPacket(socket_context_, data_, len_);
   if (thread_.get() != NULL) {
-    ELOG_WARN("Starting Resender, joining thread to terminate");
+    ELOG_DEBUG("message: join thread before scheduling resend");
     thread_->join();
-    ELOG_WARN("Thread terminated on start");
+    ELOG_DEBUG("message: thread joined successfully");
   }
-  timer.expires_from_now(boost::posix_time::seconds(3));
-  timer.async_wait(boost::bind(&Resender::resend, this, boost::asio::placeholders::error));
-  thread_.reset(new boost::thread(boost::bind(&Resender::run, this)));
+
+  timer.expires_from_now(boost::posix_time::seconds(resend_seconds_));
+  timer.async_wait(boost::bind(&Resender::Resend, this, boost::asio::placeholders::error));
+  thread_.reset(new boost::thread(boost::bind(&Resender::Run, this)));
 }
 
-void Resender::run() {
+
+void Resender::Run() {
   service.run();
 }
 
-int Resender::getStatus() {
-  return sent_;
-}
-
-void Resender::resend(const boost::system::error_code& ec) {
+void Resender::Resend(const boost::system::error_code& ec) {
   if (ec == boost::asio::error::operation_aborted) {
-    ELOG_DEBUG("%s - Cancelled", nice_->transportName->c_str());
+    ELOG_DEBUG("message: skipping cancelled resend");
     return;
   }
 
-  if (nice_ != NULL) {
-    ELOG_DEBUG("%s - Resending DTLS message to %d", nice_->transportName->c_str(), comp_);
-    int val = nice_->sendData(comp_, data_, len_);
-    if (val < 0) {
-      sent_ = -1;
+  if (transport_ != NULL) {
+    if (max_resends_-- > 0) {
+      ELOG_DEBUG("message: Resending DTLS message");
+      transport_->writeDtlsPacket(socket_context_, data_, len_);
+      timer.expires_from_now(boost::posix_time::seconds(resend_seconds_));
+      timer.async_wait(boost::bind(&Resender::Resend, this, boost::asio::placeholders::error));
     } else {
-      sent_ = 2;
+      ELOG_DEBUG("message: DTLS Timeout");
+      transport_->onHandshakeFailed(socket_context_, "Dtls Timeout on Resender");
     }
   }
 }
@@ -111,6 +113,10 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
       }
     }
     nice_.reset(new NiceConnection(med, transport_name, connection_id_, this, comps, iceConfig_, username, password));
+    rtp_resender_.reset(new Resender(this, dtlsRtp.get(), kSecsPerResend, kMaxResends));
+    if (!rtcp_mux) {
+      rtcp_resender_.reset(new Resender(this, dtlsRtcp.get(), kSecsPerResend, kMaxResends));
+    }
     running_ = true;
     getNice_Thread_ = boost::thread(&DtlsTransport::getNiceDataLoop, this);
     ELOG_DEBUG("%s, message: created", toLog());
@@ -146,13 +152,13 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
     ELOG_DEBUG("%s, message: Received DTLS message, transportName: %s, componentId: %u",
                toLog(), transport_name.c_str(), component_id);
     if (component_id == 1) {
-      if (rtpResender.get() != NULL) {
-        rtpResender->cancel();
+      if (rtp_resender_.get() != NULL) {
+        rtp_resender_->Cancel();
       }
       dtlsRtp->read(reinterpret_cast<unsigned char*>(data), len);
     } else {
-      if (rtcpResender.get() != NULL) {
-        rtcpResender->cancel();
+      if (rtcp_resender_.get() != NULL) {
+        rtcp_resender_->Cancel();
       }
       dtlsRtcp->read(reinterpret_cast<unsigned char*>(data), len);
     }
@@ -230,21 +236,25 @@ void DtlsTransport::write(char* data, int len) {
   }
 }
 
-void DtlsTransport::writeDtls(DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) {
+void DtlsTransport::onDtlsPacket(DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) {
   int comp = 1;
   if (ctx == dtlsRtcp.get()) {
     comp = 2;
-    rtcpResender.reset(new Resender(nice_, comp, data, len));
-    rtcpResender->start();
+    rtcp_resender_->ScheduleResend(data, len);
   } else {
-    rtpResender.reset(new Resender(nice_, comp, data, len));
-    rtpResender->start();
+    rtp_resender_->ScheduleResend(data, len);
   }
 
   ELOG_DEBUG("%s, message: Sending DTLS message, transportName: %s, componentId: %d",
              toLog(), transport_name.c_str(), comp);
+}
 
-  nice_->sendData(comp, data, len);
+void DtlsTransport::writeDtlsPacket(DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) {
+    int comp = 1;
+    if (ctx == dtlsRtcp.get()) {
+      comp = 2;
+    }
+    nice_->sendData(comp, data, len);
 }
 
 void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey, std::string serverKey,
@@ -309,7 +319,7 @@ void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
       ELOG_INFO("%s, message: DTLSRTP Start, transportName: %s", toLog(), transport_name.c_str());
       dtlsRtp->start();
     }
-    if (!isServer_ && dtlsRtcp != NULL && (!dtlsRtcp->started || rtcpResender->getStatus() < 0)) {
+    if (!isServer_ && dtlsRtcp != NULL && !dtlsRtcp->started) {
       ELOG_DEBUG("%s, message: DTLSRTCP Start, transportName: %s", toLog(), transport_name.c_str());
       dtlsRtcp->start();
     }

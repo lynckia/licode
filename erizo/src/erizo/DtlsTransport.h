@@ -31,7 +31,8 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice);
   void onCandidate(const CandidateInfo &candidate, NiceConnection *conn);
   void write(char* data, int len);
-  void writeDtls(dtls::DtlsSocketContext *ctx, const unsigned char* data, unsigned int len);
+  void onDtlsPacket(dtls::DtlsSocketContext *ctx, const unsigned char* data, unsigned int len);
+  void writeDtlsPacket(dtls::DtlsSocketContext *ctx, const unsigned char* data, unsigned int len);
   void onHandshakeCompleted(dtls::DtlsSocketContext *ctx, std::string clientKey, std::string serverKey,
                             std::string srtp_profile);
   void onHandshakeFailed(dtls::DtlsSocketContext *ctx, const std::string error);
@@ -46,9 +47,12 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   boost::scoped_ptr<SrtpChannel> srtp_, srtcp_;
   bool readyRtp, readyRtcp;
   bool running_, isServer_;
-  boost::scoped_ptr<Resender> rtcpResender, rtpResender;
+  boost::scoped_ptr<Resender> rtcp_resender_, rtp_resender_;
   boost::thread getNice_Thread_;
   packetPtr p_;
+
+  const unsigned int kMaxResends = 5;
+  const unsigned int kSecsPerResend = 3;
 
   void getNiceDataLoop();
   inline const char* toLog() {
@@ -60,20 +64,22 @@ class Resender {
   DECLARE_LOGGER();
 
  public:
-  Resender(boost::shared_ptr<NiceConnection> nice, unsigned int comp, const unsigned char* data, unsigned int len);
+  Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx, unsigned int resend_seconds,
+      unsigned int max_resends);
   virtual ~Resender();
-  void start();
-  void run();
-  void cancel();
-  int getStatus();
-  void resend(const boost::system::error_code& ec);
+  void ScheduleResend(const unsigned char* data, unsigned int len);
+  void Run();
+  void Cancel();
+  void Resend(const boost::system::error_code& ec);
 
  private:
-  boost::shared_ptr<NiceConnection> nice_;
-  unsigned int comp_;
-  int sent_;
-  const unsigned char* data_;
+  DtlsTransport* transport_;
+  dtls::DtlsSocketContext* socket_context_;
+  unsigned char data_[1500];
   unsigned int len_;
+  unsigned int resend_seconds_;
+  unsigned int max_resends_;
+
   boost::asio::io_service service;
   boost::asio::deadline_timer timer;
   boost::scoped_ptr<boost::thread> thread_;
