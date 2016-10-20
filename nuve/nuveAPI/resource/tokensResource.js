@@ -104,7 +104,7 @@ var generateToken = function (callback) {
 
             token = currentService.testToken;
 
-            log.info('message: generateTestToken already generated - returning, ' + 
+            log.info('message: generateTestToken already generated - returning, ' +
                 logger.objectToLog(token));
 
             tokenS = getTokenString(token._id, token);
@@ -114,8 +114,7 @@ var generateToken = function (callback) {
         }
     } else {
 
-        cloudHandler.getErizoControllerForRoom (currentRoom, function (ec) {
-
+        cloudHandler.getErizoControllerForRoom(currentRoom, function (ec) {
             if (ec === 'timeout') {
                 callback('error');
                 return;

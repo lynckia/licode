@@ -41,7 +41,7 @@ exports.getList = function (req, res) {
 
         log.info('message: getUsersList sucess, roomId: ' + currentRoom._id +
                  ', serviceId: ' + currentService._id);
-        cloudHandler.getUsersInRoom (currentRoom._id, function (users) {
+        cloudHandler.getUsersInRoom(currentRoom._id, function (users) {
             if (users === 'error') {
                 res.send('CloudHandler does not respond', 401);
                 return;

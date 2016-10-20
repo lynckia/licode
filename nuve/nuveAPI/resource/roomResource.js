@@ -35,7 +35,7 @@ exports.represent = function (req, res) {
             log.info('message: representRoom - room does not exits, roomId: ' + req.params.room);
             res.send('Room does not exist', 404);
         } else {
-            log.info('message: representRoom success, roomId: ' + currentRoom._id + 
+            log.info('message: representRoom success, roomId: ' + currentRoom._id +
                 ', serviceId: ' + currentService._id);
             res.send(currentRoom);
         }
@@ -86,7 +86,7 @@ exports.updateRoom = function (req, res) {
 
                 currentService.rooms[index] = room;
                 serviceRegistry.updateService(currentService);
-                log.info('message: updateRoom  successful, roomId: ' + id + ', serviceId: ' + 
+                log.info('message: updateRoom  successful, roomId: ' + id + ', serviceId: ' +
                     currentService._id);
                 res.send('Room Updated');
             }
@@ -114,11 +114,13 @@ exports.patchRoom = function (req, res) {
             var room = currentRoom;
 
             if (req.body.name) room.name = req.body.name;
-            if (req.body.options.p2p) room.p2p = req.body.options.p2p;
-            if (req.body.options.data) {
-                for (var d in req.body.options.data) {
-                    room.data[d] = req.body.options.data[d];
-                }
+            if (req.body.options) {
+              if (req.body.options.p2p) room.p2p = req.body.options.p2p;
+              if (req.body.options.data) {
+                  for (var d in req.body.options.data) {
+                      room.data[d] = req.body.options.data[d];
+                  }
+              }
             }
 
             roomRegistry.updateRoom(id, room);
@@ -132,7 +134,7 @@ exports.patchRoom = function (req, res) {
 
                 currentService.rooms[index] = room;
                 serviceRegistry.updateService(currentService);
-                log.info('message: patchRoom room successfully updated,  roomId: ' + id + 
+                log.info('message: patchRoom room successfully updated,  roomId: ' + id +
                     ', serviceId: ' + currentService._id);
 
                 res.send('Room Updated');
@@ -170,7 +172,7 @@ exports.deleteRoom = function (req, res) {
             if (index !== -1) {
                 currentService.rooms.splice(index, 1);
                 serviceRegistry.updateService(currentService);
-                log.info('message: deleteRoom - room successfully deleted, roomId: ' + id + 
+                log.info('message: deleteRoom - room successfully deleted, roomId: ' + id +
                     ', serviceId: ' + currentService._id);
                 cloudHandler.deleteRoom(id, function () {});
                 res.send('Room deleted');

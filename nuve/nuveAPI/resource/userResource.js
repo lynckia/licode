@@ -43,7 +43,7 @@ exports.getUser = function (req, res) {
         var user = req.params.user;
 
 
-        cloudHandler.getUsersInRoom (currentRoom._id, function (users) {
+        cloudHandler.getUsersInRoom(currentRoom._id, function (users) {
             if (users === 'error') {
                 res.send('CloudHandler does not respond', 401);
                 return;
