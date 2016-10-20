@@ -158,7 +158,7 @@ exports.keepAlive = function (id, callback) {
 
     if (erizoControllers[id] === undefined) {
         result = 'whoareyou';
-        log.warn('I received a keepAlive mess from an unknownb erizoController');
+        log.warn('I received a keepAlive message from an unknown erizoController');
     } else {
         erizoControllers[id].keepAlive = 0;
         result = 'ok';
@@ -175,7 +175,6 @@ exports.setInfo = function (params) {
 
 exports.killMe = function (ip) {
     log.info('[CLOUD HANDLER]: ErizoController in host ', ip, 'wants to be killed.');
-
 };
 
 exports.getErizoControllerForRoom = function (room, callback) {

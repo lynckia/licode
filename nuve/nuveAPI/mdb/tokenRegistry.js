@@ -61,7 +61,7 @@ var removeToken = exports.removeToken = function (id, callback) {
         if (hasT) {
             db.tokens.remove({_id: db.ObjectId(id)}, function (error) {
                 if (error) {
-                    log.warn('message: removeToken error, ' + 
+                    log.warn('message: removeToken error, ' +
                         logger.objectToLog(error));
                 }
                 callback();
@@ -92,10 +92,10 @@ exports.removeOldTokens = function () {
                 time = (new Date()).getTime();
                 tokenTime = token.creationDate.getTime();
                 dif = time - tokenTime;
-
                 if (dif > 3*60*1000) {
-                    log.info('message: removing old token, tokenId: ' + token._id + ', roomId: ' + 
-                        token.room + ', serviceId: ' + token.service);  
+
+                    log.info('message: removing old token, tokenId: ' + token._id + ', roomId: ' +
+                        token.room + ', serviceId: ' + token.service);
                     removeToken(token._id + '', function() {});
                 }
             }

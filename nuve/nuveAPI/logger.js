@@ -29,7 +29,5 @@ exports.logger.objectToLog = function (jsonInput) {
     }
     var jsonString = JSON.stringify (jsonInput, logJsonReplacer);
     return jsonString.replace (/['"]+/g, '').replace(/[:]+/g, ': ')
-        .replace(/[,]+/g, ', ').slice(1,-1); 
+        .replace(/[,]+/g, ', ').slice(1,-1);
 };
-
-

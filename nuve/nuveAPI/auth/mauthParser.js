@@ -41,13 +41,13 @@ exports.makeHeader = function (params) {
         return undefined;
     }
 
-    var header = 'MAuth realm=\"' + params.realm + '\"',
+    var header = 'MAuth realm=' + params.realm,
         key;
 
     for (key in params) {
         if (params.hasOwnProperty(key)) {
             if (key !== 'realm') {
-                header += ',mauth_' + key + '=\"' + params[key] + '\"';
+                header += ',mauth_' + key + '=' + params[key];
             }
         }
     }
