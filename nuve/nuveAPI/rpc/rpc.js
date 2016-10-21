@@ -60,7 +60,9 @@ exports.connect = function (callback) {
                       });
 
                   });
-                  callback();
+                  if (callback) {
+                      callback();
+                  }
               });
             };
 
