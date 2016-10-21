@@ -193,10 +193,17 @@ Erizo.Stream = function (spec) {
                 width = parseInt(style.getPropertyValue('width'), 10),
                 height = parseInt(style.getPropertyValue('height'), 10),
                 left = parseInt(style.getPropertyValue('left'), 10),
-                top = parseInt(style.getPropertyValue('top'), 10),
+                top = parseInt(style.getPropertyValue('top'), 10);
 
+            var div;
+            if (typeof that.elementID === 'object' && typeof that.elementID.appendChild === 'function') {
+                div = that.elementID;
+            }
+            else {
                 div = document.getElementById(that.elementID),
-                divStyle = document.defaultView.getComputedStyle(div),
+            }
+
+            var divStyle = document.defaultView.getComputedStyle(div),
                 divWidth = parseInt(divStyle.getPropertyValue('width'), 10),
                 divHeight = parseInt(divStyle.getPropertyValue('height'), 10),
 
