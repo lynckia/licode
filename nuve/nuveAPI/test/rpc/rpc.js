@@ -55,6 +55,16 @@ describe('RPC', function() {
     });
   });
 
+  it('should not throw an exception if callback is not passed', function(done) {
+    sinon.spy(rpc.connect);
+
+    queueMock.subscribe.onCall(1).callsArgWith(0, kArbitraryMessage);
+    rpcPublicMock.arbitraryMethod = sinon.stub().callsArgWith(1, 'type', 'result');
+    rpc.connect();
+
+    setTimeout(done, 0);
+  });
+
   it('should call public rpc when receiving messages', function(done) {
     queueMock.subscribe.onCall(1).callsArgWith(0, kArbitraryMessage);
     rpcPublicMock.arbitraryMethod = sinon.stub().callsArgWith(1, 'type', 'result');
