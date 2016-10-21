@@ -1,7 +1,7 @@
 /* globals Erizo */
 'use strict';
 var serverUrl = '/';
-var localStream, room, recording, recordingId;
+var localStream, room, recording, recordingId,shareScreen;
 
 function showLegalCase()
 {
@@ -64,7 +64,9 @@ window.onload = function () {
 
         var req = new XMLHttpRequest();
         var url = serverUrl + 'createToken/';
-        var body = {username: userName, role: role, room:roomName};
+       // var body = {username: userName, role: role, room:roomName};
+
+ var body = {username: userName, role: role, room_id:'58077ebc21d2a43b5be717a3'};
 
         req.onreadystatechange = function () {
             if (req.readyState === 4) {
