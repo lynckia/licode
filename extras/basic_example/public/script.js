@@ -8,7 +8,7 @@ function showLegalCase()
     console.log("showLegalCase");
     var conf={video: true, audio: true,
         //url:"rtsp://user1:222222@111.198.38.42:8554/stream"
-        url:"file:///extra_disk/pkg/share/test.mov"
+        url:"file:///extra_disk/pkg/test.mov"
     };
 
     shareScreen = Erizo.Stream(conf);
@@ -116,7 +116,7 @@ window.onload = function () {
                         var streams = [];
                         streams.push(streamEvent.stream);
                         subscribeToStreams(streams);
-                        //document.getElementById("recordButton").disabled = false;
+                        document.getElementById("recordButton").disabled = false;
                         });
 
                 room.addEventListener("stream-removed", function (streamEvent) {
