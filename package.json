@@ -30,7 +30,7 @@
     }
   ],
   "scripts": {
-    "test": " ./node_modules/mocha/bin/mocha nuve/nuveAPI/test/*",
+    "test": " ./node_modules/mocha/bin/mocha nuve/nuveAPI/test/* erizo_controller/test/*",
     "lint": "./node_modules/jshint/bin/jshint erizo_controller/ nuve/ extras/basic_example/ spine/"
   }
 }
