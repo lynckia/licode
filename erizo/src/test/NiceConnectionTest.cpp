@@ -400,11 +400,6 @@ TEST_F(NiceConnectionTest, setRemoteCredentials_Configures_NiceAgent) {
   nice_connection->setRemoteCredentials(username, password);
 }
 
-TEST_F(NiceConnectionTest, updateComponentState_NiceConnection_Is_Ready_When_Single_Component_Is_Ready) {
-  EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_READY , _)).Times(1);
-  nice_connection->updateComponentState(1, erizo::NICE_READY);
-}
-
 TEST_F(NiceConnectionTest, updateComponentState_Listener_Is_Notified_Ready_When_Single_Component_Is_Ready) {
   EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_READY , _)).Times(1);
   nice_connection->updateComponentState(1, erizo::NICE_READY);
