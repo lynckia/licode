@@ -37,9 +37,6 @@ exports.ErizoJSController = function () {
         WARN_PRECOND_FAILED = 412,
         WARN_BAD_CONNECTION = 502;
 
-
-
-
     /*
      * Enables/Disables slideshow mode for a subscriber
      */
@@ -54,24 +51,24 @@ exports.ErizoJSController = function () {
 
         log.debug('message: setting SlideShow, id: ' + theWrtc.wrtcId +
                   ', slideShowMode: ' + slideShowMode);
-        if (slideShowMode === true){
+        if (slideShowMode === true) {
             theWrtc.setSlideShowMode(true);
             theWrtc.slideShowMode = true;
             wrtcPub = publishers[to].wrtc;
-            if (wrtcPub.periodicPlis===undefined){
+            if (wrtcPub.periodicPlis === undefined){
                 wrtcPub.periodicPlis = setInterval(function (){
                     if(wrtcPub)
                         wrtcPub.generatePLIPacket();
                 }, SLIDESHOW_TIME);
             }
-        }else{
+        } else {
             wrtcPub = publishers[to].wrtc;
             wrtcPub.generatePLIPacket();
             theWrtc.setSlideShowMode(false);
             theWrtc.slideShowMode = false;
-            if (publishers[to].wrtc.periodicPlis!==undefined){
-                for (var i in subscribers[to]){
-                    if(subscribers[to][i].slideShowMode === true){
+            if (publishers[to].wrtc.periodicPlis !== undefined) {
+                for (var i in subscribers[to]) {
+                    if (subscribers[to][i].slideShowMode === true) {
                         return;
                     }
                 }
@@ -84,8 +81,6 @@ exports.ErizoJSController = function () {
         }
 
     };
-
-
 
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
@@ -107,7 +102,7 @@ exports.ErizoJSController = function () {
                              'scheme: ' + wrtc.scheme);
                     monitorMinVideoBw = require('./adapt_schemes/notify').MonitorSubscriber(log);
                 }
-            }else{
+            } else {
                 monitorMinVideoBw = require('./adapt_schemes/notify').MonitorSubscriber(log);
             }
             monitorMinVideoBw(wrtc, callback);
@@ -124,7 +119,7 @@ exports.ErizoJSController = function () {
             });
         }
 
-        wrtc.init( function (newStatus, mess){
+        wrtc.init(function (newStatus, mess) {
             log.info('message: WebRtcConnection status update, ' +
                      'id: ' + wrtc.wrtcId + ', status: ' + newStatus);
             if (GLOBAL.config.erizoController.report.connection_events) {  //jshint ignore:line
@@ -176,7 +171,7 @@ exports.ErizoJSController = function () {
                     break;
             }
         });
-        if (options.createOffer===true){
+        if (options.createOffer === true){
             log.debug('message: create offer requested, id:', wrtc.wrtcId);
             wrtc.createOffer();
         }
@@ -289,7 +284,7 @@ exports.ErizoJSController = function () {
                     if(msg.sdp)
                         subscribers[streamId][peerId].setRemoteSdp(msg.sdp);
                     if (msg.config){
-                        if (msg.config.slideShowMode!==undefined){
+                        if (msg.config.slideShowMode !== undefined) {
                             setSlideShow(msg.config.slideShowMode, peerId, streamId);
                         }
                     }
@@ -484,14 +479,14 @@ exports.ErizoJSController = function () {
      */
     that.removeSubscriber = function (from, to) {
 
-        if (subscribers[to][from]) {
+        if (subscribers[to] && subscribers[to][from]) {
             log.info('message: removing subscriber, id: ' + subscribers[to][from].wrtcId);
             subscribers[to][from].close();
             publishers[to].muxer.removeSubscriber(from);
             delete subscribers[to][from];
         }
 
-        if (publishers[to].wrtc.periodicPlis!==undefined){
+        if (publishers[to] && publishers[to].wrtc.periodicPlis !== undefined) {
             for (var i in subscribers[to]){
                 if(subscribers[to][i].slideShowMode === true){
                     return;
@@ -514,6 +509,7 @@ exports.ErizoJSController = function () {
                 if (subscribers[to][from]) {
                     log.debug('message: removing subscription, ' +
                               'id:', subscribers[to][from].wrtcId);
+                    subscribers[to][from].close();
                     publishers[to].muxer.removeSubscriber(from);
                     delete subscribers[to][from];
                 }
