@@ -1,4 +1,4 @@
-/*global require, describe, it, beforeEach, afterEach, before, after*/
+/*global require, describe, it, beforeEach, afterEach*/
 'use strict';
 var mocks = require('../utils');
 var sinon = require('sinon');
