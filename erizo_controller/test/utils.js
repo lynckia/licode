@@ -66,6 +66,7 @@ var reset = module.exports.reset = function() {
     connect: sinon.stub().callsArg(0),
     broadcast: sinon.stub(),
     setPublicRPC: sinon.stub(),
+    callRpc: sinon.stub(),
     bind: sinon.stub(),
     bindBroadcast: sinon.stub()
   });
@@ -121,6 +122,15 @@ var reset = module.exports.reset = function() {
     WebRtcConnection: sinon.stub().returns(module.exports.WebRtcConnection),
     ExternalInput: sinon.stub().returns(module.exports.ExternalInput),
     ExternalOutput: sinon.stub().returns(module.exports.ExternalOutput)
+  });
+
+  module.exports.ecchInstance = {
+    getErizoJS: sinon.stub(),
+    deleteErizoJS: sinon.stub()
+  };
+
+  module.exports.ecch = createMock('../erizoController/ecch', {
+    Ecch: sinon.stub().returns(module.exports.ecchInstance)
   });
 };
 

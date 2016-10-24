@@ -108,7 +108,7 @@ exports.RoomController = function (spec) {
 
             });
         } else {
-            log.info('message: addExternalOutput publisher already set, ' +
+            log.info('message: addExternalInput publisher already set, ' +
                      'streamId: ' + publisherId + ', url: ' + url);
         }
     };
@@ -157,15 +157,15 @@ exports.RoomController = function (spec) {
         }
     };
 
-
     /*
      * Adds a publisher to the room. This creates a new OneToManyProcessor
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
     that.addPublisher = function (publisherId, options, callback, retries) {
-        if (retries === undefined)
+        if (retries === undefined) {
             retries = 0;
+        }
 
         if (publishers[publisherId] === undefined) {
 
@@ -209,7 +209,7 @@ exports.RoomController = function (spec) {
                         erizos[publishers[publisherId]].publishers.splice(index, 1);
                         callback('timeout-erizojs');
                         return;
-                    }else{
+                    } else {
                         if (data.type === 'initializing') {
                             data.agentId = agentId;
                         }
@@ -298,10 +298,10 @@ exports.RoomController = function (spec) {
             var args = [publisherId];
             amqper.callRpc(getErizoQueue(publisherId), 'removePublisher', args, undefined);
 
-            if (erizos[publishers[publisherId]]!== undefined){
+            if (erizos[publishers[publisherId]] !== undefined) {
                 var index = erizos[publishers[publisherId]].publishers.indexOf(publisherId);
                 erizos[publishers[publisherId]].publishers.splice(index, 1);
-            }else{
+            } else {
                 log.warn('message: removePublisher was already removed, ' +
                          'publisherId: ' + publisherId + ', ' +
                          'erizoId: ' + getErizoQueue(publisherId));
