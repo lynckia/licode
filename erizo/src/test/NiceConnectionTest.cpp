@@ -418,7 +418,8 @@ TEST_F(NiceConnectionTest, updateComponentState_Listener_Is_Not_Notified_If_Back
   nice_connection->updateComponentState(1, erizo::NICE_CANDIDATES_RECEIVED);
 }
 
-TEST_F(NiceConnectionTwoComponentsTest, updateComponentState_NiceConnection_Is_Not_Ready_When_Single_Component_Is_Ready) {
+TEST_F(NiceConnectionTwoComponentsTest,
+    updateComponentState_NiceConnection_Is_Not_Ready_When_Single_Component_Is_Ready) {
   EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_READY , _)).Times(0);
   nice_connection->updateComponentState(1, erizo::NICE_READY);
 }
