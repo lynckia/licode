@@ -152,14 +152,20 @@ Erizo.VideoPlayer = function (spec) {
     that.resize();
 
     // Bottom Bar
-    that.bar = new Erizo.Bar({elementID: 'player_' + that.id,
-                              id: that.id,
-                              stream: spec.stream,
-                              media: that.video,
-                              options: spec.options});
+    if (spec.options.bar !== false) {
+        that.bar = new Erizo.Bar({elementID: 'player_' + that.id,
+                                  id: that.id,
+                                  stream: spec.stream,
+                                  media: that.video,
+                                  options: spec.options});
 
-    that.div.onmouseover = onmouseover;
-    that.div.onmouseout = onmouseout;
+        that.div.onmouseover = onmouseover;
+        that.div.onmouseout = onmouseout;
+    }
+    else {
+        // Expose a consistent object to manipulate the media.
+        that.media = that.video;
+    }
 
     that.video.src = that.streamUrl;
 
