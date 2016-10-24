@@ -127,7 +127,8 @@ Erizo.VideoPlayer = function (spec) {
 
     if (that.elementID !== undefined) {
         // Check for a passed DOM node.
-        if (typeof that.elementID === 'object' && typeof that.elementID.appendChild === 'function') {
+        if (typeof that.elementID === 'object' &&
+          typeof that.elementID.appendChild === 'function') {
             that.container = that.elementID;
         }
         else {

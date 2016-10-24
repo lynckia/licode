@@ -196,11 +196,12 @@ Erizo.Stream = function (spec) {
                 top = parseInt(style.getPropertyValue('top'), 10);
 
             var div;
-            if (typeof that.elementID === 'object' && typeof that.elementID.appendChild === 'function') {
+            if (typeof that.elementID === 'object' &&
+              typeof that.elementID.appendChild === 'function') {
                 div = that.elementID;
             }
             else {
-                div = document.getElementById(that.elementID),
+                div = document.getElementById(that.elementID);
             }
 
             var divStyle = document.defaultView.getComputedStyle(div),
