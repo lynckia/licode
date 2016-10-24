@@ -13,11 +13,9 @@ describe('Erizo JS Controller', function() {
   beforeEach('Mock Process', function() {
     this.originalExit = process.exit;
     process.exit = sinon.stub();
-    process.exit(0);
   });
 
   afterEach('Unmock Process', function() {
-    this.originalExit = process.exit;
     process.exit = this.originalExit;
   });
 
