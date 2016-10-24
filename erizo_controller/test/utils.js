@@ -64,6 +64,7 @@ var reset = module.exports.reset = function() {
 
   module.exports.amqper = createMock('../common/amqper', {
     connect: sinon.stub().callsArg(0),
+    broadcast: sinon.stub(),
     setPublicRPC: sinon.stub(),
     bind: sinon.stub(),
     bindBroadcast: sinon.stub()
@@ -75,6 +76,51 @@ var reset = module.exports.reset = function() {
 
   module.exports.erizoAgentReporter = createMock('../erizoAgent/erizoAgentReporter', {
     Reporter: sinon.stub().returns(module.exports.ErizoAgentReporterInstance)
+  });
+
+  module.exports.OneToManyProcessor = {
+    addExternalOutput: sinon.stub(),
+    setExternalPublisher: sinon.stub(),
+    setPublisher: sinon.stub(),
+    addSubscriber: sinon.stub(),
+    removeSubscriber: sinon.stub(),
+    close: sinon.stub(),
+  };
+
+  module.exports.WebRtcConnection = {
+    wrtcId: '',
+    minVideoBW: '',
+    scheme:'',
+    periodicPlis:'',
+    init: sinon.stub(),
+    setAudioReceiver: sinon.stub(),
+    setVideoReceiver: sinon.stub(),
+    close: sinon.stub(),
+    getStats: sinon.stub(),
+    generatePLIPacket: sinon.stub(),
+    createOffer: sinon.stub(),
+    setRemoteSdp: sinon.stub(),
+    addRemoteCandidate: sinon.stub(),
+    setSlideShowMode: sinon.stub()
+  };
+
+  module.exports.ExternalInput = {
+    wrtcId: '',
+    init: sinon.stub(),
+    setAudioReceiver: sinon.stub(),
+    setVideoReceiver: sinon.stub()
+  };
+
+  module.exports.ExternalOutput = {
+    wrtcId: '',
+    init: sinon.stub()
+  };
+
+  module.exports.erizoAPI = createMock('../../erizoAPI/build/Release/addon', {
+    OneToManyProcessor: sinon.stub().returns(module.exports.OneToManyProcessor),
+    WebRtcConnection: sinon.stub().returns(module.exports.WebRtcConnection),
+    ExternalInput: sinon.stub().returns(module.exports.ExternalInput),
+    ExternalOutput: sinon.stub().returns(module.exports.ExternalOutput)
   });
 };
 
