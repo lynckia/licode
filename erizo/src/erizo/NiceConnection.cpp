@@ -112,7 +112,7 @@ void NiceConnection::close() {
   cond_.notify_one();
   listener_ = NULL;
   boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds(500);
-  ELOG_DEBUG("%s, message: m_thread join, this:%p", toLog(), this);
+  ELOG_DEBUG("%s, message: m_thread join, this: %p", toLog(), this);
   if (!m_Thread_.timed_join(timeout)) {
     ELOG_DEBUG("%s, message: interrupt thread to close, this: %p", toLog(), this);
     m_Thread_.interrupt();
@@ -251,7 +251,7 @@ void NiceConnection::start() {
 void NiceConnection::mainLoop() {
   // Start gathering candidates and fire event loop
   ELOG_DEBUG("%s, message: starting g_main_loop, this: %p", toLog(), this);
-  if (agent_ == NULL) {
+  if (agent_ == NULL || loop_ == NULL) {
     return;
   }
   g_main_loop_run(loop_);

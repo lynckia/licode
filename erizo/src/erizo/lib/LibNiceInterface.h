@@ -41,6 +41,7 @@ class LibNiceInterface {
 
 
 class LibNiceInterfaceImpl: public LibNiceInterface {
+ public:
   NiceAgent* NiceAgentNew(GMainContext* context);
   int NiceAgentAddStream(NiceAgent* agent, unsigned int n_components);
   bool NiceAgentGetLocalCredentials(NiceAgent* agent, unsigned int stream_id,
