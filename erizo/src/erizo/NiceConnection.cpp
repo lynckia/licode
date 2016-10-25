@@ -456,7 +456,7 @@ std::string NiceConnection::iceStateToString(IceState state) const {
 void NiceConnection::updateIceState(IceState state) {
   if (state <= iceState_) {
     if (state != NICE_READY)
-      ELOG_WARN("%s, message: unexpected ice state transition, iceState:%s,  newIceState: %s",
+      ELOG_WARN("%s, message: unexpected ice state transition, iceState: %s,  newIceState: %s",
                  toLog(), iceStateToString(iceState_).c_str(), iceStateToString(state).c_str());
     return;
   }
