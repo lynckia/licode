@@ -169,6 +169,7 @@ class NiceConnection {
   void setReceivedLastCandidate(bool hasReceived);
   void close();
 
+ private:
   std::string iceStateToString(IceState state) const;
 
  private:
