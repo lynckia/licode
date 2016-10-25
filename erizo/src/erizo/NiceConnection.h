@@ -15,6 +15,7 @@
 #include "./MediaDefinitions.h"
 #include "./SdpInfo.h"
 #include "./logger.h"
+#include "lib/LibNiceInterface.h"
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainContext GMainContext;
@@ -103,9 +104,9 @@ class NiceConnection {
    * @param transportName The name of the transport protocol. Was used when WebRTC used video_rtp instead of just rtp.
    * @param iceComponents Number of ice components pero connection. Default is 1 (rtcp-mux).
    */
-  NiceConnection(MediaType med, const std::string &transportName, const std::string& connection_id,
-                 NiceConnectionListener* listener, unsigned int iceComponents,
-                 const IceConfig& iceConfig, std::string username = "", std::string password = "");
+  NiceConnection(boost::shared_ptr<LibNiceInterface> libnice, MediaType med, const std::string &transportName,
+      const std::string& connection_id, NiceConnectionListener* listener, unsigned int iceComponents,
+      const IceConfig& iceConfig, std::string username = "", std::string password = "");
 
   virtual ~NiceConnection();
   /**
@@ -174,6 +175,7 @@ class NiceConnection {
 
  private:
   std::string connection_id_;
+  boost::shared_ptr<LibNiceInterface> lib_nice_;
   NiceAgent* agent_;
   GMainContext* context_;
   GMainLoop* loop_;

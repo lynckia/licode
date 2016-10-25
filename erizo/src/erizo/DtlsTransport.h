@@ -6,6 +6,7 @@
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <string>
 #include "dtls/DtlsSocket.h"
 #include "./NiceConnection.h"

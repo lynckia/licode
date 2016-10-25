@@ -9,6 +9,7 @@
 
 #include "./SrtpChannel.h"
 #include "rtp/RtpHeaders.h"
+#include "lib/LibNiceInterface.h"
 
 using erizo::Resender;
 using erizo::DtlsTransport;
@@ -112,7 +113,8 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
         dtlsRtcp->setDtlsReceiver(this);
       }
     }
-    nice_.reset(new NiceConnection(med, transport_name, connection_id_, this, comps, iceConfig_, username, password));
+    nice_.reset(new NiceConnection(boost::shared_ptr<LibNiceInterface>(new LibNiceInterfaceImpl()), med,
+          transport_name, connection_id_, this, comps, iceConfig_, username, password));
     rtp_resender_.reset(new Resender(this, dtlsRtp.get(), kSecsPerResend, kMaxResends));
     if (!rtcp_mux) {
       rtcp_resender_.reset(new Resender(this, dtlsRtcp.get(), kSecsPerResend, kMaxResends));
