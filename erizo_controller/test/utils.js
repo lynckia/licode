@@ -129,8 +129,8 @@ var reset = module.exports.reset = function() {
     deleteErizoJS: sinon.stub()
   };
 
-  module.exports.ecch = createMock('../erizoController/ecch', {
-    Ecch: sinon.stub().returns(module.exports.ecchInstance)
+  module.exports.ecch = createMock('../erizoController/ecCloudHandler', {
+    EcCloudHandler: sinon.stub().returns(module.exports.ecchInstance)
   });
 };
 

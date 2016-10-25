@@ -20,7 +20,7 @@ describe('Erizo Controller / Room Controller', function() {
     ecchMock = mocks.start(mocks.ecch);
     spec = {
       amqper: amqperMock,
-      ecch: ecchMock.Ecch()
+      ecch: ecchMock.EcCloudHandler()
     };
     controller = require('../../erizoController/roomController').RoomController(spec);
   });

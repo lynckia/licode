@@ -102,7 +102,7 @@ for (var prop in opt.options) {
 var logger = require('./../common/logger').logger;
 var amqper = require('./../common/amqper');
 var controller = require('./roomController');
-var ecch = require('./ecch').Ecch({amqper: amqper});
+var ecch = require('./ecCloudHandler').EcCloudHandler({amqper: amqper});
 
 // Logger
 var log = logger.getLogger('ErizoController');

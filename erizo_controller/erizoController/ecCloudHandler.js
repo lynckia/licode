@@ -3,13 +3,13 @@
 var logger = require('./../common/logger').logger;
 
 // Logger
-var log = logger.getLogger('Ecch');
+var log = logger.getLogger('EcCloudHandler');
 
 var EA_TIMEOUT = 30000;
 var GET_EA_INTERVAL = 5000;
 var AGENTS_ATTEMPTS = 5;
 var WARN_UNAVAILABLE = 503, WARN_TIMEOUT = 504;
-exports.Ecch = function (spec) {
+exports.EcCloudHandler = function (spec) {
   var that = {},
   amqper = spec.amqper,
   agents = {};
