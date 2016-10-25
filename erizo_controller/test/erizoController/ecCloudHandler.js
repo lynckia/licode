@@ -34,6 +34,20 @@ describe('Erizo Controller / ec Cloud Handler', function() {
     expect(ecCloudHandler.deleteErizoJS).not.to.be.undefined;  // jshint ignore:line
   });
 
+  describe('getErizoAgents', function() {
+    it('should call getErizoAgents', function() {
+      var arbitraryAgentId = 'agentId';
+      amqperMock.broadcast.callsArgWith(2, {info: {id: arbitraryAgentId}});
+
+      ecCloudHandler.getErizoAgents();
+
+      expect(amqperMock.broadcast.callCount).to.equal(1);
+      expect(amqperMock.broadcast.args[0][1]).to.deep.equal(
+        {method: 'getErizoAgents', args: []}
+      );
+    });
+  });
+
   describe('getErizoJS', function() {
     it('should call createErizoJS', function() {
       var callback = sinon.stub();

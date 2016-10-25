@@ -15,7 +15,7 @@ exports.EcCloudHandler = function (spec) {
   agents = {};
 
 
-  var getErizoAgents = function () {
+  that.getErizoAgents = function () {
     amqper.broadcast('ErizoAgent', {method: 'getErizoAgents', args: []}, function (agent) {
       if (agent === 'timeout') {
         log.warn('message: no agents available, code: ' + WARN_UNAVAILABLE );
@@ -52,7 +52,7 @@ exports.EcCloudHandler = function (spec) {
     }
   };
 
-  setInterval(getErizoAgents, GET_EA_INTERVAL);
+  setInterval(that.getErizoAgents, GET_EA_INTERVAL);
 
   var getErizoAgent;
 
