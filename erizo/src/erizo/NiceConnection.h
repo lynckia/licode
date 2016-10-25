@@ -169,6 +169,8 @@ class NiceConnection {
   void setReceivedLastCandidate(bool hasReceived);
   void close();
 
+  std::string iceStateToString(IceState state) const;
+
  private:
   std::string connection_id_;
   NiceAgent* agent_;
