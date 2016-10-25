@@ -22,6 +22,9 @@ log4js.configure(logFile);
 exports.logger = log4js;
 
 exports.logger.objectToLog = function (jsonInput) {
+    if (jsonInput === undefined){
+        return '';
+    }
     if (typeof(jsonInput) !== 'object') {
         return jsonInput;
     } else if (jsonInput.constructor === Array) {
