@@ -527,7 +527,9 @@ var listen = function () {
                 });
             } else if (options.state === 'erizo') {
                 log.info('message: addPublisher requested, ' +
-                         'streamId: ' + id + ', clientId: ' + socket.id);
+                         'streamId: ' + id + ', clientId: ' + socket.id + ', ' + 
+                         logger.objectToLog(options) + ', ' + 
+                         logger.objectToLog(options.attributes));
                 socket.room.controller.addPublisher(id, options, function (signMess) {
 
                     if (signMess.type === 'initializing') {
