@@ -1,22 +1,22 @@
 {
   "appenders": [
-    { 
+    {
       "type": "console",
       "layout": {
         "type": "pattern",
         "pattern": "%d  - %p: %c - %m",
         "replaceConsole": true
-      } 
+      }
     }
   ],
   "levels": {
   	"AMQPER": "ERROR",
   	"ErizoController": "DEBUG",
-    "ErizoJS": "INFO", 
+    "ErizoJS": "INFO",
     "ErizoJSController": "INFO",
     "ErizoAgent": "INFO",
     "ErizoAgentReporter": "ERROR",
-    "Ecch": "INFO",
+    "EcCloudHandler": "INFO",
     "RoomController": "DEBUG",
     "RPCPublic":"ERROR"
   }
