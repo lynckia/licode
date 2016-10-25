@@ -442,17 +442,28 @@ IceState NiceConnection::checkIceState() {
   return iceState_;
 }
 
+std::string NiceConnection::iceStateToString(IceState state) const {
+  switch (state) {
+    case NICE_INITIAL:             return "initial";
+    case NICE_FINISHED:            return "finished";
+    case NICE_FAILED:              return "failed";
+    case NICE_READY:               return "ready";
+    case NICE_CANDIDATES_RECEIVED: return "cand_received";
+  }
+  return "unknown";
+}
+
 void NiceConnection::updateIceState(IceState state) {
   if (state <= iceState_) {
     if (state != NICE_READY)
-      ELOG_WARN("%s, message: unexpected ice state transition, iceState:%u,  newIceState: %u",
-                 toLog(), iceState_, state);
+      ELOG_WARN("%s, message: unexpected ice state transition, iceState: %s,  newIceState: %s",
+                 toLog(), iceStateToString(iceState_).c_str(), iceStateToString(state).c_str());
     return;
   }
 
-  ELOG_INFO("%s, message: iceState transition, transportName: %s, iceState: %u, newIceState: %u, this: %p",
+  ELOG_INFO("%s, message: iceState transition, transportName: %s, iceState: %s, newIceState: %s, this: %p",
              toLog(), transportName->c_str(),
-      this->iceState_, state, this);
+             iceStateToString(this->iceState_).c_str(), iceStateToString(state).c_str(), this);
   this->iceState_ = state;
   switch (iceState_) {
     case NICE_FINISHED:

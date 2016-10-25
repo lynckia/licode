@@ -170,6 +170,9 @@ class NiceConnection {
   void close();
 
  private:
+  std::string iceStateToString(IceState state) const;
+
+ private:
   std::string connection_id_;
   NiceAgent* agent_;
   GMainContext* context_;
