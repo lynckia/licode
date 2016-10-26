@@ -1,0 +1,119 @@
+---
+layout: default
+title: Contribute
+contribute: true
+---
+
+<!-- Subhead
+================================================== -->
+<header class="jumbotron subhead" id="overview">
+  <div class="container">
+    <h1>Contributor Guide</h1>
+    <p class="lead">Licode is made by and for the developer community. Do you want to help? Let's see the different areas you can contribute on.</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="row">
+    <div class="span3 bs-docs-sidebar">
+      <ul class="nav nav-list bs-docs-sidenav">
+        <li><a href="#first_steps"><i class="icon-chevron-right"></i> First Steps</a></li>
+        <li><a href="#bug_fixing"><i class="icon-chevron-right"></i> Bug Fixing</a></li>
+        <li><a href="#code_quality"><i class="icon-chevron-right"></i> Code Quality</a></li>
+        <li><a href="#features"><i class="icon-chevron-right"></i> New Features</a></li>
+        <li><a href="#prs"><i class="icon-chevron-right"></i> Pull Requests</a></li>
+        <li><a href="#other_ways"><i class="icon-chevron-right"></i> Other ways</a></li>
+      </ul>
+    </div>
+    <div class="span9">
+      <section id="first_steps">
+        <div class="page-header">
+          <h1>First steps</h1>
+        </div>
+        <p>You can take a look at the <a href="./community.html">community</a> tools we use to communicate issues, features, etc.</p>
+        <ul>
+          <li>Read the documentation</li>
+          <li>Join Licode developers mailing list</li>
+          <li>Clone or fork the repository</li>
+          <li>Take a look at open reviews and issues</li>
+        </ul>
+        <p>We like the way other Open Source projects like Openstack define their Contributor Guides, so this one is mostly based on them.</p>
+        <p>There are different areas where a developer could contribute in Licode: bug fixing, maintain code quality, feature development and improving documentation.</p>
+      </section>
+      <section id="bug_fixing">
+        <div class="page-header">
+          <h1>Bug Fixing and Patches</h1>
+        </div>
+        <p>The first area where you can help is bug fixing:</p>
+        <ul>
+          <li>Confirmed bugs: they are usually good targets. You can contribute ideas and tips on how to fix them, and set them to Triaged.</li>
+          <li>Triaged bugs: they contain instructions and tips on how to fix a given bug. You can contribute to fix them: assign the bug to yourself, set it to In progress, branch the code, implement the fix, and propose your change for merging into trunk!</li>
+          <li>Easy-to-fix bugs: These are Triaged bugs marked with the look-hanging-fruit tag, i.e should not take too much time to be fixed. They also make good targets for a beginner.</li>
+        </ul>
+      </section>
+      <section id="code_quality">
+        <div class="page-header">
+          <h1>Contribute to keep code quality</h1>
+        </div>
+        <p>Maintaining good code quality is a never-ending effort that is shared across the development team. There are several always-ongoing efforts that need your help, for example: increasing code coverage, applying current code style guides. Those are usually nice ways to get involved in development: easy changes that will let you touch various areas of Licode code.</p>
+        <p>We adopt Airbnb style guide for all the Javascript based components (Nuve API, Nuve Client, Erizo Client, Erizo Controller, Erizo Agent and ErizoJS).</p>
+        <p>For Erizo and Erizo API we apply C++ Google style guide.</p>
+      </section>
+      <section id="features">
+        <div class="page-header">
+          <h1>Feature development</h1>
+        </div>
+        <p>Once you get comfortable with the code, you can start to contribute new features. New features design should be proposed separately to discuss them in public. We could set virtual meetings to discuss the more relevant aspects of each feature.</p>
+        <p>This is the doc template (markdown) you should submit via Pull Request to the repository:</p>
+
+        <pre><code># [Feature Name] - Feature Review
+You should add a general description of the feature in one short paragraph.
+
+
+## Architecture
+Here you should add a deep explanation about the proposed architecture.
+If it involves changes in many components you can show the architecture following a top-down approach.
+
+Figures are welcome to help others understand the solution.
+
+## API Changes
+If it involves changes in the client/server APIs this is a good section to show detailed info about them.
+
+## Details
+These subsections should give a detailed analysis of how this feature should be implemented in each
+component (pseudo code is welcome).
+
+### How does it affect Erizo Client?
+Special comments of how the new feature affects the clients. You can give examples of use too.
+
+### How does it affect Nuve?
+Special comments of how the new feature affects Nuve.
+
+### How does it affect Erizo Controller / Erizo Agent / Erizo JS?
+Special comments of how the new feature affects Erizo Controller and sub-components.
+
+### How does it affect ErizoAPI / Erizo?
+Special comments of how the new feature affects the Erizo.
+
+## Additional considerations
+Comments related to other stuff (documentation, tests, CI, etc.)</code></pre>
+
+        <p>The last step, once the design is accepted, code should be proposed via Pull Requests.</p>
+      </section>
+      <section id="prs">
+        <div class="page-header">
+          <h1>Reviewing Pull Requests</h1>
+        </div>
+        <p>Every patch submitted to Licode gets reviewed before it can be approved and merged.</p>
+        <p>We get a lot of contributions and everyone can - and is encouraged to! - review existing patches.</p>
+        <p>Pick an open review and look at it, test it if possible, and leave a comment with approval or rejection. If you're planning on submitting patches of your own, it's a great way to learn about what the community cares about and to learn about the code base.</p>
+      </section>
+      <section id="other_ways">
+        <div class="page-header">
+          <h1>Other ways to contribute</h1>
+        </div>
+        <p>If you're hoping to contribute in another way, let us know! Contact one of the Licode people and float your idea.</p>
+      </section>
+  </div>
+</div>
