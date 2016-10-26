@@ -1,7 +1,6 @@
 markdown: kramdown
 permalink: licode/:title.html
 destination: ./site/
-auto: true
 exclude:
   - Rakefile
   - Gemfile
@@ -10,10 +9,9 @@ exclude:
 baseurl: /
 domain: lynckia.com
 title: Licode - Open Source Communication Provider
-server: true
 author: Lynckia
 web: http://www.lynckia.com
 twitter: lynckia
 github: ging/licode
-feedburner: 
+feedburner:
   id: lynckia

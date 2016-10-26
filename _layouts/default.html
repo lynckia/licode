@@ -7,14 +7,14 @@
     <meta name="author" content="Licode">
 
     <!-- Le styles -->
-    
+
     <!--<link rel="stylesheet" href="http://fortawesome.github.com/Font-Awesome/assets/css/site.css">-->
     <link href="assets/css/bootstrap.css" rel="stylesheet">
     <link href="assets/css/bootstrap-responsive.css" rel="stylesheet">
     <link href="assets/css/docs.css" rel="stylesheet">
     <link href="assets/css/prettify.css" rel="stylesheet">
     <link href="assets/css/christmas.css" rel="stylesheet">
-    
+
 
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 
@@ -31,7 +31,7 @@
     <link rel="apple-touch-icon-precomposed" sizes="72x72" href="assets/ico/apple-touch-icon-72-precomposed.png">
     <link rel="apple-touch-icon-precomposed" href="assets/ico/apple-touch-icon-57-precomposed.png">
 
- <!-- --------------------------------------------------------------------------------- 
+ <!-- ---------------------------------------------------------------------------------
   <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
   <title>{% if page.title %}{{ page.title }} - {% endif %}{{ site.title }}</title>
 
@@ -76,7 +76,7 @@
 
     <!-- Navbar
     ================================================== -->
-    
+
     <div class="navbar navbar-inverse navbar-fixed-top">
       <div class="navbar-inner">
         <div class="container">
@@ -92,7 +92,7 @@
           <a class="brand" href="./index.html">Licode</a>
           <div class="nav-collapse collapse">
             <ul class="nav">
-              
+
               <li {% if page.home %}class="active"{% endif %}>
                 <a href="./index.html">Home</a>
               </li>
@@ -102,7 +102,7 @@
               <li {% if page.community %}class="active"{% endif %}>
                 <a href="./community.html">Community</a>
               </li>
-              
+
               <li {% if page.install %}class="active"{% endif %}>
                 <a href="./install.html">Installation</a>
               </li>
@@ -122,13 +122,18 @@
                 </ul>
               </li>
 
-              
+
               <li {% if page.roadmap %}class="active"{% endif %}>
                 <a href="./roadmap.html">Roadmap</a>
               </li>
               <li {% if page.try %}class="active"{% endif %}>
                 <a href="http://chotis2.dit.upm.es">Try it!</a>
               </li>
+
+              <li {% if page.contribute %}class="active"{% endif %}>
+                <a href="./contribute.html">Contribute</a>
+              </li>
+
             </ul>
           </div>
         </div>
@@ -139,7 +144,7 @@
 
     {{ content }}
 
-    
+
 
   <!-- End Main content area -->
   {% include footer.html %}
