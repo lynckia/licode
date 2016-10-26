@@ -102,20 +102,21 @@ void NiceConnection::close() {
   ELOG_DEBUG("%s, message:closing", toLog());
   this->updateIceState(NICE_FINISHED);
   if (loop_ != NULL) {
+    ELOG_DEBUG("%s, message:main loop quit", toLog());
     g_main_loop_quit(loop_);
+  }
+  cond_.notify_one();
+  listener_ = NULL;
+  boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds(5);
+  ELOG_DEBUG("%s, message: m_thread join, this: %p", toLog(), this);
+  if (!m_Thread_.timed_join(timeout)) {
+    ELOG_DEBUG("%s, message: interrupt thread to close, this: %p", toLog(), this);
+    m_Thread_.interrupt();
   }
   if (loop_ != NULL) {
     ELOG_DEBUG("%s, message:Unrefing loop", toLog());
     g_main_loop_unref(loop_);
     loop_ = NULL;
-  }
-  cond_.notify_one();
-  listener_ = NULL;
-  boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds(500);
-  ELOG_DEBUG("%s, message: m_thread join, this: %p", toLog(), this);
-  if (!m_Thread_.timed_join(timeout)) {
-    ELOG_DEBUG("%s, message: interrupt thread to close, this: %p", toLog(), this);
-    m_Thread_.interrupt();
   }
   if (agent_ != NULL) {
     ELOG_DEBUG("%s, message: unrefing agent", toLog());
