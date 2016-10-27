@@ -28,7 +28,9 @@ var reset = module.exports.reset = function() {
   module.exports.licodeConfig = createMock('./../../licode_config', {
     logger: {configFile: true},
     cloudProvider: {host: ''},
-    erizoAgent: {}
+    nuve: {},
+    erizoAgent: {},
+    erizoController: {report: {}}
   });
 
   module.exports.spawn = {
@@ -59,6 +61,44 @@ var reset = module.exports.reset = function() {
 
   module.exports.fs = createMock('fs', {
     openSync: sinon.stub(),
+    close: sinon.stub()
+  });
+
+  module.exports.Server = {
+    listen: sinon.stub()
+  };
+
+  module.exports.signature = {
+    update: sinon.stub(),
+    digest: sinon.stub()
+  };
+
+  module.exports.crypto = createMock('crypto', {
+    createHmac: sinon.stub().returns(module.exports.signature)
+  });
+
+  module.exports.http = createMock('http', {
+    createServer: sinon.stub().returns(module.exports.Server),
+    close: sinon.stub()
+  });
+
+  module.exports.socketInstance = {
+    disconnect: sinon.stub(),
+    emit: sinon.stub(),
+    on: sinon.stub()
+  };
+
+  module.exports.socketIoInstance = {
+    set: sinon.stub(),
+    sockets: {
+      on: sinon.stub(),
+      socket: sinon.stub().returns(module.exports.socketInstance),
+      indexOf: sinon.stub()
+    }
+  };
+
+  module.exports.socketIo = createMock('socket.io', {
+    listen: sinon.stub().returns(module.exports.socketIoInstance),
     close: sinon.stub()
   });
 
@@ -122,6 +162,23 @@ var reset = module.exports.reset = function() {
     WebRtcConnection: sinon.stub().returns(module.exports.WebRtcConnection),
     ExternalInput: sinon.stub().returns(module.exports.ExternalInput),
     ExternalOutput: sinon.stub().returns(module.exports.ExternalOutput)
+  });
+
+  module.exports.roomControllerInstance = {
+    addEventListener: sinon.stub(),
+    addExternalInput: sinon.stub(),
+    addExternalOutput: sinon.stub(),
+    processSignaling: sinon.stub(),
+    addPublisher: sinon.stub(),
+    addSubscriber: sinon.stub(),
+    removePublisher: sinon.stub(),
+    removeSubscriber: sinon.stub(),
+    removeSubscriptions: sinon.stub(),
+    removeExternalOutput: sinon.stub()
+  };
+
+  module.exports.roomController = createMock('../erizoController/roomController', {
+    RoomController: sinon.stub().returns(module.exports.roomControllerInstance)
   });
 
   module.exports.ecchInstance = {
