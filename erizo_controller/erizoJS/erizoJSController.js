@@ -407,7 +407,6 @@ exports.ErizoJSController = function () {
             that.removeSubscriber(from,to);
         }
         var wrtcId = from + '_' + to;
-        log.info('message: Adding subscriber id: ' + wrtcId + ', options:', options);
         log.info('message: Adding subscriber id: ' + wrtcId + ', ' +
                  logger.objectToLog(options));
         var wrtc = new addon.WebRtcConnection(wrtcId, true, true,
