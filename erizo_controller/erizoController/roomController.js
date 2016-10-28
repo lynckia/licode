@@ -181,7 +181,7 @@ exports.RoomController = function (spec) {
                     callback('timeout-agent');
                     return;
                 }
-            	log.debug('message: addPublisher erizoJs assigned, ' +
+                log.info('message: addPublisher erizoJs assigned, ' +
                         'erizoId: ' + erizoId + ', streamId: ', publisherId);
                 // Track publisher locally
                 // then we call its addPublisher method.
@@ -205,8 +205,11 @@ exports.RoomController = function (spec) {
                         log.warn('message: addPublisher ErizoJS timeout no retry, ' +
                                  'streamId: ' + publisherId + ', ' +
                                  'erizoId: ' + getErizoQueue(publisherId));
-                        var index = erizos[publishers[publisherId]].publishers.indexOf(publisherId);
-                        erizos[publishers[publisherId]].publishers.splice(index, 1);
+                        var erizo = erizos[publishers[publisherId]];
+                        if (erizo !== undefined) {
+                           var index = erizo.publishers.indexOf(publisherId);
+                           erizo.publishers.splice(index, 1);
+                        }
                         callback('timeout-erizojs');
                         return;
                     } else {
