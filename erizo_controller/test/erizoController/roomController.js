@@ -175,14 +175,18 @@ describe('Erizo Controller / Room Controller', function() {
       expect(callback.args[0][0]).to.equal('timeout-erizojs');
     });
 
-    it('should fail if it already exists', function() {
+    it('should fail on callback if it has been already removed', function() {
       var callback = sinon.stub();
       ecchInstanceMock.getErizoJS.callsArgWith(0, 'erizoId');
 
       controller.addPublisher(kArbitraryId, kArbitraryOptions, callback);
 
-      controller.addPublisher(kArbitraryId, kArbitraryOptions, callback);
-      expect(amqperMock.callRpc.callCount).to.equal(1);
+      controller.removePublisher(kArbitraryId);
+
+      amqperMock.callRpc.args[0][3].callback('timeout');
+
+      expect(callback.callCount).to.equal(1);
+      expect(callback.args[0][0]).to.equal('timeout-erizojs');
     });
   });
 
