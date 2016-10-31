@@ -108,12 +108,14 @@ Erizo.VideoPlayer = function (spec) {
                                    'background-color: black; overflow: hidden;');
 
     // Loader icon
-    that.loader = document.createElement('img');
-    that.loader.setAttribute('style', 'width: 16px; height: 16px; position: absolute; ' +
-                                      'top: 50%; left: 50%; margin-top: -8px; margin-left: -8px');
-    that.loader.setAttribute('id', 'back_' + that.id);
-    that.loader.setAttribute('class', 'loader');
-    that.loader.setAttribute('src', that.url + '/assets/loader.gif');
+    if (spec.options.loader !== false) {
+      that.loader = document.createElement('img');
+      that.loader.setAttribute('style', 'width: 16px; height: 16px; position: absolute; ' +
+                                        'top: 50%; left: 50%; margin-top: -8px; margin-left: -8px');
+      that.loader.setAttribute('id', 'back_' + that.id);
+      that.loader.setAttribute('class', 'loader');
+      that.loader.setAttribute('src', that.url + '/assets/loader.gif');
+    }
 
     // Video tag
     that.video = document.createElement('video');
@@ -141,15 +143,19 @@ Erizo.VideoPlayer = function (spec) {
 
     that.parentNode = that.div.parentNode;
 
-    that.div.appendChild(that.loader);
+    if (that.loader) {
+      that.div.appendChild(that.loader);
+    }
     that.div.appendChild(that.video);
 
     that.containerWidth = 0;
     that.containerHeight = 0;
 
-    that.resizer = new L.ResizeSensor(that.container, that.resize);
+    if (spec.options.resizer !== false) {
+      that.resizer = new L.ResizeSensor(that.container, that.resize);
 
-    that.resize();
+      that.resize();
+    }
 
     // Bottom Bar
     if (spec.options.bar !== false) {

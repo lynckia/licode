@@ -46,7 +46,6 @@ Erizo.AudioPlayer = function (spec) {
         // It will stop the AudioPlayer and remove it from the HTML
         that.destroy = function () {
             that.audio.pause();
-            //clearInterval(that.resize);
             that.parentNode.removeChild(that.div);
         };
 
@@ -99,7 +98,6 @@ Erizo.AudioPlayer = function (spec) {
         // It will stop the AudioPlayer and remove it from the HTML
         that.destroy = function () {
             that.audio.pause();
-            //clearInterval(that.resize);
             that.parentNode.removeChild(that.audio);
         };
 
