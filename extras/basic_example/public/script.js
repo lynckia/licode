@@ -31,7 +31,7 @@ function startRecording () {  // jshint ignore:line
 
 var slideShowMode = true;
 
-function toggleSlideShowMode() {
+function toggleSlideShowMode() {  // jshint ignore:line
   var streams = room.remoteStreams;
   var cb = function (evt){
       console.log('SlideShowMode changed', evt);
