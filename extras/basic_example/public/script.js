@@ -29,6 +29,23 @@ function startRecording () {  // jshint ignore:line
   }
 }
 
+var slideShowMode = true;
+
+function toggleSlideShowMode() {  // jshint ignore:line
+  var streams = room.remoteStreams;
+  var cb = function (evt){
+      console.log('SlideShowMode changed', evt);
+  };
+  slideShowMode = !slideShowMode;
+  for (var index in streams) {
+    var stream = streams[index];
+    if (localStream.getID() !== stream.getID()) {
+      console.log('Updating config');
+      stream.updateConfiguration({slideShowMode: slideShowMode}, cb);
+    }
+  }
+}
+
 window.onload = function () {
   recording = false;
   var screen = getParameterByName('screen');
@@ -76,7 +93,7 @@ window.onload = function () {
         for (var index in streams) {
           var stream = streams[index];
           if (localStream.getID() !== stream.getID()) {
-            room.subscribe(stream);
+            room.subscribe(stream, {slideShowMode: slideShowMode});
             stream.addEventListener('bandwidth-alert', cb);
           }
         }
