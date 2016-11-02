@@ -556,7 +556,8 @@ var listen = function () {
                                                        type: 'publish',
                                                        stream: id,
                                                        timestamp: timeStamp.getTime(),
-                                                       agent: signMess.agentId});
+                                                       agent: signMess.agentId,
+                                                       attributes: options.attributes});
                         }
                         return;
                     } else if (signMess.type === 'failed'){
