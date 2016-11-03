@@ -8,7 +8,7 @@
 #include "ExternalInput.h"
 #include "ExternalOutput.h"
 
-NAN_MODULE_INIT(InitAll){
+NAN_MODULE_INIT(InitAll) {
   WebRtcConnection::Init(target);
   OneToManyProcessor::Init(target);
   ExternalInput::Init(target);

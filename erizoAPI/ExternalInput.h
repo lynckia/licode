@@ -1,5 +1,5 @@
-#ifndef EXTERNALINPUT_H
-#define EXTERNALINPUT_H
+#ifndef ERIZOAPI_EXTERNALINPUT_H_
+#define ERIZOAPI_EXTERNALINPUT_H_
 
 #include <nan.h>
 #include <media/ExternalInput.h>
@@ -14,11 +14,11 @@
  * Receives media from one publisher and retransmits it to every subscriber.
  */
 class ExternalInput : public Nan::ObjectWrap {
-  public:
+ public:
     static NAN_MODULE_INIT(Init);
     erizo::ExternalInput* me;
 
-  private:
+ private:
     ExternalInput();
     ~ExternalInput();
 
@@ -51,4 +51,4 @@ class ExternalInput : public Nan::ObjectWrap {
     static Nan::Persistent<v8::Function> constructor;
 };
 
-#endif
+#endif  // ERIZOAPI_EXTERNALINPUT_H_

@@ -5,38 +5,43 @@
 #include "ExternalInput.h"
 
 
-using namespace v8;
+using v8::HandleScope;
+using v8::Function;
+using v8::FunctionTemplate;
+using v8::Local;
+using v8::Value;
+
 
 Nan::Persistent<Function> ExternalInput::constructor;
 
 class AsyncDeleter : public Nan::AsyncWorker {
-  public:
-    AsyncDeleter (erizo::ExternalInput* eiToDelete, Nan::Callback *callback):
-      AsyncWorker(callback), eiToDelete_(eiToDelete){
+ public:
+    AsyncDeleter(erizo::ExternalInput* eiToDelete, Nan::Callback *callback):
+      AsyncWorker(callback), eiToDelete_(eiToDelete) {
       }
     ~AsyncDeleter() {}
-    void Execute(){
+    void Execute() {
       delete eiToDelete_;
     }
     void HandleOKCallback() {
       HandleScope scope;
       std::string msg("OK");
-      if (callback){
+      if (callback) {
         Local<Value> argv[] = {
           Nan::New(msg.c_str()).ToLocalChecked()
         };
         callback->Call(1, argv);
       }
     }
-  private:
+ private:
     erizo::ExternalInput* eiToDelete_;
     Nan::Callback* callback_;
 };
 
-ExternalInput::ExternalInput() {};
-ExternalInput::~ExternalInput() {};
+ExternalInput::ExternalInput() {}
+ExternalInput::~ExternalInput() {}
 
-NAN_MODULE_INIT (ExternalInput::Init) {
+NAN_MODULE_INIT(ExternalInput::Init) {
   // Prepare constructor template
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("ExternalInput").ToLocalChecked());
@@ -66,9 +71,9 @@ NAN_METHOD(ExternalInput::close) {
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 
-  Nan::Callback *callback; 
-  if (info.Length()>=1){
-    callback =new Nan::Callback(info[0].As<Function>());
+  Nan::Callback *callback;
+  if (info.Length() >= 1) {
+    callback = new Nan::Callback(info[0].As<Function>());
   } else {
     callback = NULL;
   }
@@ -77,7 +82,7 @@ NAN_METHOD(ExternalInput::close) {
 }
 
 NAN_METHOD(ExternalInput::init) {
-  //TODO:Could potentially be slow, think about async'ing it  
+  // TODO(pedro) Could potentially be slow, think about async'ing it
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
   erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
 

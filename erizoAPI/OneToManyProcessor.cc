@@ -4,7 +4,11 @@
 
 #include "OneToManyProcessor.h"
 
-using namespace v8;
+using v8::Local;
+using v8::Value;
+using v8::Function;
+using v8::FunctionTemplate;
+using v8::HandleScope;
 
 Nan::Persistent<Function> OneToManyProcessor::constructor;
 // Async Delete OTM
@@ -12,18 +16,18 @@ Nan::Persistent<Function> OneToManyProcessor::constructor;
 // Classes for Async (not in node main thread) operations
 
 class AsyncDeleter : public Nan::AsyncWorker {
-  public:
-    AsyncDeleter (erizo::OneToManyProcessor* otm, Nan::Callback *callback):
-      AsyncWorker(callback), otmToDelete_(otm){
+ public:
+    AsyncDeleter(erizo::OneToManyProcessor* otm, Nan::Callback *callback):
+      AsyncWorker(callback), otmToDelete_(otm) {
       }
     ~AsyncDeleter() {}
-    void Execute(){
+    void Execute() {
       delete otmToDelete_;
     }
     void HandleOKCallback() {
       HandleScope scope;
       std::string msg("OK");
-      if (callback){
+      if (callback) {
         Local<Value> argv[] = {
           Nan::New(msg.c_str()).ToLocalChecked()
         };
@@ -31,36 +35,36 @@ class AsyncDeleter : public Nan::AsyncWorker {
         callback->Call(1, argv);
       }
     }
-  private:
+ private:
     erizo::OneToManyProcessor* otmToDelete_;
     Nan::Callback* callback_;
 };
 
 class AsyncRemoveSubscriber : public Nan::AsyncWorker{
-  public:
+ public:
     AsyncRemoveSubscriber(erizo::OneToManyProcessor* otm , const std::string& peerId, Nan::Callback *callback):
-      AsyncWorker(callback), otm_(otm), peerId_(peerId), callback_(callback){
+      AsyncWorker(callback), otm_(otm), peerId_(peerId), callback_(callback) {
       }
     ~AsyncRemoveSubscriber() {}
     void Execute() {
       otm_->removeSubscriber(peerId_);
     }
     void HandleOKCallback() {
-      //We're not doing anything here ATM
+      // We're not doing anything here ATM
     }
-  private:
+ private:
     erizo::OneToManyProcessor* otm_;
     std::string peerId_;
     Nan::Callback* callback_;
 };
 
 OneToManyProcessor::OneToManyProcessor() {
-};
+}
 
 OneToManyProcessor::~OneToManyProcessor() {
-};
+}
 
-NAN_MODULE_INIT (OneToManyProcessor::Init) {
+NAN_MODULE_INIT(OneToManyProcessor::Init) {
   // Prepare constructor template
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("OneToManyProcessor").ToLocalChecked());
@@ -92,9 +96,9 @@ NAN_METHOD(OneToManyProcessor::New) {
 NAN_METHOD(OneToManyProcessor::close) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
-  Nan::Callback *callback; 
-  if (info.Length()>=1){
-    callback =new Nan::Callback(info[0].As<Function>());
+  Nan::Callback *callback;
+  if (info.Length() >= 1) {
+    callback = new Nan::Callback(info[0].As<Function>());
   } else {
     callback = NULL;
   }
@@ -139,7 +143,6 @@ NAN_METHOD(OneToManyProcessor::setExternalPublisher) {
 
   erizo::MediaSource* ms = dynamic_cast<erizo::MediaSource*>(wr);
   me->setPublisher(ms);
-
 }
 
 NAN_METHOD(OneToManyProcessor::getPublisherState) {
@@ -160,7 +163,7 @@ NAN_METHOD(OneToManyProcessor::hasPublisher) {
 
   bool p = true;
 
-  if(me->publisher == NULL) {
+  if (me->publisher == NULL) {
     p = false;
   }
 
