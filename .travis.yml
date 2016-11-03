@@ -18,8 +18,6 @@ addons:
     packages:
       - git
       - make
-      - gcc
-      - g++
       - libssl-dev
       - cmake
       - libglib2.0-dev
