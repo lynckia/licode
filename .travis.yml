@@ -18,8 +18,8 @@ addons:
     packages:
       - git
       - make
-      - gcc
-      - g++
+      - gcc-5
+      - g++-5
       - libssl-dev
       - cmake
       - libglib2.0-dev
@@ -34,13 +34,16 @@ addons:
       - yasm
       - libvpx.
       - libx264.
+    sources:
+      - ubuntu-toolchain-r-test
 before_install:
   # OSX
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then   ./scripts/installMacDeps.sh --unattended --disable-services --use-cache;    fi
 
   # LINUX
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./scripts/installTravisDeps.sh; fi
-install: ./scripts/installErizo.sh && ./scripts/installNuve.sh && npm install
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./scripts/installTravisDeps.sh && export CC="/usr/bin/gcc-5" && export CXX="/usr/bin/g++-5" ; fi
+install: 
+  - ./scripts/installErizo.sh && ./scripts/installNuve.sh && npm install
 script:
   - ./scripts/installErizo.sh -t
   - npm run lint
