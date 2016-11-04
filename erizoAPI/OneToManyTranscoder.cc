@@ -1,4 +1,3 @@
-//TODO: Update and make usable
 #ifndef BUILDING_NODE_EXTENSION
 #define BUILDING_NODE_EXTENSION
 #endif
@@ -6,22 +5,29 @@
 #include "OneToManyTranscoder.h"
 
 
-using namespace v8;
+using v8::Local;
+using v8::Value;
+using v8::Function;
+using v8::HandleScope;
 
-OneToManyTranscoder::OneToManyTranscoder() {};
-OneToManyTranscoder::~OneToManyTranscoder() {};
+OneToManyTranscoder::OneToManyTranscoder() {}
+OneToManyTranscoder::~OneToManyTranscoder() {}
 
 void OneToManyTranscoder::Init(Handle<Object> target) {
   // Prepare constructor template
   Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("OneToManyTranscoder"));
+  tpl->SetClassName(v8::String::NewSymbol("OneToManyTranscoder"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   // Prototype
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("setPublisher"), FunctionTemplate::New(setPublisher)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("hasPublisher"), FunctionTemplate::New(hasPublisher)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("addSubscriber"), FunctionTemplate::New(addSubscriber)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("removeSubscriber"), FunctionTemplate::New(removeSubscriber)->GetFunction());
+  tpl->PrototypeTemplate()->Set(v8::String::NewSymbol("close"), FunctionTemplate::New(close)->GetFunction());
+  tpl->PrototypeTemplate()->Set(v8::String::NewSymbol("setPublisher"),
+      FunctionTemplate::New(setPublisher)->GetFunction());
+  tpl->PrototypeTemplate()->Set(v8::String::NewSymbol("hasPublisher"),
+      FunctionTemplate::New(hasPublisher)->GetFunction());
+  tpl->PrototypeTemplate()->Set(v8::String::NewSymbol("addSubscriber"),
+      FunctionTemplate::New(addSubscriber)->GetFunction());
+  tpl->PrototypeTemplate()->Set(v8::String::NewSymbol("removeSubscriber"),
+      FunctionTemplate::New(removeSubscriber)->GetFunction());
 
   Persistent<Function> constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("OneToManyTranscoder"), constructor);
@@ -74,10 +80,9 @@ Handle<Value> OneToManyTranscoder::hasPublisher(const Arguments& args) {
 
   bool p = true;
 
-  if(me->publisher == NULL) {
+  if (me->publisher == NULL) {
     p = false;
   }
-  
   return scope.Close(Boolean::New(p));
 }
 

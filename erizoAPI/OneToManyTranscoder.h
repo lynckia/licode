@@ -1,5 +1,5 @@
-#ifndef ONETOMANYTRANSCODER_H
-#define ONETOMANYTRANSCODER_H
+#ifndef ERIZOAPI_ONETOMANYTRANSCODER_H_
+#define ERIZOAPI_ONETOMANYTRANSCODER_H_
 
 #include <node.h>
 #include <media/OneToManyTranscoder.h>
@@ -54,4 +54,4 @@ class OneToManyTranscoder : public MediaSink {
   static v8::Handle<v8::Value> removeSubscriber(const v8::Arguments& args);
 };
 
-#endif
+#endif  // ERIZOAPI_ONETOMANYTRANSCODER_H_
