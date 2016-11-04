@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.6)
 include(ExternalProject)
 project (ERIZO_ALL)
 
-if(UNIX)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
     OUTPUT_VARIABLE GCC_VERSION)
   if (GCC_VERSION VERSION_LESS 5)
@@ -16,7 +16,7 @@ if(UNIX)
   if (CXX_VERSION VERSION_LESS 5)
     message(FATAL_ERROR "g++ version must be >= 5 and is ${CXX_VERSION}")
   endif()
-endif(UNIX)
+endif()
 
 option (COMPILE_EXAMPLES "COMPILE_EXAMPLES" OFF)
 
