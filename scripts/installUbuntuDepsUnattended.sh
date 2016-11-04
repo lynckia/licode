@@ -48,6 +48,7 @@ install_apt_deps(){
   sudo apt-get install -qq python-software-properties -y
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:chris-lea/node.js -y
+  sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
   sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
