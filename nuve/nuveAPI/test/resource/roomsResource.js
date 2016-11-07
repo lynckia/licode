@@ -3,6 +3,7 @@
 var mocks = require('../utils');
 var request = require('supertest');
 var express = require('express');
+var sinon = require('sinon');
 var bodyParser = require('body-parser');
 var expect  = require('chai').expect;
 
@@ -13,6 +14,7 @@ var kTestRoom = {name:'', options: {test: true}};
 describe('Rooms Resource', function() {
   var app,
       roomsResource,
+      setServiceStub,
       serviceRegistryMock,
       nuveAuthenticatorMock,
       roomRegistryMock;
@@ -22,7 +24,7 @@ describe('Rooms Resource', function() {
     serviceRegistryMock = mocks.start(mocks.serviceRegistry);
     roomRegistryMock = mocks.start(mocks.roomRegistry);
     nuveAuthenticatorMock = mocks.start(mocks.nuveAuthenticator);
-
+    setServiceStub = sinon.stub();
     roomsResource = require('../../resource/roomsResource');
 
     kArbitraryRoom = {'_id': '1', name: '', options: {p2p: true, data: ''}};
@@ -30,6 +32,10 @@ describe('Rooms Resource', function() {
 
     app = express();
     app.use(bodyParser.json());
+    app.all('*', function(req, res, next) {
+      req.service = setServiceStub();
+      next();
+    });
     app.get('/rooms/', roomsResource.represent);
     app.post('/rooms/', roomsResource.createRoom);
   });
@@ -46,7 +52,6 @@ describe('Rooms Resource', function() {
   describe('Get Room List', function() {
     it('should fail if service is not present', function(done) {
       serviceRegistryMock.getRoomForService.callsArgWith(2, kArbitraryService);
-      nuveAuthenticatorMock.service = undefined;
       request(app)
         .get('/rooms')
         .expect(404, 'Service not found')
@@ -57,7 +62,7 @@ describe('Rooms Resource', function() {
     });
 
     it('should return room if it exists', function(done) {
-      nuveAuthenticatorMock.service = kArbitraryService;
+      setServiceStub.returns(kArbitraryService);
       request(app)
         .get('/rooms')
         .expect(200, JSON.stringify(kArbitraryService.rooms))
@@ -71,7 +76,6 @@ describe('Rooms Resource', function() {
   describe('Create Room', function() {
     it('should fail if service is not present', function(done) {
       serviceRegistryMock.getRoomForService.callsArgWith(2, kArbitraryService);
-      nuveAuthenticatorMock.service = undefined;
       request(app)
         .post('/rooms')
         .expect(404, 'Service not found')
@@ -82,7 +86,7 @@ describe('Rooms Resource', function() {
     });
 
     it('should fail if room name is not present', function(done) {
-      nuveAuthenticatorMock.service = kArbitraryService;
+      setServiceStub.returns(kArbitraryService);
       request(app)
         .post('/rooms')
         .send({})
@@ -94,7 +98,7 @@ describe('Rooms Resource', function() {
     });
 
     it('should create test rooms', function(done) {
-      nuveAuthenticatorMock.service = kArbitraryService;
+      setServiceStub.returns(kArbitraryService);
       roomRegistryMock.addRoom.callsArgWith(1, kTestRoom);
       request(app)
         .post('/rooms')
@@ -109,8 +113,8 @@ describe('Rooms Resource', function() {
     });
 
     it('should reuse test rooms', function(done) {
-      nuveAuthenticatorMock.service = kArbitraryService;
-      nuveAuthenticatorMock.service.testRoom = kTestRoom;
+      kArbitraryService.testRoom = kTestRoom;
+      setServiceStub.returns(kArbitraryService);
       request(app)
         .post('/rooms')
         .send(kTestRoom)
@@ -123,7 +127,7 @@ describe('Rooms Resource', function() {
     });
 
     it('should create normal rooms', function(done) {
-      nuveAuthenticatorMock.service = kArbitraryService;
+      setServiceStub.returns(kArbitraryService);
       roomRegistryMock.addRoom.callsArgWith(1, kTestRoom);
       request(app)
         .post('/rooms')

@@ -8,22 +8,13 @@ var logger = require('./../logger').logger;
 // Logger
 var log = logger.getLogger('RoomsResource');
 
-var currentService;
-
-/*
- * Gets the service for the proccess of the request.
- */
-var doInit = function () {
-    currentService = require('./../auth/nuveAuthenticator').service;
-};
-
 /*
  * Post Room. Creates a new room for a determined service.
  */
 exports.createRoom = function (req, res) {
     var room;
 
-    doInit();
+    var currentService = req.service;
 
     if (currentService === undefined) {
         res.send('Service not found', 404);
@@ -74,7 +65,7 @@ exports.createRoom = function (req, res) {
  * Get Rooms. Represent a list of rooms for a determined service.
  */
 exports.represent = function (req, res) {
-    doInit();
+    var currentService = req.service;
     if (currentService === undefined) {
         res.send('Service not found', 404);
         return;
