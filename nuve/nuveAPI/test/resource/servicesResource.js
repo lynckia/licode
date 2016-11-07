@@ -3,6 +3,7 @@
 var mocks = require('../utils');
 var request = require('supertest');
 var express = require('express');
+var sinon = require('sinon');
 var bodyParser = require('body-parser');
 var expect  = require('chai').expect;
 
@@ -13,6 +14,7 @@ describe('Services Resource', function() {
       servicesResource,
       serviceRegistryMock,
       nuveAuthenticatorMock,
+      setServiceStub,
       dataBaseMock;
 
   beforeEach(function() {
@@ -20,11 +22,15 @@ describe('Services Resource', function() {
     serviceRegistryMock = mocks.start(mocks.serviceRegistry);
     dataBaseMock = mocks.start(mocks.dataBase);
     nuveAuthenticatorMock = mocks.start(mocks.nuveAuthenticator);
-
+    setServiceStub = sinon.stub();
     servicesResource = require('../../resource/servicesResource');
 
     app = express();
     app.use(bodyParser.json());
+    app.all('*', function(req, res, next) {
+      req.service = setServiceStub();
+      next();
+    });
     app.post('/services', servicesResource.create);
     app.get('/services', servicesResource.represent);
   });
@@ -40,7 +46,7 @@ describe('Services Resource', function() {
 
   describe('Get List of Services', function() {
     it('should fail if service is not super service', function(done) {
-      nuveAuthenticatorMock.service = kArbitraryService;
+      setServiceStub.returns(kArbitraryService);
       dataBaseMock.superService = undefined;
       request(app)
         .get('/services')
@@ -52,7 +58,7 @@ describe('Services Resource', function() {
     });
 
     it('should fail if service does not exist', function(done) {
-      nuveAuthenticatorMock.service = kArbitraryService;
+      setServiceStub.returns(kArbitraryService);
       dataBaseMock.superService = kArbitraryService._id;
       serviceRegistryMock.getList.callsArgWith(0, [kArbitraryService]);
       request(app)
@@ -67,7 +73,7 @@ describe('Services Resource', function() {
 
   describe('Create Service', function() {
     it('should fail if service is not super service', function(done) {
-      nuveAuthenticatorMock.service = kArbitraryService;
+      setServiceStub.returns(kArbitraryService);
       dataBaseMock.superService = undefined;
       request(app)
         .post('/services')
@@ -79,7 +85,7 @@ describe('Services Resource', function() {
     });
 
     it('should succeed if service exists', function(done) {
-      nuveAuthenticatorMock.service = kArbitraryService;
+      setServiceStub.returns(kArbitraryService);
       dataBaseMock.superService = kArbitraryService._id;
       serviceRegistryMock.addService.callsArgWith(1, kArbitraryService);
       request(app)

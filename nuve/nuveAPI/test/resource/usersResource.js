@@ -3,6 +3,7 @@
 var mocks = require('../utils');
 var request = require('supertest');
 var express = require('express');
+var sinon = require('sinon');
 var bodyParser = require('body-parser');
 
 var kArbitraryRoom = {'_id': '1', name: '', options: {p2p: true, data: ''}};
@@ -14,6 +15,7 @@ describe('Users Resource', function() {
       usersResource,
       serviceRegistryMock,
       nuveAuthenticatorMock,
+      setServiceStub,
       cloudHandlerMock;
 
   beforeEach(function() {
@@ -21,11 +23,15 @@ describe('Users Resource', function() {
     cloudHandlerMock = mocks.start(mocks.cloudHandler);
     serviceRegistryMock = mocks.start(mocks.serviceRegistry);
     nuveAuthenticatorMock = mocks.start(mocks.nuveAuthenticator);
-
+    setServiceStub = sinon.stub();
     usersResource = require('../../resource/usersResource');
 
     app = express();
     app.use(bodyParser.json());
+    app.all('*', function(req, res, next) {
+      req.service = setServiceStub();
+      next();
+    });
     app.get('/rooms/:room/users', usersResource.getList);
   });
 
@@ -41,7 +47,6 @@ describe('Users Resource', function() {
   describe('Get List', function() {
     it('should fail if service is not present', function(done) {
       serviceRegistryMock.getRoomForService.callsArgWith(2, kArbitraryRoom);
-      nuveAuthenticatorMock.service = undefined;
       request(app)
         .get('/rooms/1/users')
         .expect(404, 'Service not found')
@@ -53,7 +58,7 @@ describe('Users Resource', function() {
 
     it('should fail if room is not found', function(done) {
       serviceRegistryMock.getRoomForService.callsArgWith(2, undefined);
-      nuveAuthenticatorMock.service = kArbitraryService;
+      setServiceStub.returns(kArbitraryService);
       request(app)
         .get('/rooms/1/users')
         .expect(404, 'Room does not exist')
@@ -65,7 +70,7 @@ describe('Users Resource', function() {
 
     it('should fail if CloudHandler does not respond', function(done) {
       serviceRegistryMock.getRoomForService.callsArgWith(2, kArbitraryRoom);
-      nuveAuthenticatorMock.service = kArbitraryService;
+      setServiceStub.returns(kArbitraryService);
       cloudHandlerMock.getUsersInRoom.callsArgWith(1, 'error');
       request(app)
         .get('/rooms/1/users')
@@ -78,7 +83,7 @@ describe('Users Resource', function() {
 
     it('should succeed if user exists', function(done) {
       serviceRegistryMock.getRoomForService.callsArgWith(2, kArbitraryRoom);
-      nuveAuthenticatorMock.service = kArbitraryService;
+      setServiceStub.returns(kArbitraryService);
       cloudHandlerMock.getUsersInRoom.callsArgWith(1, [kArbtiraryUser]);
       request(app)
         .get('/rooms/1/users')
