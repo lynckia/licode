@@ -141,7 +141,6 @@ var generateToken = function (req, callback) {
  */
 exports.create = function (req, res) {
     doInit(req, function (currentService, currentRoom) {
-        console.log(currentService, currentRoom);
         if (currentService === undefined) {
             log.warn('message: createToken - service not found');
             res.send('Service not found', 404);
