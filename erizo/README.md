@@ -1,9 +1,9 @@
-# Erizo, a C/C++ Multipoint Control Unit (MCU) Library for WebRTC 
+# Erizo, a C/C++ Multipoint Control Unit (MCU) Library for WebRTC
 *Warning: This is the 'media' branch, it is highly unstable*
 
 Erizo is a project that aims to implement a library able to communicate with WebRTC (http://www.webrtc.org) browser clients in order to provide advanced communication services. Currently it is tested on Ubuntu 11.10 and above but it should be able to be compiled on other distributions.
 
-Updated code documentation can be found at http://ging.github.com/erizo 
+Updated code documentation can be found at http://ging.github.com/erizo
 
 ## Directory structure
 
@@ -13,14 +13,14 @@ Updated code documentation can be found at http://ging.github.com/erizo
 
 ## Requirements
 
-- CMake >= 2.8 
+- CMake >= 2.8
 - libSRTP version >= 1.4.4
 - Libnice version >= 1.10
 - boost_threads >= 1.48
 - boost_regex >= 1.48 (optional, only for examples)
 - boost_asio >= 1.48 (optional, only for examples)
 - boost_system >= 1.48 (optional, only for examples)
- 
+
 ## Building Instructions
 
 This project is built using CMake.
