@@ -393,7 +393,7 @@ int WebRtcConnection::deliverFeedback_(char* buf, int len) {
     } else if (recvSSRC == this->getAudioSourceSSRC()) {
       queueData(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
     } else {
-      ELOG_DEBUG("%s, unknownSSRC1: %u, localVideoSSRC: %u, localAudioSSRC: %u",
+      ELOG_DEBUG("%s, unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                   toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
     }
     return newLength;
@@ -483,7 +483,7 @@ void WebRtcConnection::read(Context* ctx, std::shared_ptr<dataPacket> packet) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         audioSink_->deliverAudioData(buf, len);
       } else {
-        ELOG_DEBUG("%s, unknownSSRC2: %u, localVideoSSRC: %u, localAudioSSRC: %u",
+        ELOG_DEBUG("%s, unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                     toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
       }
     } else {
