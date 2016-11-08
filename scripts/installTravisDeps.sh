@@ -121,8 +121,6 @@ install_libsrtp(){
 
 parse_arguments $*
 
-ls ./build/libdeps/
-
 mkdir -p $PREFIX_DIR
 
 echo "Installing deps via apt-get..."
