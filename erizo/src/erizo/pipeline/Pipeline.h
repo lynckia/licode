@@ -7,8 +7,8 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#ifndef ERIZO_SRC_ERIZO_PIPELINE_H_
-#define ERIZO_SRC_ERIZO_PIPELINE_H_
+#ifndef ERIZO_SRC_ERIZO_PIPELINE_PIPELINE_H_
+#define ERIZO_SRC_ERIZO_PIPELINE_PIPELINE_H_
 
 #include <vector>
 
@@ -23,7 +23,7 @@ class PipelineManager {
  public:
   virtual ~PipelineManager() = default;
   virtual void deletePipeline(PipelineBase* pipeline) = 0;
-  virtual void refreshTimeout() {};
+  virtual void refreshTimeout() {}
 };
 
 class PipelineBase : public std::enable_shared_from_this<PipelineBase> {
@@ -164,4 +164,4 @@ class Pipeline : public PipelineBase {
 
 #include <pipeline/Pipeline-inl.h>
 
-#endif  // ERIZO_SRC_ERIZO_PIPELINE_H_
+#endif  // ERIZO_SRC_ERIZO_PIPELINE_PIPELINE_H_

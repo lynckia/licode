@@ -7,8 +7,8 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#ifndef ERIZO_SRC_ERIZO_PIPELINE_INL_H_
-#define ERIZO_SRC_ERIZO_PIPELINE_INL_H_
+#ifndef ERIZO_SRC_ERIZO_PIPELINE_PIPELINE_INL_H_
+#define ERIZO_SRC_ERIZO_PIPELINE_PIPELINE_INL_H_
 
 namespace erizo {
 
@@ -141,6 +141,6 @@ PipelineBase& PipelineBase::addHelper(
   return *this;
 }
 
-} // namespace erizo
+}  // namespace erizo
 
-#endif  // ERIZO_SRC_ERIZO_PIPELINE_INL_H_
+#endif  // ERIZO_SRC_ERIZO_PIPELINE_PIPELINE_INL_H_

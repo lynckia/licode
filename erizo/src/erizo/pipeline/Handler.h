@@ -107,6 +107,6 @@ class HandlerAdapter : public Handler {
     return ctx->fireWrite(packet);
   }
 };
-} // namespace erizo
+}  // namespace erizo
 
 #endif  // ERIZO_SRC_ERIZO_PIPELINE_HANDLER_H_

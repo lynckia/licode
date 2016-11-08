@@ -32,7 +32,6 @@ class HandlerContext {
 
   virtual PipelineBase* getPipeline() = 0;
   virtual std::shared_ptr<PipelineBase> getPipelineShared() = 0;
-
 };
 
 class InboundHandlerContext {
@@ -75,7 +74,7 @@ enum class HandlerDir {
   BOTH
 };
 
-} // namespace erizo
+}  // namespace erizo
 
 #include <pipeline/HandlerContext-inl.h>
 

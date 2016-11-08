@@ -379,6 +379,6 @@ struct ContextType {
   type;
 };
 
-} // namespace erizo
+}  // namespace erizo
 
 #endif  // ERIZO_SRC_ERIZO_PIPELINE_HANDLERCONTEXT_INL_H_
