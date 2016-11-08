@@ -18,9 +18,8 @@ class Transport;
 
 class TransportListener {
  public:
-  virtual void onTransportData(char* buf, int len, Transport *transport) = 0;
-  virtual void queueData(int comp, const char* data, int len,
-                         Transport *transport, packetType type, uint16_t seqNum = 0) = 0;
+  virtual void onTransportData(std::shared_ptr<dataPacket> packet, Transport *transport) = 0;
+  virtual void queueData(std::shared_ptr<dataPacket> packet) = 0;
   virtual void updateState(TransportState state, Transport *transport) = 0;
   virtual void onCandidate(const CandidateInfo& cand, Transport *transport) = 0;
 };

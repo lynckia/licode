@@ -85,6 +85,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
                             bool bundle, bool rtcp_mux, TransportListener *transportListener,
                             const IceConfig& iceConfig, std::string username, std::string password, bool isServer):
   Transport(med, transport_name, connection_id, bundle, rtcp_mux, transportListener, iceConfig),
+  unprotect_packet_{std::make_shared<dataPacket>()},
   readyRtp(false), readyRtcp(false), running_(false), isServer_(isServer) {
     ELOG_DEBUG("%s, message: constructor, transportName:%s, isBundle:%d", toLog(), transport_name.c_str(), bundle);
     dtlsRtp.reset(new DtlsSocketContext());
@@ -166,19 +167,20 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
     }
     return;
   } else if (this->getTransportState() == TRANSPORT_READY) {
-    memcpy(unprotectBuf_, data, len);
+    unprotect_packet_->length = len;
+    memcpy(unprotect_packet_->data, data, len);
 
     if (dtlsRtcp != NULL && component_id == 2) {
       srtp = srtcp_.get();
     }
     if (srtp != NULL) {
-      RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(unprotectBuf_);
+      RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(unprotect_packet_->data);
       if (chead->isRtcp()) {
-        if (srtp->unprotectRtcp(unprotectBuf_, &length) < 0) {
+        if (srtp->unprotectRtcp(unprotect_packet_->data, &unprotect_packet_->length) < 0) {
           return;
         }
       } else {
-        if (srtp->unprotectRtp(unprotectBuf_, &length) < 0) {
+        if (srtp->unprotectRtp(unprotect_packet_->data, &unprotect_packet_->length) < 0) {
           return;
         }
       }
@@ -189,7 +191,7 @@ void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, N
     if (length <= 0) {
       return;
     }
-    getTransportListener()->onTransportData(unprotectBuf_, length, this);
+    getTransportListener()->onTransportData(unprotect_packet_, this);
   }
 }
 
