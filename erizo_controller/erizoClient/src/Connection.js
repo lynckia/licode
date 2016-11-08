@@ -62,6 +62,7 @@ Erizo.getBrowser = function () {
 
 
 Erizo.GetUserMedia = function (config, callback, error) {
+    var promise;
     navigator.getMedia = ( navigator.getUserMedia ||
                        navigator.webkitGetUserMedia ||
                        navigator.mozGetUserMedia ||
@@ -83,7 +84,9 @@ Erizo.GetUserMedia = function (config, callback, error) {
                     };
                 }
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia(screenCfg).then(callback).catch(error);
+                    promise = navigator.mediaDevices.getUserMedia(screenCfg).then(callback);
+                    // Google compressor complains about a func called catch
+                    promise['catch'](error);
                 } else {
                     navigator.getMedia(screenCfg, callback, error);
                 }
@@ -119,7 +122,7 @@ Erizo.GetUserMedia = function (config, callback, error) {
                             theConfig = {video: {mandatory: {chromeMediaSource: 'desktop',
                                                              chromeMediaSourceId: theId }}};
                         }
-                        navigator.getMedia(theConfig,callback,error);
+                        navigator.getMedia(theConfig, callback, error);
                     });
                 } catch(e) {
                     L.Logger.debug('Screensharing plugin is not accessible ');
@@ -145,7 +148,9 @@ Erizo.GetUserMedia = function (config, callback, error) {
                     };
                 }
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia(config).then(callback).catch(error);
+                    promise = navigator.mediaDevices.getUserMedia(config).then(callback);
+                    // Google compressor complains about a func called catch
+                    promise['catch'](error);
                     return;
                 }
             }
