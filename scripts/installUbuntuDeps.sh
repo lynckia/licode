@@ -55,7 +55,7 @@ install_apt_deps(){
   sudo apt-get install git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
   sudo npm install -g node-gyp
-  sudo chown -R `whoami` ~/.npm ~/tmp/
+  sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 
 install_openssl(){

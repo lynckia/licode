@@ -32,7 +32,7 @@ check_result() {
 
 install_apt_deps(){
   npm install -g node-gyp
-  sudo chown -R `whoami` ~/.npm ~/tmp/
+  sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 
 install_openssl(){
