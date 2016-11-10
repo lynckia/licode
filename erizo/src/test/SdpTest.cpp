@@ -13,6 +13,43 @@ std::string readFile(std::ifstream& in) {
   return sstr.str();
 }
 
+class SdpInfoTest : public ::testing::Test {
+ protected:
+  virtual void SetUp() {
+    erizo::RtpMap vp8;
+    vp8.payload_type = 100;
+    vp8.encoding_name = "VP8";
+    vp8.clock_rate = 90000;
+    vp8.channels = 1;
+    vp8.media_type = erizo::VIDEO_TYPE;
+    rtp_mappings_.push_back(vp8);
+
+    erizo::RtpMap red;
+    red.payload_type = 110;
+    red.encoding_name = "red";
+    red.clock_rate = 90000;
+    red.channels = 1;
+    red.media_type = erizo::VIDEO_TYPE;
+    rtp_mappings_.push_back(red);
+
+    erizo::RtpMap pcmu;
+    pcmu.payload_type = 0;
+    pcmu.encoding_name = "PCMU";
+    pcmu.clock_rate = 8000;
+    pcmu.channels = 1;
+    pcmu.media_type = erizo::AUDIO_TYPE;
+
+    rtp_mappings_.push_back(pcmu);
+    sdp.reset(new erizo::SdpInfo(rtp_mappings_));
+  }
+
+  virtual void TearDown() {}
+
+  std::vector<erizo::RtpMap> rtp_mappings_;
+  std::unique_ptr<erizo::SdpInfo> sdp;
+//  erizo::SdpInfo sdp;
+};
+
 static const char kChromeFingerprint[] =
       "58:8B:E5:05:5C:0F:B6:38:28:F9:DC:24:00:8F:E2:A5:52:B6:92:E7:58:38:53:6B:01:1A:12:7F:EF:55:78:6E";
 static const char kFirefoxFingerprint[] =
@@ -21,53 +58,56 @@ static const char kOpenWebRtcFingerprint[] =
       "7D:EC:D1:14:01:01:2D:53:C3:61:EE:19:66:EA:34:8C:05:05:86:8E:5C:CD:FC:C0:37:AD:3F:7D:4F:07:A5:6C";
 
 /*---------- SdpInfo TESTS ----------*/
-TEST(erizoSdp, ChromeSdp) {
-  erizo::SdpInfo sdp;
+TEST_F(SdpInfoTest, ChromeSdp) {
   std::ifstream ifs("Chrome.sdp", std::fstream::in);
   std::string sdpString = readFile(ifs);
-  sdp.initWithSdp(sdpString, "video");
+  sdp->initWithSdp(sdpString, "video");
   // Check the mlines
-  ASSERT_TRUE(sdp.hasVideo);
-  ASSERT_TRUE(sdp.hasAudio);
+  ASSERT_TRUE(sdp->hasVideo);
+  ASSERT_TRUE(sdp->hasAudio);
   // Check the fingerprint
-  ASSERT_EQ(sdp.fingerprint.compare(kChromeFingerprint), 0);
+  ASSERT_EQ(sdp->fingerprint.compare(kChromeFingerprint), 0);
   // Check ICE Credentials
-  std::string username = sdp.getUsername(erizo::VIDEO_TYPE);
-  std::string password = sdp.getPassword(erizo::VIDEO_TYPE);
+  std::string username = sdp->getUsername(erizo::VIDEO_TYPE);
+  std::string password = sdp->getPassword(erizo::VIDEO_TYPE);
   ASSERT_EQ(username.compare("Bs0jL+c884dYG/oe"), 0);
   ASSERT_EQ(password.compare("ilq+r19kdvFsufkcyYAxoUM8"), 0);
 }
 
-TEST(erizoSdp, FirefoxSdp) {
-  erizo::SdpInfo sdp;
+TEST_F(SdpInfoTest, FirefoxSdp) {
   std::ifstream ifs("Firefox.sdp", std::fstream::in);
   std::string sdpString = readFile(ifs);
-  sdp.initWithSdp(sdpString, "video");
+  sdp->initWithSdp(sdpString, "video");
   // Check the mlines
-  ASSERT_EQ(sdp.hasVideo, true);
-  ASSERT_EQ(sdp.hasAudio, true);
+  ASSERT_EQ(sdp->hasVideo, true);
+  ASSERT_EQ(sdp->hasAudio, true);
   // Check the fingerprint
-  ASSERT_EQ(sdp.fingerprint.compare(kFirefoxFingerprint), 0);
+  ASSERT_EQ(sdp->fingerprint.compare(kFirefoxFingerprint), 0);
   // Check ICE Credentials
-  std::string username = sdp.getUsername(erizo::VIDEO_TYPE);
-  std::string password = sdp.getPassword(erizo::VIDEO_TYPE);
+  std::string username = sdp->getUsername(erizo::VIDEO_TYPE);
+  std::string password = sdp->getPassword(erizo::VIDEO_TYPE);
   ASSERT_EQ(username.compare("b1239219"), 0);
   ASSERT_EQ(password.compare("b4ade8617fe94d5c800fdd085b86fd84"), 0);
 }
 
-TEST(erizoSdp, OpenWebRtc) {
-  erizo::SdpInfo sdp;
+TEST_F(SdpInfoTest, OpenWebRtc) {
   std::ifstream ifs("Openwebrtc.sdp", std::fstream::in);
   std::string sdpString = readFile(ifs);
-  sdp.initWithSdp(sdpString, "video");
+  sdp->initWithSdp(sdpString, "video");
   // Check the mlines
-  ASSERT_TRUE(sdp.hasVideo);
-  ASSERT_TRUE(sdp.hasAudio);
+  ASSERT_TRUE(sdp->hasVideo);
+  ASSERT_TRUE(sdp->hasAudio);
   // Check the fingerprint
-  ASSERT_EQ(sdp.fingerprint.compare(kOpenWebRtcFingerprint), 0);
+  ASSERT_EQ(sdp->fingerprint.compare(kOpenWebRtcFingerprint), 0);
   // Check ICE Credentials
-  std::string username = sdp.getUsername(erizo::AUDIO_TYPE);
-  std::string password = sdp.getPassword(erizo::AUDIO_TYPE);
+  std::string username = sdp->getUsername(erizo::AUDIO_TYPE);
+  std::string password = sdp->getPassword(erizo::AUDIO_TYPE);
   ASSERT_EQ(username.compare("mywn"), 0);
   ASSERT_EQ(password.compare("K+K88NukgWJ4EroPyZHPVA"), 0);
+}
+
+TEST_F(SdpInfoTest, feedbackPacket) {
+  std::ifstream ifs("Chrome.sdp", std::fstream::in);
+  std::string sdpString = readFile(ifs);
+  sdp->initWithSdp(sdpString, "video");
 }

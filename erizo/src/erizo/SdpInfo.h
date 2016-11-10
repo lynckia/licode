@@ -103,13 +103,13 @@ class BundleTag {
  * A PT to Codec map
  */
 struct RtpMap {
-  unsigned int payloadType;
-  std::string encodingName;
-  unsigned int clockRate;
-  MediaType mediaType;
+  unsigned int payload_type;
+  std::string encoding_name;
+  unsigned int clock_rate;
+  MediaType media_type;
   unsigned int channels;
-  std::vector<std::string> feedbackTypes;
-  std::map<std::string, std::string> formatParameters;
+  std::vector<std::string> feedback_types;
+  std::map<std::string, std::string> format_parameters;
 };
 /**
  * A RTP extmap description
@@ -136,7 +136,7 @@ class SdpInfo {
   /**
    * Constructor
    */
-  SdpInfo();
+  explicit SdpInfo(const std::vector<RtpMap> rtp_mappings);
   virtual ~SdpInfo();
   /**
    * Inits the object with a given SDP.

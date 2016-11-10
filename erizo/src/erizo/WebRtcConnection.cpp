@@ -23,9 +23,10 @@ namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
 WebRtcConnection::WebRtcConnection(const std::string& connection_id, bool audioEnabled, bool videoEnabled,
-    const IceConfig& iceConfig, WebRtcConnectionEventListener* listener)
-    : connection_id_(connection_id), audioEnabled_(audioEnabled), videoEnabled_(videoEnabled),
-      connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this) {
+    const IceConfig& iceConfig, const std::vector<RtpMap> rtp_mappings, WebRtcConnectionEventListener* listener)
+    : connection_id_(connection_id), remoteSdp_(rtp_mappings), localSdp_(rtp_mappings),
+      audioEnabled_(audioEnabled), videoEnabled_(videoEnabled), connEventListener_(listener),
+      iceConfig_(iceConfig), rtp_mappings_(rtp_mappings), fec_receiver_(this) {
   ELOG_INFO("%s, message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
   bundle_ = false;
@@ -224,7 +225,7 @@ bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex
     theType = AUDIO_TYPE;
     theMid = "audio";
   }
-  SdpInfo tempSdp;
+  SdpInfo tempSdp(rtp_mappings_);
   std::string username = remoteSdp_.getUsername(theType);
   std::string password = remoteSdp_.getPassword(theType);
   tempSdp.setCredentials(username, password, OTHER);
