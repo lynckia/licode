@@ -39,7 +39,7 @@ WebRtcConnection::WebRtcConnection(const std::string& connection_id, bool audioE
   globalState_ = CONN_INITIAL;
 
   pipeline_->addBack(PacketWriter(this));
-  pipeline_->addBack(RtpRetransmissionHandler());
+  pipeline_->addBack(RtpRetransmissionHandler(this));
   pipeline_->addBack(PacketReader(this));
   pipeline_->finalize();
 
