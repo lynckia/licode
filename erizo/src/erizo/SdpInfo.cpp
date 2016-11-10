@@ -699,7 +699,7 @@ namespace erizo {
         theMap.encoding_name = codecname;
         theMap.clock_rate = clock;
         theMap.media_type = mtype;
-        ELOG_DEBUG("theMAp PT: %u, name %s, clock %u", PT, codecname.c_str(), clock);
+        ELOG_DEBUG("theMap PT: %u, name %s, clock %u", PT, codecname.c_str(), clock);
 
         bool found = false;
         for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
@@ -779,41 +779,50 @@ namespace erizo {
     }
 
     // Map the RTCP Feedback after we have built the payload vector
-    for (unsigned int fbi = 0; fbi < rtp_feedback_lines.size(); fbi++) {
-      std::string line = rtp_feedback_lines[fbi];
-      std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
-      unsigned int PT = strtoul(parts[1].c_str(), NULL, 10);
-      std::string feedback = parts[2];
-      for (unsigned int it = 0; it < payloadVector.size(); it++) {
-        RtpMap& rtp = payloadVector[it];
-        if (rtp.payload_type == PT) {
-          ELOG_DEBUG("Adding %s feedback to pt %u", feedback.c_str(), PT);
-          rtp.feedback_types.push_back(feedback);
+    for (unsigned int vector_it = 0; vector_it < payloadVector.size(); vector_it++) {
+      RtpMap& rtp = payloadVector[vector_it];
+      std::vector<std::string> negotiated_feedback;
+      for (unsigned int lines_iterator = 0; lines_iterator < rtp_feedback_lines.size(); lines_iterator++) {
+        std::string line = rtp_feedback_lines[lines_iterator];
+        ELOG_DEBUG("Feedback line: %s", line.c_str());
+        std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
+        unsigned int PT = strtoul(parts[1].c_str(), NULL, 10);
+        std::string feedback = parts[2];
+        feedback.pop_back();
+        if (rtp.payload_type!= PT) {
+          continue;
+        }
+        ELOG_DEBUG("message: checking feedback, codec_name: %s, feedback: %s", rtp.encoding_name.c_str(),
+            feedback.c_str());
+        for (unsigned int fbit = 0; fbit < rtp.feedback_types.size(); fbit++) {
+          if (rtp.feedback_types[fbit] != feedback) {
+            continue;
+          }
+          ELOG_DEBUG("Adding %s feedback to codec %s", feedback.c_str(), rtp.encoding_name.c_str());
+          negotiated_feedback.push_back(feedback);
         }
       }
-    }
+      rtp.feedback_types = negotiated_feedback;
 
-    // Map the RTCP Parameters after building the payload vector
-    for (unsigned int fti = 0; fti < rtp_parameters_lines.size(); fti++) {
-      std::string line = rtp_parameters_lines[fti];
-      std::vector<std::string> parts = stringutil::splitOneOf(line, " :=", 4);
-      if (parts.size() < 4) {
-        continue;
-      }
-      unsigned int PT = strtoul(parts[2].c_str(), NULL, 10);
-      std::string option = "none";
-      std::string value = "none";
-      if (parts.size() == 4) {
-        value = parts[3].c_str();
-      } else {
-        option = parts[3].c_str();
-        value = parts[4].c_str();
-      }
-      ELOG_DEBUG("Parsing fmtp to PT %u, option %s, value %s", PT, option.c_str(), value.c_str());
-      for (unsigned int it = 0; it < payloadVector.size(); it++) {
-        RtpMap& rtp = payloadVector[it];
+
+      // Check also rtp format lines
+      // TODO(pedro) lines before the loop
+      for (unsigned int fti = 0; fti < rtp_parameters_lines.size(); fti++) {
+        std::string line = rtp_parameters_lines[fti];
+        std::vector<std::string> parts = stringutil::splitOneOf(line, " :=", 4);
+        if (parts.size() < 4) {
+          continue;
+        }
+        unsigned int PT = strtoul(parts[2].c_str(), NULL, 10);
+        std::string option = "none";
+        std::string value = "none";
+        if (parts.size() == 4) {
+          value = parts[3].c_str();
+        } else {
+          option = parts[3].c_str();
+          value = parts[4].c_str();
+        }
         if (rtp.payload_type == PT) {
-          ELOG_DEBUG("Saving fmtp to PT %u, option %s, value %s", PT, option.c_str(), value.c_str());
           rtp.format_parameters[option] = value;
         }
       }
