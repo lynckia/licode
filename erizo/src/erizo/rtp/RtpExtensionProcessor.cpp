@@ -52,12 +52,12 @@ void RtpExtensionProcessor::setSdpInfo(const SdpInfo& theInfo) {
   }
 }
 
-uint32_t RtpExtensionProcessor::processRtpExtensions(const dataPacket& p) {
-  const RtpHeader* head = reinterpret_cast<const RtpHeader*>(p.data);
-  uint32_t len = p.length;
+uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<dataPacket> p) {
+  const RtpHeader* head = reinterpret_cast<const RtpHeader*>(p->data);
+  uint32_t len = p->length;
   int* extMap;
   if (head->getExtension()) {
-    switch (p.type) {
+    switch (p->type) {
       case VIDEO_PACKET:
         extMap = extMapVideo_;
         break;

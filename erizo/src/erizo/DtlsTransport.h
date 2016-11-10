@@ -42,7 +42,7 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
 
  private:
   char protectBuf_[5000];
-  char unprotectBuf_[5000];
+  std::shared_ptr<dataPacket> unprotect_packet_;
   boost::scoped_ptr<dtls::DtlsSocketContext> dtlsRtp, dtlsRtcp;
   boost::mutex writeMutex_, sessionMutex_;
   boost::scoped_ptr<SrtpChannel> srtp_, srtcp_;

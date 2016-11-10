@@ -16,17 +16,16 @@
 #include "rtp/RtpVP8Parser.h"
 #include "rtp/RtcpAggregator.h"
 #include "rtp/RtcpForwarder.h"
-
-using std::memcpy;
+#include "rtp/RtpRetransmissionHandler.h"
 
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
 WebRtcConnection::WebRtcConnection(const std::string& connection_id, bool audioEnabled, bool videoEnabled,
-    const IceConfig& iceConfig, const std::vector<RtpMap> rtp_mappings, WebRtcConnectionEventListener* listener)
-    : connection_id_(connection_id), remoteSdp_(rtp_mappings), localSdp_(rtp_mappings),
-      audioEnabled_(audioEnabled), videoEnabled_(videoEnabled), connEventListener_(listener),
-      iceConfig_(iceConfig), rtp_mappings_(rtp_mappings), fec_receiver_(this) {
+    const IceConfig& iceConfig, WebRtcConnectionEventListener* listener)
+    : connection_id_(connection_id), audioEnabled_(audioEnabled), videoEnabled_(videoEnabled),
+      connEventListener_(listener), iceConfig_(iceConfig), rtp_mappings_(rtp_mappings), fec_receiver_(this),
+      pipeline_{Pipeline::create()} {
   ELOG_INFO("%s, message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
   bundle_ = false;
@@ -38,6 +37,11 @@ WebRtcConnection::WebRtcConnection(const std::string& connection_id, bool audioE
   sourcefbSink_ = this;
   sinkfbSource_ = this;
   globalState_ = CONN_INITIAL;
+
+  pipeline_->addBack(PacketWriter(this));
+  pipeline_->addBack(RtpRetransmissionHandler());
+  pipeline_->addBack(PacketReader(this));
+  pipeline_->finalize();
 
   trickleEnabled_ = iceConfig_.shouldTrickle;
 
@@ -304,17 +308,16 @@ int WebRtcConnection::deliverAudioData_(char* buf, int len) {
   if (bundle_) {
     if (videoTransport_.get() != NULL) {
       if (audioEnabled_ == true) {
-        this->queueData(0, buf, len, videoTransport_.get(), AUDIO_PACKET);
+        queueData(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
       }
     }
   } else if (audioTransport_.get() != NULL) {
     if (audioEnabled_ == true) {
-      this->queueData(0, buf, len, audioTransport_.get(), AUDIO_PACKET);
+        queueData(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
     }
   }
   return len;
 }
-
 
 // This is called by our fec_ object when it recovers a packet.
 bool WebRtcConnection::OnRecoveredPacket(const uint8_t* rtp_packet, int rtp_packet_length) {
@@ -333,7 +336,7 @@ int WebRtcConnection::deliverVideoData_(char* buf, int len) {
     if (videoEnabled_ == true) {
       RtcpHeader* hc = reinterpret_cast<RtcpHeader*>(buf);
       if (hc->isRtcp()) {
-        this->queueData(0, buf, len, videoTransport_.get(), VIDEO_PACKET);
+        queueData(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, 0));
         return len;
       }
       RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
@@ -360,17 +363,14 @@ int WebRtcConnection::deliverVideoData_(char* buf, int len) {
           }
           delete payload;
           if (grace_) {  // We send until marker
-            this->queueData(0, buf, len, videoTransport_.get(), VIDEO_PACKET, seqNo_++);
+            queueData(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, seqNo_++));
             if (h->getMarker()) {
               grace_ = 0;
             }
           }
         } else {
-          if (seqNoOffset_ > 0) {
-            this->queueData(0, buf, len, videoTransport_.get(), VIDEO_PACKET, (sendSeqNo_ - seqNoOffset_));
-          } else {
-            this->queueData(0, buf, len, videoTransport_.get(), VIDEO_PACKET);
-          }
+          int16_t seq_num = seqNoOffset_ > 0 ? (sendSeqNo_ - seqNoOffset_) : 0;
+          queueData(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, seq_num));
         }
       }
     }
@@ -384,14 +384,9 @@ int WebRtcConnection::deliverFeedback_(char* buf, int len) {
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
     uint32_t recvSSRC = chead->getSourceSSRC();
     if (recvSSRC == this->getVideoSourceSSRC()) {
-      this->queueData(0, buf, len, videoTransport_.get(), VIDEO_PACKET);
+      queueData(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, 0));
     } else if (recvSSRC == this->getAudioSourceSSRC()) {
-      if (bundle_) {
-        this->queueData(0, buf, len, videoTransport_.get(), AUDIO_PACKET);
-      } else {
-        this->queueData(0, buf, len, audioTransport_.get(), AUDIO_PACKET);
-      }
-
+      queueData(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
     } else {
       ELOG_DEBUG("%s, unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                   toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
@@ -401,11 +396,25 @@ int WebRtcConnection::deliverFeedback_(char* buf, int len) {
   return len;
 }
 
-void WebRtcConnection::onTransportData(char* buf, int len, Transport *transport) {
+void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Transport *transport) {
   if (audioSink_ == NULL && videoSink_ == NULL && fbSink_ == NULL) {
     return;
   }
 
+  packetType type = OTHER_PACKET;
+
+  if (transport->mediaType == AUDIO_TYPE) {
+    type = AUDIO_PACKET;
+  } else if (transport->mediaType == VIDEO_TYPE) {
+    type = VIDEO_PACKET;
+  }
+
+  pipeline_->read(packet);
+}
+
+void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
+  char* buf = packet->data;
+  int len = packet->length;
   // PROCESS RTCP
   RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
@@ -435,19 +444,19 @@ void WebRtcConnection::onTransportData(char* buf, int len, Transport *transport)
         do {
           movingBuf += rtcpLength;
           chead = reinterpret_cast<RtcpHeader*>(movingBuf);
-          rtcpLength = (ntohs(chead->length)+1) * 4;
+          rtcpLength = (ntohs(chead->length) + 1) * 4;
           totalLength += rtcpLength;
           switch (chead->packettype) {
             case RTCP_Receiver_PT:
               if ((chead->getHighestSeqnum() + seqNoOffset_) < chead->getHighestSeqnum()) {
                 // The seqNo adjustment causes a wraparound, add to cycles
-                chead->setSeqnumCycles(chead->getSeqnumCycles()+1);
+                chead->setSeqnumCycles(chead->getSeqnumCycles() + 1);
               }
-              chead->setHighestSeqnum(chead->getHighestSeqnum()+seqNoOffset_);
+              chead->setHighestSeqnum(chead->getHighestSeqnum() + seqNoOffset_);
 
               break;
             case RTCP_RTP_Feedback_PT:
-              chead->setNackPid(chead->getNackPid()+seqNoOffset_);
+              chead->setNackPid(chead->getNackPid() + seqNoOffset_);
               break;
             default:
               break;
@@ -472,27 +481,23 @@ void WebRtcConnection::onTransportData(char* buf, int len, Transport *transport)
                     toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
       }
     } else {
-      if (transport->mediaType == AUDIO_TYPE) {
-        if (audioSink_ != NULL) {
-          parseIncomingPayloadType(buf, len, AUDIO_PACKET);
-          // Firefox does not send SSRC in SDP
-          if (this->getAudioSourceSSRC() == 0) {
-            ELOG_DEBUG("%s, discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
-            this->setAudioSourceSSRC(recvSSRC);
-          }
-          audioSink_->deliverAudioData(buf, len);
+      if (packet->type == AUDIO_PACKET && audioSink_ != NULL) {
+        parseIncomingPayloadType(buf, len, AUDIO_PACKET);
+        // Firefox does not send SSRC in SDP
+        if (this->getAudioSourceSSRC() == 0) {
+          ELOG_DEBUG("%s, discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
+          this->setAudioSourceSSRC(recvSSRC);
         }
-      } else if (transport->mediaType == VIDEO_TYPE) {
-        if (videoSink_ != NULL) {
-          parseIncomingPayloadType(buf, len, VIDEO_PACKET);
-          // Firefox does not send SSRC in SDP
-          if (this->getVideoSourceSSRC() == 0) {
-            ELOG_DEBUG("%s, discoveredVideoSourceSSRC:%u", toLog(), recvSSRC);
-            this->setVideoSourceSSRC(recvSSRC);
-          }
-          // change ssrc for RTP packets, don't touch here if RTCP
-          videoSink_->deliverVideoData(buf, len);
+        audioSink_->deliverAudioData(buf, len);
+      } else if (packet->type == VIDEO_PACKET && videoSink_ != NULL) {
+        parseIncomingPayloadType(buf, len, VIDEO_PACKET);
+        // Firefox does not send SSRC in SDP
+        if (this->getVideoSourceSSRC() == 0) {
+          ELOG_DEBUG("%s, discoveredVideoSourceSSRC:%u", toLog(), recvSSRC);
+          this->setVideoSourceSSRC(recvSSRC);
         }
+        // change ssrc for RTP packets, don't touch here if RTCP
+        videoSink_->deliverVideoData(buf, len);
       }
     }  // if not bundle
   }  // if not Feedback
@@ -500,7 +505,6 @@ void WebRtcConnection::onTransportData(char* buf, int len, Transport *transport)
   // check if we need to send FB || RR messages
   rtcpProcessor_->checkRtcpFb();
 }
-
 
 int WebRtcConnection::sendPLI() {
   RtcpHeader thePLI;
@@ -510,8 +514,8 @@ int WebRtcConnection::sendPLI() {
   thePLI.setSourceSSRC(this->getVideoSourceSSRC());
   thePLI.setLength(2);
   char *buf = reinterpret_cast<char*>(&thePLI);
-  int len = (thePLI.getLength()+1)*4;
-  this->queueData(0, buf, len , videoTransport_.get(), VIDEO_PACKET);
+  int len = (thePLI.getLength() + 1) * 4;
+  queueData(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, 0));
   return len;
 }
 
@@ -621,8 +625,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
 }
 
 // changes the outgoing payload type for in the given data packet
-void WebRtcConnection::queueData(int comp, const char* buf, int length, Transport *transport,
-                                packetType type, uint16_t seqNum) {
+void WebRtcConnection::queueData(std::shared_ptr<dataPacket> packet) {
   // if ((audioSink_ == NULL && videoSink_ == NULL && fbSink_ == NULL) || !sending_)
     // we don't enqueue data if there is nothing to receive it
     // return;
@@ -630,28 +633,23 @@ void WebRtcConnection::queueData(int comp, const char* buf, int length, Transpor
   if (!sending_) {
     return;
   }
-  if (comp == -1) {
+  if (packet->comp == -1) {
     sending_ = false;
-    std::queue<dataPacket> empty;
+    std::queue<std::shared_ptr<dataPacket>> empty;
     std::swap(sendQueue_, empty);
-    dataPacket p_;
-    p_.comp = -1;
+    auto p_ = std::make_shared<dataPacket>();
+    p_->comp = -1;
     sendQueue_.push(p_);
     cond_.notify_one();
     return;
   }
   if (sendQueue_.size() < 1000) {
-    dataPacket p_;
-    memcpy(p_.data, buf, length);
-    p_.comp = comp;
-    p_.type = type;
-    p_.length = length;
-    changeDeliverPayloadType(&p_, type);
-    if (seqNum) {
-      RtpHeader* h = reinterpret_cast<RtpHeader*>(&p_.data);
-      h->setSeqNumber(seqNum);
+    changeDeliverPayloadType(packet.get(), packet->type);
+    if (packet->seq_num) {
+      RtpHeader* h = reinterpret_cast<RtpHeader*>(&packet->data);
+      h->setSeqNumber(packet->seq_num);
     }
-    sendQueue_.push(p_);
+    sendQueue_.push(packet);
   } else {
     ELOG_WARN("%s, message: Queue Discarding packets", toLog());
   }
@@ -723,12 +721,22 @@ void WebRtcConnection::parseIncomingPayloadType(char *buf, int len, packetType t
   }
 }
 
+void WebRtcConnection::write(std::shared_ptr<dataPacket> packet) {
+  Transport *transport = (bundle_ || packet->type == VIDEO_PACKET) ? videoTransport_.get() :
+                                                                     audioTransport_.get();
+  if (transport == nullptr) {
+    return;
+  }
+  this->extProcessor_.processRtpExtensions(packet);
+  transport->write(packet->data, packet->length);
+}
+
 void WebRtcConnection::sendLoop() {
   uint32_t partial_bitrate = 0;
   uint64_t sentVideoBytes = 0;
   uint64_t lastSecondVideoBytes = 0;
     while (sending_) {
-        dataPacket p;
+        std::shared_ptr<dataPacket> p;
         {
             boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
             while (sendQueue_.size() == 0) {
@@ -737,7 +745,7 @@ void WebRtcConnection::sendLoop() {
                     return;
                 }
             }
-            if (sendQueue_.front().comp ==-1) {
+            if (sendQueue_.front()->comp ==-1) {
                 sending_ =  false;
                 ELOG_DEBUG("%s, message: finishing send Thread", toLog());
                 sendQueue_.pop();
@@ -747,31 +755,27 @@ void WebRtcConnection::sendLoop() {
             p = sendQueue_.front();
             sendQueue_.pop();
         }
-        if (bundle_ || p.type == VIDEO_PACKET) {
-          if (rateControl_ && !slideShowMode_) {
-            if (p.type == VIDEO_PACKET) {
-              if (rateControl_ == 1)
-                continue;
-              gettimeofday(&now_, NULL);
-              uint64_t nowms = (now_.tv_sec * 1000) + (now_.tv_usec / 1000);
-              uint64_t markms = (mark_.tv_sec * 1000) + (mark_.tv_usec/1000);
-              if ((nowms - markms) >= 100) {
-                mark_ = now_;
-                lastSecondVideoBytes = sentVideoBytes;
-              }
-              partial_bitrate = ((sentVideoBytes - lastSecondVideoBytes)*8)*10;
-              if (partial_bitrate > this->rateControl_) {
-                continue;
-              }
-              sentVideoBytes += p.length;
+        if (rateControl_ && !slideShowMode_) {
+          if (p->type == VIDEO_PACKET) {
+            if (rateControl_ == 1) {
+              continue;
             }
+            gettimeofday(&now_, NULL);
+            uint64_t nowms = (now_.tv_sec * 1000) + (now_.tv_usec / 1000);
+            uint64_t markms = (mark_.tv_sec * 1000) + (mark_.tv_usec/1000);
+            if ((nowms - markms) >= 100) {
+              mark_ = now_;
+              lastSecondVideoBytes = sentVideoBytes;
+            }
+            partial_bitrate = ((sentVideoBytes - lastSecondVideoBytes) * 8) * 10;
+            if (partial_bitrate > this->rateControl_) {
+              continue;
+            }
+            sentVideoBytes += p->length;
           }
-          this->extProcessor_.processRtpExtensions(p);
-          videoTransport_->write(p.data, p.length);
-        } else {
-          this->extProcessor_.processRtpExtensions(p);
-          audioTransport_->write(p.data, p.length);
         }
+        pipeline_->write(p);
     }
 }
+
 }  // namespace erizo
