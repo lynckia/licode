@@ -27,7 +27,7 @@ class RtpExtensionProcessor{
   virtual ~RtpExtensionProcessor();
 
   void setSdpInfo(const SdpInfo& theInfo);
-  uint32_t processRtpExtensions(const dataPacket& p);
+  uint32_t processRtpExtensions(std::shared_ptr<dataPacket> p);
 
  private:
   int extMapVideo_[10], extMapAudio_[10];

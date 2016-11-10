@@ -10,7 +10,7 @@
 
 namespace erizo {
 // forward declaration
-class dataPacket;
+struct dataPacket;
 
 static const double DEFAULT_DEPTH = 3.0;
 static const double DEFAULT_MAX = 5.0;

@@ -17,10 +17,16 @@ enum packetType {
 };
 
 struct dataPacket {
-    int comp;
-    char data[1500];
-    int length;
-    packetType type;
+  dataPacket() = default;
+  dataPacket(int comp_, char *data_, int length_, packetType type_, uint16_t seq_num_) :
+    comp{comp_}, length{length_}, type{type_}, seq_num{seq_num_} {
+      memcpy(data, data_, length_);
+    }
+  int comp;
+  char data[1500];
+  int length;
+  packetType type;
+  uint16_t seq_num;
 };
 
 class Monitor {
