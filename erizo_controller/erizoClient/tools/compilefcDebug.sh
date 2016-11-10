@@ -1,7 +1,10 @@
 #!/bin/bash
+
+set -e
+
 FILE=../build/erizofc.js
 TARGET=../dist/erizofc.js
-rm $FILE
+rm -f $FILE
 cat ../src/Events.js >> $FILE
 cat ../src/webrtc-stacks/FcStack.js >> $FILE
 cat ../src/webrtc-stacks/ChromeStableStack.js >> $FILE

@@ -62,27 +62,36 @@ Erizo.getBrowser = function () {
 
 
 Erizo.GetUserMedia = function (config, callback, error) {
+    var promise;
     navigator.getMedia = ( navigator.getUserMedia ||
                        navigator.webkitGetUserMedia ||
                        navigator.mozGetUserMedia ||
                        navigator.msGetUserMedia);
 
-    if (config.screen){
-
+    if (config.screen) {
         L.Logger.debug('Screen access requested');
-        switch(Erizo.getBrowser()){
+        switch (Erizo.getBrowser()) {
             case 'mozilla':
                 L.Logger.debug('Screen sharing in Firefox');
-                var theConfig = {};
-                if(config.video.mandatory !== undefined){
-                    theConfig.video = config.video;
-                    theConfig.video.mediaSource = 'window' || 'screen';
-                }else{
-                    theConfig = {audio: config.audio,
-                                video: { mediaSource: 'window' || 'screen'}};
+                var screenCfg = {};
+                if (config.video.mandatory !== undefined) {
+                    screenCfg.video = config.video;
+                    screenCfg.video.mediaSource = 'window' || 'screen';
+                } else {
+                    screenCfg = {
+                        audio: config.audio,
+                        video: {mediaSource: 'window' || 'screen'}
+                    };
                 }
-                navigator.getMedia(theConfig,callback,error);
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    promise = navigator.mediaDevices.getUserMedia(screenCfg).then(callback);
+                    // Google compressor complains about a func called catch
+                    promise['catch'](error);
+                } else {
+                    navigator.getMedia(screenCfg, callback, error);
+                }
                 break;
+
             case 'chrome-stable':
                 L.Logger.debug('Screen sharing in Chrome');
                 // Default extensionId - this extension is only usable in our server,
@@ -94,7 +103,7 @@ Erizo.GetUserMedia = function (config, callback, error) {
                     extensionId = config.extensionId;
                 }
                 L.Logger.debug('Screen access on chrome stable, looking for extension');
-                try{
+                try {
                     chrome.runtime.sendMessage(extensionId, {getStream: true}, function (response){
                         var theConfig = {};
                         if (response === undefined){
@@ -113,23 +122,39 @@ Erizo.GetUserMedia = function (config, callback, error) {
                             theConfig = {video: {mandatory: {chromeMediaSource: 'desktop',
                                                              chromeMediaSourceId: theId }}};
                         }
-                        navigator.getMedia(theConfig,callback,error);
+                        navigator.getMedia(theConfig, callback, error);
                     });
-                } catch (e){
+                } catch(e) {
                     L.Logger.debug('Screensharing plugin is not accessible ');
                     var theError = {code:'no_plugin_present'};
                     error(theError);
                     return;
                 }
                 break;
+
             default:
                 L.Logger.error('This browser does not support ScreenSharing');
         }
     } else {
-      if (typeof module !== 'undefined' && module.exports) {
-        L.Logger.error('Video/audio streams not supported in erizofc yet');
-      } else {
-        navigator.getMedia(config, callback, error);
-      }
+        if (typeof module !== 'undefined' && module.exports) {
+            L.Logger.error('Video/audio streams not supported in erizofc yet');
+        } else {
+            if (config.video && Erizo.getBrowser() === 'mozilla') {
+                if (config.video.mandatory !== undefined) {
+                    var videoCfg = config.video.mandatory;
+                    config.video = {
+                        width: {min: videoCfg.minWidth, max: videoCfg.maxWidth},
+                        height: {min: videoCfg.minHeight, max: videoCfg.maxHeight}
+                    };
+                }
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    promise = navigator.mediaDevices.getUserMedia(config).then(callback);
+                    // Google compressor complains about a func called catch
+                    promise['catch'](error);
+                    return;
+                }
+            }
+            navigator.getMedia(config, callback, error);
+        }
     }
 };

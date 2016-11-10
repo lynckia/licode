@@ -85,12 +85,12 @@ exports.authenticate = function (req, res, next) {
             if (checkSignature(params, key)) {
 
                 if (params.username !== undefined && params.role !== undefined) {
-                    exports.user = params.username;
-                    exports.role = params.role;
+                    req.user = params.username;
+                    req.role = params.role;
                 }
 
                 cache[serv.name] =  params;
-                exports.service = serv;
+                req.service = serv;
 
                 // If everything in the authentication is valid continue with the request.
                 next();

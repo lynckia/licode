@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`
 PATHNAME=`dirname $SCRIPT`
@@ -29,13 +32,13 @@ check_result() {
 
 install_apt_deps(){
   npm install -g node-gyp
-  sudo chown -R `whoami` ~/.npm ~/tmp/
+  sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O http://www.openssl.org/source/openssl-1.0.1l.tar.gz
+    curl -O https://www.openssl.org/source/openssl-1.0.1l.tar.gz
     tar -zxvf openssl-1.0.1l.tar.gz > /dev/null 2> /dev/null
     cd openssl-1.0.1l
     ./config --prefix=$PREFIX_DIR -fPIC && make -s V=0 && make install
@@ -117,8 +120,6 @@ install_libsrtp(){
 }
 
 parse_arguments $*
-
-ls ./build/libdeps/
 
 mkdir -p $PREFIX_DIR
 

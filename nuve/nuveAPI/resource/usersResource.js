@@ -8,18 +8,14 @@ var logger = require('./../logger').logger;
 // Logger
 var log = logger.getLogger('UsersResource');
 
-var currentService;
-var currentRoom;
-
 /*
  * Gets the service and the room for the proccess of the request.
  */
-var doInit = function (roomId, callback) {
-    currentService = require('./../auth/nuveAuthenticator').service;
+var doInit = function (req, callback) {
+    var currentService = req.service;
 
-    serviceRegistry.getRoomForService(roomId, currentService, function (room) {
-        currentRoom = room;
-        callback();
+    serviceRegistry.getRoomForService(req.params.room, currentService, function (room) {
+        callback(currentService, room);
     });
 
 };
@@ -28,7 +24,7 @@ var doInit = function (roomId, callback) {
  * Get Users. Represent a list of users of a determined room. This is consulted to cloudHandler.
  */
 exports.getList = function (req, res) {
-    doInit(req.params.room, function () {
+    doInit(req, function (currentService, currentRoom) {
 
         if (currentService === undefined) {
             res.send('Service not found', 404);
