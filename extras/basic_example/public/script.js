@@ -29,7 +29,7 @@ function startRecording () {  // jshint ignore:line
   }
 }
 
-var slideShowMode = true;
+var slideShowMode = false;
 
 function toggleSlideShowMode() {  // jshint ignore:line
   var streams = room.remoteStreams;
