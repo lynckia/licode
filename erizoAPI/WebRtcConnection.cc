@@ -119,9 +119,9 @@ NAN_METHOD(WebRtcConnection::New) {
           }
         }
         if (it.value()["feedbackTypes"].is_array()) {
-          json format_types_json = it.value()["formatParameters"];
-          for (json::iterator feedback_it = format_types_json.begin();
-              feedback_it != format_types_json.end(); ++feedback_it) {
+          json feedback_types_json = it.value()["feedbackTypes"];
+          for (json::iterator feedback_it = feedback_types_json.begin();
+              feedback_it != feedback_types_json.end(); ++feedback_it) {
               rtp_map.feedback_types.push_back(*feedback_it);
           }
         }
