@@ -210,7 +210,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
 class PacketReader : public InboundHandler {
  public:
-  PacketReader(WebRtcConnection *connection) : connection_{connection} {}
+  explicit PacketReader(WebRtcConnection *connection) : connection_{connection} {}
 
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override {
     connection_->read(packet);
@@ -222,7 +222,7 @@ class PacketReader : public InboundHandler {
 
 class PacketWriter : public OutboundHandler {
  public:
-  PacketWriter(WebRtcConnection *connection) : connection_{connection} {}
+  explicit PacketWriter(WebRtcConnection *connection) : connection_{connection} {}
 
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override {
     connection_->write(packet);
