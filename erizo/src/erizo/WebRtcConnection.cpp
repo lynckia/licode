@@ -18,8 +18,6 @@
 #include "rtp/RtcpForwarder.h"
 #include "rtp/RtpRetransmissionHandler.h"
 
-using std::memcpy;
-
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
