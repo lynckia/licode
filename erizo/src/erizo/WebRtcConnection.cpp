@@ -25,7 +25,7 @@ WebRtcConnection::WebRtcConnection(const std::string& connection_id, bool audioE
     const IceConfig& iceConfig, WebRtcConnectionEventListener* listener)
     : connection_id_(connection_id), audioEnabled_(audioEnabled), videoEnabled_(videoEnabled),
       connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this),
-      inbound_pipeline_{Pipeline::create()}, outbound_pipeline_{Pipeline::create()} {
+      pipeline_{Pipeline::create()} {
   ELOG_INFO("%s, message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
   bundle_ = false;
@@ -38,13 +38,10 @@ WebRtcConnection::WebRtcConnection(const std::string& connection_id, bool audioE
   sinkfbSource_ = this;
   globalState_ = CONN_INITIAL;
 
-  inbound_pipeline_->addBack(RtpRetransmissionHandler());
-  inbound_pipeline_->addBack(this);
-  inbound_pipeline_->finalize();
-
-  outbound_pipeline_->addBack(this);
-  outbound_pipeline_->addBack(RtpRetransmissionHandler());
-  outbound_pipeline_->finalize();
+  pipeline_->addBack(PacketWriter(this));
+  pipeline_->addBack(RtpRetransmissionHandler());
+  pipeline_->addBack(PacketReader(this));
+  pipeline_->finalize();
 
   trickleEnabled_ = iceConfig_.shouldTrickle;
 
@@ -412,10 +409,10 @@ void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Trans
     type = VIDEO_PACKET;
   }
 
-  inbound_pipeline_->read(packet);
+  pipeline_->read(packet);
 }
 
-void WebRtcConnection::read(Context* ctx, std::shared_ptr<dataPacket> packet) {
+void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
   char* buf = packet->data;
   int len = packet->length;
   // PROCESS RTCP
@@ -459,7 +456,6 @@ void WebRtcConnection::read(Context* ctx, std::shared_ptr<dataPacket> packet) {
 
               break;
             case RTCP_RTP_Feedback_PT:
-              // Call Nack handler.
               chead->setNackPid(chead->getNackPid() + seqNoOffset_);
               break;
             default:
@@ -725,7 +721,7 @@ void WebRtcConnection::parseIncomingPayloadType(char *buf, int len, packetType t
   }
 }
 
-void WebRtcConnection::write(Context* ctx, std::shared_ptr<dataPacket> packet) {
+void WebRtcConnection::write(std::shared_ptr<dataPacket> packet) {
   Transport *transport = (bundle_ || packet->type == VIDEO_PACKET) ? videoTransport_.get() :
                                                                      audioTransport_.get();
   if (transport == nullptr) {
@@ -778,7 +774,7 @@ void WebRtcConnection::sendLoop() {
             sentVideoBytes += p->length;
           }
         }
-        outbound_pipeline_->write(p);
+        pipeline_->write(p);
     }
 }
 

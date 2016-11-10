@@ -52,7 +52,8 @@ class WebRtcConnectionStatsListener {
  * it comprises all the necessary Transport components.
  */
 class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink, public FeedbackSource,
-                        public TransportListener, public webrtc::RtpData, public Handler {
+                        public TransportListener, public webrtc::RtpData,
+                        public std::enable_shared_from_this<WebRtcConnection> {
   DECLARE_LOGGER();
 
  public:
@@ -149,11 +150,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
                                 const webrtc::WebRtcRTPHeader* rtpHeader) override;
   bool OnRecoveredPacket(const uint8_t* packet, int packet_length) override;
 
-  void read(Context* ctx, std::shared_ptr<dataPacket> packet) override;
-  void write(Context* ctx, std::shared_ptr<dataPacket> packet) override;
-  void close(Context* ctx) override {
-    return ctx->fireClose();
-  }
+  void read(std::shared_ptr<dataPacket> packet);
+  void write(std::shared_ptr<dataPacket> packet);
 
  private:
   std::string connection_id_;
@@ -191,8 +189,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   boost::thread send_Thread_;
   std::queue<std::shared_ptr<dataPacket>> sendQueue_;
 
-  Pipeline::Ptr inbound_pipeline_;
-  Pipeline::Ptr outbound_pipeline_;
+  Pipeline::Ptr pipeline_;
 
   void sendLoop();
   int deliverAudioData_(char* buf, int len) override;
@@ -209,6 +206,30 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   void changeDeliverPayloadType(dataPacket *dp, packetType type);
   // parses incoming payload type, replaces occurence in buf
   void parseIncomingPayloadType(char *buf, int len, packetType type);
+};
+
+class PacketReader : public InboundHandler {
+ public:
+  PacketReader(WebRtcConnection *connection) : connection_{connection} {}
+
+  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override {
+    connection_->read(packet);
+  }
+
+ private:
+  WebRtcConnection *connection_;
+};
+
+class PacketWriter : public OutboundHandler {
+ public:
+  PacketWriter(WebRtcConnection *connection) : connection_{connection} {}
+
+  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override {
+    connection_->write(packet);
+  }
+
+ private:
+  WebRtcConnection *connection_;
 };
 
 }  // namespace erizo
