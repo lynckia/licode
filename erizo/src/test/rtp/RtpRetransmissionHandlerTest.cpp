@@ -26,7 +26,7 @@ using erizo::OutboundHandler;
 
 class MockWebRtcConnection: public WebRtcConnection {
  public:
-  MockWebRtcConnection() :
+  explicit MockWebRtcConnection(const IceConfig &ice_config) :
     WebRtcConnection("", true, true, ice_config, nullptr) {
     ON_CALL(*this, getVideoSinkSSRC()).WillByDefault(Return(kVideoSsrc));
     ON_CALL(*this, getAudioSinkSSRC()).WillByDefault(Return(kAudioSsrc));
@@ -38,9 +38,6 @@ class MockWebRtcConnection: public WebRtcConnection {
   MOCK_METHOD0(getAudioSinkSSRC, uint16_t(void));
   MOCK_METHOD1(read, void(std::shared_ptr<dataPacket>));
   MOCK_METHOD1(write, void(std::shared_ptr<dataPacket>));
-
- private:
-  IceConfig ice_config;
 };
 
 class Reader : public InboundHandler {
@@ -54,9 +51,12 @@ class Writer : public OutboundHandler {
 };
 
 class RtpRetransmissionHandlerTest : public ::testing::Test {
+ public:
+  RtpRetransmissionHandlerTest() : ice_config() {}
+
  protected:
   virtual void SetUp() {
-    connection = std::make_shared<MockWebRtcConnection>();
+    connection = std::make_shared<MockWebRtcConnection>(ice_config);
     pipeline = Pipeline::create();
     rtx_handler = std::make_shared<RtpRetransmissionHandler>(connection.get());
     reader = std::make_shared<Reader>();
@@ -84,6 +84,7 @@ class RtpRetransmissionHandlerTest : public ::testing::Test {
     return std::make_shared<dataPacket>(0, reinterpret_cast<char*>(header), sizeof(erizo::RtpHeader), type, 0);
   }
 
+  IceConfig ice_config;
   std::shared_ptr<MockWebRtcConnection> connection;
   Pipeline::Ptr pipeline;
   std::shared_ptr<Reader> reader;
