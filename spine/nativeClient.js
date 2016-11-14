@@ -76,8 +76,6 @@ exports.ErizoNativeConnection = function (spec){
 
 
     wrtc = new addon.WebRtcConnection('spine',
-                                      true,
-                                      true,
                                       GLOBAL.config.erizo.stunserver,
                                       GLOBAL.config.erizo.stunport,
                                       GLOBAL.config.erizo.minport,

@@ -1,7 +1,7 @@
 {
-  "basicExampleUrl": "https://localhost/",
+  "basicExampleUrl": "http://localhost:3001/",
   "publishConfig" : {
-    "video":{"file":"file:///YOUR_LICODE_COMPATIBLE_TEST_FILE"},
+    "video":{"file":"file:///home/alvaro/Documentos/webrtc/git/542824708158150340.mkv"},
     "audio":true,
     "data":true
   },
@@ -13,8 +13,8 @@
     "audio": true,
     "data": true
   },
-  "numPublishers": 0,
-  "numSubscribers" : 1,
+  "numPublishers": 1,
+  "numSubscribers" : 0,
   "publishersAreSubscribers" : true,
   "connectionCreationInterval" : 500
 

@@ -31,7 +31,7 @@ using erizo::OutboundHandler;
 class MockWebRtcConnection: public WebRtcConnection {
  public:
   explicit MockWebRtcConnection(const IceConfig &ice_config) :
-    WebRtcConnection("", true, true, ice_config, nullptr) {}
+    WebRtcConnection("", ice_config, nullptr) {}
 
   virtual ~MockWebRtcConnection() {
   }

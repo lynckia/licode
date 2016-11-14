@@ -21,14 +21,14 @@
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
-WebRtcConnection::WebRtcConnection(const std::string& connection_id, bool audioEnabled, bool videoEnabled,
-    const IceConfig& iceConfig, WebRtcConnectionEventListener* listener)
-    : connection_id_(connection_id), audioEnabled_(audioEnabled), videoEnabled_(videoEnabled),
-      connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this),
+WebRtcConnection::WebRtcConnection(const std::string& connection_id, const IceConfig& iceConfig, WebRtcConnectionEventListener* listener)
+    : connection_id_(connection_id), connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this),
       pipeline_{Pipeline::create()} {
   ELOG_INFO("%s, message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
   bundle_ = false;
+  videoEnabled_ = false;
+  audioEnabled_ = false;
   setVideoSinkSSRC(55543);
   setAudioSinkSSRC(44444);
   videoSink_ = NULL;
