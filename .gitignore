@@ -15,4 +15,5 @@ erizo_controller/erizoAgent/erizo-*.log
 .project
 .cproject
 spine/erizofc.js
+spine/spineClientsConfig.json
 extras/basic_example/public/assets/
