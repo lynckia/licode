@@ -81,7 +81,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    */
   bool setRemoteSdp(const std::string &sdp);
 
-  bool createOffer();
+  bool createOffer(bool videoEnabled, bool audioEnabled, bool bundle);
   /**
    * Add new remote candidate (from remote peer).
    * @param sdp The candidate in SDP format.

@@ -131,7 +131,11 @@ NAN_METHOD(WebRtcConnection::init) {
 NAN_METHOD(WebRtcConnection::createOffer) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   erizo::WebRtcConnection *me = obj->me;
-  bool r = me->createOffer();
+  bool v = info[0]->BooleanValue();
+  bool a = info[1]->BooleanValue();
+  bool b = info[3]->BooleanValue();
+
+  bool r = me->createOffer(v, a, b);
   info.GetReturnValue().Set(Nan::New(r));
 }
 

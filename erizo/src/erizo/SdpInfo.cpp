@@ -528,10 +528,10 @@ namespace erizo {
   }
 
   // TODO(pedro): Should provide hints
-  void SdpInfo::createOfferSdp(bool videoEnabled, bool audioEnabled) {
-    ELOG_DEBUG("Creating offerSDP: video %d, audio %d", videoEnabled, audioEnabled);
+  void SdpInfo::createOfferSdp(bool videoEnabled, bool audioEnabled, bool bundle) {
+    ELOG_DEBUG("Creating offerSDP: video %d, audio %d, bundle %d", videoEnabled, audioEnabled, bundle);
     this->payloadVector = internalPayloadVector_;
-    this->isBundle = true;
+    this->isBundle = bundle;
     this->profile = SAVPF;
     this->isRtcpMux = true;
     if (videoEnabled)

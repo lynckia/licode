@@ -118,7 +118,7 @@ exports.ErizoNativeConnection = function (spec){
                 }
             }, {});
 
-            wrtc.createOffer();
+            wrtc.createOffer(true, true, true);
         } else if (msg.type === 'answer'){
             setTimeout(function(){
                 log.info('Passing delayed answer');

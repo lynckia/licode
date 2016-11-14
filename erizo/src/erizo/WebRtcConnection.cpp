@@ -89,12 +89,11 @@ bool WebRtcConnection::init() {
   return true;
 }
 
-// TODO(pedro): Erizo Should accept hints to create the Offer
-bool WebRtcConnection::createOffer() {
-  bundle_ = true;
-  videoEnabled_ = true;
-  audioEnabled_ = true;
-  this->localSdp_.createOfferSdp(videoEnabled_, audioEnabled_);
+bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bundle) {
+  bundle_ = bundle;
+  videoEnabled_ = videoEnabled;
+  audioEnabled_ = audioEnabled;
+  this->localSdp_.createOfferSdp(videoEnabled_, audioEnabled_, bundle_);
   ELOG_DEBUG("%s, message: Creating sdp offer, isBundle: %d", toLog(), bundle_);
   if (videoEnabled_)
     localSdp_.videoSsrc = this->getVideoSinkSSRC();
