@@ -1,7 +1,9 @@
 #ifndef ERIZO_SRC_ERIZO_RTP_RTPRETRANSMISSIONHANDLER_H_
 #define ERIZO_SRC_ERIZO_RTP_RTPRETRANSMISSIONHANDLER_H_
 
+#include <boost/thread/mutex.hpp>
 #include <vector>
+
 #include "pipeline/Handler.h"
 
 #include "./WebRtcConnection.h"
@@ -27,6 +29,7 @@ class RtpRetransmissionHandler : public Handler {
   WebRtcConnection *connection_;
   std::vector<std::shared_ptr<dataPacket>> audio_;
   std::vector<std::shared_ptr<dataPacket>> video_;
+  std::shared_ptr<boost::mutex> buffer_mutex_ptr_;
 };
 }  // namespace erizo
 

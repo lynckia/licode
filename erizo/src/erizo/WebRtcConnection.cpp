@@ -401,12 +401,10 @@ void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Trans
     return;
   }
 
-  packetType type = OTHER_PACKET;
-
   if (transport->mediaType == AUDIO_TYPE) {
-    type = AUDIO_PACKET;
+    packet->type = AUDIO_PACKET;
   } else if (transport->mediaType == VIDEO_TYPE) {
-    type = VIDEO_PACKET;
+    packet->type = VIDEO_PACKET;
   }
 
   pipeline_->read(packet);
