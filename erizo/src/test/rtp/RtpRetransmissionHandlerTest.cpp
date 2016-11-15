@@ -22,6 +22,7 @@ using erizo::packetType;
 using erizo::AUDIO_PACKET;
 using erizo::VIDEO_PACKET;
 using erizo::IceConfig;
+using erizo::RtpMap;
 using erizo::RtpRetransmissionHandler;
 using erizo::WebRtcConnection;
 using erizo::Pipeline;
@@ -30,14 +31,11 @@ using erizo::OutboundHandler;
 
 class MockWebRtcConnection: public WebRtcConnection {
  public:
-  explicit MockWebRtcConnection(const IceConfig &ice_config) :
-    WebRtcConnection("", true, true, ice_config, nullptr) {}
+  explicit MockWebRtcConnection(const IceConfig &ice_config, const std::vector<RtpMap> rtp_mappings) :
+    WebRtcConnection("", true, true, ice_config, rtp_mappings, nullptr) {}
 
   virtual ~MockWebRtcConnection() {
   }
-
-  MOCK_METHOD1(read, void(std::shared_ptr<dataPacket>));
-  MOCK_METHOD1(write, void(std::shared_ptr<dataPacket>));
 };
 
 class Reader : public InboundHandler {
@@ -56,7 +54,7 @@ class RtpRetransmissionHandlerTest : public ::testing::Test {
 
  protected:
   virtual void SetUp() {
-    connection = std::make_shared<MockWebRtcConnection>(ice_config);
+    connection = std::make_shared<MockWebRtcConnection>(ice_config, rtp_maps);
 
     connection->setVideoSinkSSRC(kVideoSsrc);
     connection->setAudioSinkSSRC(kAudioSsrc);
@@ -105,6 +103,7 @@ class RtpRetransmissionHandlerTest : public ::testing::Test {
   }
 
   IceConfig ice_config;
+  std::vector<RtpMap> rtp_maps;
   std::shared_ptr<MockWebRtcConnection> connection;
   Pipeline::Ptr pipeline;
   std::shared_ptr<Reader> reader;
