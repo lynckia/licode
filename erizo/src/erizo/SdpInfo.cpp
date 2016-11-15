@@ -724,7 +724,6 @@ namespace erizo {
       }
 
       if (isFeedback != std::string::npos) {
-        ELOG_DEBUG("Feedback line: %s", line.c_str());
         std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
         unsigned int PT = strtoul(parts[1].c_str(), NULL, 10);
         std::string feedback = parts[2];
@@ -748,14 +747,14 @@ namespace erizo {
         unsigned int PT = strtoul(parts[2].c_str(), NULL, 10);
         std::string option = "none";
         std::string value = "none";
-        ELOG_DEBUG("message: Parsing format parameter, option: %s, value: %s, PT: %u",
-            option.c_str(), value.c_str(), PT);
         if (parts.size() == 4) {
           value = parts[3].c_str();
         } else {
           option = parts[3].c_str();
           value = parts[4].c_str();
         }
+        ELOG_DEBUG("message: Parsing format parameter, option: %s, value: %s, PT: %u",
+            option.c_str(), value.c_str(), PT);
         value.pop_back();
         auto map_element = payload_parsed_map_.find(PT);
         if (map_element != payload_parsed_map_.end()) {
@@ -836,7 +835,8 @@ namespace erizo {
           for (const std::string& internal_feedback_line : internal_map.feedback_types) {
             for (const std::string& parsed_feedback_line : parsed_map.feedback_types) {
               if (internal_feedback_line == parsed_feedback_line) {
-                ELOG_DEBUG("Adding %s feedback to codec %s", internal_feedback_line.c_str(),
+                ELOG_DEBUG("message: Adding feedback to codec, feedback: %s, encoding_name: %s",
+                   internal_feedback_line.c_str(),
                    internal_map.encoding_name.c_str());
                 negotiated_feedback.push_back(internal_feedback_line);
               }
