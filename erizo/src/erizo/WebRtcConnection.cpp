@@ -21,8 +21,8 @@
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
-WebRtcConnection::WebRtcConnection(const std::string& connection_id, const IceConfig& iceConfig, 
-    WebRtcConnectionEventListener* listener) : connection_id_(connection_id), connEventListener_(listener), 
+WebRtcConnection::WebRtcConnection(const std::string& connection_id, const IceConfig& iceConfig,
+    WebRtcConnectionEventListener* listener) : connection_id_(connection_id), connEventListener_(listener),
     iceConfig_(iceConfig), fec_receiver_(this),
       pipeline_{Pipeline::create()} {
   ELOG_INFO("%s, message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
