@@ -42,6 +42,7 @@ namespace erizo {
   static const char *rtcpfb = "a=rtcp-fb:";
   static const char *fmtp = "a=fmtp:";
   static const char *bas = "b=AS:";
+  static const std::string kAssociatedPt = "apt";
 
   SdpInfo::SdpInfo(const std::vector<RtpMap> rtp_mappings): internalPayloadVector_(rtp_mappings) {
     isBundle = false;
@@ -403,7 +404,7 @@ namespace erizo {
     return false;
   }
 
-  bool SdpInfo::supportPayloadType(const int payloadType) {
+  bool SdpInfo::supportPayloadType(const unsigned int payloadType) {
     if (inOutPTMap.count(payloadType) > 0) {
       for (unsigned int it = 0; it < payloadVector.size(); it++) {
         const RtpMap& rtp = payloadVector[it];
@@ -499,8 +500,6 @@ namespace erizo {
     std::string line;
     std::istringstream iss(sdp);
     int mlineNum = -1;
-    std::vector<std::string> rtp_feedback_lines;
-    std::vector<std::string> rtp_parameters_lines;
 
     MediaType mtype = OTHER;
     if (media == "audio") {
@@ -691,55 +690,82 @@ namespace erizo {
       // a=rtpmap:PT codec_name/clock_rate
       if (isRtpmap != std::string::npos) {
         std::vector<std::string> parts = stringutil::splitOneOf(line, " :/\n", 4);
-        RtpMap theMap;
         unsigned int PT = strtoul(parts[1].c_str(), NULL, 10);
         std::string codecname = parts[2];
         unsigned int clock = strtoul(parts[3].c_str(), NULL, 10);
-        theMap.payload_type = PT;
-        theMap.encoding_name = codecname;
-        theMap.clock_rate = clock;
-        theMap.media_type = mtype;
-        ELOG_DEBUG("theMap PT: %u, name %s, clock %u", PT, codecname.c_str(), clock);
-
-        bool found = false;
-        for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
-          const RtpMap& rtp = internalPayloadVector_[it];
-          if (rtp.encoding_name == codecname && rtp.clock_rate == clock) {
-            outInPTMap[PT] = rtp.payload_type;
-            inOutPTMap[rtp.payload_type] = PT;
-            theMap.channels = rtp.channels;
-            theMap.feedback_types = rtp.feedback_types;
-            theMap.format_parameters = rtp.format_parameters;
-            found = true;
-            ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d",
-                       codecname.c_str(), clock, PT, rtp.encoding_name.c_str(), rtp.clock_rate, rtp.payload_type);
-          }
-        }
-        if (found) {
-          if (theMap.media_type == VIDEO_TYPE)
-            videoCodecs++;
-          else
-            audioCodecs++;
-          payloadVector.push_back(theMap);
+        auto map_element = payload_parsed_map_.find(PT);
+        if (map_element != payload_parsed_map_.end()) {
+          ELOG_DEBUG("message: updating parsed ptmap to vector, PT: %u, name %s, clock %u",
+              PT, codecname.c_str(), clock);
+          map_element->second.payload_type = PT;
+          map_element->second.encoding_name = codecname;
+          map_element->second.clock_rate = clock;
+          map_element->second.media_type = mtype;
+        } else {
+          ELOG_DEBUG("message: adding parsed ptmap to vector, PT: %u, name %s, clock %u",
+              PT, codecname.c_str(), clock);
+          RtpMap new_mapping;
+          new_mapping.payload_type = PT;
+          new_mapping.encoding_name = codecname;
+          new_mapping.clock_rate = clock;
+          new_mapping.media_type = mtype;
+          payload_parsed_map_[PT] = new_mapping;
         }
       }
       // a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
       if (isExtMap != std::string::npos) {
-          std::vector<std::string> parts = stringutil::splitOneOf(line, " :=", 3);
-          if (parts.size() >= 3) {
-            unsigned int id = strtoul(parts[2].c_str(), NULL, 10);
-            ExtMap anExt(id, parts[3].substr(0, parts[3].size()-1));
-            anExt.mediaType = mtype;
-            extMapVector.push_back(anExt);
-          }
+        std::vector<std::string> parts = stringutil::splitOneOf(line, " :=", 3);
+        if (parts.size() >= 3) {
+          unsigned int id = strtoul(parts[2].c_str(), NULL, 10);
+          ExtMap anExt(id, parts[3].substr(0, parts[3].size()-1));
+          anExt.mediaType = mtype;
+          extMapVector.push_back(anExt);
+        }
       }
 
       if (isFeedback != std::string::npos) {
-        rtp_feedback_lines.push_back(line);
+        ELOG_DEBUG("Feedback line: %s", line.c_str());
+        std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
+        unsigned int PT = strtoul(parts[1].c_str(), NULL, 10);
+        std::string feedback = parts[2];
+        feedback.pop_back();  // remove end of line
+        auto map_element = payload_parsed_map_.find(PT);
+        if (map_element != payload_parsed_map_.end()) {
+          map_element->second.feedback_types.push_back(feedback);
+        } else {
+          RtpMap new_map;
+          new_map.payload_type = PT;
+          new_map.feedback_types.push_back(feedback);
+          payload_parsed_map_[PT] = new_map;
+        }
       }
 
       if (isFmtp != std::string::npos) {
-        rtp_parameters_lines.push_back(line);
+        std::vector<std::string> parts = stringutil::splitOneOf(line, " :=", 4);
+        if (parts.size() < 4) {
+          continue;
+        }
+        unsigned int PT = strtoul(parts[2].c_str(), NULL, 10);
+        std::string option = "none";
+        std::string value = "none";
+        ELOG_DEBUG("message: Parsing format parameter, option: %s, value: %s, PT: %u",
+            option.c_str(), value.c_str(), PT);
+        if (parts.size() == 4) {
+          value = parts[3].c_str();
+        } else {
+          option = parts[3].c_str();
+          value = parts[4].c_str();
+        }
+        value.pop_back();
+        auto map_element = payload_parsed_map_.find(PT);
+        if (map_element != payload_parsed_map_.end()) {
+          map_element->second.format_parameters[option] = value;
+        } else {
+          RtpMap new_map;
+          new_map.payload_type = PT;
+          new_map.format_parameters[option] = value;
+          payload_parsed_map_[PT] = new_map;
+        }
       }
 
       if (isBandwidth != std::string::npos) {
@@ -751,7 +777,8 @@ namespace erizo {
           }
         }
       }
-    }
+    }  // sdp lines loop
+
     // If there is no video or audio credentials we use the ones we have
     if (iceVideoUsername_.empty() && iceAudioUsername_.empty()) {
       ELOG_ERROR("No valid credentials for ICE")
@@ -778,56 +805,102 @@ namespace erizo {
       }
     }
 
-    // Map the RTCP Feedback after we have built the payload vector
-    for (unsigned int vector_it = 0; vector_it < payloadVector.size(); vector_it++) {
-      RtpMap& rtp = payloadVector[vector_it];
-      std::vector<std::string> negotiated_feedback;
-      for (unsigned int lines_iterator = 0; lines_iterator < rtp_feedback_lines.size(); lines_iterator++) {
-        std::string line = rtp_feedback_lines[lines_iterator];
-        ELOG_DEBUG("Feedback line: %s", line.c_str());
-        std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
-        unsigned int PT = strtoul(parts[1].c_str(), NULL, 10);
-        std::string feedback = parts[2];
-        feedback.pop_back();
-        if (rtp.payload_type!= PT) {
+    //  go through the payload_map_ and match it with internalPayloadVector_
+    //  generate rtpMaps and payloadVector
+    std::vector<RtpMap> rtx_maps;
+    for (const RtpMap& internal_map : internalPayloadVector_) {
+      for (const std::pair<const unsigned int, RtpMap>& parsed_pair : payload_parsed_map_) {
+        const RtpMap& parsed_map = parsed_pair.second;
+        if (internal_map.encoding_name != parsed_map.encoding_name ||
+            internal_map.clock_rate != parsed_map.clock_rate) {
           continue;
         }
-        ELOG_DEBUG("message: checking feedback, codec_name: %s, feedback: %s", rtp.encoding_name.c_str(),
-            feedback.c_str());
-        for (unsigned int fbit = 0; fbit < rtp.feedback_types.size(); fbit++) {
-          if (rtp.feedback_types[fbit] != feedback) {
-            continue;
+        if (parsed_map.encoding_name == "rtx") {  // we'll process those later when we have the pt maps
+          rtx_maps.push_back(parsed_map);
+          continue;
+        }
+        RtpMap negotiated_map(parsed_map);
+        outInPTMap[parsed_map.payload_type] = internal_map.payload_type;
+        inOutPTMap[internal_map.payload_type] = parsed_map.payload_type;
+        negotiated_map.channels = internal_map.channels;
+        ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d",
+            parsed_map.encoding_name.c_str(), parsed_map.clock_rate, parsed_map.payload_type,
+            internal_map.encoding_name.c_str(), internal_map.clock_rate, internal_map.payload_type);
+
+
+        ELOG_DEBUG("message: Checking feedback types, parsed: %lu, internal:%lu", parsed_map.feedback_types.size(),
+            internal_map.feedback_types.size());
+
+        std::vector<std::string> negotiated_feedback;
+        if (!parsed_map.feedback_types.empty() && !internal_map.feedback_types.empty()) {
+          for (const std::string& internal_feedback_line : internal_map.feedback_types) {
+            for (const std::string& parsed_feedback_line : parsed_map.feedback_types) {
+              if (internal_feedback_line == parsed_feedback_line) {
+                ELOG_DEBUG("Adding %s feedback to codec %s", internal_feedback_line.c_str(),
+                   internal_map.encoding_name.c_str());
+                negotiated_feedback.push_back(internal_feedback_line);
+              }
+            }
           }
-          ELOG_DEBUG("Adding %s feedback to codec %s", feedback.c_str(), rtp.encoding_name.c_str());
-          negotiated_feedback.push_back(feedback);
         }
-      }
-      rtp.feedback_types = negotiated_feedback;
-
-
-      // Check also rtp format lines
-      // TODO(pedro) lines before the loop
-      for (unsigned int fti = 0; fti < rtp_parameters_lines.size(); fti++) {
-        std::string line = rtp_parameters_lines[fti];
-        std::vector<std::string> parts = stringutil::splitOneOf(line, " :=", 4);
-        if (parts.size() < 4) {
-          continue;
+        negotiated_map.feedback_types = negotiated_feedback;
+        std::map<std::string, std::string> negotiated_parameters;
+        ELOG_DEBUG("message, Checking fmtp parameters, parsed: %lu, internal: %lu", parsed_map.format_parameters.size(),
+            internal_map.format_parameters.size());
+        if (!parsed_map.format_parameters.empty() && !internal_map.format_parameters.empty()) {
+          for (const std::pair<std::string, std::string>& internal_parameter : internal_map.format_parameters) {
+            auto found_parameter = parsed_map.format_parameters.find(internal_parameter.first);
+            if (found_parameter != parsed_map.format_parameters.end()) {
+              if (found_parameter->second == internal_parameter.second) {
+                ELOG_DEBUG("message: Adding fmpt, codec_name: %s, parameter: %s, value:%s",
+                    parsed_map.encoding_name.c_str(), found_parameter->first.c_str(),
+                    found_parameter->second.c_str());
+                negotiated_parameters[found_parameter->first] = found_parameter->second;
+              }
+            }
+          }
         }
-        unsigned int PT = strtoul(parts[2].c_str(), NULL, 10);
-        std::string option = "none";
-        std::string value = "none";
-        if (parts.size() == 4) {
-          value = parts[3].c_str();
+
+        negotiated_map.format_parameters = negotiated_parameters;
+
+        if (negotiated_map.media_type == VIDEO_TYPE) {
+          videoCodecs++;
         } else {
-          option = parts[3].c_str();
-          value = parts[4].c_str();
+          audioCodecs++;
         }
-        if (rtp.payload_type == PT) {
-          rtp.format_parameters[option] = value;
-        }
+        payloadVector.push_back(negotiated_map);
       }
     }
 
+    //  Check atp rtx
+    for (RtpMap& rtx_map : rtx_maps) {
+      for (const RtpMap& internal_map : internalPayloadVector_) {
+        if (internal_map.encoding_name == "rtx") {
+            auto parsed_apt = rtx_map.format_parameters.find(kAssociatedPt);
+            auto internal_apt = internal_map.format_parameters.find(kAssociatedPt);
+            if (parsed_apt == rtx_map.format_parameters.end() &&
+                internal_apt == internal_map.format_parameters.end()) {
+              continue;
+            }
+            unsigned int internal_apt_pt = std::stoul(internal_apt->second);
+            unsigned int parsed_apt_pt = std::stoul(parsed_apt->second);
+            ELOG_DEBUG("message: looking for apt correspondence, internal_apt_pt: %u, parsed_apt_pt: %u",
+                internal_apt_pt, parsed_apt_pt);
+            if (outInPTMap[parsed_apt_pt] == internal_apt_pt) {
+              ELOG_DEBUG("message: matched atp for rtx, internal_apt_pt: %u, parsed_apt_pt: %u",
+                  internal_apt_pt, parsed_apt_pt);
+              if (rtx_map.media_type == VIDEO_TYPE) {
+                videoCodecs++;
+              } else {
+                audioCodecs++;
+              }
+              outInPTMap[rtx_map.payload_type] = internal_map.payload_type;
+              inOutPTMap[internal_map.payload_type] = rtx_map.payload_type;
+              payloadVector.push_back(rtx_map);
+            }
+        }
+      }
+    }
     return true;
   }
 
@@ -843,34 +916,34 @@ namespace erizo {
     return payloadVector;
   }
 
-  int SdpInfo::getAudioInternalPT(int externalPT) {
+  unsigned int SdpInfo::getAudioInternalPT(unsigned int externalPT) {
     // should use separate mapping for video and audio at the very least
     // standard requires separate mappings for each media, even!
-    std::map<int, int>::iterator found = outInPTMap.find(externalPT);
+    std::map<unsigned int, unsigned int>::iterator found = outInPTMap.find(externalPT);
     if (found != outInPTMap.end()) {
       return found->second;
     }
     return externalPT;
   }
 
-  int SdpInfo::getVideoInternalPT(int externalPT) {
+  unsigned int SdpInfo::getVideoInternalPT(unsigned int externalPT) {
     // WARNING
     // should use separate mapping for video and audio at the very least
     // standard requires separate mappings for each media, even!
     return getAudioInternalPT(externalPT);
   }
 
-  int SdpInfo::getAudioExternalPT(int internalPT) {
+  unsigned int SdpInfo::getAudioExternalPT(unsigned int internalPT) {
     // should use separate mapping for video and audio at the very least
     // standard requires separate mappings for each media, even!
-    std::map<int, int>::iterator found = inOutPTMap.find(internalPT);
+    std::map<unsigned int, unsigned int>::iterator found = inOutPTMap.find(internalPT);
     if (found != inOutPTMap.end()) {
       return found->second;
     }
     return internalPT;
   }
 
-  int SdpInfo::getVideoExternalPT(int internalPT) {
+  unsigned int SdpInfo::getVideoExternalPT(unsigned int internalPT) {
     // WARNING
     // should use separate mapping for video and audio at the very least
     // standard requires separate mappings for each media, even!

@@ -22,10 +22,10 @@ namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
 WebRtcConnection::WebRtcConnection(const std::string& connection_id, bool audioEnabled, bool videoEnabled,
-    const IceConfig& iceConfig, WebRtcConnectionEventListener* listener)
-    : connection_id_(connection_id), audioEnabled_(audioEnabled), videoEnabled_(videoEnabled),
-      connEventListener_(listener), iceConfig_(iceConfig), rtp_mappings_(rtp_mappings), fec_receiver_(this),
-      pipeline_{Pipeline::create()} {
+    const IceConfig& iceConfig, const std::vector<RtpMap> rtp_mappings, WebRtcConnectionEventListener* listener)
+    : connection_id_(connection_id), remoteSdp_{SdpInfo(rtp_mappings)}, localSdp_{SdpInfo(rtp_mappings)},
+  audioEnabled_(audioEnabled), videoEnabled_(videoEnabled), connEventListener_(listener), iceConfig_(iceConfig),
+  rtp_mappings_(rtp_mappings), fec_receiver_(this), pipeline_{Pipeline::create()} {
   ELOG_INFO("%s, message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
   bundle_ = false;
