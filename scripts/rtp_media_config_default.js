@@ -43,7 +43,7 @@ mediaConfig.rtpMappings.ulpfec = {
     channels: 1,
     mediaType: 'video',
 };
-*/
+
 mediaConfig.rtpMappings.opus = {
     payloadType: 111,
     encodingName: 'opus',
@@ -51,7 +51,7 @@ mediaConfig.rtpMappings.opus = {
     channels: 2,
     mediaType: 'audio',
 };
-/*
+
 mediaConfig.rtpMappings.isac16 = {
     payloadType: 103,
     encodingName: 'ISAC',
