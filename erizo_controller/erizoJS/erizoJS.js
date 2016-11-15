@@ -2,7 +2,7 @@
 'use strict';
 var Getopt = require('node-getopt');
 var config = require('./../../licode_config');
-var mediaConfig = require('./../../media_config');
+var mediaConfig = require('./../../rtp_media_config');
 
 GLOBAL.config = config || {};
 GLOBAL.config.erizo = GLOBAL.config.erizo || {};

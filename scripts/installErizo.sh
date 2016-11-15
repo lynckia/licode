@@ -74,6 +74,7 @@ install_erizo_api(){
 
 install_erizo_controller(){
   echo 'Installing erizoController...'
+  cp $PATHNAME/rtp_media_config_default.js $ROOT/rtp_media_config.js
   cd $ROOT/erizo_controller
   ./installErizo_controller.sh
   check_result $?
