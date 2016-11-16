@@ -60,11 +60,11 @@ class SdpInfoMediaTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     std::ifstream ifs("Chrome.sdp", std::fstream::in);
-    chromeSdpString = readFile(ifs);
+    chrome_sdp_string = readFile(ifs);
   }
 
   virtual void TearDown() {}
-  std::string chromeSdpString;
+  std::string chrome_sdp_string;
   std::vector<erizo::RtpMap> rtp_mappings;
 };
 
@@ -72,11 +72,11 @@ class SdpInfoMediaTest : public ::testing::Test {
 /*---------- SdpInfo TESTS ----------*/
 TEST_F(SdpInfoTest, shouldParseIceCredentials_Chrome) {
   std::ifstream ifs("Chrome.sdp", std::fstream::in);
-  std::string sdpString = readFile(ifs);
+  std::string sdp_string = readFile(ifs);
   const std::string kUserNameFromSdpFile = "I+d3";
   const std::string kPassFromSdpFile =  "010TmRLizTQVHQ/PvsoyOh4a";
 
-  sdp->initWithSdp(sdpString, "video");
+  sdp->initWithSdp(sdp_string, "video");
   // Check the mlines
   EXPECT_TRUE(sdp->hasVideo);
   EXPECT_TRUE(sdp->hasAudio);
@@ -91,11 +91,11 @@ TEST_F(SdpInfoTest, shouldParseIceCredentials_Chrome) {
 
 TEST_F(SdpInfoTest, shouldParseIceCredentials_Firefox) {
   std::ifstream ifs("Firefox.sdp", std::fstream::in);
-  std::string sdpString = readFile(ifs);
+  std::string sdp_string = readFile(ifs);
   const std::string kUserNameFromSdpFile = "b1239219";
   const std::string kPassFromSdpFile =  "b4ade8617fe94d5c800fdd085b86fd84";
 
-  sdp->initWithSdp(sdpString, "video");
+  sdp->initWithSdp(sdp_string, "video");
   // Check the mlines
   EXPECT_EQ(sdp->hasVideo, true);
   EXPECT_EQ(sdp->hasAudio, true);
@@ -110,11 +110,11 @@ TEST_F(SdpInfoTest, shouldParseIceCredentials_Firefox) {
 
 TEST_F(SdpInfoTest, shouldParseIceCredentials_OpenWebRTC) {
   std::ifstream ifs("Openwebrtc.sdp", std::fstream::in);
-  std::string sdpString = readFile(ifs);
+  std::string sdp_string = readFile(ifs);
   const std::string kUserNameFromSdpFile = "mywn";
   const std::string kPassFromSdpFile = "K+K88NukgWJ4EroPyZHPVA";
 
-  sdp->initWithSdp(sdpString, "video");
+  sdp->initWithSdp(sdp_string, "video");
   // Check the mlines
   EXPECT_TRUE(sdp->hasVideo);
   EXPECT_TRUE(sdp->hasAudio);
@@ -132,7 +132,7 @@ TEST_F(SdpInfoMediaTest, shouldDiscardNotSupportedCodecs) {
   const unsigned int kArbitraryClockRate = 48000;
 
   erizo::SdpInfo sdp(rtp_mappings);
-  sdp.initWithSdp(chromeSdpString, "video");
+  sdp.initWithSdp(chrome_sdp_string, "video");
   EXPECT_FALSE(sdp.supportCodecByName(kArbitraryCodecName, kArbitraryClockRate));
 }
 
@@ -146,7 +146,7 @@ TEST_F(SdpInfoMediaTest, shouldStoreSupportedCodecs) {
   rtp_mappings.push_back(codec_exists_in_file);
 
   erizo::SdpInfo sdp(rtp_mappings);
-  sdp.initWithSdp(chromeSdpString, "video");
+  sdp.initWithSdp(chrome_sdp_string, "video");
   EXPECT_TRUE(sdp.supportCodecByName("PCMU", 8000));
 }
 
@@ -162,7 +162,7 @@ TEST_F(SdpInfoMediaTest, shouldStoreSupportedFeedback) {
   rtp_mappings.push_back(codec_exists_in_file);
 
   erizo::SdpInfo sdp(rtp_mappings);
-  sdp.initWithSdp(chromeSdpString, "video");
+  sdp.initWithSdp(chrome_sdp_string, "video");
 
   for (auto rtp_map : sdp.getPayloadInfos()) {
     if (rtp_map.encoding_name == codec_exists_in_file.encoding_name) {
@@ -185,7 +185,7 @@ TEST_F(SdpInfoMediaTest, shouldStoreSupportedFmtp) {
   rtp_mappings.push_back(codec_exists_in_file);
 
   erizo::SdpInfo sdp(rtp_mappings);
-  sdp.initWithSdp(chromeSdpString, "video");
+  sdp.initWithSdp(chrome_sdp_string, "video");
 
   for (auto rtp_map : sdp.getPayloadInfos()) {
     if (rtp_map.encoding_name == codec_exists_in_file.encoding_name) {
@@ -206,7 +206,7 @@ TEST_F(SdpInfoMediaTest, shouldBuildPTMatrix) {
   rtp_mappings.push_back(codec_exists_in_file);
 
   erizo::SdpInfo sdp(rtp_mappings);
-  sdp.initWithSdp(chromeSdpString, "video");
+  sdp.initWithSdp(chrome_sdp_string, "video");
 
   EXPECT_EQ(sdp.getAudioExternalPT(codec_exists_in_file.payload_type), kOpusPtInFile);
   EXPECT_EQ(sdp.getAudioInternalPT(kOpusPtInFile), codec_exists_in_file.payload_type);
@@ -236,7 +236,7 @@ TEST_F(SdpInfoMediaTest, shouldOnlyMapRtxCorrespondingToSupportedCodecs) {
   rtp_mappings.push_back(rtx_codec_exists_in_file);
 
   erizo::SdpInfo sdp(rtp_mappings);
-  sdp.initWithSdp(chromeSdpString, "video");
+  sdp.initWithSdp(chrome_sdp_string, "video");
   int codec_hits_count = 0;
   for (auto negotiated_map : sdp.getPayloadInfos()) {
     if (negotiated_map.encoding_name == "rtx") {

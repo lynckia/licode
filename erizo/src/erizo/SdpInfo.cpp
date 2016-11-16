@@ -692,22 +692,22 @@ namespace erizo {
         std::vector<std::string> parts = stringutil::splitOneOf(line, " :/\n", 4);
         unsigned int PT = strtoul(parts[1].c_str(), NULL, 10);
         std::string codecname = parts[2];
-        unsigned int clock = strtoul(parts[3].c_str(), NULL, 10);
+        unsigned int parsed_clock = strtoul(parts[3].c_str(), NULL, 10);
         auto map_element = payload_parsed_map_.find(PT);
         if (map_element != payload_parsed_map_.end()) {
           ELOG_DEBUG("message: updating parsed ptmap to vector, PT: %u, name %s, clock %u",
-              PT, codecname.c_str(), clock);
+              PT, codecname.c_str(), parsed_clock);
           map_element->second.payload_type = PT;
           map_element->second.encoding_name = codecname;
-          map_element->second.clock_rate = clock;
+          map_element->second.clock_rate = parsed_clock;
           map_element->second.media_type = mtype;
         } else {
           ELOG_DEBUG("message: adding parsed ptmap to vector, PT: %u, name %s, clock %u",
-              PT, codecname.c_str(), clock);
+              PT, codecname.c_str(), parsed_clock);
           RtpMap new_mapping;
           new_mapping.payload_type = PT;
           new_mapping.encoding_name = codecname;
-          new_mapping.clock_rate = clock;
+          new_mapping.clock_rate = parsed_clock;
           new_mapping.media_type = mtype;
           payload_parsed_map_[PT] = new_mapping;
         }
