@@ -63,9 +63,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    * Constructor.
    * Constructs an empty WebRTCConnection without any configuration.
    */
-  WebRtcConnection(const std::string& connection_id, bool audioEnabled, bool videoEnabled,
-                  const IceConfig& iceConfig, const std::vector<RtpMap> rtp_mappings,
-                  WebRtcConnectionEventListener* listener);
+  WebRtcConnection(const std::string& connection_id, const IceConfig& iceConfig,
+      const std::vector<RtpMap> rtp_mappings, WebRtcConnectionEventListener* listener);
   /**
    * Destructor.
    */
@@ -83,7 +82,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    */
   bool setRemoteSdp(const std::string &sdp);
 
-  bool createOffer();
+  bool createOffer(bool videoEnabled, bool audioEnabled, bool bundle);
   /**
    * Add new remote candidate (from remote peer).
    * @param sdp The candidate in SDP format.

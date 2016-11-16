@@ -211,7 +211,7 @@ class SdpInfo {
 
   bool supportPayloadType(const unsigned int payloadType);
 
-  void createOfferSdp(bool videoEnabled, bool audioEnabled);
+  void createOfferSdp(bool videoEnabled, bool audioEnabled, bool bundle);
   /**
    * @brief copies relevant information from the offer sdp for which this will be an answer sdp
    * @param offerSdp The offer SDP as received via signaling and parsed
