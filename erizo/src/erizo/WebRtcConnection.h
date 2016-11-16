@@ -64,7 +64,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    * Constructs an empty WebRTCConnection without any configuration.
    */
   WebRtcConnection(const std::string& connection_id, const IceConfig& iceConfig,
-                    WebRtcConnectionEventListener* listener);
+      const std::vector<RtpMap> rtp_mappings, WebRtcConnectionEventListener* listener);
   /**
    * Destructor.
    */
@@ -166,6 +166,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   int bundle_;
   WebRtcConnectionEventListener* connEventListener_;
   IceConfig iceConfig_;
+  std::vector<RtpMap> rtp_mappings_;
   RtpExtensionProcessor extProcessor_;
 
   uint32_t rateControl_;  // Target bitrate for hacky rate control in BPS

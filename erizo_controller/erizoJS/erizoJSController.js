@@ -349,6 +349,7 @@ exports.ErizoJSController = function () {
                                               GLOBAL.config.erizo.minport,
                                               GLOBAL.config.erizo.maxport,
                                               false,
+                                              JSON.stringify(GLOBAL.mediaConfig),
                                               GLOBAL.config.erizo.turnserver,
                                               GLOBAL.config.erizo.turnport,
                                               GLOBAL.config.erizo.turnusername,
@@ -371,12 +372,14 @@ exports.ErizoJSController = function () {
             if (Object.keys(subscribers[from]).length === 0){
                 log.warn('message: publisher already set but no subscribers will republish, ' +
                          'code: ' + WARN_CONFLICT + ', streamId: ' + from);
+                
                 wrtc = new addon.WebRtcConnection(from,
                                                   GLOBAL.config.erizo.stunserver,
                                                   GLOBAL.config.erizo.stunport,
                                                   GLOBAL.config.erizo.minport,
                                                   GLOBAL.config.erizo.maxport,
                                                   false,
+                                                  JSON.stringify(GLOBAL.mediaConfig),
                                                   GLOBAL.config.erizo.turnserver,
                                                   GLOBAL.config.erizo.turnport,
                                                   GLOBAL.config.erizo.turnusername,
@@ -422,6 +425,7 @@ exports.ErizoJSController = function () {
                                               GLOBAL.config.erizo.minport,
                                               GLOBAL.config.erizo.maxport,
                                               false,
+                                              JSON.stringify(GLOBAL.mediaConfig),
                                               GLOBAL.config.erizo.turnserver,
                                               GLOBAL.config.erizo.turnport,
                                               GLOBAL.config.erizo.turnusername,

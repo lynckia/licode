@@ -1,10 +1,12 @@
 'use strict';
 var addon = require('./../erizoAPI/build/Release/addon');
 var licodeConfig = require('./../licode_config');
+var mediaConfig = require('./../rtp_media_config');
 var logger = require('./logger').logger;
 var log = logger.getLogger('NativeClient');
 
 GLOBAL.config = licodeConfig || {};
+GLOBAL.mediaConfig = mediaConfig || {};
 
 exports.ErizoNativeConnection = function (spec){
     var that = {},
@@ -81,6 +83,7 @@ exports.ErizoNativeConnection = function (spec){
                                       GLOBAL.config.erizo.minport,
                                       GLOBAL.config.erizo.maxport,
                                       false,
+                                      JSON.stringify(GLOBAL.mediaConfig),
                                       GLOBAL.config.erizo.turnserver,
                                       GLOBAL.config.erizo.turnport,
                                       GLOBAL.config.erizo.turnusername,
