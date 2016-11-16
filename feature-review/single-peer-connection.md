@@ -32,11 +32,11 @@ This features carries changes in:
 
 In terms of message flow, current solution with Multiple Peer Connections is as follows:
 
-![multiple-pcs](https://www.websequencediagrams.com/cgi-bin/cdraw?lz=dGl0bGUgU2luZ2xlIFBlZXIgQ29ubmVjdGlvbgoKbm90ZSBsZWZ0IG9mIENsaWVudDogcHVibGlzaChzdHJlYW0xKQoAEwYtPkxpY29kZQAYCSAAGgcKABIGLT4AOQhvZmZlcgAlEWFuc3cADgk8AEQKSUNFIE5lZ290aWEAgRAFABARRFRMUyBIYW5kc2hha2UAgR4Xc3Vic2NyaWJlAIEwBzIAgSUSABoJAIEyBzIAgQsuAFImNABWIjMASS8&s=rose)
+![multiple-pcs](https://www.websequencediagrams.com/cgi-bin/cdraw?lz=dGl0bGUgTXVsdGlwbGUgUGVlciBDb25uZWN0aW9uCgpub3RlIGxlZnQgb2YgQ2xpZW50OiBwdWJsaXNoKHN0cmVhbTEpCgATBi0-TGljb2RlABgJIAAaBwoAEgYtPgA5CG9mZmVyACURYW5zdwAOCTwARApJQ0UgTmVnb3RpYQCBEAUAEBFEVExTIEhhbmRzaGFrZQCBHhdzdWJzY3JpYmUAgTAHMgCBJRIAGgkAgTIHMgCBCy4AUiY0AFYiMwBJLw&s=rose)
 
 And with the new solution with Single Peer Connection it will be like the next figure:
 
-![single-pc](https://www.websequencediagrams.com/cgi-bin/cdraw?lz=dGl0bGUgU2luZ2xlIFBlZXIgQ29ubmVjdGlvbgoKbm90ZSBsZWZ0IG9mIENsaWVudDogcHVibGlzaChzdHJlYW0xKQoAEwYtPkxpY29kZQAYCSAAGgcKABIGLT4AOQhvZmZlcgAlEWFuc3cADgk8AEQKSUNFIE5lZ290aWEAgRAFABARRFRMUyBIYW5kc2hha2UAgR4Xc3Vic2NyaWJlAIEwBzIAgSUSABoJAIEyBzIAgQsuAFImNABWIjMASS8&s=rose)
+![single-pc](https://www.websequencediagrams.com/cgi-bin/cdraw?lz=dGl0bGUgU2luZ2xlIFBlZXIgQ29ubmVjdGlvbgoKbm90ZSBsZWZ0IG9mIENsaWVudDogcHVibGlzaChzdHJlYW0xKQoAEwYtPkxpY29kZQAYCSAAGgcKABIGLT4AOQhvZmZlcgAlEWFuc3dlcgBdF3N1YnNjcmliZQBvBzIAZBIAGgkAcQcyACRUNABWIjMAgUEv&s=rose)
 
 ### How does it affect Erizo Client?
 Streams will be added to existing Peer Connections, and will need to keep track of the existing Peer Connections to decide whenever we receive an Offer if we need to create a new Peer Connection or update an existing one.
