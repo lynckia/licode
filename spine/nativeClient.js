@@ -118,7 +118,10 @@ exports.ErizoNativeConnection = function (spec){
                 }
             }, {});
 
-            wrtc.createOffer(true, true, true);
+            var audioEnabled = true;
+            var videoEnabled = true;
+            var bundle = true;
+            wrtc.createOffer(audioEnabled, videoEnabled, bundle);
         } else if (msg.type === 'answer'){
             setTimeout(function(){
                 log.info('Passing delayed answer');
