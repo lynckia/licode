@@ -343,13 +343,13 @@ TEST_F(NiceConnectionTest, queuePacket_QueuedPackets_Can_Be_getPacket_When_Ready
   nice_connection->updateIceState(erizo::NICE_READY);
   nice_connection->queueData(0, test_packet, sizeof(test_packet));
   erizo::packetPtr packet = nice_connection->getPacket();
-  EXPECT_EQ(packet->length, sizeof(test_packet));
+  EXPECT_EQ(static_cast<unsigned int>(packet->length), sizeof(test_packet));
   EXPECT_EQ(0, strcmp(test_packet, packet->data));
 }
 
 TEST_F(NiceConnectionTest, sendData_Succeed_When_Ice_Ready) {
   const unsigned int kCompId = 1;
-  const unsigned int kLength = sizeof(test_packet);
+  const int kLength = sizeof(test_packet);
 
   EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_READY , _)).Times(1);
   nice_connection->updateIceState(erizo::NICE_READY);
