@@ -16,3 +16,4 @@ erizo_controller/erizoAgent/erizo-*.log
 .cproject
 spine/erizofc.js
 extras/basic_example/public/assets/
+rtp_media_config.js
