@@ -21,14 +21,12 @@
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
-WebRtcConnection::WebRtcConnection(const std::string& connection_id, bool audioEnabled, bool videoEnabled,
-    const IceConfig& iceConfig, WebRtcConnectionEventListener* listener)
-    : connection_id_(connection_id), audioEnabled_(audioEnabled), videoEnabled_(videoEnabled),
-      connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this),
+WebRtcConnection::WebRtcConnection(const std::string& connection_id, const IceConfig& iceConfig,
+    WebRtcConnectionEventListener* listener) : connection_id_(connection_id), audioEnabled_(false),
+    videoEnabled_(false), bundle_(false), connEventListener_(listener), iceConfig_(iceConfig), fec_receiver_(this),
       pipeline_{Pipeline::create()} {
   ELOG_INFO("%s, message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
-  bundle_ = false;
   setVideoSinkSSRC(55543);
   setAudioSinkSSRC(44444);
   videoSink_ = NULL;
@@ -89,12 +87,11 @@ bool WebRtcConnection::init() {
   return true;
 }
 
-// TODO(pedro): Erizo Should accept hints to create the Offer
-bool WebRtcConnection::createOffer() {
-  bundle_ = true;
-  videoEnabled_ = true;
-  audioEnabled_ = true;
-  this->localSdp_.createOfferSdp(videoEnabled_, audioEnabled_);
+bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bundle) {
+  bundle_ = bundle;
+  videoEnabled_ = videoEnabled;
+  audioEnabled_ = audioEnabled;
+  this->localSdp_.createOfferSdp(videoEnabled_, audioEnabled_, bundle_);
   ELOG_DEBUG("%s, message: Creating sdp offer, isBundle: %d", toLog(), bundle_);
   if (videoEnabled_)
     localSdp_.videoSsrc = this->getVideoSinkSSRC();

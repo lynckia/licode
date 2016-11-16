@@ -177,7 +177,10 @@ exports.ErizoJSController = function () {
         });
         if (options.createOffer === true){
             log.debug('message: create offer requested, id:', wrtc.wrtcId);
-            wrtc.createOffer();
+            var audioEnabled = true;
+            var videoEnabled = true;
+            var bundle = true;
+            wrtc.createOffer(audioEnabled, videoEnabled, bundle);
         }
         callback('callback', {type: 'initializing'});
     };
@@ -340,7 +343,7 @@ exports.ErizoJSController = function () {
                      logger.objectToLog(options));
             var wrtcId = from;
             muxer = new addon.OneToManyProcessor();
-            wrtc = new addon.WebRtcConnection(wrtcId, true, true,
+            wrtc = new addon.WebRtcConnection(wrtcId,
                                               GLOBAL.config.erizo.stunserver,
                                               GLOBAL.config.erizo.stunport,
                                               GLOBAL.config.erizo.minport,
@@ -368,16 +371,16 @@ exports.ErizoJSController = function () {
             if (Object.keys(subscribers[from]).length === 0){
                 log.warn('message: publisher already set but no subscribers will republish, ' +
                          'code: ' + WARN_CONFLICT + ', streamId: ' + from);
-                wrtc = new addon.WebRtcConnection(from, true, true,
-                                                      GLOBAL.config.erizo.stunserver,
-                                                      GLOBAL.config.erizo.stunport,
-                                                      GLOBAL.config.erizo.minport,
-                                                      GLOBAL.config.erizo.maxport,
-                                                      false,
-                                                      GLOBAL.config.erizo.turnserver,
-                                                      GLOBAL.config.erizo.turnport,
-                                                      GLOBAL.config.erizo.turnusername,
-                                                      GLOBAL.config.erizo.turnpass);
+                wrtc = new addon.WebRtcConnection(from,
+                                                  GLOBAL.config.erizo.stunserver,
+                                                  GLOBAL.config.erizo.stunport,
+                                                  GLOBAL.config.erizo.minport,
+                                                  GLOBAL.config.erizo.maxport,
+                                                  false,
+                                                  GLOBAL.config.erizo.turnserver,
+                                                  GLOBAL.config.erizo.turnport,
+                                                  GLOBAL.config.erizo.turnusername,
+                                                  GLOBAL.config.erizo.turnpass);
                 muxer = publishers[from].muxer;
                 publishers[from].wrtc = wrtc;
                 wrtc.setAudioReceiver(muxer);
@@ -413,7 +416,7 @@ exports.ErizoJSController = function () {
         var wrtcId = from + '_' + to;
         log.info('message: Adding subscriber id: ' + wrtcId + ', ' +
                  logger.objectToLog(options));
-        var wrtc = new addon.WebRtcConnection(wrtcId, true, true,
+        var wrtc = new addon.WebRtcConnection(wrtcId,
                                               GLOBAL.config.erizo.stunserver,
                                               GLOBAL.config.erizo.stunport,
                                               GLOBAL.config.erizo.minport,

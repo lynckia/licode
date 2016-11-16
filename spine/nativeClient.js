@@ -76,8 +76,6 @@ exports.ErizoNativeConnection = function (spec){
 
 
     wrtc = new addon.WebRtcConnection('spine',
-                                      true,
-                                      true,
                                       GLOBAL.config.erizo.stunserver,
                                       GLOBAL.config.erizo.stunport,
                                       GLOBAL.config.erizo.minport,
@@ -120,7 +118,10 @@ exports.ErizoNativeConnection = function (spec){
                 }
             }, {});
 
-            wrtc.createOffer();
+            var audioEnabled = true;
+            var videoEnabled = true;
+            var bundle = true;
+            wrtc.createOffer(audioEnabled, videoEnabled, bundle);
         } else if (msg.type === 'answer'){
             setTimeout(function(){
                 log.info('Passing delayed answer');
