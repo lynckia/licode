@@ -1,0 +1,58 @@
+# Single Peer Connection - Feature Review
+Single Peer Connection means that we can send/receive all streams in the same PeerConnection, sharing UDP ports, ICE credentials, DTLS certificates, etc. It usually means that publishers/subscribers use a single UDP "connection", with some benefits: reduce the number of ports used by the clients and server and shorter times to publish/subscribe new streams.
+
+![comparison](https://docs.google.com/drawings/d/1EMW43_6BX0mDJ2v4kLWrzDobz6dRjjqhctSkLM869io/pub?w=960&h=721)
+
+## Architecture
+Single Peer Connection will carry changes in both client and server sides.
+
+Figures are welcome to help others understand the solution.
+
+## API Changes
+Client: All changes will be hidden inside code.
+
+Server: We will probably propose new policies for Erizo Controller Cloud Handler.
+
+## Details
+This features carries changes in:
+
+- SDP: there will be a single SDP per connection, with information about all the streams that take part of it.
+
+- Renegotiation: Offer/Answer requests could add/remove more streams to the SDP. A new offer does not mean that we will negotiate a new ICE, or handshake new DTLS keys. It will only affect to the number of streams that are added/removed in the SDP. There will be several new scenarios for renegotiating with Offer/Answer requests:
+
+  - When publishing or subscribing to the first stream, the client will create a Peer Connection, and Erizo will send an Offer/SDP with the stream info and ICE candidates. It will be exactly the same way we're doing now. And the client will send a proper Answer.
+
+  - When a client wants to publish/subscribe to a new Stream, Erizo will send a new Offer/SDP with the new Stream info. And the client will send a proper Answer.
+
+  - When a client unpublish/unsubscribe from the latest stream in the SDP, Erizo and the client will close the connection as we're doing now.
+
+  - When the publisher wants to unpublish one of the Streams, Erizo will send an Offer/SDP  with the stream removed from the info.
+
+  - When a subscribed Stream is removed, Erizo will send a new Offer/SDP removing the info of the corresponding Stream.
+
+In terms of message flow, current solution with Multiple Peer Connections is as follows:
+
+![multiple-pcs](https://www.websequencediagrams.com/cgi-bin/cdraw?lz=dGl0bGUgU2luZ2xlIFBlZXIgQ29ubmVjdGlvbgoKbm90ZSBsZWZ0IG9mIENsaWVudDogcHVibGlzaChzdHJlYW0xKQoAEwYtPkxpY29kZQAYCSAAGgcKABIGLT4AOQhvZmZlcgAlEWFuc3cADgk8AEQKSUNFIE5lZ290aWEAgRAFABARRFRMUyBIYW5kc2hha2UAgR4Xc3Vic2NyaWJlAIEwBzIAgSUSABoJAIEyBzIAgQsuAFImNABWIjMASS8&s=rose)
+
+And with the new solution with Single Peer Connection it will be like the next figure:
+
+![single-pc](https://www.websequencediagrams.com/cgi-bin/cdraw?lz=dGl0bGUgU2luZ2xlIFBlZXIgQ29ubmVjdGlvbgoKbm90ZSBsZWZ0IG9mIENsaWVudDogcHVibGlzaChzdHJlYW0xKQoAEwYtPkxpY29kZQAYCSAAGgcKABIGLT4AOQhvZmZlcgAlEWFuc3cADgk8AEQKSUNFIE5lZ290aWEAgRAFABARRFRMUyBIYW5kc2hha2UAgR4Xc3Vic2NyaWJlAIEwBzIAgSUSABoJAIEyBzIAgQsuAFImNABWIjMASS8&s=rose)
+
+### How does it affect Erizo Client?
+Streams will be added to existing Peer Connections, and will need to keep track of the existing Peer Connections to decide whenever we receive an Offer if we need to create a new Peer Connection or update an existing one.
+
+### How does it affect Nuve?
+It does not affect Nuve.
+
+### How does it affect Erizo Controller / Erizo Agent / Erizo JS?
+We will create a new policy for Erizo Controller Cloud Handler, to make sure we reuse ErizoJS in the same rooms.
+
+It affects Erizo Agent because it needs to choose the same ErizoJS for streams in the same room, according to the policy.
+
+It affects Erizo JS because there will be a new object called Streams, and we will add Streams to WebRtcConnections.
+
+### How does it affect ErizoAPI / Erizo?
+Much functionality inside WebRtcConnection will be moved to Stream. And WebRtcConnection will handle Streams directly.
+
+## Additional considerations
+This will change the way we currently assign ErizoJS to Streams.
