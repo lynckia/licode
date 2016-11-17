@@ -3,6 +3,7 @@
 #endif
 
 #include "WebRtcConnection.h"
+
 #include "lib/json.hpp"
 
 using v8::HandleScope;
@@ -46,6 +47,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
+  Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("WebRtcConnection").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -205,6 +207,23 @@ NAN_METHOD(WebRtcConnection::setSlideShowMode) {
   bool v = info[0]->BooleanValue();
   me->setSlideShowMode(v);
   info.GetReturnValue().Set(Nan::New(v));
+}
+
+NAN_METHOD(WebRtcConnection::setMetadata) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  erizo::WebRtcConnection *me = obj->me;
+
+  v8::String::Utf8Value json_param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  std::string metadata_string = std::string(*json_param);
+  json metadata_json = json::parse(metadata_string);
+  std::map<std::string, std::string> metadata;
+  for (json::iterator item = metadata_json.begin(); item != metadata_json.end(); ++item) {
+    metadata[item.key()] = item.value();
+  }
+
+  me->setMetadata(metadata);
+
+  info.GetReturnValue().Set(Nan::New(true));
 }
 
 NAN_METHOD(WebRtcConnection::setRemoteSdp) {

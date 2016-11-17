@@ -81,7 +81,7 @@ class NiceConnectionListener {
  * Represents an ICE Connection in an new thread.
  *
  */
-class NiceConnection {
+class NiceConnection : public LogContext {
   DECLARE_LOGGER();
 
  public:
@@ -198,7 +198,7 @@ class NiceConnection {
   void mainLoop();
 
   inline const char* toLog() {
-    return (std::string("id: ")+connection_id_).c_str();
+    return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
   }
 };
 

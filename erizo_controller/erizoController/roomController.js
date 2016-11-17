@@ -199,7 +199,7 @@ exports.RoomController = function (spec) {
                                      'retries: ' + retries);
                             publishers[publisherId] = undefined;
                             retries++;
-                            that.addPublisher(publisherId, options,callback, retries);
+                            that.addPublisher(publisherId, options, callback, retries);
                             return;
                         }
                         log.warn('message: addPublisher ErizoJS timeout no retry, ' +
