@@ -2,7 +2,8 @@
 exports.MonitorSubscriber = function (log) {
 
     var that = {},
-    INTERVAL_STATS = 1000;
+        INTERVAL_STATS = 1000,
+        TICS_PER_TRANSITION = 10;
 
     var calculateAverage = function (values) {
 
@@ -11,15 +12,15 @@ exports.MonitorSubscriber = function (log) {
         var cnt = values.length;
         var tot = parseInt(0);
         for (var i = 0; i < values.length; i++){
-            tot+=parseInt(values[i]);
+            tot += parseInt(values[i]);
         }
         return Math.ceil(tot/cnt);
     };
 
 
-    that.monitorMinVideoBw = function(wrtc, callback){
+    that.monitorMinVideoBw = function(wrtc, callback) {
         wrtc.bwValues = [];
-        var ticks = 0;
+        var tics = 0;
         var lastAverage, average, lastBWValue;
         log.info('message: Start wrtc adapt scheme, ' +
                  'id: ' + wrtc.wrtcId + ', ' +
@@ -28,8 +29,7 @@ exports.MonitorSubscriber = function (log) {
         wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
         wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(1-0.2));
         wrtc.upperThres = Math.ceil(wrtc.minVideoBW);
-        var intervalId = setInterval(function () {
-
+        var intervalId = setInterval(function() {
             var newStats = wrtc.getStats();
             if (newStats == null){
                 clearInterval(intervalId);
@@ -45,19 +45,21 @@ exports.MonitorSubscriber = function (log) {
                 if(theStats[i].hasOwnProperty('bandwidth')) {
                     lastBWValue = theStats[i].bandwidth;
                     wrtc.bwValues.push(lastBWValue);
-                    if (wrtc.bwValues.length > 5){
+                    if (wrtc.bwValues.length > 5) {
                         wrtc.bwValues.shift();
                     }
                     average = calculateAverage(wrtc.bwValues);
                 }
             }
-            if(average <= lastAverage && (average < wrtc.lowerThres)){
-                if (++ticks > 2){
-                    log.debug('message: Insufficient Bandwidth, ' +
+
+            log.debug('message: Measuring interval, average: ' + average); 
+            if (average <= lastAverage && (average < wrtc.lowerThres)) {
+                if (++tics > TICS_PER_TRANSITION){
+                    log.info('message: Insufficient Bandwidth, ' +
                              'id: ' + wrtc.wrtcId + ', ' +
                              'averageBandwidth: ' + average + ', ' +
                              'lowerThreshold: ' + wrtc.lowerThres);
-                    ticks = 0;
+                    tics = 0;
                     callback('callback', {type: 'bandwidthAlert',
                                           message: 'insufficient',
                                           bandwidth: average});

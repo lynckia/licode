@@ -3,13 +3,13 @@ exports.MonitorSubscriber = function (log) {
 
     var that = {},
         INTERVAL_STATS = 1000,
-        TICS_PER_TRANSITION = 10;
+        TICKS_PER_TRANSITION = 10;
 
     /* BW Status
      * 0 - Stable
-     * 1 - Stopped Feedback 
+     * 1 - SlideShow
      */
-    var BW_STABLE = 0, BW_NO_FEEDBACK = 1;
+    var BW_STABLE = 0, BW_SLIDESHOW = 3;
 
     var calculateAverage = function (values) {
 
@@ -24,15 +24,16 @@ exports.MonitorSubscriber = function (log) {
     };
 
 
-    that.monitorMinVideoBw = function(wrtc, callback) {
+    that.monitorMinVideoBw = function(wrtc, callback, idPub, idSub, options, erizoJsController) {
         wrtc.bwValues = [];
-        var tics = 0;
-        var noFeedbackTics = 0;
+        var ticks = 0;
+        var retries = 0;
         var lastAverage, average, lastBWValue;
+        var nextRetry = 0;
         wrtc.bwStatus = BW_STABLE;
         log.info('message: Start wrtc adapt scheme, ' +
             'id: ' + wrtc.wrtcId + ', ' +
-                'scheme: notify-stop-feedback, ' +
+                'scheme: notify-slideshow, ' +
                 'minVideoBW: ' + wrtc.minVideoBW);
 
         wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
@@ -49,7 +50,7 @@ exports.MonitorSubscriber = function (log) {
                 return;
 
             var theStats = JSON.parse(newStats);
-            for (var i = 0; i < theStats.length; i++) {
+            for (var i = 0; i < theStats.length; i++){
                 // Only one stream should have bandwidth
                 if(theStats[i].hasOwnProperty('bandwidth')) {
                     lastBWValue = theStats[i].bandwidth;
@@ -60,54 +61,45 @@ exports.MonitorSubscriber = function (log) {
                     average = calculateAverage(wrtc.bwValues);
                 }
             }
-            log.debug('message: Measuring interval, average: ' + average + ' minVideoBW: ' + 
-                wrtc.minVideoBW); 
+            log.debug('message: Measuring interval, average: ' + average + ', lowerThresh: ' + 
+                wrtc.lowerThres); 
+
             switch (wrtc.bwStatus) {
                 case BW_STABLE:
                     if(average <= lastAverage && (average < wrtc.lowerThres)) {
-                        log.debug('Por aqui', average, lastAverage, wrtc.lowerThres, 'tics', tics);
-                        if (++tics > TICS_PER_TRANSITION){
+                        if (++ticks > TICKS_PER_TRANSITION){
                             log.info('message: scheme state change, ' +
                                 'id: ' + wrtc.wrtcId + ', ' +
                                     'previousState: BW_STABLE, ' +
-                                    'newState: BW_NO_FEEDBACK, ' +
+                                    'newState: BW_SLIDESHOW, ' +
                                     'averageBandwidth: ' + average + ', ' +
                                     'lowerThreshold: ' + wrtc.lowerThres);
-                            wrtc.bwStatus = BW_NO_FEEDBACK;
-                            wrtc.setFeedbackReports(false, 0);
-                            tics = 0;
-                            noFeedbackTics = 0;
+                            wrtc.bwStatus = BW_SLIDESHOW;
+                            wrtc.setFeedbackReports(false, 1);
+                            ticks = 0;
                             callback('callback', {type: 'bandwidthAlert',
                                 message: 'insufficient',
                                 bandwidth: average});
                         }
                     }
                     break;
-                case BW_NO_FEEDBACK:
-                    if (average >= wrtc.upperThres) {
-                        if (++tics > TICS_PER_TRANSITION) {
-                            log.info('message: scheme state change, ' +
-                                'id: ' + wrtc.wrtcId + ', ' +
-                                    'previousState: BW_NO_FEEDBACK, ' +
-                                    'newState: BW_STABLE, ' +
-                                    'averageBandwidth: ' + average + ', ' +
-                                    'upperThreshold: ' + wrtc.upperThres);
-                            wrtc.bwStatus = BW_STABLE;
-                            wrtc.setFeedbackReports(true, 0);
-                            tics = 0;
-                            noFeedbackTics = 0;
-                            callback('callback', {type: 'bandwidthAlert',
-                                message: 'recovered',
-                                bandwidth: average});
-                        }
-                    } else {
-                        if (++noFeedbackTics > TICS_PER_TRANSITION) {
-                            callback('callback', {type: 'bandwidthAlert',
-                                message: 'stop-feedback',
-                                bandwidth: average});
-                            noFeedbackTics = 0;
-                        }
-                    }
+                case BW_SLIDESHOW:
+                    log.info('message: Switched to audio-only, ' +
+                        'id: ' + wrtc.wrtcId + ', ' +
+                            'state: BW_SLIDESHOW, ' +
+                            'averageBandwidth: ' + average + ', ' +
+                            'lowerThreshold: ' + wrtc.lowerThres);
+                    ticks = 0;
+                    nextRetry = 0;
+                    retries = 0;
+                    average = 0;
+                    lastAverage = 0;
+                    wrtc.minVideoBW = false;
+                    erizoJsController.setSlideShow(true, idSub, idPub);
+                    callback('callback', {type: 'bandwidthAlert',
+                        message: 'slideshow',
+                        bandwidth: average});
+                    clearInterval(intervalId);
                     break;
                 default:
                     log.error('Unknown BW status, id: ' + wrtc.wrtcId);

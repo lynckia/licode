@@ -2,7 +2,9 @@
 exports.MonitorSubscriber = function (log) {
 
     var that = {},
-    INTERVAL_STATS = 1000;
+        INTERVAL_STATS = 1000,
+        TICS_PER_TRANSITION = 10;
+
 
     /* BW Status
      * 0 - Stable
@@ -27,7 +29,7 @@ exports.MonitorSubscriber = function (log) {
 
     that.monitorMinVideoBw = function(wrtc, callback){
         wrtc.bwValues = [];
-        var ticks = 0;
+        var tics = 0;
         var retries = 0;
         var lastAverage, average, lastBWValue;
         var nextRetry = 0;
@@ -64,9 +66,9 @@ exports.MonitorSubscriber = function (log) {
             }
             switch (wrtc.bwStatus){
                 case BW_STABLE:
-                    if(average <= lastAverage && (average < wrtc.lowerThres)){
-                        if (++ticks > 2){
-                            log.debug('message: scheme state change, ' +
+                    if(average <= lastAverage && (average < wrtc.lowerThres)) {
+                        if (++tics > TICS_PER_TRANSITION) {
+                            log.info('message: scheme state change, ' +
                                       'id: ' + wrtc.wrtcId + ', ' +
                                       'previousState: BW_STABLE, ' +
                                       'newState: BW_WONT_RECOVER, ' +
@@ -74,7 +76,7 @@ exports.MonitorSubscriber = function (log) {
                                       'lowerThreshold: ' + wrtc.lowerThres);
                             wrtc.bwStatus = BW_WONTRECOVER;
                             wrtc.setFeedbackReports(false, 1);
-                            ticks = 0;
+                            tics = 0;
                             callback('callback', {type: 'bandwidthAlert',
                                                   message: 'insufficient',
                                                   bandwidth: average});
@@ -82,12 +84,12 @@ exports.MonitorSubscriber = function (log) {
                     }
                     break;
                 case BW_WONTRECOVER:
-                    log.debug('message: Switched to audio-only, ' +
+                    log.info('message: Switched to audio-only, ' +
                               'id: ' + wrtc.wrtcId + ', ' +
                               'state: BW_WONT_RECOVER, ' +
                               'averageBandwidth: ' + average + ', ' +
                               'lowerThreshold: ' + wrtc.lowerThres);
-                    ticks = 0;
+                    tics = 0;
                     nextRetry = 0;
                     retries = 0;
                     average = 0;
