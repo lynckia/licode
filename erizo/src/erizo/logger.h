@@ -25,6 +25,39 @@
 #include <log4cxx/logger.h>
 #include <log4cxx/helpers/exception.h>
 
+#include <map>
+#include <string>
+#include <utility>
+
+class LogContext {
+ public:
+  LogContext() : context_log_{""} {
+  }
+
+  virtual ~LogContext() {}
+
+  void setLogContext(std::map<std::string, std::string> context) {
+    context_ = context;
+    context_log_ = "";
+    std::for_each(context.begin(), context.end(),
+                  [this](std::pair<std::string, std::string> item) {
+      context_log_ += item.first + ": " + item.second + ", ";
+    });
+  }
+
+  void copyLogContextFrom(LogContext *log_context) {
+    setLogContext(log_context->context_);
+  }
+
+  std::string printLogContext() {
+    return context_log_;
+  }
+
+ private:
+  std::string context_log_;
+  std::map<std::string, std::string> context_;
+};
+
 #define DECLARE_LOGGER() \
 static log4cxx::LoggerPtr logger;
 

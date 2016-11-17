@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <string>
 #include <cstring>
+#include <vector>
 
 #include "WebRtcConnection.h"
 #include "DtlsTransport.h"
@@ -26,7 +27,7 @@ WebRtcConnection::WebRtcConnection(const std::string& connection_id, const IceCo
     connection_id_{connection_id}, remoteSdp_{SdpInfo(rtp_mappings)}, localSdp_{SdpInfo(rtp_mappings)},
         audioEnabled_{false}, videoEnabled_{false}, bundle_{false}, connEventListener_{listener},
         iceConfig_{iceConfig}, rtp_mappings_{rtp_mappings}, fec_receiver_{this}, pipeline_{Pipeline::create()} {
-  ELOG_INFO("%s, message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
+  ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
   setVideoSinkSSRC(55543);
   setAudioSinkSSRC(44444);
@@ -58,7 +59,7 @@ WebRtcConnection::WebRtcConnection(const std::string& connection_id, const IceCo
 }
 
 WebRtcConnection::~WebRtcConnection() {
-  ELOG_DEBUG("%s, message:Destructor called", toLog());
+  ELOG_DEBUG("%s message:Destructor called", toLog());
   sending_ = false;
   cond_.notify_one();
   send_Thread_.join();
@@ -75,7 +76,7 @@ WebRtcConnection::~WebRtcConnection() {
   videoSink_ = NULL;
   audioSink_ = NULL;
   fbSink_ = NULL;
-  ELOG_DEBUG("%s, message: Destructor ended", toLog());
+  ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
 bool WebRtcConnection::init() {
@@ -93,7 +94,7 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
   videoEnabled_ = videoEnabled;
   audioEnabled_ = audioEnabled;
   this->localSdp_.createOfferSdp(videoEnabled_, audioEnabled_, bundle_);
-  ELOG_DEBUG("%s, message: Creating sdp offer, isBundle: %d", toLog(), bundle_);
+  ELOG_DEBUG("%s message: Creating sdp offer, isBundle: %d", toLog(), bundle_);
   if (videoEnabled_)
     localSdp_.videoSsrc = this->getVideoSinkSSRC();
   if (audioEnabled_)
@@ -102,17 +103,20 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
   if (bundle_) {
     videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
                                             this, iceConfig_ , "", "", true));
+    videoTransport_->copyLogContextFrom(this);
     videoTransport_->start();
   } else {
     if (videoTransport_.get() == NULL && videoEnabled_) {
       // For now we don't re/check transports, if they are already created we leave them there
       videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
                                               this, iceConfig_ , "", "", true));
+      videoTransport_->copyLogContextFrom(this);
       videoTransport_->start();
     }
     if (audioTransport_.get() == NULL && audioEnabled_) {
       audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
                                               this, iceConfig_, "", "", true));
+      audioTransport_->copyLogContextFrom(this);
       audioTransport_->start();
     }
   }
@@ -124,7 +128,7 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
 }
 
 bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
-  ELOG_DEBUG("%s, message: setting remote SDP", toLog());
+  ELOG_DEBUG("%s message: setting remote SDP", toLog());
   remoteSdp_.initWithSdp(sdp, "");
 
   bundle_ = remoteSdp_.isBundle;
@@ -149,13 +153,14 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
         std::string username = remoteSdp_.getUsername(VIDEO_TYPE);
         std::string password = remoteSdp_.getPassword(VIDEO_TYPE);
         if (videoTransport_.get() == NULL) {
-          ELOG_DEBUG("%s, message: Creating videoTransport, ufrag: %s, pass: %s",
+          ELOG_DEBUG("%s message: Creating videoTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, remoteSdp_.isRtcpMux,
                                                   this, iceConfig_ , username, password, false));
+          videoTransport_->copyLogContextFrom(this);
           videoTransport_->start();
         } else {
-          ELOG_DEBUG("%s, message: Updating videoTransport, ufrag: %s, pass: %s",
+          ELOG_DEBUG("%s message: Updating videoTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           videoTransport_->getNiceConnection()->setRemoteCredentials(username, password);
         }
@@ -164,13 +169,14 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
         std::string username = remoteSdp_.getUsername(AUDIO_TYPE);
         std::string password = remoteSdp_.getPassword(AUDIO_TYPE);
         if (audioTransport_.get() == NULL) {
-          ELOG_DEBUG("%s, message: Creating audioTransport, ufrag: %s, pass: %s",
+          ELOG_DEBUG("%s message: Creating audioTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, remoteSdp_.isRtcpMux,
                                                   this, iceConfig_, username, password, false));
+          audioTransport_->copyLogContextFrom(this);
           audioTransport_->start();
         } else {
-          ELOG_DEBUG("%s, message: Update audioTransport, ufrag: %s, pass: %s",
+          ELOG_DEBUG("%s message: Update audioTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           audioTransport_->getNiceConnection()->setRemoteCredentials(username, password);
         }
@@ -179,7 +185,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   }
   if (this->getCurrentState() >= CONN_GATHERED) {
     if (!remoteSdp_.getCandidateInfos().empty()) {
-      ELOG_DEBUG("%s, message: Setting remote candidates after gathered", toLog());
+      ELOG_DEBUG("%s message: Setting remote candidates after gathered", toLog());
       if (remoteSdp_.hasVideo) {
         videoTransport_->setRemoteCandidates(remoteSdp_.getCandidateInfos(), bundle_);
       }
@@ -198,7 +204,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 
 
   if (remoteSdp_.videoBandwidth != 0) {
-    ELOG_DEBUG("%s, message: Setting remote BW, maxVideoBW: %u", toLog(), remoteSdp_.videoBandwidth);
+    ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remoteSdp_.videoBandwidth);
     this->rtcpProcessor_->setMaxVideoBW(remoteSdp_.videoBandwidth*1000);
   }
 
@@ -207,17 +213,17 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 
 bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp) {
   // TODO(pedro) Check type of transport.
-  ELOG_DEBUG("%s, message: Adding remote Candidate, candidate: %s, mid: %s, sdpMLine: %d",
+  ELOG_DEBUG("%s message: Adding remote Candidate, candidate: %s, mid: %s, sdpMLine: %d",
               toLog(), sdp.c_str(), mid.c_str(), mLineIndex);
   if (videoTransport_ == NULL) {
-    ELOG_WARN("%s, message: addRemoteCandidate on NULL transport", toLog());
+    ELOG_WARN("%s message: addRemoteCandidate on NULL transport", toLog());
     return false;
   }
   MediaType theType;
   std::string theMid;
   // Checking if it's the last candidate, only works in bundle.
   if (mLineIndex == -1) {
-    ELOG_DEBUG("%s, message: All candidates received", toLog());
+    ELOG_DEBUG("%s message: All candidates received", toLog());
     videoTransport_->getNiceConnection()->setReceivedLastCandidate(true);
   }
   if ((!mid.compare("video")) || (mLineIndex == remoteSdp_.videoSdpMLine)) {
@@ -238,7 +244,7 @@ bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex
     } else if (theType == AUDIO_TYPE) {
       res = audioTransport_->setRemoteCandidates(tempSdp.getCandidateInfos(), bundle_);
     } else {
-      ELOG_ERROR("%s, message: add remote candidate with no Media (video or audio), candidate: %s",
+      ELOG_ERROR("%s message: add remote candidate with no Media (video or audio), candidate: %s",
                   toLog(), sdp.c_str() );
     }
   }
@@ -250,7 +256,7 @@ bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex
 }
 
 std::string WebRtcConnection::getLocalSdp() {
-  ELOG_DEBUG("%s, message: Getting Local Sdp", toLog());
+  ELOG_DEBUG("%s message: Getting Local Sdp", toLog());
   if (videoTransport_ != NULL) {
     videoTransport_->processLocalSdp(&localSdp_);
   }
@@ -282,7 +288,7 @@ std::string WebRtcConnection::getJSONCandidate(const std::string& mid, const std
 
 void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transport) {
   std::string sdp = localSdp_.addCandidate(cand);
-  ELOG_DEBUG("%s, message: Discovered New Candidate, candidate: %s", toLog(), sdp.c_str());
+  ELOG_DEBUG("%s message: Discovered New Candidate, candidate: %s", toLog(), sdp.c_str());
   if (trickleEnabled_) {
     if (connEventListener_ != NULL) {
       if (!bundle_) {
@@ -386,7 +392,7 @@ int WebRtcConnection::deliverFeedback_(char* buf, int len) {
     } else if (recvSSRC == this->getAudioSourceSSRC()) {
       queueData(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
     } else {
-      ELOG_DEBUG("%s, unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
+      ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                   toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
     }
     return newLength;
@@ -473,7 +479,7 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         audioSink_->deliverAudioData(buf, len);
       } else {
-        ELOG_DEBUG("%s, unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
+        ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                     toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
       }
     } else {
@@ -481,7 +487,7 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         // Firefox does not send SSRC in SDP
         if (this->getAudioSourceSSRC() == 0) {
-          ELOG_DEBUG("%s, discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
+          ELOG_DEBUG("%s discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
           this->setAudioSourceSSRC(recvSSRC);
         }
         audioSink_->deliverAudioData(buf, len);
@@ -489,7 +495,7 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         // Firefox does not send SSRC in SDP
         if (this->getVideoSourceSSRC() == 0) {
-          ELOG_DEBUG("%s, discoveredVideoSourceSSRC:%u", toLog(), recvSSRC);
+          ELOG_DEBUG("%s discoveredVideoSourceSSRC:%u", toLog(), recvSSRC);
           this->setVideoSourceSSRC(recvSSRC);
         }
         // change ssrc for RTP packets, don't touch here if RTCP
@@ -519,9 +525,9 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
   boost::mutex::scoped_lock lock(updateStateMutex_);
   WebRTCEvent temp = globalState_;
   std::string msg = "";
-  ELOG_DEBUG("%s, transportName: %s, new_state: %d", toLog(), transport->transport_name.c_str(), state);
+  ELOG_DEBUG("%s transportName: %s, new_state: %d", toLog(), transport->transport_name.c_str(), state);
   if (videoTransport_.get() == NULL && audioTransport_.get() == NULL) {
-    ELOG_ERROR("%s, message: Updating NULL transport, state: %d", toLog(), state);
+    ELOG_ERROR("%s message: Updating NULL transport, state: %d", toLog(), state);
     return;
   }
   if (globalState_ == CONN_FAILED) {
@@ -588,16 +594,16 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       temp = CONN_FAILED;
       sending_ = false;
       msg = remoteSdp_.getSdp();
-      ELOG_ERROR("%s, message: Transport Failed, transportType: %s", toLog(), transport->transport_name.c_str() );
+      ELOG_ERROR("%s message: Transport Failed, transportType: %s", toLog(), transport->transport_name.c_str() );
       cond_.notify_one();
       break;
     default:
-      ELOG_DEBUG("%s, message: Doing nothing on state, state %d", toLog(), state);
+      ELOG_DEBUG("%s message: Doing nothing on state, state %d", toLog(), state);
       break;
   }
 
   if (audioTransport_.get() != NULL && videoTransport_.get() != NULL) {
-    ELOG_DEBUG("%s, message: %s, transportName: %s, videoTransportState: %d"
+    ELOG_DEBUG("%s message: %s, transportName: %s, videoTransportState: %d"
               ", audioTransportState: %d, calculatedState: %d, globalState: %d",
       toLog(),
       "Update Transport State",
@@ -615,7 +621,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
   globalState_ = temp;
 
   if (connEventListener_ != NULL) {
-    ELOG_INFO("%s, newGlobalState: %d", toLog(), globalState_);
+    ELOG_INFO("%s newGlobalState: %d", toLog(), globalState_);
     connEventListener_->notifyEvent(globalState_, msg);
   }
 }
@@ -647,13 +653,13 @@ void WebRtcConnection::queueData(std::shared_ptr<dataPacket> packet) {
     }
     sendQueue_.push(packet);
   } else {
-    ELOG_WARN("%s, message: Queue Discarding packets", toLog());
+    ELOG_WARN("%s message: Queue Discarding packets", toLog());
   }
   cond_.notify_one();
 }
 
 void WebRtcConnection::setSlideShowMode(bool state) {
-  ELOG_DEBUG("%s, slideShowMode: %u", toLog(), state);
+  ELOG_DEBUG("%s slideShowMode: %u", toLog(), state);
   if (slideShowMode_ == state) {
     return;
   }
@@ -662,14 +668,18 @@ void WebRtcConnection::setSlideShowMode(bool state) {
     grace_ = 0;
     slideShowMode_ = true;
     shouldSendFeedback_ = false;
-    ELOG_DEBUG("%s, message: Setting seqNo, seqNo: %u", toLog(), seqNo_);
+    ELOG_DEBUG("%s message: Setting seqNo, seqNo: %u", toLog(), seqNo_);
   } else {
     seqNoOffset_ = sendSeqNo_ - seqNo_ + 1;
-    ELOG_DEBUG("%s, message: Changing offset manually, sendSeqNo: %u, seqNo: %u, offset: %u",
+    ELOG_DEBUG("%s message: Changing offset manually, sendSeqNo: %u, seqNo: %u, offset: %u",
                 toLog(), sendSeqNo_, seqNo_, seqNoOffset_);
     slideShowMode_ = false;
     shouldSendFeedback_ = true;
   }
+}
+
+void WebRtcConnection::setMetadata(std::map<std::string, std::string> metadata) {
+  setLogContext(metadata);
 }
 
 WebRTCEvent WebRtcConnection::getCurrentState() {
@@ -743,7 +753,7 @@ void WebRtcConnection::sendLoop() {
             }
             if (sendQueue_.front()->comp ==-1) {
                 sending_ =  false;
-                ELOG_DEBUG("%s, message: finishing send Thread", toLog());
+                ELOG_DEBUG("%s message: finishing send Thread", toLog());
                 sendQueue_.pop();
                 return;
             }

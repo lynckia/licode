@@ -56,9 +56,6 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   const unsigned int kSecsPerResend = 3;
 
   void getNiceDataLoop();
-  inline const char* toLog() {
-    return (std::string("id: ")+connection_id_).c_str();
-  }
 };
 
 class Resender {

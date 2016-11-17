@@ -93,7 +93,7 @@ window.onload = function () {
         for (var index in streams) {
           var stream = streams[index];
           if (localStream.getID() !== stream.getID()) {
-            room.subscribe(stream, {slideShowMode: slideShowMode});
+            room.subscribe(stream, {slideShowMode: slideShowMode, metadata: {type: 'subscriber'}});
             stream.addEventListener('bandwidth-alert', cb);
           }
         }
@@ -101,7 +101,7 @@ window.onload = function () {
 
       room.addEventListener('room-connected', function (roomEvent) {
 
-        room.publish(localStream, {maxVideoBW: 300});
+        room.publish(localStream, {maxVideoBW: 300, metadata: {type: 'publisher'}});
         subscribeToStreams(roomEvent.streams);
       });
 
