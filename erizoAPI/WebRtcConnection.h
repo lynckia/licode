@@ -6,6 +6,8 @@
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
 
+#include <queue>
+
 
 /*
  * Wrapper class of erizo::WebRtcConnection
@@ -13,11 +15,12 @@
  * A WebRTC Connection. This class represents a WebRtcConnection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary ICE and SRTP components.
  */
-class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener, erizo::WebRtcConnectionStatsListener {
+class WebRtcConnection : public MediaSink, public erizo::WebRtcConnectionEventListener,
+  public erizo::WebRtcConnectionStatsListener {
  public:
     static NAN_MODULE_INIT(Init);
 
-    erizo::WebRtcConnection *me;
+    std::shared_ptr<erizo::WebRtcConnection> me;
     int eventSt;
     std::queue<int> eventSts;
     std::queue<std::string> eventMsgs, statsMsgs;
