@@ -39,10 +39,9 @@ class LogContext {
   void setLogContext(std::map<std::string, std::string> context) {
     context_ = context;
     context_log_ = "";
-    std::for_each(context.begin(), context.end(),
-                  [this](std::pair<std::string, std::string> item) {
+    for (const std::pair<std::string, std::string> &item : context) {
       context_log_ += item.first + ": " + item.second + ", ";
-    });
+    }
   }
 
   void copyLogContextFrom(LogContext *log_context) {
