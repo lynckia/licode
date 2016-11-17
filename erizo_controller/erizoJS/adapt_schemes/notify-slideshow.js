@@ -61,8 +61,6 @@ exports.MonitorSubscriber = function (log) {
                     average = calculateAverage(wrtc.bwValues);
                 }
             }
-            log.debug('message: Measuring interval, average: ' + average + ', lowerThresh: ' + 
-                wrtc.lowerThres); 
 
             switch (wrtc.bwStatus) {
                 case BW_STABLE:

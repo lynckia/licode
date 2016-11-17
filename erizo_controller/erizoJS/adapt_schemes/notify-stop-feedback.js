@@ -40,7 +40,7 @@ exports.MonitorSubscriber = function (log) {
         wrtc.upperThres = Math.ceil(wrtc.minVideoBW);
         var intervalId = setInterval(function () {
             var newStats = wrtc.getStats();
-            if (newStats == null){
+            if (newStats == null) {
                 clearInterval(intervalId);
                 return;
             }
@@ -60,12 +60,9 @@ exports.MonitorSubscriber = function (log) {
                     average = calculateAverage(wrtc.bwValues);
                 }
             }
-            log.debug('message: Measuring interval, average: ' + average + ' minVideoBW: ' + 
-                wrtc.minVideoBW); 
             switch (wrtc.bwStatus) {
                 case BW_STABLE:
                     if(average <= lastAverage && (average < wrtc.lowerThres)) {
-                        log.debug('Por aqui', average, lastAverage, wrtc.lowerThres, 'tics', tics);
                         if (++tics > TICS_PER_TRANSITION){
                             log.info('message: scheme state change, ' +
                                 'id: ' + wrtc.wrtcId + ', ' +
