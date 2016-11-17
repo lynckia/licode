@@ -6,6 +6,8 @@
 
 #include <string>
 #include <queue>
+#include <map>
+#include <vector>
 
 #include "./logger.h"
 #include "./SdpInfo.h"
@@ -52,7 +54,7 @@ class WebRtcConnectionStatsListener {
  * it comprises all the necessary Transport components.
  */
 class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink, public FeedbackSource,
-                        public TransportListener, public webrtc::RtpData,
+                        public TransportListener, public webrtc::RtpData, public LogContext,
                         public std::enable_shared_from_this<WebRtcConnection> {
   DECLARE_LOGGER();
 
@@ -145,6 +147,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   void setSlideShowMode(bool state);
 
+  void setMetadata(std::map<std::string, std::string> metadata);
+
   // webrtc::RtpHeader overrides.
   int32_t OnReceivedPayloadData(const uint8_t* payloadData, const uint16_t payloadSize,
                                 const webrtc::WebRtcRTPHeader* rtpHeader) override;
@@ -198,7 +202,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   int deliverFeedback_(char* buf, int len) override;
 
   inline const char* toLog() {
-    return (std::string("id: ") + connection_id_).c_str();
+    return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
   }
 
   // Utils

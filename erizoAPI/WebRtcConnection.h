@@ -109,6 +109,11 @@ class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener,
      * Returns: True if the callback was set successfully
      */
     static NAN_METHOD(getStats);
+    /*
+     * Sets Metadata that will be logged in every message
+     * Param: An object with metadata {key1:value1, key2: value2}
+     */
+    static NAN_METHOD(setMetadata);
 
     static Nan::Persistent<v8::Function> constructor;
 

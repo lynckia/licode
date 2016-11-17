@@ -36,7 +36,6 @@ exports.ErizoJSController = function () {
         WARN_PRECOND_FAILED = 412,
         WARN_BAD_CONNECTION = 502;
 
-
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
      */
@@ -44,17 +43,22 @@ exports.ErizoJSController = function () {
         log.debug('message: Init WebRtcConnection, id: ' + wrtc.wrtcId + ', ' +
                   logger.objectToLog(options));
 
-        if (wrtc.minVideoBW){
+        if (options.metadata) {
+          wrtc.setMetadata(JSON.stringify(options.metadata));
+        }
+
+        if (wrtc.minVideoBW) {
             var monitorMinVideoBw = {};
-            if (wrtc.scheme){
+            if (wrtc.scheme) {
                 try{
                     monitorMinVideoBw = require('./adapt_schemes/' + wrtc.scheme)
                                           .MonitorSubscriber(log);
-                } catch (e){
+                } catch (e) {
                     log.warn('message: could not find custom adapt scheme, ' +
                              'code: ' + WARN_PRECOND_FAILED + ', ' +
                              'id:' + wrtc.wrtcId + ', ' +
-                             'scheme: ' + wrtc.scheme);
+                             'scheme: ' + wrtc.scheme + ', ' +
+                             logger.objectToLog(options.metadata));
                     monitorMinVideoBw = require('./adapt_schemes/notify').MonitorSubscriber(log);
                 }
             } else {
@@ -65,7 +69,7 @@ exports.ErizoJSController = function () {
 
         if (GLOBAL.config.erizoController.report.rtcp_stats) {  // jshint ignore:line
             log.debug('message: RTCP Stat collection is active');
-            wrtc.getStats(function (newStats){
+            wrtc.getStats(function (newStats) {
                 var timeStamp = new Date();
                 amqper.broadcast('stats', {pub: idPub,
                                            subs: idSub,
@@ -76,7 +80,8 @@ exports.ErizoJSController = function () {
 
         wrtc.init(function (newStatus, mess) {
             log.info('message: WebRtcConnection status update, ' +
-                     'id: ' + wrtc.wrtcId + ', status: ' + newStatus);
+                     'id: ' + wrtc.wrtcId + ', status: ' + newStatus +
+                      ', ' + logger.objectToLog(options.metadata));
             if (GLOBAL.config.erizoController.report.connection_events) {  //jshint ignore:line
                 var timeStamp = new Date();
                 amqper.broadcast('event', {pub: idPub,
@@ -126,7 +131,7 @@ exports.ErizoJSController = function () {
                     break;
             }
         });
-        if (options.createOffer === true){
+        if (options.createOffer === true) {
             log.debug('message: create offer requested, id:', wrtc.wrtcId);
             var audioEnabled = true;
             var videoEnabled = true;
@@ -238,10 +243,10 @@ exports.ErizoJSController = function () {
                     subscribers[streamId][peerId].addRemoteCandidate(msg.candidate.sdpMid,
                                                                      msg.candidate.sdpMLineIndex,
                                                                      msg.candidate.candidate);
-                } else if (msg.type === 'updatestream'){
+                } else if (msg.type === 'updatestream') {
                     if(msg.sdp)
                         subscribers[streamId][peerId].setRemoteSdp(msg.sdp);
-                    if (msg.config){
+                    if (msg.config) {
                         if (msg.config.slideShowMode !== undefined) {
                             that.setSlideShow(msg.config.slideShowMode, peerId, streamId);
                         }
@@ -254,17 +259,17 @@ exports.ErizoJSController = function () {
                     publishers[streamId].wrtc.addRemoteCandidate(msg.candidate.sdpMid,
                                                                  msg.candidate.sdpMLineIndex,
                                                                  msg.candidate.candidate);
-                } else if (msg.type === 'updatestream'){
-                    if (msg.sdp){
+                } else if (msg.type === 'updatestream') {
+                    if (msg.sdp) {
                         publishers[streamId].wrtc.setRemoteSdp(msg.sdp);
                     }
-                    if (msg.config){
-                        if (msg.config.minVideoBW){
+                    if (msg.config) {
+                        if (msg.config.minVideoBW) {
                             log.debug('message: updating minVideoBW for publisher, ' +
                                       'id: ' + publishers[streamId].wrtcId + ', ' +
                                       'minVideoBW: ' + msg.config.minVideoBW);
                             publishers[streamId].minVideoBW = msg.config.minVideoBW;
-                            for (var sub in subscribers[streamId]){
+                            for (var sub in subscribers[streamId]) {
                                 var theConn = subscribers[streamId][sub];
                                 theConn.minVideoBW = msg.config.minVideoBW * 1000; // bps
                                 theConn.lowerThres = Math.floor(theConn.minVideoBW*(1-0.2));
@@ -291,7 +296,8 @@ exports.ErizoJSController = function () {
 
             log.info('message: Adding publisher, ' +
                      'streamId: ' + from + ', ' +
-                     logger.objectToLog(options));
+                     logger.objectToLog(options) + ', ' +
+                     logger.objectToLog(options.metadata));
             var wrtcId = from;
             muxer = new addon.OneToManyProcessor();
             wrtc = new addon.WebRtcConnection(wrtcId,
@@ -320,10 +326,11 @@ exports.ErizoJSController = function () {
             initWebRtcConnection(wrtc, callback, from, undefined, options);
 
         } else {
-            if (Object.keys(subscribers[from]).length === 0){
+            if (Object.keys(subscribers[from]).length === 0) {
                 log.warn('message: publisher already set but no subscribers will republish, ' +
-                         'code: ' + WARN_CONFLICT + ', streamId: ' + from);
-                
+                         'code: ' + WARN_CONFLICT + ', streamId: ' + from + ', ' +
+                         logger.objectToLog(options.metadata));
+
                 wrtc = new addon.WebRtcConnection(from,
                                                   GLOBAL.config.erizo.stunserver,
                                                   GLOBAL.config.erizo.stunport,
@@ -356,20 +363,23 @@ exports.ErizoJSController = function () {
      */
     that.addSubscriber = function (from, to, options, callback) {
 
-        if (publishers[to] === undefined){
+        if (publishers[to] === undefined) {
             log.warn('message: addSubscriber to unknown publisher, ' +
-                     'code: ' + WARN_NOT_FOUND + ', streamId: ' + to + ', clientId: ' + from);
+                     'code: ' + WARN_NOT_FOUND + ', streamId: ' + to + ', clientId: ' + from +
+                      ', ' + logger.objectToLog(options.metadata));
             //We may need to notify the clients
             return;
         }
-        if (subscribers[to][from] !== undefined){
+        if (subscribers[to][from] !== undefined) {
             log.warn('message: Duplicated subscription will resubscribe, ' +
-                     'code: ' + WARN_CONFLICT + ', streamId: ' + to + ', clientId: ' + from);
+                     'code: ' + WARN_CONFLICT + ', streamId: ' + to + ', clientId: ' + from+
+                      ', ' + logger.objectToLog(options.metadata));
             that.removeSubscriber(from,to);
         }
         var wrtcId = from + '_' + to;
-        log.info('message: Adding subscriber id: ' + wrtcId + ', ' +
-                 logger.objectToLog(options));
+        log.info('message: Adding subscriber, id: ' + wrtcId + ', ' +
+                 logger.objectToLog(options)+
+                  ', ' + logger.objectToLog(options.metadata));
         var wrtc = new addon.WebRtcConnection(wrtcId,
                                               GLOBAL.config.erizo.stunserver,
                                               GLOBAL.config.erizo.stunport,
@@ -387,7 +397,8 @@ exports.ErizoJSController = function () {
         publishers[to].muxer.addSubscriber(wrtc, from);
         wrtc.minVideoBW = publishers[to].minVideoBW;
         log.debug('message: Setting scheme from publisher to subscriber, ' +
-                  'id: ' + wrtcId + ', scheme: ' + publishers[to].scheme);
+                  'id: ' + wrtcId + ', scheme: ' + publishers[to].scheme+
+                   ', ' + logger.objectToLog(options.metadata));
         wrtc.scheme = publishers[to].scheme;
         initWebRtcConnection(wrtc, callback, to, from, options);
     };
@@ -398,18 +409,18 @@ exports.ErizoJSController = function () {
     that.removePublisher = function (from) {
         if (subscribers[from] !== undefined && publishers[from] !== undefined) {
             log.info('message: Removing publisher, id: ' + from);
-            if(publishers[from].periodicPlis!==undefined){
+            if(publishers[from].periodicPlis!==undefined) {
                 log.debug('message: clearing periodic PLIs for publisher, id: ' + from);
                 clearInterval (publishers[from].periodicPlis);
             }
             for (var key in subscribers[from]) {
-                if (subscribers[from].hasOwnProperty(key)){
+                if (subscribers[from].hasOwnProperty(key)) {
                     log.info('message: Removing subscriber, id: ' + subscribers[from][key].wrtcId);
                     subscribers[from][key].close();
                 }
             }
             publishers[from].wrtc.close();
-            publishers[from].muxer.close(function(message){
+            publishers[from].muxer.close(function(message) {
                 log.info('message: muxer closed succesfully, ' +
                          'id: ' + from + ', ' +
                          logger.objectToLog(message));
@@ -448,8 +459,8 @@ exports.ErizoJSController = function () {
         }
 
         if (publishers[to] && publishers[to].wrtc.periodicPlis !== undefined) {
-            for (var i in subscribers[to]){
-                if(subscribers[to][i].slideShowMode === true){
+            for (var i in subscribers[to]) {
+                if(subscribers[to][i].slideShowMode === true) {
                     return;
                 }
             }
@@ -481,7 +492,7 @@ exports.ErizoJSController = function () {
     /*
      * Enables/Disables slideshow mode for a subscriber
      */
-    that.setSlideShow = function (slideShowMode, from, to){
+    that.setSlideShow = function (slideShowMode, from, to) {
         var wrtcPub;
         var theWrtc = subscribers[to][from];
         if (!theWrtc) {
@@ -496,8 +507,8 @@ exports.ErizoJSController = function () {
             theWrtc.setSlideShowMode(true);
             theWrtc.slideShowMode = true;
             wrtcPub = publishers[to].wrtc;
-            if (wrtcPub.periodicPlis === undefined){
-                wrtcPub.periodicPlis = setInterval(function (){
+            if (wrtcPub.periodicPlis === undefined) {
+                wrtcPub.periodicPlis = setInterval(function () {
                     if(wrtcPub)
                         wrtcPub.generatePLIPacket();
                 }, SLIDESHOW_TIME);
@@ -516,7 +527,6 @@ exports.ErizoJSController = function () {
                         return;
                     }
                 }
-
                 log.debug('message: clearing PLI interval for publisher slideShow, ' +
                           'id: ' + publishers[to].wrtc.wrtcId);
                 clearInterval(publishers[to].wrtc.periodicPlis);

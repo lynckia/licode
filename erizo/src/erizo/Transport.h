@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdio>
 #include "NiceConnection.h"
+#include "./logger.h"
 
 /**
  * States of Transport
@@ -24,7 +25,7 @@ class TransportListener {
   virtual void onCandidate(const CandidateInfo& cand, Transport *transport) = 0;
 };
 
-class Transport : public NiceConnectionListener {
+class Transport : public NiceConnectionListener, public LogContext {
  public:
   boost::shared_ptr<NiceConnection> nice_;
   MediaType mediaType;
@@ -67,6 +68,10 @@ class Transport : public NiceConnectionListener {
     return nice_->setRemoteCandidates(candidates, isBundle);
   }
   bool rtcp_mux_;
+
+  inline const char* toLog() {
+    return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
+  }
 
  private:
   TransportListener *transpListener_;
