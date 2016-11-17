@@ -107,7 +107,8 @@ exports.ErizoJSController = function () {
                     log.warn('message: could not find custom adapt scheme, ' +
                              'code: ' + WARN_PRECOND_FAILED + ', ' +
                              'id:' + wrtc.wrtcId + ', ' +
-                             'scheme: ' + wrtc.scheme);
+                             'scheme: ' + wrtc.scheme + ', ' +
+                             logger.objectToLog(options.metadata));
                     monitorMinVideoBw = require('./adapt_schemes/notify').MonitorSubscriber(log);
                 }
             } else {
@@ -129,7 +130,8 @@ exports.ErizoJSController = function () {
 
         wrtc.init(function (newStatus, mess) {
             log.info('message: WebRtcConnection status update, ' +
-                     'id: ' + wrtc.wrtcId + ', status: ' + newStatus);
+                     'id: ' + wrtc.wrtcId + ', status: ' + newStatus +
+                      ', ' + logger.objectToLog(options.metadata));
             if (GLOBAL.config.erizoController.report.connection_events) {  //jshint ignore:line
                 var timeStamp = new Date();
                 amqper.broadcast('event', {pub: idPub,
@@ -344,7 +346,8 @@ exports.ErizoJSController = function () {
 
             log.info('message: Adding publisher, ' +
                      'streamId: ' + from + ', ' +
-                     logger.objectToLog(options));
+                     logger.objectToLog(options) + ', ' +
+                     logger.objectToLog(options.metadata));
             var wrtcId = from;
             muxer = new addon.OneToManyProcessor();
             wrtc = new addon.WebRtcConnection(wrtcId,
@@ -375,7 +378,8 @@ exports.ErizoJSController = function () {
         } else {
             if (Object.keys(subscribers[from]).length === 0) {
                 log.warn('message: publisher already set but no subscribers will republish, ' +
-                         'code: ' + WARN_CONFLICT + ', streamId: ' + from);
+                         'code: ' + WARN_CONFLICT + ', streamId: ' + from + ', ' +
+                         logger.objectToLog(options.metadata));
 
                 wrtc = new addon.WebRtcConnection(from,
                                                   GLOBAL.config.erizo.stunserver,
@@ -411,18 +415,21 @@ exports.ErizoJSController = function () {
 
         if (publishers[to] === undefined) {
             log.warn('message: addSubscriber to unknown publisher, ' +
-                     'code: ' + WARN_NOT_FOUND + ', streamId: ' + to + ', clientId: ' + from);
+                     'code: ' + WARN_NOT_FOUND + ', streamId: ' + to + ', clientId: ' + from +
+                      ', ' + logger.objectToLog(options.metadata));
             //We may need to notify the clients
             return;
         }
         if (subscribers[to][from] !== undefined) {
             log.warn('message: Duplicated subscription will resubscribe, ' +
-                     'code: ' + WARN_CONFLICT + ', streamId: ' + to + ', clientId: ' + from);
+                     'code: ' + WARN_CONFLICT + ', streamId: ' + to + ', clientId: ' + from+
+                      ', ' + logger.objectToLog(options.metadata));
             that.removeSubscriber(from,to);
         }
         var wrtcId = from + '_' + to;
-        log.info('message: Adding subscriber id: ' + wrtcId + ', ' +
-                 logger.objectToLog(options));
+        log.info('message: Adding subscriber, id: ' + wrtcId + ', ' +
+                 logger.objectToLog(options)+
+                  ', ' + logger.objectToLog(options.metadata));
         var wrtc = new addon.WebRtcConnection(wrtcId,
                                               GLOBAL.config.erizo.stunserver,
                                               GLOBAL.config.erizo.stunport,
@@ -440,7 +447,8 @@ exports.ErizoJSController = function () {
         publishers[to].muxer.addSubscriber(wrtc, from);
         wrtc.minVideoBW = publishers[to].minVideoBW;
         log.debug('message: Setting scheme from publisher to subscriber, ' +
-                  'id: ' + wrtcId + ', scheme: ' + publishers[to].scheme);
+                  'id: ' + wrtcId + ', scheme: ' + publishers[to].scheme+
+                   ', ' + logger.objectToLog(options.metadata));
         wrtc.scheme = publishers[to].scheme;
         initWebRtcConnection(wrtc, callback, to, from, options);
     };
