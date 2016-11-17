@@ -32,5 +32,9 @@
   "scripts": {
     "test": " ./node_modules/mocha/bin/mocha nuve/nuveAPI/test/* erizo_controller/test/*",
     "lint": "./node_modules/jshint/bin/jshint erizo_controller/ nuve/ extras/basic_example/ spine/"
+  },
+  "dependencies": {
+    "errorhandler": "^1.5.0",
+    "morgan": "^1.7.0"
   }
 }
