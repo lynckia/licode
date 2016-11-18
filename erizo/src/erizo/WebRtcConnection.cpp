@@ -78,7 +78,12 @@ WebRtcConnection::~WebRtcConnection() {
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
+void WebRtcConnection::close() {
+  worker_->close();
+}
+
 bool WebRtcConnection::init() {
+  worker_->start();
   rtcpProcessor_ = boost::shared_ptr<RtcpProcessor>(
                     new RtcpForwarder(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this)));
   if (connEventListener_ != NULL) {

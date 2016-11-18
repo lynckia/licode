@@ -8,30 +8,43 @@
 
 namespace erizo {
 
-class Worker {
+class Worker : public std::enable_shared_from_this<Worker> {
  public:
   typedef std::unique_ptr<boost::asio::io_service::work> asio_worker;
 
-  Worker() : service(), service_worker(new asio_worker::element_type(service)) {
-    auto worker = [this] { return service.run(); };
-    grp.add_thread(new boost::thread(worker));
+  Worker() : service_{}, service_worker_{new asio_worker::element_type(service_)}, closed_{false} {
   }
 
   template<class F>
   void task(F f) {
-    service.post(f);
+    service_.post(f);
+  }
+
+  void start() {
+    auto this_ptr = shared_from_this();
+    auto worker = [this_ptr] {
+      if (!this_ptr->closed_) {
+        return this_ptr->service_.run();
+      }
+    };
+    group_.add_thread(new boost::thread(worker));
+  }
+
+  void close() {
+    closed_ = true;
+    service_worker_.reset();
+    group_.join_all();
+    service_.stop();
   }
 
   ~Worker() {
-    service_worker.reset();
-    grp.join_all();
-    service.stop();
   }
 
  private:
-  boost::asio::io_service service;
-  asio_worker service_worker;
-  boost::thread_group grp;
+  boost::asio::io_service service_;
+  asio_worker service_worker_;
+  boost::thread_group group_;
+  std::atomic<bool> closed_;
 };
 }  // namespace erizo
 

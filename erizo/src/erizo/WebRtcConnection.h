@@ -76,7 +76,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    * @return True if the candidates are gathered.
    */
   bool init();
-  void close();
+  void close() override;
   /**
    * Sets the SDP of the remote peer.
    * @param sdp The SDP.

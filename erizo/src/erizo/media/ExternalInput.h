@@ -33,6 +33,8 @@ class ExternalInput : public MediaSource, public RTPDataReceiver {
   void receiveRtpData(unsigned char* rtpdata, int len);
   int sendPLI();
 
+  void close() override {}
+
  private:
   boost::scoped_ptr<OutputProcessor> op_;
   VideoDecoder inCodec_;

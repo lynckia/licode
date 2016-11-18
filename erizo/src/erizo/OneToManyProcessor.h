@@ -46,6 +46,8 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   */
   void removeSubscriber(const std::string& peerId);
 
+  void close() override {}
+
  private:
   typedef std::shared_ptr<MediaSink> sink_ptr;
   FeedbackSink* feedbackSink_;

@@ -110,12 +110,16 @@ namespace erizo {
   void OneToManyProcessor::closeAll() {
     ELOG_DEBUG("OneToManyProcessor closeAll");
     feedbackSink_ = NULL;
+    if (publisher.get()) {
+      publisher->close();
+    }
     publisher.reset();
     boost::unique_lock<boost::mutex> lock(myMonitor_);
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it = subscribers.begin();
     while (it != subscribers.end()) {
       if ((*it).second != NULL) {
         FeedbackSource* fbsource = (*it).second->getFeedbackSource();
+        (*it).second->close();
         if (fbsource != NULL) {
           fbsource->setFeedbackSink(NULL);
         }

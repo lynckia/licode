@@ -20,6 +20,7 @@ class MockPublisher: public erizo::MediaSource, public erizo::FeedbackSink {
     sourcefbSink_ = this;
   }
   ~MockPublisher() {}
+  void close() override {}
   int sendPLI() { return 0; }
 
   MOCK_METHOD2(deliverFeedback_, int(char*, int));
@@ -31,6 +32,7 @@ class MockSubscriber: public erizo::MediaSink, public erizo::FeedbackSource {
     sinkfbSource_ = this;
   }
   ~MockSubscriber() {}
+  void close() override {}
 
   MOCK_METHOD2(deliverAudioData_, int(char*, int));
   MOCK_METHOD2(deliverVideoData_, int(char*, int));
