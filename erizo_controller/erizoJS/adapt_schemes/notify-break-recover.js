@@ -17,7 +17,7 @@ exports.MonitorSubscriber = function (log) {
 
     var calculateAverage = function (values) {
 
-        if (values.length === undefined)
+        if (values === undefined)
             return 0;
         var cnt = values.length;
         var tot = parseInt(0);
@@ -41,17 +41,18 @@ exports.MonitorSubscriber = function (log) {
                  'scheme: notify-break-recover, minVideoBW: ' + wrtc.minVideoBW);
 
         wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
-        wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(1-0.2));
+        wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(0.8));
         wrtc.upperThres = Math.ceil(wrtc.minVideoBW);
         var intervalId = setInterval(function() {
             var newStats = wrtc.getStats();
-            if (newStats == null) {
+            if (newStats === null) {
                 clearInterval(intervalId);
                 return;
             }
 
-            if (wrtc.slideShowMode===true)
+            if (wrtc.slideShowMode) {
                 return;
+            }
 
             var theStats = JSON.parse(newStats);
             for (var i = 0; i < theStats.length; i++){

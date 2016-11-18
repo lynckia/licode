@@ -8,15 +8,13 @@ exports.MonitorSubscriber = function (log) {
 
     /* BW Status
      * 0 - Stable
-     * 1 - Insufficient Bandwidth
-     * 2 - Trying recovery
-     * 3 - Won't recover
+     * 1 - Won't recover
      */
-    var BW_STABLE = 0, BW_WONTRECOVER = 3;
+    var BW_STABLE = 0, BW_WONTRECOVER = 1;
 
     var calculateAverage = function (values) {
 
-        if (values.length === undefined)
+        if (values === undefined)
             return 0;
         var cnt = values.length;
         var tot = parseInt(0);
@@ -40,17 +38,18 @@ exports.MonitorSubscriber = function (log) {
                  'minVideoBW: ' + wrtc.minVideoBW);
 
         wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
-        wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(1-0.2));
+        wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(0.8));
         wrtc.upperThres = Math.ceil(wrtc.minVideoBW);
         var intervalId = setInterval(function () {
             var newStats = wrtc.getStats();
-            if (newStats == null){
+            if (newStats === null){
                 clearInterval(intervalId);
                 return;
             }
 
-            if (wrtc.slideShowMode===true)
+            if (wrtc.slideShowMode) {
                 return;
+            }
 
             var theStats = JSON.parse(newStats);
             for (var i = 0; i < theStats.length; i++){
