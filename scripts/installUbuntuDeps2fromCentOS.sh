@@ -44,6 +44,7 @@ check_proxy(){
 }
 
 install_apt_deps(){
+  sudo apt-get install npm
   sudo apt-get install python-software-properties
   sudo apt-get install software-properties-common
   sudo add-apt-repository ppa:chris-lea/node.js
@@ -56,8 +57,8 @@ install_apt_deps(){
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.openssl.org/source/old/1.0.1/openssl-1.0.1l.tar.gz
-    tar -zxvf openssl-1.0.1l.tar.gz
+#curl -O https://www.openssl.org/source/old/1.0.1/openssl-1.0.1l.tar.gz
+#    tar -zxvf openssl-1.0.1l.tar.gz
     cd openssl-1.0.1l
     ./config --prefix=$PREFIX_DIR -fPIC
     make -s V=0
@@ -72,7 +73,7 @@ install_openssl(){
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
+    #curl -O https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
     tar -zxvf libnice-0.1.4.tar.gz
     cd libnice-0.1.4
     patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
@@ -90,7 +91,7 @@ install_libnice(){
 install_opus(){
   [ -d $LIB_DIR ] || mkdir -p $LIB_DIR
   cd $LIB_DIR
-  curl -O http://downloads.xiph.org/releases/opus/opus-1.1.3.tar.gz
+  #curl -O http://downloads.xiph.org/releases/opus/opus-1.1.3.tar.gz
   tar -zxvf opus-1.1.3.tar.gz
   cd opus-1.1.3
   ./configure --prefix=$PREFIX_DIR
@@ -100,13 +101,12 @@ install_opus(){
 }
 
 install_mediadeps(){
-  sudo apt-get install yasm libvpx. libx264.
+#sudo apt-get install yasm libvpx. libx264. fdk-aac-devel libfreetype6-dev
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-11.1.tar.gz
-    tar -zxvf libav-11.1.tar.gz
-    cd libav-11.1
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
+#    git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
+    cd ffmpeg
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=/usr --bindir=/usr/bin --datadir=/usr/share/ffmpeg --incdir=/usr/include/ffmpeg --libdir=/usr/lib64 --mandir=/usr/share/man --arch=x86_64 --optflags='-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches -m64 -mtune=generic' --enable-bzlib --disable-crystalhd --enable-nonfree --enable-libfdk-aac --enable-libfreetype --enable-libvpx --enable-libopus --enable-libx264 --enable-avfilter --enable-avresample --enable-postproc --enable-pthreads --disable-static --enable-shared --enable-gpl --disable-debug --shlibdir=/usr/lib64 --enable-runtime-cpudetect --extra-cflags=-I/$PREFIX_DIR/include --extra-ldflags=-L/$PREFIX_DIR/lib
     make -s V=0
     make install
     cd $CURRENT_DIR
@@ -115,23 +115,6 @@ install_mediadeps(){
     install_mediadeps
   fi
 
-}
-
-install_mediadeps_nogpl(){
-  sudo apt-get install yasm libvpx.
-  if [ -d $LIB_DIR ]; then
-    cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-11.1.tar.gz
-    tar -zxvf libav-11.1.tar.gz
-    cd libav-11.1
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus
-    make -s V=0
-    make install
-    cd $CURRENT_DIR
-  else
-    mkdir -p $LIB_DIR
-    install_mediadeps_nogpl
-  fi
 }
 
 install_libsrtp(){
@@ -159,30 +142,25 @@ parse_arguments $*
 
 mkdir -p $PREFIX_DIR
 
-pause "Installing deps via apt-get... [press Enter]"
-install_apt_deps
+#pause "Installing deps via apt-get... [press Enter]"
+#install_apt_deps
 
-check_proxy
+#check_proxy
 
 pause "Installing openssl library...  [press Enter]"
 install_openssl
 
-pause "Installing libnice library...  [press Enter]"
-install_libnice
+#pause "Installing libnice library...  [press Enter]"
+#install_libnice
 
 pause "Installing libsrtp library...  [press Enter]"
 install_libsrtp
 
-pause "Installing opus library...  [press Enter]"
-install_opus
+#pause "Installing opus library...  [press Enter]"
+#install_opus
 
-#if [ "$ENABLE_GPL" = "true" ]; then
-#  pause "GPL libraries enabled"
-#  install_mediadeps
-#else
-#  pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
-#  install_mediadeps_nogpl
-#fi
+pause "Installing media library...  [press Enter]"
+install_mediadeps
 
 if [ "$CLEANUP" = "true" ]; then
   echo "Cleaning up..."
