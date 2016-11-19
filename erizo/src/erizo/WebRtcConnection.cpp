@@ -17,8 +17,6 @@
 #include "rtp/RtcpAggregator.h"
 #include "rtp/RtcpForwarder.h"
 
-extern int64_t audiossrc;
-extern int64_t videossrc;
 using std::memcpy;
 
 namespace erizo {

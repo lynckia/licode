@@ -15,9 +15,6 @@ extern "C" {
 
 using std::memcpy;
 
-extern int64_t audiossrc;
-extern int64_t videossrc;
-
 namespace erizo {
 
     DEFINE_LOGGER(InputProcessor, "media.InputProcessor");
@@ -55,13 +52,13 @@ namespace erizo {
             decodedBuffer_ = (unsigned char*) malloc(
                     info.videoCodec.width * info.videoCodec.height * 3 / 2);
             unpackagedBufferPtr_ = unpackagedBuffer_ = (unsigned char*) malloc(UNPACKAGED_BUFFER_SIZE);
-    if (!vDecoder.initDecoder(mediaInfo.videoCodec)) {
-      // TODO(javier) check this condition
-    }
+            if (!vDecoder.initDecoder(mediaInfo.videoCodec)) {
+                // TODO(javier) check this condition
+            }
             videoDecoder = 1; 
-    if (!this->initVideoUnpackager()) {
-      // TODO(javier) check this condition
-    }
+            if (!this->initVideoUnpackager()) {
+                // TODO(javier) check this condition
+            }
         }
         if (mediaInfo.hasAudio) {
             ELOG_DEBUG("Init AUDIO processor");
@@ -141,7 +138,7 @@ namespace erizo {
         return true;
     }
 
-int InputProcessor::decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff) {
+    int InputProcessor::decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff) {
         if (audioDecoder == 0) {
             //ELOG_DEBUG("No se han inicializado los parámetros del audioDecoder");
             return -1;
@@ -283,7 +280,7 @@ int InputProcessor::decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned c
     }
 
 
-void OutputProcessor::receiveRawData(const RawDataPacket& packet) {
+    void OutputProcessor::receiveRawData(const RawDataPacket& packet) {
         if (packet.type == VIDEO) {
             ELOG_DEBUG("Encoding video: size %d", packet.length);
             int len = vCoder.encodeVideo(packet.data, packet.length, encodedBuffer_,UNPACKAGED_BUFFER_SIZE);
@@ -398,19 +395,19 @@ void OutputProcessor::receiveRawData(const RawDataPacket& packet) {
     }
 
     static void receiveRtpData(unsigned char*rtpdata, int len) {
-    if (audioSink!=NULL){
-      static char sendAudioBuffer[1600];
-      
-      assert(len<=1600);
+        if (audioSink!=NULL){
+            static char sendAudioBuffer[1600];
 
-      memcpy(sendAudioBuffer, rtpdata, len);
-      audioSink->deliverAudioData(sendAudioBuffer, len);
+            assert(len<=1600);
+
+            memcpy(sendAudioBuffer, rtpdata, len);
+            audioSink->deliverAudioData(sendAudioBuffer, len);
+        }
+
     }
 
-  }
-
-  int OutputProcessor::packageAudio(unsigned char* data, int datalen,
-             long int pts) {
+    int OutputProcessor::packageAudio(unsigned char* data, int datalen,
+            long int pts) {
 
         // pcm 20ms  => 160 * 1000 * 1/8000 ( time_base )
         // opus 20ms => 960 * 1000 * 1/48000
@@ -430,43 +427,49 @@ void OutputProcessor::receiveRawData(const RawDataPacket& packet) {
         //    gettimeofday(&time, NULL);
         //    long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
 
-            RtpHeader head;
-            head.setSeqNumber(audioSeqnum_++);
-            head.setMarker(false);
+        RtpHeader head;
+        head.setSeqNumber(audioSeqnum_++);
+        head.setMarker(false);
 
-            head.setExtension(false);
-            //head.setExtId(48862); //0xbede profile
-            //head.setExtLength(1);       // only 1 ext, Audio level.
+        head.setExtension(false);
+        //head.setExtId(48862); //0xbede profile
+        //head.setExtLength(1);       // only 1 ext, Audio level.
 
-                // No need to rescale as already audio time base.
-                head.setTimestamp(pts);
+        // No need to rescale as already audio time base.
+        head.setTimestamp(pts);
 
-                //AudioLevelExtension ext;
-                //ext.init();
-                //int audioLevel = -calculateAudioLevel(inBuff, 0,FrameSize, 127);
+        //AudioLevelExtension ext;
+        //ext.init();
+        //int audioLevel = -calculateAudioLevel(inBuff, 0,FrameSize, 127);
 
-                //ELOG_DEBUG("Calculated audio level=%d", audioLevel);
+        //ELOG_DEBUG("Calculated audio level=%d", audioLevel);
 
-                //ext.level = audioLevel;
-                //uint16_t val = *(reinterpret_cast<uint16_t*>(&ext));
-                //val = htonl(val); // don't need it.
-                //head.extensions = val;
+        //ext.level = audioLevel;
+        //uint16_t val = *(reinterpret_cast<uint16_t*>(&ext));
+        //val = htonl(val); // don't need it.
+        //head.extensions = val;
 
-                //ELOG_DEBUG("head.extensions = %hu", head.extensions);
+        //ELOG_DEBUG("head.extensions = %hu", head.extensions);
 
-                // next timestamp will +FrameSize;
-            //head.setSSRC(44444);
-            head.setSSRC(audiossrc);
+        // next timestamp will +FrameSize;
 
-            //head.setPayloadType(mediaInfo.rtpAudioInfo.PT);
-            ///head.setPayloadType(109);
-            head.setPayloadType(111);
+        //auto ssrc = videoSink->getAudioSinkSSRC();
+        //head.setSSRC(44444);
+        //
+        auto ssrc = 55543;
+        auto mediasource = dynamic_cast<MediaSource*>(rtpReceiver_);
+        if (mediasource)
+        {
+            ssrc = mediasource->getAudioSourceSSRC();
+        }
+        head.setSSRC(ssrc);
+        head.setPayloadType(111);// will be substituted later by client type.
 
-            memcpy(inBuff, &head, head.getHeaderLength());
-            memcpy(&inBuff[head.getHeaderLength()], data, datalen);
+        memcpy(inBuff, &head, head.getHeaderLength());
+        memcpy(&inBuff[head.getHeaderLength()], data, datalen);
 
-            receiveRtpData(inBuff, (datalen + head.getHeaderLength()));
-            ELOG_DEBUG("Sent %d bytes", datalen + head.getHeaderLength());
+        receiveRtpData(inBuff, (datalen + head.getHeaderLength()));
+        ELOG_DEBUG("Sent %d bytes", datalen + head.getHeaderLength());
 
         return 1;
     }
@@ -477,17 +480,24 @@ void OutputProcessor::receiveRawData(const RawDataPacket& packet) {
             return -1;
         }
 
-  if (buffSize <= 0) {
+        if (buffSize <= 0) {
             return -1;
-  }
+        }
         RtpVP8Fragmenter frag(inBuff, buffSize, 1100);
         bool lastFrame = false;
         unsigned int outlen = 0;
         timeval time;
         gettimeofday(&time, NULL);
-  long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);  // NOLINT
+        long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);  // NOLINT
         //		timestamp_ += 90000 / mediaInfo.videoCodec.frameRate;
         //int64_t pts = av_rescale(lastPts_, 1000000, (long int)video_time_base_);
+
+        auto ssrc = 55543;
+        auto mediasource = dynamic_cast<MediaSource*>(rtpReceiver_);
+        if (mediasource)
+        {
+            ssrc = mediasource->getVideoSourceSSRC();
+        }
 
         do {
             outlen = 0;
@@ -501,8 +511,9 @@ void OutputProcessor::receiveRawData(const RawDataPacket& packet) {
             }else{
                 rtpHeader.setTimestamp(av_rescale(pts, 90000, 1000));
             }
-            //rtpHeader.setSSRC(55543);
-            rtpHeader.setSSRC(videossrc);
+            //auto ssrc = videoSink->getVideoSinkSSRC();a
+
+            rtpHeader.setSSRC(ssrc);
             rtpHeader.setPayloadType(100);
             memcpy(rtpBuffer_, &rtpHeader, rtpHeader.getHeaderLength());
             memcpy(&rtpBuffer_[rtpHeader.getHeaderLength()],outBuff, outlen);
@@ -539,7 +550,7 @@ void OutputProcessor::receiveRawData(const RawDataPacket& packet) {
                 aCoderContext->sample_fmt);
         buffer_size = av_samples_get_buffer_size(NULL, aCoderContext->channels,
                 aCoderContext->frame_size, aCoderContext->sample_fmt, 0);
-  uint16_t* samples = reinterpret_cast<uint16_t*>(av_malloc(buffer_size));
+        uint16_t* samples = reinterpret_cast<uint16_t*>(av_malloc(buffer_size));
         if (!samples) {
             ELOG_ERROR("could not allocate %d bytes for samples buffer",
                     buffer_size);
