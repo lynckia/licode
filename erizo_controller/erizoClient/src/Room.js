@@ -380,6 +380,7 @@ Erizo.Room = function (spec) {
             spec.defaultVideoBW = response.defaultVideoBW;
             spec.maxVideoBW = response.maxVideoBW;
 
+            L.Logger.info('room-connected, found streams', streams.length);
             // 2- Retrieve list of streams
             for (index in streams) {
                 if (streams.hasOwnProperty(index)) {
@@ -393,6 +394,9 @@ Erizo.Room = function (spec) {
                                            attributes: arg.attributes});
                     streamList.push(stream);
                     that.remoteStreams[arg.id] = stream;
+                }
+                else {
+                    L.Logger.info('stream not hasOwnProperty index', index);
                 }
             }
 

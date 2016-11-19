@@ -396,7 +396,9 @@ var listen = function () {
                         socket.state = 'sleeping';
 
                         log.debug('message: Token approved, clientId: ' + socket.id);
-
+        
+                        log.info('test: rooms count ' + rooms.length);
+                        log.info('test: room ' + tokenDB.room + ' with streams ' + socket.room.streams.length);
                         if (!tokenDB.p2p &&
                             GLOBAL.config.erizoController.report.session_events) {  // jshint ignore:line
                             var timeStamp = new Date();
@@ -408,8 +410,15 @@ var listen = function () {
 
                         for (index in socket.room.streams) {
                             if (socket.room.streams.hasOwnProperty(index)) {
+
+                                log.info('test: stream '+socket.room.streams[index].getAttributes().name + ', ' + socket.room.streams[index].getID())
                                 if (socket.room.streams[index].status === PUBLISHER_READY){
                                     streamList.push(socket.room.streams[index].getPublicStream());
+                                }
+                                else
+                                {
+                                    streamList.push(socket.room.streams[index].getPublicStream());
+                                    log.warn('test: stream status=' + socket.room.streams[index].status + ',' + socket.room.streams[index].getAttributes().name);
                                 }
                             }
                         }

@@ -126,7 +126,45 @@ app.get('/getUsers/:room', function(req, res) {
 });
 
 
+
+app.post('/createRoom/', function(req, res){
+	
+	  "use strict";
+	   res.header('Access-Control-Allow-Origin', '*');
+	   res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
+	   res.header('Access-Control-Allow-Headers', 'origin, content-type');
+	    
+	 var  name = req.body.name;
+	
+	    N.API.createRoom(name, function(roomID) {
+            res.send(roomID._id);
+        });
+});
+
+
+
+app.post('/deleteRoom/', function(req, res){
+	
+	  "use strict";
+	   res.header('Access-Control-Allow-Origin', '*');
+	   res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
+	   res.header('Access-Control-Allow-Headers', 'origin, content-type');
+	  
+	   var  room_id = req.body.room_id;
+	
+	    N.API.deleteRoom(room_id, function(result) {
+            res.send(result);
+        });
+});
+
 app.post('/createToken/', function(req, res) {
+
+
+    "use strict";
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
+    res.header('Access-Control-Allow-Headers', 'origin, content-type');
+
     console.log(req.body);
     var room = defaultRoomName;
     if (req.body.room && !isNaN(req.body.room)) {
@@ -136,15 +174,25 @@ app.post('/createToken/', function(req, res) {
     var username = req.body.username,
     role = req.body.role;
 
-    getOrCreateRoom(room, function (roomId) {
-        N.API.createToken(roomId, username, role, function(token) {
+    var room_id = req.body.room_id;
+
+     N.API.createToken(room_id, username, role, function(token) {
             console.log(token);
             res.send(token);
         }, function(error) {
             console.log(error);
             res.status(401).send('No Erizo Controller found');
         });
+
+
+
+	/*
+    getOrCreateRoom(room, function (roomId) {
+   
     });
+
+*/
+
 });
 
 

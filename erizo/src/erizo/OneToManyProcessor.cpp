@@ -10,9 +10,6 @@
 #include "./WebRtcConnection.h"
 #include "rtp/RtpHeaders.h"
 
-int64_t audiossrc = 0;
-int64_t videossrc = 0;
-
 namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
   OneToManyProcessor::OneToManyProcessor() {
@@ -45,6 +42,7 @@ namespace erizo {
   int OneToManyProcessor::deliverVideoData_(char* buf, int len) {
     if (len <= 0)
       return 0;
+
     RtcpHeader* head = reinterpret_cast<RtcpHeader*>(buf);
     if(head->isFeedback()){
       ELOG_WARN("Receiving Feedback in wrong path: %d", head->packettype);
@@ -67,6 +65,7 @@ namespace erizo {
   }
 
   void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
+
     boost::mutex::scoped_lock lock(myMonitor_);
     this->publisher.reset(webRtcConn);
     feedbackSink_ = publisher->getFeedbackSink();
@@ -84,11 +83,9 @@ namespace erizo {
     ELOG_DEBUG("Adding subscriber");
     boost::mutex::scoped_lock lock(myMonitor_);
     ELOG_DEBUG("From %u, %u ", publisher->getAudioSourceSSRC() , publisher->getVideoSourceSSRC());
-    audiossrc = publisher->getAudioSourceSSRC();
-    videossrc = publisher->getVideoSourceSSRC();
     webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
     webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
-    ELOG_DEBUG("Subscribers ssrcs: Audio %u, video, %u from %u, %u ",
+    ELOG_DEBUG("Subscribers ssrcs: Audio %u, video, %u from publisher %u, %u ",
                webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC(),
                this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
     FeedbackSource* fbsource = webRtcConn->getFeedbackSource();
