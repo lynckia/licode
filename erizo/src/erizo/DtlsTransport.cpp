@@ -6,6 +6,7 @@
 
 #include <string>
 #include <cstring>
+#include <memory>
 
 #include "./SrtpChannel.h"
 #include "rtp/RtpHeaders.h"
@@ -13,6 +14,7 @@
 
 using erizo::Resender;
 using erizo::DtlsTransport;
+using erizo::packetPtr;
 using dtls::DtlsSocketContext;
 
 DEFINE_LOGGER(DtlsTransport, "DtlsTransport");
@@ -83,10 +85,11 @@ void Resender::Resend(const boost::system::error_code& ec) {
 
 DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, const std::string& connection_id,
                             bool bundle, bool rtcp_mux, TransportListener *transportListener,
-                            const IceConfig& iceConfig, std::string username, std::string password, bool isServer):
-  Transport(med, transport_name, connection_id, bundle, rtcp_mux, transportListener, iceConfig),
+                            const IceConfig& iceConfig, std::string username, std::string password,
+                            bool isServer, std::shared_ptr<Worker> worker):
+  Transport(med, transport_name, connection_id, bundle, rtcp_mux, transportListener, iceConfig, worker),
   unprotect_packet_{std::make_shared<dataPacket>()},
-  readyRtp(false), readyRtcp(false), running_(false), isServer_(isServer) {
+  readyRtp(false), readyRtcp(false), isServer_(isServer) {
     ELOG_DEBUG("%s message: constructor, transportName:%s, isBundle:%d", toLog(), transport_name.c_str(), bundle);
     dtlsRtp.reset(new DtlsSocketContext());
 
@@ -120,8 +123,6 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     if (!rtcp_mux) {
       rtcp_resender_.reset(new Resender(this, dtlsRtcp.get(), kSecsPerResend, kMaxResends));
     }
-    running_ = true;
-    getNice_Thread_ = boost::thread(&DtlsTransport::getNiceDataLoop, this);
     ELOG_DEBUG("%s message: created", toLog());
   }
 
@@ -145,7 +146,6 @@ void DtlsTransport::close() {
   nice_->setNiceListener(NULL);
   nice_->close();
   this->state_ = TRANSPORT_FINISHED;
-  getNice_Thread_.join();
   ELOG_DEBUG("%s message: closed", toLog());
 }
 
@@ -347,19 +347,6 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
              toLog(), transport_name.c_str(), username.c_str(), password.c_str());
 }
 
-void DtlsTransport::getNiceDataLoop() {
-  while (running_) {
-    p_ = nice_->getPacket();
-    if (p_->length > 0) {
-      this->onNiceData(p_->comp, p_->data, p_->length, NULL);
-    }
-    if (p_->length == -1) {
-      ELOG_DEBUG("%s message: closing packet loop", toLog());
-      running_ = false;
-      return;
-    }
-  }
-}
 bool DtlsTransport::isDtlsPacket(const char* buf, int len) {
   int data = DtlsSocketContext::demuxPacket(reinterpret_cast<const unsigned char*>(buf), len);
   switch (data) {

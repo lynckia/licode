@@ -4,7 +4,6 @@
 #include <boost/thread/mutex.hpp>
 
 #include <string>
-#include <queue>
 #include <map>
 #include <vector>
 
@@ -185,13 +184,12 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   struct timeval now_, mark_;
 
   boost::shared_ptr<RtcpProcessor> rtcpProcessor_;
-  boost::scoped_ptr<Transport> videoTransport_, audioTransport_;
+  std::shared_ptr<Transport> videoTransport_, audioTransport_;
 
   Stats thisStats_;
   WebRTCEvent globalState_;
 
-  boost::mutex receiveVideoMutex_, updateStateMutex_;  // , slideShowMutex_;
-  std::queue<std::shared_ptr<dataPacket>> sendQueue_;
+  boost::mutex updateStateMutex_;  // , slideShowMutex_;
 
   Pipeline::Ptr pipeline_;
 

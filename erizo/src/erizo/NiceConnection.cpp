@@ -28,7 +28,7 @@ void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
     return;
   }
   NiceConnection* nicecon = reinterpret_cast<NiceConnection*>(user_data);
-  nicecon->queueData(component_id, reinterpret_cast<char*> (buf), static_cast<unsigned int> (len));
+  nicecon->onData(component_id, reinterpret_cast<char*> (buf), static_cast<unsigned int> (len));
 }
 
 void cb_new_candidate(NiceAgent *agent, guint stream_id, guint component_id, gchar *foundation,
@@ -78,22 +78,6 @@ NiceConnection::~NiceConnection() {
   ELOG_DEBUG("%s message: destroyed", toLog());
 }
 
-packetPtr NiceConnection::getPacket() {
-  boost::unique_lock<boost::mutex> lock(queueMutex_);
-  while (niceQueue_.empty()) {
-    cond_.wait(lock);
-    if (this->checkIceState() >= NICE_FINISHED) {
-      ELOG_DEBUG("%s message: finished in getPacket thread", toLog());
-      packetPtr p(new dataPacket());
-      p->length = -1;
-      return p;
-    }
-  }
-  packetPtr p(niceQueue_.front());
-  niceQueue_.pop();
-  return p;
-}
-
 void NiceConnection::close() {
   boost::mutex::scoped_lock(closeMutex_);
   if (this->checkIceState() == NICE_FINISHED) {
@@ -131,17 +115,13 @@ void NiceConnection::close() {
   ELOG_DEBUG("%s message: closed, this: %p", toLog(), this);
 }
 
-void NiceConnection::queueData(unsigned int component_id, char* buf, int len) {
+void NiceConnection::onData(unsigned int component_id, char* buf, int len) {
   if (this->checkIceState() == NICE_READY) {
-    boost::mutex::scoped_lock(queueMutex_);
-    if (niceQueue_.size() < 1000) {
-      packetPtr p_ (new dataPacket());
-      memcpy(p_->data, buf, len);
-      p_->comp = component_id;
-      p_->length = len;
-      niceQueue_.push(p_);
-      cond_.notify_one();
-    }
+    packetPtr packet (new dataPacket());
+    memcpy(packet->data, buf, len);
+    packet->comp = component_id;
+    packet->length = len;
+    listener_->onPacketReceived(packet);
   }
 }
 int NiceConnection::sendData(unsigned int compId, const void* buf, int len) {

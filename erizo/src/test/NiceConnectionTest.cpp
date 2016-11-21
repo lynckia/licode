@@ -1,10 +1,12 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-
 #include <NiceConnection.h>
 #include <lib/LibNiceInterface.h>
 #include <nice/nice.h>
+
+#include <string>
+#include <vector>
 
 using testing::_;
 using testing::Return;
@@ -13,7 +15,9 @@ using testing::SetArgReferee;
 using testing::Invoke;
 using testing::DoAll;
 using testing::Eq;
+using testing::Not;
 using testing::StrEq;
+using testing::SaveArg;
 
 class MockLibNice: public erizo::LibNiceInterface {
  public:
@@ -50,8 +54,7 @@ class MockNiceConnectionListener: public erizo::NiceConnectionListener {
   }
   virtual ~MockNiceConnectionListener() {
   }
-
-  MOCK_METHOD4(onNiceData, void(unsigned int, char*, int, erizo::NiceConnection*));
+  MOCK_METHOD1(onPacketReceived, void(erizo::packetPtr packet));
   MOCK_METHOD2(onCandidate, void(const erizo::CandidateInfo&, erizo::NiceConnection*));
   MOCK_METHOD2(updateIceState, void(erizo::IceState, erizo::NiceConnection*));
 };
@@ -339,10 +342,14 @@ TEST_F(NiceConnectionTest, setRemoteCandidates_Success_WhenCalled) {
 }
 
 TEST_F(NiceConnectionTest, queuePacket_QueuedPackets_Can_Be_getPacket_When_Ready) {
+  erizo::packetPtr packet;
   EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_READY , _)).Times(1);
   nice_connection->updateIceState(erizo::NICE_READY);
-  nice_connection->queueData(0, test_packet, sizeof(test_packet));
-  erizo::packetPtr packet = nice_connection->getPacket();
+  EXPECT_CALL(*nice_listener, onPacketReceived(_)).WillOnce(SaveArg<0>(&packet));
+
+  nice_connection->onData(0, test_packet, sizeof(test_packet));
+
+  ASSERT_THAT(packet.get(), Not(Eq(nullptr)));
   EXPECT_EQ(static_cast<unsigned int>(packet->length), sizeof(test_packet));
   EXPECT_EQ(0, strcmp(test_packet, packet->data));
 }
