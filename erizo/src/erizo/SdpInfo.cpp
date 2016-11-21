@@ -273,7 +273,6 @@ namespace erizo {
         audioSsrc = 44444;
       }
 
-      sdp << "a=maxptime:60" << endl;
       sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
         "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl <<
         "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl <<
