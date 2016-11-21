@@ -258,6 +258,11 @@ namespace erizo {
             sdp << "a=rtpmap:"<< payload_type << " " << rtp.encoding_name << "/"
               << rtp.clock_rate << endl;
           }
+          if (!rtp.feedback_types.empty()) {
+            for (unsigned int itFb = 0; itFb < rtp.feedback_types.size(); itFb++) {
+              sdp << "a=rtcp-fb:" << payload_type << " " << rtp.feedback_types[itFb] << "\n";
+            }
+          }
           for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
               theIt != rtp.format_parameters.end(); theIt++) {
             if (theIt->first.compare("none")) {
