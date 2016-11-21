@@ -6,7 +6,7 @@ Single Peer Connection means that we can send/receive all streams in the same Pe
 ## Architecture
 Single Peer Connection will carry changes in both client and server sides.
 
-Figures are welcome to help others understand the solution.
+This new feature will be optional because we'd like to keep backwards compatibility with older systems and be sure we can disable it if some browser does not support it.
 
 ## API Changes
 Client: All changes will be hidden inside code.
@@ -40,6 +40,8 @@ And with the new solution with Single Peer Connection it will be like the next f
 
 ### How does it affect Erizo Client?
 Streams will be added to existing Peer Connections, and will need to keep track of the existing Peer Connections to decide whenever we receive an Offer if we need to create a new Peer Connection or update an existing one.
+
+Erizo Client will be told to use Single Peer Connection or Multiple Peer Connections.
 
 ### How does it affect Nuve?
 It does not affect Nuve.
