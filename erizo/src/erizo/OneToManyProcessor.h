@@ -52,9 +52,9 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   typedef std::shared_ptr<MediaSink> sink_ptr;
   FeedbackSink* feedbackSink_;
 
-  int deliverAudioData_(char* buf, int len);
-  int deliverVideoData_(char* buf, int len);
-  int deliverFeedback_(char* buf, int len);
+  int deliverAudioData_(char* buf, int len) override;
+  int deliverVideoData_(char* buf, int len) override;
+  int deliverFeedback_(char* buf, int len) override;
   void closeAll();
 };
 

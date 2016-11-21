@@ -26,6 +26,7 @@ class Worker : public std::enable_shared_from_this<Worker> {
       if (!this_ptr->closed_) {
         return this_ptr->service_.run();
       }
+      return size_t(0);
     };
     group_.add_thread(new boost::thread(worker));
   }
