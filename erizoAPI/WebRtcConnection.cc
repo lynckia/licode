@@ -21,7 +21,7 @@ WebRtcConnection::WebRtcConnection() {
 }
 
 WebRtcConnection::~WebRtcConnection() {
-  if (me != NULL) {
+  if (me.get() != nullptr) {
     me->setWebRtcConnectionStatsListener(NULL);
     me->setWebRtcConnectionEventListener(NULL);
   }
@@ -150,8 +150,8 @@ NAN_METHOD(WebRtcConnection::New) {
     iceConfig.shouldTrickle = trickle;
 
     WebRtcConnection* obj = new WebRtcConnection();
-    obj->me = new erizo::WebRtcConnection(wrtcId, iceConfig, rtp_mappings, obj);
-    obj->msink = obj->me;
+    obj->me = std::make_shared<erizo::WebRtcConnection>(wrtcId, iceConfig, rtp_mappings, obj);
+    obj->msink = obj->me.get();
     uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback);
     uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback);
     obj->Wrap(info.This());
@@ -165,7 +165,7 @@ NAN_METHOD(WebRtcConnection::close) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   obj->me->setWebRtcConnectionStatsListener(NULL);
   obj->me->setWebRtcConnectionEventListener(NULL);
-  obj->me = NULL;
+  obj->me.reset();
   obj->hasCallback_ = false;
 
   if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&obj->async_))) {
@@ -178,7 +178,7 @@ NAN_METHOD(WebRtcConnection::close) {
 
 NAN_METHOD(WebRtcConnection::init) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  erizo::WebRtcConnection *me = obj->me;
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
 
   obj->eventCallback_ = Persistent<Function>::New(Local<Function>::Cast(info[0]));
   bool r = me->init();
@@ -188,7 +188,7 @@ NAN_METHOD(WebRtcConnection::init) {
 
 NAN_METHOD(WebRtcConnection::createOffer) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  erizo::WebRtcConnection *me = obj->me;
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
   if (info.Length() < 3) {
     ThrowException(Exception::TypeError(v8::String::New("Wrong number of arguments")));
   }
@@ -202,7 +202,7 @@ NAN_METHOD(WebRtcConnection::createOffer) {
 
 NAN_METHOD(WebRtcConnection::setSlideShowMode) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  erizo::WebRtcConnection *me = obj->me;
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
 
   bool v = info[0]->BooleanValue();
   me->setSlideShowMode(v);
@@ -211,7 +211,7 @@ NAN_METHOD(WebRtcConnection::setSlideShowMode) {
 
 NAN_METHOD(WebRtcConnection::setMetadata) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  erizo::WebRtcConnection *me = obj->me;
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
 
   v8::String::Utf8Value json_param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string metadata_string = std::string(*json_param);
@@ -228,7 +228,7 @@ NAN_METHOD(WebRtcConnection::setMetadata) {
 
 NAN_METHOD(WebRtcConnection::setRemoteSdp) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  erizo::WebRtcConnection *me = obj->me;
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
 
   v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string sdp = std::string(*param);
@@ -240,7 +240,7 @@ NAN_METHOD(WebRtcConnection::setRemoteSdp) {
 
 NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  erizo::WebRtcConnection *me = obj->me;
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
 
   v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string mid = std::string(*param);
@@ -257,7 +257,7 @@ NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
 
 NAN_METHOD(WebRtcConnection::getLocalSdp) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  erizo::WebRtcConnection *me = obj->me;
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
 
   std::string sdp = me->getLocalSdp();
 
@@ -267,7 +267,7 @@ NAN_METHOD(WebRtcConnection::getLocalSdp) {
 
 NAN_METHOD(WebRtcConnection::setAudioReceiver) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  erizo::WebRtcConnection *me = obj->me;
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
 
   MediaSink* param = Nan::ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::MediaSink *mr = param->msink;
@@ -277,7 +277,7 @@ NAN_METHOD(WebRtcConnection::setAudioReceiver) {
 
 NAN_METHOD(WebRtcConnection::setVideoReceiver) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  erizo::WebRtcConnection *me = obj->me;
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
 
   MediaSink* param = Nan::ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::MediaSink *mr = param->msink;
@@ -287,7 +287,7 @@ NAN_METHOD(WebRtcConnection::setVideoReceiver) {
 
 NAN_METHOD(WebRtcConnection::getCurrentState) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  erizo::WebRtcConnection *me = obj->me;
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
 
   int state = me->getCurrentState();
 
@@ -316,14 +316,14 @@ NAN_METHOD(WebRtcConnection::generatePLIPacket) {
     return;
   }
 
-  erizo::WebRtcConnection *me = obj->me;
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
   me->sendPLI();
   return;
 }
 
 NAN_METHOD(WebRtcConnection::setFeedbackReports) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  erizo::WebRtcConnection *me = obj->me;
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
 
   bool v = info[0]->BooleanValue();
   int fbreps = info[1]->IntegerValue();  // From bps to Kbps

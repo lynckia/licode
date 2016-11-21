@@ -24,8 +24,8 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   DECLARE_LOGGER();
 
  public:
-  std::map<std::string, boost::shared_ptr<MediaSink> > subscribers;
-  boost::shared_ptr<MediaSource> publisher;
+  std::map<std::string, std::shared_ptr<MediaSink>> subscribers;
+  std::shared_ptr<MediaSource> publisher;
 
   OneToManyProcessor();
   virtual ~OneToManyProcessor();
@@ -33,26 +33,28 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   * Sets the Publisher
   * @param webRtcConn The WebRtcConnection of the Publisher
   */
-  void setPublisher(MediaSource* webRtcConn);
+  void setPublisher(std::shared_ptr<MediaSource> webRtcConn);
   /**
   * Sets the subscriber
   * @param webRtcConn The WebRtcConnection of the subscriber
   * @param peerId An unique Id for the subscriber
   */
-  void addSubscriber(MediaSink* webRtcConn, const std::string& peerId);
+  void addSubscriber(std::shared_ptr<MediaSink> webRtcConn, const std::string& peerId);
   /**
   * Eliminates the subscriber given its peer id
   * @param peerId the peerId
   */
   void removeSubscriber(const std::string& peerId);
 
+  void close() override {}
+
  private:
-  typedef boost::shared_ptr<MediaSink> sink_ptr;
+  typedef std::shared_ptr<MediaSink> sink_ptr;
   FeedbackSink* feedbackSink_;
 
-  int deliverAudioData_(char* buf, int len);
-  int deliverVideoData_(char* buf, int len);
-  int deliverFeedback_(char* buf, int len);
+  int deliverAudioData_(char* buf, int len) override;
+  int deliverVideoData_(char* buf, int len) override;
+  int deliverFeedback_(char* buf, int len) override;
   void closeAll();
 };
 

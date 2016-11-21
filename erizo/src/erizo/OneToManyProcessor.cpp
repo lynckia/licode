@@ -31,7 +31,7 @@ namespace erizo {
     if (subscribers.empty())
       return 0;
 
-    std::map<std::string, sink_ptr>::iterator it;
+    std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       (*it).second->deliverAudioData(buf, len);
     }
@@ -54,7 +54,7 @@ namespace erizo {
     boost::unique_lock<boost::mutex> lock(myMonitor_);
     if (subscribers.empty())
       return 0;
-    std::map<std::string, sink_ptr>::iterator it;
+    std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       if ((*it).second != NULL) {
         (*it).second->deliverVideoData(buf, len);
@@ -63,9 +63,9 @@ namespace erizo {
     return 0;
   }
 
-  void OneToManyProcessor::setPublisher(MediaSource* webRtcConn) {
+  void OneToManyProcessor::setPublisher(std::shared_ptr<MediaSource> webRtcConn) {
     boost::mutex::scoped_lock lock(myMonitor_);
-    this->publisher.reset(webRtcConn);
+    this->publisher = webRtcConn;
     feedbackSink_ = publisher->getFeedbackSink();
   }
 
@@ -76,7 +76,7 @@ namespace erizo {
     return 0;
   }
 
-  void OneToManyProcessor::addSubscriber(MediaSink* webRtcConn,
+  void OneToManyProcessor::addSubscriber(std::shared_ptr<MediaSink> webRtcConn,
       const std::string& peerId) {
     ELOG_DEBUG("Adding subscriber");
     boost::mutex::scoped_lock lock(myMonitor_);
@@ -96,7 +96,7 @@ namespace erizo {
         ELOG_WARN("This OTM already has a subscriber with peerId %s, substituting it", peerId.c_str());
         this->subscribers.erase(peerId);
     }
-    this->subscribers[peerId] = sink_ptr(webRtcConn);
+    this->subscribers[peerId] = webRtcConn;
   }
 
   void OneToManyProcessor::removeSubscriber(const std::string& peerId) {
@@ -110,12 +110,16 @@ namespace erizo {
   void OneToManyProcessor::closeAll() {
     ELOG_DEBUG("OneToManyProcessor closeAll");
     feedbackSink_ = NULL;
+    if (publisher.get()) {
+      publisher->close();
+    }
     publisher.reset();
     boost::unique_lock<boost::mutex> lock(myMonitor_);
-    std::map<std::string, boost::shared_ptr<MediaSink> >::iterator it = subscribers.begin();
+    std::map<std::string, std::shared_ptr<MediaSink>>::iterator it = subscribers.begin();
     while (it != subscribers.end()) {
       if ((*it).second != NULL) {
         FeedbackSource* fbsource = (*it).second->getFeedbackSource();
+        (*it).second->close();
         if (fbsource != NULL) {
           fbsource->setFeedbackSink(NULL);
         }

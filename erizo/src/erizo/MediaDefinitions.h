@@ -95,6 +95,8 @@ class MediaSink: public virtual Monitor {
     MediaSink() : audioSinkSSRC_(0), videoSinkSSRC_(0), sinkfbSource_(NULL) {}
     virtual ~MediaSink() {}
 
+    virtual void close() = 0;
+
  private:
     virtual int deliverAudioData_(char* buf, int len) = 0;
     virtual int deliverVideoData_(char* buf, int len) = 0;
@@ -145,6 +147,8 @@ class MediaSource: public virtual Monitor {
         audioSourceSSRC_ = ssrc;
     }
     virtual ~MediaSource() {}
+
+    virtual void close() = 0;
 };
 
 /**

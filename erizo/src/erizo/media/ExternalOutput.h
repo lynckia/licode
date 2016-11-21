@@ -36,13 +36,15 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   explicit ExternalOutput(const std::string& outputUrl);
   virtual ~ExternalOutput();
   bool init();
-  void receiveRawData(const RawDataPacket& packet);
+  void receiveRawData(const RawDataPacket& packet) override;
 
   // webrtc::RtpData callbacks.  This is for Forward Error Correction (per rfc5109) handling.
-  virtual bool OnRecoveredPacket(const uint8_t* packet, int packet_length);
-  virtual int32_t OnReceivedPayloadData(const uint8_t* payload_data,
+  bool OnRecoveredPacket(const uint8_t* packet, int packet_length) override;
+  int32_t OnReceivedPayloadData(const uint8_t* payload_data,
                                         const uint16_t payload_size,
-                                        const webrtc::WebRtcRTPHeader* rtp_header);
+                                        const webrtc::WebRtcRTPHeader* rtp_header) override;
+
+  void close() override {}
 
  private:
   webrtc::FecReceiverImpl  fec_receiver_;
@@ -100,8 +102,8 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   int sendFirPacket();
   void queueData(char* buffer, int length, packetType type);
   void sendLoop();
-  int deliverAudioData_(char* buf, int len);
-  int deliverVideoData_(char* buf, int len);
+  int deliverAudioData_(char* buf, int len) override;
+  int deliverVideoData_(char* buf, int len) override;
   void writeAudioData(char* buf, int len);
   void writeVideoData(char* buf, int len);
   bool bufferCheck(RTPPayloadVP8* payload);

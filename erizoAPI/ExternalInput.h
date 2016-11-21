@@ -16,7 +16,7 @@
 class ExternalInput : public Nan::ObjectWrap {
  public:
     static NAN_MODULE_INIT(Init);
-    erizo::ExternalInput* me;
+    std::shared_ptr<erizo::ExternalInput> me;
 
  private:
     ExternalInput();
@@ -33,7 +33,7 @@ class ExternalInput : public Nan::ObjectWrap {
      */
     static NAN_METHOD(close);
     /*
-     * Inits the ExternalInput 
+     * Inits the ExternalInput
      * Returns true ready
      */
     static NAN_METHOD(init);

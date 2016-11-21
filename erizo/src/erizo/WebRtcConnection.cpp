@@ -26,7 +26,8 @@ WebRtcConnection::WebRtcConnection(const std::string& connection_id, const IceCo
     std::vector<RtpMap> rtp_mappings, WebRtcConnectionEventListener* listener) :
     connection_id_{connection_id}, remoteSdp_{SdpInfo(rtp_mappings)}, localSdp_{SdpInfo(rtp_mappings)},
         audioEnabled_{false}, videoEnabled_{false}, bundle_{false}, connEventListener_{listener},
-        iceConfig_{iceConfig}, rtp_mappings_{rtp_mappings}, fec_receiver_{this}, pipeline_{Pipeline::create()} {
+        iceConfig_{iceConfig}, rtp_mappings_{rtp_mappings}, fec_receiver_{this}, pipeline_{Pipeline::create()},
+        worker_{std::make_shared<Worker>()} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
   setVideoSinkSSRC(55543);
@@ -61,8 +62,6 @@ WebRtcConnection::WebRtcConnection(const std::string& connection_id, const IceCo
 WebRtcConnection::~WebRtcConnection() {
   ELOG_DEBUG("%s message:Destructor called", toLog());
   sending_ = false;
-  cond_.notify_one();
-  send_Thread_.join();
   if (videoTransport_.get()) {
     videoTransport_->close();
   }
@@ -79,10 +78,14 @@ WebRtcConnection::~WebRtcConnection() {
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
+void WebRtcConnection::close() {
+  worker_->close();
+}
+
 bool WebRtcConnection::init() {
+  worker_->start();
   rtcpProcessor_ = boost::shared_ptr<RtcpProcessor>(
                     new RtcpForwarder(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this)));
-  send_Thread_ = boost::thread(&WebRtcConnection::sendLoop, this);
   if (connEventListener_ != NULL) {
     connEventListener_->notifyEvent(globalState_, "");
   }
@@ -312,12 +315,12 @@ int WebRtcConnection::deliverAudioData_(char* buf, int len) {
   if (bundle_) {
     if (videoTransport_.get() != NULL) {
       if (audioEnabled_ == true) {
-        queueData(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
+        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
       }
     }
   } else if (audioTransport_.get() != NULL) {
     if (audioEnabled_ == true) {
-        queueData(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
+        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
     }
   }
   return len;
@@ -340,7 +343,7 @@ int WebRtcConnection::deliverVideoData_(char* buf, int len) {
     if (videoEnabled_ == true) {
       RtcpHeader* hc = reinterpret_cast<RtcpHeader*>(buf);
       if (hc->isRtcp()) {
-        queueData(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, 0));
+        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, 0));
         return len;
       }
       RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
@@ -367,14 +370,14 @@ int WebRtcConnection::deliverVideoData_(char* buf, int len) {
           }
           delete payload;
           if (grace_) {  // We send until marker
-            queueData(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, seqNo_++));
+            sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, seqNo_++));
             if (h->getMarker()) {
               grace_ = 0;
             }
           }
         } else {
           int16_t seq_num = seqNoOffset_ > 0 ? (sendSeqNo_ - seqNoOffset_) : 0;
-          queueData(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, seq_num));
+          sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, seq_num));
         }
       }
     }
@@ -388,9 +391,9 @@ int WebRtcConnection::deliverFeedback_(char* buf, int len) {
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
     uint32_t recvSSRC = chead->getSourceSSRC();
     if (recvSSRC == this->getVideoSourceSSRC()) {
-      queueData(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, 0));
+      sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, 0));
     } else if (recvSSRC == this->getAudioSourceSSRC()) {
-      queueData(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
+      sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
     } else {
       ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                   toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
@@ -517,7 +520,7 @@ int WebRtcConnection::sendPLI() {
   thePLI.setLength(2);
   char *buf = reinterpret_cast<char*>(&thePLI);
   int len = (thePLI.getLength() + 1) * 4;
-  queueData(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, 0));
+  sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, 0));
   return len;
 }
 
@@ -627,35 +630,34 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
 }
 
 // changes the outgoing payload type for in the given data packet
-void WebRtcConnection::queueData(std::shared_ptr<dataPacket> packet) {
+void WebRtcConnection::sendPacketAsync(std::shared_ptr<dataPacket> packet) {
   // if ((audioSink_ == NULL && videoSink_ == NULL && fbSink_ == NULL) || !sending_)
     // we don't enqueue data if there is nothing to receive it
     // return;
-  boost::mutex::scoped_lock lock(receiveVideoMutex_);
   if (!sending_) {
     return;
   }
+  auto conn_ptr = shared_from_this();
   if (packet->comp == -1) {
     sending_ = false;
     std::queue<std::shared_ptr<dataPacket>> empty;
     std::swap(sendQueue_, empty);
-    auto p_ = std::make_shared<dataPacket>();
-    p_->comp = -1;
-    sendQueue_.push(p_);
-    cond_.notify_one();
+    auto p = std::make_shared<dataPacket>();
+    p->comp = -1;
+    worker_->task([conn_ptr, p]{
+      conn_ptr->sendPacket(p);
+    });
     return;
   }
-  if (sendQueue_.size() < 1000) {
-    changeDeliverPayloadType(packet.get(), packet->type);
-    if (packet->seq_num) {
-      RtpHeader* h = reinterpret_cast<RtpHeader*>(&packet->data);
-      h->setSeqNumber(packet->seq_num);
-    }
-    sendQueue_.push(packet);
-  } else {
-    ELOG_WARN("%s message: Queue Discarding packets", toLog());
+
+  changeDeliverPayloadType(packet.get(), packet->type);
+  if (packet->seq_num) {
+    RtpHeader* h = reinterpret_cast<RtpHeader*>(&packet->data);
+    h->setSeqNumber(packet->seq_num);
   }
-  cond_.notify_one();
+  worker_->task([conn_ptr, packet]{
+    conn_ptr->sendPacket(packet);
+  });
 }
 
 void WebRtcConnection::setSlideShowMode(bool state) {
@@ -737,51 +739,34 @@ void WebRtcConnection::write(std::shared_ptr<dataPacket> packet) {
   transport->write(packet->data, packet->length);
 }
 
-void WebRtcConnection::sendLoop() {
+void WebRtcConnection::sendPacket(std::shared_ptr<dataPacket> p) {
+  if (!sending_) {
+    return;
+  }
   uint32_t partial_bitrate = 0;
   uint64_t sentVideoBytes = 0;
   uint64_t lastSecondVideoBytes = 0;
-    while (sending_) {
-        std::shared_ptr<dataPacket> p;
-        {
-            boost::unique_lock<boost::mutex> lock(receiveVideoMutex_);
-            while (sendQueue_.size() == 0) {
-                cond_.wait(lock);
-                if (!sending_) {
-                    return;
-                }
-            }
-            if (sendQueue_.front()->comp ==-1) {
-                sending_ =  false;
-                ELOG_DEBUG("%s message: finishing send Thread", toLog());
-                sendQueue_.pop();
-                return;
-            }
 
-            p = sendQueue_.front();
-            sendQueue_.pop();
-        }
-        if (rateControl_ && !slideShowMode_) {
-          if (p->type == VIDEO_PACKET) {
-            if (rateControl_ == 1) {
-              continue;
-            }
-            gettimeofday(&now_, NULL);
-            uint64_t nowms = (now_.tv_sec * 1000) + (now_.tv_usec / 1000);
-            uint64_t markms = (mark_.tv_sec * 1000) + (mark_.tv_usec/1000);
-            if ((nowms - markms) >= 100) {
-              mark_ = now_;
-              lastSecondVideoBytes = sentVideoBytes;
-            }
-            partial_bitrate = ((sentVideoBytes - lastSecondVideoBytes) * 8) * 10;
-            if (partial_bitrate > this->rateControl_) {
-              continue;
-            }
-            sentVideoBytes += p->length;
-          }
-        }
-        pipeline_->write(p);
+  if (rateControl_ && !slideShowMode_) {
+    if (p->type == VIDEO_PACKET) {
+      if (rateControl_ == 1) {
+        return;
+      }
+      gettimeofday(&now_, NULL);
+      uint64_t nowms = (now_.tv_sec * 1000) + (now_.tv_usec / 1000);
+      uint64_t markms = (mark_.tv_sec * 1000) + (mark_.tv_usec/1000);
+      if ((nowms - markms) >= 100) {
+        mark_ = now_;
+        lastSecondVideoBytes = sentVideoBytes;
+      }
+      partial_bitrate = ((sentVideoBytes - lastSecondVideoBytes) * 8) * 10;
+      if (partial_bitrate > this->rateControl_) {
+        return;
+      }
+      sentVideoBytes += p->length;
     }
+  }
+  pipeline_->write(p);
 }
 
 }  // namespace erizo

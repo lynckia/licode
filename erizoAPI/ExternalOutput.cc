@@ -15,12 +15,12 @@ Nan::Persistent<Function> ExternalOutput::constructor;
 
 class AsyncDeleter : public Nan::AsyncWorker {
  public:
-    AsyncDeleter(erizo::ExternalOutput* eoToDelete, Nan::Callback *callback):
+    AsyncDeleter(std::shared_ptr<erizo::ExternalOutput> eoToDelete, Nan::Callback *callback):
       AsyncWorker(callback), eoToDelete_(eoToDelete) {
       }
     ~AsyncDeleter() {}
     void Execute() {
-      delete eoToDelete_;
+      eoToDelete_.reset();
     }
     void HandleOKCallback() {
       HandleScope scope;
@@ -33,7 +33,7 @@ class AsyncDeleter : public Nan::AsyncWorker {
       }
     }
  private:
-    erizo::ExternalOutput* eoToDelete_;
+    std::shared_ptr<erizo::ExternalOutput> eoToDelete_;
     Nan::Callback* callback_;
 };
 
@@ -58,7 +58,7 @@ NAN_METHOD(ExternalOutput::New) {
   std::string url = std::string(*param);
 
   ExternalOutput* obj = new ExternalOutput();
-  obj->me = new erizo::ExternalOutput(url);
+  obj->me = std::make_shared<erizo::ExternalOutput>(url);
 
   obj->Wrap(info.This());
   info.GetReturnValue().Set(info.This());
@@ -66,7 +66,7 @@ NAN_METHOD(ExternalOutput::New) {
 
 NAN_METHOD(ExternalOutput::close) {
   ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(info.Holder());
-  erizo::ExternalOutput *me = (erizo::ExternalOutput*)obj->me;
+  std::shared_ptr<erizo::ExternalOutput> me = obj->me;
 
   Nan::Callback *callback;
   if (info.Length() >= 1) {
@@ -76,14 +76,14 @@ NAN_METHOD(ExternalOutput::close) {
   }
 
   Nan::AsyncQueueWorker(new  AsyncDeleter(me, callback));
+  me.reset();
 }
 
 NAN_METHOD(ExternalOutput::init) {
   // TODO(pedro) Could potentially be slow, think about async'ing it
   ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(info.Holder());
-  erizo::ExternalOutput *me = (erizo::ExternalOutput*)obj->me;
+  std::shared_ptr<erizo::ExternalOutput> me = obj->me;
 
   int r = me->init();
   info.GetReturnValue().Set(Nan::New(r));
 }
-

@@ -2,7 +2,6 @@
 #define ERIZO_SRC_ERIZO_WEBRTCCONNECTION_H_
 
 #include <boost/thread/mutex.hpp>
-#include <boost/thread.hpp>
 
 #include <string>
 #include <queue>
@@ -19,6 +18,7 @@
 #include "rtp/RtpExtensionProcessor.h"
 #include "pipeline/Handler.h"
 #include "pipeline/Pipeline.h"
+#include "thread/Worker.h"
 
 namespace erizo {
 
@@ -76,7 +76,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    * @return True if the candidates are gathered.
    */
   bool init();
-  void close();
+  void close() override;
   /**
    * Sets the SDP of the remote peer.
    * @param sdp The SDP.
@@ -133,7 +133,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   void updateState(TransportState state, Transport * transport) override;
 
-  void queueData(std::shared_ptr<dataPacket> packet) override;
+  void sendPacketAsync(std::shared_ptr<dataPacket> packet);
 
   void onCandidate(const CandidateInfo& cand, Transport *transport) override;
 
@@ -191,12 +191,13 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   WebRTCEvent globalState_;
 
   boost::mutex receiveVideoMutex_, updateStateMutex_;  // , slideShowMutex_;
-  boost::thread send_Thread_;
   std::queue<std::shared_ptr<dataPacket>> sendQueue_;
 
   Pipeline::Ptr pipeline_;
 
-  void sendLoop();
+  std::shared_ptr<Worker> worker_;
+
+  void sendPacket(std::shared_ptr<dataPacket> packet);
   int deliverAudioData_(char* buf, int len) override;
   int deliverVideoData_(char* buf, int len) override;
   int deliverFeedback_(char* buf, int len) override;
