@@ -90,8 +90,9 @@ Erizo.Stream = function (spec) {
       try {
         if ((spec.audio || spec.video || spec.screen) && spec.url === undefined) {
           L.Logger.info('Requested access to local media');
-          var videoOpt = {};
+          var videoOpt;
           if ((spec.video === true || spec.screen === true)) {
+            videoOpt = {};
             videoOpt.mediaSource = spec.mediaSource || 'window';
             if (that.videoSize !== undefined) {
               videoOpt.mandatory = {
