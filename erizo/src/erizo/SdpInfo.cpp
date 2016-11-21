@@ -838,8 +838,6 @@ namespace erizo {
         if (!parsed_map.feedback_types.empty() && !internal_map.feedback_types.empty()) {
           for (const std::string& internal_feedback_line : internal_map.feedback_types) {
             for (const std::string& parsed_feedback_line : parsed_map.feedback_types) {
-              ELOG_DEBUG("Comparing for codec %s, internal: %s, parsed: %s", internal_map.encoding_name.c_str(),
-                  internal_feedback_line.c_str(), parsed_feedback_line.c_str());
               if (internal_feedback_line == parsed_feedback_line) {
                 ELOG_DEBUG("message: Adding feedback to codec, feedback: %s, encoding_name: %s",
                    internal_feedback_line.c_str(),
