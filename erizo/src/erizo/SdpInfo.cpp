@@ -258,6 +258,11 @@ namespace erizo {
             sdp << "a=rtpmap:"<< payload_type << " " << rtp.encoding_name << "/"
               << rtp.clock_rate << endl;
           }
+          if (!rtp.feedback_types.empty()) {
+            for (unsigned int itFb = 0; itFb < rtp.feedback_types.size(); itFb++) {
+              sdp << "a=rtcp-fb:" << payload_type << " " << rtp.feedback_types[itFb] << "\n";
+            }
+          }
           for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
               theIt != rtp.format_parameters.end(); theIt++) {
             if (theIt->first.compare("none")) {
@@ -833,6 +838,8 @@ namespace erizo {
         if (!parsed_map.feedback_types.empty() && !internal_map.feedback_types.empty()) {
           for (const std::string& internal_feedback_line : internal_map.feedback_types) {
             for (const std::string& parsed_feedback_line : parsed_map.feedback_types) {
+              ELOG_DEBUG("Comparing for codec %s, internal: %s, parsed: %s", internal_map.encoding_name.c_str(),
+                  internal_feedback_line.c_str(), parsed_feedback_line.c_str());
               if (internal_feedback_line == parsed_feedback_line) {
                 ELOG_DEBUG("message: Adding feedback to codec, feedback: %s, encoding_name: %s",
                    internal_feedback_line.c_str(),
