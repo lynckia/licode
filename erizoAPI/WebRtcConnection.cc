@@ -218,7 +218,14 @@ NAN_METHOD(WebRtcConnection::setMetadata) {
   json metadata_json = json::parse(metadata_string);
   std::map<std::string, std::string> metadata;
   for (json::iterator item = metadata_json.begin(); item != metadata_json.end(); ++item) {
-    metadata[item.key()] = item.value();
+    std::string value = item.value().dump();
+    if (item.value().is_object()) {
+      value = "[object]";
+    }
+    if (item.value().is_string()) {
+      value = item.value();
+    }
+    metadata[item.key()] = value;
   }
 
   me->setMetadata(metadata);
