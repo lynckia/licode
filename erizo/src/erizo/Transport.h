@@ -37,7 +37,7 @@ class Transport : public std::enable_shared_from_this<Transport>, public NiceCon
     running_{true}, worker_{worker} {}
   virtual ~Transport() {}
   virtual void updateIceState(IceState state, NiceConnection *conn) = 0;
-  virtual void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) = 0;
+  virtual void onNiceData(packetPtr packet) = 0;
   virtual void onCandidate(const CandidateInfo &candidate, NiceConnection *conn) = 0;
   virtual void write(char* data, int len) = 0;
   virtual void processLocalSdp(SdpInfo *localSdp_) = 0;
@@ -63,6 +63,9 @@ class Transport : public std::enable_shared_from_this<Transport>, public NiceCon
     }
   }
   void writeOnNice(int comp, void* buf, int len) {
+    if (!running_) {
+      return;
+    }
     nice_->sendData(comp, buf, len);
   }
   bool setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool isBundle) {
@@ -70,14 +73,16 @@ class Transport : public std::enable_shared_from_this<Transport>, public NiceCon
   }
 
   void onPacketReceived(packetPtr packet) {
-    auto this_ptr = Transport::shared_from_this();
-    worker_->task([this_ptr, packet]() {
-      if (packet->length > 0) {
-        this_ptr->onNiceData(packet->comp, packet->data, packet->length, nullptr);
-      }
-      if (packet->length == -1) {
-        this_ptr->running_ = false;
-        return;
+    std::weak_ptr<Transport> weak_transport = Transport::shared_from_this();
+    worker_->task([weak_transport, packet]() {
+      if (auto this_ptr = weak_transport.lock()) {
+        if (packet->length > 0) {
+          this_ptr->onNiceData(packet);
+        }
+        if (packet->length == -1) {
+          this_ptr->running_ = false;
+          return;
+        }
       }
     });
   }

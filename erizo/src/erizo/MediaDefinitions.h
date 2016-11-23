@@ -18,8 +18,12 @@ enum packetType {
 
 struct dataPacket {
   dataPacket() = default;
-  dataPacket(int comp_, char *data_, int length_, packetType type_, uint16_t seq_num_) :
+  dataPacket(int comp_, const char *data_, int length_, packetType type_, uint16_t seq_num_) :
     comp{comp_}, length{length_}, type{type_}, seq_num{seq_num_} {
+      memcpy(data, data_, length_);
+    }
+  dataPacket(int comp_, const unsigned char *data_, int length_) :
+    comp{comp_}, length{length_}, type{VIDEO_PACKET}, seq_num{0} {
       memcpy(data, data_, length_);
     }
   int comp;

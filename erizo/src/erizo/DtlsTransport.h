@@ -29,11 +29,11 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   static bool isDtlsPacket(const char* buf, int len);
   void start() override;
   void close() override;
-  void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) override;
+  void onNiceData(packetPtr packet) override;
   void onCandidate(const CandidateInfo &candidate, NiceConnection *conn) override;
   void write(char* data, int len) override;
   void onDtlsPacket(dtls::DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) override;
-  void writeDtlsPacket(dtls::DtlsSocketContext *ctx, const unsigned char* data, unsigned int len);
+  void writeDtlsPacket(dtls::DtlsSocketContext *ctx, packetPtr packet);
   void onHandshakeCompleted(dtls::DtlsSocketContext *ctx, std::string clientKey, std::string serverKey,
                             std::string srtp_profile) override;
   void onHandshakeFailed(dtls::DtlsSocketContext *ctx, const std::string error) override;
@@ -64,7 +64,7 @@ class Resender {
   Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx, unsigned int resend_seconds,
       unsigned int max_resends);
   virtual ~Resender();
-  void ScheduleResend(const unsigned char* data, unsigned int len);
+  void ScheduleResend(packetPtr packet);
   void Run();
   void Cancel();
   void Resend(const boost::system::error_code& ec);
@@ -72,8 +72,7 @@ class Resender {
  private:
   DtlsTransport* transport_;
   dtls::DtlsSocketContext* socket_context_;
-  unsigned char data_[1500];
-  unsigned int len_;
+  packetPtr packet_;
   unsigned int resend_seconds_;
   unsigned int max_resends_;
 
