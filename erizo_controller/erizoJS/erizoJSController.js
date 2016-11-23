@@ -20,6 +20,7 @@ exports.ErizoJSController = function () {
         SLIDESHOW_TIME = 1000,
         PLIS_TO_RECOVER = 3,
         initWebRtcConnection,
+        closeWebRtcConnection,
         getSdp,
         getRoap,
 
@@ -27,7 +28,7 @@ exports.ErizoJSController = function () {
         // CONN_STARTED        = 102,
         CONN_GATHERED       = 103,
         CONN_READY          = 104,
-        // CONN_FINISHED       = 105,
+        CONN_FINISHED       = 105,
         CONN_CANDIDATE      = 201,
         CONN_SDP            = 202,
         CONN_FAILED         = 500,
@@ -44,7 +45,8 @@ exports.ErizoJSController = function () {
                   logger.objectToLog(options));
 
         if (options.metadata) {
-          wrtc.setMetadata(JSON.stringify(options.metadata));
+            wrtc.setMetadata(JSON.stringify(options.metadata));
+            wrtc.metadata = options.metadata;
         }
 
         if (wrtc.minVideoBW) {
@@ -139,6 +141,14 @@ exports.ErizoJSController = function () {
             wrtc.createOffer(audioEnabled, videoEnabled, bundle);
         }
         callback('callback', {type: 'initializing'});
+    };
+
+    closeWebRtcConnection = function (wrtc) {
+        var associatedMetadata = wrtc.metadata || {};
+        wrtc.close();
+        log.info('message: WebRtcConnection status update, ' +
+            'id: ' + wrtc.wrtcId + ', status: ' + CONN_FINISHED + ', ' + 
+                logger.objectToLog(associatedMetadata));
     };
 
     /*
@@ -416,10 +426,10 @@ exports.ErizoJSController = function () {
             for (var key in subscribers[from]) {
                 if (subscribers[from].hasOwnProperty(key)) {
                     log.info('message: Removing subscriber, id: ' + subscribers[from][key].wrtcId);
-                    subscribers[from][key].close();
+                    closeWebRtcConnection(subscribers[from][key]);
                 }
             }
-            publishers[from].wrtc.close();
+            closeWebRtcConnection(publishers[from].wrtc);
             publishers[from].muxer.close(function(message) {
                 log.info('message: muxer closed succesfully, ' +
                          'id: ' + from + ', ' +
@@ -453,7 +463,7 @@ exports.ErizoJSController = function () {
 
         if (subscribers[to] && subscribers[to][from]) {
             log.info('message: removing subscriber, id: ' + subscribers[to][from].wrtcId);
-            subscribers[to][from].close();
+            closeWebRtcConnection(subscribers[to][from]);
             publishers[to].muxer.removeSubscriber(from);
             delete subscribers[to][from];
         }
@@ -481,7 +491,7 @@ exports.ErizoJSController = function () {
                 if (subscribers[to][from]) {
                     log.debug('message: removing subscription, ' +
                               'id:', subscribers[to][from].wrtcId);
-                    subscribers[to][from].close();
+                    closeWebRtcConnection(subscribers[to][from]);
                     publishers[to].muxer.removeSubscriber(from);
                     delete subscribers[to][from];
                 }
