@@ -48,7 +48,7 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   boost::scoped_ptr<SrtpChannel> srtp_, srtcp_;
   bool readyRtp, readyRtcp;
   bool isServer_;
-  boost::scoped_ptr<Resender> rtcp_resender_, rtp_resender_;
+  std::shared_ptr<Resender> rtcp_resender_, rtp_resender_;
   packetPtr p_;
 
   const unsigned int kMaxResends = 5;

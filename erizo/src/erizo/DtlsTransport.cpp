@@ -244,13 +244,14 @@ void DtlsTransport::write(char* data, int len) {
 }
 
 void DtlsTransport::onDtlsPacket(DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) {
-  packetPtr packet = std::make_shared<dataPacket>(1, data, len);
-  if (ctx == dtlsRtcp.get()) {
-    packet->comp = 2;
-    rtcp_resender_->ScheduleResend(packet);
-  } else {
-    rtp_resender_->ScheduleResend(packet);
-  }
+  bool is_rtcp = ctx == dtlsRtcp.get();
+  int component_id = is_rtcp ? 2 : 1;
+
+  packetPtr packet = std::make_shared<dataPacket>(component_id, data, len);
+
+  std::shared_ptr<Resender> resender = is_rtcp ? rtcp_resender_ : rtp_resender_;
+
+  resender->ScheduleResend(packet);
 
   ELOG_DEBUG("%s message: Sending DTLS message, transportName: %s, componentId: %d",
              toLog(), transport_name.c_str(), packet->comp);
