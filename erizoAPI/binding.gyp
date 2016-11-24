@@ -2,7 +2,7 @@
   'targets': [
   {
     'target_name': 'addon',
-      'sources': [ 'addon.cc', 'WebRtcConnection.cc', 'OneToManyProcessor.cc', 'ExternalInput.cc', 'ExternalOutput.cc'],
+      'sources': [ 'addon.cc', 'ThreadPool.cc', 'WebRtcConnection.cc', 'OneToManyProcessor.cc', 'ExternalInput.cc', 'ExternalOutput.cc'],
       'include_dirs' : ["<!(node -e \"require('nan')\")", '$(ERIZO_HOME)/src/erizo', '$(ERIZO_HOME)/../build/libdeps/build/include'],
       'libraries': ['-L$(ERIZO_HOME)/build/erizo', '-lerizo'],
       'conditions': [
@@ -19,7 +19,7 @@
           'cflags!' : ['-fno-exceptions'],
           'cflags' : ['-D__STDC_CONSTANT_MACROS'],
           'cflags_cc' : ['-Wall', '-O3', '-g' , '-std=c++11', '-fexceptions'],
-          'cflags_cc!' : ['-fno-exceptions'], 
+          'cflags_cc!' : ['-fno-exceptions'],
           'cflags_cc!' : ['-fno-rtti']
         }],
         ]

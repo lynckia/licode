@@ -7,7 +7,7 @@ var amqper = require('./../common/amqper');
 // Logger
 var log = logger.getLogger('ErizoJSController');
 
-exports.ErizoJSController = function () {
+exports.ErizoJSController = function (threadPool) {
     var that = {},
         // {id: {subsId1: wrtc1, subsId2: wrtc2}}
         subscribers = {},
@@ -147,7 +147,7 @@ exports.ErizoJSController = function () {
         var associatedMetadata = wrtc.metadata || {};
         wrtc.close();
         log.info('message: WebRtcConnection status update, ' +
-            'id: ' + wrtc.wrtcId + ', status: ' + CONN_FINISHED + ', ' + 
+            'id: ' + wrtc.wrtcId + ', status: ' + CONN_FINISHED + ', ' +
                 logger.objectToLog(associatedMetadata));
     };
 
@@ -310,7 +310,7 @@ exports.ErizoJSController = function () {
                      logger.objectToLog(options.metadata));
             var wrtcId = from;
             muxer = new addon.OneToManyProcessor();
-            wrtc = new addon.WebRtcConnection(wrtcId,
+            wrtc = new addon.WebRtcConnection(threadPool, wrtcId,
                                               GLOBAL.config.erizo.stunserver,
                                               GLOBAL.config.erizo.stunport,
                                               GLOBAL.config.erizo.minport,
@@ -341,7 +341,7 @@ exports.ErizoJSController = function () {
                          'code: ' + WARN_CONFLICT + ', streamId: ' + from + ', ' +
                          logger.objectToLog(options.metadata));
 
-                wrtc = new addon.WebRtcConnection(from,
+                wrtc = new addon.WebRtcConnection(threadPool, from,
                                                   GLOBAL.config.erizo.stunserver,
                                                   GLOBAL.config.erizo.stunport,
                                                   GLOBAL.config.erizo.minport,
@@ -390,7 +390,7 @@ exports.ErizoJSController = function () {
         log.info('message: Adding subscriber, id: ' + wrtcId + ', ' +
                  logger.objectToLog(options)+
                   ', ' + logger.objectToLog(options.metadata));
-        var wrtc = new addon.WebRtcConnection(wrtcId,
+        var wrtc = new addon.WebRtcConnection(threadPool, wrtcId,
                                               GLOBAL.config.erizo.stunserver,
                                               GLOBAL.config.erizo.stunport,
                                               GLOBAL.config.erizo.minport,
@@ -498,7 +498,7 @@ exports.ErizoJSController = function () {
             }
         }
     };
-    
+
     /*
      * Enables/Disables slideshow mode for a subscriber
      */

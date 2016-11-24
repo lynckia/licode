@@ -5,6 +5,7 @@
 #include "WebRtcConnection.h"
 
 #include "lib/json.hpp"
+#include "ThreadPool.h"
 
 using v8::HandleScope;
 using v8::Function;
@@ -61,15 +62,16 @@ NAN_METHOD(WebRtcConnection::New) {
 
   if (info.IsConstructCall()) {
     // Invoked as a constructor with 'new WebRTC()'
-    v8::String::Utf8Value paramId(Nan::To<v8::String>(info[0]).ToLocalChecked());
+    ThreadPool* thread_pool = Nan::ObjectWrap::Unwrap<ThreadPool>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+    v8::String::Utf8Value paramId(Nan::To<v8::String>(info[1]).ToLocalChecked());
     std::string wrtcId = std::string(*paramId);
-    v8::String::Utf8Value param(Nan::To<v8::String>(info[1]).ToLocalChecked());
+    v8::String::Utf8Value param(Nan::To<v8::String>(info[2]).ToLocalChecked());
     std::string stunServer = std::string(*param);
-    int stunPort = info[2]->IntegerValue();
-    int minPort = info[3]->IntegerValue();
-    int maxPort = info[4]->IntegerValue();
-    bool trickle = (info[5]->ToBoolean())->BooleanValue();
-    v8::String::Utf8Value json_param(Nan::To<v8::String>(info[6]).ToLocalChecked());
+    int stunPort = info[3]->IntegerValue();
+    int minPort = info[4]->IntegerValue();
+    int maxPort = info[5]->IntegerValue();
+    bool trickle = (info[6]->ToBoolean())->BooleanValue();
+    v8::String::Utf8Value json_param(Nan::To<v8::String>(info[7]).ToLocalChecked());
     std::string media_config_string = std::string(*json_param);
     json media_config = json::parse(media_config_string);
     std::vector<erizo::RtpMap> rtp_mappings;
@@ -128,13 +130,13 @@ NAN_METHOD(WebRtcConnection::New) {
     }
 
     erizo::IceConfig iceConfig;
-    if (info.Length() == 11) {
-      v8::String::Utf8Value param2(Nan::To<v8::String>(info[7]).ToLocalChecked());
+    if (info.Length() == 12) {
+      v8::String::Utf8Value param2(Nan::To<v8::String>(info[8]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
-      int turnPort = info[8]->IntegerValue();
-      v8::String::Utf8Value param3(Nan::To<v8::String>(info[9]).ToLocalChecked());
+      int turnPort = info[9]->IntegerValue();
+      v8::String::Utf8Value param3(Nan::To<v8::String>(info[10]).ToLocalChecked());
       std::string turnUsername = std::string(*param3);
-      v8::String::Utf8Value param4(Nan::To<v8::String>(info[10]).ToLocalChecked());
+      v8::String::Utf8Value param4(Nan::To<v8::String>(info[11]).ToLocalChecked());
       std::string turnPass = std::string(*param4);
       iceConfig.turnServer = turnServer;
       iceConfig.turnPort = turnPort;
@@ -149,8 +151,10 @@ NAN_METHOD(WebRtcConnection::New) {
     iceConfig.maxPort = maxPort;
     iceConfig.shouldTrickle = trickle;
 
+    std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
+
     WebRtcConnection* obj = new WebRtcConnection();
-    obj->me = std::make_shared<erizo::WebRtcConnection>(wrtcId, iceConfig, rtp_mappings, obj);
+    obj->me = std::make_shared<erizo::WebRtcConnection>(worker, wrtcId, iceConfig, rtp_mappings, obj);
     obj->msink = obj->me.get();
     uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback);
     uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback);
