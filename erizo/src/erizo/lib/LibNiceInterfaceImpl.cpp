@@ -53,7 +53,13 @@ namespace erizo {
   }
   int LibNiceInterfaceImpl::NiceAgentSend(NiceAgent* agent, unsigned int stream_id, unsigned int component_id,
       unsigned int len, const char* buf) {
-    return nice_agent_send(agent, stream_id, component_id, len, buf);
+    GError *error = NULL;
+    GOutputVector vec[1] = {
+        { buf, len }
+    };
+    NiceOutputMessage message = {vec, G_N_ELEMENTS(vec)};
+
+    return nice_agent_send_messages_nonblocking(agent, stream_id, component_id, &message, 1, NULL, &error);
   }
 
 }  // namespace erizo
