@@ -22,23 +22,23 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
  public:
   DtlsTransport(MediaType med, const std::string& transport_name, const std::string& connection_id, bool bundle,
                 bool rtcp_mux, TransportListener *transportListener, const IceConfig& iceConfig, std::string username,
-                std::string password, bool isServer);
+                std::string password, bool isServer, std::shared_ptr<Worker> worker);
   virtual ~DtlsTransport();
   void connectionStateChanged(IceState newState);
   std::string getMyFingerprint();
   static bool isDtlsPacket(const char* buf, int len);
-  void start();
-  void close();
-  void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice);
-  void onCandidate(const CandidateInfo &candidate, NiceConnection *conn);
-  void write(char* data, int len);
-  void onDtlsPacket(dtls::DtlsSocketContext *ctx, const unsigned char* data, unsigned int len);
-  void writeDtlsPacket(dtls::DtlsSocketContext *ctx, const unsigned char* data, unsigned int len);
+  void start() override;
+  void close() override;
+  void onNiceData(packetPtr packet) override;
+  void onCandidate(const CandidateInfo &candidate, NiceConnection *conn) override;
+  void write(char* data, int len) override;
+  void onDtlsPacket(dtls::DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) override;
+  void writeDtlsPacket(dtls::DtlsSocketContext *ctx, packetPtr packet);
   void onHandshakeCompleted(dtls::DtlsSocketContext *ctx, std::string clientKey, std::string serverKey,
-                            std::string srtp_profile);
-  void onHandshakeFailed(dtls::DtlsSocketContext *ctx, const std::string error);
-  void updateIceState(IceState state, NiceConnection *conn);
-  void processLocalSdp(SdpInfo *localSdp_);
+                            std::string srtp_profile) override;
+  void onHandshakeFailed(dtls::DtlsSocketContext *ctx, const std::string error) override;
+  void updateIceState(IceState state, NiceConnection *conn) override;
+  void processLocalSdp(SdpInfo *localSdp_) override;
 
  private:
   char protectBuf_[5000];
@@ -47,9 +47,8 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   boost::mutex writeMutex_, sessionMutex_;
   boost::scoped_ptr<SrtpChannel> srtp_, srtcp_;
   bool readyRtp, readyRtcp;
-  bool running_, isServer_;
-  boost::scoped_ptr<Resender> rtcp_resender_, rtp_resender_;
-  boost::thread getNice_Thread_;
+  bool isServer_;
+  std::shared_ptr<Resender> rtcp_resender_, rtp_resender_;
   packetPtr p_;
 
   const unsigned int kMaxResends = 5;
@@ -65,7 +64,7 @@ class Resender {
   Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx, unsigned int resend_seconds,
       unsigned int max_resends);
   virtual ~Resender();
-  void ScheduleResend(const unsigned char* data, unsigned int len);
+  void ScheduleResend(packetPtr packet);
   void Run();
   void Cancel();
   void Resend(const boost::system::error_code& ec);
@@ -73,8 +72,7 @@ class Resender {
  private:
   DtlsTransport* transport_;
   dtls::DtlsSocketContext* socket_context_;
-  unsigned char data_[1500];
-  unsigned int len_;
+  packetPtr packet_;
   unsigned int resend_seconds_;
   unsigned int max_resends_;
 

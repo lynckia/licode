@@ -103,6 +103,7 @@ namespace erizo {
     ELOG_DEBUG("Remove subscriber %s", peerId.c_str());
     boost::mutex::scoped_lock lock(myMonitor_);
     if (this->subscribers.find(peerId) != subscribers.end()) {
+      this->subscribers.find(peerId)->second->close();
       this->subscribers.erase(peerId);
     }
   }

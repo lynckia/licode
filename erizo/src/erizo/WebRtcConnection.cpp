@@ -4,7 +4,6 @@
 
 #include <cstdio>
 #include <map>
-#include <queue>
 #include <algorithm>
 #include <string>
 #include <cstring>
@@ -105,20 +104,20 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
 
   if (bundle_) {
     videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
-                                            this, iceConfig_ , "", "", true));
+                                            this, iceConfig_ , "", "", true, worker_));
     videoTransport_->copyLogContextFrom(this);
     videoTransport_->start();
   } else {
     if (videoTransport_.get() == NULL && videoEnabled_) {
       // For now we don't re/check transports, if they are already created we leave them there
       videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
-                                              this, iceConfig_ , "", "", true));
+                                              this, iceConfig_ , "", "", true, worker_));
       videoTransport_->copyLogContextFrom(this);
       videoTransport_->start();
     }
     if (audioTransport_.get() == NULL && audioEnabled_) {
       audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
-                                              this, iceConfig_, "", "", true));
+                                              this, iceConfig_, "", "", true, worker_));
       audioTransport_->copyLogContextFrom(this);
       audioTransport_->start();
     }
@@ -159,7 +158,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
           ELOG_DEBUG("%s message: Creating videoTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, remoteSdp_.isRtcpMux,
-                                                  this, iceConfig_ , username, password, false));
+                                                  this, iceConfig_ , username, password, false, worker_));
           videoTransport_->copyLogContextFrom(this);
           videoTransport_->start();
         } else {
@@ -175,7 +174,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
           ELOG_DEBUG("%s message: Creating audioTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, remoteSdp_.isRtcpMux,
-                                                  this, iceConfig_, username, password, false));
+                                                  this, iceConfig_, username, password, false, worker_));
           audioTransport_->copyLogContextFrom(this);
           audioTransport_->start();
         } else {
@@ -631,17 +630,12 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
 
 // changes the outgoing payload type for in the given data packet
 void WebRtcConnection::sendPacketAsync(std::shared_ptr<dataPacket> packet) {
-  // if ((audioSink_ == NULL && videoSink_ == NULL && fbSink_ == NULL) || !sending_)
-    // we don't enqueue data if there is nothing to receive it
-    // return;
   if (!sending_) {
     return;
   }
   auto conn_ptr = shared_from_this();
   if (packet->comp == -1) {
     sending_ = false;
-    std::queue<std::shared_ptr<dataPacket>> empty;
-    std::swap(sendQueue_, empty);
     auto p = std::make_shared<dataPacket>();
     p->comp = -1;
     worker_->task([conn_ptr, p]{

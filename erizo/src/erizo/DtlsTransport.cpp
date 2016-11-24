@@ -6,6 +6,7 @@
 
 #include <string>
 #include <cstring>
+#include <memory>
 
 #include "./SrtpChannel.h"
 #include "rtp/RtpHeaders.h"
@@ -13,6 +14,7 @@
 
 using erizo::Resender;
 using erizo::DtlsTransport;
+using erizo::packetPtr;
 using dtls::DtlsSocketContext;
 
 DEFINE_LOGGER(DtlsTransport, "DtlsTransport");
@@ -40,12 +42,11 @@ void Resender::Cancel() {
   timer.cancel();
 }
 
-void Resender::ScheduleResend(const unsigned char* data, unsigned int len) {
+void Resender::ScheduleResend(packetPtr packet) {
   ELOG_DEBUG("message: Scheduling a new resender");
   timer.cancel();
-  memcpy(data_, data, len);
-  len_ = len;
-  transport_->writeDtlsPacket(socket_context_, data_, len_);
+  packet_ = packet;
+  transport_->writeDtlsPacket(socket_context_, packet_);
   if (thread_.get() != NULL) {
     ELOG_DEBUG("message: join thread before scheduling resend");
     thread_->join();
@@ -68,10 +69,10 @@ void Resender::Resend(const boost::system::error_code& ec) {
     return;
   }
 
-  if (transport_ != NULL) {
+  if (transport_ != nullptr) {
     if (max_resends_-- > 0) {
       ELOG_DEBUG("message: Resending DTLS message");
-      transport_->writeDtlsPacket(socket_context_, data_, len_);
+      transport_->writeDtlsPacket(socket_context_, packet_);
       timer.expires_from_now(boost::posix_time::seconds(resend_seconds_));
       timer.async_wait(boost::bind(&Resender::Resend, this, boost::asio::placeholders::error));
     } else {
@@ -83,10 +84,11 @@ void Resender::Resend(const boost::system::error_code& ec) {
 
 DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, const std::string& connection_id,
                             bool bundle, bool rtcp_mux, TransportListener *transportListener,
-                            const IceConfig& iceConfig, std::string username, std::string password, bool isServer):
-  Transport(med, transport_name, connection_id, bundle, rtcp_mux, transportListener, iceConfig),
+                            const IceConfig& iceConfig, std::string username, std::string password,
+                            bool isServer, std::shared_ptr<Worker> worker):
+  Transport(med, transport_name, connection_id, bundle, rtcp_mux, transportListener, iceConfig, worker),
   unprotect_packet_{std::make_shared<dataPacket>()},
-  readyRtp(false), readyRtcp(false), running_(false), isServer_(isServer) {
+  readyRtp(false), readyRtcp(false), isServer_(isServer) {
     ELOG_DEBUG("%s message: constructor, transportName:%s, isBundle:%d", toLog(), transport_name.c_str(), bundle);
     dtlsRtp.reset(new DtlsSocketContext());
 
@@ -120,8 +122,6 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     if (!rtcp_mux) {
       rtcp_resender_.reset(new Resender(this, dtlsRtcp.get(), kSecsPerResend, kMaxResends));
     }
-    running_ = true;
-    getNice_Thread_ = boost::thread(&DtlsTransport::getNiceDataLoop, this);
     ELOG_DEBUG("%s message: created", toLog());
   }
 
@@ -142,14 +142,16 @@ void DtlsTransport::start() {
 void DtlsTransport::close() {
   ELOG_DEBUG("%s message: closing", toLog());
   running_ = false;
-  nice_->setNiceListener(NULL);
   nice_->close();
   this->state_ = TRANSPORT_FINISHED;
-  getNice_Thread_.join();
   ELOG_DEBUG("%s message: closed", toLog());
 }
 
-void DtlsTransport::onNiceData(unsigned int component_id, char* data, int len, NiceConnection* nice) {
+void DtlsTransport::onNiceData(packetPtr packet) {
+  int len = packet->length;
+  char *data = packet->data;
+  unsigned int component_id = packet->comp;
+
   int length = len;
   SrtpChannel *srtp = srtp_.get();
   if (DtlsTransport::isDtlsPacket(data, len)) {
@@ -201,9 +203,9 @@ void DtlsTransport::onCandidate(const CandidateInfo &candidate, NiceConnection *
 }
 
 void DtlsTransport::write(char* data, int len) {
-  boost::mutex::scoped_lock lock(writeMutex_);
-  if (nice_ == NULL)
+  if (nice_ == nullptr || !running_) {
     return;
+  }
   int length = len;
   SrtpChannel *srtp = srtp_.get();
 
@@ -242,24 +244,29 @@ void DtlsTransport::write(char* data, int len) {
 }
 
 void DtlsTransport::onDtlsPacket(DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) {
-  int comp = 1;
-  if (ctx == dtlsRtcp.get()) {
-    comp = 2;
-    rtcp_resender_->ScheduleResend(data, len);
-  } else {
-    rtp_resender_->ScheduleResend(data, len);
-  }
+  bool is_rtcp = ctx == dtlsRtcp.get();
+  int component_id = is_rtcp ? 2 : 1;
+
+  packetPtr packet = std::make_shared<dataPacket>(component_id, data, len);
+
+  std::shared_ptr<Resender> resender = is_rtcp ? rtcp_resender_ : rtp_resender_;
+
+  resender->ScheduleResend(packet);
 
   ELOG_DEBUG("%s message: Sending DTLS message, transportName: %s, componentId: %d",
-             toLog(), transport_name.c_str(), comp);
+             toLog(), transport_name.c_str(), packet->comp);
 }
 
-void DtlsTransport::writeDtlsPacket(DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) {
-    int comp = 1;
-    if (ctx == dtlsRtcp.get()) {
-      comp = 2;
+void DtlsTransport::writeDtlsPacket(DtlsSocketContext *ctx, packetPtr packet) {
+  std::weak_ptr<Transport> weak_transport = shared_from_this();
+  worker_->task([ctx, weak_transport, packet] {
+    if (auto transport = weak_transport.lock()) {
+      char data[1500];
+      unsigned int len = packet->length;
+      memcpy(data, packet->data, len);
+      std::dynamic_pointer_cast<DtlsTransport>(transport)->writeOnNice(packet->comp, data, len);
     }
-    nice_->sendData(comp, data, len);
+  });
 }
 
 void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey, std::string serverKey,
@@ -347,19 +354,6 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
              toLog(), transport_name.c_str(), username.c_str(), password.c_str());
 }
 
-void DtlsTransport::getNiceDataLoop() {
-  while (running_) {
-    p_ = nice_->getPacket();
-    if (p_->length > 0) {
-      this->onNiceData(p_->comp, p_->data, p_->length, NULL);
-    }
-    if (p_->length == -1) {
-      ELOG_DEBUG("%s message: closing packet loop", toLog());
-      running_ = false;
-      return;
-    }
-  }
-}
 bool DtlsTransport::isDtlsPacket(const char* buf, int len) {
   int data = DtlsSocketContext::demuxPacket(reinterpret_cast<const unsigned char*>(buf), len);
   switch (data) {
