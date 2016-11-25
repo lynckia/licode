@@ -75,7 +75,7 @@ var controller = require('./erizoJSController');
 // Logger
 var log = logger.getLogger('ErizoJS');
 
-var threadPool = new addon.ThreadPool(10);
+var threadPool = new addon.ThreadPool(GLOBAL.config.erizo.numWorkers);
 threadPool.start();
 
 var ejsController = controller.ErizoJSController(threadPool);
