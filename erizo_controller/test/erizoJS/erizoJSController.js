@@ -157,7 +157,7 @@ describe('Erizo JS Controller', function() {
       controller.addPublisher(kArbitraryId, {}, callback);
 
       expect(erizoApiMock.OneToManyProcessor.callCount).to.equal(1);
-      expect(erizoApiMock.WebRtcConnection.args[0][0]).to.equal(kArbitraryId);
+      expect(erizoApiMock.WebRtcConnection.args[0][1]).to.equal(kArbitraryId);
       expect(erizoApiMock.WebRtcConnection.callCount).to.equal(1);
       expect(mocks.WebRtcConnection.wrtcId).to.equal(kArbitraryId);
       expect(mocks.WebRtcConnection.setAudioReceiver.args[0][0]).to.equal(mocks.OneToManyProcessor);
@@ -174,7 +174,7 @@ describe('Erizo JS Controller', function() {
       controller.addPublisher(kArbitraryId, {}, callback);
 
       expect(erizoApiMock.OneToManyProcessor.callCount).to.equal(1);
-      expect(erizoApiMock.WebRtcConnection.args[0][0]).to.equal(kArbitraryId);
+      expect(erizoApiMock.WebRtcConnection.args[0][1]).to.equal(kArbitraryId);
       expect(erizoApiMock.WebRtcConnection.callCount).to.equal(2);
       expect(mocks.WebRtcConnection.wrtcId).to.equal(kArbitraryId);
       expect(mocks.WebRtcConnection.setAudioReceiver.args[1][0]).to.equal(mocks.OneToManyProcessor);
@@ -305,7 +305,7 @@ describe('Erizo JS Controller', function() {
         controller.addSubscriber(kArbitraryId2, kArbitraryId, {}, subCallback);
 
         expect(erizoApiMock.WebRtcConnection.callCount).to.equal(2);
-        expect(erizoApiMock.WebRtcConnection.args[1][0]).to.equal(kArbitraryId2 +
+        expect(erizoApiMock.WebRtcConnection.args[1][1]).to.equal(kArbitraryId2 +
                                                             '_' + kArbitraryId);
         expect(mocks.WebRtcConnection.wrtcId).to.equal(kArbitraryId2 + '_' + kArbitraryId);
         expect(mocks.OneToManyProcessor.addSubscriber.callCount).to.equal(1);

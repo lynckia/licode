@@ -21,12 +21,12 @@
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
-WebRtcConnection::WebRtcConnection(const std::string& connection_id, const IceConfig& iceConfig,
-    std::vector<RtpMap> rtp_mappings, WebRtcConnectionEventListener* listener) :
+WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::string& connection_id,
+    const IceConfig& iceConfig, std::vector<RtpMap> rtp_mappings, WebRtcConnectionEventListener* listener) :
     connection_id_{connection_id}, remoteSdp_{SdpInfo(rtp_mappings)}, localSdp_{SdpInfo(rtp_mappings)},
         audioEnabled_{false}, videoEnabled_{false}, bundle_{false}, connEventListener_{listener},
         iceConfig_{iceConfig}, rtp_mappings_{rtp_mappings}, fec_receiver_{this}, pipeline_{Pipeline::create()},
-        worker_{std::make_shared<Worker>()} {
+        worker_{worker} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
   setVideoSinkSSRC(55543);
@@ -78,11 +78,9 @@ WebRtcConnection::~WebRtcConnection() {
 }
 
 void WebRtcConnection::close() {
-  worker_->close();
 }
 
 bool WebRtcConnection::init() {
-  worker_->start();
   rtcpProcessor_ = boost::shared_ptr<RtcpProcessor>(
                     new RtcpForwarder(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this)));
   if (connEventListener_ != NULL) {

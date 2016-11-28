@@ -7,12 +7,14 @@
 #include "OneToManyTranscoder.h"
 #include "ExternalInput.h"
 #include "ExternalOutput.h"
+#include "ThreadPool.h"
 
 NAN_MODULE_INIT(InitAll) {
   WebRtcConnection::Init(target);
   OneToManyProcessor::Init(target);
   ExternalInput::Init(target);
   ExternalOutput::Init(target);
+  ThreadPool::Init(target);
 }
 
 NODE_MODULE(addon, InitAll)

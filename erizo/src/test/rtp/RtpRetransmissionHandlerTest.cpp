@@ -28,11 +28,12 @@ using erizo::WebRtcConnection;
 using erizo::Pipeline;
 using erizo::InboundHandler;
 using erizo::OutboundHandler;
+using erizo::Worker;
 
 class MockWebRtcConnection: public WebRtcConnection {
  public:
   MockWebRtcConnection(const IceConfig &ice_config, const std::vector<RtpMap> rtp_mappings) :
-    WebRtcConnection("", ice_config, rtp_mappings, nullptr) {}
+    WebRtcConnection(std::make_shared<Worker>(), "", ice_config, rtp_mappings, nullptr) {}
 
   virtual ~MockWebRtcConnection() {
   }

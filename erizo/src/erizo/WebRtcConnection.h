@@ -64,7 +64,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    * Constructor.
    * Constructs an empty WebRTCConnection without any configuration.
    */
-  WebRtcConnection(const std::string& connection_id, const IceConfig& iceConfig,
+  WebRtcConnection(std::shared_ptr<Worker> worker, const std::string& connection_id, const IceConfig& iceConfig,
       const std::vector<RtpMap> rtp_mappings, WebRtcConnectionEventListener* listener);
   /**
    * Destructor.
