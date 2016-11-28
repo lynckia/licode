@@ -30,31 +30,84 @@ This features carries changes in:
 
   - When a subscribed Stream is removed, Erizo will send a new Offer/SDP removing the info of the corresponding Stream.
 
+Both Erizo Client and Erizo Controler might decide not to use Single PC for the next reasons:
+
+  - The browser does not support single peer connection.
+
+  - Erizo Controller decides that for scalability purposes it is preferable to use another ErizoJS and so, different Peer Connections.
+
 In terms of message flow, current solution with Multiple Peer Connections is as follows:
 
-![multiple-pcs](https://www.websequencediagrams.com/cgi-bin/cdraw?lz=dGl0bGUgTXVsdGlwbGUgUGVlciBDb25uZWN0aW9uCgpub3RlIGxlZnQgb2YgQ2xpZW50OiBwdWJsaXNoKHN0cmVhbTEpCgATBi0-TGljb2RlABgJIAAaBwoAEgYtPgA5CG9mZmVyACURYW5zdwAOCTwARApJQ0UgTmVnb3RpYQCBEAUAEBFEVExTIEhhbmRzaGFrZQCBHhdzdWJzY3JpYmUAgTAHMgCBJRIAGgkAgTIHMgCBCy4AUiY0AFYiMwBJLw&s=rose)
+![Multiple Peer Connections](http://g.gravizo.com/g?
+@startuml;
+actor User;
+participant "Erizo Client" as Client;
+participant "Erizo Controller" as EC;
+User->Client: publish stream1;
+Client->EC: publish stream1;
+Client<-EC: offer;
+Client->EC: answer;
+Client<->EC: ICE Negotiation;
+Client<->EC: DTLS Negotiation;
+User->Client: subscribe stream2;
+Client->EC: publish stream2;
+Client<-EC: offer;
+Client->EC: answer;
+Client<->EC: ICE Negotiation;
+Client<->EC: DTLS Negotiation;
+User->Client: subscribe stream3;
+Client->EC: publish stream3;
+Client<-EC: offer;
+Client->EC: answer;
+Client<->EC: ICE Negotiation;
+Client<->EC: DTLS Negotiation;
+@enduml
+)
 
 And with the new solution with Single Peer Connection it will be like the next figure:
 
-![single-pc](https://www.websequencediagrams.com/cgi-bin/cdraw?lz=dGl0bGUgU2luZ2xlIFBlZXIgQ29ubmVjdGlvbgoKbm90ZSBsZWZ0IG9mIENsaWVudDogcHVibGlzaChzdHJlYW0xKQoAEwYtPkxpY29kZQAYCSAAGgcKABIGLT4AOQhvZmZlcgAlEWFuc3dlcgBdF3N1YnNjcmliZQBvBzIAZBIAGgkAcQcyACRUNABWIjMAgUEv&s=rose)
+![Single Peer Connection](http://g.gravizo.com/g?
+@startuml;
+actor User;
+participant "Erizo Client" as Client;
+participant "Erizo Controller" as EC;
+User->Client: publish stream1;
+Client->EC: publish stream1;
+Client<-EC: offer;
+Client->EC: answer;
+Client<->EC: ICE Negotiation;
+Client<->EC: DTLS Negotiation;
+User->Client: subscribe stream2;
+Client->EC: publish stream2;
+Client<-EC: offer;
+Client->EC: answer;
+User->Client: subscribe stream3;
+Client->EC: publish stream3;
+Client<-EC: offer;
+Client->EC: answer;
+@enduml
+)
 
 ### How does it affect Erizo Client?
-Streams will be added to existing Peer Connections, and will need to keep track of the existing Peer Connections to decide whenever we receive an Offer if we need to create a new Peer Connection or update an existing one.
+Streams will be added to existing Peer Connections, and will need to keep track of the existing Peer Connections to decide whenever a user wants to publish/subscribe to a new Stream if we need to create a new Peer Connection or update an existing one. It will also depends on the offer received from Erizo.
 
 Erizo Client will be told to use Single Peer Connection or Multiple Peer Connections.
+
+So, if Erizo Client detects that the browser supports Single PC it will send a publish/subscribe message to Erizo Controller with a Single PC request.
 
 ### How does it affect Nuve?
 It does not affect Nuve.
 
 ### How does it affect Erizo Controller / Erizo Agent / Erizo JS?
 We will create a new policy for Erizo Controller Cloud Handler, to make sure we reuse ErizoJS in the same rooms.
+Erizo Controller will receive a publish/subscribe message with the Single PC request. Based on the policy used it will finally accept Single PC or not and will send the corresponding offer.
 
 It affects Erizo Agent because it needs to choose the same ErizoJS for streams in the same room, according to the policy.
 
 It affects Erizo JS because there will be a new object called Streams, and we will add Streams to WebRtcConnections.
 
 ### How does it affect ErizoAPI / Erizo?
-Much functionality inside WebRtcConnection will be moved to Stream. And WebRtcConnection will handle Streams directly.
+Much functionality inside WebRtcConnection will be moved to Stream. And WebRtcConnection will handle Streams directly. The new architecture should be compatible with Single and Multiple PC.
 
 ## Additional considerations
 This will change the way we currently assign ErizoJS to Streams.
