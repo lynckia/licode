@@ -6,6 +6,8 @@
 
 #include <chrono>  // NOLINT
 #include <map>
+#include <mutex>  // NOLINT
+#include <condition_variable>  // NOLINT
 
 //
 // Simple class for background tasks that should be run
