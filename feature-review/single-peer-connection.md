@@ -156,7 +156,6 @@ And here we can see the proposal to change them:
 @startuml;
 Stream<--WebRtcConnection;
 Stream<--OneToManyProcessor;
-WebRtcConnection<--OneToManyProcessor;
 DtlsTransport<--WebRtcConnection;
 WebRtcConnection : -StreamList streams;
 WebRtcConnection : -DtlsTransport rtp;
