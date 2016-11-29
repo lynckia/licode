@@ -134,6 +134,56 @@ endif;
 @enduml
 )
 
+#### Coud Handler Policy
+
+There should be a new ErizoController Cloud Handler policy that takes into account these new requirements:
+
+```js
+/*
+Params
+
+roomId: string,
+agents: object with the available agents
+  agent_id : {
+    info: {
+      id: String,
+      rpc_id: String
+    },
+    metadata: Object,
+    stats: {
+      perc_cpu: Int
+    },
+    timeout: Int		// number of periods during the agent has not respond
+  }
+
+Returns
+rpc_id: agent.info.rpc_id field of the selected agent.
+
+*/
+
+var hash = function(roomId) {
+  var hash = 0, i, chr, len;
+  if (this.length === 0) return hash;
+  for (i = 0, len = roomId.length; i < len; i++) {
+    chr   = roomId.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
+
+exports.getErizoAgent = function (roomId, agents) {
+  return agents[hash(roomId) % agents.length].info.rpc_id;
+};
+```
+
+Note that we should add `roomId` to the function call in order to make it work. The `hash` function is good enough to make sure we always
+get the same ErizoAgent.
+
+Additionally, we should call `createErizoJS` with the roomId to let ErizoAgent do a similar hash function to choose the same ErizoJS.
+
+Any other similar solution should be considered when implementing this feature.
+
 ### How does it affect ErizoAPI / Erizo?
 Much functionality inside WebRtcConnection will be moved to Stream. And WebRtcConnection will handle Streams directly. The new architecture should be compatible with Single and Multiple PC.
 
