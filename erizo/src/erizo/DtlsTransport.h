@@ -59,7 +59,7 @@ class Resender {
 
   // These values follow recommendations from section 4.2.4.1 in https://tools.ietf.org/html/rfc4347
   const unsigned int kMaxResends = 6;
-  const unsigned int kSecsPerResend = 1;
+  const unsigned int kInitialSecsPerResend = 1;
 
  public:
   Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx);

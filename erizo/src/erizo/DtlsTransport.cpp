@@ -24,7 +24,7 @@ using std::memcpy;
 
 Resender::Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx)
     : transport_(transport), socket_context_(ctx),
-      resend_seconds_(kSecsPerResend), max_resends_(kMaxResends) {
+      resend_seconds_(kInitialSecsPerResend), max_resends_(kMaxResends) {
 }
 
 Resender::~Resender() {
@@ -40,7 +40,7 @@ void Resender::cancel() {
 void Resender::scheduleResend(packetPtr packet) {
   ELOG_DEBUG("message: Scheduling a new resender");
   transport_->getWorker()->unschedule(scheduled_task_);
-  resend_seconds_ = kSecsPerResend;
+  resend_seconds_ = kInitialSecsPerResend;
   packet_ = packet;
   transport_->writeDtlsPacket(socket_context_, packet_);
   scheduleNext();

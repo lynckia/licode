@@ -31,14 +31,15 @@ void Scheduler::serviceQueue() {
       }
 
       while (!stop_requested_ && !task_queue_.empty() &&
-      new_task_scheduled_.wait_until(lock, task_queue_.begin()->first) != std::cv_status::timeout) {
+             new_task_scheduled_.wait_until(lock, task_queue_.begin()->first) != std::cv_status::timeout) {
       }
       if (stop_requested_) {
         break;
       }
 
-      if (task_queue_.empty())
-      continue;
+      if (task_queue_.empty()) {
+        continue;
+      }
 
       Function f = task_queue_.begin()->second;
       task_queue_.erase(task_queue_.begin());
@@ -70,6 +71,8 @@ void Scheduler::stop(bool drain) {
 void Scheduler::schedule(Scheduler::Function f, std::chrono::system_clock::time_point t) {
   {
     std::unique_lock<std::mutex> lock(new_task_mutex_);
+    // Pairs in this multimap are sorted by the Key value, so begin() will always point to the
+    // earlier task
     task_queue_.insert(std::make_pair(t, f));
   }
   new_task_scheduled_.notify_one();
