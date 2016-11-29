@@ -170,9 +170,11 @@ Stream : +onPacketReceived%28%29;
 @enduml;
 )
 
-In summary, WebRtcConnection will be the object to gather all Streams that receive/send data from/to the same DtlsTransport (connection). In Multiple Peer Connection cases there will be just one Stream per WebRtcConnection. Otherwise, there will be multiple Streams. WebRtcConnection will then control DtlsTransport, to start/stop it whenever it has 1+ or 0 running streams. Finally, each Stream will have its own Worker to separate processing time and scale better to the number of streams per each connection.
+In summary, *WebRtcConnection will gather all Streams* that receive/send data from/to the same DtlsTransport (connection). In Multiple Peer Connection cases there will be just one Stream per WebRtcConnection. Otherwise, there will be multiple Streams. *WebRtcConnection will then control DtlsTransport*, to start/stop it whenever it has 1+ or 0 running streams. Finally, each *Stream will have its own Pipeline and Worker* to separate processing time and scale better to the number of streams per each connection.
 
 All the logic to create/delete streams/webrtcconnections/onetomanyprocessors will still be placed in ErizoJS, so we need to add this logic there.
+
+Given that REMB values are related to the whole transport, it will be desired to implement *RTCP aggregation*.
 
 ## Additional considerations
 This will change the way we currently assign ErizoJS to Streams.
