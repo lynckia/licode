@@ -14,6 +14,7 @@ Scheduler::Scheduler(int n_threads_servicing_queue)
 }
 
 Scheduler::~Scheduler() {
+  stop(false);
   assert(n_threads_servicing_queue_ == 0);
 }
 
@@ -56,10 +57,11 @@ void Scheduler::serviceQueue() {
 void Scheduler::stop(bool drain) {
   {
     std::unique_lock<std::mutex> lock(new_task_mutex_);
-    if (drain)
-    stop_when_empty_ = true;
-    else
-    stop_requested_ = true;
+    if (drain) {
+      stop_when_empty_ = true;
+    } else {
+      stop_requested_ = true;
+    }
   }
   new_task_scheduled_.notify_all();
   group_.join_all();
