@@ -118,17 +118,17 @@ It affects Erizo JS because there will be a new object called Streams, and we wi
   endif;
   --> "Send a single PC request to ErizoJS" as create_spc;
   --> if "Does ErizoJS contain a PC yet?" then;
-    ->[true] ===ADD_STREAM===;
+    -down->[true] ===ADD_STREAM===;
   else;
-    ->[false] "Create WebRtcConnection";
+    ->[false] "Create WebRtcConnection" as create_pc;
     --> ===ADD_STREAM===;
   endif;
   --> "Add stream to WebRtcConnection";
+  --> "Send Answer" as answer;
 else;
-  ->[false] "Send a multiple PC request to ErizoJS" as create_mpc;
+  ->[false] "Send a multiple PC request to ErizoJS";
+  --> create_pc;
 endif;
-create_mpc --> "Create WebRtcConnection and add stream" as mpc;
---> answer;
 @enduml
 )
 
