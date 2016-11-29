@@ -93,6 +93,10 @@ class Transport : public std::enable_shared_from_this<Transport>, public NiceCon
     return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
   }
 
+  std::shared_ptr<Worker> getWorker() {
+    return worker_;
+  }
+
  private:
   TransportListener *transpListener_;
 

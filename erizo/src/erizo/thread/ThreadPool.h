@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "thread/Worker.h"
+#include "thread/Scheduler.h"
 
 namespace erizo {
 
@@ -19,6 +20,7 @@ class ThreadPool {
 
  private:
   std::vector<std::shared_ptr<Worker>> workers_;
+  std::shared_ptr<Scheduler> scheduler_;
 };
 }  // namespace erizo
 

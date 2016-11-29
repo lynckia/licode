@@ -2,12 +2,15 @@
 
 #include <memory>
 
+constexpr int kNumThreadsPerScheduler = 2;
+
 using erizo::ThreadPool;
 using erizo::Worker;
 
-ThreadPool::ThreadPool(unsigned int num_workers) : workers_{} {
+ThreadPool::ThreadPool(unsigned int num_workers)
+    : workers_{}, scheduler_{std::make_shared<Scheduler>(kNumThreadsPerScheduler)} {
   for (unsigned int index = 0; index < num_workers; index++) {
-    workers_.push_back(std::make_shared<Worker>());
+    workers_.push_back(std::make_shared<Worker>(scheduler_));
   }
 }
 
@@ -35,4 +38,5 @@ void ThreadPool::close() {
   for (auto worker : workers_) {
     worker->close();
   }
+  scheduler_->stop(true);
 }
