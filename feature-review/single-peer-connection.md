@@ -108,15 +108,14 @@ It affects Erizo JS because there will be a new object called Streams, and we wi
 
 ![Erizo Controller Logic](http://g.gravizo.com/g?
 @startuml;
-%28*%29 --> if "Single PC request from client?" then;
-  -->[true] "Check Cloud Handler";
-  if "Can  we reuse a ErizoJS?" then;
-    -down->[true] ===SEND_SPC===;
-  else;
-    -right-->[false] "Create another ErizoJS" as create_erizojs;
-    --> ===SEND_SPC===;
-  endif;
-  --> "Send a single PC request to ErizoJS" as create_spc;
+%28*%29 --> if "Can  we reuse a ErizoJS?" then;
+  -->[true] ===SEND_SPC===;
+else;
+  -->[false] "Create another ErizoJS" as create_erizojs;
+  --> ===SEND_SPC===;
+endif;
+if "Single PC request from client?" then;
+  -->[true] "Send a single PC request to ErizoJS" as create_spc;
   --> if "Does ErizoJS contain a PC yet?" then;
     -down->[true] ===ADD_STREAM===;
   else;
