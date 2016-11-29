@@ -95,6 +95,8 @@ Erizo Client will be told to use Single Peer Connection or Multiple Peer Connect
 
 So, if Erizo Client detects that the browser supports Single PC it will send a publish/subscribe message to Erizo Controller with a Single PC request.
 
+It should also be in charge of absorbing the *implementation differences in the browsers*. For instance, there is Plan B (Chrome) and Unified Plan (standard, Firefox), but there are libraries that could help us implementing such compatibility between them.
+
 ### How does it affect Nuve?
 It does not affect Nuve.
 
@@ -108,7 +110,8 @@ It affects Erizo JS because there will be a new object called Streams, and we wi
 
 ![Erizo Controller Logic](http://g.gravizo.com/g?
 @startuml;
-%28*%29 --> if "Can  we reuse a ErizoJS?" then;
+%28*%29 --> "Check Cloud Handler Policy";
+  -> if "Can  we reuse a ErizoJS?" then;
   -->[true] ===SEND_SPC===;
 else;
   -->[false] "Create another ErizoJS" as create_erizojs;
