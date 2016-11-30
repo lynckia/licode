@@ -10,6 +10,8 @@ cache:
   - cache
 node_js:
   - 0.10
+  - 4
+  - 6
 services:
   - mongodb
   - rabbitmq
@@ -42,7 +44,7 @@ before_install:
 
   # LINUX
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./scripts/installTravisDeps.sh && export CC="/usr/bin/gcc-5" && export CXX="/usr/bin/g++-5" ; fi
-install: 
+install:
   - ./scripts/installErizo.sh && ./scripts/installNuve.sh && npm install
 script:
   - ./scripts/installErizo.sh -t
