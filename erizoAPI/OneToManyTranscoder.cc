@@ -15,53 +15,54 @@ Nan::Persistent<Function> OneToManyTranscoder::constructor;
 
 // Classes for Async (not in node main thread) operations
 class AsyncDeleter : public Nan::AsyncWorker {
-  public:
-    AsyncDeleter (erizo::OneToManyTranscoder* ott, Nan::Callback *callback):
-      AsyncWorker(callback), ottToDelete_(ott){
-      }
-    ~AsyncDeleter() {}
-    void Execute(){
-      delete ottToDelete_;
-    }
-    void HandleOKCallback() {
-      HandleScope scope;
-      std::string msg("OK");
-      if (callback){
-        Local<Value> argv[] = {
-          Nan::New(msg.c_str()).ToLocalChecked()
-        };
+ public:
+  AsyncDeleter(erizo::OneToManyTranscoder* ott, Nan::Callback *callback) :
+    AsyncWorker(callback), ottToDelete_(ott) {
+  }
+  ~AsyncDeleter() {}
+  void Execute() {
+    delete ottToDelete_;
+  }
+  void HandleOKCallback() {
+    HandleScope scope;
+    std::string msg("OK");
+    if (callback) {
+      Local<Value> argv[] = {
+        Nan::New(msg.c_str()).ToLocalChecked()
+      };
 
-        callback->Call(1, argv);
-      }
+      callback->Call(1, argv);
     }
-  private:
-    erizo::OneToManyTranscoder* ottToDelete_;
-    Nan::Callback* callback_;
+  }
+ private:
+  erizo::OneToManyTranscoder* ottToDelete_;
+  Nan::Callback* callback_;
 };
 
 class AsyncRemoveSubscriber : public Nan::AsyncWorker{
-  public:
-    AsyncRemoveSubscriber(erizo::OneToManyTranscoder* ott, const std::string& peerId, Nan::Callback *callback):
-      AsyncWorker(callback), ott_(ott), peerId_(peerId), callback_(callback){
-      }
-    ~AsyncRemoveSubscriber() {}
-    void Execute() {
-      ott_->removeSubscriber(peerId_);
+ public:
+  AsyncRemoveSubscriber(erizo::OneToManyTranscoder* ott, const std::string& peerId, Nan::Callback *callback):
+    AsyncWorker(callback), ott_(ott), peerId_(peerId), callback_(callback) {
     }
-    void HandleOKCallback() {
-      //We're not doing anything here ATM
-    }
-  private:
-    erizo::OneToManyTranscoder* ott_;
-    std::string peerId_;
-    Nan::Callback* callback_;
+  ~AsyncRemoveSubscriber() {}
+  void Execute() {
+    ott_->removeSubscriber(peerId_);
+  }
+  void HandleOKCallback() {
+    // We're not doing anything here ATM
+  }
+
+ private:
+  erizo::OneToManyTranscoder* ott_;
+  std::string peerId_;
+  Nan::Callback* callback_;
 };
 
 
 OneToManyTranscoder::OneToManyTranscoder() {}
 OneToManyTranscoder::~OneToManyTranscoder() {}
 
-NAN_MODULE_INIT (OneToManyTranscoder::Init) {
+NAN_MODULE_INIT(OneToManyTranscoder::Init) {
   // Prepare constructor template
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("OneToManyTranscoder").ToLocalChecked());
