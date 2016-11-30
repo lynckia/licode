@@ -48,11 +48,8 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   boost::scoped_ptr<SrtpChannel> srtp_, srtcp_;
   bool readyRtp, readyRtcp;
   bool isServer_;
-  std::shared_ptr<Resender> rtcp_resender_, rtp_resender_;
+  std::unique_ptr<Resender> rtcp_resender_, rtp_resender_;
   packetPtr p_;
-
-  const unsigned int kMaxResends = 5;
-  const unsigned int kSecsPerResend = 3;
 
   void getNiceDataLoop();
 };
@@ -60,14 +57,19 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
 class Resender {
   DECLARE_LOGGER();
 
+  // These values follow recommendations from section 4.2.4.1 in https://tools.ietf.org/html/rfc4347
+  const unsigned int kMaxResends = 6;
+  const unsigned int kInitialSecsPerResend = 1;
+
  public:
-  Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx, unsigned int resend_seconds,
-      unsigned int max_resends);
+  Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx);
   virtual ~Resender();
-  void ScheduleResend(packetPtr packet);
-  void Run();
-  void Cancel();
-  void Resend(const boost::system::error_code& ec);
+  void scheduleResend(packetPtr packet);
+  void cancel();
+
+ private:
+  void scheduleNext();
+  void resend();
 
  private:
   DtlsTransport* transport_;
@@ -75,10 +77,7 @@ class Resender {
   packetPtr packet_;
   unsigned int resend_seconds_;
   unsigned int max_resends_;
-
-  boost::asio::io_service service;
-  boost::asio::deadline_timer timer;
-  boost::scoped_ptr<boost::thread> thread_;
+  int scheduled_task_ = -1;
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_DTLSTRANSPORT_H_

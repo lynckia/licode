@@ -1,11 +1,13 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-// Headers for RtpPacketQueue.h tests
+#include <thread/Scheduler.h>
 #include <rtp/RtpRetransmissionHandler.h>
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
+
+#include <vector>
 
 static constexpr uint16_t kVideoSsrc = 1;
 static constexpr uint16_t kAudioSsrc = 2;
@@ -32,8 +34,9 @@ using erizo::Worker;
 
 class MockWebRtcConnection: public WebRtcConnection {
  public:
-  MockWebRtcConnection(const IceConfig &ice_config, const std::vector<RtpMap> rtp_mappings) :
-    WebRtcConnection(std::make_shared<Worker>(), "", ice_config, rtp_mappings, nullptr) {}
+  MockWebRtcConnection(std::shared_ptr<Worker> worker, const IceConfig &ice_config,
+                       const std::vector<RtpMap> rtp_mappings) :
+    WebRtcConnection(worker, "", ice_config, rtp_mappings, nullptr) {}
 
   virtual ~MockWebRtcConnection() {
   }
@@ -55,7 +58,9 @@ class RtpRetransmissionHandlerTest : public ::testing::Test {
 
  protected:
   virtual void SetUp() {
-    connection = std::make_shared<MockWebRtcConnection>(ice_config, rtp_maps);
+    scheduler = std::make_shared<Scheduler>(1);
+    worker = std::make_shared<Worker>(scheduler);
+    connection = std::make_shared<MockWebRtcConnection>(worker, ice_config, rtp_maps);
 
     connection->setVideoSinkSSRC(kVideoSsrc);
     connection->setAudioSinkSSRC(kAudioSsrc);
@@ -110,6 +115,8 @@ class RtpRetransmissionHandlerTest : public ::testing::Test {
   std::shared_ptr<Reader> reader;
   std::shared_ptr<Writer> writer;
   std::shared_ptr<RtpRetransmissionHandler> rtx_handler;
+  std::shared_ptr<Worker> worker;
+  std::shared_ptr<Scheduler> scheduler;
 };
 
 MATCHER_P(HasSequenceNumber, seq_num, "") {
