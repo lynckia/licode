@@ -609,10 +609,10 @@ namespace erizo {
       if (isSetup != std::string::npos) {
         std::vector<std::string> parts;
         parts = stringutil::splitOneOf(line, ":", 1);
-        if (parts[1].compare("passive ") == 0) {
+        if (parts[1].find("passive") != std::string::npos) {
           ELOG_DEBUG("Dtls passive");
           dtlsRole = PASSIVE;
-        } else if (parts[1].compare("active ") == 0) {
+        } else if (parts[1].find("active") != std::string::npos) {
           ELOG_DEBUG("Dtls active");
           dtlsRole = ACTIVE;
         } else {
