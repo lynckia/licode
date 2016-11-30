@@ -262,36 +262,35 @@ for (k in interfaces) {
 
 privateIP = addresses[0];
 
-if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicIP === undefined){
+if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicIP === undefined) {
     publicIP = addresses[0];
-    if(global.config.cloudProvider.name === 'amazon'){
-        var opt = {version: '2012-12-01'};
-        if (GLOBAL.config.cloudProvider.host !== '') {
-            opt.host = GLOBAL.config.cloudProvider.host;
-        }
-        var ec2 = require('aws-lib').createEC2Client(GLOBAL.config.cloudProvider.accessKey,
-                                                 GLOBAL.config.cloudProvider.secretAccessKey,
-                                                 opt);
-        ec2.call('DescribeInstances', {'Filter.1.Name': 'private-ip-address',
-                                       'Filter.1.Value': privateIP},
-                                       function (err, response) {
+
+    if (global.config.cloudProvider.name === 'amazon') {
+        var AWS = require('aws-sdk');
+        new AWS.MetadataService({
+            httpOptions: {
+                timeout: 5000
+            }
+        }).request('/latest/meta-data/public-ipv4', function(err, data) {
             if (err) {
-                log.error('message: EC2 call error, error:', err);
-            } else if (response) {
-                publicIP = response.reservationSet.item.instancesSet.item.ipAddress;
-                log.info('message: Public IP form ec2, publicIp: ' + publicIP);
+                log.info('Error: ', err);
+            } else {
+                log.info('Got public ip: ', data);
+                publicIP = data;
+                fillErizos();
             }
         });
+    } else {
+        fillErizos();
     }
 } else {
     publicIP = GLOBAL.config.erizoAgent.publicIP;
+    fillErizos();
 }
 
 // Will clean all erizoJS on those signals
 process.on('SIGINT', cleanErizos);
 process.on('SIGTERM', cleanErizos);
-
-fillErizos();
 
 amqper.connect(function () {
     amqper.setPublicRPC(api);
