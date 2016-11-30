@@ -18,10 +18,6 @@ config.logger.configFile = '../log4js_configuration.json'; //default value: "../
 **********************************************************/
 config.cloudProvider = {};
 config.cloudProvider.name = '';
-//In Amazon Ec2 instances you can specify the zone host. By default is 'ec2.us-east-1a.amazonaws.com'
-config.cloudProvider.host = '';
-config.cloudProvider.accessKey = '';
-config.cloudProvider.secretAccessKey = '';
 
 /*********************************************************
  NUVE CONFIGURATION
