@@ -8,6 +8,7 @@
 #include <map>
 #include <mutex>  // NOLINT
 #include <condition_variable>  // NOLINT
+#include <atomic>
 
 //
 // Simple class for background tasks that should be run

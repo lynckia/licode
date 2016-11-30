@@ -3,6 +3,7 @@
 
 #include <thread/Scheduler.h>
 
+#include <atomic>
 #include <chrono>  // NOLINT
 #include <string>
 #include <vector>
