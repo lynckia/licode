@@ -7,8 +7,10 @@
 
 
 Scheduler::Scheduler(int n_threads_servicing_queue)
-: n_threads_servicing_queue_(0), stop_requested_(false), stop_when_empty_(false) {
-  for (unsigned int index = 0; index < n_threads_servicing_queue; index++) {
+: n_threads_servicing_queue_(n_threads_servicing_queue), stop_requested_(false), stop_when_empty_(false) {
+  stop_requested_ = false;
+  stop_when_empty_ = false;
+  for (int index = 0; index < n_threads_servicing_queue; index++) {
     group_.create_thread(boost::bind(&Scheduler::serviceQueue, this));
   }
 }
@@ -20,9 +22,6 @@ Scheduler::~Scheduler() {
 
 void Scheduler::serviceQueue() {
   std::unique_lock<std::mutex> lock(new_task_mutex_);
-  ++n_threads_servicing_queue_;
-  stop_requested_ = false;
-  stop_when_empty_ = false;
 
   while (!stop_requested_ && !(stop_when_empty_ && task_queue_.empty())) {
     try {

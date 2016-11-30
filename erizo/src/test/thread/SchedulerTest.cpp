@@ -51,7 +51,7 @@ TEST_P(SchedulerTest, execute_a_simple_task) {
   counter_limit = 1;
   scheduleCounterIncrement(20);
 
-  auto reason = wait_until(50);
+  auto reason = wait_until(100);
 
   EXPECT_THAT(reason, Not(Eq(std::cv_status::timeout)));
   EXPECT_THAT(counter, Eq(counter_limit));
@@ -64,7 +64,7 @@ TEST_P(SchedulerTest, execute_multiple_concurrent_tasks) {
   scheduleCounterIncrement(20);
   scheduleCounterIncrement(20);
 
-  auto reason = wait_until(50);
+  auto reason = wait_until(100);
 
   EXPECT_THAT(reason, Not(Eq(std::cv_status::timeout)));
   EXPECT_THAT(counter, Eq(counter_limit));
@@ -77,7 +77,7 @@ TEST_P(SchedulerTest, execute_tasks_on_different_times) {
   scheduleCounterIncrement(60);
   scheduleCounterIncrement(80);
 
-  auto reason = wait_until(160);
+  auto reason = wait_until(200);
 
   EXPECT_THAT(reason, Not(Eq(std::cv_status::timeout)));
   EXPECT_THAT(counter, Eq(counter_limit));
@@ -107,8 +107,8 @@ TEST_P(SchedulerTest, stop_can_avoid_draining_scheduled_tasks) {
 }
 
 TEST_P(SchedulerTest, destroy_does_not_drain_tasks) {
-  scheduleCounterIncrement(100);
   scheduleCounterIncrement(300);
+  scheduleCounterIncrement(600);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
