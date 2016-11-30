@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`
 PATHNAME=`dirname $SCRIPT`
@@ -29,15 +32,15 @@ check_result() {
 
 install_apt_deps(){
   npm install -g node-gyp
-  sudo chown -R `whoami` ~/.npm ~/tmp/
+  sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O http://www.openssl.org/source/openssl-1.0.1g.tar.gz
-    tar -zxvf openssl-1.0.1e.tar.gz > /dev/null 2> /dev/null
-    cd openssl-1.0.1e
+    curl -O https://www.openssl.org/source/openssl-1.0.1l.tar.gz
+    tar -zxvf openssl-1.0.1l.tar.gz > /dev/null 2> /dev/null
+    cd openssl-1.0.1l
     ./config --prefix=$PREFIX_DIR -fPIC && make -s V=0 && make install
     check_result $?
     cd $CURRENT_DIR
@@ -50,11 +53,9 @@ install_openssl(){
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
-    tar -zxvf libnice-0.1.4.tar.gz
-    cd libnice-0.1.4
-    patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0 && patch -p1 < $PATHNAME/libnice-014.patch1
-    check_result $?
+    curl -O https://nice.freedesktop.org/releases/libnice-0.1.13.tar.gz
+    tar -zxvf libnice-0.1.13.tar.gz
+    cd libnice-0.1.13
     ./configure --prefix=$PREFIX_DIR && make -s V=0 && make install
     check_result $?
     cd $CURRENT_DIR
@@ -117,8 +118,6 @@ install_libsrtp(){
 }
 
 parse_arguments $*
-
-ls ./build/libdeps/
 
 mkdir -p $PREFIX_DIR
 

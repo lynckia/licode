@@ -1,5 +1,5 @@
-#ifndef ONETOMANYTRANSCODER_H
-#define ONETOMANYTRANSCODER_H
+#ifndef ERIZOAPI_ONETOMANYTRANSCODER_H_
+#define ERIZOAPI_ONETOMANYTRANSCODER_H_
 
 #include <nan.h>
 #include <media/OneToManyTranscoder.h>
@@ -54,4 +54,4 @@ class OneToManyTranscoder : public MediaSink {
   static NAN_METHOD(removeSubscriber);
 };
 
-#endif
+#endif  // ERIZOAPI_ONETOMANYTRANSCODER_H_

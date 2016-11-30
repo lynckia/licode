@@ -35,35 +35,40 @@ if(config.rabbit.heartbeat !==undefined){
     addr.heartbeat = config.rabbit.heartbeat;
 }
 
-exports.connect = function () {
+exports.connect = function (callback) {
 
     connection = amqp.createConnection(addr);
 
     connection.on('ready', function () {
-        log.info('Conected to rabbitMQ server');
+        log.info('message: AMQP connected');
 
         //Create a direct exchange
         exc = connection.exchange('rpcExchange', {type: 'direct'}, function (exchange) {
-            log.info('Exchange ' + exchange.name + ' is open');
+            log.info('message: rpcExchange open, exchangeName: ' + exchange.name);
 
-            //Create the queue for receive messages
-            var q = connection.queue('nuveQueue', function (queue) {
-                log.info('Queue ' + queue.name + ' is open');
+            var next = function() {
+              //Create the queue for receive messages
+              var q = connection.queue('nuveQueue', function (queue) {
+                  log.info('message: queue open, queueName: ' + queue.name);
 
-                q.bind('rpcExchange', 'nuve');
-                q.subscribe(function (message) {
+                  q.bind('rpcExchange', 'nuve');
+                  q.subscribe(function (message) {
 
-                    rpcPublic[message.method](message.args, function (type, result) {
-                        exc.publish(message.replyTo,
-                                    {data: result, corrID: message.corrID, type: type});
-                    });
+                      rpcPublic[message.method](message.args, function (type, result) {
+                          exc.publish(message.replyTo,
+                                      {data: result, corrID: message.corrID, type: type});
+                      });
 
-                });
-            });
+                  });
+                  if (callback) {
+                      callback();
+                  }
+              });
+            };
 
             //Create the queue for send messages
             clientQueue = connection.queue('', function (q) {
-                log.info('ClientQueue ' + q.name + ' is open');
+                log.info('message: clientQueue open, queueName: ' + q.name);
 
                 clientQueue.bind('rpcExchange', clientQueue.name);
 
@@ -76,14 +81,15 @@ exports.connect = function () {
                         delete map[message.corrID];
                     }
                 });
-
+                next();
             });
         });
 
     });
 
     connection.on('error', function(e) {
-       log.error('Connection error...', e, ' killing process.');
+       log.error('message: AMQP connection error killing process, errorMsg: ' +
+           logger.objectToLog(e));
        process.exit(1);
     });
 };

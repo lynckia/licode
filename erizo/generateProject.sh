@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 runcmake() {
    cmake ../src
    echo "Done"
@@ -12,4 +15,3 @@ else
   cd $BIN_DIR
   runcmake
 fi
-

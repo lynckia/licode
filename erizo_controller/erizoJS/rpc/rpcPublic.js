@@ -1,8 +1,9 @@
+'use strict';
 var erizoJSController = require('./../erizoJSController');
 var logger = require('./../../common/logger').logger;
 
 // Logger
-var log = logger.getLogger("RPCPublic");
+var log = logger.getLogger('RPCPublic');
 
 /*
  * This function is called remotely from Erizo Controller.
@@ -14,6 +15,6 @@ var controller = erizoJSController.ErizoJSController();
 exports = controller;
 
 exports.keepAlive = function(callback) {
-    log.info("message: KeepAlive from ErizoController");
+    log.info('message: KeepAlive from ErizoController');
     callback('callback', true);
 };

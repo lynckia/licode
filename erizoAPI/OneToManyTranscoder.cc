@@ -4,7 +4,10 @@
 
 #include "OneToManyTranscoder.h"
 
-using namespace v8;
+using v8::Local;
+using v8::Value;
+using v8::Function;
+using v8::HandleScope;
 
 Nan::Persistent<Function> OneToManyTranscoder::constructor;
 
@@ -55,8 +58,8 @@ class AsyncRemoveSubscriber : public Nan::AsyncWorker{
 };
 
 
-OneToManyTranscoder::OneToManyTranscoder() {};
-OneToManyTranscoder::~OneToManyTranscoder() {};
+OneToManyTranscoder::OneToManyTranscoder() {}
+OneToManyTranscoder::~OneToManyTranscoder() {}
 
 NAN_MODULE_INIT (OneToManyTranscoder::Init) {
   // Prepare constructor template
@@ -88,7 +91,7 @@ NAN_METHOD(OneToManyTranscoder::close) {
   OneToManyTranscoder* obj = Nan::ObjectWrap::Unwrap<OneToManyTranscoder>(info.Holder());
   erizo::OneToManyTranscoder *me = (erizo::OneToManyTranscoder*)obj->me;
   Nan::Callback *callback;
-  if (info.Length() >= 1){
+  if (info.Length() >= 1) {
     callback = new Nan::Callback(info[0].As<Function>());
   } else {
     callback = NULL;
@@ -114,7 +117,7 @@ NAN_METHOD(OneToManyTranscoder::hasPublisher) {
 
   bool p = true;
 
-  if(me->publisher == NULL) {
+  if (me->publisher == NULL) {
     p = false;
   }
 

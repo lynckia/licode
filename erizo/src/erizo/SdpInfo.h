@@ -103,13 +103,13 @@ class BundleTag {
  * A PT to Codec map
  */
 struct RtpMap {
-  unsigned int payloadType;
-  std::string encodingName;
-  unsigned int clockRate;
-  MediaType mediaType;
+  unsigned int payload_type;
+  std::string encoding_name;
+  unsigned int clock_rate;
+  MediaType media_type;
   unsigned int channels;
-  std::vector<std::string> feedbackTypes;
-  std::map<std::string, std::string> formatParameters;
+  std::vector<std::string> feedback_types;
+  std::map<std::string, std::string> format_parameters;
 };
 /**
  * A RTP extmap description
@@ -136,7 +136,7 @@ class SdpInfo {
   /**
    * Constructor
    */
-  SdpInfo();
+  explicit SdpInfo(const std::vector<RtpMap> rtp_mappings);
   virtual ~SdpInfo();
   /**
    * Inits the object with a given SDP.
@@ -179,25 +179,25 @@ class SdpInfo {
    * @param externalPT The audio payload type as coming from this source
    * @return The internal payload id
    */
-  int getAudioInternalPT(int externalPT);
+  unsigned int getAudioInternalPT(unsigned int externalPT);
   /**
    * @brief map external payload type to an internal id
    * @param externalPT The video payload type as coming from this source
    * @return The internal payload id
    */
-  int getVideoInternalPT(int externalPT);
+  unsigned int getVideoInternalPT(unsigned int externalPT);
   /**
    * @brief map internal payload id to an external payload type
    * @param internalPT The payload type id used internally
    * @return The external payload type as provided to this source
    */
-  int getAudioExternalPT(int internalPT);
+  unsigned int getAudioExternalPT(unsigned int internalPT);
   /**
    * @brief map internal payload it to an external payload type
    * @param internalPT The payload id as used internally
    * @return The external video payload type
    */
-  int getVideoExternalPT(int internalPT);
+  unsigned int getVideoExternalPT(unsigned int internalPT);
 
   void setCredentials(const std::string& username, const std::string& password, MediaType media);
 
@@ -209,9 +209,9 @@ class SdpInfo {
 
   bool supportCodecByName(const std::string codecName, const unsigned int clockRate);
 
-  bool supportPayloadType(const int payloadType);
+  bool supportPayloadType(const unsigned int payloadType);
 
-  void createOfferSdp(bool videoEnabled, bool audioEnabled);
+  void createOfferSdp(bool videoEnabled, bool audioEnabled, bool bundle);
   /**
    * @brief copies relevant information from the offer sdp for which this will be an answer sdp
    * @param offerSdp The offer SDP as received via signaling and parsed
@@ -255,15 +255,16 @@ class SdpInfo {
   /**
   * Mapping from internal PT (key) to external PT (value)
   */
-  std::map<int, int> inOutPTMap;
+  std::map<unsigned int, unsigned int> inOutPTMap;
   /**
   * Mapping from external PT (key) to intermal PT (value)
   */
-  std::map<int, int> outInPTMap;
+  std::map<unsigned int, unsigned int> outInPTMap;
   /**
    * The negotiated payload list
    */
   std::vector<RtpMap> payloadVector;
+
   std::vector<BundleTag> bundleTags;
   std::vector<ExtMap> extMapVector;
   /*
@@ -284,6 +285,7 @@ class SdpInfo {
   std::vector<RtpMap> internalPayloadVector_;
   std::string iceVideoUsername_, iceAudioUsername_;
   std::string iceVideoPassword_, iceAudioPassword_;
+  std::map<unsigned int, RtpMap> payload_parsed_map_;
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_SDPINFO_H_

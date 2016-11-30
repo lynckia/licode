@@ -1,19 +1,21 @@
+/* globals $$, Elements */
+'use strict';
 /**
  * Copyright 2013 Marc J. Schmidt. See the LICENSE file at the top-level
  * directory of this distribution and at
  * https://github.com/marcj/css-element-queries/blob/master/LICENSE.
  */
-;
 (function() {
 
     this.L = this.L || {};
+    var L = this.L;
 
     /**
      *
      * @type {Function}
      * @constructor
      */
-    this.L.ElementQueries = function() {
+    L.ElementQueries = function() {
         /**
          *
          * @param element
@@ -40,24 +42,24 @@
             var units = value.replace(/[0-9]*/, '');
             value = parseFloat(value);
             switch (units) {
-                case "px":
+                case 'px':
                     return value;
-                case "em":
+                case 'em':
                     return value * getEmSize(element);
-                case "rem":
+                case 'rem':
                     return value * getEmSize();
                 // Viewport units!
                 // According to http://quirksmode.org/mobile/tableViewport.html
                 // documentElement.clientWidth/Height gets us the most reliable info
-                case "vw":
+                case 'vw':
                     return value * document.documentElement.clientWidth / 100;
-                case "vh":
+                case 'vh':
                     return value * document.documentElement.clientHeight / 100;
-                case "vmin":
-                case "vmax":
+                case 'vmin':
+                case 'vmax':
                     var vw = document.documentElement.clientWidth / 100;
                     var vh = document.documentElement.clientHeight / 100;
-                    var chooser = Math[units === "vmin" ? "min" : "max"];
+                    var chooser = Math[units === 'vmin' ? 'min' : 'max'];
                     return value * chooser(vw, vh);
                 default:
                     return value;
@@ -74,14 +76,23 @@
         function SetupInformation(element) {
             this.element = element;
             this.options = [];
-            var i, j, option, width = 0, height = 0, value, actualValue, attrValues, attrValue, attrName;
+            var i,
+                j,
+                option,
+                width = 0,
+                height = 0,
+                value,
+                actualValue,
+                attrValues,
+                attrValue,
+                attrName;
 
             /**
              * @param option {mode: 'min|max', property: 'width|height', value: '123px'}
              */
             this.addOption = function(option) {
                 this.options.push(option);
-            }
+            };
 
             var attributes = ['min-width', 'min-height', 'max-width', 'max-height'];
 
@@ -99,27 +110,29 @@
                     option = this.options[i];
                     value = convertToPx(this.element, option.value);
 
-                    actualValue = option.property == 'width' ? width : height;
+                    actualValue = option.property === 'width' ? width : height;
                     attrName = option.mode + '-' + option.property;
                     attrValue = '';
 
-                    if (option.mode == 'min' && actualValue >= value) {
+                    if (option.mode === 'min' && actualValue >= value) {
                         attrValue += option.value;
                     }
 
-                    if (option.mode == 'max' && actualValue <= value) {
+                    if (option.mode === 'max' && actualValue <= value) {
                         attrValue += option.value;
                     }
 
                     if (!attrValues[attrName]) attrValues[attrName] = '';
-                    if (attrValue && -1 === (' '+attrValues[attrName]+' ').indexOf(' ' + attrValue + ' ')) {
+                    if (attrValue && -1 === (' '+attrValues[attrName]+' ')
+                                              .indexOf(' ' + attrValue + ' ')) {
                         attrValues[attrName] += ' ' + attrValue;
                     }
                 }
 
                 for (var k in attributes) {
                     if (attrValues[attributes[k]]) {
-                        this.element.setAttribute(attributes[k], attrValues[attributes[k]].substr(1));
+                        this.element.setAttribute(attributes[k],
+                                                  attrValues[attributes[k]].substr(1));
                     } else {
                         this.element.removeAttribute(attributes[k]);
                     }
@@ -137,7 +150,7 @@
             } else {
                 element.elementQueriesSetupInformation = new SetupInformation(element);
                 element.elementQueriesSetupInformation.addOption(options);
-                new ResizeSensor(element, function() {
+                new L.ResizeSensor(element, function() {
                     element.elementQueriesSetupInformation.call();
                 });
             }
@@ -170,7 +183,7 @@
             }
         }
 
-        var regex = /,?([^,\n]*)\[[\s\t]*(min|max)-(width|height)[\s\t]*[~$\^]?=[\s\t]*"([^"]*)"[\s\t]*]([^\n\s\{]*)/mgi;
+        var regex = /,?([^,\n]*)\[[\s\t]*(min|max)-(width|height)[\s\t]*[~$\^]?=[\s\t]*"([^"]*)"[\s\t]*]([^\n\s\{]*)/mgi;  // jshint ignore:line
 
         /**
          * @param {String} css
@@ -202,9 +215,11 @@
                 for (var i = 0, j = rules.length; i < j; i++) {
                     if (1 === rules[i].type) {
                         selector = rules[i].selectorText || rules[i].cssText;
-                        if (-1 !== selector.indexOf('min-height') || -1 !== selector.indexOf('max-height')) {
+                        if (-1 !== selector.indexOf('min-height') ||
+                            -1 !== selector.indexOf('max-height')) {
                             extractQuery(selector);
-                        }else if(-1 !== selector.indexOf('min-width') || -1 !== selector.indexOf('max-width')) {
+                        } else if (-1 !== selector.indexOf('min-width') ||
+                                   -1 !== selector.indexOf('max-width')) {
                             extractQuery(selector);
                         }
                     } else if (4 === rules[i].type) {
@@ -215,17 +230,20 @@
         }
 
         /**
-         * Searches all css rules and setups the event listener to all elements with element query rules..
+         * Searches all css rules and setups the event listener
+         * to all elements with element query rules..
          */
         this.init = function() {
             for (var i = 0, j = document.styleSheets.length; i < j; i++) {
-                readRules(document.styleSheets[i].cssText || document.styleSheets[i].cssRules || document.styleSheets[i].rules);
+                readRules(document.styleSheets[i].cssText ||
+                          document.styleSheets[i].cssRules ||
+                          document.styleSheets[i].rules);
             }
-        }
-    }
+        };
+    };
 
     function init() {
-        new L.ElementQueries().init();
+        (new L.ElementQueries()).init();
     }
 
     if (window.addEventListener) {
@@ -234,6 +252,41 @@
         window.attachEvent('onload', init);
     }
 
+    // Only used for the dirty checking, so the event callback count is limted
+    //  to max 1 call per fps per sensor.
+    // In combination with the event based resize sensor this saves cpu time,
+    // because the sensor is too fast and
+    // would generate too many unnecessary events.
+    var requestAnimationFrame = window.requestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        function (fn) {
+            return window.setTimeout(fn, 20);
+        };
+
+    /**
+     * Iterate over each of the provided element(s).
+     *
+     * @param {HTMLElement|HTMLElement[]} elements
+     * @param {Function}                  callback
+     */
+    function forEachElement(elements, callback){
+        var elementsType = Object.prototype.toString.call(elements);
+        var isCollectionTyped = ('[object Array]' === elementsType ||
+            ('[object NodeList]' === elementsType) ||
+            ('[object HTMLCollection]' === elementsType) ||
+            ('undefined' !== typeof jQuery && elements instanceof jQuery) || //jquery
+            ('undefined' !== typeof Elements && elements instanceof Elements) //mootools
+        );
+        var i = 0, j = elements.length;
+        if (isCollectionTyped) {
+            for (; i < j; i++) {
+                callback(elements[i]);
+            }
+        } else {
+            callback(elements);
+        }
+    }
     /**
      * Class for dimension change detection.
      *
@@ -242,44 +295,34 @@
      *
      * @constructor
      */
-    this.L.ResizeSensor = function(element, callback) {
-        /**
-         * Adds a listener to the over/under-flow event.
-         *
-         * @param {HTMLElement} element
-         * @param {Function}    callback
-         */
-        function addResizeListener(element, callback) {
-            if (window.OverflowEvent) {
-                //webkit
-                element.addEventListener('overflowchanged', function(e) {
-                    callback.call(this, e);
-                });
-            } else {
-                element.addEventListener('overflow', function(e) {
-                    callback.call(this, e);
-                });
-                element.addEventListener('underflow', function(e) {
-                    callback.call(this, e);
-                });
-            }
-        }
-
+    L.ResizeSensor = function(element, callback) {
         /**
          *
          * @constructor
          */
         function EventQueue() {
-            this.q = [];
+            var q = [];
             this.add = function(ev) {
-                this.q.push(ev);
+                q.push(ev);
             };
 
             var i, j;
             this.call = function() {
-                for (i = 0, j = this.q.length; i < j; i++) {
-                    this.q[i].call();
+                for (i = 0, j = q.length; i < j; i++) {
+                    q[i].call();
                 }
+            };
+
+            this.remove = function(ev) {
+                var newQueue = [];
+                for(i = 0, j = q.length; i < j; i++) {
+                    if(q[i] !== ev) newQueue.push(q[i]);
+                }
+                q = newQueue;
+            };
+
+            this.length = function() {
+                return q.length;
             };
         }
 
@@ -312,84 +355,106 @@
                 return;
             }
 
-            /*if ('onresize' in element) {
-                //internet explorer
-                if (element.attachEvent) {
-                    element.attachEvent('onresize', function() {
-                        element.resizedAttached.call();
-                    });
-                } else if (element.addEventListener) {
-                    element.addEventListener('resize', function(){
-                        element.resizedAttached.call();
-                    });
-                }
-            } else {*/
-                var myResized = function() {
-                    if (setupSensor()) {
-                        element.resizedAttached.call();
-                    }
-                };
-                element.resizeSensor = document.createElement('div');
-                element.resizeSensor.className = 'resize-sensor';
-                var style =
-                    'position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow: hidden; z-index: -1;';
-                element.resizeSensor.style.cssText = style;
-                element.resizeSensor.innerHTML =
-                    '<div class="resize-sensor-overflow" style="' + style + '">' +
-                        '<div></div>' +
-                        '</div>' +
-                        '<div class="resize-sensor-underflow" style="' + style + '">' +
-                        '<div></div>' +
-                        '</div>';
-                element.appendChild(element.resizeSensor);
+            element.resizeSensor = document.createElement('div');
+            element.resizeSensor.className = 'resize-sensor';
+            var style = 'position: absolute; left: 0; top: 0; right: 0; bottom: 0; ' +
+                        'overflow: hidden; z-index: -1; visibility: hidden;';
+            var styleChild = 'position: absolute; left: 0; top: 0; transition: 0s;';
 
-                if ('absolute' !== getComputedStyle(element, 'position')) {
-                    element.style.position = 'relative';
-                }
+            element.resizeSensor.style.cssText = style;
+            element.resizeSensor.innerHTML =
+                '<div class="resize-sensor-expand" style="' + style + '">' +
+                    '<div style="' + styleChild + '"></div>' +
+                '</div>' +
+                '<div class="resize-sensor-shrink" style="' + style + '">' +
+                    '<div style="' + styleChild + ' width: 200%; height: 200%"></div>' +
+                '</div>';
+            element.appendChild(element.resizeSensor);
 
-                var x = -1,
-                    y = -1,
-                    firstStyle = element.resizeSensor.firstElementChild.firstChild.style,
-                    lastStyle = element.resizeSensor.lastElementChild.firstChild.style;
-
-                function setupSensor() {
-                    var change = false,
-                        width = element.resizeSensor.offsetWidth,
-                        height = element.resizeSensor.offsetHeight;
-
-                    if (x != width) {
-                        firstStyle.width = (width - 1) + 'px';
-                        lastStyle.width = (width + 1) + 'px';
-                        change = true;
-                        x = width;
-                    }
-                    if (y != height) {
-                        firstStyle.height = (height - 1) + 'px';
-                        lastStyle.height = (height + 1) + 'px';
-                        change = true;
-                        y = height;
-                    }
-                    return change;
-                }
-
-                setupSensor();
-                addResizeListener(element.resizeSensor, myResized);
-                addResizeListener(element.resizeSensor.firstElementChild, myResized);
-                addResizeListener(element.resizeSensor.lastElementChild, myResized);
-            /*}*/
-        }
-
-        if ('array' === typeof element
-            || ('undefined' !== typeof jQuery && element instanceof jQuery) //jquery
-            || ('undefined' !== typeof Elements && element instanceof Elements) //mootools
-            ) {
-            var i = 0, j = element.length;
-            for (; i < j; i++) {
-                attachResizeEvent(element[i], callback);
+            if (getComputedStyle(element, 'position') === 'static') {
+                element.style.position = 'relative';
             }
-        } else {
-            attachResizeEvent(element, callback);
+
+            var expand = element.resizeSensor.childNodes[0];
+            var expandChild = expand.childNodes[0];
+            var shrink = element.resizeSensor.childNodes[1];
+
+            var reset = function() {
+                expandChild.style.width  = 100000 + 'px';
+                expandChild.style.height = 100000 + 'px';
+
+                expand.scrollLeft = 100000;
+                expand.scrollTop = 100000;
+
+                shrink.scrollLeft = 100000;
+                shrink.scrollTop = 100000;
+            };
+
+            reset();
+            var dirty = false;
+
+            var dirtyChecking = function() {
+                if (!element.resizedAttached) return;
+
+                if (dirty) {
+                    element.resizedAttached.call();
+                    dirty = false;
+                }
+
+                requestAnimationFrame(dirtyChecking);
+            };
+
+            requestAnimationFrame(dirtyChecking);
+            var lastWidth, lastHeight;
+            var cachedWidth, cachedHeight; //useful to not query offsetWidth twice
+
+            var onScroll = function() {
+              if ((cachedWidth = element.offsetWidth) !== lastWidth ||
+                  (cachedHeight = element.offsetHeight) !== lastHeight) {
+                  dirty = true;
+
+                  lastWidth = cachedWidth;
+                  lastHeight = cachedHeight;
+              }
+              reset();
+            };
+
+            var addEvent = function(el, name, cb) {
+                if (el.attachEvent) {
+                    el.attachEvent('on' + name, cb);
+                } else {
+                    el.addEventListener(name, cb);
+                }
+            };
+
+            addEvent(expand, 'scroll', onScroll);
+            addEvent(shrink, 'scroll', onScroll);
         }
-    }
+
+        forEachElement(element, function(elem){
+            attachResizeEvent(elem, callback);
+        });
+
+        this.detach = function(ev) {
+            L.ResizeSensor.detach(element, ev);
+        };
+    };
+
+    L.ResizeSensor.detach = function(element, ev) {
+        forEachElement(element, function(elem){
+            if(elem.resizedAttached && typeof ev === 'function'){
+                elem.resizedAttached.remove(ev);
+                if(elem.resizedAttached.length()) return;
+            }
+            if (elem.resizeSensor) {
+                if (elem.contains(elem.resizeSensor)) {
+                    elem.removeChild(elem.resizeSensor);
+                }
+                delete elem.resizeSensor;
+                delete elem.resizedAttached;
+            }
+        });
+    };
+
 
 })();

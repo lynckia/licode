@@ -6,7 +6,7 @@ git clone https://github.com/ging/licode.git
 cd licode
 git checkout async_events 
 cd ..
-./licode/scripts/installUbuntuDepsUnattended.sh --cleanup
+./licode/scripts/installUbuntuDeps.sh --cleanup
 ./licode/scripts/installErizo.sh
 ./licode/scripts/installNuve.sh
 ./licode/scripts/installBasicExample.sh

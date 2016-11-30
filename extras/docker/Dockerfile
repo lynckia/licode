@@ -7,7 +7,7 @@ WORKDIR /opt
 # Download latest version of the code and install dependencies
 RUN  apt-get update && apt-get install -y git && \
   git clone https://github.com/ging/licode.git && \
-	./licode/scripts/installUbuntuDepsUnattended.sh --cleanup
+	./licode/scripts/installUbuntuDeps.sh --cleanup
 
 # Install Licode components
 RUN ./licode/scripts/installErizo.sh && \

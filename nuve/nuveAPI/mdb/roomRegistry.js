@@ -10,7 +10,7 @@ var log = logger.getLogger('RoomRegistry');
 var getRoom = exports.getRoom = function (id, callback) {
     db.rooms.findOne({_id: db.ObjectId(id)}, function (err, room) {
         if (room === undefined) {
-            log.warn('Room ', id, ' not found');
+            log.warn('message: getRoom - Room not found, roomId: ' + id);
         }
         if (callback !== undefined) {
             callback(room);
@@ -33,7 +33,7 @@ var hasRoom = exports.hasRoom = function (id, callback) {
  */
 exports.addRoom = function (room, callback) {
     db.rooms.save(room, function (error, saved) {
-        if (error) log.warn('MongoDB: Error adding room: ', error);
+        if (error) log.warn('message: addRoom error, ' + logger.objectToLog(error));
         callback(saved);
     });
 };
@@ -44,7 +44,7 @@ exports.addRoom = function (room, callback) {
  */
 exports.updateRoom = function (id, room) {
     db.rooms.update({_id: db.ObjectId(id)}, room, function (error) {
-        if (error) log.warn('MongoDB: Error updating room: ', error);
+        if (error) log.warn('message: updateRoom error, ' + logger.objectToLog(error));
     });
 };
 
@@ -55,7 +55,8 @@ exports.removeRoom = function (id) {
     hasRoom(id, function (hasR) {
         if (hasR) {
             db.rooms.remove({_id: db.ObjectId(id)}, function (error) {
-                if (error) log.warn('MongoDB: Error romoving room: ', error);
+                if (error) log.warn('message: removeRoom error, ' +
+                   logger.objectToLog(error));
             });
         }
     });

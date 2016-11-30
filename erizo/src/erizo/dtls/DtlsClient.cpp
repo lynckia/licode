@@ -334,7 +334,7 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
 
     void DtlsSocketContext::write(const unsigned char* data, unsigned int len) {
       if (receiver != NULL) {
-        receiver->writeDtls(this, data, len);
+        receiver->onDtlsPacket(this, data, len);
       }
     }
 

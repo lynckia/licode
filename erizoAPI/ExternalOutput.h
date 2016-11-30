@@ -1,5 +1,5 @@
-#ifndef EXTERNALOUTPUT_H
-#define EXTERNALOUTPUT_H
+#ifndef ERIZOAPI_EXTERNALOUTPUT_H_
+#define ERIZOAPI_EXTERNALOUTPUT_H_
 
 #include <nan.h>
 #include <media/ExternalOutput.h>
@@ -14,11 +14,11 @@
  * Receives media from one publisher and retransmits it to every subscriber.
  */
 class ExternalOutput: public MediaSink {
-  public:
+ public:
     static NAN_MODULE_INIT(Init);
-    erizo::ExternalOutput* me;
+    std::shared_ptr<erizo::ExternalOutput> me;
 
-  private:
+ private:
     ExternalOutput();
     ~ExternalOutput();
 
@@ -33,7 +33,7 @@ class ExternalOutput: public MediaSink {
      */
     static NAN_METHOD(close);
     /*
-     * Inits the ExternalOutput 
+     * Inits the ExternalOutput
      * Returns true ready
      */
     static NAN_METHOD(init);
@@ -41,4 +41,4 @@ class ExternalOutput: public MediaSink {
     static Nan::Persistent<v8::Function> constructor;
 };
 
-#endif
+#endif  // ERIZOAPI_EXTERNALOUTPUT_H_

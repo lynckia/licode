@@ -8,18 +8,14 @@ var logger = require('./../logger').logger;
 // Logger
 var log = logger.getLogger('UserResource');
 
-var currentService;
-var currentRoom;
-
 /*
  * Gets the service and the room for the proccess of the request.
  */
-var doInit = function (roomId, callback) {
-    currentService = require('./../auth/nuveAuthenticator').service;
+var doInit = function (req, callback) {
+    var currentService = req.service;
 
-    serviceRegistry.getRoomForService(roomId, currentService, function (room) {
-        currentRoom = room;
-        callback();
+    serviceRegistry.getRoomForService(req.params.room, currentService, function (room) {
+        callback(currentService, room);
     });
 
 };
@@ -29,13 +25,13 @@ var doInit = function (roomId, callback) {
  * This is consulted to erizoController using RabbitMQ RPC call.
  */
 exports.getUser = function (req, res) {
-    doInit(req.params.room, function () {
+    doInit(req, function (currentService, currentRoom) {
 
         if (currentService === undefined) {
             res.send('Service not found', 404);
             return;
         } else if (currentRoom === undefined) {
-            log.info('Room ', req.params.room, ' does not exist');
+            log.info('message: getUser - room not found, roomId: ' + req.params.room);
             res.send('Room does not exist', 404);
             return;
         }
@@ -43,7 +39,7 @@ exports.getUser = function (req, res) {
         var user = req.params.user;
 
 
-        cloudHandler.getUsersInRoom (currentRoom._id, function (users) {
+        cloudHandler.getUsersInRoom(currentRoom._id, function (users) {
             if (users === 'error') {
                 res.send('CloudHandler does not respond', 401);
                 return;
@@ -51,13 +47,13 @@ exports.getUser = function (req, res) {
             for (var index in users){
 
                 if (users[index].name === user){
-                    log.info('Found user', user);
+                    log.info('message: getUser success, ' + logger.objectToLog(user));
                     res.send(users[index]);
                     return;
                 }
 
             }
-            log.error('User', req.params.user, 'does not exist');
+            log.error('message: getUser user not found, userId: ' + req.params.user);
             res.send('User does not exist', 404);
             return;
 
@@ -72,13 +68,13 @@ exports.getUser = function (req, res) {
  * This order is sent to erizoController using RabbitMQ RPC call.
  */
 exports.deleteUser = function (req, res) {
-    doInit(req.params.room, function () {
+    doInit(req, function (currentService, currentRoom) {
 
         if (currentService === undefined) {
             res.send('Service not found', 404);
             return;
         } else if (currentRoom === undefined) {
-            log.info('Room ', req.params.room, ' does not exist');
+            log.info('message: deleteUser - room not found, roomId: ' + req.params.room);
             res.send('Room does not exist', 404);
             return;
         }

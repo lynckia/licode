@@ -30,8 +30,8 @@ exports.deleteToken = function (id, callback) {
                         delete service.testToken;
                         serviceRegistry.updateService(service);
                         tokenRegistry.removeToken(id, function () {
-                            log.info('TestToken expiration time. Deleting ', token._id,
-                                     'from room ', token.room, ' of service ', token.service);
+                            log.info('message : delete expired TestToken, tokenId: ' + token._id +
+                                     ', roomId: ' + token.room, ', serviceId: ' + token.service);
                             callback('callback', 'error');
                         });
 
@@ -39,15 +39,15 @@ exports.deleteToken = function (id, callback) {
                 } else {
                     token.use += 1;
                     tokenRegistry.updateToken(token);
-                    log.info('Using (', token.use, ') testToken ', token._id,
-                            'for testRoom ', token.room, ' of service ', token.service);
+                    log.info ('message: using testToken, tokenUse: ' + token.use + ', testRoom: ' + 
+                        token.room, ', serviceId: ' + token.service);
                     callback('callback', token);
                 }
 
             } else {
                 tokenRegistry.removeToken(id, function () {
-                    log.info('Consumed token ', token._id,
-                             'from room ', token.room, ' of service ', token.service);
+                    log.info('message: consumed token, tokenId: ', token._id,
+                             ', roomId: ' + token.room + ', serviceId: ' + token.service);
                     callback('callback', token);
                 });
             }
