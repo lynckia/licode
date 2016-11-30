@@ -105,12 +105,12 @@ var reset = module.exports.reset = function() {
     createConnection: sinon.stub().returns(module.exports.amqpConnection)
   });
 
-  module.exports.ec2Client = {
-    call: sinon.stub()
+  module.exports.ec2MetadataService = {
+    request: sinon.stub()
   };
 
-  module.exports.awslib = createMock('aws-lib', {
-    createEC2Client: sinon.stub().returns(module.exports.ec2Client)
+  module.exports.awssdk = createMock('aws-sdk', {
+    MetadataService: sinon.stub().returns(module.exports.ec2MetadataService)
   });
 
   module.exports.rpcPublic = createMock('../rpc/rpcPublic', {

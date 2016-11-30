@@ -5,20 +5,20 @@ var sinon = require('sinon');
 var expect  = require('chai').expect;
 
 describe('Cloud Handler', function() {
-  var awslibMock,
-      ec2ClientMock,
+  var awssdkMock,
+      ec2MetadataServiceMock,
       cloudHandler;
 
   beforeEach(function() {
     mocks.start(mocks.licodeConfig);
-    awslibMock = mocks.start(mocks.awslib);
-    ec2ClientMock = mocks.ec2Client;
+    awssdkMock = mocks.start(mocks.awssdk);
+    ec2MetadataServiceMock = mocks.ec2MetadataService;
     cloudHandler = require('../cloudHandler');
   });
 
   afterEach(function() {
     mocks.stop(mocks.licodeConfig);
-    mocks.stop(awslibMock);
+    mocks.stop(awssdkMock);
     mocks.deleteRequireCache();
     mocks.reset();
   });
@@ -48,7 +48,7 @@ describe('Cloud Handler', function() {
     expect(callback.callCount).to.equal(1);
   });
 
-  it('should fail creating new amazon erizo controller if awslib fails', function() {
+  it.only('should fail creating new amazon erizo controller if aws-sdk fails', function() {
     var arbitraryMessage = {
       cloudProvider: 'amazon',
       ip: '127.0.0.1',
@@ -57,12 +57,12 @@ describe('Cloud Handler', function() {
       ssl: true
     };
     var callback = sinon.stub();
-    ec2ClientMock.call.callsArgWith(2, 'error');
+    ec2MetadataServiceMock.request.callsArgWith(1, 'error');
     cloudHandler.addNewErizoController(arbitraryMessage, callback);
     expect(callback.withArgs('error').callCount).to.equal(1);
   });
 
-  it('should succeed creating new amazon erizo controller if awslib success', function() {
+  it.only('should succeed creating new amazon erizo controller if aws-sdk success', function() {
     var arbitraryMessage = {
       cloudProvider: 'amazon',
       ip: '127.0.0.1',
@@ -71,8 +71,7 @@ describe('Cloud Handler', function() {
       ssl: true
     };
     var callback = sinon.stub();
-    ec2ClientMock.call.callsArgWith(2, undefined,
-      {reservationSet: {item: {instancesSet: {item: {ipAddress: '127.0.0.2'}}}}});
+    ec2MetadataServiceMock.request.callsArgWith(1, undefined, '127.0.0.2');
     cloudHandler.addNewErizoController(arbitraryMessage, callback);
     var expectedResult = {
       id: 1,
