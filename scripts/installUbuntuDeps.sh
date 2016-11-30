@@ -55,13 +55,27 @@ install_apt_deps(){
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 
+download_openssl() {
+  OPENSSL_VERSION=$1
+  OPENSSL_MAJOR="${OPENSSL_VERSION%?}"
+  echo "Downloading OpenSSL from https://www.openssl.org/source/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
+  curl -O https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
+  tar -zxvf openssl-$OPENSSL_VERSION.tar.gz || DOWNLOAD_SUCCESS=$?
+  if [ "$DOWNLOAD_SUCCESS" -eq 1 ]
+  then
+    echo "Downloading OpenSSL from https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
+    curl -O https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz
+    tar -zxvf openssl-$OPENSSL_VERSION.tar.gz
+  fi
+}
+
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./openssl-1.0.1l.tar.gz ]; then
-      curl -O https://www.openssl.org/source/old/1.0.1/openssl-1.0.1l.tar.gz
-      tar -zxvf openssl-1.0.1l.tar.gz
-      cd openssl-1.0.1l
+    OPENSSL_VERSION=`node -pe process.versions.openssl`
+    if [ ! -f ./openssl-$OPENSSL_VERSION.tar.gz ]; then
+      download_openssl $OPENSSL_VERSION
+      cd openssl-$OPENSSL_VERSION
       ./config --prefix=$PREFIX_DIR -fPIC
       make -s V=0
       make install_sw
