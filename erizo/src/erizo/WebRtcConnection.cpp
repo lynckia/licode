@@ -158,7 +158,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
       if (remoteSdp_.hasVideo || bundle_) {
         std::string username = remoteSdp_.getUsername(VIDEO_TYPE);
         std::string password = remoteSdp_.getPassword(VIDEO_TYPE);
-        if (videoTransport_.get() == NULL || remoteSdp_.dtlsRole == PASSIVE) {
+        if (videoTransport_.get() == NULL) {
           ELOG_DEBUG("%s message: Creating videoTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, remoteSdp_.isRtcpMux,
@@ -174,7 +174,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
       if (!bundle_ && remoteSdp_.hasAudio) {
         std::string username = remoteSdp_.getUsername(AUDIO_TYPE);
         std::string password = remoteSdp_.getPassword(AUDIO_TYPE);
-        if (audioTransport_.get() == NULL  || remoteSdp_.dtlsRole == PASSIVE) {
+        if (audioTransport_.get() == NULL) {
           ELOG_DEBUG("%s message: Creating audioTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, remoteSdp_.isRtcpMux,
