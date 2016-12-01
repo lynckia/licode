@@ -178,9 +178,9 @@ clientapi: true
           </table>
 
           <h3 id="hasAudio">Check if the stream has audio, video and/or data active</h3>
-          <p>You can check if the stream has audio, video and data activated by two functions.
+          <p>You can check if the stream has audio, video and/or data activated by these functions.
           <div class="bs-docs-example">
-            The function in line 1 checks the audio while the function in line 2 checks the video.
+            The function in line 1 checks the audio while the function in line 2 checks the video and the function in line 3 checks the data.
           </div>
 <pre class="prettyprint linenums">
 stream.hasAudio();
@@ -189,18 +189,18 @@ stream.hasData();</pre>
 
           <h3 id="initStream">Initialize the Stream</h3>
 
-          <p>It initializes the stream and tries to retrieve a stream from local video and audio (in case you activate them). <p>You need to call this method before you can publish the in the room or playing it at local.
+          <p>It initializes the stream and tries to retrieve a stream from local video and audio (in case you've activated them). <p>You need to call this method before you can publish the stream in the room or play it locally.
 
           <div class="bs-docs-example">
-          You first create the stream and now you need to initialize it (line 1). Then you need to add an event listener to know when the user has granted access to the webcam and microphone (line 2). You will receive an <em>access-accepted</em> or and <em>access-denied</em> event.
+          When you first create the stream, you need to initialize it (line 1). Then you need to add an event listener to know when the user has granted access to the webcam and/or microphone (line 2). You will receive an <em>access-accepted</em> or and <em>access-denied</em> event.
           </div>
 <pre class="prettyprint linenums">
 stream.init();
 stream.addEventListener('access-accepted', function(event) {
-  console.log("Access to webcam and microphone granted");
+  console.log("Access to webcam and/or microphone granted");
 });
 stream.addEventListener('access-denied', function(event) {
-  console.log("Access to webcam and microphone rejected");
+  console.log("Access to webcam and/or microphone rejected");
 });
 </pre>
 
@@ -217,7 +217,7 @@ stream.addEventListener('access-denied', function(event) {
 <pre class="prettyprint linenums">
 stream.close();
 </pre>
-          <h3 id="showStream">Play our local stream in the HTML</h3>
+          <h3 id="showStream">Play a local stream in the HTML</h3>
 
           <p>It starts playing the video/audio at once at the given <code>elementID</code>. It automatically creates an audio/video HTML tag.
 

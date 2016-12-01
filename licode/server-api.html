@@ -95,8 +95,8 @@ N.API.init(serviceId, serviceKey, nuve_host);</pre>
           <p>A Room object has the following properties:</p>
           <ul>
             <li><code>Room.name</code>: the name of the room.</li>
-            <li><code>Room._id</code>: an unique identifier for the room.</li>
-            <li><code>Room.p2p</code> (optional): boolean that indicates if the room is a peer - to - peer room. In p2p rooms server side is only user for signalling.</li>
+            <li><code>Room._id</code>: a unique identifier for the room.</li>
+            <li><code>Room.p2p</code> (optional): boolean that indicates if the room is a peer - to - peer room. In p2p rooms server side is only used for signalling.</li>
             <li><code>Room.data</code> (optional): additional metadata for the room.</li>
           </ul>
           <p>In your service you can create a room, get a list of rooms that you have created, get the info about a determined room or delete a room when you don't need it.</p>
@@ -149,7 +149,7 @@ N.API.getRoom(roomId, function(resp) {
 }, errorCallback);</pre>
 
           <h3>Delete Room</h3>
-          <p>And finally, for delete a determined room:</p>
+          <p>And finally, to delete a determined room:</p>
           <pre class="prettyprint linenums">
 var roomId = '30121g51113e74fff3115502';
 
@@ -198,7 +198,7 @@ N.API.createToken(roomId, name, role, function(token) {
             <h1>Users</h1>
           </div>
 
-          <p class="lead">A user User object represents a participant in a videoconference room.</p>
+          <p class="lead">A User object represents a participant in a videoconference room.</p>
 
           <p>A User object has the following properties:</p>
           <ul>
