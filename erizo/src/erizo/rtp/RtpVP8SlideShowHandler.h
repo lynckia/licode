@@ -21,8 +21,8 @@ class RtpVP8SlideShowHandler : public RtpSlideShowHandler {
 
 
  private:
-  uint16_t seqNo_, grace_, sendSeqNo_, seqNoOffset_;
-  bool slideshow_is_active_;
+  uint16_t slideshow_seq_num_, last_original_seq_num_, seq_num_offset_;
+  bool slideshow_is_active_, sending_keyframe_;
   boost::mutex slideshow_mutex_;
 
   inline void setPacketSeqNumber(std::shared_ptr<dataPacket> packet, uint16_t seq_number);
