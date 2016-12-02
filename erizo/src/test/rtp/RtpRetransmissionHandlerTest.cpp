@@ -89,7 +89,7 @@ class RtpRetransmissionHandlerTest : public ::testing::Test {
       header->setSSRC(kVideoSsrc);
     }
 
-    return std::make_shared<dataPacket>(0, reinterpret_cast<char*>(header), sizeof(erizo::RtpHeader), type, 0);
+    return std::make_shared<dataPacket>(0, reinterpret_cast<char*>(header), sizeof(erizo::RtpHeader), type);
   }
 
   std::shared_ptr<dataPacket> createNack(uint16_t seq_number, packetType type, int additional_packets = 0) {
@@ -105,7 +105,7 @@ class RtpRetransmissionHandlerTest : public ::testing::Test {
     nack->setLength(3);
     char *buf = reinterpret_cast<char*>(nack);
     int len = (nack->getLength() + 1) * 4;
-    return std::make_shared<dataPacket>(0, buf, len, type, 0);
+    return std::make_shared<dataPacket>(0, buf, len, type);
   }
 
   IceConfig ice_config;

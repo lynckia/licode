@@ -1,9 +1,9 @@
 #ifndef ERIZO_SRC_ERIZO_RTP_RTPVP8SLIDESHOWHANDLER_H_
 #define ERIZO_SRC_ERIZO_RTP_RTPVP8SLIDESHOWHANDLER_H_
 
+#include <boost/thread/mutex.hpp>
 
 #include "pipeline/Handler.h"
-
 #include "./logger.h"
 #include "./WebRtcConnection.h"
 #include "rtp/RtpSlideShowHandler.h"
@@ -21,7 +21,11 @@ class RtpVP8SlideShowHandler : public RtpSlideShowHandler {
 
 
  private:
-  WebRtcConnection *connection_;
+  uint16_t seqNo_, grace_, sendSeqNo_, seqNoOffset_;
+  bool slideshow_is_active_;
+  boost::mutex slideshow_mutex_;
+
+  inline void setPacketSeqNumber(std::shared_ptr<dataPacket> packet, uint16_t seq_number);
 };
 }  // namespace erizo
 

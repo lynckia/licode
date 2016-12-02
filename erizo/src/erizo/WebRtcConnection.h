@@ -151,6 +151,10 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   void read(std::shared_ptr<dataPacket> packet);
   void write(std::shared_ptr<dataPacket> packet);
 
+  inline const char* toLog() {
+    return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
+  }
+
  private:
   std::string connection_id_;
   SdpInfo remoteSdp_;
@@ -168,7 +172,6 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   RtpExtensionProcessor extProcessor_;
 
   uint32_t rateControl_;  // Target bitrate for hacky rate control in BPS
-  uint16_t seqNo_, grace_, sendSeqNo_, seqNoOffset_;
 
   int stunPort_, minPort_, maxPort_;
   std::string stunServer_;
@@ -197,9 +200,6 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   int deliverVideoData_(char* buf, int len) override;
   int deliverFeedback_(char* buf, int len) override;
 
-  inline const char* toLog() {
-    return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
-  }
 
   // Utils
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);

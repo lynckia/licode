@@ -41,10 +41,10 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   slideshow_handler_.reset(new RtpVP8SlideShowHandler(this));
 
   // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
-  pipeline_->addBack(PacketWriter(this));
-  pipeline_->addBack(RtpRetransmissionHandler(this));
-  pipeline_->addBack(slideshow_handler_);
-  pipeline_->addBack(PacketReader(this));
+  pipeline_->addFront(PacketReader(this));
+  pipeline_->addFront(slideshow_handler_);
+  pipeline_->addFront(RtpRetransmissionHandler(this));
+  pipeline_->addFront(PacketWriter(this));
   pipeline_->finalize();
 
   trickleEnabled_ = iceConfig_.shouldTrickle;
@@ -55,10 +55,6 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   gettimeofday(&mark_, NULL);
 
   rateControl_ = 0;
-  seqNo_ = 1000;
-  sendSeqNo_ = 0;
-  grace_ = 0;
-  seqNoOffset_ = 0;
   sending_ = true;
 }
 
@@ -322,12 +318,12 @@ int WebRtcConnection::deliverAudioData_(char* buf, int len) {
   if (bundle_) {
     if (videoTransport_.get() != NULL) {
       if (audioEnabled_ == true) {
-        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
+        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET));
       }
     }
   } else if (audioTransport_.get() != NULL) {
     if (audioEnabled_ == true) {
-        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
+        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET));
     }
   }
   return len;
@@ -350,11 +346,10 @@ int WebRtcConnection::deliverVideoData_(char* buf, int len) {
     if (videoEnabled_ == true) {
       RtcpHeader* hc = reinterpret_cast<RtcpHeader*>(buf);
       if (hc->isRtcp()) {
-        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, 0));
+        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
         return len;
       }
       RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
-      sendSeqNo_ = h->getSeqNumber();
       if (h->getPayloadType() == RED_90000_PT && (!remoteSdp_.supportPayloadType(RED_90000_PT) || slideShowMode_)) {
         // This is a RED/FEC payload, but our remote endpoint doesn't support that
         // (most likely because it's firefox :/ )
@@ -368,24 +363,7 @@ int WebRtcConnection::deliverVideoData_(char* buf, int len) {
           fec_receiver_.ProcessReceivedFec();
         }
       } else {
-        if (slideShowMode_) {
-          RtpVP8Parser parser;
-          RTPPayloadVP8* payload = parser.parseVP8(
-                          reinterpret_cast<unsigned char*>(buf + h->getHeaderLength()), len - h->getHeaderLength());
-          if (!payload->frameType) {  // Its a keyframe
-            grace_ = 1;
-          }
-          delete payload;
-          if (grace_) {  // We send until marker
-            sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, seqNo_++));
-            if (h->getMarker()) {
-              grace_ = 0;
-            }
-          }
-        } else {
-          int16_t seq_num = seqNoOffset_ > 0 ? (sendSeqNo_ - seqNoOffset_) : 0;
-          sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, seq_num));
-        }
+        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
       }
     }
   }
@@ -398,9 +376,9 @@ int WebRtcConnection::deliverFeedback_(char* buf, int len) {
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
     uint32_t recvSSRC = chead->getSourceSSRC();
     if (recvSSRC == this->getVideoSourceSSRC()) {
-      sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, 0));
+      sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
     } else if (recvSSRC == this->getAudioSourceSSRC()) {
-      sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET, 0));
+      sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET));
     } else {
       ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                   toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
@@ -449,32 +427,6 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
   if (chead->isFeedback()) {
     if (fbSink_ != NULL && shouldSendFeedback_) {
       // we want to send feedback, check if we need to alter packets
-      if (seqNoOffset_ > 0) {
-        char* movingBuf = buf;
-        int rtcpLength = 0;
-        int totalLength = 0;
-        do {
-          movingBuf += rtcpLength;
-          chead = reinterpret_cast<RtcpHeader*>(movingBuf);
-          rtcpLength = (ntohs(chead->length) + 1) * 4;
-          totalLength += rtcpLength;
-          switch (chead->packettype) {
-            case RTCP_Receiver_PT:
-              if ((chead->getHighestSeqnum() + seqNoOffset_) < chead->getHighestSeqnum()) {
-                // The seqNo adjustment causes a wraparound, add to cycles
-                chead->setSeqnumCycles(chead->getSeqnumCycles() + 1);
-              }
-              chead->setHighestSeqnum(chead->getHighestSeqnum() + seqNoOffset_);
-
-              break;
-            case RTCP_RTP_Feedback_PT:
-              chead->setNackPid(chead->getNackPid() + seqNoOffset_);
-              break;
-            default:
-              break;
-          }
-        } while (totalLength < len);
-      }
       fbSink_->deliverFeedback(buf, len);
     }
   } else {
@@ -527,7 +479,7 @@ int WebRtcConnection::sendPLI() {
   thePLI.setLength(2);
   char *buf = reinterpret_cast<char*>(&thePLI);
   int len = (thePLI.getLength() + 1) * 4;
-  sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET, 0));
+  sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
   return len;
 }
 
@@ -653,10 +605,6 @@ void WebRtcConnection::sendPacketAsync(std::shared_ptr<dataPacket> packet) {
   }
 
   changeDeliverPayloadType(packet.get(), packet->type);
-  if (packet->seq_num) {
-    RtpHeader* h = reinterpret_cast<RtpHeader*>(&packet->data);
-    h->setSeqNumber(packet->seq_num);
-  }
   worker_->task([conn_ptr, packet]{
     conn_ptr->sendPacket(packet);
   });
@@ -667,22 +615,15 @@ void WebRtcConnection::setSlideShowMode(bool state) {
   if (slideShowMode_ == state) {
     return;
   }
-  if (state == true) {
-    seqNo_ = sendSeqNo_ - seqNoOffset_;
-    grace_ = 0;
-    slideShowMode_ = true;
-    shouldSendFeedback_ = false;
-    ELOG_DEBUG("%s message: Setting seqNo, seqNo: %u", toLog(), seqNo_);
-  } else {
-    seqNoOffset_ = sendSeqNo_ - seqNo_ + 1;
-    ELOG_DEBUG("%s message: Changing offset manually, sendSeqNo: %u, seqNo: %u, offset: %u",
-                toLog(), sendSeqNo_, seqNo_, seqNoOffset_);
-    slideShowMode_ = false;
-    shouldSendFeedback_ = true;
-  }
+  slideShowMode_ = state;
+  slideshow_handler_->setSlideShowMode(state);
 }
 
 void WebRtcConnection::setFeedbackReports(bool will_send_fb, uint32_t target_bitrate) {
+  if (slideShowMode_) {
+    target_bitrate = 0;
+  }
+
   this->shouldSendFeedback_ = will_send_fb;
   if (target_bitrate == 1) {
     this->videoEnabled_ = false;

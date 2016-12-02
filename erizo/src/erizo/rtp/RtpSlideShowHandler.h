@@ -13,7 +13,7 @@ class RtpSlideShowHandler: public Handler {
   virtual void read(Context *ctx, std::shared_ptr<dataPacket> packet) = 0;
   virtual void write(Context *ctx, std::shared_ptr<dataPacket> packet) = 0;
 
- private:
+ protected:
   WebRtcConnection *connection_;
 };
 }  // namespace erizo
