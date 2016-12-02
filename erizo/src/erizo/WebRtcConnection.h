@@ -15,6 +15,8 @@
 #include "rtp/webrtc/fec_receiver_impl.h"
 #include "rtp/RtcpProcessor.h"
 #include "rtp/RtpExtensionProcessor.h"
+#include "rtp/RtpSlideShowHandler.h"
+#include "rtp/RtpVP8SlideShowHandler.h"
 #include "pipeline/Handler.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
@@ -136,14 +138,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   void onCandidate(const CandidateInfo& cand, Transport *transport) override;
 
-  void setFeedbackReports(bool shouldSendFb, uint32_t rateControl = 0) {
-    this->shouldSendFeedback_ = shouldSendFb;
-    if (rateControl_ == 1) {
-      this->videoEnabled_ = false;
-    }
-    this->rateControl_ = rateControl;
-  }
-
+  void setFeedbackReports(bool will_send_feedback, uint32_t target_bitrate = 0);
   void setSlideShowMode(bool state);
 
   void setMetadata(std::map<std::string, std::string> metadata);
@@ -194,6 +189,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   Pipeline::Ptr pipeline_;
 
   std::shared_ptr<Worker> worker_;
+
+  std::shared_ptr<RtpSlideShowHandler> slideshow_handler_;
 
   void sendPacket(std::shared_ptr<dataPacket> packet);
   int deliverAudioData_(char* buf, int len) override;

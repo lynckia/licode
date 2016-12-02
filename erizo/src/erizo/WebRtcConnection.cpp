@@ -38,8 +38,12 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   sinkfbSource_ = this;
   globalState_ = CONN_INITIAL;
 
+  slideshow_handler_.reset(new RtpVP8SlideShowHandler(this));
+
+  // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
   pipeline_->addBack(PacketWriter(this));
   pipeline_->addBack(RtpRetransmissionHandler(this));
+  pipeline_->addBack(slideshow_handler_);
   pipeline_->addBack(PacketReader(this));
   pipeline_->finalize();
 
@@ -676,6 +680,14 @@ void WebRtcConnection::setSlideShowMode(bool state) {
     slideShowMode_ = false;
     shouldSendFeedback_ = true;
   }
+}
+
+void WebRtcConnection::setFeedbackReports(bool will_send_fb, uint32_t target_bitrate) {
+  this->shouldSendFeedback_ = will_send_fb;
+  if (target_bitrate == 1) {
+    this->videoEnabled_ = false;
+  }
+  this->rateControl_ = target_bitrate;
 }
 
 void WebRtcConnection::setMetadata(std::map<std::string, std::string> metadata) {
