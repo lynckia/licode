@@ -97,9 +97,9 @@ install_openssl(){
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://nice.freedesktop.org/releases/libnice-0.1.13.tar.gz
-    tar -zxvf libnice-0.1.13.tar.gz
-    cd libnice-0.1.13
+    curl -O https://nice.freedesktop.org/releases/libnice-0.1.7.tar.gz
+    tar -zxvf libnice-0.1.7.tar.gz
+    cd libnice-0.1.7
     check_result $?
     ./configure --prefix=$PREFIX_DIR && make -s V=0 && make install
     check_result $?
