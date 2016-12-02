@@ -94,6 +94,8 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
   videoEnabled_ = videoEnabled;
   audioEnabled_ = audioEnabled;
   this->localSdp_.createOfferSdp(videoEnabled_, audioEnabled_, bundle_);
+  this->localSdp_.dtlsRole = ACTPASS;
+
   ELOG_DEBUG("%s message: Creating sdp offer, isBundle: %d", toLog(), bundle_);
   if (videoEnabled_)
     localSdp_.videoSsrc = this->getVideoSinkSSRC();
@@ -137,6 +139,10 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 
   localSdp_.videoSsrc = this->getVideoSinkSSRC();
   localSdp_.audioSsrc = this->getAudioSinkSSRC();
+
+  if (remoteSdp_.dtlsRole == ACTPASS) {
+    localSdp_.dtlsRole = ACTIVE;
+  }
 
   this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
   this->thisStats_.setVideoSourceSSRC(this->getVideoSourceSSRC());
