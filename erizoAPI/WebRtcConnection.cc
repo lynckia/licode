@@ -57,7 +57,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
 
 NAN_METHOD(WebRtcConnection::New) {
   if (info.Length() < 7) {
-    ThrowException(Exception::TypeError(v8::String::New("Wrong number of arguments")));
+    Nan::ThrowError("Wrong number of arguments");
   }
 
   if (info.IsConstructCall()) {
@@ -184,7 +184,7 @@ NAN_METHOD(WebRtcConnection::init) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
 
-  obj->eventCallback_ = Persistent<Function>::New(Local<Function>::Cast(info[0]));
+  obj->eventCallback_ = new Nan::Callback(info[0].As<Function>());
   bool r = me->init();
 
   info.GetReturnValue().Set(Nan::New(r));
@@ -194,7 +194,7 @@ NAN_METHOD(WebRtcConnection::createOffer) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
   if (info.Length() < 3) {
-    ThrowException(Exception::TypeError(v8::String::New("Wrong number of arguments")));
+    Nan::ThrowError("Wrong number of arguments");
   }
   bool video_enabled = info[0]->BooleanValue();
   bool audio_enabled = info[1]->BooleanValue();
@@ -316,7 +316,7 @@ NAN_METHOD(WebRtcConnection::getStats) {
   } else {
     obj->me->setWebRtcConnectionStatsListener(obj);
     obj->hasCallback_ = true;
-    obj->statsCallback_ = Persistent<Function>::New(Local<Function>::Cast(info[0]));
+    obj->statsCallback_ = new Nan::Callback(info[0].As<Function>());;
   }
 }
 
@@ -361,30 +361,30 @@ void WebRtcConnection::notifyStats(const std::string& message) {
   uv_async_send(&asyncStats_);
 }
 
-void WebRtcConnection::eventsCallback(uv_async_t *handle, int status) {
-  HandleScope scope;
-  WebRtcConnection* obj = reinterpret_cast<WebRtcConnection*>(handle->data);
+NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
+  Nan::HandleScope scope;
+  WebRtcConnection* obj = reinterpret_cast<WebRtcConnection*>(async->data);
   if (!obj || obj->me == NULL)
     return;
   boost::mutex::scoped_lock lock(obj->mutex);
   while (!obj->eventSts.empty()) {
     Local<Value> args[] = {Nan::New(obj->eventSts.front()), Nan::New(obj->eventMsgs.front().c_str()).ToLocalChecked()};
-    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), Nan::New(obj->eventCallback_), 2, args);
+    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->eventCallback_->GetFunction(), 2, args);
     obj->eventMsgs.pop();
     obj->eventSts.pop();
   }
 }
 
-void WebRtcConnection::statsCallback(uv_async_t *handle, int status) {
-  HandleScope scope;
-  WebRtcConnection* obj = reinterpret_cast<WebRtcConnection*>(handle->data);
+NAUV_WORK_CB(WebRtcConnection::statsCallback) {
+  Nan::HandleScope scope;
+  WebRtcConnection* obj = reinterpret_cast<WebRtcConnection*>(async->data);
   if (!obj || obj->me == NULL)
     return;
   boost::mutex::scoped_lock lock(obj->mutex);
   if (obj->hasCallback_) {
     while (!obj->statsMsgs.empty()) {
       Local<Value> args[] = {Nan::New(obj->statsMsgs.front().c_str()).ToLocalChecked()};
-      Nan::MakeCallback(Nan::GetCurrentContext()->Global(), Nan::New(obj->statsCallback_), 1, args);
+      Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->statsCallback_->GetFunction(), 1, args);
       obj->statsMsgs.pop();
     }
   }

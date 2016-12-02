@@ -35,7 +35,7 @@ NAN_MODULE_INIT(ThreadPool::Init) {
 
 NAN_METHOD(ThreadPool::New) {
   if (info.Length() < 1) {
-    ThrowException(Exception::TypeError(v8::String::New("Wrong number of arguments")));
+    Nan::ThrowError("Wrong number of arguments");
   }
 
   unsigned int num_workers = info[0]->IntegerValue();

@@ -14,7 +14,6 @@ Nan::Persistent<Function> OneToManyProcessor::constructor;
 // Async Delete OTM
 
 // Classes for Async (not in node main thread) operations
-
 class AsyncDeleter : public Nan::AsyncWorker {
  public:
     AsyncDeleter(erizo::OneToManyProcessor* otm, Nan::Callback *callback):
@@ -25,7 +24,7 @@ class AsyncDeleter : public Nan::AsyncWorker {
       delete otmToDelete_;
     }
     void HandleOKCallback() {
-      HandleScope scope;
+      Nan::HandleScope scope;
       std::string msg("OK");
       if (callback) {
         Local<Value> argv[] = {

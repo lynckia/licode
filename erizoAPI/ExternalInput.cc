@@ -24,7 +24,7 @@ class AsyncDeleter : public Nan::AsyncWorker {
       eiToDelete_.reset();
     }
     void HandleOKCallback() {
-      HandleScope scope;
+      Nan::HandleScope scope;
       std::string msg("OK");
       if (callback) {
         Local<Value> argv[] = {
