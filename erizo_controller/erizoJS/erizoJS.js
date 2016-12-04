@@ -1,10 +1,13 @@
 /*global require*/
 'use strict';
 var Getopt = require('node-getopt');
+var addon = require('./../../erizoAPI/build/Release/addon');
 var config = require('./../../licode_config');
+var mediaConfig = require('./../../rtp_media_config');
 
 GLOBAL.config = config || {};
 GLOBAL.config.erizo = GLOBAL.config.erizo || {};
+GLOBAL.config.erizo.numWorkers = GLOBAL.config.erizo.numWorkers || 24;
 GLOBAL.config.erizo.stunserver = GLOBAL.config.erizo.stunserver || '';
 GLOBAL.config.erizo.stunport = GLOBAL.config.erizo.stunport || 0;
 GLOBAL.config.erizo.minport = GLOBAL.config.erizo.minport || 0;
@@ -13,7 +16,7 @@ GLOBAL.config.erizo.turnserver = GLOBAL.config.erizo.turnserver || '';
 GLOBAL.config.erizo.turnport = GLOBAL.config.erizo.turnport || 0;
 GLOBAL.config.erizo.turnusername = GLOBAL.config.erizo.turnusername || '';
 GLOBAL.config.erizo.turnpass = GLOBAL.config.erizo.turnpass || '';
-
+GLOBAL.mediaConfig = mediaConfig || {};
 // Parse command line arguments
 var getopt = new Getopt([
   ['r' , 'rabbit-host=ARG'            , 'RabbitMQ Host'],
@@ -72,7 +75,10 @@ var controller = require('./erizoJSController');
 // Logger
 var log = logger.getLogger('ErizoJS');
 
-var ejsController = controller.ErizoJSController();
+var threadPool = new addon.ThreadPool(GLOBAL.config.erizo.numWorkers);
+threadPool.start();
+
+var ejsController = controller.ErizoJSController(threadPool);
 
 ejsController.keepAlive = function(callback) {
     callback('callback', true);

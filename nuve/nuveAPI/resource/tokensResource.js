@@ -10,19 +10,15 @@ var logger = require('./../logger').logger;
 // Logger
 var log = logger.getLogger('TokensResource');
 
-var currentService;
-var currentRoom;
-
 /*
  * Gets the service and the room for the proccess of the request.
  */
-var doInit = function (roomId, callback) {
-    currentService = require('./../auth/nuveAuthenticator').service;
+var doInit = function (req, callback) {
+    var currentService = req.service;
 
-    serviceRegistry.getRoomForService(roomId, currentService, function (room) {
-        //log.info(room);
-        currentRoom = room;
-        callback();
+    serviceRegistry.getRoomForService(req.params.room, currentService, function (room) {
+        req.room = room;
+        callback(currentService, room);
     });
 };
 
@@ -47,9 +43,11 @@ var getTokenString = function (id, token) {
  * The format of a token is:
  * {tokenId: id, host: erizoController host, signature: signature of the token};
  */
-var generateToken = function (callback) {
-    var user = require('./../auth/nuveAuthenticator').user,
-        role = require('./../auth/nuveAuthenticator').role,
+var generateToken = function (req, callback) {
+    var user = req.user,
+        role = req.role,
+        currentRoom = req.room,
+        currentService = req.service,
         r,
         tr,
         token,
@@ -104,7 +102,7 @@ var generateToken = function (callback) {
 
             token = currentService.testToken;
 
-            log.info('message: generateTestToken already generated - returning, ' + 
+            log.info('message: generateTestToken already generated - returning, ' +
                 logger.objectToLog(token));
 
             tokenS = getTokenString(token._id, token);
@@ -114,8 +112,7 @@ var generateToken = function (callback) {
         }
     } else {
 
-        cloudHandler.getErizoControllerForRoom (currentRoom, function (ec) {
-
+        cloudHandler.getErizoControllerForRoom(currentRoom, function (ec) {
             if (ec === 'timeout') {
                 callback('error');
                 return;
@@ -143,8 +140,7 @@ var generateToken = function (callback) {
  * Post Token. Creates a new token for a determined room of a service.
  */
 exports.create = function (req, res) {
-    doInit(req.params.room, function () {
-
+    doInit(req, function (currentService, currentRoom) {
         if (currentService === undefined) {
             log.warn('message: createToken - service not found');
             res.send('Service not found', 404);
@@ -155,7 +151,7 @@ exports.create = function (req, res) {
             return;
         }
 
-        generateToken(function (tokenS) {
+        generateToken(req, function (tokenS) {
 
             if (tokenS === undefined) {
                 res.status(401).send('Name and role?');

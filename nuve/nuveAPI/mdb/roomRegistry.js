@@ -55,7 +55,7 @@ exports.removeRoom = function (id) {
     hasRoom(id, function (hasR) {
         if (hasR) {
             db.rooms.remove({_id: db.ObjectId(id)}, function (error) {
-                if (error) log.warn('message: removeRoom error, ' + 
+                if (error) log.warn('message: removeRoom error, ' +
                    logger.objectToLog(error));
             });
         }

@@ -27,7 +27,7 @@ var checkTimestamp = function (ser, params) {
     newC = params.cnonce;
 
     if (newTS < lastTS || (lastTS === newTS && lastC === newC)) {
-        log.debug('message: checkTimestamp lastTimestamp: ' + lastTS + ', newTimestamp: ' + newTS + 
+        log.debug('message: checkTimestamp lastTimestamp: ' + lastTS + ', newTimestamp: ' + newTS +
             ', lastCnonce: ' + lastC + ', newCnonce: ' + newC);
         return false;
     }
@@ -66,7 +66,7 @@ exports.authenticate = function (req, res, next) {
         // Get the service from the data base.
         serviceRegistry.getService(params.serviceid, function (serv) {
             if (serv === undefined || serv === null) {
-                log.info('message: authenticate fail - unknown service, serviceId: ' + 
+                log.info('message: authenticate fail - unknown service, serviceId: ' +
                     params.serviceid);
                 res.status(401).send({'WWW-Authenticate': challengeReq});
                 return;
@@ -85,12 +85,12 @@ exports.authenticate = function (req, res, next) {
             if (checkSignature(params, key)) {
 
                 if (params.username !== undefined && params.role !== undefined) {
-                    exports.user = params.username;
-                    exports.role = params.role;
+                    req.user = params.username;
+                    req.role = params.role;
                 }
 
                 cache[serv.name] =  params;
-                exports.service = serv;
+                req.service = serv;
 
                 // If everything in the authentication is valid continue with the request.
                 next();

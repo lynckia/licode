@@ -1,11 +1,27 @@
 cmake_minimum_required(VERSION 2.6)
 
-include(ExternalProject)
 
+include(ExternalProject)
 project (ERIZO_ALL)
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
+    OUTPUT_VARIABLE GCC_VERSION)
+  if (GCC_VERSION VERSION_LESS 5)
+    message(FATAL_ERROR "gcc version must be >= 5 and is ${GCC_VERSION}")
+  endif()
+
+  execute_process(COMMAND ${CMAKE_CXX_COMPILER} -dumpversion
+    OUTPUT_VARIABLE CXX_VERSION)
+  if (CXX_VERSION VERSION_LESS 5)
+    message(FATAL_ERROR "g++ version must be >= 5 and is ${CXX_VERSION}")
+  endif()
+endif()
+
 option (COMPILE_EXAMPLES "COMPILE_EXAMPLES" OFF)
 
 set(ERIZO_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
+
 
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
@@ -44,11 +60,11 @@ endif(COMPILE_EXAMPLES)
 #tests
 set(GMOCK_BUILD "${CMAKE_CURRENT_BINARY_DIR}/libdeps/gmock")
 set(GMOCK_VERSION "1.8.0")
-ExternalProject_Add(gtest
-  URL "https://github.com/google/googletest/archive/release-${GMOCK_VERSION}.tar.gz"
-  PREFIX ${GMOCK_BUILD}
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${GMOCK_BUILD}
-)
+#ExternalProject_Add(gtest
+#  URL "https://github.com/google/googletest/archive/release-${GMOCK_VERSION}.tar.gz"
+#  PREFIX ${GMOCK_BUILD}
+#  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${GMOCK_BUILD}
+#)
 
 enable_testing()
 

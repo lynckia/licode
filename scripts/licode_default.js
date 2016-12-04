@@ -18,10 +18,6 @@ config.logger.configFile = '../log4js_configuration.json'; //default value: "../
 **********************************************************/
 config.cloudProvider = {};
 config.cloudProvider.name = '';
-//In Amazon Ec2 instances you can specify the zone host. By default is 'ec2.us-east-1a.amazonaws.com' 
-config.cloudProvider.host = '';
-config.cloudProvider.accessKey = '';
-config.cloudProvider.secretAccessKey = '';
 
 /*********************************************************
  NUVE CONFIGURATION
@@ -139,6 +135,9 @@ config.erizo = {};
 
 //Erizo Logs are piped through erizoAgent by default
 //you can control log levels in [licode_path]/erizo_controller/erizoAgent/log4cxx.properties
+
+// Number of workers that will be used to handle WebRtcConnections
+config.erizo.numWorkers = 24;
 
 //STUN server IP address and port to be used by the server.
 //if '' is used, the address is discovered locally

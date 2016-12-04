@@ -15,6 +15,7 @@
 #include "./MediaDefinitions.h"
 #include "./SdpInfo.h"
 #include "./logger.h"
+#include "lib/LibNiceInterface.h"
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainContext GMainContext;
@@ -31,7 +32,7 @@ namespace erizo {
 #define NICE_STREAM_DEF_PWD     22 + 1   /* pwd + NULL */
 
 // forward declarations
-typedef boost::shared_ptr<dataPacket> packetPtr;
+typedef std::shared_ptr<dataPacket> packetPtr;
 class CandidateInfo;
 class WebRtcConnection;
 
@@ -70,7 +71,7 @@ enum IceState {
 
 class NiceConnectionListener {
  public:
-    virtual void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* conn) = 0;
+    virtual void onPacketReceived(packetPtr packet) = 0;
     virtual void onCandidate(const CandidateInfo &candidate, NiceConnection *conn) = 0;
     virtual void updateIceState(IceState state, NiceConnection *conn) = 0;
 };
@@ -80,7 +81,7 @@ class NiceConnectionListener {
  * Represents an ICE Connection in an new thread.
  *
  */
-class NiceConnection {
+class NiceConnection : public LogContext {
   DECLARE_LOGGER();
 
  public:
@@ -103,9 +104,9 @@ class NiceConnection {
    * @param transportName The name of the transport protocol. Was used when WebRTC used video_rtp instead of just rtp.
    * @param iceComponents Number of ice components pero connection. Default is 1 (rtcp-mux).
    */
-  NiceConnection(MediaType med, const std::string &transportName, const std::string& connection_id,
-                 NiceConnectionListener* listener, unsigned int iceComponents,
-                 const IceConfig& iceConfig, std::string username = "", std::string password = "");
+  NiceConnection(boost::shared_ptr<LibNiceInterface> libnice, MediaType med, const std::string &transportName,
+      const std::string& connection_id, NiceConnectionListener* listener, unsigned int iceComponents,
+      const IceConfig& iceConfig, std::string username = "", std::string password = "");
 
   virtual ~NiceConnection();
   /**
@@ -163,25 +164,27 @@ class NiceConnection {
   void updateIceState(IceState state);
   IceState checkIceState();
   void updateComponentState(unsigned int compId, IceState state);
-  void queueData(unsigned int component_id, char* buf, int len);
+  void onData(unsigned int component_id, char* buf, int len);
   CandidatePair getSelectedPair();
-  packetPtr getPacket();
   void setReceivedLastCandidate(bool hasReceived);
   void close();
 
  private:
+  std::string iceStateToString(IceState state) const;
+
+ private:
   std::string connection_id_;
+  boost::shared_ptr<LibNiceInterface> lib_nice_;
   NiceAgent* agent_;
   GMainContext* context_;
   GMainLoop* loop_;
 
   NiceConnectionListener* listener_;
-  std::queue<packetPtr> niceQueue_;
   unsigned int candsDelivered_;
   IceState iceState_;
 
   boost::thread m_Thread_;
-  boost::mutex queueMutex_, closeMutex_;
+  boost::mutex closeMutex_;
   boost::condition_variable cond_;
 
   unsigned int iceComponents_;
@@ -193,7 +196,7 @@ class NiceConnection {
   void mainLoop();
 
   inline const char* toLog() {
-    return (std::string("id: ")+connection_id_).c_str();
+    return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
   }
 };
 

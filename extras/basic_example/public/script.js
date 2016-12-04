@@ -3,195 +3,144 @@
 var serverUrl = '/';
 var localStream, room, recording, recordingId;
 
-function showLegalCase()
-{
-    console.log("test showLegalCase ...");
-    var conf={video: true, audio: true, attributes: {name: 'LegalCase'},
-        //url:"rtsp://user1:222222@111.198.38.42:8554/stream"
-        url:"file:///extra_disk/pkg/test.mov"
-    };
-    var shareScreen = Erizo.Stream(conf);
-
-    shareScreen.addEventListener("access-accepted", function ()
-            {
-            console.log("test showLegalCase access-accepted");
-
-                    room.publish(shareScreen, {maxVideoBW: 300}, function(id, error){
-                        if (id === undefined) {
-                        console.log("test Error publishing stream,", error);
-                        }
-                        else
-                        {
-                        console.log("test Published stream ", id);
-                        }
-                        }); 
-
-            });
-    shareScreen.init();
-}
-
-function GetQueryString(name)
-{
-    var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
-    var r = window.location.search.substr(1).match(reg);
-    if(r!=null)return  unescape(r[2]); return null;
-}
-
 function getParameterByName(name) {
-    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-        results = regex.exec(location.search);
-    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+  name = name.replace(/[\[]/, '\\\[').replace(/[\]]/, '\\\]');
+  var regex = new RegExp('[\\?&]' + name + '=([^&#]*)'),
+      results = regex.exec(location.search);
+  return results == null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
 
-function testConnection () {
-    window.location = "/connection_test.html";
+function testConnection () {  // jshint ignore:line
+  window.location = '/connection_test.html';
 }
-function startRecording () {
-    if (room !== undefined){
-        if (!recording){
-            room.startRecording(localStream, function(id) {
-                    recording = true;
-                    recordingId = id;
-                    });
-        } else {
-            room.stopRecording(recordingId);
-            recording = false;
-        }
+
+function startRecording () {  // jshint ignore:line
+  if (room !== undefined){
+    if (!recording){
+      room.startRecording(localStream, function(id) {
+        recording = true;
+        recordingId = id;
+      });
+
+    } else {
+      room.stopRecording(recordingId);
+      recording = false;
     }
+  }
+}
+
+var slideShowMode = false;
+
+function toggleSlideShowMode() {  // jshint ignore:line
+  var streams = room.remoteStreams;
+  var cb = function (evt){
+      console.log('SlideShowMode changed', evt);
+  };
+  slideShowMode = !slideShowMode;
+  for (var index in streams) {
+    var stream = streams[index];
+    if (localStream.getID() !== stream.getID()) {
+      console.log('Updating config');
+      stream.updateConfiguration({slideShowMode: slideShowMode}, cb);
+    }
+  }
 }
 
 window.onload = function () {
-    recording = false;
-    var screen = getParameterByName("screen");
-    var roomName = getParameterByName("room") || "basicExample";
+  recording = false;
+  var screen = getParameterByName('screen');
+  var roomName = getParameterByName('room') || 'basicExampleRoom';
+  console.log('Selected Room', room);
+  var config = {audio: true,
+                video: true,
+                data: true,
+                screen: screen,
+                videoSize: [640, 480, 640, 480]};
+  // If we want screen sharing we have to put our Chrome extension id.
+  // The default one only works in our Lynckia test servers.
+  // If we are not using chrome, the creation of the stream will fail regardless.
+  if (screen){
+    config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
+  }
+  localStream = Erizo.Stream(config);
+  var createToken = function(userName, role, roomName, callback) {
 
-    var config = {audio: true, video: true, data: false, screen: screen, videoSize: [640, 480, 640, 480], attributes: {name: GetQueryString('user')}};
-    // If we want screen sharing we have to put our Chrome extension id. The default one only works in our Lynckia test servers.
-    // If we are not using chrome, the creation of the stream will fail regardless.
-    //if (screen){
-        //config.extensionId = "okeephmleflklcdebijnponpabbmmgeo";
-    //}
+    var req = new XMLHttpRequest();
+    var url = serverUrl + 'createToken/';
+    var body = {username: userName, role: role, room:roomName};
 
-
-    var configrtsp={video: true, audio: true, attributes: {name: 'LegalCase'},
-        //url:"rtsp://user1:222222@111.198.38.42:8554/stream"
-        url:"file:///extra_disk/pkg/test.mov"
+    req.onreadystatechange = function () {
+      if (req.readyState === 4) {
+        callback(req.responseText);
+      }
     };
-    //var shareScreen = Erizo.Stream(conf);
 
-    if(GetQueryString('user')=='wen') {
-    //localStream = Erizo.Stream(configrtsp);
-    localStream = Erizo.Stream(config);
-    } else {
-        localStream = Erizo.Stream(config);
-    }
-    var createToken = function(userName, role, roomName, callback) {
+    req.open('POST', url, true);
+    req.setRequestHeader('Content-Type', 'application/json');
+    req.send(JSON.stringify(body));
+  };
 
-        var req = new XMLHttpRequest();
-        var url = serverUrl + 'createToken/';
-        var body = {username: userName, role: role, room_id:'58109e428177fdb8dd7fe20f'};
+  createToken('user', 'presenter', roomName, function (response) {
+    var token = response;
+    console.log(token);
+    room = Erizo.Room({token: token});
 
-        console.log('test creating token with ', body);
-        req.onreadystatechange = function () {
-            if (req.readyState === 4) {
-                callback(req.responseText);
-            }
+    localStream.addEventListener('access-accepted', function () {
+      var subscribeToStreams = function (streams) {
+        var cb = function (evt){
+            console.log('Bandwidth Alert', evt.msg, evt.bandwidth);
         };
+        for (var index in streams) {
+          var stream = streams[index];
+          if (localStream.getID() !== stream.getID()) {
+            room.subscribe(stream, {slideShowMode: slideShowMode, metadata: {type: 'subscriber'}});
+            stream.addEventListener('bandwidth-alert', cb);
+          }
+        }
+      };
 
-        req.open('POST', url, true);
-        req.setRequestHeader('Content-Type', 'application/json');
-        req.send(JSON.stringify(body));
-    };
+      room.addEventListener('room-connected', function (roomEvent) {
 
-    createToken(GetQueryString("user"), "presenter", roomName, function (response) {
-            var token = response;
-            console.log('test token:', token);
-            room = Erizo.Room({token: token});
+        room.publish(localStream, {maxVideoBW: 300, metadata: {type: 'publisher'}});
+        subscribeToStreams(roomEvent.streams);
+      });
 
-            localStream.addEventListener("access-accepted", function (){ 
-                console.log('test localStream access-accepted');
+      room.addEventListener('stream-subscribed', function(streamEvent) {
+        var stream = streamEvent.stream;
+        var div = document.createElement('div');
+        div.setAttribute('style', 'width: 320px; height: 240px;');
+        div.setAttribute('id', 'test' + stream.getID());
 
-                var subscribeToStreams = function(streams){
-                for (var index in streams) {
-                var stream = streams[index];
-                var attributes = stream.getAttributes();
-                if (localStream.getID() !== stream.getID()) {
-                room.subscribe(stream);
-                console.log("test subscribed stream ", attributes.name, ', id ', stream.getID());
-                stream.addEventListener("bandwidth-alert", function (evt){
-                    console.log("test Bandwidth Alert", evt.msg, evt.bandwidth);
-                    });
-                }
-                else {
-                console.log('test NOT subscribe ', attributes.name, ', id ', stream.getID());
-                }
-                }
-                }
+        document.body.appendChild(div);
+        stream.show('test' + stream.getID());
 
-                room.addEventListener("room-connected", function (roomEvent){
+      });
 
-                    console.log('test room-connected');
+      room.addEventListener('stream-added', function (streamEvent) {
+        var streams = [];
+        streams.push(streamEvent.stream);
+        subscribeToStreams(streams);
+        document.getElementById('recordButton').disabled = false;
+      });
 
-                    if(GetQueryString('user')=='wen') {
-                        showLegalCase();
-                    }
-                    //else{
-                        
-                    room.publish(localStream, {maxVideoBW: 300}, function(id, error){
-                    
-                        if (id === undefined) {
-                                console.log("test Error publishing stream,", error);
-                        }
-                        else {
-                                console.log("test Published stream ", id);
-                        }
-                        }); 
+      room.addEventListener('stream-removed', function (streamEvent) {
+        // Remove stream from DOM
+        var stream = streamEvent.stream;
+        if (stream.elementID !== undefined) {
+          var element = document.getElementById(stream.elementID);
+          document.body.removeChild(element);
+        }
+      });
 
-                    subscribeToStreams(roomEvent.streams);
-                    //subscribeToStreams(room.remoteStreams);
-                    //}
-                });
+      room.addEventListener('stream-failed', function (){
+          console.log('Stream Failed, act accordingly');
+      });
 
-                room.addEventListener("stream-subscribed", function(streamEvent) {
-                        var stream = streamEvent.stream;
-                        var div = document.createElement('div');
-                        div.setAttribute("style", "width: 320px; height: 240px;");
-                        div.setAttribute("id", "test" + stream.getID());
-                        document.body.appendChild(div);
-                        stream.play("test" + stream.getID());
-                        });
-                room.addEventListener("stream-added", function (streamEvent) {
-                        var streams = [];
-                        streams.push(streamEvent.stream);
-                        console.log('test room stream-added ', streamEvent.stream.getID());
-                        subscribeToStreams(streams);
-                        document.getElementById("recordButton").disabled = false;
-                        });
+      room.connect();
 
-                room.addEventListener("stream-removed", function (streamEvent) {
-                        // Remove stream from DOM
+      localStream.show('myVideo');
 
-                        var attributes = streamEvent.stream.getAttributes();
-                        console.log("test Stream Failed ", attributes.name, ' id ', streamEvent.stream.getID());
-
-                        var stream = streamEvent.stream;
-                        if (stream.elementID !== undefined) {
-                        var element = document.getElementById(stream.elementID);
-                        document.body.removeChild(element);
-                        }
-                        });
-
-                room.addEventListener("stream-failed", function (streamEvent){
-                        var attributes = streamEvent.stream.getAttributes();
-                        console.log("test Stream Failed ", attributes.name, ' id ', streamEvent.stream.getID());
-                        });
-
-                room.connect();
-
-                localStream.play("myVideo");
-
-                });
-                localStream.init();
-            });
-    };
+    });
+    localStream.init();
+  });
+};

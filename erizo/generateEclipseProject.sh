@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 BIN_DIR="build"
 if [ -d $BIN_DIR ]; then
   cd $BIN_DIR
@@ -9,4 +12,3 @@ if [ -d $BIN_DIR ]; then
 else
   echo "Error, build directory does not exist, run generateProject.sh first"
 fi
-  

@@ -3,19 +3,19 @@
 var logger = require('./../common/logger').logger;
 
 // Logger
-var log = logger.getLogger('Ecch');
+var log = logger.getLogger('EcCloudHandler');
 
 var EA_TIMEOUT = 30000;
 var GET_EA_INTERVAL = 5000;
 var AGENTS_ATTEMPTS = 5;
 var WARN_UNAVAILABLE = 503, WARN_TIMEOUT = 504;
-exports.Ecch = function (spec) {
+exports.EcCloudHandler = function (spec) {
   var that = {},
   amqper = spec.amqper,
   agents = {};
 
 
-  var getErizoAgents = function () {
+  that.getErizoAgents = function () {
     amqper.broadcast('ErizoAgent', {method: 'getErizoAgents', args: []}, function (agent) {
       if (agent === 'timeout') {
         log.warn('message: no agents available, code: ' + WARN_UNAVAILABLE );
@@ -52,7 +52,7 @@ exports.Ecch = function (spec) {
     }
   };
 
-  setInterval(getErizoAgents, GET_EA_INTERVAL);
+  setInterval(that.getErizoAgents, GET_EA_INTERVAL);
 
   var getErizoAgent;
 

@@ -1,5 +1,5 @@
-#ifndef API_ONETOMANYPROCESSOR_H
-#define API_ONETOMANYPROCESSOR_H
+#ifndef ERIZOAPI_ONETOMANYPROCESSOR_H_
+#define ERIZOAPI_ONETOMANYPROCESSOR_H_
 
 #include <nan.h>
 #include <OneToManyProcessor.h>
@@ -17,11 +17,11 @@
  * Receives media from one publisher and retransmits it to every subscriber.
  */
 class OneToManyProcessor : public MediaSink {
-  public:
+ public:
     static NAN_MODULE_INIT(Init);
     erizo::OneToManyProcessor* me;
 
-  private:
+ private:
     OneToManyProcessor();
     ~OneToManyProcessor();
 
@@ -74,4 +74,4 @@ class OneToManyProcessor : public MediaSink {
     static Nan::Persistent<v8::Function> constructor;
 };
 
-#endif
+#endif  // ERIZOAPI_ONETOMANYPROCESSOR_H_
