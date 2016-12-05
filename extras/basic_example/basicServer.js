@@ -14,6 +14,13 @@ var options = {
     cert: fs.readFileSync('../../cert/cert.pem').toString()
 };
 
+if (config.erizoController.ssl_ca_certs) {
+    options.ca = [];
+    for (var ca in config.erizoController.ssl_ca_certs) {
+        options.ca.push(fs.readFileSync(config.erizoController.ssl_ca_certs[ca]).toString());
+    }
+}
+
 var app = express();
 
 // app.configure ya no existe
