@@ -7,26 +7,26 @@ namespace erizo {
 DEFINE_LOGGER(RtpVP8SlideShowHandler, "rtp.RtpVP8SlideShowHandler");
 
 RtpVP8SlideShowHandler::RtpVP8SlideShowHandler(WebRtcConnection *connection) : RtpSlideShowHandler(connection),
-  slideshow_seq_num_{0}, last_original_seq_num_{0}, seq_num_offset_{0}, slideshow_is_active_{false},
+  slideshow_seq_num_{-1}, last_original_seq_num_{-1}, seq_num_offset_{0}, slideshow_is_active_{false},
   sending_keyframe_ {false} {}
 
 void RtpVP8SlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  boost::mutex::scoped_lock lock(slideshow_mutex_);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (connection_->getVideoSinkSSRC() != chead->getSourceSSRC()) {
     ctx->fireRead(packet);
     return;
   }
+  slideshow_mutex_.lock();
   if (seq_num_offset_ > 0) {
     char* buf = packet->data;
-    char* movingBuf = buf;
-    int rtcpLength = 0;
-    int totalLength = 0;
+    char* report_pointer = buf;
+    int rtcp_length = 0;
+    int total_length = 0;
     do {
-      movingBuf += rtcpLength;
-      chead = reinterpret_cast<RtcpHeader*>(movingBuf);
-      rtcpLength = (ntohs(chead->length) + 1) * 4;
-      totalLength += rtcpLength;
+      report_pointer += rtcp_length;
+      chead = reinterpret_cast<RtcpHeader*>(report_pointer);
+      rtcp_length = (ntohs(chead->length) + 1) * 4;
+      total_length += rtcp_length;
       switch (chead->packettype) {
         case RTCP_Receiver_PT:
           if ((chead->getHighestSeqnum() + seq_num_offset_) < chead->getHighestSeqnum()) {
@@ -42,13 +42,13 @@ void RtpVP8SlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> pack
         default:
           break;
       }
-    } while (totalLength < packet->length);
+    } while (total_length < packet->length);
   }
+  slideshow_mutex_.unlock();
   ctx->fireRead(packet);
 }
 
 void RtpVP8SlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  boost::mutex::scoped_lock lock(slideshow_mutex_);
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   RtcpHeader *rtcp_header = reinterpret_cast<RtcpHeader*>(packet->data);
 
@@ -56,7 +56,11 @@ void RtpVP8SlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> pac
     ctx->fireWrite(packet);
     return;
   }
+  slideshow_mutex_.lock();
   last_original_seq_num_ = rtp_header->getSeqNumber();
+  if (slideshow_seq_num_ == -1) {  // We didn't receive any packets before setting up slideshow
+    slideshow_seq_num_ = last_original_seq_num_;
+  }
   if (slideshow_is_active_) {
     RtpVP8Parser parser;
     unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
@@ -69,15 +73,19 @@ void RtpVP8SlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> pac
     delete payload;
     if (sending_keyframe_) {  // We send until marker
       setPacketSeqNumber(packet, slideshow_seq_num_++);
+      slideshow_mutex_.unlock();
       ctx->fireWrite(packet);
       if (rtp_header->getMarker()) {
-        sending_keyframe_ = 0;
+        sending_keyframe_ = false;
       }
+    } else {
+      slideshow_mutex_.unlock();
     }
   } else {
     if (seq_num_offset_ > 0) {
       setPacketSeqNumber(packet, (last_original_seq_num_ - seq_num_offset_));
     }
+    slideshow_mutex_.unlock();
     ctx->fireWrite(packet);
   }
 }

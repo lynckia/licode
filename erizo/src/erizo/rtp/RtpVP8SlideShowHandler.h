@@ -21,7 +21,9 @@ class RtpVP8SlideShowHandler : public RtpSlideShowHandler {
 
 
  private:
-  uint16_t slideshow_seq_num_, last_original_seq_num_, seq_num_offset_;
+  int32_t slideshow_seq_num_, last_original_seq_num_;
+  uint16_t seq_num_offset_;
+
   bool slideshow_is_active_, sending_keyframe_;
   boost::mutex slideshow_mutex_;
 
