@@ -79,13 +79,31 @@ install_brew_deps(){
   fi
 }
 
+download_openssl() {
+  OPENSSL_VERSION=$1
+  OPENSSL_MAJOR="${OPENSSL_VERSION%?}"
+  echo "Downloading OpenSSL from https://www.openssl.org/source/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
+  curl -O https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
+  tar -zxvf openssl-$OPENSSL_VERSION.tar.gz || DOWNLOAD_SUCCESS=$?
+  if [ "$DOWNLOAD_SUCCESS" -eq 1 ]
+  then
+    echo "Downloading OpenSSL from https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
+    curl -O https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz
+    tar -zxvf openssl-$OPENSSL_VERSION.tar.gz
+  fi
+}
+
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.openssl.org/source/openssl-1.0.1l.tar.gz
-    tar -zxvf openssl-1.0.1l.tar.gz
-    cd openssl-1.0.1l
-    ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -shared -fPIC && make -s V=0 && make install_sw
+    OPENSSL_VERSION=`node -pe process.versions.openssl`
+    if [ ! -f ./openssl-$OPENSSL_VERSION.tar.gz ]; then
+      download_openssl $OPENSSL_VERSION
+      cd openssl-$OPENSSL_VERSION
+      ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -shared -fPIC && make -s V=0 && make install_sw
+    else
+      echo "openssl already installed"
+    fi
     check_result $?
     cd $CURRENT_DIR
   else
@@ -97,9 +115,9 @@ install_openssl(){
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://nice.freedesktop.org/releases/libnice-0.1.13.tar.gz
-    tar -zxvf libnice-0.1.13.tar.gz
-    cd libnice-0.1.13
+    curl -O https://nice.freedesktop.org/releases/libnice-0.1.7.tar.gz
+    tar -zxvf libnice-0.1.7.tar.gz
+    cd libnice-0.1.7
     check_result $?
     ./configure --prefix=$PREFIX_DIR && make -s V=0 && make install
     check_result $?

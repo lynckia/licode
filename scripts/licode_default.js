@@ -74,6 +74,7 @@ config.erizoController.listen_port = 8080; //default value: 8080
 // Custom location for SSL certificates. Default located in /cert
 //config.erizoController.ssl_key = '/full/path/to/ssl.key';
 //config.erizoController.ssl_cert = '/full/path/to/ssl.crt';
+//config.erizoController.sslCaCerts = ['/full/path/to/ca_cert1.crt', '/full/path/to/ca_cert2.crt'];
 
 // Use the name of the inferface you want to bind to for websockets
 // config.erizoController.networkInterface = 'eth1' // default value: undefined

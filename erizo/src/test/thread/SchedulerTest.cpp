@@ -64,7 +64,7 @@ TEST_P(SchedulerTest, execute_multiple_concurrent_tasks) {
   scheduleCounterIncrement(20);
   scheduleCounterIncrement(20);
 
-  auto reason = wait_until(100);
+  auto reason = wait_until(300);
 
   EXPECT_THAT(reason, Not(Eq(std::cv_status::timeout)));
   EXPECT_THAT(counter, Eq(counter_limit));
@@ -77,7 +77,7 @@ TEST_P(SchedulerTest, execute_tasks_on_different_times) {
   scheduleCounterIncrement(60);
   scheduleCounterIncrement(80);
 
-  auto reason = wait_until(200);
+  auto reason = wait_until(500);
 
   EXPECT_THAT(reason, Not(Eq(std::cv_status::timeout)));
   EXPECT_THAT(counter, Eq(counter_limit));

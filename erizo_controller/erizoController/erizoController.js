@@ -23,6 +23,8 @@ GLOBAL.config.erizoController.ssl_key =
   GLOBAL.config.erizoController.ssl_key || '../../cert/key.pem';
 GLOBAL.config.erizoController.ssl_cert =
   GLOBAL.config.erizoController.ssl_cert || '../../cert/cert.pem';
+GLOBAL.config.erizoController.sslCaCerts =
+  GLOBAL.config.erizoController.sslCaCerts || undefined;
 GLOBAL.config.erizoController.listen_port = GLOBAL.config.erizoController.listen_port || 8080;
 GLOBAL.config.erizoController.listen_ssl = GLOBAL.config.erizoController.listen_ssl || false;
 GLOBAL.config.erizoController.turnServer = GLOBAL.config.erizoController.turnServer || undefined;
@@ -117,6 +119,12 @@ if (GLOBAL.config.erizoController.listen_ssl) {  // jshint ignore:line
         key: fs.readFileSync(config.erizoController.ssl_key).toString(), // jshint ignore:line
         cert: fs.readFileSync(config.erizoController.ssl_cert).toString() // jshint ignore:line
     };
+    if (config.erizoController.sslCaCerts) {
+        options.ca = [];
+        for (var ca in config.erizoController.sslCaCerts) {
+            options.ca.push(fs.readFileSync(config.erizoController.sslCaCerts[ca]).toString());
+        }
+    }
     server = https.createServer(options);
 } else {
     var http = require('http');
