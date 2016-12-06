@@ -12,14 +12,15 @@
 #include "./MediaDefinitions.h"
 #include "./Transport.h"
 #include "./Stats.h"
+#include "pipeline/Handler.h"
+#include "pipeline/Pipeline.h"
+#include "thread/Worker.h"
 #include "rtp/webrtc/fec_receiver_impl.h"
 #include "rtp/RtcpProcessor.h"
 #include "rtp/RtpExtensionProcessor.h"
 #include "rtp/RtpSlideShowHandler.h"
 #include "rtp/RtpVP8SlideShowHandler.h"
-#include "pipeline/Handler.h"
-#include "pipeline/Pipeline.h"
-#include "thread/Worker.h"
+#include "rtp/RtpAudioMuteHandler.h"
 
 namespace erizo {
 
@@ -140,6 +141,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   void setFeedbackReports(bool will_send_feedback, uint32_t target_bitrate = 0);
   void setSlideShowMode(bool state);
+  void muteStream(bool mute_video, bool mute_audio);
 
   void setMetadata(std::map<std::string, std::string> metadata);
 
@@ -194,6 +196,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   std::shared_ptr<Worker> worker_;
 
   std::shared_ptr<RtpSlideShowHandler> slideshow_handler_;
+  std::shared_ptr<RtpAudioMuteHandler> audio_mute_handler_;
 
   void sendPacket(std::shared_ptr<dataPacket> packet);
   int deliverAudioData_(char* buf, int len) override;

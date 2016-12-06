@@ -48,6 +48,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
+  Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
 
   constructor.Reset(tpl->GetFunction());
@@ -211,6 +212,15 @@ NAN_METHOD(WebRtcConnection::setSlideShowMode) {
   bool v = info[0]->BooleanValue();
   me->setSlideShowMode(v);
   info.GetReturnValue().Set(Nan::New(v));
+}
+
+NAN_METHOD(WebRtcConnection::muteStream) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+
+  bool mute_video = info[0]->BooleanValue();
+  bool mute_audio = info[1]->BooleanValue();
+  me->muteStream(mute_video, mute_audio);
 }
 
 NAN_METHOD(WebRtcConnection::setMetadata) {

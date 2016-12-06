@@ -105,6 +105,11 @@ class WebRtcConnection : public MediaSink, public erizo::WebRtcConnectionEventLi
      */
     static NAN_METHOD(setSlideShowMode);
     /*
+     * Mutes or unmutes streams for this WRTC
+     * Param: A boolean indicating what to do
+     */
+    static NAN_METHOD(muteStream);
+    /*
      * Gets Stats from this Wrtc
      * Param: None
      * Returns: The Current stats
