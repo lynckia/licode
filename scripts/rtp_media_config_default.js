@@ -13,7 +13,7 @@ mediaConfig.rtpMappings.vp8 = {
         'nack',
         'nack pli',
         'goog-remb',
-        'transport-cc',
+//        'transport-cc',
     ],
 };
 
