@@ -1,5 +1,3 @@
-# Workaround for java issues, should remove it soon
-group: deprecated
 language: node_js
 os:
 #  - osx  TODO Enable again once we add openssl, libnice, libsrtp and libav to cmake
