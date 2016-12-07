@@ -244,7 +244,7 @@ exports.ErizoJSController = function (threadPool) {
 
     that.processSignaling = function (streamId, peerId, msg) {
         log.info('message: Process Signaling message, ' +
-                 'streamId: ' + streamId + ', peerId: ' + peerId);
+                 'streamId: ' + streamId + ', peerId: ' + peerId, msg);
         if (publishers[streamId] !== undefined) {
             if (subscribers[streamId][peerId]) {
                 if (msg.type === 'offer') {
@@ -259,6 +259,9 @@ exports.ErizoJSController = function (threadPool) {
                     if (msg.config) {
                         if (msg.config.slideShowMode !== undefined) {
                             that.setSlideShow(msg.config.slideShowMode, peerId, streamId);
+                        }
+                        if (msg.config.muteStream !== undefined) {
+                            that.muteStream (msg.config.muteStream, peerId, streamId);
                         }
                     }
                 }
@@ -544,6 +547,25 @@ exports.ErizoJSController = function (threadPool) {
             }
         }
 
+    };
+
+    that.muteStream = function (muteStreamInfo, from, to) {
+        var subscriberWrtc = subscribers[to][from];
+        if (!subscribers) {
+            log.warn('message: wrtc not found for muteStream, ' +
+                     'code: ' + WARN_NOT_FOUND + ', id: ' + from + '_' + to);
+            return;
+        }
+        if (muteStreamInfo.video === undefined) {
+            muteStreamInfo.video = false;
+        }
+        
+        if (muteStreamInfo.audio === undefined) {
+            muteStreamInfo.audio = false;
+        }
+
+        subscriberWrtc.muteStream(muteStreamInfo.video, 
+            muteStreamInfo.audio);
     };
 
     return that;

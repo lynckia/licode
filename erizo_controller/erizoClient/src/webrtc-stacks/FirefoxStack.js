@@ -157,10 +157,12 @@ Erizo.FirefoxStack = function (spec) {
                 spec.callback({type:'updatestream', sdp: localDesc.sdp});
             }
         }
-        if (config.minVideoBW || (config.slideShowMode!==undefined)){
-            L.Logger.debug('MinVideo Changed to ', config.minVideoBW);
-            L.Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
-            spec.callback({type:'updatestream', config:config});
+        if (config.minVideoBW || (config.slideShowMode!==undefined) ||
+            (config.muteStream !== undefined)){
+            L.Logger.debug ('MinVideo Changed to ', config.minVideoBW);
+            L.Logger.debug ('SlideShowMode Changed to ', config.slideShowMode);
+            L.Logger.debug ('muteStream changed to ', config.muteStream);
+            spec.callback({type: 'updatestream', config:config});
         }
     };
 

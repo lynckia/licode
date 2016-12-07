@@ -39,9 +39,11 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   globalState_ = CONN_INITIAL;
 
   slideshow_handler_.reset(new RtpVP8SlideShowHandler(this));
+  audio_mute_handler_.reset(new RtpAudioMuteHandler(this));
 
   // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
   pipeline_->addFront(PacketReader(this));
+  pipeline_->addFront(audio_mute_handler_);
   pipeline_->addFront(slideshow_handler_);
   pipeline_->addFront(RtpRetransmissionHandler(this));
   pipeline_->addFront(PacketWriter(this));
@@ -617,6 +619,11 @@ void WebRtcConnection::setSlideShowMode(bool state) {
   }
   slideShowMode_ = state;
   slideshow_handler_->setSlideShowMode(state);
+}
+
+void WebRtcConnection::muteStream(bool mute_video, bool mute_audio) {
+  ELOG_DEBUG("%s message: muteStream, mute_video: %u, mute_audio: %u", toLog(), mute_video, mute_audio);
+  audio_mute_handler_->muteAudio(mute_audio);
 }
 
 void WebRtcConnection::setFeedbackReports(bool will_send_fb, uint32_t target_bitrate) {
