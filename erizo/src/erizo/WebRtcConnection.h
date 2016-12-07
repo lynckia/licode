@@ -12,7 +12,6 @@
 #include "./MediaDefinitions.h"
 #include "./Transport.h"
 #include "./Stats.h"
-#include "pipeline/Handler.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
 #include "rtp/webrtc/fec_receiver_impl.h"

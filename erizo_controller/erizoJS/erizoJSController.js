@@ -556,9 +556,16 @@ exports.ErizoJSController = function (threadPool) {
                      'code: ' + WARN_NOT_FOUND + ', id: ' + from + '_' + to);
             return;
         }
+        if (muteStreamInfo.video === undefined) {
+            muteStreamInfo.video = false;
+        }
+        
+        if (muteStreamInfo.audio === undefined) {
+            muteStreamInfo.audio = false;
+        }
 
-        subscriberWrtc.muteStream(muteStreamInfo.video !== undefined, 
-            muteStreamInfo.audio !== undefined);
+        subscriberWrtc.muteStream(muteStreamInfo.video, 
+            muteStreamInfo.audio);
     };
 
     return that;

@@ -63,9 +63,9 @@ void RtpAudioMuteHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet
   if (mute_is_active_) {
     control_mutex_.unlock();
   } else {
-    last_sent_seq_num_ = last_original_seq_num_;
+    last_sent_seq_num_ = last_original_seq_num_ - seq_num_offset_;
     if (seq_num_offset_ > 0) {
-      setPacketSeqNumber(packet, (last_original_seq_num_ - seq_num_offset_));
+      setPacketSeqNumber(packet, last_sent_seq_num_);
     }
     control_mutex_.unlock();
     ctx->fireWrite(packet);
@@ -80,10 +80,10 @@ void RtpAudioMuteHandler::muteAudio(bool active) {
 
   if (active) {
     mute_is_active_ = true;
-    ELOG_DEBUG("%s message: Active", connection_->toLog());
+    ELOG_INFO("%s message: Active", connection_->toLog());
   } else {
     seq_num_offset_ = last_original_seq_num_ - last_sent_seq_num_;
-    ELOG_DEBUG("%s message: Changing offset manually, original_seq_num: %u, last_sent_seq_num: %u, offset: %u",
+    ELOG_DEBUG("%s message: Deactivated, original_seq_num: %u, last_sent_seq_num: %u, offset: %u",
                 connection_->toLog(), last_original_seq_num_, last_sent_seq_num_, seq_num_offset_);
     mute_is_active_ = false;
   }
