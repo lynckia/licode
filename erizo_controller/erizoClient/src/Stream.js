@@ -280,25 +280,41 @@ Erizo.Stream = function (spec) {
         }
     };
 
+    that.muteAudio = function (audioActive, callback) {
+        if (that.room && that.room.p2p){
+            L.Logger.warning('muteAudio is not implemented in p2p streams');
+            callback ('error');
+            return;
+        }
+        if (that.local) {
+            L.Logger.warning('muteAudio can only be used in remote streams');
+            callback('Error');
+            return;
+        }
+        var config = {muteStream : {audio : !audioActive}};
+        that.checkOptions(config, true);
+        that.pc.updateSpec(config, callback);
+    };
+
     that.updateConfiguration = function (config, callback) {
         if (config === undefined)
             return;
-        if (that.pc){
+        if (that.pc) {
             that.checkOptions(config, true);
-            if (that.local){
-                if(that.room.p2p){
+            if (that.local) {
+                if(that.room.p2p) {
                     for (var index in that.pc){
                         that.pc[index].updateSpec(config, callback);
                     }
-                }else{
+                } else {
                     that.pc.updateSpec(config, callback);
                 }
 
-            }else{
+            } else {
                 that.pc.updateSpec(config, callback);
             }
         } else {
-            return ('This stream has no peerConnection attached, ignoring');
+            callback('This stream has no peerConnection attached, ignoring');
         }
     };
 

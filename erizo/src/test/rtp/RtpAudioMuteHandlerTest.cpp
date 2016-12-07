@@ -149,16 +149,73 @@ MATCHER_P(ReceiverReportHasSequenceNumber, seq_num, "") {
 }
 
 TEST_F(RtpAudioMuteHandlerTest, basicBehaviourShouldReadPackets) {
-    auto packet = createDataPacket(kArbitrarySeqNumber, VIDEO_PACKET);
+    auto packet = createDataPacket(kArbitrarySeqNumber, AUDIO_PACKET);
 
     EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(HasSequenceNumber(kArbitrarySeqNumber))).Times(1);
     pipeline->read(packet);
 }
 
 TEST_F(RtpAudioMuteHandlerTest, basicBehaviourShouldWritePackets) {
-    auto packet = createDataPacket(kArbitrarySeqNumber, VIDEO_PACKET);
+    auto packet = createDataPacket(kArbitrarySeqNumber, AUDIO_PACKET);
 
     EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(kArbitrarySeqNumber))).Times(1);
     pipeline->write(packet);
 }
 
+TEST_F(RtpAudioMuteHandlerTest, shouldNotWriteAudioPacketsIfActive) {
+    auto audio_packet = createDataPacket(kArbitrarySeqNumber, AUDIO_PACKET);
+    auto video_packet = createDataPacket(kArbitrarySeqNumber+1, VIDEO_PACKET);
+    audio_mute_handler->muteAudio(true);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(kArbitrarySeqNumber+1))).Times(1);
+
+    pipeline->write(audio_packet);
+    pipeline->write(video_packet);
+}
+
+TEST_F(RtpAudioMuteHandlerTest, shouldAdjustSequenceNumbers) {
+    uint16_t seq_number = kArbitrarySeqNumber;
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(kArbitrarySeqNumber+1))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(kArbitrarySeqNumber+2))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(kArbitrarySeqNumber+3))).Times(1);
+
+    packet_queue.push(createDataPacket(seq_number, AUDIO_PACKET));
+    packet_queue.push(createDataPacket(++seq_number, AUDIO_PACKET));
+
+    while (!packet_queue.empty()) {
+      pipeline->write(packet_queue.front());
+      packet_queue.pop();
+    }
+    audio_mute_handler->muteAudio(true);
+    packet_queue.push(createDataPacket(++seq_number, AUDIO_PACKET));
+    packet_queue.push(createDataPacket(++seq_number, AUDIO_PACKET));
+
+    while (!packet_queue.empty()) {
+      pipeline->write(packet_queue.front());
+      packet_queue.pop();
+    }
+    audio_mute_handler->muteAudio(false);
+
+    packet_queue.push(createDataPacket(++seq_number, AUDIO_PACKET));
+    packet_queue.push(createDataPacket(++seq_number, AUDIO_PACKET));
+
+    uint16_t last_sent_seq_number = seq_number;
+
+    while (!packet_queue.empty()) {
+      pipeline->write(packet_queue.front());
+      packet_queue.pop();
+    }
+
+    EXPECT_CALL(*reader.get(), read(_, _)).
+      With(Args<1>(NackHasSequenceNumber(last_sent_seq_number))).
+      Times(1);
+
+    EXPECT_CALL(*reader.get(), read(_, _)).
+      With(Args<1>(ReceiverReportHasSequenceNumber(last_sent_seq_number))).
+      Times(1);
+
+    auto nack = createNack(kArbitrarySeqNumber + 3, AUDIO_PACKET);
+    pipeline->read(nack);
+    auto receiver_report = createReceiverReport(kArbitrarySeqNumber + 3, AUDIO_PACKET);
+    pipeline->read(receiver_report);
+}

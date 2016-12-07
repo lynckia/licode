@@ -16,15 +16,12 @@ void RtpAudioMuteHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet)
     return;
   }
   control_mutex_.lock();
-  if (mute_is_active_) {
-    control_mutex_.unlock();
-    return;
-  }
   if (seq_num_offset_ > 0) {
     char* buf = packet->data;
     char* report_pointer = buf;
     int rtcp_length = 0;
     int total_length = 0;
+    ELOG_DEBUG("The offset it %u", seq_num_offset_);
     do {
       report_pointer += rtcp_length;
       chead = reinterpret_cast<RtcpHeader*>(report_pointer);
@@ -65,6 +62,7 @@ void RtpAudioMuteHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet
   } else {
     last_sent_seq_num_ = last_original_seq_num_ - seq_num_offset_;
     if (seq_num_offset_ > 0) {
+      ELOG_DEBUG("New sequence number %u", last_sent_seq_num_);
       setPacketSeqNumber(packet, last_sent_seq_num_);
     }
     control_mutex_.unlock();
