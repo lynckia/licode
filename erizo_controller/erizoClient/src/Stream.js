@@ -280,7 +280,7 @@ Erizo.Stream = function (spec) {
         }
     };
 
-    that.muteAudio = function (audioActive, callback) {
+    that.muteAudio = function (isMuted, callback) {
         if (that.room && that.room.p2p){
             L.Logger.warning('muteAudio is not implemented in p2p streams');
             callback ('error');
@@ -291,7 +291,7 @@ Erizo.Stream = function (spec) {
             callback('Error');
             return;
         }
-        var config = {muteStream : {audio : !audioActive}};
+        var config = {muteStream : {audio : isMuted}};
         that.checkOptions(config, true);
         that.pc.updateSpec(config, callback);
     };
