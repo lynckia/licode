@@ -9,10 +9,7 @@
 #include "./config.h"
 #endif
 
-#include "./DtlsTimer.h"
 #include "./bf_dwrap.h"
-
-const int SRTP_MASTER_KEY_BASE64_LEN = SRTP_MASTER_KEY_LEN * 4 / 3;
 
 using dtls::DtlsSocket;
 using dtls::SrtpSessionKeys;
@@ -20,26 +17,12 @@ using std::memcpy;
 
 DEFINE_LOGGER(DtlsSocket, "dtls.DtlsSocket");
 
-// Our local timers
-class dtls::DtlsSocketTimer : public DtlsTimer {
- public:
-  DtlsSocketTimer(unsigned int seq, DtlsSocket *socket): DtlsTimer(seq), mSocket(socket) {}
-  ~DtlsSocketTimer() {}
-
-  void expired() {
-    mSocket->expired(this);
-  }
- private:
-  DtlsSocket *mSocket;
-};
-
 int dummy_cb(int d, X509_STORE_CTX *x) {
   return 1;
 }
 
 DtlsSocket::DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type):
               mSocketContext(socketContext),
-              mReadTimer(0),
               mSocketType(type),
               mHandshakeCompleted(false) {
   ELOG_DEBUG("Creating Dtls Socket");
@@ -79,9 +62,7 @@ DtlsSocket::DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type):
 
 DtlsSocket::~DtlsSocket() {
   ELOG_DEBUG("Deleting Socket");
-  if (mReadTimer) mReadTimer->invalidate();
 
-  ELOG_DEBUG("Invalidated Timer");
   // Properly shutdown the socket and free it - note: this also free's the BIO's
   if (mSsl != NULL) {
     ELOG_DEBUG("SSL Shutdown");
@@ -89,10 +70,6 @@ DtlsSocket::~DtlsSocket() {
     SSL_free(mSsl);
     mSsl = NULL;
   }
-}
-
-void DtlsSocket::expired(DtlsSocketTimer* timer) {
-  forceRetransmit();
 }
 
 void DtlsSocket::startClient() {
@@ -151,27 +128,8 @@ void DtlsSocket::doHandshakeIteration() {
     case SSL_ERROR_NONE:
       mHandshakeCompleted = true;
       mSocketContext->handshakeCompleted();
-      if (mReadTimer) {
-        mReadTimer->invalidate();
-      }
-      mReadTimer = 0;
       break;
     case SSL_ERROR_WANT_READ:
-      // There are two cases here:
-      // (1) We didn't get enough data. In this case we leave the
-      //     timers alone and wait for more packets.
-      // (2) We did get a full flight and then handled it, but then
-      //     wrote some more message and now we need to flush them
-      //     to the network and now reset the timers
-      //
-      // If data was written then this means we got a complete
-      // something or a retransmit so we need to reset the timer
-      if (outBioLen) {
-        if (mReadTimer) mReadTimer->invalidate();
-        mReadTimer = new DtlsSocketTimer(0, this);
-        mSocketContext->addTimerToContext(mReadTimer, 500);
-      }
-
       break;
     default:
       ELOG_ERROR("SSL error %d", sslerr);

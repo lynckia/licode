@@ -24,7 +24,6 @@ extern "C" {
 #include <cstring>
 
 #include "./DtlsSocket.h"
-#include "./DtlsTimer.h"
 #include "./bf_dwrap.h"
 
 using dtls::DtlsSocketContext;
@@ -220,8 +219,6 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
     started = false;
     DtlsSocketContext::Init();
 
-    mTimerContext = std::auto_ptr<TestTimerContext>(new TestTimerContext());
-
     ELOG_DEBUG("Creating Dtls factory, Openssl v %s", OPENSSL_VERSION_TEXT);
 
     mContext = SSL_CTX_new(DTLSv1_method());
@@ -326,10 +323,6 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
 
     void DtlsSocketContext::setDtlsReceiver(DtlsReceiver *recv) {
       receiver = recv;
-    }
-
-    void DtlsSocketContext::addTimerToContext(DtlsTimer* timer, int timeValue) {
-      mTimerContext->addTimer(timer, timeValue);
     }
 
     void DtlsSocketContext::write(const unsigned char* data, unsigned int len) {
