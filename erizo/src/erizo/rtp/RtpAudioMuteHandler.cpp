@@ -70,18 +70,12 @@ void RtpAudioMuteHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet
 
 void RtpAudioMuteHandler::muteAudio(bool active) {
   boost::mutex::scoped_lock lock(control_mutex_);
-  if (mute_is_active_ == active) {
-    return;
-  }
-
-  if (active) {
-    mute_is_active_ = true;
-    ELOG_INFO("%s message: Active", connection_->toLog());
-  } else {
+  mute_is_active_ = active;
+  ELOG_INFO("%s message: Mute Audio, active: %d", connection_->toLog(), active);
+  if (!mute_is_active_) {
     seq_num_offset_ = last_original_seq_num_ - last_sent_seq_num_;
     ELOG_DEBUG("%s message: Deactivated, original_seq_num: %u, last_sent_seq_num: %u, offset: %u",
-                connection_->toLog(), last_original_seq_num_, last_sent_seq_num_, seq_num_offset_);
-    mute_is_active_ = false;
+        connection_->toLog(), last_original_seq_num_, last_sent_seq_num_, seq_num_offset_);
   }
 }
 
