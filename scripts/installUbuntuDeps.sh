@@ -52,7 +52,7 @@ install_apt_deps(){
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
 
   curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
-  sudo apt-get install nodejs
+  sudo apt-get install -qq nodejs -y
   sudo npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
