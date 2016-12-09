@@ -1,6 +1,6 @@
 language: node_js
 os:
-#  - osx  TODO Enable again once we add openssl, libnice, libsrtp and libav to cmake
+  - osx
   - linux
 sudo: required
 dist: trusty
@@ -10,7 +10,6 @@ cache:
   - cache
   - build/libdeps
 node_js:
-  - 0.10  # TODO remove it once Node 6 is completely tested in production environments
   - 6
 services:
   - mongodb
