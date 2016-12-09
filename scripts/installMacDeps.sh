@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# set -e
+set -e
 
 SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`
@@ -51,7 +51,7 @@ check_result() {
 install_homebrew_from_cache(){
   if [ -f cache/homebrew-cache.tar.gz ]; then
     tar xzf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar
-    brew link glib pkg-config boost cmake yasm log4cxx gettext
+    brew link glib pkg-config boost cmake yasm log4cxx gettext | true
   fi
 }
 
@@ -72,10 +72,10 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost cmake yasm log4cxx gettext
+  brew install glib pkg-config boost cmake yasm log4cxx gettext | true
   npm install -g node-gyp
   if [ "$DISABLE_SERVICES" != "true" ]; then
-    brew install rabbitmq mongodb
+    brew install rabbitmq mongodb | true
   fi
 }
 
