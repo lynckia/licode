@@ -6,6 +6,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/mathematics.h>
 }
 
 #include <string>
@@ -16,6 +17,7 @@ extern "C" {
 #include "media/MediaProcessor.h"
 
 #include "./logger.h"
+#include "SyncUtils.h"
 
 namespace erizo {
 
@@ -83,8 +85,6 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   long long firstVideoTimestamp_;  // NOLINT
   long long firstAudioTimestamp_;  // NOLINT
   long long firstDataReceived_;  // NOLINT
-  long long videoOffsetMsec_;  // NOLINT
-  long long audioOffsetMsec_;  // NOLINT
 
 
   // The last sequence numbers we received for audio and video.  Allows us to react to packet loss.
@@ -96,7 +96,14 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   // composed of one or more partitions.  However, we don't seem to be sent anything but partition 0
   // so the second scheme seems not applicable.  Too bad.
   vp8SearchState vp8SearchState_;
-  bool needToSendFir_;
+  bool needToSendFir_, hasAudio, audioTimebaseSet;
+
+  Measurements video_measurements, audio_measurements;
+  SyncUtils SU;
+  long long lastAudioTS, lastVideoTS; //NOLINT
+  uint64_t video_first_rtcp_ntp_timeMSW, audio_first_rtcp_ntp_timeMSW, video_first_rtcp_ntp_timeLSW,
+           audio_first_rtcp_ntp_timeLSW;
+  uint32_t video_first_rtcp_time, audio_first_rtcp_time;
 
   bool initContext();
   int sendFirPacket();
