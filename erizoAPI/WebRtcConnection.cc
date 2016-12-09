@@ -199,7 +199,7 @@ NAN_METHOD(WebRtcConnection::createOffer) {
   }
   bool video_enabled = info[0]->BooleanValue();
   bool audio_enabled = info[1]->BooleanValue();
-  bool bundle = info[3]->BooleanValue();
+  bool bundle = info[2]->BooleanValue();
 
   bool r = me->createOffer(video_enabled, audio_enabled, bundle);
   info.GetReturnValue().Set(Nan::New(r));

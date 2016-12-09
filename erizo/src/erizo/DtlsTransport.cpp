@@ -43,7 +43,9 @@ void Resender::scheduleResend(packetPtr packet) {
   resend_seconds_ = kInitialSecsPerResend;
   packet_ = packet;
   transport_->writeDtlsPacket(socket_context_, packet_);
-  scheduleNext();
+  if (transport_->getTransportState() != TRANSPORT_READY) {
+    scheduleNext();
+  }
 }
 
 void Resender::resend() {
@@ -73,7 +75,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
   Transport(med, transport_name, connection_id, bundle, rtcp_mux, transportListener, iceConfig, worker),
   unprotect_packet_{std::make_shared<dataPacket>()},
   readyRtp(false), readyRtcp(false), isServer_(isServer) {
-    ELOG_DEBUG("%s message: constructor, transportName:%s, isBundle:%d", toLog(), transport_name.c_str(), bundle);
+    ELOG_DEBUG("%s message: constructor, transportName: %s, isBundle: %d", toLog(), transport_name.c_str(), bundle);
     dtlsRtp.reset(new DtlsSocketContext());
 
     int comps = 1;
