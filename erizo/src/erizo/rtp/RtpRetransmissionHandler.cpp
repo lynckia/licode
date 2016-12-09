@@ -15,15 +15,15 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
   bool is_fully_recovered = true;
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
   if (chead->isRtcp() && chead->isFeedback()) {
-    char* movingBuf = packet->data;
-    int rtcpLength = 0;
-    int totalLength = 0;
+    char* moving_buf = packet->data;
+    int rtcp_length = 0;
+    int total_length = 0;
 
     do {
-      movingBuf += rtcpLength;
-      chead = reinterpret_cast<RtcpHeader*>(movingBuf);
-      rtcpLength = (ntohs(chead->length) + 1) * 4;
-      totalLength += rtcpLength;
+      moving_buf += rtcp_length;
+      chead = reinterpret_cast<RtcpHeader*>(moving_buf);
+      rtcp_length = (ntohs(chead->length) + 1) * 4;
+      total_length += rtcp_length;
 
       if (chead->packettype == RTCP_RTP_Feedback_PT) {
         contains_nack = true;
@@ -56,7 +56,7 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
           }
         }
       }
-    } while (totalLength < packet->length);
+    } while (total_length < packet->length);
   }
   if (!contains_nack || !is_fully_recovered) {
     ctx->fireRead(packet);
