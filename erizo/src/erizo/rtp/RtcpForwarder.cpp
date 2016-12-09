@@ -6,6 +6,8 @@
 #include <string>
 #include <cstring>
 
+#include "lib/Clock.h"
+
 using std::memcpy;
 
 namespace erizo {
@@ -45,8 +47,7 @@ void RtcpForwarder::analyzeSr(RtcpHeader* chead) {
   boost::mutex::scoped_lock mlock(mapLock_);
   boost::shared_ptr<RtcpData> theData = rtcpData_[recvSSRC];
   boost::mutex::scoped_lock lock(theData->dataLock);
-  struct timeval now;
-  gettimeofday(&now, NULL);
+  uint64_t now = timePointToMs(clock::now());
   uint32_t ntp;
   uint64_t theNTP = chead->getNtpTimestamp();
   ntp = (theNTP & (0xFFFFFFFF0000)) >> 16;
@@ -67,8 +68,7 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
     // We try to add it just in case it is not there yet (otherwise its noop)
     this->addSourceSsrc(sourceSsrc);
 
-    struct timeval now;
-    gettimeofday(&now, NULL);
+    uint64_t now = timePointToMs(clock::now());
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;

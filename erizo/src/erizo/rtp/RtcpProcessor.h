@@ -16,13 +16,13 @@ namespace erizo {
 class SrData {
  public:
   uint32_t srNtp;
-  struct timeval timestamp;
+  uint64_t timestamp;
 
   SrData() {
     srNtp = 0;
-    timestamp = (struct timeval) {0, 0};
+    timestamp = 0;
   }
-  SrData(uint32_t srNTP, struct timeval theTimestamp) {
+  SrData(uint32_t srNTP, uint64_t theTimestamp) {
     this->srNtp = srNTP;
     this->timestamp = theTimestamp;
   }
@@ -59,10 +59,10 @@ class RtcpData {
   uint16_t nackBlp;
 
   // time based data flow limits
-  struct timeval lastSrUpdated, lastREMBSent;
-  struct timeval lastSrReception, lastRrWasScheduled;
+  uint64_t lastSrUpdated, lastREMBSent;
+  uint64_t lastSrReception, lastRrWasScheduled;
   // to prevent sending too many reports, track time of last
-  struct timeval lastRrSent;
+  uint64_t lastRrSent;
 
   bool shouldSendPli;
   bool shouldSendREMB;
@@ -100,10 +100,10 @@ class RtcpData {
     shouldReset = false;
     nackSeqnum = 0;
     nackBlp = 0;
-    lastRrSent = (struct timeval){0, 0};
-    lastREMBSent = (struct timeval){0, 0};
-    lastSrReception = (struct timeval){0, 0};
-    lastRrWasScheduled = (struct timeval){0, 0};
+    lastRrSent = 0;
+    lastREMBSent = 0;
+    lastSrReception = 0;
+    lastRrWasScheduled = 0;
   }
 
   // lock for any blocking data change

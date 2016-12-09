@@ -17,7 +17,7 @@ DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 ExternalOutput::ExternalOutput(const std::string& outputUrl)
   : fec_receiver_(this), audioQueue_(5.0, 10.0), videoQueue_(5.0, 10.0), inited_(false),
     video_stream_(NULL), audio_stream_(NULL), firstVideoTimestamp_(-1), firstAudioTimestamp_(-1),
-    firstDataReceived_(-1), videoOffsetMsec_(-1), audioOffsetMsec_(-1), vp8SearchState_(lookingForStart),
+    firstDataReceived_(), videoOffsetMsec_(-1), audioOffsetMsec_(-1), vp8SearchState_(lookingForStart),
     needToSendFir_(true) {
   ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
 
@@ -131,9 +131,6 @@ void ExternalOutput::writeAudioData(char* buf, int len) {
   if (firstAudioTimestamp_ == -1) {
       firstAudioTimestamp_ = head->getTimestamp();
   }
-
-  timeval time;
-  gettimeofday(&time, NULL);
 
   // Figure out our audio codec.
   if (context_->oformat->audio_codec == AV_CODEC_ID_NONE) {
@@ -402,10 +399,8 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
     return;
   }
 
-  if (firstDataReceived_ == -1) {
-    timeval time;
-    gettimeofday(&time, NULL);
-    firstDataReceived_ = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+  if (firstDataReceived_ == time_point()) {
+    firstDataReceived_ = clock::now();
     if (this->getAudioSinkSSRC() == 0) {
       ELOG_DEBUG("No audio detected");
       context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
@@ -418,9 +413,7 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
 
   if (type == VIDEO_PACKET) {
     if (this->videoOffsetMsec_ == -1) {
-      timeval time;
-      gettimeofday(&time, NULL);
-      videoOffsetMsec_ = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - firstDataReceived_;
+      videoOffsetMsec_ = durationToMs(clock::now() - firstDataReceived_);
       ELOG_DEBUG("File %s, video offset msec: %llu", context_->filename, videoOffsetMsec_);
     }
 
@@ -447,9 +440,7 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
     }
   } else {
     if (this->audioOffsetMsec_ == -1) {
-      timeval time;
-      gettimeofday(&time, NULL);
-      audioOffsetMsec_ = ((time.tv_sec * 1000) + (time.tv_usec / 1000)) - firstDataReceived_;
+      audioOffsetMsec_ = durationToMs(clock::now() - firstDataReceived_);
       ELOG_DEBUG("File %s, audio offset msec: %llu", context_->filename, audioOffsetMsec_);
 
       // Let's also take a moment to set our audio queue timebase.
@@ -497,7 +488,7 @@ void ExternalOutput::sendLoop() {
       boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
       this->writeVideoData(videoP->data, videoP->length);
     }
-    if (!inited_ && firstDataReceived_ !=-1) {
+    if (!inited_ && firstDataReceived_ != time_point()) {
       inited_ = true;
     }
   }

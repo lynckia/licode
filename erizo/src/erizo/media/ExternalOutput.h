@@ -14,6 +14,7 @@ extern "C" {
 #include "rtp/RtpPacketQueue.h"
 #include "rtp/webrtc/fec_receiver_impl.h"
 #include "media/MediaProcessor.h"
+#include "lib/Clock.h"
 
 #include "./logger.h"
 
@@ -82,7 +83,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   // and that value is added to every timestamp we write.
   long long firstVideoTimestamp_;  // NOLINT
   long long firstAudioTimestamp_;  // NOLINT
-  long long firstDataReceived_;  // NOLINT
+  clock::time_point firstDataReceived_;  // NOLINT
   long long videoOffsetMsec_;  // NOLINT
   long long audioOffsetMsec_;  // NOLINT
 

@@ -22,8 +22,6 @@
 
 #include <MMSystem.h>  // timeGetTime
 #elif((defined WEBRTC_LINUX) || (defined WEBRTC_MAC))
-#include <sys/time.h>  // gettimeofday
-#include <time.h>
 #endif
 #if (defined(_DEBUG) && defined(_WIN32) && (_MSC_VER >= 1400))
 #include <stdio.h>

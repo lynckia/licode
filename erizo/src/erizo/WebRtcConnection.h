@@ -20,8 +20,11 @@
 #include "rtp/RtpSlideShowHandler.h"
 #include "rtp/RtpVP8SlideShowHandler.h"
 #include "rtp/RtpAudioMuteHandler.h"
+#include "lib/Clock.h"
 
 namespace erizo {
+
+constexpr std::chrono::milliseconds kBitrateControlPeriod(100);
 
 class Transport;
 class TransportListener;
@@ -54,8 +57,8 @@ class WebRtcConnectionStatsListener {
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary Transport components.
  */
-class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink, public FeedbackSource,
-                        public TransportListener, public webrtc::RtpData, public LogContext,
+class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink,
+                        public FeedbackSource, public TransportListener, public webrtc::RtpData, public LogContext,
                         public std::enable_shared_from_this<WebRtcConnection> {
   DECLARE_LOGGER();
 
@@ -180,7 +183,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   webrtc::FecReceiverImpl fec_receiver_;
   boost::condition_variable cond_;
 
-  struct timeval now_, mark_;
+  time_point now_, mark_;
 
   boost::shared_ptr<RtcpProcessor> rtcpProcessor_;
   std::shared_ptr<Transport> videoTransport_, audioTransport_;
