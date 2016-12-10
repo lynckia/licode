@@ -432,36 +432,25 @@ namespace erizo {
         head.setMarker(false);
 
         head.setExtension(false);
-        //head.setExtId(48862); //0xbede profile
-        //head.setExtLength(1);       // only 1 ext, Audio level.
 
         // No need to rescale as already audio time base.
         head.setTimestamp(pts);
 
-        //AudioLevelExtension ext;
-        //ext.init();
-        //int audioLevel = -calculateAudioLevel(inBuff, 0,FrameSize, 127);
-
-        //ELOG_DEBUG("Calculated audio level=%d", audioLevel);
-
-        //ext.level = audioLevel;
-        //uint16_t val = *(reinterpret_cast<uint16_t*>(&ext));
-        //val = htonl(val); // don't need it.
-        //head.extensions = val;
-
-        //ELOG_DEBUG("head.extensions = %hu", head.extensions);
-
-        // next timestamp will +FrameSize;
-
-        //auto ssrc = videoSink->getAudioSinkSSRC();
-        //head.setSSRC(44444);
-        //
-        auto ssrc = 55543;
+        auto ssrc = 44444;
         auto mediasource = dynamic_cast<MediaSource*>(rtpReceiver_);
         if (mediasource)
         {
-            ssrc = mediasource->getAudioSourceSSRC();
+            auto rc = mediasource->getAudioSourceSSRC();
+            if (rc == 0)
+            {
+              ELOG_WARN("ssrc invalid from mediasource->getAudioSourceSSRC()");
+            }
+            else
+            {
+              ssrc = rc;
+            }
         }
+        
         head.setSSRC(ssrc);
         head.setPayloadType(111);// will be substituted later by client type.
 
@@ -511,7 +500,6 @@ namespace erizo {
             }else{
                 rtpHeader.setTimestamp(av_rescale(pts, 90000, 1000));
             }
-            //auto ssrc = videoSink->getVideoSinkSSRC();a
 
             rtpHeader.setSSRC(ssrc);
             rtpHeader.setPayloadType(100);
