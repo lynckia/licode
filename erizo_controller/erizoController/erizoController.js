@@ -28,6 +28,7 @@ GLOBAL.config.erizoController.sslCaCerts =
 GLOBAL.config.erizoController.listen_port = GLOBAL.config.erizoController.listen_port || 8080;
 GLOBAL.config.erizoController.listen_ssl = GLOBAL.config.erizoController.listen_ssl || false;
 GLOBAL.config.erizoController.turnServer = GLOBAL.config.erizoController.turnServer || undefined;
+GLOBAL.config.erizoController.stunServerUrl = GLOBAL.config.erizoController.stunServerUrl || undefined;
 GLOBAL.config.erizoController.warning_n_rooms = GLOBAL.config.erizoController.warning_n_rooms || 15;
 GLOBAL.config.erizoController.limit_n_rooms = GLOBAL.config.erizoController.limit_n_rooms || 20;
 GLOBAL.config.erizoController.interval_time_keepAlive =
@@ -428,7 +429,9 @@ var listen = function () {
                                             defaultVideoBW:
                                                 GLOBAL.config.erizoController.defaultVideoBW,
                                             maxVideoBW: GLOBAL.config.erizoController.maxVideoBW,
-                                            iceServers: GLOBAL.config.erizoController.iceServers
+                                            iceServers: GLOBAL.config.erizoController.iceServers,
+                                            turnServer : GLOBAL.config.erizoController.turnServer,
+                                            stunServerUrl : GLOBAL.config.erizoController.stunServerUrl
                                             });
 
                     } else {
