@@ -10,7 +10,6 @@ cache:
   - cache
   - build/libdeps
 node_js:
-  - 6
 services:
   - mongodb
   - rabbitmq

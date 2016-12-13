@@ -25,8 +25,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
     const IceConfig& iceConfig, std::vector<RtpMap> rtp_mappings, WebRtcConnectionEventListener* listener) :
     connection_id_{connection_id}, remoteSdp_{SdpInfo(rtp_mappings)}, localSdp_{SdpInfo(rtp_mappings)},
         audioEnabled_{false}, videoEnabled_{false}, bundle_{false}, connEventListener_{listener},
-        iceConfig_{iceConfig}, rtp_mappings_{rtp_mappings}, fec_receiver_{this}, pipeline_{Pipeline::create()},
-        worker_{worker} {
+        iceConfig_{iceConfig}, rtp_mappings_{rtp_mappings},
+        pipeline_{Pipeline::create()}, worker_{worker} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
   setVideoSinkSSRC(55543);
@@ -37,6 +37,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   sourcefbSink_ = this;
   sinkfbSource_ = this;
   globalState_ = CONN_INITIAL;
+
+  fec_receiver_.reset(webrtc::UlpfecReceiver::Create(this));
 
   slideshow_handler_.reset(new RtpVP8SlideShowHandler(this));
   audio_mute_handler_.reset(new RtpAudioMuteHandler(this));
@@ -54,7 +56,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   shouldSendFeedback_ = true;
   slideShowMode_ = false;
 
-  gettimeofday(&mark_, NULL);
+  mark_ = clock::now();
 
   rateControl_ = 0;
   sending_ = true;
@@ -332,12 +334,12 @@ int WebRtcConnection::deliverAudioData_(char* buf, int len) {
 }
 
 // This is called by our fec_ object when it recovers a packet.
-bool WebRtcConnection::OnRecoveredPacket(const uint8_t* rtp_packet, int rtp_packet_length) {
+bool WebRtcConnection::OnRecoveredPacket(const uint8_t* rtp_packet, size_t rtp_packet_length) {
   this->deliverVideoData_((char*)rtp_packet, rtp_packet_length);  // NOLINT
   return true;
 }
 
-int32_t WebRtcConnection::OnReceivedPayloadData(const uint8_t* /*payload_data*/, const uint16_t /*payload_size*/,
+int32_t WebRtcConnection::OnReceivedPayloadData(const uint8_t* /*payload_data*/, size_t /*payload_size*/,
                                                 const webrtc::WebRtcRTPHeader* /*rtp_header*/) {
     // Unused by WebRTC's FEC implementation; just something we have to implement.
     return 0;
@@ -361,8 +363,8 @@ int WebRtcConnection::deliverVideoData_(char* buf, int len) {
         hackyHeader.sequenceNumber = h->getSeqNumber();
         // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback,
         // be sure to memcpy out of webrtc's buffers
-        if (fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*) buf, len, ULP_90000_PT) == 0) {
-          fec_receiver_.ProcessReceivedFec();
+        if (fec_receiver_->AddReceivedRedPacket(hackyHeader, (const uint8_t*) buf, len, ULP_90000_PT) == 0) {
+          fec_receiver_->ProcessReceivedFec();
         }
       } else {
         sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
@@ -710,10 +712,8 @@ void WebRtcConnection::sendPacket(std::shared_ptr<dataPacket> p) {
       if (rateControl_ == 1) {
         return;
       }
-      gettimeofday(&now_, NULL);
-      uint64_t nowms = (now_.tv_sec * 1000) + (now_.tv_usec / 1000);
-      uint64_t markms = (mark_.tv_sec * 1000) + (mark_.tv_usec/1000);
-      if ((nowms - markms) >= 100) {
+      now_ = clock::now();
+      if ((now_ - mark_) >= kBitrateControlPeriod) {
         mark_ = now_;
         lastSecondVideoBytes = sentVideoBytes;
       }
