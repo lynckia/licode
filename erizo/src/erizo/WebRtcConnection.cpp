@@ -54,7 +54,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   shouldSendFeedback_ = true;
   slideShowMode_ = false;
 
-  gettimeofday(&mark_, NULL);
+  mark_ = clock::now();
 
   rateControl_ = 0;
   sending_ = true;
@@ -710,10 +710,8 @@ void WebRtcConnection::sendPacket(std::shared_ptr<dataPacket> p) {
       if (rateControl_ == 1) {
         return;
       }
-      gettimeofday(&now_, NULL);
-      uint64_t nowms = (now_.tv_sec * 1000) + (now_.tv_usec / 1000);
-      uint64_t markms = (mark_.tv_sec * 1000) + (mark_.tv_usec/1000);
-      if ((nowms - markms) >= 100) {
+      now_ = clock::now();
+      if ((now_ - mark_) >= kBitrateControlPeriod) {
         mark_ = now_;
         lastSecondVideoBytes = sentVideoBytes;
       }

@@ -14,6 +14,9 @@
 #include <utility>
 #include <cstring>
 
+#include "lib/Clock.h"
+#include "lib/ClockUtils.h"
+
 using std::memcpy;
 
 namespace erizo {
@@ -55,8 +58,8 @@ void RtcpAggregator::analyzeSr(RtcpHeader* chead) {
   boost::mutex::scoped_lock mlock(mapLock_);
   boost::shared_ptr<RtcpData> theData = rtcpData_[recvSSRC];
   boost::mutex::scoped_lock lock(theData->dataLock);
-  struct timeval now;
-  gettimeofday(&now, NULL);
+
+  uint64_t now = ClockUtils::timePointToMs(clock::now());
   uint32_t ntp;
   uint64_t theNTP = chead->getNtpTimestamp();
   ntp = (theNTP & (0xFFFFFFFF0000)) >> 16;
@@ -80,8 +83,7 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
     boost::mutex::scoped_lock mlock(mapLock_);
     boost::shared_ptr<RtcpData> theData = rtcpData_[sourceSsrc];
     boost::mutex::scoped_lock lock(theData->dataLock);
-    struct timeval now;
-    gettimeofday(&now, NULL);
+    uint64_t nowms = ClockUtils::timePointToMs(clock::now());
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;
@@ -127,12 +129,11 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
           }
           theData->jitter = theData->jitter > chead->getJitter()? theData->jitter: chead->getJitter();
           calculateLastSr = chead->getLastSr();
-          calculatedlsr = (chead->getDelaySinceLastSr()*1000)/65536;
+          calculatedlsr = (chead->getDelaySinceLastSr() * 1000) / 65536;
           for (std::list<boost::shared_ptr<SrData>>::iterator it = theData->senderReports.begin();
                         it != theData->senderReports.end(); ++it) {
             if ((*it)->srNtp == calculateLastSr) {
-              uint64_t nowms = (now.tv_sec * 1000) + (now.tv_usec / 1000);
-              uint64_t sentts = ((*it)->timestamp.tv_sec * 1000) + ((*it)->timestamp.tv_usec / 1000);
+              uint64_t sentts = (*it)->timestamp;
               delay = nowms - sentts - calculatedlsr;
             }
           }
@@ -142,7 +143,7 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
                         chead->getDelaySinceLastSr(), chead->getLastSr(), theData->lastDelay, delay, sourceSsrc);
             theData->lastSr = chead->getLastSr();
             theData->delaySinceLastSr = chead->getDelaySinceLastSr();
-            theData->lastSrUpdated = now;
+            theData->last_sr_updated = nowms;
             theData->lastDelay = delay;
           } else {
             // ELOG_DEBUG("Not recording delay %u, lastDelay %u", delay, theData->lastDelay);
@@ -251,15 +252,11 @@ void RtcpAggregator::checkRtcpFb() {
     boost::mutex::scoped_lock lock(rtcpData->dataLock);
     uint32_t sourceSsrc = it->first;
     uint32_t sinkSsrc;
-    struct timeval now;
-    gettimeofday(&now, NULL);
+    uint64_t now = ClockUtils::timePointToMs(clock::now());
 
-    unsigned int dt = (now.tv_sec - rtcpData->lastRrSent.tv_sec) * 1000 +
-                      (now.tv_usec - rtcpData->lastRrSent.tv_usec) / 1000;
-    unsigned int edlsr = (now.tv_sec - rtcpData->lastSrUpdated.tv_sec) * 1000 +
-                         (now.tv_usec - rtcpData->lastSrUpdated.tv_usec) / 1000;
-    unsigned int dtScheduled = (now.tv_sec - rtcpData->lastRrWasScheduled.tv_sec) * 1000 +
-                               (now.tv_usec - rtcpData->lastRrWasScheduled.tv_usec) / 1000;
+    unsigned int dt = now - rtcpData->last_rr_sent;
+    unsigned int edlsr = now - rtcpData->last_sr_updated;
+    unsigned int dt_scheduled = now - rtcpData->last_rr_was_scheduled;
 
     // Generate Full RTCP Packet
     if ((rtcpData->requestRr || dt >= rtcpData->nextPacketInMs ||rtcpData->shouldSendREMB) && rtcpData->lastSr > 0) {
@@ -327,8 +324,7 @@ void RtcpAggregator::checkRtcpFb() {
         length = theLen;
       }
       if (rtcpData->mediaType == VIDEO_TYPE) {
-        unsigned int sincelastREMB = (now.tv_sec - rtcpData->lastREMBSent.tv_sec) * 1000 +
-                                     (now.tv_usec - rtcpData->lastREMBSent.tv_usec) / 1000;
+        unsigned int sincelastREMB = now - rtcpData->last_remb_sent;
         if (sincelastREMB > REMB_TIMEOUT) {
           // We dont have any more RRs, we follow what the publisher is doing to avoid congestion
           rtcpData->shouldSendREMB = true;
@@ -339,7 +335,7 @@ void RtcpAggregator::checkRtcpFb() {
                       sincelastREMB, rtcpData->reportedBandwidth);
           int theLen = this->addREMB(reinterpret_cast<char*>(packet_), length, rtcpData->reportedBandwidth);
           rtcpData->shouldSendREMB = false;
-          rtcpData->lastREMBSent = now;
+          rtcpData->last_remb_sent = now;
           length = theLen;
         }
       }
@@ -348,11 +344,11 @@ void RtcpAggregator::checkRtcpFb() {
       } else {
         rtcpSink_->deliverAudioData(reinterpret_cast<char*>(packet_), length);
       }
-      rtcpData->lastRrSent = now;
-      if (dtScheduled > rtcpData->nextPacketInMs) {  // Every scheduled packet we reset
+      rtcpData->last_rr_sent = now;
+      if (dt_scheduled > rtcpData->nextPacketInMs) {  // Every scheduled packet we reset
         rtcpData->shouldReset = true;
       }
-      rtcpData->lastRrWasScheduled = now;
+      rtcpData->last_rr_was_scheduled = now;
       // schedule next packet
       std::string thread_id = boost::lexical_cast<std::string>(boost::this_thread::get_id());
       unsigned int thread_number = 0;
