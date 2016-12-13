@@ -56,7 +56,7 @@ install_homebrew_from_cache(){
 }
 
 copy_homebrew_to_cache(){
-  mkdir cache
+  mkdir cache ||true
   tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx gettext
 }
 
