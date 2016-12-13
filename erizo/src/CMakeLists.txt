@@ -49,6 +49,9 @@ add_custom_target(lint
 set(THIRD_PARTY_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/include/")
 set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/")
 
+#webrtc
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/third_party/webrtc/src")
+
 #erizo
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/erizo")
 
