@@ -15,5 +15,7 @@ cd $EXTRAS/basic_example
 
 cp -r ${ROOT}/erizo_controller/erizoClient/dist/assets public/
 
+nvm use
+
 npm install --loglevel error express body-parser morgan errorhandler
 cd $CURRENT_DIR
