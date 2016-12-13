@@ -61,13 +61,19 @@ copy_homebrew_to_cache(){
 }
 
 install_nvm_node() {
+
   curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
-  
   export NVM_DIR="$HOME/.nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" # This loads nvm
+  
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    set +e
+    source "$NVM_DIR/nvm.sh" # This loads nvm
+    set -e
+  fi
 
   nvm install
   nvm use
+  set -e
 }
 
 install_homebrew(){

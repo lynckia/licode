@@ -30,7 +30,23 @@ check_result() {
   fi
 }
 
+install_nvm_node() {
+  set +e
+  rm -rf ~/.nvm
+  curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
+  export NVM_DIR="$HOME/.nvm"
+  
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    source "$NVM_DIR/nvm.sh" # This loads nvm
+  fi
+
+  nvm install
+  nvm use
+  set -e
+}
+
 install_apt_deps(){
+  install_nvm_node
   npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }

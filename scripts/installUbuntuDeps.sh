@@ -43,17 +43,22 @@ check_proxy(){
 }
 
 install_nvm_node() {
+
   curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
-  
   export NVM_DIR="$HOME/.nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" # This loads nvm
+  
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    set +e
+    source "$NVM_DIR/nvm.sh" # This loads nvm
+    set -e
+  fi
 
   nvm install
   nvm use
+  set -e
 }
 
 install_apt_deps(){
-  sudo apt-get update -y
   sudo apt-get install -qq python-software-properties -y
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
@@ -63,7 +68,7 @@ install_apt_deps(){
   
   install_nvm_node
 
-  sudo npm install -g node-gyp
+  npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 
