@@ -10,8 +10,6 @@ cache:
   - cache
   - build/libdeps
 node_js:
-  - 0.10  # TODO remove it once Node 6 is completely tested in production environments
-  - 6
 services:
   - mongodb
   - rabbitmq

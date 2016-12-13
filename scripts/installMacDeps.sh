@@ -8,6 +8,7 @@ PATHNAME=`dirname $SCRIPT`
 ROOT=$PATHNAME/..
 BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
+NVM_CHECK="$PATHNAME"/checkNvm.sh
 
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
@@ -60,6 +61,15 @@ copy_homebrew_to_cache(){
   tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx gettext
 }
 
+install_nvm_node() {
+  curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
+  
+  . $NVM_CHECK
+  
+  nvm install
+  nvm use
+}
+
 install_homebrew(){
   if [ "$CACHE" == "true" ]; then
     install_homebrew_from_cache
@@ -73,6 +83,7 @@ install_homebrew(){
 
 install_brew_deps(){
   brew install glib pkg-config boost cmake yasm log4cxx gettext
+  install_nvm_node
   npm install -g node-gyp
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew install rabbitmq mongodb
