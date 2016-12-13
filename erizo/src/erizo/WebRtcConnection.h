@@ -14,7 +14,7 @@
 #include "./Stats.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
-#include "webrtc/modules/rtp_rtcp/source/ulpfec_receiver_impl.h"
+#include "webrtc/modules/rtp_rtcp/include/ulpfec_receiver.h"
 #include "rtp/RtcpProcessor.h"
 #include "rtp/RtpExtensionProcessor.h"
 #include "rtp/RtpSlideShowHandler.h"
@@ -180,7 +180,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   int stunPort_, minPort_, maxPort_;
   std::string stunServer_;
 
-  webrtc::UlpfecReceiverImpl fec_receiver_;
+  std::unique_ptr<webrtc::UlpfecReceiver> fec_receiver_;
   boost::condition_variable cond_;
 
   time_point now_, mark_;
