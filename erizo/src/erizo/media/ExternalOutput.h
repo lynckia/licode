@@ -12,7 +12,7 @@ extern "C" {
 
 #include "./MediaDefinitions.h"
 #include "rtp/RtpPacketQueue.h"
-#include "rtp/webrtc/fec_receiver_impl.h"
+#include "webrtc/modules/rtp_rtcp/source/ulpfec_receiver_impl.h"
 #include "media/MediaProcessor.h"
 
 #include "./logger.h"
@@ -39,15 +39,15 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   void receiveRawData(const RawDataPacket& packet) override;
 
   // webrtc::RtpData callbacks.  This is for Forward Error Correction (per rfc5109) handling.
-  bool OnRecoveredPacket(const uint8_t* packet, int packet_length) override;
+  bool OnRecoveredPacket(const uint8_t* packet, size_t packet_length) override;
   int32_t OnReceivedPayloadData(const uint8_t* payload_data,
-                                        const uint16_t payload_size,
+                                        size_t payload_size,
                                         const webrtc::WebRtcRTPHeader* rtp_header) override;
 
   void close() override {}
 
  private:
-  webrtc::FecReceiverImpl  fec_receiver_;
+  webrtc::UlpfecReceiverImpl  fec_receiver_;
   RtpPacketQueue audioQueue_, videoQueue_;
   bool recording_, inited_;
   boost::mutex mtx_;  // a mutex we use to signal our writer thread that data is waiting.

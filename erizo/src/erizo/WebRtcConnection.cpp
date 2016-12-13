@@ -332,12 +332,12 @@ int WebRtcConnection::deliverAudioData_(char* buf, int len) {
 }
 
 // This is called by our fec_ object when it recovers a packet.
-bool WebRtcConnection::OnRecoveredPacket(const uint8_t* rtp_packet, int rtp_packet_length) {
+bool WebRtcConnection::OnRecoveredPacket(const uint8_t* rtp_packet, size_t rtp_packet_length) {
   this->deliverVideoData_((char*)rtp_packet, rtp_packet_length);  // NOLINT
   return true;
 }
 
-int32_t WebRtcConnection::OnReceivedPayloadData(const uint8_t* /*payload_data*/, const uint16_t /*payload_size*/,
+int32_t WebRtcConnection::OnReceivedPayloadData(const uint8_t* /*payload_data*/, size_t /*payload_size*/,
                                                 const webrtc::WebRtcRTPHeader* /*rtp_header*/) {
     // Unused by WebRTC's FEC implementation; just something we have to implement.
     return 0;

@@ -14,7 +14,7 @@
 #include "./Stats.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
-#include "rtp/webrtc/fec_receiver_impl.h"
+#include "webrtc/modules/rtp_rtcp/source/ulpfec_receiver_impl.h"
 #include "rtp/RtcpProcessor.h"
 #include "rtp/RtpExtensionProcessor.h"
 #include "rtp/RtpSlideShowHandler.h"
@@ -145,9 +145,9 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   void setMetadata(std::map<std::string, std::string> metadata);
 
   // webrtc::RtpHeader overrides.
-  int32_t OnReceivedPayloadData(const uint8_t* payloadData, const uint16_t payloadSize,
+  int32_t OnReceivedPayloadData(const uint8_t* payloadData, size_t payloadSize,
                                 const webrtc::WebRtcRTPHeader* rtpHeader) override;
-  bool OnRecoveredPacket(const uint8_t* packet, int packet_length) override;
+  bool OnRecoveredPacket(const uint8_t* packet, size_t packet_length) override;
 
   void read(std::shared_ptr<dataPacket> packet);
   void write(std::shared_ptr<dataPacket> packet);
@@ -177,7 +177,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   int stunPort_, minPort_, maxPort_;
   std::string stunServer_;
 
-  webrtc::FecReceiverImpl fec_receiver_;
+  webrtc::UlpfecReceiverImpl fec_receiver_;
   boost::condition_variable cond_;
 
   struct timeval now_, mark_;
