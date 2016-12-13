@@ -2,8 +2,10 @@
  * RtpExtensionProcessor.cpp
  */
 #include "rtp/RtpExtensionProcessor.h"
+#include <map>
+#include <string>
 
-#include <time.h>
+#include "lib/Clock.h"
 
 namespace erizo {
 DEFINE_LOGGER(RtpExtensionProcessor, "rtp.RtpExtensionProcessor");
@@ -96,11 +98,13 @@ uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<dataPacket>
 }
 
 uint32_t RtpExtensionProcessor::processAbsSendTime(char* buf) {
-  struct timeval theNow;
+  duration now = clock::now().time_since_epoch();
   AbsSendTimeExtension* head = reinterpret_cast<AbsSendTimeExtension*>(buf);
-  gettimeofday(&theNow, NULL);
-  uint8_t seconds = theNow.tv_sec & 0x3F;
-  uint32_t absecs = theNow.tv_usec* ((1LL << 18)-1) *1e-6;
+  auto now_sec = std::chrono::duration_cast<std::chrono::seconds>(now);
+  auto now_usec = std::chrono::duration_cast<std::chrono::microseconds>(now);
+
+  uint8_t seconds = now_sec.count() & 0x3F;
+  uint32_t absecs = now_usec.count() * ((1LL << 18) - 1) * 1e-6;
   absecs = (seconds << 18) + absecs;
   head->setAbsSendTime(absecs);
   return 0;
