@@ -13,10 +13,12 @@ project (ERIZO)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/")
 set(ERIZO_VERSION_MAJOR 0)
 set(ERIZO_VERSION_MINOR 1)
-set(CMAKE_CXX_FLAGS "-g -Wall -std=c++11")
+set(CMAKE_CXX_FLAGS "-g -Wall -std=c++11 -DWEBRTC_POSIX")
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -fno-stack-protector")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -fno-stack-protector -DWEBRTC_MAC")
+ELSE()
+  set(CMAKE_CXX_FLAGS "-g -Wall -std=c++11 -DWEBRTC_LINUX")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 include_directories("${ERIZO_SOURCE_DIR}" "${THIRD_PARTY_INCLUDE}")
@@ -70,4 +72,4 @@ test_lib(${LOG})
 
 #message("Libs ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG}")
 
-target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG})
+target_link_libraries(erizo ${SRTP} ${NICE} ${GTHREAD} ${SSL} ${CRYPTO} ${LIBS} ${LOG} webrtc)
