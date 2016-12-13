@@ -79,13 +79,13 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   // at all (or arrive late) so we also need to keep track of a start time offset.  We also need to track
   // this *before* stuff enters the RTP packet queue, since that guy will mess with the timing of stuff that's
   // outputted in an attempt to re-order incoming packets.  So when we receive an audio or video packet,
-  // we set firstDataReceived_.  We then use that to compute audio/videoStartTimeOffset_ appropriately,
+  // we set first_data_received_.  We then use that to compute audio/videoStartTimeOffset_ appropriately,
   // and that value is added to every timestamp we write.
-  long long firstVideoTimestamp_;  // NOLINT
-  long long firstAudioTimestamp_;  // NOLINT
-  clock::time_point firstDataReceived_;  // NOLINT
-  long long videoOffsetMsec_;  // NOLINT
-  long long audioOffsetMsec_;  // NOLINT
+  long long first_video_timestamp_;  // NOLINT
+  long long first_audio_timestamp_;  // NOLINT
+  clock::time_point first_data_received_;  // NOLINT
+  long long video_offset_ms_;  // NOLINT
+  long long audio_offset_ms_;  // NOLINT
 
 
   // The last sequence numbers we received for audio and video.  Allows us to react to packet loss.

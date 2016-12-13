@@ -43,7 +43,7 @@ class Stats {
 
  private:
   uint64_t rtpBytesReceived_, packetsReceived_;
-  time_point bitRateCalculationStart_;
+  time_point bitrate_calculation_start_;
 
   typedef std::map<std::string, uint64_t> singleSSRCstatsMap_t;
   typedef std::map <uint32_t, singleSSRCstatsMap_t> fullStatsMap_t;

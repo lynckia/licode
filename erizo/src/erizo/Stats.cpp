@@ -8,6 +8,7 @@
 
 #include "Stats.h"
 #include "WebRtcConnection.h"
+#include "lib/ClockUtils.h"
 
 namespace erizo {
 
@@ -17,7 +18,7 @@ namespace erizo {
     ELOG_DEBUG("Constructor Stats");
     theListener_ = NULL;
     rtpBytesReceived_ = 0;
-    bitRateCalculationStart_ = clock::now();
+    bitrate_calculation_start_ = clock::now();
   }
 
   Stats::~Stats() {
@@ -27,12 +28,12 @@ namespace erizo {
   uint32_t Stats::processRtpPacket(char* buf, int len) {
     rtpBytesReceived_+=len;
     time_point nowms = clock::now();
-    time_point start = bitRateCalculationStart_;
+    time_point start = bitrate_calculation_start_;
     duration delay = nowms - start;
     if (delay > kBitrateStatsPeriod) {
-      uint32_t receivedRtpBitrate_ = (8 * rtpBytesReceived_ * 1000) / durationToMs(delay);  // in kbps
+      uint32_t receivedRtpBitrate_ = (8 * rtpBytesReceived_ * 1000) / ClockUtils::durationToMs(delay);  // in kbps
       rtpBytesReceived_ = 0;
-      bitRateCalculationStart_ = clock::now();
+      bitrate_calculation_start_ = clock::now();
       return receivedRtpBitrate_;  // in bps
     }
     return 0;

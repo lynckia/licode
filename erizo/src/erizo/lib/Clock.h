@@ -9,13 +9,5 @@ using clock = std::chrono::steady_clock;
 using time_point = std::chrono::steady_clock::time_point;
 using duration = std::chrono::steady_clock::duration;
 
-inline int64_t durationToMs(erizo::duration duration) {
-  return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-}
-
-inline uint64_t timePointToMs(erizo::time_point time_point) {
-  return std::chrono::duration_cast<std::chrono::milliseconds>(time_point.time_since_epoch()).count();
-}
-
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_LIB_CLOCK_H_

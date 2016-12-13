@@ -5,6 +5,8 @@
 #include <string>
 #include <cstring>
 
+#include "lib/ClockUtils.h"
+
 #include "./WebRtcConnection.h"
 #include "rtp/RtpHeaders.h"
 #include "rtp/RtpVP8Parser.h"
@@ -16,8 +18,8 @@ namespace erizo {
 DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 ExternalOutput::ExternalOutput(const std::string& outputUrl)
   : fec_receiver_(this), audioQueue_(5.0, 10.0), videoQueue_(5.0, 10.0), inited_(false),
-    video_stream_(NULL), audio_stream_(NULL), firstVideoTimestamp_(-1), firstAudioTimestamp_(-1),
-    firstDataReceived_(), videoOffsetMsec_(-1), audioOffsetMsec_(-1), vp8SearchState_(lookingForStart),
+    video_stream_(NULL), audio_stream_(NULL), first_video_timestamp_(-1), first_audio_timestamp_(-1),
+    first_data_received_(), video_offset_ms_(-1), audio_offset_ms_(-1), vp8SearchState_(lookingForStart),
     needToSendFir_(true) {
   ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
 
@@ -121,15 +123,15 @@ bool ExternalOutput::bufferCheck(RTPPayloadVP8* payload) {
 void ExternalOutput::writeAudioData(char* buf, int len) {
   RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);
   uint16_t currentAudioSequenceNumber = head->getSeqNumber();
-  if (firstAudioTimestamp_ != -1 && currentAudioSequenceNumber != lastAudioSequenceNumber_ + 1) {
+  if (first_audio_timestamp_ != -1 && currentAudioSequenceNumber != lastAudioSequenceNumber_ + 1) {
       // Something screwy.  We should always see sequence numbers incrementing monotonically.
       ELOG_DEBUG("Unexpected audio sequence number; current %d, previous %d",
                   currentAudioSequenceNumber, lastAudioSequenceNumber_);
   }
 
   lastAudioSequenceNumber_ = currentAudioSequenceNumber;
-  if (firstAudioTimestamp_ == -1) {
-      firstAudioTimestamp_ = head->getTimestamp();
+  if (first_audio_timestamp_ == -1) {
+      first_audio_timestamp_ = head->getTimestamp();
   }
 
   // Figure out our audio codec.
@@ -150,19 +152,19 @@ void ExternalOutput::writeAudioData(char* buf, int len) {
   }
 
   long long currentTimestamp = head->getTimestamp();  // NOLINT
-  if (currentTimestamp - firstAudioTimestamp_ < 0) {
+  if (currentTimestamp - first_audio_timestamp_ < 0) {
       // we wrapped.  add 2^32 to correct this. We only handle a single wrap around
       // since that's 13 hours of recording, minimum.
       currentTimestamp += 0xFFFFFFFF;
   }
 
-  long long timestampToWrite = (currentTimestamp - firstAudioTimestamp_) /  // NOLINT
+  long long timestampToWrite = (currentTimestamp - first_audio_timestamp_) /  // NOLINT
                                     (audio_stream_->codec->sample_rate / audio_stream_->time_base.den);
   // generally 48000 / 1000 for the denominator portion, at least for opus
   // Adjust for our start time offset
 
   // in practice, our timebase den is 1000, so this operation is a no-op.
-  timestampToWrite += audioOffsetMsec_ / (1000 / audio_stream_->time_base.den);
+  timestampToWrite += audio_offset_ms_ / (1000 / audio_stream_->time_base.den);
 
   AVPacket avpkt;
   av_init_packet(&avpkt);
@@ -190,8 +192,8 @@ void ExternalOutput::writeVideoData(char* buf, int len) {
 
     lastVideoSequenceNumber_ = currentVideoSeqNumber;
 
-    if (firstVideoTimestamp_ == -1) {
-        firstVideoTimestamp_ = head->getTimestamp();
+    if (first_video_timestamp_ == -1) {
+        first_video_timestamp_ = head->getTimestamp();
     }
 
     // TODO(pedro) we should be tearing off RTP padding here, if it exists.  But WebRTC currently does not use padding.
@@ -289,20 +291,20 @@ void ExternalOutput::writeVideoData(char* buf, int len) {
       unpackagedBufferpart_ -= unpackagedSize_;
 
       long long currentTimestamp = head->getTimestamp();  // NOLINT
-      if (currentTimestamp - firstVideoTimestamp_ < 0) {
+      if (currentTimestamp - first_video_timestamp_ < 0) {
         // we wrapped.  add 2^32 to correct this.
         // We only handle a single wrap around since that's ~13 hours of recording, minimum.
         currentTimestamp += 0xFFFFFFFF;
       }
 
       // All of our video offerings are using a 90khz clock.
-      long long timestampToWrite = (currentTimestamp - firstVideoTimestamp_) /  // NOLINT
+      long long timestampToWrite = (currentTimestamp - first_video_timestamp_) /  // NOLINT
                                                 (90000 / video_stream_->time_base.den);
 
       // Adjust for our start time offset
 
       // in practice, our timebase den is 1000, so this operation is a no-op.
-      timestampToWrite += videoOffsetMsec_ / (1000 / video_stream_->time_base.den);
+      timestampToWrite += video_offset_ms_ / (1000 / video_stream_->time_base.den);
 
       AVPacket avpkt;
       av_init_packet(&avpkt);
@@ -399,8 +401,8 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
     return;
   }
 
-  if (firstDataReceived_ == time_point()) {
-    firstDataReceived_ = clock::now();
+  if (first_data_received_ == time_point()) {
+    first_data_received_ = clock::now();
     if (this->getAudioSinkSSRC() == 0) {
       ELOG_DEBUG("No audio detected");
       context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
@@ -412,9 +414,9 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
   }
 
   if (type == VIDEO_PACKET) {
-    if (this->videoOffsetMsec_ == -1) {
-      videoOffsetMsec_ = durationToMs(clock::now() - firstDataReceived_);
-      ELOG_DEBUG("File %s, video offset msec: %llu", context_->filename, videoOffsetMsec_);
+    if (this->video_offset_ms_ == -1) {
+      video_offset_ms_ = ClockUtils::durationToMs(clock::now() - first_data_received_);
+      ELOG_DEBUG("File %s, video offset msec: %llu", context_->filename, video_offset_ms_);
     }
 
     // If this is a red header, let's push it to our fec_receiver_, which will spit out frames in one
@@ -439,9 +441,9 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
       videoQueue_.pushPacket(buffer, length);
     }
   } else {
-    if (this->audioOffsetMsec_ == -1) {
-      audioOffsetMsec_ = durationToMs(clock::now() - firstDataReceived_);
-      ELOG_DEBUG("File %s, audio offset msec: %llu", context_->filename, audioOffsetMsec_);
+    if (this->audio_offset_ms_ == -1) {
+      audio_offset_ms_ = ClockUtils::durationToMs(clock::now() - first_data_received_);
+      ELOG_DEBUG("File %s, audio offset msec: %llu", context_->filename, audio_offset_ms_);
 
       // Let's also take a moment to set our audio queue timebase.
       RtpHeader* h = reinterpret_cast<RtpHeader*>(buffer);
@@ -488,7 +490,7 @@ void ExternalOutput::sendLoop() {
       boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
       this->writeVideoData(videoP->data, videoP->length);
     }
-    if (!inited_ && firstDataReceived_ != time_point()) {
+    if (!inited_ && first_data_received_ != time_point()) {
       inited_ = true;
     }
   }
