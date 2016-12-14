@@ -42,11 +42,13 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
 
   slideshow_handler_.reset(new RtpVP8SlideShowHandler(this));
   audio_mute_handler_.reset(new RtpAudioMuteHandler(this));
+  bwe_handler_.reset(new BandwidthEstimationHandler());
 
   // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
   pipeline_->addFront(PacketReader(this));
   pipeline_->addFront(audio_mute_handler_);
   pipeline_->addFront(slideshow_handler_);
+  pipeline_->addFront(bwe_handler_);
   pipeline_->addFront(RtpRetransmissionHandler(this));
   pipeline_->addFront(PacketWriter(this));
   pipeline_->finalize();
@@ -140,6 +142,8 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   bundle_ = remoteSdp_.isBundle;
   localSdp_.setOfferSdp(remoteSdp_);
   extProcessor_.setSdpInfo(localSdp_);
+
+  bwe_handler_->updateExtensionMaps(extProcessor_.getVideoExtensionMap(), extProcessor_.getAudioExtensionMap());
 
   localSdp_.videoSsrc = this->getVideoSinkSSRC();
   localSdp_.audioSsrc = this->getAudioSinkSSRC();

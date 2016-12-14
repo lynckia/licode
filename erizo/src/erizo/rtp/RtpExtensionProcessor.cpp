@@ -16,8 +16,8 @@ RtpExtensionProcessor::RtpExtensionProcessor() {
   translationMap_["urn:ietf:params:rtp-hdrext:toffset"] = TOFFSET;
   translationMap_["urn:3gpp:video-orientation"] = VIDEO_ORIENTATION;
   translationMap_["http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"]= PLAYBACK_TIME;
-  memset(extMapVideo_, 0, sizeof(int)*10);
-  memset(extMapAudio_, 0, sizeof(int)*10);
+  ext_map_video_.fill(UNKNOWN);
+  ext_map_audio_.fill(UNKNOWN);
 }
 
 RtpExtensionProcessor::~RtpExtensionProcessor() {
@@ -33,7 +33,7 @@ void RtpExtensionProcessor::setSdpInfo(const SdpInfo& theInfo) {
         it = translationMap_.find(theMap.uri);
         if (it != translationMap_.end()) {
           ELOG_DEBUG("Adding RTP Extension for video %s, value %u", theMap.uri.c_str(), theMap.value);
-          extMapVideo_[theMap.value] = (*it).second;
+          ext_map_video_[theMap.value] = RTPExtensions((*it).second);
         } else {
           ELOG_WARN("Unsupported extension %s", theMap.uri.c_str());
         }
@@ -42,7 +42,7 @@ void RtpExtensionProcessor::setSdpInfo(const SdpInfo& theInfo) {
         it = translationMap_.find(theMap.uri);
         if (it != translationMap_.end()) {
           ELOG_DEBUG("Adding RTP Extension for Audio %s, value %u", theMap.uri.c_str(), theMap.value);
-          extMapAudio_[theMap.value]=(*it).second;
+          ext_map_audio_[theMap.value] = RTPExtensions((*it).second);
         } else {
           ELOG_WARN("Unsupported extension %s", theMap.uri.c_str());
         }
@@ -57,14 +57,14 @@ void RtpExtensionProcessor::setSdpInfo(const SdpInfo& theInfo) {
 uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<dataPacket> p) {
   const RtpHeader* head = reinterpret_cast<const RtpHeader*>(p->data);
   uint32_t len = p->length;
-  int* extMap;
+  std::array<RTPExtensions, 10> extMap;
   if (head->getExtension()) {
     switch (p->type) {
       case VIDEO_PACKET:
-        extMap = extMapVideo_;
+        extMap = ext_map_video_;
         break;
       case AUDIO_PACKET:
-        extMap = extMapAudio_;
+        extMap = ext_map_audio_;
         break;
       default:
         ELOG_WARN("Won't process RTP extensions for unknown type packets");
@@ -86,6 +86,8 @@ uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<dataPacket>
           switch (extMap[extId]) {
             case ABS_SEND_TIME:
               processAbsSendTime(extBuffer);
+              break;
+            default:
               break;
           }
         }
