@@ -52,7 +52,7 @@ check_result() {
 install_homebrew_from_cache(){
   if [ -f cache/homebrew-cache.tar.gz ]; then
     tar xzf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar
-    brew link glib pkg-config boost cmake yasm log4cxx gettext ||true
+    brew link glib pkg-config boost cmake yasm log4cxx gettext --force ||true
   fi
 }
 
