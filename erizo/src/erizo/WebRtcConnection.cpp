@@ -42,7 +42,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
 
   slideshow_handler_.reset(new RtpVP8SlideShowHandler(this));
   audio_mute_handler_.reset(new RtpAudioMuteHandler(this));
-  bwe_handler_.reset(new BandwidthEstimationHandler());
+  bwe_handler_.reset(new BandwidthEstimationHandler(this, worker_));
 
   // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
   pipeline_->addFront(PacketReader(this));

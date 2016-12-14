@@ -8,6 +8,8 @@
 #include "pipeline/Handler.h"
 #include "rtp/RtpExtensionProcessor.h"
 
+#include "thread/Worker.h"
+
 #include "webrtc/common_types.h"
 #include "webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
 #include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
@@ -22,11 +24,12 @@ using webrtc::RemoteBitrateObserver;
 using webrtc::Clock;
 using webrtc::RtpHeaderExtensionMap;
 
-class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver {
+class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
+                public std::enable_shared_from_this<BandwidthEstimationHandler> {
   DECLARE_LOGGER();
 
  public:
-  BandwidthEstimationHandler();
+  explicit BandwidthEstimationHandler(WebRtcConnection *connection, std::shared_ptr<Worker> worker);
 
   void OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
                                        uint32_t bitrate) override;
@@ -37,6 +40,8 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver {
   void updateExtensionMaps(std::array<RTPExtensions, 10> video_map, std::array<RTPExtensions, 10> audio_map);
 
  private:
+  void process();
+  void sendREMBPacket();
   bool parsePacket(std::shared_ptr<dataPacket> packet);
   RtpHeaderExtensionMap getHeaderExtensionMap(std::shared_ptr<dataPacket> packet) const;
   void pickEstimatorFromHeader();
@@ -44,13 +49,20 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver {
 
   void updateExtensionMap(bool video, std::array<RTPExtensions, 10> map);
 
+  WebRtcConnection *connection_;
+  std::shared_ptr<Worker> worker_;
   Clock* const clock_;
   std::unique_ptr<RemoteBitrateEstimator> rbe_;
   bool using_absolute_send_time_;
   uint32_t packets_since_absolute_send_time_;
   int min_bitrate_bps_;
   webrtc::RTPHeader header_;
+  RtcpHeader remb_packet_;
   RtpHeaderExtensionMap ext_map_audio_, ext_map_video_;
+  Context *temp_ctx_;
+  uint32_t bitrate_, last_send_bitrate_;
+  uint64_t bitrate_update_time_ms_, last_remb_time_;
+  bool running_;
 };
 }  // namespace erizo
 
