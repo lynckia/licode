@@ -35,7 +35,6 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   DECLARE_LOGGER();
 
  public:
-
   static const uint32_t kRembMinimumBitrateKbps;
 
   explicit BandwidthEstimationHandler(WebRtcConnection *connection, std::shared_ptr<Worker> worker,
