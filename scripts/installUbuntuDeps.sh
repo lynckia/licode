@@ -13,6 +13,8 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
+export NVM_DIR=$(readlink -f "$LIB_DIR/nvm")
+
 parse_arguments(){
   while [ "$1" != "" ]; do
     case $1 in
@@ -50,11 +52,11 @@ install_nvm_node() {
   . $NVM_CHECK
   
   nvm install
-  nvm use
   set -e
 }
 
 install_apt_deps(){
+
   sudo apt-get install -qq python-software-properties -y
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
@@ -63,7 +65,7 @@ install_apt_deps(){
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
   
   install_nvm_node
-
+  nvm use
   npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }

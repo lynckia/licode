@@ -13,6 +13,8 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
+export NVM_DIR=$(readlink -f "$LIB_DIR/nvm")
+
 pause() {
   if [ "$UNATTENDED" == "true" ]; then
     echo "$*"
@@ -84,6 +86,7 @@ install_homebrew(){
 install_brew_deps(){
   brew install glib pkg-config boost cmake yasm log4cxx gettext
   install_nvm_node
+  nvm use
   npm install -g node-gyp
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew install rabbitmq mongodb

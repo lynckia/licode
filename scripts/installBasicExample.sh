@@ -13,11 +13,12 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 DB_DIR="$BUILD_DIR"/db
 EXTRAS=$ROOT/extras
 
+. $NVM_CHECK
+
 cd $EXTRAS/basic_example
 
 cp -r ${ROOT}/erizo_controller/erizoClient/dist/assets public/
 
-. $NVM_CHECK
 
 nvm use
 npm install --loglevel error express body-parser morgan errorhandler
