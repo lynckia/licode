@@ -5,6 +5,7 @@ CHECK_SCRIPT_PATH=$(dirname "$CHECK_SCRIPT")
 LINKED_DIR=$CHECK_SCRIPT_PATH/../build/libdeps/nvm
 export NVM_DIR=$(readlink -f "$LINKED_DIR")
 
+echo 'Checking nvm dir $NVM_DIR'
 set +e
 command -v nvm | grep 'string' &> /dev/null
 if [ ! $? == 0 ]; then

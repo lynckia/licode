@@ -61,6 +61,7 @@ install_erizo_api(){
   cd $ROOT/erizoAPI
   . $NVM_CHECK
   cd $ROOT/erizoAPI
+  echo 'installing nan'
   npm install nan@2.3.2
   ./build.sh
   check_result $?
