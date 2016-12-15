@@ -31,7 +31,7 @@ BandwidthEstimationHandler::BandwidthEstimationHandler(WebRtcConnection *connect
   clock_{webrtc::Clock::GetRealTimeClock()},
   rbe_{new RemoteBitrateEstimatorSingleStream(this, clock_)},
   using_absolute_send_time_{false}, packets_since_absolute_send_time_{0},
-  min_bitrate_bps_{kMinBitRateAllowed}, running_{false} {
+  min_bitrate_bps_{kMinBitRateAllowed}, temp_ctx_{nullptr}, running_{false} {
 }
 
 void BandwidthEstimationHandler::process() {
@@ -74,6 +74,7 @@ void BandwidthEstimationHandler::updateExtensionMap(bool video, std::array<RTPEx
   webrtc::RTPExtensionType type;
   uint8_t id = 0;
   for (RTPExtensions extension : map) {
+    uint8_t index = id++;
     switch (extension) {
       case UNKNOWN:
         continue;
@@ -94,11 +95,13 @@ void BandwidthEstimationHandler::updateExtensionMap(bool video, std::array<RTPEx
         type = webrtc::kRtpExtensionPlayoutDelay;
         break;
     }
+    bool result = false;
     if (video) {
-      ext_map_video_.RegisterByType(id++, type);
+      result = ext_map_video_.RegisterByType(index, type);
     } else {
-      ext_map_audio_.RegisterByType(id++, type);
+      result = ext_map_audio_.RegisterByType(index, type);
     }
+    ELOG_DEBUG("Result adding extension %d, %d , %d = %d %d", video, id - 1, type, result, webrtc::kRtpExtensionAbsoluteSendTime);
   }
 }
 
@@ -107,13 +110,13 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
     process();
     running_ = true;
   }
+  temp_ctx_ = ctx;
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
   if (!chead->isRtcp()) {
     int64_t arrival_time_ms = ClockUtils::timePointToMs(clock::now());
     size_t payload_size = packet->length;
     if (parsePacket(packet)) {
       pickEstimatorFromHeader();
-      temp_ctx_ = ctx;
       rbe_->IncomingPacket(arrival_time_ms, payload_size, header_);
     }
     ctx->fireRead(packet);
@@ -154,7 +157,7 @@ void BandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<dataPacket>
 }
 
 void BandwidthEstimationHandler::pickEstimatorFromHeader() {
-  if (header_.extension.hasAbsoluteSendTime != 0) {
+  if (header_.extension.hasAbsoluteSendTime) {
     if (!using_absolute_send_time_) {
       using_absolute_send_time_ = true;
       pickEstimator();
@@ -192,13 +195,15 @@ void BandwidthEstimationHandler::sendREMBPacket() {
   remb_packet_.setREMBNumSSRC(1);
   remb_packet_.setREMBFeedSSRC(connection_->getVideoSourceSSRC());
   int remb_length = (remb_packet_.getLength() + 1) * 4;
-  temp_ctx_->fireWrite(std::make_shared<dataPacket>(0,
-    reinterpret_cast<char*>(&remb_packet_), remb_length, OTHER_PACKET));
+  if (temp_ctx_) {
+    ELOG_DEBUG("BWE Estimation is %d %d", last_send_bitrate_, using_absolute_send_time_);
+    temp_ctx_->fireWrite(std::make_shared<dataPacket>(0,
+      reinterpret_cast<char*>(&remb_packet_), remb_length, OTHER_PACKET));
+  }
 }
 
 void BandwidthEstimationHandler::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
                                      uint32_t bitrate) {
-  ELOG_DEBUG("BWE Estimation is %d", bitrate);
   if (last_send_bitrate_ > 0) {
       unsigned int new_remb_bitrate = last_send_bitrate_ - bitrate_ + bitrate;
 
