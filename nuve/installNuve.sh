@@ -10,7 +10,6 @@ NVM_CHECK="$ROOT"/scripts/checkNvm.sh
 BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
 DB_DIR="$BUILD_DIR"/db
-NODE_VERSION=`node -v`
 
 . $NVM_CHECK
 
