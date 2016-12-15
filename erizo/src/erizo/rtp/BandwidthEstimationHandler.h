@@ -42,6 +42,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
  private:
   void process();
   void sendREMBPacket();
+  void sendREMBPacketMaybe();
   bool parsePacket(std::shared_ptr<dataPacket> packet);
   RtpHeaderExtensionMap getHeaderExtensionMap(std::shared_ptr<dataPacket> packet) const;
   void pickEstimatorFromHeader();

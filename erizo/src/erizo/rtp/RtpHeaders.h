@@ -159,7 +159,7 @@ class RtpHeader {
   inline void setExtLength(uint16_t extensionLength) {
     extensionlength = htons(extensionLength);
   }
-  inline int getHeaderLength() {
+  inline int getHeaderLength() const {
     return MIN_SIZE + cc * 4 + hasextension * (4 + ntohs(extensionlength) * 4);
   }
 };

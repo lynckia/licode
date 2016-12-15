@@ -10,6 +10,8 @@
 
 #include "NiceConnection.h"
 #include "SdpInfo.h"
+#include "lib/Clock.h"
+#include "lib/ClockUtils.h"
 
 using std::memcpy;
 
@@ -121,6 +123,7 @@ void NiceConnection::onData(unsigned int component_id, char* buf, int len) {
     memcpy(packet->data, buf, len);
     packet->comp = component_id;
     packet->length = len;
+    packet->received_time_ms = ClockUtils::timePointToMs(clock::now());
     listener_->onPacketReceived(packet);
   }
 }

@@ -400,11 +400,22 @@ void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Trans
   if (audioSink_ == NULL && videoSink_ == NULL && fbSink_ == NULL) {
     return;
   }
-
   if (transport->mediaType == AUDIO_TYPE) {
     packet->type = AUDIO_PACKET;
   } else if (transport->mediaType == VIDEO_TYPE) {
     packet->type = VIDEO_PACKET;
+  }
+
+  char* buf = packet->data;
+  RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+  if (!chead->isRtcp()) {
+    uint32_t recvSSRC = head->getSSRC();
+    if (recvSSRC == this->getVideoSourceSSRC()) {
+      packet->type = VIDEO_PACKET;
+    } else if (recvSSRC == this->getAudioSourceSSRC()) {
+      packet->type = AUDIO_PACKET;
+    }
   }
 
   pipeline_->read(packet);
