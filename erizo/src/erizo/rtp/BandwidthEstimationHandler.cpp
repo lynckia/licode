@@ -20,18 +20,35 @@ static const uint32_t kTimeOffsetSwitchThreshold = 30;
 static const uint32_t kMinBitRateAllowed = 10;
 const int kRembTimeOutThresholdMs = 2000;
 const int kRembSendIntervallMs = 1000;
-const unsigned int kRembMinimumBitrateKbps = 50;
+const uint32_t BandwidthEstimationHandler::kRembMinimumBitrateKbps = 50;
 
 // % threshold for if we should send a new REMB asap.
 const unsigned int kSendThresholdPercent = 97;
 
-BandwidthEstimationHandler::BandwidthEstimationHandler(WebRtcConnection *connection, std::shared_ptr<Worker> worker) :
+std::unique_ptr<RemoteBitrateEstimator> RemoteBitrateEstimatorPicker::pickEstimator(bool using_absolute_send_time,
+                                                                                    Clock* const clock,
+                                                                                    RemoteBitrateObserver *observer) {
+  std::unique_ptr<RemoteBitrateEstimator> rbe;
+  if (using_absolute_send_time) {
+    rbe.reset(new RemoteBitrateEstimatorAbsSendTime(observer, clock));
+  } else {
+    rbe.reset(new RemoteBitrateEstimatorSingleStream(observer, clock));
+  }
+  return rbe;
+}
+
+BandwidthEstimationHandler::BandwidthEstimationHandler(WebRtcConnection *connection, std::shared_ptr<Worker> worker,
+    std::shared_ptr<RemoteBitrateEstimatorPicker> picker) :
   connection_{connection},
   worker_{worker},
   clock_{webrtc::Clock::GetRealTimeClock()},
-  rbe_{new RemoteBitrateEstimatorSingleStream(this, clock_)},
+  picker_{picker},
+  rbe_{picker_->pickEstimator(false, clock_, this)},
   using_absolute_send_time_{false}, packets_since_absolute_send_time_{0},
-  min_bitrate_bps_{kMinBitRateAllowed}, temp_ctx_{nullptr}, running_{false} {
+  min_bitrate_bps_{kMinBitRateAllowed}, temp_ctx_{nullptr},
+  bitrate_{0}, last_send_bitrate_{0},
+  bitrate_update_time_ms_{0}, last_remb_time_{0},
+  running_{false} {
 }
 
 void BandwidthEstimationHandler::process() {
@@ -107,11 +124,11 @@ void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RT
 }
 
 void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+  temp_ctx_ = ctx;
   if (!running_) {
     process();
     running_ = true;
   }
-  temp_ctx_ = ctx;
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
   if (!chead->isRtcp() && packet->type == VIDEO_PACKET) {
     if (parsePacket(packet)) {
@@ -123,8 +140,8 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
     } else {
       ELOG_DEBUG("Packet not parsed %d", packet->type);
     }
-    ctx->fireRead(packet);
   }
+  ctx->fireRead(packet);
 }
 
 bool BandwidthEstimationHandler::parsePacket(std::shared_ptr<dataPacket> packet) {
@@ -175,11 +192,7 @@ void BandwidthEstimationHandler::pickEstimatorFromHeader() {
 }
 
 void BandwidthEstimationHandler::pickEstimator() {
-  if (using_absolute_send_time_) {
-    rbe_.reset(new RemoteBitrateEstimatorAbsSendTime(this, clock_));
-  } else {
-    rbe_.reset(new RemoteBitrateEstimatorSingleStream(this, clock_));
-  }
+  rbe_ = picker_->pickEstimator(using_absolute_send_time_, clock_, this);
   rbe_->SetMinBitrate(min_bitrate_bps_);
 }
 

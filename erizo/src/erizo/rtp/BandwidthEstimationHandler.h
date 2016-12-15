@@ -24,12 +24,22 @@ using webrtc::RemoteBitrateObserver;
 using webrtc::Clock;
 using webrtc::RtpHeaderExtensionMap;
 
+class RemoteBitrateEstimatorPicker {
+ public:
+  virtual std::unique_ptr<RemoteBitrateEstimator> pickEstimator(bool using_absolute_send_time,
+    Clock* const clock, RemoteBitrateObserver *observer);
+};
+
 class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
                 public std::enable_shared_from_this<BandwidthEstimationHandler> {
   DECLARE_LOGGER();
 
  public:
-  explicit BandwidthEstimationHandler(WebRtcConnection *connection, std::shared_ptr<Worker> worker);
+
+  static const uint32_t kRembMinimumBitrateKbps;
+
+  explicit BandwidthEstimationHandler(WebRtcConnection *connection, std::shared_ptr<Worker> worker,
+    std::shared_ptr<RemoteBitrateEstimatorPicker> picker = std::make_shared<RemoteBitrateEstimatorPicker>());
 
   void OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
                                        uint32_t bitrate) override;
@@ -53,6 +63,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   WebRtcConnection *connection_;
   std::shared_ptr<Worker> worker_;
   Clock* const clock_;
+  std::shared_ptr<RemoteBitrateEstimatorPicker> picker_;
   std::unique_ptr<RemoteBitrateEstimator> rbe_;
   bool using_absolute_send_time_;
   uint32_t packets_since_absolute_send_time_;
