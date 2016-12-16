@@ -1,6 +1,6 @@
 language: node_js
 os:
-#  - osx  TODO Enable again once we add openssl, libnice, libsrtp and libav to cmake
+  - osx
   - linux
 sudo: required
 dist: trusty
@@ -38,7 +38,7 @@ addons:
       - ubuntu-toolchain-r-test
 before_install:
   # OSX
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then   ./scripts/installMacDeps.sh --unattended --disable-services --use-cache;    fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then  travis_wait 30 ./scripts/installMacDeps.sh --unattended --use-cache;    fi
 
   # LINUX
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./scripts/installTravisDeps.sh && export CC="/usr/bin/gcc-5" && export CXX="/usr/bin/g++-5" ; fi

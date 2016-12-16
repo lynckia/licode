@@ -52,20 +52,23 @@ check_result() {
 install_homebrew_from_cache(){
   if [ -f cache/homebrew-cache.tar.gz ]; then
     tar xzf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar
-    brew link glib pkg-config boost cmake yasm log4cxx gettext
+    brew link glib pkg-config boost cmake yasm log4cxx gettext ||true
+    brew link --force gettext
+    brew install --force libffi
+    brew list
   fi
 }
 
 copy_homebrew_to_cache(){
-  mkdir cache
+  mkdir cache ||true
   tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx gettext
 }
 
 install_nvm_node() {
   curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
-  
+
   . $NVM_CHECK
-  
+
   nvm install
   nvm use
 }
@@ -82,11 +85,11 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost cmake yasm log4cxx gettext
+  brew install glib pkg-config boost cmake yasm log4cxx gettext ||true
   install_nvm_node
   npm install -g node-gyp
   if [ "$DISABLE_SERVICES" != "true" ]; then
-    brew install rabbitmq mongodb
+    brew install rabbitmq mongodb ||true
   fi
 }
 
