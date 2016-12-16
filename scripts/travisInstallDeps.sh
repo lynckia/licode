@@ -34,13 +34,11 @@ check_result() {
 }
 
 install_nvm_node() {
-
-  curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
-  
+  git clone https://github.com/creationix/nvm.git "$NVM_DIR"
+  cd "$NVM_DIR"
+  git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" origin` 
   . $NVM_CHECK
-  
   nvm install
-  set -e
 }
 
 install_apt_deps(){

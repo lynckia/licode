@@ -46,17 +46,26 @@ check_proxy(){
 }
 
 install_nvm_node() {
-
-  curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
-  
-  . $NVM_CHECK
-  
-  nvm install
-  set -e
+  if [ -d $LIB_DIR ]; then
+    if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+      git clone https://github.com/creationix/nvm.git "$NVM_DIR"
+      cd "$NVM_DIR"
+      git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" origin` 
+      cd "$CURRENT_DIR"
+    fi
+    . $NVM_CHECK
+    nvm install
+  else
+    mkdir -p $LIB_DIR
+    install_nvm_node
+  fi
 }
 
 install_apt_deps(){
 
+  install_nvm_node
+  nvm use
+  npm install -g node-gyp
   sudo apt-get install -qq python-software-properties -y
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
@@ -64,9 +73,6 @@ install_apt_deps(){
   sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev -y
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
   
-  install_nvm_node
-  nvm use
-  npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 
