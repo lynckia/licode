@@ -64,11 +64,19 @@ copy_homebrew_to_cache(){
 }
 
 install_nvm_node() {
-  git clone https://github.com/creationix/nvm.git "$NVM_DIR"
-  cd "$NVM_DIR"
-  git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" origin` 
-  . $NVM_CHECK
-  nvm install
+  if [ -d $LIB_DIR ]; then
+    if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+      git clone https://github.com/creationix/nvm.git "$NVM_DIR"
+      cd "$NVM_DIR"
+      git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" origin` 
+      cd "$CURRENT_DIR"
+    fi
+    . $NVM_CHECK
+    nvm install
+  else
+    mkdir -p $LIB_DIR
+    install_nvm_node
+  fi
 }
 
 install_homebrew(){
