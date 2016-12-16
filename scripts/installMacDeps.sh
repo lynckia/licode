@@ -54,7 +54,7 @@ install_homebrew_from_cache(){
     tar xzf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar
     brew link glib pkg-config boost cmake yasm log4cxx gettext ||true
     brew link --force gettext
-    brew link --force libffi
+    brew install --force libffi
     brew list
   fi
 }
