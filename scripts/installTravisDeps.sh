@@ -33,19 +33,7 @@ check_result() {
   fi
 }
 
-install_nvm_node() {
-  rm -rf ~/.nvm
-  curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
-  
-  . $NVM_CHECK
-
-  nvm install
-  nvm use
-}
-
 install_apt_deps(){
-  install_nvm_node
-  nvm use
   npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
