@@ -159,7 +159,7 @@ class RtpHeader {
   inline void setExtLength(uint16_t extensionLength) {
     extensionlength = htons(extensionLength);
   }
-  inline int getHeaderLength() {
+  inline int getHeaderLength() const {
     return MIN_SIZE + cc * 4 + hasextension * (4 + ntohs(extensionlength) * 4);
   }
 };
@@ -448,6 +448,10 @@ class RtcpHeader {
     uint32_t line = mantissa + (exp << 18);
     report.rembPacket.brLength = htonl(line) >> 8;
   }
+  inline uint64_t getREMBBitRate() {
+    return getBrMantis() + (getBrExp() << 18);
+  }
+
   inline uint32_t getBrExp() {
     // remove the 0s added by nothl (8) + the 18 bits of Mantissa
     return (ntohl(report.rembPacket.brLength) >> 26);

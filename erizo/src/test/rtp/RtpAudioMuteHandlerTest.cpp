@@ -12,8 +12,6 @@
 static constexpr uint16_t kVideoSsrc = 1;
 static constexpr uint16_t kAudioSsrc = 2;
 static constexpr uint16_t kArbitrarySeqNumber = 12;
-static constexpr uint16_t kFirstSequenceNumber = 0;
-static constexpr uint16_t kLastSequenceNumber = 65535;
 
 using ::testing::_;
 using ::testing::IsNull;

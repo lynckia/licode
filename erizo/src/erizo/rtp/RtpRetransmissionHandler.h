@@ -1,7 +1,6 @@
 #ifndef ERIZO_SRC_ERIZO_RTP_RTPRETRANSMISSIONHANDLER_H_
 #define ERIZO_SRC_ERIZO_RTP_RTPRETRANSMISSIONHANDLER_H_
 
-#include <boost/thread/mutex.hpp>
 #include <vector>
 
 #include "pipeline/Handler.h"
