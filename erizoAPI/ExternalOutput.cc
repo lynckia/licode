@@ -76,7 +76,7 @@ NAN_METHOD(ExternalOutput::close) {
   }
 
   Nan::AsyncQueueWorker(new  AsyncDeleter(me, callback));
-  me.reset();
+  obj->me.reset();
 }
 
 NAN_METHOD(ExternalOutput::init) {
