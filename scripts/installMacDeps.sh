@@ -13,6 +13,8 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
+export NVM_DIR=$(readlink -f "$LIB_DIR/nvm")
+
 pause() {
   if [ "$UNATTENDED" == "true" ]; then
     echo "$*"
@@ -62,12 +64,19 @@ copy_homebrew_to_cache(){
 }
 
 install_nvm_node() {
-  curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
-  
-  . $NVM_CHECK
-  
-  nvm install
-  nvm use
+  if [ -d $LIB_DIR ]; then
+    if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+      git clone https://github.com/creationix/nvm.git "$NVM_DIR"
+      cd "$NVM_DIR"
+      git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" origin` 
+      cd "$CURRENT_DIR"
+    fi
+    . $NVM_CHECK
+    nvm install
+  else
+    mkdir -p $LIB_DIR
+    install_nvm_node
+  fi
 }
 
 install_homebrew(){
@@ -84,6 +93,7 @@ install_homebrew(){
 install_brew_deps(){
   brew install glib pkg-config boost cmake yasm log4cxx gettext
   install_nvm_node
+  nvm use
   npm install -g node-gyp
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew install rabbitmq mongodb

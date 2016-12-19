@@ -13,6 +13,8 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
+export NVM_DIR=$(readlink -f "$LIB_DIR/nvm")
+
 parse_arguments(){
   while [ "$1" != "" ]; do
     case $1 in
@@ -32,17 +34,24 @@ check_result() {
 }
 
 install_nvm_node() {
-  rm -rf ~/.nvm
-  curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
-  
-  . $NVM_CHECK
-
-  nvm install
-  nvm use
+  if [ -d $LIB_DIR ]; then
+    if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+      git clone https://github.com/creationix/nvm.git "$NVM_DIR"
+      cd "$NVM_DIR"
+      git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" origin` 
+      cd "$CURRENT_DIR"
+    fi
+    . $NVM_CHECK
+    nvm install
+  else
+    mkdir -p $LIB_DIR
+    install_nvm_node
+  fi
 }
 
 install_apt_deps(){
   install_nvm_node
+  nvm use
   npm install -g node-gyp
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
