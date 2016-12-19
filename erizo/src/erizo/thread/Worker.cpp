@@ -39,7 +39,8 @@ void Worker::close() {
   service_.stop();
 }
 
-int Worker::scheduleFromNow(Task f, std::chrono::milliseconds delta_ms) {
+int Worker::scheduleFromNow(Task f, duration delta) {
+  auto delta_ms = std::chrono::duration_cast<std::chrono::milliseconds>(delta);
   int uuid = next_scheduled_++;
   if (auto scheduler = scheduler_.lock()) {
     scheduler->scheduleFromNow(safeTask([f, uuid](std::shared_ptr<Worker> this_ptr) {
@@ -53,6 +54,25 @@ int Worker::scheduleFromNow(Task f, std::chrono::milliseconds delta_ms) {
     }), delta_ms);
   }
   return uuid;
+}
+
+void Worker::scheduleEvery(ScheduledTask f, duration period) {
+  scheduleEvery(f, period, period);
+}
+
+void Worker::scheduleEvery(ScheduledTask f, duration period, duration next_delay) {
+  time_point start = clock::now();
+  std::weak_ptr<Worker> weak_this = shared_from_this();
+
+  scheduleFromNow([start, weak_this, period, next_delay, f] {
+   if (auto this_ptr = weak_this.lock()) {
+     if (f()) {
+       duration clock_skew = clock::now() - start - next_delay;
+       duration delay = std::max(period - clock_skew, duration(0));
+       this_ptr->scheduleEvery(f, period, delay);
+     }
+   }
+  }, next_delay);
 }
 
 void Worker::unschedule(int uuid) {
