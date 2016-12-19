@@ -3,9 +3,13 @@
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 
+#include <algorithm>
 #include <memory>
 
+#include "lib/ClockUtils.h"
+
 using erizo::Worker;
+using erizo::SimulatedWorker;
 
 Worker::Worker(std::weak_ptr<Scheduler> scheduler)
     : scheduler_{scheduler},
@@ -62,17 +66,14 @@ void Worker::scheduleEvery(ScheduledTask f, duration period) {
 
 void Worker::scheduleEvery(ScheduledTask f, duration period, duration next_delay) {
   time_point start = clock::now();
-  std::weak_ptr<Worker> weak_this = shared_from_this();
 
-  scheduleFromNow([start, weak_this, period, next_delay, f] {
-   if (auto this_ptr = weak_this.lock()) {
-     if (f()) {
-       duration clock_skew = clock::now() - start - next_delay;
-       duration delay = std::max(period - clock_skew, duration(0));
-       this_ptr->scheduleEvery(f, period, delay);
-     }
-   }
-  }, next_delay);
+  scheduleFromNow(safeTask([start, period, next_delay, f](std::shared_ptr<Worker> this_ptr) {
+    if (f()) {
+      duration clock_skew = clock::now() - start - next_delay;
+      duration delay = std::max(period - clock_skew, duration(0));
+      this_ptr->scheduleEvery(f, period, delay);
+    }
+  }), next_delay);
 }
 
 void Worker::unschedule(int uuid) {
@@ -98,4 +99,50 @@ std::function<void()> Worker::safeTask(std::function<void(std::shared_ptr<Worker
       f(this_ptr);
     }
   };
+}
+
+SimulatedWorker::SimulatedWorker(SimulatedClock * const the_clock)
+    : Worker(std::weak_ptr<Scheduler>()), clock_{the_clock} {
+}
+
+void SimulatedWorker::task(Task f) {
+  tasks_.push_back(f);
+}
+
+void SimulatedWorker::start() {
+}
+
+void SimulatedWorker::close() {
+  scheduled_tasks_.clear();
+  tasks_.clear();
+}
+
+int SimulatedWorker::scheduleFromNow(Task f, duration delta) {
+  int uuid = next_scheduled_++;
+  scheduled_tasks_[clock_->now() + delta] =  [this, f, uuid] {
+      if (isCancelled(uuid)) {
+        return;
+      }
+      f();
+    };
+  return uuid;
+}
+
+void SimulatedWorker::executeTasks() {
+  for (Task f : tasks_) {
+    f();
+  }
+  tasks_.clear();
+}
+
+void SimulatedWorker::executePastScheduledTasks() {
+  auto older_task_to_execute = scheduled_tasks_.begin();
+  auto newer_task_to_execute = scheduled_tasks_.lower_bound(clock_->now());
+  if (older_task_to_execute->first <= clock_->now() &&
+      newer_task_to_execute->first <= clock_->now()) {
+    for (auto task_iterator = older_task_to_execute; task_iterator != newer_task_to_execute; task_iterator++) {
+      task_iterator->second();
+    }
+    scheduled_tasks_.erase(older_task_to_execute, newer_task_to_execute);
+  }
 }

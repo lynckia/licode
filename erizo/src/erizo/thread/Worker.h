@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <chrono> // NOLINT
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -24,20 +25,25 @@ class Worker : public std::enable_shared_from_this<Worker> {
   explicit Worker(std::weak_ptr<Scheduler> scheduler);
   ~Worker();
 
-  void task(Task f);
+  virtual void task(Task f);
 
-  void start();
-  void close();
+  virtual void start();
+  virtual void close();
 
-  int scheduleFromNow(Task f, duration delta_ms);
-  void unschedule(int uuid);
+  virtual int scheduleFromNow(Task f, duration delta);
+  virtual void unschedule(int uuid);
 
-  void scheduleEvery(ScheduledTask f, duration period);
+  virtual void scheduleEvery(ScheduledTask f, duration period);
+
+ protected:
+  bool isCancelled(int uuid);
 
  private:
   void scheduleEvery(ScheduledTask f, duration period, duration next_delay);
   std::function<void()> safeTask(std::function<void(std::shared_ptr<Worker>)> f);
-  bool isCancelled(int uuid);
+
+ protected:
+  int next_scheduled_ = 0;
 
  private:
   std::weak_ptr<Scheduler> scheduler_;
@@ -45,9 +51,25 @@ class Worker : public std::enable_shared_from_this<Worker> {
   asio_worker service_worker_;
   boost::thread_group group_;
   std::atomic<bool> closed_;
-  int next_scheduled_ = 0;
   std::vector<int> cancelled_;
   mutable std::mutex cancel_mutex_;
+};
+
+class SimulatedWorker : public Worker {
+ public:
+  explicit SimulatedWorker(SimulatedClock * const the_clock);
+  void task(Task f) override;
+  void start() override;
+  void close() override;
+  int scheduleFromNow(Task f, duration delta) override;
+
+  void executeTasks();
+  void executePastScheduledTasks();
+
+ private:
+  erizo::SimulatedClock * const clock_;
+  std::vector<Task> tasks_;
+  std::map<time_point, Task> scheduled_tasks_;
 };
 }  // namespace erizo
 

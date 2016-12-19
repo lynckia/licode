@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "lib/Clock.h"
+#include "lib/ClockUtils.h"
 #include "rtp/RtpHeaders.h"
 
 static constexpr auto kPeriod = std::chrono::milliseconds(20);
@@ -15,13 +16,16 @@ static constexpr uint32_t kDefaultAudioSsrc = 44444;
 static constexpr auto kAudioPeriod = std::chrono::milliseconds(20);
 static constexpr auto kVideoPeriod = std::chrono::milliseconds(1000 / 30);
 static constexpr auto kDefaultVideoKeyframePeriod = std::chrono::seconds(120);
-static constexpr auto kDefaultVideoBitrate = 30;  // kbps
-static constexpr auto kDefaultAudioBitrate = 30;  // kbps
+static constexpr uint8_t kDefaultVideoBitrate = 30;  // kbps
+static constexpr uint8_t kDefaultAudioBitrate = 30;  // kbps
+static constexpr uint32_t kVideoSampleRate = 90000;  // Hz
+static constexpr uint32_t kAudioSampleRate = 48000;  // Hz
 
 namespace erizo {
 DEFINE_LOGGER(SyntheticInput, "media.SyntheticInput");
-SyntheticInput::SyntheticInput(SyntheticInputConfig config, std::shared_ptr<Worker> worker)
-    : config_{config},
+SyntheticInput::SyntheticInput(SyntheticInputConfig config, std::shared_ptr<Worker> worker, Clock * const the_clock)
+    : clock_{the_clock},
+      config_{config},
       worker_{worker},
       video_avg_frame_size_{0},
       video_dev_frame_size_{0},
@@ -38,9 +42,9 @@ SyntheticInput::SyntheticInput(SyntheticInputConfig config, std::shared_ptr<Work
       audio_ssrc_{kDefaultAudioSsrc},
       video_pt_{kVp8PayloadType},
       audio_pt_{kOpusPayloadType},
-      next_video_frame_time_{clock::now()},
-      next_audio_frame_time_{clock::now()},
-      last_video_keyframe_time_{clock::now()},
+      next_video_frame_time_{clock_->now()},
+      next_audio_frame_time_{clock_->now()},
+      last_video_keyframe_time_{clock_->now()},
       consecutive_ticks_{0},
       keyframe_requested_{true} {
   calculateSizeAndPeriod(kDefaultVideoBitrate, kDefaultAudioBitrate);
@@ -71,7 +75,7 @@ void SyntheticInput::start() {
 
 void SyntheticInput::tick() {
   // This method will be called periodically to send audio/video frames
-  time_point now = clock::now();
+  time_point now = clock_->now();
   if (now > next_audio_frame_time_) {
     sendAudioFrame(audio_frame_size_);
     next_audio_frame_time_ += audio_period_;
@@ -92,7 +96,7 @@ void SyntheticInput::tick() {
 
     next_video_frame_time_ += video_period_;
   }
-  now = clock::now();
+  now = clock_->now();
   if ((next_video_frame_time_ > now || next_audio_frame_time_ > now) && consecutive_ticks_ < kMaxConsecutiveTicks) {
     consecutive_ticks_++;
     tick();
@@ -109,6 +113,7 @@ int SyntheticInput::sendPLI() {
 void SyntheticInput::sendVideoframe(bool is_keyframe, bool is_marker, uint32_t size) {
   erizo::RtpHeader *header = new erizo::RtpHeader();
   header->setSeqNumber(video_seq_number_++);
+  header->setTimestamp(ClockUtils::timePointToMs(clock_->now()) * kVideoSampleRate / 1000);
   header->setSSRC(video_ssrc_);
   header->setMarker(is_marker);
   header->setPayloadType(video_pt_);
@@ -124,7 +129,7 @@ void SyntheticInput::sendVideoframe(bool is_keyframe, bool is_marker, uint32_t s
   *parsing_pointer = is_keyframe ? 0x00 : 0x01;
 
   if (is_keyframe) {
-    last_video_keyframe_time_ = clock::now();
+    last_video_keyframe_time_ = clock_->now();
     keyframe_requested_ = false;
   }
   if (videoSink_) {
@@ -136,6 +141,7 @@ void SyntheticInput::sendVideoframe(bool is_keyframe, bool is_marker, uint32_t s
 void SyntheticInput::sendAudioFrame(uint32_t size) {
   erizo::RtpHeader *header = new erizo::RtpHeader();
   header->setSeqNumber(audio_seq_number_++);
+  header->setTimestamp(ClockUtils::timePointToMs(clock_->now()) * kAudioSampleRate / 1000);
   header->setSSRC(audio_ssrc_);
   header->setMarker(true);
   header->setPayloadType(audio_pt_);
@@ -194,7 +200,6 @@ int SyntheticInput::deliverFeedback_(char* buf, int len) {
               char *unique_id = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
               if (!strncmp(unique_id, "REMB", 4)) {
                 uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
-                ELOG_TRACE("Received REMB %lu", bitrate);
                 calculateSizeAndPeriod(bitrate, kDefaultAudioBitrate);
               }
               break;
