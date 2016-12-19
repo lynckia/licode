@@ -62,7 +62,6 @@ install_nvm_node() {
 }
 
 install_apt_deps(){
-
   install_nvm_node
   nvm use
   npm install -g node-gyp

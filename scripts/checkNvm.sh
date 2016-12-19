@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e 
 set +e
 command -v nvm | grep 'nvm' &> /dev/null
 if [ ! $? == 0 ]; then
@@ -12,7 +11,6 @@ echo "Checking dir $NVM_DIR"
     echo "Running nvm"
     . "$NVM_DIR/nvm.sh" # This loads nvm
   else
-    set -e
     echo "ERROR: Missing NVM"
     exit 1
   fi
