@@ -20,7 +20,7 @@ static const uint32_t kTimeOffsetSwitchThreshold = 30;
 static const uint32_t kMinBitRateAllowed = 10;
 const int kRembTimeOutThresholdMs = 2000;
 const int kRembSendIntervallMs = 1000;
-const uint32_t BandwidthEstimationHandler::kRembMinimumBitrateKbps = 50;
+const uint32_t BandwidthEstimationHandler::kRembMinimumBitrateKbps = 20;
 
 // % threshold for if we should send a new REMB asap.
 const unsigned int kSendThresholdPercent = 97;
