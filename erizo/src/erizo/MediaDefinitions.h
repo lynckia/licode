@@ -18,6 +18,10 @@ enum packetType {
 
 struct dataPacket {
   dataPacket() = default;
+  dataPacket(int comp_, const char *data_, int length_, packetType type_, uint64_t received_time_ms_) :
+    comp{comp_}, length{length_}, type{type_}, received_time_ms{received_time_ms_} {
+      memcpy(data, data_, length_);
+    }
   dataPacket(int comp_, const char *data_, int length_, packetType type_) :
     comp{comp_}, length{length_}, type{type_} {
       memcpy(data, data_, length_);
@@ -30,6 +34,7 @@ struct dataPacket {
   char data[1500];
   int length;
   packetType type;
+  uint64_t received_time_ms;
 };
 
 class Monitor {

@@ -14,7 +14,7 @@ class RtpVP8SlideShowHandler : public RtpSlideShowHandler {
 
  public:
   explicit RtpVP8SlideShowHandler(WebRtcConnection* connection);
-  void setSlideShowMode(bool activated);
+  void setSlideShowMode(bool activated) override;
 
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;

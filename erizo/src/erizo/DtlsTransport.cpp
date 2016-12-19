@@ -157,6 +157,7 @@ void DtlsTransport::onNiceData(packetPtr packet) {
     return;
   } else if (this->getTransportState() == TRANSPORT_READY) {
     unprotect_packet_->length = len;
+    unprotect_packet_->received_time_ms = packet->received_time_ms;
     memcpy(unprotect_packet_->data, data, len);
 
     if (dtlsRtcp != NULL && component_id == 2) {

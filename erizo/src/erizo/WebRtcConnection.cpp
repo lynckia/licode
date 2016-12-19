@@ -42,11 +42,13 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
 
   slideshow_handler_.reset(new RtpVP8SlideShowHandler(this));
   audio_mute_handler_.reset(new RtpAudioMuteHandler(this));
+  bwe_handler_.reset(new BandwidthEstimationHandler(this, worker_));
 
   // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
   pipeline_->addFront(PacketReader(this));
   pipeline_->addFront(audio_mute_handler_);
   pipeline_->addFront(slideshow_handler_);
+  pipeline_->addFront(bwe_handler_);
   pipeline_->addFront(RtpRetransmissionHandler(this));
   pipeline_->addFront(PacketWriter(this));
   pipeline_->finalize();
@@ -140,6 +142,8 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   bundle_ = remoteSdp_.isBundle;
   localSdp_.setOfferSdp(remoteSdp_);
   extProcessor_.setSdpInfo(localSdp_);
+
+  bwe_handler_->updateExtensionMaps(extProcessor_.getVideoExtensionMap(), extProcessor_.getAudioExtensionMap());
 
   localSdp_.videoSsrc = this->getVideoSinkSSRC();
   localSdp_.audioSsrc = this->getAudioSinkSSRC();
@@ -396,11 +400,22 @@ void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Trans
   if (audioSink_ == NULL && videoSink_ == NULL && fbSink_ == NULL) {
     return;
   }
-
   if (transport->mediaType == AUDIO_TYPE) {
     packet->type = AUDIO_PACKET;
   } else if (transport->mediaType == VIDEO_TYPE) {
     packet->type = VIDEO_PACKET;
+  }
+
+  char* buf = packet->data;
+  RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+  if (!chead->isRtcp()) {
+    uint32_t recvSSRC = head->getSSRC();
+    if (recvSSRC == this->getVideoSourceSSRC()) {
+      packet->type = VIDEO_PACKET;
+    } else if (recvSSRC == this->getAudioSourceSSRC()) {
+      packet->type = AUDIO_PACKET;
+    }
   }
 
   pipeline_->read(packet);
