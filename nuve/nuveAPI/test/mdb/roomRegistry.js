@@ -26,13 +26,13 @@ describe('Room Registry', function() {
   it('should return a list of rooms when getRooms is called', function() {
     dataBase.db.rooms.find.returns({
       toArray: function(cb) {
-        cb(null, [kArbitraryService]);
+        cb(null, [kArbitraryRoom]);
       }
     });
     var callback = sinon.stub();
     roomRegistry.getRooms(callback);
 
-    expect(callback.calledWith([kArbitraryService])).to.be.true;  // jshint ignore:line
+    expect(callback.calledWith([kArbitraryRoom])).to.be.true;  // jshint ignore:line
   });
 
   it('should return undefined if not found in the database when getRoom is called', function() {

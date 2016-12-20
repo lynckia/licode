@@ -28,7 +28,7 @@ describe.only('Cloud Handler', function() {
 
   var createPrivateErizoController = function(callback) {
     var arbitraryMessage = {
-      _id: "1",
+      _id: '1',
       cloudProvider: '',
       ip: '127.0.0.1',
       hostname: 'hostname',
@@ -36,7 +36,7 @@ describe.only('Cloud Handler', function() {
       ssl: true
     };
     var expectedResult = {
-      id: "1",
+      id: '1',
       publicIP: arbitraryMessage.ip,
       hostname: arbitraryMessage.hostname,
       port: arbitraryMessage.port,
@@ -69,7 +69,7 @@ describe.only('Cloud Handler', function() {
 
   it('should succeed creating new amazon erizo controller if aws-sdk success', function() {
     var arbitraryMessage = {
-      _id: "1",
+      _id: '1',
       cloudProvider: 'amazon',
       ip: '127.0.0.1',
       hostname: 'hostname',
@@ -81,7 +81,7 @@ describe.only('Cloud Handler', function() {
     erizoControllerRegistryMock.addErizoController.callsArgWith(1, arbitraryMessage);
     cloudHandler.addNewErizoController(arbitraryMessage, callback);
     var expectedResult = {
-      id: "1",
+      id: '1',
       publicIP: '127.0.0.2',
       hostname: arbitraryMessage.hostname,
       port: arbitraryMessage.port,
@@ -102,7 +102,7 @@ describe.only('Cloud Handler', function() {
                     'from known erizo controller', function() {
     var callback = sinon.stub();
     createPrivateErizoController(sinon.stub());
-    erizoControllerRegistryMock.getErizoController.callsArgWith(1, "");
+    erizoControllerRegistryMock.getErizoController.callsArgWith(1, '');
     cloudHandler.keepAlive('1', callback);
     expect(callback.withArgs('ok').callCount).to.equal(1);
   });

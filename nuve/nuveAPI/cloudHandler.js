@@ -76,7 +76,8 @@ var unassignErizoController = function (erizoControllerId) {
     roomRegistry.getRooms(function(rooms) {
         for (var room in rooms) {
             if (rooms.hasOwnProperty(room)) {
-                if (rooms[room].erizoControllerId && rooms[room].erizoControllerId.equals(erizoControllerId)) {
+                if (rooms[room].erizoControllerId && 
+                    rooms[room].erizoControllerId.equals(erizoControllerId)) {
                     rooms[room].erizoControllerId = undefined;
                     roomRegistry.updateRoom(rooms[room]._id, rooms[room]);
                 }
@@ -278,7 +279,10 @@ exports.deleteRoom = function (roomId, callback) {
 exports.deleteUser = function (user, roomId, callback) {
     roomRegistry.getRoom(roomId, function (room) {
         var rpcID = 'erizoController_' + room.erizoControllerId;
-        rpc.callRpc(rpcID, 'deleteUser', [{user: user, roomId:roomId}], {'callback': function (result) {
+        rpc.callRpc(rpcID, 
+                    'deleteUser', 
+                    [{user: user, roomId:roomId}], 
+                    {'callback': function (result) {
             callback(result);
         }});
     });

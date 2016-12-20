@@ -20,7 +20,7 @@ exports.getErizoControllers = function (callback) {
 var getErizoController = exports.getErizoController = function (id, callback) {
     db.erizoControllers.findOne({_id: db.ObjectId(id)}, function (err, erizoController) {
         if (erizoController === undefined) {
-            log.warn('message: getErizoController - ErizoController not found, erizoControllerId: ' + id);
+            log.warn('message: getErizoController - ErizoController not found, Id: ' + id);
         }
         if (callback !== undefined) {
             callback(erizoController);
