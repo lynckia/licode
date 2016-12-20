@@ -22,7 +22,8 @@ class Worker : public std::enable_shared_from_this<Worker> {
   typedef std::function<void()> Task;
   typedef std::function<bool()> ScheduledTask;
 
-  explicit Worker(std::weak_ptr<Scheduler> scheduler);
+  explicit Worker(std::weak_ptr<Scheduler> scheduler,
+                  std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
   ~Worker();
 
   virtual void task(Task f);
@@ -47,6 +48,7 @@ class Worker : public std::enable_shared_from_this<Worker> {
 
  private:
   std::weak_ptr<Scheduler> scheduler_;
+  std::shared_ptr<Clock> clock_;
   boost::asio::io_service service_;
   asio_worker service_worker_;
   boost::thread_group group_;
@@ -57,7 +59,7 @@ class Worker : public std::enable_shared_from_this<Worker> {
 
 class SimulatedWorker : public Worker {
  public:
-  explicit SimulatedWorker(SimulatedClock * const the_clock);
+  explicit SimulatedWorker(std::shared_ptr<SimulatedClock> the_clock);
   void task(Task f) override;
   void start() override;
   void close() override;
@@ -67,7 +69,7 @@ class SimulatedWorker : public Worker {
   void executePastScheduledTasks();
 
  private:
-  erizo::SimulatedClock * const clock_;
+  std::shared_ptr<SimulatedClock> clock_;
   std::vector<Task> tasks_;
   std::map<time_point, Task> scheduled_tasks_;
 };

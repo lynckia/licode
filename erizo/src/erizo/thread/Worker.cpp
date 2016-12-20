@@ -11,8 +11,9 @@
 using erizo::Worker;
 using erizo::SimulatedWorker;
 
-Worker::Worker(std::weak_ptr<Scheduler> scheduler)
+Worker::Worker(std::weak_ptr<Scheduler> scheduler, std::shared_ptr<Clock> the_clock)
     : scheduler_{scheduler},
+      clock_{the_clock},
       service_{},
       service_worker_{new asio_worker::element_type(service_)},
       closed_{false} {
@@ -65,11 +66,12 @@ void Worker::scheduleEvery(ScheduledTask f, duration period) {
 }
 
 void Worker::scheduleEvery(ScheduledTask f, duration period, duration next_delay) {
-  time_point start = clock::now();
+  time_point start = clock_->now();
+  std::shared_ptr<Clock> clock = clock_;
 
-  scheduleFromNow(safeTask([start, period, next_delay, f](std::shared_ptr<Worker> this_ptr) {
+  scheduleFromNow(safeTask([start, period, next_delay, f, clock](std::shared_ptr<Worker> this_ptr) {
     if (f()) {
-      duration clock_skew = clock::now() - start - next_delay;
+      duration clock_skew = clock->now() - start - next_delay;
       duration delay = std::max(period - clock_skew, duration(0));
       this_ptr->scheduleEvery(f, period, delay);
     }
@@ -101,8 +103,8 @@ std::function<void()> Worker::safeTask(std::function<void(std::shared_ptr<Worker
   };
 }
 
-SimulatedWorker::SimulatedWorker(SimulatedClock * const the_clock)
-    : Worker(std::weak_ptr<Scheduler>()), clock_{the_clock} {
+SimulatedWorker::SimulatedWorker(std::shared_ptr<SimulatedClock> the_clock)
+    : Worker(std::make_shared<Scheduler>(1), the_clock), clock_{the_clock} {
 }
 
 void SimulatedWorker::task(Task f) {
@@ -136,13 +138,13 @@ void SimulatedWorker::executeTasks() {
 }
 
 void SimulatedWorker::executePastScheduledTasks() {
-  auto older_task_to_execute = scheduled_tasks_.begin();
-  auto newer_task_to_execute = scheduled_tasks_.lower_bound(clock_->now());
-  if (older_task_to_execute->first <= clock_->now() &&
-      newer_task_to_execute->first <= clock_->now()) {
-    for (auto task_iterator = older_task_to_execute; task_iterator != newer_task_to_execute; task_iterator++) {
-      task_iterator->second();
+  time_point now = clock_->now();
+  for (auto iter = scheduled_tasks_.begin(), last_iter = scheduled_tasks_.end(); iter != last_iter; ) {
+    if (iter->first <= now) {
+      iter->second();
+      iter = scheduled_tasks_.erase(iter);
+    } else {
+      ++iter;
     }
-    scheduled_tasks_.erase(older_task_to_execute, newer_task_to_execute);
   }
 }

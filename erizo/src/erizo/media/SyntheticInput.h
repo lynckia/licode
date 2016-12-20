@@ -39,7 +39,7 @@ class SyntheticInput : public MediaSource, public FeedbackSink, public std::enab
 
  public:
   explicit SyntheticInput(SyntheticInputConfig config, std::shared_ptr<Worker> worker,
-                          erizo::Clock * const the_clock = new erizo::SteadyClock());
+                          std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
   virtual ~SyntheticInput();
   int sendPLI() override;
   void close() override;
@@ -55,7 +55,7 @@ class SyntheticInput : public MediaSource, public FeedbackSink, public std::enab
   void scheduleEvery(duration period);
 
  private:
-  Clock * const clock_;
+  std::shared_ptr<Clock> clock_;
   SyntheticInputConfig config_;
   std::shared_ptr<Worker> worker_;
   uint32_t video_avg_frame_size_;

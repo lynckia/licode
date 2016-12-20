@@ -23,7 +23,9 @@ static constexpr uint32_t kAudioSampleRate = 48000;  // Hz
 
 namespace erizo {
 DEFINE_LOGGER(SyntheticInput, "media.SyntheticInput");
-SyntheticInput::SyntheticInput(SyntheticInputConfig config, std::shared_ptr<Worker> worker, Clock * const the_clock)
+SyntheticInput::SyntheticInput(SyntheticInputConfig config,
+                               std::shared_ptr<Worker> worker,
+                               std::shared_ptr<Clock> the_clock)
     : clock_{the_clock},
       config_{config},
       worker_{worker},
@@ -42,13 +44,12 @@ SyntheticInput::SyntheticInput(SyntheticInputConfig config, std::shared_ptr<Work
       audio_ssrc_{kDefaultAudioSsrc},
       video_pt_{kVp8PayloadType},
       audio_pt_{kOpusPayloadType},
-      next_video_frame_time_{clock_->now()},
-      next_audio_frame_time_{clock_->now()},
+      next_video_frame_time_{clock_->now() + video_period_},
+      next_audio_frame_time_{clock_->now() + audio_period_},
       last_video_keyframe_time_{clock_->now()},
       consecutive_ticks_{0},
       keyframe_requested_{true} {
   calculateSizeAndPeriod(kDefaultVideoBitrate, kDefaultAudioBitrate);
-  start();
 }
 
 SyntheticInput::~SyntheticInput() {
@@ -76,11 +77,11 @@ void SyntheticInput::start() {
 void SyntheticInput::tick() {
   // This method will be called periodically to send audio/video frames
   time_point now = clock_->now();
-  if (now > next_audio_frame_time_) {
+  if (now >= next_audio_frame_time_) {
     sendAudioFrame(audio_frame_size_);
     next_audio_frame_time_ += audio_period_;
   }
-  if (now > next_video_frame_time_) {
+  if (now >= next_video_frame_time_) {
     bool is_keyframe = false;
     size_t frame_size = getRandomValue(video_avg_frame_size_, video_dev_frame_size_);
     if (now - last_video_keyframe_time_ > kDefaultVideoKeyframePeriod || keyframe_requested_) {
@@ -97,7 +98,7 @@ void SyntheticInput::tick() {
     next_video_frame_time_ += video_period_;
   }
   now = clock_->now();
-  if ((next_video_frame_time_ > now || next_audio_frame_time_ > now) && consecutive_ticks_ < kMaxConsecutiveTicks) {
+  if ((next_video_frame_time_ <= now || next_audio_frame_time_ <= now) && consecutive_ticks_ < kMaxConsecutiveTicks) {
     consecutive_ticks_++;
     tick();
   } else {
