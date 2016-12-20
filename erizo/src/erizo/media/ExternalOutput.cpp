@@ -17,7 +17,7 @@ namespace erizo {
 
 DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 ExternalOutput::ExternalOutput(const std::string& outputUrl)
-  : fec_receiver_(this), audioQueue_(5.0, 10.0), videoQueue_(5.0, 10.0), inited_(false),
+  : audioQueue_(5.0, 10.0), videoQueue_(5.0, 10.0), inited_(false),
     video_stream_(NULL), audio_stream_(NULL), first_video_timestamp_(-1), first_audio_timestamp_(-1),
     first_data_received_(), video_offset_ms_(-1), audio_offset_ms_(-1), vp8SearchState_(lookingForStart),
     needToSendFir_(true) {
@@ -26,6 +26,8 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl)
   // TODO(pedro): these should really only be called once per application run
   av_register_all();
   avcodec_register_all();
+
+  fec_receiver_.reset(webrtc::UlpfecReceiver::Create(this));
 
   // our video timebase is easy: always 90 khz.  We'll set audio once we receive a packet and can inspect its header.
   videoQueue_.setTimebase(90000);
@@ -434,8 +436,8 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
       hackyHeader.sequenceNumber = h->getSeqNumber();
 
       // AddReceivedRedPacket returns 0 if there's data to process
-      if (0 == fec_receiver_.AddReceivedRedPacket(hackyHeader, (const uint8_t*)buffer, length, ULP_90000_PT)) {
-        fec_receiver_.ProcessReceivedFec();
+      if (0 == fec_receiver_->AddReceivedRedPacket(hackyHeader, (const uint8_t*)buffer, length, ULP_90000_PT)) {
+        fec_receiver_->ProcessReceivedFec();
       }
     } else {
       videoQueue_.pushPacket(buffer, length);
