@@ -6,6 +6,8 @@
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
 
+#include <queue>
+
 
 /*
  * Wrapper class of erizo::WebRtcConnection
@@ -13,11 +15,12 @@
  * A WebRTC Connection. This class represents a WebRtcConnection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary ICE and SRTP components.
  */
-class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener, erizo::WebRtcConnectionStatsListener {
+class WebRtcConnection : public MediaSink, public erizo::WebRtcConnectionEventListener,
+  public erizo::WebRtcConnectionStatsListener {
  public:
     static NAN_MODULE_INIT(Init);
 
-    erizo::WebRtcConnection *me;
+    std::shared_ptr<erizo::WebRtcConnection> me;
     int eventSt;
     std::queue<int> eventSts;
     std::queue<std::string> eventMsgs, statsMsgs;
@@ -28,8 +31,8 @@ class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener,
     WebRtcConnection();
     ~WebRtcConnection();
 
-    v8::Persistent<v8::Function> eventCallback_;
-    v8::Persistent<v8::Function> statsCallback_;
+    Nan::Callback *eventCallback_;
+    Nan::Callback *statsCallback_;
 
     uv_async_t async_;
     uv_async_t asyncStats_;
@@ -102,6 +105,11 @@ class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener,
      */
     static NAN_METHOD(setSlideShowMode);
     /*
+     * Mutes or unmutes streams for this WRTC
+     * Param: A boolean indicating what to do
+     */
+    static NAN_METHOD(muteStream);
+    /*
      * Gets Stats from this Wrtc
      * Param: None
      * Returns: The Current stats
@@ -117,8 +125,8 @@ class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener,
 
     static Nan::Persistent<v8::Function> constructor;
 
-    static void eventsCallback(uv_async_t *handle, int status);
-    static void statsCallback(uv_async_t *handle, int status);
+    static NAUV_WORK_CB(eventsCallback);
+    static NAUV_WORK_CB(statsCallback);
 
     virtual void notifyEvent(erizo::WebRTCEvent event, const std::string& message = "");
     virtual void notifyStats(const std::string& message);

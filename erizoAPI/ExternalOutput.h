@@ -16,7 +16,7 @@
 class ExternalOutput: public MediaSink {
  public:
     static NAN_MODULE_INIT(Init);
-    erizo::ExternalOutput* me;
+    std::shared_ptr<erizo::ExternalOutput> me;
 
  private:
     ExternalOutput();
@@ -33,7 +33,7 @@ class ExternalOutput: public MediaSink {
      */
     static NAN_METHOD(close);
     /*
-     * Inits the ExternalOutput 
+     * Inits the ExternalOutput
      * Returns true ready
      */
     static NAN_METHOD(init);

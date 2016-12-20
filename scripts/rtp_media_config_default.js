@@ -13,10 +13,10 @@ mediaConfig.rtpMappings.vp8 = {
         'nack',
         'nack pli',
         'goog-remb',
-        'transport-cc',
+//        'transport-cc',
     ],
 };
-
+/*
 mediaConfig.rtpMappings.red = {
     payloadType: 116,
     encodingName: 'red',
@@ -24,7 +24,7 @@ mediaConfig.rtpMappings.red = {
     channels: 1,
     mediaType: 'video',
 };
-/*
+
 mediaConfig.rtpMappings.rtx = {
     payloadType: 96,
     encodingName: 'rtx',

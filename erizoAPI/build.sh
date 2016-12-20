@@ -1,4 +1,17 @@
 #!/bin/bash
+
+set -e
+
+SCRIPT=`pwd`/$0
+FILENAME=`basename $SCRIPT`
+PATHNAME=`dirname $SCRIPT`
+ROOT=$PATHNAME/..
+CURRENT_DIR=`pwd`
+NVM_CHECK="$ROOT"/scripts/checkNvm.sh
+
+. $NVM_CHECK
+nvm use
+
 echo 'linting with cpplint'
 ./lint.sh
 if hash node-waf 2>/dev/null; then

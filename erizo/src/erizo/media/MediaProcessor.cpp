@@ -10,6 +10,8 @@ extern "C" {
 #include "rtp/RtpVP8Fragmenter.h"
 #include "rtp/RtpHeaders.h"
 #include "media/codecs/VideoCodec.h"
+#include "lib/Clock.h"
+#include "lib/ClockUtils.h"
 
 using std::memcpy;
 
@@ -437,9 +439,7 @@ int OutputProcessor::packageAudio(unsigned char* inBuff, int inBuffLen, unsigned
     return -1;
   }
 
-  // timeval time;
-  // gettimeofday(&time, NULL);
-  // long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);
+  // uint64_t millis = ClockUtils::timePointToMs(clock::now());
 
   RtpHeader head;
   head.setSeqNumber(audioSeqnum_++);
@@ -477,9 +477,7 @@ int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned 
   RtpVP8Fragmenter frag(inBuff, buffSize, 1100);
   bool lastFrame = false;
   unsigned int outlen = 0;
-  timeval time;
-  gettimeofday(&time, NULL);
-  long millis = (time.tv_sec * 1000) + (time.tv_usec / 1000);  // NOLINT
+  uint64_t millis = ClockUtils::timePointToMs(clock::now());
   // timestamp_ += 90000 / mediaInfo.videoCodec.frameRate;
   // int64_t pts = av_rescale(lastPts_, 1000000, (long int)video_time_base_);
 

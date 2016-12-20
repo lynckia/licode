@@ -8,9 +8,11 @@ PATHNAME=`dirname $SCRIPT`
 ROOT=$PATHNAME/..
 BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
+NVM_CHECK="$PATHNAME"/checkNvm.sh
 
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
+
 
 pause() {
   if [ "$UNATTENDED" == "true" ]; then
@@ -60,6 +62,23 @@ copy_homebrew_to_cache(){
   tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx gettext
 }
 
+install_nvm_node() {
+  if [ -d $LIB_DIR ]; then
+    export NVM_DIR=$(readlink -f "$LIB_DIR/nvm")
+    if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+      git clone https://github.com/creationix/nvm.git "$NVM_DIR"
+      cd "$NVM_DIR"
+      git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" origin` 
+      cd "$CURRENT_DIR"
+    fi
+    . $NVM_CHECK
+    nvm install
+  else
+    mkdir -p $LIB_DIR
+    install_nvm_node
+  fi
+}
+
 install_homebrew(){
   if [ "$CACHE" == "true" ]; then
     install_homebrew_from_cache
@@ -73,19 +92,39 @@ install_homebrew(){
 
 install_brew_deps(){
   brew install glib pkg-config boost cmake yasm log4cxx gettext
+  install_nvm_node
+  nvm use
   npm install -g node-gyp
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew install rabbitmq mongodb
   fi
 }
 
+download_openssl() {
+  OPENSSL_VERSION=$1
+  OPENSSL_MAJOR="${OPENSSL_VERSION%?}"
+  echo "Downloading OpenSSL from https://www.openssl.org/source/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
+  curl -O https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
+  tar -zxvf openssl-$OPENSSL_VERSION.tar.gz || DOWNLOAD_SUCCESS=$?
+  if [ "$DOWNLOAD_SUCCESS" -eq 1 ]
+  then
+    echo "Downloading OpenSSL from https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
+    curl -O https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz
+    tar -zxvf openssl-$OPENSSL_VERSION.tar.gz
+  fi
+}
+
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.openssl.org/source/openssl-1.0.1l.tar.gz
-    tar -zxvf openssl-1.0.1l.tar.gz
-    cd openssl-1.0.1l
-    ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -shared -fPIC && make -s V=0 && make install_sw
+    OPENSSL_VERSION=`node -pe process.versions.openssl`
+    if [ ! -f ./openssl-$OPENSSL_VERSION.tar.gz ]; then
+      download_openssl $OPENSSL_VERSION
+      cd openssl-$OPENSSL_VERSION
+      ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -shared -fPIC && make -s V=0 && make install_sw
+    else
+      echo "openssl already installed"
+    fi
     check_result $?
     cd $CURRENT_DIR
   else
@@ -97,11 +136,9 @@ install_openssl(){
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
-    tar -zxvf libnice-0.1.4.tar.gz
-    cd libnice-0.1.4
-    patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0 && \
-    patch -p1 < $PATHNAME/libnice-014.patch1
+    curl -O https://nice.freedesktop.org/releases/libnice-0.1.7.tar.gz
+    tar -zxvf libnice-0.1.7.tar.gz
+    cd libnice-0.1.7
     check_result $?
     ./configure --prefix=$PREFIX_DIR && make -s V=0 && make install
     check_result $?

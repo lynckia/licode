@@ -32,7 +32,7 @@ namespace erizo {
 #define NICE_STREAM_DEF_PWD     22 + 1   /* pwd + NULL */
 
 // forward declarations
-typedef boost::shared_ptr<dataPacket> packetPtr;
+typedef std::shared_ptr<dataPacket> packetPtr;
 class CandidateInfo;
 class WebRtcConnection;
 
@@ -71,7 +71,7 @@ enum IceState {
 
 class NiceConnectionListener {
  public:
-    virtual void onNiceData(unsigned int component_id, char* data, int len, NiceConnection* conn) = 0;
+    virtual void onPacketReceived(packetPtr packet) = 0;
     virtual void onCandidate(const CandidateInfo &candidate, NiceConnection *conn) = 0;
     virtual void updateIceState(IceState state, NiceConnection *conn) = 0;
 };
@@ -164,9 +164,8 @@ class NiceConnection : public LogContext {
   void updateIceState(IceState state);
   IceState checkIceState();
   void updateComponentState(unsigned int compId, IceState state);
-  void queueData(unsigned int component_id, char* buf, int len);
+  void onData(unsigned int component_id, char* buf, int len);
   CandidatePair getSelectedPair();
-  packetPtr getPacket();
   void setReceivedLastCandidate(bool hasReceived);
   void close();
 
@@ -181,12 +180,11 @@ class NiceConnection : public LogContext {
   GMainLoop* loop_;
 
   NiceConnectionListener* listener_;
-  std::queue<packetPtr> niceQueue_;
   unsigned int candsDelivered_;
   IceState iceState_;
 
   boost::thread m_Thread_;
-  boost::mutex queueMutex_, closeMutex_;
+  boost::mutex closeMutex_;
   boost::condition_variable cond_;
 
   unsigned int iceComponents_;

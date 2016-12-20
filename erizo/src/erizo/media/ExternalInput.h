@@ -30,8 +30,10 @@ class ExternalInput : public MediaSource, public RTPDataReceiver {
   explicit ExternalInput(const std::string& inputUrl);
   virtual ~ExternalInput();
   int init();
-  void receiveRtpData(unsigned char* rtpdata, int len);
-  int sendPLI();
+  void receiveRtpData(unsigned char* rtpdata, int len) override;
+  int sendPLI() override;
+
+  void close() override {}
 
  private:
   boost::scoped_ptr<OutputProcessor> op_;

@@ -38,6 +38,7 @@ namespace erizo {
   static const char *rtpmap = "a=rtpmap:";
   static const char *rtcpmux = "a=rtcp-mux";
   static const char *fp = "a=fingerprint";
+  static const char *setup = "a=setup:";
   static const char *extmap = "a=extmap:";
   static const char *rtcpfb = "a=rtcp-fb:";
   static const char *fmtp = "a=fmtp:";
@@ -48,6 +49,7 @@ namespace erizo {
     isBundle = false;
     isRtcpMux = false;
     isFingerprint = false;
+    dtlsRole = ACTPASS;
     hasAudio = false;
     hasVideo = false;
     profile = SAVPF;
@@ -209,6 +211,17 @@ namespace erizo {
       if (isFingerprint) {
         sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
       }
+      switch (dtlsRole) {
+        case ACTPASS:
+          sdp << "a=setup:actpass"<< endl;
+          break;
+        case PASSIVE:
+          sdp << "a=setup:passive"<< endl;
+          break;
+        case ACTIVE:
+          sdp << "a=setup:active"<< endl;
+          break;
+      }
       switch (this->audioDirection) {
         case SENDONLY:
           sdp << "a=sendonly" << endl;
@@ -258,6 +271,11 @@ namespace erizo {
             sdp << "a=rtpmap:"<< payload_type << " " << rtp.encoding_name << "/"
               << rtp.clock_rate << endl;
           }
+          if (!rtp.feedback_types.empty()) {
+            for (unsigned int itFb = 0; itFb < rtp.feedback_types.size(); itFb++) {
+              sdp << "a=rtcp-fb:" << payload_type << " " << rtp.feedback_types[itFb] << "\n";
+            }
+          }
           for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
               theIt != rtp.format_parameters.end(); theIt++) {
             if (theIt->first.compare("none")) {
@@ -273,7 +291,6 @@ namespace erizo {
         audioSsrc = 44444;
       }
 
-      sdp << "a=maxptime:60" << endl;
       sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
         "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl <<
         "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl <<
@@ -319,6 +336,17 @@ namespace erizo {
 
       if (isFingerprint) {
         sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
+      }
+      switch (dtlsRole) {
+        case ACTPASS:
+          sdp << "a=setup:actpass"<< endl;
+          break;
+        case PASSIVE:
+          sdp << "a=setup:passive"<< endl;
+          break;
+        case ACTIVE:
+          sdp << "a=setup:active"<< endl;
+          break;
       }
       switch (this->videoDirection) {
         case SENDONLY:
@@ -526,6 +554,7 @@ namespace erizo {
       size_t isRecvOnly = line.find(recvonly);
       size_t isSendOnly = line.find(sendonly);
       size_t isFP = line.find(fp);
+      size_t isSetup = line.find(setup);
       size_t isExtMap = line.find(extmap);
       size_t isFeedback = line.find(rtcpfb);
       size_t isFmtp = line.find(fmtp);
@@ -576,6 +605,20 @@ namespace erizo {
         fingerprint = parts[1];
         isFingerprint = true;
         ELOG_DEBUG("Fingerprint %s ", fingerprint.c_str());
+      }
+      if (isSetup != std::string::npos) {
+        std::vector<std::string> parts;
+        parts = stringutil::splitOneOf(line, ":", 1);
+        if (parts[1].find("passive") != std::string::npos) {
+          ELOG_DEBUG("Dtls passive");
+          dtlsRole = PASSIVE;
+        } else if (parts[1].find("active") != std::string::npos) {
+          ELOG_DEBUG("Dtls active");
+          dtlsRole = ACTIVE;
+        } else {
+          ELOG_DEBUG("Dtls actpass");
+          dtlsRole = ACTPASS;
+        }
       }
       if (isGroup != std::string::npos) {
         std::vector<std::string> parts;

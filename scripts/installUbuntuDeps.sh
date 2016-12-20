@@ -8,9 +8,11 @@ PATHNAME=`dirname $SCRIPT`
 ROOT=$PATHNAME/..
 BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
+NVM_CHECK="$PATHNAME"/checkNvm.sh
 
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
+
 
 parse_arguments(){
   while [ "$1" != "" ]; do
@@ -42,26 +44,58 @@ check_proxy(){
   fi
 }
 
+install_nvm_node() {
+  if [ -d $LIB_DIR ]; then
+    export NVM_DIR=$(readlink -f "$LIB_DIR/nvm")
+    if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+      git clone https://github.com/creationix/nvm.git "$NVM_DIR"
+      cd "$NVM_DIR"
+      git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" origin` 
+      cd "$CURRENT_DIR"
+    fi
+    . $NVM_CHECK
+    nvm install
+  else
+    mkdir -p $LIB_DIR
+    install_nvm_node
+  fi
+}
+
 install_apt_deps(){
-  sudo apt-get update -y
+  install_nvm_node
+  nvm use
+  npm install -g node-gyp
   sudo apt-get install -qq python-software-properties -y
   sudo apt-get install -qq software-properties-common -y
-  sudo add-apt-repository ppa:chris-lea/node.js -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
-  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config nodejs libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev -y
+  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev -y
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
-  sudo npm install -g node-gyp
+  
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
+}
+
+download_openssl() {
+  OPENSSL_VERSION=$1
+  OPENSSL_MAJOR="${OPENSSL_VERSION%?}"
+  echo "Downloading OpenSSL from https://www.openssl.org/source/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
+  curl -O https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
+  tar -zxvf openssl-$OPENSSL_VERSION.tar.gz || DOWNLOAD_SUCCESS=$?
+  if [ "$DOWNLOAD_SUCCESS" -eq 1 ]
+  then
+    echo "Downloading OpenSSL from https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
+    curl -O https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz
+    tar -zxvf openssl-$OPENSSL_VERSION.tar.gz
+  fi
 }
 
 install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./openssl-1.0.1l.tar.gz ]; then
-      curl -O https://www.openssl.org/source/old/1.0.1/openssl-1.0.1l.tar.gz
-      tar -zxvf openssl-1.0.1l.tar.gz
-      cd openssl-1.0.1l
+    OPENSSL_VERSION=`node -pe process.versions.openssl`
+    if [ ! -f ./openssl-$OPENSSL_VERSION.tar.gz ]; then
+      download_openssl $OPENSSL_VERSION
+      cd openssl-$OPENSSL_VERSION
       ./config --prefix=$PREFIX_DIR -fPIC
       make -s V=0
       make install_sw
@@ -78,11 +112,10 @@ install_openssl(){
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./libnice-0.1.4.tar.gz ]; then
-      curl -O https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
-      tar -zxvf libnice-0.1.4.tar.gz
-      cd libnice-0.1.4
-      patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
+    if [ ! -f ./libnice-0.1.7.tar.gz ]; then
+      curl -O https://nice.freedesktop.org/releases/libnice-0.1.7.tar.gz
+      tar -zxvf libnice-0.1.7.tar.gz
+      cd libnice-0.1.7
       ./configure --prefix=$PREFIX_DIR
       make -s V=0
       make install

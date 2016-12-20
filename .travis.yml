@@ -8,8 +8,7 @@ cache:
   directories:
   - node_modules
   - cache
-node_js:
-  - 0.10
+  - build/libdeps
 services:
   - mongodb
   - rabbitmq
@@ -41,10 +40,8 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then   ./scripts/installMacDeps.sh --unattended --disable-services --use-cache;    fi
 
   # LINUX
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./scripts/installTravisDeps.sh && export CC="/usr/bin/gcc-5" && export CXX="/usr/bin/g++-5" ; fi
-install: 
-  - ./scripts/installErizo.sh && ./scripts/installNuve.sh && npm install
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./scripts/travisInstallDeps.sh && export CC="/usr/bin/gcc-5" && export CXX="/usr/bin/g++-5" ; fi
+install:
+  - ./scripts/travisInstall.sh
 script:
-  - ./scripts/installErizo.sh -t
-  - npm run lint
-  - npm test
+  - ./scripts/travisScript.sh

@@ -10,17 +10,10 @@ BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
-NODE_VERSION=`node -v`
+NVM_CHECK="$PATHNAME"/checkNvm.sh
+
 
 export ERIZO_HOME=$ROOT/erizo
-
-if [[ $NODE_VERSION != *"0.10"* ]]
-then
-  echo "================================================================"
-  echo "     WARNING: Your node version is curently $NODE_VERSION."
-  echo "     Licode only supports node version 0.10.x. Errors may occur."
-  echo "================================================================"
-fi
 
 usage()
 {
@@ -66,6 +59,8 @@ install_erizo(){
 install_erizo_api(){
   echo 'Installing erizoAPI...'
   cd $ROOT/erizoAPI
+  . $NVM_CHECK
+  nvm use
   npm install nan@2.3.2
   ./build.sh
   check_result $?

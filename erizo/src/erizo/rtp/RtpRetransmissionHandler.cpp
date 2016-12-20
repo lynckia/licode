@@ -7,8 +7,7 @@ DEFINE_LOGGER(RtpRetransmissionHandler, "rtp.RtpRetransmissionHandler");
 RtpRetransmissionHandler::RtpRetransmissionHandler(WebRtcConnection *connection)
   : connection_{connection},
   audio_{kRetransmissionsBufferSize},
-  video_{kRetransmissionsBufferSize},
-  buffer_mutex_ptr_{std::make_shared<boost::mutex>()} {}
+  video_{kRetransmissionsBufferSize} {}
 
 void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   // ELOG_DEBUG("%p READING %d bytes", this, packet->length);
@@ -16,15 +15,15 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
   bool is_fully_recovered = true;
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
   if (chead->isRtcp() && chead->isFeedback()) {
-    char* movingBuf = packet->data;
-    int rtcpLength = 0;
-    int totalLength = 0;
+    char* moving_buf = packet->data;
+    int rtcp_length = 0;
+    int total_length = 0;
 
     do {
-      movingBuf += rtcpLength;
-      chead = reinterpret_cast<RtcpHeader*>(movingBuf);
-      rtcpLength = (ntohs(chead->length) + 1) * 4;
-      totalLength += rtcpLength;
+      moving_buf += rtcp_length;
+      chead = reinterpret_cast<RtcpHeader*>(moving_buf);
+      rtcp_length = (ntohs(chead->length) + 1) * 4;
+      total_length += rtcp_length;
 
       if (chead->packettype == RTCP_RTP_Feedback_PT) {
         contains_nack = true;
@@ -36,7 +35,6 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
           bool packet_nacked = i == -1 || (plb >> i) & 0x0001;
 
           if (packet_nacked) {
-            boost::mutex::scoped_lock lock(*buffer_mutex_ptr_.get());
             std::shared_ptr<dataPacket> recovered;
 
             if (connection_->getVideoSinkSSRC() == chead->getSourceSSRC()) {
@@ -58,7 +56,7 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
           }
         }
       }
-    } while (totalLength < packet->length);
+    } while (total_length < packet->length);
   }
   if (!contains_nack || !is_fully_recovered) {
     ctx->fireRead(packet);
@@ -70,7 +68,6 @@ void RtpRetransmissionHandler::write(Context *ctx, std::shared_ptr<dataPacket> p
   RtpHeader *head = reinterpret_cast<RtpHeader*> (packet->data);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
   if (!chead->isRtcp()) {
-    boost::mutex::scoped_lock lock(*buffer_mutex_ptr_.get());
     if (connection_->getVideoSinkSSRC() == head->getSSRC()) {
       video_[getIndexInBuffer(head->getSeqNumber())] = packet;
     } else if (connection_->getAudioSinkSSRC() == head->getSSRC()) {

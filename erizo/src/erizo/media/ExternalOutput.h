@@ -12,8 +12,9 @@ extern "C" {
 
 #include "./MediaDefinitions.h"
 #include "rtp/RtpPacketQueue.h"
-#include "rtp/webrtc/fec_receiver_impl.h"
+#include "webrtc/modules/rtp_rtcp/source/ulpfec_receiver_impl.h"
 #include "media/MediaProcessor.h"
+#include "lib/Clock.h"
 
 #include "./logger.h"
 
@@ -36,16 +37,18 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   explicit ExternalOutput(const std::string& outputUrl);
   virtual ~ExternalOutput();
   bool init();
-  void receiveRawData(const RawDataPacket& packet);
+  void receiveRawData(const RawDataPacket& packet) override;
 
   // webrtc::RtpData callbacks.  This is for Forward Error Correction (per rfc5109) handling.
-  virtual bool OnRecoveredPacket(const uint8_t* packet, int packet_length);
-  virtual int32_t OnReceivedPayloadData(const uint8_t* payload_data,
-                                        const uint16_t payload_size,
-                                        const webrtc::WebRtcRTPHeader* rtp_header);
+  bool OnRecoveredPacket(const uint8_t* packet, size_t packet_length) override;
+  int32_t OnReceivedPayloadData(const uint8_t* payload_data,
+                                        size_t payload_size,
+                                        const webrtc::WebRtcRTPHeader* rtp_header) override;
+
+  void close() override {}
 
  private:
-  webrtc::FecReceiverImpl  fec_receiver_;
+  std::unique_ptr<webrtc::UlpfecReceiver> fec_receiver_;
   RtpPacketQueue audioQueue_, videoQueue_;
   bool recording_, inited_;
   boost::mutex mtx_;  // a mutex we use to signal our writer thread that data is waiting.
@@ -76,13 +79,13 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   // at all (or arrive late) so we also need to keep track of a start time offset.  We also need to track
   // this *before* stuff enters the RTP packet queue, since that guy will mess with the timing of stuff that's
   // outputted in an attempt to re-order incoming packets.  So when we receive an audio or video packet,
-  // we set firstDataReceived_.  We then use that to compute audio/videoStartTimeOffset_ appropriately,
+  // we set first_data_received_.  We then use that to compute audio/videoStartTimeOffset_ appropriately,
   // and that value is added to every timestamp we write.
-  long long firstVideoTimestamp_;  // NOLINT
-  long long firstAudioTimestamp_;  // NOLINT
-  long long firstDataReceived_;  // NOLINT
-  long long videoOffsetMsec_;  // NOLINT
-  long long audioOffsetMsec_;  // NOLINT
+  long long first_video_timestamp_;  // NOLINT
+  long long first_audio_timestamp_;  // NOLINT
+  clock::time_point first_data_received_;  // NOLINT
+  long long video_offset_ms_;  // NOLINT
+  long long audio_offset_ms_;  // NOLINT
 
 
   // The last sequence numbers we received for audio and video.  Allows us to react to packet loss.
@@ -100,8 +103,8 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   int sendFirPacket();
   void queueData(char* buffer, int length, packetType type);
   void sendLoop();
-  int deliverAudioData_(char* buf, int len);
-  int deliverVideoData_(char* buf, int len);
+  int deliverAudioData_(char* buf, int len) override;
+  int deliverVideoData_(char* buf, int len) override;
   void writeAudioData(char* buf, int len);
   void writeVideoData(char* buf, int len);
   bool bufferCheck(RTPPayloadVP8* payload);

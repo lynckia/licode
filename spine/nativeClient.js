@@ -15,6 +15,9 @@ exports.ErizoNativeConnection = function (spec){
     externalInput,
     externalOutput;
 
+    var threadPool = new addon.ThreadPool(1);
+    threadPool.start();
+
     var CONN_INITIAL = 101,
         // CONN_STARTED = 102,
         CONN_GATHERED = 103,
@@ -77,7 +80,7 @@ exports.ErizoNativeConnection = function (spec){
     };
 
 
-    wrtc = new addon.WebRtcConnection('spine',
+    wrtc = new addon.WebRtcConnection(threadPool, 'spine',
                                       GLOBAL.config.erizo.stunserver,
                                       GLOBAL.config.erizo.stunport,
                                       GLOBAL.config.erizo.minport,

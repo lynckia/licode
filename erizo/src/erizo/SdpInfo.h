@@ -38,6 +38,9 @@ enum StreamDirection {
 enum Profile {
   AVPF, SAVPF
 };
+enum DtlsRole {
+  ACTPASS, ACTIVE, PASSIVE
+};
 /**
  * SRTP info.
  */
@@ -252,6 +255,10 @@ class SdpInfo {
   * DTLS Fingerprint
   */
   std::string fingerprint;
+  /**
+  * DTLS Role
+  */
+  DtlsRole dtlsRole;
   /**
   * Mapping from internal PT (key) to external PT (value)
   */

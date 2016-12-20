@@ -7,7 +7,7 @@ var logger = require('./logger').logger;
 // Logger
 var log = logger.getLogger('CloudHandler');
 
-var ec2;
+var AWS;
 
 var INTERVAL_TIME_EC_READY = 500;
 var TOTAL_ATTEMPTS_EC_READY = 20;
@@ -120,25 +120,20 @@ var addNewPrivateErizoController = function (ip, hostname, port, ssl, callback) 
 var addNewAmazonErizoController = function(privateIP, hostname, port, ssl, callback) {
     var publicIP;
 
-    if (ec2 === undefined) {
-        var opt = {version: '2012-12-01'};
-        if (config.cloudProvider.host !== '') {
-            opt.host = config.cloudProvider.host;
-        }
-        ec2 = require('aws-lib').createEC2Client(config.cloudProvider.accessKey,
-                                                config.cloudProvider.secretAccessKey,
-                                                opt);
+    if (AWS === undefined) {
+        AWS = require('aws-sdk');
     }
     log.info('private ip ', privateIP);
-
-    ec2.call('DescribeInstances',
-      {'Filter.1.Name': 'private-ip-address', 'Filter.1.Value': privateIP},
-      function (err, response) {
+    new AWS.MetadataService({
+        httpOptions: {
+            timeout: 5000
+        }
+    }).request('/latest/meta-data/public-ipv4', function(err, data) {
         if (err) {
             log.info('Error: ', err);
             callback('error');
-        } else if (response) {
-            publicIP = response.reservationSet.item.instancesSet.item.ipAddress;
+        } else {
+            publicIP = data;
             log.info('public IP: ', publicIP);
             addNewPrivateErizoController(publicIP, hostname, port, ssl, callback);
         }
