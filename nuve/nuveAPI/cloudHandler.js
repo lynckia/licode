@@ -67,8 +67,26 @@ var getEcQueue = function (callback) {
     });
 };
 
+var assignErizoController = function (erizoControllerId, room, callback) {
+    room.erizoControllerId = erizoControllerId;
+    roomRegistry.updateRoom(room._id, room, callback);
+};
+
+var unassignErizoController = function (erizoControllerId) {
+    roomRegistry.getRooms(function(rooms) {
+        for (var room in rooms) {
+            if (rooms.hasOwnProperty(room)) {
+                if (rooms[room].erizoControllerId && rooms[room].erizoControllerId.equals(erizoControllerId)) {
+                    rooms[room].erizoControllerId = undefined;
+                    roomRegistry.updateRoom(rooms[room]._id, rooms[room]);
+                }
+            }
+        }
+    });
+};
+
 var checkKA = function () {
-    var ec, room;
+    var ec;
 
     erizoControllerRegistry.getErizoControllers(function(erizoControllers) {
 
@@ -82,24 +100,6 @@ var checkKA = function () {
                              'does not respond. Deleting it.');
                     erizoControllerRegistry.removeErizoController(id);
                     unassignErizoController(id);
-                }
-            }
-        }
-    });
-};
-
-var assignErizoController = function (erizoControllerId, room, callback) {
-    room.erizoControllerId = erizoControllerId;
-    roomRegistry.updateRoom(room._id, room, callback);
-};
-
-var unassignErizoController = function (erizoControllerId) {
-    roomRegistry.getRooms(function(rooms) {
-        for (var room in rooms) {
-            if (rooms.hasOwnProperty(room)) {
-                if (rooms[room].erizoControllerId && rooms[room].erizoControllerId.equals(erizoControllerId)) {
-                    rooms[room].erizoControllerId = undefined;
-                    roomRegistry.updateRoom(rooms[room]._id, rooms[room]);
                 }
             }
         }
