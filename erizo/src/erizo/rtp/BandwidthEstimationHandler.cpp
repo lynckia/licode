@@ -18,6 +18,7 @@ DEFINE_LOGGER(BandwidthEstimationHandler, "rtp.BandwidthEstimationHandler");
 
 static const uint32_t kTimeOffsetSwitchThreshold = 30;
 static const uint32_t kMinBitRateAllowed = 10;
+static const uint32_t kRembInitialBitrateKbps = 300;
 const int kRembTimeOutThresholdMs = 2000;
 const int kRembSendIntervallMs = 1000;
 const uint32_t BandwidthEstimationHandler::kRembMinimumBitrateKbps = 20;
@@ -73,12 +74,18 @@ void BandwidthEstimationHandler::sendREMBPacketMaybe() {
   if (now - bitrate_update_time_ms_ > kRembTimeOutThresholdMs) {
     bitrate_ = 0;
     bitrate_update_time_ms_ = -1;
+    return;
   }
 
-  last_send_bitrate_ = bitrate_;
+  if (last_send_bitrate_ == 0) {
+    last_send_bitrate_ = kRembInitialBitrateKbps * 1000;
+  } else {
+    last_send_bitrate_ = bitrate_;
+  }
 
-  if (last_send_bitrate_ < kRembMinimumBitrateKbps) {
-    last_send_bitrate_ = kRembMinimumBitrateKbps;
+
+  if (last_send_bitrate_ < kRembMinimumBitrateKbps * 1000) {
+    last_send_bitrate_ = kRembMinimumBitrateKbps * 1000;
   }
 
   sendREMBPacket();
@@ -114,11 +121,10 @@ void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RT
         type = webrtc::kRtpExtensionPlayoutDelay;
         break;
     }
-    bool result = false;
     if (is_video) {
-      result = ext_map_video_.RegisterByType(id, type);
+      ext_map_video_.RegisterByType(id, type);
     } else {
-      result = ext_map_audio_.RegisterByType(id, type);
+      ext_map_audio_.RegisterByType(id, type);
     }
   }
 }
@@ -133,7 +139,7 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
   if (!chead->isRtcp() && packet->type == VIDEO_PACKET) {
     if (parsePacket(packet)) {
       int64_t arrival_time_ms = packet->received_time_ms;
-      arrival_time_ms = clock_->TimeInMilliseconds() + ClockUtils::timePointToMs(clock::now()) - arrival_time_ms;
+      arrival_time_ms = clock_->TimeInMilliseconds() - (ClockUtils::timePointToMs(clock::now()) - arrival_time_ms);
       size_t payload_size = packet->length;
       pickEstimatorFromHeader();
       rbe_->IncomingPacket(arrival_time_ms, payload_size, header_);
