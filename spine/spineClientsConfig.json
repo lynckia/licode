@@ -2,9 +2,9 @@
   "basicExampleUrl": "https://localhost/",
   "publishConfig" : {
     "video":{"file":"file:///YOUR_LICODE_COMPATIBLE_TEST_FILE"},
-    /*"video":{"audioBitrate": 30,
+    "_video":{"audioBitrate": 30,
              "minVideoBitrate": 10,
-             "maxVideoBirtate": 300},*/
+             "maxVideoBirtate": 300},
     "audio":true,
     "data":true
   },

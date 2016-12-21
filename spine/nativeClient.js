@@ -111,7 +111,7 @@ exports.ErizoNativeConnection = function (spec){
     };
 
     that.prepareSynthetic = function (config) {
-        log.info('Preparing synthetic video', url);
+        log.info('Preparing synthetic video', config);
         syntheticInput = new addon.SyntheticInput(threadPool,
                                                   config.audioBitrate,
                                                   config.minVideoBitrate,
