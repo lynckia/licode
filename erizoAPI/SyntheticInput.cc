@@ -52,6 +52,7 @@ NAN_MODULE_INIT(SyntheticInput::Init) {
   Nan::SetPrototypeMethod(tpl, "init", init);
   Nan::SetPrototypeMethod(tpl, "setAudioReceiver", setAudioReceiver);
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
+  Nan::SetPrototypeMethod(tpl, "setFeedbackSource", setFeedbackSource);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("SyntheticInput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -118,4 +119,16 @@ NAN_METHOD(SyntheticInput::setVideoReceiver) {
   erizo::MediaSink *mr = param->msink;
 
   me->setVideoSink(mr);
+}
+
+NAN_METHOD(SyntheticInput::setFeedbackSource) {
+  SyntheticInput* obj = ObjectWrap::Unwrap<SyntheticInput>(info.Holder());
+  std::shared_ptr<erizo::SyntheticInput> me = obj->me;
+
+  WebRtcConnection* param = ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  erizo::FeedbackSource* fb_source = param->me->getFeedbackSource();
+
+  if (fb_source != nullptr) {
+    fb_source->setFeedbackSink(me.get());
+  }
 }

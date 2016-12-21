@@ -47,6 +47,8 @@ class SyntheticInput : public Nan::ObjectWrap {
      */
     static NAN_METHOD(setVideoReceiver);
 
+    static NAN_METHOD(setFeedbackSource);
+
     static Nan::Persistent<v8::Function> constructor;
 };
 
