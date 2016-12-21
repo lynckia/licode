@@ -4,7 +4,7 @@ var mocks = require('./utils');
 var sinon = require('sinon');
 var expect  = require('chai').expect;
 
-describe.only('Cloud Handler', function() {
+describe('Cloud Handler', function() {
   var awssdkMock,
       erizoControllerRegistryMock,
       ec2MetadataServiceMock,
