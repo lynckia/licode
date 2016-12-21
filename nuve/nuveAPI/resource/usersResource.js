@@ -35,7 +35,7 @@ exports.getList = function (req, res) {
             return;
         }
 
-        log.info('message: getUsersList sucess, roomId: ' + currentRoom._id +
+        log.info('message: getUsersList success, roomId: ' + currentRoom._id +
                  ', serviceId: ' + currentService._id);
         cloudHandler.getUsersInRoom(currentRoom._id, function (users) {
             if (users === 'error') {

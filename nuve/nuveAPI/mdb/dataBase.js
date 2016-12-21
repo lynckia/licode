@@ -13,12 +13,22 @@ var databaseUrl = config.nuve.dataBaseURL;
 /*
  * Data base collections and its fields are:
  *
- * room {name: '', [p2p: bool], [data: {}], _id: ObjectId}
+ * room {name: '', erizoControllerId: '', [p2p: bool], [data: {}], _id: ObjectId}
  *
  * service {name: '', key: '', rooms: Array[room], testRoom: room, testToken: token, _id: ObjectId}
  *
  * token {host: '', userName: '', room: '', role: '', service: '',
  *        creationDate: Date(), [use: int], [p2p: bool], _id: ObjectId}
+ *
+ * erizoController {
+ *		ip: ip,
+ *		state: 2,
+ *		keepAlive: 0,
+ *		hostname: hostname,
+ *		port: port,
+ *		ssl: ssl,
+ *		_id: ObjectId
+ *	};
  *
  */
 var collections = ['rooms', 'tokens', 'services'];

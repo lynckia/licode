@@ -16,13 +16,15 @@ describe('Room Resource', function() {
       setServiceStub,
       serviceRegistryMock,
       nuveAuthenticatorMock,
-      roomRegistryMock;
+      roomRegistryMock,
+      erizoControllerRegistryMock;
 
   beforeEach(function() {
     mocks.start(mocks.licodeConfig);
     serviceRegistryMock = mocks.start(mocks.serviceRegistry);
     roomRegistryMock = mocks.start(mocks.roomRegistry);
     nuveAuthenticatorMock = mocks.start(mocks.nuveAuthenticator);
+    erizoControllerRegistryMock = mocks.start(mocks.erizoControllerRegistry);
     setServiceStub = sinon.stub();
     roomResource = require('../../resource/roomResource');
     app = express();
@@ -42,6 +44,7 @@ describe('Room Resource', function() {
     mocks.stop(roomRegistryMock);
     mocks.stop(serviceRegistryMock);
     mocks.stop(nuveAuthenticatorMock);
+    mocks.stop(erizoControllerRegistryMock);
     mocks.deleteRequireCache();
     mocks.reset();
   });
