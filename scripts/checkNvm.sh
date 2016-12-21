@@ -20,7 +20,7 @@ if [ ! $? == 0 ]; then
   CHECK_SCRIPT=$($READLINK -f "$0")
   CHECK_SCRIPT_PATH=$(dirname "$CHECK_SCRIPT")
   LINKED_DIR=$CHECK_SCRIPT_PATH/../build/libdeps/nvm
-  export NVM_DIR=$(readlink -f "$LINKED_DIR")
+  export NVM_DIR=$($READLINK -f "$LINKED_DIR")
   echo "Checking dir $NVM_DIR"
   if [ -s "$NVM_DIR/nvm.sh" ]; then
     echo "Running nvm"
@@ -30,5 +30,4 @@ if [ ! $? == 0 ]; then
     exit 1
   fi
 fi 
-set -e
 
