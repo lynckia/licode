@@ -2,7 +2,7 @@
   'targets': [
   {
     'target_name': 'addon',
-      'sources': [ 'addon.cc', 'ThreadPool.cc', 'WebRtcConnection.cc', 'OneToManyProcessor.cc', 'ExternalInput.cc', 'ExternalOutput.cc'],
+      'sources': [ 'addon.cc', 'ThreadPool.cc', 'WebRtcConnection.cc', 'OneToManyProcessor.cc', 'ExternalInput.cc', 'ExternalOutput.cc', 'SyntheticInput.cc'],
       'include_dirs' : ["<!(node -e \"require('nan')\")", '$(ERIZO_HOME)/src/erizo', '$(ERIZO_HOME)/../build/libdeps/build/include', '$(ERIZO_HOME)/src/third_party/webrtc/src'],
       'libraries': ['-L$(ERIZO_HOME)/build/erizo', '-lerizo'],
       'conditions': [

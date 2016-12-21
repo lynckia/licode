@@ -3,6 +3,7 @@
 #endif
 #include <node.h>
 #include "SyntheticInput.h"
+#include "ThreadPool.h"
 
 
 using v8::HandleScope;
@@ -57,11 +58,20 @@ NAN_MODULE_INIT(SyntheticInput::Init) {
 }
 
 NAN_METHOD(SyntheticInput::New) {
-  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
-  std::string url = std::string(*param);
+  if (info.Length() < 4) {
+    Nan::ThrowError("Wrong number of arguments");
+  }
+  ThreadPool* thread_pool = Nan::ObjectWrap::Unwrap<ThreadPool>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
 
+  int audio_bitrate = info[1]->IntegerValue();
+  int min_video_bitrate = info[2]->IntegerValue();
+  int max_video_bitrate = info[3]->IntegerValue();
+
+  std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
+
+  erizo::SyntheticInputConfig config{audio_bitrate, min_video_bitrate, max_video_bitrate};
   SyntheticInput* obj = new SyntheticInput();
-  obj->me = std::make_shared<erizo::SyntheticInput>(url);
+  obj->me = std::make_shared<erizo::SyntheticInput>(config, worker);
 
   obj->Wrap(info.This());
   info.GetReturnValue().Set(info.This());
@@ -86,8 +96,8 @@ NAN_METHOD(SyntheticInput::init) {
   SyntheticInput* obj = ObjectWrap::Unwrap<SyntheticInput>(info.Holder());
   std::shared_ptr<erizo::SyntheticInput> me = obj->me;
 
-  int r = me->start();
-  info.GetReturnValue().Set(Nan::New(r));
+  me->start();
+  info.GetReturnValue().Set(Nan::New(1));
 }
 
 NAN_METHOD(SyntheticInput::setAudioReceiver) {
