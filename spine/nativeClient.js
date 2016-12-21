@@ -44,7 +44,7 @@ exports.ErizoNativeConnection = function (spec){
                         that.prepareVideo(spec.video.file);
                     } else if (spec.video && spec.video.recording && !externalOutput){
                         that.prepareRecording(spec.video.recording);
-                    } else if (spec.video && spec.video.synthetic) {
+                    } else if (spec.video && spec.video.synthetic & !syntheticInput) {
                       that.prepareSynthetic(spec.video.synthetic);
                     }
                     callback('callback', {type: 'started'});
