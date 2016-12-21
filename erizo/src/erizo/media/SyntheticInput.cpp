@@ -7,7 +7,7 @@
 #include "rtp/RtpHeaders.h"
 
 static constexpr auto kPeriod = std::chrono::milliseconds(20);
-static constexpr size_t kMaxPacketSize = 1500;
+static constexpr size_t kMaxPacketSize = 1400;
 static constexpr uint8_t kMaxConsecutiveTicks = 20;
 static constexpr size_t kVp8PayloadType = 100;
 static constexpr size_t kOpusPayloadType = 111;
