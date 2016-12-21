@@ -48,7 +48,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   void close() override {}
 
  private:
-  webrtc::UlpfecReceiverImpl  fec_receiver_;
+  std::unique_ptr<webrtc::UlpfecReceiver> fec_receiver_;
   RtpPacketQueue audioQueue_, videoQueue_;
   bool recording_, inited_;
   boost::mutex mtx_;  // a mutex we use to signal our writer thread that data is waiting.

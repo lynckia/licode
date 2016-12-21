@@ -13,7 +13,6 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
-export NVM_DIR=$(readlink -f "$LIB_DIR/nvm")
 
 parse_arguments(){
   while [ "$1" != "" ]; do
@@ -47,6 +46,7 @@ check_proxy(){
 
 install_nvm_node() {
   if [ -d $LIB_DIR ]; then
+    export NVM_DIR=$(readlink -f "$LIB_DIR/nvm")
     if [ ! -s "$NVM_DIR/nvm.sh" ]; then
       git clone https://github.com/creationix/nvm.git "$NVM_DIR"
       cd "$NVM_DIR"
