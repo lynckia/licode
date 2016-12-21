@@ -151,6 +151,10 @@ clientapi: true
                   <td>Removes the video from the HTML.</td>
                 </tr>
                 <tr>
+                  <td><a href="#muteAudio">muteAudio(isMuted, callback)</a></td>
+                  <td>Mutes the audio track of a <b>remote</b> stream.</td>
+                </tr>
+                <tr>
                   <td><a href="#sendData">sendData(msg)</a></td>
                   <td>It sends data through the Stream to clients that are subscribed.</td>
                 </tr>
@@ -244,6 +248,32 @@ stream.play(elementID, {crop: false});
           </div>
 <pre class="prettyprint linenums">
 stream.stop();
+</pre>
+          
+          <h3 id="muteAudio">Mute the audio track of a remote stream</h3>
+
+          <p>It stops receiving audio from a remote stream. The publisher of the stream will keep sending audio information to Licode but this particular subscriber won't receive it.
+          <p> <b>Note:</b> it won't work on local streams, in p2p rooms or when the stream does not have an audio track.
+
+          <div class="bs-docs-example">
+          You can mute the audio track (and stop receiving audio bytes) from the remote stream. 
+          </div>
+<pre class="prettyprint linenums">
+stream.muteAudio(true, function (result) {
+  if (result === 'error') {
+    console.log("There was an error muting the steram")
+  }
+});
+</pre>
+          <div class="bs-docs-example">
+          You can also unmute the audio track. 
+          </div>
+<pre class="prettyprint linenums">
+stream.muteAudio(false, function (result) {
+  if (result === 'error') {
+    console.log("There was an error unmuting the steram")
+  }
+});
 </pre>
 
           <h3 id="sendData">Send Data through the stream</h3>
