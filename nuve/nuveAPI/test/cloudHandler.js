@@ -100,9 +100,17 @@ describe('Cloud Handler', function() {
 
   it('should return "ok" when receiving keepAlives ' +
                     'from known erizo controller', function() {
+    var arbitraryMessage = {
+      _id: '1',
+      cloudProvider: '',
+      ip: '127.0.0.1',
+      hostname: 'hostname',
+      port: 1000,
+      ssl: true
+    };
     var callback = sinon.stub();
     createPrivateErizoController(sinon.stub());
-    erizoControllerRegistryMock.getErizoController.callsArgWith(1, '');
+    erizoControllerRegistryMock.getErizoController.callsArgWith(1, arbitraryMessage);
     cloudHandler.keepAlive('1', callback);
     expect(callback.withArgs('ok').callCount).to.equal(1);
   });
