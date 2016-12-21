@@ -14,7 +14,8 @@ static constexpr size_t kOpusPayloadType = 111;
 static constexpr uint32_t kDefaultVideoSsrc = 55543;
 static constexpr uint32_t kDefaultAudioSsrc = 44444;
 static constexpr auto kAudioPeriod = std::chrono::milliseconds(20);
-static constexpr auto kVideoPeriod = std::chrono::milliseconds(1000 / 30);
+static constexpr size_t kVideoFramesPerSecond = 15;
+static constexpr auto kVideoPeriod = std::chrono::milliseconds(1000 / kVideoFramesPerSecond);
 static constexpr auto kDefaultVideoKeyframePeriod = std::chrono::seconds(120);
 static constexpr uint8_t kDefaultVideoBitrate = 30;  // kbps
 static constexpr uint8_t kDefaultAudioBitrate = 30;  // kbps
@@ -142,7 +143,7 @@ void SyntheticInput::sendVideoframe(bool is_keyframe, bool is_marker, uint32_t s
 void SyntheticInput::sendAudioFrame(uint32_t size) {
   erizo::RtpHeader *header = new erizo::RtpHeader();
   header->setSeqNumber(audio_seq_number_++);
-  header->setTimestamp(ClockUtils::timePointToMs(clock_->now()) * kAudioSampleRate / 1000);
+  header->setTimestamp(ClockUtils::timePointToMs(clock_->now()) * (kAudioSampleRate / 1000));
   header->setSSRC(audio_ssrc_);
   header->setMarker(true);
   header->setPayloadType(audio_pt_);
@@ -168,9 +169,14 @@ void SyntheticInput::calculateSizeAndPeriod(uint32_t video_bitrate, uint32_t aud
   video_bitrate = std::min(video_bitrate, config_.getMaxVideoBitrate());
   video_bitrate = std::max(video_bitrate, config_.getMinVideoBitrate());
 
-  video_avg_frame_size_ = video_bitrate * 1000 / (8 * video_period_.count());
+  auto video_period = std::chrono::duration_cast<std::chrono::milliseconds>(video_period_);
+  auto audio_period = std::chrono::duration_cast<std::chrono::milliseconds>(audio_period_);
+
+  video_avg_frame_size_ = video_period.count() * video_bitrate / 8;
   video_dev_frame_size_ = video_avg_frame_size_ * 0.1;
-  audio_frame_size_ = audio_bitrate * 1000 / (8 * audio_period_.count());
+  video_avg_keyframe_size_ = video_period.count() * video_bitrate / 8;
+  video_dev_keyframe_size_ = video_avg_keyframe_size_ * 0.01;
+  audio_frame_size_ = audio_bitrate * 1000 / (8 * audio_period.count());
 }
 
 int SyntheticInput::deliverFeedback_(char* buf, int len) {
