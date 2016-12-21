@@ -211,10 +211,10 @@ var getErizoControllerForRoom = exports.getErizoControllerForRoom = function (ro
         }
 
         var attempts = 0;
-        var intervarId;
+        var intervalId;
 
         getEcQueue(function(ecQueue) {
-            intervarId = setInterval(function () {
+            intervalId = setInterval(function () {
                 var erizoController;
                 if (getErizoController) {
                     erizoController = getErizoController(room, ecQueue);
@@ -227,13 +227,13 @@ var getErizoControllerForRoom = exports.getErizoControllerForRoom = function (ro
 
                     assignErizoController(id, room, function () {
                         callback(erizoController);
-                        clearInterval(intervarId);
+                        clearInterval(intervalId);
                     });
 
                 }
 
                 if (attempts > TOTAL_ATTEMPTS_EC_READY) {
-                    clearInterval(intervarId);
+                    clearInterval(intervalId);
                     callback('timeout');
                 }
                 attempts++;
