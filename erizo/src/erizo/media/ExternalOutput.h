@@ -45,7 +45,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
                                         size_t payload_size,
                                         const webrtc::WebRtcRTPHeader* rtp_header) override;
 
-  void close() override {}
+  void close() override;
 
  private:
   webrtc::UlpfecReceiverImpl  fec_receiver_;
