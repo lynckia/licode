@@ -449,7 +449,7 @@ class RtcpHeader {
     report.rembPacket.brLength = htonl(line) >> 8;
   }
   inline uint64_t getREMBBitRate() {
-    return getBrMantis() + (getBrExp() << 18);
+    return getBrMantis() << getBrExp();
   }
 
   inline uint32_t getBrExp() {

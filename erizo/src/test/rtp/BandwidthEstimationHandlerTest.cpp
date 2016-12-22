@@ -129,6 +129,7 @@ class BandwidthEstimationHandlerTest : public ::testing::Test {
       .WillRepeatedly(Return(new RemoteBitrateEstimatorProxy(&estimator)));
     scheduler = std::make_shared<Scheduler>(1);
     worker = std::make_shared<Worker>(scheduler);
+    worker->start();
     connection = std::make_shared<MockWebRtcConnection>(worker, ice_config, rtp_maps);
 
     connection->setVideoSinkSSRC(kVideoSsrc);
@@ -200,25 +201,21 @@ TEST_F(BandwidthEstimationHandlerTest, basicBehaviourShouldReadPackets) {
   EXPECT_CALL(estimator, TimeUntilNextProcess()).WillRepeatedly(Return(1000));
   EXPECT_CALL(estimator, IncomingPacket(_, _, _));
 
-  EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(
-    RembHasBitrateValue(BandwidthEstimationHandler::kRembMinimumBitrateKbps))).Times(1);
   EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(HasSequenceNumber(kArbitrarySeqNumber))).Times(2);
   pipeline->read(packet1);
   pipeline->read(packet2);
 }
 
 TEST_F(BandwidthEstimationHandlerTest, shouldSendRembPacketWithEstimatedBitrate) {
-  uint32_t kAtbitraryBitrate = 1000;
+  uint32_t kArbitraryBitrate = 100000;
   auto packet = createDataPacket(kArbitrarySeqNumber, VIDEO_PACKET);
 
   EXPECT_CALL(estimator, Process());
   EXPECT_CALL(estimator, TimeUntilNextProcess()).WillRepeatedly(Return(1000));
-  EXPECT_CALL(estimator, IncomingPacket(_, _, _)).Times(1);
-
-  EXPECT_CALL(*reader.get(), read(_, _)).Times(1);
-
-  EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(RembHasBitrateValue(kAtbitraryBitrate))).Times(1);
-  picker->observer_->OnReceiveBitrateChanged(std::vector<uint32_t>(), kAtbitraryBitrate);
-
+  EXPECT_CALL(estimator, IncomingPacket(_, _, _));
+  EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(HasSequenceNumber(kArbitrarySeqNumber))).Times(1);
   pipeline->read(packet);
+
+  EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(RembHasBitrateValue(kArbitraryBitrate))).Times(1);
+  picker->observer_->OnReceiveBitrateChanged(std::vector<uint32_t>(), kArbitraryBitrate);
 }
