@@ -239,7 +239,7 @@ exports.ErizoJSController = function (threadPool) {
             log.info('message: Stopping ExternalOutput, id: ' + externalOutputs[url].wrtcId);
             publishers[to].muxer.removeSubscriber(url);
             externalOutputs[url].close(function() {
-              log.info("message: ExternalOutput closed");
+              log.info('message: ExternalOutput closed');
               delete externalOutputs[url];
             });
         }
