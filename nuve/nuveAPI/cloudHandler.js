@@ -76,7 +76,7 @@ var unassignErizoController = function (erizoControllerId) {
     roomRegistry.getRooms(function(rooms) {
         for (var room in rooms) {
             if (rooms.hasOwnProperty(room)) {
-                if (rooms[room].erizoControllerId && 
+                if (rooms[room].erizoControllerId &&
                     rooms[room].erizoControllerId.equals(erizoControllerId)) {
                     rooms[room].erizoControllerId = undefined;
                     roomRegistry.updateRoom(rooms[room]._id, rooms[room]);
@@ -167,14 +167,14 @@ exports.keepAlive = function (id, callback) {
 
     erizoControllerRegistry.getErizoController(id, function (erizoController) {
 
-        if (erizoController === undefined) {
-            result = 'whoareyou';
-            log.warn('I received a keepAlive message from an unknown erizoController');
+        if (erizoController) {
+          erizoController.keepAlive = 0;
+          erizoControllerRegistry.updateErizoController(id, erizoController);
+          result = 'ok';
+          //log.info('KA: ', id);
         } else {
-            erizoController.keepAlive = 0;
-            erizoControllerRegistry.updateErizoController(id, erizoController);
-            result = 'ok';
-            //log.info('KA: ', id);
+          result = 'whoareyou';
+          log.warn('I received a keepAlive message from an unknown erizoController');
         }
         callback(result);
     });
@@ -257,7 +257,7 @@ exports.getUsersInRoom = function (roomId, callback) {
             }
             callback(users);
         }});
-        
+
     });
 
 };
@@ -279,9 +279,9 @@ exports.deleteRoom = function (roomId, callback) {
 exports.deleteUser = function (user, roomId, callback) {
     roomRegistry.getRoom(roomId, function (room) {
         var rpcID = 'erizoController_' + room.erizoControllerId;
-        rpc.callRpc(rpcID, 
-                    'deleteUser', 
-                    [{user: user, roomId:roomId}], 
+        rpc.callRpc(rpcID,
+                    'deleteUser',
+                    [{user: user, roomId:roomId}],
                     {'callback': function (result) {
             callback(result);
         }});
