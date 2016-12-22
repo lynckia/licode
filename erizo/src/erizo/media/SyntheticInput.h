@@ -72,6 +72,7 @@ class SyntheticInput : public MediaSource, public FeedbackSink, public std::enab
   uint32_t audio_seq_number_;
   uint32_t video_ssrc_;
   uint32_t audio_ssrc_;
+  uint32_t total_packets_nacked_;
   size_t video_pt_;
   size_t audio_pt_;
   time_point next_video_frame_time_;

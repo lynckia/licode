@@ -47,6 +47,8 @@ class SyntheticInputTest : public ::testing::Test {
         worker{std::make_shared<SimulatedWorker>(clock)},
         input{std::make_shared<SyntheticInput>(config, worker, clock)}
         {
+    auto packet = createRembPacket(30000);
+    input->deliverFeedback(packet->data, packet->length);
   }
 
  protected:
@@ -252,7 +254,7 @@ TEST_F(SyntheticInputTest, shouldWriteFragmentedKeyFrames_whenExpected) {
   input->deliverFeedback(packet->data, packet->length);
   EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(4);
   EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(IsKeyframeFirstPacket())).Times(1);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(Not(IsKeyframeFirstPacket()))).Times(1);
+  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(Not(IsKeyframeFirstPacket()))).Times(2);
 
   executeTasksInNextMs(80);
 }

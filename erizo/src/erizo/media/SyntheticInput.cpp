@@ -7,7 +7,7 @@
 #include "rtp/RtpHeaders.h"
 
 static constexpr auto kPeriod = std::chrono::milliseconds(20);
-static constexpr size_t kMaxPacketSize = 1400;
+static constexpr size_t kMaxPacketSize = 1200;
 static constexpr uint8_t kMaxConsecutiveTicks = 20;
 static constexpr size_t kVp8PayloadType = 100;
 static constexpr size_t kOpusPayloadType = 111;
@@ -17,7 +17,7 @@ static constexpr auto kAudioPeriod = std::chrono::milliseconds(20);
 static constexpr size_t kVideoFramesPerSecond = 15;
 static constexpr auto kVideoPeriod = std::chrono::milliseconds(1000 / kVideoFramesPerSecond);
 static constexpr auto kDefaultVideoKeyframePeriod = std::chrono::seconds(120);
-static constexpr uint32_t kDefaultVideoBitrate = 30000;  // bps
+static constexpr uint32_t kDefaultVideoBitrate = 300000;  // bps
 static constexpr uint32_t kDefaultAudioBitrate = 30000;  // bps
 static constexpr uint32_t kVideoSampleRate = 90000;  // Hz
 static constexpr uint32_t kAudioSampleRate = 48000;  // Hz
@@ -43,6 +43,7 @@ SyntheticInput::SyntheticInput(SyntheticInputConfig config,
       audio_seq_number_{0},
       video_ssrc_{kDefaultVideoSsrc},
       audio_ssrc_{kDefaultAudioSsrc},
+      total_packets_nacked_{0},
       video_pt_{kVp8PayloadType},
       audio_pt_{kOpusPayloadType},
       next_video_frame_time_{clock_->now() + video_period_},
@@ -161,6 +162,7 @@ void SyntheticInput::close() {
 }
 
 void SyntheticInput::calculateSizeAndPeriod(uint32_t video_bitrate, uint32_t audio_bitrate) {
+  ELOG_TRACE("Bitrate received: %d", video_bitrate);
   video_bitrate = std::min(video_bitrate, config_.getMaxVideoBitrate());
   video_bitrate = std::max(video_bitrate, config_.getMinVideoBitrate());
 
@@ -191,6 +193,8 @@ int SyntheticInput::deliverFeedback_(char* buf, int len) {
       switch (chead->packettype) {
         case RTCP_RTP_Feedback_PT:
           // NACKs are already handled by WebRtcConnection. RRs won't be handled.
+          total_packets_nacked_++;
+          ELOG_TRACE("Total nacks: %d", total_packets_nacked_);
           break;
         case RTCP_PS_Feedback_PT:
           switch (chead->getBlockCount()) {
