@@ -238,7 +238,10 @@ exports.ErizoJSController = function (threadPool) {
         if (externalOutputs[url] !== undefined && publishers[to] !== undefined) {
             log.info('message: Stopping ExternalOutput, id: ' + externalOutputs[url].wrtcId);
             publishers[to].muxer.removeSubscriber(url);
-            delete externalOutputs[url];
+            externalOutputs[url].close(function() {
+              log.info('message: ExternalOutput closed');
+              delete externalOutputs[url];
+            });
         }
     };
 
@@ -559,12 +562,12 @@ exports.ErizoJSController = function (threadPool) {
         if (muteStreamInfo.video === undefined) {
             muteStreamInfo.video = false;
         }
-        
+
         if (muteStreamInfo.audio === undefined) {
             muteStreamInfo.audio = false;
         }
 
-        subscriberWrtc.muteStream(muteStreamInfo.video, 
+        subscriberWrtc.muteStream(muteStreamInfo.video,
             muteStreamInfo.audio);
     };
 

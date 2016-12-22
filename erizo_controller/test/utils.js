@@ -154,7 +154,8 @@ var reset = module.exports.reset = function() {
 
   module.exports.ExternalOutput = {
     wrtcId: '',
-    init: sinon.stub()
+    init: sinon.stub(),
+    close: sinon.stub()
   };
 
   module.exports.erizoAPI = createMock('../../erizoAPI/build/Release/addon', {
