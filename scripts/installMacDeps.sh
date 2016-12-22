@@ -13,7 +13,6 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 
-
 pause() {
   if [ "$UNATTENDED" == "true" ]; then
     echo "$*"
@@ -53,18 +52,18 @@ check_result() {
 install_homebrew_from_cache(){
   if [ -f cache/homebrew-cache.tar.gz ]; then
     tar xzf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar
-    brew link glib pkg-config boost cmake yasm log4cxx gettext
+    brew link glib pkg-config boost cmake yasm log4cxx gettext coreutils
   fi
 }
 
 copy_homebrew_to_cache(){
   mkdir cache
-  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx gettext
+  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx gettext coreutils
 }
 
 install_nvm_node() {
   if [ -d $LIB_DIR ]; then
-    export NVM_DIR=$(readlink -f "$LIB_DIR/nvm")
+    export NVM_DIR=$(greadlink -f "$LIB_DIR/nvm")
     if [ ! -s "$NVM_DIR/nvm.sh" ]; then
       git clone https://github.com/creationix/nvm.git "$NVM_DIR"
       cd "$NVM_DIR"
@@ -91,7 +90,7 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost cmake yasm log4cxx gettext
+  brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils
   install_nvm_node
   nvm use
   npm install -g node-gyp
