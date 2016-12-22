@@ -42,7 +42,7 @@ class MockMediaSink : public MediaSink {
 class SyntheticInputTest : public ::testing::Test {
  public:
   SyntheticInputTest()
-      : config{30, 0, 5000},
+      : config{30000, 0, 5000000},
         clock{std::make_shared<SimulatedClock>()},
         worker{std::make_shared<SimulatedWorker>(clock)},
         input{std::make_shared<SyntheticInput>(config, worker, clock)}
@@ -248,7 +248,7 @@ TEST_F(SyntheticInputTest, firstVideoFrame_shouldBeAKeyframe) {
 }
 
 TEST_F(SyntheticInputTest, shouldWriteFragmentedKeyFrames_whenExpected) {
-  auto packet = createRembPacket(300);
+  auto packet = createRembPacket(300000);
   input->deliverFeedback(packet->data, packet->length);
   EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(4);
   EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(IsKeyframeFirstPacket())).Times(1);

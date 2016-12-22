@@ -7,7 +7,7 @@
 #include "rtp/RtpHeaders.h"
 
 static constexpr auto kPeriod = std::chrono::milliseconds(20);
-static constexpr size_t kMaxPacketSize = 1500;
+static constexpr size_t kMaxPacketSize = 1400;
 static constexpr uint8_t kMaxConsecutiveTicks = 20;
 static constexpr size_t kVp8PayloadType = 100;
 static constexpr size_t kOpusPayloadType = 111;
@@ -17,8 +17,8 @@ static constexpr auto kAudioPeriod = std::chrono::milliseconds(20);
 static constexpr size_t kVideoFramesPerSecond = 15;
 static constexpr auto kVideoPeriod = std::chrono::milliseconds(1000 / kVideoFramesPerSecond);
 static constexpr auto kDefaultVideoKeyframePeriod = std::chrono::seconds(120);
-static constexpr uint8_t kDefaultVideoBitrate = 30;  // kbps
-static constexpr uint8_t kDefaultAudioBitrate = 30;  // kbps
+static constexpr uint32_t kDefaultVideoBitrate = 30000;  // bps
+static constexpr uint32_t kDefaultAudioBitrate = 30000;  // bps
 static constexpr uint32_t kVideoSampleRate = 90000;  // Hz
 static constexpr uint32_t kAudioSampleRate = 48000;  // Hz
 
@@ -149,12 +149,7 @@ void SyntheticInput::sendAudioFrame(uint32_t size) {
   header->setPayloadType(audio_pt_);
   char packet_buffer[kMaxPacketSize];
   memset(packet_buffer, 0, size);
-  char* data_pointer;
-  char* parsing_pointer;
   memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
-  data_pointer = packet_buffer + header->getHeaderLength();
-  parsing_pointer = data_pointer;
-
   if (audioSink_) {
     audioSink_->deliverAudioData(packet_buffer, size);
   }
@@ -172,11 +167,11 @@ void SyntheticInput::calculateSizeAndPeriod(uint32_t video_bitrate, uint32_t aud
   auto video_period = std::chrono::duration_cast<std::chrono::milliseconds>(video_period_);
   auto audio_period = std::chrono::duration_cast<std::chrono::milliseconds>(audio_period_);
 
-  video_avg_frame_size_ = video_period.count() * video_bitrate / 8;
+  video_avg_frame_size_ = video_period.count() * video_bitrate / 8000;
   video_dev_frame_size_ = video_avg_frame_size_ * 0.1;
-  video_avg_keyframe_size_ = video_period.count() * video_bitrate / 8;
+  video_avg_keyframe_size_ = video_period.count() * video_bitrate / 8000;
   video_dev_keyframe_size_ = video_avg_keyframe_size_ * 0.01;
-  audio_frame_size_ = audio_bitrate * 1000 / (8 * audio_period.count());
+  audio_frame_size_ = audio_period.count() * audio_bitrate / 8000;
 }
 
 int SyntheticInput::deliverFeedback_(char* buf, int len) {
