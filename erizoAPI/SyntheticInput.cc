@@ -64,9 +64,9 @@ NAN_METHOD(SyntheticInput::New) {
   }
   ThreadPool* thread_pool = Nan::ObjectWrap::Unwrap<ThreadPool>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
 
-  int audio_bitrate = info[1]->IntegerValue();
-  int min_video_bitrate = info[2]->IntegerValue();
-  int max_video_bitrate = info[3]->IntegerValue();
+  uint32_t audio_bitrate = info[1]->IntegerValue();
+  uint32_t min_video_bitrate = info[2]->IntegerValue();
+  uint32_t max_video_bitrate = info[3]->IntegerValue();
 
   std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
