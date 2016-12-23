@@ -53,7 +53,7 @@ exports.addErizoController = function (erizoController, callback) {
  * Updates a determined ErizoController
  */
 exports.updateErizoController = function (id, erizoController) {
-    db.erizoControllers.update({_id: db.ObjectId(id)}, erizoController, function (error) {
+    db.erizoControllers.update({_id: db.ObjectId(id)}, {$set: erizoController}, function (error) {
       log.info("message: updateErizoController, error: "+ error);
         if (error) log.warn('message: updateErizoController error, ' + logger.objectToLog(error));
     });
