@@ -68,8 +68,7 @@ var getEcQueue = function (callback) {
 };
 
 var assignErizoController = function (erizoControllerId, room, callback) {
-    room.erizoControllerId = erizoControllerId;
-    roomRegistry.updateRoom(room._id, room, callback);
+    roomRegistry.assignErizoControllerToRoom(room, erizoControllerId, callback);
 };
 
 var unassignErizoController = function (erizoControllerId) {
@@ -221,7 +220,7 @@ var getErizoControllerForRoom = exports.getErizoControllerForRoom = function (ro
 
                 if (id !== undefined) {
 
-                    assignErizoController(id, room, function () {
+                    assignErizoController(id, room, function (erizoController) {
                         callback(erizoController);
                         clearInterval(intervalId);
                     });
