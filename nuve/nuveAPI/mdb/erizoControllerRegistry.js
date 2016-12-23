@@ -54,6 +54,13 @@ exports.addErizoController = function (erizoController, callback) {
  */
 exports.updateErizoController = function (id, erizoController) {
     db.erizoControllers.update({_id: db.ObjectId(id)}, erizoController, function (error) {
+      log.info("message: updateErizoController, error: "+ error);
+        if (error) log.warn('message: updateErizoController error, ' + logger.objectToLog(error));
+    });
+};
+
+exports.incrementKeepAlive = function(id) {
+    db.erizoControllers.update({_id: db.ObjectId(id)}, {$inc: {keepAlive: 1}}, function (error) {
         if (error) log.warn('message: updateErizoController error, ' + logger.objectToLog(error));
     });
 };
