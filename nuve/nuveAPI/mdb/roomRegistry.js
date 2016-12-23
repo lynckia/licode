@@ -71,7 +71,7 @@ exports.assignErizoControllerToRoom = function(room, erizoControllerId, callback
       db.rooms.save( room );
     }
     return erizoController;
-  }, room._id + '', erizoControllerId, function(error, erizoController) {
+  }, room._id + '', erizoControllerId + '', function(error, erizoController) {
     if (error) log.warn('message: assignErizoControllerToRoom error, ' + logger.objectToLog(error));
     if (callback) {
       callback(erizoController);
