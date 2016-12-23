@@ -62,7 +62,6 @@ var getEcQueue = function (callback) {
             log.warn('Erizo Controller in ', erizoControllers[n].ip,
                      'has reached the limit number of rooms');
         }
-        console.log('QUEUE', ecQueue);
         callback(ecQueue);
     });
 };
