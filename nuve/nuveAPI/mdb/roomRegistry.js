@@ -48,6 +48,36 @@ exports.addRoom = function (room, callback) {
     });
 };
 
+exports.assignErizoControllerToRoom = function(room, erizoControllerId, callback) {
+  return db.eval(function(id, erizoControllerId) {
+    var erizoController = undefined;
+    var room = db.rooms.findOne({_id: ObjectId(id)});
+    if (!room) {
+      return erizoController;
+    }
+
+    if (room.erizoControllerId) {
+      erizoController = db.erizoControllers.findOne({_id: room.erizoControllerId});
+      if (erizoController) {
+        return erizoController;
+      }
+    }
+
+    erizoController = db.erizoControllers.findOne({_id: ObjectId(erizoControllerId)});
+
+    if (erizoController) {
+      room.erizoControllerId = ObjectId(erizoControllerId);
+
+      db.rooms.save( room );
+    }
+    return erizoController;
+  }, room._id, erizoControllerId, function(error, erizoController) {
+    if (error) log.warn('message: assignErizoControllerToRoom error, ' + logger.objectToLog(error));
+    if (callback) {
+      callback(erizoController);
+    }
+  });
+};
 
 /*
  * Updates a determined room

@@ -68,8 +68,7 @@ var getEcQueue = function (callback) {
 };
 
 var assignErizoController = function (erizoControllerId, room, callback) {
-    room.erizoControllerId = erizoControllerId;
-    roomRegistry.updateRoom(room._id, room, callback);
+    roomRegistry.assignErizoControllerToRoom(room, erizoControllerId, callback);
 };
 
 var unassignErizoController = function (erizoControllerId) {
@@ -94,14 +93,14 @@ var checkKA = function () {
         for (ec in erizoControllers) {
             if (erizoControllers.hasOwnProperty(ec)) {
                 var id = erizoControllers[ec]._id;
-                erizoControllers[ec].keepAlive += 1;
-                erizoControllerRegistry.updateErizoController(id, erizoControllers[ec]);
                 if (erizoControllers[ec].keepAlive > MAX_KA_COUNT) {
                     log.warn('ErizoController', ec, ' in ', erizoControllers[ec].ip,
                              'does not respond. Deleting it.');
                     erizoControllerRegistry.removeErizoController(id);
                     unassignErizoController(id);
+                    return;
                 }
+                erizoControllerRegistry.incrementKeepAlive(id);
             }
         }
     });
@@ -168,8 +167,7 @@ exports.keepAlive = function (id, callback) {
     erizoControllerRegistry.getErizoController(id, function (erizoController) {
 
         if (erizoController) {
-          erizoController.keepAlive = 0;
-          erizoControllerRegistry.updateErizoController(id, erizoController);
+          erizoControllerRegistry.updateErizoController(id, {keepAlive: 0});
           result = 'ok';
           //log.info('KA: ', id);
         } else {
@@ -182,10 +180,7 @@ exports.keepAlive = function (id, callback) {
 
 exports.setInfo = function (params) {
     log.info('Received info ', params, '. Recalculating erizoControllers priority');
-    erizoControllerRegistry.getErizoController(params.id, function (erizoController) {
-        erizoController.state = params.state;
-        erizoControllerRegistry.updateErizoController(params.id, erizoController);
-    });
+    erizoControllerRegistry.updateErizoController(params.id, {state: params.state});
 };
 
 exports.killMe = function (ip) {
@@ -225,7 +220,7 @@ var getErizoControllerForRoom = exports.getErizoControllerForRoom = function (ro
 
                 if (id !== undefined) {
 
-                    assignErizoController(id, room, function () {
+                    assignErizoController(id, room, function (erizoController) {
                         callback(erizoController);
                         clearInterval(intervalId);
                     });
