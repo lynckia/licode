@@ -38,8 +38,8 @@ exports.getList = function (req, res) {
         log.info('message: getUsersList success, roomId: ' + currentRoom._id +
                  ', serviceId: ' + currentService._id);
         cloudHandler.getUsersInRoom(currentRoom._id, function (users) {
-            if (users === 'error') {
-                res.send('CloudHandler does not respond', 401);
+            if (users === 'timeout') {
+                res.send('Erizo Controller managing this room does not respond', 503);
                 return;
             }
             res.send(users);

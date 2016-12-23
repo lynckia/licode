@@ -62,7 +62,6 @@ var getEcQueue = function (callback) {
             log.warn('Erizo Controller in ', erizoControllers[n].ip,
                      'has reached the limit number of rooms');
         }
-        console.log('QUEUE', ecQueue);
         callback(ecQueue);
     });
 };
@@ -252,9 +251,6 @@ exports.getUsersInRoom = function (roomId, callback) {
         }
         var rpcID = 'erizoController_' + room.erizoControllerId;
         rpc.callRpc(rpcID, 'getUsersInRoom', [roomId], {'callback': function (users) {
-            if (users === 'timeout') {
-                users = '?';
-            }
             callback(users);
         }});
 

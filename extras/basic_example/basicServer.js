@@ -84,19 +84,19 @@ var deleteRoomsIfEmpty = function (theRooms, callback) {
         return;
     }
     var theRoom = theRooms.pop();
-    N.API.getUsers(theRoom._id, function(userlist){
+    N.API.getUsers(theRoom._id, function(userlist) {
         var users = JSON.parse(userlist);
         if (Object.keys(users).length === 0){
             N.API.deleteRoom(theRoom._id, function(){
-                if (theRooms.length > 0){
-                    deleteRoomsIfEmpty(theRooms, callback);
-                }
+                deleteRoomsIfEmpty(theRooms, callback);
             });
         } else {
-            if (theRooms.length > 0){
-                deleteRoomsIfEmpty(theRooms, callback);
-            }
+            deleteRoomsIfEmpty(theRooms, callback);
         }
+    }, function () {
+        N.API.deleteRoom(theRoom._id, function(){
+            deleteRoomsIfEmpty(theRooms, callback);
+        });
     });
 };
 
