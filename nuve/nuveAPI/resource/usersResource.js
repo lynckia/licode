@@ -27,11 +27,11 @@ exports.getList = function (req, res) {
     doInit(req, function (currentService, currentRoom) {
 
         if (currentService === undefined) {
-            res.send('Service not found', 404);
+            res.status(404).send('Service not found');
             return;
         } else if (currentRoom === undefined) {
             log.info('message: getUserList - room not found, roomId: ' + req.params.room);
-            res.send('Room does not exist', 404);
+            res.status(404).send('Room does not exist');
             return;
         }
 
@@ -39,7 +39,7 @@ exports.getList = function (req, res) {
                  ', serviceId: ' + currentService._id);
         cloudHandler.getUsersInRoom(currentRoom._id, function (users) {
             if (users === 'timeout') {
-                res.send('Erizo Controller managing this room does not respond', 503);
+                res.status(503).send('Erizo Controller managing this room does not respond');
                 return;
             }
             res.send(users);
