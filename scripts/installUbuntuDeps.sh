@@ -148,6 +148,23 @@ install_mediadeps(){
 
 }
 
+install_ffmpeg(){
+sudo apt-get install yasm libvpx. libx264. fdk-aac-devel libfreetype6-dev
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
+    cd ffmpeg
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --arch=x86_64 --optflags='-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches -m64 -mtune=generic' --enable-bzlib --disable-crystalhd --enable-nonfree --enable-libfdk-aac --enable-libfreetype --enable-libvpx --enable-libopus --enable-libx264 --enable-avfilter --enable-avresample --enable-postproc --enable-pthreads --disable-static --enable-shared --enable-gpl --disable-debug --enable-runtime-cpudetect --extra-cflags=-I/$PREFIX_DIR/include --extra-ldflags=-L/$PREFIX_DIR/lib
+    make -s V=0
+    make install
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_mediadeps
+  fi
+
+}
+
 install_mediadeps_nogpl(){
   install_opus
   sudo apt-get -qq install yasm libvpx.
@@ -203,8 +220,9 @@ check_proxy
 install_openssl
 install_libnice
 install_libsrtp
+install_ffmpeg
 
-#install_opus
+install_opus
 #if [ "$ENABLE_GPL" = "true" ]; then
 #install_mediadeps
 #else
