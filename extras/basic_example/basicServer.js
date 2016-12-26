@@ -83,19 +83,27 @@ var deleteRoomsIfEmpty = function (theRooms, callback) {
         callback(true);
         return;
     }
-    var theRoom = theRooms.pop();
-    N.API.getUsers(theRoom._id, function(userlist){
+    var theRoomId = theRooms.pop()._id;
+    N.API.getUsers(theRoomId, function(userlist) {
         var users = JSON.parse(userlist);
         if (Object.keys(users).length === 0){
-            N.API.deleteRoom(theRoom._id, function(){
-                if (theRooms.length > 0){
-                    deleteRoomsIfEmpty(theRooms, callback);
-                }
+            N.API.deleteRoom(theRoomId, function(){
+                deleteRoomsIfEmpty(theRooms, callback);
             });
         } else {
-            if (theRooms.length > 0){
+            deleteRoomsIfEmpty(theRooms, callback);
+        }
+    }, function (error, status) {
+        console.log('Error getting user list for room ', theRoomId, 'reason: ', error);
+        switch (status) {
+            case 404:
                 deleteRoomsIfEmpty(theRooms, callback);
-            }
+                break;
+            case 503:
+                N.API.deleteRoom(theRoomId, function(){
+                    deleteRoomsIfEmpty(theRooms, callback);
+                });
+                break;
         }
     });
 };
