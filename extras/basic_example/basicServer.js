@@ -46,7 +46,11 @@ app.use(function(req, res, next) {
 //disable layout
 //app.set("view options", {layout: false});
 
-N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3000/');
+config.nuve = config.nuve || {};
+config.nuve.port = config.nuve.port || 3000;
+var nuveUrl = 'http://localhost:' + config.nuve.port + '/';
+
+N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, nuveUrl);
 
 var defaultRoom;
 var defaultRoomName = 'basicExampleRoom';
