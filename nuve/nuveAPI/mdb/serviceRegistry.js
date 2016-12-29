@@ -1,19 +1,19 @@
-/*global require, exports, console*/
+/*global require, exports*/
+'use strict';
 var db = require('./dataBase').db;
 
 var logger = require('./../logger').logger;
 
 // Logger
-var log = logger.getLogger("ServiceRegistry");
+var log = logger.getLogger('ServiceRegistry');
 
 /*
  * Gets a list of the services in the data base.
  */
 exports.getList = function (callback) {
-    "use strict";
     db.services.find({}).toArray(function (err, services) {
         if (err || !services) {
-            log.info('Empty list');
+            log.info('message: service getList empty');
         } else {
             callback(services);
         }
@@ -21,10 +21,9 @@ exports.getList = function (callback) {
 };
 
 var getService = exports.getService = function (id, callback) {
-    "use strict";
     db.services.findOne({_id: db.ObjectId(id)}, function (err, service) {
         if (service === undefined) {
-            log.info("Service not found");
+            log.info('message: getService service not found, serviceId ' + id);
         }
         if (callback !== undefined) {
             callback(service);
@@ -33,8 +32,6 @@ var getService = exports.getService = function (id, callback) {
 };
 
 var hasService = exports.hasService = function (id, callback) {
-    "use strict";
-
     getService(id, function (service) {
         if (service === undefined) {
             callback(false);
@@ -48,10 +45,9 @@ var hasService = exports.hasService = function (id, callback) {
  * Adds a new service to the data base.
  */
 exports.addService = function (service, callback) {
-    "use strict";
     service.rooms = [];
     db.services.save(service, function (error, saved) {
-        if (error) log.info('MongoDB: Error adding service: ', error);
+        if (error) log.info('message: addService error, ' + logger.objectToLog(error));
         callback(saved._id);
     });
 };
@@ -60,9 +56,8 @@ exports.addService = function (service, callback) {
  * Updates a determined service in the data base.
  */
 exports.updateService = function (service) {
-    "use strict";
-    db.services.save(service, function (error, saved) {
-        if (error) log.info('MongoDB: Error updating service: ', error);
+    db.services.save(service, function (error) {
+        if (error) log.info('message: updateService error, ' + logger.objectToLog(error));
     });
 };
 
@@ -70,22 +65,19 @@ exports.updateService = function (service) {
  * Removes a determined service from the data base.
  */
 exports.removeService = function (id) {
-    "use strict";
     hasService(id, function (hasS) {
         if (hasS) {
-            db.services.remove({_id: db.ObjectId(id)}, function (error, saved) {
-                if (error) log.info('MongoDB: Error removing service: ', error);
+            db.services.remove({_id: db.ObjectId(id)}, function (error) {
+                if (error) log.info('message: removeService error, ' + logger.objectToLog(error));
             });
         }
     });
 };
 
 /*
- * Gets a determined room in a determined service. Returns undefined if room does not exists. 
+ * Gets a determined room in a determined service. Returns undefined if room does not exists.
  */
 exports.getRoomForService = function (roomId, service, callback) {
-    "use strict";
-
     var room;
     for (room in service.rooms) {
         if (service.rooms.hasOwnProperty(room)) {

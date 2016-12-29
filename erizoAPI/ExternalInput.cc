@@ -5,38 +5,43 @@
 #include "ExternalInput.h"
 
 
-using namespace v8;
+using v8::HandleScope;
+using v8::Function;
+using v8::FunctionTemplate;
+using v8::Local;
+using v8::Value;
+
 
 Nan::Persistent<Function> ExternalInput::constructor;
 
 class AsyncDeleter : public Nan::AsyncWorker {
-  public:
-    AsyncDeleter (erizo::ExternalInput* eiToDelete, Nan::Callback *callback):
-      AsyncWorker(callback), eiToDelete_(eiToDelete){
+ public:
+    AsyncDeleter(std::shared_ptr<erizo::ExternalInput> eiToDelete, Nan::Callback *callback):
+      AsyncWorker(callback), eiToDelete_(eiToDelete) {
       }
     ~AsyncDeleter() {}
-    void Execute(){
-      delete eiToDelete_;
+    void Execute() {
+      eiToDelete_.reset();
     }
     void HandleOKCallback() {
-      HandleScope scope;
+      Nan::HandleScope scope;
       std::string msg("OK");
-      if (callback){
+      if (callback) {
         Local<Value> argv[] = {
           Nan::New(msg.c_str()).ToLocalChecked()
         };
         callback->Call(1, argv);
       }
     }
-  private:
-    erizo::ExternalInput* eiToDelete_;
+ private:
+    std::shared_ptr<erizo::ExternalInput> eiToDelete_;
     Nan::Callback* callback_;
 };
 
-ExternalInput::ExternalInput() {};
-ExternalInput::~ExternalInput() {};
+ExternalInput::ExternalInput() {}
+ExternalInput::~ExternalInput() {}
 
-NAN_MODULE_INIT (ExternalInput::Init) {
+NAN_MODULE_INIT(ExternalInput::Init) {
   // Prepare constructor template
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("ExternalInput").ToLocalChecked());
@@ -56,7 +61,7 @@ NAN_METHOD(ExternalInput::New) {
   std::string url = std::string(*param);
 
   ExternalInput* obj = new ExternalInput();
-  obj->me = new erizo::ExternalInput(url);
+  obj->me = std::make_shared<erizo::ExternalInput>(url);
 
   obj->Wrap(info.This());
   info.GetReturnValue().Set(info.This());
@@ -64,22 +69,23 @@ NAN_METHOD(ExternalInput::New) {
 
 NAN_METHOD(ExternalInput::close) {
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
-  erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
+  std::shared_ptr<erizo::ExternalInput> me = obj->me;
 
-  Nan::Callback *callback; 
-  if (info.Length()>=1){
-    callback =new Nan::Callback(info[0].As<Function>());
+  Nan::Callback *callback;
+  if (info.Length() >= 1) {
+    callback = new Nan::Callback(info[0].As<Function>());
   } else {
     callback = NULL;
   }
 
   Nan::AsyncQueueWorker(new  AsyncDeleter(me, callback));
+  obj->me.reset();
 }
 
 NAN_METHOD(ExternalInput::init) {
-  //TODO:Could potentially be slow, think about async'ing it  
+  // TODO(pedro) Could potentially be slow, think about async'ing it
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
-  erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
+  std::shared_ptr<erizo::ExternalInput> me = obj->me;
 
   int r = me->init();
   info.GetReturnValue().Set(Nan::New(r));
@@ -87,7 +93,7 @@ NAN_METHOD(ExternalInput::init) {
 
 NAN_METHOD(ExternalInput::setAudioReceiver) {
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
-  erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
+  std::shared_ptr<erizo::ExternalInput> me = obj->me;
 
   MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::MediaSink *mr = param->msink;
@@ -97,7 +103,7 @@ NAN_METHOD(ExternalInput::setAudioReceiver) {
 
 NAN_METHOD(ExternalInput::setVideoReceiver) {
   ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
-  erizo::ExternalInput *me = (erizo::ExternalInput*)obj->me;
+  std::shared_ptr<erizo::ExternalInput> me = obj->me;
 
   MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::MediaSink *mr = param->msink;

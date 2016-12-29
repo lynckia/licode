@@ -1,10 +1,12 @@
-#ifndef API_WEBRTCCONNECTION_H
-#define API_WEBRTCCONNECTION_H
+#ifndef ERIZOAPI_WEBRTCCONNECTION_H_
+#define ERIZOAPI_WEBRTCCONNECTION_H_
 
 #include <nan.h>
 #include <WebRtcConnection.h>
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
+
+#include <queue>
 
 
 /*
@@ -13,23 +15,24 @@
  * A WebRTC Connection. This class represents a WebRtcConnection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary ICE and SRTP components.
  */
-class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener, erizo::WebRtcConnectionStatsListener {
-  public:
+class WebRtcConnection : public MediaSink, public erizo::WebRtcConnectionEventListener,
+  public erizo::WebRtcConnectionStatsListener {
+ public:
     static NAN_MODULE_INIT(Init);
 
-    erizo::WebRtcConnection *me;
+    std::shared_ptr<erizo::WebRtcConnection> me;
     int eventSt;
     std::queue<int> eventSts;
     std::queue<std::string> eventMsgs, statsMsgs;
 
     boost::mutex mutex;
 
-  private:
+ private:
     WebRtcConnection();
     ~WebRtcConnection();
 
-    v8::Persistent<v8::Function> eventCallback_;
-    v8::Persistent<v8::Function> statsCallback_;
+    Nan::Callback *eventCallback_;
+    Nan::Callback *statsCallback_;
 
     uv_async_t async_;
     uv_async_t asyncStats_;
@@ -48,7 +51,7 @@ class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener,
      * Inits the WebRtcConnection and passes the callback to get Events.
      * Returns true if the candidates are gathered.
      */
-    static NAN_METHOD(init);  
+    static NAN_METHOD(init);
     /*
      * Creates an SDP Offer
      * Param: No params.
@@ -102,6 +105,11 @@ class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener,
      */
     static NAN_METHOD(setSlideShowMode);
     /*
+     * Mutes or unmutes streams for this WRTC
+     * Param: A boolean indicating what to do
+     */
+    static NAN_METHOD(muteStream);
+    /*
      * Gets Stats from this Wrtc
      * Param: None
      * Returns: The Current stats
@@ -109,14 +117,19 @@ class WebRtcConnection : public MediaSink, erizo::WebRtcConnectionEventListener,
      * Returns: True if the callback was set successfully
      */
     static NAN_METHOD(getStats);
+    /*
+     * Sets Metadata that will be logged in every message
+     * Param: An object with metadata {key1:value1, key2: value2}
+     */
+    static NAN_METHOD(setMetadata);
 
     static Nan::Persistent<v8::Function> constructor;
 
-    static void eventsCallback(uv_async_t *handle, int status);
-    static void statsCallback(uv_async_t *handle, int status);
+    static NAUV_WORK_CB(eventsCallback);
+    static NAUV_WORK_CB(statsCallback);
 
-    virtual void notifyEvent(erizo::WebRTCEvent event, const std::string& message="");
+    virtual void notifyEvent(erizo::WebRTCEvent event, const std::string& message = "");
     virtual void notifyStats(const std::string& message);
 };
 
-#endif
+#endif  // ERIZOAPI_WEBRTCCONNECTION_H_

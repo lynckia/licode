@@ -1,13 +1,15 @@
-var permission = {}
-permission.PUBLISH = "publish";
-permission.SUBSCRIBE = "subscribe";
-permission.RECORD = "record";
+'use strict';
+
+var permission = {};
+permission.PUBLISH = 'publish';
+permission.SUBSCRIBE = 'subscribe';
+permission.RECORD = 'record';
 
 /*Not used, but still there just in case*/
-permission.DATA = "data";
-permission.AUDIO = "audio";
-permission.VIDEO = "video";
-permission.SCREEN = "screen";
+permission.DATA = 'data';
+permission.AUDIO = 'audio';
+permission.VIDEO = 'video';
+permission.SCREEN = 'screen';
 
 
 module.exports = permission;

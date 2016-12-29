@@ -1,75 +1,71 @@
 /*
  * VideoMixer.cpp
  */
+#include "media/mixers/VideoMixer.h"
 
-#include "VideoMixer.h"
-#include "VideoUtils.h"
-#include "../../WebRtcConnection.h"
+#include "media/mixers/VideoUtils.h"
+#include "./WebRtcConnection.h"
 
 namespace erizo {
+DEFINE_LOGGER(VideoMixer, "media.mixers.VideoMixer");
 
-  DEFINE_LOGGER(VideoMixer, "media.mixers.VideoMixer");
+VideoMixer::VideoMixer() {
+  subscriber = NULL;
+  sentPackets_ = 0;
+  ip = new InputProcessor();
+  MediaInfo m;
+  m.processorType = RTP_ONLY;
+  // m.videoCodec.bitRate = 2000000;
+  // ELOG_DEBUG("m.videoCodec.bitrate %d\n", m.videoCodec.bitRate);
+  m.hasVideo = true;
+  m.videoCodec.width = 640;
+  m.videoCodec.height = 480;
+  ip->init(m, this);
 
-  VideoMixer::VideoMixer() {
+  MediaInfo om;
+  om.processorType = RTP_ONLY;
+  om.videoCodec.bitRate = 2000000;
+  om.videoCodec.width = 640;
+  om.videoCodec.height = 480;
+  om.videoCodec.frameRate = 20;
+  om.hasVideo = true;
+  op = new OutputProcessor();
+  op->init(om, this);
+}
 
-      subscriber = NULL;
-      sentPackets_ = 0;
-      ip = new InputProcessor();
-      MediaInfo m;
-      m.processorType = RTP_ONLY;
-      //	m.videoCodec.bitRate = 2000000;
-      //	ELOG_DEBUG("m.videoCodec.bitrate %d\n", m.videoCodec.bitRate);
-      m.hasVideo = true;
-      m.videoCodec.width = 640;
-      m.videoCodec.height = 480;
-      ip->init(m, this);
+VideoMixer::~VideoMixer() {
+  delete ip; ip = NULL;
+  delete op; op = NULL;
+}
 
-      MediaInfo om;
-      om.processorType = RTP_ONLY;
-      om.videoCodec.bitRate = 2000000;
-      om.videoCodec.width = 640;
-      om.videoCodec.height = 480;
-      om.videoCodec.frameRate = 20;
-      om.hasVideo = true;
-      op = new OutputProcessor();
-      op->init(om, this);
+int VideoMixer::deliverAudioData(char* buf, int len) {
+  return 0;
+}
 
-    }
+int VideoMixer::deliverVideoData(char* buf, int len) {
+  return 0;
+}
 
-  VideoMixer::~VideoMixer() {
-    delete ip; ip = NULL;
-    delete op; op = NULL;
-  }
+void VideoMixer::receiveRawData(const RawDataPacket& pkt) {
+}
 
-  int VideoMixer::deliverAudioData(char* buf, int len) {
-    return 0;
-  }
+void VideoMixer::receiveRtpData(unsigned char* rtpdata, int len) {
+}
 
-  int VideoMixer::deliverVideoData(char* buf, int len) {
-    return 0;
-  }
+void VideoMixer::addPublisher(WebRtcConnection* webRtcConn, int peerSSRC) {
+}
 
-  void VideoMixer::receiveRawData(RawDataPacket& pkt) {
-  }
+void VideoMixer::setSubscriber(WebRtcConnection* webRtcConn) {
+}
 
-  void VideoMixer::receiveRtpData(unsigned char* rtpdata, int len){
-  }
+void VideoMixer::removePublisher(int peerSSRC) {
+}
 
-  void VideoMixer::addPublisher(WebRtcConnection* webRtcConn, int peerSSRC){
-  }
+void VideoMixer::closeSink() {
+  this->closeAll();
+}
 
-  void VideoMixer::setSubscriber(WebRtcConnection* webRtcConn){
-  }
+void VideoMixer::closeAll() {
+}
 
-  void VideoMixer::removePublisher(int peerSSRC) {
-  }
-
-  void VideoMixer::closeSink() {
-    this->closeAll();
-  }
-
-  void VideoMixer::closeAll() {
-  }
-
-}/* namespace erizo */
-
+}  // namespace erizo

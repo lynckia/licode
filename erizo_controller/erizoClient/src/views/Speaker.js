@@ -1,4 +1,5 @@
-/*global window, console, document */
+/*global document */
+'use strict';
 /*
  * Speaker represents the volume icon that will be shown in the mediaPlayer, for example.
  * It manages the volume level of the media tag given in the constructor.
@@ -7,7 +8,6 @@
  */
 var Erizo = Erizo || {};
 Erizo.Speaker = function (spec) {
-    "use strict";
     var that = Erizo.View({}),
         show,
         mute,
@@ -30,9 +30,10 @@ Erizo.Speaker = function (spec) {
 
     // Container
     that.div = document.createElement('div');
-    that.div.setAttribute('style', 'width: 40%; height: 100%; max-width: 32px; position: absolute; right: 0;z-index:0;');
+    that.div.setAttribute('style', 'width: 40%; height: 100%; max-width: 32px; ' +
+                                   'position: absolute; right: 0;z-index:0;');
 
-    // Volume icon 
+    // Volume icon
     that.icon = document.createElement('img');
     that.icon.setAttribute('id', 'volume_' + that.id);
     that.icon.setAttribute('src', that.url + '/assets/sound48.png');
@@ -45,17 +46,18 @@ Erizo.Speaker = function (spec) {
         // Volume bar
         that.picker = document.createElement('input');
         that.picker.setAttribute('id', 'picker_' + that.id);
-        that.picker.type = "range";
+        that.picker.type = 'range';
         that.picker.min = 0;
         that.picker.max = 100;
         that.picker.step = 10;
         that.picker.value = lastVolume;
-        that.picker.setAttribute("orient", "vertical"); //  FireFox supports range sliders as of version 23
+        //  FireFox supports range sliders as of version 23
+        that.picker.setAttribute('orient', 'vertical');
         that.div.appendChild(that.picker);
         that.media.volume = that.picker.value / 100;
         that.media.muted = false;
 
-        that.picker.oninput = function (evt) {
+        that.picker.oninput = function () {
             if (that.picker.value > 0) {
                 that.media.muted = false;
                 that.icon.setAttribute('src', that.url + '/assets/sound48.png');
@@ -68,7 +70,11 @@ Erizo.Speaker = function (spec) {
 
         // Private functions
         show = function (displaying) {
-            that.picker.setAttribute('style', 'background: transparent; width: 32px; height: 100px; position: absolute; bottom: 90%; z-index: 1;' + that.div.offsetHeight + 'px; right: 0px; -webkit-appearance: slider-vertical; display: ' + displaying);
+            that.picker.setAttribute('style', 'background: transparent; width: 32px; ' +
+                                              'height: 100px; position: absolute; bottom: 90%; ' +
+                                              'z-index: 1;' + that.div.offsetHeight + 'px; ' +
+                                              'right: 0px; -webkit-appearance: slider-vertical; ' +
+                                              'display: ' + displaying);
         };
 
         mute = function () {
@@ -86,20 +92,20 @@ Erizo.Speaker = function (spec) {
             that.media.muted = false;
         };
 
-        that.icon.onclick = function (evt) {
+        that.icon.onclick = function () {
             if (that.media.muted) {
                 unmute();
             } else {
                 mute();
             }
-        }
+        };
 
         // Public functions
-        that.div.onmouseover = function (evt) {
+        that.div.onmouseover = function () {
             show('block');
         };
 
-        that.div.onmouseout = function (evt) {
+        that.div.onmouseout = function () {
             show('none');
         };
 
@@ -119,15 +125,15 @@ Erizo.Speaker = function (spec) {
             that.stream.stream.getAudioTracks()[0].enabled = true;
         };
 
-        that.icon.onclick = function (evt) {
+        that.icon.onclick = function () {
             if (that.media.muted) {
                 unmute();
             } else {
                 mute();
             }
-        }
+        };
     }
-  
+
 
     document.getElementById(that.elementID).appendChild(that.div);
     return that;

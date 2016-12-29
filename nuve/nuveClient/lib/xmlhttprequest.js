@@ -11,12 +11,12 @@
  * @contributor David Ellis <d.f.ellis@ieee.org>
  * @license MIT
  */
+'use strict';
+var Url = require('url'),
+  spawn = require('child_process').spawn, // jshint ignore:line
+  fs = require('fs'); // jshint ignore:line
 
-var Url = require("url"),
-  spawn = require("child_process").spawn,
-  fs = require('fs');
-
-var XMLHttpRequest = function() {
+var XMLHttpRequest = function() { // jshint ignore:line
   /**
    * Private variables
    */
@@ -24,8 +24,9 @@ var XMLHttpRequest = function() {
   var http = require('http');
   var https = require('https');
 
+  var listeners = {};
+
   // Holds http.js objects
-  var client;
   var request;
   var response;
 
@@ -34,8 +35,8 @@ var XMLHttpRequest = function() {
 
   // Set some default headers
   var defaultHeaders = {
-    "User-Agent": "node.js",
-    "Accept": "*/*"
+    'User-Agent': 'node.js',
+    'Accept': '*/*'
   };
 
   // Send flag
@@ -64,10 +65,29 @@ var XMLHttpRequest = function() {
   this.onreadystatechange = null;
 
   // Result & response
-  this.responseText = "";
-  this.responseXML = "";
+  this.responseText = '';
+  this.responseXML = '';
   this.status = null;
   this.statusText = null;
+
+  /**
+   * Changes readyState and calls onreadystatechange.
+   *
+   * @param int state New state
+   */
+  var setState = function(state) {
+    self.readyState = state;
+    if (typeof self.onreadystatechange === 'function') {
+      self.onreadystatechange();
+    }
+
+    if ('readystatechange' in listeners) {
+      var count = listeners.readystatechange.length, i = 0;
+      for(; i < count; i++) {
+        listeners.readystatechange[i].call(self);
+      }
+    }
+  };
 
   /**
    * Open the connection. Currently supports local server requests.
@@ -80,11 +100,11 @@ var XMLHttpRequest = function() {
    */
   this.open = function(method, url, async, user, password) {
     settings = {
-      "method": method,
-      "url": url.toString(),
-      "async": (typeof async !== "boolean" ? true : async),
-      "user": user || null,
-      "password": password || null
+      'method': method,
+      'url': url.toString(),
+      'async': (typeof async !== 'boolean' ? true : async),
+      'user': user || null,
+      'password': password || null
     };
 
     this.abort();
@@ -99,11 +119,11 @@ var XMLHttpRequest = function() {
    * @param string value Header value
    */
   this.setRequestHeader = function(header, value) {
-    if (this.readyState != this.OPENED) {
-      throw "INVALID_STATE_ERR: setRequestHeader can only be called when state is OPEN";
+    if (this.readyState !== this.OPENED) {
+      throw 'NVALID_STATE_ERR: setRequestHeader can only be called when state is OPEN';
     }
     if (sendFlag) {
-      throw "INVALID_STATE_ERR: send flag is true";
+      throw 'INVALID_STATE_ERR: send flag is true';
     }
     headers[header] = value;
   };
@@ -115,10 +135,7 @@ var XMLHttpRequest = function() {
    * @return string Text of the header or null if it doesn't exist.
    */
   this.getResponseHeader = function(header) {
-    if (this.readyState > this.OPENED
-      && response.headers[header]
-      && !errorFlag
-    ) {
+    if (this.readyState > this.OPENED && response.headers[header] && !errorFlag) {
       return response.headers[header];
     }
 
@@ -132,12 +149,12 @@ var XMLHttpRequest = function() {
    */
   this.getAllResponseHeaders = function() {
     if (this.readyState < this.HEADERS_RECEIVED || errorFlag) {
-      return "";
+      return '';
     }
-    var result = "";
+    var result = '';
 
     for (var i in response.headers) {
-      result += i + ": " + response.headers[i] + "\r\n";
+      result += i + ': ' + response.headers[i] + '\r\n';
     }
     return result.substr(0, result.length - 2);
   };
@@ -148,33 +165,33 @@ var XMLHttpRequest = function() {
    * @param string data Optional data to send as request body.
    */
   this.send = function(data) {
-    if (this.readyState != this.OPENED) {
-      throw "INVALID_STATE_ERR: connection must be opened before send() is called";
+    if (this.readyState !== this.OPENED) {
+      throw 'INVALID_STATE_ERR: connection must be opened before send() is called';
     }
 
     if (sendFlag) {
-      throw "INVALID_STATE_ERR: send has already been called";
+      throw 'INVALID_STATE_ERR: send has already been called';
     }
 
     var ssl = false;
     var url = Url.parse(settings.url);
-
+    var host;
     // Determine the server
     switch (url.protocol) {
       case 'https:':
-        ssl = true;
+        ssl = true;  // jshint ignore:line
         // SSL & non-SSL both need host, no break here.
       case 'http:':
-        var host = url.hostname;
+        host = url.hostname;
         break;
 
       case undefined:
       case '':
-        var host = "localhost";
+        host = 'localhost';
         break;
 
       default:
-        throw "Protocol not supported.";
+        throw 'Protocol not supported.';
     }
 
     // Default to port 80. If accessing localhost on another port be sure
@@ -184,25 +201,25 @@ var XMLHttpRequest = function() {
     var uri = url.pathname + (url.search ? url.search : '');
 
     // Set the Host header or the server may reject the request
-    this.setRequestHeader("Host", host);
+    this.setRequestHeader('Host', host);
 
     // Set Basic Auth if necessary
     if (settings.user) {
-      if (typeof settings.password == "undefined") {
-        settings.password = "";
+      if (typeof settings.password === 'undefined') {
+        settings.password = '';
       }
-      var authBuf = new Buffer(settings.user + ":" + settings.password);
-      headers["Authorization"] = "Basic " + authBuf.toString("base64");
+      var authBuf = new Buffer(settings.user + ':' + settings.password);
+      headers.Authorization = 'Basic ' + authBuf.toString('base64');
     }
 
     // Set content length header
-    if (settings.method == "GET" || settings.method == "HEAD") {
+    if (settings.method === 'GET' || settings.method === 'HEAD') {
       data = null;
     } else if (data) {
-      this.setRequestHeader("Content-Length", Buffer.byteLength(data));
+      this.setRequestHeader('Content-Length', Buffer.byteLength(data));
 
-      if (!headers["Content-Type"]) {
-        this.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
+      if (!headers['Content-Type']) {
+        this.setRequestHeader('Content-Type', 'text/plain;charset=UTF-8');
       }
     }
 
@@ -218,7 +235,7 @@ var XMLHttpRequest = function() {
     errorFlag = false;
 
     // Handle async requests
-    if(!settings.hasOwnProperty("async") || settings.async) {
+    if(!settings.hasOwnProperty('async') || settings.async) {
       // Use the proper protocol
       var doRequest = ssl ? https.request : http.request;
 
@@ -226,14 +243,14 @@ var XMLHttpRequest = function() {
       sendFlag = true;
 
       // As per spec, this is called here for historical reasons.
-      if (typeof self.onreadystatechange === "function") {
+      if (typeof self.onreadystatechange === 'function') {
         self.onreadystatechange();
       }
 
       // Create the request
       request = doRequest(options, function(resp) {
         response = resp;
-        response.setEncoding("utf8");
+        response.setEncoding('utf8');
 
         setState(self.HEADERS_RECEIVED);
         self.status = response.statusCode;
@@ -271,6 +288,7 @@ var XMLHttpRequest = function() {
 
       request.end();
     } else { // Synchronous
+      /* jshint ignore:start */
       // Create a temporary file for communication with the other Node process
       var syncFile = ".node-xmlhttprequest-sync-" + process.pid;
       fs.writeFileSync(syncFile, "", "utf8");
@@ -296,8 +314,8 @@ var XMLHttpRequest = function() {
         + (data ? "req.write('" + data.replace(/'/g, "\\'") + "');":"")
         + "req.end();";
       // Start the other Node Process, executing this string
-      syncProc = spawn(process.argv[0], ["-e", execString]);
-      while((self.responseText = fs.readFileSync(syncFile, 'utf8')) == "") {
+       syncProc = spawn(process.argv[0], ['-e', execString]);
+      while((self.responseText = fs.readFileSync(syncFile, 'utf8')) == '') {
         // Wait while the file is empty
       }
       // Kill the child process once the file has data
@@ -314,6 +332,7 @@ var XMLHttpRequest = function() {
         self.responseText = self.responseText.replace(/^NODE-XMLHTTPREQUEST-STATUS:[0-9]*,(.*)/, "$1");
         setState(self.DONE);
       }
+      /* jshint ignore:end */
     }
   };
 
@@ -335,44 +354,24 @@ var XMLHttpRequest = function() {
     }
 
     headers = defaultHeaders;
-    this.responseText = "";
-    this.responseXML = "";
+    this.responseText = '';
+    this.responseXML = '';
 
     errorFlag = true;
 
-    if (this.readyState !== this.UNSENT
-        && (this.readyState !== this.OPENED || sendFlag)
-        && this.readyState !== this.DONE) {
+    if (this.readyState !== this.UNSENT &&
+       (this.readyState !== this.OPENED || sendFlag) &&
+        this.readyState !== this.DONE) {
       sendFlag = false;
       setState(this.DONE);
     }
     this.readyState = this.UNSENT;
   };
 
-  var listeners = {};
   this.addEventListener = function(event, callback) {
     if (!(event in listeners)) {
       listeners[event] = [];
     }
     listeners[event].push(callback);
-  };
-
-  /**
-   * Changes readyState and calls onreadystatechange.
-   *
-   * @param int state New state
-   */
-  var setState = function(state) {
-    self.readyState = state;
-    if (typeof self.onreadystatechange === "function") {
-      self.onreadystatechange();
-    }
-
-    if ("readystatechange" in listeners) {
-      var count = listeners["readystatechange"].length, i = 0;
-      for(; i < count; i++) {
-        listeners["readystatechange"][i].call(self);
-      }
-    }
   };
 };

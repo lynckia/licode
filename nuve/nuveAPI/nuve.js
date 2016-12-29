@@ -1,14 +1,8 @@
-/*global exports, require, console, Buffer, __dirname*/
+/*global require, __dirname*/
+'use strict';
 var express = require('express');
 var bodyParser = require('body-parser');
-
-var db = require('./mdb/dataBase').db;
 var rpc = require('./rpc/rpc');
-var logger = require('./logger').logger;
-
-// Logger
-var log = logger.getLogger("Nuve");
-
 var app = express();
 
 rpc.connect();
@@ -27,14 +21,13 @@ app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
     extended: true
-}));app.set('view engine', 'ejs');
+}));
+app.set('view engine', 'ejs');
 app.set('view options', {
     layout: false
 });
 
 app.use(function (req, res, next) {
-    "use strict";
-
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
     res.header('Access-Control-Allow-Headers', 'origin, authorization, content-type');
@@ -43,8 +36,6 @@ app.use(function (req, res, next) {
 });
 
 app.get('/test', function (req, res) {
-    "use strict";
-
     res.render('test');
 });
 
