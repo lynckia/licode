@@ -3,6 +3,10 @@
  */
 #include "media/codecs/VideoCodec.h"
 
+extern "C" {
+#include <libavutil/opt.h>
+}
+
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -47,30 +51,36 @@ int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
     return -2;
   }
 
+  vCoderContext->gop_size = 30;
+  vCoderContext->max_b_frames = 0;
   vCoderContext->bit_rate = info.bitRate;
-  vCoderContext->rc_min_rate = info.bitRate;
-  vCoderContext->rc_max_rate = info.bitRate;  // VPX_CBR
-  vCoderContext->qmin = 0;
-  vCoderContext->qmax = 40;  // rc_quantifiers
-  vCoderContext->profile = 3;
-  // vCoderContext->frame_skip_threshold = 30;
-  vCoderContext->rc_buffer_aggressivity = 0.95;
-  // vCoderContext->rc_buffer_size = vCoderContext->bit_rate;
-  // vCoderContext->rc_initial_buffer_occupancy = vCoderContext->bit_rate / 2;
-  vCoderContext->rc_initial_buffer_occupancy = 500;
+  // vCoderContext->rc_min_rate = info.bitRate;
+  // vCoderContext->rc_max_rate = info.bitRate;  // VPX_CBR
+  // vCoderContext->qmin = 0;
+  // vCoderContext->qmax = 40;  // rc_quantifiers
+  // vCoderContext->profile = 3;
+  // // vCoderContext->frame_skip_threshold = 30;
+  // vCoderContext->rc_buffer_aggressivity = 0.95;
+  // // vCoderContext->rc_buffer_size = vCoderContext->bit_rate;
+  // // vCoderContext->rc_initial_buffer_occupancy = vCoderContext->bit_rate / 2;
+  // vCoderContext->rc_initial_buffer_occupancy = 500;
 
-  vCoderContext->rc_buffer_size = 1000;
+  // vCoderContext->rc_buffer_size = 1000;
+
+  vCoderContext->flags |= CODEC_FLAG_GLOBAL_HEADER;
+  av_opt_set(vCoderContext->priv_data, "preset", "ultrafast", 0);
 
   vCoderContext->width = info.width;
   vCoderContext->height = info.height;
   vCoderContext->pix_fmt = PIX_FMT_YUV420P;
-  vCoderContext->time_base = (AVRational) {1, 90000};
+  vCoderContext->codec_id = VideoCodecID2ffmpegDecoderID(info.codec);
+  vCoderContext->time_base = (AVRational) {1, 30};
 
   vCoderContext->sample_aspect_ratio = (AVRational) { info.width, info.height };
   vCoderContext->thread_count = 4;
 
   if (avcodec_open2(vCoderContext, vCoder, NULL) < 0) {
-    ELOG_DEBUG("Error opening video decoder");
+    ELOG_DEBUG("Error opening video encoder");
     return -3;
   }
 
@@ -85,11 +95,12 @@ int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
   return 0;
 }
 
-int VideoEncoder::encodeVideo(unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength) {
+int VideoEncoder::encodeVideo (unsigned char* inBuffer, int inLength, unsigned char*& outBuffer, int& hasFrame, long long pts){
   int size = vCoderContext->width * vCoderContext->height;
   // ELOG_DEBUG("vCoderContext width %d", vCoderContext->width);
 
-  cPicture->pts = AV_NOPTS_VALUE;
+  //cPicture->pts = AV_NOPTS_VALUE;
+  cPicture->pts = pts;
   cPicture->data[0] = inBuffer;
   cPicture->data[1] = inBuffer + size;
   cPicture->data[2] = inBuffer + size + size / 4;
@@ -99,8 +110,8 @@ int VideoEncoder::encodeVideo(unsigned char* inBuffer, int inLength, unsigned ch
 
   AVPacket pkt;
   av_init_packet(&pkt);
-  pkt.data = outBuffer;
-  pkt.size = outLength;
+  pkt.data = NULL;//outBuffer;
+  pkt.size = 0;//outLength;
 
   int ret = 0;
   int got_packet = 0;
@@ -112,9 +123,10 @@ int VideoEncoder::encodeVideo(unsigned char* inBuffer, int inLength, unsigned ch
   //        pkt.size, ret, got_packet, pkt.pts, pkt.dts);
   if (!ret && got_packet && vCoderContext->coded_frame) {
     vCoderContext->coded_frame->pts = pkt.pts;
-    vCoderContext->coded_frame->key_frame =
+    hasFrame = vCoderContext->coded_frame->key_frame =
       !!(pkt.flags & AV_PKT_FLAG_KEY);
   }
+  outBuffer = (unsigned char*)pkt.data;
   return ret ? ret : pkt.size;
 }
 
