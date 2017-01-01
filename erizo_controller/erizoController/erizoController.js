@@ -750,6 +750,9 @@ var listen = function () {
             var url;
             var rtmpUrl = options.rtmpUrl;
 
+	log.error('@@NA: startRecorder, rtmpUrl: ['+rtmpUrl+'] ');
+
+
             if (GLOBAL.config.erizoController.recording_path) {  // jshint ignore:line
                 url = GLOBAL.config.erizoController.recording_path + recordingId + '.mkv';  // jshint ignore:line
             } else {

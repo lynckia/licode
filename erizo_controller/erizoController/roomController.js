@@ -115,7 +115,7 @@ exports.RoomController = function (spec) {
 
     that.addExternalOutput = function (publisherId, url, callback) {
 
-        url = "rtmp://ny-publish.kaltura.com:1935/kLive/?p=1802381&e=1_8u8ktkzw&i=0&t=45c225f8/1_8u8ktkzw_1";
+    //    url = "rtmp://ny-publish.kaltura.com:1935/kLive/?p=1802381&e=1_8u8ktkzw&i=0&t=45c225f8/1_8u8ktkzw_1";
 
         if (publishers[publisherId] !== undefined) {
             log.info('message: addExternalOuput, streamId: ' + publisherId + ', url:' + url);

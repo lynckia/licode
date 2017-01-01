@@ -16,7 +16,6 @@ function testConnection () {  // jshint ignore:line
 
 function startRecording () {  // jshint ignore:line
   var rtmpUrl = document.getElementById('rtmpurl').value;
-
   if (room !== undefined && rtmpUrl !== undefined && rtmpUrl.startsWith('rtmp')){
     if (!recording){
       room.startRecording(localStream, function(id) {

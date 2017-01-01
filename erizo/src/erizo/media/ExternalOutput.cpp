@@ -409,8 +409,9 @@ bool ExternalOutput::initContext() {
 		m_videoDecoderCodecInfo.frameRate = 30;
 
 		m_vEncoder.initEncoder(m_videoEncoderCodecInfo);
+		ELOG_ERROR("@@NA here1");
 		m_vDecoder.initDecoder(m_videoDecoderCodecInfo);
-
+		ELOG_ERROR("@@NA here2");
 		/*
 		AVCodec* videoCodec = avcodec_find_encoder(
 				context_->oformat->video_codec);
@@ -429,23 +430,25 @@ bool ExternalOutput::initContext() {
 		if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
 			video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 		}
-*/		video_stream_ = avformat_new_stream(context_, m_vEncoder.vCoder);
+*/		
+		video_stream_ = avformat_new_stream(context_, m_vEncoder.vCoder);
+	        ELOG_ERROR("@@NA here3");
 
 		AVCodecContext* streamCodecContext = video_stream_->codec;
-
-		avcodec_copy_context(streamCodecContext, m_vEncoder.vCoderContext);
-
+	        ELOG_ERROR("@@NA here4");
+		//avcodec_copy_context(streamCodecContext, m_vEncoder.vCoderContext);
 		video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
 		//context_->oformat->flags |= AVFMT_VARIABLE_FPS;
 
 		AVCodec* audioCodec = avcodec_find_encoder(
 				context_->oformat->audio_codec);
+	        ELOG_ERROR("@@NA here6");
 		if (audioCodec == NULL) {
 			ELOG_ERROR("Could not find audio codec");
 			return false;
 		}
-
+		ELOG_ERROR("After audiCodec, audiCodec is not null");
 		audio_stream_ = avformat_new_stream(context_, audioCodec);
 		audio_stream_->id = 1;
 		audio_stream_->codec->codec_id = context_->oformat->audio_codec;
@@ -463,9 +466,10 @@ bool ExternalOutput::initContext() {
 		context_->streams[0] = video_stream_;
 		context_->streams[1] = audio_stream_;
 		if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
-			ELOG_ERROR("Error opening output file");
+			ELOG_ERROR("Error opening output file [%s]",context_->filename);
 			return false;
 		}
+		ELOG_ERROR("no problem opening output file");
 
 		if (avformat_write_header(context_, NULL) < 0) {
 			ELOG_ERROR("Error writing header");
@@ -473,9 +477,10 @@ bool ExternalOutput::initContext() {
 		}
 
 		// Asaf //
-
+		ELOG_ERROR("after asaf");
 		avformat_network_init();
 
+		ELOG_ERROR("in initContext - leaving OK");
 	}
 	return true;
 }
