@@ -748,11 +748,16 @@ var listen = function () {
             var streamId = options.to;
             var recordingId = Math.random() * 1000000000000000000;
             var url;
+            var rtmpUrl = options.rtmpUrl;
 
             if (GLOBAL.config.erizoController.recording_path) {  // jshint ignore:line
                 url = GLOBAL.config.erizoController.recording_path + recordingId + '.mkv';  // jshint ignore:line
             } else {
                 url = '/tmp/' + recordingId + '.mkv';
+            }
+
+            if(rtmpUrl !== undefined){
+                url = rtmpUrl;
             }
 
             log.info('message: startRecorder, ' +
