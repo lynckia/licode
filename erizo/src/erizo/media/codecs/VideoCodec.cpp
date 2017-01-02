@@ -76,8 +76,8 @@ int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
   vCoderContext->codec_id = VideoCodecID2ffmpegDecoderID(info.codec);
   vCoderContext->time_base = (AVRational) {1, 30};
 
-  vCoderContext->sample_aspect_ratio = (AVRational) { info.width, info.height };
-  vCoderContext->thread_count = 4;
+  //vCoderContext->sample_aspect_ratio = (AVRational) { info.width, info.height };
+  //vCoderContext->thread_count = 4;
 
   if (avcodec_open2(vCoderContext, vCoder, NULL) < 0) {
     ELOG_DEBUG("Error opening video encoder");

@@ -396,15 +396,15 @@ bool ExternalOutput::initContext() {
 
 		m_videoEncoderCodecInfo.codec = VIDEO_CODEC_H264;
 		m_videoEncoderCodecInfo.payloadType = 96;
-		m_videoEncoderCodecInfo.width = 320;
-		m_videoEncoderCodecInfo.height = 240;
+		m_videoEncoderCodecInfo.width = 640;//320;
+		m_videoEncoderCodecInfo.height = 480;//240;
 		m_videoEncoderCodecInfo.bitRate = 200000;
 		m_videoEncoderCodecInfo.frameRate = 30;
 
 		m_videoDecoderCodecInfo.codec = VIDEO_CODEC_VP8;
 		m_videoDecoderCodecInfo.payloadType = VP8_90000_PT;
-		m_videoDecoderCodecInfo.width = 320;
-		m_videoDecoderCodecInfo.height = 240;
+		m_videoDecoderCodecInfo.width = 640;//320;
+		m_videoDecoderCodecInfo.height = 480;//240;
 		m_videoDecoderCodecInfo.bitRate = 900000;
 		m_videoDecoderCodecInfo.frameRate = 30;
 
@@ -436,7 +436,7 @@ bool ExternalOutput::initContext() {
 
 		AVCodecContext* streamCodecContext = video_stream_->codec;
 	        ELOG_ERROR("@@NA here4");
-		//avcodec_copy_context(streamCodecContext, m_vEncoder.vCoderContext);
+		avcodec_copy_context(streamCodecContext, m_vEncoder.vCoderContext);
 		video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
 		//context_->oformat->flags |= AVFMT_VARIABLE_FPS;
@@ -471,14 +471,12 @@ bool ExternalOutput::initContext() {
 		}
 		ELOG_ERROR("no problem opening output file");
 
+		avformat_network_init();
+
 		if (avformat_write_header(context_, NULL) < 0) {
 			ELOG_ERROR("Error writing header");
 			return false;
 		}
-
-		// Asaf //
-		ELOG_ERROR("after asaf");
-		avformat_network_init();
 
 		ELOG_ERROR("in initContext - leaving OK");
 	}

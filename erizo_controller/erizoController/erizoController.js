@@ -751,7 +751,8 @@ var listen = function () {
             var rtmpUrl = options.rtmpUrl;
 
 	log.error('@@NA: startRecorder, rtmpUrl: ['+rtmpUrl+'] ');
-
+	log.error('streamId: ' + streamId);
+	log.error('streams: ' + JSON.stringify(socket.room.streams));
 
             if (GLOBAL.config.erizoController.recording_path) {  // jshint ignore:line
                 url = GLOBAL.config.erizoController.recording_path + recordingId + '.mkv';  // jshint ignore:line
