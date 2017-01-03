@@ -1,10 +1,10 @@
 #ifndef ERIZO_SRC_ERIZO_RTP_RTPAUDIOMUTEHANDLER_H_
 #define ERIZO_SRC_ERIZO_RTP_RTPAUDIOMUTEHANDLER_H_
 
-#include <boost/thread/mutex.hpp>
-
 #include "./logger.h"
 #include "pipeline/Handler.h"
+
+#include <mutex>  // NOLINT
 
 namespace erizo {
 
@@ -26,7 +26,7 @@ class RtpAudioMuteHandler: public Handler {
   uint16_t seq_num_offset_, last_sent_seq_num_;
 
   bool mute_is_active_;
-  boost::mutex control_mutex_;
+  std::mutex control_mutex_;
 
   WebRtcConnection* connection_;
 

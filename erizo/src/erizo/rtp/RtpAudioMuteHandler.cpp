@@ -15,8 +15,12 @@ void RtpAudioMuteHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet)
     ctx->fireRead(packet);
     return;
   }
-  control_mutex_.lock();
-  if (seq_num_offset_ > 0) {
+  uint16_t offset;
+  {
+    std::lock_guard<std::mutex> lock(control_mutex_);
+    offset = seq_num_offset_;
+  }
+  if (offset > 0) {
     char* buf = packet->data;
     char* report_pointer = buf;
     int rtcp_length = 0;
@@ -28,22 +32,21 @@ void RtpAudioMuteHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet)
       total_length += rtcp_length;
       switch (chead->packettype) {
         case RTCP_Receiver_PT:
-          if ((chead->getHighestSeqnum() + seq_num_offset_) < chead->getHighestSeqnum()) {
+          if ((chead->getHighestSeqnum() + offset) < chead->getHighestSeqnum()) {
             // The seqNo adjustment causes a wraparound, add to cycles
             chead->setSeqnumCycles(chead->getSeqnumCycles() + 1);
           }
-          chead->setHighestSeqnum(chead->getHighestSeqnum() + seq_num_offset_);
+          chead->setHighestSeqnum(chead->getHighestSeqnum() + offset);
 
           break;
         case RTCP_RTP_Feedback_PT:
-          chead->setNackPid(chead->getNackPid() + seq_num_offset_);
+          chead->setNackPid(chead->getNackPid() + offset);
           break;
         default:
           break;
       }
     } while (total_length < packet->length);
   }
-  control_mutex_.unlock();
   ctx->fireRead(packet);
 }
 
@@ -54,22 +57,25 @@ void RtpAudioMuteHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet
     ctx->fireWrite(packet);
     return;
   }
-  control_mutex_.lock();
+  bool is_muted;
+  uint16_t offset;
+  {
+    std::lock_guard<std::mutex> lock(control_mutex_);
+    is_muted = mute_is_active_;
+    offset = seq_num_offset_;
+  }
   last_original_seq_num_ = rtp_header->getSeqNumber();
-  if (mute_is_active_) {
-    control_mutex_.unlock();
-  } else {
-    last_sent_seq_num_ = last_original_seq_num_ - seq_num_offset_;
-    if (seq_num_offset_ > 0) {
+  if (!is_muted) {
+    last_sent_seq_num_ = last_original_seq_num_ - offset;
+    if (offset > 0) {
       setPacketSeqNumber(packet, last_sent_seq_num_);
     }
-    control_mutex_.unlock();
     ctx->fireWrite(packet);
   }
 }
 
 void RtpAudioMuteHandler::muteAudio(bool active) {
-  boost::mutex::scoped_lock lock(control_mutex_);
+  std::lock_guard<std::mutex> lock(control_mutex_);
   mute_is_active_ = active;
   ELOG_INFO("%s message: Mute Audio, active: %d", connection_->toLog(), active);
   if (!mute_is_active_) {
