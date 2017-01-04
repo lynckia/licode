@@ -34,6 +34,7 @@ exports.ErizoJSController = function (threadPool) {
         WARN_CONFLICT       = 409,
         WARN_PRECOND_FAILED = 412,
         WARN_BAD_CONNECTION = 502;
+    that.publishers = publishers;
 
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
@@ -468,12 +469,8 @@ exports.ErizoJSController = function (threadPool) {
     };
 
     that.muteStream = function (muteStreamInfo, from, to) {
-        var subscriberWrtc = publishers[to].getSubscriber(from);
-        if (!subscriberWrtc) {
-            log.warn('message: wrtc not found for muteStream, ' +
-                     'code: ' + WARN_NOT_FOUND + ', id: ' + from + '_' + to);
-            return;
-        }
+        var publisher = this.publishers[to];
+        var subscriberWrtc = publisher.hasSubscriber(from);
         if (muteStreamInfo.video === undefined) {
             muteStreamInfo.video = false;
         }
@@ -481,9 +478,11 @@ exports.ErizoJSController = function (threadPool) {
         if (muteStreamInfo.audio === undefined) {
             muteStreamInfo.audio = false;
         }
-
-        subscriberWrtc.muteStream(muteStreamInfo.video,
-            muteStreamInfo.audio);
+        if (publisher.hasSubscriber(from)) {
+          publisher.muteSubscriberStream(from, muteStreamInfo.video, muteStreamInfo.audio);
+        } else {
+          publisher.muteStream(muteStreamInfo.video, muteStreamInfo.audio);
+        }
     };
 
     return that;

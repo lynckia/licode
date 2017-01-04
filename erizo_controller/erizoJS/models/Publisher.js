@@ -26,7 +26,8 @@ class Source {
     this.threadPool = threadPool;
     this.subscribers = {};
     this.externalOutputs = {};
-
+    this.muteAudio = false;
+    this.muteVideo = false;
     this.muxer = new addon.OneToManyProcessor();
   }
 
@@ -48,6 +49,7 @@ class Source {
               'id: ' + wrtcId + ', scheme: ' + this.scheme+
                ', ' + logger.objectToLog(options.metadata));
     wrtc.scheme = this.scheme;
+    this.muteSubscriberStream(id, false, false);
   }
 
   removeSubscriber(id) {
@@ -88,6 +90,25 @@ class Source {
 
   getExternalOutput(url) {
     return this.externalOutputs[url];
+  }
+
+  muteStream(muteVideo, muteAudio) {
+    this.muteVideo = muteVideo;
+    this.muteAudio = muteAudio;
+    for (var subId in this.subscribers) {
+      var sub = this.getSubscriber(subId);
+      this.muteSubscriberStream(subId, sub.muteVideo, sub.muteAudio);
+    }
+  }
+
+  muteSubscriberStream(id, muteVideo, muteAudio) {
+    var subscriber = this.getSubscriber(id);
+    subscriber.muteVideo = muteVideo;
+    subscriber.muteAudio = muteAudio;
+    log.info('message: Mute Stream, video: ', this.muteVideo || muteVideo,
+                                 ', audio: ', this.muteAudio || muteAudio);
+    subscriber.muteStream(this.muteVideo || muteVideo,
+                          this.muteAudio || muteAudio);
   }
 }
 
