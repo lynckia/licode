@@ -162,7 +162,6 @@ void SyntheticInput::close() {
 }
 
 void SyntheticInput::calculateSizeAndPeriod(uint32_t video_bitrate, uint32_t audio_bitrate) {
-  ELOG_TRACE("Bitrate received: %d", video_bitrate);
   video_bitrate = std::min(video_bitrate, config_.getMaxVideoBitrate());
   video_bitrate = std::max(video_bitrate, config_.getMinVideoBitrate());
 
@@ -194,7 +193,6 @@ int SyntheticInput::deliverFeedback_(char* buf, int len) {
         case RTCP_RTP_Feedback_PT:
           // NACKs are already handled by WebRtcConnection. RRs won't be handled.
           total_packets_nacked_++;
-          ELOG_TRACE("Total nacks: %d", total_packets_nacked_);
           break;
         case RTCP_PS_Feedback_PT:
           switch (chead->getBlockCount()) {
