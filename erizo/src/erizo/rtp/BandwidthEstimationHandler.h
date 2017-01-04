@@ -21,13 +21,12 @@ class WebRtcConnection;
 
 using webrtc::RemoteBitrateEstimator;
 using webrtc::RemoteBitrateObserver;
-using webrtc::Clock;
 using webrtc::RtpHeaderExtensionMap;
 
 class RemoteBitrateEstimatorPicker {
  public:
   virtual std::unique_ptr<RemoteBitrateEstimator> pickEstimator(bool using_absolute_send_time,
-    Clock* const clock, RemoteBitrateObserver *observer);
+    webrtc::Clock* const clock, RemoteBitrateObserver *observer);
 };
 
 class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
@@ -60,7 +59,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
 
   WebRtcConnection *connection_;
   std::shared_ptr<Worker> worker_;
-  Clock* const clock_;
+  webrtc::Clock* const clock_;
   std::shared_ptr<RemoteBitrateEstimatorPicker> picker_;
   std::unique_ptr<RemoteBitrateEstimator> rbe_;
   bool using_absolute_send_time_;

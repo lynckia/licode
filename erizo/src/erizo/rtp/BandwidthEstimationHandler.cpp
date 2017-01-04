@@ -26,13 +26,13 @@ const uint32_t BandwidthEstimationHandler::kRembMinimumBitrate = 20000;
 const unsigned int kSendThresholdPercent = 97;
 
 std::unique_ptr<RemoteBitrateEstimator> RemoteBitrateEstimatorPicker::pickEstimator(bool using_absolute_send_time,
-                                                                                    Clock* const clock,
+                                                                                    webrtc::Clock* const clock,
                                                                                     RemoteBitrateObserver *observer) {
   std::unique_ptr<RemoteBitrateEstimator> rbe;
   if (using_absolute_send_time) {
-    rbe.reset(new RemoteBitrateEstimatorAbsSendTime(observer, clock));
+    rbe.reset(new webrtc::RemoteBitrateEstimatorAbsSendTime(observer, clock));
   } else {
-    rbe.reset(new RemoteBitrateEstimatorSingleStream(observer, clock));
+    rbe.reset(new webrtc::RemoteBitrateEstimatorSingleStream(observer, clock));
   }
   return rbe;
 }
