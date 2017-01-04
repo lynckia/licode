@@ -142,7 +142,8 @@ var reset = module.exports.reset = function() {
     createOffer: sinon.stub(),
     setRemoteSdp: sinon.stub(),
     addRemoteCandidate: sinon.stub(),
-    setSlideShowMode: sinon.stub()
+    setSlideShowMode: sinon.stub(),
+    muteStream: sinon.stub()
   };
 
   module.exports.ExternalInput = {

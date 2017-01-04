@@ -286,11 +286,6 @@ Erizo.Stream = function (spec) {
             callback ('error');
             return;
         }
-        if (that.local) {
-            L.Logger.warning('muteAudio can only be used in remote streams');
-            callback('Error');
-            return;
-        }
         var config = {muteStream : {audio : isMuted}};
         that.checkOptions(config, true);
         that.pc.updateSpec(config, callback);
