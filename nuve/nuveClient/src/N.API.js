@@ -151,18 +151,9 @@ N.API = (function (N) {
                     case 205:
                         callback(req.responseText);
                         break;
-                    case 400:
-                        if (callbackError !== undefined) callbackError('400 Bad Request');
-                        break;
-                    case 401:
-                        if (callbackError !== undefined) callbackError('401 Unauthorized');
-                        break;
-                    case 403:
-                        if (callbackError !== undefined) callbackError('403 Forbidden');
-                        break;
                     default:
                         if (callbackError !== undefined) {
-                          callbackError(req.status + ' Error' + req.responseText);
+                          callbackError(req.status + ' Error' + req.responseText, req.status);
                         }
                 }
             }

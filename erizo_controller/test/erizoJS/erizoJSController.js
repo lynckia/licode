@@ -361,6 +361,54 @@ describe('Erizo JS Controller', function() {
           expect(mocks.WebRtcConnection.setRemoteSdp.callCount).to.equal(1);
         });
 
+        it('should mute and unmute subscriber stream', function() {
+          controller.processSignaling(kArbitraryId, kArbitraryId2, {
+                      type: 'updatestream',
+                      config: {
+                        muteStream: {
+                          audio: true,
+                          video: false
+                        }
+                      }});
+
+          controller.processSignaling(kArbitraryId, kArbitraryId2, {
+                      type: 'updatestream',
+                      config: {
+                        muteStream: {
+                          audio: false,
+                          video: false
+                        }
+                      }});
+
+          expect(mocks.WebRtcConnection.muteStream.callCount).to.equal(3);
+          expect(mocks.WebRtcConnection.muteStream.args[1]).to.deep.equal([false, true]);
+          expect(mocks.WebRtcConnection.muteStream.args[2]).to.deep.equal([false, false]);
+        });
+
+        it('should mute and unmute publisher stream', function() {
+          controller.processSignaling(kArbitraryId, undefined, {
+                      type: 'updatestream',
+                      config: {
+                        muteStream: {
+                          audio: true,
+                          video: false
+                        }
+                      }});
+
+          controller.processSignaling(kArbitraryId, undefined, {
+                      type: 'updatestream',
+                      config: {
+                        muteStream: {
+                          audio: false,
+                          video: false
+                        }
+                      }});
+
+          expect(mocks.WebRtcConnection.muteStream.callCount).to.equal(3);
+          expect(mocks.WebRtcConnection.muteStream.args[1]).to.deep.equal([false, true]);
+          expect(mocks.WebRtcConnection.muteStream.args[2]).to.deep.equal([false, false]);
+        });
+
         it('should set slide show mode to true', function() {
           controller.processSignaling(kArbitraryId, kArbitraryId2, {
                       type: 'updatestream',

@@ -5,6 +5,7 @@
 #include "WebRtcConnection.h"
 #include "OneToManyProcessor.h"
 #include "OneToManyTranscoder.h"
+#include "SyntheticInput.h"
 #include "ExternalInput.h"
 #include "ExternalOutput.h"
 #include "ThreadPool.h"
@@ -14,6 +15,7 @@ NAN_MODULE_INIT(InitAll) {
   OneToManyProcessor::Init(target);
   ExternalInput::Init(target);
   ExternalOutput::Init(target);
+  SyntheticInput::Init(target);
   ThreadPool::Init(target);
 }
 

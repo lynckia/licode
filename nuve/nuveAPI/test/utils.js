@@ -73,6 +73,15 @@ var reset = module.exports.reset = function() {
     removeToken: sinon.stub()
   });
 
+  module.exports.erizoControllerRegistry = createMock('../mdb/erizoControllerRegistry', {
+    getErizoControllers: sinon.stub(),
+    getErizoController: sinon.stub(),
+    hasErizoController: sinon.stub(),
+    addErizoController: sinon.stub(),
+    updateErizoController: sinon.stub(),
+    removeErizoController: sinon.stub()
+  });
+
   module.exports.dataBase = createMock('../mdb/dataBase', {
     superService: 'superService',
     nuveKey: 'nuveKey',
@@ -82,6 +91,7 @@ var reset = module.exports.reset = function() {
       rooms: dbEntry(),
       services: dbEntry(),
       tokens: dbEntry(),
+      erizoControllers: dbEntry()
     }
   });
 

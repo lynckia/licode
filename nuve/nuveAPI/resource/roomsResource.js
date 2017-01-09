@@ -17,12 +17,12 @@ exports.createRoom = function (req, res) {
     var currentService = req.service;
 
     if (currentService === undefined) {
-        res.send('Service not found', 404);
+        res.status(404).send('Service not found');
         return;
     }
     if (req.body.name === undefined) {
         log.info('message: createRoom - invalid room name');
-        res.send('Invalid room', 400);
+        res.status(400).send('Invalid room');
         return;
     }
 
@@ -67,7 +67,7 @@ exports.createRoom = function (req, res) {
 exports.represent = function (req, res) {
     var currentService = req.service;
     if (currentService === undefined) {
-        res.send('Service not found', 404);
+        res.status(404).send('Service not found');
         return;
     }
     log.info('message: representRooms, serviceId: ' + currentService._id);

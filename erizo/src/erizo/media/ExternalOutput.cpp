@@ -68,7 +68,13 @@ bool ExternalOutput::init() {
 
 ExternalOutput::~ExternalOutput() {
   ELOG_DEBUG("Destructing");
+  close();
+}
 
+void ExternalOutput::close() {
+  if (!recording_) {
+    return;
+  }
   // Stop our thread so we can safely nuke libav stuff and close our
   // our file.
   recording_ = false;

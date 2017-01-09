@@ -32,11 +32,11 @@ exports.represent = function (req, res) {
         if (serv === 'error') {
             log.info('message: represent service - not authorized, serviceId: ' +
                 req.params.service);
-            res.send('Service not authorized for this action', 401);
+            res.status(401).send('Service not authorized for this action');
             return;
         }
         if (serv === undefined) {
-            res.send('Service not found', 404);
+            res.status(404).send('Service not found');
             return;
         }
         log.info('Representing service ', serv._id);
@@ -51,11 +51,11 @@ exports.deleteService = function (req, res) {
     doInit(req, function (serv) {
         if (serv === 'error') {
             log.info('message: deleteService - not authorized, serviceId: ' + req.params.service);
-            res.send('Service not authorized for this action', 401);
+            res.status(401).send('Service not authorized for this action');
             return;
         }
         if (serv === undefined) {
-            res.send('Service not found', 404);
+            res.status(404).send('Service not found');
             return;
         }
         var id = '';

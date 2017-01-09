@@ -12,6 +12,7 @@ exports.ErizoNativeConnection = function (spec){
     var that = {},
     wrtc,
     initWebRtcConnection,
+    syntheticInput,
     externalInput,
     externalOutput;
 
@@ -43,6 +44,8 @@ exports.ErizoNativeConnection = function (spec){
                         that.prepareVideo(spec.video.file);
                     } else if (spec.video && spec.video.recording && !externalOutput){
                         that.prepareRecording(spec.video.recording);
+                    } else if (spec.video && spec.video.synthetic && !syntheticInput) {
+                      that.prepareSynthetic(spec.video.synthetic);
                     }
                     callback('callback', {type: 'started'});
                     break;
@@ -68,6 +71,10 @@ exports.ErizoNativeConnection = function (spec){
                     if (externalInput !== undefined){
                         log.info('Will start External Input');
                         externalInput.init();
+                    }
+                    if (syntheticInput !== undefined){
+                        log.info('Will start Synthetic Input');
+                        syntheticInput.init();
                     }
                     if (externalOutput !== undefined){
                         log.info('Will start External Output');
@@ -101,6 +108,17 @@ exports.ErizoNativeConnection = function (spec){
         externalInput = new addon.ExternalInput(url);
         externalInput.setAudioReceiver(wrtc);
         externalInput.setVideoReceiver(wrtc);
+    };
+
+    that.prepareSynthetic = function (config) {
+        log.info('Preparing synthetic video', config);
+        syntheticInput = new addon.SyntheticInput(threadPool,
+                                                  config.audioBitrate,
+                                                  config.minVideoBitrate,
+                                                  config.maxVideoBitrate);
+        syntheticInput.setAudioReceiver(wrtc);
+        syntheticInput.setVideoReceiver(wrtc);
+        syntheticInput.setFeedbackSource(wrtc);
     };
 
     that.prepareRecording = function (url) {
@@ -145,6 +163,9 @@ exports.ErizoNativeConnection = function (spec){
         }
         if (externalInput!==undefined){
             externalInput.close();
+        }
+        if (syntheticInput!==undefined){
+            syntheticInput.close();
         }
         wrtc.close();
     };

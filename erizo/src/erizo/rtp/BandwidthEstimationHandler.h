@@ -21,13 +21,12 @@ class WebRtcConnection;
 
 using webrtc::RemoteBitrateEstimator;
 using webrtc::RemoteBitrateObserver;
-using webrtc::Clock;
 using webrtc::RtpHeaderExtensionMap;
 
 class RemoteBitrateEstimatorPicker {
  public:
   virtual std::unique_ptr<RemoteBitrateEstimator> pickEstimator(bool using_absolute_send_time,
-    Clock* const clock, RemoteBitrateObserver *observer);
+    webrtc::Clock* const clock, RemoteBitrateObserver *observer);
 };
 
 class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
@@ -35,7 +34,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   DECLARE_LOGGER();
 
  public:
-  static const uint32_t kRembMinimumBitrateKbps;
+  static const uint32_t kRembMinimumBitrate;
 
   explicit BandwidthEstimationHandler(WebRtcConnection *connection, std::shared_ptr<Worker> worker,
     std::shared_ptr<RemoteBitrateEstimatorPicker> picker = std::make_shared<RemoteBitrateEstimatorPicker>());
@@ -51,7 +50,6 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
  private:
   void process();
   void sendREMBPacket();
-  void sendREMBPacketMaybe();
   bool parsePacket(std::shared_ptr<dataPacket> packet);
   RtpHeaderExtensionMap getHeaderExtensionMap(std::shared_ptr<dataPacket> packet) const;
   void pickEstimatorFromHeader();
@@ -61,7 +59,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
 
   WebRtcConnection *connection_;
   std::shared_ptr<Worker> worker_;
-  Clock* const clock_;
+  webrtc::Clock* const clock_;
   std::shared_ptr<RemoteBitrateEstimatorPicker> picker_;
   std::unique_ptr<RemoteBitrateEstimator> rbe_;
   bool using_absolute_send_time_;
@@ -72,7 +70,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   RtpHeaderExtensionMap ext_map_audio_, ext_map_video_;
   Context *temp_ctx_;
   uint32_t bitrate_, last_send_bitrate_;
-  uint64_t bitrate_update_time_ms_, last_remb_time_;
+  uint64_t last_remb_time_;
   bool running_;
 };
 }  // namespace erizo

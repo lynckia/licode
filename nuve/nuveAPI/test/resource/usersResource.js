@@ -71,10 +71,10 @@ describe('Users Resource', function() {
     it('should fail if CloudHandler does not respond', function(done) {
       serviceRegistryMock.getRoomForService.callsArgWith(2, kArbitraryRoom);
       setServiceStub.returns(kArbitraryService);
-      cloudHandlerMock.getUsersInRoom.callsArgWith(1, 'error');
+      cloudHandlerMock.getUsersInRoom.callsArgWith(1, 'timeout');
       request(app)
         .get('/rooms/1/users')
-        .expect(401, 'CloudHandler does not respond')
+        .expect(503, 'Erizo Controller managing this room does not respond')
         .end(function(err) {
           if (err) throw err;
           done();

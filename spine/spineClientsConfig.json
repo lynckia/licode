@@ -1,7 +1,10 @@
 {
   "basicExampleUrl": "https://localhost/",
   "publishConfig" : {
-    "video":{"file":"file:///YOUR_LICODE_COMPATIBLE_TEST_FILE"},
+    "_video":{"file":"file:///YOUR_LICODE_COMPATIBLE_TEST_FILE"},
+    "video":{"synthetic":{"audioBitrate": 30000,
+             "minVideoBitrate": 10000,
+             "maxVideoBitrate": 300000}},
     "audio":true,
     "data":true
   },

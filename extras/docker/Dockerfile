@@ -5,14 +5,17 @@ MAINTAINER Lynckia
 WORKDIR /opt
 
 # Download latest version of the code and install dependencies
-RUN  apt-get update && apt-get install -y git && \
-  git clone https://github.com/ging/licode.git && \
-	./licode/scripts/installUbuntuDeps.sh --cleanup
+RUN  apt-get update && apt-get install -y git wget && \
+  git clone https://github.com/ging/licode.git
+
+WORKDIR /opt/licode
 
 # Install Licode components
-RUN ./licode/scripts/installErizo.sh && \
-	./licode/scripts/installNuve.sh && \
-	./licode/scripts/installBasicExample.sh
+RUN  ./scripts/installUbuntuDeps.sh --cleanup && \
+  ./scripts/installErizo.sh && \
+	./scripts/installNuve.sh && \
+	./scripts/installBasicExample.sh
+
 COPY initDockerLicode.sh /opt/
 CMD ["./initDockerLicode.sh"]
 
