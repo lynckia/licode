@@ -54,6 +54,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   RtpHeaderExtensionMap getHeaderExtensionMap(std::shared_ptr<dataPacket> packet) const;
   void pickEstimatorFromHeader();
   void pickEstimator();
+  bool rtpSequenceLessThan(uint16_t x, uint16_t y);
 
   void updateExtensionMap(bool video, std::array<RTPExtensions, 10> map);
 
@@ -72,6 +73,11 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   uint32_t bitrate_, last_send_bitrate_;
   uint64_t last_remb_time_;
   bool running_;
+  struct RRPackets {
+    RRPackets() : ssrc(0), last_rtp_seq_num(0), cycle(0), last_sr_mid_ntp(0), last_sr_recv_ts(0), last_rr_sent_ts(0) {}
+    uint32_t ssrc, last_rtp_seq_num, cycle, last_sr_mid_ntp, last_sr_recv_ts, last_rr_sent_ts;
+  } audioRR, videoRR;
+  uint8_t packet_[128];
 };
 }  // namespace erizo
 
