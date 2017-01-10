@@ -99,6 +99,24 @@ void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RT
   }
 }
 
+// Implements x < y, taking into account RTP sequence number wrap
+// The general idea is if there's a very large difference between
+// x and y, that implies that the larger one is actually "less than"
+// the smaller one.
+//
+// I picked 0x8000 as my "very large" threshold because it splits
+// 0xffff, so it seems like a logical choice.
+bool BandwidthEstimationHandler::rtpSequenceLessThan(uint16_t x, uint16_t y) {
+  int diff = y - x;
+  if (diff > 0) {
+    return (diff < 0x8000);
+  } else if (diff < 0) {
+    return (diff < -0x8000);
+  } else {  // diff == 0
+    return false;
+  }
+}
+
 void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   temp_ctx_ = ctx;
   if (!running_) {
@@ -119,6 +137,7 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
   }
 
   uint32_t now = ClockUtils::timePointToMs(clock::now());
+  RtpHeader *head = reinterpret_cast<RtpHeader*> (packet->data);
   if (!chead->isRtcp()) {
     // RTP PACKETS
     uint16_t seqNum = head->getSeqNumber();
@@ -183,9 +202,7 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
     memcpy(packet_, reinterpret_cast<uint8_t*>(&rtcpHead), length);
     if (temp_ctx_) {
       temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
-      ELOG_DEBUG("Sent VIDEO RR - ssrc: %ld, fracLost: always 0, lostpackets: always 0, highSeqNum: %ld, cycle: %ld," +
-                 "jitter: always 0, LSR: %ld, DSLR: %ld", videoRR.ssrc, highestSeq, videoRR.cycle,
-                  videoRR.last_sr_mid_ntp, videoRR.last_sr_recv_ts);
+      ELOG_DEBUG("Sent VIDEO RR - ssrc: %ld, fracLost: always 0, lostpackets: always 0, highSeqNum: %ld, cycle: %ld, jitter: always 0, LSR: %ld, DSLR: %ld", videoRR.ssrc, highestSeq, videoRR.cycle, videoRR.last_sr_mid_ntp, videoRR.last_sr_recv_ts);  //NOLINT
       videoRR.last_rr_sent_ts = now;
     }
   }
@@ -211,9 +228,7 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
     memcpy(packet_, reinterpret_cast<uint8_t*>(&rtcpHead), length);
     if (temp_ctx_) {
       temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
-      ELOG_DEBUG("Sent AUDIO RR - ssrc: %ld, fracLost: always 0, lostpackets: always 0, highSeqNum: %ld, cycle: %ld," +
-                 "jitter: always 0, LSR: %ld, DSLR: %ld", audioRR.ssrc, highestSeq, audioRR.cycle,
-                  audioRR.last_sr_mid_ntp, audioRR.last_sr_recv_ts);
+      ELOG_DEBUG("Sent AUDIO RR - ssrc: %ld, fracLost: always 0, lostpackets: always 0, highSeqNum: %ld, cycle: %ld, jitter: always 0, LSR: %ld, DSLR: %ld", audioRR.ssrc, highestSeq, audioRR.cycle, audioRR.last_sr_mid_ntp, audioRR.last_sr_recv_ts);  //NOLINT
       audioRR.last_rr_sent_ts = now;
     }
   }
