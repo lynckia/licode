@@ -21,6 +21,12 @@ namespace erizo {
       unsigned int component_id, unsigned int min_port, unsigned int max_port) {
     return nice_agent_set_port_range(agent, stream_id, component_id, min_port, max_port);
   }
+  bool LibNiceInterfaceImpl::NiceAgentAddLocalAddress(NiceAgent* agent, const char *ip) {
+    NiceAddress addr;
+    nice_address_init(&addr);
+    nice_address_set_from_string(&addr, ip);
+    return nice_agent_add_local_address(agent, &addr);
+  }
   bool LibNiceInterfaceImpl::NiceAgentGetSelectedPair(NiceAgent* agent, unsigned int stream_id,
       unsigned int component_id, NiceCandidate** local, NiceCandidate** remote) {
     return nice_agent_get_selected_pair(agent, stream_id, component_id, local, remote);

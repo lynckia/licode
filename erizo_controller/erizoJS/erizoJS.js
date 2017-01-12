@@ -79,13 +79,12 @@ var threadPool = new addon.ThreadPool(GLOBAL.config.erizo.numWorkers);
 threadPool.start();
 
 var ejsController = controller.ErizoJSController(threadPool);
-
+GLOBAL.ejsController = ejsController;
 ejsController.keepAlive = function(callback) {
     callback('callback', true);
 };
 
-ejsController.privateRegexp = new RegExp(process.argv[3], 'g');
-ejsController.publicIP = process.argv[4];
+ejsController.publicIP = process.argv[3];
 
 amqper.connect(function () {
     try {
