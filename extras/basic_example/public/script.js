@@ -100,7 +100,7 @@ window.onload = function () {
       };
 
       room.addEventListener('room-connected', function (roomEvent) {
-        var onlySubscribe = getParameterByName('onlySubscribe') == '1' || false;
+        var onlySubscribe = getParameterByName('onlySubscribe');
         if (!onlySubscribe) room.publish(localStream, {metadata: {type: 'publisher'}});
         subscribeToStreams(roomEvent.streams);
       });
