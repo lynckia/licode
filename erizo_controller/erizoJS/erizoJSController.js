@@ -485,5 +485,22 @@ exports.ErizoJSController = function (threadPool) {
         }
     };
 
+    that.getStreamStats = function (to, callback) {
+        var stats = {};
+        var publisher;
+        if (to && publishers[to]) {
+            publisher = publishers[to];
+            stats.publisher = JSON.parse(publisher.wrtc.getStats());
+            stats.publisher.metadata = publisher.wrtc.metadata;
+            var subscriber;
+            for (var sub in publisher.subscribers) {
+                stats[sub] = JSON.parse(publisher.subscribers[sub].getStats());
+                stats[sub].metadata = publisher.subscribers[sub].metadata;
+            }
+        }
+        log.info('GEtStreamStats', stats);
+        callback('callback', stats);
+    };
+
     return that;
 };
