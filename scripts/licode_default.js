@@ -159,6 +159,8 @@ config.erizo.turnpass = '';
 config.erizo.minport = 0; // default value: 0
 config.erizo.maxport = 0; // default value: 0
 
+config.erizo['disabled_handlers'] = []; // there are no handlers disabled by default
+
 /***** END *****/
 // Following lines are always needed.
 var module = module || {};

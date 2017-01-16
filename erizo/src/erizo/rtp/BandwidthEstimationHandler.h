@@ -3,6 +3,7 @@
 
 #include <array>
 #include <vector>
+#include <string>
 
 #include "./logger.h"
 #include "pipeline/Handler.h"
@@ -42,6 +43,13 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   void OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
                                        uint32_t bitrate) override;
 
+  void enable() override;
+  void disable() override;
+
+  std::string getName() override {
+    return "bwe";
+  }
+
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
 
@@ -72,6 +80,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   uint32_t bitrate_, last_send_bitrate_;
   uint64_t last_remb_time_;
   bool running_;
+  bool active_;
 };
 }  // namespace erizo
 

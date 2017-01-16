@@ -7,7 +7,7 @@ var logger = require('./../../common/logger').logger;
 var log = logger.getLogger('Publisher');
 
 function createWrtc(id, threadPool) {
-  return new addon.WebRtcConnection(threadPool, id,
+  var wrtc = new addon.WebRtcConnection(threadPool, id,
                                     GLOBAL.config.erizo.stunserver,
                                     GLOBAL.config.erizo.stunport,
                                     GLOBAL.config.erizo.minport,
@@ -18,6 +18,11 @@ function createWrtc(id, threadPool) {
                                     GLOBAL.config.erizo.turnport,
                                     GLOBAL.config.erizo.turnusername,
                                     GLOBAL.config.erizo.turnpass);
+  var disabledHandlers = GLOBAL.config.erizo['disabled_handlers'];
+  for (var index in disabledHandlers) {
+    wrtc.disableHandler(disabledHandlers[index]);
+  }
+  return wrtc;
 }
 
 class Source {

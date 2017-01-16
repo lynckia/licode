@@ -50,6 +50,8 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
   Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
+  Nan::SetPrototypeMethod(tpl, "enableHandler", enableHandler);
+  Nan::SetPrototypeMethod(tpl, "disableHandler", disableHandler);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("WebRtcConnection").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -339,6 +341,28 @@ NAN_METHOD(WebRtcConnection::generatePLIPacket) {
 
   std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
   me->sendPLI();
+  return;
+}
+
+NAN_METHOD(WebRtcConnection::enableHandler) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+
+  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  std::string name = std::string(*param);
+
+  me->enableHandler(name);
+  return;
+}
+
+NAN_METHOD(WebRtcConnection::disableHandler) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+
+  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  std::string name = std::string(*param);
+
+  me->disableHandler(name);
   return;
 }
 

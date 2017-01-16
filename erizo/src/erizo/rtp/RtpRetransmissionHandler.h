@@ -17,8 +17,14 @@ class RtpRetransmissionHandler : public Handler {
 
   explicit RtpRetransmissionHandler(WebRtcConnection *connection);
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void enable() override;
+  void disable() override;
 
+  std::string getName() override {
+    return "retransmissions";
+  }
+
+  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
 
  private:
