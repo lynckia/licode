@@ -17,7 +17,6 @@ namespace erizo {
   Stats::Stats() {
     ELOG_DEBUG("Constructor Stats");
     theListener_ = NULL;
-    rtpBytesReceived_ = 0;
     bitrate_calculation_start_ = clock::now();
   }
 
