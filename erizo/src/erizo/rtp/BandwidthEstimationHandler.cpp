@@ -192,7 +192,7 @@ void BandwidthEstimationHandler::sendREMBPacket() {
   remb_packet_.setREMBFeedSSRC(connection_->getVideoSourceSSRC());
   int remb_length = (remb_packet_.getLength() + 1) * 4;
   if (temp_ctx_ && active_) {
-    ELOG_TRACE("BWE Estimation is %d", last_send_bitrate_);
+    ELOG_TRACE("BWE Estimation is %d", last_send_bitrate_.load());
     temp_ctx_->fireWrite(std::make_shared<dataPacket>(0,
       reinterpret_cast<char*>(&remb_packet_), remb_length, OTHER_PACKET));
   }
@@ -223,5 +223,9 @@ void BandwidthEstimationHandler::OnReceiveBitrateChanged(const std::vector<uint3
   last_remb_time_ = now;
   last_send_bitrate_ = bitrate_;
   sendREMBPacket();
+}
+
+uint32_t BandwidthEstimationHandler::getLastSendBitrate() {
+  return last_send_bitrate_;
 }
 }  // namespace erizo

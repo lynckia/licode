@@ -669,6 +669,9 @@ WebRTCEvent WebRtcConnection::getCurrentState() {
 }
 
 std::string WebRtcConnection::getJSONStats() {
+  if (this->getVideoSourceSSRC()) {
+    thisStats_.setEstimatedBandwidth(bwe_handler_->getLastSendBitrate(), this->getVideoSourceSSRC());
+  }
   return thisStats_.getStats();
 }
 
@@ -715,6 +718,7 @@ void WebRtcConnection::write(std::shared_ptr<dataPacket> packet) {
   if (transport == nullptr) {
     return;
   }
+  thisStats_.processRtpPacket(packet->data, packet->length);
   this->extProcessor_.processRtpExtensions(packet);
   transport->write(packet->data, packet->length);
 }

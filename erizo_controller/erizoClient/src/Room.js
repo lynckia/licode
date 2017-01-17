@@ -859,6 +859,22 @@ Erizo.Room = function (spec) {
         }
     };
 
+    that.getStreamStats = function (stream, callback) {
+        if (!that.socket) {
+            return 'Error getting stats - no socket';
+        }
+        if (!stream) {
+            return 'Error getting stats - no stream';
+        }
+        
+        sendMessageSocket('getStreamStats', stream.getID(), function (result) {
+            if (result) {
+                L.Logger.info('Got stats', result);
+                callback(result);
+            }
+        });
+    };
+
     //It searchs the streams that have "name" attribute with "value" value
     that.getStreamsByAttribute = function (name, value) {
         var streams = [], index, stream;
