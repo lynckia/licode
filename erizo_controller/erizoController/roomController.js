@@ -386,7 +386,6 @@ exports.RoomController = function (spec) {
             var theId = getErizoQueue(streamId);
             log.info('Get stats for publisher ', streamId, 'theId', theId);
             amqper.callRpc(getErizoQueue(streamId), 'getStreamStats', args, {callback: function(data) {
-                log.info('Got data', data);
                 callback(data);
             }});
             return;

@@ -47,6 +47,8 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
 
   void updateExtensionMaps(std::array<RTPExtensions, 10> video_map, std::array<RTPExtensions, 10> audio_map);
 
+  uint32_t getLastSendBitrate();
+
  private:
   void process();
   void sendREMBPacket();

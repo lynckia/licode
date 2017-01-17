@@ -216,4 +216,8 @@ void BandwidthEstimationHandler::OnReceiveBitrateChanged(const std::vector<uint3
   last_send_bitrate_ = bitrate_;
   sendREMBPacket();
 }
+
+uint32_t BandwidthEstimationHandler::getLastSendBitrate() {
+  return last_send_bitrate_;
+}
 }  // namespace erizo
