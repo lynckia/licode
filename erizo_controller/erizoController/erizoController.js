@@ -463,12 +463,23 @@ var listen = function () {
             }
         });
 
+        var hasPermission = function(user, action) {
+          return user && user.permissions[action] === true;
+        };
+
         socket.on('signaling_message', function (msg) {
             if (socket.room.p2p) {
                 io.sockets.socket(msg.peerSocket).emit('signaling_message_peer',
                         {streamId: msg.streamId, peerSocket: socket.id, msg: msg.msg});
             } else {
-                socket.room.controller.processSignaling(msg.streamId, socket.id, msg.msg);
+                var isControlMessage = msg.msg.type === 'control';
+                if (!isControlMessage ||
+                    (isControlMessage && hasPermission(socket.user, msg.msg.action.name))) {
+                  socket.room.controller.processSignaling(msg.streamId, socket.id, msg.msg);
+                } else {
+                  log.info('message: User unauthorized to execute action on stream, action: ' + msg.msg.action.name +
+                            ', streamId: ' + msg.streamId);
+                }
             }
         });
 

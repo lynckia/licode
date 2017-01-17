@@ -122,6 +122,16 @@ class WebRtcConnection : public MediaSink, public erizo::WebRtcConnectionEventLi
      * Param: An object with metadata {key1:value1, key2: value2}
      */
     static NAN_METHOD(setMetadata);
+    /*
+     * Enable a specific Handler in the pipeline
+     * Param: Name of the handler
+     */
+    static NAN_METHOD(enableHandler);
+    /*
+     * Disables a specific Handler in the pipeline
+     * Param: Name of the handler
+     */
+    static NAN_METHOD(disableHandler);
 
     static Nan::Persistent<v8::Function> constructor;
 

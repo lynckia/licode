@@ -213,9 +213,22 @@ exports.ErizoJSController = function (threadPool) {
         }
     };
 
+    var processControlMessage = function(publisher, subscriber, action) {
+      var publisherSide = subscriber === undefined || msg.publisherSide;
+      switch(action.name) {
+        case 'controlhandlers':
+          if (action.enable) {
+            publisher.enableHandlers(publisherSide ? undefined : subscriber.id, action.handlers);
+          } else {
+            publisher.disableHandlers(publisherSide ? undefined : subscriber.id, action.handlers);
+          }
+          break;
+      }
+    };
+
     that.processSignaling = function (streamId, peerId, msg) {
         log.info('message: Process Signaling message, ' +
-                 'streamId: ' + streamId + ', peerId: ' + peerId, msg);
+                 'streamId: ' + streamId + ', peerId: ' + peerId);
         if (publishers[streamId] !== undefined) {
             var publisher = publishers[streamId];
             if (publisher.hasSubscriber(peerId)) {
@@ -237,6 +250,8 @@ exports.ErizoJSController = function (threadPool) {
                             that.muteStream (msg.config.muteStream, peerId, streamId);
                         }
                     }
+                } else if (msg.type === 'control') {
+                  processControlMessage(publisher, subscriber, msg.action);
                 }
             } else {
                 if (msg.type === 'offer') {
@@ -266,6 +281,8 @@ exports.ErizoJSController = function (threadPool) {
                             that.muteStream (msg.config.muteStream, peerId, streamId);
                         }
                     }
+                } else if (msg.type === 'control') {
+                  processControlMessage(publisher, undefined, msg.action);
                 }
             }
 
