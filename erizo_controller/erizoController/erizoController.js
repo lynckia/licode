@@ -967,7 +967,26 @@ var listen = function () {
                 updateMyState();
             }
         });
+        
+        socket.on('getStreamStats', function (streamId, callback) {
+            log.debug('Getting stats for streamId ' + streamId);
+            if (socket.user === undefined || !socket.user.permissions[Permission.STATS]) {
+                log.info('message: unauthorized getStreamStats request');
+                if (callback) callback(null, 'Unauthorized');
+                return;
+            }
+            if (socket.room.streams[streamId] === undefined) {
+                log.info('message: bad getStreamStats request');
+                return;
+            }
+            if (socket.room !== undefined){
+                socket.room.controller.getStreamStats(streamId, function (result) {
+                    callback(result);
+                });
+            }
+        });
     });
+
 };
 
 

@@ -485,5 +485,42 @@ exports.ErizoJSController = function (threadPool) {
         }
     };
 
+    that.getStreamStats = function (to, callback) {
+        var stats = {};
+        var publisher;
+        log.info('message: Requested stream stats, streamID: ' + to);
+        if (to && publishers[to]) {
+            publisher = publishers[to];
+            stats.publisher = {};
+            stats.publisher.metadata = publisher.wrtc.metadata;
+            var unfilteredStats = JSON.parse(publisher.wrtc.getStats());
+            for (var channel in unfilteredStats) {
+                var ssrc = unfilteredStats[channel].ssrc;
+                stats.publisher[ssrc] = {};
+                stats.publisher[ssrc].erizoBandwidth = unfilteredStats[channel].erizoBandwidth;
+                stats.publisher[ssrc].bytesSent = unfilteredStats[channel].rtcpBytesSent;
+                stats.publisher[ssrc].packetsSent = unfilteredStats[channel].rtcpPacketSent;
+                stats.publisher[ssrc].type = unfilteredStats[channel].type;
+                stats.publisher[ssrc].bitrateCalculated = unfilteredStats[channel].bitrateCalculated;
+
+            }
+            var subscriber;
+            for (var sub in publisher.subscribers) {
+                stats[sub] = {};
+                var unfilteredStats = JSON.parse(publisher.subscribers[sub].getStats());
+                for (var channel in unfilteredStats) {
+                    var ssrc = unfilteredStats[channel].sourceSsrc;
+                    if (ssrc === undefined) {
+                        ssrc = unfilteredStats[channel].ssrc;
+                    }
+                    stats[sub][ssrc] = stats[sub][ssrc] || {};
+                    stats[sub][ssrc] = Object.assign(stats[sub][ssrc],  unfilteredStats[channel]);
+                }
+                stats[sub].metadata = publisher.subscribers[sub].metadata;
+            }
+        }
+        callback('callback', stats);
+    };
+
     return that;
 };
