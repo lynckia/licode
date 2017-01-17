@@ -115,6 +115,30 @@ class Source {
     subscriber.muteStream(this.muteVideo || muteVideo,
                           this.muteAudio || muteAudio);
   }
+
+  enableHandlers(id, handlers) {
+    var wrtc = this.wrtc;
+    if (id) {
+      wrtc = this.getSubscriber(id);
+    }
+    if (wrtc) {
+      for (var index in handlers) {
+        wrtc.enableHandler(handlers[index]);
+      }
+    }
+  }
+
+  disableHandlers(id, handlers) {
+    var wrtc = this.wrtc;
+    if (id) {
+      wrtc = this.getSubscriber(id);
+    }
+    if (wrtc) {
+      for (var index in handlers) {
+        wrtc.disableHandler(handlers[index]);
+      }
+    }
+  }
 }
 
 class Publisher extends Source {

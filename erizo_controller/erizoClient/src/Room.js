@@ -713,6 +713,13 @@ Erizo.Room = function (spec) {
         }
     };
 
+    that.sendControlMessage = function(stream, type, action) {
+      if (stream && stream.getID()) {
+        var msg = {type: 'control', action: action};
+        sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: msg});
+      }
+    };
+
     // It subscribe to a remote stream and draws it inside the HTML tag given by the ID='elementID'
     that.subscribe = function (stream, options, callback) {
 
