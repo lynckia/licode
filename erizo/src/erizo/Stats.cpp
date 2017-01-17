@@ -25,6 +25,7 @@ namespace erizo {
   }
 
   uint32_t Stats::processRtpPacket(char* buf, int len) {
+    boost::recursive_mutex::scoped_lock lock(mapMutex_);
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
     if (chead->isRtcp())
       return 0;
@@ -34,7 +35,7 @@ namespace erizo {
     if (bitrate_bytes_map.find(ssrc) == bitrate_bytes_map.end()) {
       bitrate_bytes_map[ssrc] = 0;
     }
-    bitrate_bytes_map[ssrc]+=len;
+    bitrate_bytes_map[ssrc] += len;
     time_point nowms = clock::now();
     time_point start = bitrate_calculation_start_;
     duration delay = nowms - start;

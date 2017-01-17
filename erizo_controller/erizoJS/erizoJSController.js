@@ -510,24 +510,11 @@ exports.ErizoJSController = function (threadPool) {
                 var unfilteredStats = JSON.parse(publisher.subscribers[sub].getStats());
                 for (var channel in unfilteredStats) {
                     var ssrc = unfilteredStats[channel].sourceSsrc;
-                    var isReceivedBitrate = false;
                     if (ssrc === undefined) {
                         ssrc = unfilteredStats[channel].ssrc;
-                        isReceivedBitrate = true;
                     }
-                    if (!stats[sub][ssrc]) {
-                        stats[sub][ssrc] = {};
-                    }
-                    if (isReceivedBitrate) {
-                        stats[sub][ssrc].bitrateCalculated = unfilteredStats[channel].bitrateCalculated;
-                    } else {
-                        stats[sub][ssrc].plis = unfilteredStats[channel].PLI;
-                        stats[sub][ssrc].nacks = unfilteredStats[channel].NACK;
-                        stats[sub][ssrc].packetsLost = unfilteredStats[channel].packetsLost;
-                        stats[sub][ssrc].jitter = unfilteredStats[channel].jitter;
-                        stats[sub][ssrc].ratioLost = unfilteredStats[channel].fractionLost;
-                        stats[sub][ssrc].bandwidth = unfilteredStats[channel].bandwidth;
-                    }
+                    stats[sub][ssrc] = stats[sub][ssrc] || {};
+                    stats[sub][ssrc] = Object.assign(stats[sub][ssrc],  unfilteredStats[channel]);
                 }
                 stats[sub].metadata = publisher.subscribers[sub].metadata;
             }

@@ -62,7 +62,7 @@ class Stats {
   uint32_t getBitrateCalculated(unsigned int ssrc) {
     return(statsPacket_[ssrc]["bitrateCalculated"]);
   }
-  uint32_t setBitrateCalculated(uint32_t bitrate, uint32_t ssrc) {
+  void setBitrateCalculated(uint32_t bitrate, uint32_t ssrc) {
     statsPacket_[ssrc]["bitrateCalculated"] = bitrate;
   }
   uint32_t getPacketsLost(unsigned int ssrc) {
