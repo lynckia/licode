@@ -970,7 +970,7 @@ var listen = function () {
         
         socket.on('getStreamStats', function (streamId, callback) {
             log.debug('Getting stats for streamId ' + streamId);
-            if (socket.user === undefined || !socket.user.permissions[Permission.PUBLISH]) {
+            if (socket.user === undefined || !socket.user.permissions[Permission.STATS]) {
                 log.info('message: unauthorized getStreamStats request');
                 if (callback) callback(null, 'Unauthorized');
                 return;
