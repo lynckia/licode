@@ -7,7 +7,7 @@
 var Erizo = Erizo || {};
 Erizo.Stream = function (spec) {
     var that = Erizo.EventDispatcher(spec),
-        getFrame;
+        getFrame, controlHandler;
 
     that.stream = spec.stream;
     that.url = spec.url;
@@ -289,6 +289,24 @@ Erizo.Stream = function (spec) {
         var config = {muteStream : {audio : isMuted}};
         that.checkOptions(config, true);
         that.pc.updateSpec(config, callback);
+    };
+
+    controlHandler = function (handlers, publisherSide, enable) {
+      publisherSide = !(publisherSide !== true);
+      var handlers = (typeof handlers === 'string') ? [handlers] : handlers;
+      handlers = (handlers instanceof Array) ? handlers : [];
+
+      if (handlers.length > 0) {
+        that.room.sendControlMessage(that, 'control', {name: 'controlhandlers', enable: enable, publisherSide: publisherSide, handlers: handlers});
+      }
+    };
+
+    that.disableHandlers = function (handlers, publisherSide) {
+      controlHandler(handlers, publisherSide, false);
+    };
+
+    that.enableHandlers = function (handlers, publisherSide) {
+        controlHandler(handlers, publisherSide, true);
     };
 
     that.updateConfiguration = function (config, callback) {

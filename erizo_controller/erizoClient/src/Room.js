@@ -713,6 +713,13 @@ Erizo.Room = function (spec) {
         }
     };
 
+    that.sendControlMessage = function(stream, type, action) {
+      if (stream && stream.getID()) {
+        var msg = {type: 'control', action: action};
+        sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: msg});
+      }
+    };
+
     // It subscribe to a remote stream and draws it inside the HTML tag given by the ID='elementID'
     that.subscribe = function (stream, options, callback) {
 
@@ -850,6 +857,22 @@ Erizo.Room = function (spec) {
                 });
             }
         }
+    };
+
+    that.getStreamStats = function (stream, callback) {
+        if (!that.socket) {
+            return 'Error getting stats - no socket';
+        }
+        if (!stream) {
+            return 'Error getting stats - no stream';
+        }
+        
+        sendMessageSocket('getStreamStats', stream.getID(), function (result) {
+            if (result) {
+                L.Logger.info('Got stats', result);
+                callback(result);
+            }
+        });
     };
 
     //It searchs the streams that have "name" attribute with "value" value

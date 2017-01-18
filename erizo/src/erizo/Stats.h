@@ -29,6 +29,8 @@ class Stats {
 
   uint32_t processRtpPacket(char* buf, int len);
   void processRtcpPacket(char* buf, int length);
+  void setEstimatedBandwidth(uint32_t bandwidth, uint32_t ssrc);
+
   std::string getStats();
   // The video and audio SSRCs of the Client
   void setVideoSourceSSRC(unsigned int ssrc) {
@@ -42,12 +44,12 @@ class Stats {
   }
 
  private:
-  uint64_t rtpBytesReceived_, packetsReceived_;
   time_point bitrate_calculation_start_;
-
   typedef std::map<std::string, uint64_t> singleSSRCstatsMap_t;
   typedef std::map <uint32_t, singleSSRCstatsMap_t> fullStatsMap_t;
+
   fullStatsMap_t statsPacket_;
+  std::map<uint32_t, uint32_t> bitrate_bytes_map;
   boost::recursive_mutex mapMutex_;
   WebRtcConnectionStatsListener* theListener_;
   unsigned int videoSSRC_, audioSSRC_;
@@ -57,11 +59,12 @@ class Stats {
   uint32_t getPacketsReceived(unsigned int ssrc) {
     return(statsPacket_[ssrc]["packetsReceived"]);
   }
-
-  uint32_t getBitRateReceived(unsigned int ssrc) {
-    return(statsPacket_[ssrc]["bitRateReceived"]);
+  uint32_t getBitrateCalculated(unsigned int ssrc) {
+    return(statsPacket_[ssrc]["bitrateCalculated"]);
   }
-
+  void setBitrateCalculated(uint32_t bitrate, uint32_t ssrc) {
+    statsPacket_[ssrc]["bitrateCalculated"] = bitrate;
+  }
   uint32_t getPacketsLost(unsigned int ssrc) {
     return (statsPacket_[ssrc]["packetsLost"]);
   }
@@ -101,6 +104,13 @@ class Stats {
   }
   void setBandwidth(uint64_t count, unsigned int ssrc) {
     statsPacket_[ssrc]["bandwidth"] = count;
+  }
+
+  uint32_t getErizoEstimatedBandwidth(unsigned int ssrc) {
+    return statsPacket_[ssrc]["erizoBandwidth"];
+  }
+  void setErizoEstimatedBandwidth(uint32_t count, unsigned int ssrc) {
+    statsPacket_[ssrc]["erizoBandwidth"] = count;
   }
 
   void accountPLIMessage(unsigned int ssrc) {

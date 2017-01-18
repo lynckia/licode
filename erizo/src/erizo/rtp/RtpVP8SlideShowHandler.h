@@ -2,6 +2,7 @@
 #define ERIZO_SRC_ERIZO_RTP_RTPVP8SLIDESHOWHANDLER_H_
 
 #include <boost/thread/mutex.hpp>
+#include <string>
 
 #include "pipeline/Handler.h"
 #include "./logger.h"
@@ -16,9 +17,15 @@ class RtpVP8SlideShowHandler : public RtpSlideShowHandler {
   explicit RtpVP8SlideShowHandler(WebRtcConnection* connection);
   void setSlideShowMode(bool activated) override;
 
+  void enable() override;
+  void disable() override;
+
+  std::string getName() override {
+    return "slideshow-vp8";
+  }
+
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
-
 
  private:
   int32_t slideshow_seq_num_, last_original_seq_num_;

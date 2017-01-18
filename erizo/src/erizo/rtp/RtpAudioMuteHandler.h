@@ -17,6 +17,13 @@ class RtpAudioMuteHandler: public Handler {
   explicit RtpAudioMuteHandler(WebRtcConnection* connection);
   void muteAudio(bool active);
 
+  void enable() override;
+  void disable() override;
+
+  std::string getName() override {
+    return "audio-mute";
+  }
+
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
 
