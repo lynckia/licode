@@ -18,9 +18,7 @@ DEFINE_LOGGER(BandwidthEstimationHandler, "rtp.BandwidthEstimationHandler");
 
 static const uint32_t kTimeOffsetSwitchThreshold = 30;
 static const uint32_t kMinBitRateAllowed = 10;
-const int kRembTimeOutThresholdMs = 2000;
 const int kRembSendIntervallMs = 200;
-const int kRRSendIntervalMs = 1500;
 const uint32_t BandwidthEstimationHandler::kRembMinimumBitrate = 20000;
 
 // % threshold for if we should send a new REMB asap.
@@ -49,6 +47,7 @@ BandwidthEstimationHandler::BandwidthEstimationHandler(WebRtcConnection *connect
   min_bitrate_bps_{kMinBitRateAllowed}, temp_ctx_{nullptr},
   bitrate_{0}, last_send_bitrate_{0}, last_remb_time_{0},
   running_{false} {
+    _stats_handler = webrtc::ReceiveStatistics::Create(clock_);
 }
 
 void BandwidthEstimationHandler::process() {
@@ -123,49 +122,93 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
     process();
     running_ = true;
   }
-  RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
-  if (!chead->isRtcp() && packet->type == VIDEO_PACKET) {
+
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
+  RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
+  uint32_t now = ClockUtils::timePointToMs(clock::now());
+
+  if (!chead->isRtcp()) {
+    // RTP PACKET
     if (parsePacket(packet)) {
+      webrtc::StatisticianMap res = _stats_handler->GetActiveStatisticians();   // get a list of active stats engine
+      webrtc::StatisticianMap::iterator it;
+
       int64_t arrival_time_ms = packet->received_time_ms;
       arrival_time_ms = clock_->TimeInMilliseconds() - (ClockUtils::timePointToMs(clock::now()) - arrival_time_ms);
       size_t payload_size = packet->length;
-      pickEstimatorFromHeader();
-      rbe_->IncomingPacket(arrival_time_ms, payload_size, header_);
+      if (packet->type == VIDEO_PACKET) {
+        // SEND TO BWE
+        pickEstimatorFromHeader();
+        rbe_->IncomingPacket(arrival_time_ms, payload_size, header_);
+
+        // SEND TO OUR STATS ENGINE
+        it = res.find(videoRR.ssrc);  // pick our video stats engine
+        bool isRetransmitted = false;
+        if (it != res.end()) {
+          // CONSIDER TO ADD MORE PAYLOAD TYPE
+          header_.payload_type_frequency = 90000;
+          isRetransmitted = it->second->IsRetransmitOfOldPacket(header_, 0);   // check if packed is a retransmitted one
+        }                                                                      // to make our stats more accurate
+        _stats_handler->IncomingPacket(header_, packet->length, isRetransmitted);
+
+      } else if (packet->type == AUDIO_PACKET) {
+        // SEND TO OUR STATS ENGINE
+        it = res.find(audioRR.ssrc);  // pick our audio stats engine
+        bool isRetransmitted = false;
+        int clockRate = 48000;
+        if (it != res.end()) {
+          // CONSIDER TO ADD MORE PAYLOAD TYPE
+          if (head->getPayloadType() == OPUS_48000_PT) {
+            clockRate = 48000;
+          } else {
+            clockRate = 8000;
+          }
+          header_.payload_type_frequency = clockRate;
+          isRetransmitted = it->second->IsRetransmitOfOldPacket(header_, 0);  // check if packed is a retransmitted one
+        }                                                                     // to make our stats more accurate
+        _stats_handler->IncomingPacket(header_, packet->length, isRetransmitted);
+      }
+
     } else {
       ELOG_DEBUG("Packet not parsed %d", packet->type);
     }
   }
 
-  uint32_t now = ClockUtils::timePointToMs(clock::now());
-  RtpHeader *head = reinterpret_cast<RtpHeader*> (packet->data);
+  // RR PACKET HANDLER - generate RR packets as per rfc3550
+  // TODO(kekkokk) Calculate the right timing when send RR based on available bandwidth
+  // For semplicity an RR packet is sent every SR packet received.
+
   if (!chead->isRtcp()) {
     // RTP PACKETS
     uint16_t seqNum = head->getSeqNumber();
+
     switch (packet->type) {
-      case VIDEO_PACKET:
-      // RTP VIDEO PACKET
+      case VIDEO_PACKET: {
+        // RTP VIDEO PACKET
+        // CALCULATE CYCLE
         videoRR.ssrc = head->getSSRC();
-        if (!rtpSequenceLessThan(seqNum, videoRR.last_rtp_seq_num)) {
-          if (seqNum < videoRR.last_rtp_seq_num) {
-            ELOG_WARN("VIDEO RTP WRAPPED");
+        if (!rtpSequenceLessThan(seqNum, videoRR.max_seq)) {
+          if (seqNum < videoRR.max_seq) {
             videoRR.cycle++;
           }
-          videoRR.last_rtp_seq_num = seqNum;
+          videoRR.max_seq = seqNum;
         }
-      break;
-      case AUDIO_PACKET:
-      // RTP AUDIO PACKET
+        break;
+      }
+      case AUDIO_PACKET: {
+        // RTP AUDIO PACKET
+        // CALCULATE CYCLE
         audioRR.ssrc = head->getSSRC();
-        if (!rtpSequenceLessThan(seqNum, audioRR.last_rtp_seq_num)) {
-          if (seqNum < audioRR.last_rtp_seq_num) {
-            ELOG_WARN("VIDEO RTP WRAPPED");
+        if (!rtpSequenceLessThan(seqNum, audioRR.max_seq)) {
+          if (seqNum < audioRR.max_seq) {
             audioRR.cycle++;
           }
-          audioRR.last_rtp_seq_num = seqNum;
+          audioRR.max_seq = seqNum;
         }
         break;
-        default:
-        break;
+      }
+      default:
+      break;
     }
   } else {
     // RTCP PACKETS
@@ -173,66 +216,85 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
       // VIDEO SR
       videoRR.last_sr_mid_ntp = chead->get32MiddleNtp();
       videoRR.last_sr_recv_ts = packet->received_time_ms;
+      // GENERATE RR RESPONSE
+      if (videoRR.ssrc != 0) {
+        webrtc::StatisticianMap res = _stats_handler->GetActiveStatisticians();
+        webrtc::StatisticianMap::iterator it;
+        it = res.find(videoRR.ssrc);  // pick our video stats engine
+        if (it != res.end()) {
+          webrtc::RtcpStatistics stats;
+          it->second->GetStatistics(&stats, true);
+
+          RtcpHeader rtcpHead;
+          rtcpHead.setPacketType(RTCP_Receiver_PT);
+          rtcpHead.setSSRC(videoRR.ssrc);
+          rtcpHead.setSourceSSRC(videoRR.ssrc);
+          rtcpHead.setFractionLost(stats.fraction_lost);
+          rtcpHead.setLostPackets(stats.cumulative_lost);
+          rtcpHead.setHighestSeqnum(stats.extended_max_sequence_number);
+          rtcpHead.setSeqnumCycles(videoRR.cycle);
+          rtcpHead.setJitter(stats.jitter);
+          rtcpHead.setDelaySinceLastSr(now - videoRR.last_sr_recv_ts);
+          rtcpHead.setLastSr(videoRR.last_sr_mid_ntp);
+          rtcpHead.setLength(7);
+          rtcpHead.setBlockCount(1);
+
+          int length = (rtcpHead.getLength() + 1) * 4;
+          memcpy(packet_, reinterpret_cast<uint8_t*>(&rtcpHead), length);
+          if (temp_ctx_) {
+            temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length,
+            OTHER_PACKET));
+            videoRR.last_rr_sent_ts = now;
+            ELOG_DEBUG("VIDEO RR - lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, dslr: %u, lsr: %u",
+            rtcpHead.getLostPackets(), rtcpHead.getFractionLost(), rtcpHead.getSeqnumCycles(),
+            rtcpHead.getHighestSeqnum(), rtcpHead.getJitter(), rtcpHead.getDelaySinceLastSr(),
+            rtcpHead.getLastSr());
+          }
+        }
+      }
     }
     if (chead->getSSRC() == audioRR.ssrc && chead->packettype == RTCP_Sender_PT) {
       // AUDIO SR
       audioRR.last_sr_mid_ntp = chead->get32MiddleNtp();
       audioRR.last_sr_recv_ts = packet->received_time_ms;
+      // GENERATE RR RESPONSE
+      if (audioRR.ssrc != 0) {
+        webrtc::StatisticianMap res = _stats_handler->GetActiveStatisticians();
+        webrtc::StatisticianMap::iterator it;
+        it = res.find(audioRR.ssrc);  // pick our audio stats engine
+        if (it != res.end()) {
+          webrtc::RtcpStatistics stats;
+          it->second->GetStatistics(&stats, true);
+
+          RtcpHeader rtcpHead;
+          rtcpHead.setPacketType(RTCP_Receiver_PT);
+          rtcpHead.setSSRC(audioRR.ssrc);
+          rtcpHead.setSourceSSRC(audioRR.ssrc);
+          rtcpHead.setLostPackets(stats.cumulative_lost);
+          rtcpHead.setFractionLost(stats.fraction_lost);
+          rtcpHead.setHighestSeqnum(stats.extended_max_sequence_number);
+          rtcpHead.setSeqnumCycles(audioRR.cycle);
+          rtcpHead.setJitter(stats.jitter);
+          rtcpHead.setLastSr(audioRR.last_sr_mid_ntp);
+          rtcpHead.setDelaySinceLastSr(now - audioRR.last_sr_recv_ts);
+          rtcpHead.setLength(7);
+          rtcpHead.setBlockCount(1);
+
+          int length = (rtcpHead.getLength() + 1) * 4;
+          memcpy(packet_, reinterpret_cast<uint8_t*>(&rtcpHead), length);
+          if (temp_ctx_) {
+            temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length,
+            OTHER_PACKET));
+            audioRR.last_rr_sent_ts = now;
+            ELOG_DEBUG("AUDIO RR - lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, dslr: %u, lsr: %u",
+            rtcpHead.getLostPackets(), rtcpHead.getFractionLost(), rtcpHead.getSeqnumCycles(),
+            rtcpHead.getHighestSeqnum(), rtcpHead.getJitter(), rtcpHead.getDelaySinceLastSr(),
+            rtcpHead.getLastSr());
+          }
+        }
+      }
     }
   }
-
-  if (videoRR.ssrc != 0 && (now - videoRR.last_rr_sent_ts > kRRSendIntervalMs)) {
-    // SEND A VIDEO RR
-    uint32_t highestSeq = videoRR.cycle;
-    highestSeq = (highestSeq << 16) | videoRR.last_rtp_seq_num;
-    RtcpHeader rtcpHead;
-    rtcpHead.setPacketType(RTCP_Receiver_PT);
-    rtcpHead.setSSRC(videoRR.ssrc);
-    rtcpHead.setSourceSSRC(videoRR.ssrc);
-    rtcpHead.setFractionLost(0*256);
-    rtcpHead.setLostPackets(0);
-    rtcpHead.setHighestSeqnum(highestSeq);
-    rtcpHead.setSeqnumCycles(videoRR.cycle);
-    rtcpHead.setJitter(0);
-    rtcpHead.setLastSr(videoRR.last_sr_mid_ntp);
-    rtcpHead.setDelaySinceLastSr(now - videoRR.last_sr_recv_ts);
-    rtcpHead.setLength(7);
-    rtcpHead.setBlockCount(1);
-    int length = (rtcpHead.getLength()+1)*4;
-    memcpy(packet_, reinterpret_cast<uint8_t*>(&rtcpHead), length);
-    if (temp_ctx_) {
-      temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
-      ELOG_DEBUG("Sent VIDEO RR - ssrc: %ld, fracLost: always 0, lostpackets: always 0, highSeqNum: %ld, cycle: %ld, jitter: always 0, LSR: %ld, DSLR: %ld", videoRR.ssrc, highestSeq, videoRR.cycle, videoRR.last_sr_mid_ntp, videoRR.last_sr_recv_ts);  //NOLINT
-      videoRR.last_rr_sent_ts = now;
-    }
-  }
-
-  if (audioRR.ssrc != 0 && (now - audioRR.last_rr_sent_ts > kRRSendIntervalMs)) {
-    // SEND AN AUDIO RR
-    uint32_t highestSeq = audioRR.cycle;
-    highestSeq = (highestSeq << 16) | audioRR.last_rtp_seq_num;
-    RtcpHeader rtcpHead;
-    rtcpHead.setPacketType(RTCP_Receiver_PT);
-    rtcpHead.setSSRC(audioRR.ssrc);
-    rtcpHead.setSourceSSRC(audioRR.ssrc);
-    rtcpHead.setFractionLost(0*256);
-    rtcpHead.setLostPackets(0);
-    rtcpHead.setHighestSeqnum(highestSeq);
-    rtcpHead.setSeqnumCycles(audioRR.cycle);
-    rtcpHead.setJitter(0);
-    rtcpHead.setLastSr(audioRR.last_sr_mid_ntp);
-    rtcpHead.setDelaySinceLastSr(now - audioRR.last_sr_recv_ts);
-    rtcpHead.setLength(7);
-    rtcpHead.setBlockCount(1);
-    int length = (rtcpHead.getLength()+1)*4;
-    memcpy(packet_, reinterpret_cast<uint8_t*>(&rtcpHead), length);
-    if (temp_ctx_) {
-      temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
-      ELOG_DEBUG("Sent AUDIO RR - ssrc: %ld, fracLost: always 0, lostpackets: always 0, highSeqNum: %ld, cycle: %ld, jitter: always 0, LSR: %ld, DSLR: %ld", audioRR.ssrc, highestSeq, audioRR.cycle, audioRR.last_sr_mid_ntp, audioRR.last_sr_recv_ts);  //NOLINT
-      audioRR.last_rr_sent_ts = now;
-    }
-  }
-
   ctx->fireRead(packet);
 }
 

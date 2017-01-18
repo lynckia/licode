@@ -12,6 +12,7 @@
 
 #include "webrtc/common_types.h"
 #include "webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
+#include "webrtc/modules/rtp_rtcp/include/receive_statistics.h"
 #include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
 #include "webrtc/system_wrappers/include/clock.h"
 
@@ -22,6 +23,8 @@ class WebRtcConnection;
 using webrtc::RemoteBitrateEstimator;
 using webrtc::RemoteBitrateObserver;
 using webrtc::RtpHeaderExtensionMap;
+using webrtc::ReceiveStatistics;
+
 
 class RemoteBitrateEstimatorPicker {
  public:
@@ -74,9 +77,10 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   uint64_t last_remb_time_;
   bool running_;
   struct RRPackets {
-    RRPackets() : ssrc(0), last_rtp_seq_num(0), cycle(0), last_sr_mid_ntp(0), last_sr_recv_ts(0), last_rr_sent_ts(0) {}
-    uint32_t ssrc, last_rtp_seq_num, cycle, last_sr_mid_ntp, last_sr_recv_ts, last_rr_sent_ts;
+    RRPackets() : ssrc(0), max_seq(0), cycle(0), last_sr_mid_ntp(0), last_sr_recv_ts(0), last_rr_sent_ts(0) {}
+    uint32_t ssrc, max_seq, cycle, last_sr_mid_ntp, last_sr_recv_ts, last_rr_sent_ts;
   } audioRR, videoRR;
+  webrtc::ReceiveStatistics* _stats_handler;
   uint8_t packet_[128];
 };
 }  // namespace erizo
