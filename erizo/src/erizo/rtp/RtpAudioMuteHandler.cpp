@@ -9,6 +9,13 @@ DEFINE_LOGGER(RtpAudioMuteHandler, "rtp.RtpAudioMuteHandler");
 RtpAudioMuteHandler::RtpAudioMuteHandler(WebRtcConnection *connection) :
   last_original_seq_num_{-1}, seq_num_offset_{0}, mute_is_active_{false}, connection_{connection} {}
 
+
+void RtpAudioMuteHandler::enable() {
+}
+
+void RtpAudioMuteHandler::disable() {
+}
+
 void RtpAudioMuteHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (connection_->getAudioSinkSSRC() != chead->getSourceSSRC()) {

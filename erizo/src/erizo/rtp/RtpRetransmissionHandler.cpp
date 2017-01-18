@@ -9,6 +9,13 @@ RtpRetransmissionHandler::RtpRetransmissionHandler(WebRtcConnection *connection)
   audio_{kRetransmissionsBufferSize},
   video_{kRetransmissionsBufferSize} {}
 
+
+void RtpRetransmissionHandler::enable() {
+}
+
+void RtpRetransmissionHandler::disable() {
+}
+
 void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   // ELOG_DEBUG("%p READING %d bytes", this, packet->length);
   bool contains_nack = false;
