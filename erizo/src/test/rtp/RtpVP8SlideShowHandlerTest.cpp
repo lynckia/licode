@@ -9,6 +9,7 @@
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
 
+#include <string>
 #include <vector>
 
 static constexpr uint16_t kVideoSsrc = 1;
@@ -49,11 +50,17 @@ class MockWebRtcConnection: public WebRtcConnection {
 
 class Reader : public InboundHandler {
  public:
+  MOCK_METHOD0(enable, void());
+  MOCK_METHOD0(disable, void());
+  MOCK_METHOD0(getName, std::string());
   MOCK_METHOD2(read, void(Context*, std::shared_ptr<dataPacket>));
 };
 
 class Writer : public OutboundHandler {
  public:
+  MOCK_METHOD0(enable, void());
+  MOCK_METHOD0(disable, void());
+  MOCK_METHOD0(getName, std::string());
   MOCK_METHOD2(write, void(Context*, std::shared_ptr<dataPacket>));
 };
 
@@ -299,4 +306,3 @@ TEST_F(RtpVP8SlideShowHandlerTest, shouldAdjustSequenceNumberAfterSlideShow) {
     auto receiver_report = createReceiverReport(kArbitrarySeqNumber + packets_after_handler, VIDEO_PACKET);
     pipeline->read(receiver_report);
 }
-

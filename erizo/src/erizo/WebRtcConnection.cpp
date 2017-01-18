@@ -53,6 +53,11 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   pipeline_->addFront(PacketWriter(this));
   pipeline_->finalize();
 
+  // TODO(javierc): we need to improve this mechanism to enable/disable handlers using the same pipeline
+  handlers_.push_back(audio_mute_handler_);
+  handlers_.push_back(slideshow_handler_);
+  handlers_.push_back(bwe_handler_);
+
   trickleEnabled_ = iceConfig_.shouldTrickle;
 
   shouldSendFeedback_ = true;
@@ -664,6 +669,9 @@ WebRTCEvent WebRtcConnection::getCurrentState() {
 }
 
 std::string WebRtcConnection::getJSONStats() {
+  if (this->getVideoSourceSSRC()) {
+    thisStats_.setEstimatedBandwidth(bwe_handler_->getLastSendBitrate(), this->getVideoSourceSSRC());
+  }
   return thisStats_.getStats();
 }
 
@@ -710,8 +718,47 @@ void WebRtcConnection::write(std::shared_ptr<dataPacket> packet) {
   if (transport == nullptr) {
     return;
   }
+  thisStats_.processRtpPacket(packet->data, packet->length);
   this->extProcessor_.processRtpExtensions(packet);
   transport->write(packet->data, packet->length);
+}
+
+std::shared_ptr<Handler> WebRtcConnection::getHandler(const std::string &name) {
+  std::shared_ptr<Handler> handler;
+  auto it = std::find_if(handlers_.begin(), handlers_.end(), [&name](std::shared_ptr<Handler> handler) {
+    return handler->getName() == name;
+  });
+  if (it != handlers_.end()) {
+    handler = *it;
+  }
+  return handler;
+}
+
+void WebRtcConnection::enableHandler(const std::string &name) {
+  asyncTask([name] (std::shared_ptr<WebRtcConnection> conn){
+    auto handler = conn->getHandler(name);
+    if (handler.get()) {
+      handler->enable();
+    }
+  });
+}
+
+void WebRtcConnection::disableHandler(const std::string &name) {
+  asyncTask([name] (std::shared_ptr<WebRtcConnection> conn){
+    auto handler = conn->getHandler(name);
+    if (handler.get()) {
+      handler->disable();
+    }
+  });
+}
+
+void WebRtcConnection::asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f) {
+  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
+  worker_->task([weak_this, f] {
+    if (auto this_ptr = weak_this.lock()) {
+      f(this_ptr);
+    }
+  });
 }
 
 void WebRtcConnection::sendPacket(std::shared_ptr<dataPacket> p) {

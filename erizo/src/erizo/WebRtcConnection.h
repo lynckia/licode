@@ -156,6 +156,12 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   void read(std::shared_ptr<dataPacket> packet);
   void write(std::shared_ptr<dataPacket> packet);
 
+  void enableHandler(const std::string &name);
+  void disableHandler(const std::string &name);
+  std::shared_ptr<Handler> getHandler(const std::string &name);
+
+  void asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
+
   inline const char* toLog() {
     return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
   }
@@ -180,6 +186,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   int stunPort_, minPort_, maxPort_;
   std::string stunServer_;
+  std::vector<std::shared_ptr<Handler>> handlers_;
 
   std::unique_ptr<webrtc::UlpfecReceiver> fec_receiver_;
   boost::condition_variable cond_;
@@ -220,6 +227,13 @@ class PacketReader : public InboundHandler {
  public:
   explicit PacketReader(WebRtcConnection *connection) : connection_{connection} {}
 
+  void enable() override {}
+  void disable() override {}
+
+  std::string getName() override {
+    return "reader";
+  }
+
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override {
     connection_->read(packet);
   }
@@ -231,6 +245,13 @@ class PacketReader : public InboundHandler {
 class PacketWriter : public OutboundHandler {
  public:
   explicit PacketWriter(WebRtcConnection *connection) : connection_{connection} {}
+
+  void enable() override {}
+  void disable() override {}
+
+  std::string getName() override {
+    return "writer";
+  }
 
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override {
     connection_->write(packet);

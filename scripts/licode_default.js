@@ -85,7 +85,7 @@ config.erizoController.interval_time_keepAlive = 1000; // default value: 1000
 
 // Roles to be used by services
 config.erizoController.roles =
-{"presenter": {"publish": true, "subscribe": true, "record": true},
+{"presenter": {"publish": true, "subscribe": true, "record": true, "stats": true, "controlhandlers": true},
     "viewer": {"subscribe": true},
     "viewerWithData": {"subscribe": true, "publish": {"audio": false, "video": false, "screen": false, "data": true}}}; // default value: {"presenter":{"publish": true, "subscribe":true, "record":true}, "viewer":{"subscribe":true}, "viewerWithData":{"subscribe":true, "publish":{"audio":false,"video":false,"screen":false,"data":true}}}
 
@@ -158,6 +158,8 @@ config.erizo.turnpass = '';
 //note, this won't work with all versions of libnice. With 0 all the available ports are used
 config.erizo.minport = 0; // default value: 0
 config.erizo.maxport = 0; // default value: 0
+
+config.erizo['disabled_handlers'] = []; // there are no handlers disabled by default
 
 /***** END *****/
 // Following lines are always needed.

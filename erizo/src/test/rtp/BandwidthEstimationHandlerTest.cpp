@@ -1,6 +1,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <queue>
+#include <string>
 #include <thread>  // NOLINT
 
 #include <rtp/RtpAudioMuteHandler.h>
@@ -110,11 +111,17 @@ class MockRemoteBitrateEstimator : public RemoteBitrateEstimator {
 
 class Reader : public InboundHandler {
  public:
+  MOCK_METHOD0(enable, void());
+  MOCK_METHOD0(disable, void());
+  MOCK_METHOD0(getName, std::string());
   MOCK_METHOD2(read, void(Context*, std::shared_ptr<dataPacket>));
 };
 
 class Writer : public OutboundHandler {
  public:
+  MOCK_METHOD0(enable, void());
+  MOCK_METHOD0(disable, void());
+  MOCK_METHOD0(getName, std::string());
   MOCK_METHOD2(write, void(Context*, std::shared_ptr<dataPacket>));
 };
 

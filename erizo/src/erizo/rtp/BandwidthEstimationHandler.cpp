@@ -47,7 +47,15 @@ BandwidthEstimationHandler::BandwidthEstimationHandler(WebRtcConnection *connect
   using_absolute_send_time_{false}, packets_since_absolute_send_time_{0},
   min_bitrate_bps_{kMinBitRateAllowed}, temp_ctx_{nullptr},
   bitrate_{0}, last_send_bitrate_{0}, last_remb_time_{0},
-  running_{false} {
+  running_{false}, active_{true} {
+}
+
+void BandwidthEstimationHandler::enable() {
+  active_ = true;
+}
+
+void BandwidthEstimationHandler::disable() {
+  active_ = false;
 }
 
 void BandwidthEstimationHandler::process() {
@@ -183,8 +191,8 @@ void BandwidthEstimationHandler::sendREMBPacket() {
   remb_packet_.setREMBNumSSRC(1);
   remb_packet_.setREMBFeedSSRC(connection_->getVideoSourceSSRC());
   int remb_length = (remb_packet_.getLength() + 1) * 4;
-  if (temp_ctx_) {
-    ELOG_TRACE("BWE Estimation is %d", last_send_bitrate_);
+  if (temp_ctx_ && active_) {
+    ELOG_TRACE("BWE Estimation is %d", last_send_bitrate_.load());
     temp_ctx_->fireWrite(std::make_shared<dataPacket>(0,
       reinterpret_cast<char*>(&remb_packet_), remb_length, OTHER_PACKET));
   }
@@ -215,5 +223,9 @@ void BandwidthEstimationHandler::OnReceiveBitrateChanged(const std::vector<uint3
   last_remb_time_ = now;
   last_send_bitrate_ = bitrate_;
   sendREMBPacket();
+}
+
+uint32_t BandwidthEstimationHandler::getLastSendBitrate() {
+  return last_send_bitrate_;
 }
 }  // namespace erizo
