@@ -180,7 +180,7 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
 
   if (!chead->isRtcp()) {
     // RTP PACKETS
-    uint16_t seq_num = head->getseq_number();
+    uint16_t seq_num = head->getSeqNumber();
 
     switch (packet->type) {
       case VIDEO_PACKET: {
@@ -231,8 +231,8 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
           rtcpHead.setSourceSSRC(videoRR.ssrc);
           rtcpHead.setFractionLost(stats.fraction_lost);
           rtcpHead.setLostPackets(stats.cumulative_lost);
-          rtcpHead.setHighestseq_num(stats.extended_max_sequence_number);
-          rtcpHead.setseq_numCycles(videoRR.cycle);
+          rtcpHead.setHighestSeqnum(stats.extended_max_sequence_number);
+          rtcpHead.setSeqnumCycles(videoRR.cycle);
           rtcpHead.setJitter(stats.jitter);
           rtcpHead.setDelaySinceLastSr(now - videoRR.last_sr_recv_ts);
           rtcpHead.setLastSr(videoRR.last_sr_mid_ntp);
@@ -246,8 +246,8 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
             OTHER_PACKET));
             videoRR.last_rr_sent_ts = now;
             ELOG_DEBUG("VIDEO RR - lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, dslr: %u, lsr: %u",
-            rtcpHead.getLostPackets(), rtcpHead.getFractionLost(), rtcpHead.getseq_numCycles(),
-            rtcpHead.getHighestseq_num(), rtcpHead.getJitter(), rtcpHead.getDelaySinceLastSr(),
+            rtcpHead.getLostPackets(), rtcpHead.getFractionLost(), rtcpHead.getSeqnumCycles(),
+            rtcpHead.getHighestSeqnum(), rtcpHead.getJitter(), rtcpHead.getDelaySinceLastSr(),
             rtcpHead.getLastSr());
           }
         }
@@ -272,8 +272,8 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
           rtcpHead.setSourceSSRC(audioRR.ssrc);
           rtcpHead.setLostPackets(stats.cumulative_lost);
           rtcpHead.setFractionLost(stats.fraction_lost);
-          rtcpHead.setHighestseq_num(stats.extended_max_sequence_number);
-          rtcpHead.setseq_numCycles(audioRR.cycle);
+          rtcpHead.setHighestSeqnum(stats.extended_max_sequence_number);
+          rtcpHead.setSeqnumCycles(audioRR.cycle);
           rtcpHead.setJitter(stats.jitter);
           rtcpHead.setLastSr(audioRR.last_sr_mid_ntp);
           rtcpHead.setDelaySinceLastSr(now - audioRR.last_sr_recv_ts);
@@ -287,8 +287,8 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
             OTHER_PACKET));
             audioRR.last_rr_sent_ts = now;
             ELOG_DEBUG("AUDIO RR - lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, dslr: %u, lsr: %u",
-            rtcpHead.getLostPackets(), rtcpHead.getFractionLost(), rtcpHead.getseq_numCycles(),
-            rtcpHead.getHighestseq_num(), rtcpHead.getJitter(), rtcpHead.getDelaySinceLastSr(),
+            rtcpHead.getLostPackets(), rtcpHead.getFractionLost(), rtcpHead.getSeqnumCycles(),
+            rtcpHead.getHighestSeqnum(), rtcpHead.getJitter(), rtcpHead.getDelaySinceLastSr(),
             rtcpHead.getLastSr());
           }
         }
