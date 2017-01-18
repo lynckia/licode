@@ -55,7 +55,7 @@ bool SrtpChannel::setRtcpParams(const std::string &sendingKey, const std::string
 
 int SrtpChannel::protectRtp(char* buffer, int *len) {
   if (!active_) {
-    return 0;
+    return -1;
   }
   int val = srtp_protect(send_session_, buffer, len);
   if (val == 0) {
@@ -74,7 +74,7 @@ int SrtpChannel::protectRtp(char* buffer, int *len) {
 
 int SrtpChannel::unprotectRtp(char* buffer, int *len) {
   if (!active_) {
-    return 0;
+    return -1;
   }
   int val = srtp_unprotect(receive_session_, reinterpret_cast<char*>(buffer), len);
   if (val == 0) {
@@ -91,6 +91,9 @@ int SrtpChannel::unprotectRtp(char* buffer, int *len) {
 }
 
 int SrtpChannel::protectRtcp(char* buffer, int *len) {
+  if (!active_) {
+    return -1;
+  }
   int val = srtp_protect_rtcp(send_session_, reinterpret_cast<char*>(buffer), len);
   if (val == 0) {
     return 0;
@@ -104,6 +107,9 @@ int SrtpChannel::protectRtcp(char* buffer, int *len) {
 }
 
 int SrtpChannel::unprotectRtcp(char* buffer, int *len) {
+  if (!active_) {
+    return -1;
+  }
   int val = srtp_unprotect_rtcp(receive_session_, buffer, len);
   if (val == 0) {
     return 0;
