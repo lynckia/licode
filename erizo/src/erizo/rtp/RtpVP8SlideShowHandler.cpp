@@ -10,6 +10,13 @@ RtpVP8SlideShowHandler::RtpVP8SlideShowHandler(WebRtcConnection *connection) : R
   slideshow_seq_num_{-1}, last_original_seq_num_{-1}, seq_num_offset_{0}, slideshow_is_active_{false},
   sending_keyframe_ {false} {}
 
+
+void RtpVP8SlideShowHandler::enable() {
+}
+
+void RtpVP8SlideShowHandler::disable() {
+}
+
 void RtpVP8SlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (connection_->getVideoSinkSSRC() != chead->getSourceSSRC()) {
