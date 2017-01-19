@@ -171,10 +171,9 @@ Erizo.FirefoxStack = function (spec) {
             that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
         } else {
             that.mediaConstraints = {
-                mandatory: {
-                    offerToReceiveAudio: false,
-                    offerToReceiveVideo: false,
-                }
+                offerToReceiveAudio: false,
+                offerToReceiveVideo: false,
+                mozDontOfferDataChannel: true
             };
             that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
         }
