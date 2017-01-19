@@ -33,13 +33,7 @@ var getopt = new Getopt([
   ['h' , 'help'                       , 'display this help']
 ]);
 
-var interfaces = require('os').networkInterfaces(),
-    addresses = [],
-    k,
-    k2,
-    address,
-    privateIP,
-    publicIP;
+var publicIP;
 
 var opt = getopt.parse(process.argv.slice(2));
 
@@ -134,10 +128,10 @@ launchErizoJS = function() {
     if (GLOBAL.config.erizoAgent.useIndividualLogFiles){
         out = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
         err = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
-        erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, privateIP, publicIP],
+        erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, publicIP],
                              { detached: true, stdio: [ 'ignore', out, err ] });
     }else{
-        erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, privateIP, publicIP],
+        erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, publicIP],
                             { detached: true, stdio: [ 'ignore', 'pipe', 'pipe' ] });
         erizoProcess.stdout.setEncoding('utf8');
         erizoProcess.stdout.on('data', function (message) {
@@ -249,44 +243,21 @@ var api = {
     getErizoAgents: reporter.getErizoAgent
 };
 
-for (k in interfaces) {
-    if (interfaces.hasOwnProperty(k)) {
-        for (k2 in interfaces[k]) {
-            if (interfaces[k].hasOwnProperty(k2)) {
-                address = interfaces[k][k2];
-                if (address.family === 'IPv4' && !address.internal) {
-                    if (k === BINDED_INTERFACE_NAME || !BINDED_INTERFACE_NAME) {
-                        addresses.push(address.address);
-                    }
-                }
-            }
+if (global.config.cloudProvider.name === 'amazon') {
+    var AWS = require('aws-sdk');
+    new AWS.MetadataService({
+        httpOptions: {
+            timeout: 5000
         }
-    }
-}
-
-privateIP = addresses[0];
-
-if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicIP === undefined) {
-    publicIP = addresses[0];
-
-    if (global.config.cloudProvider.name === 'amazon') {
-        var AWS = require('aws-sdk');
-        new AWS.MetadataService({
-            httpOptions: {
-                timeout: 5000
-            }
-        }).request('/latest/meta-data/public-ipv4', function(err, data) {
-            if (err) {
-                log.info('Error: ', err);
-            } else {
-                log.info('Got public ip: ', data);
-                publicIP = data;
-                fillErizos();
-            }
-        });
-    } else {
-        fillErizos();
-    }
+    }).request('/latest/meta-data/public-ipv4', function(err, data) {
+        if (err) {
+            log.info('Error: ', err);
+        } else {
+            log.info('Got public ip: ', data);
+            publicIP = data;
+            fillErizos();
+        }
+    });
 } else {
     publicIP = GLOBAL.config.erizoAgent.publicIP;
     fillErizos();
