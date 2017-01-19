@@ -8,7 +8,7 @@ var log = logger.getLogger('Publisher');
 
 function createWrtc(id, threadPool, publicIP) {
   publicIP = publicIP || "";
-  var new addon.WebRtcConnection(threadPool, id,
+  var wrtc = new addon.WebRtcConnection(threadPool, id,
                                     GLOBAL.config.erizo.stunserver,
                                     GLOBAL.config.erizo.stunport,
                                     GLOBAL.config.erizo.minport,
