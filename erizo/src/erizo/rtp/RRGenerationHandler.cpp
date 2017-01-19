@@ -46,6 +46,7 @@ int RRGenerationHandler::getVideoClockRate(uint8_t payloadType) {
 void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
   uint16_t seq_num = head->getSeqNumber();
+  uint32_t now = ClockUtils::timePointToMs(clock::now());
 
   switch (packet->type) {
   case VIDEO_PACKET: {
@@ -62,10 +63,15 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
     }
     video_rr_.extended_max = (video_rr_.cycle << 16) | video_rr_.max_seq;
     int clock_rate = getVideoClockRate(head->getPayloadType());
-    int transit = static_cast<int>(packet->received_time_ms - (head->getTimestamp() / clock_rate));
-    int delta = abs(transit - jitter_video_.transit);
-    jitter_video_.transit = transit;
-    jitter_video_.jitter += (1. / 16.) * (static_cast<double>(delta) - jitter_video_.jitter);
+    if (head->getTimestamp() != video_rr_.last_rtp_ts) {
+      int transit = static_cast<int>((now * clock_rate) - head->getTimestamp());
+      int delta = abs(transit - jitter_video_.transit);
+      if (jitter_video_.transit != 0 && delta < 450000) {
+        jitter_video_.jitter += (1. / 16.) * (static_cast<double>(delta) - jitter_video_.jitter);
+      }
+      jitter_video_.transit = transit;
+    }
+    video_rr_.last_rtp_ts = head->getTimestamp();
     break;
   }
   case AUDIO_PACKET: {
@@ -82,10 +88,15 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
     }
     audio_rr_.extended_max = (audio_rr_.cycle << 16) | audio_rr_.max_seq;
     int clock_rate = getAudioClockRate(head->getPayloadType());
-    int transit = static_cast<int>(packet->received_time_ms - (head->getTimestamp() / clock_rate));
-    int delta = abs(transit - jitter_audio_.transit);
-    jitter_audio_.transit = transit;
-    jitter_audio_.jitter += (1. / 16.) * (static_cast<double>(delta) - jitter_audio_.jitter);
+    if (head->getTimestamp() != audio_rr_.last_rtp_ts) {
+      int transit = static_cast<int>((now * clock_rate) - head->getTimestamp());
+      int delta = abs(transit - jitter_audio_.transit);
+      if (jitter_audio_.transit != 0 && delta < 450000) {
+        jitter_audio_.jitter += (1. / 16.) * (static_cast<double>(delta) - jitter_audio_.jitter);
+      }
+      jitter_audio_.transit = transit;
+    }
+    audio_rr_.last_rtp_ts = head->getTimestamp();
     break;
   }
   default:
@@ -115,7 +126,7 @@ void RRGenerationHandler::sendVideoRR() {
     if (temp_ctx_) {
       temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
       video_rr_.last_rr_sent_ts = now;
-      ELOG_WARN("SENT VIDEO RR");
+      ELOG_WARN("VIDEO JITTER: %u - lost: %u - frac: %u", rtcp_head.getJitter(), video_rr_.lost, video_rr_.frac_lost);
     }
   }
 }
@@ -142,7 +153,7 @@ void RRGenerationHandler::sendAudioRR() {
     if (temp_ctx_) {
       temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
       audio_rr_.last_rr_sent_ts = now;
-      ELOG_WARN("SENT AUDIO RR");
+      ELOG_WARN("AUDIO JITTER: %u - lost: %u - frac: %u", rtcp_head.getJitter(), audio_rr_.lost, audio_rr_.frac_lost);
     }
   }
 }

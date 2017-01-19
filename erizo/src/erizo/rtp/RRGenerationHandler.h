@@ -16,9 +16,9 @@ class RRGenerationHandler: public Handler {
 
   struct RRPackets {
     RRPackets() : ssrc(0), max_seq(0), cycle(0), last_sr_mid_ntp(0), last_sr_recv_ts(0), last_rr_sent_ts(0),
-                  base_seq(0), p_received(0), extended_max(0), lost(0), expected_prior(0), received_prior(0),
-                  frac_lost(0) {}
-    uint32_t ssrc, max_seq, cycle, last_sr_mid_ntp, last_sr_recv_ts, last_rr_sent_ts,
+                  last_rtp_ts(0), base_seq(0), p_received(0), extended_max(0), lost(0), expected_prior(0),
+                  received_prior(0), frac_lost(0) {}
+    uint32_t ssrc, max_seq, cycle, last_sr_mid_ntp, last_sr_recv_ts, last_rr_sent_ts, last_rtp_ts,
              base_seq, p_received, extended_max, lost, expected_prior, received_prior, frac_lost;
   } audio_rr_, video_rr_;
 
