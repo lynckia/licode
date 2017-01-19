@@ -215,7 +215,13 @@ Erizo.ChromeStableStack = function (spec) {
         if (isSubscribe === true) {
             that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
         } else {
-            that.peerConnection.createOffer(setLocalDesc, errorCallback);
+            that.mediaConstraints = {
+                mandatory: {
+                    'OfferToReceiveVideo': false,
+                    'OfferToReceiveAudio': false
+                }
+            };
+            that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
         }
 
     };
