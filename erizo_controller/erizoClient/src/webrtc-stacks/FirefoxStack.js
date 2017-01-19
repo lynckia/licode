@@ -170,7 +170,13 @@ Erizo.FirefoxStack = function (spec) {
         if (isSubscribe === true) {
             that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
         } else {
-            that.peerConnection.createOffer(setLocalDesc, errorCallback);
+            that.mediaConstraints = {
+                mandatory: {
+                    offerToReceiveAudio: false,
+                    offerToReceiveVideo: false,
+                }
+            };
+            that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
         }
     };
 
