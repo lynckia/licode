@@ -100,8 +100,8 @@ window.onload = function () {
       };
 
       room.addEventListener('room-connected', function (roomEvent) {
-
-        room.publish(localStream, {maxVideoBW: 300, metadata: {type: 'publisher'}});
+        var onlySubscribe = getParameterByName('onlySubscribe');
+        if (!onlySubscribe) room.publish(localStream, {metadata: {type: 'publisher'}});
         subscribeToStreams(roomEvent.streams);
       });
 
