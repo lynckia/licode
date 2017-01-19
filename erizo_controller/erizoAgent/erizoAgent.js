@@ -143,6 +143,10 @@ launchErizoJS = function() {
         erizoProcess.stdout.on('data', function (message) {
             console.log('[erizo-' + id + ']',message.replace (/\n$/,''));
         });
+        erizoProcess.stderr.setEncoding('utf8');
+        erizoProcess.stderr.on('data', function (message) {
+            console.log('[erizo-' + id + ']',message.replace (/\n$/,''));
+        });
     }
     erizoProcess.unref();
     erizoProcess.on('close', function () {
