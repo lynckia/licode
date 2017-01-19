@@ -74,6 +74,8 @@ describe('Erizo Agent', function() {
       expect(childProcessMock.spawn.callCount).to.equal(kArbitraryPrerunProcesses);
       expect(spawnMock.stdout.setEncoding.callCount).to.equal(kArbitraryPrerunProcesses);
       expect(spawnMock.stdout.on.callCount).to.equal(kArbitraryPrerunProcesses);
+      expect(spawnMock.stderr.setEncoding.callCount).to.equal(kArbitraryPrerunProcesses);
+      expect(spawnMock.stderr.on.callCount).to.equal(kArbitraryPrerunProcesses);
       expect(fsMock.openSync.callCount).to.equal(0);
       for (var index = 0; index < kArbitraryPrerunProcesses; index++) {
         expect(childProcessMock.spawn.args[index][0]).to.equal('./launch.sh');

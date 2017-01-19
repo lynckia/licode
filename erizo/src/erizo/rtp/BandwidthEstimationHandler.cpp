@@ -94,6 +94,9 @@ void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RT
       case VIDEO_ORIENTATION:
         type = webrtc::kRtpExtensionVideoRotation;
         break;
+      case TRANSPORT_CC:
+        type = webrtc::kRtpExtensionTransportSequenceNumber;
+        break;
       case PLAYBACK_TIME:
         type = webrtc::kRtpExtensionPlayoutDelay;
         break;
