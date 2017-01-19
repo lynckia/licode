@@ -21,6 +21,7 @@
 #include "rtp/RtpVP8SlideShowHandler.h"
 #include "rtp/RtpAudioMuteHandler.h"
 #include "rtp/BandwidthEstimationHandler.h"
+#include "rtp/RRGenerationHandler.h"
 #include "lib/Clock.h"
 
 namespace erizo {
@@ -208,6 +209,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   std::shared_ptr<RtpSlideShowHandler> slideshow_handler_;
   std::shared_ptr<RtpAudioMuteHandler> audio_mute_handler_;
   std::shared_ptr<BandwidthEstimationHandler> bwe_handler_;
+  std::shared_ptr<RRGenerationHandler> rr_handler_;
 
   void sendPacket(std::shared_ptr<dataPacket> packet);
   int deliverAudioData_(char* buf, int len) override;

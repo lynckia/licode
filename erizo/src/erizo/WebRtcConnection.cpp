@@ -17,6 +17,7 @@
 #include "rtp/RtcpAggregator.h"
 #include "rtp/RtcpForwarder.h"
 #include "rtp/RtpRetransmissionHandler.h"
+#include "rtp/RRGenerationHandler.h"
 
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
@@ -43,12 +44,14 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   slideshow_handler_.reset(new RtpVP8SlideShowHandler(this));
   audio_mute_handler_.reset(new RtpAudioMuteHandler(this));
   bwe_handler_.reset(new BandwidthEstimationHandler(this, worker_));
+  rr_handler_.reset(new RRGenerationHandler(this));
 
   // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
   pipeline_->addFront(PacketReader(this));
   pipeline_->addFront(audio_mute_handler_);
   pipeline_->addFront(slideshow_handler_);
   pipeline_->addFront(bwe_handler_);
+  pipeline_->addFront(rr_handler_);
   pipeline_->addFront(RtpRetransmissionHandler(this));
   pipeline_->addFront(PacketWriter(this));
   pipeline_->finalize();
@@ -57,6 +60,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   handlers_.push_back(audio_mute_handler_);
   handlers_.push_back(slideshow_handler_);
   handlers_.push_back(bwe_handler_);
+  handlers_.push_back(rr_handler_);
 
   trickleEnabled_ = iceConfig_.shouldTrickle;
 
