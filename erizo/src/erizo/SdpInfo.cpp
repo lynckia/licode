@@ -290,11 +290,12 @@ namespace erizo {
       if (audioSsrc == 0) {
         audioSsrc = 44444;
       }
-
-      sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-        "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl <<
-        "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl <<
-        "a=ssrc:"<< audioSsrc << " label:" << msidtemp << "a0" << endl;
+      if (audioDirection != RECVONLY) {
+        sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+          "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl <<
+          "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl <<
+          "a=ssrc:"<< audioSsrc << " label:" << msidtemp << "a0" << endl;
+      }
     }
 
     if (printedVideo && this->hasVideo) {
@@ -399,15 +400,17 @@ namespace erizo {
       if (videoSsrc == 0) {
         videoSsrc = 55543;
       }
-      sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-             "a=ssrc:" << videoSsrc << " msid:"<< msidtemp << " v0"<< endl <<
-             "a=ssrc:" << videoSsrc << " mslabel:"<< msidtemp << endl <<
-             "a=ssrc:" << videoSsrc << " label:" << msidtemp << "v0" << endl;
-      if (videoRtxSsrc != 0) {
-        sdp << "a=ssrc:" << videoRtxSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-               "a=ssrc:" << videoRtxSsrc << " msid:" << msidtemp << " v0" << endl <<
-               "a=ssrc:" << videoRtxSsrc << " mslabel:" << msidtemp << endl <<
-               "a=ssrc:" << videoRtxSsrc << " label:" << msidtemp << "v0" << endl;
+      if (videoDirection != RECVONLY) {
+        sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+          "a=ssrc:" << videoSsrc << " msid:"<< msidtemp << " v0"<< endl <<
+          "a=ssrc:" << videoSsrc << " mslabel:"<< msidtemp << endl <<
+          "a=ssrc:" << videoSsrc << " label:" << msidtemp << "v0" << endl;
+        if (videoRtxSsrc != 0) {
+          sdp << "a=ssrc:" << videoRtxSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+            "a=ssrc:" << videoRtxSsrc << " msid:" << msidtemp << " v0" << endl <<
+            "a=ssrc:" << videoRtxSsrc << " mslabel:" << msidtemp << endl <<
+            "a=ssrc:" << videoRtxSsrc << " label:" << msidtemp << "v0" << endl;
+        }
       }
     }
     ELOG_DEBUG("sdp local \n %s", sdp.str().c_str());
