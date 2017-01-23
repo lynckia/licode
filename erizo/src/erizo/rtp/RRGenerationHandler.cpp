@@ -10,7 +10,7 @@ namespace erizo {
 DEFINE_LOGGER(RRGenerationHandler, "rtp.RRGenerationHandler");
 
 RRGenerationHandler::RRGenerationHandler(WebRtcConnection *connection) :
-    temp_ctx_{nullptr}, enabled_{true} {}
+    temp_ctx_{nullptr}, enabled_{true}, rientra(false) {}
 
 
 void RRGenerationHandler::enable() {
@@ -19,6 +19,36 @@ void RRGenerationHandler::enable() {
 
 void RRGenerationHandler::disable() {
   enabled_ = false;
+}
+
+bool RRGenerationHandler::isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet) {
+  uint32_t now = ClockUtils::timePointToMs(clock::now());
+  RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
+
+  if (packet->type == VIDEO_PACKET) {
+    if (!rtpSequenceLessThan(head->getSeqNumber(), video_rr_.max_seq)) {
+      return false;
+    }
+    int64_t time_diff_ms = static_cast<uint32_t>(packet->received_time_ms) - video_rr_.last_recv_ts;
+    uint32_t timestamp_diff = head->getTimestamp() - video_rr_.last_rtp_ts;
+    ELOG_WARN("ts this: %u, ts last: %u", head->getTimestamp(), video_rr_.last_rtp_ts);
+    uint32_t rtp_time_stamp_diff_ms = timestamp_diff / getVideoClockRate(head->getPayloadType());
+    int64_t max_delay_ms = ((2 * jitter_video_.jitter) /  getVideoClockRate(head->getPayloadType()));
+    ELOG_WARN("Current jitter: %f, time_diff_ms: %lld, rtp_diff %u ,rtp_time_diff_ms: %u, max_del_ms: %lld", jitter_video_.jitter, time_diff_ms, timestamp_diff ,rtp_time_stamp_diff_ms, max_delay_ms); //NOLINT
+    return time_diff_ms > rtp_time_stamp_diff_ms + max_delay_ms;
+  } else if (packet->type == AUDIO_PACKET) {
+//    float jitter_std = sqrt(static_cast<float>(static_cast<int>(jitter_audio_.jitter) >> 4));
+//    int64_t max_delay_ms = static_cast<int64_t>((2 * jitter_std) / getAudioClockRate(head->getPayloadType()));
+//    if (max_delay_ms == 0) {
+//      max_delay_ms = 1;
+//    }
+//    uint32_t timestamp_diff = head->getTimestamp() - video_rr_.last_rtp_ts;
+//    uint32_t rtp_time_stamp_diff_ms = timestamp_diff / getAudioClockRate(head->getPayloadType());
+//    int64_t time_diff_ms = now - audio_rr_.last_recv_ts;
+//    return time_diff_ms > rtp_time_stamp_diff_ms + max_delay_ms;
+    return false;
+  }
+  return true;
 }
 
 bool RRGenerationHandler::rtpSequenceLessThan(uint16_t x, uint16_t y) {
@@ -49,7 +79,31 @@ int RRGenerationHandler::getVideoClockRate(uint8_t payload_type) {
 void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
   uint16_t seq_num = head->getSeqNumber();
-  uint32_t now = ClockUtils::timePointToMs(clock::now());
+
+  if (jitter_video_.jitter != 0 && jitter_audio_.jitter != 0) {
+    if (isRetransmitOfOldPacket(packet)) {
+      ELOG_WARN("IS RETRANSMITTED %u", head->getSeqNumber());
+    }
+  }
+
+
+  if (video_rr_.p_received == 220) {
+    video_rr_.p_received++;
+    ELOG_WARN("MANDO NACK %d", video_rr_.max_seq -10);
+    RtcpHeader nACK;
+    nACK.setPacketType(RTCP_RTP_Feedback_PT);  // NACK
+    nACK.setBlockCount(1);
+    nACK.setSSRC(55543);
+    nACK.setSourceSSRC(video_rr_.ssrc);
+    nACK.setLength(2 + 1);  // The length of the FB message MUST be set to 2+n, with n being the
+    // number of Generic NACKs contained in the FCI field.
+    nACK.setNackPid(video_rr_.max_seq -10);
+    nACK.setNackBlp(0);
+    int len = (nACK.getLength() +1) * 4;
+    temp_ctx_->fireWrite(std::make_shared<dataPacket>(0,
+      reinterpret_cast<char*>(&nACK), len, OTHER_PACKET));
+  }
+
 
   switch (packet->type) {
   case VIDEO_PACKET: {
@@ -67,7 +121,7 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
     video_rr_.extended_seq = (video_rr_.cycle << 16) | video_rr_.max_seq;
     int clock_rate = getVideoClockRate(head->getPayloadType());
     if (head->getTimestamp() != video_rr_.last_rtp_ts) {
-      int transit_time = static_cast<int>((now * clock_rate) - head->getTimestamp());
+      int transit_time = static_cast<int>((packet->received_time_ms * clock_rate) - head->getTimestamp());
       int delta = abs(transit_time - jitter_video_.transit_time);
       if (jitter_video_.transit_time != 0 && delta < 450000) {
         jitter_video_.jitter += (1. / 16.) * (static_cast<double>(delta) - jitter_video_.jitter);
@@ -75,6 +129,7 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
       jitter_video_.transit_time = transit_time;
     }
     video_rr_.last_rtp_ts = head->getTimestamp();
+    video_rr_.last_recv_ts = static_cast<uint32_t>(packet->received_time_ms);
     break;
   }
   case AUDIO_PACKET: {
@@ -92,7 +147,7 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
     audio_rr_.extended_seq = (audio_rr_.cycle << 16) | audio_rr_.max_seq;
     int clock_rate = getAudioClockRate(head->getPayloadType());
     if (head->getTimestamp() != audio_rr_.last_rtp_ts) {
-      int transit_time = static_cast<int>((now * clock_rate) - head->getTimestamp());
+      int transit_time = static_cast<int>((packet->received_time_ms * clock_rate) - head->getTimestamp());
       int delta = abs(transit_time - jitter_audio_.transit_time);
       if (jitter_audio_.transit_time != 0 && delta < 450000) {
         jitter_audio_.jitter += (1. / 16.) * (static_cast<double>(delta) - jitter_audio_.jitter);
@@ -100,6 +155,7 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
       jitter_audio_.transit_time = transit_time;
     }
     audio_rr_.last_rtp_ts = head->getTimestamp();
+    audio_rr_.last_recv_ts = packet->received_time_ms;
     break;
   }
   default:
@@ -162,7 +218,8 @@ void RRGenerationHandler::sendAudioRR() {
       ELOG_DEBUG("Sending audio RR - lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, "
                 "dslr: %u, lsr: %u", rtcp_head.getLostPackets(), rtcp_head.getFractionLost(),
                 rtcp_head.getSeqnumCycles(), rtcp_head.getHighestSeqnum(), rtcp_head.getJitter(),
-                rtcp_head.getDelaySinceLastSr(), rtcp_head.getLastSr());    }
+                rtcp_head.getDelaySinceLastSr(), rtcp_head.getLastSr());
+    }
   }
 }
 
