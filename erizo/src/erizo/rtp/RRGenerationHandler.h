@@ -7,6 +7,8 @@
 #include "./logger.h"
 #include "pipeline/Handler.h"
 
+#define MAX_DELAY 450000
+
 namespace erizo {
 
 class WebRtcConnection;
@@ -20,13 +22,13 @@ class RRGenerationHandler: public Handler {
                   received_prior(0), frac_lost(0), last_recv_ts(0) {}
     uint32_t ssrc, max_seq, cycle, last_sr_mid_ntp, last_sr_ts, last_rr_ts, last_rtp_ts,
              base_seq, p_received, extended_seq, lost, expected_prior, received_prior, frac_lost, last_recv_ts;
-  } audio_rr_, video_rr_;
+  };
 
   struct Jitter {
     Jitter() : transit_time(0), jitter(0) {}
     int transit_time;
     double jitter;
-  } jitter_video_, jitter_audio_;
+  };
 
  public:
   explicit RRGenerationHandler(WebRtcConnection *connection);
@@ -45,6 +47,8 @@ class RRGenerationHandler: public Handler {
   Context *temp_ctx_;
   uint8_t packet_[128];
   bool enabled_;
+  RRPackets audio_rr_, video_rr_;
+  Jitter jitter_video_, jitter_audio_;
 
   bool rtpSequenceLessThan(uint16_t x, uint16_t y);
   bool isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet);

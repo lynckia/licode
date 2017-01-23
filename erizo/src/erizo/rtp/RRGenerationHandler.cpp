@@ -89,7 +89,7 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
     if (head->getTimestamp() != video_rr_.last_rtp_ts && !isRetransmitOfOldPacket(packet)) {
       int transit_time = static_cast<int>((packet->received_time_ms * clock_rate) - head->getTimestamp());
       int delta = abs(transit_time - jitter_video_.transit_time);
-      if (jitter_video_.transit_time != 0 && delta < 450000) {
+      if (jitter_video_.transit_time != 0 && delta < MAX_DELAY) {
         jitter_video_.jitter += (1. / 16.) * (static_cast<double>(delta) - jitter_video_.jitter);
       }
       jitter_video_.transit_time = transit_time;
@@ -115,7 +115,7 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
     if (head->getTimestamp() != audio_rr_.last_rtp_ts && !isRetransmitOfOldPacket(packet)) {
       int transit_time = static_cast<int>((packet->received_time_ms * clock_rate) - head->getTimestamp());
       int delta = abs(transit_time - jitter_audio_.transit_time);
-      if (jitter_audio_.transit_time != 0 && delta < 450000) {
+      if (jitter_audio_.transit_time != 0 && delta < MAX_DELAY) {
         jitter_audio_.jitter += (1. / 16.) * (static_cast<double>(delta) - jitter_audio_.jitter);
       }
       jitter_audio_.transit_time = transit_time;
