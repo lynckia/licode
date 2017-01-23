@@ -45,7 +45,6 @@ class RRGenerationHandler: public Handler {
   Context *temp_ctx_;
   uint8_t packet_[128];
   bool enabled_;
-  bool rientra;
 
   bool rtpSequenceLessThan(uint16_t x, uint16_t y);
   bool isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet);
