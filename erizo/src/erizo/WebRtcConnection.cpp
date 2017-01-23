@@ -17,6 +17,7 @@
 #include "rtp/RtcpAggregator.h"
 #include "rtp/RtcpForwarder.h"
 #include "rtp/RtpRetransmissionHandler.h"
+#include "rtp/StatsHandler.h"
 
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
@@ -46,10 +47,12 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
 
   // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
   pipeline_->addFront(PacketReader(this));
+  pipeline_->addFront(IncomingStatsHandler(this));
   pipeline_->addFront(audio_mute_handler_);
   pipeline_->addFront(slideshow_handler_);
   pipeline_->addFront(bwe_handler_);
   pipeline_->addFront(RtpRetransmissionHandler(this));
+  pipeline_->addFront(OutgoingStatsHandler(this));
   pipeline_->addFront(PacketWriter(this));
   pipeline_->finalize();
 
@@ -158,9 +161,9 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   }
 
   this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
-  this->thisStats_.setVideoSourceSSRC(this->getVideoSourceSSRC());
+  this->stats_.setVideoSourceSSRC(this->getVideoSourceSSRC());
   this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
-  this->thisStats_.setAudioSourceSSRC(this->getAudioSourceSSRC());
+  this->stats_.setAudioSourceSSRC(this->getAudioSourceSSRC());
   this->audioEnabled_ = remoteSdp_.hasAudio;
   this->videoEnabled_ = remoteSdp_.hasVideo;
   rtcpProcessor_->addSourceSsrc(this->getAudioSourceSSRC());
@@ -434,15 +437,13 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
   uint32_t recvSSRC;
   if (chead->isRtcp()) {
-    thisStats_.processRtcpPacket(buf, len);
     if (chead->packettype == RTCP_Sender_PT) {  // Sender Report
       rtcpProcessor_->analyzeSr(chead);
       recvSSRC = chead->getSSRC();
     }
   } else {
-    uint32_t bitRate = thisStats_.processRtpPacket(buf, len);  // Take into account ALL RTP traffic
-    if (bitRate) {
-      this->rtcpProcessor_->setPublisherBW(bitRate);
+    if (stats_.getLatestTotalBitrate()) {
+      this->rtcpProcessor_->setPublisherBW(stats_.getLatestTotalBitrate());
     }
     recvSSRC = head->getSSRC();
   }
@@ -670,9 +671,9 @@ WebRTCEvent WebRtcConnection::getCurrentState() {
 
 std::string WebRtcConnection::getJSONStats() {
   if (this->getVideoSourceSSRC()) {
-    thisStats_.setEstimatedBandwidth(bwe_handler_->getLastSendBitrate(), this->getVideoSourceSSRC());
+    stats_.setEstimatedBandwidth(bwe_handler_->getLastSendBitrate(), this->getVideoSourceSSRC());
   }
-  return thisStats_.getStats();
+  return stats_.getStats();
 }
 
 void WebRtcConnection::changeDeliverPayloadType(dataPacket *dp, packetType type) {
@@ -718,7 +719,6 @@ void WebRtcConnection::write(std::shared_ptr<dataPacket> packet) {
   if (transport == nullptr) {
     return;
   }
-  thisStats_.processRtpPacket(packet->data, packet->length);
   this->extProcessor_.processRtpExtensions(packet);
   transport->write(packet->data, packet->length);
 }

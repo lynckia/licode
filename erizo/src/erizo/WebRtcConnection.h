@@ -123,7 +123,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    */
   inline void setWebRtcConnectionStatsListener(
             WebRtcConnectionStatsListener* listener) {
-    this->thisStats_.setStatsListener(listener);
+    this->stats_.setStatsListener(listener);
   }
 
   /**
@@ -162,6 +162,10 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   void asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
 
+  Stats& getStats() {
+    return stats_;
+  }
+
   inline const char* toLog() {
     return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
   }
@@ -196,7 +200,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   boost::shared_ptr<RtcpProcessor> rtcpProcessor_;
   std::shared_ptr<Transport> videoTransport_, audioTransport_;
 
-  Stats thisStats_;
+  Stats stats_;
   WebRTCEvent globalState_;
 
   boost::mutex updateStateMutex_;  // , slideShowMutex_;
