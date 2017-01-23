@@ -39,15 +39,15 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   sinkfbSource_ = this;
   globalState_ = CONN_INITIAL;
 
-  fec_receiver_.reset(webrtc::UlpfecReceiver::Create(this));
-
-  slideshow_handler_.reset(new RtpVP8SlideShowHandler(this));
-  audio_mute_handler_.reset(new RtpAudioMuteHandler(this));
-  bwe_handler_.reset(new BandwidthEstimationHandler(this, worker_));
+  slideshow_handler_ = std::make_shared<RtpVP8SlideShowHandler>(this);
+  audio_mute_handler_ = std::make_shared<RtpAudioMuteHandler>(this);
+  bwe_handler_ = std::make_shared<BandwidthEstimationHandler>(this, worker_);
+  fec_handler_ = std::make_shared<FecReceiverHandler>(this);
 
   // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
   pipeline_->addFront(PacketReader(this));
   pipeline_->addFront(IncomingStatsHandler(this));
+  pipeline_->addFront(fec_handler_);
   pipeline_->addFront(audio_mute_handler_);
   pipeline_->addFront(slideshow_handler_);
   pipeline_->addFront(bwe_handler_);
@@ -64,7 +64,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   trickleEnabled_ = iceConfig_.shouldTrickle;
 
   shouldSendFeedback_ = true;
-  slideShowMode_ = false;
+  slide_show_mode_ = false;
 
   mark_ = clock::now();
 
@@ -152,6 +152,9 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   extProcessor_.setSdpInfo(localSdp_);
 
   bwe_handler_->updateExtensionMaps(extProcessor_.getVideoExtensionMap(), extProcessor_.getAudioExtensionMap());
+  if (remoteSdp_.supportPayloadType(RED_90000_PT) || slide_show_mode_) {
+    fec_handler_->enable();
+  }
 
   localSdp_.videoSsrc = this->getVideoSinkSSRC();
   localSdp_.audioSsrc = this->getAudioSinkSSRC();
@@ -345,42 +348,10 @@ int WebRtcConnection::deliverAudioData_(char* buf, int len) {
   return len;
 }
 
-// This is called by our fec_ object when it recovers a packet.
-bool WebRtcConnection::OnRecoveredPacket(const uint8_t* rtp_packet, size_t rtp_packet_length) {
-  this->deliverVideoData_((char*)rtp_packet, rtp_packet_length);  // NOLINT
-  return true;
-}
-
-int32_t WebRtcConnection::OnReceivedPayloadData(const uint8_t* /*payload_data*/, size_t /*payload_size*/,
-                                                const webrtc::WebRtcRTPHeader* /*rtp_header*/) {
-    // Unused by WebRTC's FEC implementation; just something we have to implement.
-    return 0;
-}
-
 int WebRtcConnection::deliverVideoData_(char* buf, int len) {
   if (videoTransport_.get() != NULL) {
     if (videoEnabled_ == true) {
-      RtcpHeader* hc = reinterpret_cast<RtcpHeader*>(buf);
-      if (hc->isRtcp()) {
-        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
-        return len;
-      }
-      RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
-      if (h->getPayloadType() == RED_90000_PT && (!remoteSdp_.supportPayloadType(RED_90000_PT) || slideShowMode_)) {
-        // This is a RED/FEC payload, but our remote endpoint doesn't support that
-        // (most likely because it's firefox :/ )
-        // Let's go ahead and run this through our fec receiver to convert it to raw VP8
-        webrtc::RTPHeader hackyHeader;
-        hackyHeader.headerLength = h->getHeaderLength();
-        hackyHeader.sequenceNumber = h->getSeqNumber();
-        // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback,
-        // be sure to memcpy out of webrtc's buffers
-        if (fec_receiver_->AddReceivedRedPacket(hackyHeader, (const uint8_t*) buf, len, ULP_90000_PT) == 0) {
-          fec_receiver_->ProcessReceivedFec();
-        }
-      } else {
-        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
-      }
+      sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
     }
   }
   return len;
@@ -637,11 +608,16 @@ void WebRtcConnection::sendPacketAsync(std::shared_ptr<dataPacket> packet) {
 
 void WebRtcConnection::setSlideShowMode(bool state) {
   ELOG_DEBUG("%s slideShowMode: %u", toLog(), state);
-  if (slideShowMode_ == state) {
+  if (slide_show_mode_ == state) {
     return;
   }
-  slideShowMode_ = state;
+  slide_show_mode_ = state;
   slideshow_handler_->setSlideShowMode(state);
+  if (!remoteSdp_.supportPayloadType(RED_90000_PT) || state) {
+    fec_handler_->enable();
+  } else {
+    fec_handler_->disable();
+  }
 }
 
 void WebRtcConnection::muteStream(bool mute_video, bool mute_audio) {
@@ -650,7 +626,7 @@ void WebRtcConnection::muteStream(bool mute_video, bool mute_audio) {
 }
 
 void WebRtcConnection::setFeedbackReports(bool will_send_fb, uint32_t target_bitrate) {
-  if (slideShowMode_) {
+  if (slide_show_mode_) {
     target_bitrate = 0;
   }
 
@@ -769,7 +745,7 @@ void WebRtcConnection::sendPacket(std::shared_ptr<dataPacket> p) {
   uint64_t sentVideoBytes = 0;
   uint64_t lastSecondVideoBytes = 0;
 
-  if (rateControl_ && !slideShowMode_) {
+  if (rateControl_ && !slide_show_mode_) {
     if (p->type == VIDEO_PACKET) {
       if (rateControl_ == 1) {
         return;
