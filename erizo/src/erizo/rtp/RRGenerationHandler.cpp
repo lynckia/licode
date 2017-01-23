@@ -2,9 +2,6 @@
 #include "./WebRtcConnection.h"
 #include "lib/ClockUtils.h"
 
-
-// TODO(kekkokk) test??? recovered?
-
 namespace erizo {
 
 DEFINE_LOGGER(RRGenerationHandler, "rtp.RRGenerationHandler");
