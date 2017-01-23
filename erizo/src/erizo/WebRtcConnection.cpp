@@ -43,9 +43,11 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   audio_mute_handler_ = std::make_shared<RtpAudioMuteHandler>(this);
   bwe_handler_ = std::make_shared<BandwidthEstimationHandler>(this, worker_);
   fec_handler_ = std::make_shared<FecReceiverHandler>(this);
+  rtcp_processor_handler_ = std::make_shared<RtcpProcessorHandler>(this, rtcp_processor_);
 
   // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
   pipeline_->addFront(PacketReader(this));
+  pipeline_->addFront(rtcp_processor_handler_);
   pipeline_->addFront(IncomingStatsHandler(this));
   pipeline_->addFront(fec_handler_);
   pipeline_->addFront(audio_mute_handler_);
@@ -95,7 +97,7 @@ void WebRtcConnection::close() {
 }
 
 bool WebRtcConnection::init() {
-  rtcpProcessor_ = boost::shared_ptr<RtcpProcessor>(
+  rtcp_processor_ = std::shared_ptr<RtcpProcessor>(
                     new RtcpForwarder(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this)));
   if (connEventListener_ != NULL) {
     connEventListener_->notifyEvent(globalState_, "");
@@ -169,8 +171,8 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   this->stats_.setAudioSourceSSRC(this->getAudioSourceSSRC());
   this->audioEnabled_ = remoteSdp_.hasAudio;
   this->videoEnabled_ = remoteSdp_.hasVideo;
-  rtcpProcessor_->addSourceSsrc(this->getAudioSourceSSRC());
-  rtcpProcessor_->addSourceSsrc(this->getVideoSourceSSRC());
+  rtcp_processor_->addSourceSsrc(this->getAudioSourceSSRC());
+  rtcp_processor_->addSourceSsrc(this->getVideoSourceSSRC());
 
   if (remoteSdp_.profile == SAVPF) {
     if (remoteSdp_.isFingerprint) {
@@ -230,7 +232,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 
   if (remoteSdp_.videoBandwidth != 0) {
     ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remoteSdp_.videoBandwidth);
-    this->rtcpProcessor_->setMaxVideoBW(remoteSdp_.videoBandwidth*1000);
+    this->rtcp_processor_->setMaxVideoBW(remoteSdp_.videoBandwidth*1000);
   }
 
   return true;
@@ -358,19 +360,15 @@ int WebRtcConnection::deliverVideoData_(char* buf, int len) {
 }
 
 int WebRtcConnection::deliverFeedback_(char* buf, int len) {
-  int newLength = rtcpProcessor_->analyzeFeedback(buf, len);
-  if (newLength) {
-    RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
-    uint32_t recvSSRC = chead->getSourceSSRC();
-    if (recvSSRC == this->getVideoSourceSSRC()) {
-      sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
-    } else if (recvSSRC == this->getAudioSourceSSRC()) {
-      sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET));
-    } else {
-      ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
-                  toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
-    }
-    return newLength;
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
+  uint32_t recvSSRC = chead->getSourceSSRC();
+  if (recvSSRC == this->getVideoSourceSSRC()) {
+    sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
+  } else if (recvSSRC == this->getAudioSourceSSRC()) {
+    sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET));
+  } else {
+    ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
+                toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
   }
   return len;
 }
@@ -407,22 +405,15 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
   uint32_t recvSSRC;
-  if (chead->isRtcp()) {
-    if (chead->packettype == RTCP_Sender_PT) {  // Sender Report
-      rtcpProcessor_->analyzeSr(chead);
-      recvSSRC = chead->getSSRC();
-    }
-  } else {
-    if (stats_.getLatestTotalBitrate()) {
-      this->rtcpProcessor_->setPublisherBW(stats_.getLatestTotalBitrate());
-    }
+  if (!chead->isRtcp()) {
     recvSSRC = head->getSSRC();
+  } else if (chead->packettype == RTCP_Sender_PT) {  // Sender Report
+    recvSSRC = chead->getSSRC();
   }
 
   // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
   if (chead->isFeedback()) {
     if (fbSink_ != NULL && shouldSendFeedback_) {
-      // we want to send feedback, check if we need to alter packets
       fbSink_->deliverFeedback(buf, len);
     }
   } else {
@@ -461,9 +452,6 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
       }
     }  // if not bundle
   }  // if not Feedback
-
-  // check if we need to send FB || RR messages
-  rtcpProcessor_->checkRtcpFb();
 }
 
 int WebRtcConnection::sendPLI() {

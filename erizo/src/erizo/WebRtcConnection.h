@@ -21,6 +21,7 @@
 #include "rtp/RtpAudioMuteHandler.h"
 #include "rtp/BandwidthEstimationHandler.h"
 #include "rtp/FecReceiverHandler.h"
+#include "rtp/RtcpProcessorHandler.h"
 #include "lib/Clock.h"
 
 namespace erizo {
@@ -191,7 +192,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   time_point now_, mark_;
 
-  boost::shared_ptr<RtcpProcessor> rtcpProcessor_;
+  std::shared_ptr<RtcpProcessor> rtcp_processor_;
   std::shared_ptr<Transport> videoTransport_, audioTransport_;
 
   Stats stats_;
@@ -207,6 +208,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   std::shared_ptr<RtpAudioMuteHandler> audio_mute_handler_;
   std::shared_ptr<BandwidthEstimationHandler> bwe_handler_;
   std::shared_ptr<FecReceiverHandler> fec_handler_;
+  std::shared_ptr<RtcpProcessorHandler> rtcp_processor_handler_;
 
   void sendPacket(std::shared_ptr<dataPacket> packet);
   int deliverAudioData_(char* buf, int len) override;
