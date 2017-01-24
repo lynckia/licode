@@ -1,6 +1,5 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <queue>
 
 #include <thread/Scheduler.h>
 #include <rtp/RtpVP8SlideShowHandler.h>
@@ -9,6 +8,7 @@
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
 
+#include <queue>
 #include <string>
 #include <vector>
 
@@ -78,14 +78,16 @@ class RtpVP8SlideShowHandlerTest : public ::testing::Test {
 TEST_F(RtpVP8SlideShowHandlerTest, basicBehaviourShouldReadPackets) {
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
-    EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*reader.get(), read(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
     pipeline->read(packet);
 }
 
 TEST_F(RtpVP8SlideShowHandlerTest, basicBehaviourShouldWritePackets) {
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
     pipeline->write(packet);
 }
 
@@ -134,10 +136,14 @@ TEST_F(RtpVP8SlideShowHandlerTest, shouldMantainSequenceNumberInSlideShow) {
     slideshow_handler->setSlideShowMode(true);
 
 
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 2))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 3))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 2))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 3))).Times(1);
 
     while (!packet_queue.empty()) {
       pipeline->write(packet_queue.front());
@@ -146,13 +152,20 @@ TEST_F(RtpVP8SlideShowHandlerTest, shouldMantainSequenceNumberInSlideShow) {
 }
 
 TEST_F(RtpVP8SlideShowHandlerTest, shouldAdjustSequenceNumberAfterSlideShow) {
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 2))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 3))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 4))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 5))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 6))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 2))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 3))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 4))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 5))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 6))).Times(1);
 
     uint16_t seq_number = erizo::kArbitrarySeqNumber;
     uint16_t packets_after_handler = 0;

@@ -154,7 +154,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   extProcessor_.setSdpInfo(localSdp_);
 
   bwe_handler_->updateExtensionMaps(extProcessor_.getVideoExtensionMap(), extProcessor_.getAudioExtensionMap());
-  if (remoteSdp_.supportPayloadType(RED_90000_PT) || slide_show_mode_) {
+  if (!remoteSdp_.supportPayloadType(RED_90000_PT) || slide_show_mode_) {
     fec_handler_->enable();
   }
 

@@ -79,6 +79,39 @@ class PacketTools {
 
     return std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
   }
+
+  static std::shared_ptr<erizo::dataPacket> createRembPacket(uint32_t bitrate) {
+    erizo::RtcpHeader *remb_packet = new erizo::RtcpHeader();
+    remb_packet->setPacketType(RTCP_PS_Feedback_PT);
+    remb_packet->setBlockCount(RTCP_AFB);
+    memcpy(&remb_packet->report.rembPacket.uniqueid, "REMB", 4);
+
+    remb_packet->setSSRC(2);
+    remb_packet->setSourceSSRC(1);
+    remb_packet->setLength(5);
+    remb_packet->setREMBBitRate(bitrate);
+    remb_packet->setREMBNumSSRC(1);
+    remb_packet->setREMBFeedSSRC(55554);
+    int remb_length = (remb_packet->getLength() + 1) * 4;
+    char *buf = reinterpret_cast<char*>(remb_packet);
+    auto packet = std::make_shared<erizo::dataPacket>(0, buf, remb_length, erizo::OTHER_PACKET);
+    delete remb_packet;
+    return packet;
+  }
+
+  static std::shared_ptr<erizo::dataPacket> createPLI() {
+    erizo::RtcpHeader *pli = new erizo::RtcpHeader();
+    pli->setPacketType(RTCP_PS_Feedback_PT);
+    pli->setBlockCount(1);
+    pli->setSSRC(55554);
+    pli->setSourceSSRC(1);
+    pli->setLength(2);
+    char *buf = reinterpret_cast<char*>(pli);
+    int len = (pli->getLength() + 1) * 4;
+    auto packet = std::make_shared<erizo::dataPacket>(0, buf, len, erizo::OTHER_PACKET);
+    delete pli;
+    return packet;
+  }
 };
 
 }  // namespace erizo

@@ -21,9 +21,9 @@ void FecReceiverHandler::disable() {
 }
 
 void FecReceiverHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
-  if (packet->type == VIDEO_PACKET) {
-    if (rtp_header->getPayloadType() == RED_90000_PT && enabled_) {
+  if (enabled_ && packet->type == VIDEO_PACKET) {
+    RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
+    if (rtp_header->getPayloadType() == RED_90000_PT) {
       // This is a RED/FEC payload, but our remote endpoint doesn't support that
       // (most likely because it's firefox :/ )
       // Let's go ahead and run this through our fec receiver to convert it to raw VP8

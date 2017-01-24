@@ -34,7 +34,7 @@ class SyntheticInputTest : public ::testing::Test {
         worker{std::make_shared<SimulatedWorker>(clock)},
         input{std::make_shared<SyntheticInput>(config, worker, clock)}
         {
-    auto packet = createRembPacket(30000);
+    auto packet = erizo::PacketTools::createRembPacket(30000);
     input->deliverFeedback(packet->data, packet->length);
   }
 
@@ -54,39 +54,6 @@ class SyntheticInputTest : public ::testing::Test {
       worker->executePastScheduledTasks();
       clock->advanceTime(std::chrono::milliseconds(1));
     }
-  }
-
-  std::shared_ptr<erizo::dataPacket> createRembPacket(uint32_t bitrate) {
-    erizo::RtcpHeader *remb_packet = new erizo::RtcpHeader();
-    remb_packet->setPacketType(RTCP_PS_Feedback_PT);
-    remb_packet->setBlockCount(RTCP_AFB);
-    memcpy(&remb_packet->report.rembPacket.uniqueid, "REMB", 4);
-
-    remb_packet->setSSRC(2);
-    remb_packet->setSourceSSRC(1);
-    remb_packet->setLength(5);
-    remb_packet->setREMBBitRate(bitrate);
-    remb_packet->setREMBNumSSRC(1);
-    remb_packet->setREMBFeedSSRC(55554);
-    int remb_length = (remb_packet->getLength() + 1) * 4;
-    char *buf = reinterpret_cast<char*>(remb_packet);
-    auto packet = std::make_shared<erizo::dataPacket>(0, buf, remb_length, erizo::OTHER_PACKET);
-    delete remb_packet;
-    return packet;
-  }
-
-  std::shared_ptr<erizo::dataPacket> createPLI() {
-    erizo::RtcpHeader *pli = new erizo::RtcpHeader();
-    pli->setPacketType(RTCP_PS_Feedback_PT);
-    pli->setBlockCount(1);
-    pli->setSSRC(55554);
-    pli->setSourceSSRC(1);
-    pli->setLength(2);
-    char *buf = reinterpret_cast<char*>(pli);
-    int len = (pli->getLength() + 1) * 4;
-    auto packet = std::make_shared<erizo::dataPacket>(0, buf, len, erizo::OTHER_PACKET);
-    delete pli;
-    return packet;
   }
 
   erizo::MockMediaSink sink;
@@ -209,7 +176,7 @@ TEST_F(SyntheticInputTest, firstVideoFrame_shouldBeAKeyframe) {
 }
 
 TEST_F(SyntheticInputTest, shouldWriteFragmentedKeyFrames_whenExpected) {
-  auto packet = createRembPacket(300000);
+  auto packet = erizo::PacketTools::createRembPacket(300000);
   input->deliverFeedback(packet->data, packet->length);
   EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(4);
   EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::IsKeyframeFirstPacket())).Times(1);
@@ -219,7 +186,7 @@ TEST_F(SyntheticInputTest, shouldWriteFragmentedKeyFrames_whenExpected) {
 }
 
 TEST_F(SyntheticInputTest, shouldWriteKeyFrames_whenPliIsReceived) {
-  auto packet = createPLI();
+  auto packet = erizo::PacketTools::createPLI();
   EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(7);
   EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::IsKeyframeFirstPacket())).Times(2);
 

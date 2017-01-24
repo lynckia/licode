@@ -74,14 +74,16 @@ class RtpAudioMuteHandlerTest : public ::testing::Test {
 TEST_F(RtpAudioMuteHandlerTest, basicBehaviourShouldReadPackets) {
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
 
-    EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*reader.get(), read(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
     pipeline->read(packet);
 }
 
 TEST_F(RtpAudioMuteHandlerTest, basicBehaviourShouldWritePackets) {
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
 
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
     pipeline->write(packet);
 }
 
@@ -89,7 +91,8 @@ TEST_F(RtpAudioMuteHandlerTest, shouldNotWriteAudioPacketsIfActive) {
     auto audio_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
     auto video_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber+1, VIDEO_PACKET);
     audio_mute_handler->muteAudio(true);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber+1))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber+1))).Times(1);
 
     pipeline->write(audio_packet);
     pipeline->write(video_packet);
@@ -97,10 +100,14 @@ TEST_F(RtpAudioMuteHandlerTest, shouldNotWriteAudioPacketsIfActive) {
 
 TEST_F(RtpAudioMuteHandlerTest, shouldAdjustSequenceNumbers) {
     uint16_t seq_number = erizo::kArbitrarySeqNumber;
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber+1))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber+2))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber+3))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber+1))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber+2))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber+3))).Times(1);
 
     packet_queue.push(erizo::PacketTools::createDataPacket(seq_number, AUDIO_PACKET));
     packet_queue.push(erizo::PacketTools::createDataPacket(++seq_number, AUDIO_PACKET));
