@@ -9,6 +9,23 @@
 
 namespace erizo {
 
+class MockMediaSink : public MediaSink {
+ public:
+  MOCK_METHOD0(close, void());
+  MOCK_METHOD2(deliverAudioDataInternal, void(char*, int));
+  MOCK_METHOD2(deliverVideoDataInternal, void(char*, int));
+
+ private:
+  int deliverAudioData_(char* buf, int len) override {
+    deliverAudioDataInternal(buf, len);
+    return 0;
+  }
+  int deliverVideoData_(char* buf, int len) override {
+    deliverVideoDataInternal(buf, len);
+    return 0;
+  }
+};
+
 class MockWebRtcConnection: public WebRtcConnection {
  public:
   MockWebRtcConnection(std::shared_ptr<Worker> worker, const IceConfig &ice_config,

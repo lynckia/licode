@@ -83,37 +83,37 @@ class BandwidthEstimationHandlerTest : public ::testing::Test {
 };
 
 TEST_F(BandwidthEstimationHandlerTest, basicBehaviourShouldWritePackets) {
-  auto packet1 = erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
-  auto packet2 = erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+  auto packet1 = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
+  auto packet2 = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
-  EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(2);
+  EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(2);
   pipeline->write(packet1);
   pipeline->write(packet2);
 }
 
 TEST_F(BandwidthEstimationHandlerTest, basicBehaviourShouldReadPackets) {
-  auto packet1 = erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
-  auto packet2 = erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+  auto packet1 = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
+  auto packet2 = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
   EXPECT_CALL(estimator, Process());
   EXPECT_CALL(estimator, TimeUntilNextProcess()).WillRepeatedly(Return(1000));
   EXPECT_CALL(estimator, IncomingPacket(_, _, _));
 
-  EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(2);
+  EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(2);
   pipeline->read(packet1);
   pipeline->read(packet2);
 }
 
 TEST_F(BandwidthEstimationHandlerTest, shouldSendRembPacketWithEstimatedBitrate) {
   uint32_t kArbitraryBitrate = 100000;
-  auto packet = erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+  auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
   EXPECT_CALL(estimator, Process());
   EXPECT_CALL(estimator, TimeUntilNextProcess()).WillRepeatedly(Return(1000));
   EXPECT_CALL(estimator, IncomingPacket(_, _, _));
-  EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+  EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
   pipeline->read(packet);
 
-  EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(RembHasBitrateValue(kArbitraryBitrate))).Times(1);
+  EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RembHasBitrateValue(kArbitraryBitrate))).Times(1);
   picker->observer_->OnReceiveBitrateChanged(std::vector<uint32_t>(), kArbitraryBitrate);
 }

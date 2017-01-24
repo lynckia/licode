@@ -15,7 +15,7 @@ static constexpr uint16_t kArbitrarySeqNumber = 12;
 static constexpr uint16_t kFirstSequenceNumber = 0;
 static constexpr uint16_t kLastSequenceNumber = 65535;
 
-class Tools {
+class PacketTools {
  public:
   static std::shared_ptr<dataPacket> createDataPacket(uint16_t seq_number, packetType type) {
     erizo::RtpHeader *header = new erizo::RtpHeader();

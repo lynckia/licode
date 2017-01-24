@@ -70,26 +70,26 @@ class RtpRetransmissionHandlerTest : public ::testing::Test {
 };
 
 TEST_F(RtpRetransmissionHandlerTest, basicBehaviourShouldReadPackets) {
-    auto packet = erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+    auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
-    EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
     pipeline->read(packet);
 }
 
 TEST_F(RtpRetransmissionHandlerTest, basicBehaviourShouldWritePackets) {
-    auto packet = erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+    auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
     pipeline->write(packet);
 }
 
 TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingNacksWithGoodSeqNum) {
-    auto rtp_packet = erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+    auto rtp_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
     uint ssrc = connection->getVideoSourceSSRC();
     uint source_ssrc = connection->getVideoSinkSSRC();
-    auto nack_packet = erizo::Tools::createNack(ssrc, source_ssrc, erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+    auto nack_packet = erizo::PacketTools::createNack(ssrc, source_ssrc, erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(2);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(2);
     pipeline->write(rtp_packet);
 
     EXPECT_CALL(*reader.get(), read(_, _)).Times(0);
@@ -97,13 +97,13 @@ TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingNacksW
 }
 
 TEST_F(RtpRetransmissionHandlerTest, shouldNotRetransmitPackets_whenReceivingNacksWithBadSeqNum) {
-    auto rtp_packet = erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+    auto rtp_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
     uint ssrc = connection->getVideoSourceSSRC();
     uint source_ssrc = connection->getVideoSinkSSRC();
-    auto nack_packet = erizo::Tools::createNack(ssrc, source_ssrc, erizo::kArbitrarySeqNumber + 1, VIDEO_PACKET);
+    auto nack_packet = erizo::PacketTools::createNack(ssrc, source_ssrc, erizo::kArbitrarySeqNumber + 1, VIDEO_PACKET);
 
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(0);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(0);
     pipeline->write(rtp_packet);
 
     EXPECT_CALL(*reader.get(), read(_, _)).Times(1);
@@ -111,12 +111,12 @@ TEST_F(RtpRetransmissionHandlerTest, shouldNotRetransmitPackets_whenReceivingNac
 }
 
 TEST_F(RtpRetransmissionHandlerTest, shouldNotRetransmitPackets_whenReceivingNacksFromDifferentType) {
-    auto rtp_packet = erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+    auto rtp_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
     uint ssrc = connection->getAudioSourceSSRC();
     uint source_ssrc = connection->getAudioSinkSSRC();
-    auto nack_packet = erizo::Tools::createNack(ssrc, source_ssrc, erizo::kArbitrarySeqNumber, AUDIO_PACKET);
+    auto nack_packet = erizo::PacketTools::createNack(ssrc, source_ssrc, erizo::kArbitrarySeqNumber, AUDIO_PACKET);
 
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
     pipeline->write(rtp_packet);
 
     EXPECT_CALL(*reader.get(), read(_, _)).Times(1);
@@ -126,12 +126,12 @@ TEST_F(RtpRetransmissionHandlerTest, shouldNotRetransmitPackets_whenReceivingNac
 TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingWithSeqNumBeforeGeneralRollover) {
     uint ssrc = connection->getVideoSourceSSRC();
     uint source_ssrc = connection->getVideoSinkSSRC();
-    auto nack_packet = erizo::Tools::createNack(ssrc, source_ssrc, erizo::kFirstSequenceNumber, VIDEO_PACKET);
+    auto nack_packet = erizo::PacketTools::createNack(ssrc, source_ssrc, erizo::kFirstSequenceNumber, VIDEO_PACKET);
 
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kLastSequenceNumber))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kFirstSequenceNumber))).Times(2);
-    pipeline->write(erizo::Tools::createDataPacket(erizo::kLastSequenceNumber, VIDEO_PACKET));
-    pipeline->write(erizo::Tools::createDataPacket(erizo::kFirstSequenceNumber, VIDEO_PACKET));
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kLastSequenceNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kFirstSequenceNumber))).Times(2);
+    pipeline->write(erizo::PacketTools::createDataPacket(erizo::kLastSequenceNumber, VIDEO_PACKET));
+    pipeline->write(erizo::PacketTools::createDataPacket(erizo::kFirstSequenceNumber, VIDEO_PACKET));
 
     EXPECT_CALL(*reader.get(), read(_, _)).Times(0);
     pipeline->read(nack_packet);
@@ -140,14 +140,14 @@ TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingWithSe
 TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingWithSeqNumBeforeBufferRollover) {
     uint ssrc = connection->getVideoSourceSSRC();
     uint source_ssrc = connection->getVideoSinkSSRC();
-    auto nack_packet = erizo::Tools::createNack(ssrc, source_ssrc, kRetransmissionsBufferSize - 1, VIDEO_PACKET);
+    auto nack_packet = erizo::PacketTools::createNack(ssrc, source_ssrc, kRetransmissionsBufferSize - 1, VIDEO_PACKET);
 
     EXPECT_CALL(*writer.get(), write(_, _)).
-        With(Args<1>(HasSequenceNumber(kRetransmissionsBufferSize))).Times(1);
+        With(Args<1>(erizo::RtpHasSequenceNumber(kRetransmissionsBufferSize))).Times(1);
     EXPECT_CALL(*writer.get(), write(_, _)).
-        With(Args<1>(HasSequenceNumber(kRetransmissionsBufferSize - 1))).Times(2);
-    pipeline->write(erizo::Tools::createDataPacket(kRetransmissionsBufferSize - 1, VIDEO_PACKET));
-    pipeline->write(erizo::Tools::createDataPacket(kRetransmissionsBufferSize, VIDEO_PACKET));
+        With(Args<1>(erizo::RtpHasSequenceNumber(kRetransmissionsBufferSize - 1))).Times(2);
+    pipeline->write(erizo::PacketTools::createDataPacket(kRetransmissionsBufferSize - 1, VIDEO_PACKET));
+    pipeline->write(erizo::PacketTools::createDataPacket(kRetransmissionsBufferSize, VIDEO_PACKET));
 
     EXPECT_CALL(*reader.get(), read(_, _)).Times(0);
     pipeline->read(nack_packet);
@@ -156,12 +156,12 @@ TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingWithSe
 TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingNackWithMultipleSeqNums) {
     uint ssrc = connection->getVideoSourceSSRC();
     uint source_ssrc = connection->getVideoSinkSSRC();
-    auto nack_packet = erizo::Tools::createNack(ssrc, source_ssrc, erizo::kArbitrarySeqNumber, VIDEO_PACKET, 1);
+    auto nack_packet = erizo::PacketTools::createNack(ssrc, source_ssrc, erizo::kArbitrarySeqNumber, VIDEO_PACKET, 1);
 
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(2);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(2);
-    pipeline->write(erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET));
-    pipeline->write(erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber + 1, VIDEO_PACKET));
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(2);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(2);
+    pipeline->write(erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET));
+    pipeline->write(erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + 1, VIDEO_PACKET));
 
     EXPECT_CALL(*reader.get(), read(_, _)).Times(0);
     pipeline->read(nack_packet);

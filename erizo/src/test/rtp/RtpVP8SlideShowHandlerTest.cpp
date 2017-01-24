@@ -76,26 +76,26 @@ class RtpVP8SlideShowHandlerTest : public ::testing::Test {
 };
 
 TEST_F(RtpVP8SlideShowHandlerTest, basicBehaviourShouldReadPackets) {
-    auto packet = erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+    auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
-    EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
     pipeline->read(packet);
 }
 
 TEST_F(RtpVP8SlideShowHandlerTest, basicBehaviourShouldWritePackets) {
-    auto packet = erizo::Tools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+    auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
     pipeline->write(packet);
 }
 
 TEST_F(RtpVP8SlideShowHandlerTest, shouldTransmitAllPacketsWhenInactive) {
     uint16_t seq_number = erizo::kArbitrarySeqNumber;
-    packet_queue.push(erizo::Tools::createVP8Packet(seq_number, false, false));
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, true, false));
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, false));
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, true));
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(seq_number, false, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, true, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, true));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, false));
     slideshow_handler->setSlideShowMode(false);
 
     EXPECT_CALL(*writer.get(), write(_, _)).Times(5);
@@ -107,11 +107,11 @@ TEST_F(RtpVP8SlideShowHandlerTest, shouldTransmitAllPacketsWhenInactive) {
 }
 TEST_F(RtpVP8SlideShowHandlerTest, shouldTransmitFromBeginningOfKFrameToMarkerPacketsWhenActive) {
     uint16_t seq_number = erizo::kArbitrarySeqNumber;
-    packet_queue.push(erizo::Tools::createVP8Packet(seq_number, false, false));
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, true, false));
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, false));
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, true));
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(seq_number, false, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, true, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, true));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, false));
     slideshow_handler->setSlideShowMode(true);
 
     EXPECT_CALL(*writer.get(), write(_, _)).Times(3);
@@ -123,21 +123,21 @@ TEST_F(RtpVP8SlideShowHandlerTest, shouldTransmitFromBeginningOfKFrameToMarkerPa
 
 TEST_F(RtpVP8SlideShowHandlerTest, shouldMantainSequenceNumberInSlideShow) {
     uint16_t seq_number = erizo::kArbitrarySeqNumber;
-    packet_queue.push(erizo::Tools::createVP8Packet(seq_number, true, false));
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, true));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(seq_number, true, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, true));
 
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, false));
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, false));
 
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, true, false));
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, true));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, true, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, true));
     slideshow_handler->setSlideShowMode(true);
 
 
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber + 2))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber + 3))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 2))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 3))).Times(1);
 
     while (!packet_queue.empty()) {
       pipeline->write(packet_queue.front());
@@ -146,27 +146,27 @@ TEST_F(RtpVP8SlideShowHandlerTest, shouldMantainSequenceNumberInSlideShow) {
 }
 
 TEST_F(RtpVP8SlideShowHandlerTest, shouldAdjustSequenceNumberAfterSlideShow) {
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber + 2))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber + 3))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber + 4))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber + 5))).Times(1);
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(HasSequenceNumber(erizo::kArbitrarySeqNumber + 6))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 2))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 3))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 4))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 5))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 6))).Times(1);
 
     uint16_t seq_number = erizo::kArbitrarySeqNumber;
     uint16_t packets_after_handler = 0;
-    packet_queue.push(erizo::Tools::createVP8Packet(seq_number, true, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(seq_number, true, false));
     packets_after_handler++;
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, true));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, true));
     packets_after_handler++;
 
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, false));
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, false));
 
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, true, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, true, false));
     packets_after_handler++;
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, true));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, true));
     packets_after_handler++;
 
     slideshow_handler->setSlideShowMode(true);
@@ -176,20 +176,20 @@ TEST_F(RtpVP8SlideShowHandlerTest, shouldAdjustSequenceNumberAfterSlideShow) {
     }
 
     slideshow_handler->setSlideShowMode(false);
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, true));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, true));
     packets_after_handler++;
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, false));
     packets_after_handler++;
-    packet_queue.push(erizo::Tools::createVP8Packet(++seq_number, false, false));
+    packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, false));
 
     uint16_t last_sent_seq_number = seq_number;
 
     EXPECT_CALL(*reader.get(), read(_, _)).
-      With(Args<1>(NackHasSequenceNumber(last_sent_seq_number))).
+      With(Args<1>(erizo::NackHasSequenceNumber(last_sent_seq_number))).
       Times(1);
 
     EXPECT_CALL(*reader.get(), read(_, _)).
-      With(Args<1>(ReceiverReportHasSequenceNumber(last_sent_seq_number))).
+      With(Args<1>(erizo::ReceiverReportHasSequenceNumber(last_sent_seq_number))).
       Times(1);
 
     while (!packet_queue.empty()) {
@@ -198,10 +198,10 @@ TEST_F(RtpVP8SlideShowHandlerTest, shouldAdjustSequenceNumberAfterSlideShow) {
     }
     uint ssrc = connection->getVideoSourceSSRC();
     uint source_ssrc = connection->getVideoSinkSSRC();
-    auto nack = erizo::Tools::createNack(ssrc, source_ssrc,
+    auto nack = erizo::PacketTools::createNack(ssrc, source_ssrc,
                                 erizo::kArbitrarySeqNumber + packets_after_handler, VIDEO_PACKET);
     pipeline->read(nack);
-    auto receiver_report = erizo::Tools::createReceiverReport(ssrc, source_ssrc,
+    auto receiver_report = erizo::PacketTools::createReceiverReport(ssrc, source_ssrc,
                                 erizo::kArbitrarySeqNumber + packets_after_handler, VIDEO_PACKET);
     pipeline->read(receiver_report);
 }
