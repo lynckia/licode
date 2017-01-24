@@ -151,6 +151,7 @@ Erizo.Room = function (spec) {
                                        screen: arg.screen,
                                        attributes: arg.attributes}),
                 evt;
+            stream.room = that;
             that.remoteStreams[arg.id] = stream;
             evt = Erizo.StreamEvent({type: 'stream-added', stream: stream});
             that.dispatchEvent(evt);
@@ -866,7 +867,7 @@ Erizo.Room = function (spec) {
         if (!stream) {
             return 'Error getting stats - no stream';
         }
-        
+
         sendMessageSocket('getStreamStats', stream.getID(), function (result) {
             if (result) {
                 L.Logger.info('Got stats', result);
