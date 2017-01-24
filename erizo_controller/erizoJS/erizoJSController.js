@@ -132,11 +132,11 @@ exports.ErizoJSController = function (threadPool) {
                     break;
             }
         });
-        if (options.createOffer === true) {
+        if (options.createOffer) {
             log.debug('message: create offer requested, id:', wrtc.wrtcId);
-            var audioEnabled = true;
-            var videoEnabled = true;
-            var bundle = true;
+            var audioEnabled = options.createOffer.audio;
+            var videoEnabled = options.createOffer.video;
+            var bundle = options.createOffer.bundle;
             wrtc.createOffer(audioEnabled, videoEnabled, bundle);
         }
         callback('callback', {type: 'initializing'});
