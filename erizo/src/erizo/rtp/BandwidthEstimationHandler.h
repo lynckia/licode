@@ -3,6 +3,8 @@
 
 #include <array>
 #include <vector>
+#include <string>
+#include <atomic>
 
 #include "./logger.h"
 #include "pipeline/Handler.h"
@@ -42,10 +44,19 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   void OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
                                        uint32_t bitrate) override;
 
+  void enable() override;
+  void disable() override;
+
+  std::string getName() override {
+    return "bwe";
+  }
+
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
 
   void updateExtensionMaps(std::array<RTPExtensions, 10> video_map, std::array<RTPExtensions, 10> audio_map);
+
+  uint32_t getLastSendBitrate();
 
  private:
   void process();
@@ -69,9 +80,11 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   RtcpHeader remb_packet_;
   RtpHeaderExtensionMap ext_map_audio_, ext_map_video_;
   Context *temp_ctx_;
-  uint32_t bitrate_, last_send_bitrate_;
+  uint32_t bitrate_;
+  std::atomic<uint32_t> last_send_bitrate_;
   uint64_t last_remb_time_;
   bool running_;
+  bool active_;
 };
 }  // namespace erizo
 

@@ -17,7 +17,6 @@ namespace erizo {
   Stats::Stats() {
     ELOG_DEBUG("Constructor Stats");
     theListener_ = NULL;
-    rtpBytesReceived_ = 0;
     bitrate_calculation_start_ = clock::now();
   }
 
@@ -26,15 +25,30 @@ namespace erizo {
   }
 
   uint32_t Stats::processRtpPacket(char* buf, int len) {
-    rtpBytesReceived_+=len;
+    boost::recursive_mutex::scoped_lock lock(mapMutex_);
+    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+    if (chead->isRtcp())
+      return 0;
+
+    RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);
+    uint32_t ssrc = head->getSSRC();
+    if (bitrate_bytes_map.find(ssrc) == bitrate_bytes_map.end()) {
+      bitrate_bytes_map[ssrc] = 0;
+    }
+    bitrate_bytes_map[ssrc] += len;
     time_point nowms = clock::now();
     time_point start = bitrate_calculation_start_;
     duration delay = nowms - start;
+    uint32_t total_bitrate = 0;
     if (delay > kBitrateStatsPeriod) {
-      uint32_t receivedRtpBitrate_ = (8 * rtpBytesReceived_ * 1000) / ClockUtils::durationToMs(delay);  // in kbps
-      rtpBytesReceived_ = 0;
+      for (auto &bytes_pair : bitrate_bytes_map) {
+        uint32_t calculated_value = ((8 * bytes_pair.second * 1000) / ClockUtils::durationToMs(delay));  // in bps
+        setBitrateCalculated(calculated_value, bytes_pair.first);
+        total_bitrate += calculated_value;
+        bytes_pair.second = 0;
+      }
       bitrate_calculation_start_ = clock::now();
-      return receivedRtpBitrate_;  // in bps
+      return total_bitrate;
     }
     return 0;
   }
@@ -147,6 +161,10 @@ namespace erizo {
     }
     theString << "]";
     return theString.str();
+  }
+
+  void Stats::setEstimatedBandwidth(uint32_t bandwidth, uint32_t ssrc) {
+    setErizoEstimatedBandwidth(bandwidth, ssrc);
   }
 
   void Stats::sendStats() {
