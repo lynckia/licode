@@ -26,8 +26,6 @@ namespace erizo {
 
   void Stats::processRtpPacket(char* buf, int len) {
     boost::recursive_mutex::scoped_lock lock(mapMutex_);
-    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-
     RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);
     uint32_t ssrc = head->getSSRC();
     if (bitrate_bytes_map.find(ssrc) == bitrate_bytes_map.end()) {

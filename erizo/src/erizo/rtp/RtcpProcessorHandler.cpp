@@ -17,7 +17,6 @@ void RtcpProcessorHandler::disable() {
 }
 
 void RtcpProcessorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  char* buf = packet->data;
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
   if (chead->isRtcp()) {
     if (chead->packettype == RTCP_Sender_PT) {  // Sender Report
