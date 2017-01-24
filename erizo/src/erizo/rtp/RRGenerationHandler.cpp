@@ -230,15 +230,12 @@ void RRGenerationHandler::handleSR(std::shared_ptr<dataPacket> packet) {
 }
 
 void RRGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  if (!enabled_) {
-    return;
-  }
   temp_ctx_ = ctx;
 
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
-  if (!chead->isRtcp()) {
+  if (!chead->isRtcp() && enabled_) {
     handleRtpPacket(packet);
-  } else if (chead->packettype == RTCP_Sender_PT) {
+  } else if (chead->packettype == RTCP_Sender_PT && enabled_) {
     handleSR(packet);
   }
   ctx->fireRead(packet);
