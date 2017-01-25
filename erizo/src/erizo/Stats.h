@@ -27,7 +27,7 @@ class Stats {
   Stats();
   virtual ~Stats();
 
-  uint32_t processRtpPacket(char* buf, int len);
+  void processRtpPacket(char* buf, int len);
   void processRtcpPacket(char* buf, int length);
   void setEstimatedBandwidth(uint32_t bandwidth, uint32_t ssrc);
 
@@ -39,6 +39,14 @@ class Stats {
   void setAudioSourceSSRC(unsigned int ssrc) {
     audioSSRC_ = ssrc;
   }
+  uint32_t getLatestTotalBitrate() const {
+    return latest_total_bitrate_;
+  }
+
+  void setLatestTotalBitrate(uint32_t bitrate) {  // For testing purposes
+    latest_total_bitrate_ = bitrate;
+  }
+
   inline void setStatsListener(WebRtcConnectionStatsListener* listener) {
     this->theListener_ = listener;
   }
@@ -53,6 +61,7 @@ class Stats {
   boost::recursive_mutex mapMutex_;
   WebRtcConnectionStatsListener* theListener_;
   unsigned int videoSSRC_, audioSSRC_;
+  uint32_t latest_total_bitrate_;
 
   void processRtcpPacket(RtcpHeader* chead);
 
