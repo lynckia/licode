@@ -31,7 +31,7 @@ var databaseUrl = config.nuve.dataBaseURL;
  *	};
  *
  */
-var collections = ['rooms', 'tokens', 'services'];
+var collections = ['rooms', 'tokens', 'services', 'erizoControllers'];
 var mongojs = require('mongojs');
 exports.db = mongojs(databaseUrl, collections);
 
