@@ -39,6 +39,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   sinkfbSource_ = this;
   globalState_ = CONN_INITIAL;
 
+  rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
+
   slideshow_handler_ = std::make_shared<RtpVP8SlideShowHandler>(this);
   audio_mute_handler_ = std::make_shared<RtpAudioMuteHandler>(this);
   bwe_handler_ = std::make_shared<BandwidthEstimationHandler>(this, worker_);
@@ -97,8 +99,6 @@ void WebRtcConnection::close() {
 }
 
 bool WebRtcConnection::init() {
-  rtcp_processor_ = std::shared_ptr<RtcpProcessor>(
-                    new RtcpForwarder(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this)));
   if (connEventListener_ != NULL) {
     connEventListener_->notifyEvent(globalState_, "");
   }
