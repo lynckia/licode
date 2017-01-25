@@ -14,7 +14,7 @@ namespace erizo {
 
   DEFINE_LOGGER(Stats, "Stats");
 
-  Stats::Stats() {
+  Stats::Stats() : latest_total_bitrate_{0} {
     ELOG_DEBUG("Constructor Stats");
     theListener_ = NULL;
     bitrate_calculation_start_ = clock::now();
@@ -24,12 +24,8 @@ namespace erizo {
     ELOG_DEBUG("Destructor Stats");
   }
 
-  uint32_t Stats::processRtpPacket(char* buf, int len) {
+  void Stats::processRtpPacket(char* buf, int len) {
     boost::recursive_mutex::scoped_lock lock(mapMutex_);
-    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-    if (chead->isRtcp())
-      return 0;
-
     RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);
     uint32_t ssrc = head->getSSRC();
     if (bitrate_bytes_map.find(ssrc) == bitrate_bytes_map.end()) {
@@ -48,9 +44,8 @@ namespace erizo {
         bytes_pair.second = 0;
       }
       bitrate_calculation_start_ = clock::now();
-      return total_bitrate;
+      latest_total_bitrate_ = total_bitrate;
     }
-    return 0;
   }
 
   void Stats::processRtcpPacket(char* buf, int length) {
