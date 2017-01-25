@@ -11,6 +11,9 @@ FecReceiverHandler::FecReceiverHandler(WebRtcConnection *connection) :
   fec_receiver_.reset(webrtc::UlpfecReceiver::Create(this));
 }
 
+void FecReceiverHandler::setFecReceiver(std::unique_ptr<webrtc::UlpfecReceiver>&& fec_receiver) {  // NOLINT
+  fec_receiver_ = std::move(fec_receiver);
+}
 
 void FecReceiverHandler::enable() {
   enabled_ = true;

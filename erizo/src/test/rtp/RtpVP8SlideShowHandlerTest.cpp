@@ -36,43 +36,17 @@ using erizo::RtpVP8Parser;
 using erizo::RTPPayloadVP8;
 using std::queue;
 
-class RtpVP8SlideShowHandlerTest : public ::testing::Test {
+class RtpVP8SlideShowHandlerTest : public erizo::HandlerTest {
  public:
-  RtpVP8SlideShowHandlerTest() : ice_config() {}
+  RtpVP8SlideShowHandlerTest() {}
 
  protected:
-  virtual void SetUp() {
-    scheduler = std::make_shared<Scheduler>(1);
-    worker = std::make_shared<Worker>(scheduler);
-    connection = std::make_shared<erizo::MockWebRtcConnection>(worker, ice_config, rtp_maps);
-
-    connection->setVideoSinkSSRC(erizo::kVideoSsrc);
-    connection->setAudioSinkSSRC(erizo::kAudioSsrc);
-
-    pipeline = Pipeline::create();
+  void setHandler() {
     slideshow_handler = std::make_shared<RtpVP8SlideShowHandler>(connection.get());
-    reader = std::make_shared<erizo::Reader>();
-    writer = std::make_shared<erizo::Writer>();
-
-    pipeline->addBack(writer);
     pipeline->addBack(slideshow_handler);
-    pipeline->addBack(reader);
-    pipeline->finalize();
   }
 
-  virtual void TearDown() {
-  }
-
-  IceConfig ice_config;
-  std::vector<RtpMap> rtp_maps;
-  std::shared_ptr<erizo::MockWebRtcConnection> connection;
-  Pipeline::Ptr pipeline;
-  std::shared_ptr<erizo::Reader> reader;
-  std::shared_ptr<erizo::Writer> writer;
   std::shared_ptr<RtpVP8SlideShowHandler> slideshow_handler;
-  std::shared_ptr<Worker> worker;
-  std::shared_ptr<Scheduler> scheduler;
-  std::queue<std::shared_ptr<dataPacket>> packet_queue;
 };
 
 TEST_F(RtpVP8SlideShowHandlerTest, basicBehaviourShouldReadPackets) {

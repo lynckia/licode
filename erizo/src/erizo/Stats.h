@@ -43,6 +43,10 @@ class Stats {
     return latest_total_bitrate_;
   }
 
+  void setLatestTotalBitrate(uint32_t bitrate) {  // For testing purposes
+    latest_total_bitrate_ = bitrate;
+  }
+
   inline void setStatsListener(WebRtcConnectionStatsListener* listener) {
     this->theListener_ = listener;
   }

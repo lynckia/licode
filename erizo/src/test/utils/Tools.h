@@ -4,6 +4,7 @@
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 
+#include <queue>
 #include <string>
 #include <vector>
 
@@ -56,6 +57,17 @@ class PacketTools {
     receiver_report->setLength(7);
     char *buf = reinterpret_cast<char*>(receiver_report);
     int len = (receiver_report->getLength() + 1) * 4;
+    return std::make_shared<dataPacket>(0, buf, len, type);
+  }
+
+  static std::shared_ptr<dataPacket> createSenderReport(uint ssrc, packetType type) {
+    erizo::RtcpHeader *sender_report = new erizo::RtcpHeader();
+    sender_report->setPacketType(RTCP_Sender_PT);
+    sender_report->setBlockCount(1);
+    sender_report->setSSRC(ssrc);
+    sender_report->setLength(4);
+    char *buf = reinterpret_cast<char*>(sender_report);
+    int len = (sender_report->getLength() + 1) * 4;
     return std::make_shared<dataPacket>(0, buf, len, type);
   }
 
@@ -112,6 +124,47 @@ class PacketTools {
     delete pli;
     return packet;
   }
+};
+
+
+class HandlerTest : public ::testing::Test {
+ public:
+  HandlerTest() {}
+
+ protected:
+  virtual void SetUp() {
+    scheduler = std::make_shared<Scheduler>(1);
+    worker = std::make_shared<Worker>(scheduler);
+    worker->start();
+    connection = std::make_shared<erizo::MockWebRtcConnection>(worker, ice_config, rtp_maps);
+
+    connection->setVideoSinkSSRC(erizo::kVideoSsrc);
+    connection->setAudioSinkSSRC(erizo::kAudioSsrc);
+
+    pipeline = Pipeline::create();
+    reader = std::make_shared<erizo::Reader>();
+    writer = std::make_shared<erizo::Writer>();
+
+    pipeline->addBack(writer);
+    setHandler();
+    pipeline->addBack(reader);
+    pipeline->finalize();
+  }
+
+  virtual void TearDown() {
+  }
+
+  virtual void setHandler() = 0;
+
+  IceConfig ice_config;
+  std::vector<RtpMap> rtp_maps;
+  std::shared_ptr<erizo::MockWebRtcConnection> connection;
+  Pipeline::Ptr pipeline;
+  std::shared_ptr<erizo::Reader> reader;
+  std::shared_ptr<erizo::Writer> writer;
+  std::shared_ptr<Worker> worker;
+  std::shared_ptr<Scheduler> scheduler;
+  std::queue<std::shared_ptr<dataPacket>> packet_queue;
 };
 
 }  // namespace erizo

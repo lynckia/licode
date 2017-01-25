@@ -17,6 +17,8 @@ class FecReceiverHandler: public OutboundHandler, public webrtc::RtpData {
  public:
   explicit FecReceiverHandler(WebRtcConnection* connection);
 
+  void setFecReceiver(std::unique_ptr<webrtc::UlpfecReceiver>&& fec_receiver);  // NOLINT
+
   void enable() override;
   void disable() override;
 

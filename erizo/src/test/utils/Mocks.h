@@ -3,11 +3,25 @@
 
 #include <WebRtcConnection.h>
 #include <pipeline/Handler.h>
+#include <rtp/RtcpProcessor.h>
+#include <rtp/FecReceiverHandler.h>
+#include <webrtc/modules/rtp_rtcp/include/ulpfec_receiver.h>
 
 #include <string>
 #include <vector>
 
 namespace erizo {
+
+class MockRtcpProcessor : public RtcpProcessor {
+ public:
+  MockRtcpProcessor() : RtcpProcessor(nullptr, nullptr) {}
+  MOCK_METHOD1(addSourceSsrc, void(uint32_t));
+  MOCK_METHOD1(setMaxVideoBW, void(uint32_t));
+  MOCK_METHOD1(setPublisherBW, void(uint32_t));
+  MOCK_METHOD1(analyzeSr, void(RtcpHeader*));
+  MOCK_METHOD2(analyzeFeedback, int(char*, int));
+  MOCK_METHOD0(checkRtcpFb, void());
+};
 
 class MockMediaSink : public MediaSink {
  public:
@@ -113,6 +127,18 @@ class MockRemoteBitrateEstimator : public RemoteBitrateEstimator {
   MOCK_METHOD1(RemoveStream, void(uint32_t));
   MOCK_CONST_METHOD2(LatestEstimate, bool(std::vector<uint32_t>*, uint32_t*));
   MOCK_METHOD1(SetMinBitrate, void(int));
+};
+
+class MockUlpfecReceiver : public webrtc::UlpfecReceiver {
+ public:
+  virtual ~MockUlpfecReceiver() {}
+
+  MOCK_METHOD4(AddReceivedRedPacket, int32_t(const webrtc::RTPHeader&, const uint8_t*, size_t, uint8_t));
+  MOCK_METHOD0(ProcessReceivedFec, int32_t());
+  MOCK_CONST_METHOD0(GetPacketCounter, webrtc::FecPacketCounter());
+
+  // Returns a counter describing the added and recovered packets.
+  // virtual webrtc::FecPacketCounter GetPacketCounter() const {};
 };
 
 }  // namespace erizo

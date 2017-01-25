@@ -32,43 +32,18 @@ using erizo::OutboundHandler;
 using erizo::Worker;
 using std::queue;
 
-class RtpAudioMuteHandlerTest : public ::testing::Test {
+
+class RtpAudioMuteHandlerTest : public erizo::HandlerTest {
  public:
-  RtpAudioMuteHandlerTest() : ice_config() {}
+  RtpAudioMuteHandlerTest() {}
 
  protected:
-  virtual void SetUp() {
-    scheduler = std::make_shared<Scheduler>(1);
-    worker = std::make_shared<Worker>(scheduler);
-    connection = std::make_shared<erizo::MockWebRtcConnection>(worker, ice_config, rtp_maps);
-
-    connection->setVideoSinkSSRC(erizo::kVideoSsrc);
-    connection->setAudioSinkSSRC(erizo::kAudioSsrc);
-
-    pipeline = Pipeline::create();
+  void setHandler() {
     audio_mute_handler = std::make_shared<RtpAudioMuteHandler>(connection.get());
-    reader = std::make_shared<erizo::Reader>();
-    writer = std::make_shared<erizo::Writer>();
-
-    pipeline->addBack(writer);
     pipeline->addBack(audio_mute_handler);
-    pipeline->addBack(reader);
-    pipeline->finalize();
   }
 
-  virtual void TearDown() {
-  }
-
-  IceConfig ice_config;
-  std::vector<RtpMap> rtp_maps;
-  std::shared_ptr<erizo::MockWebRtcConnection> connection;
-  Pipeline::Ptr pipeline;
-  std::shared_ptr<erizo::Reader> reader;
-  std::shared_ptr<erizo::Writer> writer;
   std::shared_ptr<RtpAudioMuteHandler> audio_mute_handler;
-  std::shared_ptr<Worker> worker;
-  std::shared_ptr<Scheduler> scheduler;
-  std::queue<std::shared_ptr<dataPacket>> packet_queue;
 };
 
 TEST_F(RtpAudioMuteHandlerTest, basicBehaviourShouldReadPackets) {

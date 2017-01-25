@@ -37,47 +37,21 @@ using std::queue;
 using webrtc::RemoteBitrateObserver;
 using webrtc::RemoteBitrateEstimator;
 
-class BandwidthEstimationHandlerTest : public ::testing::Test {
+class BandwidthEstimationHandlerTest : public erizo::HandlerTest {
  public:
-  BandwidthEstimationHandlerTest() : ice_config(), estimator() {}
+  BandwidthEstimationHandlerTest() : estimator() {}
 
  protected:
-  virtual void SetUp() {
+  void setHandler() {
     picker = std::make_shared<erizo::MockRemoteBitrateEstimatorPicker>();
     EXPECT_CALL(*picker.get(), pickEstimatorProxy(_, _, _))
       .WillRepeatedly(Return(new erizo::RemoteBitrateEstimatorProxy(&estimator)));
-    scheduler = std::make_shared<Scheduler>(1);
-    worker = std::make_shared<Worker>(scheduler);
-    worker->start();
-    connection = std::make_shared<erizo::MockWebRtcConnection>(worker, ice_config, rtp_maps);
 
-    connection->setVideoSinkSSRC(erizo::kVideoSsrc);
-    connection->setAudioSinkSSRC(erizo::kAudioSsrc);
-
-    pipeline = Pipeline::create();
     bwe_handler = std::make_shared<BandwidthEstimationHandler>(connection.get(), worker, picker);
-    reader = std::make_shared<erizo::Reader>();
-    writer = std::make_shared<erizo::Writer>();
-
-    pipeline->addBack(writer);
     pipeline->addBack(bwe_handler);
-    pipeline->addBack(reader);
-    pipeline->finalize();
   }
 
-  virtual void TearDown() {
-  }
-
-  IceConfig ice_config;
-  std::vector<RtpMap> rtp_maps;
-  std::shared_ptr<erizo::MockWebRtcConnection> connection;
-  Pipeline::Ptr pipeline;
-  std::shared_ptr<erizo::Reader> reader;
-  std::shared_ptr<erizo::Writer> writer;
   std::shared_ptr<BandwidthEstimationHandler> bwe_handler;
-  std::shared_ptr<Worker> worker;
-  std::shared_ptr<Scheduler> scheduler;
-  std::queue<std::shared_ptr<dataPacket>> packet_queue;
   std::shared_ptr<erizo::MockRemoteBitrateEstimatorPicker> picker;
   erizo::MockRemoteBitrateEstimator estimator;
 };
