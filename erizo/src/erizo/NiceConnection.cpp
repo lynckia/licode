@@ -71,7 +71,9 @@ NiceConnection::NiceConnection(boost::shared_ptr<LibNiceInterface> libnice, Medi
     for (unsigned int i = 1; i <= iceComponents_; i++) {
       comp_state_list_[i] = NICE_INITIAL;
     }
+    #if !GLIB_CHECK_VERSION(2, 35, 0)
     g_type_init();
+    #endif
   }
 
 NiceConnection::~NiceConnection() {
@@ -207,8 +209,11 @@ void NiceConnection::start() {
           (guint)iceConfig_.maxPort);
     }
 
-    if (!iceConfig_.public_ip.empty()) {
-      lib_nice_->NiceAgentAddLocalAddress(agent_, iceConfig_.public_ip.c_str());
+    if (!iceConfig_.network_interface.empty()) {
+      const char* public_ip = lib_nice_->NiceInterfacesGetIpForInterface(iceConfig_.network_interface.c_str());
+      if (public_ip) {
+        lib_nice_->NiceAgentAddLocalAddress(agent_, public_ip);
+      }
     }
 
     if (iceConfig_.turnServer.compare("") != 0 && iceConfig_.turnPort != 0) {

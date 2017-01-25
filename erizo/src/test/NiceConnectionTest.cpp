@@ -28,6 +28,7 @@ class MockLibNice: public erizo::LibNiceInterface {
   }
 
   MOCK_METHOD1(NiceAgentNew, NiceAgent*(GMainContext*));
+  MOCK_METHOD1(NiceInterfacesGetIpForInterface, char*(const char *));
   MOCK_METHOD2(NiceAgentAddStream, int(NiceAgent*, unsigned int));
   MOCK_METHOD2(NiceAgentAddLocalAddress, bool(NiceAgent* agent, const char *ip));
   MOCK_METHOD4(NiceAgentGetLocalCredentials, bool(NiceAgent*, unsigned int, char**, char**));

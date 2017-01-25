@@ -99,6 +99,7 @@ exports.ErizoJSController = function (threadPool) {
 
                 case CONN_SDP:
                 case CONN_GATHERED:
+                    mess = mess.replace(that.privateRegexp, that.publicIP);
                     if (options.createOffer)
                         callback('callback', {type: 'offer', sdp: mess});
                     else
@@ -106,6 +107,7 @@ exports.ErizoJSController = function (threadPool) {
                     break;
 
                 case CONN_CANDIDATE:
+                    mess = mess.replace(that.privateRegexp, that.publicIP);
                     callback('callback', {type: 'candidate', candidate: mess});
                     break;
 
@@ -301,7 +303,7 @@ exports.ErizoJSController = function (threadPool) {
                      'streamId: ' + from + ', ' +
                      logger.objectToLog(options) + ', ' +
                      logger.objectToLog(options.metadata));
-            publisher = new Publisher(from, threadPool, that.publicIP, options);
+            publisher = new Publisher(from, threadPool, options);
             publishers[from] = publisher;
 
             initWebRtcConnection(publisher.wrtc, callback, from, undefined, options);

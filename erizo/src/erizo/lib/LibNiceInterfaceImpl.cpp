@@ -4,11 +4,15 @@
 
 #include "./LibNiceInterface.h"
 #include <nice/nice.h>
+#include <nice/interfaces.h>
 
 namespace erizo {
 
   NiceAgent* LibNiceInterfaceImpl::NiceAgentNew(GMainContext* context) {
     return nice_agent_new(context, NICE_COMPATIBILITY_RFC5245);
+  }
+  char* LibNiceInterfaceImpl::NiceInterfacesGetIpForInterface(const char *interface_name) {
+    return nice_interfaces_get_ip_for_interface(const_cast<char*>(interface_name));
   }
   int LibNiceInterfaceImpl::NiceAgentAddStream(NiceAgent* agent, unsigned int n_components) {
     return nice_agent_add_stream(agent, n_components);

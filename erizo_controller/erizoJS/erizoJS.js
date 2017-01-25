@@ -16,6 +16,7 @@ GLOBAL.config.erizo.turnserver = GLOBAL.config.erizo.turnserver || '';
 GLOBAL.config.erizo.turnport = GLOBAL.config.erizo.turnport || 0;
 GLOBAL.config.erizo.turnusername = GLOBAL.config.erizo.turnusername || '';
 GLOBAL.config.erizo.turnpass = GLOBAL.config.erizo.turnpass || '';
+GLOBAL.config.erizo.networkinterface = GLOBAL.config.erizo.networkinterface || '';
 GLOBAL.mediaConfig = mediaConfig || {};
 // Parse command line arguments
 var getopt = new Getopt([
@@ -79,12 +80,13 @@ var threadPool = new addon.ThreadPool(GLOBAL.config.erizo.numWorkers);
 threadPool.start();
 
 var ejsController = controller.ErizoJSController(threadPool);
-GLOBAL.ejsController = ejsController;
+
 ejsController.keepAlive = function(callback) {
     callback('callback', true);
 };
 
-ejsController.publicIP = process.argv[3];
+ejsController.privateRegexp = new RegExp(process.argv[3], 'g');
+ejsController.publicIP = process.argv[4];
 
 amqper.connect(function () {
     try {

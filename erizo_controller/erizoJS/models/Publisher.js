@@ -6,8 +6,7 @@ var logger = require('./../../common/logger').logger;
 // Logger
 var log = logger.getLogger('Publisher');
 
-function createWrtc(id, threadPool, publicIP) {
-  publicIP = publicIP || "";
+function createWrtc(id, threadPool) {
   var wrtc = new addon.WebRtcConnection(threadPool, id,
                                     GLOBAL.config.erizo.stunserver,
                                     GLOBAL.config.erizo.stunport,
@@ -19,7 +18,7 @@ function createWrtc(id, threadPool, publicIP) {
                                     GLOBAL.config.erizo.turnport,
                                     GLOBAL.config.erizo.turnusername,
                                     GLOBAL.config.erizo.turnpass,
-                                    publicIP);
+                                    GLOBAL.config.erizo.networkinterface);
   var disabledHandlers = GLOBAL.config.erizo['disabled_handlers'];
   for (var index in disabledHandlers) {
     wrtc.disableHandler(disabledHandlers[index]);
@@ -28,14 +27,13 @@ function createWrtc(id, threadPool, publicIP) {
 }
 
 class Source {
-  constructor(id, threadPool, publicIP) {
+  constructor(id, threadPool) {
     this.id = id;
     this.threadPool = threadPool;
     this.subscribers = {};
     this.externalOutputs = {};
     this.muteAudio = false;
     this.muteVideo = false;
-    this.publicIP = publicIP;
     this.muxer = new addon.OneToManyProcessor();
   }
 
@@ -48,7 +46,7 @@ class Source {
     log.info('message: Adding subscriber, id: ' + wrtcId + ', ' +
              logger.objectToLog(options)+
               ', ' + logger.objectToLog(options.metadata));
-    var wrtc = createWrtc(wrtcId, this.threadPool, this.publicIP);
+    var wrtc = createWrtc(wrtcId, this.threadPool);
     wrtc.wrtcId = wrtcId;
     this.subscribers[id] = wrtc;
     this.muxer.addSubscriber(wrtc, id);
@@ -145,10 +143,9 @@ class Source {
 }
 
 class Publisher extends Source {
-  constructor(id, threadPool, publicIP, options) {
-    super(id, threadPool, publicIP);
-    log.info('Publisher', this.publicIP);
-    this.wrtc = createWrtc(this.id, this.threadPool, this.publicIP);
+  constructor(id, threadPool, options) {
+    super(id, threadPool);
+    this.wrtc = createWrtc(this.id, this.threadPool);
     this.wrtc.wrtcId = id;
 
     this.minVideoBW = options.minVideoBW;
@@ -163,7 +160,7 @@ class Publisher extends Source {
     if (this.numSubscribers > 0) {
       return;
     }
-    this.wrtc = createWrtc(this.id, this.threadPool, this.publicIP);
+    this.wrtc = createWrtc(this.id, this.threadPool);
     this.wrtc.setAudioReceiver(this.muxer);
     this.wrtc.setVideoReceiver(this.muxer);
     this.muxer.setPublisher(this.wrtc);
