@@ -75,13 +75,13 @@ namespace erizo {
     if (chead->isFeedback()) {
       ssrc = chead->getSourceSSRC();
       if (!isSinkSSRC(ssrc)) {
-        ELOG_WARN("message: Unkown SSRC in processRtcpPacket, ssrc %u, PT %u", ssrc, chead->getPacketType());
+        ELOG_WARN("message: Unknown SSRC in processRtcpPacket, ssrc %u, PT %u", ssrc, chead->getPacketType());
         return;
       }
     } else {
       ssrc = chead->getSSRC();
           if (!isSourceSSRC(ssrc)) {
-            ELOG_WARN("message: Unkown SSRC in processRtcpPacket, ssrc %u, PT %u", ssrc, chead->getPacketType());
+            ELOG_WARN("message: Unknown SSRC in processRtcpPacket, ssrc %u, PT %u", ssrc, chead->getPacketType());
             return;
           }
     }
@@ -136,7 +136,7 @@ namespace erizo {
                 ELOG_DEBUG("REMB Packet, SSRC %u, sourceSSRC %u", chead->getSSRC(), chead->getSourceSSRC());
                 char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
                 if (!strncmp(uniqueId, "REMB", 4)) {
-                  uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
+                  uint64_t bitrate = chead->getREMBBitRate();
                   // ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps",
                   //             chead->getREMBNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate);
                   setBandwidth(bitrate, ssrc);
