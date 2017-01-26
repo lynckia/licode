@@ -58,6 +58,7 @@ config.erizoController.maxVideoBW = 300; //default value: 300
 // Public erizoController IP for websockets (useful when behind NATs)
 // Use '' to automatically get IP from the interface
 config.erizoController.publicIP = ''; //default value: ''
+config.erizoController.networkinterface = ''; //default value: ''
 
 // This configuration is used by the clients to reach erizoController
 // Use '' to use the public IP address instead of a hostname
@@ -115,6 +116,7 @@ config.erizoAgent.prerunProcesses = 1; // default value: 1
 // Public erizoAgent IP for ICE candidates (useful when behind NATs)
 // Use '' to automatically get IP from the interface
 config.erizoAgent.publicIP = ''; //default value: ''
+config.erizoAgent.networkinterface = ''; //default value: ''
 
 // Use the name of the inferface you want to bind for ICE candidates
 // config.erizoAgent.networkInterface = 'eth1' // default value: undefined
@@ -154,6 +156,7 @@ config.erizo.turnserver = ''; // default value: ''
 config.erizo.turnport = 0; // default value: 0
 config.erizo.turnusername = '';
 config.erizo.turnpass = '';
+config.erizo.networkinterface = ''; //default value: ''
 
 //note, this won't work with all versions of libnice. With 0 all the available ports are used
 config.erizo.minport = 0; // default value: 0
