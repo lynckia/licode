@@ -144,7 +144,8 @@ Erizo.GetUserMedia = function (config, callback, error) {
                     var videoCfg = config.video.mandatory;
                     config.video = {
                         width: {min: videoCfg.minWidth, max: videoCfg.maxWidth},
-                        height: {min: videoCfg.minHeight, max: videoCfg.maxHeight}
+                        height: {min: videoCfg.minHeight, max: videoCfg.maxHeight},
+                        frameRate: {min: videoCfg.minFrameRate, max: videoCfg.maxFrameRate}
                     };
                 }
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
