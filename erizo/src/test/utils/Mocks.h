@@ -44,7 +44,7 @@ class MockWebRtcConnection: public WebRtcConnection {
  public:
   MockWebRtcConnection(std::shared_ptr<Worker> worker, const IceConfig &ice_config,
                        const std::vector<RtpMap> rtp_mappings) :
-    WebRtcConnection(worker, "", ice_config, rtp_mappings, nullptr) {}
+    WebRtcConnection(worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), nullptr) {}
 
   virtual ~MockWebRtcConnection() {
   }

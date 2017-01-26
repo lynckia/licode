@@ -221,6 +221,9 @@ class SdpInfo {
    */
   void setOfferSdp(const SdpInfo& offerSdp);
 
+  void updateSupportedExtensionMap(const std::vector<ExtMap> &ext_map);
+  bool isValidExtension(std::string uri);
+
   /**
    * The audio and video SSRCs for this particular SDP.
    */
@@ -274,6 +277,7 @@ class SdpInfo {
 
   std::vector<BundleTag> bundleTags;
   std::vector<ExtMap> extMapVector;
+
   /*
    * MLines for video and audio
    */
@@ -293,6 +297,7 @@ class SdpInfo {
   std::string iceVideoUsername_, iceAudioUsername_;
   std::string iceVideoPassword_, iceAudioPassword_;
   std::map<unsigned int, RtpMap> payload_parsed_map_;
+  std::vector<ExtMap> supported_ext_map_;
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_SDPINFO_H_
