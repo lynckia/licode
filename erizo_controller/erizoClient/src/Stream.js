@@ -93,17 +93,21 @@ Erizo.Stream = function (spec) {
           L.Logger.info('Requested access to local media');
           var videoOpt = spec.video;
           if (videoOpt === true || spec.screen === true) {
-              videoOpt = {mandatory: {}}
+              videoOpt = {}
               if (that.videoSize !== undefined) {
+                  videoOpt.mandatory = {};
                   videoOpt.mandatory.minWidth = that.videoSize[0];
                   videoOpt.mandatory.minHeight = that.videoSize[1];
                   videoOpt.mandatory.maxWidth = that.videoSize[2];
                   videoOpt.mandatory.maxHeight = that.videoSize[3];
               }
+              
               if (that.videoFrameRate !== undefined) {
-                  videoOpt.mandatory.minFrameRate = that.videoFrameRate[0];
-                  videoOpt.mandatory.maxFrameRate = that.videoFrameRate[1];
+                  videoOpt.optional = []
+                  videoOpt.optional.push({minFrameRate: that.videoFrameRate[0]});
+                  videoOpt.optional.push({maxFrameRate: that.videoFrameRate[1]});
               }
+              
           } else if (spec.screen === true && videoOpt === undefined) {
             videoOpt = true;
           }
