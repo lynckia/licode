@@ -15,7 +15,8 @@ exports.ErizoJSController = function (threadPool) {
         // {id1: Publisher, id2: Publisher}
         publishers = {},
 
-        SLIDESHOW_TIME = 1000,
+        MIN_SLIDESHOW_PERIOD = 2000,
+        MAX_SLIDESHOW_PERIOD = 10000,
         PLIS_TO_RECOVER = 3,
         initWebRtcConnection,
         closeWebRtcConnection,
@@ -125,8 +126,8 @@ exports.ErizoJSController = function (threadPool) {
                     if (idSub && options.browser === 'bowser') {
                         publishers[idPub].wrtc.generatePLIPacket();
                     }
-                    if (options.slideShowMode === true) {
-                        that.setSlideShow(true, idSub, idPub);
+                    if (options.slideShowMode === true || Number.isSafeInteger(options.slideShowMode)) {
+                        that.setSlideShow(options.slideShowMode, idSub, idPub);
                     }
                     callback('callback', {type: 'ready'});
                     break;
@@ -440,7 +441,7 @@ exports.ErizoJSController = function (threadPool) {
     /*
      * Enables/Disables slideshow mode for a subscriber
      */
-    that.setSlideShow = function (slideShowMode, from, to) {
+    that.setSlideShow = function (slideShowMode, from, to, period) {
         var wrtcPub;
         var publisher = publishers[to];
         var theWrtc = publisher.getSubscriber(from);
@@ -452,16 +453,21 @@ exports.ErizoJSController = function (threadPool) {
 
         log.debug('message: setting SlideShow, id: ' + theWrtc.wrtcId +
                   ', slideShowMode: ' + slideShowMode);
-        if (slideShowMode === true) {
+        var period =  slideShowMode === true ? MIN_SLIDESHOW_PERIOD : slideShowMode;
+        if (Number.isSafeInteger(period)) {
+            period = period < MIN_SLIDESHOW_PERIOD ? MIN_SLIDESHOW_PERIOD : period;
+            period = period > MAX_SLIDESHOW_PERIOD ? MAX_SLIDESHOW_PERIOD : period;
             theWrtc.setSlideShowMode(true);
             theWrtc.slideShowMode = true;
             wrtcPub = publisher.wrtc;
-            if (wrtcPub.periodicPlis === undefined) {
-                wrtcPub.periodicPlis = setInterval(function () {
-                    if(wrtcPub)
-                        wrtcPub.generatePLIPacket();
-                }, SLIDESHOW_TIME);
+            if (wrtcPub.periodicPlis) {
+                clearInterval(wrtcPub.periodicPlis);
+                wrtcPub.periodicPlis = undefined;
             }
+            wrtcPub.periodicPlis = setInterval(function () {
+                if(wrtcPub)
+                    wrtcPub.generatePLIPacket();
+            }, period);
         } else {
             wrtcPub = publisher.wrtc;
             for (var pliIndex = 0; pliIndex < PLIS_TO_RECOVER; pliIndex++) {
