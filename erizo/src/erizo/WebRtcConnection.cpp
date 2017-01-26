@@ -167,11 +167,12 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   if (remoteSdp_.dtlsRole == ACTPASS) {
     localSdp_.dtlsRole = ACTIVE;
   }
-
   this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
   this->stats_.setVideoSourceSSRC(this->getVideoSourceSSRC());
   this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
   this->stats_.setAudioSourceSSRC(this->getAudioSourceSSRC());
+  this->stats_.setVideoSinkSSRC(this->getVideoSinkSSRC());
+  this->stats_.setAudioSinkSSRC(this->getAudioSinkSSRC());
   this->audioEnabled_ = remoteSdp_.hasAudio;
   this->videoEnabled_ = remoteSdp_.hasVideo;
   rtcp_processor_->addSourceSsrc(this->getAudioSourceSSRC());
@@ -602,6 +603,7 @@ void WebRtcConnection::setSlideShowMode(bool state) {
   if (slide_show_mode_ == state) {
     return;
   }
+  stats_.setSlideShowMode(state, this->getVideoSinkSSRC());
   slide_show_mode_ = state;
   slideshow_handler_->setSlideShowMode(state);
   if (!remoteSdp_.supportPayloadType(RED_90000_PT) || state) {
@@ -613,6 +615,7 @@ void WebRtcConnection::setSlideShowMode(bool state) {
 
 void WebRtcConnection::muteStream(bool mute_video, bool mute_audio) {
   ELOG_DEBUG("%s message: muteStream, mute_video: %u, mute_audio: %u", toLog(), mute_video, mute_audio);
+  stats_.setMute(mute_audio, this->getAudioSinkSSRC());
   audio_mute_handler_->muteAudio(mute_audio);
 }
 
@@ -640,7 +643,9 @@ std::string WebRtcConnection::getJSONStats() {
   if (this->getVideoSourceSSRC()) {
     stats_.setEstimatedBandwidth(bwe_handler_->getLastSendBitrate(), this->getVideoSourceSSRC());
   }
-  return stats_.getStats();
+  std::string requestedStats = stats_.getStats();
+  ELOG_DEBUG("%s message: Stats, stats: %s", toLog(), requestedStats.c_str());
+  return requestedStats;
 }
 
 void WebRtcConnection::changeDeliverPayloadType(dataPacket *dp, packetType type) {
