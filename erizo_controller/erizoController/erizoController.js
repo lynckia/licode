@@ -193,19 +193,21 @@ var addToCloudHandler = function (callback) {
         k2,
         address;
 
-
     for (k in interfaces) {
-        if (interfaces.hasOwnProperty(k)) {
-            for (k2 in interfaces[k]) {
-                if (interfaces[k].hasOwnProperty(k2)) {
-                    address = interfaces[k][k2];
-                    if (address.family === 'IPv4' && !address.internal) {
-                        if (k === BINDED_INTERFACE_NAME || !BINDED_INTERFACE_NAME) {
-                            addresses.push(address.address);
-                        }
-                    }
-                }
-            }
+        if (!GLOBAL.config.erizoController.networkinterface ||
+            GLOBAL.config.erizoController.networkinterface === k) {
+          if (interfaces.hasOwnProperty(k)) {
+              for (k2 in interfaces[k]) {
+                  if (interfaces[k].hasOwnProperty(k2)) {
+                      address = interfaces[k][k2];
+                      if (address.family === 'IPv4' && !address.internal) {
+                          if (k === BINDED_INTERFACE_NAME || !BINDED_INTERFACE_NAME) {
+                              addresses.push(address.address);
+                          }
+                      }
+                  }
+              }
+          }
         }
     }
 
@@ -978,7 +980,7 @@ var listen = function () {
                 updateMyState();
             }
         });
-        
+
         socket.on('getStreamStats', function (streamId, callback) {
             log.debug('Getting stats for streamId ' + streamId);
             if (socket.user === undefined || !socket.user.permissions[Permission.STATS]) {
