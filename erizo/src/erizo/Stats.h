@@ -4,6 +4,7 @@
 #ifndef ERIZO_SRC_ERIZO_STATS_H_
 #define ERIZO_SRC_ERIZO_STATS_H_
 
+#include <atomic>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread.hpp>
 
