@@ -73,16 +73,10 @@ Erizo.GetUserMedia = function (config, callback, error) {
         switch (Erizo.getBrowser()) {
             case 'mozilla':
                 L.Logger.debug('Screen sharing in Firefox');
-                var screenCfg = {};
-                if (config.video.mandatory !== undefined) {
-                    screenCfg.video = config.video;
-                    screenCfg.video.mediaSource = 'window' || 'screen';
-                } else {
-                    screenCfg = {
-                        audio: config.audio,
-                        video: {mediaSource: 'window' || 'screen'}
-                    };
-                }
+                var screenCfg = {
+                    audio: config.audio,
+                    video: config.video
+                };
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                     promise = navigator.mediaDevices.getUserMedia(screenCfg).then(callback);
                     // Google compressor complains about a func called catch
