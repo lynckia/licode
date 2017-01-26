@@ -441,7 +441,7 @@ exports.ErizoJSController = function (threadPool) {
     /*
      * Enables/Disables slideshow mode for a subscriber
      */
-    that.setSlideShow = function (slideShowMode, from, to, period) {
+    that.setSlideShow = function (slideShowMode, from, to) {
         var wrtcPub;
         var publisher = publishers[to];
         var theWrtc = publisher.getSubscriber(from);
