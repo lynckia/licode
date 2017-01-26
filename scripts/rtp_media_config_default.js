@@ -1,5 +1,14 @@
 var mediaConfig = {};
 
+mediaConfig.extMappings = [
+  "urn:ietf:params:rtp-hdrext:ssrc-audio-level",
+  "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
+  "urn:ietf:params:rtp-hdrext:toffset",
+  "urn:3gpp:video-orientation",
+  // "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
+  "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"
+];
+
 mediaConfig.rtpMappings = {};
 
 mediaConfig.rtpMappings.vp8 = {

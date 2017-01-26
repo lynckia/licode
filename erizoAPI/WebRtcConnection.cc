@@ -132,6 +132,15 @@ NAN_METHOD(WebRtcConnection::New) {
       }
     }
 
+    std::vector<erizo::ExtMap> ext_mappings;
+    int16_t value = 0;
+    if (media_config.find("extMappings") != media_config.end()) {
+      json ext_map_json = media_config["extMappings"];
+      for (json::iterator ext_map_it = ext_map_json.begin(); ext_map_it != ext_map_json.end(); ++ext_map_it) {
+        ext_mappings.push_back({value++, *ext_map_it});
+      }
+    }
+
     erizo::IceConfig iceConfig;
     if (info.Length() == 13) {
       v8::String::Utf8Value param2(Nan::To<v8::String>(info[8]).ToLocalChecked());
@@ -161,7 +170,7 @@ NAN_METHOD(WebRtcConnection::New) {
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
     WebRtcConnection* obj = new WebRtcConnection();
-    obj->me = std::make_shared<erizo::WebRtcConnection>(worker, wrtcId, iceConfig, rtp_mappings, obj);
+    obj->me = std::make_shared<erizo::WebRtcConnection>(worker, wrtcId, iceConfig, rtp_mappings, ext_mappings, obj);
     obj->msink = obj->me.get();
     uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback);
     uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback);
