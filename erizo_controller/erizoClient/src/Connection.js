@@ -140,7 +140,7 @@ Erizo.GetUserMedia = function (config, callback, error) {
             L.Logger.error('Video/audio streams not supported in erizofc yet');
         } else {
             if (config.video && Erizo.getBrowser() === 'mozilla') {
-                var ffConfig = {video:{}, audio: config.audio}
+                var ffConfig = {video:{}, audio: config.audio, screen: config.screen}
                 if (config.video.mandatory !== undefined) {
                     var videoCfg = config.video.mandatory;
                     ffConfig.video.width = {min: videoCfg.minWidth, max: videoCfg.maxWidth};
