@@ -251,6 +251,8 @@ var api = {
 
 for (k in interfaces) {
     if (interfaces.hasOwnProperty(k)) {
+      if (!GLOBAL.config.erizoAgent.networkinterface ||
+          GLOBAL.config.erizoAgent.networkinterface === k) {
         for (k2 in interfaces[k]) {
             if (interfaces[k].hasOwnProperty(k2)) {
                 address = interfaces[k][k2];
@@ -261,6 +263,7 @@ for (k in interfaces) {
                 }
             }
         }
+      }
     }
 }
 

@@ -16,6 +16,7 @@ GLOBAL.config.erizo.turnserver = GLOBAL.config.erizo.turnserver || '';
 GLOBAL.config.erizo.turnport = GLOBAL.config.erizo.turnport || 0;
 GLOBAL.config.erizo.turnusername = GLOBAL.config.erizo.turnusername || '';
 GLOBAL.config.erizo.turnpass = GLOBAL.config.erizo.turnpass || '';
+GLOBAL.config.erizo.networkinterface = GLOBAL.config.erizo.networkinterface || '';
 GLOBAL.mediaConfig = mediaConfig || {};
 // Parse command line arguments
 var getopt = new Getopt([
