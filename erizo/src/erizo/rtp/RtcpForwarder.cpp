@@ -85,7 +85,8 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
           ELOG_DEBUG("SDES");
           break;
         case RTCP_BYE:
-          ELOG_DEBUG("BYE");
+          ELOG_DEBUG("Dropping BYE packet");
+          return 0;
           break;
         case RTCP_Receiver_PT:
           if (chead->getSourceSSRC() == rtcpSource_->getVideoSourceSSRC()) {
