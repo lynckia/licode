@@ -133,7 +133,7 @@ NAN_METHOD(WebRtcConnection::New) {
     }
 
     std::vector<erizo::ExtMap> ext_mappings;
-    int16_t value = 0;
+    unsigned int value = 0;
     if (media_config.find("extMappings") != media_config.end()) {
       json ext_map_json = media_config["extMappings"];
       for (json::iterator ext_map_it = ext_map_json.begin(); ext_map_it != ext_map_json.end(); ++ext_map_it) {
