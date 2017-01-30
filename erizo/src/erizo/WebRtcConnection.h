@@ -22,6 +22,7 @@
 #include "rtp/BandwidthEstimationHandler.h"
 #include "rtp/FecReceiverHandler.h"
 #include "rtp/RtcpProcessorHandler.h"
+#include "rtp/RRGenerationHandler.h"
 #include "lib/Clock.h"
 
 namespace erizo {
@@ -210,6 +211,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   std::shared_ptr<BandwidthEstimationHandler> bwe_handler_;
   std::shared_ptr<FecReceiverHandler> fec_handler_;
   std::shared_ptr<RtcpProcessorHandler> rtcp_processor_handler_;
+  std::shared_ptr<RRGenerationHandler> rr_handler_;
 
   void sendPacket(std::shared_ptr<dataPacket> packet);
   int deliverAudioData_(char* buf, int len) override;
