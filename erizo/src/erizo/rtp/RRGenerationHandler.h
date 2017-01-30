@@ -16,6 +16,22 @@ class WebRtcConnection;
 class RRGenerationHandler: public Handler {
   DECLARE_LOGGER();
 
+
+ public:
+  explicit RRGenerationHandler(WebRtcConnection *connection);
+
+  void enable() override;
+  void disable() override;
+
+  std::string getName() override {
+     return "rr_generation";
+  }
+
+  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void notifyUpdate() override;
+
+ private:
   struct RRPackets {
     RRPackets() : ssrc(0), max_seq(0), cycle(0), last_sr_mid_ntp(0), last_sr_ts(0), last_rr_ts(0),
                   last_rtp_ts(0), base_seq(0), p_received(0), extended_seq(0), lost(0), expected_prior(0),
@@ -30,20 +46,6 @@ class RRGenerationHandler: public Handler {
     double jitter;
   };
 
- public:
-  explicit RRGenerationHandler(WebRtcConnection *connection);
-
-  void enable() override;
-  void disable() override;
-
-  std::string getName() override {
-     return "rr_generation";
-  }
-
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
-  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
-
- private:
   Context *temp_ctx_;
   uint8_t packet_[128];
   bool enabled_;

@@ -47,7 +47,7 @@ BandwidthEstimationHandler::BandwidthEstimationHandler(WebRtcConnection *connect
   using_absolute_send_time_{false}, packets_since_absolute_send_time_{0},
   min_bitrate_bps_{kMinBitRateAllowed}, temp_ctx_{nullptr},
   bitrate_{0}, last_send_bitrate_{0}, last_remb_time_{0},
-  running_{false}, active_{true} {
+  running_{false}, active_{true}, initialized_{false} {
 }
 
 void BandwidthEstimationHandler::enable() {
@@ -56,6 +56,19 @@ void BandwidthEstimationHandler::enable() {
 
 void BandwidthEstimationHandler::disable() {
   active_ = false;
+}
+
+void BandwidthEstimationHandler::notifyUpdate() {
+  if (initialized_) {
+    return;
+  }
+
+  RtpExtensionProcessor& processor_ = connection_->getRtpExtensionProcessor();
+  if (processor_.getVideoExtensionMap().size() == 0) {
+    return;
+  }
+  updateExtensionMaps(processor_.getVideoExtensionMap(), processor_.getAudioExtensionMap());
+  initialized_ = true;
 }
 
 void BandwidthEstimationHandler::process() {
@@ -225,6 +238,8 @@ void BandwidthEstimationHandler::OnReceiveBitrateChanged(const std::vector<uint3
   }
   last_remb_time_ = now;
   last_send_bitrate_ = bitrate_;
+  connection_->getStats().setEstimatedBandwidth(last_send_bitrate_,
+                                                connection_->getVideoSourceSSRC());
   sendREMBPacket();
 }
 

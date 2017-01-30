@@ -16,6 +16,12 @@
 #include "rtp/RtpVP8Parser.h"
 #include "rtp/RtcpAggregator.h"
 #include "rtp/RtcpForwarder.h"
+#include "rtp/RtpSlideShowHandler.h"
+#include "rtp/RtpVP8SlideShowHandler.h"
+#include "rtp/RtpAudioMuteHandler.h"
+#include "rtp/BandwidthEstimationHandler.h"
+#include "rtp/FecReceiverHandler.h"
+#include "rtp/RtcpProcessorHandler.h"
 #include "rtp/RtpRetransmissionHandler.h"
 #include "rtp/StatsHandler.h"
 #include "rtp/RRGenerationHandler.h"
@@ -29,7 +35,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
     connection_id_{connection_id}, remoteSdp_{SdpInfo(rtp_mappings)}, localSdp_{SdpInfo(rtp_mappings)},
     audioEnabled_{false}, videoEnabled_{false}, bundle_{false}, connEventListener_{listener},
     iceConfig_{iceConfig}, rtp_mappings_{rtp_mappings}, extProcessor_{ext_mappings},
-    pipeline_{Pipeline::create()}, worker_{worker} {
+    pipeline_{Pipeline::create()}, worker_{worker}, audio_muted_{false} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
   setVideoSinkSSRC(55543);
@@ -43,32 +49,19 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
 
-  slideshow_handler_ = std::make_shared<RtpVP8SlideShowHandler>(this);
-  audio_mute_handler_ = std::make_shared<RtpAudioMuteHandler>(this);
-  bwe_handler_ = std::make_shared<BandwidthEstimationHandler>(this, worker_);
-  fec_handler_ = std::make_shared<FecReceiverHandler>(this);
-  rtcp_processor_handler_ = std::make_shared<RtcpProcessorHandler>(this, rtcp_processor_);
-  rr_handler_ = std::make_shared<RRGenerationHandler>(this);
-
   // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
   pipeline_->addFront(PacketReader(this));
-  pipeline_->addFront(rtcp_processor_handler_);
+  pipeline_->addFront(RtcpProcessorHandler(this, rtcp_processor_));
   pipeline_->addFront(IncomingStatsHandler(this));
-  pipeline_->addFront(fec_handler_);
-  pipeline_->addFront(audio_mute_handler_);
-  pipeline_->addFront(slideshow_handler_);
-  pipeline_->addFront(bwe_handler_);
-  pipeline_->addFront(rr_handler_);
+  pipeline_->addFront(FecReceiverHandler(this));
+  pipeline_->addFront(RtpAudioMuteHandler(this));
+  pipeline_->addFront(RtpVP8SlideShowHandler(this));
+  pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>(this, worker_));
+  pipeline_->addFront(RRGenerationHandler(this));
   pipeline_->addFront(RtpRetransmissionHandler(this));
   pipeline_->addFront(OutgoingStatsHandler(this));
   pipeline_->addFront(PacketWriter(this));
   pipeline_->finalize();
-
-  // TODO(javierc): we need to improve this mechanism to enable/disable handlers using the same pipeline
-  handlers_.push_back(audio_mute_handler_);
-  handlers_.push_back(slideshow_handler_);
-  handlers_.push_back(bwe_handler_);
-  handlers_.push_back(rr_handler_);
 
   trickleEnabled_ = iceConfig_.shouldTrickle;
 
@@ -160,11 +153,6 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 
   localSdp_.updateSupportedExtensionMap(extProcessor_.getSupportedExtensionMap());
 
-  bwe_handler_->updateExtensionMaps(extProcessor_.getVideoExtensionMap(), extProcessor_.getAudioExtensionMap());
-  if (!remoteSdp_.supportPayloadType(RED_90000_PT) || slide_show_mode_) {
-    fec_handler_->enable();
-  }
-
   localSdp_.videoSsrc = this->getVideoSinkSSRC();
   localSdp_.audioSsrc = this->getAudioSinkSSRC();
 
@@ -242,6 +230,8 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remoteSdp_.videoBandwidth);
     this->rtcp_processor_->setMaxVideoBW(remoteSdp_.videoBandwidth*1000);
   }
+
+  notifyUpdateToHandlers();
 
   return true;
 }
@@ -609,18 +599,14 @@ void WebRtcConnection::setSlideShowMode(bool state) {
   }
   stats_.setSlideShowMode(state, this->getVideoSinkSSRC());
   slide_show_mode_ = state;
-  slideshow_handler_->setSlideShowMode(state);
-  if (!remoteSdp_.supportPayloadType(RED_90000_PT) || state) {
-    fec_handler_->enable();
-  } else {
-    fec_handler_->disable();
-  }
+  notifyUpdateToHandlers();
 }
 
 void WebRtcConnection::muteStream(bool mute_video, bool mute_audio) {
   ELOG_DEBUG("%s message: muteStream, mute_video: %u, mute_audio: %u", toLog(), mute_video, mute_audio);
   stats_.setMute(mute_audio, this->getAudioSinkSSRC());
-  audio_mute_handler_->muteAudio(mute_audio);
+  audio_muted_ = mute_audio;
+  notifyUpdateToHandlers();
 }
 
 void WebRtcConnection::setFeedbackReports(bool will_send_fb, uint32_t target_bitrate) {
@@ -644,9 +630,6 @@ WebRTCEvent WebRtcConnection::getCurrentState() {
 }
 
 std::string WebRtcConnection::getJSONStats() {
-  if (this->getVideoSourceSSRC()) {
-    stats_.setEstimatedBandwidth(bwe_handler_->getLastSendBitrate(), this->getVideoSourceSSRC());
-  }
   std::string requestedStats = stats_.getStats();
   ELOG_DEBUG("%s message: Stats, stats: %s", toLog(), requestedStats.c_str());
   return requestedStats;
@@ -699,32 +682,21 @@ void WebRtcConnection::write(std::shared_ptr<dataPacket> packet) {
   transport->write(packet->data, packet->length);
 }
 
-std::shared_ptr<Handler> WebRtcConnection::getHandler(const std::string &name) {
-  std::shared_ptr<Handler> handler;
-  auto it = std::find_if(handlers_.begin(), handlers_.end(), [&name](std::shared_ptr<Handler> handler) {
-    return handler->getName() == name;
-  });
-  if (it != handlers_.end()) {
-    handler = *it;
-  }
-  return handler;
-}
-
 void WebRtcConnection::enableHandler(const std::string &name) {
-  asyncTask([name] (std::shared_ptr<WebRtcConnection> conn){
-    auto handler = conn->getHandler(name);
-    if (handler.get()) {
-      handler->enable();
-    }
+  asyncTask([name] (std::shared_ptr<WebRtcConnection> conn) {
+    conn->pipeline_->enable(name);
   });
 }
 
 void WebRtcConnection::disableHandler(const std::string &name) {
-  asyncTask([name] (std::shared_ptr<WebRtcConnection> conn){
-    auto handler = conn->getHandler(name);
-    if (handler.get()) {
-      handler->disable();
-    }
+  asyncTask([name] (std::shared_ptr<WebRtcConnection> conn) {
+    conn->pipeline_->disable(name);
+  });
+}
+
+void WebRtcConnection::notifyUpdateToHandlers() {
+  asyncTask([] (std::shared_ptr<WebRtcConnection> conn) {
+    conn->pipeline_->notifyUpdate();
   });
 }
 

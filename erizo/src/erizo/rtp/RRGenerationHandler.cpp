@@ -245,4 +245,8 @@ void RRGenerationHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet
   ctx->fireWrite(packet);
 }
 
+void RRGenerationHandler::notifyUpdate() {
+  return;
+}
+
 }  // namespace erizo

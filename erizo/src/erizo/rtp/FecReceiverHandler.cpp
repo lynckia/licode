@@ -23,6 +23,16 @@ void FecReceiverHandler::disable() {
   enabled_ = false;
 }
 
+void FecReceiverHandler::notifyUpdate() {
+  SdpInfo &remote_sdp = connection_->getRemoteSdpInfo();
+  bool is_slide_show_mode_active = connection_->isSlideShowModeEnabled();
+  if (!remote_sdp.supportPayloadType(RED_90000_PT) || is_slide_show_mode_active) {
+    enable();
+  } else {
+    disable();
+  }
+}
+
 void FecReceiverHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   if (enabled_ && packet->type == VIDEO_PACKET) {
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);

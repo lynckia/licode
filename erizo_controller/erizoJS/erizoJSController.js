@@ -214,14 +214,14 @@ exports.ErizoJSController = function (threadPool) {
         }
     };
 
-    var processControlMessage = function(publisher, subscriber, action) {
-      var publisherSide = subscriber === undefined || msg.publisherSide;
+    var processControlMessage = function(publisher, subscriberId, action) {
+      var publisherSide = subscriberId === undefined || action.publisherSide;
       switch(action.name) {
         case 'controlhandlers':
           if (action.enable) {
-            publisher.enableHandlers(publisherSide ? undefined : subscriber.id, action.handlers);
+            publisher.enableHandlers(publisherSide ? undefined : subscriberId, action.handlers);
           } else {
-            publisher.disableHandlers(publisherSide ? undefined : subscriber.id, action.handlers);
+            publisher.disableHandlers(publisherSide ? undefined : subscriberId, action.handlers);
           }
           break;
       }
@@ -252,7 +252,7 @@ exports.ErizoJSController = function (threadPool) {
                         }
                     }
                 } else if (msg.type === 'control') {
-                  processControlMessage(publisher, subscriber, msg.action);
+                  processControlMessage(publisher, peerId, msg.action);
                 }
             } else {
                 if (msg.type === 'offer') {
@@ -531,7 +531,7 @@ exports.ErizoJSController = function (threadPool) {
                     stats[sub][ssrc] = unfilteredStats[channel];
                 }
                 stats[sub].metadata = publisher.subscribers[sub].metadata;
-                
+
             }
         }
         callback('callback', stats);
