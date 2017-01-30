@@ -26,13 +26,13 @@ class RtpVP8SlideShowHandler : public RtpSlideShowHandler {
 
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void notifyUpdate() override;
 
  private:
   int32_t slideshow_seq_num_, last_original_seq_num_;
   uint16_t seq_num_offset_;
 
   bool slideshow_is_active_, sending_keyframe_;
-  boost::mutex slideshow_mutex_;
 
   inline void setPacketSeqNumber(std::shared_ptr<dataPacket> packet, uint16_t seq_number);
 };

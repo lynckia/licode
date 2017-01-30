@@ -24,6 +24,7 @@ class IncomingStatsHandler: public InboundHandler {
   }
 
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void notifyUpdate() override;
 
  private:
   WebRtcConnection* connection_;
@@ -43,6 +44,7 @@ class OutgoingStatsHandler: public OutboundHandler {
   }
 
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void notifyUpdate() override;
 
  private:
   WebRtcConnection* connection_;

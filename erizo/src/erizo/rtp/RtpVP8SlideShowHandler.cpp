@@ -17,13 +17,16 @@ void RtpVP8SlideShowHandler::enable() {
 void RtpVP8SlideShowHandler::disable() {
 }
 
+void RtpVP8SlideShowHandler::notifyUpdate() {
+  setSlideShowMode(connection_->isSlideShowModeEnabled());
+}
+
 void RtpVP8SlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (connection_->getVideoSinkSSRC() != chead->getSourceSSRC()) {
     ctx->fireRead(packet);
     return;
   }
-  slideshow_mutex_.lock();
   if (seq_num_offset_ > 0) {
     char* buf = packet->data;
     char* report_pointer = buf;
@@ -51,7 +54,6 @@ void RtpVP8SlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> pack
       }
     } while (total_length < packet->length);
   }
-  slideshow_mutex_.unlock();
   ctx->fireRead(packet);
 }
 
@@ -63,7 +65,6 @@ void RtpVP8SlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> pac
     ctx->fireWrite(packet);
     return;
   }
-  slideshow_mutex_.lock();
   last_original_seq_num_ = rtp_header->getSeqNumber();
   if (slideshow_seq_num_ == -1) {  // We didn't receive any packets before setting up slideshow
     slideshow_seq_num_ = last_original_seq_num_;
@@ -80,25 +81,21 @@ void RtpVP8SlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> pac
     delete payload;
     if (sending_keyframe_) {  // We send until marker
       setPacketSeqNumber(packet, slideshow_seq_num_++);
-      slideshow_mutex_.unlock();
       ctx->fireWrite(packet);
       if (rtp_header->getMarker()) {
         sending_keyframe_ = false;
       }
     } else {
-      slideshow_mutex_.unlock();
     }
   } else {
     if (seq_num_offset_ > 0) {
       setPacketSeqNumber(packet, (last_original_seq_num_ - seq_num_offset_));
     }
-    slideshow_mutex_.unlock();
     ctx->fireWrite(packet);
   }
 }
 
 void RtpVP8SlideShowHandler::setSlideShowMode(bool active) {
-  boost::mutex::scoped_lock lock(slideshow_mutex_);
   if (slideshow_is_active_ == active) {
     return;
   }

@@ -42,4 +42,7 @@ void RtcpProcessorHandler::write(Context *ctx, std::shared_ptr<dataPacket> packe
   }
   ctx->fireWrite(packet);
 }
+
+void RtcpProcessorHandler::notifyUpdate() {
+}
 }  // namespace erizo
