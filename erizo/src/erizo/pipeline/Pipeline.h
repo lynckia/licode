@@ -10,6 +10,7 @@
 #ifndef ERIZO_SRC_ERIZO_PIPELINE_PIPELINE_H_
 #define ERIZO_SRC_ERIZO_PIPELINE_PIPELINE_H_
 
+#include <string>
 #include <vector>
 
 #include "pipeline/HandlerContext.h"
@@ -151,6 +152,10 @@ class Pipeline : public PipelineBase {
   void close();
 
   void finalize() override;
+
+  void notifyUpdate();
+  void enable(std::string name);
+  void disable(std::string name);
 
  protected:
   Pipeline();

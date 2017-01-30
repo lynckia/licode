@@ -26,6 +26,7 @@ class RtcpProcessorHandler: public Handler {
 
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void notifyUpdate() override;
 
  private:
   WebRtcConnection* connection_;

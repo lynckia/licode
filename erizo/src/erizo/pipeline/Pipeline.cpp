@@ -11,6 +11,7 @@
 #include <pipeline/Pipeline.h>
 
 #include <cassert>
+#include <string>
 
 namespace erizo {
 
@@ -124,6 +125,28 @@ void Pipeline::finalize() {
 
   for (auto it = ctxs_.rbegin(); it != ctxs_.rend(); it++) {
     (*it)->attachPipeline();
+  }
+}
+
+void Pipeline::notifyUpdate() {
+  for (auto it = ctxs_.rbegin(); it != ctxs_.rend(); it++) {
+    (*it)->notifyUpdate();
+  }
+}
+
+void Pipeline::enable(std::string name) {
+  for (auto it = ctxs_.rbegin(); it != ctxs_.rend(); it++) {
+    if ((*it)->getName() == name) {
+      (*it)->enable();
+    }
+  }
+}
+
+void Pipeline::disable(std::string name) {
+  for (auto it = ctxs_.rbegin(); it != ctxs_.rend(); it++) {
+    if ((*it)->getName() == name) {
+      (*it)->disable();
+    }
   }
 }
 

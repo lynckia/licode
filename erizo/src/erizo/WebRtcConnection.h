@@ -16,13 +16,8 @@
 #include "thread/Worker.h"
 #include "rtp/RtcpProcessor.h"
 #include "rtp/RtpExtensionProcessor.h"
-#include "rtp/RtpSlideShowHandler.h"
-#include "rtp/RtpVP8SlideShowHandler.h"
-#include "rtp/RtpAudioMuteHandler.h"
-#include "rtp/BandwidthEstimationHandler.h"
-#include "rtp/FecReceiverHandler.h"
-#include "rtp/RtcpProcessorHandler.h"
 #include "lib/Clock.h"
+#include "pipeline/Handler.h"
 
 namespace erizo {
 
@@ -155,9 +150,17 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   void enableHandler(const std::string &name);
   void disableHandler(const std::string &name);
-  std::shared_ptr<Handler> getHandler(const std::string &name);
+  void notifyUpdateToHandlers();
 
   void asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
+
+  bool isAudioMuted() { return audio_muted_; }
+
+  SdpInfo& getRemoteSdpInfo() { return remoteSdp_; }
+
+  bool isSlideShowModeEnabled() { return slide_show_mode_; }
+
+  RtpExtensionProcessor& getRtpExtensionProcessor() { return extProcessor_; }
 
   Stats& getStats() {
     return stats_;
@@ -187,7 +190,6 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   int stunPort_, minPort_, maxPort_;
   std::string stunServer_;
-  std::vector<std::shared_ptr<Handler>> handlers_;
 
   boost::condition_variable cond_;
 
@@ -205,17 +207,12 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   std::shared_ptr<Worker> worker_;
 
-  std::shared_ptr<RtpSlideShowHandler> slideshow_handler_;
-  std::shared_ptr<RtpAudioMuteHandler> audio_mute_handler_;
-  std::shared_ptr<BandwidthEstimationHandler> bwe_handler_;
-  std::shared_ptr<FecReceiverHandler> fec_handler_;
-  std::shared_ptr<RtcpProcessorHandler> rtcp_processor_handler_;
+  bool audio_muted_;
 
   void sendPacket(std::shared_ptr<dataPacket> packet);
   int deliverAudioData_(char* buf, int len) override;
   int deliverVideoData_(char* buf, int len) override;
   int deliverFeedback_(char* buf, int len) override;
-
 
   // Utils
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
@@ -240,6 +237,9 @@ class PacketReader : public InboundHandler {
     connection_->read(packet);
   }
 
+  void notifyUpdate() override {
+  }
+
  private:
   WebRtcConnection *connection_;
 };
@@ -257,6 +257,9 @@ class PacketWriter : public OutboundHandler {
 
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override {
     connection_->write(packet);
+  }
+
+  void notifyUpdate() override {
   }
 
  private:
