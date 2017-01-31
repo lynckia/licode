@@ -138,7 +138,7 @@ exports.ErizoJSController = function (threadPool) {
             var audioEnabled = options.createOffer.audio;
             var videoEnabled = options.createOffer.video;
             var bundle = options.createOffer.bundle;
-            wrtc.createOffer(audioEnabled, videoEnabled, bundle);
+            wrtc.createOffer(videoEnabled, audioEnabled, bundle);
         }
         callback('callback', {type: 'initializing'});
     };
