@@ -53,6 +53,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
 
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void notifyUpdate() override;
 
   void updateExtensionMaps(std::array<RTPExtensions, 10> video_map, std::array<RTPExtensions, 10> audio_map);
 
@@ -85,6 +86,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   uint64_t last_remb_time_;
   bool running_;
   bool active_;
+  bool initialized_;
 };
 }  // namespace erizo
 

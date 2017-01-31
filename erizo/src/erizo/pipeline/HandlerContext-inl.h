@@ -21,6 +21,11 @@ class PipelineContext {
   virtual void attachPipeline() = 0;
   virtual void detachPipeline() = 0;
 
+  virtual void notifyUpdate() = 0;
+  virtual std::string getName() = 0;
+  virtual void enable() = 0;
+  virtual void disable() = 0;
+
   template <class H, class HandlerContext>
   void attachContext(H* handler, HandlerContext* ctx) {
     if (++handler->attachCount_ == 1) {
@@ -67,6 +72,22 @@ class ContextImplBase : public PipelineContext {
     pipelineWeak_ = pipeline;
     pipelineRaw_ = pipeline.lock().get();
     handler_ = std::move(handler);
+  }
+
+  void notifyUpdate() override {
+    handler_->notifyUpdate();
+  }
+
+  std::string getName() override {
+    return handler_->getName();
+  }
+
+  void enable() override {
+    handler_->enable();
+  }
+
+  void disable() override {
+    handler_->disable();
   }
 
   // PipelineContext overrides

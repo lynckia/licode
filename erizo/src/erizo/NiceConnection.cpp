@@ -71,7 +71,9 @@ NiceConnection::NiceConnection(boost::shared_ptr<LibNiceInterface> libnice, Medi
     for (unsigned int i = 1; i <= iceComponents_; i++) {
       comp_state_list_[i] = NICE_INITIAL;
     }
+    #if !GLIB_CHECK_VERSION(2, 35, 0)
     g_type_init();
+    #endif
   }
 
 NiceConnection::~NiceConnection() {
@@ -207,6 +209,13 @@ void NiceConnection::start() {
           (guint)iceConfig_.maxPort);
     }
 
+    if (!iceConfig_.network_interface.empty()) {
+      const char* public_ip = lib_nice_->NiceInterfacesGetIpForInterface(iceConfig_.network_interface.c_str());
+      if (public_ip) {
+        lib_nice_->NiceAgentAddLocalAddress(agent_, public_ip);
+      }
+    }
+
     if (iceConfig_.turnServer.compare("") != 0 && iceConfig_.turnPort != 0) {
       ELOG_DEBUG("%s message: configuring TURN, turnServer: %s , turnPort: %d, turnUsername: %s, turnPass: %s",
                  toLog(), iceConfig_.turnServer.c_str(),
@@ -275,6 +284,9 @@ bool NiceConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candi
         nice_cand_type = NICE_CANDIDATE_TYPE_HOST;
         break;
     }
+    if (cinfo.hostPort == 0) {
+      continue;
+    }
     NiceCandidate* thecandidate = nice_candidate_new(nice_cand_type);
     thecandidate->username = strdup(cinfo.username.c_str());
     thecandidate->password = strdup(cinfo.password.c_str());
@@ -336,6 +348,9 @@ void NiceConnection::getCandidate(uint stream_id, uint component_id, const std::
     cand_info.priority = cand->priority;
     cand_info.hostAddress = std::string(address);
     cand_info.hostPort = nice_address_get_port(&cand->addr);
+    if (cand_info.hostPort == 0) {
+      continue;
+    }
     cand_info.mediaType = mediaType;
 
     /*

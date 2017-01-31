@@ -17,6 +17,9 @@ void IncomingStatsHandler::enable() {
 void IncomingStatsHandler::disable() {
 }
 
+void IncomingStatsHandler::notifyUpdate() {
+}
+
 void IncomingStatsHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
   if (chead->isRtcp()) {
@@ -35,6 +38,9 @@ void OutgoingStatsHandler::enable() {
 }
 
 void OutgoingStatsHandler::disable() {
+}
+
+void OutgoingStatsHandler::notifyUpdate() {
 }
 
 void OutgoingStatsHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {

@@ -1,7 +1,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <rtp/RtpAudioMuteHandler.h>
+#include <rtp/BandwidthEstimationHandler.h>
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>

@@ -16,6 +16,9 @@ void RtpRetransmissionHandler::enable() {
 void RtpRetransmissionHandler::disable() {
 }
 
+void RtpRetransmissionHandler::notifyUpdate() {
+}
+
 void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   // ELOG_DEBUG("%p READING %d bytes", this, packet->length);
   bool contains_nack = false;

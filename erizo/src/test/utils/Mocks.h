@@ -5,6 +5,7 @@
 #include <pipeline/Handler.h>
 #include <rtp/RtcpProcessor.h>
 #include <rtp/FecReceiverHandler.h>
+#include <rtp/BandwidthEstimationHandler.h>
 #include <webrtc/modules/rtp_rtcp/include/ulpfec_receiver.h>
 
 #include <string>
@@ -44,7 +45,7 @@ class MockWebRtcConnection: public WebRtcConnection {
  public:
   MockWebRtcConnection(std::shared_ptr<Worker> worker, const IceConfig &ice_config,
                        const std::vector<RtpMap> rtp_mappings) :
-    WebRtcConnection(worker, "", ice_config, rtp_mappings, nullptr) {}
+    WebRtcConnection(worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), nullptr) {}
 
   virtual ~MockWebRtcConnection() {
   }
@@ -54,6 +55,7 @@ class Reader : public InboundHandler {
  public:
   MOCK_METHOD0(enable, void());
   MOCK_METHOD0(disable, void());
+  MOCK_METHOD0(notifyUpdate, void());
   MOCK_METHOD0(getName, std::string());
   MOCK_METHOD2(read, void(Context*, std::shared_ptr<dataPacket>));
 };
@@ -62,6 +64,7 @@ class Writer : public OutboundHandler {
  public:
   MOCK_METHOD0(enable, void());
   MOCK_METHOD0(disable, void());
+  MOCK_METHOD0(notifyUpdate, void());
   MOCK_METHOD0(getName, std::string());
   MOCK_METHOD2(write, void(Context*, std::shared_ptr<dataPacket>));
 };

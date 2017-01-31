@@ -18,6 +18,7 @@ class RtpSlideShowHandler: public Handler {
 
   virtual void read(Context *ctx, std::shared_ptr<dataPacket> packet) = 0;
   virtual void write(Context *ctx, std::shared_ptr<dataPacket> packet) = 0;
+  virtual void notifyUpdate() = 0;
 
  protected:
   WebRtcConnection *connection_;
