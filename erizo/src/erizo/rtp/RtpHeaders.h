@@ -37,6 +37,9 @@ namespace erizo {
 #define CN_48000_PT         107  // CN Audio Codec
 #define TEL_8000_PT         126  // Tel Audio Events
 
+#define RTCP_MIN_PT         194  // per https://tools.ietf.org/html/rfc5761
+#define RTCP_MAX_PT         223
+
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -334,9 +337,7 @@ class RtcpHeader {
         packettype == RTCP_RTP_Feedback_PT);
   }
   inline bool isRtcp(void) {
-    return (packettype == RTCP_Sender_PT ||
-            packettype == RTCP_APP ||
-            isFeedback());
+    return (packettype >= RTCP_MIN_PT && packettype <= RTCP_MAX_PT);
   }
   inline uint8_t getPacketType() {
     return packettype;

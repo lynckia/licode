@@ -15,7 +15,8 @@ exports.ErizoJSController = function (threadPool) {
         // {id1: Publisher, id2: Publisher}
         publishers = {},
 
-        SLIDESHOW_TIME = 1000,
+        MIN_SLIDESHOW_PERIOD = 2000,
+        MAX_SLIDESHOW_PERIOD = 10000,
         PLIS_TO_RECOVER = 3,
         initWebRtcConnection,
         closeWebRtcConnection,
@@ -125,19 +126,19 @@ exports.ErizoJSController = function (threadPool) {
                     if (idSub && options.browser === 'bowser') {
                         publishers[idPub].wrtc.generatePLIPacket();
                     }
-                    if (options.slideShowMode === true) {
-                        that.setSlideShow(true, idSub, idPub);
+                    if (options.slideShowMode === true || Number.isSafeInteger(options.slideShowMode)) {
+                        that.setSlideShow(options.slideShowMode, idSub, idPub);
                     }
                     callback('callback', {type: 'ready'});
                     break;
             }
         });
-        if (options.createOffer === true) {
+        if (options.createOffer) {
             log.debug('message: create offer requested, id:', wrtc.wrtcId);
-            var audioEnabled = true;
-            var videoEnabled = true;
-            var bundle = true;
-            wrtc.createOffer(audioEnabled, videoEnabled, bundle);
+            var audioEnabled = options.createOffer.audio;
+            var videoEnabled = options.createOffer.video;
+            var bundle = options.createOffer.bundle;
+            wrtc.createOffer(videoEnabled, audioEnabled, bundle);
         }
         callback('callback', {type: 'initializing'});
     };
@@ -213,14 +214,14 @@ exports.ErizoJSController = function (threadPool) {
         }
     };
 
-    var processControlMessage = function(publisher, subscriber, action) {
-      var publisherSide = subscriber === undefined || msg.publisherSide;
+    var processControlMessage = function(publisher, subscriberId, action) {
+      var publisherSide = subscriberId === undefined || action.publisherSide;
       switch(action.name) {
         case 'controlhandlers':
           if (action.enable) {
-            publisher.enableHandlers(publisherSide ? undefined : subscriber.id, action.handlers);
+            publisher.enableHandlers(publisherSide ? undefined : subscriberId, action.handlers);
           } else {
-            publisher.disableHandlers(publisherSide ? undefined : subscriber.id, action.handlers);
+            publisher.disableHandlers(publisherSide ? undefined : subscriberId, action.handlers);
           }
           break;
       }
@@ -251,7 +252,7 @@ exports.ErizoJSController = function (threadPool) {
                         }
                     }
                 } else if (msg.type === 'control') {
-                  processControlMessage(publisher, subscriber, msg.action);
+                  processControlMessage(publisher, peerId, msg.action);
                 }
             } else {
                 if (msg.type === 'offer') {
@@ -452,16 +453,21 @@ exports.ErizoJSController = function (threadPool) {
 
         log.debug('message: setting SlideShow, id: ' + theWrtc.wrtcId +
                   ', slideShowMode: ' + slideShowMode);
-        if (slideShowMode === true) {
+        var period =  slideShowMode === true ? MIN_SLIDESHOW_PERIOD : slideShowMode;
+        if (Number.isSafeInteger(period)) {
+            period = period < MIN_SLIDESHOW_PERIOD ? MIN_SLIDESHOW_PERIOD : period;
+            period = period > MAX_SLIDESHOW_PERIOD ? MAX_SLIDESHOW_PERIOD : period;
             theWrtc.setSlideShowMode(true);
             theWrtc.slideShowMode = true;
             wrtcPub = publisher.wrtc;
-            if (wrtcPub.periodicPlis === undefined) {
-                wrtcPub.periodicPlis = setInterval(function () {
-                    if(wrtcPub)
-                        wrtcPub.generatePLIPacket();
-                }, SLIDESHOW_TIME);
+            if (wrtcPub.periodicPlis) {
+                clearInterval(wrtcPub.periodicPlis);
+                wrtcPub.periodicPlis = undefined;
             }
+            wrtcPub.periodicPlis = setInterval(function () {
+                if(wrtcPub)
+                    wrtcPub.generatePLIPacket();
+            }, period);
         } else {
             wrtcPub = publisher.wrtc;
             for (var pliIndex = 0; pliIndex < PLIS_TO_RECOVER; pliIndex++) {
@@ -513,12 +519,7 @@ exports.ErizoJSController = function (threadPool) {
             var unfilteredStats = JSON.parse(publisher.wrtc.getStats());
             for (var channel in unfilteredStats) {
                 var ssrc = unfilteredStats[channel].ssrc;
-                stats.publisher[ssrc] = {};
-                stats.publisher[ssrc].erizoBandwidth = unfilteredStats[channel].erizoBandwidth;
-                stats.publisher[ssrc].bytesSent = unfilteredStats[channel].rtcpBytesSent;
-                stats.publisher[ssrc].packetsSent = unfilteredStats[channel].rtcpPacketSent;
-                stats.publisher[ssrc].type = unfilteredStats[channel].type;
-                stats.publisher[ssrc].bitrateCalculated = unfilteredStats[channel].bitrateCalculated;
+                stats.publisher[ssrc] = unfilteredStats[channel];
 
             }
             var subscriber;
@@ -526,14 +527,11 @@ exports.ErizoJSController = function (threadPool) {
                 stats[sub] = {};
                 var unfilteredStats = JSON.parse(publisher.subscribers[sub].getStats());
                 for (var channel in unfilteredStats) {
-                    var ssrc = unfilteredStats[channel].sourceSsrc;
-                    if (ssrc === undefined) {
-                        ssrc = unfilteredStats[channel].ssrc;
-                    }
-                    stats[sub][ssrc] = stats[sub][ssrc] || {};
-                    stats[sub][ssrc] = Object.assign(stats[sub][ssrc],  unfilteredStats[channel]);
+                    var ssrc = unfilteredStats[channel].ssrc;
+                    stats[sub][ssrc] = unfilteredStats[channel];
                 }
                 stats[sub].metadata = publisher.subscribers[sub].metadata;
+
             }
         }
         callback('callback', stats);

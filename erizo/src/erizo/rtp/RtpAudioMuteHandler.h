@@ -26,14 +26,13 @@ class RtpAudioMuteHandler: public Handler {
 
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
-
+  void notifyUpdate() override;
 
  private:
   int32_t  last_original_seq_num_;
   uint16_t seq_num_offset_, last_sent_seq_num_;
 
   bool mute_is_active_;
-  std::mutex control_mutex_;
 
   WebRtcConnection* connection_;
 

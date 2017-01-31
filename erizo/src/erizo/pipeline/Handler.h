@@ -66,6 +66,8 @@ class Handler : public HandlerBase<HandlerContext> {
   virtual void close(Context* ctx) {
     return ctx->fireClose();
   }
+
+  virtual void notifyUpdate() = 0;
 };
 
 class InboundHandler : public HandlerBase<InboundHandlerContext> {
@@ -90,6 +92,8 @@ class InboundHandler : public HandlerBase<InboundHandlerContext> {
   virtual void transportInactive(Context* ctx) {
     ctx->fireTransportInactive();
   }
+
+  virtual void notifyUpdate() = 0;
 };
 
 class OutboundHandler : public HandlerBase<OutboundHandlerContext> {
@@ -108,6 +112,8 @@ class OutboundHandler : public HandlerBase<OutboundHandlerContext> {
   virtual void close(Context* ctx) {
     return ctx->fireClose();
   }
+
+  virtual void notifyUpdate() = 0;
 };
 
 class HandlerAdapter : public Handler {
@@ -130,6 +136,9 @@ class HandlerAdapter : public Handler {
 
   void write(Context* ctx, std::shared_ptr<dataPacket> packet) override {
     return ctx->fireWrite(packet);
+  }
+
+  void notifyUpdate() override {
   }
 };
 }  // namespace erizo

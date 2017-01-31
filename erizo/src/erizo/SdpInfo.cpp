@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 
+#include <algorithm>
 #include <sstream>
 #include <cstdlib>
 #include <cstring>
@@ -111,6 +112,17 @@ namespace erizo {
 
   void SdpInfo::addCrypto(const CryptoInfo& info) {
     cryptoVector_.push_back(info);
+  }
+
+  void SdpInfo::updateSupportedExtensionMap(const std::vector<ExtMap> &ext_map) {
+    supported_ext_map_ = ext_map;
+  }
+
+  bool SdpInfo::isValidExtension(std::string uri) {
+    auto value = std::find_if(supported_ext_map_.begin(), supported_ext_map_.end(), [uri](const ExtMap &extension) {
+      return extension.uri == uri;
+    });
+    return value != supported_ext_map_.end();
   }
 
   void SdpInfo::setCredentials(const std::string& username, const std::string& password, MediaType media) {
@@ -236,7 +248,7 @@ namespace erizo {
 
       ELOG_DEBUG("Writing Extmap for AUDIO %lu", extMapVector.size());
       for (uint8_t i = 0; i < extMapVector.size(); i++) {
-        if (extMapVector[i].mediaType == AUDIO_TYPE) {
+        if (extMapVector[i].mediaType == AUDIO_TYPE && isValidExtension(std::string(extMapVector[i].uri))) {
           sdp << "a=extmap:" << extMapVector[i].value << " " << extMapVector[i].uri << endl;
         }
       }
@@ -330,7 +342,7 @@ namespace erizo {
 
       ELOG_DEBUG("Writing Extmap for VIDEO %lu", extMapVector.size());
       for (uint8_t i = 0; i < extMapVector.size(); i++) {
-        if (extMapVector[i].mediaType == VIDEO_TYPE) {
+        if (extMapVector[i].mediaType == VIDEO_TYPE && isValidExtension(std::string(extMapVector[i].uri))) {
           sdp << "a=extmap:" << extMapVector[i].value << " " << extMapVector[i].uri << endl;
         }
       }

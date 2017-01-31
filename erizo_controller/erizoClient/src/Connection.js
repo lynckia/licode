@@ -140,15 +140,18 @@ Erizo.GetUserMedia = function (config, callback, error) {
             L.Logger.error('Video/audio streams not supported in erizofc yet');
         } else {
             if (config.video && Erizo.getBrowser() === 'mozilla') {
+                var ffConfig = {video:{}, audio: config.audio, screen: config.screen}
                 if (config.video.mandatory !== undefined) {
                     var videoCfg = config.video.mandatory;
-                    config.video = {
-                        width: {min: videoCfg.minWidth, max: videoCfg.maxWidth},
-                        height: {min: videoCfg.minHeight, max: videoCfg.maxHeight}
-                    };
+                    ffConfig.video.width = {min: videoCfg.minWidth, max: videoCfg.maxWidth};
+                    ffConfig.video.height = {min: videoCfg.minHeight, max: videoCfg.maxHeight};
+
+                }
+                if (config.video.optional !== undefined) {
+                    ffConfig.video.frameRate =  config.video.optional[1].maxFrameRate
                 }
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    promise = navigator.mediaDevices.getUserMedia(config).then(callback);
+                    promise = navigator.mediaDevices.getUserMedia(ffConfig).then(callback);
                     // Google compressor complains about a func called catch
                     promise['catch'](error);
                     return;

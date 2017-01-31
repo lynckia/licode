@@ -74,11 +74,13 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   switch (packet->type) {
   case VIDEO_PACKET: {
     video_rr_.p_received++;
-    if (video_rr_.base_seq == 0) {
+    if (video_rr_.base_seq == -1) {
       video_rr_.ssrc = head->getSSRC();
       video_rr_.base_seq = head->getSeqNumber();
     }
-    if (!rtpSequenceLessThan(seq_num, video_rr_.max_seq)) {
+    if (video_rr_.max_seq == -1) {
+      video_rr_.max_seq = seq_num;
+    } else if (!rtpSequenceLessThan(seq_num, video_rr_.max_seq)) {
       if (seq_num < video_rr_.max_seq) {
         video_rr_.cycle++;
       }
@@ -100,11 +102,15 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   }
   case AUDIO_PACKET: {
     audio_rr_.p_received++;
-    if (audio_rr_.base_seq == 0) {
+    if (audio_rr_.max_seq == -1) {
+      audio_rr_.max_seq = seq_num;
+    } else if (audio_rr_.base_seq == -1) {
       audio_rr_.ssrc = head->getSSRC();
       audio_rr_.base_seq = head->getSeqNumber();
     }
-    if (!rtpSequenceLessThan(seq_num, audio_rr_.max_seq)) {
+    if (audio_rr_.max_seq == -1) {
+      audio_rr_.max_seq = seq_num;
+    } else if (!rtpSequenceLessThan(seq_num, audio_rr_.max_seq)) {
       if (seq_num < audio_rr_.max_seq) {
         audio_rr_.cycle++;
       }
@@ -133,6 +139,7 @@ void RRGenerationHandler::sendVideoRR() {
   int64_t now = ClockUtils::timePointToMs(clock::now());
 
   if (video_rr_.ssrc != 0) {
+    uint32_t delay_since_last_sr = video_rr_.last_sr_ts == 0 ? 0 : (now - video_rr_.last_sr_ts) * 65536 / 1000;
     RtcpHeader rtcp_head;
     rtcp_head.setPacketType(RTCP_Receiver_PT);
     rtcp_head.setSSRC(video_rr_.ssrc);
@@ -140,9 +147,9 @@ void RRGenerationHandler::sendVideoRR() {
     rtcp_head.setHighestSeqnum(video_rr_.extended_seq);
     rtcp_head.setSeqnumCycles(video_rr_.cycle);
     rtcp_head.setLostPackets(video_rr_.lost);
-    rtcp_head.setFractionLost(static_cast<uint8_t>(video_rr_.frac_lost));
+    rtcp_head.setFractionLost(video_rr_.frac_lost);
     rtcp_head.setJitter(static_cast<uint32_t>(jitter_video_.jitter));
-    rtcp_head.setDelaySinceLastSr(now - video_rr_.last_sr_ts);
+    rtcp_head.setDelaySinceLastSr(delay_since_last_sr);
     rtcp_head.setLastSr(video_rr_.last_sr_mid_ntp);
     rtcp_head.setLength(7);
     rtcp_head.setBlockCount(1);
@@ -163,6 +170,7 @@ void RRGenerationHandler::sendAudioRR() {
   int64_t now = ClockUtils::timePointToMs(clock::now());
 
   if (audio_rr_.ssrc != 0) {
+    uint32_t delay_since_last_sr = audio_rr_.last_sr_ts == 0 ? 0 : (now - audio_rr_.last_sr_ts) * 65536 / 1000;
     RtcpHeader rtcp_head;
     rtcp_head.setPacketType(RTCP_Receiver_PT);
     rtcp_head.setSSRC(audio_rr_.ssrc);
@@ -170,9 +178,9 @@ void RRGenerationHandler::sendAudioRR() {
     rtcp_head.setHighestSeqnum(audio_rr_.extended_seq);
     rtcp_head.setSeqnumCycles(audio_rr_.cycle);
     rtcp_head.setLostPackets(audio_rr_.lost);
-    rtcp_head.setFractionLost(static_cast<uint8_t>(audio_rr_.frac_lost));
+    rtcp_head.setFractionLost(audio_rr_.frac_lost);
     rtcp_head.setJitter(static_cast<uint32_t>(jitter_audio_.jitter));
-    rtcp_head.setDelaySinceLastSr(now - audio_rr_.last_sr_ts);
+    rtcp_head.setDelaySinceLastSr(delay_since_last_sr);
     rtcp_head.setLastSr(audio_rr_.last_sr_mid_ntp);
     rtcp_head.setLength(7);
     rtcp_head.setBlockCount(1);
@@ -197,7 +205,7 @@ void RRGenerationHandler::handleSR(std::shared_ptr<dataPacket> packet) {
       video_rr_.last_sr_ts = packet->received_time_ms;
       uint32_t expected = video_rr_.extended_seq- video_rr_.base_seq + 1;
       video_rr_.lost = expected - video_rr_.p_received;
-      uint32_t fraction = 0;
+      uint8_t fraction = 0;
       uint32_t expected_interval = expected - video_rr_.expected_prior;
       video_rr_.expected_prior = expected;
       uint32_t received_interval = video_rr_.p_received - video_rr_.received_prior;
@@ -231,7 +239,6 @@ void RRGenerationHandler::handleSR(std::shared_ptr<dataPacket> packet) {
 
 void RRGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   temp_ctx_ = ctx;
-
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (!chead->isRtcp() && enabled_) {
     handleRtpPacket(packet);
@@ -243,6 +250,10 @@ void RRGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet)
 
 void RRGenerationHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   ctx->fireWrite(packet);
+}
+
+void RRGenerationHandler::notifyUpdate() {
+  return;
 }
 
 }  // namespace erizo
