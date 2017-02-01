@@ -102,9 +102,7 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   }
   case AUDIO_PACKET: {
     audio_rr_.p_received++;
-    if (audio_rr_.max_seq == -1) {
-      audio_rr_.max_seq = seq_num;
-    } else if (audio_rr_.base_seq == -1) {
+    if (audio_rr_.base_seq == -1) {
       audio_rr_.ssrc = head->getSSRC();
       audio_rr_.base_seq = head->getSeqNumber();
     }
@@ -139,7 +137,7 @@ void RRGenerationHandler::sendVideoRR() {
   int64_t now = ClockUtils::timePointToMs(clock::now());
 
   if (video_rr_.ssrc != 0) {
-    uint32_t delay_since_last_sr = video_rr_.last_sr_ts == 0 ? 0 : (now - video_rr_.last_sr_ts) * 65536 / 1000;
+    uint64_t delay_since_last_sr = video_rr_.last_sr_ts == 0 ? 0 : (now - video_rr_.last_sr_ts) * 65536 / 1000;
     RtcpHeader rtcp_head;
     rtcp_head.setPacketType(RTCP_Receiver_PT);
     rtcp_head.setSSRC(video_rr_.ssrc);
@@ -149,7 +147,7 @@ void RRGenerationHandler::sendVideoRR() {
     rtcp_head.setLostPackets(video_rr_.lost);
     rtcp_head.setFractionLost(video_rr_.frac_lost);
     rtcp_head.setJitter(static_cast<uint32_t>(jitter_video_.jitter));
-    rtcp_head.setDelaySinceLastSr(delay_since_last_sr);
+    rtcp_head.setDelaySinceLastSr(static_cast<uint32_t>(delay_since_last_sr));
     rtcp_head.setLastSr(video_rr_.last_sr_mid_ntp);
     rtcp_head.setLength(7);
     rtcp_head.setBlockCount(1);
@@ -159,7 +157,7 @@ void RRGenerationHandler::sendVideoRR() {
       temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
       video_rr_.last_rr_ts = now;
       ELOG_DEBUG("Sending video RR- lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, "
-                "dslr: %u, lsr: %u", rtcp_head.getLostPackets(), rtcp_head.getFractionLost(),
+                "dlsr: %u, lsr: %u", rtcp_head.getLostPackets(), rtcp_head.getFractionLost(),
                 rtcp_head.getSeqnumCycles(), rtcp_head.getHighestSeqnum(), rtcp_head.getJitter(),
                 rtcp_head.getDelaySinceLastSr(), rtcp_head.getLastSr());
     }
