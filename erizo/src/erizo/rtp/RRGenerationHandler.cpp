@@ -201,7 +201,6 @@ void RRGenerationHandler::handleSR(std::shared_ptr<dataPacket> packet) {
     if (chead->getSSRC() == video_rr_.ssrc) {
       video_rr_.last_sr_mid_ntp = chead->get32MiddleNtp();
       video_rr_.last_sr_ts = packet->received_time_ms;
-      ELOG_DEBUG("Setting last_sr_ts %lu", packet->received_time_ms);
       uint32_t expected = video_rr_.extended_seq- video_rr_.base_seq + 1;
       video_rr_.lost = expected - video_rr_.p_received;
       uint8_t fraction = 0;
