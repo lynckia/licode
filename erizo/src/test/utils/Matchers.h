@@ -21,15 +21,24 @@ MATCHER_P(RtpHasSequenceNumberFromBuffer, seq_num, "") {
 MATCHER_P(RtpHasSequenceNumber, seq_num, "") {
   return (reinterpret_cast<erizo::RtpHeader*>(std::get<0>(arg)->data))->getSeqNumber() == seq_num;
 }
-
 MATCHER_P(NackHasSequenceNumber, seq_num, "") {
   return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getNackPid() == seq_num;
 }
-
 MATCHER_P(ReceiverReportHasSequenceNumber, seq_num, "") {
   return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getHighestSeqnum() == seq_num;
 }
-
+MATCHER_P(ReceiverReportHasSeqnumCycles, cycles, "") {
+  return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getSeqnumCycles() == cycles;
+}
+MATCHER_P(ReceiverReportHasLostPacketsValue, lost_packets, "") {
+  return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getLostPackets() == lost_packets;
+}
+MATCHER_P(ReceiverReportHasFractionLostValue, lost_fraction, "") {
+  return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getFractionLost() == lost_fraction;
+}
+MATCHER_P(ReceiverReportHasDlsrValue, delay_since_last_sr, "") {
+  return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getDelaySinceLastSr() == delay_since_last_sr;
+}
 MATCHER_P(RembHasBitrateValue, bitrate, "") {
   return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getREMBBitRate() == bitrate;
 }
