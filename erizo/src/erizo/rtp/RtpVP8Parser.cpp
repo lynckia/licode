@@ -102,7 +102,7 @@ int ParseVP8TIDAndKeyIdx(erizo::RTPPayloadVP8* vp8,
 int ParseVP8FrameSize(erizo::RTPPayloadVP8* vp8,
     const unsigned char* dataPtr,
     int dataLength) {
-  if (vp8->frameType != kIFrame) {
+  if (vp8->frameType != kVP8IFrame) {
     // Included in payload header for I-frames.
     return -1;
   }
@@ -195,10 +195,10 @@ RTPPayloadVP8* RtpVP8Parser::parseVP8(unsigned char* data, int dataLength) {
 
   // Read P bit from payload header (only at beginning of first partition)
   if (dataLength > 0 && vp8->beginningOfPartition && vp8->partitionID == 0) {
-    // parsedPacket.frameType = (*dataPtr & 0x01) ? kPFrame : kIFrame;
-    vp8->frameType = (*dataPtr & 0x01) ? kPFrame : kIFrame;
+    // parsedPacket.frameType = (*dataPtr & 0x01) ? kVP8PFrame : kVP8IFrame;
+    vp8->frameType = (*dataPtr & 0x01) ? kVP8PFrame : kVP8IFrame;
   } else {
-    vp8->frameType = kPFrame;
+    vp8->frameType = kVP8PFrame;
   }
   if (0 == ParseVP8FrameSize(vp8, dataPtr, dataLength)) {
     if (vp8->frameWidth != 640) {

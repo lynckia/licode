@@ -429,6 +429,16 @@ namespace erizo {
     return sdp.str();
   }
 
+  RtpMap* SdpInfo::getCodecByExternalPayloadType(const unsigned int payload_type) {
+    for (unsigned int it = 0; it < payloadVector.size(); it++) {
+      RtpMap& rtp = payloadVector[it];
+      if (rtp.payload_type == payload_type) {
+        return &rtp;
+      }
+    }
+    return nullptr;
+  }
+
   RtpMap *SdpInfo::getCodecByName(const std::string codecName, const unsigned int clockRate) {
     for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
       RtpMap& rtp = internalPayloadVector_[it];
@@ -970,7 +980,7 @@ namespace erizo {
     return cryptoVector_;
   }
 
-  const std::vector<RtpMap>& SdpInfo::getPayloadInfos() {
+  std::vector<RtpMap>& SdpInfo::getPayloadInfos() {
     return payloadVector;
   }
 

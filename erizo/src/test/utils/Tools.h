@@ -73,6 +73,7 @@ class PacketTools {
 
   static std::shared_ptr<dataPacket> createVP8Packet(uint16_t seq_number, bool is_keyframe, bool is_marker) {
     erizo::RtpHeader *header = new erizo::RtpHeader();
+    header->setPayloadType(96);
     header->setSeqNumber(seq_number);
     header->setSSRC(kVideoSsrc);
     header->setMarker(is_marker);
@@ -84,10 +85,28 @@ class PacketTools {
     data_pointer = packet_buffer + header->getHeaderLength();
     parsing_pointer = data_pointer;
 
-
     *parsing_pointer = 0x10;
     parsing_pointer++;
     *parsing_pointer = is_keyframe? 0x00: 0x01;
+
+    return std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+  }
+
+  static std::shared_ptr<dataPacket> createVP9Packet(uint16_t seq_number, bool is_keyframe, bool is_marker) {
+    erizo::RtpHeader *header = new erizo::RtpHeader();
+    header->setPayloadType(98);
+    header->setSeqNumber(seq_number);
+    header->setSSRC(kVideoSsrc);
+    header->setMarker(is_marker);
+    char packet_buffer[200];
+    memset(packet_buffer, 0, 200);
+    char* data_pointer;
+    char* parsing_pointer;
+    memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
+    data_pointer = packet_buffer + header->getHeaderLength();
+    parsing_pointer = data_pointer;
+
+    *parsing_pointer = is_keyframe? 0x00: 0x40;
 
     return std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
   }
