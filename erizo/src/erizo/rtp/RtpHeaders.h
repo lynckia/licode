@@ -424,6 +424,10 @@ class RtcpHeader {
   inline uint64_t getNtpTimestamp() {
     return (((uint64_t)htonl(report.senderReport.ntptimestamp)) << 32) + htonl(report.senderReport.ntptimestamp >> 32);
   }
+  inline uint32_t get32MiddleNtp() {
+    uint64_t middle = (report.senderReport.ntptimestamp << 16) >> 32;
+    return ntohl(middle);
+  }
   inline uint16_t getNackPid() {
     return ntohs(report.nackPacket.pid);
   }
