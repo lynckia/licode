@@ -113,8 +113,11 @@ uint32_t RtpExtensionProcessor::processAbsSendTime(char* buf) {
   auto now_sec = std::chrono::duration_cast<std::chrono::seconds>(now);
   auto now_usec = std::chrono::duration_cast<std::chrono::microseconds>(now);
 
+  uint32_t now_usec_only = now_usec.count() - now_sec.count()*1e+6;
+
   uint8_t seconds = now_sec.count() & 0x3F;
-  uint32_t absecs = now_usec.count() * ((1LL << 18) - 1) * 1e-6;
+  uint32_t absecs = now_usec_only * ((1LL << 18) - 1) * 1e-6;
+
   absecs = (seconds << 18) + absecs;
   head->setAbsSendTime(absecs);
   return 0;

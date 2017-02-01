@@ -24,6 +24,7 @@
 #include "rtp/RtcpProcessorHandler.h"
 #include "rtp/RtpRetransmissionHandler.h"
 #include "rtp/StatsHandler.h"
+#include "rtp/RRGenerationHandler.h"
 
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
@@ -56,6 +57,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   pipeline_->addFront(RtpAudioMuteHandler(this));
   pipeline_->addFront(RtpVP8SlideShowHandler(this));
   pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>(this, worker_));
+  pipeline_->addFront(RRGenerationHandler(this));
   pipeline_->addFront(RtpRetransmissionHandler(this));
   pipeline_->addFront(OutgoingStatsHandler(this));
   pipeline_->addFront(PacketWriter(this));
