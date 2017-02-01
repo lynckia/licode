@@ -130,17 +130,3 @@ TEST_F(RRGenerationHandlerTest, shouldReportHighestSeqnumWithRollover) {
   pipeline->read(second_packet);
   pipeline->read(sender_report);
 }
-
-TEST_F(RRGenerationHandlerTest, dlsrMustBeZeroOnFirstSr) {
-  uint32_t kExpectedDlsr = 0;
-
-  auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
-  auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
-
-  EXPECT_CALL(*reader.get(), read(_, _)).Times(2);
-  EXPECT_CALL(*writer.get(), write(_, _))
-    .With(Args<1>(erizo::ReceiverReportHasDlsrValue(kExpectedDlsr)))
-    .Times(1);
-  pipeline->read(first_packet);
-  pipeline->read(sender_report);
-}
