@@ -734,6 +734,9 @@ Erizo.Room = function (spec) {
             if (stream.hasVideo() || stream.hasAudio() || stream.hasScreen()) {
                 // 1- Subscribe to Stream
 
+                if (!stream.hasVideo() && !stream.hasScreen()) options.video = false;
+                if (!stream.hasAudio()) options.audio = false;
+
                 if (that.p2p) {
                     sendSDPSocket('subscribe', {streamId: stream.getID(),
                                                 metadata: options.metadata});

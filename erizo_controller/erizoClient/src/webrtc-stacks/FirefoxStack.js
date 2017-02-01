@@ -25,8 +25,8 @@ Erizo.FirefoxStack = function (spec) {
     }
 
     that.mediaConstraints = {
-        offerToReceiveAudio: spec.audio,
-        offerToReceiveVideo: spec.video,
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
         mozDontOfferDataChannel: true
     };
 
