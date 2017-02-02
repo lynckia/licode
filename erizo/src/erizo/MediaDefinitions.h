@@ -5,6 +5,8 @@
 #ifndef ERIZO_SRC_ERIZO_MEDIADEFINITIONS_H_
 #define ERIZO_SRC_ERIZO_MEDIADEFINITIONS_H_
 #include <boost/thread/mutex.hpp>
+#include "lib/Clock.h"
+#include "lib/ClockUtils.h"
 
 namespace erizo {
 
@@ -23,11 +25,11 @@ struct dataPacket {
       memcpy(data, data_, length_);
     }
   dataPacket(int comp_, const char *data_, int length_, packetType type_) :
-    comp{comp_}, length{length_}, type{type_} {
+    comp{comp_}, length{length_}, type{type_}, received_time_ms{ClockUtils::timePointToMs(clock::now())} {
       memcpy(data, data_, length_);
     }
   dataPacket(int comp_, const unsigned char *data_, int length_) :
-    comp{comp_}, length{length_}, type{VIDEO_PACKET} {
+    comp{comp_}, length{length_}, type{VIDEO_PACKET}, received_time_ms{ClockUtils::timePointToMs(clock::now())} {
       memcpy(data, data_, length_);
     }
   int comp;
