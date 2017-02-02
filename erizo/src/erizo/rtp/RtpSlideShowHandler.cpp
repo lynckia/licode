@@ -1,27 +1,26 @@
 #include "./MediaDefinitions.h"
-#include "rtp/RtpVP8SlideShowHandler.h"
-#include "rtp/RtpVP8Parser.h"
+#include "rtp/RtpSlideShowHandler.h"
 
 namespace erizo {
 
-DEFINE_LOGGER(RtpVP8SlideShowHandler, "rtp.RtpVP8SlideShowHandler");
+DEFINE_LOGGER(RtpSlideShowHandler, "rtp.RtpSlideShowHandler");
 
-RtpVP8SlideShowHandler::RtpVP8SlideShowHandler(WebRtcConnection *connection) : RtpSlideShowHandler(connection),
+RtpSlideShowHandler::RtpSlideShowHandler(WebRtcConnection *connection) : connection_(connection),
   slideshow_seq_num_{-1}, last_original_seq_num_{-1}, seq_num_offset_{0}, slideshow_is_active_{false},
   sending_keyframe_ {false} {}
 
 
-void RtpVP8SlideShowHandler::enable() {
+void RtpSlideShowHandler::enable() {
 }
 
-void RtpVP8SlideShowHandler::disable() {
+void RtpSlideShowHandler::disable() {
 }
 
-void RtpVP8SlideShowHandler::notifyUpdate() {
+void RtpSlideShowHandler::notifyUpdate() {
   setSlideShowMode(connection_->isSlideShowModeEnabled());
 }
 
-void RtpVP8SlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtpSlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (connection_->getVideoSinkSSRC() != chead->getSourceSSRC()) {
     ctx->fireRead(packet);
@@ -57,7 +56,7 @@ void RtpVP8SlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> pack
   ctx->fireRead(packet);
 }
 
-void RtpVP8SlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtpSlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   RtcpHeader *rtcp_header = reinterpret_cast<RtcpHeader*>(packet->data);
 
@@ -70,22 +69,16 @@ void RtpVP8SlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> pac
     slideshow_seq_num_ = last_original_seq_num_;
   }
   if (slideshow_is_active_) {
-    RtpVP8Parser parser;
-    unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
-    start_buffer = start_buffer + rtp_header->getHeaderLength();
-    RTPPayloadVP8* payload = parser.parseVP8(
-        start_buffer, packet->length - rtp_header->getHeaderLength());
-    if (!payload->frameType) {  // Its a keyframe
-      sending_keyframe_ = true;
+    bool is_keyframe = false;
+    RtpMap *codec = connection_->getRemoteSdpInfo().getCodecByExternalPayloadType(rtp_header->getPayloadType());
+    if (codec && codec->encoding_name == "VP8") {
+      is_keyframe = isVP8Keyframe(packet);
+    } else if (codec && codec->encoding_name == "VP9") {
+      is_keyframe = isVP9Keyframe(packet);
     }
-    delete payload;
-    if (sending_keyframe_) {  // We send until marker
+    if (is_keyframe) {
       setPacketSeqNumber(packet, slideshow_seq_num_++);
       ctx->fireWrite(packet);
-      if (rtp_header->getMarker()) {
-        sending_keyframe_ = false;
-      }
-    } else {
     }
   } else {
     if (seq_num_offset_ > 0) {
@@ -95,14 +88,41 @@ void RtpVP8SlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> pac
   }
 }
 
-void RtpVP8SlideShowHandler::setSlideShowMode(bool active) {
+bool RtpSlideShowHandler::isVP8Keyframe(std::shared_ptr<dataPacket> packet) {
+  bool is_keyframe = false;
+  RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
+  unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
+  start_buffer = start_buffer + rtp_header->getHeaderLength();
+  RTPPayloadVP8* payload = vp8_parser_.parseVP8(
+      start_buffer, packet->length - rtp_header->getHeaderLength());
+  if (!payload->frameType) {  // Its a keyframe first packet
+    sending_keyframe_ = true;
+  }
+  delete payload;
+  is_keyframe = sending_keyframe_;
+  if (sending_keyframe_ && rtp_header->getMarker()) {
+    sending_keyframe_ = false;
+  }
+  return is_keyframe;
+}
+
+bool RtpSlideShowHandler::isVP9Keyframe(std::shared_ptr<dataPacket> packet) {
+  RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
+  unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
+  start_buffer = start_buffer + rtp_header->getHeaderLength();
+  RTPPayloadVP9* payload = vp9_parser_.parseVP9(
+      start_buffer, packet->length - rtp_header->getHeaderLength());
+  return !payload->frameType;
+}
+
+void RtpSlideShowHandler::setSlideShowMode(bool active) {
   if (slideshow_is_active_ == active) {
     return;
   }
 
   if (active) {
     slideshow_seq_num_ = last_original_seq_num_ - seq_num_offset_;
-    sending_keyframe_ = 0;
+    sending_keyframe_ = false;
     slideshow_is_active_ = true;
     connection_->setFeedbackReports(false, 0);
     ELOG_DEBUG("%s message: Setting seqNo, seqNo: %u", connection_->toLog(), slideshow_seq_num_);
@@ -115,7 +135,7 @@ void RtpVP8SlideShowHandler::setSlideShowMode(bool active) {
   }
 }
 
-inline void RtpVP8SlideShowHandler::setPacketSeqNumber(std::shared_ptr<dataPacket> packet, uint16_t seq_number) {
+inline void RtpSlideShowHandler::setPacketSeqNumber(std::shared_ptr<dataPacket> packet, uint16_t seq_number) {
   RtpHeader *head = reinterpret_cast<RtpHeader*> (packet->data);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
   if (chead->isRtcp()) {
