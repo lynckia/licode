@@ -28,8 +28,8 @@ class RtpSlideShowHandler : public Handler {
   void notifyUpdate() override;
 
   void setSlideShowMode(bool activated);
- private:
 
+ private:
   bool isVP8Keyframe(std::shared_ptr<dataPacket> packet);
   bool isVP9Keyframe(std::shared_ptr<dataPacket> packet);
 
