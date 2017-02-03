@@ -2,8 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <thread/Scheduler.h>
-#include <rtp/RtpVP8SlideShowHandler.h>
-#include <rtp/RtpVP8Parser.h>
+#include <rtp/RtpSlideShowHandler.h>
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
@@ -26,30 +25,32 @@ using erizo::AUDIO_PACKET;
 using erizo::VIDEO_PACKET;
 using erizo::IceConfig;
 using erizo::RtpMap;
-using erizo::RtpVP8SlideShowHandler;
+using erizo::RtpSlideShowHandler;
 using erizo::WebRtcConnection;
 using erizo::Pipeline;
 using erizo::InboundHandler;
 using erizo::OutboundHandler;
 using erizo::Worker;
-using erizo::RtpVP8Parser;
-using erizo::RTPPayloadVP8;
 using std::queue;
 
-class RtpVP8SlideShowHandlerTest : public erizo::HandlerTest {
+class RtpSlideShowHandlerTest : public erizo::HandlerTest {
  public:
-  RtpVP8SlideShowHandlerTest() {}
+  RtpSlideShowHandlerTest() {
+  }
 
  protected:
   void setHandler() {
-    slideshow_handler = std::make_shared<RtpVP8SlideShowHandler>(connection.get());
+    std::vector<RtpMap>& payloads = connection->getRemoteSdpInfo().getPayloadInfos();
+    payloads.push_back({96, "VP8"});
+    payloads.push_back({98, "VP9"});
+    slideshow_handler = std::make_shared<RtpSlideShowHandler>(connection.get());
     pipeline->addBack(slideshow_handler);
   }
 
-  std::shared_ptr<RtpVP8SlideShowHandler> slideshow_handler;
+  std::shared_ptr<RtpSlideShowHandler> slideshow_handler;
 };
 
-TEST_F(RtpVP8SlideShowHandlerTest, basicBehaviourShouldReadPackets) {
+TEST_F(RtpSlideShowHandlerTest, basicBehaviourShouldReadPackets) {
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
     EXPECT_CALL(*reader.get(), read(_, _)).
@@ -57,7 +58,7 @@ TEST_F(RtpVP8SlideShowHandlerTest, basicBehaviourShouldReadPackets) {
     pipeline->read(packet);
 }
 
-TEST_F(RtpVP8SlideShowHandlerTest, basicBehaviourShouldWritePackets) {
+TEST_F(RtpSlideShowHandlerTest, basicBehaviourShouldWritePackets) {
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
     EXPECT_CALL(*writer.get(), write(_, _)).
@@ -65,7 +66,7 @@ TEST_F(RtpVP8SlideShowHandlerTest, basicBehaviourShouldWritePackets) {
     pipeline->write(packet);
 }
 
-TEST_F(RtpVP8SlideShowHandlerTest, shouldTransmitAllPacketsWhenInactive) {
+TEST_F(RtpSlideShowHandlerTest, shouldTransmitAllPacketsWhenInactive) {
     uint16_t seq_number = erizo::kArbitrarySeqNumber;
     packet_queue.push(erizo::PacketTools::createVP8Packet(seq_number, false, false));
     packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, true, false));
@@ -81,7 +82,20 @@ TEST_F(RtpVP8SlideShowHandlerTest, shouldTransmitAllPacketsWhenInactive) {
       packet_queue.pop();
     }
 }
-TEST_F(RtpVP8SlideShowHandlerTest, shouldTransmitFromBeginningOfKFrameToMarkerPacketsWhenActive) {
+
+TEST_F(RtpSlideShowHandlerTest, shouldTransmitJustKeyframesInVP9) {
+    uint16_t seq_number = erizo::kArbitrarySeqNumber;
+    packet_queue.push(erizo::PacketTools::createVP9Packet(seq_number, true, false));
+    packet_queue.push(erizo::PacketTools::createVP9Packet(++seq_number, false, false));
+    slideshow_handler->setSlideShowMode(true);
+
+    EXPECT_CALL(*writer.get(), write(_, _)).Times(1);
+    while (!packet_queue.empty()) {
+      pipeline->write(packet_queue.front());
+      packet_queue.pop();
+    }
+}
+TEST_F(RtpSlideShowHandlerTest, shouldTransmitFromBeginningOfKFrameToMarkerPacketsWhenActive) {
     uint16_t seq_number = erizo::kArbitrarySeqNumber;
     packet_queue.push(erizo::PacketTools::createVP8Packet(seq_number, false, false));
     packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, true, false));
@@ -97,7 +111,7 @@ TEST_F(RtpVP8SlideShowHandlerTest, shouldTransmitFromBeginningOfKFrameToMarkerPa
     }
 }
 
-TEST_F(RtpVP8SlideShowHandlerTest, shouldMantainSequenceNumberInSlideShow) {
+TEST_F(RtpSlideShowHandlerTest, shouldMantainSequenceNumberInSlideShow) {
     uint16_t seq_number = erizo::kArbitrarySeqNumber;
     packet_queue.push(erizo::PacketTools::createVP8Packet(seq_number, true, false));
     packet_queue.push(erizo::PacketTools::createVP8Packet(++seq_number, false, true));
@@ -125,7 +139,7 @@ TEST_F(RtpVP8SlideShowHandlerTest, shouldMantainSequenceNumberInSlideShow) {
     }
 }
 
-TEST_F(RtpVP8SlideShowHandlerTest, shouldAdjustSequenceNumberAfterSlideShow) {
+TEST_F(RtpSlideShowHandlerTest, shouldAdjustSequenceNumberAfterSlideShow) {
     EXPECT_CALL(*writer.get(), write(_, _)).
       With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
     EXPECT_CALL(*writer.get(), write(_, _)).

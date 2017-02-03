@@ -17,7 +17,6 @@
 #include "rtp/RtcpAggregator.h"
 #include "rtp/RtcpForwarder.h"
 #include "rtp/RtpSlideShowHandler.h"
-#include "rtp/RtpVP8SlideShowHandler.h"
 #include "rtp/RtpAudioMuteHandler.h"
 #include "rtp/BandwidthEstimationHandler.h"
 #include "rtp/FecReceiverHandler.h"
@@ -55,7 +54,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   pipeline_->addFront(IncomingStatsHandler(this));
   pipeline_->addFront(FecReceiverHandler(this));
   pipeline_->addFront(RtpAudioMuteHandler(this));
-  pipeline_->addFront(RtpVP8SlideShowHandler(this));
+  pipeline_->addFront(RtpSlideShowHandler(this));
   pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>(this, worker_));
   pipeline_->addFront(std::make_shared<RRGenerationHandler>(this, true));
   pipeline_->addFront(RtpRetransmissionHandler(this));

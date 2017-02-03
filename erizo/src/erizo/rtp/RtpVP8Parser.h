@@ -5,27 +5,27 @@
 
 namespace erizo {
 
-enum FrameTypes {
-  kIFrame,  // key frame
-  kPFrame   // Delta frame
+enum VP8FrameTypes {
+  kVP8IFrame,  // key frame
+  kVP8PFrame   // Delta frame
 };
 
 typedef struct {
-  bool nonReferenceFrame;
-  bool beginningOfPartition;
-  int partitionID;
-  bool hasPictureID;
-  bool hasTl0PicIdx;
-  bool hasTID;
-  bool hasKeyIdx;
-  int pictureID;
-  int tl0PicIdx;
-  int tID;
-  bool layerSync;
-  int keyIdx;
-  int frameWidth;
-  int frameHeight;
-  FrameTypes frameType;
+  bool nonReferenceFrame = false;
+  bool beginningOfPartition = false;
+  int partitionID = -1;
+  bool hasPictureID = false;
+  bool hasTl0PicIdx = false;
+  bool hasTID = false;
+  bool hasKeyIdx = false;
+  int pictureID = -1;
+  int tl0PicIdx = -1;
+  int tID = -1;
+  bool layerSync = false;
+  int keyIdx = -1;
+  int frameWidth = -1;
+  int frameHeight = -1;
+  VP8FrameTypes frameType = kVP8PFrame;
 
   const unsigned char* data;
   unsigned int dataLength;

@@ -171,7 +171,7 @@ class SdpInfo {
   * Gets the payloadType information
   * @return A vector containing the PT-codec information
   */
-  const std::vector<RtpMap>& getPayloadInfos();
+  std::vector<RtpMap>& getPayloadInfos();
   /**
    * Gets the actual SDP.
    * @return The SDP in string format.
@@ -201,6 +201,8 @@ class SdpInfo {
    * @return The external video payload type
    */
   unsigned int getVideoExternalPT(unsigned int internalPT);
+
+  RtpMap* getCodecByExternalPayloadType(const unsigned int payload_type);
 
   void setCredentials(const std::string& username, const std::string& password, MediaType media);
 
