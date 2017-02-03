@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <random>
 
 #include "./logger.h"
 #include "pipeline/Handler.h"
@@ -13,12 +14,12 @@ namespace erizo {
 
 class WebRtcConnection;
 
-class RRGenerationHandler: public Handler {
+class RRGenerationHandler: public Handler, public std::enable_shared_from_this<RRGenerationHandler> {
   DECLARE_LOGGER();
 
 
  public:
-  explicit RRGenerationHandler(WebRtcConnection *connection);
+  explicit RRGenerationHandler(WebRtcConnection *connection, bool use_timing);
 
   void enable() override;
   void disable() override;
@@ -39,10 +40,10 @@ class RRGenerationHandler: public Handler {
   };
 
   struct RRPackets {
-    RRPackets() : last_sr_ts{0}, ssrc{0}, last_sr_mid_ntp{0}, last_rr_ts{0},
+    RRPackets() : last_sr_ts{0}, next_packet_ms{0}, ssrc{0}, last_sr_mid_ntp{0}, last_rr_ts{0},
       last_rtp_ts{0}, p_received{0}, extended_seq{0}, lost{0}, expected_prior{0}, received_prior{0},
       last_recv_ts{0}, max_seq{-1}, base_seq{-1}, cycle{0}, frac_lost{0}, type{OTHER_PACKET} {}
-    uint64_t last_sr_ts;
+    uint64_t last_sr_ts, next_packet_ms;
     uint32_t ssrc, last_sr_mid_ntp, last_rr_ts, last_rtp_ts,
              p_received, extended_seq, lost, expected_prior, received_prior, last_recv_ts;
     int32_t max_seq, base_seq;  // are really uint16_t, we're using the sign for unitialized values
@@ -53,11 +54,12 @@ class RRGenerationHandler: public Handler {
   };
 
   WebRtcConnection* connection_;
-  Context *temp_ctx_;
   uint8_t packet_[128];
-  bool enabled_, initialized_;
+  bool enabled_, initialized_, use_timing_;
   std::map<uint32_t, std::shared_ptr<RRPackets>> rr_info_map_;
   RRPackets audio_rr_, video_rr_;
+  std::random_device random_device_;
+  std::mt19937 generator_;
 
   bool rtpSequenceLessThan(uint16_t x, uint16_t y);
   bool isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet, std::shared_ptr<RRPackets> rr_info);
@@ -66,6 +68,7 @@ class RRGenerationHandler: public Handler {
   int getAudioClockRate(uint8_t payload_type);
   int getVideoClockRate(uint8_t payload_type);
   void sendRR(std::shared_ptr<RRPackets> selected_packet_info);
+  uint16_t getRandomValue(uint16_t min, uint16_t max);
 };
 }  // namespace erizo
 

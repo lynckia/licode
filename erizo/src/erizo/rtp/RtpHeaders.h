@@ -40,6 +40,8 @@ namespace erizo {
 #define RTCP_MIN_PT         194  // per https://tools.ietf.org/html/rfc5761
 #define RTCP_MAX_PT         223
 
+#define RTCP_AUDIO_INTERVAL 5000
+#define RTCP_VIDEO_INTERVAL  1000
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

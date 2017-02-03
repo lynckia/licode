@@ -57,7 +57,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   pipeline_->addFront(RtpAudioMuteHandler(this));
   pipeline_->addFront(RtpVP8SlideShowHandler(this));
   pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>(this, worker_));
-  pipeline_->addFront(RRGenerationHandler(this));
+  pipeline_->addFront(std::make_shared<RRGenerationHandler>(this, true));
   pipeline_->addFront(RtpRetransmissionHandler(this));
   pipeline_->addFront(OutgoingStatsHandler(this));
   pipeline_->addFront(PacketWriter(this));

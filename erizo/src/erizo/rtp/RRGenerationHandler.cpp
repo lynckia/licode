@@ -6,8 +6,9 @@ namespace erizo {
 
 DEFINE_LOGGER(RRGenerationHandler, "rtp.RRGenerationHandler");
 
-RRGenerationHandler::RRGenerationHandler(WebRtcConnection *connection) :
-    connection_{connection}, temp_ctx_{nullptr}, enabled_{true}, initialized_{false} {}
+RRGenerationHandler::RRGenerationHandler(WebRtcConnection *connection, bool use_timing) :
+    connection_{connection}, enabled_{true}, initialized_{false}, use_timing_{use_timing},
+    generator_{random_device_()} {}
 
 
 void RRGenerationHandler::enable() {
@@ -96,6 +97,16 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   }
   selected_packet_info->last_rtp_ts = head->getTimestamp();
   selected_packet_info->last_recv_ts = static_cast<uint32_t>(packet->received_time_ms);
+  uint64_t now = ClockUtils::timePointToMs(clock::now());
+  if (selected_packet_info->next_packet_ms == 0) {  // Schedule the first packet
+    uint16_t selected_interval = selected_packet_info->type == VIDEO_PACKET ? RTCP_VIDEO_INTERVAL : RTCP_AUDIO_INTERVAL;
+    selected_packet_info->next_packet_ms = now + selected_interval;
+    return;
+  }
+
+  if (now >= selected_packet_info->next_packet_ms) {
+    sendRR(selected_packet_info);
+  }
 }
 
 void RRGenerationHandler::sendRR(std::shared_ptr<RRPackets> selected_packet_info) {
@@ -118,15 +129,15 @@ void RRGenerationHandler::sendRR(std::shared_ptr<RRPackets> selected_packet_info
     rtcp_head.setBlockCount(1);
     int length = (rtcp_head.getLength() + 1) * 4;
     memcpy(packet_, reinterpret_cast<uint8_t*>(&rtcp_head), length);
-    if (temp_ctx_) {
-      temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
-      selected_packet_info->last_rr_ts = now;
-      ELOG_DEBUG("%s, message: Sending RR, ssrc: %u, type: %u lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, "
-                "dlsr: %u, lsr: %u", connection_->toLog(), selected_packet_info->ssrc, selected_packet_info->type,
-                rtcp_head.getLostPackets(), rtcp_head.getFractionLost(), rtcp_head.getSeqnumCycles(),
-                rtcp_head.getHighestSeqnum(), rtcp_head.getJitter(), rtcp_head.getDelaySinceLastSr(),
-                rtcp_head.getLastSr());
-    }
+    getContext()->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
+    selected_packet_info->last_rr_ts = now;
+    ELOG_DEBUG("%s, message: Sending RR, ssrc: %u, type: %u lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, "
+        "dlsr: %u, lsr: %u", connection_->toLog(), selected_packet_info->ssrc, selected_packet_info->type,
+        rtcp_head.getLostPackets(), rtcp_head.getFractionLost(), rtcp_head.getSeqnumCycles(),
+        rtcp_head.getHighestSeqnum(), rtcp_head.getJitter(), rtcp_head.getDelaySinceLastSr(),
+        rtcp_head.getLastSr());
+    uint16_t selected_interval = selected_packet_info->type == VIDEO_PACKET ? RTCP_VIDEO_INTERVAL : RTCP_AUDIO_INTERVAL;
+    selected_packet_info->next_packet_ms = now + getRandomValue(0.5 * selected_interval, 1.5 * selected_interval);
   }
 }
 
@@ -153,11 +164,12 @@ void RRGenerationHandler::handleSR(std::shared_ptr<dataPacket> packet) {
     fraction = (lost_interval << 8) / expected_interval;
   }
   selected_packet_info->frac_lost = fraction;
-  sendRR(selected_packet_info);
+  if (!use_timing_) {
+    sendRR(selected_packet_info);
+  }
 }
 
 void RRGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  temp_ctx_ = ctx;
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (!chead->isRtcp() && enabled_) {
     handleRtpPacket(packet);
@@ -194,6 +206,11 @@ void RRGenerationHandler::notifyUpdate() {
     initialized_ = true;
     ELOG_DEBUG("%s, message: Initialized audio, ssrc: %u", connection_->toLog(), audio_ssrc);
   }
+}
+
+uint16_t RRGenerationHandler::getRandomValue(uint16_t min, uint16_t max) {
+  std::uniform_int_distribution<> distr(min, max);
+  return std::round(distr(generator_));
 }
 
 }  // namespace erizo
