@@ -6,8 +6,9 @@ namespace erizo {
 
 DEFINE_LOGGER(RRGenerationHandler, "rtp.RRGenerationHandler");
 
-RRGenerationHandler::RRGenerationHandler(WebRtcConnection *connection) :
-    temp_ctx_{nullptr}, enabled_{true} {}
+RRGenerationHandler::RRGenerationHandler(WebRtcConnection *connection, bool use_timing) :
+    connection_{connection}, enabled_{true}, initialized_{false}, use_timing_{use_timing},
+    generator_{random_device_()} {}
 
 
 void RRGenerationHandler::enable() {
@@ -18,28 +19,19 @@ void RRGenerationHandler::disable() {
   enabled_ = false;
 }
 
-bool RRGenerationHandler::isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet) {
+bool RRGenerationHandler::isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet,
+    std::shared_ptr<RRPackets> rr_info) {
   RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
-  if (packet->type == VIDEO_PACKET) {
-    if (!rtpSequenceLessThan(head->getSeqNumber(), video_rr_.max_seq) || jitter_video_.jitter == 0) {
-      return false;
-    }
-    int64_t time_diff_ms = static_cast<uint32_t>(packet->received_time_ms) - video_rr_.last_recv_ts;
-    int64_t timestamp_diff = static_cast<int32_t>(head->getTimestamp() - video_rr_.last_rtp_ts);
-    int64_t rtp_time_stamp_diff_ms = timestamp_diff / getVideoClockRate(head->getPayloadType());
-    int64_t max_delay_ms = ((2 * jitter_video_.jitter) /  getVideoClockRate(head->getPayloadType()));
-    return time_diff_ms > rtp_time_stamp_diff_ms + max_delay_ms;
-  } else if (packet->type == AUDIO_PACKET) {
-    if (!rtpSequenceLessThan(head->getSeqNumber(), audio_rr_.max_seq) || jitter_audio_.jitter == 0) {
-      return false;
-    }
-    int64_t time_diff_ms = static_cast<uint32_t>(packet->received_time_ms) - audio_rr_.last_recv_ts;
-    int64_t timestamp_diff = static_cast<int32_t>(head->getTimestamp() - audio_rr_.last_rtp_ts);
-    int64_t rtp_time_stamp_diff_ms = timestamp_diff / getAudioClockRate(head->getPayloadType());
-    int64_t max_delay_ms = ((2 * jitter_audio_.jitter) /  getAudioClockRate(head->getPayloadType()));
-    return time_diff_ms > rtp_time_stamp_diff_ms + max_delay_ms;
+  if (!rtpSequenceLessThan(head->getSeqNumber(), rr_info->max_seq) || rr_info->jitter.jitter == 0) {
+    return false;
   }
-  return true;
+  int64_t time_diff_ms = static_cast<uint32_t>(packet->received_time_ms) - rr_info->last_recv_ts;
+  int64_t timestamp_diff = static_cast<int32_t>(head->getTimestamp() - rr_info->last_rtp_ts);
+  uint16_t clock_rate = rr_info->type == VIDEO_PACKET ? getVideoClockRate(head->getPayloadType()) :
+    getAudioClockRate(head->getPayloadType());
+  int64_t rtp_time_stamp_diff_ms = timestamp_diff / clock_rate;
+  int64_t max_delay_ms = ((2 * rr_info->jitter.jitter) /  clock_rate);
+  return time_diff_ms > rtp_time_stamp_diff_ms + max_delay_ms;
 }
 
 bool RRGenerationHandler::rtpSequenceLessThan(uint16_t x, uint16_t y) {
@@ -69,174 +61,122 @@ int RRGenerationHandler::getVideoClockRate(uint8_t payload_type) {
 
 void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
+  auto rr_packet_pair = rr_info_map_.find(head->getSSRC());
+  if (rr_packet_pair == rr_info_map_.end()) {
+    ELOG_DEBUG("%s message: handleRtpPacket ssrc not found, ssrc: %u", connection_->toLog(), head->getSSRC());
+    return;
+  }
+  std::shared_ptr<RRPackets> selected_packet_info = rr_packet_pair->second;
   uint16_t seq_num = head->getSeqNumber();
+  selected_packet_info->packets_received++;
+  if (selected_packet_info->base_seq == -1) {
+    selected_packet_info->ssrc = head->getSSRC();
+    selected_packet_info->base_seq = head->getSeqNumber();
+  }
+  if (selected_packet_info->max_seq == -1) {
+    selected_packet_info->max_seq = seq_num;
+  } else if (!rtpSequenceLessThan(seq_num, selected_packet_info->max_seq)) {
+    if (seq_num < selected_packet_info->max_seq) {
+      selected_packet_info->cycle++;
+    }
+    selected_packet_info->max_seq = seq_num;
+  }
+  selected_packet_info->extended_seq = (selected_packet_info->cycle << 16) | selected_packet_info->max_seq;
 
-  switch (packet->type) {
-  case VIDEO_PACKET: {
-    video_rr_.p_received++;
-    if (video_rr_.base_seq == -1) {
-      video_rr_.ssrc = head->getSSRC();
-      video_rr_.base_seq = head->getSeqNumber();
+  uint16_t clock_rate = selected_packet_info->type == VIDEO_PACKET ? getVideoClockRate(head->getPayloadType()) :
+    getAudioClockRate(head->getPayloadType());
+  if (head->getTimestamp() != selected_packet_info->last_rtp_ts &&
+      !isRetransmitOfOldPacket(packet, selected_packet_info)) {
+    int transit_time = static_cast<int>((packet->received_time_ms * clock_rate) - head->getTimestamp());
+    int delta = abs(transit_time - selected_packet_info->jitter.transit_time);
+    if (selected_packet_info->jitter.transit_time != 0 && delta < MAX_DELAY) {
+      selected_packet_info->jitter.jitter +=
+        (1. / 16.) * (static_cast<double>(delta) - selected_packet_info->jitter.jitter);
     }
-    if (video_rr_.max_seq == -1) {
-      video_rr_.max_seq = seq_num;
-    } else if (!rtpSequenceLessThan(seq_num, video_rr_.max_seq)) {
-      if (seq_num < video_rr_.max_seq) {
-        video_rr_.cycle++;
-      }
-      video_rr_.max_seq = seq_num;
-    }
-    video_rr_.extended_seq = (video_rr_.cycle << 16) | video_rr_.max_seq;
-    int clock_rate = getVideoClockRate(head->getPayloadType());
-    if (head->getTimestamp() != video_rr_.last_rtp_ts && !isRetransmitOfOldPacket(packet)) {
-      int transit_time = static_cast<int>((packet->received_time_ms * clock_rate) - head->getTimestamp());
-      int delta = abs(transit_time - jitter_video_.transit_time);
-      if (jitter_video_.transit_time != 0 && delta < MAX_DELAY) {
-        jitter_video_.jitter += (1. / 16.) * (static_cast<double>(delta) - jitter_video_.jitter);
-      }
-      jitter_video_.transit_time = transit_time;
-    }
-    video_rr_.last_rtp_ts = head->getTimestamp();
-    video_rr_.last_recv_ts = static_cast<uint32_t>(packet->received_time_ms);
-    break;
+    selected_packet_info->jitter.transit_time = transit_time;
   }
-  case AUDIO_PACKET: {
-    audio_rr_.p_received++;
-    if (audio_rr_.base_seq == -1) {
-      audio_rr_.ssrc = head->getSSRC();
-      audio_rr_.base_seq = head->getSeqNumber();
-    }
-    if (audio_rr_.max_seq == -1) {
-      audio_rr_.max_seq = seq_num;
-    } else if (!rtpSequenceLessThan(seq_num, audio_rr_.max_seq)) {
-      if (seq_num < audio_rr_.max_seq) {
-        audio_rr_.cycle++;
-      }
-      audio_rr_.max_seq = seq_num;
-    }
-    audio_rr_.extended_seq = (audio_rr_.cycle << 16) | audio_rr_.max_seq;
-    int clock_rate = getAudioClockRate(head->getPayloadType());
-    if (head->getTimestamp() != audio_rr_.last_rtp_ts && !isRetransmitOfOldPacket(packet)) {
-      int transit_time = static_cast<int>((packet->received_time_ms * clock_rate) - head->getTimestamp());
-      int delta = abs(transit_time - jitter_audio_.transit_time);
-      if (jitter_audio_.transit_time != 0 && delta < MAX_DELAY) {
-        jitter_audio_.jitter += (1. / 16.) * (static_cast<double>(delta) - jitter_audio_.jitter);
-      }
-      jitter_audio_.transit_time = transit_time;
-    }
-    audio_rr_.last_rtp_ts = head->getTimestamp();
-    audio_rr_.last_recv_ts = packet->received_time_ms;
-    break;
+  selected_packet_info->last_rtp_ts = head->getTimestamp();
+  selected_packet_info->last_recv_ts = static_cast<uint32_t>(packet->received_time_ms);
+  uint64_t now = ClockUtils::timePointToMs(clock::now());
+  if (selected_packet_info->next_packet_ms == 0) {  // Schedule the first packet
+    uint16_t selected_interval = selectInterval(selected_packet_info);
+    selected_packet_info->next_packet_ms = now + selected_interval;
+    return;
   }
-  default:
-    break;
+
+  if (now >= selected_packet_info->next_packet_ms) {
+    sendRR(selected_packet_info);
   }
 }
 
-void RRGenerationHandler::sendVideoRR() {
-  int64_t now = ClockUtils::timePointToMs(clock::now());
-
-  if (video_rr_.ssrc != 0) {
-    uint64_t delay_since_last_sr = video_rr_.last_sr_ts == 0 ? 0 : (now - video_rr_.last_sr_ts) * 65536 / 1000;
+void RRGenerationHandler::sendRR(std::shared_ptr<RRPackets> selected_packet_info) {
+  if (selected_packet_info->ssrc != 0) {
+    uint64_t now = ClockUtils::timePointToMs(clock::now());
+    uint64_t delay_since_last_sr = selected_packet_info->last_sr_ts == 0 ?
+      0 : (now - selected_packet_info->last_sr_ts) * 65536 / 1000;
     RtcpHeader rtcp_head;
     rtcp_head.setPacketType(RTCP_Receiver_PT);
-    rtcp_head.setSSRC(video_rr_.ssrc);
-    rtcp_head.setSourceSSRC(video_rr_.ssrc);
-    rtcp_head.setHighestSeqnum(video_rr_.extended_seq);
-    rtcp_head.setSeqnumCycles(video_rr_.cycle);
-    rtcp_head.setLostPackets(video_rr_.lost);
-    rtcp_head.setFractionLost(video_rr_.frac_lost);
-    rtcp_head.setJitter(static_cast<uint32_t>(jitter_video_.jitter));
+    rtcp_head.setSSRC(selected_packet_info->ssrc);
+    rtcp_head.setSourceSSRC(selected_packet_info->ssrc);
+    rtcp_head.setHighestSeqnum(selected_packet_info->extended_seq);
+    rtcp_head.setSeqnumCycles(selected_packet_info->cycle);
+    rtcp_head.setLostPackets(selected_packet_info->lost);
+    rtcp_head.setFractionLost(selected_packet_info->frac_lost);
+    rtcp_head.setJitter(static_cast<uint32_t>(selected_packet_info->jitter.jitter));
     rtcp_head.setDelaySinceLastSr(static_cast<uint32_t>(delay_since_last_sr));
-    rtcp_head.setLastSr(video_rr_.last_sr_mid_ntp);
+    rtcp_head.setLastSr(selected_packet_info->last_sr_mid_ntp);
     rtcp_head.setLength(7);
     rtcp_head.setBlockCount(1);
     int length = (rtcp_head.getLength() + 1) * 4;
+
     memcpy(packet_, reinterpret_cast<uint8_t*>(&rtcp_head), length);
-    if (temp_ctx_) {
-      temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
-      video_rr_.last_rr_ts = now;
-      ELOG_DEBUG("Sending video RR- lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, "
-                "dlsr: %u, lsr: %u", rtcp_head.getLostPackets(), rtcp_head.getFractionLost(),
-                rtcp_head.getSeqnumCycles(), rtcp_head.getHighestSeqnum(), rtcp_head.getJitter(),
-                rtcp_head.getDelaySinceLastSr(), rtcp_head.getLastSr());
-    }
+    getContext()->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
+    selected_packet_info->last_rr_ts = now;
+
+    ELOG_DEBUG("%s, message: Sending RR, ssrc: %u, type: %u lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, "
+        "dlsr: %u, lsr: %u", connection_->toLog(), selected_packet_info->ssrc, selected_packet_info->type,
+        rtcp_head.getLostPackets(), rtcp_head.getFractionLost(), rtcp_head.getSeqnumCycles(),
+        rtcp_head.getHighestSeqnum(), rtcp_head.getJitter(), rtcp_head.getDelaySinceLastSr(),
+        rtcp_head.getLastSr());
+
+    uint16_t selected_interval = selectInterval(selected_packet_info);
+    selected_packet_info->next_packet_ms = now + getRandomValue(0.5 * selected_interval, 1.5 * selected_interval);
   }
 }
 
-void RRGenerationHandler::sendAudioRR() {
-  int64_t now = ClockUtils::timePointToMs(clock::now());
-
-  if (audio_rr_.ssrc != 0) {
-    uint32_t delay_since_last_sr = audio_rr_.last_sr_ts == 0 ? 0 : (now - audio_rr_.last_sr_ts) * 65536 / 1000;
-    RtcpHeader rtcp_head;
-    rtcp_head.setPacketType(RTCP_Receiver_PT);
-    rtcp_head.setSSRC(audio_rr_.ssrc);
-    rtcp_head.setSourceSSRC(audio_rr_.ssrc);
-    rtcp_head.setHighestSeqnum(audio_rr_.extended_seq);
-    rtcp_head.setSeqnumCycles(audio_rr_.cycle);
-    rtcp_head.setLostPackets(audio_rr_.lost);
-    rtcp_head.setFractionLost(audio_rr_.frac_lost);
-    rtcp_head.setJitter(static_cast<uint32_t>(jitter_audio_.jitter));
-    rtcp_head.setDelaySinceLastSr(delay_since_last_sr);
-    rtcp_head.setLastSr(audio_rr_.last_sr_mid_ntp);
-    rtcp_head.setLength(7);
-    rtcp_head.setBlockCount(1);
-    int length = (rtcp_head.getLength() + 1) * 4;
-    memcpy(packet_, reinterpret_cast<uint8_t*>(&rtcp_head), length);
-    if (temp_ctx_) {
-      temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
-      audio_rr_.last_rr_ts = now;
-      ELOG_DEBUG("Sending audio RR - lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, "
-                "dslr: %u, lsr: %u", rtcp_head.getLostPackets(), rtcp_head.getFractionLost(),
-                rtcp_head.getSeqnumCycles(), rtcp_head.getHighestSeqnum(), rtcp_head.getJitter(),
-                rtcp_head.getDelaySinceLastSr(), rtcp_head.getLastSr());
-    }
-  }
-}
 
 void RRGenerationHandler::handleSR(std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
+  auto rr_packet_pair = rr_info_map_.find(chead->getSSRC());
+  if (rr_packet_pair == rr_info_map_.end()) {
+    ELOG_DEBUG("%s message: handleRtpPacket ssrc not found, ssrc: %u", connection_->toLog(), chead->getSSRC());
+    return;
+  }
+  std::shared_ptr<RRPackets> selected_packet_info = rr_packet_pair->second;
 
-    if (chead->getSSRC() == video_rr_.ssrc) {
-      video_rr_.last_sr_mid_ntp = chead->get32MiddleNtp();
-      video_rr_.last_sr_ts = packet->received_time_ms;
-      uint32_t expected = video_rr_.extended_seq- video_rr_.base_seq + 1;
-      video_rr_.lost = expected - video_rr_.p_received;
-      uint8_t fraction = 0;
-      uint32_t expected_interval = expected - video_rr_.expected_prior;
-      video_rr_.expected_prior = expected;
-      uint32_t received_interval = video_rr_.p_received - video_rr_.received_prior;
-      video_rr_.received_prior = video_rr_.p_received;
-      uint32_t lost_interval = expected_interval - received_interval;
-      if (expected_interval != 0 && lost_interval > 0) {
-        fraction = (lost_interval << 8) / expected_interval;
-      }
-      video_rr_.frac_lost = fraction;
-      sendVideoRR();
-    }
+  selected_packet_info->last_sr_mid_ntp = chead->get32MiddleNtp();
+  selected_packet_info->last_sr_ts = packet->received_time_ms;
+  uint32_t expected = selected_packet_info->extended_seq - selected_packet_info->base_seq + 1;
+  selected_packet_info->lost = expected - selected_packet_info->packets_received;
 
-    if (chead->getSSRC() == audio_rr_.ssrc) {
-      audio_rr_.last_sr_mid_ntp = chead->get32MiddleNtp();
-      audio_rr_.last_sr_ts = packet->received_time_ms;
-      uint32_t expected = audio_rr_.extended_seq- audio_rr_.base_seq + 1;
-      audio_rr_.lost = expected - audio_rr_.p_received;
-      uint32_t fraction = 0;
-      uint32_t expected_interval = expected - audio_rr_.expected_prior;
-      audio_rr_.expected_prior = expected;
-      uint32_t received_interval = audio_rr_.p_received - audio_rr_.received_prior;
-      audio_rr_.received_prior = audio_rr_.p_received;
-      uint32_t lost_interval = expected_interval - received_interval;
-      if (expected_interval != 0 && lost_interval > 0) {
-        fraction = (lost_interval << 8) / expected_interval;
-      }
-      audio_rr_.frac_lost = fraction;
-      sendAudioRR();
-    }
+  uint8_t fraction = 0;
+  uint32_t expected_interval = expected - selected_packet_info->expected_prior;
+  selected_packet_info->expected_prior = expected;
+  uint32_t received_interval = selected_packet_info->packets_received - selected_packet_info->received_prior;
+
+  selected_packet_info->received_prior = selected_packet_info->packets_received;
+  uint32_t lost_interval = expected_interval - received_interval;
+  if (expected_interval != 0 && lost_interval > 0) {
+    fraction = (lost_interval << 8) / expected_interval;
+  }
+
+  selected_packet_info->frac_lost = fraction;
+  if (!use_timing_) {
+    sendRR(selected_packet_info);
+  }
 }
 
 void RRGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  temp_ctx_ = ctx;
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (!chead->isRtcp() && enabled_) {
     handleRtpPacket(packet);
@@ -251,7 +191,36 @@ void RRGenerationHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet
 }
 
 void RRGenerationHandler::notifyUpdate() {
-  return;
+  if (initialized_) {
+    return;
+  }
+  uint32_t video_ssrc = connection_->getVideoSourceSSRC();
+  if (video_ssrc != 0) {
+    auto video_packets = std::make_shared<RRPackets>();
+    video_packets->ssrc = video_ssrc;
+    video_packets->type = VIDEO_PACKET;
+    rr_info_map_[video_ssrc] = video_packets;
+    ELOG_DEBUG("%s, message: Initialized video, ssrc: %u", connection_->toLog(), video_ssrc);
+    initialized_ = true;
+  }
+  uint32_t audio_ssrc = connection_->getAudioSourceSSRC();
+  if (audio_ssrc != 0) {
+    auto audio_packets = std::make_shared<RRPackets>();
+    audio_packets->ssrc = audio_ssrc;
+    audio_packets->type = AUDIO_PACKET;
+    rr_info_map_[audio_ssrc] = audio_packets;
+    initialized_ = true;
+    ELOG_DEBUG("%s, message: Initialized audio, ssrc: %u", connection_->toLog(), audio_ssrc);
+  }
+}
+
+uint16_t RRGenerationHandler::selectInterval(std::shared_ptr<RRPackets> packet_info) {
+    return (packet_info->type == VIDEO_PACKET ? RTCP_VIDEO_INTERVAL : RTCP_AUDIO_INTERVAL);
+}
+
+uint16_t RRGenerationHandler::getRandomValue(uint16_t min, uint16_t max) {
+  std::uniform_int_distribution<> distr(min, max);
+  return std::round(distr(generator_));
 }
 
 }  // namespace erizo

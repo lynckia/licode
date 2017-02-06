@@ -102,12 +102,14 @@ namespace erizo {
           ELOG_DEBUG("RTCP BYE");
           break;
         case RTCP_Receiver_PT:
+          ELOG_DEBUG("RTP RR: Fraction Lost %u, packetsLost %u", chead->getFractionLost(), chead->getLostPackets());
           setFractionLost(chead->getFractionLost(), ssrc);
           setPacketsLost(chead->getLostPackets(), ssrc);
           setJitter(chead->getJitter(), ssrc);
           setSourceSSRC(ssrc, ssrc);
           break;
         case RTCP_Sender_PT:
+          ELOG_DEBUG("RTP SR: Packets Sent %u, Octets Sent %u", chead->getPacketsSent(), chead->getOctetsSent());
           setRtcpPacketSent(chead->getPacketsSent(), ssrc);
           setRtcpBytesSent(chead->getOctetsSent(), ssrc);
           break;
