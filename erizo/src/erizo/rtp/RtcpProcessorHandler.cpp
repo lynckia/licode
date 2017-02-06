@@ -33,7 +33,7 @@ void RtcpProcessorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet
 
 void RtcpProcessorHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
-  if (chead->isRtcp()) {
+  if (chead->isFeedback()) {
     int length = processor_->analyzeFeedback(packet->data, packet->length);
     if (length) {
       ctx->fireWrite(packet);
