@@ -68,7 +68,7 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   }
   std::shared_ptr<RRPackets> selected_packet_info = rr_packet_pair->second;
   uint16_t seq_num = head->getSeqNumber();
-  selected_packet_info->p_received++;
+  selected_packet_info->packets_received++;
   if (selected_packet_info->base_seq == -1) {
     selected_packet_info->ssrc = head->getSSRC();
     selected_packet_info->base_seq = head->getSeqNumber();
@@ -99,7 +99,7 @@ void RRGenerationHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   selected_packet_info->last_recv_ts = static_cast<uint32_t>(packet->received_time_ms);
   uint64_t now = ClockUtils::timePointToMs(clock::now());
   if (selected_packet_info->next_packet_ms == 0) {  // Schedule the first packet
-    uint16_t selected_interval = selected_packet_info->type == VIDEO_PACKET ? RTCP_VIDEO_INTERVAL : RTCP_AUDIO_INTERVAL;
+    uint16_t selected_interval = selectInterval(selected_packet_info);
     selected_packet_info->next_packet_ms = now + selected_interval;
     return;
   }
@@ -128,15 +128,18 @@ void RRGenerationHandler::sendRR(std::shared_ptr<RRPackets> selected_packet_info
     rtcp_head.setLength(7);
     rtcp_head.setBlockCount(1);
     int length = (rtcp_head.getLength() + 1) * 4;
+
     memcpy(packet_, reinterpret_cast<uint8_t*>(&rtcp_head), length);
     getContext()->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
     selected_packet_info->last_rr_ts = now;
+
     ELOG_DEBUG("%s, message: Sending RR, ssrc: %u, type: %u lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, "
         "dlsr: %u, lsr: %u", connection_->toLog(), selected_packet_info->ssrc, selected_packet_info->type,
         rtcp_head.getLostPackets(), rtcp_head.getFractionLost(), rtcp_head.getSeqnumCycles(),
         rtcp_head.getHighestSeqnum(), rtcp_head.getJitter(), rtcp_head.getDelaySinceLastSr(),
         rtcp_head.getLastSr());
-    uint16_t selected_interval = selected_packet_info->type == VIDEO_PACKET ? RTCP_VIDEO_INTERVAL : RTCP_AUDIO_INTERVAL;
+
+    uint16_t selected_interval = selectInterval(selected_packet_info);
     selected_packet_info->next_packet_ms = now + getRandomValue(0.5 * selected_interval, 1.5 * selected_interval);
   }
 }
@@ -150,19 +153,23 @@ void RRGenerationHandler::handleSR(std::shared_ptr<dataPacket> packet) {
     return;
   }
   std::shared_ptr<RRPackets> selected_packet_info = rr_packet_pair->second;
+
   selected_packet_info->last_sr_mid_ntp = chead->get32MiddleNtp();
   selected_packet_info->last_sr_ts = packet->received_time_ms;
-  uint32_t expected = selected_packet_info->extended_seq- selected_packet_info->base_seq + 1;
-  selected_packet_info->lost = expected - selected_packet_info->p_received;
+  uint32_t expected = selected_packet_info->extended_seq - selected_packet_info->base_seq + 1;
+  selected_packet_info->lost = expected - selected_packet_info->packets_received;
+
   uint8_t fraction = 0;
   uint32_t expected_interval = expected - selected_packet_info->expected_prior;
   selected_packet_info->expected_prior = expected;
-  uint32_t received_interval = selected_packet_info->p_received - selected_packet_info->received_prior;
-  selected_packet_info->received_prior = selected_packet_info->p_received;
+  uint32_t received_interval = selected_packet_info->packets_received - selected_packet_info->received_prior;
+
+  selected_packet_info->received_prior = selected_packet_info->packets_received;
   uint32_t lost_interval = expected_interval - received_interval;
   if (expected_interval != 0 && lost_interval > 0) {
     fraction = (lost_interval << 8) / expected_interval;
   }
+
   selected_packet_info->frac_lost = fraction;
   if (!use_timing_) {
     sendRR(selected_packet_info);
@@ -187,7 +194,6 @@ void RRGenerationHandler::notifyUpdate() {
   if (initialized_) {
     return;
   }
-  ELOG_DEBUG("initializing");
   uint32_t video_ssrc = connection_->getVideoSourceSSRC();
   if (video_ssrc != 0) {
     auto video_packets = std::make_shared<RRPackets>();
@@ -206,6 +212,10 @@ void RRGenerationHandler::notifyUpdate() {
     initialized_ = true;
     ELOG_DEBUG("%s, message: Initialized audio, ssrc: %u", connection_->toLog(), audio_ssrc);
   }
+}
+
+uint16_t RRGenerationHandler::selectInterval(std::shared_ptr<RRPackets> packet_info) {
+    return (packet_info->type == VIDEO_PACKET ? RTCP_VIDEO_INTERVAL : RTCP_AUDIO_INTERVAL);
 }
 
 uint16_t RRGenerationHandler::getRandomValue(uint16_t min, uint16_t max) {
