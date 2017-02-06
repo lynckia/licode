@@ -70,8 +70,8 @@ class FeedbackSource {
 class MediaSink: public virtual Monitor {
  protected:
     // SSRCs received by the SINK
-    unsigned int audioSinkSSRC_;
-    unsigned int videoSinkSSRC_;
+    uint32_t audioSinkSSRC_;
+    uint32_t videoSinkSSRC_;
     // Is it able to provide Feedback
     FeedbackSource* sinkfbSource_;
 
@@ -118,8 +118,8 @@ class MediaSink: public virtual Monitor {
 class MediaSource: public virtual Monitor {
  protected:
     // SSRCs coming from the source
-    unsigned int videoSourceSSRC_;
-    unsigned int audioSourceSSRC_;
+    uint32_t audioSourceSSRC_;
+    uint32_t videoSourceSSRC_;
     MediaSink* videoSink_;
     MediaSink* audioSink_;
     // can it accept feedback
@@ -156,6 +156,8 @@ class MediaSource: public virtual Monitor {
         boost::mutex::scoped_lock lock(myMonitor_);
         audioSourceSSRC_ = ssrc;
     }
+
+    MediaSource() : audioSourceSSRC_{0}, videoSourceSSRC_{0}, sourcefbSink_{NULL} {}
     virtual ~MediaSource() {}
 
     virtual void close() = 0;

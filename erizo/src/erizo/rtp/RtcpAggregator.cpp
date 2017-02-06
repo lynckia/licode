@@ -356,10 +356,10 @@ void RtcpAggregator::checkRtcpFb() {
 
       float random = (rand_r(&thread_number) % 100 + 50) / 100.0;
       if (rtcpData->mediaType == AUDIO_TYPE) {
-        rtcpData->nextPacketInMs = RR_AUDIO_PERIOD*random;
+        rtcpData->nextPacketInMs = RTCP_AUDIO_INTERVAL*random;
         ELOG_DEBUG("Scheduled next Audio RR in %u ms", rtcpData->nextPacketInMs);
       } else {
-        rtcpData->nextPacketInMs = (RR_VIDEO_BASE)*random;
+        rtcpData->nextPacketInMs = (RTCP_VIDEO_INTERVAL)*random;
         ELOG_DEBUG("Scheduled next Video RR in %u ms", rtcpData->nextPacketInMs);
       }
 
