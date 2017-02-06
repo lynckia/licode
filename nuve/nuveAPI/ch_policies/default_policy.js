@@ -1,18 +1,18 @@
-/* 
+'use strict';
+/*
 Params
- 
+
 	room: room to which we need to assing a erizoController.
 		{
-		name: String, 
-		[p2p: bool], 
-		[data: Object], 
+		name: String,
+		[p2p: bool],
+		[data: Object],
 		_id: ObjectId
 		}
 
-	ec_list: available erizo controllers
+	ec_queue: available erizo controllers ordered by priority
 		{ erizoControllerId: {
         	ip: String,
-        	rpcID: String,
         	state: Int,
         	keepAlive: Int,
         	hostname: String,
@@ -20,14 +20,12 @@ Params
         	ssl: bool
    	 	}, ...}
 
-   	ec_queue: array with erizo controllers priority according rooms load
-
 Returns
 
-	erizoControlerId: the key of the erizo controller selected from ec_list
+	erizoControler: the erizo controller selected from ecQueue
 
 */
-exports.getErizoController = function (room, ec_list, ec_queue) {
-	var erizoControllerId = ec_queue[0];
-	return erizoControllerId;
-}
+exports.getErizoController = function (room, ecQueue) {
+  var erizoController = ecQueue[0];
+  return erizoController;
+};

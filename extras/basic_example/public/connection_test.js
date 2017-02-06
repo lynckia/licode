@@ -1,12 +1,7 @@
-var serverUrl = "/";
+/* globals Erizo */
+'use strict';
+var serverUrl = '/';
 var localStream, room;
-
-function getParameterByName(name) {
-  name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-  var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-      results = regex.exec(location.search);
-  return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
-}
 
 function printText(text) {
   document.getElementById('messages').value += '- ' + text + '\n';
@@ -32,12 +27,12 @@ window.onload = function () {
     req.send(JSON.stringify(body));
   };
 
-  createToken("user", "presenter", function (response) {
+  createToken('user', 'presenter', function (response) {
     var token = response;
     console.log(token);
     room = Erizo.Room({token: token});
 
-    localStream.addEventListener("access-accepted", function () {
+    localStream.addEventListener('access-accepted', function () {
       printText('Mic and Cam OK');
       var subscribeToStreams = function (streams) {
         for (var index in streams) {
@@ -46,26 +41,26 @@ window.onload = function () {
         }
       };
 
-      room.addEventListener("room-connected", function (roomEvent) {
+      room.addEventListener('room-connected', function () {
         printText('Connected to the room OK');
         room.publish(localStream, {maxVideoBW: 300});
       });
 
-      room.addEventListener("stream-subscribed", function(streamEvent) {
+      room.addEventListener('stream-subscribed', function(streamEvent) {
         printText('Subscribed to your local stream OK');
         var stream = streamEvent.stream;
-        stream.show("my_subscribed_video");
+        stream.show('my_subscribed_video');
 
       });
 
-      room.addEventListener("stream-added", function (streamEvent) {
+      room.addEventListener('stream-added', function (streamEvent) {
         printText('Local stream published OK');
         var streams = [];
         streams.push(streamEvent.stream);
         subscribeToStreams(streams);
       });
 
-      room.addEventListener("stream-removed", function (streamEvent) {
+      room.addEventListener('stream-removed', function (streamEvent) {
         // Remove stream from DOM
         var stream = streamEvent.stream;
         if (stream.elementID !== undefined) {
@@ -73,16 +68,16 @@ window.onload = function () {
           document.body.removeChild(element);
         }
       });
-      
-      room.addEventListener("stream-failed", function (streamEvent){
-          console.log("STREAM FAILED, DISCONNECTION");
+
+      room.addEventListener('stream-failed', function (){
+          console.log('STREAM FAILED, DISCONNECTION');
           printText('STREAM FAILED, DISCONNECTION');
           room.disconnect();
       });
 
       room.connect();
 
-      localStream.show("my_local_video");
+      localStream.show('my_local_video');
 
     });
     localStream.init();

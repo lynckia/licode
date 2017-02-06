@@ -1,20 +1,19 @@
-/*global require, exports, console*/
+/*global require, exports*/
+'use strict';
 var db = require('./dataBase').db;
 
 var logger = require('./../logger').logger;
 
 // Logger
-var log = logger.getLogger("TokenRegistry");
+var log = logger.getLogger('TokenRegistry');
 
 /*
  * Gets a list of the tokens in the data base.
  */
-var getList = exports.getList = function (callback) {
-    "use strict";
-
+exports.getList = function (callback) {
     db.tokens.find({}).toArray(function (err, tokens) {
         if (err || !tokens) {
-            log.info('Empty list');
+            log.info('message: token getList empty');
         } else {
             callback(tokens);
         }
@@ -22,12 +21,10 @@ var getList = exports.getList = function (callback) {
 };
 
 var getToken = exports.getToken = function (id, callback) {
-    "use strict";
-
     db.tokens.findOne({_id: db.ObjectId(id)}, function (err, token) {
         if (token == null) {
             token = undefined;
-            log.info('Token ', id, ' not found');
+            log.info('message: getToken token not found, tokenId: ' + id);
         }
         if (callback !== undefined) {
             callback(token);
@@ -36,8 +33,6 @@ var getToken = exports.getToken = function (id, callback) {
 };
 
 var hasToken = exports.hasToken = function (id, callback) {
-    "use strict";
-
     getToken(id, function (token) {
         if (token === undefined) {
             callback(false);
@@ -52,10 +47,8 @@ var hasToken = exports.hasToken = function (id, callback) {
  * Adds a new token to the data base.
  */
 exports.addToken = function (token, callback) {
-    "use strict";
-
     db.tokens.save(token, function (error, saved) {
-        if (error) log.warn('MongoDB: Error adding token: ', error);
+        if (error) log.warn('message: addToken error, ' + logger.objectToLog(error));
         callback(saved._id);
     });
 };
@@ -64,15 +57,16 @@ exports.addToken = function (token, callback) {
  * Removes a token from the data base.
  */
 var removeToken = exports.removeToken = function (id, callback) {
-    "use strict";
-
     hasToken(id, function (hasT) {
         if (hasT) {
-            db.tokens.remove({_id: db.ObjectId(id)}, function (error, removed) {
-                if (error) log.warn('MongoDB: Error removing token: ', error);
+            db.tokens.remove({_id: db.ObjectId(id)}, function (error) {
+                if (error) {
+                    log.warn('message: removeToken error, ' +
+                        logger.objectToLog(error));
+                }
                 callback();
             });
-            
+
         }
     });
 };
@@ -81,30 +75,27 @@ var removeToken = exports.removeToken = function (id, callback) {
  * Updates a determined token in the data base.
  */
 exports.updateToken = function (token) {
-    "use strict";
-
-    db.tokens.save(token, function (error, saved) {
-        if (error) log.warn('MongoDB: Error updating token: ', error);
+    db.tokens.save(token, function (error) {
+        if (error) log.warn('message: updateToken error, ' + logger.objectToLog(error));
     });
 };
 
 exports.removeOldTokens = function () {
-    "use strict";
-
     var i, token, time, tokenTime, dif;
 
     db.tokens.find({'use':{$exists:false}}).toArray(function (err, tokens) {
         if (err || !tokens) {
-            
+
         } else {
             for (i in tokens) {
                 token = tokens[i];
                 time = (new Date()).getTime();
                 tokenTime = token.creationDate.getTime();
                 dif = time - tokenTime;
-
                 if (dif > 3*60*1000) {
-                    log.info('Removing old token ', token._id, 'from room ', token.room, ' of service ', token.service);
+
+                    log.info('message: removing old token, tokenId: ' + token._id + ', roomId: ' +
+                        token.room + ', serviceId: ' + token.service);
                     removeToken(token._id + '', function() {});
                 }
             }

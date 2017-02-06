@@ -1,6 +1,6 @@
-/* 
+/*
 Params
- 
+
 	agents: object with the available agents
 		agent_id : {
         	info: {
@@ -9,10 +9,10 @@ Params
         	},
         	metadata: Object,
         	stats: {
-				perc_cpu: Int 
+				perc_cpu: Int
         	},
 			timeout: Int		// number of periods during the agent has not respond
-   	 	}	
+   	 	}
 
 Returns
 
@@ -20,6 +20,7 @@ Returns
 		*default value: "ErizoAgent" - select the agent in round-robin mode
 
 */
-exports.getErizoAgent = function (agents) {
-	return 'ErizoAgent';
-}
+exports.getErizoAgent = function () {
+  'use strict';
+  return 'ErizoAgent';
+};

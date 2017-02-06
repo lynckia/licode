@@ -1,40 +1,44 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public 
+/* global Components, APP_STARTUP, APP_SHUTDOWN */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  * The source code can be found here: HenrikJoreteg/getScreenMedia/firefox-extension-sample
  */
- 
-var domainsUsed = ["*.dit.upm.es"];
-var addon_domains = [];
-var allowed_domains = "media.getusermedia.screensharing.allowed_domains";
+'use strict';
 
-function startup(data, reason) {
+var domainsUsed = ['*.dit.upm.es'];
+var addonDomains = [];
+var allowedDomains = 'media.getusermedia.screensharing.allowedDomains';
+
+function startup(data, reason) {  // jshint ignore:line
     if (reason === APP_STARTUP) {
         return;
     }
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
-    var values = prefs.getCharPref(allowed_domains).split(',');
+    var prefs = Components.classes['@mozilla.org/preferences-service;1'].
+                              getService(Components.interfaces.nsIPrefBranch);
+    var values = prefs.getCharPref(allowedDomains).split(',');
     domainsUsed.forEach(function (domain) {
         if (values.indexOf(domain) === -1) {
             values.push(domain);
-            addon_domains.push(domain);
+            addonDomains.push(domain);
         }
     });
-    prefs.setCharPref(allowed_domains, values.join(','));
+    prefs.setCharPref(allowedDomains, values.join(','));
 }
 
-function shutdown(data, reason) {
+function shutdown(data, reason) {  // jshint ignore:line
     if (reason === APP_SHUTDOWN) {
         return;
     }
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
-    var values = prefs.getCharPref(allowed_domains).split(',');
+    var prefs = Components.classes['@mozilla.org/preferences-service;1'].
+                              getService(Components.interfaces.nsIPrefBranch);
+    var values = prefs.getCharPref(allowedDomains).split(',');
     values = values.filter(function (value) {
-        return addon_domains.indexOf(value) === -1;
+        return addonDomains.indexOf(value) === -1;
     });
-    prefs.setCharPref(allowed_domains, values.join(','));
+    prefs.setCharPref(allowedDomains, values.join(','));
 }
 
-function install(data, reason) {}
+function install(data, reason) {}  // jshint ignore:line
 
-function uninstall(data, reason) {}
+function uninstall(data, reason) {}  // jshint ignore:line

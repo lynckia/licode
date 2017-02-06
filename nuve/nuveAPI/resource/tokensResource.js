@@ -1,5 +1,5 @@
-/*global exports, require, console, Buffer*/
-var roomRegistry = require('./../mdb/roomRegistry');
+/*global exports, require, Buffer*/
+'use strict';
 var tokenRegistry = require('./../mdb/tokenRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var dataBase = require('./../mdb/dataBase');
@@ -8,29 +8,21 @@ var cloudHandler = require('../cloudHandler');
 var logger = require('./../logger').logger;
 
 // Logger
-var log = logger.getLogger("TokensResource");
-
-var currentService;
-var currentRoom;
+var log = logger.getLogger('TokensResource');
 
 /*
  * Gets the service and the room for the proccess of the request.
  */
-var doInit = function (roomId, callback) {
-    "use strict";
+var doInit = function (req, callback) {
+    var currentService = req.service;
 
-    currentService = require('./../auth/nuveAuthenticator').service;
-
-    serviceRegistry.getRoomForService(roomId, currentService, function (room) {
-        //log.info(room);
-        currentRoom = room;
-        callback();
+    serviceRegistry.getRoomForService(req.params.room, currentService, function (room) {
+        req.room = room;
+        callback(currentService, room);
     });
 };
 
 var getTokenString = function (id, token) {
-    "use strict";
-
     var toSign = id + ',' + token.host,
         hex = crypto.createHmac('sha1', dataBase.nuveKey).update(toSign).digest('hex'),
         signed = (new Buffer(hex)).toString('base64'),
@@ -47,15 +39,15 @@ var getTokenString = function (id, token) {
 };
 
 /*
- * Generates new token. 
+ * Generates new token.
  * The format of a token is:
  * {tokenId: id, host: erizoController host, signature: signature of the token};
  */
-var generateToken = function (callback) {
-    "use strict";
-
-    var user = require('./../auth/nuveAuthenticator').user,
-        role = require('./../auth/nuveAuthenticator').role,
+var generateToken = function (req, callback) {
+    var user = req.user,
+        role = req.role,
+        currentRoom = req.room,
+        currentService = req.service,
         r,
         tr,
         token,
@@ -93,7 +85,7 @@ var generateToken = function (callback) {
             token.use = 0;
             token.host = dataBase.testErizoController;
 
-            log.info('Creating testToken');
+            log.info('message: generateTestToken');
 
             tokenRegistry.addToken(token, function (id) {
 
@@ -110,7 +102,8 @@ var generateToken = function (callback) {
 
             token = currentService.testToken;
 
-            log.info('TestToken already exists, sending it', token);
+            log.info('message: generateTestToken already generated - returning, ' +
+                logger.objectToLog(token));
 
             tokenS = getTokenString(token._id, token);
             callback(tokenS);
@@ -119,9 +112,8 @@ var generateToken = function (callback) {
         }
     } else {
 
-        cloudHandler.getErizoControllerForRoom (currentRoom, function (ec) {
-
-            if (ec === 'timeout') {
+        cloudHandler.getErizoControllerForRoom(currentRoom, function (ec) {
+            if (ec === 'timeout' || !ec) {
                 callback('error');
                 return;
             }
@@ -148,32 +140,30 @@ var generateToken = function (callback) {
  * Post Token. Creates a new token for a determined room of a service.
  */
 exports.create = function (req, res) {
-    "use strict";
-
-    doInit(req.params.room, function () {
-
+    doInit(req, function (currentService, currentRoom) {
         if (currentService === undefined) {
-            log.info('Service not found');
-            res.send('Service not found', 404);
+            log.warn('message: createToken - service not found');
+            res.status(404).send('Service not found');
             return;
         } else if (currentRoom === undefined) {
-            log.info('Room ', req.params.room, ' does not exist');
-            res.send('Room does not exist', 404);
+            log.warn('message: createToken - room not found, roomId: ' + req.params.room);
+            res.status(404).send('Room does not exist');
             return;
         }
 
-        generateToken(function (tokenS) {
+        generateToken(req, function (tokenS) {
 
             if (tokenS === undefined) {
                 res.status(401).send('Name and role?');
                 return;
             }
             if (tokenS === 'error') {
-                log.error('No Erizo Controller available. Error creating token');
+                log.error('message: createToken error, errorMgs: No Erizo Controller available');
                 res.status(404).send('No Erizo Controller found');
                 return;
             }
-            log.info('Created token for room ', currentRoom._id, 'and service ', currentService._id);
+            log.info('message: createToken success, roomId: ' + currentRoom._id +
+                     ', serviceId: ' + currentService._id);
             res.send(tokenS);
         });
     });

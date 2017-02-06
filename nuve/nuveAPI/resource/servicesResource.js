@@ -1,19 +1,17 @@
-/*global exports, require, console*/
+/*global exports, require*/
+'use strict';
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var logger = require('./../logger').logger;
 
 // Logger
-var log = logger.getLogger("ServicesResource");
-
-var currentService;
+var log = logger.getLogger('ServicesResource');
 
 /*
- * Gets the service and checks if it is superservice. Only superservice can do actions about services.
+ * Gets the service and checks if it is superservice.
+ * Only superservice can do actions about services.
  */
-var doInit = function (serv) {
-    "use strict";
-
-    currentService = require('./../auth/nuveAuthenticator').service;
+var doInit = function (req) {
+    var currentService = req.service;
     var superService = require('./../mdb/dataBase').superService;
     currentService._id = currentService._id + '';
     return (currentService._id === superService);
@@ -23,16 +21,14 @@ var doInit = function (serv) {
  * Post Service. Creates a new service.
  */
 exports.create = function (req, res) {
-    "use strict";
-
-    if (!doInit()) {
-        log.info('Service ', currentService._id, ' not authorized for this action');
-        res.send('Service not authorized for this action', 401);
+    if (!doInit(req)) {
+        log.info('message: createService - unauthorized, serviceId: ' + req.service._id);
+        res.status(401).send('Service not authorized for this action');
         return;
     }
 
     serviceRegistry.addService(req.body, function (result) {
-        log.info('Service created: ', req.body.name);
+        log.info('message: createService success, serviceName: ' + req.body.name);
         res.send(result);
     });
 };
@@ -41,16 +37,14 @@ exports.create = function (req, res) {
  * Get Service. Represents a determined service.
  */
 exports.represent = function (req, res) {
-    "use strict";
-
-    if (!doInit()) {
-        log.info('Service ', currentService, ' not authorized for this action');
-        res.send('Service not authorized for this action', 401);
+    if (!doInit(req)) {
+        log.info('message: representService - not authorised, serviceId: ' + req.service._id);
+        res.status(401).send('Service not authorized for this action');
         return;
     }
 
     serviceRegistry.getList(function (list) {
-        log.info('Representing services');
+        log.info('message: representServices');
         res.send(list);
     });
 };
