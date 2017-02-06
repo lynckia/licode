@@ -4,22 +4,24 @@
 
 namespace erizo {
 
-DEFINE_LOGGER(SrPacketHandler, "rtp.SrPacketHandler");
+DEFINE_LOGGER(SRPacketHandler, "rtp.SRPacketHandler");
 
-SrPacketHandler::SrPacketHandler(WebRtcConnection *connection) :
-    enabled_{true} {}
+SRPacketHandler::SRPacketHandler(WebRtcConnection *connection) :
+    enabled_{true}, connection_(connection) {
+      ELOG_DEBUG("Hola");
+    }
 
 
-void SrPacketHandler::enable() {
+void SRPacketHandler::enable() {
   enabled_ = true;
 }
 
-void SrPacketHandler::disable() {
+void SRPacketHandler::disable() {
   enabled_ = false;
 }
 
 
-void SrPacketHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
+void SRPacketHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
   uint32_t ssrc = head->getSSRC();
   auto sr_selected_info_iter = sr_info_map_.find(ssrc);
@@ -35,7 +37,7 @@ void SrPacketHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
 
 
 
-void SrPacketHandler::handleSR(std::shared_ptr<dataPacket> packet) {
+void SRPacketHandler::handleSR(std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   uint32_t ssrc = chead->getSSRC();
   auto sr_selected_info_iter = sr_info_map_.find(ssrc);
@@ -51,21 +53,21 @@ void SrPacketHandler::handleSR(std::shared_ptr<dataPacket> packet) {
   chead->setPacketsSent(selected_info->sent_packets);
 }
 
-void SrPacketHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void SRPacketHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (!chead->isRtcp() && enabled_) {
     handleRtpPacket(packet);
   } else if (chead->packettype == RTCP_Sender_PT && enabled_) {
     handleSR(packet);
   }
+  ctx->fireWrite(packet);
+}
+
+void SRPacketHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   ctx->fireRead(packet);
 }
 
-void SrPacketHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  ctx->fireRead(packet);
-}
-
-void SrPacketHandler::notifyUpdate() {
+void SRPacketHandler::notifyUpdate() {
   return;
 }
 

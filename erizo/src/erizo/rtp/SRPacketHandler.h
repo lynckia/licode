@@ -13,12 +13,12 @@ namespace erizo {
 
 class WebRtcConnection;
 
-class SrPacketHandler: public Handler {
+class SRPacketHandler: public Handler {
   DECLARE_LOGGER();
 
 
  public:
-  explicit SrPacketHandler(WebRtcConnection *connection);
+  explicit SRPacketHandler(WebRtcConnection *connection);
 
   void enable() override;
   void disable() override;
@@ -40,6 +40,7 @@ class SrPacketHandler: public Handler {
   };
 
   bool enabled_;
+  WebRtcConnection* connection_;
   std::map<uint32_t, std::shared_ptr<SRInfo>> sr_info_map_;
 
   void handleRtpPacket(std::shared_ptr<dataPacket> packet);
