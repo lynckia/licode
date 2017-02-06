@@ -159,6 +159,8 @@ class HandlerTest : public ::testing::Test {
 
     connection->setVideoSinkSSRC(erizo::kVideoSsrc);
     connection->setAudioSinkSSRC(erizo::kAudioSsrc);
+    connection->setVideoSourceSSRC(erizo::kVideoSsrc);
+    connection->setAudioSourceSSRC(erizo::kAudioSsrc);
 
     pipeline = Pipeline::create();
     reader = std::make_shared<erizo::Reader>();
