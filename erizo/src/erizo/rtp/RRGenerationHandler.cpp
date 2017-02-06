@@ -6,9 +6,7 @@ namespace erizo {
 
 DEFINE_LOGGER(RRGenerationHandler, "rtp.RRGenerationHandler");
 
-RRGenerationHandler::RRGenerationHandler(WebRtcConnection *connection) :
-    temp_ctx_{nullptr}, enabled_{true} {}
-
+RRGenerationHandler::RRGenerationHandler() : enabled_{true} {}
 
 void RRGenerationHandler::enable() {
   enabled_ = true;
@@ -153,14 +151,12 @@ void RRGenerationHandler::sendVideoRR() {
     rtcp_head.setBlockCount(1);
     int length = (rtcp_head.getLength() + 1) * 4;
     memcpy(packet_, reinterpret_cast<uint8_t*>(&rtcp_head), length);
-    if (temp_ctx_) {
-      temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
-      video_rr_.last_rr_ts = now;
-      ELOG_DEBUG("Sending video RR- lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, "
-                "dlsr: %u, lsr: %u", rtcp_head.getLostPackets(), rtcp_head.getFractionLost(),
-                rtcp_head.getSeqnumCycles(), rtcp_head.getHighestSeqnum(), rtcp_head.getJitter(),
-                rtcp_head.getDelaySinceLastSr(), rtcp_head.getLastSr());
-    }
+    getContext()->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
+    video_rr_.last_rr_ts = now;
+    ELOG_DEBUG("Sending video RR- lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, "
+              "dlsr: %u, lsr: %u", rtcp_head.getLostPackets(), rtcp_head.getFractionLost(),
+              rtcp_head.getSeqnumCycles(), rtcp_head.getHighestSeqnum(), rtcp_head.getJitter(),
+              rtcp_head.getDelaySinceLastSr(), rtcp_head.getLastSr());
   }
 }
 
@@ -184,14 +180,12 @@ void RRGenerationHandler::sendAudioRR() {
     rtcp_head.setBlockCount(1);
     int length = (rtcp_head.getLength() + 1) * 4;
     memcpy(packet_, reinterpret_cast<uint8_t*>(&rtcp_head), length);
-    if (temp_ctx_) {
-      temp_ctx_->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
-      audio_rr_.last_rr_ts = now;
-      ELOG_DEBUG("Sending audio RR - lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, "
-                "dslr: %u, lsr: %u", rtcp_head.getLostPackets(), rtcp_head.getFractionLost(),
-                rtcp_head.getSeqnumCycles(), rtcp_head.getHighestSeqnum(), rtcp_head.getJitter(),
-                rtcp_head.getDelaySinceLastSr(), rtcp_head.getLastSr());
-    }
+    getContext()->fireWrite(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, OTHER_PACKET));
+    audio_rr_.last_rr_ts = now;
+    ELOG_DEBUG("Sending audio RR - lost: %u, frac: %u, cycle: %u, highseq: %u, jitter: %u, "
+              "dslr: %u, lsr: %u", rtcp_head.getLostPackets(), rtcp_head.getFractionLost(),
+              rtcp_head.getSeqnumCycles(), rtcp_head.getHighestSeqnum(), rtcp_head.getJitter(),
+              rtcp_head.getDelaySinceLastSr(), rtcp_head.getLastSr());
   }
 }
 
@@ -236,7 +230,6 @@ void RRGenerationHandler::handleSR(std::shared_ptr<dataPacket> packet) {
 }
 
 void RRGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  temp_ctx_ = ctx;
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (!chead->isRtcp() && enabled_) {
     handleRtpPacket(packet);

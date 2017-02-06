@@ -37,7 +37,7 @@ class RtpRetransmissionHandlerTest : public erizo::HandlerTest {
 
  protected:
   void setHandler() {
-    rtx_handler = std::make_shared<RtpRetransmissionHandler>(connection.get());
+    rtx_handler = std::make_shared<RtpRetransmissionHandler>();
     pipeline->addBack(rtx_handler);
   }
 

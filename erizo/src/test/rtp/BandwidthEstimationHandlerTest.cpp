@@ -47,7 +47,7 @@ class BandwidthEstimationHandlerTest : public erizo::HandlerTest {
     EXPECT_CALL(*picker.get(), pickEstimatorProxy(_, _, _))
       .WillRepeatedly(Return(new erizo::RemoteBitrateEstimatorProxy(&estimator)));
 
-    bwe_handler = std::make_shared<BandwidthEstimationHandler>(connection.get(), worker, picker);
+    bwe_handler = std::make_shared<BandwidthEstimationHandler>(picker);
     pipeline->addBack(bwe_handler);
   }
 
@@ -69,11 +69,9 @@ TEST_F(BandwidthEstimationHandlerTest, basicBehaviourShouldWritePackets) {
 TEST_F(BandwidthEstimationHandlerTest, basicBehaviourShouldReadPackets) {
   auto packet1 = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
   auto packet2 = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
-
   EXPECT_CALL(estimator, Process());
   EXPECT_CALL(estimator, TimeUntilNextProcess()).WillRepeatedly(Return(1000));
   EXPECT_CALL(estimator, IncomingPacket(_, _, _));
-
   EXPECT_CALL(*reader.get(), read(_, _)).
     With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(2);
   pipeline->read(packet1);

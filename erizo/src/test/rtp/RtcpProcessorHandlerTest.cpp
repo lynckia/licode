@@ -41,13 +41,11 @@ class RtcpProcessorHandlerTest : public erizo::HandlerTest {
 
  protected:
   void setHandler() {
-    processor = std::make_shared<erizo::MockRtcpProcessor>();
-    processor_handler = std::make_shared<RtcpProcessorHandler>(connection.get(), processor);
+    processor_handler = std::make_shared<RtcpProcessorHandler>();
     pipeline->addBack(processor_handler);
   }
 
   std::shared_ptr<RtcpProcessorHandler> processor_handler;
-  std::shared_ptr<erizo::MockRtcpProcessor> processor;
 };
 
 TEST_F(RtcpProcessorHandlerTest, basicBehaviourShouldReadPackets) {

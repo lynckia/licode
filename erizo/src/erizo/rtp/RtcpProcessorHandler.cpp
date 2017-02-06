@@ -6,8 +6,7 @@ namespace erizo {
 
 DEFINE_LOGGER(RtcpProcessorHandler, "rtp.RtcpProcessorHandler");
 
-RtcpProcessorHandler::RtcpProcessorHandler(WebRtcConnection *connection, std::shared_ptr<RtcpProcessor> processor) :
-    connection_{connection}, processor_{processor} {
+RtcpProcessorHandler::RtcpProcessorHandler() : connection_{nullptr} {
 }
 
 void RtcpProcessorHandler::enable() {
@@ -44,5 +43,10 @@ void RtcpProcessorHandler::write(Context *ctx, std::shared_ptr<dataPacket> packe
 }
 
 void RtcpProcessorHandler::notifyUpdate() {
+  auto pipeline = getContext()->getPipelineShared();
+  if (pipeline && !connection_) {
+    connection_ = pipeline->getService<WebRtcConnection>().get();
+    processor_ = pipeline->getService<RtcpProcessor>();
+  }
 }
 }  // namespace erizo

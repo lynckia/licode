@@ -18,7 +18,7 @@ class RRGenerationHandler: public Handler {
 
 
  public:
-  explicit RRGenerationHandler(WebRtcConnection *connection);
+  RRGenerationHandler();
 
   void enable() override;
   void disable() override;
@@ -50,7 +50,6 @@ class RRGenerationHandler: public Handler {
     double jitter;
   };
 
-  Context *temp_ctx_;
   uint8_t packet_[128];
   bool enabled_;
   RRPackets audio_rr_, video_rr_;

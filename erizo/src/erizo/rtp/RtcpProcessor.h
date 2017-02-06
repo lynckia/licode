@@ -10,6 +10,7 @@
 #include "./MediaDefinitions.h"
 #include "./SdpInfo.h"
 #include "rtp/RtpHeaders.h"
+#include "pipeline/Service.h"
 
 namespace erizo {
 
@@ -110,7 +111,7 @@ class RtcpData {
   boost::mutex dataLock;
 };
 
-class RtcpProcessor{
+class RtcpProcessor : public Service {
  public:
   RtcpProcessor(MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw = 300000):
     rtcpSink_(msink), rtcpSource_(msource) {}
