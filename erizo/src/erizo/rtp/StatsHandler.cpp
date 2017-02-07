@@ -28,7 +28,7 @@ void IncomingStatsHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet
   if (chead->isRtcp()) {
     connection_->getStats().processRtcpPacket(packet->data, packet->length);
   } else {
-    connection_->getStats().processRtpPacket(packet->data, packet->length);  // Take into account ALL RTP traffic
+    connection_->getStats().processRtpPacket(packet->data, packet->length);
   }
 
   ctx->fireRead(packet);
@@ -50,7 +50,12 @@ void OutgoingStatsHandler::notifyUpdate() {
 }
 
 void OutgoingStatsHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  connection_->getStats().processRtpPacket(packet->data, packet->length);
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
+  if (chead->isRtcp()) {
+    connection_->getStats().processRtcpPacket(packet->data, packet->length);
+  } else {
+    connection_->getStats().processRtpPacket(packet->data, packet->length);
+  }
   ctx->fireWrite(packet);
 }
 
