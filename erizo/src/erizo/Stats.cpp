@@ -43,6 +43,7 @@ namespace erizo {
     uint32_t ssrc = head->getSSRC();
     if (!isSinkSSRC(ssrc) && !isSourceSSRC(ssrc)) {
       ELOG_DEBUG("message: Unknown SSRC in processRtpPacket, ssrc: %u, PT: %u", ssrc, head->getPayloadType());
+      return;
     }
     if (bitrate_bytes_map.find(ssrc) == bitrate_bytes_map.end()) {
       bitrate_bytes_map[ssrc] = 0;
@@ -75,13 +76,11 @@ namespace erizo {
     if (chead->isFeedback()) {
       ssrc = chead->getSourceSSRC();
       if (!isSinkSSRC(ssrc)) {
-        ELOG_DEBUG("message: Unknown SSRC in processRtcpPacket, ssrc %u, PT %u", ssrc, chead->getPacketType());
         return;
       }
     } else {
       ssrc = chead->getSSRC();
           if (!isSourceSSRC(ssrc)) {
-            ELOG_DEBUG("message: Unknown SSRC in processRtcpPacket, ssrc %u, PT %u", ssrc, chead->getPacketType());
             return;
           }
     }
