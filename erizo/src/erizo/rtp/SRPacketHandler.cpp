@@ -54,11 +54,13 @@ void SRPacketHandler::handleSR(std::shared_ptr<dataPacket> packet) {
 }
 
 void SRPacketHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
-  if (!chead->isRtcp() && enabled_) {
-    handleRtpPacket(packet);
-  } else if (chead->packettype == RTCP_Sender_PT && enabled_) {
-    handleSR(packet);
+  if (enabled_) {
+    RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
+    if (!chead->isRtcp() && enabled_) {
+      handleRtpPacket(packet);
+    } else if (chead->packettype == RTCP_Sender_PT && enabled_) {
+      handleSR(packet);
+    }
   }
   ctx->fireWrite(packet);
 }
