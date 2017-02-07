@@ -120,15 +120,23 @@ void NiceConnection::close() {
 }
 
 void NiceConnection::onData(unsigned int component_id, char* buf, int len) {
-  if (this->checkIceState() == NICE_READY) {
+  IceState state;
+  NiceConnectionListener* listener;
+  {
+    boost::mutex::scoped_lock(closeMutex_);
+    state = this->checkIceState();
+    listener = listener_;
+  }
+  if (state == NICE_READY) {
     packetPtr packet (new dataPacket());
     memcpy(packet->data, buf, len);
     packet->comp = component_id;
     packet->length = len;
     packet->received_time_ms = ClockUtils::timePointToMs(clock::now());
-    listener_->onPacketReceived(packet);
+    listener->onPacketReceived(packet);
   }
 }
+
 int NiceConnection::sendData(unsigned int compId, const void* buf, int len) {
   int val = -1;
   if (this->checkIceState() == NICE_READY) {
