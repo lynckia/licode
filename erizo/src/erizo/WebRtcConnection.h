@@ -174,6 +174,20 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   }
 
  private:
+  void sendPacket(std::shared_ptr<dataPacket> packet);
+  int deliverAudioData_(char* buf, int len) override;
+  int deliverVideoData_(char* buf, int len) override;
+  int deliverFeedback_(char* buf, int len) override;
+  void initializePipeline();
+
+  // Utils
+  std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
+  // changes the outgoing payload type for in the given data packet
+  void changeDeliverPayloadType(dataPacket *dp, packetType type);
+  // parses incoming payload type, replaces occurence in buf
+  void parseIncomingPayloadType(char *buf, int len, packetType type);
+
+ private:
   std::string connection_id_;
   SdpInfo remoteSdp_;
   SdpInfo localSdp_;
@@ -212,17 +226,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   bool audio_muted_;
 
-  void sendPacket(std::shared_ptr<dataPacket> packet);
-  int deliverAudioData_(char* buf, int len) override;
-  int deliverVideoData_(char* buf, int len) override;
-  int deliverFeedback_(char* buf, int len) override;
-
-  // Utils
-  std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
-  // changes the outgoing payload type for in the given data packet
-  void changeDeliverPayloadType(dataPacket *dp, packetType type);
-  // parses incoming payload type, replaces occurence in buf
-  void parseIncomingPayloadType(char *buf, int len, packetType type);
+  bool pipeline_initialized_;
 };
 
 class PacketReader : public InboundHandler {
