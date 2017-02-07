@@ -14,7 +14,7 @@ class IncomingStatsHandler: public InboundHandler {
   DECLARE_LOGGER();
 
  public:
-  explicit IncomingStatsHandler(WebRtcConnection* connection);
+  IncomingStatsHandler();
 
   void enable() override;
   void disable() override;
@@ -34,7 +34,7 @@ class OutgoingStatsHandler: public OutboundHandler {
   DECLARE_LOGGER();
 
  public:
-  explicit OutgoingStatsHandler(WebRtcConnection* connection);
+  OutgoingStatsHandler();
 
   void enable() override;
   void disable() override;

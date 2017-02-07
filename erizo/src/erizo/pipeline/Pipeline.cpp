@@ -126,6 +126,10 @@ void Pipeline::finalize() {
   for (auto it = ctxs_.rbegin(); it != ctxs_.rend(); it++) {
     (*it)->attachPipeline();
   }
+
+  for (auto it = service_ctxs_.rbegin(); it != service_ctxs_.rend(); it++) {
+    (*it)->attachPipeline();
+  }
 }
 
 void Pipeline::notifyUpdate() {

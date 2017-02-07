@@ -18,6 +18,7 @@
 #include "rtp/RtpExtensionProcessor.h"
 #include "lib/Clock.h"
 #include "pipeline/Handler.h"
+#include "pipeline/Service.h"
 
 namespace erizo {
 
@@ -56,7 +57,7 @@ class WebRtcConnectionStatsListener {
  */
 class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink,
                         public FeedbackSource, public TransportListener, public LogContext,
-                        public std::enable_shared_from_this<WebRtcConnection> {
+                        public std::enable_shared_from_this<WebRtcConnection>, public Service {
   DECLARE_LOGGER();
 
  public:
@@ -161,6 +162,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   bool isSlideShowModeEnabled() { return slide_show_mode_; }
 
   RtpExtensionProcessor& getRtpExtensionProcessor() { return extProcessor_; }
+
+  std::shared_ptr<Worker> getWorker() { return worker_; }
 
   Stats& getStats() {
     return stats_;

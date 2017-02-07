@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <random>
+#include <map>
 
 #include "./logger.h"
 #include "pipeline/Handler.h"
@@ -14,12 +15,15 @@ namespace erizo {
 
 class WebRtcConnection;
 
+
 class RRGenerationHandler: public Handler, public std::enable_shared_from_this<RRGenerationHandler> {
   DECLARE_LOGGER();
 
 
  public:
-  explicit RRGenerationHandler(WebRtcConnection *connection, bool use_timing = true);
+  explicit RRGenerationHandler(bool use_timing = true);
+
+  explicit RRGenerationHandler(const RRGenerationHandler&& handler);  // NOLINT
 
   void enable() override;
   void disable() override;
@@ -31,6 +35,20 @@ class RRGenerationHandler: public Handler, public std::enable_shared_from_this<R
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void notifyUpdate() override;
+
+ private:
+  class Jitter;
+  class RRPackets;
+
+  bool rtpSequenceLessThan(uint16_t x, uint16_t y);
+  bool isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet, std::shared_ptr<RRPackets> rr_info);
+  void handleRtpPacket(std::shared_ptr<dataPacket> packet);
+  void handleSR(std::shared_ptr<dataPacket> packet);
+  int getAudioClockRate(uint8_t payload_type);
+  int getVideoClockRate(uint8_t payload_type);
+  void sendRR(std::shared_ptr<RRPackets> selected_packet_info);
+  uint16_t selectInterval(std::shared_ptr<RRPackets> packet_info);
+  uint16_t getRandomValue(uint16_t min, uint16_t max);
 
  private:
   struct Jitter {
@@ -53,22 +71,13 @@ class RRGenerationHandler: public Handler, public std::enable_shared_from_this<R
     packetType type;
   };
 
-  WebRtcConnection* connection_;
+  WebRtcConnection *connection_;
+
   uint8_t packet_[128];
   bool enabled_, initialized_, use_timing_;
   std::map<uint32_t, std::shared_ptr<RRPackets>> rr_info_map_;
   std::random_device random_device_;
   std::mt19937 generator_;
-
-  bool rtpSequenceLessThan(uint16_t x, uint16_t y);
-  bool isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet, std::shared_ptr<RRPackets> rr_info);
-  void handleRtpPacket(std::shared_ptr<dataPacket> packet);
-  void handleSR(std::shared_ptr<dataPacket> packet);
-  int getAudioClockRate(uint8_t payload_type);
-  int getVideoClockRate(uint8_t payload_type);
-  void sendRR(std::shared_ptr<RRPackets> selected_packet_info);
-  uint16_t selectInterval(std::shared_ptr<RRPackets> packet_info);
-  uint16_t getRandomValue(uint16_t min, uint16_t max);
 };
 }  // namespace erizo
 

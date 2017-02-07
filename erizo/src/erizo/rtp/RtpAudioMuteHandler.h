@@ -14,7 +14,7 @@ class RtpAudioMuteHandler: public Handler {
   DECLARE_LOGGER();
 
  public:
-  explicit RtpAudioMuteHandler(WebRtcConnection* connection);
+  RtpAudioMuteHandler();
   void muteAudio(bool active);
 
   void enable() override;

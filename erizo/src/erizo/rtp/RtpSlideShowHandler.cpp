@@ -5,9 +5,11 @@ namespace erizo {
 
 DEFINE_LOGGER(RtpSlideShowHandler, "rtp.RtpSlideShowHandler");
 
-RtpSlideShowHandler::RtpSlideShowHandler(WebRtcConnection *connection) : connection_(connection),
-  slideshow_seq_num_{-1}, last_original_seq_num_{-1}, seq_num_offset_{0}, slideshow_is_active_{false},
-  sending_keyframe_ {false} {}
+RtpSlideShowHandler::RtpSlideShowHandler()
+  : connection_{nullptr},
+    slideshow_seq_num_{-1}, last_original_seq_num_{-1}, seq_num_offset_{0},
+    slideshow_is_active_{false},
+    sending_keyframe_ {false} {}
 
 
 void RtpSlideShowHandler::enable() {
@@ -17,6 +19,10 @@ void RtpSlideShowHandler::disable() {
 }
 
 void RtpSlideShowHandler::notifyUpdate() {
+  auto pipeline = getContext()->getPipelineShared();
+  if (pipeline && !connection_) {
+    connection_ = pipeline->getService<WebRtcConnection>().get();
+  }
   setSlideShowMode(connection_->isSlideShowModeEnabled());
 }
 

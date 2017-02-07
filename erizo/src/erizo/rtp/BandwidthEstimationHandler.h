@@ -38,7 +38,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
  public:
   static const uint32_t kRembMinimumBitrate;
 
-  explicit BandwidthEstimationHandler(WebRtcConnection *connection, std::shared_ptr<Worker> worker,
+  explicit BandwidthEstimationHandler(
     std::shared_ptr<RemoteBitrateEstimatorPicker> picker = std::make_shared<RemoteBitrateEstimatorPicker>());
 
   void OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
@@ -56,8 +56,6 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   void notifyUpdate() override;
 
   void updateExtensionMaps(std::array<RTPExtensions, 10> video_map, std::array<RTPExtensions, 10> audio_map);
-
-  uint32_t getLastSendBitrate();
 
  private:
   void process();
@@ -82,7 +80,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   RtpHeaderExtensionMap ext_map_audio_, ext_map_video_;
   Context *temp_ctx_;
   uint32_t bitrate_;
-  std::atomic<uint32_t> last_send_bitrate_;
+  uint32_t last_send_bitrate_;
   uint64_t last_remb_time_;
   bool running_;
   bool active_;

@@ -48,17 +48,22 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
 
+  pipeline_->addService(this);
+  pipeline_->addService(rtcp_processor_);
+
   // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
   pipeline_->addFront(PacketReader(this));
-  pipeline_->addFront(RtcpProcessorHandler(this, rtcp_processor_));
-  pipeline_->addFront(IncomingStatsHandler(this));
-  pipeline_->addFront(FecReceiverHandler(this));
-  pipeline_->addFront(RtpAudioMuteHandler(this));
-  pipeline_->addFront(RtpSlideShowHandler(this));
-  pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>(this, worker_));
-  pipeline_->addFront(std::make_shared<RRGenerationHandler>(this));
-  pipeline_->addFront(RtpRetransmissionHandler(this));
-  pipeline_->addFront(OutgoingStatsHandler(this));
+
+  pipeline_->addFront(RtcpProcessorHandler());
+  pipeline_->addFront(IncomingStatsHandler());
+  pipeline_->addFront(FecReceiverHandler());
+  pipeline_->addFront(RtpAudioMuteHandler());
+  pipeline_->addFront(RtpSlideShowHandler());
+  pipeline_->addFront(BandwidthEstimationHandler());
+  pipeline_->addFront(RRGenerationHandler());
+  pipeline_->addFront(RtpRetransmissionHandler());
+  pipeline_->addFront(OutgoingStatsHandler());
+
   pipeline_->addFront(PacketWriter(this));
   pipeline_->finalize();
 
