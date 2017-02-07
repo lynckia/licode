@@ -69,7 +69,6 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
     // We try to add it just in case it is not there yet (otherwise its noop)
     this->addSourceSsrc(sourceSsrc);
 
-    uint64_t now = ClockUtils::timePointToMs(clock::now());
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;
