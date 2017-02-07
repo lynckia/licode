@@ -6,10 +6,8 @@ namespace erizo {
 
 DEFINE_LOGGER(SRPacketHandler, "rtp.SRPacketHandler");
 
-SRPacketHandler::SRPacketHandler(WebRtcConnection *connection) :
-    enabled_{true}, connection_(connection) {
-      ELOG_DEBUG("Hola");
-    }
+SRPacketHandler::SRPacketHandler() :
+    enabled_{true}, initialized_{false}, connection_(nullptr) {}
 
 
 void SRPacketHandler::enable() {
@@ -32,7 +30,7 @@ void SRPacketHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   }
   selected_info = sr_info_map_[ssrc];
   selected_info->sent_packets++;
-  selected_info->sent_octets += packet->length - head->getHeaderLength();
+  selected_info->sent_octets += (packet->length - head->getHeaderLength());
 }
 
 
@@ -54,7 +52,7 @@ void SRPacketHandler::handleSR(std::shared_ptr<dataPacket> packet) {
 }
 
 void SRPacketHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  if (enabled_) {
+  if (initialized_ && enabled_) {
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
     if (!chead->isRtcp() && enabled_) {
       handleRtpPacket(packet);
@@ -70,7 +68,17 @@ void SRPacketHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
 }
 
 void SRPacketHandler::notifyUpdate() {
-  return;
+  if (initialized_) {
+    return;
+  }
+  auto pipeline = getContext()->getPipelineShared();
+  if (pipeline && !connection_) {
+    connection_ = pipeline->getService<WebRtcConnection>().get();
+  }
+  if (!connection_) {
+    return;
+  }
+  initialized_ = true;
 }
 
 }  // namespace erizo

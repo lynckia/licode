@@ -42,7 +42,7 @@ MATCHER_P(ReceiverReportHasDlsrValue, delay_since_last_sr, "") {
 MATCHER_P(SenderReportHasPacketsSentValue, packets_sent, "") {
   return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getPacketsSent() == packets_sent;
 }
-MATCHER_P(SenderReportHasOctestsSentValue, octets_sent, "") {
+MATCHER_P(SenderReportHasOctetsSentValue, octets_sent, "") {
   return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getOctetsSent() == octets_sent;
 }
 MATCHER_P(RembHasBitrateValue, bitrate, "") {

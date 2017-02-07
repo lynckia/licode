@@ -43,7 +43,7 @@ class RtpSlideShowHandlerTest : public erizo::HandlerTest {
     std::vector<RtpMap>& payloads = connection->getRemoteSdpInfo().getPayloadInfos();
     payloads.push_back({96, "VP8"});
     payloads.push_back({98, "VP9"});
-    slideshow_handler = std::make_shared<RtpSlideShowHandler>(connection.get());
+    slideshow_handler = std::make_shared<RtpSlideShowHandler>();
     pipeline->addBack(slideshow_handler);
   }
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
@@ -14,6 +14,7 @@ nvm use
 
 echo 'linting with cpplint'
 ./lint.sh
+
 if hash node-waf 2>/dev/null; then
   echo 'building with node-waf'
   rm -rf build

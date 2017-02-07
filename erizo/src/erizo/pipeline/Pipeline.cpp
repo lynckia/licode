@@ -67,28 +67,28 @@ Pipeline::~Pipeline() {
 
 void Pipeline::read(std::shared_ptr<dataPacket> packet) {
   if (!front_) {
-    throw std::invalid_argument("read(): no inbound handler in Pipeline");
+    return;
   }
   front_->read(packet);
 }
 
 void Pipeline::readEOF() {
   if (!front_) {
-    throw std::invalid_argument("readEOF(): no inbound handler in Pipeline");
+    return;
   }
   front_->readEOF();
 }
 
 void Pipeline::write(std::shared_ptr<dataPacket> packet) {
   if (!back_) {
-    throw std::invalid_argument("write(): no outbound handler in Pipeline");
+    return;
   }
   back_->write(packet);
 }
 
 void Pipeline::close() {
   if (!back_) {
-    throw std::invalid_argument("close(): no outbound handler in Pipeline");
+    return;
   }
   back_->close();
 }
@@ -126,6 +126,12 @@ void Pipeline::finalize() {
   for (auto it = ctxs_.rbegin(); it != ctxs_.rend(); it++) {
     (*it)->attachPipeline();
   }
+
+  for (auto it = service_ctxs_.rbegin(); it != service_ctxs_.rend(); it++) {
+    (*it)->attachPipeline();
+  }
+
+  notifyUpdate();
 }
 
 void Pipeline::notifyUpdate() {

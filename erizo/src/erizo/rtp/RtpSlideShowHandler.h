@@ -14,7 +14,7 @@ class RtpSlideShowHandler : public Handler {
   DECLARE_LOGGER();
 
  public:
-  explicit RtpSlideShowHandler(WebRtcConnection* connection);
+  RtpSlideShowHandler();
 
   void enable() override;
   void disable() override;

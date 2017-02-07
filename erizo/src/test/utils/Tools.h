@@ -159,7 +159,7 @@ class HandlerTest : public ::testing::Test {
     worker = std::make_shared<Worker>(scheduler);
     worker->start();
     connection = std::make_shared<erizo::MockWebRtcConnection>(worker, ice_config, rtp_maps);
-
+    processor = std::make_shared<erizo::MockRtcpProcessor>();
     connection->setVideoSinkSSRC(erizo::kVideoSsrc);
     connection->setAudioSinkSSRC(erizo::kAudioSsrc);
     connection->setVideoSourceSSRC(erizo::kVideoSsrc);
@@ -168,6 +168,13 @@ class HandlerTest : public ::testing::Test {
     pipeline = Pipeline::create();
     reader = std::make_shared<erizo::Reader>();
     writer = std::make_shared<erizo::Writer>();
+
+    EXPECT_CALL(*reader, notifyUpdate());
+    EXPECT_CALL(*writer, notifyUpdate());
+
+    std::shared_ptr<erizo::WebRtcConnection> connection_ptr = std::dynamic_pointer_cast<WebRtcConnection>(connection);
+    pipeline->addService(connection_ptr);
+    pipeline->addService(std::dynamic_pointer_cast<RtcpProcessor>(processor));
 
     pipeline->addBack(writer);
     setHandler();
@@ -183,6 +190,7 @@ class HandlerTest : public ::testing::Test {
   IceConfig ice_config;
   std::vector<RtpMap> rtp_maps;
   std::shared_ptr<erizo::MockWebRtcConnection> connection;
+  std::shared_ptr<erizo::MockRtcpProcessor> processor;
   Pipeline::Ptr pipeline;
   std::shared_ptr<erizo::Reader> reader;
   std::shared_ptr<erizo::Writer> writer;

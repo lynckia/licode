@@ -18,7 +18,7 @@ class SRPacketHandler: public Handler {
 
 
  public:
-  explicit SRPacketHandler(WebRtcConnection *connection);
+  SRPacketHandler();
 
   void enable() override;
   void disable() override;
@@ -39,7 +39,7 @@ class SRPacketHandler: public Handler {
     uint32_t sent_packets;
   };
 
-  bool enabled_;
+  bool enabled_, initialized_;
   WebRtcConnection* connection_;
   std::map<uint32_t, std::shared_ptr<SRInfo>> sr_info_map_;
 

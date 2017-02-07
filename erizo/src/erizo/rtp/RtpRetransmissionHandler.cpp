@@ -4,10 +4,10 @@ namespace erizo {
 
 DEFINE_LOGGER(RtpRetransmissionHandler, "rtp.RtpRetransmissionHandler");
 
-RtpRetransmissionHandler::RtpRetransmissionHandler(WebRtcConnection *connection)
-  : connection_{connection},
-  audio_{kRetransmissionsBufferSize},
-  video_{kRetransmissionsBufferSize} {}
+RtpRetransmissionHandler::RtpRetransmissionHandler()
+  : connection_{nullptr},
+    audio_{kRetransmissionsBufferSize},
+    video_{kRetransmissionsBufferSize} {}
 
 
 void RtpRetransmissionHandler::enable() {
@@ -17,6 +17,10 @@ void RtpRetransmissionHandler::disable() {
 }
 
 void RtpRetransmissionHandler::notifyUpdate() {
+  auto pipeline = getContext()->getPipelineShared();
+  if (pipeline && !connection_) {
+    connection_ = pipeline->getService<WebRtcConnection>().get();
+  }
 }
 
 void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {

@@ -38,7 +38,7 @@ class SRPacketHandlerTest : public erizo::HandlerTest {
 
  protected:
   void setHandler() {
-    sr_handler = std::make_shared<SRPacketHandler>(connection.get());
+    sr_handler = std::make_shared<SRPacketHandler>();
     pipeline->addBack(sr_handler);
   }
 
@@ -62,17 +62,33 @@ TEST_F(SRPacketHandlerTest, basicBehaviourShouldWritePackets) {
 }
 
 TEST_F(SRPacketHandlerTest, shouldRewritePacketsSent) {
+  uint32_t kArbitraryPacketsSent = 500;
+  uint32_t kArbitraryOctetsSent = 1000;
   auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+  auto sr_packet = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET, kArbitraryPacketsSent,
+      kArbitraryOctetsSent);
   EXPECT_CALL(*writer.get(), write(_, _)).
     With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+  EXPECT_CALL(*writer.get(), write(_, _)).
+    With(Args<1>(erizo::SenderReportHasPacketsSentValue(1))).Times(1);
   pipeline->write(packet);
+  pipeline->write(sr_packet);
 }
 
 TEST_F(SRPacketHandlerTest, shouldRewriteOctetsSent) {
-  auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+  uint32_t kArbitraryPacketsSent = 500;
+  uint32_t kArbitraryOctetsSent = 1000;
+  uint32_t kDataPacketSizeWithoutHeaders = 8;
 
+  auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+  auto sr_packet = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET, kArbitraryPacketsSent,
+      kArbitraryOctetsSent);
   EXPECT_CALL(*writer.get(), write(_, _)).
     With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+  EXPECT_CALL(*writer.get(), write(_, _)).
+    With(Args<1>(erizo::SenderReportHasOctetsSentValue(8))).Times(1);
+
   pipeline->write(packet);
+  pipeline->write(sr_packet);
 }
 

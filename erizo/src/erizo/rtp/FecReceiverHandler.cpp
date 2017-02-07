@@ -6,8 +6,8 @@ namespace erizo {
 
 DEFINE_LOGGER(FecReceiverHandler, "rtp.FecReceiverHandler");
 
-FecReceiverHandler::FecReceiverHandler(WebRtcConnection *connection) :
-    connection_{connection}, enabled_{false} {
+FecReceiverHandler::FecReceiverHandler() :
+    enabled_{false} {
   fec_receiver_.reset(webrtc::UlpfecReceiver::Create(this));
 }
 
@@ -24,8 +24,16 @@ void FecReceiverHandler::disable() {
 }
 
 void FecReceiverHandler::notifyUpdate() {
-  SdpInfo &remote_sdp = connection_->getRemoteSdpInfo();
-  bool is_slide_show_mode_active = connection_->isSlideShowModeEnabled();
+  auto pipeline = getContext()->getPipelineShared();
+  if (!pipeline) {
+    return;
+  }
+  std::shared_ptr<WebRtcConnection> connection = pipeline->getService<WebRtcConnection>();
+  if (!connection) {
+    return;
+  }
+  SdpInfo &remote_sdp = connection->getRemoteSdpInfo();
+  bool is_slide_show_mode_active = connection->isSlideShowModeEnabled();
   if (!remote_sdp.supportPayloadType(RED_90000_PT) || is_slide_show_mode_active) {
     enable();
   } else {

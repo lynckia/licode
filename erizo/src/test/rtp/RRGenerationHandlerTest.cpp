@@ -38,9 +38,8 @@ class RRGenerationHandlerTest : public erizo::HandlerTest {
 
  protected:
   void setHandler() {
-    rr_handler = std::make_shared<RRGenerationHandler>(connection.get(), false);
+    rr_handler = std::make_shared<RRGenerationHandler>(false);
     pipeline->addBack(rr_handler);
-    pipeline->notifyUpdate();
   }
 
   std::shared_ptr<RRGenerationHandler> rr_handler;
