@@ -7,8 +7,7 @@ namespace erizo {
 DEFINE_LOGGER(IncomingStatsHandler, "rtp.IncomingStatsHandler");
 DEFINE_LOGGER(OutgoingStatsHandler, "rtp.OutgoingStatsHandler");
 
-IncomingStatsHandler::IncomingStatsHandler(WebRtcConnection *connection) :
-  connection_{connection} {}
+IncomingStatsHandler::IncomingStatsHandler() : connection_{nullptr} {}
 
 
 void IncomingStatsHandler::enable() {
@@ -18,6 +17,10 @@ void IncomingStatsHandler::disable() {
 }
 
 void IncomingStatsHandler::notifyUpdate() {
+  auto pipeline = getContext()->getPipelineShared();
+  if (pipeline && !connection_) {
+    connection_ = pipeline->getService<WebRtcConnection>().get();
+  }
 }
 
 void IncomingStatsHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
@@ -31,8 +34,7 @@ void IncomingStatsHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet
   ctx->fireRead(packet);
 }
 
-OutgoingStatsHandler::OutgoingStatsHandler(WebRtcConnection *connection) :
-  connection_{connection} {}
+OutgoingStatsHandler::OutgoingStatsHandler() : connection_{nullptr} {}
 
 void OutgoingStatsHandler::enable() {
 }
@@ -41,6 +43,10 @@ void OutgoingStatsHandler::disable() {
 }
 
 void OutgoingStatsHandler::notifyUpdate() {
+  auto pipeline = getContext()->getPipelineShared();
+  if (pipeline && !connection_) {
+    connection_ = pipeline->getService<WebRtcConnection>().get();
+  }
 }
 
 void OutgoingStatsHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {

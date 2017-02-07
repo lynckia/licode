@@ -39,7 +39,7 @@ class RtpAudioMuteHandlerTest : public erizo::HandlerTest {
 
  protected:
   void setHandler() {
-    audio_mute_handler = std::make_shared<RtpAudioMuteHandler>(connection.get());
+    audio_mute_handler = std::make_shared<RtpAudioMuteHandler>();
     pipeline->addBack(audio_mute_handler);
   }
 

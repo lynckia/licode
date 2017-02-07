@@ -5,6 +5,8 @@
 #ifndef ERIZO_SRC_ERIZO_MEDIADEFINITIONS_H_
 #define ERIZO_SRC_ERIZO_MEDIADEFINITIONS_H_
 #include <boost/thread/mutex.hpp>
+#include "lib/Clock.h"
+#include "lib/ClockUtils.h"
 
 namespace erizo {
 
@@ -23,11 +25,11 @@ struct dataPacket {
       memcpy(data, data_, length_);
     }
   dataPacket(int comp_, const char *data_, int length_, packetType type_) :
-    comp{comp_}, length{length_}, type{type_} {
+    comp{comp_}, length{length_}, type{type_}, received_time_ms{ClockUtils::timePointToMs(clock::now())} {
       memcpy(data, data_, length_);
     }
   dataPacket(int comp_, const unsigned char *data_, int length_) :
-    comp{comp_}, length{length_}, type{VIDEO_PACKET} {
+    comp{comp_}, length{length_}, type{VIDEO_PACKET}, received_time_ms{ClockUtils::timePointToMs(clock::now())} {
       memcpy(data, data_, length_);
     }
   int comp;
@@ -68,8 +70,8 @@ class FeedbackSource {
 class MediaSink: public virtual Monitor {
  protected:
     // SSRCs received by the SINK
-    unsigned int audioSinkSSRC_;
-    unsigned int videoSinkSSRC_;
+    uint32_t audioSinkSSRC_;
+    uint32_t videoSinkSSRC_;
     // Is it able to provide Feedback
     FeedbackSource* sinkfbSource_;
 
@@ -116,8 +118,8 @@ class MediaSink: public virtual Monitor {
 class MediaSource: public virtual Monitor {
  protected:
     // SSRCs coming from the source
-    unsigned int videoSourceSSRC_;
-    unsigned int audioSourceSSRC_;
+    uint32_t audioSourceSSRC_;
+    uint32_t videoSourceSSRC_;
     MediaSink* videoSink_;
     MediaSink* audioSink_;
     // can it accept feedback
@@ -154,6 +156,8 @@ class MediaSource: public virtual Monitor {
         boost::mutex::scoped_lock lock(myMonitor_);
         audioSourceSSRC_ = ssrc;
     }
+
+    MediaSource() : audioSourceSSRC_{0}, videoSourceSSRC_{0}, sourcefbSink_{NULL} {}
     virtual ~MediaSource() {}
 
     virtual void close() = 0;

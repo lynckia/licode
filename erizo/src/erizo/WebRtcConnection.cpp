@@ -17,13 +17,13 @@
 #include "rtp/RtcpAggregator.h"
 #include "rtp/RtcpForwarder.h"
 #include "rtp/RtpSlideShowHandler.h"
-#include "rtp/RtpVP8SlideShowHandler.h"
 #include "rtp/RtpAudioMuteHandler.h"
 #include "rtp/BandwidthEstimationHandler.h"
 #include "rtp/FecReceiverHandler.h"
 #include "rtp/RtcpProcessorHandler.h"
 #include "rtp/RtpRetransmissionHandler.h"
 #include "rtp/StatsHandler.h"
+#include "rtp/RRGenerationHandler.h"
 
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
@@ -34,7 +34,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
     connection_id_{connection_id}, remoteSdp_{SdpInfo(rtp_mappings)}, localSdp_{SdpInfo(rtp_mappings)},
     audioEnabled_{false}, videoEnabled_{false}, bundle_{false}, connEventListener_{listener},
     iceConfig_{iceConfig}, rtp_mappings_{rtp_mappings}, extProcessor_{ext_mappings},
-    pipeline_{Pipeline::create()}, worker_{worker}, audio_muted_{false} {
+    pipeline_{Pipeline::create()}, worker_{worker}, audio_muted_{false}, pipeline_initialized_{false} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
   setVideoSinkSSRC(55543);
@@ -47,19 +47,6 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   globalState_ = CONN_INITIAL;
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
-
-  // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
-  pipeline_->addFront(PacketReader(this));
-  pipeline_->addFront(RtcpProcessorHandler(this, rtcp_processor_));
-  pipeline_->addFront(IncomingStatsHandler(this));
-  pipeline_->addFront(FecReceiverHandler(this));
-  pipeline_->addFront(RtpAudioMuteHandler(this));
-  pipeline_->addFront(RtpVP8SlideShowHandler(this));
-  pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>(this, worker_));
-  pipeline_->addFront(RtpRetransmissionHandler(this));
-  pipeline_->addFront(OutgoingStatsHandler(this));
-  pipeline_->addFront(PacketWriter(this));
-  pipeline_->finalize();
 
   trickleEnabled_ = iceConfig_.shouldTrickle;
 
@@ -229,9 +216,30 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     this->rtcp_processor_->setMaxVideoBW(remoteSdp_.videoBandwidth*1000);
   }
 
-  notifyUpdateToHandlers();
+  initializePipeline();
 
   return true;
+}
+
+void WebRtcConnection::initializePipeline() {
+  pipeline_->addService(shared_from_this());
+  pipeline_->addService(rtcp_processor_);
+
+  pipeline_->addFront(PacketReader(this));
+
+  pipeline_->addFront(RtcpProcessorHandler());
+  pipeline_->addFront(IncomingStatsHandler());
+  pipeline_->addFront(FecReceiverHandler());
+  pipeline_->addFront(RtpAudioMuteHandler());
+  pipeline_->addFront(RtpSlideShowHandler());
+  pipeline_->addFront(BandwidthEstimationHandler());
+  pipeline_->addFront(RRGenerationHandler());
+  pipeline_->addFront(RtpRetransmissionHandler());
+  pipeline_->addFront(OutgoingStatsHandler());
+
+  pipeline_->addFront(PacketWriter(this));
+  pipeline_->finalize();
+  pipeline_initialized_ = true;
 }
 
 bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp) {
@@ -389,6 +397,11 @@ void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Trans
     } else if (recvSSRC == this->getAudioSourceSSRC()) {
       packet->type = AUDIO_PACKET;
     }
+  }
+
+  if (!pipeline_initialized_) {
+    ELOG_DEBUG("%s message: Pipeline not initialized yet.", toLog());
+    return;
   }
 
   pipeline_->read(packet);
@@ -732,6 +745,11 @@ void WebRtcConnection::sendPacket(std::shared_ptr<dataPacket> p) {
       sentVideoBytes += p->length;
     }
   }
+  if (!pipeline_initialized_) {
+    ELOG_DEBUG("%s message: Pipeline not initialized yet.", toLog());
+    return;
+  }
+
   pipeline_->write(p);
 }
 

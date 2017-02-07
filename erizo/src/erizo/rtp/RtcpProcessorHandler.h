@@ -15,7 +15,7 @@ class RtcpProcessorHandler: public Handler {
   DECLARE_LOGGER();
 
  public:
-  explicit RtcpProcessorHandler(WebRtcConnection* connection, std::shared_ptr<RtcpProcessor> processor);
+  RtcpProcessorHandler();
 
   void enable() override;
   void disable() override;

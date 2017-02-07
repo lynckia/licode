@@ -40,6 +40,8 @@ namespace erizo {
 #define RTCP_MIN_PT         194  // per https://tools.ietf.org/html/rfc5761
 #define RTCP_MAX_PT         223
 
+#define RTCP_AUDIO_INTERVAL 5000
+#define RTCP_VIDEO_INTERVAL  1000
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -423,6 +425,10 @@ class RtcpHeader {
   }
   inline uint64_t getNtpTimestamp() {
     return (((uint64_t)htonl(report.senderReport.ntptimestamp)) << 32) + htonl(report.senderReport.ntptimestamp >> 32);
+  }
+  inline uint32_t get32MiddleNtp() {
+    uint64_t middle = (report.senderReport.ntptimestamp << 16) >> 32;
+    return ntohl(middle);
   }
   inline uint16_t getNackPid() {
     return ntohs(report.nackPacket.pid);

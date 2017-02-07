@@ -27,7 +27,7 @@ PipelineBase& PipelineBase::addBack(H&& handler) {
 
 template <class H>
 PipelineBase& PipelineBase::addBack(H* handler) {
-  return addBack(std::shared_ptr<H>(handler, [](H*){}));
+  return addBack(std::shared_ptr<H>(handler, [](H*){}));  // NOLINT
 }
 
 template <class H>
@@ -45,7 +45,7 @@ PipelineBase& PipelineBase::addFront(H&& handler) {
 
 template <class H>
 PipelineBase& PipelineBase::addFront(H* handler) {
-  return addFront(std::shared_ptr<H>(handler, [](H*){}));
+  return addFront(std::shared_ptr<H>(handler, [](H*){}));  // NOLINT
 }
 
 template <class H>
@@ -124,12 +124,12 @@ bool PipelineBase::setOwner(H* handler) {
 
 template <class Context>
 void PipelineBase::addContextFront(Context* ctx) {
-  addHelper(std::shared_ptr<Context>(ctx, [](Context*){}), true);
+  addHelper(std::shared_ptr<Context>(ctx, [](Context*){}), true);  // NOLINT
 }
 
 template <class Context>
 PipelineBase& PipelineBase::addHelper(
-    std::shared_ptr<Context>&& ctx,
+    std::shared_ptr<Context>&& ctx,  // NOLINT
     bool front) {
   ctxs_.insert(front ? ctxs_.begin() : ctxs_.end(), ctx);
   if (Context::dir == HandlerDir::BOTH || Context::dir == HandlerDir::IN) {
@@ -140,6 +140,61 @@ PipelineBase& PipelineBase::addHelper(
   }
   return *this;
 }
+
+template <class S>
+void PipelineBase::addService(std::shared_ptr<S> service) {
+  typedef typename ServiceContextType<S>::type Context;
+  service_ctxs_.push_back(std::make_shared<Context>(shared_from_this(), std::move(service)));
+}
+
+template <class S>
+void PipelineBase::addService(S&& service) {
+  addService(std::make_shared<S>(std::forward<S>(service)));
+}
+
+template <class S>
+void PipelineBase::addService(S* service) {
+  addService(std::shared_ptr<S>(service, [](S*){}));  // NOLINT
+}
+
+template <class S>
+typename ServiceContextType<S>::type* PipelineBase::getServiceContext() {
+  for (auto pipeline_service_ctx : service_ctxs_) {
+    auto ctx = dynamic_cast<typename ServiceContextType<S>::type*>(pipeline_service_ctx.get());
+    if (ctx) {
+      return ctx;
+    }
+  }
+  return nullptr;
+}
+
+template <class S>
+std::shared_ptr<S> PipelineBase::getService() {
+  auto ctx = getServiceContext<S>();
+  return ctx ? ctx->getService().lock() : std::shared_ptr<S>();
+}
+
+template <class S>
+void PipelineBase::removeService() {
+  typedef typename ServiceContextType<S>::type Context;
+  bool removed = false;
+  for (auto it = service_ctxs_.begin(); it != service_ctxs_.end(); it++) {
+    auto ctx = std::dynamic_pointer_cast<Context>(*it);
+    if (ctx) {
+      (*it)->detachPipeline();
+      it = service_ctxs_.erase(it);
+      removed = true;
+      if (it == service_ctxs_.end()) {
+        break;
+      }
+    }
+  }
+
+  if (!removed) {
+    throw std::invalid_argument("No such handler in pipeline");
+  }
+}
+
 
 }  // namespace erizo
 

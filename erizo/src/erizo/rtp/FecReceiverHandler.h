@@ -15,7 +15,7 @@ class FecReceiverHandler: public OutboundHandler, public webrtc::RtpData {
   DECLARE_LOGGER();
 
  public:
-  explicit FecReceiverHandler(WebRtcConnection* connection);
+  FecReceiverHandler();
 
   void setFecReceiver(std::unique_ptr<webrtc::UlpfecReceiver>&& fec_receiver);  // NOLINT
 
@@ -35,7 +35,6 @@ class FecReceiverHandler: public OutboundHandler, public webrtc::RtpData {
   bool OnRecoveredPacket(const uint8_t* packet, size_t packet_length) override;
 
  private:
-  WebRtcConnection* connection_;
   bool enabled_;
   std::unique_ptr<webrtc::UlpfecReceiver> fec_receiver_;
 };

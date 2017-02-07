@@ -18,6 +18,7 @@
 #include "rtp/RtpExtensionProcessor.h"
 #include "lib/Clock.h"
 #include "pipeline/Handler.h"
+#include "pipeline/Service.h"
 
 namespace erizo {
 
@@ -56,7 +57,7 @@ class WebRtcConnectionStatsListener {
  */
 class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink,
                         public FeedbackSource, public TransportListener, public LogContext,
-                        public std::enable_shared_from_this<WebRtcConnection> {
+                        public std::enable_shared_from_this<WebRtcConnection>, public Service {
   DECLARE_LOGGER();
 
  public:
@@ -162,6 +163,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   RtpExtensionProcessor& getRtpExtensionProcessor() { return extProcessor_; }
 
+  std::shared_ptr<Worker> getWorker() { return worker_; }
+
   Stats& getStats() {
     return stats_;
   }
@@ -169,6 +172,20 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   inline const char* toLog() {
     return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
   }
+
+ private:
+  void sendPacket(std::shared_ptr<dataPacket> packet);
+  int deliverAudioData_(char* buf, int len) override;
+  int deliverVideoData_(char* buf, int len) override;
+  int deliverFeedback_(char* buf, int len) override;
+  void initializePipeline();
+
+  // Utils
+  std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
+  // changes the outgoing payload type for in the given data packet
+  void changeDeliverPayloadType(dataPacket *dp, packetType type);
+  // parses incoming payload type, replaces occurence in buf
+  void parseIncomingPayloadType(char *buf, int len, packetType type);
 
  private:
   std::string connection_id_;
@@ -209,17 +226,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   bool audio_muted_;
 
-  void sendPacket(std::shared_ptr<dataPacket> packet);
-  int deliverAudioData_(char* buf, int len) override;
-  int deliverVideoData_(char* buf, int len) override;
-  int deliverFeedback_(char* buf, int len) override;
-
-  // Utils
-  std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
-  // changes the outgoing payload type for in the given data packet
-  void changeDeliverPayloadType(dataPacket *dp, packetType type);
-  // parses incoming payload type, replaces occurence in buf
-  void parseIncomingPayloadType(char *buf, int len, packetType type);
+  bool pipeline_initialized_;
 };
 
 class PacketReader : public InboundHandler {
