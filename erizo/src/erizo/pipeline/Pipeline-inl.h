@@ -171,7 +171,7 @@ typename ServiceContextType<S>::type* PipelineBase::getServiceContext() {
 template <class S>
 std::shared_ptr<S> PipelineBase::getService() {
   auto ctx = getServiceContext<S>();
-  return ctx ? ctx->getService() : std::shared_ptr<S>();
+  return ctx ? ctx->getService().lock() : std::shared_ptr<S>();
 }
 
 template <class S>
@@ -193,8 +193,6 @@ void PipelineBase::removeService() {
   if (!removed) {
     throw std::invalid_argument("No such handler in pipeline");
   }
-
-  return *this;
 }
 
 

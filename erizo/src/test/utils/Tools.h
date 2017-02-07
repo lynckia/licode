@@ -177,8 +177,6 @@ class HandlerTest : public ::testing::Test {
     setHandler();
     pipeline->addBack(reader);
     pipeline->finalize();
-
-    pipeline->notifyUpdate();
   }
 
   virtual void TearDown() {
