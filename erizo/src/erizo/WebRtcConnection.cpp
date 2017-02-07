@@ -225,7 +225,6 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addService(shared_from_this());
   pipeline_->addService(rtcp_processor_);
 
-  // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
   pipeline_->addFront(PacketReader(this));
 
   pipeline_->addFront(RtcpProcessorHandler());
