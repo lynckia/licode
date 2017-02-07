@@ -60,12 +60,15 @@ class PacketTools {
     return std::make_shared<dataPacket>(0, buf, len, type);
   }
 
-  static std::shared_ptr<dataPacket> createSenderReport(uint ssrc, packetType type) {
+  static std::shared_ptr<dataPacket> createSenderReport(uint ssrc, packetType type,
+      uint32_t packets_sent = 0, uint32_t octets_sent = 0) {
     erizo::RtcpHeader *sender_report = new erizo::RtcpHeader();
     sender_report->setPacketType(RTCP_Sender_PT);
     sender_report->setBlockCount(1);
     sender_report->setSSRC(ssrc);
     sender_report->setLength(4);
+    sender_report->setPacketsSent(packets_sent);
+    sender_report->setOctetsSent(octets_sent);
     char *buf = reinterpret_cast<char*>(sender_report);
     int len = (sender_report->getLength() + 1) * 4;
     return std::make_shared<dataPacket>(0, buf, len, type);
