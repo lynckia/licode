@@ -25,13 +25,13 @@ class ServiceContextImplBase : public PipelineServiceContext {
  public:
   ~ServiceContextImplBase() = default;
 
-  std::shared_ptr<S> getService() {
+  std::weak_ptr<S> getService() {
     return service_;
   }
 
   void initialize(
       std::weak_ptr<PipelineBase> pipeline,
-      std::shared_ptr<S> service) {
+      std::weak_ptr<S> service) {
     pipeline_weak_ = pipeline;
     pipeline_raw_ = pipeline.lock().get();
     service_ = std::move(service);
@@ -40,14 +40,22 @@ class ServiceContextImplBase : public PipelineServiceContext {
   // PipelineContext overrides
   void attachPipeline() override {
     if (!attached_) {
-      attachContext(service_.get(), impl_);
-      service_->attachPipeline(impl_);
+      auto service_ptr = service_.lock();
+      if (!service_ptr) {
+        return;
+      }
+      attachContext(service_ptr.get(), impl_);
+      service_ptr->attachPipeline(impl_);
       attached_ = true;
     }
   }
 
   void detachPipeline() override {
-    service_->detachPipeline(impl_);
+    auto service_ptr = service_.lock();
+    if (!service_ptr) {
+      return;
+    }
+    service_ptr->detachPipeline(impl_);
     attached_ = false;
   }
 
@@ -55,7 +63,7 @@ class ServiceContextImplBase : public PipelineServiceContext {
   Context* impl_;
   std::weak_ptr<PipelineBase> pipeline_weak_;
   PipelineBase* pipeline_raw_;
-  std::shared_ptr<S> service_;
+  std::weak_ptr<S> service_;
 
  private:
   bool attached_{false};
@@ -68,7 +76,7 @@ class ServiceContextImpl
  public:
   explicit ServiceContextImpl(
       std::weak_ptr<PipelineBase> pipeline,
-      std::shared_ptr<S> service) {
+      std::weak_ptr<S> service) {
     this->impl_ = this;
     this->initialize(pipeline, std::move(service));
   }

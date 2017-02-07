@@ -48,9 +48,6 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
 
-  pipeline_->addService(this);
-  pipeline_->addService(rtcp_processor_);
-
   trickleEnabled_ = iceConfig_.shouldTrickle;
 
   shouldSendFeedback_ = true;
@@ -225,7 +222,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 }
 
 void WebRtcConnection::initializePipeline() {
-  pipeline_->addService(this);
+  pipeline_->addService(shared_from_this());
   pipeline_->addService(rtcp_processor_);
 
   // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
@@ -405,6 +402,7 @@ void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Trans
 
   if (!pipeline_initialized_) {
     ELOG_DEBUG("%s message: Pipeline not initialized yet.", toLog());
+    return;
   }
 
   pipeline_->read(packet);
@@ -748,6 +746,11 @@ void WebRtcConnection::sendPacket(std::shared_ptr<dataPacket> p) {
       sentVideoBytes += p->length;
     }
   }
+  if (!pipeline_initialized_) {
+    ELOG_DEBUG("%s message: Pipeline not initialized yet.", toLog());
+    return;
+  }
+
   pipeline_->write(p);
 }
 
