@@ -211,8 +211,6 @@ void RRGenerationHandler::notifyUpdate() {
     return;
   }
 
-  std::cout << "OK" << std::endl;
-
   uint32_t video_ssrc = connection_->getVideoSourceSSRC();
   if (video_ssrc != 0) {
     auto video_packets = std::make_shared<RRPackets>();

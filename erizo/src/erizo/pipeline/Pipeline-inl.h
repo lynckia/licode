@@ -193,8 +193,6 @@ void PipelineBase::removeService() {
   if (!removed) {
     throw std::invalid_argument("No such handler in pipeline");
   }
-
-  return *this;
 }
 
 
