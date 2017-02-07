@@ -422,7 +422,7 @@ class RtcpHeader {
   inline uint32_t getOctetsSent() {
     return ntohl(report.senderReport.octetssent);
   }
-  inline uint32_t setOctetsSent(uint32_t octets_sent) {
+  inline void setOctetsSent(uint32_t octets_sent) {
     report.senderReport.octetssent = htonl(octets_sent);
   }
   inline uint64_t getNtpTimestamp() {
