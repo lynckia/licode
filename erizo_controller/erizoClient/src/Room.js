@@ -168,8 +168,10 @@ Erizo.Room = function (spec) {
                 stream = that.localStreams[arg.streamId];
             }
 
-            if (stream && !stream.failed) {
-                stream.pc.processSignalingMessage(arg.mess);
+            // if the stream is local
+            // or it is remote and not failed
+            if (stream && (stream.local || !stream.failed)) {
+                stream.pc.processSignalingMessage(arg.mess); // process the signaling message
             }
         });
 
