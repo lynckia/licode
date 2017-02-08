@@ -18,6 +18,9 @@ Erizo.Connection = function (spec) {
     } else if (that.browser === 'mozilla') {
         L.Logger.debug("Firefox Stack");
         that = Erizo.FirefoxStack(spec);
+    } else if (that.browser === 'edge'){
+        L.Logger.debug("Bowser Stack");
+        that = Erizo.BowserStack(spec); 
     } else if (that.browser === 'bowser'){
         L.Logger.debug("Bowser Stack");
         that = Erizo.BowserStack(spec); 
@@ -51,6 +54,8 @@ Erizo.getBrowser = function () {
         browser = "mozilla";
     } else if (window.navigator.userAgent.match("Bowser") !==null){
         browser = "bowser";    
+    } else if (window.navigator.userAgent.match("Edge") !==null){
+        browser = "edge";    
     } else if (window.navigator.userAgent.match("Chrome") !==null) {
         if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 26) {
             browser = "chrome-stable";
