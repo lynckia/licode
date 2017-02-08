@@ -16,6 +16,8 @@ RUN  ./scripts/installUbuntuDeps.sh --cleanup && \
 	./scripts/installNuve.sh && \
 	./scripts/installBasicExample.sh
 
+WORKDIR /opt
+
 COPY initDockerLicode.sh /opt/
 CMD ["./initDockerLicode.sh"]
 
