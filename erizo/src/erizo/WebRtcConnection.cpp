@@ -19,6 +19,7 @@
 #include "rtp/RtpSlideShowHandler.h"
 #include "rtp/RtpAudioMuteHandler.h"
 #include "rtp/BandwidthEstimationHandler.h"
+#include "rtp/TemporalLayerSwitchHandler.h"
 #include "rtp/FecReceiverHandler.h"
 #include "rtp/RtcpProcessorHandler.h"
 #include "rtp/RtpRetransmissionHandler.h"
@@ -230,6 +231,7 @@ void WebRtcConnection::initializePipeline() {
 
   pipeline_->addFront(RtcpProcessorHandler());
   pipeline_->addFront(IncomingStatsHandler());
+  pipeline_->addFront(TemporalLayerSwitchHandler());
   pipeline_->addFront(FecReceiverHandler());
   pipeline_->addFront(RtpAudioMuteHandler());
   pipeline_->addFront(RtpSlideShowHandler());
@@ -432,15 +434,12 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
     if (bundle_) {
       // Check incoming SSRC
       // Deliver data
-      if (recvSSRC == this->getVideoSourceSSRC()) {
-        parseIncomingPayloadType(buf, len, VIDEO_PACKET);
-        videoSink_->deliverVideoData(buf, len);
-      } else if (recvSSRC == this->getAudioSourceSSRC()) {
+      if (recvSSRC == this->getAudioSourceSSRC()) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         audioSink_->deliverAudioData(buf, len);
       } else {
-        ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
-                    toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
+        parseIncomingPayloadType(buf, len, VIDEO_PACKET);
+        videoSink_->deliverVideoData(buf, len);
       }
     } else {
       if (packet->type == AUDIO_PACKET && audioSink_ != NULL) {
@@ -451,7 +450,7 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
           this->setAudioSourceSSRC(recvSSRC);
         }
         audioSink_->deliverAudioData(buf, len);
-      } else if (packet->type == VIDEO_PACKET && videoSink_ != NULL) {
+      } else if (videoSink_ != NULL) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         // Firefox does not send SSRC in SDP
         if (this->getVideoSourceSSRC() == 0) {
