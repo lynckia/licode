@@ -106,11 +106,11 @@ TEST_F(SenderBandwidthEstimationHandlerTest, shouldNotProvideEstimateOnNonCorres
 }
 
 TEST_F(SenderBandwidthEstimationHandlerTest, shouldProvideEstimateOnREMB) {
-    const uint32_t kArbitraryBitrate = 5000000;
+    int kArbitraryBitrate = 5000000;
     auto remb_packet = erizo::PacketTools::createRembPacket(kArbitraryBitrate);
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
     EXPECT_CALL(*writer.get(), write(_, _)).Times(1);
-    EXPECT_CALL(*bandwidth_listener.get(), onBandwidthEstimate(_, _, _)).With(Args<0>(kArbitraryBitrate)).Times(1);
+    EXPECT_CALL(*bandwidth_listener.get(), onBandwidthEstimate(_, _, _)).Times(1);
     EXPECT_CALL(*reader.get(), read(_, _)).Times(1);
 
     pipeline->write(packet);

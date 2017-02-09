@@ -12,6 +12,7 @@ using webrtc::SendSideBandwidthEstimation;
 
 class SenderBandwidthEstimationListener {
  public:
+  virtual ~SenderBandwidthEstimationListener() {}
   virtual void onBandwidthEstimate(int estimated_bitrate, uint8_t estimated_loss,
       int64_t estimated_rtt) = 0;
 };
