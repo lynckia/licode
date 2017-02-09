@@ -1,7 +1,7 @@
-#ifndef EXTERNALINPUT_H
-#define EXTERNALINPUT_H
+#ifndef ERIZOAPI_EXTERNALINPUT_H_
+#define ERIZOAPI_EXTERNALINPUT_H_
 
-#include <node.h>
+#include <nan.h>
 #include <media/ExternalInput.h>
 #include "MediaDefinitions.h"
 #include "WebRtcConnection.h"
@@ -13,40 +13,42 @@
  * Represents a OneToMany connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class ExternalInput: public node::ObjectWrap {
+class ExternalInput : public Nan::ObjectWrap {
  public:
-  static void Init(v8::Handle<v8::Object> target);
-  erizo::ExternalInput* me;
+    static NAN_MODULE_INIT(Init);
+    std::shared_ptr<erizo::ExternalInput> me;
 
  private:
-  ExternalInput();
-  ~ExternalInput();
+    ExternalInput();
+    ~ExternalInput();
 
-  /*
-   * Constructor.
-   * Constructs a ExternalInput
-   */
-  static v8::Handle<v8::Value> New(const v8::Arguments& args);
-  /*
-   * Closes the ExternalInput.
-   * The object cannot be used after this call
-   */
-  static v8::Handle<v8::Value> close(const v8::Arguments& args);
-  /*
-   * Inits the ExternalInput 
-   * Returns true ready
-   */
-  static v8::Handle<v8::Value> init(const v8::Arguments& args);  
-  /*
-   * Sets a MediaReceiver that is going to receive Audio Data
-   * Param: the MediaReceiver to send audio to.
-   */
-  static v8::Handle<v8::Value> setAudioReceiver(const v8::Arguments& args);
-  /*
-   * Sets a MediaReceiver that is going to receive Video Data
-   * Param: the MediaReceiver
-   */
-  static v8::Handle<v8::Value> setVideoReceiver(const v8::Arguments& args);
+    /*
+     * Constructor.
+     * Constructs a ExternalInput
+     */
+    static NAN_METHOD(New);
+    /*
+     * Closes the ExternalInput.
+     * The object cannot be used after this call
+     */
+    static NAN_METHOD(close);
+    /*
+     * Inits the ExternalInput
+     * Returns true ready
+     */
+    static NAN_METHOD(init);
+    /*
+     * Sets a MediaSink that is going to receive Audio Data
+     * Param: the MediaSink to send audio to.
+     */
+    static NAN_METHOD(setAudioReceiver);
+    /*
+     * Sets a MediaSink that is going to receive Video Data
+     * Param: the MediaSink
+     */
+    static NAN_METHOD(setVideoReceiver);
+
+    static Nan::Persistent<v8::Function> constructor;
 };
 
-#endif
+#endif  // ERIZOAPI_EXTERNALINPUT_H_

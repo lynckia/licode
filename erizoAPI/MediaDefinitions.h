@@ -1,18 +1,25 @@
-#ifndef MEDIARECEIVER_H
-#define MEDIARECEIVER_H
+#ifndef ERIZOAPI_MEDIADEFINITIONS_H_
+#define ERIZOAPI_MEDIADEFINITIONS_H_
 
-#include <node.h>
+#include <nan.h>
 #include <MediaDefinitions.h>
 
 
 /*
- * Wrapper class of erizo::MediaReceiver
+ * Wrapper class of erizo::MediaSink
  */
-class MediaSink : public node::ObjectWrap {
-public:
-
-  erizo::MediaSink* msink;
+class MediaSink : public Nan::ObjectWrap {
+ public:
+    erizo::MediaSink* msink;
 };
 
 
-#endif
+/*
+ * Wrapper class of erizo::MediaSource
+ */
+class MediaSource : public Nan::ObjectWrap {
+ public:
+    erizo::MediaSource* msource;
+};
+
+#endif  // ERIZOAPI_MEDIADEFINITIONS_H_

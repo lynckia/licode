@@ -1,4 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -e
+
 runcmake() {
    cmake ../src
    echo "Done"
@@ -10,4 +13,3 @@ if [ -d $BIN_DIR ]; then
 else
   echo "Error, build directory does not exist, run generateProject.sh first"
 fi
-

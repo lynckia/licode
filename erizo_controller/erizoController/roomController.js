@@ -1,19 +1,17 @@
-/*global require, exports, console, setInterval, clearInterval*/
-
+/*global require, exports, setInterval*/
+'use strict';
 var logger = require('./../common/logger').logger;
 
 // Logger
-var log = logger.getLogger("RoomController");
+var log = logger.getLogger('RoomController');
 
 exports.RoomController = function (spec) {
-    "use strict";
-
     var that = {},
         // {id: array of subscribers}
         subscribers = {},
         // {id: erizoJS_id}
         publishers = {},
-        // {erizoJS_id: {publishers: [ids], ka_count: count}}
+        // {erizoJS_id: {publishers: [ids], kaCount: count}}
         erizos = {},
 
         // {id: ExternalOutput}
@@ -24,195 +22,108 @@ exports.RoomController = function (spec) {
 
     var KEEPALIVE_INTERVAL = 5*1000;
     var TIMEOUT_LIMIT = 2;
+    var MAX_ERIZOJS_RETRIES = 0;
 
     var eventListeners = [];
 
-    var callbackFor = function(erizo_id) {
+    var dispatchEvent = function(type, evt) {
+        for (var eventId in eventListeners) {
+            eventListeners[eventId](type, evt);
+        }
+
+    };
+
+    var callbackFor = function(erizoId) {
 
         return function(ok) {
-            if (!erizos[erizo_id]) return;
+            if (!erizos[erizoId]) return;
 
             if (ok !== true) {
-                erizos[erizo_id].ka_count ++;
+                erizos[erizoId].kaCount ++;
 
-                if (erizos[erizo_id].ka_count > TIMEOUT_LIMIT) {
+                if (erizos[erizoId].kaCount > TIMEOUT_LIMIT) {
+                    if (erizos[erizoId].publishers.length > 0){
+                        log.error('message: ErizoJS timed out will be removed, ' +
+                                  'erizoId: ' + erizoId + ', ' +
+                                  'publishersAffected: ' + erizos[erizoId].publishers.length);
+                        for (var p in erizos[erizoId].publishers) {
+                            dispatchEvent('unpublish', erizos[erizoId].publishers[p]);
+                        }
 
-                    for (var p in erizos[erizo_id].publishers) {
-                        dispatchEvent("unpublish", erizos[erizo_id].publishers[p]);
+                    } else {
+                        log.debug('message: empty erizoJS removed, erizoId: ' + erizoId);
                     }
-                    ecch.deleteErizoJS(erizo_id);
-                    delete erizos[erizo_id];
+                    ecch.deleteErizoJS(erizoId);
+                    delete erizos[erizoId];
                 }
             } else {
-                erizos[erizo_id].ka_count = 0;
+                erizos[erizoId].kaCount = 0;
             }
-        }
+        };
     };
 
     var sendKeepAlive = function() {
         for (var e in erizos) {
-            amqper.callRpc("ErizoJS_" + e, "keepAlive", [], {callback: callbackFor(e)});
+            amqper.callRpc('ErizoJS_' + e, 'keepAlive', [], {callback: callbackFor(e)});
         }
     };
 
-    var keepAliveLoop = setInterval(sendKeepAlive, KEEPALIVE_INTERVAL);
+    setInterval(sendKeepAlive, KEEPALIVE_INTERVAL);
 
     var getErizoJS = function(callback) {
-    	ecch.getErizoJS(function(erizo_id) {
-            log.info("Using Erizo", erizo_id);
-            if (!erizos[erizo_id] && erizo_id !== 'timeout') {
-                erizos[erizo_id] = {publishers: [], ka_count: 0};
+    	ecch.getErizoJS(function(erizoId, agentId) {
+            if (!erizos[erizoId] && erizoId !== 'timeout') {
+                erizos[erizoId] = {publishers: [], kaCount: 0};
             }
-            callback(erizo_id);
+            callback(erizoId, agentId);
         });
     };
 
-    var getErizoQueue = function(publisher_id) {
-        return "ErizoJS_" + publishers[publisher_id];
+    var getErizoQueue = function(publisherId) {
+        return 'ErizoJS_' + publishers[publisherId];
     };
 
-    var dispatchEvent = function(type, event) {
-        for (var event_id in eventListeners) {
-            eventListeners[event_id](type, event);    
-        }
-        
-    };
-
-/*  Prototype method to add a branch to a erizo Tree
-    var shouldAddSurrogate = function(publisher_id, subscriber_id, options, callback){
-        //Create new erizoJS, assign it as surrogate of publisher_id (subscribe), return id
-        log.info("Adding a surrogate");
-        getErizoJS(function(id){
-            log.info("got a new Erizo with id", id);
-            
-//            log.info("Adding subscriber ", id, ' to publisher ', publisher_id);
-            var options = {};
-            if (options.audio === undefined) options.audio = true;
-            if (options.video === undefined) options.video = true;
-
-            
-            var argsAddPub = [publisher_id, 300, true];
-            log.info("Adding publisher to surrogate", "ErizoJS_"+id, "args",argsAddPub);
-            var statusBranch = false;
-            var statusRoot = false;
-            var branchQueue = [];
-            var rootQueue = [];
-            log.info("calling addPublisher on branch");
-            amqper.callRpc("ErizoJS_"+id, "addPublisher", argsAddPub, {callback: function(msg){
-                log.info("Message from branch", msg.type);
-                if (msg.type==='started'){
-                    statusbranch = 'started';
-                    log.info("branch Started");
-                    if (branchQueue.length){
-                        while (branchQueue.length>0){
-                            var themessage = branchQueue.shift();
-                            var argus = [publisher_id, undefined, themessage];
-                            console.log("Queued msg from Erizoroot, sending to Erizobranch", argus);
-                            amqper.callRpc("ErizoJS_"+id, "processSignaling", argus, {});
-                        }
-
-                    }
-
-                }else if (msg.type === 'offer' || msg.type ==='candidate'){
-                    var argsSignaling = [publisher_id, id, msg];
-                    console.log("msg from Erizobranch, should to Erizoroot?");
-                    if (statusroot){
-                        console.log("Yes, sending", argsSignaling);
-                        amqper.callRpc(getErizoQueue(publisher_id, id), "processSignaling", argsSignaling, {});
-                    }else{
-                        console.log("No, queuing", argsSignaling);
-                        rootQueue.push(msg);
-                    }
-                }else if (msg.type === 'ready'){
-                    log.info("Surrogate ready, firing after a second");
-                    setTimeout (callback(id), 1000);
-                }
-                
-            }});
-
-            log.info("calling addSubscriber on root");
-            var argsAddSub = [id, publisher_id, options];
-            amqper.callRpc(getErizoQueue(publisher_id), "addSubscriber", argsAddSub, {callback: function(mess){
-                log.info("Message from root", mess.type);
-                if (mess.type==='started'){
-                    statusroot = 'started';
-                    log.info("root Started");
-                    if (rootQueue.length){
-                        while (rootQueue.length>0){
-                            var themessage = rootQueue.shift();
-                            var argsSignaling = [publisher_id, id, themessage];
-                            console.log("Queued msg from Erizobranch, sending to Erizoroot", argsSignaling);
-                            amqper.callRpc(getErizoQueue(publisher_id, id), "processSignaling", argsSignaling, {});
-                        }
-
-                    }
-
-                }else if (mess.type === 'answer' || mess.type ==='candidate'){
-                    if (mess.type === 'answer'){
-                        mess.type = 'offer';
-                    }
-                    var argus = [publisher_id, subscriber_id, mess];
-
-                    console.log("signalling from Erizoroot, should send to branch?");
-                    if (statusbranch){
-                        console.log("Yes, sending", argus);
-                        amqper.callRpc("ErizoJS_"+id, "processSignaling", argus, {});
-                    }else{
-                        console.log("No, queuing", argus);
-                        branchQueue.push(mess);
-                    }
-                }
-            }});
-            subscribers[publisher_id].push({id:subscriber_id, surrogate_id:id});
-            // Track subscriber locally
-
-        });
-
-    }
-*/
     that.addEventListener = function(eventListener) {
         eventListeners.push(eventListener);
     };
 
-    that.addExternalInput = function (publisher_id, url, callback) {
+    that.addExternalInput = function (publisherId, url, callback) {
 
-        if (publishers[publisher_id] === undefined) {
+        if (publishers[publisherId] === undefined) {
 
-            log.info("Adding external input peer_id ", publisher_id);
+            log.info('message: addExternalInput,  streamId: ' + publisherId + ', url:' + url);
 
-            getErizoJS(function(erizo_id) {
+            getErizoJS(function(erizoId) {
                 // then we call its addPublisher method.
-    	        var args = [publisher_id, url];
+    	        var args = [publisherId, url];
 
                 // Track publisher locally
-//                publishers[publisher_id] = {};
-                publishers[publisher_id] = erizo_id;
-                subscribers[publisher_id] = [];
-    	        
-                amqper.callRpc(getErizoQueue(publisher_id), "addExternalInput", args, {callback: callback});
+                publishers[publisherId] = erizoId;
+                subscribers[publisherId] = [];
 
-                erizos[erizo_id].publishers.push(publisher_id);
+                amqper.callRpc(getErizoQueue(publisherId), 'addExternalInput', args,
+                               {callback: callback});
+
+                erizos[erizoId].publishers.push(publisherId);
 
             });
         } else {
-            log.info("Publisher already set for", publisher_id);
+            log.info('message: addExternalInput publisher already set, ' +
+                     'streamId: ' + publisherId + ', url: ' + url);
         }
     };
 
-    that.addExternalOutput = function (publisher_id, url, callback) {
-        if (publishers[publisher_id] !== undefined) {
-            log.info("Adding ExternalOutput to " + publisher_id + " url " + url);
+    that.addExternalOutput = function (publisherId, url, callback) {
+        if (publishers[publisherId] !== undefined) {
+            log.info('message: addExternalOuput, streamId: ' + publisherId + ', url:' + url);
 
-            var args = [publisher_id, url];
+            var args = [publisherId, url];
 
-            amqper.callRpc(getErizoQueue(publisher_id), "addExternalOutput", args, undefined);
+            amqper.callRpc(getErizoQueue(publisherId), 'addExternalOutput', args, undefined);
 
             // Track external outputs
-            externalOutputs[url] = publisher_id;
+            externalOutputs[url] = publisherId;
 
-            // Track publisher locally
-            // publishers[publisher_id] = publisher_id;
-            // subscribers[publisher_id] = [];
             callback('success');
         } else {
             callback('error');
@@ -221,13 +132,13 @@ exports.RoomController = function (spec) {
     };
 
     that.removeExternalOutput = function (url, callback) {
-        var publisher_id = externalOutputs[url];
+        var publisherId = externalOutputs[url];
 
-        if (publisher_id !== undefined && publishers[publisher_id] != undefined) {
-            log.info("Stopping ExternalOutput: url " + url);
+        if (publisherId !== undefined && publishers[publisherId] !== undefined) {
+            log.info('removeExternalOutput, url: ' + url);
 
-            var args = [publisher_id, url];
-            amqper.callRpc(getErizoQueue(publisher_id), "removeExternalOutput", args, undefined);
+            var args = [publisherId, url];
+            amqper.callRpc(getErizoQueue(publisherId), 'removeExternalOutput', args, undefined);
 
             // Remove track
             delete externalOutputs[url];
@@ -240,12 +151,8 @@ exports.RoomController = function (spec) {
     that.processSignaling = function (streamId, peerId, msg) {
 
         if (publishers[streamId] !== undefined) {
-
-//            log.info("Sending signaling mess to erizoJS of st ", streamId, ' of peer ', peerId);
-
             var args = [streamId, peerId, msg];
-
-            amqper.callRpc(getErizoQueue(streamId), "processSignaling", args, {});
+            amqper.callRpc(getErizoQueue(streamId), 'processSignaling', args, {});
 
         }
     };
@@ -255,35 +162,75 @@ exports.RoomController = function (spec) {
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
-    that.addPublisher = function (publisher_id, options, callback) {
+    that.addPublisher = function (publisherId, options, callback, retries) {
+        if (retries === undefined) {
+            retries = 0;
+        }
 
-        if (publishers[publisher_id] === undefined) {
+        if (publishers[publisherId] === undefined) {
 
-            log.info("Adding publisher peer_id ", publisher_id, "minVideoBW", options.minVideoBW);
+            log.info('message: addPublisher, ' +
+                     'streamId: ' + publisherId + ', ' +
+                     logger.objectToLog(options) + ', ' +
+                     logger.objectToLog(options.metadata));
 
-            // We create a new ErizoJS with the publisher_id.
-            getErizoJS(function(erizo_id) {
+            // We create a new ErizoJS with the publisherId.
+            getErizoJS(function(erizoId, agentId) {
 
-                if (erizo_id === 'timeout') {
-                    log.error('No Agents Available');
-                    callback('timeout');
+                if (erizoId === 'timeout') {
+                    log.error('message: addPublisher ErizoAgent timeout, streamId: ' +
+                              publisherId + ', ' + logger.objectToLog(options.metadata));
+                    callback('timeout-agent');
                     return;
                 }
-            	log.info("Got Erizo to publish in", erizo_id);
+                log.info('message: addPublisher erizoJs assigned, ' +
+                        'erizoId: ' + erizoId + ', streamId: ', publisherId +
+                         ', ' + logger.objectToLog(options.metadata));
                 // Track publisher locally
-                publishers[publisher_id] = erizo_id;
-                subscribers[publisher_id] = [];
-                
                 // then we call its addPublisher method.
-                var args = [publisher_id, options];
-                //TODO: Possible race condition if we got an old id
-                amqper.callRpc(getErizoQueue(publisher_id), "addPublisher", args, {callback: callback});
+                var args = [publisherId, options];
+                publishers[publisherId] = erizoId;
+                subscribers[publisherId] = [];
 
-                erizos[erizo_id].publishers.push(publisher_id);
+                amqper.callRpc(getErizoQueue(publisherId), 'addPublisher', args,
+                              {callback: function (data){
+                    if (data === 'timeout'){
+                        if (retries < MAX_ERIZOJS_RETRIES){
+                            log.warn('message: addPublisher ErizoJS timeout, ' +
+                                     'streamId: ' + publisherId + ', ' +
+                                     'erizoId: ' + getErizoQueue(publisherId) + ', ' +
+                                     'retries: ' + retries + ', ' +
+                                     logger.objectToLog(options.metadata));
+                            publishers[publisherId] = undefined;
+                            retries++;
+                            that.addPublisher(publisherId, options, callback, retries);
+                            return;
+                        }
+                        log.warn('message: addPublisher ErizoJS timeout no retry, ' +
+                                 'streamId: ' + publisherId + ', ' +
+                                 'erizoId: ' + getErizoQueue(publisherId) + ', ' +
+                                 logger.objectToLog(options.metadata));
+                        var erizo = erizos[publishers[publisherId]];
+                        if (erizo !== undefined) {
+                           var index = erizo.publishers.indexOf(publisherId);
+                           erizo.publishers.splice(index, 1);
+                        }
+                        callback('timeout-erizojs');
+                        return;
+                    } else {
+                        if (data.type === 'initializing') {
+                            data.agentId = agentId;
+                        }
+                        callback(data);
+                    }
+                }});
+
+                erizos[erizoId].publishers.push(publisherId);
             });
 
         } else {
-            log.info("Publisher already set for", publisher_id);
+            log.warn('message: addPublisher already set, streamId: ' + publisherId +
+                     ', ' + logger.objectToLog(options.metadata));
         }
     };
 
@@ -292,109 +239,156 @@ exports.RoomController = function (spec) {
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
      */
-    that.addSubscriber = function (subscriber_id, publisher_id, options, callback) {
-        if (subscriber_id === null){
-          callback("Error: null subscriber_id");
+    that.addSubscriber = function (subscriberId, publisherId, options, callback, retries) {
+        if (subscriberId === null){
+          callback('Error: null subscriberId');
           return;
         }
+        if (retries === undefined)
+            retries = 0;
 
-        if (publishers[publisher_id] !== undefined && subscribers[publisher_id].indexOf(subscriber_id) === -1) {
-            log.info("Adding subscriber ", subscriber_id, ' to publisher ', publisher_id, "options", options);
-            
+        if (publishers[publisherId] !== undefined &&
+            subscribers[publisherId].indexOf(subscriberId) === -1) {
+            log.info('message: addSubscriber, ' +
+                     'streamId: ' + publisherId + ', ' +
+                     'clientId: ' + subscriberId + ', ' +
+                     logger.objectToLog(options) + ', ' +
+                     logger.objectToLog(options.metadata));
 
-//            if (true){
+            if (options.audio === undefined) options.audio = true;
+            if (options.video === undefined) options.video = true;
 
-                if (options.audio === undefined) options.audio = true;
-                if (options.video === undefined) options.video = true;
+            var args = [subscriberId, publisherId, options];
 
-                var args = [subscriber_id, publisher_id, options];
-
-                subscribers[publisher_id].push(subscriber_id);
-                amqper.callRpc(getErizoQueue(publisher_id, undefined), "addSubscriber", args, {callback: callback});
-/*            }else{ // Prototype for erizo_trees
-                shouldAddSurrogate (publisher_id, subscriber_id, options, function(new_id){
-                    log.info("Surrogate ?", new_id);
-
-                    if (options.audio === undefined) options.audio = true;
-                    if (options.video === undefined) options.video = true;
-
-                    var args = [subscriber_id, publisher_id, options];
-
-                    subscribers[publisher_id].push({id:subscriber_id, surrogate:new_id});
-                    amqper.callRpc(getErizoQueue(publisher_id, subscriber_id), "addSubscriber", args, {callback: callback});
-                    // Track subscriber locally
-                });
-                
-
-            }
-            */
+            amqper.callRpc(getErizoQueue(publisherId, undefined), 'addSubscriber', args,
+                           {callback: function (data){
+                if (!publishers[publisherId] && !subscribers[publisherId]){
+                    log.warn('message: addSubscriber rpc callback has arrived after ' +
+                             'publisher is removed, ' +
+                             'streamId: ' + publisherId + ', ' +
+                             'clientId: ' + subscriberId + ', ' +
+                             logger.objectToLog(options.metadata));
+                    callback('timeout');
+                    return;
+                }
+                if (data === 'timeout'){
+                    if (retries < MAX_ERIZOJS_RETRIES){
+                        retries++;
+                        log.warn('message: addSubscriber ErizoJS timeout, ' +
+                                 'clientId: ' + subscriberId + ', ' +
+                                 'streamId: ' + publisherId + ', ' +
+                                 'erizoId: ' + getErizoQueue(publisherId) + ', ' +
+                                 'retries: ' + retries + ', ' +
+                                 logger.objectToLog(options.metadata));
+                        that.addSubscriber(subscriberId, publisherId, options, callback, retries);
+                        return;
+                    }
+                    log.warn('message: addSubscriber ErizoJS timeout no retry, ' +
+                             'clientId: ' + subscriberId + ', ' +
+                             'streamId: ' + publisherId + ', ' +
+                             'erizoId: ' + getErizoQueue(publisherId) + ', ' +
+                             logger.objectToLog(options.metadata));
+                    callback('timeout');
+                    return;
+                }else if (data.type === 'initializing'){
+                    subscribers[publisherId].push(subscriberId);
+                }
+                callback(data);
+            }});
         }
     };
 
     /*
      * Removes a publisher from the room. This also deletes the associated OneToManyProcessor.
      */
-    that.removePublisher = function (publisher_id) {
+    that.removePublisher = function (publisherId) {
 
-        if (subscribers[publisher_id] !== undefined && publishers[publisher_id]!== undefined) {
+        if (subscribers[publisherId] !== undefined && publishers[publisherId]!== undefined) {
+            log.info('message: removePublisher, ' +
+                     'publisherId: ' + publisherId + ', ' +
+                     'erizoId: ' + getErizoQueue(publisherId));
 
-            var args = [publisher_id];
-            amqper.callRpc(getErizoQueue(publisher_id), "removePublisher", args, undefined);
+            var args = [publisherId];
+            amqper.callRpc(getErizoQueue(publisherId), 'removePublisher', args, undefined);
 
-            // Remove tracks
-            // TODO: Remove all surrogates
-            var index = erizos[publishers[publisher_id]].publishers.indexOf(publisher_id);
-            erizos[publishers[publisher_id]].publishers.splice(index, 1);
+            if (erizos[publishers[publisherId]] !== undefined) {
+                var index = erizos[publishers[publisherId]].publishers.indexOf(publisherId);
+                erizos[publishers[publisherId]].publishers.splice(index, 1);
+            } else {
+                log.warn('message: removePublisher was already removed, ' +
+                         'publisherId: ' + publisherId + ', ' +
+                         'erizoId: ' + getErizoQueue(publisherId));
+            }
 
-            log.info('Removing subscribers', publisher_id);
-            delete subscribers[publisher_id];
-            log.info('Removing publisher', publisher_id);
-            delete publishers[publisher_id];
-            log.info('Removed all');
-            log.info('Removing muxer', publisher_id, ' muxers left ', Object.keys(publishers).length );
+            delete subscribers[publisherId];
+            delete publishers[publisherId];
+            log.debug('message: removedPublisher, ' +
+                      'publisherId: ' + publisherId + ', ' +
+                      'publishersLeft: ' + Object.keys(publishers).length );
         }
     };
 
     /*
-     * Removes a subscriber from the room. This also removes it from the associated OneToManyProcessor.
+     * Removes a subscriber from the room.
+     * This also removes it from the associated OneToManyProcessor.
      */
-    that.removeSubscriber = function (subscriber_id, publisher_id) {
+    that.removeSubscriber = function (subscriberId, publisherId) {
+        if(subscribers[publisherId]!==undefined){
+            var index = subscribers[publisherId].indexOf(subscriberId);
+            if (index !== -1) {
+                log.info('message: removeSubscriber, ' +
+                         'clientId: ' + subscriberId + ', ' +
+                         'streamId: ' + publisherId);
 
-        var index = subscribers[publisher_id].indexOf(subscriber_id);
-        if (index !== -1) {
-            log.info('Removing subscriber ', subscriber_id, 'to muxer ', publisher_id);
+                var args = [subscriberId, publisherId];
+                amqper.callRpc(getErizoQueue(publisherId), 'removeSubscriber', args, undefined);
 
-            var args = [subscriber_id, publisher_id];
-            amqper.callRpc(getErizoQueue(publisher_id), "removeSubscriber", args, undefined);
-
-            // Remove track
-            subscribers[publisher_id].splice(index, 1);
+                subscribers[publisherId].splice(index, 1);
+            }
+        } else {
+            log.warn('message: removeSubscriber not found, ' +
+                     'clientId: ' + subscriberId + ', ' +
+                     'streamId: ' + publisherId);
         }
     };
 
     /*
      * Removes all the subscribers related with a client.
      */
-    that.removeSubscriptions = function (subscriber_id) {
+    that.removeSubscriptions = function (subscriberId) {
 
-        var publisher_id, index;
+        var publisherId, index;
 
-        log.info('Removing subscriptions of ', subscriber_id);
+        log.info('message: removeSubscriptions, clientId: ' + subscriberId);
 
 
-        for (publisher_id in subscribers) {
-            if (subscribers.hasOwnProperty(publisher_id)) {
-                index = subscribers[publisher_id].indexOf(subscriber_id);
+        for (publisherId in subscribers) {
+            if (subscribers.hasOwnProperty(publisherId)) {
+                index = subscribers[publisherId].indexOf(subscriberId);
                 if (index !== -1) {
-                    log.info('Removing subscriber ', subscriber_id, 'to muxer ', publisher_id);
+                    log.debug('message: removeSubscriptions, ' +
+                              'clientId: ' + subscriberId + ', ' +
+                              'streamId: ' + publisherId);
 
-                    var args = [subscriber_id, publisher_id];
-            		amqper.callRpc(getErizoQueue(publisher_id), "removeSubscriber", args, undefined);
+                    var args = [subscriberId, publisherId];
+            		amqper.callRpc(getErizoQueue(publisherId), 'removeSubscriber', args, undefined);
 
             		// Remove tracks
-                    subscribers[publisher_id].splice(index, 1);
+                    subscribers[publisherId].splice(index, 1);
                 }
             }
+        }
+    };
+
+    that.getStreamStats = function (streamId, callback) {
+        if (publishers[streamId]) {
+            var args = [streamId]
+            var theId = getErizoQueue(streamId);
+            log.info('Get stats for publisher ', streamId, 'theId', theId);
+            amqper.callRpc(getErizoQueue(streamId), 'getStreamStats', args, {callback: function(data) {
+                callback(data);
+            }});
+            return;
         }
     };
 

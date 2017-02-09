@@ -1,27 +1,21 @@
-/*global exports, require, console, Buffer*/
-var roomRegistry = require('./../mdb/roomRegistry');
+/*global exports, require*/
+'use strict';
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var cloudHandler = require('../cloudHandler');
 
 var logger = require('./../logger').logger;
 
 // Logger
-var log = logger.getLogger("UsersResource");
-
-var currentService;
-var currentRoom;
+var log = logger.getLogger('UsersResource');
 
 /*
  * Gets the service and the room for the proccess of the request.
  */
-var doInit = function (roomId, callback) {
-    "use strict";
+var doInit = function (req, callback) {
+    var currentService = req.service;
 
-    currentService = require('./../auth/nuveAuthenticator').service;
-
-    serviceRegistry.getRoomForService(roomId, currentService, function (room) {
-        currentRoom = room;
-        callback();
+    serviceRegistry.getRoomForService(req.params.room, currentService, function (room) {
+        callback(currentService, room);
     });
 
 };
@@ -30,23 +24,22 @@ var doInit = function (roomId, callback) {
  * Get Users. Represent a list of users of a determined room. This is consulted to cloudHandler.
  */
 exports.getList = function (req, res) {
-    "use strict";
-
-    doInit(req.params.room, function () {
+    doInit(req, function (currentService, currentRoom) {
 
         if (currentService === undefined) {
-            res.send('Service not found', 404);
+            res.status(404).send('Service not found');
             return;
         } else if (currentRoom === undefined) {
-            log.info('Room ', req.params.room, ' does not exist');
-            res.send('Room does not exist', 404);
+            log.info('message: getUserList - room not found, roomId: ' + req.params.room);
+            res.status(404).send('Room does not exist');
             return;
         }
 
-        log.info('Representing users for room ', currentRoom._id, 'and service', currentService._id);
-        cloudHandler.getUsersInRoom (currentRoom._id, function (users) {
-            if (users === 'error') {
-                res.send('CloudHandler does not respond', 401);
+        log.info('message: getUsersList success, roomId: ' + currentRoom._id +
+                 ', serviceId: ' + currentService._id);
+        cloudHandler.getUsersInRoom(currentRoom._id, function (users) {
+            if (users === 'timeout') {
+                res.status(503).send('Erizo Controller managing this room does not respond');
                 return;
             }
             res.send(users);

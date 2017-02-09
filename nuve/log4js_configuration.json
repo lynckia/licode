@@ -1,6 +1,6 @@
 {
   "appenders": [
-    { 
+    {
       "type": "console",
       "layout": {
         "type": "pattern",
@@ -10,7 +10,22 @@
     }
   ],
   "levels": {
-  	"ErizoController": "INFO",
-  	"RPC": "INFO"
+    "AMQPER": "ERROR",
+  	"MAuthParser": "ERROR",
+  	"NuveAuthenticator": "ERROR",
+    "CloudHandler": "INFO",
+    "DataBase": "ERROR",
+    "RoomRegistry": "ERROR",
+    "ServiceRegistry": "ERROR",
+    "TokenRegistry": "ERROR",
+    "RoomResource": "ERROR",
+    "RoomsResource": "ERROR",
+    "ServiceResource": "ERROR",
+    "ServicesResource": "ERROR",
+    "TokenResource": "ERROR",
+    "TokensResource": "ERROR",
+    "Nuve": "INFO",
+    "RPC": "ERROR",
+    "RPCPublic": "INFO"
   }
 }

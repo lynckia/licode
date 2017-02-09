@@ -1,7 +1,7 @@
-#ifndef EXTERNALOUTPUT_H
-#define EXTERNALOUTPUT_H
+#ifndef ERIZOAPI_EXTERNALOUTPUT_H_
+#define ERIZOAPI_EXTERNALOUTPUT_H_
 
-#include <node.h>
+#include <nan.h>
 #include <media/ExternalOutput.h>
 #include "MediaDefinitions.h"
 #include "WebRtcConnection.h"
@@ -13,30 +13,32 @@
  * Represents a OneToMany connection.
  * Receives media from one publisher and retransmits it to every subscriber.
  */
-class ExternalOutput: public node::ObjectWrap {
+class ExternalOutput: public MediaSink {
  public:
-  static void Init(v8::Handle<v8::Object> target);
-  erizo::ExternalOutput* me;
+    static NAN_MODULE_INIT(Init);
+    std::shared_ptr<erizo::ExternalOutput> me;
 
  private:
-  ExternalOutput();
-  ~ExternalOutput();
+    ExternalOutput();
+    ~ExternalOutput();
 
-  /*
-   * Constructor.
-   * Constructs a ExternalOutput
-   */
-  static v8::Handle<v8::Value> New(const v8::Arguments& args);
-  /*
-   * Closes the ExternalOutput.
-   * The object cannot be used after this call
-   */
-  static v8::Handle<v8::Value> close(const v8::Arguments& args);
-  /*
-   * Inits the ExternalOutput 
-   * Returns true ready
-   */
-  static v8::Handle<v8::Value> init(const v8::Arguments& args);  
+    /*
+     * Constructor.
+     * Constructs a ExternalOutput
+     */
+    static NAN_METHOD(New);
+    /*
+     * Closes the ExternalOutput.
+     * The object cannot be used after this call
+     */
+    static NAN_METHOD(close);
+    /*
+     * Inits the ExternalOutput
+     * Returns true ready
+     */
+    static NAN_METHOD(init);
+
+    static Nan::Persistent<v8::Function> constructor;
 };
 
-#endif
+#endif  // ERIZOAPI_EXTERNALOUTPUT_H_

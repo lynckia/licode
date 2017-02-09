@@ -1,16 +1,14 @@
 /**
  * VideoUtils.h
  */
-
-#ifndef VIDEOUTILS_H__
-#define VIDEOUTILS_H_
+#ifndef ERIZO_SRC_ERIZO_MEDIA_MIXERS_VIDEOUTILS_H_
+#define ERIZO_SRC_ERIZO_MEDIA_MIXERS_VIDEOUTILS_H_
 
 #include <boost/cstdint.hpp>
 
-#include "logger.h"
+#include "./logger.h"
 
 class VideoUtils{
-
   DECLARE_LOGGER();
 
   enum ImgFormat{
@@ -19,8 +17,7 @@ class VideoUtils{
     BGR24_FORMAT
   };
 
-  static  int
-    vRescale(unsigned char *inBuff,
+  static int vRescale(unsigned char *inBuff,
         unsigned int  inBuffLen,
         unsigned char *outBuff,
         unsigned int   outBuffLen,
@@ -28,11 +25,9 @@ class VideoUtils{
         unsigned int   inH,
         unsigned int   outW,
         unsigned int   outH,
-        uint32_t       format
-        );
+        uint32_t       format);
 
- static int
-    vPutImage(unsigned char *inBuff,
+  static int vPutImage(unsigned char *inBuff,
         unsigned int   inBuffLen,
         unsigned char *outBuff,
         unsigned int   outBuffLen,
@@ -46,11 +41,9 @@ class VideoUtils{
         unsigned int   totalH,
         uint32_t            format,
         unsigned char *mask = NULL,
-        bool           invertMask = false
-        );
+        bool           invertMask = false);
 
- static void
-    vSetMaskRect(unsigned char *mask,
+  static void vSetMaskRect(unsigned char *mask,
         unsigned int   W,
         unsigned int   H,
         unsigned int   posX,
@@ -58,11 +51,9 @@ class VideoUtils{
         unsigned int   totalW,
         unsigned int   totalH,
         bool           val,
-        uint32_t            format
-        );
+        uint32_t       format);
 
- static int
-    vSetMask(unsigned char *outBuff,
+  static int vSetMask(unsigned char *outBuff,
         unsigned       outBuffLen,
         unsigned char *mask,
         unsigned       W,
@@ -70,9 +61,6 @@ class VideoUtils{
         unsigned       totalW,
         unsigned       totalH,
         bool           val,
-        uint32_t            format
-        );
+        uint32_t       format);
 };
-
-#endif //_VIDEOUTILS_H_
-
+#endif  // ERIZO_SRC_ERIZO_MEDIA_MIXERS_VIDEOUTILS_H_

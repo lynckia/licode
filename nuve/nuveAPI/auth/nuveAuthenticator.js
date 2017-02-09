@@ -1,18 +1,16 @@
-/*global require, exports, console */
-var db = require('./../mdb/dataBase').db;
+/*global require, exports */
+'use strict';
 var serviceRegistry = require('./../mdb/serviceRegistry');
 var mauthParser = require('./mauthParser');
 
 var logger = require('./../logger').logger;
 
 // Logger
-var log = logger.getLogger("NuveAuthenticator");
+var log = logger.getLogger('NuveAuthenticator');
 
 var cache = {};
 
 var checkTimestamp = function (ser, params) {
-    "use strict";
-
     var lastParams = cache[ser.name],
         lastTS,
         newTS,
@@ -29,8 +27,8 @@ var checkTimestamp = function (ser, params) {
     newC = params.cnonce;
 
     if (newTS < lastTS || (lastTS === newTS && lastC === newC)) {
-        log.info('Last timestamp: ', lastTS, ' and new: ', newTS);
-        log.info('Last cnonce: ', lastC, ' and new: ', newC);
+        log.debug('message: checkTimestamp lastTimestamp: ' + lastTS + ', newTimestamp: ' + newTS +
+            ', lastCnonce: ' + lastC + ', newCnonce: ' + newC);
         return false;
     }
 
@@ -38,9 +36,7 @@ var checkTimestamp = function (ser, params) {
 };
 
 var checkSignature = function (params, key) {
-    "use strict";
-
-    if (params.signature_method !== 'HMAC_SHA1') {
+    if (params.signature_method !== 'HMAC_SHA1') {  // jshint ignore:line
         return false;
     }
 
@@ -54,13 +50,11 @@ var checkSignature = function (params, key) {
 };
 
 /*
- * This function has the logic needed for authenticate a nuve request. 
- * If the authentication success exports the service and the user and role (if needed). Else send back 
- * a response with an authentication request to the client.
+ * This function has the logic needed for authenticate a nuve request.
+ * If the authentication success exports the service and the user and role (if needed).
+ * Else send back a response with an authentication request to the client.
  */
 exports.authenticate = function (req, res, next) {
-    "use strict";
-
     var authHeader = req.header('Authorization'),
         challengeReq = 'MAuth realm="http://marte3.dit.upm.es"',
         params;
@@ -72,7 +66,8 @@ exports.authenticate = function (req, res, next) {
         // Get the service from the data base.
         serviceRegistry.getService(params.serviceid, function (serv) {
             if (serv === undefined || serv === null) {
-                log.info('[Auth] Unknow service:', params.serviceid);
+                log.info('message: authenticate fail - unknown service, serviceId: ' +
+                    params.serviceid);
                 res.status(401).send({'WWW-Authenticate': challengeReq});
                 return;
             }
@@ -81,27 +76,27 @@ exports.authenticate = function (req, res, next) {
 
             // Check if timestam and cnonce are valids in order to avoid duplicate requests.
             if (!checkTimestamp(serv, params)) {
-                log.info('[Auth] Invalid timestamp or cnonce');
+                log.info('message: authenticate fail - Invalid timestamp or cnonce');
                 res.status(401).send({'WWW-Authenticate': challengeReq});
                 return;
             }
 
-            // Check if the signature is valid. 
+            // Check if the signature is valid.
             if (checkSignature(params, key)) {
 
                 if (params.username !== undefined && params.role !== undefined) {
-                    exports.user = params.username;
-                    exports.role = params.role;
+                    req.user = params.username;
+                    req.role = params.role;
                 }
 
                 cache[serv.name] =  params;
-                exports.service = serv;
+                req.service = serv;
 
                 // If everything in the authentication is valid continue with the request.
                 next();
 
             } else {
-                log.info('[Auth] Wrong credentials');
+                log.info('message: authenticate fail - wrong credentials');
                 res.status(401).send({'WWW-Authenticate': challengeReq});
                 return;
             }
@@ -109,7 +104,7 @@ exports.authenticate = function (req, res, next) {
         });
 
     } else {
-        log.info('[Auth] MAuth header not presented');
+        log.info('message: authenticate fail - MAuth header not present');
         res.status(401).send({'WWW-Authenticate': challengeReq});
         return;
     }

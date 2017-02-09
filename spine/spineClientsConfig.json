@@ -1,0 +1,24 @@
+{
+  "basicExampleUrl": "https://localhost/",
+  "publishConfig" : {
+    "_video":{"file":"file:///YOUR_LICODE_COMPATIBLE_TEST_FILE"},
+    "video":{"synthetic":{"audioBitrate": 30000,
+             "minVideoBitrate": 10000,
+             "maxVideoBitrate": 300000}},
+    "audio":true,
+    "data":true
+  },
+  "subscribeConfig" : {
+    "video":{
+      "recording":"file///YOUR_DESTINATION_FOR_RECORDING"
+    },
+    "video": true,
+    "audio": true,
+    "data": true
+  },
+  "numPublishers": 0,
+  "numSubscribers" : 1,
+  "publishersAreSubscribers" : true,
+  "connectionCreationInterval" : 500
+
+}

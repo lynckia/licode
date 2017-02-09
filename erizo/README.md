@@ -1,9 +1,9 @@
-# Erizo, a C/C++ Multipoint Control Unit (MCU) Library for WebRTC 
+# Erizo, a C/C++ Multipoint Control Unit (MCU) Library for WebRTC
 *Warning: This is the 'media' branch, it is highly unstable*
 
 Erizo is a project that aims to implement a library able to communicate with WebRTC (http://www.webrtc.org) browser clients in order to provide advanced communication services. Currently it is tested on Ubuntu 11.10 and above but it should be able to be compiled on other distributions.
 
-Updated code documentation can be found at http://ging.github.com/erizo 
+Updated code documentation can be found at http://ging.github.com/erizo
 
 ## Directory structure
 
@@ -13,22 +13,22 @@ Updated code documentation can be found at http://ging.github.com/erizo
 
 ## Requirements
 
-- CMake >= 2.8 
+- CMake >= 2.8
 - libSRTP version >= 1.4.4
 - Libnice version >= 1.10
 - boost_threads >= 1.48
 - boost_regex >= 1.48 (optional, only for examples)
 - boost_asio >= 1.48 (optional, only for examples)
 - boost_system >= 1.48 (optional, only for examples)
- 
+
 ## Building Instructions
 
 This project is built using CMake.
 
 The easiest way to build it is to use the provided scripts:
 - Run ./generateProject.sh to run cmake, test the dependencies and generate the Makefile.
-- Run ./buildProyect.sh to build the project after generating the Makefile. It simply runs make in the build directory.
-- Run ./generateEclipseProyect.sh to generate an Eclipse CDT project which can be imported and used to work with the code.
+- Run ./buildProject.sh to build the project after generating the Makefile. It simply runs make in the build directory.
+- Run ./generateEclipseProject.sh to generate an Eclipse CDT project which can be imported and used to work with the code.
 
 If doxygen is availabe a "doc" target is generated. HTML documentation can be built by running "make doc" in the build directory.
 

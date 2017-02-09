@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -e
 
 if [ -d $LIB_DIR ]; then
 	rm -rf ../build
@@ -19,4 +21,4 @@ echo '*/' >> $TARGET
 # Body
 echo "var io = require('socket.io-client');" >> $TARGET
 cat ../build/erizofc.js >> $TARGET
-echo 'module.exports = Erizo;' >> $TARGET
+echo 'module.exports = {Erizo: Erizo, L:L};' >> $TARGET
