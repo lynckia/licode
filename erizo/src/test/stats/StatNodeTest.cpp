@@ -80,3 +80,13 @@ TEST_F(StatNodeTest, shouldWriteAJsonWithRateStats) {
 
   EXPECT_THAT(root.toString(), Eq("{\"rate\":10}"));
 }
+
+TEST_F(StatNodeTest, rateStatsShouldReturnZeroWhenNotIncreasing) {
+  root.insertStat("rate", RateStat{std::chrono::seconds(1), 1. / 8., clock});
+  root["rate"] += 10 * 8;
+  advanceClockMs(1000);
+  EXPECT_THAT(root.toString(), Eq("{\"rate\":10}"));
+
+  advanceClockMs(1000);
+  EXPECT_THAT(root.toString(), Eq("{\"rate\":0}"));
+}

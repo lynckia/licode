@@ -83,7 +83,7 @@ class CumulativeStat : public StatNode {
 
 class RateStat : public StatNode {
  public:
-  RateStat(duration period, double rate_factor,
+  RateStat(duration period, double scale,
                      std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
   ~RateStat() {}
 
@@ -101,7 +101,7 @@ class RateStat : public StatNode {
 
  private:
   duration period_;
-  double rate_factor_;
+  double scale_;
   time_point calculation_start_;
   uint64_t last_;
   uint64_t total_;

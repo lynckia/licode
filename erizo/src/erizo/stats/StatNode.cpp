@@ -61,8 +61,8 @@ StatNode& CumulativeStat::operator+=(uint64_t value) {
   return *this;
 }
 
-RateStat::RateStat(duration period, double rate_factor, std::shared_ptr<Clock> the_clock)
-  : period_{period}, rate_factor_{rate_factor}, calculation_start_{the_clock->now()}, last_{0},
+RateStat::RateStat(duration period, double scale, std::shared_ptr<Clock> the_clock)
+  : period_{period}, scale_{scale}, calculation_start_{the_clock->now()}, last_{0},
     total_{0}, current_period_total_{0}, last_period_calculated_rate_{0}, clock_{the_clock} {
 }
 
@@ -98,7 +98,7 @@ void RateStat::checkPeriod() {
   time_point now = clock_->now();
   duration delay = now - calculation_start_;
   if (delay >= period_) {
-    last_period_calculated_rate_ = rate_factor_ * current_period_total_ * 1000. / ClockUtils::durationToMs(delay);
+    last_period_calculated_rate_ = scale_ * current_period_total_ * 1000. / ClockUtils::durationToMs(delay);
     current_period_total_ = 0;
     calculation_start_ = now;
   }
