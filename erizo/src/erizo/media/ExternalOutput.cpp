@@ -326,17 +326,17 @@ void ExternalOutput::writeVideoData(char* buf, int len) {
     }
 }
 
-int ExternalOutput::deliverAudioData_(char* buf, int len) {
-  this->queueData(buf, len, AUDIO_PACKET);
+int ExternalOutput::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
+  this->queueData(audio_packet->data, audio_packet->length, AUDIO_PACKET);
   return 0;
 }
 
-int ExternalOutput::deliverVideoData_(char* buf, int len) {
+int ExternalOutput::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
   if (videoSourceSsrc_ == 0) {
-    RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
+    RtpHeader* h = reinterpret_cast<RtpHeader*>(video_packet->data);
     videoSourceSsrc_ = h->getSSRC();
   }
-  this->queueData(buf, len, VIDEO_PACKET);
+  this->queueData(video_packet->data, video_packet->length, VIDEO_PACKET);
   return 0;
 }
 
@@ -480,7 +480,8 @@ int ExternalOutput::sendFirPacket() {
       thePLI.setLength(2);
       char *buf = reinterpret_cast<char*>(&thePLI);
       int len = (thePLI.getLength() + 1) * 4;
-      fbSink_->deliverFeedback(reinterpret_cast<char*>(buf), len);
+      std::shared_ptr<dataPacket> pli_packet = std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET);
+      fbSink_->deliverFeedback(pli_packet);
       return len;
     }
     return -1;

@@ -14,7 +14,6 @@
 
 using erizo::Resender;
 using erizo::DtlsTransport;
-using erizo::packetPtr;
 using dtls::DtlsSocketContext;
 
 DEFINE_LOGGER(DtlsTransport, "DtlsTransport");

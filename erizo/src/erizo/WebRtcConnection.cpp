@@ -343,42 +343,44 @@ void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transpo
   }
 }
 
-int WebRtcConnection::deliverAudioData_(char* buf, int len) {
+int WebRtcConnection::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
   if (bundle_) {
     if (videoTransport_.get() != NULL) {
       if (audioEnabled_ == true) {
-        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET));
+        sendPacketAsync(audio_packet);
       }
     }
   } else if (audioTransport_.get() != NULL) {
     if (audioEnabled_ == true) {
-        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET));
+        sendPacketAsync(audio_packet);
     }
   }
-  return len;
+  return audio_packet->length;
 }
 
-int WebRtcConnection::deliverVideoData_(char* buf, int len) {
+int WebRtcConnection::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
   if (videoTransport_.get() != NULL) {
     if (videoEnabled_ == true) {
-      sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
+      sendPacketAsync(video_packet);
     }
   }
-  return len;
+  return video_packet->length;
 }
 
-int WebRtcConnection::deliverFeedback_(char* buf, int len) {
-  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
+int WebRtcConnection::deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) {
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(fb_packet->data);
   uint32_t recvSSRC = chead->getSourceSSRC();
   if (recvSSRC == this->getVideoSourceSSRC()) {
-    sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
+    fb_packet->type = VIDEO_PACKET;
+    sendPacketAsync(fb_packet);
   } else if (recvSSRC == this->getAudioSourceSSRC()) {
-    sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET));
+    fb_packet->type = AUDIO_PACKET;
+    sendPacketAsync(fb_packet);
   } else {
     ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                 toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
   }
-  return len;
+  return fb_packet->length;
 }
 
 void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Transport *transport) {
@@ -427,7 +429,7 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
   // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
   if (chead->isFeedback()) {
     if (fbSink_ != NULL && shouldSendFeedback_) {
-      fbSink_->deliverFeedback(buf, len);
+      fbSink_->deliverFeedback(packet);
     }
   } else {
     // RTP or RTCP Sender Report
@@ -436,10 +438,10 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
       // Deliver data
       if (recvSSRC == this->getVideoSourceSSRC()) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
-        videoSink_->deliverVideoData(buf, len);
+        videoSink_->deliverVideoData(packet);
       } else if (recvSSRC == this->getAudioSourceSSRC()) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
-        audioSink_->deliverAudioData(buf, len);
+        audioSink_->deliverAudioData(packet);
       } else {
         ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                     toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
@@ -452,7 +454,7 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
           ELOG_DEBUG("%s discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
           this->setAudioSourceSSRC(recvSSRC);
         }
-        audioSink_->deliverAudioData(buf, len);
+        audioSink_->deliverAudioData(packet);
       } else if (packet->type == VIDEO_PACKET && videoSink_ != NULL) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         // Firefox does not send SSRC in SDP
@@ -461,7 +463,7 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
           this->setVideoSourceSSRC(recvSSRC);
         }
         // change ssrc for RTP packets, don't touch here if RTCP
-        videoSink_->deliverVideoData(buf, len);
+        videoSink_->deliverVideoData(packet);
       }
     }  // if not bundle
   }  // if not Feedback
@@ -731,7 +733,7 @@ void WebRtcConnection::sendPacket(std::shared_ptr<dataPacket> p) {
   uint32_t partial_bitrate = 0;
   uint64_t sentVideoBytes = 0;
   uint64_t lastSecondVideoBytes = 0;
-
+  ELOG_DEBUG("Trying to send %u", p->length);
   if (rateControl_ && !slide_show_mode_) {
     if (p->type == VIDEO_PACKET) {
       if (rateControl_ == 1) {
