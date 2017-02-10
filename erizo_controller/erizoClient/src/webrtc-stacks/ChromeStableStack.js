@@ -66,6 +66,64 @@ Erizo.ChromeStableStack = function (spec) {
         return sdp;
     };
 
+    var enableSimulcast = function (sdp) {
+        var r, a, b;
+        if (spec.video) {
+            sdp = sdp.replace(/b=AS:.*\r\n/g, '');
+            a = sdp.match(/a=ssrc-group:FID ([0-9]*) ([0-9]*)\r?\n/);
+            if (a && (a.length > 0)) {
+                var cname = sdp.match(new RegExp('a=ssrc:'+a[1]+ ' cname:(.*)\r?\n'))[1];
+                var msid = sdp.match(new RegExp('a=ssrc:'+a[1]+ ' msid:(.*)\r?\n'))[1];
+                var mslabel = sdp.match(new RegExp('a=ssrc:'+a[1]+ ' mslabel:(.*)\r?\n'))[1];
+                var label = sdp.match(new RegExp('a=ssrc:'+a[1]+ ' label:(.*)\r?\n'))[1];
+
+                sdp.match(new RegExp('a=ssrc:'+a[1]+'.*\r?\n', 'g')).forEach(function(line) {
+                  sdp = sdp.replace(line, '');
+                });
+                sdp.match(new RegExp('a=ssrc:'+a[2]+'.*\r?\n', 'g')).forEach(function(line) {
+                  sdp = sdp.replace(line, '');
+                });
+                r = 'a=ssrc-group:SIM 1000 2000 3000\r\n' +
+                    'a=ssrc-group:FID 1000 1001\r\n' +
+                    'a=ssrc-group:FID 2000 2002\r\n' +
+                    'a=ssrc-group:FID 3000 3003\r\n' +
+
+                    'a=ssrc:1000 cname:' + cname +'\r\n' +
+                    'a=ssrc:1000 msid:' + msid + '\r\n' +
+                    'a=ssrc:1000 mslabel:' + mslabel + '\r\n' +
+                    'a=ssrc:1000 label:' + label + '\r\n' +
+                    'a=ssrc:1001 cname:' + cname +'\r\n' +
+                    'a=ssrc:1001 msid:' + msid + '\r\n' +
+                    'a=ssrc:1001 mslabel:' + mslabel + '\r\n' +
+                    'a=ssrc:1001 label:' + label + '\r\n' +
+
+                    'a=ssrc:2000 cname:' + cname +'\r\n' +
+                    'a=ssrc:2000 msid:' + msid + '\r\n' +
+                    'a=ssrc:2000 mslabel:' + mslabel + '\r\n' +
+                    'a=ssrc:2000 label:' + label + '\r\n' +
+                    'a=ssrc:2002 cname:' + cname +'\r\n' +
+                    'a=ssrc:2002 msid:' + msid + '\r\n' +
+                    'a=ssrc:2002 mslabel:' + mslabel + '\r\n' +
+                    'a=ssrc:2002 label:' + label + '\r\n' +
+
+                    'a=ssrc:3000 cname:' + cname +'\r\n' +
+                    'a=ssrc:3000 msid:' + msid + '\r\n' +
+                    'a=ssrc:3000 mslabel:' + mslabel + '\r\n' +
+                    'a=ssrc:3000 label:' + label + '\r\n' +
+                    'a=ssrc:3003 cname:' + cname +'\r\n' +
+                    'a=ssrc:3003 msid:' + msid + '\r\n' +
+                    'a=ssrc:3003 mslabel:' + mslabel + '\r\n' +
+                    'a=ssrc:3003 label:' + label + '\r\n' +
+
+                    'a=x-google-flag:conference\r\n';
+                console.log(a[1], a[2]);
+                sdp = sdp.replace(a[0], r);
+
+            }
+        }
+        return sdp;
+    };
+
     var enableOpusNacks = function (sdp) {
         var sdpMatch;
         sdpMatch = sdp.match(/a=rtpmap:(.*)opus.*\r\n/);
@@ -140,6 +198,8 @@ Erizo.ChromeStableStack = function (spec) {
     var remoteDesc;
 
     var setLocalDesc = function (sessionDescription) {
+        console.log(sessionDescription.sdp);
+        sessionDescription.sdp = enableSimulcast(sessionDescription.sdp);
         sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
         sessionDescription.sdp = enableOpusNacks(sessionDescription.sdp);
         sessionDescription.sdp = sessionDescription.sdp.replace(/a=ice-options:google-ice\r\n/g,
