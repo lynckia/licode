@@ -36,7 +36,6 @@ using std::queue;
 class SenderBandwidthEstimationHandlerTest : public erizo::HandlerTest {
  public:
   SenderBandwidthEstimationHandlerTest() {}
-
  protected:
   void setHandler() {
     sender_estimator_handler = std::make_shared<SenderBandwidthEstimationHandler>();
@@ -47,6 +46,8 @@ class SenderBandwidthEstimationHandlerTest : public erizo::HandlerTest {
 
   std::shared_ptr<SenderBandwidthEstimationHandler> sender_estimator_handler;
   std::shared_ptr<MockSenderBandwidthEstimationListener>  bandwidth_listener;
+  const uint32_t kArbitrarySsrc = 32;
+  const uint64_t kArbitraryNtpTimestamp = 493248028403924389;
 };
 
 TEST_F(SenderBandwidthEstimationHandlerTest, basicBehaviourShouldReadPackets) {
@@ -68,8 +69,6 @@ TEST_F(SenderBandwidthEstimationHandlerTest, basicBehaviourShouldWritePackets) {
 }
 
 TEST_F(SenderBandwidthEstimationHandlerTest, shouldProvideEstimateOnCorrespondingReceiverReport) {
-    const uint32_t kArbitrarySsrc = 32;
-    const uint64_t kArbitraryNtpTimestamp = 493248028403924389;
     const uint32_t kMiddle32BitsFromArbitraryNtpTimestamp = 1584918317;
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
     auto sr_packet = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET,
@@ -87,8 +86,6 @@ TEST_F(SenderBandwidthEstimationHandlerTest, shouldProvideEstimateOnCorrespondin
 }
 
 TEST_F(SenderBandwidthEstimationHandlerTest, shouldNotProvideEstimateOnNonCorrespondingReceiverReport) {
-    const uint32_t kArbitrarySsrc = 32;
-    const uint64_t kArbitraryNtpTimestamp = 493248028403924389;
     const uint32_t kArbitraryMiddle32BitsNTP = 49;
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
     auto sr_packet = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET,

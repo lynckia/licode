@@ -133,7 +133,6 @@ void SenderBandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<dataP
 void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {
   uint64_t now = ClockUtils::timePointToMs(clock::now());
   uint32_t ntp;
-  uint64_t total_ntp = chead->getNtpTimestamp();
   ntp = chead->get32MiddleNtp();
   ELOG_DEBUG("%s message: adding incoming SR to list, ntp: %u", connection_->toLog(), ntp);
   sr_delay_data_.push_back(std::shared_ptr<SrDelayData>( new SrDelayData(ntp, now)));
