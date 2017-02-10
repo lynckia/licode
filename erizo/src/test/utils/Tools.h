@@ -47,13 +47,15 @@ class PacketTools {
   }
 
   static std::shared_ptr<dataPacket> createReceiverReport(uint ssrc, uint source_ssrc,
-                                                          uint16_t highest_seq_num, packetType type) {
+                                                          uint16_t highest_seq_num, packetType type,
+                                                          uint32_t last_sender_report = 0) {
     erizo::RtcpHeader *receiver_report = new erizo::RtcpHeader();
     receiver_report->setPacketType(RTCP_Receiver_PT);
     receiver_report->setBlockCount(1);
     receiver_report->setSSRC(ssrc);
     receiver_report->setSourceSSRC(source_ssrc);
     receiver_report->setHighestSeqnum(highest_seq_num);
+    receiver_report->setLastSr(last_sender_report);
     receiver_report->setLength(7);
     char *buf = reinterpret_cast<char*>(receiver_report);
     int len = (receiver_report->getLength() + 1) * 4;
@@ -61,12 +63,13 @@ class PacketTools {
   }
 
   static std::shared_ptr<dataPacket> createSenderReport(uint ssrc, packetType type,
-      uint32_t packets_sent = 0, uint32_t octets_sent = 0) {
+      uint32_t packets_sent = 0, uint32_t octets_sent = 0, uint64_t ntp_timestamp = 0) {
     erizo::RtcpHeader *sender_report = new erizo::RtcpHeader();
     sender_report->setPacketType(RTCP_Sender_PT);
     sender_report->setBlockCount(1);
     sender_report->setSSRC(ssrc);
     sender_report->setLength(4);
+    sender_report->setNtpTimestamp(ntp_timestamp);
     sender_report->setPacketsSent(packets_sent);
     sender_report->setOctetsSent(octets_sent);
     char *buf = reinterpret_cast<char*>(sender_report);
