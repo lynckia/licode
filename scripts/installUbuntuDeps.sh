@@ -235,14 +235,14 @@ parse_arguments $*
 
 mkdir -p $PREFIX_DIR
 
-#install_apt_deps
+install_apt_deps
 check_proxy
 install_openssl
 install_libnice
 install_libsrtp
+install_opus
 install_ffmpeg
 
-install_opus
 #if [ "$ENABLE_GPL" = "true" ]; then
 #install_mediadeps
 #else
