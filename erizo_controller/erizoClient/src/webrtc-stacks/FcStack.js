@@ -18,30 +18,30 @@ Erizo.FcStack = function (spec) {
     that.signalCallback = undefined;
 
     that.close = function() {
-        console.log('Close FcStack');
+        L.Logger.info('Close FcStack');
     };
 
     that.createOffer = function() {
-        console.log('FCSTACK: CreateOffer');
+        L.Logger.debug('FCSTACK: CreateOffer');
     };
 
     that.addStream = function(stream) {
-        console.log('FCSTACK: addStream', stream);
+        L.Logger.debug('FCSTACK: addStream', stream);
     };
 
     that.processSignalingMessage = function(msg) {
-        console.log('FCSTACK: processSignaling', msg);
+        L.Logger.debug('FCSTACK: processSignaling', msg);
         if(that.signalCallback !== undefined)
             that.signalCallback(msg);
     };
 
     that.sendSignalingMessage = function(msg) {
-        console.log('FCSTACK: Sending signaling Message', msg);
+        L.Logger.debug('FCSTACK: Sending signaling Message', msg);
         spec.callback(msg);
     };
 
     that.setSignalingCallback = function(callback) {
-        console.log('FCSTACK: Setting signalling callback');
+        L.Logger.debug('FCSTACK: Setting signalling callback');
         that.signalCallback = callback;
     };
     return that;

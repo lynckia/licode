@@ -1,10 +1,17 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -e
 
 SCRIPT=`pwd`/$0
-ROOT=`dirname $SCRIPT`
+FILENAME=`basename $SCRIPT`
+PATHNAME=`dirname $SCRIPT`
+ROOT=$PATHNAME/..
+NVM_CHECK="$ROOT"/scripts/checkNvm.sh
 CURRENT_DIR=`pwd`
 
-cd $ROOT/nuveAPI
+. $NVM_CHECK
+
+cd $PATHNAME/nuveAPI
 
 node nuve.js &
 

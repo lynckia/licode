@@ -22,19 +22,12 @@ extern "C" {
 #include <string>
 
 #include "../logger.h"
-#ifdef HAVE_CONFIG_H
-#include "./config.h"
-#endif
-
 
 const int SRTP_MASTER_KEY_KEY_LEN = 16;
 const int SRTP_MASTER_KEY_SALT_LEN = 14;
 
 namespace dtls {
 class DtlsSocketContext;
-class DtlsTimer;
-class DtlsSocketTimer;
-class DtlsTimerContext;
 
 class SrtpSessionKeys {
  public:
@@ -85,9 +78,6 @@ class DtlsSocket {
   // Inspects packet to see if it's a DTLS packet, if so continue processing
   bool handlePacketMaybe(const unsigned char* bytes, unsigned int len);
 
-  // Called by DtlSocketTimer when timer expires - causes a retransmission (forceRetransmit)
-  void expired(DtlsSocketTimer* timer);
-
   // Retrieves the finger print of the certificate presented by the remote party
   bool getRemoteFingerprint(char *fingerprint);
 
@@ -124,7 +114,6 @@ class DtlsSocket {
 
   // Internals
   DtlsSocketContext* mSocketContext;
-  DtlsTimer *mReadTimer;  // Timer used during handshake process
 
   // OpenSSL context data
   SSL *mSsl;
@@ -163,7 +152,6 @@ class DtlsSocketContext {
   void handshakeFailed(const char *err);
   void setDtlsReceiver(DtlsReceiver *recv);
   void setDtlsSocket(DtlsSocket *sock) {mSocket = sock;}
-  void addTimerToContext(DtlsTimer* timer, int timeValue);
   std::string getFingerprint();
 
   enum PacketType { rtp, dtls, stun, unknown};
@@ -200,7 +188,6 @@ class DtlsSocketContext {
  protected:
   DtlsSocket *mSocket;
   DtlsReceiver *receiver;
-  std::auto_ptr<DtlsTimerContext> mTimerContext;
 
  private:
   // Creates a DTLS SSL Context and enables srtp extension, also sets the private and public key cert

@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 
+#include <algorithm>
 #include <sstream>
 #include <cstdlib>
 #include <cstring>
@@ -111,6 +112,17 @@ namespace erizo {
 
   void SdpInfo::addCrypto(const CryptoInfo& info) {
     cryptoVector_.push_back(info);
+  }
+
+  void SdpInfo::updateSupportedExtensionMap(const std::vector<ExtMap> &ext_map) {
+    supported_ext_map_ = ext_map;
+  }
+
+  bool SdpInfo::isValidExtension(std::string uri) {
+    auto value = std::find_if(supported_ext_map_.begin(), supported_ext_map_.end(), [uri](const ExtMap &extension) {
+      return extension.uri == uri;
+    });
+    return value != supported_ext_map_.end();
   }
 
   void SdpInfo::setCredentials(const std::string& username, const std::string& password, MediaType media) {
@@ -236,7 +248,7 @@ namespace erizo {
 
       ELOG_DEBUG("Writing Extmap for AUDIO %lu", extMapVector.size());
       for (uint8_t i = 0; i < extMapVector.size(); i++) {
-        if (extMapVector[i].mediaType == AUDIO_TYPE) {
+        if (extMapVector[i].mediaType == AUDIO_TYPE && isValidExtension(std::string(extMapVector[i].uri))) {
           sdp << "a=extmap:" << extMapVector[i].value << " " << extMapVector[i].uri << endl;
         }
       }
@@ -290,11 +302,12 @@ namespace erizo {
       if (audioSsrc == 0) {
         audioSsrc = 44444;
       }
-
-      sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-        "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl <<
-        "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl <<
-        "a=ssrc:"<< audioSsrc << " label:" << msidtemp << "a0" << endl;
+      if (audioDirection != RECVONLY) {
+        sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+          "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl <<
+          "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl <<
+          "a=ssrc:"<< audioSsrc << " label:" << msidtemp << "a0" << endl;
+      }
     }
 
     if (printedVideo && this->hasVideo) {
@@ -329,7 +342,7 @@ namespace erizo {
 
       ELOG_DEBUG("Writing Extmap for VIDEO %lu", extMapVector.size());
       for (uint8_t i = 0; i < extMapVector.size(); i++) {
-        if (extMapVector[i].mediaType == VIDEO_TYPE) {
+        if (extMapVector[i].mediaType == VIDEO_TYPE && isValidExtension(std::string(extMapVector[i].uri))) {
           sdp << "a=extmap:" << extMapVector[i].value << " " << extMapVector[i].uri << endl;
         }
       }
@@ -399,19 +412,31 @@ namespace erizo {
       if (videoSsrc == 0) {
         videoSsrc = 55543;
       }
-      sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-             "a=ssrc:" << videoSsrc << " msid:"<< msidtemp << " v0"<< endl <<
-             "a=ssrc:" << videoSsrc << " mslabel:"<< msidtemp << endl <<
-             "a=ssrc:" << videoSsrc << " label:" << msidtemp << "v0" << endl;
-      if (videoRtxSsrc != 0) {
-        sdp << "a=ssrc:" << videoRtxSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-               "a=ssrc:" << videoRtxSsrc << " msid:" << msidtemp << " v0" << endl <<
-               "a=ssrc:" << videoRtxSsrc << " mslabel:" << msidtemp << endl <<
-               "a=ssrc:" << videoRtxSsrc << " label:" << msidtemp << "v0" << endl;
+      if (videoDirection != RECVONLY) {
+        sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+          "a=ssrc:" << videoSsrc << " msid:"<< msidtemp << " v0"<< endl <<
+          "a=ssrc:" << videoSsrc << " mslabel:"<< msidtemp << endl <<
+          "a=ssrc:" << videoSsrc << " label:" << msidtemp << "v0" << endl;
+        if (videoRtxSsrc != 0) {
+          sdp << "a=ssrc:" << videoRtxSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+            "a=ssrc:" << videoRtxSsrc << " msid:" << msidtemp << " v0" << endl <<
+            "a=ssrc:" << videoRtxSsrc << " mslabel:" << msidtemp << endl <<
+            "a=ssrc:" << videoRtxSsrc << " label:" << msidtemp << "v0" << endl;
+        }
       }
     }
     ELOG_DEBUG("sdp local \n %s", sdp.str().c_str());
     return sdp.str();
+  }
+
+  RtpMap* SdpInfo::getCodecByExternalPayloadType(const unsigned int payload_type) {
+    for (unsigned int it = 0; it < payloadVector.size(); it++) {
+      RtpMap& rtp = payloadVector[it];
+      if (rtp.payload_type == payload_type) {
+        return &rtp;
+      }
+    }
+    return nullptr;
   }
 
   RtpMap *SdpInfo::getCodecByName(const std::string codecName, const unsigned int clockRate) {
@@ -955,7 +980,7 @@ namespace erizo {
     return cryptoVector_;
   }
 
-  const std::vector<RtpMap>& SdpInfo::getPayloadInfos() {
+  std::vector<RtpMap>& SdpInfo::getPayloadInfos() {
     return payloadVector;
   }
 

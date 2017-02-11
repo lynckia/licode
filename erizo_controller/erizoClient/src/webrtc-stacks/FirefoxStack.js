@@ -25,8 +25,8 @@ Erizo.FirefoxStack = function (spec) {
     }
 
     that.mediaConstraints = {
-        offerToReceiveAudio: spec.audio,
-        offerToReceiveVideo: spec.video,
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
         mozDontOfferDataChannel: true
     };
 
@@ -157,10 +157,12 @@ Erizo.FirefoxStack = function (spec) {
                 spec.callback({type:'updatestream', sdp: localDesc.sdp});
             }
         }
-        if (config.minVideoBW || (config.slideShowMode!==undefined)){
-            L.Logger.debug('MinVideo Changed to ', config.minVideoBW);
-            L.Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
-            spec.callback({type:'updatestream', config:config});
+        if (config.minVideoBW || (config.slideShowMode!==undefined) ||
+            (config.muteStream !== undefined)){
+            L.Logger.debug ('MinVideo Changed to ', config.minVideoBW);
+            L.Logger.debug ('SlideShowMode Changed to ', config.slideShowMode);
+            L.Logger.debug ('muteStream changed to ', config.muteStream);
+            spec.callback({type: 'updatestream', config:config});
         }
     };
 
@@ -168,7 +170,12 @@ Erizo.FirefoxStack = function (spec) {
         if (isSubscribe === true) {
             that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
         } else {
-            that.peerConnection.createOffer(setLocalDesc, errorCallback);
+            that.mediaConstraints = {
+                offerToReceiveAudio: false,
+                offerToReceiveVideo: false,
+                mozDontOfferDataChannel: true
+            };
+            that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
         }
     };
 

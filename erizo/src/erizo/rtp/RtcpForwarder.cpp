@@ -6,6 +6,9 @@
 #include <string>
 #include <cstring>
 
+#include "lib/Clock.h"
+#include "lib/ClockUtils.h"
+
 using std::memcpy;
 
 namespace erizo {
@@ -45,12 +48,11 @@ void RtcpForwarder::analyzeSr(RtcpHeader* chead) {
   boost::mutex::scoped_lock mlock(mapLock_);
   boost::shared_ptr<RtcpData> theData = rtcpData_[recvSSRC];
   boost::mutex::scoped_lock lock(theData->dataLock);
-  struct timeval now;
-  gettimeofday(&now, NULL);
+  uint64_t now = ClockUtils::timePointToMs(clock::now());
   uint32_t ntp;
   uint64_t theNTP = chead->getNtpTimestamp();
   ntp = (theNTP & (0xFFFFFFFF0000)) >> 16;
-  theData->senderReports.push_back(boost::shared_ptr<SrData>( new SrData(ntp, now)));
+  theData->senderReports.push_back(boost::shared_ptr<SrDelayData>( new SrDelayData(ntp, now)));
   // We only store the last 20 sr
   if (theData->senderReports.size() > 20) {
     theData->senderReports.pop_front();
@@ -67,8 +69,6 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
     // We try to add it just in case it is not there yet (otherwise its noop)
     this->addSourceSsrc(sourceSsrc);
 
-    struct timeval now;
-    gettimeofday(&now, NULL);
     char* movingBuf = buf;
     int rtcpLength = 0;
     int totalLength = 0;
@@ -84,7 +84,8 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
           ELOG_DEBUG("SDES");
           break;
         case RTCP_BYE:
-          ELOG_DEBUG("BYE");
+          ELOG_DEBUG("Dropping BYE packet");
+          return 0;
           break;
         case RTCP_Receiver_PT:
           if (chead->getSourceSSRC() == rtcpSource_->getVideoSourceSSRC()) {

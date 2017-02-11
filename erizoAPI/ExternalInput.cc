@@ -79,7 +79,7 @@ NAN_METHOD(ExternalInput::close) {
   }
 
   Nan::AsyncQueueWorker(new  AsyncDeleter(me, callback));
-  me.reset();
+  obj->me.reset();
 }
 
 NAN_METHOD(ExternalInput::init) {

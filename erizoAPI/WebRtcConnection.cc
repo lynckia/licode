@@ -48,7 +48,10 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
+  Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
+  Nan::SetPrototypeMethod(tpl, "enableHandler", enableHandler);
+  Nan::SetPrototypeMethod(tpl, "disableHandler", disableHandler);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("WebRtcConnection").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -129,8 +132,17 @@ NAN_METHOD(WebRtcConnection::New) {
       }
     }
 
+    std::vector<erizo::ExtMap> ext_mappings;
+    unsigned int value = 0;
+    if (media_config.find("extMappings") != media_config.end()) {
+      json ext_map_json = media_config["extMappings"];
+      for (json::iterator ext_map_it = ext_map_json.begin(); ext_map_it != ext_map_json.end(); ++ext_map_it) {
+        ext_mappings.push_back({value++, *ext_map_it});
+      }
+    }
+
     erizo::IceConfig iceConfig;
-    if (info.Length() == 12) {
+    if (info.Length() == 13) {
       v8::String::Utf8Value param2(Nan::To<v8::String>(info[8]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
       int turnPort = info[9]->IntegerValue();
@@ -138,10 +150,14 @@ NAN_METHOD(WebRtcConnection::New) {
       std::string turnUsername = std::string(*param3);
       v8::String::Utf8Value param4(Nan::To<v8::String>(info[11]).ToLocalChecked());
       std::string turnPass = std::string(*param4);
+      v8::String::Utf8Value param5(Nan::To<v8::String>(info[12]).ToLocalChecked());
+      std::string network_interface = std::string(*param5);
+
       iceConfig.turnServer = turnServer;
       iceConfig.turnPort = turnPort;
       iceConfig.turnUsername = turnUsername;
       iceConfig.turnPass = turnPass;
+      iceConfig.network_interface = network_interface;
     }
 
 
@@ -154,7 +170,7 @@ NAN_METHOD(WebRtcConnection::New) {
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
     WebRtcConnection* obj = new WebRtcConnection();
-    obj->me = std::make_shared<erizo::WebRtcConnection>(worker, wrtcId, iceConfig, rtp_mappings, obj);
+    obj->me = std::make_shared<erizo::WebRtcConnection>(worker, wrtcId, iceConfig, rtp_mappings, ext_mappings, obj);
     obj->msink = obj->me.get();
     uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback);
     uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback);
@@ -198,7 +214,7 @@ NAN_METHOD(WebRtcConnection::createOffer) {
   }
   bool video_enabled = info[0]->BooleanValue();
   bool audio_enabled = info[1]->BooleanValue();
-  bool bundle = info[3]->BooleanValue();
+  bool bundle = info[2]->BooleanValue();
 
   bool r = me->createOffer(video_enabled, audio_enabled, bundle);
   info.GetReturnValue().Set(Nan::New(r));
@@ -211,6 +227,15 @@ NAN_METHOD(WebRtcConnection::setSlideShowMode) {
   bool v = info[0]->BooleanValue();
   me->setSlideShowMode(v);
   info.GetReturnValue().Set(Nan::New(v));
+}
+
+NAN_METHOD(WebRtcConnection::muteStream) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+
+  bool mute_video = info[0]->BooleanValue();
+  bool mute_audio = info[1]->BooleanValue();
+  me->muteStream(mute_video, mute_audio);
 }
 
 NAN_METHOD(WebRtcConnection::setMetadata) {
@@ -329,6 +354,28 @@ NAN_METHOD(WebRtcConnection::generatePLIPacket) {
 
   std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
   me->sendPLI();
+  return;
+}
+
+NAN_METHOD(WebRtcConnection::enableHandler) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+
+  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  std::string name = std::string(*param);
+
+  me->enableHandler(name);
+  return;
+}
+
+NAN_METHOD(WebRtcConnection::disableHandler) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+
+  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  std::string name = std::string(*param);
+
+  me->disableHandler(name);
   return;
 }
 

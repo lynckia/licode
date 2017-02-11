@@ -24,10 +24,10 @@ var doInit = function (req, callback) {
 exports.represent = function (req, res) {
     doInit(req, function (currentRoom) {
         if (req.service === undefined) {
-            res.send('Client unathorized', 401);
+            res.status(401).send('Client unathorized');
         } else if (currentRoom === undefined) {
             log.info('message: representRoom - room does not exits, roomId: ' + req.params.room);
-            res.send('Room does not exist', 404);
+            res.status(404).send('Room does not exist');
         } else {
             log.info('message: representRoom success, roomId: ' + currentRoom._id +
                 ', serviceId: ' + req.service._id);
@@ -42,13 +42,13 @@ exports.represent = function (req, res) {
 exports.updateRoom = function (req, res) {
     doInit(req, function (currentRoom) {
         if (req.service === undefined) {
-            res.send('Client unathorized', 401);
+            res.status(401).send('Client unathorized');
         } else if (currentRoom === undefined) {
             log.info('message: updateRoom - room does not exist + roomId: ' + req.params.room);
-            res.send('Room does not exist', 404);
+            res.status(404).send('Room does not exist');
         } else if (req.body.name === undefined) {
             log.info('message: updateRoom - Invalid room');
-            res.send('Invalid room', 400);
+            res.status(400).send('Invalid room');
         } else {
             var id = '',
                 array = req.service.rooms,
@@ -94,10 +94,10 @@ exports.updateRoom = function (req, res) {
 exports.patchRoom = function (req, res) {
     doInit(req, function (currentRoom) {
         if (req.service === undefined) {
-            res.send('Client unathorized', 401);
+            res.status(401).send('Client unathorized');
         } else if (currentRoom === undefined) {
             log.info('message: pachRoom - room does not exist, roomId : ' + req.params.room);
-            res.send('Room does not exist', 404);
+            res.status(404).send('Room does not exist');
         } else {
             var id = '',
                 array = req.service.rooms,
@@ -145,10 +145,10 @@ exports.patchRoom = function (req, res) {
 exports.deleteRoom = function (req, res) {
     doInit(req, function (currentRoom) {
         if (req.service === undefined) {
-            res.send('Client unathorized', 401);
+            res.status(401).send('Client unathorized');
         } else if (currentRoom === undefined) {
             log.info('message: deleteRoom - room does not exist, roomId: ' + req.params.room);
-            res.send('Room does not exist', 404);
+            res.status(404).send('Room does not exist');
         } else {
             var id = '',
                 array = req.service.rooms,

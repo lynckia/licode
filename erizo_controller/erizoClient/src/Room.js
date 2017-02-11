@@ -84,7 +84,10 @@ Erizo.Room = function (spec) {
             stream.hide();
 
             // Close PC stream
-            if (stream.pc) stream.pc.close();
+            if (stream.pc) {
+              stream.pc.close();
+              delete stream.pc;
+            }
             if (stream.local) {
                 stream.stream.stop();
             }
@@ -151,6 +154,7 @@ Erizo.Room = function (spec) {
                                        screen: arg.screen,
                                        attributes: arg.attributes}),
                 evt;
+            stream.room = that;
             that.remoteStreams[arg.id] = stream;
             evt = Erizo.StreamEvent({type: 'stream-added', stream: stream});
             that.dispatchEvent(evt);
@@ -717,6 +721,13 @@ Erizo.Room = function (spec) {
         }
     };
 
+    that.sendControlMessage = function(stream, type, action) {
+      if (stream && stream.getID()) {
+        var msg = {type: 'control', action: action};
+        sendSDPSocket('signaling_message', {streamId: stream.getID(), msg: msg});
+      }
+    };
+
     // It subscribe to a remote stream and draws it inside the HTML tag given by the ID='elementID'
     that.subscribe = function (stream, options, callback) {
 
@@ -726,6 +737,9 @@ Erizo.Room = function (spec) {
 
             if (stream.hasVideo() || stream.hasAudio() || stream.hasScreen()) {
                 // 1- Subscribe to Stream
+
+                if (!stream.hasVideo() && !stream.hasScreen()) options.video = false;
+                if (!stream.hasAudio()) options.audio = false;
 
                 if (that.p2p) {
                     sendSDPSocket('subscribe', {streamId: stream.getID(),
@@ -854,6 +868,22 @@ Erizo.Room = function (spec) {
                 });
             }
         }
+    };
+
+    that.getStreamStats = function (stream, callback) {
+        if (!that.socket) {
+            return 'Error getting stats - no socket';
+        }
+        if (!stream) {
+            return 'Error getting stats - no stream';
+        }
+
+        sendMessageSocket('getStreamStats', stream.getID(), function (result) {
+            if (result) {
+                L.Logger.info('Got stats', result);
+                callback(result);
+            }
+        });
     };
 
     //It searchs the streams that have "name" attribute with "value" value

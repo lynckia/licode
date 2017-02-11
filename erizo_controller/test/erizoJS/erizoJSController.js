@@ -200,7 +200,7 @@ describe('Erizo JS Controller', function() {
 
     it('should succeed sending offer event', function() {
       mocks.WebRtcConnection.init.returns(1).callsArgWith(0, 103, '');  // CONN_GATHERED
-      controller.addPublisher(kArbitraryId, {createOffer: true}, callback);
+      controller.addPublisher(kArbitraryId, {createOffer: {audio: true, video: true, bundle: true}}, callback);
 
       expect(callback.callCount).to.equal(2);
       expect(callback.args[1]).to.deep.equal(['callback', {type: 'initializing'}]);
@@ -359,6 +359,54 @@ describe('Erizo JS Controller', function() {
                       sdp: 'sdp'});
 
           expect(mocks.WebRtcConnection.setRemoteSdp.callCount).to.equal(1);
+        });
+
+        it('should mute and unmute subscriber stream', function() {
+          controller.processSignaling(kArbitraryId, kArbitraryId2, {
+                      type: 'updatestream',
+                      config: {
+                        muteStream: {
+                          audio: true,
+                          video: false
+                        }
+                      }});
+
+          controller.processSignaling(kArbitraryId, kArbitraryId2, {
+                      type: 'updatestream',
+                      config: {
+                        muteStream: {
+                          audio: false,
+                          video: false
+                        }
+                      }});
+
+          expect(mocks.WebRtcConnection.muteStream.callCount).to.equal(3);
+          expect(mocks.WebRtcConnection.muteStream.args[1]).to.deep.equal([false, true]);
+          expect(mocks.WebRtcConnection.muteStream.args[2]).to.deep.equal([false, false]);
+        });
+
+        it('should mute and unmute publisher stream', function() {
+          controller.processSignaling(kArbitraryId, undefined, {
+                      type: 'updatestream',
+                      config: {
+                        muteStream: {
+                          audio: true,
+                          video: false
+                        }
+                      }});
+
+          controller.processSignaling(kArbitraryId, undefined, {
+                      type: 'updatestream',
+                      config: {
+                        muteStream: {
+                          audio: false,
+                          video: false
+                        }
+                      }});
+
+          expect(mocks.WebRtcConnection.muteStream.callCount).to.equal(3);
+          expect(mocks.WebRtcConnection.muteStream.args[1]).to.deep.equal([false, true]);
+          expect(mocks.WebRtcConnection.muteStream.args[2]).to.deep.equal([false, false]);
         });
 
         it('should set slide show mode to true', function() {

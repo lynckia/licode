@@ -37,6 +37,11 @@ namespace erizo {
 #define CN_48000_PT         107  // CN Audio Codec
 #define TEL_8000_PT         126  // Tel Audio Events
 
+#define RTCP_MIN_PT         194  // per https://tools.ietf.org/html/rfc5761
+#define RTCP_MAX_PT         223
+
+#define RTCP_AUDIO_INTERVAL 5000
+#define RTCP_VIDEO_INTERVAL  1000
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -159,7 +164,7 @@ class RtpHeader {
   inline void setExtLength(uint16_t extensionLength) {
     extensionlength = htons(extensionLength);
   }
-  inline int getHeaderLength() {
+  inline int getHeaderLength() const {
     return MIN_SIZE + cc * 4 + hasextension * (4 + ntohs(extensionlength) * 4);
   }
 };
@@ -334,9 +339,7 @@ class RtcpHeader {
         packettype == RTCP_RTP_Feedback_PT);
   }
   inline bool isRtcp(void) {
-    return (packettype == RTCP_Sender_PT ||
-            packettype == RTCP_APP ||
-            isFeedback());
+    return (packettype >= RTCP_MIN_PT && packettype <= RTCP_MAX_PT);
   }
   inline uint8_t getPacketType() {
     return packettype;
@@ -410,7 +413,6 @@ class RtcpHeader {
   inline void setDelaySinceLastSr(uint32_t delaylastsr) {
     report.receiverReport.delaysincelast = htonl(delaylastsr);
   }
-
   inline uint32_t getPacketsSent() {
     return ntohl(report.senderReport.packetsent);
   }
@@ -420,8 +422,18 @@ class RtcpHeader {
   inline uint32_t getOctetsSent() {
     return ntohl(report.senderReport.octetssent);
   }
+  inline void setOctetsSent(uint32_t octets_sent) {
+    report.senderReport.octetssent = htonl(octets_sent);
+  }
   inline uint64_t getNtpTimestamp() {
     return (((uint64_t)htonl(report.senderReport.ntptimestamp)) << 32) + htonl(report.senderReport.ntptimestamp >> 32);
+  }
+  inline void setNtpTimestamp(uint64_t ntp_timestamp) {
+    report.senderReport.ntptimestamp = (((uint64_t)ntohl(ntp_timestamp)) << 32) + ntohl(ntp_timestamp >> 32);
+  }
+  inline uint32_t get32MiddleNtp() {
+    uint64_t middle = (report.senderReport.ntptimestamp << 16) >> 32;
+    return ntohl(middle);
   }
   inline uint16_t getNackPid() {
     return ntohs(report.nackPacket.pid);
@@ -448,6 +460,10 @@ class RtcpHeader {
     uint32_t line = mantissa + (exp << 18);
     report.rembPacket.brLength = htonl(line) >> 8;
   }
+  inline uint64_t getREMBBitRate() {
+    return getBrMantis() << getBrExp();
+  }
+
   inline uint32_t getBrExp() {
     // remove the 0s added by nothl (8) + the 18 bits of Mantissa
     return (ntohl(report.rembPacket.brLength) >> 26);

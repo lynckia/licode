@@ -11,7 +11,6 @@ describe('Default Policy', function() {
   it('should return the first Erizo Controller in the queue', function() {
     var result = policy.getErizoController(
                         {},  // room
-                        {},  // ec_list
                         [kArbitraryErizoController2, kArbitraryErizoController1]);
     expect(result).to.deep.equal(kArbitraryErizoController2);
   });

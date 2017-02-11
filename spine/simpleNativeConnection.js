@@ -3,7 +3,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';  // We need this for testing wit
 
 var XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest,
     nodeUrl = require ('url'),
-    Erizo = require('./erizofc'),
+    Erizo = require('./erizofc').Erizo,
     NativeStack = require ('./NativeStack.js');
 
 Erizo.Connection = NativeStack.FakeConnection;

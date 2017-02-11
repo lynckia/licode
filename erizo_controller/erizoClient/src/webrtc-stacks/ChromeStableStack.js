@@ -202,9 +202,11 @@ Erizo.ChromeStableStack = function (spec) {
                 spec.callback({type:'updatestream', sdp: localDesc.sdp});
             }
         }
-        if (config.minVideoBW || (config.slideShowMode!==undefined)){
+        if (config.minVideoBW || (config.slideShowMode!==undefined) ||
+            (config.muteStream !== undefined)){
             L.Logger.debug ('MinVideo Changed to ', config.minVideoBW);
             L.Logger.debug ('SlideShowMode Changed to ', config.slideShowMode);
+            L.Logger.debug ('muteStream changed to ', config.muteStream);
             spec.callback({type: 'updatestream', config:config});
         }
     };
@@ -213,7 +215,13 @@ Erizo.ChromeStableStack = function (spec) {
         if (isSubscribe === true) {
             that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
         } else {
-            that.peerConnection.createOffer(setLocalDesc, errorCallback);
+            that.mediaConstraints = {
+                mandatory: {
+                    'OfferToReceiveVideo': false,
+                    'OfferToReceiveAudio': false
+                }
+            };
+            that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
         }
 
     };

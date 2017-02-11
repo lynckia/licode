@@ -23,6 +23,18 @@ describe('Room Registry', function() {
     mocks.reset();
   });
 
+  it('should return a list of rooms when getRooms is called', function() {
+    dataBase.db.rooms.find.returns({
+      toArray: function(cb) {
+        cb(null, [kArbitraryRoom]);
+      }
+    });
+    var callback = sinon.stub();
+    roomRegistry.getRooms(callback);
+
+    expect(callback.calledWith([kArbitraryRoom])).to.be.true;  // jshint ignore:line
+  });
+
   it('should return undefined if not found in the database when getRoom is called', function() {
     var callback = sinon.stub();
     dataBase.db.rooms.findOne.callsArgWith(1, null, undefined);
