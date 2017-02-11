@@ -6,6 +6,7 @@
 #include <rtp/RtcpProcessor.h>
 #include <rtp/FecReceiverHandler.h>
 #include <rtp/BandwidthEstimationHandler.h>
+#include <rtp/SenderBandwidthEstimationHandler.h>
 #include <webrtc/modules/rtp_rtcp/include/ulpfec_receiver.h>
 
 #include <string>
@@ -142,6 +143,11 @@ class MockUlpfecReceiver : public webrtc::UlpfecReceiver {
 
   // Returns a counter describing the added and recovered packets.
   // virtual webrtc::FecPacketCounter GetPacketCounter() const {};
+};
+
+class MockSenderBandwidthEstimationListener: public erizo::SenderBandwidthEstimationListener {
+ public:
+  MOCK_METHOD3(onBandwidthEstimate, void(int, uint8_t, int64_t));
 };
 
 }  // namespace erizo
