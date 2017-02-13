@@ -100,10 +100,6 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    */
   std::string getLocalSdp();
 
-  int deliverAudioData(char* buf, int len);
-  int deliverVideoData(char* buf, int len);
-  int deliverFeedback(char* buf, int len);
-
   /**
    * Sends a PLI Packet
    * @return the size of the data sent
@@ -175,9 +171,9 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
  private:
   void sendPacket(std::shared_ptr<dataPacket> packet);
-  int deliverAudioData_(char* buf, int len) override;
-  int deliverVideoData_(char* buf, int len) override;
-  int deliverFeedback_(char* buf, int len) override;
+  int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
+  int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
+  int deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) override;
   void initializePipeline();
 
   // Utils
