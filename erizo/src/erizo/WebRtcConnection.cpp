@@ -347,12 +347,12 @@ int WebRtcConnection::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet
   if (bundle_) {
     if (videoTransport_.get() != NULL) {
       if (audioEnabled_ == true) {
-        sendPacketAsync(audio_packet);
+        sendPacketAsync(std::make_shared<dataPacket>(*audio_packet));
       }
     }
   } else if (audioTransport_.get() != NULL) {
     if (audioEnabled_ == true) {
-        sendPacketAsync(audio_packet);
+        sendPacketAsync(std::make_shared<dataPacket>(*audio_packet));
     }
   }
   return audio_packet->length;
@@ -361,7 +361,7 @@ int WebRtcConnection::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet
 int WebRtcConnection::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
   if (videoTransport_.get() != NULL) {
     if (videoEnabled_ == true) {
-      sendPacketAsync(video_packet);
+      sendPacketAsync(std::make_shared<dataPacket>(*video_packet));
     }
   }
   return video_packet->length;
@@ -733,7 +733,7 @@ void WebRtcConnection::sendPacket(std::shared_ptr<dataPacket> p) {
   uint32_t partial_bitrate = 0;
   uint64_t sentVideoBytes = 0;
   uint64_t lastSecondVideoBytes = 0;
-  ELOG_DEBUG("Trying to send %u", p->length);
+
   if (rateControl_ && !slide_show_mode_) {
     if (p->type == VIDEO_PACKET) {
       if (rateControl_ == 1) {

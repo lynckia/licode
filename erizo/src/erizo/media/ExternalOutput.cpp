@@ -327,16 +327,18 @@ void ExternalOutput::writeVideoData(char* buf, int len) {
 }
 
 int ExternalOutput::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
-  this->queueData(audio_packet->data, audio_packet->length, AUDIO_PACKET);
+  std::shared_ptr<dataPacket> copied_packet = std::make_shared<dataPacket>(*audio_packet);
+  this->queueData(copied_packet->data, copied_packet->length, AUDIO_PACKET);
   return 0;
 }
 
 int ExternalOutput::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
+  std::shared_ptr<dataPacket> copied_packet = std::make_shared<dataPacket>(*video_packet);
   if (videoSourceSsrc_ == 0) {
-    RtpHeader* h = reinterpret_cast<RtpHeader*>(video_packet->data);
+    RtpHeader* h = reinterpret_cast<RtpHeader*>(copied_packet->data);
     videoSourceSsrc_ = h->getSSRC();
   }
-  this->queueData(video_packet->data, video_packet->length, VIDEO_PACKET);
+  this->queueData(copied_packet->data, copied_packet->length, VIDEO_PACKET);
   return 0;
 }
 
