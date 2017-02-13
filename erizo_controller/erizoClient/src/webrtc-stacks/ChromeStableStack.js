@@ -64,7 +64,7 @@ Erizo.ChromeStableStack = function (spec) {
     };
 
     var enableSimulcast = function (sdp) {
-      var r, a, b;
+      var result, matchGroup;
       if (!spec.video) {
         return sdp;
       }
@@ -76,23 +76,23 @@ Erizo.ChromeStableStack = function (spec) {
       L.Logger.warning('Simulcast is still WIP, please don\'t use it in production');
 
       // TODO(javier): Improve the way we check for current video ssrcs
-      a = sdp.match(/a=ssrc-group:FID ([0-9]*) ([0-9]*)\r?\n/);
-      if (!a || (a.length <= 0)) {
+      matchGroup = sdp.match(/a=ssrc-group:FID ([0-9]*) ([0-9]*)\r?\n/);
+      if (!matchGroup || (matchGroup.length <= 0)) {
         return sdp;
       }
 
       var numSpatialLayers = spec.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
-      var baseSsrc = parseInt(a[1]);
-      var baseSsrcRtx = parseInt(a[2]);
-      var cname = sdp.match(new RegExp('a=ssrc:'+a[1]+ ' cname:(.*)\r?\n'))[1];
-      var msid = sdp.match(new RegExp('a=ssrc:'+a[1]+ ' msid:(.*)\r?\n'))[1];
-      var mslabel = sdp.match(new RegExp('a=ssrc:'+a[1]+ ' mslabel:(.*)\r?\n'))[1];
-      var label = sdp.match(new RegExp('a=ssrc:'+a[1]+ ' label:(.*)\r?\n'))[1];
+      var baseSsrc = parseInt(matchGroup[1]);
+      var baseSsrcRtx = parseInt(matchGroup[2]);
+      var cname = sdp.match(new RegExp('a=ssrc:' + matchGroup[1] + ' cname:(.*)\r?\n'))[1];
+      var msid = sdp.match(new RegExp('a=ssrc:' + matchGroup[1] + ' msid:(.*)\r?\n'))[1];
+      var mslabel = sdp.match(new RegExp('a=ssrc:' + matchGroup[1] + ' mslabel:(.*)\r?\n'))[1];
+      var label = sdp.match(new RegExp('a=ssrc:' + matchGroup[1] + ' label:(.*)\r?\n'))[1];
 
-      sdp.match(new RegExp('a=ssrc:'+a[1]+'.*\r?\n', 'g')).forEach(function(line) {
+      sdp.match(new RegExp('a=ssrc:' + matchGroup[1] + '.*\r?\n', 'g')).forEach(function(line) {
         sdp = sdp.replace(line, '');
       });
-      sdp.match(new RegExp('a=ssrc:'+a[2]+'.*\r?\n', 'g')).forEach(function(line) {
+      sdp.match(new RegExp('a=ssrc:' + matchGroup[2] + '.*\r?\n', 'g')).forEach(function(line) {
         sdp = sdp.replace(line, '');
       });
 
@@ -104,22 +104,22 @@ Erizo.ChromeStableStack = function (spec) {
         spatialLayersRtx.push(baseSsrcRtx + i * 1000);
       }
 
-      r = addSim(spatialLayers);
+      result = addSim(spatialLayers);
       var spatialLayerId;
       var spatialLayerIdRtx;
       for (var spatialLayerIndex in spatialLayers) {
         spatialLayerId = spatialLayers[spatialLayerIndex];
         spatialLayerIdRtx = spatialLayersRtx[spatialLayerIndex];
-        r += addGroup(spatialLayerId, spatialLayerIdRtx);
+        result += addGroup(spatialLayerId, spatialLayerIdRtx);
       }
 
       for (var spatialLayerIndex in spatialLayers) {
         spatialLayerId = spatialLayers[spatialLayerIndex];
         spatialLayerIdRtx = spatialLayersRtx[spatialLayerIndex];
-        r += addSpatialLayer(cname, msid, mslabel, label, spatialLayerId, spatialLayerIdRtx);
+        result += addSpatialLayer(cname, msid, mslabel, label, spatialLayerId, spatialLayerIdRtx);
       }
-      r += 'a=x-google-flag:conference\r\n';
-      return sdp.replace(a[0], r);
+      result += 'a=x-google-flag:conference\r\n';
+      return sdp.replace(matchGroup[0], result);
     };
 
     var setMaxBW = function (sdp) {
