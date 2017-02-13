@@ -35,7 +35,7 @@ class SyntheticInputTest : public ::testing::Test {
         input{std::make_shared<SyntheticInput>(config, worker, clock)}
         {
     auto packet = erizo::PacketTools::createRembPacket(30000);
-    input->deliverFeedback(packet->data, packet->length);
+    input->deliverFeedback(packet);
   }
 
  protected:
@@ -177,7 +177,7 @@ TEST_F(SyntheticInputTest, firstVideoFrame_shouldBeAKeyframe) {
 
 TEST_F(SyntheticInputTest, shouldWriteFragmentedKeyFrames_whenExpected) {
   auto packet = erizo::PacketTools::createRembPacket(300000);
-  input->deliverFeedback(packet->data, packet->length);
+  input->deliverFeedback(packet);
   EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(4);
   EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::IsKeyframeFirstPacket())).Times(1);
   EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(Not(erizo::IsKeyframeFirstPacket()))).Times(2);
@@ -192,7 +192,7 @@ TEST_F(SyntheticInputTest, shouldWriteKeyFrames_whenPliIsReceived) {
 
   executeTasksInNextMs(80);
 
-  input->deliverFeedback(packet->data, packet->length);
+  input->deliverFeedback(packet);
 
   executeTasksInNextMs(60);
 }

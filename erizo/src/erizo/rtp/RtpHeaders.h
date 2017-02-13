@@ -428,6 +428,9 @@ class RtcpHeader {
   inline uint64_t getNtpTimestamp() {
     return (((uint64_t)htonl(report.senderReport.ntptimestamp)) << 32) + htonl(report.senderReport.ntptimestamp >> 32);
   }
+  inline void setNtpTimestamp(uint64_t ntp_timestamp) {
+    report.senderReport.ntptimestamp = (((uint64_t)ntohl(ntp_timestamp)) << 32) + ntohl(ntp_timestamp >> 32);
+  }
   inline uint32_t get32MiddleNtp() {
     uint64_t middle = (report.senderReport.ntptimestamp << 16) >> 32;
     return ntohl(middle);

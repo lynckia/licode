@@ -86,7 +86,7 @@ TEST_F(SRPacketHandlerTest, shouldRewriteOctetsSent) {
   EXPECT_CALL(*writer.get(), write(_, _)).
     With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
   EXPECT_CALL(*writer.get(), write(_, _)).
-    With(Args<1>(erizo::SenderReportHasOctetsSentValue(8))).Times(1);
+    With(Args<1>(erizo::SenderReportHasOctetsSentValue(kDataPacketSizeWithoutHeaders))).Times(1);
 
   pipeline->write(packet);
   pipeline->write(sr_packet);
