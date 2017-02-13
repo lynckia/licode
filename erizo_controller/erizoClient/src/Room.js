@@ -168,10 +168,8 @@ Erizo.Room = function (spec) {
                 stream = that.localStreams[arg.streamId];
             }
 
-            // if the stream is local
-            // or it is remote and not failed
-            if (stream && (stream.local || !stream.failed)) {
-                stream.pc.processSignalingMessage(arg.mess); // process the signaling message
+            if (stream && !stream.failed) {
+                stream.pc.processSignalingMessage(arg.mess);
             }
         });
 
@@ -443,8 +441,9 @@ Erizo.Room = function (spec) {
             options.minVideoBW = spec.defaultVideoBW;
         }
 
-        // 1- If the stream is not local we do nothing.
-        if (stream && stream.local && that.localStreams[stream.getID()] === undefined) {
+        // 1- If the stream is not local od it is a failed stream we do nothing.
+        if (stream && stream.local && !stream.failed
+              && that.localStreams[stream.getID()] === undefined) {
 
             // 2- Publish Media Stream to Erizo-Controller
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
