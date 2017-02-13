@@ -39,7 +39,6 @@ class ExternalInput : public MediaSource, public RTPDataReceiver {
   boost::scoped_ptr<OutputProcessor> op_;
   VideoDecoder inCodec_;
   boost::scoped_array<unsigned char> decodedBuffer_;
-  char sendVideoBuffer_[2000];
 
   std::string url_;
   bool running_;

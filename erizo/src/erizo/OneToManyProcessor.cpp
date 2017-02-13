@@ -22,9 +22,8 @@ namespace erizo {
     this->closeAll();
   }
 
-  int OneToManyProcessor::deliverAudioData_(char* buf, int len) {
-    // ELOG_DEBUG("OneToManyProcessor deliverAudio");
-    if (len <= 0)
+  int OneToManyProcessor::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
+    if (audio_packet->length <= 0)
       return 0;
 
     boost::unique_lock<boost::mutex> lock(myMonitor_);
@@ -33,21 +32,21 @@ namespace erizo {
 
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
-      (*it).second->deliverAudioData(buf, len);
+      (*it).second->deliverAudioData(audio_packet);
     }
 
     return 0;
   }
 
-  int OneToManyProcessor::deliverVideoData_(char* buf, int len) {
-    if (len <= 0)
+  int OneToManyProcessor::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
+    if (video_packet->length <= 0)
       return 0;
-    RtcpHeader* head = reinterpret_cast<RtcpHeader*>(buf);
+    RtcpHeader* head = reinterpret_cast<RtcpHeader*>(video_packet->data);
     if (head->isFeedback()) {
       ELOG_WARN("Receiving Feedback in wrong path: %d", head->packettype);
       if (feedbackSink_ != NULL) {
         head->ssrc = htonl(publisher->getVideoSourceSSRC());
-        feedbackSink_->deliverFeedback(buf, len);
+        feedbackSink_->deliverFeedback(video_packet);
       }
       return 0;
     }
@@ -57,7 +56,7 @@ namespace erizo {
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       if ((*it).second != NULL) {
-        (*it).second->deliverVideoData(buf, len);
+        (*it).second->deliverVideoData(video_packet);
       }
     }
     return 0;
@@ -69,9 +68,9 @@ namespace erizo {
     feedbackSink_ = publisher->getFeedbackSink();
   }
 
-  int OneToManyProcessor::deliverFeedback_(char* buf, int len) {
+  int OneToManyProcessor::deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) {
     if (feedbackSink_ != NULL) {
-      feedbackSink_->deliverFeedback(buf, len);
+      feedbackSink_->deliverFeedback(fb_packet);
     }
     return 0;
   }
