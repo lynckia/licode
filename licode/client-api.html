@@ -928,8 +928,12 @@ room.addEventListener("stream-attributes-update", function(evt){...});
           <p class="lead">Running erizo clients in your node.js applications.</p>
           <p>You can also run erizo clients in your node.js applications with the same API explained here. You can connect to rooms, publish and subscribe to streams and manage events. You need only to import the node module <b>erizofc.js</b></p>
           <pre class="prettyprint linenums">
-var Erizo = require('.erizofc');</pre>
+var Erizo = require('.erizofc').Erizo;</pre>
           <p>And now you can use the API like explained for the browser case, calling <b>Erizo.Room</b>, <b>Erizo.Stream</b> and <b>Erizo.Events</b>. Note that you can not publish/subscribe streams with video and/or audio. We are working on this feature in order to develop another way of distribute video/audio streams.</p>
+          <p>You can also use Erizo Client Logger for managing log levels, etc</p>
+          <pre class="prettyprint linenums">
+var L = require('.erizofc').L;
+L.Logger.setLogLevel(2);</pre>
         </section>
 
         <!-- Next
