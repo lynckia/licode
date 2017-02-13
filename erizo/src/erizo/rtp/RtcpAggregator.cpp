@@ -340,9 +340,11 @@ void RtcpAggregator::checkRtcpFb() {
         }
       }
       if  (sourceSsrc == rtcpSource_->getVideoSourceSSRC()) {
-        rtcpSink_->deliverVideoData(reinterpret_cast<char*>(packet_), length);
+        rtcpSink_->deliverVideoData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(packet_),
+              length, VIDEO_PACKET));
       } else {
-        rtcpSink_->deliverAudioData(reinterpret_cast<char*>(packet_), length);
+        rtcpSink_->deliverAudioData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(packet_),
+              length, AUDIO_PACKET));
       }
       rtcpData->last_rr_sent = now;
       if (dt_scheduled > rtcpData->nextPacketInMs) {  // Every scheduled packet we reset

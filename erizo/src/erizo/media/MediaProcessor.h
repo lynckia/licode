@@ -29,6 +29,7 @@ enum ProcessorType {
   RTP_ONLY, AVF, PACKAGE_ONLY
 };
 
+
 enum DataType {
   VIDEO, AUDIO
 };
@@ -89,7 +90,7 @@ class InputProcessor: public MediaSink {
   int unpackageAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff);
 
   void closeSink();
-  void close();
+  void close() override;
 
  private:
   int audioDecoder;
@@ -133,8 +134,8 @@ class InputProcessor: public MediaSink {
 
   bool initAudioUnpackager();
   bool initVideoUnpackager();
-  int deliverAudioData_(char* buf, int len);
-  int deliverVideoData_(char* buf, int len);
+  int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
+  int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
 
   int decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff);
 };

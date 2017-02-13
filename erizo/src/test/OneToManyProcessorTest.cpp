@@ -9,6 +9,7 @@
 using testing::_;
 using testing::Return;
 using testing::Eq;
+using erizo::dataPacket;
 
 static const char kArbitraryPeerId[] = "111";
 
@@ -23,7 +24,7 @@ class MockPublisher: public erizo::MediaSource, public erizo::FeedbackSink {
   void close() override {}
   int sendPLI() { return 0; }
 
-  MOCK_METHOD2(deliverFeedback_, int(char*, int));
+  MOCK_METHOD1(deliverFeedback_, int(std::shared_ptr<dataPacket>));
 };
 
 class MockSubscriber: public erizo::MediaSink, public erizo::FeedbackSource {
@@ -34,8 +35,8 @@ class MockSubscriber: public erizo::MediaSink, public erizo::FeedbackSource {
   ~MockSubscriber() {}
   void close() override {}
 
-  MOCK_METHOD2(deliverAudioData_, int(char*, int));
-  MOCK_METHOD2(deliverVideoData_, int(char*, int));
+  MOCK_METHOD1(deliverAudioData_, int(std::shared_ptr<dataPacket>));
+  MOCK_METHOD1(deliverVideoData_, int(std::shared_ptr<dataPacket>));
 };
 
 class OneToManyProcessorTest : public ::testing::Test {
@@ -86,25 +87,25 @@ TEST_F(OneToManyProcessorTest, deliverFeedback_CallsPublisher_WhenCalled) {
   erizo::RtpHeader header;
   header.setSeqNumber(12);
 
-  EXPECT_CALL(*publisher.get(), deliverFeedback_(_, _)).Times(1).WillOnce(Return(0));
-  otm.deliverFeedback(reinterpret_cast<char*>(&header),
-                      sizeof(erizo::RtpHeader));
+  EXPECT_CALL(*publisher.get(), deliverFeedback_(_)).Times(1).WillOnce(Return(0));
+  otm.deliverFeedback(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&header),
+                      sizeof(erizo::RtpHeader), erizo::VIDEO_PACKET));
 }
 
 TEST_F(OneToManyProcessorTest, deliverVideoData_CallsSubscriber_whenCalled) {
   erizo::RtpHeader header;
   header.setSeqNumber(12);
 
-  EXPECT_CALL(*subscriber, deliverVideoData_(_, _)).Times(1).WillOnce(Return(0));
-  otm.deliverVideoData(reinterpret_cast<char*>(&header),
-                       sizeof(erizo::RtpHeader));
+  EXPECT_CALL(*subscriber, deliverVideoData_(_)).Times(1).WillOnce(Return(0));
+  otm.deliverVideoData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&header),
+                       sizeof(erizo::RtpHeader), erizo::VIDEO_PACKET));
 }
 
 TEST_F(OneToManyProcessorTest, deliverAudioData_CallsSubscriber_whenCalled) {
   erizo::RtpHeader header;
   header.setSeqNumber(12);
 
-  EXPECT_CALL(*subscriber, deliverAudioData_(_, _)).Times(1).WillOnce(Return(0));
-  otm.deliverAudioData(reinterpret_cast<char*>(&header),
-                       sizeof(erizo::RtpHeader));
+  EXPECT_CALL(*subscriber, deliverAudioData_(_)).Times(1).WillOnce(Return(0));
+  otm.deliverAudioData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&header),
+                       sizeof(erizo::RtpHeader), erizo::AUDIO_PACKET));
 }
