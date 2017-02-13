@@ -441,6 +441,9 @@ Erizo.Room = function (spec) {
             options.minVideoBW = spec.defaultVideoBW;
         }
 
+        // TODO(javier): remove dangling once Simulcast is stable
+        options._simulcast = options._simulcast || false;
+
         // 1- If the stream is not local we do nothing.
         if (stream && stream.local && that.localStreams[stream.getID()] === undefined) {
 
@@ -571,6 +574,7 @@ Erizo.Room = function (spec) {
                                maxVideoBW: options.maxVideoBW,
                                limitMaxAudioBW: spec.maxAudioBW,
                                limitMaxVideoBW: spec.maxVideoBW,
+                               simulcast: options._simulcast,
                                audio: stream.hasAudio(),
                                video: stream.hasVideo()});
 
