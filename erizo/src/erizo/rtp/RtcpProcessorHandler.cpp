@@ -22,8 +22,8 @@ void RtcpProcessorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet
       processor_->analyzeSr(chead);
     }
   } else {
-    if (connection_->getStats().getLatestTotalBitrate()) {
-      processor_->setPublisherBW(connection_->getStats().getLatestTotalBitrate());
+    if (stats_->getNode()["total"].hasChild("bitrateCalculated")) {
+       processor_->setPublisherBW(stats_->getNode()["total"]["bitrateCalculated"].value());
     }
   }
   processor_->checkRtcpFb();
@@ -47,6 +47,7 @@ void RtcpProcessorHandler::notifyUpdate() {
   if (pipeline && !connection_) {
     connection_ = pipeline->getService<WebRtcConnection>().get();
     processor_ = pipeline->getService<RtcpProcessor>();
+    stats_ = pipeline->getService<Stats>();
   }
 }
 }  // namespace erizo

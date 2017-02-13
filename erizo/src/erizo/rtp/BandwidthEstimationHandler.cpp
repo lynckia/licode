@@ -67,6 +67,7 @@ void BandwidthEstimationHandler::notifyUpdate() {
     return;
   }
   worker_ = connection_->getWorker();
+  stats_ = pipeline->getService<Stats>();
   RtpExtensionProcessor& processor_ = connection_->getRtpExtensionProcessor();
   if (processor_.getVideoExtensionMap().size() == 0) {
     return;
@@ -241,8 +242,7 @@ void BandwidthEstimationHandler::OnReceiveBitrateChanged(const std::vector<uint3
   }
   last_remb_time_ = now;
   last_send_bitrate_ = bitrate_;
-  connection_->getStats().setEstimatedBandwidth(last_send_bitrate_,
-                                                connection_->getVideoSourceSSRC());
+  stats_->getNode()[connection_->getVideoSourceSSRC()].insertStat("erizoBandwidth", CumulativeStat{last_send_bitrate_});
   sendREMBPacket();
 }
 
