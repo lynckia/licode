@@ -72,8 +72,9 @@ int InputProcessor::init(const MediaInfo& info, RawDataReceiver* receiver) {
 
 int InputProcessor::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
   if (audioDecoder && audioUnpackager) {
+    std::shared_ptr<dataPacket> copied_packet = std::make_shared<dataPacket>(*audio_packet);
     ELOG_DEBUG("Decoding audio");
-    int unp = unpackageAudio((unsigned char*) audio_packet->data, audio_packet->length,
+    int unp = unpackageAudio((unsigned char*) copied_packet->data, copied_packet->length,
         unpackagedAudioBuffer_);
     int a = decodeAudio(unpackagedAudioBuffer_, unp, decodedAudioBuffer_);
     ELOG_DEBUG("DECODED AUDIO a %d", a);
@@ -88,7 +89,8 @@ int InputProcessor::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) 
 }
 int InputProcessor::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
   if (videoUnpackager && videoDecoder) {
-    int ret = unpackageVideo(reinterpret_cast<unsigned char*>(video_packet->data), video_packet->length,
+    std::shared_ptr<dataPacket> copied_packet = std::make_shared<dataPacket>(*video_packet);
+    int ret = unpackageVideo(reinterpret_cast<unsigned char*>(copied_packet->data), copied_packet->length,
         unpackagedBufferPtr_, &gotUnpackagedFrame_);
     if (ret < 0)
       return 0;
