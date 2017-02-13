@@ -165,7 +165,8 @@ int ExternalInput::sendPLI() {
 
 void ExternalInput::receiveRtpData(unsigned char* rtpdata, int len) {
   if (videoSink_ != NULL) {
-    std::shared_ptr<dataPacket> packet = std::make_shared<dataPacket>(0, reinterpret_cast<char*>(rtpdata), len, VIDEO_PACKET);
+    std::shared_ptr<dataPacket> packet = std::make_shared<dataPacket>(0, reinterpret_cast<char*>(rtpdata),
+        len, VIDEO_PACKET);
     videoSink_->deliverVideoData(packet);
   }
 }
