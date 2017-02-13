@@ -90,7 +90,6 @@ uint64_t RateStat::value() {
 }
 
 std::string RateStat::toString() {
-  checkPeriod();
   return std::to_string(value());
 }
 

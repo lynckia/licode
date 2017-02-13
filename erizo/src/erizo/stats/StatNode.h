@@ -20,6 +20,7 @@ class StatNode {
 
   template <typename Node>
   void insertStat(std::string key, Node&& stat) {  // NOLINT
+    // forward ensures that Node type is passed to make_shared(). It would otherwise pass StatNode.
     node_map_.insert(std::make_pair(key, std::make_shared<Node>(std::forward<Node>(stat))));
   }
 
