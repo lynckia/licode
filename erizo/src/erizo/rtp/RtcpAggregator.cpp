@@ -63,7 +63,7 @@ void RtcpAggregator::analyzeSr(RtcpHeader* chead) {
   uint32_t ntp;
   uint64_t theNTP = chead->getNtpTimestamp();
   ntp = (theNTP & (0xFFFFFFFF0000)) >> 16;
-  theData->senderReports.push_back(boost::shared_ptr<SrData>( new SrData(ntp, now)));
+  theData->senderReports.push_back(boost::shared_ptr<SrDelayData>( new SrDelayData(ntp, now)));
   // We only store the last 20 sr
   if (theData->senderReports.size() > 20) {
     theData->senderReports.pop_front();
@@ -130,10 +130,10 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
           theData->jitter = theData->jitter > chead->getJitter()? theData->jitter: chead->getJitter();
           calculateLastSr = chead->getLastSr();
           calculatedlsr = (chead->getDelaySinceLastSr() * 1000) / 65536;
-          for (std::list<boost::shared_ptr<SrData>>::iterator it = theData->senderReports.begin();
+          for (std::list<boost::shared_ptr<SrDelayData>>::iterator it = theData->senderReports.begin();
                         it != theData->senderReports.end(); ++it) {
-            if ((*it)->srNtp == calculateLastSr) {
-              uint64_t sentts = (*it)->timestamp;
+            if ((*it)->sr_ntp == calculateLastSr) {
+              uint64_t sentts = (*it)->sr_send_time;
               delay = nowms - sentts - calculatedlsr;
             }
           }
