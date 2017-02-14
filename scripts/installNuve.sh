@@ -10,14 +10,14 @@ BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
 DB_DIR="$BUILD_DIR"/db
 
-usage() {
-  cat << EOF
-    usage: $0 options
-    OPTIONS:
-       -h      Show this message
-       -i      Install Nuve
-       -m      Populate mongodb
-  EOF
+usage(){
+cat << EOF
+usage: $0 options
+OPTIONS:
+   -h      Show this message
+   -i      Install Nuve
+   -m      Populate mongodb
+EOF
 }
 
 check_result() {
@@ -81,7 +81,7 @@ then
   install_nuve
   populate_mongo
 else
-  while getopts “heacst” OPTION
+  while getopts "him" OPTION
   do
     case $OPTION in
       h)
@@ -100,6 +100,6 @@ else
         usage
         exit
         ;;
-    esac
+     esac
   done
 fi
