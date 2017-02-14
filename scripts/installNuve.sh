@@ -10,6 +10,16 @@ BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
 DB_DIR="$BUILD_DIR"/db
 
+usage() {
+  cat << EOF
+    usage: $0 options
+    OPTIONS:
+       -h      Show this message
+       -i      Install Nuve
+       -m      Populate mongodb
+  EOF
+}
+
 check_result() {
   if [ "$1" -eq 1 ]
   then
@@ -66,5 +76,30 @@ populate_mongo(){
   rm $BUILD_DIR/licode_1.js
 }
 
-install_nuve
-populate_mongo
+if [ "$#" -eq 0 ]
+then
+  install_nuve
+  populate_mongo
+else
+  while getopts “heacst” OPTION
+  do
+    case $OPTION in
+      h)
+        usage
+        exit 1
+        ;;
+      i)
+        install_nuve
+        exit
+        ;;
+      m)
+        populate_mongo
+        exit
+        ;;
+      ?)
+        usage
+        exit
+        ;;
+    esac
+  done
+fi
