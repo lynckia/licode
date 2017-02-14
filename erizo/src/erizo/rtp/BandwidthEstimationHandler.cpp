@@ -40,7 +40,6 @@ std::unique_ptr<RemoteBitrateEstimator> RemoteBitrateEstimatorPicker::pickEstima
 BandwidthEstimationHandler::BandwidthEstimationHandler(std::shared_ptr<RemoteBitrateEstimatorPicker> picker) :
   connection_{nullptr}, clock_{webrtc::Clock::GetRealTimeClock()},
   picker_{picker},
-  rbe_{picker_->pickEstimator(false, clock_, this)},
   using_absolute_send_time_{false}, packets_since_absolute_send_time_{0},
   min_bitrate_bps_{kMinBitRateAllowed},
   bitrate_{0}, last_send_bitrate_{0}, last_remb_time_{0},
@@ -72,6 +71,7 @@ void BandwidthEstimationHandler::notifyUpdate() {
     return;
   }
   updateExtensionMaps(processor_.getVideoExtensionMap(), processor_.getAudioExtensionMap());
+  pickEstimator();
   initialized_ = true;
 }
 
@@ -127,7 +127,7 @@ void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RT
 }
 
 void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  if (!running_) {
+  if (initialized_ && !running_) {
     process();
     running_ = true;
   }
