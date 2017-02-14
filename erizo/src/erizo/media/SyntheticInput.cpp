@@ -135,8 +135,8 @@ void SyntheticInput::sendVideoframe(bool is_keyframe, bool is_marker, uint32_t s
     last_video_keyframe_time_ = clock_->now();
     keyframe_requested_ = false;
   }
-  if (videoSink_) {
-    videoSink_->deliverVideoData(std::make_shared<dataPacket>(0, packet_buffer, size, VIDEO_PACKET));
+  if (video_sink_) {
+    video_sink_->deliverVideoData(std::make_shared<dataPacket>(0, packet_buffer, size, VIDEO_PACKET));
   }
   delete header;
 }
@@ -151,8 +151,8 @@ void SyntheticInput::sendAudioFrame(uint32_t size) {
   char packet_buffer[kMaxPacketSize];
   memset(packet_buffer, 0, size);
   memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
-  if (audioSink_) {
-    audioSink_->deliverAudioData(std::make_shared<dataPacket>(0, packet_buffer, size, AUDIO_PACKET));
+  if (audio_sink_) {
+    audio_sink_->deliverAudioData(std::make_shared<dataPacket>(0, packet_buffer, size, AUDIO_PACKET));
   }
   delete header;
 }

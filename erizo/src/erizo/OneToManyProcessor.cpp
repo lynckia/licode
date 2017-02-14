@@ -26,7 +26,7 @@ namespace erizo {
     if (audio_packet->length <= 0)
       return 0;
 
-    boost::unique_lock<boost::mutex> lock(myMonitor_);
+    boost::unique_lock<boost::mutex> lock(monitor_mutex_);
     if (subscribers.empty())
       return 0;
 
@@ -50,7 +50,7 @@ namespace erizo {
       }
       return 0;
     }
-    boost::unique_lock<boost::mutex> lock(myMonitor_);
+    boost::unique_lock<boost::mutex> lock(monitor_mutex_);
     if (subscribers.empty())
       return 0;
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
@@ -63,7 +63,7 @@ namespace erizo {
   }
 
   void OneToManyProcessor::setPublisher(std::shared_ptr<MediaSource> webRtcConn) {
-    boost::mutex::scoped_lock lock(myMonitor_);
+    boost::mutex::scoped_lock lock(monitor_mutex_);
     this->publisher = webRtcConn;
     feedbackSink_ = publisher->getFeedbackSink();
   }
@@ -78,7 +78,7 @@ namespace erizo {
   void OneToManyProcessor::addSubscriber(std::shared_ptr<MediaSink> webRtcConn,
       const std::string& peerId) {
     ELOG_DEBUG("Adding subscriber");
-    boost::mutex::scoped_lock lock(myMonitor_);
+    boost::mutex::scoped_lock lock(monitor_mutex_);
     ELOG_DEBUG("From %u, %u ", publisher->getAudioSourceSSRC(), publisher->getVideoSourceSSRC());
     webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
     webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
@@ -100,7 +100,7 @@ namespace erizo {
 
   void OneToManyProcessor::removeSubscriber(const std::string& peerId) {
     ELOG_DEBUG("Remove subscriber %s", peerId.c_str());
-    boost::mutex::scoped_lock lock(myMonitor_);
+    boost::mutex::scoped_lock lock(monitor_mutex_);
     if (this->subscribers.find(peerId) != subscribers.end()) {
       this->subscribers.find(peerId)->second->close();
       this->subscribers.erase(peerId);
@@ -114,7 +114,7 @@ namespace erizo {
       publisher->close();
     }
     publisher.reset();
-    boost::unique_lock<boost::mutex> lock(myMonitor_);
+    boost::unique_lock<boost::mutex> lock(monitor_mutex_);
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it = subscribers.begin();
     while (it != subscribers.end()) {
       if ((*it).second != NULL) {

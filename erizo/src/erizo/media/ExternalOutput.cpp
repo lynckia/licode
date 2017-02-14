@@ -49,8 +49,8 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl)
   }
 
   unpackagedBufferpart_ = unpackagedBuffer_;
-  sinkfbSource_ = this;
-  fbSink_ = NULL;
+  sink_fb_source_ = this;
+  fb_sink_ = nullptr;
   unpackagedSize_ = 0;
   videoSourceSsrc_ = 0;
 }
@@ -473,7 +473,7 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
 }
 
 int ExternalOutput::sendFirPacket() {
-    if (fbSink_ != NULL) {
+    if (fb_sink_ != nullptr) {
       RtcpHeader thePLI;
       thePLI.setPacketType(RTCP_PS_Feedback_PT);
       thePLI.setBlockCount(1);
@@ -483,7 +483,7 @@ int ExternalOutput::sendFirPacket() {
       char *buf = reinterpret_cast<char*>(&thePLI);
       int len = (thePLI.getLength() + 1) * 4;
       std::shared_ptr<dataPacket> pli_packet = std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET);
-      fbSink_->deliverFeedback(pli_packet);
+      fb_sink_->deliverFeedback(pli_packet);
       return len;
     }
     return -1;
