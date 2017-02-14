@@ -512,7 +512,6 @@ exports.ErizoJSController = function (threadPool) {
     const getWrtcStats = (label, stats, wrtc) => {
       const promise = new Promise((resolve) => {
         wrtc.getStats((statsString) => {
-          console.log('OKKKKK', arguments, statsString);
           const unfilteredStats = JSON.parse(statsString);
           unfilteredStats.metadata = wrtc.metadata;
           stats[label] = unfilteredStats;
