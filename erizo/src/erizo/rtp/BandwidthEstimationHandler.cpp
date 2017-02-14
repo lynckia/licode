@@ -72,6 +72,7 @@ void BandwidthEstimationHandler::notifyUpdate() {
     return;
   }
   updateExtensionMaps(processor_.getVideoExtensionMap(), processor_.getAudioExtensionMap());
+  rbe_ = picker_->pickEstimator(false, clock_, this);
   initialized_ = true;
 }
 
@@ -127,7 +128,7 @@ void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RT
 }
 
 void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  if (!running_) {
+  if (initialized_ && !running_) {
     process();
     running_ = true;
   }
