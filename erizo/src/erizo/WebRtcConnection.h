@@ -117,7 +117,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    */
   inline void setWebRtcConnectionStatsListener(
             WebRtcConnectionStatsListener* listener) {
-    this->stats_.setStatsListener(listener);
+    stats_->setStatsListener(listener);
   }
 
   /**
@@ -126,7 +126,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    */
   WebRTCEvent getCurrentState();
 
-  std::string getJSONStats();
+  void getJSONStats(std::function<void(std::string)> callback);
 
   void onTransportData(std::shared_ptr<dataPacket> packet, Transport *transport) override;
 
@@ -161,9 +161,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   std::shared_ptr<Worker> getWorker() { return worker_; }
 
-  Stats& getStats() {
-    return stats_;
-  }
+  bool isSourceSSRC(uint32_t ssrc);
+  bool isSinkSSRC(uint32_t ssrc);
 
   inline const char* toLog() {
     return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
@@ -211,7 +210,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   std::shared_ptr<RtcpProcessor> rtcp_processor_;
   std::shared_ptr<Transport> videoTransport_, audioTransport_;
 
-  Stats stats_;
+  std::shared_ptr<Stats> stats_;
   WebRTCEvent globalState_;
 
   boost::mutex updateStateMutex_;  // , slideShowMutex_;

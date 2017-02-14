@@ -7,7 +7,21 @@
 #include "OneToManyProcessor.h"
 
 #include <queue>
+#include <string>
+#include <future>  // NOLINT
 
+class StatCallWorker : public Nan::AsyncWorker {
+ public:
+  StatCallWorker(Nan::Callback *callback, std::weak_ptr<erizo::WebRtcConnection> weak_connection);
+
+  void Execute();
+
+  void HandleOKCallback();
+
+ private:
+  std::weak_ptr<erizo::WebRtcConnection> weak_connection_;
+  std::string stat_;
+};
 
 /*
  * Wrapper class of erizo::WebRtcConnection
@@ -117,6 +131,15 @@ class WebRtcConnection : public MediaSink, public erizo::WebRtcConnectionEventLi
      * Returns: True if the callback was set successfully
      */
     static NAN_METHOD(getStats);
+
+    /*
+     * Gets Stats from this Wrtc
+     * Param: None
+     * Returns: The Current stats
+     * Param: Callback that will get periodic stats reports
+     * Returns: True if the callback was set successfully
+     */
+    static NAN_METHOD(getPeriodicStats);
     /*
      * Sets Metadata that will be logged in every message
      * Param: An object with metadata {key1:value1, key2: value2}

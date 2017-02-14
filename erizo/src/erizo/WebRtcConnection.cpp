@@ -46,6 +46,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   fbSink_ = NULL;
   sourcefbSink_ = this;
   sinkfbSource_ = this;
+  stats_ = std::make_shared<Stats>();
   globalState_ = CONN_INITIAL;
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
@@ -89,6 +90,15 @@ bool WebRtcConnection::init() {
   }
   return true;
 }
+
+bool WebRtcConnection::isSourceSSRC(uint32_t ssrc) {
+  return (ssrc == getVideoSourceSSRC() || ssrc == getAudioSourceSSRC());
+}
+
+bool WebRtcConnection::isSinkSSRC(uint32_t ssrc) {
+  return (ssrc == getVideoSinkSSRC() || ssrc == getAudioSinkSSRC());
+}
+
 
 bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bundle) {
   bundle_ = bundle;
@@ -147,11 +157,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     localSdp_.dtlsRole = ACTIVE;
   }
   this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
-  this->stats_.setVideoSourceSSRC(this->getVideoSourceSSRC());
   this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
-  this->stats_.setAudioSourceSSRC(this->getAudioSourceSSRC());
-  this->stats_.setVideoSinkSSRC(this->getVideoSinkSSRC());
-  this->stats_.setAudioSinkSSRC(this->getAudioSinkSSRC());
   this->audioEnabled_ = remoteSdp_.hasAudio;
   this->videoEnabled_ = remoteSdp_.hasVideo;
   rtcp_processor_->addSourceSsrc(this->getAudioSourceSSRC());
@@ -226,6 +232,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 void WebRtcConnection::initializePipeline() {
   pipeline_->addService(shared_from_this());
   pipeline_->addService(rtcp_processor_);
+  pipeline_->addService(stats_);
 
   pipeline_->addFront(PacketReader(this));
 
@@ -614,14 +621,14 @@ void WebRtcConnection::setSlideShowMode(bool state) {
   if (slide_show_mode_ == state) {
     return;
   }
-  stats_.setSlideShowMode(state, this->getVideoSinkSSRC());
+  stats_->getNode()[getVideoSinkSSRC()].insertStat("erizoSlideShow", CumulativeStat{state});
   slide_show_mode_ = state;
   notifyUpdateToHandlers();
 }
 
 void WebRtcConnection::muteStream(bool mute_video, bool mute_audio) {
   ELOG_DEBUG("%s message: muteStream, mute_video: %u, mute_audio: %u", toLog(), mute_video, mute_audio);
-  stats_.setMute(mute_audio, this->getAudioSinkSSRC());
+  stats_->getNode()[getAudioSinkSSRC()].insertStat("erizoMute", CumulativeStat{mute_audio});
   audio_muted_ = mute_audio;
   notifyUpdateToHandlers();
 }
@@ -646,10 +653,12 @@ WebRTCEvent WebRtcConnection::getCurrentState() {
   return globalState_;
 }
 
-std::string WebRtcConnection::getJSONStats() {
-  std::string requestedStats = stats_.getStats();
-  ELOG_DEBUG("%s message: Stats, stats: %s", toLog(), requestedStats.c_str());
-  return requestedStats;
+void WebRtcConnection::getJSONStats(std::function<void(std::string)> callback) {
+  asyncTask([callback] (std::shared_ptr<WebRtcConnection> connection) {
+    std::string requested_stats = connection->stats_->getStats();
+    ELOG_DEBUG("%s message: Stats, stats: %s", connection->toLog(), requested_stats.c_str());
+    callback(requested_stats);
+  });
 }
 
 void WebRtcConnection::changeDeliverPayloadType(dataPacket *dp, packetType type) {

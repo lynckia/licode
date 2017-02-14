@@ -4,6 +4,8 @@
 
 #include "WebRtcConnection.h"
 
+#include <future>  // NOLINT
+
 #include "lib/json.hpp"
 #include "ThreadPool.h"
 
@@ -15,6 +17,29 @@ using v8::Persistent;
 using v8::Exception;
 using v8::Value;
 using json = nlohmann::json;
+
+StatCallWorker::StatCallWorker(Nan::Callback *callback, std::weak_ptr<erizo::WebRtcConnection> weak_connection)
+    : Nan::AsyncWorker{callback}, weak_connection_{weak_connection}, stat_{""} {
+}
+
+void StatCallWorker::Execute() {
+  std::promise<std::string> stat_promise;
+  std::future<std::string> stat_future = stat_promise.get_future();
+  if (auto connection = weak_connection_.lock()) {
+    connection->getJSONStats([&stat_promise] (std::string stats) {
+      stat_promise.set_value(stats);
+    });
+  }
+  stat_future.wait();
+  stat_ = stat_future.get();
+}
+
+void StatCallWorker::HandleOKCallback() {
+  Local<Value> argv[] = {
+    Nan::New<v8::String>(stat_).ToLocalChecked()
+  };
+  callback->Call(1, argv);
+}
 
 Nan::Persistent<Function> WebRtcConnection::constructor;
 
@@ -44,6 +69,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
   Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
   Nan::SetPrototypeMethod(tpl, "getStats", getStats);
+  Nan::SetPrototypeMethod(tpl, "getPeriodicStats", getStats);
   Nan::SetPrototypeMethod(tpl, "generatePLIPacket", generatePLIPacket);
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
@@ -332,17 +358,21 @@ NAN_METHOD(WebRtcConnection::getCurrentState) {
 
 NAN_METHOD(WebRtcConnection::getStats) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  if (obj->me == NULL) {  // Requesting stats when WebrtcConnection not available
+  if (!obj->me || info.Length() != 1) {
     return;
   }
-  if (info.Length() == 0) {
-    std::string lastStats = obj->me->getJSONStats();
-    info.GetReturnValue().Set(Nan::New(lastStats.c_str()).ToLocalChecked());
-  } else {
-    obj->me->setWebRtcConnectionStatsListener(obj);
-    obj->hasCallback_ = true;
-    obj->statsCallback_ = new Nan::Callback(info[0].As<Function>());;
+  Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
+  AsyncQueueWorker(new StatCallWorker(callback, obj->me));
+}
+
+NAN_METHOD(WebRtcConnection::getPeriodicStats) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  if (obj->me == nullptr || info.Length() != 1) {
+    return;
   }
+  obj->me->setWebRtcConnectionStatsListener(obj);
+  obj->hasCallback_ = true;
+  obj->statsCallback_ = new Nan::Callback(info[0].As<Function>());
 }
 
 NAN_METHOD(WebRtcConnection::generatePLIPacket) {
