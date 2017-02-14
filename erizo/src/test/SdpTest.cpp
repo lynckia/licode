@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 #include <sstream>
 #include <fstream>
+#include <algorithm>
 
 // Headers for SdpInfo.h tests
 #include <SdpInfo.h>
@@ -246,3 +247,28 @@ TEST_F(SdpInfoMediaTest, shouldOnlyMapRtxCorrespondingToSupportedCodecs) {
   EXPECT_EQ(codec_hits_count, 1);
 }
 
+TEST_F(SdpInfoTest, shouldParseSIMGroup) {
+  const int kSimSSRCsInSdp = 2;
+  const uint32_t kFirstSimSSRC = 1662454169;
+  const uint32_t kSecondSimSSRC = 1662455169;
+  std::ifstream ifs("ChromeSimulcast.sdp", std::fstream::in);
+  std::string sdp_string = readFile(ifs);
+
+  sdp->initWithSdp(sdp_string, "video");
+
+  EXPECT_EQ(sdp->video_ssrc_list.size(), kSimSSRCsInSdp);
+  EXPECT_EQ(sdp->video_ssrc_list[0], kFirstSimSSRC);
+  EXPECT_EQ(sdp->video_ssrc_list[1], kSecondSimSSRC);
+}
+
+TEST_F(SdpInfoTest, shouldParseFIDGroups) {
+  const uint32_t kFirstSimSSRC = 1662454169;
+  const uint32_t kSecondSimSSRC = 1662455169;
+  const uint32_t kFirstFidSSRC = 555834772;
+  const uint32_t kSecondFidSSRC = 555835772;
+  std::ifstream ifs("ChromeSimulcast.sdp", std::fstream::in);
+  std::string sdp_string = readFile(ifs);
+  sdp->initWithSdp(sdp_string, "video");
+  EXPECT_EQ(sdp->video_rtx_ssrc_map[kFirstFidSSRC], kFirstSimSSRC);
+  EXPECT_EQ(sdp->video_rtx_ssrc_map[kSecondFidSSRC], kSecondSimSSRC);
+}

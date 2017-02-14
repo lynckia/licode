@@ -109,9 +109,9 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
 
   ELOG_DEBUG("%s message: Creating sdp offer, isBundle: %d", toLog(), bundle_);
   if (videoEnabled_)
-    localSdp_.videoSsrc = this->getVideoSinkSSRC();
+    localSdp_.video_ssrc_list.push_back(this->getVideoSinkSSRC());
   if (audioEnabled_)
-    localSdp_.audioSsrc = this->getAudioSinkSSRC();
+    localSdp_.audio_ssrc = this->getAudioSinkSSRC();
 
   if (bundle_) {
     videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
@@ -150,14 +150,14 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 
   localSdp_.updateSupportedExtensionMap(extProcessor_.getSupportedExtensionMap());
 
-  localSdp_.videoSsrc = this->getVideoSinkSSRC();
-  localSdp_.audioSsrc = this->getAudioSinkSSRC();
+  localSdp_.video_ssrc_list.push_back(this->getVideoSinkSSRC());
+  localSdp_.audio_ssrc = this->getAudioSinkSSRC();
 
   if (remoteSdp_.dtlsRole == ACTPASS) {
     localSdp_.dtlsRole = ACTIVE;
   }
-  this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
-  this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
+  this->setVideoSourceSSRC(remoteSdp_.video_ssrc_list.at(0));
+  this->setAudioSourceSSRC(remoteSdp_.audio_ssrc);
   this->audioEnabled_ = remoteSdp_.hasAudio;
   this->videoEnabled_ = remoteSdp_.hasVideo;
   rtcp_processor_->addSourceSsrc(this->getAudioSourceSSRC());
