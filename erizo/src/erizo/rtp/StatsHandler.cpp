@@ -37,9 +37,9 @@ void StatsCalculator::processRtpPacket(std::shared_ptr<dataPacket> packet) {
     return;
   }
   if (!getStatsInfo()[ssrc].hasChild("bitrateCalculated")) {
-    if (ssrc == connection_->getVideoSourceSSRC() || ssrc == connection_->getVideoSinkSSRC()) {
+    if (connection_->isVideoSourceSSRC(ssrc) || connection_->isVideoSinkSSRC(ssrc)) {
       getStatsInfo()[ssrc].insertStat("type", StringStat{"video"});
-    } else if (ssrc == connection_->getAudioSourceSSRC() || ssrc == connection_->getAudioSinkSSRC()) {
+    } else if (connection_->isAudioSourceSSRC(ssrc) || connection_->isAudioSinkSSRC(ssrc)) {
       getStatsInfo()[ssrc].insertStat("type", StringStat{"audio"});
     }
     getStatsInfo()[ssrc].insertStat("bitrateCalculated", RateStat{kBitrateStatsPeriod, 8.});

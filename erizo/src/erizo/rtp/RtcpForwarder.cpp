@@ -88,7 +88,7 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
           return 0;
           break;
         case RTCP_Receiver_PT:
-          if (chead->getSourceSSRC() == rtcpSource_->getVideoSourceSSRC()) {
+          if (rtcpSource_->isVideoSourceSSRC(chead->getSourceSSRC())) {
             ELOG_DEBUG("Analyzing Video RR: PacketLost %u, Ratio %u, currentBlock %d, blocks %d"
                        ", sourceSSRC %u, ssrc %u changed to %u",
                 chead->getLostPackets(),
