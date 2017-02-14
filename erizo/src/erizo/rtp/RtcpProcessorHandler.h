@@ -4,6 +4,7 @@
 #include <string>
 
 #include "./logger.h"
+#include "./Stats.h"
 #include "pipeline/Handler.h"
 #include "rtp/RtcpProcessor.h"
 
@@ -31,6 +32,7 @@ class RtcpProcessorHandler: public Handler {
  private:
   WebRtcConnection* connection_;
   std::shared_ptr<RtcpProcessor> processor_;
+  std::shared_ptr<Stats> stats_;
 };
 
 }  // namespace erizo

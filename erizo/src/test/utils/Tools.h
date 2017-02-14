@@ -3,6 +3,7 @@
 
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
+#include <Stats.h>
 
 #include <queue>
 #include <string>
@@ -163,6 +164,7 @@ class HandlerTest : public ::testing::Test {
     worker->start();
     connection = std::make_shared<erizo::MockWebRtcConnection>(worker, ice_config, rtp_maps);
     processor = std::make_shared<erizo::MockRtcpProcessor>();
+    stats = std::make_shared<erizo::Stats>();
     connection->setVideoSinkSSRC(erizo::kVideoSsrc);
     connection->setAudioSinkSSRC(erizo::kAudioSsrc);
     connection->setVideoSourceSSRC(erizo::kVideoSsrc);
@@ -178,6 +180,7 @@ class HandlerTest : public ::testing::Test {
     std::shared_ptr<erizo::WebRtcConnection> connection_ptr = std::dynamic_pointer_cast<WebRtcConnection>(connection);
     pipeline->addService(connection_ptr);
     pipeline->addService(std::dynamic_pointer_cast<RtcpProcessor>(processor));
+    pipeline->addService(stats);
 
     pipeline->addBack(writer);
     setHandler();
@@ -192,6 +195,7 @@ class HandlerTest : public ::testing::Test {
 
   IceConfig ice_config;
   std::vector<RtpMap> rtp_maps;
+  std::shared_ptr<erizo::Stats> stats;
   std::shared_ptr<erizo::MockWebRtcConnection> connection;
   std::shared_ptr<erizo::MockRtcpProcessor> processor;
   Pipeline::Ptr pipeline;
