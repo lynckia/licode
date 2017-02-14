@@ -33,7 +33,7 @@ namespace erizo {
   static const char *sendonly = "a=sendonly";
   static const char *ice_user = "a=ice-ufrag";
   static const char *ice_pass = "a=ice-pwd";
-  static const char *ssrctag = "a=ssrc";
+  static const char *ssrctag = "a=ssrc:";
   static const char *ssrcgrouptag = "a=ssrc-group";
   static const char *savpf = "SAVPF";
   static const char *rtpmap = "a=rtpmap:";
@@ -45,8 +45,11 @@ namespace erizo {
   static const char *fmtp = "a=fmtp:";
   static const char *bas = "b=AS:";
   static const std::string kAssociatedPt = "apt";
+  static const std::string kSimulcastGroup = "SIM";
+  static const std::string kFidGroup = "FID";
 
-  SdpInfo::SdpInfo(const std::vector<RtpMap> rtp_mappings): internalPayloadVector_(rtp_mappings) {
+
+  SdpInfo::SdpInfo(const std::vector<RtpMap> rtp_mappings) : internalPayloadVector_{rtp_mappings} {
     isBundle = false;
     isRtcpMux = false;
     isFingerprint = false;
@@ -54,9 +57,7 @@ namespace erizo {
     hasAudio = false;
     hasVideo = false;
     profile = SAVPF;
-    audioSsrc = 0;
-    videoSsrc = 0;
-    videoRtxSsrc = 0;
+    audio_ssrc = 0;
     videoCodecs = 0;
     audioCodecs = 0;
     videoSdpMLine = -1;
@@ -299,14 +300,14 @@ namespace erizo {
         }
       }
 
-      if (audioSsrc == 0) {
-        audioSsrc = 44444;
+      if (audio_ssrc == 0) {
+        audio_ssrc = 44444;
       }
       if (audioDirection != RECVONLY) {
-        sdp << "a=ssrc:" << audioSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-          "a=ssrc:"<< audioSsrc << " msid:"<< msidtemp << " a0"<< endl <<
-          "a=ssrc:"<< audioSsrc << " mslabel:"<< msidtemp << endl <<
-          "a=ssrc:"<< audioSsrc << " label:" << msidtemp << "a0" << endl;
+        sdp << "a=ssrc:" << audio_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+          "a=ssrc:"<< audio_ssrc << " msid:"<< msidtemp << " a0"<< endl <<
+          "a=ssrc:"<< audio_ssrc << " mslabel:"<< msidtemp << endl <<
+          "a=ssrc:"<< audio_ssrc << " label:" << msidtemp << "a0" << endl;
       }
     }
 
@@ -409,20 +410,26 @@ namespace erizo {
           }
         }
       }
-      if (videoSsrc == 0) {
-        videoSsrc = 55543;
+      if (video_ssrc_list.empty()) {
+        video_ssrc_list.push_back(55543);
       }
       if (videoDirection != RECVONLY) {
-        sdp << "a=ssrc:" << videoSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-          "a=ssrc:" << videoSsrc << " msid:"<< msidtemp << " v0"<< endl <<
-          "a=ssrc:" << videoSsrc << " mslabel:"<< msidtemp << endl <<
-          "a=ssrc:" << videoSsrc << " label:" << msidtemp << "v0" << endl;
-        if (videoRtxSsrc != 0) {
-          sdp << "a=ssrc:" << videoRtxSsrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-            "a=ssrc:" << videoRtxSsrc << " msid:" << msidtemp << " v0" << endl <<
-            "a=ssrc:" << videoRtxSsrc << " mslabel:" << msidtemp << endl <<
-            "a=ssrc:" << videoRtxSsrc << " label:" << msidtemp << "v0" << endl;
-        }
+        std::for_each(video_ssrc_list.begin(), video_ssrc_list.end(),
+            [&sdp, &msidtemp](uint32_t &video_ssrc){
+            sdp << "a=ssrc:" << video_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+            "a=ssrc:" << video_ssrc << " msid:"<< msidtemp << " v0"<< endl <<
+            "a=ssrc:" << video_ssrc << " mslabel:"<< msidtemp << endl <<
+            "a=ssrc:" << video_ssrc << " label:" << msidtemp << "v0" << endl;
+            });
+        /* TODO(pedro)  properly encode FID groups in sdp when supported
+        std::for_each(video_rtx_ssrc_map.begin(), video_rtx_ssrc_map.end(),
+            [&sdp, &msidtemp](uint32_t &video_rtx_ssrc){
+            sdp << "a=ssrc:" << video_rtx_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+            "a=ssrc:" << video_rtx_ssrc << " msid:"<< msidtemp << " v0"<< endl <<
+            "a=ssrc:" << video_rtx_ssrc << " mslabel:"<< msidtemp << endl <<
+            "a=ssrc:" << video_rtx_ssrc << " label:" << msidtemp << "v0" << endl;
+            });
+        */
       }
     }
     ELOG_DEBUG("sdp local \n %s", sdp.str().c_str());
@@ -494,7 +501,6 @@ namespace erizo {
     this->hasAudio = audioEnabled;
     this->videoDirection = SENDRECV;
     this->audioDirection = SENDRECV;
-    // this->videoRtxSsrc = 55555;
     ELOG_DEBUG("Setting Offer SDP");
   }
 
@@ -541,11 +547,6 @@ namespace erizo {
         this->audioDirection = SENDRECV;
         break;
     }
-    /*
-    if (offerSdp.videoRtxSsrc != 0) {
-      this->videoRtxSsrc = 55555;
-    }
-    */
     ELOG_DEBUG("Offer SDP successfully set");
   }
 
@@ -736,23 +737,42 @@ namespace erizo {
       if (isSsrc != std::string::npos) {
         std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
         // FIXME add error checking
-        if ((mtype == VIDEO_TYPE) && (videoSsrc == 0)) {
-          videoSsrc = strtoul(parts[1].c_str(), NULL, 10);
-          ELOG_DEBUG("video ssrc: %u", videoSsrc);
-        } else if ((mtype == AUDIO_TYPE) && (audioSsrc == 0)) {
-          audioSsrc = strtoul(parts[1].c_str(), NULL, 10);
-          ELOG_DEBUG("audio ssrc: %u", audioSsrc);
+        if (mtype == VIDEO_TYPE) {
+          uint32_t parsed_ssrc = strtoul(parts[1].c_str(), NULL, 10);
+          ELOG_DEBUG("message: maybeAdd video in isSsrc, ssrc: %u", parsed_ssrc);
+          maybeAddSsrcToList(parsed_ssrc);
+        } else if ((mtype == AUDIO_TYPE) && (audio_ssrc == 0)) {
+          audio_ssrc = strtoul(parts[1].c_str(), NULL, 10);
+          ELOG_DEBUG("audio ssrc: %u", audio_ssrc);
         }
       }
 
       if (isSsrcGroup != std::string::npos) {
-        if (mtype == VIDEO_TYPE) {
-          ELOG_DEBUG("FID group detected");
-          std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 10);
-          if (parts.size() >= 4) {
-            videoRtxSsrc = strtoul(parts[3].c_str(), NULL, 10);
-            ELOG_DEBUG("Setting videoRtxSsrc to %u", videoRtxSsrc);
+        if (mtype != VIDEO_TYPE) {
+          continue;
+        }
+        std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 10);
+        if (parts.size() < 4) {
+          continue;
+        }
+        if (parts[1] == kSimulcastGroup) {
+          ELOG_DEBUG("Detected SIM group, size: %lu", parts.size());
+          std::for_each(parts.begin() + 2, parts.end(), [this] (std::string &part){
+              uint32_t parsed_ssrc = strtoul(part.c_str(), NULL, 10);
+              ELOG_DEBUG("maybeAddSsrc video SIM, ssrc %u", parsed_ssrc);
+              this->maybeAddSsrcToList(parsed_ssrc);
+              });
+
+        } else if (parts[1] == kFidGroup) {
+          int number_of_ssrcs = parts.size() - 2;
+          if (number_of_ssrcs != 2) {
+            ELOG_DEBUG("FID Group with wrong number of SSRCs, ignoring");
+            continue;
           }
+          uint32_t original_ssrc = strtoul(parts[2].c_str(), NULL, 10);
+          uint32_t rtx_ssrc = strtoul(parts[3].c_str(), NULL, 10);
+          video_rtx_ssrc_map[rtx_ssrc] = original_ssrc;
+          ELOG_DEBUG("message: parsed FID group, original_src: %u, rtx_ssrc: %u", original_ssrc, rtx_ssrc);
         }
       }
       // a=rtpmap:PT codec_name/clock_rate
@@ -870,6 +890,10 @@ namespace erizo {
         c.username = iceAudioUsername_;
         c.password = iceAudioPassword_;
       }
+    }
+
+    if (video_ssrc_list.empty()) {
+      video_ssrc_list.push_back(0);
     }
 
     //  go through the payload_map_ and match it with internalPayloadVector_
@@ -1097,4 +1121,20 @@ namespace erizo {
 
     s[len] = 0;
   }
+
+  void SdpInfo::maybeAddSsrcToList(uint32_t ssrc) {
+    auto find_rt = video_rtx_ssrc_map.find(ssrc);
+    if (find_rt != video_rtx_ssrc_map.end()) {
+      //  Its a rtx ssrc
+      return;
+    }
+    auto value = std::find_if(video_ssrc_list.begin(), video_ssrc_list.end(), [ssrc](uint32_t current_ssrc) {
+        return ssrc == current_ssrc;
+        });
+    if (value == video_ssrc_list.end()) {
+      ELOG_DEBUG("message: Adding ssrc to list, ssrc: %u", ssrc);
+      video_ssrc_list.push_back(ssrc);
+    }
+  }
+
 }  // namespace erizo
