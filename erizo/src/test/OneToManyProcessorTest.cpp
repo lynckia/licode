@@ -16,9 +16,9 @@ static const char kArbitraryPeerId[] = "111";
 class MockPublisher: public erizo::MediaSource, public erizo::FeedbackSink {
  public:
   MockPublisher() {
-    videoSourceSSRC_ = 1;
-    audioSourceSSRC_ = 2;
-    sourcefbSink_ = this;
+    video_source_ssrc_list_[0] = 1;
+    audio_source_ssrc_ = 2;
+    source_fb_sink_ = this;
   }
   ~MockPublisher() {}
   void close() override {}
@@ -30,7 +30,7 @@ class MockPublisher: public erizo::MediaSource, public erizo::FeedbackSink {
 class MockSubscriber: public erizo::MediaSink, public erizo::FeedbackSource {
  public:
   MockSubscriber() {
-    sinkfbSource_ = this;
+    sink_fb_source_ = this;
   }
   ~MockSubscriber() {}
   void close() override {}

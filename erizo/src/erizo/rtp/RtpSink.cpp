@@ -88,8 +88,8 @@ namespace erizo {
   }
 
   void RtpSink::handleReceive(const::boost::system::error_code& error, size_t bytes_recvd) {  // NOLINT
-    if (bytes_recvd > 0 && this->fbSink_) {
-      this->fbSink_->deliverFeedback(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(buffer_),
+    if (bytes_recvd > 0 && fb_sink_) {
+      fb_sink_->deliverFeedback(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(buffer_),
             static_cast<int>(bytes_recvd), OTHER_PACKET));
     }
   }

@@ -206,6 +206,7 @@ void BandwidthEstimationHandler::sendREMBPacket() {
   memcpy(&remb_packet_.report.rembPacket.uniqueid, "REMB", 4);
 
   remb_packet_.setSSRC(connection_->getVideoSinkSSRC());
+  //  todo(pedro) figure out which sourceSSRC to use here
   remb_packet_.setSourceSSRC(connection_->getVideoSourceSSRC());
   remb_packet_.setLength(5);
   remb_packet_.setREMBBitRate(bitrate_);

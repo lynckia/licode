@@ -13,7 +13,6 @@
 namespace erizo {
 DEFINE_LOGGER(ExternalInput, "media.ExternalInput");
 ExternalInput::ExternalInput(const std::string& inputUrl):url_(inputUrl) {
-  sourcefbSink_ = NULL;
   context_ = NULL;
   running_ = false;
   needTranscoding_ = false;
@@ -164,10 +163,10 @@ int ExternalInput::sendPLI() {
 
 
 void ExternalInput::receiveRtpData(unsigned char* rtpdata, int len) {
-  if (videoSink_ != NULL) {
+  if (video_sink_ != nullptr) {
     std::shared_ptr<dataPacket> packet = std::make_shared<dataPacket>(0, reinterpret_cast<char*>(rtpdata),
         len, VIDEO_PACKET);
-    videoSink_->deliverVideoData(packet);
+    video_sink_->deliverVideoData(packet);
   }
 }
 
@@ -215,7 +214,7 @@ void ExternalInput::receiveLoop() {
         if (length > 0) {
           std::shared_ptr<dataPacket> packet = std::make_shared<dataPacket>(0,
               reinterpret_cast<char*>(decodedBuffer_.get()), length, AUDIO_PACKET);
-          audioSink_->deliverAudioData(packet);
+          audio_sink_->deliverAudioData(packet);
         }
       }
     }
