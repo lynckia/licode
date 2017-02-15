@@ -12,9 +12,8 @@
 
 namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
-  OneToManyProcessor::OneToManyProcessor() {
+  OneToManyProcessor::OneToManyProcessor() : feedbackSink_{nullptr} {
     ELOG_DEBUG("OneToManyProcessor constructor");
-    feedbackSink_ = NULL;
   }
 
   OneToManyProcessor::~OneToManyProcessor() {
@@ -44,7 +43,7 @@ namespace erizo {
     RtcpHeader* head = reinterpret_cast<RtcpHeader*>(video_packet->data);
     if (head->isFeedback()) {
       ELOG_WARN("Receiving Feedback in wrong path: %d", head->packettype);
-      if (feedbackSink_ != NULL) {
+      if (feedbackSink_ != nullptr) {
         head->ssrc = htonl(publisher->getVideoSourceSSRC());
         feedbackSink_->deliverFeedback(video_packet);
       }
@@ -55,7 +54,7 @@ namespace erizo {
       return 0;
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
-      if ((*it).second != NULL) {
+      if ((*it).second != nullptr) {
         (*it).second->deliverVideoData(video_packet);
       }
     }
@@ -69,7 +68,7 @@ namespace erizo {
   }
 
   int OneToManyProcessor::deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) {
-    if (feedbackSink_ != NULL) {
+    if (feedbackSink_ != nullptr) {
       feedbackSink_->deliverFeedback(fb_packet);
     }
     return 0;
@@ -87,7 +86,7 @@ namespace erizo {
                this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
     FeedbackSource* fbsource = webRtcConn->getFeedbackSource();
 
-    if (fbsource != NULL) {
+    if (fbsource != nullptr) {
       ELOG_DEBUG("adding fbsource");
       fbsource->setFeedbackSink(this);
     }
@@ -109,7 +108,7 @@ namespace erizo {
 
   void OneToManyProcessor::closeAll() {
     ELOG_DEBUG("OneToManyProcessor closeAll");
-    feedbackSink_ = NULL;
+    feedbackSink_ = nullptr;
     if (publisher.get()) {
       publisher->close();
     }
@@ -117,11 +116,11 @@ namespace erizo {
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it = subscribers.begin();
     while (it != subscribers.end()) {
-      if ((*it).second != NULL) {
+      if ((*it).second != nullptr) {
         FeedbackSource* fbsource = (*it).second->getFeedbackSource();
         (*it).second->close();
-        if (fbsource != NULL) {
-          fbsource->setFeedbackSink(NULL);
+        if (fbsource != nullptr) {
+          fbsource->setFeedbackSink(nullptr);
         }
       }
       subscribers.erase(it++);

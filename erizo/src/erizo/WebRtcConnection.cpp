@@ -41,9 +41,6 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
   setVideoSinkSSRC(55543);
   setAudioSinkSSRC(44444);
-  video_sink_ = nullptr;
-  audio_sink_ = nullptr;
-  fb_sink_ = nullptr;
   source_fb_sink_ = this;
   sink_fb_source_ = this;
   stats_ = std::make_shared<Stats>();
@@ -336,7 +333,7 @@ void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transpo
   std::string sdp = localSdp_.addCandidate(cand);
   ELOG_DEBUG("%s message: Discovered New Candidate, candidate: %s", toLog(), sdp.c_str());
   if (trickleEnabled_) {
-    if (connEventListener_ != NULL) {
+    if (connEventListener_ != nullptr) {
       if (!bundle_) {
         std::string object = this->getJSONCandidate(transport->transport_name, sdp);
         connEventListener_->notifyEvent(CONN_CANDIDATE, object);
@@ -458,7 +455,7 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
                     toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
       }
     } else {
-      if (packet->type == AUDIO_PACKET && audio_sink_ != NULL) {
+      if (packet->type == AUDIO_PACKET && audio_sink_ != nullptr) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getAudioSourceSSRC() == 0) {
@@ -466,7 +463,7 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
           this->setAudioSourceSSRC(recvSSRC);
         }
         audio_sink_->deliverAudioData(packet);
-      } else if (packet->type == VIDEO_PACKET && video_sink_ != NULL) {
+      } else if (packet->type == VIDEO_PACKET && video_sink_ != nullptr) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getVideoSourceSSRC() == 0) {
@@ -498,7 +495,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
   WebRTCEvent temp = globalState_;
   std::string msg = "";
   ELOG_DEBUG("%s transportName: %s, new_state: %d", toLog(), transport->transport_name.c_str(), state);
-  if (videoTransport_.get() == NULL && audioTransport_.get() == NULL) {
+  if (videoTransport_.get() == nullptr && audioTransport_.get() == nullptr) {
     ELOG_ERROR("%s message: Updating NULL transport, state: %d", toLog(), state);
     return;
   }
@@ -511,9 +508,9 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       if (bundle_) {
         temp = CONN_STARTED;
       } else {
-        if ((!remoteSdp_.hasAudio || (audioTransport_.get() != NULL
+        if ((!remoteSdp_.hasAudio || (audioTransport_.get() != nullptr
                   && audioTransport_->getTransportState() == TRANSPORT_STARTED)) &&
-            (!remoteSdp_.hasVideo || (videoTransport_.get() != NULL
+            (!remoteSdp_.hasVideo || (videoTransport_.get() != nullptr
                   && videoTransport_->getTransportState() == TRANSPORT_STARTED))) {
             // WebRTCConnection will be ready only when all channels are ready.
             temp = CONN_STARTED;
@@ -536,9 +533,9 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
           msg = this->getLocalSdp();
         }
       } else {
-        if ((!localSdp_.hasAudio || (audioTransport_.get() != NULL
+        if ((!localSdp_.hasAudio || (audioTransport_.get() != nullptr
                   && audioTransport_->getTransportState() == TRANSPORT_GATHERED)) &&
-            (!localSdp_.hasVideo || (videoTransport_.get() != NULL
+            (!localSdp_.hasVideo || (videoTransport_.get() != nullptr
                   && videoTransport_->getTransportState() == TRANSPORT_GATHERED))) {
             // WebRTCConnection will be ready only when all channels are ready.
             if (!trickleEnabled_) {
@@ -553,9 +550,9 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
         temp = CONN_READY;
 
       } else {
-        if ((!remoteSdp_.hasAudio || (audioTransport_.get() != NULL
+        if ((!remoteSdp_.hasAudio || (audioTransport_.get() != nullptr
                   && audioTransport_->getTransportState() == TRANSPORT_READY)) &&
-            (!remoteSdp_.hasVideo || (videoTransport_.get() != NULL
+            (!remoteSdp_.hasVideo || (videoTransport_.get() != nullptr
                   && videoTransport_->getTransportState() == TRANSPORT_READY))) {
             // WebRTCConnection will be ready only when all channels are ready.
             temp = CONN_READY;
@@ -574,7 +571,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       break;
   }
 
-  if (audioTransport_.get() != NULL && videoTransport_.get() != NULL) {
+  if (audioTransport_.get() != nullptr && videoTransport_.get() != nullptr) {
     ELOG_DEBUG("%s message: %s, transportName: %s, videoTransportState: %d"
               ", audioTransportState: %d, calculatedState: %d, globalState: %d",
       toLog(),
@@ -592,7 +589,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
 
   globalState_ = temp;
 
-  if (connEventListener_ != NULL) {
+  if (connEventListener_ != nullptr) {
     ELOG_INFO("%s newGlobalState: %d", toLog(), globalState_);
     connEventListener_->notifyEvent(globalState_, msg);
   }
