@@ -408,7 +408,7 @@ void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Trans
     uint32_t recvSSRC = head->getSSRC();
     if (isVideoSourceSSRC(recvSSRC)) {
       packet->type = VIDEO_PACKET;
-    } else if (isAudioSourceSSRC(this->getAudioSourceSSRC())) {
+    } else if (isAudioSourceSSRC(recvSSRC)) {
       packet->type = AUDIO_PACKET;
     }
   }
