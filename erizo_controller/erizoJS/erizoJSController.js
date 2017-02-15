@@ -227,6 +227,13 @@ exports.ErizoJSController = function (threadPool) {
       }
     };
 
+    var disableDefaultHandlers = function(wrtc) {
+      var disabledHandlers = GLOBAL.config.erizo['disabled_handlers'];
+      for (var index in disabledHandlers) {
+        wrtc.disableHandler(disabledHandlers[index]);
+      }
+    };
+
     that.processSignaling = function (streamId, peerId, msg) {
         log.info('message: Process Signaling message, ' +
                  'streamId: ' + streamId + ', peerId: ' + peerId);
@@ -236,6 +243,7 @@ exports.ErizoJSController = function (threadPool) {
                 var subscriber = publisher.getSubscriber(peerId);
                 if (msg.type === 'offer') {
                     subscriber.setRemoteSdp(msg.sdp);
+                    disableDefaultHandlers(subscriber);
                 } else if (msg.type === 'candidate') {
                     subscriber.addRemoteCandidate(msg.candidate.sdpMid,
                                                                      msg.candidate.sdpMLineIndex,
@@ -257,6 +265,7 @@ exports.ErizoJSController = function (threadPool) {
             } else {
                 if (msg.type === 'offer') {
                     publisher.wrtc.setRemoteSdp(msg.sdp);
+                    disableDefaultHandlers(publisher.wrtc);
                 } else if (msg.type === 'candidate') {
                     publisher.wrtc.addRemoteCandidate(msg.candidate.sdpMid,
                                                                  msg.candidate.sdpMLineIndex,

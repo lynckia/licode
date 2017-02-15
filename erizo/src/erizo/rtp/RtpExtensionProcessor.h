@@ -18,8 +18,9 @@ enum RTPExtensions {
   ABS_SEND_TIME,        // http:// www.webrtc.org/experiments/rtp-hdrext/abs-send-time
   TOFFSET,              // urn:ietf:params:rtp-hdrext:toffset
   VIDEO_ORIENTATION,    // urn:3gpp:video-orientation
-  TRANSPORT_CC,    // http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
-  PLAYBACK_TIME         //  http:// www.webrtc.org/experiments/rtp-hdrext/playout-delay
+  TRANSPORT_CC,         // http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+  PLAYBACK_TIME,        // http:// www.webrtc.org/experiments/rtp-hdrext/playout-delay
+  RTP_ID                // urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
 };
 
 class RtpExtensionProcessor{

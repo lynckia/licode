@@ -19,6 +19,7 @@ RtpExtensionProcessor::RtpExtensionProcessor(const std::vector<erizo::ExtMap> ex
   translationMap_["urn:3gpp:video-orientation"] = VIDEO_ORIENTATION;
   translationMap_["http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"] = TRANSPORT_CC;
   translationMap_["http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"]= PLAYBACK_TIME;
+  translationMap_["urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id"]= RTP_ID;
   ext_map_video_.fill(UNKNOWN);
   ext_map_audio_.fill(UNKNOWN);
 }
