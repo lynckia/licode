@@ -1,0 +1,12 @@
+site_name: Licode Documentation
+site_url: http://licode.readthedocs.org
+repo_url: https://github.com/lynckia/licode
+site_description: Open Source WebRTC Communications Platform
+docs_dir: doc
+site_dir: html
+theme: readthedocs
+# extra_css: ["https://fiware.org/style/fiware_readthedocs.css"]
+pages:
+    - Home: index.md
+    - Client API: client_api.md
+    - Server API: server_api.md
