@@ -25,17 +25,19 @@ struct dataPacket {
   dataPacket() = default;
 
   dataPacket(int comp_, const char *data_, int length_, packetType type_, uint64_t received_time_ms_) :
-    comp{comp_}, length{length_}, type{type_}, received_time_ms{received_time_ms_} {
+    comp{comp_}, length{length_}, type{type_}, received_time_ms{received_time_ms_}, is_keyframe{false} {
       memcpy(data, data_, length_);
   }
 
   dataPacket(int comp_, const char *data_, int length_, packetType type_) :
-    comp{comp_}, length{length_}, type{type_}, received_time_ms{ClockUtils::timePointToMs(clock::now())} {
+    comp{comp_}, length{length_}, type{type_}, received_time_ms{ClockUtils::timePointToMs(clock::now())},
+    is_keyframe{false} {
       memcpy(data, data_, length_);
   }
 
   dataPacket(int comp_, const unsigned char *data_, int length_) :
-    comp{comp_}, length{length_}, type{VIDEO_PACKET}, received_time_ms{ClockUtils::timePointToMs(clock::now())} {
+    comp{comp_}, length{length_}, type{VIDEO_PACKET}, received_time_ms{ClockUtils::timePointToMs(clock::now())},
+    is_keyframe{false} {
       memcpy(data, data_, length_);
   }
 
@@ -62,6 +64,7 @@ struct dataPacket {
   uint64_t received_time_ms;
   std::vector<int> compatible_spatial_layers;
   std::vector<int> compatible_temporal_layers;
+  bool is_keyframe;
 };
 
 class Monitor {

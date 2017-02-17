@@ -68,6 +68,10 @@ void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<dataPacket> pac
 
   int position = getSsrcPosition(rtp_header->getSSRC());
   packet->compatible_spatial_layers = {position};
+
+  if (!payload->frameType) {  // Its a keyframe first packet
+    packet->is_keyframe = true;
+  }
 }
 
 void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<dataPacket> packet) {
@@ -98,6 +102,10 @@ void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<dataPacket> pac
     default:
       packet->compatible_temporal_layers.push_back(0);
       break;
+  }
+
+  if (!payload->frameType) {  // Its a keyframe packet
+    packet->is_keyframe = true;
   }
 }
 
