@@ -519,7 +519,9 @@ var listen = function () {
                         return callback(null, 'Unauthorized');
                 }
             }
-            id = Math.random() * 1000000000000000000;
+
+            // this guarantees that the generated id is a safe 18 digits integer
+            id = Math.floor(100000000000000000 + Math.random() * 900000000000000000);
 
             if (options.state === 'url' || options.state === 'recording') {
                 var url = sdp;
