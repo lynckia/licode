@@ -70,11 +70,13 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<dataPacket> packet) {
   int totalLength = 0;
   uint32_t ssrc = 0;
 
+  bool is_feedback_on_publisher = false;
+
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(movingBuf);
   if (chead->isFeedback()) {
     ssrc = chead->getSourceSSRC();
     if (!connection_->isSinkSSRC(ssrc)) {
-      return;
+      is_feedback_on_publisher = true;
     }
   } else {
     ssrc = chead->getSSRC();
@@ -100,6 +102,9 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<dataPacket> packet) {
         ELOG_DEBUG("RTCP BYE");
         break;
       case RTCP_Receiver_PT:
+        if (is_feedback_on_publisher) {
+          break;
+        }
         ELOG_DEBUG("RTP RR: Fraction Lost %u, packetsLost %u", chead->getFractionLost(), chead->getLostPackets());
         getStatsInfo()[ssrc].insertStat("fractionLost", CumulativeStat{chead->getFractionLost()});
         getStatsInfo()[ssrc].insertStat("packetsLost", CumulativeStat{chead->getLostPackets()});
@@ -133,6 +138,9 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<dataPacket> packet) {
             break;
           case RTCP_AFB:
             {
+              if (is_feedback_on_publisher) {
+                break;
+              }
               ELOG_DEBUG("REMB Packet, SSRC %u, sourceSSRC %u", chead->getSSRC(), chead->getSourceSSRC());
               char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
               if (!strncmp(uniqueId, "REMB", 4)) {
