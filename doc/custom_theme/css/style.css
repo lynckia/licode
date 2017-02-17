@@ -1,0 +1,90 @@
+body {
+	background: none;
+}
+.navbar {
+	font-size: 13px;
+	min-height: 40px;
+}
+
+.navbar .container {
+	padding-left: 0;
+}
+
+.navbar-default {
+    background-color: #1b1b1b;
+    border-color: #1b1b1b;
+    background-image: none;
+}
+
+.navbar-default .navbar-nav>li>a {
+	color: #999999;
+	height: 40px;
+	padding-top: 10px;
+}
+
+.navbar-default .navbar-nav>.active>a, .navbar-default .navbar-nav>.active>a:hover, .navbar-default .navbar-nav>.active>a:focus {
+	color: #ffffff;
+    background-color: #111111;
+}
+
+.navbar-default .navbar-nav>li>a:hover, .navbar-default .navbar-nav>li>a:focus {
+	color: #ffffff;
+	background-color: #1b1b1b;
+}
+
+.navbar-nav>li>.dropdown-menu {
+	margin-top: 2px;
+	border-radius: 6px;
+}
+
+.bs-sidebar .nav > li.search_nav > a {
+    padding-left: 20px;
+}
+
+.bs-sidebar .nav > li.main > a {
+    padding-left: 20px;
+}
+
+.bs-sidebar .nav > li > a {
+    padding-left: 30px;
+}
+
+h1 {
+	border-bottom: 1px solid #eeeeee;
+	padding-bottom: 15px;
+	color: #5a5a5a;
+	font-size: 36px;
+	font-weight: bold;
+}
+
+.sec_title {
+	margin-bottom: 85px;
+}
+
+.sec_title h1 {
+	font-size: 60px;
+	font-weight: bold;
+    letter-spacing: -1px;
+    line-height: 1;
+    color: #003478;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.sec_title p {
+	font-size: 24px;
+    font-weight: 300;
+    line-height: 30px;
+    color: #003478;
+}
+
+@media (min-width: 992px) {
+	.bs-sidebar.affix {
+		top: 63px;
+	}
+}
+
+@media (min-width: 1200px) {	
+	.bs-sidebar.affix-bottom, .bs-sidebar.affix {
+	    width: 270px;
+	}
+}
