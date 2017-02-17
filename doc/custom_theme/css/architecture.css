@@ -1,0 +1,397 @@
+#architecture {
+}
+
+#architecture .illustration {
+    height: 370px;
+    width: 540px;
+    display: block;
+    margin-left: 10%;
+}
+
+#architecture .description {
+    height: 260px;
+    width: 100%;
+    margin-top: 40px;
+}
+
+
+#architecture .description .tab-content {
+    width: 100%;
+    height: 100%;
+}
+
+
+#architecture .illustration .client:nth-child(1) {
+    margin-left: 146px;
+    margin-top: 167px;
+}
+
+#architecture .illustration .client:nth-child(2) {
+    margin-left: 261px;
+    margin-top: 104px;
+}
+
+#architecture .illustration .client:nth-child(3) {
+    margin-left: 339px;
+    margin-top: 61px;
+}
+
+#architecture .illustration .client {
+    position: absolute;
+}
+
+#architecture .illustration .client .label {
+    color: #9E9EDE;
+    background-color: rgba(0,0,0,0);
+    -webkit-font-smoothing: antialiased;
+    -moz-font-smoothing: antialiased;
+    left: -3px;
+    position: absolute;
+}
+
+#architecture .illustration .client .icon {
+    background: url('../img/5.png');
+    background-size: 40px;
+    display: block;
+    height: 40px;
+    top: 25px;
+    width: 39px;
+    position: absolute;
+    margin-left: 5px;
+    cursor: pointer;
+    z-index:3;
+}
+
+#architecture .illustration .client .icon:hover {
+    cursor: pointer;
+    background-position: 0px -43px;
+}
+
+#architecture .illustration .clients {
+    position: absolute;
+    top: 25px;
+}
+
+#architecture .illustration .server {
+    position: absolute;
+    top: 25px;
+    margin-top: 360px;
+    margin-left: 50px;
+}
+
+#architecture .illustration .server .label {
+    color: #9E9EDE;
+    background-color: rgba(0,0,0,0);
+    -webkit-font-smoothing: antialiased;
+    -moz-font-smoothing: antialiased;
+    left: -45px;
+    position: absolute;
+}
+
+#architecture .illustration .server .icon {
+    background: url('../img/6.png') no-repeat;
+    background-size: 70px;
+    background-position: 0px -75px;
+    display: block;
+    height: 70px;
+    width: 55px;
+    position: absolute;
+    margin-left: 5px;
+    z-index: 11;
+}
+
+#architecture .illustration .server .icon:hover {
+    cursor: pointer;
+    background-position: 0px 0px;
+}
+
+@-webkit-keyframes walkingants-default {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 0 8px;
+    }
+}
+
+@-moz-keyframes walkingants-default {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 0 8px;
+    }
+}
+
+@-ms-keyframes walkingants-default {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 0 8px;
+    }
+}
+
+@-o-keyframes walkingants-default {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 0 8px;
+    }
+}
+
+@keyframes walkingants-default {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 0 8px;
+    }
+}
+
+@-webkit-keyframes walkingants-reverse {
+    0% {
+        background-position: 0 8px;
+    }
+    100% {
+        background-position: 0 0;
+    }
+}
+
+@-moz-keyframes walkingants-reverse {
+    0% {
+        background-position: 0 8px;
+    }
+    100% {
+        background-position: 0 0;
+    }
+}
+
+@-ms-keyframes walkingants-reverse {
+    0% {
+        background-position: 0 8px;
+    }
+    100% {
+        background-position: 0 0;
+    }
+}
+
+@-o-keyframes walkingants-reverse {
+    0% {
+        background-position: 0 8px;
+    }
+    100% {
+        background-position: 0 0;
+    }
+}
+
+@keyframes walkingants-reverse {
+    0% {
+        background-position: 0 8px;
+    }
+    100% {
+        background-position: 0 0;
+    }
+}
+
+#architecture .illustration .routes .routing:nth-child(1) {
+    transform: rotate(-45deg);
+    -webkit-transform: rotate(-45deg);
+    -moz-transform: rotate(-45deg);
+    -ms-transform: rotate(-45deg);
+    -o-transform: rotate(-45deg);
+    transform: rotate(-45deg);
+    margin-left: 205px;
+}
+
+#architecture .illustration .routes .routing:nth-child(2) {
+    
+    -webkit-transform: rotate(-45deg);
+    -moz-transform: rotate(-45deg);
+    -ms-transform: rotate(-45deg);
+    -o-transform: rotate(-45deg);
+    transform: rotate(-45deg);
+    -webkit-animation-name: walkingants-reverse;
+    -moz-animation-name: walkingants-reverse;
+    -ms-animation-name: walkingants-reverse;
+    -o-animation-name: walkingants-reverse;
+    animation-name: walkingants-reverse;
+    margin-left: 210px;
+}
+
+#architecture .illustration .routes .routing:nth-child(3) {
+    -webkit-transform: rotate(6deg);
+    -moz-transform: rotate(6deg);
+    -ms-transform: rotate(6deg);
+    -o-transform: rotate(6deg);
+    transform: rotate(6deg);
+    margin-left: 275px;
+    margin-top: 175px;
+}
+
+#architecture .illustration .routes .routing:nth-child(4) {
+    -webkit-transform: rotate(6deg);
+    -moz-transform: rotate(6deg);
+    -ms-transform: rotate(6deg);
+    -o-transform: rotate(6deg);
+    transform: rotate(6deg);
+    -webkit-animation-name: walkingants-reverse;
+    -moz-animation-name: walkingants-reverse;
+    -ms-animation-name: walkingants-reverse;
+    -o-animation-name: walkingants-reverse;
+    animation-name: walkingants-reverse;
+    
+    margin-left: 280px;
+    margin-top: 175px;
+}
+
+#architecture .illustration .routes .routing:nth-child(5) {
+    margin-left: 360px;
+    margin-top: 133px;
+}
+
+#architecture .illustration .routes .routing:nth-child(6) {
+    -webkit-animation-name: walkingants-reverse;
+    margin-left: 365px;
+    margin-top: 133px;
+}
+
+#architecture .illustration .routes .routing {
+    -webkit-animation-duration: .3s;
+    -moz-animation-duration: .3s;
+    -ms-animation-duration: .3s;
+    -o-animation-duration: .3s;
+    -webkit-animation-iteration-count: infinite;
+    -moz-animation-iteration-count: infinite;
+    -ms-animation-iteration-count: infinite;
+    -o-animation-iteration-count: infinite;
+    -webkit-animation-name: walkingants-default;
+    -moz-animation-name: walkingants-default;
+    -ms-animation-name: walkingants-default;
+    -o-animation-name: walkingants-default;
+    -webkit-animation-timing-function: linear;
+    -moz-animation-timing-function: linear;
+    -ms-animation-timing-function: linear;
+    -o-animation-timing-function: linear;
+    background: url("../img/routing.png");
+    height: 105px;
+    margin-top: 190px;
+    -webkit-mask-image: -webkit-gradient(linear, left top, left bottom, from(rgba(0, 0, 0, 0)), to(rgba(0, 0, 0, 1)));
+    -moz-mask-image: -moz-gradient(linear, left top, left bottom, from(rgba(0, 0, 0, 0)), to(rgba(0, 0, 0, 1)));
+    -ms-mask-image: -ms-gradient(linear, left top, left bottom, from(rgba(0, 0, 0, 0)), to(rgba(0, 0, 0, 1)));
+    -o-mask-image: -o-gradient(linear, left top, left bottom, from(rgba(0, 0, 0, 0)), to(rgba(0, 0, 0, 1)));
+    mask-image: gradient(linear, left top, left bottom, from(rgba(0, 0, 0, 0)), to(rgba(0, 0, 0, 1)));
+    opacity: .5;
+    position: absolute;
+    z-index: 1;
+    width: 16px;
+}
+
+#architecture .illustration .routes {
+    position: absolute;
+    top: 25px;
+}
+
+#architecture .illustration .erizo-controller {
+    height: 318px;
+    width: 511px;
+    position: absolute;
+    top: 25px;
+    margin-top: 177px;
+    margin-left: 150px;
+    opacity: 0.9;
+}
+
+#architecture .illustration .erizo-controller .back {
+    content: "";
+    cursor: pointer;
+    background: url('../img/01.png') no-repeat;
+    background-size: 300px;
+    height: 154px;
+    width: 300px;
+    position: absolute;
+    margin-top: 33px;
+    margin-left: 17px;
+    cursor: pointer;
+    opacity: 0.9;
+    -webkit-transform: rotate(-30deg);
+    -moz-transform: rotate(-30deg);
+    -ms-transform: rotate(-30deg);
+    -o-transform: rotate(-30deg);
+    transform: rotate(-30deg);
+}
+
+#architecture .illustration .erizo-controller .back:hover {
+    background-position: 0 -154px;
+}
+
+#architecture .illustration .nuve {
+    background: url('../img/02.png') no-repeat;
+    background-size: 186px;
+    height: 44px;
+    width: 186px;
+    top: 25px;
+    position: absolute;
+    margin-top: 332px;
+    margin-left: 111px;
+    cursor: pointer;
+    opacity: 0.9;
+    -webkit-transform: rotate(30deg);
+    -moz-transform: rotate(30deg);
+    -ms-transform: rotate(30deg);
+    -o-transform: rotate(30deg);
+    transform: rotate(30deg);
+}
+
+#architecture .illustration .nuve:hover {
+    background-position: 0px -45px;
+}
+
+#architecture .illustration .erizo-controller .room:nth-child(1) {
+    left: 30px;
+    top: 77px;
+}
+
+#architecture .illustration .erizo-controller .room:nth-child(2) {
+    left: 118px;
+    top: 32px;
+}
+
+#architecture .illustration .erizo-controller .room:nth-child(2) .icon {
+    background: url('../img/4.png') no-repeat;
+    background-size: 80px;
+}
+
+#architecture .illustration .erizo-controller .room:nth-child(2) .icon:hover {
+    background-position: 0px -78px;
+}
+
+#architecture .illustration .room {
+    top: 20px;
+    position: absolute;
+    cursor: pointer;
+}
+
+/*#architecture .illustration .room .bg {
+    background: url('../img/room-bg.png') no-repeat;
+    height: 32px;
+    width: 135px;
+    position: absolute;
+}*/
+
+#architecture .illustration .room .icon {
+    background: url('../img/3.png') no-repeat;
+    background-size: 80px;
+    display: block;
+    height: 77px;
+    width: 80px;
+    margin-left: 55px;
+    position: absolute;
+    cursor: pointer;
+    z-index: 2;
+}
+
+#architecture .illustration .room .icon:hover {
+    background-position: 0px -78px;
+}
