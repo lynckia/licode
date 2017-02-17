@@ -46,6 +46,7 @@ class LayerDetectorHandler: public InboundHandler, public std::enable_shared_fro
   bool initialized_;
   RtpVP8Parser vp8_parser_;
   RtpVP9Parser vp9_parser_;
+  std::vector<uint32_t> video_ssrc_list_;
 };
 }  // namespace erizo
 

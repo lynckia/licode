@@ -34,10 +34,9 @@ void LayerDetectorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet
 }
 
 int LayerDetectorHandler::getSsrcPosition(uint32_t ssrc) {
-  std::vector<uint32_t> video_ssrc_list = connection_->getVideoSourceSSRCList();
-  std::vector<uint32_t>::iterator item = std::find(video_ssrc_list.begin(), video_ssrc_list.end(), ssrc);
-  size_t index = std::distance(video_ssrc_list.begin(), item);
-  if (index != video_ssrc_list.size()) {
+  std::vector<uint32_t>::iterator item = std::find(video_ssrc_list_.begin(), video_ssrc_list_.end(), ssrc);
+  size_t index = std::distance(video_ssrc_list_.begin(), item);
+  if (index != video_ssrc_list_.size()) {
     return index;
   }
   return -1;
@@ -68,10 +67,12 @@ void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<dataPacket> pac
 
   int position = getSsrcPosition(rtp_header->getSSRC());
   packet->compatible_spatial_layers = {position};
-
-  if (!payload->frameType) {  // Its a keyframe first packet
+  if (!payload->frameType) {
     packet->is_keyframe = true;
+  } else {
+    packet->is_keyframe = false;
   }
+  delete payload;
 }
 
 void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<dataPacket> packet) {
@@ -104,9 +105,12 @@ void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<dataPacket> pac
       break;
   }
 
-  if (!payload->frameType) {  // Its a keyframe packet
+  if (!payload->frameType) {
     packet->is_keyframe = true;
+  } else {
+    packet->is_keyframe = false;
   }
+  delete payload;
 }
 
 void LayerDetectorHandler::notifyUpdate() {
@@ -124,9 +128,6 @@ void LayerDetectorHandler::notifyUpdate() {
     return;
   }
 
-  uint32_t video_ssrc = connection_->getVideoSourceSSRC();
-  if (video_ssrc != 0) {
-    // TODO(javier): Get all possible spatial/temporal layers in order.
-  }
+  video_ssrc_list_ = connection_->getVideoSourceSSRCList();
 }
 }  // namespace erizo

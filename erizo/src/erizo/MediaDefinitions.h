@@ -64,7 +64,7 @@ struct dataPacket {
   uint64_t received_time_ms;
   std::vector<int> compatible_spatial_layers;
   std::vector<int> compatible_temporal_layers;
-  bool is_keyframe;
+  bool is_keyframe;  // Note: It can be just a keyframe first packet in VP8
 };
 
 class Monitor {
