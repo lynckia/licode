@@ -148,7 +148,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   }
 
   if (pipeline_initialized_)
-    return;
+    return true;
 
 
   bundle_ = remoteSdp_.isBundle;
