@@ -139,7 +139,17 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
 
 bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   ELOG_DEBUG("%s message: setting remote SDP", toLog());
+
   remoteSdp_.initWithSdp(sdp, "");
+
+  if (remoteSdp_.videoBandwidth != 0) {
+    ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remoteSdp_.videoBandwidth);
+    this->rtcp_processor_->setMaxVideoBW(remoteSdp_.videoBandwidth*1000);
+  }
+
+  if (pipeline_initialized_)
+    return true;
+
 
   bundle_ = remoteSdp_.isBundle;
   localSdp_.setOfferSdp(remoteSdp_);
@@ -220,10 +230,6 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   }
 
 
-  if (remoteSdp_.videoBandwidth != 0) {
-    ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remoteSdp_.videoBandwidth);
-    this->rtcp_processor_->setMaxVideoBW(remoteSdp_.videoBandwidth*1000);
-  }
 
   initializePipeline();
 
