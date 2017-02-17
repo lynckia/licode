@@ -70,6 +70,16 @@ TEST_F(StatNodeTest, shouldWriteAJsonWithCumulativeStats) {
   EXPECT_THAT(root.toString(), Eq("{\"sum\":31}"));
 }
 
+TEST_F(StatNodeTest, shouldWriteAJsonWithUpdatedCumulativeStats) {
+  root.insertStat("sum", CumulativeStat{30});
+
+  EXPECT_THAT(root.toString(), Eq("{\"sum\":30}"));
+
+  root.insertStat("sum", CumulativeStat{40});
+
+  EXPECT_THAT(root.toString(), Eq("{\"sum\":40}"));
+}
+
 TEST_F(StatNodeTest, shouldWriteAJsonWithRateStats) {
   root.insertStat("rate", RateStat{std::chrono::seconds(1), 1. / 8., clock});
 
