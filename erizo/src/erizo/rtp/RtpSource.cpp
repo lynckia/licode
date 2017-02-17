@@ -33,14 +33,15 @@ RtpSource::~RtpSource() {
   rtpSource_thread_.join();
 }
 
-int RtpSource::deliverFeedback_(char* buf, int len) {
-  fbSocket_->send_to(boost::asio::buffer(buf, len), *iterator_);
-  return len;
+int RtpSource::deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) {
+  fbSocket_->send_to(boost::asio::buffer(fb_packet->data, fb_packet->length), *iterator_);
+  return fb_packet->length;
 }
 
 void RtpSource::handleReceive(const::boost::system::error_code& error, size_t bytes_recvd) { // NOLINT
-  if (bytes_recvd > 0 && this->videoSink_) {
-    this->videoSink_->deliverVideoData(reinterpret_cast<char*>(buffer_), static_cast<int>(bytes_recvd));
+  if (bytes_recvd > 0 && this->video_sink_) {
+    this->video_sink_->deliverVideoData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(buffer_),
+          static_cast<int>(bytes_recvd), OTHER_PACKET));
   }
 }
 

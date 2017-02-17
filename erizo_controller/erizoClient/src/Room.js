@@ -441,9 +441,12 @@ Erizo.Room = function (spec) {
             options.minVideoBW = spec.defaultVideoBW;
         }
 
-        // 1- If the stream is not local od it is a failed stream we do nothing.
+        // TODO(javier): remove dangling once Simulcast is stable
+        options._simulcast = options._simulcast || false;
+
+        // 1- If the stream is not local or it is a failed stream we do nothing.
         if (stream && stream.local && !stream.failed
-              && that.localStreams[stream.getID()] === undefined) {
+          && that.localStreams[stream.getID()] === undefined) {
 
             // 2- Publish Media Stream to Erizo-Controller
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
@@ -572,6 +575,7 @@ Erizo.Room = function (spec) {
                                maxVideoBW: options.maxVideoBW,
                                limitMaxAudioBW: spec.maxAudioBW,
                                limitMaxVideoBW: spec.maxVideoBW,
+                               simulcast: options._simulcast,
                                audio: stream.hasAudio(),
                                video: stream.hasVideo()});
 
@@ -730,7 +734,7 @@ Erizo.Room = function (spec) {
 
         options = options || {};
 
-        if (stream && !stream.local) {
+        if (stream && !stream.local && !stream.failed) {
 
             if (stream.hasVideo() || stream.hasAudio() || stream.hasScreen()) {
                 // 1- Subscribe to Stream
@@ -840,6 +844,11 @@ Erizo.Room = function (spec) {
                 L.Logger.warning('Cannot subscribe to local stream, you should ' +
                                  'subscribe to the remote version of your local stream');
                 error = 'Local copy of stream';
+            }
+            else if (stream.failed){
+                L.Logger.warning('Cannot subscribe to failed stream, you should ' +
+                                 'wait a new stream-added event.');
+                error = 'Failed stream';
             }
             if (callback)
                 callback(undefined, error);

@@ -52,7 +52,7 @@ void RtcpForwarder::analyzeSr(RtcpHeader* chead) {
   uint32_t ntp;
   uint64_t theNTP = chead->getNtpTimestamp();
   ntp = (theNTP & (0xFFFFFFFF0000)) >> 16;
-  theData->senderReports.push_back(boost::shared_ptr<SrData>( new SrData(ntp, now)));
+  theData->senderReports.push_back(boost::shared_ptr<SrDelayData>( new SrDelayData(ntp, now)));
   // We only store the last 20 sr
   if (theData->senderReports.size() > 20) {
     theData->senderReports.pop_front();
@@ -88,7 +88,7 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
           return 0;
           break;
         case RTCP_Receiver_PT:
-          if (chead->getSourceSSRC() == rtcpSource_->getVideoSourceSSRC()) {
+          if (rtcpSource_->isVideoSourceSSRC(chead->getSourceSSRC())) {
             ELOG_DEBUG("Analyzing Video RR: PacketLost %u, Ratio %u, currentBlock %d, blocks %d"
                        ", sourceSSRC %u, ssrc %u changed to %u",
                 chead->getLostPackets(),
