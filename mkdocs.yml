@@ -5,7 +5,6 @@ site_description: Open Source WebRTC Communications Platform
 docs_dir: doc
 theme: mkdocs
 theme_dir: doc/custom_theme
-# extra_css: ["https://fiware.org/style/fiware_readthedocs.css"]
 pages:
     - Architecture: index.md
     - Client API: client_api.md
