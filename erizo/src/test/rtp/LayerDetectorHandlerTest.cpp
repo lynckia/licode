@@ -99,9 +99,8 @@ class LayerDetectorHandlerVp8Test : public erizo::BaseHandlerTest,
 
 TEST_P(LayerDetectorHandlerVp8Test, basicBehaviourShouldReadPackets) {
   EXPECT_CALL(*reader.get(), read(_, _)).
-    // With(AllOf(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber)),
-    //            Args<1>(erizo::PacketIsNotKeyframe()))).Times(1);
-    With(Args<1>(erizo::PacketIsNotKeyframe())).Times(1);
+    With(AllOf(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber)),
+               Args<1>(erizo::PacketIsNotKeyframe()))).Times(1);
 }
 
 TEST_P(LayerDetectorHandlerVp8Test, shouldDetectKeyFrameFirstPackets) {
@@ -135,6 +134,7 @@ INSTANTIATE_TEST_CASE_P(
   VP8_layers, LayerDetectorHandlerVp8Test, testing::Values(
     //                         ssrc  tid  spatial_layer_id  supported temporal_layer_id supported
     std::make_tuple(kArbitrarySsrc1,   0,                0,      true,                0,     true),
+    std::make_tuple(kArbitrarySsrc1,   0,                1,     false,                0,     true),
     std::make_tuple(kArbitrarySsrc1,   0,                0,      true,                1,     true),
     std::make_tuple(kArbitrarySsrc1,   0,                0,      true,                2,     true),
 
@@ -147,6 +147,7 @@ INSTANTIATE_TEST_CASE_P(
     std::make_tuple(kArbitrarySsrc1,   1,                0,      true,                2,     true),
 
     std::make_tuple(kArbitrarySsrc2,   0,                1,      true,                0,     true),
+    std::make_tuple(kArbitrarySsrc2,   0,                0,     false,                0,     true),
     std::make_tuple(kArbitrarySsrc2,   0,                1,      true,                1,     true),
     std::make_tuple(kArbitrarySsrc2,   0,                1,      true,                2,     true),
 
