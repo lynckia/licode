@@ -168,7 +168,7 @@ Erizo.Room = function (spec) {
                 stream = that.localStreams[arg.streamId];
             }
 
-            if (stream && !stream.failed) {
+            if (stream) {
                 stream.pc.processSignalingMessage(arg.mess);
             }
         });
