@@ -61,7 +61,6 @@ mediaConfig.rtpMappings.opus = {
     channels: 2,
     mediaType: 'audio',
 };
-i
 /*
 mediaConfig.rtpMappings.isac16 = {
     payloadType: 103,
