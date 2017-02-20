@@ -27,7 +27,10 @@ class MockRtcpProcessor : public RtcpProcessor {
 
 class MockMediaSink : public MediaSink {
  public:
-  MOCK_METHOD0(close, void());
+  void close() override {
+    internal_close();
+  }
+  MOCK_METHOD0(internal_close, void());
   MOCK_METHOD2(deliverAudioDataInternal, void(char*, int));
   MOCK_METHOD2(deliverVideoDataInternal, void(char*, int));
 
