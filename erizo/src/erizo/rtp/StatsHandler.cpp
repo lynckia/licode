@@ -1,6 +1,11 @@
 #include "rtp/StatsHandler.h"
+
+#include <string>
+
 #include "./MediaDefinitions.h"
 #include "./WebRtcConnection.h"
+
+
 
 namespace erizo {
 
@@ -73,9 +78,9 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<dataPacket> packet) {
     }
   } else {
     ssrc = chead->getSSRC();
-        if (!connection_->isSourceSSRC(ssrc)) {
-          return;
-        }
+    if (!connection_->isSourceSSRC(ssrc)) {
+      return;
+    }
   }
 
   ELOG_DEBUG("RTCP packet received, type: %u, size: %u, packetLength: %u", chead->getPacketType(),
