@@ -3,7 +3,6 @@ site_url: http://licode.readthedocs.org
 repo_url: https://github.com/lynckia/licode
 site_description: Open Source WebRTC Communications Platform
 docs_dir: doc
-theme: mkdocs
 theme_dir: doc/custom_theme
 pages:
     - Architecture: index.md
