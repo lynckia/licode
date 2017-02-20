@@ -5,6 +5,7 @@ site_description: Open Source WebRTC Communications Platform
 docs_dir: doc
 theme_dir: doc/custom_theme
 extra_css: ['css/style.css', 'css/architecture.css']
+extra_javascript: ['js/script.js']
 pages:
     - Architecture: index.md
     - Client API: client_api.md
