@@ -11,7 +11,7 @@
 
     {%- for nav_item in nav %}
         <li class="main"><a href="{{ nav_item.url }}">{{ nav_item.title }}</a></li>
-        {%- if page.title == nav_item.title%}
+        {%- if page and page.title == nav_item.title%}
 	    	{%- for toc_item in page.toc %}
 		        <li class="{% if toc_item.active %}active{% endif %}"><a href="{{ toc_item.url }}">{{ toc_item.title }}</a></li>
 		    {%- endfor %}
