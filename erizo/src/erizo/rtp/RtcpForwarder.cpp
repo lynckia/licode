@@ -142,7 +142,8 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
                   } else {
                     cappedBitrate = maxVideoBw_;
                   }
-                  ELOG_DEBUG("Received REMB %llu, partnum %u, cappedBitrate %llu", bitrate, currentBlock, cappedBitrate);
+                  ELOG_DEBUG("Received REMB %llu, partnum %u, cappedBitrate %llu",
+                              bitrate, currentBlock, cappedBitrate);
                   chead->setREMBBitRate(cappedBitrate);
                 } else {
                   ELOG_WARN("Unsupported AFB Packet not REMB")
