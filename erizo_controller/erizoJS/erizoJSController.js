@@ -71,7 +71,7 @@ exports.ErizoJSController = function (threadPool) {
 
         if (GLOBAL.config.erizoController.report.rtcp_stats) {  // jshint ignore:line
             log.debug('message: RTCP Stat collection is active');
-            wrtc.getStats(function (newStats) {
+            wrtc.getPeriodicStats(function (newStats) {
                 var timeStamp = new Date();
                 amqper.broadcast('stats', {pub: idPub,
                                            subs: idSub,
@@ -227,6 +227,13 @@ exports.ErizoJSController = function (threadPool) {
       }
     };
 
+    var disableDefaultHandlers = function(wrtc) {
+      var disabledHandlers = GLOBAL.config.erizo['disabled_handlers'];
+      for (var index in disabledHandlers) {
+        wrtc.disableHandler(disabledHandlers[index]);
+      }
+    };
+
     that.processSignaling = function (streamId, peerId, msg) {
         log.info('message: Process Signaling message, ' +
                  'streamId: ' + streamId + ', peerId: ' + peerId);
@@ -236,6 +243,7 @@ exports.ErizoJSController = function (threadPool) {
                 var subscriber = publisher.getSubscriber(peerId);
                 if (msg.type === 'offer') {
                     subscriber.setRemoteSdp(msg.sdp);
+                    disableDefaultHandlers(subscriber);
                 } else if (msg.type === 'candidate') {
                     subscriber.addRemoteCandidate(msg.candidate.sdpMid,
                                                                      msg.candidate.sdpMLineIndex,
@@ -257,6 +265,7 @@ exports.ErizoJSController = function (threadPool) {
             } else {
                 if (msg.type === 'offer') {
                     publisher.wrtc.setRemoteSdp(msg.sdp);
+                    disableDefaultHandlers(publisher.wrtc);
                 } else if (msg.type === 'candidate') {
                     publisher.wrtc.addRemoteCandidate(msg.candidate.sdpMid,
                                                                  msg.candidate.sdpMLineIndex,
@@ -508,33 +517,34 @@ exports.ErizoJSController = function (threadPool) {
         }
     };
 
+    /* eslint no-param-reassign: ["error", { "props": false }] */
+    const getWrtcStats = (label, stats, wrtc) => {
+      const promise = new Promise((resolve) => {
+        wrtc.getStats((statsString) => {
+          const unfilteredStats = JSON.parse(statsString);
+          unfilteredStats.metadata = wrtc.metadata;
+          stats[label] = unfilteredStats;
+          resolve();
+        });
+      });
+      return promise;
+    };
+
     that.getStreamStats = function (to, callback) {
         var stats = {};
         var publisher;
         log.info('message: Requested stream stats, streamID: ' + to);
+        var promises = [];
         if (to && publishers[to]) {
-            publisher = publishers[to];
-            stats.publisher = {};
-            stats.publisher.metadata = publisher.wrtc.metadata;
-            var unfilteredStats = JSON.parse(publisher.wrtc.getStats());
-            for (var channel in unfilteredStats) {
-                var ssrc = unfilteredStats[channel].ssrc;
-                stats.publisher[ssrc] = unfilteredStats[channel];
-
-            }
-            var subscriber;
-            for (var sub in publisher.subscribers) {
-                stats[sub] = {};
-                var unfilteredStats = JSON.parse(publisher.subscribers[sub].getStats());
-                for (var channel in unfilteredStats) {
-                    var ssrc = unfilteredStats[channel].ssrc;
-                    stats[sub][ssrc] = unfilteredStats[channel];
-                }
-                stats[sub].metadata = publisher.subscribers[sub].metadata;
-
-            }
+          publisher = publishers[to];
+          promises.push(getWrtcStats('publisher', stats, publisher.wrtc));
+          for (var sub in publisher.subscribers) {
+            promises.push(getWrtcStats(sub, stats, publisher.subscribers[sub]));
+          }
+          Promise.all(promises).then(() => {
+            callback('callback', stats);
+          });
         }
-        callback('callback', stats);
     };
 
     return that;

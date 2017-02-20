@@ -142,6 +142,7 @@ var reset = module.exports.reset = function() {
     setVideoReceiver: sinon.stub(),
     close: sinon.stub(),
     getStats: sinon.stub(),
+    getPeriodicStats: sinon.stub(),
     generatePLIPacket: sinon.stub(),
     createOffer: sinon.stub(),
     setRemoteSdp: sinon.stub(),

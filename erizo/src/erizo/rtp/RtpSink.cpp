@@ -38,13 +38,13 @@ namespace erizo {
     receive_Thread_.join();
   }
 
-  int RtpSink::deliverVideoData_(char* buf, int len) {
-    this->queueData(buf, len, VIDEO_PACKET);
+  int RtpSink::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
+    this->queueData(video_packet->data, video_packet->length, VIDEO_PACKET);
     return 0;
   }
 
-  int RtpSink::deliverAudioData_(char* buf, int len) {
-    this->queueData(buf, len, AUDIO_PACKET);
+  int RtpSink::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
+    this->queueData(audio_packet->data, audio_packet->length, AUDIO_PACKET);
     return 0;
   }
 
@@ -88,8 +88,9 @@ namespace erizo {
   }
 
   void RtpSink::handleReceive(const::boost::system::error_code& error, size_t bytes_recvd) {  // NOLINT
-    if (bytes_recvd > 0 && this->fbSink_) {
-      this->fbSink_->deliverFeedback(reinterpret_cast<char*>(buffer_), static_cast<int>(bytes_recvd));
+    if (bytes_recvd > 0 && fb_sink_) {
+      fb_sink_->deliverFeedback(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(buffer_),
+            static_cast<int>(bytes_recvd), OTHER_PACKET));
     }
   }
 

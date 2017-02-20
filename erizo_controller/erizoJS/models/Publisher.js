@@ -19,10 +19,7 @@ function createWrtc(id, threadPool) {
                                     GLOBAL.config.erizo.turnusername,
                                     GLOBAL.config.erizo.turnpass,
                                     GLOBAL.config.erizo.networkinterface);
-  var disabledHandlers = GLOBAL.config.erizo['disabled_handlers'];
-  for (var index in disabledHandlers) {
-    wrtc.disableHandler(disabledHandlers[index]);
-  }
+
   return wrtc;
 }
 

@@ -229,7 +229,9 @@ class SdpInfo {
   /**
    * The audio and video SSRCs for this particular SDP.
    */
-  unsigned int audioSsrc, videoSsrc, videoRtxSsrc;
+  unsigned int audio_ssrc;
+  std::vector<uint32_t> video_ssrc_list;
+  std::map<uint32_t, uint32_t> video_rtx_ssrc_map;
   /**
   * Is it Bundle
   */
@@ -293,6 +295,7 @@ class SdpInfo {
   bool processCandidate(const std::vector<std::string>& pieces, MediaType mediaType);
   std::string stringifyCandidate(const CandidateInfo & candidate);
   void gen_random(char* s, int len);
+  void maybeAddSsrcToList(uint32_t ssrc);
   std::vector<CandidateInfo> candidateVector_;
   std::vector<CryptoInfo> cryptoVector_;
   std::vector<RtpMap> internalPayloadVector_;

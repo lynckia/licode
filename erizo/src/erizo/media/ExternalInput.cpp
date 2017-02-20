@@ -10,12 +10,9 @@
 
 #include "./WebRtcConnection.h"
 
-using std::memcpy;
-
 namespace erizo {
 DEFINE_LOGGER(ExternalInput, "media.ExternalInput");
 ExternalInput::ExternalInput(const std::string& inputUrl):url_(inputUrl) {
-  sourcefbSink_ = NULL;
   context_ = NULL;
   running_ = false;
   needTranscoding_ = false;
@@ -165,10 +162,11 @@ int ExternalInput::sendPLI() {
 }
 
 
-void ExternalInput::receiveRtpData(unsigned char*rtpdata, int len) {
-  if (videoSink_ != NULL) {
-    memcpy(sendVideoBuffer_, rtpdata, len);
-    videoSink_->deliverVideoData(sendVideoBuffer_, len);
+void ExternalInput::receiveRtpData(unsigned char* rtpdata, int len) {
+  if (video_sink_ != nullptr) {
+    std::shared_ptr<dataPacket> packet = std::make_shared<dataPacket>(0, reinterpret_cast<char*>(rtpdata),
+        len, VIDEO_PACKET);
+    video_sink_->deliverVideoData(packet);
   }
 }
 
@@ -214,7 +212,9 @@ void ExternalInput::receiveLoop() {
         lastAudioPts_ = avpacket_.pts;
         length = op_->packageAudio(avpacket_.data, avpacket_.size, decodedBuffer_.get(), avpacket_.pts);
         if (length > 0) {
-          audioSink_->deliverAudioData(reinterpret_cast<char*>(decodedBuffer_.get()), length);
+          std::shared_ptr<dataPacket> packet = std::make_shared<dataPacket>(0,
+              reinterpret_cast<char*>(decodedBuffer_.get()), length, AUDIO_PACKET);
+          audio_sink_->deliverAudioData(packet);
         }
       }
     }

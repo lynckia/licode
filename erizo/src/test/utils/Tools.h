@@ -3,6 +3,7 @@
 
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
+#include <Stats.h>
 
 #include <queue>
 #include <string>
@@ -151,18 +152,19 @@ class PacketTools {
   }
 };
 
-
-class HandlerTest : public ::testing::Test {
+class BaseHandlerTest  {
  public:
-  HandlerTest() {}
+  BaseHandlerTest() {}
 
- protected:
-  virtual void SetUp() {
+  virtual void setHandler() = 0;
+
+  virtual void internalSetUp() {
     scheduler = std::make_shared<Scheduler>(1);
     worker = std::make_shared<Worker>(scheduler);
     worker->start();
     connection = std::make_shared<erizo::MockWebRtcConnection>(worker, ice_config, rtp_maps);
     processor = std::make_shared<erizo::MockRtcpProcessor>();
+    stats = std::make_shared<erizo::Stats>();
     connection->setVideoSinkSSRC(erizo::kVideoSsrc);
     connection->setAudioSinkSSRC(erizo::kAudioSsrc);
     connection->setVideoSourceSSRC(erizo::kVideoSsrc);
@@ -178,6 +180,7 @@ class HandlerTest : public ::testing::Test {
     std::shared_ptr<erizo::WebRtcConnection> connection_ptr = std::dynamic_pointer_cast<WebRtcConnection>(connection);
     pipeline->addService(connection_ptr);
     pipeline->addService(std::dynamic_pointer_cast<RtcpProcessor>(processor));
+    pipeline->addService(stats);
 
     pipeline->addBack(writer);
     setHandler();
@@ -185,13 +188,12 @@ class HandlerTest : public ::testing::Test {
     pipeline->finalize();
   }
 
-  virtual void TearDown() {
+  virtual void internalTearDown() {
   }
-
-  virtual void setHandler() = 0;
 
   IceConfig ice_config;
   std::vector<RtpMap> rtp_maps;
+  std::shared_ptr<erizo::Stats> stats;
   std::shared_ptr<erizo::MockWebRtcConnection> connection;
   std::shared_ptr<erizo::MockRtcpProcessor> processor;
   Pipeline::Ptr pipeline;
@@ -200,6 +202,22 @@ class HandlerTest : public ::testing::Test {
   std::shared_ptr<Worker> worker;
   std::shared_ptr<Scheduler> scheduler;
   std::queue<std::shared_ptr<dataPacket>> packet_queue;
+};
+
+class HandlerTest : public ::testing::Test, public BaseHandlerTest {
+ public:
+  HandlerTest() {}
+
+  virtual void setHandler() = 0;
+
+ protected:
+  virtual void SetUp() {
+    internalSetUp();
+  }
+
+  virtual void TearDown() {
+    internalTearDown();
+  }
 };
 
 }  // namespace erizo

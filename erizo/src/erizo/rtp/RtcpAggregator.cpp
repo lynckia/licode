@@ -107,7 +107,7 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
           break;
         case RTCP_Receiver_PT:
           theData->rrsReceivedInPeriod++;
-          if (chead->getSourceSSRC() == rtcpSource_->getVideoSourceSSRC()) {
+          if (rtcpSource_->isVideoSourceSSRC(chead->getSourceSSRC())) {
             ELOG_DEBUG("Analyzing Video RR: PacketLost %u, Ratio %u, partNum %d, blocks %d, sourceSSRC %u, ssrc %u",
                         chead->getLostPackets(), chead->getFractionLost(), partNum, chead->getBlockCount(),
                         chead->getSourceSSRC(), chead->getSSRC());
@@ -339,10 +339,12 @@ void RtcpAggregator::checkRtcpFb() {
           length = theLen;
         }
       }
-      if  (sourceSsrc == rtcpSource_->getVideoSourceSSRC()) {
-        rtcpSink_->deliverVideoData(reinterpret_cast<char*>(packet_), length);
+      if  (rtcpSource_->isVideoSourceSSRC(sourceSsrc)) {
+        rtcpSink_->deliverVideoData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(packet_),
+              length, VIDEO_PACKET));
       } else {
-        rtcpSink_->deliverAudioData(reinterpret_cast<char*>(packet_), length);
+        rtcpSink_->deliverAudioData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(packet_),
+              length, AUDIO_PACKET));
       }
       rtcpData->last_rr_sent = now;
       if (dt_scheduled > rtcpData->nextPacketInMs) {  // Every scheduled packet we reset

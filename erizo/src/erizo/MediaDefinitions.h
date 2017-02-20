@@ -1,10 +1,13 @@
 /*
  * mediadefinitions.h
  */
-
 #ifndef ERIZO_SRC_ERIZO_MEDIADEFINITIONS_H_
 #define ERIZO_SRC_ERIZO_MEDIADEFINITIONS_H_
+
 #include <boost/thread/mutex.hpp>
+#include <vector>
+#include <algorithm>
+
 #include "lib/Clock.h"
 #include "lib/ClockUtils.h"
 
@@ -20,47 +23,74 @@ enum packetType {
 
 struct dataPacket {
   dataPacket() = default;
+
   dataPacket(int comp_, const char *data_, int length_, packetType type_, uint64_t received_time_ms_) :
-    comp{comp_}, length{length_}, type{type_}, received_time_ms{received_time_ms_} {
+    comp{comp_}, length{length_}, type{type_}, received_time_ms{received_time_ms_}, is_keyframe{false} {
       memcpy(data, data_, length_);
-    }
+  }
+
   dataPacket(int comp_, const char *data_, int length_, packetType type_) :
-    comp{comp_}, length{length_}, type{type_}, received_time_ms{ClockUtils::timePointToMs(clock::now())} {
+    comp{comp_}, length{length_}, type{type_}, received_time_ms{ClockUtils::timePointToMs(clock::now())},
+    is_keyframe{false} {
       memcpy(data, data_, length_);
-    }
+  }
+
   dataPacket(int comp_, const unsigned char *data_, int length_) :
-    comp{comp_}, length{length_}, type{VIDEO_PACKET}, received_time_ms{ClockUtils::timePointToMs(clock::now())} {
+    comp{comp_}, length{length_}, type{VIDEO_PACKET}, received_time_ms{ClockUtils::timePointToMs(clock::now())},
+    is_keyframe{false} {
       memcpy(data, data_, length_);
-    }
+  }
+
+  bool belongsToSpatialLayer(int spatial_layer_) {
+    std::vector<int>::iterator item = std::find(compatible_spatial_layers.begin(),
+                                              compatible_spatial_layers.end(),
+                                              spatial_layer_);
+
+    return item != compatible_spatial_layers.end();
+  }
+
+  bool belongsToTemporalLayer(int temporal_layer_) {
+    std::vector<int>::iterator item = std::find(compatible_temporal_layers.begin(),
+                                              compatible_temporal_layers.end(),
+                                              temporal_layer_);
+
+    return item != compatible_temporal_layers.end();
+  }
+
   int comp;
   char data[1500];
   int length;
   packetType type;
   uint64_t received_time_ms;
+  std::vector<int> compatible_spatial_layers;
+  std::vector<int> compatible_temporal_layers;
+  bool is_keyframe;  // Note: It can be just a keyframe first packet in VP8
 };
 
 class Monitor {
  protected:
-    boost::mutex myMonitor_;
+    boost::mutex monitor_mutex_;
 };
 
 class FeedbackSink {
  public:
     virtual ~FeedbackSink() {}
-    int deliverFeedback(char* buf, int len) {
-        return this->deliverFeedback_(buf, len);
+    int deliverFeedback(std::shared_ptr<dataPacket> data_packet) {
+        return this->deliverFeedback_(data_packet);
     }
  private:
-    virtual int deliverFeedback_(char* buf, int len) = 0;
+    virtual int deliverFeedback_(std::shared_ptr<dataPacket> data_packet) = 0;
 };
 
 
 class FeedbackSource {
  protected:
-    FeedbackSink* fbSink_;
+    FeedbackSink* fb_sink_;
  public:
+    FeedbackSource(): fb_sink_{nullptr} {}
+    virtual ~FeedbackSource() {}
     void setFeedbackSink(FeedbackSink* sink) {
-        fbSink_ = sink;
+        fb_sink_ = sink;
     }
 };
 
@@ -70,46 +100,52 @@ class FeedbackSource {
 class MediaSink: public virtual Monitor {
  protected:
     // SSRCs received by the SINK
-    uint32_t audioSinkSSRC_;
-    uint32_t videoSinkSSRC_;
+    uint32_t audio_sink_ssrc_;
+    uint32_t video_sink_ssrc_;
     // Is it able to provide Feedback
-    FeedbackSource* sinkfbSource_;
+    FeedbackSource* sink_fb_source_;
 
  public:
-    int deliverAudioData(char* buf, int len) {
-        return this->deliverAudioData_(buf, len);
+    int deliverAudioData(std::shared_ptr<dataPacket> data_packet) {
+        return this->deliverAudioData_(data_packet);
     }
-    int deliverVideoData(char* buf, int len) {
-        return this->deliverVideoData_(buf, len);
+    int deliverVideoData(std::shared_ptr<dataPacket> data_packet) {
+        return this->deliverVideoData_(data_packet);
     }
-    unsigned int getVideoSinkSSRC() {
-        boost::mutex::scoped_lock lock(myMonitor_);
-        return videoSinkSSRC_;
+    uint32_t getVideoSinkSSRC() {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        return video_sink_ssrc_;
     }
-    void setVideoSinkSSRC(unsigned int ssrc) {
-        boost::mutex::scoped_lock lock(myMonitor_);
-        videoSinkSSRC_ = ssrc;
+    void setVideoSinkSSRC(uint32_t ssrc) {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        video_sink_ssrc_ = ssrc;
     }
-    unsigned int getAudioSinkSSRC() {
-        boost::mutex::scoped_lock lock(myMonitor_);
-        return audioSinkSSRC_;
+    uint32_t getAudioSinkSSRC() {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        return audio_sink_ssrc_;
     }
-    void setAudioSinkSSRC(unsigned int ssrc) {
-        boost::mutex::scoped_lock lock(myMonitor_);
-        audioSinkSSRC_ = ssrc;
+    void setAudioSinkSSRC(uint32_t ssrc) {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        audio_sink_ssrc_ = ssrc;
+    }
+    bool isVideoSinkSSRC(uint32_t ssrc) {
+      return ssrc == video_sink_ssrc_;
+    }
+    bool isAudioSinkSSRC(uint32_t ssrc) {
+      return ssrc == audio_sink_ssrc_;
     }
     FeedbackSource* getFeedbackSource() {
-        boost::mutex::scoped_lock lock(myMonitor_);
-        return sinkfbSource_;
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        return sink_fb_source_;
     }
-    MediaSink() : audioSinkSSRC_(0), videoSinkSSRC_(0), sinkfbSource_(NULL) {}
+    MediaSink() : audio_sink_ssrc_{0}, video_sink_ssrc_{0}, sink_fb_source_{nullptr} {}
     virtual ~MediaSink() {}
 
     virtual void close() = 0;
 
  private:
-    virtual int deliverAudioData_(char* buf, int len) = 0;
-    virtual int deliverVideoData_(char* buf, int len) = 0;
+    virtual int deliverAudioData_(std::shared_ptr<dataPacket> data_packet) = 0;
+    virtual int deliverVideoData_(std::shared_ptr<dataPacket> data_packet) = 0;
 };
 
 /**
@@ -118,58 +154,70 @@ class MediaSink: public virtual Monitor {
 class MediaSource: public virtual Monitor {
  protected:
     // SSRCs coming from the source
-    uint32_t audioSourceSSRC_;
-    uint32_t videoSourceSSRC_;
-    MediaSink* videoSink_;
-    MediaSink* audioSink_;
+    uint32_t audio_source_ssrc_;
+    std::vector<uint32_t> video_source_ssrc_list_;
+    MediaSink* video_sink_;
+    MediaSink* audio_sink_;
     // can it accept feedback
-    FeedbackSink* sourcefbSink_;
+    FeedbackSink* source_fb_sink_;
 
  public:
-    void setAudioSink(MediaSink* audioSink) {
-        boost::mutex::scoped_lock lock(myMonitor_);
-        this->audioSink_ = audioSink;
+    void setAudioSink(MediaSink* audio_sink) {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        this->audio_sink_ = audio_sink;
     }
-    void setVideoSink(MediaSink* videoSink) {
-        boost::mutex::scoped_lock lock(myMonitor_);
-        this->videoSink_ = videoSink;
+    void setVideoSink(MediaSink* video_sink) {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        this->video_sink_ = video_sink;
     }
 
     FeedbackSink* getFeedbackSink() {
-        boost::mutex::scoped_lock lock(myMonitor_);
-        return sourcefbSink_;
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        return source_fb_sink_;
     }
     virtual int sendPLI() = 0;
-    unsigned int getVideoSourceSSRC() {
-        boost::mutex::scoped_lock lock(myMonitor_);
-        return videoSourceSSRC_;
+    uint32_t getVideoSourceSSRC() {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        return video_source_ssrc_list_[0];
     }
-    void setVideoSourceSSRC(unsigned int ssrc) {
-        boost::mutex::scoped_lock lock(myMonitor_);
-        videoSourceSSRC_ = ssrc;
+    void setVideoSourceSSRC(uint32_t ssrc) {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        video_source_ssrc_list_[0] = ssrc;
     }
-    unsigned int getAudioSourceSSRC() {
-        boost::mutex::scoped_lock lock(myMonitor_);
-        return audioSourceSSRC_;
+    std::vector<uint32_t> getVideoSourceSSRCList() {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        return video_source_ssrc_list_;  //  return by copy to avoid concurrent access
     }
-    void setAudioSourceSSRC(unsigned int ssrc) {
-        boost::mutex::scoped_lock lock(myMonitor_);
-        audioSourceSSRC_ = ssrc;
+    void setVideoSourceSSRCList(const std::vector<uint32_t>& new_ssrc_list) {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        video_source_ssrc_list_ = new_ssrc_list;
+    }
+    uint32_t getAudioSourceSSRC() {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        return audio_source_ssrc_;
+    }
+    void setAudioSourceSSRC(uint32_t ssrc) {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        audio_source_ssrc_ = ssrc;
     }
 
-    MediaSource() : audioSourceSSRC_{0}, videoSourceSSRC_{0}, sourcefbSink_{NULL} {}
+    bool isVideoSourceSSRC(uint32_t ssrc) {
+      auto found_ssrc = std::find_if(video_source_ssrc_list_.begin(), video_source_ssrc_list_.end(),
+          [ssrc](uint32_t known_ssrc) {
+          return known_ssrc == ssrc;
+          });
+      return (found_ssrc != video_source_ssrc_list_.end());
+    }
+
+    bool isAudioSourceSSRC(uint32_t ssrc) {
+      return audio_source_ssrc_ == ssrc;
+    }
+
+    MediaSource() : audio_source_ssrc_{0}, video_source_ssrc_list_{std::vector<uint32_t>(1, 0)},
+      video_sink_{nullptr}, audio_sink_{nullptr}, source_fb_sink_{nullptr} {}
     virtual ~MediaSource() {}
 
     virtual void close() = 0;
-};
-
-/**
- * A NiceReceiver is any class that can receive data from a nice connection.
- */
-class NiceReceiver {
- public:
-    virtual int receiveNiceData(char* buf, int len, NiceConnection* nice) = 0;
-    virtual ~NiceReceiver() {}
 };
 
 }  // namespace erizo
