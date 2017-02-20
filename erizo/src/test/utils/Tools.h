@@ -152,13 +152,13 @@ class PacketTools {
   }
 };
 
-
-class HandlerTest : public ::testing::Test {
+class BaseHandlerTest  {
  public:
-  HandlerTest() {}
+  BaseHandlerTest() {}
 
- protected:
-  virtual void SetUp() {
+  virtual void setHandler() = 0;
+
+  virtual void internalSetUp() {
     scheduler = std::make_shared<Scheduler>(1);
     worker = std::make_shared<Worker>(scheduler);
     worker->start();
@@ -188,10 +188,8 @@ class HandlerTest : public ::testing::Test {
     pipeline->finalize();
   }
 
-  virtual void TearDown() {
+  virtual void internalTearDown() {
   }
-
-  virtual void setHandler() = 0;
 
   IceConfig ice_config;
   std::vector<RtpMap> rtp_maps;
@@ -204,6 +202,22 @@ class HandlerTest : public ::testing::Test {
   std::shared_ptr<Worker> worker;
   std::shared_ptr<Scheduler> scheduler;
   std::queue<std::shared_ptr<dataPacket>> packet_queue;
+};
+
+class HandlerTest : public ::testing::Test, public BaseHandlerTest {
+ public:
+  HandlerTest() {}
+
+  virtual void setHandler() = 0;
+
+ protected:
+  virtual void SetUp() {
+    internalSetUp();
+  }
+
+  virtual void TearDown() {
+    internalTearDown();
+  }
 };
 
 }  // namespace erizo
