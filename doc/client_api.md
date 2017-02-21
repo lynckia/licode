@@ -679,6 +679,75 @@ room.connect();
 
 # Events
 
+
+| Class                               | Description                                                                                         |
+|----------------------------------------|-----------------------------------------------------------------------------------------------------|
+| [Licode Event](#)                  |                                            |
+| [Room Event](#)                  |                                            |
+| [Stream Event](#)                  |                                            |
+
+## Licode Event
+
+It handles the type of event, that is important when adding event listeners to EventDispatchers and dispatching new events.
+
+A LicodeEvent can be initialized like this, but it is usually created by Client API.
+var event = Erizo.LicodeEvent({type: "room-connected"});
+
+## Room Event
+
+It represents connect and disconnect events.
+
+You can access the list of streams connected to the room by accessing roomEvent.streams.
+
+These are the type of Room events thrown:
+
+room-connected: points out that the user has been successfully connected to the room. This message also provides the list of streams that are currently published in the room.
+room-error: indicates that it hasn't been possible a succesufully connection to the room.
+room-disconnected: shows that the user has been already disconnected.
+They are all dispatched by Room objects
+
+A RoomEvent can be initialized like this, but it is usually created by Room objects.
+var roomEvent = Erizo.RoomEvent({type:"room-connected", streams:[stream1, stream2]});
+They all are dispatched by Room objects, so you need to add event listeners to them.
+room.addEventListener("room-connected", function(evt){...});
+
+## Stream Event
+
+It represents an event related to a stream.
+
+You can access the related stream by streamEvent.stream.
+
+Some of them have a more detailed message in streamEvent.msg.
+
+There are the different types of Stream events:
+
+access-accepted: indicates that the user has accepted to share his camera and microphone.
+access-denied: indicates that the user has denied to share his camera and microphone.
+stream-added: indicates that there is a new stream available in the room.
+stream-removed: shows that a previous available stream has been removed from the room.
+stream-data: thrown by the stream it indicates new data received in the stream.
+stream-attributes-update: notifies when the owner of the given stream updates its attributes
+bandwidth-alert: thrown when a subscriber stream is reporting less than the minVideoBW specified in the publisher. The event has three parts:
+streamEvent.stream is the problematic subscribe stream.
+streamEvent.bandwidth is the available bandwidth reported by that stream.
+streamEvent.msg the status of that stream, depends on the adaptation scheme.
+stream-failed: A stream has failed, either in the connection establishment or during the communication.
+They all are dispatched by Room objects.
+
+A StreamEvent can be initialized like this, but it is usually created by Client API.
+var streamEvent = Erizo.StreamEvent({type:"stream-added", stream:stream1});
+stream-added, stream-removed and stream-failed are dispatched by Room objects, so you need to add event listeners to them.
+room.addEventListener("stream-removed", function(evt){...});
+access-accepted, access-denied, stream-data, stream-attributes-update and bandwidth-alert are dispatched by Stream objects, so you need to add event listeners to them.
+stream.addEventListener("access-accepted", function(evt){...});
+ 
+stream.addEventListener("stream-data", function(evt){
+  console.log('Received data ', evt.msg, 'from stream ', evt.stream.getAttributes().name);
+});
+ 
+room.addEventListener("stream-attributes-update", function(evt){...});
+
+
 # Examples
 
 # Node.js Client
