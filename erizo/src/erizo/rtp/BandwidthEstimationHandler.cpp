@@ -18,7 +18,6 @@ DEFINE_LOGGER(BandwidthEstimationHandler, "rtp.BandwidthEstimationHandler");
 
 static const uint32_t kTimeOffsetSwitchThreshold = 30;
 static const uint32_t kMinBitRateAllowed = 10;
-const int kRembTimeOutThresholdMs = 2000;
 const int kRembSendIntervallMs = 200;
 const uint32_t BandwidthEstimationHandler::kRembMinimumBitrate = 20000;
 

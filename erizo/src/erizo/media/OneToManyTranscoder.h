@@ -46,8 +46,8 @@ class OneToManyTranscoder : public MediaSink, public RawDataReceiver, public RTP
   * @param peerId the peerId
   */
   void removeSubscriber(const std::string& peerId);
-  void receiveRawData(const RawDataPacket& packet);
-  void receiveRtpData(unsigned char*rtpdata, int len);
+  void receiveRawData(const RawDataPacket& packet) override;
+  void receiveRtpData(unsigned char*rtpdata, int len) override;
 
   // MediaProcessor *mp;
   InputProcessor* ip_;
