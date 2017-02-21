@@ -139,5 +139,4 @@ INSTANTIATE_TEST_CASE_P(
     std::vector<Packet>({{ 65535, PacketState::Forward,           65535, SequenceNumberType::Valid},
                          {     1, PacketState::Forward,               1, SequenceNumberType::Valid},
                          {     0, PacketState::Skip,                  0, SequenceNumberType::Discard},
-                         {     2, PacketState::Forward,               2, SequenceNumberType::Valid}})
-  ));
+                         {     2, PacketState::Forward,               2, SequenceNumberType::Valid}})));
