@@ -34,8 +34,6 @@ class RtcpForwarder: public RtcpProcessor{
   static const int REMB_TIMEOUT = 1000;
   std::map<uint32_t, boost::shared_ptr<RtcpData>> rtcpData_;
   boost::mutex mapLock_;
-  uint32_t defaultVideoBw_;
-  uint8_t packet_[128];
   int addREMB(char* buf, int len, uint32_t bitrate);
   int addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc, uint32_t sinkSsrc);
 };

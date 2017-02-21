@@ -99,7 +99,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPa
               if (!strncmp(uniqueId, "REMB", 4)) {
                 int64_t now_ms = ClockUtils::timePointToMs(clock::now());
                 uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
-                ELOG_DEBUG("%s message: Updating Estimate with REMB, bitrate %lu", connection_->toLog(),
+                ELOG_DEBUG("%s message: Updating Estimate with REMB, bitrate %llu", connection_->toLog(),
                     bitrate);
                 sender_bwe_->UpdateReceiverEstimate(now_ms, bitrate);
                 sender_bwe_->UpdateEstimate(now_ms);
@@ -144,7 +144,7 @@ void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {
 void SenderBandwidthEstimationHandler::updateEstimate() {
   sender_bwe_->CurrentEstimate(&estimated_bitrate_, &estimated_loss_,
       &estimated_rtt_);
-  ELOG_DEBUG("%s message: estimated bitrate %d, loss %u, rtt %ld",
+  ELOG_DEBUG("%s message: estimated bitrate %d, loss %u, rtt %lld",
       connection_->toLog(), estimated_bitrate_, estimated_loss_, estimated_rtt_);
   if (bwe_listener_) {
     bwe_listener_->onBandwidthEstimate(estimated_bitrate_, estimated_loss_, estimated_rtt_);
