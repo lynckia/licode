@@ -46,7 +46,11 @@
         <div class="container">
             {% block content %}
             <div class="sec_title">
+                {% if page_title %}
+                    <h1>{{ page_title }}</h1>
+                {% else %}
                 <h1>Documentation</h1>
+                {% endif %}
                 <p>Licode APIs documentation</p>
             </div>
             <div class="col-md-3">{% include "toc.html" %}</div>

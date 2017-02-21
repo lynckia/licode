@@ -47,6 +47,7 @@ var stream = Erizo.Stream({video: true, audio: true, videoSize: [320, 240, 640, 
 Also, you can create a stream to publish an external source to the Licode session. At this point, RTSP and files are supported, depending on the Codec (only H.264 for RTSP and VP8 + (OPUS or PCMU8) for files. You can create an external stream by using the `url` variable. These streams can be then published just as if they were a local stream.
 
 For instance, to create a stream from a rtsp source:
+
 ```
 var stream = Erizo.Stream({video: true, audio: false, url:"rtsp://user:pass@the_server_url:port"});
 ```
@@ -300,6 +301,381 @@ console.log(result);
 ```
 
 # Room
+
+It represents a Licode Room. It will handle the connection, local stream publication and remote stream subscription.
+
+Typical Room initialization would be:
+
+```
+var room = Erizo.Room({token:'213h8012hwduahd-321ueiwqewq'});
+```
+
+It will create the room object by passing the token this users have previously received from your service. This token is has to be retreived using the [Server API](/server_api), because it is a user access token. But you need to call to the connect function we will see later in order to connect to the room.
+
+You can access some variables like:
+
+- `room.localStreams` to retrieve the current list of local streams available in the room.
+- `room.remoteStreams` to retrieve the current list of remote streams available in the room.
+- `room.roomID` to know the identifier of this room.
+- `room.state` to access the current state of the room. States can be 0 if it is disconnected, 1 if it is connecting, and 2 if it is connected.
+
+In the next table we can see the functions of this class:
+
+| Function                               | Description                                                                                         |
+|----------------------------------------|-----------------------------------------------------------------------------------------------------|
+| [connect()](#open-a-connection-to-room)                  | It stablishes a connection to the room.                                           |
+| [publish(stream)](#publish-the-local-stream)             | It publishes the `stream`.                                                        |
+| [subscribe(stream)](#subscribe-to-a-remote-stream)       | It subscribes to a remote `stream`.                                               |
+| [unsubscribe(stream)](#unsubscribe-from-a-remote-stream) | It unsubscribes from the `stream`.                                                |
+| [unpublish(stream)](#unpublish-a-local-stream)           | It unpublishes the local `stream`.                                                |
+| [disconnect()](#disconnect-from-room)                    | It disconnects from the `room`.                                                   |
+| [startRecording(stream)](#start-recording)               | Starts recording the `stream`.                                                    |
+| [stopRecording(recordingId)](#stop-recording)            | Stops a recording identified by its `recordingId`.                                |
+| [getSreamsByAttribute(name, value)](#get-streams-by-attribute) | It returns a list of the remote streams that have the attribute specified by name - value strings.  |
+
+
+## Open a connection to Room
+
+It establishes a connection to the room. This function is asynchronous so we need to add an event listener to know when we are finally connected to the room. It will throw a room-connected event when it occurs.
+
+<example>
+The `room` has to be previously created with a valid token. Then we connect to the room (line 1), and we add an event listener to wait for the connection to be established (line 2).
+Please, take into account that you can't do anything else with the room until you have received this event!!.
+</example>
+
+```
+room.connect();
+room.addEventListener("room-connected", function(event) {
+  console.log("Connected!");
+});
+```
+
+## Publish the local stream
+
+It publishes the local stream given by an argument called `stream`.
+
+Your client should be connected to the `room` and the stream should be first initialized.
+
+When you call this function it starts to send video or audio to your Licode Room. Once the stream is ready all clients in the room will receive a stream-added event with the information about your stream and they could subscribe to it.
+
+<example>
+For publishing you first need to create and initialize a stream and connect to the room. Then you give the stream to the room in order to publish the streams it handles (line 1).
+It throws a stream-added [Event](#events) when the stream is finally published in the room, beacuse it will be added. So you have to add and event listener to handle it (line 2), and then check if the stream is the one you have just published (line 3).
+</example>
+
+```
+room.publish(localStream);
+room.addEventListener("stream-added", function(event) {
+  if (localStream.getID() === event.stream.getID()) {
+    console.log("Published!!!");
+  }
+});
+```
+
+`room.publish` also allows to set a bandwidth limit for the localStream. We do this by passing the `maxVideoBW` variable as an option. The BW is expressed in Kbps. Keep in mind that the field `config.erizoController.defaultVideoBW` in the server configuration has higher priority than this one.
+
+```
+room.publish(localStream, {maxVideoBW:300});
+```
+
+In `room.publish` you can include a callback with two parameters, `id` and `error`. If the stream has been published, `id` contains the id of that stream. On the other hand, if there has been any kind of error, `id` is `undefined` and the error is described in `error`.
+
+<example>
+Using the callback to catch possible problems
+</example>
+
+```
+room.publish(localStream, {maxVideoBW:300}, function(id, error){
+  if (id === undefined){
+    console.log("Error publishing stream", error);
+  } else {
+    console.log("Published stream", id);
+  }
+});            
+```
+
+## Subscribe to a remote stream
+
+It subscribes to a remote stream in the room.
+
+For subscribing to a stream you first need to connect to the room and know which streams are available in the room. So as we have already seen we first need to add an event listener to receive stream-added events.
+
+In this case you will need an object of the [Stream](#stream) class, that we receive with that event.
+
+<example>
+You first need to connect to a room, and receive an event with the stream you want to subscribe.
+NOTE: You can subscribe to the stream you are publishing, but you will receive it with delay. We recommend you to use the [Stream](#stream) API to play directly your local streams.
+</example>
+
+```
+room.addEventListener("stream-subscribed", function(streamEvt) {
+  console.log("Stream subscribed");
+});
+room.subscribe(stream);
+```
+
+You can choose which components (audio/video) of the stream you want to subscribe to using the second parameter of `subscribe` method.
+
+<example>
+Here we are going to subscribe to the audio but not to the video.
+</example>
+
+```
+room.addEventListener("stream-subscribed", function(streamEvt) {
+  console.log("Stream subscribed");
+});
+room.subscribe(stream, {audio: true, video: false});
+```
+
+In `room.subscribe` you can include a callback with two parameters, `result` and `error`. If the stream has been subscribed, `result` is true. On the other hand, if there has been any kind of error, `result` is `undefined` and the error is described in `error`.
+
+<example>
+Using the callback to catch possible problems
+</example>
+
+```
+room.subscribe(stream, {audio: true, video: false}, function(result, error){
+  if (result === undefined){
+    console.log("Error subscribing to stream", error);
+  } else {
+    console.log("Stream subscribed!");
+  }
+});
+```
+
+When subscribing you can also configure the receiver to receive a lower bitrate Video stream from the publisher. We call this feature slideShowMode. By enabling it, this subscriber will receive one frame every two seconds from the publisher and won't affect the quality of other subscribers.
+
+```
+room.subscribe(stream, {audio: true, video: true, slideShowMode:true}, function(result, error){
+  if (result === undefined){
+    console.log("Error subscribing to stream", error);
+  } else {
+    console.log("Stream subscribed!");
+  }
+});
+```
+
+`SlideShowMode` can also be toggled on or off using `stream.updateConfiguration`. Keep in mind this will only work on remote streams (subscriptions).
+
+
+## Unsubscribe from a remote stream
+
+You can unsubscribe from a stream you are currently subscribed.
+
+Here apply the same requirements seen in the subscription.
+
+<example>
+You first need to be subscribed to the stream. When you unsubscribe from a stream the HTML element will be empty.
+</example>
+
+```
+room.unsubscribe(stream);
+```
+
+In `room.unsubscribe` you can include a callback with two parameters, `result` and `error`. If the stream has been unsubscribed, `result` is true. On the other hand, if there has been any kind of error, `result` is `undefined` and the error is described in `error`.
+
+<example>
+Using the callback to catch possible problems
+</example>
+
+```
+room.unsubscribe(stream, function(result, error){
+  if (result === undefined){
+    console.log("Error unsubscribing", error);
+  } else {
+    console.log("Stream unsubscribed!");
+  }
+});
+```
+
+## Unpublish a local stream
+
+You can unpublish your stream given in `stream` when your are connected to a room and you are currently publishing it.
+
+Here apply the same requirements seen in the publish function.
+
+The room will throw a stream-removed event to all the users when your streams are not published.
+
+<example>
+You first need to be publishing the local stream. Then you can unpublish your streams at any time (line 1). You can be sure your streams are not published when you receive a stream-removed event (lines 2-3).
+</example>
+
+```
+room.unpublish(localStream);
+room.addEventListener("stream-removed", function(event) {
+  if (localStream.getID() === event.stream.getID()) {
+    console.log("Unpublished!!!");
+  }
+});
+```
+
+In `room.unpublish` you can include a callback with two parameters, `result` and `error`. If the stream has been unpublished, `result` is true. On the other hand, if there has been any kind of error, `result` is `undefined` and the error is described in `error`.
+
+<example>
+Using the callback to catch possible problems
+</example>
+
+```
+room.unpublish(localStream, function(result, error){
+  if (result === undefined){
+    console.log("Error unpublishing", error);
+  } else {
+    console.log("Stream unpublished!");
+  }
+});
+```
+
+## Disconnect from Room
+
+You can disconnect from the room when you want.
+
+The room will throw a room-disconnected event.
+
+<example>
+You can disconnect from the room whenever you are previously connected.
+</example>
+
+```
+room.disconnect();
+```
+
+## Managing Quality Adaptation
+
+By default, Licode will try to adapt the video quality of each publisher to the worst subscriber, that way, we ensure that all participants can partake in the conference. However, that means that video quality can be degraded for all the participants in a room if just one of them does not have enough bandwidth available.
+
+To solve this, Licode gives you a flexible way to configure the behaviour of the adaptation per publisher. You specify a `minVideoBW` when you publish a stream. This will set the minimum video bitrate, you can use this when you want to control the minimum video quality for a given stream. On the subscriber, an estimate of the available bandwidth is calculated for a particular stream. Licode will react to a subscriber that is under the `minVideoBW` set by the publisher, based on the specified [adaptation scheme](#schemes). If no `scheme` is specified, Licode will only notify subscribers via a `streamEvent`.
+
+```
+room.publish(localStream, {maxVideoBW:2000, minVideoBW: 1000});
+```
+
+### Schemes
+
+An adaptation scheme is a behaviour patter that Licode will use on the subscribers that report having less available bandwidth than what was configured via `minVideoBW`.
+
+Currently Licode implements three different adaptations schemes, one built on top of the other.
+
+- `notify`: Licode will only notify periodically subscribers that are below `minVideoBW`. The possible messages, included in `streamEvent.msg` are:
+	- *insufficient*: Indicates the subscriber is not reporting enough bandwidth
+
+- `notify-break`: Licode will notify subscribers, stop adapting the publisher to problematic subscribers and relegate them to audio-only mode. The possible messages, included in `streamEvent.msg` are:
+
+	- *insufficient*: Indicates the subscriber is not reporting enough bandwidth
+	- *audio-only*: Licode will now send only audio to this subscriber and the publisher will not try to adapt Video quality.
+
+- `notify-break-recover`: Same as notify-break but Licode will periodically try to recover the subscriber's video.The possible messages, included in `streamEvent.msg` are:
+	- *insufficient*: Indicates the subscriber is not reporting enough bandwidth, Licode will stop sending Video to this subscriber and the publisher won't try to adapt.
+	- *recovered*: This stream has successfully recovered, reports more that minVideoBW and Licode will treat it as a stream with no bandwidth problems
+	- *audio-only*: Licode will stop trying to recover and send only audio to this subscriber and the publisher will not try to adapt Video quality.
+
+You will have to set your desired scheme per publisher:
+
+```
+room.publish(localStream, {maxVideoBW:2000, minVideoBW: 1000 scheme:"notify-break"});
+```
+
+The default scheme is `notify`.
+
+Licode uses `streamEvents` to notify clients, so you will need to listen to the following events to properly take advantage of the schemes in your application. These events are:
+
+- `notify`: Licode will only notify periodically subscribers that are below `minVideoBW`.
+- `notify-break`: Licode will notify subscribers, stop adapting the publisher to problematic subscribers and relegate them to audio-only mode.
+- `notify-break-recover`: Same as notify-break but Licode will periodically try to recover the subscriber's video.
+
+Keep in mind you can use this in combination with `SlideShowMode` allowing for a wide variety of configurations.
+
+## Start Recording
+
+Start the recording of a stream in the server in the path specified in licode_config.js
+
+The recording will stored in a .mkv file using VP8 codec for video and PCMU or OPUS for audio, depending on the server configuration. This file can be played directly or streamed into a Licode room.
+
+Licode will keep recording until stopRecording is called or the stream is removed from the room.
+
+<example>
+Start the recording of the local stream.
+</example>
+
+```
+room.startRecording(localStream, function(recordingId, error) {
+  if (recordingId === undefined){
+    console.log("Error", error);
+  } else {
+    console.log("Recording started, the id of the recording is ", recordingId);
+  }
+});   
+```
+
+## Stop Recording
+
+Stop the recording of a stream. You must provide the identificator of the recording: `recordingId`.
+
+<example>
+Stop the recording.
+</example>
+
+```
+room.stopRecording(recordingId, function(result, error){
+  if (result === undefined){
+    console.log("Error", error);
+  } else {
+    console.log("Stopped recording!");
+  }
+});
+```
+
+## Playing recorded streams
+
+There are two ways of playing a recorded stream. Both of them involve the creation of an external stream. You can either set the `url` variable to the path of the recorded file or use the `recordingId` as a variable.
+
+<example>
+Play a recording from full path (url) or by using its `recordingId`.
+</example>
+
+```
+var stream = Erizo.Stream({video: true, audio: false, url:"file:///path_to_file/previousRecording.mkv"});
+room.publish(stream);
+var stream2 = Erizo.Stream({audio:true, video:true, recording: 'asda2131231'});
+room.publish(stream2);
+```
+
+## Get Streams by attribute
+
+You can search remote streams by attribute. A remote stream is a room stream you have previously subscribed to.
+
+<example>
+If you want to get the streams of type 'public':
+</example>
+
+```
+var streams = room.getStreamsByAttribute('type', 'public');
+// streams is an array that contains the stream objects.
+```
+## Event Handling
+
+Room inherits EventDispatcher (see [events](#events) for further information), for handling RoomEvents and StreamEvents. For example:
+
+- Event 'room-connected' points out that the user has been successfully connected to the room.
+- Event 'room-error' indicates that there has been an error and it hasn't been possible to connect to the room.
+- Event 'room-disconnected' shows that the user has been already disconnected.
+- Event 'stream-added' indicates that there is a new stream available in the room.
+- Event 'stream-removed' shows that a previous available stream has been removed from the room.
+
+The client could receive any event when it is connected.
+
+<example>
+Despite we have shown examples of event listeners during the documentation, we strongly recommend to add event listeners before you do any action in the room. The previous examples only illustrated the behaviour of Room's functions.
+</example>
+
+```
+var room = Room({token:"..."});
+room.addEventListener("room-connected", function(evt){...});
+room.addEventListener("room-error", function(evt){...});
+room.addEventListener("room-disconnected", function(evt){...});
+room.addEventListener("stream-added", function(evt){...});
+room.addEventListener("stream-removed", function(evt){...});
+room.connect();
+```
 
 # Events
 
