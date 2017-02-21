@@ -20,7 +20,7 @@ void QualityFilterHandler::disable() {
   enabled_ = false;
 }
 
-void QualityFilterHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void QualityFilterHandler::applyMaxRembMaybe(std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   int len = packet->length;
   if (chead->isFeedback()) {
@@ -54,20 +54,40 @@ void QualityFilterHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet
       currentBlock++;
     } while (totalLength < len);
   }
+}
+
+void QualityFilterHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+  applyMaxRembMaybe(packet);  // TODO(javier) remove this line when RTCP termination is enabled
+
+  // TODO(javier): Handle RRs and NACKs and translate Sequence Numbers?
+
   ctx->fireRead(packet);
 }
 
 void QualityFilterHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (!chead->isRtcp() && enabled_ && packet->type == VIDEO_PACKET) {
-    if (!packet->belongsToSpatialLayer(target_spatial_layer_) ||
-        !packet->belongsToTemporalLayer(target_temporal_layer_)) {
-          return;
-    }
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
+
+    if (!packet->belongsToSpatialLayer(target_spatial_layer_)) {
+      return;
+    }
     rtp_header->setSSRC(video_sink_ssrc_);
-    rtp_header->setSeqNumber(++last_seq_number_);
+
+    uint16_t sequence_number = rtp_header->getSeqNumber();
+    if (!packet->belongsToTemporalLayer(target_temporal_layer_)) {
+      sequence_number_translator.get(sequence_number, true);
+      return;
+    }
+    SequenceNumber sequence_number_info = sequence_number_translator.get(sequence_number, false);
+    if (sequence_number_info.type != SequenceNumberType::Valid) {
+      return;
+    }
+
+    rtp_header->setSeqNumber(sequence_number_info.output);
   }
+
+  // TODO(javier): Handle SRs and translate Sequence Numbers?
 
   ctx->fireWrite(packet);
 }

@@ -8,6 +8,7 @@
 
 #include "./logger.h"
 #include "pipeline/Handler.h"
+#include "rtp/SequenceNumberTranslator.h"
 
 #define MAX_DELAY 450000
 
@@ -33,8 +34,10 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void notifyUpdate() override;
+  void applyMaxRembMaybe(std::shared_ptr<dataPacket> packet);
 
  private:
+  SequenceNumberTranslator translator;
   WebRtcConnection *connection_;
   bool enabled_;
   bool initialized_;
