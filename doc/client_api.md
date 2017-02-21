@@ -785,4 +785,98 @@ room.addEventListener("stream-attributes-update", function(evt){...});
 
 # Examples
 
+Here we show some examples and code snippets for typical use cases in this API.
+
+In this section we will see a set of examples to use almost every part of this API.
+
+<example>
+In this example we will make a basic videoconference application. Every client than connects to the application will publish his video and audio and will subscribe to all the videos and audios of the other clients. This example uses an unique room.
+</example>
+
+```
+<html>
+  <head>
+    <title>Licode Basic Example</title>
+    <script type="text/javascript" src="erizo.js"></script>
+    <script type="text/javascript">
+ 
+      window.onload = function () {
+ 
+          var localStream = Erizo.Stream({audio: true, video: true, data: true});
+          var room = Erizo.Room({token: "af54/=gopknosdvmgiufhgadf=="});
+ 
+          localStream.addEventListener("access-accepted", function () {
+ 
+              var subscribeToStreams = function (streams) {
+                  for (var index in streams) {
+                    var stream = streams[index];
+                    if (localStream.getID() !== stream.getID()) {
+                        room.subscribe(stream);
+                    }
+                  }
+              };
+ 
+              room.addEventListener("room-connected", function (roomEvent) {
+ 
+                  room.publish(localStream);
+                  subscribeToStreams(roomEvent.streams);
+              });
+ 
+              room.addEventListener("stream-subscribed", function(streamEvent) {
+                  var stream = streamEvent.stream;
+                  var div = document.createElement('div');
+                  div.setAttribute("style", "width: 320px; height: 240px;");
+                  div.setAttribute("id", "test" + stream.getID());
+ 
+                  document.body.appendChild(div);
+                  stream.play("test" + stream.getID());
+              });
+ 
+              room.addEventListener("stream-added", function (streamEvent) {
+                  var streams = [];
+                  streams.push(streamEvent.stream);
+                  subscribeToStreams(streams);
+              });
+ 
+              room.addEventListener("stream-removed", function (streamEvent) {
+                  // Remove stream from DOM
+                  var stream = streamEvent.stream;
+                  if (stream.elementID !== undefined) {
+                      var element = document.getElementById(stream.elementID);
+                      document.body.removeChild(element);
+                  }
+              });
+ 
+              room.connect();
+              localStream.play("myVideo");
+          });
+          localStream.init();
+      };
+    </script>
+  </head>
+ 
+  <body>
+    <div id="myVideo" style="width:320px; height: 240px;">
+    </div>
+  </body>
+</html>
+```
+
 # Node.js Client
+
+Running erizo clients in your node.js applications.
+
+You can also run erizo clients in your node.js applications with the same API explained here. You can connect to rooms, publish and subscribe to streams and manage events. You need only to import the node module **erizofc.js**
+
+```
+var Erizo = require('.erizofc').Erizo;
+```
+
+And now you can use the API like explained for the browser case, calling `Erizo.Room`, `Erizo.Stream` and `Erizo.Events`. Note that you can not publish/subscribe streams with video and/or audio. We are working on this feature in order to develop another way of distribute video/audio streams.
+
+You can also use Erizo Client Logger for managing log levels, etc.
+
+```
+var L = require('.erizofc').L;
+L.Logger.setLogLevel(2);
+```
