@@ -1,6 +1,7 @@
 #include "rtp/SequenceNumberTranslator.h"
 
 #include <vector>
+#include "rtp/RtpUtils.h"
 
 namespace erizo {
 
@@ -18,11 +19,6 @@ SequenceNumberTranslator::SequenceNumberTranslator()
       initialized_{false}, reset_{false} {
 }
 
-bool SequenceNumberTranslator::lessThan(uint16_t first, uint16_t last) const {
-  uint16_t result = first - last;
-  return result > 0xF000;
-}
-
 void SequenceNumberTranslator::add(SequenceNumber sequence_number) {
   in_out_buffer_[sequence_number.input % kMaxSequenceNumberInBuffer] = sequence_number;
   out_in_buffer_[sequence_number.output % kMaxSequenceNumberInBuffer] = sequence_number;
@@ -38,7 +34,7 @@ uint16_t SequenceNumberTranslator::fill(const uint16_t &first,
   }
 
   for (uint16_t sequence_number = first_sequence_number.input + 1;
-       lessThan(sequence_number, last);
+       RtpUtils::sequenceNumberLessThan(sequence_number, last);
        sequence_number++) {
     add(SequenceNumber{sequence_number, output_sequence_number++, SequenceNumberType::Valid});
   }
@@ -66,11 +62,11 @@ SequenceNumber SequenceNumberTranslator::get(uint16_t input_sequence_number, boo
     return get(input_sequence_number);
   }
 
-  if (lessThan(input_sequence_number, first_input_sequence_number_)) {
+  if (RtpUtils::sequenceNumberLessThan(input_sequence_number, first_input_sequence_number_)) {
     return SequenceNumber{input_sequence_number, 0, SequenceNumberType::Skip};
   }
 
-  if (lessThan(last_input_sequence_number_, input_sequence_number)) {
+  if (RtpUtils::sequenceNumberLessThan(last_input_sequence_number_, input_sequence_number)) {
     uint16_t output_sequence_number = fill(last_input_sequence_number_, input_sequence_number);
 
     SequenceNumberType type = skip ? SequenceNumberType::Skip : SequenceNumberType::Valid;
@@ -93,8 +89,8 @@ SequenceNumber SequenceNumberTranslator::get(uint16_t input_sequence_number, boo
 
 SequenceNumber SequenceNumberTranslator::reverse(uint16_t output_sequence_number) const {
   SequenceNumber result = out_in_buffer_[output_sequence_number % kMaxSequenceNumberInBuffer];
-  if (lessThan(result.input, first_input_sequence_number_) ||
-      lessThan(last_input_sequence_number_, result.input)) {
+  if (RtpUtils::sequenceNumberLessThan(result.input, first_input_sequence_number_) ||
+      RtpUtils::sequenceNumberLessThan(last_input_sequence_number_, result.input)) {
     return SequenceNumber{0, output_sequence_number, SequenceNumberType::Discard};
   }
   return result;

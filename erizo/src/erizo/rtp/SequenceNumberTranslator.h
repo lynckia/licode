@@ -37,7 +37,6 @@ class SequenceNumberTranslator: public Service, public std::enable_shared_from_t
   void reset();
 
  private:
-  bool lessThan(uint16_t first, uint16_t second) const;
   void add(SequenceNumber sequence_number);
   uint16_t fill(const uint16_t &first, const uint16_t &last);
   SequenceNumber& internalGet(uint16_t input_sequence_number);
