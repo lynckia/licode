@@ -6,9 +6,9 @@ namespace erizo {
 
 DEFINE_LOGGER(RtcpRrGenerator, "rtp.RtcpRrGenerator");
 
-RtcpRrGenerator::RtcpRrGenerator(uint32_t ssrc, packetType type)
+RtcpRrGenerator::RtcpRrGenerator(uint32_t ssrc, packetType type, std::shared_ptr<Clock> the_clock)
   : rr_info_{RrPacketInfo(ssrc)}, ssrc_{ssrc}, type_{type},
-   random_generator_{random_device_()} {}
+   random_generator_{random_device_()}, clock_{the_clock} {}
 
 RtcpRrGenerator::RtcpRrGenerator(const RtcpRrGenerator&& generator) :  // NOLINT
     rr_info_{std::move(generator.rr_info_)},
@@ -89,7 +89,7 @@ bool RtcpRrGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   }
   rr_info_.last_rtp_ts = head->getTimestamp();
   rr_info_.last_recv_ts = static_cast<uint32_t>(packet->received_time_ms);
-  uint64_t now = ClockUtils::timePointToMs(clock::now());
+  uint64_t now = ClockUtils::timePointToMs(clock_->now());
   if (rr_info_.next_packet_ms == 0) {  // Schedule the first packet
     uint16_t selected_interval = selectInterval();
     rr_info_.next_packet_ms = now + selected_interval;
@@ -104,9 +104,24 @@ bool RtcpRrGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
 }
 
 std::shared_ptr<dataPacket> RtcpRrGenerator::generateReceiverReport() {
-  uint64_t now = ClockUtils::timePointToMs(clock::now());
+  uint64_t now = ClockUtils::timePointToMs(clock_->now());
   uint64_t delay_since_last_sr = rr_info_.last_sr_ts == 0 ?
     0 : (now - rr_info_.last_sr_ts) * 65536 / 1000;
+  uint32_t expected = rr_info_.extended_seq - rr_info_.base_seq + 1;
+  rr_info_.lost = expected - rr_info_.packets_received;
+
+  uint8_t fraction = 0;
+  uint32_t expected_interval = expected - rr_info_.expected_prior;
+  rr_info_.expected_prior = expected;
+  uint32_t received_interval = rr_info_.packets_received - rr_info_.received_prior;
+
+  rr_info_.received_prior = rr_info_.packets_received;
+  uint32_t lost_interval = expected_interval - received_interval;
+  if (expected_interval != 0 && lost_interval > 0) {
+    fraction = (lost_interval << 8) / expected_interval;
+  }
+
+  rr_info_.frac_lost = fraction;
   RtcpHeader rtcp_head;
   rtcp_head.setPacketType(RTCP_Receiver_PT);
   rtcp_head.setSSRC(ssrc_);
@@ -147,21 +162,6 @@ void RtcpRrGenerator::handleSr(std::shared_ptr<dataPacket> packet) {
 
   rr_info_.last_sr_mid_ntp = chead->get32MiddleNtp();
   rr_info_.last_sr_ts = packet->received_time_ms;
-  uint32_t expected = rr_info_.extended_seq - rr_info_.base_seq + 1;
-  rr_info_.lost = expected - rr_info_.packets_received;
-
-  uint8_t fraction = 0;
-  uint32_t expected_interval = expected - rr_info_.expected_prior;
-  rr_info_.expected_prior = expected;
-  uint32_t received_interval = rr_info_.packets_received - rr_info_.received_prior;
-
-  rr_info_.received_prior = rr_info_.packets_received;
-  uint32_t lost_interval = expected_interval - received_interval;
-  if (expected_interval != 0 && lost_interval > 0) {
-    fraction = (lost_interval << 8) / expected_interval;
-  }
-
-  rr_info_.frac_lost = fraction;
 }
 
 uint16_t RtcpRrGenerator::selectInterval() {

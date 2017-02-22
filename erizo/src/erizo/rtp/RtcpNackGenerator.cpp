@@ -1,7 +1,6 @@
 #include <algorithm>
 #include "rtp/RtcpNackGenerator.h"
 #include "./WebRtcConnection.h"
-#include "lib/ClockUtils.h"
 
 namespace erizo {
 
@@ -11,7 +10,8 @@ const int kMaxRetransmits = 2;
 const int kMaxNacks = 150;
 const int kMinNackDelayMs = 20;
 
-RtcpNackGenerator::RtcpNackGenerator(uint32_t ssrc) : initialized_{false}, highest_seq_num_{0}, ssrc_{ssrc} {}
+RtcpNackGenerator::RtcpNackGenerator(uint32_t ssrc, std::shared_ptr<Clock> the_clock) :
+  initialized_{false}, highest_seq_num_{0}, ssrc_{ssrc}, clock_{the_clock} {}
 
 
 bool RtcpNackGenerator::rtpSequenceLessThan(uint16_t x, uint16_t y) {
@@ -79,7 +79,7 @@ std::shared_ptr<dataPacket> RtcpNackGenerator::addNackPacketToRr(std::shared_ptr
   // Only does it if it's time (> 100 ms since last NACK)
   std::vector <uint32_t> nack_vector;
   ELOG_DEBUG("message: Adding nacks to RR, nack_info_list_.size(): %lu", nack_info_list_.size());
-  uint64_t now_ms = ClockUtils::timePointToMs(clock::now());
+  uint64_t now_ms = ClockUtils::timePointToMs(clock_->now());
   for (uint16_t index = 0; index < nack_info_list_.size(); index++) {
     NackInfo& base_nack_info = nack_info_list_[index];
     if (!isTimeToRetransmit(base_nack_info, now_ms)) {

@@ -8,6 +8,7 @@
 
 #include "./logger.h"
 #include "pipeline/Handler.h"
+#include "lib/ClockUtils.h"
 
 #define MAX_DELAY 450000
 
@@ -21,7 +22,8 @@ class RtcpRrGenerator {
 
 
  public:
-  explicit RtcpRrGenerator(uint32_t ssrc, packetType type);
+  explicit RtcpRrGenerator(uint32_t ssrc, packetType type,
+      std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
 
   explicit RtcpRrGenerator(const RtcpRrGenerator&& handler);  // NOLINT
   bool handleRtpPacket(std::shared_ptr<dataPacket> packet);
@@ -69,6 +71,7 @@ class RtcpRrGenerator {
   packetType type_;
   std::random_device random_device_;
   std::mt19937 random_generator_;
+  std::shared_ptr<Clock> clock_;
 };
 }  // namespace erizo
 

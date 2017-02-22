@@ -1,13 +1,13 @@
 #include "rtp/RtcpFeedbackGenerationHandler.h"
 #include "./WebRtcConnection.h"
-#include "lib/ClockUtils.h"
 
 namespace erizo {
 
 DEFINE_LOGGER(RtcpFeedbackGenerationHandler, "rtp.RtcpFeedbackGenerationHandler");
 
-RtcpFeedbackGenerationHandler::RtcpFeedbackGenerationHandler()
-  : connection_{nullptr}, enabled_{true}, initialized_{false}, nacks_enabled_{true} {}
+RtcpFeedbackGenerationHandler::RtcpFeedbackGenerationHandler(bool nacks_enabled,
+    std::shared_ptr<Clock> the_clock)
+  : connection_{nullptr}, enabled_{true}, initialized_{false}, nacks_enabled_{nacks_enabled}, clock_{the_clock} {}
 
 void RtcpFeedbackGenerationHandler::enable() {
   enabled_ = true;
@@ -25,6 +25,8 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacke
     ctx->fireRead(packet);
     return;
   }
+
+  ELOG_DEBUG("Got packet");
 
   if (chead->getPacketType() == RTCP_Sender_PT) {
     uint32_t ssrc = chead->getSSRC();
@@ -59,6 +61,7 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacke
       if (nacks_enabled_ && generator_it->second->nack_generator != nullptr) {
         generator_it->second->nack_generator->addNackPacketToRr(rtcp_packet);
       }
+      ELOG_DEBUG("Calling FireWrite");
       ctx->fireWrite(rtcp_packet);
     }
   }
@@ -90,12 +93,12 @@ void RtcpFeedbackGenerationHandler::notifyUpdate() {
     if (video_ssrc != 0) {
       auto video_generator = std::make_shared<RtcpGeneratorPair>();
       generators_map_[video_ssrc] = video_generator;
-      auto video_rr = std::make_shared<RtcpRrGenerator>(video_ssrc, VIDEO_PACKET);
+      auto video_rr = std::make_shared<RtcpRrGenerator>(video_ssrc, VIDEO_PACKET, clock_);
       video_generator->rr_generator = video_rr;
       ELOG_DEBUG("%s, message: Initialized video rrGenerator, ssrc: %u", connection_->toLog(), video_ssrc);
       if (nacks_enabled_) {
         ELOG_DEBUG("%s, message: Initialized video nack generator, ssrc %u", connection_->toLog(), video_ssrc);
-        auto video_nack = std::make_shared<RtcpNackGenerator>(video_ssrc);
+        auto video_nack = std::make_shared<RtcpNackGenerator>(video_ssrc, clock_);
         video_generator->nack_generator = video_nack;
       }
     }
@@ -104,7 +107,7 @@ void RtcpFeedbackGenerationHandler::notifyUpdate() {
   if (audio_ssrc != 0) {
     auto audio_generator = std::make_shared<RtcpGeneratorPair>();
     generators_map_[audio_ssrc] = audio_generator;
-    auto audio_rr = std::make_shared<RtcpRrGenerator>(audio_ssrc, AUDIO_PACKET);
+    auto audio_rr = std::make_shared<RtcpRrGenerator>(audio_ssrc, AUDIO_PACKET, clock_);
     audio_generator->rr_generator = audio_rr;
     ELOG_DEBUG("%s, message: Initialized audio, ssrc: %u", connection_->toLog(), audio_ssrc);
   }

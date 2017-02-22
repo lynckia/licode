@@ -3,6 +3,7 @@
 
 #include <thread/Scheduler.h>
 #include <rtp/RtcpFeedbackGenerationHandler.h>
+#include <lib/Clock.h>
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
@@ -31,21 +32,27 @@ using erizo::Pipeline;
 using erizo::InboundHandler;
 using erizo::OutboundHandler;
 using erizo::Worker;
+using erizo::SimulatedClock;
 
-class RtcpFeedbackGenerationHandlerTest : public erizo::HandlerTest {
+class RtcpFeedbackRrGenerationTest : public erizo::HandlerTest {
  public:
-  RtcpFeedbackGenerationHandlerTest() {}
+  RtcpFeedbackRrGenerationTest(): clock{std::make_shared<SimulatedClock>()} {}
 
  protected:
   void setHandler() {
-    rr_handler = std::make_shared<RtcpFeedbackGenerationHandler>(false);
+    rr_handler = std::make_shared<RtcpFeedbackGenerationHandler>(false, clock);
     pipeline->addBack(rr_handler);
   }
 
+  void advanceClockMs(int time_ms) {
+    clock->advanceTime(std::chrono::milliseconds(time_ms));
+  }
+
   std::shared_ptr<RtcpFeedbackGenerationHandler> rr_handler;
+  std::shared_ptr<SimulatedClock> clock;
 };
 
-TEST_F(RtcpFeedbackGenerationHandlerTest, basicBehaviourShouldReadPackets) {
+TEST_F(RtcpFeedbackRrGenerationTest, basicBehaviourShouldReadPackets) {
   auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
   EXPECT_CALL(*reader.get(), read(_, _)).
@@ -53,7 +60,7 @@ TEST_F(RtcpFeedbackGenerationHandlerTest, basicBehaviourShouldReadPackets) {
   pipeline->read(packet);
 }
 
-TEST_F(RtcpFeedbackGenerationHandlerTest, basicBehaviourShouldWritePackets) {
+TEST_F(RtcpFeedbackRrGenerationTest, basicBehaviourShouldWritePackets) {
   auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
   EXPECT_CALL(*writer.get(), write(_, _)).
@@ -61,7 +68,7 @@ TEST_F(RtcpFeedbackGenerationHandlerTest, basicBehaviourShouldWritePackets) {
   pipeline->write(packet);
 }
 
-TEST_F(RtcpFeedbackGenerationHandlerTest, shouldReportPacketLoss) {
+TEST_F(RtcpFeedbackRrGenerationTest, shouldReportPacketLoss) {
   uint16_t kArbitraryPacketsLost = 8;
   auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
   auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + kArbitraryPacketsLost + 1,
@@ -73,12 +80,13 @@ TEST_F(RtcpFeedbackGenerationHandlerTest, shouldReportPacketLoss) {
     .With(Args<1>(erizo::ReceiverReportHasLostPacketsValue(kArbitraryPacketsLost)))
     .Times(1);
 
-  pipeline->read(first_packet);
-  pipeline->read(second_packet);
   pipeline->read(sender_report);
+  pipeline->read(first_packet);
+  advanceClockMs(2000);
+  pipeline->read(second_packet);
 }
 
-TEST_F(RtcpFeedbackGenerationHandlerTest, shouldReportFractionLost) {
+TEST_F(RtcpFeedbackRrGenerationTest, shouldReportFractionLost) {
   uint16_t kArbitraryPacketsLost = 2;
   uint16_t kPercentagePacketLoss = 50;
   uint8_t kFractionLost = kPercentagePacketLoss * 256/100;
@@ -93,24 +101,29 @@ TEST_F(RtcpFeedbackGenerationHandlerTest, shouldReportFractionLost) {
     .Times(1);
 
   pipeline->read(first_packet);
-  pipeline->read(second_packet);
   pipeline->read(sender_report);
+  advanceClockMs(2000);
+  pipeline->read(second_packet);
 }
 
-TEST_F(RtcpFeedbackGenerationHandlerTest, shouldReportHighestSeqnum) {
+TEST_F(RtcpFeedbackRrGenerationTest, shouldReportHighestSeqnum) {
+  uint16_t kArbitraryNumberOfPackets = 4;
   auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+  auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + kArbitraryNumberOfPackets,
+      VIDEO_PACKET);
   auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
 
   EXPECT_CALL(*reader.get(), read(_, _)).Times(2);
   EXPECT_CALL(*writer.get(), write(_, _))
-    .With(Args<1>(erizo::ReceiverReportHasSequenceNumber(erizo::kArbitrarySeqNumber)))
+    .With(Args<1>(erizo::ReceiverReportHasSequenceNumber(erizo::kArbitrarySeqNumber + kArbitraryNumberOfPackets)))
     .Times(1);
 
   pipeline->read(first_packet);
-  pipeline->read(sender_report);
+  advanceClockMs(2000);
+  pipeline->read(second_packet);
 }
 
-TEST_F(RtcpFeedbackGenerationHandlerTest, shouldReportHighestSeqnumWithRollover) {
+TEST_F(RtcpFeedbackRrGenerationTest, shouldReportHighestSeqnumWithRollover) {
   uint16_t kMaxSeqnum = 65534;
   uint16_t kArbitraryNumberOfPackets = 4;
   uint16_t kSeqnumCyclesExpected = 1;
@@ -127,6 +140,7 @@ TEST_F(RtcpFeedbackGenerationHandlerTest, shouldReportHighestSeqnumWithRollover)
     .Times(1);
 
   pipeline->read(first_packet);
-  pipeline->read(second_packet);
   pipeline->read(sender_report);
+  advanceClockMs(2000);
+  pipeline->read(second_packet);
 }
