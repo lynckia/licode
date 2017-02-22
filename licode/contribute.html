@@ -22,6 +22,7 @@ contribute: true
         <li><a href="#bug_fixing"><i class="icon-chevron-right"></i> Bug Fixing</a></li>
         <li><a href="#code_quality"><i class="icon-chevron-right"></i> Code Quality</a></li>
         <li><a href="#features"><i class="icon-chevron-right"></i> New Features</a></li>
+        <li><a href="#documentation"><i class="icon-chevron-right"></i> Documentation</a></li>
         <li><a href="#prs"><i class="icon-chevron-right"></i> Pull Requests</a></li>
         <li><a href="#other_ways"><i class="icon-chevron-right"></i> Other ways</a></li>
       </ul>
@@ -100,6 +101,16 @@ Special comments of how the new feature affects the Erizo.
 Comments related to other stuff (documentation, tests, CI, etc.)</code></pre>
 
         <p>The last step, once the design is accepted, code should be proposed via Pull Requests.</p>
+      </section>
+      <section id="documentation">
+        <div class="page-header">
+          <h1>Documentation</h1>
+        </div>
+        <p>Documentation is one of the most important elements in an Open Source project. A good source code looses its value if developers cannot understand how it works! So we encourage you to also contribute here by fixing typos and improving the quality of our documents.</p>
+        <p>But it is also crucial to keep the documentation up to date with every code update. So when when you contribute a pull request that changes the APIs it is mandatory to also updates the corresponding documentation.</p>
+        <p>To make this things easier, our APIs documents are written using Markdown, a very ligth mark lenguage that uses plain text combined with some tags to add format and style. In Licode's documentation folder (<code>licode/doc/</code>) you will find the two main markdown files you would have to modify to introduce changes in the APIs, <code>client_api.md</code> and <code>server_api.md</code> for client and server APIs respectively.</p>
+        <p>To preview these documents while you are editing them you can use whatever markdown editor. However, if you want to see them as they are render in our website you have to serve them using <a href="http://www.mkdocs.org/" target="_blank">Mkdocs</a>. There you will find installation and usage instructions. Please, take into account you have to install version 15.0 for being compatible with Licode custom theme.</p>
+        <p>We have configured a Licode account in <a href="http://licode.readthedocs.io/" target="_blank">ReadTheDocs</a> to automatically compile every change in Licode master branch. And this page is linked in Licode website. So when your PR is accepted, your API changes are automatically published in Licode documentation page. Cool, right?</p>
       </section>
       <section id="prs">
         <div class="page-header">
