@@ -10,7 +10,7 @@ DEFINE_LOGGER(RtcpNackGenerator, "rtp.RtcpNackGenerator");
 const int kMaxRetransmits = 2;
 const int kMaxNacks = 253;
 
-RtcpNackGenerator::RtcpNackGenerator(uint32_t ssrc) : ssrc_{ssrc} {}
+RtcpNackGenerator::RtcpNackGenerator(uint32_t ssrc) : initialized_{false}, highest_seq_num_{0}, ssrc_{ssrc} {}
 
 
 bool RtcpNackGenerator::rtpSequenceLessThan(uint16_t x, uint16_t y) {
@@ -33,6 +33,10 @@ bool RtcpNackGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   if (head->getSSRC() != ssrc_) {
     ELOG_DEBUG("message: handleRtpPacket Unknown SSRC, ssrc: %u", head->getSSRC());
     return false;
+  }
+  if (!initialized_) {
+    highest_seq_num_ = seq_num;
+    return 0;
   }
 
   if (seq_num == highest_seq_num_) {

@@ -36,7 +36,7 @@ class RtcpNackGenerator{
   bool addNacks(uint16_t seq_num);
 
  private:
-  uint8_t packet_[128];
+  bool initialized_;
   uint16_t highest_seq_num_;
   uint32_t ssrc_;
   NackInfo nack_info_;
