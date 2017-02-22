@@ -8,7 +8,8 @@ namespace erizo {
 DEFINE_LOGGER(RtcpNackGenerator, "rtp.RtcpNackGenerator");
 
 const int kMaxRetransmits = 2;
-const int kMaxNacks = 253;
+const int kMaxNacks = 150;
+const int kMinNackDelayMs = 20;
 
 RtcpNackGenerator::RtcpNackGenerator(uint32_t ssrc) : initialized_{false}, highest_seq_num_{0}, ssrc_{ssrc} {}
 
@@ -36,13 +37,13 @@ bool RtcpNackGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   }
   if (!initialized_) {
     highest_seq_num_ = seq_num;
+    initialized_ = true;
     return 0;
   }
-
   if (seq_num == highest_seq_num_) {
     return false;
   }
-//  ELOG_DEBUG("message: Found Highest seq number, ssrc: %u, highest_seq_num: %u", ssrc_, highest_seq_num_);
+  // TODO(pedro) Consider clearing the nack list if this is a keyframe
   if (rtpSequenceLessThan(seq_num, highest_seq_num_)) {
     ELOG_DEBUG("message: packet out of order, ssrc: %u, seq_num: %u, highest_seq_num: %u",
         seq_num, highest_seq_num_, ssrc_);
@@ -62,21 +63,13 @@ bool RtcpNackGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
 }
 
 bool RtcpNackGenerator::addNacks(uint16_t seq_num) {
-  for (uint16_t current_seq_num = highest_seq_num_; current_seq_num >= seq_num; current_seq_num++) {
-    auto found_nack = std::find_if(nack_info_list_.begin(), nack_info_list_.end(),
-        [current_seq_num](NackInfo& nack) {
-        return nack.seq_num == current_seq_num;
-        });
-    if (found_nack != nack_info_list_.end()) {
-      if (found_nack->retransmits >= kMaxRetransmits) {
-        ELOG_DEBUG("message: Removing Nack in list too many retransmits, ssrc: %u, seq_num: %u", ssrc_, seq_num);
-        nack_info_list_.erase(found_nack);
-      }
-      found_nack->retransmits++;
-    } else {
-      ELOG_DEBUG("message: Inserting a new Nack in list, ssrc: %u, seq_num: %u", ssrc_, seq_num);
-      nack_info_list_.push_back(NackInfo{current_seq_num});
-    }
+//  ELOG_DEBUG("Adding nacks, seq_num: %u, highest_seq_num: %u", seq_num, highest_seq_num_);
+  for (uint16_t current_seq_num = highest_seq_num_ + 1; current_seq_num < seq_num; current_seq_num++) {
+    ELOG_DEBUG("message: Inserting a new Nack in list, ssrc: %u, seq_num: %u", ssrc_, current_seq_num);
+    nack_info_list_.push_back(NackInfo{current_seq_num});
+  }
+  while (nack_info_list_.size() > kMaxNacks) {
+     nack_info_list_.erase(nack_info_list_.end() - 1);
   }
   return !nack_info_list_.empty();
 }
@@ -85,18 +78,44 @@ std::shared_ptr<dataPacket> RtcpNackGenerator::addNackPacketToRr(std::shared_ptr
   // Goes through the list adds blocks of 16 in compound packets (adds more PID/BLP blocks) max is 10 blocks
   // Only does it if it's time (> 100 ms since last NACK)
   std::vector <uint32_t> nack_vector;
-  ELOG_DEBUG("message: Adding nacks to RR, nack_info_list_.size(): %u", nack_info_list_.size());
-  for (int index = 0; index++; index < nack_info_list_.size()) {
-    NackInfo& current_info = nack_info_list_[index];
-    ELOG_DEBUG("This is a missed packet %u", current_info.seq_num);
-    uint16_t pid = current_info.seq_num;
+  ELOG_DEBUG("message: Adding nacks to RR, nack_info_list_.size(): %lu", nack_info_list_.size());
+  uint64_t now_ms = ClockUtils::timePointToMs(clock::now());
+  for (uint16_t index = 0; index < nack_info_list_.size(); index++) {
+    NackInfo& base_nack_info = nack_info_list_[index];
+    if (!isTimeToRetransmit(base_nack_info, now_ms)) {
+      ELOG_DEBUG("It's not time to retransmit %lu, now %lu, diff %lu", base_nack_info.sent_time, now_ms,
+          now_ms - base_nack_info.sent_time);
+      continue;
+    }
+    if (base_nack_info.retransmits >= kMaxRetransmits) {
+      ELOG_DEBUG("message: Removing Nack in list too many retransmits, ssrc: %u, seq_num: %u",
+          ssrc_, base_nack_info.seq_num);
+        nack_info_list_.erase(nack_info_list_.begin() + index);
+        continue;
+    }
+    ELOG_DEBUG("message: PID, seq_num %u", base_nack_info.seq_num);
+    uint16_t pid = base_nack_info.seq_num;
     uint16_t blp = 0;
+    base_nack_info.sent_time = now_ms;
+    base_nack_info.retransmits++;
     while (index < nack_info_list_.size()) {
       index++;
-      NackInfo& current_info = nack_info_list_[index];
-      uint16_t distance = current_info.seq_num - pid -1;
+      NackInfo& blp_nack_info = nack_info_list_[index];
+      uint16_t distance = blp_nack_info.seq_num - pid -1;
       if (distance <= 15) {
+        if (!isTimeToRetransmit(blp_nack_info, now_ms)) {
+          continue;
+        }
+        if (blp_nack_info.retransmits >= kMaxRetransmits) {
+          ELOG_DEBUG("message: Removing Nack in list too many retransmits, ssrc: %u, seq_num: %u",
+              ssrc_, blp_nack_info.seq_num);
+          nack_info_list_.erase(nack_info_list_.begin() + index);
+          continue;
+        }
+        ELOG_DEBUG("message: Adding Nack to BLP, seq_num: %u", blp_nack_info.seq_num);
         blp |= (1 << distance);
+        blp_nack_info.sent_time = now_ms;
+        blp_nack_info.retransmits++;
       } else {
         break;
       }
@@ -128,6 +147,10 @@ std::shared_ptr<dataPacket> RtcpNackGenerator::addNackPacketToRr(std::shared_ptr
 
   rr_packet->length += nack_length;
   return rr_packet;
+}
+
+bool RtcpNackGenerator::isTimeToRetransmit(const NackInfo& nack_info, uint64_t current_time_ms) {
+  return (nack_info.sent_time == 0 || (current_time_ms - nack_info.sent_time) > kMinNackDelayMs);
 }
 
 }  // namespace erizo

@@ -6,8 +6,8 @@ namespace erizo {
 
 DEFINE_LOGGER(RtcpFeedbackGenerationHandler, "rtp.RtcpFeedbackGenerationHandler");
 
-RtcpFeedbackGenerationHandler::RtcpFeedbackGenerationHandler(bool nacks_enabled)
-  : connection_{nullptr}, enabled_{true}, initialized_{false}, nacks_enabled_{nacks_enabled} {}
+RtcpFeedbackGenerationHandler::RtcpFeedbackGenerationHandler()
+  : connection_{nullptr}, enabled_{true}, initialized_{false}, nacks_enabled_{true} {}
 
 void RtcpFeedbackGenerationHandler::enable() {
   enabled_ = true;
@@ -84,7 +84,7 @@ void RtcpFeedbackGenerationHandler::notifyUpdate() {
   if (!connection_) {
     return;
   }
-
+  // TODO(pedro) detect if nacks are enabled here with the negotiated SDP
   std::vector<uint32_t> video_ssrc_list = connection_->getVideoSourceSSRCList();
   std::for_each(video_ssrc_list.begin(), video_ssrc_list.end(), [this] (uint32_t video_ssrc) {
     if (video_ssrc != 0) {

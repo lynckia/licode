@@ -28,7 +28,7 @@ class RtcpFeedbackGenerationHandler: public Handler {
 
 
  public:
-  explicit RtcpFeedbackGenerationHandler(bool nacks_enabled = true);
+  RtcpFeedbackGenerationHandler();
 
   void enable() override;
   void disable() override;

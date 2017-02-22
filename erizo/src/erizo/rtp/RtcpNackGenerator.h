@@ -17,10 +17,11 @@ class WebRtcConnection;
 
 class NackInfo {
  public:
-  NackInfo(): seq_num{0}, retransmits{0} {}
-  explicit NackInfo(uint16_t seq_num): seq_num{seq_num}, retransmits{0} {}
+  NackInfo(): seq_num{0}, retransmits{0}, sent_time{0} {}
+  explicit NackInfo(uint16_t seq_num): seq_num{seq_num}, retransmits{0}, sent_time{0} {}
   uint16_t seq_num;
   uint16_t retransmits;
+  uint64_t sent_time;
 };
 
 class RtcpNackGenerator{
@@ -34,6 +35,7 @@ class RtcpNackGenerator{
  private:
   bool rtpSequenceLessThan(uint16_t x, uint16_t y);
   bool addNacks(uint16_t seq_num);
+  bool isTimeToRetransmit(const NackInfo& nack_info, uint64_t current_time_ms);
 
  private:
   bool initialized_;
