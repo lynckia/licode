@@ -302,7 +302,7 @@ Erizo.Stream = function (spec) {
         that.pc.updateSpec(config, callback);
     };
 
-    that.setQualityLayer = function(spatialLayer, temporalLayer, callback) {
+    that._setQualityLayer = function(spatialLayer, temporalLayer, callback) {
       if (that.room && that.room.p2p){
           L.Logger.warning('setQualityLayer is not implemented in p2p streams');
           callback ('error');
