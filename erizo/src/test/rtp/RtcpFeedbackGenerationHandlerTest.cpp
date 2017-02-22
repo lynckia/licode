@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <thread/Scheduler.h>
-#include <rtp/RRGenerationHandler.h>
+#include <rtp/RtcpFeedbackGenerationHandler.h>
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
@@ -25,27 +25,27 @@ using erizo::AUDIO_PACKET;
 using erizo::VIDEO_PACKET;
 using erizo::IceConfig;
 using erizo::RtpMap;
-using erizo::RRGenerationHandler;
+using erizo::RtcpFeedbackGenerationHandler;
 using erizo::WebRtcConnection;
 using erizo::Pipeline;
 using erizo::InboundHandler;
 using erizo::OutboundHandler;
 using erizo::Worker;
 
-class RRGenerationHandlerTest : public erizo::HandlerTest {
+class RtcpFeedbackGenerationHandlerTest : public erizo::HandlerTest {
  public:
-  RRGenerationHandlerTest() {}
+  RtcpFeedbackGenerationHandlerTest() {}
 
  protected:
   void setHandler() {
-    rr_handler = std::make_shared<RRGenerationHandler>(false);
+    rr_handler = std::make_shared<RtcpFeedbackGenerationHandler>(false);
     pipeline->addBack(rr_handler);
   }
 
-  std::shared_ptr<RRGenerationHandler> rr_handler;
+  std::shared_ptr<RtcpFeedbackGenerationHandler> rr_handler;
 };
 
-TEST_F(RRGenerationHandlerTest, basicBehaviourShouldReadPackets) {
+TEST_F(RtcpFeedbackGenerationHandlerTest, basicBehaviourShouldReadPackets) {
   auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
   EXPECT_CALL(*reader.get(), read(_, _)).
@@ -53,7 +53,7 @@ TEST_F(RRGenerationHandlerTest, basicBehaviourShouldReadPackets) {
   pipeline->read(packet);
 }
 
-TEST_F(RRGenerationHandlerTest, basicBehaviourShouldWritePackets) {
+TEST_F(RtcpFeedbackGenerationHandlerTest, basicBehaviourShouldWritePackets) {
   auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
   EXPECT_CALL(*writer.get(), write(_, _)).
@@ -61,7 +61,7 @@ TEST_F(RRGenerationHandlerTest, basicBehaviourShouldWritePackets) {
   pipeline->write(packet);
 }
 
-TEST_F(RRGenerationHandlerTest, shouldReportPacketLoss) {
+TEST_F(RtcpFeedbackGenerationHandlerTest, shouldReportPacketLoss) {
   uint16_t kArbitraryPacketsLost = 8;
   auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
   auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + kArbitraryPacketsLost + 1,
@@ -78,7 +78,7 @@ TEST_F(RRGenerationHandlerTest, shouldReportPacketLoss) {
   pipeline->read(sender_report);
 }
 
-TEST_F(RRGenerationHandlerTest, shouldReportFractionLost) {
+TEST_F(RtcpFeedbackGenerationHandlerTest, shouldReportFractionLost) {
   uint16_t kArbitraryPacketsLost = 2;
   uint16_t kPercentagePacketLoss = 50;
   uint8_t kFractionLost = kPercentagePacketLoss * 256/100;
@@ -97,7 +97,7 @@ TEST_F(RRGenerationHandlerTest, shouldReportFractionLost) {
   pipeline->read(sender_report);
 }
 
-TEST_F(RRGenerationHandlerTest, shouldReportHighestSeqnum) {
+TEST_F(RtcpFeedbackGenerationHandlerTest, shouldReportHighestSeqnum) {
   auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
   auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
 
@@ -110,7 +110,7 @@ TEST_F(RRGenerationHandlerTest, shouldReportHighestSeqnum) {
   pipeline->read(sender_report);
 }
 
-TEST_F(RRGenerationHandlerTest, shouldReportHighestSeqnumWithRollover) {
+TEST_F(RtcpFeedbackGenerationHandlerTest, shouldReportHighestSeqnumWithRollover) {
   uint16_t kMaxSeqnum = 65534;
   uint16_t kArbitraryNumberOfPackets = 4;
   uint16_t kSeqnumCyclesExpected = 1;
