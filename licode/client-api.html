@@ -151,6 +151,10 @@ clientapi: true
                   <td>Removes the video from the HTML.</td>
                 </tr>
                 <tr>
+                  <td><a href="#muteAudio">muteAudio(isMuted, callback)</a></td>
+                  <td>Mutes the audio track of a <b>remote</b> stream.</td>
+                </tr>
+                <tr>
                   <td><a href="#sendData">sendData(msg)</a></td>
                   <td>It sends data through the Stream to clients that are subscribed.</td>
                 </tr>
@@ -178,9 +182,9 @@ clientapi: true
           </table>
 
           <h3 id="hasAudio">Check if the stream has audio, video and/or data active</h3>
-          <p>You can check if the stream has audio, video and data activated by two functions.
+          <p>You can check if the stream has audio, video and/or data activated by these functions.
           <div class="bs-docs-example">
-            The function in line 1 checks the audio while the function in line 2 checks the video.
+            The function in line 1 checks the audio while the function in line 2 checks the video and the function in line 3 checks the data.
           </div>
 <pre class="prettyprint linenums">
 stream.hasAudio();
@@ -189,18 +193,18 @@ stream.hasData();</pre>
 
           <h3 id="initStream">Initialize the Stream</h3>
 
-          <p>It initializes the stream and tries to retrieve a stream from local video and audio (in case you activate them). <p>You need to call this method before you can publish the in the room or playing it at local.
+          <p>It initializes the stream and tries to retrieve a stream from local video and audio (in case you've activated them). <p>You need to call this method before you can publish the stream in the room or play it locally.
 
           <div class="bs-docs-example">
-          You first create the stream and now you need to initialize it (line 1). Then you need to add an event listener to know when the user has granted access to the webcam and microphone (line 2). You will receive an <em>access-accepted</em> or and <em>access-denied</em> event.
+          When you first create the stream, you need to initialize it (line 1). Then you need to add an event listener to know when the user has granted access to the webcam and/or microphone (line 2). You will receive an <em>access-accepted</em> or and <em>access-denied</em> event.
           </div>
 <pre class="prettyprint linenums">
 stream.init();
 stream.addEventListener('access-accepted', function(event) {
-  console.log("Access to webcam and microphone granted");
+  console.log("Access to webcam and/or microphone granted");
 });
 stream.addEventListener('access-denied', function(event) {
-  console.log("Access to webcam and microphone rejected");
+  console.log("Access to webcam and/or microphone rejected");
 });
 </pre>
 
@@ -217,7 +221,7 @@ stream.addEventListener('access-denied', function(event) {
 <pre class="prettyprint linenums">
 stream.close();
 </pre>
-          <h3 id="showStream">Play our local stream in the HTML</h3>
+          <h3 id="showStream">Play a local stream in the HTML</h3>
 
           <p>It starts playing the video/audio at once at the given <code>elementID</code>. It automatically creates an audio/video HTML tag.
 
@@ -244,6 +248,32 @@ stream.play(elementID, {crop: false});
           </div>
 <pre class="prettyprint linenums">
 stream.stop();
+</pre>
+          
+          <h3 id="muteAudio">Mute the audio track of a remote stream</h3>
+
+          <p>It stops receiving audio from a remote stream. The publisher of the stream will keep sending audio information to Licode but this particular subscriber won't receive it.
+          <p> <b>Note:</b> it won't work on local streams, in p2p rooms or when the stream does not have an audio track.
+
+          <div class="bs-docs-example">
+          You can mute the audio track (and stop receiving audio bytes) from the remote stream. 
+          </div>
+<pre class="prettyprint linenums">
+stream.muteAudio(true, function (result) {
+  if (result === 'error') {
+    console.log("There was an error muting the steram")
+  }
+});
+</pre>
+          <div class="bs-docs-example">
+          You can also unmute the audio track. 
+          </div>
+<pre class="prettyprint linenums">
+stream.muteAudio(false, function (result) {
+  if (result === 'error') {
+    console.log("There was an error unmuting the steram")
+  }
+});
 </pre>
 
           <h3 id="sendData">Send Data through the stream</h3>
@@ -898,8 +928,12 @@ room.addEventListener("stream-attributes-update", function(evt){...});
           <p class="lead">Running erizo clients in your node.js applications.</p>
           <p>You can also run erizo clients in your node.js applications with the same API explained here. You can connect to rooms, publish and subscribe to streams and manage events. You need only to import the node module <b>erizofc.js</b></p>
           <pre class="prettyprint linenums">
-var Erizo = require('.erizofc');</pre>
+var Erizo = require('.erizofc').Erizo;</pre>
           <p>And now you can use the API like explained for the browser case, calling <b>Erizo.Room</b>, <b>Erizo.Stream</b> and <b>Erizo.Events</b>. Note that you can not publish/subscribe streams with video and/or audio. We are working on this feature in order to develop another way of distribute video/audio streams.</p>
+          <p>You can also use Erizo Client Logger for managing log levels, etc</p>
+          <pre class="prettyprint linenums">
+var L = require('.erizofc').L;
+L.Logger.setLogLevel(2);</pre>
         </section>
 
         <!-- Next
