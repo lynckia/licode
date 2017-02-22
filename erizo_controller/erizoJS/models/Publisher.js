@@ -104,6 +104,13 @@ class Source {
     }
   }
 
+  setQualityLayer(id, spatialLayer, temporalLayer) {
+    var subscriber = this.getSubscriber(id);
+    log.info('message: setQualityLayer, spatialLayer: ', spatialLayer,
+                                     ', temporalLayer: ', temporalLayer);
+    subscriber.setQualityLayer(spatialLayer, temporalLayer);
+  }
+
   muteSubscriberStream(id, muteVideo, muteAudio) {
     var subscriber = this.getSubscriber(id);
     subscriber.muteVideo = muteVideo;

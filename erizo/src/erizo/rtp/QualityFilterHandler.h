@@ -9,13 +9,11 @@
 #include "./logger.h"
 #include "pipeline/Handler.h"
 #include "rtp/SequenceNumberTranslator.h"
-
-#define MAX_DELAY 450000
+#include "rtp/QualityManager.h"
 
 namespace erizo {
 
 class WebRtcConnection;
-
 
 class QualityFilterHandler: public Handler, public std::enable_shared_from_this<QualityFilterHandler> {
   DECLARE_LOGGER();
@@ -34,17 +32,24 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void notifyUpdate() override;
-  void applyMaxRembMaybe(std::shared_ptr<dataPacket> packet);
 
  private:
-  SequenceNumberTranslator translator;
+  void sendPLI();
+  void checkLayers();
+  void handleFeedbackPackets(std::shared_ptr<dataPacket> packet);
+  void checkSSRCChange(uint32_t ssrc);
+
+ private:
+  std::shared_ptr<QualityManager> quality_manager_;
+  SequenceNumberTranslator translator_;
   WebRtcConnection *connection_;
   bool enabled_;
   bool initialized_;
-  uint16_t last_seq_number_;
   int target_spatial_layer_;
   int target_temporal_layer_;
-  uint video_sink_ssrc_;
+  uint32_t video_sink_ssrc_;
+  uint32_t video_source_ssrc_;
+  uint32_t last_ssrc_received_;
 };
 }  // namespace erizo
 
