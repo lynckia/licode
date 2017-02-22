@@ -10,7 +10,7 @@ class RtpVP8Fragmenter {
   DECLARE_LOGGER();
 
  public:
-  RtpVP8Fragmenter(unsigned char* data, unsigned int length, unsigned int maxLength);
+  RtpVP8Fragmenter(unsigned char* data, unsigned int length);
   virtual ~RtpVP8Fragmenter();
 
   int getPacket(unsigned char* data, unsigned int* length, bool* lastPacket);
@@ -25,7 +25,6 @@ class RtpVP8Fragmenter {
   unsigned int writeFragment(const Fragment& fragment, unsigned char* buffer, unsigned int* length);
   unsigned char* totalData_;
   unsigned int totalLenth_;
-  unsigned int maxlength_;
   std::queue<Fragment> fragmentQueue_;
 };
 }  // namespace erizo

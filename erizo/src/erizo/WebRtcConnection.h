@@ -200,7 +200,6 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   uint32_t rateControl_;  // Target bitrate for hacky rate control in BPS
 
-  int stunPort_, minPort_, maxPort_;
   std::string stunServer_;
 
   boost::condition_variable cond_;

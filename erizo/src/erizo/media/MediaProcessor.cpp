@@ -477,7 +477,7 @@ int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned 
   if (buffSize <= 0) {
     return -1;
   }
-  RtpVP8Fragmenter frag(inBuff, buffSize, 1100);
+  RtpVP8Fragmenter frag(inBuff, buffSize);
   bool lastFrame = false;
   unsigned int outlen = 0;
   uint64_t millis = ClockUtils::timePointToMs(clock::now());
