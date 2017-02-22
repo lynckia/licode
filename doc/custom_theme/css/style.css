@@ -125,7 +125,8 @@ pre {
 /*RTD control panel*/
 
 .rst-current-version {
-    background-color: #003478;
+    background-color: #003478 !important;
+    color: #fcfcfc !important;
 }
 
 .rst-other-versions {
