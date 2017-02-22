@@ -121,3 +121,14 @@ pre {
 	    width: 270px;
 	}
 }
+
+/*RTD control panel*/
+
+.rst-current-version {
+    background-color: #003478;
+}
+
+.rst-other-versions {
+    background-color: #003478;
+    border-top: 1px white solid;
+}
