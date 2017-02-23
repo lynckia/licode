@@ -181,6 +181,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   void changeDeliverPayloadType(dataPacket *dp, packetType type);
   // parses incoming payload type, replaces occurence in buf
   void parseIncomingPayloadType(char *buf, int len, packetType type);
+  void trackTransportInfo();
 
  private:
   std::string connection_id_;
