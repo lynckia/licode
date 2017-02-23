@@ -75,7 +75,6 @@ TEST_F(RtcpRrGeneratorTest, shouldReportHighestSeqnum) {
   auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
   auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + kArbitraryNumberOfPackets,
       VIDEO_PACKET);
-  auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
 
   rr_generator.handleRtpPacket(first_packet);
   rr_generator.handleRtpPacket(second_packet);
@@ -93,7 +92,6 @@ TEST_F(RtcpRrGeneratorTest, shouldReportHighestSeqnumWithRollover) {
 
   auto first_packet = erizo::PacketTools::createDataPacket(kMaxSeqnum, VIDEO_PACKET);
   auto second_packet = erizo::PacketTools::createDataPacket(kMaxSeqnum + kArbitraryNumberOfPackets, VIDEO_PACKET);
-  auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
 
   rr_generator.handleRtpPacket(first_packet);
   rr_generator.handleRtpPacket(second_packet);
@@ -102,4 +100,19 @@ TEST_F(RtcpRrGeneratorTest, shouldReportHighestSeqnumWithRollover) {
   RtcpHeader* rtcp_header = reinterpret_cast<RtcpHeader*>(rr_packet->data);
   EXPECT_EQ(rtcp_header->getSeqnumCycles(), kSeqnumCyclesExpected);
   EXPECT_EQ(rtcp_header->getHighestSeqnum(), kNewSeqNum);
+}
+
+
+TEST_F(RtcpRrGeneratorTest, shouldReportDelaySinceLastSr) {
+  int kArbitraryTimePassedInMs = 500;
+  int kArbitratyTimePassed = kArbitraryTimePassedInMs * 65536/1000;
+  auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+  auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
+  rr_generator.handleRtpPacket(first_packet);
+  rr_generator.handleSr(sender_report);
+  advanceClockMs(kArbitratyTimePassed);
+
+  std::shared_ptr<dataPacket> rr_packet = rr_generator.generateReceiverReport();
+  RtcpHeader* rtcp_header = reinterpret_cast<RtcpHeader*>(rr_packet->data);
+  EXPECT_EQ(rtcp_header->getDelaySinceLastSr(), kArbitratyTimePassed);
 }

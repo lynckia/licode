@@ -1,14 +1,16 @@
 #include <algorithm>
 #include "rtp/RtcpNackGenerator.h"
+#include "rtp/RtpUtils.h"
 #include "./WebRtcConnection.h"
 
 namespace erizo {
 
 DEFINE_LOGGER(RtcpNackGenerator, "rtp.RtcpNackGenerator");
 
-const int kMaxRetransmits = 2;
-const int kMaxNacks = 150;
-const int kMinNackDelayMs = 20;
+static const int kMaxRetransmits = 2;
+static const int kMaxNacks = 150;
+static const int kMinNackDelayMs = 20;
+static const int kNackCommonHeaderLengthRtcp = kNackCommonHeaderLengthBytes/4 - 1;
 
 RtcpNackGenerator::RtcpNackGenerator(uint32_t ssrc, std::shared_ptr<Clock> the_clock) :
   initialized_{false}, highest_seq_num_{0}, ssrc_{ssrc}, clock_{the_clock} {}
@@ -63,8 +65,7 @@ bool RtcpNackGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
 }
 
 bool RtcpNackGenerator::addNacks(uint16_t seq_num) {
-  ELOG_DEBUG("Adding nacks, seq_num: %u, highest_seq_num: %u", seq_num, highest_seq_num_);
-  for (uint16_t current_seq_num = highest_seq_num_ + 1; current_seq_num < seq_num; current_seq_num++) {
+  for (uint16_t current_seq_num = highest_seq_num_ + 1; current_seq_num != seq_num; current_seq_num++) {
     ELOG_DEBUG("message: Inserting a new Nack in list, ssrc: %u, seq_num: %u", ssrc_, current_seq_num);
     nack_info_list_.push_back(NackInfo{current_seq_num});
   }
@@ -74,7 +75,7 @@ bool RtcpNackGenerator::addNacks(uint16_t seq_num) {
   return !nack_info_list_.empty();
 }
 
-std::shared_ptr<dataPacket> RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet) {
+bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet) {
   // Goes through the list adds blocks of 16 in compound packets (adds more PID/BLP blocks) max is 10 blocks
   // Only does it if it's time (> 100 ms since last NACK)
   std::vector <NackBlock> nack_vector;
@@ -120,13 +121,14 @@ std::shared_ptr<dataPacket> RtcpNackGenerator::addNackPacketToRr(std::shared_ptr
         break;
       }
     }
+    ELOG_DEBUG("Finally PID %u, BLP %u", pid, blp);
     NackBlock block;
     block.setNackPid(pid);
     block.setNackBlp(blp);
     nack_vector.push_back(block);
   }
   if (nack_vector.size() == 0) {
-    return rr_packet;
+    return false;
   }
 
   char* buffer = rr_packet->data;
@@ -138,11 +140,10 @@ std::shared_ptr<dataPacket> RtcpNackGenerator::addNackPacketToRr(std::shared_ptr
   nack_packet.setBlockCount(15);
   nack_packet.setSSRC(ssrc_);
   nack_packet.setSourceSSRC(ssrc_);
-  nack_packet.setLength(2 + nack_vector.size());
-  int nack_common_header_length = 3 * 4;
-  memcpy(buffer, reinterpret_cast<char *>(&nack_packet), nack_common_header_length);
+  nack_packet.setLength(kNackCommonHeaderLengthRtcp + nack_vector.size());
+  memcpy(buffer, reinterpret_cast<char *>(&nack_packet), kNackCommonHeaderLengthBytes);
   RtcpHeader* chead_test = reinterpret_cast<RtcpHeader*> (buffer);
-  buffer += nack_common_header_length;
+  buffer += kNackCommonHeaderLengthBytes;
 
   memcpy(buffer, &nack_vector[0], nack_vector.size()*4);
   int nack_length = (nack_packet.getLength()+1)*4;
@@ -151,7 +152,7 @@ std::shared_ptr<dataPacket> RtcpNackGenerator::addNackPacketToRr(std::shared_ptr
   ELOG_DEBUG("Length after %u", rr_packet->length);
   ELOG_DEBUG("Cosas del nack, ssrc: %u, length %u, PID %u, BLP %u", chead_test->getSSRC(), chead_test->getLength(),
       chead_test->getNackPid(), chead_test->getNackBlp());
-  return rr_packet;
+  return true;
 }
 
 bool RtcpNackGenerator::isTimeToRetransmit(const NackInfo& nack_info, uint64_t current_time_ms) {

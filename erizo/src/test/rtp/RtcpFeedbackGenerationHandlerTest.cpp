@@ -67,21 +67,3 @@ TEST_F(RtcpFeedbackRrGenerationTest, basicBehaviourShouldWritePackets) {
     With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
   pipeline->write(packet);
 }
-
-
-TEST_F(RtcpFeedbackRrGenerationTest, shouldReportHighestSeqnum) {
-  uint16_t kArbitraryNumberOfPackets = 4;
-  auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
-  auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + kArbitraryNumberOfPackets,
-      VIDEO_PACKET);
-  auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
-  EXPECT_CALL(*reader.get(), read(_, _)).Times(2);
-  EXPECT_CALL(*writer.get(), write(_, _))
-    .With(Args<1>(erizo::ReceiverReportHasSequenceNumber(erizo::kArbitrarySeqNumber + kArbitraryNumberOfPackets)))
-    .Times(1);
-
-  pipeline->read(first_packet);
-  advanceClockMs(2000);
-  pipeline->read(second_packet);
-}
-

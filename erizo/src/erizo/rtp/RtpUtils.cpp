@@ -20,9 +20,18 @@ void RtpUtils::updateREMB(RtcpHeader *chead, uint bitrate) {
 
 void RtpUtils::forEachNack(RtcpHeader *chead, std::function<void(uint16_t, uint16_t)> f) {
   if (chead->packettype == RTCP_RTP_Feedback_PT) {
-    uint16_t initial_seq_num = chead->getNackPid();
-    uint16_t plb = chead->getNackBlp();
-    f(initial_seq_num, plb);
+    int length = (chead->getLength() + 1)*4;
+    int current_position = kNackCommonHeaderLengthBytes;
+    uint8_t* aux_pointer = reinterpret_cast<uint8_t*>(chead);
+    RtcpHeader* aux_chead;
+    while (current_position < length) {
+      aux_chead = reinterpret_cast<RtcpHeader*>(aux_pointer);
+      uint16_t initial_seq_num = aux_chead->getNackPid();
+      uint16_t plb = aux_chead->getNackBlp();
+      f(initial_seq_num, plb);
+      current_position += 4;
+      aux_pointer += 4;
+    }
   }
 }
 

@@ -42,6 +42,8 @@ namespace erizo {
 
 #define RTCP_AUDIO_INTERVAL 5000
 #define RTCP_VIDEO_INTERVAL  1000
+
+static const uint16_t kNackCommonHeaderLengthBytes = 12;
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -200,6 +202,14 @@ class RtpRtxHeader {
   }
 };
 
+
+// Generic NACK RTCP_RTP_FB + (FMT 1)rfc4585
+//      0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |            PID                |             BLP               |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
 class NackBlock {
  public:
   uint32_t pid:16;
@@ -323,12 +333,6 @@ class RtcpHeader {
       struct receiverReport_t rrlist[1];
     } senderReport;
 
-    // Generic NACK RTCP_RTP_FB + (FMT 1)rfc4585
-    //      0                   1                   2                   3
-    //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //   |            PID                |             BLP               |
-    //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     struct genericNack_t {
       uint32_t ssrcsource;
       NackBlock nack_block;
@@ -454,16 +458,16 @@ class RtcpHeader {
     return ntohl(middle);
   }
   inline uint16_t getNackPid() {
-    return ntohs(report.nackPacket.nack_block.pid);
+    return report.nackPacket.nack_block.getNackPid();
   }
   inline void setNackPid(uint16_t pid) {
-    report.nackPacket.nack_block.pid = htons(pid);
+    report.nackPacket.nack_block.setNackPid(pid);
   }
   inline uint16_t getNackBlp() {
-    return report.nackPacket.nack_block.blp;
+    return report.nackPacket.nack_block.getNackBlp();
   }
   inline void setNackBlp(uint16_t blp) {
-    report.nackPacket.nack_block.blp = blp;
+    report.nackPacket.nack_block.setNackBlp(blp);
   }
   inline void setREMBBitRate(uint64_t bitRate) {
     uint64_t max = 0x3FFFF;  // 18 bits

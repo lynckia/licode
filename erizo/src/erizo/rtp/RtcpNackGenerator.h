@@ -32,7 +32,7 @@ class RtcpNackGenerator{
   explicit RtcpNackGenerator(uint32_t ssrc_,
       std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
   bool handleRtpPacket(std::shared_ptr<dataPacket> packet);
-  std::shared_ptr<dataPacket> addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet);
+  bool addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet);
 
  private:
   bool rtpSequenceLessThan(uint16_t x, uint16_t y);

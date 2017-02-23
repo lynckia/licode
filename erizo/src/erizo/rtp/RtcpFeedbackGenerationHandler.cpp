@@ -26,8 +26,6 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacke
     return;
   }
 
-  ELOG_DEBUG("Got packet");
-
   if (chead->getPacketType() == RTCP_Sender_PT) {
     uint32_t ssrc = chead->getSSRC();
     auto generator_it = generators_map_.find(ssrc);
@@ -61,7 +59,6 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacke
       if (nacks_enabled_ && generator_it->second->nack_generator != nullptr) {
         generator_it->second->nack_generator->addNackPacketToRr(rtcp_packet);
       }
-      ELOG_DEBUG("Calling FireWrite");
       ctx->fireWrite(rtcp_packet);
     }
   }
@@ -73,7 +70,6 @@ void RtcpFeedbackGenerationHandler::write(Context *ctx, std::shared_ptr<dataPack
 }
 
 void RtcpFeedbackGenerationHandler::notifyUpdate() {
-  ELOG_DEBUG("Notify Update");
   if (initialized_) {
     return;
   }
@@ -87,7 +83,7 @@ void RtcpFeedbackGenerationHandler::notifyUpdate() {
   if (!connection_) {
     return;
   }
-  // TODO(pedro) detect if nacks are enabled here with the negotiated SDP
+  // TODO(pedro) detect if nacks are enabled here with the negotiated SDP scanning the rtp_mappings
   std::vector<uint32_t> video_ssrc_list = connection_->getVideoSourceSSRCList();
   std::for_each(video_ssrc_list.begin(), video_ssrc_list.end(), [this] (uint32_t video_ssrc) {
     if (video_ssrc != 0) {
