@@ -75,6 +75,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
   Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
+  Nan::SetPrototypeMethod(tpl, "setQualityLayer", setQualityLayer);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
   Nan::SetPrototypeMethod(tpl, "enableHandler", enableHandler);
   Nan::SetPrototypeMethod(tpl, "disableHandler", disableHandler);
@@ -406,6 +407,18 @@ NAN_METHOD(WebRtcConnection::disableHandler) {
   std::string name = std::string(*param);
 
   me->disableHandler(name);
+  return;
+}
+
+NAN_METHOD(WebRtcConnection::setQualityLayer) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+
+  int spatial_layer = info[0]->IntegerValue();
+  int temporal_layer = info[1]->IntegerValue();
+
+  me->setQualityLayer(spatial_layer, temporal_layer);
+
   return;
 }
 

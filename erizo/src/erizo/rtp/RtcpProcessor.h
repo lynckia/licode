@@ -113,11 +113,13 @@ class RtcpProcessor : public Service {
     rtcpSink_(msink), rtcpSource_(msource) {}
   virtual ~RtcpProcessor() {}
   virtual void addSourceSsrc(uint32_t ssrc) = 0;
-  virtual void setMaxVideoBW(uint32_t bandwidth) = 0;
   virtual void setPublisherBW(uint32_t bandwidth) = 0;
   virtual void analyzeSr(RtcpHeader* chead) = 0;
   virtual int analyzeFeedback(char* buf, int len) = 0;
   virtual void checkRtcpFb() = 0;
+
+  virtual void setMaxVideoBW(uint32_t bandwidth) { maxVideoBw_ = bandwidth; }
+  virtual uint32_t getMaxVideoBW() { return maxVideoBw_; }
 
  protected:
   MediaSink* rtcpSink_;  // The sink to send RRs

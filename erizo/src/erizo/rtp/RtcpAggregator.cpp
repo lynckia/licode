@@ -42,10 +42,6 @@ void RtcpAggregator::addSourceSsrc(uint32_t ssrc) {
   }
 }
 
-void RtcpAggregator::setMaxVideoBW(uint32_t bandwidth) {
-  this->maxVideoBw_ = bandwidth;
-}
-
 void RtcpAggregator::setPublisherBW(uint32_t bandwidth) {
   defaultVideoBw_ = (bandwidth*1.2) > maxVideoBw_? maxVideoBw_:(bandwidth*1.2);
 }
