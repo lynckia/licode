@@ -19,6 +19,7 @@
 #include "lib/Clock.h"
 #include "pipeline/Handler.h"
 #include "pipeline/Service.h"
+#include "rtp/QualityManager.h"
 
 namespace erizo {
 
@@ -105,6 +106,9 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    * @return the size of the data sent
    */
   int sendPLI() override;
+
+  void setQualityLayer(int spatial_layer, int temporal_layer);
+
   /**
    * Sets the Event Listener for this WebRtcConnection
    */
@@ -211,6 +215,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   std::shared_ptr<Transport> videoTransport_, audioTransport_;
 
   std::shared_ptr<Stats> stats_;
+  std::shared_ptr<QualityManager> quality_manager_;
   WebRTCEvent globalState_;
 
   boost::mutex updateStateMutex_;  // , slideShowMutex_;
