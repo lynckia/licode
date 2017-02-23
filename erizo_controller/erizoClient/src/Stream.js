@@ -101,13 +101,13 @@ Erizo.Stream = function (spec) {
                   videoOpt.mandatory.maxWidth = that.videoSize[2];
                   videoOpt.mandatory.maxHeight = that.videoSize[3];
               }
-              
+
               if (that.videoFrameRate !== undefined) {
                   videoOpt.optional = []
                   videoOpt.optional.push({minFrameRate: that.videoFrameRate[0]});
                   videoOpt.optional.push({maxFrameRate: that.videoFrameRate[1]});
               }
-              
+
           } else if (spec.screen === true && videoOpt === undefined) {
             videoOpt = true;
           }
@@ -125,6 +125,18 @@ Erizo.Stream = function (spec) {
 
             streamEvent = Erizo.StreamEvent({type: 'access-accepted'});
             that.dispatchEvent(streamEvent);
+
+            that.stream.getTracks().forEach(function(track) {
+                track.onended = function() {
+                    that.stream.getTracks().forEach(function(track) {
+                        track.onended = null;
+                    });
+                    L.Logger.error('The stream was ended ');
+                    streamEvent = Erizo.StreamEvent({type: 'stream-ended', stream: that,
+                    msg: track.kind});
+                    that.dispatchEvent(streamEvent);
+                };
+            });
 
           }, function (error) {
             L.Logger.error('Failed to get access to local media. Error code was ' +
