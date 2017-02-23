@@ -26,6 +26,7 @@
 #include "rtp/RRGenerationHandler.h"
 #include "rtp/SRPacketHandler.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
+#include "rtp/LayerDetectorHandler.h"
 
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
@@ -243,6 +244,7 @@ void WebRtcConnection::initializePipeline() {
 
   pipeline_->addFront(PacketReader(this));
 
+  pipeline_->addFront(LayerDetectorHandler());
   pipeline_->addFront(RtcpProcessorHandler());
   pipeline_->addFront(IncomingStatsHandler());
   pipeline_->addFront(FecReceiverHandler());
