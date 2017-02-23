@@ -156,6 +156,8 @@ class WebRtcConnection : public MediaSink, public erizo::WebRtcConnectionEventLi
      */
     static NAN_METHOD(disableHandler);
 
+    static NAN_METHOD(setQualityLayer);
+
     static Nan::Persistent<v8::Function> constructor;
 
     static NAUV_WORK_CB(eventsCallback);

@@ -313,6 +313,17 @@ Erizo.Stream = function (spec) {
         that.pc.updateSpec(config, callback);
     };
 
+    that._setQualityLayer = function(spatialLayer, temporalLayer, callback) {
+      if (that.room && that.room.p2p){
+          L.Logger.warning('setQualityLayer is not implemented in p2p streams');
+          callback ('error');
+          return;
+      }
+      var config = {qualityLayer : {spatialLayer: spatialLayer, temporalLayer: temporalLayer}};
+      that.checkOptions(config, true);
+      that.pc.updateSpec(config, callback);
+    };
+
     controlHandler = function (handlers, publisherSide, enable) {
       publisherSide = !(publisherSide !== true);
       var handlers = (typeof handlers === 'string') ? [handlers] : handlers;
