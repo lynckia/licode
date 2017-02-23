@@ -33,6 +33,9 @@
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
+constexpr uint32_t kDefaultVideoSinkSSRC = 55543;
+constexpr uint32_t kDefaultAudioSinkSSRC = 44444;
+
 WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::string& connection_id,
     const IceConfig& iceConfig, const std::vector<RtpMap> rtp_mappings,
     const std::vector<erizo::ExtMap> ext_mappings, WebRtcConnectionEventListener* listener) :
@@ -42,8 +45,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
     pipeline_{Pipeline::create()}, worker_{worker}, audio_muted_{false}, pipeline_initialized_{false} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
-  setVideoSinkSSRC(55543);
-  setAudioSinkSSRC(44444);
+  setVideoSinkSSRC(kDefaultVideoSinkSSRC);
+  setAudioSinkSSRC(kDefaultAudioSinkSSRC);
   source_fb_sink_ = this;
   sink_fb_source_ = this;
   stats_ = std::make_shared<Stats>();
@@ -559,7 +562,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
     case TRANSPORT_READY:
       if (bundle_) {
         temp = CONN_READY;
-
+        trackTransportInfo();
       } else {
         if ((!remoteSdp_.hasAudio || (audioTransport_.get() != nullptr
                   && audioTransport_->getTransportState() == TRANSPORT_READY)) &&
@@ -567,6 +570,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
                   && videoTransport_->getTransportState() == TRANSPORT_READY))) {
             // WebRTCConnection will be ready only when all channels are ready.
             temp = CONN_READY;
+            trackTransportInfo();
           }
       }
       break;
@@ -603,6 +607,36 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
   if (connEventListener_ != nullptr) {
     ELOG_INFO("%s newGlobalState: %d", toLog(), globalState_);
     connEventListener_->notifyEvent(globalState_, msg);
+  }
+}
+
+void WebRtcConnection::trackTransportInfo() {
+  CandidatePair candidate_pair;
+  if (videoEnabled_ && videoTransport_) {
+    candidate_pair = videoTransport_->getNiceConnection()->getSelectedPair();
+    if (getVideoSinkSSRC() != kDefaultVideoSinkSSRC) {
+      stats_->getNode()[getVideoSinkSSRC()].insertStat("clientHostType",
+                                                       StringStat{candidate_pair.clientHostType});
+    }
+    if (getVideoSourceSSRC() != 0) {
+      stats_->getNode()[getVideoSourceSSRC()].insertStat("clientHostType",
+                                                         StringStat{candidate_pair.clientHostType});
+    }
+  }
+
+  if (audioEnabled_) {
+    if (audioTransport_) {
+      candidate_pair = audioTransport_->getNiceConnection()->getSelectedPair();
+    }
+
+    if (getAudioSinkSSRC() != kDefaultAudioSinkSSRC) {
+      stats_->getNode()[getAudioSinkSSRC()].insertStat("clientHostType",
+                                                       StringStat{candidate_pair.clientHostType});
+    }
+    if (getAudioSourceSSRC() != 0) {
+      stats_->getNode()[getAudioSourceSSRC()].insertStat("clientHostType",
+                                                         StringStat{candidate_pair.clientHostType});
+    }
   }
 }
 
