@@ -84,8 +84,6 @@ class SrtpChannel {
   bool active_;
   srtp_t send_session_;
   srtp_t receive_session_;
-  srtp_t rtcp_send_session_;
-  srtp_t rtcp_receive_session_;
 };
 
 }  // namespace erizo

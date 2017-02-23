@@ -97,7 +97,7 @@ class RateStat : public StatNode {
 
   uint64_t value() override;
 
-  std::string toString();
+  std::string toString() override;
 
  private:
   void add(uint64_t value);

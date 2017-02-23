@@ -1,0 +1,25 @@
+<div class="bs-sidebar hidden-print affix-top well" role="complementary">
+
+    <ul class="nav bs-sidenav">
+	{%- block search_button %}
+    <li class="search_nav">
+        <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
+            <i class="fa fa-search"></i> Search
+        </a>
+    </li>
+    {%- endblock %}
+
+    {%- for nav_item in nav %}
+        <li class="main"><a href="{{ nav_item.url }}">{{ nav_item.title }}</a></li>
+        {%- if page_title == nav_item.title%}
+	    	{%- for toc_item in toc %}
+		        <li class="{% if toc_item.active %}active{% endif %}"><a href="{{ toc_item.url }}">{{ toc_item.title }}</a></li>
+		    {%- endfor %}
+	    {%- endif %}
+    {%- endfor %}
+    </ul>
+
+    
+    
+
+</div>
