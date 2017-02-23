@@ -131,7 +131,6 @@ Erizo.Stream = function (spec) {
                     that.stream.getTracks().forEach(function(track) {
                         track.onended = null;
                     });
-                    L.Logger.error('The stream was ended ');
                     streamEvent = Erizo.StreamEvent({type: 'stream-ended', stream: that,
                     msg: track.kind});
                     that.dispatchEvent(streamEvent);
