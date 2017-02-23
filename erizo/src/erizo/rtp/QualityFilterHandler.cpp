@@ -10,8 +10,9 @@ DEFINE_LOGGER(QualityFilterHandler, "rtp.QualityFilterHandler");
 
 QualityFilterHandler::QualityFilterHandler()
   : connection_{nullptr}, enabled_{true}, initialized_{false},
-  target_spatial_layer_{0}, target_temporal_layer_{0},
-  video_sink_ssrc_{0}, video_source_ssrc_{0}, last_ssrc_received_{0} {}
+  receiving_multiple_ssrc_{false}, target_spatial_layer_{0}, target_temporal_layer_{0},
+  video_sink_ssrc_{0}, video_source_ssrc_{0}, last_ssrc_received_{0},
+  max_video_bw_{0} {}
 
 void QualityFilterHandler::enable() {
   enabled_ = true;
@@ -23,7 +24,7 @@ void QualityFilterHandler::disable() {
 
 void QualityFilterHandler::handleFeedbackPackets(std::shared_ptr<dataPacket> packet) {
   RtpUtils::forEachRRBlock(packet, [this](RtcpHeader *chead) {
-    RtpUtils::updateREMB(chead, 400000);
+    RtpUtils::updateREMB(chead, max_video_bw_);
 
     RtpUtils::forEachNack(chead, [this, chead](uint16_t seq_num, uint16_t plb) {
       SequenceNumber result = translator_.reverse(seq_num);
@@ -75,6 +76,10 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<dataPacket> packe
     uint32_t ssrc = rtp_header->getSSRC();
     uint16_t sequence_number = rtp_header->getSeqNumber();
 
+    if (ssrc != last_ssrc_received_) {
+      receiving_multiple_ssrc_ = true;
+    }
+
     if (!packet->belongsToSpatialLayer(target_spatial_layer_)) {
       if (ssrc == video_sink_ssrc_) {
         translator_.get(sequence_number, true);
@@ -84,10 +89,6 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<dataPacket> packe
 
     checkSSRCChange(ssrc);
     rtp_header->setSSRC(video_sink_ssrc_);
-
-    if (packet->compatible_spatial_layers.back() == target_spatial_layer_ && packet->ending_of_layer_frame) {
-      rtp_header->setMarker(1);
-    }
 
     if (!packet->belongsToTemporalLayer(target_temporal_layer_)) {
       translator_.get(sequence_number, true);
@@ -99,6 +100,10 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<dataPacket> packe
       return;
     }
 
+    if (packet->compatible_spatial_layers.back() == target_spatial_layer_ && packet->ending_of_layer_frame) {
+      rtp_header->setMarker(1);
+    }
+
     rtp_header->setSeqNumber(sequence_number_info.output);
   }
 
@@ -108,12 +113,18 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<dataPacket> packe
 }
 
 void QualityFilterHandler::notifyUpdate() {
-  if (initialized_) {
+  auto pipeline = getContext()->getPipelineShared();
+  if (!pipeline) {
     return;
   }
 
-  auto pipeline = getContext()->getPipelineShared();
-  if (!pipeline) {
+  auto processor = pipeline->getService<RtcpProcessor>();
+
+  if (processor) {
+    max_video_bw_ = processor->getMaxVideoBW();
+  }
+
+  if (initialized_) {
     return;
   }
 

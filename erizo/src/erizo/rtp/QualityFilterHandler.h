@@ -45,11 +45,13 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   WebRtcConnection *connection_;
   bool enabled_;
   bool initialized_;
+  bool receiving_multiple_ssrc_;
   int target_spatial_layer_;
   int target_temporal_layer_;
   uint32_t video_sink_ssrc_;
   uint32_t video_source_ssrc_;
   uint32_t last_ssrc_received_;
+  uint32_t max_video_bw_;
 };
 }  // namespace erizo
 
