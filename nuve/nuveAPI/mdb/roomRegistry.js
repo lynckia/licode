@@ -49,13 +49,14 @@ exports.addRoom = function (room, callback) {
 };
 
 exports.assignErizoControllerToRoom = function(room, erizoControllerId, callback) {
-  // TODO: Add error handling
   db.rooms.findOne({_id: db.ObjectId(room._id)}, function(err, findRoom){
+    if (err) log.warn('message: assignErizoControllerToRoom error, ' + logger.objectToLog(err));
     if (!findRoom) {
        callback(undefined);
     }
     if (findRoom.erizoControllerId) {
       db.erizoControllers.findOne({_id: findRoom.erizoControllerId}, function(err, assignedErizoController){
+        if (err) log.warn('message: assignErizoControllerToRoom error, ' + logger.objectToLog(err));
         if (assignedErizoController) {
           callback(assignedErizoController);
         }
@@ -64,10 +65,13 @@ exports.assignErizoControllerToRoom = function(room, erizoControllerId, callback
 
   });
   db.erizoControllers.findOne({_id: db.ObjectId(erizoControllerId)}, function(err, notAssignedErizoController){
+    if (err) log.warn('message: assignErizoControllerToRoom error, ' + logger.objectToLog(err));
     if (notAssignedErizoController) {
       room.erizoControllerId = db.ObjectId(erizoControllerId);
 
-      db.rooms.save( room, function(){});
+      db.rooms.save( room, function(err, savedRoom){
+        if (err) log.warn('message: assignErizoControllerToRoom error, ' + logger.objectToLog(err));
+      });
       callback(notAssignedErizoController);
     }
   });
