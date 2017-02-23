@@ -68,43 +68,6 @@ TEST_F(RtcpFeedbackRrGenerationTest, basicBehaviourShouldWritePackets) {
   pipeline->write(packet);
 }
 
-TEST_F(RtcpFeedbackRrGenerationTest, shouldReportPacketLoss) {
-  uint16_t kArbitraryPacketsLost = 8;
-  auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
-  auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + kArbitraryPacketsLost + 1,
-      VIDEO_PACKET);
-  auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
-
-  EXPECT_CALL(*reader.get(), read(_, _)).Times(3);
-  EXPECT_CALL(*writer.get(), write(_, _))
-    .With(Args<1>(erizo::ReceiverReportHasLostPacketsValue(kArbitraryPacketsLost)))
-    .Times(1);
-
-  pipeline->read(sender_report);
-  pipeline->read(first_packet);
-  advanceClockMs(2000);
-  pipeline->read(second_packet);
-}
-
-TEST_F(RtcpFeedbackRrGenerationTest, shouldReportFractionLost) {
-  uint16_t kArbitraryPacketsLost = 2;
-  uint16_t kPercentagePacketLoss = 50;
-  uint8_t kFractionLost = kPercentagePacketLoss * 256/100;
-  auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
-  auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + kArbitraryPacketsLost + 1,
-      VIDEO_PACKET);
-  auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
-
-  EXPECT_CALL(*reader.get(), read(_, _)).Times(3);
-  EXPECT_CALL(*writer.get(), write(_, _))
-    .With(Args<1>(erizo::ReceiverReportHasFractionLostValue(kFractionLost)))
-    .Times(1);
-
-  pipeline->read(first_packet);
-  pipeline->read(sender_report);
-  advanceClockMs(2000);
-  pipeline->read(second_packet);
-}
 
 TEST_F(RtcpFeedbackRrGenerationTest, shouldReportHighestSeqnum) {
   uint16_t kArbitraryNumberOfPackets = 4;
@@ -112,7 +75,6 @@ TEST_F(RtcpFeedbackRrGenerationTest, shouldReportHighestSeqnum) {
   auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + kArbitraryNumberOfPackets,
       VIDEO_PACKET);
   auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
-
   EXPECT_CALL(*reader.get(), read(_, _)).Times(2);
   EXPECT_CALL(*writer.get(), write(_, _))
     .With(Args<1>(erizo::ReceiverReportHasSequenceNumber(erizo::kArbitrarySeqNumber + kArbitraryNumberOfPackets)))
@@ -123,24 +85,3 @@ TEST_F(RtcpFeedbackRrGenerationTest, shouldReportHighestSeqnum) {
   pipeline->read(second_packet);
 }
 
-TEST_F(RtcpFeedbackRrGenerationTest, shouldReportHighestSeqnumWithRollover) {
-  uint16_t kMaxSeqnum = 65534;
-  uint16_t kArbitraryNumberOfPackets = 4;
-  uint16_t kSeqnumCyclesExpected = 1;
-  uint16_t kNewSeqNum = kMaxSeqnum + kArbitraryNumberOfPackets;
-
-  auto first_packet = erizo::PacketTools::createDataPacket(kMaxSeqnum, VIDEO_PACKET);
-  auto second_packet = erizo::PacketTools::createDataPacket(kMaxSeqnum + kArbitraryNumberOfPackets, VIDEO_PACKET);
-  auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
-
-  EXPECT_CALL(*reader.get(), read(_, _)).Times(3);
-  EXPECT_CALL(*writer.get(), write(_, _))
-    .With(Args<1>(AllOf(erizo::ReceiverReportHasSeqnumCycles(kSeqnumCyclesExpected),
-            erizo::ReceiverReportHasSequenceNumber(kNewSeqNum))))
-    .Times(1);
-
-  pipeline->read(first_packet);
-  pipeline->read(sender_report);
-  advanceClockMs(2000);
-  pipeline->read(second_packet);
-}
