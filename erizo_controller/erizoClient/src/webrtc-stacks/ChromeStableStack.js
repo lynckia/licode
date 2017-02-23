@@ -289,7 +289,7 @@ Erizo.ChromeStableStack = function (spec) {
             }
         }
         if (config.minVideoBW || (config.slideShowMode!==undefined) ||
-            (config.muteStream !== undefined)){
+            (config.muteStream !== undefined) || (config.qualityLayer !== undefined)){
             L.Logger.debug ('MinVideo Changed to ', config.minVideoBW);
             L.Logger.debug ('SlideShowMode Changed to ', config.slideShowMode);
             L.Logger.debug ('muteStream changed to ', config.muteStream);

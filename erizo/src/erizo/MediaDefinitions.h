@@ -25,19 +25,20 @@ struct dataPacket {
   dataPacket() = default;
 
   dataPacket(int comp_, const char *data_, int length_, packetType type_, uint64_t received_time_ms_) :
-    comp{comp_}, length{length_}, type{type_}, received_time_ms{received_time_ms_}, is_keyframe{false} {
+    comp{comp_}, length{length_}, type{type_}, received_time_ms{received_time_ms_}, is_keyframe{false},
+    ending_of_layer_frame{false} {
       memcpy(data, data_, length_);
   }
 
   dataPacket(int comp_, const char *data_, int length_, packetType type_) :
     comp{comp_}, length{length_}, type{type_}, received_time_ms{ClockUtils::timePointToMs(clock::now())},
-    is_keyframe{false} {
+    is_keyframe{false}, ending_of_layer_frame{false} {
       memcpy(data, data_, length_);
   }
 
   dataPacket(int comp_, const unsigned char *data_, int length_) :
     comp{comp_}, length{length_}, type{VIDEO_PACKET}, received_time_ms{ClockUtils::timePointToMs(clock::now())},
-    is_keyframe{false} {
+    is_keyframe{false}, ending_of_layer_frame{false} {
       memcpy(data, data_, length_);
   }
 
@@ -65,6 +66,7 @@ struct dataPacket {
   std::vector<int> compatible_spatial_layers;
   std::vector<int> compatible_temporal_layers;
   bool is_keyframe;  // Note: It can be just a keyframe first packet in VP8
+  bool ending_of_layer_frame;
 };
 
 class Monitor {

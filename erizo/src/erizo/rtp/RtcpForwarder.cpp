@@ -33,10 +33,6 @@ void RtcpForwarder::addSourceSsrc(uint32_t ssrc) {
   }
 }
 
-void RtcpForwarder::setMaxVideoBW(uint32_t bandwidth) {
-  this->maxVideoBw_ = bandwidth;
-}
-
 void RtcpForwarder::setPublisherBW(uint32_t bandwidth) {
 }
 
