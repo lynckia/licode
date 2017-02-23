@@ -37,6 +37,20 @@ body {
 	border-radius: 6px;
 }
 
+.navbar-collapse {
+    max-height: 404px;
+}
+
+.navbar .github-logo {
+    float: right;
+    margin-top: 9px;
+    margin-right: 5px;
+}
+
+.navbar .github-logo img {
+    width:36px; height: 34px;
+}
+
 .bs-sidebar .nav > li.search_nav > a {
     padding-left: 20px;
 }
@@ -110,6 +124,26 @@ pre {
 	background-color: #f5f5f5;
 }
 
+.visible-desktop {
+    display: inherit !important;
+}
+
+.hidden-desktop {
+    display: none !important;
+}
+
+@media (max-width: 767px) {
+    .hidden-desktop {
+        display: inherit !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .visible-desktop {
+        display: none !important;
+    }
+}
+
 @media (min-width: 992px) {
 	.bs-sidebar.affix {
 		top: 63px;
@@ -120,4 +154,16 @@ pre {
 	.bs-sidebar.affix-bottom, .bs-sidebar.affix {
 	    width: 270px;
 	}
+}
+
+/*RTD control panel*/
+
+.rst-current-version {
+    background-color: #003478 !important;
+    color: #fcfcfc !important;
+}
+
+.rst-other-versions {
+    background-color: #003478;
+    border-top: 1px white solid;
 }
