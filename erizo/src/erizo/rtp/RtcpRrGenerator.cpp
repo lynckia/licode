@@ -1,6 +1,7 @@
 #include "rtp/RtcpRrGenerator.h"
 #include "./WebRtcConnection.h"
 #include "lib/ClockUtils.h"
+#include "rtp/RtpUtils.h"
 
 namespace erizo {
 
@@ -17,7 +18,7 @@ RtcpRrGenerator::RtcpRrGenerator(const RtcpRrGenerator&& generator) :  // NOLINT
 
 bool RtcpRrGenerator::isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
-  if (!rtpSequenceLessThan(head->getSeqNumber(), rr_info_.max_seq) || rr_info_.jitter.jitter == 0) {
+  if (!RtpUtils::sequenceNumberLessThan(head->getSeqNumber(), rr_info_.max_seq) || rr_info_.jitter.jitter == 0) {
     return false;
   }
   int64_t time_diff_ms = static_cast<uint32_t>(packet->received_time_ms) - rr_info_.last_recv_ts;
@@ -27,17 +28,6 @@ bool RtcpRrGenerator::isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet
   int64_t rtp_time_stamp_diff_ms = timestamp_diff / clock_rate;
   int64_t max_delay_ms = ((2 * rr_info_.jitter.jitter) /  clock_rate);
   return time_diff_ms > rtp_time_stamp_diff_ms + max_delay_ms;
-}
-
-bool RtcpRrGenerator::rtpSequenceLessThan(uint16_t x, uint16_t y) {
-  int diff = y - x;
-  if (diff > 0) {
-    return (diff < 0x8000);
-  } else if (diff < 0) {
-    return (diff < -0x8000);
-  } else {
-    return false;
-  }
 }
 
 // TODO(kekkokk) Consider add more payload types
@@ -67,7 +57,7 @@ bool RtcpRrGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   }
   if (rr_info_.max_seq == -1) {
     rr_info_.max_seq = seq_num;
-  } else if (!rtpSequenceLessThan(seq_num, rr_info_.max_seq)) {
+  } else if (!RtpUtils::sequenceNumberLessThan(seq_num, rr_info_.max_seq)) {
     if (seq_num < rr_info_.max_seq) {
       rr_info_.cycle++;
     }

@@ -15,18 +15,6 @@ static const int kNackCommonHeaderLengthRtcp = kNackCommonHeaderLengthBytes/4 - 
 RtcpNackGenerator::RtcpNackGenerator(uint32_t ssrc, std::shared_ptr<Clock> the_clock) :
   initialized_{false}, highest_seq_num_{0}, ssrc_{ssrc}, clock_{the_clock} {}
 
-
-bool RtcpNackGenerator::rtpSequenceLessThan(uint16_t x, uint16_t y) {
-  int diff = y - x;
-  if (diff > 0) {
-    return (diff < 0x8000);
-  } else if (diff < 0) {
-    return (diff < -0x8000);
-  } else {
-    return false;
-  }
-}
-
 bool RtcpNackGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   if (packet->type != VIDEO_PACKET) {
     return false;
@@ -46,7 +34,7 @@ bool RtcpNackGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
     return false;
   }
   // TODO(pedro) Consider clearing the nack list if this is a keyframe
-  if (rtpSequenceLessThan(seq_num, highest_seq_num_)) {
+  if (RtpUtils::sequenceNumberLessThan(seq_num, highest_seq_num_)) {
     ELOG_DEBUG("message: packet out of order, ssrc: %u, seq_num: %u, highest_seq_num: %u",
         seq_num, highest_seq_num_, ssrc_);
     //  Look for it in nack list, remove it if its there
@@ -55,6 +43,7 @@ bool RtcpNackGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
         return (current_nack.seq_num == seq_num);
         });
     if (nack_info != nack_info_list_.end()) {
+      ELOG_DEBUG("message: Recovered Packet %u", seq_num);
       nack_info_list_.erase(nack_info);
     }
     return false;

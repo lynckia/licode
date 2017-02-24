@@ -35,7 +35,6 @@ class RtcpNackGenerator{
   bool addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet);
 
  private:
-  bool rtpSequenceLessThan(uint16_t x, uint16_t y);
   bool addNacks(uint16_t seq_num);
   bool isTimeToRetransmit(const NackInfo& nack_info, uint64_t current_time_ms);
 

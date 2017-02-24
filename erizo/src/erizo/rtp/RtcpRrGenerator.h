@@ -31,7 +31,6 @@ class RtcpRrGenerator {
   std::shared_ptr<dataPacket> generateReceiverReport();
 
  private:
-  bool rtpSequenceLessThan(uint16_t x, uint16_t y);
   bool isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet);
   int getAudioClockRate(uint8_t payload_type);
   int getVideoClockRate(uint8_t payload_type);
