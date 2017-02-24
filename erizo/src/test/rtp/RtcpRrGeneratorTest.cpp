@@ -110,7 +110,7 @@ TEST_F(RtcpRrGeneratorTest, shouldReportDelaySinceLastSr) {
   auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
   rr_generator.handleRtpPacket(first_packet);
   rr_generator.handleSr(sender_report);
-  advanceClockMs(kArbitratyTimePassed);
+  advanceClockMs(kArbitraryTimePassedInMs);
 
   std::shared_ptr<dataPacket> rr_packet = rr_generator.generateReceiverReport();
   RtcpHeader* rtcp_header = reinterpret_cast<RtcpHeader*>(rr_packet->data);
