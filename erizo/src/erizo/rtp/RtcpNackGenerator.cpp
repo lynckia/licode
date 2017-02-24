@@ -147,7 +147,6 @@ bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet)
   int nack_length = (nack_packet.getLength()+1)*4;
 
   rr_packet->length += nack_length;
-      chead_test->getNackPid(), chead_test->getNackBlp());
   return true;
 }
 
