@@ -40,6 +40,7 @@ class SequenceNumberTranslator: public Service, public std::enable_shared_from_t
   void add(SequenceNumber sequence_number);
   uint16_t fill(const uint16_t &first, const uint16_t &last);
   SequenceNumber& internalGet(uint16_t input_sequence_number);
+  SequenceNumber& internalReverse(uint16_t output_sequence_number);
 
  private:
   std::vector<SequenceNumber> in_out_buffer_;
