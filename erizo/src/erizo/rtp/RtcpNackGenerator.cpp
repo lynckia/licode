@@ -121,7 +121,6 @@ bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet)
         break;
       }
     }
-    ELOG_DEBUG("Finally PID %u, BLP %u", pid, blp);
     NackBlock block;
     block.setNackPid(pid);
     block.setNackBlp(blp);
@@ -133,7 +132,6 @@ bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet)
 
   char* buffer = rr_packet->data;
   buffer += rr_packet->length;
-  ELOG_DEBUG("Length before %u, vector_size %u", rr_packet->length, nack_vector.size());
 
   RtcpHeader nack_packet;
   nack_packet.setPacketType(RTCP_RTP_Feedback_PT);
@@ -149,8 +147,6 @@ bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet)
   int nack_length = (nack_packet.getLength()+1)*4;
 
   rr_packet->length += nack_length;
-  ELOG_DEBUG("Length after %u", rr_packet->length);
-  ELOG_DEBUG("Cosas del nack, ssrc: %u, length %u, PID %u, BLP %u", chead_test->getSSRC(), chead_test->getLength(),
       chead_test->getNackPid(), chead_test->getNackBlp());
   return true;
 }
