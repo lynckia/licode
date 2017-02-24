@@ -162,7 +162,7 @@ config.erizo.networkinterface = ''; //default value: ''
 config.erizo.minport = 0; // default value: 0
 config.erizo.maxport = 0; // default value: 0
 
-config.erizo['disabled_handlers'] = []; // there are no handlers disabled by default
+config.erizo['disabled_handlers'] = ['quality_filter']; // there are no handlers disabled by default
 
 /***** END *****/
 // Following lines are always needed.

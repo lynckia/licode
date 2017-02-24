@@ -45,8 +45,8 @@ class VideoMixer : public MediaSink, public RawDataReceiver, public RTPDataRecei
   int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
   int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
 
-  void receiveRawData(const RawDataPacket& packet);
-  void receiveRtpData(unsigned char* rtpdata, int len);
+  void receiveRawData(const RawDataPacket& packet) override;
+  void receiveRtpData(unsigned char* rtpdata, int len) override;
 
   void closeSink();
 

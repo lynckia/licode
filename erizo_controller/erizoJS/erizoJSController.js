@@ -258,6 +258,9 @@ exports.ErizoJSController = function (threadPool) {
                         if (msg.config.muteStream !== undefined) {
                             that.muteStream (msg.config.muteStream, peerId, streamId);
                         }
+                        if (msg.config.qualityLayer !== undefined) {
+                            that.setQualityLayer (msg.config.qualityLayer, peerId, streamId);
+                        }
                     }
                 } else if (msg.type === 'control') {
                   processControlMessage(publisher, peerId, msg.action);
@@ -515,6 +518,13 @@ exports.ErizoJSController = function (threadPool) {
         } else {
           publisher.muteStream(muteStreamInfo.video, muteStreamInfo.audio);
         }
+    };
+
+    that.setQualityLayer = function (qualityLayer, from, to) {
+      var publisher = this.publishers[to];
+      if (publisher.hasSubscriber(from)) {
+        publisher.setQualityLayer(from, qualityLayer.spatialLayer, qualityLayer.temporalLayer);
+      }
     };
 
     /* eslint no-param-reassign: ["error", { "props": false }] */

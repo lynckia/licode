@@ -15,7 +15,7 @@ namespace erizo {
 DEFINE_LOGGER(RtcpForwarder, "rtp.RtcpForwarder");
 
 RtcpForwarder::RtcpForwarder(MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw)
-  : RtcpProcessor(msink, msource, maxVideoBw), defaultVideoBw_(maxVideoBw / 2) {
+  : RtcpProcessor(msink, msource, maxVideoBw) {
     ELOG_DEBUG("Starting RtcpForwarder");
   }
 
@@ -31,10 +31,6 @@ void RtcpForwarder::addSourceSsrc(uint32_t ssrc) {
       this->rtcpData_[ssrc]->mediaType = VIDEO_TYPE;
     }
   }
-}
-
-void RtcpForwarder::setMaxVideoBW(uint32_t bandwidth) {
-  this->maxVideoBw_ = bandwidth;
 }
 
 void RtcpForwarder::setPublisherBW(uint32_t bandwidth) {
@@ -142,7 +138,8 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
                   } else {
                     cappedBitrate = maxVideoBw_;
                   }
-                  ELOG_DEBUG("Received REMB %lu, partnum %u, cappedBitrate %lu", bitrate, currentBlock, cappedBitrate);
+                  ELOG_DEBUG("Received REMB %llu, partnum %u, cappedBitrate %llu",
+                              bitrate, currentBlock, cappedBitrate);
                   chead->setREMBBitRate(cappedBitrate);
                 } else {
                   ELOG_WARN("Unsupported AFB Packet not REMB")

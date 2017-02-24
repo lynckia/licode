@@ -42,10 +42,6 @@ void RtcpAggregator::addSourceSsrc(uint32_t ssrc) {
   }
 }
 
-void RtcpAggregator::setMaxVideoBW(uint32_t bandwidth) {
-  this->maxVideoBw_ = bandwidth;
-}
-
 void RtcpAggregator::setPublisherBW(uint32_t bandwidth) {
   defaultVideoBw_ = (bandwidth*1.2) > maxVideoBw_? maxVideoBw_:(bandwidth*1.2);
 }
@@ -215,7 +211,7 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
                 char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
                 if (!strncmp(uniqueId, "REMB", 4)) {
                   uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
-                  ELOG_DEBUG("Received REMB %lu", bitrate);
+                  ELOG_DEBUG("Received REMB %llu", bitrate);
                   if (bitrate < defaultVideoBw_) {
                     theData->reportedBandwidth = bitrate;
                     theData->shouldSendREMB = true;
@@ -331,7 +327,7 @@ void RtcpAggregator::checkRtcpFb() {
         }
 
         if (rtcpData->shouldSendREMB) {
-          ELOG_DEBUG("Sending REMB, since last %u ms, sending with BW: %lu",
+          ELOG_DEBUG("Sending REMB, since last %u ms, sending with BW: %llu",
                       sincelastREMB, rtcpData->reportedBandwidth);
           int theLen = this->addREMB(reinterpret_cast<char*>(packet_), length, rtcpData->reportedBandwidth);
           rtcpData->shouldSendREMB = false;

@@ -116,15 +116,7 @@ class InputProcessor: public MediaSink {
   AVCodec* aDecoder;
   AVCodecContext* aDecoderContext;
 
-
-  AVFormatContext* aInputFormatContext;
-  AVInputFormat* aInputFormat;
   VideoDecoder vDecoder;
-
-  RTPInfo* vRTPInfo;
-
-  AVFormatContext* vInputFormatContext;
-  AVInputFormat* vInputFormat;
 
   RawDataReceiver* rawReceiver_;
 
@@ -180,15 +172,6 @@ class OutputProcessor: public RawDataReceiver {
   AVCodecContext* aCoderContext;
 
   VideoEncoder vCoder;
-
-  AVFormatContext* aOutputFormatContext;
-  AVOutputFormat* aOutputFormat;
-
-  RTPInfo* vRTPInfo_;
-  RTPSink* sink_;
-
-  AVFormatContext* vOutputFormatContext;
-  AVOutputFormat* vOutputFormat;
 
   RtpVP8Parser pars;
 
