@@ -135,7 +135,7 @@ bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet)
 
   RtcpHeader nack_packet;
   nack_packet.setPacketType(RTCP_RTP_Feedback_PT);
-  nack_packet.setBlockCount(15);
+  nack_packet.setBlockCount(1);
   nack_packet.setSSRC(ssrc_);
   nack_packet.setSourceSSRC(ssrc_);
   nack_packet.setLength(kNackCommonHeaderLengthRtcp + nack_vector.size());
