@@ -62,7 +62,7 @@ install_nvm_node() {
 }
 
 install_apt_deps(){
-  apt-get install sudo curl -y
+  apt-get install sudo -y
   install_nvm_node
   nvm use
   npm install -g node-gyp
