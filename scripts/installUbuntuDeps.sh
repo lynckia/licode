@@ -227,6 +227,7 @@ cleanup(){
     rm -r libav*
     rm -r openssl*
     rm -r opus*
+    rm -f ffmpeg*
     cd $CURRENT_DIR
   fi
 }
