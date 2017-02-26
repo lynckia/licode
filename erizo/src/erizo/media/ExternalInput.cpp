@@ -12,15 +12,12 @@
 
 #include "./WebRtcConnection.h"
 
-using std::memcpy;
-
 namespace erizo {
 
     AudioDecoder audioDecoder;
     extern const char* get_error_text(const int error);
     DEFINE_LOGGER(ExternalInput, "media.ExternalInput");
     ExternalInput::ExternalInput(const std::string& inputUrl):url_(inputUrl){
-        sourcefbSink_=NULL;
         context_ = NULL;
         running_ = false;
         needTranscoding_ = false;
@@ -45,7 +42,7 @@ namespace erizo {
     int ExternalInput::init(){
 
         // for OutputProcessor->packageAudio
-        audioSink = audioSink_;
+        audioSink = audio_sink_;
 
         context_ = avformat_alloc_context();
         av_register_all();
@@ -170,10 +167,10 @@ namespace erizo {
     }
 
     void ExternalInput::receiveRtpData(unsigned char*rtpdata, int len) {
-        if (videoSink_!=NULL){
-            memcpy(sendVideoBuffer_, rtpdata, len);
-            ELOG_DEBUG("deliver Video len %d", len);
-            videoSink_->deliverVideoData(sendVideoBuffer_, len);
+  if (video_sink_ != nullptr) {
+    std::shared_ptr<dataPacket> packet = std::make_shared<dataPacket>(0, reinterpret_cast<char*>(rtpdata),
+        len, VIDEO_PACKET);
+    video_sink_->deliverVideoData(packet);
         }
     }
 

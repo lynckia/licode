@@ -210,16 +210,17 @@ void RRGenerationHandler::notifyUpdate() {
   if (!connection_) {
     return;
   }
-
-  uint32_t video_ssrc = connection_->getVideoSourceSSRC();
-  if (video_ssrc != 0) {
-    auto video_packets = std::make_shared<RRPackets>();
-    video_packets->ssrc = video_ssrc;
-    video_packets->type = VIDEO_PACKET;
-    rr_info_map_[video_ssrc] = video_packets;
-    ELOG_DEBUG("%s, message: Initialized video, ssrc: %u", connection_->toLog(), video_ssrc);
-    initialized_ = true;
-  }
+  std::vector<uint32_t> video_ssrc_list = connection_->getVideoSourceSSRCList();
+  std::for_each(video_ssrc_list.begin(), video_ssrc_list.end(), [this] (uint32_t video_ssrc){
+      if (video_ssrc != 0) {
+        auto video_packets = std::make_shared<RRPackets>();
+        video_packets->ssrc = video_ssrc;
+        video_packets->type = VIDEO_PACKET;
+        rr_info_map_[video_ssrc] = video_packets;
+        ELOG_DEBUG("%s, message: Initialized video, ssrc: %u", connection_->toLog(), video_ssrc);
+        initialized_ = true;
+      }
+  });
   uint32_t audio_ssrc = connection_->getAudioSourceSSRC();
   if (audio_ssrc != 0) {
     auto audio_packets = std::make_shared<RRPackets>();

@@ -44,8 +44,8 @@ class RtpSink: public MediaSink, public FeedbackSource {
   static const int LENGTH = 1500;
   char* buffer_[LENGTH];
 
-  int deliverAudioData_(char* buf, int len);
-  int deliverVideoData_(char* buf, int len);
+  int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
+  int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
   int sendData(char* buffer, int len);
   void sendLoop();
   void serviceLoop();

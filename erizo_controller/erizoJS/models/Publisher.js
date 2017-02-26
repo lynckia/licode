@@ -19,10 +19,7 @@ function createWrtc(id, threadPool) {
                                     GLOBAL.config.erizo.turnusername,
                                     GLOBAL.config.erizo.turnpass,
                                     GLOBAL.config.erizo.networkinterface);
-  var disabledHandlers = GLOBAL.config.erizo['disabled_handlers'];
-  for (var index in disabledHandlers) {
-    wrtc.disableHandler(disabledHandlers[index]);
-  }
+
   return wrtc;
 }
 
@@ -105,6 +102,13 @@ class Source {
       var sub = this.getSubscriber(subId);
       this.muteSubscriberStream(subId, sub.muteVideo, sub.muteAudio);
     }
+  }
+
+  setQualityLayer(id, spatialLayer, temporalLayer) {
+    var subscriber = this.getSubscriber(id);
+    log.info('message: setQualityLayer, spatialLayer: ', spatialLayer,
+                                     ', temporalLayer: ', temporalLayer);
+    subscriber.setQualityLayer(spatialLayer, temporalLayer);
   }
 
   muteSubscriberStream(id, muteVideo, muteAudio) {

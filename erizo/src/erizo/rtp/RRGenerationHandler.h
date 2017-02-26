@@ -37,8 +37,8 @@ class RRGenerationHandler: public Handler, public std::enable_shared_from_this<R
   void notifyUpdate() override;
 
  private:
-  class Jitter;
-  class RRPackets;
+  struct Jitter;
+  struct RRPackets;
 
   bool rtpSequenceLessThan(uint16_t x, uint16_t y);
   bool isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet, std::shared_ptr<RRPackets> rr_info);

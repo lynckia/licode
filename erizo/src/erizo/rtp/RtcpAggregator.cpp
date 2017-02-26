@@ -42,10 +42,6 @@ void RtcpAggregator::addSourceSsrc(uint32_t ssrc) {
   }
 }
 
-void RtcpAggregator::setMaxVideoBW(uint32_t bandwidth) {
-  this->maxVideoBw_ = bandwidth;
-}
-
 void RtcpAggregator::setPublisherBW(uint32_t bandwidth) {
   defaultVideoBw_ = (bandwidth*1.2) > maxVideoBw_? maxVideoBw_:(bandwidth*1.2);
 }
@@ -107,7 +103,7 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
           break;
         case RTCP_Receiver_PT:
           theData->rrsReceivedInPeriod++;
-          if (chead->getSourceSSRC() == rtcpSource_->getVideoSourceSSRC()) {
+          if (rtcpSource_->isVideoSourceSSRC(chead->getSourceSSRC())) {
             ELOG_DEBUG("Analyzing Video RR: PacketLost %u, Ratio %u, partNum %d, blocks %d, sourceSSRC %u, ssrc %u",
                         chead->getLostPackets(), chead->getFractionLost(), partNum, chead->getBlockCount(),
                         chead->getSourceSSRC(), chead->getSSRC());
@@ -215,7 +211,7 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
                 char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
                 if (!strncmp(uniqueId, "REMB", 4)) {
                   uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
-                  ELOG_DEBUG("Received REMB %lu", bitrate);
+                  ELOG_DEBUG("Received REMB %llu", bitrate);
                   if (bitrate < defaultVideoBw_) {
                     theData->reportedBandwidth = bitrate;
                     theData->shouldSendREMB = true;
@@ -331,7 +327,7 @@ void RtcpAggregator::checkRtcpFb() {
         }
 
         if (rtcpData->shouldSendREMB) {
-          ELOG_DEBUG("Sending REMB, since last %u ms, sending with BW: %lu",
+          ELOG_DEBUG("Sending REMB, since last %u ms, sending with BW: %llu",
                       sincelastREMB, rtcpData->reportedBandwidth);
           int theLen = this->addREMB(reinterpret_cast<char*>(packet_), length, rtcpData->reportedBandwidth);
           rtcpData->shouldSendREMB = false;
@@ -339,10 +335,12 @@ void RtcpAggregator::checkRtcpFb() {
           length = theLen;
         }
       }
-      if  (sourceSsrc == rtcpSource_->getVideoSourceSSRC()) {
-        rtcpSink_->deliverVideoData(reinterpret_cast<char*>(packet_), length);
+      if  (rtcpSource_->isVideoSourceSSRC(sourceSsrc)) {
+        rtcpSink_->deliverVideoData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(packet_),
+              length, VIDEO_PACKET));
       } else {
-        rtcpSink_->deliverAudioData(reinterpret_cast<char*>(packet_), length);
+        rtcpSink_->deliverAudioData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(packet_),
+              length, AUDIO_PACKET));
       }
       rtcpData->last_rr_sent = now;
       if (dt_scheduled > rtcpData->nextPacketInMs) {  // Every scheduled packet we reset

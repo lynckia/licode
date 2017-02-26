@@ -6,7 +6,8 @@ mediaConfig.extMappings = [
   "urn:ietf:params:rtp-hdrext:toffset",
   "urn:3gpp:video-orientation",
   // "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
-  "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"
+  "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay",
+  "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id"
 ];
 
 mediaConfig.rtpMappings = {};

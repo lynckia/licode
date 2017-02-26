@@ -1,6 +1,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <stats/StatNode.h>
 #include <rtp/RtcpProcessor.h>
 #include <rtp/RtcpProcessorHandler.h>
 #include <rtp/RtpHeaders.h>
@@ -28,6 +29,7 @@ using erizo::IceConfig;
 using erizo::RtpMap;
 using erizo::RtcpProcessorHandler;
 using erizo::WebRtcConnection;
+using erizo::Stats;
 using erizo::Pipeline;
 using erizo::InboundHandler;
 using erizo::OutboundHandler;
@@ -105,7 +107,10 @@ TEST_F(RtcpProcessorHandlerTest, shouldCallSetPublisherBWWhenBitrateIsCalculated
     uint32_t arbitraryBitrate = 10000;
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
-    connection->getStats().setLatestTotalBitrate(arbitraryBitrate);
+    if (!pipeline->getService<Stats>()->getNode().hasChild("total")) {
+      pipeline->getService<Stats>()->getNode()["total"].insertStat("bitrateCalculated",
+                                                                  erizo::CumulativeStat{arbitraryBitrate});
+    }
 
     EXPECT_CALL(*processor, checkRtcpFb()).Times(1);
     EXPECT_CALL(*reader.get(), read(_, _)).

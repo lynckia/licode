@@ -73,10 +73,11 @@ namespace erizo {
         return 0;
     }
 
-    int InputProcessor::deliverAudioData_(char* buf, int len) {
+int InputProcessor::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
         if (audioDecoder && audioUnpackager) {
+    std::shared_ptr<dataPacket> copied_packet = std::make_shared<dataPacket>(*audio_packet);
             ELOG_DEBUG("Decoding audio");
-            int unp = unpackageAudio((unsigned char*) buf, len,
+    int unp = unpackageAudio((unsigned char*) copied_packet->data, copied_packet->length,
                     unpackagedAudioBuffer_);
             int a = decodeAudio(unpackagedAudioBuffer_, unp, decodedAudioBuffer_);
             ELOG_DEBUG("DECODED AUDIO a %d", a);
@@ -89,9 +90,11 @@ namespace erizo {
         }
         return 0;
     }
-    int InputProcessor::deliverVideoData_(char* buf, int len) {
+int InputProcessor::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
         if (videoUnpackager && videoDecoder) {
-            int ret = unpackageVideo(reinterpret_cast<unsigned char*>(buf), len, unpackagedBufferPtr_, &gotUnpackagedFrame_);
+    std::shared_ptr<dataPacket> copied_packet = std::make_shared<dataPacket>(*video_packet);
+    int ret = unpackageVideo(reinterpret_cast<unsigned char*>(copied_packet->data), copied_packet->length,
+        unpackagedBufferPtr_, &gotUnpackagedFrame_);
             if (ret < 0)
                 return 0;
             upackagedSize_ += ret;
@@ -402,8 +405,8 @@ namespace erizo {
 
             assert(len<=1600);
 
-            memcpy(sendAudioBuffer, rtpdata, len);
-            audioSink->deliverAudioData(sendAudioBuffer, len);
+            std::shared_ptr<dataPacket> packet = std::make_shared<dataPacket>(0, reinterpret_cast<char*>(rtpdata), len, AUDIO_PACKET);
+            audioSink->deliverVideoData(packet);
         }
 
     }
@@ -474,7 +477,7 @@ namespace erizo {
         if (buffSize <= 0) {
             return -1;
         }
-        RtpVP8Fragmenter frag(inBuff, buffSize, 1100);
+  RtpVP8Fragmenter frag(inBuff, buffSize);
         bool lastFrame = false;
         unsigned int outlen = 0;
   uint64_t millis = ClockUtils::timePointToMs(clock::now());

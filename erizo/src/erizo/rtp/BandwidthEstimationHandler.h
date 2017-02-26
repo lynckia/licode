@@ -7,6 +7,7 @@
 #include <atomic>
 
 #include "./logger.h"
+#include "./Stats.h"
 #include "pipeline/Handler.h"
 #include "rtp/RtpExtensionProcessor.h"
 
@@ -69,6 +70,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
 
   WebRtcConnection *connection_;
   std::shared_ptr<Worker> worker_;
+  std::shared_ptr<Stats> stats_;
   webrtc::Clock* const clock_;
   std::shared_ptr<RemoteBitrateEstimatorPicker> picker_;
   std::unique_ptr<RemoteBitrateEstimator> rbe_;
@@ -78,7 +80,6 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   webrtc::RTPHeader header_;
   RtcpHeader remb_packet_;
   RtpHeaderExtensionMap ext_map_audio_, ext_map_video_;
-  Context *temp_ctx_;
   uint32_t bitrate_;
   uint32_t last_send_bitrate_;
   uint64_t last_remb_time_;

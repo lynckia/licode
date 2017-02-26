@@ -60,7 +60,6 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   int unpackagedSize_;
   uint32_t videoSourceSsrc_;
   unsigned char* unpackagedBufferpart_;
-  unsigned char deliverMediaBuffer_[3000];
   unsigned char unpackagedBuffer_[UNPACKAGE_BUFFER_SIZE];
 
   // Timestamping strategy: we use the RTP timestamps so we don't have to restamp and we're not
@@ -103,8 +102,8 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   int sendFirPacket();
   void queueData(char* buffer, int length, packetType type);
   void sendLoop();
-  int deliverAudioData_(char* buf, int len) override;
-  int deliverVideoData_(char* buf, int len) override;
+  int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
+  int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
   void writeAudioData(char* buf, int len);
   void writeVideoData(char* buf, int len);
   bool bufferCheck(RTPPayloadVP8* payload);

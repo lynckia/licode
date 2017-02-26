@@ -5,7 +5,8 @@ var Erizo = Erizo || {};
 
 Erizo.ChromeStableStack = function (spec) {
     var that = {},
-        WebkitRTCPeerConnection = webkitRTCPeerConnection;
+        WebkitRTCPeerConnection = webkitRTCPeerConnection,
+        defaultSimulcastSpatialLayers = 2;
 
     that.pcConfig = {
         'iceServers': []
@@ -38,6 +39,88 @@ Erizo.ChromeStableStack = function (spec) {
     };
 
     that.peerConnection = new WebkitRTCPeerConnection(that.pcConfig, that.con);
+
+    var addSim = function (spatialLayers) {
+      var line = 'a=ssrc-group:SIM';
+      spatialLayers.forEach(function(spatialLayerId) {
+        line += ' ' + spatialLayerId;
+      });
+      return line + '\r\n';
+    };
+
+    var addGroup = function(spatialLayerId, spatialLayerIdRtx) {
+      return 'a=ssrc-group:FID ' + spatialLayerId + ' ' + spatialLayerIdRtx + '\r\n';
+    };
+
+    var addSpatialLayer = function (cname, msid, mslabel, label, spatialLayerId, spatialLayerIdRtx) {
+      return  'a=ssrc:' + spatialLayerId + ' cname:' + cname +'\r\n' +
+              'a=ssrc:' + spatialLayerId + ' msid:' + msid + '\r\n' +
+              'a=ssrc:' + spatialLayerId + ' mslabel:' + mslabel + '\r\n' +
+              'a=ssrc:' + spatialLayerId + ' label:' + label + '\r\n' +
+              'a=ssrc:' + spatialLayerIdRtx + ' cname:' + cname +'\r\n' +
+              'a=ssrc:' + spatialLayerIdRtx + ' msid:' + msid + '\r\n' +
+              'a=ssrc:' + spatialLayerIdRtx + ' mslabel:' + mslabel + '\r\n' +
+              'a=ssrc:' + spatialLayerIdRtx + ' label:' + label + '\r\n';
+    };
+
+    var enableSimulcast = function (sdp) {
+      var result, matchGroup;
+      if (!spec.video) {
+        return sdp;
+      }
+      if (!spec.simulcast) {
+        return sdp;
+      }
+
+      // TODO(javier): Remove this message once Simulcast is complete
+      L.Logger.warning('Simulcast is still WIP, please don\'t use it in production');
+
+      // TODO(javier): Improve the way we check for current video ssrcs
+      matchGroup = sdp.match(/a=ssrc-group:FID ([0-9]*) ([0-9]*)\r?\n/);
+      if (!matchGroup || (matchGroup.length <= 0)) {
+        return sdp;
+      }
+
+      var numSpatialLayers = spec.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
+      var baseSsrc = parseInt(matchGroup[1]);
+      var baseSsrcRtx = parseInt(matchGroup[2]);
+      var cname = sdp.match(new RegExp('a=ssrc:' + matchGroup[1] + ' cname:(.*)\r?\n'))[1];
+      var msid = sdp.match(new RegExp('a=ssrc:' + matchGroup[1] + ' msid:(.*)\r?\n'))[1];
+      var mslabel = sdp.match(new RegExp('a=ssrc:' + matchGroup[1] + ' mslabel:(.*)\r?\n'))[1];
+      var label = sdp.match(new RegExp('a=ssrc:' + matchGroup[1] + ' label:(.*)\r?\n'))[1];
+
+      sdp.match(new RegExp('a=ssrc:' + matchGroup[1] + '.*\r?\n', 'g')).forEach(function(line) {
+        sdp = sdp.replace(line, '');
+      });
+      sdp.match(new RegExp('a=ssrc:' + matchGroup[2] + '.*\r?\n', 'g')).forEach(function(line) {
+        sdp = sdp.replace(line, '');
+      });
+
+      var spatialLayers = [baseSsrc];
+      var spatialLayersRtx = [baseSsrcRtx];
+
+      for (var i = 1; i < numSpatialLayers; i++) {
+        spatialLayers.push(baseSsrc + i * 1000);
+        spatialLayersRtx.push(baseSsrcRtx + i * 1000);
+      }
+
+      result = addSim(spatialLayers);
+      var spatialLayerId;
+      var spatialLayerIdRtx;
+      for (var spatialLayerIndex in spatialLayers) {
+        spatialLayerId = spatialLayers[spatialLayerIndex];
+        spatialLayerIdRtx = spatialLayersRtx[spatialLayerIndex];
+        result += addGroup(spatialLayerId, spatialLayerIdRtx);
+      }
+
+      for (var spatialLayerIndex in spatialLayers) {
+        spatialLayerId = spatialLayers[spatialLayerIndex];
+        spatialLayerIdRtx = spatialLayersRtx[spatialLayerIndex];
+        result += addSpatialLayer(cname, msid, mslabel, label, spatialLayerId, spatialLayerIdRtx);
+      }
+      result += 'a=x-google-flag:conference\r\n';
+      return sdp.replace(matchGroup[0], result);
+    };
 
     var setMaxBW = function (sdp) {
         var r, a;
@@ -139,7 +222,10 @@ Erizo.ChromeStableStack = function (spec) {
     var localDesc;
     var remoteDesc;
 
-    var setLocalDesc = function (sessionDescription) {
+    var setLocalDesc = function (isSubscribe, sessionDescription) {
+        if (!isSubscribe) {
+          sessionDescription.sdp = enableSimulcast(sessionDescription.sdp);
+        }
         sessionDescription.sdp = setMaxBW(sessionDescription.sdp);
         sessionDescription.sdp = enableOpusNacks(sessionDescription.sdp);
         sessionDescription.sdp = sessionDescription.sdp.replace(/a=ice-options:google-ice\r\n/g,
@@ -203,7 +289,7 @@ Erizo.ChromeStableStack = function (spec) {
             }
         }
         if (config.minVideoBW || (config.slideShowMode!==undefined) ||
-            (config.muteStream !== undefined)){
+            (config.muteStream !== undefined) || (config.qualityLayer !== undefined)){
             L.Logger.debug ('MinVideo Changed to ', config.minVideoBW);
             L.Logger.debug ('SlideShowMode Changed to ', config.slideShowMode);
             L.Logger.debug ('muteStream changed to ', config.muteStream);
@@ -213,7 +299,7 @@ Erizo.ChromeStableStack = function (spec) {
 
     that.createOffer = function (isSubscribe) {
         if (isSubscribe === true) {
-            that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
+            that.peerConnection.createOffer(setLocalDesc.bind(null, isSubscribe), errorCallback, that.mediaConstraints);
         } else {
             that.mediaConstraints = {
                 mandatory: {
@@ -221,7 +307,7 @@ Erizo.ChromeStableStack = function (spec) {
                     'OfferToReceiveAudio': false
                 }
             };
-            that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
+            that.peerConnection.createOffer(setLocalDesc.bind(null, isSubscribe), errorCallback, that.mediaConstraints);
         }
 
     };

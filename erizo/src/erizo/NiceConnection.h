@@ -41,6 +41,8 @@ struct CandidatePair{
   int erizoCandidatePort;
   std::string clientCandidateIp;
   int clientCandidatePort;
+  std::string erizoHostType;
+  std::string clientHostType;
 };
 
 class IceConfig {
