@@ -170,7 +170,7 @@ install_mediadeps(){
 }
 
 install_ffmpeg(){
-sudo apt-get install yasm libvpx. libx264. libfdk-aac-dev libfreetype6-dev libghc-bzlib-dev
+sudo apt-get install yasm libvpx. libx264. libfdk-aac-dev libfreetype6-dev libghc-bzlib-dev -y --no-install-recommends
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
