@@ -62,12 +62,12 @@ install_nvm_node() {
 }
 
 install_apt_deps(){
-  apt-get install sudo -y
+  apt-get install sudo -y --no-install-recommends
   install_nvm_node
   nvm use
   npm install -g node-gyp
-  sudo apt-get install -qq python-software-properties -y
-  sudo apt-get install -qq software-properties-common -y
+  sudo apt-get install  python-software-properties -y
+  sudo apt-get install  software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
   sudo apt-get install git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-8-jre  libboost-test-dev -y --no-install-recommends
@@ -148,7 +148,7 @@ install_opus(){
 
 install_mediadeps(){
   install_opus
-  sudo apt-get -qq install yasm libvpx. libx264.
+  sudo apt-get  install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     if [ ! -f ./libav-11.1.tar.gz ]; then
@@ -188,7 +188,7 @@ sudo apt-get install yasm libvpx. libx264. libfdk-aac-dev libfreetype6-dev libgh
 
 install_mediadeps_nogpl(){
   install_opus
-  sudo apt-get -qq install yasm libvpx.
+  sudo apt-get  install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     if [ ! -f ./libav-11.1.tar.gz ]; then
