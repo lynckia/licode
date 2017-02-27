@@ -102,4 +102,55 @@ void RateStat::checkPeriod() {
     calculation_start_ = now;
   }
 }
+
+MovingAverageStat::MovingAverageStat(uint32_t window_size)
+  :samples_{new uint64_t[window_size]}, window_size_{window_size}, current_sample_pos_{0} {
+}
+
+MovingAverageStat::~MovingAverageStat() {
+  delete[] samples_;
+}
+
+StatNode MovingAverageStat::operator++(int value) {
+  MovingAverageStat node = (*this);
+  add(1);
+  return node;
+}
+
+StatNode& MovingAverageStat::operator+=(uint64_t value) {
+  add(value);
+  return *this;
+}
+
+uint64_t MovingAverageStat::value() {
+  return getAverage(window_size_);
+}
+
+uint64_t MovingAverageStat::value(uint32_t sample_number) {
+  return getAverage(sample_number);
+}
+
+std::string MovingAverageStat::toString() {
+  return std::to_string(value());
+}
+
+void MovingAverageStat::add(uint64_t value) {
+  samples_[current_sample_pos_ % window_size_] = value;
+  current_sample_pos_++;
+}
+
+uint64_t MovingAverageStat::getAverage(uint32_t sample_number) {
+  //  We won't calculate an average for more than the window size
+  sample_number = sample_number > window_size_ ? window_size_ : sample_number;
+  //  Check if we have enough samples
+  sample_number = sample_number > current_sample_pos_ ? (current_sample_pos_): sample_number;
+  uint64_t result = 0;
+  uint64_t first_pos = (current_sample_pos_ - sample_number) % window_size_;
+  for (uint32_t i = 0; i < sample_number;  i++) {
+    result += samples_[(first_pos + i) % window_size_];
+  }
+
+  return result/sample_number;
+}
+
 }  // namespace erizo

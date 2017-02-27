@@ -114,6 +114,30 @@ class RateStat : public StatNode {
   std::shared_ptr<Clock> clock_;
 };
 
+class MovingAverageStat : public StatNode {
+ public:
+  explicit MovingAverageStat(uint32_t window_size);
+  ~MovingAverageStat();
+
+  StatNode operator++(int value) override;
+
+  StatNode& operator+=(uint64_t value) override;
+
+  uint64_t value() override;
+
+  uint64_t value(uint32_t sample_number);
+
+  std::string toString() override;
+
+ private:
+  void add(uint64_t value);
+  uint64_t getAverage(uint32_t sample_number);
+
+ private:
+  uint64_t *samples_;
+  uint32_t window_size_;
+  uint32_t current_sample_pos_;
+};
 }  // namespace erizo
 
 #endif  // ERIZO_SRC_ERIZO_STATS_STATNODE_H_
