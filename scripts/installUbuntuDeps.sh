@@ -181,7 +181,7 @@ sudo apt-get install yasm libvpx. libx264. libfdk-aac-dev libfreetype6-dev libgh
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
-    install_mediadeps
+    install_ffmpeg
   fi
 
 }
