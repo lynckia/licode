@@ -132,11 +132,13 @@ class MovingAverageStat : public StatNode {
  private:
   void add(uint64_t value);
   uint64_t getAverage(uint32_t sample_number);
+  uint32_t getPrevSamplePos(uint32_t sample_pos);
 
  private:
   uint64_t *samples_;
   uint32_t window_size_;
   uint32_t current_sample_pos_;
+  uint32_t initialized_sample_pos_;
 };
 }  // namespace erizo
 
