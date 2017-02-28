@@ -194,9 +194,8 @@ double MovingAverageStat::getAverage(uint32_t sample_number) {
   //  Check if we have enough samples
   sample_number = sample_number > current_sample_position ? current_sample_position : sample_number;
   uint64_t calculated_sum = 0;
-//  uint32_t first_position = (next_sample_position_ - sample_number) % window_size_;
   for (uint32_t i = 0; i < sample_number;  i++) {
-    calculated_sum += samples_[(current_sample_position- i) % window_size_];
+    calculated_sum += samples_[(current_sample_position - i) % window_size_];
   }
   return static_cast<double>(calculated_sum)/sample_number;
 }
