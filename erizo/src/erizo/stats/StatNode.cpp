@@ -103,9 +103,46 @@ void RateStat::checkPeriod() {
   }
 }
 
+MovingIntervalRateStat::MovingIntervalRateStat(duration interval_size, uint32_t total_intervals, double scale,
+  std::shared_ptr<Clock> the_clock): interval_size_{interval_size},
+  total_intervals_{total_intervals}, scale_{scale}, samples_{new uint64_t[total_intervals_]},
+  clock_{the_clock} {
+}
+
+MovingIntervalRateStat::~MovingIntervalRateStat() {
+  delete[] samples_;
+}
+
+StatNode MovingIntervalRateStat::operator++(int value) {
+  MovingIntervalRateStat node = (*this);
+  add(1);
+  return node;
+}
+
+StatNode& MovingIntervalRateStat::operator+=(uint64_t value) {
+  add(value);
+  return *this;
+}
+
+void MovingIntervalRateStat::add(uint64_t value) {
+}
+
+uint64_t MovingIntervalRateStat::value() {
+  return 0;
+}
+
+std::string MovingIntervalRateStat::toString() {
+  return std::to_string(value());
+}
+
+uint64_t MovingIntervalRateStat::calculateRateForInterval(duration interval_to_calculate) {
+  return 0;
+}
+
+
 MovingAverageStat::MovingAverageStat(uint32_t window_size)
   :samples_{new uint64_t[window_size]}, window_size_{window_size}, current_sample_pos_{0},
-  initialized_sample_pos_{0} {
+  initialized_sample_pos_{0}, current_average_{0} {
 }
 
 MovingAverageStat::~MovingAverageStat() {
@@ -124,11 +161,11 @@ StatNode& MovingAverageStat::operator+=(uint64_t value) {
 }
 
 uint64_t MovingAverageStat::value() {
-  return getAverage(window_size_);
+  return static_cast<uint64_t>(current_average_);
 }
 
 uint64_t MovingAverageStat::value(uint32_t sample_number) {
-  return getAverage(sample_number);
+  return static_cast<uint64_t>(getAverage(sample_number));
 }
 
 std::string MovingAverageStat::toString() {
@@ -136,14 +173,21 @@ std::string MovingAverageStat::toString() {
 }
 
 void MovingAverageStat::add(uint64_t value) {
-  samples_[current_sample_pos_] = value;
-  current_sample_pos_ = current_sample_pos_ + 1 < window_size_ ? current_sample_pos_ + 1 : 0;
   if (initialized_sample_pos_ < window_size_) {
     initialized_sample_pos_++;
+    current_average_ = 0;
+  } else {
+    current_average_ = current_average_ + static_cast<double>(value - samples_[current_sample_pos_])/window_size_;
+  }
+
+  samples_[current_sample_pos_] = value;
+  current_sample_pos_ = current_sample_pos_ + 1 < window_size_ ? current_sample_pos_ + 1 : 0;
+  if (current_average_ == 0) {
+    current_average_ = getAverage(window_size_);
   }
 }
 
-uint64_t MovingAverageStat::getAverage(uint32_t sample_number) {
+double MovingAverageStat::getAverage(uint32_t sample_number) {
   //  We won't calculate an average for more than the window size
   sample_number = sample_number > window_size_ ? window_size_ : sample_number;
   //  Check if we have enough samples
@@ -155,11 +199,11 @@ uint64_t MovingAverageStat::getAverage(uint32_t sample_number) {
     calculated_sum += samples_[moving_average_pos];
   }
 
-  return calculated_sum/sample_number;
+  return static_cast<double>(calculated_sum)/sample_number;
 }
 
 uint32_t MovingAverageStat::getPrevSamplePos(uint32_t sample_pos) {
-  uint32_t result = sample_pos == 0 ? window_size_ -1  : sample_pos - 1;
+  uint32_t result = sample_pos == 0 ? window_size_ - 1  : sample_pos - 1;
   return result;
 }
 

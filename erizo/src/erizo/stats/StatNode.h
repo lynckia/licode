@@ -114,6 +114,33 @@ class RateStat : public StatNode {
   std::shared_ptr<Clock> clock_;
 };
 
+class MovingIntervalRateStat : public StatNode {
+ public:
+  MovingIntervalRateStat(duration interval_size, uint32_t total_intervals, double scale,
+                     std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
+  ~MovingIntervalRateStat();
+
+  StatNode operator++(int value) override;
+
+  StatNode& operator+=(uint64_t value) override;
+
+  uint64_t value() override;
+
+  std::string toString() override;
+
+ private:
+  void add(uint64_t value);
+  uint64_t calculateRateForInterval(duration interval_to_calculate);
+
+ private:
+  duration interval_size_;
+  uint32_t total_intervals_;
+  double scale_;
+  time_point calculation_start_;
+  uint64_t *samples_;
+  std::shared_ptr<Clock> clock_;
+};
+
 class MovingAverageStat : public StatNode {
  public:
   explicit MovingAverageStat(uint32_t window_size);
@@ -131,7 +158,7 @@ class MovingAverageStat : public StatNode {
 
  private:
   void add(uint64_t value);
-  uint64_t getAverage(uint32_t sample_number);
+  double getAverage(uint32_t sample_number);
   uint32_t getPrevSamplePos(uint32_t sample_pos);
 
  private:
@@ -139,7 +166,9 @@ class MovingAverageStat : public StatNode {
   uint32_t window_size_;
   uint32_t current_sample_pos_;
   uint32_t initialized_sample_pos_;
+  double current_average_;
 };
+
 }  // namespace erizo
 
 #endif  // ERIZO_SRC_ERIZO_STATS_STATNODE_H_
