@@ -164,6 +164,7 @@ Erizo.Stream = function (spec) {
             that.hide();
             if (that.stream !== undefined) {
                 that.stream.getTracks().forEach(function (track) {
+                    track.onended = null;
                     track.stop();
                 });
             }
