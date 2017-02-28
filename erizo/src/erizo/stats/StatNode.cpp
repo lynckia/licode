@@ -104,8 +104,8 @@ void RateStat::checkPeriod() {
 }
 
 MovingIntervalRateStat::MovingIntervalRateStat(duration interval_size, uint32_t total_intervals, double scale,
-  std::shared_ptr<Clock> the_clock): interval_size_{interval_size},
-  total_intervals_{total_intervals}, scale_{scale}, samples_{new uint64_t[total_intervals_]},
+  std::shared_ptr<Clock> the_clock): interval_size_ms_{ClockUtils::durationToMs(interval_size)},
+  total_intervals_{total_intervals}, scale_{scale}, samples_{new uint64_t[total_intervals_]}, initialized_{false},
   clock_{the_clock} {
 }
 
@@ -125,6 +125,11 @@ StatNode& MovingIntervalRateStat::operator+=(uint64_t value) {
 }
 
 void MovingIntervalRateStat::add(uint64_t value) {
+  time_point now = clock_->now();
+  if (!initialized_) {
+    calculation_start_ = now;
+    current_window_start_ms_ = ClockUtils::timePointToMs(calculation_start_);
+  }
 }
 
 uint64_t MovingIntervalRateStat::value() {
@@ -190,9 +195,9 @@ void MovingAverageStat::add(uint64_t value) {
 double MovingAverageStat::getAverage(uint32_t sample_number) {
   uint32_t current_sample_position = next_sample_position_ - 1;
   //  We won't calculate an average for more than the window size
-  sample_number = sample_number > window_size_ ? window_size_ : sample_number;
+  sample_number = std::min(sample_number, window_size_);
   //  Check if we have enough samples
-  sample_number = sample_number > current_sample_position ? current_sample_position : sample_number;
+  sample_number = std::min(sample_number, current_sample_position);
   uint64_t calculated_sum = 0;
   for (uint32_t i = 0; i < sample_number;  i++) {
     calculated_sum += samples_[(current_sample_position - i) % window_size_];

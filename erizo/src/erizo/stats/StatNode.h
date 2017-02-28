@@ -133,11 +133,13 @@ class MovingIntervalRateStat : public StatNode {
   uint64_t calculateRateForInterval(duration interval_to_calculate);
 
  private:
-  duration interval_size_;
+  int64_t interval_size_ms_;
   uint32_t total_intervals_;
   double scale_;
   time_point calculation_start_;
+  int64_t current_window_start_ms_;
   uint64_t *samples_;
+  bool initialized_;
   std::shared_ptr<Clock> clock_;
 };
 
