@@ -81,6 +81,7 @@ bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet)
       ELOG_DEBUG("message: Removing Nack in list too many retransmits, ssrc: %u, seq_num: %u",
           ssrc_, base_nack_info.seq_num);
         nack_info_list_.erase(nack_info_list_.begin() + index);
+        index--;  // Items are moved in the list so the next element has the current index
         continue;
     }
     ELOG_DEBUG("message: PID, seq_num %u", base_nack_info.seq_num);
