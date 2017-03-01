@@ -47,6 +47,14 @@ std::shared_ptr<dataPacket> RtpUtils::createPLI(uint32_t source_ssrc, uint32_t s
   return std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET);
 }
 
+int RtpUtils::getPaddingLength(std::shared_ptr<dataPacket> packet) {
+  RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
+  if (rtp_header->hasPadding()) {
+    return packet->data[packet->length - 1] & 0xFF;
+  }
+  return 0;
+}
+
 void RtpUtils::forEachRRBlock(std::shared_ptr<dataPacket> packet, std::function<void(RtcpHeader*)> f) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   int len = packet->length;
