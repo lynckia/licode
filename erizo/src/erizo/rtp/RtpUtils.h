@@ -22,6 +22,8 @@ class RtpUtils {
   static void forEachNack(RtcpHeader *chead, std::function<void(uint16_t, uint16_t)> f);
 
   static std::shared_ptr<dataPacket> createPLI(uint32_t source_ssrc, uint32_t sink_ssrc);
+
+  static int getPaddingLength(std::shared_ptr<dataPacket> packet);
 };
 
 }  // namespace erizo
