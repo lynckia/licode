@@ -78,6 +78,29 @@ Erizo.Stream = function (spec) {
     that.hasScreen = function () {
         return spec.screen;
     };
+    
+    // Toggle Video
+    that.toggleVideo = function () {
+        try {
+            for (var idx = 0; idx < spec.stream.getVideoTracks().length; idx++) {
+                spec.stream.getVideoTracks()[idx].enabled = !spec.stream.getVideoTracks()[idx].enabled; 
+            }
+        } catch (e) {
+            L.Logger.error("Error accessing to local media stream", e);
+        }        
+    };
+    
+    // Toggle Audio
+    that.toggleAudio = function () {
+        try {
+            for (var idx = 0; idx < spec.stream.getAudioTracks().length; idx++) {
+                spec.stream.getAudioTracks()[idx].enabled = !spec.stream.getAudioTracks()[idx].enabled; 
+            }
+        } catch (e) {
+            L.Logger.error("Error accessing to local media stream", e);
+        }
+    };
+
 
     // Sends data through this stream.
     that.sendData = function () {
