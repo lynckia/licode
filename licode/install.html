@@ -69,10 +69,11 @@ install: true
           <p>You need to have git installed in your computer.</p>
           <p>In ubuntu use "sudo apt-get install git".</p>
           <div class="bs-docs-example">
-          Now clone the repository.  
+          Now clone the repository and go inside <code>licode/</code> folder.  
           </div>
 <pre class="prettyprint linenums">
 git clone https://github.com/ging/licode.git
+cd licode
 </pre>
           <p>All scrips used below are included in this code cloned from github.</p>
         </section>
@@ -89,14 +90,14 @@ git clone https://github.com/ging/licode.git
             Ubuntu LTS.
             </div>
 <pre class="prettyprint linenums">
-./licode/scripts/installUbuntuDeps.sh
+./scripts/installUbuntuDeps.sh
 </pre>
 
         <div class="bs-docs-example">
             Mac OS X.
             </div>
 <pre class="prettyprint linenums">
-./licode/scripts/installMacDeps.sh
+./scripts/installMacDeps.sh
 </pre>
         </section>
 
@@ -112,8 +113,8 @@ git clone https://github.com/ging/licode.git
             You will only need to execute these commands. They do not depend on the Operating System.
             </div>
 <pre class="prettyprint linenums">
-./licode/scripts/installErizo.sh
-./licode/scripts/installNuve.sh
+./scripts/installErizo.sh
+./scripts/installNuve.sh
 </pre>
         </section>
 
@@ -128,7 +129,7 @@ git clone https://github.com/ging/licode.git
             You will only need to execute the next command. It does not depend on the Operating System.
             </div>
 <pre class="prettyprint linenums">
-./licode/scripts/installBasicExample.sh
+./scripts/installBasicExample.sh
 </pre>
         </section>
 
@@ -149,7 +150,7 @@ git clone https://github.com/ging/licode.git
             This step will initialize the basic example.
             </div>
 <pre class="prettyprint linenums">
-./licode/scripts/initBasicExample.sh
+./scripts/initBasicExample.sh
 </pre>
           <p class="lead"> Now you can connect to "localhost:3001" and test your basic videoconference example!</p>
         </section>
