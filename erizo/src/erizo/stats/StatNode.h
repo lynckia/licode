@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 #include <memory>
 
 #include "lib/Clock.h"
@@ -118,7 +119,7 @@ class MovingIntervalRateStat : public StatNode {
  public:
   MovingIntervalRateStat(uint64_t interval_size_ms, uint32_t intervals, double scale,
                      std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
-  ~MovingIntervalRateStat();
+  virtual ~MovingIntervalRateStat();
 
   StatNode operator++(int value) override;
 
@@ -143,7 +144,7 @@ class MovingIntervalRateStat : public StatNode {
   uint64_t calculation_start_ms_;
   uint64_t current_interval_;
   uint64_t accumulated_intervals_;
-  uint64_t *samples_;
+  std::shared_ptr<std::vector<uint64_t>> sample_vector_;
   bool initialized_;
   std::shared_ptr<Clock> clock_;
 };
@@ -151,7 +152,7 @@ class MovingIntervalRateStat : public StatNode {
 class MovingAverageStat : public StatNode {
  public:
   explicit MovingAverageStat(uint32_t window_size);
-  ~MovingAverageStat();
+  virtual ~MovingAverageStat();
 
   StatNode operator++(int value) override;
 
@@ -168,9 +169,9 @@ class MovingAverageStat : public StatNode {
   double getAverage(uint32_t sample_number);
 
  private:
-  uint64_t *samples_;
+  std::shared_ptr<std::vector<uint64_t>> sample_vector_;
   uint32_t window_size_;
-  uint32_t next_sample_position_;
+  uint64_t next_sample_position_;
   double current_average_;
 };
 

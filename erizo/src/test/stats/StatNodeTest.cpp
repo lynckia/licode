@@ -22,6 +22,8 @@ using ::testing::Eq;
 using erizo::StatNode;
 using erizo::StringStat;
 using erizo::RateStat;
+using erizo::MovingIntervalRateStat;
+using erizo::MovingAverageStat;
 using erizo::CumulativeStat;
 using erizo::SimulatedClock;
 
@@ -93,6 +95,27 @@ TEST_F(StatNodeTest, shouldWriteAJsonWithRateStats) {
 
 TEST_F(StatNodeTest, rateStatsShouldReturnZeroWhenNotIncreasing) {
   root.insertStat("rate", RateStat{std::chrono::seconds(1), 1. / 8., clock});
+  root["rate"] += 10 * 8;
+  advanceClockMs(1000);
+  EXPECT_THAT(root.toString(), Eq("{\"rate\":10}"));
+
+  advanceClockMs(1000);
+  EXPECT_THAT(root.toString(), Eq("{\"rate\":0}"));
+}
+
+TEST_F(StatNodeTest, averageStat) {
+  root.insertStat("rate", MovingAverageStat{5});
+  root["rate"] += 5;
+  advanceClockMs(1000);
+  EXPECT_THAT(root.toString(), Eq("{\"rate\":5}"));
+  root["rate"] += 15;
+
+  advanceClockMs(1000);
+  EXPECT_THAT(root.toString(), Eq("{\"rate\":10}"));
+}
+
+TEST_F(StatNodeTest, newRateStatTest) {
+  root.insertStat("rate", MovingIntervalRateStat{1000, 10, .1, clock});
   root["rate"] += 10 * 8;
   advanceClockMs(1000);
   EXPECT_THAT(root.toString(), Eq("{\"rate\":10}"));

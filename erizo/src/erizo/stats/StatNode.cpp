@@ -106,12 +106,10 @@ void RateStat::checkPeriod() {
 MovingIntervalRateStat::MovingIntervalRateStat(uint64_t interval_size_ms, uint32_t intervals, double scale,
   std::shared_ptr<Clock> the_clock): interval_size_ms_{interval_size_ms}, intervals_in_window_{intervals},
   scale_{scale}, current_interval_{0}, accumulated_intervals_{0}, calculation_start_ms_{0},
-  samples_{new uint64_t[intervals]}, initialized_{false}, clock_{the_clock} {
-    std::memset(samples_, 0, intervals_in_window_ * sizeof(uint64_t));
+  sample_vector_{std::make_shared<std::vector<uint64_t>>(intervals, 0)}, initialized_{false}, clock_{the_clock} {
 }
 
 MovingIntervalRateStat::~MovingIntervalRateStat() {
-  delete[] samples_;
 }
 
 StatNode MovingIntervalRateStat::operator++(int value) {
@@ -132,14 +130,19 @@ void MovingIntervalRateStat::add(uint64_t value) {
     initialized_ = true;
     accumulated_intervals_ = 1;
   }
+
+  int32_t intervals_to_pass = ((now_ms) -
+      (calculation_start_ms_ + accumulated_intervals_* interval_size_ms_)) / interval_size_ms_;
+
   //  if sample is more than a window ahead from last sample
   //  We clean up and set the new value as the newest
-  if (now_ms > calculation_start_ms_ + (accumulated_intervals_ + intervals_in_window_) * interval_size_ms_) {
-    std::memset(samples_, 0, intervals_in_window_ * sizeof(uint64_t));
+  if (intervals_to_pass > 0 && intervals_to_pass >= intervals_in_window_) {
+    std::cout << "cleaning the whole window " << intervals_to_pass << std::endl;
+    sample_vector_->assign(intervals_in_window_, 0);
     uint32_t corresponding_interval = getIntervalForTimeMs(now_ms);
     current_interval_ = (corresponding_interval + intervals_in_window_ - 1) % intervals_in_window_;
-    samples_[corresponding_interval]+= value;
-    accumulated_intervals_ += intervals_in_window_;
+    (*sample_vector_.get())[corresponding_interval]+= value;
+    accumulated_intervals_ += intervals_to_pass;
     return;
   }
 
@@ -148,7 +151,7 @@ void MovingIntervalRateStat::add(uint64_t value) {
   uint32_t moving_interval = next_interval;
   if (corresponding_interval != current_interval_) {
     do {
-      samples_[moving_interval] = 0;
+      (*sample_vector_.get())[moving_interval] = 0;
       accumulated_intervals_++;
       if (moving_interval == corresponding_interval) {
         break;
@@ -158,7 +161,7 @@ void MovingIntervalRateStat::add(uint64_t value) {
   }
 
   current_interval_ = corresponding_interval;
-  samples_[current_interval_]+= value;
+  (*sample_vector_.get())[current_interval_]+= value;
 }
 
 uint64_t MovingIntervalRateStat::value() {
@@ -174,16 +177,30 @@ std::string MovingIntervalRateStat::toString() {
 }
 
 uint64_t MovingIntervalRateStat::calculateRateForInterval(uint64_t interval_to_calculate_ms) {
+  if (!initialized_) {
+    return 0;
+  }
+
+  uint64_t now_ms = ClockUtils::timePointToMs(clock_->now());
   //  We check if it's within the data we have
   uint64_t real_interval = std::min(interval_to_calculate_ms, (accumulated_intervals_ * interval_size_ms_));
   real_interval = std::min(real_interval, (intervals_in_window_ * interval_size_ms_));
+
+  int32_t intervals_to_pass = ((calculation_start_ms_ + accumulated_intervals_* interval_size_ms_) -
+    (now_ms - interval_to_calculate_ms))/interval_size_ms_;
+  std::cout << " Intervals to pass " << intervals_to_pass << " real_interval " << real_interval << " accumulated "
+    << accumulated_intervals_ << " now ms " << now_ms << " calculation start " << calculation_start_ms_
+    << " interval size " << interval_size_ms_ << std::endl;
+  if (intervals_to_pass >= intervals_in_window_ || intervals_to_pass < 0 || real_interval < interval_size_ms_) {
+    return 0;
+  }
   int added_intervals = 0;
   uint64_t total_sum = 0;
   uint32_t next_interval = getNextInterval(current_interval_);
-  uint32_t moving_interval = getIntervalForTimeMs(ClockUtils::timePointToMs(clock_->now()) - real_interval);
+  uint32_t moving_interval =  getIntervalForTimeMs(now_ms - real_interval);
   do {
     added_intervals++;
-    total_sum += samples_[moving_interval];
+    total_sum += (*sample_vector_.get())[moving_interval];
     moving_interval = getNextInterval(moving_interval);
   } while (moving_interval != next_interval);
 
@@ -203,12 +220,11 @@ uint32_t MovingIntervalRateStat::getNextInterval(uint32_t interval) {
 
 
 MovingAverageStat::MovingAverageStat(uint32_t window_size)
-  :samples_{new uint64_t[window_size]}, window_size_{window_size}, next_sample_position_{0},
-  current_average_{0} {
+  :sample_vector_{std::make_shared<std::vector<uint64_t>>(window_size, 0)},
+  window_size_{window_size}, next_sample_position_{0}, current_average_{0} {
 }
 
 MovingAverageStat::~MovingAverageStat() {
-  delete[] samples_;
 }
 
 StatNode MovingAverageStat::operator++(int value) {
@@ -239,10 +255,10 @@ void MovingAverageStat::add(uint64_t value) {
     current_average_ = 0;
   } else {
     current_average_ = current_average_ +
-      static_cast<double>(value - samples_[next_sample_position_ % window_size_])/window_size_;
+      static_cast<double>(value - (*sample_vector_.get())[next_sample_position_ % window_size_])/window_size_;
   }
 
-  samples_[next_sample_position_] = value;
+  (*sample_vector_.get())[next_sample_position_ % window_size_] = value;
   next_sample_position_++;
   if (current_average_ == 0) {
     current_average_ = getAverage(window_size_);
@@ -250,14 +266,14 @@ void MovingAverageStat::add(uint64_t value) {
 }
 
 double MovingAverageStat::getAverage(uint32_t sample_number) {
-  uint32_t current_sample_position = next_sample_position_ - 1;
+  uint64_t current_sample_position = next_sample_position_ - 1;
   //  We won't calculate an average for more than the window size
   sample_number = std::min(sample_number, window_size_);
   //  Check if we have enough samples
-  sample_number = std::min(sample_number, current_sample_position);
+  sample_number = std::min(static_cast<uint64_t>(sample_number), current_sample_position);
   uint64_t calculated_sum = 0;
   for (uint32_t i = 0; i < sample_number;  i++) {
-    calculated_sum += samples_[(current_sample_position - i) % window_size_];
+    calculated_sum += (*sample_vector_.get())[(current_sample_position - i) % window_size_];
   }
   return static_cast<double>(calculated_sum)/sample_number;
 }

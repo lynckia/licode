@@ -48,8 +48,11 @@ void StatsCalculator::processRtpPacket(std::shared_ptr<dataPacket> packet) {
       getStatsInfo()[ssrc].insertStat("type", StringStat{"audio"});
     }
     getStatsInfo()[ssrc].insertStat("bitrateCalculated", RateStat{kBitrateStatsPeriod, 8.});
+    getStatsInfo()[ssrc].insertStat("bitrateBetterCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
+        kRateStatIntervals, 8.});
   }
   getStatsInfo()[ssrc]["bitrateCalculated"] += len;
+  getStatsInfo()[ssrc]["bitrateBetterCalculated"] += len;
   getStatsInfo()["total"]["bitrateCalculated"] += len;
   if (packet->type == VIDEO_PACKET && packet->is_keyframe) {
     incrStat(ssrc, "keyFrames");
