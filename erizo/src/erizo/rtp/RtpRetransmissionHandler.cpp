@@ -1,4 +1,5 @@
 #include "rtp/RtpRetransmissionHandler.h"
+#include "rtp/RtpUtils.h"
 
 namespace erizo {
 
@@ -41,14 +42,16 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
 
       if (chead->packettype == RTCP_RTP_Feedback_PT) {
         contains_nack = true;
-        uint16_t initial_seq_num = chead->getNackPid();
-        uint16_t plb = chead->getNackBlp();
 
-        for (int i = -1; i <= kNackBlpSize; i++) {
-          uint16_t seq_num = initial_seq_num + i + 1;
-          bool packet_nacked = i == -1 || (plb >> i) & 0x0001;
+        RtpUtils::forEachNack(chead, [this, chead, &is_fully_recovered](uint16_t new_seq_num, uint16_t new_plb) {
+            uint16_t initial_seq_num = new_seq_num;
+            uint16_t plb = new_plb;
 
-          if (packet_nacked) {
+            for (int i = -1; i <= kNackBlpSize; i++) {
+            uint16_t seq_num = initial_seq_num + i + 1;
+            bool packet_nacked = i == -1 || (plb >> i) & 0x0001;
+
+            if (packet_nacked) {
             std::shared_ptr<dataPacket> recovered;
 
             if (connection_->getVideoSinkSSRC() == chead->getSourceSSRC()) {
@@ -60,15 +63,16 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
             if (recovered.get()) {
               RtpHeader *recovered_head = reinterpret_cast<RtpHeader*> (recovered->data);
               if (recovered_head->getSeqNumber() == seq_num) {
-                ctx->fireWrite(recovered);
+                getContext()->fireWrite(recovered);
                 continue;
               }
             }
             ELOG_DEBUG("Packet missed in buffer %d", seq_num);
             is_fully_recovered = false;
             break;
+            }
           }
-        }
+        });
       }
     } while (total_length < packet->length);
   }

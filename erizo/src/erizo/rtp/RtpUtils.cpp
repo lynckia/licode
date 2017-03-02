@@ -20,9 +20,18 @@ void RtpUtils::updateREMB(RtcpHeader *chead, uint bitrate) {
 
 void RtpUtils::forEachNack(RtcpHeader *chead, std::function<void(uint16_t, uint16_t)> f) {
   if (chead->packettype == RTCP_RTP_Feedback_PT) {
-    uint16_t initial_seq_num = chead->getNackPid();
-    uint16_t plb = chead->getNackBlp();
-    f(initial_seq_num, plb);
+    int length = (chead->getLength() + 1)*4;
+    int current_position = kNackCommonHeaderLengthBytes;
+    uint8_t* aux_pointer = reinterpret_cast<uint8_t*>(chead);
+    RtcpHeader* aux_chead;
+    while (current_position < length) {
+      aux_chead = reinterpret_cast<RtcpHeader*>(aux_pointer);
+      uint16_t initial_seq_num = aux_chead->getNackPid();
+      uint16_t plb = aux_chead->getNackBlp();
+      f(initial_seq_num, plb);
+      current_position += 4;
+      aux_pointer += 4;
+    }
   }
 }
 
@@ -38,6 +47,14 @@ std::shared_ptr<dataPacket> RtpUtils::createPLI(uint32_t source_ssrc, uint32_t s
   return std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET);
 }
 
+int RtpUtils::getPaddingLength(std::shared_ptr<dataPacket> packet) {
+  RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
+  if (rtp_header->hasPadding()) {
+    return packet->data[packet->length - 1] & 0xFF;
+  }
+  return 0;
+}
+
 void RtpUtils::forEachRRBlock(std::shared_ptr<dataPacket> packet, std::function<void(RtcpHeader*)> f) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   int len = packet->length;
@@ -46,6 +63,8 @@ void RtpUtils::forEachRRBlock(std::shared_ptr<dataPacket> packet, std::function<
     int rtcp_length = 0;
     int total_length = 0;
     int currentBlock = 0;
+
+    f(chead);
 
     do {
       moving_buffer += rtcp_length;
