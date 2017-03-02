@@ -90,12 +90,8 @@ Erizo.ChromeStableStack = function (spec) {
     that.peerConnection.onicecandidate = function (event) {
         var candidateObject = {};
         if (!event.candidate) {
-            L.Logger.info('Gathered all candidates. Sending END candidate');
-            candidateObject = {
-                sdpMLineIndex: -1 ,
-                sdpMid: 'end',
-                candidate: 'end'
-            };
+            L.Logger.info('Gathered all candidates.');
+            return;
         }else{
 
             if (!event.candidate.candidate.match(/a=/)) {
