@@ -5,16 +5,47 @@
 
 #include "./logger.h"
 #include "pipeline/Handler.h"
+#include "./Stats.h"
 
 namespace erizo {
 
+constexpr duration kBitrateStatsPeriod = std::chrono::seconds(2);
+
 class WebRtcConnection;
 
-class IncomingStatsHandler: public InboundHandler {
+class StatsCalculator {
   DECLARE_LOGGER();
 
  public:
-  explicit IncomingStatsHandler(WebRtcConnection* connection);
+  StatsCalculator() : connection_{nullptr} {}
+  virtual ~StatsCalculator() {}
+
+  void update(WebRtcConnection *connection, std::shared_ptr<Stats> stats);
+  void processPacket(std::shared_ptr<dataPacket> packet);
+
+  StatNode& getStatsInfo() {
+    return stats_->getNode();
+  }
+
+  void notifyStats() {
+    stats_->sendStats();
+  }
+
+ private:
+  void processRtpPacket(std::shared_ptr<dataPacket> packet);
+  void processRtcpPacket(std::shared_ptr<dataPacket> packet);
+  void incrStat(uint32_t ssrc, std::string stat);
+
+ private:
+  WebRtcConnection *connection_;
+  std::shared_ptr<Stats> stats_;
+};
+
+class IncomingStatsHandler: public InboundHandler, public StatsCalculator {
+  DECLARE_LOGGER();
+
+ public:
+  IncomingStatsHandler();
 
   void enable() override;
   void disable() override;
@@ -30,11 +61,11 @@ class IncomingStatsHandler: public InboundHandler {
   WebRtcConnection* connection_;
 };
 
-class OutgoingStatsHandler: public OutboundHandler {
+class OutgoingStatsHandler: public OutboundHandler, public StatsCalculator {
   DECLARE_LOGGER();
 
  public:
-  explicit OutgoingStatsHandler(WebRtcConnection* connection);
+  OutgoingStatsHandler();
 
   void enable() override;
   void disable() override;

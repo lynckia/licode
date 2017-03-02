@@ -6,8 +6,8 @@ namespace erizo {
 
 DEFINE_LOGGER(RtpAudioMuteHandler, "rtp.RtpAudioMuteHandler");
 
-RtpAudioMuteHandler::RtpAudioMuteHandler(WebRtcConnection *connection) :
-  last_original_seq_num_{-1}, seq_num_offset_{0}, mute_is_active_{false}, connection_{connection} {}
+RtpAudioMuteHandler::RtpAudioMuteHandler() :
+  last_original_seq_num_{-1}, seq_num_offset_{0}, mute_is_active_{false}, connection_{nullptr} {}
 
 
 void RtpAudioMuteHandler::enable() {
@@ -17,6 +17,10 @@ void RtpAudioMuteHandler::disable() {
 }
 
 void RtpAudioMuteHandler::notifyUpdate() {
+  auto pipeline = getContext()->getPipelineShared();
+  if (pipeline && !connection_) {
+    connection_ = pipeline->getService<WebRtcConnection>().get();
+  }
   muteAudio(connection_->isAudioMuted());
 }
 

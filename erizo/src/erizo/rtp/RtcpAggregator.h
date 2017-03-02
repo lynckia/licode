@@ -23,15 +23,12 @@ class RtcpAggregator: public RtcpProcessor{
   RtcpAggregator(MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw = 300000);
   virtual ~RtcpAggregator() {}
   void addSourceSsrc(uint32_t ssrc);
-  void setMaxVideoBW(uint32_t bandwidth);
   void setPublisherBW(uint32_t bandwidth);
   void analyzeSr(RtcpHeader* chead);
   int analyzeFeedback(char* buf, int len);
   void checkRtcpFb();
 
  private:
-  static const int RR_AUDIO_PERIOD = 2000;
-  static const int RR_VIDEO_BASE = 800;
   static const int REMB_TIMEOUT = 1000;
   static const uint64_t NTPTOMSCONV = 4294967296;
   std::map<uint32_t, boost::shared_ptr<RtcpData>> rtcpData_;

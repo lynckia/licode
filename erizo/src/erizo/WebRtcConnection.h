@@ -18,6 +18,8 @@
 #include "rtp/RtpExtensionProcessor.h"
 #include "lib/Clock.h"
 #include "pipeline/Handler.h"
+#include "pipeline/Service.h"
+#include "rtp/QualityManager.h"
 
 namespace erizo {
 
@@ -56,7 +58,7 @@ class WebRtcConnectionStatsListener {
  */
 class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink,
                         public FeedbackSource, public TransportListener, public LogContext,
-                        public std::enable_shared_from_this<WebRtcConnection> {
+                        public std::enable_shared_from_this<WebRtcConnection>, public Service {
   DECLARE_LOGGER();
 
  public:
@@ -99,15 +101,14 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    */
   std::string getLocalSdp();
 
-  int deliverAudioData(char* buf, int len);
-  int deliverVideoData(char* buf, int len);
-  int deliverFeedback(char* buf, int len);
-
   /**
    * Sends a PLI Packet
    * @return the size of the data sent
    */
   int sendPLI() override;
+
+  void setQualityLayer(int spatial_layer, int temporal_layer);
+
   /**
    * Sets the Event Listener for this WebRtcConnection
    */
@@ -120,7 +121,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    */
   inline void setWebRtcConnectionStatsListener(
             WebRtcConnectionStatsListener* listener) {
-    this->stats_.setStatsListener(listener);
+    stats_->setStatsListener(listener);
   }
 
   /**
@@ -129,7 +130,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    */
   WebRTCEvent getCurrentState();
 
-  std::string getJSONStats();
+  void getJSONStats(std::function<void(std::string)> callback);
 
   void onTransportData(std::shared_ptr<dataPacket> packet, Transport *transport) override;
 
@@ -162,13 +163,29 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   RtpExtensionProcessor& getRtpExtensionProcessor() { return extProcessor_; }
 
-  Stats& getStats() {
-    return stats_;
-  }
+  std::shared_ptr<Worker> getWorker() { return worker_; }
+
+  bool isSourceSSRC(uint32_t ssrc);
+  bool isSinkSSRC(uint32_t ssrc);
 
   inline const char* toLog() {
     return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
   }
+
+ private:
+  void sendPacket(std::shared_ptr<dataPacket> packet);
+  int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
+  int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
+  int deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) override;
+  void initializePipeline();
+
+  // Utils
+  std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
+  // changes the outgoing payload type for in the given data packet
+  void changeDeliverPayloadType(dataPacket *dp, packetType type);
+  // parses incoming payload type, replaces occurence in buf
+  void parseIncomingPayloadType(char *buf, int len, packetType type);
+  void trackTransportInfo();
 
  private:
   std::string connection_id_;
@@ -188,7 +205,6 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   uint32_t rateControl_;  // Target bitrate for hacky rate control in BPS
 
-  int stunPort_, minPort_, maxPort_;
   std::string stunServer_;
 
   boost::condition_variable cond_;
@@ -198,7 +214,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   std::shared_ptr<RtcpProcessor> rtcp_processor_;
   std::shared_ptr<Transport> videoTransport_, audioTransport_;
 
-  Stats stats_;
+  std::shared_ptr<Stats> stats_;
+  std::shared_ptr<QualityManager> quality_manager_;
   WebRTCEvent globalState_;
 
   boost::mutex updateStateMutex_;  // , slideShowMutex_;
@@ -209,17 +226,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   bool audio_muted_;
 
-  void sendPacket(std::shared_ptr<dataPacket> packet);
-  int deliverAudioData_(char* buf, int len) override;
-  int deliverVideoData_(char* buf, int len) override;
-  int deliverFeedback_(char* buf, int len) override;
-
-  // Utils
-  std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
-  // changes the outgoing payload type for in the given data packet
-  void changeDeliverPayloadType(dataPacket *dp, packetType type);
-  // parses incoming payload type, replaces occurence in buf
-  void parseIncomingPayloadType(char *buf, int len, packetType type);
+  bool pipeline_initialized_;
 };
 
 class PacketReader : public InboundHandler {

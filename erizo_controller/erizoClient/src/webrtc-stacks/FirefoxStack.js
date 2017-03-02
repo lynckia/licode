@@ -33,6 +33,21 @@ Erizo.FirefoxStack = function (spec) {
     var errorCallback = function (message) {
         L.Logger.error('Error in Stack ', message);
     };
+
+    var enableSimulcast = function () {
+      if (!spec.video || !spec.simulcast) {
+        return;
+      }
+      var sender = that.peerConnection.getSenders().forEach(function(sender) {
+        if (sender.track.kind === 'video') {
+          parameters = sender.getParameters();
+          sender.setParameters({encodings: [{ rid: "spam", active: true, priority: "high", maxBitrate: 40000, maxHeight: 640, maxWidth: 480 },
+                                            { rid: "egg", active: true, priority: "medium", maxBitrate: 10000, maxHeight: 320, maxWidth: 240 }]});
+        }
+      });
+    };
+
+
     var gotCandidate = false;
     that.peerConnection = new WebkitRTCPeerConnection(that.pcConfig, that.con);
     spec.localCandidates = [];
@@ -158,7 +173,7 @@ Erizo.FirefoxStack = function (spec) {
             }
         }
         if (config.minVideoBW || (config.slideShowMode!==undefined) ||
-            (config.muteStream !== undefined)){
+            (config.muteStream !== undefined) || (config.qualityLayer !== undefined)){
             L.Logger.debug ('MinVideo Changed to ', config.minVideoBW);
             L.Logger.debug ('SlideShowMode Changed to ', config.slideShowMode);
             L.Logger.debug ('muteStream changed to ', config.muteStream);
@@ -170,6 +185,7 @@ Erizo.FirefoxStack = function (spec) {
         if (isSubscribe === true) {
             that.peerConnection.createOffer(setLocalDesc, errorCallback, that.mediaConstraints);
         } else {
+            enableSimulcast();
             that.mediaConstraints = {
                 offerToReceiveAudio: false,
                 offerToReceiveVideo: false,

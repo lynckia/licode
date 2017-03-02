@@ -40,7 +40,7 @@ class FecReceiverHandlerTest : public erizo::HandlerTest {
 
  protected:
   void setHandler() {
-    fec_receiver_handler = std::make_shared<FecReceiverHandler>(connection.get());
+    fec_receiver_handler = std::make_shared<FecReceiverHandler>();
     fec_receiver = new MockUlpfecReceiver();
     fec_receiver_handler->setFecReceiver(std::unique_ptr<webrtc::UlpfecReceiver>(fec_receiver));
     pipeline->addBack(fec_receiver_handler);
@@ -65,19 +65,6 @@ TEST_F(FecReceiverHandlerTest, shouldNotCallFecReceiverWhenReceivingREDpacketsAn
     rtp_header->setPayloadType(RED_90000_PT);
 
     fec_receiver_handler->disable();
-
-    EXPECT_CALL(*fec_receiver, AddReceivedRedPacket(_, _, _, _)).Times(0);
-    EXPECT_CALL(*fec_receiver, ProcessReceivedFec()).Times(0);
-    EXPECT_CALL(*writer.get(), write(_, _)).
-      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
-
-    pipeline->write(packet);
-}
-
-TEST_F(FecReceiverHandlerTest, shouldNotCallFecReceiverByDefaultWhenReceivingREDpackets) {
-    auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
-    RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
-    rtp_header->setPayloadType(RED_90000_PT);
 
     EXPECT_CALL(*fec_receiver, AddReceivedRedPacket(_, _, _, _)).Times(0);
     EXPECT_CALL(*fec_receiver, ProcessReceivedFec()).Times(0);

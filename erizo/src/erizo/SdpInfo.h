@@ -171,7 +171,7 @@ class SdpInfo {
   * Gets the payloadType information
   * @return A vector containing the PT-codec information
   */
-  const std::vector<RtpMap>& getPayloadInfos();
+  std::vector<RtpMap>& getPayloadInfos();
   /**
    * Gets the actual SDP.
    * @return The SDP in string format.
@@ -202,6 +202,8 @@ class SdpInfo {
    */
   unsigned int getVideoExternalPT(unsigned int internalPT);
 
+  RtpMap* getCodecByExternalPayloadType(const unsigned int payload_type);
+
   void setCredentials(const std::string& username, const std::string& password, MediaType media);
 
   std::string getUsername(MediaType media) const;
@@ -227,7 +229,9 @@ class SdpInfo {
   /**
    * The audio and video SSRCs for this particular SDP.
    */
-  unsigned int audioSsrc, videoSsrc, videoRtxSsrc;
+  unsigned int audio_ssrc;
+  std::vector<uint32_t> video_ssrc_list;
+  std::map<uint32_t, uint32_t> video_rtx_ssrc_map;
   /**
   * Is it Bundle
   */
@@ -291,6 +295,7 @@ class SdpInfo {
   bool processCandidate(const std::vector<std::string>& pieces, MediaType mediaType);
   std::string stringifyCandidate(const CandidateInfo & candidate);
   void gen_random(char* s, int len);
+  void maybeAddSsrcToList(uint32_t ssrc);
   std::vector<CandidateInfo> candidateVector_;
   std::vector<CryptoInfo> cryptoVector_;
   std::vector<RtpMap> internalPayloadVector_;

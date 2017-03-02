@@ -101,13 +101,13 @@ Erizo.Stream = function (spec) {
                   videoOpt.mandatory.maxWidth = that.videoSize[2];
                   videoOpt.mandatory.maxHeight = that.videoSize[3];
               }
-              
+
               if (that.videoFrameRate !== undefined) {
                   videoOpt.optional = []
                   videoOpt.optional.push({minFrameRate: that.videoFrameRate[0]});
                   videoOpt.optional.push({maxFrameRate: that.videoFrameRate[1]});
               }
-              
+
           } else if (spec.screen === true && videoOpt === undefined) {
             videoOpt = true;
           }
@@ -300,6 +300,17 @@ Erizo.Stream = function (spec) {
         var config = {muteStream : {audio : isMuted}};
         that.checkOptions(config, true);
         that.pc.updateSpec(config, callback);
+    };
+
+    that._setQualityLayer = function(spatialLayer, temporalLayer, callback) {
+      if (that.room && that.room.p2p){
+          L.Logger.warning('setQualityLayer is not implemented in p2p streams');
+          callback ('error');
+          return;
+      }
+      var config = {qualityLayer : {spatialLayer: spatialLayer, temporalLayer: temporalLayer}};
+      that.checkOptions(config, true);
+      that.pc.updateSpec(config, callback);
     };
 
     controlHandler = function (handlers, publisherSide, enable) {

@@ -1,0 +1,61 @@
+<a id="github_button" href="https://github.com/ging/licode" class="visible-desktop"><img style="position: fixed; top: 0; right: 0; border: 0; z-index: 1031" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a>
+<div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+             {% if include_nav or include_next_prev or repo_url %}
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://github.com/ging/licode" class="github-logo hidden-desktop"><img src="img/github-logo.png"></a>
+            {%- endif %}
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+          {%- block site_nav %}
+            {% if include_nav %}
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                  <li>
+                    <a href="http://lynckia.com/licode/index.html">Home</a>
+                  </li>
+                  <li>
+                    <a href="http://lynckia.com/licode/blog.html">Blog</a>
+                  </li>
+                  <li>
+                    <a href="http://lynckia.com/licode/community.html">Community</a>
+                  </li>
+                  <li>
+                    <a href="http://lynckia.com/licode/install.html">Installation</a>
+                  </li>
+                  <li class="dropdown active">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Documentation<b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        {%- for nav_item in nav %}
+                            {% include "nav-sub.html" %}
+                        {%- endfor %}
+                        </ul>
+                  </li>
+                  <li>
+                    <a href="https://chotis2.dit.upm.es/">Try it!</a>
+                  </li>
+                  <li>
+                    <a href="http://lynckia.com/licode/contribute.html">Contribute</a>
+                  </li>
+                </ul>
+            {%- endif %}
+          {%- endblock %}
+
+            <ul class="nav navbar-nav navbar-right">
+              
+              
+            </ul>
+        </div>
+    </div>
+</div>

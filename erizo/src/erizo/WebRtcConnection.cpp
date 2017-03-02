@@ -17,17 +17,24 @@
 #include "rtp/RtcpAggregator.h"
 #include "rtp/RtcpForwarder.h"
 #include "rtp/RtpSlideShowHandler.h"
-#include "rtp/RtpVP8SlideShowHandler.h"
 #include "rtp/RtpAudioMuteHandler.h"
 #include "rtp/BandwidthEstimationHandler.h"
 #include "rtp/FecReceiverHandler.h"
 #include "rtp/RtcpProcessorHandler.h"
 #include "rtp/RtpRetransmissionHandler.h"
+#include "rtp/RtcpFeedbackGenerationHandler.h"
 #include "rtp/StatsHandler.h"
-#include "rtp/RRGenerationHandler.h"
+#include "rtp/SRPacketHandler.h"
+#include "rtp/SenderBandwidthEstimationHandler.h"
+#include "rtp/LayerDetectorHandler.h"
+#include "rtp/QualityFilterHandler.h"
+#include "rtp/QualityManager.h"
 
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
+
+constexpr uint32_t kDefaultVideoSinkSSRC = 55543;
+constexpr uint32_t kDefaultAudioSinkSSRC = 44444;
 
 WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::string& connection_id,
     const IceConfig& iceConfig, const std::vector<RtpMap> rtp_mappings,
@@ -35,33 +42,18 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
     connection_id_{connection_id}, remoteSdp_{SdpInfo(rtp_mappings)}, localSdp_{SdpInfo(rtp_mappings)},
     audioEnabled_{false}, videoEnabled_{false}, bundle_{false}, connEventListener_{listener},
     iceConfig_{iceConfig}, rtp_mappings_{rtp_mappings}, extProcessor_{ext_mappings},
-    pipeline_{Pipeline::create()}, worker_{worker}, audio_muted_{false} {
+    pipeline_{Pipeline::create()}, worker_{worker}, audio_muted_{false}, pipeline_initialized_{false} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
-  setVideoSinkSSRC(55543);
-  setAudioSinkSSRC(44444);
-  videoSink_ = NULL;
-  audioSink_ = NULL;
-  fbSink_ = NULL;
-  sourcefbSink_ = this;
-  sinkfbSource_ = this;
+  setVideoSinkSSRC(kDefaultVideoSinkSSRC);
+  setAudioSinkSSRC(kDefaultAudioSinkSSRC);
+  source_fb_sink_ = this;
+  sink_fb_source_ = this;
+  stats_ = std::make_shared<Stats>();
+  quality_manager_ = std::make_shared<QualityManager>();
   globalState_ = CONN_INITIAL;
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
-
-  // TODO(pedro): consider creating the pipeline on setRemoteSdp or createOffer
-  pipeline_->addFront(PacketReader(this));
-  pipeline_->addFront(RtcpProcessorHandler(this, rtcp_processor_));
-  pipeline_->addFront(IncomingStatsHandler(this));
-  pipeline_->addFront(FecReceiverHandler(this));
-  pipeline_->addFront(RtpAudioMuteHandler(this));
-  pipeline_->addFront(RtpVP8SlideShowHandler(this));
-  pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>(this, worker_));
-  pipeline_->addFront(RRGenerationHandler(this));
-  pipeline_->addFront(RtpRetransmissionHandler(this));
-  pipeline_->addFront(OutgoingStatsHandler(this));
-  pipeline_->addFront(PacketWriter(this));
-  pipeline_->finalize();
 
   trickleEnabled_ = iceConfig_.shouldTrickle;
 
@@ -84,12 +76,12 @@ WebRtcConnection::~WebRtcConnection() {
     audioTransport_->close();
   }
   globalState_ = CONN_FINISHED;
-  if (connEventListener_ != NULL) {
-    connEventListener_ = NULL;
+  if (connEventListener_ != nullptr) {
+    connEventListener_ = nullptr;
   }
-  videoSink_ = NULL;
-  audioSink_ = NULL;
-  fbSink_ = NULL;
+  video_sink_ = nullptr;
+  audio_sink_ = nullptr;
+  fb_sink_ = nullptr;
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
@@ -97,11 +89,20 @@ void WebRtcConnection::close() {
 }
 
 bool WebRtcConnection::init() {
-  if (connEventListener_ != NULL) {
+  if (connEventListener_ != nullptr) {
     connEventListener_->notifyEvent(globalState_, "");
   }
   return true;
 }
+
+bool WebRtcConnection::isSourceSSRC(uint32_t ssrc) {
+  return isVideoSourceSSRC(ssrc) || isAudioSourceSSRC(ssrc);
+}
+
+bool WebRtcConnection::isSinkSSRC(uint32_t ssrc) {
+  return isVideoSinkSSRC(ssrc) || isAudioSinkSSRC(ssrc);
+}
+
 
 bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bundle) {
   bundle_ = bundle;
@@ -112,9 +113,9 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
 
   ELOG_DEBUG("%s message: Creating sdp offer, isBundle: %d", toLog(), bundle_);
   if (videoEnabled_)
-    localSdp_.videoSsrc = this->getVideoSinkSSRC();
+    localSdp_.video_ssrc_list.push_back(this->getVideoSinkSSRC());
   if (audioEnabled_)
-    localSdp_.audioSsrc = this->getAudioSinkSSRC();
+    localSdp_.audio_ssrc = this->getAudioSinkSSRC();
 
   if (bundle_) {
     videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
@@ -122,21 +123,21 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
     videoTransport_->copyLogContextFrom(this);
     videoTransport_->start();
   } else {
-    if (videoTransport_.get() == NULL && videoEnabled_) {
+    if (videoTransport_.get() == nullptr && videoEnabled_) {
       // For now we don't re/check transports, if they are already created we leave them there
       videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
                                               this, iceConfig_ , "", "", true, worker_));
       videoTransport_->copyLogContextFrom(this);
       videoTransport_->start();
     }
-    if (audioTransport_.get() == NULL && audioEnabled_) {
+    if (audioTransport_.get() == nullptr && audioEnabled_) {
       audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
                                               this, iceConfig_, "", "", true, worker_));
       audioTransport_->copyLogContextFrom(this);
       audioTransport_->start();
     }
   }
-  if (connEventListener_ != NULL) {
+  if (connEventListener_ != nullptr) {
     std::string msg = this->getLocalSdp();
     connEventListener_->notifyEvent(globalState_, msg);
   }
@@ -145,7 +146,17 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
 
 bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   ELOG_DEBUG("%s message: setting remote SDP", toLog());
+
   remoteSdp_.initWithSdp(sdp, "");
+
+  if (remoteSdp_.videoBandwidth != 0) {
+    ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remoteSdp_.videoBandwidth);
+    this->rtcp_processor_->setMaxVideoBW(remoteSdp_.videoBandwidth*1000);
+  }
+
+  if (pipeline_initialized_)
+    return true;
+
 
   bundle_ = remoteSdp_.isBundle;
   localSdp_.setOfferSdp(remoteSdp_);
@@ -153,29 +164,29 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 
   localSdp_.updateSupportedExtensionMap(extProcessor_.getSupportedExtensionMap());
 
-  localSdp_.videoSsrc = this->getVideoSinkSSRC();
-  localSdp_.audioSsrc = this->getAudioSinkSSRC();
+  localSdp_.video_ssrc_list.push_back(getVideoSinkSSRC());
+  localSdp_.audio_ssrc = getAudioSinkSSRC();
 
   if (remoteSdp_.dtlsRole == ACTPASS) {
     localSdp_.dtlsRole = ACTIVE;
   }
-  this->setVideoSourceSSRC(remoteSdp_.videoSsrc);
-  this->stats_.setVideoSourceSSRC(this->getVideoSourceSSRC());
-  this->setAudioSourceSSRC(remoteSdp_.audioSsrc);
-  this->stats_.setAudioSourceSSRC(this->getAudioSourceSSRC());
-  this->stats_.setVideoSinkSSRC(this->getVideoSinkSSRC());
-  this->stats_.setAudioSinkSSRC(this->getAudioSinkSSRC());
-  this->audioEnabled_ = remoteSdp_.hasAudio;
-  this->videoEnabled_ = remoteSdp_.hasVideo;
-  rtcp_processor_->addSourceSsrc(this->getAudioSourceSSRC());
-  rtcp_processor_->addSourceSsrc(this->getVideoSourceSSRC());
+  setVideoSourceSSRCList(remoteSdp_.video_ssrc_list);
+  setAudioSourceSSRC(remoteSdp_.audio_ssrc);
+
+  audioEnabled_ = remoteSdp_.hasAudio;
+  videoEnabled_ = remoteSdp_.hasVideo;
+
+  rtcp_processor_->addSourceSsrc(getAudioSourceSSRC());
+  std::for_each(video_source_ssrc_list_.begin(), video_source_ssrc_list_.end(), [this] (uint32_t new_ssrc){
+      rtcp_processor_->addSourceSsrc(new_ssrc);
+  });
 
   if (remoteSdp_.profile == SAVPF) {
     if (remoteSdp_.isFingerprint) {
       if (remoteSdp_.hasVideo || bundle_) {
         std::string username = remoteSdp_.getUsername(VIDEO_TYPE);
         std::string password = remoteSdp_.getPassword(VIDEO_TYPE);
-        if (videoTransport_.get() == NULL) {
+        if (videoTransport_.get() == nullptr) {
           ELOG_DEBUG("%s message: Creating videoTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, remoteSdp_.isRtcpMux,
@@ -191,7 +202,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
       if (!bundle_ && remoteSdp_.hasAudio) {
         std::string username = remoteSdp_.getUsername(AUDIO_TYPE);
         std::string password = remoteSdp_.getPassword(AUDIO_TYPE);
-        if (audioTransport_.get() == NULL) {
+        if (audioTransport_.get() == nullptr) {
           ELOG_DEBUG("%s message: Creating audioTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, remoteSdp_.isRtcpMux,
@@ -225,22 +236,43 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     }
   }
 
-
-  if (remoteSdp_.videoBandwidth != 0) {
-    ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remoteSdp_.videoBandwidth);
-    this->rtcp_processor_->setMaxVideoBW(remoteSdp_.videoBandwidth*1000);
-  }
-
-  notifyUpdateToHandlers();
+  initializePipeline();
 
   return true;
+}
+
+void WebRtcConnection::initializePipeline() {
+  pipeline_->addService(shared_from_this());
+  pipeline_->addService(rtcp_processor_);
+  pipeline_->addService(stats_);
+  pipeline_->addService(quality_manager_);
+
+  pipeline_->addFront(PacketReader(this));
+
+  pipeline_->addFront(LayerDetectorHandler());
+  pipeline_->addFront(RtcpProcessorHandler());
+  pipeline_->addFront(IncomingStatsHandler());
+  pipeline_->addFront(FecReceiverHandler());
+  pipeline_->addFront(QualityFilterHandler());
+  pipeline_->addFront(RtpAudioMuteHandler());
+  pipeline_->addFront(RtpSlideShowHandler());
+  pipeline_->addFront(BandwidthEstimationHandler());
+  pipeline_->addFront(RtcpFeedbackGenerationHandler());
+  pipeline_->addFront(RtpRetransmissionHandler());
+  pipeline_->addFront(SRPacketHandler());
+  pipeline_->addFront(SenderBandwidthEstimationHandler());
+  pipeline_->addFront(OutgoingStatsHandler());
+
+  pipeline_->addFront(PacketWriter(this));
+  pipeline_->finalize();
+  pipeline_initialized_ = true;
 }
 
 bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp) {
   // TODO(pedro) Check type of transport.
   ELOG_DEBUG("%s message: Adding remote Candidate, candidate: %s, mid: %s, sdpMLine: %d",
               toLog(), sdp.c_str(), mid.c_str(), mLineIndex);
-  if (videoTransport_ == NULL) {
+  if (videoTransport_ == nullptr) {
     ELOG_WARN("%s message: addRemoteCandidate on NULL transport", toLog());
     return false;
   }
@@ -282,10 +314,10 @@ bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex
 
 std::string WebRtcConnection::getLocalSdp() {
   ELOG_DEBUG("%s message: Getting Local Sdp", toLog());
-  if (videoTransport_ != NULL) {
+  if (videoTransport_ != nullptr) {
     videoTransport_->processLocalSdp(&localSdp_);
   }
-  if (!bundle_ && audioTransport_ != NULL) {
+  if (!bundle_ && audioTransport_ != nullptr) {
     audioTransport_->processLocalSdp(&localSdp_);
   }
   localSdp_.profile = remoteSdp_.profile;
@@ -315,7 +347,7 @@ void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transpo
   std::string sdp = localSdp_.addCandidate(cand);
   ELOG_DEBUG("%s message: Discovered New Candidate, candidate: %s", toLog(), sdp.c_str());
   if (trickleEnabled_) {
-    if (connEventListener_ != NULL) {
+    if (connEventListener_ != nullptr) {
       if (!bundle_) {
         std::string object = this->getJSONCandidate(transport->transport_name, sdp);
         connEventListener_->notifyEvent(CONN_CANDIDATE, object);
@@ -333,46 +365,48 @@ void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transpo
   }
 }
 
-int WebRtcConnection::deliverAudioData_(char* buf, int len) {
+int WebRtcConnection::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
   if (bundle_) {
-    if (videoTransport_.get() != NULL) {
+    if (videoTransport_.get() != nullptr) {
       if (audioEnabled_ == true) {
-        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET));
+        sendPacketAsync(std::make_shared<dataPacket>(*audio_packet));
       }
     }
-  } else if (audioTransport_.get() != NULL) {
+  } else if (audioTransport_.get() != nullptr) {
     if (audioEnabled_ == true) {
-        sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET));
+        sendPacketAsync(std::make_shared<dataPacket>(*audio_packet));
     }
   }
-  return len;
+  return audio_packet->length;
 }
 
-int WebRtcConnection::deliverVideoData_(char* buf, int len) {
-  if (videoTransport_.get() != NULL) {
+int WebRtcConnection::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
+  if (videoTransport_.get() != nullptr) {
     if (videoEnabled_ == true) {
-      sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
+      sendPacketAsync(std::make_shared<dataPacket>(*video_packet));
     }
   }
-  return len;
+  return video_packet->length;
 }
 
-int WebRtcConnection::deliverFeedback_(char* buf, int len) {
-  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
+int WebRtcConnection::deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) {
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(fb_packet->data);
   uint32_t recvSSRC = chead->getSourceSSRC();
-  if (recvSSRC == this->getVideoSourceSSRC()) {
-    sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET));
-  } else if (recvSSRC == this->getAudioSourceSSRC()) {
-    sendPacketAsync(std::make_shared<dataPacket>(0, buf, len, AUDIO_PACKET));
+  if (isVideoSourceSSRC(recvSSRC)) {
+    fb_packet->type = VIDEO_PACKET;
+    sendPacketAsync(fb_packet);
+  } else if (isAudioSourceSSRC(recvSSRC)) {
+    fb_packet->type = AUDIO_PACKET;
+    sendPacketAsync(fb_packet);
   } else {
     ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                 toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
   }
-  return len;
+  return fb_packet->length;
 }
 
 void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Transport *transport) {
-  if (audioSink_ == NULL && videoSink_ == NULL && fbSink_ == NULL) {
+  if (audio_sink_ == nullptr && video_sink_ == nullptr && fb_sink_ == nullptr) {
     return;
   }
   if (transport->mediaType == AUDIO_TYPE) {
@@ -386,11 +420,16 @@ void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Trans
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
   if (!chead->isRtcp()) {
     uint32_t recvSSRC = head->getSSRC();
-    if (recvSSRC == this->getVideoSourceSSRC()) {
+    if (isVideoSourceSSRC(recvSSRC)) {
       packet->type = VIDEO_PACKET;
-    } else if (recvSSRC == this->getAudioSourceSSRC()) {
+    } else if (isAudioSourceSSRC(recvSSRC)) {
       packet->type = AUDIO_PACKET;
     }
+  }
+
+  if (!pipeline_initialized_) {
+    ELOG_DEBUG("%s message: Pipeline not initialized yet.", toLog());
+    return;
   }
 
   pipeline_->read(packet);
@@ -411,42 +450,42 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
 
   // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
   if (chead->isFeedback()) {
-    if (fbSink_ != NULL && shouldSendFeedback_) {
-      fbSink_->deliverFeedback(buf, len);
+    if (fb_sink_ != nullptr && shouldSendFeedback_) {
+      fb_sink_->deliverFeedback(packet);
     }
   } else {
     // RTP or RTCP Sender Report
     if (bundle_) {
       // Check incoming SSRC
       // Deliver data
-      if (recvSSRC == this->getVideoSourceSSRC()) {
+      if (isVideoSourceSSRC(recvSSRC)) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
-        videoSink_->deliverVideoData(buf, len);
-      } else if (recvSSRC == this->getAudioSourceSSRC()) {
+        video_sink_->deliverVideoData(packet);
+      } else if (isAudioSourceSSRC(recvSSRC)) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
-        audioSink_->deliverAudioData(buf, len);
+        audio_sink_->deliverAudioData(packet);
       } else {
         ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                     toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
       }
     } else {
-      if (packet->type == AUDIO_PACKET && audioSink_ != NULL) {
+      if (packet->type == AUDIO_PACKET && audio_sink_ != nullptr) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         // Firefox does not send SSRC in SDP
-        if (this->getAudioSourceSSRC() == 0) {
+        if (getAudioSourceSSRC() == 0) {
           ELOG_DEBUG("%s discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
           this->setAudioSourceSSRC(recvSSRC);
         }
-        audioSink_->deliverAudioData(buf, len);
-      } else if (packet->type == VIDEO_PACKET && videoSink_ != NULL) {
+        audio_sink_->deliverAudioData(packet);
+      } else if (packet->type == VIDEO_PACKET && video_sink_ != nullptr) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         // Firefox does not send SSRC in SDP
-        if (this->getVideoSourceSSRC() == 0) {
+        if (getVideoSourceSSRC() == 0) {
           ELOG_DEBUG("%s discoveredVideoSourceSSRC:%u", toLog(), recvSSRC);
           this->setVideoSourceSSRC(recvSSRC);
         }
         // change ssrc for RTP packets, don't touch here if RTCP
-        videoSink_->deliverVideoData(buf, len);
+        video_sink_->deliverVideoData(packet);
       }
     }  // if not bundle
   }  // if not Feedback
@@ -470,7 +509,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
   WebRTCEvent temp = globalState_;
   std::string msg = "";
   ELOG_DEBUG("%s transportName: %s, new_state: %d", toLog(), transport->transport_name.c_str(), state);
-  if (videoTransport_.get() == NULL && audioTransport_.get() == NULL) {
+  if (videoTransport_.get() == nullptr && audioTransport_.get() == nullptr) {
     ELOG_ERROR("%s message: Updating NULL transport, state: %d", toLog(), state);
     return;
   }
@@ -483,9 +522,9 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       if (bundle_) {
         temp = CONN_STARTED;
       } else {
-        if ((!remoteSdp_.hasAudio || (audioTransport_.get() != NULL
+        if ((!remoteSdp_.hasAudio || (audioTransport_.get() != nullptr
                   && audioTransport_->getTransportState() == TRANSPORT_STARTED)) &&
-            (!remoteSdp_.hasVideo || (videoTransport_.get() != NULL
+            (!remoteSdp_.hasVideo || (videoTransport_.get() != nullptr
                   && videoTransport_->getTransportState() == TRANSPORT_STARTED))) {
             // WebRTCConnection will be ready only when all channels are ready.
             temp = CONN_STARTED;
@@ -508,9 +547,9 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
           msg = this->getLocalSdp();
         }
       } else {
-        if ((!localSdp_.hasAudio || (audioTransport_.get() != NULL
+        if ((!localSdp_.hasAudio || (audioTransport_.get() != nullptr
                   && audioTransport_->getTransportState() == TRANSPORT_GATHERED)) &&
-            (!localSdp_.hasVideo || (videoTransport_.get() != NULL
+            (!localSdp_.hasVideo || (videoTransport_.get() != nullptr
                   && videoTransport_->getTransportState() == TRANSPORT_GATHERED))) {
             // WebRTCConnection will be ready only when all channels are ready.
             if (!trickleEnabled_) {
@@ -523,14 +562,15 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
     case TRANSPORT_READY:
       if (bundle_) {
         temp = CONN_READY;
-
+        trackTransportInfo();
       } else {
-        if ((!remoteSdp_.hasAudio || (audioTransport_.get() != NULL
+        if ((!remoteSdp_.hasAudio || (audioTransport_.get() != nullptr
                   && audioTransport_->getTransportState() == TRANSPORT_READY)) &&
-            (!remoteSdp_.hasVideo || (videoTransport_.get() != NULL
+            (!remoteSdp_.hasVideo || (videoTransport_.get() != nullptr
                   && videoTransport_->getTransportState() == TRANSPORT_READY))) {
             // WebRTCConnection will be ready only when all channels are ready.
             temp = CONN_READY;
+            trackTransportInfo();
           }
       }
       break;
@@ -546,7 +586,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       break;
   }
 
-  if (audioTransport_.get() != NULL && videoTransport_.get() != NULL) {
+  if (audioTransport_.get() != nullptr && videoTransport_.get() != nullptr) {
     ELOG_DEBUG("%s message: %s, transportName: %s, videoTransportState: %d"
               ", audioTransportState: %d, calculatedState: %d, globalState: %d",
       toLog(),
@@ -564,9 +604,39 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
 
   globalState_ = temp;
 
-  if (connEventListener_ != NULL) {
+  if (connEventListener_ != nullptr) {
     ELOG_INFO("%s newGlobalState: %d", toLog(), globalState_);
     connEventListener_->notifyEvent(globalState_, msg);
+  }
+}
+
+void WebRtcConnection::trackTransportInfo() {
+  CandidatePair candidate_pair;
+  if (videoEnabled_ && videoTransport_) {
+    candidate_pair = videoTransport_->getNiceConnection()->getSelectedPair();
+    if (getVideoSinkSSRC() != kDefaultVideoSinkSSRC) {
+      stats_->getNode()[getVideoSinkSSRC()].insertStat("clientHostType",
+                                                       StringStat{candidate_pair.clientHostType});
+    }
+    if (getVideoSourceSSRC() != 0) {
+      stats_->getNode()[getVideoSourceSSRC()].insertStat("clientHostType",
+                                                         StringStat{candidate_pair.clientHostType});
+    }
+  }
+
+  if (audioEnabled_) {
+    if (audioTransport_) {
+      candidate_pair = audioTransport_->getNiceConnection()->getSelectedPair();
+    }
+
+    if (getAudioSinkSSRC() != kDefaultAudioSinkSSRC) {
+      stats_->getNode()[getAudioSinkSSRC()].insertStat("clientHostType",
+                                                       StringStat{candidate_pair.clientHostType});
+    }
+    if (getAudioSourceSSRC() != 0) {
+      stats_->getNode()[getAudioSourceSSRC()].insertStat("clientHostType",
+                                                         StringStat{candidate_pair.clientHostType});
+    }
   }
 }
 
@@ -597,14 +667,14 @@ void WebRtcConnection::setSlideShowMode(bool state) {
   if (slide_show_mode_ == state) {
     return;
   }
-  stats_.setSlideShowMode(state, this->getVideoSinkSSRC());
+  stats_->getNode()[getVideoSinkSSRC()].insertStat("erizoSlideShow", CumulativeStat{state});
   slide_show_mode_ = state;
   notifyUpdateToHandlers();
 }
 
 void WebRtcConnection::muteStream(bool mute_video, bool mute_audio) {
   ELOG_DEBUG("%s message: muteStream, mute_video: %u, mute_audio: %u", toLog(), mute_video, mute_audio);
-  stats_.setMute(mute_audio, this->getAudioSinkSSRC());
+  stats_->getNode()[getAudioSinkSSRC()].insertStat("erizoMute", CumulativeStat{mute_audio});
   audio_muted_ = mute_audio;
   notifyUpdateToHandlers();
 }
@@ -629,10 +699,12 @@ WebRTCEvent WebRtcConnection::getCurrentState() {
   return globalState_;
 }
 
-std::string WebRtcConnection::getJSONStats() {
-  std::string requestedStats = stats_.getStats();
-  ELOG_DEBUG("%s message: Stats, stats: %s", toLog(), requestedStats.c_str());
-  return requestedStats;
+void WebRtcConnection::getJSONStats(std::function<void(std::string)> callback) {
+  asyncTask([callback] (std::shared_ptr<WebRtcConnection> connection) {
+    std::string requested_stats = connection->stats_->getStats();
+    ELOG_DEBUG("%s message: Stats, stats: %s", connection->toLog(), requested_stats.c_str());
+    callback(requested_stats);
+  });
 }
 
 void WebRtcConnection::changeDeliverPayloadType(dataPacket *dp, packetType type) {
@@ -734,7 +806,19 @@ void WebRtcConnection::sendPacket(std::shared_ptr<dataPacket> p) {
       sentVideoBytes += p->length;
     }
   }
+  if (!pipeline_initialized_) {
+    ELOG_DEBUG("%s message: Pipeline not initialized yet.", toLog());
+    return;
+  }
+
   pipeline_->write(p);
+}
+
+void WebRtcConnection::setQualityLayer(int spatial_layer, int temporal_layer) {
+  asyncTask([spatial_layer, temporal_layer] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->quality_manager_->setSpatialLayer(spatial_layer);
+    connection->quality_manager_->setTemporalLayer(temporal_layer);
+  });
 }
 
 }  // namespace erizo

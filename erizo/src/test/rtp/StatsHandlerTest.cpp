@@ -40,8 +40,8 @@ class StatsHandlerTest : public erizo::HandlerTest {
 
  protected:
   void setHandler() {
-    incoming_stats_handler = std::make_shared<IncomingStatsHandler>(connection.get());
-    outgoing_stats_handler = std::make_shared<OutgoingStatsHandler>(connection.get());
+    incoming_stats_handler = std::make_shared<IncomingStatsHandler>();
+    outgoing_stats_handler = std::make_shared<OutgoingStatsHandler>();
     pipeline->addBack(incoming_stats_handler);
     pipeline->addBack(outgoing_stats_handler);
   }

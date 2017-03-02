@@ -6,6 +6,7 @@
 #include <rtp/RtcpProcessor.h>
 #include <rtp/FecReceiverHandler.h>
 #include <rtp/BandwidthEstimationHandler.h>
+#include <rtp/SenderBandwidthEstimationHandler.h>
 #include <webrtc/modules/rtp_rtcp/include/ulpfec_receiver.h>
 
 #include <string>
@@ -26,17 +27,20 @@ class MockRtcpProcessor : public RtcpProcessor {
 
 class MockMediaSink : public MediaSink {
  public:
-  MOCK_METHOD0(close, void());
+  void close() override {
+    internal_close();
+  }
+  MOCK_METHOD0(internal_close, void());
   MOCK_METHOD2(deliverAudioDataInternal, void(char*, int));
   MOCK_METHOD2(deliverVideoDataInternal, void(char*, int));
 
  private:
-  int deliverAudioData_(char* buf, int len) override {
-    deliverAudioDataInternal(buf, len);
+  int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override {
+    deliverAudioDataInternal(audio_packet->data, audio_packet->length);
     return 0;
   }
-  int deliverVideoData_(char* buf, int len) override {
-    deliverVideoDataInternal(buf, len);
+  int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override {
+    deliverVideoDataInternal(video_packet->data, video_packet->length);
     return 0;
   }
 };
@@ -142,6 +146,11 @@ class MockUlpfecReceiver : public webrtc::UlpfecReceiver {
 
   // Returns a counter describing the added and recovered packets.
   // virtual webrtc::FecPacketCounter GetPacketCounter() const {};
+};
+
+class MockSenderBandwidthEstimationListener: public erizo::SenderBandwidthEstimationListener {
+ public:
+  MOCK_METHOD3(onBandwidthEstimate, void(int, uint8_t, int64_t));
 };
 
 }  // namespace erizo

@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
-
 SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`
 PATHNAME=`dirname $SCRIPT`
@@ -38,7 +37,7 @@ install_nvm_node() {
     if [ ! -s "$NVM_DIR/nvm.sh" ]; then
       git clone https://github.com/creationix/nvm.git "$NVM_DIR"
       cd "$NVM_DIR"
-      git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" origin` 
+      git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" origin`
       cd "$CURRENT_DIR"
     fi
     . $NVM_CHECK

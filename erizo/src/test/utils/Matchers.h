@@ -39,9 +39,35 @@ MATCHER_P(ReceiverReportHasFractionLostValue, lost_fraction, "") {
 MATCHER_P(ReceiverReportHasDlsrValue, delay_since_last_sr, "") {
   return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getDelaySinceLastSr() == delay_since_last_sr;
 }
+MATCHER_P(SenderReportHasPacketsSentValue, packets_sent, "") {
+  uint unsigned_packets_sent = abs(packets_sent);
+  return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getPacketsSent() == unsigned_packets_sent;
+}
+MATCHER_P(SenderReportHasOctetsSentValue, octets_sent, "") {
+  return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getOctetsSent() == octets_sent;
+}
 MATCHER_P(RembHasBitrateValue, bitrate, "") {
   return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getREMBBitRate() == bitrate;
 }
+MATCHER_P(PacketBelongsToSpatialLayer, spatial_layer_id, "") {
+  return std::get<0>(arg)->belongsToSpatialLayer(spatial_layer_id);
+}
+MATCHER_P(PacketBelongsToTemporalLayer, temporal_layer_id, "") {
+  return std::get<0>(arg)->belongsToTemporalLayer(temporal_layer_id);
+}
+MATCHER_P(PacketDoesNotBelongToSpatialLayer, spatial_layer_id, "") {
+  return !std::get<0>(arg)->belongsToSpatialLayer(spatial_layer_id);
+}
+MATCHER_P(PacketDoesNotBelongToTemporalLayer, temporal_layer_id, "") {
+  return !std::get<0>(arg)->belongsToTemporalLayer(temporal_layer_id);
+}
+MATCHER(PacketIsKeyframe, "") {
+  return std::get<0>(arg)->is_keyframe;
+}
+MATCHER(PacketIsNotKeyframe, "") {
+  return !std::get<0>(arg)->is_keyframe;
+}
+
 
 MATCHER(IsKeyframeFirstPacket, "") {
   erizo::RtpHeader *packet = reinterpret_cast<erizo::RtpHeader*>(std::get<0>(arg));

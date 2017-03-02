@@ -40,6 +40,10 @@ namespace erizo {
 #define RTCP_MIN_PT         194  // per https://tools.ietf.org/html/rfc5761
 #define RTCP_MAX_PT         223
 
+#define RTCP_AUDIO_INTERVAL 5000
+#define RTCP_VIDEO_INTERVAL  1000
+
+static const uint16_t kNackCommonHeaderLengthBytes = 12;
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -198,6 +202,33 @@ class RtpRtxHeader {
   }
 };
 
+
+// Generic NACK RTCP_RTP_FB + (FMT 1)rfc4585
+//      0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |            PID                |             BLP               |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+class NackBlock {
+ public:
+  uint32_t pid:16;
+  uint32_t blp:16;
+
+  inline uint16_t getNackPid() {
+    return ntohs(pid);
+  }
+  inline void setNackPid(uint16_t new_pid) {
+    pid = htons(new_pid);
+  }
+  inline uint16_t getNackBlp() {
+    return ntohs(blp);
+  }
+  inline void setNackBlp(uint16_t new_blp) {
+    blp = htons(new_blp);
+  }
+};
+
 //  0                   1                   2                   3
 //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -302,16 +333,9 @@ class RtcpHeader {
       struct receiverReport_t rrlist[1];
     } senderReport;
 
-    // Generic NACK RTCP_RTP_FB + (FMT 1)rfc4585
-    //      0                   1                   2                   3
-    //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //   |            PID                |             BLP               |
-    //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     struct genericNack_t {
       uint32_t ssrcsource;
-      uint32_t pid:16;
-      uint32_t blp:16;
+      NackBlock nack_block;
     } nackPacket;
 
     struct remb_t {
@@ -411,7 +435,6 @@ class RtcpHeader {
   inline void setDelaySinceLastSr(uint32_t delaylastsr) {
     report.receiverReport.delaysincelast = htonl(delaylastsr);
   }
-
   inline uint32_t getPacketsSent() {
     return ntohl(report.senderReport.packetsent);
   }
@@ -421,24 +444,30 @@ class RtcpHeader {
   inline uint32_t getOctetsSent() {
     return ntohl(report.senderReport.octetssent);
   }
+  inline void setOctetsSent(uint32_t octets_sent) {
+    report.senderReport.octetssent = htonl(octets_sent);
+  }
   inline uint64_t getNtpTimestamp() {
     return (((uint64_t)htonl(report.senderReport.ntptimestamp)) << 32) + htonl(report.senderReport.ntptimestamp >> 32);
+  }
+  inline void setNtpTimestamp(uint64_t ntp_timestamp) {
+    report.senderReport.ntptimestamp = (((uint64_t)ntohl(ntp_timestamp)) << 32) + ntohl(ntp_timestamp >> 32);
   }
   inline uint32_t get32MiddleNtp() {
     uint64_t middle = (report.senderReport.ntptimestamp << 16) >> 32;
     return ntohl(middle);
   }
   inline uint16_t getNackPid() {
-    return ntohs(report.nackPacket.pid);
+    return report.nackPacket.nack_block.getNackPid();
   }
   inline void setNackPid(uint16_t pid) {
-    report.nackPacket.pid = htons(pid);
+    report.nackPacket.nack_block.setNackPid(pid);
   }
   inline uint16_t getNackBlp() {
-    return report.nackPacket.blp;
+    return report.nackPacket.nack_block.getNackBlp();
   }
   inline void setNackBlp(uint16_t blp) {
-    report.nackPacket.blp = blp;
+    report.nackPacket.nack_block.setNackBlp(blp);
   }
   inline void setREMBBitRate(uint64_t bitRate) {
     uint64_t max = 0x3FFFF;  // 18 bits

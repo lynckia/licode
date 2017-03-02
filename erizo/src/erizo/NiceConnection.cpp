@@ -120,15 +120,23 @@ void NiceConnection::close() {
 }
 
 void NiceConnection::onData(unsigned int component_id, char* buf, int len) {
-  if (this->checkIceState() == NICE_READY) {
+  IceState state;
+  NiceConnectionListener* listener;
+  {
+    boost::mutex::scoped_lock(closeMutex_);
+    state = this->checkIceState();
+    listener = listener_;
+  }
+  if (state == NICE_READY) {
     packetPtr packet (new dataPacket());
     memcpy(packet->data, buf, len);
     packet->comp = component_id;
     packet->length = len;
     packet->received_time_ms = ClockUtils::timePointToMs(clock::now());
-    listener_->onPacketReceived(packet);
+    listener->onPacketReceived(packet);
   }
 }
+
 int NiceConnection::sendData(unsigned int compId, const void* buf, int len) {
   int val = -1;
   if (this->checkIceState() == NICE_READY) {
@@ -482,6 +490,16 @@ void NiceConnection::updateIceState(IceState state) {
     this->listener_->updateIceState(state, this);
 }
 
+std::string getHostTypeFromCandidate(NiceCandidate *candidate) {
+  switch (candidate->type) {
+    case NICE_CANDIDATE_TYPE_HOST: return "host";
+    case NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE: return "serverReflexive";
+    case NICE_CANDIDATE_TYPE_PEER_REFLEXIVE: return "peerReflexive";
+    case NICE_CANDIDATE_TYPE_RELAYED: return "relayed";
+    default: return "unknown";
+  }
+}
+
 CandidatePair NiceConnection::getSelectedPair() {
   char ipaddr[NICE_ADDRESS_STRING_LEN];
   CandidatePair selectedPair;
@@ -490,13 +508,15 @@ CandidatePair NiceConnection::getSelectedPair() {
   nice_address_to_string(&local->addr, ipaddr);
   selectedPair.erizoCandidateIp = std::string(ipaddr);
   selectedPair.erizoCandidatePort = nice_address_get_port(&local->addr);
-  ELOG_DEBUG("%s message: selected pair, local_addr: %s, local_port: %d",
-              toLog(), ipaddr, nice_address_get_port(&local->addr));
+  selectedPair.erizoHostType = getHostTypeFromCandidate(local);
+  ELOG_DEBUG("%s message: selected pair, local_addr: %s, local_port: %d, local_type: %s",
+              toLog(), ipaddr, nice_address_get_port(&local->addr), selectedPair.erizoHostType.c_str());
   nice_address_to_string(&remote->addr, ipaddr);
   selectedPair.clientCandidateIp = std::string(ipaddr);
   selectedPair.clientCandidatePort = nice_address_get_port(&remote->addr);
-  ELOG_INFO("%s message: selected pair, remote_addr: %s, remote_port: %d",
-             toLog(), ipaddr, nice_address_get_port(&remote->addr));
+  selectedPair.clientHostType = getHostTypeFromCandidate(local);
+  ELOG_INFO("%s message: selected pair, remote_addr: %s, remote_port: %d, remote_type: %s",
+             toLog(), ipaddr, nice_address_get_port(&remote->addr), selectedPair.clientHostType.c_str());
   return selectedPair;
 }
 

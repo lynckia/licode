@@ -15,7 +15,7 @@ class RtpRetransmissionHandler : public Handler {
  public:
   DECLARE_LOGGER();
 
-  explicit RtpRetransmissionHandler(WebRtcConnection *connection);
+  RtpRetransmissionHandler();
 
   void enable() override;
   void disable() override;
