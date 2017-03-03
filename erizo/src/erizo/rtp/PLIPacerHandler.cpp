@@ -49,6 +49,7 @@ void PLIPacerHandler::sendPLI() {
 }
 
 void PLIPacerHandler::sendFIR() {
+  ELOG_WARN("%s message: Timed out waiting for a keyframe", connection_->toLog());
   getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_));
   getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_));
   getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_));
