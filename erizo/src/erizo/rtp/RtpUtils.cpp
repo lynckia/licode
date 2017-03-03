@@ -35,10 +35,32 @@ void RtpUtils::forEachNack(RtcpHeader *chead, std::function<void(uint16_t, uint1
   }
 }
 
+bool RtpUtils::isPLI(std::shared_ptr<dataPacket> packet) {
+  bool is_pli = false;
+  forEachRRBlock(packet, [&is_pli] (RtcpHeader *header) {
+    if (header->getPacketType() == RTCP_PS_Feedback_PT &&
+        header->getBlockCount() == RTCP_PLI_FMT) {
+          is_pli = true;
+        }
+  });
+  return is_pli;
+}
+
+bool RtpUtils::isFIR(std::shared_ptr<dataPacket> packet) {
+  bool is_fir = false;
+  forEachRRBlock(packet, [&is_fir] (RtcpHeader *header) {
+    if (header->getPacketType() == RTCP_PS_Feedback_PT &&
+        header->getBlockCount() == RTCP_FIR_FMT) {
+          is_fir = true;
+        }
+  });
+  return is_fir;
+}
+
 std::shared_ptr<dataPacket> RtpUtils::createPLI(uint32_t source_ssrc, uint32_t sink_ssrc) {
   RtcpHeader pli;
   pli.setPacketType(RTCP_PS_Feedback_PT);
-  pli.setBlockCount(1);
+  pli.setBlockCount(RTCP_PLI_FMT);
   pli.setSSRC(sink_ssrc);
   pli.setSourceSSRC(source_ssrc);
   pli.setLength(2);
@@ -46,6 +68,19 @@ std::shared_ptr<dataPacket> RtpUtils::createPLI(uint32_t source_ssrc, uint32_t s
   int len = (pli.getLength() + 1) * 4;
   return std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET);
 }
+
+std::shared_ptr<dataPacket> RtpUtils::createFIR(uint32_t source_ssrc, uint32_t sink_ssrc) {
+  RtcpHeader fir;
+  fir.setPacketType(RTCP_PS_Feedback_PT);
+  fir.setBlockCount(RTCP_FIR_FMT);
+  fir.setSSRC(sink_ssrc);
+  fir.setSourceSSRC(source_ssrc);
+  fir.setLength(2);
+  char *buf = reinterpret_cast<char*>(&fir);
+  int len = (fir.getLength() + 1) * 4;
+  return std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET);
+}
+
 
 int RtpUtils::getPaddingLength(std::shared_ptr<dataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
