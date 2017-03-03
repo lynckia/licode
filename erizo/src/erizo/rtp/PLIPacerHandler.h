@@ -11,7 +11,7 @@ namespace erizo {
 
 class WebRtcConnection;
 
-class PLIPacerHandler: public Handler, public std::enable_shared_from_this<PLIPacerHandler> {
+class PliPacerHandler: public Handler, public std::enable_shared_from_this<PliPacerHandler> {
   DECLARE_LOGGER();
 
  public:
@@ -19,7 +19,7 @@ class PLIPacerHandler: public Handler, public std::enable_shared_from_this<PLIPa
   static constexpr duration kKeyframeTimeout = std::chrono::seconds(4);
 
  public:
-  explicit PLIPacerHandler(std::shared_ptr<erizo::Clock> the_clock = std::make_shared<SteadyClock>());
+  explicit PliPacerHandler(std::shared_ptr<erizo::Clock> the_clock = std::make_shared<SteadyClock>());
 
   void enable() override;
   void disable() override;

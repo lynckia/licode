@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <queue>
 
-#include <rtp/PLIPacerHandler.h>
+#include <rtp/PliPacerHandler.h>
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
@@ -24,7 +24,7 @@ using erizo::AUDIO_PACKET;
 using erizo::VIDEO_PACKET;
 using erizo::IceConfig;
 using erizo::RtpMap;
-using erizo::PLIPacerHandler;
+using erizo::PliPacerHandler;
 using erizo::SimulatedClock;
 using erizo::WebRtcConnection;
 using erizo::Pipeline;
@@ -34,29 +34,29 @@ using erizo::Worker;
 using std::queue;
 
 constexpr int kShortPeriodMs =
-  std::chrono::duration_cast<std::chrono::milliseconds>(PLIPacerHandler::kMinPLIPeriod).count() / 5;
+  std::chrono::duration_cast<std::chrono::milliseconds>(PliPacerHandler::kMinPLIPeriod).count() / 5;
 
 constexpr int kPLIPeriodMs =
-  std::chrono::duration_cast<std::chrono::milliseconds>(PLIPacerHandler::kMinPLIPeriod).count();
+  std::chrono::duration_cast<std::chrono::milliseconds>(PliPacerHandler::kMinPLIPeriod).count();
 
 constexpr int kKeyframeTimeoutMs =
-  std::chrono::duration_cast<std::chrono::milliseconds>(PLIPacerHandler::kKeyframeTimeout).count();
+  std::chrono::duration_cast<std::chrono::milliseconds>(PliPacerHandler::kKeyframeTimeout).count();
 
 
-class PLIPacerHandlerTest : public erizo::HandlerTest {
+class PliPacerHandlerTest : public erizo::HandlerTest {
  public:
-  PLIPacerHandlerTest() {}
+  PliPacerHandlerTest() {}
 
  protected:
   void setHandler() {
-    pli_pacer_handler = std::make_shared<PLIPacerHandler>(simulated_clock);
+    pli_pacer_handler = std::make_shared<PliPacerHandler>(simulated_clock);
     pipeline->addBack(pli_pacer_handler);
   }
 
-  std::shared_ptr<PLIPacerHandler> pli_pacer_handler;
+  std::shared_ptr<PliPacerHandler> pli_pacer_handler;
 };
 
-TEST_F(PLIPacerHandlerTest, basicBehaviourShouldReadPackets) {
+TEST_F(PliPacerHandlerTest, basicBehaviourShouldReadPackets) {
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
 
     EXPECT_CALL(*reader.get(), read(_, _)).
@@ -64,7 +64,7 @@ TEST_F(PLIPacerHandlerTest, basicBehaviourShouldReadPackets) {
     pipeline->read(packet);
 }
 
-TEST_F(PLIPacerHandlerTest, basicBehaviourShouldWritePackets) {
+TEST_F(PliPacerHandlerTest, basicBehaviourShouldWritePackets) {
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
 
     EXPECT_CALL(*writer.get(), write(_, _)).
@@ -72,7 +72,7 @@ TEST_F(PLIPacerHandlerTest, basicBehaviourShouldWritePackets) {
     pipeline->write(packet);
 }
 
-TEST_F(PLIPacerHandlerTest, shouldSendASinglePLIWhenReceivingSeveralInAShortPeriod) {
+TEST_F(PliPacerHandlerTest, shouldSendASinglePLIWhenReceivingSeveralInAShortPeriod) {
     auto pli1 = erizo::PacketTools::createPLI();
     auto pli2 = erizo::PacketTools::createPLI();
     auto pli3 = erizo::PacketTools::createPLI();
@@ -86,7 +86,7 @@ TEST_F(PLIPacerHandlerTest, shouldSendASinglePLIWhenReceivingSeveralInAShortPeri
     executeTasksInNextMs(kShortPeriodMs);
 }
 
-TEST_F(PLIPacerHandlerTest, shouldResetPeriodWhenKeyframeIsReceived) {
+TEST_F(PliPacerHandlerTest, shouldResetPeriodWhenKeyframeIsReceived) {
     auto pli1 = erizo::PacketTools::createPLI();
     auto keyframe = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber, true, true);
     auto pli2 = erizo::PacketTools::createPLI();
@@ -103,7 +103,7 @@ TEST_F(PLIPacerHandlerTest, shouldResetPeriodWhenKeyframeIsReceived) {
     executeTasksInNextMs(kShortPeriodMs);
 }
 
-TEST_F(PLIPacerHandlerTest, shouldSendMultiplePLIsWhenPeriodIsExpiredWithNoKeyframes) {
+TEST_F(PliPacerHandlerTest, shouldSendMultiplePLIsWhenPeriodIsExpiredWithNoKeyframes) {
     auto pli1 = erizo::PacketTools::createPLI();
     auto keyframe = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber, true, true);
 
@@ -117,7 +117,7 @@ TEST_F(PLIPacerHandlerTest, shouldSendMultiplePLIsWhenPeriodIsExpiredWithNoKeyfr
     executeTasksInNextMs(kPLIPeriodMs + 1);
 }
 
-TEST_F(PLIPacerHandlerTest, shouldNotSendMultiplePLIsWhenDisabled) {
+TEST_F(PliPacerHandlerTest, shouldNotSendMultiplePLIsWhenDisabled) {
     auto pli1 = erizo::PacketTools::createPLI();
     auto keyframe = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber, true, true);
     pli_pacer_handler->disable();
@@ -132,7 +132,7 @@ TEST_F(PLIPacerHandlerTest, shouldNotSendMultiplePLIsWhenDisabled) {
     executeTasksInNextMs(kPLIPeriodMs + 1);
 }
 
-TEST_F(PLIPacerHandlerTest, shouldSendFIRWhenKeyframesAreNotReceivedInALongPeriod) {
+TEST_F(PliPacerHandlerTest, shouldSendFIRWhenKeyframesAreNotReceivedInALongPeriod) {
     auto pli1 = erizo::PacketTools::createPLI();
 
     EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::IsPLI())).Times(20);
