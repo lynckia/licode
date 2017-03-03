@@ -14,7 +14,7 @@ constexpr duration PLIPacerHandler::kKeyframeTimeout;
 PLIPacerHandler::PLIPacerHandler(std::shared_ptr<erizo::Clock> the_clock)
     : enabled_{true}, connection_{nullptr}, clock_{the_clock}, time_last_keyframe_{clock_->now()},
       waiting_for_keyframe_{false}, scheduled_pli_{-1},
-      video_sink_ssrc_{0}, video_source_ssrc_{0} {}
+      video_sink_ssrc_{0}, video_source_ssrc_{0}, fir_seq_number_{0} {}
 
 void PLIPacerHandler::enable() {
   enabled_ = true;
@@ -44,15 +44,15 @@ void PLIPacerHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
 }
 
 void PLIPacerHandler::sendPLI() {
-  getContext()->fireWrite(RtpUtils::createPLI(video_source_ssrc_, video_sink_ssrc_));
+  //getContext()->fireWrite(RtpUtils::createPLI(video_source_ssrc_, video_sink_ssrc_));
   scheduleNextPLI();
 }
 
 void PLIPacerHandler::sendFIR() {
   ELOG_WARN("%s message: Timed out waiting for a keyframe", connection_->toLog());
-  getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_));
-  getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_));
-  getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_));
+  getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_, fir_seq_number_++));
+  getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_, fir_seq_number_++));
+  getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_, fir_seq_number_++));
   waiting_for_keyframe_ = false;
   scheduled_pli_ = -1;
 }
@@ -80,6 +80,7 @@ void PLIPacerHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
     }
     waiting_for_keyframe_ = true;
     scheduleNextPLI();
+    return;
   }
   ctx->fireWrite(packet);
 }

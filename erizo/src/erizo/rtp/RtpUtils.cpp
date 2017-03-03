@@ -69,13 +69,15 @@ std::shared_ptr<dataPacket> RtpUtils::createPLI(uint32_t source_ssrc, uint32_t s
   return std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET);
 }
 
-std::shared_ptr<dataPacket> RtpUtils::createFIR(uint32_t source_ssrc, uint32_t sink_ssrc) {
+std::shared_ptr<dataPacket> RtpUtils::createFIR(uint32_t source_ssrc, uint32_t sink_ssrc, uint8_t seq_number) {
   RtcpHeader fir;
   fir.setPacketType(RTCP_PS_Feedback_PT);
   fir.setBlockCount(RTCP_FIR_FMT);
   fir.setSSRC(sink_ssrc);
   fir.setSourceSSRC(source_ssrc);
-  fir.setLength(2);
+  fir.setLength(4);
+  fir.setFIRSourceSSRC(source_ssrc);
+  fir.setFIRSequenceNumber(seq_number);
   char *buf = reinterpret_cast<char*>(&fir);
   int len = (fir.getLength() + 1) * 4;
   return std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET);
