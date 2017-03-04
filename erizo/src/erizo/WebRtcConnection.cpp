@@ -22,13 +22,14 @@
 #include "rtp/FecReceiverHandler.h"
 #include "rtp/RtcpProcessorHandler.h"
 #include "rtp/RtpRetransmissionHandler.h"
+#include "rtp/RtcpFeedbackGenerationHandler.h"
 #include "rtp/StatsHandler.h"
-#include "rtp/RRGenerationHandler.h"
 #include "rtp/SRPacketHandler.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
 #include "rtp/LayerDetectorHandler.h"
 #include "rtp/QualityFilterHandler.h"
 #include "rtp/QualityManager.h"
+#include "rtp/PliPacerHandler.h"
 
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
@@ -256,8 +257,9 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addFront(QualityFilterHandler());
   pipeline_->addFront(RtpAudioMuteHandler());
   pipeline_->addFront(RtpSlideShowHandler());
+  pipeline_->addFront(PliPacerHandler());
   pipeline_->addFront(BandwidthEstimationHandler());
-  pipeline_->addFront(RRGenerationHandler());
+  pipeline_->addFront(RtcpFeedbackGenerationHandler());
   pipeline_->addFront(RtpRetransmissionHandler());
   pipeline_->addFront(SRPacketHandler());
   pipeline_->addFront(SenderBandwidthEstimationHandler());

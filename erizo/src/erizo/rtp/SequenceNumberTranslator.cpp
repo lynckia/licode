@@ -84,7 +84,7 @@ SequenceNumber SequenceNumberTranslator::get(uint16_t input_sequence_number, boo
 
     add(SequenceNumber{input_sequence_number, output_sequence_number, type});
     last_input_sequence_number_ = input_sequence_number;
-    if (last_input_sequence_number_ - kMaxDistance > first_input_sequence_number_) {
+    if (RtpUtils::sequenceNumberLessThan(first_input_sequence_number_, last_input_sequence_number_ - kMaxDistance)) {
       first_input_sequence_number_ = last_input_sequence_number_ - kMaxDistance;
     }
     SequenceNumber info = get(input_sequence_number);

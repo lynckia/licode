@@ -39,6 +39,8 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   void handleFeedbackPackets(std::shared_ptr<dataPacket> packet);
   bool checkSSRCChange(uint32_t ssrc);
   void changeSpatialLayerOnKeyframeReceived(std::shared_ptr<dataPacket> packet);
+  void detectVideoScalability(std::shared_ptr<dataPacket> packet);
+  void removePaddingBytes(std::shared_ptr<dataPacket> packet);
 
  private:
   std::shared_ptr<QualityManager> quality_manager_;
@@ -48,6 +50,7 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   bool initialized_;
   bool receiving_multiple_ssrc_;
   bool changing_spatial_layer_;
+  bool is_scalable_;
   int target_spatial_layer_;
   int future_spatial_layer_;
   int target_temporal_layer_;
