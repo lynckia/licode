@@ -147,14 +147,14 @@ void MovingIntervalRateStat::add(uint64_t value) {
     }
     for (int i = 0; i < intervals_to_pass; i++) {
       current_interval_ = getNextInterval(current_interval_);
-      sample_vector_->at(current_interval_) = 0;
+      (*sample_vector_.get())[current_interval_] = 0;
       accumulated_intervals_++;
     }
   }
 
   uint32_t corresponding_interval = getIntervalForTimeMs(now_ms);
   if (corresponding_interval != current_interval_) {
-    sample_vector_->at(corresponding_interval) = 0;
+    (*sample_vector_.get())[corresponding_interval] = 0;
     accumulated_intervals_++;
   }
   current_interval_ = corresponding_interval;
@@ -209,7 +209,7 @@ uint64_t MovingIntervalRateStat::calculateRateForInterval(uint64_t interval_to_c
   // add the proportional part of the current interval
   double interval_part = static_cast<double>((now_ms - (calculation_start_ms_ +
           ((accumulated_intervals_ - 1) * interval_size_ms_)))) / interval_size_ms_;
-  double proportional_value = interval_part * sample_vector_->at(current_interval_);
+  double proportional_value = interval_part * (*sample_vector_.get())[current_interval_];
   if (interval_part < 1) {
     total_sum += proportional_value;
   } else {
