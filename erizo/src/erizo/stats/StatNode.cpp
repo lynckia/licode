@@ -135,8 +135,7 @@ void MovingIntervalRateStat::add(uint64_t value) {
     current_window_end_ms_ = now_ms + accumulated_intervals_ * interval_size_ms_;
   }
   int32_t intervals_to_pass = (now_ms - current_window_end_ms_) / interval_size_ms_;
-  //  if sample is more than a window ahead from last sample
-  //  We clean up and set the new value as the newest
+
   if (intervals_to_pass > 0) {
     if (intervals_to_pass >= intervals_in_window_) {
       sample_vector_->assign(intervals_in_window_, 0);
@@ -263,17 +262,15 @@ std::string MovingAverageStat::toString() {
 
 void MovingAverageStat::add(uint64_t value) {
   if (next_sample_position_ < window_size_) {
-    current_average_ = 0;
+    current_average_  = static_cast<double>(current_average_ * next_sample_position_ + value)
+      / (next_sample_position_ + 1);
   } else {
-    current_average_ = current_average_ +
-      static_cast<double>(value - (*sample_vector_.get())[next_sample_position_ % window_size_])/window_size_;
+    uint64_t old_value = (*sample_vector_.get())[next_sample_position_ % window_size_];
+    current_average_ = current_average_ + static_cast<double>(value - old_value) / window_size_;
   }
 
   (*sample_vector_.get())[next_sample_position_ % window_size_] = value;
   next_sample_position_++;
-  if (current_average_ == 0) {
-    current_average_ = getAverage(window_size_);
-  }
 }
 
 double MovingAverageStat::getAverage(uint32_t sample_number) {
