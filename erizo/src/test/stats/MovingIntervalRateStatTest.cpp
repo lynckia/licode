@@ -46,7 +46,7 @@ class MovingIntervalRateStatTest : public ::testing::Test {
 TEST_F(MovingIntervalRateStatTest, shouldCalculateAverageForLessThanWindowSize) {
   for (int i = 0; i < 3; i++) {
     moving_interval_stat+=(100+10*i);
-    advanceClockMs(101);
+    advanceClockMs(100);
   }
   EXPECT_EQ(moving_interval_stat.value(), (100 + 110 + 120)/3);
 }
@@ -85,15 +85,28 @@ TEST_F(MovingIntervalRateStatTest, shouldCalculateAverageForAGivenInterval) {
   EXPECT_EQ(moving_interval_stat.value(kArbitraryIntervalToCalculate), mean);
 }
 
-TEST_F(MovingIntervalRateStatTest, shouldIntroduceZerosInTimeGaps) {
+TEST_F(MovingIntervalRateStatTest, shouldIntroduceZerosInTimeGapsWhenAdding) {
   const int kGapSizeInIntervals = 3;
   moving_interval_stat += 100;
   moving_interval_stat += 100;
-  advanceClockMs(kGapSizeInIntervals * 101);
+  advanceClockMs(kGapSizeInIntervals * 100);
   moving_interval_stat += 50;
+  advanceClockMs(100);
 
   uint32_t mean = (200 + 50) / 4;
 
+  EXPECT_EQ(moving_interval_stat.value(), mean);
+}
+
+TEST_F(MovingIntervalRateStatTest, shouldIntroduceZerosInTimeGapsWhenCalculating) {
+  const int kGapSizeInIntervals = 2;
+  moving_interval_stat += 100;
+  advanceClockMs(110);
+  moving_interval_stat += 100;
+
+  advanceClockMs(kGapSizeInIntervals * 110);
+
+  uint32_t mean = (200) / 4;
   EXPECT_EQ(moving_interval_stat.value(), mean);
 }
 
@@ -101,9 +114,18 @@ TEST_F(MovingIntervalRateStatTest, shouldCleanWindowIfValueIsOverWindow) {
   const int kGapSizeInIntervals = 10;
   moving_interval_stat += 100;
   moving_interval_stat += 100;
-  advanceClockMs(kGapSizeInIntervals * 101);
+  advanceClockMs(kGapSizeInIntervals * 100);
   moving_interval_stat += 50;
   uint32_t mean = (50) / 5;
 
-  EXPECT_EQ(moving_interval_stat.value(), mean);
+  EXPECT_EQ(moving_interval_stat.value(0), mean);
+}
+
+TEST_F(MovingIntervalRateStatTest, shouldReturn0IfTimeIsOutOfWindow) {
+  const int kGapSizeInIntervals = 25;
+  moving_interval_stat += 100;
+  moving_interval_stat += 100;
+  advanceClockMs(kGapSizeInIntervals * 100);
+
+  EXPECT_EQ(moving_interval_stat.value(0), 0);
 }

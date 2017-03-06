@@ -103,17 +103,6 @@ TEST_F(StatNodeTest, rateStatsShouldReturnZeroWhenNotIncreasing) {
   EXPECT_THAT(root.toString(), Eq("{\"rate\":0}"));
 }
 
-TEST_F(StatNodeTest, averageStat) {
-  root.insertStat("rate", MovingAverageStat{5});
-  root["rate"] += 5;
-  advanceClockMs(1000);
-  EXPECT_THAT(root.toString(), Eq("{\"rate\":5}"));
-  root["rate"] += 15;
-
-  advanceClockMs(1000);
-  EXPECT_THAT(root.toString(), Eq("{\"rate\":10}"));
-}
-
 TEST_F(StatNodeTest, newRateStatTest) {
   root.insertStat("rate", MovingIntervalRateStat{1000, 10, .1, clock});
   root["rate"] += 10 * 8;
@@ -123,3 +112,4 @@ TEST_F(StatNodeTest, newRateStatTest) {
   advanceClockMs(1000);
   EXPECT_THAT(root.toString(), Eq("{\"rate\":0}"));
 }
+
