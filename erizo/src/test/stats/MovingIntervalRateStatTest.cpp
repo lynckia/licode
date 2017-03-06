@@ -100,12 +100,12 @@ TEST_F(MovingIntervalRateStatTest, shouldIntroduceZerosInTimeGapsWhenAdding) {
 }
 
 TEST_F(MovingIntervalRateStatTest, shouldIntroduceZerosInTimeGapsWhenCalculating) {
-  const int kGapSizeInIntervals = 2;
+  const int kGapSizeInIntervals = 3;
   moving_interval_stat += 100;
-  advanceClockMs(110);
+  advanceClockMs(100);
   moving_interval_stat += 100;
 
-  advanceClockMs(kGapSizeInIntervals * 110);
+  advanceClockMs(kGapSizeInIntervals * 100);
 
   uint32_t mean = (200) / 4;
   EXPECT_EQ(moving_interval_stat.value(), mean);
@@ -119,7 +119,7 @@ TEST_F(MovingIntervalRateStatTest, shouldCleanWindowIfValueIsOverWindow) {
   moving_interval_stat += 50;
   uint32_t mean = (50) / 5;
 
-  EXPECT_EQ(moving_interval_stat.value(0), mean);
+  EXPECT_EQ(moving_interval_stat.value(), mean);
 }
 
 TEST_F(MovingIntervalRateStatTest, shouldReturn0IfTimeIsOutOfWindow) {
@@ -128,5 +128,13 @@ TEST_F(MovingIntervalRateStatTest, shouldReturn0IfTimeIsOutOfWindow) {
   moving_interval_stat += 100;
   advanceClockMs(kGapSizeInIntervals * 100);
 
-  EXPECT_EQ(moving_interval_stat.value(0), 0);
+  EXPECT_EQ(moving_interval_stat.value(), 0);
+}
+
+TEST_F(MovingIntervalRateStatTest, shouldAddTheCorrespondingPartOfTheLastInterval) {
+  moving_interval_stat += 50;
+  advanceClockMs(150);
+  moving_interval_stat += 200;
+
+  EXPECT_EQ(moving_interval_stat.value(), 100);
 }

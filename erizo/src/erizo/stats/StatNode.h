@@ -144,6 +144,8 @@ class MovingIntervalRateStat : public StatNode {
   uint64_t calculation_start_ms_;
   uint64_t current_interval_;
   uint64_t accumulated_intervals_;
+  uint64_t current_window_start_ms_;
+  uint64_t current_window_end_ms_;
   std::shared_ptr<std::vector<uint64_t>> sample_vector_;
   bool initialized_;
   std::shared_ptr<Clock> clock_;
