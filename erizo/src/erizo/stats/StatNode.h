@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 #include <memory>
 
 #include "lib/Clock.h"
@@ -112,6 +113,69 @@ class RateStat : public StatNode {
   uint64_t current_period_total_;
   uint64_t last_period_calculated_rate_;
   std::shared_ptr<Clock> clock_;
+};
+
+class MovingIntervalRateStat : public StatNode {
+ public:
+  MovingIntervalRateStat(duration interval_size, uint32_t intervals, double scale,
+                     std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
+  virtual ~MovingIntervalRateStat();
+
+  StatNode operator++(int value) override;
+
+  StatNode& operator+=(uint64_t value) override;
+
+  uint64_t value() override;
+  uint64_t value(duration stat_interval);
+
+  std::string toString() override;
+
+
+ private:
+  void add(uint64_t value);
+  uint64_t calculateRateForInterval(uint64_t interval_to_calculate_ms);
+  uint32_t getIntervalForTimeMs(uint64_t time_ms);
+  uint32_t getNextInterval(uint32_t interval);
+  void updateWindowTimes();
+
+ private:
+  int64_t interval_size_ms_;
+  uint32_t intervals_in_window_;
+  double scale_;
+  uint64_t calculation_start_ms_;
+  uint64_t current_interval_;
+  uint64_t accumulated_intervals_;
+  uint64_t current_window_start_ms_;
+  uint64_t current_window_end_ms_;
+  std::shared_ptr<std::vector<uint64_t>> sample_vector_;
+  bool initialized_;
+  std::shared_ptr<Clock> clock_;
+};
+
+class MovingAverageStat : public StatNode {
+ public:
+  explicit MovingAverageStat(uint32_t window_size);
+  virtual ~MovingAverageStat();
+
+  StatNode operator++(int value) override;
+
+  StatNode& operator+=(uint64_t value) override;
+
+  uint64_t value() override;
+
+  uint64_t value(uint32_t sample_number);
+
+  std::string toString() override;
+
+ private:
+  void add(uint64_t value);
+  double getAverage(uint32_t sample_number);
+
+ private:
+  std::shared_ptr<std::vector<uint64_t>> sample_vector_;
+  uint32_t window_size_;
+  uint64_t next_sample_position_;
+  double current_average_;
 };
 
 }  // namespace erizo

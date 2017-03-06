@@ -9,7 +9,8 @@
 
 namespace erizo {
 
-constexpr duration kBitrateStatsPeriod = std::chrono::seconds(2);
+constexpr duration kRateStatIntervalSize = std::chrono::milliseconds(100);
+constexpr uint32_t kRateStatIntervals = 10;
 
 class WebRtcConnection;
 
