@@ -70,7 +70,7 @@ TEST_F(MovingIntervalRateStatTest, shouldReturnAverageOfWindowSize) {
 }
 
 TEST_F(MovingIntervalRateStatTest, shouldCalculateAverageForAGivenInterval) {
-  const uint64_t kArbitraryIntervalToCalculate = 200;
+  const duration kArbitraryIntervalToCalculate = std::chrono::milliseconds(200);
   const int kTotalSamples = 10;
 
   for (int i = 0; i < kTotalSamples; i++) {
@@ -78,7 +78,8 @@ TEST_F(MovingIntervalRateStatTest, shouldCalculateAverageForAGivenInterval) {
     advanceClockMs(101);
   }
   uint64_t mean = 0;
-  const int kNumberOfIntervals = kArbitraryIntervalToCalculate / ClockUtils::durationToMs(kArbitraryIntervalSizeMs);
+  const uint64_t kNumberOfIntervals = ClockUtils::durationToMs(kArbitraryIntervalToCalculate) /
+    ClockUtils::durationToMs(kArbitraryIntervalSizeMs);
   for (int i = kTotalSamples - kNumberOfIntervals; i < kTotalSamples; i++) {
       mean = mean + 100 + i * 10;
   }
