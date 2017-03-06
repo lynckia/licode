@@ -96,7 +96,9 @@ class PacketTools {
     parsing_pointer++;
     *parsing_pointer = is_keyframe? 0x00: 0x01;
 
-    return std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    auto packet = std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    packet->is_keyframe = is_keyframe;
+    return packet;
   }
 
   static std::shared_ptr<dataPacket> createVP9Packet(uint16_t seq_number, bool is_keyframe, bool is_marker) {
@@ -115,7 +117,9 @@ class PacketTools {
 
     *parsing_pointer = is_keyframe? 0x00: 0x40;
 
-    return std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    auto packet = std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    packet->is_keyframe = is_keyframe;
+    return packet;
   }
 
   static std::shared_ptr<erizo::dataPacket> createRembPacket(uint32_t bitrate) {
@@ -159,10 +163,10 @@ class BaseHandlerTest  {
   virtual void setHandler() = 0;
 
   virtual void internalSetUp() {
-    scheduler = std::make_shared<Scheduler>(1);
-    worker = std::make_shared<Worker>(scheduler);
-    worker->start();
-    connection = std::make_shared<erizo::MockWebRtcConnection>(worker, ice_config, rtp_maps);
+    simulated_clock = std::make_shared<erizo::SimulatedClock>();
+    simulated_worker = std::make_shared<erizo::SimulatedWorker>(simulated_clock);
+    simulated_worker->start();
+    connection = std::make_shared<erizo::MockWebRtcConnection>(simulated_worker, ice_config, rtp_maps);
     processor = std::make_shared<erizo::MockRtcpProcessor>();
     stats = std::make_shared<erizo::Stats>();
     connection->setVideoSinkSSRC(erizo::kVideoSsrc);
@@ -188,6 +192,13 @@ class BaseHandlerTest  {
     pipeline->finalize();
   }
 
+  virtual void executeTasksInNextMs(int time) {
+    for (int step = 0; step < time + 1; step++) {
+      simulated_worker->executePastScheduledTasks();
+      simulated_clock->advanceTime(std::chrono::milliseconds(1));
+    }
+  }
+
   virtual void internalTearDown() {
   }
 
@@ -199,8 +210,8 @@ class BaseHandlerTest  {
   Pipeline::Ptr pipeline;
   std::shared_ptr<erizo::Reader> reader;
   std::shared_ptr<erizo::Writer> writer;
-  std::shared_ptr<Worker> worker;
-  std::shared_ptr<Scheduler> scheduler;
+  std::shared_ptr<erizo::SimulatedClock> simulated_clock;
+  std::shared_ptr<erizo::SimulatedWorker> simulated_worker;
   std::queue<std::shared_ptr<dataPacket>> packet_queue;
 };
 
