@@ -17,15 +17,17 @@ using ::testing::Return;
 using ::testing::Eq;
 using erizo::MovingIntervalRateStat;
 using erizo::SimulatedClock;
+using erizo::duration;
+using erizo::ClockUtils;
 
-constexpr uint32_t kArbitraryIntervalSizeMs = 100;
+constexpr duration kArbitraryIntervalSizeMs = std::chrono::milliseconds(100);
 constexpr uint32_t kArbitraryNumberOfIntervals = 5;
-constexpr double kBytesToBitsScale = .1;
+constexpr double kArbitraryScale = .1;
 
 class MovingIntervalRateStatTest : public ::testing::Test {
  public:
   MovingIntervalRateStatTest(): clock{std::make_shared<SimulatedClock>()},
-    moving_interval_stat{kArbitraryIntervalSizeMs, kArbitraryNumberOfIntervals, kBytesToBitsScale,
+    moving_interval_stat{kArbitraryIntervalSizeMs, kArbitraryNumberOfIntervals, kArbitraryScale,
     clock} {
   }
 
@@ -60,7 +62,6 @@ TEST_F(MovingIntervalRateStatTest, shouldReturnAverageOfWindowSize) {
   }
   uint64_t mean = 0;
   for (int i = kTotalSamples - kArbitraryNumberOfIntervals; i < kTotalSamples; i++) {
-    std::cout << 100 + i * 10 << " i " << i << std::endl;
       mean = mean + 100 + i * 10;
   }
   mean = mean/ kArbitraryNumberOfIntervals;
@@ -77,7 +78,7 @@ TEST_F(MovingIntervalRateStatTest, shouldCalculateAverageForAGivenInterval) {
     advanceClockMs(101);
   }
   uint64_t mean = 0;
-  const int kNumberOfIntervals = kArbitraryIntervalToCalculate / kArbitraryIntervalSizeMs;
+  const int kNumberOfIntervals = kArbitraryIntervalToCalculate / ClockUtils::durationToMs(kArbitraryIntervalSizeMs);
   for (int i = kTotalSamples - kNumberOfIntervals; i < kTotalSamples; i++) {
       mean = mean + 100 + i * 10;
   }

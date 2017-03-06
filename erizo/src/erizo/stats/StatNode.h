@@ -117,7 +117,7 @@ class RateStat : public StatNode {
 
 class MovingIntervalRateStat : public StatNode {
  public:
-  MovingIntervalRateStat(uint64_t interval_size_ms, uint32_t intervals, double scale,
+  MovingIntervalRateStat(duration interval_size, uint32_t intervals, double scale,
                      std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
   virtual ~MovingIntervalRateStat();
 
@@ -138,7 +138,7 @@ class MovingIntervalRateStat : public StatNode {
   uint32_t getNextInterval(uint32_t interval);
 
  private:
-  uint64_t interval_size_ms_;
+  int64_t interval_size_ms_;
   uint32_t intervals_in_window_;
   double scale_;
   uint64_t calculation_start_ms_;

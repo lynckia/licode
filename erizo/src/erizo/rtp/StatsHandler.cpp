@@ -18,7 +18,8 @@ void StatsCalculator::update(WebRtcConnection *connection, std::shared_ptr<Stats
     connection_ = connection;
     stats_ = stats;
     if (!getStatsInfo().hasChild("total")) {
-      getStatsInfo()["total"].insertStat("bitrateCalculated", RateStat{kBitrateStatsPeriod, 8.});
+      getStatsInfo()["total"].insertStat("bitrateCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
+        kRateStatIntervals, 8.});
     }
   }
 }
@@ -47,12 +48,10 @@ void StatsCalculator::processRtpPacket(std::shared_ptr<dataPacket> packet) {
     } else if (connection_->isAudioSourceSSRC(ssrc) || connection_->isAudioSinkSSRC(ssrc)) {
       getStatsInfo()[ssrc].insertStat("type", StringStat{"audio"});
     }
-    getStatsInfo()[ssrc].insertStat("bitrateCalculated", RateStat{kBitrateStatsPeriod, 8.});
-    getStatsInfo()[ssrc].insertStat("bitrateBetterCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
+    getStatsInfo()[ssrc].insertStat("bitrateCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
         kRateStatIntervals, 8.});
   }
   getStatsInfo()[ssrc]["bitrateCalculated"] += len;
-  getStatsInfo()[ssrc]["bitrateBetterCalculated"] += len;
   getStatsInfo()["total"]["bitrateCalculated"] += len;
   if (packet->type == VIDEO_PACKET && packet->is_keyframe) {
     incrStat(ssrc, "keyFrames");

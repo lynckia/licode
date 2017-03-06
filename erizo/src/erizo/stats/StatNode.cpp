@@ -103,10 +103,11 @@ void RateStat::checkPeriod() {
   }
 }
 
-MovingIntervalRateStat::MovingIntervalRateStat(uint64_t interval_size_ms, uint32_t intervals, double scale,
-  std::shared_ptr<Clock> the_clock): interval_size_ms_{interval_size_ms}, intervals_in_window_{intervals},
-  scale_{scale}, current_interval_{0}, accumulated_intervals_{0}, calculation_start_ms_{0},
-  sample_vector_{std::make_shared<std::vector<uint64_t>>(intervals, 0)}, initialized_{false}, clock_{the_clock} {
+MovingIntervalRateStat::MovingIntervalRateStat(duration interval_size, uint32_t intervals, double scale,
+  std::shared_ptr<Clock> the_clock): interval_size_ms_{ClockUtils::durationToMs(interval_size)},
+  intervals_in_window_{intervals}, scale_{scale}, calculation_start_ms_{0}, current_interval_{0},
+  accumulated_intervals_{0}, sample_vector_{std::make_shared<std::vector<uint64_t>>(intervals, 0)},
+  initialized_{false}, clock_{the_clock} {
 }
 
 MovingIntervalRateStat::~MovingIntervalRateStat() {
@@ -132,17 +133,13 @@ void MovingIntervalRateStat::add(uint64_t value) {
   }
   int32_t intervals_to_pass = ((now_ms) -
       (calculation_start_ms_ + accumulated_intervals_* interval_size_ms_)) / interval_size_ms_;
-  std::cout << "add: Value " << value << " now_ms " << now_ms << " Intervals to pass "
-    << intervals_to_pass << std::endl;
 
   //  if sample is more than a window ahead from last sample
   //  We clean up and set the new value as the newest
   if (intervals_to_pass > 0) {
     if (intervals_to_pass >= intervals_in_window_) {
-      std::cout << "cleaning the whole window " << intervals_to_pass << std::endl;
       sample_vector_->assign(intervals_in_window_, 0);
       uint32_t corresponding_interval = getIntervalForTimeMs(now_ms);
-      std::cout << "The interval is " << corresponding_interval << std::endl;
       current_interval_ = (corresponding_interval + intervals_in_window_ - 1) % intervals_in_window_;
       (*sample_vector_.get())[corresponding_interval]+= value;
       accumulated_intervals_ += intervals_to_pass;
@@ -152,20 +149,16 @@ void MovingIntervalRateStat::add(uint64_t value) {
       current_interval_ = getNextInterval(current_interval_);
       sample_vector_->at(current_interval_) = 0;
       accumulated_intervals_++;
-      std::cout << " passing interval " << current_interval_ << " accumulated " << accumulated_intervals_ << std::endl;
     }
   }
 
   uint32_t corresponding_interval = getIntervalForTimeMs(now_ms);
   if (corresponding_interval != current_interval_) {
-    std::cout << "This is a new interval " << corresponding_interval << " value " << value << std::endl;
     sample_vector_->at(corresponding_interval) = 0;
     accumulated_intervals_++;
   }
   current_interval_ = corresponding_interval;
   (*sample_vector_.get())[current_interval_]+= value;
-  std::cout << "Adding value " << value << " to interval " << corresponding_interval << " Result "
-    << sample_vector_->at(corresponding_interval) << " accumulated intervals " << accumulated_intervals_ << std::endl;
 }
 
 uint64_t MovingIntervalRateStat::value() {
@@ -199,23 +192,16 @@ uint64_t MovingIntervalRateStat::calculateRateForInterval(uint64_t interval_to_c
   }
   int32_t intervals_to_pass = ((now_ms - real_interval) -
       (calculation_start_ms_ + available_window * interval_size_ms_) * interval_size_ms_) / interval_size_ms_;
-  std::cout << "MEAN Intervals to pass " << intervals_to_pass << " real_interval " << real_interval << " accumulated "
-   << accumulated_intervals_ << " now ms " << now_ms << " calculation start " << calculation_start_ms_
-  << " interval size " << interval_size_ms_ << std::endl;
   intervals_to_pass = intervals_to_pass < 0 ? 0 : intervals_to_pass;  // can be less than zero in first value
   if (intervals_to_pass >= intervals_in_window_) {
-    std::cout << " value not in window, returning 0 " << std::endl;
     return 0;
   }
   int added_intervals = 0;
   uint64_t total_sum = 0;
   uint32_t moving_interval =  getIntervalForTimeMs(now_ms - real_interval);
-  std::cout << " get interval for time is " << moving_interval << std::endl;
   do {
     added_intervals++;
     total_sum += (*sample_vector_.get())[moving_interval];
-    std::cout << " Adding to sum " << (*sample_vector_.get())[moving_interval] << " in pos "
-      << moving_interval << std::endl;
     moving_interval = getNextInterval(moving_interval);
   } while (moving_interval != current_interval_);
 
@@ -226,31 +212,19 @@ uint64_t MovingIntervalRateStat::calculateRateForInterval(uint64_t interval_to_c
   double proportional_value = interval_part * sample_vector_->at(current_interval_);
   if (interval_part < 1) {
     total_sum += proportional_value;
-    std::cout << " Adding proportion " << proportional_value << std::endl;
   } else {
     total_sum += (*sample_vector_.get())[current_interval_];
     interval_part = 0;
     added_intervals++;
-    std::cout << " Adding full" << (*sample_vector_.get())[current_interval_] << " pos "
-      << current_interval_ << std::endl;
   }
   uint64_t calculated_interval_size_ms = (added_intervals * interval_size_ms_) + interval_part;
-  std::cout << " CalculateRate now " << now_ms << " last interval time " <<
-    calculation_start_ms_ + (accumulated_intervals_ - 1)  * interval_size_ms_ <<
-    " Part of the last interval " << interval_part << " proportion " << proportional_value
-    << " proportional value " << proportional_value
-    << " total sum " << total_sum << " calculated interval size " << calculated_interval_size_ms
-    << std::endl;
 
   double rate = static_cast<double> (total_sum) / calculated_interval_size_ms;
-  std::cout << "THE RATE " << rate << std::endl;
   return (rate * 1000 * scale_);
 }
 
 uint32_t MovingIntervalRateStat::getIntervalForTimeMs(uint64_t time_ms) {
-  double calc = static_cast<double>(time_ms - calculation_start_ms_);
-  uint32_t corresponding_interval = ((time_ms - calculation_start_ms_)/interval_size_ms_) % intervals_in_window_;
-  return corresponding_interval;
+  return ((time_ms - calculation_start_ms_)/interval_size_ms_) % intervals_in_window_;
 }
 
 uint32_t MovingIntervalRateStat::getNextInterval(uint32_t interval) {

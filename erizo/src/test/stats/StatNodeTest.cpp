@@ -103,11 +103,12 @@ TEST_F(StatNodeTest, rateStatsShouldReturnZeroWhenNotIncreasing) {
   EXPECT_THAT(root.toString(), Eq("{\"rate\":0}"));
 }
 
-TEST_F(StatNodeTest, newRateStatTest) {
-  root.insertStat("rate", MovingIntervalRateStat{1000, 10, .1, clock});
-  root["rate"] += 10 * 8;
-  advanceClockMs(1000);
-  EXPECT_THAT(root.toString(), Eq("{\"rate\":10}"));
+TEST_F(StatNodeTest, IntervalRateStatCanBeInserted) {
+  root.insertStat("rate", MovingIntervalRateStat{std::chrono::milliseconds(100), 5, .1, clock});
+  root["rate"] += 100;
+  advanceClockMs(100);
+  root["rate"] += 100;
+  EXPECT_THAT(root.toString(), Eq("{\"rate\":100}"));
 
   advanceClockMs(1000);
   EXPECT_THAT(root.toString(), Eq("{\"rate\":0}"));
