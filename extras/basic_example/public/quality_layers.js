@@ -40,7 +40,6 @@ var initChart = function () {
         },
         series: []
     });
-    console.log("LayerChart", chart);
 };
 var updateSeriesForKey = function (key, value_x, value_y) {
     if (seriesMap[key] === undefined) {
@@ -55,7 +54,6 @@ var updateSeriesForKey = function (key, value_x, value_y) {
 }
 
 var updateChart = function () {
-    // console.log("UpdateChart", chart);
     let date = (new Date()).getTime();
     room.getStreamStats(streamToChart, function(data) {
         for (var i in data) {
@@ -136,7 +134,6 @@ window.onload = function () {
             room.addEventListener('room-connected', function (roomEvent) {
                 console.log("InitChart");
                 initChart();
-                console.log("Chart inited", chart);
                 var options = {metadata: {type: 'publisher'}};
                 var enableSimulcast = true; 
                 if (enableSimulcast) options._simulcast = {numSpatialLayers: 2};
