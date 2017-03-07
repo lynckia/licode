@@ -49,8 +49,8 @@ var updateSeriesForKey = function (key, value_x, value_y) {
         });
     }
     let seriesForKey = seriesMap[key];
-    let shift = seriesForKey.data.length > 60;
-    seriesForKey.addPoint([value_x, value_y]);
+    let shift = seriesForKey.data.length > 30;
+    seriesForKey.addPoint([value_x, value_y], true, shift);
 }
 
 var updateChart = function () {
