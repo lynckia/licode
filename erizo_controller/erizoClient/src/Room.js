@@ -893,7 +893,6 @@ Erizo.Room = function (spec) {
 
         sendMessageSocket('getStreamStats', stream.getID(), function (result) {
             if (result) {
-                L.Logger.info('Got stats', result);
                 callback(result);
             }
         });

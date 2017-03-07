@@ -55,6 +55,7 @@ class SenderBandwidthEstimationHandler : public Handler,
   int64_t estimated_rtt_;
   std::shared_ptr<SendSideBandwidthEstimation> sender_bwe_;
   std::list<std::shared_ptr<SrDelayData>> sr_delay_data_;
+  std::shared_ptr<Stats> stats_;
 
   void updateEstimate();
 };

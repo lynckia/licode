@@ -61,8 +61,13 @@ var updateChart = function () {
         for (var i in data) {
             if (i != "publisher") {
                let totalBitrate = data[i]["total"]["bitrateCalculated"];
-               if (totalBitrate)
+               if (totalBitrate) {
                    updateSeriesForKey("Current Received",date, totalBitrate);
+               }
+               let bitrateEstimated = data[i]["total"]["senderBitrateEstimation"]; 
+               if (bitrateEstimated) {
+                   updateSeriesForKey("Estimated Bandwidth",date, totalBitrate);
+               }
                let qualityLayersData = data[i]["qualityLayers"];
                if (qualityLayersData !== undefined){
                    for (var spatialLayer in qualityLayersData) {

@@ -42,6 +42,10 @@ void SenderBandwidthEstimationHandler::notifyUpdate() {
   if (!connection_) {
     return;
   }
+  stats_ = pipeline->getService<Stats>();
+  if (!stats_) {
+    return;
+  }
   initialized_ = true;
 }
 
@@ -144,6 +148,8 @@ void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {
 void SenderBandwidthEstimationHandler::updateEstimate() {
   sender_bwe_->CurrentEstimate(&estimated_bitrate_, &estimated_loss_,
       &estimated_rtt_);
+  stats_->getNode()["total"].insertStat("senderBitrateEstimation",
+      CumulativeStat{static_cast<uint64_t>(estimated_bitrate_)});
   ELOG_DEBUG("%s message: estimated bitrate %d, loss %u, rtt %lld",
       connection_->toLog(), estimated_bitrate_, estimated_loss_, estimated_rtt_);
   if (bwe_listener_) {
