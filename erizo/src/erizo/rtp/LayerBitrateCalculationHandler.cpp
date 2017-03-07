@@ -29,16 +29,16 @@ void LayerBitrateCalculationHandler::write(Context *ctx, std::shared_ptr<dataPac
       packet->compatible_spatial_layers.end(), [this, packet](int &layer_num){
         std::string spatial_layer_name = std::to_string(layer_num);
         std::for_each(packet->compatible_temporal_layers.begin(),
-            packet->compatible_temporal_layers.end(), [this, packet, spatial_layer_name](int &layer_num){
+          packet->compatible_temporal_layers.end(), [this, packet, spatial_layer_name](int &layer_num){
             std::string temporal_layer_name = std::to_string(layer_num);
             if (!stats_->getNode()[kQualityLayersStatsKey][spatial_layer_name].hasChild(temporal_layer_name)) {
-            stats_->getNode()[kQualityLayersStatsKey][spatial_layer_name].insertStat(
-                temporal_layer_name, MovingIntervalRateStat{kLayerRateStatIntervalSize,
-                kLayerRateStatIntervals, 8.});
+              stats_->getNode()[kQualityLayersStatsKey][spatial_layer_name].insertStat(
+                  temporal_layer_name, MovingIntervalRateStat{kLayerRateStatIntervalSize,
+                  kLayerRateStatIntervals, 8.});
             } else {
               stats_->getNode()[kQualityLayersStatsKey][spatial_layer_name][temporal_layer_name]+=packet->length;
             }
-            });
+          });
       });
   ctx->fireWrite(packet);
 }
@@ -53,7 +53,10 @@ void LayerBitrateCalculationHandler::notifyUpdate() {
   if (!pipeline) {
     return;
   }
-  initialized_ = true;
   stats_ = pipeline->getService<Stats>();
+  if (!stats_) {
+    return;
+  }
+  initialized_ = true;
 }
 }  // namespace erizo
