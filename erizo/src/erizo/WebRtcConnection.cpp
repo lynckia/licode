@@ -27,6 +27,7 @@
 #include "rtp/SRPacketHandler.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
 #include "rtp/LayerDetectorHandler.h"
+#include "rtp/LayerBitrateCalculationHandler.h"
 #include "rtp/QualityFilterHandler.h"
 #include "rtp/QualityManager.h"
 #include "rtp/PliPacerHandler.h"
@@ -254,6 +255,7 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addFront(RtcpProcessorHandler());
   pipeline_->addFront(IncomingStatsHandler());
   pipeline_->addFront(FecReceiverHandler());
+  pipeline_->addFront(LayerBitrateCalculationHandler());
   pipeline_->addFront(QualityFilterHandler());
   pipeline_->addFront(RtpAudioMuteHandler());
   pipeline_->addFront(RtpSlideShowHandler());
