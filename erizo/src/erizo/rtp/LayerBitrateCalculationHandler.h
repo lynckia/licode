@@ -4,13 +4,16 @@
 
 #include "./logger.h"
 #include "pipeline/Handler.h"
+#include "./Stats.h"
 
 namespace erizo {
 
 class WebRtcConnection;
 
+constexpr duration kLayerRateStatIntervalSize = std::chrono::milliseconds(100);
+constexpr uint32_t kLayerRateStatIntervals = 10;
 
-class LayerBitrateCalculationHandler: public InboundHandler {
+class LayerBitrateCalculationHandler: public OutboundHandler {
   DECLARE_LOGGER();
 
 
@@ -24,14 +27,14 @@ class LayerBitrateCalculationHandler: public InboundHandler {
      return "layer_bitrate_calculator";
   }
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
   void notifyUpdate() override;
 
  private:
-  WebRtcConnection *connection_;
   bool enabled_;
   bool initialized_;
-  std::vector<uint32_t> video_ssrc_list_;
+  std::shared_ptr<Stats> stats_;
+  const std::string kQualityLayersStatsKey = "qualityLayers";
 };
 }  // namespace erizo
 
