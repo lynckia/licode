@@ -38,6 +38,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
 
   void selectLayer();
   bool isCurrentLayerPresent();
+  bool isInBaseLayer();
 };
 }  // namespace erizo
 

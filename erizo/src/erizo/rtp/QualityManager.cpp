@@ -31,7 +31,7 @@ void QualityManager::notifyQualityUpdate() {
   uint64_t estimated_bitrate = stats_->getNode()["total"]["senderBitrateEstimation"].value();
   bool available_bitrate_is_descending = estimated_bitrate < current_estimated_bitrate_;
   current_estimated_bitrate_ = estimated_bitrate;
-  if (available_bitrate_is_descending || !isCurrentLayerPresent()) {
+  if (!isInBaseLayer() &&  (available_bitrate_is_descending || !isCurrentLayerPresent())) {
     ELOG_DEBUG("message: Forcing calculate new layer, "
         "available_bitrate_is_descending: %d")
     selectLayer();
@@ -51,8 +51,8 @@ void QualityManager::selectLayer() {
   ELOG_DEBUG("Calculate best layer with %lu", current_estimated_bitrate_);
   for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
     for (auto temporal_layer_node : stats_->getNode()["qualityLayers"][spatial_layer_node.first.c_str()].getMap()) {
-//      ELOG_DEBUG("Bitrate for layer %d/%d %lu",
-//          aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
+     // ELOG_DEBUG("Bitrate for layer %d/%d %lu",
+         // aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
       if (temporal_layer_node.second->value() < current_estimated_bitrate_) {
         next_temporal_layer = aux_temporal_layer;
         next_spatial_layer = aux_spatial_layer;
@@ -71,7 +71,7 @@ void QualityManager::selectLayer() {
 }
 
 bool QualityManager::isCurrentLayerPresent() {
-  if (temporal_layer_ == 0 && spatial_layer_ == 0) {
+  if (isInBaseLayer()) {
     return true;
   }
   MovingIntervalRateStat* current_layer_stat =
@@ -85,4 +85,7 @@ bool QualityManager::isCurrentLayerPresent() {
   return isLayerPresent;
 }
 
+bool QualityManager::isInBaseLayer() {
+  return (spatial_layer_ == 0 && temporal_layer_ == 0);
+}
 }  // namespace erizo
