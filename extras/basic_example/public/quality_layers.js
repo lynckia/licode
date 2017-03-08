@@ -17,9 +17,10 @@ var initChart = function () {
     chart = new Highcharts.Chart({
         chart: {
             renderTo: 'chart',
-            defaultSeriesType: 'spline',
+            defaultSeriesType: 'line',
+            animation: false,
+            showAxes: true,
             events: {
-                //    load: updateChart
             }
         },
         title: {
