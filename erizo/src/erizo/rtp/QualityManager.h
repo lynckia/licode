@@ -12,19 +12,18 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   DECLARE_LOGGER();
 
  public:
-  static constexpr duration kMinLayerChangeInterval = std::chrono::seconds(1);
-  static constexpr duration kActiveLayerInterval = std::chrono::milliseconds(200);
+  static constexpr duration kMinLayerChangeInterval = std::chrono::seconds(2);
+  static constexpr duration kActiveLayerInterval = std::chrono::milliseconds(500);
 
  public:
   QualityManager();
 
   int getSpatialLayer() const { return spatial_layer_; }
   int getTemporalLayer() const { return temporal_layer_; }
+  void setSpatialLayer(int spatial_layer)  {spatial_layer_ = spatial_layer;}
+  void setTemporalLayer(int temporal_layer)  {temporal_layer_ = temporal_layer;}
 
   void notifyQualityUpdate();
-
-  void setSpatialLayer(int spatial_layer);
-  void setTemporalLayer(int temporal_layer);
 
  private:
   bool initialized_;
@@ -37,7 +36,8 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   time_point last_quality_check_;
   std::shared_ptr<Stats> stats_;
 
-  void calculateBestLayer();
+  void selectLayer();
+  bool isCurrentLayerPresent();
 };
 }  // namespace erizo
 
