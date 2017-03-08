@@ -27,7 +27,9 @@ var initChart = function () {
         },
         plotOptions: {
             series: {
-                marker: false
+                marker: {
+                    enabled: false
+                }
             }
         },
         title: {
