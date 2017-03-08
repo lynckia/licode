@@ -25,6 +25,7 @@ void LayerBitrateCalculationHandler::write(Context *ctx, std::shared_ptr<dataPac
     ctx->fireWrite(packet);
     return;
   }
+
   std::for_each(packet->compatible_spatial_layers.begin(),
       packet->compatible_spatial_layers.end(), [this, packet](int &layer_num){
         std::string spatial_layer_name = std::to_string(layer_num);
@@ -40,6 +41,7 @@ void LayerBitrateCalculationHandler::write(Context *ctx, std::shared_ptr<dataPac
             }
           });
       });
+  quality_manager_->notifyQualityUpdate();
   ctx->fireWrite(packet);
 }
 
@@ -55,6 +57,10 @@ void LayerBitrateCalculationHandler::notifyUpdate() {
   }
   stats_ = pipeline->getService<Stats>();
   if (!stats_) {
+    return;
+  }
+  quality_manager_ = pipeline->getService<QualityManager>();
+  if (!quality_manager_) {
     return;
   }
   initialized_ = true;
