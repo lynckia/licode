@@ -46,13 +46,14 @@ void QualityManager::selectLayer() {
   last_quality_check_ = clock::now();
   int aux_temporal_layer = 0;
   int aux_spatial_layer = 0;
-  int next_temporal_layer = temporal_layer_;
-  int next_spatial_layer = spatial_layer_;
-  ELOG_DEBUG("Calculate best layer with %lu", current_estimated_bitrate_);
+  int next_temporal_layer = 0;
+  int next_spatial_layer = 0;
+  ELOG_DEBUG("Calculate best layer with %lu, current layer %d/%d",
+      current_estimated_bitrate_, spatial_layer_, temporal_layer_);
   for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
     for (auto temporal_layer_node : stats_->getNode()["qualityLayers"][spatial_layer_node.first.c_str()].getMap()) {
-     // ELOG_DEBUG("Bitrate for layer %d/%d %lu",
-         // aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
+     ELOG_DEBUG("Bitrate for layer %d/%d %lu",
+         aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
       if (temporal_layer_node.second->value() != 0 &&
           temporal_layer_node.second->value() < current_estimated_bitrate_) {
         next_temporal_layer = aux_temporal_layer;
@@ -64,7 +65,7 @@ void QualityManager::selectLayer() {
     aux_spatial_layer++;
   }
   if (next_temporal_layer != temporal_layer_ || next_spatial_layer != spatial_layer_) {
-    ELOG_DEBUG("message: Changing Layer, current_layers: %d/%d, new_layers: %d/%d",
+    ELOG_DEBUG("message: Changing Layer, current_layer: %d/%d, new_layer: %d/%d",
         spatial_layer_, temporal_layer_, next_spatial_layer, next_temporal_layer);
     setTemporalLayer(next_temporal_layer);
     setSpatialLayer(next_spatial_layer);

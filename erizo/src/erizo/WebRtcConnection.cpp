@@ -706,7 +706,7 @@ WebRTCEvent WebRtcConnection::getCurrentState() {
 void WebRtcConnection::getJSONStats(std::function<void(std::string)> callback) {
   asyncTask([callback] (std::shared_ptr<WebRtcConnection> connection) {
     std::string requested_stats = connection->stats_->getStats();
-    ELOG_DEBUG("%s message: Stats, stats: %s", connection->toLog(), requested_stats.c_str());
+    //  ELOG_DEBUG("%s message: Stats, stats: %s", connection->toLog(), requested_stats.c_str());
     callback(requested_stats);
   });
 }
