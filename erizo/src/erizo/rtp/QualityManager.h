@@ -12,11 +12,11 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   DECLARE_LOGGER();
 
  public:
-  static constexpr duration kMinLayerChangeInterval = std::chrono::seconds(2);
+  static constexpr duration kMinLayerSwitchInterval = std::chrono::seconds(2);
   static constexpr duration kActiveLayerInterval = std::chrono::milliseconds(500);
 
  public:
-  QualityManager();
+  explicit QualityManager(std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
 
   int getSpatialLayer() const { return spatial_layer_; }
   int getTemporalLayer() const { return temporal_layer_; }
@@ -35,6 +35,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
 
   time_point last_quality_check_;
   std::shared_ptr<Stats> stats_;
+  std::shared_ptr<Clock> clock_;
 
   void selectLayer();
   bool isCurrentLayerPresent();

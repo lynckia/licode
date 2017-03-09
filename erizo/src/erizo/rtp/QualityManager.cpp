@@ -4,12 +4,12 @@ namespace erizo {
 
 DEFINE_LOGGER(QualityManager, "rtp.QualityManager");
 
-constexpr duration QualityManager::kMinLayerChangeInterval;
+constexpr duration QualityManager::kMinLayerSwitchInterval;
 constexpr duration QualityManager::kActiveLayerInterval;
 
-QualityManager::QualityManager()
+QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
   : initialized_{false}, spatial_layer_{0}, temporal_layer_{0}, current_estimated_bitrate_{0},
-  last_quality_check_{clock::now()} {}
+  last_quality_check_{the_clock->now()}, clock_{the_clock} {}
 
 
 void QualityManager::notifyQualityUpdate() {
@@ -27,7 +27,8 @@ void QualityManager::notifyQualityUpdate() {
     }
     initialized_ = true;
   }
-  time_point now = clock::now();
+  time_point now = clock_->now();
+  ELOG_DEBUG("NOW %u, LAST CHECK %u", ClockUtils::timePointToMs(now), ClockUtils::timePointToMs(last_quality_check_));
   uint64_t estimated_bitrate = stats_->getNode()["total"]["senderBitrateEstimation"].value();
   bool available_bitrate_is_descending = estimated_bitrate < current_estimated_bitrate_;
   current_estimated_bitrate_ = estimated_bitrate;
@@ -37,13 +38,13 @@ void QualityManager::notifyQualityUpdate() {
     selectLayer();
     return;
   }
-  if (now - last_quality_check_ > kMinLayerChangeInterval) {
+  if (now - last_quality_check_ > kMinLayerSwitchInterval) {
     selectLayer();
   }
 }
 
 void QualityManager::selectLayer() {
-  last_quality_check_ = clock::now();
+  last_quality_check_ = clock_->now();
   int aux_temporal_layer = 0;
   int aux_spatial_layer = 0;
   int next_temporal_layer = 0;
@@ -65,7 +66,7 @@ void QualityManager::selectLayer() {
     aux_spatial_layer++;
   }
   if (next_temporal_layer != temporal_layer_ || next_spatial_layer != spatial_layer_) {
-    ELOG_DEBUG("message: Changing Layer, current_layer: %d/%d, new_layer: %d/%d",
+    ELOG_DEBUG("message: Layer Switch, current_layer: %d/%d, new_layer: %d/%d",
         spatial_layer_, temporal_layer_, next_spatial_layer, next_temporal_layer);
     setTemporalLayer(next_temporal_layer);
     setSpatialLayer(next_spatial_layer);
