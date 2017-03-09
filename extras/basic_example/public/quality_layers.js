@@ -12,6 +12,8 @@ function getParameterByName(name) {
 }
 
 var seriesMap = {};
+var spatialStyles = ['ShortDot', 'Dash', 'DashDot', 'ShortDashDotDot'];
+var temporalStyles = ['#7cb5ec', '#90ed7d', '#f7a35c', '#f15c80'];
 
 var initChart = function () {
     chart = new Highcharts.Chart({
@@ -21,6 +23,13 @@ var initChart = function () {
             animation: false,
             showAxes: true,
             events: {
+            }
+        },
+        plotOptions: {
+            series: {
+                marker: {
+                    enabled: false
+                }
             }
         },
         title: {
@@ -35,17 +44,32 @@ var initChart = function () {
             minPadding: 0.2,
             maxPadding: 0.2,
             title: {
-                text: 'Value',
+                text: null,
                 margin: 80
             }
         },
         series: []
     });
 };
-var updateSeriesForKey = function (key, value_x, value_y) {
+var updateSeriesForKey = function (key, spatial, temporal, value_x, value_y) {
     if (seriesMap[key] === undefined) {
+        
+        let dash, color, width = 3;
+        if (spatial && temporal) {
+            dash = spatialStyles[spatial];
+            color = temporalStyles[temporal];
+            width = 2;
+        } else if (key === 'Current Received') {
+            color = '#2b908f';
+        } else if (key === 'Estimated Bandwidth') {
+            color = '#434348';
+        }
+
         seriesMap[key] = chart.addSeries({
             name: key,
+            dashStyle: dash,
+            color: color,
+            lineWidth: width,
             data: []
         });
     }
@@ -61,18 +85,18 @@ var updateChart = function () {
             if (i != "publisher") {
                 let totalBitrate = data[i]["total"]["bitrateCalculated"];
                 if (totalBitrate) {
-                    updateSeriesForKey("Current Received",date, totalBitrate);
+                    updateSeriesForKey("Current Received", undefined, undefined, date, totalBitrate);
                 }
                 let bitrateEstimated = data[i]["total"]["senderBitrateEstimation"]; 
                 if (bitrateEstimated) {
-                    updateSeriesForKey("Estimated Bandwidth",date, totalBitrate);
+                    updateSeriesForKey("Estimated Bandwidth", undefined, undefined, date, bitrateEstimated);
                 }
                 let qualityLayersData = data[i]["qualityLayers"];
                 if (qualityLayersData !== undefined){
                     for (var spatialLayer in qualityLayersData) {
                         for (var temporalLayer in qualityLayersData[spatialLayer]) {
                             let key = "Spatial " + spatialLayer + " / Temporal " + temporalLayer;
-                            updateSeriesForKey(key, date, qualityLayersData[spatialLayer][temporalLayer])
+                            updateSeriesForKey(key, spatialLayer, temporalLayer, date, qualityLayersData[spatialLayer][temporalLayer])
                         }
                     }
 
