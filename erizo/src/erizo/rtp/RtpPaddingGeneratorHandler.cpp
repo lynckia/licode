@@ -67,7 +67,7 @@ void RtpPaddingGeneratorHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
       }
     } else if (fast_start_ && chead->packettype == RTCP_Receiver_PT && chead->getSourceSSRC() == audio_source_ssrc_) {
       if (chead->getFractionLost() > kMaxFractionLostAllowed) {
-        ELOG_WARN("Fast start disabled");
+        ELOG_DEBUG("Fast start disabled");
         fast_start_ = false;
       }
     }
@@ -86,7 +86,7 @@ void RtpPaddingGeneratorHandler::write(Context *ctx, std::shared_ptr<dataPacket>
     }
     first_packet_received_ = true;
     if (fast_start_ && clock_->now() - started_at_ > kFastStartMaxDuration) {
-      ELOG_WARN("Fast start disabled");
+      ELOG_DEBUG("Fast start disabled");
       fast_start_ = false;
     }
   }
