@@ -137,7 +137,7 @@ void MovingIntervalRateStat::add(uint64_t value) {
   int32_t intervals_to_pass = (now_ms - current_window_end_ms_) / interval_size_ms_;
 
   if (intervals_to_pass > 0) {
-    if (intervals_to_pass >= intervals_in_window_) {
+    if (static_cast<uint32_t>(intervals_to_pass) >= intervals_in_window_) {
       sample_vector_->assign(intervals_in_window_, 0);
       uint32_t corresponding_interval = getIntervalForTimeMs(now_ms);
       current_interval_ = corresponding_interval;

@@ -43,19 +43,19 @@ TEST_F(MovingAverageStatTest, shouldCalculateAverageForLessSamplesThanWindowSize
 }
 
 TEST_F(MovingAverageStatTest, shouldCalculateAverageForValuesInWindow) {
-  for (int i = 0; i < kArbitraryWindowSize; i++) {
+  for (uint i = 0; i < kArbitraryWindowSize; i++) {
     moving_average_stat+=kArbitraryNumberToAdd;
   }
-  for (int i = 0; i < kArbitraryWindowSize; i++) {
+  for (uint i = 0; i < kArbitraryWindowSize; i++) {
     moving_average_stat+=kArbitraryNumberToAdd + 1;
   }
   EXPECT_EQ(moving_average_stat.value(), kArbitraryNumberToAdd + 1);
 }
 
 TEST_F(MovingAverageStatTest, shouldCalculateAverageForGivenNumberOfSamples) {
-  for (int i = 0; i < kArbitraryWindowSize; i++) {
+  for (uint i = 0; i < kArbitraryWindowSize; i++) {
     moving_average_stat+=i;
   }
-  EXPECT_EQ(moving_average_stat.value(1), 4);
-  EXPECT_EQ(moving_average_stat.value(2), (4 + 3)/2);
+  EXPECT_EQ(moving_average_stat.value(1), 4u);
+  EXPECT_EQ(moving_average_stat.value(2), uint((4 + 3) / 2));
 }

@@ -14,6 +14,12 @@ link_directories("${GMOCK_BUILD}/lib")
 
 set(CMAKE_CXX_FLAGS "-g -Wall -std=c++0x")
 
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-stack-protector")
+ELSE()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/")
 
 project (ERIZO_TEST)
