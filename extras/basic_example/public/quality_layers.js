@@ -89,7 +89,7 @@ var updateChart = function () {
                 }
                 let bitrateEstimated = data[i]["total"]["senderBitrateEstimation"]; 
                 if (bitrateEstimated) {
-                    updateSeriesForKey("Estimated Bandwidth", undefined, undefined, date, totalBitrate);
+                    updateSeriesForKey("Estimated Bandwidth", undefined, undefined, date, bitrateEstimated);
                 }
                 let qualityLayersData = data[i]["qualityLayers"];
                 if (qualityLayersData !== undefined){
