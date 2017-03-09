@@ -23,8 +23,8 @@ namespace erizo {
 
 DEFINE_LOGGER(RtcpAggregator, "rtp.RtcpAggregator");
 
-RtcpAggregator::RtcpAggregator(MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw)
-    : RtcpProcessor(msink, msource, maxVideoBw), defaultVideoBw_(maxVideoBw / 2) {
+RtcpAggregator::RtcpAggregator(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw)
+    : RtcpProcessor(msink, msource, max_video_bw), defaultVideoBw_(max_video_bw / 2) {
   ELOG_DEBUG("Starting RtcpAggregator");
 }
 
@@ -43,7 +43,7 @@ void RtcpAggregator::addSourceSsrc(uint32_t ssrc) {
 }
 
 void RtcpAggregator::setPublisherBW(uint32_t bandwidth) {
-  defaultVideoBw_ = (bandwidth*1.2) > maxVideoBw_? maxVideoBw_:(bandwidth*1.2);
+  defaultVideoBw_ = (bandwidth*1.2) > max_video_bw_? max_video_bw_:(bandwidth*1.2);
 }
 
 void RtcpAggregator::analyzeSr(RtcpHeader* chead) {

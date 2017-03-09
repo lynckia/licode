@@ -30,6 +30,8 @@ class RtpUtils {
   static std::shared_ptr<dataPacket> createFIR(uint32_t source_ssrc, uint32_t sink_ssrc, uint8_t seq_number);
 
   static int getPaddingLength(std::shared_ptr<dataPacket> packet);
+
+  static std::shared_ptr<dataPacket> makePaddingPacket(std::shared_ptr<dataPacket> packet, uint8_t padding_size);
 };
 
 }  // namespace erizo

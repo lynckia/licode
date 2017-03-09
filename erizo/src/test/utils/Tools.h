@@ -49,7 +49,7 @@ class PacketTools {
 
   static std::shared_ptr<dataPacket> createReceiverReport(uint ssrc, uint source_ssrc,
                                                           uint16_t highest_seq_num, packetType type,
-                                                          uint32_t last_sender_report = 0) {
+                                                          uint32_t last_sender_report = 0, uint32_t fraction_lost = 0) {
     erizo::RtcpHeader *receiver_report = new erizo::RtcpHeader();
     receiver_report->setPacketType(RTCP_Receiver_PT);
     receiver_report->setBlockCount(1);
@@ -57,6 +57,7 @@ class PacketTools {
     receiver_report->setSourceSSRC(source_ssrc);
     receiver_report->setHighestSeqnum(highest_seq_num);
     receiver_report->setLastSr(last_sender_report);
+    receiver_report->setFractionLost(fraction_lost);
     receiver_report->setLength(7);
     char *buf = reinterpret_cast<char*>(receiver_report);
     int len = (receiver_report->getLength() + 1) * 4;
@@ -156,6 +157,8 @@ class PacketTools {
   }
 };
 
+using ::testing::_;
+
 class BaseHandlerTest  {
  public:
   BaseHandlerTest() {}
@@ -168,6 +171,7 @@ class BaseHandlerTest  {
     simulated_worker->start();
     connection = std::make_shared<erizo::MockWebRtcConnection>(simulated_worker, ice_config, rtp_maps);
     processor = std::make_shared<erizo::MockRtcpProcessor>();
+    quality_manager = std::make_shared<erizo::MockQualityManager>();
     stats = std::make_shared<erizo::Stats>();
     connection->setVideoSinkSSRC(erizo::kVideoSsrc);
     connection->setAudioSinkSSRC(erizo::kAudioSsrc);
@@ -178,12 +182,16 @@ class BaseHandlerTest  {
     reader = std::make_shared<erizo::Reader>();
     writer = std::make_shared<erizo::Writer>();
 
-    EXPECT_CALL(*reader, notifyUpdate());
-    EXPECT_CALL(*writer, notifyUpdate());
+    EXPECT_CALL(*reader, notifyUpdate()).Times(testing::AtLeast(1));
+    EXPECT_CALL(*writer, notifyUpdate()).Times(testing::AtLeast(1));
+
+    EXPECT_CALL(*reader, read(_,_)).Times(testing::AtLeast(0));
+    EXPECT_CALL(*writer, write(_, _)).Times(testing::AtLeast(0));
 
     std::shared_ptr<erizo::WebRtcConnection> connection_ptr = std::dynamic_pointer_cast<WebRtcConnection>(connection);
     pipeline->addService(connection_ptr);
     pipeline->addService(std::dynamic_pointer_cast<RtcpProcessor>(processor));
+    pipeline->addService(std::dynamic_pointer_cast<QualityManager>(quality_manager));
     pipeline->addService(stats);
 
     pipeline->addBack(writer);
@@ -207,6 +215,7 @@ class BaseHandlerTest  {
   std::shared_ptr<erizo::Stats> stats;
   std::shared_ptr<erizo::MockWebRtcConnection> connection;
   std::shared_ptr<erizo::MockRtcpProcessor> processor;
+  std::shared_ptr<erizo::MockQualityManager> quality_manager;
   Pipeline::Ptr pipeline;
   std::shared_ptr<erizo::Reader> reader;
   std::shared_ptr<erizo::Writer> writer;

@@ -12,15 +12,18 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
  public:
   QualityManager();
 
-  int getSpatialLayer() const { return spatial_layer_; }
-  int getTemporalLayer() const { return temporal_layer_; }
+  virtual int getSpatialLayer() const { return spatial_layer_; }
+  virtual int getTemporalLayer() const { return temporal_layer_; }
 
   void setSpatialLayer(int spatial_layer) { spatial_layer_ = spatial_layer; }
   void setTemporalLayer(int temporal_layer) { temporal_layer_ = temporal_layer; }
 
+  virtual bool isPaddingEnabled() const { return padding_enabled_; }
+
  private:
   int spatial_layer_;
   int temporal_layer_;
+  bool padding_enabled_;
 };
 }  // namespace erizo
 
