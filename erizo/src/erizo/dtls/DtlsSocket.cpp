@@ -87,8 +87,6 @@ bool DtlsSocket::handlePacketMaybe(const unsigned char* bytes, unsigned int len)
   (void) BIO_reset(mInBio);
   (void) BIO_reset(mOutBio);
 
-  ELOG_TRACE("mInBio %d mOutBio %d", mInBio->num, mOutBio->num);
-
   int r = BIO_write(mInBio, bytes, len);
   assert(r == static_cast<int>(len));  // Can't happen
 
