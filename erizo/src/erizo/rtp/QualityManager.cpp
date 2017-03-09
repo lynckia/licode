@@ -53,7 +53,8 @@ void QualityManager::selectLayer() {
     for (auto temporal_layer_node : stats_->getNode()["qualityLayers"][spatial_layer_node.first.c_str()].getMap()) {
      // ELOG_DEBUG("Bitrate for layer %d/%d %lu",
          // aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
-      if (temporal_layer_node.second->value() < current_estimated_bitrate_) {
+      if (temporal_layer_node.second->value() != 0 &&
+          temporal_layer_node.second->value() < current_estimated_bitrate_) {
         next_temporal_layer = aux_temporal_layer;
         next_spatial_layer = aux_spatial_layer;
       }
