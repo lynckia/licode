@@ -16,6 +16,7 @@ SequenceNumberTranslator::SequenceNumberTranslator()
       first_input_sequence_number_{0},
       last_input_sequence_number_{0},
       initial_output_sequence_number_{0},
+      offset_{0},
       initialized_{false}, reset_{false} {
 }
 
@@ -31,7 +32,7 @@ uint16_t SequenceNumberTranslator::fill(const uint16_t &first,
     fill(0, last);
   }
   const SequenceNumber& previous_sequence_number = get(first - 1);
-  uint16_t output_sequence_number = previous_sequence_number.output;
+  uint16_t output_sequence_number = previous_sequence_number.output + offset_;
 
   if (previous_sequence_number.type != SequenceNumberType::Skip) {
     output_sequence_number++;
@@ -61,15 +62,30 @@ SequenceNumber SequenceNumberTranslator::get(uint16_t input_sequence_number) con
   return SequenceNumber{0, 0, SequenceNumberType::Skip};
 }
 
+SequenceNumber SequenceNumberTranslator::generate() {
+  uint16_t output_sequence_number = offset_++;
+  if (initialized_) {
+    SequenceNumber &last = internalGet(last_input_sequence_number_);
+    output_sequence_number = last.output + offset_;
+  } else {
+    initial_output_sequence_number_ = offset_;
+  }
+  SequenceNumber sequence_number{0, output_sequence_number, SequenceNumberType::Generated};
+  out_in_buffer_[sequence_number.output % kMaxSequenceNumberInBuffer] = sequence_number;
+
+  return sequence_number;
+}
+
 SequenceNumber SequenceNumberTranslator::get(uint16_t input_sequence_number, bool skip) {
   if (!initialized_) {
     SequenceNumberType type = skip ? SequenceNumberType::Skip : SequenceNumberType::Valid;
-    uint16_t output_sequence_number = reset_ ? initial_output_sequence_number_ : input_sequence_number;
+    uint16_t output_sequence_number = (reset_ || offset_ > 0) ? initial_output_sequence_number_ : input_sequence_number;
     add(SequenceNumber{input_sequence_number, output_sequence_number, type});
     last_input_sequence_number_ = input_sequence_number;
     first_input_sequence_number_ = input_sequence_number;
     initialized_ = true;
     reset_ = false;
+    offset_ = 0;
     return get(input_sequence_number);
   }
 
@@ -88,6 +104,7 @@ SequenceNumber SequenceNumberTranslator::get(uint16_t input_sequence_number, boo
       first_input_sequence_number_ = last_input_sequence_number_ - kMaxDistance;
     }
     SequenceNumber info = get(input_sequence_number);
+    offset_ = 0;
     return info;
   } else {
     SequenceNumber& result = internalGet(input_sequence_number);

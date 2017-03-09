@@ -14,8 +14,8 @@ using std::memcpy;
 namespace erizo {
 DEFINE_LOGGER(RtcpForwarder, "rtp.RtcpForwarder");
 
-RtcpForwarder::RtcpForwarder(MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw)
-  : RtcpProcessor(msink, msource, maxVideoBw) {
+RtcpForwarder::RtcpForwarder(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw)
+  : RtcpProcessor(msink, msource, max_video_bw) {
     ELOG_DEBUG("Starting RtcpForwarder");
   }
 
@@ -132,11 +132,11 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
                 if (!strncmp(uniqueId, "REMB", 4)) {
                   uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
                   uint64_t cappedBitrate = 0;
-                  cappedBitrate = bitrate < maxVideoBw_? bitrate: maxVideoBw_;
-                  if (bitrate < maxVideoBw_) {
+                  cappedBitrate = bitrate < max_video_bw_? bitrate: max_video_bw_;
+                  if (bitrate < max_video_bw_) {
                     cappedBitrate = bitrate;
                   } else {
-                    cappedBitrate = maxVideoBw_;
+                    cappedBitrate = max_video_bw_;
                   }
                   ELOG_DEBUG("Received REMB %llu, partnum %u, cappedBitrate %llu",
                               bitrate, currentBlock, cappedBitrate);
