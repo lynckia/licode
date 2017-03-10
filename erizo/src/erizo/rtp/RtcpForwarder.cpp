@@ -138,7 +138,7 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
                   } else {
                     cappedBitrate = max_video_bw_;
                   }
-                  ELOG_DEBUG("Received REMB %llu, partnum %u, cappedBitrate %llu",
+                  ELOG_DEBUG("Received REMB %lu, partnum %u, cappedBitrate %lu",
                               bitrate, currentBlock, cappedBitrate);
                   chead->setREMBBitRate(cappedBitrate);
                 } else {

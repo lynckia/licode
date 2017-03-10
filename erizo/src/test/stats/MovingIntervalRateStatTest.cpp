@@ -50,7 +50,7 @@ TEST_F(MovingIntervalRateStatTest, shouldCalculateAverageForLessThanWindowSize) 
     moving_interval_stat+=(100+10*i);
     advanceClockMs(100);
   }
-  EXPECT_EQ(moving_interval_stat.value(), (100 + 110 + 120)/3);
+  EXPECT_EQ(moving_interval_stat.value(), uint((100 + 110 + 120)/3));
 }
 
 
@@ -129,7 +129,7 @@ TEST_F(MovingIntervalRateStatTest, shouldReturn0IfTimeIsOutOfWindow) {
   moving_interval_stat += 100;
   advanceClockMs(kGapSizeInIntervals * 100);
 
-  EXPECT_EQ(moving_interval_stat.value(), 0);
+  EXPECT_EQ(moving_interval_stat.value(), 0u);
 }
 
 TEST_F(MovingIntervalRateStatTest, shouldAddTheCorrespondingPartOfTheLastInterval) {
@@ -137,5 +137,5 @@ TEST_F(MovingIntervalRateStatTest, shouldAddTheCorrespondingPartOfTheLastInterva
   advanceClockMs(150);
   moving_interval_stat += 200;
 
-  EXPECT_EQ(moving_interval_stat.value(), 100);
+  EXPECT_EQ(moving_interval_stat.value(), 100u);
 }
