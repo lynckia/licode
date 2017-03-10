@@ -38,7 +38,7 @@ void QualityManager::notifyQualityUpdate() {
   current_estimated_bitrate_ = estimated_bitrate;
   if (!isInBaseLayer() &&  (available_bitrate_is_descending || !isCurrentLayerPresent())) {
     ELOG_DEBUG("message: Forcing calculate new layer, "
-        "available_bitrate_is_descending: %d")
+        "available_bitrate_is_descending: %d, isInBaseLayer: %d", available_bitrate_is_descending, isInBaseLayer());
     selectLayer();
     return;
   } else if (now - last_quality_check_ > kMinLayerSwitchInterval) {
