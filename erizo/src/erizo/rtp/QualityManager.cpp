@@ -42,7 +42,6 @@ void QualityManager::notifyQualityUpdate() {
     selectLayer();
     return;
   } else if (now - last_quality_check_ > kMinLayerSwitchInterval) {
-    ELOG_DEBUG("WHY NOW");
     selectLayer();
   }
 }
