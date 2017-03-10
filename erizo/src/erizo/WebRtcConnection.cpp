@@ -31,6 +31,7 @@
 #include "rtp/QualityFilterHandler.h"
 #include "rtp/QualityManager.h"
 #include "rtp/PliPacerHandler.h"
+#include "rtp/RtpPaddingGeneratorHandler.h"
 
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
@@ -259,6 +260,7 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addFront(QualityFilterHandler());
   pipeline_->addFront(RtpAudioMuteHandler());
   pipeline_->addFront(RtpSlideShowHandler());
+  pipeline_->addFront(RtpPaddingGeneratorHandler());
   pipeline_->addFront(PliPacerHandler());
   pipeline_->addFront(BandwidthEstimationHandler());
   pipeline_->addFront(RtcpFeedbackGenerationHandler());
@@ -820,8 +822,7 @@ void WebRtcConnection::sendPacket(std::shared_ptr<dataPacket> p) {
 
 void WebRtcConnection::setQualityLayer(int spatial_layer, int temporal_layer) {
   asyncTask([spatial_layer, temporal_layer] (std::shared_ptr<WebRtcConnection> connection) {
-    connection->quality_manager_->setSpatialLayer(spatial_layer);
-    connection->quality_manager_->setTemporalLayer(temporal_layer);
+    connection->quality_manager_->forceLayers(spatial_layer, temporal_layer);
   });
 }
 

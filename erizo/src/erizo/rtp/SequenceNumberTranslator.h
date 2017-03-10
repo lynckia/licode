@@ -12,7 +12,8 @@ namespace erizo {
 enum class SequenceNumberType : uint8_t {
   Valid = 0,
   Skip = 1,
-  Discard = 2
+  Discard = 2,
+  Generated = 3
 };
 
 struct SequenceNumber {
@@ -35,6 +36,7 @@ class SequenceNumberTranslator: public Service, public std::enable_shared_from_t
   SequenceNumber get(uint16_t input_sequence_number, bool skip);
   SequenceNumber reverse(uint16_t output_sequence_number) const;
   void reset();
+  SequenceNumber generate();
 
  private:
   void add(SequenceNumber sequence_number);
@@ -48,6 +50,7 @@ class SequenceNumberTranslator: public Service, public std::enable_shared_from_t
   uint16_t first_input_sequence_number_;
   uint16_t last_input_sequence_number_;
   uint16_t initial_output_sequence_number_;
+  uint16_t offset_;
   bool initialized_;
   bool reset_;
 };

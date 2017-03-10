@@ -107,6 +107,10 @@ class RtpHeader {
     return padding;
   }
 
+  inline void setPadding(uint8_t has_padding) {
+    padding = has_padding;
+  }
+
   inline uint8_t getVersion() const {
     return version;
   }

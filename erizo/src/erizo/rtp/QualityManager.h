@@ -18,15 +18,21 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
  public:
   explicit QualityManager(std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
 
-  int getSpatialLayer() const { return spatial_layer_; }
-  int getTemporalLayer() const { return temporal_layer_; }
-  void setSpatialLayer(int spatial_layer)  {spatial_layer_ = spatial_layer;}
-  void setTemporalLayer(int temporal_layer)  {temporal_layer_ = temporal_layer;}
+  virtual  int getSpatialLayer() const { return spatial_layer_; }
+  virtual  int getTemporalLayer() const { return temporal_layer_; }
+  void setSpatialLayer(int spatial_layer);
+  void setTemporalLayer(int temporal_layer);
+
+  void forceLayers(int spatial_layer, int temporal_layer);
 
   void notifyQualityUpdate();
 
+  virtual bool isPaddingEnabled() const { return padding_enabled_; }
+
  private:
   bool initialized_;
+  bool padding_enabled_;
+  bool forced_layers_;
   int spatial_layer_;
   int temporal_layer_;
   std::string spatial_layer_str_;

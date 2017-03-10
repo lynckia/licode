@@ -4,6 +4,9 @@
 
 namespace erizo {
 
+
+constexpr int kMaxPacketSize = 1500;
+
 bool RtpUtils::sequenceNumberLessThan(uint16_t first, uint16_t last) {
   uint16_t result = first - last;
   return result > 0xF000;
@@ -112,6 +115,23 @@ void RtpUtils::forEachRRBlock(std::shared_ptr<dataPacket> packet, std::function<
       currentBlock++;
     } while (total_length < len);
   }
+}
+
+std::shared_ptr<dataPacket> RtpUtils::makePaddingPacket(std::shared_ptr<dataPacket> packet, uint8_t padding_size) {
+  erizo::RtpHeader *header = reinterpret_cast<RtpHeader*>(packet->data);
+
+  uint16_t packet_length = header->getHeaderLength() + padding_size;
+
+  char packet_buffer[kMaxPacketSize];
+  erizo::RtpHeader *new_header = reinterpret_cast<RtpHeader*>(packet_buffer);
+  memset(packet_buffer, 0, packet_length);
+  memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
+
+  new_header->setPadding(true);
+
+  packet_buffer[packet_length - 1] = padding_size;
+
+  return std::make_shared<dataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
 }
 
 }  // namespace erizo

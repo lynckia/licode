@@ -25,7 +25,8 @@ using erizo::SequenceNumberType;
 
 enum class PacketState {
   Forward = 0,
-  Skip = 1
+  Skip = 1,
+  Generate = 2
 };
 
 struct Packet {
@@ -54,7 +55,12 @@ class SequenceNumberTranslatorTest : public ::testing::TestWithParam<std::vector
 TEST_P(SequenceNumberTranslatorTest, shouldReturnRightOutputSequenceNumbers) {
   for (Packet packet : queue) {
     bool skip = packet.state == PacketState::Skip;
-    SequenceNumber output = translator.get(packet.sequence_number, skip);
+    SequenceNumber output;
+    if (packet.state == PacketState::Generate) {
+      output = translator.generate();
+    } else {
+      output = translator.get(packet.sequence_number, skip);
+    }
     EXPECT_THAT(output.output, Eq(packet.expected_output));
     EXPECT_THAT(output.type, Eq(packet.expected_type));
 
@@ -137,6 +143,36 @@ INSTANTIATE_TEST_CASE_P(
                          {     1, PacketState::Forward,               1, SequenceNumberType::Valid},
                          {     0, PacketState::Skip,                  0, SequenceNumberType::Discard},
                          {     2, PacketState::Forward,               2, SequenceNumberType::Valid}}),
+
+
+    //                     input                        expected_output
+    std::vector<Packet>({{     0, PacketState::Generate,              0, SequenceNumberType::Generated},
+                         {     6, PacketState::Forward,               1, SequenceNumberType::Valid},
+                         {     7, PacketState::Forward,               2, SequenceNumberType::Valid},
+                         {     8, PacketState::Forward,               3, SequenceNumberType::Valid}}),
+
+
+    //                     input                        expected_output
+    std::vector<Packet>({{     5, PacketState::Forward,               5, SequenceNumberType::Valid},
+                         {     0, PacketState::Generate,              6, SequenceNumberType::Generated},
+                         {     6, PacketState::Forward,               7, SequenceNumberType::Valid},
+                         {     7, PacketState::Forward,               8, SequenceNumberType::Valid}}),
+
+    //                     input                        expected_output
+    std::vector<Packet>({{     5, PacketState::Forward,               5, SequenceNumberType::Valid},
+                         {     0, PacketState::Generate,              6, SequenceNumberType::Generated},
+                         {     0, PacketState::Generate,              7, SequenceNumberType::Generated},
+                         {     6, PacketState::Forward,               8, SequenceNumberType::Valid}}),
+
+    //                     input                        expected_output
+    std::vector<Packet>({{     5, PacketState::Forward,               5, SequenceNumberType::Valid},
+                         {     0, PacketState::Generate,              6, SequenceNumberType::Generated},
+                         {     0, PacketState::Generate,              7, SequenceNumberType::Generated},
+                         {     6, PacketState::Forward,               8, SequenceNumberType::Valid},
+                         {     0, PacketState::Generate,              9, SequenceNumberType::Generated},
+                         {     0, PacketState::Generate,              10, SequenceNumberType::Generated},
+                         {     7, PacketState::Forward,               11, SequenceNumberType::Valid}}),
+
 
     // Support multiple loops
     getLongQueue(65535 * 2)));

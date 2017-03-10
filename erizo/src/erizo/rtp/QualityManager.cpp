@@ -8,8 +8,10 @@ constexpr duration QualityManager::kMinLayerSwitchInterval;
 constexpr duration QualityManager::kActiveLayerInterval;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
-  : initialized_{false}, spatial_layer_{0}, temporal_layer_{0}, current_estimated_bitrate_{0},
-  last_quality_check_{the_clock->now()}, clock_{the_clock} {}
+  : initialized_{false}, padding_enabled_{false}, forced_layers_{false},
+  spatial_layer_{0}, temporal_layer_{0},
+  current_estimated_bitrate_{0}, last_quality_check_{the_clock->now()},
+  clock_{the_clock} {}
 
 
 void QualityManager::notifyQualityUpdate() {
@@ -27,8 +29,10 @@ void QualityManager::notifyQualityUpdate() {
     }
     initialized_ = true;
   }
+  if (forced_layers_) {
+    return;
+  }
   time_point now = clock_->now();
-  ELOG_DEBUG("NOW %u, LAST CHECK %u", ClockUtils::timePointToMs(now), ClockUtils::timePointToMs(last_quality_check_));
   uint64_t estimated_bitrate = stats_->getNode()["total"]["senderBitrateEstimation"].value();
   bool available_bitrate_is_descending = estimated_bitrate < current_estimated_bitrate_;
   current_estimated_bitrate_ = estimated_bitrate;
@@ -37,8 +41,8 @@ void QualityManager::notifyQualityUpdate() {
         "available_bitrate_is_descending: %d")
     selectLayer();
     return;
-  }
-  if (now - last_quality_check_ > kMinLayerSwitchInterval) {
+  } else if (now - last_quality_check_ > kMinLayerSwitchInterval) {
+    ELOG_DEBUG("WHY NOW");
     selectLayer();
   }
 }
@@ -91,4 +95,22 @@ bool QualityManager::isCurrentLayerPresent() {
 bool QualityManager::isInBaseLayer() {
   return (spatial_layer_ == 0 && temporal_layer_ == 0);
 }
+
+void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
+  forced_layers_ = true;
+  spatial_layer_ = spatial_layer;
+  temporal_layer_ = temporal_layer;
+}
+
+void QualityManager::setSpatialLayer(int spatial_layer) {
+  if (!forced_layers_) {
+    spatial_layer_ = spatial_layer;
+  }
+}
+void QualityManager::setTemporalLayer(int temporal_layer) {
+  if (!forced_layers_) {
+    temporal_layer_ = temporal_layer;
+  }
+}
+
 }  // namespace erizo

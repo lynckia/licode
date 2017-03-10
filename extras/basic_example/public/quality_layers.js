@@ -112,7 +112,7 @@ window.onload = function () {
     var screen = getParameterByName('screen');
     var roomName = getParameterByName('room') || 'basicExampleRoom';
     console.log('Selected Room', room);
-    var config = {audio: true,
+    var config = {audio: false,
         video: true,
         data: true,
         screen: screen,
