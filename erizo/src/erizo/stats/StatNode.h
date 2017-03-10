@@ -38,6 +38,8 @@ class StatNode {
 
   virtual uint64_t value() { return 0; }
 
+  virtual const std::map<std::string, std::shared_ptr<StatNode>>& getMap() {return node_map_;}
+
   virtual std::string toString();
 
  private:
