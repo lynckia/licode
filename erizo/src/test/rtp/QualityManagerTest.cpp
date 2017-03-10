@@ -61,7 +61,7 @@ class QualityManagerTest : public erizo::HandlerTest{
           kBaseBitrate + (kSpatialBitrateFactor * spatial_layer) + (kTemporalBitrateFactor * temporal_layer);
       }
     }
-    stats_clock->advanceTime(kTestRateStatIntervalSize);
+    stats_clock->advanceTime(kTestRateStatIntervalSize - std::chrono::milliseconds(50));
   }
 
   uint64_t getStatForLayer(int spatial_layer, int temporal_layer) {
@@ -73,8 +73,9 @@ class QualityManagerTest : public erizo::HandlerTest{
         MovingIntervalRateStat{kTestRateStatIntervalSize, kRateStatIntervals, 1., stats_clock});
   }
 
-  void addStatToLayer(int spatial_layer, int temporal_layer, uint64_t value) {
-    stats->getNode()["qualityLayers"][spatial_layer][temporal_layer] += value;
+  uint64_t addStatToLayer(int spatial_layer, int temporal_layer, uint64_t value) {
+    stats->getNode()["qualityLayers"][spatial_layer][temporal_layer]+=value;
+    return stats->getNode()["qualityLayers"][spatial_layer][temporal_layer].value();
   }
 
   void setSenderBitrateEstimation(uint64_t bitrate) {
@@ -111,7 +112,7 @@ TEST_F(QualityManagerTest, shouldChangeToHighestLayerBelowEstimatedBitrate) {
   EXPECT_EQ(quality_manager->getTemporalLayer() , kArbitraryTemporalLayer);
 }
 
-TEST_F(QualityManagerTest, shouldSwitchLayerImmediatelyWhenEstimatedBitrateDescends) {
+TEST_F(QualityManagerTest, shouldSwitchLayerImmediatelyWhenEstimatedBitrateIsLowerThanCurrentLayer) {
   const int kArbitrarySpatialLayer = 1;
   const int kArbitraryTemporalLayer = 1;
   setSenderBitrateEstimation(getStatForLayer(kArbitrarySpatialLayer, kArbitraryTemporalLayer) + 1);
@@ -129,6 +130,26 @@ TEST_F(QualityManagerTest, shouldSwitchLayerImmediatelyWhenEstimatedBitrateDesce
 
   EXPECT_EQ(quality_manager->getSpatialLayer() , kArbitraryLowerSpatialLayer);
   EXPECT_EQ(quality_manager->getTemporalLayer() , kArbitraryLowerTemporalLayer);
+}
+
+TEST_F(QualityManagerTest, shouldSwitchLayerImmediatelyWhenCurrentLayerRaisesOverEstimate) {
+  const int kArbitrarySpatialLayer = 1;
+  const int kArbitraryTemporalLayer = 1;
+  setSenderBitrateEstimation(getStatForLayer(kArbitrarySpatialLayer, kArbitraryTemporalLayer) + 1);
+
+  quality_manager->notifyQualityUpdate();
+
+  quality_manager->setTemporalLayer(kArbitraryTemporalLayer);
+  quality_manager->setSpatialLayer(kArbitrarySpatialLayer);
+
+  const int kExpectedLowerSpatialLayer = 1;
+  const int kExpectedLowerTemporalLayer = 0;
+
+  addStatToLayer(kArbitrarySpatialLayer, kArbitraryTemporalLayer, 100);
+  quality_manager->notifyQualityUpdate();
+
+  EXPECT_EQ(quality_manager->getSpatialLayer() , kExpectedLowerSpatialLayer);
+  EXPECT_EQ(quality_manager->getTemporalLayer() , kExpectedLowerTemporalLayer);
 }
 
 TEST_F(QualityManagerTest, shouldNotGoToHigherLayerInEarlierThanInterval) {

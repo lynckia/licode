@@ -44,7 +44,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   std::shared_ptr<Clock> clock_;
 
   void selectLayer();
-  bool isCurrentLayerPresent();
+  uint64_t getInstantLayerBitrate(int spatial_layer, int temporal_layer);
   bool isInBaseLayer();
 };
 }  // namespace erizo

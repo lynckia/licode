@@ -33,12 +33,17 @@ void QualityManager::notifyQualityUpdate() {
     return;
   }
   time_point now = clock_->now();
-  uint64_t estimated_bitrate = stats_->getNode()["total"]["senderBitrateEstimation"].value();
-  bool available_bitrate_is_descending = estimated_bitrate < current_estimated_bitrate_;
-  current_estimated_bitrate_ = estimated_bitrate;
-  if (!isInBaseLayer() &&  (available_bitrate_is_descending || !isCurrentLayerPresent())) {
+  current_estimated_bitrate_ = stats_->getNode()["total"]["senderBitrateEstimation"].value();
+  uint64_t current_layer_instant_bitrate = getInstantLayerBitrate(spatial_layer_, temporal_layer_);
+  bool estimated_is_under_layer_bitrate = current_estimated_bitrate_ < current_layer_instant_bitrate;
+  bool layer_is_active = current_layer_instant_bitrate != 0;
+
+  if (!isInBaseLayer() &&  (
+        !layer_is_active
+        || estimated_is_under_layer_bitrate)) {
     ELOG_DEBUG("message: Forcing calculate new layer, "
-        "available_bitrate_is_descending: %d, isInBaseLayer: %d", available_bitrate_is_descending, isInBaseLayer());
+        "estimated_is_under_layer_bitrate: %d, layer_is_active: %d", estimated_is_under_layer_bitrate,
+        layer_is_active);
     selectLayer();
     return;
   } else if (now - last_quality_check_ > kMinLayerSwitchInterval) {
@@ -55,7 +60,7 @@ void QualityManager::selectLayer() {
   ELOG_DEBUG("Calculate best layer with %lu, current layer %d/%d",
       current_estimated_bitrate_, spatial_layer_, temporal_layer_);
   for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
-    for (auto temporal_layer_node : stats_->getNode()["qualityLayers"][spatial_layer_node.first.c_str()].getMap()) {
+    for (auto &temporal_layer_node : stats_->getNode()["qualityLayers"][spatial_layer_node.first.c_str()].getMap()) {
      ELOG_DEBUG("Bitrate for layer %d/%d %lu",
          aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
       if (temporal_layer_node.second->value() != 0 &&
@@ -76,19 +81,10 @@ void QualityManager::selectLayer() {
   }
 }
 
-bool QualityManager::isCurrentLayerPresent() {
-  if (isInBaseLayer()) {
-    return true;
-  }
-  MovingIntervalRateStat* current_layer_stat =
-    reinterpret_cast<MovingIntervalRateStat*>(&stats_->getNode()["qualityLayers"][spatial_layer_][temporal_layer_]);
-  uint64_t selected_layer_bitrate = current_layer_stat->value(kActiveLayerInterval);
-  bool isLayerPresent = selected_layer_bitrate != 0;
-  if (!isLayerPresent) {
-    ELOG_DEBUG("message: Layer is no longer present, spatial_layer: %u, temporal_layer %u",
-        spatial_layer_, temporal_layer_);
-  }
-  return isLayerPresent;
+uint64_t QualityManager::getInstantLayerBitrate(int spatial_layer, int temporal_layer) {
+  MovingIntervalRateStat* layer_stat =
+    reinterpret_cast<MovingIntervalRateStat*>(&stats_->getNode()["qualityLayers"][spatial_layer][temporal_layer]);
+  return layer_stat->value(kActiveLayerInterval);
 }
 
 bool QualityManager::isInBaseLayer() {
