@@ -196,19 +196,19 @@ var addToCloudHandler = function (callback) {
     for (k in interfaces) {
         if (!GLOBAL.config.erizoController.networkinterface ||
             GLOBAL.config.erizoController.networkinterface === k) {
-          if (interfaces.hasOwnProperty(k)) {
-              for (k2 in interfaces[k]) {
-                  if (interfaces[k].hasOwnProperty(k2)) {
-                      address = interfaces[k][k2];
-                      if (address.family === 'IPv4' && !address.internal) {
-                          if (k === BINDED_INTERFACE_NAME || !BINDED_INTERFACE_NAME) {
-                              addresses.push(address.address);
-                          }
-                      }
-                  }
-              }
-          }
+        if (interfaces.hasOwnProperty(k)) {
+            for (k2 in interfaces[k]) {
+                if (interfaces[k].hasOwnProperty(k2)) {
+                    address = interfaces[k][k2];
+                    if (address.family === 'IPv4' && !address.internal) {
+                        if (k === BINDED_INTERFACE_NAME || !BINDED_INTERFACE_NAME) {
+                            addresses.push(address.address);
+                        }
+                    }
+                }
+            }
         }
+    }
     }
 
     privateRegexp = new RegExp(addresses[0], 'g');
@@ -406,7 +406,9 @@ var listen = function () {
                         socket.state = 'sleeping';
 
                         log.debug('message: Token approved, clientId: ' + socket.id);
-
+        
+                        log.info('test: rooms count ' + rooms.length);
+                        log.info('test: room ' + tokenDB.room + ' with streams ' + socket.room.streams.length);
                         if (!tokenDB.p2p &&
                             GLOBAL.config.erizoController.report.session_events) {  // jshint ignore:line
                             var timeStamp = new Date();
@@ -418,8 +420,15 @@ var listen = function () {
 
                         for (index in socket.room.streams) {
                             if (socket.room.streams.hasOwnProperty(index)) {
+
+                                log.info('test: stream '+socket.room.streams[index].getAttributes().name + ', ' + socket.room.streams[index].getID())
                                 if (socket.room.streams[index].status === PUBLISHER_READY){
                                     streamList.push(socket.room.streams[index].getPublicStream());
+                                }
+                                else
+                                {
+                                    streamList.push(socket.room.streams[index].getPublicStream());
+                                    log.warn('test: stream status=' + socket.room.streams[index].status + ',' + socket.room.streams[index].getAttributes().name);
                                 }
                             }
                         }
@@ -477,7 +486,7 @@ var listen = function () {
                 var isControlMessage = msg.msg.type === 'control';
                 if (!isControlMessage ||
                     (isControlMessage && hasPermission(socket.user, msg.msg.action.name))) {
-                  socket.room.controller.processSignaling(msg.streamId, socket.id, msg.msg);
+                socket.room.controller.processSignaling(msg.streamId, socket.id, msg.msg);
                 } else {
                   log.info('message: User unauthorized to execute action on stream, action: ' + msg.msg.action.name +
                             ', streamId: ' + msg.streamId);
@@ -997,7 +1006,7 @@ var listen = function () {
                     callback(result);
                 });
             }
-        });
+    });
     });
 
 };

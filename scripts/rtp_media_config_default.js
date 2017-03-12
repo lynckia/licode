@@ -53,6 +53,7 @@ mediaConfig.rtpMappings.ulpfec = {
     channels: 1,
     mediaType: 'video',
 };
+*/
 
 mediaConfig.rtpMappings.opus = {
     payloadType: 111,
@@ -61,7 +62,7 @@ mediaConfig.rtpMappings.opus = {
     channels: 2,
     mediaType: 'audio',
 };
-
+/*
 mediaConfig.rtpMappings.isac16 = {
     payloadType: 103,
     encodingName: 'ISAC',
@@ -78,7 +79,6 @@ mediaConfig.rtpMappings.isac32 = {
     mediaType: 'audio',
 };
 
-*/
 mediaConfig.rtpMappings.pcmu = {
     payloadType: 0,
     encodingName: 'PCMU',
@@ -86,7 +86,7 @@ mediaConfig.rtpMappings.pcmu = {
     channels: 1,
     mediaType: 'audio',
 };
-/*
+
 mediaConfig.rtpMappings.pcma = {
     payloadType: 8,
     encodingName: 'PCMA',

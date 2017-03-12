@@ -49,7 +49,8 @@ config.erizoController = {};
 //     "credential": password,
 //     "url": url
 // }
-config.erizoController.iceServers = [{'url': 'stun:stun.l.google.com:19302'}]; // default value: [{'url': 'stun:stun.l.google.com:19302'}]
+//config.erizoController.iceServers = [{'url': 'stun:stun.l.google.com:19302'}]; // default value: [{'url': 'stun:stun.l.google.com:19302'}]
+config.erizoController.iceServers = [{'url': 'stun:iphone-stun.strato-iphone.de:3478'}];
 
 // Default and max video bandwidth parameters to be used by clients
 config.erizoController.defaultVideoBW = 300; //default value: 300
@@ -60,17 +61,17 @@ config.erizoController.maxVideoBW = 300; //default value: 300
 config.erizoController.publicIP = ''; //default value: ''
 config.erizoController.networkinterface = ''; //default value: ''
 
-// This configuration is used by the clients to reach erizoController
+// This configuration is used by the clients to reach erizoController 
 // Use '' to use the public IP address instead of a hostname
 config.erizoController.hostname = ''; //default value: ''
-config.erizoController.port = 8080; //default value: 8080
+config.erizoController.port = 8090; //default value: 8080
 // Use true if clients communicate with erizoController over SSL
-config.erizoController.ssl = false; //default value: false
+config.erizoController.ssl = true; //default value: false
 
 // This configuration is used by erizoController server to listen for connections
 // Use true if erizoController listens in HTTPS.
-config.erizoController.listen_ssl = false; //default value: false
-config.erizoController.listen_port = 8080; //default value: 8080
+config.erizoController.listen_ssl = true; //default value: false
+config.erizoController.listen_port = 8090; //default value: 8080
 
 // Custom location for SSL certificates. Default located in /cert
 //config.erizoController.ssl_key = '/full/path/to/ssl.key';
@@ -90,12 +91,12 @@ config.erizoController.roles =
     "viewer": {"subscribe": true},
     "viewerWithData": {"subscribe": true, "publish": {"audio": false, "video": false, "screen": false, "data": true}}}; // default value: {"presenter":{"publish": true, "subscribe":true, "record":true}, "viewer":{"subscribe":true}, "viewerWithData":{"subscribe":true, "publish":{"audio":false,"video":false,"screen":false,"data":true}}}
 
-// If true, erizoController sends report to rabbitMQ queue "report_handler"
+// If true, erizoController sends report to rabbitMQ queue "report_handler" 
 config.erizoController.report = {
     session_events: false, 		// Session level events -- default value: false
     connection_events: false, 	// Connection (ICE) level events -- default value: false
     rtcp_stats: false				// RTCP stats -- default value: false
-};
+}; 
 
 // If undefined, the path will be /tmp/
 config.erizoController.recording_path = undefined; // default value: undefined
@@ -123,7 +124,7 @@ config.erizoAgent.networkinterface = ''; //default value: ''
 
 //Use individual log files for each of the started erizoJS processes
 //This files will be named erizo-ERIZO_ID_HASH.log
-config.erizoAgent.useIndividualLogFiles = false;
+config.erizoAgent.useIndividualLogFiles = true;
 
 // Custom log directory for agent instance log files.
 // If useIndividualLogFiles is enabled, files will go here

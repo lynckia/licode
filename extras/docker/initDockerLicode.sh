@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 echo "config.erizoController.publicIP = '$PUBLIC_IP';" >> /opt/licode/licode_config.js
+echo "config.erizo.minport = $MIN_PORT;" >> /opt/licode/licode_config.js
+echo "config.erizo.maxport = $MAX_PORT;" >> /opt/licode/licode_config.js
 mongod --dbpath /opt/licode/build/db --logpath /opt/licode/build/mongo.log --fork
 cd /opt/licode/scripts
 ./initLicode.sh

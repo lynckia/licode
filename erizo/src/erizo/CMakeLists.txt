@@ -52,19 +52,23 @@ test_lib(${NICE})
 # OPENSSL
 find_library(SSL ssl HINTS "${THIRD_PARTY_LIB}")
 test_lib(${SSL})
-find_library(CRYPTO crypto HINTS "${THIRD_PARTY_LIB}")
+find_library(CRYPTO crypto)
 test_lib(${CRYPTO})
 
 # Libav
-find_library(AVUTIL avutil HINTS "${THIRD_PARTY_LIB}")
+find_library(AVUTIL avutil)
 test_lib(${AVUTIL})
 set (LIBS ${AVUTIL})
-find_library(AVCODEC avcodec HINTS "${THIRD_PARTY_LIB}")
+find_library(AVCODEC avcodec)
 test_lib(${AVCODEC})
 set (LIBS ${LIBS} ${AVCODEC})
-find_library(AVFORMAT avformat HINTS "${THIRD_PARTY_LIB}")
+find_library(AVFORMAT avformat)
 test_lib(${AVFORMAT})
 set (LIBS ${LIBS} ${AVFORMAT})
+
+find_library(SWRESAMPLE swresample)
+test_lib(${SWRESAMPLE})
+set (LIBS ${LIBS} ${SWRESAMPLE})
 
 # LOG4CXX
 find_library(LOG log4cxx)

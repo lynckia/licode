@@ -46,7 +46,7 @@ add_custom_target(lint
 )
 
 #global variable
-set(THIRD_PARTY_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/include/")
+set(THIRD_PARTY_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/include/;/usr/include/ffmpeg/")
 set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/")
 
 #webrtc
@@ -63,12 +63,12 @@ endif(COMPILE_EXAMPLES)
 #tests
 set(GMOCK_BUILD "${CMAKE_CURRENT_BINARY_DIR}/libdeps/gmock")
 set(GMOCK_VERSION "1.8.0")
-ExternalProject_Add(gtest
-  URL "https://github.com/google/googletest/archive/release-${GMOCK_VERSION}.tar.gz"
-  PREFIX ${GMOCK_BUILD}
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${GMOCK_BUILD}
-)
+#ExternalProject_Add(gtest
+#  URL "https://github.com/google/googletest/archive/release-${GMOCK_VERSION}.tar.gz"
+#  PREFIX ${GMOCK_BUILD}
+#  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${GMOCK_BUILD}
+#)
 
 enable_testing()
 
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/test")
+#add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/test")

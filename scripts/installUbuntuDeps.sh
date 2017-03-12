@@ -62,14 +62,15 @@ install_nvm_node() {
 }
 
 install_apt_deps(){
+  apt-get install sudo -y --no-install-recommends
   install_nvm_node
   nvm use
   npm install -g node-gyp
-  sudo apt-get install -qq python-software-properties -y
-  sudo apt-get install -qq software-properties-common -y
+  sudo apt-get install  python-software-properties -y
+  sudo apt-get install  software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
-  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev -y
+  sudo apt-get install git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-8-jre curl libboost-test-dev -y --no-install-recommends
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
 
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
@@ -147,7 +148,7 @@ install_opus(){
 
 install_mediadeps(){
   install_opus
-  sudo apt-get -qq install yasm libvpx. libx264.
+  sudo apt-get  install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     if [ ! -f ./libav-11.1.tar.gz ]; then
@@ -168,9 +169,26 @@ install_mediadeps(){
 
 }
 
+install_ffmpeg(){
+sudo apt-get install yasm libvpx. libx264. libfdk-aac-dev libfreetype6-dev libghc-bzlib-dev -y --no-install-recommends
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
+    cd ffmpeg
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --arch=x86_64 --optflags='-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches -m64 -mtune=generic' --enable-bzlib --disable-crystalhd --enable-nonfree --enable-libfdk-aac --enable-libfreetype --enable-libvpx --enable-libopus --enable-libx264 --enable-avfilter --enable-avresample --enable-postproc --enable-pthreads --disable-static --enable-shared --enable-gpl --disable-debug --enable-runtime-cpudetect --extra-cflags=-I/$PREFIX_DIR/include --extra-ldflags=-L/$PREFIX_DIR/lib
+    make -s V=0
+    make install
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_ffmpeg
+  fi
+
+}
+
 install_mediadeps_nogpl(){
   install_opus
-  sudo apt-get -qq install yasm libvpx.
+  sudo apt-get  install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     if [ ! -f ./libav-11.1.tar.gz ]; then
@@ -210,6 +228,7 @@ cleanup(){
     rm -r libav*
     rm -r openssl*
     rm -r opus*
+    rm -r ffmpeg*
     cd $CURRENT_DIR
   fi
 }
@@ -223,13 +242,14 @@ check_proxy
 install_openssl
 install_libnice
 install_libsrtp
-
 install_opus
-if [ "$ENABLE_GPL" = "true" ]; then
-  install_mediadeps
-else
-  install_mediadeps_nogpl
-fi
+install_ffmpeg
+
+#if [ "$ENABLE_GPL" = "true" ]; then
+#install_mediadeps
+#else
+# install_mediadeps_nogpl
+#fi
 
 if [ "$CLEANUP" = "true" ]; then
   echo "Cleaning up..."

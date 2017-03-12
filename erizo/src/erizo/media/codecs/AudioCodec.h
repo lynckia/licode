@@ -1,12 +1,21 @@
 /**
 * AudioCodec.h
-*/
+ */
 #ifndef ERIZO_SRC_ERIZO_MEDIA_CODECS_AUDIOCODEC_H_
 #define ERIZO_SRC_ERIZO_MEDIA_CODECS_AUDIOCODEC_H_
 
 extern "C" {
-  #include <libavutil/avutil.h>
-  #include <libavcodec/avcodec.h>
+#include <libavutil/avutil.h>
+#include <libavcodec/avcodec.h>
+#include <libswresample/swresample.h>
+#include "libavutil/audio_fifo.h"
+#include "libavutil/avassert.h"
+#include "libavutil/avstring.h"
+#include "libavutil/channel_layout.h"
+#include "libavutil/frame.h"
+#include "libavutil/opt.h"
+#include <libavformat/avformat.h>
+
 }
 
 #include "./Codecs.h"
@@ -14,38 +23,47 @@ extern "C" {
 
 namespace erizo {
 
-class AudioEncoder {
-  DECLARE_LOGGER();
+  class AudioEncoder {
+    DECLARE_LOGGER();
 
- public:
-  AudioEncoder();
-  virtual ~AudioEncoder();
-  int initEncoder(const AudioCodecInfo& info);
-  int encodeAudio(unsigned char* inBuffer, int nSamples, AVPacket* pkt);
-  int closeEncoder();
+    public:
+      AudioEncoder();
+      virtual ~AudioEncoder();
+      int encodeAudio(unsigned char* inBuffer, int nSamples, AVPacket* pkt);
+      int closeEncoder();
 
- private:
-  AVCodec* aCoder_;
-  AVCodecContext* aCoderContext_;
-  AVFrame* aFrame_;
-};
+    private:
+      AVCodec* codec_;
+      AVCodecContext* codecContext_;
+  };
 
-class AudioDecoder {
-  DECLARE_LOGGER();
+  class AudioDecoder {
+    DECLARE_LOGGER();
 
- public:
-  AudioDecoder();
-  virtual ~AudioDecoder();
-  int initDecoder(const AudioCodecInfo& info);
-  int initDecoder(AVCodecContext* context);
-  int decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff, int outBuffLen, int* gotFrame);
-  int closeDecoder();
+    public:
+      AudioDecoder();
+      virtual ~AudioDecoder();
+      int initDecoder(AVCodecContext* context, AVCodec* dec_codec);
+      int decodeAudio(AVPacket& input_packet);
+      int getEncodedAudio(AVPacket& output_packet);
+      int closeDecoder();
 
- private:
-  AVCodec* aDecoder_;
-  AVCodecContext* aDecoderContext_;
-  AVFrame* dFrame_;
-};
+      ////////////////added func so logger inside available//////////////////
+      int init_resampler(AVCodecContext *input_codec_context, AVCodecContext *output_codec_context);
+      int add_samples_to_fifo(AVAudioFifo *fifo, uint8_t **converted_input_samples, const int frame_size);
+
+      int init_fifo(AVAudioFifo **fifo);
+      int init_output_frame(AVFrame **frame, AVCodecContext *output_codec_context, int frame_size);
+      int encode_audio_frame(AVFrame *frame, AVPacket& output_packet);
+      int load_encode(AVPacket& output_packet);
+      int init_converted_samples(uint8_t ***converted_input_samples, AVCodecContext *output_codec_context, int frame_size);
+      int convert_samples(const uint8_t **input_data, uint8_t **converted_data, const int frame_size, SwrContext *resample_context);
+     ////////////// 
+
+    private:
+      AVCodec* codec_;
+      int64_t lastPts_;
+  };
 
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_MEDIA_CODECS_AUDIOCODEC_H_

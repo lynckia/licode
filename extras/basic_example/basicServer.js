@@ -88,11 +88,11 @@ var deleteRoomsIfEmpty = function (theRooms, callback) {
         var users = JSON.parse(userlist);
         if (Object.keys(users).length === 0){
             N.API.deleteRoom(theRoomId, function(){
-                deleteRoomsIfEmpty(theRooms, callback);
+                    deleteRoomsIfEmpty(theRooms, callback);
             });
         } else {
-            deleteRoomsIfEmpty(theRooms, callback);
-        }
+                deleteRoomsIfEmpty(theRooms, callback);
+            }
     }, function (error, status) {
         console.log('Error getting user list for room ', theRoomId, 'reason: ', error);
         switch (status) {
