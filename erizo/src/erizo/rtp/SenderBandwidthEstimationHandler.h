@@ -4,11 +4,13 @@
 #include "./logger.h"
 #include "./WebRtcConnection.h"
 #include "./rtp/RtcpProcessor.h"
+#include "lib/Clock.h"
 
 #include "webrtc/modules/bitrate_controller/send_side_bandwidth_estimation.h"
 
 namespace erizo {
 using webrtc::SendSideBandwidthEstimation;
+
 
 class SenderBandwidthEstimationListener {
  public:
@@ -22,7 +24,12 @@ class SenderBandwidthEstimationHandler : public Handler,
   DECLARE_LOGGER();
 
  public:
-  SenderBandwidthEstimationHandler();
+  static const uint16_t kMaxSrListSize = 20;
+  static const uint32_t kStartSendBitrate = 300000;
+  static constexpr duration kMinUpdateEstimateInterval = std::chrono::milliseconds(25);
+
+ public:
+  explicit SenderBandwidthEstimationHandler(std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
   explicit SenderBandwidthEstimationHandler(const SenderBandwidthEstimationHandler&& handler);  // NOLINT
   virtual ~SenderBandwidthEstimationHandler() {}
 
@@ -44,10 +51,9 @@ class SenderBandwidthEstimationHandler : public Handler,
   }
 
  private:
-  static const uint16_t kMaxSrListSize = 20;
-  static const uint32_t kStartSendBitrate = 300000;
   WebRtcConnection* connection_;
   SenderBandwidthEstimationListener* bwe_listener_;
+  std::shared_ptr<Clock> clock_;
   bool initialized_;
   bool enabled_;
   bool received_remb_;

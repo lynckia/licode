@@ -5,18 +5,19 @@ namespace erizo {
 
 DEFINE_LOGGER(SenderBandwidthEstimationHandler, "rtp.SenderBandwidthEstimationHandler");
 
-static constexpr duration kMinUpdateEstimateInterval = std::chrono::milliseconds(25);
+constexpr duration SenderBandwidthEstimationHandler::kMinUpdateEstimateInterval;
 
-SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler() :
-  connection_{nullptr}, bwe_listener_{nullptr}, initialized_{false}, enabled_{true}, received_remb_{false},
-  period_packets_sent_{0}, estimated_bitrate_{0}, estimated_loss_{0}, estimated_rtt_{0},
-  last_estimate_update_{clock::now()}, sender_bwe_{new SendSideBandwidthEstimation()} {
+SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(std::shared_ptr<Clock> the_clock) :
+  connection_{nullptr}, bwe_listener_{nullptr}, clock_{the_clock}, initialized_{false}, enabled_{true},
+  received_remb_{false}, period_packets_sent_{0}, estimated_bitrate_{0}, estimated_loss_{0},
+  estimated_rtt_{0}, last_estimate_update_{clock::now()}, sender_bwe_{new SendSideBandwidthEstimation()} {
     sender_bwe_->SetSendBitrate(kStartSendBitrate);
   };
 
 SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(const SenderBandwidthEstimationHandler&& handler) :  // NOLINT
     connection_{handler.connection_},
     bwe_listener_{handler.bwe_listener_},
+    clock_{handler.clock_},
     initialized_{handler.initialized_},
     enabled_{handler.enabled_},
     received_remb_{false},
@@ -85,7 +86,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPa
                 chead->getSSRC());
             // calculate RTT + Update receiver block
             uint32_t delay_since_last_ms = (chead->getDelaySinceLastSr() * 1000) / 65536;
-            int64_t now_ms = ClockUtils::timePointToMs(clock::now());
+            int64_t now_ms = ClockUtils::timePointToMs(clock_->now());
             uint32_t last_sr = chead->getLastSr();
 
             auto value = std::find_if(sr_delay_data_.begin(), sr_delay_data_.end(),
@@ -96,8 +97,8 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPa
             if (received_remb_ && value != sr_delay_data_.end()) {
                 uint32_t delay = now_ms - (*value)->sr_send_time - delay_since_last_ms;
                 ELOG_DEBUG("%s message: Updating Estimate with RR, fraction_lost: %u, "
-                    "delay: %u, period_packets_sent_: %u, now_ms: %u",
-                    connection_->toLog(), chead->getFractionLost(), delay, period_packets_sent_, now_ms);
+                    "delay: %u, period_packets_sent_: %u",
+                    connection_->toLog(), chead->getFractionLost(), delay, period_packets_sent_);
                 sender_bwe_->UpdateReceiverBlock(chead->getFractionLost(),
                     delay, period_packets_sent_, now_ms);
                 period_packets_sent_ = 0;
@@ -111,7 +112,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPa
               char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
               if (!strncmp(uniqueId, "REMB", 4)) {
                 received_remb_ = true;
-                int64_t now_ms = ClockUtils::timePointToMs(clock::now());
+                int64_t now_ms = ClockUtils::timePointToMs(clock_->now());
                 uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
                 ELOG_DEBUG("%s message: Updating Estimate with REMB, bitrate %lu", connection_->toLog(),
                     bitrate);
@@ -136,8 +137,8 @@ void SenderBandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<dataP
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (!chead->isRtcp() && packet->type == VIDEO_PACKET) {
     period_packets_sent_++;
-    time_point now = clock::now();
-    if (now - last_estimate_update_ > kMinUpdateEstimateInterval) {
+    time_point now = clock_->now();
+    if (received_remb_ && now - last_estimate_update_ > kMinUpdateEstimateInterval) {
       sender_bwe_->UpdateEstimate(ClockUtils::timePointToMs(now));
       updateEstimate();
       last_estimate_update_ = now;
@@ -150,7 +151,7 @@ void SenderBandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<dataP
 }
 
 void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {
-  uint64_t now = ClockUtils::timePointToMs(clock::now());
+  uint64_t now = ClockUtils::timePointToMs(clock_->now());
   uint32_t ntp;
   ntp = chead->get32MiddleNtp();
   ELOG_DEBUG("%s message: adding incoming SR to list, ntp: %u", connection_->toLog(), ntp);
