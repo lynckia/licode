@@ -50,6 +50,8 @@ class SenderBandwidthEstimationHandlerTest : public erizo::HandlerTest {
   const uint64_t kArbitraryNtpTimestamp = 493248028403924389;
 };
 
+// TODO(pedro): Update tests with new timing
+
 TEST_F(SenderBandwidthEstimationHandlerTest, basicBehaviourShouldReadPackets) {
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 

@@ -45,14 +45,17 @@ class SenderBandwidthEstimationHandler : public Handler,
 
  private:
   static const uint16_t kMaxSrListSize = 20;
+  static const uint32_t kStartSendBitrate = 300000;
   WebRtcConnection* connection_;
   SenderBandwidthEstimationListener* bwe_listener_;
   bool initialized_;
   bool enabled_;
+  bool received_remb_;
   uint32_t period_packets_sent_;
   int estimated_bitrate_;
   uint8_t estimated_loss_;
   int64_t estimated_rtt_;
+  time_point last_estimate_update_;
   std::shared_ptr<SendSideBandwidthEstimation> sender_bwe_;
   std::list<std::shared_ptr<SrDelayData>> sr_delay_data_;
   std::shared_ptr<Stats> stats_;

@@ -1,4 +1,5 @@
 #include "rtp/QualityManager.h"
+#include "WebRtcConnection.h"
 
 namespace erizo {
 
@@ -88,6 +89,8 @@ void QualityManager::selectLayer() {
     // TODO(javier): should we wait for the actual spatial switch?
     // should we disable padding temporarily to avoid congestion (old padding + new bitrate)?
     padding_enabled_ = !isInMaxLayer();
+    getContext()->getPipelineShared()->getService<WebRtcConnection>()->notifyUpdateToHandlers();
+    ELOG_DEBUG("message: Is padding enabled, padding_enabled_: %d", padding_enabled_);
   }
 }
 
@@ -110,9 +113,11 @@ void QualityManager::calculateMaxActiveLayer() {
 }
 
 uint64_t QualityManager::getInstantLayerBitrate(int spatial_layer, int temporal_layer) {
-  if (!stats_->getNode()["qualityLayers"].hasChild(spatial_layer)) {
+  if (!stats_->getNode()["qualityLayers"].hasChild(spatial_layer) ||
+      !stats_->getNode()["qualityLayers"][spatial_layer].hasChild(temporal_layer)) {
     return 0;
   }
+
   MovingIntervalRateStat* layer_stat =
     reinterpret_cast<MovingIntervalRateStat*>(&stats_->getNode()["qualityLayers"][spatial_layer][temporal_layer]);
   return layer_stat->value(kActiveLayerInterval);
