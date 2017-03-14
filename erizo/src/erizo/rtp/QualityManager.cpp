@@ -8,10 +8,10 @@ constexpr duration QualityManager::kMinLayerSwitchInterval;
 constexpr duration QualityManager::kActiveLayerInterval;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
-  : initialized_{false}, padding_enabled_{false}, forced_layers_{false},
-  spatial_layer_{0}, temporal_layer_{0},
+  : initialized_{false}, padding_enabled_{true}, forced_layers_{false},
+  spatial_layer_{0}, temporal_layer_{0}, max_active_spatial_layer_{0}, max_active_temporal_layer_{0},
   current_estimated_bitrate_{0}, last_quality_check_{the_clock->now()},
-  clock_{the_clock} {}
+  last_activity_check_{the_clock->now()}, clock_{the_clock} {}
 
 
 void QualityManager::notifyQualityUpdate() {
@@ -36,7 +36,13 @@ void QualityManager::notifyQualityUpdate() {
   current_estimated_bitrate_ = stats_->getNode()["total"]["senderBitrateEstimation"].value();
   uint64_t current_layer_instant_bitrate = getInstantLayerBitrate(spatial_layer_, temporal_layer_);
   bool estimated_is_under_layer_bitrate = current_estimated_bitrate_ < current_layer_instant_bitrate;
-  bool layer_is_active = current_layer_instant_bitrate != 0;
+
+  if (now - last_activity_check_ > kActiveLayerInterval) {
+    calculateMaxActiveLayer();
+    last_activity_check_ = now;
+  }
+
+  bool layer_is_active = spatial_layer_ <= max_active_spatial_layer_;
 
   if (!isInBaseLayer() &&  (
         !layer_is_active
@@ -78,10 +84,35 @@ void QualityManager::selectLayer() {
         spatial_layer_, temporal_layer_, next_spatial_layer, next_temporal_layer);
     setTemporalLayer(next_temporal_layer);
     setSpatialLayer(next_spatial_layer);
+
+    // TODO(javier): should we wait for the actual spatial switch?
+    // should we disable padding temporarily to avoid congestion (old padding + new bitrate)?
+    padding_enabled_ = !isInMaxLayer();
   }
 }
 
+void QualityManager::calculateMaxActiveLayer() {
+  int max_active_spatial_layer = 5;
+  int max_active_temporal_layer = 5;
+
+  for (; max_active_spatial_layer > 0; max_active_spatial_layer--) {
+    if (getInstantLayerBitrate(max_active_spatial_layer, 0) > 0) {
+      break;
+    }
+  }
+  for (; max_active_temporal_layer > 0; max_active_temporal_layer--) {
+    if (getInstantLayerBitrate(max_active_spatial_layer, max_active_temporal_layer) > 0) {
+      break;
+    }
+  }
+  max_active_spatial_layer_ = max_active_spatial_layer;
+  max_active_temporal_layer_ = max_active_temporal_layer;
+}
+
 uint64_t QualityManager::getInstantLayerBitrate(int spatial_layer, int temporal_layer) {
+  if (!stats_->getNode()["qualityLayers"].hasChild(spatial_layer)) {
+    return 0;
+  }
   MovingIntervalRateStat* layer_stat =
     reinterpret_cast<MovingIntervalRateStat*>(&stats_->getNode()["qualityLayers"][spatial_layer][temporal_layer]);
   return layer_stat->value(kActiveLayerInterval);
@@ -89,6 +120,10 @@ uint64_t QualityManager::getInstantLayerBitrate(int spatial_layer, int temporal_
 
 bool QualityManager::isInBaseLayer() {
   return (spatial_layer_ == 0 && temporal_layer_ == 0);
+}
+
+bool QualityManager::isInMaxLayer() {
+  return (spatial_layer_ == max_active_spatial_layer_ && temporal_layer_ == max_active_temporal_layer_);
 }
 
 void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {

@@ -30,22 +30,27 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   virtual bool isPaddingEnabled() const { return padding_enabled_; }
 
  private:
+  void calculateMaxActiveLayer();
+  void selectLayer();
+  uint64_t getInstantLayerBitrate(int spatial_layer, int temporal_layer);
+  bool isInBaseLayer();
+  bool isInMaxLayer();
+
+
+ private:
   bool initialized_;
   bool padding_enabled_;
   bool forced_layers_;
   int spatial_layer_;
   int temporal_layer_;
-  std::string spatial_layer_str_;
-  std::string temporal_layer_str_;
+  int max_active_spatial_layer_;
+  int max_active_temporal_layer_;
   uint64_t current_estimated_bitrate_;
 
   time_point last_quality_check_;
+  time_point last_activity_check_;
   std::shared_ptr<Stats> stats_;
   std::shared_ptr<Clock> clock_;
-
-  void selectLayer();
-  uint64_t getInstantLayerBitrate(int spatial_layer, int temporal_layer);
-  bool isInBaseLayer();
 };
 }  // namespace erizo
 
