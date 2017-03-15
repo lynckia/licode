@@ -31,7 +31,8 @@ class Transport : public std::enable_shared_from_this<Transport>, public NiceCon
   MediaType mediaType;
   std::string transport_name;
   Transport(MediaType med, const std::string& transport_name, const std::string& connection_id, bool bundle,
-      bool rtcp_mux, std::weak_ptr<TransportListener> transport_listener, const IceConfig& iceConfig, std::shared_ptr<Worker> worker) :
+      bool rtcp_mux, std::weak_ptr<TransportListener> transport_listener, const IceConfig& iceConfig,
+      std::shared_ptr<Worker> worker) :
     mediaType(med), transport_name(transport_name), rtcp_mux_(rtcp_mux), transport_listener_(transport_listener),
     connection_id_(connection_id), state_(TRANSPORT_INITIAL), iceConfig_(iceConfig), bundle_(bundle),
     running_{true}, worker_{worker} {}
