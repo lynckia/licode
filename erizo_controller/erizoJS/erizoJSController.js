@@ -543,7 +543,7 @@ exports.ErizoJSController = function (threadPool) {
     that.getStreamStats = function (to, callback) {
         var stats = {};
         var publisher;
-        log.info('message: Requested stream stats, streamID: ' + to);
+        log.debug('message: Requested stream stats, streamID: ' + to);
         var promises = [];
         if (to && publishers[to]) {
           publisher = publishers[to];
