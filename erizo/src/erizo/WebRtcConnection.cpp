@@ -620,29 +620,40 @@ void WebRtcConnection::trackTransportInfo() {
   CandidatePair candidate_pair;
   if (videoEnabled_ && videoTransport_) {
     candidate_pair = videoTransport_->getNiceConnection()->getSelectedPair();
-    if (getVideoSinkSSRC() != kDefaultVideoSinkSSRC) {
-      stats_->getNode()[getVideoSinkSSRC()].insertStat("clientHostType",
+    asyncTask([candidate_pair] (std::shared_ptr<WebRtcConnection> connection) {
+      std::shared_ptr<Stats> stats = connection->stats_;
+      uint32_t video_sink_ssrc = connection->getVideoSinkSSRC();
+      uint32_t video_source_ssrc = connection->getVideoSourceSSRC();
+
+      if (video_sink_ssrc != kDefaultVideoSinkSSRC) {
+        stats->getNode()[video_sink_ssrc].insertStat("clientHostType",
+                                                     StringStat{candidate_pair.clientHostType});
+      }
+      if (video_source_ssrc != 0) {
+        stats->getNode()[video_source_ssrc].insertStat("clientHostType",
                                                        StringStat{candidate_pair.clientHostType});
-    }
-    if (getVideoSourceSSRC() != 0) {
-      stats_->getNode()[getVideoSourceSSRC()].insertStat("clientHostType",
-                                                         StringStat{candidate_pair.clientHostType});
-    }
+      }
+    });
   }
 
   if (audioEnabled_) {
     if (audioTransport_) {
       candidate_pair = audioTransport_->getNiceConnection()->getSelectedPair();
     }
+    asyncTask([candidate_pair] (std::shared_ptr<WebRtcConnection> connection) {
+      std::shared_ptr<Stats> stats = connection->stats_;
+      uint32_t audio_sink_ssrc = connection->getAudioSinkSSRC();
+      uint32_t audio_source_ssrc = connection->getAudioSourceSSRC();
 
-    if (getAudioSinkSSRC() != kDefaultAudioSinkSSRC) {
-      stats_->getNode()[getAudioSinkSSRC()].insertStat("clientHostType",
+      if (audio_sink_ssrc != kDefaultAudioSinkSSRC) {
+        stats->getNode()[audio_sink_ssrc].insertStat("clientHostType",
+                                                     StringStat{candidate_pair.clientHostType});
+      }
+      if (audio_source_ssrc != 0) {
+        stats->getNode()[audio_source_ssrc].insertStat("clientHostType",
                                                        StringStat{candidate_pair.clientHostType});
-    }
-    if (getAudioSourceSSRC() != 0) {
-      stats_->getNode()[getAudioSourceSSRC()].insertStat("clientHostType",
-                                                         StringStat{candidate_pair.clientHostType});
-    }
+      }
+    });
   }
 }
 
@@ -673,14 +684,18 @@ void WebRtcConnection::setSlideShowMode(bool state) {
   if (slide_show_mode_ == state) {
     return;
   }
-  stats_->getNode()[getVideoSinkSSRC()].insertStat("erizoSlideShow", CumulativeStat{state});
+  asyncTask([state] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->stats_->getNode()[connection->getVideoSinkSSRC()].insertStat("erizoSlideShow", CumulativeStat{state});
+  });
   slide_show_mode_ = state;
   notifyUpdateToHandlers();
 }
 
 void WebRtcConnection::muteStream(bool mute_video, bool mute_audio) {
   ELOG_DEBUG("%s message: muteStream, mute_video: %u, mute_audio: %u", toLog(), mute_video, mute_audio);
-  stats_->getNode()[getAudioSinkSSRC()].insertStat("erizoMute", CumulativeStat{mute_audio});
+  asyncTask([mute_audio] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->stats_->getNode()[connection->getAudioSinkSSRC()].insertStat("erizoMute", CumulativeStat{mute_audio});
+  });
   audio_muted_ = mute_audio;
   notifyUpdateToHandlers();
 }
