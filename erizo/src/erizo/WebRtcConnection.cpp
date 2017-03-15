@@ -120,22 +120,24 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
   if (audioEnabled_)
     localSdp_.audio_ssrc = this->getAudioSinkSSRC();
 
+  auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
+
   if (bundle_) {
     videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
-                                            this, iceConfig_ , "", "", true, worker_));
+                                            listener, iceConfig_ , "", "", true, worker_));
     videoTransport_->copyLogContextFrom(this);
     videoTransport_->start();
   } else {
     if (videoTransport_.get() == nullptr && videoEnabled_) {
       // For now we don't re/check transports, if they are already created we leave them there
       videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
-                                              this, iceConfig_ , "", "", true, worker_));
+                                              listener, iceConfig_ , "", "", true, worker_));
       videoTransport_->copyLogContextFrom(this);
       videoTransport_->start();
     }
     if (audioTransport_.get() == nullptr && audioEnabled_) {
       audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
-                                              this, iceConfig_, "", "", true, worker_));
+                                              listener, iceConfig_, "", "", true, worker_));
       audioTransport_->copyLogContextFrom(this);
       audioTransport_->start();
     }
@@ -186,6 +188,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 
   if (remoteSdp_.profile == SAVPF) {
     if (remoteSdp_.isFingerprint) {
+      auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
       if (remoteSdp_.hasVideo || bundle_) {
         std::string username = remoteSdp_.getUsername(VIDEO_TYPE);
         std::string password = remoteSdp_.getPassword(VIDEO_TYPE);
@@ -193,7 +196,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
           ELOG_DEBUG("%s message: Creating videoTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, remoteSdp_.isRtcpMux,
-                                                  this, iceConfig_ , username, password, false, worker_));
+                                                  listener, iceConfig_ , username, password, false, worker_));
           videoTransport_->copyLogContextFrom(this);
           videoTransport_->start();
         } else {
@@ -209,7 +212,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
           ELOG_DEBUG("%s message: Creating audioTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, remoteSdp_.isRtcpMux,
-                                                  this, iceConfig_, username, password, false, worker_));
+                                                  listener, iceConfig_, username, password, false, worker_));
           audioTransport_->copyLogContextFrom(this);
           audioTransport_->start();
         } else {
@@ -415,6 +418,7 @@ void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Trans
   if (audio_sink_ == nullptr && video_sink_ == nullptr && fb_sink_ == nullptr) {
     return;
   }
+
   if (transport->mediaType == AUDIO_TYPE) {
     packet->type = AUDIO_PACKET;
   } else if (transport->mediaType == VIDEO_TYPE) {
