@@ -63,8 +63,6 @@ class RtpPaddingGeneratorHandler: public Handler {
   MovingIntervalRateStat marker_rate_;
   MovingIntervalRateStat padding_bitrate_;
   uint32_t rtp_header_length_;
-  uint64_t remb_value_;
-  bool fast_start_;
 };
 
 }  // namespace erizo

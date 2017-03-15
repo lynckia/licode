@@ -105,7 +105,9 @@ TEST_F(QualityManagerTest, shouldChangeToHighestLayerBelowEstimatedBitrate) {
   const int kArbitraryTemporalLayer = 1;
   advanceClock(erizo::QualityManager::kMinLayerSwitchInterval + std::chrono::milliseconds(1));
 
-  setSenderBitrateEstimation(getStatForLayer(kArbitrarySpatialLayer, kArbitraryTemporalLayer) + 1);
+  float margin = 1. + QualityManager::kIncreaseLayerBitrateThreshold;
+
+  setSenderBitrateEstimation(getStatForLayer(kArbitrarySpatialLayer, kArbitraryTemporalLayer) * margin + 1);
   quality_manager->notifyQualityUpdate();
 
   EXPECT_EQ(quality_manager->getSpatialLayer() , kArbitrarySpatialLayer);

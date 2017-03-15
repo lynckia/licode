@@ -57,8 +57,8 @@ void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<dataPacket> pac
       packet->compatible_temporal_layers.push_back(1);
     case 1:
       packet->compatible_temporal_layers.push_back(2);
-    case 3:
-      packet->compatible_temporal_layers.push_back(3);
+    // case 3 and beyond are not handled because Chrome only
+    // supports 3 temporal scalability today (03/15/17)
       break;
     default:
       packet->compatible_temporal_layers.push_back(0);

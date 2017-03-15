@@ -7,6 +7,7 @@
 #include <map>
 
 #include "./logger.h"
+#include "lib/Clock.h"
 #include "pipeline/Handler.h"
 #include "rtp/SequenceNumberTranslator.h"
 #include "rtp/QualityManager.h"
@@ -60,6 +61,7 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   uint32_t max_video_bw_;
   uint32_t last_timestamp_sent_;
   uint32_t timestamp_offset_;
+  time_point time_change_started_;
 };
 }  // namespace erizo
 
