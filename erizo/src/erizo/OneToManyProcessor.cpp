@@ -31,7 +31,9 @@ namespace erizo {
 
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
-      (*it).second->deliverAudioData(audio_packet);
+      if ((*it).second != nullptr) {
+        (*it).second->deliverAudioData(audio_packet);
+      }
     }
 
     return 0;
