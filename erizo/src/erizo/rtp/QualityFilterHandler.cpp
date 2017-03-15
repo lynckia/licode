@@ -130,7 +130,7 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<dataPacket> packe
     uint32_t ssrc = rtp_header->getSSRC();
     uint16_t sequence_number = rtp_header->getSeqNumber();
 
-    if (ssrc != last_ssrc_received_) {
+    if (last_ssrc_received_ != 0 && ssrc != last_ssrc_received_) {
       receiving_multiple_ssrc_ = true;
     }
 
