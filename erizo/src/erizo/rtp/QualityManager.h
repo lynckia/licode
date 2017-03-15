@@ -12,8 +12,9 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   DECLARE_LOGGER();
 
  public:
-  static constexpr duration kMinLayerSwitchInterval = std::chrono::seconds(2);
+  static constexpr duration kMinLayerSwitchInterval = std::chrono::seconds(10);
   static constexpr duration kActiveLayerInterval = std::chrono::milliseconds(500);
+  static constexpr float kIncreaseLayerBitrateThreshold = 0.1;
 
  public:
   explicit QualityManager(std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
@@ -31,7 +32,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
 
  private:
   void calculateMaxActiveLayer();
-  void selectLayer();
+  void selectLayer(bool try_higher_layers);
   uint64_t getInstantLayerBitrate(int spatial_layer, int temporal_layer);
   bool isInBaseLayer();
   bool isInMaxLayer();

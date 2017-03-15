@@ -164,7 +164,7 @@ void RtpPaddingGeneratorHandler::recalculatePaddingRate() {
     return;
   }
 
-  uint64_t marker_rate = marker_rate_.value(std::chrono::seconds(2));
+  uint64_t marker_rate = marker_rate_.value(std::chrono::milliseconds(500));
   marker_rate = std::max(marker_rate, kMinMarkerRate);
   uint64_t bytes_per_marker = target_padding_bitrate / (marker_rate * 8);
   number_of_full_padding_packets_ = bytes_per_marker / (kMaxPaddingSize + rtp_header_length_);
@@ -175,7 +175,7 @@ uint64_t RtpPaddingGeneratorHandler::getTargetBitrate() {
   uint64_t target_bitrate = kInitialBitrate;
 
   if (stats_->getNode()["total"].hasChild("senderBitrateEstimation")) {
-    target_bitrate = getStat("senderBitrateEstimation");
+    target_bitrate = static_cast<CumulativeStat&>(stats_->getNode()["total"]["senderBitrateEstimation"]).value();
   }
 
   if (max_video_bw_ > 0) {

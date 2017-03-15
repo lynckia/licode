@@ -7,6 +7,7 @@ DEFINE_LOGGER(QualityManager, "rtp.QualityManager");
 
 constexpr duration QualityManager::kMinLayerSwitchInterval;
 constexpr duration QualityManager::kActiveLayerInterval;
+constexpr float QualityManager::kIncreaseLayerBitrateThreshold;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
   : initialized_{false}, padding_enabled_{true}, forced_layers_{false},
@@ -51,19 +52,19 @@ void QualityManager::notifyQualityUpdate() {
     ELOG_DEBUG("message: Forcing calculate new layer, "
         "estimated_is_under_layer_bitrate: %d, layer_is_active: %d", estimated_is_under_layer_bitrate,
         layer_is_active);
-    selectLayer();
-    return;
+    selectLayer(false);
   } else if (now - last_quality_check_ > kMinLayerSwitchInterval) {
-    selectLayer();
+    selectLayer(true);
   }
 }
 
-void QualityManager::selectLayer() {
+void QualityManager::selectLayer(bool try_higher_layers) {
   last_quality_check_ = clock_->now();
   int aux_temporal_layer = 0;
   int aux_spatial_layer = 0;
   int next_temporal_layer = 0;
   int next_spatial_layer = 0;
+  float bitrate_margin = try_higher_layers ? kIncreaseLayerBitrateThreshold : 0;
   ELOG_DEBUG("Calculate best layer with %lu, current layer %d/%d",
       current_estimated_bitrate_, spatial_layer_, temporal_layer_);
   for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
@@ -71,7 +72,7 @@ void QualityManager::selectLayer() {
      ELOG_DEBUG("Bitrate for layer %d/%d %lu",
          aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
       if (temporal_layer_node.second->value() != 0 &&
-          temporal_layer_node.second->value() < current_estimated_bitrate_) {
+          (1. + bitrate_margin) * temporal_layer_node.second->value() < current_estimated_bitrate_) {
         next_temporal_layer = aux_temporal_layer;
         next_spatial_layer = aux_spatial_layer;
       }
