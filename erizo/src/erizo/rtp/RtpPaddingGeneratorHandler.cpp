@@ -12,11 +12,10 @@ namespace erizo {
 DEFINE_LOGGER(RtpPaddingGeneratorHandler, "rtp.RtpPaddingGeneratorHandler");
 
 constexpr duration kStatsPeriod = std::chrono::milliseconds(100);
-constexpr duration kFastStartMaxDuration = std::chrono::seconds(30);
 constexpr uint8_t kMaxPaddingSize = 255;
 constexpr uint64_t kMinMarkerRate = 3;
 constexpr uint8_t kMaxFractionLostAllowed = .05 * 255;  // 5% of packet losts
-constexpr uint64_t kInitialRembValue = 300000;
+constexpr uint64_t kInitialBitrate = 300000;
 
 RtpPaddingGeneratorHandler::RtpPaddingGeneratorHandler(std::shared_ptr<erizo::Clock> the_clock) :
   clock_{the_clock}, connection_{nullptr}, max_video_bw_{0}, higher_sequence_number_{0},
@@ -26,7 +25,7 @@ RtpPaddingGeneratorHandler::RtpPaddingGeneratorHandler(std::shared_ptr<erizo::Cl
   enabled_{false}, first_packet_received_{false},
   marker_rate_{std::chrono::milliseconds(100), 20, 1., clock_},
   padding_bitrate_{std::chrono::milliseconds(100), 10, 8., clock_},
-  rtp_header_length_{12}, remb_value_{kInitialRembValue}, fast_start_{true} {}
+  rtp_header_length_{12} {}
 
 
 void RtpPaddingGeneratorHandler::enable() {
@@ -59,20 +58,6 @@ void RtpPaddingGeneratorHandler::notifyUpdate() {
 }
 
 void RtpPaddingGeneratorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  RtpUtils::forEachRRBlock(packet, [this](RtcpHeader *chead) {
-    if (chead->packettype == RTCP_PS_Feedback_PT && chead->getBlockCount() == RTCP_AFB) {
-      char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
-      if (!strncmp(uniqueId, "REMB", 4)) {
-        remb_value_ = chead->getREMBBitRate();
-      }
-    } else if (fast_start_ && chead->packettype == RTCP_Receiver_PT && chead->getSourceSSRC() == audio_source_ssrc_) {
-      if (chead->getFractionLost() > kMaxFractionLostAllowed) {
-        ELOG_DEBUG("Fast start disabled");
-        fast_start_ = false;
-      }
-    }
-  });
-
   ctx->fireRead(packet);
 }
 
@@ -85,10 +70,6 @@ void RtpPaddingGeneratorHandler::write(Context *ctx, std::shared_ptr<dataPacket>
       started_at_ = clock_->now();
     }
     first_packet_received_ = true;
-    if (fast_start_ && clock_->now() - started_at_ > kFastStartMaxDuration) {
-      ELOG_DEBUG("Fast start disabled");
-      fast_start_ = false;
-    }
   }
 
   ctx->fireWrite(packet);
@@ -183,7 +164,7 @@ void RtpPaddingGeneratorHandler::recalculatePaddingRate() {
     return;
   }
 
-  uint64_t marker_rate = marker_rate_.value(std::chrono::seconds(2));
+  uint64_t marker_rate = marker_rate_.value(std::chrono::milliseconds(500));
   marker_rate = std::max(marker_rate, kMinMarkerRate);
   uint64_t bytes_per_marker = target_padding_bitrate / (marker_rate * 8);
   number_of_full_padding_packets_ = bytes_per_marker / (kMaxPaddingSize + rtp_header_length_);
@@ -191,10 +172,10 @@ void RtpPaddingGeneratorHandler::recalculatePaddingRate() {
 }
 
 uint64_t RtpPaddingGeneratorHandler::getTargetBitrate() {
-  uint64_t target_bitrate = remb_value_;
+  uint64_t target_bitrate = kInitialBitrate;
 
-  if (!fast_start_) {
-    target_bitrate = getStat("senderBitrateEstimation");
+  if (stats_->getNode()["total"].hasChild("senderBitrateEstimation")) {
+    target_bitrate = static_cast<CumulativeStat&>(stats_->getNode()["total"]["senderBitrateEstimation"]).value();
   }
 
   if (max_video_bw_ > 0) {

@@ -1,4 +1,5 @@
 #include "rtp/QualityManager.h"
+#include "WebRtcConnection.h"
 
 namespace erizo {
 
@@ -6,12 +7,13 @@ DEFINE_LOGGER(QualityManager, "rtp.QualityManager");
 
 constexpr duration QualityManager::kMinLayerSwitchInterval;
 constexpr duration QualityManager::kActiveLayerInterval;
+constexpr float QualityManager::kIncreaseLayerBitrateThreshold;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
-  : initialized_{false}, padding_enabled_{false}, forced_layers_{false},
-  spatial_layer_{0}, temporal_layer_{0},
+  : initialized_{false}, padding_enabled_{true}, forced_layers_{false},
+  spatial_layer_{0}, temporal_layer_{0}, max_active_spatial_layer_{0}, max_active_temporal_layer_{0},
   current_estimated_bitrate_{0}, last_quality_check_{the_clock->now()},
-  clock_{the_clock} {}
+  last_activity_check_{the_clock->now()}, clock_{the_clock} {}
 
 
 void QualityManager::notifyQualityUpdate() {
@@ -36,7 +38,13 @@ void QualityManager::notifyQualityUpdate() {
   current_estimated_bitrate_ = stats_->getNode()["total"]["senderBitrateEstimation"].value();
   uint64_t current_layer_instant_bitrate = getInstantLayerBitrate(spatial_layer_, temporal_layer_);
   bool estimated_is_under_layer_bitrate = current_estimated_bitrate_ < current_layer_instant_bitrate;
-  bool layer_is_active = current_layer_instant_bitrate != 0;
+
+  if (now - last_activity_check_ > kActiveLayerInterval) {
+    calculateMaxActiveLayer();
+    last_activity_check_ = now;
+  }
+
+  bool layer_is_active = spatial_layer_ <= max_active_spatial_layer_;
 
   if (!isInBaseLayer() &&  (
         !layer_is_active
@@ -44,19 +52,19 @@ void QualityManager::notifyQualityUpdate() {
     ELOG_DEBUG("message: Forcing calculate new layer, "
         "estimated_is_under_layer_bitrate: %d, layer_is_active: %d", estimated_is_under_layer_bitrate,
         layer_is_active);
-    selectLayer();
-    return;
+    selectLayer(false);
   } else if (now - last_quality_check_ > kMinLayerSwitchInterval) {
-    selectLayer();
+    selectLayer(true);
   }
 }
 
-void QualityManager::selectLayer() {
+void QualityManager::selectLayer(bool try_higher_layers) {
   last_quality_check_ = clock_->now();
   int aux_temporal_layer = 0;
   int aux_spatial_layer = 0;
   int next_temporal_layer = 0;
   int next_spatial_layer = 0;
+  float bitrate_margin = try_higher_layers ? kIncreaseLayerBitrateThreshold : 0;
   ELOG_DEBUG("Calculate best layer with %lu, current layer %d/%d",
       current_estimated_bitrate_, spatial_layer_, temporal_layer_);
   for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
@@ -64,7 +72,7 @@ void QualityManager::selectLayer() {
      ELOG_DEBUG("Bitrate for layer %d/%d %lu",
          aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
       if (temporal_layer_node.second->value() != 0 &&
-          temporal_layer_node.second->value() < current_estimated_bitrate_) {
+          (1. + bitrate_margin) * temporal_layer_node.second->value() < current_estimated_bitrate_) {
         next_temporal_layer = aux_temporal_layer;
         next_spatial_layer = aux_spatial_layer;
       }
@@ -78,10 +86,39 @@ void QualityManager::selectLayer() {
         spatial_layer_, temporal_layer_, next_spatial_layer, next_temporal_layer);
     setTemporalLayer(next_temporal_layer);
     setSpatialLayer(next_spatial_layer);
+
+    // TODO(javier): should we wait for the actual spatial switch?
+    // should we disable padding temporarily to avoid congestion (old padding + new bitrate)?
+    padding_enabled_ = !isInMaxLayer();
+    getContext()->getPipelineShared()->getService<WebRtcConnection>()->notifyUpdateToHandlers();
+    ELOG_DEBUG("message: Is padding enabled, padding_enabled_: %d", padding_enabled_);
   }
 }
 
+void QualityManager::calculateMaxActiveLayer() {
+  int max_active_spatial_layer = 5;
+  int max_active_temporal_layer = 5;
+
+  for (; max_active_spatial_layer > 0; max_active_spatial_layer--) {
+    if (getInstantLayerBitrate(max_active_spatial_layer, 0) > 0) {
+      break;
+    }
+  }
+  for (; max_active_temporal_layer > 0; max_active_temporal_layer--) {
+    if (getInstantLayerBitrate(max_active_spatial_layer, max_active_temporal_layer) > 0) {
+      break;
+    }
+  }
+  max_active_spatial_layer_ = max_active_spatial_layer;
+  max_active_temporal_layer_ = max_active_temporal_layer;
+}
+
 uint64_t QualityManager::getInstantLayerBitrate(int spatial_layer, int temporal_layer) {
+  if (!stats_->getNode()["qualityLayers"].hasChild(spatial_layer) ||
+      !stats_->getNode()["qualityLayers"][spatial_layer].hasChild(temporal_layer)) {
+    return 0;
+  }
+
   MovingIntervalRateStat* layer_stat =
     reinterpret_cast<MovingIntervalRateStat*>(&stats_->getNode()["qualityLayers"][spatial_layer][temporal_layer]);
   return layer_stat->value(kActiveLayerInterval);
@@ -89,6 +126,10 @@ uint64_t QualityManager::getInstantLayerBitrate(int spatial_layer, int temporal_
 
 bool QualityManager::isInBaseLayer() {
   return (spatial_layer_ == 0 && temporal_layer_ == 0);
+}
+
+bool QualityManager::isInMaxLayer() {
+  return (spatial_layer_ == max_active_spatial_layer_ && temporal_layer_ == max_active_temporal_layer_);
 }
 
 void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
