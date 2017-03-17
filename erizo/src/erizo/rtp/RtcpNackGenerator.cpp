@@ -130,7 +130,6 @@ bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet)
   nack_packet.setSourceSSRC(ssrc_);
   nack_packet.setLength(kNackCommonHeaderLengthRtcp + nack_vector.size());
   memcpy(buffer, reinterpret_cast<char *>(&nack_packet), kNackCommonHeaderLengthBytes);
-  RtcpHeader* chead_test = reinterpret_cast<RtcpHeader*> (buffer);
   buffer += kNackCommonHeaderLengthBytes;
 
   memcpy(buffer, &nack_vector[0], nack_vector.size()*4);

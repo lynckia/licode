@@ -1,3 +1,4 @@
+
 /*
  * RtpHeaders.h
  */
@@ -104,6 +105,10 @@ class RtpHeader {
 
   inline uint8_t hasPadding() const {
     return padding;
+  }
+
+  inline void setPadding(uint8_t has_padding) {
+    padding = has_padding;
   }
 
   inline uint8_t getVersion() const {
@@ -350,6 +355,13 @@ class RtcpHeader {
       uint32_t ssrcsource;
       uint32_t fci;
     } pli;
+
+    struct fir_t {
+      uint32_t ssrcsource;
+      uint32_t mediasource;
+      uint32_t seqnumber:8;
+      uint32_t reserved:24;
+    } fir;
   } report;
 
   inline RtcpHeader() : blockcount(0), padding(0), version(2), packettype(0), length(0), ssrc(0) {
@@ -510,6 +522,12 @@ class RtcpHeader {
   }
   inline void setFCI(uint32_t fci) {
     report.pli.fci = htonl(fci);
+  }
+  inline void setFIRSourceSSRC(uint32_t ssrc) {
+    report.fir.mediasource = htonl(ssrc);
+  }
+  inline void setFIRSequenceNumber(uint8_t seq_number) {
+    report.fir.seqnumber = seq_number;
   }
 };
 
