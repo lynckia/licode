@@ -61,7 +61,6 @@ class RtpPaddingGeneratorHandler: public Handler {
   bool enabled_;
   bool first_packet_received_;
   MovingIntervalRateStat marker_rate_;
-  MovingIntervalRateStat padding_bitrate_;
   uint32_t rtp_header_length_;
 };
 
