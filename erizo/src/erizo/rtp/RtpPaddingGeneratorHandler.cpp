@@ -24,7 +24,6 @@ RtpPaddingGeneratorHandler::RtpPaddingGeneratorHandler(std::shared_ptr<erizo::Cl
   last_rate_calculation_time_{clock_->now()}, started_at_{clock_->now()},
   enabled_{false}, first_packet_received_{false},
   marker_rate_{std::chrono::milliseconds(100), 20, 1., clock_},
-  padding_bitrate_{std::chrono::milliseconds(100), 10, 8., clock_},
   rtp_header_length_{12} {}
 
 
@@ -41,6 +40,8 @@ void RtpPaddingGeneratorHandler::notifyUpdate() {
     video_sink_ssrc_ = connection_->getVideoSinkSSRC();
     audio_source_ssrc_ = connection_->getAudioSinkSSRC();
     stats_ = pipeline->getService<Stats>();
+    stats_->getNode()["total"].insertStat("paddingBitrate",
+        MovingIntervalRateStat{std::chrono::milliseconds(100), 10, 8., clock_});
   }
 
   auto quality_manager = pipeline->getService<QualityManager>();
@@ -91,7 +92,7 @@ void RtpPaddingGeneratorHandler::sendPaddingPacket(std::shared_ptr<dataPacket> p
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(padding_packet->data);
 
   rtp_header->setSeqNumber(sequence_number.output);
-  padding_bitrate_ += padding_packet->length;
+  stats_->getNode()["total"]["paddingBitrate"] += padding_packet->length;
 
   getContext()->fireWrite(padding_packet);
 }
@@ -151,7 +152,7 @@ void RtpPaddingGeneratorHandler::recalculatePaddingRate() {
   last_rate_calculation_time_ = clock_->now();
 
   int64_t total_bitrate = getStat("bitrateCalculated");
-  int64_t padding_bitrate = padding_bitrate_.value();
+  int64_t padding_bitrate = stats_->getNode()["total"]["paddingBitrate"].value();
   int64_t media_bitrate = std::max(total_bitrate - padding_bitrate, int64_t(0));
 
   uint64_t target_bitrate = getTargetBitrate();

@@ -21,6 +21,7 @@ void RtpRetransmissionHandler::notifyUpdate() {
   auto pipeline = getContext()->getPipelineShared();
   if (pipeline && !connection_) {
     connection_ = pipeline->getService<WebRtcConnection>().get();
+    stats_ = pipeline->getService<Stats>();
   }
 }
 
@@ -63,6 +64,12 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
             if (recovered.get()) {
               RtpHeader *recovered_head = reinterpret_cast<RtpHeader*> (recovered->data);
               if (recovered_head->getSeqNumber() == seq_num) {
+                if (!stats_->getNode()["total"].hasChild("rtxBitrate")) {
+                  stats_->getNode()["total"].insertStat("rtxBitrate",
+                      MovingIntervalRateStat{std::chrono::milliseconds(100),
+                      30, 8.});
+                }
+                stats_->getNode()["total"]["rtxBitrate"] += recovered->length;
                 getContext()->fireWrite(recovered);
                 continue;
               }
