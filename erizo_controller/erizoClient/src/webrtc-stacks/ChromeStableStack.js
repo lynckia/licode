@@ -368,6 +368,10 @@ Erizo.ChromeStableStack = function (spec) {
                 } else {
                     obj = JSON.parse(msg.candidate);
                 }
+                if (obj.candidate === 'end') {
+                    // ignore the end candidate for chrome
+                    return;
+                }
                 obj.candidate = obj.candidate.replace(/a=/g, '');
                 obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex);
                 var candidate = new RTCIceCandidate(obj);
