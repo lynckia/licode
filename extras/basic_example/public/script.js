@@ -65,7 +65,7 @@ window.onload = function () {
     config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
   }
   localStream = Erizo.Stream(config);
-  var createToken = function(room_data, callback) {
+  var createToken = function(roomData, callback) {
 
     var req = new XMLHttpRequest();
     var url = serverUrl + 'createToken/';
@@ -78,12 +78,12 @@ window.onload = function () {
 
     req.open('POST', url, true);
     req.setRequestHeader('Content-Type', 'application/json');
-    req.send(JSON.stringify(room_data));
+    req.send(JSON.stringify(roomData));
   };
 
-  var room_data = {username: 'user', role: 'presenter', room: roomName, type: roomType};
+  var roomData  = {username: 'user', role: 'presenter', room: roomName, type: roomType};
 
-  createToken(room_data, function (response) {
+  createToken(roomData, function (response) {
     var token = response;
     console.log(token);
     room = Erizo.Room({token: token});

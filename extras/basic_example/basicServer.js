@@ -72,7 +72,7 @@ var getOrCreateRoom = function (name, type = 'erizo', callback) {
             }
         }
 
-        let extra = {data: {basicExampleRoom:true}};
+        let extra = {data: {basicExampleRoom: true}};
         if (type === 'p2p') extra.p2p = true;
 
         N.API.createRoom(name, function (roomID) {
