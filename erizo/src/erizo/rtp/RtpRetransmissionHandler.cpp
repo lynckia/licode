@@ -63,14 +63,13 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
 
             if (recovered.get()) {
               RtpHeader *recovered_head = reinterpret_cast<RtpHeader*> (recovered->data);
-              uint32_t ssrc = recovered_head->getSSRC();
               if (recovered_head->getSeqNumber() == seq_num) {
-                if (!stats_->getNode()[ssrc].hasChild("rtxBitrate")) {
-                  stats_->getNode()[ssrc].insertStat("rtxBitrate",
-                      MovingIntervalRateStat{ std::chrono::milliseconds(100),
+                if (!stats_->getNode()["total"].hasChild("rtxBitrate")) {
+                  stats_->getNode()["total"].insertStat("rtxBitrate",
+                      MovingIntervalRateStat{std::chrono::milliseconds(100),
                       30, 8.});
                 }
-                stats_->getNode()[ssrc]["rtxBitrate"] += recovered->length;
+                stats_->getNode()["total"]["rtxBitrate"] += recovered->length;
                 getContext()->fireWrite(recovered);
                 continue;
               }
