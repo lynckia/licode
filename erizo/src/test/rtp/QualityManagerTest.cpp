@@ -158,6 +158,7 @@ TEST_F(QualityManagerTest, shouldNotGoToHigherLayerInEarlierThanInterval) {
   const int kArbitrarySpatialLayer = 1;
   const int kArbitraryTemporalLayer = 1;
 
+  quality_manager->notifyQualityUpdate();
   quality_manager->setSpatialLayer(kBaseSpatialLayer);
   quality_manager->setTemporalLayer(kBaseTemporalLayer);
 
@@ -173,6 +174,7 @@ TEST_F(QualityManagerTest, shouldSwitchLayerImmediatelyWhenLayerIsGone) {
   const int kArbitrarySpatialLayer = 1;
   const int kArbitraryTemporalLayer = 1;
 
+  quality_manager->notifyQualityUpdate();
   quality_manager->setSpatialLayer(kArbitrarySpatialLayer);
   quality_manager->setTemporalLayer(kArbitraryTemporalLayer);
 
@@ -188,6 +190,7 @@ TEST_F(QualityManagerTest, shouldStickToForcedLayer) {
   const int kArbitrarySpatialLayer = 1;
   const int kArbitraryTemporalLayer = 1;
 
+  quality_manager->notifyQualityUpdate();
   quality_manager->forceLayers(kBaseSpatialLayer, kBaseTemporalLayer);
   quality_manager->setSpatialLayer(kArbitrarySpatialLayer);
   quality_manager->setSpatialLayer(kArbitraryTemporalLayer);

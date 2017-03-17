@@ -139,6 +139,7 @@ bool QualityManager::isInMaxLayer() {
 
 void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
   forced_layers_ = true;
+  padding_enabled_ = false;
   spatial_layer_ = spatial_layer;
   temporal_layer_ = temporal_layer;
 }
