@@ -173,8 +173,12 @@ Erizo.ChromeStableStack = function (spec) {
     that.peerConnection.onicecandidate = function (event) {
         var candidateObject = {};
         if (!event.candidate) {
-            L.Logger.info('Gathered all candidates.');
-            return;
+            L.Logger.info('Gathered all candidates. Sending END candidate');
+            candidateObject = {
+                sdpMLineIndex: -1 ,
+                sdpMid: 'end',
+                candidate: 'end'
+            };
         }else{
 
             if (!event.candidate.candidate.match(/a=/)) {
@@ -363,6 +367,10 @@ Erizo.ChromeStableStack = function (spec) {
                     obj = msg.candidate;
                 } else {
                     obj = JSON.parse(msg.candidate);
+                }
+                if (obj.candidate === 'end') {
+                    // ignore the end candidate for chrome
+                    return;
                 }
                 obj.candidate = obj.candidate.replace(/a=/g, '');
                 obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex);
