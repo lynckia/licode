@@ -1,8 +1,8 @@
 /* globals Erizo */
 'use strict';
-var serverUrl = '/';
-var localStream, room, chart;
-var streamToChart;
+const serverUrl = '/';
+let room;
+const charts = new Map();
 
 function getParameterByName(name) {
     name = name.replace(/[\[]/, '\\\[').replace(/[\]]/, '\\\]');
@@ -11,14 +11,24 @@ function getParameterByName(name) {
     return results == null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
 
-var seriesMap = {};
 var spatialStyles = ['ShortDot', 'Dash', 'DashDot', 'ShortDashDotDot'];
 var temporalStyles = ['#7cb5ec', '#90ed7d', '#f7a35c', '#f15c80'];
 
-var initChart = function () {
-    chart = new Highcharts.Chart({
+var initChart = function (stream, subId) {
+    let pubId = stream.getID();
+    console.log("Init Chart ", stream.getID(), subId);
+    if (!charts.has(pubId)) {
+       return undefined;
+    }
+    var div = document.createElement('div');
+    div.setAttribute('style', 'width: 100%; height:500px; float:right;');
+    div.setAttribute('id', 'chart' + pubId + '_' + subId);
+
+    document.body.appendChild(div);
+
+    let chart = new Highcharts.Chart({
         chart: {
-            renderTo: 'chart',
+            renderTo: 'chart' + pubId + '_' + subId,
             defaultSeriesType: 'line',
             animation: false,
             showAxes: true,
@@ -33,7 +43,7 @@ var initChart = function () {
             }
         },
         title: {
-            text: 'Live Layer Bitrate'
+            text: `Live Layer Bitrate (pub: ${pubId}, sub: ${subId})`
         },
         xAxis: {
             type: 'datetime',
@@ -48,12 +58,20 @@ var initChart = function () {
                 margin: 80
             }
         },
+        tooltip: {
+          formatter: function() {
+            return this.point.name;
+          }
+        },
         series: []
     });
+    charts.get(pubId).set(subId, chart);
+    return chart;
 };
-var updateSeriesForKey = function (key, spatial, temporal, value_x, value_y) {
-    if (seriesMap[key] === undefined) {
-        
+var updateSeriesForKey = function (stream, subId, key, spatial, temporal, value_x, value_y, point_name = value_y, is_active = true) {
+    let chart = getOrCreateChart(stream, subId);
+    if (chart.seriesMap[key] === undefined) {
+
         let dash, color, width = 3;
         if (spatial && temporal) {
             dash = spatialStyles[spatial];
@@ -65,7 +83,7 @@ var updateSeriesForKey = function (key, spatial, temporal, value_x, value_y) {
             color = '#434348';
         }
 
-        seriesMap[key] = chart.addSeries({
+        chart.seriesMap[key] = chart.chart.addSeries({
             name: key,
             dashStyle: dash,
             color: color,
@@ -73,58 +91,94 @@ var updateSeriesForKey = function (key, spatial, temporal, value_x, value_y) {
             data: []
         });
     }
-    let seriesForKey = seriesMap[key];
+    let seriesForKey = chart.seriesMap[key];
     let shift = seriesForKey.data.length > 30;
-    seriesForKey.addPoint([value_x, value_y], true, shift);
+    let point = { x: value_x, y: value_y, name: point_name };
+    if (!is_active) {
+      point.marker = {
+          radius: 4,
+          lineColor: 'red',
+          fillColor: 'red',
+          lineWidth: 1,
+          symbol: 'circle'
+      };
+    }
+    seriesForKey.addPoint(point, true, shift);
 }
 
-var updateChart = function () {
+let getOrCreateChart = function(stream, subId) {
+  let pubId = stream.getID();
+  let chart;
+  if (!charts.has(pubId)) {
+    return undefined;
+  }
+  if (!charts.get(pubId).has(subId)) {
+    chart = {
+      seriesMap: {},
+      chart: initChart(stream, subId)
+    };
+    charts.get(pubId).set(subId, chart);
+  } else {
+    chart = charts.get(pubId).get(subId);
+  }
+  return chart;
+};
+
+var updateCharts = function (stream) {
     let date = (new Date()).getTime();
-    room.getStreamStats(streamToChart, function(data) {
-        for (var i in data) {
+    room.getStreamStats(stream, function(data) {
+        let pubId = stream.getID();
+        for (let i in data) {
             if (i != "publisher") {
+                let subId = i;
                 let totalBitrate = data[i]["total"]["bitrateCalculated"];
-                if (totalBitrate) {
-                    updateSeriesForKey("Current Received", undefined, undefined, date, totalBitrate);
-                }
-                let bitrateEstimated = data[i]["total"]["senderBitrateEstimation"]; 
-                if (bitrateEstimated) {
-                    updateSeriesForKey("Estimated Bandwidth", undefined, undefined, date, bitrateEstimated);
-                }
                 let qualityLayersData = data[i]["qualityLayers"];
-                if (qualityLayersData !== undefined){
+                let bitrateEstimated = data[i]["total"]["senderBitrateEstimation"];
+                let paddingBitrate = data[i]["total"]["paddingBitrate"];
+
+                let rtxBitrate = data[i]["total"]["rtxBitrate"];
+
+                let name = "";
+                if (qualityLayersData !== undefined) {
+                    let maxActiveSpatialLayer = qualityLayersData["maxActiveSpatialLayer"] || 0;
                     for (var spatialLayer in qualityLayersData) {
                         for (var temporalLayer in qualityLayersData[spatialLayer]) {
                             let key = "Spatial " + spatialLayer + " / Temporal " + temporalLayer;
-                            updateSeriesForKey(key, spatialLayer, temporalLayer, date, qualityLayersData[spatialLayer][temporalLayer])
+                            updateSeriesForKey(stream, subId, key, spatialLayer, temporalLayer, date, qualityLayersData[spatialLayer][temporalLayer], undefined, maxActiveSpatialLayer >= spatialLayer)
                         }
                     }
+                    if (qualityLayersData["selectedSpatialLayer"]) {
+                      name += qualityLayersData["selectedSpatialLayer"] + "/" + qualityLayersData["selectedTemporalLayer"];
+                    }
+                }
+                if (totalBitrate) {
+                    name += " " + totalBitrate;
+                    updateSeriesForKey(stream, subId, "Current Received", undefined, undefined, date, totalBitrate, name);
+                }
 
+                if (bitrateEstimated) {
+                    updateSeriesForKey(stream, subId, "Estimated Bandwidth", undefined, undefined, date, bitrateEstimated);
+                }
+
+                if (paddingBitrate) {
+                    updateSeriesForKey(stream, subId, "Padding Bitrate", undefined, undefined, date, paddingBitrate);
+                }
+
+                if (rtxBitrate) {
+                    updateSeriesForKey(stream, subId, "Rtx Bitrate", undefined, undefined, date, paddingBitrate);
                 }
             }
         }
-        setTimeout(updateChart, 1000);    
+        setTimeout(updateCharts.bind(this, stream), 1000);
     });
 
 }
 
 window.onload = function () {
-    var screen = getParameterByName('screen');
     var roomName = getParameterByName('room') || 'basicExampleRoom';
+    let streamId = parseInt(getParameterByName('stream'));
+    streamId = isNaN(streamId) ? undefined : streamId;
     console.log('Selected Room', room);
-    var config = {audio: true,
-        video: true,
-        data: true,
-        screen: screen,
-        videoSize: [640, 480, 1280, 720],
-        videoFrameRate: [10, 20]};
-    // If we want screen sharing we have to put our Chrome extension id.
-    // The default one only works in our Lynckia test servers.
-    // If we are not using chrome, the creation of the stream will fail regardless.
-    if (screen){
-        config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
-    }
-    localStream = Erizo.Stream(config);
     var createToken = function(userName, role, roomName, callback) {
 
         var req = new XMLHttpRequest();
@@ -142,75 +196,53 @@ window.onload = function () {
         req.send(JSON.stringify(body));
     };
 
+    let initStreams = function() {
+      let remoteStreams = room.remoteStreams;
+      let remoteStreamIds = Object.keys(remoteStreams);
+      for (let streamId of remoteStreamIds) {
+        onStreamAdded(remoteStreams[streamId]);
+      }
+    };
+
+    let onStreamAdded = function(stream) {
+      let id = stream.getID();
+      if (streamId && streamId !== id) {
+        return;
+      }
+      charts.set(id, new Map());
+      updateCharts(stream);
+    };
+
+    let onStreamDeleted = function(stream) {
+
+    };
+
     createToken('user', 'presenter', roomName, function (response) {
         var token = response;
         console.log(token);
         room = Erizo.Room({token: token});
 
-        localStream.addEventListener('access-accepted', function () {
-            var subscribeToStreams = function (streams) {
-                for (var index in streams) {
-                    var stream = streams[index];
-                    room.subscribe(stream, {slideShowMode: false, metadata: {type: 'subscriber'}});
-                    return;
-                }
-            };
-
-            room.addEventListener('room-connected', function (roomEvent) {
-                console.log("InitChart");
-                initChart();
-                var options = {metadata: {type: 'publisher'}};
-                var enableSimulcast = true; 
-                if (enableSimulcast) options._simulcast = {numSpatialLayers: 2};
-
-                var shouldPublish = getParameterByName('shouldPublish');
-                if (shouldPublish) {
-                    room.publish(localStream, options);
-                } else {
-                    subscribeToStreams(roomEvent.streams);
-                }
-            });
-
-            room.addEventListener('stream-subscribed', function(streamEvent) {
-                var stream = streamEvent.stream;
-                var div = document.createElement('div');
-                div.setAttribute('style', 'width: 640px; height: 480px;');
-                div.setAttribute('id', 'test' + stream.getID());
-
-                if (streamToChart == undefined) {
-                    console.log("Saving stream", stream);
-                    streamToChart = stream;
-                    updateChart();
-                }
-
-                document.body.appendChild(div);
-                stream.show('test' + stream.getID());
-
-            });
-
-            room.addEventListener('stream-added', function (streamEvent) {
-                var streams = [];
-                streams.push(streamEvent.stream);
-                subscribeToStreams(streams);
-            });
-
-            room.addEventListener('stream-removed', function (streamEvent) {
-                // Remove stream from DOM
-                var stream = streamEvent.stream;
-                if (stream.elementID !== undefined) {
-                    var element = document.getElementById(stream.elementID);
-                    document.body.removeChild(element);
-                }
-            });
-
-            room.addEventListener('stream-failed', function (){
-                console.log('Stream Failed, act accordingly');
-            });
-
-            room.connect();
-
+        room.addEventListener('room-connected', function (roomEvent) {
+            console.log("Room Connected");
+            initStreams();
         });
 
-        localStream.init();
+        room.addEventListener('stream-subscribed', function(streamEvent) {
+        });
+
+        room.addEventListener('stream-added', function (streamEvent) {
+            onStreamAdded(streamEvent.stream);
+        });
+
+        room.addEventListener('stream-removed', function (streamEvent) {
+            onStreamDeleted(streamEvent.stream);
+        });
+
+        room.addEventListener('stream-failed', function (){
+            console.log('Stream Failed, act accordingly');
+        });
+
+        room.connect();
+
     });
 };
