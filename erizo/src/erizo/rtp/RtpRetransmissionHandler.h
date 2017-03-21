@@ -35,6 +35,7 @@ class RtpRetransmissionHandler : public Handler {
   WebRtcConnection *connection_;
   std::vector<std::shared_ptr<dataPacket>> audio_;
   std::vector<std::shared_ptr<dataPacket>> video_;
+  std::shared_ptr<Stats> stats_;
 };
 }  // namespace erizo
 

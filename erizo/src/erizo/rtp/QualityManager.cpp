@@ -109,6 +109,11 @@ void QualityManager::calculateMaxActiveLayer() {
       break;
     }
   }
+  stats_->getNode()["qualityLayers"].insertStat("maxActiveSpatialLayer",
+      CumulativeStat{static_cast<uint64_t>(max_active_spatial_layer_)});
+  stats_->getNode()["qualityLayers"].insertStat("maxActiveTemporalLayer",
+      CumulativeStat{static_cast<uint64_t>(max_active_temporal_layer_)});
+
   max_active_spatial_layer_ = max_active_spatial_layer;
   max_active_temporal_layer_ = max_active_temporal_layer;
 }
@@ -134,6 +139,7 @@ bool QualityManager::isInMaxLayer() {
 
 void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
   forced_layers_ = true;
+  padding_enabled_ = false;
   spatial_layer_ = spatial_layer;
   temporal_layer_ = temporal_layer;
 }
@@ -142,11 +148,15 @@ void QualityManager::setSpatialLayer(int spatial_layer) {
   if (!forced_layers_) {
     spatial_layer_ = spatial_layer;
   }
+  stats_->getNode()["qualityLayers"].insertStat("selectedSpatialLayer",
+      CumulativeStat{static_cast<uint64_t>(spatial_layer_)});
 }
 void QualityManager::setTemporalLayer(int temporal_layer) {
   if (!forced_layers_) {
     temporal_layer_ = temporal_layer;
   }
+  stats_->getNode()["qualityLayers"].insertStat("selectedTemporalLayer",
+      CumulativeStat{static_cast<uint64_t>(temporal_layer_)});
 }
 
 }  // namespace erizo

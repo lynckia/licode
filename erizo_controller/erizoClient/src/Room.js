@@ -204,7 +204,7 @@ Erizo.Room = function (spec) {
 
 
             myStream.pc[arg.peerSocket].oniceconnectionstatechange = function (state) {
-                if (state === 'failed') {
+                if (state === 'failed' || state === 'disconnected') {
                     myStream.pc[arg.peerSocket].close();
                     delete myStream.pc[arg.peerSocket];
                 }
