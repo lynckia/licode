@@ -1,9 +1,7 @@
-/*global require, exports, setInterval, clearInterval*/
+/*global require, exports, setInterval, clearInterval, Promise*/
 'use strict';
-var addon = require('./../../erizoAPI/build/Release/addon');
 var logger = require('./../common/logger').logger;
 var amqper = require('./../common/amqper');
-var Source = require('./models/Publisher').Source;
 var Publisher = require('./models/Publisher').Publisher;
 var ExternalInput = require('./models/Publisher').ExternalInput;
 
@@ -126,7 +124,8 @@ exports.ErizoJSController = function (threadPool) {
                     if (idSub && options.browser === 'bowser') {
                         publishers[idPub].wrtc.generatePLIPacket();
                     }
-                    if (options.slideShowMode === true || Number.isSafeInteger(options.slideShowMode)) {
+                    if (options.slideShowMode === true || 
+                        Number.isSafeInteger(options.slideShowMode)) {
                         that.setSlideShow(options.slideShowMode, idSub, idPub);
                     }
                     callback('callback', {type: 'ready'});
@@ -204,12 +203,13 @@ exports.ErizoJSController = function (threadPool) {
     };
 
     that.addExternalOutput = function (to, url) {
-      publishers[to] && publishers[to].addExternalOutput(url);
+        if (publishers[to]) publishers[to].addExternalOutput(url);
     };
 
     that.removeExternalOutput = function (to, url) {
         if (publishers[to] !== undefined) {
-            log.info('message: Stopping ExternalOutput, id: ' + publishers[to].getExternalOutput(url).wrtcId);
+            log.info('message: Stopping ExternalOutput, id: ' + 
+                publishers[to].getExternalOutput(url).wrtcId);
             publishers[to].removeExternalOutput(url);
         }
     };
@@ -228,7 +228,7 @@ exports.ErizoJSController = function (threadPool) {
     };
 
     var disableDefaultHandlers = function(wrtc) {
-      var disabledHandlers = GLOBAL.config.erizo['disabled_handlers'];
+      var disabledHandlers = GLOBAL.config.erizo.disabledHandlers;
       for (var index in disabledHandlers) {
         wrtc.disableHandler(disabledHandlers[index]);
       }
@@ -246,8 +246,8 @@ exports.ErizoJSController = function (threadPool) {
                     disableDefaultHandlers(subscriber);
                 } else if (msg.type === 'candidate') {
                     subscriber.addRemoteCandidate(msg.candidate.sdpMid,
-                                                                     msg.candidate.sdpMLineIndex,
-                                                                     msg.candidate.candidate);
+                                                  msg.candidate.sdpMLineIndex,
+                                                  msg.candidate.candidate);
                 } else if (msg.type === 'updatestream') {
                     if(msg.sdp)
                         subscriber.setRemoteSdp(msg.sdp);
@@ -345,7 +345,7 @@ exports.ErizoJSController = function (threadPool) {
      * OneToManyProcessor.
      */
     that.addSubscriber = function (from, to, options, callback) {
-        var publisher = publishers[to]
+        var publisher = publishers[to];
         if (publisher === undefined) {
             log.warn('message: addSubscriber to unknown publisher, ' +
                      'code: ' + WARN_NOT_FOUND + ', streamId: ' + to + ', clientId: ' + from +
@@ -505,7 +505,6 @@ exports.ErizoJSController = function (threadPool) {
 
     that.muteStream = function (muteStreamInfo, from, to) {
         var publisher = this.publishers[to];
-        var subscriberWrtc = publisher.hasSubscriber(from);
         if (muteStreamInfo.video === undefined) {
             muteStreamInfo.video = false;
         }

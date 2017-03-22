@@ -6,3 +6,4 @@ erizo_controller/erizoClient/lib/
 spine/erizofc.js
 extras/basic_example/public/erizo.js
 extras/basic_example/nuve.js
+extras/basic_example/public/lib/

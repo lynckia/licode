@@ -1,4 +1,4 @@
-/* globals Erizo */
+/* globals Erizo, Highcharts */
 'use strict';
 const serverUrl = '/';
 let room;
@@ -20,7 +20,15 @@ let clearTabs = function() {
   for (let element of elements) {
     tabElement.removeChild(element);
   }
-}
+};
+
+let clearChartsNode = function() {
+  let chartElement = document.getElementById('charts');
+  let elements = chartElement.querySelectorAll('.chart');
+  for (let element of elements) {
+    chartElement.removeChild(element);
+  }
+};
 
 let openStream = function(streamId, evt) {
   if (charts.size === 1 && charts.has(parseInt(streamId))) {
@@ -36,12 +44,12 @@ let openStream = function(streamId, evt) {
     charts.set(parseInt(streamId), new Map());
   }
 
-  let tablinks = document.getElementsByClassName("tablinks");
+  let tablinks = document.getElementsByClassName('tablinks');
   for (let i = 0; i < tablinks.length; i++) {
-      tablinks[i].className = tablinks[i].className.replace(" active", "");
+      tablinks[i].className = tablinks[i].className.replace(' active', '');
   }
-  evt.currentTarget.className += " active";
-}
+  evt.currentTarget.className += ' active';
+};
 
 let createTabs = function(list) {
   let tabNode = document.getElementById('tabs');
@@ -59,7 +67,7 @@ let createTabs = function(list) {
   button.addEventListener('click', openStream.bind(this, 'all'));
   button.textContent = 'All';
   tabNode.appendChild(button);
-}
+};
 
 let createList = function() {
   let streamIds = Object.keys(room.remoteStreams);
@@ -70,19 +78,11 @@ let createList = function() {
 let toBitrateString = function(value) {
   let result = Math.floor(value / Math.pow(2, 10));
   return result + 'kbps';
-}
-
-let clearChartsNode = function() {
-  let chartElement = document.getElementById('charts');
-  let elements = chartElement.querySelectorAll('.chart');
-  for (let element of elements) {
-    chartElement.removeChild(element);
-  }
-}
+};
 
 var initChart = function (stream, subId) {
     let pubId = stream.getID();
-    console.log("Init Chart ", stream.getID(), subId);
+    console.log('Init Chart ', stream.getID(), subId);
     if (!charts.has(pubId)) {
        return undefined;
     }
@@ -129,7 +129,7 @@ var initChart = function (stream, subId) {
         tooltip: {
           formatter: function() {
             let s = '';
-            let selectedLayers = 'Spatial: 0 / Temporal: 0'
+            let selectedLayers = 'Spatial: 0 / Temporal: 0';
             for (let point of this.points) {
               s += '<br/>' + point.series.name + ': ' + toBitrateString(point.point.y);
               selectedLayers = point.point.name || selectedLayers;
@@ -145,7 +145,27 @@ var initChart = function (stream, subId) {
     charts.get(pubId).set(subId, chart);
     return chart;
 };
-var updateSeriesForKey = function (stream, subId, key, spatial, temporal, value_x, value_y, point_name = undefined, is_active = true) {
+
+let getOrCreateChart = function(stream, subId) {
+  let pubId = stream.getID();
+  let chart;
+  if (!charts.has(pubId)) {
+    return undefined;
+  }
+  if (!charts.get(pubId).has(subId)) {
+    chart = {
+      seriesMap: {},
+      chart: initChart(stream, subId)
+    };
+    charts.get(pubId).set(subId, chart);
+  } else {
+    chart = charts.get(pubId).get(subId);
+  }
+  return chart;
+};
+
+var updateSeriesForKey = function (stream, subId, key, spatial, temporal, valueX, valueY, 
+  pointName = undefined, isActive = true) {
     let chart = getOrCreateChart(stream, subId);
     if (chart.seriesMap[key] === undefined) {
 
@@ -170,8 +190,8 @@ var updateSeriesForKey = function (stream, subId, key, spatial, temporal, value_
     }
     let seriesForKey = chart.seriesMap[key];
     let shift = seriesForKey.data.length > 30;
-    let point = { x: value_x, y: value_y, name: point_name };
-    if (!is_active) {
+    let point = { x: valueX, y: valueY, name: pointName };
+    if (!isActive) {
       point.marker = {
           radius: 4,
           lineColor: 'red',
@@ -181,72 +201,60 @@ var updateSeriesForKey = function (stream, subId, key, spatial, temporal, value_
       };
     }
     seriesForKey.addPoint(point, true, shift);
-}
-
-let getOrCreateChart = function(stream, subId) {
-  let pubId = stream.getID();
-  let chart;
-  if (!charts.has(pubId)) {
-    return undefined;
-  }
-  if (!charts.get(pubId).has(subId)) {
-    chart = {
-      seriesMap: {},
-      chart: initChart(stream, subId)
-    };
-    charts.get(pubId).set(subId, chart);
-  } else {
-    chart = charts.get(pubId).get(subId);
-  }
-  return chart;
 };
-
-let updateInterval = setInterval(() => {
-  for (let stream of charts.keys()) {
-    updateCharts(room.remoteStreams[stream]);
-  }
-}, 1000);
 
 let updateCharts = function (stream) {
     let date = (new Date()).getTime();
     room.getStreamStats(stream, function(data) {
-        let pubId = stream.getID();
         for (let i in data) {
-            if (i != "publisher") {
+            if (i !== 'publisher') {
                 let subId = i;
-                let selectedLayers = "";
-                let qualityLayersData = data[i]["qualityLayers"];
+                let selectedLayers = '';
+                let qualityLayersData = data[i].qualityLayers;
 
                 if (qualityLayersData !== undefined) {
-                    let maxActiveSpatialLayer = qualityLayersData["maxActiveSpatialLayer"] || 0;
+                    let maxActiveSpatialLayer = qualityLayersData.maxActiveSpatialLayer || 0;
                     for (var spatialLayer in qualityLayersData) {
                         for (var temporalLayer in qualityLayersData[spatialLayer]) {
-                            let key = "Spatial " + spatialLayer + " / Temporal " + temporalLayer;
-                            updateSeriesForKey(stream, subId, key, spatialLayer, temporalLayer, date, qualityLayersData[spatialLayer][temporalLayer], undefined, maxActiveSpatialLayer >= spatialLayer)
+                            let key = 'Spatial ' + spatialLayer + ' / Temporal ' + temporalLayer;
+                            updateSeriesForKey(stream, subId, key, spatialLayer, temporalLayer, 
+                              date, qualityLayersData[spatialLayer][temporalLayer], undefined, 
+                              maxActiveSpatialLayer >= spatialLayer);
                         }
                     }
-                    if (qualityLayersData["selectedSpatialLayer"]) {
-                      selectedLayers += 'Spatial: ' + qualityLayersData["selectedSpatialLayer"] + " / Temporal: " + qualityLayersData["selectedTemporalLayer"];
+                    if (qualityLayersData.selectedSpatialLayer) {
+                      selectedLayers += 'Spatial: ' + qualityLayersData.selectedSpatialLayer + 
+                      ' / Temporal: '+ qualityLayersData.selectedTemporalLayer;
                     }
                 }
 
-                let totalBitrate = data[i]["total"]["bitrateCalculated"] || 0;
-                let bitrateEstimated = data[i]["total"]["senderBitrateEstimation"] || 0;
-                let paddingBitrate = data[i]["total"]["paddingBitrate"] || 0;
-                let rtxBitrate = data[i]["total"]["rtxBitrate"] || 0;
+                let totalBitrate = data[i].total.bitrateCalculated || 0;
+                let bitrateEstimated = data[i].total.senderBitrateEstimation || 0;
+                let paddingBitrate = data[i].total.paddingBitrate || 0;
+                let rtxBitrate = data[i].total.rtxBitrate || 0;
 
                 if (totalBitrate) {
-                    updateSeriesForKey(stream, subId, "Current Received", undefined, undefined, date, totalBitrate, selectedLayers);
+                    updateSeriesForKey(stream, subId, 'Current Received', undefined, undefined, 
+                      date, totalBitrate, selectedLayers);
                 }
 
-                updateSeriesForKey(stream, subId, "Estimated Bandwidth", undefined, undefined, date, bitrateEstimated);
-                updateSeriesForKey(stream, subId, "Padding Bitrate", undefined, undefined, date, paddingBitrate);
-                updateSeriesForKey(stream, subId, "Rtx Bitrate", undefined, undefined, date, rtxBitrate);
+                updateSeriesForKey(stream, subId, 'Estimated Bandwidth', undefined, undefined, 
+                  date, bitrateEstimated);
+                updateSeriesForKey(stream, subId, 'Padding Bitrate', undefined, undefined, 
+                  date, paddingBitrate);
+                updateSeriesForKey(stream, subId, 'Rtx Bitrate', undefined, undefined, 
+                  date, rtxBitrate);
             }
         }
     });
 
-}
+};
+
+setInterval(() => {
+  for (let stream of charts.keys()) {
+    updateCharts(room.remoteStreams[stream]);
+  }
+}, 1000);
 
 window.onload = function () {
     var roomName = getParameterByName('room') || 'basicExampleRoom';
@@ -273,6 +281,14 @@ window.onload = function () {
         req.send(JSON.stringify(body));
     };
 
+    let onStreamAdded = function(stream) {
+      let id = stream.getID();
+      if (streamId && streamId !== id) {
+        return;
+      }
+      createList();
+    };
+    
     let initStreams = function() {
       let remoteStreams = room.remoteStreams;
       let remoteStreamIds = Object.keys(remoteStreams);
@@ -281,16 +297,8 @@ window.onload = function () {
       }
     };
 
-    let onStreamAdded = function(stream) {
-      let id = stream.getID();
-      if (streamId && streamId !== id) {
-        return;
-      }
-      createList();
-    };
-
     let onStreamDeleted = function(stream) {
-
+      console.log('Stream deleted', stream);
     };
 
     createToken('user', 'presenter', roomName, function (response) {
@@ -299,11 +307,12 @@ window.onload = function () {
         room = Erizo.Room({token: token});
 
         room.addEventListener('room-connected', function (roomEvent) {
-            console.log("Room Connected");
+            console.log('Room Connected', roomEvent);
             initStreams();
         });
 
         room.addEventListener('stream-subscribed', function(streamEvent) {
+          console.log('Stream subscribed', streamEvent.stream);
         });
 
         room.addEventListener('stream-added', function (streamEvent) {

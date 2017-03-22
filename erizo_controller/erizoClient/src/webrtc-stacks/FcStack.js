@@ -1,4 +1,3 @@
-/*global console*/
 'use strict';
 var Erizo = Erizo || {};
 
@@ -16,6 +15,8 @@ Erizo.FcStack = function (spec) {
     that.peerConnection = {};
     that.desc = {};
     that.signalCallback = undefined;
+
+    var L = L || {};
 
     that.close = function() {
         L.Logger.info('Close FcStack');
