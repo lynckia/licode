@@ -205,5 +205,6 @@ void QualityFilterHandler::notifyUpdate() {
 
   video_sink_ssrc_ = connection_->getVideoSinkSSRC();
   video_source_ssrc_ = connection_->getVideoSourceSSRC();
+  initialized_ = true;
 }
 }  // namespace erizo
