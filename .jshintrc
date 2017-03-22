@@ -53,5 +53,8 @@
       "maxlen": 100,
 
       // Enforce placing 'use strict' at the top function scope
-      "strict": true
+      "strict": true,
+
+      // ECMAScript version
+      "esversion": 6
 }

@@ -200,7 +200,8 @@ describe('Erizo JS Controller', function() {
 
     it('should succeed sending offer event', function() {
       mocks.WebRtcConnection.init.returns(1).callsArgWith(0, 103, '');  // CONN_GATHERED
-      controller.addPublisher(kArbitraryId, {createOffer: {audio: true, video: true, bundle: true}}, callback);
+      controller.addPublisher(kArbitraryId, {createOffer: 
+        {audio: true, video: true, bundle: true}}, callback);
 
       expect(callback.callCount).to.equal(2);
       expect(callback.args[1]).to.deep.equal(['callback', {type: 'initializing'}]);

@@ -51,7 +51,7 @@ N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://loca
 var defaultRoom;
 const defaultRoomName = 'basicExampleRoom';
 
-var getOrCreateRoom = function (name, type = 'erizo', callback) {
+var getOrCreateRoom = function (name, type = 'erizo', callback = function(){}) {
 
     if (name === defaultRoomName && defaultRoom) {
         callback(defaultRoom);

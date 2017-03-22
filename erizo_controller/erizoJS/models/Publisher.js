@@ -1,4 +1,4 @@
-/*global require, exports, setInterval, clearInterval*/
+/*global require, exports*/
 'use strict';
 var addon = require('./../../../erizoAPI/build/Release/addon');
 var logger = require('./../../common/logger').logger;

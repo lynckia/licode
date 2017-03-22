@@ -38,11 +38,23 @@ Erizo.FirefoxStack = function (spec) {
       if (!spec.video || !spec.simulcast) {
         return;
       }
-      var sender = that.peerConnection.getSenders().forEach(function(sender) {
+      that.peerConnection.getSenders().forEach(function(sender) {
         if (sender.track.kind === 'video') {
-          parameters = sender.getParameters();
-          sender.setParameters({encodings: [{ rid: "spam", active: true, priority: "high", maxBitrate: 40000, maxHeight: 640, maxWidth: 480 },
-                                            { rid: "egg", active: true, priority: "medium", maxBitrate: 10000, maxHeight: 320, maxWidth: 240 }]});
+          sender.getParameters();
+          sender.setParameters({encodings: [{ 
+            rid: 'spam', 
+            active: true, 
+            priority: 'high', 
+            maxBitrate: 40000, 
+            maxHeight: 640, 
+            maxWidth: 480 },{ 
+            rid: 'egg', 
+            active: true, 
+            priority: 'medium', 
+            maxBitrate: 10000, 
+            maxHeight: 320, 
+            maxWidth: 240 }]
+          });
         }
       });
     };
