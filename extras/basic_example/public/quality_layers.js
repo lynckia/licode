@@ -14,17 +14,85 @@ function getParameterByName(name) {
 var spatialStyles = ['ShortDot', 'Dash', 'DashDot', 'ShortDashDotDot'];
 var temporalStyles = ['#7cb5ec', '#90ed7d', '#f7a35c', '#f15c80'];
 
+let clearTabs = function() {
+  let tabElement = document.getElementById('tabs');
+  let elements = tabElement.querySelectorAll('button');
+  for (let element of elements) {
+    tabElement.removeChild(element);
+  }
+}
+
+let openStream = function(streamId, evt) {
+  if (charts.size === 1 && charts.has(parseInt(streamId))) {
+    return;
+  }
+  charts.clear();
+  clearChartsNode();
+  if (streamId === 'all') {
+    for (let stream of Object.keys(room.remoteStreams)) {
+      charts.set(parseInt(stream), new Map());
+    }
+  } else {
+    charts.set(parseInt(streamId), new Map());
+  }
+
+  let tablinks = document.getElementsByClassName("tablinks");
+  for (let i = 0; i < tablinks.length; i++) {
+      tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+  evt.currentTarget.className += " active";
+}
+
+let createTabs = function(list) {
+  let tabNode = document.getElementById('tabs');
+  for (let id of list) {
+    let button = document.createElement('button');
+    button.setAttribute('class', 'tablinks');
+    button.setAttribute('id', id);
+    button.addEventListener('click', openStream.bind(this, id));
+    button.textContent = id;
+    tabNode.appendChild(button);
+  }
+  let button = document.createElement('button');
+  button.setAttribute('class', 'tablinks');
+  button.setAttribute('id', 'all');
+  button.addEventListener('click', openStream.bind(this, 'all'));
+  button.textContent = 'All';
+  tabNode.appendChild(button);
+}
+
+let createList = function() {
+  let streamIds = Object.keys(room.remoteStreams);
+  clearTabs();
+  createTabs(streamIds);
+};
+
+let toBitrateString = function(value) {
+  let result = Math.floor(value / Math.pow(2, 10));
+  return result + 'kbps';
+}
+
+let clearChartsNode = function() {
+  let chartElement = document.getElementById('charts');
+  let elements = chartElement.querySelectorAll('.chart');
+  for (let element of elements) {
+    chartElement.removeChild(element);
+  }
+}
+
 var initChart = function (stream, subId) {
     let pubId = stream.getID();
     console.log("Init Chart ", stream.getID(), subId);
     if (!charts.has(pubId)) {
        return undefined;
     }
+    var parent = document.getElementById('charts');
     var div = document.createElement('div');
-    div.setAttribute('style', 'width: 100%; height:500px; float:right;');
+    div.setAttribute('style', 'width: 500px; height:500px; float:left;');
     div.setAttribute('id', 'chart' + pubId + '_' + subId);
+    div.setAttribute('class', 'chart');
 
-    document.body.appendChild(div);
+    parent.appendChild(div);
 
     let chart = new Highcharts.Chart({
         chart: {
@@ -43,7 +111,7 @@ var initChart = function (stream, subId) {
             }
         },
         title: {
-            text: `Live Layer Bitrate (pub: ${pubId}, sub: ${subId})`
+            text: `pub: ${pubId},\nsub: ${subId}`
         },
         xAxis: {
             type: 'datetime',
@@ -60,15 +128,24 @@ var initChart = function (stream, subId) {
         },
         tooltip: {
           formatter: function() {
-            return this.point.name;
-          }
+            let s = '';
+            let selectedLayers = 'Spatial: 0 / Temporal: 0'
+            for (let point of this.points) {
+              s += '<br/>' + point.series.name + ': ' + toBitrateString(point.point.y);
+              selectedLayers = point.point.name || selectedLayers;
+            }
+            s = '<b>' + selectedLayers  + '</b>' + s;
+            return s;
+          },
+          crosshairs: [true, true],
+          shared: true
         },
         series: []
     });
     charts.get(pubId).set(subId, chart);
     return chart;
 };
-var updateSeriesForKey = function (stream, subId, key, spatial, temporal, value_x, value_y, point_name = value_y, is_active = true) {
+var updateSeriesForKey = function (stream, subId, key, spatial, temporal, value_x, value_y, point_name = undefined, is_active = true) {
     let chart = getOrCreateChart(stream, subId);
     if (chart.seriesMap[key] === undefined) {
 
@@ -124,21 +201,22 @@ let getOrCreateChart = function(stream, subId) {
   return chart;
 };
 
-var updateCharts = function (stream) {
+let updateInterval = setInterval(() => {
+  for (let stream of charts.keys()) {
+    updateCharts(room.remoteStreams[stream]);
+  }
+}, 1000);
+
+let updateCharts = function (stream) {
     let date = (new Date()).getTime();
     room.getStreamStats(stream, function(data) {
         let pubId = stream.getID();
         for (let i in data) {
             if (i != "publisher") {
                 let subId = i;
-                let totalBitrate = data[i]["total"]["bitrateCalculated"];
+                let selectedLayers = "";
                 let qualityLayersData = data[i]["qualityLayers"];
-                let bitrateEstimated = data[i]["total"]["senderBitrateEstimation"];
-                let paddingBitrate = data[i]["total"]["paddingBitrate"];
 
-                let rtxBitrate = data[i]["total"]["rtxBitrate"];
-
-                let name = "";
                 if (qualityLayersData !== undefined) {
                     let maxActiveSpatialLayer = qualityLayersData["maxActiveSpatialLayer"] || 0;
                     for (var spatialLayer in qualityLayersData) {
@@ -148,28 +226,24 @@ var updateCharts = function (stream) {
                         }
                     }
                     if (qualityLayersData["selectedSpatialLayer"]) {
-                      name += qualityLayersData["selectedSpatialLayer"] + "/" + qualityLayersData["selectedTemporalLayer"];
+                      selectedLayers += 'Spatial: ' + qualityLayersData["selectedSpatialLayer"] + " / Temporal: " + qualityLayersData["selectedTemporalLayer"];
                     }
                 }
+
+                let totalBitrate = data[i]["total"]["bitrateCalculated"] || 0;
+                let bitrateEstimated = data[i]["total"]["senderBitrateEstimation"] || 0;
+                let paddingBitrate = data[i]["total"]["paddingBitrate"] || 0;
+                let rtxBitrate = data[i]["total"]["rtxBitrate"] || 0;
+
                 if (totalBitrate) {
-                    name += " " + totalBitrate;
-                    updateSeriesForKey(stream, subId, "Current Received", undefined, undefined, date, totalBitrate, name);
+                    updateSeriesForKey(stream, subId, "Current Received", undefined, undefined, date, totalBitrate, selectedLayers);
                 }
 
-                if (bitrateEstimated) {
-                    updateSeriesForKey(stream, subId, "Estimated Bandwidth", undefined, undefined, date, bitrateEstimated);
-                }
-
-                if (paddingBitrate) {
-                    updateSeriesForKey(stream, subId, "Padding Bitrate", undefined, undefined, date, paddingBitrate);
-                }
-
-                if (rtxBitrate) {
-                    updateSeriesForKey(stream, subId, "Rtx Bitrate", undefined, undefined, date, paddingBitrate);
-                }
+                updateSeriesForKey(stream, subId, "Estimated Bandwidth", undefined, undefined, date, bitrateEstimated);
+                updateSeriesForKey(stream, subId, "Padding Bitrate", undefined, undefined, date, paddingBitrate);
+                updateSeriesForKey(stream, subId, "Rtx Bitrate", undefined, undefined, date, rtxBitrate);
             }
         }
-        setTimeout(updateCharts.bind(this, stream), 1000);
     });
 
 }
@@ -177,13 +251,16 @@ var updateCharts = function (stream) {
 window.onload = function () {
     var roomName = getParameterByName('room') || 'basicExampleRoom';
     let streamId = parseInt(getParameterByName('stream'));
+    let roomId = getParameterByName('roomId');
     streamId = isNaN(streamId) ? undefined : streamId;
-    console.log('Selected Room', room);
+    console.log('Selected Room', roomName);
     var createToken = function(userName, role, roomName, callback) {
 
         var req = new XMLHttpRequest();
         var url = serverUrl + 'createToken/';
-        var body = {username: userName, role: role, room:roomName};
+        var body = {username: userName, role: role};
+        body.room = roomId ? undefined : roomName;
+        body.roomId = roomId;
 
         req.onreadystatechange = function () {
             if (req.readyState === 4) {
@@ -209,8 +286,7 @@ window.onload = function () {
       if (streamId && streamId !== id) {
         return;
       }
-      charts.set(id, new Map());
-      updateCharts(stream);
+      createList();
     };
 
     let onStreamDeleted = function(stream) {
