@@ -14,7 +14,6 @@ DEFINE_LOGGER(RtpPaddingGeneratorHandler, "rtp.RtpPaddingGeneratorHandler");
 constexpr duration kStatsPeriod = std::chrono::milliseconds(100);
 constexpr uint8_t kMaxPaddingSize = 255;
 constexpr uint64_t kMinMarkerRate = 3;
-constexpr uint8_t kMaxFractionLostAllowed = .05 * 255;  // 5% of packet losts
 constexpr uint64_t kInitialBitrate = 300000;
 
 RtpPaddingGeneratorHandler::RtpPaddingGeneratorHandler(std::shared_ptr<erizo::Clock> the_clock) :

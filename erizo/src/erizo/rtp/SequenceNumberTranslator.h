@@ -43,13 +43,14 @@ class SequenceNumberTranslator: public Service, public std::enable_shared_from_t
   uint16_t fill(const uint16_t &first, const uint16_t &last);
   SequenceNumber& internalGet(uint16_t input_sequence_number);
   SequenceNumber& internalReverse(uint16_t output_sequence_number);
+  void updateLastOutputSequenceNumber(bool skip, uint16_t output_sequence_number);
 
  private:
   std::vector<SequenceNumber> in_out_buffer_;
   std::vector<SequenceNumber> out_in_buffer_;
   uint16_t first_input_sequence_number_;
   uint16_t last_input_sequence_number_;
-  uint16_t initial_output_sequence_number_;
+  uint16_t last_output_sequence_number_;
   uint16_t offset_;
   bool initialized_;
   bool reset_;
