@@ -1,5 +1,4 @@
 /*global require, exports, setInterval, clearInterval, Promise*/
-/*jshint esversion: 6 */
 'use strict';
 var logger = require('./../common/logger').logger;
 var amqper = require('./../common/amqper');
