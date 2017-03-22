@@ -71,7 +71,9 @@ SequenceNumber SequenceNumberTranslator::generate() {
 }
 
 void SequenceNumberTranslator::updateLastOutputSequenceNumber(bool skip, uint16_t output_sequence_number) {
-  if (!skip && RtpUtils::sequenceNumberLessThan(last_output_sequence_number_, output_sequence_number)) {
+  bool first_packet = !initialized_ && !(reset_ || offset_ > 0);
+  if (!skip &&
+      (RtpUtils::sequenceNumberLessThan(last_output_sequence_number_, output_sequence_number) || first_packet)) {
     last_output_sequence_number_ = output_sequence_number;
   }
 }
@@ -138,6 +140,7 @@ void SequenceNumberTranslator::reset() {
     return;
   }
   initialized_ = false;
+  reset_ = true;
   first_input_sequence_number_ = 0;
   last_input_sequence_number_ = 0;
   in_out_buffer_ = std::vector<SequenceNumber>(kMaxSequenceNumberInBuffer);

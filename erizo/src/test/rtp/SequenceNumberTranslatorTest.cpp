@@ -59,17 +59,21 @@ TEST_P(SequenceNumberTranslatorTest, shouldReturnRightOutputSequenceNumbers) {
     SequenceNumber output;
     if (packet.state == PacketState::Reset) {
       translator.reset();
-      return;
+      continue;
     } else if (packet.state == PacketState::Generate) {
       output = translator.generate();
     } else {
       output = translator.get(packet.sequence_number, skip);
     }
-    EXPECT_THAT(output.output, Eq(packet.expected_output));
+    if (output.type == SequenceNumberType::Valid) {
+      EXPECT_THAT(output.output, Eq(packet.expected_output));
+    }
     EXPECT_THAT(output.type, Eq(packet.expected_type));
 
     translator.reverse(packet.expected_output);
-    ASSERT_THAT(output.input, Eq(packet.sequence_number));
+    if (output.type == SequenceNumberType::Valid) {
+      ASSERT_THAT(output.input, Eq(packet.sequence_number));
+    }
     ASSERT_THAT(output.type, Eq(packet.expected_type));
   }
 }
@@ -168,6 +172,12 @@ INSTANTIATE_TEST_CASE_P(
                          { 23537, PacketState::Forward,            5059, SequenceNumberType::Valid}}),
 
     //                     input                        expected_output
+    std::vector<Packet>({{ 50000, PacketState::Forward,           50000, SequenceNumberType::Valid},
+                         {     0, PacketState::Reset,                 0, SequenceNumberType::Skip},
+                         { 23537, PacketState::Forward,           50001, SequenceNumberType::Valid},
+                         { 23538, PacketState::Forward,           50002, SequenceNumberType::Valid}}),
+
+    //                     input                        expected_output
     std::vector<Packet>({{     0, PacketState::Generate,              1, SequenceNumberType::Generated},
                          {     6, PacketState::Forward,               2, SequenceNumberType::Valid},
                          {     7, PacketState::Forward,               3, SequenceNumberType::Valid},
@@ -177,7 +187,7 @@ INSTANTIATE_TEST_CASE_P(
     std::vector<Packet>({{     6, PacketState::Forward,               6, SequenceNumberType::Valid},
                          {    10, PacketState::Skip,                 10, SequenceNumberType::Skip},
                          {     0, PacketState::Reset,                 0, SequenceNumberType::Skip},
-                         {   301, PacketState::Skip,                301, SequenceNumberType::Skip},
+                         {   301, PacketState::Skip,                  7, SequenceNumberType::Skip},
                          {     0, PacketState::Reset,                 0, SequenceNumberType::Skip},
                          {   901, PacketState::Forward,               7, SequenceNumberType::Valid}}),
 
@@ -206,7 +216,7 @@ INSTANTIATE_TEST_CASE_P(
                          {     0, PacketState::Reset,                 0, SequenceNumberType::Skip},
                          {     0, PacketState::Generate,             32, SequenceNumberType::Generated},
                          {     0, PacketState::Reset,                 0, SequenceNumberType::Skip},
-                         {     6, PacketState::Forward,              34, SequenceNumberType::Valid}}),
+                         {     6, PacketState::Forward,              33, SequenceNumberType::Valid}}),
 
     //                     input                        expected_output
     std::vector<Packet>({{  5059, PacketState::Skip,               5059, SequenceNumberType::Skip},
@@ -215,13 +225,21 @@ INSTANTIATE_TEST_CASE_P(
                          {     0, PacketState::Reset,                 0, SequenceNumberType::Skip},
                          {     0, PacketState::Generate,             32, SequenceNumberType::Generated},
                          {     0, PacketState::Reset,                 0, SequenceNumberType::Skip},
-                         {     6, PacketState::Forward,              34, SequenceNumberType::Valid}}),
+                         {     6, PacketState::Forward,              33, SequenceNumberType::Valid}}),
 
     //                     input                        expected_output
     std::vector<Packet>({{     5, PacketState::Forward,               5, SequenceNumberType::Valid},
                          {     0, PacketState::Generate,              6, SequenceNumberType::Generated},
                          {     6, PacketState::Forward,               7, SequenceNumberType::Valid},
                          {     7, PacketState::Forward,               8, SequenceNumberType::Valid}}),
+
+    //                     input                        expected_output
+    std::vector<Packet>({{     5, PacketState::Forward,               5, SequenceNumberType::Valid},
+                         {     0, PacketState::Generate,              6, SequenceNumberType::Generated},
+                         {     6, PacketState::Forward,               7, SequenceNumberType::Valid},
+                         {     7, PacketState::Forward,               8, SequenceNumberType::Valid},
+                         {     0, PacketState::Generate,              9, SequenceNumberType::Generated},
+                         {     8, PacketState::Forward,              10, SequenceNumberType::Valid}}),
 
     //                     input                        expected_output
     std::vector<Packet>({{     5, PacketState::Forward,               5, SequenceNumberType::Valid},
