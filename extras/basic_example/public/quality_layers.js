@@ -251,13 +251,16 @@ let updateCharts = function (stream) {
 window.onload = function () {
     var roomName = getParameterByName('room') || 'basicExampleRoom';
     let streamId = parseInt(getParameterByName('stream'));
+    let roomId = getParameterByName('roomId');
     streamId = isNaN(streamId) ? undefined : streamId;
     console.log('Selected Room', roomName);
     var createToken = function(userName, role, roomName, callback) {
 
         var req = new XMLHttpRequest();
         var url = serverUrl + 'createToken/';
-        var body = {username: userName, role: role, room:roomName};
+        var body = {username: userName, role: role};
+        body.room = roomId ? undefined : roomName;
+        body.roomId = roomId;
 
         req.onreadystatechange = function () {
             if (req.readyState === 4) {
