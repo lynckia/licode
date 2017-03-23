@@ -10,13 +10,27 @@ constexpr duration QualityManager::kActiveLayerInterval;
 constexpr float QualityManager::kIncreaseLayerBitrateThreshold;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
-  : initialized_{false}, padding_enabled_{true}, forced_layers_{false},
+  : initialized_{false}, enabled_{false}, padding_enabled_{false}, forced_layers_{false},
   spatial_layer_{0}, temporal_layer_{0}, max_active_spatial_layer_{0}, max_active_temporal_layer_{0},
   current_estimated_bitrate_{0}, last_quality_check_{the_clock->now()},
   last_activity_check_{the_clock->now()}, clock_{the_clock} {}
 
+void QualityManager::enable() {
+  ELOG_DEBUG("message: Enabling QualityManager");
+  enabled_ = true;
+  setPadding(true);
+}
+
+void QualityManager::disable() {
+  enabled_ = false;
+  setPadding(false);
+}
 
 void QualityManager::notifyQualityUpdate() {
+  if (!enabled_) {
+    return;
+  }
+
   if (!initialized_) {
     auto pipeline = getContext()->getPipelineShared();
     if (!pipeline) {
@@ -31,6 +45,7 @@ void QualityManager::notifyQualityUpdate() {
     }
     initialized_ = true;
   }
+
   if (forced_layers_) {
     return;
   }
@@ -41,9 +56,6 @@ void QualityManager::notifyQualityUpdate() {
 
   if (now - last_activity_check_ > kActiveLayerInterval) {
     calculateMaxActiveLayer();
-    if (max_active_spatial_layer_ == 0 && max_active_temporal_layer_ == 0 && padding_enabled_) {
-      setPadding(false);
-    }
     last_activity_check_ = now;
   }
 

@@ -48,6 +48,7 @@ class QualityManagerTest : public erizo::HandlerTest{
  protected:
   void setHandler() {
     quality_manager = std::make_shared<QualityManager>(simulated_clock);
+    quality_manager->enable();
     pipeline->addService(quality_manager);
     generateLayersWithGrowingBitrate(kArbitraryNumberOfSpatialLayers, kArbitraryNumberOfTemporalLayers);
   }
