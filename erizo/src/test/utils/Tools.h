@@ -164,6 +164,7 @@ class BaseHandlerTest  {
   BaseHandlerTest() {}
 
   virtual void setHandler() = 0;
+  virtual void afterPipelineSetup() {}
 
   virtual void internalSetUp() {
     simulated_clock = std::make_shared<erizo::SimulatedClock>();
@@ -198,6 +199,7 @@ class BaseHandlerTest  {
     setHandler();
     pipeline->addBack(reader);
     pipeline->finalize();
+    afterPipelineSetup();
   }
 
   virtual void executeTasksInNextMs(int time) {
