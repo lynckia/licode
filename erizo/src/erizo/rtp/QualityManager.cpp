@@ -41,6 +41,9 @@ void QualityManager::notifyQualityUpdate() {
 
   if (now - last_activity_check_ > kActiveLayerInterval) {
     calculateMaxActiveLayer();
+    if (max_active_spatial_layer_ == 0 && max_active_temporal_layer_ == 0 && padding_enabled_) {
+      setPadding(false);
+    }
     last_activity_check_ = now;
   }
 
@@ -89,8 +92,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
 
     // TODO(javier): should we wait for the actual spatial switch?
     // should we disable padding temporarily to avoid congestion (old padding + new bitrate)?
-    padding_enabled_ = !isInMaxLayer();
-    getContext()->getPipelineShared()->getService<WebRtcConnection>()->notifyUpdateToHandlers();
+    setPadding(!isInMaxLayer());
     ELOG_DEBUG("message: Is padding enabled, padding_enabled_: %d", padding_enabled_);
   }
 }
@@ -139,7 +141,8 @@ bool QualityManager::isInMaxLayer() {
 
 void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
   forced_layers_ = true;
-  padding_enabled_ = false;
+  setPadding(false);
+
   spatial_layer_ = spatial_layer;
   temporal_layer_ = temporal_layer;
 }
@@ -157,6 +160,13 @@ void QualityManager::setTemporalLayer(int temporal_layer) {
   }
   stats_->getNode()["qualityLayers"].insertStat("selectedTemporalLayer",
       CumulativeStat{static_cast<uint64_t>(temporal_layer_)});
+}
+
+void QualityManager::setPadding(bool enabled) {
+  if (padding_enabled_ != enabled) {
+    padding_enabled_ = enabled;
+    getContext()->getPipelineShared()->getService<WebRtcConnection>()->notifyUpdateToHandlers();
+  }
 }
 
 }  // namespace erizo
