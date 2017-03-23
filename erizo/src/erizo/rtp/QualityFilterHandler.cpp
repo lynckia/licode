@@ -99,6 +99,7 @@ void QualityFilterHandler::detectVideoScalability(std::shared_ptr<dataPacket> pa
   }
   if (packet->belongsToTemporalLayer(1) || packet->belongsToSpatialLayer(1)) {
     is_scalable_ = true;
+    quality_manager_->enable();
   }
 }
 
