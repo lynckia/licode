@@ -22,6 +22,7 @@ void QualityManager::enable() {
 }
 
 void QualityManager::disable() {
+  ELOG_DEBUG("message: Disabling QualityManager");
   enabled_ = false;
   setPadding(false);
 }
