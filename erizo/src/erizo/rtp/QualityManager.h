@@ -36,6 +36,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   uint64_t getInstantLayerBitrate(int spatial_layer, int temporal_layer);
   bool isInBaseLayer();
   bool isInMaxLayer();
+  void setPadding(bool enabled);
 
 
  private:
