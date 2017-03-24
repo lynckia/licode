@@ -36,6 +36,7 @@ class RtpRetransmissionHandler : public Handler {
   std::vector<std::shared_ptr<dataPacket>> audio_;
   std::vector<std::shared_ptr<dataPacket>> video_;
   std::shared_ptr<Stats> stats_;
+  bool enabled_;
 };
 }  // namespace erizo
 
