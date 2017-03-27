@@ -113,10 +113,6 @@ bool RtpSlideShowHandler::isVP8Keyframe(std::shared_ptr<dataPacket> packet) {
     is_keyframe = true;
   }
 
-  if (!highest_seq_num_initialized_) {
-    highest_seq_num_ = rtp_header->getSeqNumber();
-    highest_seq_num_initialized_ = true;
-  }
   ELOG_DEBUG("packet is_keyframe %d, packet timestamp %u, current_keyframe timestamp %u,  result %d",
       packet->is_keyframe, rtp_header->getTimestamp(), current_keyframe_timestamp_, is_keyframe);
   return is_keyframe;
@@ -141,8 +137,9 @@ void RtpSlideShowHandler::setSlideShowMode(bool active) {
 }
 
 void RtpSlideShowHandler::maybeUpdateHighestSeqNum(uint16_t seq_num) {
-  if (RtpUtils::sequenceNumberLessThan(highest_seq_num_, seq_num)) {
+  if (RtpUtils::sequenceNumberLessThan(highest_seq_num_, seq_num) || !highest_seq_num_initialized_) {
     highest_seq_num_ = seq_num;
+    highest_seq_num_initialized_ = true;
   }
 }
 
