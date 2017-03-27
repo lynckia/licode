@@ -1057,7 +1057,7 @@ exports.deleteUser = function (user, room, callback) {
     }
     else {
         log.error('mesagge: deleteUser user does not exist, user: ' + user );
-        callback('User does not exist', 404);
+        callback('User does not exist');
         return;
     }
 
