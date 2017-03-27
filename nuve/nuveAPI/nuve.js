@@ -70,4 +70,9 @@ app.get('/rooms/:room/users', usersResource.getList);
 app.get('/rooms/:room/users/:user', userResource.getUser);
 app.delete('/rooms/:room/users/:user', userResource.deleteUser);
 
+// handle 404 errors
+app.use(function(req, res){
+    res.status(404).send('Resource not found');
+});
+
 app.listen(3000);
