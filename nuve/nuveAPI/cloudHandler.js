@@ -272,7 +272,7 @@ exports.deleteUser = function (user, roomId, callback) {
             rpc.callRpc(rpcID,
                         'deleteUser',
                         [{user: user, roomId:roomId}],
-                        {'callback': function (result, code) {
+                        {'callback': function (result) {
                             callback(result);
                         }});
         } else {
