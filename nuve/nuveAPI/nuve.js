@@ -1,5 +1,10 @@
 /*global require, __dirname*/
 'use strict';
+var config = require('./../../licode_config');
+
+config.nuve = config.nuve || {};
+var listenPort = config.nuve.port || 3000;
+
 var express = require('express');
 var bodyParser = require('body-parser');
 var rpc = require('./rpc/rpc');
@@ -70,4 +75,4 @@ app.get('/rooms/:room/users', usersResource.getList);
 app.get('/rooms/:room/users/:user', userResource.getUser);
 app.delete('/rooms/:room/users/:user', userResource.deleteUser);
 
-app.listen(3000);
+app.listen(listenPort);
