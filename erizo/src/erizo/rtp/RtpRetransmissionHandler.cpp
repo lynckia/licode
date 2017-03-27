@@ -41,10 +41,9 @@ MovingIntervalRateStat& RtpRetransmissionHandler::getRtxBitrateStat() {
 
 uint64_t RtpRetransmissionHandler::getBitrateCalculated() {
   if (!stats_->getNode()["total"].hasChild("bitrateCalculated")) {
-    return 1;
+    return 0;
   }
-  uint64_t bitrate = stats_->getNode()["total"]["bitrateCalculated"].value() / 8.;
-  return std::max(bitrate, uint64_t(1));
+  return stats_->getNode()["total"]["bitrateCalculated"].value() / 8.;
 }
 
 void RtpRetransmissionHandler::calculateRtxBitrate() {

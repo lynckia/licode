@@ -35,11 +35,9 @@ TokenBucket::TokenBucket(std::shared_ptr<erizo::Clock> the_clock)
 TokenBucket::TokenBucket(const uint64_t rate, const uint64_t burst_size,
             std::shared_ptr<erizo::Clock> the_clock)
   : time_ {0},
-    time_per_token_{1000000 / rate},
+    time_per_token_{1000000 / std::max(rate, uint64_t(1))},
     time_per_burst_{burst_size * time_per_token_},
-    clock_{the_clock} {
-  assert(rate > 0 && "Rate should be greater than 0");
-  }
+    clock_{the_clock} {}
 
 TokenBucket::TokenBucket(const TokenBucket &other) {
   time_per_token_ = other.time_per_token_.load();
@@ -55,8 +53,7 @@ TokenBucket& TokenBucket::operator=(const TokenBucket &other) {
 }
 
 void TokenBucket::reset(const uint64_t rate, const uint64_t burst_size) {
-  assert(rate > 0 && "Rate should be greater than 0");
-  time_per_token_ = 1000000 / rate;
+  time_per_token_ = 1000000 / std::max(rate, uint64_t(1));
   time_per_burst_ = burst_size * time_per_token_;
 }
 
