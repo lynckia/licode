@@ -3,6 +3,8 @@
 
 #include <chrono>  // NOLINT
 
+#include "Clock.h"
+
 namespace erizo {
 
 class ClockUtils {
