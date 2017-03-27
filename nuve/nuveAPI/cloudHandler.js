@@ -238,43 +238,45 @@ var getErizoControllerForRoom = exports.getErizoControllerForRoom = function (ro
 };
 
 exports.getUsersInRoom = function (roomId, callback) {
-
     roomRegistry.getRoom(roomId, function (room) {
-        if (!room.erizoControllerId) {
-            callback([]);
-            return;
-        }
-        var rpcID = 'erizoController_' + room.erizoControllerId;
-        rpc.callRpc(rpcID, 'getUsersInRoom', [roomId], {'callback': function (users) {
-            callback(users);
-        }});
+        if (room && room.erizoControllerId) {
+            var rpcID = 'erizoController_' + room.erizoControllerId;
+            rpc.callRpc(rpcID, 'getUsersInRoom', [roomId], {'callback': function (users) {
+                callback(users);
+            }});
 
+        } else {
+            callback([]);
+        }
     });
 
 };
 
 exports.deleteRoom = function (roomId, callback) {
-
     roomRegistry.getRoom(roomId, function (room) {
-        if (!room.erizoControllerId) {
+        if (room && room.erizoControllerId) {
+            var rpcID = 'erizoController_' + room.erizoControllerId;
+            rpc.callRpc(rpcID, 'deleteRoom', [roomId], {'callback': function (result) {
+                callback(result);
+            }});
+        } else {
             callback('Success');
-            return;
         }
-        var rpcID = 'erizoController_' + room.erizoControllerId;
-        rpc.callRpc(rpcID, 'deleteRoom', [roomId], {'callback': function (result) {
-            callback(result);
-        }});
     });
 };
 
 exports.deleteUser = function (user, roomId, callback) {
     roomRegistry.getRoom(roomId, function (room) {
-        var rpcID = 'erizoController_' + room.erizoControllerId;
-        rpc.callRpc(rpcID,
-                    'deleteUser',
-                    [{user: user, roomId:roomId}],
-                    {'callback': function (result) {
-            callback(result);
-        }});
+        if (room && room.erizoControllerId) {
+            var rpcID = 'erizoController_' + room.erizoControllerId;
+            rpc.callRpc(rpcID,
+                        'deleteUser',
+                        [{user: user, roomId:roomId}],
+                        {'callback': function (result) {
+                            callback(result);
+                        }});
+        } else {
+            callback('Room does not exist or the user is not connected');
+        }
     });
 };

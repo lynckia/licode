@@ -479,8 +479,8 @@ var listen = function () {
                     (isControlMessage && hasPermission(socket.user, msg.msg.action.name))) {
                   socket.room.controller.processSignaling(msg.streamId, socket.id, msg.msg);
                 } else {
-                  log.info('message: User unauthorized to execute action on stream, action: ' + msg.msg.action.name +
-                            ', streamId: ' + msg.streamId);
+                  log.info('message: User unauthorized to execute action on stream, action: ' + 
+                    msg.msg.action.name + ', streamId: ' + msg.streamId);
                 }
             }
         });
@@ -1057,7 +1057,7 @@ exports.deleteUser = function (user, room, callback) {
     }
     else {
         log.error('mesagge: deleteUser user does not exist, user: ' + user );
-        callback('User does not exist', 404);
+        callback('User does not exist');
         return;
     }
 

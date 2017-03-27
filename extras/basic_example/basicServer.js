@@ -51,7 +51,7 @@ N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://loca
 var defaultRoom;
 const defaultRoomName = 'basicExampleRoom';
 
-var getOrCreateRoom = function (name, type = 'erizo', callback) {
+var getOrCreateRoom = function (name, type = 'erizo', callback = function(){}) {
 
     if (name === defaultRoomName && defaultRoom) {
         callback(defaultRoom);
@@ -148,24 +148,32 @@ app.get('/getUsers/:room', function(req, res) {
 
 app.post('/createToken/', function(req, res) {
     console.log('Creating token. Request body: ',req.body);
-    
+
     let username = req.body.username;
     let role = req.body.role;
-    
-    let room = defaultRoomName, type;
+
+    let room = defaultRoomName, type, roomId;
 
     if (req.body.room && !isNaN(req.body.room)) room = req.body.room;
     if (req.body.type) type = req.body.type;
+    if (req.body.roomId) roomId = req.body.roomId;
 
-    getOrCreateRoom(room, type, function (roomId) {
-        N.API.createToken(roomId, username, role, function(token) {
-            console.log('Token created', token);
-            res.send(token);
-        }, function(error) {
-            console.log('Error creating token', error);
-            res.status(401).send('No Erizo Controller found');
-        });
-    });
+    let createToken = function (roomId) {
+      N.API.createToken(roomId, username, role, function(token) {
+          console.log('Token created', token);
+          res.send(token);
+      }, function(error) {
+          console.log('Error creating token', error);
+          res.status(401).send('No Erizo Controller found');
+      });
+    };
+
+    if (roomId) {
+      createToken(roomId);
+    } else {
+      getOrCreateRoom(room, type, createToken);
+    }
+
 });
 
 

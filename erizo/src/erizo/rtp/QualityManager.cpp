@@ -10,13 +10,28 @@ constexpr duration QualityManager::kActiveLayerInterval;
 constexpr float QualityManager::kIncreaseLayerBitrateThreshold;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
-  : initialized_{false}, padding_enabled_{true}, forced_layers_{false},
+  : initialized_{false}, enabled_{false}, padding_enabled_{false}, forced_layers_{false},
   spatial_layer_{0}, temporal_layer_{0}, max_active_spatial_layer_{0}, max_active_temporal_layer_{0},
   current_estimated_bitrate_{0}, last_quality_check_{the_clock->now()},
   last_activity_check_{the_clock->now()}, clock_{the_clock} {}
 
+void QualityManager::enable() {
+  ELOG_DEBUG("message: Enabling QualityManager");
+  enabled_ = true;
+  setPadding(true);
+}
+
+void QualityManager::disable() {
+  ELOG_DEBUG("message: Disabling QualityManager");
+  enabled_ = false;
+  setPadding(false);
+}
 
 void QualityManager::notifyQualityUpdate() {
+  if (!enabled_) {
+    return;
+  }
+
   if (!initialized_) {
     auto pipeline = getContext()->getPipelineShared();
     if (!pipeline) {
@@ -31,6 +46,7 @@ void QualityManager::notifyQualityUpdate() {
     }
     initialized_ = true;
   }
+
   if (forced_layers_) {
     return;
   }
@@ -89,8 +105,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
 
     // TODO(javier): should we wait for the actual spatial switch?
     // should we disable padding temporarily to avoid congestion (old padding + new bitrate)?
-    padding_enabled_ = !isInMaxLayer();
-    getContext()->getPipelineShared()->getService<WebRtcConnection>()->notifyUpdateToHandlers();
+    setPadding(!isInMaxLayer());
     ELOG_DEBUG("message: Is padding enabled, padding_enabled_: %d", padding_enabled_);
   }
 }
@@ -139,7 +154,8 @@ bool QualityManager::isInMaxLayer() {
 
 void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
   forced_layers_ = true;
-  padding_enabled_ = false;
+  setPadding(false);
+
   spatial_layer_ = spatial_layer;
   temporal_layer_ = temporal_layer;
 }
@@ -157,6 +173,13 @@ void QualityManager::setTemporalLayer(int temporal_layer) {
   }
   stats_->getNode()["qualityLayers"].insertStat("selectedTemporalLayer",
       CumulativeStat{static_cast<uint64_t>(temporal_layer_)});
+}
+
+void QualityManager::setPadding(bool enabled) {
+  if (padding_enabled_ != enabled) {
+    padding_enabled_ = enabled;
+    getContext()->getPipelineShared()->getService<WebRtcConnection>()->notifyUpdateToHandlers();
+  }
 }
 
 }  // namespace erizo

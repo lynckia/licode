@@ -415,7 +415,8 @@ int WebRtcConnection::deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) {
 }
 
 void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Transport *transport) {
-  if (audio_sink_ == nullptr && video_sink_ == nullptr && fb_sink_ == nullptr) {
+  if ((audio_sink_ == nullptr && video_sink_ == nullptr && fb_sink_ == nullptr) ||
+      getCurrentState() != CONN_READY) {
     return;
   }
 
@@ -663,7 +664,7 @@ void WebRtcConnection::trackTransportInfo() {
 
 // changes the outgoing payload type for in the given data packet
 void WebRtcConnection::sendPacketAsync(std::shared_ptr<dataPacket> packet) {
-  if (!sending_) {
+  if (!sending_ || getCurrentState() != CONN_READY) {
     return;
   }
   auto conn_ptr = shared_from_this();

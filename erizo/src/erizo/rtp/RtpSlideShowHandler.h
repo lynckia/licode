@@ -6,6 +6,7 @@
 #include "pipeline/Handler.h"
 #include "./logger.h"
 #include "./WebRtcConnection.h"
+#include "rtp/SequenceNumberTranslator.h"
 #include "rtp/RtpVP8Parser.h"
 #include "rtp/RtpVP9Parser.h"
 
@@ -32,17 +33,16 @@ class RtpSlideShowHandler : public Handler {
  private:
   bool isVP8Keyframe(std::shared_ptr<dataPacket> packet);
   bool isVP9Keyframe(std::shared_ptr<dataPacket> packet);
+  void maybeUpdateHighestSeqNum(uint16_t seq_num);
 
  private:
   WebRtcConnection* connection_;
-  int32_t slideshow_seq_num_, last_original_seq_num_;
-  uint16_t seq_num_offset_;
+  SequenceNumberTranslator translator_;
+  bool highest_seq_num_initialized_;
+  uint16_t  highest_seq_num_;
 
-  bool slideshow_is_active_, sending_keyframe_;
-  RtpVP8Parser vp8_parser_;
-  RtpVP9Parser vp9_parser_;
-
-  inline void setPacketSeqNumber(std::shared_ptr<dataPacket> packet, uint16_t seq_number);
+  bool slideshow_is_active_;
+  uint32_t current_keyframe_timestamp_;
 };
 }  // namespace erizo
 

@@ -52,6 +52,10 @@ class QualityManagerTest : public erizo::HandlerTest{
     generateLayersWithGrowingBitrate(kArbitraryNumberOfSpatialLayers, kArbitraryNumberOfTemporalLayers);
   }
 
+  void afterPipelineSetup() {
+    quality_manager->enable();
+  }
+
   void generateLayersWithGrowingBitrate(int spatial_layers, int temporal_layers) {
     for (int spatial_layer = kBaseSpatialLayer; spatial_layer < spatial_layers; spatial_layer++) {
       for (int temporal_layer = kBaseTemporalLayer; temporal_layer < temporal_layers; temporal_layer++) {

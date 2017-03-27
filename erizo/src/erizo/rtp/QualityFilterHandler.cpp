@@ -99,6 +99,7 @@ void QualityFilterHandler::detectVideoScalability(std::shared_ptr<dataPacket> pa
   }
   if (packet->belongsToTemporalLayer(1) || packet->belongsToSpatialLayer(1)) {
     is_scalable_ = true;
+    quality_manager_->enable();
   }
 }
 
@@ -205,5 +206,6 @@ void QualityFilterHandler::notifyUpdate() {
 
   video_sink_ssrc_ = connection_->getVideoSinkSSRC();
   video_source_ssrc_ = connection_->getVideoSourceSSRC();
+  initialized_ = true;
 }
 }  // namespace erizo
