@@ -8,13 +8,16 @@ DEFINE_LOGGER(RtpRetransmissionHandler, "rtp.RtpRetransmissionHandler");
 RtpRetransmissionHandler::RtpRetransmissionHandler()
   : connection_{nullptr},
     audio_{kRetransmissionsBufferSize},
-    video_{kRetransmissionsBufferSize} {}
+    video_{kRetransmissionsBufferSize},
+    enabled_{true} {}
 
 
 void RtpRetransmissionHandler::enable() {
+  enabled_ = true;
 }
 
 void RtpRetransmissionHandler::disable() {
+  enabled_ = false;
 }
 
 void RtpRetransmissionHandler::notifyUpdate() {
@@ -27,6 +30,10 @@ void RtpRetransmissionHandler::notifyUpdate() {
 
 void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   // ELOG_DEBUG("%p READING %d bytes", this, packet->length);
+  if (!enabled_) {
+    ctx->fireRead(packet);
+    return;
+  }
   bool contains_nack = false;
   bool is_fully_recovered = true;
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);

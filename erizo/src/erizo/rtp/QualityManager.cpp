@@ -62,7 +62,9 @@ void QualityManager::notifyQualityUpdate() {
 
   bool layer_is_active = spatial_layer_ <= max_active_spatial_layer_;
 
-  if (!isInBaseLayer() &&  (
+  if (isInBaseLayer() && estimated_is_under_layer_bitrate) {
+    selectLayer(false);
+  } else if (!isInBaseLayer() &&  (
         !layer_is_active
         || estimated_is_under_layer_bitrate)) {
     ELOG_DEBUG("message: Forcing calculate new layer, "
@@ -78,8 +80,8 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   last_quality_check_ = clock_->now();
   int aux_temporal_layer = 0;
   int aux_spatial_layer = 0;
-  int next_temporal_layer = 0;
-  int next_spatial_layer = 0;
+  int next_temporal_layer = -1;
+  int next_spatial_layer = -1;
   float bitrate_margin = try_higher_layers ? kIncreaseLayerBitrateThreshold : 0;
   ELOG_DEBUG("Calculate best layer with %lu, current layer %d/%d",
       current_estimated_bitrate_, spatial_layer_, temporal_layer_);
@@ -97,7 +99,12 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     aux_temporal_layer = 0;
     aux_spatial_layer++;
   }
-  if (next_temporal_layer != temporal_layer_ || next_spatial_layer != spatial_layer_) {
+  if (temporal_layer_ < 0 && spatial_layer_ < 0) {
+    getContext()->getPipelineShared()->getService<WebRtcConnection>()->disableHandler("retransmissions");
+  } else if (next_temporal_layer != temporal_layer_ || next_spatial_layer != spatial_layer_) {
+    if (temporal_layer_ < 0 && spatial_layer_ < 0) {
+      getContext()->getPipelineShared()->getService<WebRtcConnection>()->enableHandler("retransmissions");
+    }
     ELOG_DEBUG("message: Layer Switch, current_layer: %d/%d, new_layer: %d/%d",
         spatial_layer_, temporal_layer_, next_spatial_layer, next_temporal_layer);
     setTemporalLayer(next_temporal_layer);
