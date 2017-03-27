@@ -8,12 +8,14 @@ namespace erizo {
 
 DEFINE_LOGGER(RtpRetransmissionHandler, "rtp.RtpRetransmissionHandler");
 
+constexpr float kDefaultBitrate = 300000.;
+
 RtpRetransmissionHandler::RtpRetransmissionHandler(std::shared_ptr<erizo::Clock> the_clock)
   : clock_{the_clock},
     connection_{nullptr},
     audio_{kRetransmissionsBufferSize},
     video_{kRetransmissionsBufferSize},
-    bucket_{static_cast<uint64_t>(300000. * kMarginRtxBitrate), kBurstSize, clock_},
+    bucket_{static_cast<uint64_t>(kDefaultBitrate * kMarginRtxBitrate), kBurstSize, clock_},
     last_bitrate_time_{clock_->now()} {}
 
 
