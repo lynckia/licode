@@ -75,7 +75,7 @@ describe('User Resource', function() {
       cloudHandlerMock.getUsersInRoom.callsArgWith(1, 'error');
       request(app)
         .get('/rooms/1/users/1')
-        .expect(401, 'CloudHandler does not respond')
+        .expect(503, 'CloudHandler does not respond')
         .end(function(err) {
           if (err) throw err;
           done();
@@ -149,10 +149,10 @@ describe('User Resource', function() {
     it('should succeed if user exists', function(done) {
       serviceRegistryMock.getRoomForService.callsArgWith(2, kArbitraryRoom);
       setServiceStub.returns(kArbitraryService);
-      cloudHandlerMock.deleteUser.callsArgWith(2, kArbtiraryUser);
+      cloudHandlerMock.deleteUser.callsArgWith(2, 'Success');
       request(app)
         .delete('/rooms/1/users/1')
-        .expect(200, JSON.stringify(kArbtiraryUser))
+        .expect(200, 'Success')
         .end(function(err) {
           if (err) throw err;
           done();
