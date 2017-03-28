@@ -7,14 +7,17 @@ DEFINE_LOGGER(RtpRetransmissionHandler, "rtp.RtpRetransmissionHandler");
 
 RtpRetransmissionHandler::RtpRetransmissionHandler()
   : connection_{nullptr},
+    initialized_{false}, enabled_{true},
     audio_{kRetransmissionsBufferSize},
     video_{kRetransmissionsBufferSize} {}
 
 
 void RtpRetransmissionHandler::enable() {
+  enabled_ = true;
 }
 
 void RtpRetransmissionHandler::disable() {
+  enabled_ = false;
 }
 
 void RtpRetransmissionHandler::notifyUpdate() {
@@ -22,11 +25,17 @@ void RtpRetransmissionHandler::notifyUpdate() {
   if (pipeline && !connection_) {
     connection_ = pipeline->getService<WebRtcConnection>().get();
     stats_ = pipeline->getService<Stats>();
+    packet_buffer_ = pipeline->getService<PacketBufferService>();
+    if (stats_ && packet_buffer_) {
+      initialized_ = true;
+    }
   }
 }
 
 void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  // ELOG_DEBUG("%p READING %d bytes", this, packet->length);
+  if (!enabled_ || !initialized_) {
+    return;
+  }
   bool contains_nack = false;
   bool is_fully_recovered = true;
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
@@ -56,9 +65,9 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
             std::shared_ptr<dataPacket> recovered;
 
             if (connection_->getVideoSinkSSRC() == chead->getSourceSSRC()) {
-              recovered = video_[getIndexInBuffer(seq_num)];
+              recovered = packet_buffer_->getVideoPacket(seq_num);
             } else if (connection_->getAudioSinkSSRC() == chead->getSourceSSRC()) {
-              recovered = audio_[getIndexInBuffer(seq_num)];
+              recovered = packet_buffer_->getAudioPacket(seq_num);
             }
 
             if (recovered.get()) {
@@ -89,20 +98,14 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
 }
 
 void RtpRetransmissionHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  // ELOG_DEBUG("%p WRITING %d bytes", this, packet->length);
-  RtpHeader *head = reinterpret_cast<RtpHeader*> (packet->data);
+  if (!initialized_) {
+    return;
+  }
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
   if (!chead->isRtcp()) {
-    if (connection_->getVideoSinkSSRC() == head->getSSRC()) {
-      video_[getIndexInBuffer(head->getSeqNumber())] = packet;
-    } else if (connection_->getAudioSinkSSRC() == head->getSSRC()) {
-      audio_[getIndexInBuffer(head->getSeqNumber())] = packet;
-    }
+    packet_buffer_->insertPacket(packet);
   }
   ctx->fireWrite(packet);
 }
 
-uint16_t RtpRetransmissionHandler::getIndexInBuffer(uint16_t seq_num) {
-  return seq_num % kRetransmissionsBufferSize;
-}
 }  // namespace erizo

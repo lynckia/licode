@@ -6,6 +6,7 @@
 #include "pipeline/Handler.h"
 
 #include "./WebRtcConnection.h"
+#include "rtp/PacketBufferService.h"
 
 static constexpr uint kRetransmissionsBufferSize = 256;
 static constexpr int kNackBlpSize = 16;
@@ -29,13 +30,12 @@ class RtpRetransmissionHandler : public Handler {
   void notifyUpdate() override;
 
  private:
-  uint16_t getIndexInBuffer(uint16_t seq_num);
-
- private:
   WebRtcConnection *connection_;
+  bool initialized_, enabled_;
   std::vector<std::shared_ptr<dataPacket>> audio_;
   std::vector<std::shared_ptr<dataPacket>> video_;
   std::shared_ptr<Stats> stats_;
+  std::shared_ptr<PacketBufferService> packet_buffer_;
 };
 }  // namespace erizo
 

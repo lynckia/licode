@@ -54,6 +54,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   sink_fb_source_ = this;
   stats_ = std::make_shared<Stats>();
   quality_manager_ = std::make_shared<QualityManager>();
+  packet_buffer_ = std::make_shared<PacketBufferService>();
   globalState_ = CONN_INITIAL;
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
@@ -249,6 +250,7 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addService(rtcp_processor_);
   pipeline_->addService(stats_);
   pipeline_->addService(quality_manager_);
+  pipeline_->addService(packet_buffer_);
 
   pipeline_->addFront(PacketReader(this));
 
