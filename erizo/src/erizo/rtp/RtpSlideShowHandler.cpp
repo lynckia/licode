@@ -36,7 +36,12 @@ void RtpSlideShowHandler::notifyUpdate() {
   }
   bool fallback_slideshow_enabled = pipeline->getService<QualityManager>()->isSlideShowEnabled();
   bool manual_slideshow_enabled = connection_->isSlideShowModeEnabled();
-  setSlideShowMode(fallback_slideshow_enabled || manual_slideshow_enabled);
+  if (fallback_slideshow_enabled) {
+    ELOG_DEBUG("Slideshow fallback mode enabled");
+  } else {
+    ELOG_DEBUG("Slideshow fallback mode disabled");
+  }
+  setSlideShowMode(fallback_slideshow_enabled || manual_slideshow_enabled);
 }
 
 void RtpSlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
@@ -227,12 +232,16 @@ void RtpSlideShowHandler::consolidateKeyframe() {
   if (keyframe_complete) {
     stored_keyframe_.swap(temp_keyframe);
     resetKeyframeBuilding();
+    ELOG_DEBUG("Keyframe consolidated");
   }
 }
 
 void RtpSlideShowHandler::maybeSendStoredKeyframe() {
   time_point now = clock_->now();
   if (now - last_keyframe_sent_time_ > kFallbackKeyframeTimeout) {
+    if (stored_keyframe_.size() > 0) {
+      ELOG_DEBUG("Keyframe sent");
+    }
     for (auto packet : stored_keyframe_) {
       RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
       rtp_header->setTimestamp(last_timestamp_received_);

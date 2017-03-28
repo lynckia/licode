@@ -132,8 +132,8 @@ void RtpPaddingGeneratorHandler::onVideoPacket(std::shared_ptr<dataPacket> packe
 }
 
 uint64_t RtpPaddingGeneratorHandler::getStat(std::string stat_name) {
-  if (stats_->getNode()["total"].hasChild(stat_name)) {
-    StatNode & stat = stats_->getNode()["total"][stat_name];
+  if (stats_->getNode()[video_sink_ssrc_].hasChild(stat_name)) {
+    StatNode & stat = stats_->getNode()[video_sink_ssrc_][stat_name];
     return static_cast<MovingIntervalRateStat&>(stat).value();
   }
   return 0;
