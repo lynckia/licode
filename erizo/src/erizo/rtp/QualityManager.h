@@ -23,6 +23,8 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
 
   virtual  int getSpatialLayer() const { return spatial_layer_; }
   virtual  int getTemporalLayer() const { return temporal_layer_; }
+  virtual  bool isSlideShowEnabled() const { return slideshow_mode_active_; }
+
   void setSpatialLayer(int spatial_layer);
   void setTemporalLayer(int temporal_layer);
 
@@ -46,6 +48,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   bool enabled_;
   bool padding_enabled_;
   bool forced_layers_;
+  bool slideshow_mode_active_;
   int spatial_layer_;
   int temporal_layer_;
   int max_active_spatial_layer_;

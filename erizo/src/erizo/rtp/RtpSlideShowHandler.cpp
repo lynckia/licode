@@ -34,7 +34,9 @@ void RtpSlideShowHandler::notifyUpdate() {
   if (pipeline && !connection_) {
     connection_ = pipeline->getService<WebRtcConnection>().get();
   }
-  setSlideShowMode(connection_->isSlideShowModeEnabled());
+  bool fallback_slideshow_enabled = pipeline->getService<QualityManager>()->isSlideShowEnabled();
+  bool manual_slideshow_enabled = connection_->isSlideShowModeEnabled();
+  setSlideShowMode(fallback_slideshow_enabled || manual_slideshow_enabled);
 }
 
 void RtpSlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
