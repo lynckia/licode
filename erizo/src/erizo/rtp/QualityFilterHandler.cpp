@@ -51,8 +51,6 @@ void QualityFilterHandler::checkLayers() {
   int new_spatial_layer = quality_manager_->getSpatialLayer();
   if (new_spatial_layer != target_spatial_layer_) {
     sendPLI();
-    sendPLI();
-    sendPLI();
     future_spatial_layer_ = new_spatial_layer;
     changing_spatial_layer_ = true;
     time_change_started_ = clock::now();
