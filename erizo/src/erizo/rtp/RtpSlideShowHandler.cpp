@@ -230,17 +230,13 @@ void RtpSlideShowHandler::consolidateKeyframe() {
 
 void RtpSlideShowHandler::maybeSendStoredKeyframe() {
   time_point now = clock_->now();
-  bool wrote_packet = false;
-  uint16_t seq_num_sent;
   if (now - last_keyframe_sent_time_ > kFallbackKeyframeTimeout) {
     for (auto packet : stored_keyframe_) {
       RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
       rtp_header->setTimestamp(last_timestamp_received_);
       SequenceNumber sequence_number = translator_.generate();
       rtp_header->setSeqNumber(sequence_number.output);
-      seq_num_sent = sequence_number.output;
       getContext()->fireWrite(packet);
-      wrote_packet = true;
     }
     last_keyframe_sent_time_ = now;
   }
