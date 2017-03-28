@@ -1,6 +1,10 @@
-#include "./MediaDefinitions.h"
 #include "rtp/RtpSlideShowHandler.h"
+
+#include <vector>
+
+#include "./MediaDefinitions.h"
 #include "rtp/RtpUtils.h"
+
 
 namespace erizo {
 
@@ -237,8 +241,6 @@ void RtpSlideShowHandler::maybeSendStoredKeyframe() {
       seq_num_sent = sequence_number.output;
       getContext()->fireWrite(packet);
       wrote_packet = true;
-    }
-    if (wrote_packet) {
     }
     last_keyframe_sent_time_ = now;
   }
