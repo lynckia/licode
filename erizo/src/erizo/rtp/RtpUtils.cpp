@@ -104,8 +104,6 @@ void RtpUtils::forEachRRBlock(std::shared_ptr<dataPacket> packet, std::function<
     int total_length = 0;
     int currentBlock = 0;
 
-    f(chead);
-
     do {
       moving_buffer += rtcp_length;
       chead = reinterpret_cast<RtcpHeader*>(moving_buffer);

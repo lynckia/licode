@@ -38,10 +38,9 @@ exports.getUser = function (req, res) {
 
         var user = req.params.user;
 
-
         cloudHandler.getUsersInRoom(currentRoom._id, function (users) {
             if (users === 'error') {
-                res.status(401).send('CloudHandler does not respond');
+                res.status(503).send('CloudHandler does not respond');
                 return;
             }
             for (var index in users){
@@ -51,15 +50,11 @@ exports.getUser = function (req, res) {
                     res.send(users[index]);
                     return;
                 }
-
             }
             log.error('message: getUser user not found, userId: ' + req.params.user);
             res.status(404).send('User does not exist');
             return;
-
-
         });
-
     });
 };
 
@@ -81,11 +76,10 @@ exports.deleteUser = function (req, res) {
 
         var user = req.params.user;
 
-        cloudHandler.deleteUser (user, currentRoom._id, function(result){
-            if(result === 'User does not exist'){
+        cloudHandler.deleteUser(user, currentRoom._id, function(result){
+            if (result !== 'Success'){
                 res.status(404).send(result);
-            }
-            else {
+            } else {
                 res.send(result);
                 return;
             }
