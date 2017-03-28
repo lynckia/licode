@@ -21,8 +21,8 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
 
  public:
   DtlsTransport(MediaType med, const std::string& transport_name, const std::string& connection_id, bool bundle,
-                bool rtcp_mux, TransportListener *transportListener, const IceConfig& iceConfig, std::string username,
-                std::string password, bool isServer, std::shared_ptr<Worker> worker);
+                bool rtcp_mux, std::weak_ptr<TransportListener> transport_listener, const IceConfig& iceConfig,
+                std::string username, std::string password, bool isServer, std::shared_ptr<Worker> worker);
   virtual ~DtlsTransport();
   void connectionStateChanged(IceState newState);
   std::string getMyFingerprint();

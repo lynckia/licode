@@ -68,10 +68,10 @@ void Resender::scheduleNext() {
 }
 
 DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, const std::string& connection_id,
-                            bool bundle, bool rtcp_mux, TransportListener *transportListener,
+                            bool bundle, bool rtcp_mux, std::weak_ptr<TransportListener> transport_listener,
                             const IceConfig& iceConfig, std::string username, std::string password,
                             bool isServer, std::shared_ptr<Worker> worker):
-  Transport(med, transport_name, connection_id, bundle, rtcp_mux, transportListener, iceConfig, worker),
+  Transport(med, transport_name, connection_id, bundle, rtcp_mux, transport_listener, iceConfig, worker),
   unprotect_packet_{std::make_shared<dataPacket>()},
   readyRtp(false), readyRtcp(false), isServer_(isServer) {
     ELOG_DEBUG("%s message: constructor, transportName: %s, isBundle: %d", toLog(), transport_name.c_str(), bundle);
@@ -180,12 +180,16 @@ void DtlsTransport::onNiceData(packetPtr packet) {
     if (length <= 0) {
       return;
     }
-    getTransportListener()->onTransportData(unprotect_packet_, this);
+    if (auto listener = getTransportListener().lock()) {
+      listener->onTransportData(unprotect_packet_, this);
+    }
   }
 }
 
 void DtlsTransport::onCandidate(const CandidateInfo &candidate, NiceConnection *conn) {
-  getTransportListener()->onCandidate(candidate, this);
+  if (auto listener = getTransportListener().lock()) {
+    listener->onCandidate(candidate, this);
+  }
 }
 
 void DtlsTransport::write(char* data, int len) {
