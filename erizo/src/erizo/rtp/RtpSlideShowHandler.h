@@ -42,6 +42,7 @@ class RtpSlideShowHandler : public Handler {
   void resetKeyframeBuilding();
   void consolidateKeyframe();
   void maybeSendStoredKeyframe();
+  void storeKeyframePacket(std::shared_ptr<dataPacket> packet);
 
  private:
   std::shared_ptr<Clock> clock_;
@@ -56,8 +57,8 @@ class RtpSlideShowHandler : public Handler {
   uint32_t current_keyframe_timestamp_;
   uint32_t last_timestamp_received_;
 
+  std::vector<std::shared_ptr<dataPacket>> keyframe_buffer_;
   std::vector<std::shared_ptr<dataPacket>> stored_keyframe_;
-  std::shared_ptr<PacketBufferService> packet_buffer_;
   time_point last_keyframe_sent_time_;
 };
 }  // namespace erizo
