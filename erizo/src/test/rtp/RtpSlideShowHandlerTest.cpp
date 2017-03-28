@@ -45,10 +45,12 @@ class RtpSlideShowHandlerTest : public erizo::HandlerTest {
     std::vector<RtpMap>& payloads = connection->getRemoteSdpInfo().getPayloadInfos();
     payloads.push_back({96, "VP8"});
     payloads.push_back({98, "VP9"});
-    slideshow_handler = std::make_shared<RtpSlideShowHandler>();
+    clock = std::make_shared<erizo::SimulatedClock>();
+    slideshow_handler = std::make_shared<RtpSlideShowHandler>(clock);
     pipeline->addBack(slideshow_handler);
   }
 
+  std::shared_ptr<erizo::SimulatedClock> clock;
   std::shared_ptr<RtpSlideShowHandler> slideshow_handler;
 };
 
@@ -155,6 +157,28 @@ TEST_F(RtpSlideShowHandlerTest, shouldMantainSequenceNumberInSlideShow) {
       pipeline->write(packet_queue.front());
       packet_queue.pop();
     }
+}
+
+TEST_F(RtpSlideShowHandlerTest, shouldResendKeyframesAfterKeyframeTimeout) {
+    uint16_t seq_number = erizo::kArbitrarySeqNumber;
+    slideshow_handler->setSlideShowMode(true);
+
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 2))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 3))).Times(1);
+
+    pipeline->write(erizo::PacketTools::createVP8Packet(seq_number, kArbitraryTimestamp, true, false));
+    pipeline->write(erizo::PacketTools::createVP8Packet(++seq_number, kArbitraryTimestamp, false, true));
+
+    pipeline->write(erizo::PacketTools::createVP8Packet(++seq_number, kArbitraryTimestamp + 1, false, false));
+
+    clock->advanceTime(std::chrono::seconds(10));
+    pipeline->write(erizo::PacketTools::createVP8Packet(++seq_number, kArbitraryTimestamp + 2, false, false));
 }
 
 TEST_F(RtpSlideShowHandlerTest, shouldAdjustSequenceNumberAfterSlideShow) {
