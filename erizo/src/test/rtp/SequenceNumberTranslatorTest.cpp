@@ -78,14 +78,20 @@ TEST_P(SequenceNumberTranslatorTest, shouldReturnRightOutputSequenceNumbers) {
   }
 }
 
-std::vector<Packet> getLongQueue(int size) {
+std::vector<Packet> getLongQueue(int size, uint16_t first_seq_num = 0,
+         PacketState state = PacketState::Forward, SequenceNumberType type = SequenceNumberType::Valid) {
   std::vector<Packet> queue;
   for (int i = 0; i <= size; i++) {
-    int input_sequence_number = i % 65535;
-    queue.push_back(Packet{input_sequence_number, PacketState::Forward,
-                           input_sequence_number, SequenceNumberType::Valid});
+    int input_sequence_number = (i + first_seq_num) % 65535;
+    queue.push_back(Packet{input_sequence_number, state,
+                           input_sequence_number, type});
   }
   return queue;
+}
+
+std::vector<Packet> concat(std::vector<Packet> origin, std::vector<Packet> target) {
+  origin.insert(origin.end(), target.begin(), target.end());
+  return origin;
 }
 
 INSTANTIATE_TEST_CASE_P(
@@ -249,6 +255,13 @@ INSTANTIATE_TEST_CASE_P(
 
     //                     input                        expected_output
     std::vector<Packet>({{     5, PacketState::Forward,               5, SequenceNumberType::Valid},
+                         {     6, PacketState::Skip,                  5, SequenceNumberType::Skip},
+                         {     0, PacketState::Generate,              6, SequenceNumberType::Generated},
+                         {     7, PacketState::Skip,                  6, SequenceNumberType::Skip},
+                         {     8, PacketState::Forward,               7, SequenceNumberType::Valid}}),
+
+    //                     input                        expected_output
+    std::vector<Packet>({{     5, PacketState::Forward,               5, SequenceNumberType::Valid},
                          {     0, PacketState::Generate,              6, SequenceNumberType::Generated},
                          {     0, PacketState::Generate,              7, SequenceNumberType::Generated},
                          {     6, PacketState::Forward,               8, SequenceNumberType::Valid},
@@ -256,6 +269,22 @@ INSTANTIATE_TEST_CASE_P(
                          {     0, PacketState::Generate,              10, SequenceNumberType::Generated},
                          {     7, PacketState::Forward,               11, SequenceNumberType::Valid}}),
 
+    // Support multiple loops with skip packets
+    concat({             {     5, PacketState::Forward,               5, SequenceNumberType::Valid}},
+                         concat(getLongQueue(65535 * 2, 6, PacketState::Skip, SequenceNumberType::Skip),
+                        {{     7, PacketState::Forward,               6, SequenceNumberType::Valid}})),
 
-    // Support multiple loops
+    // Support multiple loops with skip and generated packet
+    concat({             {     5, PacketState::Forward,               5, SequenceNumberType::Valid}},
+                         concat(getLongQueue(65535 * 2, 6, PacketState::Skip, SequenceNumberType::Skip),
+                        {{     0, PacketState::Generate,              6, SequenceNumberType::Generated},
+                         {     7, PacketState::Forward,               7, SequenceNumberType::Valid}})),
+
+    // Support multiple loops with generated and a skip packet
+    concat({             {     5, PacketState::Forward,               5, SequenceNumberType::Valid}},
+                        concat(getLongQueue(65535 * 2, 0, PacketState::Generate, SequenceNumberType::Generated),
+                        {{     6, PacketState::Skip,                  5, SequenceNumberType::Skip},
+                         {     7, PacketState::Forward,               5, SequenceNumberType::Valid}})),
+
+    // Support multiple loops with valid packets
     getLongQueue(65535 * 2)));
