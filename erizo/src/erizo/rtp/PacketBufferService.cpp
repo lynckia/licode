@@ -5,20 +5,15 @@ DEFINE_LOGGER(PacketBufferService, "rtp.PacketBufferService");
 
 PacketBufferService::PacketBufferService(): audio_{kServicePacketBufferSize},
   video_{kServicePacketBufferSize} {
-  ELOG_DEBUG("Constructor, video size %u", video_.size());
 }
 
 void PacketBufferService::insertPacket(std::shared_ptr<dataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*> (packet->data);
   switch (packet->type) {
     case VIDEO_PACKET:
-    ELOG_DEBUG("Trying to insert video packet %u, result %u, size %u", head->getSeqNumber(),
-        getIndexInBuffer(head->getSeqNumber()), video_.size());
       video_[getIndexInBuffer(head->getSeqNumber())] = packet;
       break;
     case AUDIO_PACKET:
-    ELOG_DEBUG("Trying to insert audio packet %u, result %u", head->getSeqNumber(),
-        getIndexInBuffer(head->getSeqNumber()));
       audio_[getIndexInBuffer(head->getSeqNumber())] = packet;
       break;
     default:
