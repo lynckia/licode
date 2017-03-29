@@ -94,13 +94,13 @@ void RtpSlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet
 
   uint16_t packet_seq_num = rtp_header->getSeqNumber();
   bool is_keyframe = false;
+  RtpMap *codec = connection_->getRemoteSdpInfo().getCodecByExternalPayloadType(rtp_header->getPayloadType());
+  if (codec && codec->encoding_name == "VP8") {
+    is_keyframe = isVP8Keyframe(packet);
+  } else if (codec && codec->encoding_name == "VP9") {
+    is_keyframe = isVP9Keyframe(packet);
+  }
   if (slideshow_is_active_) {
-    RtpMap *codec = connection_->getRemoteSdpInfo().getCodecByExternalPayloadType(rtp_header->getPayloadType());
-    if (codec && codec->encoding_name == "VP8") {
-      is_keyframe = isVP8Keyframe(packet);
-    } else if (codec && codec->encoding_name == "VP9") {
-      is_keyframe = isVP9Keyframe(packet);
-    }
     should_skip_packet = !is_keyframe;
 
     if (is_keyframe) {
@@ -116,6 +116,7 @@ void RtpSlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet
   SequenceNumber sequence_number_info = translator_.get(packet_seq_num, should_skip_packet);
   if (!should_skip_packet && sequence_number_info.type == SequenceNumberType::Valid) {
     rtp_header->setSeqNumber(sequence_number_info.output);
+    ELOG_DEBUG("SN %u %d", sequence_number_info.output, is_keyframe);
     last_keyframe_sent_time_ = clock_->now();
     ctx->fireWrite(packet);
   }
@@ -176,16 +177,17 @@ void RtpSlideShowHandler::setSlideShowMode(bool active) {
     return;
   }
 
-  getContext()->fireRead(RtpUtils::createPLI(connection_->getVideoSinkSSRC(), connection_->getVideoSourceSSRC()));
   last_keyframe_sent_time_ = clock_->now();
   resetKeyframeBuilding();
 
   if (active) {
     slideshow_is_active_ = true;
+    getContext()->fireRead(RtpUtils::createPLI(connection_->getVideoSinkSSRC(), connection_->getVideoSourceSSRC()));
     connection_->setFeedbackReports(false, 0);
   } else {
     slideshow_is_active_ = false;
     connection_->setFeedbackReports(true, 0);
+    getContext()->fireRead(RtpUtils::createPLI(connection_->getVideoSinkSSRC(), connection_->getVideoSourceSSRC()));
   }
 }
 
