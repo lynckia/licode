@@ -62,7 +62,7 @@ void QualityManager::notifyQualityUpdate() {
 
   bool layer_is_active = spatial_layer_ <= max_active_spatial_layer_;
 
-  if (!layer_is_active || estimated_is_under_layer_bitrate) {
+  if (!layer_is_active || (estimated_is_under_layer_bitrate && !slideshow_mode_active_)) {
     ELOG_DEBUG("message: Forcing calculate new layer, "
         "estimated_is_under_layer_bitrate: %d, layer_is_active: %d", estimated_is_under_layer_bitrate,
         layer_is_active);
@@ -84,8 +84,8 @@ void QualityManager::selectLayer(bool try_higher_layers) {
       current_estimated_bitrate_, spatial_layer_, temporal_layer_);
   for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
     for (auto &temporal_layer_node : stats_->getNode()["qualityLayers"][spatial_layer_node.first.c_str()].getMap()) {
-     ELOG_DEBUG("Bitrate for layer %d/%d %lu",
-         aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
+      ELOG_DEBUG("Bitrate for layer %d/%d %lu",
+          aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
       if (temporal_layer_node.second->value() != 0 &&
           (1. + bitrate_margin) * temporal_layer_node.second->value() < current_estimated_bitrate_) {
         next_temporal_layer = aux_temporal_layer;
