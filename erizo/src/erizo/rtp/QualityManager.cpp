@@ -99,11 +99,13 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   }
 
   if (below_min_layer != slideshow_mode_active_) {
-    slideshow_mode_active_ = below_min_layer;
-    ELOG_DEBUG("Slideshow fallback mode %d", slideshow_mode_active_);
-    WebRtcConnection *connection = getContext()->getPipelineShared()->getService<WebRtcConnection>().get();
-    if (connection) {
-      connection->notifyUpdateToHandlers();
+    if (below_min_layer || try_higher_layers) {
+      slideshow_mode_active_ = below_min_layer;
+      ELOG_DEBUG("Slideshow fallback mode %d", slideshow_mode_active_);
+      WebRtcConnection *connection = getContext()->getPipelineShared()->getService<WebRtcConnection>().get();
+      if (connection) {
+        connection->notifyUpdateToHandlers();
+      }
     }
   }
 
