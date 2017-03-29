@@ -164,7 +164,7 @@ let getOrCreateChart = function(stream, subId) {
   return chart;
 };
 
-var updateSeriesForKey = function (stream, subId, key, spatial, temporal, valueX, valueY, 
+var updateSeriesForKey = function (stream, subId, key, spatial, temporal, valueX, valueY,
   pointName = undefined, isActive = true) {
     let chart = getOrCreateChart(stream, subId);
     if (chart.seriesMap[key] === undefined) {
@@ -217,13 +217,13 @@ let updateCharts = function (stream) {
                     for (var spatialLayer in qualityLayersData) {
                         for (var temporalLayer in qualityLayersData[spatialLayer]) {
                             let key = 'Spatial ' + spatialLayer + ' / Temporal ' + temporalLayer;
-                            updateSeriesForKey(stream, subId, key, spatialLayer, temporalLayer, 
-                              date, qualityLayersData[spatialLayer][temporalLayer], undefined, 
+                            updateSeriesForKey(stream, subId, key, spatialLayer, temporalLayer,
+                              date, qualityLayersData[spatialLayer][temporalLayer], undefined,
                               maxActiveSpatialLayer >= spatialLayer);
                         }
                     }
                     if (qualityLayersData.selectedSpatialLayer) {
-                      selectedLayers += 'Spatial: ' + qualityLayersData.selectedSpatialLayer + 
+                      selectedLayers += 'Spatial: ' + qualityLayersData.selectedSpatialLayer +
                       ' / Temporal: '+ qualityLayersData.selectedTemporalLayer;
                     }
                 }
@@ -233,16 +233,13 @@ let updateCharts = function (stream) {
                 let paddingBitrate = data[i].total.paddingBitrate || 0;
                 let rtxBitrate = data[i].total.rtxBitrate || 0;
 
-                if (totalBitrate) {
-                    updateSeriesForKey(stream, subId, 'Current Received', undefined, undefined, 
-                      date, totalBitrate, selectedLayers);
-                }
-
-                updateSeriesForKey(stream, subId, 'Estimated Bandwidth', undefined, undefined, 
+                updateSeriesForKey(stream, subId, 'Current Received', undefined, undefined,
+                  date, totalBitrate, selectedLayers);
+                updateSeriesForKey(stream, subId, 'Estimated Bandwidth', undefined, undefined,
                   date, bitrateEstimated);
-                updateSeriesForKey(stream, subId, 'Padding Bitrate', undefined, undefined, 
+                updateSeriesForKey(stream, subId, 'Padding Bitrate', undefined, undefined,
                   date, paddingBitrate);
-                updateSeriesForKey(stream, subId, 'Rtx Bitrate', undefined, undefined, 
+                updateSeriesForKey(stream, subId, 'Rtx Bitrate', undefined, undefined,
                   date, rtxBitrate);
             }
         }
@@ -288,7 +285,7 @@ window.onload = function () {
       }
       createList();
     };
-    
+
     let initStreams = function() {
       let remoteStreams = room.remoteStreams;
       let remoteStreamIds = Object.keys(remoteStreams);
