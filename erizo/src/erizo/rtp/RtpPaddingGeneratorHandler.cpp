@@ -15,6 +15,7 @@ constexpr duration kStatsPeriod = std::chrono::milliseconds(100);
 constexpr uint8_t kMaxPaddingSize = 255;
 constexpr uint64_t kMinMarkerRate = 3;
 constexpr uint64_t kInitialBitrate = 300000;
+constexpr uint64_t kPaddingBurstSize = 255*5;
 
 RtpPaddingGeneratorHandler::RtpPaddingGeneratorHandler(std::shared_ptr<erizo::Clock> the_clock) :
   clock_{the_clock}, connection_{nullptr}, max_video_bw_{0}, higher_sequence_number_{0},
@@ -23,7 +24,9 @@ RtpPaddingGeneratorHandler::RtpPaddingGeneratorHandler(std::shared_ptr<erizo::Cl
   last_rate_calculation_time_{clock_->now()}, started_at_{clock_->now()},
   enabled_{false}, first_packet_received_{false},
   marker_rate_{std::chrono::milliseconds(100), 20, 1., clock_},
-  rtp_header_length_{12} {}
+  rtp_header_length_{12},
+  bucket_{kInitialBitrate, kPaddingBurstSize, clock_} {}
+
 
 
 void RtpPaddingGeneratorHandler::enable() {
@@ -84,6 +87,10 @@ void RtpPaddingGeneratorHandler::sendPaddingPacket(std::shared_ptr<dataPacket> p
     return;
   }
 
+  if (!bucket_.consume(padding_size)) {
+    return;
+  }
+
   SequenceNumber sequence_number = translator_.generate();
 
   auto padding_packet = RtpUtils::makePaddingPacket(packet, padding_size);
@@ -92,7 +99,6 @@ void RtpPaddingGeneratorHandler::sendPaddingPacket(std::shared_ptr<dataPacket> p
 
   rtp_header->setSeqNumber(sequence_number.output);
   stats_->getNode()["total"]["paddingBitrate"] += padding_packet->length;
-
   getContext()->fireWrite(padding_packet);
 }
 
@@ -157,6 +163,8 @@ void RtpPaddingGeneratorHandler::recalculatePaddingRate() {
   uint64_t target_bitrate = getTargetBitrate();
 
   int64_t target_padding_bitrate = target_bitrate - media_bitrate;
+  //  todo(pedro) figure out a burst size that makes sense here
+  bucket_.reset(target_padding_bitrate, kPaddingBurstSize);
 
   if (target_padding_bitrate <= 0) {
     number_of_full_padding_packets_ = 0;

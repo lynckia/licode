@@ -6,6 +6,7 @@
 #include "./logger.h"
 #include "pipeline/Handler.h"
 #include "lib/Clock.h"
+#include "lib/TokenBucket.h"
 #include "rtp/SequenceNumberTranslator.h"
 #include "./Stats.h"
 
@@ -62,6 +63,7 @@ class RtpPaddingGeneratorHandler: public Handler {
   bool first_packet_received_;
   MovingIntervalRateStat marker_rate_;
   uint32_t rtp_header_length_;
+  TokenBucket bucket_;
 };
 
 }  // namespace erizo
