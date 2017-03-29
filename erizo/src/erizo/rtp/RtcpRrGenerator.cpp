@@ -98,7 +98,12 @@ std::shared_ptr<dataPacket> RtcpRrGenerator::generateReceiverReport() {
   uint64_t delay_since_last_sr = rr_info_.last_sr_ts == 0 ?
     0 : (now - rr_info_.last_sr_ts) * 65536 / 1000;
   uint32_t expected = rr_info_.extended_seq - rr_info_.base_seq + 1;
-  rr_info_.lost = expected - rr_info_.packets_received;
+  if (expected < rr_info_.packets_received) {
+    rr_info_.lost = 0;
+  } else {
+    rr_info_.lost = expected - rr_info_.packets_received;
+  }
+
 
   uint8_t fraction = 0;
   uint32_t expected_interval = expected - rr_info_.expected_prior;
@@ -106,9 +111,9 @@ std::shared_ptr<dataPacket> RtcpRrGenerator::generateReceiverReport() {
   uint32_t received_interval = rr_info_.packets_received - rr_info_.received_prior;
 
   rr_info_.received_prior = rr_info_.packets_received;
-  uint32_t lost_interval = expected_interval - received_interval;
+  int64_t lost_interval = static_cast<int64_t>(expected_interval) - received_interval;
   if (expected_interval != 0 && lost_interval > 0) {
-    fraction = (lost_interval << 8) / expected_interval;
+    fraction = (static_cast<uint32_t>(lost_interval) << 8) / expected_interval;
   }
 
   rr_info_.frac_lost = fraction;
