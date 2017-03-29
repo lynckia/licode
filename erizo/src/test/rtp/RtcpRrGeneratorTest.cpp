@@ -4,6 +4,7 @@
 #include <thread/Scheduler.h>
 #include <rtp/RtcpRrGenerator.h>
 #include <lib/Clock.h>
+#include <lib/ClockUtils.h>
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
@@ -108,6 +109,7 @@ TEST_F(RtcpRrGeneratorTest, shouldReportDelaySinceLastSr) {
   uint kArbitratyTimePassed = kArbitraryTimePassedInMs * 65536/1000;
   auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
   auto sender_report = erizo::PacketTools::createSenderReport(erizo::kVideoSsrc, VIDEO_PACKET);
+  sender_report->received_time_ms = erizo::ClockUtils::timePointToMs(clock->now());
   rr_generator.handleRtpPacket(first_packet);
   rr_generator.handleSr(sender_report);
   advanceClockMs(kArbitraryTimePassedInMs);
