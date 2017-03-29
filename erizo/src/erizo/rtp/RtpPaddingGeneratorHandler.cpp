@@ -171,8 +171,8 @@ void RtpPaddingGeneratorHandler::recalculatePaddingRate() {
   uint64_t target_bitrate = getTargetBitrate();
 
   int64_t target_padding_bitrate = target_bitrate - media_bitrate;
-  //  todo(pedro) figure out a burst size that makes sense here
-  bucket_.reset(target_padding_bitrate, kPaddingBurstSize);
+  // TODO(pedro): figure out a burst size that makes sense here
+  bucket_.reset(std::max(target_padding_bitrate, int64_t(0)), kPaddingBurstSize);
 
   if (target_padding_bitrate <= 0) {
     number_of_full_padding_packets_ = 0;

@@ -55,6 +55,7 @@ TokenBucket& TokenBucket::operator=(const TokenBucket &other) {
 void TokenBucket::reset(const uint64_t rate, const uint64_t burst_size) {
   time_per_token_ = 1000000 / std::max(rate, uint64_t(1));
   time_per_burst_ = burst_size * time_per_token_;
+  time_ = 0;
 }
 
 bool TokenBucket::consume(const uint64_t tokens) {
