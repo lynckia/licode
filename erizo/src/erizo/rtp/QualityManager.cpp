@@ -104,7 +104,6 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     WebRtcConnection *connection = getContext()->getPipelineShared()->getService<WebRtcConnection>().get();
     if (connection) {
       connection->notifyUpdateToHandlers();
-      connection->sendPLI();
     }
   }
 

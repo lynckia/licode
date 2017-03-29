@@ -176,6 +176,8 @@ void RtpSlideShowHandler::setSlideShowMode(bool active) {
     return;
   }
 
+  getContext()->fireRead(RtpUtils::createPLI(connection_->getVideoSinkSSRC(), connection_->getVideoSourceSSRC()));
+
   if (active) {
     slideshow_is_active_ = true;
     connection_->setFeedbackReports(false, 0);
