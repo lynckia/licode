@@ -161,7 +161,7 @@ bool QualityManager::isInBaseLayer() {
 }
 
 bool QualityManager::isInMaxLayer() {
-  return (spatial_layer_ == max_active_spatial_layer_ && temporal_layer_ == max_active_temporal_layer_);
+  return (spatial_layer_ >= max_active_spatial_layer_ && temporal_layer_ >= max_active_temporal_layer_);
 }
 
 void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
