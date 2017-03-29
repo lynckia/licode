@@ -177,6 +177,8 @@ void RtpSlideShowHandler::setSlideShowMode(bool active) {
   }
 
   getContext()->fireRead(RtpUtils::createPLI(connection_->getVideoSinkSSRC(), connection_->getVideoSourceSSRC()));
+  last_keyframe_sent_time_ = clock_->now();
+  resetKeyframeBuilding();
 
   if (active) {
     slideshow_is_active_ = true;
