@@ -169,7 +169,9 @@ bool RtpSlideShowHandler::isVP9Keyframe(std::shared_ptr<dataPacket> packet) {
 void RtpSlideShowHandler::storeKeyframePacket(std::shared_ptr<dataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   uint16_t index = rtp_header->getSeqNumber() - first_keyframe_seq_num_;
-  keyframe_buffer_[index] = packet;
+  if (index < keyframe_buffer_.size()) {
+    keyframe_buffer_[index] = packet;
+  }
 }
 
 void RtpSlideShowHandler::setSlideShowMode(bool active) {
