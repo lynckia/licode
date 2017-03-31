@@ -31,12 +31,8 @@ uint16_t SequenceNumberTranslator::fill(const uint16_t &first,
     fill(first, 65535);
     fill(0, last);
   }
-  const SequenceNumber& previous_sequence_number = get(first - 1);
-  uint16_t output_sequence_number = previous_sequence_number.output + offset_;
+  uint16_t output_sequence_number = last_output_sequence_number_ + offset_ + 1;
 
-  if (previous_sequence_number.type != SequenceNumberType::Skip) {
-    output_sequence_number++;
-  }
   for (uint16_t sequence_number = first;
        RtpUtils::sequenceNumberLessThan(sequence_number, last);
        sequence_number++) {
@@ -111,7 +107,9 @@ SequenceNumber SequenceNumberTranslator::get(uint16_t input_sequence_number, boo
       first_input_sequence_number_ = last_input_sequence_number_ - kMaxDistance;
     }
     SequenceNumber info = get(input_sequence_number);
-    offset_ = 0;
+    if (!skip) {
+      offset_ = 0;
+    }
     return info;
   } else {
     SequenceNumber& result = internalGet(input_sequence_number);

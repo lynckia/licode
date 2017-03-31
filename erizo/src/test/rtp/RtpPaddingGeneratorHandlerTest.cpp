@@ -48,7 +48,7 @@ class RtpPaddingGeneratorHandlerTest : public erizo::HandlerTest {
     padding_generator_handler = std::make_shared<RtpPaddingGeneratorHandler>(clock);
     pipeline->addBack(padding_generator_handler);
 
-    stats->getNode()["total"].insertStat("bitrateCalculated",
+    stats->getNode()[erizo::kVideoSsrc].insertStat("bitrateCalculated",
             MovingIntervalRateStat{std::chrono::milliseconds(100), 10, 1., clock});
     stats->getNode()["total"].insertStat("senderBitrateEstimation",
             MovingIntervalRateStat{std::chrono::milliseconds(100), 10, 1., clock});
@@ -56,7 +56,7 @@ class RtpPaddingGeneratorHandlerTest : public erizo::HandlerTest {
     EXPECT_CALL(*quality_manager.get(), isPaddingEnabled()).WillRepeatedly(Return(true));
 
     EXPECT_CALL(*processor.get(), getMaxVideoBW()).WillRepeatedly(Return(100000));
-    stats->getNode()["total"]["bitrateCalculated"]       += 40000 * 2 / 10;
+    stats->getNode()[erizo::kVideoSsrc]["bitrateCalculated"]       += 40000 * 2 / 10;
     stats->getNode()["total"]["senderBitrateEstimation"] += 60000 * 2 / 10;
   }
 
@@ -113,8 +113,8 @@ TEST_F(RtpPaddingGeneratorHandlerTest, shouldNotSendPaddingIfBitrateIsHigherThan
   const uint32_t kFractionLost = .1 * 255;
   EXPECT_CALL(*writer.get(), write(_, _)).Times(2);
 
-  stats->getNode()["total"]["bitrateCalculated"]       += 70000;
-  stats->getNode()["total"]["senderBitrateEstimation"] += 60000;
+  stats->getNode()[erizo::kVideoSsrc]["bitrateCalculated"] += 70000;
+  stats->getNode()["total"]["senderBitrateEstimation"]     += 60000;
 
   pipeline->read(erizo::PacketTools::createReceiverReport(erizo::kAudioSsrc, erizo::kAudioSsrc,
                                                           erizo::kArbitrarySeqNumber, VIDEO_PACKET, 0, kFractionLost));
