@@ -15,3 +15,5 @@ twitter: lynckia
 github: ging/licode
 feedburner:
   id: lynckia
+gems:
+  - jekyll-redirect-from
