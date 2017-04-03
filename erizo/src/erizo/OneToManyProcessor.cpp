@@ -114,6 +114,11 @@ namespace erizo {
     if (publisher.get()) {
       publisher->close();
     }
+    std::shared_ptr<WebRtcConnection> temp_publisher = std::dynamic_pointer_cast<WebRtcConnection>(publisher);
+    if (temp_publisher) {
+      temp_publisher->getWorker()->task([temp_publisher] {
+      });
+    }
     publisher.reset();
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it = subscribers.begin();
