@@ -55,6 +55,7 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
   int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
   int deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) override;
+  void deleteAsync(std::shared_ptr<WebRtcConnection> connection);
   void closeAll();
 };
 
