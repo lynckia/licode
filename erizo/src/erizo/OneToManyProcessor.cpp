@@ -103,7 +103,6 @@ namespace erizo {
     ELOG_DEBUG("Remove subscriber %s", peerId.c_str());
     boost::mutex::scoped_lock lock(monitor_mutex_);
     if (this->subscribers.find(peerId) != subscribers.end()) {
-      this->subscribers.find(peerId)->second->close();
       deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>(subscribers.find(peerId)->second));
       this->subscribers.erase(peerId);
     }
@@ -112,6 +111,7 @@ namespace erizo {
   void OneToManyProcessor::deleteAsync(std::shared_ptr<WebRtcConnection> connection) {
     if (connection) {
       connection->getWorker()->task([connection] {
+        connection->close();
       });
     }
   }
@@ -120,7 +120,6 @@ namespace erizo {
     ELOG_DEBUG("OneToManyProcessor closeAll");
     feedbackSink_ = nullptr;
     if (publisher.get()) {
-      publisher->close();
       deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>(publisher));
     }
     publisher.reset();
@@ -129,7 +128,6 @@ namespace erizo {
     while (it != subscribers.end()) {
       if ((*it).second != nullptr) {
         FeedbackSource* fbsource = (*it).second->getFeedbackSource();
-        (*it).second->close();
         deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>((*it).second));
         if (fbsource != nullptr) {
           fbsource->setFeedbackSink(nullptr);

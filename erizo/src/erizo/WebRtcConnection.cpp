@@ -80,6 +80,9 @@ WebRtcConnection::~WebRtcConnection() {
 
 void WebRtcConnection::close() {
   ELOG_DEBUG("%s message:Close called", toLog());
+  if (!sending_) {
+    return;
+  }
   sending_ = false;
   if (videoTransport_.get()) {
     videoTransport_->close();
