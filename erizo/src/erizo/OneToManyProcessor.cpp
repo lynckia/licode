@@ -17,8 +17,6 @@ namespace erizo {
   }
 
   OneToManyProcessor::~OneToManyProcessor() {
-    ELOG_DEBUG("OneToManyProcessor destructor");
-    this->closeAll();
   }
 
   int OneToManyProcessor::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
@@ -108,19 +106,29 @@ namespace erizo {
     }
   }
 
-  void OneToManyProcessor::deleteAsync(std::shared_ptr<WebRtcConnection> connection) {
+  std::future<void> OneToManyProcessor::deleteAsync(std::shared_ptr<WebRtcConnection> connection) {
+    auto promise = std::make_shared<std::promise<void>>();
     if (connection) {
-      connection->getWorker()->task([connection] {
+      connection->getWorker()->task([promise, connection] {
         connection->close();
+        promise->set_value();
       });
+    } else {
+      promise->set_value();
     }
+    return promise->get_future();
+  }
+
+  void OneToManyProcessor::close() {
+    closeAll();
   }
 
   void OneToManyProcessor::closeAll() {
     ELOG_DEBUG("OneToManyProcessor closeAll");
     feedbackSink_ = nullptr;
     if (publisher.get()) {
-      deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>(publisher));
+      std::future<void> future = deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>(publisher));
+      future.wait();
     }
     publisher.reset();
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
@@ -128,7 +136,8 @@ namespace erizo {
     while (it != subscribers.end()) {
       if ((*it).second != nullptr) {
         FeedbackSource* fbsource = (*it).second->getFeedbackSource();
-        deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>((*it).second));
+        std::future<void> future = deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>((*it).second));
+        future.wait();
         if (fbsource != nullptr) {
           fbsource->setFeedbackSink(nullptr);
         }

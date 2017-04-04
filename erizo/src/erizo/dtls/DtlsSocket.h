@@ -75,6 +75,8 @@ class DtlsSocket {
   DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type);
   ~DtlsSocket();
 
+  void close();
+
   // Inspects packet to see if it's a DTLS packet, if so continue processing
   bool handlePacketMaybe(const unsigned char* bytes, unsigned int len);
 
@@ -143,7 +145,7 @@ class DtlsSocketContext {
   DtlsSocketContext();
   virtual ~DtlsSocketContext();
 
-
+  void close();
 
   void start();
   void read(const unsigned char* data, unsigned int len);
