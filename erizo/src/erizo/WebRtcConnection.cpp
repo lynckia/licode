@@ -72,6 +72,14 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
 
 WebRtcConnection::~WebRtcConnection() {
   ELOG_DEBUG("%s message:Destructor called", toLog());
+  if (sending_) {
+    close();
+  }
+  ELOG_DEBUG("%s message: Destructor ended", toLog());
+}
+
+void WebRtcConnection::close() {
+  ELOG_DEBUG("%s message:Close called", toLog());
   sending_ = false;
   if (videoTransport_.get()) {
     videoTransport_->close();
@@ -86,10 +94,7 @@ WebRtcConnection::~WebRtcConnection() {
   video_sink_ = nullptr;
   audio_sink_ = nullptr;
   fb_sink_ = nullptr;
-  ELOG_DEBUG("%s message: Destructor ended", toLog());
-}
-
-void WebRtcConnection::close() {
+  ELOG_DEBUG("%s message: Close ended", toLog());
 }
 
 bool WebRtcConnection::init() {
