@@ -138,7 +138,6 @@ void DtlsTransport::close() {
   }
   this->state_ = TRANSPORT_FINISHED;
   ELOG_DEBUG("%s message: closed", toLog());
-
 }
 
 void DtlsTransport::onNiceData(packetPtr packet) {
