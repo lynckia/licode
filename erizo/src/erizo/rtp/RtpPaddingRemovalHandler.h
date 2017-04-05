@@ -29,7 +29,6 @@ class RtpPaddingRemovalHandler: public Handler, public std::enable_shared_from_t
 
  private:
   void removePaddingBytes(std::shared_ptr<dataPacket> packet);
-  void handleFeedbackPacket(std::shared_ptr<dataPacket> packet);
 
  private:
   bool enabled_;

@@ -5,8 +5,6 @@ namespace erizo {
 
 DEFINE_LOGGER(RtpPaddingRemovalHandler, "rtp.RtpPaddingRemovalHandler");
 
-constexpr duration kSwitchTimeout = std::chrono::seconds(3);
-
 RtpPaddingRemovalHandler::RtpPaddingRemovalHandler()
   : enabled_{true}, initialized_{false} {}
 
