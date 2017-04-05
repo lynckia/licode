@@ -23,6 +23,7 @@
 #include "rtp/RtcpProcessorHandler.h"
 #include "rtp/RtpRetransmissionHandler.h"
 #include "rtp/RtcpFeedbackGenerationHandler.h"
+#include "rtp/RtpPaddingRemovalHandler.h"
 #include "rtp/StatsHandler.h"
 #include "rtp/SRPacketHandler.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
@@ -269,6 +270,7 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addFront(PliPacerHandler());
   pipeline_->addFront(BandwidthEstimationHandler());
   pipeline_->addFront(RtcpFeedbackGenerationHandler());
+  pipeline_->addFront(RtpPaddingRemovalHandler());
   pipeline_->addFront(RtpRetransmissionHandler());
   pipeline_->addFront(SRPacketHandler());
   pipeline_->addFront(SenderBandwidthEstimationHandler());
