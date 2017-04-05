@@ -115,7 +115,7 @@ A Token is a string that allows you to add a new participant to a determined roo
 When you want to add a new participant to a room, you need to create a new token than you will consume in the client-side API. To create a token you need to specify a name and a role for the new participant.
 
 - `Name`: a name that identify the participant.
-- `Role`: indicates de permissions that the user will have in the room. To learn more about how to manage roles and permmisions you can visit this post.
+- `Role`: indicates de permissions that the user will have in the room. To learn more about how to manage roles and permmisions you can visit <a href="http://lynckia.com/licode/roles.html" target="_blank">this post</a>.
 
 ## Create Token
 
