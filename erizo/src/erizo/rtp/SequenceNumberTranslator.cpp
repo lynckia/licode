@@ -5,8 +5,8 @@
 
 namespace erizo {
 
-constexpr uint16_t kMaxSequenceNumberInBuffer = 511;  // = 65536 / 128 and more than 10s of audio @50fps
-constexpr uint16_t kMaxDistance = 200;
+constexpr uint16_t kMaxSequenceNumberInBuffer = 1023;  // = 65536 / 128 and more than 10s of audio @50fps
+constexpr uint16_t kMaxDistance = 500;
 
 DEFINE_LOGGER(SequenceNumberTranslator, "rtp.SequenceNumberTranslator");
 
@@ -15,7 +15,8 @@ SequenceNumberTranslator::SequenceNumberTranslator()
       out_in_buffer_{kMaxSequenceNumberInBuffer},
       first_input_sequence_number_{0},
       last_input_sequence_number_{0},
-      initial_output_sequence_number_{0},
+      last_output_sequence_number_{0},
+      offset_{0},
       initialized_{false}, reset_{false} {
 }
 
@@ -26,14 +27,13 @@ void SequenceNumberTranslator::add(SequenceNumber sequence_number) {
 
 uint16_t SequenceNumberTranslator::fill(const uint16_t &first,
                                         const uint16_t &last) {
-  const SequenceNumber& first_sequence_number = get(first);
-  uint16_t output_sequence_number = first_sequence_number.output;
-
-  if (first_sequence_number.type != SequenceNumberType::Skip) {
-    output_sequence_number++;
+  if (last < first) {
+    fill(first, 65535);
+    fill(0, last);
   }
+  uint16_t output_sequence_number = last_output_sequence_number_ + offset_ + 1;
 
-  for (uint16_t sequence_number = first_sequence_number.input + 1;
+  for (uint16_t sequence_number = first;
        RtpUtils::sequenceNumberLessThan(sequence_number, last);
        sequence_number++) {
     add(SequenceNumber{sequence_number, output_sequence_number++, SequenceNumberType::Valid});
@@ -46,19 +46,48 @@ SequenceNumber& SequenceNumberTranslator::internalGet(uint16_t input_sequence_nu
   return in_out_buffer_[input_sequence_number % kMaxSequenceNumberInBuffer];
 }
 
+SequenceNumber& SequenceNumberTranslator::internalReverse(uint16_t output_sequence_number) {
+  return out_in_buffer_[output_sequence_number % kMaxSequenceNumberInBuffer];
+}
+
 SequenceNumber SequenceNumberTranslator::get(uint16_t input_sequence_number) const {
-  return in_out_buffer_[input_sequence_number % kMaxSequenceNumberInBuffer];
+  const SequenceNumber &result = in_out_buffer_[input_sequence_number % kMaxSequenceNumberInBuffer];
+  if (result.input == input_sequence_number) {
+    return result;
+  }
+  return SequenceNumber{0, 0, SequenceNumberType::Skip};
+}
+
+SequenceNumber SequenceNumberTranslator::generate() {
+  uint16_t output_sequence_number = ++offset_ + last_output_sequence_number_;
+  SequenceNumber sequence_number{0, output_sequence_number, SequenceNumberType::Generated};
+  out_in_buffer_[sequence_number.output % kMaxSequenceNumberInBuffer] = sequence_number;
+
+  return sequence_number;
+}
+
+void SequenceNumberTranslator::updateLastOutputSequenceNumber(bool skip, uint16_t output_sequence_number) {
+  bool first_packet = !initialized_ && !(reset_ || offset_ > 0);
+  if (!skip &&
+      (RtpUtils::sequenceNumberLessThan(last_output_sequence_number_, output_sequence_number) || first_packet)) {
+    last_output_sequence_number_ = output_sequence_number;
+  }
 }
 
 SequenceNumber SequenceNumberTranslator::get(uint16_t input_sequence_number, bool skip) {
   if (!initialized_) {
     SequenceNumberType type = skip ? SequenceNumberType::Skip : SequenceNumberType::Valid;
-    uint16_t output_sequence_number = reset_ ? initial_output_sequence_number_ : input_sequence_number;
+    uint16_t output_sequence_number = (reset_ || offset_ > 0) ?
+                      last_output_sequence_number_ + offset_ + 1 : input_sequence_number;
     add(SequenceNumber{input_sequence_number, output_sequence_number, type});
-    last_input_sequence_number_ = input_sequence_number;
-    first_input_sequence_number_ = input_sequence_number;
-    initialized_ = true;
-    reset_ = false;
+    updateLastOutputSequenceNumber(skip, output_sequence_number);
+    if (!skip) {
+      last_input_sequence_number_ = input_sequence_number;
+      first_input_sequence_number_ = input_sequence_number;
+      initialized_ = true;
+      reset_ = false;
+      offset_ = 0;
+    }
     return get(input_sequence_number);
   }
 
@@ -67,29 +96,37 @@ SequenceNumber SequenceNumberTranslator::get(uint16_t input_sequence_number, boo
   }
 
   if (RtpUtils::sequenceNumberLessThan(last_input_sequence_number_, input_sequence_number)) {
-    uint16_t output_sequence_number = fill(last_input_sequence_number_, input_sequence_number);
+    uint16_t output_sequence_number = fill(last_input_sequence_number_ + 1, input_sequence_number);
 
     SequenceNumberType type = skip ? SequenceNumberType::Skip : SequenceNumberType::Valid;
 
+    updateLastOutputSequenceNumber(skip, output_sequence_number);
     add(SequenceNumber{input_sequence_number, output_sequence_number, type});
     last_input_sequence_number_ = input_sequence_number;
-    if (last_input_sequence_number_ - first_input_sequence_number_ > kMaxDistance) {
+    if (RtpUtils::sequenceNumberLessThan(first_input_sequence_number_, last_input_sequence_number_ - kMaxDistance)) {
       first_input_sequence_number_ = last_input_sequence_number_ - kMaxDistance;
     }
-    return get(input_sequence_number);
+    SequenceNumber info = get(input_sequence_number);
+    if (!skip) {
+      offset_ = 0;
+    }
+    return info;
   } else {
     SequenceNumber& result = internalGet(input_sequence_number);
     if (result.type == SequenceNumberType::Valid) {
       SequenceNumberType type = skip ? SequenceNumberType::Discard : SequenceNumberType::Valid;
+      internalReverse(result.output).type = type;
       result.type = type;
     }
+    updateLastOutputSequenceNumber(skip, result.output);
     return result;
   }
 }
 
 SequenceNumber SequenceNumberTranslator::reverse(uint16_t output_sequence_number) const {
   SequenceNumber result = out_in_buffer_[output_sequence_number % kMaxSequenceNumberInBuffer];
-  if (RtpUtils::sequenceNumberLessThan(result.input, first_input_sequence_number_) ||
+  if (result.output != output_sequence_number ||
+      RtpUtils::sequenceNumberLessThan(result.input, first_input_sequence_number_) ||
       RtpUtils::sequenceNumberLessThan(last_input_sequence_number_, result.input)) {
     return SequenceNumber{0, output_sequence_number, SequenceNumberType::Discard};
   }
@@ -97,12 +134,13 @@ SequenceNumber SequenceNumberTranslator::reverse(uint16_t output_sequence_number
 }
 
 void SequenceNumberTranslator::reset() {
+  if (!initialized_) {
+    return;
+  }
   initialized_ = false;
-  SequenceNumber &last = internalGet(last_input_sequence_number_);
-  initial_output_sequence_number_ = last.output;
+  reset_ = true;
   first_input_sequence_number_ = 0;
   last_input_sequence_number_ = 0;
-  reset_ = true;
   in_out_buffer_ = std::vector<SequenceNumber>(kMaxSequenceNumberInBuffer);
   out_in_buffer_ = std::vector<SequenceNumber>(kMaxSequenceNumberInBuffer);
 }

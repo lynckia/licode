@@ -20,7 +20,7 @@ class RtcpAggregator: public RtcpProcessor{
   DECLARE_LOGGER();
 
  public:
-  RtcpAggregator(MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw = 300000);
+  RtcpAggregator(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw = 300000);
   virtual ~RtcpAggregator() {}
   void addSourceSsrc(uint32_t ssrc);
   void setPublisherBW(uint32_t bandwidth);

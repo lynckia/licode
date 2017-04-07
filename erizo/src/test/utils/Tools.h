@@ -49,7 +49,7 @@ class PacketTools {
 
   static std::shared_ptr<dataPacket> createReceiverReport(uint ssrc, uint source_ssrc,
                                                           uint16_t highest_seq_num, packetType type,
-                                                          uint32_t last_sender_report = 0) {
+                                                          uint32_t last_sender_report = 0, uint32_t fraction_lost = 0) {
     erizo::RtcpHeader *receiver_report = new erizo::RtcpHeader();
     receiver_report->setPacketType(RTCP_Receiver_PT);
     receiver_report->setBlockCount(1);
@@ -57,6 +57,7 @@ class PacketTools {
     receiver_report->setSourceSSRC(source_ssrc);
     receiver_report->setHighestSeqnum(highest_seq_num);
     receiver_report->setLastSr(last_sender_report);
+    receiver_report->setFractionLost(fraction_lost);
     receiver_report->setLength(7);
     char *buf = reinterpret_cast<char*>(receiver_report);
     int len = (receiver_report->getLength() + 1) * 4;
@@ -96,7 +97,34 @@ class PacketTools {
     parsing_pointer++;
     *parsing_pointer = is_keyframe? 0x00: 0x01;
 
-    return std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    auto packet = std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    packet->is_keyframe = is_keyframe;
+    return packet;
+  }
+
+  static std::shared_ptr<dataPacket> createVP8Packet(uint16_t seq_number, uint32_t timestamp,
+      bool is_keyframe, bool is_marker) {
+    erizo::RtpHeader *header = new erizo::RtpHeader();
+    header->setPayloadType(96);
+    header->setSeqNumber(seq_number);
+    header->setSSRC(kVideoSsrc);
+    header->setTimestamp(timestamp);
+    header->setMarker(is_marker);
+    char packet_buffer[200];
+    memset(packet_buffer, 0, 200);
+    char* data_pointer;
+    char* parsing_pointer;
+    memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
+    data_pointer = packet_buffer + header->getHeaderLength();
+    parsing_pointer = data_pointer;
+
+    *parsing_pointer = 0x10;
+    parsing_pointer++;
+    *parsing_pointer = is_keyframe? 0x00: 0x01;
+
+    auto packet = std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    packet->is_keyframe = is_keyframe;
+    return packet;
   }
 
   static std::shared_ptr<dataPacket> createVP9Packet(uint16_t seq_number, bool is_keyframe, bool is_marker) {
@@ -115,7 +143,9 @@ class PacketTools {
 
     *parsing_pointer = is_keyframe? 0x00: 0x40;
 
-    return std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    auto packet = std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    packet->is_keyframe = is_keyframe;
+    return packet;
   }
 
   static std::shared_ptr<erizo::dataPacket> createRembPacket(uint32_t bitrate) {
@@ -152,18 +182,23 @@ class PacketTools {
   }
 };
 
+using ::testing::_;
+
 class BaseHandlerTest  {
  public:
   BaseHandlerTest() {}
 
   virtual void setHandler() = 0;
+  virtual void afterPipelineSetup() {}
 
   virtual void internalSetUp() {
-    scheduler = std::make_shared<Scheduler>(1);
-    worker = std::make_shared<Worker>(scheduler);
-    worker->start();
-    connection = std::make_shared<erizo::MockWebRtcConnection>(worker, ice_config, rtp_maps);
+    simulated_clock = std::make_shared<erizo::SimulatedClock>();
+    simulated_worker = std::make_shared<erizo::SimulatedWorker>(simulated_clock);
+    simulated_worker->start();
+    connection = std::make_shared<erizo::MockWebRtcConnection>(simulated_worker, ice_config, rtp_maps);
     processor = std::make_shared<erizo::MockRtcpProcessor>();
+    quality_manager = std::make_shared<erizo::MockQualityManager>();
+    packet_buffer_service = std::make_shared<erizo::PacketBufferService>();
     stats = std::make_shared<erizo::Stats>();
     connection->setVideoSinkSSRC(erizo::kVideoSsrc);
     connection->setAudioSinkSSRC(erizo::kAudioSsrc);
@@ -174,18 +209,31 @@ class BaseHandlerTest  {
     reader = std::make_shared<erizo::Reader>();
     writer = std::make_shared<erizo::Writer>();
 
-    EXPECT_CALL(*reader, notifyUpdate());
-    EXPECT_CALL(*writer, notifyUpdate());
+    EXPECT_CALL(*reader, notifyUpdate()).Times(testing::AtLeast(1));
+    EXPECT_CALL(*writer, notifyUpdate()).Times(testing::AtLeast(1));
+
+    EXPECT_CALL(*reader, read(_, _)).Times(testing::AtLeast(0));
+    EXPECT_CALL(*writer, write(_, _)).Times(testing::AtLeast(0));
 
     std::shared_ptr<erizo::WebRtcConnection> connection_ptr = std::dynamic_pointer_cast<WebRtcConnection>(connection);
     pipeline->addService(connection_ptr);
     pipeline->addService(std::dynamic_pointer_cast<RtcpProcessor>(processor));
+    pipeline->addService(std::dynamic_pointer_cast<QualityManager>(quality_manager));
+    pipeline->addService(packet_buffer_service);
     pipeline->addService(stats);
 
     pipeline->addBack(writer);
     setHandler();
     pipeline->addBack(reader);
     pipeline->finalize();
+    afterPipelineSetup();
+  }
+
+  virtual void executeTasksInNextMs(int time) {
+    for (int step = 0; step < time + 1; step++) {
+      simulated_worker->executePastScheduledTasks();
+      simulated_clock->advanceTime(std::chrono::milliseconds(1));
+    }
   }
 
   virtual void internalTearDown() {
@@ -196,11 +244,13 @@ class BaseHandlerTest  {
   std::shared_ptr<erizo::Stats> stats;
   std::shared_ptr<erizo::MockWebRtcConnection> connection;
   std::shared_ptr<erizo::MockRtcpProcessor> processor;
+  std::shared_ptr<erizo::MockQualityManager> quality_manager;
   Pipeline::Ptr pipeline;
   std::shared_ptr<erizo::Reader> reader;
   std::shared_ptr<erizo::Writer> writer;
-  std::shared_ptr<Worker> worker;
-  std::shared_ptr<Scheduler> scheduler;
+  std::shared_ptr<erizo::SimulatedClock> simulated_clock;
+  std::shared_ptr<erizo::SimulatedWorker> simulated_worker;
+  std::shared_ptr<erizo::PacketBufferService> packet_buffer_service;
   std::queue<std::shared_ptr<dataPacket>> packet_queue;
 };
 

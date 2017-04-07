@@ -22,6 +22,8 @@ using ::testing::Eq;
 using erizo::StatNode;
 using erizo::StringStat;
 using erizo::RateStat;
+using erizo::MovingIntervalRateStat;
+using erizo::MovingAverageStat;
 using erizo::CumulativeStat;
 using erizo::SimulatedClock;
 
@@ -100,3 +102,15 @@ TEST_F(StatNodeTest, rateStatsShouldReturnZeroWhenNotIncreasing) {
   advanceClockMs(1000);
   EXPECT_THAT(root.toString(), Eq("{\"rate\":0}"));
 }
+
+TEST_F(StatNodeTest, IntervalRateStatCanBeInserted) {
+  root.insertStat("rate", MovingIntervalRateStat{std::chrono::milliseconds(100), 5, .1, clock});
+  root["rate"] += 100;
+  advanceClockMs(100);
+  root["rate"] += 100;
+  EXPECT_THAT(root.toString(), Eq("{\"rate\":100}"));
+
+  advanceClockMs(1000);
+  EXPECT_THAT(root.toString(), Eq("{\"rate\":0}"));
+}
+

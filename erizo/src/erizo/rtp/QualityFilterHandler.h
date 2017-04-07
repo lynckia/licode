@@ -7,6 +7,7 @@
 #include <map>
 
 #include "./logger.h"
+#include "lib/Clock.h"
 #include "pipeline/Handler.h"
 #include "rtp/SequenceNumberTranslator.h"
 #include "rtp/QualityManager.h"
@@ -37,7 +38,9 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   void sendPLI();
   void checkLayers();
   void handleFeedbackPackets(std::shared_ptr<dataPacket> packet);
-  void checkSSRCChange(uint32_t ssrc);
+  bool checkSSRCChange(uint32_t ssrc);
+  void changeSpatialLayerOnKeyframeReceived(std::shared_ptr<dataPacket> packet);
+  void detectVideoScalability(std::shared_ptr<dataPacket> packet);
 
  private:
   std::shared_ptr<QualityManager> quality_manager_;
@@ -46,12 +49,18 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   bool enabled_;
   bool initialized_;
   bool receiving_multiple_ssrc_;
+  bool changing_spatial_layer_;
+  bool is_scalable_;
   int target_spatial_layer_;
+  int future_spatial_layer_;
   int target_temporal_layer_;
   uint32_t video_sink_ssrc_;
   uint32_t video_source_ssrc_;
   uint32_t last_ssrc_received_;
   uint32_t max_video_bw_;
+  uint32_t last_timestamp_sent_;
+  uint32_t timestamp_offset_;
+  time_point time_change_started_;
 };
 }  // namespace erizo
 

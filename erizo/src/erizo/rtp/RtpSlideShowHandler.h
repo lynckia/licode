@@ -6,15 +6,21 @@
 #include "pipeline/Handler.h"
 #include "./logger.h"
 #include "./WebRtcConnection.h"
+#include "rtp/SequenceNumberTranslator.h"
+#include "rtp/PacketBufferService.h"
 #include "rtp/RtpVP8Parser.h"
 #include "rtp/RtpVP9Parser.h"
+#include "lib/ClockUtils.h"
+
+static constexpr uint16_t kMaxKeyframeSize = 20;
+static constexpr erizo::duration kFallbackKeyframeTimeout = std::chrono::seconds(5);
 
 namespace erizo {
 class RtpSlideShowHandler : public Handler {
   DECLARE_LOGGER();
 
  public:
-  RtpSlideShowHandler();
+  explicit RtpSlideShowHandler(std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
 
   void enable() override;
   void disable() override;
@@ -32,17 +38,28 @@ class RtpSlideShowHandler : public Handler {
  private:
   bool isVP8Keyframe(std::shared_ptr<dataPacket> packet);
   bool isVP9Keyframe(std::shared_ptr<dataPacket> packet);
+  void maybeUpdateHighestSeqNum(uint16_t seq_num);
+  void resetKeyframeBuilding();
+  void consolidateKeyframe();
+  void maybeSendStoredKeyframe();
+  void storeKeyframePacket(std::shared_ptr<dataPacket> packet);
 
  private:
+  std::shared_ptr<Clock> clock_;
   WebRtcConnection* connection_;
-  int32_t slideshow_seq_num_, last_original_seq_num_;
-  uint16_t seq_num_offset_;
+  SequenceNumberTranslator translator_;
+  bool highest_seq_num_initialized_;
+  bool is_building_keyframe_;
+  uint16_t  highest_seq_num_;
+  uint16_t packets_received_while_building_;
+  uint16_t first_keyframe_seq_num_;
+  bool slideshow_is_active_;
+  uint32_t current_keyframe_timestamp_;
+  uint32_t last_timestamp_received_;
 
-  bool slideshow_is_active_, sending_keyframe_;
-  RtpVP8Parser vp8_parser_;
-  RtpVP9Parser vp9_parser_;
-
-  inline void setPacketSeqNumber(std::shared_ptr<dataPacket> packet, uint16_t seq_number);
+  std::vector<std::shared_ptr<dataPacket>> keyframe_buffer_;
+  std::vector<std::shared_ptr<dataPacket>> stored_keyframe_;
+  time_point last_keyframe_sent_time_;
 };
 }  // namespace erizo
 

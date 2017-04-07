@@ -1,3 +1,4 @@
+
 /*
  * RtpHeaders.h
  */
@@ -42,6 +43,8 @@ namespace erizo {
 
 #define RTCP_AUDIO_INTERVAL 5000
 #define RTCP_VIDEO_INTERVAL  1000
+
+static const uint16_t kNackCommonHeaderLengthBytes = 12;
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -102,6 +105,10 @@ class RtpHeader {
 
   inline uint8_t hasPadding() const {
     return padding;
+  }
+
+  inline void setPadding(uint8_t has_padding) {
+    padding = has_padding;
   }
 
   inline uint8_t getVersion() const {
@@ -197,6 +204,33 @@ class RtpRtxHeader {
   }
   inline void setOs(uint16_t theOsn) {
     osn = htons(theOsn);
+  }
+};
+
+
+// Generic NACK RTCP_RTP_FB + (FMT 1)rfc4585
+//      0                   1                   2                   3
+//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//   |            PID                |             BLP               |
+//   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+class NackBlock {
+ public:
+  uint32_t pid:16;
+  uint32_t blp:16;
+
+  inline uint16_t getNackPid() {
+    return ntohs(pid);
+  }
+  inline void setNackPid(uint16_t new_pid) {
+    pid = htons(new_pid);
+  }
+  inline uint16_t getNackBlp() {
+    return ntohs(blp);
+  }
+  inline void setNackBlp(uint16_t new_blp) {
+    blp = htons(new_blp);
   }
 };
 
@@ -304,16 +338,9 @@ class RtcpHeader {
       struct receiverReport_t rrlist[1];
     } senderReport;
 
-    // Generic NACK RTCP_RTP_FB + (FMT 1)rfc4585
-    //      0                   1                   2                   3
-    //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //   |            PID                |             BLP               |
-    //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     struct genericNack_t {
       uint32_t ssrcsource;
-      uint32_t pid:16;
-      uint32_t blp:16;
+      NackBlock nack_block;
     } nackPacket;
 
     struct remb_t {
@@ -328,6 +355,13 @@ class RtcpHeader {
       uint32_t ssrcsource;
       uint32_t fci;
     } pli;
+
+    struct fir_t {
+      uint32_t ssrcsource;
+      uint32_t mediasource;
+      uint32_t seqnumber:8;
+      uint32_t reserved:24;
+    } fir;
   } report;
 
   inline RtcpHeader() : blockcount(0), padding(0), version(2), packettype(0), length(0), ssrc(0) {
@@ -436,16 +470,16 @@ class RtcpHeader {
     return ntohl(middle);
   }
   inline uint16_t getNackPid() {
-    return ntohs(report.nackPacket.pid);
+    return report.nackPacket.nack_block.getNackPid();
   }
   inline void setNackPid(uint16_t pid) {
-    report.nackPacket.pid = htons(pid);
+    report.nackPacket.nack_block.setNackPid(pid);
   }
   inline uint16_t getNackBlp() {
-    return report.nackPacket.blp;
+    return report.nackPacket.nack_block.getNackBlp();
   }
   inline void setNackBlp(uint16_t blp) {
-    report.nackPacket.blp = blp;
+    report.nackPacket.nack_block.setNackBlp(blp);
   }
   inline void setREMBBitRate(uint64_t bitRate) {
     uint64_t max = 0x3FFFF;  // 18 bits
@@ -488,6 +522,12 @@ class RtcpHeader {
   }
   inline void setFCI(uint32_t fci) {
     report.pli.fci = htonl(fci);
+  }
+  inline void setFIRSourceSSRC(uint32_t ssrc) {
+    report.fir.mediasource = htonl(ssrc);
+  }
+  inline void setFIRSequenceNumber(uint8_t seq_number) {
+    report.fir.seqnumber = seq_number;
   }
 };
 

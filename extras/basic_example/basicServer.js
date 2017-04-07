@@ -49,11 +49,11 @@ app.use(function(req, res, next) {
 N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3000/');
 
 var defaultRoom;
-var defaultRoomName = 'basicExampleRoom';
+const defaultRoomName = 'basicExampleRoom';
 
-var getOrCreateRoom = function (roomName, callback) {
+var getOrCreateRoom = function (name, type = 'erizo', callback = function(){}) {
 
-    if (roomName === defaultRoomName && defaultRoom) {
+    if (name === defaultRoomName && defaultRoom) {
         callback(defaultRoom);
         return;
     }
@@ -61,20 +61,24 @@ var getOrCreateRoom = function (roomName, callback) {
     N.API.getRooms(function (roomlist){
         var theRoom = '';
         var rooms = JSON.parse(roomlist);
-        for (var room in rooms) {
-            if (rooms[room].name === roomName &&
-                rooms[room].data &&
-                rooms[room].data.basicExampleRoom){
+        for (var room of rooms) {
+            if (room.name === name &&
+                room.data &&
+                room.data.basicExampleRoom){
 
-                theRoom = rooms[room]._id;
+                theRoom = room._id;
                 callback(theRoom);
                 return;
             }
         }
-        N.API.createRoom(roomName, function (roomID) {
+
+        let extra = {data: {basicExampleRoom: true}};
+        if (type === 'p2p') extra.p2p = true;
+
+        N.API.createRoom(name, function (roomID) {
             theRoom = roomID._id;
             callback(theRoom);
-        }, function(){}, {data: {basicExampleRoom:true}});
+        }, function(){}, extra);
     });
 };
 
@@ -109,15 +113,16 @@ var deleteRoomsIfEmpty = function (theRooms, callback) {
 };
 
 var cleanExampleRooms = function (callback) {
+    console.log('Cleaning basic example rooms');
     N.API.getRooms(function (roomlist) {
         var rooms = JSON.parse(roomlist);
         var roomsToCheck = [];
-        for (var room in rooms){
-            if (rooms[room].data &&
-                rooms[room].data.basicExampleRoom &&
-                rooms[room].name !== defaultRoomName){
+        for (var room of rooms){
+            if (room.data &&
+                room.data.basicExampleRoom &&
+                room.name !== defaultRoomName){
 
-                roomsToCheck.push(rooms[room]);
+                roomsToCheck.push(room);
             }
         }
         deleteRoomsIfEmpty (roomsToCheck, function () {
@@ -142,24 +147,33 @@ app.get('/getUsers/:room', function(req, res) {
 
 
 app.post('/createToken/', function(req, res) {
-    console.log(req.body);
-    var room = defaultRoomName;
-    if (req.body.room && !isNaN(req.body.room)) {
-        room = req.body.room;
+    console.log('Creating token. Request body: ',req.body);
+
+    let username = req.body.username;
+    let role = req.body.role;
+
+    let room = defaultRoomName, type, roomId;
+
+    if (req.body.room && !isNaN(req.body.room)) room = req.body.room;
+    if (req.body.type) type = req.body.type;
+    if (req.body.roomId) roomId = req.body.roomId;
+
+    let createToken = function (roomId) {
+      N.API.createToken(roomId, username, role, function(token) {
+          console.log('Token created', token);
+          res.send(token);
+      }, function(error) {
+          console.log('Error creating token', error);
+          res.status(401).send('No Erizo Controller found');
+      });
+    };
+
+    if (roomId) {
+      createToken(roomId);
+    } else {
+      getOrCreateRoom(room, type, createToken);
     }
 
-    var username = req.body.username,
-    role = req.body.role;
-
-    getOrCreateRoom(room, function (roomId) {
-        N.API.createToken(roomId, username, role, function(token) {
-            console.log(token);
-            res.send(token);
-        }, function(error) {
-            console.log(error);
-            res.status(401).send('No Erizo Controller found');
-        });
-    });
 });
 
 
@@ -175,7 +189,7 @@ app.use(function(req, res, next) {
 });
 
 cleanExampleRooms(function() {
-    getOrCreateRoom(defaultRoomName, function (roomId) {
+    getOrCreateRoom(defaultRoomName, undefined, function (roomId) {
         defaultRoom = roomId;
         app.listen(3001);
         var server = https.createServer(options, app);
