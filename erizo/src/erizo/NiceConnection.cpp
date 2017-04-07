@@ -77,9 +77,7 @@ NiceConnection::NiceConnection(boost::shared_ptr<LibNiceInterface> libnice, Medi
   }
 
 NiceConnection::~NiceConnection() {
-  ELOG_DEBUG("%s message: destroying", toLog());
   this->close();
-  ELOG_DEBUG("%s message: destroyed", toLog());
 }
 
 void NiceConnection::close() {

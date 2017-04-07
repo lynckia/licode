@@ -21,6 +21,7 @@ class AsyncDeleter : public Nan::AsyncWorker {
       }
     ~AsyncDeleter() {}
     void Execute() {
+      otmToDelete_->close();
       delete otmToDelete_;
     }
     void HandleOKCallback() {

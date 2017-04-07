@@ -23,6 +23,7 @@
 #include "rtp/RtcpProcessorHandler.h"
 #include "rtp/RtpRetransmissionHandler.h"
 #include "rtp/RtcpFeedbackGenerationHandler.h"
+#include "rtp/RtpPaddingRemovalHandler.h"
 #include "rtp/StatsHandler.h"
 #include "rtp/SRPacketHandler.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
@@ -72,6 +73,17 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
 
 WebRtcConnection::~WebRtcConnection() {
   ELOG_DEBUG("%s message:Destructor called", toLog());
+  if (sending_) {
+    close();
+  }
+  ELOG_DEBUG("%s message: Destructor ended", toLog());
+}
+
+void WebRtcConnection::close() {
+  ELOG_DEBUG("%s message:Close called", toLog());
+  if (!sending_) {
+    return;
+  }
   sending_ = false;
   if (videoTransport_.get()) {
     videoTransport_->close();
@@ -86,10 +98,7 @@ WebRtcConnection::~WebRtcConnection() {
   video_sink_ = nullptr;
   audio_sink_ = nullptr;
   fb_sink_ = nullptr;
-  ELOG_DEBUG("%s message: Destructor ended", toLog());
-}
-
-void WebRtcConnection::close() {
+  ELOG_DEBUG("%s message: Close ended", toLog());
 }
 
 bool WebRtcConnection::init() {
@@ -269,6 +278,7 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addFront(PliPacerHandler());
   pipeline_->addFront(BandwidthEstimationHandler());
   pipeline_->addFront(RtcpFeedbackGenerationHandler());
+  pipeline_->addFront(RtpPaddingRemovalHandler());
   pipeline_->addFront(RtpRetransmissionHandler());
   pipeline_->addFront(SRPacketHandler());
   pipeline_->addFront(SenderBandwidthEstimationHandler());
