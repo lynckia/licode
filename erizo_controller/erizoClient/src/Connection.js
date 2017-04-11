@@ -144,7 +144,7 @@ Erizo.GetUserMedia = function (config, callback, error) {
                 if (config.audio.mandatory !== undefined) {
                     var audioCfg = config.audio.mandatory;
                     if (audioCfg.sourceId) {
-                        ffConfig.audio.deviceId = audioCfg.sourceId
+                        ffConfig.audio.deviceId = audioCfg.sourceId;
                     }
                 }
                 if (config.video.mandatory !== undefined) {
@@ -152,12 +152,12 @@ Erizo.GetUserMedia = function (config, callback, error) {
                     ffConfig.video.width = {min: videoCfg.minWidth, max: videoCfg.maxWidth};
                     ffConfig.video.height = {min: videoCfg.minHeight, max: videoCfg.maxHeight};
                     if (videoCfg.sourceId) {
-                        ffConfig.video.deviceId = videoCfg.sourceId
+                        ffConfig.video.deviceId = videoCfg.sourceId;
                     }
 
                 }
                 if (config.video.optional !== undefined) {
-                    ffConfig.video.frameRate =  config.video.optional[1].maxFrameRate
+                    ffConfig.video.frameRate =  config.video.optional[1].maxFrameRate;
                 }
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                     promise = navigator.mediaDevices.getUserMedia(ffConfig).then(callback);
