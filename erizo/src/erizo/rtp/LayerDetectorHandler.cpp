@@ -9,7 +9,8 @@ namespace erizo {
 
 DEFINE_LOGGER(LayerDetectorHandler, "rtp.LayerDetectorHandler");
 
-LayerDetectorHandler::LayerDetectorHandler() : connection_{nullptr}, enabled_{true}, initialized_{false} {}
+LayerDetectorHandler::LayerDetectorHandler()
+  : connection_{nullptr}, enabled_{true}, initialized_{false}, rid_index_{-1} {}
 
 void LayerDetectorHandler::enable() {
   enabled_ = true;
@@ -24,7 +25,9 @@ void LayerDetectorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet
   if (!chead->isRtcp() && enabled_ && packet->type == VIDEO_PACKET) {
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
     RtpMap *codec = connection_->getRemoteSdpInfo().getCodecByExternalPayloadType(rtp_header->getPayloadType());
-    if (codec && codec->encoding_name == "VP8") {
+    if (rid_index_ > 0) {
+      parseLayerInfoFromRid(packet);
+    } else if (codec && codec->encoding_name == "VP8") {
       parseLayerInfoFromVP8(packet);
     } else if (codec && codec->encoding_name == "VP9") {
       parseLayerInfoFromVP9(packet);
@@ -40,6 +43,39 @@ int LayerDetectorHandler::getSsrcPosition(uint32_t ssrc) {
     return index;
   }
   return -1;
+}
+
+void LayerDetectorHandler::parseLayerInfoFromRid(std::shared_ptr<dataPacket> packet) {
+  RtpHeader* head = reinterpret_cast<RtpHeader*>(packet->data);
+  int position = 0;
+  if (head->getExtension()) {
+    uint16_t total_ext_length = head->getExtLength();
+    char* ext_buffer = (char*)&head->extensions;  // NOLINT
+    uint8_t ext_byte = 0;
+    uint16_t current_place = 1;
+    uint8_t ext_id = 0;
+    uint8_t ext_length = 0;
+    while (current_place < (total_ext_length * 4)) {
+      ext_byte = (uint8_t)(*ext_buffer);
+      ext_id = ext_byte >> 4;
+      ext_length = ext_byte & 0x0F;
+      if (ext_id != 0 && ext_id == rid_index_) {
+        char* ptr_rid = new char[ext_length + 2];
+        memcpy(ptr_rid, ext_buffer + 1, ext_length + 1);
+        ptr_rid[ext_length + 1] = '\0';
+        position = getSsrcPosition(std::stoul(ptr_rid)) - 1;
+        if (position != 0) {
+          head->setSSRC(std::stoul(ptr_rid));
+        }
+      }
+      ext_buffer = ext_buffer + ext_length + 2;
+      current_place = current_place + ext_length + 2;
+    }
+  }
+  //parseLayerInfoFromVP8(packet);
+  packet->compatible_temporal_layers = {0};
+  packet->compatible_spatial_layers = {position};
+  ELOG_WARN("SL %d TL %d", position, 0);
 }
 
 void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<dataPacket> packet) {
@@ -115,6 +151,12 @@ void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<dataPacket> pac
   delete payload;
 }
 
+int16_t LayerDetectorHandler::getStreamIdExtensionIndex(std::array<RTPExtensions, 10> map) {
+  RTPExtensions *stream_id = std::find(std::begin(map), std::end(map), RTPExtensions::RTP_ID);
+
+  return (stream_id == std::end(map)) ? -1 : std::distance(std::begin(map), stream_id);
+}
+
 void LayerDetectorHandler::notifyUpdate() {
   if (initialized_) {
     return;
@@ -129,6 +171,8 @@ void LayerDetectorHandler::notifyUpdate() {
   if (!connection_) {
     return;
   }
+
+  rid_index_ = getStreamIdExtensionIndex(connection_->getRtpExtensionProcessor().getVideoExtensionMap());
 
   video_ssrc_list_ = connection_->getVideoSourceSSRCList();
 }

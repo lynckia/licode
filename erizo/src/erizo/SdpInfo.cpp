@@ -43,6 +43,8 @@ namespace erizo {
   static const char *extmap = "a=extmap:";
   static const char *rtcpfb = "a=rtcp-fb:";
   static const char *fmtp = "a=fmtp:";
+  static const char *rid = "a=rid:";
+  static const char *simulcast = "a=simulcast:";
   static const char *bas = "b=AS:";
   static const std::string kAssociatedPt = "apt";
   static const std::string kSimulcastGroup = "SIM";
@@ -389,6 +391,16 @@ namespace erizo {
         }
       }
 
+      bool is_simulcast = false;
+      std::ostringstream simulcast;
+      if (rids_.size() > 0) {
+        is_simulcast = true;
+        std::for_each(rids_.begin(), rids_.end(), [&sdp, &simulcast] (const std::string &rid) {
+          sdp << "a=rid:" << rid.c_str() << " recv" << endl;
+          simulcast << "" << rid.c_str() << ";";
+        });
+      }
+
       for (unsigned int it = 0; it < payloadVector.size(); it++) {
         const RtpMap& rtp = payloadVector[it];
         if (rtp.media_type == VIDEO_TYPE) {
@@ -431,8 +443,12 @@ namespace erizo {
             });
         */
       }
+      if (is_simulcast) {
+        std::string sim = simulcast.str();
+        sdp << "a=simulcast: recv rid=" << sim.substr(0, sim.size() - 1) << endl;
+      }
     }
-    ELOG_DEBUG("sdp local \n %s", sdp.str().c_str());
+    ELOG_WARN("sdp local \n %s", sdp.str().c_str());
     return sdp.str();
   }
 
@@ -519,6 +535,7 @@ namespace erizo {
     this->hasAudio = offerSdp.hasAudio;
     this->bundleTags = offerSdp.bundleTags;
     this->extMapVector = offerSdp.extMapVector;
+    this->rids_ = offerSdp.rids_;
     switch (offerSdp.videoDirection) {
       case SENDONLY:
         this->videoDirection = RECVONLY;
@@ -585,6 +602,7 @@ namespace erizo {
       size_t isFeedback = line.find(rtcpfb);
       size_t isFmtp = line.find(fmtp);
       size_t isBandwidth = line.find(bas);
+      size_t isSimulcast = line.find(simulcast);
 
       ELOG_DEBUG("current line -> %s", line.c_str());
 
@@ -864,6 +882,17 @@ namespace erizo {
           }
         }
       }
+
+      if (isSimulcast != std::string::npos) {
+        std::vector<std::string> parts = stringutil::splitOneOf(line, " :=;\r\n", 100);
+        if (parts.size() < 5) {
+          continue;
+        }
+        rids_.clear();
+        for (size_t rid_idx = 5; rid_idx < parts.size(); rid_idx++) {
+          rids_.push_back(parts[rid_idx]);
+        }
+      }
     }  // sdp lines loop
 
     // If there is no video or audio credentials we use the ones we have
@@ -891,6 +920,10 @@ namespace erizo {
         c.password = iceAudioPassword_;
       }
     }
+
+    std::for_each(std::begin(rids_), std::end(rids_), [this](const std::string &rid) {
+      maybeAddSsrcToList(stoul(rid));
+    });
 
     if (video_ssrc_list.empty()) {
       video_ssrc_list.push_back(0);
