@@ -1,3 +1,4 @@
+
 #ifndef ERIZO_SRC_ERIZO_RTP_RTPPADDINGREMOVALHANDLER_H_
 #define ERIZO_SRC_ERIZO_RTP_RTPPADDINGREMOVALHANDLER_H_
 
@@ -32,6 +33,8 @@ class RtpPaddingRemovalHandler: public Handler, public std::enable_shared_from_t
  private:
   bool removePaddingBytes(std::shared_ptr<dataPacket> packet,
       std::shared_ptr<SequenceNumberTranslator> translator);
+  std::shared_ptr<SequenceNumberTranslator> getTranslatorForSsrc(uint32_t ssrc,
+    bool should_create);
 
  private:
   bool enabled_;
