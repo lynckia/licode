@@ -404,6 +404,8 @@ room.publish(localStream, {simulcast: {numSpatialLayers: 2}});
 
 Being `numSpatialLayers` the max number of spatial layers the publisher will send.
 
+**Note:** Simulcast only works with Google Chrome and it's not compatible with Licode's recording yet.
+
 ## Subscribe to a remote stream
 
 It subscribes to a remote stream in the room.
