@@ -66,7 +66,7 @@ void RtpPaddingRemovalHandler::write(Context *ctx, std::shared_ptr<dataPacket> p
         if (seq_nums.size() > 0) {
           uint16_t pid = seq_nums[0];
           uint16_t blp = 0;
-          for (int index = 1; index < seq_nums.size() ; index++) {
+          for (uint16_t index = 1; index < seq_nums.size() ; index++) {
             uint16_t distance = seq_nums[index] - pid - 1;
             blp |= (1 << distance);
           }
