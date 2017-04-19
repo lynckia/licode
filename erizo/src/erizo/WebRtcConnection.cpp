@@ -293,7 +293,7 @@ bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex
   // TODO(pedro) Check type of transport.
   ELOG_DEBUG("%s message: Adding remote Candidate, candidate: %s, mid: %s, sdpMLine: %d",
               toLog(), sdp.c_str(), mid.c_str(), mLineIndex);
-  if (videoTransport_ == nullptr) {
+  if (videoTransport_ == nullptr && audioTransport_ == nullptr) {
     ELOG_WARN("%s message: addRemoteCandidate on NULL transport", toLog());
     return false;
   }
