@@ -69,7 +69,7 @@ install_apt_deps(){
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
-  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb openjdk-6-jre curl libboost-test-dev -y
+  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb curl libboost-test-dev -y
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
 
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
@@ -112,10 +112,11 @@ install_openssl(){
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./libnice-0.1.7.tar.gz ]; then
-      curl -O https://nice.freedesktop.org/releases/libnice-0.1.7.tar.gz
-      tar -zxvf libnice-0.1.7.tar.gz
-      cd libnice-0.1.7
+    if [ ! -f ./libnice-0.1.4.tar.gz ]; then
+      curl -O https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
+      tar -zxvf libnice-0.1.4.tar.gz
+      cd libnice-0.1.4
+      patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
       ./configure --prefix=$PREFIX_DIR
       make -s V=0
       make install

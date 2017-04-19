@@ -1,4 +1,4 @@
-/*global require, exports*/
+/*global require, exports, ObjectId*/
 'use strict';
 var db = require('./dataBase').db;
 
@@ -50,8 +50,8 @@ exports.addRoom = function (room, callback) {
 
 exports.assignErizoControllerToRoom = function(room, erizoControllerId, callback) {
   return db.eval(function(id, erizoControllerId) {
-    var erizoController = undefined;
-    var room = db.rooms.findOne({_id: ObjectId(id)});
+    var erizoController;
+    var room = db.rooms.findOne({_id: new ObjectId(id)});
     if (!room) {
       return erizoController;
     }
@@ -63,10 +63,10 @@ exports.assignErizoControllerToRoom = function(room, erizoControllerId, callback
       }
     }
 
-    erizoController = db.erizoControllers.findOne({_id: ObjectId(erizoControllerId)});
+    erizoController = db.erizoControllers.findOne({_id: new ObjectId(erizoControllerId)});
 
     if (erizoController) {
-      room.erizoControllerId = ObjectId(erizoControllerId);
+      room.erizoControllerId = new ObjectId(erizoControllerId);
 
       db.rooms.save( room );
     }

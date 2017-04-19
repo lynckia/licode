@@ -250,11 +250,15 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
     }
 
     DtlsSocketContext::~DtlsSocketContext() {
+      mSocket->close();
       delete mSocket;
       mSocket = NULL;
       SSL_CTX_free(mContext);
     }
 
+    void DtlsSocketContext::close() {
+      mSocket->close();
+    }
 
     void DtlsSocketContext::Init() {
       if (DtlsSocketContext::mCert == NULL) {

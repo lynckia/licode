@@ -4,6 +4,7 @@
 #include <WebRtcConnection.h>
 #include <pipeline/Handler.h>
 #include <rtp/RtcpProcessor.h>
+#include <rtp/QualityManager.h>
 #include <rtp/FecReceiverHandler.h>
 #include <rtp/BandwidthEstimationHandler.h>
 #include <rtp/SenderBandwidthEstimationHandler.h>
@@ -19,10 +20,19 @@ class MockRtcpProcessor : public RtcpProcessor {
   MockRtcpProcessor() : RtcpProcessor(nullptr, nullptr) {}
   MOCK_METHOD1(addSourceSsrc, void(uint32_t));
   MOCK_METHOD1(setMaxVideoBW, void(uint32_t));
+  MOCK_METHOD0(getMaxVideoBW, uint32_t());
   MOCK_METHOD1(setPublisherBW, void(uint32_t));
   MOCK_METHOD1(analyzeSr, void(RtcpHeader*));
   MOCK_METHOD2(analyzeFeedback, int(char*, int));
   MOCK_METHOD0(checkRtcpFb, void());
+};
+
+class MockQualityManager : public QualityManager {
+ public:
+  MockQualityManager() : QualityManager() {}
+  MOCK_CONST_METHOD0(getSpatialLayer, int());
+  MOCK_CONST_METHOD0(getTemporalLayer, int());
+  MOCK_CONST_METHOD0(isPaddingEnabled, bool());
 };
 
 class MockMediaSink : public MediaSink {

@@ -204,7 +204,7 @@ Erizo.Room = function (spec) {
 
 
             myStream.pc[arg.peerSocket].oniceconnectionstatechange = function (state) {
-                if (state === 'failed') {
+                if (state === 'failed' || state === 'disconnected') {
                     myStream.pc[arg.peerSocket].close();
                     delete myStream.pc[arg.peerSocket];
                 }
@@ -445,8 +445,8 @@ Erizo.Room = function (spec) {
         options._simulcast = options._simulcast || false;
 
         // 1- If the stream is not local or it is a failed stream we do nothing.
-        if (stream && stream.local && !stream.failed
-          && that.localStreams[stream.getID()] === undefined) {
+        if (stream && stream.local && !stream.failed && 
+            that.localStreams[stream.getID()] === undefined) {
 
             // 2- Publish Media Stream to Erizo-Controller
             if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
@@ -754,6 +754,11 @@ Erizo.Room = function (spec) {
                                                 metadata: options.metadata});
                     if(callback) callback(true);
                 } else {
+
+                    options.maxVideoBW = options.maxVideoBW || spec.defaultVideoBW;
+                    if (options.maxVideoBW > spec.maxVideoBW) {
+                        options.maxVideoBW = spec.maxVideoBW;
+                    }
                     L.Logger.info('Checking subscribe options for', stream.getID());
                     stream.checkOptions(options);
                     sendSDPSocket('subscribe', {streamId: stream.getID(),
@@ -784,6 +789,10 @@ Erizo.Room = function (spec) {
                               nop2p: true,
                               audio: options.audio,
                               video: options.video,
+                              maxAudioBW: spec.maxAudioBW,
+                              maxVideoBW: spec.maxVideoBW,
+                              limitMaxAudioBW:spec.maxAudioBW,
+                              limitMaxVideoBW: spec.maxVideoBW,
                               iceServers: that.iceServers});
 
                             stream.pc.onaddstream = function (evt) {
@@ -893,7 +902,6 @@ Erizo.Room = function (spec) {
 
         sendMessageSocket('getStreamStats', stream.getID(), function (result) {
             if (result) {
-                L.Logger.info('Got stats', result);
                 callback(result);
             }
         });

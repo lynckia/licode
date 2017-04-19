@@ -5,6 +5,6 @@ set -e
 mkdir ../dist || true
 mkdir ../build || true
 
-java -jar compiler.jar --js ../src/hmac-sha1.js --js ../src/N.js --js ../src/N.Base64.js --js ../src/N.API.js --js_output_file ../build/nuve.js
+google-closure-compiler-js ../src/hmac-sha1.js ../src/N.js ../src/N.Base64.js ../src/N.API.js > ../build/nuve.js
 
 ./compileDist.sh

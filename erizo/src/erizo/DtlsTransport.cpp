@@ -27,12 +27,10 @@ Resender::Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx)
 }
 
 Resender::~Resender() {
-  ELOG_DEBUG("message: ~Resender");
   cancel();
 }
 
 void Resender::cancel() {
-  ELOG_DEBUG("message: cancelled");
   transport_->getWorker()->unschedule(scheduled_task_);
 }
 
@@ -68,10 +66,10 @@ void Resender::scheduleNext() {
 }
 
 DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, const std::string& connection_id,
-                            bool bundle, bool rtcp_mux, TransportListener *transportListener,
+                            bool bundle, bool rtcp_mux, std::weak_ptr<TransportListener> transport_listener,
                             const IceConfig& iceConfig, std::string username, std::string password,
                             bool isServer, std::shared_ptr<Worker> worker):
-  Transport(med, transport_name, connection_id, bundle, rtcp_mux, transportListener, iceConfig, worker),
+  Transport(med, transport_name, connection_id, bundle, rtcp_mux, transport_listener, iceConfig, worker),
   unprotect_packet_{std::make_shared<dataPacket>()},
   readyRtp(false), readyRtcp(false), isServer_(isServer) {
     ELOG_DEBUG("%s message: constructor, transportName: %s, isBundle: %d", toLog(), transport_name.c_str(), bundle);
@@ -111,11 +109,9 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
   }
 
 DtlsTransport::~DtlsTransport() {
-  ELOG_DEBUG("%s message: destroying", toLog());
   if (this->state_ != TRANSPORT_FINISHED) {
     this->close();
   }
-  ELOG_DEBUG("%s message: destroyed", toLog());
 }
 
 void DtlsTransport::start() {
@@ -128,6 +124,18 @@ void DtlsTransport::close() {
   ELOG_DEBUG("%s message: closing", toLog());
   running_ = false;
   nice_->close();
+  if (dtlsRtp) {
+    dtlsRtp->close();
+  }
+  if (dtlsRtcp) {
+    dtlsRtcp->close();
+  }
+  if (rtp_resender_) {
+    rtp_resender_->cancel();
+  }
+  if (rtcp_resender_) {
+    rtcp_resender_->cancel();
+  }
   this->state_ = TRANSPORT_FINISHED;
   ELOG_DEBUG("%s message: closed", toLog());
 }
@@ -180,12 +188,16 @@ void DtlsTransport::onNiceData(packetPtr packet) {
     if (length <= 0) {
       return;
     }
-    getTransportListener()->onTransportData(unprotect_packet_, this);
+    if (auto listener = getTransportListener().lock()) {
+      listener->onTransportData(unprotect_packet_, this);
+    }
   }
 }
 
 void DtlsTransport::onCandidate(const CandidateInfo &candidate, NiceConnection *conn) {
-  getTransportListener()->onCandidate(candidate, this);
+  if (auto listener = getTransportListener().lock()) {
+    listener->onCandidate(candidate, this);
+  }
 }
 
 void DtlsTransport::write(char* data, int len) {

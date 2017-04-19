@@ -31,8 +31,9 @@ class Transport : public std::enable_shared_from_this<Transport>, public NiceCon
   MediaType mediaType;
   std::string transport_name;
   Transport(MediaType med, const std::string& transport_name, const std::string& connection_id, bool bundle,
-      bool rtcp_mux, TransportListener *transportListener, const IceConfig& iceConfig, std::shared_ptr<Worker> worker) :
-    mediaType(med), transport_name(transport_name), rtcp_mux_(rtcp_mux), transpListener_(transportListener),
+      bool rtcp_mux, std::weak_ptr<TransportListener> transport_listener, const IceConfig& iceConfig,
+      std::shared_ptr<Worker> worker) :
+    mediaType(med), transport_name(transport_name), rtcp_mux_(rtcp_mux), transport_listener_(transport_listener),
     connection_id_(connection_id), state_(TRANSPORT_INITIAL), iceConfig_(iceConfig), bundle_(bundle),
     running_{true}, worker_{worker} {}
   virtual ~Transport() {}
@@ -44,11 +45,11 @@ class Transport : public std::enable_shared_from_this<Transport>, public NiceCon
   virtual void start() = 0;
   virtual void close() = 0;
   virtual boost::shared_ptr<NiceConnection> getNiceConnection() { return nice_; }
-  void setTransportListener(TransportListener * listener) {
-    transpListener_ = listener;
+  void setTransportListener(std::weak_ptr<TransportListener> listener) {
+    transport_listener_ = listener;
   }
-  TransportListener* getTransportListener() {
-    return transpListener_;
+  std::weak_ptr<TransportListener> getTransportListener() {
+    return transport_listener_;
   }
   TransportState getTransportState() {
     return state_;
@@ -58,8 +59,8 @@ class Transport : public std::enable_shared_from_this<Transport>, public NiceCon
       return;
     }
     state_ = state;
-    if (transpListener_ != NULL) {
-      transpListener_->updateState(state, this);
+    if (auto listener = getTransportListener().lock()) {
+      listener->updateState(state, this);
     }
   }
   void writeOnNice(int comp, void* buf, int len) {
@@ -98,7 +99,7 @@ class Transport : public std::enable_shared_from_this<Transport>, public NiceCon
   }
 
  private:
-  TransportListener *transpListener_;
+  std::weak_ptr<TransportListener> transport_listener_;
 
  protected:
   std::string connection_id_;
