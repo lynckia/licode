@@ -4,6 +4,7 @@
 #include <thread/Scheduler.h>
 #include <rtp/RtpRetransmissionHandler.h>
 #include <rtp/RtpHeaders.h>
+#include <stats/StatNode.h>
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
 
@@ -37,11 +38,13 @@ class RtpRetransmissionHandlerTest : public erizo::HandlerTest {
 
  protected:
   void setHandler() {
-    rtx_handler = std::make_shared<RtpRetransmissionHandler>();
+    clock = std::make_shared<erizo::SimulatedClock>();
+    rtx_handler = std::make_shared<RtpRetransmissionHandler>(clock);
     pipeline->addBack(rtx_handler);
   }
 
   std::shared_ptr<RtpRetransmissionHandler> rtx_handler;
+  std::shared_ptr<erizo::SimulatedClock> clock;
 };
 
 TEST_F(RtpRetransmissionHandlerTest, basicBehaviourShouldReadPackets) {

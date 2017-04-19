@@ -8,13 +8,15 @@ namespace erizo {
 
 DEFINE_LOGGER(QualityFilterHandler, "rtp.QualityFilterHandler");
 
+constexpr duration kSwitchTimeout = std::chrono::seconds(3);
+
 QualityFilterHandler::QualityFilterHandler()
   : connection_{nullptr}, enabled_{true}, initialized_{false},
   receiving_multiple_ssrc_{false}, changing_spatial_layer_{false}, is_scalable_{false},
   target_spatial_layer_{0},
   future_spatial_layer_{-1}, target_temporal_layer_{0},
   video_sink_ssrc_{0}, video_source_ssrc_{0}, last_ssrc_received_{0},
-  max_video_bw_{0}, last_timestamp_sent_{0}, timestamp_offset_{0} {}
+  max_video_bw_{0}, last_timestamp_sent_{0}, timestamp_offset_{0}, time_change_started_{clock::now()} {}
 
 void QualityFilterHandler::enable() {
   enabled_ = true;
@@ -49,10 +51,9 @@ void QualityFilterHandler::checkLayers() {
   int new_spatial_layer = quality_manager_->getSpatialLayer();
   if (new_spatial_layer != target_spatial_layer_) {
     sendPLI();
-    sendPLI();
-    sendPLI();
     future_spatial_layer_ = new_spatial_layer;
     changing_spatial_layer_ = true;
+    time_change_started_ = clock::now();
   }
   int new_temporal_layer = quality_manager_->getTemporalLayer();
   target_temporal_layer_ = new_temporal_layer;
@@ -76,9 +77,15 @@ void QualityFilterHandler::changeSpatialLayerOnKeyframeReceived(std::shared_ptr<
     return;
   }
 
+  time_point now = clock::now();
+
   if (packet->belongsToSpatialLayer(future_spatial_layer_) &&
       packet->belongsToTemporalLayer(target_temporal_layer_) &&
       packet->is_keyframe) {
+    target_spatial_layer_ = future_spatial_layer_;
+    future_spatial_layer_ = -1;
+  } else if (now - time_change_started_ > kSwitchTimeout) {
+    sendPLI();
     target_spatial_layer_ = future_spatial_layer_;
     future_spatial_layer_ = -1;
   }
@@ -90,22 +97,8 @@ void QualityFilterHandler::detectVideoScalability(std::shared_ptr<dataPacket> pa
   }
   if (packet->belongsToTemporalLayer(1) || packet->belongsToSpatialLayer(1)) {
     is_scalable_ = true;
+    quality_manager_->enable();
   }
-}
-
-void QualityFilterHandler::removePaddingBytes(std::shared_ptr<dataPacket> packet) {
-  RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
-  int header_length = rtp_header->getHeaderLength();
-  uint16_t sequence_number = rtp_header->getSeqNumber();
-
-  int padding_length = RtpUtils::getPaddingLength(packet);
-  if (padding_length + header_length == packet->length) {
-    translator_.get(sequence_number, true);
-    return;
-  }
-
-  packet->length -= padding_length;
-  rtp_header->padding = 0;
 }
 
 void QualityFilterHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
@@ -121,7 +114,7 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<dataPacket> packe
     uint32_t ssrc = rtp_header->getSSRC();
     uint16_t sequence_number = rtp_header->getSeqNumber();
 
-    if (ssrc != last_ssrc_received_) {
+    if (last_ssrc_received_ != 0 && ssrc != last_ssrc_received_) {
       receiving_multiple_ssrc_ = true;
     }
 
@@ -147,8 +140,6 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<dataPacket> packe
       translator_.get(sequence_number, true);
       return;
     }
-
-    removePaddingBytes(packet);
 
     SequenceNumber sequence_number_info = translator_.get(sequence_number, false);
     if (sequence_number_info.type != SequenceNumberType::Valid) {
@@ -196,5 +187,6 @@ void QualityFilterHandler::notifyUpdate() {
 
   video_sink_ssrc_ = connection_->getVideoSinkSSRC();
   video_source_ssrc_ = connection_->getVideoSourceSSRC();
+  initialized_ = true;
 }
 }  // namespace erizo

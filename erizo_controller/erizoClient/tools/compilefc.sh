@@ -8,7 +8,7 @@ fi
 
 mkdir ../build
 
-java -jar compiler.jar --js ../src/Events.js --js ../src/webrtc-stacks/FcStack.js --js ../src/webrtc-stacks/ChromeStableStack.js --js ../src/webrtc-stacks/ChromeCanaryStack.js --js ../src/Connection.js --js ../src/Stream.js --js ../src/Room.js --js ../src/utils/L.Logger.js --js ../src/utils/L.Base64.js --js ../src/views/View.js --js ../src/views/VideoPlayer.js --js ../src/views/AudioPlayer.js --js ../src/views/Bar.js --js ../src/views/Speaker.js --js_output_file ../build/erizofc.js
+google-closure-compiler-js ../src/Events.js ../src/webrtc-stacks/FcStack.js ../src/webrtc-stacks/ChromeStableStack.js ../src/webrtc-stacks/ChromeCanaryStack.js ../src/Connection.js ../src/Stream.js ../src/Room.js ../src/utils/L.Logger.js ../src/utils/L.Base64.js ../src/views/View.js ../src/views/VideoPlayer.js ../src/views/AudioPlayer.js ../src/views/Bar.js ../src/views/Speaker.js > ../build/erizofc.js
 
 TARGET=../dist/erizofc.js
 

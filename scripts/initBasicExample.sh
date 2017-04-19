@@ -9,6 +9,9 @@ CURRENT_DIR=`pwd`
 NVM_CHECK="$PATHNAME"/checkNvm.sh
 EXTRAS=$ROOT/extras
 
+cp $ROOT/erizo_controller/erizoClient/dist/erizo.js $EXTRAS/basic_example/public/
+cp $ROOT/nuve/nuveClient/dist/nuve.js $EXTRAS/basic_example/
+
 . $NVM_CHECK
 
 nvm use

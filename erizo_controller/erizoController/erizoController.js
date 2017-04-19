@@ -479,8 +479,8 @@ var listen = function () {
                     (isControlMessage && hasPermission(socket.user, msg.msg.action.name))) {
                   socket.room.controller.processSignaling(msg.streamId, socket.id, msg.msg);
                 } else {
-                  log.info('message: User unauthorized to execute action on stream, action: ' + msg.msg.action.name +
-                            ', streamId: ' + msg.streamId);
+                  log.info('message: User unauthorized to execute action on stream, action: ' + 
+                    msg.msg.action.name + ', streamId: ' + msg.streamId);
                 }
             }
         });
@@ -519,7 +519,9 @@ var listen = function () {
                         return callback(null, 'Unauthorized');
                 }
             }
-            id = Math.random() * 1000000000000000000;
+
+            // generate a 18 digits safe integer            
+            id = Math.floor(100000000000000000 + Math.random() * 900000000000000000);
 
             if (options.state === 'url' || options.state === 'recording') {
                 var url = sdp;
@@ -538,6 +540,7 @@ var listen = function () {
                                             video: options.video,
                                             data: options.data,
                                             attributes: options.attributes});
+                        st.status = PUBLISHER_READY;
                         socket.streams.push(id);
                         socket.room.streams[id] = st;
                         callback(id);
@@ -1057,7 +1060,7 @@ exports.deleteUser = function (user, room, callback) {
     }
     else {
         log.error('mesagge: deleteUser user does not exist, user: ' + user );
-        callback('User does not exist', 404);
+        callback('User does not exist');
         return;
     }
 

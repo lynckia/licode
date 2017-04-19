@@ -145,15 +145,24 @@ Erizo.GetUserMedia = function (config, callback, error) {
             L.Logger.error('Video/audio streams not supported in erizofc yet');
         } else {
             if (config.video && Erizo.getBrowser() === 'mozilla') {
-                var ffConfig = {video:{}, audio: config.audio, screen: config.screen}
+                var ffConfig = {video:{}, audio: config.audio, screen: config.screen};
+                if (config.audio.mandatory !== undefined) {
+                    var audioCfg = config.audio.mandatory;
+                    if (audioCfg.sourceId) {
+                        ffConfig.audio.deviceId = audioCfg.sourceId;
+                    }
+                }
                 if (config.video.mandatory !== undefined) {
                     var videoCfg = config.video.mandatory;
                     ffConfig.video.width = {min: videoCfg.minWidth, max: videoCfg.maxWidth};
                     ffConfig.video.height = {min: videoCfg.minHeight, max: videoCfg.maxHeight};
+                    if (videoCfg.sourceId) {
+                        ffConfig.video.deviceId = videoCfg.sourceId;
+                    }
 
                 }
                 if (config.video.optional !== undefined) {
-                    ffConfig.video.frameRate =  config.video.optional[1].maxFrameRate
+                    ffConfig.video.frameRate =  config.video.optional[1].maxFrameRate;
                 }
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                     promise = navigator.mediaDevices.getUserMedia(ffConfig).then(callback);

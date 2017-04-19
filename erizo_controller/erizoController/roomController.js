@@ -382,10 +382,11 @@ exports.RoomController = function (spec) {
 
     that.getStreamStats = function (streamId, callback) {
         if (publishers[streamId]) {
-            var args = [streamId]
+            var args = [streamId];
             var theId = getErizoQueue(streamId);
-            log.info('Get stats for publisher ', streamId, 'theId', theId);
-            amqper.callRpc(getErizoQueue(streamId), 'getStreamStats', args, {callback: function(data) {
+            log.debug('Get stats for publisher ', streamId, 'theId', theId);
+            amqper.callRpc(getErizoQueue(streamId), 'getStreamStats', args, {
+              callback: function(data) {
                 callback(data);
             }});
             return;

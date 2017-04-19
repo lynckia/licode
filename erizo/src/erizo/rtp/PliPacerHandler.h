@@ -16,7 +16,7 @@ class PliPacerHandler: public Handler, public std::enable_shared_from_this<PliPa
 
  public:
   static constexpr duration kMinPLIPeriod = std::chrono::milliseconds(200);
-  static constexpr duration kKeyframeTimeout = std::chrono::seconds(4);
+  static constexpr duration kKeyframeTimeout = std::chrono::seconds(10);
 
  public:
   explicit PliPacerHandler(std::shared_ptr<erizo::Clock> the_clock = std::make_shared<SteadyClock>());

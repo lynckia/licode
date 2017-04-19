@@ -14,6 +14,7 @@ echo [erizo_controller] Installing node_modules for erizo_controller
 
 nvm use
 npm install --loglevel error amqp socket.io@0.9.16 log4js node-getopt
+npm install --loglevel error -g google-closure-compiler-js
 
 echo [erizo_controller] Done, node_modules installed
 
