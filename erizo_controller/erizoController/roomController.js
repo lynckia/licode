@@ -102,7 +102,7 @@ exports.RoomController = function (spec) {
                 subscribers[publisherId] = [];
 
                 amqper.callRpc(getErizoQueue(publisherId), 'addExternalInput', args,
-                               {callback: callback});
+                               {callback: callback}, 20000);
 
                 erizos[erizoId].publishers.push(publisherId);
 
