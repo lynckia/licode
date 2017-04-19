@@ -540,6 +540,7 @@ var listen = function () {
                                             video: options.video,
                                             data: options.data,
                                             attributes: options.attributes});
+                        st.status = PUBLISHER_READY;
                         socket.streams.push(id);
                         socket.room.streams[id] = st;
                         callback(id);
