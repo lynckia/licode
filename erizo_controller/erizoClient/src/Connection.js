@@ -149,8 +149,16 @@ Erizo.GetUserMedia = function (config, callback, error) {
                 }
                 if (config.video.mandatory !== undefined) {
                     var videoCfg = config.video.mandatory;
-                    ffConfig.video.width = {min: videoCfg.minWidth, ideal: videoCfg.maxWidth, max: videoCfg.maxWidth};
-                    ffConfig.video.height = {min: videoCfg.minHeight, ideal: videoCfg.maxHeight, max: videoCfg.maxHeight};
+                    ffConfig.video.width = {
+                        min: videoCfg.minWidth,
+                        ideal: videoCfg.maxWidth,
+                        max: videoCfg.maxWidth
+                    };
+                    ffConfig.video.height = {
+                        min: videoCfg.minHeight,
+                        ideal: videoCfg.maxHeight,
+                        max: videoCfg.maxHeight
+                    };
                     if (videoCfg.sourceId) {
                         ffConfig.video.deviceId = {exact: videoCfg.sourceId};
                     }
