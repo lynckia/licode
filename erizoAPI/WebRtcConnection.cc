@@ -69,7 +69,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
   Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
   Nan::SetPrototypeMethod(tpl, "getStats", getStats);
-  Nan::SetPrototypeMethod(tpl, "getPeriodicStats", getStats);
+  Nan::SetPrototypeMethod(tpl, "getPeriodicStats", getPeriodicStats);
   Nan::SetPrototypeMethod(tpl, "generatePLIPacket", generatePLIPacket);
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
