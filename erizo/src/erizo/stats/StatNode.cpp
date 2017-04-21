@@ -249,7 +249,8 @@ StatNode& MovingAverageStat::operator+=(uint64_t value) {
 }
 
 uint64_t MovingAverageStat::value() {
-  return static_cast<uint64_t>(current_average_);
+  // without +0.1 4.999999 will be cast to 4
+  return static_cast<uint64_t>(current_average_ + 0.1);
 }
 
 uint64_t MovingAverageStat::value(uint32_t sample_number) {
