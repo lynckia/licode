@@ -11,8 +11,8 @@ constexpr float QualityManager::kIncreaseLayerBitrateThreshold;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
   : initialized_{false}, enabled_{false}, padding_enabled_{false}, forced_layers_{false},
-  spatial_layer_{0}, temporal_layer_{0}, max_active_spatial_layer_{0}, max_active_temporal_layer_{0},
-  current_estimated_bitrate_{0}, last_quality_check_{the_clock->now()},
+  slideshow_mode_active_{false}, spatial_layer_{0}, temporal_layer_{0}, max_active_spatial_layer_{0},
+  max_active_temporal_layer_{0}, current_estimated_bitrate_{0}, last_quality_check_{the_clock->now()},
   last_activity_check_{the_clock->now()}, clock_{the_clock} {}
 
 void QualityManager::enable() {
@@ -62,9 +62,7 @@ void QualityManager::notifyQualityUpdate() {
 
   bool layer_is_active = spatial_layer_ <= max_active_spatial_layer_;
 
-  if (!isInBaseLayer() &&  (
-        !layer_is_active
-        || estimated_is_under_layer_bitrate)) {
+  if (!layer_is_active || (estimated_is_under_layer_bitrate && !slideshow_mode_active_)) {
     ELOG_DEBUG("message: Forcing calculate new layer, "
         "estimated_is_under_layer_bitrate: %d, layer_is_active: %d", estimated_is_under_layer_bitrate,
         layer_is_active);
@@ -81,22 +79,36 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   int next_temporal_layer = 0;
   int next_spatial_layer = 0;
   float bitrate_margin = try_higher_layers ? kIncreaseLayerBitrateThreshold : 0;
+  bool below_min_layer = true;
   ELOG_DEBUG("Calculate best layer with %lu, current layer %d/%d",
       current_estimated_bitrate_, spatial_layer_, temporal_layer_);
   for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
     for (auto &temporal_layer_node : stats_->getNode()["qualityLayers"][spatial_layer_node.first.c_str()].getMap()) {
-     ELOG_DEBUG("Bitrate for layer %d/%d %lu",
-         aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
+      ELOG_DEBUG("Bitrate for layer %d/%d %lu",
+          aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
       if (temporal_layer_node.second->value() != 0 &&
           (1. + bitrate_margin) * temporal_layer_node.second->value() < current_estimated_bitrate_) {
         next_temporal_layer = aux_temporal_layer;
         next_spatial_layer = aux_spatial_layer;
+        below_min_layer = false;
       }
       aux_temporal_layer++;
     }
     aux_temporal_layer = 0;
     aux_spatial_layer++;
   }
+
+  if (below_min_layer != slideshow_mode_active_) {
+    if (below_min_layer || try_higher_layers) {
+      slideshow_mode_active_ = below_min_layer;
+      ELOG_DEBUG("Slideshow fallback mode %d", slideshow_mode_active_);
+      WebRtcConnection *connection = getContext()->getPipelineShared()->getService<WebRtcConnection>().get();
+      if (connection) {
+        connection->notifyUpdateToHandlers();
+      }
+    }
+  }
+
   if (next_temporal_layer != temporal_layer_ || next_spatial_layer != spatial_layer_) {
     ELOG_DEBUG("message: Layer Switch, current_layer: %d/%d, new_layer: %d/%d",
         spatial_layer_, temporal_layer_, next_spatial_layer, next_temporal_layer);
@@ -149,7 +161,7 @@ bool QualityManager::isInBaseLayer() {
 }
 
 bool QualityManager::isInMaxLayer() {
-  return (spatial_layer_ == max_active_spatial_layer_ && temporal_layer_ == max_active_temporal_layer_);
+  return (spatial_layer_ >= max_active_spatial_layer_ && temporal_layer_ >= max_active_temporal_layer_);
 }
 
 void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {

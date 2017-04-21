@@ -77,9 +77,7 @@ NiceConnection::NiceConnection(boost::shared_ptr<LibNiceInterface> libnice, Medi
   }
 
 NiceConnection::~NiceConnection() {
-  ELOG_DEBUG("%s message: destroying", toLog());
   this->close();
-  ELOG_DEBUG("%s message: destroyed", toLog());
 }
 
 void NiceConnection::close() {
@@ -142,7 +140,7 @@ int NiceConnection::sendData(unsigned int compId, const void* buf, int len) {
   if (this->checkIceState() == NICE_READY) {
     val = lib_nice_->NiceAgentSend(agent_, 1, compId, len, reinterpret_cast<const gchar*>(buf));
   }
-  if (val != 1) {
+  if (val != len) {
     ELOG_DEBUG("%s message: Sending less data than expected, sent: %d, to_send: %d", toLog(), val, len);
   }
   return val;

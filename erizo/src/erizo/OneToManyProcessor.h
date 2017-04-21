@@ -7,6 +7,7 @@
 
 #include <map>
 #include <string>
+#include <future>  // NOLINT
 
 #include "./MediaDefinitions.h"
 #include "media/ExternalOutput.h"
@@ -46,7 +47,7 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   */
   void removeSubscriber(const std::string& peerId);
 
-  void close() override {}
+  void close() override;
 
  private:
   typedef std::shared_ptr<MediaSink> sink_ptr;
@@ -55,6 +56,7 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
   int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
   int deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) override;
+  std::future<void> deleteAsync(std::shared_ptr<WebRtcConnection> connection);
   void closeAll();
 };
 

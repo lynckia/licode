@@ -519,7 +519,9 @@ var listen = function () {
                         return callback(null, 'Unauthorized');
                 }
             }
-            id = Math.random() * 1000000000000000000;
+
+            // generate a 18 digits safe integer            
+            id = Math.floor(100000000000000000 + Math.random() * 900000000000000000);
 
             if (options.state === 'url' || options.state === 'recording') {
                 var url = sdp;
@@ -538,6 +540,7 @@ var listen = function () {
                                             video: options.video,
                                             data: options.data,
                                             attributes: options.attributes});
+                        st.status = PUBLISHER_READY;
                         socket.streams.push(id);
                         socket.room.streams[id] = st;
                         callback(id);

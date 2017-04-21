@@ -23,6 +23,7 @@
 #include "rtp/RtcpProcessorHandler.h"
 #include "rtp/RtpRetransmissionHandler.h"
 #include "rtp/RtcpFeedbackGenerationHandler.h"
+#include "rtp/RtpPaddingRemovalHandler.h"
 #include "rtp/StatsHandler.h"
 #include "rtp/SRPacketHandler.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
@@ -54,6 +55,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
   sink_fb_source_ = this;
   stats_ = std::make_shared<Stats>();
   quality_manager_ = std::make_shared<QualityManager>();
+  packet_buffer_ = std::make_shared<PacketBufferService>();
   globalState_ = CONN_INITIAL;
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
@@ -71,6 +73,17 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
 
 WebRtcConnection::~WebRtcConnection() {
   ELOG_DEBUG("%s message:Destructor called", toLog());
+  if (sending_) {
+    close();
+  }
+  ELOG_DEBUG("%s message: Destructor ended", toLog());
+}
+
+void WebRtcConnection::close() {
+  ELOG_DEBUG("%s message:Close called", toLog());
+  if (!sending_) {
+    return;
+  }
   sending_ = false;
   if (videoTransport_.get()) {
     videoTransport_->close();
@@ -85,10 +98,7 @@ WebRtcConnection::~WebRtcConnection() {
   video_sink_ = nullptr;
   audio_sink_ = nullptr;
   fb_sink_ = nullptr;
-  ELOG_DEBUG("%s message: Destructor ended", toLog());
-}
-
-void WebRtcConnection::close() {
+  ELOG_DEBUG("%s message: Close ended", toLog());
 }
 
 bool WebRtcConnection::init() {
@@ -252,6 +262,7 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addService(rtcp_processor_);
   pipeline_->addService(stats_);
   pipeline_->addService(quality_manager_);
+  pipeline_->addService(packet_buffer_);
 
   pipeline_->addFront(PacketReader(this));
 
@@ -267,6 +278,7 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addFront(PliPacerHandler());
   pipeline_->addFront(BandwidthEstimationHandler());
   pipeline_->addFront(RtcpFeedbackGenerationHandler());
+  pipeline_->addFront(RtpPaddingRemovalHandler());
   pipeline_->addFront(RtpRetransmissionHandler());
   pipeline_->addFront(SRPacketHandler());
   pipeline_->addFront(SenderBandwidthEstimationHandler());
@@ -281,7 +293,7 @@ bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex
   // TODO(pedro) Check type of transport.
   ELOG_DEBUG("%s message: Adding remote Candidate, candidate: %s, mid: %s, sdpMLine: %d",
               toLog(), sdp.c_str(), mid.c_str(), mLineIndex);
-  if (videoTransport_ == nullptr) {
+  if (videoTransport_ == nullptr && audioTransport_ == nullptr) {
     ELOG_WARN("%s message: addRemoteCandidate on NULL transport", toLog());
     return false;
   }

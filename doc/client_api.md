@@ -219,7 +219,7 @@ The attributes variable is usually a JSON object.
 
 ```
 var stream = Erizo.Stream({audio:true, video:false, data: true, attributes: {name:'myStream', type:'public'}});
- 
+
 var attributes = stream.getAttributes();
 if(attributes.type === 'public') {
   console.log(attributes.name);
@@ -256,19 +256,19 @@ The client can get the bitmap raw data from the video streams. The Stream return
 var bitmap;
 var canvas = document.createElement('canvas');
 var context = canvas.getContext('2d');
- 
+
 canvas.id = "testCanvas";
 document.body.appendChild(canvas);
- 
+
 setInterval(function() {
- 
+
   bitmap = stream.getVideoFrame();
- 
+
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
- 
+
   context.putImageData(bitmap, 0, 0);
- 
+
 }, 100);
 ```
 
@@ -288,13 +288,13 @@ You can update the maximun bandwidth of video and audio. These values are define
 
 ```
 var config = {maxVideoBW: 300, maxAudioBW: 300};
- 
+
 localstream.updateConfiguration(config, function(result) {
   console.log(result);
 });
- 
+
 // We can update options also on a remote stream
- 
+
 remoteStream.updateConfiguration({slideShowMode:true}, function (result){
 console.log(result);
 });
@@ -391,8 +391,20 @@ room.publish(localStream, {maxVideoBW:300}, function(id, error){
   } else {
     console.log("Published stream", id);
   }
-});            
+});
 ```
+
+### Publish Simulcast Streams
+
+You can enable Simulcast in the publisher by adding the next option:
+
+```
+room.publish(localStream, {simulcast: {numSpatialLayers: 2}});
+```
+
+Being `numSpatialLayers` the max number of spatial layers the publisher will send.
+
+**Note:** Simulcast only works with Google Chrome and it's not compatible with Licode's recording yet.
 
 ## Subscribe to a remote stream
 
@@ -750,6 +762,7 @@ There are the different types of Stream events:
 	- `streamEvent.bandwidth` is the available bandwidth reported by that stream.
 	- `streamEvent.msg` the status of that stream, depends on the adaptation [scheme](#schemes).
 - *stream-failed*: A stream has failed, either in the connection establishment or during the communication.
+- *stream-ended*: A track of the stream (specified in the msg. es.audio/video) is ended, probably caused by an hardware disconnection. Emitted only once
 
 They all are dispatched by Room objects.
 
@@ -775,11 +788,11 @@ room.addEventListener("stream-removed", function(evt){...});
 
 ```
 stream.addEventListener("access-accepted", function(evt){...});
- 
+
 stream.addEventListener("stream-data", function(evt){
   console.log('Received data ', evt.msg, 'from stream ', evt.stream.getAttributes().name);
 });
- 
+
 room.addEventListener("stream-attributes-update", function(evt){...});
 ```
 
@@ -799,14 +812,14 @@ In this example we will make a basic videoconference application. Every client t
     <title>Licode Basic Example</title>
     <script type="text/javascript" src="erizo.js"></script>
     <script type="text/javascript">
- 
+
       window.onload = function () {
- 
+
           var localStream = Erizo.Stream({audio: true, video: true, data: true});
           var room = Erizo.Room({token: "af54/=gopknosdvmgiufhgadf=="});
- 
+
           localStream.addEventListener("access-accepted", function () {
- 
+
               var subscribeToStreams = function (streams) {
                   for (var index in streams) {
                     var stream = streams[index];
@@ -815,29 +828,29 @@ In this example we will make a basic videoconference application. Every client t
                     }
                   }
               };
- 
+
               room.addEventListener("room-connected", function (roomEvent) {
- 
+
                   room.publish(localStream);
                   subscribeToStreams(roomEvent.streams);
               });
- 
+
               room.addEventListener("stream-subscribed", function(streamEvent) {
                   var stream = streamEvent.stream;
                   var div = document.createElement('div');
                   div.setAttribute("style", "width: 320px; height: 240px;");
                   div.setAttribute("id", "test" + stream.getID());
- 
+
                   document.body.appendChild(div);
                   stream.play("test" + stream.getID());
               });
- 
+
               room.addEventListener("stream-added", function (streamEvent) {
                   var streams = [];
                   streams.push(streamEvent.stream);
                   subscribeToStreams(streams);
               });
- 
+
               room.addEventListener("stream-removed", function (streamEvent) {
                   // Remove stream from DOM
                   var stream = streamEvent.stream;
@@ -846,7 +859,7 @@ In this example we will make a basic videoconference application. Every client t
                       document.body.removeChild(element);
                   }
               });
- 
+
               room.connect();
               localStream.play("myVideo");
           });
@@ -854,7 +867,7 @@ In this example we will make a basic videoconference application. Every client t
       };
     </script>
   </head>
- 
+
   <body>
     <div id="myVideo" style="width:320px; height: 240px;">
     </div>

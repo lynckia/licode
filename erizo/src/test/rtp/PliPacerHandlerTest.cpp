@@ -1,12 +1,11 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <queue>
-
 #include <rtp/PliPacerHandler.h>
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
 
+#include <queue>
 #include <string>
 #include <vector>
 
@@ -135,7 +134,7 @@ TEST_F(PliPacerHandlerTest, shouldNotSendMultiplePLIsWhenDisabled) {
 TEST_F(PliPacerHandlerTest, shouldSendFIRWhenKeyframesAreNotReceivedInALongPeriod) {
     auto pli1 = erizo::PacketTools::createPLI();
 
-    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::IsPLI())).Times(20);
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::IsPLI())).Times(50);
     EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::IsFIR())).Times(3);
     pipeline->write(pli1);
 

@@ -51,8 +51,6 @@ void QualityFilterHandler::checkLayers() {
   int new_spatial_layer = quality_manager_->getSpatialLayer();
   if (new_spatial_layer != target_spatial_layer_) {
     sendPLI();
-    sendPLI();
-    sendPLI();
     future_spatial_layer_ = new_spatial_layer;
     changing_spatial_layer_ = true;
     time_change_started_ = clock::now();
@@ -103,21 +101,6 @@ void QualityFilterHandler::detectVideoScalability(std::shared_ptr<dataPacket> pa
   }
 }
 
-void QualityFilterHandler::removePaddingBytes(std::shared_ptr<dataPacket> packet) {
-  RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
-  int header_length = rtp_header->getHeaderLength();
-  uint16_t sequence_number = rtp_header->getSeqNumber();
-
-  int padding_length = RtpUtils::getPaddingLength(packet);
-  if (padding_length + header_length == packet->length) {
-    translator_.get(sequence_number, true);
-    return;
-  }
-
-  packet->length -= padding_length;
-  rtp_header->padding = 0;
-}
-
 void QualityFilterHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
 
@@ -157,8 +140,6 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<dataPacket> packe
       translator_.get(sequence_number, true);
       return;
     }
-
-    removePaddingBytes(packet);
 
     SequenceNumber sequence_number_info = translator_.get(sequence_number, false);
     if (sequence_number_info.type != SequenceNumberType::Valid) {

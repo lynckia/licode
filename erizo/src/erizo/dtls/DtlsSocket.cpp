@@ -61,8 +61,10 @@ DtlsSocket::DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type):
 }
 
 DtlsSocket::~DtlsSocket() {
-  ELOG_DEBUG("Deleting Socket");
+  close();
+}
 
+void DtlsSocket::close() {
   // Properly shutdown the socket and free it - note: this also free's the BIO's
   if (mSsl != NULL) {
     ELOG_DEBUG("SSL Shutdown");

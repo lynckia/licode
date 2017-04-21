@@ -20,6 +20,7 @@
 #include "pipeline/Handler.h"
 #include "pipeline/Service.h"
 #include "rtp/QualityManager.h"
+#include "rtp/PacketBufferService.h"
 
 namespace erizo {
 
@@ -216,6 +217,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   std::shared_ptr<Stats> stats_;
   std::shared_ptr<QualityManager> quality_manager_;
+  std::shared_ptr<PacketBufferService> packet_buffer_;
   WebRTCEvent globalState_;
 
   boost::mutex updateStateMutex_;  // , slideShowMutex_;
