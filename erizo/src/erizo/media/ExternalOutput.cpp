@@ -17,10 +17,12 @@ namespace erizo {
 
 DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 ExternalOutput::ExternalOutput(const std::string& outputUrl)
-  : audioQueue_(5.0, 10.0), videoQueue_(5.0, 10.0), inited_(false),
+  : audioQueue_(10.0, 60.0), videoQueue_(10.0, 60.0), inited_(false),
     video_stream_(NULL), audio_stream_(NULL), first_video_timestamp_(-1), first_audio_timestamp_(-1),
     first_data_received_(), video_offset_ms_(-1), audio_offset_ms_(-1), vp8SearchState_(lookingForStart),
     needToSendFir_(true) {
+
+  firstPTS = 0;
   ELOG_DEBUG("Creating output to %s", outputUrl.c_str());
 
   // TODO(pedro): these should really only be called once per application run
@@ -38,11 +40,13 @@ ExternalOutput::ExternalOutput(const std::string& outputUrl)
   } else {
     outputUrl.copy(context_->filename, sizeof(context_->filename), 0);
 
-    context_->oformat = av_guess_format(NULL,  context_->filename, NULL);
+    //context_->oformat = av_guess_format(NULL,  context_->filename, NULL);
+    context_->oformat = av_guess_format("flv",  context_->filename, NULL);
     if (!context_->oformat) {
       ELOG_ERROR("Error guessing format %s", context_->filename);
     } else {
-      context_->oformat->video_codec = AV_CODEC_ID_VP8;
+      //context_->oformat->video_codec = AV_CODEC_ID_VP8;
+      context_->oformat->video_codec = AV_CODEC_ID_H264;
       context_->oformat->audio_codec = AV_CODEC_ID_NONE;
       // We'll figure this out once we start receiving data; it's either PCM or OPUS
     }
@@ -179,6 +183,7 @@ void ExternalOutput::writeAudioData(char* buf, int len) {
   avpkt.data = reinterpret_cast<uint8_t*>(buf) + head->getHeaderLength();
   avpkt.size = len - head->getHeaderLength();
   avpkt.pts = timestampToWrite;
+  avpkt.dts = timestampToWrite;
   avpkt.stream_index = 1;
   av_interleaved_write_frame(context_, &avpkt);   // takes ownership of the packet
 }
@@ -314,13 +319,52 @@ void ExternalOutput::writeVideoData(char* buf, int len) {
       // in practice, our timebase den is 1000, so this operation is a no-op.
       timestampToWrite += video_offset_ms_ / (1000 / video_stream_->time_base.den);
 
-      AVPacket avpkt;
-      av_init_packet(&avpkt);
-      avpkt.data = unpackagedBufferpart_;
-      avpkt.size = unpackagedSize_;
-      avpkt.pts = timestampToWrite;
-      avpkt.stream_index = 0;
-      av_interleaved_write_frame(context_, &avpkt);   // takes ownership of the packet
+      int gotFrame;
+      int gotFrame2;
+		  if (firstPTS == 0)
+			  firstPTS = timestampToWrite;
+
+      int size = m_vDecoder.decodeVideo(
+				(unsigned char*) unpackagedBufferpart_, unpackagedSize_,
+				(unsigned char*) decodeToBuffer, 600000, &gotFrame);
+
+      if (size > 0){
+			  unsigned char* outbuff = NULL;
+			  int size1 = m_vEncoder.encodeVideo((unsigned char*) decodeToBuffer,
+				size, outbuff, gotFrame2, firstPTS);
+			  if (size1 > 0){
+//				ELOG_ERROR("address of the buffer is %p", outbuff);
+//				ELOG_ERROR("m_vDecoder.decodeVideo returned %d m_vEncoder.encodeVideo returned %d", size, size1);
+
+          AVPacket avpkt;
+          av_init_packet(&avpkt);
+          avpkt.data = outbuff;
+          avpkt.size = size1;
+          avpkt.pts = firstPTS;
+          avpkt.dts = firstPTS;
+          avpkt.stream_index = 0;
+
+          if (gotFrame2){
+            avpkt.flags |= AV_PKT_FLAG_KEY;
+          }
+
+          // Asaf //
+          int ret = av_interleaved_write_frame(context_, &avpkt); // takes ownership of the packet
+
+          //ELOG_ERROR("sending video packet PTS = %lld", firstPTS);
+          ELOG_ERROR("av_interleaved_write_frame for video with size %d returned %d", size1, ret);
+          firstPTS = 0;
+        }
+		}
+
+      // AVPacket avpkt;
+      // av_init_packet(&avpkt);
+      // avpkt.data = unpackagedBufferpart_;
+      // avpkt.size = unpackagedSize_;
+      // avpkt.pts = timestampToWrite;
+      // avpkt.dts = timestampToWrite;
+      // avpkt.stream_index = 0;
+      // av_interleaved_write_frame(context_, &avpkt);   // takes ownership of the packet
       unpackagedSize_ = 0;
       unpackagedBufferpart_ = unpackagedBuffer_;
     }
@@ -348,61 +392,101 @@ int ExternalOutput::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) 
 
 
 bool ExternalOutput::initContext() {
-  if (context_->oformat->video_codec != AV_CODEC_ID_NONE &&
-            context_->oformat->audio_codec != AV_CODEC_ID_NONE &&
-            video_stream_ == NULL &&
-            audio_stream_ == NULL) {
-    AVCodec* videoCodec = avcodec_find_encoder(context_->oformat->video_codec);
-    if (videoCodec == NULL) {
-      ELOG_ERROR("Could not find video codec");
-      return false;
-    }
-    video_stream_ = avformat_new_stream(context_, videoCodec);
-    video_stream_->id = 0;
-    video_stream_->codec->codec_id = context_->oformat->video_codec;
-    video_stream_->codec->width = 640;
-    video_stream_->codec->height = 480;
-    video_stream_->time_base = (AVRational) { 1, 30 };
-    // A decent guess here suffices; if processing the file with ffmpeg,
-      // use -vsync 0 to force it not to duplicate frames.
-    video_stream_->codec->pix_fmt = PIX_FMT_YUV420P;
-    if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
-      video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
-    }
-    context_->oformat->flags |= AVFMT_VARIABLE_FPS;
 
-    AVCodec* audioCodec = avcodec_find_encoder(context_->oformat->audio_codec);
-    if (audioCodec == NULL) {
-      ELOG_ERROR("Could not find audio codec");
-      return false;
-    }
+	if (context_->oformat->video_codec != AV_CODEC_ID_NONE
+			&& context_->oformat->audio_codec != AV_CODEC_ID_NONE
+			&& video_stream_ == NULL && audio_stream_ == NULL) {
 
-    audio_stream_ = avformat_new_stream(context_, audioCodec);
-    audio_stream_->id = 1;
-    audio_stream_->codec->codec_id = context_->oformat->audio_codec;
-    audio_stream_->codec->sample_rate = context_->oformat->audio_codec == AV_CODEC_ID_PCM_MULAW ? 8000 : 48000;
-    // TODO(pedro) is it always 48 khz for opus?
-    audio_stream_->time_base = (AVRational) { 1, audio_stream_->codec->sample_rate };
-    audio_stream_->codec->channels = context_->oformat->audio_codec == AV_CODEC_ID_PCM_MULAW ? 1 : 2;
-    // TODO(pedro) is it always two channels for opus?
-    if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
-      audio_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
-    }
 
-    context_->streams[0] = video_stream_;
-    context_->streams[1] = audio_stream_;
-    if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
-      ELOG_ERROR("Error opening output file");
-      return false;
-    }
+		ELOG_ERROR("in initContext - before");
 
-    if (avformat_write_header(context_, NULL) < 0) {
-      ELOG_ERROR("Error writing header");
-      return false;
-    }
-  }
+		m_videoEncoderCodecInfo.codec = VIDEO_CODEC_H264;
+		m_videoEncoderCodecInfo.payloadType = 96;
+		m_videoEncoderCodecInfo.width = 640;//320;
+		m_videoEncoderCodecInfo.height = 480;//240;
+		m_videoEncoderCodecInfo.bitRate = 200000;
+		m_videoEncoderCodecInfo.frameRate = 30;
 
-  return true;
+		m_videoDecoderCodecInfo.codec = VIDEO_CODEC_VP8;
+		m_videoDecoderCodecInfo.payloadType = VP8_90000_PT;
+		m_videoDecoderCodecInfo.width = 640;//320;
+		m_videoDecoderCodecInfo.height = 480;//240;
+		m_videoDecoderCodecInfo.bitRate = 900000;
+		m_videoDecoderCodecInfo.frameRate = 30;
+
+		m_vEncoder.initEncoder(m_videoEncoderCodecInfo);
+		ELOG_ERROR("@@NA here1");
+		m_vDecoder.initDecoder(m_videoDecoderCodecInfo);
+		ELOG_ERROR("@@NA here2");
+		/*
+		AVCodec* videoCodec = avcodec_find_encoder(
+				context_->oformat->video_codec);
+		if (videoCodec == NULL) {
+			ELOG_ERROR("Could not find video codec");
+			return false;
+		}
+		video_stream_ = avformat_new_stream(context_, m_vEncoder.vCoder);
+		video_stream_->id = 0;
+		video_stream_->codec->codec_id = context_->oformat->video_codec;
+		video_stream_->codec->width = 640;
+		video_stream_->codec->height = 480;
+		video_stream_->time_base = (AVRational ) { 1, 30 }; // A decent guess here suffices; if processing the file with ffmpeg,
+															// use -vsync 0 to force it not to duplicate frames.
+		video_stream_->codec->pix_fmt = PIX_FMT_YUV420P;
+		if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
+			video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+		}
+*/		
+		video_stream_ = avformat_new_stream(context_, m_vEncoder.vCoder);
+	        ELOG_ERROR("@@NA here3");
+
+		AVCodecContext* streamCodecContext = video_stream_->codec;
+	        ELOG_ERROR("@@NA here4");
+		avcodec_copy_context(streamCodecContext, m_vEncoder.vCoderContext);
+		video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+
+		//context_->oformat->flags |= AVFMT_VARIABLE_FPS;
+
+		AVCodec* audioCodec = avcodec_find_encoder(
+				context_->oformat->audio_codec);
+	        ELOG_ERROR("@@NA here6");
+		if (audioCodec == NULL) {
+			ELOG_ERROR("Could not find audio codec");
+			return false;
+		}
+		ELOG_ERROR("After audiCodec, audiCodec is not null");
+		audio_stream_ = avformat_new_stream(context_, audioCodec);
+		audio_stream_->id = 1;
+		audio_stream_->codec->codec_id = context_->oformat->audio_codec;
+		audio_stream_->codec->sample_rate =
+				context_->oformat->audio_codec == AV_CODEC_ID_PCM_MULAW ?
+						8000 : 48000; // TODO is it always 48 khz for opus?
+		audio_stream_->time_base = (AVRational ) { 1,
+						audio_stream_->codec->sample_rate };
+		audio_stream_->codec->channels =
+				context_->oformat->audio_codec == AV_CODEC_ID_PCM_MULAW ? 1 : 2; // TODO is it always two channels for opus?
+		if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
+			audio_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+		}
+
+		context_->streams[0] = video_stream_;
+		context_->streams[1] = audio_stream_;
+		if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
+			ELOG_ERROR("Error opening output file [%s]",context_->filename);
+			return false;
+		}
+		ELOG_ERROR("no problem opening output file");
+
+		avformat_network_init();
+
+		if (avformat_write_header(context_, NULL) < 0) {
+			ELOG_ERROR("Error writing header");
+			return false;
+		}
+
+		ELOG_ERROR("in initContext - leaving OK");
+	}
+	return true;
 }
 
 void ExternalOutput::queueData(char* buffer, int length, packetType type) {

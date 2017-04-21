@@ -48,6 +48,16 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   void close() override;
 
  private:
+
+  VideoCodecInfo m_videoEncoderCodecInfo;
+  VideoCodecInfo m_videoDecoderCodecInfo;
+  VideoEncoder m_vEncoder;
+  VideoDecoder m_vDecoder;
+  unsigned char decodeToBuffer[600000];
+  unsigned char encodeToBuffer[600000];
+  long long firstPTS;
+
+
   std::unique_ptr<webrtc::UlpfecReceiver> fec_receiver_;
   RtpPacketQueue audioQueue_, videoQueue_;
   bool recording_, inited_;

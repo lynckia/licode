@@ -31,12 +31,13 @@ class VideoEncoder {
   VideoEncoder();
   virtual ~VideoEncoder();
   int initEncoder(const VideoCodecInfo& info);
-  int encodeVideo(unsigned char* inBuffer, int length, unsigned char* outBuffer, int outLength);
+  int encodeVideo(unsigned char* inBuffer, int length, unsigned char*& outBuffer, int& hasFrame, long long pts);
   int closeEncoder();
 
- private:
+ //private:
   AVCodec* vCoder;
   AVCodecContext* vCoderContext;
+private:
   AVFrame* cPicture;
 };
 

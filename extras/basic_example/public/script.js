@@ -15,17 +15,21 @@ function testConnection () {  // jshint ignore:line
 }
 
 function startRecording () {  // jshint ignore:line
-  if (room !== undefined){
+  var rtmpUrl = document.getElementById('rtmpurl').value;
+  if (room !== undefined && rtmpUrl !== undefined && rtmpUrl.startsWith('rtmp')){
     if (!recording){
       room.startRecording(localStream, function(id) {
         recording = true;
         recordingId = id;
-      });
+      }, rtmpUrl);
 
     } else {
       room.stopRecording(recordingId);
       recording = false;
     }
+  }
+  else{
+    alert("room not initialized or invalid rtmp url");
   }
 }
 
