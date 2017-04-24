@@ -110,13 +110,11 @@ std::shared_ptr<SequenceNumberTranslator> RtpPaddingRemovalHandler::getTranslato
     if (translator_it != translator_map_.end()) {
       ELOG_DEBUG("Found Translator for %u, %s", ssrc, connection_->toLog());
       translator = translator_it->second;
-    } else {
-      if (should_create) {
-        ELOG_DEBUG("message: no Translator found creating a new one, ssrc: %u, %s", ssrc,
+    } else if (should_create) {
+      ELOG_DEBUG("message: no Translator found creating a new one, ssrc: %u, %s", ssrc,
       connection_->toLog());
-        translator = std::make_shared<SequenceNumberTranslator>();
-        translator_map_[ssrc] = translator;
-      }
+      translator = std::make_shared<SequenceNumberTranslator>();
+      translator_map_[ssrc] = translator;
     }
     return translator;
   }
@@ -126,10 +124,10 @@ void RtpPaddingRemovalHandler::notifyUpdate() {
   if (!pipeline) {
     return;
   }
-  connection_ = pipeline->getService<WebRtcConnection>().get();
   if (initialized_) {
     return;
   }
+  connection_ = pipeline->getService<WebRtcConnection>().get();
   initialized_ = true;
 }
 }  // namespace erizo
