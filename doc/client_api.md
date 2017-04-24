@@ -391,8 +391,20 @@ room.publish(localStream, {maxVideoBW:300}, function(id, error){
   } else {
     console.log("Published stream", id);
   }
-});            
+});
 ```
+
+### Publish Simulcast Streams
+
+You can enable Simulcast in the publisher by adding the next option:
+
+```
+room.publish(localStream, {simulcast: {numSpatialLayers: 2}});
+```
+
+Being `numSpatialLayers` the max number of spatial layers the publisher will send.
+
+**Note:** Simulcast only works with Google Chrome and it's not compatible with Licode's recording yet.
 
 ## Subscribe to a remote stream
 
