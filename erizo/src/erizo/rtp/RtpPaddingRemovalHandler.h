@@ -1,3 +1,4 @@
+
 #ifndef ERIZO_SRC_ERIZO_RTP_RTPPADDINGREMOVALHANDLER_H_
 #define ERIZO_SRC_ERIZO_RTP_RTPPADDINGREMOVALHANDLER_H_
 
@@ -6,6 +7,7 @@
 #include "./logger.h"
 #include "pipeline/Handler.h"
 #include "rtp/SequenceNumberTranslator.h"
+#include "WebRtcConnection.h"
 
 namespace erizo {
 
@@ -32,11 +34,14 @@ class RtpPaddingRemovalHandler: public Handler, public std::enable_shared_from_t
  private:
   bool removePaddingBytes(std::shared_ptr<dataPacket> packet,
       std::shared_ptr<SequenceNumberTranslator> translator);
+  std::shared_ptr<SequenceNumberTranslator> getTranslatorForSsrc(uint32_t ssrc,
+    bool should_create);
 
  private:
   bool enabled_;
   bool initialized_;
   std::map<uint32_t, std::shared_ptr<SequenceNumberTranslator>> translator_map_;
+  WebRtcConnection* connection_;
 };
 }  // namespace erizo
 
