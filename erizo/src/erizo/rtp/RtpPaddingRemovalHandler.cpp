@@ -30,8 +30,11 @@ void RtpPaddingRemovalHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
     SequenceNumber sequence_number_info = translator->get(sequence_number, false);
 
     if (sequence_number_info.type != SequenceNumberType::Valid) {
+      ELOG_DEBUG("Invalid translation %u, ssrc: %u", sequence_number, ssrc);
       return;
     }
+    ELOG_DEBUG("Changing seq_number from %u to %u, ssrc %u", sequence_number, sequence_number_info.output,
+     ssrc);
     rtp_header->setSeqNumber(sequence_number_info.output);
   }
   ctx->fireRead(packet);
@@ -39,17 +42,20 @@ void RtpPaddingRemovalHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
 
 void RtpPaddingRemovalHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader* rtcp_head = reinterpret_cast<RtcpHeader*>(packet->data);
-  if (!rtcp_head->isFeedback()) {
+  if (!enabled_ || packet->type != VIDEO_PACKET || !rtcp_head->isFeedback()) {
     ctx->fireWrite(packet);
     return;
   }
-  uint32_t ssrc = rtcp_head->getSSRC();
+  uint32_t ssrc = rtcp_head->getSourceSSRC();
   std::shared_ptr<SequenceNumberTranslator> translator = getTranslatorForSsrc(ssrc, false);
-
-
-  RtpUtils::forEachRRBlock(packet, [this, translator](RtcpHeader *chead) {
+  if (!translator) {
+    ELOG_DEBUG("No translator for ssrc %u, %s", ssrc, connection_->toLog());
+    ctx->fireWrite(packet);
+    return;
+  }
+  RtpUtils::forEachRRBlock(packet, [this, translator, ssrc](RtcpHeader *chead) {
     if (chead->packettype == RTCP_RTP_Feedback_PT) {
-      RtpUtils::forEachNack(chead, [this, chead, translator](uint16_t new_seq_num, uint16_t new_plb,
+      RtpUtils::forEachNack(chead, [this, chead, translator, ssrc](uint16_t new_seq_num, uint16_t new_plb,
       RtcpHeader* nack_header) {
         uint16_t initial_seq_num = new_seq_num;
         std::vector<uint16_t> seq_nums;
@@ -59,9 +65,9 @@ void RtpPaddingRemovalHandler::write(Context *ctx, std::shared_ptr<dataPacket> p
           if (input_seq_num.type == SequenceNumberType::Valid) {
             seq_nums.push_back(input_seq_num.input);
           } else {
-            ELOG_DEBUG("Input is not valid for %d", seq_num);
+            ELOG_DEBUG("Input is not valid for %u, ssrc %u, %s", seq_num, ssrc, connection_->toLog());
           }
-          ELOG_DEBUG("Lost packet %d, input %d", seq_num, input_seq_num.input);
+          ELOG_DEBUG("Lost packet %u, input %u, ssrc %u", seq_num, input_seq_num.input, ssrc);
         }
         if (seq_nums.size() > 0) {
           uint16_t pid = seq_nums[0];
@@ -72,7 +78,7 @@ void RtpPaddingRemovalHandler::write(Context *ctx, std::shared_ptr<dataPacket> p
           }
           nack_header->setNackPid(pid);
           nack_header->setNackBlp(blp);
-          ELOG_DEBUG("Translated pid %u, translated blp %u", pid, blp);
+          ELOG_DEBUG("Translated pid %u, translated blp %u, ssrc %u, %s", pid, blp, ssrc, connection_->toLog());
         }
       });
     }
@@ -89,6 +95,7 @@ bool RtpPaddingRemovalHandler::removePaddingBytes(std::shared_ptr<dataPacket> pa
   if (padding_length + header_length == packet->length) {
     uint16_t sequence_number = rtp_header->getSeqNumber();
     translator->get(sequence_number, true);
+    ELOG_DEBUG("Dropping packet %u, %s", sequence_number, connection_->toLog());
     return false;
   }
   packet->length -= padding_length;
@@ -101,10 +108,12 @@ std::shared_ptr<SequenceNumberTranslator> RtpPaddingRemovalHandler::getTranslato
     auto translator_it = translator_map_.find(ssrc);
     std::shared_ptr<SequenceNumberTranslator> translator;
     if (translator_it != translator_map_.end()) {
+      ELOG_DEBUG("Found Translator for %u, %s", ssrc, connection_->toLog());
       translator = translator_it->second;
     } else {
       if (should_create) {
-        ELOG_DEBUG("message: no Translator found creating a new one, ssrc: %u", ssrc);
+        ELOG_DEBUG("message: no Translator found creating a new one, ssrc: %u, %s", ssrc,
+      connection_->toLog());
         translator = std::make_shared<SequenceNumberTranslator>();
         translator_map_[ssrc] = translator;
       }
@@ -117,7 +126,7 @@ void RtpPaddingRemovalHandler::notifyUpdate() {
   if (!pipeline) {
     return;
   }
-
+  connection_ = pipeline->getService<WebRtcConnection>().get();
   if (initialized_) {
     return;
   }

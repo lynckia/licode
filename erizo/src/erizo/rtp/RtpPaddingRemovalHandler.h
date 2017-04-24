@@ -7,6 +7,7 @@
 #include "./logger.h"
 #include "pipeline/Handler.h"
 #include "rtp/SequenceNumberTranslator.h"
+#include "WebRtcConnection.h"
 
 namespace erizo {
 
@@ -40,6 +41,7 @@ class RtpPaddingRemovalHandler: public Handler, public std::enable_shared_from_t
   bool enabled_;
   bool initialized_;
   std::map<uint32_t, std::shared_ptr<SequenceNumberTranslator>> translator_map_;
+  WebRtcConnection* connection_;
 };
 }  // namespace erizo
 
