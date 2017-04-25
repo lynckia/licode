@@ -277,8 +277,8 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addFront(RtpPaddingGeneratorHandler());
   pipeline_->addFront(PliPacerHandler());
   pipeline_->addFront(BandwidthEstimationHandler());
-  pipeline_->addFront(RtcpFeedbackGenerationHandler());
   pipeline_->addFront(RtpPaddingRemovalHandler());
+  pipeline_->addFront(RtcpFeedbackGenerationHandler());
   pipeline_->addFront(RtpRetransmissionHandler());
   pipeline_->addFront(SRPacketHandler());
   pipeline_->addFront(SenderBandwidthEstimationHandler());
