@@ -1,5 +1,6 @@
 #include "stats/StatNode.h"
 
+#include <cmath>
 #include <sstream>
 #include <string>
 #include <memory>
@@ -249,7 +250,7 @@ StatNode& MovingAverageStat::operator+=(uint64_t value) {
 }
 
 uint64_t MovingAverageStat::value() {
-  return static_cast<uint64_t>(current_average_);
+  return static_cast<uint64_t>(std::round(current_average_));
 }
 
 uint64_t MovingAverageStat::value(uint32_t sample_number) {
@@ -266,7 +267,11 @@ void MovingAverageStat::add(uint64_t value) {
       / (next_sample_position_ + 1);
   } else {
     uint64_t old_value = (*sample_vector_.get())[next_sample_position_ % window_size_];
-    current_average_ = current_average_ + static_cast<double>(value - old_value) / window_size_;
+    if (value > old_value) {
+      current_average_ = current_average_ + static_cast<double>(value - old_value) / window_size_;
+    } else {
+      current_average_ = current_average_ - static_cast<double>(old_value - value) / window_size_;
+    }
   }
 
   (*sample_vector_.get())[next_sample_position_ % window_size_] = value;
