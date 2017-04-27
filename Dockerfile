@@ -13,9 +13,9 @@ COPY . /opt/licode
 WORKDIR /opt/licode/scripts
 
 RUN ./installUbuntuDeps.sh --cleanup && \
-  ./installErizo.sh && \
-  ./../nuve/installNuve.sh && \
-	./installBasicExample.sh
+    ./installErizo.sh && \
+    ./../nuve/installNuve.sh && \
+    ./installBasicExample.sh
 
 WORKDIR /opt
 
