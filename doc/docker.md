@@ -16,31 +16,9 @@ The easiest way to run licode is to use the [image we provide](https://hub.docke
 > **Note**
 > If you do not specify a version you are pulling from `latest` by default.
 
-
-# Build your own image and run the container from it
-
-You have to git clone [Licode's code](https://github.com/ging/licode) from GitHub and navigate to `docker` directory. There, to compile your own image just run:
-
-```
-	sudo docker build -t licode-image .
-```
-
 > **Note**
 > If you do not want to have to use `sudo` in this or in the next section follow [these instructions](https://docs.docker.com/installation/ubuntulinux/#create-a-docker-group).
 
-This builds a new Docker image following the steps in `Dockerfile` and saves it in your local Docker repository with the name `licode-image`. You can check the available images in your local repository using:
-
-```
-	sudo docker images
-```
-
-> **Note**
-> If you want to know more about images and the building process you can find it in [Docker documentation](https://docs.docker.com/userguide/dockerimages/).
-
-Now you can run a new container from the image you have just created with:
-```
-	sudo docker run -d --name licode -p 3001:3001 -p 8080:8080 -p 3000:3000 -p 30000-31000:30000-31000/udp -e "PUBLIC_IP=XXX.XXX.XXX.XXX" licode-image
-```
 
 Where the different parameters mean:
 
@@ -61,3 +39,25 @@ To stop the container:
 ```
 
 Additionally, if you want to run a single Licode component inside the container you can select them by appending `--mongodb`, `--rabbitmq`, `--nuve`, `--erizoController`, `--erizoAgent` or `--basicExample` to the `docker run` command above.
+
+# Build your own image and run the container from it
+
+You have to git clone [Licode's code](https://github.com/ging/licode) from GitHub and navigate to `docker` directory. There, to compile your own image just run:
+
+```
+	sudo docker build -t licode-image .
+```
+
+This builds a new Docker image following the steps in `Dockerfile` and saves it in your local Docker repository with the name `licode-image`. You can check the available images in your local repository using:
+
+```
+	sudo docker images
+```
+
+> **Note**
+> If you want to know more about images and the building process you can find it in [Docker documentation](https://docs.docker.com/userguide/dockerimages/).
+
+Now you can run a new container from the image you have just created with:
+```
+	sudo docker run -d --name licode -p 3001:3001 -p 8080:8080 -p 3000:3000 -p 30000-31000:30000-31000/udp -e "PUBLIC_IP=XXX.XXX.XXX.XXX" licode-image
+```
