@@ -97,6 +97,13 @@ config.erizoController.report = {
     rtcp_stats: false				// RTCP stats -- default value: false
 };
 
+// If true, erizoController admits subscriptions to stats
+config.erizoController.report_subscriptions = {
+	enabled: true,	
+	min_interval: 1, 		// in seconds
+	max_timeout: 60			// in seconds
+};
+
 // If undefined, the path will be /tmp/
 config.erizoController.recording_path = undefined; // default value: undefined
 

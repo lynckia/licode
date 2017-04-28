@@ -556,5 +556,48 @@ exports.ErizoJSController = function (threadPool) {
         }
     };
 
+    that.subscribeToStats = function (to, timeout, interval, callback) {
+        
+        var publisher;
+        log.debug('message: Requested subscription to stream stats, streamID: ' + to);
+
+        if (to && publishers[to]) {
+            publisher = publishers[to];
+
+            if (GLOBAL.config.erizoController.report_subscriptions && 
+                GLOBAL.config.erizoController.report_subscriptions.enabled) {
+
+                if (timeout > GLOBAL.config.erizoController.report_subscriptions.max_timeout)
+                    timeout = GLOBAL.config.erizoController.report_subscriptions.max_timeout;
+                if (interval < GLOBAL.config.erizoController.report_subscriptions.min_interval)
+                    interval = GLOBAL.config.erizoController.report_subscriptions.min_interval;
+
+                var interval = setInterval(function () {
+                    let promises = [];
+                    let stats = {};
+                    
+                    stats.streamId = to;
+                    promises.push(getWrtcStats('publisher', stats, publisher.wrtc));
+                    for (var sub in publisher.subscribers) {
+                        promises.push(getWrtcStats(sub, stats, publisher.subscribers[sub]));
+                    }
+                    Promise.all(promises).then(() => {
+                        amqper.broadcast('stats_subscriptions', stats);
+                    }); 
+                }, interval*1000);
+
+                setTimeout(function () {
+                    clearInterval(interval);
+                }, timeout*1000);
+
+                callback('success');
+                
+            }
+            log.debug('message: Report subscriptions disabled by config, ignoring the message');
+        } else {
+            log.debug('message: Im not handling this stream, ignoring the message, streamID: ' + to);
+        }
+    };
+
     return that;
 };
