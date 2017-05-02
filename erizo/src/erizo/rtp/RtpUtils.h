@@ -23,7 +23,7 @@ class RtpUtils {
 
   static bool isFIR(std::shared_ptr<dataPacket> packet);
 
-  static void forEachNack(RtcpHeader *chead, std::function<void(uint16_t, uint16_t)> f);
+  static void forEachNack(RtcpHeader *chead, std::function<void(uint16_t, uint16_t, RtcpHeader*)> f);
 
   static std::shared_ptr<dataPacket> createPLI(uint32_t source_ssrc, uint32_t sink_ssrc);
 

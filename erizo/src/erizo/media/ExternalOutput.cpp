@@ -334,6 +334,10 @@ int ExternalOutput::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) 
 
 int ExternalOutput::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
   std::shared_ptr<dataPacket> copied_packet = std::make_shared<dataPacket>(*video_packet);
+  // TODO(javierc): We should support higher layers, but it requires having an entire pipeline at this point
+  if (!video_packet->belongsToSpatialLayer(0)) {
+    return 0;
+  }
   if (videoSourceSsrc_ == 0) {
     RtpHeader* h = reinterpret_cast<RtpHeader*>(copied_packet->data);
     videoSourceSsrc_ = h->getSSRC();
