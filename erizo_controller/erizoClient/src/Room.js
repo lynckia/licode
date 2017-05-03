@@ -204,9 +204,11 @@ Erizo.Room = function (spec) {
 
 
             myStream.pc[arg.peerSocket].oniceconnectionstatechange = function (state) {
-                if (state === 'failed' || state === 'disconnected') {
+                if (state === 'failed') {
                     myStream.pc[arg.peerSocket].close();
                     delete myStream.pc[arg.peerSocket];
+                } else if (state === 'disconnected') {
+                    // TODO handle behaviour. Myabe implement Ice-Restart mechanism
                 }
             };
 
