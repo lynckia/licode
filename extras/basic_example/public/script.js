@@ -105,7 +105,7 @@ window.onload = function () {
       room.addEventListener('room-connected', function (roomEvent) {
         var options = {metadata: {type: 'publisher'}};
         var enableSimulcast = getParameterByName('simulcast');
-        if (enableSimulcast) options._simulcast = {numSpatialLayers: 2};
+        if (enableSimulcast) options.simulcast = {numSpatialLayers: 2};
 
         var onlySubscribe = getParameterByName('onlySubscribe');
         if (!onlySubscribe) room.publish(localStream, options);
