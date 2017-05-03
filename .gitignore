@@ -1,5 +1,6 @@
 .DS_Store
 build/
+blog/_site
 licode_config.js
 extras/basic_example/node_modules
 site
@@ -17,5 +18,3 @@ npm-debug.log
 third_party
 libdeps
 extras/vagrant
-
-*.html
