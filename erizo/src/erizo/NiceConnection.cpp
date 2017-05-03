@@ -50,31 +50,24 @@ void cb_component_state_changed(NiceAgent *agent, guint stream_id,
   if (state == NICE_COMPONENT_STATE_CONNECTED) {
   } else if (state == NICE_COMPONENT_STATE_FAILED) {
     NiceConnection *conn = reinterpret_cast<NiceConnection*>(user_data);
-    conn->updateComponentState(component_id, NICE_FAILED);
+    conn->updateComponentState(component_id, IceState::FAILED);
   }
 }
 
 void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
     gchar *lfoundation, gchar *rfoundation, gpointer user_data) {
   NiceConnection *conn = reinterpret_cast<NiceConnection*>(user_data);
-  conn->updateComponentState(component_id, NICE_READY);
+  conn->updateComponentState(component_id, IceState::READY);
 }
 
-NiceConnection::NiceConnection(boost::shared_ptr<LibNiceInterface> libnice, MediaType med,
-    const std::string &transport_name, const std::string& connection_id, NiceConnectionListener* listener,
-    unsigned int iceComponents, const IceConfig& iceConfig, std::string username, std::string password) :
-  mediaType(med), connection_id_(connection_id), lib_nice_(libnice), agent_(NULL), loop_(NULL), listener_(listener),
-  candsDelivered_(0), iceState_(NICE_INITIAL), iceComponents_(iceComponents), username_(username), password_(password),
-  iceConfig_(iceConfig), receivedLastCandidate_(false) {
-    localCandidates.reset(new std::vector<CandidateInfo>());
-    transportName.reset(new std::string(transport_name));
-    for (unsigned int i = 1; i <= iceComponents_; i++) {
-      comp_state_list_[i] = NICE_INITIAL;
-    }
-    #if !GLIB_CHECK_VERSION(2, 35, 0)
-    g_type_init();
-    #endif
-  }
+NiceConnection::NiceConnection(boost::shared_ptr<LibNiceInterface> libnice, IceConnectionListener* listener,
+    const IceConfig& ice_config)
+  : IceConnection{listener, ice_config},
+    lib_nice_{libnice}, agent_{NULL}, loop_{NULL}, candsDelivered_{0}, receivedLastCandidate_{false} {
+  #if !GLIB_CHECK_VERSION(2, 35, 0)
+  g_type_init();
+  #endif
+}
 
 NiceConnection::~NiceConnection() {
   this->close();
@@ -82,11 +75,11 @@ NiceConnection::~NiceConnection() {
 
 void NiceConnection::close() {
   boost::mutex::scoped_lock(closeMutex_);
-  if (this->checkIceState() == NICE_FINISHED) {
+  if (this->checkIceState() == IceState::FINISHED) {
     return;
   }
   ELOG_DEBUG("%s message:closing", toLog());
-  this->updateIceState(NICE_FINISHED);
+  this->updateIceState(IceState::FINISHED);
   if (loop_ != NULL) {
     ELOG_DEBUG("%s message:main loop quit", toLog());
     g_main_loop_quit(loop_);
@@ -119,13 +112,13 @@ void NiceConnection::close() {
 
 void NiceConnection::onData(unsigned int component_id, char* buf, int len) {
   IceState state;
-  NiceConnectionListener* listener;
+  IceConnectionListener* listener;
   {
     boost::mutex::scoped_lock(closeMutex_);
     state = this->checkIceState();
     listener = listener_;
   }
-  if (state == NICE_READY) {
+  if (state == IceState::READY) {
     packetPtr packet (new dataPacket());
     memcpy(packet->data, buf, len);
     packet->comp = component_id;
@@ -137,7 +130,7 @@ void NiceConnection::onData(unsigned int component_id, char* buf, int len) {
 
 int NiceConnection::sendData(unsigned int compId, const void* buf, int len) {
   int val = -1;
-  if (this->checkIceState() == NICE_READY) {
+  if (this->checkIceState() == IceState::READY) {
     val = lib_nice_->NiceAgentSend(agent_, 1, compId, len, reinterpret_cast<const gchar*>(buf));
   }
   if (val != len) {
@@ -148,7 +141,7 @@ int NiceConnection::sendData(unsigned int compId, const void* buf, int len) {
 
 void NiceConnection::start() {
     boost::mutex::scoped_lock(closeMutex_);
-    if (this->checkIceState() != NICE_INITIAL) {
+    if (this->checkIceState() != INITIAL) {
       return;
     }
     context_ = g_main_context_new();
@@ -169,18 +162,18 @@ void NiceConnection::start() {
     g_object_set_property(G_OBJECT(agent_), "max-connectivity-checks", &checks);
 
 
-    if (iceConfig_.stunServer.compare("") != 0 && iceConfig_.stunPort != 0) {
+    if (ice_config_.stun_server.compare("") != 0 && ice_config_.stun_port != 0) {
       GValue val = { 0 }, val2 = { 0 };
       g_value_init(&val, G_TYPE_STRING);
-      g_value_set_string(&val, iceConfig_.stunServer.c_str());
+      g_value_set_string(&val, ice_config_.stun_server.c_str());
       g_object_set_property(G_OBJECT(agent_), "stun-server", &val);
 
       g_value_init(&val2, G_TYPE_UINT);
-      g_value_set_uint(&val2, iceConfig_.stunPort);
+      g_value_set_uint(&val2, ice_config_.stun_port);
       g_object_set_property(G_OBJECT(agent_), "stun-server-port", &val2);
 
-      ELOG_DEBUG("%s message: setting stun, stunServer: %s, stunPort: %d",
-                 toLog(), iceConfig_.stunServer.c_str(), iceConfig_.stunPort);
+      ELOG_DEBUG("%s message: setting stun, stun_server: %s, stun_port: %d",
+                 toLog(), ice_config_.stun_server.c_str(), ice_config_.stun_port);
     }
 
     // Connect the signals
@@ -194,52 +187,52 @@ void NiceConnection::start() {
         G_CALLBACK(cb_new_candidate), this);
 
     // Create a new stream and start gathering candidates
-    ELOG_DEBUG("%s message: adding stream, iceComponents: %d", toLog(), iceComponents_);
-    lib_nice_->NiceAgentAddStream(agent_, iceComponents_);
+    ELOG_DEBUG("%s message: adding stream, iceComponents: %d", toLog(), ice_config_.ice_components);
+    lib_nice_->NiceAgentAddStream(agent_, ice_config_.ice_components);
     gchar *ufrag = NULL, *upass = NULL;
     lib_nice_->NiceAgentGetLocalCredentials(agent_, 1, &ufrag, &upass);
     ufrag_ = std::string(ufrag); g_free(ufrag);
     upass_ = std::string(upass); g_free(upass);
 
     // Set our remote credentials.  This must be done *after* we add a stream.
-    if (username_.compare("") != 0 && password_.compare("") != 0) {
+    if (ice_config_.username.compare("") != 0 && ice_config_.password.compare("") != 0) {
       ELOG_DEBUG("%s message: setting remote credentials in constructor, ufrag:%s, pass:%s",
-                 toLog(), username_.c_str(), password_.c_str());
-      this->setRemoteCredentials(username_, password_);
+                 toLog(), ice_config_.username.c_str(), ice_config_.password.c_str());
+      this->setRemoteCredentials(ice_config_.username, ice_config_.password);
     }
     // Set Port Range: If this doesn't work when linking the file libnice.sym has to be modified to include this call
-    if (iceConfig_.minPort != 0 && iceConfig_.maxPort != 0) {
-      ELOG_DEBUG("%s message: setting port range, minPort: %d, maxPort: %d",
-                 toLog(), iceConfig_.minPort, iceConfig_.maxPort);
-      lib_nice_->NiceAgentSetPortRange(agent_, (guint)1, (guint)1, (guint)iceConfig_.minPort,
-          (guint)iceConfig_.maxPort);
+    if (ice_config_.min_port != 0 && ice_config_.max_port != 0) {
+      ELOG_DEBUG("%s message: setting port range, min_port: %d, max_port: %d",
+                 toLog(), ice_config_.min_port, ice_config_.max_port);
+      lib_nice_->NiceAgentSetPortRange(agent_, (guint)1, (guint)1, (guint)ice_config_.min_port,
+          (guint)ice_config_.max_port);
     }
 
-    if (!iceConfig_.network_interface.empty()) {
-      const char* public_ip = lib_nice_->NiceInterfacesGetIpForInterface(iceConfig_.network_interface.c_str());
+    if (!ice_config_.network_interface.empty()) {
+      const char* public_ip = lib_nice_->NiceInterfacesGetIpForInterface(ice_config_.network_interface.c_str());
       if (public_ip) {
         lib_nice_->NiceAgentAddLocalAddress(agent_, public_ip);
       }
     }
 
-    if (iceConfig_.turnServer.compare("") != 0 && iceConfig_.turnPort != 0) {
-      ELOG_DEBUG("%s message: configuring TURN, turnServer: %s , turnPort: %d, turnUsername: %s, turnPass: %s",
-                 toLog(), iceConfig_.turnServer.c_str(),
-          iceConfig_.turnPort, iceConfig_.turnUsername.c_str(), iceConfig_.turnPass.c_str());
+    if (ice_config_.turn_server.compare("") != 0 && ice_config_.turn_port != 0) {
+      ELOG_DEBUG("%s message: configuring TURN, turn_server: %s , turn_port: %d, turn_username: %s, turn_pass: %s",
+                 toLog(), ice_config_.turn_server.c_str(),
+          ice_config_.turn_port, ice_config_.turn_username.c_str(), ice_config_.turn_pass.c_str());
 
-      for (unsigned int i = 1; i <= iceComponents_ ; i++) {
+      for (unsigned int i = 1; i <= ice_config_.ice_components ; i++) {
         lib_nice_->NiceAgentSetRelayInfo(agent_,
             1,
             i,
-            iceConfig_.turnServer.c_str(),     // TURN Server IP
-            iceConfig_.turnPort,               // TURN Server PORT
-            iceConfig_.turnUsername.c_str(),   // Username
-            iceConfig_.turnPass.c_str());       // Pass
+            ice_config_.turn_server.c_str(),     // TURN Server IP
+            ice_config_.turn_port,               // TURN Server PORT
+            ice_config_.turn_username.c_str(),   // Username
+            ice_config_.turn_pass.c_str());       // Pass
       }
     }
 
     if (agent_) {
-      for (unsigned int i = 1; i <= iceComponents_; i++) {
+      for (unsigned int i = 1; i <= ice_config_.ice_components; i++) {
         lib_nice_->NiceAgentAttachRecv(agent_, 1, i, context_, reinterpret_cast<void*>(cb_nice_recv), this);
       }
     }
@@ -257,20 +250,20 @@ void NiceConnection::mainLoop() {
   ELOG_DEBUG("%s message: finished g_main_loop, this: %p", toLog(), this);
 }
 
-bool NiceConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool isBundle) {
+bool NiceConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) {
   if (agent_ == NULL) {
     this->close();
     return false;
   }
   GSList* candList = NULL;
   ELOG_DEBUG("%s message: setting remote candidates, candidateSize: %lu, mediaType: %d",
-             toLog(), candidates.size(), this->mediaType);
+             toLog(), candidates.size(), ice_config_.media_type);
 
   for (unsigned int it = 0; it < candidates.size(); it++) {
     NiceCandidateType nice_cand_type;
     CandidateInfo cinfo = candidates[it];
     // If bundle we will add the candidates regardless the mediaType
-    if (cinfo.componentId != 1 || (!isBundle && cinfo.mediaType != this->mediaType ))
+    if (cinfo.componentId != 1 || (!is_bundle && cinfo.mediaType != ice_config_.media_type ))
       continue;
 
     switch (cinfo.hostType) {
@@ -330,7 +323,7 @@ bool NiceConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candi
 
 void NiceConnection::gatheringDone(uint stream_id) {
   ELOG_DEBUG("%s message: gathering done, stream_id: %u", toLog(), stream_id);
-  this->updateIceState(NICE_CANDIDATES_RECEIVED);
+  this->updateIceState(IceState::CANDIDATES_RECEIVED);
 }
 
 void NiceConnection::getCandidate(uint stream_id, uint component_id, const std::string &foundation) {
@@ -357,10 +350,10 @@ void NiceConnection::getCandidate(uint stream_id, uint component_id, const std::
     if (cand_info.hostPort == 0) {
       continue;
     }
-    cand_info.mediaType = mediaType;
+    cand_info.mediaType = ice_config_.media_type;
 
     /*
-     *   NICE_CANDIDATE_TYPE_HOST,
+     *    NICE_CANDIDATE_TYPE_HOST,
      *    NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE,
      *    NICE_CANDIDATE_TYPE_PEER_REFLEXIVE,
      *    NICE_CANDIDATE_TYPE_RELAYED,
@@ -388,12 +381,12 @@ void NiceConnection::getCandidate(uint stream_id, uint component_id, const std::
         break;
     }
     cand_info.netProtocol = "udp";
-    cand_info.transProtocol = std::string(*transportName.get());
+    cand_info.transProtocol = ice_config_.transport_name;
     cand_info.username = ufrag_;
     cand_info.password = upass_;
     // localCandidates->push_back(cand_info);
-    if (this->getNiceListener() != NULL)
-      this->getNiceListener()->onCandidate(cand_info, this);
+    if (this->getIceListener() != NULL)
+      this->getIceListener()->onCandidate(cand_info, this);
   }
   // for nice_agent_get_local_candidates, the caller owns the returned GSList as well as the candidates
   // contained within it.
@@ -407,30 +400,22 @@ void NiceConnection::setRemoteCredentials(const std::string& username, const std
   lib_nice_->NiceAgentSetRemoteCredentials(agent_, (guint) 1, username.c_str(), password.c_str());
 }
 
-void NiceConnection::setNiceListener(NiceConnectionListener *listener) {
-  this->listener_ = listener;
-}
-
-NiceConnectionListener* NiceConnection::getNiceListener() {
-  return this->listener_;
-}
-
 void NiceConnection::updateComponentState(unsigned int compId, IceState state) {
   ELOG_DEBUG("%s message: new ice component state, newState: %u, transportName: %s, componentId %u, iceComponents: %u",
-             toLog(), state, transportName->c_str(), compId, iceComponents_);
+             toLog(), state, ice_config_.transport_name.c_str(), compId, ice_config_.ice_components);
   comp_state_list_[compId] = state;
-  if (state == NICE_READY) {
-    for (unsigned int i = 1; i <= iceComponents_; i++) {
-      if (comp_state_list_[i] != NICE_READY) {
+  if (state == IceState::READY) {
+    for (unsigned int i = 1; i <= ice_config_.ice_components; i++) {
+      if (comp_state_list_[i] != IceState::READY) {
         return;
       }
     }
-  } else if (state == NICE_FAILED) {
+  } else if (state == IceState::FAILED) {
     if (receivedLastCandidate_) {
-      ELOG_WARN("%s message: component failed, transportName: %s, componentId: %u",
-                toLog(), transportName->c_str(), compId);
-      for (unsigned int i = 1; i <= iceComponents_; i++) {
-        if (comp_state_list_[i] != NICE_FAILED) {
+      ELOG_WARN("%s message: component failed, ice_config_.transport_name: %s, componentId: %u",
+                toLog(), ice_config_.transport_name.c_str(), compId);
+      for (unsigned int i = 1; i <= ice_config_.ice_components; i++) {
+        if (comp_state_list_[i] != IceState::FAILED) {
           return;
         }
       }
@@ -443,41 +428,41 @@ void NiceConnection::updateComponentState(unsigned int compId, IceState state) {
 }
 
 IceState NiceConnection::checkIceState() {
-  return iceState_;
+  return ice_state_;
 }
 
 std::string NiceConnection::iceStateToString(IceState state) const {
   switch (state) {
-    case NICE_INITIAL:             return "initial";
-    case NICE_FINISHED:            return "finished";
-    case NICE_FAILED:              return "failed";
-    case NICE_READY:               return "ready";
-    case NICE_CANDIDATES_RECEIVED: return "cand_received";
+    case IceState::INITIAL:        return "initial";
+    case IceState::FINISHED:            return "finished";
+    case IceState::FAILED:              return "failed";
+    case IceState::READY:               return "ready";
+    case IceState::CANDIDATES_RECEIVED: return "cand_received";
   }
   return "unknown";
 }
 
 void NiceConnection::updateIceState(IceState state) {
-  if (state <= iceState_) {
-    if (state != NICE_READY)
+  if (state <= ice_state_) {
+    if (state != IceState::READY)
       ELOG_WARN("%s message: unexpected ice state transition, iceState: %s,  newIceState: %s",
-                 toLog(), iceStateToString(iceState_).c_str(), iceStateToString(state).c_str());
+                 toLog(), iceStateToString(ice_state_).c_str(), iceStateToString(state).c_str());
     return;
   }
 
-  ELOG_INFO("%s message: iceState transition, transportName: %s, iceState: %s, newIceState: %s, this: %p",
-             toLog(), transportName->c_str(),
-             iceStateToString(this->iceState_).c_str(), iceStateToString(state).c_str(), this);
-  this->iceState_ = state;
-  switch (iceState_) {
-    case NICE_FINISHED:
+  ELOG_INFO("%s message: iceState transition, ice_config_.transport_name: %s, iceState: %s, newIceState: %s, this: %p",
+             toLog(), ice_config_.transport_name.c_str(),
+             iceStateToString(ice_state_).c_str(), iceStateToString(state).c_str(), this);
+  this->ice_state_ = state;
+  switch (ice_state_) {
+    case IceState::FINISHED:
       return;
-    case NICE_FAILED:
+    case IceState::FAILED:
       ELOG_WARN("%s message: Ice Failed", toLog());
       break;
 
-    case NICE_READY:
-    case NICE_CANDIDATES_RECEIVED:
+    case IceState::READY:
+    case IceState::CANDIDATES_RECEIVED:
       break;
     default:
       break;
@@ -521,5 +506,9 @@ CandidatePair NiceConnection::getSelectedPair() {
 void NiceConnection::setReceivedLastCandidate(bool hasReceived) {
   ELOG_DEBUG("%s message: setting hasReceivedLastCandidate, hasReceived: %u", toLog(), hasReceived);
   this->receivedLastCandidate_ = hasReceived;
+}
+
+NiceConnection* NiceConnection::create(IceConnectionListener *listener, const IceConfig& ice_config) {
+  return new NiceConnection(boost::shared_ptr<LibNiceInterface>(new LibNiceInterfaceImpl()), listener, ice_config);
 }
 } /* namespace erizo */

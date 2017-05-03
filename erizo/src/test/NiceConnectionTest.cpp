@@ -50,15 +50,15 @@ class MockLibNice: public erizo::LibNiceInterface {
   erizo::LibNiceInterfaceImpl real_impl_;
 };
 
-class MockNiceConnectionListener: public erizo::NiceConnectionListener {
+class MockNiceConnectionListener: public erizo::IceConnectionListener {
  public:
   MockNiceConnectionListener() {
   }
   virtual ~MockNiceConnectionListener() {
   }
   MOCK_METHOD1(onPacketReceived, void(erizo::packetPtr packet));
-  MOCK_METHOD2(onCandidate, void(const erizo::CandidateInfo&, erizo::NiceConnection*));
-  MOCK_METHOD2(updateIceState, void(erizo::IceState, erizo::NiceConnection*));
+  MOCK_METHOD2(onCandidate, void(const erizo::CandidateInfo&, erizo::IceConnection*));
+  MOCK_METHOD2(updateIceState, void(erizo::IceState, erizo::IceConnection*));
 };
 
 class NiceConnectionStartTest : public ::testing::Test {
@@ -97,6 +97,11 @@ class NiceConnectionTest : public ::testing::Test {
     pass = strdup(kArbitraryLocalCredentialPassword.c_str());
     test_packet = strdup(kArbitraryDataPacket.c_str());
 
+    ice_config->media_type = erizo::VIDEO_TYPE;
+    ice_config->transport_name = kArbitraryTransportName;
+    ice_config->ice_components = 1;
+    ice_config->connection_id = kArbitraryConnectionId;
+
     EXPECT_CALL(*libnice, NiceAgentNew(_)).Times(1);
     EXPECT_CALL(*libnice, NiceAgentAddStream(_, _)).Times(1).WillOnce(Return(1));
     EXPECT_CALL(*libnice, NiceAgentGetLocalCredentials(_, _, _, _)).Times(1).
@@ -108,11 +113,7 @@ class NiceConnectionTest : public ::testing::Test {
     EXPECT_CALL(*libnice, NiceAgentSetRelayInfo(_, _, _, _, _, _, _)).Times(0);
 
     nice_connection = new erizo::NiceConnection(libnice_pointer,
-        erizo::VIDEO_TYPE,
-        kArbitraryTransportName,
-        kArbitraryConnectionId,
         nice_listener,
-        1,
         *ice_config);
     nice_connection->start();
   }
@@ -146,6 +147,10 @@ class NiceConnectionTwoComponentsTest : public ::testing::Test {
     ice_config = new erizo::IceConfig();
     ufrag = strdup(kArbitraryLocalCredentialUsername.c_str());
     pass = strdup(kArbitraryLocalCredentialPassword.c_str());
+    ice_config->media_type = erizo::VIDEO_TYPE;
+    ice_config->transport_name = kArbitraryTransportName;
+    ice_config->ice_components = 2;
+    ice_config->connection_id = kArbitraryConnectionId;
 
     EXPECT_CALL(*libnice, NiceAgentNew(_)).Times(1);
     EXPECT_CALL(*libnice, NiceAgentAddStream(_, _)).Times(1).WillOnce(Return(1));
@@ -158,11 +163,7 @@ class NiceConnectionTwoComponentsTest : public ::testing::Test {
     EXPECT_CALL(*libnice, NiceAgentSetRelayInfo(_, _, _, _, _, _, _)).Times(0);
 
     nice_connection = new erizo::NiceConnection(libnice_pointer,
-        erizo::VIDEO_TYPE,
-        kArbitraryTransportName,
-        kArbitraryConnectionId,
         nice_listener,
-        2,
         *ice_config);
     nice_connection->start();
   }
@@ -190,6 +191,11 @@ TEST_F(NiceConnectionStartTest, start_Configures_Libnice_With_Default_Config) {
   char *ufrag = strdup(kArbitraryLocalCredentialUsername.c_str());
   char *pass = strdup(kArbitraryLocalCredentialPassword.c_str());
 
+  ice_config->media_type = erizo::VIDEO_TYPE;
+  ice_config->transport_name = kArbitraryTransportName;
+  ice_config->ice_components = 1;
+  ice_config->connection_id = kArbitraryConnectionId;
+
   EXPECT_CALL(*libnice, NiceAgentNew(_)).Times(1);
   EXPECT_CALL(*libnice, NiceAgentAddStream(_, _)).Times(1).WillOnce(Return(1));
   EXPECT_CALL(*libnice, NiceAgentGetLocalCredentials(_, _, _, _)).Times(1).
@@ -201,11 +207,7 @@ TEST_F(NiceConnectionStartTest, start_Configures_Libnice_With_Default_Config) {
   EXPECT_CALL(*libnice, NiceAgentSetRelayInfo(_, _, _, _, _, _, _)).Times(0);
 
   erizo::NiceConnection nice(libnice_pointer,
-      erizo::VIDEO_TYPE,
-      kArbitraryTransportName,
-      kArbitraryConnectionId,
       nice_listener,
-      1,
       *ice_config);
   nice.start();
 }
@@ -222,6 +224,14 @@ TEST_F(NiceConnectionStartTest, start_Configures_Libnice_With_Remote_Credentials
   char *ufrag = strdup(kArbitraryLocalCredentialUsername.c_str());
   char *pass = strdup(kArbitraryLocalCredentialPassword.c_str());
 
+  ice_config->media_type = erizo::VIDEO_TYPE;
+  ice_config->transport_name = kArbitraryTransportName;
+  ice_config->ice_components = 1;
+  ice_config->connection_id = kArbitraryConnectionId;
+
+  ice_config->username = kArbitraryRemoteCredentialUsername;
+  ice_config->password = kArbitraryRemoteCredentialPassword;
+
   EXPECT_CALL(*libnice, NiceAgentNew(_)).Times(1);
   EXPECT_CALL(*libnice, NiceAgentAddStream(_, _)).Times(1);
   EXPECT_CALL(*libnice, NiceAgentGetLocalCredentials(_, _, _, _)).Times(1).
@@ -233,14 +243,8 @@ TEST_F(NiceConnectionStartTest, start_Configures_Libnice_With_Remote_Credentials
   EXPECT_CALL(*libnice, NiceAgentSetRelayInfo(_, _, _, _, _, _, _)).Times(0);
 
   erizo::NiceConnection nice(libnice_pointer,
-      erizo::VIDEO_TYPE,
-      kArbitraryTransportName,
-      kArbitraryConnectionId,
       nice_listener,
-      1,
-      *ice_config,
-      kArbitraryRemoteCredentialUsername,
-      kArbitraryRemoteCredentialPassword);
+      *ice_config);
   nice.start();
 }
 
@@ -256,8 +260,12 @@ TEST_F(NiceConnectionStartTest, start_Configures_Libnice_With_Port_Range) {
   char *ufrag = strdup(kArbitraryLocalCredentialUsername.c_str());
   char *pass = strdup(kArbitraryLocalCredentialPassword.c_str());
 
-  ice_config->minPort = kArbitraryMinPort;
-  ice_config->maxPort = kArbitraryMaxPort;
+  ice_config->min_port = kArbitraryMinPort;
+  ice_config->max_port = kArbitraryMaxPort;
+  ice_config->transport_name = kArbitraryTransportName;
+  ice_config->media_type = erizo::VIDEO_TYPE;
+  ice_config->connection_id = kArbitraryConnectionId;
+  ice_config->ice_components = 1;
 
   EXPECT_CALL(*libnice, NiceAgentNew(_)).Times(1);
   EXPECT_CALL(*libnice, NiceAgentAddStream(_, _)).Times(1);
@@ -270,11 +278,7 @@ TEST_F(NiceConnectionStartTest, start_Configures_Libnice_With_Port_Range) {
   EXPECT_CALL(*libnice, NiceAgentSetRelayInfo(_, _, _, _, _, _, _)).Times(0);
 
   erizo::NiceConnection nice(libnice_pointer,
-      erizo::VIDEO_TYPE,
-      kArbitraryTransportName,
-      kArbitraryConnectionId,
       nice_listener,
-      1,
       *ice_config);
   nice.start();
 }
@@ -292,10 +296,15 @@ TEST_F(NiceConnectionStartTest, start_Configures_Libnice_With_Turn) {
   char *ufrag = strdup(kArbitraryLocalCredentialUsername.c_str());
   char *pass = strdup(kArbitraryLocalCredentialPassword.c_str());
 
-  ice_config->turnServer = kArbitraryTurnServerUrl;
-  ice_config->turnPort = kArbitraryTurnPort;
-  ice_config->turnUsername = kArbitraryTurnUsername;
-  ice_config->turnPass = kArbitraryTurnPassword;
+  ice_config->turn_server = kArbitraryTurnServerUrl;
+  ice_config->turn_port = kArbitraryTurnPort;
+  ice_config->turn_username = kArbitraryTurnUsername;
+  ice_config->turn_pass = kArbitraryTurnPassword;
+  ice_config->transport_name = kArbitraryTransportName;
+  ice_config->media_type = erizo::VIDEO_TYPE;
+  ice_config->connection_id = kArbitraryConnectionId;
+  ice_config->ice_components = 1;
+
 
   EXPECT_CALL(*libnice, NiceAgentNew(_)).Times(1);
   EXPECT_CALL(*libnice, NiceAgentAddStream(_, _)).Times(1);
@@ -305,17 +314,13 @@ TEST_F(NiceConnectionStartTest, start_Configures_Libnice_With_Turn) {
   EXPECT_CALL(*libnice, NiceAgentGatherCandidates(_, _)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(*libnice, NiceAgentSetRemoteCredentials(_, _, _, _)).Times(0);
   EXPECT_CALL(*libnice, NiceAgentSetPortRange(_, _, _, _, _)).Times(0);
-  EXPECT_CALL(*libnice, NiceAgentSetRelayInfo(_, _, _, StrEq(ice_config->turnServer.c_str()),
-        ice_config->turnPort, StrEq(ice_config->turnUsername.c_str()),
-        StrEq(ice_config->turnPass.c_str()))).Times(1).
+  EXPECT_CALL(*libnice, NiceAgentSetRelayInfo(_, _, _, StrEq(ice_config->turn_server.c_str()),
+        ice_config->turn_port, StrEq(ice_config->turn_username.c_str()),
+        StrEq(ice_config->turn_pass.c_str()))).Times(1).
         WillOnce(Return(true));
 
   erizo::NiceConnection nice(libnice_pointer,
-      erizo::VIDEO_TYPE,
-      kArbitraryTransportName,
-      kArbitraryConnectionId,
       nice_listener,
-      1,
       *ice_config);
   nice.start();
 }
@@ -345,8 +350,8 @@ TEST_F(NiceConnectionTest, setRemoteCandidates_Success_WhenCalled) {
 
 TEST_F(NiceConnectionTest, queuePacket_QueuedPackets_Can_Be_getPacket_When_Ready) {
   erizo::packetPtr packet;
-  EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_READY , _)).Times(1);
-  nice_connection->updateIceState(erizo::NICE_READY);
+  EXPECT_CALL(*nice_listener, updateIceState(erizo::IceState::READY , _)).Times(1);
+  nice_connection->updateIceState(erizo::IceState::READY);
   EXPECT_CALL(*nice_listener, onPacketReceived(_)).WillOnce(SaveArg<0>(&packet));
 
   nice_connection->onData(0, test_packet, sizeof(test_packet));
@@ -360,8 +365,8 @@ TEST_F(NiceConnectionTest, sendData_Succeed_When_Ice_Ready) {
   const unsigned int kCompId = 1;
   const int kLength = sizeof(test_packet);
 
-  EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_READY , _)).Times(1);
-  nice_connection->updateIceState(erizo::NICE_READY);
+  EXPECT_CALL(*nice_listener, updateIceState(erizo::IceState::READY , _)).Times(1);
+  nice_connection->updateIceState(erizo::IceState::READY);
   EXPECT_CALL(*libnice, NiceAgentSend(_, _, kCompId, kLength, _)).Times(1).WillOnce(Return(kLength));
   EXPECT_EQ(kLength, nice_connection->sendData(kCompId, test_packet, kLength));
 }
@@ -375,7 +380,7 @@ TEST_F(NiceConnectionTest, sendData_Fail_When_Ice_Not_Ready) {
 }
 
 TEST_F(NiceConnectionTest, gatheringDone_Triggers_updateIceState) {
-  EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_CANDIDATES_RECEIVED , _)).Times(1);
+  EXPECT_CALL(*nice_listener, updateIceState(erizo::IceState::CANDIDATES_RECEIVED , _)).Times(1);
   nice_connection->gatheringDone(1);
 }
 
@@ -457,26 +462,26 @@ TEST_F(NiceConnectionTest, setRemoteCredentials_Configures_NiceAgent) {
 }
 
 TEST_F(NiceConnectionTest, updateComponentState_Listener_Is_Notified_Ready_When_Single_Component_Is_Ready) {
-  EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_READY , _)).Times(1);
-  nice_connection->updateComponentState(1, erizo::NICE_READY);
+  EXPECT_CALL(*nice_listener, updateIceState(erizo::IceState::READY , _)).Times(1);
+  nice_connection->updateComponentState(1, erizo::IceState::READY);
 }
 
 TEST_F(NiceConnectionTest, updateComponentState_Listener_Is_Not_Notified_If_Backwards_Transition) {
-  EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_READY , _)).Times(1);
-  EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_CANDIDATES_RECEIVED, _)).Times(1);
-  nice_connection->updateComponentState(1, erizo::NICE_CANDIDATES_RECEIVED);
-  nice_connection->updateComponentState(1, erizo::NICE_READY);
-  nice_connection->updateComponentState(1, erizo::NICE_CANDIDATES_RECEIVED);
+  EXPECT_CALL(*nice_listener, updateIceState(erizo::IceState::READY , _)).Times(1);
+  EXPECT_CALL(*nice_listener, updateIceState(erizo::IceState::CANDIDATES_RECEIVED, _)).Times(1);
+  nice_connection->updateComponentState(1, erizo::IceState::CANDIDATES_RECEIVED);
+  nice_connection->updateComponentState(1, erizo::IceState::READY);
+  nice_connection->updateComponentState(1, erizo::IceState::CANDIDATES_RECEIVED);
 }
 
 TEST_F(NiceConnectionTwoComponentsTest,
     updateComponentState_NiceConnection_Is_Not_Ready_When_Single_Component_Is_Ready) {
-  EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_READY , _)).Times(0);
-  nice_connection->updateComponentState(1, erizo::NICE_READY);
+  EXPECT_CALL(*nice_listener, updateIceState(erizo::IceState::READY , _)).Times(0);
+  nice_connection->updateComponentState(1, erizo::IceState::READY);
 }
 
 TEST_F(NiceConnectionTwoComponentsTest, updateComponentState_NiceConnection_Is_Ready_When_Both_Components_Are_Ready) {
-  EXPECT_CALL(*nice_listener, updateIceState(erizo::NICE_READY , _)).Times(1);
-  nice_connection->updateComponentState(1, erizo::NICE_READY);
-  nice_connection->updateComponentState(2, erizo::NICE_READY);
+  EXPECT_CALL(*nice_listener, updateIceState(erizo::IceState::READY , _)).Times(1);
+  nice_connection->updateComponentState(1, erizo::IceState::READY);
+  nice_connection->updateComponentState(2, erizo::IceState::READY);
 }
