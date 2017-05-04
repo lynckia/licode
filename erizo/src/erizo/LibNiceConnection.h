@@ -1,5 +1,5 @@
 /*
- * NiceConnection.h
+ * LibNiceConnection.h
  */
 
 #ifndef ERIZO_SRC_ERIZO_NICECONNECTION_H_
@@ -37,14 +37,14 @@ typedef std::shared_ptr<dataPacket> packetPtr;
 class CandidateInfo;
 class WebRtcConnection;
 
-class NiceConnection : public IceConnection {
+class LibNiceConnection : public IceConnection {
   DECLARE_LOGGER();
 
  public:
-  NiceConnection(boost::shared_ptr<LibNiceInterface> libnice, IceConnectionListener* listener,
+  LibNiceConnection(boost::shared_ptr<LibNiceInterface> libnice, IceConnectionListener* listener,
     const IceConfig& ice_config);
 
-  virtual ~NiceConnection();
+  virtual ~LibNiceConnection();
   /**
    * Starts Gathering candidates in a new thread.
    */
@@ -63,7 +63,7 @@ class NiceConnection : public IceConnection {
   void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
 
-  static NiceConnection* create(IceConnectionListener *listener, const IceConfig& ice_config);
+  static LibNiceConnection* create(IceConnectionListener *listener, const IceConfig& ice_config);
 
  private:
   std::string iceStateToString(IceState state) const;

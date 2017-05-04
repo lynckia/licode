@@ -1,5 +1,5 @@
 /*
- * NiceConnection.h
+ * LibNiceConnection.h
  */
 
 #ifndef ERIZO_SRC_ERIZO_ICECONNECTION_H_

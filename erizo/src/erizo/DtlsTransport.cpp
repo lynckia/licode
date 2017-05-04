@@ -10,7 +10,7 @@
 
 #include "./SrtpChannel.h"
 #include "rtp/RtpHeaders.h"
-#include "./NiceConnection.h"
+#include "./LibNiceConnection.h"
 #include "./NicerConnection.h"
 
 using erizo::Resender;
@@ -109,7 +109,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
 #ifdef USE_NICER
     ice_.reset(NicerConnection::create(this, iceConfig_));
 #else
-    ice_.reset(NiceConnection::create(this, iceConfig_));
+    ice_.reset(LibNiceConnection::create(this, iceConfig_));
 #endif
     rtp_resender_.reset(new Resender(this, dtlsRtp.get()));
     if (!rtcp_mux) {
