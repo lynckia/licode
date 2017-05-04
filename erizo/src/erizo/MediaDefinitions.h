@@ -13,8 +13,6 @@
 
 namespace erizo {
 
-class NiceConnection;
-
 enum packetType {
     VIDEO_PACKET,
     AUDIO_PACKET,
