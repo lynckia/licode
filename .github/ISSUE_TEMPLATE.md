@@ -32,4 +32,4 @@ Briefly describe the problem you are having in a few paragraphs.
 **Licode commit/release where the issue is happening**
 
 
-**Additional environment details (AWS, VirtualBox, physical, etc.):**
+**Additional environment details (Local, AWS, Docker, etc.):**
