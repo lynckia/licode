@@ -9,7 +9,7 @@
 #include <boost/shared_ptr.hpp>
 #include <string>
 #include "dtls/DtlsSocket.h"
-#include "./NiceConnection.h"
+#include "./IceConnection.h"
 #include "./Transport.h"
 #include "./logger.h"
 
@@ -29,15 +29,15 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   static bool isDtlsPacket(const char* buf, int len);
   void start() override;
   void close() override;
-  void onNiceData(packetPtr packet) override;
-  void onCandidate(const CandidateInfo &candidate, NiceConnection *conn) override;
+  void onIceData(packetPtr packet) override;
+  void onCandidate(const CandidateInfo &candidate, IceConnection *conn) override;
   void write(char* data, int len) override;
   void onDtlsPacket(dtls::DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) override;
   void writeDtlsPacket(dtls::DtlsSocketContext *ctx, packetPtr packet);
   void onHandshakeCompleted(dtls::DtlsSocketContext *ctx, std::string clientKey, std::string serverKey,
                             std::string srtp_profile) override;
   void onHandshakeFailed(dtls::DtlsSocketContext *ctx, const std::string error) override;
-  void updateIceState(IceState state, NiceConnection *conn) override;
+  void updateIceState(IceState state, IceConnection *conn) override;
   void processLocalSdp(SdpInfo *localSdp_) override;
 
  private:
@@ -50,8 +50,6 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   bool isServer_;
   std::unique_ptr<Resender> rtcp_resender_, rtp_resender_;
   packetPtr p_;
-
-  void getNiceDataLoop();
 };
 
 class Resender {
