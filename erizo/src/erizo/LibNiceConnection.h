@@ -2,8 +2,8 @@
  * LibNiceConnection.h
  */
 
-#ifndef ERIZO_SRC_ERIZO_NICECONNECTION_H_
-#define ERIZO_SRC_ERIZO_NICECONNECTION_H_
+#ifndef ERIZO_SRC_ERIZO_LIBNICECONNECTION_H_
+#define ERIZO_SRC_ERIZO_LIBNICECONNECTION_H_
 
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
@@ -86,4 +86,4 @@ class LibNiceConnection : public IceConnection {
 };
 
 }  // namespace erizo
-#endif  // ERIZO_SRC_ERIZO_NICECONNECTION_H_
+#endif  // ERIZO_SRC_ERIZO_LIBNICECONNECTION_H_

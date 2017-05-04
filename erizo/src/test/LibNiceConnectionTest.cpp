@@ -480,7 +480,8 @@ TEST_F(LibNiceConnectionTwoComponentsTest,
   nice_connection->updateComponentState(1, erizo::IceState::READY);
 }
 
-TEST_F(LibNiceConnectionTwoComponentsTest, updateComponentState_LibNiceConnection_Is_Ready_When_Both_Components_Are_Ready) {
+TEST_F(LibNiceConnectionTwoComponentsTest,
+       updateComponentState_LibNiceConnection_Is_Ready_When_Both_Components_Are_Ready) {
   EXPECT_CALL(*nice_listener, updateIceState(erizo::IceState::READY , _)).Times(1);
   nice_connection->updateComponentState(1, erizo::IceState::READY);
   nice_connection->updateComponentState(2, erizo::IceState::READY);
