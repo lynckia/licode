@@ -46,11 +46,9 @@ NicerConnection::~NicerConnection() {
 void NicerConnection::start() {
   std::string name = "agent";
   // Create the ICE context
-  int r;
-
   UINT4 flags = NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;
 
-  r = nr_ice_ctx_create(const_cast<char *>(name.c_str()), flags, &ctx_);
+  nr_ice_ctx_create(const_cast<char *>(name.c_str()), flags, &ctx_);
 }
 
 bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) {
