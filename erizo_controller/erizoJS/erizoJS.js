@@ -79,6 +79,9 @@ var log = logger.getLogger('ErizoJS');
 var threadPool = new addon.ThreadPool(GLOBAL.config.erizo.numWorkers);
 threadPool.start();
 
+var ioWorker = new addon.IOWorker();
+ioWorker.start();
+
 var ejsController = controller.ErizoJSController(threadPool);
 
 ejsController.keepAlive = function(callback) {
