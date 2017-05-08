@@ -48,7 +48,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
     iceConfig_{iceConfig}, rtp_mappings_{rtp_mappings}, extProcessor_{ext_mappings},
     pipeline_{Pipeline::create()}, worker_{worker}, audio_muted_{false}, pipeline_initialized_{false} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
-      toLog(), iceConfig.stunServer.c_str(), iceConfig.stunPort, iceConfig.minPort, iceConfig.maxPort);
+      toLog(), iceConfig.stun_server.c_str(), iceConfig.stun_port, iceConfig.min_port, iceConfig.max_port);
   setVideoSinkSSRC(kDefaultVideoSinkSSRC);
   setAudioSinkSSRC(kDefaultAudioSinkSSRC);
   source_fb_sink_ = this;
@@ -60,7 +60,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::st
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
 
-  trickleEnabled_ = iceConfig_.shouldTrickle;
+  trickleEnabled_ = iceConfig_.should_trickle;
 
   shouldSendFeedback_ = true;
   slide_show_mode_ = false;
@@ -212,7 +212,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
         } else {
           ELOG_DEBUG("%s message: Updating videoTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
-          videoTransport_->getNiceConnection()->setRemoteCredentials(username, password);
+          videoTransport_->getIceConnection()->setRemoteCredentials(username, password);
         }
       }
       if (!bundle_ && remoteSdp_.hasAudio) {
@@ -228,7 +228,7 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
         } else {
           ELOG_DEBUG("%s message: Update audioTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
-          audioTransport_->getNiceConnection()->setRemoteCredentials(username, password);
+          audioTransport_->getIceConnection()->setRemoteCredentials(username, password);
         }
       }
     }
@@ -302,7 +302,7 @@ bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex
   // Checking if it's the last candidate, only works in bundle.
   if (mLineIndex == -1) {
     ELOG_DEBUG("%s message: All candidates received", toLog());
-    videoTransport_->getNiceConnection()->setReceivedLastCandidate(true);
+    videoTransport_->getIceConnection()->setReceivedLastCandidate(true);
   }
   if ((!mid.compare("video")) || (mLineIndex == remoteSdp_.videoSdpMLine)) {
     theType = VIDEO_TYPE;
@@ -636,7 +636,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
 void WebRtcConnection::trackTransportInfo() {
   CandidatePair candidate_pair;
   if (videoEnabled_ && videoTransport_) {
-    candidate_pair = videoTransport_->getNiceConnection()->getSelectedPair();
+    candidate_pair = videoTransport_->getIceConnection()->getSelectedPair();
     asyncTask([candidate_pair] (std::shared_ptr<WebRtcConnection> connection) {
       std::shared_ptr<Stats> stats = connection->stats_;
       uint32_t video_sink_ssrc = connection->getVideoSinkSSRC();
@@ -655,7 +655,7 @@ void WebRtcConnection::trackTransportInfo() {
 
   if (audioEnabled_) {
     if (audioTransport_) {
-      candidate_pair = audioTransport_->getNiceConnection()->getSelectedPair();
+      candidate_pair = audioTransport_->getIceConnection()->getSelectedPair();
     }
     asyncTask([candidate_pair] (std::shared_ptr<WebRtcConnection> connection) {
       std::shared_ptr<Stats> stats = connection->stats_;

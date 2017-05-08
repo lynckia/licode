@@ -180,19 +180,19 @@ NAN_METHOD(WebRtcConnection::New) {
       v8::String::Utf8Value param5(Nan::To<v8::String>(info[12]).ToLocalChecked());
       std::string network_interface = std::string(*param5);
 
-      iceConfig.turnServer = turnServer;
-      iceConfig.turnPort = turnPort;
-      iceConfig.turnUsername = turnUsername;
-      iceConfig.turnPass = turnPass;
+      iceConfig.turn_server = turnServer;
+      iceConfig.turn_port = turnPort;
+      iceConfig.turn_username = turnUsername;
+      iceConfig.turn_pass = turnPass;
       iceConfig.network_interface = network_interface;
     }
 
 
-    iceConfig.stunServer = stunServer;
-    iceConfig.stunPort = stunPort;
-    iceConfig.minPort = minPort;
-    iceConfig.maxPort = maxPort;
-    iceConfig.shouldTrickle = trickle;
+    iceConfig.stun_server = stunServer;
+    iceConfig.stun_port = stunPort;
+    iceConfig.min_port = minPort;
+    iceConfig.max_port = maxPort;
+    iceConfig.should_trickle = trickle;
 
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
