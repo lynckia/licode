@@ -13,7 +13,7 @@ window.onload = function () {
   var createToken = function(userName, role, callback) {
 
     var req = new XMLHttpRequest();
-    var url = serverUrl + 'createToken/';
+    var url = serverUrl + 'token/';
     var body = {username: userName, role: role};
 
     req.onreadystatechange = function () {

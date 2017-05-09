@@ -262,7 +262,7 @@ window.onload = function () {
     var createToken = function(userName, role, roomName, callback) {
 
         var req = new XMLHttpRequest();
-        var url = serverUrl + 'createToken/';
+        var url = serverUrl + 'token/';
         var body = {username: userName, role: role};
         body.room = roomId ? undefined : roomName;
         body.roomId = roomId;
