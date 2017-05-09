@@ -10,7 +10,8 @@
 
 #include "./SrtpChannel.h"
 #include "rtp/RtpHeaders.h"
-#include "lib/LibNiceInterface.h"
+#include "./LibNiceConnection.h"
+#include "./NicerConnection.h"
 
 using erizo::Resender;
 using erizo::DtlsTransport;
@@ -99,8 +100,17 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
         dtlsRtcp->setDtlsReceiver(this);
       }
     }
-    nice_.reset(new NiceConnection(boost::shared_ptr<LibNiceInterface>(new LibNiceInterfaceImpl()), med,
-          transport_name, connection_id_, this, comps, iceConfig_, username, password));
+    iceConfig_.connection_id = connection_id_;
+    iceConfig_.transport_name = transport_name;
+    iceConfig_.media_type = med;
+    iceConfig_.ice_components = comps;
+    iceConfig_.username = username;
+    iceConfig_.password = password;
+#ifdef USE_NICER
+    ice_.reset(NicerConnection::create(this, iceConfig_));
+#else
+    ice_.reset(LibNiceConnection::create(this, iceConfig_));
+#endif
     rtp_resender_.reset(new Resender(this, dtlsRtp.get()));
     if (!rtcp_mux) {
       rtcp_resender_.reset(new Resender(this, dtlsRtcp.get()));
@@ -115,15 +125,15 @@ DtlsTransport::~DtlsTransport() {
 }
 
 void DtlsTransport::start() {
-  nice_->copyLogContextFrom(this);
+  ice_->copyLogContextFrom(this);
   ELOG_DEBUG("%s message: starting ice", toLog());
-  nice_->start();
+  ice_->start();
 }
 
 void DtlsTransport::close() {
   ELOG_DEBUG("%s message: closing", toLog());
   running_ = false;
-  nice_->close();
+  ice_->close();
   if (dtlsRtp) {
     dtlsRtp->close();
   }
@@ -140,7 +150,7 @@ void DtlsTransport::close() {
   ELOG_DEBUG("%s message: closed", toLog());
 }
 
-void DtlsTransport::onNiceData(packetPtr packet) {
+void DtlsTransport::onIceData(packetPtr packet) {
   int len = packet->length;
   char *data = packet->data;
   unsigned int component_id = packet->comp;
@@ -194,14 +204,14 @@ void DtlsTransport::onNiceData(packetPtr packet) {
   }
 }
 
-void DtlsTransport::onCandidate(const CandidateInfo &candidate, NiceConnection *conn) {
+void DtlsTransport::onCandidate(const CandidateInfo &candidate, IceConnection *conn) {
   if (auto listener = getTransportListener().lock()) {
     listener->onCandidate(candidate, this);
   }
 }
 
 void DtlsTransport::write(char* data, int len) {
-  if (nice_ == nullptr || !running_) {
+  if (ice_ == nullptr || !running_) {
     return;
   }
   int length = len;
@@ -218,7 +228,7 @@ void DtlsTransport::write(char* data, int len) {
       if (dtlsRtcp != NULL) {
         srtp = srtcp_.get();
       }
-      if (srtp && nice_->checkIceState() == NICE_READY) {
+      if (srtp && ice_->checkIceState() == IceState::READY) {
         if (srtp->protectRtcp(protectBuf_, &length) < 0) {
           return;
         }
@@ -226,7 +236,7 @@ void DtlsTransport::write(char* data, int len) {
     } else {
       comp = 1;
 
-      if (srtp && nice_->checkIceState() == NICE_READY) {
+      if (srtp && ice_->checkIceState() == IceState::READY) {
         if (srtp->protectRtp(protectBuf_, &length) < 0) {
           return;
         }
@@ -235,8 +245,8 @@ void DtlsTransport::write(char* data, int len) {
     if (length <= 10) {
       return;
     }
-    if (nice_->checkIceState() == NICE_READY) {
-      writeOnNice(comp, protectBuf_, length);
+    if (ice_->checkIceState() == IceState::READY) {
+      writeOnIce(comp, protectBuf_, length);
     }
   }
 }
@@ -261,7 +271,7 @@ void DtlsTransport::writeDtlsPacket(DtlsSocketContext *ctx, packetPtr packet) {
   char data[1500];
   unsigned int len = packet->length;
   memcpy(data, packet->data, len);
-  writeOnNice(packet->comp, data, len);
+  writeOnIce(packet->comp, data, len);
 }
 
 void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey, std::string serverKey,
@@ -310,18 +320,18 @@ std::string DtlsTransport::getMyFingerprint() {
   return dtlsRtp->getFingerprint();
 }
 
-void DtlsTransport::updateIceState(IceState state, NiceConnection *conn) {
+void DtlsTransport::updateIceState(IceState state, IceConnection *conn) {
   ELOG_DEBUG("%s message:NiceState, transportName: %s, state: %d, isBundle: %d",
              toLog(), transport_name.c_str(), state, bundle_);
-  if (state == NICE_INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
+  if (state == IceState::INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
     updateTransportState(TRANSPORT_STARTED);
-  } else if (state == NICE_CANDIDATES_RECEIVED && this->getTransportState() != TRANSPORT_GATHERED) {
+  } else if (state == IceState::CANDIDATES_RECEIVED && this->getTransportState() != TRANSPORT_GATHERED) {
     updateTransportState(TRANSPORT_GATHERED);
-  } else if (state == NICE_FAILED) {
+  } else if (state == IceState::FAILED) {
     ELOG_DEBUG("%s message: Nice Failed", toLog());
     running_ = false;
     updateTransportState(TRANSPORT_FAILED);
-  } else if (state == NICE_READY) {
+  } else if (state == IceState::READY) {
     if (!isServer_ && dtlsRtp && !dtlsRtp->started) {
       ELOG_INFO("%s message: DTLSRTP Start, transportName: %s", toLog(), transport_name.c_str());
       dtlsRtp->start();
@@ -337,8 +347,8 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
   ELOG_DEBUG("%s message: processing local sdp, transportName: %s", toLog(), transport_name.c_str());
   localSdp_->isFingerprint = true;
   localSdp_->fingerprint = getMyFingerprint();
-  std::string username = nice_->getLocalUsername();
-  std::string password = nice_->getLocalPassword();
+  std::string username = ice_->getLocalUsername();
+  std::string password = ice_->getLocalPassword();
   if (bundle_) {
     localSdp_->setCredentials(username, password, VIDEO_TYPE);
     localSdp_->setCredentials(username, password, AUDIO_TYPE);

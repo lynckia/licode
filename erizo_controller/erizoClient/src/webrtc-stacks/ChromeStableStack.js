@@ -52,7 +52,7 @@ Erizo.ChromeStableStack = function (spec) {
       return 'a=ssrc-group:FID ' + spatialLayerId + ' ' + spatialLayerIdRtx + '\r\n';
     };
 
-    var addSpatialLayer = function (cname, msid, mslabel, label, spatialLayerId, 
+    var addSpatialLayer = function (cname, msid, mslabel, label, spatialLayerId,
         spatialLayerIdRtx) {
       return  'a=ssrc:' + spatialLayerId + ' cname:' + cname +'\r\n' +
               'a=ssrc:' + spatialLayerId + ' msid:' + msid + '\r\n' +
@@ -72,9 +72,6 @@ Erizo.ChromeStableStack = function (spec) {
       if (!spec.simulcast) {
         return sdp;
       }
-
-      // TODO(javier): Remove this message once Simulcast is complete
-      L.Logger.warning('Simulcast is still WIP, please don\'t use it in production');
 
       // TODO(javier): Improve the way we check for current video ssrcs
       matchGroup = sdp.match(/a=ssrc-group:FID ([0-9]*) ([0-9]*)\r?\n/);
@@ -300,7 +297,7 @@ Erizo.ChromeStableStack = function (spec) {
 
     that.createOffer = function (isSubscribe) {
         if (isSubscribe === true) {
-            that.peerConnection.createOffer(setLocalDesc.bind(null, isSubscribe), errorCallback, 
+            that.peerConnection.createOffer(setLocalDesc.bind(null, isSubscribe), errorCallback,
                 that.mediaConstraints);
         } else {
             that.mediaConstraints = {
@@ -309,7 +306,7 @@ Erizo.ChromeStableStack = function (spec) {
                     'OfferToReceiveAudio': false
                 }
             };
-            that.peerConnection.createOffer(setLocalDesc.bind(null, isSubscribe), errorCallback, 
+            that.peerConnection.createOffer(setLocalDesc.bind(null, isSubscribe), errorCallback,
                 that.mediaConstraints);
         }
 

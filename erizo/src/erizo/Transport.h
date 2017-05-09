@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <cstdio>
-#include "NiceConnection.h"
+#include "IceConnection.h"
 #include "thread/Worker.h"
 #include "./logger.h"
 
@@ -25,9 +25,9 @@ class TransportListener {
   virtual void onCandidate(const CandidateInfo& cand, Transport *transport) = 0;
 };
 
-class Transport : public std::enable_shared_from_this<Transport>, public NiceConnectionListener, public LogContext {
+class Transport : public std::enable_shared_from_this<Transport>, public IceConnectionListener, public LogContext {
  public:
-  boost::shared_ptr<NiceConnection> nice_;
+  boost::shared_ptr<IceConnection> ice_;
   MediaType mediaType;
   std::string transport_name;
   Transport(MediaType med, const std::string& transport_name, const std::string& connection_id, bool bundle,
@@ -37,14 +37,14 @@ class Transport : public std::enable_shared_from_this<Transport>, public NiceCon
     connection_id_(connection_id), state_(TRANSPORT_INITIAL), iceConfig_(iceConfig), bundle_(bundle),
     running_{true}, worker_{worker} {}
   virtual ~Transport() {}
-  virtual void updateIceState(IceState state, NiceConnection *conn) = 0;
-  virtual void onNiceData(packetPtr packet) = 0;
-  virtual void onCandidate(const CandidateInfo &candidate, NiceConnection *conn) = 0;
+  virtual void updateIceState(IceState state, IceConnection *conn) = 0;
+  virtual void onIceData(packetPtr packet) = 0;
+  virtual void onCandidate(const CandidateInfo &candidate, IceConnection *conn) = 0;
   virtual void write(char* data, int len) = 0;
   virtual void processLocalSdp(SdpInfo *localSdp_) = 0;
   virtual void start() = 0;
   virtual void close() = 0;
-  virtual boost::shared_ptr<NiceConnection> getNiceConnection() { return nice_; }
+  virtual boost::shared_ptr<IceConnection> getIceConnection() { return ice_; }
   void setTransportListener(std::weak_ptr<TransportListener> listener) {
     transport_listener_ = listener;
   }
@@ -63,14 +63,14 @@ class Transport : public std::enable_shared_from_this<Transport>, public NiceCon
       listener->updateState(state, this);
     }
   }
-  void writeOnNice(int comp, void* buf, int len) {
+  void writeOnIce(int comp, void* buf, int len) {
     if (!running_) {
       return;
     }
-    nice_->sendData(comp, buf, len);
+    ice_->sendData(comp, buf, len);
   }
   bool setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool isBundle) {
-    return nice_->setRemoteCandidates(candidates, isBundle);
+    return ice_->setRemoteCandidates(candidates, isBundle);
   }
 
   void onPacketReceived(packetPtr packet) {
@@ -78,7 +78,7 @@ class Transport : public std::enable_shared_from_this<Transport>, public NiceCon
     worker_->task([weak_transport, packet]() {
       if (auto this_ptr = weak_transport.lock()) {
         if (packet->length > 0) {
-          this_ptr->onNiceData(packet);
+          this_ptr->onIceData(packet);
         }
         if (packet->length == -1) {
           this_ptr->running_ = false;

@@ -7,7 +7,7 @@
 #include <OneToManyProcessor.h>
 #include <SdpInfo.h>
 #include <WebRtcConnection.h>
-#include <NiceConnection.h>
+#include <LibNiceConnection.h>
 #include "Test.h"
 #include "pc/Observer.h"
 
