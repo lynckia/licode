@@ -94,9 +94,6 @@ Erizo.GetUserMedia = function (config, callback, error) {
 
             case 'chrome-stable':
             L.Logger.debug('Screen sharing in Chrome');
-                // Default extensionId - this extension is only usable in our server,
-                // please make your own extension based on the code in
-                // erizo_controller/erizoClient/extras/chrome-extension
                 if (config.desktopStreamId){
                     var theConfig = {};
                     theConfig.video = config.video || {};
@@ -104,6 +101,9 @@ Erizo.GetUserMedia = function (config, callback, error) {
                     theConfig.video.mandatory.chromeMediaSourceId = config.desktopStreamId;
                     navigator.getMedia(theConfig, callback, error);
                 } else {
+                  // Default extensionId - this extension is only usable in our server,
+                  // please make your own extension based on the code in
+                  // erizo_controller/erizoClient/extras/chrome-extension
                   var extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
                   if (config.extensionId){
                       L.Logger.debug('extensionId supplied, using ' + config.extensionId);
