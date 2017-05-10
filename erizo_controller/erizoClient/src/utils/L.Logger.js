@@ -51,12 +51,12 @@ L.Logger = (function (L) {
       console.log.apply(console, args);
     };
 
-    setOutputFunction = function (outputFunction) {
-      L.Logger.outputFunction = outputFunction;
+    setOutputFunction = function (newOutputFunction) {
+      outputFunction = newOutputFunction;
     };
 
     setLogPrefix = function (newLogPrefix) {
-      L.Logger.logPrefix = logPrefix;
+      logPrefix = newLogPrefix;
     };
 
     // Generic function to print logs for a given level:
@@ -91,7 +91,7 @@ L.Logger = (function (L) {
             }
             L.Logger.panel.value = L.Logger.panel.value + '\n' + tmp;
         } else {
-            L.Logger.outputFunction.apply(L.Logger, [args]);
+            outputFunction.apply(L.Logger, [args]);
         }
     };
 
@@ -151,8 +151,6 @@ L.Logger = (function (L) {
         setLogLevel: setLogLevel,
         setOutputFunction: setOutputFunction,
         setLogPrefix: setLogPrefix,
-        outputFunction: outputFunction,
-        logPrefix, logPrefix,
         log: log,
         debug: debug,
         trace: trace,
