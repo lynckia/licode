@@ -14,6 +14,10 @@ L.Logger = (function (L) {
         NONE = 5,
         enableLogPanel,
         setLogLevel,
+        setOutputFunction,
+        setLogPrefix,
+        outputFunction,
+        logPrefix = '',
         log,
         debug,
         trace,
@@ -43,10 +47,22 @@ L.Logger = (function (L) {
         L.Logger.logLevel = level;
     };
 
+    outputFunction = function (args) {
+      console.log.apply(console, args);
+    };
+
+    setOutputFunction = function (outputFunction) {
+      L.Logger.outputFunction = outputFunction;
+    };
+
+    setLogPrefix = function (newLogPrefix) {
+      L.Logger.logPrefix = logPrefix;
+    };
+
     // Generic function to print logs for a given level:
     //  L.Logger.[DEBUG, TRACE, INFO, WARNING, ERROR]
     log = function (level) {
-        var out = '';
+        var out = logPrefix;
         if (level < L.Logger.logLevel) {
             return;
         }
@@ -75,7 +91,7 @@ L.Logger = (function (L) {
             }
             L.Logger.panel.value = L.Logger.panel.value + '\n' + tmp;
         } else {
-            console.log.apply(console, args);
+            L.Logger.outputFunction.apply(L.Logger, [args]);
         }
     };
 
@@ -133,6 +149,10 @@ L.Logger = (function (L) {
         NONE: NONE,
         enableLogPanel: enableLogPanel,
         setLogLevel: setLogLevel,
+        setOutputFunction: setOutputFunction,
+        setLogPrefix: setLogPrefix,
+        outputFunction: outputFunction,
+        logPrefix, logPrefix,
         log: log,
         debug: debug,
         trace: trace,

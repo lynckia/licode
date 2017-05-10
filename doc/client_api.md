@@ -874,6 +874,15 @@ In this example we will make a basic videoconference application. Every client t
   </body>
 </html>
 ```
+# Customize Logging
+
+You can configure and customize the way ErizoClient:
+
+| Function                               | Description                                                                                         |
+|----------------------------------------|-----------------------------------------------------------------------------------------------------|
+| `L.Logger.setLogLevel(LogLevel)`         | Sets the log level from 0 (DEBUG) to 5(NONE) with decreasing level of detail               |
+| `L.Logger.setLogPrefix(logPrefix)`       | You can pass a string as a prefix for every log ErizoClient log message              |
+| `L.Logger.setOutputFunction(outputFunction)`      | You can pass a function that takes an array forming the log message to further customize the output|
 
 # Node.js Client
 
