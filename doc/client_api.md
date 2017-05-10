@@ -38,6 +38,12 @@ var stream = Erizo.Stream({screen: true, data: true, attributes: {name:'myStream
 
 Note that, if you use a Stream this way, the client that will share its sreen must access to your web app using a secure connection (with https protocol) and use a screensharing plugin as explained <a href="http://lynckia.com/licode/plugin.html" target="_blank">here</a>.
 
+Additionally, in Chrome, you can use your own extension outside of Licode and directly pass the `chromeMediaSourceId` as a parameter:
+
+```
+var stream = Erizo.Stream({screen: true, data: true, attributes: {name:'myStream'}, desktopStreamId:'ID_PROVIDED_BY_YOUR_EXTENSION'});
+```
+
 You can also specify some constraints about the video size when creating a stream. In order to do this you need to include a `videoSize` parameter that is an array with the following format: `[minWidth, minHeight, maxWidth, maxHeight]`
 
 ```
