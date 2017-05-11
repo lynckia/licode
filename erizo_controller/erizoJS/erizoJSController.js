@@ -565,7 +565,7 @@ exports.ErizoJSController = function (threadPool) {
             publisher = publishers[to];
 
             if (GLOBAL.config.erizoController.report_subscriptions && 
-                GLOBAL.config.erizoController.report_subscriptions.enabled) {
+                GLOBAL.config.erizoController.report_subscriptions.max_timeout > 0) {
 
                 if (timeout > GLOBAL.config.erizoController.report_subscriptions.max_timeout)
                     timeout = GLOBAL.config.erizoController.report_subscriptions.max_timeout;
@@ -592,8 +592,9 @@ exports.ErizoJSController = function (threadPool) {
 
                 callback('success');
                 
+            } else {
+                log.debug('message: Report subscriptions disabled by config, ignoring the message');
             }
-            log.debug('message: Report subscriptions disabled by config, ignoring the message');
         } else {
             log.debug('message: Im not handling this stream, ignoring the message, streamID: ' + to);
         }

@@ -97,11 +97,10 @@ config.erizoController.report = {
     rtcp_stats: false				// RTCP stats -- default value: false
 };
 
-// If true, erizoController admits subscriptions to stats
+// Subscriptions to rtcp_stats via AMQP
 config.erizoController.report_subscriptions = {
-	enabled: true,	
-	min_interval: 1, 		// in seconds
-	max_timeout: 60			// in seconds
+	min_interval: 1, 		// in seconds -- default 1
+	max_timeout: 60			// in seconds -- set 0 to disable subscriptions -- default 60
 };
 
 // If undefined, the path will be /tmp/
