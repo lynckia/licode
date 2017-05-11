@@ -41,14 +41,14 @@ Erizo.Connection = function (spec) {
 Erizo.getBrowser = function () {
     var browser = 'none';
 
-    if (typeof module!=='undefined' && module.exports){
-        browser = 'fake';
-    }else if (window.navigator.userAgent.match('Firefox') !== null) {
+    if (typeof window === 'undefined' && module.exports){
+        browser = "fake";
+    }else if (window.navigator.userAgent.match("Firefox") !== null) {
         // Firefox
-        browser = 'mozilla';
-    } else if (window.navigator.userAgent.match('Bowser') !== null){
-        browser = 'bowser';
-    } else if (window.navigator.userAgent.match('Chrome') !== null) {
+        browser = "mozilla";
+    } else if (window.navigator.userAgent.match("Bowser") !==null){
+        browser = "bowser";
+    } else if (window.navigator.userAgent.match("Chrome") !==null) {
         if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 26) {
             browser = 'chrome-stable';
         }
@@ -144,7 +144,7 @@ Erizo.GetUserMedia = function (config, callback, error) {
                 L.Logger.error('This browser does not support ScreenSharing');
         }
     } else {
-        if (typeof module !== 'undefined' && module.exports) {
+        if (typeof window === 'undefined' && module.exports) { {
             L.Logger.error('Video/audio streams not supported in erizofc yet');
         } else {
             if (config.video && Erizo.getBrowser() === 'mozilla') {
