@@ -564,15 +564,15 @@ exports.ErizoJSController = function (threadPool) {
         if (to && publishers[to]) {
             publisher = publishers[to];
 
-            if (GLOBAL.config.erizoController.report_subscriptions && 
-                GLOBAL.config.erizoController.report_subscriptions.max_timeout > 0) {
+            if (GLOBAL.config.erizoController.reportSubscriptions && 
+                GLOBAL.config.erizoController.reportSubscriptions.maxTimeout > 0) {
 
-                if (timeout > GLOBAL.config.erizoController.report_subscriptions.max_timeout)
-                    timeout = GLOBAL.config.erizoController.report_subscriptions.max_timeout;
-                if (interval < GLOBAL.config.erizoController.report_subscriptions.min_interval)
-                    interval = GLOBAL.config.erizoController.report_subscriptions.min_interval;
+                if (timeout > GLOBAL.config.erizoController.reportSubscriptions.maxTimeout)
+                    timeout = GLOBAL.config.erizoController.reportSubscriptions.maxTimeout;
+                if (interval < GLOBAL.config.erizoController.reportSubscriptions.minInterval)
+                    interval = GLOBAL.config.erizoController.reportSubscriptions.minInterval;
 
-                var interval = setInterval(function () {
+                var reportInterval = setInterval(function () {
                     let promises = [];
                     let stats = {};
                     
@@ -587,16 +587,16 @@ exports.ErizoJSController = function (threadPool) {
                 }, interval*1000);
 
                 setTimeout(function () {
-                    clearInterval(interval);
+                    clearInterval(reportInterval);
                 }, timeout*1000);
 
                 callback('success');
                 
             } else {
-                log.debug('message: Report subscriptions disabled by config, ignoring the message');
+                log.debug('message: Report subscriptions disabled by config, ignoring message');
             }
         } else {
-            log.debug('message: Im not handling this stream, ignoring the message, streamID: ' + to);
+            log.debug('message: Im not handling this stream, ignoring message, streamID: ' + to);
         }
     };
 
