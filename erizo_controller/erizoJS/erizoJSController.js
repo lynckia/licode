@@ -8,10 +8,11 @@ var ExternalInput = require('./models/Publisher').ExternalInput;
 // Logger
 var log = logger.getLogger('ErizoJSController');
 
-exports.ErizoJSController = function (threadPool) {
+exports.ErizoJSController = function (threadPool, ioWorker) {
     var that = {},
         // {id1: Publisher, id2: Publisher}
         publishers = {},
+        io = ioWorker,
 
         MIN_SLIDESHOW_PERIOD = 2000,
         MAX_SLIDESHOW_PERIOD = 10000,
@@ -34,6 +35,7 @@ exports.ErizoJSController = function (threadPool) {
         WARN_PRECOND_FAILED = 412,
         WARN_BAD_CONNECTION = 502;
     that.publishers = publishers;
+    that.ioWorker = io;
 
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
@@ -208,7 +210,7 @@ exports.ErizoJSController = function (threadPool) {
 
     that.removeExternalOutput = function (to, url) {
         if (publishers[to] !== undefined) {
-            log.info('message: Stopping ExternalOutput, id: ' + 
+            log.info('message: Stopping ExternalOutput, id: ' +
                 publishers[to].getExternalOutput(url).wrtcId);
             publishers[to].removeExternalOutput(url);
         }

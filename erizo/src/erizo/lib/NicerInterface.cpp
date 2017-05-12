@@ -47,6 +47,10 @@ int NicerInterfaceImpl::IceContextSetTrickleCallback(nr_ice_ctx *ctx, nr_ice_tri
   return nr_ice_ctx_set_trickle_cb(ctx, cb, cb_arg);
 }
 
+void NicerInterfaceImpl::IceContextSetSocketFactory(nr_ice_ctx *ctx, nr_socket_factory *factory) {
+  nr_ice_ctx_set_socket_factory(ctx, factory);
+}
+
 int NicerInterfaceImpl::IcePeerContextCreate(nr_ice_ctx *ctx, nr_ice_handler *handler, char *label,
                                              nr_ice_peer_ctx **pctxp) {
   return nr_ice_peer_ctx_create(ctx, handler, label, pctxp);
@@ -54,5 +58,13 @@ int NicerInterfaceImpl::IcePeerContextCreate(nr_ice_ctx *ctx, nr_ice_handler *ha
 
 int NicerInterfaceImpl::IcePeerContextDestroy(nr_ice_peer_ctx **pctxp) {
   return nr_ice_peer_ctx_destroy(pctxp);
+}
+
+int NicerInterfaceImpl::IceGather(nr_ice_ctx *ctx, NR_async_cb done_cb, void *cb_arg) {
+  return nr_ice_gather(ctx, done_cb, cb_arg);
+}
+
+int NicerInterfaceImpl::IceAddMediaStream(nr_ice_ctx *ctx, char *label, int components, nr_ice_media_stream **streamp) {
+  return nr_ice_add_media_stream(ctx, label, components, streamp);
 }
 }  // namespace erizo

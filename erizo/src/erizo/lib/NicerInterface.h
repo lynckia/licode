@@ -37,8 +37,11 @@ class NicerInterface {
   virtual int IceContextCreateWithCredentials(char *label, UINT4 flags, char* ufrag, char* pwd, nr_ice_ctx **ctxp) = 0;
   virtual int IceContextDestroy(nr_ice_ctx **ctxp) = 0;
   virtual int IceContextSetTrickleCallback(nr_ice_ctx *ctx, nr_ice_trickle_candidate_cb cb, void *cb_arg) = 0;
+  virtual void IceContextSetSocketFactory(nr_ice_ctx *ctx, nr_socket_factory *factory) = 0;
   virtual int IcePeerContextCreate(nr_ice_ctx *ctx, nr_ice_handler *handler, char *label, nr_ice_peer_ctx **pctxp) = 0;
   virtual int IcePeerContextDestroy(nr_ice_peer_ctx **pctxp) = 0;
+  virtual int IceGather(nr_ice_ctx *ctx, NR_async_cb done_cb, void *cb_arg) = 0;
+  virtual int IceAddMediaStream(nr_ice_ctx *ctx, char *label, int components, nr_ice_media_stream **streamp) = 0;
 };
 
 
@@ -48,8 +51,11 @@ class NicerInterfaceImpl: public NicerInterface {
   int IceContextCreateWithCredentials(char *label, UINT4 flags, char* ufrag, char* pwd, nr_ice_ctx **ctxp) override;
   int IceContextDestroy(nr_ice_ctx **ctxp) override;
   int IceContextSetTrickleCallback(nr_ice_ctx *ctx, nr_ice_trickle_candidate_cb cb, void *cb_arg) override;
+  void IceContextSetSocketFactory(nr_ice_ctx *ctx, nr_socket_factory *factory) override;
   int IcePeerContextCreate(nr_ice_ctx *ctx, nr_ice_handler *handler, char *label, nr_ice_peer_ctx **pctxp) override;
   int IcePeerContextDestroy(nr_ice_peer_ctx **pctxp) override;
+  int IceGather(nr_ice_ctx *ctx, NR_async_cb done_cb, void *cb_arg) override;
+  int IceAddMediaStream(nr_ice_ctx *ctx, char *label, int components, nr_ice_media_stream **streamp) override;
 };
 
 }  // namespace erizo

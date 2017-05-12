@@ -45,13 +45,11 @@ class NicerConnection : public IceConnection {
 
   void start() override;
   bool setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) override;
-  void gatheringDone(uint stream_id) override;
-  void getCandidate(uint stream_id, uint component_id, const std::string &foundation) override;
+  void gatheringDone(uint stream_id);
+  void onCandidate(nr_ice_media_stream *stream, int component_id, nr_ice_candidate *candidate);
   void setRemoteCredentials(const std::string& username, const std::string& password) override;
   int sendData(unsigned int compId, const void* buf, int len) override;
 
-  void updateIceState(IceState state) override;
-  IceState checkIceState() override;
   void updateComponentState(unsigned int compId, IceState state) override;
   void onData(unsigned int component_id, char* buf, int len) override;
   CandidatePair getSelectedPair() override;
@@ -63,6 +61,10 @@ class NicerConnection : public IceConnection {
  private:
   std::string getNewUfrag();
   std::string getNewPwd();
+  std::string getStringFromAddress(const nr_transport_addr &addr);
+  int getPortFromAddress(const nr_transport_addr &addr);
+  void startGathering();
+  void startChecking();
 
   static void initializeGlobals();
 
@@ -88,12 +90,13 @@ class NicerConnection : public IceConnection {
   const std::string name_;
   nr_ice_ctx *ctx_;
   nr_ice_peer_ctx *peer_;
+  nr_ice_media_stream *stream_;
   bool offerer_;
   nr_ice_handler_vtbl* ice_handler_vtbl_;
   nr_ice_handler* ice_handler_;
+  nr_socket_factory_vtbl* socket_factory_vtbl_;
+  nr_socket_factory* socket_factory_;
   bool trickle_;
-  std::string ufrag_;
-  std::string pwd_;
 };
 
 }  // namespace erizo

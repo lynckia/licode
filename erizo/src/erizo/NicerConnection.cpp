@@ -43,6 +43,10 @@ DEFINE_LOGGER(NicerConnection, "NicerConnection");
 static bool nicer_initialized = false;
 static std::mutex nicer_initialization_mutex;
 
+static int no_op(void **obj) {
+  return 0;
+}
+
 static int nr_ice_crypto_openssl_random_bytes(UCHAR *buf, int len) {
   RAND_bytes(buf, len);
   return 0;
@@ -81,6 +85,8 @@ int nr_crypto_openssl_set() {
 }
 
 void NicerConnection::gather_callback(NR_SOCKET s, int h, void *arg) {
+  NicerConnection *conn = reinterpret_cast<NicerConnection*>(arg);
+  conn->gatheringDone(h);
 }
 
 int NicerConnection::select_pair(void *obj, nr_ice_media_stream *stream,
@@ -94,6 +100,8 @@ int NicerConnection::stream_ready(void *obj, nr_ice_media_stream *stream) {
 }
 
 int NicerConnection::stream_failed(void *obj, nr_ice_media_stream *stream) {
+  NicerConnection *conn = reinterpret_cast<NicerConnection*>(obj);
+  conn->updateIceState(IceState::FAILED);
   return 0;
 }
 
@@ -102,6 +110,13 @@ int NicerConnection::ice_checking(void *obj, nr_ice_peer_ctx *pctx) {
 }
 
 int NicerConnection::ice_connected(void *obj, nr_ice_peer_ctx *pctx) {
+  NicerConnection *conn = reinterpret_cast<NicerConnection*>(obj);
+  if (conn->checkIceState() == IceState::FAILED) {
+    return 0;
+  }
+  conn->updateIceState(IceState::READY);
+  nr_ice_ctx_finalize(conn->ctx_, pctx);
+
   return 0;
 }
 
@@ -112,11 +127,15 @@ int NicerConnection::ice_disconnected(void *obj, nr_ice_peer_ctx *pctx) {
 int NicerConnection::msg_recvd(void *obj, nr_ice_peer_ctx *pctx,
                                nr_ice_media_stream *stream, int component_id,
                                unsigned char *msg, int len) {
+  NicerConnection *conn = reinterpret_cast<NicerConnection*>(obj);
+  conn->onData(component_id, reinterpret_cast<char*> (msg), static_cast<unsigned int> (len));
   return 0;
 }
 
 void NicerConnection::trickle_callback(void *arg, nr_ice_ctx *ctx, nr_ice_media_stream *stream,
                                        int component_id, nr_ice_candidate *candidate) {
+  NicerConnection *conn = reinterpret_cast<NicerConnection*>(arg);
+  conn->onCandidate(stream, component_id, candidate);
 }
 
 NicerConnection::NicerConnection(std::shared_ptr<NicerInterface> interface, IceConnectionListener *listener,
@@ -128,10 +147,9 @@ NicerConnection::NicerConnection(std::shared_ptr<NicerInterface> interface, IceC
       name_{ice_config_.transport_name},
       ctx_{nullptr},
       peer_{nullptr},
+      stream_{nullptr},
       offerer_{!ice_config_.username.empty() && !ice_config_.password.empty()},
-      trickle_{ice_config_.should_trickle},
-      ufrag_{""},
-      pwd_{""} {
+      trickle_{ice_config_.should_trickle} {
 }
 
 NicerConnection::~NicerConnection() {
@@ -142,24 +160,24 @@ void NicerConnection::start() {
   UINT4 flags = NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;
 
   ufrag_ = getNewUfrag();
-  pwd_ = getNewPwd();
-  if (ufrag_.empty() || pwd_.empty()) {
+  upass_ = getNewPwd();
+  if (ufrag_.empty() || upass_.empty()) {
     return;
   }
 
-  int r = nicer_->IceContextCreateWithCredentials(const_cast<char *>(name_.c_str()), flags,
-                                  const_cast<char*>(ufrag_.c_str()), const_cast<char*>(pwd_.c_str()), &ctx_);
+  int r = nicer_->IceContextCreateWithCredentials(const_cast<char *>(name_.c_str()),
+                                                  flags,
+                                                  const_cast<char*>(ufrag_.c_str()),
+                                                  const_cast<char*>(upass_.c_str()), &ctx_);
   if (r) {
-    ELOG_ERROR("Couldn't create ICE ctx for %s", name_.c_str());
+    ELOG_WARN("%s message: Couldn't create ICE ctx", toLog());
     return;
   }
 
-  if (trickle_) {
-    r = nicer_->IceContextSetTrickleCallback(ctx_, &NicerConnection::trickle_callback, this);
-    if (r) {
-      ELOG_ERROR("Couldn't set trickle callback for %s", name_.c_str());
-      return;
-    }
+  r = nicer_->IceContextSetTrickleCallback(ctx_, &NicerConnection::trickle_callback, this);
+  if (r) {
+    ELOG_WARN("%s message: Couldn't set trickle callback", toLog());
+    return;
   }
 
   // Create the handler objects
@@ -176,44 +194,188 @@ void NicerConnection::start() {
   ice_handler_->vtbl = ice_handler_vtbl_;
   ice_handler_->obj = this;
 
+  socket_factory_vtbl_ = new nr_socket_factory_vtbl();
+  socket_factory_vtbl_->create_socket = nr_socket_local_create;
+  socket_factory_vtbl_->destroy = no_op;
+
+  socket_factory_ = new nr_socket_factory();
+  socket_factory_->vtbl = socket_factory_vtbl_;
+  socket_factory_->obj = this;
+
   // Create the peer ctx. Because we do not support parallel forking, we
   // only have one peer ctx.
   std::string peer_name = name_ + ":default";
   r = nicer_->IcePeerContextCreate(ctx_, ice_handler_, const_cast<char *>(peer_name.c_str()), &peer_);
   if (r) {
-    ELOG_ERROR("Couldn't create ICE peer ctx for %s", name_.c_str());
+    ELOG_WARN("%s message: Couldn't create ICE peer ctx", toLog());
     return;
   }
+
+  peer_->controlling = 0;
+
+  nicer_->IceContextSetSocketFactory(ctx_, socket_factory_);
+
+  std::string stream_name = name_ + ":stream";
+  r = nicer_->IceAddMediaStream(ctx_, const_cast<char *>(stream_name.c_str()), ice_config_.ice_components, &stream_);
+  if (r) {
+    ELOG_WARN("%s message: Couldn't create ICE stream", toLog());
+    return;
+  }
+
+  if (ice_config_.username.compare("") != 0 && ice_config_.password.compare("") != 0) {
+    ELOG_DEBUG("%s message: setting remote credentials in constructor, ufrag:%s, pass:%s",
+               toLog(), ice_config_.username.c_str(), ice_config_.password.c_str());
+    setRemoteCredentials(ice_config_.username, ice_config_.password);
+  }
+
+  if (!ice_config_.network_interface.empty()) {
+    std::string interface = ice_config_.network_interface;
+    std::copy(interface.begin(),
+              (interface.size() >= 32 ? interface.begin() + 32 : interface.end()),
+              ctx_->force_net_interface);
+  }
+
+  startGathering();
+  startChecking();
+}
+
+void NicerConnection::startGathering() {
+  UINT4 r = nicer_->IceGather(ctx_, &NicerConnection::gather_callback, this);
+  if (r && r != R_WOULDBLOCK) {
+    ELOG_WARN("%s message: Couldn't start ICE gathering", toLog());
+    assert(false);
+  }
+  ELOG_INFO("%s message: start gathering", toLog());
 }
 
 bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) {
+  for (const CandidateInfo &cand : candidates) {
+    std::string sdp = cand.sdp;
+    std::size_t pos = sdp.find(",");
+    std::string candidate = sdp.substr(0, pos);
+    UINT4 r = nr_ice_peer_ctx_parse_trickle_candidate(peer_, stream_, const_cast<char *>(candidate.c_str()));
+    if (r) {
+      ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s)", toLog(), candidate.c_str());
+    }
+  }
+  ELOG_INFO("%s message: remote candidate gathering", toLog());
   return true;
 }
 
 void NicerConnection::gatheringDone(uint stream_id) {
+  ELOG_INFO("%s message: gathering done, stream_id: %u", toLog(), stream_id);
+  updateIceState(IceState::CANDIDATES_RECEIVED);
 }
 
-void NicerConnection::getCandidate(uint stream_id, uint component_id, const std::string &foundation) {
+void NicerConnection::startChecking() {
+  UINT4 r = nr_ice_peer_ctx_pair_candidates(peer_);
+  if (r) {
+    ELOG_WARN("%s message: Error pairing candidates", toLog());
+    return;
+  }
+
+  r = nr_ice_peer_ctx_start_checks2(peer_, 1);
+  if (r) {
+    if (r == R_NOT_FOUND) {
+      ELOG_DEBUG("%s message: Could not start ICE checks, assuming trickle", toLog());
+    } else {
+      ELOG_WARN("%s message: Could not start peer checks", toLog());
+    }
+  }
+}
+
+std::string NicerConnection::getStringFromAddress(const nr_transport_addr &addr) {
+  char str[INET_ADDRSTRLEN];
+  if (addr.ip_version == NR_IPV4) {
+    inet_ntop(AF_INET, &(reinterpret_cast<sockaddr_in*>(addr.addr)->sin_addr), str, INET_ADDRSTRLEN);
+  } else {
+    inet_ntop(AF_INET, &(reinterpret_cast<sockaddr_in6*>(addr.addr)->sin6_addr), str, INET_ADDRSTRLEN);
+  }
+  return std::string(str);
+}
+
+int NicerConnection::getPortFromAddress(const nr_transport_addr &addr) {
+  if (addr.ip_version == NR_IPV4) {
+    return ntohs(reinterpret_cast<sockaddr_in*>(addr.addr)->sin_port);
+  } else {
+    return ntohs(reinterpret_cast<sockaddr_in6*>(addr.addr)->sin6_port);
+  }
+}
+
+void NicerConnection::onCandidate(nr_ice_media_stream *stream, int component_id, nr_ice_candidate *cand) {
+  CandidateInfo cand_info;
+  cand_info.componentId = cand->component_id;
+  cand_info.foundation = std::string(cand->foundation);
+  cand_info.priority = cand->priority;
+
+  cand_info.hostAddress = getStringFromAddress(cand->addr);
+  cand_info.hostPort = getPortFromAddress(cand->addr);
+  if (cand_info.hostPort == 0) {
+    return;
+  }
+  cand_info.mediaType = ice_config_.media_type;
+
+  switch (cand->type) {
+    case nr_ice_candidate_type::HOST:
+      cand_info.hostType = HOST;
+      break;
+    case SERVER_REFLEXIVE:
+      cand_info.hostType = SRFLX;
+      cand_info.rAddress = getStringFromAddress(cand->base);
+      cand_info.rPort = getPortFromAddress(cand->base);
+      break;
+    case PEER_REFLEXIVE:
+      cand_info.hostType = PRFLX;
+      break;
+    case RELAYED:
+      cand_info.hostType = RELAY;
+      cand_info.rAddress = getStringFromAddress(cand->base);
+      cand_info.rPort = getPortFromAddress(cand->base);
+      break;
+    default:
+      break;
+  }
+  cand_info.netProtocol = "udp";
+  cand_info.transProtocol = ice_config_.transport_name;
+  cand_info.username = ufrag_;
+  cand_info.password = upass_;
+
+  if (auto listener = getIceListener()) {
+    ELOG_DEBUG("%s message: Candidate (%s, %s, %s)", toLog(), cand_info.hostAddress.c_str(),
+                                                     ufrag_.c_str(), upass_.c_str());
+    listener->onCandidate(cand_info, this);
+  }
 }
 
 void NicerConnection::setRemoteCredentials(const std::string& username, const std::string& password) {
+  ELOG_DEBUG("%s message: Setting remote credentials", toLog());
+  std::vector<char *> attributes;
+  std::string ufrag = std::string("ice-ufrag: ") + username;
+  std::string pwd = std::string("ice-pwd: ") + password;
+  attributes.push_back(const_cast<char *>(ufrag.c_str()));
+  attributes.push_back(const_cast<char *>(pwd.c_str()));
+  UINT4 r = nr_ice_peer_ctx_parse_stream_attributes(peer_,
+                                                    stream_,
+                                                    attributes.size() ? &attributes[0] : nullptr,
+                                                    attributes.size());
+  if (r) {
+    ELOG_WARN("%s message: Error parsing stream attributes", toLog());
+  }
 }
 
 int NicerConnection::sendData(unsigned int compId, const void* buf, int len) {
-  return 0;
-}
-
-void NicerConnection::updateIceState(IceState state) {
-}
-
-IceState NicerConnection::checkIceState() {
-  return IceState::READY;
+  UINT4 r = nr_ice_media_stream_send(peer_,
+                                     stream_,
+                                     compId,
+                                     reinterpret_cast<unsigned char*>(const_cast<void*>(buf)),
+                                     len);
+  if (r) {
+    ELOG_WARN("%s message: Couldn't send data on ICE", toLog());
+  }
+  return len;
 }
 
 void NicerConnection::updateComponentState(unsigned int compId, IceState state) {
-}
-
-void NicerConnection::onData(unsigned int component_id, char* buf, int len) {
 }
 
 CandidatePair NicerConnection::getSelectedPair() {
@@ -234,6 +396,26 @@ void NicerConnection::close() {
     }
     delete ice_handler_vtbl_;
     delete ice_handler_;
+    delete socket_factory_vtbl_;
+    delete socket_factory_;
+  }
+}
+
+void NicerConnection::onData(unsigned int component_id, char* buf, int len) {
+  IceState state;
+  IceConnectionListener* listener;
+  {
+    boost::mutex::scoped_lock(closeMutex_);
+    state = this->checkIceState();
+    listener = listener_;
+  }
+  if (state == IceState::READY) {
+    packetPtr packet (new dataPacket());
+    memcpy(packet->data, buf, len);
+    packet->comp = component_id;
+    packet->length = len;
+    packet->received_time_ms = ClockUtils::timePointToMs(clock::now());
+    listener->onPacketReceived(packet);
   }
 }
 
@@ -292,7 +474,7 @@ std::string NicerConnection::getNewUfrag() {
   int r;
 
   if ((r=nr_ice_get_new_ice_ufrag(&ufrag))) {
-    ELOG_ERROR("Unable to get new ice ufrag");
+    ELOG_WARN("%s message: Unable to get new ice ufrag", toLog());
     return "";
   }
 
@@ -307,7 +489,7 @@ std::string NicerConnection::getNewPwd() {
   int r;
 
   if ((r=nr_ice_get_new_ice_pwd(&pwd))) {
-    ELOG_ERROR("Unable to get new ice pwd");
+    ELOG_WARN("%s message: Unable to get new ice pwd", toLog());
     return "";
   }
 

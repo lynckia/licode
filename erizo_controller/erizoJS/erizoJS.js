@@ -82,7 +82,7 @@ threadPool.start();
 var ioWorker = new addon.IOWorker();
 ioWorker.start();
 
-var ejsController = controller.ErizoJSController(threadPool);
+var ejsController = controller.ErizoJSController(threadPool, ioWorker);
 
 ejsController.keepAlive = function(callback) {
     callback('callback', true);
