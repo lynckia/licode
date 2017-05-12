@@ -20,7 +20,7 @@ Erizo.Connection = function (spec) {
     } else if (that.browser === 'bowser'){
         L.Logger.debug('Bowser Stack');
         that = Erizo.BowserStack(spec);
-    } else if (that.browser === 'chrome-stable') {
+    } else if (that.browser === 'chrome-stable' || that.browser === 'electron') {
         L.Logger.debug('Chrome Stable Stack');
         that = Erizo.ChromeStableStack(spec);
     } else {
@@ -49,8 +49,9 @@ Erizo.getBrowser = function () {
     } else if (window.navigator.userAgent.match('Bowser') !== null){
         browser = 'bowser';
     } else if (window.navigator.userAgent.match('Chrome') !== null) {
-        if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 26) {
-            browser = 'chrome-stable';
+        browser = 'chrome-stable';
+        if (window.navigator.userAgent.match('Electron') !== null) {
+            browser = 'electron'
         }
     } else if (window.navigator.userAgent.match('Safari') !== null) {
         browser = 'bowser';
@@ -59,7 +60,6 @@ Erizo.getBrowser = function () {
     }
     return browser;
 };
-
 
 Erizo.GetUserMedia = function (config, callback, error) {
     var promise;
@@ -71,6 +71,14 @@ Erizo.GetUserMedia = function (config, callback, error) {
     if (config.screen) {
         L.Logger.debug('Screen access requested');
         switch (Erizo.getBrowser()) {
+            case 'electron' :
+                 L.Logger.debug('Screen sharing in Electron');
+                var screenConfig = {};
+                screenConfig.video = config.video || {};
+                screenConfig.video.mandatory = config.video.mandatory || {};
+                screenConfig.video.mandatory.chromeMediaSource = 'screen';
+                navigator.getMedia(screenConfig, callback, error);
+                break;
             case 'mozilla':
                 L.Logger.debug('Screen sharing in Firefox');
                 var screenCfg = {};
