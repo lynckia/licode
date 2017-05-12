@@ -53,18 +53,14 @@ Erizo.getBrowser = function () {
         if (window.navigator.userAgent.match('Electron') !== null) {
             browser = 'electron'
         }
-    }
-    else if (window.navigator.userAgent.match('Safari') !== null) {
+    } else if (window.navigator.userAgent.match('Safari') !== null) {
         browser = 'bowser';
     } else if (window.navigator.userAgent.match('AppleWebKit') !== null) {
         browser = 'bowser';
     }
-return browser;
+    return browser;
 };
 
-var isElectron = function() {
-    return (window.navigator.userAgent.match('Electron') !== null);
-};
 Erizo.GetUserMedia = function (config, callback, error) {
     var promise;
     navigator.getMedia = ( navigator.getUserMedia ||
@@ -81,7 +77,6 @@ Erizo.GetUserMedia = function (config, callback, error) {
                 screenConfig.video = config.video || {};
                 screenConfig.video.mandatory = config.video.mandatory || {};
                 screenConfig.video.mandatory.chromeMediaSource = 'screen';
-                var theConfig = {video: { mandatory: { chromeMediaSource: 'screen' } } };
                 navigator.getMedia(screenConfig, callback, error);
                 break;
             case 'mozilla':
