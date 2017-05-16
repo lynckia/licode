@@ -50,13 +50,11 @@ class LibNiceConnection : public IceConnection {
    */
   void start() override;
   bool setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) override;
-  void gatheringDone(uint stream_id) override;
-  void getCandidate(uint stream_id, uint component_id, const std::string &foundation) override;
+  void gatheringDone(uint stream_id);
+  void getCandidate(uint stream_id, uint component_id, const std::string &foundation);
   void setRemoteCredentials(const std::string& username, const std::string& password) override;
   int sendData(unsigned int compId, const void* buf, int len) override;
 
-  void updateIceState(IceState state) override;
-  IceState checkIceState() override;
   void updateComponentState(unsigned int compId, IceState state) override;
   void onData(unsigned int component_id, char* buf, int len) override;
   CandidatePair getSelectedPair() override;
@@ -66,7 +64,6 @@ class LibNiceConnection : public IceConnection {
   static LibNiceConnection* create(IceConnectionListener *listener, const IceConfig& ice_config);
 
  private:
-  std::string iceStateToString(IceState state) const;
   void mainLoop();
 
  private:

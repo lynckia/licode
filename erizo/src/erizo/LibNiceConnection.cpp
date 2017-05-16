@@ -323,7 +323,7 @@ bool LibNiceConnection::setRemoteCandidates(const std::vector<CandidateInfo> &ca
 
 void LibNiceConnection::gatheringDone(uint stream_id) {
   ELOG_DEBUG("%s message: gathering done, stream_id: %u", toLog(), stream_id);
-  this->updateIceState(IceState::CANDIDATES_RECEIVED);
+  updateIceState(IceState::CANDIDATES_RECEIVED);
 }
 
 void LibNiceConnection::getCandidate(uint stream_id, uint component_id, const std::string &foundation) {
@@ -425,52 +425,6 @@ void LibNiceConnection::updateComponentState(unsigned int compId, IceState state
     }
   }
   this->updateIceState(state);
-}
-
-IceState LibNiceConnection::checkIceState() {
-  return ice_state_;
-}
-
-std::string LibNiceConnection::iceStateToString(IceState state) const {
-  switch (state) {
-    case IceState::INITIAL:        return "initial";
-    case IceState::FINISHED:            return "finished";
-    case IceState::FAILED:              return "failed";
-    case IceState::READY:               return "ready";
-    case IceState::CANDIDATES_RECEIVED: return "cand_received";
-  }
-  return "unknown";
-}
-
-void LibNiceConnection::updateIceState(IceState state) {
-  if (state <= ice_state_) {
-    if (state != IceState::READY)
-      ELOG_WARN("%s message: unexpected ice state transition, iceState: %s,  newIceState: %s",
-                 toLog(), iceStateToString(ice_state_).c_str(), iceStateToString(state).c_str());
-    return;
-  }
-
-  ELOG_INFO("%s message: iceState transition, ice_config_.transport_name: %s, iceState: %s, newIceState: %s, this: %p",
-             toLog(), ice_config_.transport_name.c_str(),
-             iceStateToString(ice_state_).c_str(), iceStateToString(state).c_str(), this);
-  this->ice_state_ = state;
-  switch (ice_state_) {
-    case IceState::FINISHED:
-      return;
-    case IceState::FAILED:
-      ELOG_WARN("%s message: Ice Failed", toLog());
-      break;
-
-    case IceState::READY:
-    case IceState::CANDIDATES_RECEIVED:
-      break;
-    default:
-      break;
-  }
-
-  // Important: send this outside our state lock.  Otherwise, serious risk of deadlock.
-  if (this->listener_ != NULL)
-    this->listener_->updateIceState(state, this);
 }
 
 std::string getHostTypeFromCandidate(NiceCandidate *candidate) {
