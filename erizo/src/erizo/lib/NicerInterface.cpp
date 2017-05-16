@@ -51,6 +51,31 @@ void NicerInterfaceImpl::IceContextSetSocketFactory(nr_ice_ctx *ctx, nr_socket_f
   nr_ice_ctx_set_socket_factory(ctx, factory);
 }
 
+void NicerInterfaceImpl::IceContextFinalize(nr_ice_ctx *ctx, nr_ice_peer_ctx *pctxp) {
+  nr_ice_ctx_finalize(ctx, pctxp);
+}
+
+int NicerInterfaceImpl::IcePeerContextPairCandidates(nr_ice_peer_ctx *pctxp) {
+  return nr_ice_peer_ctx_pair_candidates(pctxp);
+}
+
+int NicerInterfaceImpl::IcePeerContextStartChecks2(nr_ice_peer_ctx *pctxp, int type) {
+  return nr_ice_peer_ctx_start_checks2(pctxp, type);
+}
+
+int NicerInterfaceImpl::IcePeerContextParseStreamAttributes(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream,
+                                                            char **attributes, size_t length) {
+  return nr_ice_peer_ctx_parse_stream_attributes(pctxp, stream, attributes, length);
+}
+
+int NicerInterfaceImpl::IceGetNewIceUFrag(char **ufrag) {
+  return nr_ice_get_new_ice_ufrag(ufrag);
+}
+
+int NicerInterfaceImpl::IceGetNewIcePwd(char **pwd) {
+  return nr_ice_get_new_ice_pwd(pwd);
+}
+
 int NicerInterfaceImpl::IcePeerContextCreate(nr_ice_ctx *ctx, nr_ice_handler *handler, char *label,
                                              nr_ice_peer_ctx **pctxp) {
   return nr_ice_peer_ctx_create(ctx, handler, label, pctxp);
@@ -59,6 +84,10 @@ int NicerInterfaceImpl::IcePeerContextCreate(nr_ice_ctx *ctx, nr_ice_handler *ha
 int NicerInterfaceImpl::IcePeerContextDestroy(nr_ice_peer_ctx **pctxp) {
   return nr_ice_peer_ctx_destroy(pctxp);
 }
+int NicerInterfaceImpl::IcePeerContextParseTrickleCandidate(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *streamp,
+                                                            char *cand) {
+  return nr_ice_peer_ctx_parse_trickle_candidate(pctxp, streamp, cand);
+}
 
 int NicerInterfaceImpl::IceGather(nr_ice_ctx *ctx, NR_async_cb done_cb, void *cb_arg) {
   return nr_ice_gather(ctx, done_cb, cb_arg);
@@ -66,5 +95,10 @@ int NicerInterfaceImpl::IceGather(nr_ice_ctx *ctx, NR_async_cb done_cb, void *cb
 
 int NicerInterfaceImpl::IceAddMediaStream(nr_ice_ctx *ctx, char *label, int components, nr_ice_media_stream **streamp) {
   return nr_ice_add_media_stream(ctx, label, components, streamp);
+}
+
+int NicerInterfaceImpl::IceMediaStreamSend(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, int component,
+                                           unsigned char *buffer, size_t length) {
+  return nr_ice_media_stream_send(pctxp, stream, component, buffer, length);
 }
 }  // namespace erizo

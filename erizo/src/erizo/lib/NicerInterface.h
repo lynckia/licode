@@ -38,10 +38,23 @@ class NicerInterface {
   virtual int IceContextDestroy(nr_ice_ctx **ctxp) = 0;
   virtual int IceContextSetTrickleCallback(nr_ice_ctx *ctx, nr_ice_trickle_candidate_cb cb, void *cb_arg) = 0;
   virtual void IceContextSetSocketFactory(nr_ice_ctx *ctx, nr_socket_factory *factory) = 0;
+  virtual void IceContextFinalize(nr_ice_ctx *ctx, nr_ice_peer_ctx *pctxp) = 0;
+
   virtual int IcePeerContextCreate(nr_ice_ctx *ctx, nr_ice_handler *handler, char *label, nr_ice_peer_ctx **pctxp) = 0;
   virtual int IcePeerContextDestroy(nr_ice_peer_ctx **pctxp) = 0;
+  virtual int IcePeerContextParseTrickleCandidate(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *streamp, char *cand) = 0;
+  virtual int IcePeerContextPairCandidates(nr_ice_peer_ctx *pctxp) = 0;
+  virtual int IcePeerContextStartChecks2(nr_ice_peer_ctx *pctxp, int type) = 0;
+  virtual int IcePeerContextParseStreamAttributes(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream,
+                                                  char **attributes, size_t length) = 0;
+
+  virtual int IceGetNewIceUFrag(char **ufrag) = 0;
+  virtual int IceGetNewIcePwd(char **pwd) = 0;
+
   virtual int IceGather(nr_ice_ctx *ctx, NR_async_cb done_cb, void *cb_arg) = 0;
   virtual int IceAddMediaStream(nr_ice_ctx *ctx, char *label, int components, nr_ice_media_stream **streamp) = 0;
+  virtual int IceMediaStreamSend(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, int component,
+                                 unsigned char *buffer, size_t length) = 0;
 };
 
 
@@ -52,10 +65,23 @@ class NicerInterfaceImpl: public NicerInterface {
   int IceContextDestroy(nr_ice_ctx **ctxp) override;
   int IceContextSetTrickleCallback(nr_ice_ctx *ctx, nr_ice_trickle_candidate_cb cb, void *cb_arg) override;
   void IceContextSetSocketFactory(nr_ice_ctx *ctx, nr_socket_factory *factory) override;
+  void IceContextFinalize(nr_ice_ctx *ctx, nr_ice_peer_ctx *pctxp) override;
+
   int IcePeerContextCreate(nr_ice_ctx *ctx, nr_ice_handler *handler, char *label, nr_ice_peer_ctx **pctxp) override;
   int IcePeerContextDestroy(nr_ice_peer_ctx **pctxp) override;
+  int IcePeerContextParseTrickleCandidate(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *streamp, char *cand) override;
+  int IcePeerContextPairCandidates(nr_ice_peer_ctx *pctxp) override;
+  int IcePeerContextStartChecks2(nr_ice_peer_ctx *pctxp, int type) override;
+  int IcePeerContextParseStreamAttributes(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, char **attributes,
+                                          size_t length) override;
+
+  int IceGetNewIceUFrag(char **ufrag) override;
+  int IceGetNewIcePwd(char **pwd) override;
+
   int IceGather(nr_ice_ctx *ctx, NR_async_cb done_cb, void *cb_arg) override;
   int IceAddMediaStream(nr_ice_ctx *ctx, char *label, int components, nr_ice_media_stream **streamp) override;
+  int IceMediaStreamSend(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, int component, unsigned char *buffer,
+                         size_t length) override;
 };
 
 }  // namespace erizo

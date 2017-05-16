@@ -115,7 +115,7 @@ int NicerConnection::ice_connected(void *obj, nr_ice_peer_ctx *pctx) {
     return 0;
   }
   conn->updateIceState(IceState::READY);
-  nr_ice_ctx_finalize(conn->ctx_, pctx);
+  conn->nicer_->IceContextFinalize(conn->ctx_, pctx);
 
   return 0;
 }
@@ -253,7 +253,7 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
     std::string sdp = cand.sdp;
     std::size_t pos = sdp.find(",");
     std::string candidate = sdp.substr(0, pos);
-    UINT4 r = nr_ice_peer_ctx_parse_trickle_candidate(peer_, stream_, const_cast<char *>(candidate.c_str()));
+    UINT4 r = nicer_->IcePeerContextParseTrickleCandidate(peer_, stream_, const_cast<char *>(candidate.c_str()));
     if (r) {
       ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s)", toLog(), candidate.c_str());
     }
@@ -268,13 +268,13 @@ void NicerConnection::gatheringDone(uint stream_id) {
 }
 
 void NicerConnection::startChecking() {
-  UINT4 r = nr_ice_peer_ctx_pair_candidates(peer_);
+  UINT4 r = nicer_->IcePeerContextPairCandidates(peer_);
   if (r) {
     ELOG_WARN("%s message: Error pairing candidates", toLog());
     return;
   }
 
-  r = nr_ice_peer_ctx_start_checks2(peer_, 1);
+  r = nicer_->IcePeerContextStartChecks2(peer_, 1);
   if (r) {
     if (r == R_NOT_FOUND) {
       ELOG_DEBUG("%s message: Could not start ICE checks, assuming trickle", toLog());
@@ -354,21 +354,21 @@ void NicerConnection::setRemoteCredentials(const std::string& username, const st
   std::string pwd = std::string("ice-pwd: ") + password;
   attributes.push_back(const_cast<char *>(ufrag.c_str()));
   attributes.push_back(const_cast<char *>(pwd.c_str()));
-  UINT4 r = nr_ice_peer_ctx_parse_stream_attributes(peer_,
-                                                    stream_,
-                                                    attributes.size() ? &attributes[0] : nullptr,
-                                                    attributes.size());
+  UINT4 r = nicer_->IcePeerContextParseStreamAttributes(peer_,
+                                                        stream_,
+                                                        attributes.size() ? &attributes[0] : nullptr,
+                                                        attributes.size());
   if (r) {
     ELOG_WARN("%s message: Error parsing stream attributes", toLog());
   }
 }
 
 int NicerConnection::sendData(unsigned int compId, const void* buf, int len) {
-  UINT4 r = nr_ice_media_stream_send(peer_,
-                                     stream_,
-                                     compId,
-                                     reinterpret_cast<unsigned char*>(const_cast<void*>(buf)),
-                                     len);
+  UINT4 r = nicer_->IceMediaStreamSend(peer_,
+                                       stream_,
+                                       compId,
+                                       reinterpret_cast<unsigned char*>(const_cast<void*>(buf)),
+                                       len);
   if (r) {
     ELOG_WARN("%s message: Couldn't send data on ICE", toLog());
   }
@@ -473,7 +473,7 @@ std::string NicerConnection::getNewUfrag() {
   char* ufrag;
   int r;
 
-  if ((r=nr_ice_get_new_ice_ufrag(&ufrag))) {
+  if ((r=nicer_->IceGetNewIceUFrag(&ufrag))) {
     ELOG_WARN("%s message: Unable to get new ice ufrag", toLog());
     return "";
   }
@@ -488,7 +488,7 @@ std::string NicerConnection::getNewPwd() {
   char* pwd;
   int r;
 
-  if ((r=nr_ice_get_new_ice_pwd(&pwd))) {
+  if ((r=nicer_->IceGetNewIcePwd(&pwd))) {
     ELOG_WARN("%s message: Unable to get new ice pwd", toLog());
     return "";
   }
