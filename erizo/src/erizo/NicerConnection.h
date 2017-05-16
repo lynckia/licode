@@ -23,7 +23,7 @@ extern "C" {
 #include "./logger.h"
 #include "./IceConnection.h"
 #include "lib/NicerInterface.h"
-
+#include "./thread/Worker.h"
 
 namespace erizo {
 
@@ -56,7 +56,8 @@ class NicerConnection : public IceConnection {
   void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
 
-  static IceConnection* create(IceConnectionListener *listener, const IceConfig& ice_config);
+  static IceConnection* create(IceConnectionListener *listener, const IceConfig& ice_config,
+                               std::shared_ptr<Worker> worker);
 
  private:
   std::string getNewUfrag();
@@ -94,8 +95,6 @@ class NicerConnection : public IceConnection {
   bool offerer_;
   nr_ice_handler_vtbl* ice_handler_vtbl_;
   nr_ice_handler* ice_handler_;
-  nr_socket_factory_vtbl* socket_factory_vtbl_;
-  nr_socket_factory* socket_factory_;
   bool trickle_;
 };
 

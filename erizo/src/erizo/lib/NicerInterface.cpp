@@ -101,4 +101,8 @@ int NicerInterfaceImpl::IceMediaStreamSend(nr_ice_peer_ctx *pctxp, nr_ice_media_
                                            unsigned char *buffer, size_t length) {
   return nr_ice_media_stream_send(pctxp, stream, component, buffer, length);
 }
+
+int NicerInterfaceImpl::IceRemoveMediaStream(nr_ice_ctx *ctx, nr_ice_media_stream **stream) {
+  return nr_ice_remove_media_stream(ctx, stream);
+}
 }  // namespace erizo

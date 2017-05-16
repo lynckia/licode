@@ -194,14 +194,6 @@ void NicerConnection::start() {
   ice_handler_->vtbl = ice_handler_vtbl_;
   ice_handler_->obj = this;
 
-  socket_factory_vtbl_ = new nr_socket_factory_vtbl();
-  socket_factory_vtbl_->create_socket = nr_socket_local_create;
-  socket_factory_vtbl_->destroy = no_op;
-
-  socket_factory_ = new nr_socket_factory();
-  socket_factory_->vtbl = socket_factory_vtbl_;
-  socket_factory_->obj = this;
-
   // Create the peer ctx. Because we do not support parallel forking, we
   // only have one peer ctx.
   std::string peer_name = name_ + ":default";
@@ -212,8 +204,6 @@ void NicerConnection::start() {
   }
 
   peer_->controlling = 0;
-
-  nicer_->IceContextSetSocketFactory(ctx_, socket_factory_);
 
   std::string stream_name = name_ + ":stream";
   r = nicer_->IceAddMediaStream(ctx_, const_cast<char *>(stream_name.c_str()), ice_config_.ice_components, &stream_);
@@ -388,6 +378,12 @@ void NicerConnection::setReceivedLastCandidate(bool hasReceived) {
 void NicerConnection::close() {
   if (!closed_) {
     closed_ = true;
+    if (stream_) {
+      int r = nicer_->IceRemoveMediaStream(ctx_, &stream_);
+      if (r) {
+        ELOG_WARN("%s message: Couldn't remove media stream", toLog());
+      }
+    }
     if (peer_) {
       nicer_->IcePeerContextDestroy(&peer_);
     }
@@ -396,8 +392,6 @@ void NicerConnection::close() {
     }
     delete ice_handler_vtbl_;
     delete ice_handler_;
-    delete socket_factory_vtbl_;
-    delete socket_factory_;
   }
 }
 
@@ -499,8 +493,9 @@ std::string NicerConnection::getNewPwd() {
   return pwdStr;
 }
 
-IceConnection* NicerConnection::create(IceConnectionListener *listener, const IceConfig& ice_config) {
-  auto nicer = new NicerConnection(std::make_shared<NicerInterfaceImpl>(), listener, ice_config);
+IceConnection* NicerConnection::create(IceConnectionListener *listener, const IceConfig& ice_config,
+                                       std::shared_ptr<Worker> worker) {
+  auto nicer = new NicerConnection(std::make_shared<NicerInterfaceImpl>(), listener, ice_config, worker);
 
   NicerConnection::initializeGlobals();
 
