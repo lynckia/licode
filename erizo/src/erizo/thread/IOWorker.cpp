@@ -1,9 +1,12 @@
 #include "thread/IOWorker.h"
 
 extern "C" {
+#include <r_errors.h>
 #include <async_wait.h>
 #include <async_timer.h>
 }
+
+#include <chrono>
 
 using erizo::IOWorker;
 
@@ -24,7 +27,10 @@ void IOWorker::start() {
       int events;
       struct timeval towait = {0, 100000};
       struct timeval tv;
-      NR_async_event_wait2(&events, &towait);
+      int r = NR_async_event_wait2(&events, &towait);
+      if (r == R_EOD) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      }
       gettimeofday(&tv, 0);
       NR_async_timer_update_time(&tv);
     }

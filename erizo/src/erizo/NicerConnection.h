@@ -56,8 +56,7 @@ class NicerConnection : public IceConnection {
   void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
 
-  static IceConnection* create(IceConnectionListener *listener, const IceConfig& ice_config,
-                               std::shared_ptr<Worker> worker);
+  static IceConnection* create(IceConnectionListener *listener, const IceConfig& ice_config);
 
  private:
   std::string getNewUfrag();

@@ -493,9 +493,8 @@ std::string NicerConnection::getNewPwd() {
   return pwdStr;
 }
 
-IceConnection* NicerConnection::create(IceConnectionListener *listener, const IceConfig& ice_config,
-                                       std::shared_ptr<Worker> worker) {
-  auto nicer = new NicerConnection(std::make_shared<NicerInterfaceImpl>(), listener, ice_config, worker);
+IceConnection* NicerConnection::create(IceConnectionListener *listener, const IceConfig& ice_config) {
+  auto nicer = new NicerConnection(std::make_shared<NicerInterfaceImpl>(), listener, ice_config);
 
   NicerConnection::initializeGlobals();
 
