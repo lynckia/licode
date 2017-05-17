@@ -6,7 +6,7 @@ extern "C" {
 #include <async_timer.h>
 }
 
-#include <chrono>
+#include <chrono>  // NOLINT
 
 using erizo::IOWorker;
 

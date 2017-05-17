@@ -115,7 +115,7 @@ int NicerConnection::ice_connected(void *obj, nr_ice_peer_ctx *pctx) {
     return 0;
   }
   conn->updateIceState(IceState::READY);
-  conn->nicer_->IceContextFinalize(conn->ctx_, pctx);
+  // conn->nicer_->IceContextFinalize(conn->ctx_, pctx);  --> This is causing crashes inside nICEr after a while
 
   return 0;
 }
@@ -225,8 +225,64 @@ void NicerConnection::start() {
               ctx_->force_net_interface);
   }
 
+  setupTurnServer();
+  setupStunServer();
+
   startGathering();
   startChecking();
+}
+
+void NicerConnection::setupTurnServer() {
+  if (ice_config_.turn_server.empty()) {
+    return;
+  }
+  auto servers = std::unique_ptr<nr_ice_turn_server[]>(new nr_ice_turn_server[1]);
+  nr_ice_turn_server *server = &servers[0];
+  nr_ice_stun_server *stun_server = &server->turn_server;
+  memset(server, 0, sizeof(nr_ice_turn_server));
+  stun_server->transport = IPPROTO_UDP;
+  stun_server->type = NR_ICE_STUN_SERVER_TYPE_ADDR;
+  nr_transport_addr addr;
+  nr_str_port_to_transport_addr(ice_config_.turn_server.c_str(), ice_config_.turn_port, IPPROTO_UDP, &addr);
+  stun_server->u.addr = addr;
+
+  server->username = r_strdup(const_cast<char*>(ice_config_.turn_username.c_str()));
+  int r = r_data_create(&server->password,
+                        reinterpret_cast<UCHAR*>(const_cast<char *>(&ice_config_.turn_pass[0])),
+                        ice_config_.turn_pass.size());
+  if (r) {
+    RFREE(server->username);
+    return;
+  }
+
+  r = nicer_->IceContextSetTurnServers(ctx_, servers.get(), 1);
+  if (r) {
+    ELOG_WARN("%s message: Could not setup Turn", toLog());
+  }
+
+  ELOG_DEBUG("%s message: TURN server configured", toLog());
+}
+
+void NicerConnection::setupStunServer() {
+  if (ice_config_.stun_server.empty()) {
+    return;
+  }
+  auto servers = std::unique_ptr<nr_ice_stun_server[]>(new nr_ice_stun_server[1]);
+  nr_ice_stun_server *server = &servers[0];
+  memset(server, 0, sizeof(nr_ice_stun_server));
+  server->transport = IPPROTO_UDP;
+  server->type = NR_ICE_STUN_SERVER_TYPE_ADDR;
+  nr_transport_addr addr;
+  nr_str_port_to_transport_addr(ice_config_.stun_server.c_str(), ice_config_.stun_port, IPPROTO_UDP, &addr);
+  server->u.addr = addr;
+
+
+  int r = nicer_->IceContextSetStunServers(ctx_, servers.get(), 1);
+  if (r) {
+    ELOG_WARN("%s meesage: Could not setup Turn", toLog());
+  }
+
+  ELOG_DEBUG("%s message: STUN server configured", toLog());
 }
 
 void NicerConnection::startGathering() {
@@ -353,10 +409,10 @@ void NicerConnection::setRemoteCredentials(const std::string& username, const st
   }
 }
 
-int NicerConnection::sendData(unsigned int compId, const void* buf, int len) {
+int NicerConnection::sendData(unsigned int component_id, const void* buf, int len) {
   UINT4 r = nicer_->IceMediaStreamSend(peer_,
                                        stream_,
-                                       compId,
+                                       component_id,
                                        reinterpret_cast<unsigned char*>(const_cast<void*>(buf)),
                                        len);
   if (r) {
@@ -365,11 +421,32 @@ int NicerConnection::sendData(unsigned int compId, const void* buf, int len) {
   return len;
 }
 
-void NicerConnection::updateComponentState(unsigned int compId, IceState state) {
+std::string getHostTypeFromNicerCandidate(nr_ice_candidate *candidate) {
+  switch (candidate->type) {
+    case nr_ice_candidate_type::HOST: return "host";
+    case SERVER_REFLEXIVE: return "serverReflexive";
+    case PEER_REFLEXIVE: return "peerReflexive";
+    case RELAYED: return "relayed";
+    default: return "unknown";
+  }
 }
 
 CandidatePair NicerConnection::getSelectedPair() {
-  return CandidatePair{};
+  nr_ice_candidate *local;
+  nr_ice_candidate *remote;
+  nr_ice_media_stream_get_active(peer_, stream_, 1, &local, &remote);
+  CandidatePair pair;
+  if (!local || !remote) {
+    return CandidatePair{};
+  }
+  pair.clientCandidateIp = getStringFromAddress(remote->addr);
+  pair.erizoCandidateIp = getStringFromAddress(local->addr);
+  pair.clientCandidatePort = getPortFromAddress(remote->addr);
+  pair.erizoCandidatePort = getPortFromAddress(local->addr);
+  pair.clientHostType = getHostTypeFromNicerCandidate(remote);
+  pair.erizoHostType = getHostTypeFromNicerCandidate(local);
+  ELOG_DEBUG("%s message: Client Host Type %s", toLog(), pair.clientHostType.c_str());
+  return pair;
 }
 
 void NicerConnection::setReceivedLastCandidate(bool hasReceived) {

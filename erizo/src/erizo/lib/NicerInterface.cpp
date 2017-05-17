@@ -55,6 +55,14 @@ void NicerInterfaceImpl::IceContextFinalize(nr_ice_ctx *ctx, nr_ice_peer_ctx *pc
   nr_ice_ctx_finalize(ctx, pctxp);
 }
 
+int NicerInterfaceImpl::IceContextSetStunServers(nr_ice_ctx *ctx, nr_ice_stun_server *servers, int ct) {
+  return nr_ice_ctx_set_stun_servers(ctx, servers, ct);
+}
+
+int NicerInterfaceImpl::IceContextSetTurnServers(nr_ice_ctx *ctx, nr_ice_turn_server *servers, int ct) {
+  return nr_ice_ctx_set_turn_servers(ctx, servers, ct);
+}
+
 int NicerInterfaceImpl::IcePeerContextPairCandidates(nr_ice_peer_ctx *pctxp) {
   return nr_ice_peer_ctx_pair_candidates(pctxp);
 }

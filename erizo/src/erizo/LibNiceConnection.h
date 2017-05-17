@@ -53,9 +53,9 @@ class LibNiceConnection : public IceConnection {
   void gatheringDone(uint stream_id);
   void getCandidate(uint stream_id, uint component_id, const std::string &foundation);
   void setRemoteCredentials(const std::string& username, const std::string& password) override;
-  int sendData(unsigned int compId, const void* buf, int len) override;
+  int sendData(unsigned int component_id, const void* buf, int len) override;
 
-  void updateComponentState(unsigned int compId, IceState state) override;
+  void updateComponentState(unsigned int component_id, IceState state);
   void onData(unsigned int component_id, char* buf, int len) override;
   CandidatePair getSelectedPair() override;
   void setReceivedLastCandidate(bool hasReceived) override;

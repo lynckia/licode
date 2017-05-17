@@ -96,9 +96,8 @@ class IceConnection : public LogContext {
   virtual void start() = 0;
   virtual bool setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) = 0;
   virtual void setRemoteCredentials(const std::string& username, const std::string& password) = 0;
-  virtual int sendData(unsigned int compId, const void* buf, int len) = 0;
+  virtual int sendData(unsigned int component_id, const void* buf, int len) = 0;
 
-  virtual void updateComponentState(unsigned int compId, IceState state) = 0;
   virtual void onData(unsigned int component_id, char* buf, int len) = 0;
   virtual CandidatePair getSelectedPair() = 0;
   virtual void setReceivedLastCandidate(bool hasReceived) = 0;

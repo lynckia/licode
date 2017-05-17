@@ -321,14 +321,14 @@ std::string DtlsTransport::getMyFingerprint() {
 }
 
 void DtlsTransport::updateIceState(IceState state, IceConnection *conn) {
-  ELOG_DEBUG("%s message:NiceState, transportName: %s, state: %d, isBundle: %d",
+  ELOG_DEBUG("%s message:IceState, transportName: %s, state: %d, isBundle: %d",
              toLog(), transport_name.c_str(), state, bundle_);
   if (state == IceState::INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
     updateTransportState(TRANSPORT_STARTED);
   } else if (state == IceState::CANDIDATES_RECEIVED && this->getTransportState() != TRANSPORT_GATHERED) {
     updateTransportState(TRANSPORT_GATHERED);
   } else if (state == IceState::FAILED) {
-    ELOG_DEBUG("%s message: Nice Failed", toLog());
+    ELOG_DEBUG("%s message: Ice Failed", toLog());
     running_ = false;
     updateTransportState(TRANSPORT_FAILED);
   } else if (state == IceState::READY) {

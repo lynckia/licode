@@ -33,6 +33,7 @@
 #include "rtp/QualityManager.h"
 #include "rtp/PliPacerHandler.h"
 #include "rtp/RtpPaddingGeneratorHandler.h"
+#include "rtp/RtpUtils.h"
 
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
@@ -586,6 +587,9 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       if (bundle_) {
         temp = CONN_READY;
         trackTransportInfo();
+        if (fb_sink_) {
+          fb_sink_->deliverFeedback(RtpUtils::createPLI(this->getVideoSinkSSRC(), this->getVideoSourceSSRC()));
+        }
       } else {
         if ((!remoteSdp_.hasAudio || (audioTransport_.get() != nullptr
                   && audioTransport_->getTransportState() == TRANSPORT_READY)) &&
@@ -594,6 +598,9 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
             // WebRTCConnection will be ready only when all channels are ready.
             temp = CONN_READY;
             trackTransportInfo();
+            if (fb_sink_) {
+              fb_sink_->deliverFeedback(RtpUtils::createPLI(this->getVideoSinkSSRC(), this->getVideoSourceSSRC()));
+            }
           }
       }
       break;

@@ -48,9 +48,8 @@ class NicerConnection : public IceConnection {
   void gatheringDone(uint stream_id);
   void onCandidate(nr_ice_media_stream *stream, int component_id, nr_ice_candidate *candidate);
   void setRemoteCredentials(const std::string& username, const std::string& password) override;
-  int sendData(unsigned int compId, const void* buf, int len) override;
+  int sendData(unsigned int component_id, const void* buf, int len) override;
 
-  void updateComponentState(unsigned int compId, IceState state) override;
   void onData(unsigned int component_id, char* buf, int len) override;
   CandidatePair getSelectedPair() override;
   void setReceivedLastCandidate(bool hasReceived) override;
@@ -63,6 +62,8 @@ class NicerConnection : public IceConnection {
   std::string getNewPwd();
   std::string getStringFromAddress(const nr_transport_addr &addr);
   int getPortFromAddress(const nr_transport_addr &addr);
+  void setupTurnServer();
+  void setupStunServer();
   void startGathering();
   void startChecking();
 

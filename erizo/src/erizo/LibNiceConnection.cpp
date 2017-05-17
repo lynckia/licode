@@ -128,10 +128,10 @@ void LibNiceConnection::onData(unsigned int component_id, char* buf, int len) {
   }
 }
 
-int LibNiceConnection::sendData(unsigned int compId, const void* buf, int len) {
+int LibNiceConnection::sendData(unsigned int component_id, const void* buf, int len) {
   int val = -1;
   if (this->checkIceState() == IceState::READY) {
-    val = lib_nice_->NiceAgentSend(agent_, 1, compId, len, reinterpret_cast<const gchar*>(buf));
+    val = lib_nice_->NiceAgentSend(agent_, 1, component_id, len, reinterpret_cast<const gchar*>(buf));
   }
   if (val != len) {
     ELOG_DEBUG("%s message: Sending less data than expected, sent: %d, to_send: %d", toLog(), val, len);
@@ -400,10 +400,10 @@ void LibNiceConnection::setRemoteCredentials(const std::string& username, const 
   lib_nice_->NiceAgentSetRemoteCredentials(agent_, (guint) 1, username.c_str(), password.c_str());
 }
 
-void LibNiceConnection::updateComponentState(unsigned int compId, IceState state) {
+void LibNiceConnection::updateComponentState(unsigned int component_id, IceState state) {
   ELOG_DEBUG("%s message: new ice component state, newState: %u, transportName: %s, componentId %u, iceComponents: %u",
-             toLog(), state, ice_config_.transport_name.c_str(), compId, ice_config_.ice_components);
-  comp_state_list_[compId] = state;
+             toLog(), state, ice_config_.transport_name.c_str(), component_id, ice_config_.ice_components);
+  comp_state_list_[component_id] = state;
   if (state == IceState::READY) {
     for (unsigned int i = 1; i <= ice_config_.ice_components; i++) {
       if (comp_state_list_[i] != IceState::READY) {
@@ -413,7 +413,7 @@ void LibNiceConnection::updateComponentState(unsigned int compId, IceState state
   } else if (state == IceState::FAILED) {
     if (receivedLastCandidate_) {
       ELOG_WARN("%s message: component failed, ice_config_.transport_name: %s, componentId: %u",
-                toLog(), ice_config_.transport_name.c_str(), compId);
+                toLog(), ice_config_.transport_name.c_str(), component_id);
       for (unsigned int i = 1; i <= ice_config_.ice_components; i++) {
         if (comp_state_list_[i] != IceState::FAILED) {
           return;
