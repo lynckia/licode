@@ -43,10 +43,6 @@ DEFINE_LOGGER(NicerConnection, "NicerConnection");
 static bool nicer_initialized = false;
 static std::mutex nicer_initialization_mutex;
 
-static int no_op(void **obj) {
-  return 0;
-}
-
 static int nr_ice_crypto_openssl_random_bytes(UCHAR *buf, int len) {
   RAND_bytes(buf, len);
   return 0;
