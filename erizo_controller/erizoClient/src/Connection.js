@@ -51,7 +51,7 @@ Erizo.getBrowser = function () {
     } else if (window.navigator.userAgent.match('Chrome') !== null) {
         browser = 'chrome-stable';
         if (window.navigator.userAgent.match('Electron') !== null) {
-            browser = 'electron'
+            browser = 'electron';
         }
     } else if (window.navigator.userAgent.match('Safari') !== null) {
         browser = 'bowser';
