@@ -30,7 +30,7 @@ Erizo.AudioPlayer = function (spec) {
     // Audio tag
     that.audio = document.createElement('audio');
     that.audio.setAttribute('id', 'stream' + that.id);
-    that.audio.setAttribute('class', 'stream');
+    that.audio.setAttribute('class', 'licode_stream');
     that.audio.setAttribute('style', 'width: 100%; height: 100%; position: absolute');
     that.audio.setAttribute('autoplay', 'autoplay');
 
@@ -60,7 +60,7 @@ Erizo.AudioPlayer = function (spec) {
         // Container
         that.div = document.createElement('div');
         that.div.setAttribute('id', 'player_' + that.id);
-        that.div.setAttribute('class', 'player');
+        that.div.setAttribute('class', 'licode_player');
         that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; ' +
                               'overflow: hidden;');
 
