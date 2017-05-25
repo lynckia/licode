@@ -56,7 +56,7 @@ class Resender {
   DECLARE_LOGGER();
 
   // These values follow recommendations from section 4.2.4.1 in https://tools.ietf.org/html/rfc4347
-  const unsigned int kMaxResends = 2; // Temporary fix
+  const unsigned int kMaxResends = 2;  // Temporary fix
   const unsigned int kInitialSecsPerResend = 1;
 
  public:
