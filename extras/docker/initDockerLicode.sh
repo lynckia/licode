@@ -149,13 +149,15 @@ if [ "$NUVE" = "true" ]; then
   run_nuve
 fi
 
-echo "config.erizoController.publicIP = '$PUBLIC_IP';" >> /opt/licode/licode_config.js
-
 if [ "$ERIZOCONTROLLER" = "true" ]; then
+  echo "config.erizoController.publicIP = '$PUBLIC_IP';" >> /opt/licode/licode_config.js
   run_erizoController
 fi
 
 if [ "$ERIZOAGENT" = "true" ]; then
+  echo "config.erizoAgent.publicIP = '$PUBLIC_IP';" >> /opt/licode/licode_config.js
+  echo "config.erizo.minport = '$MIN_PORT';" >> /opt/licode/licode_config.js
+  echo "config.erizo.maxport = '$MAX_PORT';" >> /opt/licode/licode_config.js
   run_erizoAgent
 fi
 
