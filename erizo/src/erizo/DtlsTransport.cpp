@@ -162,12 +162,12 @@ void DtlsTransport::onIceData(packetPtr packet) {
                toLog(), transport_name.c_str(), component_id);
     if (component_id == 1) {
       if (rtp_resender_.get() != NULL) {
-        rtp_resender_->cancel();
+//        rtp_resender_->cancel(); // Temporary fix
       }
       dtlsRtp->read(reinterpret_cast<unsigned char*>(data), len);
     } else {
       if (rtcp_resender_.get() != NULL) {
-        rtcp_resender_->cancel();
+//        rtcp_resender_->cancel(); // Temporary fix
       }
       dtlsRtcp->read(reinterpret_cast<unsigned char*>(data), len);
     }
@@ -278,6 +278,14 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
                                          std::string srtp_profile) {
   boost::mutex::scoped_lock lock(sessionMutex_);
   std::string temp;
+
+  // Temporary Fix
+  if (rtp_resender_.get() != NULL) {
+    rtp_resender_->cancel();
+  }
+  if (rtcp_resender_.get() != NULL) {
+    rtcp_resender_->cancel();
+  }
 
   if (isServer_) {  // If we are server, we swap the keys
     ELOG_DEBUG("%s message: swapping keys, isServer: %d", toLog(), isServer_);
