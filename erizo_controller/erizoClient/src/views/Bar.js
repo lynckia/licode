@@ -23,7 +23,7 @@ Erizo.Bar = function (spec) {
     // Container
     that.div = document.createElement('div');
     that.div.setAttribute('id', 'bar_' + that.id);
-    that.div.setAttribute('class', 'bar');
+    that.div.setAttribute('class', 'licode_bar');
 
     // Bottom bar
     that.bar = document.createElement('div');
@@ -31,18 +31,18 @@ Erizo.Bar = function (spec) {
                                    'position: absolute; bottom: 0; right: 0; ' +
                                    'background-color: rgba(255,255,255,0.62)');
     that.bar.setAttribute('id', 'subbar_' + that.id);
-    that.bar.setAttribute('class', 'subbar');
+    that.bar.setAttribute('class', 'licode_subbar');
 
     // Lynckia icon
     that.link = document.createElement('a');
     that.link.setAttribute('href', 'http://www.lynckia.com/');
-    that.link.setAttribute('class', 'link');
+    that.link.setAttribute('class', 'licode_link');
     that.link.setAttribute('target', '_blank');
 
     that.logo = document.createElement('img');
     that.logo.setAttribute('style', 'width: 100%; height: 100%; max-width: 30px; ' +
                                     'position: absolute; top: 0; left: 2px;');
-    that.logo.setAttribute('class', 'logo');
+    that.logo.setAttribute('class', 'licode_logo');
     that.logo.setAttribute('alt', 'Lynckia');
     that.logo.setAttribute('src', that.url + '/assets/star.svg');
 
