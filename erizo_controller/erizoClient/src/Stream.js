@@ -305,7 +305,7 @@ Erizo.Stream = function (spec) {
     };
 
     that.muteAudio = function (isMuted, callback) {
-        if (that.room && that.room.p2p){
+        if (that.room && that.room.p2p) {
             L.Logger.warning('muteAudio is not implemented in p2p streams');
             callback ('error');
             return;
@@ -315,8 +315,8 @@ Erizo.Stream = function (spec) {
         that.pc.updateSpec(config, callback);
     };
 
-    that._setQualityLayer = function(spatialLayer, temporalLayer, callback) {
-      if (that.room && that.room.p2p){
+    that._setStaticQualityLayer = function(spatialLayer, temporalLayer, callback) {
+      if (that.room && that.room.p2p) {
           L.Logger.warning('setQualityLayer is not implemented in p2p streams');
           callback ('error');
           return;
@@ -327,6 +327,17 @@ Erizo.Stream = function (spec) {
       var config = {qualityLayer : {spatialLayer: spatialLayer, temporalLayer: temporalLayer}};
       that.checkOptions(config, true);
       that.pc.updateSpec(config, callback);
+    };
+
+    that._setDynamicQualityLayer = function(callback) {
+        if (that.room && that.room.p2p) {
+            L.Logger.warning('setQualityLayer is not implemented in p2p streams');
+            callback ('error');
+            return;
+        }
+        var config = {qualityLayer : {spatialLayer: -1, temporalLayer: -1}};
+        that.checkOptions(config, true);
+        that.pc.updateSpec(config, callback);
     };
 
     controlHandler = function (handlers, publisherSide, enable) {
