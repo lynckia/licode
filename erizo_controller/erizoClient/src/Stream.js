@@ -321,9 +321,6 @@ Erizo.Stream = function (spec) {
           callback ('error');
           return;
       }
-      if (spatialLayer === 'auto') {
-        spatialLayer = -1;
-      }
       var config = {qualityLayer : {spatialLayer: spatialLayer, temporalLayer: temporalLayer}};
       that.checkOptions(config, true);
       that.pc.updateSpec(config, callback);
