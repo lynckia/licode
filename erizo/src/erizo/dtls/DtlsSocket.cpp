@@ -86,6 +86,10 @@ bool DtlsSocket::handlePacketMaybe(const unsigned char* bytes, unsigned int len)
     return false;
   }
 
+  if (mSsl == nullptr) {
+    return false;
+  }
+
   (void) BIO_reset(mInBio);
   (void) BIO_reset(mOutBio);
 

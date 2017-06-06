@@ -14,6 +14,7 @@
 #include "./Stats.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
+#include "thread/IOWorker.h"
 #include "rtp/RtcpProcessor.h"
 #include "rtp/RtpExtensionProcessor.h"
 #include "lib/Clock.h"
@@ -69,7 +70,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    * Constructor.
    * Constructs an empty WebRTCConnection without any configuration.
    */
-  WebRtcConnection(std::shared_ptr<Worker> worker, const std::string& connection_id, const IceConfig& iceConfig,
+  WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
+      const std::string& connection_id, const IceConfig& iceConfig,
       const std::vector<RtpMap> rtp_mappings, const std::vector<erizo::ExtMap> ext_mappings,
       WebRtcConnectionEventListener* listener);
   /**
@@ -225,6 +227,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   Pipeline::Ptr pipeline_;
 
   std::shared_ptr<Worker> worker_;
+  std::shared_ptr<IOWorker> io_worker_;
 
   bool audio_muted_;
 

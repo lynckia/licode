@@ -33,12 +33,26 @@ void IOWorker::start() {
       }
       gettimeofday(&tv, 0);
       NR_async_timer_update_time(&tv);
+      std::vector<Task> tasks;
+      {
+        std::unique_lock<std::mutex> lock(task_mutex_);
+        tasks.swap(tasks_);
+      }
+      for (Task &task : tasks) {
+        task();
+      }
     }
   }));
+}
+
+void IOWorker::task(Task f) {
+  std::unique_lock<std::mutex> lock(task_mutex_);
+  tasks_.push_back(f);
 }
 
 void IOWorker::close() {
   if (!closed_.exchange(true)) {
     thread_->join();
+    tasks_.clear();
   }
 }

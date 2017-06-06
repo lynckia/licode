@@ -192,7 +192,7 @@ exports.ErizoJSController = function (threadPool, ioWorker) {
 
     that.addExternalInput = function (from, url, callback) {
         if (publishers[from] === undefined) {
-            var ei = publishers[from] = new ExternalInput(from, threadPool, url);
+            var ei = publishers[from] = new ExternalInput(from, threadPool, ioWorker, url);
             var answer = ei.init();
             if (answer >= 0) {
                 callback('callback', 'success');
@@ -318,7 +318,7 @@ exports.ErizoJSController = function (threadPool, ioWorker) {
                      'streamId: ' + from + ', ' +
                      logger.objectToLog(options) + ', ' +
                      logger.objectToLog(options.metadata));
-            publisher = new Publisher(from, threadPool, options);
+            publisher = new Publisher(from, threadPool, ioWorker, options);
             publishers[from] = publisher;
 
             initWebRtcConnection(publisher.wrtc, callback, from, undefined, options);

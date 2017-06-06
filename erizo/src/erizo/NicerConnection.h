@@ -17,6 +17,7 @@ extern "C" {
 #include <queue>
 #include <map>
 #include <mutex>  // NOLINT
+#include <future>  // NOLINT
 
 #include "./MediaDefinitions.h"
 #include "./SdpInfo.h"
@@ -24,6 +25,7 @@ extern "C" {
 #include "./IceConnection.h"
 #include "lib/NicerInterface.h"
 #include "./thread/Worker.h"
+#include "./thread/IOWorker.h"
 
 namespace erizo {
 
@@ -34,12 +36,12 @@ typedef struct nr_ice_ctx_ nr_ice_ctx;
  * Represents an ICE Connection in an new thread.
  *
  */
-class NicerConnection : public IceConnection {
+class NicerConnection : public IceConnection, public std::enable_shared_from_this<NicerConnection> {
   DECLARE_LOGGER();
 
  public:
-  explicit NicerConnection(std::shared_ptr<NicerInterface> interface, IceConnectionListener *listener,
-                           const IceConfig& ice_config);
+  explicit NicerConnection(std::shared_ptr<IOWorker> io_worker, std::shared_ptr<NicerInterface> interface,
+                           IceConnectionListener *listener, const IceConfig& ice_config);
 
   virtual ~NicerConnection();
 
@@ -55,7 +57,8 @@ class NicerConnection : public IceConnection {
   void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
 
-  static IceConnection* create(IceConnectionListener *listener, const IceConfig& ice_config);
+  static std::shared_ptr<IceConnection> create(std::shared_ptr<IOWorker> io_worker, IceConnectionListener *listener,
+                               const IceConfig& ice_config);
 
  private:
   std::string getNewUfrag();
@@ -66,6 +69,9 @@ class NicerConnection : public IceConnection {
   void setupStunServer();
   void startGathering();
   void startChecking();
+  void startSync();
+  void closeSync();
+  void async(function<void()> f);
 
   static void initializeGlobals();
 
@@ -85,6 +91,7 @@ class NicerConnection : public IceConnection {
                                int component_id, nr_ice_candidate *candidate);
 
  private:
+  std::shared_ptr<IOWorker> io_worker_;
   std::shared_ptr<NicerInterface> nicer_;
   IceConfig ice_config_;
   bool closed_;
@@ -95,7 +102,8 @@ class NicerConnection : public IceConnection {
   bool offerer_;
   nr_ice_handler_vtbl* ice_handler_vtbl_;
   nr_ice_handler* ice_handler_;
-  bool trickle_;
+  std::promise<void> close_promise_;
+  std::promise<void> start_promise_;
 };
 
 }  // namespace erizo

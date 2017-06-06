@@ -41,13 +41,14 @@ DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 constexpr uint32_t kDefaultVideoSinkSSRC = 55543;
 constexpr uint32_t kDefaultAudioSinkSSRC = 44444;
 
-WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, const std::string& connection_id,
-    const IceConfig& iceConfig, const std::vector<RtpMap> rtp_mappings,
+WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
+    const std::string& connection_id, const IceConfig& iceConfig, const std::vector<RtpMap> rtp_mappings,
     const std::vector<erizo::ExtMap> ext_mappings, WebRtcConnectionEventListener* listener) :
     connection_id_{connection_id}, remoteSdp_{SdpInfo(rtp_mappings)}, localSdp_{SdpInfo(rtp_mappings)},
     audioEnabled_{false}, videoEnabled_{false}, bundle_{false}, connEventListener_{listener},
     iceConfig_{iceConfig}, rtp_mappings_{rtp_mappings}, extProcessor_{ext_mappings},
-    pipeline_{Pipeline::create()}, worker_{worker}, audio_muted_{false}, pipeline_initialized_{false} {
+    pipeline_{Pipeline::create()}, worker_{worker}, io_worker_{io_worker}, audio_muted_{false},
+    pipeline_initialized_{false} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stun_server.c_str(), iceConfig.stun_port, iceConfig.min_port, iceConfig.max_port);
   setVideoSinkSSRC(kDefaultVideoSinkSSRC);
@@ -135,20 +136,20 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
 
   if (bundle_) {
     videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
-                                            listener, iceConfig_ , "", "", true, worker_));
+                                            listener, iceConfig_ , "", "", true, worker_, io_worker_));
     videoTransport_->copyLogContextFrom(this);
     videoTransport_->start();
   } else {
     if (videoTransport_.get() == nullptr && videoEnabled_) {
       // For now we don't re/check transports, if they are already created we leave them there
       videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
-                                              listener, iceConfig_ , "", "", true, worker_));
+                                              listener, iceConfig_ , "", "", true, worker_, io_worker_));
       videoTransport_->copyLogContextFrom(this);
       videoTransport_->start();
     }
     if (audioTransport_.get() == nullptr && audioEnabled_) {
       audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
-                                              listener, iceConfig_, "", "", true, worker_));
+                                              listener, iceConfig_, "", "", true, worker_, io_worker_));
       audioTransport_->copyLogContextFrom(this);
       audioTransport_->start();
     }
@@ -207,7 +208,8 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
           ELOG_DEBUG("%s message: Creating videoTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           videoTransport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, remoteSdp_.isRtcpMux,
-                                                  listener, iceConfig_ , username, password, false, worker_));
+                                                  listener, iceConfig_ , username, password, false,
+                                                  worker_, io_worker_));
           videoTransport_->copyLogContextFrom(this);
           videoTransport_->start();
         } else {
@@ -223,7 +225,8 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
           ELOG_DEBUG("%s message: Creating audioTransport, ufrag: %s, pass: %s",
                       toLog(), username.c_str(), password.c_str());
           audioTransport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, remoteSdp_.isRtcpMux,
-                                                  listener, iceConfig_, username, password, false, worker_));
+                                                  listener, iceConfig_, username, password, false,
+                                                  worker_, io_worker_));
           audioTransport_->copyLogContextFrom(this);
           audioTransport_->start();
         } else {

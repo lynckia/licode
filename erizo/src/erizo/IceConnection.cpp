@@ -21,6 +21,7 @@ IceConnection::IceConnection(IceConnectionListener* listener, const IceConfig& i
   }
 
 IceConnection::~IceConnection() {
+  this->listener_ = nullptr;
 }
 
 void IceConnection::setIceListener(IceConnectionListener *listener) {

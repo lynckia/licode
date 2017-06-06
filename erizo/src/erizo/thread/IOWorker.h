@@ -4,21 +4,27 @@
 #include <atomic>
 #include <memory>
 #include <thread>  // NOLINT
+#include <vector>
 
 namespace erizo {
 
 class IOWorker : public std::enable_shared_from_this<IOWorker> {
  public:
+  typedef std::function<void()> Task;
   IOWorker();
   ~IOWorker();
 
   virtual void start();
   virtual void close();
 
+  virtual void task(Task f);
+
  private:
   std::atomic<bool> started_;
   std::atomic<bool> closed_;
   std::unique_ptr<std::thread> thread_;
+  std::vector<Task> tasks_;
+  mutable std::mutex task_mutex_;
 };
 }  // namespace erizo
 

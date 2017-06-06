@@ -26,6 +26,7 @@ extern "C" {
 #include <ice_ctx.h>
 #include <ice_candidate.h>
 #include <ice_handler.h>
+#include <async_timer.h>
 }
 
 #include <openssl/crypto.h>
@@ -111,7 +112,7 @@ int NicerConnection::ice_connected(void *obj, nr_ice_peer_ctx *pctx) {
     return 0;
   }
   conn->updateIceState(IceState::READY);
-  // conn->nicer_->IceContextFinalize(conn->ctx_, pctx);  --> This is causing crashes inside nICEr after a while
+  conn->nicer_->IceContextFinalize(conn->ctx_, pctx);
 
   return 0;
 }
@@ -134,9 +135,10 @@ void NicerConnection::trickle_callback(void *arg, nr_ice_ctx *ctx, nr_ice_media_
   conn->onCandidate(stream, component_id, candidate);
 }
 
-NicerConnection::NicerConnection(std::shared_ptr<NicerInterface> interface, IceConnectionListener *listener,
-                                 const IceConfig& ice_config)
+NicerConnection::NicerConnection(std::shared_ptr<IOWorker> io_worker, std::shared_ptr<NicerInterface> interface,
+                                 IceConnectionListener *listener, const IceConfig& ice_config)
     : IceConnection(listener, ice_config),
+      io_worker_{io_worker},
       nicer_{interface},
       ice_config_{ice_config},
       closed_{false},
@@ -144,20 +146,40 @@ NicerConnection::NicerConnection(std::shared_ptr<NicerInterface> interface, IceC
       ctx_{nullptr},
       peer_{nullptr},
       stream_{nullptr},
-      offerer_{!ice_config_.username.empty() && !ice_config_.password.empty()},
-      trickle_{ice_config_.should_trickle} {
+      offerer_{!ice_config_.username.empty() && !ice_config_.password.empty()} {
 }
 
 NicerConnection::~NicerConnection() {
   close();
 }
 
+void NicerConnection::async(function<void()> f) {
+  std::weak_ptr<NicerConnection> weak_this = shared_from_this();
+  io_worker_->task([weak_this, f] {
+    if (!weak_this.lock()) {
+      return;
+    }
+    f();
+  });
+}
+
 void NicerConnection::start() {
+  async([this] {
+    startSync();
+  });
+  std::future_status status = start_promise_.get_future().wait_for(std::chrono::seconds(5));
+  if (status == std::future_status::timeout) {
+    ELOG_WARN("%s Start timed out", toLog());
+  }
+}
+
+void NicerConnection::startSync() {
   UINT4 flags = NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;
 
   ufrag_ = getNewUfrag();
   upass_ = getNewPwd();
   if (ufrag_.empty() || upass_.empty()) {
+    start_promise_.set_value();
     return;
   }
 
@@ -167,12 +189,14 @@ void NicerConnection::start() {
                                                   const_cast<char*>(upass_.c_str()), &ctx_);
   if (r) {
     ELOG_WARN("%s message: Couldn't create ICE ctx", toLog());
+    start_promise_.set_value();
     return;
   }
 
   r = nicer_->IceContextSetTrickleCallback(ctx_, &NicerConnection::trickle_callback, this);
   if (r) {
     ELOG_WARN("%s message: Couldn't set trickle callback", toLog());
+    start_promise_.set_value();
     return;
   }
 
@@ -196,6 +220,7 @@ void NicerConnection::start() {
   r = nicer_->IcePeerContextCreate(ctx_, ice_handler_, const_cast<char *>(peer_name.c_str()), &peer_);
   if (r) {
     ELOG_WARN("%s message: Couldn't create ICE peer ctx", toLog());
+    start_promise_.set_value();
     return;
   }
 
@@ -205,6 +230,7 @@ void NicerConnection::start() {
   r = nicer_->IceAddMediaStream(ctx_, const_cast<char *>(stream_name.c_str()), ice_config_.ice_components, &stream_);
   if (r) {
     ELOG_WARN("%s message: Couldn't create ICE stream", toLog());
+    start_promise_.set_value();
     return;
   }
 
@@ -226,6 +252,7 @@ void NicerConnection::start() {
 
   startGathering();
   startChecking();
+  start_promise_.set_value();
 }
 
 void NicerConnection::setupTurnServer() {
@@ -291,16 +318,24 @@ void NicerConnection::startGathering() {
 }
 
 bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) {
-  for (const CandidateInfo &cand : candidates) {
-    std::string sdp = cand.sdp;
-    std::size_t pos = sdp.find(",");
-    std::string candidate = sdp.substr(0, pos);
-    UINT4 r = nicer_->IcePeerContextParseTrickleCandidate(peer_, stream_, const_cast<char *>(candidate.c_str()));
-    if (r) {
-      ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s)", toLog(), candidate.c_str());
+  std::vector<CandidateInfo> cands(candidates);
+  nr_ice_peer_ctx *peer = peer_;
+  nr_ice_media_stream *stream = stream_;
+  std::shared_ptr<NicerInterface> nicer = nicer_;
+  async([cands, is_bundle, nicer, peer, stream, this] {
+    ELOG_INFO("%s message: remote candidate gathering", toLog());
+    for (const CandidateInfo &cand : cands) {
+      std::string sdp = cand.sdp;
+      std::size_t pos = sdp.find(",");
+      std::string candidate = sdp.substr(0, pos);
+      ELOG_DEBUG("%s message: New remote ICE candidate", toLog());
+      UINT4 r = nicer->IcePeerContextParseTrickleCandidate(peer, stream, const_cast<char *>(candidate.c_str()));
+      if (r) {
+        ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s)", toLog(), candidate.c_str());
+      }
     }
-  }
-  ELOG_INFO("%s message: remote candidate gathering", toLog());
+  });
+
   return true;
 }
 
@@ -312,7 +347,7 @@ void NicerConnection::gatheringDone(uint stream_id) {
 void NicerConnection::startChecking() {
   UINT4 r = nicer_->IcePeerContextPairCandidates(peer_);
   if (r) {
-    ELOG_WARN("%s message: Error pairing candidates", toLog());
+    ELOG_WARN("%s message: Error pairing candidates (%d)", toLog(), r);
     return;
   }
 
@@ -406,14 +441,23 @@ void NicerConnection::setRemoteCredentials(const std::string& username, const st
 }
 
 int NicerConnection::sendData(unsigned int component_id, const void* buf, int len) {
-  UINT4 r = nicer_->IceMediaStreamSend(peer_,
-                                       stream_,
-                                       component_id,
-                                       reinterpret_cast<unsigned char*>(const_cast<void*>(buf)),
-                                       len);
-  if (r) {
-    ELOG_WARN("%s message: Couldn't send data on ICE", toLog());
-  }
+  packetPtr packet (new dataPacket());
+  memcpy(packet->data, buf, len);
+  packet->length = len;
+  nr_ice_peer_ctx *peer = peer_;
+  nr_ice_media_stream *stream = stream_;
+  std::shared_ptr<NicerInterface> nicer = nicer_;
+  async([nicer, packet, peer, stream, component_id, len, this] {
+    UINT4 r = nicer->IceMediaStreamSend(peer,
+                                         stream,
+                                         component_id,
+                                         reinterpret_cast<unsigned char*>(packet->data),
+                                         len);
+    if (r) {
+      ELOG_WARN("%s message: Couldn't send data on ICE", toLog());
+    }
+  });
+
   return len;
 }
 
@@ -428,43 +472,65 @@ std::string getHostTypeFromNicerCandidate(nr_ice_candidate *candidate) {
 }
 
 CandidatePair NicerConnection::getSelectedPair() {
-  nr_ice_candidate *local;
-  nr_ice_candidate *remote;
-  nr_ice_media_stream_get_active(peer_, stream_, 1, &local, &remote);
-  CandidatePair pair;
-  if (!local || !remote) {
+  auto selected_pair_promise = std::make_shared<std::promise<CandidatePair>>();
+  async([this, selected_pair_promise] {
+    nr_ice_candidate *local;
+    nr_ice_candidate *remote;
+    nr_ice_media_stream_get_active(peer_, stream_, 1, &local, &remote);
+    CandidatePair pair;
+    if (!local || !remote) {
+      selected_pair_promise->set_value(CandidatePair{});
+      return;
+    }
+    pair.clientCandidateIp = getStringFromAddress(remote->addr);
+    pair.erizoCandidateIp = getStringFromAddress(local->addr);
+    pair.clientCandidatePort = getPortFromAddress(remote->addr);
+    pair.erizoCandidatePort = getPortFromAddress(local->addr);
+    pair.clientHostType = getHostTypeFromNicerCandidate(remote);
+    pair.erizoHostType = getHostTypeFromNicerCandidate(local);
+    ELOG_DEBUG("%s message: Client Host Type %s", toLog(), pair.clientHostType.c_str());
+    selected_pair_promise->set_value(pair);
+  });
+  std::future<CandidatePair> selected_pair_future = selected_pair_promise->get_future();
+  std::future_status status = selected_pair_future.wait_for(std::chrono::seconds(1));
+  CandidatePair pair = selected_pair_future.get();
+  if (status == std::future_status::timeout) {
+    ELOG_WARN("%s message: Could not get selected pair", toLog());
     return CandidatePair{};
   }
-  pair.clientCandidateIp = getStringFromAddress(remote->addr);
-  pair.erizoCandidateIp = getStringFromAddress(local->addr);
-  pair.clientCandidatePort = getPortFromAddress(remote->addr);
-  pair.erizoCandidatePort = getPortFromAddress(local->addr);
-  pair.clientHostType = getHostTypeFromNicerCandidate(remote);
-  pair.erizoHostType = getHostTypeFromNicerCandidate(local);
-  ELOG_DEBUG("%s message: Client Host Type %s", toLog(), pair.clientHostType.c_str());
   return pair;
 }
 
 void NicerConnection::setReceivedLastCandidate(bool hasReceived) {
 }
 
+void NicerConnection::closeSync() {
+  if (stream_) {
+    nicer_->IceRemoveMediaStream(ctx_, &stream_);
+  }
+  if (peer_) {
+    nicer_->IcePeerContextDestroy(&peer_);
+  }
+  if (ctx_) {
+    nicer_->IceContextDestroy(&ctx_);
+  }
+  delete ice_handler_vtbl_;
+  delete ice_handler_;
+  close_promise_.set_value();
+}
+
 void NicerConnection::close() {
+  boost::mutex::scoped_lock(close_mutex_);
   if (!closed_) {
     closed_ = true;
-    if (stream_) {
-      int r = nicer_->IceRemoveMediaStream(ctx_, &stream_);
-      if (r) {
-        ELOG_WARN("%s message: Couldn't remove media stream", toLog());
-      }
+    async([this] {
+      closeSync();
+    });
+    std::future_status status = close_promise_.get_future().wait_for(std::chrono::seconds(1));
+    if (status == std::future_status::timeout) {
+      ELOG_WARN("%s Stop timed out", toLog());
+      closeSync();
     }
-    if (peer_) {
-      nicer_->IcePeerContextDestroy(&peer_);
-    }
-    if (ctx_) {
-      nicer_->IceContextDestroy(&ctx_);
-    }
-    delete ice_handler_vtbl_;
-    delete ice_handler_;
   }
 }
 
@@ -472,7 +538,7 @@ void NicerConnection::onData(unsigned int component_id, char* buf, int len) {
   IceState state;
   IceConnectionListener* listener;
   {
-    boost::mutex::scoped_lock(closeMutex_);
+    boost::mutex::scoped_lock(close_mutex_);
     state = this->checkIceState();
     listener = listener_;
   }
@@ -566,8 +632,11 @@ std::string NicerConnection::getNewPwd() {
   return pwdStr;
 }
 
-IceConnection* NicerConnection::create(IceConnectionListener *listener, const IceConfig& ice_config) {
-  auto nicer = new NicerConnection(std::make_shared<NicerInterfaceImpl>(), listener, ice_config);
+std::shared_ptr<IceConnection> NicerConnection::create(std::shared_ptr<IOWorker> io_worker,
+                                                       IceConnectionListener *listener,
+                                                       const IceConfig& ice_config) {
+  auto nicer = std::make_shared<NicerConnection>(io_worker, std::make_shared<NicerInterfaceImpl>(),
+                                                 listener, ice_config);
 
   NicerConnection::initializeGlobals();
 

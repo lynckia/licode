@@ -14,7 +14,7 @@
 class IOWorker : public Nan::ObjectWrap {
  public:
     static NAN_MODULE_INIT(Init);
-    std::unique_ptr<erizo::IOWorker> me;
+    std::shared_ptr<erizo::IOWorker> me;
 
  private:
     IOWorker();

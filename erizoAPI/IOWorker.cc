@@ -35,7 +35,7 @@ NAN_MODULE_INIT(IOWorker::Init) {
 
 NAN_METHOD(IOWorker::New) {
   IOWorker* obj = new IOWorker();
-  obj->me.reset(new erizo::IOWorker());
+  obj->me = std::make_shared<erizo::IOWorker>();
 
   obj->Wrap(info.This());
   info.GetReturnValue().Set(info.This());
