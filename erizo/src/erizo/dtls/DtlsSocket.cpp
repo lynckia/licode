@@ -80,6 +80,10 @@ void DtlsSocket::startClient() {
 }
 
 bool DtlsSocket::handlePacketMaybe(const unsigned char* bytes, unsigned int len) {
+  if (mSsl == NULL) {
+    ELOG_WARN("handlePacketMaybe called after DtlsSocket closed: %p", this);
+    return false;
+  }
   DtlsSocketContext::PacketType pType = DtlsSocketContext::demuxPacket(bytes, len);
 
   if (pType != DtlsSocketContext::dtls) {
