@@ -99,6 +99,7 @@ amqper.connect(function () {
 
         log.info('message: Started, erizoId: ' + rpcID);
 
+        amqper.bindBroadcast('ErizoJS');
         amqper.bind('ErizoJS_' + rpcID, function() {
             log.debug('message: bound to amqp queue, queueId: ErizoJS_' + rpcID );
 
