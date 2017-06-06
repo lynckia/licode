@@ -12,6 +12,8 @@ exports.ErizoJSController = function (threadPool) {
     var that = {},
         // {id1: Publisher, id2: Publisher}
         publishers = {},
+        // {streamId: {timeout: timeout, interval: interval}}
+        statsSubscriptions = {},
 
         MIN_SLIDESHOW_PERIOD = 2000,
         MAX_SLIDESHOW_PERIOD = 10000,
@@ -33,6 +35,7 @@ exports.ErizoJSController = function (threadPool) {
         WARN_CONFLICT       = 409,
         WARN_PRECOND_FAILED = 412,
         WARN_BAD_CONNECTION = 502;
+
     that.publishers = publishers;
 
     /*
@@ -553,6 +556,68 @@ exports.ErizoJSController = function (threadPool) {
           Promise.all(promises).then(() => {
             callback('callback', stats);
           });
+        }
+    };
+
+    that.subscribeToStats = function (to, timeout, interval, callback) {
+        
+        var publisher;
+        log.debug('message: Requested subscription to stream stats, streamID: ' + to);
+
+        if (to && publishers[to]) {
+            publisher = publishers[to];
+
+            if (GLOBAL.config.erizoController.reportSubscriptions && 
+                GLOBAL.config.erizoController.reportSubscriptions.maxSubscriptions > 0) {
+
+                if (timeout > GLOBAL.config.erizoController.reportSubscriptions.maxTimeout)
+                    timeout = GLOBAL.config.erizoController.reportSubscriptions.maxTimeout;
+                if (interval < GLOBAL.config.erizoController.reportSubscriptions.minInterval)
+                    interval = GLOBAL.config.erizoController.reportSubscriptions.minInterval;
+
+                if (statsSubscriptions[to]) {
+                    log.debug('message: Renewing subscription to stream: ' + to);
+                    clearTimeout(statsSubscriptions[to].timeout);
+                    clearInterval(statsSubscriptions[to].interval);
+                } else if (Object.keys(statsSubscriptions).length < 
+                    GLOBAL.config.erizoController.reportSubscriptions.maxSubscriptions){
+                    statsSubscriptions[to] = {};
+                }
+
+                if (!statsSubscriptions[to]) {
+                    log.debug('message: Max Subscriptions limit reached, ignoring message');
+                    return;
+                }
+
+                statsSubscriptions[to].interval = setInterval(function () {
+                    let promises = [];
+                    let stats = {};
+                    
+                    stats.streamId = to;
+                    promises.push(getWrtcStats('publisher', stats, publisher.wrtc));
+
+                    for (var sub in publisher.subscribers) {
+                        promises.push(getWrtcStats(sub, stats, publisher.subscribers[sub]));
+                    }
+
+                    Promise.all(promises).then(() => {
+                        amqper.broadcast('stats_subscriptions', stats);
+                    });
+
+                }, interval*1000);
+
+                statsSubscriptions[to].timeout = setTimeout(function () {
+                    clearInterval(statsSubscriptions[to].interval);
+                    delete statsSubscriptions[to];
+                }, timeout*1000);
+
+                callback('success');
+                
+            } else {
+                log.debug('message: Report subscriptions disabled by config, ignoring message');
+            }
+        } else {
+            log.debug('message: Im not handling this stream, ignoring message, streamID: ' + to);
         }
     };
 

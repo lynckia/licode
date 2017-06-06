@@ -51,7 +51,7 @@ Erizo.getBrowser = function () {
     } else if (window.navigator.userAgent.match('Chrome') !== null) {
         browser = 'chrome-stable';
         if (window.navigator.userAgent.match('Electron') !== null) {
-            browser = 'electron'
+            browser = 'electron';
         }
     } else if (window.navigator.userAgent.match('Safari') !== null) {
         browser = 'bowser';
@@ -119,7 +119,8 @@ Erizo.GetUserMedia = function (config, callback, error) {
                   }
                   L.Logger.debug('Screen access on chrome stable, looking for extension');
                   try {
-                      chrome.runtime.sendMessage(extensionId, {getStream: true}, function (response){
+                      chrome.runtime.sendMessage(extensionId, {getStream: true}, 
+                        function (response){
                           var theConfig = {};
                           if (response === undefined){
                               L.Logger.error('Access to screen denied');
