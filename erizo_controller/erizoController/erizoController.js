@@ -479,7 +479,7 @@ var listen = function () {
                     (isControlMessage && hasPermission(socket.user, msg.msg.action.name))) {
                   socket.room.controller.processSignaling(msg.streamId, socket.id, msg.msg);
                 } else {
-                  log.info('message: User unauthorized to execute action on stream, action: ' + 
+                  log.info('message: User unauthorized to execute action on stream, action: ' +
                     msg.msg.action.name + ', streamId: ' + msg.streamId);
                 }
             }
@@ -520,7 +520,7 @@ var listen = function () {
                 }
             }
 
-            // generate a 18 digits safe integer            
+            // generate a 18 digits safe integer
             id = Math.floor(100000000000000000 + Math.random() * 900000000000000000);
 
             if (options.state === 'url' || options.state === 'recording') {
@@ -995,7 +995,7 @@ var listen = function () {
                 log.info('message: bad getStreamStats request');
                 return;
             }
-            if (socket.room !== undefined){
+            if (socket.room !== undefined && !socket.room.p2p) {
                 socket.room.controller.getStreamStats(streamId, function (result) {
                     callback(result);
                 });
