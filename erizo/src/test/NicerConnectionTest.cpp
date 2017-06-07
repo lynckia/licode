@@ -23,12 +23,17 @@ class MockNicer: public erizo::NicerInterface {
  public:
   MockNicer() {
     erizo::NicerConnection::initializeGlobals();
-    ON_CALL(*this, IceContextCreate(_, _, _)).WillByDefault(Invoke(&real_impl_, &erizo::NicerInterfaceImpl::IceContextCreate));
-    ON_CALL(*this, IceContextCreateWithCredentials(_, _, _, _, _)).WillByDefault(Invoke(&real_impl_, &erizo::NicerInterfaceImpl::IceContextCreateWithCredentials));
-    ON_CALL(*this, IcePeerContextCreate(_, _, _, _)).WillByDefault(Invoke(&real_impl_, &erizo::NicerInterfaceImpl::IcePeerContextCreate));
+    ON_CALL(*this, IceContextCreate(_, _, _)).WillByDefault(Invoke(&real_impl_,
+                            &erizo::NicerInterfaceImpl::IceContextCreate));
+    ON_CALL(*this, IceContextCreateWithCredentials(_, _, _, _, _)).WillByDefault(Invoke(&real_impl_,
+                            &erizo::NicerInterfaceImpl::IceContextCreateWithCredentials));
+    ON_CALL(*this, IcePeerContextCreate(_, _, _, _)).WillByDefault(Invoke(&real_impl_,
+                            &erizo::NicerInterfaceImpl::IcePeerContextCreate));
 
-    ON_CALL(*this, IceContextDestroy(_)).WillByDefault(Invoke(&real_impl_, &erizo::NicerInterfaceImpl::IceContextDestroy));
-    ON_CALL(*this, IcePeerContextDestroy(_)).WillByDefault(Invoke(&real_impl_, &erizo::NicerInterfaceImpl::IcePeerContextDestroy));
+    ON_CALL(*this, IceContextDestroy(_)).WillByDefault(Invoke(&real_impl_,
+                            &erizo::NicerInterfaceImpl::IceContextDestroy));
+    ON_CALL(*this, IcePeerContextDestroy(_)).WillByDefault(Invoke(&real_impl_,
+                            &erizo::NicerInterfaceImpl::IcePeerContextDestroy));
   }
   virtual ~MockNicer() {
   }
@@ -374,44 +379,44 @@ TEST_F(NicerConnectionTest, sendData_Fail_When_Ice_Not_Ready) {
 }
 
 TEST_F(NicerConnectionTest, gatheringDone_Triggers_updateIceState) {
-  EXPECT_CALL(*nicer_listener, updateIceState(erizo::IceState::CANDIDATES_RECEIVED , _)).Times(1);
+  EXPECT_CALL(*nicer_listener, updateIceState(erizo::IceState::CANDIDATES_RECEIVED, _)).Times(1);
   nicer_connection->gatheringDone(1);
 }
 
 static int create_nr_ice_candidate(UINT4 component_id, const char *ip, UINT2 port, nr_ice_candidate **candp) {
   nr_ice_candidate *cand = nullptr;
   nr_transport_addr *addr = nullptr;
-  int r,_status;
+  int r, _status;
 
-  if(!(cand=reinterpret_cast<nr_ice_candidate*>(RCALLOC(sizeof(nr_ice_candidate)))))
+  if (!(cand=reinterpret_cast<nr_ice_candidate*>(RCALLOC(sizeof(nr_ice_candidate)))))
     ABORT(1);
 
-  cand->state=NR_ICE_CAND_STATE_INITIALIZED;
-  cand->type=PEER_REFLEXIVE;
-  cand->component_id=component_id;
+  cand->state = NR_ICE_CAND_STATE_INITIALIZED;
+  cand->type = PEER_REFLEXIVE;
+  cand->component_id = component_id;
 
-  if(!(addr=reinterpret_cast<nr_transport_addr*>(RCALLOC(sizeof(nr_transport_addr)))))
+  if (!(addr = reinterpret_cast<nr_transport_addr*>(RCALLOC(sizeof(nr_transport_addr)))))
     ABORT(2);
 
   addr->ip_version = NR_IPV4;
 
-  if((r=nr_str_port_to_transport_addr(ip, port, 17, addr)))
+  if ((r = nr_str_port_to_transport_addr(ip, port, 17, addr)))
     ABORT(3);
-  if((r=nr_transport_addr_copy(&cand->base,addr)))
+  if ((r = nr_transport_addr_copy(&cand->base, addr)))
     ABORT(4);
-  if((r=nr_transport_addr_copy(&cand->addr,addr)))
+  if ((r = nr_transport_addr_copy(&cand->addr, addr)))
     ABORT(5);
   /* Bogus foundation */
-  if(!(cand->foundation=r_strdup(cand->addr.as_string)))
+  if (!(cand->foundation = r_strdup(cand->addr.as_string)))
     ABORT(6);
 
   nr_ice_candidate_compute_codeword(cand);
 
-  *candp=cand;
+  *candp = cand;
 
-  _status=0;
+  _status = 0;
 abort:
-  if (_status){
+  if (_status) {
     nr_ice_candidate_destroy(&cand);
   }
   RFREE(addr);
