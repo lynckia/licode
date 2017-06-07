@@ -8,11 +8,11 @@ var ExternalInput = require('./models/Publisher').ExternalInput;
 // Logger
 var log = logger.getLogger('ErizoJSController');
 
-exports.ErizoJSController = function (threadPool, ioWorker) {
+exports.ErizoJSController = function (threadPool, ioThreadPool) {
     var that = {},
         // {id1: Publisher, id2: Publisher}
         publishers = {},
-        io = ioWorker,
+        io = ioThreadPool,
         // {streamId: {timeout: timeout, interval: interval}}
         statsSubscriptions = {},
         MIN_SLIDESHOW_PERIOD = 2000,
@@ -37,7 +37,7 @@ exports.ErizoJSController = function (threadPool, ioWorker) {
         WARN_BAD_CONNECTION = 502;
 
     that.publishers = publishers;
-    that.ioWorker = io;
+    that.ioThreadPool = io;
 
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
@@ -194,7 +194,7 @@ exports.ErizoJSController = function (threadPool, ioWorker) {
 
     that.addExternalInput = function (from, url, callback) {
         if (publishers[from] === undefined) {
-            var ei = publishers[from] = new ExternalInput(from, threadPool, ioWorker, url);
+            var ei = publishers[from] = new ExternalInput(from, threadPool, ioThreadPool, url);
             var answer = ei.init();
             if (answer >= 0) {
                 callback('callback', 'success');
@@ -320,7 +320,7 @@ exports.ErizoJSController = function (threadPool, ioWorker) {
                      'streamId: ' + from + ', ' +
                      logger.objectToLog(options) + ', ' +
                      logger.objectToLog(options.metadata));
-            publisher = new Publisher(from, threadPool, ioWorker, options);
+            publisher = new Publisher(from, threadPool, ioThreadPool, options);
             publishers[from] = publisher;
 
             initWebRtcConnection(publisher.wrtc, callback, from, undefined, options);

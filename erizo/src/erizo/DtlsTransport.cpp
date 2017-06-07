@@ -106,11 +106,11 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     iceConfig_.ice_components = comps;
     iceConfig_.username = username;
     iceConfig_.password = password;
-#ifdef USE_NICER
-    ice_ = NicerConnection::create(io_worker_, this, iceConfig_);
-#else
-    ice_.reset(LibNiceConnection::create(this, iceConfig_));
-#endif
+    if (iceConfig_.use_nicer) {
+      ice_ = NicerConnection::create(io_worker_, this, iceConfig_);
+    } else {
+      ice_.reset(LibNiceConnection::create(this, iceConfig_));
+    }
     rtp_resender_.reset(new Resender(this, dtlsRtp.get()));
     if (!rtcp_mux) {
       rtcp_resender_.reset(new Resender(this, dtlsRtcp.get()));

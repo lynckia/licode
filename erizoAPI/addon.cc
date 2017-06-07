@@ -9,7 +9,7 @@
 #include "ExternalInput.h"
 #include "ExternalOutput.h"
 #include "ThreadPool.h"
-#include "IOWorker.h"
+#include "IOThreadPool.h"
 
 NAN_MODULE_INIT(InitAll) {
   WebRtcConnection::Init(target);
@@ -18,7 +18,7 @@ NAN_MODULE_INIT(InitAll) {
   ExternalOutput::Init(target);
   SyntheticInput::Init(target);
   ThreadPool::Init(target);
-  IOWorker::Init(target);
+  IOThreadPool::Init(target);
 }
 
 NODE_MODULE(addon, InitAll)
