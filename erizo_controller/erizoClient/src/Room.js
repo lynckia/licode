@@ -739,6 +739,12 @@ Erizo.Room = function (spec) {
 
     // It subscribe to a remote stream and draws it inside the HTML tag given by the ID='elementID'
     that.subscribe = function (stream, options, callback) {
+        if (that.state !== CONNECTED) {
+            if (callback)
+                callback(undefined, 'Unable to subscribe. Room is not connected yet, retry');
+            L.Logger.error('Unable to subscribe. Room is not connected yet, retry');
+            return;
+        }
 
         options = options || {};
 
