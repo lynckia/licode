@@ -334,8 +334,8 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
       if (r) {
         ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s)", toLog(), candidate.c_str());
       }
-      remote_candidates_promise->set_value();
     }
+    remote_candidates_promise->set_value();
   });
   std::future<void> remote_candidates_future = remote_candidates_promise->get_future();
   std::future_status status = remote_candidates_future.wait_for(std::chrono::seconds(1));
