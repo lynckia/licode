@@ -113,4 +113,9 @@ int NicerInterfaceImpl::IceMediaStreamSend(nr_ice_peer_ctx *pctxp, nr_ice_media_
 int NicerInterfaceImpl::IceRemoveMediaStream(nr_ice_ctx *ctx, nr_ice_media_stream **stream) {
   return nr_ice_remove_media_stream(ctx, stream);
 }
+
+int NicerInterfaceImpl::IceMediaStreamGetActive(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, int component,
+                                                nr_ice_candidate **local, nr_ice_candidate **remote) {
+  return nr_ice_media_stream_get_active(pctxp, stream, component, local, remote);
+}
 }  // namespace erizo

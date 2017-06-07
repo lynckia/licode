@@ -319,10 +319,11 @@ void NicerConnection::startGathering() {
 
 bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) {
   std::vector<CandidateInfo> cands(candidates);
+  auto remote_candidates_promise = std::make_shared<std::promise<void>>();
   nr_ice_peer_ctx *peer = peer_;
   nr_ice_media_stream *stream = stream_;
   std::shared_ptr<NicerInterface> nicer = nicer_;
-  async([cands, is_bundle, nicer, peer, stream, this] {
+  async([cands, is_bundle, nicer, peer, stream, this, remote_candidates_promise] {
     ELOG_INFO("%s message: remote candidate gathering", toLog());
     for (const CandidateInfo &cand : cands) {
       std::string sdp = cand.sdp;
@@ -333,9 +334,15 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
       if (r) {
         ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s)", toLog(), candidate.c_str());
       }
+      remote_candidates_promise->set_value();
     }
   });
-
+  std::future<void> remote_candidates_future = remote_candidates_promise->get_future();
+  std::future_status status = remote_candidates_future.wait_for(std::chrono::seconds(1));
+  if (status == std::future_status::timeout) {
+    ELOG_WARN("%s message: Could not set remote candidates", toLog());
+    return false;
+  }
   return true;
 }
 
@@ -441,6 +448,9 @@ void NicerConnection::setRemoteCredentials(const std::string& username, const st
 }
 
 int NicerConnection::sendData(unsigned int component_id, const void* buf, int len) {
+  if (checkIceState() != IceState::READY) {
+    return -1;
+  }
   packetPtr packet (new dataPacket());
   memcpy(packet->data, buf, len);
   packet->length = len;
@@ -476,7 +486,7 @@ CandidatePair NicerConnection::getSelectedPair() {
   async([this, selected_pair_promise] {
     nr_ice_candidate *local;
     nr_ice_candidate *remote;
-    nr_ice_media_stream_get_active(peer_, stream_, 1, &local, &remote);
+    nicer_->IceMediaStreamGetActive(peer_, stream_, 1, &local, &remote);
     CandidatePair pair;
     if (!local || !remote) {
       selected_pair_promise->set_value(CandidatePair{});

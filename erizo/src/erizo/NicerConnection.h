@@ -60,6 +60,8 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   static std::shared_ptr<IceConnection> create(std::shared_ptr<IOWorker> io_worker, IceConnectionListener *listener,
                                const IceConfig& ice_config);
 
+  static void initializeGlobals();
+
  private:
   std::string getNewUfrag();
   std::string getNewPwd();
@@ -72,8 +74,6 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   void startSync();
   void closeSync();
   void async(function<void()> f);
-
-  static void initializeGlobals();
 
   static void gather_callback(NR_SOCKET s, int h, void *arg);  // ICE gather complete
   static int select_pair(void *obj, nr_ice_media_stream *stream,

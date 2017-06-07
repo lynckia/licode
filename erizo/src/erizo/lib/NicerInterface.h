@@ -58,6 +58,8 @@ class NicerInterface {
   virtual int IceMediaStreamSend(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, int component,
                                  unsigned char *buffer, size_t length) = 0;
   virtual int IceRemoveMediaStream(nr_ice_ctx *ctx, nr_ice_media_stream **stream) = 0;
+  virtual int IceMediaStreamGetActive(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, int component,
+                                      nr_ice_candidate **local, nr_ice_candidate **remote) = 0;
 };
 
 
@@ -88,6 +90,8 @@ class NicerInterfaceImpl: public NicerInterface {
   int IceMediaStreamSend(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, int component, unsigned char *buffer,
                          size_t length) override;
   int IceRemoveMediaStream(nr_ice_ctx *ctx, nr_ice_media_stream **stream) override;
+  int IceMediaStreamGetActive(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, int component,
+                              nr_ice_candidate **local, nr_ice_candidate **remote) override;
 };
 
 }  // namespace erizo
