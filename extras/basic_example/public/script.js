@@ -69,7 +69,7 @@ window.onload = function () {
   var createToken = function(roomData, callback) {
 
     var req = new XMLHttpRequest();
-    var url = serverUrl + 'createToken/';
+    var url = serverUrl + 'token/';
 
     req.onreadystatechange = function () {
       if (req.readyState === 4) {

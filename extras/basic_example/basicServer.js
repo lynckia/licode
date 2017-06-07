@@ -132,21 +132,42 @@ var cleanExampleRooms = function (callback) {
 
 };
 
-app.get('/getRooms/', function(req, res) {
+app.get('/rooms/', function(req, res) {
     N.API.getRooms(function(rooms) {
         res.send(rooms);
     });
 });
 
-app.get('/getUsers/:room', function(req, res) {
+app.get('/rooms/:room/users', function(req, res) {
     var room = req.params.room;
     N.API.getUsers(room, function(users) {
         res.send(users);
     });
 });
 
+// Checks room metadata coincidences with query parameters
+app.get('/rooms/:room', function(req, res) {
+    var room = req.params.room;
+    var query = req.query;
+    console.log('Query', query);
+    N.API.getRoom(room, function(room) {
 
-app.post('/createToken/', function(req, res) {
+        var data = JSON.parse(room).data;
+        console.log('Room metadata', data);
+        let total = 0;
+        let coincidences = 0;
+        for (var item in query) {
+            total++;
+            if (data[item] + '' == query[item]) coincidences++;
+        }
+        console.log('Total queries', total);
+        console.log('Coincidences', coincidences);
+        if (total === coincidences) res.sendStatus(200);
+        else res.sendStatus(404);
+    });
+});
+
+app.post('/token/', function(req, res) {
     console.log('Creating token. Request body: ',req.body);
 
     let username = req.body.username;
