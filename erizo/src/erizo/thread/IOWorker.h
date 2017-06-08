@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <thread>  // NOLINT
 #include <vector>
 
