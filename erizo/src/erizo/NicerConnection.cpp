@@ -237,7 +237,7 @@ void NicerConnection::startSync() {
   if (ice_config_.username.compare("") != 0 && ice_config_.password.compare("") != 0) {
     ELOG_DEBUG("%s message: setting remote credentials in constructor, ufrag:%s, pass:%s",
                toLog(), ice_config_.username.c_str(), ice_config_.password.c_str());
-    setRemoteCredentials(ice_config_.username, ice_config_.password);
+    setRemoteCredentialsSync(ice_config_.username, ice_config_.password);
   }
 
   if (!ice_config_.network_interface.empty()) {
@@ -324,7 +324,7 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
   nr_ice_media_stream *stream = stream_;
   std::shared_ptr<NicerInterface> nicer = nicer_;
   async([cands, is_bundle, nicer, peer, stream, this, remote_candidates_promise] {
-    ELOG_INFO("%s message: remote candidate gathering", toLog());
+    ELOG_DEBUG("%s message: adding remote candidates (%ld)", toLog(), cands.size());
     for (const CandidateInfo &cand : cands) {
       std::string sdp = cand.sdp;
       std::size_t pos = sdp.find(",");
