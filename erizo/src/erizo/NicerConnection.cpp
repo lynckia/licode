@@ -432,6 +432,18 @@ void NicerConnection::onCandidate(nr_ice_media_stream *stream, int component_id,
 }
 
 void NicerConnection::setRemoteCredentials(const std::string& username, const std::string& password) {
+  auto promise = std::make_shared<std::promise<void>>();
+  async([username, password, promise, this] {
+    setRemoteCredentialsSync(username, password);
+    promise->set_value();
+  });
+  auto status = promise->get_future().wait_for(std::chrono::seconds(1));
+  if (status == std::future_status::timeout) {
+    ELOG_WARN("%s message: Could not set remote credentials", toLog());
+  }
+}
+
+void NicerConnection::setRemoteCredentialsSync(const std::string& username, const std::string& password) {
   ELOG_DEBUG("%s message: Setting remote credentials", toLog());
   std::vector<char *> attributes;
   std::string ufrag = std::string("ice-ufrag: ") + username;
