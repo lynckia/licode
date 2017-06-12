@@ -14,6 +14,7 @@ exports.ErizoNativeConnection = function (spec){
     initWebRtcConnection,
     syntheticInput,
     externalInput,
+    oneToMany,
     externalOutput;
 
     var threadPool = new addon.ThreadPool(1);
@@ -46,6 +47,8 @@ exports.ErizoNativeConnection = function (spec){
                         that.prepareRecording(spec.video.recording);
                     } else if (spec.video && spec.video.synthetic && !syntheticInput) {
                       that.prepareSynthetic(spec.video.synthetic);
+                    } else {
+                      that.prepareNull();
                     }
                     callback('callback', {type: 'started'});
                     break;
@@ -101,6 +104,14 @@ exports.ErizoNativeConnection = function (spec){
 
     that.createOffer = function () {
 
+    };
+
+    that.prepareNull = function () {
+        log.info('Preparing null output');
+        oneToMany = new addon.OneToManyProcessor();
+        wrtc.setVideoReceiver(oneToMany);
+        wrtc.setAudioReceiver(oneToMany);
+        oneToMany.setPublisher(wrtc);
     };
 
     that.prepareVideo = function (url) {
