@@ -84,7 +84,7 @@ threadPool.start();
 var ioThreadPool = new addon.IOThreadPool(GLOBAL.config.erizo.numIOWorkers);
 
 if (GLOBAL.config.erizo.useNicer) {
-  log.info("Starting ioThreadPool");
+  log.info('Starting ioThreadPool');
   ioThreadPool.start();
 }
 
