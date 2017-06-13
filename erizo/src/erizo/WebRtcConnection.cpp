@@ -17,7 +17,7 @@
 #include "rtp/RtcpAggregator.h"
 #include "rtp/RtcpForwarder.h"
 #include "rtp/RtpSlideShowHandler.h"
-#include "rtp/RtpAudioMuteHandler.h"
+#include "rtp/RtpTrackMuteHandler.h"
 #include "rtp/BandwidthEstimationHandler.h"
 #include "rtp/FecReceiverHandler.h"
 #include "rtp/RtcpProcessorHandler.h"
@@ -47,7 +47,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
     connection_id_{connection_id}, remoteSdp_{SdpInfo(rtp_mappings)}, localSdp_{SdpInfo(rtp_mappings)},
     audioEnabled_{false}, videoEnabled_{false}, bundle_{false}, connEventListener_{listener},
     iceConfig_{iceConfig}, rtp_mappings_{rtp_mappings}, extProcessor_{ext_mappings},
-    pipeline_{Pipeline::create()}, worker_{worker}, io_worker_{io_worker}, audio_muted_{false},
+    pipeline_{Pipeline::create()}, worker_{worker}, io_worker_{io_worker}, audio_muted_{false}, video_muted_{false},
     pipeline_initialized_{false} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), iceConfig.stun_server.c_str(), iceConfig.stun_port, iceConfig.min_port, iceConfig.max_port);
@@ -276,7 +276,7 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addFront(FecReceiverHandler());
   pipeline_->addFront(LayerBitrateCalculationHandler());
   pipeline_->addFront(QualityFilterHandler());
-  pipeline_->addFront(RtpAudioMuteHandler());
+  pipeline_->addFront(RtpTrackMuteHandler());
   pipeline_->addFront(RtpSlideShowHandler());
   pipeline_->addFront(RtpPaddingGeneratorHandler());
   pipeline_->addFront(PliPacerHandler());
@@ -719,12 +719,16 @@ void WebRtcConnection::setSlideShowMode(bool state) {
 }
 
 void WebRtcConnection::muteStream(bool mute_video, bool mute_audio) {
-  ELOG_DEBUG("%s message: muteStream, mute_video: %u, mute_audio: %u", toLog(), mute_video, mute_audio);
-  asyncTask([mute_audio] (std::shared_ptr<WebRtcConnection> connection) {
-    connection->stats_->getNode()[connection->getAudioSinkSSRC()].insertStat("erizoMute", CumulativeStat{mute_audio});
+  asyncTask([mute_audio, mute_video] (std::shared_ptr<WebRtcConnection> connection) {
+    ELOG_DEBUG("%s message: muteStream, mute_video: %u, mute_audio: %u", connection->toLog(), mute_video, mute_audio);
+    connection->audio_muted_ = mute_audio;
+    connection->video_muted_ = mute_video;
+    connection->stats_->getNode()[connection->getAudioSinkSSRC()].insertStat("erizoAudioMute",
+                                                                             CumulativeStat{mute_audio});
+    connection->stats_->getNode()[connection->getAudioSinkSSRC()].insertStat("erizoVideoMute",
+                                                                             CumulativeStat{mute_video});
+    connection->pipeline_->notifyUpdate();
   });
-  audio_muted_ = mute_audio;
-  notifyUpdateToHandlers();
 }
 
 void WebRtcConnection::setFeedbackReports(bool will_send_fb, uint32_t target_bitrate) {

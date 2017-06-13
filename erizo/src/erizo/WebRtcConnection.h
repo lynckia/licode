@@ -159,6 +159,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   void asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
 
   bool isAudioMuted() { return audio_muted_; }
+  bool isVideoMuted() { return video_muted_; }
 
   SdpInfo& getRemoteSdpInfo() { return remoteSdp_; }
 
@@ -230,6 +231,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   std::shared_ptr<IOWorker> io_worker_;
 
   bool audio_muted_;
+  bool video_muted_;
 
   bool pipeline_initialized_;
 };

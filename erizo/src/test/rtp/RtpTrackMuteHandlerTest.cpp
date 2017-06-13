@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <queue>
 
-#include <rtp/RtpAudioMuteHandler.h>
+#include <rtp/RtpTrackMuteHandler.h>
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
@@ -24,7 +24,7 @@ using erizo::AUDIO_PACKET;
 using erizo::VIDEO_PACKET;
 using erizo::IceConfig;
 using erizo::RtpMap;
-using erizo::RtpAudioMuteHandler;
+using erizo::RtpTrackMuteHandler;
 using erizo::WebRtcConnection;
 using erizo::Pipeline;
 using erizo::InboundHandler;
@@ -33,20 +33,20 @@ using erizo::Worker;
 using std::queue;
 
 
-class RtpAudioMuteHandlerTest : public erizo::HandlerTest {
+class RtpTrackMuteHandlerTest : public erizo::HandlerTest {
  public:
-  RtpAudioMuteHandlerTest() {}
+  RtpTrackMuteHandlerTest() {}
 
  protected:
   void setHandler() {
-    audio_mute_handler = std::make_shared<RtpAudioMuteHandler>();
-    pipeline->addBack(audio_mute_handler);
+    track_mute_handler = std::make_shared<RtpTrackMuteHandler>();
+    pipeline->addBack(track_mute_handler);
   }
 
-  std::shared_ptr<RtpAudioMuteHandler> audio_mute_handler;
+  std::shared_ptr<RtpTrackMuteHandler> track_mute_handler;
 };
 
-TEST_F(RtpAudioMuteHandlerTest, basicBehaviourShouldReadPackets) {
+TEST_F(RtpTrackMuteHandlerTest, basicBehaviourShouldReadPackets) {
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
 
     EXPECT_CALL(*reader.get(), read(_, _)).
@@ -54,7 +54,7 @@ TEST_F(RtpAudioMuteHandlerTest, basicBehaviourShouldReadPackets) {
     pipeline->read(packet);
 }
 
-TEST_F(RtpAudioMuteHandlerTest, basicBehaviourShouldWritePackets) {
+TEST_F(RtpTrackMuteHandlerTest, basicBehaviourShouldWritePackets) {
     auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
 
     EXPECT_CALL(*writer.get(), write(_, _)).
@@ -62,18 +62,54 @@ TEST_F(RtpAudioMuteHandlerTest, basicBehaviourShouldWritePackets) {
     pipeline->write(packet);
 }
 
-TEST_F(RtpAudioMuteHandlerTest, shouldNotWriteAudioPacketsIfActive) {
+TEST_F(RtpTrackMuteHandlerTest, shouldNotWriteAudioPacketsIfActive) {
     auto audio_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
     auto video_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber+1, VIDEO_PACKET);
-    audio_mute_handler->muteAudio(true);
+    track_mute_handler->muteAudio(true);
     EXPECT_CALL(*writer.get(), write(_, _)).
-      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber+1))).Times(1);
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(0);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(1);
 
     pipeline->write(audio_packet);
     pipeline->write(video_packet);
 }
 
-TEST_F(RtpAudioMuteHandlerTest, shouldAdjustSequenceNumbers) {
+TEST_F(RtpTrackMuteHandlerTest, shouldNotWriteVideoPacketsIfActive) {
+    auto audio_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
+    auto video_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber+1, VIDEO_PACKET);
+    track_mute_handler->muteVideo(true);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(0);
+    pipeline->write(audio_packet);
+    pipeline->write(video_packet);
+}
+
+TEST_F(RtpTrackMuteHandlerTest, shouldNotWriteAnyPacketsIfAllIsActive) {
+    auto audio_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
+    auto video_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber+1, VIDEO_PACKET);
+    track_mute_handler->muteVideo(true);
+    track_mute_handler->muteAudio(true);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(0);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(0);
+
+    pipeline->write(audio_packet);
+    pipeline->write(video_packet);
+}
+
+TEST_F(RtpTrackMuteHandlerTest, shouldSendPLIsWhenVideoIsActivated) {
+    track_mute_handler->muteVideo(false);
+
+    EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(erizo::IsPLI())).Times(1);
+
+    track_mute_handler->muteVideo(true);
+}
+
+TEST_F(RtpTrackMuteHandlerTest, shouldAdjustSequenceNumbers) {
     uint16_t seq_number = erizo::kArbitrarySeqNumber;
     EXPECT_CALL(*writer.get(), write(_, _)).
       With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
@@ -91,7 +127,7 @@ TEST_F(RtpAudioMuteHandlerTest, shouldAdjustSequenceNumbers) {
       pipeline->write(packet_queue.front());
       packet_queue.pop();
     }
-    audio_mute_handler->muteAudio(true);
+    track_mute_handler->muteAudio(true);
     packet_queue.push(erizo::PacketTools::createDataPacket(++seq_number, AUDIO_PACKET));
     packet_queue.push(erizo::PacketTools::createDataPacket(++seq_number, AUDIO_PACKET));
 
@@ -99,7 +135,7 @@ TEST_F(RtpAudioMuteHandlerTest, shouldAdjustSequenceNumbers) {
       pipeline->write(packet_queue.front());
       packet_queue.pop();
     }
-    audio_mute_handler->muteAudio(false);
+    track_mute_handler->muteAudio(false);
 
     packet_queue.push(erizo::PacketTools::createDataPacket(++seq_number, AUDIO_PACKET));
     packet_queue.push(erizo::PacketTools::createDataPacket(++seq_number, AUDIO_PACKET));

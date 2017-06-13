@@ -72,22 +72,23 @@ You can access the next variables in a stream object:
 
 In the next table we can see the functions of this class:
 
-| Function                                                                | Description                                                             |
-|-------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| [hasAudio()](#check-if-the-stream-has-audio-video-andor-data-active)    | Indicates if the stream has audio activated.                            |
-| [hasVideo()](#check-if-the-stream-has-audio-video-andor-data-active)    | Indicates if the stream has video activated.                            |
-| [hasData()](#check-if-the-stream-has-audio-video-andor-data-active)     | Indicates if the stream has data activated.                             |
-| [init()](#initialize-the-stream)                                        | Initializes the local stream.                                           |
-| [close()](#close-a-local-stream)                                        | Closes the local stream.                                                |
-| [play(elementID, options)](#play-a-local-stream-in-the-html)            | Draws the video or starts playing the audio in the HTML.                |
-| [stop()](#remove-the-local-stream-from-the-html)                        | Removes the video from the HTML.                                        |
-| [muteAudio(isMuted, callback)](#mute-the-audio-track-of-a-remote-stream)| Mutes the audio track of a remote stream.                               |
-| [sendData(msg)](#send-data-through-the-stream)                          | It sends data through the Stream to clients that are subscribed.        |
-| [getAttributes()](#get-the-attributes-object)                           | Gets the attributes variable stored when you created the stream.        |
-| [setAttributes()](#set-the-attributes-object)                           | It sets new attributes to the local stream that are spread to the room. |
-| [getVideoFrame()](#set-the-attributes-object)                           | It gets a Bitmap from the video.                                        |
-| [getVideoFrameURL()](#get-the-url-of-a-frame-from-the-video)            | It gets the URL of a Bitmap from the video.                             |
-| [updateConfiguration(config, callback)](#get-the-url-of-a-frame-from-the-video) | Updates the spec of a stream.                                   |
+| Function                                                                         | Description                                                             |
+|----------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [hasAudio()](#check-if-the-stream-has-audio-video-andor-data-active)             | Indicates if the stream has audio activated.                            |
+| [hasVideo()](#check-if-the-stream-has-audio-video-andor-data-active)             | Indicates if the stream has video activated.                            |
+| [hasData()](#check-if-the-stream-has-audio-video-andor-data-active)              | Indicates if the stream has data activated.                             |
+| [init()](#initialize-the-stream)                                                 | Initializes the local stream.                                           |
+| [close()](#close-a-local-stream)                                                 | Closes the local stream.                                                |
+| [play(elementID, options)](#play-a-local-stream-in-the-html)                     | Draws the video or starts playing the audio in the HTML.                |
+| [stop()](#remove-the-local-stream-from-the-html)                                 | Removes the video from the HTML.                                        |
+| [muteAudio(isMuted, callback)](#mute-the-audio-or-video-track-of-a-remote-stream)| Mutes the audio track of a remote stream.                               |
+| [muteVideo(isMuted, callback)](#mute-the-audio-or-video-track-of-a-remote-stream)| Mutes the video track of a remote stream.                               |
+| [sendData(msg)](#send-data-through-the-stream)                                   | It sends data through the Stream to clients that are subscribed.        |
+| [getAttributes()](#get-the-attributes-object)                                    | Gets the attributes variable stored when you created the stream.        |
+| [setAttributes()](#set-the-attributes-object)                                    | It sets new attributes to the local stream that are spread to the room. |
+| [getVideoFrame()](#set-the-attributes-object)                                    | It gets a Bitmap from the video.                                        |
+| [getVideoFrameURL()](#get-the-url-of-a-frame-from-the-video)                     | It gets the URL of a Bitmap from the video.                             |
+| [updateConfiguration(config, callback)](#get-the-url-of-a-frame-from-the-video)  | Updates the spec of a stream.                                           |
 
 ## Check if the stream has audio, video and/or data active
 
@@ -173,9 +174,11 @@ You can stop to play the video/audio in the HTML with this code.
 stream.stop();
 ```
 
-## Mute the audio track of a remote stream
+## Mute the audio or video track of a remote stream
 
-It stops receiving audio from a remote stream. The publisher of the stream will keep sending audio information to Licode but this particular subscriber won't receive it.
+It stops receiving audio/video from a remote stream. The publisher of the stream will keep sending audio/video information to Licode but this particular subscriber won't receive it.
+
+If we call it in the publisher's side, Licode will stop sending audio/video data to all its subscribers.
 
 **Note:** it won't work on local streams, in p2p rooms or when the stream does not have an audio track.
 
@@ -202,6 +205,8 @@ stream.muteAudio(false, function (result) {
   }
 });
 ```
+
+Besides, you could also mute/unmute the video track by calling `muteVideo()` with the same parameters.
 
 ## Send Data through the stream
 
