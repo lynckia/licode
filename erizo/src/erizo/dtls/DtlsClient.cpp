@@ -262,6 +262,7 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
 
     void DtlsSocketContext::Init() {
       if (DtlsSocketContext::mCert == NULL) {
+        OpenSSL_add_all_algorithms();
         SSL_library_init();
         SSL_load_error_strings();
         ERR_load_crypto_strings();

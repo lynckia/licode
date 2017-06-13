@@ -149,6 +149,9 @@ config.erizo = {};
 // Number of workers that will be used to handle WebRtcConnections
 config.erizo.numWorkers = 24;
 
+// Number of workers what will be used for IO (including ICE logic)
+config.erizo.numIOWorkers = 1;
+
 //STUN server IP address and port to be used by the server.
 //if '' is used, the address is discovered locally
 //Please note this is only needed if your server does not have a public IP
@@ -168,6 +171,9 @@ config.erizo.networkinterface = ''; //default value: ''
 //note, this won't work with all versions of libnice. With 0 all the available ports are used
 config.erizo.minport = 0; // default value: 0
 config.erizo.maxport = 0; // default value: 0
+
+//Use of internal nICEr library instead of libNice.
+config.erizo.useNicer = false;  // default value: false
 
 config.erizo.disabledHandlers = []; // there are no handlers disabled by default
 

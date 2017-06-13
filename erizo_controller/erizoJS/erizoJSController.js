@@ -8,13 +8,13 @@ var ExternalInput = require('./models/Publisher').ExternalInput;
 // Logger
 var log = logger.getLogger('ErizoJSController');
 
-exports.ErizoJSController = function (threadPool) {
+exports.ErizoJSController = function (threadPool, ioThreadPool) {
     var that = {},
         // {id1: Publisher, id2: Publisher}
         publishers = {},
+        io = ioThreadPool,
         // {streamId: {timeout: timeout, interval: interval}}
         statsSubscriptions = {},
-
         MIN_SLIDESHOW_PERIOD = 2000,
         MAX_SLIDESHOW_PERIOD = 10000,
         PLIS_TO_RECOVER = 3,
@@ -37,6 +37,7 @@ exports.ErizoJSController = function (threadPool) {
         WARN_BAD_CONNECTION = 502;
 
     that.publishers = publishers;
+    that.ioThreadPool = io;
 
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
@@ -193,7 +194,7 @@ exports.ErizoJSController = function (threadPool) {
 
     that.addExternalInput = function (from, url, callback) {
         if (publishers[from] === undefined) {
-            var ei = publishers[from] = new ExternalInput(from, threadPool, url);
+            var ei = publishers[from] = new ExternalInput(from, threadPool, ioThreadPool, url);
             var answer = ei.init();
             if (answer >= 0) {
                 callback('callback', 'success');
@@ -211,7 +212,7 @@ exports.ErizoJSController = function (threadPool) {
 
     that.removeExternalOutput = function (to, url) {
         if (publishers[to] !== undefined) {
-            log.info('message: Stopping ExternalOutput, id: ' + 
+            log.info('message: Stopping ExternalOutput, id: ' +
                 publishers[to].getExternalOutput(url).wrtcId);
             publishers[to].removeExternalOutput(url);
         }
@@ -319,7 +320,7 @@ exports.ErizoJSController = function (threadPool) {
                      'streamId: ' + from + ', ' +
                      logger.objectToLog(options) + ', ' +
                      logger.objectToLog(options.metadata));
-            publisher = new Publisher(from, threadPool, options);
+            publisher = new Publisher(from, threadPool, ioThreadPool, options);
             publishers[from] = publisher;
 
             initWebRtcConnection(publisher.wrtc, callback, from, undefined, options);
@@ -560,14 +561,14 @@ exports.ErizoJSController = function (threadPool) {
     };
 
     that.subscribeToStats = function (to, timeout, interval, callback) {
-        
+
         var publisher;
         log.debug('message: Requested subscription to stream stats, streamID: ' + to);
 
         if (to && publishers[to]) {
             publisher = publishers[to];
 
-            if (GLOBAL.config.erizoController.reportSubscriptions && 
+            if (GLOBAL.config.erizoController.reportSubscriptions &&
                 GLOBAL.config.erizoController.reportSubscriptions.maxSubscriptions > 0) {
 
                 if (timeout > GLOBAL.config.erizoController.reportSubscriptions.maxTimeout)
@@ -579,7 +580,7 @@ exports.ErizoJSController = function (threadPool) {
                     log.debug('message: Renewing subscription to stream: ' + to);
                     clearTimeout(statsSubscriptions[to].timeout);
                     clearInterval(statsSubscriptions[to].interval);
-                } else if (Object.keys(statsSubscriptions).length < 
+                } else if (Object.keys(statsSubscriptions).length <
                     GLOBAL.config.erizoController.reportSubscriptions.maxSubscriptions){
                     statsSubscriptions[to] = {};
                 }
@@ -592,7 +593,7 @@ exports.ErizoJSController = function (threadPool) {
                 statsSubscriptions[to].interval = setInterval(function () {
                     let promises = [];
                     let stats = {};
-                    
+
                     stats.streamId = to;
                     promises.push(getWrtcStats('publisher', stats, publisher.wrtc));
 
@@ -612,7 +613,7 @@ exports.ErizoJSController = function (threadPool) {
                 }, timeout*1000);
 
                 callback('success');
-                
+
             } else {
                 log.debug('message: Report subscriptions disabled by config, ignoring message');
             }

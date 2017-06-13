@@ -8,6 +8,8 @@ var mediaConfig = require('./../../rtp_media_config');
 GLOBAL.config = config || {};
 GLOBAL.config.erizo = GLOBAL.config.erizo || {};
 GLOBAL.config.erizo.numWorkers = GLOBAL.config.erizo.numWorkers || 24;
+GLOBAL.config.erizo.numIOWorkers = GLOBAL.config.erizo.numIOWorkers || 1;
+GLOBAL.config.erizo.useNicer = GLOBAL.config.erizo.useNicer || false;
 GLOBAL.config.erizo.stunserver = GLOBAL.config.erizo.stunserver || '';
 GLOBAL.config.erizo.stunport = GLOBAL.config.erizo.stunport || 0;
 GLOBAL.config.erizo.minport = GLOBAL.config.erizo.minport || 0;
@@ -79,7 +81,14 @@ var log = logger.getLogger('ErizoJS');
 var threadPool = new addon.ThreadPool(GLOBAL.config.erizo.numWorkers);
 threadPool.start();
 
-var ejsController = controller.ErizoJSController(threadPool);
+var ioThreadPool = new addon.IOThreadPool(GLOBAL.config.erizo.numIOWorkers);
+
+if (GLOBAL.config.erizo.useNicer) {
+  log.info('Starting ioThreadPool');
+  ioThreadPool.start();
+}
+
+var ejsController = controller.ErizoJSController(threadPool, ioThreadPool);
 
 ejsController.keepAlive = function(callback) {
     callback('callback', true);
