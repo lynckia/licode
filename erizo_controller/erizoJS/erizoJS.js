@@ -82,7 +82,11 @@ var threadPool = new addon.ThreadPool(GLOBAL.config.erizo.numWorkers);
 threadPool.start();
 
 var ioThreadPool = new addon.IOThreadPool(GLOBAL.config.erizo.numIOWorkers);
-ioThreadPool.start();
+
+if (GLOBAL.config.erizo.useNicer) {
+  log.info("Starting ioThreadPool");
+  ioThreadPool.start();
+}
 
 var ejsController = controller.ErizoJSController(threadPool, ioThreadPool);
 
