@@ -34,7 +34,7 @@ class RtpTrackMuteHandler: public Handler {
   void disable() override;
 
   std::string getName() override {
-    return "audio-mute";
+    return "track-mute";
   }
 
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
