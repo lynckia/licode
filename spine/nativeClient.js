@@ -99,10 +99,12 @@ exports.ErizoNativeConnection = function (spec){
                                       GLOBAL.config.erizo.maxport,
                                       false,
                                       JSON.stringify(GLOBAL.mediaConfig),
+                                      false,
                                       GLOBAL.config.erizo.turnserver,
                                       GLOBAL.config.erizo.turnport,
                                       GLOBAL.config.erizo.turnusername,
-                                      GLOBAL.config.erizo.turnpass);
+                                      GLOBAL.config.erizo.turnpass,
+                                      GLOBAL.config.erizo.networkinterface);
 
     that.createOffer = function () {
 
