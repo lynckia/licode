@@ -224,7 +224,7 @@ void NicerConnection::startSync() {
     return;
   }
 
-  peer_->controlling = 0;
+  // peer_->controlling = 0;  // Disabled since it causes issues with Spine
 
   std::string stream_name = name_ + ":stream";
   r = nicer_->IceAddMediaStream(ctx_, const_cast<char *>(stream_name.c_str()), ice_config_.ice_components, &stream_);
@@ -232,12 +232,6 @@ void NicerConnection::startSync() {
     ELOG_WARN("%s message: Couldn't create ICE stream", toLog());
     start_promise_.set_value();
     return;
-  }
-
-  if (ice_config_.username.compare("") != 0 && ice_config_.password.compare("") != 0) {
-    ELOG_DEBUG("%s message: setting remote credentials in constructor, ufrag:%s, pass:%s",
-               toLog(), ice_config_.username.c_str(), ice_config_.password.c_str());
-    setRemoteCredentialsSync(ice_config_.username, ice_config_.password);
   }
 
   if (!ice_config_.network_interface.empty()) {
@@ -251,7 +245,13 @@ void NicerConnection::startSync() {
   setupStunServer();
 
   startGathering();
-  startChecking();
+
+  if (ice_config_.username.compare("") != 0 && ice_config_.password.compare("") != 0) {
+    ELOG_DEBUG("%s message: setting remote credentials in constructor, ufrag:%s, pass:%s",
+               toLog(), ice_config_.username.c_str(), ice_config_.password.c_str());
+    setRemoteCredentialsSync(ice_config_.username, ice_config_.password);
+  }
+
   start_promise_.set_value();
 }
 
@@ -329,10 +329,10 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
       std::string sdp = cand.sdp;
       std::size_t pos = sdp.find(",");
       std::string candidate = sdp.substr(0, pos);
-      ELOG_DEBUG("%s message: New remote ICE candidate", toLog());
+      ELOG_DEBUG("%s message: New remote ICE candidate (%s)", toLog(), candidate.c_str());
       UINT4 r = nicer->IcePeerContextParseTrickleCandidate(peer, stream, const_cast<char *>(candidate.c_str()));
-      if (r) {
-        ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s)", toLog(), candidate.c_str());
+      if (r && r != R_ALREADY) {
+        ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) (%d)", toLog(), candidate.c_str(), r);
       }
     }
     remote_candidates_promise->set_value();
@@ -366,6 +366,7 @@ void NicerConnection::startChecking() {
       ELOG_WARN("%s message: Could not start peer checks", toLog());
     }
   }
+  ELOG_DEBUG("Checks started");
 }
 
 std::string NicerConnection::getStringFromAddress(const nr_transport_addr &addr) {
@@ -391,7 +392,9 @@ void NicerConnection::onCandidate(nr_ice_media_stream *stream, int component_id,
   cand_info.componentId = cand->component_id;
   cand_info.foundation = std::string(cand->foundation);
   cand_info.priority = cand->priority;
-
+  if (cand->addr.ip_version != NR_IPV4) {
+    return;
+  }
   cand_info.hostAddress = getStringFromAddress(cand->addr);
   cand_info.hostPort = getPortFromAddress(cand->addr);
   if (cand_info.hostPort == 0) {
@@ -456,7 +459,10 @@ void NicerConnection::setRemoteCredentialsSync(const std::string& username, cons
                                                         attributes.size());
   if (r) {
     ELOG_WARN("%s message: Error parsing stream attributes", toLog());
+    return;
   }
+
+  startChecking();
 }
 
 int NicerConnection::sendData(unsigned int component_id, const void* buf, int len) {

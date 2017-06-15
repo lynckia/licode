@@ -52,7 +52,9 @@ void IOWorker::task(Task f) {
 
 void IOWorker::close() {
   if (!closed_.exchange(true)) {
-    thread_->join();
+    if (thread_ != nullptr) {
+      thread_->join();
+    }
     tasks_.clear();
   }
 }
