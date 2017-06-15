@@ -8,6 +8,14 @@ var log = logger.getLogger('NativeClient');
 GLOBAL.config = licodeConfig || {};
 GLOBAL.mediaConfig = mediaConfig || {};
 
+var threadPool = new addon.ThreadPool(10);
+threadPool.start();
+
+var ioThreadPool = new addon.IOThreadPool(1);
+if (GLOBAL.config.erizo.useNicer) {
+  ioThreadPool.start();
+}
+
 exports.ErizoNativeConnection = function (spec){
     var that = {},
     wrtc,
@@ -17,13 +25,6 @@ exports.ErizoNativeConnection = function (spec){
     oneToMany,
     externalOutput;
 
-    var threadPool = new addon.ThreadPool(1);
-    threadPool.start();
-
-    var ioThreadPool = new addon.IOThreadPool(1);
-    if (GLOBAL.config.erizo.useNicer) {
-      ioThreadPool.start();
-    }
 
     var CONN_INITIAL = 101,
         // CONN_STARTED = 102,
@@ -95,7 +96,7 @@ exports.ErizoNativeConnection = function (spec){
     };
 
 
-    wrtc = new addon.WebRtcConnection(threadPool, ioThreadPool, 'spine',
+    wrtc = new addon.WebRtcConnection(threadPool, ioThreadPool, 'spine_' + spec.sessionId,
                                       GLOBAL.config.erizo.stunserver,
                                       GLOBAL.config.erizo.stunport,
                                       GLOBAL.config.erizo.minport,
