@@ -20,6 +20,11 @@ exports.ErizoNativeConnection = function (spec){
     var threadPool = new addon.ThreadPool(1);
     threadPool.start();
 
+    var ioThreadPool = new addon.IOThreadPool(1);
+    if (GLOBAL.config.erizo.useNicer) {
+      ioThreadPool.start();
+    }
+
     var CONN_INITIAL = 101,
         // CONN_STARTED = 102,
         CONN_GATHERED = 103,
@@ -90,17 +95,19 @@ exports.ErizoNativeConnection = function (spec){
     };
 
 
-    wrtc = new addon.WebRtcConnection(threadPool, 'spine',
+    wrtc = new addon.WebRtcConnection(threadPool, ioThreadPool, 'spine',
                                       GLOBAL.config.erizo.stunserver,
                                       GLOBAL.config.erizo.stunport,
                                       GLOBAL.config.erizo.minport,
                                       GLOBAL.config.erizo.maxport,
                                       false,
                                       JSON.stringify(GLOBAL.mediaConfig),
+                                      GLOBAL.config.erizo.useNicer,
                                       GLOBAL.config.erizo.turnserver,
                                       GLOBAL.config.erizo.turnport,
                                       GLOBAL.config.erizo.turnusername,
-                                      GLOBAL.config.erizo.turnpass);
+                                      GLOBAL.config.erizo.turnpass,
+                                      GLOBAL.config.erizo.networkinterface);
 
     that.createOffer = function () {
 
