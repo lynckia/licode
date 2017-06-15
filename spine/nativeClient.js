@@ -20,7 +20,10 @@ exports.ErizoNativeConnection = function (spec){
     var threadPool = new addon.ThreadPool(1);
     threadPool.start();
 
-    var ioThreadPool = new addon.ThreadPool(1);
+    var ioThreadPool = new addon.IOThreadPool(1);
+    if (GLOBAL.config.erizo.useNicer) {
+      ioThreadPool.start();
+    }
 
     var CONN_INITIAL = 101,
         // CONN_STARTED = 102,
@@ -99,7 +102,7 @@ exports.ErizoNativeConnection = function (spec){
                                       GLOBAL.config.erizo.maxport,
                                       false,
                                       JSON.stringify(GLOBAL.mediaConfig),
-                                      false,
+                                      GLOBAL.config.erizo.useNicer,
                                       GLOBAL.config.erizo.turnserver,
                                       GLOBAL.config.erizo.turnport,
                                       GLOBAL.config.erizo.turnusername,
