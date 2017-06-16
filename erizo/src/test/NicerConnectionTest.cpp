@@ -133,8 +133,6 @@ class NicerConnectionTest : public ::testing::Test {
     EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
     EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(0);
     EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
-    EXPECT_CALL(*nicer, IcePeerContextPairCandidates(_)).Times(1).WillOnce(Return(0));
-    EXPECT_CALL(*nicer, IcePeerContextStartChecks2(_, _)).Times(1).WillOnce(Return(0));
     EXPECT_CALL(*nicer, IcePeerContextDestroy(_)).Times(1);
     EXPECT_CALL(*nicer, IceContextDestroy(_)).Times(1);
 
@@ -184,8 +182,6 @@ TEST_F(NicerConnectionStartTest, start_Configures_Libnice_With_Default_Config) {
   EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
   EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
-  EXPECT_CALL(*nicer, IcePeerContextPairCandidates(_)).Times(1).WillOnce(Return(0));
-  EXPECT_CALL(*nicer, IcePeerContextStartChecks2(_, _)).Times(1).WillOnce(Return(0));
 
   EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(0);
   EXPECT_CALL(*nicer, IceContextSetTurnServers(_, _, _)).Times(0);
@@ -270,8 +266,6 @@ TEST_F(NicerConnectionStartTest, start_Configures_Nicer_With_Turn) {
   EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
   EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
-  EXPECT_CALL(*nicer, IcePeerContextPairCandidates(_)).Times(1).WillOnce(Return(0));
-  EXPECT_CALL(*nicer, IcePeerContextStartChecks2(_, _)).Times(1).WillOnce(Return(0));
 
   EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(0);
   EXPECT_CALL(*nicer, IceContextSetTurnServers(_, _, _)).Times(1).WillOnce(Return(0));
@@ -310,8 +304,6 @@ TEST_F(NicerConnectionStartTest, start_Configures_Nicer_With_Stun) {
   EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
   EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
-  EXPECT_CALL(*nicer, IcePeerContextPairCandidates(_)).Times(1).WillOnce(Return(0));
-  EXPECT_CALL(*nicer, IcePeerContextStartChecks2(_, _)).Times(1).WillOnce(Return(0));
 
   EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(0);
   EXPECT_CALL(*nicer, IceContextSetStunServers(_, _, _)).Times(1).WillOnce(Return(0));
@@ -450,5 +442,7 @@ TEST_F(NicerConnectionTest, setRemoteCredentials_Configures_NicerCandidate) {
   const std::string kArbitraryPassword = "password";
 
   EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(1);
+  EXPECT_CALL(*nicer, IcePeerContextPairCandidates(_)).Times(1).WillOnce(Return(0));
+  EXPECT_CALL(*nicer, IcePeerContextStartChecks2(_, _)).Times(1).WillOnce(Return(0));
   nicer_connection->setRemoteCredentials(kArbitraryUsername, kArbitraryPassword);
 }

@@ -100,6 +100,8 @@ void WebRtcConnection::close() {
   video_sink_ = nullptr;
   audio_sink_ = nullptr;
   fb_sink_ = nullptr;
+  pipeline_->close();
+  pipeline_.reset();
   ELOG_DEBUG("%s message: Close ended", toLog());
 }
 
