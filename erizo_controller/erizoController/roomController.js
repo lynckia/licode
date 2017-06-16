@@ -207,7 +207,7 @@ exports.RoomController = function (spec) {
                             return;
                         }
                         log.warn('message: addPublisher ErizoJS timeout no retry, ' +
-                                 'retries: ' + retires +
+                                 'retries: ' + retries +
                                  'streamId: ' + publisherId + ', ' +
                                  'erizoId: ' + getErizoQueue(publisherId) + ', ' +
                                  logger.objectToLog(options.metadata));
