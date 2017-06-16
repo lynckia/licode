@@ -22,6 +22,8 @@ DEFINE_LOGGER(Resender, "Resender");
 
 using std::memcpy;
 
+static std::mutex dtls_mutex;
+
 Resender::Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx)
     : transport_(transport), socket_context_(ctx),
       resend_seconds_(kInitialSecsPerResend), max_resends_(kMaxResends) {
@@ -164,11 +166,13 @@ void DtlsTransport::onIceData(packetPtr packet) {
       if (rtp_resender_.get() != NULL) {
         rtp_resender_->cancel();
       }
+      std::lock_guard<std::mutex> guard(dtls_mutex);
       dtlsRtp->read(reinterpret_cast<unsigned char*>(data), len);
     } else {
       if (rtcp_resender_.get() != NULL) {
         rtcp_resender_->cancel();
       }
+      std::lock_guard<std::mutex> guard(dtls_mutex);
       dtlsRtcp->read(reinterpret_cast<unsigned char*>(data), len);
     }
     return;
