@@ -29,8 +29,14 @@ std::shared_ptr<Worker> ThreadPool::getLessUsedWorker() {
 }
 
 void ThreadPool::start() {
+  std::vector<std::shared_ptr<std::promise<void>>> promises(workers_.size());
+  int index = 0;
   for (auto worker : workers_) {
-    worker->start();
+    promises[index] = std::make_shared<std::promise<void>>();
+    worker->start(promises[index++]);
+  }
+  for (auto promise : promises) {
+    promise->get_future().wait();
   }
 }
 

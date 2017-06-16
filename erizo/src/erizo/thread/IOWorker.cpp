@@ -18,11 +18,17 @@ IOWorker::~IOWorker() {
 }
 
 void IOWorker::start() {
+  auto promise = std::make_shared<std::promise<void>>();
+  start(promise);
+}
+
+void IOWorker::start(std::shared_ptr<std::promise<void>> start_promise) {
   if (started_.exchange(true)) {
     return;
   }
 
-  thread_ = std::unique_ptr<std::thread>(new std::thread([this] {
+  thread_ = std::unique_ptr<std::thread>(new std::thread([this, start_promise] {
+    start_promise->set_value();
     while (!closed_) {
       int events;
       struct timeval towait = {0, 100000};

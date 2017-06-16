@@ -1,6 +1,7 @@
 #include "thread/IOThreadPool.h"
 
 #include <memory>
+#include <future>  // NOLINT
 
 using erizo::IOThreadPool;
 using erizo::IOWorker;
@@ -27,8 +28,14 @@ std::shared_ptr<IOWorker> IOThreadPool::getLessUsedIOWorker() {
 }
 
 void IOThreadPool::start() {
+  std::vector<std::shared_ptr<std::promise<void>>> promises(io_workers_.size());
+  int index = 0;
   for (auto io_worker : io_workers_) {
-    io_worker->start();
+    promises[index] = std::make_shared<std::promise<void>>();
+    io_worker->start(promises[index++]);
+  }
+  for (auto promise : promises) {
+    promise->get_future().wait();
   }
 }
 
