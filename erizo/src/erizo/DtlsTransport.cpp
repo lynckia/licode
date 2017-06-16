@@ -321,6 +321,15 @@ std::string DtlsTransport::getMyFingerprint() {
 }
 
 void DtlsTransport::updateIceState(IceState state, IceConnection *conn) {
+  std::weak_ptr<Transport> weak_transport = Transport::shared_from_this();
+  worker_->task([weak_transport, state, conn, this]() {
+    if (auto transport = weak_transport.lock()) {
+      updateIceStateSync(state, conn);
+    }
+  });
+}
+
+void DtlsTransport::updateIceStateSync(IceState state, IceConnection *conn) {
   ELOG_DEBUG("%s message:IceState, transportName: %s, state: %d, isBundle: %d",
              toLog(), transport_name.c_str(), state, bundle_);
   if (state == IceState::INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
