@@ -41,6 +41,8 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   void updateIceState(IceState state, IceConnection *conn) override;
   void processLocalSdp(SdpInfo *localSdp_) override;
 
+  void updateIceStateSync(IceState state, IceConnection *conn);
+
  private:
   char protectBuf_[5000];
   std::shared_ptr<dataPacket> unprotect_packet_;

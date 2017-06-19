@@ -4,6 +4,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>  // NOLINT
+#include <future>  // NOLINT
 #include <thread>  // NOLINT
 #include <vector>
 
@@ -16,6 +17,7 @@ class IOWorker : public std::enable_shared_from_this<IOWorker> {
   ~IOWorker();
 
   virtual void start();
+  virtual void start(std::shared_ptr<std::promise<void>> start_promise);
   virtual void close();
 
   virtual void task(Task f);

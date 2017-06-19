@@ -27,8 +27,14 @@ void Worker::task(Task f) {
 }
 
 void Worker::start() {
+  auto promise = std::make_shared<std::promise<void>>();
+  start(promise);
+}
+
+void Worker::start(std::shared_ptr<std::promise<void>> start_promise) {
   auto this_ptr = shared_from_this();
-  auto worker = [this_ptr] {
+  auto worker = [this_ptr, start_promise] {
+    start_promise->set_value();
     if (!this_ptr->closed_) {
       return this_ptr->service_.run();
     }
@@ -112,6 +118,9 @@ void SimulatedWorker::task(Task f) {
 }
 
 void SimulatedWorker::start() {
+}
+
+void SimulatedWorker::start(std::shared_ptr<std::promise<void>> start_promise) {
 }
 
 void SimulatedWorker::close() {

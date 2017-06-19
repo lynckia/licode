@@ -22,6 +22,8 @@ DEFINE_LOGGER(Resender, "Resender");
 
 using std::memcpy;
 
+static std::mutex dtls_mutex;
+
 Resender::Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx)
     : transport_(transport), socket_context_(ctx),
       resend_seconds_(kInitialSecsPerResend), max_resends_(kMaxResends) {
@@ -164,11 +166,13 @@ void DtlsTransport::onIceData(packetPtr packet) {
       if (rtp_resender_.get() != NULL) {
         rtp_resender_->cancel();
       }
+      std::lock_guard<std::mutex> guard(dtls_mutex);
       dtlsRtp->read(reinterpret_cast<unsigned char*>(data), len);
     } else {
       if (rtcp_resender_.get() != NULL) {
         rtcp_resender_->cancel();
       }
+      std::lock_guard<std::mutex> guard(dtls_mutex);
       dtlsRtcp->read(reinterpret_cast<unsigned char*>(data), len);
     }
     return;
@@ -321,6 +325,15 @@ std::string DtlsTransport::getMyFingerprint() {
 }
 
 void DtlsTransport::updateIceState(IceState state, IceConnection *conn) {
+  std::weak_ptr<Transport> weak_transport = Transport::shared_from_this();
+  worker_->task([weak_transport, state, conn, this]() {
+    if (auto transport = weak_transport.lock()) {
+      updateIceStateSync(state, conn);
+    }
+  });
+}
+
+void DtlsTransport::updateIceStateSync(IceState state, IceConnection *conn) {
   ELOG_DEBUG("%s message:IceState, transportName: %s, state: %d, isBundle: %d",
              toLog(), transport_name.c_str(), state, bundle_);
   if (state == IceState::INITIAL && this->getTransportState() != TRANSPORT_STARTED) {

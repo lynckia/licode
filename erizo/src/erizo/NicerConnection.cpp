@@ -224,8 +224,6 @@ void NicerConnection::startSync() {
     return;
   }
 
-  // peer_->controlling = 0;  // Disabled since it causes issues with Spine
-
   std::string stream_name = name_ + ":stream";
   r = nicer_->IceAddMediaStream(ctx_, const_cast<char *>(stream_name.c_str()), ice_config_.ice_components, &stream_);
   if (r) {
@@ -250,6 +248,8 @@ void NicerConnection::startSync() {
     ELOG_DEBUG("%s message: setting remote credentials in constructor, ufrag:%s, pass:%s",
                toLog(), ice_config_.username.c_str(), ice_config_.password.c_str());
     setRemoteCredentialsSync(ice_config_.username, ice_config_.password);
+  } else {
+    peer_->controlling = 1;
   }
 
   start_promise_.set_value();
