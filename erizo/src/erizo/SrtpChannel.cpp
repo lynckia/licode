@@ -14,7 +14,7 @@ DEFINE_LOGGER(SrtpChannel, "SrtpChannel");
 bool SrtpChannel::initialized = false;
 boost::mutex SrtpChannel::sessionMutex_;
 
-constexpr uint kKeyStringLength = 32;
+constexpr int kKeyStringLength = 32;
 
 uint8_t nibble_to_hex_char(uint8_t nibble) {
   char buf[16] = { '0', '1', '2', '3', '4', '5', '6', '7',
