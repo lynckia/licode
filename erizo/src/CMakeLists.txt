@@ -73,7 +73,7 @@ find_library(GTHREAD gthread-2.0 HINTS "${THIRD_PARTY_LIB}")
 test_lib(${GTHREAD})
 
 # SRTP
-find_library(SRTP srtp HINTS "${THIRD_PARTY_LIB}")
+find_library(SRTP srtp2 HINTS "${THIRD_PARTY_LIB}")
 test_lib(${SRTP})
 
 # NICE
