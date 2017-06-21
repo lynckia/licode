@@ -25,6 +25,7 @@ extern "C" {
 
 const int SRTP_MASTER_KEY_KEY_LEN = 16;
 const int SRTP_MASTER_KEY_SALT_LEN = 14;
+static const int DTLS_MTU = 1472;
 
 namespace dtls {
 class DtlsSocketContext;

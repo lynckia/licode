@@ -237,17 +237,18 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
     SSL_CTX_set_verify(mContext, SSL_VERIFY_PEER |SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
       SSLVerifyCallback);
 
+    SSL_CTX_set_options(mContext, SSL_OP_NO_QUERY_MTU);
       // SSL_CTX_set_session_cache_mode(mContext, SSL_SESS_CACHE_OFF);
       // SSL_CTX_set_options(mContext, SSL_OP_NO_TICKET);
       // Set SRTP profiles
-      r = SSL_CTX_set_tlsext_use_srtp(mContext, DefaultSrtpProfile);
-      assert(r == 0);
+    r = SSL_CTX_set_tlsext_use_srtp(mContext, DefaultSrtpProfile);
+    assert(r == 0);
 
-      SSL_CTX_set_verify_depth(mContext, 2);
-      SSL_CTX_set_read_ahead(mContext, 1);
+    SSL_CTX_set_verify_depth(mContext, 2);
+    SSL_CTX_set_read_ahead(mContext, 1);
 
-      ELOG_DEBUG("DtlsSocketContext created");
-    }
+    ELOG_DEBUG("DtlsSocketContext created");
+  }
 
     DtlsSocketContext::~DtlsSocketContext() {
       mSocket->close();
