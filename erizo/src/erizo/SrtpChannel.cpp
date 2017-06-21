@@ -2,7 +2,7 @@
  * Srtpchannel.cpp
  */
 
-#include <srtp/srtp.h>
+#include <srtp2/srtp.h>
 #include <nice/nice.h>
 
 #include <string>
@@ -13,6 +13,33 @@ namespace erizo {
 DEFINE_LOGGER(SrtpChannel, "SrtpChannel");
 bool SrtpChannel::initialized = false;
 boost::mutex SrtpChannel::sessionMutex_;
+
+constexpr int kKeyStringLength = 32;
+
+uint8_t nibble_to_hex_char(uint8_t nibble) {
+  char buf[16] = { '0', '1', '2', '3', '4', '5', '6', '7',
+                   '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+
+  return buf[nibble & 0xF];
+}
+
+std::string octet_string_hex_string(const void *s, int length) {
+  if (length != 16) {
+    return "";
+  }
+
+  const uint8_t *str = (const uint8_t*)s;
+  int i;
+
+  char bit_string[kKeyStringLength * 2];
+
+  for (i = 0; i < kKeyStringLength * 2; i += 2) {
+      bit_string[i]   = nibble_to_hex_char(*str >> 4);
+      bit_string[i + 1] = nibble_to_hex_char(*str++ & 0xF);
+  }
+  bit_string[i] = 0; /* null terminate string */
+  return std::string(bit_string);
+}
 
 SrtpChannel::SrtpChannel() {
   boost::mutex::scoped_lock lock(SrtpChannel::sessionMutex_);
@@ -124,8 +151,8 @@ int SrtpChannel::unprotectRtcp(char* buffer, int *len) {
 bool SrtpChannel::configureSrtpSession(srtp_t *session, const std::string &key, enum TransmissionType type) {
   srtp_policy_t policy;
   memset(&policy, 0, sizeof(policy));
-  crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtp);
-  crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtcp);
+  srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtp);
+  srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtcp);
   if (type == SENDING) {
     policy.ssrc.type = ssrc_any_outbound;
   } else {
@@ -140,12 +167,12 @@ bool SrtpChannel::configureSrtpSession(srtp_t *session, const std::string &key, 
 
   gsize len = 0;
   uint8_t *akey = reinterpret_cast<uint8_t*>(g_base64_decode(reinterpret_cast<const gchar*>(key.c_str()), &len));
-  ELOG_DEBUG("set master key/salt to %s/", octet_string_hex_string(akey, 16));
+  ELOG_DEBUG("set master key/salt to %s/", octet_string_hex_string(akey, 16).c_str());
   // allocate and initialize the SRTP session
   policy.key = akey;
   int res = srtp_create(session, &policy);
   if (res != 0) {
-    ELOG_ERROR("Failed to create srtp session with %s, %d", octet_string_hex_string(akey, 16), res);
+    ELOG_ERROR("Failed to create srtp session with %s, %d", octet_string_hex_string(akey, 16).c_str(), res);
   }
   g_free(akey); akey = NULL;
   return res != 0? false:true;

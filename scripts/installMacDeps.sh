@@ -9,6 +9,7 @@ ROOT=$PATHNAME/..
 BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
 NVM_CHECK="$PATHNAME"/checkNvm.sh
+FAST_MAKE=''
 
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
@@ -36,7 +37,8 @@ parse_arguments(){
       "--use-cache")
         CACHE=true
         ;;
-
+      "--fast")
+        FAST_MAKE='-j4'
     esac
     shift
   done
@@ -120,7 +122,7 @@ install_openssl(){
     if [ ! -f ./openssl-$OPENSSL_VERSION.tar.gz ]; then
       download_openssl $OPENSSL_VERSION
       cd openssl-$OPENSSL_VERSION
-      ./Configure --prefix=$PREFIX_DIR darwin64-x86_64-cc -shared -fPIC && make -s V=0 && make install_sw
+      ./Configure --prefix=$PREFIX_DIR --openssldir=$PREFIX_DIR darwin64-x86_64-cc -shared -fPIC && make $FAST_MAKE -s V=0 && make install_sw
     else
       echo "openssl already installed"
     fi
@@ -140,7 +142,7 @@ install_libnice(){
     cd libnice-0.1.4
     check_result $?
     patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
-    ./configure --prefix=$PREFIX_DIR && make -s V=0 && make install
+    ./configure --prefix=$PREFIX_DIR && make $FAST_MAKE -s V=0 && make install
     check_result $?
     cd $CURRENT_DIR
   else
@@ -150,11 +152,19 @@ install_libnice(){
 }
 
 install_libsrtp(){
-  cd $ROOT/third_party/srtp
-  CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR
-  make -s V=0 && make uninstall && make install
-  check_result $?
-  cd $CURRENT_DIR
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    curl -o libsrtp-2.1.0.tar.gz https://codeload.github.com/cisco/libsrtp/tar.gz/v2.1.0
+    tar -zxvf libsrtp-2.1.0.tar.gz
+    cd libsrtp-2.1.0
+    CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR --with-openssl-dir=$PREFIX_DIR
+    make $FAST_MAKE -s V=0 && make uninstall && make install
+    check_result $?
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_libsrtp
+  fi
 }
 
 install_mediadeps(){
@@ -167,7 +177,7 @@ install_mediadeps(){
     curl -O https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
     patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch && \
     PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus && \
-    make -s V=0 && \
+    make $FAST_MAKE -s V=0 && \
     make install
     check_result $?
     cd $CURRENT_DIR
@@ -187,7 +197,7 @@ install_mediadeps_nogpl(){
     curl -O https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
     patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch && \
     PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus && \
-    make -s V=0 && \
+    make $FAST_MAKE -s V=0 && \
     make install
     check_result $?
     cd $CURRENT_DIR
