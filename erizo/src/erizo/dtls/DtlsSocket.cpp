@@ -31,6 +31,7 @@ DtlsSocket::DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type):
   assert(mContext);
   mSsl = SSL_new(mContext);
   assert(mSsl != 0);
+  SSL_set_mtu(mSsl, DTLS_MTU);
   mSsl->ctx = mContext;
   mSsl->session_ctx = mContext;
 
@@ -132,6 +133,10 @@ void DtlsSocket::doHandshakeIteration() {
   // See what was written
   unsigned char *outBioData;
   int outBioLen = BIO_get_mem_data(mOutBio, &outBioData);
+  if (outBioLen > DTLS_MTU) {
+    ELOG_WARN("message: BIO data bigger than MTU - packet could be lost, outBioLen %u, MTU %u",
+        outBioLen, DTLS_MTU);
+  }
 
   // Now handle handshake errors */
   switch (sslerr = SSL_get_error(mSsl, r)) {
