@@ -77,10 +77,10 @@ void RtpPaddingGeneratorHandler::write(Context *ctx, std::shared_ptr<dataPacket>
     first_packet_received_ = true;
   }
 
-  ctx->fireWrite(std::move(packet));
+  ctx->fireWrite(packet);
 
   if (is_higher_sequence_number) {
-    onVideoPacket(packet);
+    onVideoPacket(std::move(packet));
   }
 }
 
@@ -101,7 +101,7 @@ void RtpPaddingGeneratorHandler::sendPaddingPacket(std::shared_ptr<dataPacket> p
 
   rtp_header->setSeqNumber(sequence_number.output);
   stats_->getNode()["total"]["paddingBitrate"] += padding_packet->length;
-  getContext()->fireWrite(padding_packet);
+  getContext()->fireWrite(std::move(padding_packet));
 }
 
 void RtpPaddingGeneratorHandler::onPacketWithMarkerSet(std::shared_ptr<dataPacket> packet) {
@@ -141,7 +141,7 @@ void RtpPaddingGeneratorHandler::onVideoPacket(std::shared_ptr<dataPacket> packe
 
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   if (rtp_header->getMarker()) {
-    onPacketWithMarkerSet(packet);
+    onPacketWithMarkerSet(std::move(packet));
   }
 }
 
