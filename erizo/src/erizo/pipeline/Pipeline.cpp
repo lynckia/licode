@@ -69,7 +69,7 @@ void Pipeline::read(std::shared_ptr<dataPacket> packet) {
   if (!front_) {
     return;
   }
-  front_->read(packet);
+  front_->read(std::move(packet));
 }
 
 void Pipeline::readEOF() {
@@ -83,7 +83,7 @@ void Pipeline::write(std::shared_ptr<dataPacket> packet) {
   if (!back_) {
     return;
   }
-  back_->write(packet);
+  back_->write(std::move(packet));
 }
 
 void Pipeline::close() {

@@ -188,7 +188,7 @@ void IncomingStatsHandler::notifyUpdate() {
 
 void IncomingStatsHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   processPacket(packet);
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 OutgoingStatsHandler::OutgoingStatsHandler() : connection_{nullptr} {}
@@ -208,7 +208,7 @@ void OutgoingStatsHandler::notifyUpdate() {
 
 void OutgoingStatsHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   processPacket(packet);
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 }  // namespace erizo

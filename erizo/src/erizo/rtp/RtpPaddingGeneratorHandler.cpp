@@ -62,7 +62,7 @@ void RtpPaddingGeneratorHandler::notifyUpdate() {
 }
 
 void RtpPaddingGeneratorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 void RtpPaddingGeneratorHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
@@ -77,7 +77,7 @@ void RtpPaddingGeneratorHandler::write(Context *ctx, std::shared_ptr<dataPacket>
     first_packet_received_ = true;
   }
 
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 
   if (is_higher_sequence_number) {
     onVideoPacket(packet);

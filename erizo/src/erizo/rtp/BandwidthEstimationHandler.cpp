@@ -146,7 +146,7 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
       ELOG_DEBUG("Packet not parsed %d", packet->type);
     }
   }
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 bool BandwidthEstimationHandler::parsePacket(std::shared_ptr<dataPacket> packet) {
@@ -175,7 +175,7 @@ RtpHeaderExtensionMap BandwidthEstimationHandler::getHeaderExtensionMap(std::sha
 }
 
 void BandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 void BandwidthEstimationHandler::pickEstimatorFromHeader() {
