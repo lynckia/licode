@@ -61,7 +61,7 @@ void SSLInfoCallback(const SSL* s, int where, int ret) {
     if (ret == 0) {
       ELOG_WARN2(sslLogger, "failed in %s", SSL_state_string_long(s));
     } else if (ret < 0) {
-      ELOG_WARN2(sslLogger, "error in %s", SSL_state_string_long(s));
+      ELOG_INFO2(sslLogger, "callback for %s", SSL_state_string_long(s));
     }
   }
 }
@@ -74,7 +74,7 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
     int err = X509_STORE_CTX_get_error(store);
     X509_NAME_oneline(X509_get_issuer_name(cert), data, sizeof(data));
     X509_NAME_oneline(X509_get_subject_name(cert), data2, sizeof(data2));
-    ELOG_DEBUG2(sslLogger, "Error with certificate at depth: %d, issuer: %s, subject: %s, err: %d : %s",
+    ELOG_DEBUG2(sslLogger, "Callback with certificate at depth: %d, issuer: %s, subject: %s, err: %d : %s",
     depth,
     data,
     data2,
@@ -95,8 +95,6 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
   if (!ok) {
     // X509* cert = X509_STORE_CTX_get_current_cert(store);
     int err = X509_STORE_CTX_get_error(store);
-
-    ELOG_DEBUG2(sslLogger, "Error: %d", X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT);
 
     // peer-to-peer mode: allow the certificate to be self-signed,
     // assuming it matches the digest that was specified.
