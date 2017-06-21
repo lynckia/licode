@@ -199,7 +199,6 @@ install_libsrtp(){
     cd libsrtp-2.1.0
     CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR --with-openssl-dir=$PREFIX_DIR
     make -s V=0 && make uninstall && make install
-    check_result $?
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
