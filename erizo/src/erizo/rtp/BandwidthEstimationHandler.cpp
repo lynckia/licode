@@ -8,6 +8,7 @@
 
 #include "webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.h"
 #include "webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.h"
+#include "webrtc/base/logging.h"
 
 namespace erizo {
 
@@ -43,6 +44,7 @@ BandwidthEstimationHandler::BandwidthEstimationHandler(std::shared_ptr<RemoteBit
   min_bitrate_bps_{kMinBitRateAllowed},
   bitrate_{0}, last_send_bitrate_{0}, last_remb_time_{0},
   running_{false}, active_{true}, initialized_{false} {
+    rtc::LogMessage::SetLogToStderr(false);
 }
 
 void BandwidthEstimationHandler::enable() {

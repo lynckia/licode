@@ -66,9 +66,9 @@ var NativeStack = function (spec) {
 
     return that;
 };
+var sessionId = 0;
 exports.FakeConnection = function(spec){
     log.info('Creating Connection');
-    var sessionId = 0;
     spec.sessionId = sessionId++;
     return NativeStack(spec); // jshint ignore:line
 };

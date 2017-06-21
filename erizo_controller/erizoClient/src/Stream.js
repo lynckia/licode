@@ -22,6 +22,8 @@ Erizo.Stream = function (spec) {
     that.videoFrameRate = spec.videoFrameRate;
     that.extensionId = spec.extensionId;
     that.desktopStreamId = spec.desktopStreamId;
+    that.audioMuted = false;
+    that.videoMuted = false;
 
     if (that.videoSize !== undefined &&
         (!(that.videoSize instanceof Array) ||
@@ -304,15 +306,30 @@ Erizo.Stream = function (spec) {
         }
     };
 
-    that.muteAudio = function (isMuted, callback) {
-        if (that.room && that.room.p2p) {
-            L.Logger.warning('muteAudio is not implemented in p2p streams');
-            callback ('error');
-            return;
+    var muteStream = function(callback) {
+      if (that.room && that.room.p2p){
+          L.Logger.warning('muteAudio/muteVideo are not implemented in p2p streams');
+          callback ('error');
+          return;
+      }
+      if (that.stream) {
+        for (let track of that.stream.getVideoTracks()) {
+          track.enabled = !that.videoMuted;
         }
-        var config = {muteStream : {audio : isMuted}};
-        that.checkOptions(config, true);
-        that.pc.updateSpec(config, callback);
+      }
+      var config = {muteStream : {audio: that.audioMuted, video: that.videoMuted}};
+      that.checkOptions(config, true);
+      that.pc.updateSpec(config, callback);
+    };
+
+    that.muteAudio = function (isMuted, callback) {
+      that.audioMuted = isMuted;
+      muteStream(callback);
+    };
+
+    that.muteVideo = function (isMuted, callback) {
+        that.videoMuted = isMuted;
+        muteStream(callback);
     };
 
     that._setStaticQualityLayer = function(spatialLayer, temporalLayer, callback) {

@@ -8,6 +8,7 @@
 #include <chrono> // NOLINT
 #include <map>
 #include <memory>
+#include <future>  // NOLINT
 #include <vector>
 
 #include "lib/Clock.h"
@@ -29,6 +30,7 @@ class Worker : public std::enable_shared_from_this<Worker> {
   virtual void task(Task f);
 
   virtual void start();
+  virtual void start(std::shared_ptr<std::promise<void>> start_promise);
   virtual void close();
 
   virtual int scheduleFromNow(Task f, duration delta);
@@ -62,6 +64,7 @@ class SimulatedWorker : public Worker {
   explicit SimulatedWorker(std::shared_ptr<SimulatedClock> the_clock);
   void task(Task f) override;
   void start() override;
+  void start(std::shared_ptr<std::promise<void>> start_promise) override;
   void close() override;
   int scheduleFromNow(Task f, duration delta) override;
 
