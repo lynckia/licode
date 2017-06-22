@@ -102,6 +102,9 @@
               <li {% if page.community %}class="active"{% endif %}>
                 <a href="./community.html">Community</a>
               </li>
+               <li {% if page.install %}class="active"{% endif %}>
+                 <a href="./install.html">Installation</a>
+              </li>
               <li class="dropdown {% if page.gettingstarted or page.architecture or page.clientapi or page.serverapi %} active {% endif %}">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">API Documentation<b class="caret"></b></a>
                 <ul class="dropdown-menu">
@@ -116,9 +119,7 @@
                   </li>
                 </ul>
               </li>
-              <li {% if page.install %}class="active"{% endif %}>
-                 <a href="./install.html">Installation</a>
-              </li>
+              
 <!-- 
               <li class="dropdown {% if page.gettingstarted or page.install or page.docker or page.from_source %} active {% endif %}">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Installation<b class="caret"></b></a>
