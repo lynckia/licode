@@ -1,10 +1,10 @@
 <div class="bs-sidebar hidden-print affix-top well" role="complementary">
 {%- macro draw_toc_for_nav(nav_item_to_draw) %}
 
-{%- for nav_chil in nav_item_to_draw.children %}
-    <li class="main"><a href="{{ nav_chil.url }}">{{ nav_chil.title }}</a></li>
-    {%- if page_title == nav_chil.title%}
-  	{%- for toc_item in toc %}
+{%- for nav_child in nav_item_to_draw.children %}
+    <li class="main"><a href="{{ nav_child.url }}">{{ nav_child.title }}</a></li>
+    {%- if page_title == nav_child.title%}
+    {%- for toc_item in toc %}
         <li class="{% if toc_item.active %}active{% endif %}"><a href="{{ toc_item.url }}">{{ toc_item.title }}</a></li>
     {%- endfor %}
   {%- endif %}
@@ -12,7 +12,7 @@
 
 {%- endmacro %}
     <ul class="nav bs-sidenav">
-	{%- block search_button %}
+    {%- block search_button %}
     <li class="search_nav">
         <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
             <i class="fa fa-search"></i> Search
@@ -21,14 +21,16 @@
     {%- endblock %}
 {%- for nav_item in nav %}
     {%- for nav_child in nav_item.children %}
+    
         {%- if nav_child.title == page_title %}
           {{ draw_toc_for_nav(nav_item)}}
         {%- endif %}
-		{%- endfor %}
+        {%- if page_title == None %}
+            {%- if nav_child.title == 'Architecture' %}
+                {{ draw_toc_for_nav(nav_item)}}
+            {%- endif %}
+        {%- endif %}
+        {%- endfor %}
 {%- endfor %}
     </ul>
-
-
-
-
 </div>
