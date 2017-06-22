@@ -44,7 +44,7 @@ void QualityFilterHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet
     return;
   }
 
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 void QualityFilterHandler::checkLayers() {

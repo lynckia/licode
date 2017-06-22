@@ -131,11 +131,11 @@ class HandlerAdapter : public Handler {
   }
 
   void read(Context* ctx, std::shared_ptr<dataPacket> packet) override {
-    ctx->fireRead(packet);
+    ctx->fireRead(std::move(packet));
   }
 
   void write(Context* ctx, std::shared_ptr<dataPacket> packet) override {
-    return ctx->fireWrite(packet);
+    return ctx->fireWrite(std::move(packet));
   }
 
   void notifyUpdate() override {

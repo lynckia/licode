@@ -60,7 +60,7 @@ void FecReceiverHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet)
     }
   }
 
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 bool FecReceiverHandler::OnRecoveredPacket(const uint8_t* rtp_packet, size_t rtp_packet_length) {

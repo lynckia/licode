@@ -461,7 +461,7 @@ void WebRtcConnection::onTransportData(std::shared_ptr<dataPacket> packet, Trans
     return;
   }
 
-  pipeline_->read(packet);
+  pipeline_->read(std::move(packet));
 }
 
 void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
@@ -480,7 +480,7 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
   // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
   if (chead->isFeedback()) {
     if (fb_sink_ != nullptr && shouldSendFeedback_) {
-      fb_sink_->deliverFeedback(packet);
+      fb_sink_->deliverFeedback(std::move(packet));
     }
   } else {
     // RTP or RTCP Sender Report
@@ -489,10 +489,10 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
       // Deliver data
       if (isVideoSourceSSRC(recvSSRC)) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
-        video_sink_->deliverVideoData(packet);
+        video_sink_->deliverVideoData(std::move(packet));
       } else if (isAudioSourceSSRC(recvSSRC)) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
-        audio_sink_->deliverAudioData(packet);
+        audio_sink_->deliverAudioData(std::move(packet));
       } else {
         ELOG_DEBUG("%s unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                     toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
@@ -505,7 +505,7 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
           ELOG_DEBUG("%s discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
           this->setAudioSourceSSRC(recvSSRC);
         }
-        audio_sink_->deliverAudioData(packet);
+        audio_sink_->deliverAudioData(std::move(packet));
       } else if (packet->type == VIDEO_PACKET && video_sink_ != nullptr) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         // Firefox does not send SSRC in SDP
@@ -514,7 +514,7 @@ void WebRtcConnection::read(std::shared_ptr<dataPacket> packet) {
           this->setVideoSourceSSRC(recvSSRC);
         }
         // change ssrc for RTP packets, don't touch here if RTCP
-        video_sink_->deliverVideoData(packet);
+        video_sink_->deliverVideoData(std::move(packet));
       }
     }  // if not bundle
   }  // if not Feedback
@@ -865,7 +865,7 @@ void WebRtcConnection::sendPacket(std::shared_ptr<dataPacket> p) {
     return;
   }
 
-  pipeline_->write(p);
+  pipeline_->write(std::move(p));
 }
 
 void WebRtcConnection::setQualityLayer(int spatial_layer, int temporal_layer) {
