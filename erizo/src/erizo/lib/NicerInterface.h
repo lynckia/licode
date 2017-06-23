@@ -41,7 +41,7 @@ class NicerInterface {
   virtual void IceContextFinalize(nr_ice_ctx *ctx, nr_ice_peer_ctx *pctxp) = 0;
   virtual int IceContextSetStunServers(nr_ice_ctx *ctx, nr_ice_stun_server *servers, int ct) = 0;
   virtual int IceContextSetTurnServers(nr_ice_ctx *ctx, nr_ice_turn_server *servers, int ct) = 0;
-
+  virtual void IceContextSetPortRange(nr_ice_ctx *ctx, uint16_t min_port, uint16_t max_port) = 0;
   virtual int IcePeerContextCreate(nr_ice_ctx *ctx, nr_ice_handler *handler, char *label, nr_ice_peer_ctx **pctxp) = 0;
   virtual int IcePeerContextDestroy(nr_ice_peer_ctx **pctxp) = 0;
   virtual int IcePeerContextParseTrickleCandidate(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *streamp, char *cand) = 0;
@@ -73,6 +73,7 @@ class NicerInterfaceImpl: public NicerInterface {
   void IceContextFinalize(nr_ice_ctx *ctx, nr_ice_peer_ctx *pctxp) override;
   int IceContextSetStunServers(nr_ice_ctx *ctx, nr_ice_stun_server *servers, int ct) override;
   int IceContextSetTurnServers(nr_ice_ctx *ctx, nr_ice_turn_server *servers, int ct) override;
+  void IceContextSetPortRange(nr_ice_ctx *ctx, uint16_t min_port, uint16_t max_port) override;
 
   int IcePeerContextCreate(nr_ice_ctx *ctx, nr_ice_handler *handler, char *label, nr_ice_peer_ctx **pctxp) override;
   int IcePeerContextDestroy(nr_ice_peer_ctx **pctxp) override;
