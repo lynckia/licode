@@ -135,6 +135,19 @@ Erizo.Room = function (spec) {
                 var evt2 = Erizo.StreamEvent({type: 'stream-subscribed', stream: stream});
                 that.dispatchEvent(evt2);
             };
+
+            stream.pc.oniceconnectionstatechange = function(state) {
+                if (state === 'failed') {
+                    var disconnectEvt = Erizo.StreamEvent({
+                        type: 'stream-failed',
+                        msg: 'Subscribing stream failed after connection p2p',
+                        stream: stream});
+                        that.dispatchEvent(disconnectEvt);
+                        that.unsubscribe(stream);
+                    }
+                };
+            };
+
         };
 
         // Once we have connected
