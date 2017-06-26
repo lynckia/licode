@@ -89,7 +89,7 @@ setInterval(function() {
       down++;
     }
   }
-  console.log("[STATS] up:", up, "; down:", down);
+  console.log('[STATS] up:', up, '; down:', down);
 }, statsInterval);
 
 console.log('Starting ', streamConfig.numSubscribers, 'subscriber streams',
