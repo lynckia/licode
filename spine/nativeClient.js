@@ -25,6 +25,7 @@ exports.ErizoNativeConnection = function (spec){
     oneToMany,
     externalOutput;
 
+    that.connected = false;
 
     var CONN_INITIAL = 101,
         // CONN_STARTED = 102,
@@ -72,11 +73,13 @@ exports.ErizoNativeConnection = function (spec){
 
                 case CONN_FAILED:
                     log.warn('Connection failed the ICE process');
+                    that.connected = false;
                     //   callback('callback', {type: 'failed', sdp: mess});
                     break;
 
                 case CONN_READY:
                     log.info('Connection ready');
+                    that.connected = true;
                     if (externalInput !== undefined){
                         log.info('Will start External Input');
                         externalInput.init();
@@ -186,6 +189,7 @@ exports.ErizoNativeConnection = function (spec){
         if (syntheticInput!==undefined){
             syntheticInput.close();
         }
+        that.connected = false;
         wrtc.close();
     };
 

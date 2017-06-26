@@ -33,10 +33,10 @@ void RtpTrackMuteHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet)
     handleFeedback(video_info_, packet);
   }
 
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
-void RtpTrackMuteHandler::handleFeedback(const TrackMuteInfo &info, std::shared_ptr<dataPacket> packet) {
+void RtpTrackMuteHandler::handleFeedback(const TrackMuteInfo &info, const std::shared_ptr<dataPacket> &packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   uint16_t offset = info.seq_num_offset;
   if (offset > 0) {
@@ -71,13 +71,13 @@ void RtpTrackMuteHandler::handleFeedback(const TrackMuteInfo &info, std::shared_
 void RtpTrackMuteHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader *rtcp_header = reinterpret_cast<RtcpHeader*>(packet->data);
   if (rtcp_header->isRtcp()) {
-    ctx->fireWrite(packet);
+    ctx->fireWrite(std::move(packet));
   } else if (packet->type == AUDIO_PACKET) {
-    handlePacket(ctx, &audio_info_, packet);
+    handlePacket(ctx, &audio_info_, std::move(packet));
   } else if (packet->type == VIDEO_PACKET) {
-    handlePacket(ctx, &video_info_, packet);
+    handlePacket(ctx, &video_info_, std::move(packet));
   } else {
-    ctx->fireWrite(packet);
+    ctx->fireWrite(std::move(packet));
   }
 }
 
@@ -90,7 +90,7 @@ void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::s
     if (offset > 0) {
       setPacketSeqNumber(packet, info->last_sent_seq_num);
     }
-    ctx->fireWrite(packet);
+    ctx->fireWrite(std::move(packet));
   }
 }
 

@@ -22,7 +22,7 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacke
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
 
   if (!initialized_) {
-    ctx->fireRead(packet);
+    ctx->fireRead(std::move(packet));
     return;
   }
 
@@ -34,7 +34,7 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacke
     } else {
       ELOG_DEBUG("message: no RrGenerator found, ssrc: %u", ssrc);
     }
-    ctx->fireRead(packet);
+    ctx->fireRead(std::move(packet));
     return;
   }
   bool should_send_rr = false;
@@ -59,14 +59,14 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacke
       if (nacks_enabled_ && generator_it->second->nack_generator != nullptr) {
         generator_it->second->nack_generator->addNackPacketToRr(rtcp_packet);
       }
-      ctx->fireWrite(rtcp_packet);
+      ctx->fireWrite(std::move(rtcp_packet));
     }
   }
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 void RtcpFeedbackGenerationHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 void RtcpFeedbackGenerationHandler::notifyUpdate() {

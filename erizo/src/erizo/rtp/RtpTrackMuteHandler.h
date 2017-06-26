@@ -43,7 +43,7 @@ class RtpTrackMuteHandler: public Handler {
 
  private:
   void muteTrack(TrackMuteInfo *info, bool active);
-  void handleFeedback(const TrackMuteInfo &info, std::shared_ptr<dataPacket> packet);
+  void handleFeedback(const TrackMuteInfo &info, const std::shared_ptr<dataPacket> &packet);
   void handlePacket(Context *ctx, TrackMuteInfo *info, std::shared_ptr<dataPacket> packet);
   inline void setPacketSeqNumber(std::shared_ptr<dataPacket> packet, uint16_t seq_number);
 

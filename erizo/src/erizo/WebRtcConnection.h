@@ -248,7 +248,7 @@ class PacketReader : public InboundHandler {
   }
 
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override {
-    connection_->read(packet);
+    connection_->read(std::move(packet));
   }
 
   void notifyUpdate() override {
@@ -270,7 +270,7 @@ class PacketWriter : public OutboundHandler {
   }
 
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override {
-    connection_->write(packet);
+    connection_->write(std::move(packet));
   }
 
   void notifyUpdate() override {

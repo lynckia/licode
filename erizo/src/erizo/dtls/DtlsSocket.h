@@ -2,11 +2,7 @@
 #define ERIZO_SRC_ERIZO_DTLS_DTLSSOCKET_H_
 
 extern "C" {
-  #ifdef WIN32
-  #include <srtp.h>
-  #else
-  #include <srtp/srtp.h>
-  #endif
+  #include <srtp2/srtp.h>
 }
 
 #include <openssl/e_os2.h>
@@ -25,6 +21,7 @@ extern "C" {
 
 const int SRTP_MASTER_KEY_KEY_LEN = 16;
 const int SRTP_MASTER_KEY_SALT_LEN = 14;
+static const int DTLS_MTU = 1472;
 
 namespace dtls {
 class DtlsSocketContext;

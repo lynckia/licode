@@ -239,6 +239,13 @@ void NicerConnection::startSync() {
               ctx_->force_net_interface);
   }
 
+  if (ice_config_.min_port != 0 && ice_config_.max_port != 0) {
+    ELOG_DEBUG("%s message: setting port range, min_port: %d, max_port: %d",
+               toLog(), ice_config_.min_port, ice_config_.max_port);
+    nicer_->IceContextSetPortRange(ctx_, ice_config_.min_port, ice_config_.max_port);
+  }
+
+
   setupTurnServer();
   setupStunServer();
 
