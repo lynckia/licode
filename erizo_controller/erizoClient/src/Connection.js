@@ -161,15 +161,23 @@ Erizo.GetUserMedia = function (config, callback, error) {
                 if (config.audio.mandatory !== undefined) {
                     var audioCfg = config.audio.mandatory;
                     if (audioCfg.sourceId) {
-                        ffConfig.audio.deviceId = audioCfg.sourceId;
+                        ffConfig.audio.deviceId = {exact: audioCfg.sourceId};
                     }
                 }
                 if (config.video.mandatory !== undefined) {
                     var videoCfg = config.video.mandatory;
-                    ffConfig.video.width = {min: videoCfg.minWidth, max: videoCfg.maxWidth};
-                    ffConfig.video.height = {min: videoCfg.minHeight, max: videoCfg.maxHeight};
+                    ffConfig.video.width = {
+                        min: videoCfg.minWidth,
+                        ideal: videoCfg.maxWidth,
+                        max: videoCfg.maxWidth
+                    };
+                    ffConfig.video.height = {
+                        min: videoCfg.minHeight,
+                        ideal: videoCfg.maxHeight,
+                        max: videoCfg.maxHeight
+                    };
                     if (videoCfg.sourceId) {
-                        ffConfig.video.deviceId = videoCfg.sourceId;
+                        ffConfig.video.deviceId = {exact: videoCfg.sourceId};
                     }
 
                 }
