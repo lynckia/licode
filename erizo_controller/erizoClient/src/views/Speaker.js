@@ -14,26 +14,26 @@ Erizo.Speaker = (spec) => {
   let unmute;
   let lastVolume = 50;
 
-    // Variables
+  // Variables
 
-    // DOM element in which the Speaker will be appended
+  // DOM element in which the Speaker will be appended
   that.elementID = spec.elementID;
 
-    // media tag
+  // media tag
   that.media = spec.media;
 
-    // Speaker id
+  // Speaker id
   that.id = spec.id;
 
-    // MediaStream
+  // MediaStream
   that.stream = spec.stream;
 
-    // Container
+  // Container
   that.div = document.createElement('div');
   that.div.setAttribute('style', 'width: 40%; height: 100%; max-width: 32px; ' +
                                    'position: absolute; right: 0;z-index:0;');
 
-    // Volume icon
+  // Volume icon
   that.icon = document.createElement('img');
   that.icon.setAttribute('id', `volume_${that.id}`);
   that.icon.setAttribute('src', `${that.url}/assets/sound48.png`);
@@ -42,7 +42,7 @@ Erizo.Speaker = (spec) => {
 
 
   if (!that.stream.local) {
-        // Volume bar
+    // Volume bar
     that.picker = document.createElement('input');
     that.picker.setAttribute('id', `picker_${that.id}`);
     that.picker.type = 'range';
@@ -50,7 +50,7 @@ Erizo.Speaker = (spec) => {
     that.picker.max = 100;
     that.picker.step = 10;
     that.picker.value = lastVolume;
-        //  FireFox supports range sliders as of version 23
+    //  FireFox supports range sliders as of version 23
     that.picker.setAttribute('orient', 'vertical');
     that.div.appendChild(that.picker);
     that.media.volume = that.picker.value / 100;
@@ -67,13 +67,12 @@ Erizo.Speaker = (spec) => {
       that.media.volume = that.picker.value / 100;
     };
 
-        // Private functions
+    // Private functions
     show = (displaying) => {
-      that.picker.setAttribute('style', `${'background: transparent; width: 32px; ' +
-                                              'height: 100px; position: absolute; bottom: 90%; ' +
-                                              'z-index: 1;'}${that.div.offsetHeight}px; ` +
-                                              'right: 0px; -webkit-appearance: slider-vertical; ' +
-                                              `display: ${displaying}`);
+      that.picker.setAttribute('style', `background: transparent; width: 32px;
+                                         height: 100px; position: absolute; bottom: 90%;
+                                         z-index: 1; right: 0px; -webkit-appearance: slider-vertical;
+                                         bottom: ${that.div.offsetHeight}px; display: ${displaying}`);
     };
 
     mute = () => {
@@ -99,7 +98,7 @@ Erizo.Speaker = (spec) => {
       }
     };
 
-        // Public functions
+    // Public functions
     that.div.onmouseover = () => {
       show('block');
     };

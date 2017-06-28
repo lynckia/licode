@@ -216,9 +216,9 @@ Erizo.FirefoxStack = (specInput) => {
   spec.remoteCandidates = [];
   spec.remoteDescriptionSet = false;
 
-    /**
-     * Closes the connection.
-     */
+  /**
+   * Closes the connection.
+   */
   that.close = () => {
     that.state = 'closed';
     that.peerConnection.close();
@@ -226,7 +226,7 @@ Erizo.FirefoxStack = (specInput) => {
 
   that.processSignalingMessage = (msgInput) => {
     const msg = msgInput;
-//        L.Logger.debug("Process Signaling Message", msg);
+    // L.Logger.debug("Process Signaling Message", msg);
 
     if (msg.type === 'offer') {
       msg.sdp = setMaxBW(msg.sdp);
@@ -279,13 +279,13 @@ Erizo.FirefoxStack = (specInput) => {
 
         obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex, 10);
         const candidate = new RTCIceCandidate(obj);
-//                L.logger.debug("Remote Candidate",candidate);
+        // L.logger.debug("Remote Candidate",candidate);
 
         if (spec.remoteDescriptionSet && gotCandidate) {
           that.peerConnection.addIceCandidate(candidate);
           while (spec.remoteCandidates.length > 0) {
             L.Logger.info('Setting stored remote candidates');
-                        // IMPORTANT: preserve ordering of candidates
+            // IMPORTANT: preserve ordering of candidates
             that.peerConnection.addIceCandidate(spec.remoteCandidates.shift());
           }
         } else {

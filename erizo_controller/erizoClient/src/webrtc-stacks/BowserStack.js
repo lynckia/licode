@@ -90,11 +90,11 @@ Erizo.BowserStack = (specInput) => {
         spec.callback({ type: 'candidate', candidate });
       } else {
         spec.localCandidates.push(candidate);
-//                L.Logger.debug('Local Candidates stored: ',
-//                             spec.localCandidates.length, spec.localCandidates);
+        // L.Logger.debug('Local Candidates stored: ',
+        //                spec.localCandidates.length, spec.localCandidates);
       }
     } else {
-          //  spec.callback(that.peerConnection.localDescription);
+      // spec.callback(that.peerConnection.localDescription);
       L.Logger.debug('End of candidates.', that.peerConnection.localDescription);
     }
   };
@@ -131,8 +131,7 @@ Erizo.BowserStack = (specInput) => {
   const setLocalDescp2p = (sessionDescription) => {
     localDesc = sessionDescription;
     localDesc.sdp = setMaxBW(localDesc.sdp);
-//        sessionDescription.sdp = sessionDescription.sdp
-//                                          .replace(/a=ice-options:google-ice\r\n/g, "");
+    // localDesc.sdp = localDesc.sdp.replace(/a=ice-options:google-ice\r\n/g, "");
     spec.callback(localDesc);
 
     that.peerConnection.setLocalDescription(localDesc);
@@ -188,8 +187,8 @@ Erizo.BowserStack = (specInput) => {
         } else {
           obj = JSON.parse(msg.candidate);
         }
-//      obj.candidate = obj.candidate.replace(/ generation 0/g, "");
-//      obj.candidate = obj.candidate.replace(/ udp /g, " UDP ");
+        // obj.candidate = obj.candidate.replace(/ generation 0/g, "");
+        // obj.candidate = obj.candidate.replace(/ udp /g, " UDP ");
         obj.candidate = obj.candidate.replace(/a=/g, '');
         obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex, 10);
         obj.sdpMLineIndex = obj.sdpMid === 'audio' ? 0 : 1;

@@ -76,22 +76,22 @@ Erizo.VideoPlayer = (spec) => {
     that.containerHeight = height;
   };
 
-    /* window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
-        document.getElementById(key).value = unescape(value);
-    });*/
+  /* window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
+      document.getElementById(key).value = unescape(value);
+  });*/
 
   L.Logger.debug(`Creating URL from stream ${that.stream}`);
   const myURL = window.URL || webkitURL;
   that.streamUrl = myURL.createObjectURL(that.stream);
 
-    // Container
+  // Container
   that.div = document.createElement('div');
   that.div.setAttribute('id', `player_${that.id}`);
   that.div.setAttribute('class', 'licode_player');
   that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; ' +
                                    'background-color: black; overflow: hidden;');
 
-    // Loader icon
+  // Loader icon
   if (spec.options.loader !== false) {
     that.loader = document.createElement('img');
     that.loader.setAttribute('style', 'width: 16px; height: 16px; position: absolute; ' +
@@ -101,7 +101,7 @@ Erizo.VideoPlayer = (spec) => {
     that.loader.setAttribute('src', `${that.url}/assets/loader.gif`);
   }
 
-    // Video tag
+  // Video tag
   that.video = document.createElement('video');
   that.video.setAttribute('id', `stream${that.id}`);
   that.video.setAttribute('class', 'licode_stream');
@@ -111,7 +111,7 @@ Erizo.VideoPlayer = (spec) => {
   if (spec.stream.local) { that.video.volume = 0; }
 
   if (that.elementID !== undefined) {
-        // Check for a passed DOM node.
+    // Check for a passed DOM node.
     if (typeof that.elementID === 'object' &&
           typeof that.elementID.appendChild === 'function') {
       that.container = that.elementID;
@@ -139,7 +139,7 @@ Erizo.VideoPlayer = (spec) => {
     that.resize();
   }
 
-    // Bottom Bar
+  // Bottom Bar
   if (spec.options.bar !== false) {
     that.bar = Erizo.Bar({ elementID: `player_${that.id}`,
       id: that.id,
@@ -150,7 +150,7 @@ Erizo.VideoPlayer = (spec) => {
     that.div.onmouseover = onmouseover;
     that.div.onmouseout = onmouseout;
   } else {
-        // Expose a consistent object to manipulate the media.
+    // Expose a consistent object to manipulate the media.
     that.media = that.video;
   }
 

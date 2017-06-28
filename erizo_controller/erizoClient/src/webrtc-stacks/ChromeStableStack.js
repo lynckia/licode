@@ -70,7 +70,7 @@ Erizo.ChromeStableStack = (specInput) => {
       return sdp;
     }
 
-      // TODO(javier): Improve the way we check for current video ssrcs
+    // TODO(javier): Improve the way we check for current video ssrcs
     const matchGroup = sdp.match(/a=ssrc-group:FID ([0-9]*) ([0-9]*)\r?\n/);
     if (!matchGroup || (matchGroup.length <= 0)) {
       return sdp;
@@ -157,9 +157,9 @@ Erizo.ChromeStableStack = (specInput) => {
     return sdp;
   };
 
-    /**
-     * Closes the connection.
-     */
+  /**
+   * Closes the connection.
+   */
   that.close = () => {
     that.state = 'closed';
     that.peerConnection.close();
@@ -344,12 +344,12 @@ Erizo.ChromeStableStack = (specInput) => {
                     L.Logger.info('Candidates to be added: ', spec.remoteCandidates.length,
                                   spec.remoteCandidates);
                     while (spec.remoteCandidates.length > 0) {
-                        // IMPORTANT: preserve ordering of candidates
+                      // IMPORTANT: preserve ordering of candidates
                       that.peerConnection.addIceCandidate(spec.remoteCandidates.shift());
                     }
                     L.Logger.info('Local candidates to send:', spec.localCandidates.length);
                     while (spec.localCandidates.length > 0) {
-                        // IMPORTANT: preserve ordering of candidates
+                      // IMPORTANT: preserve ordering of candidates
                       spec.callback({ type: 'candidate', candidate: spec.localCandidates.shift() });
                     }
                   });
@@ -363,7 +363,7 @@ Erizo.ChromeStableStack = (specInput) => {
           obj = JSON.parse(msg.candidate);
         }
         if (obj.candidate === 'end') {
-                    // ignore the end candidate for chrome
+          // ignore the end candidate for chrome
           return;
         }
         obj.candidate = obj.candidate.replace(/a=/g, '');

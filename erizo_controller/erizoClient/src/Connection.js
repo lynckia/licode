@@ -10,7 +10,7 @@ Erizo.Connection = (specInput) => {
 
   spec.sessionId = Erizo.sessionId;
 
-    // Check which WebRTC Stack is installed.
+  // Check which WebRTC Stack is installed.
   that.browser = Erizo.getBrowser();
   if (that.browser === 'fake') {
     L.Logger.warning('Publish/subscribe video/audio streams not supported in erizofc yet');
@@ -44,7 +44,7 @@ Erizo.getBrowser = () => {
   if (typeof module !== 'undefined' && module.exports) {
     browser = 'fake';
   } else if (window.navigator.userAgent.match('Firefox') !== null) {
-        // Firefox
+    // Firefox
     browser = 'mozilla';
   } else if (window.navigator.userAgent.match('Bowser') !== null) {
     browser = 'bowser';
@@ -108,9 +108,9 @@ Erizo.GetUserMedia = (config, callback, error) => {
           screenConfig.video.mandatory.chromeMediaSourceId = config.desktopStreamId;
           navigator.getMedia(screenConfig, callback, error);
         } else {
-                  // Default extensionId - this extension is only usable in our server,
-                  // please make your own extension based on the code in
-                  // erizo_controller/erizoClient/extras/chrome-extension
+          // Default extensionId - this extension is only usable in our server,
+          // please make your own extension based on the code in
+          // erizo_controller/erizoClient/extras/chrome-extension
           let extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
           if (config.extensionId) {
             L.Logger.debug(`extensionId supplied, using ${config.extensionId}`);
@@ -172,7 +172,6 @@ Erizo.GetUserMedia = (config, callback, error) => {
       }
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         promise = navigator.mediaDevices.getUserMedia(ffConfig).then(callback);
-                    // Google compressor complains about a func called catch
         promise.catch(error);
         return;
       }

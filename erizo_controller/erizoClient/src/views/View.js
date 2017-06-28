@@ -8,9 +8,9 @@ this.Erizo = this.Erizo || {};
 Erizo.View = () => {
   const that = Erizo.EventDispatcher({});
 
-    // Variables
+  // Variables
 
-    // URL where it will look for icons and assets
+  // URL where it will look for icons and assets
   that.url = '';
   return that;
 };

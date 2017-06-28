@@ -1,5 +1,6 @@
 /* global window, document, L, webkitURL, Erizo*/
 this.Erizo = this.Erizo || {};
+
 /*
  * AudioPlayer represents a Licode Audio component that shows either a local or a remote Audio.
  * Ex.: var player = AudioPlayer({id: id, stream: stream, elementID: elementID});
@@ -10,15 +11,15 @@ Erizo.AudioPlayer = (spec) => {
   let onmouseover;
   let onmouseout;
 
-    // Variables
+  // Variables
 
-    // AudioPlayer ID
+  // AudioPlayer ID
   that.id = spec.id;
 
-    // Stream that the AudioPlayer will play
+  // Stream that the AudioPlayer will play
   that.stream = spec.stream.stream;
 
-    // DOM element in which the AudioPlayer will be appended
+  // DOM element in which the AudioPlayer will be appended
   that.elementID = spec.elementID;
 
 
@@ -35,11 +36,8 @@ Erizo.AudioPlayer = (spec) => {
 
   if (spec.stream.local) { that.audio.volume = 0; }
 
-  if (spec.stream.local) { that.audio.volume = 0; }
-
-
   if (that.elementID !== undefined) {
-        // It will stop the AudioPlayer and remove it from the HTML
+    // It will stop the AudioPlayer and remove it from the HTML
     that.destroy = () => {
       that.audio.pause();
       that.parentNode.removeChild(that.div);
@@ -53,14 +51,14 @@ Erizo.AudioPlayer = (spec) => {
       that.bar.hide();
     };
 
-        // Container
+    // Container
     that.div = document.createElement('div');
     that.div.setAttribute('id', `player_${that.id}`);
     that.div.setAttribute('class', 'licode_player');
     that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; ' +
                               'overflow: hidden;');
 
-        // Check for a passed DOM node.
+    // Check for a passed DOM node.
     if (typeof that.elementID === 'object' &&
           typeof that.elementID.appendChild === 'function') {
       that.container = that.elementID;
@@ -73,7 +71,7 @@ Erizo.AudioPlayer = (spec) => {
 
     that.div.appendChild(that.audio);
 
-        // Bottom Bar
+    // Bottom Bar
     if (spec.options.bar !== false) {
       that.bar = Erizo.Bar({ elementID: `player_${that.id}`,
         id: that.id,
@@ -84,11 +82,11 @@ Erizo.AudioPlayer = (spec) => {
       that.div.onmouseover = onmouseover;
       that.div.onmouseout = onmouseout;
     } else {
-            // Expose a consistent object to manipulate the media.
+      // Expose a consistent object to manipulate the media.
       that.media = that.audio;
     }
   } else {
-        // It will stop the AudioPlayer and remove it from the HTML
+    // It will stop the AudioPlayer and remove it from the HTML
     that.destroy = () => {
       that.audio.pause();
       that.parentNode.removeChild(that.audio);

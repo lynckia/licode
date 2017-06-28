@@ -34,11 +34,10 @@ Erizo.Stream = (specInput) => {
     that.local = true;
   }
 
-    // Public functions
-
+  // Public functions
   that.getID = () => {
     let id;
-        // Unpublished local streams don't yet have an ID.
+    // Unpublished local streams don't yet have an ID.
     if (that.local && !spec.streamID) {
       id = 'local';
     } else {
@@ -47,10 +46,10 @@ Erizo.Stream = (specInput) => {
     return id;
   };
 
-    // Get attributes of this stream.
+  // Get attributes of this stream.
   that.getAttributes = () => spec.attributes;
 
-    // Changes the attributes of this stream in the room.
+  // Changes the attributes of this stream in the room.
   that.setAttributes = () => {
     L.Logger.error('Failed to set attributes data. This Stream object has not been published.');
   };
@@ -59,25 +58,25 @@ Erizo.Stream = (specInput) => {
     spec.attributes = attrs;
   };
 
-    // Indicates if the stream has audio activated
+  // Indicates if the stream has audio activated
   that.hasAudio = () => spec.audio;
 
-    // Indicates if the stream has video activated
+  // Indicates if the stream has video activated
   that.hasVideo = () => spec.video;
 
-    // Indicates if the stream has data activated
+  // Indicates if the stream has data activated
   that.hasData = () => spec.data;
 
-    // Indicates if the stream has screen activated
+  // Indicates if the stream has screen activated
   that.hasScreen = () => spec.screen;
 
-    // Sends data through this stream.
+  // Sends data through this stream.
   that.sendData = () => {
     L.Logger.error('Failed to send data. This Stream object has not that channel enabled.');
   };
 
-    // Initializes the stream and tries to retrieve a stream from local video and audio
-    // We need to call this method before we can publish it in the room.
+  // Initializes the stream and tries to retrieve a stream from local video and audio
+  // We need to call this method before we can publish it in the room.
   that.init = () => {
     try {
       if ((spec.audio || spec.video || spec.screen) && spec.url === undefined) {
@@ -151,7 +150,7 @@ Erizo.Stream = (specInput) => {
       if (that.room !== undefined) {
         that.room.unpublish(that);
       }
-            // Remove HTML element
+      // Remove HTML element
       that.hide();
       if (that.stream !== undefined) {
         that.stream.getTracks().forEach((trackInput) => {
@@ -169,7 +168,7 @@ Erizo.Stream = (specInput) => {
     that.elementID = elementID;
     let player;
     if (that.hasVideo() || this.hasScreen()) {
-            // Draw on HTML
+      // Draw on HTML
       if (elementID !== undefined) {
         player = Erizo.VideoPlayer({ id: that.getID(),
           stream: that,
@@ -226,7 +225,7 @@ Erizo.Stream = (specInput) => {
       canvas.width = divWidth;
       canvas.height = divHeight;
       canvas.setAttribute('style', 'display: none');
-            // document.body.appendChild(canvas);
+      // document.body.appendChild(canvas);
       const context = canvas.getContext('2d');
 
       context.drawImage(video, left, top, width, height);

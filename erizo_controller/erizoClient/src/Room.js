@@ -351,7 +351,7 @@ Erizo.Room = (specInput) => {
         that.remoteStreams[arg.id] = stream;
       }
 
-            // 3 - Update RoomID
+      // 3 - Update RoomID
       that.roomID = roomId;
 
       L.Logger.info(`Connected to room ${that.roomID}`);
@@ -365,10 +365,10 @@ Erizo.Room = (specInput) => {
     });
   };
 
-    // It disconnects from the room, dispatching a new RoomEvent("room-disconnected")
+  // It disconnects from the room, dispatching a new RoomEvent("room-disconnected")
   that.disconnect = () => {
     L.Logger.debug('Disconnection requested');
-        // 1- Disconnect from room
+    // 1- Disconnect from room
     const disconnectEvt = Erizo.RoomEvent({ type: 'room-disconnected',
       message: 'expected-disconnection' });
     that.dispatchEvent(disconnectEvt);
@@ -395,7 +395,7 @@ Erizo.Room = (specInput) => {
 
     options.simulcast = options.simulcast || false;
 
-      // 1- If the stream is not local or it is a failed stream we do nothing.
+    // 1- If the stream is not local or it is a failed stream we do nothing.
     if (stream && stream.local && !stream.failed &&
             that.localStreams[stream.getID()] === undefined) {
       // 2- Publish Media Stream to Erizo-Controller
@@ -434,8 +434,8 @@ Erizo.Room = (specInput) => {
                   if (callback) { callback(id); }
                 } else {
                   L.Logger.error('Error when publishing stream', error);
-            // Unauth -1052488119
-            // Network -5
+                  // Unauth -1052488119
+                  // Network -5
                   if (callback) { callback(undefined, error); }
                 }
               });
@@ -519,8 +519,8 @@ Erizo.Room = (specInput) => {
 
                                     stream.pc.addStream(stream.stream);
                                     stream.pc.oniceconnectionstatechange = (state) => {
-                                // No one is notifying the other subscribers that this is a failure
-                                // they will only receive onRemoveStream
+                                      // No one is notifying the other subscribers that this is a
+                                      // failure they will only receive onRemoveStream
                                       if (state === 'failed') {
                                         if (that.state !== DISCONNECTED &&
                                             stream &&
@@ -577,7 +577,7 @@ Erizo.Room = (specInput) => {
     }
   };
 
-    // Returns callback(id, error)
+  // Returns callback(id, error)
   that.startRecording = (stream, callback) => {
     if (stream) {
       L.Logger.debug(`Start Recording stream: ${stream.getID()}`);
@@ -597,7 +597,7 @@ Erizo.Room = (specInput) => {
     }
   };
 
-    // Returns callback(id, error)
+  // Returns callback(id, error)
   that.stopRecording = (recordingId, callback) => {
     sendMessageSocket('stopRecorder', { id: recordingId }, (result, error) => {
       if (result === null) {
@@ -610,12 +610,12 @@ Erizo.Room = (specInput) => {
     });
   };
 
-    // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
+  // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
   that.unpublish = (streamInput, callback) => {
     const stream = streamInput;
-        // Unpublish stream from Erizo-Controller
+    // Unpublish stream from Erizo-Controller
     if (stream && stream.local) {
-            // Media stream
+      // Media stream
       sendMessageSocket('unpublish', stream.getID(), (result, error) => {
         if (result === null) {
           L.Logger.error('Error unpublishing stream', error);
@@ -623,9 +623,9 @@ Erizo.Room = (specInput) => {
           return;
         }
 
-                // remove stream failed property since the stream has been
-                // correctly removed from licode so is eligible to be
-                // published again
+        // remove stream failed property since the stream has been
+        // correctly removed from licode so is eligible to be
+        // published again
         if (stream.failed) {
           delete stream.failed;
         }
@@ -668,15 +668,14 @@ Erizo.Room = (specInput) => {
     }
   };
 
-    // It subscribe to a remote stream and draws it inside the HTML tag given by the ID='elementID'
+  // It subscribe to a remote stream and draws it inside the HTML tag given by the ID='elementID'
   that.subscribe = (streamInput, optionsInput, callback) => {
     const stream = streamInput;
     const options = optionsInput || {};
 
     if (stream && !stream.local && !stream.failed) {
       if (stream.hasVideo() || stream.hasAudio() || stream.hasScreen()) {
-                // 1- Subscribe to Stream
-
+        // 1- Subscribe to Stream
         if (!stream.hasVideo() && !stream.hasScreen()) options.video = false;
         if (!stream.hasAudio()) options.audio = false;
 
@@ -725,7 +724,7 @@ Erizo.Room = (specInput) => {
                                       iceServers: that.iceServers });
 
                                     stream.pc.onaddstream = (evt) => {
-                                // Draw on html
+                                      // Draw on html
                                       L.Logger.info('Stream subscribed');
                                       stream.stream = evt.stream;
                                       const evt2 = Erizo.StreamEvent({ type: 'stream-subscribed',
@@ -777,7 +776,7 @@ Erizo.Room = (specInput) => {
         if (callback) callback(undefined, 'Nothing to subscribe to');
         return;
       }
-            // Subscribe to stream stream
+      // Subscribe to stream stream
       L.Logger.info(`Subscribing to: ${stream.getID()}`);
     } else {
       let error = 'Error on subscribe';
@@ -797,9 +796,9 @@ Erizo.Room = (specInput) => {
     }
   };
 
-    // It unsubscribes from the stream, removing the HTML element.
+  // It unsubscribes from the stream, removing the HTML element.
   that.unsubscribe = (stream, callback) => {
-        // Unsubscribe from stream stream
+    // Unsubscribe from stream stream
     if (that.socket !== undefined) {
       if (stream && !stream.local) {
         sendMessageSocket('unsubscribe', stream.getID(), (result, error) => {
@@ -832,7 +831,7 @@ Erizo.Room = (specInput) => {
     return undefined;
   };
 
-    // It searchs the streams that have "name" attribute with "value" value
+  // It searchs the streams that have "name" attribute with "value" value
   that.getStreamsByAttribute = (name, value) => {
     const streams = [];
 

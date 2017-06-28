@@ -8,13 +8,13 @@ this.Erizo = this.Erizo || {};
 Erizo.EventDispatcher = (specInput) => {
   const that = {};
   const spec = specInput;
-    // Private vars
+  // Private vars
   spec.dispatcher = {};
   spec.dispatcher.eventListeners = {};
 
-    // Public functions
+  // Public functions
 
-    // It adds an event listener attached to an event type.
+  // It adds an event listener attached to an event type.
   that.addEventListener = (eventType, listener) => {
     if (spec.dispatcher.eventListeners[eventType] === undefined) {
       spec.dispatcher.eventListeners[eventType] = [];
@@ -22,7 +22,7 @@ Erizo.EventDispatcher = (specInput) => {
     spec.dispatcher.eventListeners[eventType].push(listener);
   };
 
-    // It removes an available event listener.
+  // It removes an available event listener.
   that.removeEventListener = (eventType, listener) => {
     const index = spec.dispatcher.eventListeners[eventType].indexOf(listener);
     if (index !== -1) {
@@ -30,8 +30,8 @@ Erizo.EventDispatcher = (specInput) => {
     }
   };
 
-    // It dispatch a new event to the event listeners, based on the type
-    // of event. All events are intended to be LicodeEvents.
+  // It dispatch a new event to the event listeners, based on the type
+  // of event. All events are intended to be LicodeEvents.
   that.dispatchEvent = (event) => {
     L.Logger.debug(`Event: ${event.type}`);
     const listeners = spec.dispatcher.eventListeners[event.type] || [];
@@ -55,7 +55,7 @@ Erizo.EventDispatcher = (specInput) => {
 Erizo.LicodeEvent = (spec) => {
   const that = {};
 
-    // Event type. Examples are: 'room-connected', 'stream-added', etc.
+  // Event type. Examples are: 'room-connected', 'stream-added', etc.
   that.type = spec.type;
 
   return that;
@@ -73,7 +73,7 @@ Erizo.LicodeEvent = (spec) => {
 Erizo.RoomEvent = (spec) => {
   const that = Erizo.LicodeEvent(spec);
 
-    // A list with the streams that are published in the room.
+  // A list with the streams that are published in the room.
   that.streams = spec.streams;
   that.message = spec.message;
 
@@ -91,7 +91,7 @@ Erizo.RoomEvent = (spec) => {
 Erizo.StreamEvent = (spec) => {
   const that = Erizo.LicodeEvent(spec);
 
-    // The stream related to this event.
+  // The stream related to this event.
   that.stream = spec.stream;
 
   that.msg = spec.msg;

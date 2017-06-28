@@ -2,12 +2,12 @@
 this.Erizo = this.Erizo || {};
 
 Erizo.FcStack = (spec) => {
-/*
-        spec.callback({
-            type: sessionDescription.type,
-            sdp: sessionDescription.sdp
-        });
-*/
+  /*
+  spec.callback({
+      type: sessionDescription.type,
+      sdp: sessionDescription.sdp
+  });
+  */
   const that = {};
 
   that.pcConfig = {};
