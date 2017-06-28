@@ -94,7 +94,6 @@ Erizo.GetUserMedia = (config, callback, error) => {
         }
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
           promise = navigator.mediaDevices.getUserMedia(screenConfig).then(callback);
-                    // Google compressor complains about a func called catch
           promise.catch(error);
         } else {
           navigator.getMedia(screenConfig, callback, error);
