@@ -19,6 +19,6 @@ echo '/*' > $TARGET
 echo '*/' >> $TARGET
 
 # Body
-echo "var io = require('socket.io-client'); var Erizo = {};" >> $TARGET
+echo "var io = require('socket.io-client'); var Erizo = {}; var L = {};" >> $TARGET
 cat ../build/erizofc.js >> $TARGET
 echo 'module.exports = {Erizo: Erizo, L:L};' >> $TARGET

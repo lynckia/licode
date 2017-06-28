@@ -75,7 +75,7 @@ Erizo.AudioPlayer = (spec) => {
 
         // Bottom Bar
     if (spec.options.bar !== false) {
-      that.bar = new Erizo.Bar({ elementID: `player_${that.id}`,
+      that.bar = Erizo.Bar({ elementID: `player_${that.id}`,
         id: that.id,
         stream: spec.stream,
         media: that.audio,

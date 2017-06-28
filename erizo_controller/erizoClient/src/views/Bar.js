@@ -77,7 +77,7 @@ Erizo.Bar = (spec) => {
   if (!spec.stream.screen && (spec.options === undefined ||
                                 spec.options.speaker === undefined ||
                                 spec.options.speaker === true)) {
-    that.speaker = new Erizo.Speaker({ elementID: `subbar_${that.id}`,
+    that.speaker = Erizo.Speaker({ elementID: `subbar_${that.id}`,
       id: that.id,
       stream: spec.stream,
       media: spec.media });

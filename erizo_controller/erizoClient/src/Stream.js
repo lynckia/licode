@@ -171,7 +171,7 @@ Erizo.Stream = (specInput) => {
     if (that.hasVideo() || this.hasScreen()) {
             // Draw on HTML
       if (elementID !== undefined) {
-        player = new Erizo.VideoPlayer({ id: that.getID(),
+        player = Erizo.VideoPlayer({ id: that.getID(),
           stream: that,
           elementID,
           options });
@@ -179,7 +179,7 @@ Erizo.Stream = (specInput) => {
         that.showing = true;
       }
     } else if (that.hasAudio) {
-      player = new Erizo.AudioPlayer({ id: that.getID(),
+      player = Erizo.AudioPlayer({ id: that.getID(),
         stream: that,
         elementID,
         options });

@@ -1,5 +1,4 @@
-/* globals $$, jQuery, Elements, document, window */
-
+/* globals $$, jQuery, Elements, document, window, L */
 
 /**
 * Copyright 2013 Marc J. Schmidt. See the LICENSE file at the top-level
@@ -7,21 +6,20 @@
 * https://github.com/marcj/css-element-queries/blob/master/LICENSE.
 */
 this.L = this.L || {};
-const L = this.L;
 
 /**
  * @param {HTMLElement} element
  * @param {String}      prop
  * @returns {String|Number}
  */
-function getComputedStyle(computedElement, prop) {
+L.GetComputedStyle = (computedElement, prop) => {
   if (computedElement.currentStyle) {
     return computedElement.currentStyle[prop];
   } else if (window.getComputedStyle) {
     return window.getComputedStyle(computedElement, null).getPropertyValue(prop);
   }
   return computedElement.style[prop];
-}
+};
 
   /**
    *
@@ -35,7 +33,7 @@ L.ElementQueries = function ElementQueries() {
        * @returns {Number}
        */
   function getEmSize(element = document.documentElement) {
-    const fontSize = getComputedStyle(element, 'fontSize');
+    const fontSize = L.GetComputedStyle(element, 'fontSize');
     return parseFloat(fontSize) || 16;
   }
 
@@ -373,7 +371,7 @@ L.ResizeSensor = function ResizeSensor(element, callback) {
               '</div>';
     newElement.appendChild(newElement.resizeSensor);
 
-    if (getComputedStyle(newElement, 'position') === 'static') {
+    if (L.GetComputedStyle(newElement, 'position') === 'static') {
       newElement.style.position = 'relative';
     }
 

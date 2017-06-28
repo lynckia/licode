@@ -337,9 +337,9 @@ Erizo.Room = (specInput) => {
       spec.maxVideoBW = response.maxVideoBW;
 
       // 2- Retrieve list of streams
-      const streamArray = Object.values(streams);
-      for (let index = 0; index < streamArray.length; index += 1) {
-        const arg = streamArray[index];
+      const streamIndices = Object.keys(streams);
+      for (let index = 0; index < streamIndices.length; index += 1) {
+        const arg = streams[streamIndices[index]];
         stream = Erizo.Stream({ streamID: arg.id,
           local: false,
           audio: arg.audio,
@@ -855,9 +855,9 @@ Erizo.Room = (specInput) => {
     that.state = DISCONNECTED;
 
     // Remove all streams
-    let streamArray = Object.values(that.remoteStreamsStreams);
-    for (let i = 0; i < streamArray.length; i += 1) {
-      const stream = streamArray[i];
+    let streamIndices = Object.keys(that.remoteStreams);
+    for (let index = 0; index < streamIndices.length; index += 1) {
+      const stream = that.remoteStreams[streamIndices[index]];
       removeStream(stream);
       delete that.remoteStreams[stream.getID()];
       if (stream && !stream.failed) {
@@ -868,9 +868,9 @@ Erizo.Room = (specInput) => {
     that.remoteStreams = {};
 
     // Close Peer Connections
-    streamArray = Object.values(that.localStreams);
-    for (let i = 0; i < streamArray.length; i += 1) {
-      const stream = streamArray[i];
+    streamIndices = Object.keys(that.localStreams);
+    for (let index = 0; index < streamIndices.length; index += 1) {
+      const stream = that.localStreams[streamIndices[index]];
       if (that.p2p) {
         for (let j = 0; j < stream.pc.length; j += 1) {
           stream.pc[j].close();
