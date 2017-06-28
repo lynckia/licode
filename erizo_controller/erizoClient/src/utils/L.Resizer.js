@@ -271,7 +271,7 @@ if (window.addEventListener) {
   // In combination with the event based resize sensor this saves cpu time,
   // because the sensor is too fast and
   // would generate too many unnecessary events.
-const requestAnimationFrame = window.requestAnimationFrame ||
+const customRequestAnimationFrame = window.requestAnimationFrame ||
       window.mozRequestAnimationFrame ||
       window.webkitRequestAnimationFrame ||
       function delay(fn) {
@@ -401,10 +401,10 @@ L.ResizeSensor = function ResizeSensor(element, callback) {
         dirty = false;
       }
 
-      requestAnimationFrame(dirtyChecking);
+      customRequestAnimationFrame(dirtyChecking);
     };
 
-    requestAnimationFrame(dirtyChecking);
+    customRequestAnimationFrame(dirtyChecking);
     let lastWidth;
     let lastHeight;
     let cachedWidth;
