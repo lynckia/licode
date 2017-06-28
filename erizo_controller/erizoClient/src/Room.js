@@ -110,14 +110,14 @@ Erizo.Room = (specInput) => {
       };
     };
 
-        // Once we have connected
+    // Once we have connected
     that.socket = io.connect(token.host, { reconnect: false,
       secure: token.secure,
       'force new connection': true,
       transports: ['websocket'] });
 
-        // We receive an event with a new stream in the room.
-        // type can be "media" or "data"
+    // We receive an event with a new stream in the room.
+    // type can be "media" or "data"
     that.socket.on('onAddStream', (arg) => {
       const stream = Erizo.Stream({ streamID: arg.id,
         local: false,
@@ -182,7 +182,7 @@ Erizo.Room = (specInput) => {
           myStream.pc[arg.peerSocket].close();
           delete myStream.pc[arg.peerSocket];
         } else if (state === 'disconnected') {
-                    // TODO handle behaviour. Myabe implement Ice-Restart mechanism
+          // TODO handle behaviour. Myabe implement Ice-Restart mechanism
         }
       };
 
@@ -205,14 +205,14 @@ Erizo.Room = (specInput) => {
       }
     });
 
-        // We receive an event of new data in one of the streams
+    // We receive an event of new data in one of the streams
     that.socket.on('onDataStream', (arg) => {
       const stream = that.remoteStreams[arg.id];
       const evt = Erizo.StreamEvent({ type: 'stream-data', msg: arg.msg, stream });
       stream.dispatchEvent(evt);
     });
 
-        // We receive an event of new data in one of the streams
+    // We receive an event of new data in one of the streams
     that.socket.on('onUpdateAttributeStream', (arg) => {
       const stream = that.remoteStreams[arg.id];
       const evt = Erizo.StreamEvent({ type: 'stream-attributes-update',
@@ -222,7 +222,7 @@ Erizo.Room = (specInput) => {
       stream.dispatchEvent(evt);
     });
 
-        // We receive an event of a stream removed from the room
+    // We receive an event of a stream removed from the room
     that.socket.on('onRemoveStream', (arg) => {
       let stream = that.localStreams[arg.id];
       if (stream && !stream.failed) {
@@ -254,7 +254,7 @@ Erizo.Room = (specInput) => {
       that.dispatchEvent(evt);
     });
 
-        // The socket has disconnected
+    // The socket has disconnected
     that.socket.on('disconnect', () => {
       L.Logger.info('Socket disconnected, lost connection to ErizoController');
       if (that.state !== DISCONNECTED) {
@@ -707,13 +707,14 @@ Erizo.Room = (specInput) => {
 
                                     L.Logger.info('Subscriber added');
 
-                                    stream.pc = Erizo.Connection({ callback(message) {
-                                      L.Logger.info('Sending message', message);
-                                      sendSDPSocket('signaling_message', { streamId: stream.getID(),
-                                        msg: message,
-                                        browser: stream.pc.browser },
-                                              undefined, () => {});
-                                    },
+                                    stream.pc = Erizo.Connection({
+                                      callback(message) {
+                                        L.Logger.info('Sending message', message);
+                                        sendSDPSocket('signaling_message', { streamId: stream.getID(),
+                                          msg: message,
+                                          browser: stream.pc.browser },
+                                                undefined, () => {});
+                                      },
                                       nop2p: true,
                                       audio: options.audio,
                                       video: options.video,
