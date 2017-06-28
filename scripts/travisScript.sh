@@ -16,4 +16,5 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 set -e
 
 npm run lint
+npm run lintClient
 npm test

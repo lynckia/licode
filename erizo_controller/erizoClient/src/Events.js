@@ -1,48 +1,46 @@
-/*global L*/
-'use strict';
+/* global L, Erizo*/
+this.Erizo = this.Erizo || {};
+
 /*
  * Class EventDispatcher provides event handling to sub-classes.
  * It is inherited from Publisher, Room, etc.
  */
-var Erizo = Erizo || {};
-Erizo.EventDispatcher = function (spec) {
-    var that = {};
+Erizo.EventDispatcher = (specInput) => {
+  const that = {};
+  const spec = specInput;
     // Private vars
-    spec.dispatcher = {};
-    spec.dispatcher.eventListeners = {};
+  spec.dispatcher = {};
+  spec.dispatcher.eventListeners = {};
 
     // Public functions
 
     // It adds an event listener attached to an event type.
-    that.addEventListener = function (eventType, listener) {
-        if (spec.dispatcher.eventListeners[eventType] === undefined) {
-            spec.dispatcher.eventListeners[eventType] = [];
-        }
-        spec.dispatcher.eventListeners[eventType].push(listener);
-    };
+  that.addEventListener = (eventType, listener) => {
+    if (spec.dispatcher.eventListeners[eventType] === undefined) {
+      spec.dispatcher.eventListeners[eventType] = [];
+    }
+    spec.dispatcher.eventListeners[eventType].push(listener);
+  };
 
     // It removes an available event listener.
-    that.removeEventListener = function (eventType, listener) {
-        var index;
-        index = spec.dispatcher.eventListeners[eventType].indexOf(listener);
-        if (index !== -1) {
-            spec.dispatcher.eventListeners[eventType].splice(index, 1);
-        }
-    };
+  that.removeEventListener = (eventType, listener) => {
+    const index = spec.dispatcher.eventListeners[eventType].indexOf(listener);
+    if (index !== -1) {
+      spec.dispatcher.eventListeners[eventType].splice(index, 1);
+    }
+  };
 
     // It dispatch a new event to the event listeners, based on the type
     // of event. All events are intended to be LicodeEvents.
-    that.dispatchEvent = function (event) {
-        var listener;
-        L.Logger.debug('Event: ' + event.type);
-        for (listener in spec.dispatcher.eventListeners[event.type]) {
-            if (spec.dispatcher.eventListeners[event.type].hasOwnProperty(listener)) {
-                spec.dispatcher.eventListeners[event.type][listener](event);
-            }
-        }
-    };
+  that.dispatchEvent = (event) => {
+    L.Logger.debug(`Event: ${event.type}`);
+    const listeners = spec.dispatcher.eventListeners[event.type] || [];
+    for (let i = 0; i < listeners.length; i += 1) {
+      listeners[i](event);
+    }
+  };
 
-    return that;
+  return that;
 };
 
 // **** EVENTS ****
@@ -54,13 +52,13 @@ Erizo.EventDispatcher = function (spec) {
  * A LicodeEvent can be initialized this way:
  * var event = LicodeEvent({type: "room-connected"});
  */
-Erizo.LicodeEvent = function (spec) {
-    var that = {};
+Erizo.LicodeEvent = (spec) => {
+  const that = {};
 
     // Event type. Examples are: 'room-connected', 'stream-added', etc.
-    that.type = spec.type;
+  that.type = spec.type;
 
-    return that;
+  return that;
 };
 
 /*
@@ -72,14 +70,14 @@ Erizo.LicodeEvent = function (spec) {
  * 'room-connected' - points out that the user has been successfully connected to the room.
  * 'room-disconnected' - shows that the user has been already disconnected.
  */
-Erizo.RoomEvent = function (spec) {
-    var that = Erizo.LicodeEvent(spec);
+Erizo.RoomEvent = (spec) => {
+  const that = Erizo.LicodeEvent(spec);
 
     // A list with the streams that are published in the room.
-    that.streams = spec.streams;
-    that.message = spec.message;
+  that.streams = spec.streams;
+  that.message = spec.message;
 
-    return that;
+  return that;
 };
 
 /*
@@ -90,16 +88,16 @@ Erizo.RoomEvent = function (spec) {
  * 'stream-added' - indicates that there is a new stream available in the room.
  * 'stream-removed' - shows that a previous available stream has been removed from the room.
  */
-Erizo.StreamEvent = function (spec) {
-    var that = Erizo.LicodeEvent(spec);
+Erizo.StreamEvent = (spec) => {
+  const that = Erizo.LicodeEvent(spec);
 
     // The stream related to this event.
-    that.stream = spec.stream;
+  that.stream = spec.stream;
 
-    that.msg = spec.msg;
-    that.bandwidth = spec.bandwidth;
+  that.msg = spec.msg;
+  that.bandwidth = spec.bandwidth;
 
-    return that;
+  return that;
 };
 
 /*
@@ -109,8 +107,8 @@ Erizo.StreamEvent = function (spec) {
  * Event types:
  * 'access-accepted' - indicates that the user has accepted to share his camera and microphone
  */
-Erizo.PublisherEvent = function (spec) {
-    var that = Erizo.LicodeEvent(spec);
+Erizo.PublisherEvent = (spec) => {
+  const that = Erizo.LicodeEvent(spec);
 
-    return that;
+  return that;
 };
