@@ -30,7 +30,7 @@ Erizo.VideoPlayer = (spec) => {
   };
 
   const applyRatio = (ratio, width, height, reverse) => {
-    const condition = !reverse ? width * (1 / ratio) < height : width * (1 / ratio) > height
+    const condition = !reverse ? width * (1 / ratio) < height : width * (1 / ratio) > height;
     if (condition) {
       that.video.style.width = `${width}px`;
       that.video.style.height = `${(1 / ratio) * width}px`;
