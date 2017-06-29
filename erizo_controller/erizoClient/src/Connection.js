@@ -62,14 +62,13 @@ Erizo.getBrowser = () => {
 };
 
 Erizo.GetUserMedia = (config, callback, error) => {
-  let promise;
   let screenConfig;
-  navigator.getMedia = (navigator.getUserMedia ||
-                       navigator.webkitGetUserMedia ||
-                       navigator.mozGetUserMedia ||
-                       navigator.msGetUserMedia);
 
-  if (config.screen) {
+  const getUserMedia = (userMediaConfig, cb, errorCb) => {
+    navigator.mediaDevices.getUserMedia(userMediaConfig).then(cb).catch(errorCb);
+  };
+
+  const configureScreensharing = () => {
     L.Logger.debug('Screen access requested');
     switch (Erizo.getBrowser()) {
       case 'electron' :
@@ -78,12 +77,12 @@ Erizo.GetUserMedia = (config, callback, error) => {
         screenConfig.video = config.video || {};
         screenConfig.video.mandatory = config.video.mandatory || {};
         screenConfig.video.mandatory.chromeMediaSource = 'screen';
-        navigator.getMedia(screenConfig, callback, error);
+        getUserMedia(screenConfig, callback, error);
         break;
       case 'mozilla':
         L.Logger.debug('Screen sharing in Firefox');
         screenConfig = {};
-        if (config.video.mandatory !== undefined) {
+        if (config.video !== undefined) {
           screenConfig.video = config.video;
           screenConfig.video.mediaSource = 'window' || 'screen';
         } else {
@@ -92,12 +91,7 @@ Erizo.GetUserMedia = (config, callback, error) => {
             video: { mediaSource: 'window' || 'screen' },
           };
         }
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          promise = navigator.mediaDevices.getUserMedia(screenConfig).then(callback);
-          promise.catch(error);
-        } else {
-          navigator.getMedia(screenConfig, callback, error);
-        }
+        getUserMedia(screenConfig, callback, error);
         break;
 
       case 'chrome-stable':
@@ -106,7 +100,7 @@ Erizo.GetUserMedia = (config, callback, error) => {
           screenConfig.video = config.video || {};
           screenConfig.video.mandatory.chromeMediaSource = 'desktop';
           screenConfig.video.mandatory.chromeMediaSourceId = config.desktopStreamId;
-          navigator.getMedia(screenConfig, callback, error);
+          getUserMedia(screenConfig, callback, error);
         } else {
           // Default extensionId - this extension is only usable in our server,
           // please make your own extension based on the code in
@@ -119,24 +113,24 @@ Erizo.GetUserMedia = (config, callback, error) => {
           L.Logger.debug('Screen access on chrome stable, looking for extension');
           try {
             chrome.runtime.sendMessage(extensionId, { getStream: true },
-                        (response) => {
-                          if (response === undefined) {
-                            L.Logger.error('Access to screen denied');
-                            const theError = { code: 'Access to screen denied' };
-                            error(theError);
-                            return;
-                          }
-                          const theId = response.streamId;
-                          if (config.video.mandatory !== undefined) {
-                            screenConfig.video = config.video;
-                            screenConfig.video.mandatory.chromeMediaSource = 'desktop';
-                            screenConfig.video.mandatory.chromeMediaSourceId = theId;
-                          } else {
-                            screenConfig = { video: { mandatory: { chromeMediaSource: 'desktop',
-                              chromeMediaSourceId: theId } } };
-                          }
-                          navigator.getMedia(screenConfig, callback, error);
-                        });
+              (response) => {
+                if (response === undefined) {
+                  L.Logger.error('Access to screen denied');
+                  const theError = { code: 'Access to screen denied' };
+                  error(theError);
+                  return;
+                }
+                const theId = response.streamId;
+                if (config.video.mandatory !== undefined) {
+                  screenConfig.video = config.video;
+                  screenConfig.video.mandatory.chromeMediaSource = 'desktop';
+                  screenConfig.video.mandatory.chromeMediaSourceId = theId;
+                } else {
+                  screenConfig = { video: { mandatory: { chromeMediaSource: 'desktop',
+                    chromeMediaSourceId: theId } } };
+                }
+                getUserMedia(screenConfig, callback, error);
+              });
           } catch (e) {
             L.Logger.debug('Screensharing plugin is not accessible ');
             const theError = { code: 'no_plugin_present' };
@@ -148,34 +142,14 @@ Erizo.GetUserMedia = (config, callback, error) => {
       default:
         L.Logger.error('This browser does not support ScreenSharing');
     }
+  };
+
+  if (config.screen) {
+    configureScreensharing();
   } else if (typeof module !== 'undefined' && module.exports) {
     L.Logger.error('Video/audio streams not supported in erizofc yet');
   } else {
-    if (config.video && Erizo.getBrowser() === 'mozilla') {
-      const ffConfig = { video: {}, audio: config.audio, screen: config.screen };
-      if (config.audio.mandatory !== undefined) {
-        const audioCfg = config.audio.mandatory;
-        if (audioCfg.sourceId) {
-          ffConfig.audio.deviceId = audioCfg.sourceId;
-        }
-      }
-      if (config.video.mandatory !== undefined) {
-        const videoCfg = config.video.mandatory;
-        ffConfig.video.width = { min: videoCfg.minWidth, max: videoCfg.maxWidth };
-        ffConfig.video.height = { min: videoCfg.minHeight, max: videoCfg.maxHeight };
-        if (videoCfg.sourceId) {
-          ffConfig.video.deviceId = videoCfg.sourceId;
-        }
-      }
-      if (config.video.optional !== undefined) {
-        ffConfig.video.frameRate = config.video.optional[1].maxFrameRate;
-      }
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        promise = navigator.mediaDevices.getUserMedia(ffConfig).then(callback);
-        promise.catch(error);
-        return;
-      }
-    }
-    navigator.getMedia(config, callback, error);
+    L.Logger.debug('Calling getUserMedia with config', config);
+    getUserMedia(config, callback, error);
   }
 };

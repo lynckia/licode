@@ -85,17 +85,22 @@ Erizo.Stream = (specInput) => {
         if (videoOpt === true || spec.screen === true) {
           videoOpt = videoOpt === true ? {} : videoOpt;
           if (that.videoSize !== undefined) {
-            videoOpt.mandatory = videoOpt.mandatory || {};
-            videoOpt.mandatory.minWidth = that.videoSize[0];
-            videoOpt.mandatory.minHeight = that.videoSize[1];
-            videoOpt.mandatory.maxWidth = that.videoSize[2];
-            videoOpt.mandatory.maxHeight = that.videoSize[3];
+            videoOpt.width = {
+              min: that.videoSize[0],
+              max: that.videoSize[2],
+            };
+
+            videoOpt.height = {
+              min: that.videoSize[1],
+              max: that.videoSize[3],
+            };
           }
 
           if (that.videoFrameRate !== undefined) {
-            videoOpt.optional = videoOpt.optional || [];
-            videoOpt.optional.push({ minFrameRate: that.videoFrameRate[0] });
-            videoOpt.optional.push({ maxFrameRate: that.videoFrameRate[1] });
+            videoOpt.frameRate = {
+              min: that.videoFrameRate[0],
+              max: that.videoFrameRate[1],
+            };
           }
         } else if (spec.screen === true && videoOpt === undefined) {
           videoOpt = true;
@@ -167,7 +172,7 @@ Erizo.Stream = (specInput) => {
     const options = optionsInput || {};
     that.elementID = elementID;
     let player;
-    if (that.hasVideo() || this.hasScreen()) {
+    if (that.hasVideo() || that.hasScreen()) {
       // Draw on HTML
       if (elementID !== undefined) {
         player = Erizo.VideoPlayer({ id: that.getID(),
@@ -177,7 +182,7 @@ Erizo.Stream = (specInput) => {
         that.player = player;
         that.showing = true;
       }
-    } else if (that.hasAudio) {
+    } else if (that.hasAudio()) {
       player = Erizo.AudioPlayer({ id: that.getID(),
         stream: that,
         elementID,
