@@ -18,9 +18,9 @@ Erizo.Connection = (specInput) => {
   } else if (that.browser === 'mozilla') {
     L.Logger.debug('Firefox Stack');
     that = Erizo.FirefoxStack(spec);
-  } else if (that.browser === 'bowser') {
-    L.Logger.debug('Bowser Stack');
-    that = Erizo.BowserStack(spec);
+  } else if (that.browser === 'safari') {
+    L.Logger.debug('Safari using Firefox Stack');
+    that = Erizo.FirefoxStack(spec);
   } else if (that.browser === 'chrome-stable' || that.browser === 'electron') {
     L.Logger.debug('Chrome Stable Stack');
     that = Erizo.ChromeStableStack(spec);
@@ -46,17 +46,15 @@ Erizo.getBrowser = () => {
   } else if (window.navigator.userAgent.match('Firefox') !== null) {
     // Firefox
     browser = 'mozilla';
-  } else if (window.navigator.userAgent.match('Bowser') !== null) {
-    browser = 'bowser';
   } else if (window.navigator.userAgent.match('Chrome') !== null) {
     browser = 'chrome-stable';
     if (window.navigator.userAgent.match('Electron') !== null) {
       browser = 'electron';
     }
   } else if (window.navigator.userAgent.match('Safari') !== null) {
-    browser = 'bowser';
+    browser = 'safari';
   } else if (window.navigator.userAgent.match('AppleWebKit') !== null) {
-    browser = 'bowser';
+    browser = 'safari';
   }
   return browser;
 };

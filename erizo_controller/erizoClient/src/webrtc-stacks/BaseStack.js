@@ -77,21 +77,19 @@ Erizo.BaseStack = (specInput) => {
     }
   };
 
-  const setLocalDescAux = (isSubscribe, sessionDescription) => {
+  const setLocalDescForOfferp2p = (isSubscribe, sessionDescription) => {
     localDesc = sessionDescription;
     if (!isSubscribe) {
       localDesc.sdp = that.enableSimulcast(localDesc.sdp);
     }
     localDesc.sdp = Erizo.SdpHelpers.setMaxBW(localDesc.sdp, spec);
-    // localDesc.sdp = Erizo.SdpHelpers.enableOpusNacks(localDesc.sdp);
     spec.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,
     });
-    // that.peerConnection.setLocalDescription(localDesc);
   };
 
-  const setLocalDescp2p = (sessionDescription) => {
+  const setLocalDescForAnswerp2p = (sessionDescription) => {
     localDesc = sessionDescription;
     localDesc.sdp = Erizo.SdpHelpers.setMaxBW(localDesc.sdp, spec);
     spec.callback({
@@ -109,7 +107,7 @@ Erizo.BaseStack = (specInput) => {
     msg.sdp = Erizo.SdpHelpers.setMaxBW(msg.sdp, spec);
     that.peerConnection.setRemoteDescription(msg).then(() => {
       that.peerConnection.createAnswer(that.mediaConstraints)
-      .then(setLocalDescp2p).catch(errorCallback.bind(null, 'createAnswer p2p', undefined));
+      .then(setLocalDescForAnswerp2p).catch(errorCallback.bind(null, 'createAnswer p2p', undefined));
       spec.remoteDescriptionSet = true;
     }).catch(errorCallback.bind(null, 'process Offer', undefined));
   };
@@ -254,7 +252,7 @@ Erizo.BaseStack = (specInput) => {
     }
     L.Logger.debug('Creating offer', that.mediaConstraints);
     that.peerConnection.createOffer(that.mediaConstraints)
-    .then(setLocalDescAux.bind(null, isSubscribe))
+    .then(setLocalDescForOfferp2p.bind(null, isSubscribe))
     .catch(errorCallback.bind(null, 'Create Offer', undefined));
   };
 
@@ -263,7 +261,6 @@ Erizo.BaseStack = (specInput) => {
   };
 
   that.processSignalingMessage = (msgInput) => {
-    // L.Logger.info("Process Signaling Message", msg);
     if (msgInput.type === 'offer') {
       processOffer(msgInput);
     } else if (msgInput.type === 'answer') {
