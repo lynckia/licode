@@ -335,17 +335,17 @@ Erizo.Stream = (specInput) => {
     that.checkOptions(config, true);
     that.pc.updateSpec(config, callback);
   };
-  
+
   // eslint-disable-next-line no-underscore-dangle
   that._setDynamicQualityLayer = (callback) => {
-      if (that.room && that.room.p2p) {
-          L.Logger.warning('setDynamicQualityLayer is not implemented in p2p streams');
-          callback ('error');
-          return;
-      }
-      var config = {qualityLayer : {spatialLayer: -1, temporalLayer: -1}};
-      that.checkOptions(config, true);
-      that.pc.updateSpec(config, callback);
+    if (that.room && that.room.p2p) {
+      L.Logger.warning('setDynamicQualityLayer is not implemented in p2p streams');
+      callback('error');
+      return;
+    }
+    const config = { qualityLayer: { spatialLayer: -1, temporalLayer: -1 } };
+    that.checkOptions(config, true);
+    that.pc.updateSpec(config, callback);
   };
 
   const controlHandler = (handlersInput, publisherSideInput, enable) => {
