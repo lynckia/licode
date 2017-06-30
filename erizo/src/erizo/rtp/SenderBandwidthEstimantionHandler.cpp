@@ -130,7 +130,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPa
       current_block++;
     } while (total_length < packet->length);
   }
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 void SenderBandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
@@ -147,7 +147,7 @@ void SenderBandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<dataP
       chead->getSSRC() == connection_->getVideoSinkSSRC()) {
     analyzeSr(chead);
   }
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {

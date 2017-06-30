@@ -60,11 +60,11 @@ void SRPacketHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
       handleSR(packet);
     }
   }
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 void SRPacketHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 void SRPacketHandler::notifyUpdate() {

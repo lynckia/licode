@@ -30,7 +30,7 @@ void LayerDetectorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet
       parseLayerInfoFromVP9(packet);
     }
   }
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 int LayerDetectorHandler::getSsrcPosition(uint32_t ssrc) {

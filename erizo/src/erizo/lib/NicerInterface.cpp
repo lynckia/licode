@@ -63,6 +63,10 @@ int NicerInterfaceImpl::IceContextSetTurnServers(nr_ice_ctx *ctx, nr_ice_turn_se
   return nr_ice_ctx_set_turn_servers(ctx, servers, ct);
 }
 
+void NicerInterfaceImpl::IceContextSetPortRange(nr_ice_ctx *ctx, uint16_t min_port, uint16_t max_port) {
+  nr_ice_ctx_set_port_range(ctx, min_port, max_port);
+}
+
 int NicerInterfaceImpl::IcePeerContextPairCandidates(nr_ice_peer_ctx *pctxp) {
   return nr_ice_peer_ctx_pair_candidates(pctxp);
 }
