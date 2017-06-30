@@ -9,10 +9,30 @@ this.Erizo = this.Erizo || {};
  */
 Erizo.Speaker = (spec) => {
   const that = Erizo.View({});
-  let show;
-  let mute;
-  let unmute;
   let lastVolume = 50;
+
+  const mute = () => {
+    that.media.muted = true;
+    that.icon.setAttribute('src', `${that.url}/assets/mute48.png`);
+    if (that.stream.local) {
+      that.stream.stream.getAudioTracks()[0].enabled = false;
+    } else {
+      lastVolume = that.picker.value;
+      that.picker.value = 0;
+      that.media.volume = 0;
+    }
+  };
+
+  const unmute = () => {
+    that.media.muted = false;
+    that.icon.setAttribute('src', `${that.url}/assets/sound48.png`);
+    if (that.stream.local) {
+      that.stream.stream.getAudioTracks()[0].enabled = true;
+    } else {
+      that.picker.value = lastVolume;
+      that.media.volume = that.picker.value / 100;
+    }
+  };
 
   // Variables
 
@@ -40,6 +60,13 @@ Erizo.Speaker = (spec) => {
   that.icon.setAttribute('style', 'width: 80%; height: 100%; position: absolute;');
   that.div.appendChild(that.icon);
 
+  that.icon.onclick = () => {
+    if (that.media.muted) {
+      unmute();
+    } else {
+      mute();
+    }
+  };
 
   if (!that.stream.local) {
     // Volume bar
@@ -68,34 +95,11 @@ Erizo.Speaker = (spec) => {
     };
 
     // Private functions
-    show = (displaying) => {
+    const show = (displaying) => {
       that.picker.setAttribute('style', `background: transparent; width: 32px;
                                          height: 100px; position: absolute; bottom: 90%;
                                          z-index: 1; right: 0px; -webkit-appearance: slider-vertical;
                                          bottom: ${that.div.offsetHeight}px; display: ${displaying}`);
-    };
-
-    mute = () => {
-      that.icon.setAttribute('src', `${that.url}/assets/mute48.png`);
-      lastVolume = that.picker.value;
-      that.picker.value = 0;
-      that.media.volume = 0;
-      that.media.muted = true;
-    };
-
-    unmute = () => {
-      that.icon.setAttribute('src', `${that.url}/assets/sound48.png`);
-      that.picker.value = lastVolume;
-      that.media.volume = that.picker.value / 100;
-      that.media.muted = false;
-    };
-
-    that.icon.onclick = () => {
-      if (that.media.muted) {
-        unmute();
-      } else {
-        mute();
-      }
     };
 
     // Public functions
@@ -108,28 +112,7 @@ Erizo.Speaker = (spec) => {
     };
 
     show('none');
-  } else {
-    mute = () => {
-      that.media.muted = true;
-      that.icon.setAttribute('src', `${that.url}/assets/mute48.png`);
-      that.stream.stream.getAudioTracks()[0].enabled = false;
-    };
-
-    unmute = () => {
-      that.media.muted = false;
-      that.icon.setAttribute('src', `${that.url}/assets/sound48.png`);
-      that.stream.stream.getAudioTracks()[0].enabled = true;
-    };
-
-    that.icon.onclick = () => {
-      if (that.media.muted) {
-        unmute();
-      } else {
-        mute();
-      }
-    };
   }
-
 
   document.getElementById(that.elementID).appendChild(that.div);
   return that;
