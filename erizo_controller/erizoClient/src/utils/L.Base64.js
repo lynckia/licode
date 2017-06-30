@@ -4,7 +4,6 @@ this.L = this.L || {};
 L.Base64 = (() => {
   let base64Str;
   let base64Count;
-  let i;
 
   const END_OF_INPUT = -1;
   const base64Chars = [
@@ -20,7 +19,7 @@ L.Base64 = (() => {
 
   const reverseBase64Chars = [];
 
-  for (i = 0; i < base64Chars.length; i += 1) {
+  for (let i = 0; i < base64Chars.length; i += 1) {
     reverseBase64Chars[base64Chars[i]] = i;
   }
 
