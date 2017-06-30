@@ -37,20 +37,20 @@ void RtpPaddingRemovalHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
      ssrc);
     rtp_header->setSeqNumber(sequence_number_info.output);
   }
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 void RtpPaddingRemovalHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader* rtcp_head = reinterpret_cast<RtcpHeader*>(packet->data);
   if (!enabled_ || packet->type != VIDEO_PACKET || !rtcp_head->isFeedback()) {
-    ctx->fireWrite(packet);
+    ctx->fireWrite(std::move(packet));
     return;
   }
   uint32_t ssrc = rtcp_head->getSourceSSRC();
   std::shared_ptr<SequenceNumberTranslator> translator = getTranslatorForSsrc(ssrc, false);
   if (!translator) {
     ELOG_DEBUG("No translator for ssrc %u, %s", ssrc, connection_->toLog());
-    ctx->fireWrite(packet);
+    ctx->fireWrite(std::move(packet));
     return;
   }
   RtpUtils::forEachRRBlock(packet, [this, translator, ssrc](RtcpHeader *chead) {
@@ -83,7 +83,7 @@ void RtpPaddingRemovalHandler::write(Context *ctx, std::shared_ptr<dataPacket> p
       });
     }
   });
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 bool RtpPaddingRemovalHandler::removePaddingBytes(std::shared_ptr<dataPacket> packet,

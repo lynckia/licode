@@ -1,4 +1,4 @@
-<h1>Architecture overview</h1>
+<h1>Overview</h1>
 <section id="architecture" class="row-fluid">
   <figure id="canvas" class="illustration">
 

@@ -1,15 +1,16 @@
-'use strict';
+/* global Erizo*/
+this.Erizo = this.Erizo || {};
+
 /*
  * View class represents a HTML component
  * Every view is an EventDispatcher.
  */
-var Erizo = Erizo || {};
-Erizo.View = function () {
-    var that = Erizo.EventDispatcher({});
+Erizo.View = () => {
+  const that = Erizo.EventDispatcher({});
 
-    // Variables
+  // Variables
 
-    // URL where it will look for icons and assets
-    that.url = '';
-    return that;
+  // URL where it will look for icons and assets
+  that.url = '';
+  return that;
 };

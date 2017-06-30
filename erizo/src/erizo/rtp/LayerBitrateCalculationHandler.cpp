@@ -22,7 +22,7 @@ void LayerBitrateCalculationHandler::disable() {
 
 void LayerBitrateCalculationHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   if (!enabled_ || !initialized_) {
-    ctx->fireWrite(packet);
+    ctx->fireWrite(std::move(packet));
     return;
   }
 
@@ -42,7 +42,7 @@ void LayerBitrateCalculationHandler::write(Context *ctx, std::shared_ptr<dataPac
           });
       });
   quality_manager_->notifyQualityUpdate();
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 
