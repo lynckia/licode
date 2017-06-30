@@ -166,6 +166,12 @@ var checkSignature = function (token, key) {
     }
 };
 
+var sendToSocket = function(socketId, type, arg) {
+  if (io.sockets.sockets.hasOwnProperty(socketId)) {
+    io.sockets.sockets[socketId].emit(type, arg);
+  }
+};
+
 /*
  * Sends a message of type 'type' to all sockets in a determined room.
  */
@@ -178,9 +184,7 @@ var sendMsgToRoom = function (room, type, arg) {
                       'clientId: ' + sockets[id] + ', ' +
                       'roomId: ' + room.id + ', ' +
                       logger.objectToLog(type));
-            if (io.sockets.sockets.hasOwnProperty(sockets[id])) {
-              io.sockets.sockets[sockets[id]].emit(type, arg);
-            }
+            sendToSocket(sockets[id], type, arg);
         }
     }
 };
@@ -462,7 +466,7 @@ var listen = function () {
                 if (sockets.hasOwnProperty(id)) {
                     log.debug('message: sending dataStream, ' +
                     'clientId: ' + sockets[id] + ', dataStream: ' + msg.id);
-                    io.sockets.sockets[sockets[id]].emit('onDataStream', msg);
+                    sendToSocket(sockets[id], 'onDataStream', msg);
                 }
             }
         });
@@ -473,7 +477,7 @@ var listen = function () {
 
         socket.on('signaling_message', function (msg) {
             if (socket.room.p2p) {
-                io.sockets.sockets[msg.peerSocket].emit('signaling_message_peer',
+                sendToSocket(msg.peerSocket, 'signaling_message_peer',
                         {streamId: msg.streamId, peerSocket: socket.id, msg: msg.msg});
             } else {
                 var isControlMessage = msg.msg.type === 'control';
@@ -501,7 +505,7 @@ var listen = function () {
                 if (sockets.hasOwnProperty(id)) {
                     log.debug('message: Sending new attributes, ' +
                               'clientId: ' + sockets[id] + ', streamId: ' + msg.id);
-                    io.sockets.sockets[sockets[id]].emit('onUpdateAttributeStream', msg);
+                    sendToSocket(sockets[id], 'onUpdateAttributeStream', msg);
                 }
             }
         });
@@ -693,7 +697,7 @@ var listen = function () {
 
                 if (socket.room.p2p) {
                     var s = stream.getSocket();
-                    io.sockets.sockets[s].emit('publish_me', {streamId: options.streamId,
+                    sendToSocket(s, 'publish_me', {streamId: options.streamId,
                                                              peerSocket: socket.id});
 
                 } else {
