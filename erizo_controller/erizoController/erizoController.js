@@ -178,7 +178,9 @@ var sendMsgToRoom = function (room, type, arg) {
                       'clientId: ' + sockets[id] + ', ' +
                       'roomId: ' + room.id + ', ' +
                       logger.objectToLog(type));
-            io.sockets.socket(sockets[id]).emit(type, arg);
+            if (io.sockets.sockets.hasOwnProperty(sockets[id])) {
+              io.sockets.sockets[sockets[id]].emit(type, arg);
+            }
         }
     }
 };
@@ -374,7 +376,7 @@ var listen = function () {
 
                                         for (var s in room.sockets) {
                                             var streams =
-                                                io.sockets.socket(room.sockets[s]).streams;
+                                                io.sockets.sockets[room.sockets[s]].streams;
                                             var index = streams.indexOf(streamId);
                                             if (index !== -1) {
                                                 streams.splice(index, 1);
@@ -460,7 +462,7 @@ var listen = function () {
                 if (sockets.hasOwnProperty(id)) {
                     log.debug('message: sending dataStream, ' +
                     'clientId: ' + sockets[id] + ', dataStream: ' + msg.id);
-                    io.sockets.socket(sockets[id]).emit('onDataStream', msg);
+                    io.sockets.sockets[sockets[id]].emit('onDataStream', msg);
                 }
             }
         });
@@ -471,7 +473,7 @@ var listen = function () {
 
         socket.on('signaling_message', function (msg) {
             if (socket.room.p2p) {
-                io.sockets.socket(msg.peerSocket).emit('signaling_message_peer',
+                io.sockets.sockets[msg.peerSocket].emit('signaling_message_peer',
                         {streamId: msg.streamId, peerSocket: socket.id, msg: msg.msg});
             } else {
                 var isControlMessage = msg.msg.type === 'control';
@@ -499,7 +501,7 @@ var listen = function () {
                 if (sockets.hasOwnProperty(id)) {
                     log.debug('message: Sending new attributes, ' +
                               'clientId: ' + sockets[id] + ', streamId: ' + msg.id);
-                    io.sockets.socket(sockets[id]).emit('onUpdateAttributeStream', msg);
+                    io.sockets.sockets[sockets[id]].emit('onUpdateAttributeStream', msg);
                 }
             }
         });
@@ -691,7 +693,7 @@ var listen = function () {
 
                 if (socket.room.p2p) {
                     var s = stream.getSocket();
-                    io.sockets.socket(s).emit('publish_me', {streamId: options.streamId,
+                    io.sockets.sockets[s].emit('publish_me', {streamId: options.streamId,
                                                              peerSocket: socket.id});
 
                 } else {
@@ -1020,7 +1022,7 @@ exports.getUsersInRoom = function (room, callback) {
 
     for (id in sockets) {
         if (sockets.hasOwnProperty(id)) {
-            users.push(io.sockets.socket(sockets[id]).user);
+            users.push(io.sockets.sockets[sockets[id]].user);
         }
     }
 
@@ -1042,7 +1044,7 @@ exports.deleteUser = function (user, room, callback) {
 
     for (id in sockets) {
         if (sockets.hasOwnProperty(id)) {
-            if (io.sockets.socket(sockets[id]).user.name === user){
+            if (io.sockets.sockets[sockets[id]].user.name === user){
                 socketsToDelete.push(sockets[id]);
             }
         }
@@ -1050,8 +1052,8 @@ exports.deleteUser = function (user, room, callback) {
 
     for (var s in socketsToDelete) {
 
-        log.info('message: deleteUser, user: ' + io.sockets.socket(socketsToDelete[s]).user.name);
-        io.sockets.socket(socketsToDelete[s]).disconnect();
+        log.info('message: deleteUser, user: ' + io.sockets.sockets[socketsToDelete[s]].user.name);
+        io.sockets.sockets[socketsToDelete[s]].disconnect();
     }
 
     if (socketsToDelete.length !== 0) {
