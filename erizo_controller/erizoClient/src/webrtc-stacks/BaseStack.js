@@ -197,7 +197,7 @@ Erizo.BaseStack = (specInput) => {
     that.peerConnection.close();
   };
 
-  that.updateSpec = (configInput, callback) => {
+  that.updateSpec = (configInput, callback = () => {}) => {
     const config = configInput;
     if (config.maxVideoBW || config.maxAudioBW) {
       if (config.maxVideoBW) {

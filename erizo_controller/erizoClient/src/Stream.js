@@ -302,7 +302,7 @@ Erizo.Stream = (specInput) => {
     }
   };
 
-  const muteStream = (callback) => {
+  const muteStream = (callback = () => {}) => {
     if (that.room && that.room.p2p) {
       L.Logger.warning('muteAudio/muteVideo are not implemented in p2p streams');
       callback('error');
@@ -319,18 +319,18 @@ Erizo.Stream = (specInput) => {
     that.pc.updateSpec(config, callback);
   };
 
-  that.muteAudio = (isMuted, callback) => {
+  that.muteAudio = (isMuted, callback = () => {}) => {
     that.audioMuted = isMuted;
     muteStream(callback);
   };
 
-  that.muteVideo = (isMuted, callback) => {
+  that.muteVideo = (isMuted, callback = () => {}) => {
     that.videoMuted = isMuted;
     muteStream(callback);
   };
 
   // eslint-disable-next-line no-underscore-dangle
-  that._setQualityLayer = (spatialLayer, temporalLayer, callback) => {
+  that._setQualityLayer = (spatialLayer, temporalLayer, callback = () => {}) => {
     if (that.room && that.room.p2p) {
       L.Logger.warning('setQualityLayer is not implemented in p2p streams');
       callback('error');
@@ -367,7 +367,7 @@ Erizo.Stream = (specInput) => {
     controlHandler(handlers, publisherSide, true);
   };
 
-  that.updateConfiguration = (config, callback) => {
+  that.updateConfiguration = (config, callback = () => {}) => {
     if (config === undefined) { return; }
     if (that.pc) {
       that.checkOptions(config, true);
