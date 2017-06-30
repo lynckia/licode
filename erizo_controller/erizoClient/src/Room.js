@@ -586,14 +586,14 @@ Erizo.Room = (specInput) => {
     }
 
     options.simulcast = options.simulcast || false;
-    
+
     if (stream.videoSize && stream.videoSize[0] > 640 && options.simulcast &&
-        options.simulcast.numSpatialLayers <= 2) {
-          L.Logger.warning('Trying to publish an HD stream with only 2 quality layers. Due to a' +
-                           ' Chrome limitation, automatically settings layers to 3' +
-                           ' Also note that maxVideoBW must be set at least at 2000 kbit/s');
-          options.simulcast.numSpatialLayers = 3;
-     }
+      options.simulcast.numSpatialLayers <= 2) {
+      L.Logger.warning('Trying to publish an HD stream with only 2 quality layers. Due to a Chrome ' +
+      'limitation, automatically settings layers to 3. Also note that maxVideoBW must be set at ' +
+      'least at 2000 kbit/s');
+      options.simulcast.numSpatialLayers = 3;
+    }
 
     // 1- If the stream is not local or it is a failed stream we do nothing.
     if (stream && stream.local && !stream.failed && !localStreams.has(stream.getID())) {
