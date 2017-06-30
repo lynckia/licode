@@ -5,47 +5,40 @@ this.Erizo = this.Erizo || {};
  * Class EventDispatcher provides event handling to sub-classes.
  * It is inherited from Publisher, Room, etc.
  */
-Erizo.EventDispatcher = () => {
+Erizo.EventDispatcher = (specInput) => {
   const that = {};
+  const spec = specInput;
   // Private vars
-  const dispatcher = {
-    eventListeners: {},
-  };
+  spec.dispatcher = {};
+  spec.dispatcher.eventListeners = {};
 
   // Public functions
 
   // It adds an event listener attached to an event type.
   that.addEventListener = (eventType, listener) => {
-    if (dispatcher.eventListeners[eventType] === undefined) {
-      dispatcher.eventListeners[eventType] = [];
+    if (spec.dispatcher.eventListeners[eventType] === undefined) {
+      spec.dispatcher.eventListeners[eventType] = [];
     }
-    dispatcher.eventListeners[eventType].push(listener);
+    spec.dispatcher.eventListeners[eventType].push(listener);
   };
 
   // It removes an available event listener.
   that.removeEventListener = (eventType, listener) => {
-    const index = dispatcher.eventListeners[eventType].indexOf(listener);
+    const index = spec.dispatcher.eventListeners[eventType].indexOf(listener);
     if (index !== -1) {
-      dispatcher.eventListeners[eventType].splice(index, 1);
+      spec.dispatcher.eventListeners[eventType].splice(index, 1);
     }
   };
 
   // It dispatch a new event to the event listeners, based on the type
   // of event. All events are intended to be LicodeEvents.
   that.dispatchEvent = (event) => {
-    if (!event || !event.type) {
-      throw new Error('Undefined event');
-    }
     L.Logger.debug(`Event: ${event.type}`);
-    const listeners = dispatcher.eventListeners[event.type] || [];
+    const listeners = spec.dispatcher.eventListeners[event.type] || [];
     for (let i = 0; i < listeners.length; i += 1) {
       listeners[i](event);
     }
   };
-
-  that.on = that.addEventListener;
-  that.off = that.removeEventListener;
-  that.emit = that.dispatchEvent;
 
   return that;
 };

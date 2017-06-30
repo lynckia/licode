@@ -50,11 +50,7 @@ Erizo.Stream = (specInput) => {
   that.getAttributes = () => spec.attributes;
 
   // Changes the attributes of this stream in the room.
-  that.setAttributes = (attrs) => {
-    if (that.local) {
-      that.emit(Erizo.StreamEvent({ type: 'internal-set-attributes', stream: that, attrs }));
-      return;
-    }
+  that.setAttributes = () => {
     L.Logger.error('Failed to set attributes data. This Stream object has not been published.');
   };
 
@@ -74,17 +70,9 @@ Erizo.Stream = (specInput) => {
   // Indicates if the stream has screen activated
   that.hasScreen = () => spec.screen;
 
-  that.hasMedia = () => spec.audio || spec.video || spec.screen;
-
-  that.isExternal = () => that.url !== undefined || that.recording !== undefined;
-
   // Sends data through this stream.
-  that.sendData = (msg) => {
-    if (that.local && that.hasData()) {
-      that.emit(Erizo.StreamEvent({ type: 'internal-send-data', stream: that, msg }));
-      return;
-    }
-    L.Logger.error('Failed to send data. This Stream object has not been published.');
+  that.sendData = () => {
+    L.Logger.error('Failed to send data. This Stream object has not that channel enabled.');
   };
 
   // Initializes the stream and tries to retrieve a stream from local video and audio

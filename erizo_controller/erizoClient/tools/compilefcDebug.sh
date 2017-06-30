@@ -11,10 +11,8 @@ cat ../src/webrtc-stacks/ChromeStableStack.js >> $FILE
 cat ../src/Connection.js >> $FILE
 cat ../src/Stream.js >> $FILE
 cat ../src/Room.js >> $FILE
-cat ../src/Socket.js  >> $FILE
 cat ../src/utils/L.Logger.js >> $FILE
 cat ../src/utils/L.Base64.js >> $FILE
-cat ../src/utils/L.Map.js >> $FILE
 cat ../src/views/View.js >> $FILE
 cat ../src/views/VideoPlayer.js >> $FILE
 cat ../src/views/AudioPlayer.js >> $FILE
@@ -28,6 +26,6 @@ echo '/*' > $TARGET
 echo '*/' >> $TARGET
 
 # Body
-echo "var io = require('socket.io-client'); var Erizo = {}; var L = {};" >> $TARGET
+echo "var io = require('socket.io-client');" >> $TARGET
 cat ../build/erizofc.js >> $TARGET
 echo 'module.exports = {Erizo: Erizo, L:L};' >> $TARGET
