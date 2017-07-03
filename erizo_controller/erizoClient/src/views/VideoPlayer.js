@@ -1,13 +1,15 @@
-/* global window, document, L, webkitURL, Erizo*/
-this.Erizo = this.Erizo || {};
+/* global window, document, L, webkitURL*/
+
+import View from './View';
+import Bar from './Bar';
 
 /*
  * VideoPlayer represents a Licode video component that shows either a local or a remote video.
  * Ex.: var player = VideoPlayer({id: id, stream: stream, elementID: elementID});
  * A VideoPlayer is also a View component.
  */
-Erizo.VideoPlayer = (spec) => {
-  const that = Erizo.View({});
+const VideoPlayer = (spec) => {
+  const that = View({});
 
   // Variables
 
@@ -134,7 +136,7 @@ Erizo.VideoPlayer = (spec) => {
 
   // Bottom Bar
   if (spec.options.bar !== false) {
-    that.bar = Erizo.Bar({ elementID: `player_${that.id}`,
+    that.bar = Bar({ elementID: `player_${that.id}`,
       id: that.id,
       stream: spec.stream,
       media: that.video,
@@ -151,3 +153,5 @@ Erizo.VideoPlayer = (spec) => {
 
   return that;
 };
+
+export default VideoPlayer;

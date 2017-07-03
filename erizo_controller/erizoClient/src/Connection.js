@@ -1,44 +1,12 @@
-/* global L, window, chrome, navigator, Erizo*/
-this.Erizo = this.Erizo || {};
+/* global L, window, chrome, navigator*/
+import ChromeStableStack from './webrtc-stacks/ChromeStableStack';
+import FirefoxStack from './webrtc-stacks/FirefoxStack';
+import FcStack from './webrtc-stacks/FcStack';
 
-Erizo.sessionId = 103;
 
-Erizo.Connection = (specInput) => {
-  let that = {};
-  const spec = specInput;
-  Erizo.sessionId += 1;
+let ErizoSessionId = 103;
 
-  spec.sessionId = Erizo.sessionId;
-
-  // Check which WebRTC Stack is installed.
-  that.browser = Erizo.getBrowser();
-  if (that.browser === 'fake') {
-    L.Logger.warning('Publish/subscribe video/audio streams not supported in erizofc yet');
-    that = Erizo.FcStack(spec);
-  } else if (that.browser === 'mozilla') {
-    L.Logger.debug('Firefox Stack');
-    that = Erizo.FirefoxStack(spec);
-  } else if (that.browser === 'safari') {
-    L.Logger.debug('Safari using Firefox Stack');
-    that = Erizo.FirefoxStack(spec);
-  } else if (that.browser === 'chrome-stable' || that.browser === 'electron') {
-    L.Logger.debug('Chrome Stable Stack');
-    that = Erizo.ChromeStableStack(spec);
-  } else {
-    L.Logger.error('No stack available for this browser');
-    throw new Error('WebRTC stack not available');
-  }
-  if (!that.updateSpec) {
-    that.updateSpec = (newSpec, callback) => {
-      L.Logger.error('Update Configuration not implemented in this browser');
-      if (callback) { callback('unimplemented'); }
-    };
-  }
-
-  return that;
-};
-
-Erizo.getBrowser = () => {
+const getBrowser = () => {
   let browser = 'none';
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -59,7 +27,41 @@ Erizo.getBrowser = () => {
   return browser;
 };
 
-Erizo.GetUserMedia = (config, callback, error) => {
+const Connection = (specInput) => {
+  let that = {};
+  const spec = specInput;
+  ErizoSessionId += 1;
+  spec.sessionId = ErizoSessionId;
+
+  // Check which WebRTC Stack is installed.
+  that.browser = getBrowser();
+  if (that.browser === 'fake') {
+    L.Logger.warning('Publish/subscribe video/audio streams not supported in erizofc yet');
+    that = FcStack(spec);
+  } else if (that.browser === 'mozilla') {
+    L.Logger.debug('Firefox Stack');
+    that = FirefoxStack(spec);
+  } else if (that.browser === 'safari') {
+    L.Logger.debug('Safari using Firefox Stack');
+    that = FirefoxStack(spec);
+  } else if (that.browser === 'chrome-stable' || that.browser === 'electron') {
+    L.Logger.debug('Chrome Stable Stack');
+    that = ChromeStableStack(spec);
+  } else {
+    L.Logger.error('No stack available for this browser');
+    throw new Error('WebRTC stack not available');
+  }
+  if (!that.updateSpec) {
+    that.updateSpec = (newSpec, callback) => {
+      L.Logger.error('Update Configuration not implemented in this browser');
+      if (callback) { callback('unimplemented'); }
+    };
+  }
+
+  return that;
+};
+
+const GetUserMedia = (config, callback, error) => {
   let screenConfig;
 
   const getUserMedia = (userMediaConfig, cb, errorCb) => {
@@ -68,7 +70,7 @@ Erizo.GetUserMedia = (config, callback, error) => {
 
   const configureScreensharing = () => {
     L.Logger.debug('Screen access requested');
-    switch (Erizo.getBrowser()) {
+    switch (getBrowser()) {
       case 'electron' :
         L.Logger.debug('Screen sharing in Electron');
         screenConfig = {};
@@ -151,3 +153,5 @@ Erizo.GetUserMedia = (config, callback, error) => {
     getUserMedia(config, callback, error);
   }
 };
+
+export { GetUserMedia, Connection, getBrowser };

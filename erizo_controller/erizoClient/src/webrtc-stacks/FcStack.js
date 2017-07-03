@@ -1,7 +1,6 @@
-/* global L, Erizo*/
-this.Erizo = this.Erizo || {};
+/* global L*/
 
-Erizo.FcStack = (spec) => {
+const FcStack = (spec) => {
   /*
   spec.callback({
       type: sessionDescription.type,
@@ -44,3 +43,5 @@ Erizo.FcStack = (spec) => {
   };
   return that;
 };
+
+export default FcStack;

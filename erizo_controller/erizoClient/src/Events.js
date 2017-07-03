@@ -1,11 +1,10 @@
-/* global L, Erizo*/
-this.Erizo = this.Erizo || {};
+/* global L */
 
 /*
  * Class EventDispatcher provides event handling to sub-classes.
  * It is inherited from Publisher, Room, etc.
  */
-Erizo.EventDispatcher = () => {
+const EventDispatcher = () => {
   const that = {};
   // Private vars
   const dispatcher = {
@@ -59,7 +58,7 @@ Erizo.EventDispatcher = () => {
  * A LicodeEvent can be initialized this way:
  * var event = LicodeEvent({type: "room-connected"});
  */
-Erizo.LicodeEvent = (spec) => {
+const LicodeEvent = (spec) => {
   const that = {};
 
   // Event type. Examples are: 'room-connected', 'stream-added', etc.
@@ -77,8 +76,8 @@ Erizo.LicodeEvent = (spec) => {
  * 'room-connected' - points out that the user has been successfully connected to the room.
  * 'room-disconnected' - shows that the user has been already disconnected.
  */
-Erizo.RoomEvent = (spec) => {
-  const that = Erizo.LicodeEvent(spec);
+const RoomEvent = (spec) => {
+  const that = LicodeEvent(spec);
 
   // A list with the streams that are published in the room.
   that.streams = spec.streams;
@@ -95,8 +94,8 @@ Erizo.RoomEvent = (spec) => {
  * 'stream-added' - indicates that there is a new stream available in the room.
  * 'stream-removed' - shows that a previous available stream has been removed from the room.
  */
-Erizo.StreamEvent = (spec) => {
-  const that = Erizo.LicodeEvent(spec);
+const StreamEvent = (spec) => {
+  const that = LicodeEvent(spec);
 
   // The stream related to this event.
   that.stream = spec.stream;
@@ -114,8 +113,10 @@ Erizo.StreamEvent = (spec) => {
  * Event types:
  * 'access-accepted' - indicates that the user has accepted to share his camera and microphone
  */
-Erizo.PublisherEvent = (spec) => {
-  const that = Erizo.LicodeEvent(spec);
+const PublisherEvent = (spec) => {
+  const that = LicodeEvent(spec);
 
   return that;
 };
+
+export { EventDispatcher, LicodeEvent, RoomEvent, StreamEvent, PublisherEvent };

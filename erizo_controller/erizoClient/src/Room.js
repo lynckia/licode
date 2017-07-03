@@ -1,5 +1,11 @@
-/* global L, Erizo*/
-this.Erizo = this.Erizo || {};
+/* global L */
+
+import { Connection, getBrowser } from './Connection';
+import { EventDispatcher, StreamEvent, RoomEvent } from './Events';
+import { Socket } from './Socket';
+import Stream from './Stream';
+import ErizoMap from './utils/ErizoMap';
+import Base64 from './utils/Base64';
 
 /*
  * Class Room represents a Licode Room. It will handle the connection, local stream publication and
@@ -12,20 +18,20 @@ this.Erizo = this.Erizo || {};
  * Event 'stream-added' indicates that there is a new stream available in the room.
  * Event 'stream-removed' shows that a previous available stream has been removed from the room.
  */
-Erizo.Room = (specInput) => {
+const Room = (specInput) => {
   const spec = specInput;
-  const that = Erizo.EventDispatcher(specInput);
+  const that = EventDispatcher(specInput);
   const DISCONNECTED = 0;
   const CONNECTING = 1;
   const CONNECTED = 2;
 
-  that.remoteStreams = L.Map();
-  that.localStreams = L.Map();
+  that.remoteStreams = ErizoMap();
+  that.localStreams = ErizoMap();
   that.roomID = '';
   that.state = DISCONNECTED;
   that.p2p = false;
 
-  let socket = Erizo.Socket();
+  let socket = Socket();
   let remoteStreams = that.remoteStreams;
   let localStreams = that.localStreams;
 
@@ -59,7 +65,7 @@ Erizo.Room = (specInput) => {
     const stream = streamInput;
     if (that.state !== DISCONNECTED && stream && !stream.failed) {
       stream.failed = true;
-      const streamFailedEvt = Erizo.StreamEvent(
+      const streamFailedEvt = StreamEvent(
         { type: 'stream-failed',
           msg: message || 'Stream failed after connection',
           stream });
@@ -77,7 +83,7 @@ Erizo.Room = (specInput) => {
     // Draw on html
     L.Logger.info('Stream subscribed');
     stream.stream = evt.stream;
-    const evt2 = Erizo.StreamEvent({ type: 'stream-subscribed', stream });
+    const evt2 = StreamEvent({ type: 'stream-subscribed', stream });
     that.dispatchEvent(evt2);
   };
 
@@ -102,7 +108,7 @@ Erizo.Room = (specInput) => {
 
   const createRemoteStreamP2PConnection = (streamInput, peerSocket) => {
     const stream = streamInput;
-    stream.pc = Erizo.Connection(getP2PConnectionOptions(stream, peerSocket));
+    stream.pc = Connection(getP2PConnectionOptions(stream, peerSocket));
 
     stream.pc.onaddstream = dispatchStreamSubscribed.bind(null, stream);
     stream.pc.oniceconnectionstatechange = (state) => {
@@ -115,10 +121,10 @@ Erizo.Room = (specInput) => {
   const createLocalStreamP2PConnection = (streamInput, peerSocket) => {
     const stream = streamInput;
     if (stream.pc === undefined) {
-      stream.pc = L.Map();
+      stream.pc = ErizoMap();
     }
 
-    const connection = Erizo.Connection(getP2PConnectionOptions(stream, peerSocket));
+    const connection = Connection(getP2PConnectionOptions(stream, peerSocket));
 
     stream.pc.add(peerSocket, connection);
 
@@ -160,7 +166,7 @@ Erizo.Room = (specInput) => {
 
   const createRemoteStreamErizoConnection = (streamInput, options) => {
     const stream = streamInput;
-    stream.pc = Erizo.Connection(getErizoConnectionOptions(stream, options, true));
+    stream.pc = Connection(getErizoConnectionOptions(stream, options, true));
 
     stream.pc.onaddstream = dispatchStreamSubscribed.bind(null, stream);
     stream.pc.oniceconnectionstatechange = (state) => {
@@ -174,7 +180,7 @@ Erizo.Room = (specInput) => {
 
   const createLocalStreamErizoConnection = (streamInput, options) => {
     const stream = streamInput;
-    stream.pc = Erizo.Connection(getErizoConnectionOptions(stream, options));
+    stream.pc = Connection(getErizoConnectionOptions(stream, options));
 
     stream.pc.addStream(stream.stream);
     stream.pc.oniceconnectionstatechange = (state) => {
@@ -189,7 +195,7 @@ Erizo.Room = (specInput) => {
   // type can be "media" or "data"
 
   const socketOnAddStream = (arg) => {
-    const stream = Erizo.Stream({ streamID: arg.id,
+    const stream = Stream({ streamID: arg.id,
       local: false,
       audio: arg.audio,
       video: arg.video,
@@ -198,7 +204,7 @@ Erizo.Room = (specInput) => {
       attributes: arg.attributes });
     stream.room = that;
     remoteStreams.add(arg.id, stream);
-    const evt = Erizo.StreamEvent({ type: 'stream-added', stream });
+    const evt = StreamEvent({ type: 'stream-added', stream });
     that.dispatchEvent(evt);
   };
 
@@ -242,7 +248,7 @@ Erizo.Room = (specInput) => {
     if (arg.streamID) {
       const stream = remoteStreams.get(arg.streamID);
       if (stream && !stream.failed) {
-        const evt = Erizo.StreamEvent({ type: 'bandwidth-alert',
+        const evt = StreamEvent({ type: 'bandwidth-alert',
           stream,
           msg: arg.message,
           bandwidth: arg.bandwidth });
@@ -254,14 +260,14 @@ Erizo.Room = (specInput) => {
   // We receive an event of new data in one of the streams
   const socketOnDataStream = (arg) => {
     const stream = remoteStreams.get(arg.id);
-    const evt = Erizo.StreamEvent({ type: 'stream-data', msg: arg.msg, stream });
+    const evt = StreamEvent({ type: 'stream-data', msg: arg.msg, stream });
     stream.dispatchEvent(evt);
   };
 
   // We receive an event of new data in one of the streams
   const socketOnUpdateAttributeStream = (arg) => {
     const stream = remoteStreams.get(arg.id);
-    const evt = Erizo.StreamEvent({ type: 'stream-attributes-update',
+    const evt = StreamEvent({ type: 'stream-attributes-update',
       attrs: arg.attrs,
       stream });
     stream.updateLocalAttributes(arg.attrs);
@@ -279,7 +285,7 @@ Erizo.Room = (specInput) => {
 
     remoteStreams.remove(arg.id);
     removeStream(stream);
-    const evt = Erizo.StreamEvent({ type: 'stream-removed', stream });
+    const evt = StreamEvent({ type: 'stream-removed', stream });
     that.dispatchEvent(evt);
   };
 
@@ -288,7 +294,7 @@ Erizo.Room = (specInput) => {
     L.Logger.info('Socket disconnected, lost connection to ErizoController');
     if (that.state !== DISCONNECTED) {
       L.Logger.error('Unexpected disconnection from ErizoController');
-      const disconnectEvt = Erizo.RoomEvent({ type: 'room-disconnected',
+      const disconnectEvt = RoomEvent({ type: 'room-disconnected',
         message: 'unexpected-disconnection' });
       that.dispatchEvent(disconnectEvt);
     }
@@ -311,7 +317,7 @@ Erizo.Room = (specInput) => {
 
   const socketOnError = (e) => {
     L.Logger.error('Cannot connect to erizo Controller');
-    const connectEvt = Erizo.RoomEvent({ type: 'room-error', message: e });
+    const connectEvt = RoomEvent({ type: 'room-error', message: e });
     that.dispatchEvent(connectEvt);
   };
 
@@ -436,7 +442,7 @@ Erizo.Room = (specInput) => {
       audio: options.audio && stream.hasAudio(),
       video: options.video && stream.hasVideo(),
       data: options.data && stream.hasData(),
-      browser: Erizo.getBrowser(),
+      browser: getBrowser(),
       createOffer: options.createOffer,
       metadata: options.metadata,
       slideShowMode: options.slideShowMode };
@@ -467,7 +473,7 @@ Erizo.Room = (specInput) => {
           return;
         }
         L.Logger.info('Stream subscribed');
-        const evt = Erizo.StreamEvent({ type: 'stream-subscribed', stream });
+        const evt = StreamEvent({ type: 'stream-subscribed', stream });
         that.dispatchEvent(evt);
         callback(true);
       });
@@ -481,18 +487,18 @@ Erizo.Room = (specInput) => {
       removeStream(stream);
       remoteStreams.remove(id);
       if (stream && !stream.failed) {
-        const evt2 = Erizo.StreamEvent({ type: 'stream-removed', stream });
+        const evt2 = StreamEvent({ type: 'stream-removed', stream });
         that.dispatchEvent(evt2);
       }
     });
-    remoteStreams = L.Map();
+    remoteStreams = ErizoMap();
 
     // Close Peer Connections
     localStreams.forEach((stream, id) => {
       removeStream(stream);
       localStreams.remove(id);
     });
-    localStreams = L.Map();
+    localStreams = ErizoMap();
 
     // Close socket
     try {
@@ -508,7 +514,7 @@ Erizo.Room = (specInput) => {
   // It stablishes a connection to the room.
   // Once it is done it throws a RoomEvent("room-connected")
   that.connect = () => {
-    const token = L.Base64.decodeBase64(spec.token);
+    const token = Base64.decodeBase64(spec.token);
 
     if (that.state !== DISCONNECTED) {
       L.Logger.warning('Room already connected');
@@ -532,7 +538,7 @@ Erizo.Room = (specInput) => {
       const streamIndices = Object.keys(streams);
       for (let index = 0; index < streamIndices.length; index += 1) {
         const arg = streams[streamIndices[index]];
-        stream = Erizo.Stream({ streamID: arg.id,
+        stream = Stream({ streamID: arg.id,
           local: false,
           audio: arg.audio,
           video: arg.video,
@@ -548,11 +554,11 @@ Erizo.Room = (specInput) => {
 
       L.Logger.info(`Connected to room ${that.roomID}`);
 
-      const connectEvt = Erizo.RoomEvent({ type: 'room-connected', streams: streamList });
+      const connectEvt = RoomEvent({ type: 'room-connected', streams: streamList });
       that.dispatchEvent(connectEvt);
     }, (error) => {
       L.Logger.error(`Not Connected! Error: ${error}`);
-      const connectEvt = Erizo.RoomEvent({ type: 'room-error', message: error });
+      const connectEvt = RoomEvent({ type: 'room-error', message: error });
       that.dispatchEvent(connectEvt);
     });
   };
@@ -561,7 +567,7 @@ Erizo.Room = (specInput) => {
   that.disconnect = () => {
     L.Logger.debug('Disconnection requested');
     // 1- Disconnect from room
-    const disconnectEvt = Erizo.RoomEvent({ type: 'room-disconnected',
+    const disconnectEvt = RoomEvent({ type: 'room-disconnected',
       message: 'expected-disconnection' });
     that.dispatchEvent(disconnectEvt);
   };
@@ -794,3 +800,5 @@ Erizo.Room = (specInput) => {
 
   return that;
 };
+
+export default Room;

@@ -1,13 +1,17 @@
-/* global L, document, Erizo*/
-this.Erizo = this.Erizo || {};
+/* global L, document*/
+
+import { EventDispatcher, StreamEvent } from './Events';
+import { GetUserMedia } from './Connection';
+import VideoPlayer from './views/VideoPlayer';
+import AudioPlayer from './views/AudioPlayer';
 
 /*
  * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC
  * stream and identify the stream and where it should be drawn.
  */
-Erizo.Stream = (specInput) => {
+const Stream = (specInput) => {
   const spec = specInput;
-  const that = Erizo.EventDispatcher(spec);
+  const that = EventDispatcher(spec);
 
   that.stream = spec.stream;
   that.url = spec.url;
@@ -52,7 +56,7 @@ Erizo.Stream = (specInput) => {
   // Changes the attributes of this stream in the room.
   that.setAttributes = (attrs) => {
     if (that.local) {
-      that.emit(Erizo.StreamEvent({ type: 'internal-set-attributes', stream: that, attrs }));
+      that.emit(StreamEvent({ type: 'internal-set-attributes', stream: that, attrs }));
       return;
     }
     L.Logger.error('Failed to set attributes data. This Stream object has not been published.');
@@ -81,7 +85,7 @@ Erizo.Stream = (specInput) => {
   // Sends data through this stream.
   that.sendData = (msg) => {
     if (that.local && that.hasData()) {
-      that.emit(Erizo.StreamEvent({ type: 'internal-send-data', stream: that, msg }));
+      that.emit(StreamEvent({ type: 'internal-send-data', stream: that, msg }));
       return;
     }
     L.Logger.error('Failed to send data. This Stream object has not been published.');
@@ -123,22 +127,23 @@ Erizo.Stream = (specInput) => {
           screen: spec.screen,
           extensionId: that.extensionId,
           desktopStreamId: that.desktopStreamId };
-        Erizo.GetUserMedia(opt, (stream) => {
+        GetUserMedia(opt, (stream) => {
             // navigator.webkitGetUserMedia("audio, video", (stream) => {
 
           L.Logger.info('User has granted access to local media.');
           that.stream = stream;
 
-          that.dispatchEvent(Erizo.StreamEvent({ type: 'access-accepted' }));
+          that.dispatchEvent(StreamEvent({ type: 'access-accepted' }));
 
           that.stream.getTracks().forEach((trackInput) => {
+            L.Logger.info('getTracks', trackInput);
             const track = trackInput;
             track.onended = () => {
               that.stream.getTracks().forEach((secondTrackInput) => {
                 const secondTrack = secondTrackInput;
                 secondTrack.onended = null;
               });
-              const streamEvent = Erizo.StreamEvent({ type: 'stream-ended',
+              const streamEvent = StreamEvent({ type: 'stream-ended',
                 stream: that,
                 msg: track.kind });
               that.dispatchEvent(streamEvent);
@@ -147,16 +152,16 @@ Erizo.Stream = (specInput) => {
         }, (error) => {
           L.Logger.error(`Failed to get access to local media. Error code was ${
                            error.code}.`);
-          const streamEvent = Erizo.StreamEvent({ type: 'access-denied', msg: error });
+          const streamEvent = StreamEvent({ type: 'access-denied', msg: error });
           that.dispatchEvent(streamEvent);
         });
       } else {
-        const streamEvent = Erizo.StreamEvent({ type: 'access-accepted' });
+        const streamEvent = StreamEvent({ type: 'access-accepted' });
         that.dispatchEvent(streamEvent);
       }
     } catch (e) {
       L.Logger.error(`Failed to get access to local media. Error was ${e}.`);
-      const streamEvent = Erizo.StreamEvent({ type: 'access-denied', msg: e });
+      const streamEvent = StreamEvent({ type: 'access-denied', msg: e });
       that.dispatchEvent(streamEvent);
     }
   };
@@ -187,7 +192,7 @@ Erizo.Stream = (specInput) => {
     if (that.hasVideo() || that.hasScreen()) {
       // Draw on HTML
       if (elementID !== undefined) {
-        player = Erizo.VideoPlayer({ id: that.getID(),
+        player = VideoPlayer({ id: that.getID(),
           stream: that,
           elementID,
           options });
@@ -195,7 +200,7 @@ Erizo.Stream = (specInput) => {
         that.showing = true;
       }
     } else if (that.hasAudio()) {
-      player = Erizo.AudioPlayer({ id: that.getID(),
+      player = AudioPlayer({ id: that.getID(),
         stream: that,
         elementID,
         options });
@@ -389,3 +394,5 @@ Erizo.Stream = (specInput) => {
 
   return that;
 };
+
+export default Stream;

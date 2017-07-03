@@ -1,12 +1,12 @@
-/* global Erizo*/
-this.Erizo = this.Erizo || {};
-
 /*
  * View class represents a HTML component
  * Every view is an EventDispatcher.
  */
-Erizo.View = () => {
-  const that = Erizo.EventDispatcher({});
+
+import { EventDispatcher } from '../Events';
+
+const View = () => {
+  const that = EventDispatcher({});
 
   // Variables
 
@@ -14,3 +14,5 @@ Erizo.View = () => {
   that.url = '';
   return that;
 };
+
+export default View;

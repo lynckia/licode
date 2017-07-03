@@ -1,10 +1,12 @@
-/* global L, Erizo*/
-this.Erizo = this.Erizo || {};
+/* global L*/
 
-Erizo.ChromeStableStack = (specInput) => {
+import BaseStack from './BaseStack';
+import SdpHelpers from './../utils/SdpHelpers';
+
+const ChromeStableStack = (specInput) => {
   L.Logger.info('Starting Chrome stable stack', specInput);
   const spec = specInput;
-  const that = Erizo.BaseStack(specInput);
+  const that = BaseStack(specInput);
   const defaultSimulcastSpatialLayers = 2;
 
   that.enableSimulcast = (sdpInput) => {
@@ -46,19 +48,19 @@ Erizo.ChromeStableStack = (specInput) => {
       spatialLayersRtx.push(baseSsrcRtx + (i * 1000));
     }
 
-    result = Erizo.SdpHelpers.addSim(spatialLayers);
+    result = SdpHelpers.addSim(spatialLayers);
     let spatialLayerId;
     let spatialLayerIdRtx;
     for (let i = 0; i < spatialLayers.length; i += 1) {
       spatialLayerId = spatialLayers[i];
       spatialLayerIdRtx = spatialLayersRtx[i];
-      result += Erizo.SdpHelpers.addGroup(spatialLayerId, spatialLayerIdRtx);
+      result += SdpHelpers.addGroup(spatialLayerId, spatialLayerIdRtx);
     }
 
     for (let i = 0; i < spatialLayers.length; i += 1) {
       spatialLayerId = spatialLayers[i];
       spatialLayerIdRtx = spatialLayersRtx[i];
-      result += Erizo.SdpHelpers.addSpatialLayer(cname,
+      result += SdpHelpers.addSpatialLayer(cname,
         msid, mslabel, label, spatialLayerId, spatialLayerIdRtx);
     }
     result += 'a=x-google-flag:conference\r\n';
@@ -67,3 +69,5 @@ Erizo.ChromeStableStack = (specInput) => {
 
   return that;
 };
+
+export default ChromeStableStack;

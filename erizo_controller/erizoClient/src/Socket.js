@@ -1,8 +1,9 @@
-/* global io, L, Erizo*/
-this.Erizo = this.Erizo || {};
+/* global io, L*/
 
-Erizo.SocketEvent = (type, specInput) => {
-  const that = Erizo.LicodeEvent({ type });
+import { EventDispatcher, LicodeEvent } from './Events';
+
+const SocketEvent = (type, specInput) => {
+  const that = LicodeEvent({ type });
   that.args = specInput.args;
   return that;
 };
@@ -11,8 +12,8 @@ Erizo.SocketEvent = (type, specInput) => {
  * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC
  * stream and identify the stream and where it should be drawn.
  */
-Erizo.Socket = () => {
-  const that = Erizo.EventDispatcher();
+const Socket = () => {
+  const that = EventDispatcher();
   const defaultCallback = () => {};
 
   that.CONNECTED = Symbol('connected');
@@ -23,7 +24,7 @@ Erizo.Socket = () => {
   let socket;
 
   const emit = (type, ...args) => {
-    that.emit(Erizo.SocketEvent(type, { args }));
+    that.emit(SocketEvent(type, { args }));
   };
 
   that.connect = (token, callback = defaultCallback, error = defaultCallback) => {
@@ -90,3 +91,5 @@ Erizo.Socket = () => {
   };
   return that;
 };
+
+export { SocketEvent, Socket };

@@ -1,13 +1,16 @@
-/* global window, document, L, webkitURL, Erizo*/
-this.Erizo = this.Erizo || {};
+/* global window, document, L, webkitURL*/
+
+import View from './View';
+import Bar from './Bar';
 
 /*
  * AudioPlayer represents a Licode Audio component that shows either a local or a remote Audio.
  * Ex.: var player = AudioPlayer({id: id, stream: stream, elementID: elementID});
  * A AudioPlayer is also a View component.
  */
-Erizo.AudioPlayer = (spec) => {
-  const that = Erizo.View({});
+
+const AudioPlayer = (spec) => {
+  const that = View({});
   let onmouseover;
   let onmouseout;
 
@@ -73,7 +76,7 @@ Erizo.AudioPlayer = (spec) => {
 
     // Bottom Bar
     if (spec.options.bar !== false) {
-      that.bar = Erizo.Bar({ elementID: `player_${that.id}`,
+      that.bar = Bar({ elementID: `player_${that.id}`,
         id: that.id,
         stream: spec.stream,
         media: that.audio,
@@ -100,3 +103,5 @@ Erizo.AudioPlayer = (spec) => {
 
   return that;
 };
+
+export default AudioPlayer;
