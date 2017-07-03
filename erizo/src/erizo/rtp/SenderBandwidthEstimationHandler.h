@@ -25,7 +25,7 @@ class SenderBandwidthEstimationHandler : public Handler,
 
  public:
   static const uint16_t kMaxSrListSize = 20;
-  static const uint32_t kStartSendBitrate = 300000;
+  static const uint32_t kStartSendBitrate = 1000000;
   static constexpr duration kMinUpdateEstimateInterval = std::chrono::milliseconds(25);
 
  public:
@@ -57,6 +57,8 @@ class SenderBandwidthEstimationHandler : public Handler,
   bool initialized_;
   bool enabled_;
   bool received_remb_;
+  bool ignore_rembs_;
+  uint64_t current_max_bw_set_;
   uint32_t period_packets_sent_;
   int estimated_bitrate_;
   uint8_t estimated_loss_;
