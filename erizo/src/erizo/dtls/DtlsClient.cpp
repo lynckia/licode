@@ -1,8 +1,7 @@
 // #include <openssl/x509.h>
 
 extern "C" {
-  #include <srtp/srtp.h>
-  #include <srtp/srtp_priv.h>
+  #include <srtp2/srtp.h>
 }
 
 #include <boost/thread.hpp>
@@ -61,7 +60,7 @@ void SSLInfoCallback(const SSL* s, int where, int ret) {
     if (ret == 0) {
       ELOG_WARN2(sslLogger, "failed in %s", SSL_state_string_long(s));
     } else if (ret < 0) {
-      ELOG_WARN2(sslLogger, "error in %s", SSL_state_string_long(s));
+      ELOG_INFO2(sslLogger, "callback for %s", SSL_state_string_long(s));
     }
   }
 }
@@ -74,7 +73,7 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
     int err = X509_STORE_CTX_get_error(store);
     X509_NAME_oneline(X509_get_issuer_name(cert), data, sizeof(data));
     X509_NAME_oneline(X509_get_subject_name(cert), data2, sizeof(data2));
-    ELOG_DEBUG2(sslLogger, "Error with certificate at depth: %d, issuer: %s, subject: %s, err: %d : %s",
+    ELOG_DEBUG2(sslLogger, "Callback with certificate at depth: %d, issuer: %s, subject: %s, err: %d : %s",
     depth,
     data,
     data2,
@@ -95,8 +94,6 @@ int SSLVerifyCallback(int ok, X509_STORE_CTX* store) {
   if (!ok) {
     // X509* cert = X509_STORE_CTX_get_current_cert(store);
     int err = X509_STORE_CTX_get_error(store);
-
-    ELOG_DEBUG2(sslLogger, "Error: %d", X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT);
 
     // peer-to-peer mode: allow the certificate to be self-signed,
     // assuming it matches the digest that was specified.
@@ -237,17 +234,18 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
     SSL_CTX_set_verify(mContext, SSL_VERIFY_PEER |SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
       SSLVerifyCallback);
 
+    SSL_CTX_set_options(mContext, SSL_OP_NO_QUERY_MTU);
       // SSL_CTX_set_session_cache_mode(mContext, SSL_SESS_CACHE_OFF);
       // SSL_CTX_set_options(mContext, SSL_OP_NO_TICKET);
       // Set SRTP profiles
-      r = SSL_CTX_set_tlsext_use_srtp(mContext, DefaultSrtpProfile);
-      assert(r == 0);
+    r = SSL_CTX_set_tlsext_use_srtp(mContext, DefaultSrtpProfile);
+    assert(r == 0);
 
-      SSL_CTX_set_verify_depth(mContext, 2);
-      SSL_CTX_set_read_ahead(mContext, 1);
+    SSL_CTX_set_verify_depth(mContext, 2);
+    SSL_CTX_set_read_ahead(mContext, 1);
 
-      ELOG_DEBUG("DtlsSocketContext created");
-    }
+    ELOG_DEBUG("DtlsSocketContext created");
+  }
 
     DtlsSocketContext::~DtlsSocketContext() {
       mSocket->close();
@@ -262,6 +260,7 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
 
     void DtlsSocketContext::Init() {
       if (DtlsSocketContext::mCert == NULL) {
+        OpenSSL_add_all_algorithms();
         SSL_library_init();
         SSL_load_error_strings();
         ERR_load_crypto_strings();

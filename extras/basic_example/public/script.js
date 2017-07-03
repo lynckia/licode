@@ -147,13 +147,14 @@ window.onload = function () {
     } else {
       var div = document.createElement('div');
       div.setAttribute('style', 'width: 320px; height: 240px; float:left');
+      div.setAttribute('id', 'myVideo');
+      document.getElementById('videoContainer').appendChild(div);
+      
       localStream.addEventListener('access-accepted', function () {
         room.connect();
         localStream.show('myVideo');
       });
       localStream.init();
     }
-    div.setAttribute('id', 'myVideo');
-    document.getElementById('videoContainer').appendChild(div);
   });
 };

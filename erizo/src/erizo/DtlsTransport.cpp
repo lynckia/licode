@@ -22,6 +22,8 @@ DEFINE_LOGGER(Resender, "Resender");
 
 using std::memcpy;
 
+static std::mutex dtls_mutex;
+
 Resender::Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx)
     : transport_(transport), socket_context_(ctx),
       resend_seconds_(kInitialSecsPerResend), max_resends_(kMaxResends) {
@@ -69,8 +71,8 @@ void Resender::scheduleNext() {
 DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, const std::string& connection_id,
                             bool bundle, bool rtcp_mux, std::weak_ptr<TransportListener> transport_listener,
                             const IceConfig& iceConfig, std::string username, std::string password,
-                            bool isServer, std::shared_ptr<Worker> worker):
-  Transport(med, transport_name, connection_id, bundle, rtcp_mux, transport_listener, iceConfig, worker),
+                            bool isServer, std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker):
+  Transport(med, transport_name, connection_id, bundle, rtcp_mux, transport_listener, iceConfig, worker, io_worker),
   unprotect_packet_{std::make_shared<dataPacket>()},
   readyRtp(false), readyRtcp(false), isServer_(isServer) {
     ELOG_DEBUG("%s message: constructor, transportName: %s, isBundle: %d", toLog(), transport_name.c_str(), bundle);
@@ -106,11 +108,11 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     iceConfig_.ice_components = comps;
     iceConfig_.username = username;
     iceConfig_.password = password;
-#ifdef USE_NICER
-    ice_.reset(NicerConnection::create(this, iceConfig_));
-#else
-    ice_.reset(LibNiceConnection::create(this, iceConfig_));
-#endif
+    if (iceConfig_.use_nicer) {
+      ice_ = NicerConnection::create(io_worker_, this, iceConfig_);
+    } else {
+      ice_.reset(LibNiceConnection::create(this, iceConfig_));
+    }
     rtp_resender_.reset(new Resender(this, dtlsRtp.get()));
     if (!rtcp_mux) {
       rtcp_resender_.reset(new Resender(this, dtlsRtcp.get()));
@@ -164,11 +166,13 @@ void DtlsTransport::onIceData(packetPtr packet) {
       if (rtp_resender_.get() != NULL) {
         rtp_resender_->cancel();
       }
+      std::lock_guard<std::mutex> guard(dtls_mutex);
       dtlsRtp->read(reinterpret_cast<unsigned char*>(data), len);
     } else {
       if (rtcp_resender_.get() != NULL) {
         rtcp_resender_->cancel();
       }
+      std::lock_guard<std::mutex> guard(dtls_mutex);
       dtlsRtcp->read(reinterpret_cast<unsigned char*>(data), len);
     }
     return;
@@ -321,14 +325,23 @@ std::string DtlsTransport::getMyFingerprint() {
 }
 
 void DtlsTransport::updateIceState(IceState state, IceConnection *conn) {
-  ELOG_DEBUG("%s message:NiceState, transportName: %s, state: %d, isBundle: %d",
+  std::weak_ptr<Transport> weak_transport = Transport::shared_from_this();
+  worker_->task([weak_transport, state, conn, this]() {
+    if (auto transport = weak_transport.lock()) {
+      updateIceStateSync(state, conn);
+    }
+  });
+}
+
+void DtlsTransport::updateIceStateSync(IceState state, IceConnection *conn) {
+  ELOG_DEBUG("%s message:IceState, transportName: %s, state: %d, isBundle: %d",
              toLog(), transport_name.c_str(), state, bundle_);
   if (state == IceState::INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
     updateTransportState(TRANSPORT_STARTED);
   } else if (state == IceState::CANDIDATES_RECEIVED && this->getTransportState() != TRANSPORT_GATHERED) {
     updateTransportState(TRANSPORT_GATHERED);
   } else if (state == IceState::FAILED) {
-    ELOG_DEBUG("%s message: Nice Failed", toLog());
+    ELOG_DEBUG("%s message: Ice Failed", toLog());
     running_ = false;
     updateTransportState(TRANSPORT_FAILED);
   } else if (state == IceState::READY) {

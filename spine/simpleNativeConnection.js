@@ -15,6 +15,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback, error){
     var that = {};
 
     var localStream = {};
+    var subscribedStreams = [];
     var room = '';
     that.isActive = false;
     localStream.getID = function() {return 0;};
@@ -108,9 +109,10 @@ exports.ErizoSimpleNativeConnection = function (spec, callback, error){
 
             });
 
-            room.addEventListener('stream-subscribed', function() {
+            room.addEventListener('stream-subscribed', function(streamEvent) {
                 log.info('stream-subscribed');
                 callback('stream-subscribed');
+                subscribedStreams.push(streamEvent.stream);
             });
 
             room.addEventListener('room-error', function(roomEvent) {
@@ -134,6 +136,18 @@ exports.ErizoSimpleNativeConnection = function (spec, callback, error){
     that.close = function(){
         log.info('Close');
         room.disconnect();
+    };
+
+    that.getStatus = function() {
+      if (subscribedStreams.length === 0) {
+        return 'disconnected';
+      }
+      for (var stream of subscribedStreams) {
+        if (!stream.pc || !stream.pc.peerConnection || !stream.pc.peerConnection.connected) {
+          return 'disconnected';
+        }
+      }
+      return 'connected';
     };
 
     createConnection();

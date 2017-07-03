@@ -6,14 +6,15 @@ var logger = require('./../../common/logger').logger;
 // Logger
 var log = logger.getLogger('Publisher');
 
-function createWrtc(id, threadPool) {
-  var wrtc = new addon.WebRtcConnection(threadPool, id,
+function createWrtc(id, threadPool, ioThreadPool) {
+  var wrtc = new addon.WebRtcConnection(threadPool, ioThreadPool, id,
                                     GLOBAL.config.erizo.stunserver,
                                     GLOBAL.config.erizo.stunport,
                                     GLOBAL.config.erizo.minport,
                                     GLOBAL.config.erizo.maxport,
                                     false,
                                     JSON.stringify(GLOBAL.mediaConfig),
+                                    GLOBAL.config.erizo.useNicer,
                                     GLOBAL.config.erizo.turnserver,
                                     GLOBAL.config.erizo.turnport,
                                     GLOBAL.config.erizo.turnusername,
@@ -24,9 +25,10 @@ function createWrtc(id, threadPool) {
 }
 
 class Source {
-  constructor(id, threadPool) {
+  constructor(id, threadPool, ioThreadPool) {
     this.id = id;
     this.threadPool = threadPool;
+    this.ioThreadPool = ioThreadPool;
     this.subscribers = {};
     this.externalOutputs = {};
     this.muteAudio = false;
@@ -43,7 +45,7 @@ class Source {
     log.info('message: Adding subscriber, id: ' + wrtcId + ', ' +
              logger.objectToLog(options)+
               ', ' + logger.objectToLog(options.metadata));
-    var wrtc = createWrtc(wrtcId, this.threadPool);
+    var wrtc = createWrtc(wrtcId, this.threadPool, this.ioThreadPool);
     wrtc.wrtcId = wrtcId;
     this.subscribers[id] = wrtc;
     this.muxer.addSubscriber(wrtc, id);
@@ -147,9 +149,9 @@ class Source {
 }
 
 class Publisher extends Source {
-  constructor(id, threadPool, options) {
-    super(id, threadPool);
-    this.wrtc = createWrtc(this.id, this.threadPool);
+  constructor(id, threadPool, ioThreadPool, options) {
+    super(id, threadPool, ioThreadPool);
+    this.wrtc = createWrtc(this.id, this.threadPool, this.ioThreadPool);
     this.wrtc.wrtcId = id;
 
     this.minVideoBW = options.minVideoBW;
@@ -164,7 +166,7 @@ class Publisher extends Source {
     if (this.numSubscribers > 0) {
       return;
     }
-    this.wrtc = createWrtc(this.id, this.threadPool);
+    this.wrtc = createWrtc(this.id, this.threadPool, this.ioThreadPool);
     this.wrtc.setAudioReceiver(this.muxer);
     this.wrtc.setVideoReceiver(this.muxer);
     this.muxer.setPublisher(this.wrtc);
@@ -172,8 +174,8 @@ class Publisher extends Source {
 }
 
 class ExternalInput extends Source {
-  constructor(id, threadPool, url) {
-    super(id, threadPool);
+  constructor(id, threadPool, ioThreadPool, url) {
+    super(id, threadPool, ioThreadPool);
     var eiId = id + '_' + url;
 
     log.info('message: Adding ExternalInput, id: ' + eiId);

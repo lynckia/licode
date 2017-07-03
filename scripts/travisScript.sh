@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -e
-
 SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`
 PATHNAME=`dirname $SCRIPT`
@@ -14,5 +12,9 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 
 . $PATHNAME/installErizo.sh -t
 . $NVM_CHECK
+
+set -e
+
 npm run lint
+npm run lintClient
 npm test

@@ -96,7 +96,9 @@ var reset = module.exports.reset = function() {
     set: sinon.stub(),
     sockets: {
       on: sinon.stub(),
-      socket: sinon.stub().returns(module.exports.socketInstance),
+      socket: sinon.stub().returns(module.exports.socketInstance),  // v0.9
+      sockets:{'streamId1': module.exports.socketInstance,  // v2.0.3
+               undefined: module.exports.socketInstance},
       indexOf: sinon.stub()
     }
   };
