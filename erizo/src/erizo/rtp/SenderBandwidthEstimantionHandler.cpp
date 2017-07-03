@@ -111,9 +111,10 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPa
 
                 uint64_t max_BW = 0;
                 for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
-                  for (auto &temporal_layer_node : stats_->getNode()["qualityLayers"][spatial_layer_node.first.c_str()].getMap()) {
+                  for (auto &temporal_layer_node :
+                      stats_->getNode()["qualityLayers"][spatial_layer_node.first.c_str()].getMap()) {
                     if (temporal_layer_node.second->value() > max_BW) {
-                      max_BW = temporal_layer_node.second->value() + (temporal_layer_node.second->value() / 100 * 30 );
+                      max_BW = temporal_layer_node.second->value() + (temporal_layer_node.second->value() / 100 * 30);
                     }
                   }
                 }
@@ -122,8 +123,8 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPa
                   ELOG_DEBUG("%s message: Updating max bw based on RR: %lu ", connection_->toLog(), max_BW);
                   current_max_bw_set_ = max_BW;
                   // We set the max bw based on the max published bitrate plus an headroom of 30%.
-                  // This prevents the bwe estimation to grow at ridiculous levels which causes the need of too much time
-                  // to readjust in case of bw drops.
+                  // This prevents the bwe estimation to grow at ridiculous levels which causes
+                  // the need of too much time to readjust in case of bw drops.
                   sender_bwe_->SetMinMaxBitrate(0, max_BW);
                 }
 
