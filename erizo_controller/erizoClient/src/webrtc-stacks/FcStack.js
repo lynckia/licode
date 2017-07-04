@@ -38,7 +38,7 @@ Erizo.FcStack = (spec) => {
     spec.callback(msg);
   };
 
-  that.setSignalingCallback = (callback) => {
+  that.setSignalingCallback = (callback = () => {}) => {
     L.Logger.debug('FCSTACK: Setting signalling callback');
     that.signalCallback = callback;
   };

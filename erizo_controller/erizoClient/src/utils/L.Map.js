@@ -22,6 +22,8 @@ L.Map = () => {
     }
   };
 
+  that.keys = () => Object.keys(values);
+
   that.remove = (id) => {
     delete values[id];
   };

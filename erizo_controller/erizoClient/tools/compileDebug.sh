@@ -5,11 +5,12 @@ set -e
 FILE=../dist/erizo.js
 rm -f $FILE
 cat ../lib/socket.io.js >> $FILE
+cat ../lib/adapter.js >> $FILE
 cat ../src/Events.js >> $FILE
+cat ../src/webrtc-stacks/BaseStack.js >> $FILE
 cat ../src/webrtc-stacks/FcStack.js >> $FILE
 cat ../src/webrtc-stacks/ChromeStableStack.js >> $FILE
 cat ../src/webrtc-stacks/FirefoxStack.js >> $FILE
-cat ../src/webrtc-stacks/BowserStack.js >> $FILE
 cat ../src/Connection.js >> $FILE
 cat ../src/Stream.js >> $FILE
 cat ../src/Room.js >> $FILE
@@ -17,6 +18,7 @@ cat ../src/Socket.js  >> $FILE
 cat ../src/utils/L.Logger.js >> $FILE
 cat ../src/utils/L.Base64.js >> $FILE
 cat ../src/utils/L.Resizer.js >> $FILE
+cat ../src/utils/L.SdpHelpers.js >> $FILE
 cat ../src/utils/L.Map.js >> $FILE
 cat ../src/views/View.js >> $FILE
 cat ../src/views/VideoPlayer.js >> $FILE
