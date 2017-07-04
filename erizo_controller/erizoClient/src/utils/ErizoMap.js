@@ -21,6 +21,8 @@ const ErizoMap = () => {
     }
   };
 
+  that.keys = () => Object.keys(values);
+
   that.remove = (id) => {
     delete values[id];
   };

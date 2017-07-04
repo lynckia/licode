@@ -31,10 +31,10 @@ const Socket = () => {
     const options = {
       reconnect: false,
       secure: token.secure,
-      'force new connection': true,
+      forceNew: true,
       transports: ['websocket'],
+      rejectUnauthorized: false,
     };
-
     socket = io.connect(token.host, options);
 
     socket.on('onAddStream', emit.bind(that, 'onAddStream'));

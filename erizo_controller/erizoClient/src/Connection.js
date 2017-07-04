@@ -52,16 +52,16 @@ const Connection = (specInput) => {
     throw new Error('WebRTC stack not available');
   }
   if (!that.updateSpec) {
-    that.updateSpec = (newSpec, callback) => {
+    that.updateSpec = (newSpec, callback = () => {}) => {
       L.Logger.error('Update Configuration not implemented in this browser');
-      if (callback) { callback('unimplemented'); }
+      callback('unimplemented');
     };
   }
 
   return that;
 };
 
-const GetUserMedia = (config, callback, error) => {
+const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
   let screenConfig;
 
   const getUserMedia = (userMediaConfig, cb, errorCb) => {
