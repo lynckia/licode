@@ -284,7 +284,7 @@ const customRequestAnimationFrame = window.requestAnimationFrame ||
    * @param {HTMLElement|HTMLElement[]} elements
    * @param {Function}                  callback
    */
-function forEachElement(elements, callback) {
+function forEachElement(elements, callback = () => {}) {
   const elementsType = Object.prototype.toString.call(elements);
   const isCollectionTyped = (elementsType === '[object Array]' ||
           (elementsType === '[object NodeList]') ||
@@ -310,7 +310,7 @@ function forEachElement(elements, callback) {
    *
    * @constructor
    */
-L.ResizeSensor = function ResizeSensor(element, callback) {
+L.ResizeSensor = function ResizeSensor(element, callback = () => {}) {
       /**
        *
        * @constructor
