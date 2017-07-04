@@ -37,9 +37,9 @@ let openStream = function(streamId, evt) {
   charts.clear();
   clearChartsNode();
   if (streamId === 'all') {
-    for (let stream of Object.keys(room.remoteStreams)) {
-      charts.set(parseInt(stream), new Map());
-    }
+    room.remoteStreams.forEach((stream) => {
+      charts.set(parseInt(stream.getID()), new Map());
+    });
   } else {
     charts.set(parseInt(streamId), new Map());
   }
@@ -70,7 +70,7 @@ let createTabs = function(list) {
 };
 
 let createList = function() {
-  let streamIds = Object.keys(room.remoteStreams);
+  let streamIds = room.remoteStreams.keys();
   clearTabs();
   createTabs(streamIds);
 };
@@ -249,7 +249,7 @@ let updateCharts = function (stream) {
 
 setInterval(() => {
   for (let stream of charts.keys()) {
-    updateCharts(room.remoteStreams[stream]);
+    updateCharts(room.remoteStreams.get(stream));
   }
 }, 1000);
 
@@ -287,11 +287,9 @@ window.onload = function () {
     };
 
     let initStreams = function() {
-      let remoteStreams = room.remoteStreams;
-      let remoteStreamIds = Object.keys(remoteStreams);
-      for (let streamId of remoteStreamIds) {
-        onStreamAdded(remoteStreams[streamId]);
-      }
+      room.remoteStreams.forEach((stream) => {
+        onStreamAdded(stream);
+      });
     };
 
     let onStreamDeleted = function(stream) {
