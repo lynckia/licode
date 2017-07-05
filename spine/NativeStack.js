@@ -80,3 +80,6 @@ exports.GetUserMedia = function(opt, callback){
     // }
     callback('');
 };
+exports.getBrowser = function(){
+  return 'fake';
+};

@@ -1,5 +1,5 @@
 {
-  "basicExampleUrl": "https://localhost/",
+  "basicExampleUrl": "http://localhost:3001/",
   "publishConfig" : {
     "_video":{"file":"file:///YOUR_LICODE_COMPATIBLE_TEST_FILE"},
     "video":{"synthetic":{"audioBitrate": 30000,
