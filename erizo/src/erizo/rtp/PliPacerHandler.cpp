@@ -40,7 +40,7 @@ void PliPacerHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
     connection_->getWorker()->unschedule(scheduled_pli_);
     scheduled_pli_ = -1;
   }
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 void PliPacerHandler::sendPLI() {
@@ -81,7 +81,7 @@ void PliPacerHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
     waiting_for_keyframe_ = true;
     scheduleNextPLI();
   }
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 }  // namespace erizo

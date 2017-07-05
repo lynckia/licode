@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 
 project (ERIZO_TEST)
 
-set(CMAKE_CXX_FLAGS "-g -Wall -std=c++11")
+set(CMAKE_CXX_FLAGS "-g -Wall -std=c++11 ${ERIZO_CMAKE_CXX_FLAGS}")
 
 file(GLOB_RECURSE ERIZO_TEST_SDPS ${ERIZO_TEST_SOURCE_DIR}/*.sdp)
 file(COPY ${ERIZO_TEST_SDPS} DESTINATION ${ERIZO_TEST_BINARY_DIR})
@@ -13,7 +13,7 @@ link_directories("${GMOCK_BUILD}/lib")
 
 add_executable(tests ${ERIZO_TEST_SOURCES})
 
-include_directories("${ERIZO_SOURCE_DIR}" "${THIRD_PARTY_INCLUDE}" "${GMOCK_BUILD}/include")
+include_directories("${ERIZO_SOURCE_DIR}" "${THIRD_PARTY_INCLUDE}" "${GMOCK_BUILD}/include" "${NICER_INCLUDE}")
 target_link_libraries(tests erizo gtest_main gmock_main)
 
 add_test(NAME all

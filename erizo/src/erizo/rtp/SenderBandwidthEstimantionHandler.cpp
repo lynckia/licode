@@ -57,7 +57,7 @@ void SenderBandwidthEstimationHandler::notifyUpdate() {
 
 void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
-  if (chead->isFeedback() && chead->getSourceSSRC() == connection_->getVideoSinkSSRC()) {
+  if (chead->isFeedback()) {
     char* packet_pointer = packet->data;
     int rtcp_length = 0;
     int total_length = 0;
@@ -75,6 +75,9 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPa
       switch (chead->packettype) {
         case RTCP_Receiver_PT:
           {
+            if (chead->getSourceSSRC() != connection_->getVideoSinkSSRC()) {
+              continue;
+            }
             ELOG_DEBUG("%s, Analyzing Video RR: PacketLost %u, Ratio %u, current_block %d, blocks %d"
                 ", sourceSSRC %u, ssrc %u",
                 connection_->toLog(),
@@ -130,7 +133,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPa
       current_block++;
     } while (total_length < packet->length);
   }
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 void SenderBandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
@@ -147,7 +150,7 @@ void SenderBandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<dataP
       chead->getSSRC() == connection_->getVideoSinkSSRC()) {
     analyzeSr(chead);
   }
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {

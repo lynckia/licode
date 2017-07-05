@@ -76,7 +76,7 @@ install_openssl(){
     if [ ! -f ./openssl-$OPENSSL_VERSION.tar.gz ]; then
       download_openssl $OPENSSL_VERSION
       cd openssl-$OPENSSL_VERSION
-      ./config --prefix=$PREFIX_DIR -fPIC
+      ./config --prefix=$PREFIX_DIR --openssldir=$PREFIX_DIR -fPIC
       make -s V=0
       make install_sw
     else
@@ -171,15 +171,18 @@ install_mediadeps_nogpl(){
 }
 
 install_libsrtp(){
-  if [ ! -f $PREFIX_DIR/lib/libsrtp.a ]; then
-    cd $ROOT/third_party/srtp
-    CFLAGS="-fPIC" ./configure --prefix=$PREFIX_DIR
-    make -s V=0
-    make uninstall
-    make install
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    curl -o libsrtp-2.1.0.tar.gz https://codeload.github.com/cisco/libsrtp/tar.gz/v2.1.0
+    tar -zxvf libsrtp-2.1.0.tar.gz
+    cd libsrtp-2.1.0
+    CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR --with-openssl-dir=$PREFIX_DIR
+    make -s V=0 && make uninstall && make install
+    check_result $?
     cd $CURRENT_DIR
   else
-    echo "srtp already installed"
+    mkdir -p $LIB_DIR
+    install_libsrtp
   fi
 }
 

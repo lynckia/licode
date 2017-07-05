@@ -4,12 +4,15 @@ var efc = require ('./simpleNativeConnection');
 
 var getopt = new Getopt([
   ['s' , 'stream-config=ARG'             , 'file containing the stream config JSON'],
+  ['t' , 'time=ARG'                      , 'interval time to show stats (default 10 seconds)'],
   ['h' , 'help'                          , 'display this help']
 ]);
 
 var opt = getopt.parse(process.argv.slice(2));
 
 var streamConfig;
+
+var statsInterval = 10000;
 
 for (var prop in opt.options) {
     if (opt.options.hasOwnProperty(prop)) {
@@ -21,6 +24,9 @@ for (var prop in opt.options) {
                 break;
             case 'stream-config':
                 streamConfig = value;
+                break;
+            case 'time':
+                statsInterval = value * 1000;
                 break;
             default:
                 console.log('Default');
@@ -55,7 +61,7 @@ if (streamConfig.subscribeConfig){
     console.log('StreamSubscribe', streamSubscribeConfig);
 }
 
-
+var streams = [];
 
 var startStreams = function(stConf, num, time){
     var started = 0;
@@ -65,13 +71,26 @@ var startStreams = function(stConf, num, time){
             clearInterval(interval);
         }
         console.log('Will start stream with config', stConf);
-        efc.ErizoSimpleNativeConnection (stConf, function(msg){
+        streams.push(efc.ErizoSimpleNativeConnection (stConf, function(msg){
             console.log('Getting Callback', msg);
         }, function(msg){
             console.error('Error message', msg);
-        });
+        }));
     }, time);
 };
+
+setInterval(function() {
+  var up = 0;
+  var down = 0;
+  for (var stream of streams) {
+    if (stream.getStatus() === 'connected') {
+      up++;
+    } else {
+      down++;
+    }
+  }
+  console.log('[STATS] up:', up, '; down:', down);
+}, statsInterval);
 
 console.log('Starting ', streamConfig.numSubscribers, 'subscriber streams',
         'and', streamConfig.numPublishers, 'publisherStreams');

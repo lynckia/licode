@@ -51,6 +51,7 @@ class IceConfig {
     std::string stun_server, network_interface;
     uint16_t stun_port, turn_port, min_port, max_port;
     bool should_trickle;
+    bool use_nicer;
     IceConfig()
       : media_type{MediaType::OTHER},
         transport_name{""},
@@ -67,7 +68,8 @@ class IceConfig {
         turn_port{0},
         min_port{0},
         max_port{0},
-        should_trickle{false} {
+        should_trickle{false},
+        use_nicer{false} {
     }
 };
 
@@ -86,6 +88,8 @@ class IceConnectionListener {
 };
 
 class IceConnection : public LogContext {
+  DECLARE_LOGGER();
+
  public:
   IceConnection(IceConnectionListener* listener, const IceConfig& ice_config);
 
@@ -93,25 +97,24 @@ class IceConnection : public LogContext {
 
   virtual void start() = 0;
   virtual bool setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) = 0;
-  virtual void gatheringDone(uint stream_id) = 0;
-  virtual void getCandidate(uint stream_id, uint component_id, const std::string &foundation) = 0;
   virtual void setRemoteCredentials(const std::string& username, const std::string& password) = 0;
-  virtual int sendData(unsigned int compId, const void* buf, int len) = 0;
+  virtual int sendData(unsigned int component_id, const void* buf, int len) = 0;
 
-  virtual void updateIceState(IceState state) = 0;
-  virtual IceState checkIceState() = 0;
-  virtual void updateComponentState(unsigned int compId, IceState state) = 0;
   virtual void onData(unsigned int component_id, char* buf, int len) = 0;
   virtual CandidatePair getSelectedPair() = 0;
   virtual void setReceivedLastCandidate(bool hasReceived) = 0;
   virtual void close() = 0;
 
+  virtual void updateIceState(IceState state);
+  virtual IceState checkIceState();
   virtual void setIceListener(IceConnectionListener *listener);
   virtual IceConnectionListener* getIceListener();
 
   virtual std::string getLocalUsername();
   virtual std::string getLocalPassword();
 
+ private:
+  virtual std::string iceStateToString(IceState state) const;
 
  protected:
   inline const char* toLog() {
