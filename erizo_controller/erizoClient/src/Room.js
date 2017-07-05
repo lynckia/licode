@@ -18,13 +18,7 @@ import Base64 from './utils/Base64';
  * Event 'stream-added' indicates that there is a new stream available in the room.
  * Event 'stream-removed' shows that a previous available stream has been removed from the room.
  */
-const Room = (connection, getbrowser, specInput) => {
-  if (connection) {
-    Connection = connection;
-  }
-  if (getbrowser) {
-    getBrowser = getbrowser;
-  }
+const Room = (specInput) => {
   const spec = specInput;
   const that = EventDispatcher(specInput);
   const DISCONNECTED = 0;

@@ -8,14 +8,6 @@ require('../lib/adapter.js');
 require('./utils/L.Logger.js');
 require('./utils/L.Resizer.js');
 
-const boundRoom = Room.bind(null, undefined, undefined);
-const boundStream = Stream.bind(null, undefined);
-const Erizo = {
-  Room: boundRoom,
-  LicodeEvent,
-  RoomEvent,
-  StreamEvent,
-  Stream: boundStream,
-};
+const Erizo = { Room, LicodeEvent, RoomEvent, StreamEvent, Stream };
 
 export default Erizo;

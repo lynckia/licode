@@ -1,7 +1,7 @@
 const gulp = require('gulp');
 const header = require('gulp-header');
 const sourcemaps = require('gulp-sourcemaps');
-const closureCompiler = require('google-closure-compiler-js').gulp();
+const closureCompiler = require('google-closure-compiler').gulp();
 
 
 const runSequence = require('run-sequence');

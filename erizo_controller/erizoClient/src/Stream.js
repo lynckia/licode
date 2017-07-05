@@ -9,10 +9,7 @@ import AudioPlayer from './views/AudioPlayer';
  * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC
  * stream and identify the stream and where it should be drawn.
  */
-const Stream = (getusermedia, specInput) => {
-  if (getusermedia) {
-    GetUserMedia = getusermedia;
-  }
+const Stream = (specInput) => {
   const spec = specInput;
   const that = EventDispatcher(spec);
 

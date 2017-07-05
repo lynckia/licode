@@ -6,6 +6,7 @@ var XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest,
     Erizo = require('./erizofc'),
     NativeStack = require ('./NativeStack.js');
 
+Erizo.Connection = NativeStack.FakeConnection;
 var logger = require('./logger').logger;
 var log = logger.getLogger('ErizoSimpleNativeConnection');
 
@@ -69,7 +70,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback, error){
                 error('Could not get token from nuve in ' + spec.serverUrl);
                 return;
             }
-            room = Erizo.Room(NativeStack.FakeConnection, NativeStack.getBrowser, {token: token});
+            room = Erizo.Room({token: token});
 
             room.addEventListener('room-connected', function(roomEvent) {
                 log.info('Connected to room');
@@ -78,7 +79,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback, error){
                 subscribeToStreams(roomEvent.streams);
                 if (spec.publishConfig){
                     log.info('Will publish with config', spec.publishConfig);
-                    localStream = Erizo.Stream(NativeStack.GetUserMedia, spec.publishConfig);
+                    localStream = Erizo.Stream(spec.publishConfig);
                     room.publish(localStream, spec.publishConfig, function(id, message){
                         if (id === undefined){
                             log.error('ERROR when publishing', message);
