@@ -1,7 +1,7 @@
 const gulp = require('gulp');
 const header = require('gulp-header');
 const sourcemaps = require('gulp-sourcemaps');
-const closureCompiler = require('google-closure-compiler').gulp();
+const closureCompiler = require('google-closure-compiler-js').gulp();
 
 
 const runSequence = require('run-sequence');
@@ -42,9 +42,9 @@ gulp.task('compile', () => {
   return gulp.src(config.paths.erizoBundle, { base: './' })
       .pipe(sourcemaps.init())
       .pipe(closureCompiler({
-        language_in: 'ECMASCRIPT6',
-        language_out: 'ECMASCRIPT5',
-        js_output_file: 'erizo.js',
+        languageIn: 'ECMASCRIPT6',
+        languageOut: 'ECMASCRIPT5',
+        jsOutputFile: 'erizo.js',
       }))
       .pipe(sourcemaps.write('/')) // gulp-sourcemaps automatically adds the sourcemap url comment
       .pipe(gulp.dest(config.paths.distProduction));
