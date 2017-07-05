@@ -51,7 +51,8 @@ install_nvm_node() {
 install_apt_deps(){
   install_nvm_node
   nvm use
-  npm install -g node-gyp
+  npm install -y -g node-gyp gulp-cli
+  npm install -y webpack gulp gulp-eslint@3 run-sequence webpack-stream google-closure-compiler gulp-rename del gulp-sourcemaps gulp-header
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 

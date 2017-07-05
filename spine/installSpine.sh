@@ -19,10 +19,8 @@ npm install --loglevel error socket.io-client@2.0.3 log4js node-getopt xmlhttpre
 
 echo [spine] Done, node_modules installed
 
-cd ../erizo_controller/erizoClient/tools
+cd ../erizo_controller/erizoClient/
 
-./compilefc.sh
-
-cp ../dist/erizofc.js ../../../spine/
+gulp
 
 echo [spine] Done, erizofc.js compiled

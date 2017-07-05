@@ -18,9 +18,8 @@ npm install --loglevel error -g google-closure-compiler-js
 
 echo [erizo_controller] Done, node_modules installed
 
-cd ./erizoClient/tools
+cd ./erizoClient/
 
-./compile.sh
-./compilefc.sh
+gulp
 
 echo [erizo_controller] Done, erizo.js compiled
