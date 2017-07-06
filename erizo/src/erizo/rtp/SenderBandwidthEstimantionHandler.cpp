@@ -9,9 +9,10 @@ constexpr duration SenderBandwidthEstimationHandler::kMinUpdateEstimateInterval;
 
 SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(std::shared_ptr<Clock> the_clock) :
   connection_{nullptr}, bwe_listener_{nullptr}, clock_{the_clock}, initialized_{false}, enabled_{true},
-  received_remb_{false}, period_packets_sent_{0}, estimated_bitrate_{0}, estimated_loss_{0},
+  received_remb_{false}, ignore_rembs_{false}, current_max_bw_set_{kStartSendBitrate},
+  period_packets_sent_{0}, estimated_bitrate_{0}, estimated_loss_{0},
   estimated_rtt_{0}, last_estimate_update_{clock::now()}, sender_bwe_{new SendSideBandwidthEstimation()} {
-    sender_bwe_->SetSendBitrate(kStartSendBitrate);
+    sender_bwe_->SetBitrates(kStartSendBitrate, 0, kStartSendBitrate);
   };
 
 SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(const SenderBandwidthEstimationHandler&& handler) :  // NOLINT
@@ -21,6 +22,8 @@ SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(const SenderB
     initialized_{handler.initialized_},
     enabled_{handler.enabled_},
     received_remb_{false},
+    ignore_rembs_{handler.ignore_rembs_},
+    current_max_bw_set_{handler.current_max_bw_set_},
     period_packets_sent_{handler.period_packets_sent_},
     estimated_bitrate_{handler.estimated_bitrate_},
     estimated_loss_{handler.estimated_loss_},
@@ -96,8 +99,8 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPa
                 [last_sr](const std::shared_ptr<SrDelayData> sr_info) {
                 return sr_info->sr_ntp == last_sr;
                 });
-            // TODO(pedro) Implement alternative when there are no REMBs
-            if (received_remb_ && value != sr_delay_data_.end()) {
+            // TODO(pedro) Maybe implement better alternative when there are no REMBs
+            if (value != sr_delay_data_.end()) {
                 uint32_t delay = now_ms - (*value)->sr_send_time - delay_since_last_ms;
                 ELOG_DEBUG("%s message: Updating Estimate with RR, fraction_lost: %u, "
                     "delay: %u, period_packets_sent_: %u",
@@ -105,13 +108,33 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPa
                 sender_bwe_->UpdateReceiverBlock(chead->getFractionLost(),
                     delay, period_packets_sent_, now_ms);
                 period_packets_sent_ = 0;
-                updateEstimate();
+
+                uint64_t max_BW = 0;
+                for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
+                  for (auto &temporal_layer_node :
+                      stats_->getNode()["qualityLayers"][spatial_layer_node.first.c_str()].getMap()) {
+                    if (temporal_layer_node.second->value() > max_BW) {
+                      max_BW = temporal_layer_node.second->value() + (temporal_layer_node.second->value() / 100 * 30);
+                    }
+                  }
+                }
+
+                if (max_BW > current_max_bw_set_) {
+                  ELOG_DEBUG("%s message: Updating max bw based on RR: %lu ", connection_->toLog(), max_BW);
+                  current_max_bw_set_ = max_BW;
+                  // We set the max bw based on the max published bitrate plus an headroom of 30%.
+                  // This prevents the bwe estimation to grow at ridiculous levels which causes
+                  // the need of too much time to readjust in case of bw drops.
+                  sender_bwe_->SetMinMaxBitrate(0, max_BW);
+                }
+
+              updateEstimate();
             }
           }
           break;
         case RTCP_PS_Feedback_PT:
           {
-            if (chead->getBlockCount() == RTCP_AFB) {
+            if (chead->getBlockCount() == RTCP_AFB && !ignore_rembs_) {
               char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
               if (!strncmp(uniqueId, "REMB", 4)) {
                 received_remb_ = true;
@@ -119,6 +142,11 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPa
                 uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
                 ELOG_DEBUG("%s message: Updating Estimate with REMB, bitrate %lu", connection_->toLog(),
                     bitrate);
+                if (bitrate > current_max_bw_set_) {
+                  ELOG_DEBUG("%s message: Updating max bw based on REMB bitrate : %lu", connection_->toLog(), bitrate);
+                  current_max_bw_set_ = bitrate;
+                  sender_bwe_->SetMinMaxBitrate(0, bitrate);
+                }
                 sender_bwe_->UpdateReceiverEstimate(now_ms, bitrate);
                 updateEstimate();
               } else {
