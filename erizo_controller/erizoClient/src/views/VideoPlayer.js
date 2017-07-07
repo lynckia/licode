@@ -1,7 +1,8 @@
-/* global window, document, L, webkitURL*/
+/* global window, document, webkitURL, L*/
 
 import View from './View';
 import Bar from './Bar';
+import Logger from '../utils/Logger';
 
 /*
  * VideoPlayer represents a Licode video component that shows either a local or a remote video.
@@ -53,11 +54,11 @@ const VideoPlayer = (spec) => {
   // It will stop the VideoPlayer and remove it from the HTML
   that.destroy = () => {
     that.video.pause();
-    delete that.resizer;
+    delete that.Loggerr;
     that.parentNode.removeChild(that.div);
   };
 
-  that.resize = () => {
+  that.Logger = () => {
     const width = that.container.offsetWidth;
     const height = that.container.offsetHeight;
 
@@ -75,7 +76,7 @@ const VideoPlayer = (spec) => {
       document.getElementById(key).value = unescape(value);
   });*/
 
-  L.Logger.debug(`Creating URL from stream ${that.stream}`);
+  Logger.debug(`Creating URL from stream ${that.stream}`);
   const myURL = window.URL || webkitURL;
   that.streamUrl = myURL.createObjectURL(that.stream);
 
@@ -131,7 +132,7 @@ const VideoPlayer = (spec) => {
   if (spec.options.resizer !== false) {
     that.resizer = L.ResizeSensor(that.container, that.resize);
 
-    that.resize();
+    that.Logger();
   }
 
   // Bottom Bar

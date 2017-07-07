@@ -10,13 +10,15 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     libraryExport: 'default',
     library: 'Erizo',
+    libraryTarget: 'umd',
   },
   module: {
     rules: [
       {
-        test: /(.*lib.*\.js)|(.*L\..*\.js)/,
+        test: /(.*lib.*adapter.*\.js)|(.*L\..*\.js)/,
         use: ['script-loader'],
       },
     ],
+    noParse: /^.*socket.io.*/,
   },
 };

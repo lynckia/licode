@@ -1,6 +1,7 @@
-/* global L, RTCSessionDescription, RTCIceCandidate, RTCPeerConnection */
+/* global RTCSessionDescription, RTCIceCandidate, RTCPeerConnection */
 
 import SdpHelpers from '../utils/SdpHelpers';
+import Logger from '../utils/Logger';
 
 const BaseStack = (specInput) => {
   const that = {};
@@ -8,7 +9,7 @@ const BaseStack = (specInput) => {
   let localDesc;
   let remoteDesc;
 
-  L.Logger.info('Starting Base stack', specBase);
+  Logger.info('Starting Base stack', specBase);
 
   that.pcConfig = {
     iceServers: [],
@@ -29,8 +30,8 @@ const BaseStack = (specInput) => {
   specBase.remoteDescriptionSet = false;
 
   that.mediaConstraints = {
-    offerToReceiveVideo: specBase.video,
-    offerToReceiveAudio: specBase.audio,
+    offerToReceiveVideo: (specBase.video !== undefined),
+    offerToReceiveAudio: (specBase.audio !== undefined),
   };
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
@@ -38,21 +39,21 @@ const BaseStack = (specInput) => {
   // Aux functions
 
   const errorCallback = (where, errorcb, message) => {
-    L.Logger.error('message:', message, 'in baseStack at', where);
+    Logger.error('message:', message, 'in baseStack at', where);
     if (errorcb !== undefined) {
       errorcb('error');
     }
   };
 
   const successCallback = (message) => {
-    L.Logger.info('Success in BaseStack', message);
+    Logger.info('Success in BaseStack', message);
   };
 
   const onIceCandidate = (event) => {
     let candidateObject = {};
     const candidate = event.candidate;
     if (!candidate) {
-      L.Logger.info('Gathered all candidates. Sending END candidate');
+      Logger.info('Gathered all candidates. Sending END candidate');
       candidateObject = {
         sdpMLineIndex: -1,
         sdpMid: 'end',
@@ -74,7 +75,7 @@ const BaseStack = (specInput) => {
       specBase.callback({ type: 'candidate', candidate: candidateObject });
     } else {
       specBase.localCandidates.push(candidateObject);
-      L.Logger.info('Storing candidate: ', specBase.localCandidates.length, candidateObject);
+      Logger.info('Storing candidate: ', specBase.localCandidates.length, candidateObject);
     }
   };
 
@@ -97,7 +98,7 @@ const BaseStack = (specInput) => {
       type: localDesc.type,
       sdp: localDesc.sdp,
     });
-    L.Logger.info('Setting local description p2p', localDesc);
+    Logger.info('Setting local description p2p', localDesc);
     that.peerConnection.setLocalDescription(localDesc).then(successCallback)
     .catch(errorCallback);
   };
@@ -115,9 +116,9 @@ const BaseStack = (specInput) => {
 
   const processAnswer = (message) => {
     const msg = message;
-    L.Logger.info('Set remote and local description');
-    L.Logger.debug('Remote Description', msg.sdp);
-    L.Logger.debug('Local Description', localDesc.sdp);
+    Logger.info('Set remote and local description');
+    Logger.debug('Remote Description', msg.sdp);
+    Logger.debug('Local Description', localDesc.sdp);
 
     msg.sdp = SdpHelpers.setMaxBW(msg.sdp, specBase);
 
@@ -125,13 +126,13 @@ const BaseStack = (specInput) => {
     that.peerConnection.setLocalDescription(localDesc).then(() => {
       that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
         specBase.remoteDescriptionSet = true;
-        L.Logger.info('Candidates to be added: ', specBase.remoteCandidates.length,
+        Logger.info('Candidates to be added: ', specBase.remoteCandidates.length,
                       specBase.remoteCandidates);
         while (specBase.remoteCandidates.length > 0) {
           // IMPORTANT: preserve ordering of candidates
           that.peerConnection.addIceCandidate(specBase.remoteCandidates.shift());
         }
-        L.Logger.info('Local candidates to send:', specBase.localCandidates.length);
+        Logger.info('Local candidates to send:', specBase.localCandidates.length);
         while (specBase.localCandidates.length > 0) {
           // IMPORTANT: preserve ordering of candidates
           specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
@@ -162,7 +163,7 @@ const BaseStack = (specInput) => {
         specBase.remoteCandidates.push(candidate);
       }
     } catch (e) {
-      L.Logger.error('Error parsing candidate', msg.candidate);
+      Logger.error('Error parsing candidate', msg.candidate);
     }
   };
 
@@ -189,7 +190,7 @@ const BaseStack = (specInput) => {
   // public functions
 
   that.enableSimulcast = (sdpInput) => {
-    L.Logger.error('Simulcast not implemented');
+    Logger.error('Simulcast not implemented');
     return sdpInput;
   };
 
@@ -202,13 +203,13 @@ const BaseStack = (specInput) => {
     const config = configInput;
     if (config.maxVideoBW || config.maxAudioBW) {
       if (config.maxVideoBW) {
-        L.Logger.debug('Maxvideo Requested:', config.maxVideoBW,
+        Logger.debug('Maxvideo Requested:', config.maxVideoBW,
                                 'limit:', specBase.limitMaxVideoBW);
         if (config.maxVideoBW > specBase.limitMaxVideoBW) {
           config.maxVideoBW = specBase.limitMaxVideoBW;
         }
         specBase.maxVideoBW = config.maxVideoBW;
-        L.Logger.debug('Result', specBase.maxVideoBW);
+        Logger.debug('Result', specBase.maxVideoBW);
       }
       if (config.maxAudioBW) {
         if (config.maxAudioBW > specBase.limitMaxAudioBW) {
@@ -219,7 +220,7 @@ const BaseStack = (specInput) => {
 
       localDesc.sdp = SdpHelpers.setMaxBW(localDesc.sdp, specBase);
       if (config.Sdp || config.maxAudioBW) {
-        L.Logger.debug('Updating with SDP renegotiation', specBase.maxVideoBW, specBase.maxAudioBW);
+        Logger.debug('Updating with SDP renegotiation', specBase.maxVideoBW, specBase.maxAudioBW);
         that.peerConnection.setLocalDescription(localDesc).then(() => {
           remoteDesc.sdp = SdpHelpers.setMaxBW(remoteDesc.sdp, specBase);
           that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc))
@@ -229,7 +230,7 @@ const BaseStack = (specInput) => {
           }).catch(errorCallback.bind(null, 'updateSpec', undefined));
         }).catch(errorCallback.bind(null, 'updateSpec', callback));
       } else {
-        L.Logger.debug('Updating without SDP renegotiation, ' +
+        Logger.debug('Updating without SDP renegotiation, ' +
                                 'newVideoBW:', specBase.maxVideoBW,
                                 'newAudioBW:', specBase.maxAudioBW);
         specBase.callback({ type: 'updatestream', sdp: localDesc.sdp });
@@ -237,9 +238,9 @@ const BaseStack = (specInput) => {
     }
     if (config.minVideoBW || (config.slideShowMode !== undefined) ||
             (config.muteStream !== undefined) || (config.qualityLayer !== undefined)) {
-      L.Logger.debug('MinVideo Changed to ', config.minVideoBW);
-      L.Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
-      L.Logger.debug('muteStream changed to ', config.muteStream);
+      Logger.debug('MinVideo Changed to ', config.minVideoBW);
+      Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
+      Logger.debug('muteStream changed to ', config.muteStream);
       specBase.callback({ type: 'updatestream', config });
     }
   };
@@ -251,7 +252,7 @@ const BaseStack = (specInput) => {
         offerToReceiveAudio: false,
       };
     }
-    L.Logger.debug('Creating offer', that.mediaConstraints);
+    Logger.debug('Creating offer', that.mediaConstraints);
     that.peerConnection.createOffer(that.mediaConstraints)
     .then(setLocalDescForOffer.bind(null, isSubscribe))
     .catch(errorCallback.bind(null, 'Create Offer', undefined));

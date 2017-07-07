@@ -1,4 +1,5 @@
-/* global L */
+/* global */
+import Logger from './utils/Logger';
 
 /*
  * Class EventDispatcher provides event handling to sub-classes.
@@ -35,7 +36,7 @@ const EventDispatcher = () => {
     if (!event || !event.type) {
       throw new Error('Undefined event');
     }
-    L.Logger.debug(`Event: ${event.type}`);
+    Logger.debug(`Event: ${event.type}`);
     const listeners = dispatcher.eventListeners[event.type] || [];
     for (let i = 0; i < listeners.length; i += 1) {
       listeners[i](event);

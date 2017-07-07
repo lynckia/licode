@@ -6,7 +6,8 @@ var XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest,
     Erizo = require('./erizofc'),
     NativeStack = require ('./NativeStack.js');
 
-Erizo.Connection = NativeStack.FakeConnection;
+const newIo = require('socket.io-client');
+const fakeConnection = NativeStack;
 var logger = require('./logger').logger;
 var log = logger.getLogger('ErizoSimpleNativeConnection');
 
@@ -70,7 +71,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback, error){
                 error('Could not get token from nuve in ' + spec.serverUrl);
                 return;
             }
-            room = Erizo.Room({token: token});
+            room = Erizo.Room(newIo, fakeConnection, {token: token});
 
             room.addEventListener('room-connected', function(roomEvent) {
                 log.info('Connected to room');

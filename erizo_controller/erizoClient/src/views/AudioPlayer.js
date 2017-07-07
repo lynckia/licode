@@ -1,7 +1,8 @@
-/* global window, document, L, webkitURL*/
+/* global window, document, webkitURL*/
 
 import View from './View';
 import Bar from './Bar';
+import Logger from '../utils/Logger';
 
 /*
  * AudioPlayer represents a Licode Audio component that shows either a local or a remote Audio.
@@ -26,7 +27,7 @@ const AudioPlayer = (spec) => {
   that.elementID = spec.elementID;
 
 
-  L.Logger.debug(`Creating URL from stream ${that.stream}`);
+  Logger.debug(`Creating URL from stream ${that.stream}`);
   const myURL = window.URL || webkitURL;
   that.streamUrl = myURL.createObjectURL(that.stream);
 

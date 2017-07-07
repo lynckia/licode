@@ -1,12 +1,9 @@
 const gulp = require('gulp');
-const header = require('gulp-header');
 const sourcemaps = require('gulp-sourcemaps');
 const closureCompiler = require('google-closure-compiler-js').gulp();
 
-
 const runSequence = require('run-sequence');
 const del = require('del');
-const rename = require('gulp-rename');
 
 const eslint = require('gulp-eslint');
 
@@ -45,30 +42,37 @@ gulp.task('compile', () => {
         languageIn: 'ECMASCRIPT6',
         languageOut: 'ECMASCRIPT5',
         jsOutputFile: 'erizo.js',
+        createSourceMap: true,
       }))
       .pipe(sourcemaps.write('/')) // gulp-sourcemaps automatically adds the sourcemap url comment
       .pipe(gulp.dest(config.paths.distProduction));
 });
 
+gulp.task('compileErizofc', () => {
+  return gulp.src(config.paths.erizofcBundle)
+  .pipe(gulp.dest(config.paths.distProduction));
+});
+
 gulp.task('bundle', () => {
-  gulp.src(config.paths.entry)
+  return gulp.src(config.paths.entry)
   .pipe(webpackGulp(webpackConfig, webpack))
   .on('error', anError => console.log('An error ', anError))
   .pipe(gulp.dest(config.paths.distDebug))
   .on('error', anError => console.log('An error ', anError));
-
-  return gulp.src(config.paths.erizofcBundle)
-  .pipe(header('var io = require(\'socket.io-client\');'))
-  .pipe(gulp.dest(config.paths.distProduction));
 });
 
 gulp.task('distBasicExample', () => {
-  gulp.src(`${config.paths.distProduction}/**/*erizo.js*`)
+  return gulp.src(`${config.paths.distProduction}/**/*erizo.js*`)
+  .pipe(gulp.dest(config.paths.basicExampleDist));
+});
+
+gulp.task('distBasicExampleDebug', () => {
+  return gulp.src(`${config.paths.distDebug}/**/*erizo.js*`)
   .pipe(gulp.dest(config.paths.basicExampleDist));
 });
 
 gulp.task('distSpine', () => {
-  gulp.src(`${config.paths.distProduction}/**/*erizofc.js*`)
+  return gulp.src(`${config.paths.distProduction}/**/*erizofc.js*`)
   .pipe(gulp.dest(config.paths.spineDist));
 });
 
@@ -80,10 +84,10 @@ gulp.task('watch', () => {
   const watcher = gulp.watch('src/**/*.js');
   watcher.on('change', (event) => {
     console.log('File ' + event.path + ' was ' + event.type + ', running tasks...');
-    runSequence('lint', 'bundle', 'compile', 'dist');
+    runSequence('default');
   });
 });
 
 gulp.task('default', () => {
-  runSequence('lint', 'bundle', 'compile', 'dist');
+  runSequence('lint', 'bundle', 'compileErizofc', 'compile', 'dist');
 });

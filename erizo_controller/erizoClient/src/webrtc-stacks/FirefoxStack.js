@@ -1,8 +1,8 @@
-/* global L*/
+import Logger from '../utils/Logger';
 import BaseStack from './BaseStack';
 
 const FirefoxStack = (specInput) => {
-  L.Logger.info('Starting Firefox stack');
+  Logger.info('Starting Firefox stack');
   const that = BaseStack(specInput);
   const spec = specInput;
 

@@ -1,15 +1,16 @@
-/* global L, document*/
+/* global document*/
 
 import { EventDispatcher, StreamEvent } from './Events';
-import { GetUserMedia } from './Connection';
+import Connection from './Connection';
 import VideoPlayer from './views/VideoPlayer';
 import AudioPlayer from './views/AudioPlayer';
+import Logger from './utils/Logger';
 
 /*
  * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC
  * stream and identify the stream and where it should be drawn.
  */
-const Stream = (specInput) => {
+const Stream = (altConnection, specInput) => {
   const spec = specInput;
   const that = EventDispatcher(spec);
 
@@ -28,6 +29,7 @@ const Stream = (specInput) => {
   that.desktopStreamId = spec.desktopStreamId;
   that.audioMuted = false;
   that.videoMuted = false;
+  that.Connection = altConnection === undefined ? Connection : altConnection;
 
   if (that.videoSize !== undefined &&
         (!(that.videoSize instanceof Array) ||
@@ -59,7 +61,7 @@ const Stream = (specInput) => {
       that.emit(StreamEvent({ type: 'internal-set-attributes', stream: that, attrs }));
       return;
     }
-    L.Logger.error('Failed to set attributes data. This Stream object has not been published.');
+    Logger.error('Failed to set attributes data. This Stream object has not been published.');
   };
 
   that.updateLocalAttributes = (attrs) => {
@@ -88,7 +90,7 @@ const Stream = (specInput) => {
       that.emit(StreamEvent({ type: 'internal-send-data', stream: that, msg }));
       return;
     }
-    L.Logger.error('Failed to send data. This Stream object has not been published.');
+    Logger.error('Failed to send data. This Stream object has not been published.');
   };
 
   // Initializes the stream and tries to retrieve a stream from local video and audio
@@ -96,7 +98,7 @@ const Stream = (specInput) => {
   that.init = () => {
     try {
       if ((spec.audio || spec.video || spec.screen) && spec.url === undefined) {
-        L.Logger.info('Requested access to local media');
+        Logger.info('Requested access to local media');
         let videoOpt = spec.video;
         if (videoOpt === true || spec.screen === true) {
           videoOpt = videoOpt === true ? {} : videoOpt;
@@ -127,16 +129,16 @@ const Stream = (specInput) => {
           screen: spec.screen,
           extensionId: that.extensionId,
           desktopStreamId: that.desktopStreamId };
-        GetUserMedia(opt, (stream) => {
+        that.Connection.GetUserMedia(opt, (stream) => {
             // navigator.webkitGetUserMedia("audio, video", (stream) => {
 
-          L.Logger.info('User has granted access to local media.');
+          Logger.info('User has granted access to local media.');
           that.stream = stream;
 
           that.dispatchEvent(StreamEvent({ type: 'access-accepted' }));
 
           that.stream.getTracks().forEach((trackInput) => {
-            L.Logger.info('getTracks', trackInput);
+            Logger.info('getTracks', trackInput);
             const track = trackInput;
             track.onended = () => {
               that.stream.getTracks().forEach((secondTrackInput) => {
@@ -150,7 +152,7 @@ const Stream = (specInput) => {
             };
           });
         }, (error) => {
-          L.Logger.error(`Failed to get access to local media. Error code was ${
+          Logger.error(`Failed to get access to local media. Error code was ${
                            error.code}.`);
           const streamEvent = StreamEvent({ type: 'access-denied', msg: error });
           that.dispatchEvent(streamEvent);
@@ -160,7 +162,7 @@ const Stream = (specInput) => {
         that.dispatchEvent(streamEvent);
       }
     } catch (e) {
-      L.Logger.error(`Failed to get access to local media. Error was ${e}.`);
+      Logger.error(`Failed to get access to local media. Error was ${e}.`);
       const streamEvent = StreamEvent({ type: 'access-denied', msg: e });
       that.dispatchEvent(streamEvent);
     }
@@ -281,26 +283,26 @@ const Stream = (specInput) => {
     // TODO: Check for any incompatible options
     if (isUpdate === true) {  // We are updating the stream
       if (config.video || config.audio || config.screen) {
-        L.Logger.warning('Cannot update type of subscription');
+        Logger.warning('Cannot update type of subscription');
         config.video = undefined;
         config.audio = undefined;
         config.screen = undefined;
       }
     } else if (that.local === false) { // check what we can subscribe to
       if (config.video === true && that.hasVideo() === false) {
-        L.Logger.warning('Trying to subscribe to video when there is no ' +
+        Logger.warning('Trying to subscribe to video when there is no ' +
                                    'video, won\'t subscribe to video');
         config.video = false;
       }
       if (config.audio === true && that.hasAudio() === false) {
-        L.Logger.warning('Trying to subscribe to audio when there is no ' +
+        Logger.warning('Trying to subscribe to audio when there is no ' +
                                    'audio, won\'t subscribe to audio');
         config.audio = false;
       }
     }
     if (that.local === false) {
       if (!that.hasVideo() && (config.slideShowMode === true)) {
-        L.Logger.warning('Cannot enable slideShowMode if it is not a video ' +
+        Logger.warning('Cannot enable slideShowMode if it is not a video ' +
                                  'subscription, please check your parameters');
         config.slideShowMode = false;
       }
@@ -309,7 +311,7 @@ const Stream = (specInput) => {
 
   const muteStream = (callback = () => {}) => {
     if (that.room && that.room.p2p) {
-      L.Logger.warning('muteAudio/muteVideo are not implemented in p2p streams');
+      Logger.warning('muteAudio/muteVideo are not implemented in p2p streams');
       callback('error');
       return;
     }
@@ -337,7 +339,7 @@ const Stream = (specInput) => {
   // eslint-disable-next-line no-underscore-dangle
   that._setStaticQualityLayer = (spatialLayer, temporalLayer, callback = () => {}) => {
     if (that.room && that.room.p2p) {
-      L.Logger.warning('setStaticQualityLayer is not implemented in p2p streams');
+      Logger.warning('setStaticQualityLayer is not implemented in p2p streams');
       callback('error');
       return;
     }
@@ -349,7 +351,7 @@ const Stream = (specInput) => {
   // eslint-disable-next-line no-underscore-dangle
   that._setDynamicQualityLayer = (callback) => {
     if (that.room && that.room.p2p) {
-      L.Logger.warning('setDynamicQualityLayer is not implemented in p2p streams');
+      Logger.warning('setDynamicQualityLayer is not implemented in p2p streams');
       callback('error');
       return;
     }

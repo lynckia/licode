@@ -1,4 +1,7 @@
-/* global io, L*/
+/* global*/
+
+import io from '../lib/socket.io';
+import Logger from './utils/Logger';
 
 import { EventDispatcher, LicodeEvent } from './Events';
 
@@ -12,7 +15,7 @@ const SocketEvent = (type, specInput) => {
  * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC
  * stream and identify the stream and where it should be drawn.
  */
-const Socket = () => {
+const Socket = (newIo) => {
   const that = EventDispatcher();
   const defaultCallback = () => {};
 
@@ -20,6 +23,7 @@ const Socket = () => {
   that.DISCONNECTED = Symbol('disconnected');
 
   that.state = that.DISCONNECTED;
+  that.IO = newIo === undefined ? io : newIo;
 
   let socket;
 
@@ -35,7 +39,7 @@ const Socket = () => {
       transports: ['websocket'],
       rejectUnauthorized: false,
     };
-    socket = io.connect(token.host, options);
+    socket = that.IO.connect(token.host, options);
 
     socket.on('onAddStream', emit.bind(that, 'onAddStream'));
 
@@ -82,7 +86,7 @@ const Socket = () => {
   // It sends a SDP message to the server using socket.io
   that.sendSDP = (type, options, sdp, callback = defaultCallback) => {
     if (that.state === that.DISCONNECTED) {
-      L.Logger.warning('Trying to send a message over a disconnected Socket');
+      Logger.warning('Trying to send a message over a disconnected Socket');
       return;
     }
     socket.emit(type, options, sdp, (response, respCallback) => {

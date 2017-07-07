@@ -1,10 +1,9 @@
-/* global L*/
-
 import BaseStack from './BaseStack';
 import SdpHelpers from './../utils/SdpHelpers';
+import Logger from '../utils/Logger';
 
 const ChromeStableStack = (specInput) => {
-  L.Logger.info('Starting Chrome stable stack', specInput);
+  Logger.info('Starting Chrome stable stack', specInput);
   const spec = specInput;
   const that = BaseStack(specInput);
   const defaultSimulcastSpatialLayers = 2;
