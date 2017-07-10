@@ -248,7 +248,7 @@ L.ElementQueries = function ElementQueries() {
        * to all elements with element query rules..
        */
   this.init = () => {
-    var styleSheets = document.styleSheets || [];
+    const styleSheets = document.styleSheets || [];
     for (let i = 0, j = styleSheets.length; i < j; i += 1) {
       readRules(styleSheets[i].cssText ||
                         styleSheets[i].cssRules ||
