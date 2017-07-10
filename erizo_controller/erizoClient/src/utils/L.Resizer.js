@@ -186,7 +186,7 @@ L.ElementQueries = function ElementQueries() {
       throw new Error('No document.querySelectorAll, jQuery or Mootools\'s $$ found.');
     }
 
-    const elements = query(selector);
+    const elements = query(selector) || [];
     for (let i = 0, j = elements.length; i < j; i += 1) {
       elements[i] = setupElement(elements[i], {
         mode,
@@ -216,7 +216,7 @@ L.ElementQueries = function ElementQueries() {
        */
   function readRules(originalRules) {
     let selector = '';
-    let rules;
+    let rules = [];
     if (!originalRules) {
       return;
     }
@@ -248,10 +248,11 @@ L.ElementQueries = function ElementQueries() {
        * to all elements with element query rules..
        */
   this.init = () => {
-    for (let i = 0, j = document.styleSheets.length; i < j; i += 1) {
-      readRules(document.styleSheets[i].cssText ||
-                        document.styleSheets[i].cssRules ||
-                        document.styleSheets[i].rules);
+    var styleSheets = document.styleSheets || [];
+    for (let i = 0, j = styleSheets.length; i < j; i += 1) {
+      readRules(styleSheets[i].cssText ||
+                        styleSheets[i].cssRules ||
+                        styleSheets[i].rules);
     }
   };
 };
