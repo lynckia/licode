@@ -18,7 +18,9 @@ QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
 void QualityManager::enable() {
   ELOG_DEBUG("message: Enabling QualityManager");
   enabled_ = true;
-  setPadding(true);
+  if (!forced_layers_) {
+    setPadding(true);
+  }
 }
 
 void QualityManager::disable() {
