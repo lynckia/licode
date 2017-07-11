@@ -95,7 +95,8 @@ install_brew_deps(){
   brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils
   install_nvm_node
   nvm use
-  npm install -g node-gyp
+  npm install -y -g node-gyp gulp-cli
+  npm install -y webpack gulp gulp-eslint@3 run-sequence webpack-stream google-closure-compiler-js del gulp-sourcemaps script-loader expose-loader
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew install rabbitmq mongodb
   fi

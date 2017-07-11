@@ -1,13 +1,16 @@
-/* global window, document, L, webkitURL, Erizo*/
-this.Erizo = this.Erizo || {};
+/* global window, document, webkitURL, L*/
+
+import View from './View';
+import Bar from './Bar';
+import Logger from '../utils/Logger';
 
 /*
  * VideoPlayer represents a Licode video component that shows either a local or a remote video.
  * Ex.: var player = VideoPlayer({id: id, stream: stream, elementID: elementID});
  * A VideoPlayer is also a View component.
  */
-Erizo.VideoPlayer = (spec) => {
-  const that = Erizo.View({});
+const VideoPlayer = (spec) => {
+  const that = View({});
 
   // Variables
 
@@ -51,11 +54,11 @@ Erizo.VideoPlayer = (spec) => {
   // It will stop the VideoPlayer and remove it from the HTML
   that.destroy = () => {
     that.video.pause();
-    delete that.resizer;
+    delete that.Loggerr;
     that.parentNode.removeChild(that.div);
   };
 
-  that.resize = () => {
+  that.Logger = () => {
     const width = that.container.offsetWidth;
     const height = that.container.offsetHeight;
 
@@ -73,7 +76,7 @@ Erizo.VideoPlayer = (spec) => {
       document.getElementById(key).value = unescape(value);
   });*/
 
-  L.Logger.debug(`Creating URL from stream ${that.stream}`);
+  Logger.debug(`Creating URL from stream ${that.stream}`);
   const myURL = window.URL || webkitURL;
   that.streamUrl = myURL.createObjectURL(that.stream);
 
@@ -129,12 +132,12 @@ Erizo.VideoPlayer = (spec) => {
   if (spec.options.resizer !== false) {
     that.resizer = L.ResizeSensor(that.container, that.resize);
 
-    that.resize();
+    that.Logger();
   }
 
   // Bottom Bar
   if (spec.options.bar !== false) {
-    that.bar = Erizo.Bar({ elementID: `player_${that.id}`,
+    that.bar = Bar({ elementID: `player_${that.id}`,
       id: that.id,
       stream: spec.stream,
       media: that.video,
@@ -151,3 +154,5 @@ Erizo.VideoPlayer = (spec) => {
 
   return that;
 };
+
+export default VideoPlayer;

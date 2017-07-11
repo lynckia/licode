@@ -1,9 +1,9 @@
-/* global L, Erizo*/
-this.Erizo = this.Erizo || {};
+import Logger from '../utils/Logger';
+import BaseStack from './BaseStack';
 
-Erizo.FirefoxStack = (specInput) => {
-  L.Logger.info('Starting Firefox stack');
-  const that = Erizo.BaseStack(specInput);
+const FirefoxStack = (specInput) => {
+  Logger.info('Starting Firefox stack');
+  const that = BaseStack(specInput);
   const spec = specInput;
 
   that.enableSimulcast = (sdp) => {
@@ -33,3 +33,5 @@ Erizo.FirefoxStack = (specInput) => {
   };
   return that;
 };
+
+export default FirefoxStack;
