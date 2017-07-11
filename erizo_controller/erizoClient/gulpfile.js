@@ -25,7 +25,7 @@ const config = {
 
 const tasks = ['clean', 'bundle', 'compile', 'dist'];
 const targets = ['erizo', 'erizofc'];
-const allTasks = [];
+const allTasks = ['lint'];
 
 
 const taskFunctions = {};
@@ -43,6 +43,11 @@ targets.forEach(
         });
       });
   });
+
+gulp.task('lint', () => {
+  return gulp.src(config.paths.js)
+  .pipe(plugins.eslint());
+});
 
 gulp.task('watch', () => {
   const watcher = gulp.watch('src/**/*.js');
