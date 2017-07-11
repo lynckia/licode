@@ -27,7 +27,7 @@ then
 fi
 
 nvm use
-npm install --loglevel error amqp express mongojs$MONGO_VERSION aws-sdk log4js node-getopt body-parser
+npm install --loglevel error amqp express mongojs$MONGO_VERSION aws-sdk log4js@1.0.1 node-getopt body-parser
 npm install --loglevel error -g google-closure-compiler-js
 echo [nuve] Done, node_modules installed
 
