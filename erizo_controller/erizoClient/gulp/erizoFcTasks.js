@@ -17,7 +17,6 @@ const erizoFcTasks = (gulp, plugins, config) => {
     .on('error', anError => console.log('An error ', anError));
 
   that.compile = () => {
-    console.log('Compiling erizoFc', erizoFcConfig.debug, erizoFcConfig.production);
     return gulp.src(`${erizoFcConfig.debug}/**/*.js`)
     .pipe(gulp.dest(erizoFcConfig.production));
   }
@@ -31,6 +30,6 @@ const erizoFcTasks = (gulp, plugins, config) => {
     { force: true });
 
   return that;
-}
+};
 
 module.exports = erizoFcTasks;

@@ -38,6 +38,6 @@ const erizoTasks = (gulp, plugins, config) => {
     { force: true });
 
   return that;
-}
+};
 
 module.exports = erizoTasks;
