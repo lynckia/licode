@@ -1,9 +1,6 @@
-/* global Erizo*/
-this.Erizo = this.Erizo || {};
+const SdpHelpers = {};
 
-Erizo.SdpHelpers = {};
-
-Erizo.SdpHelpers.addSim = (spatialLayers) => {
+SdpHelpers.addSim = (spatialLayers) => {
   let line = 'a=ssrc-group:SIM';
   spatialLayers.forEach((spatialLayerId) => {
     line += ` ${spatialLayerId}`;
@@ -11,10 +8,10 @@ Erizo.SdpHelpers.addSim = (spatialLayers) => {
   return `${line}\r\n`;
 };
 
-Erizo.SdpHelpers.addGroup = (spatialLayerId, spatialLayerIdRtx) =>
+SdpHelpers.addGroup = (spatialLayerId, spatialLayerIdRtx) =>
   `a=ssrc-group:FID ${spatialLayerId} ${spatialLayerIdRtx}\r\n`;
 
-Erizo.SdpHelpers.addSpatialLayer = (cname, msid, mslabel,
+SdpHelpers.addSpatialLayer = (cname, msid, mslabel,
   label, spatialLayerId, spatialLayerIdRtx) =>
   `a=ssrc:${spatialLayerId} cname:${cname}\r\n` +
   `a=ssrc:${spatialLayerId} msid:${msid}\r\n` +
@@ -25,7 +22,7 @@ Erizo.SdpHelpers.addSpatialLayer = (cname, msid, mslabel,
   `a=ssrc:${spatialLayerIdRtx} mslabel:${mslabel}\r\n` +
   `a=ssrc:${spatialLayerIdRtx} label:${label}\r\n`;
 
-Erizo.SdpHelpers.setMaxBW = (sdpInput, spec) => {
+SdpHelpers.setMaxBW = (sdpInput, spec) => {
   let r;
   let a;
   let sdp = sdpInput;
@@ -54,7 +51,7 @@ Erizo.SdpHelpers.setMaxBW = (sdpInput, spec) => {
   return sdp;
 };
 
-Erizo.SdpHelpers.enableOpusNacks = (sdpInput) => {
+SdpHelpers.enableOpusNacks = (sdpInput) => {
   let sdp = sdpInput;
   const sdpMatch = sdp.match(/a=rtpmap:(.*)opus.*\r\n/);
   if (sdpMatch !== null) {
@@ -64,3 +61,5 @@ Erizo.SdpHelpers.enableOpusNacks = (sdpInput) => {
 
   return sdp;
 };
+
+export default SdpHelpers;

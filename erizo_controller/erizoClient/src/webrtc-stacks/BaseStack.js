@@ -1,35 +1,37 @@
-/* global L, RTCSessionDescription, RTCIceCandidate, RTCPeerConnection Erizo*/
-this.Erizo = this.Erizo || {};
+/* global RTCSessionDescription, RTCIceCandidate, RTCPeerConnection */
 
-Erizo.BaseStack = (specInput) => {
+import SdpHelpers from '../utils/SdpHelpers';
+import Logger from '../utils/Logger';
+
+const BaseStack = (specInput) => {
   const that = {};
-  const spec = specInput;
+  const specBase = specInput;
   let localDesc;
   let remoteDesc;
 
-  L.Logger.info('Starting Chrome stable stack');
+  Logger.info('Starting Base stack', specBase);
 
   that.pcConfig = {
     iceServers: [],
   };
 
   that.con = {};
-  if (spec.iceServers !== undefined) {
-    that.pcConfig.iceServers = spec.iceServers;
+  if (specBase.iceServers !== undefined) {
+    that.pcConfig.iceServers = specBase.iceServers;
   }
-  if (spec.audio === undefined) {
-    spec.audio = true;
+  if (specBase.audio === undefined) {
+    specBase.audio = true;
   }
-  if (spec.video === undefined) {
-    spec.video = true;
+  if (specBase.video === undefined) {
+    specBase.video = true;
   }
-  spec.remoteCandidates = [];
-  spec.localCandidates = [];
-  spec.remoteDescriptionSet = false;
+  specBase.remoteCandidates = [];
+  specBase.localCandidates = [];
+  specBase.remoteDescriptionSet = false;
 
   that.mediaConstraints = {
-    offerToReceiveVideo: spec.video,
-    offerToReceiveAudio: spec.audio,
+    offerToReceiveVideo: (specBase.video !== undefined),
+    offerToReceiveAudio: (specBase.audio !== undefined),
   };
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
@@ -37,21 +39,21 @@ Erizo.BaseStack = (specInput) => {
   // Aux functions
 
   const errorCallback = (where, errorcb, message) => {
-    L.Logger.error('message:', message, 'in baseStack at', where);
+    Logger.error('message:', message, 'in baseStack at', where);
     if (errorcb !== undefined) {
       errorcb('error');
     }
   };
 
   const successCallback = (message) => {
-    L.Logger.info('Success in BaseStack', message);
+    Logger.info('Success in BaseStack', message);
   };
 
   const onIceCandidate = (event) => {
     let candidateObject = {};
     const candidate = event.candidate;
     if (!candidate) {
-      L.Logger.info('Gathered all candidates. Sending END candidate');
+      Logger.info('Gathered all candidates. Sending END candidate');
       candidateObject = {
         sdpMLineIndex: -1,
         sdpMid: 'end',
@@ -69,21 +71,21 @@ Erizo.BaseStack = (specInput) => {
       };
     }
 
-    if (spec.remoteDescriptionSet) {
-      spec.callback({ type: 'candidate', candidate: candidateObject });
+    if (specBase.remoteDescriptionSet) {
+      specBase.callback({ type: 'candidate', candidate: candidateObject });
     } else {
-      spec.localCandidates.push(candidateObject);
-      L.Logger.info('Storing candidate: ', spec.localCandidates.length, candidateObject);
+      specBase.localCandidates.push(candidateObject);
+      Logger.info('Storing candidate: ', specBase.localCandidates.length, candidateObject);
     }
   };
 
-  const setLocalDescForOfferp2p = (isSubscribe, sessionDescription) => {
+  const setLocalDescForOffer = (isSubscribe, sessionDescription) => {
     localDesc = sessionDescription;
     if (!isSubscribe) {
       localDesc.sdp = that.enableSimulcast(localDesc.sdp);
     }
-    localDesc.sdp = Erizo.SdpHelpers.setMaxBW(localDesc.sdp, spec);
-    spec.callback({
+    localDesc.sdp = SdpHelpers.setMaxBW(localDesc.sdp, specBase);
+    specBase.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,
     });
@@ -91,12 +93,12 @@ Erizo.BaseStack = (specInput) => {
 
   const setLocalDescForAnswerp2p = (sessionDescription) => {
     localDesc = sessionDescription;
-    localDesc.sdp = Erizo.SdpHelpers.setMaxBW(localDesc.sdp, spec);
-    spec.callback({
+    localDesc.sdp = SdpHelpers.setMaxBW(localDesc.sdp, specBase);
+    specBase.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,
     });
-    L.Logger.info('Setting local description p2p', localDesc);
+    Logger.info('Setting local description p2p', localDesc);
     that.peerConnection.setLocalDescription(localDesc).then(successCallback)
     .catch(errorCallback);
   };
@@ -104,36 +106,36 @@ Erizo.BaseStack = (specInput) => {
   const processOffer = (message) => {
     // Its an offer, we assume its p2p
     const msg = message;
-    msg.sdp = Erizo.SdpHelpers.setMaxBW(msg.sdp, spec);
+    msg.sdp = SdpHelpers.setMaxBW(msg.sdp, specBase);
     that.peerConnection.setRemoteDescription(msg).then(() => {
       that.peerConnection.createAnswer(that.mediaConstraints)
       .then(setLocalDescForAnswerp2p).catch(errorCallback.bind(null, 'createAnswer p2p', undefined));
-      spec.remoteDescriptionSet = true;
+      specBase.remoteDescriptionSet = true;
     }).catch(errorCallback.bind(null, 'process Offer', undefined));
   };
 
   const processAnswer = (message) => {
     const msg = message;
-    L.Logger.info('Set remote and local description');
-    L.Logger.debug('Remote Description', msg.sdp);
-    L.Logger.debug('Local Description', localDesc.sdp);
+    Logger.info('Set remote and local description');
+    Logger.debug('Remote Description', msg.sdp);
+    Logger.debug('Local Description', localDesc.sdp);
 
-    msg.sdp = Erizo.SdpHelpers.setMaxBW(msg.sdp, spec);
+    msg.sdp = SdpHelpers.setMaxBW(msg.sdp, specBase);
 
     remoteDesc = msg;
     that.peerConnection.setLocalDescription(localDesc).then(() => {
       that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
-        spec.remoteDescriptionSet = true;
-        L.Logger.info('Candidates to be added: ', spec.remoteCandidates.length,
-                      spec.remoteCandidates);
-        while (spec.remoteCandidates.length > 0) {
+        specBase.remoteDescriptionSet = true;
+        Logger.info('Candidates to be added: ', specBase.remoteCandidates.length,
+                      specBase.remoteCandidates);
+        while (specBase.remoteCandidates.length > 0) {
           // IMPORTANT: preserve ordering of candidates
-          that.peerConnection.addIceCandidate(spec.remoteCandidates.shift());
+          that.peerConnection.addIceCandidate(specBase.remoteCandidates.shift());
         }
-        L.Logger.info('Local candidates to send:', spec.localCandidates.length);
-        while (spec.localCandidates.length > 0) {
+        Logger.info('Local candidates to send:', specBase.localCandidates.length);
+        while (specBase.localCandidates.length > 0) {
           // IMPORTANT: preserve ordering of candidates
-          spec.callback({ type: 'candidate', candidate: spec.localCandidates.shift() });
+          specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
         }
       }).catch(errorCallback.bind(null, 'processAnswer', undefined));
     }).catch(errorCallback.bind(null, 'processAnswer', undefined));
@@ -155,13 +157,13 @@ Erizo.BaseStack = (specInput) => {
       obj.candidate = obj.candidate.replace(/a=/g, '');
       obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex, 10);
       const candidate = new RTCIceCandidate(obj);
-      if (spec.remoteDescriptionSet) {
+      if (specBase.remoteDescriptionSet) {
         that.peerConnection.addIceCandidate(candidate);
       } else {
-        spec.remoteCandidates.push(candidate);
+        specBase.remoteCandidates.push(candidate);
       }
     } catch (e) {
-      L.Logger.error('Error parsing candidate', msg.candidate);
+      Logger.error('Error parsing candidate', msg.candidate);
     }
   };
 
@@ -188,7 +190,7 @@ Erizo.BaseStack = (specInput) => {
   // public functions
 
   that.enableSimulcast = (sdpInput) => {
-    L.Logger.error('Simulcast not implemented');
+    Logger.error('Simulcast not implemented');
     return sdpInput;
   };
 
@@ -201,45 +203,45 @@ Erizo.BaseStack = (specInput) => {
     const config = configInput;
     if (config.maxVideoBW || config.maxAudioBW) {
       if (config.maxVideoBW) {
-        L.Logger.debug('Maxvideo Requested:', config.maxVideoBW,
-                                'limit:', spec.limitMaxVideoBW);
-        if (config.maxVideoBW > spec.limitMaxVideoBW) {
-          config.maxVideoBW = spec.limitMaxVideoBW;
+        Logger.debug('Maxvideo Requested:', config.maxVideoBW,
+                                'limit:', specBase.limitMaxVideoBW);
+        if (config.maxVideoBW > specBase.limitMaxVideoBW) {
+          config.maxVideoBW = specBase.limitMaxVideoBW;
         }
-        spec.maxVideoBW = config.maxVideoBW;
-        L.Logger.debug('Result', spec.maxVideoBW);
+        specBase.maxVideoBW = config.maxVideoBW;
+        Logger.debug('Result', specBase.maxVideoBW);
       }
       if (config.maxAudioBW) {
-        if (config.maxAudioBW > spec.limitMaxAudioBW) {
-          config.maxAudioBW = spec.limitMaxAudioBW;
+        if (config.maxAudioBW > specBase.limitMaxAudioBW) {
+          config.maxAudioBW = specBase.limitMaxAudioBW;
         }
-        spec.maxAudioBW = config.maxAudioBW;
+        specBase.maxAudioBW = config.maxAudioBW;
       }
 
-      localDesc.sdp = Erizo.SdpHelpers.setMaxBW(localDesc.sdp, spec);
+      localDesc.sdp = SdpHelpers.setMaxBW(localDesc.sdp, specBase);
       if (config.Sdp || config.maxAudioBW) {
-        L.Logger.debug('Updating with SDP renegotiation', spec.maxVideoBW, spec.maxAudioBW);
+        Logger.debug('Updating with SDP renegotiation', specBase.maxVideoBW, specBase.maxAudioBW);
         that.peerConnection.setLocalDescription(localDesc).then(() => {
-          remoteDesc.sdp = Erizo.SdpHelpers.setMaxBW(remoteDesc.sdp, spec);
+          remoteDesc.sdp = SdpHelpers.setMaxBW(remoteDesc.sdp, specBase);
           that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc))
           .then(() => {
-            spec.remoteDescriptionSet = true;
-            spec.callback({ type: 'updatestream', sdp: localDesc.sdp });
+            specBase.remoteDescriptionSet = true;
+            specBase.callback({ type: 'updatestream', sdp: localDesc.sdp });
           }).catch(errorCallback.bind(null, 'updateSpec', undefined));
         }).catch(errorCallback.bind(null, 'updateSpec', callback));
       } else {
-        L.Logger.debug('Updating without SDP renegotiation, ' +
-                                'newVideoBW:', spec.maxVideoBW,
-                                'newAudioBW:', spec.maxAudioBW);
-        spec.callback({ type: 'updatestream', sdp: localDesc.sdp });
+        Logger.debug('Updating without SDP renegotiation, ' +
+                                'newVideoBW:', specBase.maxVideoBW,
+                                'newAudioBW:', specBase.maxAudioBW);
+        specBase.callback({ type: 'updatestream', sdp: localDesc.sdp });
       }
     }
     if (config.minVideoBW || (config.slideShowMode !== undefined) ||
             (config.muteStream !== undefined) || (config.qualityLayer !== undefined)) {
-      L.Logger.debug('MinVideo Changed to ', config.minVideoBW);
-      L.Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
-      L.Logger.debug('muteStream changed to ', config.muteStream);
-      spec.callback({ type: 'updatestream', config });
+      Logger.debug('MinVideo Changed to ', config.minVideoBW);
+      Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
+      Logger.debug('muteStream changed to ', config.muteStream);
+      specBase.callback({ type: 'updatestream', config });
     }
   };
 
@@ -250,9 +252,9 @@ Erizo.BaseStack = (specInput) => {
         offerToReceiveAudio: false,
       };
     }
-    L.Logger.debug('Creating offer', that.mediaConstraints);
+    Logger.debug('Creating offer', that.mediaConstraints);
     that.peerConnection.createOffer(that.mediaConstraints)
-    .then(setLocalDescForOfferp2p.bind(null, isSubscribe))
+    .then(setLocalDescForOffer.bind(null, isSubscribe))
     .catch(errorCallback.bind(null, 'Create Offer', undefined));
   };
 
@@ -272,3 +274,5 @@ Erizo.BaseStack = (specInput) => {
 
   return that;
 };
+
+export default BaseStack;

@@ -15,9 +15,11 @@
     "jshint": "^2.9.3",
     "mocha": "^3.1.2",
     "mock-require": "^1.3.0",
+    "script-loader": "^0.7.0",
     "sinon": "^1.17.6",
     "supertest": "^2.0.0",
     "vows": "0.6.x",
+    "webpack": "^3.0.0",
     "winston": "~0.7.2"
   },
   "contributors": [
@@ -35,8 +37,9 @@
     }
   ],
   "scripts": {
+    "buildClient": "cd erizo_controller/erizoClient && gulp",
     "test": " ./node_modules/mocha/bin/mocha nuve/nuveAPI/test/* erizo_controller/test/*",
-    "lintClient": "./node_modules/.bin/eslint erizo_controller/erizoClient/src/",
+    "lintClient": "cd erizo_controller/erizoClient && gulp lint",
     "lint": "./node_modules/jshint/bin/jshint erizo_controller/erizoAgent/ erizo_controller/erizoController/ erizo_controller/erizoJS/ erizo_controller/common/ erizo_controller/test/ nuve/ extras/basic_example/ spine/"
   }
 }

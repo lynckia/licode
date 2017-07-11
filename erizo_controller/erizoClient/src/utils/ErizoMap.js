@@ -1,7 +1,6 @@
-/* global unescape, L */
-this.L = this.L || {};
+/* global unescape */
 
-L.Map = () => {
+const ErizoMap = () => {
   const that = {};
   const values = {};
 
@@ -30,3 +29,5 @@ L.Map = () => {
 
   return that;
 };
+
+export default ErizoMap;
