@@ -97,8 +97,10 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
 
       case 'chrome-stable':
         Logger.debug('Screen sharing in Chrome');
+        screenConfig = {};
         if (config.desktopStreamId) {
-          screenConfig.video = config.video || {};
+          screenConfig.video = config.video || { mandatory: {} };
+          screenConfig.video.mandatory = screenConfig.video.mandatory || {};
           screenConfig.video.mandatory.chromeMediaSource = 'desktop';
           screenConfig.video.mandatory.chromeMediaSourceId = config.desktopStreamId;
           getUserMedia(screenConfig, callback, error);
