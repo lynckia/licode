@@ -153,9 +153,9 @@ install_mediadeps(){
   sudo apt-get -qq install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./libav-11.1.tar.gz ]; then
-      curl -OL https://www.libav.org/releases/libav-11.1.tar.gz
-      tar -zxvf libav-11.1.tar.gz
+    if [ ! -f ./v11.1.tar.gz ]; then
+      curl -O -L https://github.com/libav/libav/archive/v11.1.tar.gz
+      tar -zxvf v11.1.tar.gz
       cd libav-11.1
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
       make -s V=0
@@ -176,9 +176,9 @@ install_mediadeps_nogpl(){
   sudo apt-get -qq install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./libav-11.1.tar.gz ]; then
-      curl -OL https://www.libav.org/releases/libav-11.1.tar.gz
-      tar -zxvf libav-11.1.tar.gz
+    if [ ! -f ./v11.1.tar.gz ]; then
+      curl -O -L https://github.com/libav/libav/archive/v11.1.tar.gz
+      tar -zxvf v11.1.tar.gz
       cd libav-11.1
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libopus
       make -s V=0
@@ -212,7 +212,7 @@ cleanup(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     rm -r libnice*
-    rm -r libav*
+    rm -r v11*
     rm -r openssl*
     rm -r opus*
     cd $CURRENT_DIR
