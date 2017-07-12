@@ -64,8 +64,9 @@ install_nvm_node() {
 install_apt_deps(){
   install_nvm_node
   nvm use
-  npm install -y -g node-gyp gulp-cli
-  npm install -y webpack gulp gulp-eslint@3 run-sequence webpack-stream google-closure-compiler-js del gulp-sourcemaps script-loader expose-loader
+  npm install
+  npm install -g node-gyp gulp-cli
+  npm install webpack gulp gulp-eslint@3 run-sequence webpack-stream google-closure-compiler-js del gulp-sourcemaps script-loader expose-loader
   sudo apt-get install -qq python-software-properties -y
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
