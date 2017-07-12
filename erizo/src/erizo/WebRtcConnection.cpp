@@ -173,8 +173,10 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     this->rtcp_processor_->setMaxVideoBW(remoteSdp_.videoBandwidth*1000);
   }
 
-  if (pipeline_initialized_)
+  if (pipeline_initialized_) {
+    pipeline_->notifyUpdate();
     return true;
+  }
 
 
   bundle_ = remoteSdp_.isBundle;

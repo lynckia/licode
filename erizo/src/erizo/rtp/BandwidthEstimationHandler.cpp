@@ -42,7 +42,7 @@ BandwidthEstimationHandler::BandwidthEstimationHandler(std::shared_ptr<RemoteBit
   picker_{picker},
   using_absolute_send_time_{false}, packets_since_absolute_send_time_{0},
   min_bitrate_bps_{kMinBitRateAllowed},
-  bitrate_{0}, last_send_bitrate_{0}, last_remb_time_{0},
+  bitrate_{0}, last_send_bitrate_{0}, max_video_bw_{300}, last_remb_time_{0},
   running_{false}, active_{true}, initialized_{false} {
     rtc::LogMessage::SetLogToStderr(false);
 }
@@ -56,10 +56,19 @@ void BandwidthEstimationHandler::disable() {
 }
 
 void BandwidthEstimationHandler::notifyUpdate() {
+  auto pipeline = getContext()->getPipelineShared();
+
+  if (pipeline) {
+    auto rtcp_processor = pipeline->getService<RtcpProcessor>();
+    if (rtcp_processor) {
+      max_video_bw_ = rtcp_processor->getMaxVideoBW();
+    }
+  }
+
   if (initialized_) {
     return;
   }
-  auto pipeline = getContext()->getPipelineShared();
+
   if (pipeline && !connection_) {
     connection_ = pipeline->getService<WebRtcConnection>().get();
   }
@@ -68,11 +77,12 @@ void BandwidthEstimationHandler::notifyUpdate() {
   }
   worker_ = connection_->getWorker();
   stats_ = pipeline->getService<Stats>();
-  RtpExtensionProcessor& processor_ = connection_->getRtpExtensionProcessor();
-  if (processor_.getVideoExtensionMap().size() == 0) {
+  RtpExtensionProcessor& ext_processor = connection_->getRtpExtensionProcessor();
+  if (ext_processor.getVideoExtensionMap().size() == 0) {
     return;
   }
-  updateExtensionMaps(processor_.getVideoExtensionMap(), processor_.getAudioExtensionMap());
+  updateExtensionMaps(ext_processor.getVideoExtensionMap(), ext_processor.getAudioExtensionMap());
+
   pickEstimator();
   initialized_ = true;
 }
@@ -210,7 +220,9 @@ void BandwidthEstimationHandler::sendREMBPacket() {
   //  todo(pedro) figure out which sourceSSRC to use here
   remb_packet_.setSourceSSRC(connection_->getVideoSourceSSRC());
   remb_packet_.setLength(5);
-  remb_packet_.setREMBBitRate(bitrate_);
+  uint32_t capped_bitrate = max_video_bw_ > 0 ? std::min(max_video_bw_, bitrate_) : bitrate_;
+  ELOG_DEBUG("Bitrates min(%u,%u) = %u", bitrate_, max_video_bw_, capped_bitrate);
+  remb_packet_.setREMBBitRate(capped_bitrate);
   remb_packet_.setREMBNumSSRC(1);
   remb_packet_.setREMBFeedSSRC(connection_->getVideoSourceSSRC());
   int remb_length = (remb_packet_.getLength() + 1) * 4;
