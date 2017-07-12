@@ -56,10 +56,19 @@ void BandwidthEstimationHandler::disable() {
 }
 
 void BandwidthEstimationHandler::notifyUpdate() {
+  auto pipeline = getContext()->getPipelineShared();
+
+  if (pipeline) {
+    auto rtcp_processor = pipeline->getService<RtcpProcessor>();
+    if (rtcp_processor) {
+      max_video_bw_ = rtcp_processor->getMaxVideoBW();
+    }
+  }
+
   if (initialized_) {
     return;
   }
-  auto pipeline = getContext()->getPipelineShared();
+
   if (pipeline && !connection_) {
     connection_ = pipeline->getService<WebRtcConnection>().get();
   }
@@ -74,8 +83,6 @@ void BandwidthEstimationHandler::notifyUpdate() {
   }
   updateExtensionMaps(ext_processor.getVideoExtensionMap(), ext_processor.getAudioExtensionMap());
 
-  auto rtcp_processor = pipeline->getService<RtcpProcessor>();
-  max_video_bw_ = rtcp_processor->getMaxVideoBW();
   pickEstimator();
   initialized_ = true;
 }
@@ -213,7 +220,7 @@ void BandwidthEstimationHandler::sendREMBPacket() {
   //  todo(pedro) figure out which sourceSSRC to use here
   remb_packet_.setSourceSSRC(connection_->getVideoSourceSSRC());
   remb_packet_.setLength(5);
-  uint32_t capped_bitrate = std::min(max_video_bw_, bitrate_);
+  uint32_t capped_bitrate = max_video_bw_ > 0 ? std::min(max_video_bw_, bitrate_) : bitrate_;
   ELOG_DEBUG("Bitrates min(%u,%u) = %u", bitrate_, max_video_bw_, capped_bitrate);
   remb_packet_.setREMBBitRate(capped_bitrate);
   remb_packet_.setREMBNumSSRC(1);

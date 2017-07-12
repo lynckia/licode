@@ -92,3 +92,22 @@ TEST_F(BandwidthEstimationHandlerTest, shouldSendRembPacketWithEstimatedBitrate)
   EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RembHasBitrateValue(kArbitraryBitrate))).Times(1);
   picker->observer_->OnReceiveBitrateChanged(std::vector<uint32_t>(), kArbitraryBitrate);
 }
+
+TEST_F(BandwidthEstimationHandlerTest, shouldSendRembPacketWithCappedBitrate) {
+  uint32_t kArbitraryBitrate = 100000;
+  uint32_t kArbitraryCappedBitrate = kArbitraryBitrate - 100;
+  auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+
+  EXPECT_CALL(estimator, Process());
+  EXPECT_CALL(estimator, TimeUntilNextProcess()).WillRepeatedly(Return(1000));
+  EXPECT_CALL(estimator, IncomingPacket(_, _, _));
+  EXPECT_CALL(*reader.get(), read(_, _)).
+    With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+  EXPECT_CALL(*processor.get(), getMaxVideoBW()).WillRepeatedly(Return(kArbitraryCappedBitrate));
+  pipeline->notifyUpdate();
+  pipeline->read(packet);
+
+  EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::RembHasBitrateValue(kArbitraryCappedBitrate))).Times(1);
+
+  picker->observer_->OnReceiveBitrateChanged(std::vector<uint32_t>(), kArbitraryBitrate);
+}
