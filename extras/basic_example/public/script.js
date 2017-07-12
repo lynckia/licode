@@ -37,13 +37,12 @@ function toggleSlideShowMode() {  // jshint ignore:line
       console.log('SlideShowMode changed', evt);
   };
   slideShowMode = !slideShowMode;
-  for (var index in streams) {
-    var stream = streams[index];
+  streams.forEach(function (stream) {
     if (localStream.getID() !== stream.getID()) {
       console.log('Updating config');
       stream.updateConfiguration({slideShowMode: slideShowMode}, cb);
     }
-  }
+  });
 }
 
 window.onload = function () {
@@ -149,7 +148,7 @@ window.onload = function () {
       div.setAttribute('style', 'width: 320px; height: 240px; float:left');
       div.setAttribute('id', 'myVideo');
       document.getElementById('videoContainer').appendChild(div);
-      
+
       localStream.addEventListener('access-accepted', function () {
         room.connect();
         localStream.show('myVideo');
