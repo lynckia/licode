@@ -10,8 +10,10 @@ jobs:
 
       - setup_remote_docker
 
+      # use a primary image that already has Docker (recommended)
+      # or install it during a build like we do here
       - run:
-          name: Install Docker Client
+          name: Install Docker client
           command: |
             set -x
             VER="17.03.0-ce"
@@ -19,5 +21,6 @@ jobs:
             tar -xz -C /tmp -f /tmp/docker-$VER.tgz
             mv /tmp/docker/* /usr/bin
 
-       - run: |
-         docker build -t lynckia/licode:test
+      # build and push Docker image
+      - run: |
+          docker build -t lynckia/licode:test
