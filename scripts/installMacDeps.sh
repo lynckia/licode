@@ -95,7 +95,9 @@ install_brew_deps(){
   brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils
   install_nvm_node
   nvm use
-  npm install -g node-gyp
+  npm install
+  npm install -g node-gyp gulp-cli
+  npm install webpack gulp gulp-eslint@3 run-sequence webpack-stream google-closure-compiler-js del gulp-sourcemaps script-loader expose-loader
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew install rabbitmq mongodb
   fi
@@ -105,12 +107,12 @@ download_openssl() {
   OPENSSL_VERSION=$1
   OPENSSL_MAJOR="${OPENSSL_VERSION%?}"
   echo "Downloading OpenSSL from https://www.openssl.org/source/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
-  curl -O https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
+  curl -OL https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
   tar -zxvf openssl-$OPENSSL_VERSION.tar.gz || DOWNLOAD_SUCCESS=$?
   if [ "$DOWNLOAD_SUCCESS" -eq 1 ]
   then
     echo "Downloading OpenSSL from https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
-    curl -O https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz
+    curl -OL https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz
     tar -zxvf openssl-$OPENSSL_VERSION.tar.gz
   fi
 }
@@ -137,7 +139,7 @@ install_openssl(){
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
+    curl -OL https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
     tar -zxvf libnice-0.1.4.tar.gz
     cd libnice-0.1.4
     check_result $?
@@ -171,10 +173,10 @@ install_mediadeps(){
   brew install opus libvpx x264
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-11.6.tar.gz
-    tar -zxvf libav-11.6.tar.gz
+    curl -O -L https://github.com/libav/libav/archive/v11.6.tar.gz
+    tar -zxvf v11.6.tar.gz
     cd libav-11.6
-    curl -O https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
+    curl -OL https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
     patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch && \
     PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus && \
     make $FAST_MAKE -s V=0 && \
@@ -191,10 +193,10 @@ install_mediadeps_nogpl(){
   brew install opus libvpx
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O https://www.libav.org/releases/libav-11.6.tar.gz
-    tar -zxvf libav-11.6.tar.gz
+    curl -O -L https://github.com/libav/libav/archive/v11.6.tar.gz
+    tar -zxvf v11.6.tar.gz
     cd libav-11.6
-    curl -O https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
+    curl -OL https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
     patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch && \
     PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus && \
     make $FAST_MAKE -s V=0 && \

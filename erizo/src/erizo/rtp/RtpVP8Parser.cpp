@@ -155,6 +155,39 @@ int ParseVP8Extension(erizo::RTPPayloadVP8* vp8, const unsigned char* dataPtr, i
   return parsedBytes;
 }
 
+void RtpVP8Parser::setVP8PictureID(unsigned char* data, int data_length, int picture_id) {
+  unsigned char* data_ptr = data;
+
+  bool extension = (*data_ptr & 0x80) ? true : false;  // X bit
+
+  data_ptr++;
+  data_length--;
+
+  if (extension) {
+    if (data_length <= 0) {
+      return;
+    }
+    bool has_picture_id = (*data_ptr & 0x80) ? true : false;  // I bit
+    data_ptr++;
+    data_length--;
+
+    if (has_picture_id) {
+      if (data_length <= 0) {
+        return;
+      }
+      const uint16_t pic_id = static_cast<uint16_t> (picture_id);
+      int picture_id_len = (*data_ptr & 0x80) ? 2 : 1;
+      if (picture_id_len > data_length) return;
+      if (picture_id_len == 2) {
+        data_ptr[0] = 0x80 | ((pic_id >> 8) & 0x7F);
+        data_ptr[1] = pic_id & 0xFF;
+      } else if (picture_id_len == 1) {
+        data_ptr[0] = pic_id & 0x7F;
+      }
+    }
+  }
+}
+
 RTPPayloadVP8* RtpVP8Parser::parseVP8(unsigned char* data, int dataLength) {
   // ELOG_DEBUG("Parsing VP8 %d bytes", dataLength);
   RTPPayloadVP8* vp8 = new RTPPayloadVP8;  // = &parsedPacket.info.VP8;

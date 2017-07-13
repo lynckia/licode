@@ -173,8 +173,10 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
     this->rtcp_processor_->setMaxVideoBW(remoteSdp_.videoBandwidth*1000);
   }
 
-  if (pipeline_initialized_)
+  if (pipeline_initialized_) {
+    pipeline_->notifyUpdate();
     return true;
+  }
 
 
   bundle_ = remoteSdp_.isBundle;
@@ -305,11 +307,18 @@ bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex
   }
   MediaType theType;
   std::string theMid;
-  // Checking if it's the last candidate, only works in bundle.
+
+  // TODO(pedro) check if this works with video+audio and no bundle
   if (mLineIndex == -1) {
     ELOG_DEBUG("%s message: All candidates received", toLog());
-    videoTransport_->getIceConnection()->setReceivedLastCandidate(true);
+    if (videoTransport_) {
+      videoTransport_->getIceConnection()->setReceivedLastCandidate(true);
+    } else if (audioTransport_) {
+      audioTransport_->getIceConnection()->setReceivedLastCandidate(true);
+    }
+    return true;
   }
+
   if ((!mid.compare("video")) || (mLineIndex == remoteSdp_.videoSdpMLine)) {
     theType = VIDEO_TYPE;
     theMid = "video";
