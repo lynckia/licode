@@ -9,7 +9,7 @@ const Erizo = {
   LicodeEvent,
   RoomEvent,
   StreamEvent,
-  Stream
+  Stream,
 };
 
 export default Erizo;
