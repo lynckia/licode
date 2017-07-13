@@ -267,18 +267,6 @@ if (window.addEventListener) {
   window.attachEvent('onload', init);
 }
 
-  // Only used for the dirty checking, so the event callback count is limted
-  //  to max 1 call per fps per sensor.
-  // In combination with the event based resize sensor this saves cpu time,
-  // because the sensor is too fast and
-  // would generate too many unnecessary events.
-const customRequestAnimationFrame = window.requestAnimationFrame ||
-      window.mozRequestAnimationFrame ||
-      window.webkitRequestAnimationFrame ||
-      function delay(fn) {
-        return window.setTimeout(fn, 20);
-      };
-
   /**
    * Iterate over each of the provided element(s).
    *
@@ -347,6 +335,18 @@ L.ResizeSensor = function ResizeSensor(element, callback = () => {}) {
        * @param {Function}    resized
        */
   function attachResizeEvent(htmlElement, resized) {
+    // Only used for the dirty checking, so the event callback count is limted
+    //  to max 1 call per fps per sensor.
+    // In combination with the event based resize sensor this saves cpu time,
+    // because the sensor is too fast and
+    // would generate too many unnecessary events.
+    const customRequestAnimationFrame = window.requestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||
+    function delay(fn) {
+      return window.setTimeout(fn, 20);
+    };
+
     const newElement = htmlElement;
     if (!newElement.resizedAttached) {
       newElement.resizedAttached = new EventQueue();
