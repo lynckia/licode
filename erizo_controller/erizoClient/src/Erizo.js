@@ -3,8 +3,10 @@ import { LicodeEvent, RoomEvent, StreamEvent } from './Events';
 import Stream from './Stream';
 import Logger from './utils/Logger';
 
-require("expose-loader?adapter!../lib/adapter.js");
-require("script-loader!./utils/L.Resizer.js");
+// eslint-disable-next-line 
+require('expose-loader?adapter!../lib/adapter.js');
+// eslint-disable-next-line
+require('script-loader!./utils/L.Resizer.js');
 
 
 const Erizo = {

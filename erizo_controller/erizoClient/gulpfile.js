@@ -46,7 +46,9 @@ targets.forEach(
 
 gulp.task('lint', () => {
   return gulp.src(config.paths.js)
-  .pipe(plugins.eslint());
+  .pipe(plugins.eslint())
+  .pipe(plugins.eslint.format())
+  .pipe(plugins.eslint.failAfterError());
 });
 
 gulp.task('watch', () => {

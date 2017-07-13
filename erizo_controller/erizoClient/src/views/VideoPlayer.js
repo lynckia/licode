@@ -54,11 +54,11 @@ const VideoPlayer = (spec) => {
   // It will stop the VideoPlayer and remove it from the HTML
   that.destroy = () => {
     that.video.pause();
-    delete that.Loggerr;
+    delete that.resizer;
     that.parentNode.removeChild(that.div);
   };
 
-  that.Logger = () => {
+  that.resize = () => {
     const width = that.container.offsetWidth;
     const height = that.container.offsetHeight;
 
@@ -132,7 +132,7 @@ const VideoPlayer = (spec) => {
   if (spec.options.resizer !== false) {
     that.resizer = L.ResizeSensor(that.container, that.resize);
 
-    that.Logger();
+    that.resize();
   }
 
   // Bottom Bar
