@@ -23,4 +23,5 @@ jobs:
 
       # build and push Docker image
       - run: |
-          docker build -t lynckia/licode:test
+          ls
+          docker build -t lynckia/licode:test .
