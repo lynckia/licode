@@ -15,7 +15,8 @@ jobs:
       - run:
           name: Global variables with commands
           command: |
-            export SHORT_GIT_HASH="$(echo asdrwqrewqewq | cut -c -8)"
+            export SHORT_GIT_HASH="$(echo asdrwqrewqewq | cut -c -8)" >> ~/.circlerc
+            source ~/.circlerc
             echo HASH: ${SHORT_GIT_HASH}
 
       - run:
