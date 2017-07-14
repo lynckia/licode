@@ -30,6 +30,7 @@ jobs:
           name: Build docker image
           command: |
             SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
+            echo Building lynckia/licode:${SHORT_GIT_HASH}
             docker build --cache-from lynckia/licode:latest -t lynckia/licode:${SHORT_GIT_HASH} .
 
       - run:
