@@ -63,7 +63,7 @@ jobs:
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
-              docker login -u $DOCKER_USER -p $DOCKER_PASS
+              docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
               docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:develop
               docker push lynckia/licode:${SHORT_GIT_HASH}
             fi
