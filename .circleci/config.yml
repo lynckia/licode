@@ -4,17 +4,20 @@ jobs:
   build:
     docker:
       - image: buildpack-deps:trusty-curl
+        environment:
+          SHORT_GIT_HASH: $(echo $CIRCLE_SHA1 | cut -c -8)
+
     working_directory: /tmp/licode
+
     steps:
       - checkout
 
       - setup_remote_docker
 
-      # use a primary image that already has Docker (recommended)
-      # or install it during a build like we do here
       - run:
           name: Install Docker client
           command: |
+            echo Info: ${DOCKER_USER}
             set -x
             VER="17.03.0-ce"
             curl -L -o /tmp/docker-$VER.tgz https://get.docker.com/builds/Linux/x86_64/docker-$VER.tgz
@@ -26,29 +29,37 @@ jobs:
           command: |
             docker pull lynckia/licode:latest
 
-      # build and push Docker image
       - run:
           name: Build docker image
           command: |
-            docker build --cache-from lynckia/licode:latest -t lynckia/licode:test .
+            docker build --cache-from lynckia/licode:latest -t lynckia/licode:${SHORT_GIT_HASH} .
 
       - run:
           name: Lint Erizo
           command: |
-            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:test -c "make lint"
+            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c "make lint"
 
       - run:
           name: Unit Tests Erizo
           command: |
-            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:test -c "ctest --verbose"
+            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c "ctest --verbose"
 
       - run:
           name: Lint Javascript
           command: |
-            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:test -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lint"
-            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:test -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lintClient"
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lint"
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lintClient"
 
       - run:
           name: Unit Tests Javascript
           command: |
-            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:test -c ". ./build/libdeps/nvm/nvm.sh && npm install && cp scripts/licode_default.js licode_config.js && npm run test"
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c ". ./build/libdeps/nvm/nvm.sh && npm install && cp scripts/licode_default.js licode_config.js && npm run test"
+
+      - deploy:
+          name: Push Licode Docker image
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              docker login -u $DOCKER_USER -p $DOCKER_PASS
+              docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:develop
+              docker push lynckia/licode:${SHORT_GIT_HASH}
+            fi
