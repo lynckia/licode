@@ -5,7 +5,7 @@ jobs:
     docker:
       - image: buildpack-deps:trusty-curl
         environment:
-          SHORT_GIT_HASH: $(echo $CIRCLE_SHA1 | cut -c -8)
+          SHORT_GIT_HASH: "`echo $CIRCLE_SHA1 | cut -c -8`"
 
     working_directory: /tmp/licode
 
@@ -17,7 +17,6 @@ jobs:
       - run:
           name: Install Docker client
           command: |
-            echo Info: ${DOCKER_USER}
             set -x
             VER="17.03.0-ce"
             curl -L -o /tmp/docker-$VER.tgz https://get.docker.com/builds/Linux/x86_64/docker-$VER.tgz
