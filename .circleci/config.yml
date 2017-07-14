@@ -16,7 +16,7 @@ jobs:
           name: Global variables with commands
           command: |
             export SHORT_GIT_HASH = $(echo $CIRCLE_SHA1 | cut -c -8)
-            echo ${SHORT_GIT_HASH}
+            echo HASH: ${SHORT_GIT_HASH}
 
       - run:
           name: Install Docker client
