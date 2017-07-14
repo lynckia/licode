@@ -13,13 +13,6 @@ jobs:
       - setup_remote_docker
 
       - run:
-          name: Global variables with commands
-          command: |
-            export SHORT_GIT_HASH="$(echo asdrwqrewqewq | cut -c -8)" >> ~/.circlerc
-            source ~/.circlerc
-            echo HASH: ${SHORT_GIT_HASH}
-
-      - run:
           name: Install Docker client
           command: |
             set -x
@@ -36,33 +29,39 @@ jobs:
       - run:
           name: Build docker image
           command: |
+            SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
             docker build --cache-from lynckia/licode:latest -t lynckia/licode:${SHORT_GIT_HASH} .
 
       - run:
           name: Lint Erizo
           command: |
+            SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
             docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c "make lint"
 
       - run:
           name: Unit Tests Erizo
           command: |
+            SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
             docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c "ctest --verbose"
 
       - run:
           name: Lint Javascript
           command: |
+            SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
             docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lint"
             docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lintClient"
 
       - run:
           name: Unit Tests Javascript
           command: |
+            SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
             docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c ". ./build/libdeps/nvm/nvm.sh && npm install && cp scripts/licode_default.js licode_config.js && npm run test"
 
       - deploy:
           name: Push Licode Docker image
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
               docker login -u $DOCKER_USER -p $DOCKER_PASS
               docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:develop
               docker push lynckia/licode:${SHORT_GIT_HASH}
