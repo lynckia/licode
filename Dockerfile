@@ -12,8 +12,8 @@ COPY . /opt/licode
 # Clone and install licode
 WORKDIR /opt/licode/scripts
 
-RUN ./installUbuntuDeps.sh --cleanup && \
-    ./installErizo.sh && \
+RUN ./installUbuntuDeps.sh --cleanup --fast && \
+    ./installErizo.sh -feacs && \
     ./../nuve/installNuve.sh && \
     ./installBasicExample.sh
 
