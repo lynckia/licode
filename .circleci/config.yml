@@ -21,30 +21,34 @@ jobs:
             tar -xz -C /tmp -f /tmp/docker-$VER.tgz
             mv /tmp/docker/* /usr/bin
 
+      - run:
+          name: Pull latest docker image
+          command: |
+            docker pull lynckia/licode:latest
+
       # build and push Docker image
       - run:
           name: Build docker image
           command: |
-            ls
-            docker build -t lynckia/licode:test .
+            docker build --cache-from lynckia/licode:latest -t lynckia/licode:test .
 
       - run:
           name: Lint Erizo
           command: |
-            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode -c "make lint"
+            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:test -c "make lint"
 
       - run:
           name: Unit Tests Erizo
           command: |
-            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode -c "ctest --verbose"
+            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:test -c "ctest --verbose"
 
       - run:
           name: Lint Javascript
           command: |
-            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lint"
-            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lintClient"
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:test -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lint"
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:test -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lintClient"
 
       - run:
           name: Unit Tests Javascript
           command: |
-            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode -c ". ./build/libdeps/nvm/nvm.sh && npm install && cp scripts/licode_default.js licode_config.js && npm run test"
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:test -c ". ./build/libdeps/nvm/nvm.sh && npm install && cp scripts/licode_default.js licode_config.js && npm run test"
