@@ -29,34 +29,29 @@ jobs:
       - run:
           name: Build docker image
           command: |
-            SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
-            echo Building lynckia/licode:${SHORT_GIT_HASH}
-            docker build --cache-from lynckia/licode:latest -t lynckia/licode:${SHORT_GIT_HASH} .
+            echo Building lynckia/licode:develop
+            docker build --cache-from lynckia/licode:latest -t lynckia/licode:develop .
 
       - run:
           name: Lint Erizo
           command: |
-            SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
-            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c "make lint"
+            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:develop -c "make lint"
 
       - run:
           name: Unit Tests Erizo
           command: |
-            SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
-            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c "ctest --verbose"
+            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:develop -c "ctest --verbose"
 
       - run:
           name: Lint Javascript
           command: |
-            SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
-            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lint"
-            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lintClient"
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:develop -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lint"
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:develop -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lintClient"
 
       - run:
           name: Unit Tests Javascript
           command: |
-            SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
-            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:${SHORT_GIT_HASH} -c ". ./build/libdeps/nvm/nvm.sh && npm install && cp scripts/licode_default.js licode_config.js && npm run test"
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:develop -c ". ./build/libdeps/nvm/nvm.sh && npm install && cp scripts/licode_default.js licode_config.js && npm run test"
 
       - deploy:
           name: Push Licode Docker image
@@ -64,6 +59,7 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -8)"
               docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-              docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:develop
-              docker push lynckia/licode:${SHORT_GIT_HASH}
+              echo Tagging to lynckia/licode:${SHORT_GIT_HASH}
+              docker tag lynckia/licode:develop lynckia/licode:${SHORT_GIT_HASH}
+              docker push lynckia/licode:develop
             fi
