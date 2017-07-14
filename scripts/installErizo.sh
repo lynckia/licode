@@ -11,6 +11,7 @@ CURRENT_DIR=`pwd`
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 NVM_CHECK="$PATHNAME"/checkNvm.sh
+FAST_MAKE=''
 
 
 export ERIZO_HOME=$ROOT/erizo
@@ -51,7 +52,7 @@ install_erizo(){
   echo 'Installing erizo...'
   cd $ROOT/erizo
   ./generateProject.sh
-  ./buildProject.sh
+  ./buildProject.sh $FAST_MAKE
   check_result $?
   cd $CURRENT_DIR
 }
@@ -99,7 +100,7 @@ then
   install_erizo_controller
   install_spine
 else
-  while getopts “heacst” OPTION
+  while getopts “heacstf” OPTION
   do
     case $OPTION in
       h)
@@ -120,6 +121,9 @@ else
         ;;
       t)
         execute_tests
+        ;;
+      f)
+        FAST_MAKE='-j4'
         ;;
       ?)
         usage

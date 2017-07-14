@@ -22,6 +22,29 @@ jobs:
             mv /tmp/docker/* /usr/bin
 
       # build and push Docker image
-      - run: |
-          ls
-          docker build -t lynckia/licode:test .
+      - run:
+          name: Build docker image
+          command: |
+            ls
+            docker build -t lynckia/licode:test .
+
+      - run:
+          name: Lint Erizo
+          command: |
+            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode -c "make lint"
+
+      - run:
+          name: Unit Tests Erizo
+          command: |
+            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode -c "ctest --verbose"
+
+      - run:
+          name: Lint Javascript
+          command: |
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lint"
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lintClient"
+
+      - run:
+          name: Unit Tests Javascript
+          command: |
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode -c ". ./build/libdeps/nvm/nvm.sh && npm install && cp scripts/licode_default.js licode_config.js && npm run test"
