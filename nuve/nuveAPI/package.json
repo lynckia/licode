@@ -1,0 +1,28 @@
+{
+  "name": "nuve-api",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "supervisor nuve.js",
+    "test": "mocha ./test/*"
+  },
+  "dependencies": {
+    "amqp": "0.2.6",
+    "aws-sdk": "2.83.0",
+    "body-parser": "1.17.2",
+    "config": "1.26.1",
+    "ejs": "2.5.6",
+    "express": "4.15.3",
+    "log4js": "1.0.1",
+    "mongojs": "2.4.0",
+    "node-getopt": "0.2.3"
+  },
+  "devDependencies": {
+    "async": "2.5.0",
+    "chai": "4.1.0",
+    "mocha": "3.4.2",
+    "mock-require": "2.0.2",
+    "sinon": "2.3.8",
+    "supertest": "3.0.0",
+    "supervisor": "0.12.0"
+  }
+}

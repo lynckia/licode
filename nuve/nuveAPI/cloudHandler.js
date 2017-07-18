@@ -1,7 +1,7 @@
 /*global require, setInterval, clearInterval, exports*/
 'use strict';
 var rpc = require('./rpc/rpc');
-var config = require('./../../licode_config');
+var config = require('config');
 var logger = require('./logger').logger;
 var erizoControllerRegistry = require('./mdb/erizoControllerRegistry');
 var roomRegistry = require('./mdb/roomRegistry');
@@ -107,9 +107,9 @@ var checkKA = function () {
 
 setInterval(checkKA, INTERVAL_TIME_CHECK_KA);
 
-if (config.nuve.cloudHandlerPolicy) {
-    getErizoController = require('./ch_policies/' +
-                          config.nuve.cloudHandlerPolicy).getErizoController;
+var CLOUD_HANDLER_POLICY = config.get('nuve.cloudHandlerPolicy');
+if (CLOUD_HANDLER_POLICY) {
+    getErizoController = require('./ch_policies/' + CLOUD_HANDLER_POLICY).getErizoController;
 }
 
 var addNewPrivateErizoController = function (ip, hostname, port, ssl, callback) {

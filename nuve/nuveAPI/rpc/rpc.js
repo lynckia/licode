@@ -2,17 +2,13 @@
 'use strict';
 var amqp = require('amqp');
 var rpcPublic = require('./rpcPublic');
-var config = require('./../../../licode_config');
+var config = require('config');
 var logger = require('./../logger').logger;
 
 // Logger
 var log = logger.getLogger('RPC');
 
-// Configuration default values
-config.rabbit = config.rabbit || {};
-config.rabbit.host = config.rabbit.host || 'localhost';
-config.rabbit.port = config.rabbit.port || 5672;
-
+var rabbitConfig = config.get('rabbit');
 var TIMEOUT = 3000;
 
 var corrID = 0;
@@ -24,15 +20,17 @@ var exc;
 // Create the amqp connection to rabbitMQ server
 var addr = {};
 
-if (config.rabbit.url !== undefined) {
-    addr.url = config.rabbit.url;
+if (rabbitConfig.url !== undefined) {
+    addr.url = rabbitConfig.url;
 } else {
-    addr.host = config.rabbit.host;
-    addr.port = config.rabbit.port;
+    addr.host = rabbitConfig.host;
+    addr.port = rabbitConfig.port;
+    addr.login = rabbitConfig.login;
+    addr.password = rabbitConfig.password;
 }
 
-if(config.rabbit.heartbeat !==undefined){
-    addr.heartbeat = config.rabbit.heartbeat;
+if(rabbitConfig.heartbeat !==undefined){
+    addr.heartbeat = rabbitConfig.heartbeat;
 }
 
 exports.connect = function (callback) {

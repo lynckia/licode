@@ -1,14 +1,10 @@
 /*global require, exports*/
 'use strict';
-var config = require('./../../../licode_config');
+var config = require('config');
 
-config.nuve = config.nuve || {};
-config.nuve.dataBaseURL = config.nuve.dataBaseURL || 'localhost/nuvedb';
-config.nuve.superserviceID = config.nuve.superserviceID || '';
-config.nuve.superserviceKey = config.nuve.superserviceKey || '';
-config.nuve.testErizoController = config.nuve.testErizoController || 'localhost:8080';
+var nuveConfig = config.get('nuve');
 
-var databaseUrl = config.nuve.dataBaseURL;
+var databaseUrl = nuveConfig.dataBaseURL;
 
 /*
  * Data base collections and its fields are:
@@ -36,9 +32,9 @@ var mongojs = require('mongojs');
 exports.db = mongojs(databaseUrl, collections);
 
 // Superservice ID
-exports.superService = config.nuve.superserviceID;
+exports.superService = nuveConfig.superserviceID;
 
 // Superservice key
-exports.nuveKey = config.nuve.superserviceKey;
+exports.nuveKey = nuveConfig.superserviceKey;
 
-exports.testErizoController = config.nuve.testErizoController;
+exports.testErizoController = nuveConfig.testErizoController;

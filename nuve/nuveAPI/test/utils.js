@@ -137,7 +137,7 @@ var reset = module.exports.reset = function() {
     deleteUser: sinon.stub()
   });
 
-  module.exports.licodeConfig = createMock('./../../../licode_config', {
+  module.exports.licodeConfig = createMock('licode_config', {
     logger: {configFile: true},
     cloudProvider: {host: ''}
   });
