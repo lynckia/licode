@@ -1,6 +1,7 @@
 .DS_Store
 .project
 .cproject
+.git
 licode_config.js
 rtp_media_config.js
 build/

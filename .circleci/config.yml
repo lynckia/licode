@@ -24,13 +24,13 @@ jobs:
       - run:
           name: Pull latest docker image
           command: |
-            docker pull lynckia/licode:latest
+            docker pull lynckia/licode:develop
 
       - run:
           name: Build docker image
           command: |
             echo Building lynckia/licode:develop
-            docker build --cache-from lynckia/licode:latest -t lynckia/licode:develop .
+            docker build --cache-from lynckia/licode:develop -t lynckia/licode:develop .
 
       - run:
           name: Lint Erizo
