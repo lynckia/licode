@@ -60,9 +60,7 @@ exports.MonitorSubscriber = function (log) {
               lastAverage = average;
             }).catch((reason) => {
               clearInterval(wrtc.monitorInterval);
-              delete wrtc.monitorInterval;
               log.error('error getting stats: ' + reason);
-              return;
             });
         }, INTERVAL_STATS);
     };

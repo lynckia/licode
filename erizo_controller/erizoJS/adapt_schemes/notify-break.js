@@ -58,51 +58,48 @@ exports.MonitorSubscriber = function (log) {
 
         switch (wrtc.bwStatus){
           case BW_STABLE:
-          if(average <= lastAverage && (average < wrtc.lowerThres)) {
-            if (++tics > TICS_PER_TRANSITION) {
-              log.info('message: scheme state change, ' +
-              'id: ' + wrtc.wrtcId + ', ' +
-              'previousState: BW_STABLE, ' +
-              'newState: BW_WONT_RECOVER, ' +
-              'averageBandwidth: ' + average + ', ' +
-              'lowerThreshold: ' + wrtc.lowerThres);
-              wrtc.bwStatus = BW_WONTRECOVER;
-              wrtc.setFeedbackReports(false, 1);
-              tics = 0;
-              callback('callback', {type: 'bandwidthAlert',
-              message: 'insufficient',
-              bandwidth: average});
+            if(average <= lastAverage && (average < wrtc.lowerThres)) {
+              if (++tics > TICS_PER_TRANSITION) {
+                log.info('message: scheme state change, ' +
+                'id: ' + wrtc.wrtcId + ', ' +
+                'previousState: BW_STABLE, ' +
+                'newState: BW_WONT_RECOVER, ' +
+                'averageBandwidth: ' + average + ', ' +
+                'lowerThreshold: ' + wrtc.lowerThres);
+                wrtc.bwStatus = BW_WONTRECOVER;
+                wrtc.setFeedbackReports(false, 1);
+                tics = 0;
+                callback('callback', {type: 'bandwidthAlert',
+                message: 'insufficient',
+                bandwidth: average});
+              }
             }
-          }
-          break;
+            break;
           case BW_WONTRECOVER:
-          log.info('message: Switched to audio-only, ' +
-          'id: ' + wrtc.wrtcId + ', ' +
-          'state: BW_WONT_RECOVER, ' +
-          'averageBandwidth: ' + average + ', ' +
-          'lowerThreshold: ' + wrtc.lowerThres);
-          tics = 0;
-          nextRetry = 0;
-          retries = 0;
-          average = 0;
-          lastAverage = 0;
-          wrtc.minVideoBW = false;
-          wrtc.setFeedbackReports (false, 1);
-          callback('callback', {type: 'bandwidthAlert',
-          message: 'audio-only',
-          bandwidth: average});
-          clearInterval(wrtc.monitorInterval);
-          delete wrtc.monitorInterval;
-          break;
+            log.info('message: Switched to audio-only, ' +
+            'id: ' + wrtc.wrtcId + ', ' +
+            'state: BW_WONT_RECOVER, ' +
+            'averageBandwidth: ' + average + ', ' +
+            'lowerThreshold: ' + wrtc.lowerThres);
+            tics = 0;
+            nextRetry = 0;
+            retries = 0;
+            average = 0;
+            lastAverage = 0;
+            wrtc.minVideoBW = false;
+            wrtc.setFeedbackReports (false, 1);
+            callback('callback', {type: 'bandwidthAlert',
+            message: 'audio-only',
+            bandwidth: average});
+            clearInterval(wrtc.monitorInterval);
+            break;
           default:
-          log.error('Unknown BW status, id: ' + wrtc.wrtcId);
+            log.error('Unknown BW status, id: ' + wrtc.wrtcId);
         }
         lastAverage = average;
       }).catch((reason) => {
         clearInterval(wrtc.monitorInterval);
-        delete wrtc.monitorInterval;
         log.error('error getting stats: ' + reason);
-        return;
       });
     }, INTERVAL_STATS);
   };
