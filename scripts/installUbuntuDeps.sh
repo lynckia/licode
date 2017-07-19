@@ -12,6 +12,7 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
+FAST_MAKE=''
 
 
 parse_arguments(){
@@ -22,6 +23,9 @@ parse_arguments(){
         ;;
       "--cleanup")
         CLEANUP=true
+        ;;
+      "--fast")
+        FAST_MAKE='-j4'
         ;;
     esac
     shift
@@ -99,7 +103,7 @@ install_openssl(){
       download_openssl $OPENSSL_VERSION
       cd openssl-$OPENSSL_VERSION
       ./config --prefix=$PREFIX_DIR --openssldir=$PREFIX_DIR -fPIC
-      make -s V=0
+      make $FAST_MAKE -s V=0
       make install_sw
     else
       echo "openssl already installed"
@@ -120,7 +124,7 @@ install_libnice(){
       cd libnice-0.1.4
       patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
       ./configure --prefix=$PREFIX_DIR
-      make -s V=0
+      make $FAST_MAKE -s V=0
       make install
     else
       echo "libnice already installed"
@@ -140,7 +144,7 @@ install_opus(){
     tar -zxvf opus-1.1.tar.gz
     cd opus-1.1
     ./configure --prefix=$PREFIX_DIR
-    make -s V=0
+    make $FAST_MAKE -s V=0
     make install
   else
     echo "opus already installed"
@@ -158,7 +162,7 @@ install_mediadeps(){
       tar -zxvf v11.1.tar.gz
       cd libav-11.1
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
-      make -s V=0
+      make $FAST_MAKE -s V=0
       make install
     else
       echo "libav already installed"
@@ -181,7 +185,7 @@ install_mediadeps_nogpl(){
       tar -zxvf v11.1.tar.gz
       cd libav-11.1
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libopus
-      make -s V=0
+      make $FAST_MAKE -s V=0
       make install
     else
       echo "libav already installed"
@@ -200,7 +204,7 @@ install_libsrtp(){
     tar -zxvf libsrtp-2.1.0.tar.gz
     cd libsrtp-2.1.0
     CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR --with-openssl-dir=$PREFIX_DIR
-    make -s V=0 && make uninstall && make install
+    make $FAST_MAKE -s V=0 && make uninstall && make install
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
