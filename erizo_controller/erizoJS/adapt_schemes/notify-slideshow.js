@@ -1,5 +1,5 @@
 'use strict';
-const adaptHelpers = require('./adaptHelpers.js').adaptHelpers;
+const schemeHelpers = require('./schemeHelpers.js').schemeHelpers;
 exports.MonitorSubscriber = function (log) {
 
     var that = {},
@@ -42,7 +42,7 @@ exports.MonitorSubscriber = function (log) {
         wrtc.upperThres = Math.ceil(wrtc.minVideoBW);
         wrtc.monitorInterval = setInterval(() => {
 
-          adaptHelpers.getBandwidthStat(wrtc).then((bandwidth) => {
+          schemeHelpers.getBandwidthStat(wrtc).then((bandwidth) => {
             if (wrtc.slideShowMode) {
               return;
             }

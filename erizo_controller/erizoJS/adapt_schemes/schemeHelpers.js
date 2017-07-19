@@ -1,7 +1,7 @@
 'use strict';
-const adaptHelpers = {};
+const schemeHelpers = {};
 
-adaptHelpers.getBandwidthStat = (wrtc) => {
+schemeHelpers.getBandwidthStat = (wrtc) => {
   return new Promise((resolve, reject) => {
     wrtc.getStats( (statsString) => {
       if (!statsString) {
@@ -16,4 +16,4 @@ adaptHelpers.getBandwidthStat = (wrtc) => {
   });
 };
 
-exports.adaptHelpers = adaptHelpers;
+exports.schemeHelpers = schemeHelpers;
