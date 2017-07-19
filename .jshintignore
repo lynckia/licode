@@ -1,8 +1,6 @@
 nuve/nuveClient/build
 nuve/nuveClient/dist
-erizo_controller/erizoClient/dist/
-erizo_controller/erizoClient/build/
-erizo_controller/erizoClient/lib/
+erizo_controller/erizoClient
 spine/erizofc.js
 extras/basic_example/public/erizo.js
 extras/basic_example/nuve.js

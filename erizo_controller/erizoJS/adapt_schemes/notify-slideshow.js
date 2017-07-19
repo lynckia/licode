@@ -1,4 +1,5 @@
 'use strict';
+const adaptHelpers = require('./adaptHelpers.js').adaptHelpers;
 exports.MonitorSubscriber = function (log) {
 
     var that = {},
@@ -39,28 +40,19 @@ exports.MonitorSubscriber = function (log) {
         wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
         wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(0.8));
         wrtc.upperThres = Math.ceil(wrtc.minVideoBW);
-        var intervalId = setInterval(function () {
-            var newStats = wrtc.getStats();
-            if (!newStats){
-                clearInterval(intervalId);
-                return;
-            }
+        wrtc.monitorInterval = setInterval(() => {
 
+          adaptHelpers.getBandwidthStat(wrtc).then((bandwidth) => {
             if (wrtc.slideShowMode) {
-                return;
+              return;
             }
-
-            var theStats = JSON.parse(newStats);
-            for (var i = 0; i < theStats.length; i++){
-                // Only one stream should have bandwidth
-                if(theStats[i].hasOwnProperty('bandwidth')) {
-                    lastBWValue = theStats[i].bandwidth;
-                    wrtc.bwValues.push(lastBWValue);
-                    if (wrtc.bwValues.length > 5){
-                        wrtc.bwValues.shift();
-                    }
-                    average = calculateAverage(wrtc.bwValues);
-                }
+            if(bandwidth) {
+              lastBWValue = bandwidth;
+              wrtc.bwValues.push(lastBWValue);
+              if (wrtc.bwValues.length > 5) {
+                wrtc.bwValues.shift();
+              }
+              average = calculateAverage(wrtc.bwValues);
             }
 
             switch (wrtc.bwStatus) {
@@ -98,12 +90,19 @@ exports.MonitorSubscriber = function (log) {
                     callback('callback', {type: 'bandwidthAlert',
                         message: 'slideshow',
                         bandwidth: average});
-                    clearInterval(intervalId);
+                        clearInterval(wrtc.monitorInterval);
+                        delete wrtc.monitorInterval;
                     break;
                 default:
                     log.error('Unknown BW status, id: ' + wrtc.wrtcId);
             }
             lastAverage = average;
+          }).catch((reason) => {
+            clearInterval(wrtc.monitorInterval);
+            delete wrtc.monitorInterval;
+            log.error('error getting stats: ' + reason);
+            return;
+          });
         }, INTERVAL_STATS);
     };
 
