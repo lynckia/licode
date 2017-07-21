@@ -39,7 +39,8 @@ const Socket = (newIo) => {
       transports: ['websocket'],
       rejectUnauthorized: false,
     };
-    socket = that.IO.connect(token.host, options);
+    const transport = token.secure ? 'wss://' : 'ws://';
+    socket = that.IO.connect(transport + token.host, options);
 
     socket.on('onAddStream', emit.bind(that, 'onAddStream'));
 
