@@ -15,7 +15,7 @@ def configure(conf):
 
 def build(bld):
   obj = bld.new_task_gen('cxx', 'shlib', 'node_addon')
-  obj.cxxflags = ["-I"+bld.env['ERIZO_HOME']+"/src/erizo", "-I"+bld.env['ERIZO_HOME']+"/../build/libdeps/build/include", "-g", "-Wall"]
+  obj.cxxflags = ["-I"+bld.env['ERIZO_HOME']+"/src/erizo", "-I"+bld.env['LIBDEPS']+"/build/include", "-g", "-Wall"]
   obj.target = 'addon'
   obj.source = ['addon.cc', 'WebRtcConnection.cc', 'OneToManyProcessor.cc', 'OneToManyTranscoder.cc', 'ExternalInput.cc']
   bld.env.append_value('LINKFLAGS',('-L'+bld.env['ERIZO_HOME'] + "/build/erizo/ -lerizo").split())

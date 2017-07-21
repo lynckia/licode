@@ -1,15 +1,12 @@
 'use strict';
 var amqp = require('amqp');
+var config = require('config');
 var logger = require('./logger').logger;
 
 // Logger
 var log = logger.getLogger('AMQPER');
 
-// Configuration default values
-GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
-GLOBAL.config.rabbit.host = GLOBAL.config.rabbit.host || 'localhost';
-GLOBAL.config.rabbit.port = GLOBAL.config.rabbit.port || 5672;
-
+var rabbitConfig = config.get('rabbit');
 var TIMEOUT = 5000;
 
 // This timeout shouldn't be too low because it won't listen to onReady responses from ErizoJS
@@ -22,15 +19,17 @@ var connection, rpcExc, broadcastExc, clientQueue;
 var addr = {};
 var rpcPublic = {};
 
-if (GLOBAL.config.rabbit.url !== undefined) {
-    addr.url = GLOBAL.config.rabbit.url;
+if (rabbitConfig.url !== undefined) {
+    addr.url = rabbitConfig.url;
 } else {
-    addr.host = GLOBAL.config.rabbit.host;
-    addr.port = GLOBAL.config.rabbit.port;
+    addr.host = rabbitConfig.host;
+    addr.port = rabbitConfig.port;
+    addr.login = rabbitConfig.login;
+    addr.password = rabbitConfig.password;
 }
 
-if(GLOBAL.config.rabbit.heartbeat !==undefined){
-    addr.heartbeat = GLOBAL.config.rabbit.heartbeat;
+if(rabbitConfig.heartbeat !== undefined){
+    addr.heartbeat = rabbitConfig.heartbeat;
 }
 
 exports.setPublicRPC = function(methods) {

@@ -1,0 +1,13 @@
+{
+  "name": "erizo-js",
+  "version": "1.0.0",
+  "dependencies": {
+    "amqp": "0.2.6",
+    "config": "1.26.1",
+    "log4js": "1.0.1",
+    "node-getopt": "0.2.3"
+  },
+  "devDependencies": {
+    "supervisor": "0.12.0"
+  }
+}

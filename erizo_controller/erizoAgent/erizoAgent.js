@@ -4,19 +4,11 @@ var Getopt = require('node-getopt');
 
 var spawn = require('child_process').spawn;
 
-var config = require('./../../licode_config');
+var config = require('config');
 
 // Configuration default values
-GLOBAL.config = config || {};
-GLOBAL.config.erizoAgent = GLOBAL.config.erizoAgent || {};
-GLOBAL.config.erizoAgent.maxProcesses = GLOBAL.config.erizoAgent.maxProcesses || 1;
-GLOBAL.config.erizoAgent.prerunProcesses =
-    GLOBAL.config.erizoAgent.prerunProcesses === undefined ?
-        1 : GLOBAL.config.erizoAgent.prerunProcesses;
-GLOBAL.config.erizoAgent.publicIP = GLOBAL.config.erizoAgent.publicIP || '';
-GLOBAL.config.erizoAgent.instanceLogDir = GLOBAL.config.erizoAgent.instanceLogDir || '.';
-GLOBAL.config.erizoAgent.useIndividualLogFiles =
-    GLOBAL.config.erizoAgent.useIndividualLogFiles|| false;
+GLOBAL.config =  {};
+GLOBAL.config.erizoAgent = config.get('erizoAgent');
 
 var BINDED_INTERFACE_NAME = GLOBAL.config.erizoAgent.networkInterface;
 
@@ -89,8 +81,8 @@ for (var prop in opt.options) {
 }
 
 // Load submodules with updated config
-var logger = require('./../common/logger').logger;
-var amqper = require('./../common/amqper');
+var logger = require('./common/logger').logger;
+var amqper = require('./common/amqper');
 
 // Logger
 var log = logger.getLogger('ErizoAgent');
@@ -134,10 +126,10 @@ launchErizoJS = function() {
     if (GLOBAL.config.erizoAgent.useIndividualLogFiles){
         out = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
         err = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
-        erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, privateIP, publicIP],
+        erizoProcess = spawn('./launch.sh', ['erizoJS.js', id, privateIP, publicIP],
                              { detached: true, stdio: [ 'ignore', out, err ] });
     }else{
-        erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, privateIP, publicIP],
+        erizoProcess = spawn('./launch.sh', ['erizoJS.js', id, privateIP, publicIP],
                             { detached: true, stdio: [ 'ignore', 'pipe', 'pipe' ] });
         erizoProcess.stdout.setEncoding('utf8');
         erizoProcess.stdout.on('data', function (message) {
@@ -272,7 +264,7 @@ privateIP = addresses[0];
 if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicIP === undefined) {
     publicIP = addresses[0];
 
-    if (global.config.cloudProvider.name === 'amazon') {
+    if (config.get('cloudProvider.name') === 'amazon') {
         var AWS = require('aws-sdk');
         new AWS.MetadataService({
             httpOptions: {

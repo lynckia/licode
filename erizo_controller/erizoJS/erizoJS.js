@@ -1,25 +1,17 @@
 /*global require*/
 'use strict';
 var Getopt = require('node-getopt');
-var addon = require('./../../erizoAPI/build/Release/addon');
-var config = require('./../../licode_config');
-var mediaConfig = require('./../../rtp_media_config');
+var config = require('config');
 
-GLOBAL.config = config || {};
-GLOBAL.config.erizo = GLOBAL.config.erizo || {};
-GLOBAL.config.erizo.numWorkers = GLOBAL.config.erizo.numWorkers || 24;
-GLOBAL.config.erizo.numIOWorkers = GLOBAL.config.erizo.numIOWorkers || 1;
-GLOBAL.config.erizo.useNicer = GLOBAL.config.erizo.useNicer || false;
-GLOBAL.config.erizo.stunserver = GLOBAL.config.erizo.stunserver || '';
-GLOBAL.config.erizo.stunport = GLOBAL.config.erizo.stunport || 0;
-GLOBAL.config.erizo.minport = GLOBAL.config.erizo.minport || 0;
-GLOBAL.config.erizo.maxport = GLOBAL.config.erizo.maxport || 0;
-GLOBAL.config.erizo.turnserver = GLOBAL.config.erizo.turnserver || '';
-GLOBAL.config.erizo.turnport = GLOBAL.config.erizo.turnport || 0;
-GLOBAL.config.erizo.turnusername = GLOBAL.config.erizo.turnusername || '';
-GLOBAL.config.erizo.turnpass = GLOBAL.config.erizo.turnpass || '';
-GLOBAL.config.erizo.networkinterface = GLOBAL.config.erizo.networkinterface || '';
-GLOBAL.mediaConfig = mediaConfig || {};
+var ERIZO_API_ADDON_PATH = config.get('erizo.erizoAPIAddonPath');
+
+var addon = require(ERIZO_API_ADDON_PATH);
+
+GLOBAL.config =  {};
+GLOBAL.config.erizo = config.get('erizo');
+GLOBAL.config.erizoController = config.get('erizoController');
+GLOBAL.mediaConfig = config.get('mediaConfig');
+
 // Parse command line arguments
 var getopt = new Getopt([
   ['r' , 'rabbit-host=ARG'            , 'RabbitMQ Host'],
@@ -71,8 +63,8 @@ for (var prop in opt.options) {
 }
 
 // Load submodules with updated config
-var logger = require('./../common/logger').logger;
-var amqper = require('./../common/amqper');
+var logger = require('./common/logger').logger;
+var amqper = require('./common/amqper');
 var controller = require('./erizoJSController');
 
 // Logger

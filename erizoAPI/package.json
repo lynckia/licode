@@ -1,0 +1,11 @@
+{
+  "name": "erizo-api",
+  "version": "1.0.0",
+  "dependencies": {
+    "nan": "2.3.2",
+    "node-gyp": "3.6.2"
+  },
+  "scripts": {
+    "build": "node-gyp rebuild"
+  }
+}

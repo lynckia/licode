@@ -1,7 +1,11 @@
 /*global require, exports*/
 'use strict';
-var addon = require('./../../../erizoAPI/build/Release/addon');
-var logger = require('./../../common/logger').logger;
+
+var config = require('config');
+var ERIZO_API_ADDON_PATH = config.get('erizo.erizoAPIAddonPath');
+
+var addon = require('../' + ERIZO_API_ADDON_PATH);
+var logger = require('../common/logger').logger;
 
 // Logger
 var log = logger.getLogger('Publisher');

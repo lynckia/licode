@@ -1,9 +1,9 @@
 'use strict';
+
 var log4js = require('log4js');
+var config = require('config');
 
-GLOBAL.config.logger = GLOBAL.config.logger || {};
-
-var logFile = GLOBAL.config.logger.configFile ||  '../log4js_configuration.json';
+var logFile = config.get('logger.configFile');
 
 
 var logJsonReplacer = function (key, value){

@@ -55,8 +55,8 @@ add_custom_target(lint
 )
 
 #global variable
-set(THIRD_PARTY_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/include/")
-set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/")
+set(THIRD_PARTY_INCLUDE "$ENV{LIBDEPS}/build/include/")
+set(THIRD_PARTY_LIB "$ENV{LIBDEPS}/build/lib/")
 
 ## Depencencies
 

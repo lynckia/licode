@@ -1,7 +1,7 @@
 /*global require, exports, setInterval, clearInterval, Promise*/
 'use strict';
-var logger = require('./../common/logger').logger;
-var amqper = require('./../common/amqper');
+var logger = require('./common/logger').logger;
+var amqper = require('./common/amqper');
 var Publisher = require('./models/Publisher').Publisher;
 var ExternalInput = require('./models/Publisher').ExternalInput;
 
