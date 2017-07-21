@@ -12,6 +12,7 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
+FAST_MAKE=''
 
 
 parse_arguments(){
@@ -22,6 +23,9 @@ parse_arguments(){
         ;;
       "--cleanup")
         CLEANUP=true
+        ;;
+      "--fast")
+        FAST_MAKE='-j4'
         ;;
     esac
     shift
@@ -64,7 +68,9 @@ install_nvm_node() {
 install_apt_deps(){
   install_nvm_node
   nvm use
-  npm install -g node-gyp
+  npm install
+  npm install -g node-gyp gulp-cli
+  npm install webpack gulp gulp-eslint@3 run-sequence webpack-stream google-closure-compiler-js del gulp-sourcemaps script-loader expose-loader
   sudo apt-get install -qq python-software-properties -y
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
@@ -97,7 +103,7 @@ install_openssl(){
       download_openssl $OPENSSL_VERSION
       cd openssl-$OPENSSL_VERSION
       ./config --prefix=$PREFIX_DIR --openssldir=$PREFIX_DIR -fPIC
-      make -s V=0
+      make $FAST_MAKE -s V=0
       make install_sw
     else
       echo "openssl already installed"
@@ -118,7 +124,7 @@ install_libnice(){
       cd libnice-0.1.4
       patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
       ./configure --prefix=$PREFIX_DIR
-      make -s V=0
+      make $FAST_MAKE -s V=0
       make install
     else
       echo "libnice already installed"
@@ -138,7 +144,7 @@ install_opus(){
     tar -zxvf opus-1.1.tar.gz
     cd opus-1.1
     ./configure --prefix=$PREFIX_DIR
-    make -s V=0
+    make $FAST_MAKE -s V=0
     make install
   else
     echo "opus already installed"
@@ -151,12 +157,12 @@ install_mediadeps(){
   sudo apt-get -qq install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./libav-11.1.tar.gz ]; then
-      curl -OL https://www.libav.org/releases/libav-11.1.tar.gz
-      tar -zxvf libav-11.1.tar.gz
+    if [ ! -f ./v11.1.tar.gz ]; then
+      curl -O -L https://github.com/libav/libav/archive/v11.1.tar.gz
+      tar -zxvf v11.1.tar.gz
       cd libav-11.1
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
-      make -s V=0
+      make $FAST_MAKE -s V=0
       make install
     else
       echo "libav already installed"
@@ -174,12 +180,12 @@ install_mediadeps_nogpl(){
   sudo apt-get -qq install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./libav-11.1.tar.gz ]; then
-      curl -OL https://www.libav.org/releases/libav-11.1.tar.gz
-      tar -zxvf libav-11.1.tar.gz
+    if [ ! -f ./v11.1.tar.gz ]; then
+      curl -O -L https://github.com/libav/libav/archive/v11.1.tar.gz
+      tar -zxvf v11.1.tar.gz
       cd libav-11.1
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libopus
-      make -s V=0
+      make $FAST_MAKE -s V=0
       make install
     else
       echo "libav already installed"
@@ -198,7 +204,7 @@ install_libsrtp(){
     tar -zxvf libsrtp-2.1.0.tar.gz
     cd libsrtp-2.1.0
     CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR --with-openssl-dir=$PREFIX_DIR
-    make -s V=0 && make uninstall && make install
+    make $FAST_MAKE -s V=0 && make uninstall && make install
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
@@ -210,7 +216,7 @@ cleanup(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     rm -r libnice*
-    rm -r libav*
+    rm -r v11*
     rm -r openssl*
     rm -r opus*
     cd $CURRENT_DIR

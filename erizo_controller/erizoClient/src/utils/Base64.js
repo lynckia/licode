@@ -1,7 +1,6 @@
-/* global unescape, L */
-this.L = this.L || {};
+/* global unescape */
 
-L.Base64 = (() => {
+const Base64 = (() => {
   let base64Str;
   let base64Count;
 
@@ -148,3 +147,5 @@ L.Base64 = (() => {
     decodeBase64,
   };
 })();
+
+export default Base64;

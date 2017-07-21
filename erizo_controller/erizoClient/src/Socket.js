@@ -1,8 +1,12 @@
-/* global io, L, Erizo*/
-this.Erizo = this.Erizo || {};
+/* global*/
 
-Erizo.SocketEvent = (type, specInput) => {
-  const that = Erizo.LicodeEvent({ type });
+import io from '../lib/socket.io';
+import Logger from './utils/Logger';
+
+import { EventDispatcher, LicodeEvent } from './Events';
+
+const SocketEvent = (type, specInput) => {
+  const that = LicodeEvent({ type });
   that.args = specInput.args;
   return that;
 };
@@ -11,19 +15,20 @@ Erizo.SocketEvent = (type, specInput) => {
  * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC
  * stream and identify the stream and where it should be drawn.
  */
-Erizo.Socket = () => {
-  const that = Erizo.EventDispatcher();
+const Socket = (newIo) => {
+  const that = EventDispatcher();
   const defaultCallback = () => {};
 
   that.CONNECTED = Symbol('connected');
   that.DISCONNECTED = Symbol('disconnected');
 
   that.state = that.DISCONNECTED;
+  that.IO = newIo === undefined ? io : newIo;
 
   let socket;
 
   const emit = (type, ...args) => {
-    that.emit(Erizo.SocketEvent(type, { args }));
+    that.emit(SocketEvent(type, { args }));
   };
 
   that.connect = (token, callback = defaultCallback, error = defaultCallback) => {
@@ -34,7 +39,8 @@ Erizo.Socket = () => {
       transports: ['websocket'],
       rejectUnauthorized: false,
     };
-    socket = io.connect(token.host, options);
+    const transport = token.secure ? 'wss://' : 'ws://';
+    socket = that.IO.connect(transport + token.host, options);
 
     socket.on('onAddStream', emit.bind(that, 'onAddStream'));
 
@@ -81,7 +87,7 @@ Erizo.Socket = () => {
   // It sends a SDP message to the server using socket.io
   that.sendSDP = (type, options, sdp, callback = defaultCallback) => {
     if (that.state === that.DISCONNECTED) {
-      L.Logger.warning('Trying to send a message over a disconnected Socket');
+      Logger.warning('Trying to send a message over a disconnected Socket');
       return;
     }
     socket.emit(type, options, sdp, (response, respCallback) => {
@@ -90,3 +96,5 @@ Erizo.Socket = () => {
   };
   return that;
 };
+
+export { SocketEvent, Socket };

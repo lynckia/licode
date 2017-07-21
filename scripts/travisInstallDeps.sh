@@ -51,7 +51,8 @@ install_nvm_node() {
 install_apt_deps(){
   install_nvm_node
   nvm use
-  npm install -g node-gyp
+  npm install -y -g node-gyp gulp-cli
+  npm install -y webpack gulp gulp-eslint@3 run-sequence webpack-stream google-closure-compiler-js del gulp-sourcemaps script-loader expose-loader
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 
@@ -131,9 +132,9 @@ install_mediadeps(){
   sudo apt-get -qq install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./libav-11.1.tar.gz ]; then
-      curl -OL https://www.libav.org/releases/libav-11.1.tar.gz
-      tar -zxvf libav-11.1.tar.gz
+    if [ ! -f ./v11.1.tar.gz ]; then
+      curl -O -L https://github.com/libav/libav/archive/v11.1.tar.gz
+      tar -zxvf v11.1.tar.gz
       cd libav-11.1
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus
       make -s V=0
@@ -153,9 +154,9 @@ install_mediadeps_nogpl(){
   sudo apt-get -qq install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./libav-11.1.tar.gz ]; then
-      curl -OL https://www.libav.org/releases/libav-11.1.tar.gz
-      tar -zxvf libav-11.1.tar.gz
+    if [ ! -f ./v11.1.tar.gz ]; then
+      curl -O -L https://github.com/libav/libav/archive/v11.1.tar.gz
+      tar -zxvf v11.1.tar.gz
       cd libav-11.1
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libopus
       make -s V=0

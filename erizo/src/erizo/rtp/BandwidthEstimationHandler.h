@@ -82,6 +82,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   RtpHeaderExtensionMap ext_map_audio_, ext_map_video_;
   uint32_t bitrate_;
   uint32_t last_send_bitrate_;
+  uint32_t max_video_bw_;
   uint64_t last_remb_time_;
   bool running_;
   bool active_;

@@ -95,7 +95,9 @@ install_brew_deps(){
   brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils
   install_nvm_node
   nvm use
-  npm install -g node-gyp
+  npm install
+  npm install -g node-gyp gulp-cli
+  npm install webpack gulp gulp-eslint@3 run-sequence webpack-stream google-closure-compiler-js del gulp-sourcemaps script-loader expose-loader
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew install rabbitmq mongodb
   fi
@@ -171,8 +173,8 @@ install_mediadeps(){
   brew install opus libvpx x264
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -OL https://www.libav.org/releases/libav-11.6.tar.gz
-    tar -zxvf libav-11.6.tar.gz
+    curl -O -L https://github.com/libav/libav/archive/v11.6.tar.gz
+    tar -zxvf v11.6.tar.gz
     cd libav-11.6
     curl -OL https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
     patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch && \
@@ -191,8 +193,8 @@ install_mediadeps_nogpl(){
   brew install opus libvpx
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -OL https://www.libav.org/releases/libav-11.6.tar.gz
-    tar -zxvf libav-11.6.tar.gz
+    curl -O -L https://github.com/libav/libav/archive/v11.6.tar.gz
+    tar -zxvf v11.6.tar.gz
     cd libav-11.6
     curl -OL https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
     patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch && \
