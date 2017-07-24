@@ -109,7 +109,7 @@ const Room = (altIo, altConnection, specInput) => {
 
   const createRemoteStreamP2PConnection = (streamInput, peerSocket) => {
     const stream = streamInput;
-    stream.pc = Connection.buildConnection(getP2PConnectionOptions(stream, peerSocket));
+    stream.pc = that.Connection.buildConnection(getP2PConnectionOptions(stream, peerSocket));
 
     stream.pc.onaddstream = dispatchStreamSubscribed.bind(null, stream);
     stream.pc.oniceconnectionstatechange = (state) => {
