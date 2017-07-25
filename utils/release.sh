@@ -53,7 +53,7 @@ GITHUB_URL="https://api.github.com/repos/jcague/licode"
 COMMIT=`git rev-list -n 1 HEAD`
 SHORT_GIT_HASH=`echo ${COMMIT} | cut -c -7`
 
-curl -s -H "Authorization: token ${GITHUB_OAUTH_TOKEN}" -X GET ${GITHUB_URL}/releases/tags/${VERSION} > /dev/null 2>&1
+curl -s -u ${GITHUB_OAUTH_USER}:${GITHUB_OAUTH_TOKEN} -X GET ${GITHUB_URL}/releases/tags/${VERSION} > /dev/null 2>&1
 if [ $? -eq 1 ]; then
   echo WARNING: No previous version found
   PREVIOUS_VERSION=HEAD~10
@@ -70,6 +70,8 @@ LATEST_PRERELEASE_NAME="pre-${VERSION}.${CURRENT_PRERELEASE_MINOR}"
 NEXT_PRERELEASE_NAME="pre-${VERSION}.${NEXT_PRERELEASE_MINOR}"
 RELEASE_NAME="${VERSION}"
 
+URL=`curl -s -u ${GITHUB_OAUTH_USER}:${GITHUB_OAUTH_TOKEN} -X GET ${GITHUB_URL}/releases/tags/${LATEST_PRERELEASE_NAME} | jq -r '.url'`
+
 if [ "$MODE" = "PRERELEASE" ]; then
   # Download docker
   docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
@@ -79,9 +81,21 @@ if [ "$MODE" = "PRERELEASE" ]; then
   docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:${NEXT_PRERELEASE_NAME}
   docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:staging
   docker push lynckia/licode:${NEXT_PRERELEASE_NAME} lynckia/licode:staging
+
+  LOGS=`git log $PREVIOUS_VERSION..$COMMIT --oneline | perl -p -e 's/\n/\\\\n/'`
+  DESCRIPTION="### Detailed PR List:\\n$LOGS"
+
+  if [ "$URL" = "null" ]; then
+    echo Create new Prerelease...
+    curl -s -u ${GITHUB_OAUTH_USER}:${GITHUB_OAUTH_TOKEN} -H "Content-Type: application/json" -X POST -d "{\"tag_name\":\"${NEXT_PRERELEASE_NAME}\",\"name\":\"${VERSION}\",\"target_commitish\":\"${COMMIT}\",\"prerelease\":true,\"draft\":false,\"body\":\"${DESCRIPTION}\"}" ${GITHUB_URL}/releases
+  else
+    echo Update Prerelease...
+    curl -s -u ${GITHUB_OAUTH_USER}:${GITHUB_OAUTH_TOKEN} -H "Content-Type: application/json" -X PATCH -d "{\"tag_name\":\"${NEXT_PRERELEASE_NAME}\",\"target_commitish\":\"${COMMIT}\",\"body\":\"${DESCRIPTION}\"}" ${URL}
+  fi
+
   echo Done.
 elif [ "$MODE" = "RELEASE" ]; then
-  if [ -z "$CURRENT_PRERELEASE_MINOR" ]; then
+  if [ -z "$CURRENT_PRERELEASE_MINOR" ] || [ "$URL" = "null" ]; then
     echo ERROR: Prerelease does not exist
     usage
     exit 1
@@ -99,13 +113,8 @@ elif [ "$MODE" = "RELEASE" ]; then
   # TODO(javier): Remove lynckia/licode:XXX that belongs to this release
 
   # Create release in github
-  COMMIT=`docker inspect lynckia/licode:${LATEST_PRERELEASE_NAME} | jq -r '.[0].Config.Labels.COMMIT'`
-  LOGS=`git log $PREVIOUS_VERSION..$COMMIT --oneline | perl -p -e 's/\n/\\\\n/'`
-  DESCRIPTION="### Detailed PR List:\\n$LOGS"
-
-  # Create or update pre-release in github
   echo Creating Release...
-  curl -s -H "Authorization: token ${GITHUB_OAUTH_TOKEN}" -H "Content-Type: application/json" -X POST -d "{\"tag_name\":\"${VERSION}\",\"name\":\"${VERSION}\",\"target_commitish\":\"${COMMIT}\",\"prerelease\":false,\"draft\":false,\"body\":\"${DESCRIPTION}\"}" ${GITHUB_URL}/releases
+  curl -s -u ${GITHUB_OAUTH_USER}:${GITHUB_OAUTH_TOKEN} -H "Content-Type: application/json" -X PATCH -d "{\"tag_name\":\"${RELEASE_NAME}\",\"prerelease\":false}" ${URL}
   echo Done.
 
   # TODO(javier): Update readthedocs
