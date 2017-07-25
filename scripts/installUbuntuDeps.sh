@@ -216,6 +216,8 @@ cleanup(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     rm -r libnice*
+    rm -r libsrtp*
+    rm -r libav*
     rm -r v11*
     rm -r openssl*
     rm -r opus*
