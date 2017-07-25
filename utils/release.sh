@@ -49,7 +49,7 @@ git fetch
 CURRENT_RELEASE_MAJOR=`echo "${VERSION}" | sed "s/v//g"`
 PREVIOUS_VERSION=v`expr ${CURRENT_RELEASE_MAJOR} - 1`
 CURRENT_PRERELEASE_MINOR=`git ls-remote --tags | grep pre-${VERSION} | tail -1 | sed "s/.*pre-${VERSION}\.//g"`
-GITHUB_URL="https://api.github.com/repos/jcague/licode"
+GITHUB_URL="https://api.github.com/repos/lynckia/licode"
 COMMIT=`git rev-list -n 1 HEAD`
 SHORT_GIT_HASH=`echo ${COMMIT} | cut -c -7`
 
