@@ -1,4 +1,4 @@
-/* global window, document, webkitURL, L*/
+/* global window, document, webkitURL, L */
 
 import View from './View';
 import Bar from './Bar';
@@ -74,7 +74,7 @@ const VideoPlayer = (spec) => {
 
   /* window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
       document.getElementById(key).value = unescape(value);
-  });*/
+  }); */
 
   Logger.debug(`Creating URL from stream ${that.stream}`);
   const myURL = window.URL || webkitURL;
