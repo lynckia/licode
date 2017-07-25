@@ -1,4 +1,4 @@
-/* global window, document, webkitURL*/
+/* global window, document, webkitURL */
 
 import View from './View';
 import Bar from './Bar';

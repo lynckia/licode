@@ -1,4 +1,4 @@
-/* global document*/
+/* global document */
 
 import { EventDispatcher, StreamEvent } from './Events';
 import Connection from './Connection';
