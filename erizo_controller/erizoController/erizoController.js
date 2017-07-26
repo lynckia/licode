@@ -1,50 +1,18 @@
 /*global require, setInterval, clearInterval, Buffer, exports*/
 'use strict';
 var crypto = require('crypto');
+var config = require('config');
+
 var rpcPublic = require('./rpc/rpcPublic');
 var ST = require('./Stream');
-var config = require('./../../licode_config');
 var Permission = require('./permission');
 var Getopt = require('node-getopt');
 
 // Configuration default values
-GLOBAL.config = config || {};
-GLOBAL.config.erizoController = GLOBAL.config.erizoController || {};
-GLOBAL.config.erizoController.iceServers =
-  GLOBAL.config.erizoController.iceServers || [{'url': 'stun:stun.l.google.com:19302'}];
-GLOBAL.config.erizoController.defaultVideoBW = GLOBAL.config.erizoController.defaultVideoBW || 300;
-GLOBAL.config.erizoController.maxVideoBW = GLOBAL.config.erizoController.maxVideoBW || 300;
-GLOBAL.config.erizoController.publicIP = GLOBAL.config.erizoController.publicIP || '';
-GLOBAL.config.erizoController.hostname = GLOBAL.config.erizoController.hostname|| '';
-GLOBAL.config.erizoController.port = GLOBAL.config.erizoController.port || 8080;
-GLOBAL.config.erizoController.ssl = GLOBAL.config.erizoController.ssl || false;
-// jshint ignore:start
-GLOBAL.config.erizoController.ssl_key =
-  GLOBAL.config.erizoController.ssl_key || '../../cert/key.pem';
-GLOBAL.config.erizoController.ssl_cert =
-  GLOBAL.config.erizoController.ssl_cert || '../../cert/cert.pem';
-GLOBAL.config.erizoController.sslCaCerts =
-  GLOBAL.config.erizoController.sslCaCerts || undefined;
-GLOBAL.config.erizoController.listen_port = GLOBAL.config.erizoController.listen_port || 8080;
-GLOBAL.config.erizoController.listen_ssl = GLOBAL.config.erizoController.listen_ssl || false;
-GLOBAL.config.erizoController.turnServer = GLOBAL.config.erizoController.turnServer || undefined;
-GLOBAL.config.erizoController.warning_n_rooms = GLOBAL.config.erizoController.warning_n_rooms || 15;
-GLOBAL.config.erizoController.limit_n_rooms = GLOBAL.config.erizoController.limit_n_rooms || 20;
-GLOBAL.config.erizoController.interval_time_keepAlive =
-  GLOBAL.config.erizoController.interval_time_keepAlive || 1000;
-GLOBAL.config.erizoController.report.session_events =
-  GLOBAL.config.erizoController.report.session_events || false;
-GLOBAL.config.erizoController.recording_path =
-  GLOBAL.config.erizoController.recording_path || undefined;
-// jshint ignore:end
-GLOBAL.config.erizoController.roles = GLOBAL.config.erizoController.roles ||
-                  {'presenter': {'publish': true, 'subscribe': true, 'record': true},
-                  'viewer': {'subscribe': true},
-                  'viewerWithData':{'subscribe': true,
-                                    'publish':{'audio':  false,
-                                               'video':  false,
-                                               'screen': false,
-                                               'data':   true}}};
+GLOBAL.config = {};
+GLOBAL.config.cloudProvider = config.get('cloudProvider');
+GLOBAL.config.erizoController = config.get('erizoController');
+GLOBAL.config.nuve = config.get('nuve');
 
 // Parse command line arguments
 var getopt = new Getopt([
@@ -102,8 +70,8 @@ for (var prop in opt.options) {
 }
 
 // Load submodules with updated config
-var logger = require('./../common/logger').logger;
-var amqper = require('./../common/amqper');
+var logger = require('./common/logger').logger;
+var amqper = require('./common/amqper');
 var controller = require('./roomController');
 var ecch = require('./ecCloudHandler').EcCloudHandler({amqper: amqper});
 

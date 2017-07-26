@@ -1,6 +1,6 @@
 /*global require, exports, setInterval*/
 'use strict';
-var logger = require('./../common/logger').logger;
+var logger = require('./common/logger').logger;
 
 // Logger
 var log = logger.getLogger('EcCloudHandler');
