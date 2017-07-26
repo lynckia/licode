@@ -44,6 +44,7 @@ if [ -z "$MODE" ] || [ -z "$VERSION" ]; then
   exit
 fi
 
+mkdir -p ~/.ssh
 ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
 git fetch
