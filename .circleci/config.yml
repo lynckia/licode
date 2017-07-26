@@ -66,28 +66,28 @@ jobs:
               docker push lynckia/licode:${SHORT_GIT_HASH}
             fi
 
-prerelease:
-  docker:
-    - image: buildpack-deps:trusty-curl
+  prerelease:
+    docker:
+      - image: buildpack-deps:trusty-curl
 
-  working_directory: /tmp/licode
+    working_directory: /tmp/licode
 
-  steps:
-    - checkout
+    steps:
+      - checkout
 
-    - setup_remote_docker
+      - setup_remote_docker
 
-    - run: ./utils/release.sh -p -v ${RELEASE_VERSION}
+      - run: ./utils/release.sh -p -v ${RELEASE_VERSION}
 
-release:
-  docker:
-    - image: buildpack-deps:trusty-curl
+  release:
+    docker:
+      - image: buildpack-deps:trusty-curl
 
-  working_directory: /tmp/licode
+    working_directory: /tmp/licode
 
-  steps:
-    - checkout
+    steps:
+      - checkout
 
-    - setup_remote_docker
+      - setup_remote_docker
 
-    - run: ./utils/release.sh -r -v ${RELEASE_VERSION}
+      - run: ./utils/release.sh -r -v ${RELEASE_VERSION}
