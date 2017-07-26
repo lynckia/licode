@@ -80,7 +80,8 @@ if [ "$MODE" = "PRERELEASE" ]; then
   # Tag with minor version and staging
   docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:${NEXT_PRERELEASE_NAME}
   docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:staging
-  docker push lynckia/licode:${NEXT_PRERELEASE_NAME} lynckia/licode:staging
+  docker push lynckia/licode:${NEXT_PRERELEASE_NAME}
+  docker push lynckia/licode:staging
 
   LOGS=`git log $PREVIOUS_VERSION..$COMMIT --oneline | perl -p -e 's/\n/\\\\n/'`
   DESCRIPTION="### Detailed PR List:\\n$LOGS"
@@ -108,7 +109,8 @@ elif [ "$MODE" = "RELEASE" ]; then
   # Tag with minor version and staging
   docker tag lynckia/licode:${LATEST_PRERELEASE_NAME} lynckia/licode:${RELEASE_NAME}
   docker tag lynckia/licode:${LATEST_PRERELEASE_NAME} lynckia/licode:latest
-  docker push lynckia/licode:${RELEASE_NAME} lynckia/licode:latest
+  docker push lynckia/licode:${RELEASE_NAME}
+  docker push lynckia/licode:latest
 
   # TODO(javier): Remove lynckia/licode:XXX that belongs to this release
 

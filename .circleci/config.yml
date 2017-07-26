@@ -62,7 +62,8 @@ jobs:
               docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
               echo Tagging to lynckia/licode:${SHORT_GIT_HASH}
               docker tag lynckia/licode:develop lynckia/licode:${SHORT_GIT_HASH}
-              docker push lynckia/licode:develop lynckia/licode:${SHORT_GIT_HASH}
+              docker push lynckia/licode:develop
+              docker push lynckia/licode:${SHORT_GIT_HASH}
             fi
 
 prerelease:
