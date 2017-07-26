@@ -53,6 +53,8 @@ GITHUB_URL="https://api.github.com/repos/lynckia/licode"
 COMMIT=`git rev-list -n 1 HEAD`
 SHORT_GIT_HASH=`echo ${COMMIT} | cut -c -7`
 
+ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
 curl -s -u ${GITHUB_OAUTH_USER}:${GITHUB_OAUTH_TOKEN} -X GET ${GITHUB_URL}/releases/tags/${VERSION} > /dev/null 2>&1
 if [ $? -eq 1 ]; then
   echo WARNING: No previous version found
