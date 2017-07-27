@@ -5,11 +5,13 @@
 #include <string>
 #include <random>
 #include <map>
+#include <vector>
 
 #include "./logger.h"
 #include "pipeline/Handler.h"
 #include "rtp/RtpVP8Parser.h"
 #include "rtp/RtpVP9Parser.h"
+#include "rtp/RtpExtensionProcessor.h"
 
 #define MAX_DELAY 450000
 
@@ -36,9 +38,11 @@ class LayerDetectorHandler: public InboundHandler, public std::enable_shared_fro
   void notifyUpdate() override;
 
  private:
+  void parseLayerInfoFromRid(std::shared_ptr<dataPacket> packet);
   void parseLayerInfoFromVP8(std::shared_ptr<dataPacket> packet);
   void parseLayerInfoFromVP9(std::shared_ptr<dataPacket> packet);
   int getSsrcPosition(uint32_t ssrc);
+  int16_t getStreamIdExtensionIndex(std::array<RTPExtensions, 10> map);
 
  private:
   WebRtcConnection *connection_;
@@ -47,6 +51,7 @@ class LayerDetectorHandler: public InboundHandler, public std::enable_shared_fro
   RtpVP8Parser vp8_parser_;
   RtpVP9Parser vp9_parser_;
   std::vector<uint32_t> video_ssrc_list_;
+  int16_t rid_index_;
 };
 }  // namespace erizo
 

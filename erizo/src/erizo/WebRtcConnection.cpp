@@ -35,6 +35,8 @@
 #include "rtp/RtpPaddingGeneratorHandler.h"
 #include "rtp/RtpUtils.h"
 
+#include "webrtc/base/logging.h"
+
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
@@ -71,6 +73,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
 
   rateControl_ = 0;
   sending_ = true;
+
+  rtc::LogMessage::LogToDebug(rtc::LS_NONE);
 }
 
 WebRtcConnection::~WebRtcConnection() {
