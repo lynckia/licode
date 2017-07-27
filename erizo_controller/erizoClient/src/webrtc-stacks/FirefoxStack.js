@@ -14,18 +14,15 @@ const FirefoxStack = (specInput) => {
       if (sender.track.kind === 'video') {
         sender.getParameters();
         sender.setParameters({ encodings: [{
-          rid: 'spam',
+          rid: '10001',
+          active: true,
+          priority: 'medium',
+          maxBitrate: 250000 },
+        {
+          rid: '10000',
           active: true,
           priority: 'high',
-          maxBitrate: 40000,
-          maxHeight: 640,
-          maxWidth: 480 }, {
-            rid: 'egg',
-            active: true,
-            priority: 'medium',
-            maxBitrate: 10000,
-            maxHeight: 320,
-            maxWidth: 240 }],
+          maxBitrate: 200000 }],
         });
       }
     });
