@@ -43,7 +43,6 @@ namespace erizo {
   static const char *extmap = "a=extmap:";
   static const char *rtcpfb = "a=rtcp-fb:";
   static const char *fmtp = "a=fmtp:";
-  static const char *rid = "a=rid:";
   static const char *simulcast = "a=simulcast:";
   static const char *bas = "b=AS:";
   static const std::string kAssociatedPt = "apt";
