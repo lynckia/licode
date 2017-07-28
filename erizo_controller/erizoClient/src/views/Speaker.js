@@ -1,5 +1,6 @@
-/* global document, Erizo */
-this.Erizo = this.Erizo || {};
+/* global document */
+
+import View from './View';
 
 /*
  * Speaker represents the volume icon that will be shown in the mediaPlayer, for example.
@@ -7,8 +8,8 @@ this.Erizo = this.Erizo || {};
  * Every Speaker is a View.
  * Ex.: var speaker = Speaker({elementID: element, media: mediaTag, id: id});
  */
-Erizo.Speaker = (spec) => {
-  const that = Erizo.View({});
+const Speaker = (spec) => {
+  const that = View({});
   let lastVolume = 50;
 
   const mute = () => {
@@ -117,3 +118,5 @@ Erizo.Speaker = (spec) => {
   document.getElementById(that.elementID).appendChild(that.div);
   return that;
 };
+
+export default Speaker;

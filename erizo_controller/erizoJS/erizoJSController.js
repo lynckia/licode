@@ -148,6 +148,9 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
 
     closeWebRtcConnection = function (wrtc) {
         var associatedMetadata = wrtc.metadata || {};
+        if (wrtc.monitorInterval) {
+          clearInterval(wrtc.monitorInterval);
+        }
         wrtc.close();
         log.info('message: WebRtcConnection status update, ' +
             'id: ' + wrtc.wrtcId + ', status: ' + CONN_FINISHED + ', ' +
@@ -530,7 +533,6 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
       }
     };
 
-    /* eslint no-param-reassign: ["error", { "props": false }] */
     const getWrtcStats = (label, stats, wrtc) => {
       const promise = new Promise((resolve) => {
         wrtc.getStats((statsString) => {

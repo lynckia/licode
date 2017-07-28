@@ -1,5 +1,7 @@
-/* global document, clearTimeout, setTimeout, Erizo*/
-this.Erizo = this.Erizo || {};
+/* global document, clearTimeout, setTimeout */
+
+import View from './View';
+import Speaker from './Speaker';
 
 /*
  * Bar represents the bottom menu bar of every mediaPlayer.
@@ -7,8 +9,8 @@ this.Erizo = this.Erizo || {};
  * Every Bar is a View.
  * Ex.: var bar = Bar({elementID: element, id: id});
  */
-Erizo.Bar = (spec) => {
-  const that = Erizo.View({});
+const Bar = (spec) => {
+  const that = View({});
   let waiting;
 
   // Variables
@@ -76,7 +78,7 @@ Erizo.Bar = (spec) => {
   if (!spec.stream.screen && (spec.options === undefined ||
                               spec.options.speaker === undefined ||
                               spec.options.speaker === true)) {
-    that.speaker = Erizo.Speaker({ elementID: `subbar_${that.id}`,
+    that.speaker = Speaker({ elementID: `subbar_${that.id}`,
       id: that.id,
       stream: spec.stream,
       media: spec.media });
@@ -87,3 +89,5 @@ Erizo.Bar = (spec) => {
 
   return that;
 };
+
+export default Bar;
