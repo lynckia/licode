@@ -102,7 +102,7 @@ exports.RoomController = function (spec) {
                 subscribers[publisherId] = [];
 
                 amqper.callRpc(getErizoQueue(publisherId), 'addExternalInput', args,
-                               {callback: callback});
+                               {callback: callback}, 20000);
 
                 erizos[erizoId].publishers.push(publisherId);
 
@@ -305,21 +305,25 @@ exports.RoomController = function (spec) {
     that.removePublisher = function (publisherId) {
 
         if (subscribers[publisherId] !== undefined && publishers[publisherId]!== undefined) {
+            var erizoId = getErizoQueue(publisherId);
+
             log.info('message: removePublisher, ' +
                      'publisherId: ' + publisherId + ', ' +
-                     'erizoId: ' + getErizoQueue(publisherId));
+                     'erizoId: ' + erizoId);
 
-            var args = [publisherId];
-            amqper.callRpc(getErizoQueue(publisherId), 'removePublisher', args, undefined);
+            amqper.callRpc(erizoId, 'removePublisher', [publisherId], {callback:
+              function () {
+                if (erizos[publishers[publisherId]] !== undefined) {
+                    log.warn('message: removePublisher from Erizo failed. ' +
+                             'publisherId: ' + publisherId + ', ' +
+                             'erizoId: ' + erizoId);
 
-            if (erizos[publishers[publisherId]] !== undefined) {
-                var index = erizos[publishers[publisherId]].publishers.indexOf(publisherId);
-                erizos[publishers[publisherId]].publishers.splice(index, 1);
-            } else {
-                log.warn('message: removePublisher was already removed, ' +
-                         'publisherId: ' + publisherId + ', ' +
-                         'erizoId: ' + getErizoQueue(publisherId));
-            }
+                    log.warn('message: removePublisher, forcing publisher remove from Erizo.');
+                    var index = erizos[publishers[publisherId]].publishers.indexOf(publisherId);
+                    erizos[publishers[publisherId]].publishers.splice(index, 1);
+                }
+              }
+            });
 
             delete subscribers[publisherId];
             delete publishers[publisherId];

@@ -205,10 +205,10 @@ exports.broadcast = function(topic, message, callback) {
 /*
  * Calls remotely the 'method' function defined in rpcPublic of 'to'.
  */
-exports.callRpc = function(to, method, args, callbacks) {
+exports.callRpc = function(to, method, args, callbacks, timeout) {
     corrID ++;
     map[corrID] = {};
     map[corrID].fn = callbacks;
-    map[corrID].to = setTimeout(callbackError, TIMEOUT, corrID);
+    map[corrID].to = setTimeout(callbackError, timeout || TIMEOUT, corrID);
     rpcExc.publish(to, {method: method, args: args, corrID: corrID, replyTo: clientQueue.name});
 };
