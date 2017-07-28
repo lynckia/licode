@@ -9,4 +9,5 @@ module.exports = {
     library: 'Erizo',
     libraryTarget: 'var',
   },
+  devtool: 'source-map', // Default development sourcemap
 };
