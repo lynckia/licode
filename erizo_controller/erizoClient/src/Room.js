@@ -24,6 +24,8 @@ const Room = (altIo, altConnection, specInput) => {
   const DISCONNECTED = 0;
   const CONNECTING = 1;
   const CONNECTED = 2;
+  const PUBLISHER_MAX_RETRIES = 3;
+  let retries = 0;
 
   that.remoteStreams = ErizoMap();
   that.localStreams = ErizoMap();
@@ -395,7 +397,24 @@ const Room = (altIo, altConnection, specInput) => {
     stream.checkOptions(options);
     socket.sendSDP('publish', createSdpConstraints(type, stream, options), arg,
       (id, error) => {
-        populateStreamFunctions(id, stream, error, callback);
+        if (id === null && retries < PUBLISHER_MAX_RETRIES && stream.stream) {
+          publishExternal(streamInput, options, callback);
+          Logger.info('Error when publishing the stream, retries: ', retries);
+          retries += 1;
+        } else if (id === null && retries >= PUBLISHER_MAX_RETRIES && stream.stream) {
+          Logger.error('Error when publishing the stream, max retries reached');
+          if (callback) callback(undefined, error);
+          retries = 0;
+        } else if (stream.stream) {
+          populateStreamFunctions(id, stream, error, callback);
+          retries = 0;
+        } else {
+          Logger.warning('received an id for nonexistent stream', id, error);
+          if (id) {
+            socket.sendMessage('unpublish', id);
+            retries = 0;
+          }
+        }
       });
   };
 
@@ -424,9 +443,26 @@ const Room = (altIo, altConnection, specInput) => {
     constraints.scheme = options.scheme;
 
     socket.sendSDP('publish', constraints, undefined, (id, error) => {
-      populateStreamFunctions(id, stream, error, undefined);
-      createLocalStreamErizoConnection(stream, options);
-      callback(id);
+      if (id === null && retries < PUBLISHER_MAX_RETRIES && stream.stream) {
+        publishErizo(streamInput, options, callback);
+        Logger.info('Error when publishing the stream, retries: ', retries);
+        retries += 1;
+      } else if (id === null && retries >= PUBLISHER_MAX_RETRIES && stream.stream) {
+        Logger.error('Error when publishing the stream, max retries reached');
+        if (callback) callback(undefined, error);
+        retries = 0;
+      } else if (stream.stream) {
+        populateStreamFunctions(id, stream, error, undefined);
+        createLocalStreamErizoConnection(stream, options);
+        callback(id);
+        retries = 0;
+      } else {
+        Logger.warning('received an id for nonexistent stream', id, error);
+        if (id) {
+          socket.sendMessage('unpublish', id);
+          retries = 0;
+        }
+      }
     });
   };
 
