@@ -3,10 +3,11 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';  // We need this for testing wit
 
 var XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest,
     nodeUrl = require ('url'),
-    Erizo = require('./erizofc').Erizo,
+    Erizo = require('./erizofc'),
     NativeStack = require ('./NativeStack.js');
 
-Erizo.Connection = NativeStack.FakeConnection;
+const newIo = require('socket.io-client');
+const fakeConnection = NativeStack;
 var logger = require('./logger').logger;
 var log = logger.getLogger('ErizoSimpleNativeConnection');
 
@@ -15,6 +16,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback, error){
     var that = {};
 
     var localStream = {};
+    var subscribedStreams = [];
     var room = '';
     that.isActive = false;
     localStream.getID = function() {return 0;};
@@ -69,7 +71,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback, error){
                 error('Could not get token from nuve in ' + spec.serverUrl);
                 return;
             }
-            room = Erizo.Room({token: token});
+            room = Erizo.Room(newIo, fakeConnection, {token: token});
 
             room.addEventListener('room-connected', function(roomEvent) {
                 log.info('Connected to room');
@@ -108,9 +110,10 @@ exports.ErizoSimpleNativeConnection = function (spec, callback, error){
 
             });
 
-            room.addEventListener('stream-subscribed', function() {
+            room.addEventListener('stream-subscribed', function(streamEvent) {
                 log.info('stream-subscribed');
                 callback('stream-subscribed');
+                subscribedStreams.push(streamEvent.stream);
             });
 
             room.addEventListener('room-error', function(roomEvent) {
@@ -134,6 +137,18 @@ exports.ErizoSimpleNativeConnection = function (spec, callback, error){
     that.close = function(){
         log.info('Close');
         room.disconnect();
+    };
+
+    that.getStatus = function() {
+      if (subscribedStreams.length === 0) {
+        return 'disconnected';
+      }
+      for (var stream of subscribedStreams) {
+        if (!stream.pc || !stream.pc.peerConnection || !stream.pc.peerConnection.connected) {
+          return 'disconnected';
+        }
+      }
+      return 'connected';
     };
 
     createConnection();

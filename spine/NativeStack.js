@@ -66,9 +66,9 @@ var NativeStack = function (spec) {
 
     return that;
 };
-exports.FakeConnection = function(spec){
+var sessionId = 0;
+exports.buildConnection = function(spec){
     log.info('Creating Connection');
-    var sessionId = 0;
     spec.sessionId = sessionId++;
     return NativeStack(spec); // jshint ignore:line
 };
@@ -79,4 +79,7 @@ exports.GetUserMedia = function(opt, callback){
     //     that.peerConnection.prepareVideo(opt.video.file);
     // }
     callback('');
+};
+exports.getBrowser = function() {
+  return 'fake';
 };

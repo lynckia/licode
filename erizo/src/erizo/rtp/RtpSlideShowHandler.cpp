@@ -47,7 +47,7 @@ void RtpSlideShowHandler::notifyUpdate() {
 void RtpSlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (connection_->getVideoSinkSSRC() != chead->getSourceSSRC()) {
-    ctx->fireRead(packet);
+    ctx->fireRead(std::move(packet));
     return;
   }
   RtpUtils::forEachRRBlock(packet, [this](RtcpHeader *chead) {
@@ -78,14 +78,14 @@ void RtpSlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet)
         break;
     }
   });
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 void RtpSlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   RtcpHeader *rtcp_header = reinterpret_cast<RtcpHeader*>(packet->data);
   if (packet->type != VIDEO_PACKET || rtcp_header->isRtcp()) {
-    ctx->fireWrite(packet);
+    ctx->fireWrite(std::move(packet));
     return;
   }
   bool should_skip_packet = false;
@@ -118,7 +118,7 @@ void RtpSlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet
     rtp_header->setSeqNumber(sequence_number_info.output);
     ELOG_DEBUG("SN %u %d", sequence_number_info.output, is_keyframe);
     last_keyframe_sent_time_ = clock_->now();
-    ctx->fireWrite(packet);
+    ctx->fireWrite(std::move(packet));
   }
 }
 

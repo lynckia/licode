@@ -111,7 +111,7 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
     }
   });
   if (!contains_nack || !is_fully_recovered) {
-    ctx->fireRead(packet);
+    ctx->fireRead(std::move(packet));
   }
 }
 
@@ -123,7 +123,7 @@ void RtpRetransmissionHandler::write(Context *ctx, std::shared_ptr<dataPacket> p
   if (!chead->isRtcp()) {
     packet_buffer_->insertPacket(packet);
   }
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 }  // namespace erizo

@@ -1,8 +1,11 @@
 .DS_Store
 .project
 .cproject
+.git
+.circleci
 licode_config.js
 rtp_media_config.js
+utils/release.sh
 build/
 node_modules/
 erizo/build

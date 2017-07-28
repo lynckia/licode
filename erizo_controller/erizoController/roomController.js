@@ -22,7 +22,7 @@ exports.RoomController = function (spec) {
 
     var KEEPALIVE_INTERVAL = 5*1000;
     var TIMEOUT_LIMIT = 2;
-    var MAX_ERIZOJS_RETRIES = 0;
+    var MAX_ERIZOJS_RETRIES = 3;
 
     var eventListeners = [];
 
@@ -207,6 +207,7 @@ exports.RoomController = function (spec) {
                             return;
                         }
                         log.warn('message: addPublisher ErizoJS timeout no retry, ' +
+                                 'retries: ' + retries +
                                  'streamId: ' + publisherId + ', ' +
                                  'erizoId: ' + getErizoQueue(publisherId) + ', ' +
                                  logger.objectToLog(options.metadata));

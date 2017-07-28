@@ -89,7 +89,7 @@ bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet)
     uint16_t blp = 0;
     base_nack_info.sent_time = now_ms;
     base_nack_info.retransmits++;
-    while (index < nack_info_list_.size()) {
+    while (index + 1u < nack_info_list_.size()) {
       index++;
       NackInfo& blp_nack_info = nack_info_list_[index];
       uint16_t distance = blp_nack_info.seq_num - pid -1;

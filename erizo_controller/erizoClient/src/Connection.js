@@ -1,172 +1,161 @@
-/*global L, window, chrome, navigator*/
-'use strict';
-var Erizo = Erizo || {};
+/* global window, chrome, navigator */
+import ChromeStableStack from './webrtc-stacks/ChromeStableStack';
+import FirefoxStack from './webrtc-stacks/FirefoxStack';
+import FcStack from './webrtc-stacks/FcStack';
+import Logger from './utils/Logger';
 
-Erizo.sessionId = 103;
 
-Erizo.Connection = function (spec) {
-    var that = {};
+let ErizoSessionId = 103;
 
-    spec.sessionId = (Erizo.sessionId += 1);
+const getBrowser = () => {
+  let browser = 'none';
 
-    // Check which WebRTC Stack is installed.
-    that.browser = Erizo.getBrowser();
-    if (that.browser === 'fake') {
-        L.Logger.warning('Publish/subscribe video/audio streams not supported in erizofc yet');
-        that = Erizo.FcStack(spec);
-    } else if (that.browser === 'mozilla') {
-        L.Logger.debug('Firefox Stack');
-        that = Erizo.FirefoxStack(spec);
-    } else if (that.browser === 'bowser'){
-        L.Logger.debug('Bowser Stack');
-        that = Erizo.BowserStack(spec);
-    } else if (that.browser === 'chrome-stable') {
-        L.Logger.debug('Chrome Stable Stack');
-        that = Erizo.ChromeStableStack(spec);
-    } else {
-        L.Logger.error('No stack available for this browser');
-        throw 'WebRTC stack not available';
+  if ((typeof module !== 'undefined' && module.exports)) {
+    browser = 'fake';
+  } else if (window.navigator.userAgent.match('Firefox') !== null) {
+    // Firefox
+    browser = 'mozilla';
+  } else if (window.navigator.userAgent.match('Chrome') !== null) {
+    browser = 'chrome-stable';
+    if (window.navigator.userAgent.match('Electron') !== null) {
+      browser = 'electron';
     }
-    if (!that.updateSpec){
-        that.updateSpec = function(newSpec, callback){
-            L.Logger.error('Update Configuration not implemented in this browser');
-            if (callback)
-                callback ('unimplemented');
-        };
-    }
-
-    return that;
+  } else if (window.navigator.userAgent.match('Safari') !== null) {
+    browser = 'safari';
+  } else if (window.navigator.userAgent.match('AppleWebKit') !== null) {
+    browser = 'safari';
+  }
+  return browser;
 };
 
-Erizo.getBrowser = function () {
-    var browser = 'none';
+const buildConnection = (specInput) => {
+  let that = {};
+  const spec = specInput;
+  ErizoSessionId += 1;
+  spec.sessionId = ErizoSessionId;
 
-    if (typeof module!=='undefined' && module.exports){
-        browser = 'fake';
-    }else if (window.navigator.userAgent.match('Firefox') !== null) {
-        // Firefox
-        browser = 'mozilla';
-    } else if (window.navigator.userAgent.match('Bowser') !== null){
-        browser = 'bowser';
-    } else if (window.navigator.userAgent.match('Chrome') !== null) {
-        if (window.navigator.appVersion.match(/Chrome\/([\w\W]*?)\./)[1] >= 26) {
-            browser = 'chrome-stable';
-        }
-    } else if (window.navigator.userAgent.match('Safari') !== null) {
-        browser = 'bowser';
-    } else if (window.navigator.userAgent.match('AppleWebKit') !== null) {
-        browser = 'bowser';
-    }
-    return browser;
+  // Check which WebRTC Stack is installed.
+  that.browser = getBrowser();
+  if (that.browser === 'fake') {
+    Logger.warning('Publish/subscribe video/audio streams not supported in erizofc yet');
+    that = FcStack(spec);
+  } else if (that.browser === 'mozilla') {
+    Logger.debug('Firefox Stack');
+    that = FirefoxStack(spec);
+  } else if (that.browser === 'safari') {
+    Logger.debug('Safari using Firefox Stack');
+    that = FirefoxStack(spec);
+  } else if (that.browser === 'chrome-stable' || that.browser === 'electron') {
+    Logger.debug('Chrome Stable Stack');
+    that = ChromeStableStack(spec);
+  } else {
+    Logger.error('No stack available for this browser');
+    throw new Error('WebRTC stack not available');
+  }
+  if (!that.updateSpec) {
+    that.updateSpec = (newSpec, callback = () => {}) => {
+      Logger.error('Update Configuration not implemented in this browser');
+      callback('unimplemented');
+    };
+  }
+
+  return that;
 };
 
+const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
+  let screenConfig;
 
-Erizo.GetUserMedia = function (config, callback, error) {
-    var promise;
-    navigator.getMedia = ( navigator.getUserMedia ||
-                       navigator.webkitGetUserMedia ||
-                       navigator.mozGetUserMedia ||
-                       navigator.msGetUserMedia);
+  const getUserMedia = (userMediaConfig, cb, errorCb) => {
+    navigator.mediaDevices.getUserMedia(userMediaConfig).then(cb).catch(errorCb);
+  };
 
-    if (config.screen) {
-        L.Logger.debug('Screen access requested');
-        switch (Erizo.getBrowser()) {
-            case 'mozilla':
-                L.Logger.debug('Screen sharing in Firefox');
-                var screenCfg = {};
-                if (config.video.mandatory !== undefined) {
-                    screenCfg.video = config.video;
-                    screenCfg.video.mediaSource = 'window' || 'screen';
-                } else {
-                    screenCfg = {
-                        audio: config.audio,
-                        video: {mediaSource: 'window' || 'screen'}
-                    };
-                }
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    promise = navigator.mediaDevices.getUserMedia(screenCfg).then(callback);
-                    // Google compressor complains about a func called catch
-                    promise['catch'](error);
-                } else {
-                    navigator.getMedia(screenCfg, callback, error);
-                }
-                break;
-
-            case 'chrome-stable':
-                L.Logger.debug('Screen sharing in Chrome');
-                // Default extensionId - this extension is only usable in our server,
-                // please make your own extension based on the code in
-                // erizo_controller/erizoClient/extras/chrome-extension
-                var extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
-                if (config.extensionId){
-                    L.Logger.debug('extensionId supplied, using ' + config.extensionId);
-                    extensionId = config.extensionId;
-                }
-                L.Logger.debug('Screen access on chrome stable, looking for extension');
-                try {
-                    chrome.runtime.sendMessage(extensionId, {getStream: true}, function (response){
-                        var theConfig = {};
-                        if (response === undefined){
-                            L.Logger.error('Access to screen denied');
-                            var theError = {code:'Access to screen denied'};
-                            error(theError);
-                            return;
-                        }
-                        var theId = response.streamId;
-                        if(config.video.mandatory !== undefined){
-                            theConfig.video = config.video;
-                            theConfig.video.mandatory.chromeMediaSource = 'desktop';
-                            theConfig.video.mandatory.chromeMediaSourceId = theId;
-
-                        }else{
-                            theConfig = {video: {mandatory: {chromeMediaSource: 'desktop',
-                                                             chromeMediaSourceId: theId }}};
-                        }
-                        navigator.getMedia(theConfig, callback, error);
-                    });
-                } catch(e) {
-                    L.Logger.debug('Screensharing plugin is not accessible ');
-                    var theError = {code:'no_plugin_present'};
-                    error(theError);
-                    return;
-                }
-                break;
-
-            default:
-                L.Logger.error('This browser does not support ScreenSharing');
-        }
-    } else {
-        if (typeof module !== 'undefined' && module.exports) {
-            L.Logger.error('Video/audio streams not supported in erizofc yet');
+  const configureScreensharing = () => {
+    Logger.debug('Screen access requested');
+    switch (getBrowser()) {
+      case 'electron' :
+        Logger.debug('Screen sharing in Electron');
+        screenConfig = {};
+        screenConfig.video = config.video || {};
+        screenConfig.video.mandatory = config.video.mandatory || {};
+        screenConfig.video.mandatory.chromeMediaSource = 'screen';
+        getUserMedia(screenConfig, callback, error);
+        break;
+      case 'mozilla':
+        Logger.debug('Screen sharing in Firefox');
+        screenConfig = {};
+        if (config.video !== undefined) {
+          screenConfig.video = config.video;
+          screenConfig.video.mediaSource = 'window' || 'screen';
         } else {
-            if (config.video && Erizo.getBrowser() === 'mozilla') {
-                var ffConfig = {video:{}, audio: config.audio, screen: config.screen};
-                if (config.audio.mandatory !== undefined) {
-                    var audioCfg = config.audio.mandatory;
-                    if (audioCfg.sourceId) {
-                        ffConfig.audio.deviceId = audioCfg.sourceId;
-                    }
-                }
-                if (config.video.mandatory !== undefined) {
-                    var videoCfg = config.video.mandatory;
-                    ffConfig.video.width = {min: videoCfg.minWidth, max: videoCfg.maxWidth};
-                    ffConfig.video.height = {min: videoCfg.minHeight, max: videoCfg.maxHeight};
-                    if (videoCfg.sourceId) {
-                        ffConfig.video.deviceId = videoCfg.sourceId;
-                    }
-
-                }
-                if (config.video.optional !== undefined) {
-                    ffConfig.video.frameRate =  config.video.optional[1].maxFrameRate;
-                }
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    promise = navigator.mediaDevices.getUserMedia(ffConfig).then(callback);
-                    // Google compressor complains about a func called catch
-                    promise['catch'](error);
-                    return;
-                }
-            }
-            navigator.getMedia(config, callback, error);
+          screenConfig = {
+            audio: config.audio,
+            video: { mediaSource: 'window' || 'screen' },
+          };
         }
+        getUserMedia(screenConfig, callback, error);
+        break;
+
+      case 'chrome-stable':
+        Logger.debug('Screen sharing in Chrome');
+        screenConfig = {};
+        if (config.desktopStreamId) {
+          screenConfig.video = config.video || { mandatory: {} };
+          screenConfig.video.mandatory = screenConfig.video.mandatory || {};
+          screenConfig.video.mandatory.chromeMediaSource = 'desktop';
+          screenConfig.video.mandatory.chromeMediaSourceId = config.desktopStreamId;
+          getUserMedia(screenConfig, callback, error);
+        } else {
+          // Default extensionId - this extension is only usable in our server,
+          // please make your own extension based on the code in
+          // erizo_controller/erizoClient/extras/chrome-extension
+          let extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
+          if (config.extensionId) {
+            Logger.debug(`extensionId supplied, using ${config.extensionId}`);
+            extensionId = config.extensionId;
+          }
+          Logger.debug('Screen access on chrome stable, looking for extension');
+          try {
+            chrome.runtime.sendMessage(extensionId, { getStream: true },
+              (response) => {
+                if (response === undefined) {
+                  Logger.error('Access to screen denied');
+                  const theError = { code: 'Access to screen denied' };
+                  error(theError);
+                  return;
+                }
+                const theId = response.streamId;
+                if (config.video.mandatory !== undefined) {
+                  screenConfig.video = config.video;
+                  screenConfig.video.mandatory.chromeMediaSource = 'desktop';
+                  screenConfig.video.mandatory.chromeMediaSourceId = theId;
+                } else {
+                  screenConfig = { video: { mandatory: { chromeMediaSource: 'desktop',
+                    chromeMediaSourceId: theId } } };
+                }
+                getUserMedia(screenConfig, callback, error);
+              });
+          } catch (e) {
+            Logger.debug('Screensharing plugin is not accessible ');
+            const theError = { code: 'no_plugin_present' };
+            error(theError);
+          }
+        }
+        break;
+
+      default:
+        Logger.error('This browser does not support ScreenSharing');
     }
+  };
+
+  if (config.screen) {
+    configureScreensharing();
+  } else if (typeof module !== 'undefined' && module.exports) {
+    Logger.error('Video/audio streams not supported in erizofc yet');
+  } else {
+    Logger.debug('Calling getUserMedia with config', config);
+    getUserMedia(config, callback, error);
+  }
 };
+const Connection = { GetUserMedia, buildConnection, getBrowser };
+
+export default Connection;

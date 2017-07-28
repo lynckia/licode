@@ -57,9 +57,9 @@ class MockMediaSink : public MediaSink {
 
 class MockWebRtcConnection: public WebRtcConnection {
  public:
-  MockWebRtcConnection(std::shared_ptr<Worker> worker, const IceConfig &ice_config,
+  MockWebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker, const IceConfig &ice_config,
                        const std::vector<RtpMap> rtp_mappings) :
-    WebRtcConnection(worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), nullptr) {}
+    WebRtcConnection(worker, io_worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), nullptr) {}
 
   virtual ~MockWebRtcConnection() {
   }

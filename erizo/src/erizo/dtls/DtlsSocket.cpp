@@ -31,6 +31,7 @@ DtlsSocket::DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type):
   assert(mContext);
   mSsl = SSL_new(mContext);
   assert(mSsl != 0);
+  SSL_set_mtu(mSsl, DTLS_MTU);
   mSsl->ctx = mContext;
   mSsl->session_ctx = mContext;
 
@@ -80,9 +81,17 @@ void DtlsSocket::startClient() {
 }
 
 bool DtlsSocket::handlePacketMaybe(const unsigned char* bytes, unsigned int len) {
+  if (mSsl == NULL) {
+    ELOG_WARN("handlePacketMaybe called after DtlsSocket closed: %p", this);
+    return false;
+  }
   DtlsSocketContext::PacketType pType = DtlsSocketContext::demuxPacket(bytes, len);
 
   if (pType != DtlsSocketContext::dtls) {
+    return false;
+  }
+
+  if (mSsl == nullptr) {
     return false;
   }
 
@@ -124,6 +133,10 @@ void DtlsSocket::doHandshakeIteration() {
   // See what was written
   unsigned char *outBioData;
   int outBioLen = BIO_get_mem_data(mOutBio, &outBioData);
+  if (outBioLen > DTLS_MTU) {
+    ELOG_WARN("message: BIO data bigger than MTU - packet could be lost, outBioLen %u, MTU %u",
+        outBioLen, DTLS_MTU);
+  }
 
   // Now handle handshake errors */
   switch (sslerr = SSL_get_error(mSsl, r)) {
@@ -274,10 +287,10 @@ void DtlsSocket::createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_p
   memcpy(client_master_key_and_salt + key_len, srtp_key->clientMasterSalt, salt_len);
 
   /* initialize client SRTP policy from profile  */
-  err_status_t err = crypto_policy_set_from_profile_for_rtp(&client_policy.rtp, profile);
+  srtp_err_status_t err = srtp_crypto_policy_set_from_profile_for_rtp(&client_policy.rtp, profile);
   if (err) assert(0);
 
-  err = crypto_policy_set_from_profile_for_rtcp(&client_policy.rtcp, profile);
+  err = srtp_crypto_policy_set_from_profile_for_rtcp(&client_policy.rtcp, profile);
   if (err) assert(0);
   client_policy.next = NULL;
 
@@ -299,10 +312,10 @@ void DtlsSocket::createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_p
   delete srtp_key;
 
   /* initialize server SRTP policy from profile  */
-  err = crypto_policy_set_from_profile_for_rtp(&server_policy.rtp, profile);
+  err = srtp_crypto_policy_set_from_profile_for_rtp(&server_policy.rtp, profile);
   if (err) assert(0);
 
-  err = crypto_policy_set_from_profile_for_rtcp(&server_policy.rtcp, profile);
+  err = srtp_crypto_policy_set_from_profile_for_rtcp(&server_policy.rtcp, profile);
   if (err) assert(0);
   server_policy.next = NULL;
 

@@ -25,12 +25,14 @@ void LayerDetectorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
     RtpMap *codec = connection_->getRemoteSdpInfo().getCodecByExternalPayloadType(rtp_header->getPayloadType());
     if (codec && codec->encoding_name == "VP8") {
+      packet->codec = "VP8";
       parseLayerInfoFromVP8(packet);
     } else if (codec && codec->encoding_name == "VP9") {
+      packet->codec = "VP9";
       parseLayerInfoFromVP9(packet);
     }
   }
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
 int LayerDetectorHandler::getSsrcPosition(uint32_t ssrc) {
@@ -48,7 +50,9 @@ void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<dataPacket> pac
   start_buffer = start_buffer + rtp_header->getHeaderLength();
   RTPPayloadVP8* payload = vp8_parser_.parseVP8(
       start_buffer, packet->length - rtp_header->getHeaderLength());
-
+  if (payload->hasPictureID) {
+    packet->picture_id = payload->pictureID;
+  }
   packet->compatible_temporal_layers = {};
   switch (payload->tID) {
     case 0:

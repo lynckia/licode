@@ -14,6 +14,7 @@
 #include "./Stats.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
+#include "thread/IOWorker.h"
 #include "rtp/RtcpProcessor.h"
 #include "rtp/RtpExtensionProcessor.h"
 #include "lib/Clock.h"
@@ -69,7 +70,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    * Constructor.
    * Constructs an empty WebRTCConnection without any configuration.
    */
-  WebRtcConnection(std::shared_ptr<Worker> worker, const std::string& connection_id, const IceConfig& iceConfig,
+  WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
+      const std::string& connection_id, const IceConfig& iceConfig,
       const std::vector<RtpMap> rtp_mappings, const std::vector<erizo::ExtMap> ext_mappings,
       WebRtcConnectionEventListener* listener);
   /**
@@ -157,6 +159,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   void asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
 
   bool isAudioMuted() { return audio_muted_; }
+  bool isVideoMuted() { return video_muted_; }
 
   SdpInfo& getRemoteSdpInfo() { return remoteSdp_; }
 
@@ -225,8 +228,10 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   Pipeline::Ptr pipeline_;
 
   std::shared_ptr<Worker> worker_;
+  std::shared_ptr<IOWorker> io_worker_;
 
   bool audio_muted_;
+  bool video_muted_;
 
   bool pipeline_initialized_;
 };
@@ -243,7 +248,7 @@ class PacketReader : public InboundHandler {
   }
 
   void read(Context *ctx, std::shared_ptr<dataPacket> packet) override {
-    connection_->read(packet);
+    connection_->read(std::move(packet));
   }
 
   void notifyUpdate() override {
@@ -265,7 +270,7 @@ class PacketWriter : public OutboundHandler {
   }
 
   void write(Context *ctx, std::shared_ptr<dataPacket> packet) override {
-    connection_->write(packet);
+    connection_->write(std::move(packet));
   }
 
   void notifyUpdate() override {

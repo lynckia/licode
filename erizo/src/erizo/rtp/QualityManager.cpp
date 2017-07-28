@@ -18,7 +18,9 @@ QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
 void QualityManager::enable() {
   ELOG_DEBUG("message: Enabling QualityManager");
   enabled_ = true;
-  setPadding(true);
+  if (!forced_layers_) {
+    setPadding(true);
+  }
 }
 
 void QualityManager::disable() {
@@ -165,6 +167,10 @@ bool QualityManager::isInMaxLayer() {
 }
 
 void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
+  if (spatial_layer == -1 || temporal_layer == -1) {
+    forced_layers_ = false;
+    return;
+  }
   forced_layers_ = true;
   setPadding(false);
 

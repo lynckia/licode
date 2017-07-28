@@ -8,16 +8,24 @@ var log = logger.getLogger('NativeClient');
 GLOBAL.config = licodeConfig || {};
 GLOBAL.mediaConfig = mediaConfig || {};
 
+var threadPool = new addon.ThreadPool(10);
+threadPool.start();
+
+var ioThreadPool = new addon.IOThreadPool(1);
+if (GLOBAL.config.erizo.useNicer) {
+  ioThreadPool.start();
+}
+
 exports.ErizoNativeConnection = function (spec){
     var that = {},
     wrtc,
     initWebRtcConnection,
     syntheticInput,
     externalInput,
+    oneToMany,
     externalOutput;
 
-    var threadPool = new addon.ThreadPool(1);
-    threadPool.start();
+    that.connected = false;
 
     var CONN_INITIAL = 101,
         // CONN_STARTED = 102,
@@ -46,6 +54,8 @@ exports.ErizoNativeConnection = function (spec){
                         that.prepareRecording(spec.video.recording);
                     } else if (spec.video && spec.video.synthetic && !syntheticInput) {
                       that.prepareSynthetic(spec.video.synthetic);
+                    } else {
+                      that.prepareNull();
                     }
                     callback('callback', {type: 'started'});
                     break;
@@ -63,11 +73,13 @@ exports.ErizoNativeConnection = function (spec){
 
                 case CONN_FAILED:
                     log.warn('Connection failed the ICE process');
+                    that.connected = false;
                     //   callback('callback', {type: 'failed', sdp: mess});
                     break;
 
                 case CONN_READY:
                     log.info('Connection ready');
+                    that.connected = true;
                     if (externalInput !== undefined){
                         log.info('Will start External Input');
                         externalInput.init();
@@ -87,20 +99,30 @@ exports.ErizoNativeConnection = function (spec){
     };
 
 
-    wrtc = new addon.WebRtcConnection(threadPool, 'spine',
+    wrtc = new addon.WebRtcConnection(threadPool, ioThreadPool, 'spine_' + spec.sessionId,
                                       GLOBAL.config.erizo.stunserver,
                                       GLOBAL.config.erizo.stunport,
                                       GLOBAL.config.erizo.minport,
                                       GLOBAL.config.erizo.maxport,
                                       false,
                                       JSON.stringify(GLOBAL.mediaConfig),
+                                      GLOBAL.config.erizo.useNicer,
                                       GLOBAL.config.erizo.turnserver,
                                       GLOBAL.config.erizo.turnport,
                                       GLOBAL.config.erizo.turnusername,
-                                      GLOBAL.config.erizo.turnpass);
+                                      GLOBAL.config.erizo.turnpass,
+                                      GLOBAL.config.erizo.networkinterface);
 
     that.createOffer = function () {
 
+    };
+
+    that.prepareNull = function () {
+        log.info('Preparing null output');
+        oneToMany = new addon.OneToManyProcessor();
+        wrtc.setVideoReceiver(oneToMany);
+        wrtc.setAudioReceiver(oneToMany);
+        oneToMany.setPublisher(wrtc);
     };
 
     that.prepareVideo = function (url) {
@@ -167,6 +189,7 @@ exports.ErizoNativeConnection = function (spec){
         if (syntheticInput!==undefined){
             syntheticInput.close();
         }
+        that.connected = false;
         wrtc.close();
     };
 

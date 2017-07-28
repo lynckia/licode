@@ -676,7 +676,7 @@ namespace erizo {
       }
       if (isCand != std::string::npos) {
         std::vector<std::string> pieces = stringutil::splitOneOf(line, " :");
-        processCandidate(pieces, mtype);
+        processCandidate(pieces, mtype, line);
       }
       if (isCrypt != std::string::npos) {
         CryptoInfo crypinfo;
@@ -1042,7 +1042,7 @@ namespace erizo {
     return getAudioExternalPT(internalPT);
   }
 
-  bool SdpInfo::processCandidate(const std::vector<std::string>& pieces, MediaType mediaType) {
+  bool SdpInfo::processCandidate(const std::vector<std::string>& pieces, MediaType mediaType, std::string line) {
     CandidateInfo cand;
     static const char* types_str[] = { "host", "srflx", "prflx", "relay" };
     cand.mediaType = mediaType;
@@ -1105,6 +1105,7 @@ namespace erizo {
       cand.rPort = (unsigned int) strtoul(pieces[12].c_str(), nullptr, 10);
       ELOG_DEBUG("Parsing raddr srlfx or relay %s, %u \n", cand.rAddress.c_str(), cand.rPort);
     }
+    cand.sdp = line;
     candidateVector_.push_back(cand);
     return true;
   }

@@ -22,7 +22,8 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
  public:
   DtlsTransport(MediaType med, const std::string& transport_name, const std::string& connection_id, bool bundle,
                 bool rtcp_mux, std::weak_ptr<TransportListener> transport_listener, const IceConfig& iceConfig,
-                std::string username, std::string password, bool isServer, std::shared_ptr<Worker> worker);
+                std::string username, std::string password, bool isServer, std::shared_ptr<Worker> worker,
+                std::shared_ptr<IOWorker> io_worker);
   virtual ~DtlsTransport();
   void connectionStateChanged(IceState newState);
   std::string getMyFingerprint();
@@ -39,6 +40,8 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   void onHandshakeFailed(dtls::DtlsSocketContext *ctx, const std::string error) override;
   void updateIceState(IceState state, IceConnection *conn) override;
   void processLocalSdp(SdpInfo *localSdp_) override;
+
+  void updateIceStateSync(IceState state, IceConnection *conn);
 
  private:
   char protectBuf_[5000];
