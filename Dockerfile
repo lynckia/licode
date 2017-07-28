@@ -19,6 +19,8 @@ WORKDIR /opt
 
 COPY . /opt/licode
 
+RUN mkdir /opt/licode/.git
+
 # Clone and install licode
 WORKDIR /opt/licode/scripts
 

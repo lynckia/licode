@@ -30,8 +30,8 @@ const BaseStack = (specInput) => {
   specBase.remoteDescriptionSet = false;
 
   that.mediaConstraints = {
-    offerToReceiveVideo: (specBase.video !== undefined),
-    offerToReceiveAudio: (specBase.audio !== undefined),
+    offerToReceiveVideo: (specBase.video !== undefined && specBase.video !== false),
+    offerToReceiveAudio: (specBase.audio !== undefined && specBase.audio !== false),
   };
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);

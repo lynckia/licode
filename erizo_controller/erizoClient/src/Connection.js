@@ -1,4 +1,4 @@
-/* global window, chrome, navigator*/
+/* global window, chrome, navigator */
 import ChromeStableStack from './webrtc-stacks/ChromeStableStack';
 import FirefoxStack from './webrtc-stacks/FirefoxStack';
 import FcStack from './webrtc-stacks/FcStack';
