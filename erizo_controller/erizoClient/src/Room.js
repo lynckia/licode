@@ -149,8 +149,8 @@ const Room = (altIo, altConnection, specInput) => {
           browser: stream.pc.browser }, undefined, () => {});
       },
       nop2p: true,
-      audio: stream.hasAudio(),
-      video: stream.hasVideo(),
+      audio: options.audio && stream.hasAudio(),
+      video: options.video && stream.hasVideo(),
       maxAudioBW: options.maxAudioBW,
       maxVideoBW: options.maxVideoBW,
       limitMaxAudioBW: spec.maxAudioBW,
@@ -437,7 +437,9 @@ const Room = (altIo, altConnection, specInput) => {
     if (options.maxVideoBW > spec.maxVideoBW) {
       options.maxVideoBW = spec.maxVideoBW;
     }
-    Logger.info('Checking subscribe options for', stream.getID());
+    options.audio = (options.audio === undefined) ? true : options.audio;
+    options.video = (options.video === undefined) ? true : options.video;
+    options.data = (options.data === undefined) ? true : options.data;
     stream.checkOptions(options);
     const constraint = { streamId: stream.getID(),
       audio: options.audio && stream.hasAudio(),

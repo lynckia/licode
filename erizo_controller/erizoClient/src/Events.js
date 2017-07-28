@@ -24,6 +24,9 @@ const EventDispatcher = () => {
 
   // It removes an available event listener.
   that.removeEventListener = (eventType, listener) => {
+    if (!dispatcher.eventListeners[eventType]) {
+      return;
+    }
     const index = dispatcher.eventListeners[eventType].indexOf(listener);
     if (index !== -1) {
       dispatcher.eventListeners[eventType].splice(index, 1);
