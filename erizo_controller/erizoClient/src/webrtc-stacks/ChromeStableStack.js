@@ -12,7 +12,7 @@ const ChromeStableStack = (specInput) => {
             'least at 2000 kbit/s');
     newSpec.simulcast.numSpatialLayers = 3;
   }
-  
+
   const spec = newSpec;
   const that = BaseStack(newSpec);
   const defaultSimulcastSpatialLayers = 2;
