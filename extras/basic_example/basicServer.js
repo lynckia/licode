@@ -7,19 +7,7 @@ var express = require('express'),
     N = require('./nuve'),
     fs = require('fs'),
     https = require('https'),
-    config = require('./../../licode_config');
-
-var options = {
-    key: fs.readFileSync('../../cert/key.pem').toString(),
-    cert: fs.readFileSync('../../cert/cert.pem').toString()
-};
-
-if (config.erizoController.sslCaCerts) {
-    options.ca = [];
-    for (var ca in config.erizoController.sslCaCerts) {
-        options.ca.push(fs.readFileSync(config.erizoController.sslCaCerts[ca]).toString());
-    }
-}
+    config = require('config');
 
 var app = express();
 
@@ -41,12 +29,11 @@ app.use(function(req, res, next) {
   next();
 });
 
+var NUVE_SUPERSERVICE_ID = config.get('nuve.superserviceID');
+var NUVE_SUPERSERVICE_KEY = config.get('nuve.superserviceKey');
+var NUVE_ENDPOINT = config.get('nuve.nuveEndpoint');
 
-//app.set('views', __dirname + '/../views/');
-//disable layout
-//app.set("view options", {layout: false});
-
-N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3000/');
+N.API.init(NUVE_SUPERSERVICE_ID, NUVE_SUPERSERVICE_KEY, NUVE_ENDPOINT);
 
 var defaultRoom;
 const defaultRoomName = 'basicExampleRoom';
@@ -192,9 +179,6 @@ cleanExampleRooms(function() {
     getOrCreateRoom(defaultRoomName, undefined, function (roomId) {
         defaultRoom = roomId;
         app.listen(3001);
-        var server = https.createServer(options, app);
         console.log('BasicExample started');
-        server.listen(3004);
-
     });
 });
