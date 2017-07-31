@@ -848,7 +848,9 @@ var listen = function () {
             if (socket.room.streams[streamId]) {
                 delete socket.room.streams[streamId];
             }
-            callback(true);
+            if (typeof callback === 'function') {
+              callback(true);
+            }
         });
 
         //Gets 'unsubscribe' messages on the socket in order to
@@ -881,7 +883,9 @@ var listen = function () {
                     }
                 }
             }
-            callback(true);
+            if (typeof callback === 'function') {
+              callback(true);
+            }
         });
 
         //When a client leaves the room erizoController removes its streams from the room if exists.
