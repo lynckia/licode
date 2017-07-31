@@ -3,6 +3,7 @@
 module.exports = {
   apps: [
     {
+      exec_mode: 'fork_mode',
       name: 'erizo-controller',
       script: 'erizoController.js',
       out_file: 'logs/out.log',
