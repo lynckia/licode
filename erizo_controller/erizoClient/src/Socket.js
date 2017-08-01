@@ -1,4 +1,4 @@
-/* global*/
+/* global */
 
 import io from '../lib/socket.io';
 import Logger from './utils/Logger';
