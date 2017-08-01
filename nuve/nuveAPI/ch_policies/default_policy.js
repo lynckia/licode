@@ -14,7 +14,7 @@ Params
 		{ erizoControllerId: {
         	ip: String,
         	state: Int,
-        	keepAlive: Int,
+        	keepAliveTs: Date,
         	hostname: String,
         	port: Int,
         	ssl: bool

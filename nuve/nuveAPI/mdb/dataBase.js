@@ -19,7 +19,7 @@ var databaseUrl = nuveConfig.dataBaseURL;
  * erizoController {
  *		ip: ip,
  *		state: 2,
- *		keepAlive: 0,
+ *		keepAliveTs: new Date(),
  *		hostname: hostname,
  *		port: port,
  *		ssl: ssl,
