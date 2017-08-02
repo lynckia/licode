@@ -476,6 +476,11 @@ var listen = function () {
         };
 
         socket.on('signaling_message', function (msg) {
+            if (socket.room === undefined) {
+              log.error('message: singaling_message for user in undefined room ' +
+              msg.streamId + ' user: ' + socket.user);
+              socket.disconnect();
+            }
             if (socket.room.p2p) {
                 sendToSocket(msg.peerSocket, 'signaling_message_peer',
                         {streamId: msg.streamId, peerSocket: socket.id, msg: msg.msg});
