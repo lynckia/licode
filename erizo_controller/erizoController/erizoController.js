@@ -242,6 +242,7 @@ var addToCloudHandler = function (callback) {
                                   'to avoid unexpected behavior this ErizoController will die');
                         clearInterval(intervarId);
                         amqper.callRpc('nuve', 'killMe', publicIP, {callback: function () {}});
+                        process.exit(1);
                     }
                 }});
 
