@@ -14,7 +14,7 @@ var AWS;
 var INTERVAL_TIME_EC_READY = 500;
 var TOTAL_ATTEMPTS_EC_READY = 20;
 var INTERVAL_TIME_CHECK_KA = 1000;
-var MAX_KA_COUNT = 10;
+var KA_TIMEOUT_MS = 10*1000;
 
 var getErizoController;
 
@@ -87,19 +87,16 @@ var unassignErizoController = function (erizoControllerId) {
 var checkKA = function () {
     var ec;
 
-    erizoControllerRegistry.getErizoControllers(function(erizoControllers) {
+    erizoControllerRegistry.getTimedOutErizoControllers(KA_TIMEOUT_MS, function(erizoControllers) {
 
         for (ec in erizoControllers) {
             if (erizoControllers.hasOwnProperty(ec)) {
                 var id = erizoControllers[ec]._id;
-                if (erizoControllers[ec].keepAlive > MAX_KA_COUNT) {
-                    log.warn('ErizoController', ec, ' in ', erizoControllers[ec].ip,
-                             'does not respond. Deleting it.');
-                    erizoControllerRegistry.removeErizoController(id);
-                    unassignErizoController(id);
-                    return;
-                }
-                erizoControllerRegistry.incrementKeepAlive(id);
+                log.warn('ErizoController', ec, ' in ', erizoControllers[ec].ip,
+                         'does not respond. Deleting it.');
+                erizoControllerRegistry.removeErizoController(id);
+                unassignErizoController(id);
+                return;
             }
         }
     });
@@ -117,7 +114,7 @@ var addNewPrivateErizoController = function (ip, hostname, port, ssl, callback) 
     var erizoController = {
         ip: ip,
         state: 2,
-        keepAlive: 0,
+        keepAliveTs: new Date(),
         hostname: hostname,
         port: port,
         ssl: ssl
@@ -166,7 +163,7 @@ exports.keepAlive = function (id, callback) {
     erizoControllerRegistry.getErizoController(id, function (erizoController) {
 
         if (erizoController) {
-          erizoControllerRegistry.updateErizoController(id, {keepAlive: 0});
+          erizoControllerRegistry.updateErizoController(id, {keepAliveTs: new Date()});
           result = 'ok';
           //log.info('KA: ', id);
         } else {
