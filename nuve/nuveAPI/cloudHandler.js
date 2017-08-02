@@ -13,8 +13,9 @@ var AWS;
 
 var INTERVAL_TIME_EC_READY = 500;
 var TOTAL_ATTEMPTS_EC_READY = 20;
-var INTERVAL_TIME_CHECK_KA = 1000;
+var INTERVAL_TIME_CHECK_KA = 2000;
 var KA_TIMEOUT_MS = 10*1000;
+var DELAY_START_CHECK_KA = INTERVAL_TIME_CHECK_KA;
 
 var getErizoController;
 
@@ -102,7 +103,9 @@ var checkKA = function () {
     });
 };
 
-setInterval(checkKA, INTERVAL_TIME_CHECK_KA);
+setTimeout(function () {
+    setInterval(checkKA, INTERVAL_TIME_CHECK_KA);
+}, DELAY_START_CHECK_KA);
 
 var CLOUD_HANDLER_POLICY = config.get('nuve.cloudHandlerPolicy');
 if (CLOUD_HANDLER_POLICY) {
