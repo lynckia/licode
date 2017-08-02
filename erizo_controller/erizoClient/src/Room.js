@@ -484,6 +484,7 @@ const Room = (altIo, altConnection, specInput) => {
 
   const clearAll = () => {
     that.state = DISCONNECTED;
+    socket.state = socket.DISCONNECTED;
 
     // Remove all streams
     remoteStreams.forEach((stream, id) => {

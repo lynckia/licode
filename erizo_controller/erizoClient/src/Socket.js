@@ -71,8 +71,17 @@ const Socket = (newIo) => {
     }, error);
   };
 
+  that.disconnect = () => {
+    that.state = that.DISCONNECTED;
+    socket.disconnect();
+  };
+
   // Function to send a message to the server using socket.io
   that.sendMessage = (type, msg, callback = defaultCallback, error = defaultCallback) => {
+    if (that.state === that.DISCONNECTED && type !== 'token') {
+      Logger.error('Trying to send a message over a disconnected Socket');
+      return;
+    }
     socket.emit(type, msg, (respType, resp) => {
       if (respType === 'success') {
         callback(resp);
@@ -87,7 +96,7 @@ const Socket = (newIo) => {
   // It sends a SDP message to the server using socket.io
   that.sendSDP = (type, options, sdp, callback = defaultCallback) => {
     if (that.state === that.DISCONNECTED) {
-      Logger.warning('Trying to send a message over a disconnected Socket');
+      Logger.error('Trying to send a message over a disconnected Socket');
       return;
     }
     socket.emit(type, options, sdp, (response, respCallback) => {
