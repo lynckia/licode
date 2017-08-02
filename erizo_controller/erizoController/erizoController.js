@@ -552,7 +552,7 @@ var listen = function () {
                         callback(id);
                         sendMsgToRoom(socket.room, 'onAddStream', st.getPublicStream());
                     } else {
-                        callback(null, 'Error adding External Input');
+                        callback(null, 'Error adding External Input:' + result);
                     }
                 });
             } else if (options.state === 'erizo') {
