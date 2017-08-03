@@ -102,7 +102,7 @@ window.onload = function () {
     };
 
     room.addEventListener('room-connected', function (roomEvent) {
-      var options = {metadata: {type: 'publisher'}};
+      var options = {metadata: {type: 'publisher'}, codecsBlacklist: ['h264']};
       var enableSimulcast = getParameterByName('simulcast');
       if (enableSimulcast) options.simulcast = {numSpatialLayers: 2};
 
