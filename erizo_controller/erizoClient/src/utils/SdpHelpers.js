@@ -51,29 +51,26 @@ SdpHelpers.setMaxBW = (sdpInput, spec) => {
   return sdp;
 };
 
-SdpHelpers.filterCodecFromMLine = (sdpInput, codecNum) => {
-  return sdpInput
-    .replace(new RegExp(`^(m=\\S+ \\S+ \\S+(?: \\d+)*) ${codecNum}`, 'm'), '$1');
-};
+SdpHelpers.filterCodecFromMLine = (sdpInput, codecNum) =>
+  sdpInput.replace(new RegExp(`^(m=\\S+ \\S+ \\S+(?: \\d+)*) ${codecNum}`, 'm'), '$1');
 
 SdpHelpers.filterCodec = (sdpInput, codec) => {
   const codecNumMatch = sdpInput.match(new RegExp(`a=rtpmap:(\\d+) ${codec}/`, 'i'));
   if (!codecNumMatch) {
     return sdpInput;
   }
-  let codecNums = [codecNumMatch[1]];
+  const codecNums = [codecNumMatch[1]];
   const rtxNumMatch = sdpInput.match(new RegExp(`a=fmtp:(\\d+) apt=${codecNums[0]}\\b`, 'i'));
   if (rtxNumMatch) {
     codecNums.push(rtxNumMatch[1]);
   }
   return codecNums.reduce(SdpHelpers.filterCodecFromMLine, sdpInput)
     .replace(new RegExp(`^a=[a-z-]+:(${codecNums.join('|')})\\b.*$`, 'gm'), '')
-    .replace(/(\r?\n){2,}/g, '');
+    .replace(/(\r?\n)(\r?\n)+/g, '$1');
 };
 
-SdpHelpers.filterCodecs = (sdpInput, codecs) => {
-  return codecs.reduce(SdpHelpers.filterCodec, sdpInput);
-};
+SdpHelpers.filterCodecs = (sdpInput, codecs) =>
+  codecs.reduce(SdpHelpers.filterCodec, sdpInput);
 
 SdpHelpers.enableOpusNacks = (sdpInput) => {
   let sdp = sdpInput;
