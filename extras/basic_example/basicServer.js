@@ -141,7 +141,7 @@ app.post('/createToken/', function(req, res) {
 
     let room = defaultRoomName, type, roomId;
 
-    if (req.body.room && !isNaN(req.body.room)) room = req.body.room;
+    if (req.body.room) room = req.body.room;
     if (req.body.type) type = req.body.type;
     if (req.body.roomId) roomId = req.body.roomId;
 
