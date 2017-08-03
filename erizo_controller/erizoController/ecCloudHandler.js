@@ -68,13 +68,19 @@ exports.EcCloudHandler = function (spec) {
     }
 
     log.warn('message: agent selected timed out trying again, ' +
-             'code: ' + WARN_TIMEOUT + ', agentId: ' + agentId);
+             'code: ' + WARN_TIMEOUT + ', agentId:' + agentId);
 
-    amqper.callRpc('ErizoAgent', 'createErizoJS', [], {callback: function(erizoId) {
+    var agentQueue = 'ErizoAgent';
+
+    if (getErizoAgent) {
+      agentQueue = getErizoAgent(agents);
+    }
+
+    amqper.callRpc(agentQueue, 'createErizoJS', [], {callback: function(erizoId) {
       if (erizoId === 'timeout') {
         tryAgain(++count, agentId ,callback);
       } else {
-        callback(erizoId);
+        callback(erizoId.erizoId, erizoId.agentId);
       }
     }});
   };
