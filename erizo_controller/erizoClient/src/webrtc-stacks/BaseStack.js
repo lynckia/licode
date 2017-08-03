@@ -25,6 +25,9 @@ const BaseStack = (specInput) => {
   if (specBase.video === undefined) {
     specBase.video = true;
   }
+  if (specBase.codecsBlacklist === undefined) {
+    specBase.codecsBlacklist = [];
+  }
   specBase.remoteCandidates = [];
   specBase.localCandidates = [];
   specBase.remoteDescriptionSet = false;
@@ -85,6 +88,7 @@ const BaseStack = (specInput) => {
       localDesc.sdp = that.enableSimulcast(localDesc.sdp);
     }
     localDesc.sdp = SdpHelpers.setMaxBW(localDesc.sdp, specBase);
+    localDesc.sdp = SdpHelpers.filterCodecs(localDesc.sdp, specBase.codecsBlacklist);
     specBase.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,
@@ -94,6 +98,7 @@ const BaseStack = (specInput) => {
   const setLocalDescForAnswerp2p = (sessionDescription) => {
     localDesc = sessionDescription;
     localDesc.sdp = SdpHelpers.setMaxBW(localDesc.sdp, specBase);
+    localDesc.sdp = SdpHelpers.filterCodecs(localDesc.sdp, specBase.codecsBlacklist);
     specBase.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,

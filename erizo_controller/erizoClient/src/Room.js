@@ -103,6 +103,7 @@ const Room = (altIo, altConnection, specInput) => {
       maxVideoBW: stream.maxVideoBW,
       limitMaxAudioBW: spec.maxAudioBW,
       limitMaxVideoBW: spec.maxVideoBW,
+      codecsBlacklist: spec.codecsBlacklist,
     };
     return options;
   };
@@ -155,7 +156,9 @@ const Room = (altIo, altConnection, specInput) => {
       maxVideoBW: options.maxVideoBW,
       limitMaxAudioBW: spec.maxAudioBW,
       limitMaxVideoBW: spec.maxVideoBW,
-      iceServers: that.iceServers };
+      iceServers: that.iceServers,
+      codecsBlacklist: options.codecsBlacklist,
+    };
     if (isRemote) {
       connectionOpts.audio = connectionOpts.audio && stream.hasAudio();
       connectionOpts.video = connectionOpts.video && stream.hasVideo();
