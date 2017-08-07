@@ -20,7 +20,7 @@ You can find our contributing guide [here](http://lynckia.com/licode/contribute.
 
 ## Code Of Conduct
 
-This project adheres to the Contributor Covenant code of conduct. By participating, you are expected to uphold this [code]((https://github.com/lynckia/licode/blob/master/CODE_OF_CONDUCT.md).
+This project adheres to the Contributor Covenant code of conduct. By participating, you are expected to uphold this [code](https://github.com/lynckia/licode/blob/master/CODE_OF_CONDUCT.md).
 
 ## License
 
