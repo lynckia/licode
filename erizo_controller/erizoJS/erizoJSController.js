@@ -8,7 +8,7 @@ var ExternalInput = require('./models/Publisher').ExternalInput;
 // Logger
 var log = logger.getLogger('ErizoJSController');
 
-exports.ErizoJSController = function (threadPool, ioThreadPool) {
+exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThreadPool) {
     var that = {},
         // {id1: Publisher, id2: Publisher}
         publishers = {},
@@ -36,8 +36,31 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
         WARN_PRECOND_FAILED = 412,
         WARN_BAD_CONNECTION = 502;
 
+    var STATS_UPDATE_INTERVAL = 5000;
+
     that.publishers = publishers;
     that.ioThreadPool = io;
+
+    var updateStats = function () {
+        var publishersKeys = Object.keys(publishers);
+        var publishersCount = publishersKeys.length;
+        var subscribersCounts = publishersKeys.map(key => Object.keys(publishers[key].subscribers).length);
+        var subscribersCount = subscribersCounts.reduce((acc, i) => acc + i, 0);
+        db.erizoJS.update(
+            { erizoAgentID, erizoJSID },
+            { erizoAgentID, erizoJSID, publishersCount, subscribersCount, lastUpdated: new Date() },
+            { upsert: true },
+            err => {
+                if (err) {
+                    log.warn('Failed to update erizoJS stats', err);
+                    return;
+                }
+                log.debug('Updated erizoJS stats - publishersCount = %d, subscribersCount = %d', publishersCount, subscribersCount);
+            }
+        );
+    };
+
+    setInterval(updateStats, STATS_UPDATE_INTERVAL);
 
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
