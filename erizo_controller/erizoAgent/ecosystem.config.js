@@ -6,7 +6,7 @@ module.exports = {
       name: 'erizo-agent',
       script: 'erizoAgent.js',
       out_file: '/var/log/erizoAgent/out.log',
-      error_file: '/var/log/erizoAgent/logs/error.log',
+      error_file: '/var/log/erizoAgent/error.log',
     },
   ],
 };
