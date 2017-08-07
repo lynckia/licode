@@ -12,7 +12,7 @@ You have two options to start using Licode:
 
 ## Community Forums
 
-Most discussions take place in the [Licode discourse](http://discourse.lynckia.com/).
+Most discussions take place in the [Licode discourse](http://discourse.lynckia.com/). Please feel free to jump in to discuss anything Licode or WebRTC related. This is also a good place to find answers for your Licode problems.
 
 ## Contributing
 
