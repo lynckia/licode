@@ -56,8 +56,8 @@ window.onload = function () {
                 video: true,
                 data: true,
                 screen: screen,
-                videoSize: [640, 480, 640, 480],
-                videoFrameRate: [10, 20]};
+                videoSize: [640, 480, 1920, 1080],
+                videoFrameRate: [30, 60]};
   // If we want screen sharing we have to put our Chrome extension id.
   // The default one only works in our Lynckia test servers.
   // If we are not using chrome, the creation of the stream will fail regardless.
@@ -113,7 +113,7 @@ window.onload = function () {
     room.addEventListener('stream-subscribed', function(streamEvent) {
       var stream = streamEvent.stream;
       var div = document.createElement('div');
-      div.setAttribute('style', 'width: 320px; height: 240px;float:left;');
+      div.setAttribute('style', 'width: 640px; height: 480px;float:left;');
       div.setAttribute('id', 'test' + stream.getID());
 
       document.getElementById('videoContainer').appendChild(div);
@@ -145,7 +145,7 @@ window.onload = function () {
       room.connect();
     } else {
       var div = document.createElement('div');
-      div.setAttribute('style', 'width: 320px; height: 240px; float:left');
+      div.setAttribute('style', 'width: 640px; height: 480px; float:left');
       div.setAttribute('id', 'myVideo');
       document.getElementById('videoContainer').appendChild(div);
 
