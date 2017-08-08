@@ -24,7 +24,7 @@ This project adheres to the Contributor Covenant code of conduct. By participati
 
 ## License
 
-[MIT License](https://github.com/lynckia/licode/blob/master/LICENSE.md).
+[MIT License](https://github.com/lynckia/licode/blob/master/LICENSE).
 
 More info at:
 http://www.lynckia.com/licode
