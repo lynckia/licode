@@ -5,6 +5,7 @@ var Getopt = require('node-getopt');
 var spawn = require('child_process').spawn;
 
 var config = require('config');
+var db = require('./database').db;
 
 // Configuration default values
 GLOBAL.config =  {};
@@ -184,7 +185,17 @@ var dropErizoJS = function(erizoId, callback) {
       var process = processes[erizoId];
       process.kill();
       delete processes[erizoId];
-      callback('callback', 'ok');
+
+      db.erizoJS
+        .remove({
+            erizoAgentID: myErizoAgentId,
+            erizoJSID: erizoId,
+        }, function (error) {
+            if (error) {
+                log.warn('message: remove erizoJS error, ' + logger.objectToLog(error));
+            }
+            callback('callback', 'ok');
+        });
    }
 };
 

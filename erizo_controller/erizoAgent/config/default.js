@@ -50,5 +50,10 @@ config.erizoAgent.useIndividualLogFiles = false;
 // Default is [licode_path]/erizo_controller/erizoAgent
 config.erizoAgent.instanceLogDir = '.';
 
+/*********************************************************
+ NUVE CONFIGURATION
+**********************************************************/
+config.nuve = {};
+config.nuve.dataBaseURL = "localhost/nuvedb"; // default value: 'localhost/nuvedb'
 
 module.exports = config;
