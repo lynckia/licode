@@ -4,6 +4,7 @@ var logger = require('./common/logger').logger;
 var amqper = require('./common/amqper');
 var Publisher = require('./models/Publisher').Publisher;
 var ExternalInput = require('./models/Publisher').ExternalInput;
+var db = require('./database').db;
 
 // Logger
 var log = logger.getLogger('ErizoJSController');
