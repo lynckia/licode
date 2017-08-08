@@ -20,7 +20,7 @@ exports.RoomController = function (spec) {
     var amqper = spec.amqper;
     var ecch = spec.ecch;
 
-    var KEEPALIVE_INTERVAL = 5*1000;
+    var CLEAN_ERIZOS_INTERVAL = 5*1000;
     var TIMEOUT_LIMIT = 2;
     var MAX_ERIZOJS_RETRIES = 3;
 
@@ -30,45 +30,31 @@ exports.RoomController = function (spec) {
         for (var eventId in eventListeners) {
             eventListeners[eventId](type, evt);
         }
-
     };
 
-    var callbackFor = function(erizoId) {
+    var cleanErizos = function() {
+      var timedOutErizos = ecch.getTimedOutErizos();
+      timedOutErizos.forEach(({ erizoJSID: erizoID }) => {
+        if (!erizos[erizoId]) return;
 
-        return function(ok) {
-            if (!erizos[erizoId]) return;
-
-            if (ok !== true) {
-                erizos[erizoId].kaCount ++;
-
-                if (erizos[erizoId].kaCount > TIMEOUT_LIMIT) {
-                    if (erizos[erizoId].publishers.length > 0){
-                        log.error('message: ErizoJS timed out will be removed, ' +
-                                  'erizoId: ' + erizoId + ', ' +
-                                  'publishersAffected: ' + erizos[erizoId].publishers.length);
-                        for (var p in erizos[erizoId].publishers) {
-                            dispatchEvent('unpublish', erizos[erizoId].publishers[p]);
-                        }
-
-                    } else {
-                        log.debug('message: empty erizoJS removed, erizoId: ' + erizoId);
-                    }
-                    ecch.deleteErizoJS(erizoId);
-                    delete erizos[erizoId];
-                }
-            } else {
-                erizos[erizoId].kaCount = 0;
+        if (erizos[erizoId].publishers.length > 0){
+            log.error('message: ErizoJS timed out will be removed, ' +
+                      'erizoId: ' + erizoId + ', ' +
+                      'publishersAffected: ' + erizos[erizoId].publishers.length);
+            for (var p in erizos[erizoId].publishers) {
+                dispatchEvent('unpublish', erizos[erizoId].publishers[p]);
             }
-        };
-    };
 
-    var sendKeepAlive = function() {
-        for (var e in erizos) {
-            amqper.callRpc('ErizoJS_' + e, 'keepAlive', [], {callback: callbackFor(e)});
+        } else {
+            log.debug('message: empty erizoJS removed, erizoId: ' + erizoId);
         }
+
+        ecch.deleteErizoJS(erizoId);
+        delete erizos[erizoId];
+      });
     };
 
-    setInterval(sendKeepAlive, KEEPALIVE_INTERVAL);
+    setInterval(cleanErizos, CLEAN_ERIZOS_INTERVAL);
 
     var getErizoJS = function(callback) {
     	ecch.getErizoJS(function(erizoId, agentId) {
