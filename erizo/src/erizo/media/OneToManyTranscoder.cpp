@@ -113,6 +113,10 @@ void OneToManyTranscoder::removeSubscriber(const std::string& peerId) {
   }
 }
 
+void OneToManyTranscoder::close() {
+  closeAll();
+}
+
 void OneToManyTranscoder::closeAll() {
   ELOG_WARN("OneToManyTranscoder closeAll");
   std::map<std::string, MediaSink*>::iterator it = subscribers.begin();
