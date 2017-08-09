@@ -5,6 +5,7 @@
     "amqp": "0.2.6",
     "config": "1.26.1",
     "log4js": "1.0.1",
+    "mongojs": "2.4.1",
     "node-getopt": "0.2.3"
   },
   "devDependencies": {
