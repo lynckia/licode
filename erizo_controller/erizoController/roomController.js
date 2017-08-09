@@ -34,7 +34,7 @@ exports.RoomController = function (spec) {
 
     var cleanErizos = function() {
       var timedOutErizos = ecch.getTimedOutErizos();
-      timedOutErizos.forEach(({ erizoJSID: erizoID }) => {
+      timedOutErizos.forEach(({ erizoJSID: erizoId }) => {
         if (!erizos[erizoId]) return;
 
         if (erizos[erizoId].publishers.length > 0){
