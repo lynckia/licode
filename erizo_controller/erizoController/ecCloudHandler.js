@@ -4,55 +4,69 @@ var logger = require('./common/logger').logger;
 
 // Logger
 var log = logger.getLogger('EcCloudHandler');
+var db = require('./database').db;
+var _ = require('lodash');
 
 var EA_TIMEOUT = 30000;
+var EA_OLD_TIMEOUT = 30 * 60 * 1000;
 var GET_EA_INTERVAL = 5000;
 var AGENTS_ATTEMPTS = 5;
 var WARN_UNAVAILABLE = 503, WARN_TIMEOUT = 504;
 exports.EcCloudHandler = function (spec) {
   var that = {},
   amqper = spec.amqper,
-  agents = {};
-
+  agents = {},
+  timedOutErizos = [];
 
   that.getErizoAgents = function () {
-    amqper.broadcast('ErizoAgent', {method: 'getErizoAgents', args: []}, function (agent) {
-      if (agent === 'timeout') {
-        log.warn('message: no agents available, code: ' + WARN_UNAVAILABLE );
-        return;
-      }
-
-      var newAgent = true;
-
-      for (var a in agents) {
-        if (a === agent.info.id) {
-          // The agent is already registered, I update its stats and reset its
-          agents[a].stats = agent.stats;
-          agents[a].timeout = 0;
-          newAgent = false;
+    db.erizoJS
+      .find({})
+      .toArray((err, erizos) => {
+        if (err) {
+          log.error('message: failed to fetch erizos from db, ' + logger.objectToLog(err));
+          return;
         }
-      }
+        var groupedByAgent = _.groupBy(erizos, 'erizoAgentID');
+        var agentsStats = _.mapValues(groupedByAgent, erizos => {
+          return _.reduce(erizos, (acc, { publishersCount, subscribersCount, lastUpdated }) => {
+            acc.publishersCount += publishersCount;
+            acc.subscribersCount += subscribersCount;
+            if (!acc.timeout) {
+              acc.timeout = lastUpdated;
+            }
+            acc.timeout = lastUpdated > acc.timeout ? lastUpdated : acc.timeout;
+            return acc;
+          }, { publishersCount: 0, subscribersCount: 0, timeout: null });
+        });
+        var pairs = _.toPairs(agentsStats);
+        agents = _.fromPairs(pairs.filter(([agentId, { timeout }]) => timeout <= EA_TIMEOUT));
+        var now = new Date();
+        timedOutErizos = erizos.filter(({ lastUpdated }) => {
+          var diff = now - lastUpdated;
+          return diff > EA_TIMEOUT && diff <= EA_OLD_TIMEOUT;
+        });
+        var oldErizos = erizos.filter(({ lastUpdated }) => (now - lastUpdated) > EA_OLD_TIMEOUT);
+        if (oldErizos.length) {
+          deleteOldErizos(oldErizos);
+        }
+      });
+  };
 
-      if (newAgent === true) {
-        // New agent
-        agents[agent.info.id] = agent;
-        agents[agent.info.id].timeout = 0;
-      }
-
-    });
-
-    // Check agents timeout
-    for (var a in agents) {
-      agents[a].timeout ++;
-      if (agents[a].timeout > EA_TIMEOUT / GET_EA_INTERVAL) {
-        log.warn('message: agent timed out is being removed, ' +
-                 'code: ' + WARN_TIMEOUT + ', agentId: ' + agents[a].info.id);
-        delete agents[a];
-      }
-    }
+  that.getTimedOutErizos = function () {
+    return timedOutErizos;
   };
 
   setInterval(that.getErizoAgents, GET_EA_INTERVAL);
+
+  var deleteOldErizos = function (erizos) {
+    var ids = erizos.find(({ _id }) => _id);
+    db.erizoJS
+      .remove({ _id: { $in: ids } }, function(error) {
+        if (error) {
+          log.warn('message: failed to remove old erizos, ' + logger.objectToLog(error));
+        }
+      });
+  };
 
   var getErizoAgent;
 

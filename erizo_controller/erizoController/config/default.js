@@ -28,6 +28,7 @@ config.cloudProvider.name = '';
  **********************************************************/
 config.nuve = {};
 config.nuve.superserviceKey = ''; // default value: ''
+config.nuve.dataBaseURL = "localhost/nuvedb"; // default value: 'localhost/nuvedb'
 
 /*********************************************************
  ERIZO CONTROLLER CONFIGURATION

@@ -5,6 +5,7 @@ var Getopt = require('node-getopt');
 var spawn = require('child_process').spawn;
 
 var config = require('config');
+var db = require('./database').db;
 
 // Configuration default values
 GLOBAL.config =  {};
@@ -126,10 +127,10 @@ launchErizoJS = function() {
     if (GLOBAL.config.erizoAgent.useIndividualLogFiles){
         out = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
         err = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
-        erizoProcess = spawn('./launch.sh', ['erizoJS.js', id, privateIP, publicIP],
+        erizoProcess = spawn('./launch.sh', ['erizoJS.js', myErizoAgentId, id, privateIP, publicIP],
                              { detached: true, stdio: [ 'ignore', out, err ] });
     }else{
-        erizoProcess = spawn('./launch.sh', ['erizoJS.js', id, privateIP, publicIP],
+        erizoProcess = spawn('./launch.sh', ['erizoJS.js', myErizoAgentId, id, privateIP, publicIP],
                             { detached: true, stdio: [ 'ignore', 'pipe', 'pipe' ] });
         erizoProcess.stdout.setEncoding('utf8');
         erizoProcess.stdout.on('data', function (message) {
@@ -184,7 +185,17 @@ var dropErizoJS = function(erizoId, callback) {
       var process = processes[erizoId];
       process.kill();
       delete processes[erizoId];
-      callback('callback', 'ok');
+
+      db.erizoJS
+        .remove({
+            erizoAgentID: myErizoAgentId,
+            erizoJSID: erizoId,
+        }, function (error) {
+            if (error) {
+                log.warn('message: remove erizoJS error, ' + logger.objectToLog(error));
+            }
+            callback('callback', 'ok');
+        });
    }
 };
 

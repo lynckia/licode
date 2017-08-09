@@ -141,4 +141,10 @@ config.mediaConfig.rtpMappings.telephoneevent = {
   mediaType: 'audio',
 };
 
+/*********************************************************
+ NUVE CONFIGURATION
+**********************************************************/
+config.nuve = {};
+config.nuve.dataBaseURL = "localhost/nuvedb"; // default value: 'localhost/nuvedb'
+
 module.exports = config;

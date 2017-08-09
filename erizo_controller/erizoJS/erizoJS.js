@@ -30,6 +30,7 @@ var getopt = new Getopt([
 ]);
 
 var opt = getopt.parse(process.argv.slice(2));
+var rpcID = process.argv[3];
 
 for (var prop in opt.options) {
     if (opt.options.hasOwnProperty(prop)) {
@@ -69,6 +70,8 @@ var controller = require('./erizoJSController');
 
 // Logger
 var log = logger.getLogger('ErizoJS');
+var erizoAgentID = process.argv[2];
+log.info('Starting erizoJS for erizoAgent with id=%s', erizoAgentID);
 
 var threadPool = new addon.ThreadPool(GLOBAL.config.erizo.numWorkers);
 threadPool.start();
@@ -80,20 +83,18 @@ if (GLOBAL.config.erizo.useNicer) {
   ioThreadPool.start();
 }
 
-var ejsController = controller.ErizoJSController(threadPool, ioThreadPool);
+var ejsController = controller.ErizoJSController(erizoAgentID, rpcID, threadPool, ioThreadPool);
 
 ejsController.keepAlive = function(callback) {
     callback('callback', true);
 };
 
-ejsController.privateRegexp = new RegExp(process.argv[3], 'g');
-ejsController.publicIP = process.argv[4];
+ejsController.privateRegexp = new RegExp(process.argv[4], 'g');
+ejsController.publicIP = process.argv[5];
 
 amqper.connect(function () {
     try {
         amqper.setPublicRPC(ejsController);
-
-        var rpcID = process.argv[2];
 
         log.info('message: Started, erizoId: ' + rpcID);
 
