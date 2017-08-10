@@ -276,10 +276,10 @@ void WebRtcConnection::initializePipeline() {
 
   pipeline_->addFront(LayerDetectorHandler());
   pipeline_->addFront(RtcpProcessorHandler());
-  pipeline_->addFront(IncomingStatsHandler());
   pipeline_->addFront(FecReceiverHandler());
   pipeline_->addFront(LayerBitrateCalculationHandler());
   pipeline_->addFront(QualityFilterHandler());
+  pipeline_->addFront(IncomingStatsHandler());
   pipeline_->addFront(RtpTrackMuteHandler());
   pipeline_->addFront(RtpSlideShowHandler());
   pipeline_->addFront(RtpPaddingGeneratorHandler());
