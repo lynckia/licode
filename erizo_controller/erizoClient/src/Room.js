@@ -157,8 +157,8 @@ const Room = (altIo, altConnection, specInput) => {
       limitMaxVideoBW: spec.maxVideoBW,
       iceServers: that.iceServers };
     if (isRemote) {
-      connectionOpts.audio = connectionOpts.audio && stream.hasAudio();
-      connectionOpts.video = connectionOpts.video && stream.hasVideo();
+      connectionOpts.audio = connectionOpts.audio && connectionOpts.audio !== undefined;
+      connectionOpts.video = connectionOpts.video && connectionOpts.audio !== undefined;
     } else {
       connectionOpts.simulcast = options.simulcast;
     }
