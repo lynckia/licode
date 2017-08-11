@@ -59,7 +59,7 @@ exports.EcCloudHandler = function (spec) {
   setInterval(that.getErizoAgents, GET_EA_INTERVAL);
 
   var deleteOldErizos = function (erizos) {
-    var ids = erizos.find(({ _id }) => _id);
+    var ids = erizos.map(({ _id }) => _id);
     db.erizoJS
       .remove({ _id: { $in: ids } }, function(error) {
         if (error) {
