@@ -3,6 +3,7 @@
 
 #include <nan.h>
 #include <media/OneToManyTranscoder.h>
+#include <WebRtcConnection.h>
 #include "MediaDefinitions.h"
 #include "WebRtcConnection.h"
 
@@ -52,6 +53,7 @@ class OneToManyTranscoder : public MediaSink {
    * Param: the peerId
    */
   static NAN_METHOD(removeSubscriber);
+  static Nan::Persistent<v8::Function> constructor;
 };
 
 #endif  // ERIZOAPI_ONETOMANYTRANSCODER_H_

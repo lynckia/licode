@@ -8,6 +8,7 @@ using v8::Local;
 using v8::Value;
 using v8::Function;
 using v8::HandleScope;
+using v8::FunctionTemplate;
 
 Nan::Persistent<Function> OneToManyTranscoder::constructor;
 
@@ -24,7 +25,7 @@ class AsyncDeleter : public Nan::AsyncWorker {
     delete ottToDelete_;
   }
   void HandleOKCallback() {
-    HandleScope scope;
+    Nan::HandleScope scope;
     std::string msg("OK");
     if (callback) {
       Local<Value> argv[] = {
@@ -106,7 +107,7 @@ NAN_METHOD(OneToManyTranscoder::setPublisher) {
   erizo::OneToManyTranscoder *me = (erizo::OneToManyTranscoder*)obj->me;
 
   WebRtcConnection* param = Nan::ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::WebRtcConnection* wr = (erizo::WebRtcConnection*)param->me;
+  erizo::WebRtcConnection* wr = (erizo::WebRtcConnection*)(param->me.get());
 
   erizo::MediaSource* ms = dynamic_cast<erizo::MediaSource*>(wr);
   me->setPublisher(ms);
@@ -130,7 +131,7 @@ NAN_METHOD(OneToManyTranscoder::addSubscriber) {
   erizo::OneToManyTranscoder *me = (erizo::OneToManyTranscoder*)obj->me;
 
   WebRtcConnection* param = Nan::ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::WebRtcConnection* wr = (erizo::WebRtcConnection*)param->me;
+  erizo::WebRtcConnection* wr = (erizo::WebRtcConnection*)(param->me.get());
 
   erizo::MediaSink* ms = dynamic_cast<erizo::MediaSink*>(wr);
 
