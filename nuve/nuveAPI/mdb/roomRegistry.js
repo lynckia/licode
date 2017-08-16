@@ -102,3 +102,13 @@ exports.removeRoom = function (id) {
         }
     });
 };
+
+exports.findRoomByName = function (roomName, callback) {
+    db.rooms.findOne({ name: roomName }, function (err, room) {
+        if (err) {
+            return callback(err);
+        }
+
+        callback(null, room);
+    });
+};
