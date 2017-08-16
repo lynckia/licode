@@ -81,7 +81,7 @@ window.onload = function () {
     req.send(JSON.stringify(roomData));
   };
 
-  var roomData  = {username: 'user', role: 'presenter', room: roomName, type: roomType, alwaysUseLicode: 1 };
+  var roomData  = {username: 'user', role: 'presenter', room: roomName, type: roomType, alwaysUseLicode: true };
 
   createToken(roomData, function (response) {
     var token = response;

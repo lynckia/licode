@@ -34,6 +34,7 @@ var NUVE_SUPERSERVICE_ID = config.get('nuve.superserviceID');
 var NUVE_SUPERSERVICE_KEY = config.get('nuve.superserviceKey');
 var NUVE_ENDPOINT = config.get('nuve.nuveEndpoint');
 var LICODE_USERS_PERCENTAGE = config.get('licodeUsersPercentage');
+var MAX_STRING_HASH = 4294967295;
 
 N.API.init(NUVE_SUPERSERVICE_ID, NUVE_SUPERSERVICE_KEY, NUVE_ENDPOINT);
 
@@ -44,7 +45,7 @@ var shouldUseTokbox = function (roomName) {
     if (LICODE_USERS_PERCENTAGE === -1) {
         return false;
     }
-    var random = stringHash(roomName) % 100;
+    var random = stringHash(roomName) / MAX_STRING_HASH;
     return !(random < LICODE_USERS_PERCENTAGE);
 };
 
@@ -70,7 +71,7 @@ app.post('/createToken/', function(req, res) {
 
     if (req.body.room) room = req.body.room;
     if (req.body.roomId) roomId = req.body.roomId;
-    if (req.body.alwaysUseLicode) alwaysUseLicode = !!Number(req.body.alwaysUseLicode);
+    if (req.body.alwaysUseLicode) alwaysUseLicode = !!req.body.alwaysUseLicode;
 
     let createToken = function (roomId) {
       N.API.createToken(roomId, username, role, function(token) {
