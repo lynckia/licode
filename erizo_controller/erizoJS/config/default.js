@@ -1,6 +1,18 @@
 /* global module */
 
+var os = require('os');
+
 var config = {};
+
+/*********************************************************
+ GRAPHITE CONFIGURATION
+ **********************************************************/
+config.graphite = {};
+config.graphite.host = 'graphite.service.consul';
+config.graphite.port = 2003;
+config.graphite.prefix = os.hostname();
+config.graphite.suffix = '';
+config.graphite.interval = 20000;
 
 /*********************************************************
  COMMON CONFIGURATION

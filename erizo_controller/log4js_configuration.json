@@ -18,6 +18,7 @@
     "ErizoAgentReporter": "ERROR",
     "EcCloudHandler": "INFO",
     "RoomController": "INFO",
-    "RPCPublic":"ERROR"
+    "RPCPublic":"ERROR",
+    "GRAPHITE": "ERROR"
   }
 }
