@@ -79,8 +79,6 @@ config.erizoController.listen_port = 8080; //default value: 8080
 // Use the name of the inferface you want to bind to for websockets
 // config.erizoController.networkInterface = 'eth1' // default value: undefined
 
-config.erizoController.warning_n_rooms = 15; // default value: 15
-config.erizoController.limit_n_rooms = 20; // default value: 20
 config.erizoController.interval_time_keepAlive = 1000; // default value: 1000
 
 // Roles to be used by services

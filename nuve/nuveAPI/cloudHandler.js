@@ -2,6 +2,7 @@
 'use strict';
 var rpc = require('./rpc/rpc');
 var config = require('config');
+var _ = require('lodash');
 var logger = require('./logger').logger;
 var erizoControllerRegistry = require('./mdb/erizoControllerRegistry');
 var roomRegistry = require('./mdb/roomRegistry');
@@ -28,41 +29,7 @@ var getEcQueue = function (callback) {
     //*******************************************************************
 
     erizoControllerRegistry.getErizoControllers(function(erizoControllers) {
-        var ecQueue = [],
-            noAvailable = [],
-            warning = [],
-            ec;
-
-        for (ec in erizoControllers) {
-            if (erizoControllers.hasOwnProperty(ec)) {
-                var erizoController = erizoControllers[ec];
-                if (erizoController.state === 2) {
-                    ecQueue.push(erizoController);
-                }
-                if (erizoController.state === 1) {
-                    warning.push(erizoController);
-                }
-                if (erizoController.state === 0) {
-                    noAvailable.push(erizoController);
-                }
-            }
-        }
-
-        ecQueue = ecQueue.concat(warning);
-
-        if (ecQueue.length === 0) {
-            log.error('No erizoController is available.');
-        }
-        ecQueue = ecQueue.concat(noAvailable);
-        for (var w in warning) {
-            log.warn('Erizo Controller in ', erizoControllers[w].ip,
-                     'has reached the warning number of rooms');
-        }
-
-        for (var n in noAvailable) {
-            log.warn('Erizo Controller in ', erizoControllers[n].ip,
-                     'has reached the limit number of rooms');
-        }
+        var ecQueue = _.values(erizoControllers);
         callback(ecQueue);
     });
 };
@@ -113,10 +80,9 @@ if (CLOUD_HANDLER_POLICY) {
 }
 
 var addNewPrivateErizoController = function (ip, hostname, port, ssl, callback) {
-
     var erizoController = {
         ip: ip,
-        state: 2,
+        rooms: 0,
         keepAliveTs: new Date(),
         hostname: hostname,
         port: port,
@@ -166,7 +132,7 @@ exports.keepAlive = function (id, callback) {
     erizoControllerRegistry.getErizoController(id, function (erizoController) {
 
         if (erizoController) {
-          erizoControllerRegistry.updateErizoController(id, {keepAliveTs: new Date()});
+          erizoControllerRegistry.updateErizoController(id, { keepAliveTs: new Date() });
           result = 'ok';
           //log.info('KA: ', id);
         } else {
@@ -179,7 +145,7 @@ exports.keepAlive = function (id, callback) {
 
 exports.setInfo = function (params) {
     log.info('Received info ', params, '. Recalculating erizoControllers priority');
-    erizoControllerRegistry.updateErizoController(params.id, {state: params.state});
+    erizoControllerRegistry.updateErizoController(params.id, { roomsCount: params.roomsCount });
 };
 
 exports.killMe = function (ip) {

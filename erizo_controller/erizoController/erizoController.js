@@ -106,16 +106,12 @@ io.set('transports', ['websocket']);
 
 var nuveKey = GLOBAL.config.nuve.superserviceKey;
 
-var WARNING_N_ROOMS = GLOBAL.config.erizoController.warning_n_rooms; // jshint ignore:line
-var LIMIT_N_ROOMS = GLOBAL.config.erizoController.limit_n_rooms; // jshint ignore:line
-
 var INTERVAL_TIME_KEEPALIVE = GLOBAL.config.erizoController.interval_time_keepAlive; // jshint ignore:line
-
 var BINDED_INTERFACE_NAME = GLOBAL.config.erizoController.networkInterface;
 
 var myId;
 var rooms = {};
-var myState;
+var myRoomsCount = 0;
 
 var calculateSignature = function (token, key) {
     var toSign = token.tokenId + ',' + token.host,
@@ -229,7 +225,6 @@ var addToCloudHandler = function (callback) {
 
             publicIP = msg.publicIP;
             myId = msg.id;
-            myState = 2;
 
             var intervarId = setInterval(function () {
 
@@ -265,33 +260,14 @@ var addToCloudHandler = function (callback) {
 //            2: Available
 //*******************************************************************
 var updateMyState = function () {
-    var nRooms = 0, newState, i, info;
+    var nRooms = Object.keys(rooms).length;
 
-    for (i in rooms) {
-        if (rooms.hasOwnProperty(i)) {
-            nRooms += 1;
-        }
-    }
-
-    if (nRooms < WARNING_N_ROOMS) {
-        newState = 2;
-    } else if (nRooms > LIMIT_N_ROOMS) {
-        log.warn('message: reached Room Limit, roomLimit:' + LIMIT_N_ROOMS);
-        newState = 0;
-    } else {
-        log.warn('message: reached Warning room limit, ' +
-                 'warningRoomLimit: ' + WARNING_N_ROOMS + ', ' +
-                 'roomLimit: ' + LIMIT_N_ROOMS);
-        newState = 1;
-    }
-
-    if (newState === myState) {
+    if (nRooms === myRoomsCount) {
         return;
     }
 
-    myState = newState;
-
-    info = {id: myId, state: myState};
+    myRoomsCount = nRooms;
+    var info = { id: myId, roomsCount: myRoomsCount };
     amqper.callRpc('nuve', 'setInfo', info, {callback: function () {}});
 };
 
