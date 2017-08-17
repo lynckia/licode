@@ -103,12 +103,19 @@ exports.removeRoom = function (id) {
     });
 };
 
-exports.findRoomByName = function (roomName, callback) {
-    db.rooms.findOne({ name: roomName }, function (err, room) {
+exports.findOrCreateRoom = function (roomName, callback) {
+    var command = {
+        findAndModify: 'rooms',
+        query: { name: roomName },
+        update: { $set: { name: roomName } },
+        upsert: true,
+        new: true,
+    };
+    db.runCommand(command, function (err, room) {
         if (err) {
             return callback(err);
         }
 
-        callback(null, room);
+        callback(null, room.value);
     });
 };

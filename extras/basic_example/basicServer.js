@@ -54,13 +54,7 @@ var getOrCreateRoom = function (name, callback) {
         return callback(null, defaultRoomId);
     }
 
-    N.API.findRoomByName(name, function(room) {
-        if (room) {
-            return callback(null, room._id);
-        }
-
-        N.API.createRoom(name, room => callback(null, room._id), callback);
-    }, callback);
+    N.API.findOrCreateRoom(name, room => callback(null, room._id), callback);
 };
 
 app.post('/createToken/', function(req, res) {

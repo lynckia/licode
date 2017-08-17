@@ -175,16 +175,16 @@ exports.deleteRoom = function (req, res) {
     });
 };
 
-exports.findRoomByName = function (req, res) {
+exports.findOrCreateRoom = function (req, res) {
     if (req.service === undefined) {
         return res.status(401).send('Client unathorized');
     }
 
     var roomName = req.body.roomName;
 
-    roomRegistry.findRoomByName(roomName, function(err, room) {
+    roomRegistry.findOrCreateRoom(roomName, function(err, room) {
         if (err) {
-            log.warn('message: findRoomByName error, ' + logger.objectToLog(err));
+            log.warn('message: findOrCreateRoom error, ' + logger.objectToLog(err));
             return res.status(500).send('Failed to find room by name');
         }
 

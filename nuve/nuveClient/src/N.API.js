@@ -3,7 +3,7 @@ var N = N || {};
 
 N.API = (function (N) {
     'use strict';
-    var createRoom, getRooms, getRoom, getRoomByName, updateRoom, patchRoom,
+    var createRoom, getRooms, getRoom, findOrCreateRoom, updateRoom, patchRoom,
         deleteRoom, createToken, createService, getServices,
         getService, deleteService, getUsers, getUser, deleteUser,
         params, send, calculateSignature, formatString, init;
@@ -21,7 +21,6 @@ N.API = (function (N) {
     };
 
     createRoom = function (name, callback, callbackError, options, params) {
-
         if (!options) {
             options = {};
         }
@@ -40,11 +39,11 @@ N.API = (function (N) {
         send(callback, callbackError, 'GET', undefined, 'rooms/' + room, params);
     };
 
-    findRoomByName = function (roomName, callback, callbackError, params) {
+    findOrCreateRoom = function (roomName, callback, callbackError, params) {
         send(function (roomRtn) {
             var room = JSON.parse(roomRtn);
             callback(room);
-        }, callbackError, 'POST', { roomName: roomName }, 'roomByName', params);
+        }, callbackError, 'POST', { roomName: roomName }, 'findOrCreateRoom', params);
     };
 
     updateRoom = function (room, name, callback, callbackError, options, params) {
@@ -211,7 +210,7 @@ N.API = (function (N) {
         createRoom: createRoom,
         getRooms: getRooms,
         getRoom: getRoom,
-        findRoomByName: findRoomByName,
+        findOrCreateRoom: findOrCreateRoom,
         updateRoom: updateRoom,
         patchRoom: patchRoom,
         deleteRoom: deleteRoom,

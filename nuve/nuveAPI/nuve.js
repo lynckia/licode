@@ -56,7 +56,7 @@ app.get('/rooms/:room', roomResource.represent);
 app.put('/rooms/:room', roomResource.updateRoom);
 app.patch('/rooms/:room', roomResource.patchRoom);
 app.delete('/rooms/:room', roomResource.deleteRoom);
-app.post('/roomByName', roomResource.findRoomByName)
+app.post('/findOrCreateRoom', roomResource.findOrCreateRoom)
 
 app.post('/rooms/:room/tokens', tokensResource.create);
 
