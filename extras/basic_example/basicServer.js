@@ -70,10 +70,10 @@ app.post('/createToken/', function(req, res) {
     let createToken = function (roomId) {
       N.API.createToken(roomId, username, role, function(token) {
           console.log('Token created', token);
-          res.send(token);
+          res.json({ token: token });
       }, function(error) {
           console.log('Error creating token', error);
-          res.status(401).send('No Erizo Controller found');
+          res.status(401).json({ error: 'No Erizo Controller found' });
       });
     };
 
@@ -87,7 +87,7 @@ app.post('/createToken/', function(req, res) {
       getOrCreateRoom(room, (err, fetchedRoomId) => {
         if (err) {
             console.error('Failed to get or create room: %s, error:', room, err);
-            res.status(500).send('Failed to create token.');
+            res.status(500).json({ error: 'Failed to create token.' });
             return;
         }
         createToken(fetchedRoomId);
