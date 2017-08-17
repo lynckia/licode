@@ -11,27 +11,6 @@ var log = logger.getLogger('NuveAuthenticator');
 var cache = {};
 
 var checkTimestamp = function (ser, params) {
-    var lastParams = cache[ser.name],
-        lastTS,
-        newTS,
-        lastC,
-        newC;
-
-    if (lastParams === undefined) {
-        return true;
-    }
-
-    lastTS = lastParams.timestamp;
-    newTS = params.timestamp;
-    lastC = lastParams.cnonce;
-    newC = params.cnonce;
-
-    if (newTS < lastTS || (lastTS === newTS && lastC === newC)) {
-        log.debug('message: checkTimestamp lastTimestamp: ' + lastTS + ', newTimestamp: ' + newTS +
-            ', lastCnonce: ' + lastC + ', newCnonce: ' + newC);
-        return false;
-    }
-
     return true;
 };
 
