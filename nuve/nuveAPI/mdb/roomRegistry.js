@@ -116,6 +116,6 @@ exports.findOrCreateRoom = function (roomName, callback) {
             return callback(err);
         }
 
-        callback(null, room.value);
+        callback(null, { room: room.value, isNew: !room.lastErrorObject.updatedExisting });
     });
 };

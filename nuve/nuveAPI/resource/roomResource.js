@@ -182,10 +182,18 @@ exports.findOrCreateRoom = function (req, res) {
 
     var roomName = req.body.roomName;
 
-    roomRegistry.findOrCreateRoom(roomName, function(err, room) {
+    roomRegistry.findOrCreateRoom(roomName, function(err, result) {
         if (err) {
             log.warn('message: findOrCreateRoom error, ' + logger.objectToLog(err));
             return res.status(500).send('Failed to find room by name');
+        }
+
+        var { room, isNew } = result;
+
+        if (isNew) {
+            var currentService = req.service;
+            currentService.rooms.push(room);
+            serviceRegistry.updateService(currentService);
         }
 
         res.json(room);
