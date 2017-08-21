@@ -1,7 +1,7 @@
 /*global exports, require*/
 'use strict';
 var roomRegistry = require('./../mdb/roomRegistry');
-var serviceRegistry = require('./../mdb/serviceRegistry');
+var serviceRoomRegistry = require('./../mdb/serviceRoomRegistry');
 var cloudHandler = require('../cloudHandler');
 
 var logger = require('./../logger').logger;
@@ -13,7 +13,7 @@ var log = logger.getLogger('RoomResource');
  * Gets the service and the room for the proccess of the request.
  */
 var doInit = function (req, callback) {
-    serviceRegistry.getRoomForService(req.params.room, req.service, function (room) {
+    serviceRoomRegistry.getRoomForService(req.params.room, req.service, function (room) {
         callback(room);
     });
 };
@@ -50,12 +50,7 @@ exports.updateRoom = function (req, res) {
             log.info('message: updateRoom - Invalid room');
             res.status(400).send('Invalid room');
         } else {
-            var id = '',
-                array = req.service.rooms,
-                index = -1,
-                i;
-
-            id += currentRoom._id;
+            var id = '' + currentRoom._id;
             var room = currentRoom;
 
             room.name = req.body.name;
@@ -70,20 +65,6 @@ exports.updateRoom = function (req, res) {
             }
 
             roomRegistry.updateRoom(id, room);
-
-            for (i = 0; i < array.length; i += 1) {
-                if (array[i]._id === currentRoom._id) {
-                    index = i;
-                }
-            }
-            if (index !== -1) {
-
-                req.service.rooms[index] = room;
-                serviceRegistry.updateService(req.service);
-                log.info('message: updateRoom  successful, roomId: ' + id + ', serviceId: ' +
-                    req.service._id);
-                res.send('Room Updated');
-            }
         }
     });
 };
@@ -99,12 +80,7 @@ exports.patchRoom = function (req, res) {
             log.info('message: pachRoom - room does not exist, roomId : ' + req.params.room);
             res.status(404).send('Room does not exist');
         } else {
-            var id = '',
-                array = req.service.rooms,
-                index = -1,
-                i;
-
-            id += currentRoom._id;
+            var id = '' + currentRoom._id;
             var room = currentRoom;
 
             if (req.body.name) room.name = req.body.name;
@@ -118,21 +94,6 @@ exports.patchRoom = function (req, res) {
             }
 
             roomRegistry.updateRoom(id, room);
-
-            for (i = 0; i < array.length; i += 1) {
-                if (array[i]._id === currentRoom._id) {
-                    index = i;
-                }
-            }
-            if (index !== -1) {
-
-                req.service.rooms[index] = room;
-                serviceRegistry.updateService(req.service);
-                log.info('message: patchRoom room successfully updated,  roomId: ' + id +
-                    ', serviceId: ' + req.service._id);
-
-                res.send('Room Updated');
-            }
         }
     });
 };
@@ -150,27 +111,11 @@ exports.deleteRoom = function (req, res) {
             log.info('message: deleteRoom - room does not exist, roomId: ' + req.params.room);
             res.status(404).send('Room does not exist');
         } else {
-            var id = '',
-                array = req.service.rooms,
-                index = -1,
-                i;
-
-            id += currentRoom._id;
+            var id = '' + currentRoom._id;
             roomRegistry.removeRoom(id);
-
-            for (i = 0; i < array.length; i += 1) {
-                if (array[i]._id === currentRoom._id) {
-                    index = i;
-                }
-            }
-            if (index !== -1) {
-                req.service.rooms.splice(index, 1);
-                serviceRegistry.updateService(req.service);
-                log.info('message: deleteRoom - room successfully deleted, roomId: ' + id +
-                    ', serviceId: ' + req.service._id);
-                cloudHandler.deleteRoom(id, function () {});
-                res.send('Room deleted');
-            }
+            cloudHandler.deleteRoom(id, function () {});
+            serviceRoomRegistry.removeServiceRoom(req.service, currentRoom, function () {});
+            res.send('Room deleted');
         }
     });
 };
@@ -191,9 +136,7 @@ exports.findOrCreateRoom = function (req, res) {
         var { room, isNew } = result;
 
         if (isNew) {
-            var currentService = req.service;
-            currentService.rooms.push(room);
-            serviceRegistry.updateService(currentService);
+            serviceRoomRegistry.addServiceRoom(req.service, room, function() {});
         }
 
         res.json(room);

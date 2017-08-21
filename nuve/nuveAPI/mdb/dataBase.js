@@ -27,7 +27,7 @@ var databaseUrl = nuveConfig.dataBaseURL;
  *	};
  *
  */
-var collections = ['rooms', 'tokens', 'services', 'erizoControllers'];
+var collections = ['rooms', 'tokens', 'services', 'erizoControllers', 'servicesRooms'];
 var mongojs = require('mongojs');
 exports.db = mongojs(databaseUrl, collections);
 

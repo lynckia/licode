@@ -1,6 +1,6 @@
 /*global exports, require*/
 'use strict';
-var serviceRegistry = require('./../mdb/serviceRegistry');
+var serviceRoomRegistry = require('./../mdb/serviceRoomRegistry');
 var cloudHandler = require('../cloudHandler');
 
 var logger = require('./../logger').logger;
@@ -14,7 +14,7 @@ var log = logger.getLogger('UserResource');
 var doInit = function (req, callback) {
     var currentService = req.service;
 
-    serviceRegistry.getRoomForService(req.params.room, currentService, function (room) {
+    serviceRoomRegistry.getRoomForService(req.params.room, currentService, function (room) {
         callback(currentService, room);
     });
 

@@ -2,6 +2,7 @@
 'use strict';
 var tokenRegistry = require('./../mdb/tokenRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
+var serviceRoomRegistry = require('./../mdb/serviceRoomRegistry');
 var dataBase = require('./../mdb/dataBase');
 var crypto = require('crypto');
 var cloudHandler = require('../cloudHandler');
@@ -16,7 +17,7 @@ var log = logger.getLogger('TokensResource');
 var doInit = function (req, callback) {
     var currentService = req.service;
 
-    serviceRegistry.getRoomForService(req.params.room, currentService, function (room) {
+    serviceRoomRegistry.getRoomForService(req.params.room, currentService, function (room) {
         req.room = room;
         callback(currentService, room);
     });

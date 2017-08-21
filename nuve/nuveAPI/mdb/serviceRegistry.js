@@ -45,7 +45,6 @@ var hasService = exports.hasService = function (id, callback) {
  * Adds a new service to the data base.
  */
 exports.addService = function (service, callback) {
-    service.rooms = [];
     db.services.save(service, function (error, saved) {
         if (error) log.info('message: addService error, ' + logger.objectToLog(error));
         callback(saved._id);
@@ -72,20 +71,4 @@ exports.removeService = function (id) {
             });
         }
     });
-};
-
-/*
- * Gets a determined room in a determined service. Returns undefined if room does not exists.
- */
-exports.getRoomForService = function (roomId, service, callback) {
-    var room;
-    for (room in service.rooms) {
-        if (service.rooms.hasOwnProperty(room)) {
-            if (String(service.rooms[room]._id) === String(roomId)) {
-                callback(service.rooms[room]);
-                return;
-            }
-        }
-    }
-    callback(undefined);
 };

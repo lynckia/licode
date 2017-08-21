@@ -18,6 +18,7 @@
     "RoomRegistry": "ERROR",
     "ServiceRegistry": "ERROR",
     "TokenRegistry": "ERROR",
+    "ServiceRoomRegistry": "ERROR",
     "RoomResource": "ERROR",
     "RoomsResource": "ERROR",
     "ServiceResource": "ERROR",
