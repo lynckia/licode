@@ -3,9 +3,18 @@ import SdpHelpers from './../utils/SdpHelpers';
 import Logger from '../utils/Logger';
 
 const ChromeStableStack = (specInput) => {
+  const newSpec = specInput;
   Logger.info('Starting Chrome stable stack', specInput);
-  const spec = specInput;
-  const that = BaseStack(specInput);
+  if (newSpec.videoSize[0] > 640 && newSpec.simulcast &&
+        newSpec.simulcast.numSpatialLayers <= 2) {
+    Logger.info('Trying to publish an HD stream with only 2 quality layers. Due to a Chrome ' +
+            'limitation, automatically settings layers to 3. Also note that maxVideoBW must be set at ' +
+            'least at 2000 kbit/s');
+    newSpec.simulcast.numSpatialLayers = 3;
+  }
+
+  const spec = newSpec;
+  const that = BaseStack(newSpec);
   const defaultSimulcastSpatialLayers = 2;
 
   that.enableSimulcast = (sdpInput) => {
