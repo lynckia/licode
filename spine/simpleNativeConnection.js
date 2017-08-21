@@ -4,6 +4,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';  // We need this for testing wit
 var XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest,
     nodeUrl = require ('url'),
     Erizo = require('./erizofc'),
+    NativeStream = require ('./NativeStream.js'),
     NativeStack = require ('./NativeStack.js');
 
 const newIo = require('socket.io-client');
@@ -80,7 +81,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback, error){
                 subscribeToStreams(roomEvent.streams);
                 if (spec.publishConfig){
                     log.info('Will publish with config', spec.publishConfig);
-                    localStream = Erizo.Stream(fakeConnection, spec.publishConfig);
+                    localStream = NativeStream.Stream(fakeConnection, spec.publishConfig);
                     room.publish(localStream, spec.publishConfig, function(id, message){
                         if (id === undefined){
                             log.error('ERROR when publishing', message);
