@@ -20,6 +20,6 @@ echo [erizo_controller] Done, node_modules installed
 
 cd ./erizoClient/
 
-gulp
+gulp erizo
 
 echo [erizo_controller] Done, erizo.js compiled
