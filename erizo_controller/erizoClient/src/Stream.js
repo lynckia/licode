@@ -69,13 +69,13 @@ const Stream = (altConnection, specInput) => {
   };
 
   // Indicates if the stream has audio activated
-  that.hasAudio = () => spec.audio;
+  that.hasAudio = () => spec.audio !== false && spec.audio !== undefined;
 
   // Indicates if the stream has video activated
-  that.hasVideo = () => spec.video;
+  that.hasVideo = () => spec.video !== false && spec.video !== undefined;
 
   // Indicates if the stream has data activated
-  that.hasData = () => spec.data;
+  that.hasData = () => spec.data !== false && spec.data !== undefined;
 
   // Indicates if the stream has screen activated
   that.hasScreen = () => spec.screen;
