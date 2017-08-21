@@ -82,7 +82,7 @@ if (CLOUD_HANDLER_POLICY) {
 var addNewPrivateErizoController = function (ip, hostname, port, ssl, callback) {
     var erizoController = {
         ip: ip,
-        rooms: 0,
+        roomsCount: 0,
         keepAliveTs: new Date(),
         hostname: hostname,
         port: port,
