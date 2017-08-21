@@ -80,7 +80,7 @@ exports.ErizoSimpleNativeConnection = function (spec, callback, error){
                 subscribeToStreams(roomEvent.streams);
                 if (spec.publishConfig){
                     log.info('Will publish with config', spec.publishConfig);
-                    localStream = Erizo.Stream(spec.publishConfig);
+                    localStream = Erizo.Stream(fakeConnection, spec.publishConfig);
                     room.publish(localStream, spec.publishConfig, function(id, message){
                         if (id === undefined){
                             log.error('ERROR when publishing', message);

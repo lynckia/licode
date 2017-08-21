@@ -899,17 +899,21 @@ You can configure and customize the way ErizoClient:
 
 Running erizo clients in your node.js applications.
 
-You can also run erizo clients in your node.js applications with the same API explained here. You can connect to rooms, publish and subscribe to streams and manage events. You need only to import the node module **erizofc.js**
+You can also run erizo clients in your node.js applications with the same API explained here. You can connect to rooms, publish and subscribe to streams and manage events. You need only to import the node module **erizofc.js**. This adds a new dependency that you will need to install: ` npm install socket.io-client`
 
 ```
-var Erizo = require('.erizofc').Erizo;
+var newIo = require('socket.io-client');
+var Erizo = require('.erizofc');
+```
+
+The line to initialize a room changes slightly. So, once you have a token:
+```
+var room = Erizo.Room(newIo, undefined, {token:'theToken'});
 ```
 
 And now you can use the API like explained for the browser case, calling `Erizo.Room`, `Erizo.Stream` and `Erizo.Events`. Note that you can not publish/subscribe streams with video and/or audio. We are working on this feature in order to develop another way of distribute video/audio streams.
 
 You can also use Erizo Client Logger for managing log levels, etc.
-
 ```
-var L = require('.erizofc').L;
-L.Logger.setLogLevel(2);
+Erizo.Logger.setLogLevel(Erizo.Logger.ERROR);
 ```

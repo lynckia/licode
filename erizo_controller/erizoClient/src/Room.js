@@ -159,8 +159,8 @@ const Room = (altIo, altConnection, specInput) => {
       videoSize: stream.videoSize,
     };
     if (isRemote) {
-      connectionOpts.audio = connectionOpts.audio && stream.hasAudio();
-      connectionOpts.video = connectionOpts.video && stream.hasVideo();
+      connectionOpts.audio = connectionOpts.audio && connectionOpts.audio !== undefined;
+      connectionOpts.video = connectionOpts.video && connectionOpts.audio !== undefined;
     } else {
       connectionOpts.simulcast = options.simulcast;
     }
@@ -486,6 +486,7 @@ const Room = (altIo, altConnection, specInput) => {
 
   const clearAll = () => {
     that.state = DISCONNECTED;
+    socket.state = socket.DISCONNECTED;
 
     // Remove all streams
     remoteStreams.forEach((stream, id) => {
