@@ -210,6 +210,7 @@ exports.ErizoNativeConnection = (config) => {
     }
     that.connected = false;
     wrtc.close();
+    wrtc = undefined;
   };
 
   return that;

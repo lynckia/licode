@@ -9,7 +9,7 @@ const getopt = new Getopt([
 const opt = getopt.parse(process.argv.slice(2));
 
 let streamConfig;
-let statsInterval = 10000;
+let statsIntervalTime = 10000;
 const optionKeys = Object.keys(opt.options);
 
 optionKeys.forEach((key) => {
@@ -23,7 +23,7 @@ optionKeys.forEach((key) => {
       streamConfig = value;
       break;
     case 'time':
-      statsInterval = value * 1000;
+      statsIntervalTime = value * 1000;
       break;
     default:
       console.log('Default');
@@ -40,3 +40,10 @@ streamConfig = require(`./${streamConfig}`); // eslint-disable-line
 
 const SpineClient = Spine.buildSpine(streamConfig);
 SpineClient.run();
+const statsInterval = setInterval(() => {
+  SpineClient.getAllStats().then((result) => {
+    console.log('getting stats', result);
+  }).catch((reason) => {
+    console.log('Reason', reason);
+  });
+}, statsIntervalTime);

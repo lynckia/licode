@@ -54,6 +54,14 @@ exports.buildSpine = (configuration) => {
     }, time);
   };
 
+  that.getAllStats = () => {
+    const promises = [];
+    that.nativeConnections.forEach((connection) => {
+      promises.push(connection.getStats());
+    });
+    return Promise.all(promises);
+  };
+
   that.run = () => {
     log.info('Starting ', streamConfig.numSubscribers, 'subscriber streams',
     'and', streamConfig.numPublishers, 'publisherStreams');
