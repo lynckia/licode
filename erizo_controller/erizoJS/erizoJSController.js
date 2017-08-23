@@ -20,6 +20,7 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
         MIN_SLIDESHOW_PERIOD = 2000,
         MAX_SLIDESHOW_PERIOD = 10000,
         PLIS_TO_RECOVER = 3,
+        cleanup,
         initWebRtcConnection,
         closeWebRtcConnection,
         getSdp,
@@ -65,6 +66,14 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
     };
 
     setInterval(updateStats, STATS_UPDATE_INTERVAL);
+
+    cleanup = function(idPub, idSub) {
+        if (idSub === undefined) {
+            that.removePublisher(idPub);
+        } else {
+            that.removeSubscriber(idSub);
+        }
+    };
 
     /*
      * Given a WebRtcConnection waits for the state CANDIDATES_GATHERED for set remote SDP.
@@ -145,6 +154,12 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
                     log.warn('message: failed the ICE process, ' +
                              'code: ' + WARN_BAD_CONNECTION + ', id: ' + wrtc.wrtcId);
                     callback('callback', {type: 'failed', sdp: mess});
+                    cleanup(idPub, idSub);
+                    break;
+
+                case CONN_FINISHED:
+                    log.info(`message: finished ICE process, id: ${wrtc.wrtcId}`);
+                    cleanup(idPub, idSub);
                     break;
 
                 case CONN_READY:
