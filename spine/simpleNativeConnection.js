@@ -148,7 +148,7 @@ exports.ErizoSimpleNativeConnection = (spec, callback, error) => {
       if (stream.pc && stream.pc.peerConnection && stream.pc.peerConnection.connected) {
         promises.push(stream.pc.peerConnection.getStats());
       } else {
-        log.info('No stream to ask for stats: ', streamId);
+        log.warn('No stream to ask for stats: ', streamId);
         promises.push('failed');
       }
     });

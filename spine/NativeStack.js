@@ -18,13 +18,8 @@ const NativeStack = (config) => {
     that.pcConfig.iceServers = configuration.iceServers;
   }
 
-  if (configuration.audio === undefined) {
-    configuration.audio = false;
-  }
-
-  if (configuration.video === undefined) {
-    configuration.video = false;
-  }
+  configuration.audio = configuration.audio || false;
+  configuration.video = configuration.video || false;
 
   that.peerConnection = ErizoNativeConnection.ErizoNativeConnection(configuration);
   that.desc = {};
