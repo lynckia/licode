@@ -1,85 +1,82 @@
-'use strict';
-var ErizoNativeConnection = require ('./nativeClient');
-// Logger
-var logger = require('./logger').logger;
-var log = logger.getLogger('NativeStack');
+const ErizoNativeConnection = require('./nativeClient');
+const logger = require('./logger').logger;
 
-var NativeStack = function (spec) {
-    var that = {};
-    log.info('Creating a NativeStack', spec);
+const log = logger.getLogger('NativeStack');
 
-    that.pcConfig = {
-        'iceServers': []
-    };
+let sessionId = 0;
 
-    if (spec.iceServers !== undefined) {
-        that.pcConfig.iceServers = spec.iceServers;
+const NativeStack = (config) => {
+  const that = {};
+  const configuration = Object.assign({}, config);
+  log.info('Creating a NativeStack', configuration);
+
+  that.pcConfig = {
+    iceServers: [],
+  };
+
+  if (config.iceServers !== undefined) {
+    that.pcConfig.iceServers = configuration.iceServers;
+  }
+
+  configuration.audio = configuration.audio || false;
+  configuration.video = configuration.video || false;
+
+  that.peerConnection = ErizoNativeConnection.ErizoNativeConnection(configuration);
+  that.desc = {};
+  that.callback = undefined;
+
+  that.close = () => {
+    log.info('Close NATIVE');
+    if (that.peerConnection) {
+      that.peerConnection.close();
+    } else {
+      log.error('Trying to close with no underlying PC!');
     }
+  };
 
-    if (spec.audio === undefined) {
-        spec.audio = false;
+  that.stop = () => {
+    that.close();
+  };
+
+  that.createOffer = () => {
+    log.info('NATIVESTACK: CreateOffer');
+  };
+
+  that.addStream = () => {
+    log.info('NATIVESTACK: addStream');
+  };
+
+  that.processSignalingMessage = (msg) => {
+    log.info('NATIVESTACK: processSignaling', msg.type);
+    that.peerConnection.processSignallingMessage(msg);
+  };
+
+  that.sendSignalingMessage = () => {
+    log.info('NATIVESTACK: Sending signaling Message');
+  };
+
+  that.peerConnection.onaddstream = (stream) => {
+    if (that.onaddstream) {
+      that.onaddstream(stream);
     }
+  };
 
-    if (spec.video === undefined) {
-        spec.video = false;
-    }
-
-    that.peerConnection = ErizoNativeConnection.ErizoNativeConnection(spec) ;
-    that.desc = {};
-    that.callback = undefined;
-
-    that.close = function(){
-        log.info('Close NATIVE');
-        if (that.peerConnection){
-            that.peerConnection.close();
-        } else {
-            log.error('Trying to close with no underlying PC!');
-        }
-    };
-
-    that.stop = function(){
-        that.close();
-    };
-
-    that.createOffer = function(){
-        log.info('NATIVESTACK: CreateOffer');
-    };
-
-    that.addStream = function(){
-        log.info('NATIVESTACK: addStream');
-    };
-
-    that.processSignalingMessage = function(msg){
-        log.info('NATIVESTACK: processSignaling', msg.type);
-        that.peerConnection.processSignallingMessage(msg);
-    };
-
-    that.sendSignalingMessage = function(){
-        log.info('NATIVESTACK: Sending signaling Message');
-    };
-
-    that.peerConnection.onaddstream = function (stream) {
-        if (that.onaddstream) {
-            that.onaddstream(stream);
-        }
-    };
-
-    return that;
+  return that;
 };
-var sessionId = 0;
-exports.buildConnection = function(spec){
-    log.info('Creating Connection');
-    spec.sessionId = sessionId++;
-    return NativeStack(spec); // jshint ignore:line
+exports.buildConnection = (config) => {
+  log.info('Creating Connection');
+  const configuration = Object.assign({}, config);
+  configuration.sessionId = sessionId;
+  sessionId += 1;
+  return NativeStack(configuration); // jshint ignore:line
 };
 
-exports.GetUserMedia = function(opt, callback){
-    log.info('Fake getUserMedia to use with files', opt);
-    // if (that.peerConnection && opt.video.file){
-    //     that.peerConnection.prepareVideo(opt.video.file);
-    // }
-    callback('');
+exports.GetUserMedia = (opt, callback) => {
+  log.info('Fake getUserMedia to use with files', opt);
+  // if (that.peerConnection && opt.video.file){
+  //     that.peerConnection.prepareVideo(opt.video.file);
+  // }
+  callback('');
 };
-exports.getBrowser = function() {
-  return 'fake';
-};
+
+exports.getBrowser = () => 'fake';

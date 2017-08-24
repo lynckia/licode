@@ -1,5 +1,3 @@
-'use strict';
-
 const Erizo = require('./erizofc');
 
 exports.Stream = (altConnection, specInput) => {
