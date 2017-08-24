@@ -50,6 +50,15 @@ config.erizoAgent.useIndividualLogFiles = false;
 // Default is [licode_path]/erizo_controller/erizoAgent
 config.erizoAgent.instanceLogDir = '.';
 
+// Monitor publisher statistics, and if number of packets sent doesn't
+// change withing keepAliveCount intervals, remove the publisher.
+// Set:
+// config.erizoAgent.publisherTimeout = false;
+// to disable.
+config.erizoAgent.publisherTimeout = {};
+config.erizoAgent.publisherTimeout.intervalMs = 30*1000;
+config.erizoAgent.publisherTimeout.keepAliveCount = 2;
+
 /*********************************************************
  NUVE CONFIGURATION
 **********************************************************/
