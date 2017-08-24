@@ -69,6 +69,15 @@ config.erizo.disabledHandlers = []; // there are no handlers disabled by default
 
 config.erizo.erizoAPIAddonPath = '../erizoAPI/addon';
 
+// Monitor publisher statistics, and if number of packets sent doesn't
+// change withing keepAliveCount intervals, remove the publisher.
+// Set:
+// config.erizoAgent.publisherTimeout = false;
+// to disable.
+config.erizo.publisherTimeout = {};
+config.erizo.publisherTimeout.intervalMs = 30*1000;
+config.erizo.publisherTimeout.keepAliveCount = 2;
+
 
 config.erizoController = {};
 

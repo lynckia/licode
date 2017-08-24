@@ -21,6 +21,7 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
         MAX_SLIDESHOW_PERIOD = 10000,
         PLIS_TO_RECOVER = 3,
         cleanup,
+        enablePublisherTimeout,
         initWebRtcConnection,
         closeWebRtcConnection,
         getSdp,
@@ -73,6 +74,59 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
         } else {
             that.removeSubscriber(idSub);
         }
+    };
+
+    const getSimpleStats = function(statsString) {
+        const stats = JSON.parse(statsString);
+        const simpleStats = {};
+        for (let stream in stats) {
+            const stat = stats[stream];
+            if (stat.type && stat.packetsSent !== undefined) {
+                simpleStats[stat.type] = stat.packetsSent;
+            }
+        }
+        return simpleStats;
+    };
+
+    enablePublisherTimeout = function(wrtc, idPub, idSub) {
+        if (!global.config.erizo.publisherTimeout) {
+            return;
+        }
+        if (idSub !== undefined) {
+            return;
+        }
+        let publisher = publishers[idPub];
+        if (publisher.publisherTimeout !== undefined) {
+            return;
+        }
+        publisher.simpleStats = {};
+        publisher.keepAliveCounter = 0;
+        publisher.publisherTimeout = setInterval(() => {
+            wrtc.getStats((statsString) => {
+                const simpleStats = getSimpleStats(statsString);
+                let somethingHappened = false;
+
+                for (let type in simpleStats) {
+                    const prevStat = publisher.simpleStats[type];
+                    if (prevStat != simpleStats[type]) {
+                        somethingHappened = true;
+                        break;
+                    }
+                }
+
+                publisher.simpleStats = simpleStats;
+
+                if (!somethingHappened) {
+                    publisher.keepAliveCounter++;
+                    if (publisher.keepAliveCounter >=
+                        global.config.erizo.publisherTimeout.keepAliveCount) {
+                        that.removePublisher(idPub);
+                    }
+                } else {
+                    publisher.keepAliveCounter = 0;
+                }
+            });
+        }, global.config.erizo.publisherTimeout.intervalMs);
     };
 
     /*
@@ -157,11 +211,6 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
                     cleanup(idPub, idSub);
                     break;
 
-                case CONN_FINISHED:
-                    log.info(`message: finished ICE process, id: ${wrtc.wrtcId}`);
-                    cleanup(idPub, idSub);
-                    break;
-
                 case CONN_READY:
                     log.debug('message: connection ready, ' +
                               'id: ' + wrtc.wrtcId + ', ' +
@@ -174,6 +223,7 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
                         Number.isSafeInteger(options.slideShowMode)) {
                         that.setSlideShow(options.slideShowMode, idSub, idPub);
                     }
+                    enablePublisherTimeout(wrtc, idPub, idSub);
                     callback('callback', {type: 'ready'});
                     break;
             }
@@ -420,6 +470,9 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
             if (publisher.periodicPlis !== undefined) {
                 log.debug('message: clearing periodic PLIs for publisher, id: ' + from);
                 clearInterval (publisher.periodicPlis);
+            }
+            if (publisher.publisherTimeout !== undefined) {
+                clearInterval(publisher.publisherTimeout);
             }
             for (var key in publisher.subscribers) {
                 var subscriber = publisher.getSubscriber(key);
