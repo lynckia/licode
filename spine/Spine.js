@@ -54,12 +54,20 @@ exports.buildSpine = (configuration) => {
     }, time);
   };
 
-  that.getAllStats = () => {
+  that.getAllStreamStats = () => {
     const promises = [];
     that.nativeConnections.forEach((connection) => {
       promises.push(connection.getStats());
     });
     return Promise.all(promises);
+  };
+
+  that.getAllStreamStatuses = () => {
+    const statuses = [];
+    that.nativeConnections.forEach((connection) => {
+      statuses.push(connection.getStatus());
+    });
+    return statuses;
   };
 
   that.run = () => {

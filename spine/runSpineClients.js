@@ -1,15 +1,20 @@
+const fs = require('fs');
 const Getopt = require('node-getopt'); // eslint-disable-line
-const Spine = require('./Spine.js')
+const Spine = require('./Spine.js');
 
 const getopt = new Getopt([
-  ['s', 'stream-config=ARG', 'file containing the stream config JSON'],
-  ['t', 'time=ARG', 'interval time to show stats (default 10 seconds)'],
+  ['s', 'stream-config=ARG', 'file containing the stream config JSON (default is spineClientsConfig.json)'],
+  ['i', 'interval=ARG', 'interval time to show stats (default 10 seconds)'],
+  ['t', 'total-intervals=ARG', 'total test intervals (default 10 intervals)'],
+  ['o', 'output=ARG', 'output file for the stat digest (default is testResult.json)'],
   ['h', 'help', 'display this help'],
 ]);
 const opt = getopt.parse(process.argv.slice(2));
 
-let streamConfig;
+let streamConfig = 'spineClientsConfig.json';
 let statsIntervalTime = 10000;
+let totalStatsIntervals = 10;
+let statOutputFile = 'testResult.json';
 const optionKeys = Object.keys(opt.options);
 
 optionKeys.forEach((key) => {
@@ -22,8 +27,14 @@ optionKeys.forEach((key) => {
     case 'stream-config':
       streamConfig = value;
       break;
-    case 'time':
+    case 'interval':
       statsIntervalTime = value * 1000;
+      break;
+    case 'totalIntervals':
+      totalStatsIntervals = value;
+      break;
+    case 'output':
+      statOutputFile = value;
       break;
     default:
       console.log('Default');
@@ -31,19 +42,86 @@ optionKeys.forEach((key) => {
   }
 });
 
-if (!streamConfig) {
-  streamConfig = 'spineClientsConfig.json';
-}
-
 console.log('Loading stream config file', streamConfig);
 streamConfig = require(`./${streamConfig}`); // eslint-disable-line
 
+const relevantStats = streamConfig.stats;
 const SpineClient = Spine.buildSpine(streamConfig);
+
+/*
+JSON stats format
+[
+  [
+    {'ssrc': {statkey:value ...} ...},
+  ...
+  ]
+...
+]
+*/
+const filterStats = (statsJson) => {
+  const results = {};
+  relevantStats.forEach((targetStat) => {
+    results[targetStat] = [];
+    statsJson.forEach((clientStatEntry) => {
+      clientStatEntry.forEach((streamStatEntry) => {
+        const extractedStats = [];
+        const componentStatKeys = Object.keys(streamStatEntry);
+        componentStatKeys.forEach((componentStatKey) => {
+          const componentStats = streamStatEntry[componentStatKey];
+          const statKeys = Object.keys(componentStats);
+          statKeys.forEach((statKey) => {
+            if (statKey === targetStat) {
+              extractedStats.push(componentStats[targetStat]);
+            }
+          });
+        });
+        results[targetStat].push(...extractedStats);
+      });
+    });
+  });
+  return results;
+};
+
+const gatherStatuses = () => {
+  const statuses = SpineClient.getAllStreamStatuses();
+  const statusResult = {};
+  statusResult.up = 0;
+  statusResult.down = 0;
+  statuses.forEach((clientStatus) => {
+    clientStatus.forEach((streamStatus) => {
+      if (streamStatus === 'connected') {
+        statusResult.up += 1;
+      } else {
+        statusResult.down += 1;
+      }
+    });
+  });
+  return statusResult;
+};
+
+const writeJsonToFile = (result) => {
+  fs.writeFile(statOutputFile, JSON.stringify(result), (err) => {
+    if (err) throw err;
+  });
+  process.exit(0);
+};
+
 SpineClient.run();
-const statsInterval = setInterval(() => {
-  SpineClient.getAllStats().then((result) => {
-    console.log('getting stats', result);
+
+const statInterval = setInterval(() => {
+  SpineClient.getAllStreamStats().then((result) => {
+    const statsResult = filterStats(result);
+    const statusResult = gatherStatuses();
+    const allResults = {};
+    allResults.stats = statsResult;
+    allResults.alive = statusResult;
+    totalStatsIntervals -= 1;
+    console.log('Intervals to end:', totalStatsIntervals);
+    if (totalStatsIntervals === 0) {
+      clearInterval(statInterval);
+      writeJsonToFile(allResults);
+    }
   }).catch((reason) => {
-    console.log('Reason', reason);
+    console.log('Stat gather failed:', reason);
   });
 }, statsIntervalTime);

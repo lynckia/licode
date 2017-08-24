@@ -16,7 +16,7 @@ exports.ErizoSimpleNativeConnection = (spec, callback, error) => {
   const that = {};
 
   let localStream = {};
-  const subscribedStreams = new Map();
+  const availableStreams = new Map();
 
   let room = '';
   that.isActive = false;
@@ -93,31 +93,30 @@ exports.ErizoSimpleNativeConnection = (spec, callback, error) => {
       room.addEventListener('stream-added', (roomEvent) => {
         log.info('stream added', roomEvent.stream.getID());
         callback('stream-added');
-        if (roomEvent.stream.getID() === localStream.getID()) {
-          localStream.published = true;
-        } else {
+        if (roomEvent.stream.getID() !== localStream.getID()) {
           const streams = [];
           streams.push(roomEvent.stream);
           subscribeToStreams(streams);
+        } else {
+          log.error('Adding localStream, id', localStream.getID());
+          availableStreams.set(localStream.getID(), localStream);
         }
       });
 
       room.addEventListener('stream-removed', (roomEvent) => {
         callback('stream-removed');
         const eventStreamId = roomEvent.stream.getID();
-        if (eventStreamId === localStream.getID()) {
-          localStream.published = false;
-        } else {
+        if (eventStreamId !== localStream.getID()) {
           room.unsubscribe(roomEvent.stream);
-          subscribedStreams.delete(eventStreamId);
           log.info('stream removed', eventStreamId);
         }
+        availableStreams.delete(eventStreamId);
       });
 
       room.addEventListener('stream-subscribed', (streamEvent) => {
         log.info('stream-subscribed');
         callback('stream-subscribed');
-        subscribedStreams.set(streamEvent.stream.getID(), streamEvent.stream);
+        availableStreams.set(streamEvent.stream.getID(), streamEvent.stream);
       });
 
       room.addEventListener('room-error', (roomEvent) => {
@@ -145,8 +144,8 @@ exports.ErizoSimpleNativeConnection = (spec, callback, error) => {
 
   that.getStats = () => {
     const promises = [];
-    subscribedStreams.forEach((stream, streamId) => {
-      if (stream.pc && stream.pc.peerConnection) {
+    availableStreams.forEach((stream, streamId) => {
+      if (stream.pc && stream.pc.peerConnection && stream.pc.peerConnection.connected) {
         promises.push(stream.pc.peerConnection.getStats());
       } else {
         log.info('No stream to ask for stats: ', streamId);
@@ -157,17 +156,17 @@ exports.ErizoSimpleNativeConnection = (spec, callback, error) => {
   };
 
   that.getStatus = () => {
-    if (subscribedStreams.length === 0) {
+    if (availableStreams.length === 0) {
       return ['disconnected'];
     }
-    const subscriptionStatus = [];
-    subscribedStreams.values.forEach((stream) => {
+    const connectionStatus = [];
+    availableStreams.forEach((stream) => {
       if (!stream.pc || !stream.pc.peerConnection || !stream.pc.peerConnection.connected) {
-        subscriptionStatus.push('disconnected');
+        connectionStatus.push('disconnected');
       }
-      subscriptionStatus.push('connected');
+      connectionStatus.push('connected');
     });
-    return subscriptionStatus;
+    return connectionStatus;
   };
 
   createConnection();
