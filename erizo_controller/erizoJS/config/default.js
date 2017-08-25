@@ -31,7 +31,7 @@ config.rabbit.heartbeat = 8; //default value: 8 seconds, 0 to disable
 config.rabbit.login = 'guest';
 config.rabbit.password = 'guest';
 config.logger = {};
-config.logger.configFile = './log4js_configuration.json'; //default value: "./log4js_configuration.json"
+config.logger.configFile = '../log4js_configuration.json'; //default value: "./log4js_configuration.json"
 
 /*********************************************************
  ERIZO JS CONFIGURATION

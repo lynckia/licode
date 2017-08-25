@@ -14,7 +14,7 @@ var logJsonReplacer = function (key, value){
             return '[Object]';
         }
         return value;
-    }else{
+    } else {
         return value;
     }
 };
