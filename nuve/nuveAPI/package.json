@@ -14,6 +14,7 @@
     "express": "4.15.3",
     "lodash": "4.17.4",
     "log4js": "1.0.1",
+    "log4js-logstash": "0.2.3",
     "mongojs": "2.4.0",
     "node-getopt": "0.2.3"
   },

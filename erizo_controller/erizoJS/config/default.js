@@ -4,6 +4,11 @@ var os = require('os');
 
 var config = {};
 
+config.logstash = {};
+config.logstash.host = 'elk.service.consul';
+config.logstash.port = 5959;
+config.logstash.appName = 'erizoJS';
+
 /*********************************************************
  GRAPHITE CONFIGURATION
  **********************************************************/
