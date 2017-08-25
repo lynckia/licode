@@ -6,8 +6,8 @@ const SPINE_DOCKER_PULL_COMMAND = 'sudo docker pull lynckia/licode:TAG';
 const SPINE_RUN_COMMAND = 'sudo docker image ls';
 const SPINE_GET_RESULT_COMMAND = 'ls';
 
-const LICODE_RUN_COMMAND = 'sudo docker image ls';
-const LICODE_STOP_COMMAND= 'sudo docker image ls';
+const LICODE_RUN_COMMAND = 'MIN_PORT=40000; MAX_PORT=40050; sudo docker run --name licode -p  3000:3000 -p $MIN_PORT-$MAX_PORT:$MIN_PORT-$MAX_PORT/udp -p 3001:3001 -p 3004:3004 -p 8080:8080 -e "MIN_PORT=$MIN_PORT" -e "MAX_PORT=$MAX_PORT" -e "PUBLIC_IP=INSTANCE_PUBLIC_IP" --rm --detach lynckia/licode:staging';
+const LICODE_STOP_COMMAND= 'sudo docker stop licode';
 
 const EC2_API_VERSION = '2016-11-15';
 const SSH_RETRY_TIMEOUT = 5000;
@@ -17,9 +17,10 @@ const EC2_INSTANCE_LIFETIME = 50; // minutes
 
 
 class RemoteInstance {
-  constructor(host, username, privateKey, dockerTag) {
+  constructor(host, ip, username, privateKey, dockerTag) {
     this.ssh = new SSH();
     this.host = host;
+    this.ip = ip;
     this.username = username;
     this.privateKey = privateKey;
     this.dockerTag = dockerTag;
@@ -71,7 +72,7 @@ class RemoteInstance {
   }
 
   runLicode() {
-    return this._execCommand(LICODE_RUN_COMMAND);
+    return this._execCommand(LICODE_RUN_COMMAND.replace(/INSTANCE_PUBLIC_IP/), this.ip);
   }
 
   stopLicode() {
@@ -168,7 +169,8 @@ class Factory {
         let promises = [];
         data.Reservations[0].Instances.forEach((instance) => {
           const host = instance.PublicDnsName;
-          const spine = new RemoteInstance(host, this.username, this.privateKey, this.dockerTag);
+          const ip = instance.PublicIpAddress
+          const spine = new RemoteInstance(host, ip, this.username, this.privateKey, this.dockerTag);
           this.instances.push(spine);
           let promise = spine.connect()
                              .then(() => spine.setup());
