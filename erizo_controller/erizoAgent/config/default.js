@@ -2,6 +2,11 @@
 
 var config = {};
 
+config.logstash = {};
+config.logstash.host = 'elk.service.consul';
+config.logstash.port = 5959;
+config.logstash.appName = 'erizoAgent';
+
 /*********************************************************
  COMMON CONFIGURATION
  It's used by Nuve, ErizoController, ErizoAgent and ErizoJS

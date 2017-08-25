@@ -6,6 +6,7 @@
     "config": "1.26.1",
     "lodash": "4.17.4",
     "log4js": "1.0.1",
+    "log4js-logstash": "0.2.3",
     "mongojs": "2.4.1",
     "node-getopt": "0.2.3",
     "socket.io": "2.0.3"
