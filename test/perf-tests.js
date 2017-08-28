@@ -1,5 +1,30 @@
 const InstanceFactory = require('./utils/remote-spine').Factory;
 
+const BASIC_TEST = {
+  'basicExampleUrl': 'https://localhost/',
+  'publishConfig' : {
+    'video': { 'synthetic': {
+             'audioBitrate': 30000,
+             'minVideoBitrate': 10000,
+             'maxVideoBitrate': 300000}},
+    'audio':true,
+    'data':true
+  },
+  'subscribeConfig' : {
+    'video': true,
+    'audio': true,
+    'data': true
+  },
+  'numPublishers': 1,
+  'numSubscribers': 1,
+  'publishersAreSubscribers': false,
+  'connectionCreationInterval': 500,
+  'stats': [
+    'packetsLost',
+    'bitrateCalculated'
+  ]
+};
+
 describe('Licode Performance', function() {
   this.timeout(60 * 60 * 1000);
   let factory;
@@ -15,7 +40,7 @@ describe('Licode Performance', function() {
       instanceType: process.env.PERF_INSTANCE_TYPE || 't1.micro',
       keyName: process.env.PERF_KEY_NAME || 'staging',
       privateKey: process.env.PERF_PRIVATE_KEY || '~/.ssh/id_rsa',
-      dockerTag: process.env.PERF_DOCKER_TAG || 'staging',
+      dockerTag: process.env.PERF_DOCKER_TAG || 'develop',
       region: process.env.PERF_REGION || 'us-west-2',
       securityGroup: process.env.PERF_SECURITY_GROUP || 'Licode'
     };
@@ -29,11 +54,16 @@ describe('Licode Performance', function() {
 
   it('Test setup', (done) => {
     console.log('Starting test');
-    console.log('ssh -i', process.env.PERF_PRIVATE_KEY, 'ec2-user@' + getLicodeInstance().host);
-    setTimeout(() => {
-      console.log('Finished');
+    console.log('Licode: ssh -i', process.env.PERF_PRIVATE_KEY, 'ec2-user@' + getLicodeInstance().host);
+    console.log('Spine: ssh -i', process.env.PERF_PRIVATE_KEY, 'ec2-user@' + getSpineInstance().host);
+    const config = Object.assign({}, BASIC_TEST);
+    config.basicExampleUrl = 'https://' + getLicodeInstance().host + ':3004';
+    getSpineInstance().runTest(config).then(() => {
+      console.log(this.result);
       done();
-    }, 20 * 60 * 1000);
+    }).catch((reason) => {
+      done(new Error(reason));
+    });
   });
 
   afterEach(() => {

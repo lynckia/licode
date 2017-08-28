@@ -1,12 +1,11 @@
 const SSH = require('node-ssh');
 const AWS = require('aws-sdk');
 
-const SPINE_WRITE_CONFIG_FILE_COMMAND = 'echo DATA >> config.json';
 const SPINE_DOCKER_PULL_COMMAND = 'sudo docker pull lynckia/licode:TAG';
-const SPINE_RUN_COMMAND = 'sudo docker image ls';
-const SPINE_GET_RESULT_COMMAND = 'ls';
+const SPINE_RUN_COMMAND = 'sudo docker run --rm --name spine -v $(pwd)/licode_default.js:/opt/licode/licode_config.js -v $(pwd)/runSpineTest.sh:/opt/licode/test/runSpineTest.sh -v $(pwd)/config.json:/opt/licode/spine/spineClientsConfig.json -v $(pwd)/results/:/opt/licode/results/ --workdir "/opt/licode/" --entrypoint "test/runSpineTest.sh" lynckia/licode:TAG';
+const SPINE_GET_RESULT_COMMAND = 'cat results/output.json';
 
-const LICODE_RUN_COMMAND = 'MIN_PORT=40000; MAX_PORT=40050; sudo docker run --name licode -p  3000:3000 -p $MIN_PORT-$MAX_PORT:$MIN_PORT-$MAX_PORT/udp -p 3001:3001 -p 3004:3004 -p 8080:8080 -e "MIN_PORT=$MIN_PORT" -e "MAX_PORT=$MAX_PORT" -e "PUBLIC_IP=INSTANCE_PUBLIC_IP" --rm --detach lynckia/licode:staging';
+const LICODE_RUN_COMMAND = 'MIN_PORT=40000; MAX_PORT=40050; sudo docker run --name licode -p  3000:3000 -p $MIN_PORT-$MAX_PORT:$MIN_PORT-$MAX_PORT/udp -p 3001:3001 -p 3004:3004 -p 8080:8080 -e "MIN_PORT=$MIN_PORT" -e "MAX_PORT=$MAX_PORT" -e "PUBLIC_IP=INSTANCE_PUBLIC_IP" -v $(pwd)/licode_default.js:/opt/licode/scripts/licode_default.js --rm --detach lynckia/licode:TAG';
 const LICODE_STOP_COMMAND= 'sudo docker stop licode';
 
 const EC2_API_VERSION = '2016-11-15';
@@ -68,21 +67,29 @@ class RemoteInstance {
     return this._execCommand('sudo yum update -y')
       .then(() => this._execCommand('sudo yum install -y docker'))
       .then(() => this._execCommand('sudo service docker start'))
-      .then(() => this._execCommand(SPINE_DOCKER_PULL_COMMAND.replace(/TAG/, this.dockerTag)));
+      .then(() => this._execCommand(SPINE_DOCKER_PULL_COMMAND.replace(/TAG/, this.dockerTag)))
+      .then(() => this.ssh.mkdir('results'))
+      .then(() => this.ssh.putFiles([{local:  'licode_default.js',
+                                      remote: 'licode_default.js'},
+                                     {local:  'rtp_media_config_default.js',
+                                      remote: 'rtp_media_config_default.js'},
+                                     {local:  'runSpineTest.sh',
+                                      remote: 'runSpineTest.sh'},]))
+      .then(() => this._execCommand('chmod +x runSpineTest.sh'));
   }
 
   runLicode() {
-    return this._execCommand(LICODE_RUN_COMMAND.replace(/INSTANCE_PUBLIC_IP/), this.ip);
+    return this._execCommand(LICODE_RUN_COMMAND.replace(/INSTANCE_PUBLIC_IP/, this.ip).replace(/TAG/, this.dockerTag));
   }
 
   stopLicode() {
-    return this._execCommand(LICODE_STOP_COMMAND)
+    return this._execCommand(LICODE_STOP_COMMAND);
   }
 
   runTest(settings) {
     const settingsText = JSON.stringify(settings);
-    return this._execCommand(SPINE_WRITE_CONFIG_FILE_COMMAND.replace(/DATA/, `'${settingsText}'`))
-      .then(() => this._execCommand(SPINE_RUN_COMMAND))
+    return this._execCommand('echo ' + JSON.stringify(settingsText) + ' >> config.json')
+      .then(() => this._execCommand(SPINE_RUN_COMMAND.replace(/TAG/, this.dockerTag)))
       .then(() => this.getResult());
   }
 
