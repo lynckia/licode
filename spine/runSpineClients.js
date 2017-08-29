@@ -4,8 +4,8 @@ const Spine = require('./Spine.js');
 
 const getopt = new Getopt([
   ['s', 'stream-config=ARG', 'file containing the stream config JSON (default is spineClientsConfig.json)'],
-  ['i', 'interval=ARG', 'interval time to show stats (default 10 seconds)'],
-  ['t', 'total-intervals=ARG', 'total test intervals (default 10 intervals)'],
+  ['t', 'interval=ARG', 'interval time to show stats (default 10 seconds)'],
+  ['i', 'total-intervals=ARG', 'total test intervals (default 10 intervals)'],
   ['o', 'output=ARG', 'output file for the stat digest (default is testResult.json)'],
   ['h', 'help', 'display this help'],
 ]);
@@ -30,7 +30,7 @@ optionKeys.forEach((key) => {
     case 'interval':
       statsIntervalTime = value * 1000;
       break;
-    case 'totalIntervals':
+    case 'total-intervals':
       totalStatsIntervals = value;
       break;
     case 'output':
@@ -100,9 +100,7 @@ const gatherStatuses = () => {
 };
 
 const writeJsonToFile = (result) => {
-  fs.writeFile(statOutputFile, JSON.stringify(result), (err) => {
-    if (err) throw err;
-  });
+  fs.writeFileSync(statOutputFile, JSON.stringify(result));
   process.exit(0);
 };
 
