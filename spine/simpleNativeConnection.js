@@ -37,7 +37,7 @@ exports.ErizoSimpleNativeConnection = (spec, callback, error) => {
 
     const url = nodeUrl.format(theUrl);
     log.info('Url to createToken', url);
-    const body = { username: userName, role };
+    const body = { username: userName, role, room };
 
     req.onreadystatechange = () => {
       if (req.readyState === 4) {
