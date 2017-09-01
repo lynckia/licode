@@ -1,6 +1,7 @@
 {
     "extends": "airbnb",
     "rules": {
-      "no-cond-assign": ["error", "except-parens"]
+        "indent": ["error", 4],
+        "no-cond-assign": ["error", "except-parens"]
     }
 }
