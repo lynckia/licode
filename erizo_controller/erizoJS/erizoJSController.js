@@ -45,23 +45,31 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
     that.publishers = publishers;
     that.ioThreadPool = io;
 
-    var updateStats = function () {
-        var publishersKeys = Object.keys(publishers);
-        var publishersCount = publishersKeys.length;
-        var subscribersCounts = publishersKeys.map(key => Object.keys(publishers[key].subscribers).length);
-        var subscribersCount = subscribersCounts.reduce((acc, i) => acc + i, 0);
+    const updateStats = () => {
+        const publishersKeys = Object.keys(publishers);
+        const publishersCount = publishersKeys.length;
+        const subscribersCounts = publishersKeys.map(key => Object.keys(publishers[key].subscribers).length);
+        const subscribersCount = subscribersCounts.reduce((acc, i) => acc + i, 0);
+
         db.erizoJS.update(
             { erizoAgentID, erizoJSID },
-            { erizoAgentID, erizoJSID, publishersCount, subscribersCount, lastUpdated: new Date() },
+            {
+                erizoAgentID,
+                erizoJSID,
+                publishersCount,
+                subscribersCount,
+                lastUpdated: new Date(),
+            },
             { upsert: true },
-            err => {
+            (err) => {
                 if (err) {
                     log.warn('Failed to update erizoJS stats', err);
-                    return;
+                } else {
+                    log.debug('Updated erizoJS stats - publishersCount = %d, subscribersCount = %d', publishersCount, subscribersCount);
                 }
-                log.debug('Updated erizoJS stats - publishersCount = %d, subscribersCount = %d', publishersCount, subscribersCount);
             }
         );
+
         graphite.put(`erizoJS_${erizoJSID}.publishers.count`, publishersCount);
         graphite.put(`erizoJS_${erizoJSID}.subscribers.count`, subscribersCount);
     };
