@@ -83,6 +83,9 @@ config.erizo.publisherTimeout = {};
 config.erizo.publisherTimeout.intervalMs = 30*1000;
 config.erizo.publisherTimeout.keepAliveCount = 2;
 
+// Delay between each statistics collection
+config.erizo.statsUpdateInterval = 5000;
+
 
 config.erizoController = {};
 

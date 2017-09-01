@@ -40,8 +40,6 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
         WARN_PRECOND_FAILED = 412,
         WARN_BAD_CONNECTION = 502;
 
-    var STATS_UPDATE_INTERVAL = 5000;
-
     that.publishers = publishers;
     that.ioThreadPool = io;
 
@@ -74,7 +72,7 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
         graphite.put(`erizoJS_${erizoJSID}.subscribers.count`, subscribersCount);
     };
 
-    setInterval(updateStats, STATS_UPDATE_INTERVAL);
+    setInterval(updateStats, global.config.erizo.statsUpdateInterval);
 
     cleanup = function(idPub, idSub) {
         if (idSub === undefined) {
