@@ -2,7 +2,6 @@
 'use strict';
 var logger = require('./common/logger').logger;
 var amqper = require('./common/amqper');
-var graphite = require('./common/graphite');
 var Publisher = require('./models/Publisher').Publisher;
 var ExternalInput = require('./models/Publisher').ExternalInput;
 var db = require('./database').db;
@@ -67,9 +66,6 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
                 }
             }
         );
-
-        graphite.put(`erizoJS_${erizoJSID}.publishers.count`, publishersCount);
-        graphite.put(`erizoJS_${erizoJSID}.subscribers.count`, subscribersCount);
     };
 
     setInterval(updateStats, global.config.erizo.statsUpdateInterval);
