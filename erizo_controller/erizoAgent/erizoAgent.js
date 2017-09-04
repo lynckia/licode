@@ -1,20 +1,23 @@
 /*global require*/
 'use strict';
-var Getopt = require('node-getopt');
+const Getopt = require('node-getopt');
 
-var spawn = require('child_process').spawn;
+const os = require('os');
+const spawn = require('child_process').spawn;
 
-var config = require('config');
-var db = require('./database').db;
+const config = require('config');
+const db = require('./database').db;
+
+const graphite = require('./common/graphite');
 
 // Configuration default values
 GLOBAL.config =  {};
 GLOBAL.config.erizoAgent = config.get('erizoAgent');
 
-var BINDED_INTERFACE_NAME = GLOBAL.config.erizoAgent.networkInterface;
+const BINDED_INTERFACE_NAME = GLOBAL.config.erizoAgent.networkInterface;
 
 // Parse command line arguments
-var getopt = new Getopt([
+const getopt = new Getopt([
   ['r' , 'rabbit-host=ARG'            , 'RabbitMQ Host'],
   ['g' , 'rabbit-port=ARG'            , 'RabbitMQ Port'],
   ['b' , 'rabbit-heartbeat=ARG'       , 'RabbitMQ AMQP Heartbeat Timeout'],
@@ -26,7 +29,7 @@ var getopt = new Getopt([
   ['h' , 'help'                       , 'display this help']
 ]);
 
-var interfaces = require('os').networkInterfaces(),
+var interfaces = os.networkInterfaces(),
     addresses = [],
     k,
     k2,
@@ -118,6 +121,61 @@ var fillErizos = function () {
         }
     }
 };
+
+const reportMetrics = function () {
+    const now = Date.now();
+    const interval = global.config.erizoAgent.statsUpdateInterval;
+
+    db.erizoJS.aggregate(
+        [
+            {
+                $match: {
+                    erizoAgentID: myErizoAgentId,
+                    lastUpdated: { $lte: new Date(now), $gte: new Date(now - interval) }
+                }
+            },
+            { $sort: { lastUpdated: -1 } },
+            {
+                $group: {
+                    _id: { erizoAgentID: "$erizoAgentID", erizoJSID: "$erizoJSID" },
+                    publishersCount: { $first: "$publishersCount" },
+                    subscribersCount: { $first: "$subscribersCount" }
+                }
+            },
+            {
+                $group: {
+                    _id: "$_id.erizoAgentID",
+                    publishersCount: { $sum: "$publishersCount" },
+                    subscribersCount: { $sum: "$subscribersCount" }
+                }
+            }
+        ],
+        (err, docs) => {
+            if (err) {
+                log.warn('failed to collect erizoAgent metrics', err);
+                return;
+            }
+
+            if (docs.length === 0) {
+                return;
+            }
+
+            if (docs.length !== 1) {
+                log.error(`expected single document result, got ${JSON.stringify(docs, null, 2)}`);
+                return;
+            }
+
+            const { publishersCount, subscribersCount } = docs[0];
+
+            graphite.put(`publishers.count`, publishersCount);
+            graphite.put(`subscribers.count`, subscribersCount);
+
+            log.debug('submitted erizoAgent metrics');
+        }
+    );
+};
+
+setInterval(reportMetrics, config.erizoAgent.statsUpdateInterval);
 
 launchErizoJS = function() {
     var id = guid();

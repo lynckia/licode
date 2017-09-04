@@ -2,7 +2,6 @@
 'use strict';
 var logger = require('./common/logger').logger;
 var amqper = require('./common/amqper');
-var graphite = require('./common/graphite');
 var Publisher = require('./models/Publisher').Publisher;
 var ExternalInput = require('./models/Publisher').ExternalInput;
 var db = require('./database').db;
@@ -40,33 +39,36 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
         WARN_PRECOND_FAILED = 412,
         WARN_BAD_CONNECTION = 502;
 
-    var STATS_UPDATE_INTERVAL = 5000;
-
     that.publishers = publishers;
     that.ioThreadPool = io;
 
-    var updateStats = function () {
-        var publishersKeys = Object.keys(publishers);
-        var publishersCount = publishersKeys.length;
-        var subscribersCounts = publishersKeys.map(key => Object.keys(publishers[key].subscribers).length);
-        var subscribersCount = subscribersCounts.reduce((acc, i) => acc + i, 0);
+    const updateStats = () => {
+        const publishersKeys = Object.keys(publishers);
+        const publishersCount = publishersKeys.length;
+        const subscribersCounts = publishersKeys.map(key => Object.keys(publishers[key].subscribers).length);
+        const subscribersCount = subscribersCounts.reduce((acc, i) => acc + i, 0);
+
         db.erizoJS.update(
             { erizoAgentID, erizoJSID },
-            { erizoAgentID, erizoJSID, publishersCount, subscribersCount, lastUpdated: new Date() },
+            {
+                erizoAgentID,
+                erizoJSID,
+                publishersCount,
+                subscribersCount,
+                lastUpdated: new Date(),
+            },
             { upsert: true },
-            err => {
+            (err) => {
                 if (err) {
                     log.warn('Failed to update erizoJS stats', err);
-                    return;
+                } else {
+                    log.debug('Updated erizoJS stats - publishersCount = %d, subscribersCount = %d', publishersCount, subscribersCount);
                 }
-                log.debug('Updated erizoJS stats - publishersCount = %d, subscribersCount = %d', publishersCount, subscribersCount);
             }
         );
-        graphite.put(`erizoJS_${erizoJSID}.publishers.count`, publishersCount);
-        graphite.put(`erizoJS_${erizoJSID}.subscribers.count`, subscribersCount);
     };
 
-    setInterval(updateStats, STATS_UPDATE_INTERVAL);
+    setInterval(updateStats, global.config.erizo.statsUpdateInterval);
 
     cleanup = function(idPub, idSub) {
         if (idSub === undefined) {

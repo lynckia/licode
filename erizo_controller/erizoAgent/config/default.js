@@ -1,11 +1,23 @@
 /* global module */
 
+const os = require('os');
+
 var config = {};
 
 config.logstash = {};
 config.logstash.host = 'elk.service.consul';
 config.logstash.port = 5959;
 config.logstash.appName = 'erizoAgent';
+
+/*********************************************************
+ GRAPHITE CONFIGURATION
+ **********************************************************/
+config.graphite = {};
+config.graphite.host = 'graphite.service.consul';
+config.graphite.port = 2003;
+config.graphite.prefix = os.hostname();
+config.graphite.suffix = '';
+config.graphite.interval = 20000;
 
 /*********************************************************
  COMMON CONFIGURATION
@@ -54,6 +66,10 @@ config.erizoAgent.useIndividualLogFiles = false;
 // If useIndividualLogFiles is enabled, files will go here
 // Default is [licode_path]/erizo_controller/erizoAgent
 config.erizoAgent.instanceLogDir = '.';
+
+// Delay between each statistics collection
+// It should be synchronized with config.erizo.statsUpdateInterval
+config.erizoAgent.statsUpdateInterval = 5000;
 
 /*********************************************************
  NUVE CONFIGURATION

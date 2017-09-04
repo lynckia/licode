@@ -1,23 +1,11 @@
 /* global module */
 
-var os = require('os');
-
 var config = {};
 
 config.logstash = {};
 config.logstash.host = 'elk.service.consul';
 config.logstash.port = 5959;
 config.logstash.appName = 'erizoJS';
-
-/*********************************************************
- GRAPHITE CONFIGURATION
- **********************************************************/
-config.graphite = {};
-config.graphite.host = 'graphite.service.consul';
-config.graphite.port = 2003;
-config.graphite.prefix = os.hostname();
-config.graphite.suffix = '';
-config.graphite.interval = 20000;
 
 /*********************************************************
  COMMON CONFIGURATION
@@ -82,6 +70,10 @@ config.erizo.erizoAPIAddonPath = '../erizoAPI/addon';
 config.erizo.publisherTimeout = {};
 config.erizo.publisherTimeout.intervalMs = 30*1000;
 config.erizo.publisherTimeout.keepAliveCount = 2;
+
+// Delay between each statistics collection
+// It should be synchronized with config.erizoAgent.statsUpdateInterval
+config.erizo.statsUpdateInterval = 5000;
 
 
 config.erizoController = {};
