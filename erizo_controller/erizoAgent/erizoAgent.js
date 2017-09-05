@@ -137,16 +137,16 @@ const reportMetrics = function () {
             { $sort: { lastUpdated: -1 } },
             {
                 $group: {
-                    _id: { erizoAgentID: "$erizoAgentID", erizoJSID: "$erizoJSID" },
-                    publishersCount: { $first: "$publishersCount" },
-                    subscribersCount: { $first: "$subscribersCount" }
+                    _id: { erizoAgentID: '$erizoAgentID', erizoJSID: '$erizoJSID' },
+                    publishersCount: { $first: '$publishersCount' },
+                    subscribersCount: { $first: '$subscribersCount' }
                 }
             },
             {
                 $group: {
-                    _id: "$_id.erizoAgentID",
-                    publishersCount: { $sum: "$publishersCount" },
-                    subscribersCount: { $sum: "$subscribersCount" }
+                    _id: '$_id.erizoAgentID',
+                    publishersCount: { $sum: '$publishersCount' },
+                    subscribersCount: { $sum: '$subscribersCount' }
                 }
             }
         ],
@@ -167,8 +167,8 @@ const reportMetrics = function () {
 
             const { publishersCount, subscribersCount } = docs[0];
 
-            graphite.put(`publishers.count`, publishersCount);
-            graphite.put(`subscribers.count`, subscribersCount);
+            graphite.put('publishers.count', publishersCount);
+            graphite.put('subscribers.count', subscribersCount);
 
             log.debug('submitted erizoAgent metrics');
         }
