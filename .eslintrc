@@ -1,7 +1,12 @@
 {
     "extends": "airbnb",
     "rules": {
+        "comma-dangle": "off",
+        "func-names": "off",
         "indent": ["error", 4],
-        "no-cond-assign": ["error", "except-parens"]
+        "no-cond-assign": [
+            "error",
+            "except-parens"
+        ]
     }
 }
