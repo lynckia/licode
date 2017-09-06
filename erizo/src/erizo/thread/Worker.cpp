@@ -10,6 +10,17 @@
 
 using erizo::Worker;
 using erizo::SimulatedWorker;
+using erizo::ScheduledTaskReference;
+
+ScheduledTaskReference::ScheduledTaskReference() : cancelled{false} {
+}
+
+bool ScheduledTaskReference::isCancelled() {
+  return cancelled;
+}
+void ScheduledTaskReference::cancel() {
+  cancelled = true;
+}
 
 Worker::Worker(std::weak_ptr<Scheduler> scheduler, std::shared_ptr<Clock> the_clock)
     : scheduler_{scheduler},
@@ -50,21 +61,22 @@ void Worker::close() {
   service_.stop();
 }
 
-int Worker::scheduleFromNow(Task f, duration delta) {
+std::shared_ptr<ScheduledTaskReference> Worker::scheduleFromNow(Task f, duration delta) {
   auto delta_ms = std::chrono::duration_cast<std::chrono::milliseconds>(delta);
-  int uuid = next_scheduled_++;
+  auto id = std::make_shared<ScheduledTaskReference>();
   if (auto scheduler = scheduler_.lock()) {
-    scheduler->scheduleFromNow(safeTask([f, uuid](std::shared_ptr<Worker> this_ptr) {
-      this_ptr->task(this_ptr->safeTask([f, uuid](std::shared_ptr<Worker> this_ptr) {
-        std::unique_lock<std::mutex> lock(this_ptr->cancel_mutex_);
-        if (this_ptr->isCancelled(uuid)) {
-          return;
+    scheduler->scheduleFromNow(safeTask([f, id](std::shared_ptr<Worker> this_ptr) {
+      this_ptr->task(this_ptr->safeTask([f, id](std::shared_ptr<Worker> this_ptr) {
+        {
+          if (id->isCancelled()) {
+            return;
+          }
         }
         f();
       }));
     }), delta_ms);
   }
-  return uuid;
+  return id;
 }
 
 void Worker::scheduleEvery(ScheduledTask f, duration period) {
@@ -84,20 +96,8 @@ void Worker::scheduleEvery(ScheduledTask f, duration period, duration next_delay
   }), next_delay);
 }
 
-void Worker::unschedule(int uuid) {
-  if (uuid < 0) {
-    return;
-  }
-  std::unique_lock<std::mutex> lock(cancel_mutex_);
-  cancelled_.push_back(uuid);
-}
-
-bool Worker::isCancelled(int uuid) {
-  if (std::find(cancelled_.begin(), cancelled_.end(), uuid) != cancelled_.end()) {
-    cancelled_.erase(std::remove(cancelled_.begin(), cancelled_.end(), uuid), cancelled_.end());
-    return true;
-  }
-  return false;
+void Worker::unschedule(std::shared_ptr<ScheduledTaskReference> id) {
+  id->cancel();
 }
 
 std::function<void()> Worker::safeTask(std::function<void(std::shared_ptr<Worker>)> f) {
@@ -128,15 +128,15 @@ void SimulatedWorker::close() {
   tasks_.clear();
 }
 
-int SimulatedWorker::scheduleFromNow(Task f, duration delta) {
-  int uuid = next_scheduled_++;
-  scheduled_tasks_[clock_->now() + delta] =  [this, f, uuid] {
-      if (isCancelled(uuid)) {
+std::shared_ptr<ScheduledTaskReference> SimulatedWorker::scheduleFromNow(Task f, duration delta) {
+  auto id = std::make_shared<ScheduledTaskReference>();
+  scheduled_tasks_[clock_->now() + delta] =  [this, f, id] {
+      if (id->isCancelled()) {
         return;
       }
       f();
     };
-  return uuid;
+  return id;
 }
 
 void SimulatedWorker::executeTasks() {

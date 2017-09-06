@@ -26,7 +26,8 @@ static std::mutex dtls_mutex;
 
 Resender::Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx)
     : transport_(transport), socket_context_(ctx),
-      resend_seconds_(kInitialSecsPerResend), max_resends_(kMaxResends) {
+      resend_seconds_(kInitialSecsPerResend), max_resends_(kMaxResends),
+      scheduled_task_{std::make_shared<ScheduledTaskReference>()} {
 }
 
 Resender::~Resender() {
