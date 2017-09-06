@@ -19,16 +19,11 @@ namespace erizo {
 
 class ScheduledTaskReference {
  public:
-  ScheduledTaskReference() : cancelled{false} {
-  }
-  bool isCancelled() {
-    return cancelled;
-  }
-  void cancel() {
-    cancelled = true;
-  }
+  ScheduledTaskReference();
+  bool isCancelled();
+  void cancel();
  private:
-  bool cancelled;
+  std::atomic<bool> cancelled;
 };
 
 class Worker : public std::enable_shared_from_this<Worker> {
@@ -66,7 +61,6 @@ class Worker : public std::enable_shared_from_this<Worker> {
   asio_worker service_worker_;
   boost::thread_group group_;
   std::atomic<bool> closed_;
-  mutable std::mutex cancel_mutex_;
 };
 
 class SimulatedWorker : public Worker {

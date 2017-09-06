@@ -12,6 +12,16 @@ using erizo::Worker;
 using erizo::SimulatedWorker;
 using erizo::ScheduledTaskReference;
 
+ScheduledTaskReference::ScheduledTaskReference() : cancelled{false} {
+}
+
+bool ScheduledTaskReference::isCancelled() {
+  return cancelled;
+}
+void ScheduledTaskReference::cancel() {
+  cancelled = true;
+}
+
 Worker::Worker(std::weak_ptr<Scheduler> scheduler, std::shared_ptr<Clock> the_clock)
     : scheduler_{scheduler},
       clock_{the_clock},
@@ -58,7 +68,6 @@ std::shared_ptr<ScheduledTaskReference> Worker::scheduleFromNow(Task f, duration
     scheduler->scheduleFromNow(safeTask([f, id](std::shared_ptr<Worker> this_ptr) {
       this_ptr->task(this_ptr->safeTask([f, id](std::shared_ptr<Worker> this_ptr) {
         {
-          std::unique_lock<std::mutex> lock(this_ptr->cancel_mutex_);
           if (id->isCancelled()) {
             return;
           }
@@ -88,7 +97,6 @@ void Worker::scheduleEvery(ScheduledTask f, duration period, duration next_delay
 }
 
 void Worker::unschedule(std::shared_ptr<ScheduledTaskReference> id) {
-  std::unique_lock<std::mutex> lock(cancel_mutex_);
   id->cancel();
 }
 
