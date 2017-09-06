@@ -26,7 +26,7 @@ RtpPaddingGeneratorHandler::RtpPaddingGeneratorHandler(std::shared_ptr<erizo::Cl
   marker_rate_{std::chrono::milliseconds(100), 20, 1., clock_},
   rtp_header_length_{12},
   bucket_{kInitialBitrate, kPaddingBurstSize, clock_},
-  scheduled_task_{-1} {}
+  scheduled_task_{std::make_shared<ScheduledTaskReference>()} {}
 
 
 
