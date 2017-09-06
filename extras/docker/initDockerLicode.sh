@@ -120,7 +120,7 @@ run_erizoAgent() {
 run_basicExample() {
   echo "Starting basicExample"
   sleep 5
-  cp $ROOT/erizo_controller/erizoClient/dist/erizo.js $EXTRAS/basic_example/public/
+  cp $ROOT/erizo_controller/erizoClient/dist/production/erizo.js $EXTRAS/basic_example/public/
   cp $ROOT/nuve/nuveClient/dist/nuve.js $EXTRAS/basic_example/
   cd $EXTRAS/basic_example
   node basicServer.js &
