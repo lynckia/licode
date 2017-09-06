@@ -78,7 +78,7 @@ class Resender {
   packetPtr packet_;
   unsigned int resend_seconds_;
   unsigned int max_resends_;
-  int scheduled_task_ = -1;
+  std::shared_ptr<ScheduledTaskReference> scheduled_task_;
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_DTLSTRANSPORT_H_

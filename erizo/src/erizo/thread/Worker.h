@@ -17,6 +17,20 @@
 
 namespace erizo {
 
+class ScheduledTaskReference {
+ public:
+  ScheduledTaskReference() : cancelled{false} {
+  }
+  bool isCancelled() {
+    return cancelled;
+  }
+  void cancel() {
+    cancelled = true;
+  }
+ private:
+  bool cancelled;
+};
+
 class Worker : public std::enable_shared_from_this<Worker> {
  public:
   typedef std::unique_ptr<boost::asio::io_service::work> asio_worker;
@@ -33,13 +47,10 @@ class Worker : public std::enable_shared_from_this<Worker> {
   virtual void start(std::shared_ptr<std::promise<void>> start_promise);
   virtual void close();
 
-  virtual int scheduleFromNow(Task f, duration delta);
-  virtual void unschedule(int uuid);
+  virtual std::shared_ptr<ScheduledTaskReference> scheduleFromNow(Task f, duration delta);
+  virtual void unschedule(std::shared_ptr<ScheduledTaskReference> id);
 
   virtual void scheduleEvery(ScheduledTask f, duration period);
-
- protected:
-  bool isCancelled(int uuid);
 
  private:
   void scheduleEvery(ScheduledTask f, duration period, duration next_delay);
@@ -55,7 +66,6 @@ class Worker : public std::enable_shared_from_this<Worker> {
   asio_worker service_worker_;
   boost::thread_group group_;
   std::atomic<bool> closed_;
-  std::vector<int> cancelled_;
   mutable std::mutex cancel_mutex_;
 };
 
@@ -66,7 +76,7 @@ class SimulatedWorker : public Worker {
   void start() override;
   void start(std::shared_ptr<std::promise<void>> start_promise) override;
   void close() override;
-  int scheduleFromNow(Task f, duration delta) override;
+  std::shared_ptr<ScheduledTaskReference> scheduleFromNow(Task f, duration delta) override;
 
   void executeTasks();
   void executePastScheduledTasks();

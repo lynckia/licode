@@ -13,7 +13,7 @@ constexpr duration PliPacerHandler::kKeyframeTimeout;
 
 PliPacerHandler::PliPacerHandler(std::shared_ptr<erizo::Clock> the_clock)
     : enabled_{true}, connection_{nullptr}, clock_{the_clock}, time_last_keyframe_{clock_->now()},
-      waiting_for_keyframe_{false}, scheduled_pli_{-1},
+      waiting_for_keyframe_{false}, scheduled_pli_{std::make_shared<ScheduledTaskReference>()},
       video_sink_ssrc_{0}, video_source_ssrc_{0}, fir_seq_number_{0} {}
 
 void PliPacerHandler::enable() {
@@ -38,7 +38,7 @@ void PliPacerHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
     time_last_keyframe_ = clock_->now();
     waiting_for_keyframe_ = false;
     connection_->getWorker()->unschedule(scheduled_pli_);
-    scheduled_pli_ = -1;
+    scheduled_pli_ = std::make_shared<ScheduledTaskReference>();
   }
   ctx->fireRead(std::move(packet));
 }
@@ -54,7 +54,7 @@ void PliPacerHandler::sendFIR() {
   getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_, fir_seq_number_++));
   getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_, fir_seq_number_++));
   waiting_for_keyframe_ = false;
-  scheduled_pli_ = -1;
+  scheduled_pli_ = std::make_shared<ScheduledTaskReference>();
 }
 
 void PliPacerHandler::scheduleNextPLI() {

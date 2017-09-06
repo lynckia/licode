@@ -7,6 +7,7 @@
 #include "pipeline/Handler.h"
 #include "lib/Clock.h"
 #include "lib/TokenBucket.h"
+#include "thread/Worker.h"
 #include "rtp/SequenceNumberTranslator.h"
 #include "./Stats.h"
 
@@ -64,7 +65,7 @@ class RtpPaddingGeneratorHandler: public Handler, public std::enable_shared_from
   MovingIntervalRateStat marker_rate_;
   uint32_t rtp_header_length_;
   TokenBucket bucket_;
-  int scheduled_task_;
+  std::shared_ptr<ScheduledTaskReference> scheduled_task_;
 };
 
 }  // namespace erizo
