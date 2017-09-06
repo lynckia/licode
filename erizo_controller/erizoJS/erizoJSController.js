@@ -45,8 +45,7 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
     const updateStats = () => {
         const publishersKeys = Object.keys(publishers);
         const publishersCount = publishersKeys.length;
-        const subscribersCounts = publishersKeys.map(key =>
-            Object.keys(publishers[key].subscribers).length);
+        const subscribersCounts = publishersKeys.map(key => publishers[key].numSubscribers);
         const subscribersCount = subscribersCounts.reduce((acc, i) => acc + i, 0);
 
         db.erizoJS.update(
