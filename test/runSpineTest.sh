@@ -12,4 +12,5 @@ NVM_CHECK="$ROOT"/scripts/checkNvm.sh
 export LD_LIBRARY_PATH=/opt/licode/erizo/build/erizo
 
 cd $ROOT/spine
-node runSpineClients -s ../results/config_${TESTPREFIX}_${TESTID}.json -t $DURATION -i 1 -o $ROOT/results/output_${TESTPREFIX}_${TESTID}.json
+node runSpineClients -s ../results/config_${TESTPREFIX}_${TESTID}.json -t $DURATION -i 1 -o $ROOT/results/output_${TESTPREFIX}_${TESTID}.json > /dev/null 2>&1
+exit 0

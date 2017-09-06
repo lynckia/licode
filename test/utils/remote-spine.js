@@ -2,30 +2,33 @@ const SSH = require('node-ssh');
 const AWS = require('aws-sdk');
 
 const SPINE_DOCKER_PULL_COMMAND = 'sudo docker pull lynckia/licode:TAG';
-const SPINE_RUN_COMMAND = 'sudo docker run --rm --name spine_TEST_ID \
-                           -e TESTPREFIX=TEST_PREFIX -e TESTID=TEST_ID -e DURATION=TEST_DURATION \
-                           -v $(pwd)/licode_default.js:/opt/licode/licode_config.js \
-                           -v $(pwd)/runSpineTest.sh:/opt/licode/test/runSpineTest.sh \
-                           -v $(pwd)/results/:/opt/licode/results/ --workdir "/opt/licode/" \
-                           --entrypoint "test/runSpineTest.sh" lynckia/licode:TAG';
+const SPINE_RUN_COMMAND =
+'sudo docker run --rm --name spine_TEST_PREFIX_TEST_ID --log-driver none --network="host" \
+-e TESTPREFIX=TEST_PREFIX -e TESTID=TEST_ID -e DURATION=TEST_DURATION \
+-v $(pwd)/licode_default.js:/opt/licode/licode_config.js \
+-v $(pwd)/runSpineTest.sh:/opt/licode/test/runSpineTest.sh \
+-v $(pwd)/runSpineClients.js:/opt/licode/spine/runSpineClients.js \
+-v $(pwd)/results/:/opt/licode/results/ --workdir "/opt/licode/" \
+--entrypoint "test/runSpineTest.sh" lynckia/licode:TAG';
+
 const SPINE_GET_RESULT_COMMAND = 'cat results/output_PREFIX_TEST_ID.json';
 
-const LICODE_RUN_COMMAND = 'MIN_PORT=40000; MAX_PORT=40050; \
-                            sudo docker run --name licode -p  3000:3000 \
-                            -p $MIN_PORT-$MAX_PORT:$MIN_PORT-$MAX_PORT/udp \
-                            -p 3001:3001 -p 3004:3004 -p 8080:8080 -e "MIN_PORT=$MIN_PORT" \
-                            -e "MAX_PORT=$MAX_PORT" -e "PUBLIC_IP=INSTANCE_PUBLIC_IP" \
-                            -v $(pwd)/licode_default.js:/opt/licode/scripts/licode_default.js \
-                            --rm --detach lynckia/licode:TAG';
+const LICODE_RUN_COMMAND =
+'sudo docker run --name licode --log-driver none \
+--network="host" \
+-e "PUBLIC_IP=INSTANCE_PUBLIC_IP" \
+-v $(pwd)/licode_default.js:/opt/licode/scripts/licode_default.js \
+--rm --detach lynckia/licode:TAG';
+
 const LICODE_STOP_COMMAND= 'sudo docker stop licode';
 
 const EC2_API_VERSION = '2016-11-15';
 const SSH_RETRY_TIMEOUT = 5000;
-const SSH_MAX_RETRIES = 10;
+const SSH_MAX_RETRIES = 20;
 
 const EC2_INSTANCE_LIFETIME = 50; // minutes
 
-const VERBOSE = process.env.VERBOSE_TEST || false;
+const VERBOSE = process.env.TEST_VERBOSE || false;
 const log = (...args) => VERBOSE && console.log.apply(null, args);
 
 class RemoteInstance {
@@ -67,11 +70,13 @@ class RemoteInstance {
   }
 
   _execCommand(...args) {
+    log(this.id, '- Exec Command:', ...args);
     return this.ssh.execCommand(...args)
       .then(data => {
-        if (data.code === 0) {
+        if (data /* && data.code === 0 */) {
           return data.stdout;
         } else {
+          log(this.id, '- Error:', data.stdout, data.stderr);
           throw Error(data.stderr);
         }
       });
@@ -86,7 +91,16 @@ class RemoteInstance {
   }
 
   setup() {
+    log('Setting up instance', this.id);
     return this._execCommand('sudo yum update -y')
+      .then(() => this._execCommand('sudo sh -c \'echo "root hard nofile 65536" >> /etc/security/limits.conf\''))
+      .then(() => this._execCommand('sudo sh -c \'echo "root soft nofile 65536" >> /etc/security/limits.conf\''))
+      .then(() => this._execCommand('sudo sh -c \'echo "* hard nofile 65536" >> /etc/security/limits.conf\''))
+      .then(() => this._execCommand('sudo sh -c \'echo "* soft nofile 65536" >> /etc/security/limits.conf\''))
+      .then(() => this.disconnect())
+      .then(() => this.connect())
+      .then(() => this._execCommand('ulimit -n'))
+      .then(data => { log(data); return 'ok'; })
       .then(() => this._execCommand('sudo yum install -y docker'))
       .then(() => this._execCommand('sudo service docker start'))
       .then(() => this._execCommand(SPINE_DOCKER_PULL_COMMAND.replace(/TAG/, this.dockerTag)))
@@ -96,15 +110,18 @@ class RemoteInstance {
                                      {local:  'rtp_media_config_default.js',
                                       remote: 'rtp_media_config_default.js'},
                                      {local:  'runSpineTest.sh',
-                                      remote: 'runSpineTest.sh'},]))
+                                      remote: 'runSpineTest.sh'},
+                                     {local:  '../spine/runSpineClients.js',
+                                      remote: 'runSpineClients.js'},]))
       .then(() => this._execCommand('chmod +x runSpineTest.sh'));
   }
 
   runLicode() {
+    log('Running licode');
     return this._execCommand(LICODE_RUN_COMMAND
         .replace(/INSTANCE_PUBLIC_IP/g, this.ip)
         .replace(/TAG/g, this.dockerTag))
-      .then(() => this.wait(60 * 1000));
+      .then(() => this.wait(30 * 1000));
   }
 
   stopLicode() {
@@ -120,7 +137,6 @@ class RemoteInstance {
         .replace(/TEST_PREFIX/g, settings.testId)
         .replace(/TEST_DURATION/g, settings.duration)
         .replace(/TAG/g, this.dockerTag)))
-      .then((data) => { log(data); return 'ok'; })
       .then(() => this.getResult(settings));
   }
 
@@ -128,16 +144,15 @@ class RemoteInstance {
     const promise = this._execCommand(SPINE_GET_RESULT_COMMAND
       .replace(/TEST_ID/g, settings.id)
       .replace(/PREFIX/g, settings.testId));
-    promise.then((data) => {
+    return promise.then((data) => {
       return JSON.parse(data);
     });
-    return promise;
   }
 
   downloadAllResults() {
-    let dirname = this.id + '_results/';
+    let dirname = 'results/';
     let filename = this.id + '_results.tgz';
-    return this._execCommand('tar xzvf ' + filename +  ' ' + dirname)
+    return this._execCommand('tar czvf ' + filename +  ' ' + dirname)
       .then(() => this.ssh.getFile(filename, filename));
   }
 
@@ -172,7 +187,7 @@ class Factory {
           Enabled: false,
         },
         SecurityGroups: [ this.securityGroup, ],
-        InstanceType: this.InstanceType,
+        InstanceType: this.instanceType,
         InstanceInitiatedShutdownBehavior: 'terminate',
         UserData: new Buffer(`#!/bin/bash
           sudo shutdown -h +${EC2_INSTANCE_LIFETIME}`).toString('base64'), // automatically terminate instances
@@ -184,12 +199,14 @@ class Factory {
             }, ]
         }, ],
       };
+      log('Running instances');
       this.ec2.runInstances(this.params, (err, data) => {
         if (err) {
           reject(err);
           return;
         }
         this.data = data;
+        log('Waiting for instances to be running');
         this.waitForRunning()
         .then(() => {
           resolve();

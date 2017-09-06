@@ -116,9 +116,9 @@ config.erizoController.cloudHandlerPolicy = 'default_policy.js'; // default valu
 config.erizoAgent = {};
 
 // Max processes that ErizoAgent can run
-config.erizoAgent.maxProcesses 	  = 1; // default value: 1
+config.erizoAgent.maxProcesses 	  = 10; // default value: 1
 // Number of precesses that ErizoAgent runs when it starts. Always lower than or equals to maxProcesses.
-config.erizoAgent.prerunProcesses = 1; // default value: 1
+config.erizoAgent.prerunProcesses = 10; // default value: 1
 
 // Public erizoAgent IP for ICE candidates (useful when behind NATs)
 // Use '' to automatically get IP from the interface
@@ -166,14 +166,14 @@ config.erizo.turnserver = ''; // default value: ''
 config.erizo.turnport = 0; // default value: 0
 config.erizo.turnusername = '';
 config.erizo.turnpass = '';
-config.erizo.networkinterface = ''; //default value: ''
+config.erizo.networkinterface = 'eth0'; //default value: ''
 
 //note, this won't work with all versions of libnice. With 0 all the available ports are used
 config.erizo.minport = 0; // default value: 0
 config.erizo.maxport = 0; // default value: 0
 
 //Use of internal nICEr library instead of libNice.
-config.erizo.useNicer = false;  // default value: false
+config.erizo.useNicer = true;  // default value: false
 
 config.erizo.disabledHandlers = []; // there are no handlers disabled by default
 

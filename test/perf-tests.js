@@ -29,8 +29,8 @@ const BASIC_TEST = {
   'numPublishers': 1,
   'numSubscribers': 1,
   'publishersAreSubscribers': false,
-  'connectionCreationInterval': 500,
-  'duration': 60,
+  'connectionCreationInterval': 2000,
+  'duration': 4 * 60,
   'stats': [
     'packetsLost',
     'bitrateCalculated'
@@ -39,15 +39,18 @@ const BASIC_TEST = {
 
 describe('Licode Performance', function() {
   this.timeout(60 * 60 * 1000);
+  this.retries(4);
+
   let factory, test, testId = 0;
 
   getLicodeInstance = () => factory.instances[0];
   getSpineInstanceFromClass = (classId) => factory.instances[(classId % TOTAL_SPINE_SERVERS) + 1];
 
   before(() => {
+    log('Starting instances');
     let settings = {
       numberOfInstances: 1 + TOTAL_SPINE_SERVERS,
-      imageId: 'ami-2ff3e756',
+      imageId: 'ami-ebfce892',
       username: 'ec2-user',
       instanceType: process.env.PERF_INSTANCE_TYPE || 't1.micro',
       keyName: process.env.PERF_KEY_NAME || 'staging',
@@ -70,38 +73,53 @@ describe('Licode Performance', function() {
     }
   });
 
-  const runTestWith = (numClasses, numPubs, numSubs) => {
+  const runTestWith = (numRooms, spinesPerRoom, numPubs, numSubs) => {
     const promises = [];
-    const totalStreams = numPubs * (numPubs - 1 + numSubs);
-    const totalStats = totalStreams * 3;
-
-    for (let classId = 0; classId < numClasses; classId += 1) {
-      let custom_test = Object.assign({}, test);
-      custom_test.id = classId;
-      custom_test.basicExampleUrl += '?room=' + custom_test.id;
-      custom_test.numPublishers = numPubs;
-      custom_test.numSubscribers = numSubs;
-
-      promises.push(getSpineInstanceFromClass(classId).runTest(custom_test));
+    const getNumParticipants = (spineNum, participants) => {
+      const numParticipantsPerEachSpine = Math.floor(participants / spinesPerRoom);
+      const numSpinesWithAdditionalParticipant = participants % spinesPerRoom;
+      let numParticipantsInSpine = numParticipantsPerEachSpine;
+      if (spineNum < numSpinesWithAdditionalParticipant) {
+        numParticipantsInSpine += 1;
+      }
+      return numParticipantsInSpine;
     }
 
-    return Promise.all(promises).then((results) => {
-      results.forEach((result) => {
-        log(result);
+    for (let classId = 0; classId < numRooms; classId += 1) {
+      for (let spineId = 0; spineId < spinesPerRoom; spineId += 1) {
+        let numPubsInSpine = getNumParticipants(spineId, numPubs);
+        let numSubsInSpine = getNumParticipants(spineId, numSubs);
+        const totalStreamsPerSpine = numPubsInSpine + numPubs * numSubsInSpine;
+        const totalStats = totalStreamsPerSpine * 3;
 
-        should.exist(result);
-        should.exist(result.stats);
-        should.exist(result.stats.alive);
-        should.exist(result.stats.bitrateCalculated);
+        let custom_test = Object.assign({}, test);
+        custom_test.id = classId;
+        custom_test.testId += '_' + spineId;
+        custom_test.basicExampleUrl += '?room=' + custom_test.id;
+        custom_test.numPublishers = numPubsInSpine;
+        custom_test.numSubscribers = numSubsInSpine;
 
-        result.stats.alive.up.should.equal(numPubs + numSubs);
-        result.stats.bitrateCalculated.should.have.lengthOf(totalStats);
+        promises.push(getSpineInstanceFromClass(classId).runTest(custom_test).then((result) => {
+          should.exist(result);
+          should.exist(result.stats);
+          should.exist(result.alive);
+          should.exist(result.stats.bitrateCalculated);
+          should.exist(result.alive.up);
 
-        for (let index = 2; index < totalStats; index += 3) {
-          result.stats.bitrateCalculated[index].should.be.above(MAX_VIDEO_BITRATE * 0.9);
-        }
-      });
-    });
+          log(result.alive);
+
+          result.alive.up.should.be.above(Math.floor(totalStreamsPerSpine * 0.9));
+          result.alive.down.should.be.below(Math.ceil(totalStreamsPerSpine * 0.1));
+          result.stats.bitrateCalculated.length.should.be.above(Math.floor(totalStats * 0.9));
+
+          for (let index = 2; index < result.stats.bitrateCalculated.length; index += 3) {
+            result.stats.bitrateCalculated[index].should.be.above(MAX_VIDEO_BITRATE * 0.9);
+          }
+        }));
+      }
+    }
+
+    return Promise.all(promises);
   }
 
   beforeEach(function() {
@@ -121,11 +139,9 @@ describe('Licode Performance', function() {
       return getLicodeInstance().runLicode();
     });
 
-    it('1 class   with 1 participants, 1 viewers', () => runTestWith(1, 1, 1));
-    it('2 classes with 1 participants, 2 viewers', () => runTestWith(2, 1, 2));
-    it('wait', (done) => {
-      setTimeout(done, 10 * 60 * 1000);
-    });
+    it(' 5 rooms with 20 publishers and  19 subscribers', () => runTestWith( 5,  1, 20,  19));
+    it(' 1 rooms with  1 publishers and 300 subscribers', () => runTestWith( 1,  2,  1, 300));
+    //it(' 5 rooms with 40 publishers and  4 subscribers', () => getLicodeInstance().wait(20 * 60 * 1000));
 
     afterEach(() => {
       return getLicodeInstance().stopLicode();

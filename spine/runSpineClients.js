@@ -101,7 +101,6 @@ const gatherStatuses = () => {
 
 const writeJsonToFile = (result) => {
   fs.writeFileSync(statOutputFile, JSON.stringify(result));
-  process.exit(0);
 };
 
 SpineClient.run();
@@ -115,9 +114,12 @@ const statInterval = setInterval(() => {
     allResults.alive = statusResult;
     totalStatsIntervals -= 1;
     console.log('Intervals to end:', totalStatsIntervals);
+    console.log(allResults);
+    writeJsonToFile(allResults);
     if (totalStatsIntervals === 0) {
       clearInterval(statInterval);
       writeJsonToFile(allResults);
+      process.exit(0);
     }
   }).catch((reason) => {
     console.log('Stat gather failed:', reason);

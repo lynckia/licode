@@ -145,6 +145,10 @@ if [ ! -f "$ROOT"/licode_config.js ]; then
     cp "$SCRIPTS"/licode_default.js "$ROOT"/licode_config.js
 fi
 
+if [ ! -f "$ROOT"/rtp_media_config.js ]; then
+  cp "$SCRIPTS"/rtp_media_config_default.js "$ROOT"/rtp_media_config.js
+fi
+
 if [ "$NUVE" = "true" ]; then
   run_nuve
 fi
