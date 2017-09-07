@@ -124,7 +124,7 @@ var fillErizos = function () {
 
 const reportMetrics = function () {
     const now = Date.now();
-    const interval = global.config.erizoAgent.statsUpdateInterval;
+    const interval = global.config.erizoAgent.statsUpdateInterval * 2;
 
     db.erizoJS.aggregate(
         [
