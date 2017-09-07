@@ -220,7 +220,7 @@ const reportMetrics = function () {
             graphite.put('subscribers.count', subscribersCount);
 
             objectLeaves(video, 'video').forEach(({ path, val }) => {
-                graphite.put(path, val);
+                graphite.put(path, isFinite(val) ? val : 0);
             });
 
             log.debug('submitted erizoAgent metrics');
