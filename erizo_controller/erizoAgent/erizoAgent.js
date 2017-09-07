@@ -123,6 +123,46 @@ var fillErizos = function () {
     }
 };
 
+const STREAM_STAT_ENTRY_TPL = {
+    min: +Infinity,
+    max: -Infinity,
+    avg: 0,
+    count: 0
+};
+
+const mergeStats = (stats, path) => {
+    const acc = Object.assign({}, STREAM_STAT_ENTRY_TPL);
+    stats.forEach((stat) => {
+        const item = _.at(stat, [path])[0];
+        acc.min = Math.min(acc.min, item.min);
+        acc.max = Math.max(acc.max, item.max);
+        if (acc.count === 0) {
+            acc.avg = item.avg;
+        } else if (item.count !== 0) {
+            acc.avg = (acc.avg / item.count) + (item.avg / acc.count);
+        }
+        acc.count += item.count;
+    });
+    return acc;
+};
+
+const doObjectLeaves = (obj, prefix, acc) => {
+    Object.keys(obj).forEach((key) => {
+        const val = obj[key];
+        if (!_.isObject(val)) {
+            acc.push({ val, path: `${prefix}.${key}` });
+        } else {
+            doObjectLeaves(val, `${prefix}.${key}`, acc);
+        }
+    });
+};
+
+const objectLeaves = (obj, prefix) => {
+    const result = [];
+    doObjectLeaves(obj, prefix, result);
+    return result;
+};
+
 const reportMetrics = function () {
     const now = Date.now();
     const interval = global.config.erizoAgent.statsUpdateInterval * 2;
@@ -170,35 +210,18 @@ const reportMetrics = function () {
 
             const { publishersCount, subscribersCount, stats } = docs[0];
 
+            // FIXME: Move this computation to DB to avoid unnecessary data transfers!
+            const video = {
+                fractionLost: mergeStats(stats, 'video.fractionLost'),
+                jitter: mergeStats(stats, 'video.jitter')
+            };
+
             graphite.put('publishers.count', publishersCount);
             graphite.put('subscribers.count', subscribersCount);
 
-            // FIXME: Move this computation to DB to avoid unnecessary data transfers!
-            const STREAM_STAT_ENTRY_TPL = {
-                min: +Infinity,
-                max: -Infinity,
-                avg: 0,
-                count: 0
-            };
-
-            const mergeStats = (path) => {
-                const acc = Object.assign({}, STREAM_STAT_ENTRY_TPL);
-                stats.forEach((stat) => {
-                    const item = _.at(stat, [path])[0];
-                    acc.min = Math.min(acc.min, item);
-                    acc.max = Math.max(acc.max, item);
-                    acc.avg = (acc.avg / item.count) + (item.avg / acc.avg);
-                    acc.count += item.count;
-                });
-                return acc;
-            };
-
-            const video = {
-                fractionLost: mergeStats('video.fractionLost'),
-                jitter: mergeStats('video.jitter')
-            };
-
-            console.log(video);
+            objectLeaves(video, 'video').forEach(({ path, val }) => {
+                graphite.put(path, val);
+            });
 
             log.debug('submitted erizoAgent metrics');
         }
