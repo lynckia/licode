@@ -65,7 +65,7 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
         );
 
         if (videoStream === undefined) {
-            result.$badClients += 1;
+            result.badClients += 1;
         } else {
             processStat(videoStream.fractionLost / 256, result.video.fractionLost);
             processStat(videoStream.jitter, result.video.jitter);
@@ -84,7 +84,7 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
         Promise.all(statPromises)
             .then((allStats) => {
                 const result = {
-                    $badClients: 0,
+                    badClients: 0,
                     video: {
                         fractionLost: Object.assign({}, STREAM_STAT_ENTRY_TPL),
                         jitter: Object.assign({}, STREAM_STAT_ENTRY_TPL)
