@@ -1,6 +1,7 @@
 /*global require*/
 'use strict';
 const Getopt = require('node-getopt');
+const _ = require('lodash');
 
 const os = require('os');
 const spawn = require('child_process').spawn;
@@ -139,14 +140,16 @@ const reportMetrics = function () {
                 $group: {
                     _id: { erizoAgentID: '$erizoAgentID', erizoJSID: '$erizoJSID' },
                     publishersCount: { $first: '$publishersCount' },
-                    subscribersCount: { $first: '$subscribersCount' }
+                    subscribersCount: { $first: '$subscribersCount' },
+                    stats: { $first: '$stats' }
                 }
             },
             {
                 $group: {
                     _id: '$_id.erizoAgentID',
                     publishersCount: { $sum: '$publishersCount' },
-                    subscribersCount: { $sum: '$subscribersCount' }
+                    subscribersCount: { $sum: '$subscribersCount' },
+                    stats: { $push: '$stats' }
                 }
             }
         ],
@@ -165,10 +168,37 @@ const reportMetrics = function () {
                 return;
             }
 
-            const { publishersCount, subscribersCount } = docs[0];
+            const { publishersCount, subscribersCount, stats } = docs[0];
 
             graphite.put('publishers.count', publishersCount);
             graphite.put('subscribers.count', subscribersCount);
+
+            // FIXME: Move this computation to DB to avoid unnecessary data transfers!
+            const STREAM_STAT_ENTRY_TPL = {
+                min: +Infinity,
+                max: -Infinity,
+                avg: 0,
+                count: 0
+            };
+
+            const mergeStats = (path) => {
+                const acc = Object.assign({}, STREAM_STAT_ENTRY_TPL);
+                stats.forEach((stat) => {
+                    const item = _.at(stat, [path])[0];
+                    acc.min = Math.min(acc.min, item);
+                    acc.max = Math.max(acc.max, item);
+                    acc.avg = (acc.avg / item.count) + (item.avg / acc.avg);
+                    acc.count += item.count;
+                });
+                return acc;
+            };
+
+            const video = {
+                fractionLost: mergeStats('video.fractionLost'),
+                jitter: mergeStats('video.jitter')
+            };
+
+            console.log(video);
 
             log.debug('submitted erizoAgent metrics');
         }
