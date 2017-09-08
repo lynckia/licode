@@ -122,12 +122,12 @@ describe('Licode Performance', function() {
 
               log(result.alive);
 
-              result.alive.up.should.be.above(Math.floor(totalStreamsPerSpine * 0.9));
+              result.alive.up.should.be.above(Math.floor(totalStreamsPerSpine * 0.8));
               result.alive.down.should.be.below(Math.ceil(totalStreamsPerSpine * 0.1));
-              result.stats.bitrateCalculated.length.should.be.above(Math.floor(totalStats * 0.9));
+              result.stats.bitrateCalculated.length.should.be.above(Math.floor(totalStats * 0.8));
 
               for (let index = 2; index < result.stats.bitrateCalculated.length; index += 3) {
-                result.stats.bitrateCalculated[index].should.be.above(MAX_VIDEO_BITRATE * 0.9);
+                result.stats.bitrateCalculated[index].should.be.above(MAX_VIDEO_BITRATE * 0.7);
               }
             }));
         currentSpine++;
@@ -154,7 +154,7 @@ describe('Licode Performance', function() {
       return getLicodeInstance().runLicode();
     });
 
-    it(' 5 rooms with 20 publishers and  20 subscribers', () => runTestWith( 2,  4, 20,  20));
+    it(' 2 rooms with 16 publishers and  16 subscribers', () => runTestWith( 2,  4, 16,  16));
     it(' 1 rooms with  1 publishers and 300 subscribers', () => runTestWith( 1,  4,  1, 300));
 
     afterEach(() => {
