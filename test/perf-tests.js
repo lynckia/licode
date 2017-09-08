@@ -41,7 +41,7 @@ describe('Licode Performance', function() {
   this.timeout(60 * 60 * 1000);
   this.retries(3);
 
-  let factory, test, testId = 0;
+  let factory, testId = 0;
 
   getLicodeInstance = () => factory.instances[0];
   getSpineInstanceFromClass = (classId) => factory.instances[(classId % TOTAL_SPINE_SERVERS) + 1];
@@ -50,8 +50,8 @@ describe('Licode Performance', function() {
     log('Starting instances');
     let settings = {
       numberOfInstances: 1 + TOTAL_SPINE_SERVERS,
-      imageId: 'ami-ebfce892',
-      username: 'ec2-user',
+      imageId: process.env.PERF_AMI || 'ami-ebfce892',
+      username: process.env.PERF_INSTANCE_USER || 'ec2-user',
       instanceType: process.env.PERF_INSTANCE_TYPE || 't1.micro',
       keyName: process.env.PERF_KEY_NAME || 'staging',
       privateKey: process.env.PERF_PRIVATE_KEY || '~/.ssh/id_rsa',
@@ -73,7 +73,11 @@ describe('Licode Performance', function() {
     }
   });
 
-  const runTestWith = (numRooms, spinesPerRoom, numPubs, numSubs) => {
+  const runTestWith = (numRooms, spinesPerRoom, numPubs, numSubs, inputTest = BASIC_TEST) => {
+    let test = Object.assign({}, inputTest);
+    test.basicExampleUrl = 'https://' + getLicodeInstance().host + ':3004';
+    test.testId = testId;
+
     const promises = [];
     const getNumParticipants = (spineNum, participants) => {
       const numParticipantsPerEachSpine = Math.floor(participants / spinesPerRoom);
@@ -148,9 +152,6 @@ describe('Licode Performance', function() {
 
   describe('Default Licode Configuration', function() {
     beforeEach(function() {
-      test = Object.assign({}, BASIC_TEST);
-      test.basicExampleUrl = 'https://' + getLicodeInstance().host + ':3004';
-      test.testId = testId;
       return getLicodeInstance().runLicode();
     });
 
