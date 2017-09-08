@@ -3,11 +3,12 @@ const AWS = require('aws-sdk');
 
 const SPINE_DOCKER_PULL_COMMAND = 'sudo docker pull lynckia/licode:TAG';
 const SPINE_RUN_COMMAND =
-'sudo docker run --rm --name spine_TEST_PREFIX_TEST_ID --log-driver none --network="host" \
+'sudo docker run --rm --name spine_TEST_PREFIX_TEST_ID --log-driver none --detach --network="host" \
 -e TESTPREFIX=TEST_PREFIX -e TESTID=TEST_ID -e DURATION=TEST_DURATION \
 -v $(pwd)/licode_default.js:/opt/licode/licode_config.js \
 -v $(pwd)/runSpineTest.sh:/opt/licode/test/runSpineTest.sh \
 -v $(pwd)/runSpineClients.js:/opt/licode/spine/runSpineClients.js \
+-v $(pwd)/simpleNativeConnection.js:/opt/licode/spine/simpleNativeConnection.js \
 -v $(pwd)/results/:/opt/licode/results/ --workdir "/opt/licode/" \
 --entrypoint "test/runSpineTest.sh" lynckia/licode:TAG';
 
@@ -112,7 +113,9 @@ class RemoteInstance {
                                      {local:  'runSpineTest.sh',
                                       remote: 'runSpineTest.sh'},
                                      {local:  '../spine/runSpineClients.js',
-                                      remote: 'runSpineClients.js'},]))
+                                      remote: 'runSpineClients.js'},
+                                     {local:  '../spine/simpleNativeConnection.js',
+                                      remote: 'simpleNativeConnection.js'}]))
       .then(() => this._execCommand('chmod +x runSpineTest.sh'));
   }
 
@@ -135,9 +138,14 @@ class RemoteInstance {
       .then(() => this._execCommand(SPINE_RUN_COMMAND
         .replace(/TEST_ID/g, settings.id)
         .replace(/TEST_PREFIX/g, settings.testId)
-        .replace(/TEST_DURATION/g, settings.duration)
-        .replace(/TAG/g, this.dockerTag)))
-      .then(() => this.getResult(settings));
+        .replace(/TEST_DURATION/g, Math.floor(settings.duration / 10))
+        .replace(/TAG/g, this.dockerTag)));
+  }
+
+  stopTest(settings) {
+    return this._execCommand(SPINE_RUN_COMMAND
+        .replace(/TEST_ID/g, settings.id)
+        .replace(/TEST_PREFIX/g, settings.testId));
   }
 
   getResult(settings) {
