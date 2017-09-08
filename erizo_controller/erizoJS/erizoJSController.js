@@ -1,13 +1,14 @@
 /*global require, exports, setInterval, clearInterval, Promise*/
 'use strict';
-var logger = require('./common/logger').logger;
-var amqper = require('./common/amqper');
-var Publisher = require('./models/Publisher').Publisher;
-var ExternalInput = require('./models/Publisher').ExternalInput;
-var db = require('./database').db;
+const logger = require('./common/logger').logger;
+const amqper = require('./common/amqper');
+const Publisher = require('./models/Publisher').Publisher;
+const ExternalInput = require('./models/Publisher').ExternalInput;
+const db = require('./database').db;
+const _ = require('lodash');
 
 // Logger
-var log = logger.getLogger('ErizoJSController');
+const log = logger.getLogger('ErizoJSController');
 
 exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThreadPool) {
     var that = {},
@@ -42,30 +43,86 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
     that.publishers = publishers;
     that.ioThreadPool = io;
 
+    const STREAM_STAT_ENTRY_TPL = {
+        min: +Infinity,
+        max: -Infinity,
+        total: 0,
+        count: 0
+    };
+
+    const processStat = (item, acc) => {
+        acc.min = Math.min(acc.min, item);
+        acc.max = Math.max(acc.max, item);
+        acc.total += item;
+        acc.count += 1;
+    };
+
+    const processStreamsStats = (streams, result) => {
+        const videoStream = _.values(streams).find(stream =>
+            stream.type === 'video'
+            && stream.fractionLost !== undefined
+            && stream.jitter !== undefined
+        );
+
+        if (videoStream === undefined) {
+            result.badClients += 1;
+        } else {
+            processStat(videoStream.fractionLost / 256, result.video.fractionLost);
+            processStat(videoStream.jitter, result.video.jitter);
+        }
+    };
+
     const updateStats = () => {
         const publishersKeys = Object.keys(publishers);
         const publishersCount = publishersKeys.length;
-        const subscribersCounts = publishersKeys.map(key => Object.keys(publishers[key].subscribers).length);
+        const subscribersCounts = publishersKeys.map(key => publishers[key].numSubscribers);
         const subscribersCount = subscribersCounts.reduce((acc, i) => acc + i, 0);
 
-        db.erizoJS.update(
-            { erizoAgentID, erizoJSID },
-            {
-                erizoAgentID,
-                erizoJSID,
-                publishersCount,
-                subscribersCount,
-                lastUpdated: new Date(),
-            },
-            { upsert: true },
-            (err) => {
-                if (err) {
-                    log.warn('Failed to update erizoJS stats', err);
-                } else {
-                    log.debug('Updated erizoJS stats - publishersCount = %d, subscribersCount = %d', publishersCount, subscribersCount);
-                }
-            }
-        );
+        const statPromises = publishersKeys
+            .map(to => new Promise(resolve => that.getStreamStats(to, (e, s) => resolve(s))));
+
+        Promise.all(statPromises)
+            .then((allStats) => {
+                const result = {
+                    badClients: 0,
+                    video: {
+                        fractionLost: Object.assign({}, STREAM_STAT_ENTRY_TPL),
+                        jitter: Object.assign({}, STREAM_STAT_ENTRY_TPL)
+                    }
+                };
+
+                allStats.forEach((pubStats) => {
+                    _.forOwn(pubStats, (streams, pub) => {
+                        if (pub === 'publisher') return;
+                        processStreamsStats(streams, result);
+                    });
+                });
+
+                return result;
+            })
+            .then(stats => new Promise((resolve, reject) => {
+                db.erizoJS.update(
+                    { erizoAgentID, erizoJSID },
+                    {
+                        erizoAgentID,
+                        erizoJSID,
+                        publishersCount,
+                        subscribersCount,
+                        stats,
+                        lastUpdated: new Date(),
+                    },
+                    { upsert: true },
+                    (err) => {
+                        if (err) reject(err); else resolve();
+                    }
+                );
+            }))
+            .then(() => {
+                log.debug('Updated erizoJS stats - publishersCount = %d, subscribersCount = %d', publishersCount, subscribersCount);
+            })
+            .catch((err) => {
+                log.warn('Failed to update erizoJS stats', err);
+            });
     };
 
     setInterval(updateStats, global.config.erizo.statsUpdateInterval);
