@@ -149,7 +149,7 @@ exports.ErizoSimpleNativeConnection = (spec, callback, error) => {
         promises.push(stream.pc.peerConnection.getStats());
       } else {
         log.warn('No stream to ask for stats: ', streamId);
-        promises.push('failed');
+        promises.push({});
       }
     });
     return Promise.all(promises);
@@ -163,8 +163,9 @@ exports.ErizoSimpleNativeConnection = (spec, callback, error) => {
     availableStreams.forEach((stream) => {
       if (!stream.pc || !stream.pc.peerConnection || !stream.pc.peerConnection.connected) {
         connectionStatus.push('disconnected');
+      } else {
+        connectionStatus.push('connected');
       }
-      connectionStatus.push('connected');
     });
     return connectionStatus;
   };
