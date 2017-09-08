@@ -5,6 +5,7 @@ const _ = require('lodash');
 
 const os = require('os');
 const spawn = require('child_process').spawn;
+const util = require('util');
 
 const config = require('config');
 const db = require('./database').db;
@@ -123,8 +124,6 @@ var fillErizos = function () {
     }
 };
 
-const deinf = x => (isFinite(x) ? x : 0);
-
 const reportMetrics = function () {
     const now = Date.now();
     const interval = global.config.erizoAgent.statsUpdateInterval * 2;
@@ -176,7 +175,7 @@ const reportMetrics = function () {
             }
 
             if (docs.length !== 1) {
-                log.error(`expected single document result, got ${JSON.stringify(docs, null, 2)}`);
+                log.error(`expected single document result, got ${util.inspect(docs)}`);
                 return;
             }
 
@@ -185,13 +184,17 @@ const reportMetrics = function () {
             graphite.put('publishers.count', d.publishersCount);
             graphite.put('subscribers.count', d.subscribersCount);
 
-            graphite.put('video.fractionLost.min', deinf(d.video_fractionLost_min));
-            graphite.put('video.fractionLost.max', deinf(d.video_fractionLost_max));
-            graphite.put('video.fractionLost.avg', deinf(d.video_fractionLost_total / d.video_fractionLost_count));
+            if (d.video_fractionLost_count > 0) {
+                graphite.put('video.fractionLost.min', d.video_fractionLost_min);
+                graphite.put('video.fractionLost.max', d.video_fractionLost_max);
+                graphite.put('video.fractionLost.avg', d.video_fractionLost_total / d.video_fractionLost_count);
+            }
 
-            graphite.put('video.jitter.min', deinf(d.video_jitter_min));
-            graphite.put('video.jitter.max', deinf(d.video_jitter_max));
-            graphite.put('video.jitter.avg', deinf(d.video_jitter_total / d.video_jitter_count));
+            if (d.video_jitter_count > 0) {
+                graphite.put('video.jitter.min', d.video_jitter_min);
+                graphite.put('video.jitter.max', d.video_jitter_max);
+                graphite.put('video.jitter.avg', d.video_jitter_total / d.video_jitter_count);
+            }
 
             log.debug('submitted erizoAgent metrics');
         }
