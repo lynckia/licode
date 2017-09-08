@@ -92,6 +92,17 @@ ejsController.keepAlive = function(callback) {
 ejsController.privateRegexp = new RegExp(process.argv[4], 'g');
 ejsController.publicIP = process.argv[5];
 
+const exitGracefully = () => {
+    Object.keys(ejsController.publishers).forEach((pub) => {
+        ejsController.removePublisher(pub);
+    });
+
+    // last call to removePublisher should exit process,
+    // so this code should be unreachable
+    log.error('exitGracefully: unreachable');
+    process.exit(0);
+};
+
 amqper.connect(function () {
     try {
         amqper.setPublicRPC(ejsController);
@@ -108,3 +119,6 @@ amqper.connect(function () {
     }
 
 });
+
+process.stdout.resume();
+process.stdout.on('end', exitGracefully);
