@@ -79,7 +79,7 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
         const subscribersCount = subscribersCounts.reduce((acc, i) => acc + i, 0);
 
         const statPromises = publishersKeys
-            .map(to => new Promise(resolve => that.getStreamStats(to, (_, s) => resolve(s))));
+            .map(to => new Promise(resolve => that.getStreamStats(to, (e, s) => resolve(s))));
 
         Promise.all(statPromises)
             .then((allStats) => {
