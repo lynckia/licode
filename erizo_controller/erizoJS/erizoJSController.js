@@ -46,14 +46,14 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
     const STREAM_STAT_ENTRY_TPL = {
         min: +Infinity,
         max: -Infinity,
-        avg: 0,
+        total: 0,
         count: 0
     };
 
     const processStat = (item, acc) => {
         acc.min = Math.min(acc.min, item);
         acc.max = Math.max(acc.max, item);
-        acc.avg = ((acc.count / (acc.count + 1)) * acc.avg) + (item / (acc.count + 1));
+        acc.total += item;
         acc.count += 1;
     };
 

@@ -123,46 +123,6 @@ var fillErizos = function () {
     }
 };
 
-const STREAM_STAT_ENTRY_TPL = {
-    min: +Infinity,
-    max: -Infinity,
-    avg: 0,
-    count: 0
-};
-
-const mergeStats = (stats, path) => {
-    const acc = Object.assign({}, STREAM_STAT_ENTRY_TPL);
-    stats.forEach((stat) => {
-        const item = _.at(stat, [path])[0];
-        acc.min = Math.min(acc.min, item.min);
-        acc.max = Math.max(acc.max, item.max);
-        if (acc.count === 0) {
-            acc.avg = item.avg;
-        } else if (item.count !== 0) {
-            acc.avg = (acc.avg / item.count) + (item.avg / acc.count);
-        }
-        acc.count += item.count;
-    });
-    return acc;
-};
-
-const doObjectLeaves = (obj, prefix, acc) => {
-    Object.keys(obj).forEach((key) => {
-        const val = obj[key];
-        if (!_.isObject(val)) {
-            acc.push({ val, path: `${prefix}.${key}` });
-        } else {
-            doObjectLeaves(val, `${prefix}.${key}`, acc);
-        }
-    });
-};
-
-const objectLeaves = (obj, prefix) => {
-    const result = [];
-    doObjectLeaves(obj, prefix, result);
-    return result;
-};
-
 const reportMetrics = function () {
     const now = Date.now();
     const interval = global.config.erizoAgent.statsUpdateInterval * 2;
@@ -187,9 +147,19 @@ const reportMetrics = function () {
             {
                 $group: {
                     _id: '$_id.erizoAgentID',
+
                     publishersCount: { $sum: '$publishersCount' },
                     subscribersCount: { $sum: '$subscribersCount' },
-                    stats: { $push: '$stats' }
+
+                    video_fractionLost_min: { $min: '$stats.video.fractionLost.min' },
+                    video_fractionLost_max: { $max: '$stats.video.fractionLost.max' },
+                    video_fractionLost_total: { $sum: '$stats.video.fractionLost.total' },
+                    video_fractionLost_count: { $sum: '$stats.video.fractionLost.count' },
+
+                    video_jitter_min: { $min: '$stats.video.jitter.min' },
+                    video_jitter_max: { $max: '$stats.video.jitter.max' },
+                    video_jitter_total: { $sum: '$stats.video.jitter.total' },
+                    video_jitter_count: { $sum: '$stats.video.jitter.count' }
                 }
             }
         ],
@@ -208,20 +178,18 @@ const reportMetrics = function () {
                 return;
             }
 
-            const { publishersCount, subscribersCount, stats } = docs[0];
+            const d = docs[0];
 
-            // FIXME: Move this computation to DB to avoid unnecessary data transfers!
-            const video = {
-                fractionLost: mergeStats(stats, 'video.fractionLost'),
-                jitter: mergeStats(stats, 'video.jitter')
-            };
+            graphite.put('publishers.count', d.publishersCount);
+            graphite.put('subscribers.count', d.subscribersCount);
 
-            graphite.put('publishers.count', publishersCount);
-            graphite.put('subscribers.count', subscribersCount);
+            graphite.put('video.fractionLost.min', d.video_fractionLost_min);
+            graphite.put('video.fractionLost.max', d.video_fractionLost_max);
+            graphite.put('video.fractionLost.avg', d.video_fractionLost_total / d.video_fractionLost_count);
 
-            objectLeaves(video, 'video').forEach(({ path, val }) => {
-                graphite.put(path, isFinite(val) ? val : 0);
-            });
+            graphite.put('video.jitter.min', d.video_jitter_min);
+            graphite.put('video.jitter.max', d.video_jitter_max);
+            graphite.put('video.jitter.avg', d.video_jitter_total / d.video_jitter_count);
 
             log.debug('submitted erizoAgent metrics');
         }
