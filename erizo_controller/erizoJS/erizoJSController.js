@@ -67,8 +67,10 @@ exports.ErizoJSController = function (erizoAgentID, erizoJSID, threadPool, ioThr
         if (videoStream === undefined) {
             result.badClients += 1;
         } else {
+            // store % packet loss as fraction 0.0-1.0
             processStat(videoStream.fractionLost / 256, result.video.fractionLost);
-            processStat(videoStream.jitter, result.video.jitter);
+            // store jitter as stddev in [s], we assume 90kHz sampling rate
+            processStat(Math.sqrt(videoStream.jitter / 90000), result.video.jitter);
         }
     };
 
