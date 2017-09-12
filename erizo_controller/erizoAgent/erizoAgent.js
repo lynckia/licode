@@ -40,7 +40,7 @@ const getopt = new Getopt([
 ]);
 
 const opt = getopt.parse(process.argv.slice(2));
-_.forOwn(opt.options).forEach((value, prop) => {
+_.forOwn(opt.options, (value, prop) => {
     switch (prop) {
     case 'help':
         getopt.showHelp();
