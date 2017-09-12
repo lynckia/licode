@@ -19,8 +19,6 @@ const BINDED_INTERFACE_NAME = global.config.erizoAgent.networkInterface;
 
 const interfaces = os.networkInterfaces();
 const addresses = [];
-let k;
-let k2;
 let address;
 let privateIP;
 let publicIP;
@@ -99,27 +97,38 @@ const guid = (() => {
 
 const myErizoAgentId = guid();
 
+/**
+ * Starts new instance of ErizoJS and adds it to idleErizos.
+ *
+ * The process will automatically handle its death, remove itself from all collections
+ * and run fillErizos.
+ */
 let launchErizoJS;
 
-const fillErizos = function () {
-    if (erizos.length + idleErizos.length < global.config.erizoAgent.maxProcesses) {
-        if (idleErizos.length < global.config.erizoAgent.prerunProcesses) {
-            launchErizoJS();
-            fillErizos();
-        }
+/**
+ * Ensure there are some idle erizos ready to be used by incoming publishers.
+ *
+ * Won't launch new erizos if total erizo count reached <code>maxProcesses</code> config.
+ */
+const fillErizos = () => {
+    while (erizos.length + idleErizos.length < global.config.erizoAgent.maxProcesses
+           && idleErizos.length < global.config.erizoAgent.prerunProcesses) {
+        launchErizoJS();
     }
 };
 
-launchErizoJS = function () {
+launchErizoJS = () => {
     const id = guid();
     let erizoProcess;
     let out;
     let err;
 
     log.debug(`message: launching ErizoJS, erizoId: ${id}`);
+
     if (global.config.erizoAgent.useIndividualLogFiles) {
         out = fs.openSync(`${global.config.erizoAgent.instanceLogDir}/erizo-${id}.log`, 'a');
         err = fs.openSync(`${global.config.erizoAgent.instanceLogDir}/erizo-${id}.log`, 'a');
+
         erizoProcess = spawn('./launch.sh',
             ['erizoJS.js', myErizoAgentId, id, privateIP, publicIP],
             { detached: true, stdio: ['ignore', out, err] });
@@ -127,31 +136,31 @@ launchErizoJS = function () {
         erizoProcess = spawn('./launch.sh',
             ['erizoJS.js', myErizoAgentId, id, privateIP, publicIP],
             { detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+
         erizoProcess.stdout.setEncoding('utf8');
         erizoProcess.stdout.on('data', (message) => {
             console.log(`[erizo-${id}]`, message.replace(/\n$/, ''));
         });
+
         erizoProcess.stderr.setEncoding('utf8');
         erizoProcess.stderr.on('data', (message) => {
             console.log(`[erizo-${id}]`, message.replace(/\n$/, ''));
         });
     }
+
     erizoProcess.unref();
+
     erizoProcess.on('close', () => {
         log.info(`message: closed, erizoId: ${id}`);
-        const index = idleErizos.indexOf(id);
-        const index2 = erizos.indexOf(id);
-        if (index > -1) {
-            idleErizos.splice(index, 1);
-        } else if (index2 > -1) {
-            erizos.splice(index2, 1);
-        }
+
+        _.pull(idleErizos, id);
+        _.pull(erizos, id);
+        delete processes[id];
 
         if (out !== undefined) {
             fs.close(out, (message) => {
                 if (message) {
-                    log.error(`${'message: error closing log file, ' +
-                    'erizoId: '}${id}, error:`, message);
+                    log.error(`'message: error closing log file, erizoId: ${id}, error:`, message);
                 }
             });
         }
@@ -163,21 +172,20 @@ launchErizoJS = function () {
                 }
             });
         }
-        delete processes[id];
+
         fillErizos();
     });
 
     log.info(`message: launched new ErizoJS, erizoId: ${id}`);
+
     processes[id] = erizoProcess;
     idleErizos.push(id);
 };
 
-const dropErizoJS = function (erizoId, callback) {
+const dropErizoJS = (erizoId, callback) => {
     if ({}.hasOwnProperty.call(processes, erizoId)) {
-        log.warn(`message: Dropping Erizo that was not closed before possible publisher/subscriber mismatch, erizoId:${erizoId}`);
-        const process = processes[erizoId];
-        process.kill();
-        delete processes[erizoId];
+        log.warn(`message: Dropping Erizo that was not closed before possible publisher/subscriber mismatch, erizoId: ${erizoId}`);
+        processes[erizoId].kill();
 
         db.erizoJS.remove({
             erizoAgentID: myErizoAgentId,
@@ -191,7 +199,7 @@ const dropErizoJS = function (erizoId, callback) {
     }
 };
 
-const cleanErizos = function () {
+const cleanErizos = () => {
     log.debug(`message: killing erizoJSs on close, numProcesses: ${processes.length}`);
     _.values(processes).forEach((p) => {
         log.debug(`message: killing process, processId: ${p.pid}`);
@@ -200,7 +208,7 @@ const cleanErizos = function () {
     process.exit(0);
 };
 
-const getErizo = function () {
+const getErizo = () => {
     let erizoId = idleErizos.shift();
 
     if (!erizoId) {
@@ -230,6 +238,7 @@ const api = {
             log.error('message: error creating ErizoJS, error:', error);
         }
     },
+
     deleteErizoJS(id, callback) {
         try {
             dropErizoJS(id, callback);
@@ -237,14 +246,15 @@ const api = {
             log.error('message: error stopping ErizoJS');
         }
     },
+
     getErizoAgents: reporter.getErizoAgent
 };
 
-for (k in interfaces) {
+for (const k in interfaces) {
     if (interfaces.hasOwnProperty(k)) {
         if (!global.config.erizoAgent.networkinterface ||
             global.config.erizoAgent.networkinterface === k) {
-            for (k2 in interfaces[k]) {
+            for (const k2 in interfaces[k]) {
                 if (interfaces[k].hasOwnProperty(k2)) {
                     address = interfaces[k][k2];
                     if (address.family === 'IPv4' && !address.internal) {
