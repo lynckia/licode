@@ -43,17 +43,15 @@ const myErizoAgentId = guid();
  * @returns {*} ErizoJS ID
  */
 function getErizo() {
-    let erizoId = idleErizos.shift();
+    const idleErizo = idleErizos.shift();
+    if (idleErizo) return idleErizo;
 
-    if (!erizoId) {
-        if (busyErizos.length < global.config.erizoAgent.maxProcesses) {
-            launchErizoJS();
-            return getErizo();
-        }
-        erizoId = busyErizos.shift();
+    if (busyErizos.length < global.config.erizoAgent.maxProcesses) {
+        launchErizoJS();
+        return getErizo();
     }
 
-    return erizoId;
+    return busyErizos.shift();
 }
 
 /**
