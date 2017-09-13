@@ -7,7 +7,7 @@ const db = require('./database').db;
 
 const log = logger.getLogger('ErizoAgent');
 
-const reportMetrics = (erizoAgentId) => {
+function reportMetrics(erizoAgentId) {
     const now = Date.now();
     const interval = global.config.erizoAgent.statsUpdateInterval * 2;
 
@@ -82,7 +82,7 @@ const reportMetrics = (erizoAgentId) => {
             log.debug('submitted erizoAgent metrics');
         }
     );
-};
+}
 
 exports.startReporter = (erizoAgentId) => {
     setInterval(() => reportMetrics(erizoAgentId), global.config.erizoAgent.statsUpdateInterval);
