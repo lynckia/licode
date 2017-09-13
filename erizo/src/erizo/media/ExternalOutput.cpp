@@ -326,14 +326,14 @@ void ExternalOutput::writeVideoData(char* buf, int len) {
     }
 }
 
-int ExternalOutput::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
-  std::shared_ptr<dataPacket> copied_packet = std::make_shared<dataPacket>(*audio_packet);
+int ExternalOutput::deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) {
+  std::shared_ptr<DataPacket> copied_packet = std::make_shared<DataPacket>(*audio_packet);
   this->queueData(copied_packet->data, copied_packet->length, AUDIO_PACKET);
   return 0;
 }
 
-int ExternalOutput::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
-  std::shared_ptr<dataPacket> copied_packet = std::make_shared<dataPacket>(*video_packet);
+int ExternalOutput::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) {
+  std::shared_ptr<DataPacket> copied_packet = std::make_shared<DataPacket>(*video_packet);
   // TODO(javierc): We should support higher layers, but it requires having an entire pipeline at this point
   if (!video_packet->belongsToSpatialLayer(0)) {
     return 0;
@@ -486,7 +486,7 @@ int ExternalOutput::sendFirPacket() {
       thePLI.setLength(2);
       char *buf = reinterpret_cast<char*>(&thePLI);
       int len = (thePLI.getLength() + 1) * 4;
-      std::shared_ptr<dataPacket> pli_packet = std::make_shared<dataPacket>(0, buf, len, VIDEO_PACKET);
+      std::shared_ptr<DataPacket> pli_packet = std::make_shared<DataPacket>(0, buf, len, VIDEO_PACKET);
       fb_sink_->deliverFeedback(pli_packet);
       return len;
     }
@@ -498,11 +498,11 @@ void ExternalOutput::sendLoop() {
     boost::unique_lock<boost::mutex> lock(mtx_);
     cond_.wait(lock);
     while (audioQueue_.hasData()) {
-      boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket();
+      boost::shared_ptr<DataPacket> audioP = audioQueue_.popPacket();
       this->writeAudioData(audioP->data, audioP->length);
     }
     while (videoQueue_.hasData()) {
-      boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket();
+      boost::shared_ptr<DataPacket> videoP = videoQueue_.popPacket();
       this->writeVideoData(videoP->data, videoP->length);
     }
     if (!inited_ && first_data_received_ != time_point()) {
@@ -512,11 +512,11 @@ void ExternalOutput::sendLoop() {
 
   // Since we're bailing, let's completely drain our queues of all data.
   while (audioQueue_.getSize() > 0) {
-    boost::shared_ptr<dataPacket> audioP = audioQueue_.popPacket(true);  // ignore our minimum depth check
+    boost::shared_ptr<DataPacket> audioP = audioQueue_.popPacket(true);  // ignore our minimum depth check
     this->writeAudioData(audioP->data, audioP->length);
   }
   while (videoQueue_.getSize() > 0) {
-    boost::shared_ptr<dataPacket> videoP = videoQueue_.popPacket(true);  // ignore our minimum depth check
+    boost::shared_ptr<DataPacket> videoP = videoQueue_.popPacket(true);  // ignore our minimum depth check
     this->writeVideoData(videoP->data, videoP->length);
   }
 }

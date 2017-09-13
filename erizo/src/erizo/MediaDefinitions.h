@@ -19,22 +19,22 @@ enum packetType {
     OTHER_PACKET
 };
 
-struct dataPacket {
-  dataPacket() = default;
+struct DataPacket {
+  DataPacket() = default;
 
-  dataPacket(int comp_, const char *data_, int length_, packetType type_, uint64_t received_time_ms_) :
+  DataPacket(int comp_, const char *data_, int length_, packetType type_, uint64_t received_time_ms_) :
     comp{comp_}, length{length_}, type{type_}, received_time_ms{received_time_ms_}, is_keyframe{false},
     ending_of_layer_frame{false}, picture_id{-1} {
       memcpy(data, data_, length_);
   }
 
-  dataPacket(int comp_, const char *data_, int length_, packetType type_) :
+  DataPacket(int comp_, const char *data_, int length_, packetType type_) :
     comp{comp_}, length{length_}, type{type_}, received_time_ms{ClockUtils::timePointToMs(clock::now())},
     is_keyframe{false}, ending_of_layer_frame{false}, picture_id{-1} {
       memcpy(data, data_, length_);
   }
 
-  dataPacket(int comp_, const unsigned char *data_, int length_) :
+  DataPacket(int comp_, const unsigned char *data_, int length_) :
     comp{comp_}, length{length_}, type{VIDEO_PACKET}, received_time_ms{ClockUtils::timePointToMs(clock::now())},
     is_keyframe{false}, ending_of_layer_frame{false}, picture_id{-1} {
       memcpy(data, data_, length_);
@@ -77,11 +77,11 @@ class Monitor {
 class FeedbackSink {
  public:
     virtual ~FeedbackSink() {}
-    int deliverFeedback(std::shared_ptr<dataPacket> data_packet) {
+    int deliverFeedback(std::shared_ptr<DataPacket> data_packet) {
         return this->deliverFeedback_(data_packet);
     }
  private:
-    virtual int deliverFeedback_(std::shared_ptr<dataPacket> data_packet) = 0;
+    virtual int deliverFeedback_(std::shared_ptr<DataPacket> data_packet) = 0;
 };
 
 
@@ -108,10 +108,10 @@ class MediaSink: public virtual Monitor {
     FeedbackSource* sink_fb_source_;
 
  public:
-    int deliverAudioData(std::shared_ptr<dataPacket> data_packet) {
+    int deliverAudioData(std::shared_ptr<DataPacket> data_packet) {
         return this->deliverAudioData_(data_packet);
     }
-    int deliverVideoData(std::shared_ptr<dataPacket> data_packet) {
+    int deliverVideoData(std::shared_ptr<DataPacket> data_packet) {
         return this->deliverVideoData_(data_packet);
     }
     uint32_t getVideoSinkSSRC() {
@@ -146,8 +146,8 @@ class MediaSink: public virtual Monitor {
     virtual void close() = 0;
 
  private:
-    virtual int deliverAudioData_(std::shared_ptr<dataPacket> data_packet) = 0;
-    virtual int deliverVideoData_(std::shared_ptr<dataPacket> data_packet) = 0;
+    virtual int deliverAudioData_(std::shared_ptr<DataPacket> data_packet) = 0;
+    virtual int deliverVideoData_(std::shared_ptr<DataPacket> data_packet) = 0;
 };
 
 /**

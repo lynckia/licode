@@ -19,7 +19,7 @@ void LayerDetectorHandler::disable() {
   enabled_ = false;
 }
 
-void LayerDetectorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void LayerDetectorHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (!chead->isRtcp() && enabled_ && packet->type == VIDEO_PACKET) {
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
@@ -44,7 +44,7 @@ int LayerDetectorHandler::getSsrcPosition(uint32_t ssrc) {
   return -1;
 }
 
-void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<dataPacket> packet) {
+void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
   start_buffer = start_buffer + rtp_header->getHeaderLength();
@@ -79,7 +79,7 @@ void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<dataPacket> pac
   delete payload;
 }
 
-void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<dataPacket> packet) {
+void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
   start_buffer = start_buffer + rtp_header->getHeaderLength();

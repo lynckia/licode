@@ -21,7 +21,7 @@ class Transport;
 
 class TransportListener {
  public:
-  virtual void onTransportData(std::shared_ptr<dataPacket> packet, Transport *transport) = 0;
+  virtual void onTransportData(std::shared_ptr<DataPacket> packet, Transport *transport) = 0;
   virtual void updateState(TransportState state, Transport *transport) = 0;
   virtual void onCandidate(const CandidateInfo& cand, Transport *transport) = 0;
 };

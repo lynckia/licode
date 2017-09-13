@@ -44,7 +44,7 @@ void RtpSlideShowHandler::notifyUpdate() {
   setSlideShowMode(fallback_slideshow_enabled || manual_slideshow_enabled);
 }
 
-void RtpSlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtpSlideShowHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (connection_->getVideoSinkSSRC() != chead->getSourceSSRC()) {
     ctx->fireRead(std::move(packet));
@@ -81,7 +81,7 @@ void RtpSlideShowHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet)
   ctx->fireRead(std::move(packet));
 }
 
-void RtpSlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtpSlideShowHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   RtcpHeader *rtcp_header = reinterpret_cast<RtcpHeader*>(packet->data);
   if (packet->type != VIDEO_PACKET || rtcp_header->isRtcp()) {
@@ -122,7 +122,7 @@ void RtpSlideShowHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet
   }
 }
 
-bool RtpSlideShowHandler::isVP8Keyframe(std::shared_ptr<dataPacket> packet) {
+bool RtpSlideShowHandler::isVP8Keyframe(std::shared_ptr<DataPacket> packet) {
   bool is_keyframe = false;
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   uint16_t seq_num = rtp_header->getSeqNumber();
@@ -143,7 +143,7 @@ bool RtpSlideShowHandler::isVP8Keyframe(std::shared_ptr<dataPacket> packet) {
   return is_keyframe;
 }
 
-bool RtpSlideShowHandler::isVP9Keyframe(std::shared_ptr<dataPacket> packet) {
+bool RtpSlideShowHandler::isVP9Keyframe(std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   uint16_t seq_num = rtp_header->getSeqNumber();
   uint32_t timestamp = rtp_header->getTimestamp();
@@ -152,7 +152,7 @@ bool RtpSlideShowHandler::isVP9Keyframe(std::shared_ptr<dataPacket> packet) {
     if (RtpUtils::sequenceNumberLessThan(seq_num, first_keyframe_seq_num_)) {
       first_keyframe_seq_num_ = seq_num;
       for (uint16_t index = seq_num; index < first_keyframe_seq_num_; index++) {
-        keyframe_buffer_.push_back(std::shared_ptr<dataPacket>{});
+        keyframe_buffer_.push_back(std::shared_ptr<DataPacket>{});
       }
     }
     if (timestamp != current_keyframe_timestamp_) {
@@ -166,7 +166,7 @@ bool RtpSlideShowHandler::isVP9Keyframe(std::shared_ptr<dataPacket> packet) {
   return packet->is_keyframe;
 }
 
-void RtpSlideShowHandler::storeKeyframePacket(std::shared_ptr<dataPacket> packet) {
+void RtpSlideShowHandler::storeKeyframePacket(std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   uint16_t index = rtp_header->getSeqNumber() - first_keyframe_seq_num_;
   if (index < keyframe_buffer_.size()) {
@@ -213,9 +213,9 @@ void RtpSlideShowHandler::consolidateKeyframe() {
     resetKeyframeBuilding();
     return;
   }
-  std::shared_ptr<dataPacket> packet;
+  std::shared_ptr<DataPacket> packet;
   bool keyframe_complete = false;
-  std::vector<std::shared_ptr<dataPacket>> temp_keyframe;
+  std::vector<std::shared_ptr<DataPacket>> temp_keyframe;
 
   for (int seq_num = 0; seq_num < kMaxKeyframeSize; seq_num++) {
     packet = keyframe_buffer_[seq_num];

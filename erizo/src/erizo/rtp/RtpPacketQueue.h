@@ -10,7 +10,7 @@
 
 namespace erizo {
 // forward declaration
-struct dataPacket;
+struct DataPacket;
 
 static const double DEFAULT_DEPTH = 3.0;
 static const double DEFAULT_MAX = 5.0;
@@ -45,7 +45,7 @@ class RtpPacketQueue {
   ~RtpPacketQueue(void);
   void setTimebase(unsigned int timebase);
   void pushPacket(const char *data, int length);
-  boost::shared_ptr<dataPacket> popPacket(bool ignore_depth = false);
+  boost::shared_ptr<DataPacket> popPacket(bool ignore_depth = false);
   int getSize();  // total size of all items in the queue
   bool hasData();  // whether or not current queue depth is >= depth_
 
@@ -55,7 +55,7 @@ class RtpPacketQueue {
   double getDepthInSeconds();
 
   boost::mutex queueMutex_;
-  std::list<boost::shared_ptr<dataPacket> > queue_;
+  std::list<boost::shared_ptr<DataPacket> > queue_;
   int lastSequenceNumberGiven_;
   bool rtpSequenceLessThan(uint16_t x, uint16_t y);
 

@@ -17,7 +17,7 @@ void RtcpFeedbackGenerationHandler::disable() {
   enabled_ = false;
 }
 
-void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   // Pass packets to RR and NACK Generator
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
 
@@ -55,7 +55,7 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacke
 
     if (should_send_rr || should_send_nack) {
       ELOG_DEBUG("message: Should send Rtcp, ssrc %u", ssrc);
-      std::shared_ptr<dataPacket> rtcp_packet = generator_it->second->rr_generator->generateReceiverReport();
+      std::shared_ptr<DataPacket> rtcp_packet = generator_it->second->rr_generator->generateReceiverReport();
       if (nacks_enabled_ && generator_it->second->nack_generator != nullptr) {
         generator_it->second->nack_generator->addNackPacketToRr(rtcp_packet);
       }
@@ -65,7 +65,7 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<dataPacke
   ctx->fireRead(std::move(packet));
 }
 
-void RtcpFeedbackGenerationHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtcpFeedbackGenerationHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   ctx->fireWrite(std::move(packet));
 }
 

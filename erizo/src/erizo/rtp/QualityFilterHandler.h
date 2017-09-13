@@ -30,18 +30,18 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
      return "quality_filter";
   }
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
-  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
+  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
  private:
   void sendPLI();
   void checkLayers();
-  void handleFeedbackPackets(const std::shared_ptr<dataPacket> &packet);
+  void handleFeedbackPackets(const std::shared_ptr<DataPacket> &packet);
   bool checkSSRCChange(uint32_t ssrc);
-  void changeSpatialLayerOnKeyframeReceived(const std::shared_ptr<dataPacket> &packet);
-  void detectVideoScalability(const std::shared_ptr<dataPacket> &packet);
-  void updatePictureID(const std::shared_ptr<dataPacket> &packet);
+  void changeSpatialLayerOnKeyframeReceived(const std::shared_ptr<DataPacket> &packet);
+  void detectVideoScalability(const std::shared_ptr<DataPacket> &packet);
+  void updatePictureID(const std::shared_ptr<DataPacket> &packet);
 
  private:
   std::shared_ptr<QualityManager> quality_manager_;

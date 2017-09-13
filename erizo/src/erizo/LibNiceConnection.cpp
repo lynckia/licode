@@ -119,7 +119,7 @@ void LibNiceConnection::onData(unsigned int component_id, char* buf, int len) {
     listener = listener_;
   }
   if (state == IceState::READY) {
-    packetPtr packet (new dataPacket());
+    packetPtr packet (new DataPacket());
     memcpy(packet->data, buf, len);
     packet->comp = component_id;
     packet->length = len;
