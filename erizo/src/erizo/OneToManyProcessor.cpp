@@ -19,7 +19,7 @@ namespace erizo {
   OneToManyProcessor::~OneToManyProcessor() {
   }
 
-  int OneToManyProcessor::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
+  int OneToManyProcessor::deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) {
     if (audio_packet->length <= 0)
       return 0;
 
@@ -37,7 +37,7 @@ namespace erizo {
     return 0;
   }
 
-  int OneToManyProcessor::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
+  int OneToManyProcessor::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) {
     if (video_packet->length <= 0)
       return 0;
     RtcpHeader* head = reinterpret_cast<RtcpHeader*>(video_packet->data);
@@ -67,7 +67,7 @@ namespace erizo {
     feedbackSink_ = publisher->getFeedbackSink();
   }
 
-  int OneToManyProcessor::deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) {
+  int OneToManyProcessor::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
     if (feedbackSink_ != nullptr) {
       feedbackSink_->deliverFeedback(fb_packet);
     }

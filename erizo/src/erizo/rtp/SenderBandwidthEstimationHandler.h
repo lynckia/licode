@@ -40,8 +40,8 @@ class SenderBandwidthEstimationHandler : public Handler,
     return "sender_bwe";
   }
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
-  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
+  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
   void analyzeSr(RtcpHeader *head);

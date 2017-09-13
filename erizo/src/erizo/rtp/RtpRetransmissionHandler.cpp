@@ -61,7 +61,7 @@ void RtpRetransmissionHandler::calculateRtxBitrate() {
   }
 }
 
-void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (!enabled_ || !initialized_) {
     return;
   }
@@ -84,7 +84,7 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
           bool packet_nacked = i == -1 || (plb >> i) & 0x0001;
 
           if (packet_nacked) {
-          std::shared_ptr<dataPacket> recovered;
+          std::shared_ptr<DataPacket> recovered;
 
           if (connection_->getVideoSinkSSRC() == chead->getSourceSSRC()) {
             recovered = packet_buffer_->getVideoPacket(seq_num);
@@ -115,7 +115,7 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
   }
 }
 
-void RtpRetransmissionHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtpRetransmissionHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (!initialized_) {
     return;
   }

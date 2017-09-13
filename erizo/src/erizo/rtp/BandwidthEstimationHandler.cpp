@@ -139,7 +139,7 @@ void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RT
   }
 }
 
-void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (initialized_ && !running_) {
     process();
     running_ = true;
@@ -159,7 +159,7 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<dataPacket> 
   ctx->fireRead(std::move(packet));
 }
 
-bool BandwidthEstimationHandler::parsePacket(std::shared_ptr<dataPacket> packet) {
+bool BandwidthEstimationHandler::parsePacket(std::shared_ptr<DataPacket> packet) {
   const uint8_t* buffer = reinterpret_cast<uint8_t*>(packet->data);
   size_t length = packet->length;
   webrtc::RtpUtility::RtpHeaderParser rtp_parser(buffer, length);
@@ -168,7 +168,7 @@ bool BandwidthEstimationHandler::parsePacket(std::shared_ptr<dataPacket> packet)
   return rtp_parser.Parse(&header_, &map);
 }
 
-RtpHeaderExtensionMap BandwidthEstimationHandler::getHeaderExtensionMap(std::shared_ptr<dataPacket> packet) const {
+RtpHeaderExtensionMap BandwidthEstimationHandler::getHeaderExtensionMap(std::shared_ptr<DataPacket> packet) const {
   RtpHeaderExtensionMap map;
   switch (packet->type) {
     case VIDEO_PACKET:
@@ -184,7 +184,7 @@ RtpHeaderExtensionMap BandwidthEstimationHandler::getHeaderExtensionMap(std::sha
   }
 }
 
-void BandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void BandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   ctx->fireWrite(std::move(packet));
 }
 
@@ -228,7 +228,7 @@ void BandwidthEstimationHandler::sendREMBPacket() {
   int remb_length = (remb_packet_.getLength() + 1) * 4;
   if (active_) {
     ELOG_DEBUG("BWE Estimation is %d", last_send_bitrate_);
-    getContext()->fireWrite(std::make_shared<dataPacket>(0,
+    getContext()->fireWrite(std::make_shared<DataPacket>(0,
       reinterpret_cast<char*>(&remb_packet_), remb_length, OTHER_PACKET));
   }
 }

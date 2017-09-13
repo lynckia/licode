@@ -102,8 +102,8 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   int sendFirPacket();
   void queueData(char* buffer, int length, packetType type);
   void sendLoop();
-  int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
-  int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
+  int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override;
+  int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override;
   void writeAudioData(char* buf, int len);
   void writeVideoData(char* buf, int len);
   bool bufferCheck(RTPPayloadVP8* payload);

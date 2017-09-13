@@ -32,12 +32,12 @@ class LayerDetectorHandler: public InboundHandler, public std::enable_shared_fro
      return "layer_detector";
   }
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
  private:
-  void parseLayerInfoFromVP8(std::shared_ptr<dataPacket> packet);
-  void parseLayerInfoFromVP9(std::shared_ptr<dataPacket> packet);
+  void parseLayerInfoFromVP8(std::shared_ptr<DataPacket> packet);
+  void parseLayerInfoFromVP9(std::shared_ptr<DataPacket> packet);
   int getSsrcPosition(uint32_t ssrc);
 
  private:

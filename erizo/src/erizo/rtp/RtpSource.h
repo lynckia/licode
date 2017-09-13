@@ -37,7 +37,7 @@ class RtpSource: public MediaSource, public FeedbackSink {
   char* buffer_[LENGTH];
   void handleReceive(const::boost::system::error_code& error, size_t bytes_recvd); // NOLINT
   void eventLoop();
-  int deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) override;
+  int deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) override;
 };
 
 

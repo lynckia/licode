@@ -33,7 +33,7 @@ void PliPacerHandler::notifyUpdate() {
   }
 }
 
-void PliPacerHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void PliPacerHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (enabled_ && packet->is_keyframe) {
     time_last_keyframe_ = clock_->now();
     waiting_for_keyframe_ = false;
@@ -73,7 +73,7 @@ void PliPacerHandler::scheduleNextPLI() {
   }, kMinPLIPeriod);
 }
 
-void PliPacerHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void PliPacerHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (enabled_ && RtpUtils::isPLI(packet)) {
     if (waiting_for_keyframe_) {
       return;

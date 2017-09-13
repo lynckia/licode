@@ -16,7 +16,7 @@ RtcpRrGenerator::RtcpRrGenerator(const RtcpRrGenerator&& generator) :  // NOLINT
     ssrc_{generator.ssrc_},
     type_{generator.type_} {}
 
-bool RtcpRrGenerator::isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet) {
+bool RtcpRrGenerator::isRetransmitOfOldPacket(std::shared_ptr<DataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
   if (!RtpUtils::sequenceNumberLessThan(head->getSeqNumber(), rr_info_.max_seq) || rr_info_.jitter.jitter == 0) {
     return false;
@@ -44,7 +44,7 @@ int RtcpRrGenerator::getVideoClockRate(uint8_t payload_type) {
   return 90;
 }
 
-bool RtcpRrGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
+bool RtcpRrGenerator::handleRtpPacket(std::shared_ptr<DataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
   if (ssrc_ != head->getSSRC()) {
     ELOG_DEBUG("message: handleRtpPacket ssrc not found, ssrc: %u", head->getSSRC());
@@ -93,7 +93,7 @@ bool RtcpRrGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   return false;
 }
 
-std::shared_ptr<dataPacket> RtcpRrGenerator::generateReceiverReport() {
+std::shared_ptr<DataPacket> RtcpRrGenerator::generateReceiverReport() {
   uint64_t now = ClockUtils::timePointToMs(clock_->now());
   uint64_t delay_since_last_sr = rr_info_.last_sr_ts == 0 ?
     0 : (now - rr_info_.last_sr_ts) * 65536 / 1000;
@@ -144,11 +144,11 @@ std::shared_ptr<dataPacket> RtcpRrGenerator::generateReceiverReport() {
   uint16_t selected_interval = selectInterval();
   rr_info_.next_packet_ms = now + getRandomValue(0.5 * selected_interval, 1.5 * selected_interval);
   rr_info_.last_packet_ms = now;
-  return (std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, type_));
+  return (std::make_shared<DataPacket>(0, reinterpret_cast<char*>(&packet_), length, type_));
 }
 
 
-void RtcpRrGenerator::handleSr(std::shared_ptr<dataPacket> packet) {
+void RtcpRrGenerator::handleSr(std::shared_ptr<DataPacket> packet) {
   RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (ssrc_ != chead->getSSRC()) {
     ELOG_DEBUG("message: handleRtpPacket ssrc not found, ssrc: %u", chead->getSSRC());

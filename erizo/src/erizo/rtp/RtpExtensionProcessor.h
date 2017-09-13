@@ -31,7 +31,7 @@ class RtpExtensionProcessor{
   virtual ~RtpExtensionProcessor();
 
   void setSdpInfo(const SdpInfo& theInfo);
-  uint32_t processRtpExtensions(std::shared_ptr<dataPacket> p);
+  uint32_t processRtpExtensions(std::shared_ptr<DataPacket> p);
 
   std::array<RTPExtensions, 10> getVideoExtensionMap() {
     return ext_map_video_;

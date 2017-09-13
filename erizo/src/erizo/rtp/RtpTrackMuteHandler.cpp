@@ -24,7 +24,7 @@ void RtpTrackMuteHandler::notifyUpdate() {
   muteTrack(&video_info_, connection_->isVideoMuted());
 }
 
-void RtpTrackMuteHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtpTrackMuteHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
 
   if (connection_->getAudioSinkSSRC() == chead->getSourceSSRC()) {
@@ -36,7 +36,7 @@ void RtpTrackMuteHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet)
   ctx->fireRead(std::move(packet));
 }
 
-void RtpTrackMuteHandler::handleFeedback(const TrackMuteInfo &info, const std::shared_ptr<dataPacket> &packet) {
+void RtpTrackMuteHandler::handleFeedback(const TrackMuteInfo &info, const std::shared_ptr<DataPacket> &packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   uint16_t offset = info.seq_num_offset;
   if (offset > 0) {
@@ -68,7 +68,7 @@ void RtpTrackMuteHandler::handleFeedback(const TrackMuteInfo &info, const std::s
   }
 }
 
-void RtpTrackMuteHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtpTrackMuteHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *rtcp_header = reinterpret_cast<RtcpHeader*>(packet->data);
   if (rtcp_header->isRtcp()) {
     ctx->fireWrite(std::move(packet));
@@ -81,7 +81,7 @@ void RtpTrackMuteHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet
   }
 }
 
-void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::shared_ptr<dataPacket> packet) {
+void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   uint16_t offset = info->seq_num_offset;
   info->last_original_seq_num = rtp_header->getSeqNumber();
@@ -119,7 +119,7 @@ void RtpTrackMuteHandler::muteTrack(TrackMuteInfo *info, bool active) {
   }
 }
 
-inline void RtpTrackMuteHandler::setPacketSeqNumber(std::shared_ptr<dataPacket> packet, uint16_t seq_number) {
+inline void RtpTrackMuteHandler::setPacketSeqNumber(std::shared_ptr<DataPacket> packet, uint16_t seq_number) {
   RtpHeader *head = reinterpret_cast<RtpHeader*> (packet->data);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
   if (chead->isRtcp()) {

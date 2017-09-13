@@ -65,7 +65,7 @@ Pipeline::~Pipeline() {
   detachHandlers();
 }
 
-void Pipeline::read(std::shared_ptr<dataPacket> packet) {
+void Pipeline::read(std::shared_ptr<DataPacket> packet) {
   if (!front_) {
     return;
   }
@@ -79,7 +79,7 @@ void Pipeline::readEOF() {
   front_->readEOF();
 }
 
-void Pipeline::write(std::shared_ptr<dataPacket> packet) {
+void Pipeline::write(std::shared_ptr<DataPacket> packet) {
   if (!back_) {
     return;
   }

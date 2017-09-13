@@ -164,7 +164,7 @@ int ExternalInput::sendPLI() {
 
 void ExternalInput::receiveRtpData(unsigned char* rtpdata, int len) {
   if (video_sink_ != nullptr) {
-    std::shared_ptr<dataPacket> packet = std::make_shared<dataPacket>(0, reinterpret_cast<char*>(rtpdata),
+    std::shared_ptr<DataPacket> packet = std::make_shared<DataPacket>(0, reinterpret_cast<char*>(rtpdata),
         len, VIDEO_PACKET);
     video_sink_->deliverVideoData(packet);
   }
@@ -212,7 +212,7 @@ void ExternalInput::receiveLoop() {
         lastAudioPts_ = avpacket_.pts;
         length = op_->packageAudio(avpacket_.data, avpacket_.size, decodedBuffer_.get(), avpacket_.pts);
         if (length > 0) {
-          std::shared_ptr<dataPacket> packet = std::make_shared<dataPacket>(0,
+          std::shared_ptr<DataPacket> packet = std::make_shared<DataPacket>(0,
               reinterpret_cast<char*>(decodedBuffer_.get()), length, AUDIO_PACKET);
           audio_sink_->deliverAudioData(packet);
         }
