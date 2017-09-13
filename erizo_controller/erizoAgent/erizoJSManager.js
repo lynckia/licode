@@ -145,8 +145,8 @@ module.exports = {
      */
     start() {
         const address = _.entries(os.networkInterfaces())
-            .filter(([k, v]) => !global.config.erizoAgent.networkinterface
-                                || k === global.config.erizoAgent.networkinterface)
+            .filter(([k, v]) => !global.config.erizoAgent.networkInterface
+                                || k === global.config.erizoAgent.networkInterface)
             .map(([k, v]) => v)
             .reduce((x, y) => x.concat(y), [])
             .filter(addr => addr.family === 'IPv4' && !addr.internal)
