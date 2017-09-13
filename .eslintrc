@@ -7,6 +7,12 @@
         "no-cond-assign": [
             "error",
             "except-parens"
+        ],
+        "no-use-before-define": [
+            "error",
+            {
+                "functions": false
+            }
         ]
     }
 }
