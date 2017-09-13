@@ -146,15 +146,11 @@ module.exports = {
      * Starts ErizoJS manager.
      */
     start() {
-        const interfaces = os.networkInterfaces();
-
-        const iface = global.config.erizoAgent.networkinterface
-            ? interfaces[global.config.erizoAgent.networkinterface]
-            : _.values(interfaces)[0];
-
-        assert(iface);
-
-        const address = iface
+        const address = _.entries(os.networkInterfaces())
+            .filter(([k, v]) => !global.config.erizoAgent.networkinterface
+                                || k === global.config.erizoAgent.networkinterface)
+            .map(([k, v]) => v)
+            .reduce((x, y) => x.concat(y), [])
             .filter(addr => addr.family === 'IPv4' && !addr.internal)
             .map(addr => addr.address)[0];
 
