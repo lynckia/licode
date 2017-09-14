@@ -53,7 +53,7 @@ void LayerDetectorHandler::notifyLayerInfoChangedEvent() {
               spatial_layer, video_frame_width_list_[spatial_layer], video_frame_height_list_[spatial_layer]);
   }
   for (uint32_t temporal_layer = 0; temporal_layer < video_frame_rate_list_.size(); temporal_layer++) {
-    ELOG_DEBUG(" TEMPORAL LAYER (%u): %u",
+    ELOG_DEBUG(" TEMPORAL LAYER (%u): %lu",
               temporal_layer, video_frame_rate_list_[temporal_layer].value());
   }
 
@@ -106,7 +106,7 @@ void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<DataPacket> pac
     packet->is_keyframe = false;
   }
 
-  if (payload->frameWidth != -1 && payload->frameWidth != video_frame_width_list_[position]) {
+  if (payload->frameWidth != -1 && static_cast<int>(payload->frameWidth) != video_frame_width_list_[position]) {
     video_frame_width_list_[position] = payload->frameWidth;
     video_frame_height_list_[position] = payload->frameHeight;
     notifyLayerInfoChangedEvent();
@@ -155,7 +155,7 @@ void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<DataPacket> pac
   }
   bool resolution_changed = false;
   if (payload->resolutions.size() > 0) {
-    for (int position = 0; position < payload->resolutions.size(); position++) {
+    for (uint position = 0; position < payload->resolutions.size(); position++) {
       resolution_changed = true;
       video_frame_width_list_[position] = payload->resolutions[position].width;
       video_frame_height_list_[position] = payload->resolutions[position].height;
