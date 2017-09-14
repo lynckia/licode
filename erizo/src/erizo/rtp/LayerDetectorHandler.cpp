@@ -15,7 +15,7 @@ DEFINE_LOGGER(LayerDetectorHandler, "rtp.LayerDetectorHandler");
 LayerDetectorHandler::LayerDetectorHandler(std::shared_ptr<erizo::Clock> the_clock)
     : clock_{the_clock}, connection_{nullptr}, enabled_{true}, initialized_{false},
     last_event_sent_{clock_->now()} {
-  for (int temporal_layer = 0; temporal_layer <= kMaxTemporalLayers; temporal_layer++) {
+  for (uint32_t temporal_layer = 0; temporal_layer <= kMaxTemporalLayers; temporal_layer++) {
     video_frame_rate_list_.push_back(MovingIntervalRateStat{std::chrono::milliseconds(500), 10, .5, clock_});
   }
   video_frame_width_list_ = std::vector<uint32_t>(kMaxSpatialLayers);
@@ -48,12 +48,12 @@ void LayerDetectorHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet
 
 void LayerDetectorHandler::notifyLayerInfoChangedEvent() {
   ELOG_DEBUG("LAYER INFO CHANGED");
-  for (int spatial_layer = 0; spatial_layer < video_frame_width_list_.size(); spatial_layer++) {
-    ELOG_DEBUG(" SPATIAL LAYER (%d): %d %d",
+  for (uint32_t spatial_layer = 0; spatial_layer < video_frame_width_list_.size(); spatial_layer++) {
+    ELOG_DEBUG(" SPATIAL LAYER (%u): %u %u",
               spatial_layer, video_frame_width_list_[spatial_layer], video_frame_height_list_[spatial_layer]);
   }
-  for (int temporal_layer = 0; temporal_layer < video_frame_rate_list_.size(); temporal_layer++) {
-    ELOG_DEBUG(" TEMPORAL LAYER (%d): %d",
+  for (uint32_t temporal_layer = 0; temporal_layer < video_frame_rate_list_.size(); temporal_layer++) {
+    ELOG_DEBUG(" TEMPORAL LAYER (%u): %u",
               temporal_layer, video_frame_rate_list_[temporal_layer].value());
   }
 
