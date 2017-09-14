@@ -15,7 +15,7 @@ cleanAll() {
   if [ -d $BIN_DIR ]; then
     cd $BIN_DIR
     for RELEASE_DIR in */ ; do
-      echo "cleaning $d"
+      echo "cleaning $RELEASE_DIR"
       cd $RELEASE_DIR
       maybeRemoveObjDir
       for INTERNAL_DIR in */ ; do
