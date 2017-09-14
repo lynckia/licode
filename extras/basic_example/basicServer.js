@@ -191,7 +191,7 @@ app.use(function(req, res, next) {
 cleanExampleRooms(function() {
     getOrCreateRoom(defaultRoomName, undefined, function (roomId) {
         defaultRoom = roomId;
-        app.listen(3001);
+        app.listen(3002);
         var server = https.createServer(options, app);
         console.log('BasicExample started');
         server.listen(3004);

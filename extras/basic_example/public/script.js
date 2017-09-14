@@ -80,8 +80,9 @@ window.onload = function () {
     req.setRequestHeader('Content-Type', 'application/json');
     req.send(JSON.stringify(roomData));
   };
-
-  var roomData  = {username: 'user', role: 'presenter', room: roomName, type: roomType};
+  var names = ['pedro', 'juan', 'manolo', 'tito', 'pepe', 'alonso', 'guancho'];
+  var myUserName = names[Math.floor(Math.random()*names.length)];
+  var roomData  = {username: myUserName, role: 'presenter', room: roomName, type: roomType};
 
   createToken(roomData, function (response) {
     var token = response;

@@ -131,7 +131,7 @@ void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RT
         type = webrtc::kRtpExtensionPlayoutDelay;
         break;
     }
-    if (type === webrtc::kRtpExtensionNone) {
+    if (type == webrtc::kRtpExtensionNone) {
       continue;
     }
     if (is_video) {
