@@ -48,7 +48,7 @@ class SyntheticInput : public MediaSource, public FeedbackSink, public std::enab
  private:
   void tick();
   void calculateSizeAndPeriod(uint32_t video_bitrate, uint32_t audio_bitrate);
-  int deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) override;
+  int deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) override;
   void sendVideoframe(bool is_keyframe, bool is_marker, uint32_t size);
   void sendAudioFrame(uint32_t size);
   uint32_t getRandomValue(uint32_t average, uint32_t variation);

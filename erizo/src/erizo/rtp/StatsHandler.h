@@ -22,7 +22,7 @@ class StatsCalculator {
   virtual ~StatsCalculator() {}
 
   void update(WebRtcConnection *connection, std::shared_ptr<Stats> stats);
-  void processPacket(std::shared_ptr<dataPacket> packet);
+  void processPacket(std::shared_ptr<DataPacket> packet);
 
   StatNode& getStatsInfo() {
     return stats_->getNode();
@@ -33,8 +33,8 @@ class StatsCalculator {
   }
 
  private:
-  void processRtpPacket(std::shared_ptr<dataPacket> packet);
-  void processRtcpPacket(std::shared_ptr<dataPacket> packet);
+  void processRtpPacket(std::shared_ptr<DataPacket> packet);
+  void processRtcpPacket(std::shared_ptr<DataPacket> packet);
   void incrStat(uint32_t ssrc, std::string stat);
 
  private:
@@ -55,7 +55,7 @@ class IncomingStatsHandler: public InboundHandler, public StatsCalculator {
     return "incoming-stats";
   }
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
  private:
@@ -75,7 +75,7 @@ class OutgoingStatsHandler: public OutboundHandler, public StatsCalculator {
     return "outgoing-stats";
   }
 
-  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
  private:

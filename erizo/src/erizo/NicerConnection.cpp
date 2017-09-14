@@ -476,7 +476,7 @@ int NicerConnection::sendData(unsigned int component_id, const void* buf, int le
   if (checkIceState() != IceState::READY) {
     return -1;
   }
-  packetPtr packet (new dataPacket());
+  packetPtr packet (new DataPacket());
   memcpy(packet->data, buf, len);
   packet->length = len;
   nr_ice_peer_ctx *peer = peer_;
@@ -578,7 +578,7 @@ void NicerConnection::onData(unsigned int component_id, char* buf, int len) {
     listener = listener_;
   }
   if (state == IceState::READY) {
-    packetPtr packet (new dataPacket());
+    packetPtr packet (new DataPacket());
     memcpy(packet->data, buf, len);
     packet->comp = component_id;
     packet->length = len;

@@ -41,7 +41,7 @@ void FecReceiverHandler::notifyUpdate() {
   }
 }
 
-void FecReceiverHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void FecReceiverHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (enabled_ && packet->type == VIDEO_PACKET) {
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
     if (rtp_header->getPayloadType() == RED_90000_PT) {
@@ -64,7 +64,7 @@ void FecReceiverHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet)
 }
 
 bool FecReceiverHandler::OnRecoveredPacket(const uint8_t* rtp_packet, size_t rtp_packet_length) {
-  getContext()->fireWrite(std::make_shared<dataPacket>(0, (char*)rtp_packet, rtp_packet_length, VIDEO_PACKET));  // NOLINT
+  getContext()->fireWrite(std::make_shared<DataPacket>(0, (char*)rtp_packet, rtp_packet_length, VIDEO_PACKET));  // NOLINT
   return true;
 }
 

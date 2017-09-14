@@ -19,7 +19,7 @@ static constexpr uint16_t kLastSequenceNumber = 65535;
 
 class PacketTools {
  public:
-  static std::shared_ptr<dataPacket> createDataPacket(uint16_t seq_number, packetType type) {
+  static std::shared_ptr<DataPacket> createDataPacket(uint16_t seq_number, packetType type) {
     erizo::RtpHeader *header = new erizo::RtpHeader();
     header->setSeqNumber(seq_number);
 
@@ -29,10 +29,10 @@ class PacketTools {
       header->setSSRC(kVideoSsrc);
     }
 
-    return std::make_shared<dataPacket>(0, reinterpret_cast<char*>(header), sizeof(erizo::RtpHeader), type);
+    return std::make_shared<DataPacket>(0, reinterpret_cast<char*>(header), sizeof(erizo::RtpHeader), type);
   }
 
-  static std::shared_ptr<dataPacket> createNack(uint ssrc, uint source_ssrc, uint16_t seq_number,
+  static std::shared_ptr<DataPacket> createNack(uint ssrc, uint source_ssrc, uint16_t seq_number,
                                                 packetType type, int additional_packets = 0) {
     erizo::RtcpHeader *nack = new erizo::RtcpHeader();
     nack->setPacketType(RTCP_RTP_Feedback_PT);
@@ -44,10 +44,10 @@ class PacketTools {
     nack->setLength(3);
     char *buf = reinterpret_cast<char*>(nack);
     int len = (nack->getLength() + 1) * 4;
-    return std::make_shared<dataPacket>(0, buf, len, type);
+    return std::make_shared<DataPacket>(0, buf, len, type);
   }
 
-  static std::shared_ptr<dataPacket> createReceiverReport(uint ssrc, uint source_ssrc,
+  static std::shared_ptr<DataPacket> createReceiverReport(uint ssrc, uint source_ssrc,
                                                           uint16_t highest_seq_num, packetType type,
                                                           uint32_t last_sender_report = 0, uint32_t fraction_lost = 0) {
     erizo::RtcpHeader *receiver_report = new erizo::RtcpHeader();
@@ -61,10 +61,10 @@ class PacketTools {
     receiver_report->setLength(7);
     char *buf = reinterpret_cast<char*>(receiver_report);
     int len = (receiver_report->getLength() + 1) * 4;
-    return std::make_shared<dataPacket>(0, buf, len, type);
+    return std::make_shared<DataPacket>(0, buf, len, type);
   }
 
-  static std::shared_ptr<dataPacket> createSenderReport(uint ssrc, packetType type,
+  static std::shared_ptr<DataPacket> createSenderReport(uint ssrc, packetType type,
       uint32_t packets_sent = 0, uint32_t octets_sent = 0, uint64_t ntp_timestamp = 0) {
     erizo::RtcpHeader *sender_report = new erizo::RtcpHeader();
     sender_report->setPacketType(RTCP_Sender_PT);
@@ -76,10 +76,10 @@ class PacketTools {
     sender_report->setOctetsSent(octets_sent);
     char *buf = reinterpret_cast<char*>(sender_report);
     int len = (sender_report->getLength() + 1) * 4;
-    return std::make_shared<dataPacket>(0, buf, len, type);
+    return std::make_shared<DataPacket>(0, buf, len, type);
   }
 
-  static std::shared_ptr<dataPacket> createVP8Packet(uint16_t seq_number, bool is_keyframe, bool is_marker) {
+  static std::shared_ptr<DataPacket> createVP8Packet(uint16_t seq_number, bool is_keyframe, bool is_marker) {
     erizo::RtpHeader *header = new erizo::RtpHeader();
     header->setPayloadType(96);
     header->setSeqNumber(seq_number);
@@ -97,12 +97,12 @@ class PacketTools {
     parsing_pointer++;
     *parsing_pointer = is_keyframe? 0x00: 0x01;
 
-    auto packet = std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    auto packet = std::make_shared<DataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
     packet->is_keyframe = is_keyframe;
     return packet;
   }
 
-  static std::shared_ptr<dataPacket> createVP8Packet(uint16_t seq_number, uint32_t timestamp,
+  static std::shared_ptr<DataPacket> createVP8Packet(uint16_t seq_number, uint32_t timestamp,
       bool is_keyframe, bool is_marker) {
     erizo::RtpHeader *header = new erizo::RtpHeader();
     header->setPayloadType(96);
@@ -122,12 +122,12 @@ class PacketTools {
     parsing_pointer++;
     *parsing_pointer = is_keyframe? 0x00: 0x01;
 
-    auto packet = std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    auto packet = std::make_shared<DataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
     packet->is_keyframe = is_keyframe;
     return packet;
   }
 
-  static std::shared_ptr<dataPacket> createVP9Packet(uint16_t seq_number, bool is_keyframe, bool is_marker) {
+  static std::shared_ptr<DataPacket> createVP9Packet(uint16_t seq_number, bool is_keyframe, bool is_marker) {
     erizo::RtpHeader *header = new erizo::RtpHeader();
     header->setPayloadType(98);
     header->setSeqNumber(seq_number);
@@ -143,12 +143,12 @@ class PacketTools {
 
     *parsing_pointer = is_keyframe? 0x00: 0x40;
 
-    auto packet = std::make_shared<dataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    auto packet = std::make_shared<DataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
     packet->is_keyframe = is_keyframe;
     return packet;
   }
 
-  static std::shared_ptr<erizo::dataPacket> createRembPacket(uint32_t bitrate) {
+  static std::shared_ptr<erizo::DataPacket> createRembPacket(uint32_t bitrate) {
     erizo::RtcpHeader *remb_packet = new erizo::RtcpHeader();
     remb_packet->setPacketType(RTCP_PS_Feedback_PT);
     remb_packet->setBlockCount(RTCP_AFB);
@@ -162,12 +162,12 @@ class PacketTools {
     remb_packet->setREMBFeedSSRC(55554);
     int remb_length = (remb_packet->getLength() + 1) * 4;
     char *buf = reinterpret_cast<char*>(remb_packet);
-    auto packet = std::make_shared<erizo::dataPacket>(0, buf, remb_length, erizo::OTHER_PACKET);
+    auto packet = std::make_shared<erizo::DataPacket>(0, buf, remb_length, erizo::OTHER_PACKET);
     delete remb_packet;
     return packet;
   }
 
-  static std::shared_ptr<erizo::dataPacket> createPLI() {
+  static std::shared_ptr<erizo::DataPacket> createPLI() {
     erizo::RtcpHeader *pli = new erizo::RtcpHeader();
     pli->setPacketType(RTCP_PS_Feedback_PT);
     pli->setBlockCount(1);
@@ -176,7 +176,7 @@ class PacketTools {
     pli->setLength(2);
     char *buf = reinterpret_cast<char*>(pli);
     int len = (pli->getLength() + 1) * 4;
-    auto packet = std::make_shared<erizo::dataPacket>(0, buf, len, erizo::OTHER_PACKET);
+    auto packet = std::make_shared<erizo::DataPacket>(0, buf, len, erizo::OTHER_PACKET);
     delete pli;
     return packet;
   }
@@ -254,7 +254,7 @@ class BaseHandlerTest  {
   std::shared_ptr<erizo::SimulatedWorker> simulated_worker;
   std::shared_ptr<erizo::IOWorker> io_worker;
   std::shared_ptr<erizo::PacketBufferService> packet_buffer_service;
-  std::queue<std::shared_ptr<dataPacket>> packet_queue;
+  std::queue<std::shared_ptr<DataPacket>> packet_queue;
 };
 
 class HandlerTest : public ::testing::Test, public BaseHandlerTest {

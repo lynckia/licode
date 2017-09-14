@@ -135,11 +135,11 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   void getJSONStats(std::function<void(std::string)> callback);
 
-  void onTransportData(std::shared_ptr<dataPacket> packet, Transport *transport) override;
+  void onTransportData(std::shared_ptr<DataPacket> packet, Transport *transport) override;
 
   void updateState(TransportState state, Transport * transport) override;
 
-  void sendPacketAsync(std::shared_ptr<dataPacket> packet);
+  void sendPacketAsync(std::shared_ptr<DataPacket> packet);
 
   void onCandidate(const CandidateInfo& cand, Transport *transport) override;
 
@@ -149,8 +149,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   void setMetadata(std::map<std::string, std::string> metadata);
 
-  void read(std::shared_ptr<dataPacket> packet);
-  void write(std::shared_ptr<dataPacket> packet);
+  void read(std::shared_ptr<DataPacket> packet);
+  void write(std::shared_ptr<DataPacket> packet);
 
   void enableHandler(const std::string &name);
   void disableHandler(const std::string &name);
@@ -177,16 +177,16 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   }
 
  private:
-  void sendPacket(std::shared_ptr<dataPacket> packet);
-  int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
-  int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
-  int deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) override;
+  void sendPacket(std::shared_ptr<DataPacket> packet);
+  int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override;
+  int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override;
+  int deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) override;
   void initializePipeline();
 
   // Utils
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   // changes the outgoing payload type for in the given data packet
-  void changeDeliverPayloadType(dataPacket *dp, packetType type);
+  void changeDeliverPayloadType(DataPacket *dp, packetType type);
   // parses incoming payload type, replaces occurence in buf
   void parseIncomingPayloadType(char *buf, int len, packetType type);
   void trackTransportInfo();
@@ -247,7 +247,7 @@ class PacketReader : public InboundHandler {
     return "reader";
   }
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override {
+  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override {
     connection_->read(std::move(packet));
   }
 
@@ -269,7 +269,7 @@ class PacketWriter : public OutboundHandler {
     return "writer";
   }
 
-  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override {
+  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override {
     connection_->write(std::move(packet));
   }
 

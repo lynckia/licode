@@ -336,10 +336,10 @@ void RtcpAggregator::checkRtcpFb() {
         }
       }
       if  (rtcpSource_->isVideoSourceSSRC(sourceSsrc)) {
-        rtcpSink_->deliverVideoData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(packet_),
+        rtcpSink_->deliverVideoData(std::make_shared<DataPacket>(0, reinterpret_cast<char*>(packet_),
               length, VIDEO_PACKET));
       } else {
-        rtcpSink_->deliverAudioData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(packet_),
+        rtcpSink_->deliverAudioData(std::make_shared<DataPacket>(0, reinterpret_cast<char*>(packet_),
               length, AUDIO_PACKET));
       }
       rtcpData->last_rr_sent = now;

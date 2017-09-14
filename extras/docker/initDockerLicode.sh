@@ -16,6 +16,7 @@ parse_arguments(){
     ERIZOCONTROLLER=true
     ERIZOAGENT=true
     BASICEXAMPLE=true
+    ERIZODEBUG=false
 
   else
     while [ "$1" != "" ]; do
@@ -34,6 +35,9 @@ parse_arguments(){
         ;;
         "--erizoAgent")
         ERIZOAGENT=true
+        ;;
+        "--erizoDebug")
+        ERIZODEBUG=true
         ;;
         "--basicExample")
         BASICEXAMPLE=true
@@ -115,7 +119,11 @@ run_erizoController() {
 run_erizoAgent() {
   echo "Starting erizoAgent"
   cd $ROOT/erizo_controller/erizoAgent
-  node erizoAgent.js &
+  if [ "$ERIZODEBUG" = "true" ]; then
+    node erizoAgent.js -d &
+  else
+    node erizoAgent.js &
+  fi
 }
 run_basicExample() {
   echo "Starting basicExample"

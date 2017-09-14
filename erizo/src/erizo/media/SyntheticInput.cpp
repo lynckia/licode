@@ -136,7 +136,7 @@ void SyntheticInput::sendVideoframe(bool is_keyframe, bool is_marker, uint32_t s
     keyframe_requested_ = false;
   }
   if (video_sink_) {
-    video_sink_->deliverVideoData(std::make_shared<dataPacket>(0, packet_buffer, size, VIDEO_PACKET));
+    video_sink_->deliverVideoData(std::make_shared<DataPacket>(0, packet_buffer, size, VIDEO_PACKET));
   }
   delete header;
 }
@@ -152,7 +152,7 @@ void SyntheticInput::sendAudioFrame(uint32_t size) {
   memset(packet_buffer, 0, size);
   memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
   if (audio_sink_) {
-    audio_sink_->deliverAudioData(std::make_shared<dataPacket>(0, packet_buffer, size, AUDIO_PACKET));
+    audio_sink_->deliverAudioData(std::make_shared<DataPacket>(0, packet_buffer, size, AUDIO_PACKET));
   }
   delete header;
 }
@@ -175,7 +175,7 @@ void SyntheticInput::calculateSizeAndPeriod(uint32_t video_bitrate, uint32_t aud
   audio_frame_size_ = audio_period.count() * audio_bitrate / 8000;
 }
 
-int SyntheticInput::deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) {
+int SyntheticInput::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(fb_packet->data);
   if (chead->isFeedback()) {
     if (chead->getBlockCount() == 0 && (chead->getLength()+1) * 4  == fb_packet->length) {
