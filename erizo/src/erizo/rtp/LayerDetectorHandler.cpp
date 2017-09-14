@@ -9,6 +9,7 @@ namespace erizo {
 
 static constexpr uint32_t kMaxTemporalLayers = 4;
 static constexpr uint32_t kMaxSpatialLayers = 4;
+static constexpr erizo::duration kMinNotifyLayerInfoInterval = std::chrono::seconds(5);
 
 DEFINE_LOGGER(LayerDetectorHandler, "rtp.LayerDetectorHandler");
 
@@ -63,7 +64,7 @@ void LayerDetectorHandler::notifyLayerInfoChangedEvent() {
 }
 
 void LayerDetectorHandler::notifyLayerInfoChangedEventMaybe() {
-  if (clock_->now() - last_event_sent_ > std::chrono::seconds(5)) {
+  if (clock_->now() - last_event_sent_ > kMinNotifyLayerInfoInterval) {
     notifyLayerInfoChangedEvent();
   }
 }
