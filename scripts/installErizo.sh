@@ -32,6 +32,7 @@ OPTIONS:
    -e      Compile Erizo
    -a      Compile Erizo API
    -c      Install Erizo node modules
+   -o      Clean object files
    -s      Install Spine
    -t      Run Tests
 EOF
@@ -53,6 +54,9 @@ install_erizo(){
   cd $ROOT/erizo
   ./generateProject.sh
   ./buildProject.sh $FAST_MAKE
+  if [ $CLEAN_OBJECT_FILES == 'true' ]; then
+    ./cleanObjectFiles.sh
+  fi
   check_result $?
   cd $CURRENT_DIR
 }
@@ -124,6 +128,9 @@ else
         ;;
       f)
         FAST_MAKE='-j4'
+        ;;
+      o)
+        CLEAN_OBJECT_FILES='true'
         ;;
       ?)
         usage

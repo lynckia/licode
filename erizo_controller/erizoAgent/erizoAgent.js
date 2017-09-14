@@ -19,6 +19,7 @@ GLOBAL.config.erizoAgent.useIndividualLogFiles =
     GLOBAL.config.erizoAgent.useIndividualLogFiles|| false;
 
 var BINDED_INTERFACE_NAME = GLOBAL.config.erizoAgent.networkInterface;
+const LAUNCH_SCRIPT = './launch.sh';
 
 // Parse command line arguments
 var getopt = new Getopt([
@@ -30,6 +31,7 @@ var getopt = new Getopt([
   ['P' , 'prerun-processes=ARG'        , 'Default video Bandwidth'],
   ['I' , 'individual-logs'             , 'Use individual log files for ErizoJS processes'],
   ['m' , 'metadata=ARG'               , 'JSON metadata'],
+  ['d' , 'debug'                     , 'Run erizoJS with debug library'],
   ['h' , 'help'                       , 'display this help']
 ]);
 
@@ -39,7 +41,8 @@ var interfaces = require('os').networkInterfaces(),
     k2,
     address,
     privateIP,
-    publicIP;
+    publicIP,
+    launchDebugErizoJS;
 
 var opt = getopt.parse(process.argv.slice(2));
 
@@ -76,10 +79,12 @@ for (var prop in opt.options) {
             case 'individual-logs':
                 GLOBAL.config.erizoAgent = GLOBAL.config.erizoAgent || {};
                 GLOBAL.config.erizoAgent.useIndividualLogFiles = true;
-
                 break;
             case 'metadata':
                 metadata = JSON.parse(value);
+                break;
+            case 'debug':
+                launchDebugErizoJS = true;
                 break;
             default:
                 GLOBAL.config.erizoAgent[prop] = value;
@@ -114,7 +119,6 @@ var guid = (function() {
 })();
 
 var myErizoAgentId = guid();
-
 var launchErizoJS;
 
 var fillErizos = function () {
@@ -131,13 +135,18 @@ launchErizoJS = function() {
     log.debug('message: launching ErizoJS, erizoId: ' + id);
     var fs = require('fs');
     var erizoProcess, out, err;
+    const erizoLaunchOptions = ['./../erizoJS/erizoJS.js', id, privateIP, publicIP];
+    if (launchDebugErizoJS) {
+      erizoLaunchOptions.push('-d');
+    }
+    
     if (GLOBAL.config.erizoAgent.useIndividualLogFiles){
         out = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
         err = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
-        erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, privateIP, publicIP],
+        erizoProcess = spawn(LAUNCH_SCRIPT, erizoLaunchOptions,
                              { detached: true, stdio: [ 'ignore', out, err ] });
     }else{
-        erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, privateIP, publicIP],
+        erizoProcess = spawn(LAUNCH_SCRIPT, erizoLaunchOptions,
                             { detached: true, stdio: [ 'ignore', 'pipe', 'pipe' ] });
         erizoProcess.stdout.setEncoding('utf8');
         erizoProcess.stdout.on('data', function (message) {

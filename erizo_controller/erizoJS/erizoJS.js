@@ -34,6 +34,7 @@ var getopt = new Getopt([
   ['T' , 'turnport=ARG'               , 'TURN server PORT'],
   ['c' , 'turnusername=ARG'           , 'TURN username'],
   ['C' , 'turnpass=ARG'               , 'TURN password'],
+  ['d', 'debug'                   , 'Run Debug erizoAPI addon'],
   ['h' , 'help'                       , 'display this help']
 ]);
 
@@ -62,6 +63,10 @@ for (var prop in opt.options) {
             case 'logging-config-file':
                 GLOBAL.config.logger = GLOBAL.config.logger || {};
                 GLOBAL.config.logger.configFile = value;
+                break;
+            case 'debug':
+                console.log('Loading debug version');
+                addon = require('./../../erizoAPI/build/Release/addonDebug');
                 break;
             default:
                 GLOBAL.config.erizo[prop] = value;
