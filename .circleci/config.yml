@@ -43,7 +43,7 @@ jobs:
       - run:
           name: Lint Erizo
           command: |
-            docker run --rm -ti -w /opt/licode/erizo/build/ --entrypoint /bin/bash lynckia/licode:develop -c "make lint"
+            docker run --rm -ti -w /opt/licode/erizo/build/release --entrypoint /bin/bash lynckia/licode:develop -c "make lint"
 
       - run:
           name: Unit Tests Erizo
