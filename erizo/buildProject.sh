@@ -22,4 +22,4 @@ buildAll() {
 
 
 
-buildAll
+buildAll $*

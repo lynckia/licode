@@ -9,7 +9,7 @@ if(${ERIZO_BUILD_TYPE} STREQUAL "debug")
   set(CMAKE_CXX_FLAGS "-g -Wall -std=c++11 ${ERIZO_CMAKE_CXX_FLAGS}")
 else()
   message("Generating RELEASE project")
-  set(CMAKE_CXX_FLAGS "-g -O3 -std=c++11 ${ERIZO_CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-g -Wall -O3 -std=c++11 ${ERIZO_CMAKE_CXX_FLAGS}")
 endif()
 
 

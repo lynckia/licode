@@ -32,7 +32,8 @@ OPTIONS:
    -e      Compile Erizo
    -a      Compile Erizo API
    -c      Install Erizo node modules
-   -o      Clean object files
+   -d      Delete Erizo object files
+   -f      Use 4 threads to build
    -s      Install Spine
    -t      Run Tests
 EOF
@@ -54,7 +55,7 @@ install_erizo(){
   cd $ROOT/erizo
   ./generateProject.sh
   ./buildProject.sh $FAST_MAKE
-  if [ $CLEAN_OBJECT_FILES == 'true' ]; then
+  if [ $DELETE_OBJECT_FILES == 'true' ]; then
     ./cleanObjectFiles.sh
   fi
   check_result $?
@@ -104,7 +105,7 @@ then
   install_erizo_controller
   install_spine
 else
-  while getopts “heacstf” OPTION
+  while getopts “heacstfd” OPTION
   do
     case $OPTION in
       h)
@@ -129,8 +130,8 @@ else
       f)
         FAST_MAKE='-j4'
         ;;
-      o)
-        CLEAN_OBJECT_FILES='true'
+      d)
+        DELETE_OBJECT_FILES='true'
         ;;
       ?)
         usage
