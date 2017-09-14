@@ -29,7 +29,7 @@ std::string octet_string_hex_string(const void *s, int length) {
   }
 
   const uint8_t *str = (const uint8_t*)s;
-  int i;
+  int i = 0;
 
   char bit_string[kKeyStringLength * 2];
 
