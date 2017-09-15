@@ -81,6 +81,13 @@ jobs:
     working_directory: /tmp/licode
 
     steps:
+      - run:
+          name: Install Git client
+          command: |
+            set -x
+            sudo apt-get update
+            sudo apt-get install -y git
+
       - checkout
 
       - setup_remote_docker
@@ -112,6 +119,13 @@ jobs:
     working_directory: /tmp/licode
 
     steps:
+      - run:
+          name: Install Git client
+          command: |
+            set -x
+            sudo apt-get update
+            sudo apt-get install -y git
+
       - checkout
 
       - setup_remote_docker
