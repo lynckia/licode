@@ -77,6 +77,7 @@ class Monitor {
 class MediaEvent {
  public:
   MediaEvent() = default;
+  virtual ~MediaEvent() {}
   virtual std::string getType() const {
     return "event";
   }
