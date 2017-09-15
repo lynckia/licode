@@ -29,7 +29,7 @@ std::string octet_string_hex_string(const void *s, int length) {
   }
 
   const uint8_t *str = (const uint8_t*)s;
-  int i;
+  int i = 0;
 
   char bit_string[kKeyStringLength * 2];
 
@@ -37,7 +37,6 @@ std::string octet_string_hex_string(const void *s, int length) {
       bit_string[i]   = nibble_to_hex_char(*str >> 4);
       bit_string[i + 1] = nibble_to_hex_char(*str++ & 0xF);
   }
-  bit_string[i] = 0; /* null terminate string */
   return std::string(bit_string);
 }
 
