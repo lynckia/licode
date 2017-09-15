@@ -52,6 +52,7 @@ class SenderBandwidthEstimationHandler : public Handler,
 
  private:
   WebRtcConnection* connection_;
+  std::shared_ptr<RtcpProcessor> processor_;
   SenderBandwidthEstimationListener* bwe_listener_;
   std::shared_ptr<Clock> clock_;
   bool initialized_;

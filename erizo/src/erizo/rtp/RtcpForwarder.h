@@ -21,11 +21,11 @@ class RtcpForwarder: public RtcpProcessor{
  public:
   RtcpForwarder(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw = 300000);
   virtual ~RtcpForwarder() {}
-  void addSourceSsrc(uint32_t ssrc);
-  void setPublisherBW(uint32_t bandwidth);
-  void analyzeSr(RtcpHeader* chead);
-  int analyzeFeedback(char* buf, int len);
-  void checkRtcpFb();
+  void addSourceSsrc(uint32_t ssrc) override;
+  void setPublisherBW(uint32_t bandwidth) override;
+  void analyzeSr(RtcpHeader* chead) override;
+  int analyzeFeedback(char* buf, int len) override;
+  void checkRtcpFb() override;
 
  private:
   static const int RR_AUDIO_PERIOD = 2000;

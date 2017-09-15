@@ -221,18 +221,18 @@ const BaseStack = (specInput) => {
       localDesc.sdp = SdpHelpers.setMaxBW(localDesc.sdp, specBase);
       if (config.Sdp || config.maxAudioBW) {
         Logger.debug('Updating with SDP renegotiation', specBase.maxVideoBW, specBase.maxAudioBW);
-        that.peerConnection.setLocalDescription(localDesc).then(() => {
-          remoteDesc.sdp = SdpHelpers.setMaxBW(remoteDesc.sdp, specBase);
-          that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc))
+        that.peerConnection.setLocalDescription(localDesc)
           .then(() => {
+            remoteDesc.sdp = SdpHelpers.setMaxBW(remoteDesc.sdp, specBase);
+            return that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc));
+          }).then(() => {
             specBase.remoteDescriptionSet = true;
             specBase.callback({ type: 'updatestream', sdp: localDesc.sdp });
-          }).catch(errorCallback.bind(null, 'updateSpec', undefined));
-        }).catch(errorCallback.bind(null, 'updateSpec', callback));
+          }).catch(errorCallback.bind(null, 'updateSpec', callback));
       } else {
         Logger.debug('Updating without SDP renegotiation, ' +
-                                'newVideoBW:', specBase.maxVideoBW,
-                                'newAudioBW:', specBase.maxAudioBW);
+                     'newVideoBW:', specBase.maxVideoBW,
+                     'newAudioBW:', specBase.maxAudioBW);
         specBase.callback({ type: 'updatestream', sdp: localDesc.sdp });
       }
     }
