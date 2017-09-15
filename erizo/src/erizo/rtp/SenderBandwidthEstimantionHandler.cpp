@@ -69,7 +69,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
       chead = reinterpret_cast<RtcpHeader*>(packet_pointer);
       rtcp_length = (ntohs(chead->length) + 1) * 4;
       total_length += rtcp_length;
-      ELOG_WARN("%s ssrc %u, sourceSSRC %u, PacketType %u", connection_->toLog(),
+      ELOG_DEBUG("%s ssrc %u, sourceSSRC %u, PacketType %u", connection_->toLog(),
           chead->getSSRC(),
           chead->getSourceSSRC(),
           chead->getPacketType());
@@ -121,7 +121,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
                 uint64_t cappedBitrate = bitrate < processor_->getMaxVideoBW() ? bitrate : processor_->getMaxVideoBW();
                 chead->setREMBBitRate(cappedBitrate);
 
-                ELOG_WARN("%s message: Updating Estimate with REMB, bitrate %lu", connection_->toLog(),
+                ELOG_DEBUG("%s message: Updating Estimate with REMB, bitrate %lu", connection_->toLog(),
                     cappedBitrate);
                 sender_bwe_->UpdateReceiverEstimate(now_ms, cappedBitrate);
                 updateEstimate();
