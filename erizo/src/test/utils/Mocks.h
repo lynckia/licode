@@ -43,6 +43,7 @@ class MockMediaSink : public MediaSink {
   MOCK_METHOD0(internal_close, void());
   MOCK_METHOD2(deliverAudioDataInternal, void(char*, int));
   MOCK_METHOD2(deliverVideoDataInternal, void(char*, int));
+  MOCK_METHOD1(deliverEventInternal, void(MediaEventPtr));
 
  private:
   int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override {
@@ -51,6 +52,10 @@ class MockMediaSink : public MediaSink {
   }
   int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override {
     deliverVideoDataInternal(video_packet->data, video_packet->length);
+    return 0;
+  }
+  int deliverEvent_(MediaEventPtr event) override {
+    deliverEventInternal(event);
     return 0;
   }
 };

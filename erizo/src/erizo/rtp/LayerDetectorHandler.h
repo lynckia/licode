@@ -16,6 +16,22 @@
 
 namespace erizo {
 
+class LayerInfoChangedEvent : public MediaEvent {
+ public:
+  LayerInfoChangedEvent(std::vector<uint32_t> video_frame_width_list_, std::vector<uint32_t> video_frame_height_list_,
+                        std::vector<uint64_t> video_frame_rate_list_)
+    : video_frame_width_list{video_frame_width_list_},
+      video_frame_height_list{video_frame_height_list_},
+      video_frame_rate_list{video_frame_rate_list_} {}
+
+  std::string getType() const override {
+    return "LayerInfoChangedEvent";
+  }
+  std::vector<uint32_t> video_frame_width_list;
+  std::vector<uint32_t> video_frame_height_list;
+  std::vector<uint64_t> video_frame_rate_list;
+};
+
 class WebRtcConnection;
 
 class LayerDetectorHandler: public InboundHandler, public std::enable_shared_from_this<LayerDetectorHandler> {

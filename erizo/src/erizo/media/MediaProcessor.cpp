@@ -126,6 +126,10 @@ int InputProcessor::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) 
   return 0;
 }
 
+int InputProcessor::deliverEvent_(MediaEventPtr event) {
+  return 0;
+}
+
 bool InputProcessor::initAudioDecoder() {
   aDecoder = avcodec_find_decoder(static_cast<AVCodecID>(mediaInfo.audioCodec.codec));
   if (!aDecoder) {

@@ -10,6 +10,7 @@ using testing::_;
 using testing::Return;
 using testing::Eq;
 using erizo::DataPacket;
+using erizo::MediaEventPtr;
 
 static const char kArbitraryPeerId[] = "111";
 
@@ -43,9 +44,13 @@ class MockSubscriber: public erizo::MediaSink, public erizo::FeedbackSource {
   int deliverVideoData_(std::shared_ptr<DataPacket> packet) override {
     return internalDeliverVideoData_(packet);
   }
+  int deliverEvent_(MediaEventPtr event) override {
+    return internalDeliverEvent_(event);
+  }
 
   MOCK_METHOD1(internalDeliverAudioData_, int(std::shared_ptr<DataPacket>));
   MOCK_METHOD1(internalDeliverVideoData_, int(std::shared_ptr<DataPacket>));
+  MOCK_METHOD1(internalDeliverEvent_, int(MediaEventPtr));
 };
 
 class OneToManyProcessorTest : public ::testing::Test {

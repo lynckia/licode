@@ -176,6 +176,7 @@ class Pipeline : public PipelineBase {
   void finalize() override;
 
   void notifyUpdate();
+  void notifyEvent(MediaEventPtr event);
   void enable(std::string name);
   void disable(std::string name);
 

@@ -342,6 +342,7 @@ NAN_METHOD(WebRtcConnection::setAudioReceiver) {
   erizo::MediaSink *mr = param->msink;
 
   me->setAudioSink(mr);
+  me->setEventSink(mr);
 }
 
 NAN_METHOD(WebRtcConnection::setVideoReceiver) {
@@ -352,6 +353,7 @@ NAN_METHOD(WebRtcConnection::setVideoReceiver) {
   erizo::MediaSink *mr = param->msink;
 
   me->setVideoSink(mr);
+  me->setEventSink(mr);
 }
 
 NAN_METHOD(WebRtcConnection::getCurrentState) {

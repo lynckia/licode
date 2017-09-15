@@ -74,6 +74,17 @@ class Monitor {
     boost::mutex monitor_mutex_;
 };
 
+class MediaEvent {
+ public:
+  MediaEvent() = default;
+  virtual ~MediaEvent() {}
+  virtual std::string getType() const {
+    return "event";
+  }
+};
+
+using MediaEventPtr = std::shared_ptr<MediaEvent>;
+
 class FeedbackSink {
  public:
     virtual ~FeedbackSink() {}
@@ -83,7 +94,6 @@ class FeedbackSink {
  private:
     virtual int deliverFeedback_(std::shared_ptr<DataPacket> data_packet) = 0;
 };
-
 
 class FeedbackSource {
  protected:
@@ -140,6 +150,9 @@ class MediaSink: public virtual Monitor {
         boost::mutex::scoped_lock lock(monitor_mutex_);
         return sink_fb_source_;
     }
+    int deliverEvent(MediaEventPtr event) {
+      return this->deliverEvent_(event);
+    }
     MediaSink() : audio_sink_ssrc_{0}, video_sink_ssrc_{0}, sink_fb_source_{nullptr} {}
     virtual ~MediaSink() {}
 
@@ -148,6 +161,7 @@ class MediaSink: public virtual Monitor {
  private:
     virtual int deliverAudioData_(std::shared_ptr<DataPacket> data_packet) = 0;
     virtual int deliverVideoData_(std::shared_ptr<DataPacket> data_packet) = 0;
+    virtual int deliverEvent_(MediaEventPtr event) = 0;
 };
 
 /**
@@ -160,6 +174,7 @@ class MediaSource: public virtual Monitor {
     std::vector<uint32_t> video_source_ssrc_list_;
     MediaSink* video_sink_;
     MediaSink* audio_sink_;
+    MediaSink* event_sink_;
     // can it accept feedback
     FeedbackSink* source_fb_sink_;
 
@@ -171,6 +186,10 @@ class MediaSource: public virtual Monitor {
     void setVideoSink(MediaSink* video_sink) {
         boost::mutex::scoped_lock lock(monitor_mutex_);
         this->video_sink_ = video_sink;
+    }
+    void setEventSink(MediaSink* event_sink) {
+      boost::mutex::scoped_lock lock(monitor_mutex_);
+      this->event_sink_ = event_sink;
     }
 
     FeedbackSink* getFeedbackSink() {
@@ -216,7 +235,7 @@ class MediaSource: public virtual Monitor {
     }
 
     MediaSource() : audio_source_ssrc_{0}, video_source_ssrc_list_{std::vector<uint32_t>(1, 0)},
-      video_sink_{nullptr}, audio_sink_{nullptr}, source_fb_sink_{nullptr} {}
+      video_sink_{nullptr}, audio_sink_{nullptr}, event_sink_{nullptr}, source_fb_sink_{nullptr} {}
     virtual ~MediaSource() {}
 
     virtual void close() = 0;

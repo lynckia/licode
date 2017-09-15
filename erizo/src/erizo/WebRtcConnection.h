@@ -156,6 +156,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   void disableHandler(const std::string &name);
   void notifyUpdateToHandlers();
 
+  void notifyToEventSink(MediaEventPtr event);
+
   void asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
 
   bool isAudioMuted() { return audio_muted_; }
@@ -181,6 +183,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override;
   int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override;
   int deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) override;
+  int deliverEvent_(MediaEventPtr event) override;
   void initializePipeline();
 
   // Utils

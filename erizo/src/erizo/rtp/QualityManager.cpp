@@ -1,5 +1,8 @@
 #include "rtp/QualityManager.h"
+#include <memory>
+
 #include "WebRtcConnection.h"
+#include "rtp/LayerDetectorHandler.h"
 
 namespace erizo {
 
@@ -27,6 +30,15 @@ void QualityManager::disable() {
   ELOG_DEBUG("message: Disabling QualityManager");
   enabled_ = false;
   setPadding(false);
+}
+
+void QualityManager::notifyEvent(MediaEventPtr event) {
+  if (event->getType() == "LayerInfoChangedEvent") {
+    auto layer_event = std::static_pointer_cast<LayerInfoChangedEvent>(event);
+    video_frame_width_list_ = layer_event->video_frame_width_list;
+    video_frame_height_list_ = layer_event->video_frame_height_list;
+    video_frame_rate_list_ = layer_event->video_frame_rate_list;
+  }
 }
 
 void QualityManager::notifyQualityUpdate() {

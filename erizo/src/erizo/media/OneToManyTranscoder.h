@@ -64,6 +64,7 @@ class OneToManyTranscoder : public MediaSink, public RawDataReceiver, public RTP
   unsigned int sentPackets_;
   int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override;
   int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override;
+  int deliverEvent_(MediaEventPtr event) override;
   /**
   * Closes all the subscribers and the publisher, the object is useless after this
   */

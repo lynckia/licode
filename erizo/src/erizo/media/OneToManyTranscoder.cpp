@@ -81,6 +81,10 @@ int OneToManyTranscoder::deliverVideoData_(std::shared_ptr<DataPacket> video_pac
   return 0;
 }
 
+int OneToManyTranscoder::deliverEvent_(MediaEventPtr event) {
+  return 0;
+}
+
 void OneToManyTranscoder::receiveRawData(const RawDataPacket& pkt) {
   // ELOG_DEBUG("Received %d", pkt.length);
   op_->receiveRawData(pkt);

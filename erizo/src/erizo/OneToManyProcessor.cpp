@@ -74,6 +74,19 @@ namespace erizo {
     return 0;
   }
 
+  int OneToManyProcessor::deliverEvent_(MediaEventPtr event) {
+    boost::unique_lock<boost::mutex> lock(monitor_mutex_);
+    if (subscribers.empty())
+      return 0;
+    std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
+    for (it = subscribers.begin(); it != subscribers.end(); ++it) {
+      if ((*it).second != nullptr) {
+        (*it).second->deliverEvent(event);
+      }
+    }
+    return 0;
+  }
+
   void OneToManyProcessor::addSubscriber(std::shared_ptr<MediaSink> webRtcConn,
       const std::string& peerId) {
     ELOG_DEBUG("Adding subscriber");

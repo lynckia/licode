@@ -441,6 +441,17 @@ int WebRtcConnection::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
   return fb_packet->length;
 }
 
+int WebRtcConnection::deliverEvent_(MediaEventPtr event) {
+  auto conn_ptr = shared_from_this();
+  worker_->task([conn_ptr, event]{
+    if (!conn_ptr->pipeline_initialized_) {
+      return;
+    }
+    conn_ptr->pipeline_->notifyEvent(event);
+  });
+  return 1;
+}
+
 void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Transport *transport) {
   if ((audio_sink_ == nullptr && video_sink_ == nullptr && fb_sink_ == nullptr) ||
       getCurrentState() != CONN_READY) {
@@ -527,6 +538,10 @@ void WebRtcConnection::read(std::shared_ptr<DataPacket> packet) {
       }
     }  // if not bundle
   }  // if not Feedback
+}
+
+void WebRtcConnection::notifyToEventSink(MediaEventPtr event) {
+  event_sink_->deliverEvent(event);
 }
 
 int WebRtcConnection::sendPLI() {

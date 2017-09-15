@@ -9,6 +9,7 @@ class PipelineServiceContext {
 
   virtual void attachPipeline() = 0;
   virtual void detachPipeline() = 0;
+  virtual void notifyEvent(MediaEventPtr event) = 0;
 
   template <class S, class Context>
   void attachContext(S* service, Context* ctx) {
@@ -57,6 +58,14 @@ class ServiceContextImplBase : public PipelineServiceContext {
     }
     service_ptr->detachPipeline(impl_);
     attached_ = false;
+  }
+
+  void notifyEvent(MediaEventPtr event) override {
+    auto service_ptr = service_.lock();
+    if (!service_ptr) {
+      return;
+    }
+    service_ptr->notifyEvent(event);
   }
 
  protected:

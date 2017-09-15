@@ -346,6 +346,9 @@ int ExternalOutput::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) 
   return 0;
 }
 
+int ExternalOutput::deliverEvent_(MediaEventPtr event) {
+  return 0;
+}
 
 bool ExternalOutput::initContext() {
   if (context_->oformat->video_codec != AV_CODEC_ID_NONE &&
