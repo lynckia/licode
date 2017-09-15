@@ -442,11 +442,11 @@ int WebRtcConnection::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
 }
 
 int WebRtcConnection::deliverEvent_(MediaEventPtr event) {
-  if (!sending_ || getCurrentState() != CONN_READY) {
-    return 0;
-  }
   auto conn_ptr = shared_from_this();
   worker_->task([conn_ptr, event]{
+    if (!conn_ptr->pipeline_initialized_) {
+      return;
+    }
     conn_ptr->pipeline_->notifyEvent(event);
   });
   return 1;
