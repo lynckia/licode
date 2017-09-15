@@ -116,6 +116,7 @@ class RtcpProcessor : public Service {
   virtual void setPublisherBW(uint32_t bandwidth) = 0;
   virtual void analyzeSr(RtcpHeader* chead) = 0;
   virtual int analyzeFeedback(char* buf, int len) = 0;
+  virtual void analyzeReceivedFeedback(char *buf, int len) = 0;
   virtual void checkRtcpFb() = 0;
 
   virtual void setMaxVideoBW(uint32_t bandwidth) { max_video_bw_ = bandwidth; }

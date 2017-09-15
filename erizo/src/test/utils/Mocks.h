@@ -24,6 +24,7 @@ class MockRtcpProcessor : public RtcpProcessor {
   MOCK_METHOD1(setPublisherBW, void(uint32_t));
   MOCK_METHOD1(analyzeSr, void(RtcpHeader*));
   MOCK_METHOD2(analyzeFeedback, int(char*, int));
+  MOCK_METHOD2(analyzeReceivedFeedback, void(char*, int));
   MOCK_METHOD0(checkRtcpFb, void());
 };
 

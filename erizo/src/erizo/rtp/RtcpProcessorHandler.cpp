@@ -21,6 +21,7 @@ void RtcpProcessorHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet
     if (chead->packettype == RTCP_Sender_PT) {  // Sender Report
       processor_->analyzeSr(chead);
     }
+    processor_->analyzeReceivedFeedback(packet->data, packet->length);
   } else {
     if (stats_->getNode()["total"].hasChild("bitrateCalculated")) {
        processor_->setPublisherBW(stats_->getNode()["total"]["bitrateCalculated"].value());

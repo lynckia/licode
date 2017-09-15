@@ -162,6 +162,61 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
   return 0;
 }
 
+void RtcpForwarder::analyzeReceivedFeedback(char *buf, int len) {
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(buf);
+  if (chead->isFeedback()) {
+    if (chead->getBlockCount() == 0 && (chead->getLength() + 1) * 4  == len) {
+      ELOG_DEBUG("Ignoring empty RR");
+      return;
+    }
+    uint32_t sourceSsrc = chead->getSourceSSRC();
+    // We try to add it just in case it is not there yet (otherwise its noop)
+    this->addSourceSsrc(sourceSsrc);
+
+    char* movingBuf = buf;
+    int rtcpLength = 0;
+    int totalLength = 0;
+    int currentBlock = 0;
+
+    do {
+      movingBuf+=rtcpLength;
+      chead = reinterpret_cast<RtcpHeader*>(movingBuf);
+      rtcpLength = (ntohs(chead->length) + 1) * 4;
+      totalLength += rtcpLength;
+      switch (chead->packettype) {
+        case RTCP_PS_Feedback_PT:
+          switch (chead->getBlockCount()) {
+            case RTCP_AFB:
+              {
+                char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
+                if (!strncmp(uniqueId, "REMB", 4)) {
+                  uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
+                  uint64_t cappedBitrate = 0;
+                  cappedBitrate = bitrate < max_video_bw_? bitrate: max_video_bw_;
+                  if (bitrate < max_video_bw_) {
+                    cappedBitrate = bitrate;
+                  } else {
+                    cappedBitrate = max_video_bw_;
+                  }
+                  ELOG_DEBUG("Received REMB %lu, partnum %u, cappedBitrate %lu",
+                              bitrate, currentBlock, cappedBitrate);
+                  chead->setREMBBitRate(cappedBitrate);
+                }
+                break;
+              }
+            default:
+              break;
+          }
+          break;
+        default:
+          break;
+      }
+      currentBlock++;
+    } while (totalLength < len);
+    return;
+  }
+  return;
+}
 
 void RtcpForwarder::checkRtcpFb() {
 }

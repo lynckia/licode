@@ -240,6 +240,9 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
   return 0;
 }
 
+void RtcpAggregator::analyzeReceivedFeedback(char* buf, int len) {
+}
+
 
 void RtcpAggregator::checkRtcpFb() {
   boost::mutex::scoped_lock mlock(mapLock_);
