@@ -173,7 +173,7 @@ int InputProcessor::decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned c
   }
 
   AVPacket avpkt;
-  int outSize;
+  int outSize = 0;
   int decSize = 0;
   int len = -1;
   uint8_t *decBuff = reinterpret_cast<uint8_t*>(malloc(16000));

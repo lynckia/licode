@@ -104,7 +104,7 @@ void BandwidthEstimationHandler::updateExtensionMaps(std::array<RTPExtensions, 1
 }
 
 void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RTPExtensions, 10> map) {
-  webrtc::RTPExtensionType type;
+  webrtc::RTPExtensionType type = webrtc::kRtpExtensionNone;
   for (uint8_t id = 0; id < 10; id++) {
     RTPExtensions extension = map[id];
     switch (extension) {
@@ -130,6 +130,9 @@ void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RT
       case PLAYBACK_TIME:
         type = webrtc::kRtpExtensionPlayoutDelay;
         break;
+    }
+    if (type == webrtc::kRtpExtensionNone) {
+      continue;
     }
     if (is_video) {
       ext_map_video_.RegisterByType(id, type);

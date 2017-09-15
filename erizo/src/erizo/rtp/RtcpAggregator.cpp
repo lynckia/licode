@@ -87,7 +87,8 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
     uint16_t currentNackPos = 0;
     uint16_t blp = 0;
     uint32_t lostPacketSeq = 0;
-    uint32_t calculatedlsr, delay, calculateLastSr, extendedSeqNo;
+    uint32_t delay = 0;
+    uint32_t calculatedlsr, calculateLastSr, extendedSeqNo;
 
     do {
       movingBuf += rtcpLength;
