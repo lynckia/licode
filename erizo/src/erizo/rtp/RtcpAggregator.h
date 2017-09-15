@@ -26,7 +26,6 @@ class RtcpAggregator: public RtcpProcessor{
   void setPublisherBW(uint32_t bandwidth);
   void analyzeSr(RtcpHeader* chead);
   int analyzeFeedback(char* buf, int len);
-  void analyzeReceivedFeedback(char* buf, int len) override;
   void checkRtcpFb();
 
  private:

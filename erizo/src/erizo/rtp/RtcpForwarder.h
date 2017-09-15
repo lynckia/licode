@@ -25,7 +25,6 @@ class RtcpForwarder: public RtcpProcessor{
   void setPublisherBW(uint32_t bandwidth) override;
   void analyzeSr(RtcpHeader* chead) override;
   int analyzeFeedback(char* buf, int len) override;
-  void analyzeReceivedFeedback(char* buf, int len) override;
   void checkRtcpFb() override;
 
  private:
