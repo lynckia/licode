@@ -55,7 +55,7 @@ install_erizo(){
   cd $ROOT/erizo
   ./generateProject.sh
   ./buildProject.sh $FAST_MAKE
-  if [ $DELETE_OBJECT_FILES == 'true' ]; then
+  if [ "$DELETE_OBJECT_FILES" == "true" ]; then
     ./cleanObjectFiles.sh
   fi
   check_result $?
