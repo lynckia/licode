@@ -30,6 +30,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
 
   void forceLayers(int spatial_layer, int temporal_layer);
 
+  void notifyEvent(MediaEventPtr event) override;
   void notifyQualityUpdate();
 
   virtual bool isPaddingEnabled() const { return padding_enabled_; }
@@ -59,6 +60,9 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   time_point last_activity_check_;
   std::shared_ptr<Stats> stats_;
   std::shared_ptr<Clock> clock_;
+  std::vector<uint32_t> video_frame_width_list_;
+  std::vector<uint32_t> video_frame_height_list_;
+  std::vector<uint64_t> video_frame_rate_list_;
 };
 }  // namespace erizo
 

@@ -22,6 +22,7 @@ class PipelineContext {
   virtual void detachPipeline() = 0;
 
   virtual void notifyUpdate() = 0;
+  virtual void notifyEvent(MediaEventPtr event) = 0;
   virtual std::string getName() = 0;
   virtual void enable() = 0;
   virtual void disable() = 0;
@@ -76,6 +77,10 @@ class ContextImplBase : public PipelineContext {
 
   void notifyUpdate() override {
     handler_->notifyUpdate();
+  }
+
+  void notifyEvent(MediaEventPtr event) override {
+    handler_->notifyEvent(event);
   }
 
   std::string getName() override {

@@ -140,6 +140,15 @@ void Pipeline::notifyUpdate() {
   }
 }
 
+void Pipeline::notifyEvent(MediaEventPtr event) {
+  for (auto it = ctxs_.rbegin(); it != ctxs_.rend(); it++) {
+    (*it)->notifyEvent(event);
+  }
+  for (auto it = service_ctxs_.rbegin(); it != service_ctxs_.rend(); it++) {
+    (*it)->notifyEvent(event);
+  }
+}
+
 void Pipeline::enable(std::string name) {
   for (auto it = ctxs_.rbegin(); it != ctxs_.rend(); it++) {
     if ((*it)->getName() == name) {

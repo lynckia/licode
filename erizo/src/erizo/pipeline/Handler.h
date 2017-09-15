@@ -68,6 +68,8 @@ class Handler : public HandlerBase<HandlerContext> {
   }
 
   virtual void notifyUpdate() = 0;
+  virtual void notifyEvent(MediaEventPtr event) {
+  }
 };
 
 class InboundHandler : public HandlerBase<InboundHandlerContext> {
@@ -94,6 +96,7 @@ class InboundHandler : public HandlerBase<InboundHandlerContext> {
   }
 
   virtual void notifyUpdate() = 0;
+  virtual void notifyEvent(MediaEventPtr event) {}
 };
 
 class OutboundHandler : public HandlerBase<OutboundHandlerContext> {
@@ -114,6 +117,7 @@ class OutboundHandler : public HandlerBase<OutboundHandlerContext> {
   }
 
   virtual void notifyUpdate() = 0;
+  virtual void notifyEvent(MediaEventPtr event) {}
 };
 
 class HandlerAdapter : public Handler {
@@ -139,6 +143,9 @@ class HandlerAdapter : public Handler {
   }
 
   void notifyUpdate() override {
+  }
+
+  void notifyEvent(MediaEventPtr event) override {
   }
 };
 }  // namespace erizo

@@ -53,13 +53,18 @@ void LayerDetectorHandler::notifyLayerInfoChangedEvent() {
     ELOG_DEBUG(" SPATIAL LAYER (%u): %u %u",
               spatial_layer, video_frame_width_list_[spatial_layer], video_frame_height_list_[spatial_layer]);
   }
+  std::vector<uint64_t> video_frame_rate_list;
   for (uint32_t temporal_layer = 0; temporal_layer < video_frame_rate_list_.size(); temporal_layer++) {
+    video_frame_rate_list.push_back(video_frame_rate_list_[temporal_layer].value());
     ELOG_DEBUG(" TEMPORAL LAYER (%u): %lu",
               temporal_layer, video_frame_rate_list_[temporal_layer].value());
   }
 
-  // TODO(javier): send an event to subscribers with the new info
-
+  if (connection_) {
+    connection_->notifyToEventSink(
+      std::make_shared<LayerInfoChangedEvent>(video_frame_width_list_,
+        video_frame_height_list_, video_frame_rate_list));
+  }
   last_event_sent_ = clock_->now();
 }
 
