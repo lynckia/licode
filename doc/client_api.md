@@ -289,7 +289,7 @@ It gets the URL of an image frame from the video.
 
 ## Update the spec of a stream
 
-It updates the audio and video maximum bandwidth for a publisher.
+It updates the audio and video maximum bandwidth for a publisher or a subscriber (it will affect other subscribers when Simulcast is not used).
 
 It can also be used in remote streams to toggle `slideShowMode`
 

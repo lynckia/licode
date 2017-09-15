@@ -44,6 +44,7 @@ void SenderBandwidthEstimationHandler::notifyUpdate() {
   auto pipeline = getContext()->getPipelineShared();
   if (pipeline && !connection_) {
     connection_ = pipeline->getService<WebRtcConnection>().get();
+    processor_ = pipeline->getService<RtcpProcessor>();
   }
   if (!connection_) {
     return;
@@ -117,9 +118,12 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
                 received_remb_ = true;
                 int64_t now_ms = ClockUtils::timePointToMs(clock_->now());
                 uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
+                uint64_t cappedBitrate = bitrate < processor_->getMaxVideoBW() ? bitrate : processor_->getMaxVideoBW();
+                chead->setREMBBitRate(cappedBitrate);
+
                 ELOG_DEBUG("%s message: Updating Estimate with REMB, bitrate %lu", connection_->toLog(),
-                    bitrate);
-                sender_bwe_->UpdateReceiverEstimate(now_ms, bitrate);
+                    cappedBitrate);
+                sender_bwe_->UpdateReceiverEstimate(now_ms, cappedBitrate);
                 updateEstimate();
               } else {
                 ELOG_DEBUG("%s message: Unsupported AFB Packet not REMB", connection_->toLog());
