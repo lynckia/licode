@@ -268,6 +268,9 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                         if (msg.config.qualityLayer !== undefined) {
                             that.setQualityLayer (msg.config.qualityLayer, peerId, streamId);
                         }
+                        if (msg.config.video !== undefined) {
+                            that.setVideoConstraints(msg.config.video, peerId, streamId);
+                        }
                     }
                 } else if (msg.type === 'control') {
                   processControlMessage(publisher, peerId, msg.action);
@@ -530,6 +533,13 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
       var publisher = this.publishers[to];
       if (publisher.hasSubscriber(from)) {
         publisher.setQualityLayer(from, qualityLayer.spatialLayer, qualityLayer.temporalLayer);
+      }
+    };
+
+    that.setVideoConstraints = function (video, from, to) {
+      var publisher = this.publishers[to];
+      if (publisher.hasSubscriber(from)) {
+        publisher.setVideoConstraints(from, video.width, video.height, video.frameRate);
       }
     };
 

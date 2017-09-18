@@ -294,7 +294,7 @@ It updates the audio and video maximum bandwidth for a publisher or a subscriber
 It can also be used in remote streams to toggle `slideShowMode`
 
 <example>
-You can update the maximun bandwidth of video and audio. These values are defined in the object passed to the function. You can also pass a callback function to get the final result.
+You can update the maximum bandwidth of video and audio. These values are defined in the object passed to the function. You can also pass a callback function to get the final result.
 </example>
 
 ```
@@ -480,6 +480,20 @@ room.subscribe(stream, {audio: true, video: true, slideShowMode:true}, function(
 
 `SlideShowMode` can also be toggled on or off using `stream.updateConfiguration`. Keep in mind this will only work on remote streams (subscriptions).
 
+When we enable Simulcast it is also interesting to specify whether the subscriber should not receive a resolution or frame rate beyond a maximum. We
+can configure it like in the example below:
+
+```
+room.subscribe(stream, {video: {height: {max: 480}, width: {max: 640}, frameRate: {max:20}}}, function(result, error){
+  if (result === undefined){
+    console.log("Error subscribing to stream", error);
+  } else {
+    console.log("Stream subscribed!");
+  }
+});
+```
+
+It would help us not wasting CPU or bandwidth if, for instance, we will not render videos in a <video> element bigger than 640x480.
 
 ## Unsubscribe from a remote stream
 

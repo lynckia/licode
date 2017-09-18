@@ -146,6 +146,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   void setFeedbackReports(bool will_send_feedback, uint32_t target_bitrate = 0);
   void setSlideShowMode(bool state);
   void muteStream(bool mute_video, bool mute_audio);
+  void setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate);
 
   void setMetadata(std::map<std::string, std::string> metadata);
 

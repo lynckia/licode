@@ -29,7 +29,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   void setTemporalLayer(int temporal_layer);
 
   void forceLayers(int spatial_layer, int temporal_layer);
-
+  void setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate);
   void notifyEvent(MediaEventPtr event) override;
   void notifyQualityUpdate();
 

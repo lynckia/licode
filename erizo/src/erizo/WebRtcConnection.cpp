@@ -757,6 +757,12 @@ void WebRtcConnection::muteStream(bool mute_video, bool mute_audio) {
   });
 }
 
+void WebRtcConnection::setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate) {
+  asyncTask([max_video_width, max_video_height, max_video_frame_rate] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->quality_manager_->setVideoConstraints(max_video_width, max_video_height, max_video_frame_rate);
+  });
+}
+
 void WebRtcConnection::setFeedbackReports(bool will_send_fb, uint32_t target_bitrate) {
   if (slide_show_mode_) {
     target_bitrate = 0;

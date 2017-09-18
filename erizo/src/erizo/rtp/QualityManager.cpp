@@ -190,6 +190,12 @@ void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
   temporal_layer_ = temporal_layer;
 }
 
+void QualityManager::setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate) {
+  ELOG_DEBUG("Max: width (%d), height (%d), frameRate (%d)", max_video_width, max_video_height, max_video_frame_rate);
+
+  // TODO(javier): Actually apply constraints to current feed.
+}
+
 void QualityManager::setSpatialLayer(int spatial_layer) {
   if (!forced_layers_) {
     spatial_layer_ = spatial_layer;
