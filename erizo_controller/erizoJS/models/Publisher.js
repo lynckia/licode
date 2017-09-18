@@ -58,8 +58,9 @@ class Source {
     const muteAudio = (options.muteStream && options.muteStream.audio) || false;
     this.muteSubscriberStream(id, muteVideo, muteAudio);
     if (options.video) {
-      this.setVideoConstraints(id, options.video.width, options.video.height, options.video.frameRate);
-    };
+      this.setVideoConstraints(id,
+        options.video.width, options.video.height, options.video.frameRate);
+    }
   }
 
   removeSubscriber(id) {
