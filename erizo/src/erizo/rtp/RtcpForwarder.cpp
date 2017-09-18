@@ -162,7 +162,6 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
   return 0;
 }
 
-
 void RtcpForwarder::checkRtcpFb() {
 }
 

@@ -240,7 +240,6 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
   return 0;
 }
 
-
 void RtcpAggregator::checkRtcpFb() {
   boost::mutex::scoped_lock mlock(mapLock_);
   std::map<uint32_t, boost::shared_ptr<RtcpData>>::iterator it;
