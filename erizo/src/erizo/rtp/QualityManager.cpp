@@ -88,9 +88,9 @@ void QualityManager::notifyQualityUpdate() {
 }
 
 bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_layer) {
-  if (spatial_layer > video_frame_width_list_.size() ||
-      spatial_layer > video_frame_height_list_.size() ||
-      temporal_layer > video_frame_rate_list_.size()) {
+  if (static_cast<int>(spatial_layer) > video_frame_width_list_.size() ||
+      static_cast<int>(spatial_layer) > video_frame_height_list_.size() ||
+      static_cast<int>(temporal_layer) > video_frame_rate_list_.size()) {
         return true;
   }
   if (spatial_layer == 0 && temporal_layer == 0) {
@@ -100,7 +100,7 @@ bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_la
   int64_t layer_height = video_frame_height_list_[spatial_layer];
   int64_t layer_frame_rate = video_frame_rate_list_[temporal_layer];
 
-  if (layer_width == 0 || layer_height == 0 || layer_frame_rate == 0) {
+  if (layer_width == 0 || layer_height == 0 || layer_frame_rate == 0) {
     return true;
   }
 
@@ -108,7 +108,7 @@ bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_la
   bool meets_width = max_video_width_ >= layer_width;
   bool meets_height = max_video_height_ >= layer_height;
 
-  bool meets_resolution = max_resolution_not_set || meets_width || meets_height;
+  bool meets_resolution = max_resolution_not_set || meets_width || meets_height;
   bool meets_frame_rate = max_video_frame_rate_ == -1 || max_video_frame_rate_ >= layer_frame_rate;
 
   return meets_resolution && meets_frame_rate;
