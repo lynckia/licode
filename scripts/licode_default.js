@@ -132,6 +132,9 @@ config.erizoAgent.networkinterface = ''; //default value: ''
 //This files will be named erizo-ERIZO_ID_HASH.log
 config.erizoAgent.useIndividualLogFiles = false;
 
+// If true this Agent will launch Debug versions of ErizoJS
+config.erizoAgent.launchDebugErizoJS = false;
+
 // Custom log directory for agent instance log files.
 // If useIndividualLogFiles is enabled, files will go here
 // Default is [licode_path]/erizo_controller/erizoAgent

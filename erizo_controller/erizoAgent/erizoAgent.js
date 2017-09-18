@@ -18,6 +18,8 @@ GLOBAL.config.erizoAgent.instanceLogDir = GLOBAL.config.erizoAgent.instanceLogDi
 GLOBAL.config.erizoAgent.useIndividualLogFiles =
     GLOBAL.config.erizoAgent.useIndividualLogFiles|| false;
 
+GLOBAL.config.erizoAgent.launchDebugErizoJS = GLOBAL.config.erizoAgent.launchDebugErizoJS || false;
+
 var BINDED_INTERFACE_NAME = GLOBAL.config.erizoAgent.networkInterface;
 const LAUNCH_SCRIPT = './launch.sh';
 
@@ -84,7 +86,7 @@ for (var prop in opt.options) {
                 metadata = JSON.parse(value);
                 break;
             case 'debug':
-                launchDebugErizoJS = true;
+                GLOBAL.config.erizoAgent.launchDebugErizoJS = true;
                 break;
             default:
                 GLOBAL.config.erizoAgent[prop] = value;
@@ -136,10 +138,10 @@ launchErizoJS = function() {
     var fs = require('fs');
     var erizoProcess, out, err;
     const erizoLaunchOptions = ['./../erizoJS/erizoJS.js', id, privateIP, publicIP];
-    if (launchDebugErizoJS) {
+    if (GLOBAL.config.erizoAgent.launchDebugErizoJS) {
       erizoLaunchOptions.push('-d');
     }
-    
+
     if (GLOBAL.config.erizoAgent.useIndividualLogFiles){
         out = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
         err = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
