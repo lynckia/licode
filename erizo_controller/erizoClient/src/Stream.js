@@ -323,7 +323,9 @@ const Stream = (altConnection, specInput) => {
     }
     const config = { muteStream: { audio: that.audioMuted, video: that.videoMuted } };
     that.checkOptions(config, true);
-    that.pc.updateSpec(config, callback);
+    if (that.pc) {
+      that.pc.updateSpec(config, callback);
+    }
   };
 
   that.muteAudio = (isMuted, callback = () => {}) => {

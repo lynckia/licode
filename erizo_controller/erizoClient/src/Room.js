@@ -357,6 +357,7 @@ const Room = (altIo, altConnection, specInput) => {
     attributes: stream.getAttributes(),
     metadata: options.metadata,
     createOffer: options.createOffer,
+    muteStream: options.muteStream,
   });
 
   const populateStreamFunctions = (id, streamInput, error, callback = () => {}) => {
@@ -445,6 +446,7 @@ const Room = (altIo, altConnection, specInput) => {
       browser: that.Connection.getBrowser(),
       createOffer: options.createOffer,
       metadata: options.metadata,
+      muteStream: options.muteStream,
       slideShowMode: options.slideShowMode };
     socket.sendSDP('subscribe', constraint, undefined, (result, error) => {
       if (result === null) {
@@ -594,6 +596,11 @@ const Room = (altIo, altConnection, specInput) => {
 
     options.simulcast = options.simulcast || false;
 
+    options.muteStream = {
+      audio: stream.audioMuted,
+      video: stream.videoMuted,
+    };
+
     // 1- If the stream is not local or it is a failed stream we do nothing.
     if (stream && stream.local && !stream.failed && !localStreams.has(stream.getID())) {
       // 2- Publish Media Stream to Erizo-Controller
@@ -702,6 +709,11 @@ const Room = (altIo, altConnection, specInput) => {
         if (!stream.hasAudio()) {
           options.audio = false;
         }
+
+        options.muteStream = {
+          audio: stream.audioMuted,
+          video: stream.videoMuted,
+        };
 
         if (that.p2p) {
           socket.sendSDP('subscribe', { streamId: stream.getID(), metadata: options.metadata });
