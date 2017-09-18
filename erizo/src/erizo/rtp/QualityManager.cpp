@@ -125,6 +125,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   int next_spatial_layer = 0;
   float bitrate_margin = try_higher_layers ? kIncreaseLayerBitrateThreshold : 0;
   bool below_min_layer = true;
+  bool layer_capped_by_constraints = false;
   ELOG_DEBUG("Calculate best layer with %lu, current layer %d/%d",
       current_estimated_bitrate_, spatial_layer_, temporal_layer_);
   for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
@@ -132,11 +133,14 @@ void QualityManager::selectLayer(bool try_higher_layers) {
       ELOG_DEBUG("Bitrate for layer %d/%d %lu",
           aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
       if (temporal_layer_node.second->value() != 0 &&
-          (1. + bitrate_margin) * temporal_layer_node.second->value() < current_estimated_bitrate_ &&
-          doesLayerMeetConstraints(aux_spatial_layer, aux_temporal_layer)) {
-        next_temporal_layer = aux_temporal_layer;
-        next_spatial_layer = aux_spatial_layer;
-        below_min_layer = false;
+          (1. + bitrate_margin) * temporal_layer_node.second->value() < current_estimated_bitrate_) {
+        if (doesLayerMeetConstraints(aux_spatial_layer, aux_temporal_layer)) {
+          next_temporal_layer = aux_temporal_layer;
+          next_spatial_layer = aux_spatial_layer;
+          below_min_layer = false;
+        } else {
+          layer_capped_by_constraints = true;
+        }
       }
       aux_temporal_layer++;
     }
@@ -163,7 +167,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
 
     // TODO(javier): should we wait for the actual spatial switch?
     // should we disable padding temporarily to avoid congestion (old padding + new bitrate)?
-    setPadding(!isInMaxLayer());
+    setPadding(!isInMaxLayer() && !layer_capped_by_constraints);
     ELOG_DEBUG("message: Is padding enabled, padding_enabled_: %d", padding_enabled_);
   }
 }
