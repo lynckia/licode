@@ -1,7 +1,7 @@
 /*global require*/
 'use strict';
 var Getopt = require('node-getopt');
-var addon = require('./../../erizoAPI/build/Release/addon');
+var addon;
 var config = require('./../../licode_config');
 var mediaConfig = require('./../../rtp_media_config');
 
@@ -73,6 +73,10 @@ for (var prop in opt.options) {
                 break;
         }
     }
+}
+
+if (!addon) {
+  addon = require('./../../erizoAPI/build/Release/addon');
 }
 
 // Load submodules with updated config
