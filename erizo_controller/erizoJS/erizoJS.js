@@ -76,7 +76,7 @@ for (var prop in opt.options) {
 }
 
 if (!addon) {
-  addon = require('./../../erizoAPI/build/Release/addon')
+  addon = require('./../../erizoAPI/build/Release/addon');
 }
 
 // Load submodules with updated config
