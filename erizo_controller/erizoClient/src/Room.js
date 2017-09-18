@@ -428,6 +428,17 @@ const Room = (altIo, altConnection, specInput) => {
     });
   };
 
+  const getVideoConstraints = (stream, video) => {
+    const hasVideo = video && stream.hasVideo();
+    const width = video && video.width;
+    const height = video && video.height;
+    const frameRate = video && video.frameRate;
+    if (width || height || frameRate) {
+      return { width, height, frameRate };
+    }
+    return hasVideo;
+  };
+
   const subscribeErizo = (streamInput, optionsInput, callback = () => {}) => {
     const stream = streamInput;
     const options = optionsInput;
@@ -441,7 +452,7 @@ const Room = (altIo, altConnection, specInput) => {
     stream.checkOptions(options);
     const constraint = { streamId: stream.getID(),
       audio: options.audio && stream.hasAudio(),
-      video: options.video && stream.hasVideo(),
+      video: getVideoConstraints(stream, options.video),
       data: options.data && stream.hasData(),
       browser: that.Connection.getBrowser(),
       createOffer: options.createOffer,

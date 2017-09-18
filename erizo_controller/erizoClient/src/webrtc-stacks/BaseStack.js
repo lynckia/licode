@@ -237,10 +237,12 @@ const BaseStack = (specInput) => {
       }
     }
     if (config.minVideoBW || (config.slideShowMode !== undefined) ||
-            (config.muteStream !== undefined) || (config.qualityLayer !== undefined)) {
+            (config.muteStream !== undefined) || (config.qualityLayer !== undefined) ||
+            (config.video !== undefined)) {
       Logger.debug('MinVideo Changed to ', config.minVideoBW);
       Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
       Logger.debug('muteStream changed to ', config.muteStream);
+      Logger.debug('Video Constraints', config.video);
       specBase.callback({ type: 'updatestream', config });
     }
   };

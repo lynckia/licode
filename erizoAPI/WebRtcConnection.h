@@ -124,6 +124,11 @@ class WebRtcConnection : public MediaSink, public erizo::WebRtcConnectionEventLi
      */
     static NAN_METHOD(muteStream);
     /*
+     * Sets constraints to the subscribing video
+     * Param: Max width, height and framerate.
+     */
+    static NAN_METHOD(setVideoConstraints);
+    /*
      * Gets Stats from this Wrtc
      * Param: None
      * Returns: The Current stats

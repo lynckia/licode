@@ -77,6 +77,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
   Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
   Nan::SetPrototypeMethod(tpl, "setQualityLayer", setQualityLayer);
+  Nan::SetPrototypeMethod(tpl, "setVideoConstraints", setVideoConstraints);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
   Nan::SetPrototypeMethod(tpl, "enableHandler", enableHandler);
   Nan::SetPrototypeMethod(tpl, "disableHandler", disableHandler);
@@ -269,6 +270,15 @@ NAN_METHOD(WebRtcConnection::muteStream) {
   bool mute_video = info[0]->BooleanValue();
   bool mute_audio = info[1]->BooleanValue();
   me->muteStream(mute_video, mute_audio);
+}
+
+NAN_METHOD(WebRtcConnection::setVideoConstraints) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+  int max_video_width = info[0]->IntegerValue();
+  int max_video_height = info[1]->IntegerValue();
+  int max_video_frame_rate = info[2]->IntegerValue();
+  me->setVideoConstraints(max_video_width, max_video_height, max_video_frame_rate);
 }
 
 NAN_METHOD(WebRtcConnection::setMetadata) {

@@ -57,6 +57,9 @@ class Source {
     const muteVideo = (options.muteStream && options.muteStream.video) || false;
     const muteAudio = (options.muteStream && options.muteStream.audio) || false;
     this.muteSubscriberStream(id, muteVideo, muteAudio);
+    if (options.video) {
+      this.setVideoConstraints(id, options.video.width, options.video.height, options.video.frameRate);
+    };
   }
 
   removeSubscriber(id) {
@@ -123,6 +126,14 @@ class Source {
                                  ', audio: ', this.muteAudio || muteAudio);
     subscriber.muteStream(this.muteVideo || muteVideo,
                           this.muteAudio || muteAudio);
+  }
+
+  setVideoConstraints(id, width, height, frameRate) {
+    var subscriber = this.getSubscriber(id);
+    var maxWidth = (width && width.max) || -1;
+    var maxHeight = (height && height.max) || -1;
+    var maxFrameRate = (frameRate && frameRate.max) || -1;
+    subscriber.setVideoConstraints(maxWidth, maxHeight, maxFrameRate);
   }
 
   enableHandlers(id, handlers) {
