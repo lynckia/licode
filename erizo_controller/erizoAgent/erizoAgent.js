@@ -43,9 +43,8 @@ var interfaces = require('os').networkInterfaces(),
     k2,
     address,
     privateIP,
-    publicIP,
-    launchDebugErizoJS;
-
+    publicIP;
+    
 var opt = getopt.parse(process.argv.slice(2));
 
 var metadata;
