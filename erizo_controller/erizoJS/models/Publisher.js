@@ -54,7 +54,9 @@ class Source {
               'id: ' + wrtcId + ', scheme: ' + this.scheme+
                ', ' + logger.objectToLog(options.metadata));
     wrtc.scheme = this.scheme;
-    this.muteSubscriberStream(id, false, false);
+    const muteVideo = (options.muteStream && options.muteStream.video) || false;
+    const muteAudio = (options.muteStream && options.muteStream.audio) || false;
+    this.muteSubscriberStream(id, muteVideo, muteAudio);
   }
 
   removeSubscriber(id) {
@@ -160,6 +162,9 @@ class Publisher extends Source {
     this.wrtc.setAudioReceiver(this.muxer);
     this.wrtc.setVideoReceiver(this.muxer);
     this.muxer.setPublisher(this.wrtc);
+    const muteVideo = (options.muteStream && options.muteStream.video) || false;
+    const muteAudio = (options.muteStream && options.muteStream.audio) || false;
+    this.muteStream(muteVideo, muteAudio);
   }
 
   resetWrtc() {
