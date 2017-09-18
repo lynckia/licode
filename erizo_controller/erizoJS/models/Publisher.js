@@ -196,9 +196,6 @@ class ExternalInput extends Source {
     ei.setAudioReceiver(this.muxer);
     ei.setVideoReceiver(this.muxer);
     this.muxer.setExternalPublisher(ei);
-    const muteVideo = (options.muteStream && options.muteStream.video) || false;
-    const muteAudio = (options.muteStream && options.muteStream.audio) || false;
-    this.muteStream(muteVideo, muteAudio);
   }
 
   init() {
