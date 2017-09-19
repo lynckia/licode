@@ -54,9 +54,9 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   int temporal_layer_;
   int max_active_spatial_layer_;
   int max_active_temporal_layer_;
-  int max_video_width_;
-  int max_video_height_;
-  int max_video_frame_rate_;
+  int64_t max_video_width_;
+  int64_t max_video_height_;
+  int64_t max_video_frame_rate_;
   uint64_t current_estimated_bitrate_;
 
   time_point last_quality_check_;
