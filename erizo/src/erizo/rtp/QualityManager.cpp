@@ -15,7 +15,8 @@ constexpr float QualityManager::kIncreaseLayerBitrateThreshold;
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
   : initialized_{false}, enabled_{false}, padding_enabled_{false}, forced_layers_{false},
   slideshow_mode_active_{false}, spatial_layer_{0}, temporal_layer_{0}, max_active_spatial_layer_{0},
-  max_active_temporal_layer_{0}, current_estimated_bitrate_{0}, last_quality_check_{the_clock->now()},
+  max_active_temporal_layer_{0}, max_video_width_{-1}, max_video_height_{-1},
+  max_video_frame_rate_{-1}, current_estimated_bitrate_{0}, last_quality_check_{the_clock->now()},
   last_activity_check_{the_clock->now()}, clock_{the_clock} {}
 
 void QualityManager::enable() {
@@ -86,7 +87,42 @@ void QualityManager::notifyQualityUpdate() {
   }
 }
 
+bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_layer) {
+  if (static_cast<uint>(spatial_layer) > video_frame_width_list_.size() ||
+      static_cast<uint>(spatial_layer) > video_frame_height_list_.size() ||
+      static_cast<uint>(temporal_layer) > video_frame_rate_list_.size()) {
+        return true;
+  }
+  if (spatial_layer == 0 && temporal_layer == 0) {
+    return true;
+  }
+  int64_t layer_width = video_frame_width_list_[spatial_layer];
+  int64_t layer_height = video_frame_height_list_[spatial_layer];
+  int64_t layer_frame_rate = video_frame_rate_list_[temporal_layer];
+
+  if (layer_width == 0 || layer_height == 0 || layer_frame_rate == 0) {
+    return true;
+  }
+
+  bool max_resolution_not_set = max_video_width_ == -1 && max_video_height_ == -1;
+  bool max_frame_rate_not_set = max_video_frame_rate_ == -1;
+  int64_t max_video_width = std::max(max_video_width_, static_cast<int64_t>(video_frame_width_list_[0]));
+  int64_t max_video_height = std::max(max_video_height_, static_cast<int64_t>(video_frame_height_list_[0]));
+  int64_t max_video_frame_rate = std::max(max_video_frame_rate_, static_cast<int64_t>(video_frame_rate_list_[0]));
+
+  bool meets_width = max_video_width >= layer_width;
+  bool meets_height = max_video_height >= layer_height;
+
+  bool meets_resolution = max_resolution_not_set || meets_width || meets_height;
+  bool meets_frame_rate = max_frame_rate_not_set || max_video_frame_rate >= layer_frame_rate;
+
+  return meets_resolution && meets_frame_rate;
+}
+
 void QualityManager::selectLayer(bool try_higher_layers) {
+  if (!stats_ || !stats_->getNode().hasChild("qualityLayers")) {
+    return;
+  }
   last_quality_check_ = clock_->now();
   int aux_temporal_layer = 0;
   int aux_spatial_layer = 0;
@@ -94,17 +130,22 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   int next_spatial_layer = 0;
   float bitrate_margin = try_higher_layers ? kIncreaseLayerBitrateThreshold : 0;
   bool below_min_layer = true;
+  bool layer_capped_by_constraints = false;
   ELOG_DEBUG("Calculate best layer with %lu, current layer %d/%d",
       current_estimated_bitrate_, spatial_layer_, temporal_layer_);
   for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
-    for (auto &temporal_layer_node : stats_->getNode()["qualityLayers"][spatial_layer_node.first.c_str()].getMap()) {
+    for (auto &temporal_layer_node : spatial_layer_node.second->getMap()) {
       ELOG_DEBUG("Bitrate for layer %d/%d %lu",
           aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
       if (temporal_layer_node.second->value() != 0 &&
           (1. + bitrate_margin) * temporal_layer_node.second->value() < current_estimated_bitrate_) {
-        next_temporal_layer = aux_temporal_layer;
-        next_spatial_layer = aux_spatial_layer;
-        below_min_layer = false;
+        if (doesLayerMeetConstraints(aux_spatial_layer, aux_temporal_layer)) {
+          next_temporal_layer = aux_temporal_layer;
+          next_spatial_layer = aux_spatial_layer;
+          below_min_layer = false;
+        } else {
+          layer_capped_by_constraints = true;
+        }
       }
       aux_temporal_layer++;
     }
@@ -131,7 +172,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
 
     // TODO(javier): should we wait for the actual spatial switch?
     // should we disable padding temporarily to avoid congestion (old padding + new bitrate)?
-    setPadding(!isInMaxLayer());
+    setPadding(!isInMaxLayer() && !layer_capped_by_constraints);
     ELOG_DEBUG("message: Is padding enabled, padding_enabled_: %d", padding_enabled_);
   }
 }
@@ -193,7 +234,10 @@ void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
 void QualityManager::setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate) {
   ELOG_DEBUG("Max: width (%d), height (%d), frameRate (%d)", max_video_width, max_video_height, max_video_frame_rate);
 
-  // TODO(javier): Actually apply constraints to current feed.
+  max_video_width_ = max_video_width;
+  max_video_height_ = max_video_height;
+  max_video_frame_rate_ = max_video_frame_rate;
+  selectLayer(true);
 }
 
 void QualityManager::setSpatialLayer(int spatial_layer) {

@@ -48,15 +48,15 @@ void LayerDetectorHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet
 }
 
 void LayerDetectorHandler::notifyLayerInfoChangedEvent() {
-  ELOG_DEBUG("LAYER INFO CHANGED");
+  ELOG_DEBUG("Layer info changed");
   for (uint32_t spatial_layer = 0; spatial_layer < video_frame_width_list_.size(); spatial_layer++) {
-    ELOG_DEBUG(" SPATIAL LAYER (%u): %u %u",
+    ELOG_DEBUG("Spatial Layer (%u): %u %u",
               spatial_layer, video_frame_width_list_[spatial_layer], video_frame_height_list_[spatial_layer]);
   }
   std::vector<uint64_t> video_frame_rate_list;
   for (uint32_t temporal_layer = 0; temporal_layer < video_frame_rate_list_.size(); temporal_layer++) {
     video_frame_rate_list.push_back(video_frame_rate_list_[temporal_layer].value());
-    ELOG_DEBUG(" TEMPORAL LAYER (%u): %lu",
+    ELOG_DEBUG("Temporal Layer (%u): %lu",
               temporal_layer, video_frame_rate_list_[temporal_layer].value());
   }
 
