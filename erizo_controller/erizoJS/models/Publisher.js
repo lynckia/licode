@@ -131,9 +131,9 @@ class Source {
 
   setVideoConstraints(id, width, height, frameRate) {
     var subscriber = this.getSubscriber(id);
-    var maxWidth = (width && width.max) || -1;
-    var maxHeight = (height && height.max) || -1;
-    var maxFrameRate = (frameRate && frameRate.max) || -1;
+    var maxWidth = (width && width.max !== undefined) ? width.max : -1;
+    var maxHeight = (height && height.max !== undefined) ? height.max : -1;
+    var maxFrameRate = (frameRate && frameRate.max !== undefined) ? frameRate.max : -1;
     subscriber.setVideoConstraints(maxWidth, maxHeight, maxFrameRate);
   }
 
