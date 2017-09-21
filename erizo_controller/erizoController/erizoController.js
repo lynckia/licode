@@ -401,7 +401,7 @@ var listen = function () {
                         }
                         user = {name: tokenDB.userName, role: tokenDB.role};
                         socket.user = user;
-                        var permissions = GLOBAL.config.erizoController.roles[tokenDB.role] || [];
+                        var permissions = global.config.erizoController.roles[tokenDB.role] || [];
                         socket.user.permissions = {};
                         for (var right in permissions) {
                             socket.user.permissions[right] = permissions[right];
@@ -413,7 +413,7 @@ var listen = function () {
                         log.debug('message: Token approved, clientId: ' + socket.id);
 
                         if (!tokenDB.p2p &&
-                            GLOBAL.config.erizoController.report.session_events) {  // jshint ignore:line
+                            global.config.erizoController.report.session_events) {  // jshint ignore:line
                             var timeStamp = new Date();
                             amqper.broadcast('event', {room: tokenDB.room,
                                                        user: socket.id,
@@ -433,9 +433,9 @@ var listen = function () {
                                             id: socket.room.id,
                                             p2p: socket.room.p2p,
                                             defaultVideoBW:
-                                                GLOBAL.config.erizoController.defaultVideoBW,
-                                            maxVideoBW: GLOBAL.config.erizoController.maxVideoBW,
-                                            iceServers: GLOBAL.config.erizoController.iceServers
+                                                global.config.erizoController.defaultVideoBW,
+                                            maxVideoBW: global.config.erizoController.maxVideoBW,
+                                            iceServers: global.config.erizoController.iceServers
                                             });
 
                     } else {
