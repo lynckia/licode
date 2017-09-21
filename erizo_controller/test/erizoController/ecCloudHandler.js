@@ -11,8 +11,8 @@ describe('Erizo Controller / ec Cloud Handler', function() {
       ecCloudHandler;
 
   beforeEach(function() {
-    GLOBAL.config = {logger: {configFile: true}};
-    GLOBAL.config.erizoController = {cloudHandlerPolicy: 'default_policy'};
+    global.config = {logger: {configFile: true}};
+    global.config.erizoController = {cloudHandlerPolicy: 'default_policy'};
     licodeConfigMock = mocks.start(mocks.licodeConfig);
     amqperMock = mocks.start(mocks.amqper);
     spec = {
@@ -26,7 +26,7 @@ describe('Erizo Controller / ec Cloud Handler', function() {
     mocks.stop(licodeConfigMock);
     mocks.deleteRequireCache();
     mocks.reset();
-    GLOBAL.config = {logger: {configFile: true}};
+    global.config = {logger: {configFile: true}};
   });
 
   it('should have a known API', function() {

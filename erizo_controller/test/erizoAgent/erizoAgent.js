@@ -37,17 +37,17 @@ describe('Erizo Agent', function() {
     mocks.stop(licodeConfigMock);
     mocks.deleteRequireCache();
     mocks.reset();
-    GLOBAL.config = {};
+    global.config = {};
   });
 
   it('should create default globals', function() {
     erizoAgent = require('../../erizoAgent/erizoAgent');
 
-    expect(GLOBAL.config.erizoAgent.maxProcesses).to.equal(1);
-    expect(GLOBAL.config.erizoAgent.prerunProcesses).to.equal(1);
-    expect(GLOBAL.config.erizoAgent.publicIP).to.equal('');
-    expect(GLOBAL.config.erizoAgent.instanceLogDir).to.equal('.');
-    expect(GLOBAL.config.erizoAgent.useIndividualLogFiles).to.equal(false);
+    expect(global.config.erizoAgent.maxProcesses).to.equal(1);
+    expect(global.config.erizoAgent.prerunProcesses).to.equal(1);
+    expect(global.config.erizoAgent.publicIP).to.equal('');
+    expect(global.config.erizoAgent.instanceLogDir).to.equal('.');
+    expect(global.config.erizoAgent.useIndividualLogFiles).to.equal(false);
   });
 
   describe('Launch Erizo', function() {

@@ -6,9 +6,9 @@ var logger = require('./logger').logger;
 var log = logger.getLogger('AMQPER');
 
 // Configuration default values
-GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
-GLOBAL.config.rabbit.host = GLOBAL.config.rabbit.host || 'localhost';
-GLOBAL.config.rabbit.port = GLOBAL.config.rabbit.port || 5672;
+global.config.rabbit = global.config.rabbit || {};
+global.config.rabbit.host = global.config.rabbit.host || 'localhost';
+global.config.rabbit.port = global.config.rabbit.port || 5672;
 
 var TIMEOUT = 5000;
 
@@ -22,15 +22,15 @@ var connection, rpcExc, broadcastExc, clientQueue;
 var addr = {};
 var rpcPublic = {};
 
-if (GLOBAL.config.rabbit.url !== undefined) {
-    addr.url = GLOBAL.config.rabbit.url;
+if (global.config.rabbit.url !== undefined) {
+    addr.url = global.config.rabbit.url;
 } else {
-    addr.host = GLOBAL.config.rabbit.host;
-    addr.port = GLOBAL.config.rabbit.port;
+    addr.host = global.config.rabbit.host;
+    addr.port = global.config.rabbit.port;
 }
 
-if(GLOBAL.config.rabbit.heartbeat !==undefined){
-    addr.heartbeat = GLOBAL.config.rabbit.heartbeat;
+if(global.config.rabbit.heartbeat !==undefined){
+    addr.heartbeat = global.config.rabbit.heartbeat;
 }
 
 exports.setPublicRPC = function(methods) {
