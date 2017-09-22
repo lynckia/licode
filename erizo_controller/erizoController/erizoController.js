@@ -635,7 +635,7 @@ var listen = function () {
                                  'streamId: ' + id + ', ' +
                                  'clientId: ' + socket.id);
                     } else if (signMess === 'timeout-erizojs') {
-                        log.error('message: addPublisher timeout when contacting ErizoJS, ' +
+                        log.info('message: addPublisher timeout when contacting ErizoJS, ' +
                                   'streamId: ' + id + ', clientId: ' + socket.id);
                         callback(null, 'ErizoJS is not reachable');
                         return;

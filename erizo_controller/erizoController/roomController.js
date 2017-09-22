@@ -195,38 +195,38 @@ exports.RoomController = function (spec) {
                 amqper.callRpc(getErizoQueue(publisherId), 'addPublisher', args,
                               {callback: function (data){
                     if (data === 'timeout'){
-                        if (retries < MAX_ERIZOJS_RETRIES){
-                            log.warn('message: addPublisher ErizoJS timeout, ' +
-                                     'streamId: ' + publisherId + ', ' +
-                                     'erizoId: ' + getErizoQueue(publisherId) + ', ' +
-                                     'retries: ' + retries + ', ' +
-                                     logger.objectToLog(options.metadata));
-                            publishers[publisherId] = undefined;
-                            retries++;
-                            that.addPublisher(publisherId, options, callback, retries);
-                            return;
-                        }
+                        // if (retries < MAX_ERIZOJS_RETRIES){
+                        //     log.warn('message: addPublisher ErizoJS timeout, ' +
+                        //              'streamId: ' + publisherId + ', ' +
+                        //              'erizoId: ' + getErizoQueue(publisherId) + ', ' +
+                        //              'retries: ' + retries + ', ' +
+                        //              logger.objectToLog(options.metadata));
+                        //     publishers[publisherId] = undefined;
+                        //     retries++;
+                        //     that.addPublisher(publisherId, options, callback, retries);
+                        //     return;
+                        // }
                         log.warn('message: addPublisher ErizoJS timeout no retry, ' +
                                  'retries: ' + retries +
                                  'streamId: ' + publisherId + ', ' +
                                  'erizoId: ' + getErizoQueue(publisherId) + ', ' +
                                  logger.objectToLog(options.metadata));
+                        publishers[publisherId] = undefined;
                         var erizo = erizos[publishers[publisherId]];
                         if (erizo !== undefined) {
-                           var index = erizo.publishers.indexOf(publisherId);
-                           erizo.publishers.splice(index, 1);
+                            var index = erizo.publishers.indexOf(publisherId);
+                            erizo.publishers.splice(index, 1);
                         }
                         callback('timeout-erizojs');
                         return;
                     } else {
                         if (data.type === 'initializing') {
                             data.agentId = agentId;
+                            erizos[erizoId].publishers.push(publisherId);
                         }
                         callback(data);
                     }
                 }});
-
-                erizos[erizoId].publishers.push(publisherId);
             });
 
         } else {
