@@ -13,7 +13,7 @@ describe('Erizo Controller / Room Controller', function() {
       controller;
 
   beforeEach(function() {
-    GLOBAL.config = {logger: {configFile: true}};
+    global.config = {logger: {configFile: true}};
     licodeConfigMock = mocks.start(mocks.licodeConfig);
     amqperMock = mocks.start(mocks.amqper);
     ecchInstanceMock = mocks.ecchInstance;
@@ -31,7 +31,7 @@ describe('Erizo Controller / Room Controller', function() {
     mocks.stop(licodeConfigMock);
     mocks.deleteRequireCache();
     mocks.reset();
-    GLOBAL.config = {logger: {configFile: true}};
+    global.config = {logger: {configFile: true}};
   });
 
   it('should have a known API', function() {

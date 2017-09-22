@@ -6,14 +6,14 @@ const logger = require('./logger').logger;
 
 const log = logger.getLogger('NativeClient');
 
-GLOBAL.config = licodeConfig || {};
-GLOBAL.mediaConfig = mediaConfig || {};
+global.config = licodeConfig || {};
+global.mediaConfig = mediaConfig || {};
 
 const threadPool = new addon.ThreadPool(10);
 threadPool.start();
 
 const ioThreadPool = new addon.IOThreadPool(1);
-if (GLOBAL.config.erizo.useNicer) {
+if (global.config.erizo.useNicer) {
   ioThreadPool.start();
 }
 
@@ -105,18 +105,18 @@ exports.ErizoNativeConnection = (config) => {
 
 
   wrtc = new addon.WebRtcConnection(threadPool, ioThreadPool, `spine_${configuration.sessionId}`,
-  GLOBAL.config.erizo.stunserver,
-  GLOBAL.config.erizo.stunport,
-  GLOBAL.config.erizo.minport,
-  GLOBAL.config.erizo.maxport,
+  global.config.erizo.stunserver,
+  global.config.erizo.stunport,
+  global.config.erizo.minport,
+  global.config.erizo.maxport,
   false,
-  JSON.stringify(GLOBAL.mediaConfig),
-  GLOBAL.config.erizo.useNicer,
-  GLOBAL.config.erizo.turnserver,
-  GLOBAL.config.erizo.turnport,
-  GLOBAL.config.erizo.turnusername,
-  GLOBAL.config.erizo.turnpass,
-  GLOBAL.config.erizo.networkinterface);
+  JSON.stringify(global.mediaConfig),
+  global.config.erizo.useNicer,
+  global.config.erizo.turnserver,
+  global.config.erizo.turnport,
+  global.config.erizo.turnusername,
+  global.config.erizo.turnpass,
+  global.config.erizo.networkinterface);
 
   that.createOffer = () => {
   };

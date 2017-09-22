@@ -8,36 +8,36 @@ var Permission = require('./permission');
 var Getopt = require('node-getopt');
 
 // Configuration default values
-GLOBAL.config = config || {};
-GLOBAL.config.erizoController = GLOBAL.config.erizoController || {};
-GLOBAL.config.erizoController.iceServers =
-  GLOBAL.config.erizoController.iceServers || [{'url': 'stun:stun.l.google.com:19302'}];
-GLOBAL.config.erizoController.defaultVideoBW = GLOBAL.config.erizoController.defaultVideoBW || 300;
-GLOBAL.config.erizoController.maxVideoBW = GLOBAL.config.erizoController.maxVideoBW || 300;
-GLOBAL.config.erizoController.publicIP = GLOBAL.config.erizoController.publicIP || '';
-GLOBAL.config.erizoController.hostname = GLOBAL.config.erizoController.hostname|| '';
-GLOBAL.config.erizoController.port = GLOBAL.config.erizoController.port || 8080;
-GLOBAL.config.erizoController.ssl = GLOBAL.config.erizoController.ssl || false;
+global.config = config || {};
+global.config.erizoController = global.config.erizoController || {};
+global.config.erizoController.iceServers =
+  global.config.erizoController.iceServers || [{'url': 'stun:stun.l.google.com:19302'}];
+global.config.erizoController.defaultVideoBW = global.config.erizoController.defaultVideoBW || 300;
+global.config.erizoController.maxVideoBW = global.config.erizoController.maxVideoBW || 300;
+global.config.erizoController.publicIP = global.config.erizoController.publicIP || '';
+global.config.erizoController.hostname = global.config.erizoController.hostname|| '';
+global.config.erizoController.port = global.config.erizoController.port || 8080;
+global.config.erizoController.ssl = global.config.erizoController.ssl || false;
 // jshint ignore:start
-GLOBAL.config.erizoController.ssl_key =
-  GLOBAL.config.erizoController.ssl_key || '../../cert/key.pem';
-GLOBAL.config.erizoController.ssl_cert =
-  GLOBAL.config.erizoController.ssl_cert || '../../cert/cert.pem';
-GLOBAL.config.erizoController.sslCaCerts =
-  GLOBAL.config.erizoController.sslCaCerts || undefined;
-GLOBAL.config.erizoController.listen_port = GLOBAL.config.erizoController.listen_port || 8080;
-GLOBAL.config.erizoController.listen_ssl = GLOBAL.config.erizoController.listen_ssl || false;
-GLOBAL.config.erizoController.turnServer = GLOBAL.config.erizoController.turnServer || undefined;
-GLOBAL.config.erizoController.warning_n_rooms = GLOBAL.config.erizoController.warning_n_rooms || 15;
-GLOBAL.config.erizoController.limit_n_rooms = GLOBAL.config.erizoController.limit_n_rooms || 20;
-GLOBAL.config.erizoController.interval_time_keepAlive =
-  GLOBAL.config.erizoController.interval_time_keepAlive || 1000;
-GLOBAL.config.erizoController.report.session_events =
-  GLOBAL.config.erizoController.report.session_events || false;
-GLOBAL.config.erizoController.recording_path =
-  GLOBAL.config.erizoController.recording_path || undefined;
+global.config.erizoController.ssl_key =
+  global.config.erizoController.ssl_key || '../../cert/key.pem';
+global.config.erizoController.ssl_cert =
+  global.config.erizoController.ssl_cert || '../../cert/cert.pem';
+global.config.erizoController.sslCaCerts =
+  global.config.erizoController.sslCaCerts || undefined;
+global.config.erizoController.listen_port = global.config.erizoController.listen_port || 8080;
+global.config.erizoController.listen_ssl = global.config.erizoController.listen_ssl || false;
+global.config.erizoController.turnServer = global.config.erizoController.turnServer || undefined;
+global.config.erizoController.warning_n_rooms = global.config.erizoController.warning_n_rooms || 15;
+global.config.erizoController.limit_n_rooms = global.config.erizoController.limit_n_rooms || 20;
+global.config.erizoController.interval_time_keepAlive =
+  global.config.erizoController.interval_time_keepAlive || 1000;
+global.config.erizoController.report.session_events =
+  global.config.erizoController.report.session_events || false;
+global.config.erizoController.recording_path =
+  global.config.erizoController.recording_path || undefined;
 // jshint ignore:end
-GLOBAL.config.erizoController.roles = GLOBAL.config.erizoController.roles ||
+global.config.erizoController.roles = global.config.erizoController.roles ||
                   {'presenter': {'publish': true, 'subscribe': true, 'record': true},
                   'viewer': {'subscribe': true},
                   'viewerWithData':{'subscribe': true,
@@ -67,7 +67,6 @@ var getopt = new Getopt([
 
 var PUBLISHER_INITAL = 101, PUBLISHER_READY = 104;
 
-
 var opt = getopt.parse(process.argv.slice(2));
 
 for (var prop in opt.options) {
@@ -79,23 +78,23 @@ for (var prop in opt.options) {
                 process.exit(0);
                 break;
             case 'rabbit-host':
-                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
-                GLOBAL.config.rabbit.host = value;
+                global.config.rabbit = global.config.rabbit || {};
+                global.config.rabbit.host = value;
                 break;
             case 'rabbit-port':
-                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
-                GLOBAL.config.rabbit.port = value;
+                global.config.rabbit = global.config.rabbit || {};
+                global.config.rabbit.port = value;
                 break;
             case 'rabbit-heartbeat':
-                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
-                GLOBAL.config.rabbit.heartbeat = value;
+                global.config.rabbit = global.config.rabbit || {};
+                global.config.rabbit.heartbeat = value;
                 break;
             case 'logging-config-file':
-                GLOBAL.config.logger = GLOBAL.config.logger || {};
-                GLOBAL.config.logger.configFile = value;
+                global.config.logger = global.config.logger || {};
+                global.config.logger.configFile = value;
                 break;
             default:
-                GLOBAL.config.erizoController[prop] = value;
+                global.config.erizoController[prop] = value;
                 break;
         }
     }
@@ -112,7 +111,7 @@ var log = logger.getLogger('ErizoController');
 
 var server;
 
-if (GLOBAL.config.erizoController.listen_ssl) {  // jshint ignore:line
+if (global.config.erizoController.listen_ssl) {  // jshint ignore:line
     var https = require('https');
     var fs = require('fs');
     var options = {
@@ -131,19 +130,19 @@ if (GLOBAL.config.erizoController.listen_ssl) {  // jshint ignore:line
     server = http.createServer();
 }
 
-server.listen(GLOBAL.config.erizoController.listen_port); // jshint ignore:line
+server.listen(global.config.erizoController.listen_port); // jshint ignore:line
 var io = require('socket.io').listen(server, {log:false});
 
 io.set('transports', ['websocket']);
 
-var nuveKey = GLOBAL.config.nuve.superserviceKey;
+var nuveKey = global.config.nuve.superserviceKey;
 
-var WARNING_N_ROOMS = GLOBAL.config.erizoController.warning_n_rooms; // jshint ignore:line
-var LIMIT_N_ROOMS = GLOBAL.config.erizoController.limit_n_rooms; // jshint ignore:line
+var WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms; // jshint ignore:line
+var LIMIT_N_ROOMS = global.config.erizoController.limit_n_rooms; // jshint ignore:line
 
-var INTERVAL_TIME_KEEPALIVE = GLOBAL.config.erizoController.interval_time_keepAlive; // jshint ignore:line
+var INTERVAL_TIME_KEEPALIVE = global.config.erizoController.interval_time_keepAlive; // jshint ignore:line
 
-var BINDED_INTERFACE_NAME = GLOBAL.config.erizoController.networkInterface;
+var BINDED_INTERFACE_NAME = global.config.erizoController.networkInterface;
 
 var myId;
 var rooms = {};
@@ -200,8 +199,8 @@ var addToCloudHandler = function (callback) {
         address;
 
     for (k in interfaces) {
-        if (!GLOBAL.config.erizoController.networkinterface ||
-            GLOBAL.config.erizoController.networkinterface === k) {
+        if (!global.config.erizoController.networkinterface ||
+            global.config.erizoController.networkinterface === k) {
           if (interfaces.hasOwnProperty(k)) {
               for (k2 in interfaces[k]) {
                   if (interfaces[k].hasOwnProperty(k2)) {
@@ -219,11 +218,11 @@ var addToCloudHandler = function (callback) {
 
     privateRegexp = new RegExp(addresses[0], 'g');
 
-    if (GLOBAL.config.erizoController.publicIP === '' ||
-        GLOBAL.config.erizoController.publicIP === undefined){
+    if (global.config.erizoController.publicIP === '' ||
+        global.config.erizoController.publicIP === undefined){
         publicIP = addresses[0];
     } else {
-        publicIP = GLOBAL.config.erizoController.publicIP;
+        publicIP = global.config.erizoController.publicIP;
     }
 
     var addECToCloudHandler = function(attempt) {
@@ -233,11 +232,11 @@ var addToCloudHandler = function (callback) {
         }
 
         var controller = {
-            cloudProvider: GLOBAL.config.cloudProvider.name,
+            cloudProvider: global.config.cloudProvider.name,
             ip: publicIP,
-            hostname: GLOBAL.config.erizoController.hostname,
-            port: GLOBAL.config.erizoController.port,
-            ssl: GLOBAL.config.erizoController.ssl
+            hostname: global.config.erizoController.hostname,
+            port: global.config.erizoController.port,
+            ssl: global.config.erizoController.ssl
         };
         amqper.callRpc('nuve', 'addNewErizoController', controller, {callback: function (msg) {
 
@@ -402,7 +401,7 @@ var listen = function () {
                         }
                         user = {name: tokenDB.userName, role: tokenDB.role};
                         socket.user = user;
-                        var permissions = GLOBAL.config.erizoController.roles[tokenDB.role] || [];
+                        var permissions = global.config.erizoController.roles[tokenDB.role] || [];
                         socket.user.permissions = {};
                         for (var right in permissions) {
                             socket.user.permissions[right] = permissions[right];
@@ -414,7 +413,7 @@ var listen = function () {
                         log.debug('message: Token approved, clientId: ' + socket.id);
 
                         if (!tokenDB.p2p &&
-                            GLOBAL.config.erizoController.report.session_events) {  // jshint ignore:line
+                            global.config.erizoController.report.session_events) {  // jshint ignore:line
                             var timeStamp = new Date();
                             amqper.broadcast('event', {room: tokenDB.room,
                                                        user: socket.id,
@@ -434,9 +433,9 @@ var listen = function () {
                                             id: socket.room.id,
                                             p2p: socket.room.p2p,
                                             defaultVideoBW:
-                                                GLOBAL.config.erizoController.defaultVideoBW,
-                                            maxVideoBW: GLOBAL.config.erizoController.maxVideoBW,
-                                            iceServers: GLOBAL.config.erizoController.iceServers
+                                                global.config.erizoController.defaultVideoBW,
+                                            maxVideoBW: global.config.erizoController.maxVideoBW,
+                                            iceServers: global.config.erizoController.iceServers
                                             });
 
                     } else {
@@ -517,7 +516,7 @@ var listen = function () {
 
         // Gets 'publish' messages on the socket in order to add new stream to the room.
         // Returns callback(id, error)
-        socket.on('publish', function (options, sdp, callback) {
+          socket.on('publish', function (options, sdp, callback) {
             var id, st;
             if (socket.user === undefined || !socket.user.permissions[Permission.PUBLISH]) {
                 callback(null, 'Unauthorized');
@@ -538,8 +537,8 @@ var listen = function () {
                 var url = sdp;
                 if (options.state === 'recording') {
                     var recordingId = sdp;
-                    if (GLOBAL.config.erizoController.recording_path) {  // jshint ignore:line
-                        url = GLOBAL.config.erizoController.recording_path + recordingId + '.mkv'; // jshint ignore:line
+                    if (global.config.erizoController.recording_path) {  // jshint ignore:line
+                        url = global.config.erizoController.recording_path + recordingId + '.mkv'; // jshint ignore:line
                     } else {
                         url = '/tmp/' + recordingId + '.mkv';
                     }
@@ -583,7 +582,7 @@ var listen = function () {
                                  'clientId: ' + socket.id + ', ' +
                                  'streamId: ' + id);
 
-                        if (GLOBAL.config.erizoController.report.session_events) {  // jshint ignore:line
+                        if (global.config.erizoController.report.session_events) {  // jshint ignore:line
                             var timeStamp = new Date();
                             amqper.broadcast('event', {room: socket.room.id,
                                                        user: socket.id,
@@ -606,7 +605,7 @@ var listen = function () {
                         /*
                         if (!socket.room.p2p) {
                             socket.room.controller.removePublisher(id);
-                            if (GLOBAL.config.erizoController.report.session_events) {
+                            if (global.config.erizoController.report.session_events) {
                                 var timeStamp = new Date();
                                 amqper.broadcast('event', {room: socket.room.id,
                                                            user: socket.id,
@@ -718,7 +717,7 @@ var listen = function () {
                                      'streamId: ' + options.streamId);
                             callback(true);
 
-                            if (GLOBAL.config.erizoController.report.session_events) {  // jshint ignore:line
+                            if (global.config.erizoController.report.session_events) {  // jshint ignore:line
                                 var timeStamp = new Date();
                                 amqper.broadcast('event', {room: socket.room.id,
                                                            user: socket.id,
@@ -776,8 +775,8 @@ var listen = function () {
             var recordingId = Math.random() * 1000000000000000000;
             var url;
 
-            if (GLOBAL.config.erizoController.recording_path) {  // jshint ignore:line
-                url = GLOBAL.config.erizoController.recording_path + recordingId + '.mkv';  // jshint ignore:line
+            if (global.config.erizoController.recording_path) {  // jshint ignore:line
+                url = global.config.erizoController.recording_path + recordingId + '.mkv';  // jshint ignore:line
             } else {
                 url = '/tmp/' + recordingId + '.mkv';
             }
@@ -831,8 +830,8 @@ var listen = function () {
             var recordingId = options.id;
             var url;
 
-            if (GLOBAL.config.erizoController.recording_path) {  // jshint ignore:line
-                url = GLOBAL.config.erizoController.recording_path + recordingId + '.mkv';  // jshint ignore:line
+            if (global.config.erizoController.recording_path) {  // jshint ignore:line
+                url = global.config.erizoController.recording_path + recordingId + '.mkv';  // jshint ignore:line
             } else {
                 url = '/tmp/' + recordingId + '.mkv';
             }
@@ -867,7 +866,7 @@ var listen = function () {
                 socket.state = 'sleeping';
                 if (!socket.room.p2p) {
                     socket.room.controller.removePublisher(streamId);
-                    if (GLOBAL.config.erizoController.report.session_events) {  // jshint ignore:line
+                    if (global.config.erizoController.report.session_events) {  // jshint ignore:line
                         var timeStamp = new Date();
                         amqper.broadcast('event', {room: socket.room.id,
                                                    user: socket.id,
@@ -908,7 +907,7 @@ var listen = function () {
 
                 if (!socket.room.p2p) {
                     socket.room.controller.removeSubscriber(socket.id, to);
-                    if (GLOBAL.config.erizoController.report.session_events) {  // jshint ignore:line
+                    if (global.config.erizoController.report.session_events) {  // jshint ignore:line
                         var timeStamp = new Date();
                         amqper.broadcast('event', {room: socket.room.id,
                                                    user: socket.id,
@@ -962,7 +961,7 @@ var listen = function () {
 
                                 if (!socket.room.p2p) {
                                     socket.room.controller.removePublisher(id);
-                                    if (GLOBAL.config.erizoController.report.session_events) {  // jshint ignore:line
+                                    if (global.config.erizoController.report.session_events) {  // jshint ignore:line
 
                                         amqper.broadcast('event', {room: socket.room.id,
                                                                    user: socket.id,
@@ -981,7 +980,7 @@ var listen = function () {
 
             if (socket.room !== undefined &&
                 !socket.room.p2p &&
-                GLOBAL.config.erizoController.report.session_events) {  // jshint ignore:line
+                global.config.erizoController.report.session_events) {  // jshint ignore:line
                 amqper.broadcast('event', {room: socket.room.id,
                                           user: socket.id,
                                           type: 'user_disconnection',

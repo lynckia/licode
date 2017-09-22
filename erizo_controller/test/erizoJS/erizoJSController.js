@@ -21,7 +21,7 @@ describe('Erizo JS Controller', function() {
 
 
   beforeEach(function() {
-    GLOBAL.config = {logger: {configFile: true}};
+    global.config = {logger: {configFile: true}};
     licodeConfigMock = mocks.start(mocks.licodeConfig);
     amqperMock = mocks.start(mocks.amqper);
     erizoApiMock = mocks.start(mocks.erizoAPI);
@@ -34,7 +34,7 @@ describe('Erizo JS Controller', function() {
     mocks.stop(licodeConfigMock);
     mocks.deleteRequireCache();
     mocks.reset();
-    GLOBAL.config = {};
+    global.config = {};
   });
 
   it('should provide the known API', function() {
@@ -146,8 +146,8 @@ describe('Erizo JS Controller', function() {
 
     beforeEach(function() {
       callback = sinon.stub();
-      GLOBAL.config.erizo = {};
-      GLOBAL.config.erizoController = {report: {
+      global.config.erizo = {};
+      global.config.erizoController = {report: {
         'connection_events': true,
         'rtcp_stats': true}};
     });

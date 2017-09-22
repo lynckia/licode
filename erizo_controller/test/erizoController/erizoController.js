@@ -19,9 +19,9 @@ describe('Erizo Controller / Erizo Controller', function() {
       arbitraryErizoControllerId = 'ErizoControllerId';
 
   beforeEach(function() {
-    GLOBAL.config = {logger: {configFile: true}};
-    GLOBAL.config.erizoController = {};
-    GLOBAL.config.erizoController.report = {
+    global.config = {logger: {configFile: true}};
+    global.config.erizoController = {};
+    global.config.erizoController.report = {
       'session_events': true
     };
     signatureMock = mocks.signature;
@@ -46,7 +46,7 @@ describe('Erizo Controller / Erizo Controller', function() {
     mocks.stop(licodeConfigMock);
     mocks.deleteRequireCache();
     mocks.reset();
-    GLOBAL.config = {};
+    global.config = {};
   });
 
   it('should have a known API', function() {

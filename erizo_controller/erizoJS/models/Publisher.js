@@ -8,18 +8,18 @@ var log = logger.getLogger('Publisher');
 
 function createWrtc(id, threadPool, ioThreadPool) {
   var wrtc = new addon.WebRtcConnection(threadPool, ioThreadPool, id,
-                                    GLOBAL.config.erizo.stunserver,
-                                    GLOBAL.config.erizo.stunport,
-                                    GLOBAL.config.erizo.minport,
-                                    GLOBAL.config.erizo.maxport,
+                                    global.config.erizo.stunserver,
+                                    global.config.erizo.stunport,
+                                    global.config.erizo.minport,
+                                    global.config.erizo.maxport,
                                     false,
-                                    JSON.stringify(GLOBAL.mediaConfig),
-                                    GLOBAL.config.erizo.useNicer,
-                                    GLOBAL.config.erizo.turnserver,
-                                    GLOBAL.config.erizo.turnport,
-                                    GLOBAL.config.erizo.turnusername,
-                                    GLOBAL.config.erizo.turnpass,
-                                    GLOBAL.config.erizo.networkinterface);
+                                    JSON.stringify(global.mediaConfig),
+                                    global.config.erizo.useNicer,
+                                    global.config.erizo.turnserver,
+                                    global.config.erizo.turnport,
+                                    global.config.erizo.turnusername,
+                                    global.config.erizo.turnpass,
+                                    global.config.erizo.networkinterface);
 
   return wrtc;
 }
