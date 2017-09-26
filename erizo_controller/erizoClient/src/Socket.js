@@ -68,7 +68,7 @@ const Socket = (newIo) => {
     // The socket has disconnected
     socket.on('disconnect', (reason) => {
       Logger.error('Disconnect!', reason);
-      // emit.bind(that, 'disconnect');
+      emit.bind(that, 'disconnect');
     });
 
     socket.on('connection_failed', () => {
