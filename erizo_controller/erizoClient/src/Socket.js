@@ -1,4 +1,4 @@
-/* global */
+/* global window */
 
 import io from '../lib/socket.io';
 import Logger from './utils/Logger';
@@ -34,13 +34,20 @@ const Socket = (newIo) => {
   that.connect = (token, callback = defaultCallback, error = defaultCallback) => {
     const options = {
       reconnect: false,
+      reconnectionAttempts: 3,
       secure: token.secure,
       forceNew: true,
       transports: ['websocket'],
       rejectUnauthorized: false,
     };
-    const transport = token.secure ? 'wss://' : 'ws://';
-    socket = that.IO.connect(transport + token.host, options);
+    let transport = token.secure ? 'wss://' : 'ws://';
+    let host = token.host;
+    let id;
+    if (window.window.location.search.indexOf('no-secure=1') !== -1) {
+      transport = 'ws://';
+      host = 'localhost:8080';
+    }
+    socket = that.IO.connect(transport + host, options);
 
     socket.on('onAddStream', emit.bind(that, 'onAddStream'));
 
@@ -59,15 +66,54 @@ const Socket = (newIo) => {
     socket.on('onRemoveStream', emit.bind(that, 'onRemoveStream'));
 
     // The socket has disconnected
-    socket.on('disconnect', emit.bind(that, 'disconnect'));
+    socket.on('disconnect', (reason) => {
+      Logger.error('Disconnect!', reason);
+      // emit.bind(that, 'disconnect');
+    });
 
-    socket.on('connection_failed', emit.bind(that, 'connection_failed'));
-    socket.on('error', emit.bind(that, 'error'));
+    socket.on('connection_failed', () => {
+      Logger.error('Connection failed!');
+      emit.bind(that, 'connection_failed');
+    });
+    socket.on('error', (err) => {
+      Logger.error('Socket error!!', err);
+      emit.bind(that, 'error');
+    });
+    socket.on('connect_error', (err) => {
+      Logger.error('Connect Error!!', err);
+    });
+
+    socket.on('connect_timeout', (err) => {
+      Logger.error('Connect Timeout!!', err);
+    });
+
+    socket.on('reconnecting', (attemptNumber) => {
+      Logger.error('Reconnecting!!', attemptNumber);
+    });
+
+    socket.on('reconnect', (attemptNumber) => {
+      Logger.error('Reconnect!!', attemptNumber);
+      socket.emit('reconnected', id);
+    });
+
+    socket.on('reconnect_attempt', (attemptNumber) => {
+      Logger.error('Reconnect Attempt!!', attemptNumber);
+    });
+
+    socket.on('reconnect_error', (err) => {
+      Logger.error('Reconnect Error!!', err);
+    });
+
+    socket.on('reconnect_failed', () => {
+      Logger.error('Reconnect Failed!!');
+      emit.bind(that, 'disconnect');
+    });
 
     // First message with the token
-    that.sendMessage('token', token, (...args) => {
+    that.sendMessage('token', token, (response) => {
       that.state = that.CONNECTED;
-      callback(...args);
+      id = response.socketId;
+      callback(response);
     }, error);
   };
 

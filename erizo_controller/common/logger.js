@@ -1,6 +1,8 @@
 'use strict';
 var log4js = require('log4js');
 
+global.config = global.config || {};
+
 global.config.logger = global.config.logger || {};
 
 var logFile = global.config.logger.configFile ||  '../log4js_configuration.json';
