@@ -304,6 +304,7 @@ var listen = function () {
 
             callback('success', {streams: streamList,
                                  id: room.id,
+                                 clientId: client.id,
                                  p2p: room.p2p,
                                  defaultVideoBW: global.config.erizoController.defaultVideoBW,
                                  maxVideoBW: global.config.erizoController.maxVideoBW,
@@ -313,16 +314,16 @@ var listen = function () {
           }
         });
 
-        channel.on('reconnected', (clientId, token) => {
-          let room = rooms.getRoom(token.room);
-          if (room === undefined) {
-            channel.disconnect();
-          }
-          let client = room.getClientById(clientId);
-          if (client !== undefined) {
-            client.setNewChannel(channel);
-          }
+        channel.on('reconnected', clientId => {
+          rooms.forEachRoom(room => {
+            const client = room.getClientById(clientId);
+            console.log('Client found');
+            if (client !== undefined) {
+              client.setNewChannel(channel);
+            }
+          });
         });
+
         socket.channel = channel;
     });
 };

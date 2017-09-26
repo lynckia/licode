@@ -71,7 +71,7 @@ class Channel extends events.EventEmitter {
   }
 
   onDisconnect(reason) {
-    log.debug('message: channel disconnected, reason:', reason);
+    log.debug('message: socket disconnected, reason:', reason);
     this.emit('disconnect');
   }
 
@@ -79,8 +79,8 @@ class Channel extends events.EventEmitter {
     this.socket.on(eventName, listener);
   }
 
-  onReconnected(clientId, token) {
-    this.emit('reconnected', clientId, token);
+  onReconnected(clientId) {
+    this.emit('reconnected',  clientId);
   }
 
   sendMessage(type, arg) {

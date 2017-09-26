@@ -113,6 +113,12 @@ class Rooms extends events.EventEmitter {
     return room;
   }
 
+  forEachRoom(doSomething) {
+    for (const room of this.rooms.values()) {
+      doSomething(room);
+    }
+  }
+
   getRoomById(id) {
     return this.rooms.get(id);
   }

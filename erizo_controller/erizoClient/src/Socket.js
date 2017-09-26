@@ -33,7 +33,7 @@ const Socket = (newIo) => {
 
   that.connect = (token, callback = defaultCallback, error = defaultCallback) => {
     const options = {
-      reconnect: false,
+      reconnection: false,
       reconnectionAttempts: 3,
       secure: token.secure,
       forceNew: true,
@@ -112,7 +112,7 @@ const Socket = (newIo) => {
     // First message with the token
     that.sendMessage('token', token, (response) => {
       that.state = that.CONNECTED;
-      id = response.socketId;
+      id = response.clientId;
       callback(response);
     }, error);
   };
