@@ -1,4 +1,4 @@
-/* global window */
+/* global */
 
 import io from '../lib/socket.io';
 import Logger from './utils/Logger';
@@ -56,8 +56,8 @@ const Socket = (newIo) => {
       transports: ['websocket'],
       rejectUnauthorized: false,
     };
-    let transport = token.secure ? 'wss://' : 'ws://';
-    let host = token.host;
+    const transport = token.secure ? 'wss://' : 'ws://';
+    const host = token.host;
     socket = that.IO.connect(transport + host, options);
 
     // Hack to know the exact reason of the WS closure (socket.io does not publish it)
