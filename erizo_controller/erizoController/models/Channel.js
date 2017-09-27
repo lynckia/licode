@@ -141,7 +141,8 @@ class Channel extends events.EventEmitter {
     if (this.state !== CONNECTED) {
       return;
     }
-    log.debug('message: sending buffered messages, number:', buffer.length, ', channelId:', this.id);
+    log.debug('message: sending buffered messages, number:', buffer.length,
+              ', channelId:', this.id);
     buffer.forEach((message) => {
       log.debug('message: sending buffered message, message:', message, ', channelId:', this.id);
       this.sendMessage(...message);
