@@ -88,6 +88,7 @@ var reset = module.exports.reset = function() {
   });
 
   module.exports.socketInstance = {
+    conn: {transport: {socket: {internalOnClose: undefined}}},
     disconnect: sinon.stub(),
     emit: sinon.stub(),
     on: sinon.stub()

@@ -96,17 +96,17 @@ class Channel extends events.EventEmitter {
 
   onDisconnect() {
     log.debug('message: socket disconnected, code:', this.closeCode);
-    this.state = RECONNECTING;
     if (this.closeCode !== WEBSOCKET_NORMAL_CLOSURE &&
         this.closeCode !== WEBSOCKET_GOING_AWAY_CLOSURE) {
+      this.state = RECONNECTING;
       this.disconnecting = setTimeout(() => {
         this.emit('disconnect');
         this.state = DISCONNECTED;
       }, RECONNECTION_TIMEOUT);
       return;
     }
-    this.emit('disconnect');
     this.state = DISCONNECTED;
+    this.emit('disconnect');
   }
 
   socketOn(eventName, listener) {
@@ -119,9 +119,6 @@ class Channel extends events.EventEmitter {
   }
 
   sendMessage(type, arg) {
-    if (this.state === DISCONNECTED) {
-      return;
-    }
     if (this.state === RECONNECTING) {
       this.addToBuffer(type, arg);
       return;
