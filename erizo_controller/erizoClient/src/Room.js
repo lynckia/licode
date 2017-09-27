@@ -33,6 +33,7 @@ const Room = (altIo, altConnection, specInput) => {
   that.Connection = altConnection === undefined ? Connection : altConnection;
 
   let socket = Socket(altIo);
+  that.socket = socket;
   let remoteStreams = that.remoteStreams;
   let localStreams = that.localStreams;
 

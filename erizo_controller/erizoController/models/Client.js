@@ -44,8 +44,14 @@ class Client extends events.EventEmitter {
   }
 
   setNewChannel(channel) {
+    const oldChannel = this.channel;
+    const buffer = oldChannel.getBuffer();
+    log.info('message: reconnected, oldChannelId:', oldChannel.id, ', channelId:', channel.id);
+    oldChannel.removeAllListeners();
+    oldChannel.disconnect();
     this.channel = channel;
-    this._listenToSocketEvents();
+    listenToSocketEvents(this);
+    this.channel.sendBuffer(buffer);
   }
 
   sendMessage(type, arg) {
@@ -480,7 +486,7 @@ class Client extends events.EventEmitter {
   onDisconnect() {
     let timeStamp = new Date();
 
-    log.info('message: Socket disconnect, clientId: ' + this.id);
+    log.info('message: Channel disconnect, clientId: ' + this.id, ', channelId:', this.channel.id);
 
     for (let streamId of this.streams) {
       this.room.sendMessage('onRemoveStream', {id: streamId});

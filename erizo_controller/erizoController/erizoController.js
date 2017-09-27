@@ -317,7 +317,6 @@ var listen = function () {
         channel.on('reconnected', clientId => {
           rooms.forEachRoom(room => {
             const client = room.getClientById(clientId);
-            console.log('Client found');
             if (client !== undefined) {
               client.setNewChannel(channel);
             }

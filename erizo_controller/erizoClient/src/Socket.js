@@ -18,10 +18,13 @@ const SocketEvent = (type, specInput) => {
 const Socket = (newIo) => {
   const that = EventDispatcher();
   const defaultCallback = () => {};
+  const messageBuffer = [];
 
   that.CONNECTED = Symbol('connected');
+  that.RECONNECTING = Symbol('reconnecting');
   that.DISCONNECTED = Symbol('disconnected');
 
+  const WEBSOCKET_NORMAL_CLOSURE = 1000;
   that.state = that.DISCONNECTED;
   that.IO = newIo === undefined ? io : newIo;
 
@@ -31,9 +34,22 @@ const Socket = (newIo) => {
     that.emit(SocketEvent(type, { args }));
   };
 
+  const addToBuffer = (type, message, callback, error) => {
+    messageBuffer.push([type, message, callback, error]);
+  };
+
+  const flushBuffer = () => {
+    if (that.state !== that.CONNECTED) {
+      return;
+    }
+    messageBuffer.forEach((message) => {
+      that.sendMessage(...message);
+    });
+  };
+
   that.connect = (token, callback = defaultCallback, error = defaultCallback) => {
     const options = {
-      reconnection: false,
+      reconnection: true,
       reconnectionAttempts: 3,
       secure: token.secure,
       forceNew: true,
@@ -42,13 +58,17 @@ const Socket = (newIo) => {
     };
     let transport = token.secure ? 'wss://' : 'ws://';
     let host = token.host;
-    let id;
-    if (window.window.location.search.indexOf('no-secure=1') !== -1) {
-      transport = 'ws://';
-      host = 'localhost:8080';
-    }
     socket = that.IO.connect(transport + host, options);
 
+    // Hack to know the exact reason of the WS closure (socket.io does not publish it)
+    let closeCode = WEBSOCKET_NORMAL_CLOSURE;
+    const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
+    socket.io.engine.transport.ws.onclose = (closeEvent) => {
+      Logger.warning('WebSocket closed, code:', closeEvent.code);
+      closeCode = closeEvent.code;
+      socketOnCloseFunction(closeEvent);
+    };
+    that.socket = socket;
     socket.on('onAddStream', emit.bind(that, 'onAddStream'));
 
     socket.on('signaling_message_erizo', emit.bind(that, 'signaling_message_erizo'));
@@ -67,52 +87,60 @@ const Socket = (newIo) => {
 
     // The socket has disconnected
     socket.on('disconnect', (reason) => {
-      Logger.error('Disconnect!', reason);
+      Logger.debug('disconnect', that.id, reason);
+      if (closeCode !== WEBSOCKET_NORMAL_CLOSURE) {
+        that.state = that.RECONNECTING;
+        return;
+      }
       emit.bind(that, 'disconnect');
+      socket.close();
     });
 
     socket.on('connection_failed', () => {
-      Logger.error('Connection failed!');
+      Logger.error('connection failed, id:', that.id);
       emit.bind(that, 'connection_failed');
     });
     socket.on('error', (err) => {
-      Logger.error('Socket error!!', err);
+      Logger.warning('socket error, id:', that.id, ', error:', err.message);
       emit.bind(that, 'error');
     });
     socket.on('connect_error', (err) => {
-      Logger.error('Connect Error!!', err);
+      Logger.warning('connect error, id:', that.id, ', error:', err.message);
     });
 
     socket.on('connect_timeout', (err) => {
-      Logger.error('Connect Timeout!!', err);
+      Logger.warning('connect timeout, id:', that.id, ', error:', err.message);
     });
 
     socket.on('reconnecting', (attemptNumber) => {
-      Logger.error('Reconnecting!!', attemptNumber);
+      Logger.debug('reconnecting, id:', that.id, ', attempet:', attemptNumber);
     });
 
     socket.on('reconnect', (attemptNumber) => {
-      Logger.error('Reconnect!!', attemptNumber);
-      socket.emit('reconnected', id);
+      Logger.debug('reconnected, id:', that.id, ', attempet:', attemptNumber);
+      that.state = that.CONNECTED;
+      socket.emit('reconnected', that.id);
+      flushBuffer();
     });
 
     socket.on('reconnect_attempt', (attemptNumber) => {
-      Logger.error('Reconnect Attempt!!', attemptNumber);
+      Logger.debug('reconnect attempt, id:', that.id, ', attempet:', attemptNumber);
     });
 
     socket.on('reconnect_error', (err) => {
-      Logger.error('Reconnect Error!!', err);
+      Logger.debug('error reconnecting, id:', that.id, ', error:', err.message);
     });
 
     socket.on('reconnect_failed', () => {
-      Logger.error('Reconnect Failed!!');
+      Logger.warning('reconnect failed, id:', that.id);
+      that.state = that.DISCONNECTED;
       emit.bind(that, 'disconnect');
     });
 
     // First message with the token
     that.sendMessage('token', token, (response) => {
       that.state = that.CONNECTED;
-      id = response.clientId;
+      that.id = response.clientId;
       callback(response);
     }, error);
   };
@@ -126,6 +154,10 @@ const Socket = (newIo) => {
   that.sendMessage = (type, msg, callback = defaultCallback, error = defaultCallback) => {
     if (that.state === that.DISCONNECTED && type !== 'token') {
       Logger.error('Trying to send a message over a disconnected Socket');
+      return;
+    }
+    if (that.state === that.RECONNECTING) {
+      addToBuffer(type, msg, callback, error);
       return;
     }
     socket.emit(type, msg, (respType, resp) => {
