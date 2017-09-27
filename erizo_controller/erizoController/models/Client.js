@@ -92,7 +92,7 @@ class Client extends events.EventEmitter {
     if (this.room.p2p) {
       const targetClient = this.room.getClientById(message.peerSocket);
       targetClient.sendMessage('signaling_message_peer',
-                {streamId: message.streamId, peerSocket: targetClient.id, msg: message.msg});
+                {streamId: message.streamId, peerSocket: this.id, msg: message.msg});
     } else {
         const isControlMessage = message.msg.type === 'control';
         if (!isControlMessage ||
@@ -468,7 +468,11 @@ class Client extends events.EventEmitter {
     stream.removeDataSubscriber(this.id);
 
     if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-        if (!this.room.p2p) {
+        if (this.room.p2p) {
+            const clientId = stream.getClient();
+            const client = this.room.getClientById(clientId);
+            client.sendMessage('unpublish_me', {streamId: stream.getID(), peerSocket: this.id});
+        } else {
             this.room.controller.removeSubscriber(this.id, to);
             if (global.config.erizoController.report.session_events) {  // jshint ignore:line
                 var timeStamp = new Date();
@@ -495,6 +499,11 @@ class Client extends events.EventEmitter {
     if (this.room !== undefined) {
       this.room.forEachStream((stream) => {
         stream.removeDataSubscriber(this.id);
+        if (this.room.p2p) {
+          const clientId = stream.getClient();
+          const client = this.room.getClientById(clientId);
+          client.sendMessage('unpublish_me', {streamId: stream.getID(), peerSocket: this.id});
+        }
       });
 
       this.room.removeClient(this.id);

@@ -74,6 +74,7 @@ const Socket = (newIo) => {
     socket.on('signaling_message_erizo', emit.bind(that, 'signaling_message_erizo'));
     socket.on('signaling_message_peer', emit.bind(that, 'signaling_message_peer'));
     socket.on('publish_me', emit.bind(that, 'publish_me'));
+    socket.on('unpublish_me', emit.bind(that, 'unpublish_me'));
     socket.on('onBandwidthAlert', emit.bind(that, 'onBandwidthAlert'));
 
     // We receive an event of new data in one of the streams
