@@ -93,17 +93,17 @@ const Socket = (newIo) => {
         that.state = that.RECONNECTING;
         return;
       }
-      emit.bind(that, 'disconnect');
+      emit('disconnect', reason);
       socket.close();
     });
 
     socket.on('connection_failed', () => {
       Logger.error('connection failed, id:', that.id);
-      emit.bind(that, 'connection_failed');
+      emit('connection_failed');
     });
     socket.on('error', (err) => {
       Logger.warning('socket error, id:', that.id, ', error:', err.message);
-      emit.bind(that, 'error');
+      emit('error');
     });
     socket.on('connect_error', (err) => {
       Logger.warning('connect error, id:', that.id, ', error:', err.message);
@@ -135,7 +135,7 @@ const Socket = (newIo) => {
     socket.on('reconnect_failed', () => {
       Logger.warning('reconnect failed, id:', that.id);
       that.state = that.DISCONNECTED;
-      emit.bind(that, 'disconnect');
+      emit('disconnect', 'reconnect failed');
     });
 
     // First message with the token
