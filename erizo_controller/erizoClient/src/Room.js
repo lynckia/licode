@@ -33,6 +33,7 @@ const Room = (altIo, altConnection, specInput) => {
   that.Connection = altConnection === undefined ? Connection : altConnection;
 
   let socket = Socket(altIo);
+  that.socket = socket;
   let remoteStreams = that.remoteStreams;
   let localStreams = that.localStreams;
 
@@ -139,6 +140,16 @@ const Room = (altIo, altConnection, specInput) => {
     connection.createOffer();
   };
 
+  const removeLocalStreamP2PConnection = (streamInput, peerSocket) => {
+    const stream = streamInput;
+    if (stream.pc === undefined || !stream.pc.has(peerSocket)) {
+      return;
+    }
+    const pc = stream.pc.get(peerSocket);
+    pc.close();
+    stream.pc.remove(peerSocket);
+  };
+
   const getErizoConnectionOptions = (stream, options, isRemote) => {
     const connectionOpts = {
       callback(message) {
@@ -238,6 +249,13 @@ const Room = (altIo, altConnection, specInput) => {
     const myStream = localStreams.get(arg.streamId);
 
     createLocalStreamP2PConnection(myStream, arg.peerSocket);
+  };
+
+  const socketOnUnpublishMe = (arg) => {
+    const myStream = localStreams.get(arg.streamId);
+    if (myStream) {
+      removeLocalStreamP2PConnection(myStream, arg.peerSocket);
+    }
   };
 
   const socketOnBandwidthAlert = (arg) => {
@@ -814,6 +832,7 @@ const Room = (altIo, altConnection, specInput) => {
   socket.on('signaling_message_erizo', socketEventToArgs.bind(null, socketOnErizoMessage));
   socket.on('signaling_message_peer', socketEventToArgs.bind(null, socketOnPeerMessage));
   socket.on('publish_me', socketEventToArgs.bind(null, socketOnPublishMe));
+  socket.on('unpublish_me', socketEventToArgs.bind(null, socketOnUnpublishMe));
   socket.on('onBandwidthAlert', socketEventToArgs.bind(null, socketOnBandwidthAlert));
   socket.on('onDataStream', socketEventToArgs.bind(null, socketOnDataStream));
   socket.on('onUpdateAttributeStream', socketEventToArgs.bind(null, socketOnUpdateAttributeStream));

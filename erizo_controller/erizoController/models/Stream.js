@@ -8,8 +8,8 @@ exports.Stream = function (spec) {
         return spec.id;
     };
 
-    that.getSocket = function () {
-        return spec.socket;
+    that.getClient = function () {
+        return spec.client;
     };
 
     // Indicates if the stream has audio activated

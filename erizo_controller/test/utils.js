@@ -78,7 +78,8 @@ var reset = module.exports.reset = function() {
   };
 
   module.exports.crypto = createMock('crypto', {
-    createHmac: sinon.stub().returns(module.exports.signature)
+    createHmac: sinon.stub().returns(module.exports.signature),
+    randomBytes: sinon.stub().returns(new Buffer(16))
   });
 
   module.exports.http = createMock('http', {
@@ -87,6 +88,7 @@ var reset = module.exports.reset = function() {
   });
 
   module.exports.socketInstance = {
+    conn: {transport: {socket: {internalOnClose: undefined}}},
     disconnect: sinon.stub(),
     emit: sinon.stub(),
     on: sinon.stub()
