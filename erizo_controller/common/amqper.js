@@ -79,16 +79,14 @@ exports.connect = function(callback) {
                             }
                         } catch(err) {
                             log.error('message: error processing message, ' +
-                                      'queueName: ' + clientQueue.name + ', ' +
-                                      logger.objectToLog(err));
+                                      'queueName: ' + clientQueue.name + ', error: ' + err.message);
                         }
                     });
 
                 });
             } catch (err) {
                 log.error('message: exchange error, ' +
-                          'exchangeName: ' + exchange.name + ', ' +
-                          logger.objectToLog(err));
+                          'exchangeName: ' + exchange.name + ', error: ' + err.message);
             }
         });
 
@@ -127,15 +125,13 @@ exports.bind = function(id, callback) {
                     rpcPublic[message.method].apply(rpcPublic, message.args);
                 } catch (error) {
                     log.error('message: error processing call, ' +
-                              'queueName: ' + q.name + ', ' +
-                              logger.objectToLog(error));
+                              'queueName: ' + q.name + ', error: ' + error.message);
                 }
 
             });
         } catch (err) {
             log.error('message: queue error, ' +
-                      'queueName: ' + q.name + ', ' +
-                      logger.objectToLog(err));
+                      'queueName: ' + q.name + ', error: ' + err.message);
         }
 
     });
@@ -161,16 +157,23 @@ exports.bindBroadcast = function(id, callback) {
                 }
                 if (body.message.method && rpcPublic[body.message.method]) {
                     body.message.args.push(answer);
-                    rpcPublic[body.message.method].apply(rpcPublic, body.message.args);
+                    try {
+                      rpcPublic[body.message.method].apply(rpcPublic, body.message.args);
+                    } catch(e) {
+                      log.warn('message: error processing call, error:', e.message);
+                    }
                 } else {
+                  try {
                     callback(body.message, answer);
+                  } catch(e) {
+                    log.warn('message: error processing callback, error:', e.message);
+                  }
                 }
             });
 
         } catch (err) {
             log.error('message: exchange error, ' +
-                      'queueName: ' + q.name + ', ' +
-                      logger.objectToLog(err));
+                      'queueName: ' + q.name + ', error: ' + err.message);
         }
 
     });
