@@ -389,6 +389,12 @@ room.addEventListener("stream-added", function(event) {
 room.publish(localStream, {maxVideoBW:300});
 ```
 
+We can also force the client to use a TURN server when publishing by setting the next parameter:
+
+```
+room.publish(localStream, {forceTurn: true});
+```
+
 In `room.publish` you can include a callback with two parameters, `id` and `error`. If the stream has been published, `id` contains the id of that stream. On the other hand, if there has been any kind of error, `id` is `undefined` and the error is described in `error`.
 
 <example>
@@ -448,6 +454,12 @@ room.addEventListener("stream-subscribed", function(streamEvt) {
   console.log("Stream subscribed");
 });
 room.subscribe(stream, {audio: true, video: false});
+```
+
+We can also force the client to use a TURN server when subscribing by setting the next parameter:
+
+```
+room.publish(localStream, {forceTurn: true});
 ```
 
 In `room.subscribe` you can include a callback with two parameters, `result` and `error`. If the stream has been subscribed, `result` is true. On the other hand, if there has been any kind of error, `result` is `undefined` and the error is described in `error`.
