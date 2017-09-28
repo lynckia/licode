@@ -10,6 +10,7 @@
 #include "pipeline/Handler.h"
 #include "rtp/RtpVP8Parser.h"
 #include "rtp/RtpVP9Parser.h"
+#include "rtp/RtpH264Parser.h"
 #include "./Stats.h"
 
 #define MAX_DELAY 450000
@@ -54,6 +55,7 @@ class LayerDetectorHandler: public InboundHandler, public std::enable_shared_fro
  private:
   void parseLayerInfoFromVP8(std::shared_ptr<DataPacket> packet);
   void parseLayerInfoFromVP9(std::shared_ptr<DataPacket> packet);
+  void parseLayerInfoFromH264(std::shared_ptr<DataPacket> packet);
   int getSsrcPosition(uint32_t ssrc);
   void addTemporalLayerAndCalculateRate(const std::shared_ptr<DataPacket> &packet, int temporal_layer, bool new_frame);
   void notifyLayerInfoChangedEvent();
@@ -66,6 +68,7 @@ class LayerDetectorHandler: public InboundHandler, public std::enable_shared_fro
   bool initialized_;
   RtpVP8Parser vp8_parser_;
   RtpVP9Parser vp9_parser_;
+  RtpH264Parser h264_parser_;
   std::vector<uint32_t> video_ssrc_list_;
   std::vector<uint32_t> video_frame_height_list_;
   std::vector<uint32_t> video_frame_width_list_;

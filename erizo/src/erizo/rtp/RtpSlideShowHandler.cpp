@@ -95,7 +95,7 @@ void RtpSlideShowHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
   uint16_t packet_seq_num = rtp_header->getSeqNumber();
   bool is_keyframe = false;
   RtpMap *codec = connection_->getRemoteSdpInfo().getCodecByExternalPayloadType(rtp_header->getPayloadType());
-  if (codec && codec->encoding_name == "VP8") {
+  if (codec && (codec->encoding_name == "VP8" || codec->encoding_name == "H264")) {
     is_keyframe = isVP8Keyframe(packet);
   } else if (codec && codec->encoding_name == "VP9") {
     is_keyframe = isVP9Keyframe(packet);

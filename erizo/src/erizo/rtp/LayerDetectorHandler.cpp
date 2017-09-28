@@ -42,6 +42,9 @@ void LayerDetectorHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet
     } else if (codec && codec->encoding_name == "VP9") {
       packet->codec = "VP9";
       parseLayerInfoFromVP9(packet);
+    } else if (codec && codec->encoding_name == "H264") {
+      packet->codec = "H264";
+      parseLayerInfoFromH264(packet);
     }
   }
   ctx->fireRead(std::move(packet));
@@ -174,6 +177,22 @@ void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<DataPacket> pac
   notifyLayerInfoChangedEventMaybe();
 
   packet->ending_of_layer_frame = payload->endingOfLayerFrame;
+  delete payload;
+}
+
+void LayerDetectorHandler::parseLayerInfoFromH264(std::shared_ptr<DataPacket> packet) {
+  RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
+  unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
+  start_buffer = start_buffer + rtp_header->getHeaderLength();
+  RTPPayloadH264* payload = h264_parser_.parseH264(
+      start_buffer, packet->length - rtp_header->getHeaderLength());
+
+  if (payload->frameType == kH264IFrame) {
+    packet->is_keyframe = true;
+  } else {
+    packet->is_keyframe = false;
+  }
+
   delete payload;
 }
 
