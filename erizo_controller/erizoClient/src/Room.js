@@ -104,6 +104,7 @@ const Room = (altIo, altConnection, specInput) => {
       maxVideoBW: stream.maxVideoBW,
       limitMaxAudioBW: spec.maxAudioBW,
       limitMaxVideoBW: spec.maxVideoBW,
+      forceTurn: stream.forceTurn,
     };
     return options;
   };
@@ -166,7 +167,8 @@ const Room = (altIo, altConnection, specInput) => {
       maxVideoBW: options.maxVideoBW,
       limitMaxAudioBW: spec.maxAudioBW,
       limitMaxVideoBW: spec.maxVideoBW,
-      iceServers: that.iceServers };
+      iceServers: that.iceServers,
+      forceTurn: stream.forceTurn };
     if (!isRemote) {
       connectionOpts.simulcast = options.simulcast;
     }
@@ -298,11 +300,12 @@ const Room = (altIo, altConnection, specInput) => {
       return;
     }
     stream = remoteStreams.get(arg.id);
-
-    remoteStreams.remove(arg.id);
-    removeStream(stream);
-    const evt = StreamEvent({ type: 'stream-removed', stream });
-    that.dispatchEvent(evt);
+    if (stream) {
+      remoteStreams.remove(arg.id);
+      removeStream(stream);
+      const evt = StreamEvent({ type: 'stream-removed', stream });
+      that.dispatchEvent(evt);
+    }
   };
 
   // The socket has disconnected
@@ -623,6 +626,8 @@ const Room = (altIo, altConnection, specInput) => {
       options.minVideoBW = spec.defaultVideoBW;
     }
 
+    stream.forceTurn = options.forceTurn;
+
     options.simulcast = options.simulcast || false;
 
     options.muteStream = {
@@ -743,6 +748,8 @@ const Room = (altIo, altConnection, specInput) => {
           audio: stream.audioMuted,
           video: stream.videoMuted,
         };
+
+        stream.forceTurn = options.forceTurn;
 
         if (that.p2p) {
           socket.sendSDP('subscribe', { streamId: stream.getID(), metadata: options.metadata });

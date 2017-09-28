@@ -19,6 +19,9 @@ const BaseStack = (specInput) => {
   if (specBase.iceServers !== undefined) {
     that.pcConfig.iceServers = specBase.iceServers;
   }
+  if (specBase.forceTurn === true) {
+    that.pcConfig.iceTransportPolicy = 'relay';
+  }
   if (specBase.audio === undefined) {
     specBase.audio = true;
   }
