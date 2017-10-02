@@ -166,6 +166,10 @@ bool WebRtcConnection::createOffer(bool videoEnabled, bool audioEnabled, bool bu
 bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   ELOG_DEBUG("%s message: setting remote SDP", toLog());
 
+  if (!sending_) {
+    return true;
+  }
+
   remoteSdp_.initWithSdp(sdp, "");
 
   if (remoteSdp_.videoBandwidth != 0) {

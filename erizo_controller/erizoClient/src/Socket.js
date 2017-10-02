@@ -99,7 +99,7 @@ const Socket = (newIo) => {
 
     socket.on('connection_failed', () => {
       Logger.error('connection failed, id:', that.id);
-      emit('connection_failed');
+      emit('connection_failed', { streamId: that.id });
     });
     socket.on('error', (err) => {
       Logger.warning('socket error, id:', that.id, ', error:', err.message);
