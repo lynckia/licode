@@ -844,7 +844,7 @@ namespace erizo {
         }
         unsigned int PT = strtoul(parts[1].c_str(), nullptr, 10);
 
-        for (int part_index = 2; part_index < parts.size(); part_index++) {
+        for (uint part_index = 2; part_index < parts.size(); part_index++) {
           std::string fmtp_line = parts[part_index];
           if (part_index == parts.size() - 1) {
             fmtp_line.pop_back();  // remove end of line
