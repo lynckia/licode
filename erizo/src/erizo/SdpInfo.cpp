@@ -839,7 +839,7 @@ namespace erizo {
 
       if (isFmtp != std::string::npos) {
         std::vector<std::string> parts = stringutil::splitOneOf(line, " :;", 40);
-        if (parts.size() < 4) {
+        if (parts.size() < 3) {
           continue;
         }
         unsigned int PT = strtoul(parts[1].c_str(), nullptr, 10);
