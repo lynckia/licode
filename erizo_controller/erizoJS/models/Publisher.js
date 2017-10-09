@@ -79,7 +79,7 @@ class Source {
   addExternalOutput(url) {
     var eoId = url + '_' + this.id;
     log.info('message: Adding ExternalOutput, id: ' + eoId);
-    var externalOutput = new addon.ExternalOutput(url);
+    var externalOutput = new addon.ExternalOutput(url, JSON.stringify(global.mediaConfig));
     externalOutput.wrtcId = eoId;
     externalOutput.init();
     this.muxer.addExternalOutput(externalOutput, url);

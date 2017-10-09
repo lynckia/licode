@@ -149,7 +149,7 @@ exports.ErizoNativeConnection = (config) => {
 
   that.prepareRecording = (url) => {
     log.info('Preparing Recording', url);
-    externalOutput = new addon.ExternalOutput(url);
+    externalOutput = new addon.ExternalOutput(url, JSON.stringify(global.mediaConfig));
     wrtc.setVideoReceiver(externalOutput);
     wrtc.setAudioReceiver(externalOutput);
   };
