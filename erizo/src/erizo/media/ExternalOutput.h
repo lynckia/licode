@@ -15,6 +15,7 @@ extern "C" {
 #include "webrtc/modules/rtp_rtcp/source/ulpfec_receiver_impl.h"
 #include "media/MediaProcessor.h"
 #include "lib/Clock.h"
+#include "SdpInfo.h"
 
 #include "./logger.h"
 
@@ -34,7 +35,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   DECLARE_LOGGER();
 
  public:
-  explicit ExternalOutput(const std::string& outputUrl);
+  explicit ExternalOutput(const std::string& output_url, const std::vector<RtpMap> rtp_mappings);
   virtual ~ExternalOutput();
   bool init();
   void receiveRawData(const RawDataPacket& packet) override;
@@ -95,8 +96,13 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   // Note: VP8 purportedly has two packetization schemes; per-frame and per-partition.  A frame is
   // composed of one or more partitions.  However, we don't seem to be sent anything but partition 0
   // so the second scheme seems not applicable.  Too bad.
-  vp8SearchState vp8_search_state_;
+  vp8SearchState video_search_state_;
   bool need_to_send_fir_;
+  std::vector<RtpMap> rtp_mappings_;
+  std::map<uint, RtpMap> video_maps_;
+  std::map<uint, RtpMap> audio_maps_;
+  RtpMap video_map_;
+  RtpMap audio_map_;
 
   bool initContext();
   int sendFirPacket();
@@ -107,6 +113,9 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   int deliverEvent_(MediaEventPtr event) override;
   void writeAudioData(char* buf, int len);
   void writeVideoData(char* buf, int len);
+  void updateVideoCodec(RtpMap map);
+  void updateAudioCodec(RtpMap map);
+  void writeVP8(char* buf, int len);
   bool bufferCheck(RTPPayloadVP8* payload);
 };
 }  // namespace erizo
