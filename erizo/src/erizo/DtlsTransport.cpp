@@ -335,6 +335,9 @@ void DtlsTransport::updateIceState(IceState state, IceConnection *conn) {
 }
 
 void DtlsTransport::updateIceStateSync(IceState state, IceConnection *conn) {
+  if (!running_) {
+    return;
+  }
   ELOG_DEBUG("%s message:IceState, transportName: %s, state: %d, isBundle: %d",
              toLog(), transport_name.c_str(), state, bundle_);
   if (state == IceState::INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
