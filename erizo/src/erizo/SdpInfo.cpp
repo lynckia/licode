@@ -289,13 +289,18 @@ namespace erizo {
               sdp << "a=rtcp-fb:" << payload_type << " " << rtp.feedback_types[itFb] << "\n";
             }
           }
-          for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
-              theIt != rtp.format_parameters.end(); theIt++) {
-            if (theIt->first.compare("none")) {
-              sdp << "a=fmtp:" << payload_type << " " << theIt->first << "=" << theIt->second << endl;
-            } else {
-              sdp << "a=fmtp:" << payload_type << " " << theIt->second << endl;
+          if (!rtp.format_parameters.empty()) {
+            std::string fmtp_line;
+            for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
+                theIt != rtp.format_parameters.end(); theIt++) {
+              if (theIt->first.compare("none")) {
+                fmtp_line += theIt->first + "=" + theIt->second + ';';
+              } else {
+                fmtp_line += theIt->second + ';';
+              }
             }
+            fmtp_line.pop_back();
+            sdp << "a=fmtp:" << payload_type << " " << fmtp_line << std::endl;
           }
         }
       }
@@ -400,13 +405,18 @@ namespace erizo {
               sdp << "a=rtcp-fb:" << payload_type << " " << rtp.feedback_types[itFb] << "\n";
             }
           }
-          for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
-              theIt != rtp.format_parameters.end(); theIt++) {
-            if (theIt->first.compare("none")) {
-              sdp << "a=fmtp:" << payload_type << " " << theIt->first << "=" << theIt->second << endl;
-            } else {
-              sdp << "a=fmtp:" << payload_type << " " << theIt->second << endl;
+          if (!rtp.format_parameters.empty()) {
+            std::string fmtp_line;
+            for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
+                theIt != rtp.format_parameters.end(); theIt++) {
+              if (theIt->first.compare("none")) {
+                fmtp_line += theIt->first + "=" + theIt->second + ';';
+              } else {
+                fmtp_line += theIt->second + ';';
+              }
             }
+            fmtp_line.pop_back();
+            sdp << "a=fmtp:" << payload_type << " " << fmtp_line << std::endl;
           }
         }
       }
@@ -828,30 +838,38 @@ namespace erizo {
       }
 
       if (isFmtp != std::string::npos) {
-        std::vector<std::string> parts = stringutil::splitOneOf(line, " :=", 4);
-        if (parts.size() < 4) {
+        std::vector<std::string> parts = stringutil::splitOneOf(line, " :;", 40);
+        if (parts.size() < 3) {
           continue;
         }
-        unsigned int PT = strtoul(parts[2].c_str(), nullptr, 10);
-        std::string option = "none";
-        std::string value = "none";
-        if (parts.size() == 4) {
-          value = parts[3].c_str();
-        } else {
-          option = parts[3].c_str();
-          value = parts[4].c_str();
-        }
-        ELOG_DEBUG("message: Parsing format parameter, option: %s, value: %s, PT: %u",
-            option.c_str(), value.c_str(), PT);
-        value.pop_back();
-        auto map_element = payload_parsed_map_.find(PT);
-        if (map_element != payload_parsed_map_.end()) {
-          map_element->second.format_parameters[option] = value;
-        } else {
-          RtpMap new_map;
-          new_map.payload_type = PT;
-          new_map.format_parameters[option] = value;
-          payload_parsed_map_[PT] = new_map;
+        unsigned int PT = strtoul(parts[1].c_str(), nullptr, 10);
+
+        for (uint part_index = 2; part_index < parts.size(); part_index++) {
+          std::string fmtp_line = parts[part_index];
+          if (part_index == parts.size() - 1) {
+            fmtp_line.pop_back();  // remove end of line
+          }
+          std::vector<std::string> key_value = stringutil::splitOneOf(fmtp_line, "=", 40);
+          std::string option = "none";
+          std::string value = "none";
+          if (key_value.size() == 1) {
+            value = key_value[0];
+          } else {
+            option = key_value[0];
+            value = key_value[1];
+          }
+
+          ELOG_DEBUG("message: Parsing format parameter, option: %s, value: %s, PT: %u",
+              option.c_str(), value.c_str(), PT);
+          auto map_element = payload_parsed_map_.find(PT);
+          if (map_element != payload_parsed_map_.end()) {
+            map_element->second.format_parameters[option] = value;
+          } else {
+            RtpMap new_map;
+            new_map.payload_type = PT;
+            new_map.format_parameters[option] = value;
+            payload_parsed_map_[PT] = new_map;
+          }
         }
       }
 
@@ -937,14 +955,12 @@ namespace erizo {
         }
         negotiated_map.feedback_types = negotiated_feedback;
         std::map<std::string, std::string> negotiated_parameters;
-        ELOG_DEBUG("message, Checking fmtp parameters, parsed: %lu, internal: %lu", parsed_map.format_parameters.size(),
-            internal_map.format_parameters.size());
-        if (!parsed_map.format_parameters.empty() && !internal_map.format_parameters.empty()) {
+        if (parsed_map.format_parameters.size() == internal_map.format_parameters.size()) {
           for (const std::pair<std::string, std::string>& internal_parameter : internal_map.format_parameters) {
             auto found_parameter = parsed_map.format_parameters.find(internal_parameter.first);
             if (found_parameter != parsed_map.format_parameters.end()) {
               if (found_parameter->second == internal_parameter.second) {
-                ELOG_DEBUG("message: Adding fmpt, codec_name: %s, parameter: %s, value:%s",
+                ELOG_DEBUG("message: Adding fmtp, codec_name: %s, parameter: %s, value:%s",
                     parsed_map.encoding_name.c_str(), found_parameter->first.c_str(),
                     found_parameter->second.c_str());
                 negotiated_parameters[found_parameter->first] = found_parameter->second;
@@ -952,7 +968,6 @@ namespace erizo {
             }
           }
         }
-
         negotiated_map.format_parameters = negotiated_parameters;
 
         if (negotiated_map.media_type == VIDEO_TYPE) {
@@ -960,7 +975,10 @@ namespace erizo {
         } else {
           audioCodecs++;
         }
-        payloadVector.push_back(negotiated_map);
+        if (internal_map.format_parameters.empty() ||
+            parsed_map.format_parameters.size() == negotiated_parameters.size()) {
+          payloadVector.push_back(negotiated_map);
+        }
       }
     }
 
