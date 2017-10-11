@@ -51,6 +51,9 @@ exports.createRoom = function (req, res) {
         if (req.body.options.data) {
             room.data = req.body.options.data;
         }
+        if (typeof req.body.options.mediaConfiguration === 'string') {
+            room.mediaConfiguration = req.body.options.mediaConfiguration;
+        }
         roomRegistry.addRoom(room, function (result) {
             currentService.rooms.push(result);
             serviceRegistry.updateService(currentService);

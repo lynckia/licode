@@ -50,6 +50,7 @@ window.onload = function () {
   var screen = getParameterByName('screen');
   var roomName = getParameterByName('room') || 'basicExampleRoom';
   var roomType = getParameterByName('type') || 'erizo';
+  var mediaConfiguration = getParameterByName('mediaConfiguration') || 'default';
   var onlySubscribe = getParameterByName('onlySubscribe');
   console.log('Selected Room', roomName, 'of type', roomType);
   var config = {audio: true,
@@ -81,7 +82,11 @@ window.onload = function () {
     req.send(JSON.stringify(roomData));
   };
 
-  var roomData  = {username: 'user', role: 'presenter', room: roomName, type: roomType};
+  var roomData  = {username: 'user',
+                   role: 'presenter',
+                   room: roomName,
+                   type: roomType,
+                   mediaConfiguration: mediaConfiguration};
 
   createToken(roomData, function (response) {
     var token = response;
