@@ -54,7 +54,7 @@ check_result() {
 install_homebrew_from_cache(){
   if [ -f cache/homebrew-cache.tar.gz ]; then
     tar xzf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar
-    brew link glib pkg-config boost cmake yasm log4cxx gettext coreutils
+    brew link glib pkg-config boost cmake yasm log4cxx gettext coreutils gnutls
   fi
 }
 
@@ -92,7 +92,7 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils
+  brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils gnutls
   install_nvm_node
   nvm use
   npm install
@@ -139,12 +139,11 @@ install_openssl(){
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -OL https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
-    tar -zxvf libnice-0.1.4.tar.gz
-    cd libnice-0.1.4
+    curl -OL https://nice.freedesktop.org/releases/libnice-0.1.14.tar.gz
+    tar -zxvf libnice-0.1.14.tar.gz
+    cd libnice-0.1.14
     check_result $?
-    patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
-    ./configure --prefix=$PREFIX_DIR && make $FAST_MAKE -s V=0 && make install
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR && make $FAST_MAKE -s V=0 && make install
     check_result $?
     cd $CURRENT_DIR
   else

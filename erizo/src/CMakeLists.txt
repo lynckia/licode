@@ -61,16 +61,22 @@ set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/"
 ## Depencencies
 
 # GLIB
-find_package(Glib REQUIRED)
-include_directories(${GLIB_INCLUDE_DIRS})
+if (APPLE)
+    message("APPLE")
+    find_package(Glib REQUIRED)
+    set (GLIB2_LIBRARIES ${GLIB_LIBRARIES} gio-2.0 gobject-2.0 gthread-2.0)
+    include_directories(${GLIB_INCLUDE_DIRS})
+elseif(UNIX)
+    message("UNIX")
+    set(ENV{PKG_CONFIG_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/pkgconfig")
+    pkg_check_modules(GLIB2 glib-2.0>=2.44)
+    include_directories(${GLIB2_INCLUDE_DIRS})
+    set (GLIB2_LIBRARIES ${GLIB2_LIBRARIES} gio-2.0 gobject-2.0 gthread-2.0)
+endif()
 
 # BOOST
 set (BOOST_LIBS thread regex system)
 find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
-
-# GTHREAD
-find_library(GTHREAD gthread-2.0 HINTS "${THIRD_PARTY_LIB}")
-test_lib(${GTHREAD})
 
 # SRTP
 find_library(SRTP srtp2 HINTS "${THIRD_PARTY_LIB}")
