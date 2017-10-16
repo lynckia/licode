@@ -32,6 +32,7 @@ A Room object has the following properties:
 - `Room.name`: the name of the room.
 - `Room._id`: a unique identifier for the room.
 - `Room.p2p` (optional): boolean that indicates if the room is a peer - to - peer room. In p2p rooms server side is only used for signalling.
+- `Room.mediaConfiguration` (optional): a string with the media configuration used for this room.
 - `Room.data` (optional): additional metadata for the room.
 
 In your service you can create a room, get a list of rooms that you have created, get the info about a determined room or delete a room when you don't need it.
@@ -44,7 +45,7 @@ To create a room you need to specify a name and a callback function. When the ro
 
 ```
 var roomName = 'myFirstRoom';
- 
+
 N.API.createRoom(roomName, function(room) {
   console.log('Room created with id: ', room._id);
 }, errorCallback);
@@ -54,7 +55,7 @@ You can create peer - to - peer rooms in which users will communicate directly b
 
 ```
 var roomName = 'myP2PRoom';
- 
+
 N.API.createRoom(roomName, function(room) {
   console.log('P2P room created with id: ', room._id);
 }, errorCallback, {p2p: true});
@@ -64,10 +65,18 @@ You can include metadata when creating the room. This metadata will be stored in
 
 ```
 var roomName = 'myRoomWithMetadata';
- 
+
 N.API.createRoom(roomName, function(room) {
-  console.log('P2P room created with id: ', room._id);
+  console.log('Room created with id: ', room._id);
 }, errorCallback, {data: {room_color: 'red', room_description: 'Room for testing metadata'}});
+```
+
+You can also specify which media configuration you want to use in the Room.
+
+```
+N.API.createRoom(roomName, function(room) {
+  console.log('Room created with id: ', room._id);
+}, errorCallback, {mediaConfiguration: 'VP8_AND_OPUS'});
 ```
 
 ## Get Rooms
@@ -89,7 +98,7 @@ Also you can get the info about a determined room with its roomId:
 
 ```
 var roomId = '30121g51113e74fff3115502';
- 
+
 N.API.getRoom(roomId, function(resp) {
   var room= JSON.parse(resp);
   console.log('Room name: ', room.name);
@@ -102,7 +111,7 @@ And finally, to delete a determined room:
 
 ```
 var roomId = '30121g51113e74fff3115502';
- 
+
 N.API.deleteRoom(roomId, function(result) {
   console.log('Result: ', result);
 }, errorCallback);
@@ -123,7 +132,7 @@ When you want to add a new participant to a room, you need to create a new token
 var roomId = '30121g51113e74fff3115502';
 var name = 'userName';
 var role = '';
- 
+
 N.API.createToken(roomId, name, role, function(token) {
   console.log('Token created: ', token);
 }, errorCallback);
@@ -145,11 +154,11 @@ You can ask Nuve for a list of the users connected to a determined room.
 
 ```
 var roomId = '30121g51113e74fff3115502';
- 
+
 N.API.getUsers(roomId, function(users) {
   var usersList = JSON.parse(users);
   console.log('This room has ', usersList.length, 'users');
- 
+
   for(var i in usersList) {
     console.log('User ', i, ':', usersList[i].name, 'with role: ', usersList[i].role);
   }
@@ -174,7 +183,7 @@ We also include express support for our server. We prepare it to publish static 
 ```
 var express = require('express');
 var app = express.createServer();
- 
+
 app.use(express.bodyParser());
 app.configure(function () {
     app.use(express.logger());
@@ -186,7 +195,7 @@ Requests to `/createRoom/` URL will create a new Room in Licode.
 
 ```
 app.post('/createRoom/', function(req, res){
- 
+
     N.API.createRoom('myRoom', function(roomID) {
         res.send(roomID);
     }, function (e) {
@@ -199,7 +208,7 @@ Requests to `/getRooms/` URL will retrieve a list of our Rooms in Licode.
 
 ```
 app.get('/getRooms/', function(req, res){
- 
+
     N.API.getRooms(function(rooms) {
         res.send(rooms);
     }, function (e) {
@@ -212,7 +221,7 @@ Requests to `/getUsers/roomID` URL will retrieve a list of users that are connec
 
 ```
 app.get('/getUsers/:room', function(req, res){
- 
+
     var room = req.params.room;
     N.API.getUsers(room, function(users) {
         res.send(users);
@@ -226,7 +235,7 @@ Requests to `/createToken/roomID` URL will create an access token for including 
 
 ```
 app.post('/createToken/:room', function(req, res){
- 
+
     var room = req.params.room;
     var username = req.body.username;
     var role = req.body.role;
@@ -243,4 +252,3 @@ Finally, we will start our service, that will listen to port 80 (line 19).
 ```
 app.listen (80);
 ```
-

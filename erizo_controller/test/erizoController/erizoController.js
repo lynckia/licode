@@ -1053,7 +1053,7 @@ describe('Erizo Controller / Erizo Controller', function() {
 
               it('should return ok if when receiving success state', function() {
                 var signMes = 'success';
-                mocks.roomControllerInstance.addExternalOutput.callsArgWith(2, signMes);
+                mocks.roomControllerInstance.addExternalOutput.callsArgWith(3, signMes);
 
                 onStartRecorder(subscriberOptions, callback);
 
@@ -1062,7 +1062,7 @@ describe('Erizo Controller / Erizo Controller', function() {
 
               it('should return an error if when receiving a failed state', function() {
                 var signMes = 'failed';
-                mocks.roomControllerInstance.addExternalOutput.callsArgWith(2, signMes);
+                mocks.roomControllerInstance.addExternalOutput.callsArgWith(3, signMes);
 
                 onStartRecorder(subscriberOptions, callback);
 
