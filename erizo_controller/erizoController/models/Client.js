@@ -173,6 +173,7 @@ class Client extends events.EventEmitter {
         });
     } else if (options.state === 'erizo') {
         let st;
+        options.mediaConfiguration = this.token.mediaConfiguration;
         log.info('message: addPublisher requested, ' +
                  'streamId: ' + id + ', clientId: ' + this.id + ', ' +
                  logger.objectToLog(options) + ', ' +
@@ -289,6 +290,7 @@ class Client extends events.EventEmitter {
             log.info('message: addSubscriber requested, ' +
                      'streamId: ' + options.streamId + ', ' +
                      'clientId: ' + this.id);
+            options.mediaConfiguration = this.token.mediaConfiguration;
             this.room.controller.addSubscriber(this.id, options.streamId, options, (signMess) => {
                 if (signMess.type === 'initializing') {
                     log.info('message: addSubscriber, ' +
@@ -369,7 +371,8 @@ class Client extends events.EventEmitter {
     let stream = this.room.getStreamById(streamId);
 
     if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-        this.room.controller.addExternalOutput(streamId, url, function (result) {
+        var mediaOptions = {mediaConfiguration: this.token.mediaConfiguration};
+        this.room.controller.addExternalOutput(streamId, url, mediaOptions, function (result) {
             if (result === 'success') {
                 log.info('message: startRecorder, ' +
                          'state: RECORD_STARTED, ' +

@@ -209,8 +209,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
         }
     };
 
-    that.addExternalOutput = function (to, url) {
-        if (publishers[to]) publishers[to].addExternalOutput(url);
+    that.addExternalOutput = function (to, url, options) {
+        if (publishers[to]) publishers[to].addExternalOutput(url, options);
     };
 
     that.removeExternalOutput = function (to, url) {
