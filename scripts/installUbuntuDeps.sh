@@ -75,7 +75,7 @@ install_apt_deps(){
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
-  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libgnutls-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb curl libboost-test-dev -y
+  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake texinfo gettext gtk-doc-tools libtool autoconf libgnutls-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb curl libboost-test-dev -y
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
 
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
@@ -160,11 +160,11 @@ install_glib(){
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./libnice-0.1.14.tar.gz ]; then
-      curl -OL https://nice.freedesktop.org/releases/libnice-0.1.14.tar.gz
-      tar -zxvf libnice-0.1.14.tar.gz
-      cd libnice-0.1.14
-      PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR
+    if [ ! -f ./libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972.tar.gz ]; then
+      curl -L -o libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972.tar.gz https://github.com/libnice/libnice/archive/fbdccf0c2787ebdc65fe13ac64bd25c829ea7972.tar.gz
+      tar -zxvf libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972.tar.gz
+      cd libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972
+      PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./autogen.sh --prefix=$PREFIX_DIR
       make -s V=0
       make install
     else

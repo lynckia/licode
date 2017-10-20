@@ -92,7 +92,7 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils gnutls
+  brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils gnutls gtk-doc
   install_nvm_node
   nvm use
   npm install
@@ -139,11 +139,11 @@ install_openssl(){
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -OL https://nice.freedesktop.org/releases/libnice-0.1.14.tar.gz
-    tar -zxvf libnice-0.1.14.tar.gz
-    cd libnice-0.1.14
+    curl -L -o libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972.tar.gz https://github.com/libnice/libnice/archive/fbdccf0c2787ebdc65fe13ac64bd25c829ea7972.tar.gz
+    tar -zxvf libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972.tar.gz
+    cd libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972
     check_result $?
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR && make $FAST_MAKE -s V=0 && make install
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./autogen.sh --prefix=$PREFIX_DIR && make -s V=0 && make install
     check_result $?
     cd $CURRENT_DIR
   else
