@@ -143,7 +143,7 @@ install_libnice(){
     tar -zxvf libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972.tar.gz
     cd libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972
     check_result $?
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./autogen.sh --prefix=$PREFIX_DIR && make -s V=0 && make install
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig CFLAGS=-Wno-error ./autogen.sh --prefix=$PREFIX_DIR && make -s V=0 && make install
     check_result $?
     cd $CURRENT_DIR
   else
