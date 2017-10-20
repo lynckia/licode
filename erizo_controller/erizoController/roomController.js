@@ -113,11 +113,11 @@ exports.RoomController = function (spec) {
         }
     };
 
-    that.addExternalOutput = function (publisherId, url, callback) {
+    that.addExternalOutput = function (publisherId, url, options, callback) {
         if (publishers[publisherId] !== undefined) {
             log.info('message: addExternalOuput, streamId: ' + publisherId + ', url:' + url);
 
-            var args = [publisherId, url];
+            var args = [publisherId, url, options];
 
             amqper.callRpc(getErizoQueue(publisherId), 'addExternalOutput', args, undefined);
 

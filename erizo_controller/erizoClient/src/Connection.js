@@ -43,8 +43,8 @@ const buildConnection = (specInput) => {
     Logger.debug('Firefox Stack');
     that = FirefoxStack(spec);
   } else if (that.browser === 'safari') {
-    Logger.debug('Safari using Firefox Stack');
-    that = FirefoxStack(spec);
+    Logger.debug('Safari using Chrome Stable Stack');
+    that = ChromeStableStack(spec);
   } else if (that.browser === 'chrome-stable' || that.browser === 'electron') {
     Logger.debug('Chrome Stable Stack');
     that = ChromeStableStack(spec);

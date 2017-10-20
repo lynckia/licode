@@ -51,7 +51,8 @@ N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://loca
 var defaultRoom;
 const defaultRoomName = 'basicExampleRoom';
 
-var getOrCreateRoom = function (name, type = 'erizo', callback = function(){}) {
+var getOrCreateRoom = function (name, type = 'erizo', mediaConfiguration = 'default',
+                                callback = function() {}) {
 
     if (name === defaultRoomName && defaultRoom) {
         callback(defaultRoom);
@@ -71,8 +72,7 @@ var getOrCreateRoom = function (name, type = 'erizo', callback = function(){}) {
                 return;
             }
         }
-
-        let extra = {data: {basicExampleRoom: true}};
+        let extra = {data: {basicExampleRoom: true}, mediaConfiguration: mediaConfiguration};
         if (type === 'p2p') extra.p2p = true;
 
         N.API.createRoom(name, function (roomID) {
@@ -152,11 +152,12 @@ app.post('/createToken/', function(req, res) {
     let username = req.body.username;
     let role = req.body.role;
 
-    let room = defaultRoomName, type, roomId;
+    let room = defaultRoomName, type, roomId, mediaConfiguration;
 
     if (req.body.room && !isNaN(req.body.room)) room = req.body.room;
     if (req.body.type) type = req.body.type;
     if (req.body.roomId) roomId = req.body.roomId;
+    if (req.body.mediaConfiguration) mediaConfiguration = req.body.mediaConfiguration;
 
     let createToken = function (roomId) {
       N.API.createToken(roomId, username, role, function(token) {
@@ -171,7 +172,7 @@ app.post('/createToken/', function(req, res) {
     if (roomId) {
       createToken(roomId);
     } else {
-      getOrCreateRoom(room, type, createToken);
+      getOrCreateRoom(room, type, mediaConfiguration, createToken);
     }
 
 });
@@ -189,7 +190,7 @@ app.use(function(req, res, next) {
 });
 
 cleanExampleRooms(function() {
-    getOrCreateRoom(defaultRoomName, undefined, function (roomId) {
+    getOrCreateRoom(defaultRoomName, undefined, undefined, function (roomId) {
         defaultRoom = roomId;
         app.listen(3001);
         var server = https.createServer(options, app);

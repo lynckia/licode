@@ -854,9 +854,11 @@ namespace erizo {
           std::string value = "none";
           if (key_value.size() == 1) {
             value = key_value[0];
-          } else {
+          } else if (key_value.size() == 2) {
             option = key_value[0];
             value = key_value[1];
+          } else {
+            continue;
           }
 
           ELOG_DEBUG("message: Parsing format parameter, option: %s, value: %s, PT: %u",
