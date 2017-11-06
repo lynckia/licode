@@ -34,7 +34,7 @@ exports.createRoom = function (req, res) {
             roomRegistry.addRoom(room, function (result) {
                 currentService.testRoom = result;
                 currentService.rooms.push(result);
-                serviceRegistry.updateService(currentService);
+                serviceRegistry.addRoomToService(currentService, result);
                 log.info('message: testRoom created, serviceId: ' + currentService.name);
                 res.send(result);
             });
