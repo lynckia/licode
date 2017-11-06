@@ -63,6 +63,17 @@ exports.updateService = function (service, callback) {
 };
 
 /*
+ * Updates a determined service in the data base with a new room.
+ */
+exports.addRoomToService = function (service, room, callback) {
+    db.services.update({_id: db.ObjectId(service._id)}, {$addToSet: {rooms: room}},
+    function (error) {
+        if (error) log.info('message: updateService error, ' + logger.objectToLog(error));
+        if (callback) callback();
+    });
+};
+
+/*
  * Removes a determined service from the data base.
  */
 exports.removeService = function (id) {
