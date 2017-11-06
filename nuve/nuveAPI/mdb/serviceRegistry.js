@@ -55,9 +55,10 @@ exports.addService = function (service, callback) {
 /*
  * Updates a determined service in the data base.
  */
-exports.updateService = function (service) {
+exports.updateService = function (service, callback) {
     db.services.save(service, function (error) {
         if (error) log.info('message: updateService error, ' + logger.objectToLog(error));
+        if (callback) callback();
     });
 };
 

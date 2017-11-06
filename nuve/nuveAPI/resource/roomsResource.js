@@ -2,11 +2,21 @@
 'use strict';
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
-
+var async = require ('async');
 var logger = require('./../logger').logger;
-
-// Logger
 var log = logger.getLogger('RoomsResource');
+
+var addRoom = async.queue((task, done) => {
+  serviceRegistry.getService(task.currentService._id, function (serv) {
+    serv.rooms.push(task.result);
+    serviceRegistry.updateService(serv, function() {
+      log.info('message: createRoom success, roomName: ' + task.req.body.name + ', serviceId: ' +
+               serv.name + ', p2p: ' + !!task.req.body.options.p2p + ', roomId: ', task.result._id);
+      task.callback(task.result);
+      done();
+    });
+  });
+});
 
 /*
  * Post Room. Creates a new room for a determined service.
@@ -44,10 +54,7 @@ exports.createRoom = function (req, res) {
         }
     } else {
         room = {name: req.body.name};
-
-        if (req.body.options.p2p) {
-            room.p2p = true;
-        }
+        room.p2p = !!req.body.options.p2p;
         if (req.body.options.data) {
             room.data = req.body.options.data;
         }
@@ -55,11 +62,13 @@ exports.createRoom = function (req, res) {
             room.mediaConfiguration = req.body.options.mediaConfiguration;
         }
         roomRegistry.addRoom(room, function (result) {
-            currentService.rooms.push(result);
-            serviceRegistry.updateService(currentService);
-            log.info('message: createRoom success, roomName:' + req.body.name + ', serviceId: ' +
-                     currentService.name + ', p2p: ' + room.p2p);
-            res.send(result);
+          addRoom.push({result: result,
+                        currentService: currentService,
+                        req: req,
+                        callback: function(result) {
+                          res.send(result);
+                        }
+          });
         });
     }
 };
