@@ -33,6 +33,10 @@ const erizoTasks = (gulp, plugins, config) => {
     gulp.src(`${erizoConfig.production}/**/*.js*`)
     .pipe(gulp.dest(config.paths.basicExample));
 
+  that.debug = () =>
+    gulp.src(`${erizoConfig.debug}/**/*.js*`)
+    .pipe(gulp.dest(config.paths.basicExample));
+
   that.clean = () =>
     plugins.del([`${erizoConfig.debug}/**/*.js*`, `${erizoConfig.production}/**/*.js*`],
     { force: true });
