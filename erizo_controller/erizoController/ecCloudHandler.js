@@ -56,9 +56,9 @@ exports.EcCloudHandler = function (spec) {
 
   var getErizoAgent;
 
-  if (GLOBAL.config.erizoController.cloudHandlerPolicy) {
+  if (global.config.erizoController.cloudHandlerPolicy) {
     getErizoAgent = require('./ch_policies/' +
-                      GLOBAL.config.erizoController.cloudHandlerPolicy).getErizoAgent;
+                      global.config.erizoController.cloudHandlerPolicy).getErizoAgent;
   }
 
   var tryAgain = function (count, agentId, callback) {

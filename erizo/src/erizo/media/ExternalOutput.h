@@ -15,26 +15,27 @@ extern "C" {
 #include "webrtc/modules/rtp_rtcp/source/ulpfec_receiver_impl.h"
 #include "media/MediaProcessor.h"
 #include "lib/Clock.h"
+#include "SdpInfo.h"
 
 #include "./logger.h"
 
 namespace erizo {
 
-#define UNPACKAGE_BUFFER_SIZE 200000
+constexpr  int kUnpackageBufferSize = 200000;
 
 class WebRtcConnection;
 
 // Our search state for VP8 frames.
 enum vp8SearchState {
-    lookingForStart,
-    lookingForEnd
+    kLookingForStart,
+    kLookingForEnd
 };
 
 class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource, public webrtc::RtpData {
   DECLARE_LOGGER();
 
  public:
-  explicit ExternalOutput(const std::string& outputUrl);
+  explicit ExternalOutput(const std::string& output_url, const std::vector<RtpMap> rtp_mappings);
   virtual ~ExternalOutput();
   bool init();
   void receiveRawData(const RawDataPacket& packet) override;
@@ -49,7 +50,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
 
  private:
   std::unique_ptr<webrtc::UlpfecReceiver> fec_receiver_;
-  RtpPacketQueue audioQueue_, videoQueue_;
+  RtpPacketQueue audio_queue_, video_queue_;
   bool recording_, inited_;
   boost::mutex mtx_;  // a mutex we use to signal our writer thread that data is waiting.
   boost::thread thread_;
@@ -57,10 +58,10 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   AVStream *video_stream_, *audio_stream_;
   AVFormatContext *context_;
 
-  int unpackagedSize_;
-  uint32_t videoSourceSsrc_;
-  unsigned char* unpackagedBufferpart_;
-  unsigned char unpackagedBuffer_[UNPACKAGE_BUFFER_SIZE];
+  int unpackaged_size_;
+  uint32_t video_source_ssrc_;
+  unsigned char* unpackaged_buffer_part_;
+  unsigned char unpackaged_buffer_[kUnpackageBufferSize];
 
   // Timestamping strategy: we use the RTP timestamps so we don't have to restamp and we're not
   // subject to error due to the RTP packet queue depth and playout.
@@ -88,24 +89,33 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
 
 
   // The last sequence numbers we received for audio and video.  Allows us to react to packet loss.
-  uint16_t lastVideoSequenceNumber_;
-  uint16_t lastAudioSequenceNumber_;
+  uint16_t last_video_sequence_number_;
+  uint16_t last_audio_sequence_number_;
 
   // our VP8 frame search state.  We're always looking for either the beginning or the end of a frame.
   // Note: VP8 purportedly has two packetization schemes; per-frame and per-partition.  A frame is
   // composed of one or more partitions.  However, we don't seem to be sent anything but partition 0
   // so the second scheme seems not applicable.  Too bad.
-  vp8SearchState vp8SearchState_;
-  bool needToSendFir_;
+  vp8SearchState video_search_state_;
+  bool need_to_send_fir_;
+  std::vector<RtpMap> rtp_mappings_;
+  std::map<uint, RtpMap> video_maps_;
+  std::map<uint, RtpMap> audio_maps_;
+  RtpMap video_map_;
+  RtpMap audio_map_;
 
   bool initContext();
   int sendFirPacket();
   void queueData(char* buffer, int length, packetType type);
   void sendLoop();
-  int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
-  int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
+  int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override;
+  int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override;
+  int deliverEvent_(MediaEventPtr event) override;
   void writeAudioData(char* buf, int len);
   void writeVideoData(char* buf, int len);
+  void updateVideoCodec(RtpMap map);
+  void updateAudioCodec(RtpMap map);
+  void writeVP8(char* buf, int len);
   bool bufferCheck(RTPPayloadVP8* payload);
 };
 }  // namespace erizo

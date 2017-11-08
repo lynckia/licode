@@ -13,7 +13,7 @@ describe('Erizo Controller / Room Controller', function() {
       controller;
 
   beforeEach(function() {
-    GLOBAL.config = {logger: {configFile: true}};
+    global.config = {logger: {configFile: true}};
     licodeConfigMock = mocks.start(mocks.licodeConfig);
     amqperMock = mocks.start(mocks.amqper);
     ecchInstanceMock = mocks.ecchInstance;
@@ -31,7 +31,7 @@ describe('Erizo Controller / Room Controller', function() {
     mocks.stop(licodeConfigMock);
     mocks.deleteRequireCache();
     mocks.reset();
-    GLOBAL.config = {logger: {configFile: true}};
+    global.config = {logger: {configFile: true}};
   });
 
   it('should have a known API', function() {
@@ -73,6 +73,7 @@ describe('Erizo Controller / Room Controller', function() {
   describe('External Output', function() {
     var kArbitraryId = 'id1',
         kArbitraryUrl = 'url1',
+        kArbitraryOptions = {},
         kArbitraryUnknownId = 'unknownId',
         kArbitraryOutputUrl = 'url2';
 
@@ -85,7 +86,7 @@ describe('Erizo Controller / Room Controller', function() {
 
     it('should call Erizo\'s addExternalOutput', function() {
       var callback = sinon.stub();
-      controller.addExternalOutput(kArbitraryId, kArbitraryUrl, callback);
+      controller.addExternalOutput(kArbitraryId, kArbitraryUrl, kArbitraryOptions, callback);
 
       expect(amqperMock.callRpc.callCount).to.equal(2);
       expect(amqperMock.callRpc.args[1][1]).to.equal('addExternalOutput');
@@ -97,7 +98,8 @@ describe('Erizo Controller / Room Controller', function() {
       var callback = sinon.stub();
       ecchInstanceMock.getErizoJS.callsArgWith(0, 'erizoId');
 
-      controller.addExternalOutput(kArbitraryUnknownId, kArbitraryOutputUrl, callback);
+      controller.addExternalOutput(kArbitraryUnknownId, kArbitraryOutputUrl,
+        kArbitraryOptions, callback);
 
       expect(amqperMock.callRpc.callCount).to.equal(1);
       expect(callback.withArgs('error').callCount).to.equal(1);
@@ -106,7 +108,7 @@ describe('Erizo Controller / Room Controller', function() {
     describe('Remove', function() {
       beforeEach(function() {
         var callback = sinon.stub();
-        controller.addExternalOutput(kArbitraryId, kArbitraryUrl, callback);
+        controller.addExternalOutput(kArbitraryId, kArbitraryUrl, kArbitraryOptions, callback);
       });
 
       it('should call Erizo\'s removeExternalOutput', function() {
@@ -170,6 +172,9 @@ describe('Erizo Controller / Room Controller', function() {
       expect(amqperMock.callRpc.args[0][1]).to.equal('addPublisher');
 
       amqperMock.callRpc.args[0][3].callback('timeout');
+      amqperMock.callRpc.args[1][3].callback('timeout');  // First retry
+      amqperMock.callRpc.args[2][3].callback('timeout');  // Second retry
+      amqperMock.callRpc.args[3][3].callback('timeout');  // Third retry
 
       expect(callback.callCount).to.equal(1);
       expect(callback.args[0][0]).to.equal('timeout-erizojs');
@@ -181,9 +186,12 @@ describe('Erizo Controller / Room Controller', function() {
 
       controller.addPublisher(kArbitraryId, kArbitraryOptions, callback);
 
-      controller.removePublisher(kArbitraryId);
-
       amqperMock.callRpc.args[0][3].callback('timeout');
+      amqperMock.callRpc.args[1][3].callback('timeout');  // First retry
+      amqperMock.callRpc.args[2][3].callback('timeout');  // Second retry
+      amqperMock.callRpc.args[3][3].callback('timeout');  // Third retry
+
+      controller.removePublisher(kArbitraryId);
 
       expect(callback.callCount).to.equal(1);
       expect(callback.args[0][0]).to.equal('timeout-erizojs');
@@ -242,6 +250,9 @@ describe('Erizo Controller / Room Controller', function() {
       expect(amqperMock.callRpc.args[1][1]).to.equal('addSubscriber');
 
       amqperMock.callRpc.args[1][3].callback('timeout');
+      amqperMock.callRpc.args[2][3].callback('timeout');  // First retry
+      amqperMock.callRpc.args[3][3].callback('timeout');  // Second retry
+      amqperMock.callRpc.args[4][3].callback('timeout');  // Third retry
 
       expect(callback.callCount).to.equal(1);
       expect(callback.args[0][0]).to.equal('timeout');

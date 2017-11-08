@@ -18,7 +18,10 @@
   },
   "numPublishers": 0,
   "numSubscribers" : 1,
-  "publishersAreSubscribers" : true,
-  "connectionCreationInterval" : 500
-
+  "publishersAreSubscribers" : false,
+  "connectionCreationInterval" : 500,
+  "stats" : [
+    "packetsLost",
+    "bitrateCalculated"
+  ]
 }

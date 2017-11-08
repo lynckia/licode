@@ -19,9 +19,9 @@ describe('Erizo Controller / Erizo Controller', function() {
       arbitraryErizoControllerId = 'ErizoControllerId';
 
   beforeEach(function() {
-    GLOBAL.config = {logger: {configFile: true}};
-    GLOBAL.config.erizoController = {};
-    GLOBAL.config.erizoController.report = {
+    global.config = {logger: {configFile: true}};
+    global.config.erizoController = {};
+    global.config.erizoController.report = {
       'session_events': true
     };
     signatureMock = mocks.signature;
@@ -46,7 +46,7 @@ describe('Erizo Controller / Erizo Controller', function() {
     mocks.stop(licodeConfigMock);
     mocks.deleteRequireCache();
     mocks.reset();
-    GLOBAL.config = {};
+    global.config = {};
   });
 
   it('should have a known API', function() {
@@ -60,25 +60,31 @@ describe('Erizo Controller / Erizo Controller', function() {
     expect(amqperMock.setPublicRPC.callCount).to.equal(1);
   });
 
-  it('should bind to AMQP once connected', function() {
+  it('should bind to AMQP once connected', function(done) {
     var callback = amqperMock.callRpc.withArgs('nuve', 'addNewErizoController').args[0][3].callback;
 
     callback({id: arbitraryErizoControllerId});
-
-    expect(amqperMock.bind.callCount).to.equal(1);
+    setTimeout(() => {
+      expect(amqperMock.bind.callCount).to.equal(1);
+      done();
+    }, 0);
   });
 
-  it('should listen to socket connection once bound', function() {
+  it('should listen to socket connection once bound', function(done) {
     var callback = amqperMock.callRpc.withArgs('nuve', 'addNewErizoController').args[0][3].callback;
     amqperMock.bind.withArgs('erizoController_' + arbitraryErizoControllerId).callsArg(1);
 
     callback({id: arbitraryErizoControllerId});
 
-    expect(mocks.socketIoInstance.sockets.on.withArgs('connection').callCount).to.equal(1);
+    setTimeout(() => {
+      expect(mocks.socketIoInstance.sockets.on.withArgs('connection').callCount).to.equal(1);
+      done();
+    }, 0);
   });
 
   describe('Sockets', function() {
     var onToken,
+        onReconnect,
         onSendDataStream,
         onSignalingMessage,
         onUpdateStreamAttributes,
@@ -90,40 +96,24 @@ describe('Erizo Controller / Erizo Controller', function() {
         onUnsubscribe,
         onDisconnect;
 
-    beforeEach(function() {
+    beforeEach(function(done) {
       var callback = amqperMock.callRpc.withArgs('nuve', 'addNewErizoController')
             .args[0][3].callback;
       amqperMock.bind.withArgs('erizoController_' + arbitraryErizoControllerId).callsArg(1);
       mocks.socketIoInstance.sockets.on.withArgs('connection')
-            .callsArgWith(1, mocks.socketInstance);
+                                       .callsArgWith(1, mocks.socketInstance);
       callback({id: arbitraryErizoControllerId});
 
-      onToken = mocks.socketInstance.on.withArgs('token').args[0][1];
-      onSendDataStream = mocks.socketInstance.on.withArgs('sendDataStream').args[0][1];
-      onSignalingMessage = mocks.socketInstance.on.withArgs('signaling_message').args[0][1];
-      onUpdateStreamAttributes = mocks.socketInstance.on
-                                            .withArgs('updateStreamAttributes').args[0][1];
-      onPublish = mocks.socketInstance.on.withArgs('publish').args[0][1];
-      onSubscribe = mocks.socketInstance.on.withArgs('subscribe').args[0][1];
-      onStartRecorder = mocks.socketInstance.on.withArgs('startRecorder').args[0][1];
-      onStopRecorder = mocks.socketInstance.on.withArgs('stopRecorder').args[0][1];
-      onUnpublish = mocks.socketInstance.on.withArgs('unpublish').args[0][1];
-      onUnsubscribe = mocks.socketInstance.on.withArgs('unsubscribe').args[0][1];
-      onDisconnect = mocks.socketInstance.on.withArgs('disconnect').args[0][1];
+      setTimeout(() => {
+        onToken = mocks.socketInstance.on.withArgs('token').args[0][1];
+        onReconnect = mocks.socketInstance.on.withArgs('reconnected').args[0][1];
+        onDisconnect = mocks.socketInstance.on.withArgs('disconnect').args[0][1];
+        done();
+      }, 0);
     });
 
     it('should listen to events', function() {
       expect(mocks.socketInstance.on.withArgs('token').callCount).to.equal(1);
-      expect(mocks.socketInstance.on.withArgs('sendDataStream').callCount).to.equal(1);
-      expect(mocks.socketInstance.on.withArgs('signaling_message').callCount).to.equal(1);
-      expect(mocks.socketInstance.on.withArgs('updateStreamAttributes').callCount).to.equal(1);
-      expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
-      expect(mocks.socketInstance.on.withArgs('subscribe').callCount).to.equal(1);
-      expect(mocks.socketInstance.on.withArgs('startRecorder').callCount).to.equal(1);
-      expect(mocks.socketInstance.on.withArgs('stopRecorder').callCount).to.equal(1);
-      expect(mocks.socketInstance.on.withArgs('unpublish').callCount).to.equal(1);
-      expect(mocks.socketInstance.on.withArgs('unsubscribe').callCount).to.equal(1);
-      expect(mocks.socketInstance.on.withArgs('disconnect').callCount).to.equal(1);
     });
 
     describe('on Token', function() {
@@ -174,54 +164,94 @@ describe('Erizo Controller / Erizo Controller', function() {
                                    .args[0][3].callback;
         });
 
-        it('should disconnect socket on Nuve error', function() {
+        it('should disconnect socket on Nuve error', function(done) {
           callback('error');
-
-          expect(mocks.socketInstance.disconnect.callCount).to.equal(1);
-          expect(onTokenCallback.withArgs('error', 'Token does not exist').callCount).to.equal(1);
+          setTimeout(() => {
+            expect(mocks.socketInstance.disconnect.callCount).to.equal(1);
+            expect(onTokenCallback.withArgs('error', 'Token does not exist').callCount).to.equal(1);
+            done();
+          }, 0);
         });
 
-        it('should disconnect socket on Nuve timeout', function() {
+        it('should disconnect socket on Nuve timeout', function(done) {
           callback('timeout');
-
-          expect(mocks.socketInstance.disconnect.callCount).to.equal(1);
-          expect(onTokenCallback.withArgs('error', 'Nuve does not respond').callCount).to.equal(1);
+          setTimeout(() => {
+            expect(mocks.socketInstance.disconnect.callCount).to.equal(1);
+            expect(onTokenCallback.withArgs('error', 'Nuve does not respond').callCount)
+                .to.equal(1);
+            done();
+          }, 0);
         });
 
-        it('should disconnect if Token has an invalid host', function() {
+        it('should disconnect if Token has an invalid host', function(done) {
           callback({host: 'invalidHost', room: 'roomId'});
-
-          expect(onTokenCallback.withArgs('error', 'Invalid host').callCount).to.equal(1);
+          setTimeout(() => {
+            expect(onTokenCallback.withArgs('error', 'Invalid host').callCount).to.equal(1);
+            done();
+          }, 0);
         });
 
-        it('should create Room Controller if it does not exist', function() {
+        it('should create Room Controller if it does not exist', function(done) {
           callback({host: 'host', room: 'roomId'});
-
-          expect(roomControllerMock.RoomController.callCount).to.equal(1);
-          expect(mocks.roomControllerInstance.addEventListener.callCount).to.equal(1);
-
-          expect(onTokenCallback.withArgs('success').callCount).to.equal(1);
+          setTimeout(() => {
+            expect(roomControllerMock.RoomController.callCount).to.equal(1);
+            expect(mocks.roomControllerInstance.addEventListener.callCount).to.equal(1);
+            expect(onTokenCallback.withArgs('success').callCount).to.equal(1);
+            done();
+          }, 0);
         });
 
-        it('should not create Room Controller if it does exist', function() {
+        it('should not create Room Controller if it does exist', function(done) {
           callback({host: 'host', room: 'roomId'});
-
-          expect(roomControllerMock.RoomController.callCount).to.equal(1);
-          expect(mocks.roomControllerInstance.addEventListener.callCount).to.equal(1);
-          expect(onTokenCallback.withArgs('success').callCount).to.equal(1);
-
-          callback({host: 'host', room: 'roomId'});
-          expect(roomControllerMock.RoomController.callCount).to.equal(1);
-          expect(mocks.roomControllerInstance.addEventListener.callCount).to.equal(1);
-          expect(onTokenCallback.withArgs('success').callCount).to.equal(2);
+          setTimeout(() => {
+            expect(roomControllerMock.RoomController.callCount).to.equal(1);
+            expect(mocks.roomControllerInstance.addEventListener.callCount).to.equal(1);
+            expect(onTokenCallback.withArgs('success').callCount).to.equal(1);
+            onToken(arbitraryGoodToken, onTokenCallback);
+            let callback2 = amqperMock.callRpc
+                                     .withArgs('nuve', 'deleteToken', arbitraryGoodToken.tokenId)
+                                     .args[1][3].callback;
+            callback2({host: 'host', room: 'roomId'});
+            setTimeout(() => {
+              expect(roomControllerMock.RoomController.callCount).to.equal(1);
+              expect(mocks.roomControllerInstance.addEventListener.callCount).to.equal(1);
+              expect(onTokenCallback.withArgs('success').callCount).to.equal(2);
+              done();
+            }, 0);
+        }, 0);
         });
 
         describe('Public API', function() {
-          beforeEach(function() {
-            callback({host: 'host', room: 'roomId'});
-            mocks.socketInstance.user = {
-              name: 'user'
-            };
+          beforeEach(function(done) {
+            callback({host: 'host', room: 'roomId', userName: 'user'});
+
+            setTimeout(() => {
+              onSendDataStream = mocks.socketInstance.on.withArgs('sendDataStream').args[0][1];
+              onSignalingMessage = mocks.socketInstance.on.withArgs('signaling_message').args[0][1];
+              onUpdateStreamAttributes = mocks.socketInstance.on
+                                                    .withArgs('updateStreamAttributes').args[0][1];
+              onPublish = mocks.socketInstance.on.withArgs('publish').args[0][1];
+              onSubscribe = mocks.socketInstance.on.withArgs('subscribe').args[0][1];
+              onStartRecorder = mocks.socketInstance.on.withArgs('startRecorder').args[0][1];
+              onStopRecorder = mocks.socketInstance.on.withArgs('stopRecorder').args[0][1];
+              onUnpublish = mocks.socketInstance.on.withArgs('unpublish').args[0][1];
+              onUnsubscribe = mocks.socketInstance.on.withArgs('unsubscribe').args[0][1];
+              done();
+            }, 0);
+          });
+
+          it('should listen to messages', function() {
+            expect(mocks.socketInstance.on.withArgs('sendDataStream').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('signaling_message').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('updateStreamAttributes').callCount)
+                  .to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('subscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('startRecorder').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('stopRecorder').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('unpublish').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('unsubscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('disconnect').callCount).to.equal(1);
           });
 
           it('should return users when calling getUsersInRoom', function() {
@@ -290,819 +320,792 @@ describe('Erizo Controller / Erizo Controller', function() {
             expect(mocks.roomControllerInstance.removeSubscriptions.callCount).to.equal(0);
           });
         });
-      });
-    });
-
-    describe('on Send Data Stream', function() {
-      beforeEach(function() {
-        var sockets = ['streamId1'];
-        mocks.socketInstance.room = {
-          streams: {
-            streamId1: {
-              getDataSubscribers: sinon.stub().returns(sockets)
-            }
-          }
-        };
-      });
-
-      it('should succeed if stream exists', function() {
-        var msg = {id: 'streamId1'};
-
-        onSendDataStream(msg);
-
-        expect(mocks.socketInstance.emit.withArgs('onDataStream', msg).callCount).to.equal(1);
-      });
-
-      it('should fail if stream does not exist', function() {
-        var msg = {id: 'streamId2'};
-
-        onSendDataStream(msg);
-
-        expect(mocks.socketInstance.emit.withArgs('onDataStream', msg).callCount).to.equal(0);
-      });
-    });
-
-    describe('on Signaling Message', function() {
-      var arbitraryMessage = {msg: 'msg', streamId: 'streamId1'};
-
-      it('should send p2p signaling messages', function() {
-        mocks.socketInstance.room = {p2p: true};
-
-        onSignalingMessage(arbitraryMessage);
-
-        expect(mocks.socketInstance.emit.withArgs('signaling_message_peer').callCount).to.equal(1);
-      });
-
-      it('should send other signaling messages', function() {
-        mocks.socketInstance.room = {p2p: false, controller: mocks.roomControllerInstance};
-
-        onSignalingMessage(arbitraryMessage);
-
-        expect(mocks.roomControllerInstance.processSignaling.withArgs(arbitraryMessage.streamId)
-                                                            .callCount).to.equal(1);
-      });
-    });
-
-    describe('on Update Stream Attributes', function() {
-      beforeEach(function() {
-        var sockets = ['streamId1'];
-        mocks.socketInstance.room = {
-          streams: {
-            streamId1: {
-              getDataSubscribers: sinon.stub().returns(sockets),
-              setAttributes: sinon.stub()
-            }
-          }
-        };
-      });
-
-      it('should succeed if stream exists', function() {
-        var msg = {id: 'streamId1'};
-
-        onUpdateStreamAttributes(msg);
-
-        expect(mocks.socketInstance.emit.withArgs('onUpdateAttributeStream', msg).callCount)
-                .to.equal(1);
-      });
-
-      it('should fail if stream does not exist', function() {
-        var msg = {id: 'streamId2'};
-
-        onUpdateStreamAttributes(msg);
 
-        expect(mocks.socketInstance.emit.withArgs('onUpdateAttributeStream', msg).callCount)
-                .to.equal(0);
-      });
-    });
+        describe('Socket API', function() {
+          let room;
+          beforeEach(function(done) {
+            const Rooms = require('../../erizoController/models/Room').Rooms;
+            const Room = require('../../erizoController/models/Room').Room;
+            room = new Room('roomId', false);
+            sinon.stub(Rooms.prototype, 'getOrCreateRoom').returns(room);
+            callback({host: 'host', room: 'roomId', userName: 'user'});
+
+            setTimeout(() => {
+              onSendDataStream = mocks.socketInstance.on.withArgs('sendDataStream').args[0][1];
+              onSignalingMessage = mocks.socketInstance.on.withArgs('signaling_message').args[0][1];
+              onUpdateStreamAttributes = mocks.socketInstance.on
+                                                    .withArgs('updateStreamAttributes').args[0][1];
+              onPublish = mocks.socketInstance.on.withArgs('publish').args[0][1];
+              onSubscribe = mocks.socketInstance.on.withArgs('subscribe').args[0][1];
+              onStartRecorder = mocks.socketInstance.on.withArgs('startRecorder').args[0][1];
+              onStopRecorder = mocks.socketInstance.on.withArgs('stopRecorder').args[0][1];
+              onUnpublish = mocks.socketInstance.on.withArgs('unpublish').args[0][1];
+              onUnsubscribe = mocks.socketInstance.on.withArgs('unsubscribe').args[0][1];
+              done();
+            }, 0);
+          });
+
+          it('should listen to messages', function() {
+            expect(mocks.socketInstance.on.withArgs('sendDataStream').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('signaling_message').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('updateStreamAttributes').callCount)
+                    .to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('subscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('startRecorder').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('stopRecorder').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('unpublish').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('unsubscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('disconnect').callCount).to.equal(1);
+          });
+
+          describe('on Publish', function() {
+            let client;
+            beforeEach(function() {
+              for (let c of room.clients.values()) {
+                client = c;
+              }
+              client.user.permissions[Permission.PUBLISH] = true;
+            });
+
+            it('should fail if user is undefined', function() {
+              var options = {},
+                  sdp = '',
+                  callback = sinon.stub();
+
+              client.user = undefined;
+
+              onPublish(options, sdp, callback);
+
+              expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+            });
+
+            it('should fail if user is not authorized', function() {
+              var options = {},
+                  sdp = '',
+                  callback = sinon.stub();
+
+              client.user.permissions[Permission.PUBLISH] = false;
+
+              onPublish(options, sdp, callback);
+
+              expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+            });
+
+            it('should fail if user is not authorized to publish video', function() {
+              var options = {
+                    video: true
+                  },
+                  sdp = '',
+                  callback = sinon.stub();
+
+              client.user.permissions[Permission.PUBLISH] = {video: false};
+
+              onPublish(options, sdp, callback);
+
+              expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+            });
+
+            it('should start an External Input if url is given', function() {
+              var options = {state: 'url'},
+                  sdp = '',
+                  callback = sinon.stub();
+              mocks.roomControllerInstance.addExternalInput.callsArgWith(2, 'success');
+
+              onPublish(options, sdp, callback);
+
+              expect(mocks.roomControllerInstance.addExternalInput.callCount).to.equal(1);
+              expect(callback.callCount).to.equal(1);
+            });
+
+            it('should add a Stream', function() {
+              var options = {},
+                  sdp = '',
+                  callback = sinon.stub();
 
-    describe('on Publish', function() {
-      beforeEach(function() {
-        var sockets = ['streamId1'];
-        mocks.socketInstance.streams = [];
-        mocks.socketInstance.user = {};
-        mocks.socketInstance.room = {
-          controller: mocks.roomControllerInstance,
-          sockets: sockets,
-          streams: {
-            streamId1: {
-              getDataSubscribers: sinon.stub().returns(sockets),
-              setAttributes: sinon.stub()
-            }
-          }
-        };
-        mocks.socketInstance.user.permissions = {};
-        mocks.socketInstance.user.permissions[Permission.PUBLISH] = true;
-      });
+              onPublish(options, sdp, callback);
 
-      it('should fail if user is undefined', function() {
-        var options = {},
-            sdp = '',
-            callback = sinon.stub();
+              expect(mocks.socketInstance.emit.withArgs('onAddStream').callCount).to.equal(1);
+            });
 
-        mocks.socketInstance.user = undefined;
+            describe('addPublisher with Erizo', function() {
+              var options = {state: 'erizo'},
+                  sdp = '',
+                  callback = sinon.stub();
 
-        onPublish(options, sdp, callback);
+              it('should call addPublisher', function() {
+                onPublish(options, sdp, callback);
 
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
+                expect(mocks.roomControllerInstance.addPublisher.callCount).to.equal(1);
+              });
 
-      it('should fail if user is not authorized', function() {
-        var options = {},
-            sdp = '',
-            callback = sinon.stub();
+              it('should send if when receiving initializing state', function() {
+                var signMes = {type: 'initializing'};
+                mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
 
-        mocks.socketInstance.user.permissions[Permission.PUBLISH] = false;
+                onPublish(options, sdp, callback);
 
-        onPublish(options, sdp, callback);
+                expect(callback.callCount).to.equal(1);
+              });
 
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
+              it('should emit connection_failed when receiving initializing state', function() {
+                var signMes = {type: 'failed'};
+                mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
 
-      it('should fail if user is not authorized to publish video', function() {
-        var options = {
-              video: true
-            },
-            sdp = '',
-            callback = sinon.stub();
+                onPublish(options, sdp, callback);
 
-        mocks.socketInstance.user.permissions[Permission.PUBLISH] = {video: false};
-
-        onPublish(options, sdp, callback);
-
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
-
-      it('should start an External Input if url is given', function() {
-        var options = {state: 'url'},
-            sdp = '',
-            callback = sinon.stub();
-        mocks.roomControllerInstance.addExternalInput.callsArgWith(2, 'success');
-
-        onPublish(options, sdp, callback);
-
-        expect(mocks.roomControllerInstance.addExternalInput.callCount).to.equal(1);
-        expect(callback.callCount).to.equal(1);
-      });
-
-      it('should add a Stream', function() {
-        var options = {},
-            sdp = '',
-            callback = sinon.stub();
-
-        onPublish(options, sdp, callback);
-
-        expect(mocks.socketInstance.emit.withArgs('onAddStream').callCount).to.equal(1);
-      });
-
-      describe('addPublisher with Erizo', function() {
-        var options = {state: 'erizo'},
-            sdp = '',
-            callback = sinon.stub();
-
-        it('should call addPublisher', function() {
-          onPublish(options, sdp, callback);
-
-          expect(mocks.roomControllerInstance.addPublisher.callCount).to.equal(1);
-        });
-
-        it('should send if when receiving initializing state', function() {
-          var signMes = {type: 'initializing'};
-          mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
-
-          onPublish(options, sdp, callback);
-
-          expect(callback.callCount).to.equal(1);
-        });
-
-        it('should emit connection_failed when receiving initializing state', function() {
-          var signMes = {type: 'failed'};
-          mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
-
-          onPublish(options, sdp, callback);
-
-          expect(mocks.socketInstance.emit.withArgs('connection_failed').callCount).to.equal(1);
-        });
-
-        it('should send onAddStream event to Room when receiving ready stat', function() {
-          var signMes = {type: 'initializing'};
-          mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
-
-          onPublish(options, sdp, callback);
-
-          var onEvent = mocks.roomControllerInstance.addPublisher.args[0][2];
-
-          onEvent({type: 'ready'});
-
-          expect(mocks.socketInstance.emit.withArgs('onAddStream').callCount).to.equal(1);
-        });
-
-        it('should emit ErizoJS unreachable', function() {
-          var signMes = 'timeout-erizojs';
-          mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
-
-          onPublish(options, sdp, callback);
-
-          expect(callback.withArgs(null, 'ErizoJS is not reachable').callCount).to.equal(1);
-        });
-
-        it('should emit ErizoAgent unreachable', function() {
-          var signMes = 'timeout-agent';
-          mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
-
-          onPublish(options, sdp, callback);
-
-          expect(callback.withArgs(null, 'ErizoAgent is not reachable').callCount).to.equal(1);
-        });
-
-        it('should emit ErizoJS or ErizoAgent unreachable', function() {
-          var signMes = 'timeout';
-          mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
-
-          onPublish(options, sdp, callback);
-
-          expect(callback.withArgs(null, 'ErizoAgent or ErizoJS is not reachable').callCount)
-                            .to.equal(1);
-        });
-      });
-    });
-
-    describe('on Subscribe', function() {
-      var subscriberOptions, subscriberSdp, streamId;
-      beforeEach(function() {
-        var sockets = ['streamId1'];
-        mocks.socketInstance.streams = [];
-        mocks.socketInstance.user = {};
-        mocks.socketInstance.room = {
-          controller: mocks.roomControllerInstance,
-          sockets: sockets,
-          streams: {
-            streamId1: {
-              getDataSubscribers: sinon.stub().returns(sockets),
-              setAttributes: sinon.stub()
-            }
-          }
-        };
-        mocks.socketInstance.user.permissions = {};
-        mocks.socketInstance.user.permissions[Permission.SUBSCRIBE] = true;
-        mocks.socketInstance.user.permissions[Permission.PUBLISH] = true;
-
-        var options = {audio: true, video: true, data: true},
-            sdp = '',
-            callback = sinon.stub();
-
-        onPublish(options, sdp, callback);
-
-        streamId = callback.args[0][0];
-
-        subscriberOptions= {
-             streamId: streamId
-           };
-        subscriberSdp = '';
-      });
-
-      it('should fail if user is undefined', function() {
-        var callback = sinon.stub();
-
-        mocks.socketInstance.user = undefined;
-
-        onSubscribe(subscriberOptions, subscriberSdp, callback);
-
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
-
-      it('should fail if user is not authorized', function() {
-        var callback = sinon.stub();
-
-        mocks.socketInstance.user.permissions[Permission.SUBSCRIBE] = false;
-
-        onSubscribe(subscriberOptions, subscriberSdp, callback);
-
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
-
-      it('should fail if user is not authorized to subscribe video', function() {
-        var callback = sinon.stub();
-
-        subscriberOptions.video = true;
-
-        mocks.socketInstance.user.permissions[Permission.SUBSCRIBE] = {video: false};
-
-        onSubscribe(subscriberOptions, subscriberSdp, callback);
-
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
-
-      it('should emit a publish_me event if the room is p2p', function() {
-        var callback = sinon.stub();
-        mocks.socketInstance.room.p2p = true;
-
-        onSubscribe(subscriberOptions, subscriberSdp, callback);
-
-        expect(mocks.socketInstance.emit.withArgs('publish_me').callCount).to.equal(1);
-      });
-
-      it('should return true if the stream has no media', function() {
-        var callback = sinon.stub();
-        var returnFalse = sinon.stub().returns(false);
-        mocks.socketInstance.room.streams[streamId].hasVideo = returnFalse;
-        mocks.socketInstance.room.streams[streamId].hasAudio = returnFalse;
-        mocks.socketInstance.room.streams[streamId].hasScreen = returnFalse;
-
-        onSubscribe(subscriberOptions, subscriberSdp, callback);
-
-        expect(mocks.roomControllerInstance.addSubscriber.callCount).to.equal(0);
-        expect(callback.withArgs(true).callCount).to.equal(1);
-      });
-
-      describe('when receiving events from RoomController', function() {
-        var callback = sinon.stub();
-
-        it('should call addSubscriber', function() {
-          onSubscribe(subscriberOptions, subscriberSdp, callback);
-
-          expect(mocks.roomControllerInstance.addSubscriber.callCount).to.equal(1);
-        });
-
-        it('should send if when receiving initializing state', function() {
-          var signMes = {type: 'initializing'};
-          mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
-
-          onSubscribe(subscriberOptions, subscriberSdp, callback);
-
-          expect(callback.withArgs(true).callCount).to.equal(1);
-        });
-
-        it('should emit connection_failed when receiving initializing state', function() {
-          var signMes = {type: 'failed'};
-          mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
-
-          onSubscribe(subscriberOptions, subscriberSdp, callback);
-
-          expect(mocks.socketInstance.emit.withArgs('connection_failed').callCount).to.equal(1);
-        });
-
-        it('should send signaling event to the socket when receiving ready stat', function() {
-          var signMes = {type: 'ready'};
-          mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
-
-          onSubscribe(subscriberOptions, subscriberSdp, callback);
-
-          expect(mocks.socketInstance.emit.withArgs('signaling_message_erizo').callCount)
+                expect(mocks.socketInstance.emit.withArgs('connection_failed').callCount)
                         .to.equal(1);
-        });
+              });
 
-        it('should send signaling event to the socket when receiving bandwidth alerts', function() {
-          var signMes = {type: 'bandwidthAlert'};
-          mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
+              it('should send onAddStream event to Room when receiving ready stat', function() {
+                var signMes = {type: 'initializing'};
+                mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
 
-          onSubscribe(subscriberOptions, subscriberSdp, callback);
+                onPublish(options, sdp, callback);
 
-          expect(mocks.socketInstance.emit.withArgs('signaling_message_erizo').callCount)
-                        .to.equal(1);
-        });
+                var onEvent = mocks.roomControllerInstance.addPublisher.args[0][2];
+
+                onEvent({type: 'ready'});
+
+                expect(mocks.socketInstance.emit.withArgs('onAddStream').callCount).to.equal(1);
+              });
+
+              it('should emit ErizoJS unreachable', function() {
+                var signMes = 'timeout-erizojs';
+                mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
+
+                onPublish(options, sdp, callback);
+
+                expect(callback.withArgs(null, 'ErizoJS is not reachable').callCount).to.equal(1);
+              });
+
+              it('should emit ErizoAgent unreachable', function() {
+                var signMes = 'timeout-agent';
+                mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
+
+                onPublish(options, sdp, callback);
+
+                expect(callback.withArgs(null, 'ErizoAgent is not reachable').callCount)
+                      .to.equal(1);
+              });
+
+              it('should emit ErizoJS or ErizoAgent unreachable', function() {
+                var signMes = 'timeout';
+                mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
+
+                onPublish(options, sdp, callback);
+
+                expect(callback.withArgs(null, 'ErizoAgent or ErizoJS is not reachable').callCount)
+                                  .to.equal(1);
+              });
+
+              describe('on Subscribe', function() {
+                var subscriberOptions, subscriberSdp, streamId;
+                beforeEach(function() {
+                  client.user.permissions = {};
+                  client.user.permissions[Permission.SUBSCRIBE] = true;
+                  client.user.permissions[Permission.PUBLISH] = true;
+
+                  var options = {audio: true, video: true, screen:true, data: true},
+                      sdp = '',
+                      callback = sinon.stub();
+
+                  onPublish(options, sdp, callback);
+
+                  streamId = callback.args[0][0];
+
+                  subscriberOptions= {
+                       streamId: streamId
+                     };
+                  subscriberSdp = '';
+                });
+
+                it('should fail if user is undefined', function() {
+                  var callback = sinon.stub();
+
+                  client.user = undefined;
+
+                  onSubscribe(subscriberOptions, subscriberSdp, callback);
+
+                  expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+                });
+
+                it('should fail if user is not authorized', function() {
+                  var callback = sinon.stub();
+
+                  client.user.permissions[Permission.SUBSCRIBE] = false;
+
+                  onSubscribe(subscriberOptions, subscriberSdp, callback);
+
+                  expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+                });
+
+                it('should fail if user is not authorized to subscribe video', function() {
+                  var callback = sinon.stub();
+
+                  subscriberOptions.video = true;
+
+                  client.user.permissions[Permission.SUBSCRIBE] = {video: false};
+
+                  onSubscribe(subscriberOptions, subscriberSdp, callback);
+
+                  expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+                });
+
+                it('should emit a publish_me event if the room is p2p', function() {
+                  var callback = sinon.stub();
+                  room.p2p = true;
+
+                  onSubscribe(subscriberOptions, subscriberSdp, callback);
+
+                  expect(mocks.socketInstance.emit.withArgs('publish_me').callCount).to.equal(1);
+                });
+
+                it('should return true if the stream has no media', function() {
+                  var callback = sinon.stub();
+                  var returnFalse = sinon.stub().returns(false);
+                  client.room.getStreamById(streamId).hasVideo = returnFalse;
+                  client.room.getStreamById(streamId).hasAudio = returnFalse;
+                  client.room.getStreamById(streamId).hasScreen = returnFalse;
+
+                  onSubscribe(subscriberOptions, subscriberSdp, callback);
+
+                  expect(mocks.roomControllerInstance.addSubscriber.callCount).to.equal(0);
+                  expect(callback.withArgs(true).callCount).to.equal(1);
+                });
+
+                describe('when receiving events from RoomController', function() {
+                  var callback = sinon.stub();
+
+                  it('should call addSubscriber', function() {
+                    onSubscribe(subscriberOptions, subscriberSdp, callback);
+
+                    expect(mocks.roomControllerInstance.addSubscriber.callCount).to.equal(1);
+                  });
+
+                  it('should send if when receiving initializing state', function() {
+                    var signMes = {type: 'initializing'};
+                    mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
+
+                    onSubscribe(subscriberOptions, subscriberSdp, callback);
+
+                    expect(callback.withArgs(true).callCount).to.equal(1);
+                  });
+
+                  it('should emit connection_failed when receiving initializing state', function() {
+                    var signMes = {type: 'failed'};
+                    mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
+
+                    onSubscribe(subscriberOptions, subscriberSdp, callback);
+
+                    expect(mocks.socketInstance.emit.withArgs('connection_failed').callCount)
+                          .to.equal(1);
+                  });
+
+                  it('should send signaling event to the socket when receiving ready stat',
+                      function() {
+                    var signMes = {type: 'ready'};
+                    mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
+
+                    onSubscribe(subscriberOptions, subscriberSdp, callback);
+
+                    expect(mocks.socketInstance.emit.withArgs('signaling_message_erizo').callCount)
+                                  .to.equal(1);
+                  });
+
+                  it('should send signaling event to the socket when receiving bandwidth alerts',
+                      function() {
+                    var signMes = {type: 'bandwidthAlert'};
+                    mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
+
+                    onSubscribe(subscriberOptions, subscriberSdp, callback);
+
+                    expect(mocks.socketInstance.emit.withArgs('signaling_message_erizo')
+                          .callCount).to.equal(1);
+                  });
 
 
-        it('should emit ErizoJS unreachable', function() {
-          var signMes = 'timeout';
-          mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
+                  it('should emit ErizoJS unreachable', function() {
+                    var signMes = 'timeout';
+                    mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
 
-          onSubscribe(subscriberOptions, subscriberSdp, callback);
+                    onSubscribe(subscriberOptions, subscriberSdp, callback);
 
-          expect(callback.withArgs(null, 'ErizoJS is not reachable').callCount).to.equal(1);
-        });
-      });
-    });
+                    expect(callback.withArgs(null, 'ErizoJS is not reachable').callCount)
+                          .to.equal(1);
+                  });
+                });
 
-    describe('on Start Recorder', function() {
-      var subscriberOptions, streamId;
-      beforeEach(function() {
-        var sockets = ['streamId1'];
-        mocks.socketInstance.streams = [];
-        mocks.socketInstance.user = {};
-        mocks.socketInstance.room = {
-          controller: mocks.roomControllerInstance,
-          sockets: sockets,
-          streams: {
-            streamId1: {
-              getDataSubscribers: sinon.stub().returns(sockets),
-              setAttributes: sinon.stub()
-            }
-          }
-        };
-        mocks.socketInstance.user.permissions = {};
-        mocks.socketInstance.user.permissions[Permission.RECORD] = true;
-        mocks.socketInstance.user.permissions[Permission.PUBLISH] = true;
+                describe('on Send Data Stream', function() {
+                  let stream, streamId;
+                  beforeEach(function() {
+                    for (let st of room.streams.values()) {
+                        stream = st;
+                        streamId = stream.getID();
+                    }
+                    stream.getDataSubscribers = sinon.stub().returns([client.id]);
+                  });
 
-        var options = {audio: true, video: true, data: true},
-            sdp = '',
-            callback = sinon.stub();
+                  it('should succeed if stream exists', function() {
+                    var msg = {id: streamId};
 
-        onPublish(options, sdp, callback);
+                    onSendDataStream(msg);
 
-        streamId = callback.args[0][0];
+                    expect(mocks.socketInstance.emit.withArgs('onDataStream', msg).callCount)
+                          .to.equal(1);
+                  });
 
-        subscriberOptions= {
-             to: streamId
-           };
-      });
+                  it('should fail if stream does not exist', function() {
+                    var msg = {id: 'streamId2'};
 
-      it('should fail if user is undefined', function() {
-        var callback = sinon.stub();
-        mocks.socketInstance.user = undefined;
+                    onSendDataStream(msg);
 
-        onStartRecorder(subscriberOptions, callback);
+                    expect(mocks.socketInstance.emit.withArgs('onDataStream', msg).callCount)
+                          .to.equal(0);
+                  });
+                });
 
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
+                describe('on Signaling Message', function() {
+                  var arbitraryMessage = {msg: 'msg'};
 
-      it('should fail if user is not authorized', function() {
-        var callback = sinon.stub();
-        mocks.socketInstance.user.permissions[Permission.RECORD] = false;
+                  let stream, streamId;
+                  beforeEach(function() {
+                    for (let st of room.streams.values()) {
+                        stream = st;
+                        streamId = stream.getID();
+                    }
+                    arbitraryMessage.streamId = streamId;
+                    stream.getDataSubscribers = sinon.stub().returns([client.id]);
+                  });
 
-        onStartRecorder(subscriberOptions, callback);
+                  it('should send p2p signaling messages', function() {
+                    room.p2p = true;
+                    arbitraryMessage.peerSocket = client.id;
 
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
+                    onSignalingMessage(arbitraryMessage);
 
-      it('should return an error if the room is p2p', function() {
-        var callback = sinon.stub();
-        mocks.socketInstance.room.p2p = true;
+                    expect(mocks.socketInstance.emit.withArgs('signaling_message_peer')
+                          .callCount).to.equal(1);
+                  });
 
-        onStartRecorder(subscriberOptions, callback);
+                  it('should send other signaling messages', function() {
+                    room.p2p = false;
+                    room.controller = mocks.roomControllerInstance;
 
-        expect(callback.withArgs(null, 'Stream can not be recorded').callCount).to.equal(1);
-      });
+                    onSignalingMessage(arbitraryMessage);
 
-      it('should return an error if the stream has no media', function() {
-        var callback = sinon.stub();
-        var returnFalse = sinon.stub().returns(false);
-        mocks.socketInstance.room.streams[streamId].hasVideo = returnFalse;
-        mocks.socketInstance.room.streams[streamId].hasAudio = returnFalse;
-        mocks.socketInstance.room.streams[streamId].hasScreen = returnFalse;
+                    expect(mocks.roomControllerInstance.processSignaling
+                            .withArgs(arbitraryMessage.streamId).callCount).to.equal(1);
+                  });
+                });
 
-        onStartRecorder(subscriberOptions, callback);
+                describe('on Update Stream Attributes', function() {
+                  let stream, streamId;
+                  beforeEach(function() {
+                    for (let st of room.streams.values()) {
+                        stream = st;
+                        streamId = stream.getID();
+                    }
+                    stream.getDataSubscribers = sinon.stub().returns([client.id]);
+                    stream.setAttributes = sinon.stub();
+                  });
 
-        expect(callback.withArgs(null, 'Stream can not be recorded').callCount).to.equal(1);
-      });
+                  it('should succeed if stream exists', function() {
+                    var msg = {id: streamId};
 
-      describe('when receiving events from RoomController', function() {
-        var callback = sinon.stub();
+                    onUpdateStreamAttributes(msg);
 
-        it('should call addExternalOutput', function() {
-          onStartRecorder(subscriberOptions, callback);
+                    expect(mocks.socketInstance.emit.withArgs('onUpdateAttributeStream', msg)
+                          .callCount).to.equal(1);
+                  });
 
-          expect(mocks.roomControllerInstance.addExternalOutput.callCount).to.equal(1);
-        });
+                  it('should fail if stream does not exist', function() {
+                    var msg = {id: 'streamId2'};
 
-        it('should return ok if when receiving success state', function() {
-          var signMes = 'success';
-          mocks.roomControllerInstance.addExternalOutput.callsArgWith(2, signMes);
+                    onUpdateStreamAttributes(msg);
 
-          onStartRecorder(subscriberOptions, callback);
+                    expect(mocks.socketInstance.emit.withArgs('onUpdateAttributeStream', msg)
+                          .callCount).to.equal(0);
+                  });
+                });
 
-          expect(callback.callCount).to.equal(1);
-        });
+                describe('on Unsubscribe', function() {
+                  let stream, streamId;
+                  beforeEach(function() {
+                    for (const st of room.streams.values()) {
+                        stream = st;
+                        streamId = stream.getID();
+                    }
+                    stream.getDataSubscribers = sinon.stub().returns([client.id]);
+                    room.controller = mocks.roomControllerInstance;
+                    client.user.permissions = {};
+                    client.user.permissions[Permission.PUBLISH] = true;
+                    client.user.permissions[Permission.SUBSCRIBE] = true;
+                  });
 
-        it('should return an error if when receiving a failed state', function() {
-          var signMes = 'failed';
-          mocks.roomControllerInstance.addExternalOutput.callsArgWith(2, signMes);
+                  it('should fail if user is undefined', function() {
+                    var callback = sinon.stub();
 
-          onStartRecorder(subscriberOptions, callback);
+                    client.user = undefined;
 
-          expect(callback.withArgs(null, 'Unable to subscribe to stream for recording, ' +
-                         'publisher not present').callCount).to.equal(1);
-        });
-      });
-    });
+                    onUnsubscribe(streamId, callback);
 
-    describe('on Stop Recorder', function() {
-      var subscriberOptions = {};
+                    expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+                  });
 
-      beforeEach(function() {
-        var sockets = ['streamId1'];
-        mocks.socketInstance.streams = [];
-        mocks.socketInstance.user = {};
-        mocks.socketInstance.room = {
-          controller: mocks.roomControllerInstance,
-          sockets: sockets,
-          streams: {
-            streamId1: {
-              getDataSubscribers: sinon.stub().returns(sockets),
-              setAttributes: sinon.stub()
-            }
-          }
-        };
-        mocks.socketInstance.user.permissions = {};
-        mocks.socketInstance.user.permissions[Permission.RECORD] = true;
-        mocks.socketInstance.user.permissions[Permission.PUBLISH] = true;
-      });
+                  it('should fail if user is not authorized', function() {
+                    var callback = sinon.stub();
 
-      it('should fail if user is undefined', function() {
-        var callback = sinon.stub();
-        mocks.socketInstance.user = undefined;
+                    client.user.permissions[Permission.SUBSCRIBE] = false;
 
-        onStopRecorder(subscriberOptions, callback);
+                    onUnsubscribe(streamId, callback);
 
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
+                    expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+                  });
 
-      it('should fail if user is not authorized', function() {
-        var callback = sinon.stub();
-        mocks.socketInstance.user.permissions[Permission.RECORD] = false;
+                  it('should do nothing if stream does not exist', function() {
+                    var callback = sinon.stub();
+                    streamId = 'unknownStreamId';
 
-        onStopRecorder(subscriberOptions, callback);
+                    onUnsubscribe(streamId, callback);
 
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
+                    expect(callback.callCount).to.equal(0);
+                  });
 
-      it('should succeed if authorized', function() {
-        var callback = sinon.stub();
+                  it('should call removeSubscriber when succeded', function() {
+                    var callback = sinon.stub();
 
-        onStopRecorder(subscriberOptions, callback);
+                    onUnsubscribe(streamId, callback);
 
-        expect(mocks.roomControllerInstance.removeExternalOutput.callCount).to.equal(1);
-      });
-    });
+                    expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
+                    expect(callback.withArgs(true).callCount).to.equal(1);
+                  });
 
-    describe('on Unpublish', function() {
-      var streamId;
-      beforeEach(function() {
-        var sockets = ['streamId1'];
-        mocks.socketInstance.streams = [];
-        mocks.socketInstance.user = {};
-        mocks.socketInstance.room = {
-          controller: mocks.roomControllerInstance,
-          sockets: sockets,
-          streams: {
-            streamId1: {
-              getDataSubscribers: sinon.stub().returns(sockets),
-              setAttributes: sinon.stub()
-            }
-          }
-        };
-        mocks.socketInstance.user.permissions = {};
-        mocks.socketInstance.user.permissions[Permission.PUBLISH] = true;
+                  it('should call removeSubscriber when succeded (audio only streams) ',
+                      function() {
+                    var callback = sinon.stub();
+                    var returnFalse = sinon.stub().returns(false);
+                    client.room.getStreamById(streamId).hasVideo = returnFalse;
+                    client.room.getStreamById(streamId).hasScreen = returnFalse;
 
-        var options = {audio: true, video: true, screen: true, data: true},
-            sdp = '',
-            callback = sinon.stub();
+                    onUnsubscribe(streamId, callback);
 
-        onPublish(options, sdp, callback);
+                    expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
+                    expect(callback.withArgs(true).callCount).to.equal(1);
+                  });
 
-        streamId = callback.args[0][0];
-      });
+                  it('should call removeSubscriber when succeded (video only streams) ',
+                      function() {
+                    var callback = sinon.stub();
+                    var returnFalse = sinon.stub().returns(false);
+                    client.room.getStreamById(streamId).hasAudio = returnFalse;
+                    client.room.getStreamById(streamId).hasScreen = returnFalse;
 
-      it('should fail if user is undefined', function() {
-        var callback = sinon.stub();
+                    onUnsubscribe(streamId, callback);
 
-        mocks.socketInstance.user = undefined;
+                    expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
+                    expect(callback.withArgs(true).callCount).to.equal(1);
+                  });
 
-        onUnpublish(streamId, callback);
+                  it('should call removeSubscriber when succeded (screen only streams) ',
+                      function() {
+                    var callback = sinon.stub();
+                    var returnFalse = sinon.stub().returns(false);
+                    client.room.getStreamById(streamId).hasAudio = returnFalse;
+                    client.room.getStreamById(streamId).hasVideo = returnFalse;
 
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
+                    onUnsubscribe(streamId, callback);
 
-      it('should fail if user is not authorized', function() {
-        var callback = sinon.stub();
+                    expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
+                    expect(callback.withArgs(true).callCount).to.equal(1);
+                  });
 
-        mocks.socketInstance.user.permissions[Permission.PUBLISH] = false;
+                  it('should not call removePublisher in p2p rooms', function() {
+                    var callback = sinon.stub();
 
-        onUnpublish(streamId, callback);
+                    room.p2p = true;
 
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
+                    onUnsubscribe(streamId, callback);
 
-      it('should do nothing if stream does not exist', function() {
-        var callback = sinon.stub();
-        streamId = 'unknownStreamId';
+                    expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(0);
+                    expect(callback.withArgs(true).callCount).to.equal(1);
+                  });
+                });
 
-        onUnpublish(streamId, callback);
+                describe('on Unpublish', function() {
+                  let stream, streamId;
+                  beforeEach(function() {
+                    for (const st of room.streams.values()) {
+                        stream = st;
+                        streamId = stream.getID();
+                    }
+                    stream.getDataSubscribers = sinon.stub().returns([client.id]);
+                    room.controller = mocks.roomControllerInstance;
+                    client.user.permissions = {};
+                    client.user.permissions[Permission.PUBLISH] = true;
+                    client.user.permissions[Permission.SUBSCRIBE] = true;
+                  });
 
-        expect(callback.callCount).to.equal(0);
-      });
+                  it('should fail if user is undefined', function() {
+                    var callback = sinon.stub();
 
-      it('should send a onRemoveStream event when succeded', function() {
-        var callback = sinon.stub();
+                    client.user = undefined;
 
-        onUnpublish(streamId, callback);
+                    onUnpublish(streamId, callback);
 
-        expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId).callCount)
+                    expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+                  });
+
+                  it('should fail if user is not authorized', function() {
+                    var callback = sinon.stub();
+
+                    client.user.permissions[Permission.PUBLISH] = false;
+
+                    onUnpublish(streamId, callback);
+
+                    expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+                  });
+
+                  it('should do nothing if stream does not exist', function() {
+                    var callback = sinon.stub();
+                    streamId = 'unknownStreamId';
+
+                    onUnpublish(streamId, callback);
+
+                    expect(callback.callCount).to.equal(0);
+                  });
+
+                  it('should send a onRemoveStream event when succeded', function() {
+                    var callback = sinon.stub();
+
+                    onUnpublish(streamId, callback);
+
+                    expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId)
+                            .callCount).to.equal(1);
+                    expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
+                          .to.equal(1);
+                    expect(callback.withArgs(true).callCount).to.equal(1);
+                  });
+
+                  it('should send a onRemoveStream event when succeded (audio only streams) ',
+                      function() {
+                    var callback = sinon.stub();
+                    var returnFalse = sinon.stub().returns(false);
+                    client.room.getStreamById(streamId).hasVideo = returnFalse;
+                    client.room.getStreamById(streamId).hasScreen = returnFalse;
+
+                    onUnpublish(streamId, callback);
+
+                    expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId)
+                          .callCount).to.equal(1);
+                    expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
+                          .to.equal(1);
+                    expect(callback.withArgs(true).callCount).to.equal(1);
+                  });
+
+                  it('should send a onRemoveStream event when succeded (video only streams) ',
+                      function() {
+                    var callback = sinon.stub();
+                    var returnFalse = sinon.stub().returns(false);
+                    client.room.getStreamById(streamId).hasAudio = returnFalse;
+                    client.room.getStreamById(streamId).hasScreen = returnFalse;
+
+                    onUnpublish(streamId, callback);
+
+                    expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId)
+                          .callCount).to.equal(1);
+                    expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
                             .to.equal(1);
-        expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount).to.equal(1);
-        expect(callback.withArgs(true).callCount).to.equal(1);
-      });
+                    expect(callback.withArgs(true).callCount).to.equal(1);
+                  });
 
-      it('should send a onRemoveStream event when succeded (audio only streams) ', function() {
-        var callback = sinon.stub();
-        var returnFalse = sinon.stub().returns(false);
-        mocks.socketInstance.room.streams[streamId].hasVideo = returnFalse;
-        mocks.socketInstance.room.streams[streamId].hasScreen = returnFalse;
+                  it('should send a onRemoveStream event when succeded (screen only streams) ',
+                      function() {
+                    var callback = sinon.stub();
+                    var returnFalse = sinon.stub().returns(false);
+                    client.room.getStreamById(streamId).hasAudio = returnFalse;
+                    client.room.getStreamById(streamId).hasVideo = returnFalse;
 
-        onUnpublish(streamId, callback);
+                    onUnpublish(streamId, callback);
 
-        expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId).callCount)
+                    expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId)
+                          .callCount).to.equal(1);
+                    expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
                             .to.equal(1);
-        expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount).to.equal(1);
-        expect(callback.withArgs(true).callCount).to.equal(1);
-      });
+                    expect(callback.withArgs(true).callCount).to.equal(1);
+                  });
 
-      it('should send a onRemoveStream event when succeded (video only streams) ', function() {
-        var callback = sinon.stub();
-        var returnFalse = sinon.stub().returns(false);
-        mocks.socketInstance.room.streams[streamId].hasAudio = returnFalse;
-        mocks.socketInstance.room.streams[streamId].hasScreen = returnFalse;
+                  it('should not call removePublisher in p2p rooms', function() {
+                    var callback = sinon.stub();
 
-        onUnpublish(streamId, callback);
+                    room.p2p = true;
 
-        expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId).callCount)
-                            .to.equal(1);
-        expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount).to.equal(1);
-        expect(callback.withArgs(true).callCount).to.equal(1);
-      });
+                    onUnpublish(streamId, callback);
 
-      it('should send a onRemoveStream event when succeded (screen only streams) ', function() {
-        var callback = sinon.stub();
-        var returnFalse = sinon.stub().returns(false);
-        mocks.socketInstance.room.streams[streamId].hasAudio = returnFalse;
-        mocks.socketInstance.room.streams[streamId].hasVideo = returnFalse;
+                    expect(mocks.roomControllerInstance.removePublisher
+                            .withArgs(streamId).callCount).to.equal(0);
+                    expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
+                          .to.equal(1);
+                    expect(callback.withArgs(true).callCount).to.equal(1);
+                  });
+                });
 
-        onUnpublish(streamId, callback);
+                describe('on Disconnect', function() {
+                  beforeEach(function() {
+                  });
 
-        expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId).callCount)
-                            .to.equal(1);
-        expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount).to.equal(1);
-        expect(callback.withArgs(true).callCount).to.equal(1);
-      });
+                  it('should send a onRemoveStream event', function() {
+                    onDisconnect();
 
-      it('should not call removePublisher in p2p rooms', function() {
-        var callback = sinon.stub();
+                    expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
+                          .to.equal(1);
+                  });
 
-        mocks.socketInstance.room.p2p = true;
+                  it('should call removePublisher', function() {
+                    onDisconnect();
 
-        onUnpublish(streamId, callback);
+                    expect(mocks.roomControllerInstance.removePublisher.callCount).to.equal(1);
+                  });
 
-        expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId).callCount)
-                              .to.equal(0);
-        expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount).to.equal(1);
-        expect(callback.withArgs(true).callCount).to.equal(1);
-      });
-    });
+                  it('should not call removePublisher if room is p2p', function() {
+                    room.p2p = true;
 
-    describe('on Unsubscribe', function() {
-      var streamId;
-      beforeEach(function() {
-        var sockets = ['streamId1'];
-        mocks.socketInstance.streams = [];
-        mocks.socketInstance.user = {};
-        mocks.socketInstance.room = {
-          controller: mocks.roomControllerInstance,
-          sockets: sockets,
-          streams: {
-            streamId1: {
-              getDataSubscribers: sinon.stub().returns(sockets),
-              setAttributes: sinon.stub()
-            }
-          }
-        };
-        mocks.socketInstance.user.permissions = {};
-        mocks.socketInstance.user.permissions[Permission.PUBLISH] = true;
-        mocks.socketInstance.user.permissions[Permission.SUBSCRIBE] = true;
+                    onDisconnect();
 
-        var options = {audio: true, video: true, screen: true, data: true},
-            sdp = '',
-            callback = sinon.stub();
+                    expect(mocks.roomControllerInstance.removePublisher.callCount).to.equal(0);
+                  });
+                });
+              });
+            });
+          });
 
-        onPublish(options, sdp, callback);
+          describe('on Start Recorder', function() {
+            let subscriberOptions, streamId, client;
 
-        streamId = callback.args[0][0];
-      });
+            beforeEach(function() {
+              for (let c of room.clients.values()) {
+                client = c;
+              }
+              client.user.permissions[Permission.PUBLISH] = true;
+              client.user.permissions[Permission.RECORD] = true;
 
-      it('should fail if user is undefined', function() {
-        var callback = sinon.stub();
+              var options = {audio: true, video: true, data: true},
+                  sdp = '',
+                  callback = sinon.stub();
 
-        mocks.socketInstance.user = undefined;
+              onPublish(options, sdp, callback);
 
-        onUnsubscribe(streamId, callback);
+              streamId = callback.args[0][0];
 
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
+              subscriberOptions= {
+                   to: streamId
+                 };
+            });
 
-      it('should fail if user is not authorized', function() {
-        var callback = sinon.stub();
+            it('should fail if user is undefined', function() {
+              var callback = sinon.stub();
+              client.user = undefined;
 
-        mocks.socketInstance.user.permissions[Permission.SUBSCRIBE] = false;
+              onStartRecorder(subscriberOptions, callback);
 
-        onUnsubscribe(streamId, callback);
+              expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+            });
 
-        expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
-      });
+            it('should fail if user is not authorized', function() {
+              var callback = sinon.stub();
+              client.user.permissions[Permission.RECORD] = false;
 
-      it('should do nothing if stream does not exist', function() {
-        var callback = sinon.stub();
-        streamId = 'unknownStreamId';
+              onStartRecorder(subscriberOptions, callback);
 
-        onUnsubscribe(streamId, callback);
+              expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+            });
 
-        expect(callback.callCount).to.equal(0);
-      });
+            it('should return an error if the room is p2p', function() {
+              var callback = sinon.stub();
+              room.p2p = true;
 
-      it('should call removeSubscriber when succeded', function() {
-        var callback = sinon.stub();
+              onStartRecorder(subscriberOptions, callback);
 
-        onUnsubscribe(streamId, callback);
+              expect(callback.withArgs(null, 'Stream can not be recorded').callCount).to.equal(1);
+            });
 
-        expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
-        expect(callback.withArgs(true).callCount).to.equal(1);
-      });
+            it('should return an error if the stream has no media', function() {
+              var callback = sinon.stub();
+              var returnFalse = sinon.stub().returns(false);
+              client.room.getStreamById(streamId).hasVideo = returnFalse;
+              client.room.getStreamById(streamId).hasAudio = returnFalse;
+              client.room.getStreamById(streamId).hasScreen = returnFalse;
 
-      it('should call removeSubscriber when succeded (audio only streams) ', function() {
-        var callback = sinon.stub();
-        var returnFalse = sinon.stub().returns(false);
-        mocks.socketInstance.room.streams[streamId].hasVideo = returnFalse;
-        mocks.socketInstance.room.streams[streamId].hasScreen = returnFalse;
+              onStartRecorder(subscriberOptions, callback);
 
-        onUnsubscribe(streamId, callback);
+              expect(callback.withArgs(null, 'Stream can not be recorded').callCount).to.equal(1);
+            });
 
-        expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
-        expect(callback.withArgs(true).callCount).to.equal(1);
-      });
+            describe('when receiving events from RoomController', function() {
+              var callback = sinon.stub();
 
-      it('should call removeSubscriber when succeded (video only streams) ', function() {
-        var callback = sinon.stub();
-        var returnFalse = sinon.stub().returns(false);
-        mocks.socketInstance.room.streams[streamId].hasAudio = returnFalse;
-        mocks.socketInstance.room.streams[streamId].hasScreen = returnFalse;
+              it('should call addExternalOutput', function() {
+                onStartRecorder(subscriberOptions, callback);
 
-        onUnsubscribe(streamId, callback);
+                expect(mocks.roomControllerInstance.addExternalOutput.callCount).to.equal(1);
+              });
 
-        expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
-        expect(callback.withArgs(true).callCount).to.equal(1);
-      });
+              it('should return ok if when receiving success state', function() {
+                var signMes = 'success';
+                mocks.roomControllerInstance.addExternalOutput.callsArgWith(3, signMes);
 
-      it('should call removeSubscriber when succeded (screen only streams) ', function() {
-        var callback = sinon.stub();
-        var returnFalse = sinon.stub().returns(false);
-        mocks.socketInstance.room.streams[streamId].hasAudio = returnFalse;
-        mocks.socketInstance.room.streams[streamId].hasVideo = returnFalse;
+                onStartRecorder(subscriberOptions, callback);
 
-        onUnsubscribe(streamId, callback);
+                expect(callback.callCount).to.equal(1);
+              });
 
-        expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
-        expect(callback.withArgs(true).callCount).to.equal(1);
-      });
+              it('should return an error if when receiving a failed state', function() {
+                var signMes = 'failed';
+                mocks.roomControllerInstance.addExternalOutput.callsArgWith(3, signMes);
 
-      it('should not call removePublisher in p2p rooms', function() {
-        var callback = sinon.stub();
+                onStartRecorder(subscriberOptions, callback);
 
-        mocks.socketInstance.room.p2p = true;
+                expect(callback.withArgs(null, 'Unable to subscribe to stream for recording, ' +
+                               'publisher not present').callCount).to.equal(1);
+              });
+            });
 
-        onUnsubscribe(streamId, callback);
+            describe('on Stop Recorder', function() {
+              var subscriberOptions = {};
 
-        expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(0);
-        expect(callback.withArgs(true).callCount).to.equal(1);
-      });
-    });
+              beforeEach(function() {
+                room.controller = mocks.roomControllerInstance;
+              });
 
-    describe('on Disconnect', function() {
-      beforeEach(function() {
-        var sockets = ['streamId1'];
-        var streams = sockets;
-        mocks.socketInstance.streams = streams;
-        mocks.socketInstance.user = {};
-        mocks.socketInstance.room = {
-          controller: mocks.roomControllerInstance,
-          sockets: sockets,
-          streams: {
-            streamId1: {
-              hasAudio: sinon.stub().returns(true),
-              hasVideo: sinon.stub().returns(true),
-              hasScreen: sinon.stub().returns(true),
-              getDataSubscribers: sinon.stub().returns(sockets),
-              removeDataSubscriber: sinon.stub(),
-              setAttributes: sinon.stub()
-            }
-          }
-        };
-      });
+              it('should fail if user is undefined', function() {
+                var callback = sinon.stub();
+                client.user = undefined;
 
-      it('should send a onRemoveStream event', function() {
-        onDisconnect();
+                onStopRecorder(subscriberOptions, callback);
 
-        expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount).to.equal(1);
-      });
+                expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+              });
 
-      it('should call removePublisher', function() {
-        onDisconnect();
+              it('should fail if user is not authorized', function() {
+                var callback = sinon.stub();
+                client.user.permissions[Permission.RECORD] = false;
 
-        expect(mocks.roomControllerInstance.removePublisher.callCount).to.equal(1);
-      });
+                onStopRecorder(subscriberOptions, callback);
 
-      it('should not call removePublisher if room is p2p', function() {
-        mocks.socketInstance.room.p2p = true;
+                expect(callback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+              });
 
-        onDisconnect();
+              it('should succeed if authorized', function() {
+                var callback = sinon.stub();
 
-        expect(mocks.roomControllerInstance.removePublisher.callCount).to.equal(0);
+                onStopRecorder(subscriberOptions, callback);
+
+                expect(mocks.roomControllerInstance.removeExternalOutput.callCount).to.equal(1);
+              });
+            });
+          });
+        });
       });
     });
   });

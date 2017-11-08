@@ -1,4 +1,4 @@
-/*global require, exports, setInterval, clearInterval*/
+/*global require, exports*/
 'use strict';
 var addon = require('./../../../erizoAPI/build/Release/addon');
 var logger = require('./../../common/logger').logger;
@@ -6,27 +6,45 @@ var logger = require('./../../common/logger').logger;
 // Logger
 var log = logger.getLogger('Publisher');
 
-function createWrtc(id, threadPool) {
-  var wrtc = new addon.WebRtcConnection(threadPool, id,
-                                    GLOBAL.config.erizo.stunserver,
-                                    GLOBAL.config.erizo.stunport,
-                                    GLOBAL.config.erizo.minport,
-                                    GLOBAL.config.erizo.maxport,
+function getMediaConfiguration(mediaConfiguration = 'default') {
+  if (global.mediaConfig && global.mediaConfig.codecConfigurations) {
+    if (global.mediaConfig.codecConfigurations[mediaConfiguration]) {
+      return JSON.stringify(global.mediaConfig.codecConfigurations[mediaConfiguration]);
+    } else if (global.mediaConfig.codecConfigurations.default) {
+      return JSON.stringify(global.mediaConfig.codecConfigurations.default);
+    } else {
+      log.warn('message: Bad media config file. You need to specify a default codecConfiguration.');
+      return JSON.stringify({});
+    }
+  } else {
+    log.warn('message: Bad media config file. You need to specify a default codecConfiguration.');
+    return JSON.stringify({});
+  }
+}
+
+function createWrtc(id, threadPool, ioThreadPool, mediaConfiguration) {
+  var wrtc = new addon.WebRtcConnection(threadPool, ioThreadPool, id,
+                                    global.config.erizo.stunserver,
+                                    global.config.erizo.stunport,
+                                    global.config.erizo.minport,
+                                    global.config.erizo.maxport,
                                     false,
-                                    JSON.stringify(GLOBAL.mediaConfig),
-                                    GLOBAL.config.erizo.turnserver,
-                                    GLOBAL.config.erizo.turnport,
-                                    GLOBAL.config.erizo.turnusername,
-                                    GLOBAL.config.erizo.turnpass,
-                                    GLOBAL.config.erizo.networkinterface);
+                                    getMediaConfiguration(mediaConfiguration),
+                                    global.config.erizo.useNicer,
+                                    global.config.erizo.turnserver,
+                                    global.config.erizo.turnport,
+                                    global.config.erizo.turnusername,
+                                    global.config.erizo.turnpass,
+                                    global.config.erizo.networkinterface);
 
   return wrtc;
 }
 
 class Source {
-  constructor(id, threadPool) {
+  constructor(id, threadPool, ioThreadPool) {
     this.id = id;
     this.threadPool = threadPool;
+    this.ioThreadPool = ioThreadPool;
     this.subscribers = {};
     this.externalOutputs = {};
     this.muteAudio = false;
@@ -43,7 +61,7 @@ class Source {
     log.info('message: Adding subscriber, id: ' + wrtcId + ', ' +
              logger.objectToLog(options)+
               ', ' + logger.objectToLog(options.metadata));
-    var wrtc = createWrtc(wrtcId, this.threadPool);
+    var wrtc = createWrtc(wrtcId, this.threadPool, this.ioThreadPool, options.mediaConfiguration);
     wrtc.wrtcId = wrtcId;
     this.subscribers[id] = wrtc;
     this.muxer.addSubscriber(wrtc, id);
@@ -52,7 +70,13 @@ class Source {
               'id: ' + wrtcId + ', scheme: ' + this.scheme+
                ', ' + logger.objectToLog(options.metadata));
     wrtc.scheme = this.scheme;
-    this.muteSubscriberStream(id, false, false);
+    const muteVideo = (options.muteStream && options.muteStream.video) || false;
+    const muteAudio = (options.muteStream && options.muteStream.audio) || false;
+    this.muteSubscriberStream(id, muteVideo, muteAudio);
+    if (options.video) {
+      this.setVideoConstraints(id,
+        options.video.width, options.video.height, options.video.frameRate);
+    }
   }
 
   removeSubscriber(id) {
@@ -68,10 +92,11 @@ class Source {
     return this.subscribers[id] !== undefined;
   }
 
-  addExternalOutput(url) {
+  addExternalOutput(url, options) {
     var eoId = url + '_' + this.id;
     log.info('message: Adding ExternalOutput, id: ' + eoId);
-    var externalOutput = new addon.ExternalOutput(url);
+    var externalOutput = new addon.ExternalOutput(url,
+      getMediaConfiguration(options.mediaConfiguration));
     externalOutput.wrtcId = eoId;
     externalOutput.init();
     this.muxer.addExternalOutput(externalOutput, url);
@@ -121,6 +146,14 @@ class Source {
                           this.muteAudio || muteAudio);
   }
 
+  setVideoConstraints(id, width, height, frameRate) {
+    var subscriber = this.getSubscriber(id);
+    var maxWidth = (width && width.max !== undefined) ? width.max : -1;
+    var maxHeight = (height && height.max !== undefined) ? height.max : -1;
+    var maxFrameRate = (frameRate && frameRate.max !== undefined) ? frameRate.max : -1;
+    subscriber.setVideoConstraints(maxWidth, maxHeight, maxFrameRate);
+  }
+
   enableHandlers(id, handlers) {
     var wrtc = this.wrtc;
     if (id) {
@@ -147,9 +180,10 @@ class Source {
 }
 
 class Publisher extends Source {
-  constructor(id, threadPool, options) {
-    super(id, threadPool);
-    this.wrtc = createWrtc(this.id, this.threadPool);
+  constructor(id, threadPool, ioThreadPool, options) {
+    super(id, threadPool, ioThreadPool);
+    this.mediaConfiguration = options.mediaConfiguration;
+    this.wrtc = createWrtc(this.id, this.threadPool, this.ioThreadPool, this.mediaConfiguration);
     this.wrtc.wrtcId = id;
 
     this.minVideoBW = options.minVideoBW;
@@ -158,13 +192,16 @@ class Publisher extends Source {
     this.wrtc.setAudioReceiver(this.muxer);
     this.wrtc.setVideoReceiver(this.muxer);
     this.muxer.setPublisher(this.wrtc);
+    const muteVideo = (options.muteStream && options.muteStream.video) || false;
+    const muteAudio = (options.muteStream && options.muteStream.audio) || false;
+    this.muteStream(muteVideo, muteAudio);
   }
 
   resetWrtc() {
     if (this.numSubscribers > 0) {
       return;
     }
-    this.wrtc = createWrtc(this.id, this.threadPool);
+    this.wrtc = createWrtc(this.id, this.threadPool, this.ioThreadPool, this.mediaConfiguration);
     this.wrtc.setAudioReceiver(this.muxer);
     this.wrtc.setVideoReceiver(this.muxer);
     this.muxer.setPublisher(this.wrtc);
@@ -172,8 +209,8 @@ class Publisher extends Source {
 }
 
 class ExternalInput extends Source {
-  constructor(id, threadPool, url) {
-    super(id, threadPool);
+  constructor(id, threadPool, ioThreadPool, url) {
+    super(id, threadPool, ioThreadPool);
     var eiId = id + '_' + url;
 
     log.info('message: Adding ExternalInput, id: ' + eiId);

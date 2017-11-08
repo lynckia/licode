@@ -78,7 +78,8 @@ var reset = module.exports.reset = function() {
   };
 
   module.exports.crypto = createMock('crypto', {
-    createHmac: sinon.stub().returns(module.exports.signature)
+    createHmac: sinon.stub().returns(module.exports.signature),
+    randomBytes: sinon.stub().returns(new Buffer(16))
   });
 
   module.exports.http = createMock('http', {
@@ -87,6 +88,7 @@ var reset = module.exports.reset = function() {
   });
 
   module.exports.socketInstance = {
+    conn: {transport: {socket: {internalOnClose: undefined}}},
     disconnect: sinon.stub(),
     emit: sinon.stub(),
     on: sinon.stub()
@@ -96,7 +98,9 @@ var reset = module.exports.reset = function() {
     set: sinon.stub(),
     sockets: {
       on: sinon.stub(),
-      socket: sinon.stub().returns(module.exports.socketInstance),
+      socket: sinon.stub().returns(module.exports.socketInstance),  // v0.9
+      sockets:{'streamId1': module.exports.socketInstance,  // v2.0.3
+               undefined: module.exports.socketInstance},
       indexOf: sinon.stub()
     }
   };

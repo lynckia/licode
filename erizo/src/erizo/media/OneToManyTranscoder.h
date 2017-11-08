@@ -57,13 +57,14 @@ class OneToManyTranscoder : public MediaSink, public RawDataReceiver, public RTP
   char sendVideoBuffer_[2000];
   char sendAudioBuffer_[2000];
   RTPSink* sink_;
-  std::vector<dataPacket> head;
+  std::vector<DataPacket> head;
   int gotFrame_, gotDecodedFrame_, size_;
   void sendHead(WebRtcConnection* conn);
   RtpVP8Parser pars;
   unsigned int sentPackets_;
-  int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
-  int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
+  int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override;
+  int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override;
+  int deliverEvent_(MediaEventPtr event) override;
   /**
   * Closes all the subscribers and the publisher, the object is useless after this
   */

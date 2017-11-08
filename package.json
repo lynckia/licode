@@ -7,6 +7,11 @@
   "devDependencies": {
     "async": "^2.1.2",
     "chai": "^3.5.0",
+    "eslint": "^3.19.0",
+    "eslint-config-airbnb": "^15.0.1",
+    "eslint-plugin-import": "^2.6.0",
+    "eslint-plugin-jsx-a11y": "^5.1.0",
+    "eslint-plugin-react": "^7.1.0",
     "jshint": "^2.9.3",
     "mocha": "^3.1.2",
     "mock-require": "^1.3.0",
@@ -30,7 +35,9 @@
     }
   ],
   "scripts": {
+    "buildClient": "cd erizo_controller/erizoClient && gulp",
     "test": " ./node_modules/mocha/bin/mocha nuve/nuveAPI/test/* erizo_controller/test/*",
-    "lint": "./node_modules/jshint/bin/jshint erizo_controller/ nuve/ extras/basic_example/ spine/"
+    "lintClient": "cd erizo_controller/erizoClient && gulp lint",
+    "lint": "./node_modules/jshint/bin/jshint erizo_controller/erizoAgent/ erizo_controller/erizoController/ erizo_controller/erizoJS/ erizo_controller/common/ erizo_controller/test/ nuve/ extras/basic_example/ spine/"
   }
 }

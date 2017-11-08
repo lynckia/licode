@@ -37,20 +37,22 @@ function toggleSlideShowMode() {  // jshint ignore:line
       console.log('SlideShowMode changed', evt);
   };
   slideShowMode = !slideShowMode;
-  for (var index in streams) {
-    var stream = streams[index];
+  streams.forEach(function (stream) {
     if (localStream.getID() !== stream.getID()) {
       console.log('Updating config');
       stream.updateConfiguration({slideShowMode: slideShowMode}, cb);
     }
-  }
+  });
 }
 
 window.onload = function () {
   recording = false;
   var screen = getParameterByName('screen');
   var roomName = getParameterByName('room') || 'basicExampleRoom';
-  console.log('Selected Room', room);
+  var roomType = getParameterByName('type') || 'erizo';
+  var mediaConfiguration = getParameterByName('mediaConfiguration') || 'default';
+  var onlySubscribe = getParameterByName('onlySubscribe');
+  console.log('Selected Room', roomName, 'of type', roomType);
   var config = {audio: true,
                 video: true,
                 data: true,
@@ -64,11 +66,10 @@ window.onload = function () {
     config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
   }
   localStream = Erizo.Stream(config);
-  var createToken = function(userName, role, roomName, callback) {
+  var createToken = function(roomData, callback) {
 
     var req = new XMLHttpRequest();
     var url = serverUrl + 'createToken/';
-    var body = {username: userName, role: role, room:roomName};
 
     req.onreadystatechange = function () {
       if (req.readyState === 4) {
@@ -78,74 +79,86 @@ window.onload = function () {
 
     req.open('POST', url, true);
     req.setRequestHeader('Content-Type', 'application/json');
-    req.send(JSON.stringify(body));
+    req.send(JSON.stringify(roomData));
   };
 
-  createToken('user', 'presenter', roomName, function (response) {
+  var roomData  = {username: 'user',
+                   role: 'presenter',
+                   room: roomName,
+                   type: roomType,
+                   mediaConfiguration: mediaConfiguration};
+
+  createToken(roomData, function (response) {
     var token = response;
     console.log(token);
     room = Erizo.Room({token: token});
 
-    localStream.addEventListener('access-accepted', function () {
-      var subscribeToStreams = function (streams) {
-        var cb = function (evt){
-            console.log('Bandwidth Alert', evt.msg, evt.bandwidth);
-        };
-        for (var index in streams) {
-          var stream = streams[index];
-          if (localStream.getID() !== stream.getID()) {
-            room.subscribe(stream, {slideShowMode: slideShowMode, metadata: {type: 'subscriber'}});
-            stream.addEventListener('bandwidth-alert', cb);
-          }
-        }
+    var subscribeToStreams = function (streams) {
+      var cb = function (evt){
+          console.log('Bandwidth Alert', evt.msg, evt.bandwidth);
       };
-
-      room.addEventListener('room-connected', function (roomEvent) {
-        var options = {metadata: {type: 'publisher'}};
-        var enableSimulcast = getParameterByName('simulcast');
-        if (enableSimulcast) options._simulcast = {numSpatialLayers: 2};
-
-        var onlySubscribe = getParameterByName('onlySubscribe');
-        if (!onlySubscribe) room.publish(localStream, options);
-        subscribeToStreams(roomEvent.streams);
-      });
-
-      room.addEventListener('stream-subscribed', function(streamEvent) {
-        var stream = streamEvent.stream;
-        var div = document.createElement('div');
-        div.setAttribute('style', 'width: 320px; height: 240px;');
-        div.setAttribute('id', 'test' + stream.getID());
-
-        document.body.appendChild(div);
-        stream.show('test' + stream.getID());
-
-      });
-
-      room.addEventListener('stream-added', function (streamEvent) {
-        var streams = [];
-        streams.push(streamEvent.stream);
-        subscribeToStreams(streams);
-        document.getElementById('recordButton').disabled = false;
-      });
-
-      room.addEventListener('stream-removed', function (streamEvent) {
-        // Remove stream from DOM
-        var stream = streamEvent.stream;
-        if (stream.elementID !== undefined) {
-          var element = document.getElementById(stream.elementID);
-          document.body.removeChild(element);
+      for (var index in streams) {
+        var stream = streams[index];
+        if (localStream.getID() !== stream.getID()) {
+          room.subscribe(stream, {slideShowMode: slideShowMode, metadata: {type: 'subscriber'}});
+          stream.addEventListener('bandwidth-alert', cb);
         }
-      });
+      }
+    };
 
-      room.addEventListener('stream-failed', function (){
-          console.log('Stream Failed, act accordingly');
-      });
+    room.addEventListener('room-connected', function (roomEvent) {
+      var options = {metadata: {type: 'publisher'}};
+      var enableSimulcast = getParameterByName('simulcast');
+      if (enableSimulcast) options.simulcast = {numSpatialLayers: 2};
 
-      room.connect();
+      if (!onlySubscribe) room.publish(localStream, options);
+      subscribeToStreams(roomEvent.streams);
+    });
 
-      localStream.show('myVideo');
+    room.addEventListener('stream-subscribed', function(streamEvent) {
+      var stream = streamEvent.stream;
+      var div = document.createElement('div');
+      div.setAttribute('style', 'width: 320px; height: 240px;float:left;');
+      div.setAttribute('id', 'test' + stream.getID());
+
+      document.getElementById('videoContainer').appendChild(div);
+      stream.show('test' + stream.getID());
 
     });
-    localStream.init();
+
+    room.addEventListener('stream-added', function (streamEvent) {
+      var streams = [];
+      streams.push(streamEvent.stream);
+      subscribeToStreams(streams);
+      document.getElementById('recordButton').disabled = false;
+    });
+
+    room.addEventListener('stream-removed', function (streamEvent) {
+      // Remove stream from DOM
+      var stream = streamEvent.stream;
+      if (stream.elementID !== undefined) {
+        var element = document.getElementById(stream.elementID);
+        document.getElementById('videoContainer').removeChild(element);
+      }
+    });
+
+    room.addEventListener('stream-failed', function (){
+        console.log('Stream Failed, act accordingly');
+    });
+
+    if (onlySubscribe) {
+      room.connect();
+    } else {
+      var div = document.createElement('div');
+      div.setAttribute('style', 'width: 320px; height: 240px; float:left');
+      div.setAttribute('id', 'myVideo');
+      document.getElementById('videoContainer').appendChild(div);
+
+      localStream.addEventListener('access-accepted', function () {
+        room.connect();
+        localStream.show('myVideo');
+      });
+      localStream.init();
+    }
   });
 };

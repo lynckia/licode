@@ -20,7 +20,7 @@ using ::testing::IsNull;
 using ::testing::Args;
 using ::testing::Return;
 using ::testing::AllOf;
-using erizo::dataPacket;
+using erizo::DataPacket;
 using erizo::packetType;
 using erizo::AUDIO_PACKET;
 using erizo::VIDEO_PACKET;
@@ -39,14 +39,14 @@ class RtcpNackGeneratorTest :public ::testing::Test {
     clock->advanceTime(std::chrono::milliseconds(time_ms));
   }
 
-  std::shared_ptr<dataPacket> generateRrWithNack() {
-    std::shared_ptr<dataPacket> new_receiver_report = erizo::PacketTools::createReceiverReport(erizo::kVideoSsrc,
+  std::shared_ptr<DataPacket> generateRrWithNack() {
+    std::shared_ptr<DataPacket> new_receiver_report = erizo::PacketTools::createReceiverReport(erizo::kVideoSsrc,
         erizo::kVideoSsrc, 0, VIDEO_PACKET);
     nack_generator.addNackPacketToRr(new_receiver_report);
     return new_receiver_report;
   }
 
-  bool RtcpPacketContainsNackSeqNum(std::shared_ptr<dataPacket> rtcp_packet, uint16_t lost_seq_num) {
+  bool RtcpPacketContainsNackSeqNum(std::shared_ptr<DataPacket> rtcp_packet, uint16_t lost_seq_num) {
     char* moving_buf = rtcp_packet->data;
     int rtcp_length = 0;
     int total_length = 0;
@@ -58,7 +58,8 @@ class RtcpNackGeneratorTest :public ::testing::Test {
       total_length += rtcp_length;
 
       if (chead->packettype == RTCP_RTP_Feedback_PT) {
-        erizo::RtpUtils::forEachNack(chead, [chead, lost_seq_num, &found_nack](uint16_t seq_num, uint16_t plb) {
+        erizo::RtpUtils::forEachNack(chead, [chead, lost_seq_num, &found_nack](uint16_t seq_num,
+           uint16_t plb, RtcpHeader* nack_head) {
           uint16_t initial_seq_num = seq_num;
           if (initial_seq_num == lost_seq_num) {
              found_nack = true;
@@ -81,7 +82,7 @@ class RtcpNackGeneratorTest :public ::testing::Test {
   }
 
   std::shared_ptr<SimulatedClock> clock;
-  std::shared_ptr<dataPacket> receiver_report;
+  std::shared_ptr<DataPacket> receiver_report;
   RtcpNackGenerator nack_generator;
   const uint16_t kMaxSeqnum = 65534;
 };
@@ -201,4 +202,3 @@ TEST_F(RtcpNackGeneratorTest, shouldNotRetransmitNacksMoreThanTwice) {
   receiver_report = generateRrWithNack();
   EXPECT_FALSE(RtcpPacketContainsNackSeqNum(receiver_report, erizo::kArbitrarySeqNumber + 1));
 }
-

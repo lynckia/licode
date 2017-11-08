@@ -13,13 +13,13 @@ NVM_CHECK="$LICODE_ROOT"/scripts/checkNvm.sh
 echo [erizo_controller] Installing node_modules for erizo_controller
 
 nvm use
-npm install --loglevel error amqp socket.io@0.9.16 log4js node-getopt
+npm install --loglevel error amqp socket.io@2.0.3 log4js@1.0.1 node-getopt uuid@3.1.0
+npm install --loglevel error -g google-closure-compiler-js
 
 echo [erizo_controller] Done, node_modules installed
 
-cd ./erizoClient/tools
+cd ./erizoClient/
 
-./compile.sh
-./compilefc.sh
+gulp erizo
 
 echo [erizo_controller] Done, erizo.js compiled

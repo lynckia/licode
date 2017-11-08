@@ -22,7 +22,7 @@ exports.RoomController = function (spec) {
 
     var KEEPALIVE_INTERVAL = 5*1000;
     var TIMEOUT_LIMIT = 2;
-    var MAX_ERIZOJS_RETRIES = 0;
+    var MAX_ERIZOJS_RETRIES = 3;
 
     var eventListeners = [];
 
@@ -102,7 +102,7 @@ exports.RoomController = function (spec) {
                 subscribers[publisherId] = [];
 
                 amqper.callRpc(getErizoQueue(publisherId), 'addExternalInput', args,
-                               {callback: callback});
+                               {callback: callback}, 20000);
 
                 erizos[erizoId].publishers.push(publisherId);
 
@@ -113,11 +113,11 @@ exports.RoomController = function (spec) {
         }
     };
 
-    that.addExternalOutput = function (publisherId, url, callback) {
+    that.addExternalOutput = function (publisherId, url, options, callback) {
         if (publishers[publisherId] !== undefined) {
             log.info('message: addExternalOuput, streamId: ' + publisherId + ', url:' + url);
 
-            var args = [publisherId, url];
+            var args = [publisherId, url, options];
 
             amqper.callRpc(getErizoQueue(publisherId), 'addExternalOutput', args, undefined);
 
@@ -207,6 +207,7 @@ exports.RoomController = function (spec) {
                             return;
                         }
                         log.warn('message: addPublisher ErizoJS timeout no retry, ' +
+                                 'retries: ' + retries +
                                  'streamId: ' + publisherId + ', ' +
                                  'erizoId: ' + getErizoQueue(publisherId) + ', ' +
                                  logger.objectToLog(options.metadata));
@@ -382,10 +383,11 @@ exports.RoomController = function (spec) {
 
     that.getStreamStats = function (streamId, callback) {
         if (publishers[streamId]) {
-            var args = [streamId]
+            var args = [streamId];
             var theId = getErizoQueue(streamId);
-            log.info('Get stats for publisher ', streamId, 'theId', theId);
-            amqper.callRpc(getErizoQueue(streamId), 'getStreamStats', args, {callback: function(data) {
+            log.debug('Get stats for publisher ', streamId, 'theId', theId);
+            amqper.callRpc(getErizoQueue(streamId), 'getStreamStats', args, {
+              callback: function(data) {
                 callback(data);
             }});
             return;

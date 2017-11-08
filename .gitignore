@@ -2,6 +2,7 @@ build/
 licode_config.js
 extras/basic_example/node_modules
 extras/basic_example/public/erizo.js
+extras/basic_example/public/erizo.js.map
 extras/basic_example/nuve.js
 node_modules/
 site
@@ -15,5 +16,6 @@ erizo_controller/erizoAgent/erizo-*.log
 .project
 .cproject
 spine/erizofc.js
+spine/testResult.json
 extras/basic_example/public/assets/
 rtp_media_config.js

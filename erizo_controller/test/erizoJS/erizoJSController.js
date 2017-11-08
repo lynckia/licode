@@ -21,7 +21,7 @@ describe('Erizo JS Controller', function() {
 
 
   beforeEach(function() {
-    GLOBAL.config = {logger: {configFile: true}};
+    global.config = {logger: {configFile: true}};
     licodeConfigMock = mocks.start(mocks.licodeConfig);
     amqperMock = mocks.start(mocks.amqper);
     erizoApiMock = mocks.start(mocks.erizoAPI);
@@ -34,7 +34,7 @@ describe('Erizo JS Controller', function() {
     mocks.stop(licodeConfigMock);
     mocks.deleteRequireCache();
     mocks.reset();
-    GLOBAL.config = {};
+    global.config = {};
   });
 
   it('should provide the known API', function() {
@@ -94,6 +94,7 @@ describe('Erizo JS Controller', function() {
 
   describe('Add External Output', function() {
     var kArbitraryEoUrl = 'eo_url1';
+    var kArbitraryEoOptions = {};
     var kArbitraryEiId = 'ei_id1';
     var kArbitraryEiUrl = 'ei_url1';
 
@@ -103,7 +104,7 @@ describe('Erizo JS Controller', function() {
     });
 
     it('should succeed creating ExternalOutput', function() {
-      controller.addExternalOutput(kArbitraryEiId, kArbitraryEoUrl);
+      controller.addExternalOutput(kArbitraryEiId, kArbitraryEoUrl, kArbitraryEoOptions);
       expect(erizoApiMock.ExternalOutput.args[0][0]).to.equal(kArbitraryEoUrl);
       expect(erizoApiMock.ExternalOutput.callCount).to.equal(1);
       expect(mocks.ExternalOutput.wrtcId).to.equal(kArbitraryEoUrl + '_' + kArbitraryEiId);
@@ -112,7 +113,7 @@ describe('Erizo JS Controller', function() {
     });
 
     it('should fail if Publisher does not exist', function() {
-      controller.addExternalOutput(kArbitraryEiId + 'a', kArbitraryEiUrl);
+      controller.addExternalOutput(kArbitraryEiId + 'a', kArbitraryEiUrl, kArbitraryEoOptions);
 
       expect(erizoApiMock.ExternalOutput.callCount).to.equal(0);
     });
@@ -120,7 +121,7 @@ describe('Erizo JS Controller', function() {
     describe('Remove External Output', function() {
 
       beforeEach(function() {
-        controller.addExternalOutput(kArbitraryEiId, kArbitraryEoUrl);
+        controller.addExternalOutput(kArbitraryEiId, kArbitraryEoUrl, kArbitraryEoOptions);
       });
 
       it('should succeed removing ExternalOutput', function() {
@@ -146,8 +147,8 @@ describe('Erizo JS Controller', function() {
 
     beforeEach(function() {
       callback = sinon.stub();
-      GLOBAL.config.erizo = {};
-      GLOBAL.config.erizoController = {report: {
+      global.config.erizo = {};
+      global.config.erizoController = {report: {
         'connection_events': true,
         'rtcp_stats': true}};
     });
@@ -157,7 +158,7 @@ describe('Erizo JS Controller', function() {
       controller.addPublisher(kArbitraryId, {}, callback);
 
       expect(erizoApiMock.OneToManyProcessor.callCount).to.equal(1);
-      expect(erizoApiMock.WebRtcConnection.args[0][1]).to.equal(kArbitraryId);
+      expect(erizoApiMock.WebRtcConnection.args[0][2]).to.equal(kArbitraryId);
       expect(erizoApiMock.WebRtcConnection.callCount).to.equal(1);
       expect(mocks.WebRtcConnection.wrtcId).to.equal(kArbitraryId);
       expect(mocks.WebRtcConnection.setAudioReceiver.args[0][0]).to.equal(mocks.OneToManyProcessor);
@@ -174,7 +175,7 @@ describe('Erizo JS Controller', function() {
       controller.addPublisher(kArbitraryId, {}, callback);
 
       expect(erizoApiMock.OneToManyProcessor.callCount).to.equal(1);
-      expect(erizoApiMock.WebRtcConnection.args[0][1]).to.equal(kArbitraryId);
+      expect(erizoApiMock.WebRtcConnection.args[0][2]).to.equal(kArbitraryId);
       expect(erizoApiMock.WebRtcConnection.callCount).to.equal(2);
       expect(mocks.WebRtcConnection.wrtcId).to.equal(kArbitraryId);
       expect(mocks.WebRtcConnection.setAudioReceiver.args[1][0]).to.equal(mocks.OneToManyProcessor);
@@ -200,7 +201,8 @@ describe('Erizo JS Controller', function() {
 
     it('should succeed sending offer event', function() {
       mocks.WebRtcConnection.init.returns(1).callsArgWith(0, 103, '');  // CONN_GATHERED
-      controller.addPublisher(kArbitraryId, {createOffer: {audio: true, video: true, bundle: true}}, callback);
+      controller.addPublisher(kArbitraryId, {createOffer:
+        {audio: true, video: true, bundle: true}}, callback);
 
       expect(callback.callCount).to.equal(2);
       expect(callback.args[1]).to.deep.equal(['callback', {type: 'initializing'}]);
@@ -305,7 +307,7 @@ describe('Erizo JS Controller', function() {
         controller.addSubscriber(kArbitraryId2, kArbitraryId, {}, subCallback);
 
         expect(erizoApiMock.WebRtcConnection.callCount).to.equal(2);
-        expect(erizoApiMock.WebRtcConnection.args[1][1]).to.equal(kArbitraryId2 +
+        expect(erizoApiMock.WebRtcConnection.args[1][2]).to.equal(kArbitraryId2 +
                                                             '_' + kArbitraryId);
         expect(mocks.WebRtcConnection.wrtcId).to.equal(kArbitraryId2 + '_' + kArbitraryId);
         expect(mocks.OneToManyProcessor.addSubscriber.callCount).to.equal(1);

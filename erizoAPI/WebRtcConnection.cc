@@ -7,6 +7,7 @@
 #include <future>  // NOLINT
 
 #include "lib/json.hpp"
+#include "IOThreadPool.h"
 #include "ThreadPool.h"
 
 using v8::HandleScope;
@@ -69,13 +70,14 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
   Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
   Nan::SetPrototypeMethod(tpl, "getStats", getStats);
-  Nan::SetPrototypeMethod(tpl, "getPeriodicStats", getStats);
+  Nan::SetPrototypeMethod(tpl, "getPeriodicStats", getPeriodicStats);
   Nan::SetPrototypeMethod(tpl, "generatePLIPacket", generatePLIPacket);
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
   Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
   Nan::SetPrototypeMethod(tpl, "setQualityLayer", setQualityLayer);
+  Nan::SetPrototypeMethod(tpl, "setVideoConstraints", setVideoConstraints);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
   Nan::SetPrototypeMethod(tpl, "enableHandler", enableHandler);
   Nan::SetPrototypeMethod(tpl, "disableHandler", disableHandler);
@@ -93,15 +95,17 @@ NAN_METHOD(WebRtcConnection::New) {
   if (info.IsConstructCall()) {
     // Invoked as a constructor with 'new WebRTC()'
     ThreadPool* thread_pool = Nan::ObjectWrap::Unwrap<ThreadPool>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-    v8::String::Utf8Value paramId(Nan::To<v8::String>(info[1]).ToLocalChecked());
+    IOThreadPool* io_thread_pool = Nan::ObjectWrap::Unwrap<IOThreadPool>(Nan::To<v8::Object>(info[1]).ToLocalChecked());
+    v8::String::Utf8Value paramId(Nan::To<v8::String>(info[2]).ToLocalChecked());
     std::string wrtcId = std::string(*paramId);
-    v8::String::Utf8Value param(Nan::To<v8::String>(info[2]).ToLocalChecked());
+    v8::String::Utf8Value param(Nan::To<v8::String>(info[3]).ToLocalChecked());
     std::string stunServer = std::string(*param);
-    int stunPort = info[3]->IntegerValue();
-    int minPort = info[4]->IntegerValue();
-    int maxPort = info[5]->IntegerValue();
-    bool trickle = (info[6]->ToBoolean())->BooleanValue();
-    v8::String::Utf8Value json_param(Nan::To<v8::String>(info[7]).ToLocalChecked());
+    int stunPort = info[4]->IntegerValue();
+    int minPort = info[5]->IntegerValue();
+    int maxPort = info[6]->IntegerValue();
+    bool trickle = (info[7]->ToBoolean())->BooleanValue();
+    v8::String::Utf8Value json_param(Nan::To<v8::String>(info[8]).ToLocalChecked());
+    bool use_nicer = (info[9]->ToBoolean())->BooleanValue();
     std::string media_config_string = std::string(*json_param);
     json media_config = json::parse(media_config_string);
     std::vector<erizo::RtpMap> rtp_mappings;
@@ -169,35 +173,38 @@ NAN_METHOD(WebRtcConnection::New) {
     }
 
     erizo::IceConfig iceConfig;
-    if (info.Length() == 13) {
-      v8::String::Utf8Value param2(Nan::To<v8::String>(info[8]).ToLocalChecked());
+    if (info.Length() == 15) {
+      v8::String::Utf8Value param2(Nan::To<v8::String>(info[10]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
-      int turnPort = info[9]->IntegerValue();
-      v8::String::Utf8Value param3(Nan::To<v8::String>(info[10]).ToLocalChecked());
+      int turnPort = info[11]->IntegerValue();
+      v8::String::Utf8Value param3(Nan::To<v8::String>(info[12]).ToLocalChecked());
       std::string turnUsername = std::string(*param3);
-      v8::String::Utf8Value param4(Nan::To<v8::String>(info[11]).ToLocalChecked());
+      v8::String::Utf8Value param4(Nan::To<v8::String>(info[13]).ToLocalChecked());
       std::string turnPass = std::string(*param4);
-      v8::String::Utf8Value param5(Nan::To<v8::String>(info[12]).ToLocalChecked());
+      v8::String::Utf8Value param5(Nan::To<v8::String>(info[14]).ToLocalChecked());
       std::string network_interface = std::string(*param5);
 
-      iceConfig.turnServer = turnServer;
-      iceConfig.turnPort = turnPort;
-      iceConfig.turnUsername = turnUsername;
-      iceConfig.turnPass = turnPass;
+      iceConfig.turn_server = turnServer;
+      iceConfig.turn_port = turnPort;
+      iceConfig.turn_username = turnUsername;
+      iceConfig.turn_pass = turnPass;
       iceConfig.network_interface = network_interface;
     }
 
 
-    iceConfig.stunServer = stunServer;
-    iceConfig.stunPort = stunPort;
-    iceConfig.minPort = minPort;
-    iceConfig.maxPort = maxPort;
-    iceConfig.shouldTrickle = trickle;
+    iceConfig.stun_server = stunServer;
+    iceConfig.stun_port = stunPort;
+    iceConfig.min_port = minPort;
+    iceConfig.max_port = maxPort;
+    iceConfig.should_trickle = trickle;
+    iceConfig.use_nicer = use_nicer;
 
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
+    std::shared_ptr<erizo::IOWorker> io_worker = io_thread_pool->me->getLessUsedIOWorker();
 
     WebRtcConnection* obj = new WebRtcConnection();
-    obj->me = std::make_shared<erizo::WebRtcConnection>(worker, wrtcId, iceConfig, rtp_mappings, ext_mappings, obj);
+    obj->me = std::make_shared<erizo::WebRtcConnection>(worker, io_worker, wrtcId, iceConfig,
+                                                        rtp_mappings, ext_mappings, obj);
     obj->msink = obj->me.get();
     uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback);
     uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback);
@@ -263,6 +270,15 @@ NAN_METHOD(WebRtcConnection::muteStream) {
   bool mute_video = info[0]->BooleanValue();
   bool mute_audio = info[1]->BooleanValue();
   me->muteStream(mute_video, mute_audio);
+}
+
+NAN_METHOD(WebRtcConnection::setVideoConstraints) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+  int max_video_width = info[0]->IntegerValue();
+  int max_video_height = info[1]->IntegerValue();
+  int max_video_frame_rate = info[2]->IntegerValue();
+  me->setVideoConstraints(max_video_width, max_video_height, max_video_frame_rate);
 }
 
 NAN_METHOD(WebRtcConnection::setMetadata) {
@@ -336,6 +352,7 @@ NAN_METHOD(WebRtcConnection::setAudioReceiver) {
   erizo::MediaSink *mr = param->msink;
 
   me->setAudioSink(mr);
+  me->setEventSink(mr);
 }
 
 NAN_METHOD(WebRtcConnection::setVideoReceiver) {
@@ -346,6 +363,7 @@ NAN_METHOD(WebRtcConnection::setVideoReceiver) {
   erizo::MediaSink *mr = param->msink;
 
   me->setVideoSink(mr);
+  me->setEventSink(mr);
 }
 
 NAN_METHOD(WebRtcConnection::getCurrentState) {

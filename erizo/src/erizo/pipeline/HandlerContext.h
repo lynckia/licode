@@ -22,12 +22,12 @@ class HandlerContext {
  public:
   virtual ~HandlerContext() = default;
 
-  virtual void fireRead(std::shared_ptr<dataPacket> packet) = 0;
+  virtual void fireRead(std::shared_ptr<DataPacket> packet) = 0;
   virtual void fireReadEOF() = 0;
   virtual void fireTransportActive() = 0;
   virtual void fireTransportInactive() = 0;
 
-  virtual void fireWrite(std::shared_ptr<dataPacket> packet) = 0;
+  virtual void fireWrite(std::shared_ptr<DataPacket> packet) = 0;
   virtual void fireClose() = 0;
 
   virtual PipelineBase* getPipeline() = 0;
@@ -38,7 +38,7 @@ class InboundHandlerContext {
  public:
   virtual ~InboundHandlerContext() = default;
 
-  virtual void fireRead(std::shared_ptr<dataPacket> packet) = 0;
+  virtual void fireRead(std::shared_ptr<DataPacket> packet) = 0;
   virtual void fireReadEOF() = 0;
   virtual void fireTransportActive() = 0;
   virtual void fireTransportInactive() = 0;
@@ -51,7 +51,7 @@ class OutboundHandlerContext {
  public:
   virtual ~OutboundHandlerContext() = default;
 
-  virtual void fireWrite(std::shared_ptr<dataPacket> packet) = 0;
+  virtual void fireWrite(std::shared_ptr<DataPacket> packet) = 0;
   virtual void fireClose() = 0;
 
   virtual PipelineBase* getPipeline() = 0;

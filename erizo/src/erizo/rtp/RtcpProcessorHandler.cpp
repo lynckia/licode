@@ -15,7 +15,7 @@ void RtcpProcessorHandler::enable() {
 void RtcpProcessorHandler::disable() {
 }
 
-void RtcpProcessorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtcpProcessorHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
   if (chead->isRtcp()) {
     if (chead->packettype == RTCP_Sender_PT) {  // Sender Report
@@ -27,19 +27,19 @@ void RtcpProcessorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet
     }
   }
   processor_->checkRtcpFb();
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
-void RtcpProcessorHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtcpProcessorHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (chead->isFeedback()) {
     int length = processor_->analyzeFeedback(packet->data, packet->length);
     if (length) {
-      ctx->fireWrite(packet);
+      ctx->fireWrite(std::move(packet));
     }
     return;
   }
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 void RtcpProcessorHandler::notifyUpdate() {

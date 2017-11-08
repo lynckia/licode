@@ -51,7 +51,7 @@ class Handler : public HandlerBase<HandlerContext> {
   virtual void disable() = 0;
   virtual std::string getName() = 0;
 
-  virtual void read(Context* ctx, std::shared_ptr<dataPacket> packet) = 0;
+  virtual void read(Context* ctx, std::shared_ptr<DataPacket> packet) = 0;
   virtual void readEOF(Context* ctx) {
     ctx->fireReadEOF();
   }
@@ -62,12 +62,14 @@ class Handler : public HandlerBase<HandlerContext> {
     ctx->fireTransportInactive();
   }
 
-  virtual void write(Context* ctx, std::shared_ptr<dataPacket> packet) = 0;
+  virtual void write(Context* ctx, std::shared_ptr<DataPacket> packet) = 0;
   virtual void close(Context* ctx) {
     return ctx->fireClose();
   }
 
   virtual void notifyUpdate() = 0;
+  virtual void notifyEvent(MediaEventPtr event) {
+  }
 };
 
 class InboundHandler : public HandlerBase<InboundHandlerContext> {
@@ -82,7 +84,7 @@ class InboundHandler : public HandlerBase<InboundHandlerContext> {
 
   virtual std::string getName() = 0;
 
-  virtual void read(Context* ctx, std::shared_ptr<dataPacket> packet) = 0;
+  virtual void read(Context* ctx, std::shared_ptr<DataPacket> packet) = 0;
   virtual void readEOF(Context* ctx) {
     ctx->fireReadEOF();
   }
@@ -94,6 +96,7 @@ class InboundHandler : public HandlerBase<InboundHandlerContext> {
   }
 
   virtual void notifyUpdate() = 0;
+  virtual void notifyEvent(MediaEventPtr event) {}
 };
 
 class OutboundHandler : public HandlerBase<OutboundHandlerContext> {
@@ -108,12 +111,13 @@ class OutboundHandler : public HandlerBase<OutboundHandlerContext> {
 
   virtual std::string getName() = 0;
 
-  virtual void write(Context* ctx, std::shared_ptr<dataPacket> packet) = 0;
+  virtual void write(Context* ctx, std::shared_ptr<DataPacket> packet) = 0;
   virtual void close(Context* ctx) {
     return ctx->fireClose();
   }
 
   virtual void notifyUpdate() = 0;
+  virtual void notifyEvent(MediaEventPtr event) {}
 };
 
 class HandlerAdapter : public Handler {
@@ -130,15 +134,18 @@ class HandlerAdapter : public Handler {
     return "adapter";
   }
 
-  void read(Context* ctx, std::shared_ptr<dataPacket> packet) override {
-    ctx->fireRead(packet);
+  void read(Context* ctx, std::shared_ptr<DataPacket> packet) override {
+    ctx->fireRead(std::move(packet));
   }
 
-  void write(Context* ctx, std::shared_ptr<dataPacket> packet) override {
-    return ctx->fireWrite(packet);
+  void write(Context* ctx, std::shared_ptr<DataPacket> packet) override {
+    return ctx->fireWrite(std::move(packet));
   }
 
   void notifyUpdate() override {
+  }
+
+  void notifyEvent(MediaEventPtr event) override {
   }
 };
 }  // namespace erizo

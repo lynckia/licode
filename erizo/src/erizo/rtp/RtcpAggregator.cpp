@@ -23,8 +23,8 @@ namespace erizo {
 
 DEFINE_LOGGER(RtcpAggregator, "rtp.RtcpAggregator");
 
-RtcpAggregator::RtcpAggregator(MediaSink* msink, MediaSource* msource, uint32_t maxVideoBw)
-    : RtcpProcessor(msink, msource, maxVideoBw), defaultVideoBw_(maxVideoBw / 2) {
+RtcpAggregator::RtcpAggregator(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw)
+    : RtcpProcessor(msink, msource, max_video_bw), defaultVideoBw_(max_video_bw / 2) {
   ELOG_DEBUG("Starting RtcpAggregator");
 }
 
@@ -43,7 +43,7 @@ void RtcpAggregator::addSourceSsrc(uint32_t ssrc) {
 }
 
 void RtcpAggregator::setPublisherBW(uint32_t bandwidth) {
-  defaultVideoBw_ = (bandwidth*1.2) > maxVideoBw_? maxVideoBw_:(bandwidth*1.2);
+  defaultVideoBw_ = (bandwidth*1.2) > max_video_bw_? max_video_bw_:(bandwidth*1.2);
 }
 
 void RtcpAggregator::analyzeSr(RtcpHeader* chead) {
@@ -87,7 +87,8 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
     uint16_t currentNackPos = 0;
     uint16_t blp = 0;
     uint32_t lostPacketSeq = 0;
-    uint32_t calculatedlsr, delay, calculateLastSr, extendedSeqNo;
+    uint32_t delay = 0;
+    uint32_t calculatedlsr, calculateLastSr, extendedSeqNo;
 
     do {
       movingBuf += rtcpLength;
@@ -211,7 +212,7 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
                 char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
                 if (!strncmp(uniqueId, "REMB", 4)) {
                   uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
-                  ELOG_DEBUG("Received REMB %llu", bitrate);
+                  ELOG_DEBUG("Received REMB %lu", bitrate);
                   if (bitrate < defaultVideoBw_) {
                     theData->reportedBandwidth = bitrate;
                     theData->shouldSendREMB = true;
@@ -238,7 +239,6 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
   }
   return 0;
 }
-
 
 void RtcpAggregator::checkRtcpFb() {
   boost::mutex::scoped_lock mlock(mapLock_);
@@ -327,7 +327,7 @@ void RtcpAggregator::checkRtcpFb() {
         }
 
         if (rtcpData->shouldSendREMB) {
-          ELOG_DEBUG("Sending REMB, since last %u ms, sending with BW: %llu",
+          ELOG_DEBUG("Sending REMB, since last %u ms, sending with BW: %lu",
                       sincelastREMB, rtcpData->reportedBandwidth);
           int theLen = this->addREMB(reinterpret_cast<char*>(packet_), length, rtcpData->reportedBandwidth);
           rtcpData->shouldSendREMB = false;
@@ -336,10 +336,10 @@ void RtcpAggregator::checkRtcpFb() {
         }
       }
       if  (rtcpSource_->isVideoSourceSSRC(sourceSsrc)) {
-        rtcpSink_->deliverVideoData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(packet_),
+        rtcpSink_->deliverVideoData(std::make_shared<DataPacket>(0, reinterpret_cast<char*>(packet_),
               length, VIDEO_PACKET));
       } else {
-        rtcpSink_->deliverAudioData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(packet_),
+        rtcpSink_->deliverAudioData(std::make_shared<DataPacket>(0, reinterpret_cast<char*>(packet_),
               length, AUDIO_PACKET));
       }
       rtcpData->last_rr_sent = now;

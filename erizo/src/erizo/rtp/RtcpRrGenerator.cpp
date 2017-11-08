@@ -16,7 +16,7 @@ RtcpRrGenerator::RtcpRrGenerator(const RtcpRrGenerator&& generator) :  // NOLINT
     ssrc_{generator.ssrc_},
     type_{generator.type_} {}
 
-bool RtcpRrGenerator::isRetransmitOfOldPacket(std::shared_ptr<dataPacket> packet) {
+bool RtcpRrGenerator::isRetransmitOfOldPacket(std::shared_ptr<DataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
   if (!RtpUtils::sequenceNumberLessThan(head->getSeqNumber(), rr_info_.max_seq) || rr_info_.jitter.jitter == 0) {
     return false;
@@ -44,7 +44,7 @@ int RtcpRrGenerator::getVideoClockRate(uint8_t payload_type) {
   return 90;
 }
 
-bool RtcpRrGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
+bool RtcpRrGenerator::handleRtpPacket(std::shared_ptr<DataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
   if (ssrc_ != head->getSSRC()) {
     ELOG_DEBUG("message: handleRtpPacket ssrc not found, ssrc: %u", head->getSSRC());
@@ -93,12 +93,17 @@ bool RtcpRrGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
   return false;
 }
 
-std::shared_ptr<dataPacket> RtcpRrGenerator::generateReceiverReport() {
+std::shared_ptr<DataPacket> RtcpRrGenerator::generateReceiverReport() {
   uint64_t now = ClockUtils::timePointToMs(clock_->now());
   uint64_t delay_since_last_sr = rr_info_.last_sr_ts == 0 ?
     0 : (now - rr_info_.last_sr_ts) * 65536 / 1000;
   uint32_t expected = rr_info_.extended_seq - rr_info_.base_seq + 1;
-  rr_info_.lost = expected - rr_info_.packets_received;
+  if (expected < rr_info_.packets_received) {
+    rr_info_.lost = 0;
+  } else {
+    rr_info_.lost = expected - rr_info_.packets_received;
+  }
+
 
   uint8_t fraction = 0;
   uint32_t expected_interval = expected - rr_info_.expected_prior;
@@ -106,9 +111,9 @@ std::shared_ptr<dataPacket> RtcpRrGenerator::generateReceiverReport() {
   uint32_t received_interval = rr_info_.packets_received - rr_info_.received_prior;
 
   rr_info_.received_prior = rr_info_.packets_received;
-  uint32_t lost_interval = expected_interval - received_interval;
+  int64_t lost_interval = static_cast<int64_t>(expected_interval) - received_interval;
   if (expected_interval != 0 && lost_interval > 0) {
-    fraction = (lost_interval << 8) / expected_interval;
+    fraction = (static_cast<uint32_t>(lost_interval) << 8) / expected_interval;
   }
 
   rr_info_.frac_lost = fraction;
@@ -139,11 +144,11 @@ std::shared_ptr<dataPacket> RtcpRrGenerator::generateReceiverReport() {
   uint16_t selected_interval = selectInterval();
   rr_info_.next_packet_ms = now + getRandomValue(0.5 * selected_interval, 1.5 * selected_interval);
   rr_info_.last_packet_ms = now;
-  return (std::make_shared<dataPacket>(0, reinterpret_cast<char*>(&packet_), length, type_));
+  return (std::make_shared<DataPacket>(0, reinterpret_cast<char*>(&packet_), length, type_));
 }
 
 
-void RtcpRrGenerator::handleSr(std::shared_ptr<dataPacket> packet) {
+void RtcpRrGenerator::handleSr(std::shared_ptr<DataPacket> packet) {
   RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (ssrc_ != chead->getSSRC()) {
     ELOG_DEBUG("message: handleRtpPacket ssrc not found, ssrc: %u", chead->getSSRC());

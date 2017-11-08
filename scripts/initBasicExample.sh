@@ -9,6 +9,8 @@ CURRENT_DIR=`pwd`
 NVM_CHECK="$PATHNAME"/checkNvm.sh
 EXTRAS=$ROOT/extras
 
+cp $ROOT/nuve/nuveClient/dist/nuve.js $EXTRAS/basic_example/
+
 . $NVM_CHECK
 
 nvm use

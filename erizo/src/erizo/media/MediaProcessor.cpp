@@ -70,9 +70,9 @@ int InputProcessor::init(const MediaInfo& info, RawDataReceiver* receiver) {
   return 0;
 }
 
-int InputProcessor::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
+int InputProcessor::deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) {
   if (audioDecoder && audioUnpackager) {
-    std::shared_ptr<dataPacket> copied_packet = std::make_shared<dataPacket>(*audio_packet);
+    std::shared_ptr<DataPacket> copied_packet = std::make_shared<DataPacket>(*audio_packet);
     ELOG_DEBUG("Decoding audio");
     int unp = unpackageAudio((unsigned char*) copied_packet->data, copied_packet->length,
         unpackagedAudioBuffer_);
@@ -87,9 +87,9 @@ int InputProcessor::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) 
   }
   return 0;
 }
-int InputProcessor::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
+int InputProcessor::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) {
   if (videoUnpackager && videoDecoder) {
-    std::shared_ptr<dataPacket> copied_packet = std::make_shared<dataPacket>(*video_packet);
+    std::shared_ptr<DataPacket> copied_packet = std::make_shared<DataPacket>(*video_packet);
     int ret = unpackageVideo(reinterpret_cast<unsigned char*>(copied_packet->data), copied_packet->length,
         unpackagedBufferPtr_, &gotUnpackagedFrame_);
     if (ret < 0)
@@ -123,6 +123,10 @@ int InputProcessor::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) 
       return c;
     }
   }
+  return 0;
+}
+
+int InputProcessor::deliverEvent_(MediaEventPtr event) {
   return 0;
 }
 
@@ -169,7 +173,7 @@ int InputProcessor::decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned c
   }
 
   AVPacket avpkt;
-  int outSize;
+  int outSize = 0;
   int decSize = 0;
   int len = -1;
   uint8_t *decBuff = reinterpret_cast<uint8_t*>(malloc(16000));

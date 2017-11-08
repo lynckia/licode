@@ -15,7 +15,7 @@ static const int kNackCommonHeaderLengthRtcp = kNackCommonHeaderLengthBytes/4 - 
 RtcpNackGenerator::RtcpNackGenerator(uint32_t ssrc, std::shared_ptr<Clock> the_clock) :
   initialized_{false}, highest_seq_num_{0}, ssrc_{ssrc}, clock_{the_clock} {}
 
-bool RtcpNackGenerator::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
+bool RtcpNackGenerator::handleRtpPacket(std::shared_ptr<DataPacket> packet) {
   if (packet->type != VIDEO_PACKET) {
     return false;
   }
@@ -64,7 +64,7 @@ bool RtcpNackGenerator::addNacks(uint16_t seq_num) {
   return !nack_info_list_.empty();
 }
 
-bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet) {
+bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<DataPacket> rr_packet) {
   // Goes through the list adds blocks of 16 in compound packets (adds more PID/BLP blocks) max is 10 blocks
   // Only does it if it's time (> 100 ms since last NACK)
   std::vector <NackBlock> nack_vector;
@@ -89,7 +89,7 @@ bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet)
     uint16_t blp = 0;
     base_nack_info.sent_time = now_ms;
     base_nack_info.retransmits++;
-    while (index < nack_info_list_.size()) {
+    while (index + 1u < nack_info_list_.size()) {
       index++;
       NackInfo& blp_nack_info = nack_info_list_[index];
       uint16_t distance = blp_nack_info.seq_num - pid -1;
@@ -130,7 +130,6 @@ bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet)
   nack_packet.setSourceSSRC(ssrc_);
   nack_packet.setLength(kNackCommonHeaderLengthRtcp + nack_vector.size());
   memcpy(buffer, reinterpret_cast<char *>(&nack_packet), kNackCommonHeaderLengthBytes);
-  RtcpHeader* chead_test = reinterpret_cast<RtcpHeader*> (buffer);
   buffer += kNackCommonHeaderLengthBytes;
 
   memcpy(buffer, &nack_vector[0], nack_vector.size()*4);

@@ -1,0 +1,151 @@
+version: 2.0
+
+jobs:
+  build:
+    docker:
+      - image: buildpack-deps:trusty-curl
+
+    working_directory: /tmp/licode
+
+    steps:
+      - run:
+          name: Install Git client
+          command: |
+            set -x
+            sudo apt-get update
+            sudo apt-get install -y git
+
+      - checkout
+
+      - setup_remote_docker
+
+      - run:
+          name: Install Docker client
+          command: |
+            set -x
+            VER="17.03.0-ce"
+            curl -L -o /tmp/docker-$VER.tgz https://get.docker.com/builds/Linux/x86_64/docker-$VER.tgz
+            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
+            mv /tmp/docker/* /usr/bin
+
+      - run:
+          name: Pull latest docker image
+          command: |
+            docker pull lynckia/licode:develop
+
+      - run:
+          name: Build docker image
+          command: |
+            echo Building lynckia/licode:develop
+            SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -7)"
+            docker build --label COMMIT=${SHORT_GIT_HASH} --cache-from lynckia/licode:develop -t lynckia/licode:develop .
+
+      - run:
+          name: Lint Erizo
+          command: |
+            docker run --rm -ti -w /opt/licode/erizo/build/release --entrypoint /bin/bash lynckia/licode:develop -c "make lint"
+
+      - run:
+          name: Unit Tests Erizo
+          command: |
+            docker run --rm -ti -w /opt/licode/erizo/build/debug --entrypoint /bin/bash lynckia/licode:develop -c "ctest --verbose"
+            docker run --rm -ti -w /opt/licode/erizo/build/release --entrypoint /bin/bash lynckia/licode:develop -c "ctest --verbose"
+
+      - run:
+          name: Lint Javascript
+          command: |
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:develop -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lint"
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:develop -c ". ./build/libdeps/nvm/nvm.sh && npm install && npm run lintClient"
+
+      - run:
+          name: Unit Tests Javascript
+          command: |
+            docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:develop -c ". ./build/libdeps/nvm/nvm.sh && npm install && cp scripts/licode_default.js licode_config.js && npm run test"
+
+      - deploy:
+          name: Push Licode Docker image
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -7)"
+              docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+              echo Tagging to lynckia/licode:${SHORT_GIT_HASH}
+              docker tag lynckia/licode:develop lynckia/licode:${SHORT_GIT_HASH}
+              docker push lynckia/licode:develop
+              docker push lynckia/licode:${SHORT_GIT_HASH}
+            fi
+
+  prerelease:
+    docker:
+      - image: buildpack-deps:trusty-curl
+
+    working_directory: /tmp/licode
+
+    steps:
+      - run:
+          name: Install Git client
+          command: |
+            set -x
+            sudo apt-get update
+            sudo apt-get install -y git
+
+      - checkout
+
+      - setup_remote_docker
+
+      - run:
+          name: Install Docker client
+          command: |
+            set -x
+            VER="17.03.0-ce"
+            curl -L -o /tmp/docker-$VER.tgz https://get.docker.com/builds/Linux/x86_64/docker-$VER.tgz
+            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
+            mv /tmp/docker/* /usr/bin
+
+      - run:
+          name: Install deps
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y git jq
+
+      - run:
+          name: Create Prerelease
+          command: |
+            ./utils/release.sh -p -v ${RELEASE_VERSION}
+
+  release:
+    docker:
+      - image: buildpack-deps:trusty-curl
+
+    working_directory: /tmp/licode
+
+    steps:
+      - run:
+          name: Install Git client
+          command: |
+            set -x
+            sudo apt-get update
+            sudo apt-get install -y git
+
+      - checkout
+
+      - setup_remote_docker
+
+      - run:
+          name: Install Docker client
+          command: |
+            set -x
+            VER="17.03.0-ce"
+            curl -L -o /tmp/docker-$VER.tgz https://get.docker.com/builds/Linux/x86_64/docker-$VER.tgz
+            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
+            mv /tmp/docker/* /usr/bin
+
+      - run:
+          name: Install deps
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y git jq
+
+      - run:
+          name: Create release
+          command: |
+            ./utils/release.sh -r -v ${RELEASE_VERSION}

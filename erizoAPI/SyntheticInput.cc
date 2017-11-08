@@ -109,6 +109,7 @@ NAN_METHOD(SyntheticInput::setAudioReceiver) {
   erizo::MediaSink *mr = param->msink;
 
   me->setAudioSink(mr);
+  me->setEventSink(mr);
 }
 
 NAN_METHOD(SyntheticInput::setVideoReceiver) {
@@ -119,6 +120,7 @@ NAN_METHOD(SyntheticInput::setVideoReceiver) {
   erizo::MediaSink *mr = param->msink;
 
   me->setVideoSink(mr);
+  me->setEventSink(mr);
 }
 
 NAN_METHOD(SyntheticInput::setFeedbackSource) {

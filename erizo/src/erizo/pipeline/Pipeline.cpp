@@ -65,11 +65,11 @@ Pipeline::~Pipeline() {
   detachHandlers();
 }
 
-void Pipeline::read(std::shared_ptr<dataPacket> packet) {
+void Pipeline::read(std::shared_ptr<DataPacket> packet) {
   if (!front_) {
     return;
   }
-  front_->read(packet);
+  front_->read(std::move(packet));
 }
 
 void Pipeline::readEOF() {
@@ -79,11 +79,11 @@ void Pipeline::readEOF() {
   front_->readEOF();
 }
 
-void Pipeline::write(std::shared_ptr<dataPacket> packet) {
+void Pipeline::write(std::shared_ptr<DataPacket> packet) {
   if (!back_) {
     return;
   }
-  back_->write(packet);
+  back_->write(std::move(packet));
 }
 
 void Pipeline::close() {
@@ -137,6 +137,15 @@ void Pipeline::finalize() {
 void Pipeline::notifyUpdate() {
   for (auto it = ctxs_.rbegin(); it != ctxs_.rend(); it++) {
     (*it)->notifyUpdate();
+  }
+}
+
+void Pipeline::notifyEvent(MediaEventPtr event) {
+  for (auto it = ctxs_.rbegin(); it != ctxs_.rend(); it++) {
+    (*it)->notifyEvent(event);
+  }
+  for (auto it = service_ctxs_.rbegin(); it != service_ctxs_.rend(); it++) {
+    (*it)->notifyEvent(event);
   }
 }
 

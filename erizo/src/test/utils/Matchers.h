@@ -2,6 +2,7 @@
 #define ERIZO_SRC_TEST_UTILS_MATCHERS_H_
 
 #include <rtp/RtpHeaders.h>
+#include <rtp/RtpUtils.h>
 #include <MediaDefinitions.h>
 
 namespace erizo {
@@ -49,6 +50,17 @@ MATCHER_P(SenderReportHasOctetsSentValue, octets_sent, "") {
 MATCHER_P(RembHasBitrateValue, bitrate, "") {
   return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getREMBBitRate() == bitrate;
 }
+
+MATCHER(IsPLI, "") {
+  auto packet = std::get<0>(arg);
+  return RtpUtils::isPLI(packet);
+}
+
+MATCHER(IsFIR, "") {
+  auto packet = std::get<0>(arg);
+  return RtpUtils::isFIR(packet);
+}
+
 MATCHER_P(PacketBelongsToSpatialLayer, spatial_layer_id, "") {
   return std::get<0>(arg)->belongsToSpatialLayer(spatial_layer_id);
 }

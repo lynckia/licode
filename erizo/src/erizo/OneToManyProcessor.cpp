@@ -17,11 +17,9 @@ namespace erizo {
   }
 
   OneToManyProcessor::~OneToManyProcessor() {
-    ELOG_DEBUG("OneToManyProcessor destructor");
-    this->closeAll();
   }
 
-  int OneToManyProcessor::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
+  int OneToManyProcessor::deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) {
     if (audio_packet->length <= 0)
       return 0;
 
@@ -31,13 +29,15 @@ namespace erizo {
 
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
-      (*it).second->deliverAudioData(audio_packet);
+      if ((*it).second != nullptr) {
+        (*it).second->deliverAudioData(audio_packet);
+      }
     }
 
     return 0;
   }
 
-  int OneToManyProcessor::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
+  int OneToManyProcessor::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) {
     if (video_packet->length <= 0)
       return 0;
     RtcpHeader* head = reinterpret_cast<RtcpHeader*>(video_packet->data);
@@ -67,9 +67,22 @@ namespace erizo {
     feedbackSink_ = publisher->getFeedbackSink();
   }
 
-  int OneToManyProcessor::deliverFeedback_(std::shared_ptr<dataPacket> fb_packet) {
+  int OneToManyProcessor::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
     if (feedbackSink_ != nullptr) {
       feedbackSink_->deliverFeedback(fb_packet);
+    }
+    return 0;
+  }
+
+  int OneToManyProcessor::deliverEvent_(MediaEventPtr event) {
+    boost::unique_lock<boost::mutex> lock(monitor_mutex_);
+    if (subscribers.empty())
+      return 0;
+    std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
+    for (it = subscribers.begin(); it != subscribers.end(); ++it) {
+      if ((*it).second != nullptr) {
+        (*it).second->deliverEvent(event);
+      }
     }
     return 0;
   }
@@ -101,16 +114,34 @@ namespace erizo {
     ELOG_DEBUG("Remove subscriber %s", peerId.c_str());
     boost::mutex::scoped_lock lock(monitor_mutex_);
     if (this->subscribers.find(peerId) != subscribers.end()) {
-      this->subscribers.find(peerId)->second->close();
+      deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>(subscribers.find(peerId)->second));
       this->subscribers.erase(peerId);
     }
+  }
+
+  std::future<void> OneToManyProcessor::deleteAsync(std::shared_ptr<WebRtcConnection> connection) {
+    auto promise = std::make_shared<std::promise<void>>();
+    if (connection) {
+      connection->getWorker()->task([promise, connection] {
+        connection->close();
+        promise->set_value();
+      });
+    } else {
+      promise->set_value();
+    }
+    return promise->get_future();
+  }
+
+  void OneToManyProcessor::close() {
+    closeAll();
   }
 
   void OneToManyProcessor::closeAll() {
     ELOG_DEBUG("OneToManyProcessor closeAll");
     feedbackSink_ = nullptr;
     if (publisher.get()) {
-      publisher->close();
+      std::future<void> future = deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>(publisher));
+      future.wait();
     }
     publisher.reset();
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
@@ -118,7 +149,8 @@ namespace erizo {
     while (it != subscribers.end()) {
       if ((*it).second != nullptr) {
         FeedbackSource* fbsource = (*it).second->getFeedbackSource();
-        (*it).second->close();
+        std::future<void> future = deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>((*it).second));
+        future.wait();
         if (fbsource != nullptr) {
           fbsource->setFeedbackSink(nullptr);
         }

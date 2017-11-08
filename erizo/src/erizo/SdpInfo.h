@@ -89,6 +89,7 @@ class CandidateInfo {
     std::string username;
     std::string password;
     MediaType mediaType;
+    std::string sdp;
 };
 
 /**
@@ -292,7 +293,7 @@ class SdpInfo {
 
  private:
   bool processSdp(const std::string& sdp, const std::string& media);
-  bool processCandidate(const std::vector<std::string>& pieces, MediaType mediaType);
+  bool processCandidate(const std::vector<std::string>& pieces, MediaType mediaType, std::string sdp);
   std::string stringifyCandidate(const CandidateInfo & candidate);
   void gen_random(char* s, int len);
   void maybeAddSsrcToList(uint32_t ssrc);

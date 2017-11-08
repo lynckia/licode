@@ -27,7 +27,6 @@ addons:
       - libboost-thread-dev
       - libboost-system-dev
       - liblog4cxx10-dev
-      - openjdk-6-jre
       - curl
       - libboost-test-dev
       - yasm

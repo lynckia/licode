@@ -53,7 +53,7 @@ OneToManyTranscoder::~OneToManyTranscoder() {
   delete op_; op_ = NULL;
 }
 
-int OneToManyTranscoder::deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) {
+int OneToManyTranscoder::deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) {
   if (subscribers.empty() || audio_packet->length <= 0)
   return 0;
 
@@ -65,7 +65,7 @@ int OneToManyTranscoder::deliverAudioData_(std::shared_ptr<dataPacket> audio_pac
   return 0;
 }
 
-int OneToManyTranscoder::deliverVideoData_(std::shared_ptr<dataPacket> video_packet) {
+int OneToManyTranscoder::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) {
   RtpHeader* theHead = reinterpret_cast<RtpHeader*>(video_packet->data);
   // ELOG_DEBUG("extension %d pt %u", theHead->getExtension(),
   // theHead->getPayloadType());
@@ -81,6 +81,10 @@ int OneToManyTranscoder::deliverVideoData_(std::shared_ptr<dataPacket> video_pac
   return 0;
 }
 
+int OneToManyTranscoder::deliverEvent_(MediaEventPtr event) {
+  return 0;
+}
+
 void OneToManyTranscoder::receiveRawData(const RawDataPacket& pkt) {
   // ELOG_DEBUG("Received %d", pkt.length);
   op_->receiveRawData(pkt);
@@ -90,7 +94,7 @@ void OneToManyTranscoder::receiveRtpData(unsigned char*rtpdata, int len) {
   if (subscribers.empty() || len <= 0)
   return;
   std::map<std::string, MediaSink*>::iterator it;
-  std::shared_ptr<dataPacket> data_packet = std::make_shared<dataPacket>(0,
+  std::shared_ptr<DataPacket> data_packet = std::make_shared<DataPacket>(0,
       reinterpret_cast<char*>(rtpdata), len, VIDEO_PACKET);
   for (it = subscribers.begin(); it != subscribers.end(); it++) {
     (*it).second->deliverVideoData(data_packet);

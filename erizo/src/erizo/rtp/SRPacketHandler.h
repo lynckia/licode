@@ -27,8 +27,8 @@ class SRPacketHandler: public Handler {
      return "sr_handler";
   }
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
-  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
+  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
  private:
@@ -43,8 +43,8 @@ class SRPacketHandler: public Handler {
   WebRtcConnection* connection_;
   std::map<uint32_t, std::shared_ptr<SRInfo>> sr_info_map_;
 
-  void handleRtpPacket(std::shared_ptr<dataPacket> packet);
-  void handleSR(std::shared_ptr<dataPacket> packet);
+  void handleRtpPacket(std::shared_ptr<DataPacket> packet);
+  void handleSR(std::shared_ptr<DataPacket> packet);
 };
 }  // namespace erizo
 

@@ -20,7 +20,7 @@ using ::testing::IsNull;
 using ::testing::Args;
 using ::testing::Return;
 using ::testing::AllOf;
-using erizo::dataPacket;
+using erizo::DataPacket;
 using erizo::packetType;
 using erizo::AUDIO_PACKET;
 using erizo::VIDEO_PACKET;
