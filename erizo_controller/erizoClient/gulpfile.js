@@ -23,10 +23,10 @@ const config = {
   },
 };
 
-const tasks = ['clean', 'bundle', 'compile', 'dist'];
+const tasks = ['clean', 'bundle', 'compile', 'dist', 'debug'];
 const targets = ['erizo', 'erizofc'];
 const allTasks = ['lint'];
-
+const debugTasks = ['clean_erizo', 'bundle_erizo', 'debug_erizo'];
 
 const taskFunctions = {};
 taskFunctions.erizo = require('./gulp/erizoTasks.js')(gulp, plugins, config);
@@ -40,28 +40,28 @@ targets.forEach(
         const taskName = `${task}_${target}`;
         allTasks.push(taskName);
         targetTasks.push(taskName);
-        gulp.task(taskName, () => {
-          return taskFunctions[target][task]()
-        });
+        gulp.task(taskName, () => taskFunctions[target][task]());
       });
     gulp.task(target, () => {
       plugins.runSequence(...targetTasks);
-    })
+    });
   });
 
-gulp.task('lint', () => {
-  return gulp.src(config.paths.js)
+gulp.task('lint', () => gulp.src(config.paths.js)
   .pipe(plugins.eslint())
   .pipe(plugins.eslint.format())
-  .pipe(plugins.eslint.failAfterError());
-});
+  .pipe(plugins.eslint.failAfterError()));
 
 gulp.task('watch', () => {
   const watcher = gulp.watch('src/**/*.js');
   watcher.on('change', (event) => {
-    console.log('File ' + event.path + ' was ' + event.type + ', running tasks...');
-    plugins.runSequence('default');
+    console.log(`File ${event.path} was ${event.type}, running tasks...`);
+    plugins.runSequence('debug');
   });
+});
+
+gulp.task('debug', () => {
+  plugins.runSequence(...debugTasks);
 });
 
 gulp.task('default', () => {

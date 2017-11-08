@@ -16,13 +16,15 @@ const erizoFcTasks = (gulp, plugins, config) => {
     .pipe(gulp.dest(erizoFcConfig.debug))
     .on('error', anError => console.log('An error ', anError));
 
-  that.compile = () => {
-    return gulp.src(`${erizoFcConfig.debug}/**/*.js`)
+  that.compile = () => gulp.src(`${erizoFcConfig.debug}/**/*.js`)
     .pipe(gulp.dest(erizoFcConfig.production));
-  }
 
   that.dist = () =>
     gulp.src(`${erizoFcConfig.production}/**/*.js`)
+    .pipe(gulp.dest(config.paths.spine));
+
+  that.debug = () =>
+    gulp.src(`${erizoFcConfig.debug}/**/*.js`)
     .pipe(gulp.dest(config.paths.spine));
 
   that.clean = () =>
