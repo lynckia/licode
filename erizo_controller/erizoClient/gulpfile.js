@@ -23,7 +23,7 @@ const config = {
   },
 };
 
-const tasks = ['clean', 'bundle', 'compile', 'dist', 'debug'];
+const tasks = ['clean', 'bundle', 'debug', 'compile', 'dist'];
 const targets = ['erizo', 'erizofc'];
 const allTasks = ['lint'];
 const debugTasks = ['clean_erizo', 'bundle_erizo', 'debug_erizo'];
