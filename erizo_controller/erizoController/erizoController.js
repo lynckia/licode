@@ -198,10 +198,10 @@ var addToCloudHandler = function (callback) {
           }
           return true;
         }).then((result) => {
-          if (!result) { 
+          if (!result) {
               nuve.killMe(publicIP);
-              log.error('message: This erizoController Killing ErizoController');
               if (EXIT_ON_NUVE_CHECK_FAIL) {
+                  log.error('message: Closing ErizoController - does not exist in Nuve CloudHandler');
                   process.exit(-1);
               }
           }
