@@ -33,6 +33,7 @@ global.config.erizoController.report.session_events =
   global.config.erizoController.report.session_events || false;
 global.config.erizoController.recording_path =
   global.config.erizoController.recording_path || undefined;
+global.config.erizoController.exitOnNuveCheckFail = global.config.erizoController.exitOnNuveCheckFail || false;
 // jshint ignore:end
 global.config.erizoController.roles = global.config.erizoController.roles ||
                   {'presenter': {'publish': true, 'subscribe': true, 'record': true},
@@ -132,6 +133,7 @@ var io = require('socket.io').listen(server, {log:false});
 
 io.set('transports', ['websocket']);
 
+var EXIT_ON_NUVE_CHECK_FAIL = global.config.erizoController.exitOnNuveCheckFail;
 var WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms; // jshint ignore:line
 var LIMIT_N_ROOMS = global.config.erizoController.limit_n_rooms; // jshint ignore:line
 
@@ -196,7 +198,15 @@ var addToCloudHandler = function (callback) {
           }
           return true;
         }).then((result) => {
-          if (!result) return nuve.killMe(publicIP);
+          if (!result) {
+              nuve.killMe(publicIP);
+              if (EXIT_ON_NUVE_CHECK_FAIL) {
+                  log.error('message: Closing ErizoController ' +
+                   '- does not exist in Nuve CloudHandler');
+                  process.exit(-1);
+              }
+          }
+
         });
       }, INTERVAL_TIME_KEEPALIVE);
     };
@@ -225,7 +235,7 @@ var addToCloudHandler = function (callback) {
           callback('callback');
         }).catch(reason => {
           if (reason === 'timeout') {
-            log.warn('message: addECToCloudHandler cloudHandler does not respondr, ' +
+            log.warn('message: addECToCloudHandler cloudHandler does not respond, ' +
                      'attemptsLeft: ' + attempt );
 
             // We'll try it more!
