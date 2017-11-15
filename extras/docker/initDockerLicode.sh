@@ -71,6 +71,7 @@ run_mongo() {
     if [ ! -d "$DB_DIR" ]; then
       mkdir -p "$DB_DIR"/db
     fi
+    mongod --repair --dbpath $DB_DIR
     mongod --nojournal --dbpath $DB_DIR --logpath $BUILD_DIR/mongo.log --fork
     sleep 5
   else
