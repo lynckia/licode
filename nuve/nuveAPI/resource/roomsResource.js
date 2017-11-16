@@ -41,7 +41,9 @@ exports.createRoom = function (req, res) {
         }
     } else {
         room = {name: req.body.name};
-        room.p2p = !!req.body.options.p2p;
+        if (req.body.options.p2p) {
+            room.p2p = true;
+        }
         if (req.body.options.data) {
             room.data = req.body.options.data;
         }
