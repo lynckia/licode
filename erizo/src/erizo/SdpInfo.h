@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <iosfwd>
 
 #include "./logger.h"
 
@@ -32,6 +33,14 @@ enum MediaType {
 enum StreamDirection {
   SENDRECV, SENDONLY, RECVONLY
 };
+/**
+ * Simulcast rid direction
+ */
+enum RidDirection {
+  SEND, RECV
+};
+std::ostream& operator<<(std::ostream&, RidDirection);
+RidDirection reverse(RidDirection);
 /**
  * RTP Profile
  */
@@ -128,6 +137,16 @@ class ExtMap {
     std::string parameters;
     MediaType mediaType;
 };
+
+/**
+ * Simulcast rid structure
+ */
+struct Rid {
+	std::string id;
+	RidDirection direction;
+};
+
+bool operator==(const Rid&, const Rid&);
 
 /**
  * Contains the information of a single SDP.
@@ -228,6 +247,11 @@ class SdpInfo {
   bool isValidExtension(std::string uri);
 
   /**
+  * @return A vector containing the simulcast RID informations
+  */
+  const std::vector<Rid>& rids() const { return rids_; };
+
+  /**
    * The audio and video SSRCs for this particular SDP.
    */
   unsigned int audio_ssrc;
@@ -304,6 +328,7 @@ class SdpInfo {
   std::string iceVideoPassword_, iceAudioPassword_;
   std::map<unsigned int, RtpMap> payload_parsed_map_;
   std::vector<ExtMap> supported_ext_map_;
+  std::vector<Rid> rids_;
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_SDPINFO_H_
