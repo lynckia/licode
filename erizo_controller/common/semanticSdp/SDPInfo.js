@@ -254,7 +254,7 @@ class SDPInfo {
 
       md.connection = media.getConnection();
 
-      md.xGoogleFlag = media.getXGoogleFlag('conference');
+      md.xGoogleFlag = media.getXGoogleFlag();
 
       md.mid = media.getId();
 
