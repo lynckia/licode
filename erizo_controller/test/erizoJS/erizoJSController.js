@@ -206,7 +206,9 @@ describe('Erizo JS Controller', function() {
 
       expect(callback.callCount).to.equal(2);
       expect(callback.args[1]).to.deep.equal(['callback', {type: 'initializing'}]);
-      expect(callback.args[0]).to.deep.equal(['callback', {sdp: '', type: 'offer'}]);
+      expect(callback.args[0].length).to.equal(2);
+      expect(callback.args[0][0]).to.equal('callback');
+      expect(callback.args[0][1].type).to.equal('offer');
     });
 
     it('should succeed sending answer event from SDP', function() {
@@ -215,7 +217,9 @@ describe('Erizo JS Controller', function() {
 
       expect(callback.callCount).to.equal(2);
       expect(callback.args[1]).to.deep.equal(['callback', {type: 'initializing'}]);
-      expect(callback.args[0]).to.deep.equal(['callback', {sdp: '', type: 'answer'}]);
+      expect(callback.args[0].length).to.equal(2);
+      expect(callback.args[0][0]).to.equal('callback');
+      expect(callback.args[0][1].type).to.equal('answer');
     });
 
     it('should succeed sending answer event', function() {
@@ -224,7 +228,9 @@ describe('Erizo JS Controller', function() {
 
       expect(callback.callCount).to.equal(2);
       expect(callback.args[1]).to.deep.equal(['callback', {type: 'initializing'}]);
-      expect(callback.args[0]).to.deep.equal(['callback', {sdp: '', type: 'answer'}]);
+      expect(callback.args[0].length).to.equal(2);
+      expect(callback.args[0][0]).to.equal('callback');
+      expect(callback.args[0][1].type).to.equal('answer');
     });
 
     it('should succeed sending candidate event', function() {
@@ -270,7 +276,7 @@ describe('Erizo JS Controller', function() {
       });
 
       it('should set remote sdp when received', function() {
-        controller.processSignaling(kArbitraryId, undefined, {type: 'offer'});
+        controller.processSignaling(kArbitraryId, undefined, {type: 'offer', sdp: {media: []}});
 
         expect(mocks.WebRtcConnection.setRemoteSdp.callCount).to.equal(1);
       });
@@ -286,7 +292,7 @@ describe('Erizo JS Controller', function() {
       it('should update sdp', function() {
         controller.processSignaling(kArbitraryId, undefined, {
                     type: 'updatestream',
-                    sdp: 'sdp'});
+                    sdp: {media: []}});
 
         expect(mocks.WebRtcConnection.setRemoteSdp.callCount).to.equal(1);
       });
@@ -342,7 +348,8 @@ describe('Erizo JS Controller', function() {
         });
 
         it('should set remote sdp when received', function() {
-          controller.processSignaling(kArbitraryId, kArbitraryId2, {type: 'offer'});
+          controller.processSignaling(kArbitraryId, kArbitraryId2, {type: 'offer',
+            sdp: {media: []}});
 
           expect(mocks.WebRtcConnection.setRemoteSdp.callCount).to.equal(1);
         });
@@ -358,7 +365,7 @@ describe('Erizo JS Controller', function() {
         it('should update sdp', function() {
           controller.processSignaling(kArbitraryId, kArbitraryId2, {
                       type: 'updatestream',
-                      sdp: 'sdp'});
+                      sdp: {media: []}});
 
           expect(mocks.WebRtcConnection.setRemoteSdp.callCount).to.equal(1);
         });
