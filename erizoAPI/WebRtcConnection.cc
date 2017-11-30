@@ -3,6 +3,7 @@
 #endif
 
 #include "WebRtcConnection.h"
+#include "MediaStream.h"
 
 #include <future>  // NOLINT
 
@@ -66,8 +67,6 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "setRemoteSdp", setRemoteSdp);
   Nan::SetPrototypeMethod(tpl, "addRemoteCandidate", addRemoteCandidate);
   Nan::SetPrototypeMethod(tpl, "getLocalSdp", getLocalSdp);
-  Nan::SetPrototypeMethod(tpl, "setAudioReceiver", setAudioReceiver);
-  Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
   Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
   Nan::SetPrototypeMethod(tpl, "getStats", getStats);
   Nan::SetPrototypeMethod(tpl, "getPeriodicStats", getPeriodicStats);
@@ -79,8 +78,8 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "setQualityLayer", setQualityLayer);
   Nan::SetPrototypeMethod(tpl, "setVideoConstraints", setVideoConstraints);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
-  Nan::SetPrototypeMethod(tpl, "enableHandler", enableHandler);
-  Nan::SetPrototypeMethod(tpl, "disableHandler", disableHandler);
+  Nan::SetPrototypeMethod(tpl, "addMediaStream", addMediaStream);
+  Nan::SetPrototypeMethod(tpl, "removeMediaStream", removeMediaStream);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("WebRtcConnection").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -205,7 +204,6 @@ NAN_METHOD(WebRtcConnection::New) {
     WebRtcConnection* obj = new WebRtcConnection();
     obj->me = std::make_shared<erizo::WebRtcConnection>(worker, io_worker, wrtcId, iceConfig,
                                                         rtp_mappings, ext_mappings, obj);
-    obj->msink = obj->me.get();
     uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback);
     uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback);
     obj->Wrap(info.This());
@@ -219,6 +217,7 @@ NAN_METHOD(WebRtcConnection::close) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   obj->me->setWebRtcConnectionStatsListener(NULL);
   obj->me->setWebRtcConnectionEventListener(NULL);
+  obj->me->close();
   obj->me.reset();
   obj->hasCallback_ = false;
 
@@ -343,29 +342,6 @@ NAN_METHOD(WebRtcConnection::getLocalSdp) {
   info.GetReturnValue().Set(Nan::New(sdp.c_str()).ToLocalChecked());
 }
 
-
-NAN_METHOD(WebRtcConnection::setAudioReceiver) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-
-  MediaSink* param = Nan::ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
-
-  me->setAudioSink(mr);
-  me->setEventSink(mr);
-}
-
-NAN_METHOD(WebRtcConnection::setVideoReceiver) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-
-  MediaSink* param = Nan::ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
-
-  me->setVideoSink(mr);
-  me->setEventSink(mr);
-}
-
 NAN_METHOD(WebRtcConnection::getCurrentState) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
@@ -406,27 +382,6 @@ NAN_METHOD(WebRtcConnection::generatePLIPacket) {
   return;
 }
 
-NAN_METHOD(WebRtcConnection::enableHandler) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-
-  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
-  std::string name = std::string(*param);
-
-  me->enableHandler(name);
-  return;
-}
-
-NAN_METHOD(WebRtcConnection::disableHandler) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-
-  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
-  std::string name = std::string(*param);
-
-  me->disableHandler(name);
-  return;
-}
 
 NAN_METHOD(WebRtcConnection::setQualityLayer) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
@@ -447,6 +402,25 @@ NAN_METHOD(WebRtcConnection::setFeedbackReports) {
   bool v = info[0]->BooleanValue();
   int fbreps = info[1]->IntegerValue();  // From bps to Kbps
   me->setFeedbackReports(v, fbreps);
+}
+
+NAN_METHOD(WebRtcConnection::addMediaStream) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+
+  MediaStream* param = Nan::ObjectWrap::Unwrap<MediaStream>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  auto wr = std::shared_ptr<erizo::MediaStream>(param->me);
+
+  me->addMediaStream(wr);
+}
+
+NAN_METHOD(WebRtcConnection::removeMediaStream) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+
+  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  std::string streamId = std::string(*param);
+  me->removeMediaStream(streamId);
 }
 
 // Async methods

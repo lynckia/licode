@@ -20,8 +20,7 @@
 
 namespace erizo {
 
-class WebRtcConnection;
-
+class MediaStream;
 using webrtc::RemoteBitrateEstimator;
 using webrtc::RemoteBitrateObserver;
 using webrtc::RtpHeaderExtensionMap;
@@ -68,7 +67,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
 
   void updateExtensionMap(bool video, std::array<RTPExtensions, 10> map);
 
-  WebRtcConnection *connection_;
+  MediaStream *stream_;
   std::shared_ptr<Worker> worker_;
   std::shared_ptr<Stats> stats_;
   webrtc::Clock* const clock_;

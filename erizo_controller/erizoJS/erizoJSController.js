@@ -155,6 +155,10 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
           clearInterval(wrtc.monitorInterval);
         }
         wrtc.close();
+        if (wrtc.mediaStream !== undefined) {
+          wrtc.mediaStream.close();
+          delete wrtc.mediaStream;
+        }
         log.info('message: WebRtcConnection status update, ' +
             'id: ' + wrtc.wrtcId + ', status: ' + CONN_FINISHED + ', ' +
                 logger.objectToLog(associatedMetadata));

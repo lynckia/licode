@@ -29,8 +29,8 @@ class StatCallWorker : public Nan::AsyncWorker {
  * A WebRTC Connection. This class represents a WebRtcConnection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary ICE and SRTP components.
  */
-class WebRtcConnection : public MediaSink, public erizo::WebRtcConnectionEventListener,
-  public erizo::WebRtcConnectionStatsListener {
+class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
+  public erizo::WebRtcConnectionStatsListener, public Nan::ObjectWrap{
  public:
     static NAN_MODULE_INIT(Init);
 
@@ -90,16 +90,6 @@ class WebRtcConnection : public MediaSink, public erizo::WebRtcConnectionEventLi
      */
     static NAN_METHOD(getLocalSdp);
     /*
-     * Sets a MediaReceiver that is going to receive Audio Data
-     * Param: the MediaReceiver to send audio to.
-     */
-    static NAN_METHOD(setAudioReceiver);
-    /*
-     * Sets a MediaReceiver that is going to receive Video Data
-     * Param: the MediaReceiver
-     */
-    static NAN_METHOD(setVideoReceiver);
-    /*
      * Gets the current state of the Ice Connection
      * Returns the state.
      */
@@ -154,14 +144,10 @@ class WebRtcConnection : public MediaSink, public erizo::WebRtcConnectionEventLi
      * Enable a specific Handler in the pipeline
      * Param: Name of the handler
      */
-    static NAN_METHOD(enableHandler);
-    /*
-     * Disables a specific Handler in the pipeline
-     * Param: Name of the handler
-     */
-    static NAN_METHOD(disableHandler);
-
     static NAN_METHOD(setQualityLayer);
+
+    static NAN_METHOD(addMediaStream);
+    static NAN_METHOD(removeMediaStream);
 
     static Nan::Persistent<v8::Function> constructor;
 

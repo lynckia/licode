@@ -5,7 +5,6 @@
 
 #include "pipeline/Handler.h"
 #include "./logger.h"
-#include "./WebRtcConnection.h"
 #include "rtp/SequenceNumberTranslator.h"
 #include "rtp/PacketBufferService.h"
 #include "rtp/RtpVP8Parser.h"
@@ -16,6 +15,9 @@ static constexpr uint16_t kMaxKeyframeSize = 20;
 static constexpr erizo::duration kFallbackKeyframeTimeout = std::chrono::seconds(5);
 
 namespace erizo {
+
+class MediaStream;
+
 class RtpSlideShowHandler : public Handler {
   DECLARE_LOGGER();
 
@@ -46,7 +48,7 @@ class RtpSlideShowHandler : public Handler {
 
  private:
   std::shared_ptr<Clock> clock_;
-  WebRtcConnection* connection_;
+  MediaStream* stream_;
   SequenceNumberTranslator translator_;
   bool highest_seq_num_initialized_;
   bool is_building_keyframe_;

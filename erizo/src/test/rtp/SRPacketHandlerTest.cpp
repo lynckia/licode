@@ -6,6 +6,7 @@
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
+#include <MediaStream.h>
 
 #include <string>
 #include <vector>
@@ -91,4 +92,3 @@ TEST_F(SRPacketHandlerTest, shouldRewriteOctetsSent) {
   pipeline->write(packet);
   pipeline->write(sr_packet);
 }
-

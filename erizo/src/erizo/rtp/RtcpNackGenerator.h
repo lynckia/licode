@@ -13,9 +13,6 @@
 
 namespace erizo {
 
-class WebRtcConnection;
-
-
 class NackInfo {
  public:
   NackInfo(): seq_num{0}, retransmits{0}, sent_time{0} {}

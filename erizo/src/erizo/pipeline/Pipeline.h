@@ -20,7 +20,6 @@
 namespace erizo {
 
 class PipelineBase;
-class WebRtcConnection;
 
 class PipelineManager {
  public:

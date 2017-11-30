@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "./WebRtcConnection.h"
 #include "lib/ClockUtils.h"
 
 namespace erizo {

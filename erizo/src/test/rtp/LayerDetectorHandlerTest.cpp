@@ -68,13 +68,13 @@ class LayerDetectorHandlerVp8Test : public erizo::BaseHandlerTest,
   }
 
   void setHandler() override {
-    std::vector<RtpMap>& payloads = connection->getRemoteSdpInfo().getPayloadInfos();
+    std::vector<RtpMap>& payloads = media_stream->getRemoteSdpInfo()->getPayloadInfos();
     payloads.push_back({96, "VP8"});
     payloads.push_back({98, "VP9"});
     layer_detector_handler = std::make_shared<LayerDetectorHandler>();
     pipeline->addBack(layer_detector_handler);
 
-    connection->setVideoSourceSSRCList({kArbitrarySsrc1, kArbitrarySsrc2});
+    media_stream->setVideoSourceSSRCList({kArbitrarySsrc1, kArbitrarySsrc2});
     createVP8Packet(ssrc, tid, false);
   }
 

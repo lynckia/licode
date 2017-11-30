@@ -26,10 +26,13 @@
 namespace erizo {
 
 constexpr std::chrono::milliseconds kBitrateControlPeriod(100);
+constexpr uint32_t kDefaultVideoSinkSSRC = 55543;
+constexpr uint32_t kDefaultAudioSinkSSRC = 44444;
 
 class Transport;
 class TransportListener;
 class IceConfig;
+class MediaStream;
 
 /**
  * WebRTC Events
@@ -58,9 +61,8 @@ class WebRtcConnectionStatsListener {
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary Transport components.
  */
-class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSink,
-                        public FeedbackSource, public TransportListener, public LogContext,
-                        public std::enable_shared_from_this<WebRtcConnection>, public Service {
+class WebRtcConnection: public TransportListener, public LogContext,
+                        public std::enable_shared_from_this<WebRtcConnection> {
   DECLARE_LOGGER();
 
  public:
@@ -83,7 +85,8 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    * @return True if the candidates are gathered.
    */
   bool init();
-  void close() override;
+  void close();
+  void syncClose();
   /**
    * Sets the SDP of the remote peer.
    * @param sdp The SDP.
@@ -108,7 +111,7 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
    * Sends a PLI Packet
    * @return the size of the data sent
    */
-  int sendPLI() override;
+  int sendPLI();
 
   void setQualityLayer(int spatial_layer, int temporal_layer);
 
@@ -139,12 +142,11 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   void updateState(TransportState state, Transport * transport) override;
 
-  void sendPacketAsync(std::shared_ptr<DataPacket> packet);
-
   void onCandidate(const CandidateInfo& cand, Transport *transport) override;
 
   void setFeedbackReports(bool will_send_feedback, uint32_t target_bitrate = 0);
   void setSlideShowMode(bool state);
+
   void muteStream(bool mute_video, bool mute_audio);
   void setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate);
 
@@ -153,10 +155,6 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   void read(std::shared_ptr<DataPacket> packet);
   void write(std::shared_ptr<DataPacket> packet);
 
-  void enableHandler(const std::string &name);
-  void disableHandler(const std::string &name);
-  void notifyUpdateToHandlers();
-
   void notifyToEventSink(MediaEventPtr event);
 
   void asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
@@ -164,7 +162,11 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   bool isAudioMuted() { return audio_muted_; }
   bool isVideoMuted() { return video_muted_; }
 
-  SdpInfo& getRemoteSdpInfo() { return remoteSdp_; }
+  std::shared_ptr<MediaStream> getMediaStream() { return media_stream_; }
+  void addMediaStream(std::shared_ptr<MediaStream> media_stream);
+  void removeMediaStream(const std::string& stream_id);
+
+  std::shared_ptr<Stats> getStatsService() { return stats_; }
 
   bool isSlideShowModeEnabled() { return slide_show_mode_; }
 
@@ -180,25 +182,12 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
   }
 
  private:
-  void sendPacket(std::shared_ptr<DataPacket> packet);
-  int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override;
-  int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override;
-  int deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) override;
-  int deliverEvent_(MediaEventPtr event) override;
-  void initializePipeline();
-
   // Utils
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
-  // changes the outgoing payload type for in the given data packet
-  void changeDeliverPayloadType(DataPacket *dp, packetType type);
-  // parses incoming payload type, replaces occurence in buf
-  void parseIncomingPayloadType(char *buf, int len, packetType type);
   void trackTransportInfo();
 
  private:
   std::string connection_id_;
-  SdpInfo remoteSdp_;
-  SdpInfo localSdp_;
   bool audioEnabled_;
   bool videoEnabled_;
   bool trickleEnabled_;
@@ -219,69 +208,20 @@ class WebRtcConnection: public MediaSink, public MediaSource, public FeedbackSin
 
   time_point now_, mark_;
 
-  std::shared_ptr<RtcpProcessor> rtcp_processor_;
   std::shared_ptr<Transport> videoTransport_, audioTransport_;
 
   std::shared_ptr<Stats> stats_;
-  std::shared_ptr<QualityManager> quality_manager_;
-  std::shared_ptr<PacketBufferService> packet_buffer_;
   WebRTCEvent globalState_;
 
   boost::mutex updateStateMutex_;  // , slideShowMutex_;
 
-  Pipeline::Ptr pipeline_;
-
   std::shared_ptr<Worker> worker_;
   std::shared_ptr<IOWorker> io_worker_;
-
+  std::shared_ptr<MediaStream> media_stream_;
+  std::shared_ptr<SdpInfo> remote_sdp_;
+  std::shared_ptr<SdpInfo> local_sdp_;
   bool audio_muted_;
   bool video_muted_;
-
-  bool pipeline_initialized_;
-};
-
-class PacketReader : public InboundHandler {
- public:
-  explicit PacketReader(WebRtcConnection *connection) : connection_{connection} {}
-
-  void enable() override {}
-  void disable() override {}
-
-  std::string getName() override {
-    return "reader";
-  }
-
-  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override {
-    connection_->read(std::move(packet));
-  }
-
-  void notifyUpdate() override {
-  }
-
- private:
-  WebRtcConnection *connection_;
-};
-
-class PacketWriter : public OutboundHandler {
- public:
-  explicit PacketWriter(WebRtcConnection *connection) : connection_{connection} {}
-
-  void enable() override {}
-  void disable() override {}
-
-  std::string getName() override {
-    return "writer";
-  }
-
-  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override {
-    connection_->write(std::move(packet));
-  }
-
-  void notifyUpdate() override {
-  }
-
- private:
-  WebRtcConnection *connection_;
 };
 
 }  // namespace erizo

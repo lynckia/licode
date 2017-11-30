@@ -7,7 +7,7 @@
 #include <cstring>
 
 #include "media/OneToManyTranscoder.h"
-#include "./WebRtcConnection.h"
+#include "./MediaStream.h"
 #include "rtp/RtpHeaders.h"
 
 using std::memcpy;
