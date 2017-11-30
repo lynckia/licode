@@ -45,7 +45,7 @@ const BaseStack = (specInput) => {
 
   // Aux functions
 
-  const errorCallback = (where, errorcb, message) => {
+  that.errorCallback = (where, errorcb, message) => {
     Logger.error('message:', message, 'in baseStack at', where);
     if (errorcb !== undefined) {
       errorcb('error');
@@ -86,7 +86,7 @@ const BaseStack = (specInput) => {
     }
   };
 
-  const setLocalDescForOffer = (isSubscribe, sessionDescription) => {
+  that.setLocalDescForOffer = (isSubscribe, sessionDescription) => {
     localDesc = sessionDescription;
     if (!isSubscribe) {
       localDesc.sdp = that.enableSimulcast(localDesc.sdp);
@@ -112,7 +112,7 @@ const BaseStack = (specInput) => {
     });
     Logger.info('Setting local description p2p', localDesc);
     that.peerConnection.setLocalDescription(localDesc).then(successCallback)
-    .catch(errorCallback);
+    .catch(that.errorCallback);
   };
 
   const processOffer = (message) => {
@@ -125,7 +125,7 @@ const BaseStack = (specInput) => {
       that.peerConnection.createAnswer(that.mediaConstraints)
       .then(setLocalDescForAnswerp2p).catch(errorCallback.bind(null, 'createAnswer p2p', undefined));
       specBase.remoteDescriptionSet = true;
-    }).catch(errorCallback.bind(null, 'process Offer', undefined));
+    }).catch(that.errorCallback.bind(null, 'process Offer', undefined));
   };
 
   const processAnswer = (message) => {
@@ -153,8 +153,8 @@ const BaseStack = (specInput) => {
           // IMPORTANT: preserve ordering of candidates
           specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
         }
-      }).catch(errorCallback.bind(null, 'processAnswer', undefined));
-    }).catch(errorCallback.bind(null, 'processAnswer', undefined));
+      }).catch(that.errorCallback.bind(null, 'processAnswer', undefined));
+    }).catch(that.errorCallback.bind(null, 'processAnswer', undefined));
   };
 
   const processNewCandidate = (message) => {
@@ -249,7 +249,7 @@ const BaseStack = (specInput) => {
           }).then(() => {
             specBase.remoteDescriptionSet = true;
             specBase.callback({ type: 'updatestream', sdp: localSdp.toJSON() });
-          }).catch(errorCallback.bind(null, 'updateSpec', callback));
+          }).catch(that.errorCallback.bind(null, 'updateSpec', callback));
       } else {
         Logger.debug('Updating without SDP renegotiation, ' +
                      'newVideoBW:', specBase.maxVideoBW,
@@ -277,8 +277,8 @@ const BaseStack = (specInput) => {
     }
     Logger.debug('Creating offer', that.mediaConstraints);
     that.peerConnection.createOffer(that.mediaConstraints)
-    .then(setLocalDescForOffer.bind(null, isSubscribe))
-    .catch(errorCallback.bind(null, 'Create Offer', undefined));
+    .then(that.setLocalDescForOffer.bind(null, isSubscribe))
+    .catch(that.errorCallback.bind(null, 'Create Offer', undefined));
   };
 
   that.addStream = (stream) => {
