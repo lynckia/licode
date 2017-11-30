@@ -123,7 +123,7 @@ const BaseStack = (specInput) => {
     msg.sdp = remoteSdp.toString();
     that.peerConnection.setRemoteDescription(msg).then(() => {
       that.peerConnection.createAnswer(that.mediaConstraints)
-      .then(setLocalDescForAnswerp2p).catch(errorCallback.bind(null, 'createAnswer p2p', undefined));
+      .then(setLocalDescForAnswerp2p).catch(that.errorCallback.bind(null, 'createAnswer p2p', undefined));
       specBase.remoteDescriptionSet = true;
     }).catch(that.errorCallback.bind(null, 'process Offer', undefined));
   };
