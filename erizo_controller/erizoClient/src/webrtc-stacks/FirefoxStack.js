@@ -6,9 +6,9 @@ const FirefoxStack = (specInput) => {
   const that = BaseStack(specInput);
   const spec = specInput;
 
-  that.enableSimulcast = () => {
+  that.enableSimulcast = (sdp) => {
     if (!spec.video || !spec.simulcast) {
-      return;
+      return sdp;
     }
     that.peerConnection.getSenders().forEach((sender) => {
       if (sender.track.kind === 'video') {
@@ -29,6 +29,7 @@ const FirefoxStack = (specInput) => {
         });
       }
     });
+    return sdp;
   };
 
   that.createOffer = (isSubscribe) => {
