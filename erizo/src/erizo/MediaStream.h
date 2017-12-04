@@ -26,6 +26,13 @@
 
 namespace erizo {
 
+class MediaStreamStatsListener {
+ public:
+    virtual ~MediaStreamStatsListener() {
+    }
+    virtual void notifyStats(const std::string& message) = 0;
+};
+
 /**
  * A MediaStream. This class represents a Media Stream that can be established with other peers via a SDP negotiation
  */
@@ -36,8 +43,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
  public:
   typedef typename Handler::Context Context;
-  bool audioEnabled_;
-  bool videoEnabled_;
+  bool audio_enabled_;
+  bool video_enabled_;
 
   /**
    * Constructor.
@@ -63,6 +70,14 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void setQualityLayer(int spatial_layer, int temporal_layer);
 
   WebRTCEvent getCurrentState();
+
+  /**
+   * Sets the Stats Listener for this MediaStream
+   */
+  inline void setMediaStreamStatsListener(
+            MediaStreamStatsListener* listener) {
+    stats_->setStatsListener(listener);
+  }
 
   void getJSONStats(std::function<void(std::string)> callback);
 
@@ -126,14 +141,14 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
  private:
   std::shared_ptr<WebRtcConnection> connection_;
   std::string stream_id_;
-  bool shouldSendFeedback_;
+  bool should_send_feedback_;
   bool slide_show_mode_;
   bool sending_;
   int bundle_;
 
-  uint32_t rateControl_;  // Target bitrate for hacky rate control in BPS
+  uint32_t rate_control_;  // Target bitrate for hacky rate control in BPS
 
-  std::string stunServer_;
+  std::string stun_server_;
 
   time_point now_, mark_;
 

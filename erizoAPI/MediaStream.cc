@@ -4,6 +4,8 @@
 
 #include "MediaStream.h"
 
+#include <future>  // NOLINT
+
 #include "lib/json.hpp"
 #include "ThreadPool.h"
 
@@ -15,6 +17,29 @@ using v8::Persistent;
 using v8::Exception;
 using v8::Value;
 using json = nlohmann::json;
+
+StatCallWorker::StatCallWorker(Nan::Callback *callback, std::weak_ptr<erizo::MediaStream> weak_stream)
+    : Nan::AsyncWorker{callback}, weak_stream_{weak_stream}, stat_{""} {
+}
+
+void StatCallWorker::Execute() {
+  std::promise<std::string> stat_promise;
+  std::future<std::string> stat_future = stat_promise.get_future();
+  if (auto stream = weak_stream_.lock()) {
+    stream->getJSONStats([&stat_promise] (std::string stats) {
+      stat_promise.set_value(stats);
+    });
+  }
+  stat_future.wait();
+  stat_ = stat_future.get();
+}
+
+void StatCallWorker::HandleOKCallback() {
+  Local<Value> argv[] = {
+    Nan::New<v8::String>(stat_).ToLocalChecked()
+  };
+  callback->Call(1, argv);
+}
 
 Nan::Persistent<Function> MediaStream::constructor;
 
@@ -37,6 +62,8 @@ NAN_MODULE_INIT(MediaStream::Init) {
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
   Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
   Nan::SetPrototypeMethod(tpl, "generatePLIPacket", generatePLIPacket);
+  Nan::SetPrototypeMethod(tpl, "getStats", getStats);
+  Nan::SetPrototypeMethod(tpl, "getPeriodicStats", getPeriodicStats);
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
   Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
@@ -57,7 +84,7 @@ NAN_METHOD(MediaStream::New) {
   }
 
   if (info.IsConstructCall()) {
-    // Invoked as a constructor with 'new WebRTC()'
+    // Invoked as a constructor with 'new MediaStream()'
     WebRtcConnection* connection =
      Nan::ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
 
@@ -68,6 +95,7 @@ NAN_METHOD(MediaStream::New) {
     MediaStream* obj = new MediaStream();
     obj->me = std::make_shared<erizo::MediaStream>(wrtc, wrtcId);
     obj->msink = obj->me.get();
+    uv_async_init(uv_default_loop(), &obj->asyncStats_, &MediaStream::statsCallback);
     obj->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
   } else {
@@ -77,6 +105,11 @@ NAN_METHOD(MediaStream::New) {
 
 NAN_METHOD(MediaStream::close) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  obj->me->setMediaStreamStatsListener(NULL);
+  obj->hasCallback_ = false;
+  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&obj->asyncStats_))) {
+    uv_close(reinterpret_cast<uv_handle_t*>(&obj->asyncStats_), NULL);
+  }
   obj->me.reset();
 }
 
@@ -219,6 +252,25 @@ NAN_METHOD(MediaStream::setQualityLayer) {
   return;
 }
 
+NAN_METHOD(MediaStream::getStats) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  if (!obj->me || info.Length() != 1) {
+    return;
+  }
+  Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
+  AsyncQueueWorker(new StatCallWorker(callback, obj->me));
+}
+
+NAN_METHOD(MediaStream::getPeriodicStats) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  if (obj->me == nullptr || info.Length() != 1) {
+    return;
+  }
+  obj->me->setMediaStreamStatsListener(obj);
+  obj->hasCallback_ = true;
+  obj->statsCallback_ = new Nan::Callback(info[0].As<Function>());
+}
+
 NAN_METHOD(MediaStream::setFeedbackReports) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
@@ -226,4 +278,29 @@ NAN_METHOD(MediaStream::setFeedbackReports) {
   bool v = info[0]->BooleanValue();
   int fbreps = info[1]->IntegerValue();  // From bps to Kbps
   me->setFeedbackReports(v, fbreps);
+}
+
+void MediaStream::notifyStats(const std::string& message) {
+  if (!this->hasCallback_) {
+    return;
+  }
+  boost::mutex::scoped_lock lock(mutex);
+  this->statsMsgs.push(message);
+  asyncStats_.data = this;
+  uv_async_send(&asyncStats_);
+}
+
+NAUV_WORK_CB(MediaStream::statsCallback) {
+  Nan::HandleScope scope;
+  MediaStream* obj = reinterpret_cast<MediaStream*>(async->data);
+  if (!obj || obj->me == NULL)
+    return;
+  boost::mutex::scoped_lock lock(obj->mutex);
+  if (obj->hasCallback_) {
+    while (!obj->statsMsgs.empty()) {
+      Local<Value> args[] = {Nan::New(obj->statsMsgs.front().c_str()).ToLocalChecked()};
+      Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->statsCallback_->GetFunction(), 1, args);
+      obj->statsMsgs.pop();
+    }
+  }
 }

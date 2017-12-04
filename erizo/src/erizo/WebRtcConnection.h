@@ -50,13 +50,6 @@ class WebRtcConnectionEventListener {
     virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message) = 0;
 };
 
-class WebRtcConnectionStatsListener {
- public:
-    virtual ~WebRtcConnectionStatsListener() {
-    }
-    virtual void notifyStats(const std::string& message) = 0;
-};
-
 /**
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary Transport components.
@@ -73,7 +66,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
    * Constructs an empty WebRTCConnection without any configuration.
    */
   WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
-      const std::string& connection_id, const IceConfig& iceConfig,
+      const std::string& connection_id, const IceConfig& ice_config,
       const std::vector<RtpMap> rtp_mappings, const std::vector<erizo::ExtMap> ext_mappings,
       WebRtcConnectionEventListener* listener);
   /**
@@ -94,7 +87,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
    */
   bool setRemoteSdp(const std::string &sdp);
 
-  bool createOffer(bool videoEnabled, bool audioEnabled, bool bundle);
+  bool createOffer(bool video_enabled, bool audio_enabled, bool bundle);
   /**
    * Add new remote candidate (from remote peer).
    * @param sdp The candidate in SDP format.
@@ -108,27 +101,12 @@ class WebRtcConnection: public TransportListener, public LogContext,
   std::string getLocalSdp();
 
   /**
-   * Sends a PLI Packet
-   * @return the size of the data sent
-   */
-  int sendPLI();
-
-  void setQualityLayer(int spatial_layer, int temporal_layer);
-
-  /**
    * Sets the Event Listener for this WebRtcConnection
    */
   inline void setWebRtcConnectionEventListener(WebRtcConnectionEventListener* listener) {
-    this->connEventListener_ = listener;
+    this->conn_event_listener_ = listener;
   }
 
-  /**
-   * Sets the Stats Listener for this WebRtcConnection
-   */
-  inline void setWebRtcConnectionStatsListener(
-            WebRtcConnectionStatsListener* listener) {
-    stats_->setStatsListener(listener);
-  }
 
   /**
    * Gets the current state of the Ice Connection
@@ -136,26 +114,16 @@ class WebRtcConnection: public TransportListener, public LogContext,
    */
   WebRTCEvent getCurrentState();
 
-  void getJSONStats(std::function<void(std::string)> callback);
-
   void onTransportData(std::shared_ptr<DataPacket> packet, Transport *transport) override;
 
   void updateState(TransportState state, Transport * transport) override;
 
   void onCandidate(const CandidateInfo& cand, Transport *transport) override;
 
-  void setFeedbackReports(bool will_send_feedback, uint32_t target_bitrate = 0);
-  void setSlideShowMode(bool state);
-
-  void muteStream(bool mute_video, bool mute_audio);
-  void setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate);
-
   void setMetadata(std::map<std::string, std::string> metadata);
 
   void read(std::shared_ptr<DataPacket> packet);
   void write(std::shared_ptr<DataPacket> packet);
-
-  void notifyToEventSink(MediaEventPtr event);
 
   void asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
 
@@ -168,9 +136,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
 
   std::shared_ptr<Stats> getStatsService() { return stats_; }
 
-  bool isSlideShowModeEnabled() { return slide_show_mode_; }
-
-  RtpExtensionProcessor& getRtpExtensionProcessor() { return extProcessor_; }
+  RtpExtensionProcessor& getRtpExtensionProcessor() { return extension_processor_; }
 
   std::shared_ptr<Worker> getWorker() { return worker_; }
 
@@ -188,30 +154,22 @@ class WebRtcConnection: public TransportListener, public LogContext,
 
  private:
   std::string connection_id_;
-  bool audioEnabled_;
-  bool videoEnabled_;
-  bool trickleEnabled_;
-  bool shouldSendFeedback_;
+  bool audio_enabled_;
+  bool video_enabled_;
+  bool trickle_enabled_;
   bool slide_show_mode_;
   bool sending_;
   int bundle_;
-  WebRtcConnectionEventListener* connEventListener_;
-  IceConfig iceConfig_;
+  WebRtcConnectionEventListener* conn_event_listener_;
+  IceConfig ice_config_;
   std::vector<RtpMap> rtp_mappings_;
-  RtpExtensionProcessor extProcessor_;
-
-  uint32_t rateControl_;  // Target bitrate for hacky rate control in BPS
-
-  std::string stunServer_;
-
+  RtpExtensionProcessor extension_processor_;
   boost::condition_variable cond_;
 
-  time_point now_, mark_;
-
-  std::shared_ptr<Transport> videoTransport_, audioTransport_;
+  std::shared_ptr<Transport> video_transport_, audio_transport_;
 
   std::shared_ptr<Stats> stats_;
-  WebRTCEvent globalState_;
+  WebRTCEvent global_state_;
 
   boost::mutex updateStateMutex_;  // , slideShowMutex_;
 

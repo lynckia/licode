@@ -1,8 +1,7 @@
 #include "rtp/RtpSlideShowHandler.h"
-
+#include "MediaStream.h"
 #include <vector>
 
-#include "./MediaStream.h"
 #include "./MediaDefinitions.h"
 #include "rtp/RtpUtils.h"
 
@@ -96,8 +95,8 @@ void RtpSlideShowHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
   uint16_t packet_seq_num = rtp_header->getSeqNumber();
   bool is_keyframe = false;
   RtpMap *codec = stream_->getRemoteSdpInfo()->getCodecByExternalPayloadType(rtp_header->getPayloadType());
-  if (codec && codec->encoding_name == "VP8") {
-    is_keyframe = isVP8Keyframe(packet);
+  if (codec && (codec->encoding_name == "VP8" || codec->encoding_name == "H264")) {
+    is_keyframe = isVP8OrH264Keyframe(packet);
   } else if (codec && codec->encoding_name == "VP9") {
     is_keyframe = isVP9Keyframe(packet);
   }
@@ -123,7 +122,7 @@ void RtpSlideShowHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
   }
 }
 
-bool RtpSlideShowHandler::isVP8Keyframe(std::shared_ptr<DataPacket> packet) {
+bool RtpSlideShowHandler::isVP8OrH264Keyframe(std::shared_ptr<DataPacket> packet) {
   bool is_keyframe = false;
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   uint16_t seq_num = rtp_header->getSeqNumber();

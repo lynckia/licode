@@ -38,7 +38,7 @@ class RtpSlideShowHandler : public Handler {
   void setSlideShowMode(bool activated);
 
  private:
-  bool isVP8Keyframe(std::shared_ptr<DataPacket> packet);
+  bool isVP8OrH264Keyframe(std::shared_ptr<DataPacket> packet);
   bool isVP9Keyframe(std::shared_ptr<DataPacket> packet);
   void maybeUpdateHighestSeqNum(uint16_t seq_num);
   void resetKeyframeBuilding();

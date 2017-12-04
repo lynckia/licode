@@ -72,7 +72,7 @@ class Source {
     wrtc.addMediaStream(wrtc.mediaStream);
     this.subscribers[id] = wrtc;
     this.muxer.addSubscriber(wrtc.mediaStream, id);
-    wrtc.minVideoBW = this.minVideoBW;
+    wrtc.mediaStream.minVideoBW = this.minVideoBW;
     log.debug('message: Setting scheme from publisher to subscriber, ' +
               'id: ' + wrtcId + ', scheme: ' + this.scheme+
                ', ' + logger.objectToLog(options.metadata));
@@ -140,7 +140,7 @@ class Source {
     var subscriber = this.getSubscriber(id);
     log.info('message: setQualityLayer, spatialLayer: ', spatialLayer,
                                      ', temporalLayer: ', temporalLayer);
-    subscriber.setQualityLayer(spatialLayer, temporalLayer);
+    subscriber.mediaStream.setQualityLayer(spatialLayer, temporalLayer);
   }
 
   muteSubscriberStream(id, muteVideo, muteAudio) {
@@ -149,7 +149,7 @@ class Source {
     subscriber.muteAudio = muteAudio;
     log.info('message: Mute Stream, video: ', this.muteVideo || muteVideo,
                                  ', audio: ', this.muteAudio || muteAudio);
-    subscriber.muteStream(this.muteVideo || muteVideo,
+    subscriber.mediaStream.muteStream(this.muteVideo || muteVideo,
                           this.muteAudio || muteAudio);
   }
 
@@ -158,7 +158,7 @@ class Source {
     var maxWidth = (width && width.max !== undefined) ? width.max : -1;
     var maxHeight = (height && height.max !== undefined) ? height.max : -1;
     var maxFrameRate = (frameRate && frameRate.max !== undefined) ? frameRate.max : -1;
-    subscriber.setVideoConstraints(maxWidth, maxHeight, maxFrameRate);
+    subscriber.mediaStream.setVideoConstraints(maxWidth, maxHeight, maxFrameRate);
   }
 
   enableHandlers(id, handlers) {
@@ -168,7 +168,7 @@ class Source {
     }
     if (wrtc) {
       for (var index in handlers) {
-        wrtc.enableHandler(handlers[index]);
+        wrtc.mediaStream.enableHandler(handlers[index]);
       }
     }
   }
@@ -180,7 +180,7 @@ class Source {
     }
     if (wrtc) {
       for (var index in handlers) {
-        wrtc.disableHandler(handlers[index]);
+        wrtc.mediaStream.disableHandler(handlers[index]);
       }
     }
   }
@@ -204,7 +204,7 @@ class Publisher extends Source {
     this.muxer.setPublisher(this.wrtc.mediaStream);
     const muteVideo = (options.muteStream && options.muteStream.video) || false;
     const muteAudio = (options.muteStream && options.muteStream.audio) || false;
-    this.muteStream(muteVideo, muteAudio);
+    this.wrtc.mediaStream.muteStream(muteVideo, muteAudio);
   }
 
   resetWrtc() {

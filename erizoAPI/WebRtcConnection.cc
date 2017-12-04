@@ -20,29 +20,6 @@ using v8::Exception;
 using v8::Value;
 using json = nlohmann::json;
 
-StatCallWorker::StatCallWorker(Nan::Callback *callback, std::weak_ptr<erizo::WebRtcConnection> weak_connection)
-    : Nan::AsyncWorker{callback}, weak_connection_{weak_connection}, stat_{""} {
-}
-
-void StatCallWorker::Execute() {
-  std::promise<std::string> stat_promise;
-  std::future<std::string> stat_future = stat_promise.get_future();
-  if (auto connection = weak_connection_.lock()) {
-    connection->getJSONStats([&stat_promise] (std::string stats) {
-      stat_promise.set_value(stats);
-    });
-  }
-  stat_future.wait();
-  stat_ = stat_future.get();
-}
-
-void StatCallWorker::HandleOKCallback() {
-  Local<Value> argv[] = {
-    Nan::New<v8::String>(stat_).ToLocalChecked()
-  };
-  callback->Call(1, argv);
-}
-
 Nan::Persistent<Function> WebRtcConnection::constructor;
 
 WebRtcConnection::WebRtcConnection() {
@@ -50,7 +27,6 @@ WebRtcConnection::WebRtcConnection() {
 
 WebRtcConnection::~WebRtcConnection() {
   if (me.get() != nullptr) {
-    me->setWebRtcConnectionStatsListener(NULL);
     me->setWebRtcConnectionEventListener(NULL);
   }
 }
@@ -68,15 +44,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "addRemoteCandidate", addRemoteCandidate);
   Nan::SetPrototypeMethod(tpl, "getLocalSdp", getLocalSdp);
   Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
-  Nan::SetPrototypeMethod(tpl, "getStats", getStats);
-  Nan::SetPrototypeMethod(tpl, "getPeriodicStats", getPeriodicStats);
-  Nan::SetPrototypeMethod(tpl, "generatePLIPacket", generatePLIPacket);
-  Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
-  Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
-  Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
-  Nan::SetPrototypeMethod(tpl, "setQualityLayer", setQualityLayer);
-  Nan::SetPrototypeMethod(tpl, "setVideoConstraints", setVideoConstraints);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
   Nan::SetPrototypeMethod(tpl, "addMediaStream", addMediaStream);
   Nan::SetPrototypeMethod(tpl, "removeMediaStream", removeMediaStream);
@@ -205,7 +173,6 @@ NAN_METHOD(WebRtcConnection::New) {
     obj->me = std::make_shared<erizo::WebRtcConnection>(worker, io_worker, wrtcId, iceConfig,
                                                         rtp_mappings, ext_mappings, obj);
     uv_async_init(uv_default_loop(), &obj->async_, &WebRtcConnection::eventsCallback);
-    uv_async_init(uv_default_loop(), &obj->asyncStats_, &WebRtcConnection::statsCallback);
     obj->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
   } else {
@@ -215,17 +182,12 @@ NAN_METHOD(WebRtcConnection::New) {
 
 NAN_METHOD(WebRtcConnection::close) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  obj->me->setWebRtcConnectionStatsListener(NULL);
   obj->me->setWebRtcConnectionEventListener(NULL);
   obj->me->close();
   obj->me.reset();
-  obj->hasCallback_ = false;
 
   if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&obj->async_))) {
     uv_close(reinterpret_cast<uv_handle_t*>(&obj->async_), NULL);
-  }
-  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&obj->asyncStats_))) {
-    uv_close(reinterpret_cast<uv_handle_t*>(&obj->asyncStats_), NULL);
   }
 }
 
@@ -251,33 +213,6 @@ NAN_METHOD(WebRtcConnection::createOffer) {
 
   bool r = me->createOffer(video_enabled, audio_enabled, bundle);
   info.GetReturnValue().Set(Nan::New(r));
-}
-
-NAN_METHOD(WebRtcConnection::setSlideShowMode) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-
-  bool v = info[0]->BooleanValue();
-  me->setSlideShowMode(v);
-  info.GetReturnValue().Set(Nan::New(v));
-}
-
-NAN_METHOD(WebRtcConnection::muteStream) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-
-  bool mute_video = info[0]->BooleanValue();
-  bool mute_audio = info[1]->BooleanValue();
-  me->muteStream(mute_video, mute_audio);
-}
-
-NAN_METHOD(WebRtcConnection::setVideoConstraints) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-  int max_video_width = info[0]->IntegerValue();
-  int max_video_height = info[1]->IntegerValue();
-  int max_video_frame_rate = info[2]->IntegerValue();
-  me->setVideoConstraints(max_video_width, max_video_height, max_video_frame_rate);
 }
 
 NAN_METHOD(WebRtcConnection::setMetadata) {
@@ -351,59 +286,6 @@ NAN_METHOD(WebRtcConnection::getCurrentState) {
   info.GetReturnValue().Set(Nan::New(state));
 }
 
-NAN_METHOD(WebRtcConnection::getStats) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  if (!obj->me || info.Length() != 1) {
-    return;
-  }
-  Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
-  AsyncQueueWorker(new StatCallWorker(callback, obj->me));
-}
-
-NAN_METHOD(WebRtcConnection::getPeriodicStats) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  if (obj->me == nullptr || info.Length() != 1) {
-    return;
-  }
-  obj->me->setWebRtcConnectionStatsListener(obj);
-  obj->hasCallback_ = true;
-  obj->statsCallback_ = new Nan::Callback(info[0].As<Function>());
-}
-
-NAN_METHOD(WebRtcConnection::generatePLIPacket) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-
-  if (obj->me == NULL) {
-    return;
-  }
-
-  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-  me->sendPLI();
-  return;
-}
-
-
-NAN_METHOD(WebRtcConnection::setQualityLayer) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-
-  int spatial_layer = info[0]->IntegerValue();
-  int temporal_layer = info[1]->IntegerValue();
-
-  me->setQualityLayer(spatial_layer, temporal_layer);
-
-  return;
-}
-
-NAN_METHOD(WebRtcConnection::setFeedbackReports) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-
-  bool v = info[0]->BooleanValue();
-  int fbreps = info[1]->IntegerValue();  // From bps to Kbps
-  me->setFeedbackReports(v, fbreps);
-}
-
 NAN_METHOD(WebRtcConnection::addMediaStream) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
@@ -433,15 +315,6 @@ void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& 
   uv_async_send(&async_);
 }
 
-void WebRtcConnection::notifyStats(const std::string& message) {
-  if (!this->hasCallback_) {
-    return;
-  }
-  boost::mutex::scoped_lock lock(mutex);
-  this->statsMsgs.push(message);
-  asyncStats_.data = this;
-  uv_async_send(&asyncStats_);
-}
 
 NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
   Nan::HandleScope scope;
@@ -454,20 +327,5 @@ NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
     Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->eventCallback_->GetFunction(), 2, args);
     obj->eventMsgs.pop();
     obj->eventSts.pop();
-  }
-}
-
-NAUV_WORK_CB(WebRtcConnection::statsCallback) {
-  Nan::HandleScope scope;
-  WebRtcConnection* obj = reinterpret_cast<WebRtcConnection*>(async->data);
-  if (!obj || obj->me == NULL)
-    return;
-  boost::mutex::scoped_lock lock(obj->mutex);
-  if (obj->hasCallback_) {
-    while (!obj->statsMsgs.empty()) {
-      Local<Value> args[] = {Nan::New(obj->statsMsgs.front().c_str()).ToLocalChecked()};
-      Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->statsCallback_->GetFunction(), 1, args);
-      obj->statsMsgs.pop();
-    }
   }
 }
