@@ -37,7 +37,7 @@ PipelineBase::ContextIterator PipelineBase::removeAt(
 
 PipelineBase& PipelineBase::removeFront() {
   if (ctxs_.empty()) {
-    throw std::invalid_argument("No handlers in pipeline");
+    return *this;
   }
   removeAt(ctxs_.begin());
   return *this;
@@ -45,7 +45,7 @@ PipelineBase& PipelineBase::removeFront() {
 
 PipelineBase& PipelineBase::removeBack() {
   if (ctxs_.empty()) {
-    throw std::invalid_argument("No handlers in pipeline");
+    return *this;
   }
   removeAt(--ctxs_.end());
   return *this;

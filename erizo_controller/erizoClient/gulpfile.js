@@ -19,7 +19,7 @@ const config = {
     production: './dist/production',
     basicExample: '../../extras/basic_example/public/',
     spine: '../../spine/',
-    js: './src/**/*.js',
+    js: ['./src/**/*.js', '../common/semanticSdp/*.js'],
   },
 };
 

@@ -48,7 +48,7 @@ void Scheduler::serviceQueue() {
       lock.lock();
     } catch (...) {
       --n_threads_servicing_queue_;
-      throw;
+      assert(false && "An exception has been thrown inside Scheduler");
     }
   }
   --n_threads_servicing_queue_;

@@ -238,7 +238,7 @@ class Client extends events.EventEmitter {
                 callback(null, 'ErizoAgent or ErizoJS is not reachable');
                 return;
             }
-            log.debug('Sending message back to the client', signMess);
+            log.debug('Sending message back to the client', id);
             this.sendMessage('signaling_message_erizo', {mess: signMess, streamId: id});
         });
     } else {
