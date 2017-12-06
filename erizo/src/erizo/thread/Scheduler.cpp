@@ -29,8 +29,10 @@ void Scheduler::serviceQueue() {
         new_task_scheduled_.wait(lock);
       }
 
+      current_timeout_ = task_queue_.begin()->first;
       while (!stop_requested_ && !task_queue_.empty() &&
-             new_task_scheduled_.wait_until(lock, task_queue_.begin()->first) != std::cv_status::timeout) {
+             new_task_scheduled_.wait_until(lock, current_timeout_) != std::cv_status::timeout) {
+        boost::thread::yield();
       }
       if (stop_requested_) {
         break;
@@ -42,6 +44,10 @@ void Scheduler::serviceQueue() {
 
       Function f = task_queue_.begin()->second;
       task_queue_.erase(task_queue_.begin());
+
+      if (!task_queue_.empty()) {
+        current_timeout_ = task_queue_.begin()->first;
+      }
 
       lock.unlock();
       f();

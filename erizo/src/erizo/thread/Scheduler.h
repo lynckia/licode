@@ -37,6 +37,7 @@ class Scheduler {
 
  private:
   std::multimap<std::chrono::system_clock::time_point, Function> task_queue_;
+  std::chrono::system_clock::time_point current_timeout_;
   std::condition_variable new_task_scheduled_;
   mutable std::mutex new_task_mutex_;
   std::atomic<int> n_threads_servicing_queue_;
