@@ -125,7 +125,7 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
                 }
                 const theId = response.streamId;
                 if (config.video.mandatory !== undefined) {
-                  screenConfig.video = config.video;
+                  screenConfig.video = config.video || { mandatory: {} };
                   screenConfig.video.mandatory.chromeMediaSource = 'desktop';
                   screenConfig.video.mandatory.chromeMediaSourceId = theId;
                 } else {

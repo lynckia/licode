@@ -4,6 +4,7 @@ var logger = require('./../common/logger').logger;
 var amqper = require('./../common/amqper');
 var Publisher = require('./models/Publisher').Publisher;
 var ExternalInput = require('./models/Publisher').ExternalInput;
+var SemanticSdp = require('./../common/semanticSdp/SemanticSdp');
 
 // Logger
 var log = logger.getLogger('ErizoJSController');
@@ -103,6 +104,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                 case CONN_SDP:
                 case CONN_GATHERED:
                     mess = mess.replace(that.privateRegexp, that.publicIP);
+                    const sdp = SemanticSdp.SDPInfo.processString(mess);
+                    mess = sdp.toJSON();
                     if (options.createOffer)
                         callback('callback', {type: 'offer', sdp: mess});
                     else
@@ -249,6 +252,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
             if (publisher.hasSubscriber(peerId)) {
                 var subscriber = publisher.getSubscriber(peerId);
                 if (msg.type === 'offer') {
+                    const sdp = SemanticSdp.SDPInfo.process(msg.sdp);
+                    msg.sdp = sdp.toString();
                     subscriber.setRemoteSdp(msg.sdp);
                     disableDefaultHandlers(subscriber);
                 } else if (msg.type === 'candidate') {
@@ -256,8 +261,11 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                                                   msg.candidate.sdpMLineIndex,
                                                   msg.candidate.candidate);
                 } else if (msg.type === 'updatestream') {
-                    if(msg.sdp)
+                    if(msg.sdp) {
+                        const sdp = SemanticSdp.SDPInfo.process(msg.sdp);
+                        msg.sdp = sdp.toString();
                         subscriber.setRemoteSdp(msg.sdp);
+                      }
                     if (msg.config) {
                         if (msg.config.slideShowMode !== undefined) {
                             that.setSlideShow(msg.config.slideShowMode, peerId, streamId);
@@ -277,6 +285,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                 }
             } else {
                 if (msg.type === 'offer') {
+                    const sdp = SemanticSdp.SDPInfo.process(msg.sdp);
+                    msg.sdp = sdp.toString();
                     publisher.wrtc.setRemoteSdp(msg.sdp);
                     disableDefaultHandlers(publisher.wrtc);
                 } else if (msg.type === 'candidate') {
@@ -285,6 +295,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                                                                  msg.candidate.candidate);
                 } else if (msg.type === 'updatestream') {
                     if (msg.sdp) {
+                        const sdp = SemanticSdp.SDPInfo.process(msg.sdp);
+                        msg.sdp = sdp.toJSON();
                         publisher.wrtc.setRemoteSdp(msg.sdp);
                     }
                     if (msg.config) {

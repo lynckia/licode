@@ -8,16 +8,14 @@
     'target_name': 'addon',
       'sources': ['<@(common_sources)'],
       'include_dirs' : ['<@(common_include_dirs)'],
-      'libraries': ['-L$(ERIZO_HOME)/build/release/erizo -lerizo -Wl,-rpath,./../../erizo/build/release/erizo'],
+      'libraries': ['-L$(ERIZO_HOME)/build/release/erizo -lerizo -Wl,-rpath,<(module_root_dir)/../erizo/build/release/erizo'],
       'conditions': [
         [ 'OS=="mac"', {
           'xcode_settings': {
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',        # -fno-exceptions
-              'GCC_ENABLE_CPP_RTTI': 'YES',              # -fno-rtti
-              'MACOSX_DEPLOYMENT_TARGET' : '10.11',      #from MAC OS 10.7
-              'OTHER_CFLAGS': [
-              '-g -O3 -stdlib=libc++ -std=c++11',
-            ]
+            'GCC_ENABLE_CPP_RTTI': 'YES',              # -fno-rtti
+            'MACOSX_DEPLOYMENT_TARGET' : '10.11',      #from MAC OS 10.7
+            'OTHER_CFLAGS': ['-g -O3 -stdlib=libc++ -std=c++11',]
           },
         }, { # OS!="mac"
           'cflags!' : ['-fno-exceptions'],
@@ -32,16 +30,14 @@
     'target_name': 'addonDebug',
       'sources': ['<@(common_sources)'],
       'include_dirs' : ['<@(common_include_dirs)'],
-      'libraries': ['-L$(ERIZO_HOME)/build/debug/erizo -lerizo -Wl,-rpath,./../../erizo/build/debug/erizo'],
+      'libraries': ['-L$(ERIZO_HOME)/build/debug/erizo -lerizo -Wl,-rpath,<(module_root_dir)/../erizo/build/debug/erizo'],
       'conditions': [
         [ 'OS=="mac"', {
           'xcode_settings': {
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',        # -fno-exceptions
-              'GCC_ENABLE_CPP_RTTI': 'YES',              # -fno-rtti
-              'MACOSX_DEPLOYMENT_TARGET' : '10.11',      #from MAC OS 10.7
-              'OTHER_CFLAGS': [
-              '-g -O3 -stdlib=libc++ -std=c++11',
-            ]
+            'GCC_ENABLE_CPP_RTTI': 'YES',              # -fno-rtti
+            'MACOSX_DEPLOYMENT_TARGET' : '10.11',      #from MAC OS 10.7
+            'OTHER_CFLAGS': ['-g -O3 -stdlib=libc++ -std=c++11',]
           },
         }, { # OS!="mac"
           'cflags!' : ['-fno-exceptions'],

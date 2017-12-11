@@ -63,10 +63,6 @@ PipelineBase& PipelineBase::removeHelper(H* handler, bool checkEqual) {
     }
   }
 
-  if (!removed) {
-    throw std::invalid_argument("No such handler in pipeline");
-  }
-
   return *this;
 }
 
@@ -188,10 +184,6 @@ void PipelineBase::removeService() {
         break;
       }
     }
-  }
-
-  if (!removed) {
-    throw std::invalid_argument("No such handler in pipeline");
   }
 }
 
