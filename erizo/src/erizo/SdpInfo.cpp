@@ -767,12 +767,19 @@ namespace erizo {
         }
         if (parts[1] == kSimulcastGroup) {
           ELOG_DEBUG("Detected SIM group, size: %lu", parts.size());
+          std::vector<uint32_t> old_video_ssrc_list;
+          if (video_ssrc_list.size() > 0) {
+            old_video_ssrc_list = video_ssrc_list;
+            video_ssrc_list.clear();
+          }
           std::for_each(parts.begin() + 2, parts.end(), [this] (std::string &part){
-              uint32_t parsed_ssrc = strtoul(part.c_str(), nullptr, 10);
-              ELOG_DEBUG("maybeAddSsrc video SIM, ssrc %u", parsed_ssrc);
-              maybeAddSsrcToList(parsed_ssrc);
-              });
-
+            uint32_t parsed_ssrc = strtoul(part.c_str(), nullptr, 10);
+            ELOG_DEBUG("maybeAddSsrc video SIM, ssrc %u", parsed_ssrc);
+            maybeAddSsrcToList(parsed_ssrc);
+          });
+          for (uint32_t ssrc : old_video_ssrc_list) {
+            maybeAddSsrcToList(ssrc);
+          }
         } else if (parts[1] == kFidGroup) {
           int number_of_ssrcs = parts.size() - 2;
           if (number_of_ssrcs != 2) {
