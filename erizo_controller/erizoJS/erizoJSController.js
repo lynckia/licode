@@ -75,7 +75,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
 
         if (global.config.erizoController.report.rtcp_stats) {  // jshint ignore:line
             log.debug('message: RTCP Stat collection is active');
-            wrtc.getPeriodicStats(function (newStats) {
+            wrtc.mediaStream.getPeriodicStats(function (newStats) {
                 var timeStamp = new Date();
                 amqper.broadcast('stats', {pub: idPub,
                                            subs: idSub,
@@ -276,7 +276,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                             that.setSlideShow(msg.config.slideShowMode, peerId, streamId);
                         }
                         if (msg.config.muteStream !== undefined) {
-                            that.muteStream (msg.config.muteStream, peerId, streamId);
+                            that.muteStream(msg.config.muteStream, peerId, streamId);
                         }
                         if (msg.config.qualityLayer !== undefined) {
                             that.setQualityLayer (msg.config.qualityLayer, peerId, streamId);
@@ -400,7 +400,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
             log.info('message: Removing publisher, id: ' + from);
             if (publisher.wrtc.mediaStream.periodicPlis !== undefined) {
                 log.debug('message: clearing periodic PLIs for publisher, id: ' + from);
-                clearInterval (publisher.wrc.mediaStream.periodicPlis);
+                clearInterval (publisher.wrtc.mediaStream.periodicPlis);
             }
             for (var key in publisher.subscribers) {
                 var subscriber = publisher.getSubscriber(key);
@@ -445,7 +445,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
             publisher.removeSubscriber(from);
         }
 
-        if (publisher && publisher.wrtc.mediaStream.periodicPlis !== undefined) {
+        if (publisher && publisher.wrtc && publisher.wrtc.mediaStream &&
+           publisher.wrtc.mediaStream.periodicPlis !== undefined) {
             for (var i in publisher.subscribers) {
                 if (publisher.getSubscriber(i).mediaStream.slideShowMode === true) {
                     return;

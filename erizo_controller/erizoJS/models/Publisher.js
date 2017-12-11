@@ -204,7 +204,7 @@ class Publisher extends Source {
     this.muxer.setPublisher(this.wrtc.mediaStream);
     const muteVideo = (options.muteStream && options.muteStream.video) || false;
     const muteAudio = (options.muteStream && options.muteStream.audio) || false;
-    this.wrtc.mediaStream.muteStream(muteVideo, muteAudio);
+    this.muteStream(muteVideo, muteAudio);
   }
 
   resetWrtc() {
