@@ -3,9 +3,10 @@ const Direction = require('./Direction');
 const DirectionWay = require('./DirectionWay');
 
 class MediaInfo {
-  constructor(id, type) {
+  constructor(id, port, type) {
     this.id = id;
     this.type = type;
+    this.port = port;
     this.direction = Direction.SENDRECV;
     this.extensions = new Map();
     this.codecs = new Map();
@@ -19,7 +20,7 @@ class MediaInfo {
   }
 
   clone() {
-    const cloned = new MediaInfo(this.id, this.type);
+    const cloned = new MediaInfo(this.id, this.port, this.type);
     cloned.setDirection(this.direction);
     cloned.setBitrate(this.bitrate);
     cloned.setConnection(this.connection);
@@ -53,6 +54,7 @@ class MediaInfo {
   plain() {
     const plain = {
       id: this.id,
+      port: this.port,
       type: this.type,
       connection: this.connection,
       direction: Direction.toString(this.direction),
@@ -87,6 +89,10 @@ class MediaInfo {
 
   getType() {
     return this.type;
+  }
+
+  getPort() {
+    return this.port;
   }
 
   getId() {
@@ -202,7 +208,7 @@ class MediaInfo {
   }
 
   answer(supported) {
-    const answer = new MediaInfo(this.id, this.type);
+    const answer = new MediaInfo(this.id, this.port, this.type);
 
     answer.setDirection(Direction.reverse(this.direction));
 
