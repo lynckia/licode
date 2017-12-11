@@ -750,7 +750,9 @@ namespace erizo {
         if (mtype == VIDEO_TYPE) {
           uint32_t parsed_ssrc = strtoul(parts[1].c_str(), nullptr, 10);
           ELOG_DEBUG("message: maybeAdd video in isSsrc, ssrc: %u", parsed_ssrc);
-          maybeAddSsrcToList(parsed_ssrc);
+          if (video_ssrc_list.size() == 0) {
+            maybeAddSsrcToList(parsed_ssrc);
+          }
         } else if ((mtype == AUDIO_TYPE) && (audio_ssrc == 0)) {
           audio_ssrc = strtoul(parts[1].c_str(), nullptr, 10);
           ELOG_DEBUG("audio ssrc: %u", audio_ssrc);
