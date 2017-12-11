@@ -9,7 +9,7 @@
 
 namespace erizo {
 
-class WebRtcConnection;
+class MediaStream;
 
 class FecReceiverHandler: public OutboundHandler, public webrtc::RtpData {
   DECLARE_LOGGER();

@@ -161,10 +161,10 @@ describe('Erizo JS Controller', function() {
       expect(erizoApiMock.WebRtcConnection.args[0][2]).to.equal(kArbitraryId);
       expect(erizoApiMock.WebRtcConnection.callCount).to.equal(1);
       expect(mocks.WebRtcConnection.wrtcId).to.equal(kArbitraryId);
-      expect(mocks.WebRtcConnection.setAudioReceiver.args[0][0]).to.equal(mocks.OneToManyProcessor);
-      expect(mocks.WebRtcConnection.setVideoReceiver.args[0][0]).to.equal(mocks.OneToManyProcessor);
+      expect(mocks.MediaStream.setAudioReceiver.args[0][0]).to.equal(mocks.OneToManyProcessor);
+      expect(mocks.MediaStream.setVideoReceiver.args[0][0]).to.equal(mocks.OneToManyProcessor);
       expect(mocks.OneToManyProcessor.setPublisher.args[0][0]).to.
-                                                      equal(mocks.WebRtcConnection);
+                                                      equal(mocks.MediaStream);
       expect(callback.callCount).to.equal(1);
       expect(callback.args[0]).to.deep.equal(['callback', {type: 'initializing'}]);
     });
@@ -178,10 +178,10 @@ describe('Erizo JS Controller', function() {
       expect(erizoApiMock.WebRtcConnection.args[0][2]).to.equal(kArbitraryId);
       expect(erizoApiMock.WebRtcConnection.callCount).to.equal(2);
       expect(mocks.WebRtcConnection.wrtcId).to.equal(kArbitraryId);
-      expect(mocks.WebRtcConnection.setAudioReceiver.args[1][0]).to.equal(mocks.OneToManyProcessor);
-      expect(mocks.WebRtcConnection.setVideoReceiver.args[1][0]).to.equal(mocks.OneToManyProcessor);
+      expect(mocks.MediaStream.setAudioReceiver.args[1][0]).to.equal(mocks.OneToManyProcessor);
+      expect(mocks.MediaStream.setVideoReceiver.args[1][0]).to.equal(mocks.OneToManyProcessor);
       expect(mocks.OneToManyProcessor.setPublisher.args[1][0]).to.
-                                                      equal(mocks.WebRtcConnection);
+                                                      equal(mocks.MediaStream);
       expect(callback.callCount).to.equal(2);
       expect(callback.args[1]).to.deep.equal(['callback', {type: 'initializing'}]);
     });
@@ -338,7 +338,7 @@ describe('Erizo JS Controller', function() {
         expect(subCallback.callCount).to.equal(2);
         expect(subCallback.args[1]).to.deep.equal(['callback', {type: 'initializing'}]);
         expect(subCallback.args[0]).to.deep.equal(['callback', {type: 'ready'}]);
-        expect(mocks.WebRtcConnection.setSlideShowMode.callCount).to.equal(1);
+        expect(mocks.MediaStream.setSlideShowMode.callCount).to.equal(1);
       });
 
       describe('Process Signaling Message', function() {
@@ -389,9 +389,9 @@ describe('Erizo JS Controller', function() {
                         }
                       }});
 
-          expect(mocks.WebRtcConnection.muteStream.callCount).to.equal(3);
-          expect(mocks.WebRtcConnection.muteStream.args[1]).to.deep.equal([false, true]);
-          expect(mocks.WebRtcConnection.muteStream.args[2]).to.deep.equal([false, false]);
+          expect(mocks.MediaStream.muteStream.callCount).to.equal(3);
+          expect(mocks.MediaStream.muteStream.args[1]).to.deep.equal([false, true]);
+          expect(mocks.MediaStream.muteStream.args[2]).to.deep.equal([false, false]);
         });
 
         it('should mute and unmute publisher stream', function() {
@@ -413,9 +413,9 @@ describe('Erizo JS Controller', function() {
                         }
                       }});
 
-          expect(mocks.WebRtcConnection.muteStream.callCount).to.equal(3);
-          expect(mocks.WebRtcConnection.muteStream.args[1]).to.deep.equal([false, true]);
-          expect(mocks.WebRtcConnection.muteStream.args[2]).to.deep.equal([false, false]);
+          expect(mocks.MediaStream.muteStream.callCount).to.equal(3);
+          expect(mocks.MediaStream.muteStream.args[1]).to.deep.equal([false, true]);
+          expect(mocks.MediaStream.muteStream.args[2]).to.deep.equal([false, false]);
         });
 
         it('should set slide show mode to true', function() {
@@ -425,8 +425,8 @@ describe('Erizo JS Controller', function() {
                         slideShowMode: true
                       }});
 
-          expect(mocks.WebRtcConnection.setSlideShowMode.callCount).to.equal(1);
-          expect(mocks.WebRtcConnection.setSlideShowMode.args[0][0]).to.be.true;  // jshint ignore:line
+          expect(mocks.MediaStream.setSlideShowMode.callCount).to.equal(1);
+          expect(mocks.MediaStream.setSlideShowMode.args[0][0]).to.be.true;  // jshint ignore:line
         });
 
         it('should set slide show mode to false', function() {
@@ -436,7 +436,7 @@ describe('Erizo JS Controller', function() {
                         slideShowMode: false
                       }});
 
-          expect(mocks.WebRtcConnection.setSlideShowMode.args[0][0]).to.be.false;  // jshint ignore:line
+          expect(mocks.MediaStream.setSlideShowMode.args[0][0]).to.be.false;  // jshint ignore:line
         });
       });
 

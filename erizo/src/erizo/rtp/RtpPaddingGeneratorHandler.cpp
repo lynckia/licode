@@ -4,7 +4,7 @@
 #include <string>
 
 #include "./MediaDefinitions.h"
-#include "./WebRtcConnection.h"
+#include "./MediaStream.h"
 #include "./RtpUtils.h"
 
 namespace erizo {
@@ -18,7 +18,7 @@ constexpr uint64_t kInitialBitrate = 300000;
 constexpr uint64_t kPaddingBurstSize = 255 * 10;
 
 RtpPaddingGeneratorHandler::RtpPaddingGeneratorHandler(std::shared_ptr<erizo::Clock> the_clock) :
-  clock_{the_clock}, connection_{nullptr}, max_video_bw_{0}, higher_sequence_number_{0},
+  clock_{the_clock}, stream_{nullptr}, max_video_bw_{0}, higher_sequence_number_{0},
   video_sink_ssrc_{0}, audio_source_ssrc_{0},
   number_of_full_padding_packets_{0}, last_padding_packet_size_{0},
   last_rate_calculation_time_{clock_->now()}, started_at_{clock_->now()},
@@ -38,10 +38,10 @@ void RtpPaddingGeneratorHandler::disable() {
 
 void RtpPaddingGeneratorHandler::notifyUpdate() {
   auto pipeline = getContext()->getPipelineShared();
-  if (pipeline && !connection_) {
-    connection_ = pipeline->getService<WebRtcConnection>().get();
-    video_sink_ssrc_ = connection_->getVideoSinkSSRC();
-    audio_source_ssrc_ = connection_->getAudioSinkSSRC();
+  if (pipeline && !stream_) {
+    stream_ = pipeline->getService<MediaStream>().get();
+    video_sink_ssrc_ = stream_->getVideoSinkSSRC();
+    audio_source_ssrc_ = stream_->getAudioSinkSSRC();
     stats_ = pipeline->getService<Stats>();
     stats_->getNode()["total"].insertStat("paddingBitrate",
         MovingIntervalRateStat{std::chrono::milliseconds(100), 30, 8., clock_});
@@ -69,7 +69,7 @@ void RtpPaddingGeneratorHandler::write(Context *ctx, std::shared_ptr<DataPacket>
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   bool is_higher_sequence_number = false;
   if (packet->type == VIDEO_PACKET && !chead->isRtcp()) {
-    connection_->getWorker()->unschedule(scheduled_task_);
+    stream_->getWorker()->unschedule(scheduled_task_);
     is_higher_sequence_number = isHigherSequenceNumber(packet);
     if (!first_packet_received_) {
       started_at_ = clock_->now();
@@ -112,7 +112,7 @@ void RtpPaddingGeneratorHandler::onPacketWithMarkerSet(std::shared_ptr<DataPacke
   }
   sendPaddingPacket(packet, last_padding_packet_size_);
   std::weak_ptr<RtpPaddingGeneratorHandler> weak_this = shared_from_this();
-  scheduled_task_ = connection_->getWorker()->scheduleFromNow([packet, weak_this] {
+  scheduled_task_ = stream_->getWorker()->scheduleFromNow([packet, weak_this] {
     if (auto this_ptr = weak_this.lock()) {
       this_ptr->onPacketWithMarkerSet(packet);
     }

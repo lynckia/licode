@@ -1,7 +1,6 @@
 #include <algorithm>
 #include "rtp/RtcpNackGenerator.h"
 #include "rtp/RtpUtils.h"
-#include "./WebRtcConnection.h"
 
 namespace erizo {
 

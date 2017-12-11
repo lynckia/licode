@@ -7,7 +7,7 @@
 #include <string>
 
 #include "Stats.h"
-#include "WebRtcConnection.h"
+#include "MediaStream.h"
 #include "lib/ClockUtils.h"
 
 namespace erizo {

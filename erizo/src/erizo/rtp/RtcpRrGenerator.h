@@ -14,9 +14,6 @@
 
 namespace erizo {
 
-class WebRtcConnection;
-
-
 class RtcpRrGenerator {
   DECLARE_LOGGER();
 

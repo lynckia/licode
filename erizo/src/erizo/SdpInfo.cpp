@@ -514,22 +514,22 @@ namespace erizo {
     ELOG_DEBUG("Setting Offer SDP");
   }
 
-  void SdpInfo::setOfferSdp(const SdpInfo& offerSdp) {
-    this->videoCodecs = offerSdp.videoCodecs;
-    this->audioCodecs = offerSdp.audioCodecs;
-    this->payloadVector = offerSdp.payloadVector;
-    this->isBundle = offerSdp.isBundle;
-    this->profile = offerSdp.profile;
-    this->isRtcpMux = offerSdp.isRtcpMux;
-    this->videoSdpMLine = offerSdp.videoSdpMLine;
-    this->audioSdpMLine = offerSdp.audioSdpMLine;
-    this->inOutPTMap = offerSdp.inOutPTMap;
-    this->outInPTMap = offerSdp.outInPTMap;
-    this->hasVideo = offerSdp.hasVideo;
-    this->hasAudio = offerSdp.hasAudio;
-    this->bundleTags = offerSdp.bundleTags;
-    this->extMapVector = offerSdp.extMapVector;
-    switch (offerSdp.videoDirection) {
+  void SdpInfo::setOfferSdp(std::shared_ptr<SdpInfo> offerSdp) {
+    this->videoCodecs = offerSdp->videoCodecs;
+    this->audioCodecs = offerSdp->audioCodecs;
+    this->payloadVector = offerSdp->payloadVector;
+    this->isBundle = offerSdp->isBundle;
+    this->profile = offerSdp->profile;
+    this->isRtcpMux = offerSdp->isRtcpMux;
+    this->videoSdpMLine = offerSdp->videoSdpMLine;
+    this->audioSdpMLine = offerSdp->audioSdpMLine;
+    this->inOutPTMap = offerSdp->inOutPTMap;
+    this->outInPTMap = offerSdp->outInPTMap;
+    this->hasVideo = offerSdp->hasVideo;
+    this->hasAudio = offerSdp->hasAudio;
+    this->bundleTags = offerSdp->bundleTags;
+    this->extMapVector = offerSdp->extMapVector;
+    switch (offerSdp->videoDirection) {
       case SENDONLY:
         this->videoDirection = RECVONLY;
         break;
@@ -543,7 +543,7 @@ namespace erizo {
         this->videoDirection = SENDRECV;
         break;
     }
-    switch (offerSdp.audioDirection) {
+    switch (offerSdp->audioDirection) {
       case SENDONLY:
         this->audioDirection = RECVONLY;
         break;

@@ -13,7 +13,7 @@
 
 namespace erizo {
 
-class WebRtcConnection;
+class MediaStream;
 
 class RtpPaddingGeneratorHandler: public Handler, public std::enable_shared_from_this<RtpPaddingGeneratorHandler> {
   DECLARE_LOGGER();
@@ -50,7 +50,7 @@ class RtpPaddingGeneratorHandler: public Handler, public std::enable_shared_from
  private:
   std::shared_ptr<erizo::Clock> clock_;
   SequenceNumberTranslator translator_;
-  WebRtcConnection* connection_;
+  MediaStream* stream_;
   std::shared_ptr<Stats> stats_;
   uint64_t max_video_bw_;
   uint16_t higher_sequence_number_;

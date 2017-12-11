@@ -1,6 +1,6 @@
 #include "rtp/QualityFilterHandler.h"
 
-#include "./WebRtcConnection.h"
+#include "./MediaStream.h"
 #include "lib/ClockUtils.h"
 #include "rtp/RtpUtils.h"
 #include "rtp/RtpVP8Parser.h"
@@ -12,7 +12,7 @@ DEFINE_LOGGER(QualityFilterHandler, "rtp.QualityFilterHandler");
 constexpr duration kSwitchTimeout = std::chrono::seconds(3);
 
 QualityFilterHandler::QualityFilterHandler()
-  : connection_{nullptr}, enabled_{true}, initialized_{false},
+  : stream_{nullptr}, enabled_{true}, initialized_{false},
   receiving_multiple_ssrc_{false}, changing_spatial_layer_{false}, is_scalable_{false},
   target_spatial_layer_{0},
   future_spatial_layer_{-1}, target_temporal_layer_{0},
@@ -196,15 +196,15 @@ void QualityFilterHandler::notifyUpdate() {
     return;
   }
 
-  connection_ = pipeline->getService<WebRtcConnection>().get();
-  if (!connection_) {
+  stream_ = pipeline->getService<MediaStream>().get();
+  if (!stream_) {
     return;
   }
 
   quality_manager_ = pipeline->getService<QualityManager>();
 
-  video_sink_ssrc_ = connection_->getVideoSinkSSRC();
-  video_source_ssrc_ = connection_->getVideoSourceSSRC();
+  video_sink_ssrc_ = stream_->getVideoSinkSSRC();
+  video_source_ssrc_ = stream_->getVideoSourceSSRC();
   initialized_ = true;
 }
 }  // namespace erizo
