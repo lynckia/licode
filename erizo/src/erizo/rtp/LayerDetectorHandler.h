@@ -33,7 +33,7 @@ class LayerInfoChangedEvent : public MediaEvent {
   std::vector<uint64_t> video_frame_rate_list;
 };
 
-class WebRtcConnection;
+class MediaStream;
 
 class LayerDetectorHandler: public InboundHandler, public std::enable_shared_from_this<LayerDetectorHandler> {
   DECLARE_LOGGER();
@@ -63,7 +63,7 @@ class LayerDetectorHandler: public InboundHandler, public std::enable_shared_fro
 
  private:
   std::shared_ptr<erizo::Clock> clock_;
-  WebRtcConnection *connection_;
+  MediaStream *stream_;
   bool enabled_;
   bool initialized_;
   RtpVP8Parser vp8_parser_;

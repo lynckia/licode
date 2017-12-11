@@ -10,7 +10,7 @@
 
 namespace erizo {
 
-class WebRtcConnection;
+class MediaStream;
 
 class RtcpProcessorHandler: public Handler {
   DECLARE_LOGGER();
@@ -30,7 +30,7 @@ class RtcpProcessorHandler: public Handler {
   void notifyUpdate() override;
 
  private:
-  WebRtcConnection* connection_;
+  MediaStream* stream_;
   std::shared_ptr<RtcpProcessor> processor_;
   std::shared_ptr<Stats> stats_;
 };

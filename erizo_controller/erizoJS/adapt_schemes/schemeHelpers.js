@@ -1,9 +1,9 @@
 'use strict';
 const schemeHelpers = {};
 
-schemeHelpers.getBandwidthStat = (wrtc) => {
+schemeHelpers.getBandwidthStat = (mediaStream) => {
   return new Promise((resolve, reject) => {
-    wrtc.getStats( (statsString) => {
+    mediaStream.getStats( (statsString) => {
       if (!statsString) {
         reject('no stats');
       }

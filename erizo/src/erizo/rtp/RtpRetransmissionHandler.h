@@ -7,8 +7,7 @@
 #include "pipeline/Handler.h"
 #include "lib/Clock.h"
 #include "lib/TokenBucket.h"
-
-#include "./WebRtcConnection.h"
+#include "Stats.h"
 #include "rtp/PacketBufferService.h"
 
 static constexpr uint kRetransmissionsBufferSize = 256;
@@ -19,6 +18,9 @@ static constexpr float kMarginRtxBitrate = 0.1;
 static constexpr int kBurstSize = 1300 * 20;  // 20 packets with almost max size
 
 namespace erizo {
+
+class MediaStream;
+
 class RtpRetransmissionHandler : public Handler {
  public:
   DECLARE_LOGGER();
@@ -43,7 +45,7 @@ class RtpRetransmissionHandler : public Handler {
 
  private:
   std::shared_ptr<erizo::Clock> clock_;
-  WebRtcConnection *connection_;
+  MediaStream *stream_;
   bool initialized_, enabled_;
   std::shared_ptr<Stats> stats_;
   std::shared_ptr<PacketBufferService> packet_buffer_;

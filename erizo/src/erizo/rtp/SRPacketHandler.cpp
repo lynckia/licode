@@ -1,5 +1,5 @@
 #include "rtp/SRPacketHandler.h"
-#include "./WebRtcConnection.h"
+#include "./MediaStream.h"
 #include "lib/ClockUtils.h"
 
 namespace erizo {
@@ -7,7 +7,7 @@ namespace erizo {
 DEFINE_LOGGER(SRPacketHandler, "rtp.SRPacketHandler");
 
 SRPacketHandler::SRPacketHandler() :
-    enabled_{true}, initialized_{false}, connection_(nullptr) {}
+    enabled_{true}, initialized_{false}, stream_(nullptr) {}
 
 
 void SRPacketHandler::enable() {
@@ -72,10 +72,10 @@ void SRPacketHandler::notifyUpdate() {
     return;
   }
   auto pipeline = getContext()->getPipelineShared();
-  if (pipeline && !connection_) {
-    connection_ = pipeline->getService<WebRtcConnection>().get();
+  if (pipeline && !stream_) {
+    stream_ = pipeline->getService<MediaStream>().get();
   }
-  if (!connection_) {
+  if (!stream_) {
     return;
   }
   initialized_ = true;

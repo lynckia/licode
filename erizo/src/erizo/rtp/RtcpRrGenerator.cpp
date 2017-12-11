@@ -1,5 +1,4 @@
 #include "rtp/RtcpRrGenerator.h"
-#include "./WebRtcConnection.h"
 #include "lib/ClockUtils.h"
 #include "rtp/RtpUtils.h"
 

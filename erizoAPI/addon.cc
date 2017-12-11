@@ -3,6 +3,7 @@
 #endif
 #include <nan.h>
 #include "WebRtcConnection.h"
+#include "MediaStream.h"
 #include "OneToManyProcessor.h"
 #include "OneToManyTranscoder.h"
 #include "SyntheticInput.h"
@@ -13,6 +14,7 @@
 
 NAN_MODULE_INIT(InitAll) {
   WebRtcConnection::Init(target);
+  MediaStream::Init(target);
   OneToManyProcessor::Init(target);
   ExternalInput::Init(target);
   ExternalOutput::Init(target);

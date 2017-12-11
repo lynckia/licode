@@ -198,14 +198,15 @@ class BaseHandlerTest  {
     io_worker = std::make_shared<erizo::IOWorker>();
     io_worker->start();
     connection = std::make_shared<erizo::MockWebRtcConnection>(simulated_worker, io_worker, ice_config, rtp_maps);
+    media_stream = std::make_shared<erizo::MockMediaStream>(connection, "", rtp_maps);
     processor = std::make_shared<erizo::MockRtcpProcessor>();
     quality_manager = std::make_shared<erizo::MockQualityManager>();
     packet_buffer_service = std::make_shared<erizo::PacketBufferService>();
     stats = std::make_shared<erizo::Stats>();
-    connection->setVideoSinkSSRC(erizo::kVideoSsrc);
-    connection->setAudioSinkSSRC(erizo::kAudioSsrc);
-    connection->setVideoSourceSSRC(erizo::kVideoSsrc);
-    connection->setAudioSourceSSRC(erizo::kAudioSsrc);
+    media_stream->setVideoSinkSSRC(erizo::kVideoSsrc);
+    media_stream->setAudioSinkSSRC(erizo::kAudioSsrc);
+    media_stream->setVideoSourceSSRC(erizo::kVideoSsrc);
+    media_stream->setAudioSourceSSRC(erizo::kAudioSsrc);
 
     pipeline = Pipeline::create();
     reader = std::make_shared<erizo::Reader>();
@@ -218,7 +219,8 @@ class BaseHandlerTest  {
     EXPECT_CALL(*writer, write(_, _)).Times(testing::AtLeast(0));
 
     std::shared_ptr<erizo::WebRtcConnection> connection_ptr = std::dynamic_pointer_cast<WebRtcConnection>(connection);
-    pipeline->addService(connection_ptr);
+    std::shared_ptr<erizo::MediaStream> stream_ptr = std::dynamic_pointer_cast<MediaStream>(media_stream);
+    pipeline->addService(stream_ptr);
     pipeline->addService(std::dynamic_pointer_cast<RtcpProcessor>(processor));
     pipeline->addService(std::dynamic_pointer_cast<QualityManager>(quality_manager));
     pipeline->addService(packet_buffer_service);
@@ -245,6 +247,7 @@ class BaseHandlerTest  {
   std::vector<RtpMap> rtp_maps;
   std::shared_ptr<erizo::Stats> stats;
   std::shared_ptr<erizo::MockWebRtcConnection> connection;
+  std::shared_ptr<erizo::MockMediaStream> media_stream;
   std::shared_ptr<erizo::MockRtcpProcessor> processor;
   std::shared_ptr<erizo::MockQualityManager> quality_manager;
   Pipeline::Ptr pipeline;
