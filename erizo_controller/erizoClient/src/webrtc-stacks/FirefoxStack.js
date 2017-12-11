@@ -4,12 +4,8 @@ import BaseStack from './BaseStack';
 const FirefoxStack = (specInput) => {
   Logger.info('Starting Firefox stack');
   const that = BaseStack(specInput);
-  const spec = specInput;
 
-  that.enableSimulcast = (sdp) => {
-    if (!spec.video || !spec.simulcast) {
-      return sdp;
-    }
+  const enableSimulcast = () => {
     that.peerConnection.getSenders().forEach((sender) => {
       if (sender.track.kind === 'video') {
         sender.getParameters();
@@ -17,20 +13,31 @@ const FirefoxStack = (specInput) => {
           rid: 'spam',
           active: true,
           priority: 'high',
-          maxBitrate: 40000,
+          maxBitrate: 600000,
           maxHeight: 640,
           maxWidth: 480 }, {
             rid: 'egg',
             active: true,
             priority: 'medium',
-            maxBitrate: 10000,
+            maxBitrate: 600000,
             maxHeight: 320,
             maxWidth: 240 }],
         });
       }
     });
-    return sdp;
   };
+
+  that.enableSimulcast = sdp => sdp;
+
+  const baseCreateOffer = that.createOffer;
+
+  that.createOffer = (isSubscribe) => {
+    if (isSubscribe !== true) {
+      enableSimulcast();
+    }
+    baseCreateOffer(isSubscribe);
+  };
+
   return that;
 };
 

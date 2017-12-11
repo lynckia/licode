@@ -261,6 +261,39 @@ TEST_F(SdpInfoTest, shouldParseSIMGroup) {
   EXPECT_EQ(sdp->video_ssrc_list[1], kSecondSimSSRC);
 }
 
+TEST_F(SdpInfoTest, shouldParseRidSimulcast) {
+  using namespace erizo;
+  const uint kSimSSRCsInSdp = 2;
+  const uint32_t kFirstSimSSRC = 1553976150;
+  const std::string kFirstSimId = "spam";
+  const uint32_t kSecondSimSSRC = 2935962150;
+  const std::string kSecondSimId = "egg";
+  const Rid kFirstRid = Rid{kFirstSimId, RidDirection::SEND};
+  const Rid kSecondRid = Rid{kSecondSimId, RidDirection::SEND};
+
+  std::ifstream ifs("FirefoxSimulcast.sdp", std::fstream::in);
+  std::string sdp_string = readFile(ifs);
+
+  sdp->initWithSdp(sdp_string, "video");
+
+  ASSERT_EQ(kSimSSRCsInSdp, sdp->video_ssrc_list.size());
+  EXPECT_EQ(kFirstSimSSRC, sdp->video_ssrc_list[0]);
+  EXPECT_EQ(kSecondSimSSRC, sdp->video_ssrc_list[1]);
+  ASSERT_EQ(kSimSSRCsInSdp, sdp->rids().size());
+  EXPECT_EQ(kFirstRid, sdp->rids()[0]);
+  EXPECT_EQ(kSecondRid, sdp->rids()[1]);
+
+  SdpInfo answer = SdpInfo(std::vector<RtpMap>{});
+  answer.setOfferSdp(*sdp);
+
+  ASSERT_EQ(kSimSSRCsInSdp, answer.rids().size());
+
+  const auto answer_str = answer.getSdp();
+  EXPECT_NE(std::string::npos, answer_str.find("a=rid:spam recv"));
+  EXPECT_NE(std::string::npos, answer_str.find("a=rid:egg recv"));
+  EXPECT_NE(std::string::npos, answer_str.find("a=simulcast: recv rid=spam;egg"));
+}
+
 TEST_F(SdpInfoTest, shouldParseFIDGroups) {
   const uint32_t kFirstSimSSRC = 1662454169;
   const uint32_t kSecondSimSSRC = 1662455169;
