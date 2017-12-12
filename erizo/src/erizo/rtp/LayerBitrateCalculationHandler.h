@@ -9,7 +9,6 @@
 
 namespace erizo {
 
-class WebRtcConnection;
 
 constexpr duration kLayerRateStatIntervalSize = std::chrono::milliseconds(100);
 constexpr uint32_t kLayerRateStatIntervals = 30;

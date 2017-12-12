@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
 
 #include "./logger.h"
 
@@ -222,7 +223,7 @@ class SdpInfo {
    * @brief copies relevant information from the offer sdp for which this will be an answer sdp
    * @param offerSdp The offer SDP as received via signaling and parsed
    */
-  void setOfferSdp(const SdpInfo& offerSdp);
+  void setOfferSdp(std::shared_ptr<SdpInfo> offerSdp);
 
   void updateSupportedExtensionMap(const std::vector<ExtMap> &ext_map);
   bool isValidExtension(std::string uri);

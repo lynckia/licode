@@ -21,6 +21,7 @@ if (global.config.erizo.useNicer) {
 exports.ErizoNativeConnection = (config) => {
   const that = {};
   let wrtc;
+  let mediaStream;
   let syntheticInput;
   let externalInput;
   let oneToMany;
@@ -40,7 +41,7 @@ exports.ErizoNativeConnection = (config) => {
 
   const generatePLIs = () => {
     externalOutput.interval = setInterval(() => {
-      wrtc.generatePLIPacket();
+      mediaStream.generatePLIPacket();
     }, 1000);
   };
 
@@ -120,22 +121,28 @@ exports.ErizoNativeConnection = (config) => {
   global.config.erizo.turnpass,
   global.config.erizo.networkinterface);
 
+  mediaStream = new addon.MediaStream(wrtc,
+      `spine_${configuration.sessionId}`,
+      JSON.stringify(global.mediaConfig));
+
+  wrtc.addMediaStream(mediaStream);
+
   that.createOffer = () => {
   };
 
   that.prepareNull = () => {
     log.info('Preparing null output');
     oneToMany = new addon.OneToManyProcessor();
-    wrtc.setVideoReceiver(oneToMany);
-    wrtc.setAudioReceiver(oneToMany);
-    oneToMany.setPublisher(wrtc);
+    mediaStream.setVideoReceiver(oneToMany);
+    mediaStream.setAudioReceiver(oneToMany);
+    oneToMany.setPublisher(mediaStream);
   };
 
   that.prepareVideo = (url) => {
     log.info('Preparing video', url);
     externalInput = new addon.ExternalInput(url);
-    externalInput.setAudioReceiver(wrtc);
-    externalInput.setVideoReceiver(wrtc);
+    externalInput.setAudioReceiver(mediaStream);
+    externalInput.setVideoReceiver(mediaStream);
   };
 
   that.prepareSynthetic = (spec) => {
@@ -144,16 +151,16 @@ exports.ErizoNativeConnection = (config) => {
       spec.audioBitrate,
       spec.minVideoBitrate,
       spec.maxVideoBitrate);
-    syntheticInput.setAudioReceiver(wrtc);
-    syntheticInput.setVideoReceiver(wrtc);
-    syntheticInput.setFeedbackSource(wrtc);
+    syntheticInput.setAudioReceiver(mediaStream);
+    syntheticInput.setVideoReceiver(mediaStream);
+    syntheticInput.setFeedbackSource(mediaStream);
   };
 
   that.prepareRecording = (url) => {
     log.info('Preparing Recording', url);
     externalOutput = new addon.ExternalOutput(url, JSON.stringify(global.mediaConfig));
-    wrtc.setVideoReceiver(externalOutput);
-    wrtc.setAudioReceiver(externalOutput);
+    mediaStream.setVideoReceiver(externalOutput);
+    mediaStream.setAudioReceiver(externalOutput);
   };
 
   that.setRemoteDescription = () => {
@@ -187,11 +194,11 @@ exports.ErizoNativeConnection = (config) => {
   that.getStats = () => {
     log.info('Requesting stats');
     return new Promise((resolve, reject) => {
-      if (!wrtc) {
-        reject('No connection present');
+      if (!mediaStream) {
+        reject('No stream present');
         return;
       }
-      wrtc.getStats((statsString) => {
+      mediaStream.getStats((statsString) => {
         resolve(JSON.parse(statsString));
       });
     });
@@ -213,7 +220,9 @@ exports.ErizoNativeConnection = (config) => {
     }
     that.connected = false;
     wrtc.close();
+    mediaStream.close();
     wrtc = undefined;
+    mediaStream = undefined;
   };
 
   return that;

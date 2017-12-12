@@ -1,4 +1,7 @@
-/*global console, CryptoJS, XMLHttpRequest*/
+/*global console, XMLHttpRequest*/
+
+var crypto = require('crypto');
+
 var N = N || {};
 
 N.API = (function (N) {
@@ -173,11 +176,10 @@ N.API = (function (N) {
     };
 
     calculateSignature = function (toSign, key) {
-        var hash, hex, signed;
-        hash = CryptoJS.HmacSHA1(toSign, key);
-        hex = hash.toString(CryptoJS.enc.Hex);
-        signed = N.Base64.encodeBase64(hex);
-        return signed;
+      var hex = crypto.createHmac('sha1', key)
+        .update(toSign)
+        .digest('hex');
+      return Buffer.from(hex).toString('base64');
     };
 
     formatString = function(s){

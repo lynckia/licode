@@ -23,7 +23,7 @@ namespace erizo {
 
 constexpr  int kUnpackageBufferSize = 200000;
 
-class WebRtcConnection;
+class MediaStream;
 
 // Our search state for VP8 frames.
 enum vp8SearchState {

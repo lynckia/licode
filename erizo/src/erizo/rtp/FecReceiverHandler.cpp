@@ -1,6 +1,6 @@
 #include "rtp/FecReceiverHandler.h"
 #include "./MediaDefinitions.h"
-#include "./WebRtcConnection.h"
+#include "./MediaStream.h"
 
 namespace erizo {
 
@@ -28,13 +28,13 @@ void FecReceiverHandler::notifyUpdate() {
   if (!pipeline) {
     return;
   }
-  std::shared_ptr<WebRtcConnection> connection = pipeline->getService<WebRtcConnection>();
-  if (!connection) {
+  std::shared_ptr<MediaStream> stream = pipeline->getService<MediaStream>();
+  if (!stream) {
     return;
   }
-  SdpInfo &remote_sdp = connection->getRemoteSdpInfo();
-  bool is_slide_show_mode_active = connection->isSlideShowModeEnabled();
-  if (!remote_sdp.supportPayloadType(RED_90000_PT) || is_slide_show_mode_active) {
+  SdpInfo* remote_sdp = stream->getRemoteSdpInfo();
+  bool is_slide_show_mode_active = stream->isSlideShowModeEnabled();
+  if (!remote_sdp->supportPayloadType(RED_90000_PT) || is_slide_show_mode_active) {
     enable();
   } else {
     disable();

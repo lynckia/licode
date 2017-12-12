@@ -138,21 +138,26 @@ var reset = module.exports.reset = function() {
 
   module.exports.WebRtcConnection = {
     wrtcId: '',
-    minVideoBW: '',
-    scheme:'',
-    periodicPlis:'',
     init: sinon.stub(),
-    setAudioReceiver: sinon.stub(),
-    setVideoReceiver: sinon.stub(),
     close: sinon.stub(),
-    getStats: sinon.stub(),
-    getPeriodicStats: sinon.stub(),
-    generatePLIPacket: sinon.stub(),
     createOffer: sinon.stub(),
     setRemoteSdp: sinon.stub(),
     addRemoteCandidate: sinon.stub(),
+    addMediaStream: sinon.stub(),
+  };
+
+  module.exports.MediaStream = {
+    minVideoBW: '',
+    scheme: '',
+    periodicPlis: '',
+    close: sinon.stub(),
+    setAudioReceiver: sinon.stub(),
+    setVideoReceiver: sinon.stub(),
+    getStats: sinon.stub(),
+    getPeriodicStats: sinon.stub(),
+    generatePLIPacket: sinon.stub(),
     setSlideShowMode: sinon.stub(),
-    muteStream: sinon.stub()
+    muteStream: sinon.stub(),
   };
 
   module.exports.ExternalInput = {
@@ -171,6 +176,7 @@ var reset = module.exports.reset = function() {
   module.exports.erizoAPI = createMock('../../erizoAPI/build/Release/addon', {
     OneToManyProcessor: sinon.stub().returns(module.exports.OneToManyProcessor),
     WebRtcConnection: sinon.stub().returns(module.exports.WebRtcConnection),
+    MediaStream: sinon.stub().returns(module.exports.MediaStream),
     ExternalInput: sinon.stub().returns(module.exports.ExternalInput),
     ExternalOutput: sinon.stub().returns(module.exports.ExternalOutput)
   });

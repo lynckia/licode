@@ -514,22 +514,22 @@ namespace erizo {
     ELOG_DEBUG("Setting Offer SDP");
   }
 
-  void SdpInfo::setOfferSdp(const SdpInfo& offerSdp) {
-    this->videoCodecs = offerSdp.videoCodecs;
-    this->audioCodecs = offerSdp.audioCodecs;
-    this->payloadVector = offerSdp.payloadVector;
-    this->isBundle = offerSdp.isBundle;
-    this->profile = offerSdp.profile;
-    this->isRtcpMux = offerSdp.isRtcpMux;
-    this->videoSdpMLine = offerSdp.videoSdpMLine;
-    this->audioSdpMLine = offerSdp.audioSdpMLine;
-    this->inOutPTMap = offerSdp.inOutPTMap;
-    this->outInPTMap = offerSdp.outInPTMap;
-    this->hasVideo = offerSdp.hasVideo;
-    this->hasAudio = offerSdp.hasAudio;
-    this->bundleTags = offerSdp.bundleTags;
-    this->extMapVector = offerSdp.extMapVector;
-    switch (offerSdp.videoDirection) {
+  void SdpInfo::setOfferSdp(std::shared_ptr<SdpInfo> offerSdp) {
+    this->videoCodecs = offerSdp->videoCodecs;
+    this->audioCodecs = offerSdp->audioCodecs;
+    this->payloadVector = offerSdp->payloadVector;
+    this->isBundle = offerSdp->isBundle;
+    this->profile = offerSdp->profile;
+    this->isRtcpMux = offerSdp->isRtcpMux;
+    this->videoSdpMLine = offerSdp->videoSdpMLine;
+    this->audioSdpMLine = offerSdp->audioSdpMLine;
+    this->inOutPTMap = offerSdp->inOutPTMap;
+    this->outInPTMap = offerSdp->outInPTMap;
+    this->hasVideo = offerSdp->hasVideo;
+    this->hasAudio = offerSdp->hasAudio;
+    this->bundleTags = offerSdp->bundleTags;
+    this->extMapVector = offerSdp->extMapVector;
+    switch (offerSdp->videoDirection) {
       case SENDONLY:
         this->videoDirection = RECVONLY;
         break;
@@ -543,7 +543,7 @@ namespace erizo {
         this->videoDirection = SENDRECV;
         break;
     }
-    switch (offerSdp.audioDirection) {
+    switch (offerSdp->audioDirection) {
       case SENDONLY:
         this->audioDirection = RECVONLY;
         break;
@@ -767,12 +767,19 @@ namespace erizo {
         }
         if (parts[1] == kSimulcastGroup) {
           ELOG_DEBUG("Detected SIM group, size: %lu", parts.size());
+          std::vector<uint32_t> old_video_ssrc_list;
+          if (video_ssrc_list.size() > 0) {
+            old_video_ssrc_list = video_ssrc_list;
+            video_ssrc_list.clear();
+          }
           std::for_each(parts.begin() + 2, parts.end(), [this] (std::string &part){
-              uint32_t parsed_ssrc = strtoul(part.c_str(), nullptr, 10);
-              ELOG_DEBUG("maybeAddSsrc video SIM, ssrc %u", parsed_ssrc);
-              maybeAddSsrcToList(parsed_ssrc);
-              });
-
+            uint32_t parsed_ssrc = strtoul(part.c_str(), nullptr, 10);
+            ELOG_DEBUG("maybeAddSsrc video SIM, ssrc %u", parsed_ssrc);
+            maybeAddSsrcToList(parsed_ssrc);
+          });
+          for (uint32_t ssrc : old_video_ssrc_list) {
+            maybeAddSsrcToList(ssrc);
+          }
         } else if (parts[1] == kFidGroup) {
           int number_of_ssrcs = parts.size() - 2;
           if (number_of_ssrcs != 2) {

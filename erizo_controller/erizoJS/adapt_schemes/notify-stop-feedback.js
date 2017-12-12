@@ -25,47 +25,47 @@ exports.MonitorSubscriber = function (log) {
   };
 
 
-  that.monitorMinVideoBw = function(wrtc, callback) {
-    wrtc.bwValues = [];
+  that.monitorMinVideoBw = function(mediaStream, callback) {
+    mediaStream.bwValues = [];
     var tics = 0;
     var noFeedbackTics = 0;
     var lastAverage, average, lastBWValue;
-    wrtc.bwStatus = BW_STABLE;
+    mediaStream.bwStatus = BW_STABLE;
     log.info('message: Start wrtc adapt scheme, ' +
-    'id: ' + wrtc.wrtcId + ', ' +
+    'id: ' + mediaStream.wrtcId + ', ' +
     'scheme: notify-stop-feedback, ' +
-    'minVideoBW: ' + wrtc.minVideoBW);
+    'minVideoBW: ' + mediaStream.minVideoBW);
 
-    wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
-    wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(0.8));
-    wrtc.upperThres = Math.ceil(wrtc.minVideoBW);
-    wrtc.monitorInterval = setInterval(() => {
+    mediaStream.minVideoBW = mediaStream.minVideoBW*1000; // We need it in bps
+    mediaStream.lowerThres = Math.floor(mediaStream.minVideoBW*(0.8));
+    mediaStream.upperThres = Math.ceil(mediaStream.minVideoBW);
+    mediaStream.monitorInterval = setInterval(() => {
 
-      schemeHelpers.getBandwidthStat(wrtc).then((bandwidth) => {
-        if (wrtc.slideShowMode) {
+      schemeHelpers.getBandwidthStat(mediaStream).then((bandwidth) => {
+        if (mediaStream.slideShowMode) {
           return;
         }
         if(bandwidth) {
           lastBWValue = bandwidth;
-          wrtc.bwValues.push(lastBWValue);
-          if (wrtc.bwValues.length > 5) {
-            wrtc.bwValues.shift();
+          mediaStream.bwValues.push(lastBWValue);
+          if (mediaStream.bwValues.length > 5) {
+            mediaStream.bwValues.shift();
           }
-          average = calculateAverage(wrtc.bwValues);
+          average = calculateAverage(mediaStream.bwValues);
         }
 
-        switch (wrtc.bwStatus) {
+        switch (mediaStream.bwStatus) {
           case BW_STABLE:
-            if(average <= lastAverage && (average < wrtc.lowerThres)) {
+            if(average <= lastAverage && (average < mediaStream.lowerThres)) {
               if (++tics > TICS_PER_TRANSITION){
                 log.info('message: scheme state change, ' +
-                'id: ' + wrtc.wrtcId + ', ' +
+                'id: ' + mediaStream.wrtcId + ', ' +
                 'previousState: BW_STABLE, ' +
                 'newState: BW_NO_FEEDBACK, ' +
                 'averageBandwidth: ' + average + ', ' +
-                'lowerThreshold: ' + wrtc.lowerThres);
-                wrtc.bwStatus = BW_NO_FEEDBACK;
-                wrtc.setFeedbackReports(false, 0);
+                'lowerThreshold: ' + mediaStream.lowerThres);
+                mediaStream.bwStatus = BW_NO_FEEDBACK;
+                mediaStream.setFeedbackReports(false, 0);
                 tics = 0;
                 noFeedbackTics = 0;
                 callback('callback', {type: 'bandwidthAlert',
@@ -75,16 +75,16 @@ exports.MonitorSubscriber = function (log) {
             }
             break;
           case BW_NO_FEEDBACK:
-            if (average >= wrtc.upperThres) {
+            if (average >= mediaStream.upperThres) {
               if (++tics > TICS_PER_TRANSITION) {
                 log.info('message: scheme state change, ' +
-                'id: ' + wrtc.wrtcId + ', ' +
+                'id: ' + mediaStream.wrtcId + ', ' +
                 'previousState: BW_NO_FEEDBACK, ' +
                 'newState: BW_STABLE, ' +
                 'averageBandwidth: ' + average + ', ' +
-                'upperThreshold: ' + wrtc.upperThres);
-                wrtc.bwStatus = BW_STABLE;
-                wrtc.setFeedbackReports(true, 0);
+                'upperThreshold: ' + mediaStream.upperThres);
+                mediaStream.bwStatus = BW_STABLE;
+                mediaStream.setFeedbackReports(true, 0);
                 tics = 0;
                 noFeedbackTics = 0;
                 callback('callback', {type: 'bandwidthAlert',
@@ -101,11 +101,11 @@ exports.MonitorSubscriber = function (log) {
             }
             break;
           default:
-            log.error('Unknown BW status, id: ' + wrtc.wrtcId);
+            log.error('Unknown BW status, id: ' + mediaStream.wrtcId);
         }
         lastAverage = average;
       }).catch((reason) => {
-        clearInterval(wrtc.monitorInterval);
+        clearInterval(mediaStream.monitorInterval);
         log.error('error getting stats: ' + reason);
       });
     }, INTERVAL_STATS);

@@ -7,7 +7,7 @@
 #include <map>
 #include <string>
 
-#include "./WebRtcConnection.h"
+#include "./MediaStream.h"
 #include "rtp/RtpHeaders.h"
 
 namespace erizo {
@@ -61,9 +61,9 @@ namespace erizo {
     return 0;
   }
 
-  void OneToManyProcessor::setPublisher(std::shared_ptr<MediaSource> webRtcConn) {
+  void OneToManyProcessor::setPublisher(std::shared_ptr<MediaSource> publisher_stream) {
     boost::mutex::scoped_lock lock(monitor_mutex_);
-    this->publisher = webRtcConn;
+    this->publisher = publisher_stream;
     feedbackSink_ = publisher->getFeedbackSink();
   }
 
@@ -87,43 +87,43 @@ namespace erizo {
     return 0;
   }
 
-  void OneToManyProcessor::addSubscriber(std::shared_ptr<MediaSink> webRtcConn,
-      const std::string& peerId) {
+  void OneToManyProcessor::addSubscriber(std::shared_ptr<MediaSink> subscriber_stream,
+      const std::string& peer_id) {
     ELOG_DEBUG("Adding subscriber");
     boost::mutex::scoped_lock lock(monitor_mutex_);
     ELOG_DEBUG("From %u, %u ", publisher->getAudioSourceSSRC(), publisher->getVideoSourceSSRC());
-    webRtcConn->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
-    webRtcConn->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
+    subscriber_stream->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
+    subscriber_stream->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
     ELOG_DEBUG("Subscribers ssrcs: Audio %u, video, %u from %u, %u ",
-               webRtcConn->getAudioSinkSSRC(), webRtcConn->getVideoSinkSSRC(),
+               subscriber_stream->getAudioSinkSSRC(), subscriber_stream->getVideoSinkSSRC(),
                this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
-    FeedbackSource* fbsource = webRtcConn->getFeedbackSource();
+    FeedbackSource* fbsource = subscriber_stream->getFeedbackSource();
 
     if (fbsource != nullptr) {
       ELOG_DEBUG("adding fbsource");
       fbsource->setFeedbackSink(this);
     }
-    if (this->subscribers.find(peerId) != subscribers.end()) {
-        ELOG_WARN("This OTM already has a subscriber with peerId %s, substituting it", peerId.c_str());
-        this->subscribers.erase(peerId);
+    if (this->subscribers.find(peer_id) != subscribers.end()) {
+        ELOG_WARN("This OTM already has a subscriber with peer_id %s, substituting it", peer_id.c_str());
+        this->subscribers.erase(peer_id);
     }
-    this->subscribers[peerId] = webRtcConn;
+    this->subscribers[peer_id] = subscriber_stream;
   }
 
-  void OneToManyProcessor::removeSubscriber(const std::string& peerId) {
-    ELOG_DEBUG("Remove subscriber %s", peerId.c_str());
+  void OneToManyProcessor::removeSubscriber(const std::string& peer_id) {
+    ELOG_DEBUG("Remove subscriber %s", peer_id.c_str());
     boost::mutex::scoped_lock lock(monitor_mutex_);
-    if (this->subscribers.find(peerId) != subscribers.end()) {
-      deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>(subscribers.find(peerId)->second));
-      this->subscribers.erase(peerId);
+    if (this->subscribers.find(peer_id) != subscribers.end()) {
+      deleteAsync(std::dynamic_pointer_cast<MediaStream>(subscribers.find(peer_id)->second));
+      this->subscribers.erase(peer_id);
     }
   }
 
-  std::future<void> OneToManyProcessor::deleteAsync(std::shared_ptr<WebRtcConnection> connection) {
+  std::future<void> OneToManyProcessor::deleteAsync(std::shared_ptr<MediaStream> stream) {
     auto promise = std::make_shared<std::promise<void>>();
-    if (connection) {
-      connection->getWorker()->task([promise, connection] {
-        connection->close();
+    if (stream) {
+      stream->getWorker()->task([promise, stream] {
+        stream->close();
         promise->set_value();
       });
     } else {
@@ -140,7 +140,7 @@ namespace erizo {
     ELOG_DEBUG("OneToManyProcessor closeAll");
     feedbackSink_ = nullptr;
     if (publisher.get()) {
-      std::future<void> future = deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>(publisher));
+      std::future<void> future = deleteAsync(std::dynamic_pointer_cast<MediaStream>(publisher));
       future.wait();
     }
     publisher.reset();
@@ -149,7 +149,7 @@ namespace erizo {
     while (it != subscribers.end()) {
       if ((*it).second != nullptr) {
         FeedbackSource* fbsource = (*it).second->getFeedbackSource();
-        std::future<void> future = deleteAsync(std::dynamic_pointer_cast<WebRtcConnection>((*it).second));
+        std::future<void> future = deleteAsync(std::dynamic_pointer_cast<MediaStream>((*it).second));
         future.wait();
         if (fbsource != nullptr) {
           fbsource->setFeedbackSink(nullptr);

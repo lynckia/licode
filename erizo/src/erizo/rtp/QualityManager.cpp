@@ -1,7 +1,7 @@
 #include "rtp/QualityManager.h"
 #include <memory>
 
-#include "WebRtcConnection.h"
+#include "MediaStream.h"
 #include "rtp/LayerDetectorHandler.h"
 
 namespace erizo {
@@ -157,9 +157,9 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     if (below_min_layer || try_higher_layers) {
       slideshow_mode_active_ = below_min_layer;
       ELOG_DEBUG("Slideshow fallback mode %d", slideshow_mode_active_);
-      WebRtcConnection *connection = getContext()->getPipelineShared()->getService<WebRtcConnection>().get();
-      if (connection) {
-        connection->notifyUpdateToHandlers();
+      MediaStream *media_stream = getContext()->getPipelineShared()->getService<MediaStream>().get();
+      if (media_stream) {
+        media_stream->notifyUpdateToHandlers();
       }
     }
   }
@@ -258,7 +258,7 @@ void QualityManager::setTemporalLayer(int temporal_layer) {
 void QualityManager::setPadding(bool enabled) {
   if (padding_enabled_ != enabled) {
     padding_enabled_ = enabled;
-    getContext()->getPipelineShared()->getService<WebRtcConnection>()->notifyUpdateToHandlers();
+    getContext()->getPipelineShared()->getService<MediaStream>()->notifyUpdateToHandlers();
   }
 }
 

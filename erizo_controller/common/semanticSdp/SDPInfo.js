@@ -235,7 +235,7 @@ class SDPInfo {
     this.medias.forEach((media) => {
       const md = {
         type: media.getType(),
-        port: 9,
+        port: media.getPort(),
         protocol: 'UDP/TLS/RTP/SAVPF',
         fmtp: [],
         rtp: [],
@@ -751,7 +751,8 @@ SDPInfo.process = (sdp) => {
   sdp.media.forEach((md) => {
     const media = md.type;
     const mid = md.mid;
-    const mediaInfo = new MediaInfo(mid, media);
+    const port = md.port;
+    const mediaInfo = new MediaInfo(mid, port, media);
     mediaInfo.setXGoogleFlag(md.xGoogleFlag);
     mediaInfo.rtcp = md.rtcp;
     mediaInfo.setConnection(md.connection);

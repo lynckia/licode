@@ -30,7 +30,7 @@ class RtpExtensionProcessor{
   explicit RtpExtensionProcessor(const std::vector<erizo::ExtMap> ext_mappings);
   virtual ~RtpExtensionProcessor();
 
-  void setSdpInfo(const SdpInfo& theInfo);
+  void setSdpInfo(std::shared_ptr<SdpInfo> theInfo);
   uint32_t processRtpExtensions(std::shared_ptr<DataPacket> p);
 
   std::array<RTPExtensions, 10> getVideoExtensionMap() {
