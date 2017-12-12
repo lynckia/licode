@@ -579,6 +579,22 @@ function getSimulcastDir(index, md, simulcast) {
   }
 }
 
+function getSimulcast3Dir(md, simulcast) {
+  const simulcastDir = md.simulcast_03.value.match(/\s*(send|recv)/)[0];
+  const simulcastList = md.simulcast_03.value.match(/rid=([\S]+)/)[0];
+  if (simulcastDir) {
+    const direction = DirectionWay.byValue(simulcastDir);
+    const list = SDPTransform.parseSimulcastStreamList(simulcastList);
+    list.forEach((stream) => {
+      const alternatives = [];
+      stream.forEach((entry) => {
+        alternatives.push(new SimulcastStreamInfo(entry.scid, entry.paused));
+      });
+      simulcast.addSimulcastAlternativeStreams(direction, alternatives);
+    });
+  }
+}
+
 function getSimulcast(mediaInfo, md) {
   const encodings = [];
   if (md.simulcast) {
@@ -608,6 +624,11 @@ function getSimulcast(mediaInfo, md) {
       }
     });
 
+    mediaInfo.setSimulcast(simulcast);
+  }
+  if (md.simulcast_03) {
+    const simulcast = new SimulcastInfo();
+    getSimulcast3Dir(md, simulcast);
     mediaInfo.setSimulcast(simulcast);
   }
   return encodings;
@@ -655,21 +676,6 @@ function getTracks(encodings, sdpInfo, md) {
         track.addSSRC(source);
       }
     });
-    // Firefox in recvonly
-    if (source && !stream && md.mid) {
-      stream = sdpInfo.getStream(md.mid);
-      if (!stream) {
-        stream = new StreamInfo(md.mid);
-        sdpInfo.addStream(stream);
-      }
-      track = stream.getFirstTrack();
-      if (!track) {
-        track = new TrackInfo(media, md.mid);
-        track.setEncodings(encodings);
-        stream.addTrack(track);
-      }
-      track.addSSRC(source);
-    }
   }
 
   if (md.msid) {
