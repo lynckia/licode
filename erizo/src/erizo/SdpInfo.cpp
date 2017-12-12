@@ -397,7 +397,7 @@ namespace erizo {
       }
 
       for (const auto rid : rids()) {
-    	  sdp << "a=rid:" << rid.id << " " << rid.direction << "\n";
+        sdp << "a=rid:" << rid.id << " " << rid.direction << "\n";
       }
 
       for (unsigned int it = 0; it < payloadVector.size(); it++) {
@@ -431,14 +431,14 @@ namespace erizo {
       }
 
       if (!rids().empty()) {
-    	sdp << "a=simulcast: " << rids()[0].direction << " rid=";
-    	for (unsigned i = 0; i < rids().size(); ++i) {
-    	  sdp << rids()[i].id;
-    	  if (i < rids().size() - 1) {
-    	    sdp << ';';
-    	  }
-    	}
-    	sdp << '\n';
+        sdp << "a=simulcast: " << rids()[0].direction << " rid=";
+        for (unsigned i = 0; i < rids().size(); ++i) {
+          sdp << rids()[i].id;
+          if (i < rids().size() - 1) {
+            sdp << ';';
+          }
+        }
+        sdp << '\n';
       }
 
       if (videoDirection != RECVONLY) {
@@ -822,20 +822,19 @@ namespace erizo {
             const auto& rid_raw = parts[1];
             const auto delimiter_pos = rid_raw.find(" ");
             if (delimiter_pos != std::string::npos) {
-            	const auto direction = rid_raw.substr(delimiter_pos + 1, std::min(decltype(rid_raw.length()){4},
-            			rid_raw.length() - delimiter_pos - 1));
-            	if (direction == "send") {
-                	rids_.push_back({rid_raw.substr(0, delimiter_pos), RidDirection::SEND});
-                	ELOG_DEBUG("message: added simulcast rid send, id: %s", rids_.back().id.c_str());
-            	} else if (direction == "recv") {
-            		rids_.push_back({rid_raw.substr(0, delimiter_pos), RidDirection::RECV});
-            		ELOG_DEBUG("message: added simulcast rid recv, id: %s", rids_.back().id.c_str());
-            	} else {
-            	  ELOG_DEBUG("message: invalid rid syntax: unknown direction %s length: %d", direction.c_str(),
-            			  (int) direction.size());
-            	}
-            }
-            else {
+              const auto direction = rid_raw.substr(delimiter_pos + 1, std::min(decltype(rid_raw.length()){4},
+                  rid_raw.length() - delimiter_pos - 1));
+              if (direction == "send") {
+                rids_.push_back({rid_raw.substr(0, delimiter_pos), RidDirection::SEND});
+                ELOG_DEBUG("message: added simulcast rid send, id: %s", rids_.back().id.c_str());
+              } else if (direction == "recv") {
+                rids_.push_back({rid_raw.substr(0, delimiter_pos), RidDirection::RECV});
+                ELOG_DEBUG("message: added simulcast rid recv, id: %s", rids_.back().id.c_str());
+              } else {
+                ELOG_DEBUG("message: invalid rid syntax: unknown direction %s length: %d", direction.c_str(),
+                    (int) direction.size());
+              }
+            } else {
               ELOG_DEBUG("invalid rid syntax: missing delimiter");
             }
           } else if ((mtype == AUDIO_TYPE)) {
@@ -1217,33 +1216,33 @@ namespace erizo {
   }
 
   bool operator==(const Rid& lhs, const Rid& rhs) {
-	return lhs.id == rhs.id && lhs.direction == rhs.direction;
+  return lhs.id == rhs.id && lhs.direction == rhs.direction;
   }
 
   std::ostream& operator<<(std::ostream& os, RidDirection dir) {
-	  switch (dir) {
-	    case RidDirection::SEND:
-	      os << "send";
-		  break;
-	    case RidDirection::RECV:
-	      os << "recv";
-		  break;
-	    default:
-	      assert(false);
-	  }
-	  return os;
+    switch (dir) {
+      case RidDirection::SEND:
+        os << "send";
+    break;
+      case RidDirection::RECV:
+        os << "recv";
+    break;
+      default:
+        assert(false);
+    }
+    return os;
   }
 
   RidDirection reverse(RidDirection dir) {
-	  switch (dir) {
-	    case RidDirection::SEND:
-	      return RidDirection::RECV;
-	    case RidDirection::RECV:
-	      return RidDirection::SEND;
-	    default:
-	      assert(false);
-	  }
-	  return dir;
+    switch (dir) {
+      case RidDirection::SEND:
+        return RidDirection::RECV;
+      case RidDirection::RECV:
+        return RidDirection::SEND;
+      default:
+        assert(false);
+    }
+    return dir;
   }
 
 }  // namespace erizo

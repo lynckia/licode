@@ -8,6 +8,11 @@
 #include <SdpInfo.h>
 #include <MediaDefinitions.h>
 
+using erizo::SdpInfo;
+using erizo::RtpMap;
+using erizo::Rid;
+using erizo::RidDirection;
+
 std::string readFile(std::ifstream& in) {
   std::stringstream sstr;
   sstr << in.rdbuf();
@@ -47,7 +52,7 @@ class SdpInfoTest : public ::testing::Test {
   virtual void TearDown() {}
 
   std::vector<erizo::RtpMap> rtp_mappings;
-  std::unique_ptr<erizo::SdpInfo> sdp;
+  std::shared_ptr<erizo::SdpInfo> sdp;
 
   const std::string kChromeFingerprint =
     "22:E9:DE:F0:21:6C:6A:AC:9F:A1:0E:00:78:DC:67:9F:87:16:4C:EE:95:DE:DF:A3:66:AF:AD:5F:8A:46:CE:BB";
@@ -262,7 +267,6 @@ TEST_F(SdpInfoTest, shouldParseSIMGroup) {
 }
 
 TEST_F(SdpInfoTest, shouldParseRidSimulcast) {
-  using namespace erizo;
   const uint kSimSSRCsInSdp = 2;
   const uint32_t kFirstSimSSRC = 1553976150;
   const std::string kFirstSimId = "spam";
@@ -284,7 +288,7 @@ TEST_F(SdpInfoTest, shouldParseRidSimulcast) {
   EXPECT_EQ(kSecondRid, sdp->rids()[1]);
 
   SdpInfo answer = SdpInfo(std::vector<RtpMap>{});
-  answer.setOfferSdp(std::make_shared<SdpInfo>(*sdp));
+  answer.setOfferSdp(sdp);
 
   ASSERT_EQ(kSimSSRCsInSdp, answer.rids().size());
 

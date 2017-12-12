@@ -249,7 +249,7 @@ class SdpInfo {
   /**
   * @return A vector containing the simulcast RID informations
   */
-  const std::vector<Rid>& rids() const { return rids_; };
+  const std::vector<Rid>& rids() const { return rids_; }
 
   /**
    * The audio and video SSRCs for this particular SDP.
