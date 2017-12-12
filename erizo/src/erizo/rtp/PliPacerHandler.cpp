@@ -49,7 +49,8 @@ void PliPacerHandler::sendPLI() {
 }
 
 void PliPacerHandler::sendFIR() {
-  ELOG_WARN("%s message: Timed out waiting for a keyframe", stream_->toLog());
+  const auto log_str = stream_->toLog();
+  ELOG_WARN("%s message: Timed out waiting for a keyframe", log_str.c_str());
   getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_, fir_seq_number_++));
   getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_, fir_seq_number_++));
   getContext()->fireWrite(RtpUtils::createFIR(video_source_ssrc_, video_sink_ssrc_, fir_seq_number_++));

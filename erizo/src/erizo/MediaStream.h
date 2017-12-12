@@ -123,8 +123,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool isPipelineInitialized() { return pipeline_initialized_; }
   Pipeline::Ptr getPipeline() { return pipeline_; }
 
-  inline const char* toLog() {
-    return ("id: " + stream_id_ + ", " + printLogContext()).c_str();
+  inline std::string toLog() {
+    return "id: " + stream_id_ + ", " + printLogContext();
   }
 
  private:

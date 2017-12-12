@@ -107,11 +107,12 @@ void RtpTrackMuteHandler::muteTrack(TrackMuteInfo *info, bool active) {
     return;
   }
   info->mute_is_active = active;
-  ELOG_INFO("%s message: Mute %s, active: %d", info->label.c_str(), stream_->toLog(), active);
+  const auto log_str = stream_->toLog();
+  ELOG_INFO("%s message: Mute %s, active: %d", info->label.c_str(), log_str.c_str(), active);
   if (!info->mute_is_active) {
     info->seq_num_offset = info->last_original_seq_num - info->last_sent_seq_num;
     ELOG_DEBUG("%s message: Deactivated, original_seq_num: %u, last_sent_seq_num: %u, offset: %u",
-        stream_->toLog(), info->last_original_seq_num, info->last_sent_seq_num, info->seq_num_offset);
+        log_str.c_str(), info->last_original_seq_num, info->last_sent_seq_num, info->seq_num_offset);
   } else {
     if (info->label == "video") {
       getContext()->fireRead(RtpUtils::createPLI(stream_->getVideoSinkSSRC(), stream_->getVideoSourceSSRC()));

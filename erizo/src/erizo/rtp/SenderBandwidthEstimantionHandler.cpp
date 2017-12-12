@@ -69,7 +69,8 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
       chead = reinterpret_cast<RtcpHeader*>(packet_pointer);
       rtcp_length = (ntohs(chead->length) + 1) * 4;
       total_length += rtcp_length;
-      ELOG_DEBUG("%s ssrc %u, sourceSSRC %u, PacketType %u", stream_->toLog(),
+      const auto log_str = stream_->toLog();
+      ELOG_DEBUG("%s ssrc %u, sourceSSRC %u, PacketType %u", log_str.c_str(),
           chead->getSSRC(),
           chead->getSourceSSRC(),
           chead->getPacketType());
@@ -81,7 +82,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
             }
             ELOG_DEBUG("%s, Analyzing Video RR: PacketLost %u, Ratio %u, current_block %d, blocks %d"
                 ", sourceSSRC %u, ssrc %u",
-                stream_->toLog(),
+                log_str.c_str(),
                 chead->getLostPackets(),
                 chead->getFractionLost(),
                 current_block,
@@ -102,7 +103,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
                 uint32_t delay = now_ms - (*value)->sr_send_time - delay_since_last_ms;
                 ELOG_DEBUG("%s message: Updating Estimate with RR, fraction_lost: %u, "
                     "delay: %u, period_packets_sent_: %u",
-                    stream_->toLog(), chead->getFractionLost(), delay, period_packets_sent_);
+                    log_str.c_str(), chead->getFractionLost(), delay, period_packets_sent_);
                 sender_bwe_->UpdateReceiverBlock(chead->getFractionLost(),
                     delay, period_packets_sent_, now_ms);
                 period_packets_sent_ = 0;
@@ -120,13 +121,14 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
                 uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
                 uint64_t cappedBitrate = bitrate < processor_->getMaxVideoBW() ? bitrate : processor_->getMaxVideoBW();
                 chead->setREMBBitRate(cappedBitrate);
-
-                ELOG_DEBUG("%s message: Updating Estimate with REMB, bitrate %lu", stream_->toLog(),
+                const auto log_str = stream_->toLog();
+                ELOG_DEBUG("%s message: Updating Estimate with REMB, bitrate %lu", log_str.c_str(),
                     cappedBitrate);
                 sender_bwe_->UpdateReceiverEstimate(now_ms, cappedBitrate);
                 updateEstimate();
               } else {
-                ELOG_DEBUG("%s message: Unsupported AFB Packet not REMB", stream_->toLog());
+                const auto log_str = stream_->toLog();
+                ELOG_DEBUG("%s message: Unsupported AFB Packet not REMB", log_str.c_str());
               }
             }
           }
@@ -161,7 +163,8 @@ void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {
   uint64_t now = ClockUtils::timePointToMs(clock_->now());
   uint32_t ntp;
   ntp = chead->get32MiddleNtp();
-  ELOG_DEBUG("%s message: adding incoming SR to list, ntp: %u", stream_->toLog(), ntp);
+  const auto log_str = stream_->toLog();
+  ELOG_DEBUG("%s message: adding incoming SR to list, ntp: %u", log_str.c_str(), ntp);
   sr_delay_data_.push_back(std::shared_ptr<SrDelayData>( new SrDelayData(ntp, now)));
   if (sr_delay_data_.size() >= kMaxSrListSize) {
     sr_delay_data_.pop_front();
@@ -173,8 +176,9 @@ void SenderBandwidthEstimationHandler::updateEstimate() {
       &estimated_rtt_);
   stats_->getNode()["total"].insertStat("senderBitrateEstimation",
       CumulativeStat{static_cast<uint64_t>(estimated_bitrate_)});
+  const auto log_str = stream_->toLog();
   ELOG_DEBUG("%s message: estimated bitrate %d, loss %u, rtt %ld",
-      stream_->toLog(), estimated_bitrate_, estimated_loss_, estimated_rtt_);
+      log_str.c_str(), estimated_bitrate_, estimated_loss_, estimated_rtt_);
   if (bwe_listener_) {
     bwe_listener_->onBandwidthEstimate(estimated_bitrate_, estimated_loss_, estimated_rtt_);
   }

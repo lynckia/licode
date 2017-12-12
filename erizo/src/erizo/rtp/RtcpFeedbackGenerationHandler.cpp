@@ -91,9 +91,10 @@ void RtcpFeedbackGenerationHandler::notifyUpdate() {
       generators_map_[video_ssrc] = video_generator;
       auto video_rr = std::make_shared<RtcpRrGenerator>(video_ssrc, VIDEO_PACKET, clock_);
       video_generator->rr_generator = video_rr;
-      ELOG_DEBUG("%s, message: Initialized video rrGenerator, ssrc: %u", stream_->toLog(), video_ssrc);
+      const auto log_str = stream_->toLog();
+      ELOG_DEBUG("%s, message: Initialized video rrGenerator, ssrc: %u", log_str.c_str(), video_ssrc);
       if (nacks_enabled_) {
-        ELOG_DEBUG("%s, message: Initialized video nack generator, ssrc %u", stream_->toLog(), video_ssrc);
+        ELOG_DEBUG("%s, message: Initialized video nack generator, ssrc %u", log_str.c_str(), video_ssrc);
         auto video_nack = std::make_shared<RtcpNackGenerator>(video_ssrc, clock_);
         video_generator->nack_generator = video_nack;
       }
@@ -105,7 +106,8 @@ void RtcpFeedbackGenerationHandler::notifyUpdate() {
     generators_map_[audio_ssrc] = audio_generator;
     auto audio_rr = std::make_shared<RtcpRrGenerator>(audio_ssrc, AUDIO_PACKET, clock_);
     audio_generator->rr_generator = audio_rr;
-    ELOG_DEBUG("%s, message: Initialized audio, ssrc: %u", stream_->toLog(), audio_ssrc);
+    const auto log_str = stream_->toLog();
+    ELOG_DEBUG("%s, message: Initialized audio, ssrc: %u", log_str.c_str(), audio_ssrc);
   }
   initialized_ = true;
 }

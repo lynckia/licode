@@ -50,8 +50,9 @@ MediaStream::MediaStream(
     pipeline_initialized_{false} {
   setVideoSinkSSRC(kDefaultVideoSinkSSRC);
   setAudioSinkSSRC(kDefaultAudioSinkSSRC);
+  const auto log_str = toLog();
   ELOG_INFO("%s message: constructor, id: %s",
-      toLog(), media_stream_id.c_str());
+      log_str.c_str(), media_stream_id.c_str());
   source_fb_sink_ = this;
   sink_fb_source_ = this;
   stats_ = connection->getStatsService();
@@ -71,15 +72,17 @@ MediaStream::MediaStream(
 }
 
 MediaStream::~MediaStream() {
-  ELOG_DEBUG("%s message:Destructor called", toLog());
+  const auto log_str = toLog();
+  ELOG_DEBUG("%s message:Destructor called", log_str.c_str());
   if (sending_) {
     close();
   }
-  ELOG_DEBUG("%s message: Destructor ended", toLog());
+  ELOG_DEBUG("%s message: Destructor ended", log_str.c_str());
 }
 
 void MediaStream::close() {
-  ELOG_DEBUG("%s message:Close called", toLog());
+  const auto log_str = toLog();
+  ELOG_DEBUG("%s message:Close called", log_str.c_str());
   if (!sending_) {
     return;
   }
@@ -90,7 +93,7 @@ void MediaStream::close() {
   pipeline_->close();
   pipeline_.reset();
   connection_.reset();
-  ELOG_DEBUG("%s message: Close ended", toLog());
+  ELOG_DEBUG("%s message: Close ended", log_str.c_str());
 }
 
 bool MediaStream::init() {
@@ -106,10 +109,11 @@ bool MediaStream::isSinkSSRC(uint32_t ssrc) {
 }
 
 bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
-  ELOG_DEBUG("%s message: setting remote SDP", toLog());
+  const auto log_str = toLog();
+  ELOG_DEBUG("%s message: setting remote SDP", log_str.c_str());
   remote_sdp_ = sdp;
   if (remote_sdp_->videoBandwidth != 0) {
-    ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remote_sdp_->videoBandwidth);
+    ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", log_str.c_str(), remote_sdp_->videoBandwidth);
     this->rtcp_processor_->setMaxVideoBW(remote_sdp_->videoBandwidth*1000);
   }
 
@@ -198,8 +202,9 @@ int MediaStream::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
     fb_packet->type = AUDIO_PACKET;
     sendPacketAsync(fb_packet);
   } else {
+    const auto log_str = toLog();
     ELOG_DEBUG("%s deliverFeedback unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
-                toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
+                log_str.c_str(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
   }
   return fb_packet->length;
 }
@@ -239,7 +244,8 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> packet, Transport 
   }
 
   if (!pipeline_initialized_) {
-    ELOG_DEBUG("%s message: Pipeline not initialized yet.", toLog());
+    const auto log_str = toLog();
+    ELOG_DEBUG("%s message: Pipeline not initialized yet.", log_str.c_str());
     return;
   }
 
@@ -265,6 +271,7 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
     }
   } else {
     // RTP or RTCP Sender Report
+    const auto log_str = toLog();
     if (bundle_) {
       // Check incoming SSRC
       // Deliver data
@@ -276,14 +283,14 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
         audio_sink_->deliverAudioData(std::move(packet));
       } else {
         ELOG_DEBUG("%s read video unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
-                    toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
+                    log_str.c_str(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
       }
     } else {
       if (packet->type == AUDIO_PACKET && audio_sink_ != nullptr) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getAudioSourceSSRC() == 0) {
-          ELOG_DEBUG("%s discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
+          ELOG_DEBUG("%s discoveredAudioSourceSSRC:%u", log_str.c_str(), recvSSRC);
           this->setAudioSourceSSRC(recvSSRC);
         }
         audio_sink_->deliverAudioData(std::move(packet));
@@ -291,7 +298,7 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getVideoSourceSSRC() == 0) {
-          ELOG_DEBUG("%s discoveredVideoSourceSSRC:%u", toLog(), recvSSRC);
+          ELOG_DEBUG("%s discoveredVideoSourceSSRC:%u", log_str.c_str(), recvSSRC);
           this->setVideoSourceSSRC(recvSSRC);
         }
         // change ssrc for RTP packets, don't touch here if RTCP
@@ -347,7 +354,8 @@ void MediaStream::sendPacketAsync(std::shared_ptr<DataPacket> packet) {
 }
 
 void MediaStream::setSlideShowMode(bool state) {
-  ELOG_DEBUG("%s slideShowMode: %u", toLog(), state);
+  const auto log_str = toLog();
+  ELOG_DEBUG("%s slideShowMode: %u", log_str.c_str(), state);
   if (slide_show_mode_ == state) {
     return;
   }
@@ -362,7 +370,8 @@ void MediaStream::setSlideShowMode(bool state) {
 
 void MediaStream::muteStream(bool mute_video, bool mute_audio) {
   asyncTask([mute_audio, mute_video] (std::shared_ptr<MediaStream> media_stream) {
-    ELOG_DEBUG("%s message: muteStream, mute_video: %u, mute_audio: %u", media_stream->toLog(), mute_video, mute_audio);
+    const auto log_str = media_stream->toLog();
+    ELOG_DEBUG("%s message: muteStream, mute_video: %u, mute_audio: %u", log_str.c_str(), mute_video, mute_audio);
     media_stream->audio_muted_ = mute_audio;
     media_stream->video_muted_ = mute_video;
     media_stream->stats_->getNode()[media_stream->getAudioSinkSSRC()].insertStat("erizoAudioMute",
@@ -503,7 +512,8 @@ void MediaStream::sendPacket(std::shared_ptr<DataPacket> p) {
     }
   }
   if (!pipeline_initialized_) {
-    ELOG_DEBUG("%s message: Pipeline not initialized yet.", toLog());
+    const auto log_str = toLog();
+    ELOG_DEBUG("%s message: Pipeline not initialized yet.", log_str.c_str());
     return;
   }
 
