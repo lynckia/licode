@@ -284,7 +284,7 @@ TEST_F(SdpInfoTest, shouldParseRidSimulcast) {
   EXPECT_EQ(kSecondRid, sdp->rids()[1]);
 
   SdpInfo answer = SdpInfo(std::vector<RtpMap>{});
-  answer.setOfferSdp(*sdp);
+  answer.setOfferSdp(std::make_shared<SdpInfo>(*sdp));
 
   ASSERT_EQ(kSimSSRCsInSdp, answer.rids().size());
 
