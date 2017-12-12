@@ -58,21 +58,28 @@ std::string IceConnection::iceStateToString(IceState state) const {
 
 void IceConnection::updateIceState(IceState state) {
   if (state <= ice_state_) {
-    if (state != IceState::READY)
+    if (state != IceState::READY) {
+      const auto toLog_str = toLog();
+      const auto iceState_str = iceStateToString(ice_state_);
+      const auto new_iceState_str = iceStateToString(state);
       ELOG_WARN("%s message: unexpected ice state transition, iceState: %s,  newIceState: %s",
-                 toLog(), iceStateToString(ice_state_).c_str(), iceStateToString(state).c_str());
+              toLog_str.c_str(), iceState_str.c_str(), new_iceState_str.c_str());
+    }
     return;
   }
 
+  const auto toLog_str = toLog();
+  const auto iceState_str = iceStateToString(ice_state_);
+  const auto new_iceState_str = iceStateToString(state);
   ELOG_INFO("%s message: iceState transition, ice_config_.transport_name: %s, iceState: %s, newIceState: %s, this: %p",
-             toLog(), ice_config_.transport_name.c_str(),
-             iceStateToString(ice_state_).c_str(), iceStateToString(state).c_str(), this);
+             toLog_str.c_str(), ice_config_.transport_name.c_str(),
+             iceState_str.c_str(), new_iceState_str.c_str(), this);
   this->ice_state_ = state;
   switch (ice_state_) {
     case IceState::FINISHED:
       return;
     case IceState::FAILED:
-      ELOG_WARN("%s message: Ice Failed", toLog());
+      ELOG_WARN("%s message: Ice Failed", toLog_str.c_str());
       break;
 
     case IceState::READY:

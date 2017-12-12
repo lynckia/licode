@@ -169,7 +169,8 @@ void NicerConnection::start() {
   });
   std::future_status status = start_promise_.get_future().wait_for(std::chrono::seconds(5));
   if (status == std::future_status::timeout) {
-    ELOG_WARN("%s Start timed out", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s Start timed out", log_str.c_str());
   }
 }
 
@@ -188,14 +189,16 @@ void NicerConnection::startSync() {
                                                   const_cast<char*>(ufrag_.c_str()),
                                                   const_cast<char*>(upass_.c_str()), &ctx_);
   if (r) {
-    ELOG_WARN("%s message: Couldn't create ICE ctx", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Couldn't create ICE ctx", log_str.c_str());
     start_promise_.set_value();
     return;
   }
 
   r = nicer_->IceContextSetTrickleCallback(ctx_, &NicerConnection::trickle_callback, this);
   if (r) {
-    ELOG_WARN("%s message: Couldn't set trickle callback", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Couldn't set trickle callback", log_str.c_str());
     start_promise_.set_value();
     return;
   }
@@ -219,7 +222,8 @@ void NicerConnection::startSync() {
   std::string peer_name = name_ + ":default";
   r = nicer_->IcePeerContextCreate(ctx_, ice_handler_, const_cast<char *>(peer_name.c_str()), &peer_);
   if (r) {
-    ELOG_WARN("%s message: Couldn't create ICE peer ctx", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Couldn't create ICE peer ctx", log_str.c_str());
     start_promise_.set_value();
     return;
   }
@@ -227,7 +231,8 @@ void NicerConnection::startSync() {
   std::string stream_name = name_ + ":stream";
   r = nicer_->IceAddMediaStream(ctx_, const_cast<char *>(stream_name.c_str()), ice_config_.ice_components, &stream_);
   if (r) {
-    ELOG_WARN("%s message: Couldn't create ICE stream", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Couldn't create ICE stream", log_str.c_str());
     start_promise_.set_value();
     return;
   }
@@ -240,8 +245,9 @@ void NicerConnection::startSync() {
   }
 
   if (ice_config_.min_port != 0 && ice_config_.max_port != 0) {
+    const auto log_str = toLog();
     ELOG_DEBUG("%s message: setting port range, min_port: %d, max_port: %d",
-               toLog(), ice_config_.min_port, ice_config_.max_port);
+               log_str.c_str(), ice_config_.min_port, ice_config_.max_port);
     nicer_->IceContextSetPortRange(ctx_, ice_config_.min_port, ice_config_.max_port);
   }
 
@@ -252,8 +258,9 @@ void NicerConnection::startSync() {
   startGathering();
 
   if (ice_config_.username.compare("") != 0 && ice_config_.password.compare("") != 0) {
+    const auto log_str = toLog();
     ELOG_DEBUG("%s message: setting remote credentials in constructor, ufrag:%s, pass:%s",
-               toLog(), ice_config_.username.c_str(), ice_config_.password.c_str());
+               log_str.c_str(), ice_config_.username.c_str(), ice_config_.password.c_str());
     setRemoteCredentialsSync(ice_config_.username, ice_config_.password);
   } else {
     peer_->controlling = 1;
@@ -287,10 +294,12 @@ void NicerConnection::setupTurnServer() {
 
   r = nicer_->IceContextSetTurnServers(ctx_, servers.get(), 1);
   if (r) {
-    ELOG_WARN("%s message: Could not setup Turn", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Could not setup Turn", log_str.c_str());
   }
 
-  ELOG_DEBUG("%s message: TURN server configured", toLog());
+  const auto log_str = toLog();
+  ELOG_DEBUG("%s message: TURN server configured", log_str.c_str());
 }
 
 void NicerConnection::setupStunServer() {
@@ -309,19 +318,23 @@ void NicerConnection::setupStunServer() {
 
   int r = nicer_->IceContextSetStunServers(ctx_, servers.get(), 1);
   if (r) {
-    ELOG_WARN("%s meesage: Could not setup Turn", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s meesage: Could not setup Turn", log_str.c_str());
   }
 
-  ELOG_DEBUG("%s message: STUN server configured", toLog());
+  const auto log_str = toLog();
+  ELOG_DEBUG("%s message: STUN server configured", log_str.c_str());
 }
 
 void NicerConnection::startGathering() {
   UINT4 r = nicer_->IceGather(ctx_, &NicerConnection::gather_callback, this);
   if (r && r != R_WOULDBLOCK) {
-    ELOG_WARN("%s message: Couldn't start ICE gathering", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Couldn't start ICE gathering", log_str.c_str());
     assert(false);
   }
-  ELOG_INFO("%s message: start gathering", toLog());
+  const auto log_str = toLog();
+  ELOG_INFO("%s message: start gathering", log_str.c_str());
 }
 
 bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) {
@@ -331,15 +344,18 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
   nr_ice_media_stream *stream = stream_;
   std::shared_ptr<NicerInterface> nicer = nicer_;
   async([cands, is_bundle, nicer, peer, stream, this, remote_candidates_promise] {
-    ELOG_DEBUG("%s message: adding remote candidates (%ld)", toLog(), cands.size());
+    const auto log_str = toLog();
+    ELOG_DEBUG("%s message: adding remote candidates (%ld)", log_str.c_str(), cands.size());
     for (const CandidateInfo &cand : cands) {
       std::string sdp = cand.sdp;
       std::size_t pos = sdp.find(",");
       std::string candidate = sdp.substr(0, pos);
-      ELOG_DEBUG("%s message: New remote ICE candidate (%s)", toLog(), candidate.c_str());
+      const auto log_str = toLog();
+      ELOG_DEBUG("%s message: New remote ICE candidate (%s)", log_str.c_str(), candidate.c_str());
       UINT4 r = nicer->IcePeerContextParseTrickleCandidate(peer, stream, const_cast<char *>(candidate.c_str()));
       if (r && r != R_ALREADY) {
-        ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) (%d)", toLog(), candidate.c_str(), r);
+        const auto log_str = toLog();
+        ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) (%d)", log_str.c_str(), candidate.c_str(), r);
       }
     }
     remote_candidates_promise->set_value();
@@ -347,30 +363,34 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
   std::future<void> remote_candidates_future = remote_candidates_promise->get_future();
   std::future_status status = remote_candidates_future.wait_for(std::chrono::seconds(1));
   if (status == std::future_status::timeout) {
-    ELOG_WARN("%s message: Could not set remote candidates", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Could not set remote candidates", log_str.c_str());
     return false;
   }
   return true;
 }
 
 void NicerConnection::gatheringDone(uint stream_id) {
-  ELOG_INFO("%s message: gathering done, stream_id: %u", toLog(), stream_id);
+  const auto log_str = toLog();
+  ELOG_INFO("%s message: gathering done, stream_id: %u", log_str.c_str(), stream_id);
   updateIceState(IceState::CANDIDATES_RECEIVED);
 }
 
 void NicerConnection::startChecking() {
   UINT4 r = nicer_->IcePeerContextPairCandidates(peer_);
   if (r) {
-    ELOG_WARN("%s message: Error pairing candidates (%d)", toLog(), r);
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Error pairing candidates (%d)", log_str.c_str(), r);
     return;
   }
 
   r = nicer_->IcePeerContextStartChecks2(peer_, 1);
   if (r) {
+    const auto log_str = toLog();
     if (r == R_NOT_FOUND) {
-      ELOG_DEBUG("%s message: Could not start ICE checks, assuming trickle", toLog());
+      ELOG_DEBUG("%s message: Could not start ICE checks, assuming trickle", log_str.c_str());
     } else {
-      ELOG_WARN("%s message: Could not start peer checks", toLog());
+      ELOG_WARN("%s message: Could not start peer checks", log_str.c_str());
     }
   }
   ELOG_DEBUG("Checks started");
@@ -435,7 +455,8 @@ void NicerConnection::onCandidate(nr_ice_media_stream *stream, int component_id,
   cand_info.password = upass_;
 
   if (auto listener = getIceListener()) {
-    ELOG_DEBUG("%s message: Candidate (%s, %s, %s)", toLog(), cand_info.hostAddress.c_str(),
+    const auto log_str = toLog();
+    ELOG_DEBUG("%s message: Candidate (%s, %s, %s)", log_str.c_str(), cand_info.hostAddress.c_str(),
                                                      ufrag_.c_str(), upass_.c_str());
     listener->onCandidate(cand_info, this);
   }
@@ -449,12 +470,14 @@ void NicerConnection::setRemoteCredentials(const std::string& username, const st
   });
   auto status = promise->get_future().wait_for(std::chrono::seconds(1));
   if (status == std::future_status::timeout) {
-    ELOG_WARN("%s message: Could not set remote credentials", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Could not set remote credentials", log_str.c_str());
   }
 }
 
 void NicerConnection::setRemoteCredentialsSync(const std::string& username, const std::string& password) {
-  ELOG_DEBUG("%s message: Setting remote credentials", toLog());
+  const auto log_str = toLog();
+  ELOG_DEBUG("%s message: Setting remote credentials", log_str.c_str());
   std::vector<char *> attributes;
   std::string ufrag = std::string("ice-ufrag: ") + username;
   std::string pwd = std::string("ice-pwd: ") + password;
@@ -465,7 +488,8 @@ void NicerConnection::setRemoteCredentialsSync(const std::string& username, cons
                                                         attributes.size() ? &attributes[0] : nullptr,
                                                         attributes.size());
   if (r) {
-    ELOG_WARN("%s message: Error parsing stream attributes", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Error parsing stream attributes", log_str.c_str());
     return;
   }
 
@@ -489,7 +513,8 @@ int NicerConnection::sendData(unsigned int component_id, const void* buf, int le
                                          reinterpret_cast<unsigned char*>(packet->data),
                                          len);
     if (r) {
-      ELOG_WARN("%s message: Couldn't send data on ICE", toLog());
+      const auto log_str = toLog();
+      ELOG_WARN("%s message: Couldn't send data on ICE", log_str.c_str());
     }
   });
 
@@ -523,14 +548,16 @@ CandidatePair NicerConnection::getSelectedPair() {
     pair.erizoCandidatePort = getPortFromAddress(local->addr);
     pair.clientHostType = getHostTypeFromNicerCandidate(remote);
     pair.erizoHostType = getHostTypeFromNicerCandidate(local);
-    ELOG_DEBUG("%s message: Client Host Type %s", toLog(), pair.clientHostType.c_str());
+    const auto log_str = toLog();
+    ELOG_DEBUG("%s message: Client Host Type %s", log_str.c_str(), pair.clientHostType.c_str());
     selected_pair_promise->set_value(pair);
   });
   std::future<CandidatePair> selected_pair_future = selected_pair_promise->get_future();
   std::future_status status = selected_pair_future.wait_for(std::chrono::seconds(1));
   CandidatePair pair = selected_pair_future.get();
   if (status == std::future_status::timeout) {
-    ELOG_WARN("%s message: Could not get selected pair", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Could not get selected pair", log_str.c_str());
     return CandidatePair{};
   }
   return pair;
@@ -563,7 +590,8 @@ void NicerConnection::close() {
     });
     std::future_status status = close_promise_.get_future().wait_for(std::chrono::seconds(1));
     if (status == std::future_status::timeout) {
-      ELOG_WARN("%s Stop timed out", toLog());
+      const auto log_str = toLog();
+      ELOG_WARN("%s Stop timed out", log_str.c_str());
       closeSync();
     }
   }
@@ -642,7 +670,8 @@ std::string NicerConnection::getNewUfrag() {
   int r;
 
   if ((r=nicer_->IceGetNewIceUFrag(&ufrag))) {
-    ELOG_WARN("%s message: Unable to get new ice ufrag", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Unable to get new ice ufrag", log_str.c_str());
     return "";
   }
 
@@ -657,7 +686,8 @@ std::string NicerConnection::getNewPwd() {
   int r;
 
   if ((r=nicer_->IceGetNewIcePwd(&pwd))) {
-    ELOG_WARN("%s message: Unable to get new ice pwd", toLog());
+    const auto log_str = toLog();
+    ELOG_WARN("%s message: Unable to get new ice pwd", log_str.c_str());
     return "";
   }
 
