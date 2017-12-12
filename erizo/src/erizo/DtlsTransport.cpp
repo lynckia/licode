@@ -52,11 +52,13 @@ void Resender::scheduleResend(packetPtr packet) {
 void Resender::resend() {
   if (transport_ != nullptr) {
     if (max_resends_-- > 0) {
-      ELOG_DEBUG("%s message: Resending DTLS message", transport_->toLog());
+      const auto log_str = transport_->toLog();
+      ELOG_DEBUG("%s message: Resending DTLS message", log_str.c_str());
       transport_->writeDtlsPacket(socket_context_, packet_);
       scheduleNext();
     } else {
-      ELOG_DEBUG("%s message: DTLS timeout", transport_->toLog());
+      const auto log_str = transport_->toLog();
+      ELOG_DEBUG("%s message: DTLS timeout", log_str.c_str());
       transport_->onHandshakeFailed(socket_context_, "Dtls Timeout on Resender");
     }
   }
@@ -76,12 +78,15 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
   Transport(med, transport_name, connection_id, bundle, rtcp_mux, transport_listener, iceConfig, worker, io_worker),
   unprotect_packet_{std::make_shared<DataPacket>()},
   readyRtp(false), readyRtcp(false), isServer_(isServer) {
-    ELOG_DEBUG("%s message: constructor, transportName: %s, isBundle: %d", toLog(), transport_name.c_str(), bundle);
+    auto log_str = toLog();
+    ELOG_DEBUG("%s message: constructor, transportName: %s, isBundle: %d", log_str.c_str(), transport_name.c_str(),
+               bundle);
     dtlsRtp.reset(new DtlsSocketContext());
 
     int comps = 1;
     if (isServer_) {
-      ELOG_DEBUG("%s message: creating  passive-server", toLog());
+      const auto log_str = toLog();
+      ELOG_DEBUG("%s message: creating  passive-server", log_str.c_str());
       dtlsRtp->createServer();
       dtlsRtp->setDtlsReceiver(this);
 
@@ -92,7 +97,8 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
         dtlsRtcp->setDtlsReceiver(this);
       }
     } else {
-      ELOG_DEBUG("%s message: creating active-client", toLog());
+      const auto log_str = toLog();
+      ELOG_DEBUG("%s message: creating active-client", log_str.c_str());
       dtlsRtp->createClient();
       dtlsRtp->setDtlsReceiver(this);
 
@@ -118,7 +124,8 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     if (!rtcp_mux) {
       rtcp_resender_.reset(new Resender(this, dtlsRtcp.get()));
     }
-    ELOG_DEBUG("%s message: created", toLog());
+    log_str = toLog();
+    ELOG_DEBUG("%s message: created", log_str.c_str());
   }
 
 DtlsTransport::~DtlsTransport() {
@@ -129,12 +136,14 @@ DtlsTransport::~DtlsTransport() {
 
 void DtlsTransport::start() {
   ice_->copyLogContextFrom(this);
-  ELOG_DEBUG("%s message: starting ice", toLog());
+  const auto log_str = toLog();
+  ELOG_DEBUG("%s message: starting ice", log_str.c_str());
   ice_->start();
 }
 
 void DtlsTransport::close() {
-  ELOG_DEBUG("%s message: closing", toLog());
+  auto log_str = toLog();
+  ELOG_DEBUG("%s message: closing", log_str.c_str());
   running_ = false;
   ice_->close();
   if (dtlsRtp) {
@@ -150,7 +159,8 @@ void DtlsTransport::close() {
     rtcp_resender_->cancel();
   }
   this->state_ = TRANSPORT_FINISHED;
-  ELOG_DEBUG("%s message: closed", toLog());
+  log_str = toLog();
+  ELOG_DEBUG("%s message: closed", log_str.c_str());
 }
 
 void DtlsTransport::onIceData(packetPtr packet) {
@@ -161,8 +171,9 @@ void DtlsTransport::onIceData(packetPtr packet) {
   int length = len;
   SrtpChannel *srtp = srtp_.get();
   if (DtlsTransport::isDtlsPacket(data, len)) {
+    const auto log_str = toLog();
     ELOG_DEBUG("%s message: Received DTLS message, transportName: %s, componentId: %u",
-               toLog(), transport_name.c_str(), component_id);
+               log_str.c_str(), transport_name.c_str(), component_id);
     if (component_id == 1) {
       if (rtp_resender_.get() != NULL) {
         rtp_resender_->cancel();
@@ -268,8 +279,9 @@ void DtlsTransport::onDtlsPacket(DtlsSocketContext *ctx, const unsigned char* da
     rtp_resender_->scheduleResend(packet);
   }
 
+  const auto log_str = toLog();
   ELOG_DEBUG("%s message: Sending DTLS message, transportName: %s, componentId: %d",
-             toLog(), transport_name.c_str(), packet->comp);
+             log_str.c_str(), transport_name.c_str(), packet->comp);
 }
 
 void DtlsTransport::writeDtlsPacket(DtlsSocketContext *ctx, packetPtr packet) {
@@ -285,7 +297,8 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
   std::string temp;
 
   if (isServer_) {  // If we are server, we swap the keys
-    ELOG_DEBUG("%s message: swapping keys, isServer: %d", toLog(), isServer_);
+    const auto log_str = toLog();
+    ELOG_DEBUG("%s message: swapping keys, isServer: %d", log_str.c_str(), isServer_);
     clientKey.swap(serverKey);
   }
   if (ctx == dtlsRtp.get()) {
@@ -307,16 +320,18 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
       updateTransportState(TRANSPORT_FAILED);
     }
   }
+  const auto log_str = toLog();
   ELOG_DEBUG("%s message:HandShakeCompleted, transportName:%s, readyRtp:%d, readyRtcp:%d",
-             toLog(), transport_name.c_str(), readyRtp, readyRtcp);
+             log_str.c_str(), transport_name.c_str(), readyRtp, readyRtcp);
   if (readyRtp && readyRtcp) {
     updateTransportState(TRANSPORT_READY);
   }
 }
 
 void DtlsTransport::onHandshakeFailed(DtlsSocketContext *ctx, const std::string error) {
+  const auto log_str = toLog();
   ELOG_WARN("%s message: Handshake failed, transportName:%s, openSSLerror: %s",
-            toLog(), transport_name.c_str(), error.c_str());
+            log_str.c_str(), transport_name.c_str(), error.c_str());
   running_ = false;
   updateTransportState(TRANSPORT_FAILED);
 }
@@ -338,30 +353,35 @@ void DtlsTransport::updateIceStateSync(IceState state, IceConnection *conn) {
   if (!running_) {
     return;
   }
+  const auto log_str = toLog();
   ELOG_DEBUG("%s message:IceState, transportName: %s, state: %d, isBundle: %d",
-             toLog(), transport_name.c_str(), state, bundle_);
+             log_str.c_str(), transport_name.c_str(), state, bundle_);
   if (state == IceState::INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
     updateTransportState(TRANSPORT_STARTED);
   } else if (state == IceState::CANDIDATES_RECEIVED && this->getTransportState() != TRANSPORT_GATHERED) {
     updateTransportState(TRANSPORT_GATHERED);
   } else if (state == IceState::FAILED) {
-    ELOG_DEBUG("%s message: Ice Failed", toLog());
+    const auto log_str = toLog();
+    ELOG_DEBUG("%s message: Ice Failed", log_str.c_str());
     running_ = false;
     updateTransportState(TRANSPORT_FAILED);
   } else if (state == IceState::READY) {
     if (!isServer_ && dtlsRtp && !dtlsRtp->started) {
-      ELOG_INFO("%s message: DTLSRTP Start, transportName: %s", toLog(), transport_name.c_str());
+      const auto log_str = toLog();
+      ELOG_INFO("%s message: DTLSRTP Start, transportName: %s", log_str.c_str(), transport_name.c_str());
       dtlsRtp->start();
     }
     if (!isServer_ && dtlsRtcp != NULL && !dtlsRtcp->started) {
-      ELOG_DEBUG("%s message: DTLSRTCP Start, transportName: %s", toLog(), transport_name.c_str());
+      const auto log_str = toLog();
+      ELOG_DEBUG("%s message: DTLSRTCP Start, transportName: %s", log_str.c_str(), transport_name.c_str());
       dtlsRtcp->start();
     }
   }
 }
 
 void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
-  ELOG_DEBUG("%s message: processing local sdp, transportName: %s", toLog(), transport_name.c_str());
+  auto log_str = toLog();
+  ELOG_DEBUG("%s message: processing local sdp, transportName: %s", log_str.c_str(), transport_name.c_str());
   localSdp_->isFingerprint = true;
   localSdp_->fingerprint = getMyFingerprint();
   std::string username = ice_->getLocalUsername();
@@ -372,8 +392,9 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
   } else {
     localSdp_->setCredentials(username, password, this->mediaType);
   }
+  log_str = toLog();
   ELOG_DEBUG("%s message: processed local sdp, transportName: %s, ufrag: %s, pass: %s",
-             toLog(), transport_name.c_str(), username.c_str(), password.c_str());
+             log_str.c_str(), transport_name.c_str(), username.c_str(), password.c_str());
 }
 
 bool DtlsTransport::isDtlsPacket(const char* buf, int len) {
