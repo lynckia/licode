@@ -1,17 +1,17 @@
 import Logger from '../utils/Logger';
 import BaseStack from './BaseStack';
 
-const possibleLayers = [
-  { rid: 'high' },
-  { rid: 'med', scaleResolutionDownBy: 2 },
-  { rid: 'low', scaleResolutionDownBy: 3 },
-];
-
 const FirefoxStack = (specInput) => {
   Logger.info('Starting Firefox stack');
   const that = BaseStack(specInput);
   const spec = specInput;
   const defaultSimulcastSpatialLayers = 2;
+
+  const possibleLayers = [
+    { rid: 'low', scaleResolutionDownBy: 3 },
+    { rid: 'med', scaleResolutionDownBy: 2 },
+    { rid: 'high' },
+  ];
 
   const getSimulcastParameters = (sender) => {
     let numSpatialLayers = spec.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
@@ -21,7 +21,7 @@ const FirefoxStack = (specInput) => {
     const parameters = sender.getParameters() || {};
     parameters.encodings = [];
 
-    for (let layer = totalLayers - numSpatialLayers; layer < totalLayers; layer += 1) {
+    for (let layer = totalLayers - 1; layer >= totalLayers - numSpatialLayers; layer -= 1) {
       parameters.encodings.push(possibleLayers[layer]);
     }
     sender.setParameters(parameters);
