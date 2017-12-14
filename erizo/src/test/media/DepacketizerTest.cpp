@@ -10,6 +10,7 @@
 
 namespace {
   constexpr uint16_t seq = 44444;
+  constexpr uint32_t timestamp = 0;
 
   char change_bit(char val, int num, bool bitval) {
     return (val & ~(1 << num)) | (bitval << num);
@@ -34,17 +35,27 @@ class DepacketizerVp8Test : public erizo::HandlerTest {
   std::shared_ptr<erizo::Depacketizer> depacketizer;
 };
 
+class DepacketizerH264Test : public erizo::HandlerTest {
+ public:
+  DepacketizerH264Test() {}
+
+ protected:
+  void setHandler() {
+    depacketizer = std::make_shared<erizo::H264_depacketizer>();
+  }
+
+  int H264SingleNalDataSize() {
+    const auto pkt = erizo::PacketTools::createH264SingleNalPacket(seq, false, false);
+    const erizo::RtpHeader* head = reinterpret_cast<const erizo::RtpHeader*>(pkt->data);
+    return pkt->length - head->getHeaderLength() + sizeof(erizo::RTPPayloadH264::start_sequence);
+  }
+
+  std::shared_ptr<erizo::Depacketizer> depacketizer;
+};
+
 TEST_F(DepacketizerVp8Test, isReallyEmpty) {
   EXPECT_EQ(0, depacketizer->is_keyframe());
   EXPECT_EQ(0, depacketizer->frame_size());
-}
-
-TEST_F(DepacketizerVp8Test, shouldDepacketSimplePacket) {
-  const auto pkt = erizo::PacketTools::createVP8Packet(seq, false, true);
-  depacketizer->fetch_packet(reinterpret_cast<unsigned char*>(pkt->data), pkt->length);
-  EXPECT_EQ(1, depacketizer->process_packet());
-  EXPECT_EQ(0, depacketizer->is_keyframe());
-  EXPECT_EQ(Vp8PacketDataSize(), depacketizer->frame_size());
 }
 
 TEST_F(DepacketizerVp8Test, shouldDepacketSimplePacketFrame) {
@@ -93,6 +104,36 @@ TEST_F(DepacketizerVp8Test, shouldDepacketMultiPacketFrame) {
 
 TEST_F(DepacketizerVp8Test, shouldReset) {
   const auto pkt = erizo::PacketTools::createVP8Packet(seq, true, true);
+  depacketizer->fetch_packet(reinterpret_cast<unsigned char*>(pkt->data), pkt->length);
+  EXPECT_EQ(1, depacketizer->process_packet());
+  depacketizer->reset();
+  EXPECT_EQ(0, depacketizer->is_keyframe());
+  EXPECT_EQ(0, depacketizer->frame_size());
+}
+
+TEST_F(DepacketizerH264Test, isReallyEmpty) {
+  EXPECT_EQ(0, depacketizer->is_keyframe());
+  EXPECT_EQ(0, depacketizer->frame_size());
+}
+
+TEST_F(DepacketizerH264Test, shouldDepacketSingleNalFrame) {
+  const auto pkt = erizo::PacketTools::createH264SingleNalPacket(seq, timestamp, false);
+  depacketizer->fetch_packet(reinterpret_cast<unsigned char*>(pkt->data), pkt->length);
+  EXPECT_EQ(1, depacketizer->process_packet());
+  EXPECT_EQ(0, depacketizer->is_keyframe());
+  EXPECT_EQ(H264SingleNalDataSize(), depacketizer->frame_size());
+}
+
+TEST_F(DepacketizerH264Test, shouldDepacketSingleNalKeyframe) {
+  const auto pkt = erizo::PacketTools::createH264SingleNalPacket(seq, timestamp, true);
+  depacketizer->fetch_packet(reinterpret_cast<unsigned char*>(pkt->data), pkt->length);
+  EXPECT_EQ(1, depacketizer->process_packet());
+  EXPECT_EQ(1, depacketizer->is_keyframe());
+  EXPECT_EQ(H264SingleNalDataSize(), depacketizer->frame_size());
+}
+
+TEST_F(DepacketizerH264Test, shouldReset) {
+  const auto pkt = erizo::PacketTools::createH264SingleNalPacket(seq, timestamp, true);
   depacketizer->fetch_packet(reinterpret_cast<unsigned char*>(pkt->data), pkt->length);
   EXPECT_EQ(1, depacketizer->process_packet());
   depacketizer->reset();
