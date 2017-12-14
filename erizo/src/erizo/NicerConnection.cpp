@@ -540,7 +540,7 @@ void NicerConnection::setReceivedLastCandidate(bool hasReceived) {
 }
 
 void NicerConnection::closeSync() {
-  boost::mutex::scoped_lock lock(closeSync_mutex_);
+  boost::mutex::scoped_lock lock(close_sync_mutex_);
   if (closed_) {
     return;
   }
