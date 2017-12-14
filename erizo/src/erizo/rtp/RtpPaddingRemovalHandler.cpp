@@ -50,8 +50,7 @@ void RtpPaddingRemovalHandler::write(Context *ctx, std::shared_ptr<DataPacket> p
   uint32_t ssrc = rtcp_head->getSourceSSRC();
   std::shared_ptr<SequenceNumberTranslator> translator = getTranslatorForSsrc(ssrc, false);
   if (!translator) {
-    const auto log_str = stream_->toLog();
-    ELOG_DEBUG("No translator for ssrc %u, %s", ssrc, log_str.c_str());
+    ELOG_DEBUG("No translator for ssrc %u, %s", ssrc, stream_->toLog());
     ctx->fireWrite(std::move(packet));
     return;
   }
@@ -67,8 +66,7 @@ void RtpPaddingRemovalHandler::write(Context *ctx, std::shared_ptr<DataPacket> p
           if (input_seq_num.type == SequenceNumberType::Valid) {
             seq_nums.push_back(input_seq_num.input);
           } else {
-            const auto log_str = stream_->toLog();
-            ELOG_DEBUG("Input is not valid for %u, ssrc %u, %s", seq_num, ssrc, log_str.c_str());
+            ELOG_DEBUG("Input is not valid for %u, ssrc %u, %s", seq_num, ssrc, stream_->toLog());
           }
           ELOG_DEBUG("Lost packet %u, input %u, ssrc %u", seq_num, input_seq_num.input, ssrc);
         }
@@ -81,8 +79,7 @@ void RtpPaddingRemovalHandler::write(Context *ctx, std::shared_ptr<DataPacket> p
           }
           nack_header->setNackPid(pid);
           nack_header->setNackBlp(blp);
-          const auto log_str = stream_->toLog();
-          ELOG_DEBUG("Translated pid %u, translated blp %u, ssrc %u, %s", pid, blp, ssrc, log_str.c_str());
+          ELOG_DEBUG("Translated pid %u, translated blp %u, ssrc %u, %s", pid, blp, ssrc, stream_->toLog());
         }
       });
     }
@@ -99,8 +96,7 @@ bool RtpPaddingRemovalHandler::removePaddingBytes(std::shared_ptr<DataPacket> pa
   if (padding_length + header_length == packet->length) {
     uint16_t sequence_number = rtp_header->getSeqNumber();
     translator->get(sequence_number, true);
-    const auto log_str = stream_->toLog();
-    ELOG_DEBUG("Dropping packet %u, %s", sequence_number, log_str.c_str());
+    ELOG_DEBUG("Dropping packet %u, %s", sequence_number, stream_->toLog());
     return false;
   }
   packet->length -= padding_length;
@@ -113,12 +109,11 @@ std::shared_ptr<SequenceNumberTranslator> RtpPaddingRemovalHandler::getTranslato
     auto translator_it = translator_map_.find(ssrc);
     std::shared_ptr<SequenceNumberTranslator> translator;
     if (translator_it != translator_map_.end()) {
-      const auto log_str = stream_->toLog();
-      ELOG_DEBUG("Found Translator for %u, %s", ssrc, log_str.c_str());
+      ELOG_DEBUG("Found Translator for %u, %s", ssrc, stream_->toLog());
       translator = translator_it->second;
     } else if (should_create) {
-      const auto log_str = stream_->toLog();
-      ELOG_DEBUG("message: no Translator found creating a new one, ssrc: %u, %s", ssrc, log_str.c_str());
+      ELOG_DEBUG("message: no Translator found creating a new one, ssrc: %u, %s", ssrc,
+      stream_->toLog());
       translator = std::make_shared<SequenceNumberTranslator>();
       translator_map_[ssrc] = translator;
     }
