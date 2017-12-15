@@ -143,8 +143,8 @@ class WebRtcConnection: public TransportListener, public LogContext,
   bool isSourceSSRC(uint32_t ssrc);
   bool isSinkSSRC(uint32_t ssrc);
 
-  inline const char* toLog() {
-    return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
+  inline std::string toLog() {
+    return "id: " + connection_id_ + ", " + printLogContext();
   }
 
  private:
