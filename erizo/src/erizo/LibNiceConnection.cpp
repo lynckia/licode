@@ -74,7 +74,7 @@ LibNiceConnection::~LibNiceConnection() {
 }
 
 void LibNiceConnection::close() {
-  boost::mutex::scoped_lock(closeMutex_);
+  boost::mutex::scoped_lock lock(close_mutex_);
   if (this->checkIceState() == IceState::FINISHED) {
     return;
   }
@@ -114,7 +114,7 @@ void LibNiceConnection::onData(unsigned int component_id, char* buf, int len) {
   IceState state;
   IceConnectionListener* listener;
   {
-    boost::mutex::scoped_lock(closeMutex_);
+    boost::mutex::scoped_lock lock(close_mutex_);
     state = this->checkIceState();
     listener = listener_;
   }
@@ -140,7 +140,7 @@ int LibNiceConnection::sendData(unsigned int component_id, const void* buf, int 
 }
 
 void LibNiceConnection::start() {
-    boost::mutex::scoped_lock(closeMutex_);
+    boost::mutex::scoped_lock lock(close_mutex_);
     if (this->checkIceState() != INITIAL) {
       return;
     }

@@ -105,6 +105,8 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   nr_ice_handler* ice_handler_;
   std::promise<void> close_promise_;
   std::promise<void> start_promise_;
+  boost::mutex close_mutex_;
+  boost::mutex close_sync_mutex_;
 };
 
 }  // namespace erizo
