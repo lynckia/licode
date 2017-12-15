@@ -1,11 +1,13 @@
+const webpackConfig = require('../webpack.config.erizofc.js');
+
 const erizoFcTasks = (gulp, plugins, config) => {
   const that = {};
   if (!config.paths) {
-    return;
+    return {};
   }
   const erizoFcConfig = {
     entry: `${config.paths.entry}ErizoFc.js`,
-    webpackConfig: require('../webpack.config.erizofc.js'),
+    webpackConfig,
     debug: `${config.paths.debug}/erizofc`,
     production: `${config.paths.production}/erizofc`,
   };
@@ -16,13 +18,15 @@ const erizoFcTasks = (gulp, plugins, config) => {
     .pipe(gulp.dest(erizoFcConfig.debug))
     .on('error', anError => console.log('An error ', anError));
 
-  that.compile = () => {
-    return gulp.src(`${erizoFcConfig.debug}/**/*.js`)
+  that.compile = () => gulp.src(`${erizoFcConfig.debug}/**/*.js`)
     .pipe(gulp.dest(erizoFcConfig.production));
-  }
 
   that.dist = () =>
     gulp.src(`${erizoFcConfig.production}/**/*.js`)
+    .pipe(gulp.dest(config.paths.spine));
+
+  that.distDebug = () =>
+    gulp.src(`${erizoFcConfig.debug}/**/*.js`)
     .pipe(gulp.dest(config.paths.spine));
 
   that.clean = () =>
