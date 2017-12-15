@@ -1,11 +1,13 @@
+const webpackConfig = require('../webpack.config.erizo.js');
+
 const erizoTasks = (gulp, plugins, config) => {
   const that = {};
   if (!config.paths) {
-    return;
+    return that;
   }
   const erizoConfig = {
     entry: `${config.paths.entry}Erizo.js`,
-    webpackConfig: require('../webpack.config.erizo.js'),
+    webpackConfig,
     debug: `${config.paths.debug}/erizo`,
     production: `${config.paths.production}/erizo`,
   };
@@ -31,6 +33,10 @@ const erizoTasks = (gulp, plugins, config) => {
 
   that.dist = () =>
     gulp.src(`${erizoConfig.production}/**/*.js*`)
+    .pipe(gulp.dest(config.paths.basicExample));
+
+  that.distDebug = () =>
+    gulp.src(`${erizoConfig.debug}/**/*.js*`)
     .pipe(gulp.dest(config.paths.basicExample));
 
   that.clean = () =>
