@@ -8,7 +8,7 @@
 #include "./logger.h"
 #include "pipeline/Handler.h"
 #include "rtp/RtcpRrGenerator.h"
-#include "rtp/RtcpNackGenerator.h"
+#include "rtp/RtcpNewNackGenerator.h"
 #include "lib/ClockUtils.h"
 
 #define MAX_DELAY 450000
@@ -20,7 +20,7 @@ class MediaStream;
 class RtcpGeneratorPair {
  public:
   std::shared_ptr<RtcpRrGenerator> rr_generator;
-  std::shared_ptr<RtcpNackGenerator> nack_generator;
+  std::shared_ptr<RtcpNewNackGenerator> nack_generator;
 };
 
 
@@ -29,7 +29,7 @@ class RtcpFeedbackGenerationHandler: public Handler {
 
 
  public:
-  explicit RtcpFeedbackGenerationHandler(bool nacks_enabled = true,
+  explicit RtcpFeedbackGenerationHandler(bool nacks_enabled = true, bool pli_enabled = true,
       std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
 
 
@@ -50,7 +50,11 @@ class RtcpFeedbackGenerationHandler: public Handler {
 
   bool enabled_, initialized_;
   bool nacks_enabled_;
+  bool pli_enabled_;
   std::shared_ptr<Clock> clock_;
+
+  uint32_t video_sink_ssrc_ = 0;
+  uint32_t audio_sink_ssrc_ = 0;
 };
 }  // namespace erizo
 

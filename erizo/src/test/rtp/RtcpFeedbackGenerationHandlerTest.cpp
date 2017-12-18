@@ -40,7 +40,7 @@ class RtcpFeedbackRrGenerationTest : public erizo::HandlerTest {
 
  protected:
   void setHandler() {
-    rr_handler = std::make_shared<RtcpFeedbackGenerationHandler>(false, clock);
+    rr_handler = std::make_shared<RtcpFeedbackGenerationHandler>(false, false, clock);
     pipeline->addBack(rr_handler);
   }
 
