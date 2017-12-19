@@ -93,6 +93,7 @@ bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<DataPacket> rr_packet)
       uint16_t distance = blp_nack_info.seq_num - pid -1;
       if (distance <= 15) {
         if (!isTimeToRetransmit(blp_nack_info, now_ms)) {
+          index++;
           continue;
         }
         if (blp_nack_info.retransmits >= kMaxRetransmits) {
