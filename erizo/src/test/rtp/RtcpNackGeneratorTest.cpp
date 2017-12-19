@@ -144,7 +144,10 @@ TEST_F(RtcpNackGeneratorTest, nackShouldContainLostPacketsInMoreThanOneBlock) {
   EXPECT_TRUE(nack_generator.handleRtpPacket(second_packet));
 
   receiver_report = generateRrWithNack();
-  EXPECT_TRUE(RtcpPacketContainsNackSeqNum(receiver_report, 35));
+
+  for (int i = erizo::kArbitrarySeqNumber + 1; i < erizo::kArbitrarySeqNumber + kArbitraryNumberOfPackets; ++i) {
+    EXPECT_TRUE(RtcpPacketContainsNackSeqNum(receiver_report, i)) << "i = " << i;
+  }
 }
 
 TEST_F(RtcpNackGeneratorTest, shouldNotRetransmitNacksInmediately) {
