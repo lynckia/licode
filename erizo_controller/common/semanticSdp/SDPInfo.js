@@ -374,6 +374,8 @@ class SDPInfo {
       });
 
       const simulcast = media.getSimulcast();
+      const simulcast03 = media.getSimulcast03();
+
       if (simulcast) {
         let index = 1;
         md.simulcast = {};
@@ -409,6 +411,12 @@ class SDPInfo {
           md.simulcast[`list${index}`] = list;
           index += 1;
         }
+      }
+
+      if (simulcast03) {
+        md.simulcast_03 = {
+          value: simulcast03.getSimulcastPlainString(),
+        };
       }
 
       sdp.media.push(md);
@@ -580,19 +588,7 @@ function getSimulcastDir(index, md, simulcast) {
 }
 
 function getSimulcast3Dir(md, simulcast) {
-  const simulcastDir = md.simulcast_03.value.match(/\s*(send|recv)/)[0];
-  const simulcastList = md.simulcast_03.value.match(/rid=([\S]+)/)[0];
-  if (simulcastDir) {
-    const direction = DirectionWay.byValue(simulcastDir);
-    const list = SDPTransform.parseSimulcastStreamList(simulcastList);
-    list.forEach((stream) => {
-      const alternatives = [];
-      stream.forEach((entry) => {
-        alternatives.push(new SimulcastStreamInfo(entry.scid, entry.paused));
-      });
-      simulcast.addSimulcastAlternativeStreams(direction, alternatives);
-    });
-  }
+  simulcast.setSimulcastPlainString(md.simulcast_03.value);
 }
 
 function getSimulcast(mediaInfo, md) {
@@ -629,7 +625,7 @@ function getSimulcast(mediaInfo, md) {
   if (md.simulcast_03) {
     const simulcast = new SimulcastInfo();
     getSimulcast3Dir(md, simulcast);
-    mediaInfo.setSimulcast(simulcast);
+    mediaInfo.setSimulcast03(simulcast);
   }
   return encodings;
 }

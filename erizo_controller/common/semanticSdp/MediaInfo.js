@@ -12,6 +12,7 @@ class MediaInfo {
     this.codecs = new Map();
     this.rids = new Map();
     this.simulcast = null;
+    this.simulcast_03 = null;
     this.bitrate = 0;
     this.ice = null;
     this.dtls = null;
@@ -272,6 +273,14 @@ class MediaInfo {
 
   setSimulcast(simulcast) {
     this.simulcast = simulcast;
+  }
+
+  getSimulcast03() {
+    return this.simulcast_03;
+  }
+
+  setSimulcast03(simulcast) {
+    this.simulcast_03 = simulcast;
   }
 }
 
