@@ -38,16 +38,8 @@ const Room = (altIo, altConnection, specInput) => {
   let localStreams = that.localStreams;
 
   // Private functions
-  const removeStream = (streamInput) => {
+  const closePc = (streamInput) => {
     const stream = streamInput;
-    if (stream.stream) {
-      // Remove HTML element
-      stream.hide();
-
-      stream.stop();
-      stream.close();
-      delete stream.stream;
-    }
 
     // Close PC stream
     if (stream.pc) {
@@ -61,6 +53,20 @@ const Room = (altIo, altConnection, specInput) => {
         delete stream.pc;
       }
     }
+  };
+
+  const removeStream = (streamInput) => {
+    const stream = streamInput;
+    if (stream.stream) {
+      // Remove HTML element
+      stream.hide();
+
+      stream.stop();
+      stream.close();
+      delete stream.stream;
+    }
+
+    closePc(stream);
   };
 
   const onStreamFailed = (streamInput, message) => {
@@ -708,7 +714,7 @@ const Room = (altIo, altConnection, specInput) => {
       });
       stream.room = undefined;
       if (stream.hasMedia() && !stream.isExternal()) {
-        removeStream(stream);
+        closePc(stream);
       }
       localStreams.remove(stream.getID());
 
