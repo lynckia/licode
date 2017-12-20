@@ -136,7 +136,7 @@ var generateToken = function (req, callback) {
             tokenRegistry.addToken(token, function (id, err) {
 
                 if (err) {
-                  return callback('error')
+                  return callback('error');
                 }
                 var tokenS = getTokenString(id, token);
                 callback(tokenS);
