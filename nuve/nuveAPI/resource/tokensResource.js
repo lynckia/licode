@@ -90,8 +90,11 @@ var generateToken = function (req, callback) {
 
             log.info('message: generateTestToken');
 
-            tokenRegistry.addToken(token, function (id) {
+            tokenRegistry.addToken(token, function (id, err) {
 
+                if (err) {
+                  return callback('error');
+                }
                 token._id = id;
                 currentService.testToken = token;
                 serviceRegistry.updateService(currentService);
@@ -130,8 +133,11 @@ var generateToken = function (req, callback) {
 
             token.host += ':' + ec.port;
 
-            tokenRegistry.addToken(token, function (id) {
+            tokenRegistry.addToken(token, function (id, err) {
 
+                if (err) {
+                  return callback('error')
+                }
                 var tokenS = getTokenString(id, token);
                 callback(tokenS);
             });
