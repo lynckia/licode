@@ -29,7 +29,7 @@ using erizo::RtcpHeader;
 using erizo::WebRtcConnection;
 using erizo::SimulatedClock;
 
-class RtcpNackGeneratorTest :public ::testing::Test {
+class RtcpNackGeneratorTest :public ::testing::TestWithParam<int> {
  public:
   RtcpNackGeneratorTest(): clock{std::make_shared<SimulatedClock>()}, nack_generator{erizo::kVideoSsrc,
     clock} {}
@@ -92,7 +92,7 @@ TEST_F(RtcpNackGeneratorTest, shouldNotGenerateNackForConsecutivePackets) {
   auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + 1,
       VIDEO_PACKET);
   nack_generator.handleRtpPacket(first_packet);
-  EXPECT_FALSE(nack_generator.handleRtpPacket(second_packet));
+  EXPECT_FALSE(nack_generator.handleRtpPacket(second_packet).first);
 }
 
 TEST_F(RtcpNackGeneratorTest, shouldNotGenerateNackForConsecutivePacketsWithRollOver) {
@@ -100,7 +100,7 @@ TEST_F(RtcpNackGeneratorTest, shouldNotGenerateNackForConsecutivePacketsWithRoll
   auto second_packet = erizo::PacketTools::createDataPacket(kMaxSeqnum + 1,
       VIDEO_PACKET);
   nack_generator.handleRtpPacket(first_packet);
-  EXPECT_FALSE(nack_generator.handleRtpPacket(second_packet));
+  EXPECT_FALSE(nack_generator.handleRtpPacket(second_packet).first);
 }
 
 TEST_F(RtcpNackGeneratorTest, shouldGenerateNackOnLostPacket) {
@@ -109,7 +109,7 @@ TEST_F(RtcpNackGeneratorTest, shouldGenerateNackOnLostPacket) {
   auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + kArbitraryNumberOfPackets,
       VIDEO_PACKET);
   nack_generator.handleRtpPacket(first_packet);
-  EXPECT_TRUE(nack_generator.handleRtpPacket(second_packet));
+  EXPECT_TRUE(nack_generator.handleRtpPacket(second_packet).first);
 }
 
 TEST_F(RtcpNackGeneratorTest, shouldGenerateNackOnLostPacketWithRollOver) {
@@ -118,7 +118,7 @@ TEST_F(RtcpNackGeneratorTest, shouldGenerateNackOnLostPacketWithRollOver) {
   auto second_packet = erizo::PacketTools::createDataPacket(kMaxSeqnum + kArbitraryNumberOfPackets,
       VIDEO_PACKET);
   nack_generator.handleRtpPacket(first_packet);
-  EXPECT_TRUE(nack_generator.handleRtpPacket(second_packet));
+  EXPECT_TRUE(nack_generator.handleRtpPacket(second_packet).first);
 }
 
 TEST_F(RtcpNackGeneratorTest, nackShouldContainLostPackets) {
@@ -128,7 +128,7 @@ TEST_F(RtcpNackGeneratorTest, nackShouldContainLostPackets) {
       VIDEO_PACKET);
   nack_generator.handleRtpPacket(first_packet);
 
-  EXPECT_TRUE(nack_generator.handleRtpPacket(second_packet));
+  EXPECT_TRUE(nack_generator.handleRtpPacket(second_packet).first);
 
   receiver_report = generateRrWithNack();
   EXPECT_TRUE(RtcpPacketContainsNackSeqNum(receiver_report, erizo::kArbitrarySeqNumber + 1));
@@ -141,7 +141,7 @@ TEST_F(RtcpNackGeneratorTest, nackShouldContainLostPacketsInMoreThanOneBlock) {
       VIDEO_PACKET);
   nack_generator.handleRtpPacket(first_packet);
 
-  EXPECT_TRUE(nack_generator.handleRtpPacket(second_packet));
+  EXPECT_TRUE(nack_generator.handleRtpPacket(second_packet).first);
 
   receiver_report = generateRrWithNack();
   EXPECT_TRUE(RtcpPacketContainsNackSeqNum(receiver_report, 35));
@@ -202,3 +202,23 @@ TEST_F(RtcpNackGeneratorTest, shouldNotRetransmitNacksMoreThanTwice) {
   receiver_report = generateRrWithNack();
   EXPECT_FALSE(RtcpPacketContainsNackSeqNum(receiver_report, erizo::kArbitrarySeqNumber + 1));
 }
+
+TEST_F(RtcpNackGeneratorTest, shouldAskPLI) {
+  uint16_t kArbitraryNumberOfPackets = 800;
+  auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+  auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + kArbitraryNumberOfPackets,
+    VIDEO_PACKET);
+  nack_generator.handleRtpPacket(first_packet);
+  EXPECT_TRUE(nack_generator.handleRtpPacket(second_packet).second);
+}
+
+TEST_P(RtcpNackGeneratorTest, shouldNotAskPLI) {
+  uint16_t kArbitraryNumberOfPackets = GetParam();
+  auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+  auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + kArbitraryNumberOfPackets,
+    VIDEO_PACKET);
+  nack_generator.handleRtpPacket(first_packet);
+  EXPECT_FALSE(nack_generator.handleRtpPacket(second_packet).second);
+}
+
+INSTANTIATE_TEST_CASE_P(RtcpNackGeneratorTest, RtcpNackGeneratorTest, ::testing::Range(0, 50));

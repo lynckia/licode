@@ -32,7 +32,7 @@ using erizo::RtcpHeader;
 using erizo::WebRtcConnection;
 using erizo::SimulatedClock;
 
-class RtcpNewNackGeneratorTest :public ::testing::Test {
+class RtcpNewNackGeneratorTest :public ::testing::TestWithParam<int> {
  public:
   RtcpNewNackGeneratorTest(): clock{std::make_shared<SimulatedClock>()},
       nack_generator{erizo::kVideoSsrc, clock} {}
@@ -227,3 +227,14 @@ TEST_F(RtcpNewNackGeneratorTest, shouldAskPLI) {
   nack_generator.handleRtpPacket(first_packet);
   EXPECT_TRUE(nack_generator.handleRtpPacket(second_packet).second);
 }
+
+TEST_P(RtcpNewNackGeneratorTest, shouldNotAskPLI) {
+  uint16_t kArbitraryNumberOfPackets = GetParam();
+  auto first_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
+  auto second_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + kArbitraryNumberOfPackets,
+    VIDEO_PACKET);
+  nack_generator.handleRtpPacket(first_packet);
+  EXPECT_FALSE(nack_generator.handleRtpPacket(second_packet).second);
+}
+
+INSTANTIATE_TEST_CASE_P(RtcpNewNackGeneratorTest, RtcpNewNackGeneratorTest, ::testing::Range(0, 50));

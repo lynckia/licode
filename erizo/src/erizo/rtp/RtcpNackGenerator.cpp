@@ -14,23 +14,23 @@ static const int kNackCommonHeaderLengthRtcp = kNackCommonHeaderLengthBytes/4 - 
 RtcpNackGenerator::RtcpNackGenerator(uint32_t ssrc, std::shared_ptr<Clock> the_clock) :
   initialized_{false}, highest_seq_num_{0}, ssrc_{ssrc}, clock_{the_clock} {}
 
-bool RtcpNackGenerator::handleRtpPacket(std::shared_ptr<DataPacket> packet) {
+std::pair<bool, bool> RtcpNackGenerator::handleRtpPacket(std::shared_ptr<DataPacket> packet) {
   if (packet->type != VIDEO_PACKET) {
-    return false;
+    return {false, false};
   }
   RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
   uint16_t seq_num = head->getSeqNumber();
   if (head->getSSRC() != ssrc_) {
     ELOG_DEBUG("message: handleRtpPacket Unknown SSRC, ssrc: %u", head->getSSRC());
-    return false;
+    return {false, false};
   }
   if (!initialized_) {
     highest_seq_num_ = seq_num;
     initialized_ = true;
-    return 0;
+    return {false, false};
   }
   if (seq_num == highest_seq_num_) {
-    return false;
+    return {false, false};
   }
   // TODO(pedro) Consider clearing the nack list if this is a keyframe
   if (RtpUtils::sequenceNumberLessThan(seq_num, highest_seq_num_)) {
@@ -45,11 +45,11 @@ bool RtcpNackGenerator::handleRtpPacket(std::shared_ptr<DataPacket> packet) {
       ELOG_DEBUG("message: Recovered Packet %u", seq_num);
       nack_info_list_.erase(nack_info);
     }
-    return false;
+    return {false, false};
   }
   bool available_nacks = addNacks(seq_num);
   highest_seq_num_ = seq_num;
-  return available_nacks;
+  return {available_nacks, false};
 }
 
 bool RtcpNackGenerator::addNacks(uint16_t seq_num) {
