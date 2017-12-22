@@ -40,7 +40,6 @@ var hasToken = exports.hasToken = function (id, callback) {
             callback(true);
         }
     });
-
 };
 
 /*
@@ -48,8 +47,11 @@ var hasToken = exports.hasToken = function (id, callback) {
  */
 exports.addToken = function (token, callback) {
     db.tokens.save(token, function (error, saved) {
-        if (error) log.warn('message: addToken error, ' + logger.objectToLog(error));
-        callback(saved._id);
+        if (error) {
+          log.warn('message: addToken error, ' + logger.objectToLog(error));
+          return callback(null, true);
+        }
+        callback(saved._id, false);
     });
 };
 
