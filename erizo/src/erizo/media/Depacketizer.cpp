@@ -175,7 +175,7 @@ bool H264_depacketizer::process_packet() {
     buffer_check(last_payload_->unpacked_data_len);
     std::memcpy(buffer_ptr(), &last_payload_->unpacked_data[0], last_payload_->unpacked_data_len);
     set_buffer_ptr(buffer_ptr() + last_payload_->unpacked_data_len);
-    break;
+    return true;
   }
   }
   return false;
