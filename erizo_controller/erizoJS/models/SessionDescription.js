@@ -23,7 +23,10 @@ class SessionDescription {
     info.setRtcpMux(true);  // TODO
 
     // we use the same field for both audio and video
-    info.setDirection(Direction.toString(sdp.medias[0].getDirection()));
+    if (sdp.medias && sdp.medias.length > 0) {
+      info.setDirection(Direction.toString(sdp.medias[0].getDirection()));
+    }
+
     info.setProfile('UDP/TLS/RTP/SAVPF'); // TODO
 
     info.setBundle(true);  // TODO
