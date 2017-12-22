@@ -4,6 +4,7 @@ var logger = require('./../common/logger').logger;
 var amqper = require('./../common/amqper');
 var Publisher = require('./models/Publisher').Publisher;
 var ExternalInput = require('./models/Publisher').ExternalInput;
+var SessionDescription = require('./models/SessionDescription');
 var SemanticSdp = require('./../common/semanticSdp/SemanticSdp');
 
 // Logger
@@ -258,8 +259,9 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                 var subscriber = publisher.getSubscriber(peerId);
                 if (msg.type === 'offer') {
                     const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-                    msg.sdp = sdp.toString();
-                    subscriber.setRemoteSdp(msg.sdp);
+                    subscriber.remoteDescription =
+                        new SessionDescription(sdp, subscriber.mediaConfiguration);
+                    subscriber.setRemoteDescription(subscriber.remoteDescription.connectionDescription);
                     disableDefaultHandlers(subscriber);
                 } else if (msg.type === 'candidate') {
                     subscriber.addRemoteCandidate(msg.candidate.sdpMid,
@@ -268,8 +270,9 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                 } else if (msg.type === 'updatestream') {
                     if(msg.sdp) {
                         const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-                        msg.sdp = sdp.toString();
-                        subscriber.setRemoteSdp(msg.sdp);
+                        subscriber.remoteDescription =
+                            new SessionDescription(sdp, subscriber.mediaConfiguration);
+                        subscriber.setRemoteDescription(subscriber.remoteDescription.connectionDescription);
                       }
                     if (msg.config) {
                         if (msg.config.slideShowMode !== undefined) {
@@ -291,8 +294,9 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
             } else {
                 if (msg.type === 'offer') {
                     const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-                    msg.sdp = sdp.toString();
-                    publisher.wrtc.setRemoteSdp(msg.sdp);
+                    publisher.remoteDescription =
+                        new SessionDescription(sdp, publisher.mediaConfiguration);
+                    publisher.wrtc.setRemoteDescription(publisher.remoteDescription.connectionDescription);
                     disableDefaultHandlers(publisher.wrtc);
                 } else if (msg.type === 'candidate') {
                     publisher.wrtc.addRemoteCandidate(msg.candidate.sdpMid,
@@ -301,8 +305,9 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                 } else if (msg.type === 'updatestream') {
                     if (msg.sdp) {
                         const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-                        msg.sdp = sdp.toString();
-                        publisher.wrtc.setRemoteSdp(msg.sdp);
+                        publisher.remoteDescription =
+                            new SessionDescription(sdp, publisher.mediaConfiguration);
+                        publisher.wrtc.setRemoteDescription(publisher.remoteDescription.connectionDescription);
                     }
                     if (msg.config) {
                         if (msg.config.minVideoBW) {

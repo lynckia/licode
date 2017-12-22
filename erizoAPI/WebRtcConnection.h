@@ -5,6 +5,7 @@
 #include <WebRtcConnection.h>
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
+#include "ConnectionDescription.h"
 
 #include <queue>
 #include <string>
@@ -57,6 +58,12 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
      * Returns true if the process has started successfully.
      */
     static NAN_METHOD(createOffer);
+    /*
+     * Sets the SDP of the remote peer.
+     * Param: the SDP.
+     * Returns true if the SDP was received correctly.
+     */
+    static NAN_METHOD(setRemoteDescription);
     /*
      * Sets the SDP of the remote peer.
      * Param: the SDP.
