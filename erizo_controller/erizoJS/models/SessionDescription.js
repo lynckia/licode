@@ -1,14 +1,11 @@
-/*global require, exports*/
+/*global require*/
 'use strict';
-var ConnectionDescription = require('./../../../erizoAPI/build/Release/addon').ConnectionDescription;
+var ConnectionDescription = require('./../../../erizoAPI/build/Release/addon')
+                                                          .ConnectionDescription;
 var Direction = require('./../../common/semanticSdp/Direction');
 var DirectionWay = require('./../../common/semanticSdp/DirectionWay');
 var Setup = require('./../../common/semanticSdp/Setup');
-var logger = require('./../../common/logger').logger;
 var Helpers = require('./Helpers');
-
-// Logger
-var log = logger.getLogger('SessionDescription');
 
 class SessionDescription {
   constructor(sdp, mediaConfiguration) {

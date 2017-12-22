@@ -261,7 +261,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                     const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
                     subscriber.remoteDescription =
                         new SessionDescription(sdp, subscriber.mediaConfiguration);
-                    subscriber.setRemoteDescription(subscriber.remoteDescription.connectionDescription);
+                    subscriber.setRemoteDescription(
+                        subscriber.remoteDescription.connectionDescription);
                     disableDefaultHandlers(subscriber);
                 } else if (msg.type === 'candidate') {
                     subscriber.addRemoteCandidate(msg.candidate.sdpMid,
@@ -272,7 +273,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                         const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
                         subscriber.remoteDescription =
                             new SessionDescription(sdp, subscriber.mediaConfiguration);
-                        subscriber.setRemoteDescription(subscriber.remoteDescription.connectionDescription);
+                        subscriber.setRemoteDescription(
+                            subscriber.remoteDescription.connectionDescription);
                       }
                     if (msg.config) {
                         if (msg.config.slideShowMode !== undefined) {
@@ -296,7 +298,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                     const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
                     publisher.remoteDescription =
                         new SessionDescription(sdp, publisher.mediaConfiguration);
-                    publisher.wrtc.setRemoteDescription(publisher.remoteDescription.connectionDescription);
+                    publisher.wrtc.setRemoteDescription(
+                        publisher.remoteDescription.connectionDescription);
                     disableDefaultHandlers(publisher.wrtc);
                 } else if (msg.type === 'candidate') {
                     publisher.wrtc.addRemoteCandidate(msg.candidate.sdpMid,
@@ -307,7 +310,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                         const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
                         publisher.remoteDescription =
                             new SessionDescription(sdp, publisher.mediaConfiguration);
-                        publisher.wrtc.setRemoteDescription(publisher.remoteDescription.connectionDescription);
+                        publisher.wrtc.setRemoteDescription(
+                            publisher.remoteDescription.connectionDescription);
                     }
                     if (msg.config) {
                         if (msg.config.minVideoBW) {
