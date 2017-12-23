@@ -10,7 +10,7 @@
 
 namespace erizo {
 
-class WebRtcConnection;
+class MediaStream;
 
 class PliPacerHandler: public Handler, public std::enable_shared_from_this<PliPacerHandler> {
   DECLARE_LOGGER();
@@ -40,7 +40,7 @@ class PliPacerHandler: public Handler, public std::enable_shared_from_this<PliPa
 
  private:
   bool enabled_;
-  WebRtcConnection* connection_;
+  MediaStream* stream_;
   std::shared_ptr<erizo::Clock> clock_;
   time_point time_last_keyframe_;
   bool waiting_for_keyframe_;

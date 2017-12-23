@@ -8,7 +8,7 @@
 
 namespace erizo {
 
-class WebRtcConnection;
+class MediaStream;
 
 class TrackMuteInfo {
  public:
@@ -51,7 +51,7 @@ class RtpTrackMuteHandler: public Handler {
   TrackMuteInfo audio_info_;
   TrackMuteInfo video_info_;
 
-  WebRtcConnection* connection_;
+  MediaStream* stream_;
 };
 
 }  // namespace erizo

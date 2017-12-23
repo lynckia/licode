@@ -19,38 +19,38 @@ exports.MonitorSubscriber = function (log) {
     };
 
 
-    that.monitorMinVideoBw = function(wrtc, callback) {
-        wrtc.bwValues = [];
+    that.monitorMinVideoBw = function(mediaStream, callback) {
+        mediaStream.bwValues = [];
         var tics = 0;
         var lastAverage, average, lastBWValue;
         log.info('message: Start wrtc adapt scheme, ' +
-                 'id: ' + wrtc.wrtcId + ', ' +
-                'scheme: notify, minVideoBW: ' + wrtc.minVideoBW);
+                 'id: ' + mediaStream.wrtcId + ', ' +
+                'scheme: notify, minVideoBW: ' + mediaStream.minVideoBW);
 
-        wrtc.minVideoBW = wrtc.minVideoBW*1000; // We need it in bps
-        wrtc.lowerThres = Math.floor(wrtc.minVideoBW*(0.8));
-        wrtc.upperThres = Math.ceil(wrtc.minVideoBW);
-        wrtc.monitorInterval = setInterval(() => {
-            schemeHelpers.getBandwidthStat(wrtc).then((bandwidth) => {
-              if (wrtc.slideShowMode) {
+        mediaStream.minVideoBW = mediaStream.minVideoBW*1000; // We need it in bps
+        mediaStream.lowerThres = Math.floor(mediaStream.minVideoBW*(0.8));
+        mediaStream.upperThres = Math.ceil(mediaStream.minVideoBW);
+        mediaStream.monitorInterval = setInterval(() => {
+            schemeHelpers.getBandwidthStat(mediaStream).then((bandwidth) => {
+              if (mediaStream.slideShowMode) {
                 return;
               }
               if(bandwidth) {
                 lastBWValue = bandwidth;
-                wrtc.bwValues.push(lastBWValue);
-                if (wrtc.bwValues.length > 5) {
-                  wrtc.bwValues.shift();
+                mediaStream.bwValues.push(lastBWValue);
+                if (mediaStream.bwValues.length > 5) {
+                  mediaStream.bwValues.shift();
                 }
-                average = calculateAverage(wrtc.bwValues);
+                average = calculateAverage(mediaStream.bwValues);
               }
 
               log.debug('message: Measuring interval, average: ' + average);
-              if (average <= lastAverage && (average < wrtc.lowerThres)) {
+              if (average <= lastAverage && (average < mediaStream.lowerThres)) {
                 if (++tics > TICS_PER_TRANSITION){
                   log.info('message: Insufficient Bandwidth, ' +
-                  'id: ' + wrtc.wrtcId + ', ' +
+                  'id: ' + mediaStream.wrtcId + ', ' +
                   'averageBandwidth: ' + average + ', ' +
-                  'lowerThreshold: ' + wrtc.lowerThres);
+                  'lowerThreshold: ' + mediaStream.lowerThres);
                   tics = 0;
                   callback('callback', {type: 'bandwidthAlert',
                   message: 'insufficient',
@@ -59,7 +59,7 @@ exports.MonitorSubscriber = function (log) {
               }
               lastAverage = average;
             }).catch((reason) => {
-              clearInterval(wrtc.monitorInterval);
+              clearInterval(mediaStream.monitorInterval);
               log.error('error getting stats: ' + reason);
             });
         }, INTERVAL_STATS);

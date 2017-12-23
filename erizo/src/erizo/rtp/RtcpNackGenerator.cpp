@@ -1,7 +1,6 @@
 #include <algorithm>
 #include "rtp/RtcpNackGenerator.h"
 #include "rtp/RtpUtils.h"
-#include "./WebRtcConnection.h"
 
 namespace erizo {
 
@@ -90,23 +89,24 @@ bool RtcpNackGenerator::addNackPacketToRr(std::shared_ptr<DataPacket> rr_packet)
     base_nack_info.sent_time = now_ms;
     base_nack_info.retransmits++;
     while (index + 1u < nack_info_list_.size()) {
-      index++;
-      NackInfo& blp_nack_info = nack_info_list_[index];
+      NackInfo& blp_nack_info = nack_info_list_[index + 1];
       uint16_t distance = blp_nack_info.seq_num - pid -1;
       if (distance <= 15) {
         if (!isTimeToRetransmit(blp_nack_info, now_ms)) {
+          index++;
           continue;
         }
         if (blp_nack_info.retransmits >= kMaxRetransmits) {
           ELOG_DEBUG("message: Removing Nack in list too many retransmits, ssrc: %u, seq_num: %u",
               ssrc_, blp_nack_info.seq_num);
-          nack_info_list_.erase(nack_info_list_.begin() + index);
+          nack_info_list_.erase(nack_info_list_.begin() + index + 1);
           continue;
         }
         ELOG_DEBUG("message: Adding Nack to BLP, seq_num: %u", blp_nack_info.seq_num);
         blp |= (1 << distance);
         blp_nack_info.sent_time = now_ms;
         blp_nack_info.retransmits++;
+        index++;
       } else {
         break;
       }

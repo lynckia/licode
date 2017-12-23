@@ -21,7 +21,6 @@ extern "C" {
 #include "./logger.h"
 
 namespace erizo {
-class WebRtcConnection;
 
 class ExternalInput : public MediaSource, public RTPDataReceiver {
   DECLARE_LOGGER();

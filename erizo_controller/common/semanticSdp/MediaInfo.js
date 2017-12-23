@@ -3,14 +3,16 @@ const Direction = require('./Direction');
 const DirectionWay = require('./DirectionWay');
 
 class MediaInfo {
-  constructor(id, type) {
+  constructor(id, port, type) {
     this.id = id;
     this.type = type;
+    this.port = port;
     this.direction = Direction.SENDRECV;
     this.extensions = new Map();
     this.codecs = new Map();
     this.rids = new Map();
     this.simulcast = null;
+    this.simulcast_03 = null;
     this.bitrate = 0;
     this.ice = null;
     this.dtls = null;
@@ -19,7 +21,7 @@ class MediaInfo {
   }
 
   clone() {
-    const cloned = new MediaInfo(this.id, this.type);
+    const cloned = new MediaInfo(this.id, this.port, this.type);
     cloned.setDirection(this.direction);
     cloned.setBitrate(this.bitrate);
     cloned.setConnection(this.connection);
@@ -53,6 +55,7 @@ class MediaInfo {
   plain() {
     const plain = {
       id: this.id,
+      port: this.port,
       type: this.type,
       connection: this.connection,
       direction: Direction.toString(this.direction),
@@ -87,6 +90,10 @@ class MediaInfo {
 
   getType() {
     return this.type;
+  }
+
+  getPort() {
+    return this.port;
   }
 
   getId() {
@@ -202,7 +209,7 @@ class MediaInfo {
   }
 
   answer(supported) {
-    const answer = new MediaInfo(this.id, this.type);
+    const answer = new MediaInfo(this.id, this.port, this.type);
 
     answer.setDirection(Direction.reverse(this.direction));
 
@@ -266,6 +273,14 @@ class MediaInfo {
 
   setSimulcast(simulcast) {
     this.simulcast = simulcast;
+  }
+
+  getSimulcast03() {
+    return this.simulcast_03;
+  }
+
+  setSimulcast03(simulcast) {
+    this.simulcast_03 = simulcast;
   }
 }
 

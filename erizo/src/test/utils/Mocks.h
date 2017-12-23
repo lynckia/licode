@@ -70,6 +70,16 @@ class MockWebRtcConnection: public WebRtcConnection {
   }
 };
 
+class MockMediaStream: public MediaStream {
+ public:
+  MockMediaStream(std::shared_ptr<WebRtcConnection> connection, const std::string& media_stream_id,
+    std::vector<RtpMap> rtp_mappings) :
+  MediaStream(connection, media_stream_id) {
+    local_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
+    remote_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
+  }
+};
+
 class Reader : public InboundHandler {
  public:
   MOCK_METHOD0(enable, void());

@@ -91,8 +91,8 @@ class Transport : public std::enable_shared_from_this<Transport>, public IceConn
 
   bool rtcp_mux_;
 
-  inline const char* toLog() {
-    return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
+  inline std::string toLog() {
+    return "id: " + connection_id_ + ", " + printLogContext();
   }
 
   std::shared_ptr<Worker> getWorker() {

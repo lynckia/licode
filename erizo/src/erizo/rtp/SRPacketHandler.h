@@ -11,7 +11,7 @@
 
 namespace erizo {
 
-class WebRtcConnection;
+class MediaStream;
 
 class SRPacketHandler: public Handler {
   DECLARE_LOGGER();
@@ -40,7 +40,7 @@ class SRPacketHandler: public Handler {
   };
 
   bool enabled_, initialized_;
-  WebRtcConnection* connection_;
+  MediaStream* stream_;
   std::map<uint32_t, std::shared_ptr<SRInfo>> sr_info_map_;
 
   void handleRtpPacket(std::shared_ptr<DataPacket> packet);

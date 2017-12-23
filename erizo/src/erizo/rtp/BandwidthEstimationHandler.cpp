@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "./WebRtcConnection.h"
+#include "./MediaStream.h"
 #include "lib/Clock.h"
 #include "lib/ClockUtils.h"
 
@@ -38,7 +38,7 @@ std::unique_ptr<RemoteBitrateEstimator> RemoteBitrateEstimatorPicker::pickEstima
 }
 
 BandwidthEstimationHandler::BandwidthEstimationHandler(std::shared_ptr<RemoteBitrateEstimatorPicker> picker) :
-  connection_{nullptr}, clock_{webrtc::Clock::GetRealTimeClock()},
+  stream_{nullptr}, clock_{webrtc::Clock::GetRealTimeClock()},
   picker_{picker},
   using_absolute_send_time_{false}, packets_since_absolute_send_time_{0},
   min_bitrate_bps_{kMinBitRateAllowed},
@@ -69,15 +69,15 @@ void BandwidthEstimationHandler::notifyUpdate() {
     return;
   }
 
-  if (pipeline && !connection_) {
-    connection_ = pipeline->getService<WebRtcConnection>().get();
+  if (pipeline && !stream_) {
+    stream_ = pipeline->getService<MediaStream>().get();
   }
-  if (!connection_) {
+  if (!stream_) {
     return;
   }
-  worker_ = connection_->getWorker();
+  worker_ = stream_->getWorker();
   stats_ = pipeline->getService<Stats>();
-  RtpExtensionProcessor& ext_processor = connection_->getRtpExtensionProcessor();
+  RtpExtensionProcessor& ext_processor = stream_->getRtpExtensionProcessor();
   if (ext_processor.getVideoExtensionMap().size() == 0) {
     return;
   }
@@ -219,15 +219,15 @@ void BandwidthEstimationHandler::sendREMBPacket() {
   remb_packet_.setBlockCount(RTCP_AFB);
   memcpy(&remb_packet_.report.rembPacket.uniqueid, "REMB", 4);
 
-  remb_packet_.setSSRC(connection_->getVideoSinkSSRC());
+  remb_packet_.setSSRC(stream_->getVideoSinkSSRC());
   //  todo(pedro) figure out which sourceSSRC to use here
-  remb_packet_.setSourceSSRC(connection_->getVideoSourceSSRC());
+  remb_packet_.setSourceSSRC(stream_->getVideoSourceSSRC());
   remb_packet_.setLength(5);
   uint32_t capped_bitrate = max_video_bw_ > 0 ? std::min(max_video_bw_, bitrate_) : bitrate_;
   ELOG_DEBUG("Bitrates min(%u,%u) = %u", bitrate_, max_video_bw_, capped_bitrate);
   remb_packet_.setREMBBitRate(capped_bitrate);
   remb_packet_.setREMBNumSSRC(1);
-  remb_packet_.setREMBFeedSSRC(connection_->getVideoSourceSSRC());
+  remb_packet_.setREMBFeedSSRC(stream_->getVideoSourceSSRC());
   int remb_length = (remb_packet_.getLength() + 1) * 4;
   if (active_) {
     ELOG_DEBUG("BWE Estimation is %d", last_send_bitrate_);
@@ -260,7 +260,8 @@ void BandwidthEstimationHandler::OnReceiveBitrateChanged(const std::vector<uint3
   }
   last_remb_time_ = now;
   last_send_bitrate_ = bitrate_;
-  stats_->getNode()[connection_->getVideoSourceSSRC()].insertStat("erizoBandwidth", CumulativeStat{last_send_bitrate_});
+  stats_->getNode()
+  [stream_->getVideoSourceSSRC()].insertStat("erizoBandwidth", CumulativeStat{last_send_bitrate_});
   sendREMBPacket();
 }
 

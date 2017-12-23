@@ -4,6 +4,7 @@ class SimulcastInfo {
   constructor() {
     this.send = [];
     this.recv = [];
+    this.plainString = null;
   }
 
   clone() {
@@ -66,6 +67,14 @@ class SimulcastInfo {
       return this.send;
     }
     return this.recv;
+  }
+
+  setSimulcastPlainString(string) {
+    this.plainString = string;
+  }
+
+  getSimulcastPlainString() {
+    return this.plainString;
   }
 }
 

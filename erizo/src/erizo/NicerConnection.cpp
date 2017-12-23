@@ -540,6 +540,10 @@ void NicerConnection::setReceivedLastCandidate(bool hasReceived) {
 }
 
 void NicerConnection::closeSync() {
+  boost::mutex::scoped_lock lock(close_sync_mutex_);
+  if (closed_) {
+    return;
+  }
   if (stream_) {
     nicer_->IceRemoveMediaStream(ctx_, &stream_);
   }
@@ -552,12 +556,12 @@ void NicerConnection::closeSync() {
   delete ice_handler_vtbl_;
   delete ice_handler_;
   close_promise_.set_value();
+  closed_ = true;
 }
 
 void NicerConnection::close() {
-  boost::mutex::scoped_lock(close_mutex_);
+  boost::mutex::scoped_lock lock(close_mutex_);
   if (!closed_) {
-    closed_ = true;
     async([this] {
       closeSync();
     });
@@ -573,7 +577,7 @@ void NicerConnection::onData(unsigned int component_id, char* buf, int len) {
   IceState state;
   IceConnectionListener* listener;
   {
-    boost::mutex::scoped_lock(close_mutex_);
+    boost::mutex::scoped_lock lock(close_mutex_);
     state = this->checkIceState();
     listener = listener_;
   }

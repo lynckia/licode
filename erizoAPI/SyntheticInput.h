@@ -4,7 +4,7 @@
 #include <nan.h>
 #include <media/SyntheticInput.h>
 #include "MediaDefinitions.h"
-#include "WebRtcConnection.h"
+#include "MediaStream.h"
 
 
 /*

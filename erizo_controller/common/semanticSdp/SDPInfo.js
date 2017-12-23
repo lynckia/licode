@@ -235,7 +235,7 @@ class SDPInfo {
     this.medias.forEach((media) => {
       const md = {
         type: media.getType(),
-        port: 9,
+        port: media.getPort(),
         protocol: 'UDP/TLS/RTP/SAVPF',
         fmtp: [],
         rtp: [],
@@ -374,6 +374,8 @@ class SDPInfo {
       });
 
       const simulcast = media.getSimulcast();
+      const simulcast03 = media.getSimulcast03();
+
       if (simulcast) {
         let index = 1;
         md.simulcast = {};
@@ -409,6 +411,12 @@ class SDPInfo {
           md.simulcast[`list${index}`] = list;
           index += 1;
         }
+      }
+
+      if (simulcast03) {
+        md.simulcast_03 = {
+          value: simulcast03.getSimulcastPlainString(),
+        };
       }
 
       sdp.media.push(md);
@@ -579,6 +587,10 @@ function getSimulcastDir(index, md, simulcast) {
   }
 }
 
+function getSimulcast3Dir(md, simulcast) {
+  simulcast.setSimulcastPlainString(md.simulcast_03.value);
+}
+
 function getSimulcast(mediaInfo, md) {
   const encodings = [];
   if (md.simulcast) {
@@ -609,6 +621,11 @@ function getSimulcast(mediaInfo, md) {
     });
 
     mediaInfo.setSimulcast(simulcast);
+  }
+  if (md.simulcast_03) {
+    const simulcast = new SimulcastInfo();
+    getSimulcast3Dir(md, simulcast);
+    mediaInfo.setSimulcast03(simulcast);
   }
   return encodings;
 }
@@ -655,21 +672,6 @@ function getTracks(encodings, sdpInfo, md) {
         track.addSSRC(source);
       }
     });
-    // Firefox in recvonly
-    if (source && !stream && md.mid) {
-      stream = sdpInfo.getStream(md.mid);
-      if (!stream) {
-        stream = new StreamInfo(md.mid);
-        sdpInfo.addStream(stream);
-      }
-      track = stream.getFirstTrack();
-      if (!track) {
-        track = new TrackInfo(media, md.mid);
-        track.setEncodings(encodings);
-        stream.addTrack(track);
-      }
-      track.addSSRC(source);
-    }
   }
 
   if (md.msid) {
@@ -751,7 +753,8 @@ SDPInfo.process = (sdp) => {
   sdp.media.forEach((md) => {
     const media = md.type;
     const mid = md.mid;
-    const mediaInfo = new MediaInfo(mid, media);
+    const port = md.port;
+    const mediaInfo = new MediaInfo(mid, port, media);
     mediaInfo.setXGoogleFlag(md.xGoogleFlag);
     mediaInfo.rtcp = md.rtcp;
     mediaInfo.setConnection(md.connection);

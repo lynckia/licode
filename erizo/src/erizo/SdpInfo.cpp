@@ -12,6 +12,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <cassert>
 
 #include "rtp/RtpHeaders.h"
 #include "./StringUtil.h"
@@ -35,6 +36,7 @@ namespace erizo {
   static const char *ice_pass = "a=ice-pwd";
   static const char *ssrctag = "a=ssrc:";
   static const char *ssrcgrouptag = "a=ssrc-group";
+  static const char *rid = "a=rid";
   static const char *savpf = "SAVPF";
   static const char *rtpmap = "a=rtpmap:";
   static const char *rtcpmux = "a=rtcp-mux";
@@ -394,6 +396,10 @@ namespace erizo {
         }
       }
 
+      for (const auto rid : rids()) {
+        sdp << "a=rid:" << rid.id << " " << rid.direction << "\n";
+      }
+
       for (unsigned int it = 0; it < payloadVector.size(); it++) {
         const RtpMap& rtp = payloadVector[it];
         if (rtp.media_type == VIDEO_TYPE) {
@@ -423,6 +429,18 @@ namespace erizo {
       if (video_ssrc_list.empty()) {
         video_ssrc_list.push_back(55543);
       }
+
+      if (!rids().empty()) {
+        sdp << "a=simulcast: " << rids()[0].direction << " rid=";
+        for (unsigned i = 0; i < rids().size(); ++i) {
+          sdp << rids()[i].id;
+          if (i < rids().size() - 1) {
+            sdp << ';';
+          }
+        }
+        sdp << '\n';
+      }
+
       if (videoDirection != RECVONLY) {
         std::for_each(video_ssrc_list.begin(), video_ssrc_list.end(),
             [&sdp, &msidtemp](uint32_t &video_ssrc){
@@ -514,22 +532,26 @@ namespace erizo {
     ELOG_DEBUG("Setting Offer SDP");
   }
 
-  void SdpInfo::setOfferSdp(const SdpInfo& offerSdp) {
-    this->videoCodecs = offerSdp.videoCodecs;
-    this->audioCodecs = offerSdp.audioCodecs;
-    this->payloadVector = offerSdp.payloadVector;
-    this->isBundle = offerSdp.isBundle;
-    this->profile = offerSdp.profile;
-    this->isRtcpMux = offerSdp.isRtcpMux;
-    this->videoSdpMLine = offerSdp.videoSdpMLine;
-    this->audioSdpMLine = offerSdp.audioSdpMLine;
-    this->inOutPTMap = offerSdp.inOutPTMap;
-    this->outInPTMap = offerSdp.outInPTMap;
-    this->hasVideo = offerSdp.hasVideo;
-    this->hasAudio = offerSdp.hasAudio;
-    this->bundleTags = offerSdp.bundleTags;
-    this->extMapVector = offerSdp.extMapVector;
-    switch (offerSdp.videoDirection) {
+  void SdpInfo::setOfferSdp(std::shared_ptr<SdpInfo> offerSdp) {
+    this->videoCodecs = offerSdp->videoCodecs;
+    this->audioCodecs = offerSdp->audioCodecs;
+    this->payloadVector = offerSdp->payloadVector;
+    this->isBundle = offerSdp->isBundle;
+    this->profile = offerSdp->profile;
+    this->isRtcpMux = offerSdp->isRtcpMux;
+    this->videoSdpMLine = offerSdp->videoSdpMLine;
+    this->audioSdpMLine = offerSdp->audioSdpMLine;
+    this->inOutPTMap = offerSdp->inOutPTMap;
+    this->outInPTMap = offerSdp->outInPTMap;
+    this->hasVideo = offerSdp->hasVideo;
+    this->hasAudio = offerSdp->hasAudio;
+    this->bundleTags = offerSdp->bundleTags;
+    this->extMapVector = offerSdp->extMapVector;
+    this->rids_ = offerSdp->rids();
+    for (auto& rid : rids_) {
+      rid.direction = reverse(rid.direction);
+    }
+    switch (offerSdp->videoDirection) {
       case SENDONLY:
         this->videoDirection = RECVONLY;
         break;
@@ -543,7 +565,7 @@ namespace erizo {
         this->videoDirection = SENDRECV;
         break;
     }
-    switch (offerSdp.audioDirection) {
+    switch (offerSdp->audioDirection) {
       case SENDONLY:
         this->audioDirection = RECVONLY;
         break;
@@ -583,6 +605,7 @@ namespace erizo {
       size_t isPass = line.find(ice_pass);
       size_t isSsrc = line.find(ssrctag);
       size_t isSsrcGroup = line.find(ssrcgrouptag);
+      size_t isRid = line.find(rid);
       size_t isSAVPF = line.find(savpf);
       size_t isRtpmap = line.find(rtpmap);
       size_t isRtcpMuxchar = line.find(rtcpmux);
@@ -767,12 +790,19 @@ namespace erizo {
         }
         if (parts[1] == kSimulcastGroup) {
           ELOG_DEBUG("Detected SIM group, size: %lu", parts.size());
+          std::vector<uint32_t> old_video_ssrc_list;
+          if (video_ssrc_list.size() > 0) {
+            old_video_ssrc_list = video_ssrc_list;
+            video_ssrc_list.clear();
+          }
           std::for_each(parts.begin() + 2, parts.end(), [this] (std::string &part){
-              uint32_t parsed_ssrc = strtoul(part.c_str(), nullptr, 10);
-              ELOG_DEBUG("maybeAddSsrc video SIM, ssrc %u", parsed_ssrc);
-              maybeAddSsrcToList(parsed_ssrc);
-              });
-
+            uint32_t parsed_ssrc = strtoul(part.c_str(), nullptr, 10);
+            ELOG_DEBUG("maybeAddSsrc video SIM, ssrc %u", parsed_ssrc);
+            maybeAddSsrcToList(parsed_ssrc);
+          });
+          for (uint32_t ssrc : old_video_ssrc_list) {
+            maybeAddSsrcToList(ssrc);
+          }
         } else if (parts[1] == kFidGroup) {
           int number_of_ssrcs = parts.size() - 2;
           if (number_of_ssrcs != 2) {
@@ -785,6 +815,33 @@ namespace erizo {
           ELOG_DEBUG("message: parsed FID group, original_src: %u, rtx_ssrc: %u", original_ssrc, rtx_ssrc);
         }
       }
+
+      if (isRid != std::string::npos) {
+          std::vector<std::string> parts = stringutil::splitOneOf(line, ":", 2);
+          if (mtype == VIDEO_TYPE) {
+            const auto& rid_raw = parts[1];
+            const auto delimiter_pos = rid_raw.find(" ");
+            if (delimiter_pos != std::string::npos) {
+              const auto direction = rid_raw.substr(delimiter_pos + 1, std::min(decltype(rid_raw.length()){4},
+                  rid_raw.length() - delimiter_pos - 1));
+              if (direction == "send") {
+                rids_.push_back({rid_raw.substr(0, delimiter_pos), RidDirection::SEND});
+                ELOG_DEBUG("message: added simulcast rid send, id: %s", rids_.back().id.c_str());
+              } else if (direction == "recv") {
+                rids_.push_back({rid_raw.substr(0, delimiter_pos), RidDirection::RECV});
+                ELOG_DEBUG("message: added simulcast rid recv, id: %s", rids_.back().id.c_str());
+              } else {
+                ELOG_DEBUG("message: invalid rid syntax: unknown direction %s length: %d", direction.c_str(),
+                    (int) direction.size());
+              }
+            } else {
+              ELOG_DEBUG("invalid rid syntax: missing delimiter");
+            }
+          } else if ((mtype == AUDIO_TYPE)) {
+            ELOG_DEBUG("audio shouldn't have simulcast rid! - ignoring this sdp line");
+          }
+      }
+
       // a=rtpmap:PT codec_name/clock_rate
       if (isRtpmap != std::string::npos) {
         std::vector<std::string> parts = stringutil::splitOneOf(line, " :/\n", 4);
@@ -1156,6 +1213,36 @@ namespace erizo {
       ELOG_DEBUG("message: Adding ssrc to list, ssrc: %u", ssrc);
       video_ssrc_list.push_back(ssrc);
     }
+  }
+
+  bool operator==(const Rid& lhs, const Rid& rhs) {
+  return lhs.id == rhs.id && lhs.direction == rhs.direction;
+  }
+
+  std::ostream& operator<<(std::ostream& os, RidDirection dir) {
+    switch (dir) {
+      case RidDirection::SEND:
+        os << "send";
+    break;
+      case RidDirection::RECV:
+        os << "recv";
+    break;
+      default:
+        assert(false);
+    }
+    return os;
+  }
+
+  RidDirection reverse(RidDirection dir) {
+    switch (dir) {
+      case RidDirection::SEND:
+        return RidDirection::RECV;
+      case RidDirection::RECV:
+        return RidDirection::SEND;
+      default:
+        assert(false);
+    }
+    return dir;
   }
 
 }  // namespace erizo

@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
 
 #include "./logger.h"
 
@@ -32,6 +33,14 @@ enum MediaType {
 enum StreamDirection {
   SENDRECV, SENDONLY, RECVONLY
 };
+/**
+ * Simulcast rid direction
+ */
+enum RidDirection {
+  SEND, RECV
+};
+std::ostream& operator<<(std::ostream&, RidDirection);
+RidDirection reverse(RidDirection);
 /**
  * RTP Profile
  */
@@ -130,6 +139,16 @@ class ExtMap {
 };
 
 /**
+ * Simulcast rid structure
+ */
+struct Rid {
+  std::string id;
+  RidDirection direction;
+};
+
+bool operator==(const Rid&, const Rid&);
+
+/**
  * Contains the information of a single SDP.
  * Used to parse and generate SDPs
  */
@@ -222,10 +241,15 @@ class SdpInfo {
    * @brief copies relevant information from the offer sdp for which this will be an answer sdp
    * @param offerSdp The offer SDP as received via signaling and parsed
    */
-  void setOfferSdp(const SdpInfo& offerSdp);
+  void setOfferSdp(std::shared_ptr<SdpInfo> offerSdp);
 
   void updateSupportedExtensionMap(const std::vector<ExtMap> &ext_map);
   bool isValidExtension(std::string uri);
+
+  /**
+  * @return A vector containing the simulcast RID informations
+  */
+  const std::vector<Rid>& rids() const { return rids_; }
 
   /**
    * The audio and video SSRCs for this particular SDP.
@@ -304,6 +328,7 @@ class SdpInfo {
   std::string iceVideoPassword_, iceAudioPassword_;
   std::map<unsigned int, RtpMap> payload_parsed_map_;
   std::vector<ExtMap> supported_ext_map_;
+  std::vector<Rid> rids_;
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_SDPINFO_H_

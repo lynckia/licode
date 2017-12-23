@@ -14,7 +14,7 @@
 
 namespace erizo {
 
-class WebRtcConnection;
+class MediaStream;
 
 class QualityFilterHandler: public Handler, public std::enable_shared_from_this<QualityFilterHandler> {
   DECLARE_LOGGER();
@@ -46,7 +46,7 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
  private:
   std::shared_ptr<QualityManager> quality_manager_;
   SequenceNumberTranslator translator_;
-  WebRtcConnection *connection_;
+  MediaStream *stream_;
   bool enabled_;
   bool initialized_;
   bool receiving_multiple_ssrc_;
