@@ -85,7 +85,9 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
         screenConfig = {};
         if (config.video !== undefined) {
           screenConfig.video = config.video;
-          screenConfig.video.mediaSource = 'window' || 'screen';
+          if (!screenConfig.video.mediaSource) {
+            screenConfig.video.mediaSource = 'window' || 'screen';
+          }
         } else {
           screenConfig = {
             audio: config.audio,
