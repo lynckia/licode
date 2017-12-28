@@ -39,14 +39,16 @@
 namespace erizo {
 DEFINE_LOGGER(MediaStream, "MediaStream");
 
-MediaStream::MediaStream(
+MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   std::shared_ptr<WebRtcConnection> connection,
   const std::string& media_stream_id) :
     audio_enabled_{false}, video_enabled_{false},
     connection_{connection},
     stream_id_{media_stream_id},
     bundle_{false},
-    pipeline_{Pipeline::create()}, audio_muted_{false}, video_muted_{false},
+    pipeline_{Pipeline::create()},
+    worker_{worker},
+    audio_muted_{false}, video_muted_{false},
     pipeline_initialized_{false} {
   setVideoSinkSSRC(kDefaultVideoSinkSSRC);
   setAudioSinkSSRC(kDefaultAudioSinkSSRC);
@@ -57,7 +59,6 @@ MediaStream::MediaStream(
   stats_ = connection->getStatsService();
   quality_manager_ = std::make_shared<QualityManager>();
   packet_buffer_ = std::make_shared<PacketBufferService>();
-  worker_ = connection->getWorker();
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
 
@@ -87,6 +88,7 @@ void MediaStream::close() {
   video_sink_ = nullptr;
   audio_sink_ = nullptr;
   fb_sink_ = nullptr;
+  pipeline_initialized_ = false;
   pipeline_->close();
   pipeline_.reset();
   connection_.reset();
@@ -225,25 +227,29 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> packet, Transport 
   } else if (transport->mediaType == VIDEO_TYPE) {
     packet->type = VIDEO_PACKET;
   }
+  auto stream_ptr = shared_from_this();
+  auto task_packet = std::make_shared<DataPacket>(*packet);
 
-  char* buf = packet->data;
-  RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
-  RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-  if (!chead->isRtcp()) {
-    uint32_t recvSSRC = head->getSSRC();
-    if (isVideoSourceSSRC(recvSSRC)) {
-      packet->type = VIDEO_PACKET;
-    } else if (isAudioSourceSSRC(recvSSRC)) {
-      packet->type = AUDIO_PACKET;
+  worker_->task([stream_ptr, task_packet]{
+    if (!stream_ptr->pipeline_initialized_) {
+      ELOG_DEBUG("%s message: Pipeline not initialized yet.", stream_ptr->toLog());
+      return;
     }
-  }
 
-  if (!pipeline_initialized_) {
-    ELOG_DEBUG("%s message: Pipeline not initialized yet.", toLog());
-    return;
-  }
+    char* buf = task_packet->data;
+    RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
+    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+    if (!chead->isRtcp()) {
+      uint32_t recvSSRC = head->getSSRC();
+      if (stream_ptr->isVideoSourceSSRC(recvSSRC)) {
+        task_packet->type = VIDEO_PACKET;
+      } else if (stream_ptr->isAudioSourceSSRC(recvSSRC)) {
+        task_packet->type = AUDIO_PACKET;
+      }
+    }
 
-  pipeline_->read(std::move(packet));
+    stream_ptr->pipeline_->read(std::move(task_packet));
+  });
 }
 
 void MediaStream::read(std::shared_ptr<DataPacket> packet) {

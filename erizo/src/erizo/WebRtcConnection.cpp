@@ -68,6 +68,13 @@ WebRtcConnection::~WebRtcConnection() {
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
+void WebRtcConnection::close() {
+  ELOG_DEBUG("%s message: Async close called", toLog());
+  asyncTask([] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->syncClose();
+  });
+}
+
 void WebRtcConnection::syncClose() {
   ELOG_DEBUG("%s message: Close called", toLog());
   if (!sending_) {
@@ -86,13 +93,6 @@ void WebRtcConnection::syncClose() {
   }
 
   ELOG_DEBUG("%s message: Close ended", toLog());
-}
-
-void WebRtcConnection::close() {
-  ELOG_DEBUG("%s message: Async close called", toLog());
-  asyncTask([] (std::shared_ptr<WebRtcConnection> connection) {
-    connection->syncClose();
-  });
 }
 
 bool WebRtcConnection::init() {
@@ -535,6 +535,15 @@ WebRTCEvent WebRtcConnection::getCurrentState() {
 }
 
 void WebRtcConnection::write(std::shared_ptr<DataPacket> packet) {
+  asyncTask([packet] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->syncWrite(packet);
+  });
+}
+
+void WebRtcConnection::syncWrite(std::shared_ptr<DataPacket> packet) {
+  if (!sending_) {
+    return;
+  }
   Transport *transport = (bundle_ || packet->type == VIDEO_PACKET) ? video_transport_.get() : audio_transport_.get();
   if (transport == nullptr) {
     return;

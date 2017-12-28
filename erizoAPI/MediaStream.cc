@@ -79,21 +79,26 @@ NAN_MODULE_INIT(MediaStream::Init) {
 
 
 NAN_METHOD(MediaStream::New) {
-  if (info.Length() < 2) {
+  if (info.Length() < 3) {
     Nan::ThrowError("Wrong number of arguments");
   }
 
   if (info.IsConstructCall()) {
     // Invoked as a constructor with 'new MediaStream()'
+    ThreadPool* thread_pool = Nan::ObjectWrap::Unwrap<ThreadPool>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+
     WebRtcConnection* connection =
-     Nan::ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+     Nan::ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[1]).ToLocalChecked());
 
     std::shared_ptr<erizo::WebRtcConnection> wrtc = connection->me;
 
-    v8::String::Utf8Value paramId(Nan::To<v8::String>(info[1]).ToLocalChecked());
+    v8::String::Utf8Value paramId(Nan::To<v8::String>(info[2]).ToLocalChecked());
     std::string wrtcId = std::string(*paramId);
+
+    std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
+
     MediaStream* obj = new MediaStream();
-    obj->me = std::make_shared<erizo::MediaStream>(wrtc, wrtcId);
+    obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtcId);
     obj->msink = obj->me.get();
     uv_async_init(uv_default_loop(), &obj->asyncStats_, &MediaStream::statsCallback);
     obj->Wrap(info.This());
