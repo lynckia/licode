@@ -837,7 +837,7 @@ namespace erizo {
             } else {
               ELOG_DEBUG("invalid rid syntax: missing delimiter");
             }
-          } else if ((mtype == AUDIO_TYPE)) {
+          } else if (mtype == AUDIO_TYPE) {
             ELOG_DEBUG("audio shouldn't have simulcast rid! - ignoring this sdp line");
           }
       }
@@ -943,6 +943,10 @@ namespace erizo {
       }
     }  // sdp lines loop
 
+    return postProcessInfo();
+  }
+
+  bool SdpInfo::postProcessInfo() {
     // If there is no video or audio credentials we use the ones we have
     if (iceVideoUsername_.empty() && iceAudioUsername_.empty()) {
       ELOG_ERROR("No valid credentials for ICE")
