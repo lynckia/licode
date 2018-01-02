@@ -136,12 +136,23 @@ var reset = module.exports.reset = function() {
     close: sinon.stub(),
   };
 
+  module.exports.ConnectionDescription = {
+    close: sinon.stub(),
+    setRtcpMux: sinon.stub(),
+    setProfile: sinon.stub(),
+    setBundle: sinon.stub(),
+    setAudioAndVideo: sinon.stub(),
+    setVideoSsrcList: sinon.stub(),
+    postProcessInfo: sinon.stub(),
+  };
+
   module.exports.WebRtcConnection = {
     wrtcId: '',
     init: sinon.stub(),
     close: sinon.stub(),
     createOffer: sinon.stub(),
     setRemoteSdp: sinon.stub(),
+    setRemoteDescription: sinon.stub(),
     addRemoteCandidate: sinon.stub(),
     addMediaStream: sinon.stub(),
   };
@@ -175,6 +186,7 @@ var reset = module.exports.reset = function() {
 
   module.exports.erizoAPI = createMock('../../erizoAPI/build/Release/addon', {
     OneToManyProcessor: sinon.stub().returns(module.exports.OneToManyProcessor),
+    ConnectionDescription: sinon.stub().returns(module.exports.ConnectionDescription),
     WebRtcConnection: sinon.stub().returns(module.exports.WebRtcConnection),
     MediaStream: sinon.stub().returns(module.exports.MediaStream),
     ExternalInput: sinon.stub().returns(module.exports.ExternalInput),

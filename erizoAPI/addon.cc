@@ -9,6 +9,7 @@
 #include "SyntheticInput.h"
 #include "ExternalInput.h"
 #include "ExternalOutput.h"
+#include "ConnectionDescription.h"
 #include "ThreadPool.h"
 #include "IOThreadPool.h"
 
@@ -21,6 +22,7 @@ NAN_MODULE_INIT(InitAll) {
   SyntheticInput::Init(target);
   ThreadPool::Init(target);
   IOThreadPool::Init(target);
+  ConnectionDescription::Init(target);
 }
 
 NODE_MODULE(addon, InitAll)
