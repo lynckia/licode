@@ -331,7 +331,6 @@ class SdpInfo {
   std::string stringifyCandidate(const CandidateInfo & candidate);
   void gen_random(char* s, int len);
   void maybeAddSsrcToList(uint32_t ssrc);
-
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_SDPINFO_H_
