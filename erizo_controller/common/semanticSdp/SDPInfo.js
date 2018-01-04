@@ -278,6 +278,8 @@ class SDPInfo {
           ip: candidate.getAddress(),
           port: candidate.getPort(),
           type: candidate.getType(),
+          relAddr: candidate.getRelAddr(),
+          relPort: candidate.getRelPort(),
           generation: candidate.getGeneration(),
         });
       });
