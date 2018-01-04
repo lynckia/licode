@@ -1,6 +1,5 @@
 /*global require*/
 'use strict';
-const SDPTransform = require('sdp-transform');  // eslint-disable-line
 var ConnectionDescription = require('./../../../erizoAPI/build/Release/addon')
                                                           .ConnectionDescription;
 var SdpInfo = require('./../../common/semanticSdp/SdpInfo');
@@ -24,7 +23,7 @@ function getRandomArbitrary(min, max) {
 }
 
 function generateRandom(length) {
-  const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  const alphanum = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
   const lastChar = alphanum.length - 1;
   let value = '';
 
@@ -82,8 +81,8 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   if (candidates) {
     candidates.forEach((candidate) => {
       media.addCandidate(new CandidateInfo(candidate.foundation, candidate.componentId,
-        candidate.protocol, candidate.priority, candidate.hostIp, candidate.hostPort, candidate.hostType,
-        0, candidate.relayIp, candidate.relayPort));
+        candidate.protocol, candidate.priority, candidate.hostIp, candidate.hostPort,
+        candidate.hostType, 0, candidate.relayIp, candidate.relayPort));
     });
   }
 
@@ -154,11 +153,11 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
       direction = rids[id];
       ridsData.push(id);
       const ridInfo = new RIDInfo(id, DirectionWay.byValue(rids[id]));
-      let formats = [];
       media.addRID(ridInfo);
     });
 
     if (isSimulcast) {
+      /*jshint camelcase: false */
       simulcast.setSimulcastPlainString(direction + ' rid=' + ridsData.join(';'));
       media.simulcast_03 = simulcast;
     }
