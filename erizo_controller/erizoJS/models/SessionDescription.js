@@ -2,7 +2,7 @@
 'use strict';
 var ConnectionDescription = require('./../../../erizoAPI/build/Release/addon')
                                                           .ConnectionDescription;
-var SdpInfo = require('./../../common/semanticSdp/SdpInfo');
+var SdpInfo = require('./../../common/semanticSdp/SDPInfo');
 var MediaInfo = require('./../../common/semanticSdp/MediaInfo');
 var ICEInfo = require('./../../common/semanticSdp/ICEInfo');
 var DTLSInfo = require('./../../common/semanticSdp/DTLSInfo');
