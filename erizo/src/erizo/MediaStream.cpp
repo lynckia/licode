@@ -252,7 +252,7 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
   // PROCESS RTCP
   RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-  uint32_t recvSSRC;
+  uint32_t recvSSRC = 0;
   if (!chead->isRtcp()) {
     recvSSRC = head->getSSRC();
   } else if (chead->packettype == RTCP_Sender_PT) {  // Sender Report

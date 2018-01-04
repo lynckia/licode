@@ -75,7 +75,7 @@ class LibNiceConnection : public IceConnection {
   unsigned int candsDelivered_;
 
   boost::thread m_Thread_;
-  boost::mutex closeMutex_;
+  boost::mutex close_mutex_;
   boost::condition_variable cond_;
 
   bool receivedLastCandidate_;

@@ -97,7 +97,7 @@ const BaseStack = (specInput) => {
 
     specBase.callback({
       type: localDesc.type,
-      sdp: localSdp.toJSON(),
+      sdp: localDesc.sdp,
     });
   };
 
@@ -118,7 +118,7 @@ const BaseStack = (specInput) => {
   const processOffer = (message) => {
     // Its an offer, we assume its p2p
     const msg = message;
-    remoteSdp = SemanticSdp.SDPInfo.process(msg.sdp);
+    remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
     that.peerConnection.setRemoteDescription(msg).then(() => {
@@ -134,7 +134,7 @@ const BaseStack = (specInput) => {
     Logger.debug('Remote Description', msg.sdp);
     Logger.debug('Local Description', localDesc.sdp);
 
-    remoteSdp = SemanticSdp.SDPInfo.process(msg.sdp);
+    remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
 
@@ -242,19 +242,19 @@ const BaseStack = (specInput) => {
         Logger.debug('Updating with SDP renegotiation', specBase.maxVideoBW, specBase.maxAudioBW);
         that.peerConnection.setLocalDescription(localDesc)
           .then(() => {
-            remoteSdp = SemanticSdp.SDPInfo.process(remoteDesc.sdp);
+            remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
             SdpHelpers.setMaxBW(remoteSdp, specBase);
             remoteDesc.sdp = remoteSdp.toString();
             return that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc));
           }).then(() => {
             specBase.remoteDescriptionSet = true;
-            specBase.callback({ type: 'updatestream', sdp: localSdp.toJSON() });
+            specBase.callback({ type: 'updatestream', sdp: localDesc.sdp });
           }).catch(errorCallback.bind(null, 'updateSpec', callback));
       } else {
         Logger.debug('Updating without SDP renegotiation, ' +
                      'newVideoBW:', specBase.maxVideoBW,
                      'newAudioBW:', specBase.maxAudioBW);
-        specBase.callback({ type: 'updatestream', sdp: localSdp.toJSON() });
+        specBase.callback({ type: 'updatestream', sdp: localDesc.sdp });
       }
     }
     if (config.minVideoBW || (config.slideShowMode !== undefined) ||

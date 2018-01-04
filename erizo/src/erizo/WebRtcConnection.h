@@ -80,6 +80,8 @@ class WebRtcConnection: public TransportListener, public LogContext,
   bool init();
   void close();
   void syncClose();
+
+  bool setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp);
   /**
    * Sets the SDP of the remote peer.
    * @param sdp The SDP.
@@ -143,12 +145,12 @@ class WebRtcConnection: public TransportListener, public LogContext,
   bool isSourceSSRC(uint32_t ssrc);
   bool isSinkSSRC(uint32_t ssrc);
 
-  inline const char* toLog() {
-    return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
+  inline std::string toLog() {
+    return "id: " + connection_id_ + ", " + printLogContext();
   }
 
  private:
-  // Utils
+  bool processRemoteSdp();
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
 
