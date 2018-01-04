@@ -465,16 +465,18 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
   }
 
   if (type == VIDEO_PACKET) {
+    RtpHeader* h = reinterpret_cast<RtpHeader*>(buffer);
+    uint8_t payloadtype = h->getPayloadType();
     if (video_offset_ms_ == -1) {
       video_offset_ms_ = ClockUtils::durationToMs(clock::now() - first_data_received_);
       ELOG_DEBUG("File %s, video offset msec: %llu", context_->filename, video_offset_ms_);
+      video_queue_.setTimebase(video_maps_[payloadtype].clock_rate);
     }
 
     // If this is a red header, let's push it to our fec_receiver_, which will spit out frames in one
     // of our other callbacks.
     // Otherwise, just stick it straight into the video queue.
-    RtpHeader* h = reinterpret_cast<RtpHeader*>(buffer);
-    if (h->getPayloadType() == RED_90000_PT) {
+    if (payloadtype == RED_90000_PT) {
       // The only things AddReceivedRedPacket uses are headerLength and sequenceNumber.
       // Unfortunately the amount of crap
       // we would have to pull in from the WebRtc project to fully construct
