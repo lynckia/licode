@@ -192,6 +192,7 @@ class SdpInfo {
   * @return A vector containing the PT-codec information
   */
   std::vector<RtpMap>& getPayloadInfos();
+  std::vector<ExtMap> getExtensionMap(MediaType media);
   /**
    * Gets the actual SDP.
    * @return The SDP in string format.

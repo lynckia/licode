@@ -105,8 +105,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
 
                 case CONN_SDP:
                 case CONN_GATHERED:
-                    mess = mess.replace(that.privateRegexp, that.publicIP);
-                    const sdp = SemanticSdp.SDPInfo.processString(mess);
+                    wrtc.localDescription = new SessionDescription(wrtc.getLocalDescription());
+                    const sdp = wrtc.localDescription.getSdp();
                     mess = sdp.toString();
                     if (options.createOffer)
                         callback('callback', {type: 'offer', sdp: mess});

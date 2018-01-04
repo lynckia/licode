@@ -1,17 +1,232 @@
 /*global require*/
 'use strict';
+const SDPTransform = require('sdp-transform');  // eslint-disable-line
 var ConnectionDescription = require('./../../../erizoAPI/build/Release/addon')
                                                           .ConnectionDescription;
+var SdpInfo = require('./../../common/semanticSdp/SdpInfo');
+var MediaInfo = require('./../../common/semanticSdp/MediaInfo');
+var ICEInfo = require('./../../common/semanticSdp/ICEInfo');
+var DTLSInfo = require('./../../common/semanticSdp/DTLSInfo');
+var CodecInfo = require('./../../common/semanticSdp/CodecInfo');
+var SourceInfo = require('./../../common/semanticSdp/SourceInfo');
+var StreamInfo = require('./../../common/semanticSdp/StreamInfo');
+var TrackInfo = require('./../../common/semanticSdp/TrackInfo');
+var RIDInfo = require('./../../common/semanticSdp/RIDInfo');
+var CandidateInfo = require('./../../common/semanticSdp/CandidateInfo');
+var SimulcastInfo = require('./../../common/semanticSdp/SimulcastInfo');
 var Direction = require('./../../common/semanticSdp/Direction');
 var DirectionWay = require('./../../common/semanticSdp/DirectionWay');
 var Setup = require('./../../common/semanticSdp/Setup');
 var Helpers = require('./Helpers');
 
+function getRandomArbitrary(min, max) {
+  return Math.floor(Math.random() * (max - min) + min);
+}
+
+function generateRandom(length) {
+  const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  const lastChar = alphanum.length - 1;
+  let value = '';
+
+  for (let i = 0; i < length; i += 1) {
+    value += '' + alphanum[getRandomArbitrary(0, lastChar) % lastChar];
+  }
+
+  return value;
+}
+
+function addSsrc(sources, ssrc, sdp, media) {
+  let source = sources.get(ssrc);
+  const msid = sdp.msidSemantic.token;
+  if (!source) {
+    source = new SourceInfo(ssrc);
+    sources.set(ssrc, source);
+  }
+  source.setCName('o/i14u9pJrxRKAsu');
+  source.setMSLabel(msid);
+  source.setLabel(msid);
+  source.setStreamId(msid);
+  source.setTrackId(media.getId());
+  let stream = sdp.getStream(msid);
+  if (!stream) {
+    stream = new StreamInfo(msid);
+    sdp.addStream(stream);
+  }
+  let track = stream.getTrack(media.getId());
+  if (!track) {
+    track = new TrackInfo(media.getType(), media.getId());
+    stream.addTrack(track);
+  }
+  track.addSSRC(source);
+}
+
+function getMediaInfoFromDescription(info, sdp, mediaType) {
+  let media = new MediaInfo(info.getMediaId(mediaType), 1, mediaType);
+  media.rtcp = { port: 1, netType: 'IN', ipVer: 4, address: '0.0.0.0' };
+  media.setConnection({ version: 4, ip: '0.0.0.0' });
+  const direction = info.getDirection(mediaType);
+  media.setDirection(Direction.byValue(direction.toUpperCase()));
+
+  let ice = info.getICECredentials(mediaType);
+  if (ice) {
+    media.setICE(new ICEInfo(ice[0], ice[1]));
+  }
+
+  const fingerprint = info.getFingerprint(mediaType);
+  if (fingerprint) {
+    let setup = Setup.byValue(info.getDtlsRole(mediaType));
+    media.setDTLS(new DTLSInfo(setup, 'sha-256', fingerprint));
+  }
+
+  const candidates = info.getCandidates();
+  if (candidates) {
+    candidates.forEach((candidate) => {
+      media.addCandidate(new CandidateInfo(candidate.foundation, candidate.componentId,
+        candidate.protocol, candidate.priority, candidate.hostIp, candidate.hostPort, candidate.hostType,
+        0, candidate.relayIp, candidate.relayPort));
+    });
+  }
+
+  const apts = new Map();
+  const codecs = info.getCodecs(mediaType);
+  if (codecs) {
+    codecs.forEach((codec) => {
+      const type = codec.type;
+      const codecName = codec.name;
+      const rate = codec.rate;
+      const encoding = codec.channels;
+
+      let params = {};
+      const feedback = [];
+
+      if (codec.feedbacks) {
+        codec.feedbacks.forEach((rtcpFb) => {
+          const tokens = rtcpFb.split(' ');
+          const fbType = tokens[0];
+          const fbSubType = tokens[1];
+          feedback.push({ type: fbType, subtype: fbSubType });
+        });
+      }
+
+      if (codec.params) {
+        params = codec.params;
+      }
+
+      if (codecName.toUpperCase() === 'RTX') {
+        apts.set(parseInt(params.apt, 10), type);
+      } else {
+        media.addCodec(new CodecInfo(codecName, type, rate, encoding, params, feedback));
+      }
+    });
+  }
+
+  apts.forEach((apt, id) => {
+    const codecInfo = media.getCodecForType(id);
+    if (codecInfo) {
+      codecInfo.setRTX(apt);
+    }
+  });
+
+  const extmaps = info.getExtensions(mediaType);
+  if (extmaps) {
+    Object.keys(extmaps).forEach((value) => {
+      media.addExtension(value, extmaps[value]);
+    });
+  }
+
+  const sources = new Map();
+  if (mediaType === 'audio') {
+    addSsrc(sources, info.getAudioSsrc(), sdp, media);
+  } else if (mediaType === 'video') {
+    media.setBitrate(info.getVideoBandwidth());
+
+    info.getVideoSsrcList().forEach((ssrc) => {
+      addSsrc(sources, ssrc, sdp, media);
+    });
+
+    const rids = info.getRids();
+    let isSimulcast = false;
+    let simulcast = new SimulcastInfo();
+    let ridsData = [];
+    let direction;
+    Object.keys(rids).forEach((id) => {
+      isSimulcast = true;
+      direction = rids[id];
+      ridsData.push(id);
+      const ridInfo = new RIDInfo(id, DirectionWay.byValue(rids[id]));
+      let formats = [];
+      media.addRID(ridInfo);
+    });
+
+    if (isSimulcast) {
+      simulcast.setSimulcastPlainString(direction + ' rid=' + ridsData.join(';'));
+      media.simulcast_03 = simulcast;
+    }
+
+  }
+  return media;
+}
+
+function candidateToString(cand) {
+  var str = `candidate:${cand.foundation} ${cand.componentId} ${cand.transport}` +
+            ` ${cand.priority} ${cand.address} ${cand.port} typ ${cand.type}`;
+
+  str += (cand.relAddr != null) ? ` raddr ${cand.relAddr} rport ${cand.relPort}` : '';
+
+  str += (cand.tcptype != null) ? ` tcptype ${cand.tcptype}` : '';
+
+  if (cand.generation != null) {
+    str += ` generation ${cand.generation}`;
+  }
+
+  str += (cand['network-id'] != null) ? ` network-id ${cand['network-id']}` : '';
+  str += (cand['network-cost'] != null) ? ` network-cost ${cand['network-cost']}` : '';
+  return str;
+}
+
 class SessionDescription {
   constructor(sdp, mediaConfiguration) {
+    if (mediaConfiguration) {
+      this.sdp = sdp;
+      this.mediaConfiguration = mediaConfiguration;
+      this.processSdp();
+    } else {
+      this.connectionDescription = sdp;
+    }
+  }
+
+  getSdp() {
+    if (this.sdp) {
+      return this.sdp;
+    }
+    const info = this.connectionDescription;
+    const sdp = new SdpInfo();
+    sdp.setVersion(0);
+    sdp.setTiming({ start: 0, stop: 0 });
+    sdp.setOrigin({
+      username: '-',
+      sessionId: 0,
+      sessionVersion: 0,
+      netType: 'IN',
+      ipVer: 4,
+      address: '127.0.0.1' });
+    sdp.name = 'LicodeMCU';
+
+    sdp.msidSemantic = { semantic: 'WMS', token: generateRandom(10) };
+
+    if (info.hasAudio()) {
+      const media = getMediaInfoFromDescription(info, sdp, 'audio');
+      sdp.addMedia(media);
+    }
+
+    if (info.hasVideo()) {
+      const media = getMediaInfoFromDescription(info, sdp, 'video');
+      sdp.addMedia(media);
+    }
+
     this.sdp = sdp;
-    this.mediaConfiguration = mediaConfiguration;
-    this.processSdp();
+
+    return this.sdp;
   }
 
   processSdp() {
@@ -52,9 +267,11 @@ class SessionDescription {
 
       const candidates = media.getCandidates();
       candidates.forEach((candidate) => {
+        const candidateString = candidateToString(candidate);
         info.addCandidate(media.getType(), candidate.getFoundation(), candidate.getComponentId(),
           candidate.getTransport(), candidate.getPriority(), candidate.getAddress(),
-          candidate.getPort(), candidate.getType(), candidate.getRelAddr(), candidate.getRelPort());
+          candidate.getPort(), candidate.getType(), candidate.getRelAddr(), candidate.getRelPort(),
+          candidateString);
       });
 
       let ice = media.getICE();

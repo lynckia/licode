@@ -1089,6 +1089,16 @@ namespace erizo {
     return payloadVector;
   }
 
+  std::vector<ExtMap> SdpInfo::getExtensionMap(MediaType media) {
+    std::vector<ExtMap> valid_extensions;
+    for (const ExtMap& extension : extMapVector) {
+      if (isValidExtension(extension.uri) && extension.mediaType == media) {
+        valid_extensions.push_back(extension);
+      }
+    }
+    return valid_extensions;
+  }
+
   unsigned int SdpInfo::getAudioInternalPT(unsigned int externalPT) {
     // should use separate mapping for video and audio at the very least
     // standard requires separate mappings for each media, even!

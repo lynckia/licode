@@ -98,6 +98,11 @@ class WebRtcConnection: public TransportListener, public LogContext,
   bool addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp);
   /**
    * Obtains the local SDP.
+   * @return The SDP as a SdpInfo.
+   */
+  std::shared_ptr<SdpInfo> getLocalSdpInfo();
+  /**
+   * Obtains the local SDP.
    * @return The SDP as a string.
    */
   std::string getLocalSdp();
