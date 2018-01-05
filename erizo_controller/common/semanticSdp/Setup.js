@@ -15,7 +15,7 @@ Setup.toString = (setup) => {
     case Setup.INACTIVE:
       return 'inactive';
     default:
-      return 'unknown';
+      return null;
   }
 };
 
