@@ -178,9 +178,7 @@ void DtlsTransport::onIceData(packetPtr packet) {
     }
     return;
   } else if (this->getTransportState() == TRANSPORT_READY) {
-    unprotect_packet_->length = len;
-    unprotect_packet_->received_time_ms = packet->received_time_ms;
-    memcpy(unprotect_packet_->data, data, len);
+    unprotect_packet_ = std::make_shared<DataPacket>(component_id, data, len, VIDEO_PACKET, packet->received_time_ms);
 
     if (dtlsRtcp != NULL && component_id == 2) {
       srtp = srtcp_.get();

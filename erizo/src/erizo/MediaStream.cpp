@@ -153,7 +153,6 @@ void MediaStream::initializePipeline() {
 
   pipeline_->addFront(PacketReader(this));
 
-  pipeline_->addFront(LayerDetectorHandler());
   pipeline_->addFront(RtcpProcessorHandler());
   pipeline_->addFront(FecReceiverHandler());
   pipeline_->addFront(LayerBitrateCalculationHandler());
@@ -169,6 +168,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(RtpRetransmissionHandler());
   pipeline_->addFront(SRPacketHandler());
   pipeline_->addFront(SenderBandwidthEstimationHandler());
+  pipeline_->addFront(LayerDetectorHandler());
   pipeline_->addFront(OutgoingStatsHandler());
 
   pipeline_->addFront(PacketWriter(this));
@@ -228,27 +228,26 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> packet, Transport 
     packet->type = VIDEO_PACKET;
   }
   auto stream_ptr = shared_from_this();
-  auto task_packet = std::make_shared<DataPacket>(*packet);
 
-  worker_->task([stream_ptr, task_packet]{
+  worker_->task([stream_ptr, packet]{
     if (!stream_ptr->pipeline_initialized_) {
       ELOG_DEBUG("%s message: Pipeline not initialized yet.", stream_ptr->toLog());
       return;
     }
 
-    char* buf = task_packet->data;
+    char* buf = packet->data;
     RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
     if (!chead->isRtcp()) {
       uint32_t recvSSRC = head->getSSRC();
       if (stream_ptr->isVideoSourceSSRC(recvSSRC)) {
-        task_packet->type = VIDEO_PACKET;
+        packet->type = VIDEO_PACKET;
       } else if (stream_ptr->isAudioSourceSSRC(recvSSRC)) {
-        task_packet->type = AUDIO_PACKET;
+        packet->type = AUDIO_PACKET;
       }
     }
 
-    stream_ptr->pipeline_->read(std::move(task_packet));
+    stream_ptr->pipeline_->read(std::move(packet));
   });
 }
 
