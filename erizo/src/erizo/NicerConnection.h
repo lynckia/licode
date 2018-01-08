@@ -73,7 +73,7 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   void startChecking();
   void startSync();
   void closeSync();
-  void async(function<void()> f);
+  void async(function<void(std::shared_ptr<NicerConnection>)> f);
   void setRemoteCredentialsSync(const std::string& username, const std::string& password);
 
   static void gather_callback(NR_SOCKET s, int h, void *arg);  // ICE gather complete
