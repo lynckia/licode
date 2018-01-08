@@ -2,25 +2,10 @@
 'use strict';
 var addon = require('./../../../erizoAPI/build/Release/addon');
 var logger = require('./../../common/logger').logger;
+var Helpers = require('./Helpers');
 
 // Logger
 var log = logger.getLogger('Publisher');
-
-function getMediaConfiguration(mediaConfiguration = 'default') {
-  if (global.mediaConfig && global.mediaConfig.codecConfigurations) {
-    if (global.mediaConfig.codecConfigurations[mediaConfiguration]) {
-      return JSON.stringify(global.mediaConfig.codecConfigurations[mediaConfiguration]);
-    } else if (global.mediaConfig.codecConfigurations.default) {
-      return JSON.stringify(global.mediaConfig.codecConfigurations.default);
-    } else {
-      log.warn('message: Bad media config file. You need to specify a default codecConfiguration.');
-      return JSON.stringify({});
-    }
-  } else {
-    log.warn('message: Bad media config file. You need to specify a default codecConfiguration.');
-    return JSON.stringify({});
-  }
-}
 
 function createWrtc(id, threadPool, ioThreadPool, mediaConfiguration) {
   var wrtc = new addon.WebRtcConnection(threadPool, ioThreadPool, id,
@@ -29,14 +14,13 @@ function createWrtc(id, threadPool, ioThreadPool, mediaConfiguration) {
                                     global.config.erizo.minport,
                                     global.config.erizo.maxport,
                                     false,
-                                    getMediaConfiguration(mediaConfiguration),
+                                    Helpers.getMediaConfiguration(mediaConfiguration),
                                     global.config.erizo.useNicer,
                                     global.config.erizo.turnserver,
                                     global.config.erizo.turnport,
                                     global.config.erizo.turnusername,
                                     global.config.erizo.turnpass,
                                     global.config.erizo.networkinterface);
-
   return wrtc;
 }
 
@@ -68,6 +52,7 @@ class Source {
               ', ' + logger.objectToLog(options.metadata));
     var wrtc = createWrtc(wrtcId, this.threadPool, this.ioThreadPool, options.mediaConfiguration);
     wrtc.wrtcId = wrtcId;
+    wrtc.mediaConfiguration = options.mediaConfiguration;
     wrtc.mediaStream = createMediaStream(this.threadPool, wrtc, id);
     wrtc.addMediaStream(wrtc.mediaStream);
     this.subscribers[id] = wrtc;
@@ -103,7 +88,7 @@ class Source {
     var eoId = url + '_' + this.id;
     log.info('message: Adding ExternalOutput, id: ' + eoId);
     var externalOutput = new addon.ExternalOutput(url,
-      getMediaConfiguration(options.mediaConfiguration));
+      Helpers.getMediaConfiguration(options.mediaConfiguration));
     externalOutput.wrtcId = eoId;
     externalOutput.init();
     this.muxer.addExternalOutput(externalOutput, url);
@@ -190,8 +175,9 @@ class Publisher extends Source {
   constructor(id, threadPool, ioThreadPool, options) {
     super(id, threadPool, ioThreadPool);
     this.mediaConfiguration = options.mediaConfiguration;
-    this.wrtc = createWrtc(this.id, this.threadPool, this.ioThreadPool, this.mediaConfiguration);
+    this.wrtc = createWrtc(this.id, this.threadPool, this.ioThreadPool, options.mediaConfiguration);
     this.wrtc.wrtcId = id;
+    this.wrtc.mediaConfiguration = options.mediaConfiguration;
 
     this.wrtc.mediaStream = createMediaStream(this.threadPool, this.wrtc, this.wrtc.wrtcId);
     this.wrtc.addMediaStream(this.wrtc.mediaStream);

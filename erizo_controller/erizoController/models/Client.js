@@ -91,8 +91,10 @@ class Client extends events.EventEmitter {
     }
     if (this.room.p2p) {
       const targetClient = this.room.getClientById(message.peerSocket);
-      targetClient.sendMessage('signaling_message_peer',
-                {streamId: message.streamId, peerSocket: this.id, msg: message.msg});
+      if (targetClient) {
+        targetClient.sendMessage('signaling_message_peer',
+                  {streamId: message.streamId, peerSocket: this.id, msg: message.msg});
+      }
     } else {
         const isControlMessage = message.msg.type === 'control';
         if (!isControlMessage ||

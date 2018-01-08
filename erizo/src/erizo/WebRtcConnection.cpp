@@ -164,6 +164,17 @@ void WebRtcConnection::removeMediaStream(const std::string& stream_id) {
   media_stream_.reset();
 }
 
+bool WebRtcConnection::setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp) {
+  ELOG_DEBUG("%s message: setting remote SDPInfo", toLog());
+
+  if (!sending_) {
+    return true;
+  }
+
+  remote_sdp_ = sdp;
+  return processRemoteSdp();
+}
+
 bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   ELOG_DEBUG("%s message: setting remote SDP", toLog());
 
@@ -172,7 +183,11 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   }
 
   remote_sdp_->initWithSdp(sdp, "");
+  return processRemoteSdp();
+}
 
+bool WebRtcConnection::processRemoteSdp() {
+  ELOG_DEBUG("%s message: processing remote SDP", toLog());
   bundle_ = remote_sdp_->isBundle;
   local_sdp_->setOfferSdp(remote_sdp_);
   extension_processor_.setSdpInfo(local_sdp_);
@@ -238,10 +253,10 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
       }
     }
   }
-
   if (trickle_enabled_) {
     std::string object = this->getLocalSdp();
     if (conn_event_listener_) {
+      ELOG_DEBUG("%s message: Sending SDP", toLog());
       conn_event_listener_->notifyEvent(CONN_SDP, object);
     }
   }

@@ -278,6 +278,8 @@ class SDPInfo {
           ip: candidate.getAddress(),
           port: candidate.getPort(),
           type: candidate.getType(),
+          relAddr: candidate.getRelAddr(),
+          relPort: candidate.getRelPort(),
           generation: candidate.getGeneration(),
         });
       });
@@ -300,6 +302,10 @@ class SDPInfo {
         };
 
         md.setup = Setup.toString(dtls.getSetup());
+      }
+
+      if (media.setup) {
+        md.setup = Setup.toString(media.setup);
       }
 
       media.getCodecs().forEach((codec) => {
@@ -742,7 +748,7 @@ SDPInfo.process = (sdp) => {
   if (fingerprintAttr) {
     const remoteHash = fingerprintAttr.type;
     const remoteFingerprint = fingerprintAttr.hash;
-    let setup = Setup.ACTPASS;
+    let setup = null;
     if (sdp.setup) {
       setup = Setup.byValue(sdp.setup);
     }
@@ -784,6 +790,10 @@ SDPInfo.process = (sdp) => {
       }
 
       mediaInfo.setDTLS(new DTLSInfo(setup, remoteHash, remoteFingerprint));
+    }
+
+    if (md.setup) {
+      mediaInfo.setSetup(Setup.byValue(md.setup));
     }
 
     let direction = Direction.SENDRECV;
