@@ -49,6 +49,9 @@ class MediaInfo {
     this.candidates.forEach((candidate) => {
       cloned.addCandidate(candidate.clone());
     });
+    if (this.setup) {
+      cloned.setSetup(this.setup);
+    }
     return cloned;
   }
 
@@ -281,6 +284,14 @@ class MediaInfo {
 
   setSimulcast03(simulcast) {
     this.simulcast_03 = simulcast;
+  }
+
+  getSetup() {
+    return this.setup;
+  }
+
+  setSetup(setup) {
+    this.setup = setup;
   }
 }
 
