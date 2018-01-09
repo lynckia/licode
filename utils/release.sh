@@ -88,7 +88,7 @@ if [ "$MODE" = "PRERELEASE" ]; then
   docker push lynckia/licode:${NEXT_PRERELEASE_NAME}
   docker push lynckia/licode:staging
 
-  LOGS=`git log $PREVIOUS_VERSION..$COMMIT --oneline | perl -p -e 's/\n/\\\\n/'` | sed -e s/\"//g
+  LOGS=`git log $PREVIOUS_VERSION..$COMMIT --oneline | perl -p -e 's/\n/\\\\n/' | sed -e s/\"//g`
   DESCRIPTION="### Detailed PR List:\\n$LOGS"
 
   if [ "$URL" = "null" ]; then
