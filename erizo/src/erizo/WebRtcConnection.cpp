@@ -68,13 +68,6 @@ WebRtcConnection::~WebRtcConnection() {
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
-void WebRtcConnection::close() {
-  ELOG_DEBUG("%s message: Async close called", toLog());
-  asyncTask([] (std::shared_ptr<WebRtcConnection> connection) {
-    connection->syncClose();
-  });
-}
-
 void WebRtcConnection::syncClose() {
   ELOG_DEBUG("%s message: Close called", toLog());
   if (!sending_) {
@@ -93,6 +86,13 @@ void WebRtcConnection::syncClose() {
   }
 
   ELOG_DEBUG("%s message: Close ended", toLog());
+}
+
+void WebRtcConnection::close() {
+  ELOG_DEBUG("%s message: Async close called", toLog());
+  asyncTask([] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->syncClose();
+  });
 }
 
 bool WebRtcConnection::init() {
