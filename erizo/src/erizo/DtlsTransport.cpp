@@ -110,9 +110,9 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     iceConfig_.username = username;
     iceConfig_.password = password;
     if (iceConfig_.use_nicer) {
-      ice_ = NicerConnection::create(io_worker_, this, iceConfig_);
+      ice_ = NicerConnection::create(io_worker_, iceConfig_);
     } else {
-      ice_.reset(LibNiceConnection::create(this, iceConfig_));
+      ice_.reset(LibNiceConnection::create(iceConfig_));
     }
     rtp_resender_.reset(new Resender(this, dtlsRtp.get()));
     if (!rtcp_mux) {
@@ -128,6 +128,7 @@ DtlsTransport::~DtlsTransport() {
 }
 
 void DtlsTransport::start() {
+  ice_->setIceListener(shared_from_this());
   ice_->copyLogContextFrom(this);
   ELOG_DEBUG("%s message: starting ice", toLog());
   ice_->start();
@@ -154,6 +155,9 @@ void DtlsTransport::close() {
 }
 
 void DtlsTransport::onIceData(packetPtr packet) {
+  if (!running_) {
+    return;
+  }
   int len = packet->length;
   char *data = packet->data;
   unsigned int component_id = packet->comp;
