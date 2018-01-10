@@ -66,17 +66,16 @@ class LibNiceConnectionStartTest : public ::testing::Test {
   virtual void SetUp() {
     libnice = new MockLibNice;
     libnice_pointer.reset(libnice);
-    nice_listener = new MockLibNiceConnectionListener();
+    nice_listener = std::make_shared<MockLibNiceConnectionListener>();
     ice_config = new erizo::IceConfig();
   }
   virtual void TearDown() {
-    delete nice_listener;
     delete ice_config;
   }
 
   boost::shared_ptr<erizo::LibNiceInterface> libnice_pointer;
   MockLibNice* libnice;
-  MockLibNiceConnectionListener* nice_listener;
+  std::shared_ptr<MockLibNiceConnectionListener> nice_listener;
   erizo::IceConfig* ice_config;
 };
 
@@ -91,7 +90,7 @@ class LibNiceConnectionTest : public ::testing::Test {
 
     libnice = new MockLibNice;
     libnice_pointer.reset(libnice);
-    nice_listener = new MockLibNiceConnectionListener();
+    nice_listener = std::make_shared<MockLibNiceConnectionListener>();
     ice_config = new erizo::IceConfig();
     ufrag = strdup(kArbitraryLocalCredentialUsername.c_str());
     pass = strdup(kArbitraryLocalCredentialPassword.c_str());
@@ -113,21 +112,20 @@ class LibNiceConnectionTest : public ::testing::Test {
     EXPECT_CALL(*libnice, NiceAgentSetRelayInfo(_, _, _, _, _, _, _)).Times(0);
 
     nice_connection = new erizo::LibNiceConnection(libnice_pointer,
-        nice_listener,
         *ice_config);
+    nice_connection->setIceListener(nice_listener);
     nice_connection->start();
   }
 
   virtual void TearDown() {
     delete nice_connection;
-    delete nice_listener;
     delete ice_config;
     free(test_packet);
   }
 
   boost::shared_ptr<erizo::LibNiceInterface> libnice_pointer;
   MockLibNice* libnice;
-  MockLibNiceConnectionListener* nice_listener;
+  std::shared_ptr<MockLibNiceConnectionListener> nice_listener;
   erizo::IceConfig* ice_config;
   erizo::LibNiceConnection* nice_connection;
   char* ufrag, * pass, * test_packet;
@@ -143,7 +141,7 @@ class LibNiceConnectionTwoComponentsTest : public ::testing::Test {
 
     libnice = new MockLibNice;
     libnice_pointer.reset(libnice);
-    nice_listener = new MockLibNiceConnectionListener();
+    nice_listener = std::make_shared<MockLibNiceConnectionListener>();
     ice_config = new erizo::IceConfig();
     ufrag = strdup(kArbitraryLocalCredentialUsername.c_str());
     pass = strdup(kArbitraryLocalCredentialPassword.c_str());
@@ -163,20 +161,19 @@ class LibNiceConnectionTwoComponentsTest : public ::testing::Test {
     EXPECT_CALL(*libnice, NiceAgentSetRelayInfo(_, _, _, _, _, _, _)).Times(0);
 
     nice_connection = new erizo::LibNiceConnection(libnice_pointer,
-        nice_listener,
         *ice_config);
+    nice_connection->setIceListener(nice_listener);
     nice_connection->start();
   }
 
   virtual void TearDown() {
     delete nice_connection;
-    delete nice_listener;
     delete ice_config;
   }
 
   boost::shared_ptr<erizo::LibNiceInterface> libnice_pointer;
   MockLibNice* libnice;
-  MockLibNiceConnectionListener* nice_listener;
+  std::shared_ptr<MockLibNiceConnectionListener> nice_listener;
   erizo::IceConfig* ice_config;
   erizo::LibNiceConnection* nice_connection;
   char* ufrag, * pass;
@@ -207,8 +204,8 @@ TEST_F(LibNiceConnectionStartTest, start_Configures_Libnice_With_Default_Config)
   EXPECT_CALL(*libnice, NiceAgentSetRelayInfo(_, _, _, _, _, _, _)).Times(0);
 
   erizo::LibNiceConnection nice(libnice_pointer,
-      nice_listener,
       *ice_config);
+  nice.setIceListener(nice_listener);
   nice.start();
 }
 
@@ -243,8 +240,8 @@ TEST_F(LibNiceConnectionStartTest, start_Configures_Libnice_With_Remote_Credenti
   EXPECT_CALL(*libnice, NiceAgentSetRelayInfo(_, _, _, _, _, _, _)).Times(0);
 
   erizo::LibNiceConnection nice(libnice_pointer,
-      nice_listener,
       *ice_config);
+  nice.setIceListener(nice_listener);
   nice.start();
 }
 
@@ -278,8 +275,8 @@ TEST_F(LibNiceConnectionStartTest, start_Configures_Libnice_With_Port_Range) {
   EXPECT_CALL(*libnice, NiceAgentSetRelayInfo(_, _, _, _, _, _, _)).Times(0);
 
   erizo::LibNiceConnection nice(libnice_pointer,
-      nice_listener,
       *ice_config);
+  nice.setIceListener(nice_listener);
   nice.start();
 }
 
@@ -320,8 +317,8 @@ TEST_F(LibNiceConnectionStartTest, start_Configures_Libnice_With_Turn) {
         WillOnce(Return(true));
 
   erizo::LibNiceConnection nice(libnice_pointer,
-      nice_listener,
       *ice_config);
+  nice.setIceListener(nice_listener);
   nice.start();
 }
 

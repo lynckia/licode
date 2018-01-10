@@ -56,6 +56,7 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   CandidatePair getSelectedPair() override;
   void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
+  bool isClosed() { return closed_; }
 
   static std::shared_ptr<IceConnection> create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config);
 
