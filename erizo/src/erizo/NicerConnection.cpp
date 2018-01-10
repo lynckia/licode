@@ -136,8 +136,8 @@ void NicerConnection::trickle_callback(void *arg, nr_ice_ctx *ctx, nr_ice_media_
 }
 
 NicerConnection::NicerConnection(std::shared_ptr<IOWorker> io_worker, std::shared_ptr<NicerInterface> interface,
-                                 IceConnectionListener *listener, const IceConfig& ice_config)
-    : IceConnection(listener, ice_config),
+                                 const IceConfig& ice_config)
+    : IceConnection(ice_config),
       io_worker_{io_worker},
       nicer_{interface},
       ice_config_{ice_config},
@@ -150,7 +150,6 @@ NicerConnection::NicerConnection(std::shared_ptr<IOWorker> io_worker, std::share
 }
 
 NicerConnection::~NicerConnection() {
-  close();
 }
 
 void NicerConnection::async(function<void(std::shared_ptr<NicerConnection>)> f) {
@@ -434,7 +433,7 @@ void NicerConnection::onCandidate(nr_ice_media_stream *stream, int component_id,
   cand_info.username = ufrag_;
   cand_info.password = upass_;
 
-  if (auto listener = getIceListener()) {
+  if (auto listener = getIceListener().lock()) {
     ELOG_DEBUG("%s message: Candidate (%s, %s, %s)", toLog(), cand_info.hostAddress.c_str(),
                                                      ufrag_.c_str(), upass_.c_str());
     listener->onCandidate(cand_info, this);
@@ -540,9 +539,11 @@ void NicerConnection::setReceivedLastCandidate(bool hasReceived) {
 }
 
 void NicerConnection::closeSync() {
-  boost::mutex::scoped_lock lock(close_sync_mutex_);
   if (closed_) {
     return;
+  }
+  if (auto listener = getIceListener().lock()) {
+    listener_.reset();
   }
   if (stream_) {
     nicer_->IceRemoveMediaStream(ctx_, &stream_);
@@ -555,31 +556,23 @@ void NicerConnection::closeSync() {
   }
   delete ice_handler_vtbl_;
   delete ice_handler_;
-  close_promise_.set_value();
   closed_ = true;
 }
 
 void NicerConnection::close() {
-  boost::mutex::scoped_lock lock(close_mutex_);
   if (!closed_) {
-    async([] (std::shared_ptr<NicerConnection> this_ptr) {
-      this_ptr->closeSync();
+    auto shared_this = shared_from_this();
+    async([shared_this] (std::shared_ptr<NicerConnection> this_ptr) {
+      shared_this->closeSync();
     });
-    std::future_status status = close_promise_.get_future().wait_for(std::chrono::seconds(1));
-    if (status == std::future_status::timeout) {
-      ELOG_WARN("%s Stop timed out", toLog());
-      closeSync();
-    }
   }
 }
 
 void NicerConnection::onData(unsigned int component_id, char* buf, int len) {
   IceState state;
-  IceConnectionListener* listener;
   {
     boost::mutex::scoped_lock lock(close_mutex_);
     state = this->checkIceState();
-    listener = listener_;
   }
   if (state == IceState::READY) {
     packetPtr packet (new DataPacket());
@@ -587,7 +580,9 @@ void NicerConnection::onData(unsigned int component_id, char* buf, int len) {
     packet->comp = component_id;
     packet->length = len;
     packet->received_time_ms = ClockUtils::timePointToMs(clock::now());
-    listener->onPacketReceived(packet);
+    if (auto listener = getIceListener().lock()) {
+      listener->onPacketReceived(packet);
+    }
   }
 }
 
@@ -672,10 +667,9 @@ std::string NicerConnection::getNewPwd() {
 }
 
 std::shared_ptr<IceConnection> NicerConnection::create(std::shared_ptr<IOWorker> io_worker,
-                                                       IceConnectionListener *listener,
                                                        const IceConfig& ice_config) {
   auto nicer = std::make_shared<NicerConnection>(io_worker, std::make_shared<NicerInterfaceImpl>(),
-                                                 listener, ice_config);
+                                                 ice_config);
 
   NicerConnection::initializeGlobals();
 

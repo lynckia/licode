@@ -41,7 +41,7 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
 
  public:
   explicit NicerConnection(std::shared_ptr<IOWorker> io_worker, std::shared_ptr<NicerInterface> interface,
-                           IceConnectionListener *listener, const IceConfig& ice_config);
+                           const IceConfig& ice_config);
 
   virtual ~NicerConnection();
 
@@ -57,8 +57,7 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
 
-  static std::shared_ptr<IceConnection> create(std::shared_ptr<IOWorker> io_worker, IceConnectionListener *listener,
-                               const IceConfig& ice_config);
+  static std::shared_ptr<IceConnection> create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config);
 
   static void initializeGlobals();
 
