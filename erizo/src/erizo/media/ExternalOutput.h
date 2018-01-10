@@ -99,6 +99,8 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   vp8SearchState video_search_state_;
   bool need_to_send_fir_;
   std::vector<RtpMap> rtp_mappings_;
+  enum AVCodecID video_codec_;
+  enum AVCodecID audio_codec_;
   std::map<uint, RtpMap> video_maps_;
   std::map<uint, RtpMap> audio_maps_;
   RtpMap video_map_;
