@@ -21,7 +21,8 @@ ExternalOutput::ExternalOutput(const std::string& output_url, const std::vector<
     audio_stream_{nullptr}, unpackaged_size_{0}, video_source_ssrc_{0},
     unpackaged_buffer_part_{unpackaged_buffer_}, first_video_timestamp_{-1}, first_audio_timestamp_{-1},
     first_data_received_{}, video_offset_ms_{-1}, audio_offset_ms_{-1}, video_search_state_{kLookingForStart},
-    need_to_send_fir_{true}, rtp_mappings_{rtp_mappings} {
+    need_to_send_fir_{true}, rtp_mappings_{rtp_mappings}, video_codec_{AV_CODEC_ID_NONE},
+    audio_codec_{AV_CODEC_ID_NONE} {
   ELOG_DEBUG("Creating output to %s", output_url.c_str());
 
   fb_sink_ = nullptr;
@@ -55,10 +56,6 @@ ExternalOutput::ExternalOutput(const std::string& output_url, const std::vector<
     context_->oformat = av_guess_format(nullptr,  context_->filename, nullptr);
     if (!context_->oformat) {
       ELOG_ERROR("Error guessing format %s", context_->filename);
-    } else {
-      context_->oformat->video_codec = AV_CODEC_ID_NONE;
-      context_->oformat->audio_codec = AV_CODEC_ID_NONE;
-      // We'll figure this out once we start receiving data; it's either PCM or OPUS
     }
   }
 }
@@ -216,24 +213,24 @@ void ExternalOutput::writeVideoData(char* buf, int len) {
 }
 
 void ExternalOutput::updateAudioCodec(RtpMap map) {
-  if (context_->oformat->audio_codec != AV_CODEC_ID_NONE) {
+  if (audio_codec_ != AV_CODEC_ID_NONE) {
     return;
   }
   audio_map_ = map;
   if (map.encoding_name == "opus") {
-    context_->oformat->audio_codec = AV_CODEC_ID_OPUS;
+    audio_codec_ = AV_CODEC_ID_OPUS;
   } else if (map.encoding_name == "PCMU") {
-    context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
+    audio_codec_ = AV_CODEC_ID_PCM_MULAW;
   }
 }
 
 void ExternalOutput::updateVideoCodec(RtpMap map) {
-  if (context_->oformat->video_codec != AV_CODEC_ID_NONE) {
+  if (video_codec_ != AV_CODEC_ID_NONE) {
     return;
   }
   video_map_ = map;
   if (map.encoding_name == "VP8") {
-    context_->oformat->video_codec = AV_CODEC_ID_VP8;
+    video_codec_ = AV_CODEC_ID_VP8;
   }
 }
 
@@ -384,11 +381,11 @@ int ExternalOutput::deliverEvent_(MediaEventPtr event) {
 }
 
 bool ExternalOutput::initContext() {
-  if (context_->oformat->video_codec != AV_CODEC_ID_NONE &&
-            context_->oformat->audio_codec != AV_CODEC_ID_NONE &&
+  if (video_codec_ != AV_CODEC_ID_NONE &&
+            audio_codec_ != AV_CODEC_ID_NONE &&
             video_stream_ == nullptr &&
             audio_stream_ == nullptr) {
-    AVCodec* video_codec = avcodec_find_encoder(context_->oformat->video_codec);
+    AVCodec* video_codec = avcodec_find_encoder(video_codec_);
     if (video_codec == nullptr) {
       ELOG_ERROR("Could not find video codec");
       return false;
@@ -397,7 +394,7 @@ bool ExternalOutput::initContext() {
     video_queue_.setTimebase(video_map_.clock_rate);
     video_stream_ = avformat_new_stream(context_, video_codec);
     video_stream_->id = 0;
-    video_stream_->codec->codec_id = context_->oformat->video_codec;
+    video_stream_->codec->codec_id = video_codec_;
     video_stream_->codec->width = 640;
     video_stream_->codec->height = 480;
     video_stream_->time_base = (AVRational) { 1, 30 };
@@ -409,7 +406,7 @@ bool ExternalOutput::initContext() {
     }
     context_->oformat->flags |= AVFMT_VARIABLE_FPS;
 
-    AVCodec* audio_codec = avcodec_find_encoder(context_->oformat->audio_codec);
+    AVCodec* audio_codec = avcodec_find_encoder(audio_codec_);
     if (audio_codec == nullptr) {
       ELOG_ERROR("Could not find audio codec");
       return false;
@@ -417,7 +414,7 @@ bool ExternalOutput::initContext() {
 
     audio_stream_ = avformat_new_stream(context_, audio_codec);
     audio_stream_->id = 1;
-    audio_stream_->codec->codec_id = context_->oformat->audio_codec;
+    audio_stream_->codec->codec_id = audio_codec_;
     audio_stream_->codec->sample_rate = audio_map_.clock_rate;
     audio_stream_->time_base = (AVRational) { 1, audio_stream_->codec->sample_rate };
     audio_stream_->codec->channels = audio_map_.channels;
@@ -456,7 +453,7 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
     if (getAudioSinkSSRC() == 0) {
       ELOG_DEBUG("No audio detected");
       audio_map_ = RtpMap{0, "PCMU", 8000, AUDIO_TYPE, 1};
-      context_->oformat->audio_codec = AV_CODEC_ID_PCM_MULAW;
+      audio_codec_ = AV_CODEC_ID_PCM_MULAW;
     }
   }
   if (need_to_send_fir_ && video_source_ssrc_) {
