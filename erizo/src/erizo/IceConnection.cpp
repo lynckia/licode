@@ -13,22 +13,21 @@ namespace erizo {
 
 DEFINE_LOGGER(IceConnection, "IceConnection")
 
-IceConnection::IceConnection(IceConnectionListener* listener, const IceConfig& ice_config) :
-  listener_{listener}, ice_state_{INITIAL}, ice_config_{ice_config} {
+IceConnection::IceConnection(const IceConfig& ice_config) : ice_state_{INITIAL}, ice_config_{ice_config} {
     for (unsigned int i = 1; i <= ice_config_.ice_components; i++) {
       comp_state_list_[i] = INITIAL;
     }
   }
 
 IceConnection::~IceConnection() {
-  this->listener_ = nullptr;
+  this->listener_.reset();
 }
 
-void IceConnection::setIceListener(IceConnectionListener *listener) {
+void IceConnection::setIceListener(std::weak_ptr<IceConnectionListener> listener) {
   listener_ = listener;
 }
 
-IceConnectionListener* IceConnection::getIceListener() {
+std::weak_ptr<IceConnectionListener> IceConnection::getIceListener() {
   return listener_;
 }
 
@@ -83,8 +82,9 @@ void IceConnection::updateIceState(IceState state) {
   }
 
   // Important: send this outside our state lock.  Otherwise, serious risk of deadlock.
-  if (this->listener_ != NULL)
-    this->listener_->updateIceState(state, this);
+  if (auto listener = this->listener_.lock()) {
+    listener->updateIceState(state, this);
+  }
 }
 
 }  // namespace erizo
