@@ -61,7 +61,6 @@ class RtcpRrGenerator {
   };
 
   uint8_t packet_[128];
-  bool enabled_, initialized_;
   RrPacketInfo rr_info_;
   uint32_t ssrc_;
   packetType type_;
