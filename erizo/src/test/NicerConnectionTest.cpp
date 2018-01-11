@@ -3,7 +3,6 @@
 
 #include <NicerConnection.h>
 #include <lib/NicerInterface.h>
-#include <nice/nice.h>
 
 #include <string>
 #include <vector>
