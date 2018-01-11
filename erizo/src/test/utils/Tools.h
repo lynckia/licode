@@ -17,6 +17,10 @@ static constexpr uint16_t kArbitrarySeqNumber = 12;
 static constexpr uint16_t kFirstSequenceNumber = 0;
 static constexpr uint16_t kLastSequenceNumber = 65535;
 
+inline unsigned char change_bit(unsigned char val, int num, bool bitval) {
+  return (val & ~(1 << num)) | (bitval << num);
+}
+
 class PacketTools {
  public:
   static std::shared_ptr<DataPacket> createDataPacket(uint16_t seq_number, packetType type) {
@@ -70,7 +74,7 @@ class PacketTools {
     sender_report->setPacketType(RTCP_Sender_PT);
     sender_report->setBlockCount(1);
     sender_report->setSSRC(ssrc);
-    sender_report->setLength(4);
+    sender_report->setLength(6);
     sender_report->setNtpTimestamp(ntp_timestamp);
     sender_report->setPacketsSent(packets_sent);
     sender_report->setOctetsSent(octets_sent);
@@ -124,6 +128,92 @@ class PacketTools {
 
     auto packet = std::make_shared<DataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
     packet->is_keyframe = is_keyframe;
+    return packet;
+  }
+
+  static std::shared_ptr<DataPacket> createH264SingleNalPacket(uint16_t seq_number, uint32_t timestamp,
+      bool is_keyframe) {
+    erizo::RtpHeader *header = new erizo::RtpHeader();
+    header->setPayloadType(97);
+    header->setSeqNumber(seq_number);
+    header->setSSRC(kVideoSsrc);
+    header->setTimestamp(timestamp);
+    char packet_buffer[200];
+    memset(packet_buffer, 0, 200);
+    char* data_pointer;
+    char* parsing_pointer;
+    memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
+    data_pointer = packet_buffer + header->getHeaderLength();
+    parsing_pointer = data_pointer;
+
+    *parsing_pointer = is_keyframe ? 0x5 : 0x1;
+
+    auto packet = std::make_shared<DataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    packet->is_keyframe = is_keyframe;
+    return packet;
+  }
+
+  static std::shared_ptr<DataPacket> createH264AggregatedPacket(uint16_t seq_number, uint32_t timestamp,
+      uint8_t nal_1_length, uint8_t nal_2_length) {
+    erizo::RtpHeader *header = new erizo::RtpHeader();
+    header->setPayloadType(97);
+    header->setSeqNumber(seq_number);
+    header->setSSRC(kVideoSsrc);
+    header->setTimestamp(timestamp);
+    const int packet_length = nal_1_length + nal_2_length + 17;  // 17 = 12 rtp header + 1 stap header +
+                                                                 // 2 nalu_1 header + 2 nalu_2 header
+    char packet_buffer[packet_length];
+    memset(packet_buffer, 0, packet_length);
+    char* data_pointer;
+    unsigned char* ptr;
+    memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
+    data_pointer = packet_buffer + header->getHeaderLength();
+    ptr = reinterpret_cast<unsigned char*>(data_pointer);
+
+    const int nal_1_len = nal_1_length;
+    const int nal_2_len = nal_2_length;
+
+    *ptr = 24;
+    ++ptr;  // step out stap header
+    ++ptr;
+    *ptr = nal_1_length;
+    ++ptr;  // step out nalu size field
+    ptr += nal_1_len;
+    ++ptr;
+    *ptr = nal_2_length;
+    ++ptr;  // step out nalu size field
+    ptr += nal_2_len;
+
+    auto packet = std::make_shared<DataPacket>(0, static_cast<char*>(packet_buffer), packet_length, VIDEO_PACKET);
+
+    return packet;
+  }
+
+  static std::shared_ptr<DataPacket> createH264FragmentedPacket(uint16_t seq_number, uint32_t timestamp,
+      bool is_start, bool is_end, bool is_keyframe) {
+    erizo::RtpHeader *header = new erizo::RtpHeader();
+    header->setPayloadType(97);
+    header->setSeqNumber(seq_number);
+    header->setSSRC(kVideoSsrc);
+    header->setTimestamp(timestamp);
+    const int packet_length = 200;
+    char packet_buffer[packet_length];
+    memset(packet_buffer, 0, packet_length);
+    char* data_pointer;
+    unsigned char* ptr;
+    memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
+    data_pointer = packet_buffer + header->getHeaderLength();
+    ptr = reinterpret_cast<unsigned char*>(data_pointer);
+
+    *ptr = 28;
+
+    ++ptr; // reach fu_header
+    *ptr = is_keyframe ? 0x5 : 0x1;
+    *ptr = change_bit(*ptr, 7, is_start);
+    *ptr = change_bit(*ptr, 6, is_end);
+
+    auto packet = std::make_shared<DataPacket>(0, static_cast<char*>(packet_buffer), packet_length, VIDEO_PACKET);
+
     return packet;
   }
 
