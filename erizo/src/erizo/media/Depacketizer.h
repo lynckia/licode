@@ -4,24 +4,19 @@
 #include "rtp/RtpHeaders.h"
 #include "rtp/RtpVP8Parser.h"
 #include "rtp/RtpH264Parser.h"
+#include "./logger.h"
 #include <memory>
 #include <stdexcept>
 #include <utility>
 
 namespace erizo {
-class Depacketizer_memory_error: public std::runtime_error {
- public:
-  template<typename ... Args>
-  explicit Depacketizer_memory_error(Args&&... args) :
-      std::runtime_error(std::forward<Args>(args)...) {
-  }
-};
 
 /**
  * Decomposes rtp packets into frames
  */
 class Depacketizer {
-  static constexpr int buffer_size_ = 1000000;
+  DECLARE_LOGGER();
+  static constexpr int kUnpackageBufferSize = 1000000;
 
  public:
   virtual ~Depacketizer() = default;
@@ -34,7 +29,7 @@ class Depacketizer {
     return buffer_;
   }
 
-  int frame_size() const {
+  int frameSize() const {
     return buffer_ptr_ - buffer_;
   }
 
@@ -42,13 +37,13 @@ class Depacketizer {
    * Stores and parses a new packet. It doesn't add it the frame just yet.
    * Pkt must remain valid until process is called or a new packet get fetched.
    */
-  virtual void fetch_packet(unsigned char* pkt, int len) = 0;
+  virtual void fetchPacket(unsigned char* pkt, int len) = 0;
 
   /**
    * Pushes the last fetched packet into the buffer
    * @returns True if a frame is ready to be grabbed
    */
-  virtual bool process_packet() = 0;
+  virtual bool processPacket() = 0;
 
   /**
    * Resets the internal state of the depacketizer
@@ -58,68 +53,66 @@ class Depacketizer {
   /**
    * @returns True if there's a frame in the buffer and it is a keyframe. The frame may be incomplete.
    */
-  virtual bool is_keyframe() const = 0;
+  virtual bool isKeyframe() const = 0;
 
  protected:
-  void reset_buffer();
+  enum class SearchState {
+    lookingForStart, lookingForEnd
+  };
 
-  void buffer_check(int len);
+  void resetBuffer();
+
+  bool bufferCheck(int len);
 
   unsigned char* buffer() {
     return buffer_;
   }
 
-  unsigned char* buffer_ptr() {
+  unsigned char* getBufferPtr() {
     return buffer_ptr_;
   }
 
-  void set_buffer_ptr(unsigned char* ptr) {
+  void setBufferPtr(unsigned char* ptr) {
     buffer_ptr_ = ptr;
   }
 
- private:
-  virtual void reset_impl() = 0;
+  SearchState search_state_ = SearchState::lookingForStart;
 
-  unsigned char buffer_[buffer_size_];
+ private:
+  virtual void resetImpl() = 0;
+
+  unsigned char buffer_[kUnpackageBufferSize];
   unsigned char* buffer_ptr_ = buffer_;
 };
 
-class Vp8_depacketizer: public Depacketizer {
+class Vp8Depacketizer: public Depacketizer {
   // Our search state for VP8 frames.
-  enum class Search_state {
-    lookingForStart, lookingForEnd
-  };
  public:
-  void fetch_packet(unsigned char* pkt, int len) override;
+  void fetchPacket(unsigned char* pkt, int len) override;
 
-  bool process_packet() override;
+  bool processPacket() override;
 
-  bool is_keyframe() const override;
+  bool isKeyframe() const override;
  private:
-  void reset_impl() override;
+  void resetImpl() override;
 
   RtpVP8Parser parser_;
   const RtpHeader* head_;
   std::unique_ptr<erizo::RTPPayloadVP8> last_payload_;
-  Search_state search_state_ = Search_state::lookingForStart;
 };
 
-class H264_depacketizer: public Depacketizer {
-  enum class Search_state {
-    lookingForStart, lookingForEnd
-  };
+class H264Depacketizer: public Depacketizer {
  public:
-  void fetch_packet(unsigned char* pkt, int len) override;
+  void fetchPacket(unsigned char* pkt, int len) override;
 
-  bool process_packet() override;
+  bool processPacket() override;
 
-  bool is_keyframe() const override;
+  bool isKeyframe() const override;
  private:
-  void reset_impl() override;
+  void resetImpl() override;
 
   RtpH264Parser parser_;
   std::unique_ptr<erizo::RTPPayloadH264> last_payload_;
-  Search_state search_state_ = Search_state::lookingForStart;
 };
 }  // namespace erizo
 
