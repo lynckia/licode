@@ -14,14 +14,13 @@ extern "C" {
 #include "rtp/RtpPacketQueue.h"
 #include "webrtc/modules/rtp_rtcp/source/ulpfec_receiver_impl.h"
 #include "media/MediaProcessor.h"
+#include "media/Depacketizer.h"
 #include "lib/Clock.h"
 #include "SdpInfo.h"
 
 #include "./logger.h"
 
 namespace erizo {
-
-constexpr  int kUnpackageBufferSize = 200000;
 
 class MediaStream;
 
@@ -58,10 +57,8 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   AVStream *video_stream_, *audio_stream_;
   AVFormatContext *context_;
 
-  int unpackaged_size_;
   uint32_t video_source_ssrc_;
-  unsigned char* unpackaged_buffer_part_;
-  unsigned char unpackaged_buffer_[kUnpackageBufferSize];
+  std::unique_ptr<Depacketizer> depacketizer_;
 
   // Timestamping strategy: we use the RTP timestamps so we don't have to restamp and we're not
   // subject to error due to the RTP packet queue depth and playout.
@@ -117,8 +114,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   void writeVideoData(char* buf, int len);
   void updateVideoCodec(RtpMap map);
   void updateAudioCodec(RtpMap map);
-  void writeVP8(char* buf, int len);
-  bool bufferCheck(RTPPayloadVP8* payload);
+  void maybeWriteVideoPacket(char* buf, int len);
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_MEDIA_EXTERNALOUTPUT_H_
