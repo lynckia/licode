@@ -176,7 +176,7 @@ TEST_F(SyntheticInputTest, firstVideoFrame_shouldBeAKeyframe) {
 }
 
 TEST_F(SyntheticInputTest, shouldWriteFragmentedKeyFrames_whenExpected) {
-  auto packet = erizo::PacketTools::createRembPacket(300000);
+  auto packet = erizo::PacketTools::createRembPacket(350000);
   input->deliverFeedback(packet);
   EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(4);
   EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::IsKeyframeFirstPacket())).Times(1);
