@@ -105,7 +105,7 @@ describe('Erizo JS Controller', function() {
 
     it('should succeed creating ExternalOutput', function() {
       controller.addExternalOutput(kArbitraryEiId, kArbitraryEoUrl, kArbitraryEoOptions);
-      expect(erizoApiMock.ExternalOutput.args[0][0]).to.equal(kArbitraryEoUrl);
+      expect(erizoApiMock.ExternalOutput.args[0][1]).to.equal(kArbitraryEoUrl);
       expect(erizoApiMock.ExternalOutput.callCount).to.equal(1);
       expect(mocks.ExternalOutput.wrtcId).to.equal(kArbitraryEoUrl + '_' + kArbitraryEiId);
       expect(mocks.OneToManyProcessor.addExternalOutput.args[0]).to.deep.
