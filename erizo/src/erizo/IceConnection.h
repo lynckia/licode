@@ -91,7 +91,7 @@ class IceConnection : public LogContext {
   DECLARE_LOGGER();
 
  public:
-  IceConnection(IceConnectionListener* listener, const IceConfig& ice_config);
+  explicit IceConnection(const IceConfig& ice_config);
 
   virtual ~IceConnection();
 
@@ -107,8 +107,8 @@ class IceConnection : public LogContext {
 
   virtual void updateIceState(IceState state);
   virtual IceState checkIceState();
-  virtual void setIceListener(IceConnectionListener *listener);
-  virtual IceConnectionListener* getIceListener();
+  virtual void setIceListener(std::weak_ptr<IceConnectionListener> listener);
+  virtual std::weak_ptr<IceConnectionListener> getIceListener();
 
   virtual std::string getLocalUsername();
   virtual std::string getLocalPassword();
@@ -122,7 +122,7 @@ class IceConnection : public LogContext {
   }
 
  protected:
-  IceConnectionListener *listener_;
+  std::weak_ptr<IceConnectionListener> listener_;
   IceState ice_state_;
   IceConfig ice_config_;
 

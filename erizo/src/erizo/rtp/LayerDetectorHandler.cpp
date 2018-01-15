@@ -187,6 +187,9 @@ void LayerDetectorHandler::parseLayerInfoFromH264(std::shared_ptr<DataPacket> pa
   RTPPayloadH264* payload = h264_parser_.parseH264(
       start_buffer, packet->length - rtp_header->getHeaderLength());
 
+  int position = getSsrcPosition(rtp_header->getSSRC());
+  packet->compatible_spatial_layers = {position};
+
   if (payload->frameType == kH264IFrame) {
     packet->is_keyframe = true;
   } else {

@@ -120,7 +120,6 @@ TEST_F(SenderBandwidthEstimationHandlerTest, shouldProvideEstimateAfterkMinUpdat
 
     pipeline->write(packet);
     pipeline->read(remb_packet);
-    advanceClock(SenderBandwidthEstimationHandler::kMinUpdateEstimateInterval+std::chrono::milliseconds(1));
+    advanceClock(SenderBandwidthEstimationHandler::kMinUpdateEstimateInterval+std::chrono::milliseconds(500));
     pipeline->write(packet_2);
 }
-

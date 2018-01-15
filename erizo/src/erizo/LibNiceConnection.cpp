@@ -60,9 +60,8 @@ void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
   conn->updateComponentState(component_id, IceState::READY);
 }
 
-LibNiceConnection::LibNiceConnection(boost::shared_ptr<LibNiceInterface> libnice, IceConnectionListener* listener,
-    const IceConfig& ice_config)
-  : IceConnection{listener, ice_config},
+LibNiceConnection::LibNiceConnection(boost::shared_ptr<LibNiceInterface> libnice, const IceConfig& ice_config)
+  : IceConnection{ice_config},
     lib_nice_{libnice}, agent_{NULL}, loop_{NULL}, candsDelivered_{0}, receivedLastCandidate_{false} {
   #if !GLIB_CHECK_VERSION(2, 35, 0)
   g_type_init();
@@ -85,7 +84,7 @@ void LibNiceConnection::close() {
     g_main_loop_quit(loop_);
   }
   cond_.notify_one();
-  listener_ = NULL;
+  listener_.reset();
   boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds(5);
   ELOG_DEBUG("%s message: m_thread join, this: %p", toLog(), this);
   if (!m_Thread_.timed_join(timeout)) {
@@ -112,11 +111,9 @@ void LibNiceConnection::close() {
 
 void LibNiceConnection::onData(unsigned int component_id, char* buf, int len) {
   IceState state;
-  IceConnectionListener* listener;
   {
     boost::mutex::scoped_lock lock(close_mutex_);
     state = this->checkIceState();
-    listener = listener_;
   }
   if (state == IceState::READY) {
     packetPtr packet (new DataPacket());
@@ -124,7 +121,9 @@ void LibNiceConnection::onData(unsigned int component_id, char* buf, int len) {
     packet->comp = component_id;
     packet->length = len;
     packet->received_time_ms = ClockUtils::timePointToMs(clock::now());
-    listener->onPacketReceived(packet);
+    if (auto listener = getIceListener().lock()) {
+      listener->onPacketReceived(packet);
+    }
   }
 }
 
@@ -385,8 +384,9 @@ void LibNiceConnection::getCandidate(uint stream_id, uint component_id, const st
     cand_info.username = ufrag_;
     cand_info.password = upass_;
     // localCandidates->push_back(cand_info);
-    if (this->getIceListener() != NULL)
-      this->getIceListener()->onCandidate(cand_info, this);
+    if (auto listener = this->getIceListener().lock()) {
+      listener->onCandidate(cand_info, this);
+    }
   }
   // for nice_agent_get_local_candidates, the caller owns the returned GSList as well as the candidates
   // contained within it.
@@ -462,7 +462,7 @@ void LibNiceConnection::setReceivedLastCandidate(bool hasReceived) {
   this->receivedLastCandidate_ = hasReceived;
 }
 
-LibNiceConnection* LibNiceConnection::create(IceConnectionListener *listener, const IceConfig& ice_config) {
-  return new LibNiceConnection(boost::shared_ptr<LibNiceInterface>(new LibNiceInterfaceImpl()), listener, ice_config);
+LibNiceConnection* LibNiceConnection::create(const IceConfig& ice_config) {
+  return new LibNiceConnection(boost::shared_ptr<LibNiceInterface>(new LibNiceInterfaceImpl()), ice_config);
 }
 } /* namespace erizo */
