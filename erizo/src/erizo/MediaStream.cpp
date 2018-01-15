@@ -143,7 +143,9 @@ bool MediaStream::setLocalSdp(std::shared_ptr<SdpInfo> sdp) {
 }
 
 void MediaStream::initializePipeline() {
+  handler_manager_ = std::make_shared<HandlerManager>(shared_from_this());
   pipeline_->addService(shared_from_this());
+  pipeline_->addService(handler_manager_);
   pipeline_->addService(rtcp_processor_);
   pipeline_->addService(stats_);
   pipeline_->addService(quality_manager_);

@@ -4,6 +4,7 @@
 #include <node.h>
 #include "lib/json.hpp"
 #include "ExternalOutput.h"
+#include "ThreadPool.h"
 
 using v8::HandleScope;
 using v8::Function;
@@ -54,9 +55,10 @@ NAN_MODULE_INIT(ExternalOutput::Init) {
 }
 
 NAN_METHOD(ExternalOutput::New) {
-  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  ThreadPool* thread_pool = Nan::ObjectWrap::Unwrap<ThreadPool>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  v8::String::Utf8Value param(Nan::To<v8::String>(info[1]).ToLocalChecked());
   std::string url = std::string(*param);
-  v8::String::Utf8Value json_param(Nan::To<v8::String>(info[1]).ToLocalChecked());
+  v8::String::Utf8Value json_param(Nan::To<v8::String>(info[2]).ToLocalChecked());
   std::string media_config_string = std::string(*json_param);
   json media_config = json::parse(media_config_string);
   std::vector<erizo::RtpMap> rtp_mappings;
@@ -114,8 +116,10 @@ NAN_METHOD(ExternalOutput::New) {
     }
   }
 
+  std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
+
   ExternalOutput* obj = new ExternalOutput();
-  obj->me = std::make_shared<erizo::ExternalOutput>(url, rtp_mappings);
+  obj->me = std::make_shared<erizo::ExternalOutput>(worker, url, rtp_mappings);
 
   obj->Wrap(info.This());
   info.GetReturnValue().Set(info.This());

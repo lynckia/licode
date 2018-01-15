@@ -87,7 +87,7 @@ class Source {
   addExternalOutput(url, options) {
     var eoId = url + '_' + this.id;
     log.info('message: Adding ExternalOutput, id: ' + eoId);
-    var externalOutput = new addon.ExternalOutput(url,
+    var externalOutput = new addon.ExternalOutput(this.threadPool, url,
       Helpers.getMediaConfiguration(options.mediaConfiguration));
     externalOutput.wrtcId = eoId;
     externalOutput.init();
