@@ -115,6 +115,7 @@ NAN_METHOD(MediaStream::close) {
   if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&obj->asyncStats_))) {
     uv_close(reinterpret_cast<uv_handle_t*>(&obj->asyncStats_), NULL);
   }
+  obj->me->close();
   obj->me.reset();
 }
 

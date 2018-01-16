@@ -58,6 +58,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   virtual ~MediaStream();
   bool init();
   void close() override;
+  void syncClose();
   bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
   bool setLocalSdp(std::shared_ptr<SdpInfo> sdp);
 

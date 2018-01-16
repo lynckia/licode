@@ -416,6 +416,10 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                 log.info('message: Removing subscriber, id: ' + subscriber.wrtcId);
                 closeWebRtcConnection(subscriber);
             }
+            for (var key in publisher.externalOutputs) {
+                log.info('message: Removing externalOutput, id ' + key);
+                publisher.removeExternalOutput(key);
+            }
             closeWebRtcConnection(publisher.wrtc);
             publisher.muxer.close(function(message) {
                 log.info('message: muxer closed succesfully, ' +

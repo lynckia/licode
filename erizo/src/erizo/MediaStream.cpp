@@ -73,13 +73,10 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
 
 MediaStream::~MediaStream() {
   ELOG_DEBUG("%s message:Destructor called", toLog());
-  if (sending_) {
-    close();
-  }
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
-void MediaStream::close() {
+void MediaStream::syncClose() {
   ELOG_DEBUG("%s message:Close called", toLog());
   if (!sending_) {
     return;
@@ -93,6 +90,13 @@ void MediaStream::close() {
   pipeline_.reset();
   connection_.reset();
   ELOG_DEBUG("%s message: Close ended", toLog());
+}
+void MediaStream::close() {
+  ELOG_DEBUG("%s message: Async close called", toLog());
+  std::shared_ptr<MediaStream> shared_this = shared_from_this();
+  asyncTask([shared_this] (std::shared_ptr<MediaStream> stream) {
+    shared_this->syncClose();
+  });
 }
 
 bool MediaStream::init() {
