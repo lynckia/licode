@@ -411,14 +411,14 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                 log.debug('message: clearing periodic PLIs for publisher, id: ' + from);
                 clearInterval (publisher.wrtc.mediaStream.periodicPlis);
             }
-            for (var key in publisher.subscribers) {
-                var subscriber = publisher.getSubscriber(key);
+            for (let subscriberKey in publisher.subscribers) {
+                let subscriber = publisher.getSubscriber(subscriberKey);
                 log.info('message: Removing subscriber, id: ' + subscriber.wrtcId);
                 closeWebRtcConnection(subscriber);
             }
-            for (var key in publisher.externalOutputs) {
-                log.info('message: Removing externalOutput, id ' + key);
-                publisher.removeExternalOutput(key);
+            for (let externalOutputKey in publisher.externalOutputs) {
+                log.info('message: Removing externalOutput, id ' + externalOutputKey);
+                publisher.removeExternalOutput(externalOutputKey);
             }
             closeWebRtcConnection(publisher.wrtc);
             publisher.muxer.close(function(message) {
