@@ -124,8 +124,8 @@ class WebRtcConnection: public TransportListener, public LogContext,
 
   void setMetadata(std::map<std::string, std::string> metadata);
 
-  void read(std::shared_ptr<DataPacket> packet);
   void write(std::shared_ptr<DataPacket> packet);
+  void syncWrite(std::shared_ptr<DataPacket> packet);
 
   void asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
 

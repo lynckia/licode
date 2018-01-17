@@ -548,6 +548,15 @@ WebRTCEvent WebRtcConnection::getCurrentState() {
 }
 
 void WebRtcConnection::write(std::shared_ptr<DataPacket> packet) {
+  asyncTask([packet] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->syncWrite(packet);
+  });
+}
+
+void WebRtcConnection::syncWrite(std::shared_ptr<DataPacket> packet) {
+  if (!sending_) {
+    return;
+  }
   Transport *transport = (bundle_ || packet->type == VIDEO_PACKET) ? video_transport_.get() : audio_transport_.get();
   if (transport == nullptr) {
     return;
