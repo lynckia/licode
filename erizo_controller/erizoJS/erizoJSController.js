@@ -108,6 +108,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                     wrtc.localDescription = new SessionDescription(wrtc.getLocalDescription());
                     const sdp = wrtc.localDescription.getSdp();
                     mess = sdp.toString();
+                    mess = mess.replace(that.privateRegexp, that.publicIP);
                     if (options.createOffer)
                         callback('callback', {type: 'offer', sdp: mess});
                     else
