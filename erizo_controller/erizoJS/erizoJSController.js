@@ -416,27 +416,25 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                 log.info('message: Removing subscriber, id: ' + subscriber.wrtcId);
                 closeWebRtcConnection(subscriber);
             }
-            for (let externalOutputKey in publisher.externalOutputs) {
-                log.info('message: Removing externalOutput, id ' + externalOutputKey);
-                publisher.removeExternalOutput(externalOutputKey);
-            }
-            closeWebRtcConnection(publisher.wrtc);
-            publisher.muxer.close(function(message) {
-                log.info('message: muxer closed succesfully, ' +
-                         'id: ' + from + ', ' +
-                         logger.objectToLog(message));
-                delete publishers[from];
-                var count = 0;
-                for (var k in publishers) {
-                    if (publishers.hasOwnProperty(k)) {
-                        ++count;
-                    }
-                }
-                log.debug('message: remaining publishers, publisherCount: ' + count);
-                if (count === 0)  {
-                    log.info('message: Removed all publishers. Killing process.');
-                    process.exit(0);
-                }
+            publisher.removeExternalOutputs().then(function() {
+              closeWebRtcConnection(publisher.wrtc);
+              publisher.muxer.close(function(message) {
+                  log.info('message: muxer closed succesfully, ' +
+                           'id: ' + from + ', ' +
+                           logger.objectToLog(message));
+                  delete publishers[from];
+                  var count = 0;
+                  for (var k in publishers) {
+                      if (publishers.hasOwnProperty(k)) {
+                          ++count;
+                      }
+                  }
+                  log.debug('message: remaining publishers, publisherCount: ' + count);
+                  if (count === 0)  {
+                      log.info('message: Removed all publishers. Killing process.');
+                      process.exit(0);
+                  }
+              });
             });
 
         } else {

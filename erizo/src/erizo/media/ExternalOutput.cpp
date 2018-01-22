@@ -83,16 +83,21 @@ bool ExternalOutput::init() {
 
 ExternalOutput::~ExternalOutput() {
   ELOG_DEBUG("Destructing");
-  close();
 }
 
 void ExternalOutput::close() {
-  if (!recording_) {
+  std::shared_ptr<ExternalOutput> shared_this = shared_from_this();
+  asyncTask([shared_this] (std::shared_ptr<ExternalOutput> connection) {
+    shared_this->syncClose();
+  });
+}
+
+void ExternalOutput::syncClose() {
+  if (!recording_.exchange(false)) {
     return;
   }
   // Stop our thread so we can safely nuke libav stuff and close our
   // our file.
-  recording_ = false;
   cond_.notify_one();
   thread_.join();
 
@@ -113,6 +118,8 @@ void ExternalOutput::close() {
       avformat_free_context(context_);
       context_ = nullptr;
   }
+
+  pipeline_initialized_ = false;
 
   ELOG_DEBUG("Closed Successfully");
 }

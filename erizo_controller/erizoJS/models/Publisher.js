@@ -96,12 +96,23 @@ class Source {
   }
 
   removeExternalOutput(url) {
-    var self = this;
-    this.muxer.removeSubscriber(url);
-    this.externalOutputs[url].close(function() {
-      log.info('message: ExternalOutput closed');
-      delete self.externalOutputs[url];
-    });
+    return new Promise(function(resolve, reject) {
+      this.muxer.removeSubscriber(url);
+      this.externalOutputs[url].close(function() {
+        log.info('message: ExternalOutput closed');
+        delete this.externalOutputs[url];
+        resolve();
+      });
+    }.bind(this));
+  }
+
+  removeExternalOutputs() {
+    const promises = [];
+    for (let externalOutputKey in this.externalOutputs) {
+        log.info('message: Removing externalOutput, id ' + externalOutputKey);
+        promises.push(this.removeExternalOutput(externalOutputKey));
+    }
+    return Promise.all(promises);
   }
 
   hasExternalOutput(url) {

@@ -59,12 +59,14 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
 
   void notifyUpdateToHandlers() override;
 
+  bool isRecording() { return recording_; }
+
  private:
   std::shared_ptr<Worker> worker_;
   Pipeline::Ptr pipeline_;
   std::unique_ptr<webrtc::UlpfecReceiver> fec_receiver_;
   RtpPacketQueue audio_queue_, video_queue_;
-  bool recording_, inited_;
+  std::atomic<bool> recording_, inited_;
   boost::mutex mtx_;  // a mutex we use to signal our writer thread that data is waiting.
   boost::thread thread_;
   boost::condition_variable cond_;
@@ -136,6 +138,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   void updateAudioCodec(RtpMap map);
   void maybeWriteVideoPacket(char* buf, int len);
   void initializePipeline();
+  void syncClose();
 };
 
 class ExternalOuputWriter : public OutboundHandler {
