@@ -93,7 +93,7 @@ void ExternalOutput::close() {
 }
 
 void ExternalOutput::syncClose() {
-  if (!recording_.exchange(false)) {
+  if (!recording_) {
     return;
   }
   // Stop our thread so we can safely nuke libav stuff and close our
@@ -120,6 +120,7 @@ void ExternalOutput::syncClose() {
   }
 
   pipeline_initialized_ = false;
+  recording_ = false;
 
   ELOG_DEBUG("Closed Successfully");
 }

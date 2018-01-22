@@ -404,43 +404,47 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
      * Removes a publisher from the room. This also deletes the associated OneToManyProcessor.
      */
     that.removePublisher = function (from) {
-      var publisher = publishers[from];
-        if (publisher !== undefined) {
-            log.info('message: Removing publisher, id: ' + from);
-            if (publisher.wrtc.mediaStream.periodicPlis !== undefined) {
-                log.debug('message: clearing periodic PLIs for publisher, id: ' + from);
-                clearInterval (publisher.wrtc.mediaStream.periodicPlis);
-            }
-            for (let subscriberKey in publisher.subscribers) {
-                let subscriber = publisher.getSubscriber(subscriberKey);
-                log.info('message: Removing subscriber, id: ' + subscriber.wrtcId);
-                closeWebRtcConnection(subscriber);
-            }
-            publisher.removeExternalOutputs().then(function() {
-              closeWebRtcConnection(publisher.wrtc);
-              publisher.muxer.close(function(message) {
-                  log.info('message: muxer closed succesfully, ' +
-                           'id: ' + from + ', ' +
-                           logger.objectToLog(message));
-                  delete publishers[from];
-                  var count = 0;
-                  for (var k in publishers) {
-                      if (publishers.hasOwnProperty(k)) {
-                          ++count;
-                      }
-                  }
-                  log.debug('message: remaining publishers, publisherCount: ' + count);
-                  if (count === 0)  {
-                      log.info('message: Removed all publishers. Killing process.');
-                      process.exit(0);
-                  }
+      return new Promise(function(resolve, reject) {
+        var publisher = publishers[from];
+          if (publisher !== undefined) {
+              log.info('message: Removing publisher, id: ' + from);
+              if (publisher.wrtc.mediaStream.periodicPlis !== undefined) {
+                  log.debug('message: clearing periodic PLIs for publisher, id: ' + from);
+                  clearInterval (publisher.wrtc.mediaStream.periodicPlis);
+              }
+              for (let subscriberKey in publisher.subscribers) {
+                  let subscriber = publisher.getSubscriber(subscriberKey);
+                  log.info('message: Removing subscriber, id: ' + subscriber.wrtcId);
+                  closeWebRtcConnection(subscriber);
+              }
+              publisher.removeExternalOutputs().then(function() {
+                closeWebRtcConnection(publisher.wrtc);
+                publisher.muxer.close(function(message) {
+                    log.info('message: muxer closed succesfully, ' +
+                             'id: ' + from + ', ' +
+                             logger.objectToLog(message));
+                    delete publishers[from];
+                    var count = 0;
+                    for (var k in publishers) {
+                        if (publishers.hasOwnProperty(k)) {
+                            ++count;
+                        }
+                    }
+                    log.debug('message: remaining publishers, publisherCount: ' + count);
+                    resolve();
+                    if (count === 0)  {
+                        log.info('message: Removed all publishers. Killing process.');
+                        process.exit(0);
+                    }
+                });
               });
-            });
 
-        } else {
-            log.warn('message: removePublisher that does not exist, ' +
-                     'code: ' + WARN_NOT_FOUND + ', id: ' + from);
-        }
+          } else {
+              log.warn('message: removePublisher that does not exist, ' +
+                       'code: ' + WARN_NOT_FOUND + ', id: ' + from);
+              reject();
+          }
+        }.bind(this));
     };
 
     /*

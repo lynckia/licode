@@ -27,12 +27,6 @@ extern "C" {
 
 namespace erizo {
 
-// Our search state for VP8 frames.
-enum vp8SearchState {
-    kLookingForStart,
-    kLookingForEnd
-};
-
 static constexpr uint64_t kExternalOutputMaxBitrate = 1000000000;
 
 class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource,
@@ -109,7 +103,6 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   // Note: VP8 purportedly has two packetization schemes; per-frame and per-partition.  A frame is
   // composed of one or more partitions.  However, we don't seem to be sent anything but partition 0
   // so the second scheme seems not applicable.  Too bad.
-  // vp8SearchState video_search_state_;
   bool need_to_send_fir_;
   std::vector<RtpMap> rtp_mappings_;
   enum AVCodecID video_codec_;

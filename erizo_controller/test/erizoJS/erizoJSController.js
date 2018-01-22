@@ -488,19 +488,19 @@ describe('Erizo JS Controller', function() {
       });
 
       it('should succeed closing WebRtcConnection and OneToManyProcessor', function() {
-        controller.removePublisher(kArbitraryId);
-
-        expect(mocks.WebRtcConnection.close.callCount).to.equal(1);
-        expect(mocks.OneToManyProcessor.close.callCount).to.equal(1);
+        controller.removePublisher(kArbitraryId).then(function() {
+          expect(mocks.WebRtcConnection.close.callCount).to.equal(1);
+          expect(mocks.OneToManyProcessor.close.callCount).to.equal(1);
+        });
       });
 
       it('should fail closing an unknown Publisher', function() {
         var kArbitraryUnknownId = 'unknownId';
 
-        controller.removePublisher(kArbitraryUnknownId);
-
-        expect(mocks.WebRtcConnection.close.callCount).to.equal(0);
-        expect(mocks.OneToManyProcessor.close.callCount).to.equal(0);
+        controller.removePublisher(kArbitraryUnknownId).then(function() {
+          expect(mocks.WebRtcConnection.close.callCount).to.equal(0);
+          expect(mocks.OneToManyProcessor.close.callCount).to.equal(0);
+        });
       });
 
       it('should succeed closing also Subscribers', function() {
@@ -509,10 +509,10 @@ describe('Erizo JS Controller', function() {
         var subCallback = sinon.stub();
         controller.addSubscriber(kArbitraryId2, kArbitraryId, {}, subCallback);
 
-        controller.removePublisher(kArbitraryId);
-
-        expect(mocks.WebRtcConnection.close.callCount).to.equal(2);
-        expect(mocks.OneToManyProcessor.close.callCount).to.equal(1);
+        controller.removePublisher(kArbitraryId).then(function() {
+          expect(mocks.WebRtcConnection.close.callCount).to.equal(2);
+          expect(mocks.OneToManyProcessor.close.callCount).to.equal(1);
+        });
       });
     });
   });

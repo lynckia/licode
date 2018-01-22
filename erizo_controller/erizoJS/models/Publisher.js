@@ -96,7 +96,7 @@ class Source {
   }
 
   removeExternalOutput(url) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function(resolve) {
       this.muxer.removeSubscriber(url);
       this.externalOutputs[url].close(function() {
         log.info('message: ExternalOutput closed');
