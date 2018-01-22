@@ -41,8 +41,7 @@ class LibNiceConnection : public IceConnection {
   DECLARE_LOGGER();
 
  public:
-  LibNiceConnection(boost::shared_ptr<LibNiceInterface> libnice, IceConnectionListener* listener,
-    const IceConfig& ice_config);
+  LibNiceConnection(boost::shared_ptr<LibNiceInterface> libnice, const IceConfig& ice_config);
 
   virtual ~LibNiceConnection();
   /**
@@ -61,7 +60,7 @@ class LibNiceConnection : public IceConnection {
   void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
 
-  static LibNiceConnection* create(IceConnectionListener *listener, const IceConfig& ice_config);
+  static LibNiceConnection* create(const IceConfig& ice_config);
 
  private:
   void mainLoop();

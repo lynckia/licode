@@ -72,9 +72,10 @@ class MockWebRtcConnection: public WebRtcConnection {
 
 class MockMediaStream: public MediaStream {
  public:
-  MockMediaStream(std::shared_ptr<WebRtcConnection> connection, const std::string& media_stream_id,
+  MockMediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
+    const std::string& media_stream_id,
     std::vector<RtpMap> rtp_mappings) :
-  MediaStream(connection, media_stream_id) {
+  MediaStream(worker, connection, media_stream_id) {
     local_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
     remote_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
   }

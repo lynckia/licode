@@ -124,7 +124,7 @@ exports.ErizoNativeConnection = (config) => {
   global.config.erizo.turnpass,
   global.config.erizo.networkinterface);
 
-  mediaStream = new addon.MediaStream(wrtc,
+  mediaStream = new addon.MediaStream(threadPool, wrtc,
       `spine_${configuration.sessionId}`,
       JSON.stringify(global.mediaConfig));
 

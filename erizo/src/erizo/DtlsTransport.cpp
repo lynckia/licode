@@ -74,7 +74,6 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
                             const IceConfig& iceConfig, std::string username, std::string password,
                             bool isServer, std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker):
   Transport(med, transport_name, connection_id, bundle, rtcp_mux, transport_listener, iceConfig, worker, io_worker),
-  unprotect_packet_{std::make_shared<DataPacket>()},
   readyRtp(false), readyRtcp(false), isServer_(isServer) {
     ELOG_DEBUG("%s message: constructor, transportName: %s, isBundle: %d", toLog(), transport_name.c_str(), bundle);
     dtlsRtp.reset(new DtlsSocketContext());
@@ -110,9 +109,9 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     iceConfig_.username = username;
     iceConfig_.password = password;
     if (iceConfig_.use_nicer) {
-      ice_ = NicerConnection::create(io_worker_, this, iceConfig_);
+      ice_ = NicerConnection::create(io_worker_, iceConfig_);
     } else {
-      ice_.reset(LibNiceConnection::create(this, iceConfig_));
+      ice_.reset(LibNiceConnection::create(iceConfig_));
     }
     rtp_resender_.reset(new Resender(this, dtlsRtp.get()));
     if (!rtcp_mux) {
@@ -128,6 +127,7 @@ DtlsTransport::~DtlsTransport() {
 }
 
 void DtlsTransport::start() {
+  ice_->setIceListener(shared_from_this());
   ice_->copyLogContextFrom(this);
   ELOG_DEBUG("%s message: starting ice", toLog());
   ice_->start();
@@ -154,6 +154,9 @@ void DtlsTransport::close() {
 }
 
 void DtlsTransport::onIceData(packetPtr packet) {
+  if (!running_) {
+    return;
+  }
   int len = packet->length;
   char *data = packet->data;
   unsigned int component_id = packet->comp;
@@ -178,21 +181,20 @@ void DtlsTransport::onIceData(packetPtr packet) {
     }
     return;
   } else if (this->getTransportState() == TRANSPORT_READY) {
-    unprotect_packet_->length = len;
-    unprotect_packet_->received_time_ms = packet->received_time_ms;
-    memcpy(unprotect_packet_->data, data, len);
+    std::shared_ptr<DataPacket> unprotect_packet = std::make_shared<DataPacket>(component_id,
+      data, len, VIDEO_PACKET, packet->received_time_ms);
 
     if (dtlsRtcp != NULL && component_id == 2) {
       srtp = srtcp_.get();
     }
     if (srtp != NULL) {
-      RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(unprotect_packet_->data);
+      RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(unprotect_packet->data);
       if (chead->isRtcp()) {
-        if (srtp->unprotectRtcp(unprotect_packet_->data, &unprotect_packet_->length) < 0) {
+        if (srtp->unprotectRtcp(unprotect_packet->data, &unprotect_packet->length) < 0) {
           return;
         }
       } else {
-        if (srtp->unprotectRtp(unprotect_packet_->data, &unprotect_packet_->length) < 0) {
+        if (srtp->unprotectRtp(unprotect_packet->data, &unprotect_packet->length) < 0) {
           return;
         }
       }
@@ -204,7 +206,7 @@ void DtlsTransport::onIceData(packetPtr packet) {
       return;
     }
     if (auto listener = getTransportListener().lock()) {
-      listener->onTransportData(unprotect_packet_, this);
+      listener->onTransportData(unprotect_packet, this);
     }
   }
 }

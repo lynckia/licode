@@ -50,7 +50,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    * Constructor.
    * Constructs an empty MediaStream without any configuration.
    */
-  MediaStream(std::shared_ptr<WebRtcConnection> connection,
+  MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
       const std::string& media_stream_id);
   /**
    * Destructor.
@@ -58,6 +58,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   virtual ~MediaStream();
   bool init();
   void close() override;
+  void syncClose();
   bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
   bool setLocalSdp(std::shared_ptr<SdpInfo> sdp);
 

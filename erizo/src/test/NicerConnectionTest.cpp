@@ -86,19 +86,23 @@ class NicerConnectionStartTest : public ::testing::Test {
   virtual void SetUp() {
     nicer = new MockNicer;
     nicer_pointer.reset(nicer);
-    nicer_listener = new MockNicerConnectionListener();
+    nicer_listener = std::make_shared<MockNicerConnectionListener>();
     ice_config = new erizo::IceConfig();
     io_worker = std::make_shared<erizo::IOWorker>();
     io_worker->start();
   }
+  void waitUntilClosed(std::shared_ptr<erizo::NicerConnection> nicer) {
+    while (!nicer->isClosed()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+  }
   virtual void TearDown() {
-    delete nicer_listener;
     delete ice_config;
   }
 
   std::shared_ptr<erizo::NicerInterface> nicer_pointer;
   MockNicer* nicer;
-  MockNicerConnectionListener* nicer_listener;
+  std::shared_ptr<MockNicerConnectionListener> nicer_listener;
   erizo::IceConfig* ice_config;
   std::shared_ptr<erizo::IOWorker> io_worker;
 };
@@ -114,7 +118,7 @@ class NicerConnectionTest : public ::testing::Test {
 
     nicer = new MockNicer;
     nicer_pointer.reset(nicer);
-    nicer_listener = new MockNicerConnectionListener();
+    nicer_listener = std::make_shared<MockNicerConnectionListener>();
     ice_config = new erizo::IceConfig();
     ufrag = r_strdup(strdup(kArbitraryLocalCredentialUsername.c_str()));
     pass = r_strdup(strdup(kArbitraryLocalCredentialPassword.c_str()));
@@ -140,21 +144,23 @@ class NicerConnectionTest : public ::testing::Test {
     io_worker->start();
 
     nicer_connection = std::make_shared<erizo::NicerConnection>(io_worker, nicer_pointer,
-        nicer_listener,
         *ice_config);
+    nicer_connection->setIceListener(nicer_listener);
     nicer_connection->start();
   }
 
   virtual void TearDown() {
     nicer_connection->close();
-    delete nicer_listener;
+    while (!nicer_connection->isClosed()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
     delete ice_config;
     free(test_packet);
   }
 
   std::shared_ptr<erizo::NicerInterface> nicer_pointer;
   MockNicer* nicer;
-  MockNicerConnectionListener* nicer_listener;
+  std::shared_ptr<MockNicerConnectionListener> nicer_listener;
   erizo::IceConfig* ice_config;
   std::shared_ptr<erizo::NicerConnection> nicer_connection;
   std::shared_ptr<erizo::IOWorker> io_worker;
@@ -189,9 +195,11 @@ TEST_F(NicerConnectionStartTest, start_Configures_Libnice_With_Default_Config) {
   EXPECT_CALL(*nicer, IcePeerContextDestroy(_)).Times(1);
   EXPECT_CALL(*nicer, IceContextDestroy(_)).Times(1);
 
-  auto nice = std::make_shared<erizo::NicerConnection>(io_worker, nicer_pointer, nicer_listener, *ice_config);
+  auto nice = std::make_shared<erizo::NicerConnection>(io_worker, nicer_pointer, *ice_config);
+  nice->setIceListener(nicer_listener);
   nice->start();
   nice->close();
+  waitUntilClosed(nice);
 }
 
 TEST_F(NicerConnectionStartTest, start_Configures_Libnice_With_Remote_Credentials) {
@@ -231,9 +239,11 @@ TEST_F(NicerConnectionStartTest, start_Configures_Libnice_With_Remote_Credential
   EXPECT_CALL(*nicer, IcePeerContextDestroy(_)).Times(1);
   EXPECT_CALL(*nicer, IceContextDestroy(_)).Times(1);
 
-  auto nice = std::make_shared<erizo::NicerConnection>(io_worker, nicer_pointer, nicer_listener, *ice_config);
+  auto nice = std::make_shared<erizo::NicerConnection>(io_worker, nicer_pointer, *ice_config);
+  nice->setIceListener(nicer_listener);
   nice->start();
   nice->close();
+  waitUntilClosed(nice);
 }
 
 TEST_F(NicerConnectionStartTest, start_Configures_Nicer_With_Turn) {
@@ -273,9 +283,11 @@ TEST_F(NicerConnectionStartTest, start_Configures_Nicer_With_Turn) {
   EXPECT_CALL(*nicer, IcePeerContextDestroy(_)).Times(1);
   EXPECT_CALL(*nicer, IceContextDestroy(_)).Times(1);
 
-  auto nice = std::make_shared<erizo::NicerConnection>(io_worker, nicer_pointer, nicer_listener, *ice_config);
+  auto nice = std::make_shared<erizo::NicerConnection>(io_worker, nicer_pointer, *ice_config);
+  nice->setIceListener(nicer_listener);
   nice->start();
   nice->close();
+  waitUntilClosed(nice);
 }
 
 TEST_F(NicerConnectionStartTest, start_Configures_Nicer_With_Stun) {
@@ -311,9 +323,11 @@ TEST_F(NicerConnectionStartTest, start_Configures_Nicer_With_Stun) {
   EXPECT_CALL(*nicer, IcePeerContextDestroy(_)).Times(1);
   EXPECT_CALL(*nicer, IceContextDestroy(_)).Times(1);
 
-  auto nice = std::make_shared<erizo::NicerConnection>(io_worker, nicer_pointer, nicer_listener, *ice_config);
+  auto nice = std::make_shared<erizo::NicerConnection>(io_worker, nicer_pointer, *ice_config);
+  nice->setIceListener(nicer_listener);
   nice->start();
   nice->close();
+  waitUntilClosed(nice);
 }
 
 TEST_F(NicerConnectionTest, setRemoteCandidates_Success_WhenCalled) {

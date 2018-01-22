@@ -47,7 +47,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
     ice_config_{ice_config}, rtp_mappings_{rtp_mappings}, extension_processor_{ext_mappings},
     worker_{worker}, io_worker_{io_worker},
     remote_sdp_{std::make_shared<SdpInfo>(rtp_mappings)}, local_sdp_{std::make_shared<SdpInfo>(rtp_mappings)},
-    audio_muted_{false}, video_muted_{false}
+    audio_muted_{false}, video_muted_{false}, remote_sdp_processed_{false}
     {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port);
@@ -62,9 +62,6 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
 
 WebRtcConnection::~WebRtcConnection() {
   ELOG_DEBUG("%s message:Destructor called", toLog());
-  if (sending_) {
-    syncClose();
-  }
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
@@ -90,8 +87,9 @@ void WebRtcConnection::syncClose() {
 
 void WebRtcConnection::close() {
   ELOG_DEBUG("%s message: Async close called", toLog());
-  asyncTask([] (std::shared_ptr<WebRtcConnection> connection) {
-    connection->syncClose();
+  std::shared_ptr<WebRtcConnection> shared_this = shared_from_this();
+  asyncTask([shared_this] (std::shared_ptr<WebRtcConnection> connection) {
+    shared_this->syncClose();
   });
 }
 
@@ -193,6 +191,11 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 
 bool WebRtcConnection::processRemoteSdp() {
   ELOG_DEBUG("%s message: processing remote SDP", toLog());
+  if (remote_sdp_processed_) {
+    media_stream_->setRemoteSdp(remote_sdp_);
+    return true;
+  }
+
   bundle_ = remote_sdp_->isBundle;
   local_sdp_->setOfferSdp(remote_sdp_);
   extension_processor_.setSdpInfo(local_sdp_);
@@ -268,6 +271,7 @@ bool WebRtcConnection::processRemoteSdp() {
 
   media_stream_->setRemoteSdp(remote_sdp_);
   media_stream_->setLocalSdp(local_sdp_);
+  remote_sdp_processed_ = true;
   return true;
 }
 
@@ -555,6 +559,15 @@ WebRTCEvent WebRtcConnection::getCurrentState() {
 }
 
 void WebRtcConnection::write(std::shared_ptr<DataPacket> packet) {
+  asyncTask([packet] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->syncWrite(packet);
+  });
+}
+
+void WebRtcConnection::syncWrite(std::shared_ptr<DataPacket> packet) {
+  if (!sending_) {
+    return;
+  }
   Transport *transport = (bundle_ || packet->type == VIDEO_PACKET) ? video_transport_.get() : audio_transport_.get();
   if (transport == nullptr) {
     return;

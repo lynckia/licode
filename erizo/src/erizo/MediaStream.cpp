@@ -39,14 +39,16 @@
 namespace erizo {
 DEFINE_LOGGER(MediaStream, "MediaStream");
 
-MediaStream::MediaStream(
+MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   std::shared_ptr<WebRtcConnection> connection,
   const std::string& media_stream_id) :
     audio_enabled_{false}, video_enabled_{false},
     connection_{connection},
     stream_id_{media_stream_id},
     bundle_{false},
-    pipeline_{Pipeline::create()}, audio_muted_{false}, video_muted_{false},
+    pipeline_{Pipeline::create()},
+    worker_{worker},
+    audio_muted_{false}, video_muted_{false},
     pipeline_initialized_{false} {
   setVideoSinkSSRC(kDefaultVideoSinkSSRC);
   setAudioSinkSSRC(kDefaultAudioSinkSSRC);
@@ -57,7 +59,6 @@ MediaStream::MediaStream(
   stats_ = connection->getStatsService();
   quality_manager_ = std::make_shared<QualityManager>();
   packet_buffer_ = std::make_shared<PacketBufferService>();
-  worker_ = connection->getWorker();
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
 
@@ -72,13 +73,10 @@ MediaStream::MediaStream(
 
 MediaStream::~MediaStream() {
   ELOG_DEBUG("%s message:Destructor called", toLog());
-  if (sending_) {
-    close();
-  }
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
-void MediaStream::close() {
+void MediaStream::syncClose() {
   ELOG_DEBUG("%s message:Close called", toLog());
   if (!sending_) {
     return;
@@ -87,10 +85,18 @@ void MediaStream::close() {
   video_sink_ = nullptr;
   audio_sink_ = nullptr;
   fb_sink_ = nullptr;
+  pipeline_initialized_ = false;
   pipeline_->close();
   pipeline_.reset();
   connection_.reset();
   ELOG_DEBUG("%s message: Close ended", toLog());
+}
+void MediaStream::close() {
+  ELOG_DEBUG("%s message: Async close called", toLog());
+  std::shared_ptr<MediaStream> shared_this = shared_from_this();
+  asyncTask([shared_this] (std::shared_ptr<MediaStream> stream) {
+    shared_this->syncClose();
+  });
 }
 
 bool MediaStream::init() {
@@ -151,7 +157,6 @@ void MediaStream::initializePipeline() {
 
   pipeline_->addFront(PacketReader(this));
 
-  pipeline_->addFront(LayerDetectorHandler());
   pipeline_->addFront(RtcpProcessorHandler());
   pipeline_->addFront(FecReceiverHandler());
   pipeline_->addFront(LayerBitrateCalculationHandler());
@@ -167,6 +172,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(RtpRetransmissionHandler());
   pipeline_->addFront(SRPacketHandler());
   pipeline_->addFront(SenderBandwidthEstimationHandler());
+  pipeline_->addFront(LayerDetectorHandler());
   pipeline_->addFront(OutgoingStatsHandler());
 
   pipeline_->addFront(PacketWriter(this));
@@ -225,25 +231,28 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> packet, Transport 
   } else if (transport->mediaType == VIDEO_TYPE) {
     packet->type = VIDEO_PACKET;
   }
+  auto stream_ptr = shared_from_this();
 
-  char* buf = packet->data;
-  RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
-  RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-  if (!chead->isRtcp()) {
-    uint32_t recvSSRC = head->getSSRC();
-    if (isVideoSourceSSRC(recvSSRC)) {
-      packet->type = VIDEO_PACKET;
-    } else if (isAudioSourceSSRC(recvSSRC)) {
-      packet->type = AUDIO_PACKET;
+  worker_->task([stream_ptr, packet]{
+    if (!stream_ptr->pipeline_initialized_) {
+      ELOG_DEBUG("%s message: Pipeline not initialized yet.", stream_ptr->toLog());
+      return;
     }
-  }
 
-  if (!pipeline_initialized_) {
-    ELOG_DEBUG("%s message: Pipeline not initialized yet.", toLog());
-    return;
-  }
+    char* buf = packet->data;
+    RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
+    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+    if (!chead->isRtcp()) {
+      uint32_t recvSSRC = head->getSSRC();
+      if (stream_ptr->isVideoSourceSSRC(recvSSRC)) {
+        packet->type = VIDEO_PACKET;
+      } else if (stream_ptr->isAudioSourceSSRC(recvSSRC)) {
+        packet->type = AUDIO_PACKET;
+      }
+    }
 
-  pipeline_->read(std::move(packet));
+    stream_ptr->pipeline_->read(std::move(packet));
+  });
 }
 
 void MediaStream::read(std::shared_ptr<DataPacket> packet) {
