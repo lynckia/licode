@@ -33,7 +33,7 @@ SdpHelpers.setMaxBW = (sdp, spec) => {
   if (spec.audio && spec.maxAudioBW) {
     const audio = sdp.getMedia('audio');
     if (audio) {
-      audio.setBitrate(spec.maxVideoBW);
+      audio.setBitrate(spec.maxAudioBW);
     }
   }
 };

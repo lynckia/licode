@@ -114,22 +114,8 @@ namespace erizo {
     ELOG_DEBUG("Remove subscriber %s", peer_id.c_str());
     boost::mutex::scoped_lock lock(monitor_mutex_);
     if (this->subscribers.find(peer_id) != subscribers.end()) {
-      deleteAsync(std::dynamic_pointer_cast<MediaStream>(subscribers.find(peer_id)->second));
       this->subscribers.erase(peer_id);
     }
-  }
-
-  std::future<void> OneToManyProcessor::deleteAsync(std::shared_ptr<MediaStream> stream) {
-    auto promise = std::make_shared<std::promise<void>>();
-    if (stream) {
-      stream->getWorker()->task([promise, stream] {
-        stream->close();
-        promise->set_value();
-      });
-    } else {
-      promise->set_value();
-    }
-    return promise->get_future();
   }
 
   void OneToManyProcessor::close() {
@@ -139,18 +125,12 @@ namespace erizo {
   void OneToManyProcessor::closeAll() {
     ELOG_DEBUG("OneToManyProcessor closeAll");
     feedbackSink_ = nullptr;
-    if (publisher.get()) {
-      std::future<void> future = deleteAsync(std::dynamic_pointer_cast<MediaStream>(publisher));
-      future.wait();
-    }
     publisher.reset();
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it = subscribers.begin();
     while (it != subscribers.end()) {
       if ((*it).second != nullptr) {
         FeedbackSource* fbsource = (*it).second->getFeedbackSource();
-        std::future<void> future = deleteAsync(std::dynamic_pointer_cast<MediaStream>((*it).second));
-        future.wait();
         if (fbsource != nullptr) {
           fbsource->setFeedbackSink(nullptr);
         }

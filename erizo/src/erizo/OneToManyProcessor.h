@@ -57,7 +57,6 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override;
   int deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) override;
   int deliverEvent_(MediaEventPtr event) override;
-  std::future<void> deleteAsync(std::shared_ptr<MediaStream> connection);
   void closeAll();
 };
 
