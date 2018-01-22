@@ -192,19 +192,18 @@ void QualityFilterHandler::notifyUpdate() {
     max_video_bw_ = processor->getMaxVideoBW();
   }
 
-  if (initialized_) {
-    return;
+  stream_ = pipeline->getService<MediaStream>().get();
+  if (stream_) {
+    video_sink_ssrc_ = stream_->getVideoSinkSSRC();
+    video_source_ssrc_ = stream_->getVideoSourceSSRC();
   }
 
-  stream_ = pipeline->getService<MediaStream>().get();
-  if (!stream_) {
+  if (initialized_) {
     return;
   }
 
   quality_manager_ = pipeline->getService<QualityManager>();
 
-  video_sink_ssrc_ = stream_->getVideoSinkSSRC();
-  video_source_ssrc_ = stream_->getVideoSourceSSRC();
   initialized_ = true;
 }
 }  // namespace erizo
