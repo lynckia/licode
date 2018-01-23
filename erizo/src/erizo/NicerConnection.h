@@ -5,6 +5,9 @@
 #ifndef ERIZO_SRC_ERIZO_NICERCONNECTION_H_
 #define ERIZO_SRC_ERIZO_NICERCONNECTION_H_
 
+// Need at least one std header before nicer to explicitly define std namespace
+#include <string>
+
 // nICEr includes
 extern "C" {
 #include <r_types.h>
@@ -12,7 +15,6 @@ extern "C" {
 }
 
 #include <boost/thread.hpp>
-#include <string>
 #include <vector>
 #include <queue>
 #include <map>
