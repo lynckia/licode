@@ -144,6 +144,8 @@ var reset = module.exports.reset = function() {
     setAudioAndVideo: sinon.stub(),
     setVideoSsrcList: sinon.stub(),
     postProcessInfo: sinon.stub(),
+    hasAudio: sinon.stub(),
+    hasVideo: sinon.stub(),
   };
 
   module.exports.WebRtcConnection = {
@@ -153,6 +155,7 @@ var reset = module.exports.reset = function() {
     createOffer: sinon.stub(),
     setRemoteSdp: sinon.stub(),
     setRemoteDescription: sinon.stub(),
+    getLocalDescription: sinon.stub().returns(module.exports.ConnectionDescription),
     addRemoteCandidate: sinon.stub(),
     addMediaStream: sinon.stub(),
   };

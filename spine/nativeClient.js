@@ -2,8 +2,10 @@
 const addon = require('./../erizoAPI/build/Release/addon'); // eslint-disable-line import/no-unresolved
 const licodeConfig = require('./../licode_config');
 const mediaConfig = require('./../rtp_media_config');
-const SemanticSdp = require('./../erizo_controller/common/semanticSdp/SemanticSdp');
 const logger = require('./logger').logger;
+const SessionDescription = require('./../erizo_controller/erizoJS/models/SessionDescription');
+const SemanticSdp = require('./../erizo_controller/common/semanticSdp/SemanticSdp');
+
 
 const log = logger.getLogger('NativeClient');
 
@@ -66,8 +68,9 @@ exports.ErizoNativeConnection = (config) => {
         case CONN_SDP:
         case CONN_GATHERED:
           setTimeout(() => {
-            const sdp = SemanticSdp.SDPInfo.processString(mess);
-            initConnectionCallback('callback', { type: 'offer', sdp: sdp.toJSON() });
+            wrtc.localDescription = new SessionDescription(wrtc.getLocalDescription());
+            const sdp = wrtc.localDescription.getSdp();
+            initConnectionCallback('callback', { type: 'offer', sdp: sdp.toString() });
           }, 100);
           break;
 
@@ -184,7 +187,7 @@ exports.ErizoNativeConnection = (config) => {
     } else if (signalingMsg.type === 'answer') {
       setTimeout(() => {
         log.info('Passing delayed answer');
-        const sdp = SemanticSdp.SDPInfo.process(signalingMsg.sdp);
+        const sdp = SemanticSdp.SDPInfo.processString(signalingMsg.sdp);
         wrtc.setRemoteSdp(sdp.toString());
         that.onaddstream({ stream: { active: true } });
       }, 10);

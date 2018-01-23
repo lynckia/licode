@@ -173,6 +173,11 @@ bool WebRtcConnection::setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp) {
   return processRemoteSdp();
 }
 
+std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
+  ELOG_DEBUG("%s message: getting local SDPInfo", toLog());
+  return local_sdp_;
+}
+
 bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   ELOG_DEBUG("%s message: setting remote SDP", toLog());
 

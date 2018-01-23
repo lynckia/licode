@@ -3,6 +3,7 @@
 #endif
 
 #include "WebRtcConnection.h"
+#include "ConnectionDescription.h"
 #include "MediaStream.h"
 
 #include <future>  // NOLINT
@@ -41,6 +42,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "close", close);
   Nan::SetPrototypeMethod(tpl, "init", init);
   Nan::SetPrototypeMethod(tpl, "setRemoteDescription", setRemoteDescription);
+  Nan::SetPrototypeMethod(tpl, "getLocalDescription", getLocalDescription);
   Nan::SetPrototypeMethod(tpl, "setRemoteSdp", setRemoteSdp);
   Nan::SetPrototypeMethod(tpl, "addRemoteCandidate", addRemoteCandidate);
   Nan::SetPrototypeMethod(tpl, "getLocalSdp", getLocalSdp);
@@ -262,6 +264,18 @@ NAN_METHOD(WebRtcConnection::setRemoteDescription) {
 
   bool r = me->setRemoteSdpInfo(sdp);
   info.GetReturnValue().Set(Nan::New(r));
+}
+
+NAN_METHOD(WebRtcConnection::getLocalDescription) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+
+  std::shared_ptr<erizo::SdpInfo> sdp_info = me->getLocalSdpInfo();
+
+  v8::Local<v8::Object> instance = ConnectionDescription::NewInstance();
+  ConnectionDescription* description = ObjectWrap::Unwrap<ConnectionDescription>(instance);
+  description->me = sdp_info;
+  info.GetReturnValue().Set(instance);
 }
 
 NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
