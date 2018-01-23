@@ -24,8 +24,8 @@ function createWrtc(id, threadPool, ioThreadPool, mediaConfiguration) {
   return wrtc;
 }
 
-function createMediaStream (wrtc, id) {
-  var mediaStream = new addon.MediaStream(wrtc, id);
+function createMediaStream (threadPool, wrtc, id) {
+  var mediaStream = new addon.MediaStream(threadPool, wrtc, id);
   return mediaStream;
 }
 
@@ -53,7 +53,7 @@ class Source {
     var wrtc = createWrtc(wrtcId, this.threadPool, this.ioThreadPool, options.mediaConfiguration);
     wrtc.wrtcId = wrtcId;
     wrtc.mediaConfiguration = options.mediaConfiguration;
-    wrtc.mediaStream = createMediaStream(wrtc, id);
+    wrtc.mediaStream = createMediaStream(this.threadPool, wrtc, id);
     wrtc.addMediaStream(wrtc.mediaStream);
     this.subscribers[id] = wrtc;
     this.muxer.addSubscriber(wrtc.mediaStream, id);
@@ -87,7 +87,7 @@ class Source {
   addExternalOutput(url, options) {
     var eoId = url + '_' + this.id;
     log.info('message: Adding ExternalOutput, id: ' + eoId);
-    var externalOutput = new addon.ExternalOutput(url,
+    var externalOutput = new addon.ExternalOutput(this.threadPool, url,
       Helpers.getMediaConfiguration(options.mediaConfiguration));
     externalOutput.wrtcId = eoId;
     externalOutput.init();
@@ -96,12 +96,23 @@ class Source {
   }
 
   removeExternalOutput(url) {
-    var self = this;
-    this.muxer.removeSubscriber(url);
-    this.externalOutputs[url].close(function() {
-      log.info('message: ExternalOutput closed');
-      delete self.externalOutputs[url];
-    });
+    return new Promise(function(resolve) {
+      this.muxer.removeSubscriber(url);
+      this.externalOutputs[url].close(function() {
+        log.info('message: ExternalOutput closed');
+        delete this.externalOutputs[url];
+        resolve();
+      });
+    }.bind(this));
+  }
+
+  removeExternalOutputs() {
+    const promises = [];
+    for (let externalOutputKey in this.externalOutputs) {
+        log.info('message: Removing externalOutput, id ' + externalOutputKey);
+        promises.push(this.removeExternalOutput(externalOutputKey));
+    }
+    return Promise.all(promises);
   }
 
   hasExternalOutput(url) {
@@ -179,7 +190,7 @@ class Publisher extends Source {
     this.wrtc.wrtcId = id;
     this.wrtc.mediaConfiguration = options.mediaConfiguration;
 
-    this.wrtc.mediaStream = createMediaStream(this.wrtc, this.wrtc.wrtcId);
+    this.wrtc.mediaStream = createMediaStream(this.threadPool, this.wrtc, this.wrtc.wrtcId);
     this.wrtc.addMediaStream(this.wrtc.mediaStream);
 
     this.minVideoBW = options.minVideoBW;
@@ -198,7 +209,7 @@ class Publisher extends Source {
       return;
     }
     this.wrtc = createWrtc(this.id, this.threadPool, this.ioThreadPool, this.mediaConfiguration);
-    this.wrtc.mediaStream = createMediaStream(this.wrtc, this.wrtc.wrtcId);
+    this.wrtc.mediaStream = createMediaStream(this.threadPool, this.wrtc, this.wrtc.wrtcId);
 
     this.wrtc.mediaStream.setAudioReceiver(this.muxer);
     this.wrtc.mediaStream.setVideoReceiver(this.muxer);

@@ -59,25 +59,45 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "setRtcpMux", setRtcpMux);
   Nan::SetPrototypeMethod(tpl, "setAudioAndVideo", setAudioAndVideo);
 
+  Nan::SetPrototypeMethod(tpl, "getProfile", getProfile);
+  Nan::SetPrototypeMethod(tpl, "isBundle", isBundle);
+  Nan::SetPrototypeMethod(tpl, "getMediaId", getMediaId);
+  Nan::SetPrototypeMethod(tpl, "isRtcpMux", isRtcpMux);
+  Nan::SetPrototypeMethod(tpl, "hasAudio", hasAudio);
+  Nan::SetPrototypeMethod(tpl, "hasVideo", hasVideo);
+
   Nan::SetPrototypeMethod(tpl, "setAudioSsrc", setAudioSsrc);
+  Nan::SetPrototypeMethod(tpl, "getAudioSsrc", getAudioSsrc);
   Nan::SetPrototypeMethod(tpl, "setVideoSsrcList", setVideoSsrcList);
+  Nan::SetPrototypeMethod(tpl, "getVideoSsrcList", getVideoSsrcList);
 
   Nan::SetPrototypeMethod(tpl, "setDirection", setDirection);
+  Nan::SetPrototypeMethod(tpl, "getDirection", getDirection);
 
   Nan::SetPrototypeMethod(tpl, "setFingerprint", setFingerprint);
+  Nan::SetPrototypeMethod(tpl, "getFingerprint", getFingerprint);
   Nan::SetPrototypeMethod(tpl, "setDtlsRole", setDtlsRole);
+  Nan::SetPrototypeMethod(tpl, "getDtlsRole", getDtlsRole);
 
   Nan::SetPrototypeMethod(tpl, "setVideoBandwidth", setVideoBandwidth);
+  Nan::SetPrototypeMethod(tpl, "getVideoBandwidth", getVideoBandwidth);
 
   Nan::SetPrototypeMethod(tpl, "addCandidate", addCandidate);
   Nan::SetPrototypeMethod(tpl, "addCryptoInfo", addCryptoInfo);
   Nan::SetPrototypeMethod(tpl, "setICECredentials", setICECredentials);
+  Nan::SetPrototypeMethod(tpl, "getICECredentials", getICECredentials);
+
+  Nan::SetPrototypeMethod(tpl, "getCandidates", getCandidates);
+  Nan::SetPrototypeMethod(tpl, "getCodecs", getCodecs);
+  Nan::SetPrototypeMethod(tpl, "getExtensions", getExtensions);
 
   Nan::SetPrototypeMethod(tpl, "addRid", addRid);
   Nan::SetPrototypeMethod(tpl, "addPt", addPt);
   Nan::SetPrototypeMethod(tpl, "addExtension", addExtension);
   Nan::SetPrototypeMethod(tpl, "addFeedback", addFeedback);
   Nan::SetPrototypeMethod(tpl, "addParameter", addParameter);
+
+  Nan::SetPrototypeMethod(tpl, "getRids", getRids);
 
   Nan::SetPrototypeMethod(tpl, "postProcessInfo", postProcessInfo);
 
@@ -86,14 +106,25 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
 }
 
 
+v8::Local<v8::Object> ConnectionDescription::NewInstance() {
+  v8::Local<v8::Function> cons = Nan::New(constructor);
+  return Nan::NewInstance(cons).ToLocalChecked();
+}
+
 NAN_METHOD(ConnectionDescription::New) {
-  if (info.Length() != 1) {
+  if (info.Length() > 1) {
     Nan::ThrowError("Wrong number of arguments");
   }
 
   if (info.IsConstructCall()) {
     // Invoked as a constructor with 'new ConnectionDescription()'
     ConnectionDescription* obj = new ConnectionDescription();
+
+    if (info.Length() == 0) {
+      obj->Wrap(info.This());
+      info.GetReturnValue().Set(info.This());
+      return;
+    }
 
     v8::String::Utf8Value json_param(Nan::To<v8::String>(info[0]).ToLocalChecked());
     std::string media_config_string = std::string(*json_param);
@@ -196,9 +227,64 @@ NAN_METHOD(ConnectionDescription::setAudioAndVideo) {
   sdp->hasVideo = info[1]->BooleanValue();
 }
 
+NAN_METHOD(ConnectionDescription::getProfile) {
+  GET_SDP();
+  switch (sdp->profile) {
+    case erizo::SAVPF:
+     info.GetReturnValue().Set(Nan::New("UDP/TLS/RTP/SAVPF").ToLocalChecked());
+     break;
+    case erizo::AVPF:
+    default:
+      info.GetReturnValue().Set(Nan::New("RTP/AVPF").ToLocalChecked());
+      break;
+  }
+}
+
+NAN_METHOD(ConnectionDescription::isBundle) {
+  GET_SDP();
+  info.GetReturnValue().Set(Nan::New(sdp->isBundle));
+}
+
+NAN_METHOD(ConnectionDescription::getMediaId) {
+  GET_SDP();
+  erizo::MediaType media_type = getMediaType(getString(info[0]));
+  std::string id = getString(info[0]);
+
+  auto it = std::find_if(sdp->bundleTags.begin(), sdp->bundleTags.end(),
+    [media_type](const erizo::BundleTag &tag) {
+      return tag.mediaType == media_type;
+    });
+
+  if (it != sdp->bundleTags.end()) {
+    id = it->id;
+  }
+
+  info.GetReturnValue().Set(Nan::New(id.c_str()).ToLocalChecked());
+}
+
+NAN_METHOD(ConnectionDescription::isRtcpMux) {
+  GET_SDP();
+  info.GetReturnValue().Set(Nan::New(sdp->isRtcpMux));
+}
+
+NAN_METHOD(ConnectionDescription::hasAudio) {
+  GET_SDP();
+  info.GetReturnValue().Set(Nan::New(sdp->hasAudio));
+}
+
+NAN_METHOD(ConnectionDescription::hasVideo) {
+  GET_SDP();
+  info.GetReturnValue().Set(Nan::New(sdp->hasVideo));
+}
+
 NAN_METHOD(ConnectionDescription::setAudioSsrc) {
   GET_SDP();
   sdp->audio_ssrc = info[0]->IntegerValue();
+}
+
+NAN_METHOD(ConnectionDescription::getAudioSsrc) {
+  GET_SDP();
+  info.GetReturnValue().Set(Nan::New(sdp->audio_ssrc));
 }
 
 NAN_METHOD(ConnectionDescription::setVideoSsrcList) {
@@ -213,6 +299,17 @@ NAN_METHOD(ConnectionDescription::setVideoSsrcList) {
   }
 
   sdp->video_ssrc_list = video_ssrc_list;
+}
+
+NAN_METHOD(ConnectionDescription::getVideoSsrcList) {
+  GET_SDP();
+  v8::Local<v8::Array> array = Nan::New<v8::Array>(sdp->video_ssrc_list.size());
+  uint index = 0;
+  for (uint32_t ssrc : sdp->video_ssrc_list) {
+    Nan::Set(array, index++, Nan::New(ssrc));
+  }
+
+  info.GetReturnValue().Set(array);
 }
 
 NAN_METHOD(ConnectionDescription::setDirection) {
@@ -231,10 +328,40 @@ NAN_METHOD(ConnectionDescription::setDirection) {
   }
 }
 
+NAN_METHOD(ConnectionDescription::getDirection) {
+  GET_SDP();
+  std::string media = getString(info[0]);
+  erizo::StreamDirection direction;
+  if (media == "audio") {
+    direction = sdp->audioDirection;
+  } else {
+    direction = sdp->videoDirection;
+  }
+  std::string value = "";
+  switch (direction) {
+    case erizo::SENDONLY:
+      value = "sendonly";
+      break;
+    case erizo::SENDRECV:
+      value = "sendrecv";
+      break;
+    case erizo::RECVONLY:
+    default:
+      value = "recvonly";
+      break;
+  }
+  info.GetReturnValue().Set(Nan::New(value.c_str()).ToLocalChecked());
+}
+
 NAN_METHOD(ConnectionDescription::setFingerprint) {
   GET_SDP();
   sdp->fingerprint = getString(info[0]);
   sdp->isFingerprint = true;
+}
+
+NAN_METHOD(ConnectionDescription::getFingerprint) {
+  GET_SDP();
+  info.GetReturnValue().Set(Nan::New(sdp->fingerprint.c_str()).ToLocalChecked());
 }
 
 NAN_METHOD(ConnectionDescription::setDtlsRole) {
@@ -250,9 +377,32 @@ NAN_METHOD(ConnectionDescription::setDtlsRole) {
   }
 }
 
+NAN_METHOD(ConnectionDescription::getDtlsRole) {
+  GET_SDP();
+  std::string dtls_role = "";
+  switch (sdp->dtlsRole) {
+    case erizo::ACTPASS:
+      dtls_role = "actpass";
+      break;
+    case erizo::PASSIVE:
+      dtls_role = "passive";
+      break;
+    case erizo::ACTIVE:
+    default:
+      dtls_role = "active";
+      break;
+  }
+  info.GetReturnValue().Set(Nan::New(dtls_role.c_str()).ToLocalChecked());
+}
+
 NAN_METHOD(ConnectionDescription::setVideoBandwidth) {
   GET_SDP();
   sdp->videoBandwidth = info[0]->IntegerValue();
+}
+
+NAN_METHOD(ConnectionDescription::getVideoBandwidth) {
+  GET_SDP();
+  info.GetReturnValue().Set(Nan::New(sdp->videoBandwidth));
 }
 
 NAN_METHOD(ConnectionDescription::addCandidate) {
@@ -330,6 +480,148 @@ NAN_METHOD(ConnectionDescription::setICECredentials) {
   }
 }
 
+NAN_METHOD(ConnectionDescription::getICECredentials) {
+  GET_SDP();
+  erizo::MediaType media = getMediaType(getString(info[0]));
+  std::string username = "";
+  std::string password = "";
+  switch (media) {
+    case erizo::VIDEO_TYPE:
+      username = sdp->iceVideoUsername_;
+      password = sdp->iceVideoPassword_;
+      break;
+    case erizo::AUDIO_TYPE:
+    default:
+      username = sdp->iceAudioUsername_;
+      password = sdp->iceAudioPassword_;
+      break;
+  }
+  v8::Local<v8::Array> array = Nan::New<v8::Array>(2);
+  Nan::Set(array, 0, Nan::New(username.c_str()).ToLocalChecked());
+  Nan::Set(array, 1, Nan::New(password.c_str()).ToLocalChecked());
+
+  info.GetReturnValue().Set(array);
+}
+
+NAN_METHOD(ConnectionDescription::getCandidates) {
+  GET_SDP();
+  std::vector<erizo::CandidateInfo>& candidates = sdp->getCandidateInfos();
+
+  v8::Local<v8::Array> candidates_array = Nan::New<v8::Array>(candidates.size());
+  uint index = 0;
+  for (erizo::CandidateInfo &candidate : candidates) {
+    v8::Local<v8::Object> candidate_info = Nan::New<v8::Object>();
+    Nan::Set(candidate_info, Nan::New("bundle").ToLocalChecked(), Nan::New(candidate.isBundle));
+    Nan::Set(candidate_info, Nan::New("tag").ToLocalChecked(), Nan::New(candidate.tag));
+    Nan::Set(candidate_info, Nan::New("priority").ToLocalChecked(), Nan::New(candidate.priority));
+    Nan::Set(candidate_info, Nan::New("componentId").ToLocalChecked(), Nan::New(candidate.componentId));
+    Nan::Set(candidate_info, Nan::New("foundation").ToLocalChecked(),
+                                        Nan::New(candidate.foundation.c_str()).ToLocalChecked());
+    Nan::Set(candidate_info, Nan::New("hostIp").ToLocalChecked(),
+                                        Nan::New(candidate.hostAddress.c_str()).ToLocalChecked());
+    Nan::Set(candidate_info, Nan::New("relayIp").ToLocalChecked(),
+                                        Nan::New(candidate.rAddress.c_str()).ToLocalChecked());
+    Nan::Set(candidate_info, Nan::New("hostPort").ToLocalChecked(), Nan::New(candidate.hostPort));
+    Nan::Set(candidate_info, Nan::New("relayPort").ToLocalChecked(), Nan::New(candidate.rPort));
+    Nan::Set(candidate_info, Nan::New("protocol").ToLocalChecked(),
+                                        Nan::New(candidate.netProtocol.c_str()).ToLocalChecked());
+    std::string host_type = "host";
+    switch (candidate.hostType) {
+      case erizo::HOST:
+        host_type = "host";
+        break;
+      case erizo::SRFLX:
+        host_type = "srflx";
+        break;
+      case erizo::PRFLX:
+        host_type = "prflx";
+        break;
+      case erizo::RELAY:
+      default:
+        host_type = "relay";
+        break;
+    }
+    Nan::Set(candidate_info, Nan::New("hostType").ToLocalChecked(),
+                                        Nan::New(host_type.c_str()).ToLocalChecked());
+    Nan::Set(candidate_info, Nan::New("transport").ToLocalChecked(),
+                                        Nan::New(candidate.transProtocol.c_str()).ToLocalChecked());
+    Nan::Set(candidate_info, Nan::New("user").ToLocalChecked(),
+                                        Nan::New(candidate.username.c_str()).ToLocalChecked());
+    Nan::Set(candidate_info, Nan::New("pass").ToLocalChecked(),
+                                        Nan::New(candidate.password.c_str()).ToLocalChecked());
+    std::string media_type = "audio";
+    switch (candidate.mediaType) {
+      case erizo::VIDEO_TYPE:
+        media_type = "video";
+        break;
+      case erizo::AUDIO_TYPE:
+      default:
+        media_type = "audio";
+        break;
+    }
+    Nan::Set(candidate_info, Nan::New("mediaType").ToLocalChecked(),
+                                        Nan::New(media_type.c_str()).ToLocalChecked());
+
+    Nan::Set(candidates_array, index++, candidate_info);
+  }
+  info.GetReturnValue().Set(candidates_array);
+}
+
+NAN_METHOD(ConnectionDescription::getCodecs) {
+  GET_SDP();
+  std::string media_type_str = getString(info[0]);
+  erizo::MediaType media_type = getMediaType(media_type_str);
+  std::vector<erizo::RtpMap> pts = sdp->getPayloadInfos();
+  std::vector<erizo::RtpMap> media_pts(pts.size());
+  auto it = std::copy_if(pts.begin(), pts.end(), media_pts.begin(), [media_type](const erizo::RtpMap &pt) {
+    return pt.media_type == media_type;
+  });
+  media_pts.resize(std::distance(media_pts.begin(), it));
+  v8::Local<v8::Array> codecs = Nan::New<v8::Array>(media_pts.size());
+  uint index = 0;
+  for (erizo::RtpMap &pt : media_pts) {
+    v8::Local<v8::Object> codec = Nan::New<v8::Object>();
+    Nan::Set(codec, Nan::New("type").ToLocalChecked(), Nan::New(pt.payload_type));
+    Nan::Set(codec, Nan::New("name").ToLocalChecked(),
+                                Nan::New(pt.encoding_name.c_str()).ToLocalChecked());
+    Nan::Set(codec, Nan::New("rate").ToLocalChecked(), Nan::New(pt.clock_rate));
+    Nan::Set(codec, Nan::New("mediaType").ToLocalChecked(),
+                                Nan::New(media_type_str.c_str()).ToLocalChecked());
+    Nan::Set(codec, Nan::New("channels").ToLocalChecked(), Nan::New(pt.channels));
+
+    std::vector<std::string> &feedback_types = pt.feedback_types;
+    v8::Local<v8::Array> feedbacks = Nan::New<v8::Array>(feedback_types.size());
+    uint fb_index = 0;
+    for (std::string feedback_type : feedback_types) {
+      Nan::Set(feedbacks, fb_index++, Nan::New(feedback_type.c_str()).ToLocalChecked());
+    }
+    Nan::Set(codec, Nan::New("feedbacks").ToLocalChecked(), feedbacks);
+
+    Local<v8::Object> parameters = Nan::New<v8::Object>();
+    std::map<std::string, std::string> &params = pt.format_parameters;
+    for (auto const& param : params) {
+      parameters->Set(Nan::New(param.first).ToLocalChecked(), Nan::New(param.second).ToLocalChecked());
+    }
+    Nan::Set(codec, Nan::New("params").ToLocalChecked(), parameters);
+
+    Nan::Set(codecs, index++, codec);
+  }
+  info.GetReturnValue().Set(codecs);
+}
+
+NAN_METHOD(ConnectionDescription::getExtensions) {
+  GET_SDP();
+  std::string media_type_str = getString(info[0]);
+  erizo::MediaType media_type = getMediaType(media_type_str);
+  std::vector<erizo::ExtMap> media_extensions = sdp->getExtensionMap(media_type);
+
+  Local<v8::Object> extensions = Nan::New<v8::Object>();
+  for (erizo::ExtMap& extension : media_extensions) {
+    extensions->Set(Nan::New(extension.value), Nan::New(extension.uri).ToLocalChecked());
+  }
+  info.GetReturnValue().Set(extensions);
+}
+
 NAN_METHOD(ConnectionDescription::addRid) {
   GET_SDP();
 
@@ -401,6 +693,17 @@ NAN_METHOD(ConnectionDescription::addParameter) {
     new_map.format_parameters[option] = value;
     sdp->payload_parsed_map_[pt] = new_map;
   }
+}
+
+NAN_METHOD(ConnectionDescription::getRids) {
+  GET_SDP();
+  v8::Local<v8::Object> rids = Nan::New<v8::Object>();
+  for (const erizo::Rid& rid : sdp->rids()) {
+    std::ostringstream direction;
+    direction << rid.direction;
+    rids->Set(Nan::New(rid.id).ToLocalChecked(), Nan::New(direction.str()).ToLocalChecked());
+  }
+  info.GetReturnValue().Set(rids);
 }
 
 NAN_METHOD(ConnectionDescription::postProcessInfo) {

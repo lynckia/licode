@@ -65,6 +65,12 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
      */
     static NAN_METHOD(setRemoteDescription);
     /*
+     * Gets the SDP of the local peer.
+     * Param: the SDP.
+     * Returns true if the SDP was received correctly.
+     */
+    static NAN_METHOD(getLocalDescription);
+    /*
      * Sets the SDP of the remote peer.
      * Param: the SDP.
      * Returns true if the SDP was received correctly.

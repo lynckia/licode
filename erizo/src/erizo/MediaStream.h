@@ -20,6 +20,7 @@
 #include "rtp/RtpExtensionProcessor.h"
 #include "lib/Clock.h"
 #include "pipeline/Handler.h"
+#include "pipeline/HandlerManager.h"
 #include "pipeline/Service.h"
 #include "rtp/QualityManager.h"
 #include "rtp/PacketBufferService.h"
@@ -37,7 +38,7 @@ class MediaStreamStatsListener {
  * A MediaStream. This class represents a Media Stream that can be established with other peers via a SDP negotiation
  */
 class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
-                        public FeedbackSource, public LogContext,
+                        public FeedbackSource, public LogContext, public HandlerManagerListener,
                         public std::enable_shared_from_this<MediaStream>, public Service {
   DECLARE_LOGGER();
 
@@ -50,7 +51,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    * Constructor.
    * Constructs an empty MediaStream without any configuration.
    */
-  MediaStream(std::shared_ptr<WebRtcConnection> connection,
+  MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
       const std::string& media_stream_id);
   /**
    * Destructor.
@@ -58,6 +59,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   virtual ~MediaStream();
   bool init();
   void close() override;
+  void syncClose();
   bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
   bool setLocalSdp(std::shared_ptr<SdpInfo> sdp);
 
@@ -98,7 +100,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   void enableHandler(const std::string &name);
   void disableHandler(const std::string &name);
-  void notifyUpdateToHandlers();
+  void notifyUpdateToHandlers() override;
 
   void notifyToEventSink(MediaEventPtr event);
 
@@ -156,6 +158,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::shared_ptr<Stats> stats_;
   std::shared_ptr<QualityManager> quality_manager_;
   std::shared_ptr<PacketBufferService> packet_buffer_;
+  std::shared_ptr<HandlerManager> handler_manager_;
 
   Pipeline::Ptr pipeline_;
 
