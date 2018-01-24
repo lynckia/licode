@@ -64,6 +64,7 @@ var generateToken = function (req, callback) {
     token.role = role;
     token.service = currentService._id;
     token.creationDate = new Date();
+    token.mediaConfiguration = 'default';
     if (typeof currentRoom.mediaConfiguration === 'string') {
       token.mediaConfiguration = currentRoom.mediaConfiguration;
     }
