@@ -227,17 +227,17 @@ class Client extends events.EventEmitter {
             } else if (signMess === 'timeout-erizojs') {
                 log.error('message: addPublisher timeout when contacting ErizoJS, ' +
                           'streamId: ' + id + ', clientId: ' + this.id);
-                callback(null, 'ErizoJS is not reachable');
+                callback(null, null, 'ErizoJS is not reachable');
                 return;
             } else if (signMess === 'timeout-agent'){
                 log.error('message: addPublisher timeout when contacting Agent, ' +
                           'streamId: ' + id + ', clientId: ' + this.id);
-                callback(null, 'ErizoAgent is not reachable');
+                callback(null, null, 'ErizoAgent is not reachable');
                 return;
             } else if (signMess === 'timeout'){
                 log.error('message: addPublisher Undefined RPC Timeout, ' +
                           'streamId: ' + id + ', clientId: ' + this.id);
-                callback(null, 'ErizoAgent or ErizoJS is not reachable');
+                callback(null, null, 'ErizoAgent or ErizoJS is not reachable');
                 return;
             }
             log.debug('Sending message back to the client', id);
@@ -333,7 +333,7 @@ class Client extends events.EventEmitter {
                     log.error('message: addSubscriber timeout when contacting ErizoJS, ' +
                               'streamId: ', options.streamId, ', ' +
                               'clientId: ' + this.id);
-                    callback(null, 0, 'ErizoJS is not reachable');
+                    callback(null, null, 'ErizoJS is not reachable');
                     return;
                 }
 

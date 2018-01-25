@@ -455,6 +455,11 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     constraints.scheme = options.scheme;
 
     socket.sendSDP('publish', constraints, undefined, (id, erizoId, error) => {
+      if (id === null) {
+        Logger.error('Error publishing stream', error);
+        callback(undefined, error);
+        return;
+      }
       populateStreamFunctions(id, stream, error, undefined);
       createLocalStreamErizoConnection(stream, erizoId, options);
       callback(id);
