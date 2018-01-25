@@ -1,7 +1,8 @@
+const ConnectionHelpers = require('./NativeConnectionHelpers');
 const ErizoNativeConnection = require('./nativeClient');
 const logger = require('./logger').logger;
 
-const log = logger.getLogger('NativeStack');
+const log = logger.getLogger('NativeConnectionManager');
 
 let sessionId = 0;
 
@@ -26,7 +27,6 @@ const NativeStack = (config) => {
   that.callback = undefined;
 
   that.close = () => {
-    log.info('Close NATIVE');
     if (that.peerConnection) {
       that.peerConnection.close();
     } else {
@@ -39,20 +39,24 @@ const NativeStack = (config) => {
   };
 
   that.createOffer = () => {
-    log.info('NATIVESTACK: CreateOffer');
+    log.info('CreateOffer');
   };
 
   that.addStream = () => {
-    log.info('NATIVESTACK: addStream');
+    log.info('addStream');
+  };
+
+  that.removeStream = (stream) => {
+    log.info('removeStream');
   };
 
   that.processSignalingMessage = (msg) => {
-    log.info('NATIVESTACK: processSignaling', msg.type);
+    log.info('processSignaling', msg.type);
     that.peerConnection.processSignallingMessage(msg);
   };
 
   that.sendSignalingMessage = () => {
-    log.info('NATIVESTACK: Sending signaling Message');
+    log.info('Sending signaling Message');
   };
 
   that.peerConnection.onaddstream = (stream) => {
@@ -63,20 +67,25 @@ const NativeStack = (config) => {
 
   return that;
 };
-exports.buildConnection = (config) => {
-  log.info('Creating Connection');
-  const configuration = Object.assign({}, config);
-  configuration.sessionId = sessionId;
-  sessionId += 1;
-  return NativeStack(configuration); // jshint ignore:line
+
+exports.ConnectionManager = () => {
+  const that = {};
+  
+  that.getOrBuildErizoConnection = (specInput, erizoId = undefined, enableSinglePC = false) => {
+    log.debug(`getOrBuildErizoConnection, erizoId: ${erizoId}`);
+    const configuration = Object.assign({}, specInput);
+    configuration.sessionId = sessionId;
+    sessionId += 1;
+    return NativeStack(specInput); // jshint ignore:line
+  };
+
+  that.closeConnection = (connection) => {
+    log.debug('Close connection');
+    connection.close();
+  };
+
+  return that;
 };
 
-exports.GetUserMedia = (opt, callback) => {
-  log.info('Fake getUserMedia to use with files', opt);
-  // if (that.peerConnection && opt.video.file){
-  //     that.peerConnection.prepareVideo(opt.video.file);
-  // }
-  callback('');
-};
 
-exports.getBrowser = () => 'fake';
+

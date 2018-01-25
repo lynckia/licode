@@ -5,10 +5,10 @@ const newIo = require('socket.io-client'); // eslint-disable-line import/no-extr
 const nodeUrl = require('url');
 const Erizo = require('./erizofc');
 const NativeStream = require('./NativeStream.js');
-const NativeStack = require('./NativeStack.js');
+const nativeConnectionManager = require('./NativeConnectionManager.js');
+const nativeConnectionHelpers = require('./NativeConnectionHelpers.js');
 const logger = require('./logger').logger;
 
-const fakeConnection = NativeStack;
 const log = logger.getLogger('ErizoSimpleNativeConnection');
 
 
@@ -71,7 +71,7 @@ exports.ErizoSimpleNativeConnection = (spec, callback, error) => {
         error(`Could not get token from nuve in ${spec.serverUrl}`);
         return;
       }
-      room = Erizo.Room(newIo, fakeConnection, { token });
+      room = Erizo.Room(newIo, nativeConnectionHelpers, nativeConnectionManager, { token });
 
       room.addEventListener('room-connected', (roomEvent) => {
         log.info('Connected to room');
@@ -80,7 +80,7 @@ exports.ErizoSimpleNativeConnection = (spec, callback, error) => {
         subscribeToStreams(roomEvent.streams);
         if (spec.publishConfig) {
           log.info('Will publish with config', spec.publishConfig);
-          localStream = NativeStream.Stream(fakeConnection, spec.publishConfig);
+          localStream = NativeStream.Stream(nativeConnectionHelpers, spec.publishConfig);
           room.publish(localStream, spec.publishConfig, (id, message) => {
             if (id === undefined) {
               log.error('ERROR when publishing', message);

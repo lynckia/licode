@@ -2,7 +2,7 @@
 
 const ErizoMap = () => {
   const that = {};
-  const values = {};
+  let values = {};
 
   that.add = (id, value) => {
     values[id] = value;
@@ -11,6 +11,8 @@ const ErizoMap = () => {
   that.get = id => values[id];
 
   that.has = id => values[id] !== undefined;
+
+  that.size = () => Object.keys(values).length;
 
   that.forEach = (func) => {
     const keys = Object.keys(values);
@@ -25,6 +27,10 @@ const ErizoMap = () => {
 
   that.remove = (id) => {
     delete values[id];
+  };
+
+  that.clear = () => {
+    values = {};
   };
 
   return that;

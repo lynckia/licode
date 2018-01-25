@@ -221,6 +221,7 @@ exports.RoomController = function (spec) {
                     } else {
                         if (data.type === 'initializing') {
                             data.agentId = agentId;
+                            data.erizoId = erizoId;
                         }
                         callback(data);
                     }
@@ -294,6 +295,7 @@ exports.RoomController = function (spec) {
                 }else if (data.type === 'initializing'){
                     subscribers[publisherId].push(subscriberId);
                 }
+                data.erizoId = publishers[publisherId];
                 callback(data);
             }});
         }
