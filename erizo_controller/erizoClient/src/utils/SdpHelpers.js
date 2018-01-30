@@ -1,3 +1,5 @@
+import Direction from '../../../common/semanticSdp/Direction';
+
 const SdpHelpers = {};
 
 SdpHelpers.addSim = (spatialLayers) => {
@@ -47,6 +49,17 @@ SdpHelpers.enableOpusNacks = (sdpInput) => {
   }
 
   return sdp;
+};
+
+SdpHelpers.forceDirection = (sdp, isSubscribe) => {
+  const direction = isSubscribe ? 'recvonly' : 'sendonly';
+  // TODO this is a temporary fix for Firefox >= 59 where sdp generated are sendrecv
+  // instead of sendonly
+  // Bug associated: https://bugzilla.mozilla.org/show_bug.cgi?id=1433953 comment#3
+  sdp.medias.forEach((media) => {
+    const thisMedia = media;
+    thisMedia.direction = Direction.byValue(direction);
+  });
 };
 
 export default SdpHelpers;
