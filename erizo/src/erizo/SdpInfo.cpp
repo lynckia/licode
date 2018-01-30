@@ -52,6 +52,7 @@ namespace erizo {
 
 
   SdpInfo::SdpInfo(const std::vector<RtpMap> rtp_mappings) : internalPayloadVector_{rtp_mappings} {
+    session_counter = 0;
     isBundle = false;
     isRtcpMux = false;
     isFingerprint = false;
@@ -168,7 +169,7 @@ namespace erizo {
     ELOG_DEBUG("Getting SDP");
 
     std::ostringstream sdp;
-    sdp << "v=0\n" << "o=- 0 0 IN IP4 127.0.0.1\n";
+    sdp << "v=0\n" << "o=- 0 " << session_counter << " IN IP4 127.0.0.1\n";
     sdp << "s=" << SDP_IDENTIFIER << "\n";
     sdp << "t=0 0\n";
 
@@ -1229,8 +1230,16 @@ namespace erizo {
     }
   }
 
+  int SdpInfo::getSessionCounter() const {
+    return session_counter;
+  }
+
+  void SdpInfo::setSessionCounter(int counter) {
+    session_counter = counter;
+  }
+
   bool operator==(const Rid& lhs, const Rid& rhs) {
-  return lhs.id == rhs.id && lhs.direction == rhs.direction;
+    return lhs.id == rhs.id && lhs.direction == rhs.direction;
   }
 
   std::ostream& operator<<(std::ostream& os, RidDirection dir) {

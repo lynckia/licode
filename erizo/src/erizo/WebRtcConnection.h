@@ -188,6 +188,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   bool audio_muted_;
   bool video_muted_;
   bool remote_sdp_processed_;
+  int session_counter_;  // keeps track of how many sdp offer/answer cycles have been done
 };
 
 }  // namespace erizo
