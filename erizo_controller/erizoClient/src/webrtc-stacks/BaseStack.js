@@ -92,6 +92,7 @@ const BaseStack = (specInput) => {
       localDesc.sdp = that.enableSimulcast(localDesc.sdp);
     }
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
+    SdpHelpers.forceDirection(localSdp, isSubscribe);
     SdpHelpers.setMaxBW(localSdp, specBase);
     localDesc.sdp = localSdp.toString();
 
@@ -104,6 +105,7 @@ const BaseStack = (specInput) => {
   const setLocalDescForAnswerp2p = (sessionDescription) => {
     localDesc = sessionDescription;
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
+    SdpHelpers.forceDirection(localSdp, true);
     SdpHelpers.setMaxBW(localSdp, specBase);
     localDesc.sdp = localSdp.toString();
     specBase.callback({

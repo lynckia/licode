@@ -52,6 +52,7 @@ namespace erizo {
 
 
   SdpInfo::SdpInfo(const std::vector<RtpMap> rtp_mappings) : internalPayloadVector_{rtp_mappings} {
+    session_version = 0;
     isBundle = false;
     isRtcpMux = false;
     isFingerprint = false;
@@ -65,6 +66,7 @@ namespace erizo {
     videoSdpMLine = -1;
     audioSdpMLine = -1;
     videoBandwidth = 0;
+    first_media_received_ = MediaType::OTHER;
   }
 
   SdpInfo::~SdpInfo() {
@@ -168,7 +170,7 @@ namespace erizo {
     ELOG_DEBUG("Getting SDP");
 
     std::ostringstream sdp;
-    sdp << "v=0\n" << "o=- 0 0 IN IP4 127.0.0.1\n";
+    sdp << "v=0\n" << "o=- 0 " << session_version << " IN IP4 127.0.0.1\n";
     sdp << "s=" << SDP_IDENTIFIER << "\n";
     sdp << "t=0 0\n";
 
@@ -189,279 +191,292 @@ namespace erizo {
     // candidates audio
     bool printedAudio = true, printedVideo = true;
 
-    if (printedAudio && this->hasAudio) {
-      sdp << "m=audio 1";
-      if (profile == SAVPF) {
-        sdp << " UDP/TLS/RTP/SAVPF ";
-      } else {
-        sdp << " RTP/AVPF ";  // << "103 104 0 8 106 105 13 126\n"
-      }
-
-      int codecCounter = 0;
-      for (unsigned int it = 0; it < payloadVector.size(); it++) {
-        const RtpMap& payload_info = payloadVector[it];
-        if (payload_info.media_type == AUDIO_TYPE) {
-          codecCounter++;
-          sdp << payload_info.payload_type << ((codecCounter < audioCodecs) ? " " : "");
-        }
-      }
-
-      sdp << "\n"
-          << "c=IN IP4 0.0.0.0" << endl;
-      if (isRtcpMux) {
-        sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
-      }
-      for (unsigned int it = 0; it < candidateVector_.size(); it++) {
-        if (candidateVector_[it].mediaType == AUDIO_TYPE || isBundle)
-          sdp << this->stringifyCandidate(candidateVector_[it]) << endl;
-      }
-      if (iceAudioUsername_.size() > 0) {
-        sdp << "a=ice-ufrag:" << iceAudioUsername_ << endl;
-        sdp << "a=ice-pwd:" << iceAudioPassword_ << endl;
-      } else {
-        sdp << "a=ice-ufrag:" << iceVideoUsername_ << endl;
-        sdp << "a=ice-pwd:" << iceVideoPassword_ << endl;
-      }
-      // sdp << "a=ice-options:google-ice" << endl;
-      if (isFingerprint) {
-        sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
-      }
-      switch (dtlsRole) {
-        case ACTPASS:
-          sdp << "a=setup:actpass"<< endl;
-          break;
-        case PASSIVE:
-          sdp << "a=setup:passive"<< endl;
-          break;
-        case ACTIVE:
-          sdp << "a=setup:active"<< endl;
-          break;
-      }
-      switch (this->audioDirection) {
-        case SENDONLY:
-          sdp << "a=sendonly" << endl;
-          break;
-        case SENDRECV:
-          sdp << "a=sendrecv" << endl;
-          break;
-        case RECVONLY:
-          sdp << "a=recvonly" << endl;
-          break;
-      }
-
-      ELOG_DEBUG("Writing Extmap for AUDIO %lu", extMapVector.size());
-      for (uint8_t i = 0; i < extMapVector.size(); i++) {
-        if (extMapVector[i].mediaType == AUDIO_TYPE && isValidExtension(std::string(extMapVector[i].uri))) {
-          sdp << "a=extmap:" << extMapVector[i].value << " " << extMapVector[i].uri << endl;
-        }
-      }
-
-      if (bundleTags.size() > 2) {
-        ELOG_WARN("More bundleTags than supported, expect unexpected behaviour");
-      }
-      for (uint8_t i = 0; i < bundleTags.size(); i++) {
-        if (bundleTags[i].mediaType == AUDIO_TYPE) {
-          sdp << "a=mid:" << bundleTags[i].id << endl;
-        }
-      }
-      if (isRtcpMux)
-        sdp << "a=rtcp-mux\n";
-      for (unsigned int it = 0; it < cryptoVector_.size(); it++) {
-        const CryptoInfo& cryp_info = cryptoVector_[it];
-        if (cryp_info.mediaType == AUDIO_TYPE) {
-          sdp << "a=crypto:" << cryp_info.tag << " "
-            << cryp_info.cipherSuite << " " << "inline:"
-            << cryp_info.keyParams << endl;
-        }
-      }
-
-      for (unsigned int it = 0; it < payloadVector.size(); it++) {
-        const RtpMap& rtp = payloadVector[it];
-        if (rtp.media_type == AUDIO_TYPE) {
-          int payload_type = rtp.payload_type;
-          if (rtp.channels > 1) {
-            sdp << "a=rtpmap:"<< payload_type << " " << rtp.encoding_name << "/"
-              << rtp.clock_rate << "/" << rtp.channels << endl;
-          } else {
-            sdp << "a=rtpmap:"<< payload_type << " " << rtp.encoding_name << "/"
-              << rtp.clock_rate << endl;
-          }
-          if (!rtp.feedback_types.empty()) {
-            for (unsigned int itFb = 0; itFb < rtp.feedback_types.size(); itFb++) {
-              sdp << "a=rtcp-fb:" << payload_type << " " << rtp.feedback_types[itFb] << "\n";
-            }
-          }
-          if (!rtp.format_parameters.empty()) {
-            std::string fmtp_line;
-            for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
-                theIt != rtp.format_parameters.end(); theIt++) {
-              if (theIt->first.compare("none")) {
-                fmtp_line += theIt->first + "=" + theIt->second + ';';
-              } else {
-                fmtp_line += theIt->second + ';';
-              }
-            }
-            fmtp_line.pop_back();
-            sdp << "a=fmtp:" << payload_type << " " << fmtp_line << std::endl;
-          }
-        }
-      }
-
-      if (audio_ssrc == 0) {
-        audio_ssrc = 44444;
-      }
-      if (audioDirection != RECVONLY) {
-        sdp << "a=ssrc:" << audio_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-          "a=ssrc:"<< audio_ssrc << " msid:"<< msidtemp << " a0"<< endl <<
-          "a=ssrc:"<< audio_ssrc << " mslabel:"<< msidtemp << endl <<
-          "a=ssrc:"<< audio_ssrc << " label:" << msidtemp << "a0" << endl;
-      }
+    if (first_media_received_ == MediaType::AUDIO_TYPE) {
+      printAudio(sdp, msidtemp, printedAudio);
+      printVideo(sdp, msidtemp, printedVideo);
+    } else if (first_media_received_ == MediaType::VIDEO_TYPE) {
+      printVideo(sdp, msidtemp, printedVideo);
+      printAudio(sdp, msidtemp, printedAudio);
     }
 
-    if (printedVideo && this->hasVideo) {
-      sdp << "m=video 1";
-      if (profile == SAVPF) {
-        sdp << " UDP/TLS/RTP/SAVPF ";
-      } else {
-        sdp << " RTP/AVPF ";
-      }
-
-      int codecCounter = 0;
-      for (unsigned int it = 0; it < payloadVector.size(); it++) {
-        const RtpMap& payload_info = payloadVector[it];
-        if (payload_info.media_type == VIDEO_TYPE) {
-          codecCounter++;
-          sdp << payload_info.payload_type << ((codecCounter < videoCodecs) ? " " : "");
-        }
-      }
-
-      sdp << "\n" << "c=IN IP4 0.0.0.0" << endl;
-      if (isRtcpMux) {
-        sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
-      }
-      for (unsigned int it = 0; it < candidateVector_.size(); it++) {
-        if (candidateVector_[it].mediaType == VIDEO_TYPE)
-          sdp << this->stringifyCandidate(candidateVector_[it]) << endl;
-      }
-
-      sdp << "a=ice-ufrag:" << iceVideoUsername_ << endl;
-      sdp << "a=ice-pwd:" << iceVideoPassword_ << endl;
-      // sdp << "a=ice-options:google-ice" << endl;
-
-      ELOG_DEBUG("Writing Extmap for VIDEO %lu", extMapVector.size());
-      for (uint8_t i = 0; i < extMapVector.size(); i++) {
-        if (extMapVector[i].mediaType == VIDEO_TYPE && isValidExtension(std::string(extMapVector[i].uri))) {
-          sdp << "a=extmap:" << extMapVector[i].value << " " << extMapVector[i].uri << endl;
-        }
-      }
-
-      if (isFingerprint) {
-        sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
-      }
-      switch (dtlsRole) {
-        case ACTPASS:
-          sdp << "a=setup:actpass"<< endl;
-          break;
-        case PASSIVE:
-          sdp << "a=setup:passive"<< endl;
-          break;
-        case ACTIVE:
-          sdp << "a=setup:active"<< endl;
-          break;
-      }
-      switch (this->videoDirection) {
-        case SENDONLY:
-          sdp << "a=sendonly" << endl;
-          break;
-        case SENDRECV:
-          sdp << "a=sendrecv" << endl;
-          break;
-        case RECVONLY:
-          sdp << "a=recvonly" << endl;
-          break;
-      }
-      for (uint8_t i = 0; i < bundleTags.size(); i++) {
-        if (bundleTags[i].mediaType == VIDEO_TYPE) {
-          sdp << "a=mid:" << bundleTags[i].id << endl;
-        }
-      }
-      if (isRtcpMux)
-        sdp << "a=rtcp-mux\n";
-      for (unsigned int it = 0; it < cryptoVector_.size(); it++) {
-        const CryptoInfo& cryp_info = cryptoVector_[it];
-        if (cryp_info.mediaType == VIDEO_TYPE) {
-          sdp << "a=crypto:" << cryp_info.tag << " "
-            << cryp_info.cipherSuite << " " << "inline:"
-            << cryp_info.keyParams << endl;
-        }
-      }
-
-      for (const auto rid : rids()) {
-        sdp << "a=rid:" << rid.id << " " << rid.direction << "\n";
-      }
-
-      for (unsigned int it = 0; it < payloadVector.size(); it++) {
-        const RtpMap& rtp = payloadVector[it];
-        if (rtp.media_type == VIDEO_TYPE) {
-          int payload_type = rtp.payload_type;
-          sdp << "a=rtpmap:" << payload_type << " " << rtp.encoding_name << "/"
-              << rtp.clock_rate <<"\n";
-          if (!rtp.feedback_types.empty()) {
-            for (unsigned int itFb = 0; itFb < rtp.feedback_types.size(); itFb++) {
-              sdp << "a=rtcp-fb:" << payload_type << " " << rtp.feedback_types[itFb] << "\n";
-            }
-          }
-          if (!rtp.format_parameters.empty()) {
-            std::string fmtp_line;
-            for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
-                theIt != rtp.format_parameters.end(); theIt++) {
-              if (theIt->first.compare("none")) {
-                fmtp_line += theIt->first + "=" + theIt->second + ';';
-              } else {
-                fmtp_line += theIt->second + ';';
-              }
-            }
-            fmtp_line.pop_back();
-            sdp << "a=fmtp:" << payload_type << " " << fmtp_line << std::endl;
-          }
-        }
-      }
-      if (video_ssrc_list.empty()) {
-        video_ssrc_list.push_back(55543);
-      }
-
-      if (!rids().empty()) {
-        sdp << "a=simulcast: " << rids()[0].direction << " rid=";
-        for (unsigned i = 0; i < rids().size(); ++i) {
-          sdp << rids()[i].id;
-          if (i < rids().size() - 1) {
-            sdp << ';';
-          }
-        }
-        sdp << '\n';
-      }
-
-      if (videoDirection != RECVONLY) {
-        std::for_each(video_ssrc_list.begin(), video_ssrc_list.end(),
-            [&sdp, &msidtemp](uint32_t &video_ssrc){
-            sdp << "a=ssrc:" << video_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-            "a=ssrc:" << video_ssrc << " msid:"<< msidtemp << " v0"<< endl <<
-            "a=ssrc:" << video_ssrc << " mslabel:"<< msidtemp << endl <<
-            "a=ssrc:" << video_ssrc << " label:" << msidtemp << "v0" << endl;
-            });
-        /* TODO(pedro)  properly encode FID groups in sdp when supported
-        std::for_each(video_rtx_ssrc_map.begin(), video_rtx_ssrc_map.end(),
-            [&sdp, &msidtemp](uint32_t &video_rtx_ssrc){
-            sdp << "a=ssrc:" << video_rtx_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-            "a=ssrc:" << video_rtx_ssrc << " msid:"<< msidtemp << " v0"<< endl <<
-            "a=ssrc:" << video_rtx_ssrc << " mslabel:"<< msidtemp << endl <<
-            "a=ssrc:" << video_rtx_ssrc << " label:" << msidtemp << "v0" << endl;
-            });
-        */
-      }
-    }
     ELOG_DEBUG("sdp local \n %s", sdp.str().c_str());
     return sdp.str();
+  }
+
+  void SdpInfo::printAudio(std::ostringstream& sdp, char (&msidtemp)[11], bool printedAudio) {
+      if (printedAudio && this->hasAudio) {
+        sdp << "m=audio 1";
+        if (profile == SAVPF) {
+          sdp << " UDP/TLS/RTP/SAVPF ";
+        } else {
+          sdp << " RTP/AVPF ";  // << "103 104 0 8 106 105 13 126\n"
+        }
+
+        int codecCounter = 0;
+        for (unsigned int it = 0; it < payloadVector.size(); it++) {
+          const RtpMap& payload_info = payloadVector[it];
+          if (payload_info.media_type == AUDIO_TYPE) {
+            codecCounter++;
+            sdp << payload_info.payload_type << ((codecCounter < audioCodecs) ? " " : "");
+          }
+        }
+
+        sdp << "\n"
+            << "c=IN IP4 0.0.0.0" << endl;
+        if (isRtcpMux) {
+          sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
+        }
+        for (unsigned int it = 0; it < candidateVector_.size(); it++) {
+          if (candidateVector_[it].mediaType == AUDIO_TYPE || isBundle)
+            sdp << this->stringifyCandidate(candidateVector_[it]) << endl;
+        }
+        if (iceAudioUsername_.size() > 0) {
+          sdp << "a=ice-ufrag:" << iceAudioUsername_ << endl;
+          sdp << "a=ice-pwd:" << iceAudioPassword_ << endl;
+        } else {
+          sdp << "a=ice-ufrag:" << iceVideoUsername_ << endl;
+          sdp << "a=ice-pwd:" << iceVideoPassword_ << endl;
+        }
+        // sdp << "a=ice-options:google-ice" << endl;
+        if (isFingerprint) {
+          sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
+        }
+        switch (dtlsRole) {
+          case ACTPASS:
+            sdp << "a=setup:actpass"<< endl;
+            break;
+          case PASSIVE:
+            sdp << "a=setup:passive"<< endl;
+            break;
+          case ACTIVE:
+            sdp << "a=setup:active"<< endl;
+            break;
+        }
+        switch (this->audioDirection) {
+          case SENDONLY:
+            sdp << "a=sendonly" << endl;
+            break;
+          case SENDRECV:
+            sdp << "a=sendrecv" << endl;
+            break;
+          case RECVONLY:
+            sdp << "a=recvonly" << endl;
+            break;
+        }
+
+        ELOG_DEBUG("Writing Extmap for AUDIO %lu", extMapVector.size());
+        for (uint8_t i = 0; i < extMapVector.size(); i++) {
+          if (extMapVector[i].mediaType == AUDIO_TYPE && isValidExtension(std::string(extMapVector[i].uri))) {
+            sdp << "a=extmap:" << extMapVector[i].value << " " << extMapVector[i].uri << endl;
+          }
+        }
+
+        if (bundleTags.size() > 2) {
+          ELOG_WARN("More bundleTags than supported, expect unexpected behaviour");
+        }
+        for (uint8_t i = 0; i < bundleTags.size(); i++) {
+          if (bundleTags[i].mediaType == AUDIO_TYPE) {
+            sdp << "a=mid:" << bundleTags[i].id << endl;
+          }
+        }
+        if (isRtcpMux)
+          sdp << "a=rtcp-mux\n";
+        for (unsigned int it = 0; it < cryptoVector_.size(); it++) {
+          const CryptoInfo& cryp_info = cryptoVector_[it];
+          if (cryp_info.mediaType == AUDIO_TYPE) {
+            sdp << "a=crypto:" << cryp_info.tag << " "
+              << cryp_info.cipherSuite << " " << "inline:"
+              << cryp_info.keyParams << endl;
+          }
+        }
+
+        for (unsigned int it = 0; it < payloadVector.size(); it++) {
+          const RtpMap& rtp = payloadVector[it];
+          if (rtp.media_type == AUDIO_TYPE) {
+            int payload_type = rtp.payload_type;
+            if (rtp.channels > 1) {
+              sdp << "a=rtpmap:"<< payload_type << " " << rtp.encoding_name << "/"
+                << rtp.clock_rate << "/" << rtp.channels << endl;
+            } else {
+              sdp << "a=rtpmap:"<< payload_type << " " << rtp.encoding_name << "/"
+                << rtp.clock_rate << endl;
+            }
+            if (!rtp.feedback_types.empty()) {
+              for (unsigned int itFb = 0; itFb < rtp.feedback_types.size(); itFb++) {
+                sdp << "a=rtcp-fb:" << payload_type << " " << rtp.feedback_types[itFb] << "\n";
+              }
+            }
+            if (!rtp.format_parameters.empty()) {
+              std::string fmtp_line;
+              for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
+                  theIt != rtp.format_parameters.end(); theIt++) {
+                if (theIt->first.compare("none")) {
+                  fmtp_line += theIt->first + "=" + theIt->second + ';';
+                } else {
+                  fmtp_line += theIt->second + ';';
+                }
+              }
+              fmtp_line.pop_back();
+              sdp << "a=fmtp:" << payload_type << " " << fmtp_line << std::endl;
+            }
+          }
+        }
+
+        if (audio_ssrc == 0) {
+          audio_ssrc = 44444;
+        }
+        if (audioDirection != RECVONLY) {
+          sdp << "a=ssrc:" << audio_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+            "a=ssrc:"<< audio_ssrc << " msid:"<< msidtemp << " a0"<< endl <<
+            "a=ssrc:"<< audio_ssrc << " mslabel:"<< msidtemp << endl <<
+            "a=ssrc:"<< audio_ssrc << " label:" << msidtemp << "a0" << endl;
+        }
+      }
+  }
+
+  void SdpInfo::printVideo(std::ostringstream& sdp, char (&msidtemp)[11], bool printedVideo) {
+      if (printedVideo && this->hasVideo) {
+        sdp << "m=video 1";
+        if (profile == SAVPF) {
+          sdp << " UDP/TLS/RTP/SAVPF ";
+        } else {
+          sdp << " RTP/AVPF ";
+        }
+
+        int codecCounter = 0;
+        for (unsigned int it = 0; it < payloadVector.size(); it++) {
+          const RtpMap& payload_info = payloadVector[it];
+          if (payload_info.media_type == VIDEO_TYPE) {
+            codecCounter++;
+            sdp << payload_info.payload_type << ((codecCounter < videoCodecs) ? " " : "");
+          }
+        }
+
+        sdp << "\n" << "c=IN IP4 0.0.0.0" << endl;
+        if (isRtcpMux) {
+          sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
+        }
+        for (unsigned int it = 0; it < candidateVector_.size(); it++) {
+          if (candidateVector_[it].mediaType == VIDEO_TYPE)
+            sdp << this->stringifyCandidate(candidateVector_[it]) << endl;
+        }
+
+        sdp << "a=ice-ufrag:" << iceVideoUsername_ << endl;
+        sdp << "a=ice-pwd:" << iceVideoPassword_ << endl;
+        // sdp << "a=ice-options:google-ice" << endl;
+
+        ELOG_DEBUG("Writing Extmap for VIDEO %lu", extMapVector.size());
+        for (uint8_t i = 0; i < extMapVector.size(); i++) {
+          if (extMapVector[i].mediaType == VIDEO_TYPE && isValidExtension(std::string(extMapVector[i].uri))) {
+            sdp << "a=extmap:" << extMapVector[i].value << " " << extMapVector[i].uri << endl;
+          }
+        }
+
+        if (isFingerprint) {
+          sdp << "a=fingerprint:sha-256 "<< fingerprint << endl;
+        }
+        switch (dtlsRole) {
+          case ACTPASS:
+            sdp << "a=setup:actpass"<< endl;
+            break;
+          case PASSIVE:
+            sdp << "a=setup:passive"<< endl;
+            break;
+          case ACTIVE:
+            sdp << "a=setup:active"<< endl;
+            break;
+        }
+        switch (this->videoDirection) {
+          case SENDONLY:
+            sdp << "a=sendonly" << endl;
+            break;
+          case SENDRECV:
+            sdp << "a=sendrecv" << endl;
+            break;
+          case RECVONLY:
+            sdp << "a=recvonly" << endl;
+            break;
+        }
+        for (uint8_t i = 0; i < bundleTags.size(); i++) {
+          if (bundleTags[i].mediaType == VIDEO_TYPE) {
+            sdp << "a=mid:" << bundleTags[i].id << endl;
+          }
+        }
+        if (isRtcpMux)
+          sdp << "a=rtcp-mux\n";
+        for (unsigned int it = 0; it < cryptoVector_.size(); it++) {
+          const CryptoInfo& cryp_info = cryptoVector_[it];
+          if (cryp_info.mediaType == VIDEO_TYPE) {
+            sdp << "a=crypto:" << cryp_info.tag << " "
+              << cryp_info.cipherSuite << " " << "inline:"
+              << cryp_info.keyParams << endl;
+          }
+        }
+
+        for (const auto rid : rids()) {
+          sdp << "a=rid:" << rid.id << " " << rid.direction << "\n";
+        }
+
+        for (unsigned int it = 0; it < payloadVector.size(); it++) {
+          const RtpMap& rtp = payloadVector[it];
+          if (rtp.media_type == VIDEO_TYPE) {
+            int payload_type = rtp.payload_type;
+            sdp << "a=rtpmap:" << payload_type << " " << rtp.encoding_name << "/"
+                << rtp.clock_rate <<"\n";
+            if (!rtp.feedback_types.empty()) {
+              for (unsigned int itFb = 0; itFb < rtp.feedback_types.size(); itFb++) {
+                sdp << "a=rtcp-fb:" << payload_type << " " << rtp.feedback_types[itFb] << "\n";
+              }
+            }
+            if (!rtp.format_parameters.empty()) {
+              std::string fmtp_line;
+              for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
+                  theIt != rtp.format_parameters.end(); theIt++) {
+                if (theIt->first.compare("none")) {
+                  fmtp_line += theIt->first + "=" + theIt->second + ';';
+                } else {
+                  fmtp_line += theIt->second + ';';
+                }
+              }
+              fmtp_line.pop_back();
+              sdp << "a=fmtp:" << payload_type << " " << fmtp_line << std::endl;
+            }
+          }
+        }
+        if (video_ssrc_list.empty()) {
+          video_ssrc_list.push_back(55543);
+        }
+
+        if (!rids().empty()) {
+          sdp << "a=simulcast: " << rids()[0].direction << " rid=";
+          for (unsigned i = 0; i < rids().size(); ++i) {
+            sdp << rids()[i].id;
+            if (i < rids().size() - 1) {
+              sdp << ';';
+            }
+          }
+          sdp << '\n';
+        }
+
+        if (videoDirection != RECVONLY) {
+          std::for_each(video_ssrc_list.begin(), video_ssrc_list.end(),
+              [&sdp, &msidtemp](uint32_t &video_ssrc){
+              sdp << "a=ssrc:" << video_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+              "a=ssrc:" << video_ssrc << " msid:"<< msidtemp << " v0"<< endl <<
+              "a=ssrc:" << video_ssrc << " mslabel:"<< msidtemp << endl <<
+              "a=ssrc:" << video_ssrc << " label:" << msidtemp << "v0" << endl;
+              });
+          /* TODO(pedro)  properly encode FID groups in sdp when supported
+          std::for_each(video_rtx_ssrc_map.begin(), video_rtx_ssrc_map.end(),
+              [&sdp, &msidtemp](uint32_t &video_rtx_ssrc){
+              sdp << "a=ssrc:" << video_rtx_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
+              "a=ssrc:" << video_rtx_ssrc << " msid:"<< msidtemp << " v0"<< endl <<
+              "a=ssrc:" << video_rtx_ssrc << " mslabel:"<< msidtemp << endl <<
+              "a=ssrc:" << video_rtx_ssrc << " label:" << msidtemp << "v0" << endl;
+              });
+          */
+        }
+      }
   }
 
   RtpMap* SdpInfo::getCodecByExternalPayloadType(const unsigned int payload_type) {
@@ -547,6 +562,7 @@ namespace erizo {
     this->hasAudio = offerSdp->hasAudio;
     this->bundleTags = offerSdp->bundleTags;
     this->extMapVector = offerSdp->extMapVector;
+    this->first_media_received_ = offerSdp->first_media_received_;
     this->rids_ = offerSdp->rids();
     for (auto& rid : rids_) {
       rid.direction = reverse(rid.direction);
@@ -700,12 +716,18 @@ namespace erizo {
         ELOG_DEBUG("sdp has video, mline = %d", videoSdpMLine);
         mtype = VIDEO_TYPE;
         hasVideo = true;
+        if (first_media_received_ == MediaType::OTHER) {
+          first_media_received_ = MediaType::VIDEO_TYPE;
+        }
       }
       if (isAudio != std::string::npos) {
         audioSdpMLine = ++mlineNum;
         ELOG_DEBUG("sdp has audio, mline = %d", audioSdpMLine);
         mtype = AUDIO_TYPE;
         hasAudio = true;
+        if (first_media_received_ == MediaType::OTHER) {
+          first_media_received_ = MediaType::AUDIO_TYPE;
+        }
       }
       if (isCand != std::string::npos) {
         std::vector<std::string> pieces = stringutil::splitOneOf(line, " :");
@@ -1229,8 +1251,24 @@ namespace erizo {
     }
   }
 
+  int SdpInfo::getSessionVersion() const {
+    return session_version;
+  }
+
+  void SdpInfo::setSessionVersion(int counter) {
+    session_version = counter;
+  }
+
+  void SdpInfo::setFirstMediaReceived(MediaType media) {
+    first_media_received_ = media;
+  }
+
+  MediaType SdpInfo::getFirstMediaReceived() const {
+    return first_media_received_;
+  }
+
   bool operator==(const Rid& lhs, const Rid& rhs) {
-  return lhs.id == rhs.id && lhs.direction == rhs.direction;
+    return lhs.id == rhs.id && lhs.direction == rhs.direction;
   }
 
   std::ostream& operator<<(std::ostream& os, RidDirection dir) {

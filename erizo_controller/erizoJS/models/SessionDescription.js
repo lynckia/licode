@@ -205,7 +205,7 @@ class SessionDescription {
     sdp.setOrigin({
       username: '-',
       sessionId: 0,
-      sessionVersion: 0,
+      sessionVersion: info.getSessionVersion(),
       netType: 'IN',
       ipVer: 4,
       address: '127.0.0.1' });
@@ -213,15 +213,26 @@ class SessionDescription {
 
     sdp.msidSemantic = { semantic: 'WMS', token: generateRandom(10) };
 
-    if (info.hasAudio()) {
-      const media = getMediaInfoFromDescription(info, sdp, 'audio');
-      sdp.addMedia(media);
+    if (info.getFirstMediaReceived() === 'audio') {
+      if (info.hasAudio()) {
+        const media = getMediaInfoFromDescription(info, sdp, 'audio');
+        sdp.addMedia(media);
+      }
+      if (info.hasVideo()) {
+        const media = getMediaInfoFromDescription(info, sdp, 'video');
+        sdp.addMedia(media);
+      }
+    } else {
+      if (info.hasVideo()) {
+        const media = getMediaInfoFromDescription(info, sdp, 'video');
+        sdp.addMedia(media);
+      }
+      if (info.hasAudio()) {
+        const media = getMediaInfoFromDescription(info, sdp, 'audio');
+        sdp.addMedia(media);
+      }
     }
 
-    if (info.hasVideo()) {
-      const media = getMediaInfoFromDescription(info, sdp, 'video');
-      sdp.addMedia(media);
-    }
 
     this.sdp = sdp;
 
@@ -251,7 +262,7 @@ class SessionDescription {
       info.setDtlsRole(Setup.toString(dtls.getSetup()));
     }
 
-    sdp.medias.forEach((media) => {
+    sdp.medias.forEach((media, index) => {
       const dtls = media.getDTLS();
       if (dtls) {
         info.setFingerprint(dtls.getFingerprint());
@@ -261,6 +272,9 @@ class SessionDescription {
         audio = media;
       } else if (media.getType() === 'video') {
         video = media;
+      }
+      if (index == 0) {
+        info.setFirstMediaReceived(media.getType());
       }
       info.addBundleTag(media.getId(), media.getType());
 
