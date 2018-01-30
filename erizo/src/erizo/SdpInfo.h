@@ -238,6 +238,10 @@ class SdpInfo {
   bool supportPayloadType(const unsigned int payloadType);
 
   void createOfferSdp(bool videoEnabled, bool audioEnabled, bool bundle);
+
+  void setFirstMediaReceived(MediaType media);
+
+  MediaType getFirstMediaReceived() const;
   /**
    * @brief copies relevant information from the offer sdp for which this will be an answer sdp
    * @param offerSdp The offer SDP as received via signaling and parsed
@@ -322,6 +326,7 @@ class SdpInfo {
   int audioSdpMLine;
   int videoCodecs, audioCodecs;
   unsigned int videoBandwidth;
+  MediaType first_media_received_;
   std::vector<CandidateInfo> candidateVector_;
   std::vector<CryptoInfo> cryptoVector_;
   std::vector<RtpMap> internalPayloadVector_;
@@ -337,6 +342,8 @@ class SdpInfo {
   std::string stringifyCandidate(const CandidateInfo & candidate);
   void gen_random(char* s, int len);
   void maybeAddSsrcToList(uint32_t ssrc);
+  void printAudio(std::ostringstream& sdp, char (&msidtemp)[11], bool printedAudio);
+  void printVideo(std::ostringstream& sdp, char (&msidtemp)[11], bool printedVideo);
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_SDPINFO_H_
