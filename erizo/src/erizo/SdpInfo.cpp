@@ -52,7 +52,7 @@ namespace erizo {
 
 
   SdpInfo::SdpInfo(const std::vector<RtpMap> rtp_mappings) : internalPayloadVector_{rtp_mappings} {
-    session_counter = 0;
+    session_version = 0;
     isBundle = false;
     isRtcpMux = false;
     isFingerprint = false;
@@ -170,7 +170,7 @@ namespace erizo {
     ELOG_DEBUG("Getting SDP");
 
     std::ostringstream sdp;
-    sdp << "v=0\n" << "o=- 0 " << session_counter << " IN IP4 127.0.0.1\n";
+    sdp << "v=0\n" << "o=- 0 " << session_version << " IN IP4 127.0.0.1\n";
     sdp << "s=" << SDP_IDENTIFIER << "\n";
     sdp << "t=0 0\n";
 
@@ -1251,12 +1251,12 @@ namespace erizo {
     }
   }
 
-  int SdpInfo::getSessionCounter() const {
-    return session_counter;
+  int SdpInfo::getSessionVersion() const {
+    return session_version;
   }
 
-  void SdpInfo::setSessionCounter(int counter) {
-    session_counter = counter;
+  void SdpInfo::setSessionVersion(int counter) {
+    session_version = counter;
   }
 
   void SdpInfo::setFirstMediaReceived(MediaType media) {

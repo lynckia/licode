@@ -101,6 +101,10 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
 
   Nan::SetPrototypeMethod(tpl, "postProcessInfo", postProcessInfo);
 
+  Nan::SetPrototypeMethod(tpl, "getSessionVersion", getSessionVersion);
+  Nan::SetPrototypeMethod(tpl, "getFirstMediaReceived", getFirstMediaReceived);
+  Nan::SetPrototypeMethod(tpl, "setFirstMediaReceived", setFirstMediaReceived);
+
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("ConnectionDescription").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
@@ -710,6 +714,39 @@ NAN_METHOD(ConnectionDescription::postProcessInfo) {
   GET_SDP();
   bool success = sdp->postProcessInfo();
   info.GetReturnValue().Set(Nan::New(success));
+}
+
+NAN_METHOD(ConnectionDescription::getSessionVersion) {
+  GET_SDP();
+  info.GetReturnValue().Set(Nan::New(sdp->session_version));
+}
+
+NAN_METHOD(ConnectionDescription::getFirstMediaReceived) {
+  GET_SDP();
+  std::string media_type = "audio";
+  switch (sdp->first_media_received_) {
+    case erizo::VIDEO_TYPE:
+      media_type = "video";
+      break;
+    case erizo::AUDIO_TYPE:
+    default:
+      media_type = "audio";
+      break;
+  }
+  info.GetReturnValue().Set(Nan::New(media_type.c_str()).ToLocalChecked());
+}
+
+NAN_METHOD(ConnectionDescription::setFirstMediaReceived) {
+  GET_SDP();
+  std::string media = getString(info[0]);
+
+  if (media == "audio") {
+    sdp->first_media_received_ = erizo::AUDIO_TYPE;
+  } else if (media == "video") {
+    sdp->first_media_received_ = erizo::VIDEO_TYPE;
+  } else {
+    sdp->first_media_received_ = erizo::OTHER;
+  }
 }
 
 NAN_METHOD(ConnectionDescription::close) {

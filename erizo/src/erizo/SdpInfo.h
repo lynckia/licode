@@ -258,11 +258,11 @@ class SdpInfo {
   */
   const std::vector<Rid>& rids() const { return rids_; }
 
-  int getSessionCounter() const;
+  int getSessionVersion() const;
 
-  void setSessionCounter(int counter);
+  void setSessionVersion(int counter);
 
-  int session_counter;
+  int session_version;
   /**
    * The audio and video SSRCs for this particular SDP.
    */
