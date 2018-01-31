@@ -1229,6 +1229,14 @@ namespace erizo {
     }
   }
 
+  void SdpInfo::setFirstMediaReceived(MediaType media) {
+    first_media_received_ = media;
+  }
+
+  MediaType SdpInfo::getFirstMediaReceived() const {
+    return first_media_received_;
+  }
+
   bool operator==(const Rid& lhs, const Rid& rhs) {
   return lhs.id == rhs.id && lhs.direction == rhs.direction;
   }
