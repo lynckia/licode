@@ -54,21 +54,25 @@ const FirefoxStack = (specInput) => {
   const baseSetLocalDescForOffer = that.setLocalDescForOffer;
 
   that.setLocalDescForOffer = (isSubscribe, sessionDescription) => {
-    const sdp = SemanticSdp.SDPInfo.processString(sessionDescription.sdp);
+    const thisSessionDescription = sessionDescription;
+    const sdp = SemanticSdp.SDPInfo.processString(thisSessionDescription.sdp);
     if (isSubscribe) {
       SdpHelpers.forceDirection(sdp, 'recvonly');
     } else {
       SdpHelpers.forceDirection(sdp, 'sendonly');
     }
-    baseSetLocalDescForOffer(isSubscribe, sdp.toString());
+    thisSessionDescription.sdp = sdp.toString();
+    baseSetLocalDescForOffer(isSubscribe, thisSessionDescription);
   };
 
   const baseSetLocalDescForAnswerp2p = that.setLocalDescForAnswerp2p;
 
   that.setLocalDescForAnswerp2p = (sessionDescription) => {
-    const sdp = SemanticSdp.SDPInfo.processString(sessionDescription.sdp);
+    const thisSessionDescription = sessionDescription;
+    const sdp = SemanticSdp.SDPInfo.processString(thisSessionDescription.sdp);
     SdpHelpers.forceDirection(sdp, 'recvonly');
-    baseSetLocalDescForAnswerp2p(sdp.toString());
+    thisSessionDescription.sdp = sdp.toString();
+    baseSetLocalDescForAnswerp2p(thisSessionDescription);
   };
 
   return that;
