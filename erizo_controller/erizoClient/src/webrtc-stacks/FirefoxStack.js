@@ -1,5 +1,7 @@
 import Logger from '../utils/Logger';
 import BaseStack from './BaseStack';
+import SemanticSdp from '../../../common/semanticSdp/SemanticSdp';
+import SdpHelpers from '../utils/SdpHelpers';
 
 const FirefoxStack = (specInput) => {
   Logger.info('Starting Firefox stack');
@@ -47,6 +49,26 @@ const FirefoxStack = (specInput) => {
       enableSimulcast();
     }
     baseCreateOffer(isSubscribe);
+  };
+
+  const baseSetLocalDescForOffer = that.setLocalDescForOffer;
+
+  that.setLocalDescForOffer = (isSubscribe, sessionDescription) => {
+    const sdp = SemanticSdp.SDPInfo.processString(sessionDescription.sdp);
+    if (isSubscribe) {
+      SdpHelpers.forceDirection(sdp, 'recvonly');
+    } else {
+      SdpHelpers.forceDirection(sdp, 'sendonly');
+    }
+    baseSetLocalDescForOffer(isSubscribe, sdp.toString());
+  };
+
+  const baseSetLocalDescForAnswerp2p = that.setLocalDescForAnswerp2p;
+
+  that.setLocalDescForAnswerp2p = (sessionDescription) => {
+    const sdp = SemanticSdp.SDPInfo.processString(sessionDescription.sdp);
+    SdpHelpers.forceDirection(sdp, 'recvonly');
+    baseSetLocalDescForAnswerp2p(sdp.toString());
   };
 
   return that;
