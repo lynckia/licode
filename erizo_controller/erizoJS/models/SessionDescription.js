@@ -134,14 +134,16 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   }
 
   const sources = new Map();
-  if (mediaType === 'audio') {
+  if (mediaType === 'audio' && info.getDirection() != 'recvonly') {
     addSsrc(sources, info.getAudioSsrc(), sdp, media);
   } else if (mediaType === 'video') {
     media.setBitrate(info.getVideoBandwidth());
 
-    info.getVideoSsrcList().forEach((ssrc) => {
-      addSsrc(sources, ssrc, sdp, media);
-    });
+    if (info.getDirection() != 'recvonly') {
+      info.getVideoSsrcList().forEach((ssrc) => {
+        addSsrc(sources, ssrc, sdp, media);
+      });
+    }
 
     const rids = info.getRids();
     let isSimulcast = false;
