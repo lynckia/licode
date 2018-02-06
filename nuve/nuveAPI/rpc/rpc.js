@@ -90,6 +90,12 @@ exports.connect = function (callback) {
            logger.objectToLog(e));
        process.exit(1);
     });
+
+    connection.on('close', function(e) {
+       log.error('message: AMQP connection closed killing process, errorMsg: ' +
+           logger.objectToLog(e));
+       process.exit(1);
+    });
 };
 
 var callbackError = function (corrID) {

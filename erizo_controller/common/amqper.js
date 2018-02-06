@@ -103,6 +103,11 @@ exports.connect = function(callback) {
        log.error('message: AMQP connection error killing process, ' + logger.objectToLog(e));
        process.exit(1);
     });
+
+    connection.on('close', function(e) {
+       log.error('message: AMQP connection closed killing process, ' + logger.objectToLog(e));
+       process.exit(1);
+    });
 };
 
 exports.bind = function(id, callback) {
