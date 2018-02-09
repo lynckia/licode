@@ -134,12 +134,12 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   }
 
   const sources = new Map();
-  if (mediaType === 'audio' && info.getDirection() != 'recvonly') {
+  if (mediaType === 'audio' && info.getDirection() !== 'recvonly') {
     addSsrc(sources, info.getAudioSsrc(), sdp, media);
   } else if (mediaType === 'video') {
     media.setBitrate(info.getVideoBandwidth());
 
-    if (info.getDirection() != 'recvonly') {
+    if (info.getDirection() !== 'recvonly') {
       info.getVideoSsrcList().forEach((ssrc) => {
         addSsrc(sources, ssrc, sdp, media);
       });
