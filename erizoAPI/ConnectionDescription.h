@@ -79,6 +79,9 @@ class ConnectionDescription : public Nan::ObjectWrap {
 
     static NAN_METHOD(postProcessInfo);
 
+    static NAN_METHOD(getFirstMediaReceived);
+    static NAN_METHOD(setFirstMediaReceived);
+
     static Nan::Persistent<v8::Function> constructor;
 };
 
