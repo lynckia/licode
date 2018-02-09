@@ -17,6 +17,7 @@ const BaseStack = (specInput) => {
 
   that.pcConfig = {
     iceServers: [],
+    bundlePolicy: 'max-bundle',
   };
 
   that.con = {};
