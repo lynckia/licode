@@ -100,7 +100,6 @@ void RtpPaddingGeneratorHandler::sendPaddingPacket(std::shared_ptr<DataPacket> p
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(padding_packet->data);
 
   rtp_header->setSeqNumber(sequence_number.output);
-  rtp_header->setMarker(false);
   stats_->getNode()["total"]["paddingBitrate"] += padding_packet->length;
   getContext()->fireWrite(std::move(padding_packet));
 }
