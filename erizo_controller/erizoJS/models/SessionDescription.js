@@ -68,7 +68,9 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
 
   let ice = info.getICECredentials(mediaType);
   if (ice) {
-    media.setICE(new ICEInfo(ice[0], ice[1]));
+    const thisIceInfo = new ICEInfo(ice[0], ice[1]);
+    thisIceInfo.setEndOfCandidates('end-of-candidates'); 
+    media.setICE(thisIceInfo);
   }
 
   const fingerprint = info.getFingerprint(mediaType);
