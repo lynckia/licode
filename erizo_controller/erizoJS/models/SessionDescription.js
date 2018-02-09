@@ -273,7 +273,7 @@ class SessionDescription {
       } else if (media.getType() === 'video') {
         video = media;
       }
-      if (index == 0) {
+      if (index === 0) {
         info.setFirstMediaReceived(media.getType());
       }
       info.addBundleTag(media.getId(), media.getType());
