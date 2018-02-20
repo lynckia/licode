@@ -162,7 +162,7 @@ exports.RoomController = function (spec) {
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
-    that.addPublisher = function (publisherId, options, callback, retries) {
+    that.addPublisher = function (clientId, publisherId, options, callback, retries) {
         if (retries === undefined) {
             retries = 0;
         }
@@ -170,6 +170,7 @@ exports.RoomController = function (spec) {
         if (publishers[publisherId] === undefined) {
 
             log.info('message: addPublisher, ' +
+                     'clientId ' + clientId + ', ' + 
                      'streamId: ' + publisherId + ', ' +
                      logger.objectToLog(options) + ', ' +
                      logger.objectToLog(options.metadata));
@@ -188,7 +189,7 @@ exports.RoomController = function (spec) {
                          ', ' + logger.objectToLog(options.metadata));
                 // Track publisher locally
                 // then we call its addPublisher method.
-                var args = [publisherId, options];
+                var args = [clientId, publisherId, options];
                 publishers[publisherId] = erizoId;
                 subscribers[publisherId] = [];
 
@@ -240,26 +241,26 @@ exports.RoomController = function (spec) {
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
      */
-    that.addSubscriber = function (subscriberId, publisherId, options, callback, retries) {
-        if (subscriberId === null){
-          callback('Error: null subscriberId');
+    that.addSubscriber = function (clientId, publisherId, options, callback, retries) {
+        if (clientId === null){
+          callback('Error: null clientId');
           return;
         }
         if (retries === undefined)
             retries = 0;
 
         if (publishers[publisherId] !== undefined &&
-            subscribers[publisherId].indexOf(subscriberId) === -1) {
+            subscribers[publisherId].indexOf(clientId) === -1) {
             log.info('message: addSubscriber, ' +
                      'streamId: ' + publisherId + ', ' +
-                     'clientId: ' + subscriberId + ', ' +
+                     'clientId: ' + clientId + ', ' +
                      logger.objectToLog(options) + ', ' +
                      logger.objectToLog(options.metadata));
 
             if (options.audio === undefined) options.audio = true;
             if (options.video === undefined) options.video = true;
 
-            var args = [subscriberId, publisherId, options];
+            var args = [clientId, publisherId, options];
 
             amqper.callRpc(getErizoQueue(publisherId, undefined), 'addSubscriber', args,
                            {callback: function (data){
@@ -267,7 +268,7 @@ exports.RoomController = function (spec) {
                     log.warn('message: addSubscriber rpc callback has arrived after ' +
                              'publisher is removed, ' +
                              'streamId: ' + publisherId + ', ' +
-                             'clientId: ' + subscriberId + ', ' +
+                             'clientId: ' + clientId + ', ' +
                              logger.objectToLog(options.metadata));
                     callback('timeout');
                     return;
@@ -276,23 +277,23 @@ exports.RoomController = function (spec) {
                     if (retries < MAX_ERIZOJS_RETRIES){
                         retries++;
                         log.warn('message: addSubscriber ErizoJS timeout, ' +
-                                 'clientId: ' + subscriberId + ', ' +
+                                 'clientId: ' + clientId + ', ' +
                                  'streamId: ' + publisherId + ', ' +
                                  'erizoId: ' + getErizoQueue(publisherId) + ', ' +
                                  'retries: ' + retries + ', ' +
                                  logger.objectToLog(options.metadata));
-                        that.addSubscriber(subscriberId, publisherId, options, callback, retries);
+                        that.addSubscriber(clientId, publisherId, options, callback, retries);
                         return;
                     }
                     log.warn('message: addSubscriber ErizoJS timeout no retry, ' +
-                             'clientId: ' + subscriberId + ', ' +
+                             'clientId: ' + clientId + ', ' +
                              'streamId: ' + publisherId + ', ' +
                              'erizoId: ' + getErizoQueue(publisherId) + ', ' +
                              logger.objectToLog(options.metadata));
                     callback('timeout');
                     return;
                 }else if (data.type === 'initializing'){
-                    subscribers[publisherId].push(subscriberId);
+                    subscribers[publisherId].push(clientId);
                 }
                 callback(data);
             }});

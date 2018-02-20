@@ -251,13 +251,13 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
       }
     };
 
-    that.processSignaling = function (streamId, peerId, msg) {
+    that.processSignaling = function (streamId, clientId, msg) {
         log.info('message: Process Signaling message, ' +
-                 'streamId: ' + streamId + ', peerId: ' + peerId);
+                 'streamId: ' + streamId + ', clientId: ' + clientId);
         if (publishers[streamId] !== undefined) {
             var publisher = publishers[streamId];
-            if (publisher.hasSubscriber(peerId)) {
-                var subscriber = publisher.getSubscriber(peerId);
+            if (publisher.hasSubscriber(clientId)) {
+                var subscriber = publisher.getSubscriber(clientId);
                 if (msg.type === 'offer') {
                     const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
                     subscriber.remoteDescription =
@@ -279,20 +279,20 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                       }
                     if (msg.config) {
                         if (msg.config.slideShowMode !== undefined) {
-                            that.setSlideShow(msg.config.slideShowMode, peerId, streamId);
+                            that.setSlideShow(msg.config.slideShowMode, clientId, streamId);
                         }
                         if (msg.config.muteStream !== undefined) {
-                            that.muteStream(msg.config.muteStream, peerId, streamId);
+                            that.muteStream(msg.config.muteStream, clientId, streamId);
                         }
                         if (msg.config.qualityLayer !== undefined) {
-                            that.setQualityLayer (msg.config.qualityLayer, peerId, streamId);
+                            that.setQualityLayer (msg.config.qualityLayer, clientId, streamId);
                         }
                         if (msg.config.video !== undefined) {
-                            that.setVideoConstraints(msg.config.video, peerId, streamId);
+                            that.setVideoConstraints(msg.config.video, clientId, streamId);
                         }
                     }
                 } else if (msg.type === 'control') {
-                  processControlMessage(publisher, peerId, msg.action);
+                  processControlMessage(publisher, clientId, msg.action);
                 }
             } else {
                 if (msg.type === 'offer') {
@@ -328,7 +328,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                             }
                         }
                         if (msg.config.muteStream !== undefined) {
-                            that.muteStream (msg.config.muteStream, peerId, streamId);
+                            that.muteStream (msg.config.muteStream, clientId, streamId);
                         }
                     }
                 } else if (msg.type === 'control') {
@@ -344,34 +344,35 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
-    that.addPublisher = function (from, options, callback) {
+    that.addPublisher = function (clientId, streamId, options, callback) {
         var publisher;
 
-        if (publishers[from] === undefined) {
+        if (publishers[streamId] === undefined) {
 
             log.info('message: Adding publisher, ' +
-                     'streamId: ' + from + ', ' +
+                     'clientId: ' + clientId + ', ' +
+                     'streamId: ' + streamId + ', ' +
                      logger.objectToLog(options) + ', ' +
                      logger.objectToLog(options.metadata));
-            publisher = new Publisher(from, threadPool, ioThreadPool, options);
-            publishers[from] = publisher;
+            publisher = new Publisher(streamId, threadPool, ioThreadPool, options);
+            publishers[streamId] = publisher;
 
-            initWebRtcConnection(publisher.wrtc, callback, from, undefined, options);
+            initWebRtcConnection(publisher.wrtc, callback, streamId, undefined, options);
 
         } else {
-            publisher = publishers[from];
+            publisher = publishers[streamId];
             if (publisher.numSubscribers === 0) {
                 log.warn('message: publisher already set but no subscribers will republish, ' +
-                         'code: ' + WARN_CONFLICT + ', streamId: ' + from + ', ' +
+                         'code: ' + WARN_CONFLICT + ', streamId: ' + streamId + ', ' +
                          logger.objectToLog(options.metadata));
 
 
                 publisher.resetWrtc();
 
-                initWebRtcConnection(publisher.wrtc, callback, from, undefined, options);
+                initWebRtcConnection(publisher.wrtc, callback, streamId, undefined, options);
             } else {
                 log.warn('message: publisher already set has subscribers will ignore, ' +
-                         'code: ' + WARN_CONFLICT + ', streamId: ' + from);
+                         'code: ' + WARN_CONFLICT + ', streamId: ' + streamId);
             }
         }
     };
@@ -381,24 +382,24 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
      */
-    that.addSubscriber = function (from, to, options, callback) {
-        var publisher = publishers[to];
+    that.addSubscriber = function (clientId, streamId, options, callback) {
+        var publisher = publishers[streamId];
         if (publisher === undefined) {
             log.warn('message: addSubscriber to unknown publisher, ' +
-                     'code: ' + WARN_NOT_FOUND + ', streamId: ' + to + ', clientId: ' + from +
+                     'code: ' + WARN_NOT_FOUND + ', streamId: ' + streamId + ', clientId: ' + clientId +
                       ', ' + logger.objectToLog(options.metadata));
             //We may need to notify the clients
             return;
         }
-        var subscriber = publisher.getSubscriber(from);
+        var subscriber = publisher.getSubscriber(clientId);
         if (subscriber !== undefined) {
             log.warn('message: Duplicated subscription will resubscribe, ' +
-                     'code: ' + WARN_CONFLICT + ', streamId: ' + to + ', clientId: ' + from+
+                     'code: ' + WARN_CONFLICT + ', streamId: ' + streamId + ', clientId: ' + clientId+
                       ', ' + logger.objectToLog(options.metadata));
-            that.removeSubscriber(from,to);
+            that.removeSubscriber(clientId,streamId);
         }
-        publisher.addSubscriber(from, options);
-        initWebRtcConnection(publisher.getSubscriber(from), callback, to, from, options);
+        publisher.addSubscriber(clientId, options);
+        initWebRtcConnection(publisher.getSubscriber(clientId), callback, streamId, from, options);
     };
 
     /*
@@ -479,7 +480,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
      * Removes all the subscribers related with a client.
      */
     that.removeSubscriptions = function (from) {
-        log.info('message: removing subscriptions, peerId:', from);
+        log.info('message: removing subscriptions, clientId:', from);
         for (var to in publishers) {
             if (publishers.hasOwnProperty(to)) {
                 var publisher = publishers[to];

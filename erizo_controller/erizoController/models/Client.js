@@ -180,7 +180,7 @@ class Client extends events.EventEmitter {
                  'streamId: ' + id + ', clientId: ' + this.id + ', ' +
                  logger.objectToLog(options) + ', ' +
                  logger.objectToLog(options.attributes));
-        this.room.controller.addPublisher(id, options, (signMess) => {
+        this.room.controller.addPublisher(this.id, id, options, (signMess) => {
             if (signMess.type === 'initializing') {
                 callback(id);
                 st = new ST.Stream({id: id,
