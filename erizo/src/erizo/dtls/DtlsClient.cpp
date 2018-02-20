@@ -334,6 +334,10 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
       }
     }
 
+    void DtlsSocketContext::handleTimeout() {
+      mSocket->handleTimeout();
+    }
+
     void DtlsSocketContext::handshakeCompleted() {
       char fprint[100];
       SRTP_PROTECTION_PROFILE *srtp_profile;
