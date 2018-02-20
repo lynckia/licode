@@ -13,60 +13,59 @@
 #include "./LibNiceConnection.h"
 #include "./NicerConnection.h"
 
-using erizo::Resender;
+using erizo::TimeoutChecker;
 using erizo::DtlsTransport;
 using dtls::DtlsSocketContext;
 
 DEFINE_LOGGER(DtlsTransport, "DtlsTransport");
-DEFINE_LOGGER(Resender, "Resender");
+DEFINE_LOGGER(TimeoutChecker, "TimeoutChecker");
 
 using std::memcpy;
 
 static std::mutex dtls_mutex;
 
-Resender::Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx)
+TimeoutChecker::TimeoutChecker(DtlsTransport* transport, dtls::DtlsSocketContext* ctx)
     : transport_(transport), socket_context_(ctx),
-      resend_seconds_(kInitialSecsPerResend), max_resends_(kMaxResends),
+      check_seconds_(kInitialSecsPerTimeoutCheck), max_checks_(kMaxTimeoutChecks),
       scheduled_task_{std::make_shared<ScheduledTaskReference>()} {
 }
 
-Resender::~Resender() {
+TimeoutChecker::~TimeoutChecker() {
   cancel();
 }
 
-void Resender::cancel() {
+void TimeoutChecker::cancel() {
   transport_->getWorker()->unschedule(scheduled_task_);
 }
 
-void Resender::scheduleResend(packetPtr packet) {
-  ELOG_DEBUG("message: Scheduling a new resender");
+void TimeoutChecker::scheduleCheck() {
+  ELOG_TRACE("message: Scheduling a new TimeoutChecker");
   transport_->getWorker()->unschedule(scheduled_task_);
-  resend_seconds_ = kInitialSecsPerResend;
-  packet_ = packet;
-  transport_->writeDtlsPacket(socket_context_, packet_);
+  check_seconds_ = kInitialSecsPerTimeoutCheck;
   if (transport_->getTransportState() != TRANSPORT_READY) {
     scheduleNext();
   }
 }
 
-void Resender::resend() {
-  if (transport_ != nullptr) {
-    if (max_resends_-- > 0) {
-      ELOG_DEBUG("%s message: Resending DTLS message", transport_->toLog());
-      transport_->writeDtlsPacket(socket_context_, packet_);
-      scheduleNext();
-    } else {
-      ELOG_DEBUG("%s message: DTLS timeout", transport_->toLog());
-      transport_->onHandshakeFailed(socket_context_, "Dtls Timeout on Resender");
-    }
-  }
-}
-
-void Resender::scheduleNext() {
+void TimeoutChecker::scheduleNext() {
   scheduled_task_ = transport_->getWorker()->scheduleFromNow([this]() {
-    this->resend();
-  }, std::chrono::seconds(resend_seconds_));
-  resend_seconds_ = resend_seconds_ * 2;
+      if (transport_->getTransportState() == TRANSPORT_READY) {
+        return;
+      }
+      if (transport_ != nullptr) {
+        if (max_checks_-- > 0) {
+          ELOG_DEBUG("Handling dtls timeout, checks left: %d", max_checks_);
+          if (socket_context_) {
+            std::lock_guard<std::mutex> guard(dtls_mutex);
+            socket_context_->handleTimeout();
+          }
+          scheduleNext();
+        } else {
+          ELOG_DEBUG("%s message: DTLS timeout", transport_->toLog());
+          transport_->onHandshakeFailed(socket_context_, "Dtls Timeout on TimeoutChecker");
+        }
+      }
+  }, std::chrono::seconds(check_seconds_));
 }
 
 DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, const std::string& connection_id,
@@ -113,9 +112,9 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     } else {
       ice_.reset(LibNiceConnection::create(iceConfig_));
     }
-    rtp_resender_.reset(new Resender(this, dtlsRtp.get()));
+    rtp_timeout_checker_.reset(new TimeoutChecker(this, dtlsRtp.get()));
     if (!rtcp_mux) {
-      rtcp_resender_.reset(new Resender(this, dtlsRtcp.get()));
+      rtcp_timeout_checker_.reset(new TimeoutChecker(this, dtlsRtcp.get()));
     }
     ELOG_DEBUG("%s message: created", toLog());
   }
@@ -136,18 +135,18 @@ void DtlsTransport::start() {
 void DtlsTransport::close() {
   ELOG_DEBUG("%s message: closing", toLog());
   running_ = false;
+  if (rtp_timeout_checker_) {
+    rtp_timeout_checker_->cancel();
+  }
+  if (rtcp_timeout_checker_) {
+    rtcp_timeout_checker_->cancel();
+  }
   ice_->close();
   if (dtlsRtp) {
     dtlsRtp->close();
   }
   if (dtlsRtcp) {
     dtlsRtcp->close();
-  }
-  if (rtp_resender_) {
-    rtp_resender_->cancel();
-  }
-  if (rtcp_resender_) {
-    rtcp_resender_->cancel();
   }
   this->state_ = TRANSPORT_FINISHED;
   ELOG_DEBUG("%s message: closed", toLog());
@@ -167,15 +166,9 @@ void DtlsTransport::onIceData(packetPtr packet) {
     ELOG_DEBUG("%s message: Received DTLS message, transportName: %s, componentId: %u",
                toLog(), transport_name.c_str(), component_id);
     if (component_id == 1) {
-      if (rtp_resender_.get() != NULL) {
-        rtp_resender_->cancel();
-      }
       std::lock_guard<std::mutex> guard(dtls_mutex);
       dtlsRtp->read(reinterpret_cast<unsigned char*>(data), len);
     } else {
-      if (rtcp_resender_.get() != NULL) {
-        rtcp_resender_->cancel();
-      }
       std::lock_guard<std::mutex> guard(dtls_mutex);
       dtlsRtcp->read(reinterpret_cast<unsigned char*>(data), len);
     }
@@ -265,9 +258,9 @@ void DtlsTransport::onDtlsPacket(DtlsSocketContext *ctx, const unsigned char* da
   packetPtr packet = std::make_shared<DataPacket>(component_id, data, len);
 
   if (is_rtcp) {
-    rtcp_resender_->scheduleResend(packet);
+    writeDtlsPacket(dtlsRtcp.get(), packet);
   } else {
-    rtp_resender_->scheduleResend(packet);
+    writeDtlsPacket(dtlsRtp.get(), packet);
   }
 
   ELOG_DEBUG("%s message: Sending DTLS message, transportName: %s, componentId: %d",
@@ -285,6 +278,13 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
                                          std::string srtp_profile) {
   boost::mutex::scoped_lock lock(sessionMutex_);
   std::string temp;
+
+  if (rtp_timeout_checker_.get() != NULL) {
+    rtp_timeout_checker_->cancel();
+  }
+  if (rtcp_timeout_checker_.get() != NULL) {
+    rtcp_timeout_checker_->cancel();
+  }
 
   if (isServer_) {  // If we are server, we swap the keys
     ELOG_DEBUG("%s message: swapping keys, isServer: %d", toLog(), isServer_);
@@ -354,10 +354,12 @@ void DtlsTransport::updateIceStateSync(IceState state, IceConnection *conn) {
     if (!isServer_ && dtlsRtp && !dtlsRtp->started) {
       ELOG_INFO("%s message: DTLSRTP Start, transportName: %s", toLog(), transport_name.c_str());
       dtlsRtp->start();
+      rtp_timeout_checker_->scheduleCheck();
     }
     if (!isServer_ && dtlsRtcp != NULL && !dtlsRtcp->started) {
       ELOG_DEBUG("%s message: DTLSRTCP Start, transportName: %s", toLog(), transport_name.c_str());
       dtlsRtcp->start();
+      rtcp_timeout_checker_->scheduleCheck();
     }
   }
 }
