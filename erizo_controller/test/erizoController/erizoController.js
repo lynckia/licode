@@ -477,7 +477,8 @@ describe('Erizo Controller / Erizo Controller', function() {
 
                 onPublish(options, sdp, callback);
 
-                expect(callback.withArgs(null, 'ErizoJS is not reachable').callCount).to.equal(1);
+                expect(callback.withArgs(null, null, 'ErizoJS is not reachable').callCount)
+                      .to.equal(1);
               });
 
               it('should emit ErizoAgent unreachable', function() {
@@ -486,7 +487,7 @@ describe('Erizo Controller / Erizo Controller', function() {
 
                 onPublish(options, sdp, callback);
 
-                expect(callback.withArgs(null, 'ErizoAgent is not reachable').callCount)
+                expect(callback.withArgs(null, null, 'ErizoAgent is not reachable').callCount)
                       .to.equal(1);
               });
 
@@ -496,8 +497,8 @@ describe('Erizo Controller / Erizo Controller', function() {
 
                 onPublish(options, sdp, callback);
 
-                expect(callback.withArgs(null, 'ErizoAgent or ErizoJS is not reachable').callCount)
-                                  .to.equal(1);
+                expect(callback.withArgs(null, null, 'ErizoAgent or ErizoJS is not reachable')
+                                        .callCount).to.equal(1);
               });
 
               describe('on Subscribe', function() {
@@ -632,7 +633,7 @@ describe('Erizo Controller / Erizo Controller', function() {
 
                     onSubscribe(subscriberOptions, subscriberSdp, callback);
 
-                    expect(callback.withArgs(null, 'ErizoJS is not reachable').callCount)
+                    expect(callback.withArgs(null, null, 'ErizoJS is not reachable').callCount)
                           .to.equal(1);
                   });
                 });

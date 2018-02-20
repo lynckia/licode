@@ -1,7 +1,7 @@
 /* global document */
 
 import { EventDispatcher, StreamEvent } from './Events';
-import Connection from './Connection';
+import ConnectionHelpers from './utils/ConnectionHelpers';
 import VideoPlayer from './views/VideoPlayer';
 import AudioPlayer from './views/AudioPlayer';
 import Logger from './utils/Logger';
@@ -10,7 +10,7 @@ import Logger from './utils/Logger';
  * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC
  * stream and identify the stream and where it should be drawn.
  */
-const Stream = (altConnection, specInput) => {
+const Stream = (altConnectionHelpers, specInput) => {
   const spec = specInput;
   const that = EventDispatcher(spec);
 
@@ -29,7 +29,8 @@ const Stream = (altConnection, specInput) => {
   that.desktopStreamId = spec.desktopStreamId;
   that.audioMuted = false;
   that.videoMuted = false;
-  that.Connection = altConnection === undefined ? Connection : altConnection;
+  that.ConnectionHelpers =
+    altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
 
   if (that.videoSize !== undefined &&
         (!(that.videoSize instanceof Array) ||
@@ -129,9 +130,8 @@ const Stream = (altConnection, specInput) => {
           screen: spec.screen,
           extensionId: that.extensionId,
           desktopStreamId: that.desktopStreamId };
-        that.Connection.GetUserMedia(opt, (stream) => {
-            // navigator.webkitGetUserMedia("audio, video", (stream) => {
 
+        that.ConnectionHelpers.GetUserMedia(opt, (stream) => {
           Logger.info('User has granted access to local media.');
           that.stream = stream;
 
