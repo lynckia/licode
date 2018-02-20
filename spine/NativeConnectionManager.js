@@ -6,86 +6,83 @@ const log = logger.getLogger('NativeConnectionManager');
 
 let sessionId = 0;
 
-const NativeStack = (config) => {
-  const that = {};
-  const configuration = Object.assign({}, config);
-  log.info('Creating a NativeStack', configuration);
+class NativeStack {
+  constructor(config) {
+    const configuration = Object.assign({}, config);
+    log.info('Creating a NativeStack', configuration);
 
-  that.pcConfig = {
-    iceServers: [],
-  };
 
-  if (config.iceServers !== undefined) {
-    that.pcConfig.iceServers = configuration.iceServers;
+    this.pcConfig = {
+      iceServers: [],
+    };
+
+    if (config.iceServers !== undefined) {
+      this.pcConfig.iceServers = configuration.iceServers;
+    }
+
+    configuration.audio = configuration.audio || false;
+    configuration.video = configuration.video || false;
+
+    this.peerConnection = ErizoNativeConnection.ErizoNativeConnection(configuration);
+    this.peerConnection.onaddstream = (stream) => {
+      if (this.onaddstream) {
+        this.onaddstream(stream);
+      }
+    };
+
+    this.desc = {};
+    this.callback = undefined;
   }
 
-  configuration.audio = configuration.audio || false;
-  configuration.video = configuration.video || false;
-
-  that.peerConnection = ErizoNativeConnection.ErizoNativeConnection(configuration);
-  that.desc = {};
-  that.callback = undefined;
-
-  that.close = () => {
-    if (that.peerConnection) {
-      that.peerConnection.close();
+  close() {
+    if (this.peerConnection) {
+      this.peerConnection.close();
     } else {
       log.error('Trying to close with no underlying PC!');
     }
-  };
+  }
 
-  that.stop = () => {
-    that.close();
-  };
+  stop() {
+    this.close();
+  }
 
-  that.createOffer = () => {
+  createOffer() {
     log.info('CreateOffer');
-  };
+  }
 
-  that.addStream = () => {
+  addStream() {
     log.info('addStream');
-  };
+  }
 
-  that.removeStream = (stream) => {
+  removeStream(stream) {
     log.info('removeStream');
-  };
+  }
 
-  that.processSignalingMessage = (msg) => {
+  processSignalingMessage(msg) {
     log.info('processSignaling', msg.type);
-    that.peerConnection.processSignallingMessage(msg);
-  };
+    this.peerConnection.processSignallingMessage(msg);
+  }
 
-  that.sendSignalingMessage = () => {
+  sendSignalingMessage() {
     log.info('Sending signaling Message');
-  };
+  }
+}
 
-  that.peerConnection.onaddstream = (stream) => {
-    if (that.onaddstream) {
-      that.onaddstream(stream);
-    }
-  };
+class ErizoConnectionManager {
+  constructor() {}
 
-  return that;
-};
-
-exports.ConnectionManager = () => {
-  const that = {};
-  
-  that.getOrBuildErizoConnection = (specInput, erizoId = undefined, enableSinglePC = false) => {
+  getOrBuildErizoConnection(specInput, erizoId = undefined, enableSinglePC = false){
     log.debug(`getOrBuildErizoConnection, erizoId: ${erizoId}`);
     const configuration = Object.assign({}, specInput);
     configuration.sessionId = sessionId;
     sessionId += 1;
-    return NativeStack(specInput); // jshint ignore:line
-  };
+    return new NativeStack(specInput); // jshint ignore:line
+  }
 
-  that.closeConnection = (connection) => {
+  closeConnection(connection) {
     log.debug('Close connection');
     connection.close();
-  };
+  }
+}
 
-  return that;
-};
-
-
-
+exports.ErizoConnectionManager = ErizoConnectionManager;

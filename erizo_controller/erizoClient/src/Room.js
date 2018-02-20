@@ -1,4 +1,4 @@
-import ConnectionManager from './ConnectionManager';
+import ErizoConnectionManager from './ErizoConnectionManager';
 import ConnectionHelpers from './utils/ConnectionHelpers';
 import { EventDispatcher, StreamEvent, RoomEvent } from './Events';
 import { Socket } from './Socket';
@@ -34,9 +34,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
 
-  that.connectionManager =
-    altConnectionManager === undefined ? ConnectionManager()
-    : altConnectionManager.ConnectionManager();
+  that.erizoConnectionManager =
+    altConnectionManager === undefined ? new ErizoConnectionManager()
+    : new altConnectionManager.ErizoConnectionManager();
 
   let socket = Socket(altIo);
   that.socket = socket;
@@ -63,7 +63,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         });
       } else {
         stream.pc.removeStream(stream);
-        that.connectionManager.closeConnection(stream.pc);
+        that.erizoConnectionManager.closeConnection(stream.pc);
         delete stream.pc;
       }
     }
@@ -121,7 +121,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const createRemoteStreamP2PConnection = (streamInput, peerSocket) => {
     const stream = streamInput;
     stream.pc =
-    that.connectionManager.getOrBuildErizoConnection(getP2PConnectionOptions(stream, peerSocket));
+    that.erizoConnectionManager.getOrBuildErizoConnection(
+      getP2PConnectionOptions(stream, peerSocket));
     stream.pc.onaddstream = dispatchStreamSubscribed.bind(null, stream);
     stream.pc.oniceconnectionstatechange = (state) => {
       if (state === 'failed') {
@@ -136,7 +137,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       stream.pc = ErizoMap();
     }
 
-    const connection = that.connectionManager.getOrBuildErizoConnection(
+    const connection = that.erizoConnectionManager.getOrBuildErizoConnection(
       getP2PConnectionOptions(stream, peerSocket));
     stream.pc.add(peerSocket, connection);
 
@@ -187,7 +188,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const createRemoteStreamErizoConnection = (streamInput, erizoId, options) => {
     const stream = streamInput;
     stream.pc =
-    that.connectionManager.getOrBuildErizoConnection(
+    that.erizoConnectionManager.getOrBuildErizoConnection(
       getErizoConnectionOptions(stream, options, true), erizoId);
 
     stream.pc.onaddstream = dispatchStreamSubscribed.bind(null, stream);
@@ -202,7 +203,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   const createLocalStreamErizoConnection = (streamInput, erizoId, options) => {
     const stream = streamInput;
-    stream.pc = that.connectionManager.getOrBuildErizoConnection(
+    stream.pc = that.erizoConnectionManager.getOrBuildErizoConnection(
       getErizoConnectionOptions(stream, options), erizoId);
 
     stream.pc.addStream(stream);
