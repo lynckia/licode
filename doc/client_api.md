@@ -342,7 +342,7 @@ In the next table we can see the functions of this class:
 | [disconnect()](#disconnect-from-room)                    | It disconnects from the `room`.                                                   |
 | [startRecording(stream)](#start-recording)               | Starts recording the `stream`.                                                    |
 | [stopRecording(recordingId)](#stop-recording)            | Stops a recording identified by its `recordingId`.                                |
-| [getSreamsByAttribute(name, value)](#get-streams-by-attribute) | It returns a list of the remote streams that have the attribute specified by name - value strings.  |
+| [getStreamsByAttribute(name, value)](#get-streams-by-attribute) | It returns a list of the remote streams that have the attribute specified by name - value strings.  |
 
 
 ## Open a connection to Room
