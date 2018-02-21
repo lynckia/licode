@@ -103,6 +103,8 @@ class DtlsSocket {
   // extracted from the DTLS handshake process
   void createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy_t& inboundPolicy);  // NOLINT
 
+  void handleTimeout();
+
  private:
   // Causes an immediate handshake iteration to happen, which will retransmit the handshake
   void forceRetransmit();
@@ -152,6 +154,8 @@ class DtlsSocketContext {
   void setDtlsReceiver(DtlsReceiver *recv);
   void setDtlsSocket(DtlsSocket *sock) {mSocket = sock;}
   std::string getFingerprint();
+
+  void handleTimeout();
 
   enum PacketType { rtp, dtls, stun, unknown};
 

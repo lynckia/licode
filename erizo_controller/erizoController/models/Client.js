@@ -182,7 +182,7 @@ class Client extends events.EventEmitter {
                  logger.objectToLog(options.attributes));
         this.room.controller.addPublisher(id, options, (signMess) => {
             if (signMess.type === 'initializing') {
-                callback(id);
+                callback(id, signMess.erizoId);
                 st = new ST.Stream({id: id,
                                     client: this.id,
                                     audio: options.audio,
@@ -227,17 +227,17 @@ class Client extends events.EventEmitter {
             } else if (signMess === 'timeout-erizojs') {
                 log.error('message: addPublisher timeout when contacting ErizoJS, ' +
                           'streamId: ' + id + ', clientId: ' + this.id);
-                callback(null, 'ErizoJS is not reachable');
+                callback(null, null, 'ErizoJS is not reachable');
                 return;
             } else if (signMess === 'timeout-agent'){
                 log.error('message: addPublisher timeout when contacting Agent, ' +
                           'streamId: ' + id + ', clientId: ' + this.id);
-                callback(null, 'ErizoAgent is not reachable');
+                callback(null, null, 'ErizoAgent is not reachable');
                 return;
             } else if (signMess === 'timeout'){
                 log.error('message: addPublisher Undefined RPC Timeout, ' +
                           'streamId: ' + id + ', clientId: ' + this.id);
-                callback(null, 'ErizoAgent or ErizoJS is not reachable');
+                callback(null, null, 'ErizoAgent or ErizoJS is not reachable');
                 return;
             }
             log.debug('Sending message back to the client', id);
@@ -299,7 +299,7 @@ class Client extends events.EventEmitter {
                              'state: SUBSCRIBER_INITIAL, ' +
                              'clientId: ' + this.id + ', ' +
                              'streamId: ' + options.streamId);
-                    callback(true);
+                    callback(true, signMess.erizoId);
                     if (global.config.erizoController.report.session_events) {  // jshint ignore:line
                         var timeStamp = new Date();
                         this.room.amqper.broadcast('event', {room: this.room.id,
@@ -333,7 +333,7 @@ class Client extends events.EventEmitter {
                     log.error('message: addSubscriber timeout when contacting ErizoJS, ' +
                               'streamId: ', options.streamId, ', ' +
                               'clientId: ' + this.id);
-                    callback(null, 'ErizoJS is not reachable');
+                    callback(null, null, 'ErizoJS is not reachable');
                     return;
                 }
 
