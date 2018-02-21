@@ -10,7 +10,7 @@ require('script-loader!./utils/L.Resizer.js');
 
 
 const Erizo = {
-  Room: Room.bind(null, undefined, undefined),
+  Room: Room.bind(null, undefined, undefined, undefined),
   LicodeEvent,
   RoomEvent,
   StreamEvent,
