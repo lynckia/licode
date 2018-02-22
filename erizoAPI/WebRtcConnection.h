@@ -3,6 +3,7 @@
 
 #include <nan.h>
 #include <WebRtcConnection.h>
+#include <logger.h>
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
 #include "ConnectionDescription.h"
@@ -20,6 +21,7 @@
 class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
    public Nan::ObjectWrap{
  public:
+    DECLARE_LOGGER();
     static NAN_MODULE_INIT(Init);
 
     std::shared_ptr<erizo::WebRtcConnection> me;
@@ -33,10 +35,11 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     WebRtcConnection();
     ~WebRtcConnection();
 
-    Nan::Callback *eventCallback_;
+    void close();
 
+    Nan::Callback *eventCallback_;
     uv_async_t async_;
-    uv_async_t asyncStats_;
+    bool closed_;
     /*
      * Constructor.
      * Constructs an empty WebRtcConnection without any configuration.

@@ -43,10 +43,13 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener {
     MediaStream();
     ~MediaStream();
 
+    void close();
+
     Nan::Callback *statsCallback_;
 
-    uv_async_t asyncStats_;
+    // uv_async_t asyncStats_;
     bool hasCallback_;
+    bool closed_;
     /*
      * Constructor.
      * Constructs an empty MediaStream without any configuration.

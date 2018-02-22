@@ -43,10 +43,28 @@ void StatCallWorker::HandleOKCallback() {
 
 Nan::Persistent<Function> MediaStream::constructor;
 
-MediaStream::MediaStream() {
+MediaStream::MediaStream() : closed_{false} {
+  // uv_async_init(uv_default_loop(), &asyncStats_, &MediaStream::statsCallback);
 }
 
 MediaStream::~MediaStream() {
+  close();
+}
+
+void MediaStream::close() {
+  if (closed_) {
+    return;
+  }
+  if (me) {
+    me->setMediaStreamStatsListener(nullptr);
+    me->close();
+    me.reset();
+  }
+  hasCallback_ = false;
+  // if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&asyncStats_))) {
+  //   uv_close(reinterpret_cast<uv_handle_t*>(&asyncStats_), nullptr);
+  // }
+  closed_ = true;
 }
 
 NAN_MODULE_INIT(MediaStream::Init) {
@@ -100,7 +118,6 @@ NAN_METHOD(MediaStream::New) {
     MediaStream* obj = new MediaStream();
     obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtcId);
     obj->msink = obj->me.get();
-    uv_async_init(uv_default_loop(), &obj->asyncStats_, &MediaStream::statsCallback);
     obj->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
   } else {
@@ -110,18 +127,17 @@ NAN_METHOD(MediaStream::New) {
 
 NAN_METHOD(MediaStream::close) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
-  obj->me->setMediaStreamStatsListener(NULL);
-  obj->hasCallback_ = false;
-  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&obj->asyncStats_))) {
-    uv_close(reinterpret_cast<uv_handle_t*>(&obj->asyncStats_), NULL);
+  if (obj) {
+    obj->close();
   }
-  obj->me->close();
-  obj->me.reset();
 }
 
 NAN_METHOD(MediaStream::init) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
   bool r = me->init();
 
   info.GetReturnValue().Set(Nan::New(r));
@@ -130,6 +146,9 @@ NAN_METHOD(MediaStream::init) {
 NAN_METHOD(MediaStream::setSlideShowMode) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   bool v = info[0]->BooleanValue();
   me->setSlideShowMode(v);
@@ -139,6 +158,9 @@ NAN_METHOD(MediaStream::setSlideShowMode) {
 NAN_METHOD(MediaStream::muteStream) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   bool mute_video = info[0]->BooleanValue();
   bool mute_audio = info[1]->BooleanValue();
@@ -148,6 +170,9 @@ NAN_METHOD(MediaStream::muteStream) {
 NAN_METHOD(MediaStream::setVideoConstraints) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
   int max_video_width = info[0]->IntegerValue();
   int max_video_height = info[1]->IntegerValue();
   int max_video_frame_rate = info[2]->IntegerValue();
@@ -157,6 +182,9 @@ NAN_METHOD(MediaStream::setVideoConstraints) {
 NAN_METHOD(MediaStream::setMetadata) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   v8::String::Utf8Value json_param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string metadata_string = std::string(*json_param);
@@ -182,6 +210,9 @@ NAN_METHOD(MediaStream::setMetadata) {
 NAN_METHOD(MediaStream::getCurrentState) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   int state = me->getCurrentState();
 
@@ -192,6 +223,9 @@ NAN_METHOD(MediaStream::getCurrentState) {
 NAN_METHOD(MediaStream::setAudioReceiver) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   MediaSink* param = Nan::ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::MediaSink *mr = param->msink;
@@ -203,6 +237,9 @@ NAN_METHOD(MediaStream::setAudioReceiver) {
 NAN_METHOD(MediaStream::setVideoReceiver) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   MediaSink* param = Nan::ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   erizo::MediaSink *mr = param->msink;
@@ -215,18 +252,19 @@ NAN_METHOD(MediaStream::setVideoReceiver) {
 NAN_METHOD(MediaStream::generatePLIPacket) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
 
-  if (obj->me == NULL) {
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
     return;
   }
-
-  std::shared_ptr<erizo::MediaStream> me = obj->me;
   me->sendPLI();
-  return;
 }
 
 NAN_METHOD(MediaStream::enableHandler) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string name = std::string(*param);
@@ -238,24 +276,27 @@ NAN_METHOD(MediaStream::enableHandler) {
 NAN_METHOD(MediaStream::disableHandler) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string name = std::string(*param);
 
   me->disableHandler(name);
-  return;
 }
 
 NAN_METHOD(MediaStream::setQualityLayer) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   int spatial_layer = info[0]->IntegerValue();
   int temporal_layer = info[1]->IntegerValue();
 
   me->setQualityLayer(spatial_layer, temporal_layer);
-
-  return;
 }
 
 NAN_METHOD(MediaStream::getStats) {
@@ -280,6 +321,9 @@ NAN_METHOD(MediaStream::getPeriodicStats) {
 NAN_METHOD(MediaStream::setFeedbackReports) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   bool v = info[0]->BooleanValue();
   int fbreps = info[1]->IntegerValue();  // From bps to Kbps
@@ -290,23 +334,24 @@ void MediaStream::notifyStats(const std::string& message) {
   if (!this->hasCallback_) {
     return;
   }
-  boost::mutex::scoped_lock lock(mutex);
-  this->statsMsgs.push(message);
-  asyncStats_.data = this;
-  uv_async_send(&asyncStats_);
+  // boost::mutex::scoped_lock lock(mutex);
+  // this->statsMsgs.push(message);
+  // asyncStats_.data = this;
+  // uv_async_send(&asyncStats_);
 }
 
 NAUV_WORK_CB(MediaStream::statsCallback) {
   Nan::HandleScope scope;
   MediaStream* obj = reinterpret_cast<MediaStream*>(async->data);
-  if (!obj || obj->me == NULL)
+  if (!obj || !obj->me) {
     return;
-  boost::mutex::scoped_lock lock(obj->mutex);
-  if (obj->hasCallback_) {
-    while (!obj->statsMsgs.empty()) {
-      Local<Value> args[] = {Nan::New(obj->statsMsgs.front().c_str()).ToLocalChecked()};
-      Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->statsCallback_->GetFunction(), 1, args);
-      obj->statsMsgs.pop();
-    }
   }
+  // boost::mutex::scoped_lock lock(obj->mutex);
+  // if (obj->hasCallback_) {
+  //   while (!obj->statsMsgs.empty()) {
+  //     Local<Value> args[] = {Nan::New(obj->statsMsgs.front().c_str()).ToLocalChecked()};
+  //     Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->statsCallback_->GetFunction(), 1, args);
+  //     obj->statsMsgs.pop();
+  //   }
+  // }
 }
