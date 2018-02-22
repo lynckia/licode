@@ -250,9 +250,13 @@ L.ElementQueries = function ElementQueries() {
   this.init = () => {
     const styleSheets = document.styleSheets || [];
     for (let i = 0, j = styleSheets.length; i < j; i += 1) {
-      readRules(styleSheets[i].cssText ||
-                        styleSheets[i].cssRules ||
-                        styleSheets[i].rules);
+      if (Object.prototype.hasOwnProperty.call(styleSheets[i], 'cssText')) {
+        readRules(styleSheets[i].cssText);
+      } else if (Object.prototype.hasOwnProperty.call(styleSheets[i], 'cssRules')) {
+        readRules(styleSheets[i].cssRules);
+      } else if (Object.prototype.hasOwnProperty.call(styleSheets[i], 'rules')) {
+        readRules(styleSheets[i].rules);
+      }
     }
   };
 };
