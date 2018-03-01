@@ -157,6 +157,7 @@ var reset = module.exports.reset = function() {
     getLocalDescription: sinon.stub().returns(module.exports.ConnectionDescription),
     addRemoteCandidate: sinon.stub(),
     addMediaStream: sinon.stub(),
+    removeMediaStream: sinon.stub(),
   };
 
   module.exports.MediaStream = {
