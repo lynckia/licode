@@ -15,7 +15,7 @@
 
 namespace erizo {
 class SrtpChannel;
-class Resender;
+class TimeoutChecker;
 class DtlsTransport : dtls::DtlsReceiver, public Transport {
   DECLARE_LOGGER();
 
@@ -50,21 +50,20 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   boost::scoped_ptr<SrtpChannel> srtp_, srtcp_;
   bool readyRtp, readyRtcp;
   bool isServer_;
-  std::unique_ptr<Resender> rtcp_resender_, rtp_resender_;
+  std::unique_ptr<TimeoutChecker> rtcp_timeout_checker_, rtp_timeout_checker_;
   packetPtr p_;
 };
 
-class Resender {
+class TimeoutChecker {
   DECLARE_LOGGER();
 
-  // These values follow recommendations from section 4.2.4.1 in https://tools.ietf.org/html/rfc4347
-  const unsigned int kMaxResends = 6;
-  const unsigned int kInitialSecsPerResend = 1;
+  const unsigned int kMaxTimeoutChecks = 15;
+  const unsigned int kInitialSecsPerTimeoutCheck = 1;
 
  public:
-  Resender(DtlsTransport* transport, dtls::DtlsSocketContext* ctx);
-  virtual ~Resender();
-  void scheduleResend(packetPtr packet);
+  TimeoutChecker(DtlsTransport* transport, dtls::DtlsSocketContext* ctx);
+  virtual ~TimeoutChecker();
+  void scheduleCheck();
   void cancel();
 
  private:
@@ -74,9 +73,8 @@ class Resender {
  private:
   DtlsTransport* transport_;
   dtls::DtlsSocketContext* socket_context_;
-  packetPtr packet_;
-  unsigned int resend_seconds_;
-  unsigned int max_resends_;
+  unsigned int check_seconds_;
+  unsigned int max_checks_;
   std::shared_ptr<ScheduledTaskReference> scheduled_task_;
 };
 }  // namespace erizo
