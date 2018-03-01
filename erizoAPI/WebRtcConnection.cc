@@ -23,33 +23,40 @@ using json = nlohmann::json;
 
 Nan::Persistent<Function> WebRtcConnection::constructor;
 
-DEFINE_LOGGER(WebRtcConnection, "ErizoAPI:WebRtcConnection");
+DEFINE_LOGGER(WebRtcConnection, "ErizoAPI.WebRtcConnection");
 
-WebRtcConnection::WebRtcConnection() : closed_{false} {
+WebRtcConnection::WebRtcConnection() : closed_{false}, id_{"undefined"} {
   uv_async_init(uv_default_loop(), &async_, &WebRtcConnection::eventsCallback);
 }
 
 WebRtcConnection::~WebRtcConnection() {
   close();
+  ELOG_DEBUG("%s, message: Destroyed", toLog());
 }
 
 void WebRtcConnection::close() {
+  ELOG_DEBUG("%s, message: Trying to close", toLog());
   if (closed_) {
+    ELOG_DEBUG("%s, message: Already closed", toLog());
     return;
   }
-
+  ELOG_DEBUG("%s, message: Closing", toLog());
   if (me) {
     me->setWebRtcConnectionEventListener(nullptr);
     me->close();
     me.reset();
   }
 
-  ELOG_DEBUG("message:Closing WebRtcConnection");
-
   if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&async_))) {
+    ELOG_DEBUG("%s, message: Closing handle", toLog());
     uv_close(reinterpret_cast<uv_handle_t*>(&async_), nullptr);
   }
   closed_ = true;
+  ELOG_DEBUG("%s, message: Closed", toLog());
+}
+
+std::string WebRtcConnection::toLog() {
+  return "id:" + id_;
 }
 
 NAN_MODULE_INIT(WebRtcConnection::Init) {
@@ -193,9 +200,11 @@ NAN_METHOD(WebRtcConnection::New) {
     std::shared_ptr<erizo::IOWorker> io_worker = io_thread_pool->me->getLessUsedIOWorker();
 
     WebRtcConnection* obj = new WebRtcConnection();
+    obj->id_ = wrtcId;
     obj->me = std::make_shared<erizo::WebRtcConnection>(worker, io_worker, wrtcId, iceConfig,
                                                         rtp_mappings, ext_mappings, obj);
     obj->Wrap(info.This());
+    ELOG_DEBUG("%s, message: Created", obj->toLog());
     info.GetReturnValue().Set(info.This());
   } else {
     // TODO(pedro) Check what happens here
@@ -397,12 +406,12 @@ NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
     return;
   }
   boost::mutex::scoped_lock lock(obj->mutex);
-  ELOG_WARN("New events!");
+  ELOG_DEBUG("%s, message: eventsCallback", obj->toLog());
   while (!obj->eventSts.empty()) {
     Local<Value> args[] = {Nan::New(obj->eventSts.front()), Nan::New(obj->eventMsgs.front().c_str()).ToLocalChecked()};
     Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->eventCallback_->GetFunction(), 2, args);
     obj->eventMsgs.pop();
     obj->eventSts.pop();
   }
-  ELOG_WARN("New events finished!");
+  ELOG_DEBUG("%s, message: eventsCallback finished", obj->toLog());
 }

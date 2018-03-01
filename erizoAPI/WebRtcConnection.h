@@ -35,11 +35,13 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     WebRtcConnection();
     ~WebRtcConnection();
 
+    std::string toLog();
     void close();
 
     Nan::Callback *eventCallback_;
     uv_async_t async_;
     bool closed_;
+    std::string id_;
     /*
      * Constructor.
      * Constructs an empty WebRtcConnection without any configuration.

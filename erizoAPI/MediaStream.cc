@@ -18,6 +18,8 @@ using v8::Exception;
 using v8::Value;
 using json = nlohmann::json;
 
+DEFINE_LOGGER(MediaStream, "ErizoAPI.MediaStream");
+
 StatCallWorker::StatCallWorker(Nan::Callback *callback, std::weak_ptr<erizo::MediaStream> weak_stream)
     : Nan::AsyncWorker{callback}, weak_stream_{weak_stream}, stat_{""} {
 }
@@ -43,28 +45,38 @@ void StatCallWorker::HandleOKCallback() {
 
 Nan::Persistent<Function> MediaStream::constructor;
 
-MediaStream::MediaStream() : closed_{false} {
-  // uv_async_init(uv_default_loop(), &asyncStats_, &MediaStream::statsCallback);
+MediaStream::MediaStream() : closed_{false}, id_{"undefined"} {
+  uv_async_init(uv_default_loop(), &asyncStats_, &MediaStream::statsCallback);
 }
 
 MediaStream::~MediaStream() {
   close();
+  ELOG_DEBUG("%s, message: Destroyed", toLog());
 }
 
 void MediaStream::close() {
+  ELOG_DEBUG("%s, message: Trying to close", toLog());
   if (closed_) {
+    ELOG_DEBUG("%s, message: Already closed", toLog());
     return;
   }
+  ELOG_DEBUG("%s, message: Closing", toLog());
   if (me) {
     me->setMediaStreamStatsListener(nullptr);
     me->close();
     me.reset();
   }
   hasCallback_ = false;
-  // if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&asyncStats_))) {
-  //   uv_close(reinterpret_cast<uv_handle_t*>(&asyncStats_), nullptr);
-  // }
+  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&asyncStats_))) {
+    ELOG_DEBUG("%s, message: Closing handle", toLog());
+    uv_close(reinterpret_cast<uv_handle_t*>(&asyncStats_), nullptr);
+  }
   closed_ = true;
+  ELOG_DEBUG("%s, message: Closed", toLog());
+}
+
+std::string MediaStream::toLog() {
+  return "id: " + id_;
 }
 
 NAN_MODULE_INIT(MediaStream::Init) {
@@ -118,6 +130,8 @@ NAN_METHOD(MediaStream::New) {
     MediaStream* obj = new MediaStream();
     obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtcId);
     obj->msink = obj->me.get();
+    obj->id_ = wrtcId;
+    ELOG_DEBUG("%s, message: Created", obj->toLog());
     obj->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
   } else {
@@ -334,10 +348,10 @@ void MediaStream::notifyStats(const std::string& message) {
   if (!this->hasCallback_) {
     return;
   }
-  // boost::mutex::scoped_lock lock(mutex);
-  // this->statsMsgs.push(message);
-  // asyncStats_.data = this;
-  // uv_async_send(&asyncStats_);
+  boost::mutex::scoped_lock lock(mutex);
+  this->statsMsgs.push(message);
+  asyncStats_.data = this;
+  uv_async_send(&asyncStats_);
 }
 
 NAUV_WORK_CB(MediaStream::statsCallback) {
@@ -346,12 +360,12 @@ NAUV_WORK_CB(MediaStream::statsCallback) {
   if (!obj || !obj->me) {
     return;
   }
-  // boost::mutex::scoped_lock lock(obj->mutex);
-  // if (obj->hasCallback_) {
-  //   while (!obj->statsMsgs.empty()) {
-  //     Local<Value> args[] = {Nan::New(obj->statsMsgs.front().c_str()).ToLocalChecked()};
-  //     Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->statsCallback_->GetFunction(), 1, args);
-  //     obj->statsMsgs.pop();
-  //   }
-  // }
+  boost::mutex::scoped_lock lock(obj->mutex);
+  if (obj->hasCallback_) {
+    while (!obj->statsMsgs.empty()) {
+      Local<Value> args[] = {Nan::New(obj->statsMsgs.front().c_str()).ToLocalChecked()};
+      Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->statsCallback_->GetFunction(), 1, args);
+      obj->statsMsgs.pop();
+    }
+  }
 }

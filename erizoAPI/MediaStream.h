@@ -4,6 +4,7 @@
 
 #include <nan.h>
 #include <MediaStream.h>
+#include <logger.h>
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
 
@@ -32,6 +33,7 @@ class StatCallWorker : public Nan::AsyncWorker {
  */
 class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener {
  public:
+    DECLARE_LOGGER();
     static NAN_MODULE_INIT(Init);
 
     std::shared_ptr<erizo::MediaStream> me;
@@ -44,12 +46,14 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener {
     ~MediaStream();
 
     void close();
+    std::string toLog();
 
     Nan::Callback *statsCallback_;
 
     // uv_async_t asyncStats_;
     bool hasCallback_;
     bool closed_;
+    std::string id_;
     /*
      * Constructor.
      * Constructs an empty MediaStream without any configuration.
