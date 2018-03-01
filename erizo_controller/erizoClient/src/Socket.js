@@ -178,8 +178,8 @@ const Socket = (newIo) => {
       Logger.error('Trying to send a message over a disconnected Socket');
       return;
     }
-    socket.emit(type, options, sdp, (response, respCallback) => {
-      callback(response, respCallback);
+    socket.emit(type, options, sdp, (...args) => {
+      callback(...args);
     });
   };
   return that;
