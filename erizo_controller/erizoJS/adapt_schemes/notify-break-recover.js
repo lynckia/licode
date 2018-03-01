@@ -38,7 +38,7 @@ exports.MonitorSubscriber = function (log) {
     var nextRetry = 0;
     mediaStream.bwStatus = BW_STABLE;
     log.info('message: Start mediaStream adapt scheme, ' +
-    'id: ' + mediaStream.wrtcId + ', ' +
+    'id: ' + mediaStream.id + ', ' +
     'scheme: notify-break-recover, minVideoBW: ' + mediaStream.minVideoBW);
 
     mediaStream.minVideoBW = mediaStream.minVideoBW*1000; // We need it in bps
@@ -64,7 +64,7 @@ exports.MonitorSubscriber = function (log) {
             if (average <= lastAverage && (average < mediaStream.lowerThres)) {
               if (++tics > TICS_PER_TRANSITON) {
                 log.info('message: scheme state change, ' +
-                'id: ' + mediaStream.wrtcId + ', ' +
+                'id: ' + mediaStream.id + ', ' +
                 'previousState: BW_STABLE, ' +
                 'newState: BW_INSUFFICIENT, ' +
                 'averageBandwidth: ' + average + ', ' +
@@ -81,7 +81,7 @@ exports.MonitorSubscriber = function (log) {
           case BW_INSUFFICIENT:
             if (average > mediaStream.upperThres) {
               log.info('message: scheme state change, ' +
-              'id: ' + mediaStream.wrtcId + ', ' +
+              'id: ' + mediaStream.id + ', ' +
               'previousState: BW_INSUFFICIENT, ' +
               'newState: BW_STABLE, ' +
               'averageBandwidth: ' + average + ', ' +
@@ -97,7 +97,7 @@ exports.MonitorSubscriber = function (log) {
             }
             else if (retries >= 3) {
               log.info('message: scheme state change, ' +
-              'id: ' + mediaStream.wrtcId + ', ' +
+              'id: ' + mediaStream.id + ', ' +
               'previousState: BW_INSUFFICIENT, ' +
               'newState: WONT_RECOVER, ' +
               'averageBandwidth: ' + average + ', ' +
@@ -115,14 +115,14 @@ exports.MonitorSubscriber = function (log) {
             break;
           case BW_RECOVERING:
             log.info('message: trying to recover, ' +
-            'id: ' + mediaStream.wrtcId + ', ' +
+            'id: ' + mediaStream.id + ', ' +
             'state: BW_RECOVERING, ' +
             'lastBandwidthValue: ' + lastBWValue + ', ' +
             'lastAverageBandwidth: ' + lastAverage + ', ' +
             'lowerThreshold: ' + mediaStream.lowerThres);
             if(average > mediaStream.upperThres){
               log.info('message: recovered, ' +
-              'id: ' + mediaStream.wrtcId + ', ' +
+              'id: ' + mediaStream.id + ', ' +
               'state: BW_RECOVERING, ' +
               'newState: BW_STABLE, ' +
               'averageBandwidth: ' + average + ', ' +
@@ -138,7 +138,7 @@ exports.MonitorSubscriber = function (log) {
             }
             else if (average> lastAverage) { //we are recovering
               log.info('message: bw improvement, ' +
-              'id: ' + mediaStream.wrtcId + ', ' +
+              'id: ' + mediaStream.id + ', ' +
               'state: BW_RECOVERING, ' +
               'averageBandwidth: ' + average + ', ' +
               'lowerThreshold: ' + mediaStream.lowerThres);
@@ -148,7 +148,7 @@ exports.MonitorSubscriber = function (log) {
             }
             else if (++tics >= ticsToTry) { //finish this retry
               log.info('message: recovery tic passed, ' +
-              'id: ' + mediaStream.wrtcId + ', ' +
+              'id: ' + mediaStream.id + ', ' +
               'state: BW_RECOVERING, ' +
               'numberOfRetries: ' + retries + ', ' +
               'averageBandwidth: ' + average + ', ' +
@@ -162,7 +162,7 @@ exports.MonitorSubscriber = function (log) {
             break;
           case BW_WONTRECOVER:
             log.info('message: Stop trying to recover, ' +
-            'id: ' + mediaStream.wrtcId + ', ' +
+            'id: ' + mediaStream.id + ', ' +
             'state: BW_WONT_RECOVER, ' +
             'averageBandwidth: ' + average + ', ' +
             'lowerThreshold: ' + mediaStream.lowerThres);
@@ -179,7 +179,7 @@ exports.MonitorSubscriber = function (log) {
             bandwidth: average});
             break;
           default:
-            log.error('message: Unknown BW status, id: ' + mediaStream.wrtcId);
+            log.error('message: Unknown BW status, id: ' + mediaStream.id);
         }
         lastAverage = average;
       }).catch((reason) => {

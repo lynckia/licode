@@ -148,10 +148,10 @@ exports.RoomController = function (spec) {
         }
     };
 
-    that.processSignaling = function (streamId, peerId, msg) {
+    that.processSignaling = function (peerId, streamId, msg) {
 
         if (publishers[streamId] !== undefined) {
-            var args = [streamId, peerId, msg];
+            var args = [peerId, streamId, msg];
             amqper.callRpc(getErizoQueue(streamId), 'processSignaling', args, {});
 
         }
@@ -204,7 +204,7 @@ exports.RoomController = function (spec) {
                                      logger.objectToLog(options.metadata));
                             publishers[publisherId] = undefined;
                             retries++;
-                            that.addPublisher(publisherId, options, callback, retries);
+                            that.addPublisher(clientId, publisherId, options, callback, retries);
                             return;
                         }
                         log.warn('message: addPublisher ErizoJS timeout no retry, ' +
@@ -305,14 +305,14 @@ exports.RoomController = function (spec) {
     /*
      * Removes a publisher from the room. This also deletes the associated OneToManyProcessor.
      */
-    that.removePublisher = function (publisherId) {
+    that.removePublisher = function (clientId, publisherId) {
 
         if (subscribers[publisherId] !== undefined && publishers[publisherId]!== undefined) {
             log.info('message: removePublisher, ' +
                      'publisherId: ' + publisherId + ', ' +
                      'erizoId: ' + getErizoQueue(publisherId));
 
-            var args = [publisherId];
+            var args = [clientId, publisherId];
             amqper.callRpc(getErizoQueue(publisherId), 'removePublisher', args, undefined);
 
             if (erizos[publishers[publisherId]] !== undefined) {

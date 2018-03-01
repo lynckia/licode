@@ -149,7 +149,6 @@ var reset = module.exports.reset = function() {
   };
 
   module.exports.WebRtcConnection = {
-    wrtcId: '',
     init: sinon.stub(),
     close: sinon.stub(),
     createOffer: sinon.stub(),
@@ -175,14 +174,12 @@ var reset = module.exports.reset = function() {
   };
 
   module.exports.ExternalInput = {
-    wrtcId: '',
     init: sinon.stub(),
     setAudioReceiver: sinon.stub(),
     setVideoReceiver: sinon.stub()
   };
 
   module.exports.ExternalOutput = {
-    wrtcId: '',
     init: sinon.stub(),
     close: sinon.stub()
   };
