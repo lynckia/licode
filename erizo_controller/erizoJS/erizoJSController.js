@@ -7,7 +7,6 @@ var Publisher = require('./models/Publisher').Publisher;
 var ExternalInput = require('./models/Publisher').ExternalInput;
 var SessionDescription = require('./models/SessionDescription');
 var SemanticSdp = require('./../common/semanticSdp/SemanticSdp');
-var Helpers = require('./models/Helpers');
 
 // Logger
 var log = logger.getLogger('ErizoJSController');
@@ -388,7 +387,6 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
         let client = getOrCreateClient(clientId);
 
         if (publishers[streamId] === undefined) {
-          let erizoStreamId = Helpers.getErizoStreamId(clientId, streamId);
           let connection = client.getOrCreateConnection();
             log.info('message: Adding publisher, ' +
                      'clientId: ' + clientId + ', ' +
@@ -420,7 +418,6 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
      */
     that.addSubscriber = function (clientId, streamId, options, callback) {
         const publisher = publishers[streamId];
-        const erizoStreamId = Helpers.getErizoStreamId(clientId, streamId);
         if (publisher === undefined) {
             log.warn('message: addSubscriber to unknown publisher, ' +
                      'code: ' + WARN_NOT_FOUND + ', streamId: ' + streamId +
