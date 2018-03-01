@@ -126,7 +126,7 @@ std::shared_ptr<DataPacket> RtpUtils::makePaddingPacket(std::shared_ptr<DataPack
   memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
 
   new_header->setPadding(true);
-
+  new_header->setMarker(false);
   packet_buffer[packet_length - 1] = padding_size;
 
   return std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
