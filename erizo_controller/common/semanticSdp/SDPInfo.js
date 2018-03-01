@@ -292,6 +292,9 @@ class SDPInfo {
         md.iceOptions = ice.getOpts();
         md.iceUfrag = ice.getUfrag();
         md.icePwd = ice.getPwd();
+        if (ice.isEndOfCandidates()) {
+          md.endOfCandidates = ice.isEndOfCandidates();
+        }
       }
 
       dtls = media.getDTLS();
@@ -777,7 +780,11 @@ SDPInfo.process = (sdp) => {
     pwd = md.icePwd;
     iceOptions = md.iceOptions;
     if (ufrag || pwd || iceOptions) {
-      mediaInfo.setICE(new ICEInfo(ufrag, pwd, iceOptions));
+      const thisIce = new ICEInfo(ufrag, pwd, iceOptions);
+      if (md.endOfCandidates) {
+        thisIce.setEndOfCandidates('end-of-candidates');
+      }
+      mediaInfo.setICE(thisIce);
     }
 
     fingerprintAttr = md.fingerprint;
