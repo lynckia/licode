@@ -389,7 +389,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
 
         if (publishers[streamId] === undefined) {
           let erizoStreamId = Helpers.getErizoStreamId(clientId, streamId);
-          let connection = client.getOrCreateConnection(erizoStreamId);
+          let connection = client.getOrCreateConnection();
             log.info('message: Adding publisher, ' +
                      'clientId: ' + clientId + ', ' +
                      'streamId: ' + streamId + ', ' +
@@ -438,7 +438,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                      ', ' + logger.objectToLog(options.metadata));
             that.removeSubscriber(clientId, streamId);
         }
-        let connection = client.getOrCreateConnection(erizoStreamId);
+        let connection = client.getOrCreateConnection();
         publisher.addSubscriber(clientId, connection, options);
         initWebRtcConnection(publisher.getSubscriber(clientId),
           callback, streamId, clientId, options);

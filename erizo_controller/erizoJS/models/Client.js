@@ -12,13 +12,23 @@ class Client {
     this.threadPool = threadPool;
     this.ioThreadPool = ioThreadPool;
     this.singlePc = singlePc;
+    this.connectionClientId = 0;
+  }
+  _getNewConnectionClientId() {
+    this.connectionClientId += 1;
+    let id = `${this.id}_${this.connectionClientId}`;
+    while (this.connections.get(id)) {
+      id = `${this.id}_${this.connectionClientId}`;
+      this.connectionClientId += 1;
+    }
+    return id;
   }
 
-  getOrCreateConnection(id) {
-    let connection;
-    log.info(`message: getOrCreateConnection with id ${id} to clientId ${this.id}`);
-    connection = this.connections.get(id);
-    if (!this.singlePc || connection === undefined) {
+  getOrCreateConnection() {
+    let connection = this.connections.values().next().value;
+    log.info(`message: getOrCreateConnection for clientId ${this.id}`);
+    if (!this.singlePc || !connection) {
+      let id = this._getNewConnectionClientId(); 
       connection = new Connection(id, this.threadPool, this.ioThreadPool);
       this.addConnection(connection);
     } 
