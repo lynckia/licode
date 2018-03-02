@@ -100,14 +100,6 @@ bool WebRtcConnection::init() {
   return true;
 }
 
-bool WebRtcConnection::isSourceSSRC(uint32_t ssrc) {
-  return media_stream_->isVideoSourceSSRC(ssrc) || media_stream_->isAudioSourceSSRC(ssrc);
-}
-
-bool WebRtcConnection::isSinkSSRC(uint32_t ssrc) {
-  return media_stream_->isVideoSinkSSRC(ssrc) || media_stream_->isAudioSinkSSRC(ssrc);
-}
-
 bool WebRtcConnection::createOffer(bool video_enabled, bool audioEnabled, bool bundle) {
   bundle_ = bundle;
   video_enabled_ = video_enabled;
@@ -117,10 +109,17 @@ bool WebRtcConnection::createOffer(bool video_enabled, bool audioEnabled, bool b
 
   ELOG_DEBUG("%s message: Creating sdp offer, isBundle: %d", toLog(), bundle_);
 
-  if (video_enabled_)
-    local_sdp_->video_ssrc_list.push_back(media_stream_->getVideoSinkSSRC());
-  if (audio_enabled_)
-    local_sdp_->audio_ssrc = media_stream_->getAudioSinkSSRC();
+  if (video_enabled_) {
+    forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
+      local_sdp_->video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
+    });
+  }
+  if (audio_enabled_) {
+    forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
+      local_sdp_->audio_ssrc = media_stream->getAudioSinkSSRC();
+    });
+  }
+
 
   auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
 
@@ -148,18 +147,27 @@ bool WebRtcConnection::createOffer(bool video_enabled, bool audioEnabled, bool b
     std::string msg = this->getLocalSdp();
     conn_event_listener_->notifyEvent(global_state_, msg);
   }
-  media_stream_->setLocalSdp(local_sdp_);
+  forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
+    media_stream->setLocalSdp(local_sdp_);
+  });
   return true;
 }
 
 void WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream) {
   ELOG_DEBUG("%s message: Adding mediaStream, id: %s", toLog(), media_stream->getId().c_str());
-  media_stream_ = media_stream;
+  media_streams_.push_back(media_stream);
 }
 
 void WebRtcConnection::removeMediaStream(const std::string& stream_id) {
   ELOG_DEBUG("%s message: removing mediaStream, id: %s", toLog(), stream_id.c_str())
-  media_stream_.reset();
+  media_streams_.erase(std::remove_if(media_streams_.begin(), media_streams_.end(),
+    [stream_id](const std::shared_ptr<MediaStream> &stream) {
+      return stream->getId() == stream_id;
+    }), media_streams_.end());
+}
+
+void WebRtcConnection::forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func) {
+  std::for_each(media_streams_.begin(), media_streams_.end(), func);
 }
 
 bool WebRtcConnection::setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp) {
@@ -192,7 +200,9 @@ bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 bool WebRtcConnection::processRemoteSdp() {
   ELOG_DEBUG("%s message: processing remote SDP", toLog());
   if (remote_sdp_processed_) {
-    media_stream_->setRemoteSdp(remote_sdp_);
+    forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
+      media_stream->setRemoteSdp(remote_sdp_);
+    });
     return true;
   }
 
@@ -201,8 +211,10 @@ bool WebRtcConnection::processRemoteSdp() {
   extension_processor_.setSdpInfo(local_sdp_);
   local_sdp_->updateSupportedExtensionMap(extension_processor_.getSupportedExtensionMap());
 
-  local_sdp_->video_ssrc_list.push_back(media_stream_->getVideoSinkSSRC());
-  local_sdp_->audio_ssrc = media_stream_->getAudioSinkSSRC();
+  forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
+    local_sdp_->video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
+    local_sdp_->audio_ssrc = media_stream->getAudioSinkSSRC();
+  });
 
   if (remote_sdp_->dtlsRole == ACTPASS) {
     local_sdp_->dtlsRole = ACTIVE;
@@ -268,9 +280,10 @@ bool WebRtcConnection::processRemoteSdp() {
       conn_event_listener_->notifyEvent(CONN_SDP, object);
     }
   }
-
-  media_stream_->setRemoteSdp(remote_sdp_);
-  media_stream_->setLocalSdp(local_sdp_);
+  forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
+    media_stream->setRemoteSdp(remote_sdp_);
+    media_stream->setLocalSdp(local_sdp_);
+  });
   remote_sdp_processed_ = true;
   return true;
 }
@@ -385,7 +398,18 @@ void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Trans
   if (getCurrentState() != CONN_READY) {
     return;
   }
-  media_stream_->onTransportData(packet, transport);
+  char* buf = packet->data;
+  RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+  uint32_t ssrc = head->getSSRC();
+  if (chead->isRtcp()) {
+    ssrc = chead->getSourceSSRC();
+  }
+  forEachMediaStream([packet, transport, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
+    if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
+      media_stream->onTransportData(packet, transport);
+    }
+  });
 }
 
 void WebRtcConnection::asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f) {
@@ -456,9 +480,9 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       if (bundle_) {
         temp = CONN_READY;
         trackTransportInfo();
-        if (media_stream_) {
-          media_stream_->sendPLIToFeedback();
-        }
+        forEachMediaStream([] (const std::shared_ptr<MediaStream> &media_stream) {
+          media_stream->sendPLIToFeedback();
+        });
       } else {
         if ((!remote_sdp_->hasAudio || (audio_transport_.get() != nullptr
                   && audio_transport_->getTransportState() == TRANSPORT_READY)) &&
@@ -467,9 +491,9 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
             // WebRTCConnection will be ready only when all channels are ready.
             temp = CONN_READY;
             trackTransportInfo();
-            if (media_stream_) {
-              media_stream_->sendPLIToFeedback();
-            }
+            forEachMediaStream([] (const std::shared_ptr<MediaStream> &media_stream) {
+              media_stream->sendPLIToFeedback();
+            });
           }
       }
       break;
@@ -515,17 +539,19 @@ void WebRtcConnection::trackTransportInfo() {
     candidate_pair = video_transport_->getIceConnection()->getSelectedPair();
     asyncTask([candidate_pair] (std::shared_ptr<WebRtcConnection> connection) {
       std::shared_ptr<Stats> stats = connection->stats_;
-      uint32_t video_sink_ssrc = connection->getMediaStream()->getVideoSinkSSRC();
-      uint32_t video_source_ssrc = connection->getMediaStream()->getVideoSourceSSRC();
+      connection->forEachMediaStream([stats, candidate_pair] (const std::shared_ptr<MediaStream> &media_stream) {
+        uint32_t video_sink_ssrc = media_stream->getVideoSinkSSRC();
+        uint32_t video_source_ssrc = media_stream->getVideoSourceSSRC();
 
-      if (video_sink_ssrc != kDefaultVideoSinkSSRC) {
-        stats->getNode()[video_sink_ssrc].insertStat("clientHostType",
-                                                     StringStat{candidate_pair.clientHostType});
-      }
-      if (video_source_ssrc != 0) {
-        stats->getNode()[video_source_ssrc].insertStat("clientHostType",
+        if (video_sink_ssrc != kDefaultVideoSinkSSRC) {
+          stats->getNode()[video_sink_ssrc].insertStat("clientHostType",
                                                        StringStat{candidate_pair.clientHostType});
-      }
+        }
+        if (video_source_ssrc != 0) {
+          stats->getNode()[video_source_ssrc].insertStat("clientHostType",
+                                                         StringStat{candidate_pair.clientHostType});
+        }
+      });
     });
   }
 
@@ -535,17 +561,19 @@ void WebRtcConnection::trackTransportInfo() {
     }
     asyncTask([candidate_pair] (std::shared_ptr<WebRtcConnection> connection) {
       std::shared_ptr<Stats> stats = connection->stats_;
-      uint32_t audio_sink_ssrc = connection->getMediaStream()->getAudioSinkSSRC();
-      uint32_t audio_source_ssrc = connection->getMediaStream()->getAudioSourceSSRC();
+      connection->forEachMediaStream([stats, candidate_pair] (const std::shared_ptr<MediaStream> &media_stream) {
+        uint32_t audio_sink_ssrc = media_stream->getAudioSinkSSRC();
+        uint32_t audio_source_ssrc = media_stream->getAudioSourceSSRC();
 
-      if (audio_sink_ssrc != kDefaultAudioSinkSSRC) {
-        stats->getNode()[audio_sink_ssrc].insertStat("clientHostType",
-                                                     StringStat{candidate_pair.clientHostType});
-      }
-      if (audio_source_ssrc != 0) {
-        stats->getNode()[audio_source_ssrc].insertStat("clientHostType",
+        if (audio_sink_ssrc != kDefaultAudioSinkSSRC) {
+          stats->getNode()[audio_sink_ssrc].insertStat("clientHostType",
                                                        StringStat{candidate_pair.clientHostType});
-      }
+        }
+        if (audio_source_ssrc != 0) {
+          stats->getNode()[audio_source_ssrc].insertStat("clientHostType",
+                                                         StringStat{candidate_pair.clientHostType});
+        }
+      });
     });
   }
 }
