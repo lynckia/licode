@@ -14,6 +14,7 @@ class Client {
     this.singlePc = singlePc;
     this.connectionClientId = 0;
   }
+
   _getNewConnectionClientId() {
     this.connectionClientId += 1;
     let id = `${this.id}_${this.connectionClientId}`;

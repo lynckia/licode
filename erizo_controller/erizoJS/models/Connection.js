@@ -2,12 +2,10 @@
 'use strict';
 var addon = require('./../../../erizoAPI/build/Release/addon');
 var logger = require('./../../common/logger').logger;
-
 var log = logger.getLogger('Connection');
 
-
-
 class Connection {
+
   constructor (id, threadPool, ioThreadPool) {
     log.info(`message: constructor, id: ${id}`);
     this.id = id;

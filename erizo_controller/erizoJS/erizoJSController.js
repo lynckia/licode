@@ -310,7 +310,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                         connection.remoteDescription =
                             new SessionDescription(sdp, connection.mediaConfiguration);
                         wrtc.setRemoteDescription(
-                            subscriber.connection.remoteDescription.connectionDescription);
+                            connection.remoteDescription.connectionDescription);
                       }
                     if (msg.config) {
                         if (msg.config.slideShowMode !== undefined) {
@@ -354,7 +354,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                     if (msg.config) {
                         if (msg.config.minVideoBW) {
                             log.debug('message: updating minVideoBW for publisher, ' +
-                                      'id: ' + publishers[streamId].streamId+ ', ' +
+                                      'id: ' + publishers[streamId].streamId + ', ' +
                                       'minVideoBW: ' + msg.config.minVideoBW);
                             publisher.minVideoBW = msg.config.minVideoBW;
                             for (var sub in publisher.subscribers) {
