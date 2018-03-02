@@ -99,7 +99,7 @@ class Client extends events.EventEmitter {
         const isControlMessage = message.msg.type === 'control';
         if (!isControlMessage ||
             (isControlMessage && this.hasPermission(message.msg.action.name))) {
-          this.room.controller.processSignaling(message.streamId, this.id, message.msg);
+          this.room.controller.processSignaling(this.id, message.streamId, message.msg);
         } else {
           log.info('message: User unauthorized to execute action on stream, action: ' +
             message.msg.action.name + ', streamId: ' + message.streamId);
@@ -180,7 +180,7 @@ class Client extends events.EventEmitter {
                  'streamId: ' + id + ', clientId: ' + this.id + ', ' +
                  logger.objectToLog(options) + ', ' +
                  logger.objectToLog(options.attributes));
-        this.room.controller.addPublisher(id, options, (signMess) => {
+        this.room.controller.addPublisher(this.id, id, options, (signMess) => {
             if (signMess.type === 'initializing') {
                 callback(id, signMess.erizoId);
                 st = new ST.Stream({id: id,
@@ -439,7 +439,7 @@ class Client extends events.EventEmitter {
 
         this.state = 'sleeping';
         if (!this.room.p2p) {
-            this.room.controller.removePublisher(streamId);
+            this.room.controller.removePublisher(this.id, streamId);
             if (global.config.erizoController.report.session_events) {  // jshint ignore:line
                 var timeStamp = new Date();
                 this.room.amqper.broadcast('event', {room: this.room.id,
@@ -523,7 +523,7 @@ class Client extends events.EventEmitter {
           if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
             if (!this.room.p2p) {
               log.info('message: Unpublishing stream, streamId:', streamId);
-              this.room.controller.removePublisher(streamId);
+              this.room.controller.removePublisher(this.id, streamId);
               if (global.config.erizoController.report.session_events) {  // jshint ignore:line
 
                 this.room.amqper.broadcast('event', {room: this.room.id,

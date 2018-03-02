@@ -11,12 +11,16 @@
   ],
   "levels": {
     "AMQPER": "ERROR",
+    "Client": "INFO",
+    "Connection": "INFO",
     "ErizoController": "INFO",
     "ErizoJS": "INFO",
     "ErizoJSController": "INFO",
     "ErizoAgent": "INFO",
     "ErizoAgentReporter": "ERROR",
     "EcCloudHandler": "INFO",
+    "Publisher": "INFO",
+    "Subscriber": "INFO",
     "RoomController": "INFO",
     "RPCPublic":"ERROR"
   }
