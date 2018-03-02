@@ -186,23 +186,6 @@ const BaseStack = (specInput) => {
   // Peerconnection events
 
   that.peerConnection.onicecandidate = onIceCandidate;
-  that.peerConnection.onaddstream = (stream) => {
-    if (that.onaddstream) {
-      that.onaddstream(stream);
-    }
-  };
-  that.peerConnection.onremovestream = (stream) => {
-    if (that.onremovestream) {
-      that.onremovestream(stream);
-    }
-  };
-
-  that.peerConnection.oniceconnectionstatechange = (ev) => {
-    if (that.oniceconnectionstatechange) {
-      that.oniceconnectionstatechange(ev.target.iceConnectionState);
-    }
-  };
-
   // public functions
 
   that.enableSimulcast = (sdpInput) => {

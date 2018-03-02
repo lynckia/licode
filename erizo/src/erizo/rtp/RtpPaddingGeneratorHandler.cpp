@@ -110,7 +110,9 @@ void RtpPaddingGeneratorHandler::onPacketWithMarkerSet(std::shared_ptr<DataPacke
   for (uint i = 0; i < number_of_full_padding_packets_; i++) {
     sendPaddingPacket(packet, kMaxPaddingSize);
   }
-  sendPaddingPacket(packet, last_padding_packet_size_);
+  // Temporary fix since https://bugzilla.mozilla.org/show_bug.cgi?id=1435025 is fixed
+  // Only send full rtp padding packet as suggested also in webrtc code.
+  // sendPaddingPacket(packet, last_padding_packet_size_);
   std::weak_ptr<RtpPaddingGeneratorHandler> weak_this = shared_from_this();
   scheduled_task_ = stream_->getWorker()->scheduleFromNow([packet, weak_this] {
     if (auto this_ptr = weak_this.lock()) {

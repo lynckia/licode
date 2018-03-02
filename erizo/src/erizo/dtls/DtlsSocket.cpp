@@ -250,6 +250,28 @@ void DtlsSocket::computeFingerprint(X509 *cert, char *fingerprint) {
   }
 }
 
+void DtlsSocket::handleTimeout() {
+  (void) BIO_reset(mInBio);
+  (void) BIO_reset(mOutBio);
+  if (DTLSv1_handle_timeout(mSsl) > 0) {
+    ELOG_DEBUG("Dtls timeout occurred!");
+
+    // See what was written
+    unsigned char *outBioData;
+    int outBioLen = BIO_get_mem_data(mOutBio, &outBioData);
+    if (outBioLen > DTLS_MTU) {
+      ELOG_WARN("message: BIO data bigger than MTU - packet could be lost, outBioLen %u, MTU %u",
+          outBioLen, DTLS_MTU);
+    }
+
+    // If mOutBio is now nonzero-length, then we need to write the
+    // data to the network. TODO(pedro): warning, MTU issues!
+    if (outBioLen) {
+      mSocketContext->write(outBioData, outBioLen);
+    }
+  }
+}
+
 // TODO(pedro): assert(0) into exception, as elsewhere
 void DtlsSocket::createSrtpSessionPolicies(srtp_policy_t& outboundPolicy, srtp_policy_t& inboundPolicy) {
   assert(mHandshakeCompleted);

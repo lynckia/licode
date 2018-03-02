@@ -1,5 +1,5 @@
-
-import Connection from './Connection';
+import ErizoConnectionManager from './ErizoConnectionManager';
+import ConnectionHelpers from './utils/ConnectionHelpers';
 import { EventDispatcher, StreamEvent, RoomEvent } from './Events';
 import { Socket } from './Socket';
 import Stream from './Stream';
@@ -18,25 +18,30 @@ import Logger from './utils/Logger';
  * Event 'stream-added' indicates that there is a new stream available in the room.
  * Event 'stream-removed' shows that a previous available stream has been removed from the room.
  */
-const Room = (altIo, altConnection, specInput) => {
+const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const spec = specInput;
   const that = EventDispatcher(specInput);
   const DISCONNECTED = 0;
   const CONNECTING = 1;
   const CONNECTED = 2;
 
+
   that.remoteStreams = ErizoMap();
   that.localStreams = ErizoMap();
   that.roomID = '';
   that.state = DISCONNECTED;
   that.p2p = false;
-  that.Connection = altConnection === undefined ? Connection : altConnection;
+  that.ConnectionHelpers =
+    altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
+
+  that.erizoConnectionManager =
+    altConnectionManager === undefined ? new ErizoConnectionManager()
+    : new altConnectionManager.ErizoConnectionManager();
 
   let socket = Socket(altIo);
   that.socket = socket;
   let remoteStreams = that.remoteStreams;
   let localStreams = that.localStreams;
-
   // Private functions
   const removeStream = (streamInput) => {
     const stream = streamInput;
@@ -57,7 +62,8 @@ const Room = (altIo, altConnection, specInput) => {
           stream.pc.remove(id);
         });
       } else {
-        stream.pc.close();
+        stream.pc.removeStream(stream);
+        that.erizoConnectionManager.closeConnection(stream.pc);
         delete stream.pc;
       }
     }
@@ -85,6 +91,9 @@ const Room = (altIo, altConnection, specInput) => {
     // Draw on html
     Logger.info('Stream subscribed');
     stream.stream = evt.stream;
+    if (!that.p2p) {
+      stream.pc.addStream(stream);
+    }
     const evt2 = StreamEvent({ type: 'stream-subscribed', stream });
     that.dispatchEvent(evt2);
   };
@@ -111,8 +120,9 @@ const Room = (altIo, altConnection, specInput) => {
 
   const createRemoteStreamP2PConnection = (streamInput, peerSocket) => {
     const stream = streamInput;
-    stream.pc = that.Connection.buildConnection(getP2PConnectionOptions(stream, peerSocket));
-
+    stream.pc =
+    that.erizoConnectionManager.getOrBuildErizoConnection(
+      getP2PConnectionOptions(stream, peerSocket));
     stream.pc.onaddstream = dispatchStreamSubscribed.bind(null, stream);
     stream.pc.oniceconnectionstatechange = (state) => {
       if (state === 'failed') {
@@ -127,8 +137,8 @@ const Room = (altIo, altConnection, specInput) => {
       stream.pc = ErizoMap();
     }
 
-    const connection = that.Connection.buildConnection(getP2PConnectionOptions(stream, peerSocket));
-
+    const connection = that.erizoConnectionManager.getOrBuildErizoConnection(
+      getP2PConnectionOptions(stream, peerSocket));
     stream.pc.add(peerSocket, connection);
 
     connection.oniceconnectionstatechange = (state) => {
@@ -137,7 +147,7 @@ const Room = (altIo, altConnection, specInput) => {
         stream.pc.remove(peerSocket);
       }
     };
-    connection.addStream(stream.stream);
+    connection.addStream(stream);
     connection.createOffer();
   };
 
@@ -175,9 +185,11 @@ const Room = (altIo, altConnection, specInput) => {
     return connectionOpts;
   };
 
-  const createRemoteStreamErizoConnection = (streamInput, options) => {
+  const createRemoteStreamErizoConnection = (streamInput, erizoId, options) => {
     const stream = streamInput;
-    stream.pc = that.Connection.buildConnection(getErizoConnectionOptions(stream, options, true));
+    stream.pc =
+    that.erizoConnectionManager.getOrBuildErizoConnection(
+      getErizoConnectionOptions(stream, options, true), erizoId);
 
     stream.pc.onaddstream = dispatchStreamSubscribed.bind(null, stream);
     stream.pc.oniceconnectionstatechange = (state) => {
@@ -189,11 +201,12 @@ const Room = (altIo, altConnection, specInput) => {
     stream.pc.createOffer(true);
   };
 
-  const createLocalStreamErizoConnection = (streamInput, options) => {
+  const createLocalStreamErizoConnection = (streamInput, erizoId, options) => {
     const stream = streamInput;
-    stream.pc = that.Connection.buildConnection(getErizoConnectionOptions(stream, options));
+    stream.pc = that.erizoConnectionManager.getOrBuildErizoConnection(
+      getErizoConnectionOptions(stream, options), erizoId);
 
-    stream.pc.addStream(stream.stream);
+    stream.pc.addStream(stream);
     stream.pc.oniceconnectionstatechange = (state) => {
       if (state === 'failed') {
         onStreamFailed(stream);
@@ -301,8 +314,8 @@ const Room = (altIo, altConnection, specInput) => {
     }
     stream = remoteStreams.get(arg.id);
     if (stream) {
-      remoteStreams.remove(arg.id);
       removeStream(stream);
+      remoteStreams.remove(arg.id);
       const evt = StreamEvent({ type: 'stream-removed', stream });
       that.dispatchEvent(evt);
     }
@@ -442,9 +455,14 @@ const Room = (altIo, altConnection, specInput) => {
     constraints.minVideoBW = options.minVideoBW;
     constraints.scheme = options.scheme;
 
-    socket.sendSDP('publish', constraints, undefined, (id, error) => {
+    socket.sendSDP('publish', constraints, undefined, (id, erizoId, error) => {
+      if (id === null) {
+        Logger.error('Error publishing stream', error);
+        callback(undefined, error);
+        return;
+      }
       populateStreamFunctions(id, stream, error, undefined);
-      createLocalStreamErizoConnection(stream, options);
+      createLocalStreamErizoConnection(stream, erizoId, options);
       callback(id);
     });
   };
@@ -475,12 +493,12 @@ const Room = (altIo, altConnection, specInput) => {
       audio: options.audio && stream.hasAudio(),
       video: getVideoConstraints(stream, options.video),
       data: options.data && stream.hasData(),
-      browser: that.Connection.getBrowser(),
+      browser: that.ConnectionHelpers.getBrowser(),
       createOffer: options.createOffer,
       metadata: options.metadata,
       muteStream: options.muteStream,
       slideShowMode: options.slideShowMode };
-    socket.sendSDP('subscribe', constraint, undefined, (result, error) => {
+    socket.sendSDP('subscribe', constraint, undefined, (result, erizoId, error) => {
       if (result === null) {
         Logger.error('Error subscribing to stream ', error);
         callback(undefined, error);
@@ -488,7 +506,7 @@ const Room = (altIo, altConnection, specInput) => {
       }
 
       Logger.info('Subscriber added');
-      createRemoteStreamErizoConnection(stream, options);
+      createRemoteStreamErizoConnection(stream, erizoId, options);
 
       callback(true);
     });
@@ -573,7 +591,7 @@ const Room = (altIo, altConnection, specInput) => {
       const streamIndices = Object.keys(streams);
       for (let index = 0; index < streamIndices.length; index += 1) {
         const arg = streams[streamIndices[index]];
-        stream = Stream(that.Connection, { streamID: arg.id,
+        stream = Stream(that.ConnectionHelpers, { streamID: arg.id,
           local: false,
           audio: arg.audio,
           video: arg.video,
