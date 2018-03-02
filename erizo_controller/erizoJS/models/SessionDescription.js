@@ -68,7 +68,9 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
 
   let ice = info.getICECredentials(mediaType);
   if (ice) {
-    media.setICE(new ICEInfo(ice[0], ice[1]));
+    const thisIceInfo = new ICEInfo(ice[0], ice[1]);
+    thisIceInfo.setEndOfCandidates('end-of-candidates'); 
+    media.setICE(thisIceInfo);
   }
 
   const fingerprint = info.getFingerprint(mediaType);
@@ -134,14 +136,16 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   }
 
   const sources = new Map();
-  if (mediaType === 'audio') {
+  if (mediaType === 'audio' && info.getDirection() !== 'recvonly') {
     addSsrc(sources, info.getAudioSsrc(), sdp, media);
   } else if (mediaType === 'video') {
     media.setBitrate(info.getVideoBandwidth());
 
-    info.getVideoSsrcList().forEach((ssrc) => {
-      addSsrc(sources, ssrc, sdp, media);
-    });
+    if (info.getDirection() !== 'recvonly') {
+      info.getVideoSsrcList().forEach((ssrc) => {
+        addSsrc(sources, ssrc, sdp, media);
+      });
+    }
 
     const rids = info.getRids();
     let isSimulcast = false;
