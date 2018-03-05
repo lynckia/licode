@@ -441,7 +441,7 @@ describe('Erizo Controller / Erizo Controller', function() {
 
               it('should send if when receiving initializing state', function() {
                 var signMes = {type: 'initializing'};
-                mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
+                mocks.roomControllerInstance.addPublisher.callsArgWith(3, signMes);
 
                 onPublish(options, sdp, callback);
 
@@ -450,7 +450,7 @@ describe('Erizo Controller / Erizo Controller', function() {
 
               it('should emit connection_failed when receiving initializing state', function() {
                 var signMes = {type: 'failed'};
-                mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
+                mocks.roomControllerInstance.addPublisher.callsArgWith(3, signMes);
 
                 onPublish(options, sdp, callback);
 
@@ -460,11 +460,11 @@ describe('Erizo Controller / Erizo Controller', function() {
 
               it('should send onAddStream event to Room when receiving ready stat', function() {
                 var signMes = {type: 'initializing'};
-                mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
+                mocks.roomControllerInstance.addPublisher.callsArgWith(3, signMes);
 
                 onPublish(options, sdp, callback);
 
-                var onEvent = mocks.roomControllerInstance.addPublisher.args[0][2];
+                var onEvent = mocks.roomControllerInstance.addPublisher.args[0][3];
 
                 onEvent({type: 'ready'});
 
@@ -473,7 +473,7 @@ describe('Erizo Controller / Erizo Controller', function() {
 
               it('should emit ErizoJS unreachable', function() {
                 var signMes = 'timeout-erizojs';
-                mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
+                mocks.roomControllerInstance.addPublisher.callsArgWith(3, signMes);
 
                 onPublish(options, sdp, callback);
 
@@ -483,7 +483,7 @@ describe('Erizo Controller / Erizo Controller', function() {
 
               it('should emit ErizoAgent unreachable', function() {
                 var signMes = 'timeout-agent';
-                mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
+                mocks.roomControllerInstance.addPublisher.callsArgWith(3, signMes);
 
                 onPublish(options, sdp, callback);
 
@@ -493,7 +493,7 @@ describe('Erizo Controller / Erizo Controller', function() {
 
               it('should emit ErizoJS or ErizoAgent unreachable', function() {
                 var signMes = 'timeout';
-                mocks.roomControllerInstance.addPublisher.callsArgWith(2, signMes);
+                mocks.roomControllerInstance.addPublisher.callsArgWith(3, signMes);
 
                 onPublish(options, sdp, callback);
 
@@ -697,7 +697,7 @@ describe('Erizo Controller / Erizo Controller', function() {
                     onSignalingMessage(arbitraryMessage);
 
                     expect(mocks.roomControllerInstance.processSignaling
-                            .withArgs(arbitraryMessage.streamId).callCount).to.equal(1);
+                            .withArgs(client.id, arbitraryMessage.streamId).callCount).to.equal(1);
                   });
                 });
 
@@ -882,7 +882,8 @@ describe('Erizo Controller / Erizo Controller', function() {
 
                     onUnpublish(streamId, callback);
 
-                    expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId)
+                    expect(mocks.roomControllerInstance.removePublisher
+                            .withArgs(client.id, streamId)
                             .callCount).to.equal(1);
                     expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
                           .to.equal(1);
@@ -898,7 +899,8 @@ describe('Erizo Controller / Erizo Controller', function() {
 
                     onUnpublish(streamId, callback);
 
-                    expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId)
+                    expect(mocks.roomControllerInstance
+                          .removePublisher.withArgs(client.id, streamId)
                           .callCount).to.equal(1);
                     expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
                           .to.equal(1);
@@ -914,7 +916,8 @@ describe('Erizo Controller / Erizo Controller', function() {
 
                     onUnpublish(streamId, callback);
 
-                    expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId)
+                    expect(mocks.roomControllerInstance.removePublisher
+                          .withArgs(client.id, streamId)
                           .callCount).to.equal(1);
                     expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
                             .to.equal(1);
@@ -930,7 +933,8 @@ describe('Erizo Controller / Erizo Controller', function() {
 
                     onUnpublish(streamId, callback);
 
-                    expect(mocks.roomControllerInstance.removePublisher.withArgs(streamId)
+                    expect(mocks.roomControllerInstance.removePublisher
+                          .withArgs(client.id, streamId)
                           .callCount).to.equal(1);
                     expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
                             .to.equal(1);
