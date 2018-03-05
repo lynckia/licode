@@ -24,7 +24,7 @@ exports.MonitorSubscriber = function (log) {
         var tics = 0;
         var lastAverage, average, lastBWValue;
         log.info('message: Start wrtc adapt scheme, ' +
-                 'id: ' + mediaStream.wrtcId + ', ' +
+                 'id: ' + mediaStream.id + ', ' +
                 'scheme: notify, minVideoBW: ' + mediaStream.minVideoBW);
 
         mediaStream.minVideoBW = mediaStream.minVideoBW*1000; // We need it in bps
@@ -48,7 +48,7 @@ exports.MonitorSubscriber = function (log) {
               if (average <= lastAverage && (average < mediaStream.lowerThres)) {
                 if (++tics > TICS_PER_TRANSITION){
                   log.info('message: Insufficient Bandwidth, ' +
-                  'id: ' + mediaStream.wrtcId + ', ' +
+                  'id: ' + mediaStream.id + ', ' +
                   'averageBandwidth: ' + average + ', ' +
                   'lowerThreshold: ' + mediaStream.lowerThres);
                   tics = 0;

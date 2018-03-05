@@ -32,7 +32,7 @@ exports.MonitorSubscriber = function (log) {
     var lastAverage, average, lastBWValue;
     mediaStream.bwStatus = BW_STABLE;
     log.info('message: Start wrtc adapt scheme, ' +
-    'id: ' + mediaStream.wrtcId + ', ' +
+    'id: ' + mediaStream.id + ', ' +
     'scheme: notify-stop-feedback, ' +
     'minVideoBW: ' + mediaStream.minVideoBW);
 
@@ -59,7 +59,7 @@ exports.MonitorSubscriber = function (log) {
             if(average <= lastAverage && (average < mediaStream.lowerThres)) {
               if (++tics > TICS_PER_TRANSITION){
                 log.info('message: scheme state change, ' +
-                'id: ' + mediaStream.wrtcId + ', ' +
+                'id: ' + mediaStream.id + ', ' +
                 'previousState: BW_STABLE, ' +
                 'newState: BW_NO_FEEDBACK, ' +
                 'averageBandwidth: ' + average + ', ' +
@@ -78,7 +78,7 @@ exports.MonitorSubscriber = function (log) {
             if (average >= mediaStream.upperThres) {
               if (++tics > TICS_PER_TRANSITION) {
                 log.info('message: scheme state change, ' +
-                'id: ' + mediaStream.wrtcId + ', ' +
+                'id: ' + mediaStream.id + ', ' +
                 'previousState: BW_NO_FEEDBACK, ' +
                 'newState: BW_STABLE, ' +
                 'averageBandwidth: ' + average + ', ' +
@@ -101,7 +101,7 @@ exports.MonitorSubscriber = function (log) {
             }
             break;
           default:
-            log.error('Unknown BW status, id: ' + mediaStream.wrtcId);
+            log.error('Unknown BW status, id: ' + mediaStream.id);
         }
         lastAverage = average;
       }).catch((reason) => {

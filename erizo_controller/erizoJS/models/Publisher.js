@@ -7,33 +7,32 @@ var Helpers = require('./Helpers');
 // Logger
 var log = logger.getLogger('Publisher');
 
-function createWrtc(id, threadPool, ioThreadPool, mediaConfiguration) {
-  var wrtc = new addon.WebRtcConnection(threadPool, ioThreadPool, id,
-                                    global.config.erizo.stunserver,
-                                    global.config.erizo.stunport,
-                                    global.config.erizo.minport,
-                                    global.config.erizo.maxport,
-                                    false,
-                                    Helpers.getMediaConfiguration(mediaConfiguration),
-                                    global.config.erizo.useNicer,
-                                    global.config.erizo.turnserver,
-                                    global.config.erizo.turnport,
-                                    global.config.erizo.turnusername,
-                                    global.config.erizo.turnpass,
-                                    global.config.erizo.networkinterface);
-  return wrtc;
+class Node {
+  constructor(clientId, streamId) {
+    this.clientId = clientId;
+    this.streamId = streamId;
+    this.erizoStreamId = Helpers.getErizoStreamId(clientId, streamId);
+  }
 }
 
-function createMediaStream (threadPool, wrtc, id) {
-  var mediaStream = new addon.MediaStream(threadPool, wrtc, id);
-  return mediaStream;
+class Subscriber extends Node {
+   constructor(clientId, streamId, connection, options) {
+     super(clientId, streamId);
+     this.connection = connection;
+     this.connection.mediaConfiguration = options.mediaConfiguration;
+     this.connection.addMediaStream(this.erizoStreamId);
+     this.mediaStream = connection.getMediaStream(this.erizoStreamId);
+   }
+  close() {
+    this.connection.removeMediaStream(this.mediaStream.id);
+  }
 }
 
-class Source {
-  constructor(id, threadPool, ioThreadPool) {
-    this.id = id;
+class Source extends Node {
+  constructor(clientId, streamId, threadPool) {
+    super(clientId, streamId);
     this.threadPool = threadPool;
-    this.ioThreadPool = ioThreadPool;
+    // {clientId1: Subscriber, clientId2: Subscriber}
     this.subscribers = {};
     this.externalOutputs = {};
     this.muteAudio = false;
@@ -45,57 +44,64 @@ class Source {
     return Object.keys(this.subscribers).length;
   }
 
-  addSubscriber(id, options) {
-    var wrtcId = id + '_' + this.id;
-    log.info('message: Adding subscriber, id: ' + wrtcId + ', ' +
-             logger.objectToLog(options)+
-              ', ' + logger.objectToLog(options.metadata));
-    var wrtc = createWrtc(wrtcId, this.threadPool, this.ioThreadPool, options.mediaConfiguration);
-    wrtc.wrtcId = wrtcId;
-    wrtc.mediaConfiguration = options.mediaConfiguration;
-    wrtc.mediaStream = createMediaStream(this.threadPool, wrtc, id);
-    wrtc.addMediaStream(wrtc.mediaStream);
-    this.subscribers[id] = wrtc;
-    this.muxer.addSubscriber(wrtc.mediaStream, id);
-    wrtc.mediaStream.minVideoBW = this.minVideoBW;
-    log.debug('message: Setting scheme from publisher to subscriber, ' +
-              'id: ' + wrtcId + ', scheme: ' + this.scheme+
-               ', ' + logger.objectToLog(options.metadata));
-    wrtc.scheme = this.scheme;
+  addSubscriber(clientId, connection, options) {
+    log.info(`message: Adding subscriber, clientId: ${clientId}, ` +
+             `${logger.objectToLog(options)}` +
+              `, ${logger.objectToLog(options.metadata)}`);
+    const subscriber = new Subscriber(clientId, this.streamId, connection, options); 
+    
+    this.subscribers[clientId] = subscriber;
+    this.muxer.addSubscriber(subscriber.mediaStream, subscriber.mediaStream.id);
+    subscriber.mediaStream.minVideoBW = this.minVideoBW;
+
+    log.debug(`message: Setting scheme from publisher to subscriber, ` +
+              `clientId: ${clientId}, scheme: ${this.scheme}, `+
+               ` ${logger.objectToLog(options.metadata)}`);
+
+    subscriber.mediaStream.scheme = this.scheme;
     const muteVideo = (options.muteStream && options.muteStream.video) || false;
     const muteAudio = (options.muteStream && options.muteStream.audio) || false;
-    this.muteSubscriberStream(id, muteVideo, muteAudio);
+    this.muteSubscriberStream(clientId, muteVideo, muteAudio);
+
     if (options.video) {
-      this.setVideoConstraints(id,
+      this.setVideoConstraints(clientId,
         options.video.width, options.video.height, options.video.frameRate);
     }
   }
 
-  removeSubscriber(id) {
-    this.muxer.removeSubscriber(id);
-    delete this.subscribers[id];
+  removeSubscriber(clientId) {
+    let subscriber = this.subscribers[clientId];
+    if (subscriber === undefined) {
+      log.warn(`message: subscriber to remove not found clientId: ${clientId}, ` +
+        `streamId: ${this.streamId}`);
+      return;
+    }
+    
+    this.muxer.removeSubscriber(subscriber.mediaStream.id);
+    delete this.subscribers[clientId];
   }
 
-  getSubscriber(id) {
-    return this.subscribers[id];
+  getSubscriber(clientId) {
+    return this.subscribers[clientId];
   }
 
-  hasSubscriber(id) {
-    return this.subscribers[id] !== undefined;
+  hasSubscriber(clientId) {
+    return this.subscribers[clientId] !== undefined;
   }
 
   addExternalOutput(url, options) {
-    var eoId = url + '_' + this.id;
-    log.info('message: Adding ExternalOutput, id: ' + eoId);
+    var eoId = url + '_' + this.streamId;
+    log.info('message: Adding ExternalOutput, id: ' + eoId + ', url: ' + url);
     var externalOutput = new addon.ExternalOutput(this.threadPool, url,
       Helpers.getMediaConfiguration(options.mediaConfiguration));
-    externalOutput.wrtcId = eoId;
+    externalOutput.id = eoId;
     externalOutput.init();
     this.muxer.addExternalOutput(externalOutput, url);
     this.externalOutputs[url] = externalOutput;
   }
 
   removeExternalOutput(url) {
+    log.info(`message: Removing ExternalOutput, url: ${url}`);
     return new Promise(function(resolve) {
       this.muxer.removeSubscriber(url);
       this.externalOutputs[url].close(function() {
@@ -132,15 +138,15 @@ class Source {
     }
   }
 
-  setQualityLayer(id, spatialLayer, temporalLayer) {
-    var subscriber = this.getSubscriber(id);
+  setQualityLayer(clientId, spatialLayer, temporalLayer) {
+    var subscriber = this.getSubscriber(clientId);
     log.info('message: setQualityLayer, spatialLayer: ', spatialLayer,
                                      ', temporalLayer: ', temporalLayer);
     subscriber.mediaStream.setQualityLayer(spatialLayer, temporalLayer);
   }
 
-  muteSubscriberStream(id, muteVideo, muteAudio) {
-    var subscriber = this.getSubscriber(id);
+  muteSubscriberStream(clientId, muteVideo, muteAudio) {
+    var subscriber = this.getSubscriber(clientId);
     subscriber.muteVideo = muteVideo;
     subscriber.muteAudio = muteAudio;
     log.info('message: Mute Stream, video: ', this.muteVideo || muteVideo,
@@ -149,88 +155,82 @@ class Source {
                           this.muteAudio || muteAudio);
   }
 
-  setVideoConstraints(id, width, height, frameRate) {
-    var subscriber = this.getSubscriber(id);
+  setVideoConstraints(clientId, width, height, frameRate) {
+    var subscriber = this.getSubscriber(clientId);
     var maxWidth = (width && width.max !== undefined) ? width.max : -1;
     var maxHeight = (height && height.max !== undefined) ? height.max : -1;
     var maxFrameRate = (frameRate && frameRate.max !== undefined) ? frameRate.max : -1;
     subscriber.mediaStream.setVideoConstraints(maxWidth, maxHeight, maxFrameRate);
   }
 
-  enableHandlers(id, handlers) {
-    var wrtc = this.wrtc;
-    if (id) {
-      wrtc = this.getSubscriber(id);
+  enableHandlers(clientId, handlers) {
+    let mediaStream = this.mediaStream;
+    if (clientId) {
+      mediaStream = this.getSubscriber(clientId).mediaStream;
     }
-    if (wrtc) {
+    if (mediaStream) {
       for (var index in handlers) {
-        wrtc.mediaStream.enableHandler(handlers[index]);
+        mediaStream.enableHandler(handlers[index]);
       }
     }
   }
 
-  disableHandlers(id, handlers) {
-    var wrtc = this.wrtc;
-    if (id) {
-      wrtc = this.getSubscriber(id);
+  disableHandlers(clientId, handlers) {
+    let mediaStream = this.mediaStream;
+    if (clientId) {
+      mediaStream = this.getSubscriber(clientId).mediaStream;
     }
-    if (wrtc) {
+    if (mediaStream) {
       for (var index in handlers) {
-        wrtc.mediaStream.disableHandler(handlers[index]);
+        mediaStream.disableHandler(handlers[index]);
       }
     }
   }
 }
 
 class Publisher extends Source {
-  constructor(id, threadPool, ioThreadPool, options) {
-    super(id, threadPool, ioThreadPool);
+  constructor(clientId, streamId, connection, options) {
+    super(clientId, streamId, connection.threadPool);
     this.mediaConfiguration = options.mediaConfiguration;
-    this.wrtc = createWrtc(this.id, this.threadPool, this.ioThreadPool, options.mediaConfiguration);
-    this.wrtc.wrtcId = id;
-    this.wrtc.mediaConfiguration = options.mediaConfiguration;
-
-    this.wrtc.mediaStream = createMediaStream(this.threadPool, this.wrtc, this.wrtc.wrtcId);
-    this.wrtc.addMediaStream(this.wrtc.mediaStream);
+    this.connection = connection;
+    this.connection.mediaConfiguration = options.mediaConfiguration;
+    
+    this.connection.addMediaStream(streamId);
+    this.mediaStream = this.connection.getMediaStream(streamId);
+    
 
     this.minVideoBW = options.minVideoBW;
     this.scheme = options.scheme;
 
-    this.wrtc.mediaStream.setAudioReceiver(this.muxer);
-    this.wrtc.mediaStream.setVideoReceiver(this.muxer);
-    this.muxer.setPublisher(this.wrtc.mediaStream);
+    this.mediaStream.setAudioReceiver(this.muxer);
+    this.mediaStream.setVideoReceiver(this.muxer);
+    this.muxer.setPublisher(this.mediaStream);
     const muteVideo = (options.muteStream && options.muteStream.video) || false;
     const muteAudio = (options.muteStream && options.muteStream.audio) || false;
     this.muteStream(muteVideo, muteAudio);
   }
 
-  resetWrtc() {
-    if (this.numSubscribers > 0) {
-      return;
-    }
-    this.wrtc = createWrtc(this.id, this.threadPool, this.ioThreadPool, this.mediaConfiguration);
-    this.wrtc.mediaStream = createMediaStream(this.threadPool, this.wrtc, this.wrtc.wrtcId);
-
-    this.wrtc.mediaStream.setAudioReceiver(this.muxer);
-    this.wrtc.mediaStream.setVideoReceiver(this.muxer);
-    this.muxer.setPublisher(this.wrtc.mediaStream);
+  close() {
+    this.connection.removeMediaStream(this.mediaStream.id);
   }
 }
 
 class ExternalInput extends Source {
-  constructor(id, threadPool, ioThreadPool, url) {
-    super(id, threadPool, ioThreadPool);
-    var eiId = id + '_' + url;
+  constructor(url, streamId, threadPool) {
+    super(url, streamId, threadPool);
+    var eiId = streamId + '_' + url;
 
     log.info('message: Adding ExternalInput, id: ' + eiId);
 
     var ei = new addon.ExternalInput(url);
 
     this.ei = ei;
-    ei.wrtcId = eiId;
+    ei.id = streamId;
 
     this.subscribers = {};
     this.externalOutputs = {};
+    this.mediaStream = {};
+    this.connection = ei;
 
     ei.setAudioReceiver(this.muxer);
     ei.setVideoReceiver(this.muxer);
@@ -239,6 +239,9 @@ class ExternalInput extends Source {
 
   init() {
     return this.ei.init();
+  }
+
+  close() {
   }
 }
 
