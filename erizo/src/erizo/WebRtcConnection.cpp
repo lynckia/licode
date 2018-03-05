@@ -402,7 +402,7 @@ void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Trans
   RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
   uint32_t ssrc = head->getSSRC();
-  if (chead->isRtcp()) {
+  if (chead->isRtcp() && chead->packettype != RTCP_Sender_PT) {  // Sender Report
     ssrc = chead->getSourceSSRC();
   }
   forEachMediaStream([packet, transport, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
