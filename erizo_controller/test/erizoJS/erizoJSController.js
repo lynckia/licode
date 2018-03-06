@@ -262,7 +262,7 @@ describe('Erizo JS Controller', function() {
     describe('Process Signaling Message', function() {
       beforeEach(function() {
         mocks.WebRtcConnection.init.onFirstCall().returns(1);
-        controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, kArbitraryUrl, callback);
+        controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, {}, callback);
       });
 
       it('should set remote sdp when received', function() {
@@ -294,7 +294,7 @@ describe('Erizo JS Controller', function() {
       beforeEach(function() {
         subCallback = sinon.stub();
         mocks.WebRtcConnection.init.onFirstCall().returns(1);
-        controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, kArbitraryUrl, callback);
+        controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, {}, callback);
       });
 
       it('should succeed creating WebRtcConnection and adding sub to muxer', function() {
