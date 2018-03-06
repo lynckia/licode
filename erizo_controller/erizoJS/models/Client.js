@@ -25,14 +25,14 @@ class Client {
     return id;
   }
 
-  getOrCreateConnection() {
+  getOrCreateConnection(options) {
     let connection = this.connections.values().next().value;
     log.info(`message: getOrCreateConnection for clientId ${this.id}`);
     if (!this.singlePc || !connection) {
-      let id = this._getNewConnectionClientId(); 
-      connection = new Connection(id, this.threadPool, this.ioThreadPool);
+      let id = this._getNewConnectionClientId();
+      connection = new Connection(id, this.threadPool, this.ioThreadPool, options);
       this.addConnection(connection);
-    } 
+    }
     return connection;
   }
 
