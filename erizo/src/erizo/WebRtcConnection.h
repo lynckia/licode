@@ -137,18 +137,15 @@ class WebRtcConnection: public TransportListener, public LogContext,
   bool isAudioMuted() { return audio_muted_; }
   bool isVideoMuted() { return video_muted_; }
 
-  std::shared_ptr<MediaStream> getMediaStream() { return media_stream_; }
   void addMediaStream(std::shared_ptr<MediaStream> media_stream);
   void removeMediaStream(const std::string& stream_id);
+  void forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func);
 
   std::shared_ptr<Stats> getStatsService() { return stats_; }
 
   RtpExtensionProcessor& getRtpExtensionProcessor() { return extension_processor_; }
 
   std::shared_ptr<Worker> getWorker() { return worker_; }
-
-  bool isSourceSSRC(uint32_t ssrc);
-  bool isSinkSSRC(uint32_t ssrc);
 
   inline std::string toLog() {
     return "id: " + connection_id_ + ", " + printLogContext();
@@ -182,7 +179,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
 
   std::shared_ptr<Worker> worker_;
   std::shared_ptr<IOWorker> io_worker_;
-  std::shared_ptr<MediaStream> media_stream_;
+  std::vector<std::shared_ptr<MediaStream>> media_streams_;
   std::shared_ptr<SdpInfo> remote_sdp_;
   std::shared_ptr<SdpInfo> local_sdp_;
   bool audio_muted_;
