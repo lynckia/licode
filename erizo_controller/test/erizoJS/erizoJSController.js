@@ -143,7 +143,6 @@ describe('Erizo JS Controller', function() {
     var callback;
     var kArbitraryStreamId = 'pubStreamId1';
     var kArbitraryClientId = 'pubClientid1';
-    var kArbitraryUrl = 'url1';
 
     beforeEach(function() {
       callback = sinon.stub();
