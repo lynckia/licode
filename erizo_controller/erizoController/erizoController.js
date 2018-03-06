@@ -291,7 +291,7 @@ var updateMyState = function () {
 
 var getSinglePCConfig = function(singlePC) {
   return !!singlePC && global.config.erizoController.allowSinglePC;
-}
+};
 
 var listen = function () {
     io.sockets.on('connection', function (socket) {
@@ -305,7 +305,8 @@ var listen = function () {
             let room = rooms.getOrCreateRoom(token.room, token.p2p);
             options.singlePC = getSinglePCConfig(options.singlePC);
             let client = room.createClient(channel, token, options);
-            log.info('message: client connected, clientId: ' + client.id + ', singlePC: ' + options.singlePC);
+            log.info('message: client connected, clientId: ' + client.id +
+                     ', singlePC: ' + options.singlePC);
             if (!room.p2p && global.config.erizoController.report.session_events) {  // jshint ignore:line
               var timeStamp = new Date();
               amqper.broadcast('event', {room: room.id,

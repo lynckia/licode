@@ -137,7 +137,7 @@ describe('Erizo Controller / Erizo Controller', function() {
       it('should fail if signature is wrong', function() {
         var callback = sinon.stub();
 
-        onToken(arbitraryBadToken, callback);
+        onToken({token: arbitraryBadToken}, callback);
 
         expect(callback.withArgs('error', 'Authentication error').callCount).to.equal(1);
       });
@@ -145,7 +145,7 @@ describe('Erizo Controller / Erizo Controller', function() {
       it('should call Nuve if signature is ok', function() {
         var callback = sinon.stub();
 
-        onToken(arbitraryGoodToken, callback);
+        onToken({token: arbitraryGoodToken}, callback);
 
         expect(amqperMock.callRpc
                 .withArgs('nuve', 'deleteToken', arbitraryGoodToken.tokenId).callCount).to.equal(1);
@@ -157,7 +157,7 @@ describe('Erizo Controller / Erizo Controller', function() {
 
         beforeEach(function() {
           onTokenCallback = sinon.stub();
-          onToken(arbitraryGoodToken, onTokenCallback);
+          onToken({token: arbitraryGoodToken}, onTokenCallback);
 
           callback = amqperMock.callRpc
                                    .withArgs('nuve', 'deleteToken', arbitraryGoodToken.tokenId)
@@ -207,7 +207,7 @@ describe('Erizo Controller / Erizo Controller', function() {
             expect(roomControllerMock.RoomController.callCount).to.equal(1);
             expect(mocks.roomControllerInstance.addEventListener.callCount).to.equal(1);
             expect(onTokenCallback.withArgs('success').callCount).to.equal(1);
-            onToken(arbitraryGoodToken, onTokenCallback);
+            onToken({token: arbitraryGoodToken}, onTokenCallback);
             let callback2 = amqperMock.callRpc
                                      .withArgs('nuve', 'deleteToken', arbitraryGoodToken.tokenId)
                                      .args[1][3].callback;
