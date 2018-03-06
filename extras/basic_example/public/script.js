@@ -49,6 +49,7 @@ window.onload = function () {
   recording = false;
   var screen = getParameterByName('screen');
   var roomName = getParameterByName('room') || 'basicExampleRoom';
+  var singlePC = getParameterByName('singlePC') || false;
   var roomType = getParameterByName('type') || 'erizo';
   var mediaConfiguration = getParameterByName('mediaConfiguration') || 'default';
   var onlySubscribe = getParameterByName('onlySubscribe');
@@ -147,7 +148,7 @@ window.onload = function () {
     });
 
     if (onlySubscribe) {
-      room.connect();
+      room.connect({singlePC: singlePC});
     } else {
       var div = document.createElement('div');
       div.setAttribute('style', 'width: 320px; height: 240px; float:left');
@@ -155,7 +156,7 @@ window.onload = function () {
       document.getElementById('videoContainer').appendChild(div);
 
       localStream.addEventListener('access-accepted', function () {
-        room.connect();
+        room.connect({singlePC: singlePC});
         localStream.show('myVideo');
       });
       localStream.init();

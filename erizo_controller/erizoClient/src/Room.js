@@ -187,8 +187,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   const createRemoteStreamErizoConnection = (streamInput, erizoId, options) => {
     const stream = streamInput;
-    stream.pc =
-    that.erizoConnectionManager.getOrBuildErizoConnection(
+    stream.pc = that.erizoConnectionManager.getOrBuildErizoConnection(
       getErizoConnectionOptions(stream, options, true), erizoId);
 
     stream.pc.onaddstream = dispatchStreamSubscribed.bind(null, stream);
@@ -204,7 +203,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const createLocalStreamErizoConnection = (streamInput, erizoId, options) => {
     const stream = streamInput;
     stream.pc = that.erizoConnectionManager.getOrBuildErizoConnection(
-      getErizoConnectionOptions(stream, options), erizoId);
+      getErizoConnectionOptions(stream, options), erizoId, spec.singlePC);
 
     stream.pc.addStream(stream);
     stream.pc.oniceconnectionstatechange = (state) => {
@@ -566,7 +565,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   // It stablishes a connection to the room.
   // Once it is done it throws a RoomEvent("room-connected")
-  that.connect = () => {
+  that.connect = (options = {}) => {
     const token = Base64.decodeBase64(spec.token);
 
     if (that.state !== DISCONNECTED) {
@@ -575,7 +574,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     // 1- Connect to Erizo-Controller
     that.state = CONNECTING;
-    socket.connect(JSON.parse(token), (response) => {
+    socket.connect(JSON.parse(token), options, (response) => {
       let stream;
       const streamList = [];
       const streams = response.streams || [];
@@ -584,6 +583,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       that.p2p = response.p2p;
       that.iceServers = response.iceServers;
       that.state = CONNECTED;
+      spec.singlePC = response.singlePC;
       spec.defaultVideoBW = response.defaultVideoBW;
       spec.maxVideoBW = response.maxVideoBW;
 

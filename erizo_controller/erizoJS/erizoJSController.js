@@ -44,12 +44,12 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
 
     that.publishers = publishers;
     that.ioThreadPool = io;
-    
-    getOrCreateClient = (clientId) => {
+
+    getOrCreateClient = (clientId, singlePC = false) => {
       log.debug(`getOrCreateClient with id ${clientId}`);
       let client = clients.get(clientId);
       if(client === undefined) {
-        client = new Client(clientId, threadPool, ioThreadPool);
+        client = new Client(clientId, threadPool, ioThreadPool, !!singlePC);
         clients.set(clientId, client);
       }
       return client;
@@ -177,7 +177,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
           log.debug(`message: trying to close connection with no associated client,` +
            `clientId: ${clientId}, streamId: ${node.streamId}`);
         }
-        
+
         let connection = node.connection;
         let mediaStream = node.mediaStream;
         var associatedMetadata = connection.metadata || {};
@@ -292,7 +292,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                 let subscriber = publisher.getSubscriber(clientId);
                 let connection = subscriber.connection;
                 let wrtc = connection.wrtc;
-                
+
                 if (msg.type === 'offer') {
                     const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
                     connection.remoteDescription =
@@ -384,7 +384,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
     that.addPublisher = function (clientId, streamId, options, callback) {
         let publisher;
         log.info('addPublisher, clientId', clientId, 'streamId', streamId);
-        let client = getOrCreateClient(clientId);
+        let client = getOrCreateClient(clientId, options.singlePC);
 
         if (publishers[streamId] === undefined) {
           let connection = client.getOrCreateConnection();
@@ -427,7 +427,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
             return;
         }
         const subscriber = publisher.getSubscriber(clientId);
-        const client = getOrCreateClient(clientId);
+        const client = getOrCreateClient(clientId, options.singlePC);
         if (subscriber !== undefined) {
             log.warn('message: Duplicated subscription will resubscribe, ' +
                      'code: ' + WARN_CONFLICT + ', streamId: ' + streamId +
@@ -495,7 +495,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
     that.removeSubscriber = function (clientId, streamId) {
         const publisher = publishers[streamId];
         if (publisher && publisher.hasSubscriber(clientId)) {
-            
+
             let subscriber = publisher.getSubscriber(clientId);
             log.info(`message: removing subscriber, streamId: ${subscriber.streamId}, ` +
               `clientId: ${clientId}`);

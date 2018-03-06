@@ -124,7 +124,7 @@ class ErizoConnectionManager {
     this.ErizoConnectionsMap = new Map(); // key: erizoId, value: {connectionId: connection}
   }
 
-  getOrBuildErizoConnection(specInput, erizoId = undefined) {
+  getOrBuildErizoConnection(specInput, erizoId = undefined, singlePC = false) {
     Logger.debug(`message: getOrBuildErizoConnection, erizoId: ${erizoId}`);
     let connection = {};
 
@@ -132,13 +132,27 @@ class ErizoConnectionManager {
       // we have no erizoJS id - p2p
       return new ErizoConnection(specInput);
     }
-    connection = new ErizoConnection(specInput, erizoId);
-    if (this.ErizoConnectionsMap.has(erizoId)) {
-      this.ErizoConnectionsMap.get(erizoId)[connection.sessionId] = connection;
+    if (singlePC) {
+      let connectionEntry;
+      if (this.ErizoConnectionsMap.has(erizoId)) {
+        connectionEntry = this.ErizoConnectionsMap.get(erizoId);
+      } else {
+        connectionEntry = {};
+        this.ErizoConnectionsMap.set(erizoId, connectionEntry);
+      }
+      if (!connectionEntry['single-pc']) {
+        connectionEntry['single-pc'] = new ErizoConnection(specInput);
+      }
+      connection = connectionEntry['single-pc'];
     } else {
-      const connectionEntry = {};
-      connectionEntry[connection.sessionId] = connection;
-      this.ErizoConnectionsMap.set(erizoId, connectionEntry);
+      connection = new ErizoConnection(specInput, erizoId);
+      if (this.ErizoConnectionsMap.has(erizoId)) {
+        this.ErizoConnectionsMap.get(erizoId)[connection.sessionId] = connection;
+      } else {
+        const connectionEntry = {};
+        connectionEntry[connection.sessionId] = connection;
+        this.ErizoConnectionsMap.set(erizoId, connectionEntry);
+      }
     }
     return connection;
   }
