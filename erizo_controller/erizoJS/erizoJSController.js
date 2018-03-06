@@ -249,7 +249,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
           } else {
               log.warn('message: removePublisher that does not exist, ' +
                        'code: ' + WARN_NOT_FOUND + ', id: ' + streamId);
-              reject();
+              resolve();
           }
         }.bind(this));
     };
