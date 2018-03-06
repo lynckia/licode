@@ -200,6 +200,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                      ', ' + logger.objectToLog(options.metadata));
             that.removeSubscriber(clientId, streamId);
         }
+        options.publicIP = that.publicIP;
+        options.privateRegexp = that.privateRegexp;
         let connection = client.getOrCreateConnection(options);
         subscriber = publisher.addSubscriber(clientId, connection, options);
         subscriber.initMediaStream();

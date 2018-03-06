@@ -107,14 +107,14 @@ class Connection extends events.EventEmitter {
           this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
           const sdp = this.wrtc.localDescription.getSdp();
           mess = sdp.toString();
-          mess = mess.replace(this.privateRegexp, this.publicIP);
+          mess = mess.replace(this.options.privateRegexp, this.options.publicIP);
 
           const info = {type: this.options.createOffer ? 'offer' : 'answer', sdp: mess};
           this.emit('status_event', info, newStatus);
           break;
 
         case CONN_CANDIDATE:
-          mess = mess.replace(this.privateRegexp, this.publicIP);
+          mess = mess.replace(this.options.privateRegexp, this.options.publicIP);
           this.emit('status_event', {type: 'candidate', candidate: mess}, newStatus);
           break;
 
@@ -155,7 +155,7 @@ class Connection extends events.EventEmitter {
       this.wrtc.removeMediaStream(id);
       this.mediaStreams.get(id).close();
       this.mediaStreams.delete(id);
-      log.debug(`removed mediaStreamId ${id}, remaining size ${this.mediaStreams.size}`);
+      log.debug(`removed mediaStreamId ${id}, remaining size ${this.getNumMediaStreams()}`);
     } else {
       log.error(`message: Trying to remove mediaStream not found, id: ${id}`);
     }

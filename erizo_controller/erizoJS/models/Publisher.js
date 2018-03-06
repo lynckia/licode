@@ -190,7 +190,7 @@ class Source extends NodeClass {
     }
   }
 
-  generateVideoKeyFrame() {
+  requestVideoKeyFrame() {
     if (this.mediaStream) {
       this.mediaStream.generatePLIPacket();
     }
@@ -243,17 +243,7 @@ class Source extends NodeClass {
 
       subscriber.mediaStream.setSlideShowMode(false);
       subscriber.mediaStream.slideShowMode = false;
-      if (this.mediaStream.periodicPlis !== undefined) {
-        for (const i in this.subscribers) {
-          if (this.getSubscriber(i).mediaStream.slideShowMode === true) {
-              return;
-          }
-        }
-        log.debug('message: clearing PLI interval for publisher slideShow, ' +
-                  'id: ' + this.clientId);
-        clearInterval(this.mediaStream.periodicPlis);
-        this.mediaStream.periodicPlis = undefined;
-      }
+      this.maybeStopSlideShow();
     }
   }
 

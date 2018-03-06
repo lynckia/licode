@@ -52,7 +52,7 @@ class Client {
     log.debug(`message: maybeCloseConnection, connectionId: ${id}`);
     if (connection !== undefined) {
       // ExternalInputs don't have mediaStreams but have to be closed
-      if (!connection.mediaStreams || connection.mediaStreams.size === 0) {
+      if (connection.getNumMediaStreams() === 0) {
         log.info(`message: closing empty connection, clientId: ${this.id}` +
         ` connectionId: ${connection.id}`);
         connection.close();

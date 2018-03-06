@@ -26,7 +26,7 @@ class Subscriber extends NodeClass {
   _onConnectionStatusEvent(connectionEvent) {
     if (connectionEvent.type === 'ready') {
       if (this.clientId && this.options.browser === 'bowser') {
-          this.publisher.generateVideoKeyFrame();
+          this.publisher.requestVideoKeyFrame();
       }
       if (this.options.slideShowMode === true || 
           Number.isSafeInteger(this.options.slideShowMode)) {
