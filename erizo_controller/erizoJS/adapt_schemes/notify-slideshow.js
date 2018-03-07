@@ -25,8 +25,7 @@ exports.MonitorSubscriber = function (log) {
   };
 
 
-  that.monitorMinVideoBw = function(mediaStream, callback, idPub,
-     idSub, options, erizoJsController) {
+  that.monitorMinVideoBw = function(mediaStream, callback) {
     mediaStream.bwValues = [];
     var ticks = 0;
     var retries = 0;
@@ -87,10 +86,10 @@ exports.MonitorSubscriber = function (log) {
             average = 0;
             lastAverage = 0;
             mediaStream.minVideoBW = false;
-            erizoJsController.setSlideShow(true, idSub, idPub);
+            callback('scheme-slideshow-change', {enabled: true});
             callback('callback', {type: 'bandwidthAlert',
-            message: 'slideshow',
-            bandwidth: average});
+                                  message: 'slideshow',
+                                  bandwidth: average});
             clearInterval(mediaStream.monitorInterval);
             break;
           default:
