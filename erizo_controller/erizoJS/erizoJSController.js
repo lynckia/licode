@@ -215,7 +215,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
      * Removes a publisher from the room. This also deletes the associated OneToManyProcessor.
      */
     that.removePublisher = function (clientId, streamId) {
-      return new Promise(function(resolve, reject) {
+      return new Promise(function(resolve) {
         var publisher = publishers[streamId];
           if (publisher !== undefined) {
               log.info(`message: Removing publisher, id: ${clientId}, streamId: ${streamId}`);
