@@ -27,7 +27,7 @@ class Client {
 
   getOrCreateConnection(options) {
     let connection = this.connections.values().next().value;
-    log.info(`message: getOrCreateConnection for clientId ${this.id}`);
+    log.info(`message: getOrCreateConnection, clientId: ${this.id}, singlePC: ${this.singlePc}`);
     if (!this.singlePc || !connection) {
       let id = this._getNewConnectionClientId();
       connection = new Connection(id, this.threadPool, this.ioThreadPool, options);

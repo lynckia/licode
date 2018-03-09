@@ -30,11 +30,11 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
     that.publishers = publishers;
     that.ioThreadPool = io;
 
-    getOrCreateClient = (clientId) => {
+    getOrCreateClient = (clientId, singlePC = false) => {
       log.debug(`getOrCreateClient with id ${clientId}`);
       let client = clients.get(clientId);
       if(client === undefined) {
-        client = new Client(clientId, threadPool, ioThreadPool);
+        client = new Client(clientId, threadPool, ioThreadPool, !!singlePC);
         clients.set(clientId, client);
       }
       return client;
@@ -145,7 +145,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
     that.addPublisher = function (clientId, streamId, options, callbackRpc) {
         let publisher;
         log.info('addPublisher, clientId', clientId, 'streamId', streamId);
-        let client = getOrCreateClient(clientId);
+        let client = getOrCreateClient(clientId, options.singlePC);
 
         if (publishers[streamId] === undefined) {
           options.publicIP = that.publicIP;
@@ -192,7 +192,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
             return;
         }
         let subscriber = publisher.getSubscriber(clientId);
-        const client = getOrCreateClient(clientId);
+        const client = getOrCreateClient(clientId, options.singlePC);
         if (subscriber !== undefined) {
             log.warn('message: Duplicated subscription will resubscribe, ' +
                      'code: ' + WARN_CONFLICT + ', streamId: ' + streamId +

@@ -81,6 +81,7 @@ config.erizoController.listen_port = 8080; //default value: 8080
 // config.erizoController.networkInterface = 'eth1' // default value: undefined
 
 config.erizoController.exitOnNuveCheckFail = false;  // default value: false
+config.erizoController.allowSinglePC = false;  // default value: false
 
 config.erizoController.warning_n_rooms = 15; // default value: 15
 config.erizoController.limit_n_rooms = 20; // default value: 20

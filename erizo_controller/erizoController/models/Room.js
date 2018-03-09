@@ -37,8 +37,8 @@ class Room extends events.EventEmitter {
     return this.clients.get(id);
   }
 
-  createClient(channel, token) {
-    let client = new Client(channel, token, this);
+  createClient(channel, token, options) {
+    let client = new Client(channel, token, options, this);
     client.on('disconnect', this.onClientDisconnected.bind(this, client));
     this.clients.set(client.id, client);
     return client;

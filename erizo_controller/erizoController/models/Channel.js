@@ -60,13 +60,14 @@ class Channel extends events.EventEmitter {
     listenToSocketHandshakeEvents(this);
   }
 
-  onToken(token, callback) {
-    log.debug('message: token received');
+  onToken(options, callback) {
+    const token = options.token;
+    log.debug('message: token received, options: ', options);
     if (checkSignature(token, NUVE_KEY)) {
       this.nuve.deleteToken(token.tokenId).then(tokenDB => {
         if (token.host === tokenDB.host) {
           this.state = CONNECTED;
-          this.emit('connected', tokenDB, callback);
+          this.emit('connected', tokenDB, options, callback);
         } else {
           log.warn('message: Token has invalid host, clientId: ' + this.id);
           callback('error', 'Invalid host');
