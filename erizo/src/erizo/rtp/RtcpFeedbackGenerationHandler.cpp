@@ -1,13 +1,15 @@
 #include "rtp/RtcpFeedbackGenerationHandler.h"
 #include "./MediaStream.h"
+#include "rtp/RtpUtils.h"
 
 namespace erizo {
 
 DEFINE_LOGGER(RtcpFeedbackGenerationHandler, "rtp.RtcpFeedbackGenerationHandler");
 
-RtcpFeedbackGenerationHandler::RtcpFeedbackGenerationHandler(bool nacks_enabled,
+RtcpFeedbackGenerationHandler::RtcpFeedbackGenerationHandler(bool nacks_enabled, bool pli_enabled,
     std::shared_ptr<Clock> the_clock)
-  : stream_{nullptr}, enabled_{true}, initialized_{false}, nacks_enabled_{nacks_enabled}, clock_{the_clock} {}
+  : stream_{nullptr}, enabled_{true}, initialized_{false}, nacks_enabled_{nacks_enabled},
+    pli_enabled_{pli_enabled}, clock_{the_clock} {}
 
 void RtcpFeedbackGenerationHandler::enable() {
   enabled_ = true;
@@ -39,6 +41,7 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<DataPacke
   }
   bool should_send_rr = false;
   bool should_send_nack = false;
+  bool should_send_pli = false;
 
   if (!chead->isRtcp()) {
     RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
@@ -47,7 +50,14 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<DataPacke
     if (generator_it != generators_map_.end()) {
         should_send_rr = generator_it->second->rr_generator->handleRtpPacket(packet);
         if (nacks_enabled_) {
-          should_send_nack = generator_it->second->nack_generator->handleRtpPacket(packet);
+          const auto ret = generator_it->second->nack_generator->handleRtpPacket(packet);
+          should_send_nack = ret.first;
+          should_send_pli = ret.second;
+          if (pli_enabled_ && should_send_pli) {
+              ELOG_DEBUG("message: should send PLI, ssrc: %u", ssrc);
+              auto pli = RtpUtils::createPLI(ssrc, packet->type == VIDEO_PACKET ? video_sink_ssrc_ : audio_sink_ssrc_);
+              ctx->fireWrite(std::move(pli));
+          }
         }
     } else {
       ELOG_DEBUG("message: no Generator found, ssrc: %u", ssrc);
@@ -83,6 +93,10 @@ void RtcpFeedbackGenerationHandler::notifyUpdate() {
   if (!stream_) {
     return;
   }
+
+  video_sink_ssrc_ = stream_->getVideoSinkSSRC();
+  audio_sink_ssrc_ = stream_->getAudioSinkSSRC();
+
   // TODO(pedro) detect if nacks are enabled here with the negotiated SDP scanning the rtp_mappings
   std::vector<uint32_t> video_ssrc_list = stream_->getVideoSourceSSRCList();
   std::for_each(video_ssrc_list.begin(), video_ssrc_list.end(), [this] (uint32_t video_ssrc) {
@@ -94,7 +108,7 @@ void RtcpFeedbackGenerationHandler::notifyUpdate() {
       ELOG_DEBUG("%s, message: Initialized video rrGenerator, ssrc: %u", stream_->toLog(), video_ssrc);
       if (nacks_enabled_) {
         ELOG_DEBUG("%s, message: Initialized video nack generator, ssrc %u", stream_->toLog(), video_ssrc);
-        auto video_nack = std::make_shared<RtcpNackGenerator>(video_ssrc, clock_);
+        auto video_nack = std::make_shared<RtcpNewNackGenerator>(video_ssrc, clock_);
         video_generator->nack_generator = video_nack;
       }
     }

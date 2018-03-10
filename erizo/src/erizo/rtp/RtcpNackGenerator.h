@@ -28,7 +28,10 @@ class RtcpNackGenerator{
  public:
   explicit RtcpNackGenerator(uint32_t ssrc_,
       std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
-  bool handleRtpPacket(std::shared_ptr<DataPacket> packet);
+  /**
+  * @return A pair where first indicates if there's a NACK request and second if there's a PLI request
+  */
+  std::pair<bool, bool> handleRtpPacket(std::shared_ptr<DataPacket> packet);
   bool addNackPacketToRr(std::shared_ptr<DataPacket> rr_packet);
 
  private:
