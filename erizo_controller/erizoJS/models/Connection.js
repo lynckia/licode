@@ -73,25 +73,27 @@ class Connection extends events.EventEmitter {
     return wrtc;
   }
 
-  _createMediaStream (id, mediaStreamOptions) {
-    log.debug(`message: _createMediaStream, connectionId: ${this.id}, mediaStreamId: ${id}`);
+  _createMediaStream(id, options = {}) {
+    log.debug(`message: _createMediaStream, connectionId: ${this.id}, mediaStreamId: ${id}, label: ${options.label}`);
     const mediaStream = new addon.MediaStream(this.threadPool, this.wrtc, id,
-      this._getMediaConfiguration(this.mediaConfiguration));
+      options.label, this._getMediaConfiguration(this.mediaConfiguration));
     mediaStream.id = id;
-    if (mediaStreamOptions) {
-      mediaStream.metadata = mediaStreamOptions;
-      mediaStream.setMetadata(JSON.stringify(mediaStreamOptions));
+    mediaStream.label = options.label;
+    if (options.metadata) {
+      mediaStream.metadata = options.metadata;
+      mediaStream.setMetadata(JSON.stringify(options.metadata));
     }
     return mediaStream;
   }
 
   init() {
     if (this.initialized) {
-      return;
+      return false;
     }
     this.initialized = true;
     log.debug(`message: Init Connection, connectionId: ${this.id} `+
               `${logger.objectToLog(this.options)}`);
+    let sessionVersion = 0;
 
     this.wrtc.init((newStatus, mess) => {
       log.info('message: WebRtcConnection status update, ' +
@@ -102,10 +104,14 @@ class Connection extends events.EventEmitter {
           this.emit('status_event', {type: 'started'}, newStatus);
           break;
 
-        case CONN_SDP:
         case CONN_GATHERED:
+          this.already_gathered = true;
+        case CONN_SDP:
+          if (!this.already_gathered) {
+            return;
+          }
           this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
-          const sdp = this.wrtc.localDescription.getSdp();
+          const sdp = this.wrtc.localDescription.getSdp(sessionVersion++);
           mess = sdp.toString();
           mess = mess.replace(this.options.privateRegexp, this.options.publicIP);
 
@@ -139,12 +145,13 @@ class Connection extends events.EventEmitter {
       this.wrtc.createOffer(videoEnabled, audioEnabled, bundle);
     }
     this.emit('status_event', {type: 'initializing'});
+    return true;
   }
 
-  addMediaStream(id, mediaStreamOptions) {
+  addMediaStream(id, options) {
     log.info(`message: addMediaStream, connectionId: ${this.id}, mediaStreamId: ${id}`);
     if (this.mediaStreams.get(id) === undefined) {
-      const mediaStream = this._createMediaStream(id, mediaStreamOptions);
+      const mediaStream = this._createMediaStream(id, options);
       this.wrtc.addMediaStream(mediaStream);
       this.mediaStreams.set(id, mediaStream);
     }

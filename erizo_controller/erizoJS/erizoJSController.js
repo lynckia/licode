@@ -162,7 +162,9 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
           publisher.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc));
           publisher.on('periodic_stats', onPeriodicStats.bind(this, streamId, undefined));
           addListenerToConnection(connection, callbackRpc, clientId, streamId);
-          connection.init();
+          if (!connection.init()) {
+            callbackRpc('callback', {type: 'initializing'});
+          }
         } else {
             publisher = publishers[streamId];
             if (publisher.numSubscribers === 0) {
@@ -203,12 +205,15 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
         options.publicIP = that.publicIP;
         options.privateRegexp = that.privateRegexp;
         let connection = client.getOrCreateConnection(options);
+        options.label = publisher.label;
         subscriber = publisher.addSubscriber(clientId, connection, options);
         subscriber.initMediaStream();
         subscriber.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc));
         subscriber.on('periodic_stats', onPeriodicStats.bind(this, clientId, streamId));
         addListenerToConnection(connection, callbackRpc, clientId, streamId);
-        connection.init();
+        if (!connection.init()) {
+          callbackRpc('callback', {type: 'initializing'});
+        }
     };
 
     /*
@@ -218,10 +223,10 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
       return new Promise(function(resolve) {
         var publisher = publishers[streamId];
           if (publisher !== undefined) {
-              log.info(`message: Removing publisher, id: ${clientId}, streamId: ${streamId}`);
+              log.info(`message: Removing publisher, id: ${clientId}, streamId: ${streamId}, subscribers: ${publisher.numSubscribers}`);
               for (let subscriberKey in publisher.subscribers) {
                   let subscriber = publisher.getSubscriber(subscriberKey);
-                  log.info('message: Removing subscriber, id: ' + subscriber);
+                  log.info('message: Removing subscriber, id: ' + subscriberKey);
                   closeNode(subscriber);
               }
               publisher.removeExternalOutputs().then(function() {

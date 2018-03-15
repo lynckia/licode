@@ -59,7 +59,6 @@ namespace erizo {
     hasAudio = false;
     hasVideo = false;
     profile = SAVPF;
-    audio_ssrc = 0;
     videoCodecs = 0;
     audioCodecs = 0;
     videoSdpMLine = -1;

@@ -41,10 +41,12 @@ DEFINE_LOGGER(MediaStream, "MediaStream");
 
 MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   std::shared_ptr<WebRtcConnection> connection,
-  const std::string& media_stream_id) :
+  const std::string& media_stream_id,
+  const std::string& media_stream_label) :
     audio_enabled_{false}, video_enabled_{false},
     connection_{connection},
     stream_id_{media_stream_id},
+    mslabel_ {media_stream_label},
     bundle_{false},
     pipeline_{Pipeline::create()},
     worker_{worker},
@@ -127,8 +129,8 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
 
   bundle_ = remote_sdp_->isBundle;
 
-  setVideoSourceSSRCList(remote_sdp_->video_ssrc_list);
-  setAudioSourceSSRC(remote_sdp_->audio_ssrc);
+  setVideoSourceSSRCList(remote_sdp_->video_ssrc_map[getLabel()]);
+  setAudioSourceSSRC(remote_sdp_->audio_ssrc_map[getLabel()]);
 
   audio_enabled_ = remote_sdp_->hasAudio;
   video_enabled_ = remote_sdp_->hasVideo;

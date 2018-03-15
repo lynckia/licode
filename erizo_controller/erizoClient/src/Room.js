@@ -120,33 +120,29 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   const createRemoteStreamP2PConnection = (streamInput, peerSocket) => {
     const stream = streamInput;
-    stream.pc =
-    that.erizoConnectionManager.getOrBuildErizoConnection(
-      getP2PConnectionOptions(stream, peerSocket));
-    stream.pc.onaddstream = dispatchStreamSubscribed.bind(null, stream);
-    stream.pc.oniceconnectionstatechange = (state) => {
-      if (state === 'failed') {
+    stream.addPC(that.erizoConnectionManager.getOrBuildErizoConnection(
+      getP2PConnectionOptions(stream, peerSocket)));
+    stream.on('added', dispatchStreamSubscribed.bind(null, stream));
+    stream.on('icestatechanged', (evt) => {
+      if (evt.state === 'failed') {
         onStreamFailed(stream);
       }
-    };
+    });
   };
 
   const createLocalStreamP2PConnection = (streamInput, peerSocket) => {
     const stream = streamInput;
-    if (stream.pc === undefined) {
-      stream.pc = ErizoMap();
-    }
-
     const connection = that.erizoConnectionManager.getOrBuildErizoConnection(
       getP2PConnectionOptions(stream, peerSocket));
-    stream.pc.add(peerSocket, connection);
 
-    connection.oniceconnectionstatechange = (state) => {
-      if (state === 'failed') {
+    stream.addPC(connection, peerSocket);
+
+    stream.on('icestatechanged', (evt) => {
+      if (evt.state === 'failed') {
         stream.pc.get(peerSocket).close();
         stream.pc.remove(peerSocket);
       }
-    };
+    });
     connection.addStream(stream);
     connection.createOffer();
   };
@@ -187,31 +183,29 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   const createRemoteStreamErizoConnection = (streamInput, erizoId, options) => {
     const stream = streamInput;
-    stream.pc = that.erizoConnectionManager.getOrBuildErizoConnection(
-      getErizoConnectionOptions(stream, options, true), erizoId);
-
-    stream.pc.onaddstream = dispatchStreamSubscribed.bind(null, stream);
-    stream.pc.oniceconnectionstatechange = (state) => {
-      if (state === 'failed') {
+    stream.addPC(that.erizoConnectionManager.getOrBuildErizoConnection(
+      getErizoConnectionOptions(stream, options, true), erizoId, spec.singlePC));
+    stream.on('added', dispatchStreamSubscribed.bind(null, stream));
+    stream.on('icestatechanged', (evt) => {
+      if (evt.state === 'failed') {
         onStreamFailed(stream);
       }
-    };
-
+    });
     stream.pc.createOffer(true);
   };
 
   const createLocalStreamErizoConnection = (streamInput, erizoId, options) => {
     const stream = streamInput;
-    stream.pc = that.erizoConnectionManager.getOrBuildErizoConnection(
-      getErizoConnectionOptions(stream, options), erizoId, spec.singlePC);
+    stream.addPC(that.erizoConnectionManager.getOrBuildErizoConnection(
+      getErizoConnectionOptions(stream, options), erizoId, spec.singlePC));
 
-    stream.pc.addStream(stream);
-    stream.pc.oniceconnectionstatechange = (state) => {
-      if (state === 'failed') {
+    stream.on('icestatechanged', (evt) => {
+      if (evt.state === 'failed') {
         onStreamFailed(stream);
       }
-    };
-    if (!options.createOffer) { stream.pc.createOffer(); }
+    });
+    stream.pc.addStream(stream);
+    if (!options.createOffer) { stream.pc.createOffer(false, spec.singlePC); }
   };
 
   // We receive an event with a new stream in the room.
@@ -223,6 +217,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       audio: arg.audio,
       video: arg.video,
       data: arg.data,
+      label: arg.label,
       screen: arg.screen,
       attributes: arg.attributes });
     stream.room = that;
@@ -386,6 +381,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     data: stream.hasData(),
     audio: stream.hasAudio(),
     video: stream.hasVideo(),
+    label: stream.getLabel(),
     screen: stream.hasScreen(),
     attributes: stream.getAttributes(),
     metadata: options.metadata,
@@ -596,6 +592,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           audio: arg.audio,
           video: arg.video,
           data: arg.data,
+          label: arg.label,
           screen: arg.screen,
           attributes: arg.attributes });
         streamList.push(stream);

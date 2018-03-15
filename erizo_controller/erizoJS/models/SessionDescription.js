@@ -34,18 +34,17 @@ function generateRandom(length) {
   return value;
 }
 
-function addSsrc(sources, ssrc, sdp, media) {
+function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token) {
   let source = sources.get(ssrc);
-  const msid = sdp.msidSemantic.token;
   if (!source) {
     source = new SourceInfo(ssrc);
     sources.set(ssrc, source);
   }
-  source.setCName('o/i14u9pJrxRKAsu');
+  source.setCName('erizo');
   source.setMSLabel(msid);
-  source.setLabel(msid);
+  source.setLabel(media.getId());
   source.setStreamId(msid);
-  source.setTrackId(media.getId());
+  source.setTrackId(msid + media.getId());
   let stream = sdp.getStream(msid);
   if (!stream) {
     stream = new StreamInfo(msid);
@@ -60,7 +59,7 @@ function addSsrc(sources, ssrc, sdp, media) {
 }
 
 function getMediaInfoFromDescription(info, sdp, mediaType) {
-  let media = new MediaInfo(info.getMediaId(mediaType), 1, mediaType);
+  let media = new MediaInfo(info.getMediaId(mediaType), 9, mediaType);
   media.rtcp = { port: 1, netType: 'IN', ipVer: 4, address: '0.0.0.0' };
   media.setConnection({ version: 4, ip: '0.0.0.0' });
   const direction = info.getDirection(mediaType);
@@ -69,7 +68,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   let ice = info.getICECredentials(mediaType);
   if (ice) {
     const thisIceInfo = new ICEInfo(ice[0], ice[1]);
-    thisIceInfo.setEndOfCandidates('end-of-candidates'); 
+    thisIceInfo.setEndOfCandidates('end-of-candidates');
     media.setICE(thisIceInfo);
   }
 
@@ -137,13 +136,19 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
 
   const sources = new Map();
   if (mediaType === 'audio' && info.getDirection() !== 'recvonly') {
-    addSsrc(sources, info.getAudioSsrc(), sdp, media);
+    const audioSsrcMap = info.getAudioSsrcMap();
+    Object.keys(audioSsrcMap).forEach((streamLabel) => {
+      addSsrc(sources, audioSsrcMap[streamLabel], sdp, media, streamLabel);
+    });
   } else if (mediaType === 'video') {
     media.setBitrate(info.getVideoBandwidth());
 
     if (info.getDirection() !== 'recvonly') {
-      info.getVideoSsrcList().forEach((ssrc) => {
-        addSsrc(sources, ssrc, sdp, media);
+      const videoSsrcMap = info.getVideoSsrcMap();
+      Object.keys(videoSsrcMap).forEach((streamLabel) => {
+        videoSsrcMap[streamLabel].forEach((ssrc) => {
+          addSsrc(sources, ssrc, sdp, media, streamLabel);
+        });
       });
     }
 
@@ -198,7 +203,7 @@ class SessionDescription {
     }
   }
 
-  getSdp() {
+  getSdp(sessionVersion = 0) {
     if (this.sdp) {
       return this.sdp;
     }
@@ -209,13 +214,13 @@ class SessionDescription {
     sdp.setOrigin({
       username: '-',
       sessionId: 0,
-      sessionVersion: 0,
+      sessionVersion: sessionVersion,
       netType: 'IN',
       ipVer: 4,
       address: '127.0.0.1' });
     sdp.name = 'LicodeMCU';
 
-    sdp.msidSemantic = { semantic: 'WMS', token: generateRandom(10) };
+    sdp.msidSemantic = { semantic: 'WMS', token: '*' };
 
     if (info.hasAudio()) {
       const media = getMediaInfoFromDescription(info, sdp, 'audio');
@@ -230,6 +235,32 @@ class SessionDescription {
     this.sdp = sdp;
 
     return this.sdp;
+  }
+
+  getStreamInfo(info, stream) {
+    const streamId = stream.id;
+    let videoSsrcList = [];
+    let simulcastVideoSsrcList;
+
+    stream.getTracks().forEach((track) => {
+      if (track.getMedia() === 'audio') {
+        info.setAudioSsrc(streamId, track.getSSRCs()[0].getSSRC());
+      } else if (track.getMedia() === 'video') {
+        track.getSSRCs().forEach((ssrc) => {
+          videoSsrcList.push(ssrc.getSSRC());
+        });
+      }
+
+      // Google's simulcast
+      track.getSourceGroups().forEach((group) => {
+        if (group.getSemantics().toUpperCase() === 'SIM') {
+          simulcastVideoSsrcList = group.getSSRCs();
+        }
+      });
+    });
+
+    videoSsrcList = simulcastVideoSsrcList || videoSsrcList;
+    info.setVideoSsrcList(streamId, videoSsrcList);
   }
 
   processSdp() {
@@ -316,29 +347,9 @@ class SessionDescription {
       info.setICECredentials(ice.getUfrag(), ice.getPwd(), 'video');
     }
 
-    let videoSsrcList = [];
-    let simulcastVideoSsrcList;
     sdp.getStreams().forEach((stream) => {
-      stream.getTracks().forEach((track) => {
-        if (track.getMedia() === 'audio') {
-          info.setAudioSsrc(track.getSSRCs()[0].getSSRC());
-        } else if (track.getMedia() === 'video') {
-          track.getSSRCs().forEach((ssrc) => {
-            videoSsrcList.push(ssrc.getSSRC());
-          });
-        }
-
-        // Google's simulcast
-        track.getSourceGroups().forEach((group) => {
-          if (group.getSemantics().toUpperCase() === 'SIM') {
-            simulcastVideoSsrcList = group.getSSRCs();
-          }
-        });
-      });
+      this.getStreamInfo(info, stream);
     });
-
-    videoSsrcList = simulcastVideoSsrcList || videoSsrcList;
-    info.setVideoSsrcList(videoSsrcList);
 
     info.postProcessInfo();
 
