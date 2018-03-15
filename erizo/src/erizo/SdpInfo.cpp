@@ -34,8 +34,6 @@ namespace erizo {
   static const char *sendonly = "a=sendonly";
   static const char *ice_user = "a=ice-ufrag";
   static const char *ice_pass = "a=ice-pwd";
-  static const char *ssrctag = "a=ssrc:";
-  static const char *ssrcgrouptag = "a=ssrc-group";
   static const char *rid = "a=rid";
   static const char *savpf = "SAVPF";
   static const char *rtpmap = "a=rtpmap:";
@@ -570,8 +568,6 @@ namespace erizo {
       size_t isCrypt = line.find(crypto);
       size_t isUser = line.find(ice_user);
       size_t isPass = line.find(ice_pass);
-      size_t isSsrc = line.find(ssrctag);
-      size_t isSsrcGroup = line.find(ssrcgrouptag);
       size_t isRid = line.find(rid);
       size_t isSAVPF = line.find(savpf);
       size_t isRtpmap = line.find(rtpmap);
