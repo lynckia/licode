@@ -49,4 +49,16 @@ SdpHelpers.enableOpusNacks = (sdpInput) => {
   return sdp;
 };
 
+SdpHelpers.setParamForCodecs = (sdpInfo, mediaType, paramName, value) => {
+  sdpInfo.medias.forEach((mediaInfo) => {
+    console.log('processing mediaInfo', mediaInfo, 'mediaType', mediaType);
+    if (mediaInfo.id === mediaType) {
+      mediaInfo.codecs.forEach((codec) => {
+        console.log('setting Param for codec', codec, 'paramName', paramName, 'value', value);
+        codec.setParam(paramName, value);
+      });
+    }
+  });
+};
+
 export default SdpHelpers;

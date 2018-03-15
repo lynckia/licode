@@ -66,6 +66,20 @@ const ChromeStableStack = (specInput) => {
     return sdp.replace(matchGroup[0], result);
   };
 
+  that.setStartVideoBW = (sdpInfo) => {
+    if (spec.video && spec.startVideoBW) {
+      Logger.debug(`startVideoBW requested: ${spec.startVideoBW}`);
+      SdpHelpers.setParamForCodecs(sdpInfo, 'video', 'x-google-start-bitrate', spec.startVideoBW);
+    }
+  };
+
+  that.setHardMinVideoBW = (sdpInfo) => {
+    if (spec.video && spec.hardMinVideoBW) {
+      Logger.debug(`hardMinVideoBW requested: ${spec.hardMinVideoBW}`);
+      SdpHelpers.setParamForCodecs(sdpInfo, 'video', 'x-google-min-bitrate', spec.hardMinVideoBW);
+    }
+  };
+
   return that;
 };
 
