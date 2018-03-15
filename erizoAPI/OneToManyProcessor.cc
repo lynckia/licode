@@ -37,13 +37,12 @@ class AsyncDeleter : public Nan::AsyncWorker {
     }
  private:
     erizo::OneToManyProcessor* otmToDelete_;
-    Nan::Callback* callback_;
 };
 
-class AsyncRemoveSubscriber : public Nan::AsyncWorker{
+class AsyncRemoveSubscriber : public Nan::AsyncWorker {
  public:
     AsyncRemoveSubscriber(erizo::OneToManyProcessor* otm , const std::string& peerId, Nan::Callback *callback):
-      AsyncWorker(callback), otm_(otm), peerId_(peerId), callback_(callback) {
+      AsyncWorker(callback), otm_(otm), peerId_(peerId) {
       }
     ~AsyncRemoveSubscriber() {}
     void Execute() {
@@ -55,7 +54,6 @@ class AsyncRemoveSubscriber : public Nan::AsyncWorker{
  private:
     erizo::OneToManyProcessor* otm_;
     std::string peerId_;
-    Nan::Callback* callback_;
 };
 
 OneToManyProcessor::OneToManyProcessor() {
