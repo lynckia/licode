@@ -162,7 +162,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
           publisher.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc));
           publisher.on('periodic_stats', onPeriodicStats.bind(this, streamId, undefined));
           addListenerToConnection(connection, callbackRpc, clientId, streamId);
-          if (!connection.init()) {
+          const isNewConnection = connection.init();
+          if (options.singlePC && !isNewConnection) {
             callbackRpc('callback', {type: 'initializing'});
           }
         } else {
@@ -223,7 +224,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
       return new Promise(function(resolve) {
         var publisher = publishers[streamId];
           if (publisher !== undefined) {
-              log.info(`message: Removing publisher, id: ${clientId}, streamId: ${streamId}, subscribers: ${publisher.numSubscribers}`);
+              log.info(`message: Removing publisher, id: ${clientId}, streamId: ${streamId}`);
               for (let subscriberKey in publisher.subscribers) {
                   let subscriber = publisher.getSubscriber(subscriberKey);
                   log.info('message: Removing subscriber, id: ' + subscriberKey);

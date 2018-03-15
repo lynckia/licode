@@ -29,6 +29,7 @@ class Connection extends events.EventEmitter {
     this.wrtc = this._createWrtc();
     this.initialized = false;
     this.options = options;
+    this.trickleIce = options.trickleIce || false;
     this.metadata = this.options.metadata || {};
   }
 
@@ -58,7 +59,7 @@ class Connection extends events.EventEmitter {
       global.config.erizo.stunport,
       global.config.erizo.minport,
       global.config.erizo.maxport,
-      false,
+      this.trickleIce,
       this._getMediaConfiguration(this.mediaConfiguration),
       global.config.erizo.useNicer,
       global.config.erizo.turnserver,
@@ -74,7 +75,7 @@ class Connection extends events.EventEmitter {
   }
 
   _createMediaStream(id, options = {}) {
-    log.debug(`message: _createMediaStream, connectionId: ${this.id}, mediaStreamId: ${id}, label: ${options.label}`);
+    log.debug(`message: _createMediaStream, connectionId: ${this.id}, mediaStreamId: ${id}`);
     const mediaStream = new addon.MediaStream(this.threadPool, this.wrtc, id,
       options.label, this._getMediaConfiguration(this.mediaConfiguration));
     mediaStream.id = id;
@@ -104,10 +105,12 @@ class Connection extends events.EventEmitter {
           this.emit('status_event', {type: 'started'}, newStatus);
           break;
 
-        case CONN_GATHERED:
-          this.already_gathered = true;
         case CONN_SDP:
-          if (!this.already_gathered) {
+        case CONN_GATHERED:
+          if (newStatus === CONN_GATHERED) {
+            this.alreadyGathered = true;
+          }
+          if (!this.alreadyGathered && !this.trickleIce) {
             return;
           }
           this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());

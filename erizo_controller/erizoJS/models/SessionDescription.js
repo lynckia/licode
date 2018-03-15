@@ -18,22 +18,6 @@ var DirectionWay = require('./../../common/semanticSdp/DirectionWay');
 var Setup = require('./../../common/semanticSdp/Setup');
 var Helpers = require('./Helpers');
 
-function getRandomArbitrary(min, max) {
-  return Math.floor(Math.random() * (max - min) + min);
-}
-
-function generateRandom(length) {
-  const alphanum = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-  const lastChar = alphanum.length - 1;
-  let value = '';
-
-  for (let i = 0; i < length; i += 1) {
-    value += '' + alphanum[getRandomArbitrary(0, lastChar) % lastChar];
-  }
-
-  return value;
-}
-
 function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token) {
   let source = sources.get(ssrc);
   if (!source) {
