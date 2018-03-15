@@ -279,10 +279,10 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
     if (bundle_) {
       // Check incoming SSRC
       // Deliver data
-      if (isVideoSourceSSRC(recvSSRC)) {
+      if (isVideoSourceSSRC(recvSSRC) && video_sink_) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         video_sink_->deliverVideoData(std::move(packet));
-      } else if (isAudioSourceSSRC(recvSSRC)) {
+      } else if (isAudioSourceSSRC(recvSSRC) && audio_sink_) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         audio_sink_->deliverAudioData(std::move(packet));
       } else {
@@ -290,7 +290,7 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
                     toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
       }
     } else {
-      if (packet->type == AUDIO_PACKET && audio_sink_ != nullptr) {
+      if (packet->type == AUDIO_PACKET && audio_sink_) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getAudioSourceSSRC() == 0) {
@@ -298,7 +298,7 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
           this->setAudioSourceSSRC(recvSSRC);
         }
         audio_sink_->deliverAudioData(std::move(packet));
-      } else if (packet->type == VIDEO_PACKET && video_sink_ != nullptr) {
+      } else if (packet->type == VIDEO_PACKET && video_sink_) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getVideoSourceSSRC() == 0) {
