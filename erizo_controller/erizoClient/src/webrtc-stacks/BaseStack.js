@@ -193,7 +193,7 @@ const BaseStack = (specInput) => {
     Logger.error('startVideoBW not implemented for this browser');
     return sdpInput;
   };
-  
+
   that.setHardMinVideoBW = (sdpInput) => {
     Logger.error('hardMinVideoBw not implemented for this browser');
     return sdpInput;
