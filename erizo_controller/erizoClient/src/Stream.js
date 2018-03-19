@@ -34,13 +34,13 @@ const Stream = (altConnectionHelpers, specInput) => {
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
 
   const onStreamAddedToPC = (evt) => {
-    if (evt.stream.id === spec.label) {
+    if (evt.stream.id === that.getLabel()) {
       that.emit(StreamEvent({ type: 'added', stream: evt.stream }));
     }
   };
 
   const onStreamRemovedFroPC = (evt) => {
-    if (evt.stream.id === spec.label) {
+    if (evt.stream.id === that.getLabel()) {
       that.emit(StreamEvent({ type: 'removed', stream: that }));
     }
   };
@@ -74,7 +74,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     if (that.stream && that.stream.id) {
       return that.stream.id;
     }
-    return undefined;
+    return spec.label;
   };
 
   // Get attributes of this stream.

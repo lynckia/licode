@@ -173,6 +173,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       maxVideoBW: options.maxVideoBW,
       limitMaxAudioBW: spec.maxAudioBW,
       limitMaxVideoBW: spec.maxVideoBW,
+      label: stream.getLabel(),
       iceServers: that.iceServers,
       forceTurn: stream.forceTurn };
     if (!isRemote) {

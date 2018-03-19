@@ -234,13 +234,6 @@ bool WebRtcConnection::processRemoteSdp() {
   extension_processor_.setSdpInfo(local_sdp_);
   local_sdp_->updateSupportedExtensionMap(extension_processor_.getSupportedExtensionMap());
 
-  forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
-    std::vector<uint32_t> video_ssrc_list = std::vector<uint32_t>();
-    video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
-    local_sdp_->video_ssrc_map[media_stream->getLabel()] = video_ssrc_list;
-    local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
-  });
-
   if (remote_sdp_->dtlsRole == ACTPASS) {
     local_sdp_->dtlsRole = ACTIVE;
   }

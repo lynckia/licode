@@ -198,6 +198,7 @@ class Client extends events.EventEmitter {
                 this.room.streams.set(id, st);
                 st.status = PUBLISHER_INITAL;
                 log.info('message: addPublisher, ' +
+                         'label: ' + options.label + ', ' +
                          'state: PUBLISHER_INITIAL, ' +
                          'clientId: ' + this.id + ', ' +
                          'streamId: ' + id);
