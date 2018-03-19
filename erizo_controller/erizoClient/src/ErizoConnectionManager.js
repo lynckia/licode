@@ -153,8 +153,8 @@ class ErizoConnectionManager {
     return connection;
   }
 
-  closeConnection(connection) {
-    Logger.debug(`Removing connection ${connection.sessionId}
+  maybeCloseConnection(connection) {
+    Logger.debug(`Trying to remove connection ${connection.sessionId}
        with erizoId ${connection.erizoId}`);
     if (connection.streamsMap.size() === 0) {
       connection.close();

@@ -63,7 +63,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         });
       } else {
         stream.pc.removeStream(stream);
-        that.erizoConnectionManager.closeConnection(stream.pc);
+        that.erizoConnectionManager.maybeCloseConnection(stream.pc);
         delete stream.pc;
       }
     }
