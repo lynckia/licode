@@ -132,6 +132,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   void maybeWriteVideoPacket(char* buf, int len);
   void initializePipeline();
   void syncClose();
+  AVDictionary* genVideoMetadata();
 };
 
 class ExternalOuputWriter : public OutboundHandler {

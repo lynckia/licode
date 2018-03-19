@@ -376,8 +376,9 @@ bool ExternalOutput::initContext() {
     video_stream_->codec->width = 640;
     video_stream_->codec->height = 480;
     video_stream_->time_base = (AVRational) { 1, 30 };
+    video_stream_->metadata = genVideoMetadata();
     // A decent guess here suffices; if processing the file with ffmpeg,
-      // use -vsync 0 to force it not to duplicate frames.
+    // use -vsync 0 to force it not to duplicate frames.
     video_stream_->codec->pix_fmt = PIX_FMT_YUV420P;
     if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
       video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
@@ -534,5 +535,27 @@ void ExternalOutput::sendLoop() {
     boost::shared_ptr<DataPacket> video_packet = video_queue_.popPacket(true);  // ignore our minimum depth check
     writeVideoData(video_packet->data, video_packet->length);
   }
+}
+
+AVDictionary* ExternalOutput::genVideoMetadata() {
+    AVDictionary* dict = NULL;
+    switch (video_queue_.getVideoRotation()) {
+      case webrtc::kVideoRotation_0:
+        av_dict_set(&dict, "rotate", "0", 0);
+        break;
+      case webrtc::kVideoRotation_90:
+        av_dict_set(&dict, "rotate", "90", 0);
+        break;
+      case webrtc::kVideoRotation_180:
+        av_dict_set(&dict, "rotate", "180", 0);
+        break;
+      case webrtc::kVideoRotation_270:
+        av_dict_set(&dict, "rotate", "270", 0);
+        break;
+      default:
+        av_dict_set(&dict, "rotate", "0", 0);
+        break;
+    }
+    return dict;
 }
 }  // namespace erizo
