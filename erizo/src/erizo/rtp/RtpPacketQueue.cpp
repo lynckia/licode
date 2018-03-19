@@ -12,7 +12,8 @@ namespace erizo {
 DEFINE_LOGGER(RtpPacketQueue, "rtp.RtpPacketQueue");
 
 RtpPacketQueue::RtpPacketQueue(double depthInSeconds, double maxDepthInSeconds) :
-  lastSequenceNumberGiven_(-1), timebase_(0), depthInSeconds_(depthInSeconds), maxDepthInSeconds_(maxDepthInSeconds) {
+  lastSequenceNumberGiven_(-1), timebase_(0), depthInSeconds_(depthInSeconds), maxDepthInSeconds_(maxDepthInSeconds),
+  video_rotation_(webrtc::kVideoRotation_0) {
   if (depthInSeconds_ >= maxDepthInSeconds_) {
       ELOG_WARN("invalid configuration, depth_: %f, max_: %f; reset to defaults",
                  depthInSeconds_, maxDepthInSeconds_);
@@ -41,6 +42,8 @@ void RtpPacketQueue::pushPacket(const char *data, int length) {
               lastSequenceNumberGiven_);
     return;
   }
+
+  parseRtpHeader(data, length);
 
   // TODO(pedro) this should be a secret of the DataPacket class.  It should maintain its own memory
   // and copy stuff as necessary.
@@ -140,6 +143,26 @@ bool RtpPacketQueue::rtpSequenceLessThan(uint16_t x, uint16_t y) {
     return (diff < -0x8000);
   } else {  // diff == 0
     return false;
+  }
+}
+
+webrtc::VideoRotation RtpPacketQueue::getVideoRotation() {
+  return video_rotation_;
+}
+
+void RtpPacketQueue::parseRtpHeader(const char *data, int length) {
+  const uint8_t* buffer = reinterpret_cast<const uint8_t*>(data);
+  webrtc::RTPHeader rtp_header;
+  webrtc::RtpHeaderExtensionMap ext_map_video;
+  webrtc::RtpUtility::RtpHeaderParser rtp_parser(buffer, length);
+  bool ok = false;
+
+  memset(&rtp_header, 0, sizeof(rtp_header));
+  // TODO(yannistseng): update extension maps dymaically from SDP info
+  ext_map_video.RegisterByType(4, webrtc::kRtpExtensionVideoRotation);
+  ok = rtp_parser.Parse(&rtp_header, &ext_map_video);
+  if (ok && rtp_header.extension.hasVideoRotation) {
+    video_rotation_ = rtp_header.extension.videoRotation;
   }
 }
 }  // namespace erizo

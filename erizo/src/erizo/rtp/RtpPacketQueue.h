@@ -6,6 +6,7 @@
 
 #include <list>
 
+#include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
 #include "./logger.h"
 
 namespace erizo {
@@ -48,6 +49,7 @@ class RtpPacketQueue {
   boost::shared_ptr<DataPacket> popPacket(bool ignore_depth = false);
   int getSize();  // total size of all items in the queue
   bool hasData();  // whether or not current queue depth is >= depth_
+  webrtc::VideoRotation getVideoRotation();
 
  private:
   // Only used internally; does the math to calculate our current depth based on the supplied timebase.
@@ -58,11 +60,13 @@ class RtpPacketQueue {
   std::list<boost::shared_ptr<DataPacket> > queue_;
   int lastSequenceNumberGiven_;
   bool rtpSequenceLessThan(uint16_t x, uint16_t y);
+  void parseRtpHeader(const char *data, int length);
 
   // We use a timebase so we can understand how many seconds of data we have in our queue.
   unsigned int timebase_;
   double depthInSeconds_;
   double maxDepthInSeconds_;
+  webrtc::VideoRotation video_rotation_;
 };
 }  // namespace erizo
 
