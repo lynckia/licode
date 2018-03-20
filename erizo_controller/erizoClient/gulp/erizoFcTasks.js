@@ -14,9 +14,9 @@ const erizoFcTasks = (gulp, plugins, config) => {
   that.bundle = () =>
     gulp.src(erizoFcConfig.entry)
     .pipe(plugins.webpackGulp(erizoFcConfig.webpackConfig, plugins.webpack))
-    .on('error', anError => console.log('An error ', anError))
+    .on('error', anError => plugins.exitOnError(anError))
     .pipe(gulp.dest(erizoFcConfig.debug))
-    .on('error', anError => console.log('An error ', anError));
+    .on('error', anError => plugins.exitOnError(anError));
 
   that.compile = () => gulp.src(`${erizoFcConfig.debug}/**/*.js`)
     .pipe(gulp.dest(erizoFcConfig.production));
