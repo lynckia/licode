@@ -7,7 +7,6 @@ import { EventEmitter, ConnectionEvent } from './Events';
 import ErizoMap from './utils/ErizoMap';
 import ConnectionHelpers from './utils/ConnectionHelpers';
 
-
 let ErizoSessionId = 103;
 
 class ErizoConnection extends EventEmitter {
