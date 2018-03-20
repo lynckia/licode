@@ -12,7 +12,7 @@ class Subscriber extends NodeClass {
     super(clientId, streamId, options);
     this.connection = connection;
     this.connection.mediaConfiguration = options.mediaConfiguration;
-    this.connection.addMediaStream(this.erizoStreamId, options.metadata);
+    this.connection.addMediaStream(this.erizoStreamId, options);
     this.mediaStream = connection.getMediaStream(this.erizoStreamId);
     this.publisher = publisher;
     this._listenToConnectionStuff();

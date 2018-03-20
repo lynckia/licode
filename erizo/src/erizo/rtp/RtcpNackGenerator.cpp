@@ -27,7 +27,7 @@ bool RtcpNackGenerator::handleRtpPacket(std::shared_ptr<DataPacket> packet) {
   if (!initialized_) {
     highest_seq_num_ = seq_num;
     initialized_ = true;
-    return 0;
+    return false;
   }
   if (seq_num == highest_seq_num_) {
     return false;
