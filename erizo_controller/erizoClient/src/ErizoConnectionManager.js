@@ -7,10 +7,10 @@ import { EventEmitter, ConnectionEvent } from './Events';
 import ErizoMap from './utils/ErizoMap';
 import ConnectionHelpers from './utils/ConnectionHelpers';
 
-const EventEmitterErizo = EventEmitter; // makes google-closure-compiler happy
+const EventEmitterConst = EventEmitter; // makes google-closure-compiler happy
 let ErizoSessionId = 103;
 
-class ErizoConnection extends EventEmitterErizo {
+class ErizoConnection extends EventEmitterConst {
   constructor(specInput, erizoId = undefined) {
     super();
     Logger.debug('Building a new Connection');
