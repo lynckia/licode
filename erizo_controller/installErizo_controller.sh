@@ -27,7 +27,7 @@ echo [erizo_controller] Done, node_modules installed
 
 cd ./erizoClient/
 
-gulp erizo
+../../node_modules/.bin/gulp erizo
 
 check_result $?
 
