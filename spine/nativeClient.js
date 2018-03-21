@@ -39,6 +39,7 @@ exports.ErizoNativeConnection = (config) => {
   // CONN_FINISHED = 105,
   const CONN_CANDIDATE = 201;
   const CONN_SDP = 202;
+  const CONN_SDP_PROCESSED  = 203;
   const CONN_FAILED = 500;
 
   const generatePLIs = () => {
@@ -67,6 +68,7 @@ exports.ErizoNativeConnection = (config) => {
 
         case CONN_SDP:
         case CONN_GATHERED:
+        case CONN_SDP_PROCESSED:
           setTimeout(() => {
             wrtc.localDescription = new SessionDescription(wrtc.getLocalDescription());
             const sdp = wrtc.localDescription.getSdp();

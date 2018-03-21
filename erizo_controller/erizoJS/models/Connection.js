@@ -13,6 +13,7 @@ const CONN_INITIAL        = 101,
       CONN_FINISHED       = 105,
       CONN_CANDIDATE      = 201,
       CONN_SDP            = 202,
+      CONN_SDP_PROCESSED  = 203,
       CONN_FAILED         = 500,
       WARN_BAD_CONNECTION = 502;
 
@@ -31,6 +32,7 @@ class Connection extends events.EventEmitter {
     this.options = options;
     this.trickleIce = options.trickleIce || false;
     this.metadata = this.options.metadata || {};
+    this.isProcessingRemoteSdp = false;
     this.ready = false;
   }
 
@@ -89,6 +91,9 @@ class Connection extends events.EventEmitter {
   }
 
   _maybeSendAnswer(evt) {
+    if (this.isProcessingRemoteSdp) {
+      return;
+    }
     if (!this.alreadyGathered && !this.trickleIce) {
       return;
     }
@@ -118,6 +123,11 @@ class Connection extends events.EventEmitter {
       switch(newStatus) {
         case CONN_INITIAL:
           this.emit('status_event', {type: 'started'}, newStatus);
+          break;
+
+        case CONN_SDP_PROCESSED:
+          this.isProcessingRemoteSdp = false;
+          this._maybeSendAnswer(newStatus);
           break;
 
         case CONN_SDP:
@@ -180,6 +190,7 @@ class Connection extends events.EventEmitter {
   }
 
   setRemoteDescription(sdp) {
+    this.isProcessingRemoteSdp = true;
     this.remoteDescription = new SessionDescription(sdp, this.mediaConfiguration);
     this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription);
   }
@@ -200,9 +211,6 @@ class Connection extends events.EventEmitter {
     log.info(`message: Closing connection ${this.id}`);
     log.info(`message: WebRtcConnection status update, id: ${this.id}, status: ${CONN_FINISHED}, ` +
             `${logger.objectToLog(this.metadata)}`);
-    if (this._onConnectionStatusEventListener) {
-      this.removeListener('status_event', this._onConnectionStatusEventListener);
-    }
     this.mediaStreams.forEach((mediaStream, id) => {
       log.debug(`message: Closing mediaStream, connectionId : ${this.id}, `+
         `mediaStreamId: ${id}`);

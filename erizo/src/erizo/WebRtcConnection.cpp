@@ -47,7 +47,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
     ice_config_{ice_config}, rtp_mappings_{rtp_mappings}, extension_processor_{ext_mappings},
     worker_{worker}, io_worker_{io_worker},
     remote_sdp_{std::make_shared<SdpInfo>(rtp_mappings)}, local_sdp_{std::make_shared<SdpInfo>(rtp_mappings)},
-    audio_muted_{false}, video_muted_{false}, remote_sdp_processed_{false}
+    audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false}
     {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port);
@@ -231,30 +231,65 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
       local_sdp_->videoDirection = erizo::SENDRECV;
     }
   }
+  if (remote_sdp_->audio_ssrc_map.size() + remote_sdp_->video_ssrc_map.size() > 2) {
+    if (local_sdp_->audioDirection == erizo::SENDONLY) {
+      local_sdp_->audioDirection = erizo::SENDRECV;
+      local_sdp_->videoDirection = erizo::SENDRECV;
+    }
+  }
   return local_sdp_;
 }
 
 bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
-  ELOG_DEBUG("%s message: setting remote SDP", toLog());
+  asyncTask([sdp] (std::shared_ptr<WebRtcConnection> connection) {
+    ELOG_DEBUG("%s message: setting remote SDP", connection->toLog());
+    if (!connection->sending_) {
+      return;
+    }
 
-  if (!sending_) {
-    return true;
+    connection->remote_sdp_->initWithSdp(sdp, "");
+    connection->processRemoteSdp();
+  });
+  return true;
+}
+
+void WebRtcConnection::setRemoteSdpsToMediaStreams() {
+  if (media_streams_.size() == 0) {
+    onRemoteSdpsSetToMediaStreams();
+    return;
   }
 
-  remote_sdp_->initWithSdp(sdp, "");
-  return processRemoteSdp();
+  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
+  auto remaining_sdps = std::make_shared<std::atomic<size_t>>(media_streams_.size());
+  ELOG_DEBUG("%s message: setting remote SDP, streams: %d", toLog(), remaining_sdps->load());
+
+  forEachMediaStreamAsync(
+    [weak_this, remaining_sdps] (const std::shared_ptr<MediaStream> &media_stream) {
+      if (auto connection = weak_this.lock()) {
+        media_stream->setRemoteSdp(connection->remote_sdp_);
+        media_stream->setLocalSdp(connection->local_sdp_);
+        int result = remaining_sdps->fetch_sub(1);
+        ELOG_DEBUG("%s message: setting remote SDP to stream, remaining: %d",
+          connection->toLog(), result);
+        if (result == 1) {
+          connection->onRemoteSdpsSetToMediaStreams();
+        }
+      }
+    });
+}
+
+void WebRtcConnection::onRemoteSdpsSetToMediaStreams() {
+  asyncTask([] (std::shared_ptr<WebRtcConnection> connection) {
+    ELOG_DEBUG("%s message: SDP processed", connection->toLog());
+    std::string sdp = connection->getLocalSdp();
+    connection->conn_event_listener_->notifyEvent(CONN_SDP_PROCESSED, sdp);
+  });
 }
 
 bool WebRtcConnection::processRemoteSdp() {
   ELOG_DEBUG("%s message: processing remote SDP", toLog());
-  if (remote_sdp_processed_) {
-    forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
-      media_stream->setRemoteSdp(remote_sdp_);
-    });
-    std::string object = this->getLocalSdp();
-    if (conn_event_listener_) {
-      conn_event_listener_->notifyEvent(CONN_SDP, object);
-    }
+  if (first_remote_sdp_processed_) {
+    setRemoteSdpsToMediaStreams();
     return true;
   }
 
@@ -320,18 +355,8 @@ bool WebRtcConnection::processRemoteSdp() {
       }
     }
   }
-  if (trickle_enabled_) {
-    std::string object = this->getLocalSdp();
-    if (conn_event_listener_) {
-      ELOG_DEBUG("%s message: Sending SDP", toLog());
-      conn_event_listener_->notifyEvent(CONN_SDP, object);
-    }
-  }
-  forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
-    media_stream->setRemoteSdp(remote_sdp_);
-    media_stream->setLocalSdp(local_sdp_);
-  });
-  remote_sdp_processed_ = true;
+  setRemoteSdpsToMediaStreams();
+  first_remote_sdp_processed_ = true;
   return true;
 }
 

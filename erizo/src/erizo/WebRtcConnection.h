@@ -39,7 +39,7 @@ class MediaStream;
  */
 enum WebRTCEvent {
   CONN_INITIAL = 101, CONN_STARTED = 102, CONN_GATHERED = 103, CONN_READY = 104, CONN_FINISHED = 105,
-  CONN_CANDIDATE = 201, CONN_SDP = 202,
+  CONN_CANDIDATE = 201, CONN_SDP = 202, CONN_SDP_PROCESSED = 203,
   CONN_FAILED = 500
 };
 
@@ -140,6 +140,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void addMediaStream(std::shared_ptr<MediaStream> media_stream);
   void removeMediaStream(const std::string& stream_id);
   void forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func);
+  void forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
 
   std::shared_ptr<Stats> getStatsService() { return stats_; }
 
@@ -153,6 +154,8 @@ class WebRtcConnection: public TransportListener, public LogContext,
 
  private:
   bool processRemoteSdp();
+  void setRemoteSdpsToMediaStreams();
+  void onRemoteSdpsSetToMediaStreams();
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
 
@@ -184,7 +187,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   std::shared_ptr<SdpInfo> local_sdp_;
   bool audio_muted_;
   bool video_muted_;
-  bool remote_sdp_processed_;
+  bool first_remote_sdp_processed_;
 };
 
 }  // namespace erizo
