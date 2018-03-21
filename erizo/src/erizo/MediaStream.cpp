@@ -9,6 +9,8 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include <cstdlib>
+#include <ctime>
 
 #include "./MediaStream.h"
 #include "./SdpInfo.h"
@@ -61,6 +63,9 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   stats_ = std::make_shared<Stats>();
   quality_manager_ = std::make_shared<QualityManager>();
   packet_buffer_ = std::make_shared<PacketBufferService>();
+  std::srand(std::time(nullptr));
+  audio_sink_ssrc_ = std::rand();
+  video_sink_ssrc_ = std::rand();
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
 
