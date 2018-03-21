@@ -31,6 +31,7 @@ class Connection extends events.EventEmitter {
     this.options = options;
     this.trickleIce = options.trickleIce || false;
     this.metadata = this.options.metadata || {};
+    this.ready = false;
   }
 
   _getMediaConfiguration(mediaConfiguration = 'default') {
@@ -87,6 +88,20 @@ class Connection extends events.EventEmitter {
     return mediaStream;
   }
 
+  _maybeSendAnswer(evt) {
+    if (!this.alreadyGathered && !this.trickleIce) {
+      return;
+    }
+    this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
+    const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion++);
+    let message = sdp.toString();
+    message = message.replace(this.options.privateRegexp, this.options.publicIP);
+
+    const info = {type: this.options.createOffer ? 'offer' : 'answer', sdp: message};
+    log.debug(`message: _maybeSendAnswer sending event, type: ${info.type}`);
+    this.emit('status_event', info, evt);
+  }
+
   init() {
     if (this.initialized) {
       return false;
@@ -94,7 +109,7 @@ class Connection extends events.EventEmitter {
     this.initialized = true;
     log.debug(`message: Init Connection, connectionId: ${this.id} `+
               `${logger.objectToLog(this.options)}`);
-    let sessionVersion = 0;
+    this.sessionVersion = 0;
 
     this.wrtc.init((newStatus, mess) => {
       log.info('message: WebRtcConnection status update, ' +
@@ -106,20 +121,12 @@ class Connection extends events.EventEmitter {
           break;
 
         case CONN_SDP:
-        case CONN_GATHERED:
-          if (newStatus === CONN_GATHERED) {
-            this.alreadyGathered = true;
-          }
-          if (!this.alreadyGathered && !this.trickleIce) {
-            return;
-          }
-          this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
-          const sdp = this.wrtc.localDescription.getSdp(sessionVersion++);
-          mess = sdp.toString();
-          mess = mess.replace(this.options.privateRegexp, this.options.publicIP);
+          this._maybeSendAnswer(newStatus);
+          break;
 
-          const info = {type: this.options.createOffer ? 'offer' : 'answer', sdp: mess};
-          this.emit('status_event', info, newStatus);
+        case CONN_GATHERED:
+          this.alreadyGathered = true;
+          this._maybeSendAnswer(newStatus);
           break;
 
         case CONN_CANDIDATE:
@@ -136,6 +143,7 @@ class Connection extends events.EventEmitter {
         case CONN_READY:
           log.debug('message: connection ready, ' + 'id: ' + this.id +
                     ', ' + 'status: ' + newStatus);
+          this.ready = true;
           this.emit('status_event', {type: 'ready'}, newStatus);
           break;
       }
