@@ -425,9 +425,9 @@ WebRTCEvent MediaStream::getCurrentState() {
 }
 
 void MediaStream::getJSONStats(std::function<void(std::string)> callback) {
-  asyncTask([callback] (std::shared_ptr<MediaStream> connection) {
-    std::string requested_stats = connection->stats_->getStats();
-    //  ELOG_DEBUG("%s message: Stats, stats: %s", connection->toLog(), requested_stats.c_str());
+  asyncTask([callback] (std::shared_ptr<MediaStream> stream) {
+    std::string requested_stats = stream->stats_->getStats();
+    //  ELOG_DEBUG("%s message: Stats, stats: %s", stream->toLog(), requested_stats.c_str());
     callback(requested_stats);
   });
 }
