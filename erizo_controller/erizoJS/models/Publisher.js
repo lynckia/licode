@@ -343,6 +343,8 @@ class Publisher extends Source {
 
     this.connection.mediaConfiguration = options.mediaConfiguration;
     this.connection.addMediaStream(streamId, options);
+    this._connectionListener = this._emitStatusEvent.bind(this);
+    connection.on('status_event', this._connectionListener);
     this.mediaStream = this.connection.getMediaStream(streamId);
 
     this.minVideoBW = options.minVideoBW;
@@ -356,8 +358,13 @@ class Publisher extends Source {
     this.muteStream({video: muteVideo, audio: muteAudio});
   }
 
+  _emitStatusEvent(evt, status) {
+    this.emit('status_event', evt, status);
+  }
+
   close() {
     this.connection.removeMediaStream(this.mediaStream.id);
+    this.connection.removeListener('status_event', this._connectionListener);
     if (this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);
     }

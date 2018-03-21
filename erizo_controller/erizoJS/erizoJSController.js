@@ -20,7 +20,6 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
         statsSubscriptions = {},
         onAdaptSchemeNotify,
         onPeriodicStats,
-        addListenerToConnection,
         onConnectionStatusEvent,
         closeNode,
         getOrCreateClient,
@@ -50,14 +49,6 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                                  subs: clientId,
                                  stats: JSON.parse(newStats),
                                  timestamp:timeStamp.getTime()});
-    };
-
-    addListenerToConnection = (connection, callbackRpc, clientId, streamId) => {
-      if (!connection._onConnectionStatusEventListener) {
-        connection._onConnectionStatusEventListener =
-          onConnectionStatusEvent.bind(this, callbackRpc, clientId, streamId);
-        connection.on('status_event', connection._onConnectionStatusEventListener);
-      }
     };
 
     onConnectionStatusEvent = (callbackRpc, clientId, streamId, connectionEvent, newStatus) => {
@@ -161,10 +152,13 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
           publisher.initMediaStream();
           publisher.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc));
           publisher.on('periodic_stats', onPeriodicStats.bind(this, streamId, undefined));
-          addListenerToConnection(connection, callbackRpc, clientId, streamId);
+          publisher.on('status_event', onConnectionStatusEvent.bind(this, callbackRpc, clientId, streamId));
           const isNewConnection = connection.init();
           if (options.singlePC && !isNewConnection) {
             callbackRpc('callback', {type: 'initializing'});
+            if (connection.ready) {
+              callbackRpc('callback', {type: 'ready'});
+            }
           }
         } else {
             publisher = publishers[streamId];
@@ -211,9 +205,13 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
         subscriber.initMediaStream();
         subscriber.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc));
         subscriber.on('periodic_stats', onPeriodicStats.bind(this, clientId, streamId));
-        addListenerToConnection(connection, callbackRpc, clientId, streamId);
-        if (!connection.init()) {
+        subscriber.on('status_event', onConnectionStatusEvent.bind(this, callbackRpc, clientId, streamId));
+        const isNewConnection = connection.init();
+        if (options.singlePC && !isNewConnection) {
           callbackRpc('callback', {type: 'initializing'});
+          if (connection.ready) {
+            callbackRpc('callback', {type: 'ready'});
+          }
         }
     };
 

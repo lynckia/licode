@@ -13,14 +13,15 @@ class Subscriber extends NodeClass {
     this.connection = connection;
     this.connection.mediaConfiguration = options.mediaConfiguration;
     this.connection.addMediaStream(this.erizoStreamId, options);
+    this._connectionListener = this._emitStatusEvent.bind(this);
+    connection.on('status_event', this._connectionListener);
     this.mediaStream = connection.getMediaStream(this.erizoStreamId);
     this.publisher = publisher;
-    this._listenToConnectionStuff();
   }
 
-  _listenToConnectionStuff() {
-    this._statusListener = this._onConnectionStatusEvent.bind(this);
-    this.connection.on('status_event', this._statusListener);
+  _emitStatusEvent(evt, status) {
+    this._onConnectionStatusEvent(evt);
+    this.emit('status_event', evt, status);
   }
 
   _onConnectionStatusEvent(connectionEvent) {
@@ -79,7 +80,7 @@ class Subscriber extends NodeClass {
     log.debug(`msg: Closing subscriber, streamId:${this.streamId}`);
     this.publisher = undefined;
     if (this.connection) {
-      this.connection.removeListener('status_event', this._statusListener);
+      this.connection.removeListener('status_event', this._connectionListener);
       this.connection.removeMediaStream(this.mediaStream.id);
     }
     if (this.mediaStream && this.mediaStream.monitorInterval) {
