@@ -235,10 +235,12 @@ int MediaStream::deliverEvent_(MediaEventPtr event) {
   return 1;
 }
 
-void MediaStream::onTransportData(std::shared_ptr<DataPacket> packet, Transport *transport) {
+void MediaStream::onTransportData(std::shared_ptr<DataPacket> incoming_packet, Transport *transport) {
   if ((audio_sink_ == nullptr && video_sink_ == nullptr && fb_sink_ == nullptr)) {
     return;
   }
+
+  std::shared_ptr<DataPacket> packet = std::make_shared<DataPacket>(*incoming_packet);
 
   if (transport->mediaType == AUDIO_TYPE) {
     packet->type = AUDIO_PACKET;
