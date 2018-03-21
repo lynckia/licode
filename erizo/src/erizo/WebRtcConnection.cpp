@@ -101,6 +101,7 @@ bool WebRtcConnection::init() {
 }
 
 bool WebRtcConnection::createOffer(bool video_enabled, bool audioEnabled, bool bundle) {
+  boost::mutex::scoped_lock lock(updateStateMutex_);
   bundle_ = bundle;
   video_enabled_ = video_enabled;
   audio_enabled_ = audioEnabled;
@@ -149,46 +150,74 @@ bool WebRtcConnection::createOffer(bool video_enabled, bool audioEnabled, bool b
     std::string msg = this->getLocalSdp();
     conn_event_listener_->notifyEvent(global_state_, msg);
   }
-  forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
-    media_stream->setLocalSdp(local_sdp_);
+  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
+  forEachMediaStreamAsync([weak_this] (const std::shared_ptr<MediaStream> &media_stream) {
+    if (auto connection = weak_this.lock()) {
+      media_stream->setLocalSdp(connection->local_sdp_);
+    }
   });
   return true;
 }
 
 void WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream) {
-  ELOG_DEBUG("%s message: Adding mediaStream, id: %s", toLog(), media_stream->getId().c_str());
-  media_streams_.push_back(media_stream);
+  asyncTask([media_stream] (std::shared_ptr<WebRtcConnection> connection) {
+    ELOG_DEBUG("%s message: Adding mediaStream, id: %s", connection->toLog(), media_stream->getId().c_str());
+    connection->media_streams_.push_back(media_stream);
+  });
 }
 
 void WebRtcConnection::removeMediaStream(const std::string& stream_id) {
-  ELOG_DEBUG("%s message: removing mediaStream, id: %s", toLog(), stream_id.c_str());
-  media_streams_.erase(std::remove_if(media_streams_.begin(), media_streams_.end(),
-    [stream_id, this](const std::shared_ptr<MediaStream> &stream) {
-      bool isStream = stream->getId() == stream_id;
-      if (isStream) {
-        local_sdp_->video_ssrc_map.erase(local_sdp_->video_ssrc_map.find(stream->getLabel()));
-        local_sdp_->audio_ssrc_map.erase(local_sdp_->audio_ssrc_map.find(stream->getLabel()));
-      }
-      return isStream;
-    }), media_streams_.end());
+  asyncTask([stream_id] (std::shared_ptr<WebRtcConnection> connection) {
+    boost::mutex::scoped_lock lock(connection->updateStateMutex_);
+    ELOG_DEBUG("%s message: removing mediaStream, id: %s", connection->toLog(), stream_id.c_str());
+    connection->media_streams_.erase(std::remove_if(connection->media_streams_.begin(),
+                                                    connection->media_streams_.end(),
+      [stream_id, connection](const std::shared_ptr<MediaStream> &stream) {
+        bool isStream = stream->getId() == stream_id;
+        if (isStream) {
+          auto video_it = connection->local_sdp_->video_ssrc_map.find(stream->getLabel());
+          if (video_it != connection->local_sdp_->video_ssrc_map.end()) {
+            connection->local_sdp_->video_ssrc_map.erase(video_it);
+          }
+          auto audio_it = connection->local_sdp_->audio_ssrc_map.find(stream->getLabel());
+          if (audio_it != connection->local_sdp_->audio_ssrc_map.end()) {
+            connection->local_sdp_->audio_ssrc_map.erase(audio_it);
+          }
+        }
+        return isStream;
+      }));
+    });
 }
 
 void WebRtcConnection::forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func) {
   std::for_each(media_streams_.begin(), media_streams_.end(), func);
 }
 
+void WebRtcConnection::forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func) {
+  std::for_each(media_streams_.begin(), media_streams_.end(),
+    [func] (const std::shared_ptr<MediaStream> &stream) {
+    stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
+      func(stream);
+    });
+  });
+}
+
 bool WebRtcConnection::setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp) {
-  ELOG_DEBUG("%s message: setting remote SDPInfo", toLog());
+  asyncTask([sdp] (std::shared_ptr<WebRtcConnection> connection) {
+    ELOG_DEBUG("%s message: setting remote SDPInfo", connection->toLog());
 
-  if (!sending_) {
-    return true;
-  }
+    if (!connection->sending_) {
+      return;
+    }
 
-  remote_sdp_ = sdp;
-  return processRemoteSdp();
+    connection->remote_sdp_ = sdp;
+    connection->processRemoteSdp();
+  });
+  return true;
 }
 
 std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
+  boost::mutex::scoped_lock lock(updateStateMutex_);
   ELOG_DEBUG("%s message: getting local SDPInfo", toLog());
   forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
     std::vector<uint32_t> video_ssrc_list = std::vector<uint32_t>();
@@ -503,7 +532,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       if (bundle_) {
         temp = CONN_READY;
         trackTransportInfo();
-        forEachMediaStream([] (const std::shared_ptr<MediaStream> &media_stream) {
+        forEachMediaStreamAsync([] (const std::shared_ptr<MediaStream> &media_stream) {
           media_stream->sendPLIToFeedback();
         });
       } else {
@@ -514,7 +543,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
             // WebRTCConnection will be ready only when all channels are ready.
             temp = CONN_READY;
             trackTransportInfo();
-            forEachMediaStream([] (const std::shared_ptr<MediaStream> &media_stream) {
+            forEachMediaStreamAsync([] (const std::shared_ptr<MediaStream> &media_stream) {
               media_stream->sendPLIToFeedback();
             });
           }
