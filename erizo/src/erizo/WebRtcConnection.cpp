@@ -452,12 +452,7 @@ void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Trans
   if (chead->isRtcp() && chead->packettype != RTCP_Sender_PT) {  // Sender Report
     ssrc = chead->getSourceSSRC();
   }
-  int index = 0;
-  forEachMediaStream([&index, packet, transport, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
-    if (index == 1) {
-      return;
-    }
-    index++;
+  forEachMediaStream([packet, transport, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
     if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
       media_stream->onTransportData(packet, transport);
     }
