@@ -120,6 +120,9 @@ bool MediaStream::isSinkSSRC(uint32_t ssrc) {
 
 bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   ELOG_DEBUG("%s message: setting remote SDP", toLog());
+  if (!sending_) {
+    return true;
+  }
   remote_sdp_ = sdp;
   if (remote_sdp_->videoBandwidth != 0) {
     ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remote_sdp_->videoBandwidth);
@@ -133,9 +136,18 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
 
 
   bundle_ = remote_sdp_->isBundle;
+  try {
+    auto video_ssrc_list = remote_sdp_->video_ssrc_map.at(getLabel());
+    setVideoSourceSSRCList(video_ssrc_list);
+  } catch(const std::out_of_range& oor) {
+  }
 
-  setVideoSourceSSRCList(remote_sdp_->video_ssrc_map[getLabel()]);
-  setAudioSourceSSRC(remote_sdp_->audio_ssrc_map[getLabel()]);
+  try {
+    auto audio_ssrc = remote_sdp_->audio_ssrc_map.at(getLabel());
+    setAudioSourceSSRC(audio_ssrc);
+  } catch(const std::out_of_range& oor) {
+  }
+
 
   if (getVideoSourceSSRCList().empty()) {
     std::vector<uint32_t> default_ssrc_list;
