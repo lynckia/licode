@@ -87,6 +87,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   void sendPacketAsync(std::shared_ptr<DataPacket> packet);
 
+  void setTransportInfo(std::string audio_info, std::string video_info);
 
   void setFeedbackReports(bool will_send_feedback, uint32_t target_bitrate = 0);
   void setSlideShowMode(bool state);

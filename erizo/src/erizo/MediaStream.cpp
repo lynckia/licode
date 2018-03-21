@@ -58,7 +58,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
       toLog(), media_stream_id.c_str());
   source_fb_sink_ = this;
   sink_fb_source_ = this;
-  stats_ = connection->getStatsService();
+  stats_ = std::make_shared<Stats>();
   quality_manager_ = std::make_shared<QualityManager>();
   packet_buffer_ = std::make_shared<PacketBufferService>();
 
@@ -402,6 +402,32 @@ void MediaStream::setVideoConstraints(int max_video_width, int max_video_height,
   asyncTask([max_video_width, max_video_height, max_video_frame_rate] (std::shared_ptr<MediaStream> media_stream) {
     media_stream->quality_manager_->setVideoConstraints(max_video_width, max_video_height, max_video_frame_rate);
   });
+}
+
+void MediaStream::setTransportInfo(std::string audio_info, std::string video_info) {
+  if (video_enabled_) {
+    uint32_t video_sink_ssrc = getVideoSinkSSRC();
+    uint32_t video_source_ssrc = getVideoSourceSSRC();
+
+    if (video_sink_ssrc != kDefaultVideoSinkSSRC) {
+      stats_->getNode()[video_sink_ssrc].insertStat("clientHostType", StringStat{video_info});
+    }
+    if (video_source_ssrc != 0) {
+      stats_->getNode()[video_source_ssrc].insertStat("clientHostType", StringStat{video_info});
+    }
+  }
+
+  if (audio_enabled_) {
+    uint32_t audio_sink_ssrc = getAudioSinkSSRC();
+    uint32_t audio_source_ssrc = getAudioSourceSSRC();
+
+    if (audio_sink_ssrc != kDefaultAudioSinkSSRC) {
+      stats_->getNode()[audio_sink_ssrc].insertStat("clientHostType", StringStat{audio_info});
+    }
+    if (audio_source_ssrc != 0) {
+      stats_->getNode()[audio_source_ssrc].insertStat("clientHostType", StringStat{audio_info});
+    }
+  }
 }
 
 void MediaStream::setFeedbackReports(bool will_send_fb, uint32_t target_bitrate) {

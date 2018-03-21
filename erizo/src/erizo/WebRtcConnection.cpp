@@ -558,47 +558,24 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
 
 void WebRtcConnection::trackTransportInfo() {
   CandidatePair candidate_pair;
+  std::string audio_info;
+  std::string video_info;
   if (video_enabled_ && video_transport_) {
     candidate_pair = video_transport_->getIceConnection()->getSelectedPair();
-    asyncTask([candidate_pair] (std::shared_ptr<WebRtcConnection> connection) {
-      std::shared_ptr<Stats> stats = connection->stats_;
-      connection->forEachMediaStream([stats, candidate_pair] (const std::shared_ptr<MediaStream> &media_stream) {
-        uint32_t video_sink_ssrc = media_stream->getVideoSinkSSRC();
-        uint32_t video_source_ssrc = media_stream->getVideoSourceSSRC();
-
-        if (video_sink_ssrc != kDefaultVideoSinkSSRC) {
-          stats->getNode()[video_sink_ssrc].insertStat("clientHostType",
-                                                       StringStat{candidate_pair.clientHostType});
-        }
-        if (video_source_ssrc != 0) {
-          stats->getNode()[video_source_ssrc].insertStat("clientHostType",
-                                                         StringStat{candidate_pair.clientHostType});
-        }
-      });
-    });
+    video_info = candidate_pair.clientHostType;
   }
 
-  if (audio_enabled_) {
-    if (audio_transport_) {
-      candidate_pair = audio_transport_->getIceConnection()->getSelectedPair();
-    }
-    asyncTask([candidate_pair] (std::shared_ptr<WebRtcConnection> connection) {
-      std::shared_ptr<Stats> stats = connection->stats_;
-      connection->forEachMediaStream([stats, candidate_pair] (const std::shared_ptr<MediaStream> &media_stream) {
-        uint32_t audio_sink_ssrc = media_stream->getAudioSinkSSRC();
-        uint32_t audio_source_ssrc = media_stream->getAudioSourceSSRC();
-
-        if (audio_sink_ssrc != kDefaultAudioSinkSSRC) {
-          stats->getNode()[audio_sink_ssrc].insertStat("clientHostType",
-                                                       StringStat{candidate_pair.clientHostType});
-        }
-        if (audio_source_ssrc != 0) {
-          stats->getNode()[audio_source_ssrc].insertStat("clientHostType",
-                                                         StringStat{candidate_pair.clientHostType});
-        }
-      });
-    });
+  if (audio_enabled_ && audio_transport_) {
+    candidate_pair = audio_transport_->getIceConnection()->getSelectedPair();
+    audio_info = candidate_pair.clientHostType;
   }
+
+  asyncTask([audio_info, video_info] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->forEachMediaStreamAsync(
+      [audio_info, video_info] (const std::shared_ptr<MediaStream> &media_stream) {
+        media_stream->setTransportInfo(audio_info, video_info);
+      });
+  });
 }
 
 void WebRtcConnection::setMetadata(std::map<std::string, std::string> metadata) {
