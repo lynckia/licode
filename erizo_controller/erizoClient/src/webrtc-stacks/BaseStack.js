@@ -14,6 +14,7 @@ const BaseStack = (specInput) => {
   let localSdp;
   let remoteSdp;
   let isNegotiating = false;
+  let latestSessionVersion = -1;
 
   Logger.info('Starting Base stack', specBase);
 
@@ -135,11 +136,17 @@ const BaseStack = (specInput) => {
 
   const processAnswer = (message) => {
     const msg = message;
+
+    remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
+    const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
+    if (latestSessionVersion >= sessionVersion) {
+      return;
+    }
     Logger.info('Set remote and local description');
     Logger.debug('Remote Description', msg.sdp);
     Logger.debug('Local Description', localDesc.sdp);
+    latestSessionVersion = sessionVersion;
 
-    remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
     that.remoteSdp = remoteSdp;
