@@ -34,8 +34,6 @@ namespace erizo {
   static const char *sendonly = "a=sendonly";
   static const char *ice_user = "a=ice-ufrag";
   static const char *ice_pass = "a=ice-pwd";
-  static const char *ssrctag = "a=ssrc:";
-  static const char *ssrcgrouptag = "a=ssrc-group";
   static const char *rid = "a=rid";
   static const char *savpf = "SAVPF";
   static const char *rtpmap = "a=rtpmap:";
@@ -59,7 +57,6 @@ namespace erizo {
     hasAudio = false;
     hasVideo = false;
     profile = SAVPF;
-    audio_ssrc = 0;
     videoCodecs = 0;
     audioCodecs = 0;
     videoSdpMLine = -1;
@@ -306,16 +303,6 @@ namespace erizo {
           }
         }
       }
-
-      if (audio_ssrc == 0) {
-        audio_ssrc = 44444;
-      }
-      if (audioDirection != RECVONLY) {
-        sdp << "a=ssrc:" << audio_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-          "a=ssrc:"<< audio_ssrc << " msid:"<< msidtemp << " a0"<< endl <<
-          "a=ssrc:"<< audio_ssrc << " mslabel:"<< msidtemp << endl <<
-          "a=ssrc:"<< audio_ssrc << " label:" << msidtemp << "a0" << endl;
-      }
     }
 
     if (printedVideo && this->hasVideo) {
@@ -426,9 +413,6 @@ namespace erizo {
           }
         }
       }
-      if (video_ssrc_list.empty()) {
-        video_ssrc_list.push_back(55543);
-      }
 
       if (!rids().empty()) {
         sdp << "a=simulcast: " << rids()[0].direction << " rid=";
@@ -439,25 +423,6 @@ namespace erizo {
           }
         }
         sdp << '\n';
-      }
-
-      if (videoDirection != RECVONLY) {
-        std::for_each(video_ssrc_list.begin(), video_ssrc_list.end(),
-            [&sdp, &msidtemp](uint32_t &video_ssrc){
-            sdp << "a=ssrc:" << video_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-            "a=ssrc:" << video_ssrc << " msid:"<< msidtemp << " v0"<< endl <<
-            "a=ssrc:" << video_ssrc << " mslabel:"<< msidtemp << endl <<
-            "a=ssrc:" << video_ssrc << " label:" << msidtemp << "v0" << endl;
-            });
-        /* TODO(pedro)  properly encode FID groups in sdp when supported
-        std::for_each(video_rtx_ssrc_map.begin(), video_rtx_ssrc_map.end(),
-            [&sdp, &msidtemp](uint32_t &video_rtx_ssrc){
-            sdp << "a=ssrc:" << video_rtx_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-            "a=ssrc:" << video_rtx_ssrc << " msid:"<< msidtemp << " v0"<< endl <<
-            "a=ssrc:" << video_rtx_ssrc << " mslabel:"<< msidtemp << endl <<
-            "a=ssrc:" << video_rtx_ssrc << " label:" << msidtemp << "v0" << endl;
-            });
-        */
       }
     }
     ELOG_DEBUG("sdp local \n %s", sdp.str().c_str());
@@ -603,8 +568,6 @@ namespace erizo {
       size_t isCrypt = line.find(crypto);
       size_t isUser = line.find(ice_user);
       size_t isPass = line.find(ice_pass);
-      size_t isSsrc = line.find(ssrctag);
-      size_t isSsrcGroup = line.find(ssrcgrouptag);
       size_t isRid = line.find(rid);
       size_t isSAVPF = line.find(savpf);
       size_t isRtpmap = line.find(rtpmap);
@@ -767,55 +730,6 @@ namespace erizo {
         }
       }
 
-      if (isSsrc != std::string::npos) {
-        std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
-        // FIXME add error checking
-        if (mtype == VIDEO_TYPE) {
-          uint32_t parsed_ssrc = strtoul(parts[1].c_str(), nullptr, 10);
-          ELOG_DEBUG("message: maybeAdd video in isSsrc, ssrc: %u", parsed_ssrc);
-          maybeAddSsrcToList(parsed_ssrc);
-        } else if ((mtype == AUDIO_TYPE) && (audio_ssrc == 0)) {
-          audio_ssrc = strtoul(parts[1].c_str(), nullptr, 10);
-          ELOG_DEBUG("audio ssrc: %u", audio_ssrc);
-        }
-      }
-
-      if (isSsrcGroup != std::string::npos) {
-        if (mtype != VIDEO_TYPE) {
-          continue;
-        }
-        std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 10);
-        if (parts.size() < 4) {
-          continue;
-        }
-        if (parts[1] == kSimulcastGroup) {
-          ELOG_DEBUG("Detected SIM group, size: %lu", parts.size());
-          std::vector<uint32_t> old_video_ssrc_list;
-          if (video_ssrc_list.size() > 0) {
-            old_video_ssrc_list = video_ssrc_list;
-            video_ssrc_list.clear();
-          }
-          std::for_each(parts.begin() + 2, parts.end(), [this] (std::string &part){
-            uint32_t parsed_ssrc = strtoul(part.c_str(), nullptr, 10);
-            ELOG_DEBUG("maybeAddSsrc video SIM, ssrc %u", parsed_ssrc);
-            maybeAddSsrcToList(parsed_ssrc);
-          });
-          for (uint32_t ssrc : old_video_ssrc_list) {
-            maybeAddSsrcToList(ssrc);
-          }
-        } else if (parts[1] == kFidGroup) {
-          int number_of_ssrcs = parts.size() - 2;
-          if (number_of_ssrcs != 2) {
-            ELOG_DEBUG("FID Group with wrong number of SSRCs, ignoring");
-            continue;
-          }
-          uint32_t original_ssrc = strtoul(parts[2].c_str(), nullptr, 10);
-          uint32_t rtx_ssrc = strtoul(parts[3].c_str(), nullptr, 10);
-          video_rtx_ssrc_map[rtx_ssrc] = original_ssrc;
-          ELOG_DEBUG("message: parsed FID group, original_src: %u, rtx_ssrc: %u", original_ssrc, rtx_ssrc);
-        }
-      }
-
       if (isRid != std::string::npos) {
           std::vector<std::string> parts = stringutil::splitOneOf(line, ":", 2);
           if (mtype == VIDEO_TYPE) {
@@ -971,10 +885,6 @@ namespace erizo {
         c.username = iceAudioUsername_;
         c.password = iceAudioPassword_;
       }
-    }
-
-    if (video_ssrc_list.empty()) {
-      video_ssrc_list.push_back(0);
     }
 
     //  go through the payload_map_ and match it with internalPayloadVector_
@@ -1212,21 +1122,6 @@ namespace erizo {
     }
 
     s[len] = 0;
-  }
-
-  void SdpInfo::maybeAddSsrcToList(uint32_t ssrc) {
-    auto find_rt = video_rtx_ssrc_map.find(ssrc);
-    if (find_rt != video_rtx_ssrc_map.end()) {
-      //  Its a rtx ssrc
-      return;
-    }
-    auto value = std::find_if(video_ssrc_list.begin(), video_ssrc_list.end(), [ssrc](uint32_t current_ssrc) {
-        return ssrc == current_ssrc;
-        });
-    if (value == video_ssrc_list.end()) {
-      ELOG_DEBUG("message: Adding ssrc to list, ssrc: %u", ssrc);
-      video_ssrc_list.push_back(ssrc);
-    }
   }
 
   bool operator==(const Rid& lhs, const Rid& rhs) {

@@ -41,10 +41,12 @@ DEFINE_LOGGER(MediaStream, "MediaStream");
 
 MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   std::shared_ptr<WebRtcConnection> connection,
-  const std::string& media_stream_id) :
+  const std::string& media_stream_id,
+  const std::string& media_stream_label) :
     audio_enabled_{false}, video_enabled_{false},
     connection_{connection},
     stream_id_{media_stream_id},
+    mslabel_ {media_stream_label},
     bundle_{false},
     pipeline_{Pipeline::create()},
     worker_{worker},
@@ -127,8 +129,18 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
 
   bundle_ = remote_sdp_->isBundle;
 
-  setVideoSourceSSRCList(remote_sdp_->video_ssrc_list);
-  setAudioSourceSSRC(remote_sdp_->audio_ssrc);
+  setVideoSourceSSRCList(remote_sdp_->video_ssrc_map[getLabel()]);
+  setAudioSourceSSRC(remote_sdp_->audio_ssrc_map[getLabel()]);
+
+  if (getVideoSourceSSRCList().empty()) {
+    std::vector<uint32_t> default_ssrc_list;
+    default_ssrc_list.push_back(55543);
+    setVideoSourceSSRCList(default_ssrc_list);
+  }
+
+  if (getAudioSourceSSRC() == 0) {
+    setAudioSourceSSRC(44444);
+  }
 
   audio_enabled_ = remote_sdp_->hasAudio;
   video_enabled_ = remote_sdp_->hasVideo;
@@ -279,10 +291,10 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
     if (bundle_) {
       // Check incoming SSRC
       // Deliver data
-      if (isVideoSourceSSRC(recvSSRC)) {
+      if (isVideoSourceSSRC(recvSSRC) && video_sink_) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         video_sink_->deliverVideoData(std::move(packet));
-      } else if (isAudioSourceSSRC(recvSSRC)) {
+      } else if (isAudioSourceSSRC(recvSSRC) && audio_sink_) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         audio_sink_->deliverAudioData(std::move(packet));
       } else {
@@ -290,7 +302,7 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
                     toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
       }
     } else {
-      if (packet->type == AUDIO_PACKET && audio_sink_ != nullptr) {
+      if (packet->type == AUDIO_PACKET && audio_sink_) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getAudioSourceSSRC() == 0) {
@@ -298,7 +310,7 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
           this->setAudioSourceSSRC(recvSSRC);
         }
         audio_sink_->deliverAudioData(std::move(packet));
-      } else if (packet->type == VIDEO_PACKET && video_sink_ != nullptr) {
+      } else if (packet->type == VIDEO_PACKET && video_sink_) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getVideoSourceSSRC() == 0) {

@@ -123,14 +123,18 @@ NAN_METHOD(MediaStream::New) {
     std::shared_ptr<erizo::WebRtcConnection> wrtc = connection->me;
 
     v8::String::Utf8Value paramId(Nan::To<v8::String>(info[2]).ToLocalChecked());
-    std::string wrtcId = std::string(*paramId);
+    std::string wrtc_id = std::string(*paramId);
+
+    v8::String::Utf8Value paramLabel(Nan::To<v8::String>(info[3]).ToLocalChecked());
+    std::string stream_label = std::string(*paramLabel);
 
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
     MediaStream* obj = new MediaStream();
-    obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtcId);
+    obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id, stream_label);
     obj->msink = obj->me.get();
-    obj->id_ = wrtcId;
+    obj->id_ = wrtc_id;
+    obj->label_ = stream_label;
     ELOG_DEBUG("%s, message: Created", obj->toLog());
     obj->Wrap(info.This());
     info.GetReturnValue().Set(info.This());

@@ -36,7 +36,6 @@ class AsyncDeleter : public Nan::AsyncWorker {
     }
  private:
     std::shared_ptr<erizo::SyntheticInput> eiToDelete_;
-    Nan::Callback* callback_;
 };
 
 SyntheticInput::SyntheticInput() {}

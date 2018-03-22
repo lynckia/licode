@@ -164,6 +164,7 @@ class Client extends events.EventEmitter {
                                     audio: options.audio,
                                     video: options.video,
                                     data: options.data,
+                                    label: options.label,
                                     attributes: options.attributes});
                 st.status = PUBLISHER_READY;
                 this.streams.push(id);
@@ -190,12 +191,14 @@ class Client extends events.EventEmitter {
                                     audio: options.audio,
                                     video: options.video,
                                     data: options.data,
+                                    label: options.label,
                                     screen: options.screen,
                                     attributes: options.attributes});
                 this.streams.push(id);
                 this.room.streams.set(id, st);
                 st.status = PUBLISHER_INITAL;
                 log.info('message: addPublisher, ' +
+                         'label: ' + options.label + ', ' +
                          'state: PUBLISHER_INITIAL, ' +
                          'clientId: ' + this.id + ', ' +
                          'streamId: ' + id);
@@ -251,6 +254,7 @@ class Client extends events.EventEmitter {
                             audio: options.audio,
                             video: options.video,
                             data: options.data,
+                            label: options.label,
                             screen: options.screen,
                             attributes: options.attributes});
         this.streams.push(id);

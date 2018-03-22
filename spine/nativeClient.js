@@ -125,7 +125,7 @@ exports.ErizoNativeConnection = (config) => {
   global.config.erizo.networkinterface);
 
   mediaStream = new addon.MediaStream(threadPool, wrtc,
-      `spine_${configuration.sessionId}`,
+      `spine_${Math.floor(Math.random() * 1000)}`, config.label,
       JSON.stringify(global.mediaConfig));
 
   wrtc.addMediaStream(mediaStream);
@@ -188,8 +188,17 @@ exports.ErizoNativeConnection = (config) => {
       setTimeout(() => {
         log.info('Passing delayed answer');
         const sdp = SemanticSdp.SDPInfo.processString(signalingMsg.sdp);
-        wrtc.setRemoteSdp(sdp.toString());
-        that.onaddstream({ stream: { active: true } });
+        this.remoteDescription = new SessionDescription(sdp, 'default');
+        wrtc.setRemoteDescription(this.remoteDescription.connectionDescription);
+        sdp.streams.forEach((stream) => {
+          let label = '';
+          for (const track of stream.tracks.values()) {
+            track.ssrcs.forEach(ssrc => {
+              label = ssrc.mslabel;
+            });
+          }
+          that.onaddstream({ stream: { active: true, id: label } });
+        });
       }, 10);
     }
   };

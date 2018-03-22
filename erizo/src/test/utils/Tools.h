@@ -288,7 +288,7 @@ class BaseHandlerTest  {
     io_worker = std::make_shared<erizo::IOWorker>();
     io_worker->start();
     connection = std::make_shared<erizo::MockWebRtcConnection>(simulated_worker, io_worker, ice_config, rtp_maps);
-    media_stream = std::make_shared<erizo::MockMediaStream>(simulated_worker, connection, "", rtp_maps);
+    media_stream = std::make_shared<erizo::MockMediaStream>(simulated_worker, connection, "", "", rtp_maps);
     processor = std::make_shared<erizo::MockRtcpProcessor>();
     quality_manager = std::make_shared<erizo::MockQualityManager>();
     packet_buffer_service = std::make_shared<erizo::PacketBufferService>();

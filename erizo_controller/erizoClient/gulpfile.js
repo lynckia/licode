@@ -11,6 +11,12 @@ plugins.closureCompiler = require('google-closure-compiler-js').gulp();
 plugins.webpack = require('webpack');
 plugins.webpackGulp = require('webpack-stream');
 
+const errorExitCode = 2;
+
+plugins.exitOnError = (error) => {
+  console.log('Error running task', error);
+  return process.exit(errorExitCode);
+}
 
 const config = {
   paths: {
