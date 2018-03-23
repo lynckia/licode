@@ -47,7 +47,7 @@ class WebRtcConnectionEventListener {
  public:
     virtual ~WebRtcConnectionEventListener() {
     }
-    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message) = 0;
+    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message, const std::string &stream_id = "") = 0;
 };
 
 /**
@@ -81,13 +81,13 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void close();
   void syncClose();
 
-  bool setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp);
+  bool setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, std::string stream_id);
   /**
    * Sets the SDP of the remote peer.
    * @param sdp The SDP.
    * @return true if the SDP was received correctly.
    */
-  bool setRemoteSdp(const std::string &sdp);
+  bool setRemoteSdp(const std::string &sdp, std::string stream_id);
 
   bool createOffer(bool video_enabled, bool audio_enabled, bool bundle);
   /**
@@ -153,9 +153,9 @@ class WebRtcConnection: public TransportListener, public LogContext,
   }
 
  private:
-  bool processRemoteSdp();
-  void setRemoteSdpsToMediaStreams();
-  void onRemoteSdpsSetToMediaStreams();
+  bool processRemoteSdp(std::string stream_id);
+  void setRemoteSdpsToMediaStreams(std::string stream_id);
+  void onRemoteSdpsSetToMediaStreams(std::string stream_id);
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
 

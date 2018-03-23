@@ -12,14 +12,41 @@ class Subscriber extends NodeClass {
     super(clientId, streamId, options);
     this.connection = connection;
     this.connection.mediaConfiguration = options.mediaConfiguration;
-    this.connection.addMediaStream(this.erizoStreamId, options);
+    this.connection.addMediaStream(this.erizoStreamId, options, false);
     this._connectionListener = this._emitStatusEvent.bind(this);
     connection.on('status_event', this._connectionListener);
     this.mediaStream = connection.getMediaStream(this.erizoStreamId);
     this.publisher = publisher;
+    this.ready = false;
+    this.connectionReady = connection.ready;
   }
 
-  _emitStatusEvent(evt, status) {
+  _emitStatusEvent(evt, status, streamId) {
+    const isGlobalStatus = streamId === undefined || streamId === '';
+    const isNotMe = !isGlobalStatus && (streamId + '') !== (this.erizoStreamId + '');
+    if (isNotMe) {
+      log.debug('onStatusEvent dropped in publisher', streamId, this.erizoStreamId);
+      return;
+    }
+    if (evt.type === 'ready') {
+      if (this.connectionReady) {
+        return;
+      }
+      this.connectionReady = true;
+      if (!(this.ready && this.connectionReady)) {
+        log.debug('ready event dropped in publisher', this.ready, this.connectionReady);
+        return;
+      }
+    }
+
+    if (evt.type === 'answer' || evt.type === 'offer') {
+      if (!this.ready && this.connectionReady) {
+        const readyEvent = {type: 'ready'};
+        this._onConnectionStatusEvent(readyEvent);
+        this.emit('status_event', readyEvent);
+      }
+      this.ready = true;
+    }
     this._onConnectionStatusEvent(evt);
     this.emit('status_event', evt, status);
   }
@@ -48,14 +75,14 @@ class Subscriber extends NodeClass {
 
     if (msg.type === 'offer') {
       const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-      connection.setRemoteDescription(sdp);
+      connection.setRemoteDescription(sdp, this.erizoStreamId);
       this.disableDefaultHandlers();
     } else if (msg.type === 'candidate') {
       connection.addRemoteCandidate(msg.candidate);
     } else if (msg.type === 'updatestream') {
       if (msg.sdp) {
         const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-        connection.setRemoteDescription(sdp);
+        connection.setRemoteDescription(sdp, this.erizoStreamId);
       }
       if (msg.config) {
         if (msg.config.slideShowMode !== undefined) {

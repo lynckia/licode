@@ -52,7 +52,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    * Constructs an empty MediaStream without any configuration.
    */
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
-      const std::string& media_stream_id, const std::string& media_stream_label);
+      const std::string& media_stream_id, const std::string& media_stream_label,
+      bool is_publisher);
   /**
    * Destructor.
    */
@@ -125,7 +126,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void parseIncomingPayloadType(char *buf, int len, packetType type);
 
   bool isPipelineInitialized() { return pipeline_initialized_; }
+  bool isRunning() { return pipeline_initialized_ && sending_; }
   Pipeline::Ptr getPipeline() { return pipeline_; }
+  bool isPublisher() { return is_publisher_; }
 
   inline std::string toLog() {
     return "id: " + stream_id_ + ", " + printLogContext();
@@ -171,6 +174,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool video_muted_;
 
   bool pipeline_initialized_;
+
+  bool is_publisher_;
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;
   std::shared_ptr<SdpInfo> local_sdp_;

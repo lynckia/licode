@@ -202,8 +202,8 @@ void WebRtcConnection::forEachMediaStreamAsync(std::function<void(const std::sha
   });
 }
 
-bool WebRtcConnection::setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp) {
-  asyncTask([sdp] (std::shared_ptr<WebRtcConnection> connection) {
+bool WebRtcConnection::setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, std::string stream_id) {
+  asyncTask([sdp, stream_id] (std::shared_ptr<WebRtcConnection> connection) {
     ELOG_DEBUG("%s message: setting remote SDPInfo", connection->toLog());
 
     if (!connection->sending_) {
@@ -211,7 +211,7 @@ bool WebRtcConnection::setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp) {
     }
 
     connection->remote_sdp_ = sdp;
-    connection->processRemoteSdp();
+    connection->processRemoteSdp(stream_id);
   });
   return true;
 }
@@ -220,76 +220,80 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
   boost::mutex::scoped_lock lock(updateStateMutex_);
   ELOG_DEBUG("%s message: getting local SDPInfo", toLog());
   forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
+    if (!media_stream->isRunning() || media_stream->isPublisher()) {
+      ELOG_DEBUG("%s message: getting local SDPInfo stream not running, stream_id: %s", toLog(), media_stream->getId());
+      return;
+    }
     std::vector<uint32_t> video_ssrc_list = std::vector<uint32_t>();
     video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
+    ELOG_DEBUG("%s message: getting local SDPInfo, stream_id: %s, video_ssrc: %u",
+               toLog(), media_stream->getId(), media_stream->getVideoSinkSSRC());
     local_sdp_->video_ssrc_map[media_stream->getLabel()] = video_ssrc_list;
     local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
   });
-  if (local_sdp_->audio_ssrc_map.size() + local_sdp_->video_ssrc_map.size() > 2) {
-    if (local_sdp_->audioDirection == erizo::RECVONLY) {
-      local_sdp_->audioDirection = erizo::SENDRECV;
-      local_sdp_->videoDirection = erizo::SENDRECV;
-    }
+  if (local_sdp_->audioDirection != erizo::SENDONLY &&
+      local_sdp_->audio_ssrc_map.size() + local_sdp_->video_ssrc_map.size() > 2) {
+    local_sdp_->audioDirection = erizo::SENDRECV;
+    local_sdp_->videoDirection = erizo::SENDRECV;
   }
-  if (remote_sdp_->audio_ssrc_map.size() + remote_sdp_->video_ssrc_map.size() > 2) {
-    if (local_sdp_->audioDirection == erizo::SENDONLY) {
-      local_sdp_->audioDirection = erizo::SENDRECV;
-      local_sdp_->videoDirection = erizo::SENDRECV;
-    }
+  if (remote_sdp_->audioDirection == erizo::SENDRECV &&
+      remote_sdp_->audio_ssrc_map.size() + remote_sdp_->video_ssrc_map.size() > 0) {
+    local_sdp_->audioDirection = erizo::SENDRECV;
+    local_sdp_->videoDirection = erizo::SENDRECV;
   }
   return local_sdp_;
 }
 
-bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
-  asyncTask([sdp] (std::shared_ptr<WebRtcConnection> connection) {
+bool WebRtcConnection::setRemoteSdp(const std::string &sdp, std::string stream_id) {
+  asyncTask([sdp, stream_id] (std::shared_ptr<WebRtcConnection> connection) {
     ELOG_DEBUG("%s message: setting remote SDP", connection->toLog());
     if (!connection->sending_) {
       return;
     }
 
     connection->remote_sdp_->initWithSdp(sdp, "");
-    connection->processRemoteSdp();
+    connection->processRemoteSdp(stream_id);
   });
   return true;
 }
 
-void WebRtcConnection::setRemoteSdpsToMediaStreams() {
-  if (media_streams_.size() == 0) {
-    onRemoteSdpsSetToMediaStreams();
-    return;
-  }
+void WebRtcConnection::setRemoteSdpsToMediaStreams(std::string stream_id) {
+  ELOG_DEBUG("%s message: setting remote SDP, stream: %s", toLog(), stream_id);
 
-  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
-  auto remaining_sdps = std::make_shared<std::atomic<size_t>>(media_streams_.size());
-  ELOG_DEBUG("%s message: setting remote SDP, streams: %d", toLog(), remaining_sdps->load());
+  auto stream = std::find_if(media_streams_.begin(), media_streams_.end(),
+    [stream_id, this](const std::shared_ptr<MediaStream> &media_stream) {
+      ELOG_DEBUG("%s message: setting remote SDP, stream: %s, stream_id: %s",
+        toLog(), media_stream->getId(), stream_id);
+      return media_stream->getId() == stream_id;
+    });
 
-  forEachMediaStreamAsync(
-    [weak_this, remaining_sdps] (const std::shared_ptr<MediaStream> &media_stream) {
+  if (stream != media_streams_.end()) {
+    std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
+    (*stream)->asyncTask([weak_this, stream_id] (const std::shared_ptr<MediaStream> &media_stream) {
       if (auto connection = weak_this.lock()) {
         media_stream->setRemoteSdp(connection->remote_sdp_);
         media_stream->setLocalSdp(connection->local_sdp_);
-        int result = remaining_sdps->fetch_sub(1);
-        ELOG_DEBUG("%s message: setting remote SDP to stream, remaining: %d",
-          connection->toLog(), result);
-        if (result == 1) {
-          connection->onRemoteSdpsSetToMediaStreams();
-        }
+        ELOG_DEBUG("%s message: setting remote SDP to stream, stream: %s", connection->toLog(), media_stream->getId());
+        connection->onRemoteSdpsSetToMediaStreams(stream_id);
       }
     });
+  } else {
+    onRemoteSdpsSetToMediaStreams(stream_id);
+  }
 }
 
-void WebRtcConnection::onRemoteSdpsSetToMediaStreams() {
-  asyncTask([] (std::shared_ptr<WebRtcConnection> connection) {
+void WebRtcConnection::onRemoteSdpsSetToMediaStreams(std::string stream_id) {
+  asyncTask([stream_id] (std::shared_ptr<WebRtcConnection> connection) {
     ELOG_DEBUG("%s message: SDP processed", connection->toLog());
     std::string sdp = connection->getLocalSdp();
-    connection->conn_event_listener_->notifyEvent(CONN_SDP_PROCESSED, sdp);
+    connection->conn_event_listener_->notifyEvent(CONN_SDP_PROCESSED, sdp, stream_id);
   });
 }
 
-bool WebRtcConnection::processRemoteSdp() {
+bool WebRtcConnection::processRemoteSdp(std::string stream_id) {
   ELOG_DEBUG("%s message: processing remote SDP", toLog());
   if (first_remote_sdp_processed_) {
-    setRemoteSdpsToMediaStreams();
+    setRemoteSdpsToMediaStreams(stream_id);
     return true;
   }
 
@@ -355,7 +359,7 @@ bool WebRtcConnection::processRemoteSdp() {
       }
     }
   }
-  setRemoteSdpsToMediaStreams();
+  setRemoteSdpsToMediaStreams(stream_id);
   first_remote_sdp_processed_ = true;
   return true;
 }

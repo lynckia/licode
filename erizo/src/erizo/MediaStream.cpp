@@ -44,7 +44,8 @@ DEFINE_LOGGER(MediaStream, "MediaStream");
 MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   std::shared_ptr<WebRtcConnection> connection,
   const std::string& media_stream_id,
-  const std::string& media_stream_label) :
+  const std::string& media_stream_label,
+  bool is_publisher) :
     audio_enabled_{false}, video_enabled_{false},
     connection_{connection},
     stream_id_{media_stream_id},
@@ -53,7 +54,8 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     pipeline_{Pipeline::create()},
     worker_{worker},
     audio_muted_{false}, video_muted_{false},
-    pipeline_initialized_{false} {
+    pipeline_initialized_{false},
+    is_publisher_{is_publisher} {
   setVideoSinkSSRC(kDefaultVideoSinkSSRC);
   setAudioSinkSSRC(kDefaultAudioSinkSSRC);
   ELOG_INFO("%s message: constructor, id: %s",

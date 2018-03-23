@@ -77,10 +77,11 @@ class Connection extends events.EventEmitter {
     return wrtc;
   }
 
-  _createMediaStream(id, options = {}) {
-    log.debug(`message: _createMediaStream, connectionId: ${this.id}, mediaStreamId: ${id}`);
+  _createMediaStream(id, options = {}, isPublisher = true) {
+    log.debug(`message: _createMediaStream, connectionId: ${this.id}, ` +
+              `mediaStreamId: ${id}, isPublisher: ${isPublisher}`);
     const mediaStream = new addon.MediaStream(this.threadPool, this.wrtc, id,
-      options.label, this._getMediaConfiguration(this.mediaConfiguration));
+      options.label, this._getMediaConfiguration(this.mediaConfiguration), isPublisher);
     mediaStream.id = id;
     mediaStream.label = options.label;
     if (options.metadata) {
@@ -90,7 +91,7 @@ class Connection extends events.EventEmitter {
     return mediaStream;
   }
 
-  _maybeSendAnswer(evt) {
+  _maybeSendAnswer(evt, streamId) {
     if (this.isProcessingRemoteSdp) {
       return;
     }
@@ -103,20 +104,21 @@ class Connection extends events.EventEmitter {
     message = message.replace(this.options.privateRegexp, this.options.publicIP);
 
     const info = {type: this.options.createOffer ? 'offer' : 'answer', sdp: message};
-    log.debug(`message: _maybeSendAnswer sending event, type: ${info.type}`);
-    this.emit('status_event', info, evt);
+    log.debug(`message: _maybeSendAnswer sending event, type: ${info.type}, streamId: ${streamId}`);
+    this.emit('status_event', info, evt, streamId);
   }
 
-  init() {
+  init(streamId) {
     if (this.initialized) {
       return false;
     }
+    const firstStreamId = streamId;
     this.initialized = true;
     log.debug(`message: Init Connection, connectionId: ${this.id} `+
               `${logger.objectToLog(this.options)}`);
     this.sessionVersion = 0;
 
-    this.wrtc.init((newStatus, mess) => {
+    this.wrtc.init((newStatus, mess, streamId) => {
       log.info('message: WebRtcConnection status update, ' +
                'id: ' + this.id + ', status: ' + newStatus +
                 ', ' + logger.objectToLog(this.metadata));
@@ -127,16 +129,16 @@ class Connection extends events.EventEmitter {
 
         case CONN_SDP_PROCESSED:
           this.isProcessingRemoteSdp = false;
-          this._maybeSendAnswer(newStatus);
+          this._maybeSendAnswer(newStatus, streamId);
           break;
 
         case CONN_SDP:
-          this._maybeSendAnswer(newStatus);
+          this._maybeSendAnswer(newStatus, streamId);
           break;
 
         case CONN_GATHERED:
           this.alreadyGathered = true;
-          this._maybeSendAnswer(newStatus);
+          this._maybeSendAnswer(newStatus, firstStreamId);
           break;
 
         case CONN_CANDIDATE:
@@ -169,10 +171,10 @@ class Connection extends events.EventEmitter {
     return true;
   }
 
-  addMediaStream(id, options) {
+  addMediaStream(id, options, isPublisher) {
     log.info(`message: addMediaStream, connectionId: ${this.id}, mediaStreamId: ${id}`);
     if (this.mediaStreams.get(id) === undefined) {
-      const mediaStream = this._createMediaStream(id, options);
+      const mediaStream = this._createMediaStream(id, options, isPublisher);
       this.wrtc.addMediaStream(mediaStream);
       this.mediaStreams.set(id, mediaStream);
     }
@@ -189,10 +191,10 @@ class Connection extends events.EventEmitter {
     }
   }
 
-  setRemoteDescription(sdp) {
+  setRemoteDescription(sdp, streamId) {
     this.isProcessingRemoteSdp = true;
     this.remoteDescription = new SessionDescription(sdp, this.mediaConfiguration);
-    this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription);
+    this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription, streamId);
   }
 
   addRemoteCandidate(candidate) {
