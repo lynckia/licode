@@ -24,10 +24,12 @@ exports.ErizoNativeConnection = (config) => {
   const that = {};
   let wrtc;
   let mediaStream;
+  let streamId;
   let syntheticInput;
   let externalInput;
   let oneToMany;
   let externalOutput;
+  let firstOfferSent = false;
   const configuration = Object.assign({}, config);
 
   that.connected = false;
@@ -126,8 +128,10 @@ exports.ErizoNativeConnection = (config) => {
   global.config.erizo.turnpass,
   global.config.erizo.networkinterface);
 
+  streamId = `spine_${Math.floor(Math.random() * 1000)}`;
+
   mediaStream = new addon.MediaStream(threadPool, wrtc,
-      `spine_${Math.floor(Math.random() * 1000)}`, config.label,
+      streamId, config.label,
       JSON.stringify(global.mediaConfig));
 
   wrtc.addMediaStream(mediaStream);
@@ -177,7 +181,8 @@ exports.ErizoNativeConnection = (config) => {
     if (signalingMsg.type === 'started') {
       initWebRtcConnection((mess, info) => {
         log.info('Message from wrtc', info.type);
-        if (info.type === 'offer') {
+        if (info.type === 'offer' && !firstOfferSent) {
+          firstOfferSent = true;
           configuration.callback({ type: info.type, sdp: info.sdp });
         }
       }, {});
@@ -191,7 +196,7 @@ exports.ErizoNativeConnection = (config) => {
         log.info('Passing delayed answer');
         const sdp = SemanticSdp.SDPInfo.processString(signalingMsg.sdp);
         this.remoteDescription = new SessionDescription(sdp, 'default');
-        wrtc.setRemoteDescription(this.remoteDescription.connectionDescription);
+        wrtc.setRemoteDescription(this.remoteDescription.connectionDescription, streamId);
         sdp.streams.forEach((stream) => {
           let label = '';
           for (const track of stream.tracks.values()) {
