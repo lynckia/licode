@@ -149,14 +149,15 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   }
 
 
-  if (getVideoSourceSSRCList().empty()) {
+  if (getVideoSourceSSRCList().empty() ||
+      (getVideoSourceSSRCList().size() == 1 && getVideoSourceSSRCList()[0] == 0)) {
     std::vector<uint32_t> default_ssrc_list;
-    default_ssrc_list.push_back(55543);
+    default_ssrc_list.push_back(kDefaultVideoSinkSSRC);
     setVideoSourceSSRCList(default_ssrc_list);
   }
 
   if (getAudioSourceSSRC() == 0) {
-    setAudioSourceSSRC(44444);
+    setAudioSourceSSRC(kDefaultAudioSinkSSRC);
   }
 
   audio_enabled_ = remote_sdp_->hasAudio;
