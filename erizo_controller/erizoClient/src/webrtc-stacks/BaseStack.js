@@ -88,7 +88,7 @@ const BaseStack = (specInput) => {
     }
   };
 
-  const setLocalDescForOffer = (isSubscribe, sessionDescription) => {
+  that.setLocalDescForOffer = (isSubscribe, sessionDescription) => {
     localDesc = sessionDescription;
     if (!isSubscribe) {
       localDesc.sdp = that.enableSimulcast(localDesc.sdp);
@@ -104,7 +104,7 @@ const BaseStack = (specInput) => {
     });
   };
 
-  const setLocalDescForAnswerp2p = (sessionDescription) => {
+  that.setLocalDescForAnswerp2p = (sessionDescription) => {
     localDesc = sessionDescription;
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
     SdpHelpers.setMaxBW(localSdp, specBase);
@@ -128,7 +128,7 @@ const BaseStack = (specInput) => {
     that.remoteSdp = remoteSdp;
     that.peerConnection.setRemoteDescription(msg).then(() => {
       that.peerConnection.createAnswer(that.mediaConstraints)
-      .then(setLocalDescForAnswerp2p).catch(errorCallback.bind(null, 'createAnswer p2p', undefined));
+      .then(that.setLocalDescForAnswerp2p).catch(errorCallback.bind(null, 'createAnswer p2p', undefined));
       specBase.remoteDescriptionSet = true;
     }).catch(errorCallback.bind(null, 'process Offer', undefined));
   };
@@ -278,7 +278,7 @@ const BaseStack = (specInput) => {
     isNegotiating = true;
     Logger.debug('Creating offer', that.mediaConstraints);
     that.peerConnection.createOffer(that.mediaConstraints)
-    .then(setLocalDescForOffer.bind(null, isSubscribe))
+    .then(that.setLocalDescForOffer.bind(null, isSubscribe))
     .catch(errorCallback.bind(null, 'Create Offer', undefined));
   };
 

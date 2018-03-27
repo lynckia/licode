@@ -1,3 +1,5 @@
+import Direction from '../../../common/semanticSdp/Direction';
+
 const SdpHelpers = {};
 
 SdpHelpers.addSim = (spatialLayers) => {
@@ -47,6 +49,14 @@ SdpHelpers.enableOpusNacks = (sdpInput) => {
   }
 
   return sdp;
+};
+
+// Take an SdpInfo object and a direction ('sendrecv, sendonly, recvonly')
+SdpHelpers.forceDirection = (sdp, direction) => {
+  sdp.medias.forEach((media) => {
+    const thisMedia = media;
+    thisMedia.direction = Direction.byValue(direction);
+  });
 };
 
 export default SdpHelpers;
