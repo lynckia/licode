@@ -20,14 +20,15 @@ namespace erizo {
 
 DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string& output_url,
-                               const std::vector<RtpMap> rtp_mappings)
+                               const std::vector<RtpMap> rtp_mappings,
+                               const std::vector<erizo::ExtMap> ext_mappings)
   : worker_{worker}, pipeline_{Pipeline::create()}, audio_queue_{5.0, 10.0}, video_queue_{5.0, 10.0},
     inited_{false}, video_stream_{nullptr},
     audio_stream_{nullptr}, video_source_ssrc_{0},
     first_video_timestamp_{-1}, first_audio_timestamp_{-1},
     first_data_received_{}, video_offset_ms_{-1}, audio_offset_ms_{-1},
     need_to_send_fir_{true}, rtp_mappings_{rtp_mappings}, video_codec_{AV_CODEC_ID_NONE},
-    audio_codec_{AV_CODEC_ID_NONE}, pipeline_initialized_{false} {
+    audio_codec_{AV_CODEC_ID_NONE}, pipeline_initialized_{false}, ext_processor_{ext_mappings} {
   ELOG_DEBUG("Creating output to %s", output_url.c_str());
 
   fb_sink_ = nullptr;
@@ -65,6 +66,14 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
       ELOG_ERROR("Error guessing format %s", context_->filename);
     }
   }
+
+  // Set a fixed extension map to parse video orientation
+  // TODO(yannistseng): Update extension maps dymaically from SDP info
+  std::shared_ptr<SdpInfo> sdp = std::make_shared<SdpInfo>(rtp_mappings_);
+  ExtMap anExt(4, "urn:3gpp:video-orientation");
+  anExt.mediaType = VIDEO_TYPE;
+  sdp->extMapVector.push_back(anExt);
+  ext_processor_.setSdpInfo(sdp);
 }
 
 bool ExternalOutput::init() {
@@ -343,6 +352,7 @@ int ExternalOutput::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) 
 
   std::shared_ptr<DataPacket> copied_packet = std::make_shared<DataPacket>(*video_packet);
   copied_packet->type = VIDEO_PACKET;
+  ext_processor_.processRtpExtensions(copied_packet);
   queueDataAsync(copied_packet);
   return 0;
 }
@@ -539,17 +549,17 @@ void ExternalOutput::sendLoop() {
 
 AVDictionary* ExternalOutput::genVideoMetadata() {
     AVDictionary* dict = NULL;
-    switch (video_queue_.getVideoRotation()) {
-      case webrtc::kVideoRotation_0:
+    switch (ext_processor_.getVideoRotation()) {
+      case kVideoRotation_0:
         av_dict_set(&dict, "rotate", "0", 0);
         break;
-      case webrtc::kVideoRotation_90:
+      case kVideoRotation_90:
         av_dict_set(&dict, "rotate", "90", 0);
         break;
-      case webrtc::kVideoRotation_180:
+      case kVideoRotation_180:
         av_dict_set(&dict, "rotate", "180", 0);
         break;
-      case webrtc::kVideoRotation_270:
+      case kVideoRotation_270:
         av_dict_set(&dict, "rotate", "270", 0);
         break;
       default:

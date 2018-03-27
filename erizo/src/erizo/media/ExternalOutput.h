@@ -13,6 +13,7 @@ extern "C" {
 #include "./MediaDefinitions.h"
 #include "thread/Worker.h"
 #include "rtp/RtpPacketQueue.h"
+#include "rtp/RtpExtensionProcessor.h"
 #include "webrtc/modules/rtp_rtcp/source/ulpfec_receiver_impl.h"
 #include "media/MediaProcessor.h"
 #include "media/Depacketizer.h"
@@ -36,7 +37,8 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
 
  public:
   explicit ExternalOutput(std::shared_ptr<Worker> worker, const std::string& output_url,
-                          const std::vector<RtpMap> rtp_mappings);
+                          const std::vector<RtpMap> rtp_mappings,
+                          const std::vector<erizo::ExtMap> ext_mappings);
   virtual ~ExternalOutput();
   bool init();
   void receiveRawData(const RawDataPacket& packet) override;
@@ -115,6 +117,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   std::shared_ptr<Stats> stats_;
   std::shared_ptr<QualityManager> quality_manager_;
   std::shared_ptr<HandlerManager> handler_manager_;
+  RtpExtensionProcessor ext_processor_;
 
   bool initContext();
   int sendFirPacket();
