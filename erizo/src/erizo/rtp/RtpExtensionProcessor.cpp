@@ -12,7 +12,7 @@ namespace erizo {
 DEFINE_LOGGER(RtpExtensionProcessor, "rtp.RtpExtensionProcessor");
 
 RtpExtensionProcessor::RtpExtensionProcessor(const std::vector<erizo::ExtMap> ext_mappings) :
-    ext_mappings_{ext_mappings} {
+    ext_mappings_{ext_mappings}, video_orientation_{kVideoRotation_0} {
   translationMap_["urn:ietf:params:rtp-hdrext:ssrc-audio-level"] = SSRC_AUDIO_LEVEL;
   translationMap_["http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"] = ABS_SEND_TIME;
   translationMap_["urn:ietf:params:rtp-hdrext:toffset"] = TOFFSET;
@@ -96,6 +96,9 @@ uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<DataPacket>
             case ABS_SEND_TIME:
               processAbsSendTime(extBuffer);
               break;
+            case VIDEO_ORIENTATION:
+              processVideoOrientation(extBuffer);
+              break;
             default:
               break;
           }
@@ -106,6 +109,16 @@ uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<DataPacket>
     }
   }
   return len;
+}
+
+VideoRotation RtpExtensionProcessor::getVideoRotation() {
+  return video_orientation_;
+}
+
+uint32_t RtpExtensionProcessor::processVideoOrientation(char* buf) {
+  VideoOrientation* head = reinterpret_cast<VideoOrientation*>(buf);
+  video_orientation_ = head->getVideoOrientation();
+  return 0;
 }
 
 uint32_t RtpExtensionProcessor::processAbsSendTime(char* buf) {

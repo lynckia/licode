@@ -44,6 +44,14 @@ namespace erizo {
 #define RTCP_AUDIO_INTERVAL 5000
 #define RTCP_VIDEO_INTERVAL  1000
 
+// enum for video rotation.
+enum VideoRotation {
+  kVideoRotation_0 = 0,
+  kVideoRotation_90 = 90,
+  kVideoRotation_180 = 180,
+  kVideoRotation_270 = 270
+};
+
 static const uint16_t kNackCommonHeaderLengthBytes = 12;
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -173,6 +181,37 @@ class RtpHeader {
   }
   inline int getHeaderLength() const {
     return MIN_SIZE + cc * 4 + hasextension * (4 + ntohs(extensionlength) * 4);
+  }
+};
+
+class VideoOrientation {
+ public:
+  uint32_t ext_info:8;
+  uint32_t rotation_data:8;
+  inline uint8_t getId() {
+    return ext_info >> 4;
+  }
+  inline uint8_t getLength() {
+    return (ext_info & 0x0F);
+  }
+  inline VideoRotation getVideoOrientation() {
+    return convertCVOByteToVideoRotation(rotation_data);
+  }
+  inline static VideoRotation convertCVOByteToVideoRotation(uint8_t cvo_byte) {
+    // CVO byte: |0 0 0 0 C F R R|.
+    const uint8_t rotation_bits = cvo_byte & 0x3;
+    switch (rotation_bits) {
+      case 0:
+        return kVideoRotation_0;
+      case 1:
+        return kVideoRotation_90;
+      case 2:
+        return kVideoRotation_180;
+      case 3:
+        return kVideoRotation_270;
+      default:
+        return kVideoRotation_0;
+    }
   }
 };
 
