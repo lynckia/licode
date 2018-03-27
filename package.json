@@ -35,9 +35,9 @@
     }
   ],
   "scripts": {
-    "buildClient": "cd erizo_controller/erizoClient && gulp",
+    "buildClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp",
     "test": " ./node_modules/mocha/bin/mocha nuve/nuveAPI/test/* erizo_controller/test/*",
-    "lintClient": "cd erizo_controller/erizoClient && gulp lint",
+    "lintClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp lint",
     "lint": "./node_modules/jshint/bin/jshint erizo_controller/erizoAgent/ erizo_controller/erizoController/ erizo_controller/erizoJS/ erizo_controller/common/amqper.js erizo_controller/common/logger.js erizo_controller/test/ nuve/ extras/basic_example/basicServer.js extras/basic_example/public/*.js spine/"
   }
 }

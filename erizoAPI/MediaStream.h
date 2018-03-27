@@ -54,6 +54,7 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener {
     bool hasCallback_;
     bool closed_;
     std::string id_;
+    std::string label_;
     /*
      * Constructor.
      * Constructs an empty MediaStream without any configuration.

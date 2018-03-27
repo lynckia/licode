@@ -52,7 +52,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    * Constructs an empty MediaStream without any configuration.
    */
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
-      const std::string& media_stream_id);
+      const std::string& media_stream_id, const std::string& media_stream_label);
   /**
    * Destructor.
    */
@@ -117,6 +117,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::shared_ptr<Worker> getWorker() { return worker_; }
 
   std::string& getId() { return stream_id_; }
+  std::string& getLabel() { return mslabel_; }
 
   bool isSourceSSRC(uint32_t ssrc);
   bool isSinkSSRC(uint32_t ssrc);
@@ -143,6 +144,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
  private:
   std::shared_ptr<WebRtcConnection> connection_;
   std::string stream_id_;
+  std::string mslabel_;
   bool should_send_feedback_;
   bool slide_show_mode_;
   bool sending_;

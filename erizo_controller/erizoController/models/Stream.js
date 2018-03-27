@@ -68,6 +68,7 @@ exports.Stream = function (spec) {
                 audio: spec.audio,
                 video: spec.video,
                 data: spec.data,
+                label: spec.label,
                 screen: spec.screen,
                 attributes: spec.attributes};
     };

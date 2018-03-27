@@ -111,12 +111,14 @@ bool WebRtcConnection::createOffer(bool video_enabled, bool audioEnabled, bool b
 
   if (video_enabled_) {
     forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
-      local_sdp_->video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
+      std::vector<uint32_t> video_ssrc_list = std::vector<uint32_t>();
+      video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
+      local_sdp_->video_ssrc_map[media_stream->getLabel()] = video_ssrc_list;
     });
   }
   if (audio_enabled_) {
     forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
-      local_sdp_->audio_ssrc = media_stream->getAudioSinkSSRC();
+      local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
     });
   }
 
@@ -159,10 +161,15 @@ void WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream)
 }
 
 void WebRtcConnection::removeMediaStream(const std::string& stream_id) {
-  ELOG_DEBUG("%s message: removing mediaStream, id: %s", toLog(), stream_id.c_str())
+  ELOG_DEBUG("%s message: removing mediaStream, id: %s", toLog(), stream_id.c_str());
   media_streams_.erase(std::remove_if(media_streams_.begin(), media_streams_.end(),
-    [stream_id](const std::shared_ptr<MediaStream> &stream) {
-      return stream->getId() == stream_id;
+    [stream_id, this](const std::shared_ptr<MediaStream> &stream) {
+      bool isStream = stream->getId() == stream_id;
+      if (isStream) {
+        local_sdp_->video_ssrc_map.erase(local_sdp_->video_ssrc_map.find(stream->getLabel()));
+        local_sdp_->audio_ssrc_map.erase(local_sdp_->audio_ssrc_map.find(stream->getLabel()));
+      }
+      return isStream;
     }), media_streams_.end());
 }
 
@@ -183,6 +190,18 @@ bool WebRtcConnection::setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp) {
 
 std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
   ELOG_DEBUG("%s message: getting local SDPInfo", toLog());
+  forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
+    std::vector<uint32_t> video_ssrc_list = std::vector<uint32_t>();
+    video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
+    local_sdp_->video_ssrc_map[media_stream->getLabel()] = video_ssrc_list;
+    local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
+  });
+  if (local_sdp_->audio_ssrc_map.size() + local_sdp_->video_ssrc_map.size() > 2) {
+    if (local_sdp_->audioDirection == erizo::RECVONLY) {
+      local_sdp_->audioDirection = erizo::SENDRECV;
+      local_sdp_->videoDirection = erizo::SENDRECV;
+    }
+  }
   return local_sdp_;
 }
 
@@ -203,6 +222,10 @@ bool WebRtcConnection::processRemoteSdp() {
     forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
       media_stream->setRemoteSdp(remote_sdp_);
     });
+    std::string object = this->getLocalSdp();
+    if (conn_event_listener_) {
+      conn_event_listener_->notifyEvent(CONN_SDP, object);
+    }
     return true;
   }
 
@@ -210,11 +233,6 @@ bool WebRtcConnection::processRemoteSdp() {
   local_sdp_->setOfferSdp(remote_sdp_);
   extension_processor_.setSdpInfo(local_sdp_);
   local_sdp_->updateSupportedExtensionMap(extension_processor_.getSupportedExtensionMap());
-
-  forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
-    local_sdp_->video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
-    local_sdp_->audio_ssrc = media_stream->getAudioSinkSSRC();
-  });
 
   if (remote_sdp_->dtlsRole == ACTPASS) {
     local_sdp_->dtlsRole = ACTIVE;
@@ -405,7 +423,12 @@ void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Trans
   if (chead->isRtcp() && chead->packettype != RTCP_Sender_PT) {  // Sender Report
     ssrc = chead->getSourceSSRC();
   }
-  forEachMediaStream([packet, transport, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
+  int index = 0;
+  forEachMediaStream([&index, packet, transport, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
+    if (index == 1) {
+      return;
+    }
+    index++;
     if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
       media_stream->onTransportData(packet, transport);
     }

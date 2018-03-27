@@ -8,10 +8,12 @@ import Logger from '../utils/Logger';
 const BaseStack = (specInput) => {
   const that = {};
   const specBase = specInput;
+  const offerQueue = [];
   let localDesc;
   let remoteDesc;
   let localSdp;
   let remoteSdp;
+  let isNegotiating = false;
 
   Logger.info('Starting Base stack', specBase);
 
@@ -94,6 +96,7 @@ const BaseStack = (specInput) => {
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
     SdpHelpers.setMaxBW(localSdp, specBase);
     localDesc.sdp = localSdp.toString();
+    that.localSdp = localSdp;
 
     specBase.callback({
       type: localDesc.type,
@@ -106,6 +109,7 @@ const BaseStack = (specInput) => {
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
     SdpHelpers.setMaxBW(localSdp, specBase);
     localDesc.sdp = localSdp.toString();
+    that.localSdp = localSdp;
     specBase.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,
@@ -121,6 +125,7 @@ const BaseStack = (specInput) => {
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
+    that.remoteSdp = remoteSdp;
     that.peerConnection.setRemoteDescription(msg).then(() => {
       that.peerConnection.createAnswer(that.mediaConstraints)
       .then(setLocalDescForAnswerp2p).catch(errorCallback.bind(null, 'createAnswer p2p', undefined));
@@ -137,6 +142,7 @@ const BaseStack = (specInput) => {
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
+    that.remoteSdp = remoteSdp;
 
     remoteDesc = msg;
     that.peerConnection.setLocalDescription(localDesc).then(() => {
@@ -152,6 +158,11 @@ const BaseStack = (specInput) => {
         while (specBase.localCandidates.length > 0) {
           // IMPORTANT: preserve ordering of candidates
           specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
+        }
+        isNegotiating = false;
+        if (offerQueue.length > 0) {
+          const args = offerQueue.pop();
+          that.createOffer(args[0], args[1]);
         }
       }).catch(errorCallback.bind(null, 'processAnswer', undefined));
     }).catch(errorCallback.bind(null, 'processAnswer', undefined));
@@ -220,6 +231,7 @@ const BaseStack = (specInput) => {
       localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
       SdpHelpers.setMaxBW(localSdp, specBase);
       localDesc.sdp = localSdp.toString();
+      that.localSdp = localSdp;
 
       if (config.Sdp || config.maxAudioBW) {
         Logger.debug('Updating with SDP renegotiation', specBase.maxVideoBW, specBase.maxAudioBW);
@@ -228,6 +240,7 @@ const BaseStack = (specInput) => {
             remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
             SdpHelpers.setMaxBW(remoteSdp, specBase);
             remoteDesc.sdp = remoteSdp.toString();
+            that.remoteSdp = remoteSdp;
             return that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc));
           }).then(() => {
             specBase.remoteDescriptionSet = true;
@@ -251,13 +264,18 @@ const BaseStack = (specInput) => {
     }
   };
 
-  that.createOffer = (isSubscribe) => {
-    if (isSubscribe !== true) {
+  that.createOffer = (isSubscribe = false, forceOfferToReceive = false) => {
+    if (!isSubscribe && !forceOfferToReceive) {
       that.mediaConstraints = {
         offerToReceiveVideo: false,
         offerToReceiveAudio: false,
       };
     }
+    if (isNegotiating) {
+      offerQueue.push([isSubscribe, forceOfferToReceive]);
+      return;
+    }
+    isNegotiating = true;
     Logger.debug('Creating offer', that.mediaConstraints);
     that.peerConnection.createOffer(that.mediaConstraints)
     .then(setLocalDescForOffer.bind(null, isSubscribe))

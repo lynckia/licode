@@ -67,9 +67,9 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "hasVideo", hasVideo);
 
   Nan::SetPrototypeMethod(tpl, "setAudioSsrc", setAudioSsrc);
-  Nan::SetPrototypeMethod(tpl, "getAudioSsrc", getAudioSsrc);
+  Nan::SetPrototypeMethod(tpl, "getAudioSsrcMap", getAudioSsrcMap);
   Nan::SetPrototypeMethod(tpl, "setVideoSsrcList", setVideoSsrcList);
-  Nan::SetPrototypeMethod(tpl, "getVideoSsrcList", getVideoSsrcList);
+  Nan::SetPrototypeMethod(tpl, "getVideoSsrcMap", getVideoSsrcMap);
 
   Nan::SetPrototypeMethod(tpl, "setDirection", setDirection);
   Nan::SetPrototypeMethod(tpl, "getDirection", getDirection);
@@ -279,17 +279,24 @@ NAN_METHOD(ConnectionDescription::hasVideo) {
 
 NAN_METHOD(ConnectionDescription::setAudioSsrc) {
   GET_SDP();
-  sdp->audio_ssrc = info[0]->IntegerValue();
+  std::string stream_id = getString(info[0]);
+  sdp->audio_ssrc_map[stream_id] = info[1]->IntegerValue();
 }
 
-NAN_METHOD(ConnectionDescription::getAudioSsrc) {
+NAN_METHOD(ConnectionDescription::getAudioSsrcMap) {
   GET_SDP();
-  info.GetReturnValue().Set(Nan::New(sdp->audio_ssrc));
+  Local<v8::Object> audio_ssrc_map = Nan::New<v8::Object>();
+  for (auto const& audio_ssrcs : sdp->audio_ssrc_map) {
+    audio_ssrc_map->Set(Nan::New(audio_ssrcs.first.c_str()).ToLocalChecked(),
+                        Nan::New(audio_ssrcs.second));
+  }
+  info.GetReturnValue().Set(audio_ssrc_map);
 }
 
 NAN_METHOD(ConnectionDescription::setVideoSsrcList) {
   GET_SDP();
-  v8::Local<v8::Array> video_ssrc_array = v8::Local<v8::Array>::Cast(info[0]);
+  std::string stream_id = getString(info[0]);
+  v8::Local<v8::Array> video_ssrc_array = v8::Local<v8::Array>::Cast(info[1]);
   std::vector<uint32_t> video_ssrc_list;
 
   for (unsigned int i = 0; i < video_ssrc_array->Length(); i++) {
@@ -298,18 +305,21 @@ NAN_METHOD(ConnectionDescription::setVideoSsrcList) {
     video_ssrc_list.push_back(numVal);
   }
 
-  sdp->video_ssrc_list = video_ssrc_list;
+  sdp->video_ssrc_map[stream_id] = video_ssrc_list;
 }
 
-NAN_METHOD(ConnectionDescription::getVideoSsrcList) {
+NAN_METHOD(ConnectionDescription::getVideoSsrcMap) {
   GET_SDP();
-  v8::Local<v8::Array> array = Nan::New<v8::Array>(sdp->video_ssrc_list.size());
-  uint index = 0;
-  for (uint32_t ssrc : sdp->video_ssrc_list) {
-    Nan::Set(array, index++, Nan::New(ssrc));
+  Local<v8::Object> video_ssrc_map = Nan::New<v8::Object>();
+  for (auto const& video_ssrcs : sdp->video_ssrc_map) {
+    v8::Local<v8::Array> array = Nan::New<v8::Array>(video_ssrcs.second.size());
+    uint index = 0;
+    for (uint32_t ssrc : video_ssrcs.second) {
+      Nan::Set(array, index++, Nan::New(ssrc));
+    }
+    video_ssrc_map->Set(Nan::New(video_ssrcs.first.c_str()).ToLocalChecked(), array);
   }
-
-  info.GetReturnValue().Set(array);
+  info.GetReturnValue().Set(video_ssrc_map);
 }
 
 NAN_METHOD(ConnectionDescription::setDirection) {

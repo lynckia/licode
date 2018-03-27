@@ -323,7 +323,7 @@ var listen = function () {
             callback('success', {streams: streamList,
                                  id: room.id,
                                  clientId: client.id,
-                                 singlePC: client.singlePC,
+                                 singlePC: options.singlePC,
                                  p2p: room.p2p,
                                  defaultVideoBW: global.config.erizoController.defaultVideoBW,
                                  maxVideoBW: global.config.erizoController.maxVideoBW,

@@ -13,6 +13,7 @@ class Node extends EventEmitter {
     super();
     this.clientId = clientId;
     this.streamId = streamId;
+    this.label = options.label;
     this.erizoStreamId = Helpers.getErizoStreamId(clientId, streamId);
     this.options = options;
   }

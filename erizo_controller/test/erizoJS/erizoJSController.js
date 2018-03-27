@@ -200,9 +200,10 @@ describe('Erizo JS Controller', function() {
       expect(callback.args[0][1].type).to.equal('offer');
     });
 
-    it('should succeed sending answer event from SDP', function() {
+    it('should succeed sending answer event from SDP in Tricke ICE', function() {
       mocks.WebRtcConnection.init.returns(1).callsArgWith(0, 202, '');  // CONN_SDP
-      controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, {}, callback);
+      controller.addPublisher(kArbitraryClientId, kArbitraryStreamId,
+        { trickleIce: true }, callback);
 
       expect(callback.callCount).to.equal(2);
       expect(callback.args[1]).to.deep.equal(['callback', {type: 'initializing'}]);
