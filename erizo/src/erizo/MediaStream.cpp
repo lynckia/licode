@@ -35,6 +35,7 @@
 #include "rtp/PliPacerHandler.h"
 #include "rtp/RtpPaddingGeneratorHandler.h"
 #include "rtp/RtpUtils.h"
+#include "rtp/PacketCodecParser.h"
 
 namespace erizo {
 DEFINE_LOGGER(MediaStream, "MediaStream");
@@ -188,6 +189,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(SenderBandwidthEstimationHandler());
   pipeline_->addFront(LayerDetectorHandler());
   pipeline_->addFront(OutgoingStatsHandler());
+  pipeline_->addFront(PacketCodecParser());
 
   pipeline_->addFront(PacketWriter(this));
   pipeline_->finalize();
