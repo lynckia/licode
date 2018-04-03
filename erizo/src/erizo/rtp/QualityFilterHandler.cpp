@@ -29,7 +29,7 @@ void QualityFilterHandler::disable() {
 }
 
 void QualityFilterHandler::handleFeedbackPackets(const std::shared_ptr<DataPacket> &packet) {
-  RtpUtils::forEachRRBlock(packet, [this](RtcpHeader *chead) {
+  RtpUtils::forEachRtcpBlock(packet, [this](RtcpHeader *chead) {
     if (chead->packettype == RTCP_PS_Feedback_PT &&
           (chead->getBlockCount() == RTCP_PLI_FMT ||
            chead->getBlockCount() == RTCP_SLI_FMT ||
