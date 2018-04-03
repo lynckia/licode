@@ -27,7 +27,7 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     std::shared_ptr<erizo::WebRtcConnection> me;
     int eventSt;
     std::queue<int> eventSts;
-    std::queue<std::string> eventMsgs;
+    std::queue<std::pair<std::string, std::string>> eventMsgs;
 
     boost::mutex mutex;
 
@@ -110,7 +110,9 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
 
     static NAUV_WORK_CB(eventsCallback);
 
-    virtual void notifyEvent(erizo::WebRTCEvent event, const std::string& message = "");
+    virtual void notifyEvent(erizo::WebRTCEvent event,
+                             const std::string& message = "",
+                             const std::string& stream_id = "");
 };
 
 #endif  // ERIZOAPI_WEBRTCCONNECTION_H_
