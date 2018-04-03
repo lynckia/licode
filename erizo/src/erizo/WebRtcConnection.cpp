@@ -470,22 +470,46 @@ void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transpo
   }
 }
 
+void WebRtcConnection::onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport) {
+  RtpUtils::forEachRtcpBlock(packet, [this, packet, transport](RtcpHeader *chead) {
+    uint32_t ssrc = chead->isFeedback() ? chead->getSourceSSRC() : chead->getSSRC();
+    std::shared_ptr<DataPacket> rtcp = std::make_shared<DataPacket>(*packet);
+    rtcp->length = (ntohs(chead->length) + 1) * 4;
+    std::memcpy(rtcp->data, chead, rtcp->length);
+    forEachMediaStream([rtcp, transport, ssrc, chead] (const std::shared_ptr<MediaStream> &media_stream) {
+      if (chead->isREMB()) {
+        for (uint8_t index = 0; index < chead->getREMBNumSSRC(); index++) {
+          uint32_t ssrc_feed = chead->getREMBFeedSSRC(index);
+          if (media_stream->isSourceSSRC(ssrc_feed) || media_stream->isSinkSSRC(ssrc_feed)) {
+            // TODO(javier): Calculate the portion of bitrate that corresponds to this stream.
+            media_stream->onTransportData(rtcp, transport);
+          }
+        }
+      } else if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
+        media_stream->onTransportData(rtcp, transport);
+      }
+    });
+  });
+}
+
 void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Transport *transport) {
   if (getCurrentState() != CONN_READY) {
     return;
   }
   char* buf = packet->data;
-  RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-  uint32_t ssrc = head->getSSRC();
-  if (chead->isRtcp() && chead->packettype != RTCP_Sender_PT) {  // Sender Report
-    ssrc = chead->getSourceSSRC();
+  if (chead->isRtcp()) {
+    onRtcpFromTransport(packet, transport);
+    return;
+  } else {
+    RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
+    uint32_t ssrc = head->getSSRC();
+    forEachMediaStream([packet, transport, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
+      if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
+        media_stream->onTransportData(packet, transport);
+      }
+    });
   }
-  forEachMediaStream([packet, transport, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
-    if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
-      media_stream->onTransportData(packet, transport);
-    }
-  });
 }
 
 void WebRtcConnection::asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f) {
