@@ -227,7 +227,7 @@ void BandwidthEstimationHandler::sendREMBPacket() {
   ELOG_DEBUG("Bitrates min(%u,%u) = %u", bitrate_, max_video_bw_, capped_bitrate);
   remb_packet_.setREMBBitRate(capped_bitrate);
   remb_packet_.setREMBNumSSRC(1);
-  remb_packet_.setREMBFeedSSRC(stream_->getVideoSourceSSRC());
+  remb_packet_.setREMBFeedSSRC(0, stream_->getVideoSourceSSRC());
   int remb_length = (remb_packet_.getLength() + 1) * 4;
   if (active_) {
     ELOG_DEBUG("BWE Estimation is %d", last_send_bitrate_);
