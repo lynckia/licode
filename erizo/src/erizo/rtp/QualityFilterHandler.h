@@ -64,6 +64,9 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   time_point time_change_started_;
   int picture_id_offset_;
   int last_picture_id_sent_;
+  clock::time_point last_sent_packet = clock::now();
+  clock::time_point cooldown_target;
+  bool cooldown = false;
 };
 }  // namespace erizo
 

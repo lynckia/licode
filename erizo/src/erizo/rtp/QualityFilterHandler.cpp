@@ -10,6 +10,8 @@ namespace erizo {
 DEFINE_LOGGER(QualityFilterHandler, "rtp.QualityFilterHandler");
 
 constexpr duration kSwitchTimeout = std::chrono::seconds(3);
+constexpr duration kSwitchDownTimeout = std::chrono::milliseconds(300);	// If we don't deliver a frame after 300 ms we switch down to avoid freezes
+constexpr duration kCooldownTimeout = std::chrono::seconds(5);	// After we switch down we wait for 5 sec to let stats update. Maybe the upper layer doesn't exist anymore
 
 QualityFilterHandler::QualityFilterHandler()
   : stream_{nullptr}, enabled_{true}, initialized_{false},
@@ -50,6 +52,9 @@ void QualityFilterHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet
 }
 
 void QualityFilterHandler::checkLayers() {
+  if (cooldown) {
+    return;
+  }
   int new_spatial_layer = quality_manager_->getSpatialLayer();
   if (new_spatial_layer != target_spatial_layer_ && !changing_spatial_layer_) {
     sendPLI();
@@ -122,6 +127,23 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
   if (is_scalable_ && !chead->isRtcp() && enabled_ && packet->type == VIDEO_PACKET) {
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
 
+    if (cooldown && clock::now() > cooldown_target) {
+    	cooldown = false;
+    	ELOG_DEBUG("End cooldown")
+    }
+
+    // Force switch to lower resolution if the packet frequency is > kSwitchDownTimeout (ms)
+    if (!cooldown && clock::now() - last_sent_packet > kSwitchDownTimeout) {
+    	ELOG_DEBUG("Switching to lower quality");
+        future_spatial_layer_ = 0;
+        changing_spatial_layer_ = true;
+        target_temporal_layer_ = quality_manager_->getTemporalLayer();
+        time_change_started_ = clock::now() - kSwitchTimeout;	//	hack to force fast switch without keyframe
+        cooldown_target = clock::now() + kCooldownTimeout;
+        cooldown = true;
+        sendPLI();
+    }
+
     checkLayers();
 
     uint32_t ssrc = rtp_header->getSSRC();
@@ -140,6 +162,8 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
       }
       return;
     }
+
+    last_sent_packet = clock::now();
 
     uint32_t new_timestamp = rtp_header->getTimestamp();
 
