@@ -131,7 +131,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool isPublisher() { return is_publisher_; }
 
   inline std::string toLog() {
-    return "id: " + stream_id_ + ", " + printLogContext();
+    return "id: " + stream_id_ + ", role:" + (is_publisher_ ? "publisher" : "subscriber") + " " + printLogContext();
   }
 
  private:

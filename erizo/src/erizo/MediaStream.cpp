@@ -138,18 +138,15 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
 
 
   bundle_ = remote_sdp_->isBundle;
-  try {
-    auto video_ssrc_list = remote_sdp_->video_ssrc_map.at(getLabel());
-    setVideoSourceSSRCList(video_ssrc_list);
-  } catch(const std::out_of_range& oor) {
+  auto video_ssrc_list_it = remote_sdp_->video_ssrc_map.find(getLabel());
+  if (video_ssrc_list_it != remote_sdp_->video_ssrc_map.end()) {
+    setVideoSourceSSRCList(video_ssrc_list_it->second);
   }
 
-  try {
-    auto audio_ssrc = remote_sdp_->audio_ssrc_map.at(getLabel());
-    setAudioSourceSSRC(audio_ssrc);
-  } catch(const std::out_of_range& oor) {
+  auto audio_ssrc_it = remote_sdp_->audio_ssrc_map.find(getLabel());
+  if (audio_ssrc_it != remote_sdp_->audio_ssrc_map.end()) {
+    setAudioSourceSSRC(audio_ssrc_it->second);
   }
-
 
   if (getVideoSourceSSRCList().empty() ||
       (getVideoSourceSSRCList().size() == 1 && getVideoSourceSSRCList()[0] == 0)) {
