@@ -58,7 +58,7 @@ class RtcpNackGeneratorTest :public ::testing::Test {
       total_length += rtcp_length;
 
       if (chead->packettype == RTCP_RTP_Feedback_PT) {
-        erizo::RtpUtils::forEachNack(chead, [chead, lost_seq_num, &found_nack](uint16_t seq_num,
+        erizo::RtpUtils::forEachNack(chead, [lost_seq_num, &found_nack](uint16_t seq_num,
            uint16_t plb, RtcpHeader* nack_head) {
           uint16_t initial_seq_num = seq_num;
           if (initial_seq_num == lost_seq_num) {
