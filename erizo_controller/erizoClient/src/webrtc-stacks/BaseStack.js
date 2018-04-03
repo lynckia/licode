@@ -14,6 +14,7 @@ const BaseStack = (specInput) => {
   let localSdp;
   let remoteSdp;
   let isNegotiating = false;
+  let latestSessionVersion = -1;
 
   Logger.info('Starting Base stack', specBase);
 
@@ -88,7 +89,7 @@ const BaseStack = (specInput) => {
     }
   };
 
-  const setLocalDescForOffer = (isSubscribe, sessionDescription) => {
+  const setLocalDescForOffer = (isSubscribe, streamId, sessionDescription) => {
     localDesc = sessionDescription;
     if (!isSubscribe) {
       localDesc.sdp = that.enableSimulcast(localDesc.sdp);
@@ -101,7 +102,7 @@ const BaseStack = (specInput) => {
     specBase.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,
-    });
+    }, streamId);
   };
 
   const setLocalDescForAnswerp2p = (sessionDescription) => {
@@ -135,8 +136,17 @@ const BaseStack = (specInput) => {
 
   const processAnswer = (message) => {
     const msg = message;
-    Logger.info('Set remote and local description');
+
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
+    const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
+    if (latestSessionVersion >= sessionVersion) {
+      return;
+    }
+    Logger.info('Set remote and local description');
+    Logger.debug('Remote Description', msg.sdp);
+    Logger.debug('Local Description', localDesc.sdp);
+    latestSessionVersion = sessionVersion;
+
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     that.setStartVideoBW(remoteSdp);
     that.setHardMinVideoBW(remoteSdp);
@@ -164,7 +174,7 @@ const BaseStack = (specInput) => {
         isNegotiating = false;
         if (offerQueue.length > 0) {
           const args = offerQueue.pop();
-          that.createOffer(args[0], args[1]);
+          that.createOffer(args[0], args[1], args[2]);
         }
       }).catch(errorCallback.bind(null, 'processAnswer', undefined));
     }).catch(errorCallback.bind(null, 'processAnswer', undefined));
@@ -276,7 +286,7 @@ const BaseStack = (specInput) => {
     }
   };
 
-  that.createOffer = (isSubscribe = false, forceOfferToReceive = false) => {
+  that.createOffer = (isSubscribe = false, forceOfferToReceive = false, streamId = '') => {
     if (!isSubscribe && !forceOfferToReceive) {
       that.mediaConstraints = {
         offerToReceiveVideo: false,
@@ -284,13 +294,13 @@ const BaseStack = (specInput) => {
       };
     }
     if (isNegotiating) {
-      offerQueue.push([isSubscribe, forceOfferToReceive]);
+      offerQueue.push([isSubscribe, forceOfferToReceive, streamId]);
       return;
     }
     isNegotiating = true;
-    Logger.debug('Creating offer', that.mediaConstraints);
+    Logger.debug('Creating offer', that.mediaConstraints, streamId);
     that.peerConnection.createOffer(that.mediaConstraints)
-    .then(setLocalDescForOffer.bind(null, isSubscribe))
+    .then(setLocalDescForOffer.bind(null, isSubscribe, streamId))
     .catch(errorCallback.bind(null, 'Create Offer', undefined));
   };
 

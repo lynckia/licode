@@ -68,7 +68,7 @@ install_erizo_api(){
   . $NVM_CHECK
   nvm use
   npm install nan@2.3.2
-  ./build.sh
+  $FAST_BUILD ./build.sh
   check_result $?
   cd $CURRENT_DIR
 }
@@ -129,6 +129,7 @@ else
         ;;
       f)
         FAST_MAKE='-j4'
+        FAST_BUILD='env JOBS=4'
         ;;
       d)
         DELETE_OBJECT_FILES='true'
