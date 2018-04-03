@@ -34,11 +34,11 @@ void LayerDetectorHandler::disable() {
 void LayerDetectorHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   if (!chead->isRtcp() && enabled_ && packet->type == VIDEO_PACKET) {
-    if (packet->codec = "VP8") {
+    if (packet->codec == "VP8") {
       parseLayerInfoFromVP8(packet);
-    } else if (packet->codec = "VP9") {
+    } else if (packet->codec == "VP9") {
       parseLayerInfoFromVP9(packet);
-    } else if (packet->codec = "H264") {
+    } else if (packet->codec == "H264") {
       parseLayerInfoFromH264(packet);
     }
   }

@@ -462,6 +462,15 @@ class RtcpHeader {
   inline uint64_t getNtpTimestamp() {
     return (((uint64_t)htonl(report.senderReport.ntptimestamp)) << 32) + htonl(report.senderReport.ntptimestamp >> 32);
   }
+  inline uint32_t getNtpTimestampMSW() const {
+    return ntohl((uint32_t)report.senderReport.ntptimestamp);
+  }
+  inline uint32_t getNtpTimestampLSW() const {
+    return ntohl((uint32_t)(report.senderReport.ntptimestamp >> 32));
+  }
+  inline uint32_t getRtpTimestamp() const {
+    return ntohl(report.senderReport.rtprts);
+  }
   inline void setNtpTimestamp(uint64_t ntp_timestamp) {
     report.senderReport.ntptimestamp = (((uint64_t)ntohl(ntp_timestamp)) << 32) + ntohl(ntp_timestamp >> 32);
   }

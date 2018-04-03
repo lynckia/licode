@@ -60,10 +60,13 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   uint32_t last_ssrc_received_;
   uint32_t max_video_bw_;
   uint32_t last_timestamp_sent_;
-  uint32_t timestamp_offset_;
+  int64_t timestamp_offset_;
   time_point time_change_started_;
   int picture_id_offset_;
   int last_picture_id_sent_;
+  uint32_t base_ts_ssrc = 0;
+  std::map<uint32_t, uint32_t> last_rtcp_timestamp;
+  std::map<uint32_t, int64_t> ntp_ms;
 };
 }  // namespace erizo
 
