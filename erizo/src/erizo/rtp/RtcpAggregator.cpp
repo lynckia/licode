@@ -87,7 +87,8 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
     uint16_t currentNackPos = 0;
     uint16_t blp = 0;
     uint32_t lostPacketSeq = 0;
-    uint32_t calculatedlsr, delay, calculateLastSr, extendedSeqNo;
+    uint32_t delay = 0;
+    uint32_t calculatedlsr, calculateLastSr, extendedSeqNo;
 
     do {
       movingBuf += rtcpLength;
@@ -239,7 +240,6 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
   return 0;
 }
 
-
 void RtcpAggregator::checkRtcpFb() {
   boost::mutex::scoped_lock mlock(mapLock_);
   std::map<uint32_t, boost::shared_ptr<RtcpData>>::iterator it;
@@ -336,10 +336,10 @@ void RtcpAggregator::checkRtcpFb() {
         }
       }
       if  (rtcpSource_->isVideoSourceSSRC(sourceSsrc)) {
-        rtcpSink_->deliverVideoData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(packet_),
+        rtcpSink_->deliverVideoData(std::make_shared<DataPacket>(0, reinterpret_cast<char*>(packet_),
               length, VIDEO_PACKET));
       } else {
-        rtcpSink_->deliverAudioData(std::make_shared<dataPacket>(0, reinterpret_cast<char*>(packet_),
+        rtcpSink_->deliverAudioData(std::make_shared<DataPacket>(0, reinterpret_cast<char*>(packet_),
               length, AUDIO_PACKET));
       }
       rtcpData->last_rr_sent = now;

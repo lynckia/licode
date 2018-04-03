@@ -19,7 +19,7 @@ using ::testing::_;
 using ::testing::IsNull;
 using ::testing::Args;
 using ::testing::Return;
-using erizo::dataPacket;
+using erizo::DataPacket;
 using erizo::packetType;
 using erizo::AUDIO_PACKET;
 using erizo::VIDEO_PACKET;
@@ -42,7 +42,7 @@ class RtpSlideShowHandlerTest : public erizo::HandlerTest {
 
  protected:
   void setHandler() {
-    std::vector<RtpMap>& payloads = connection->getRemoteSdpInfo().getPayloadInfos();
+    std::vector<RtpMap>& payloads = media_stream->getRemoteSdpInfo()->getPayloadInfos();
     payloads.push_back({96, "VP8"});
     payloads.push_back({98, "VP9"});
     clock = std::make_shared<erizo::SimulatedClock>();
@@ -239,8 +239,8 @@ TEST_F(RtpSlideShowHandlerTest, shouldAdjustSequenceNumberAfterSlideShow) {
       pipeline->write(packet_queue.front());
       packet_queue.pop();
     }
-    uint ssrc = connection->getVideoSourceSSRC();
-    uint source_ssrc = connection->getVideoSinkSSRC();
+    uint ssrc = media_stream->getVideoSourceSSRC();
+    uint source_ssrc = media_stream->getVideoSinkSSRC();
     auto nack = erizo::PacketTools::createNack(ssrc, source_ssrc,
                                 erizo::kArbitrarySeqNumber + packets_after_handler, VIDEO_PACKET);
     pipeline->read(nack);

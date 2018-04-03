@@ -29,7 +29,8 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   void setTemporalLayer(int temporal_layer);
 
   void forceLayers(int spatial_layer, int temporal_layer);
-
+  void setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate);
+  void notifyEvent(MediaEventPtr event) override;
   void notifyQualityUpdate();
 
   virtual bool isPaddingEnabled() const { return padding_enabled_; }
@@ -41,7 +42,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   bool isInBaseLayer();
   bool isInMaxLayer();
   void setPadding(bool enabled);
-
+  bool doesLayerMeetConstraints(int spatial_layer, int temporal_layer);
 
  private:
   bool initialized_;
@@ -53,12 +54,18 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   int temporal_layer_;
   int max_active_spatial_layer_;
   int max_active_temporal_layer_;
+  int64_t max_video_width_;
+  int64_t max_video_height_;
+  int64_t max_video_frame_rate_;
   uint64_t current_estimated_bitrate_;
 
   time_point last_quality_check_;
   time_point last_activity_check_;
   std::shared_ptr<Stats> stats_;
   std::shared_ptr<Clock> clock_;
+  std::vector<uint32_t> video_frame_width_list_;
+  std::vector<uint32_t> video_frame_height_list_;
+  std::vector<uint64_t> video_frame_rate_list_;
 };
 }  // namespace erizo
 

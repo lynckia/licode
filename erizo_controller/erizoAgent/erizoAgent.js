@@ -7,18 +7,21 @@ var spawn = require('child_process').spawn;
 var config = require('./../../licode_config');
 
 // Configuration default values
-GLOBAL.config = config || {};
-GLOBAL.config.erizoAgent = GLOBAL.config.erizoAgent || {};
-GLOBAL.config.erizoAgent.maxProcesses = GLOBAL.config.erizoAgent.maxProcesses || 1;
-GLOBAL.config.erizoAgent.prerunProcesses =
-    GLOBAL.config.erizoAgent.prerunProcesses === undefined ?
-        1 : GLOBAL.config.erizoAgent.prerunProcesses;
-GLOBAL.config.erizoAgent.publicIP = GLOBAL.config.erizoAgent.publicIP || '';
-GLOBAL.config.erizoAgent.instanceLogDir = GLOBAL.config.erizoAgent.instanceLogDir || '.';
-GLOBAL.config.erizoAgent.useIndividualLogFiles =
-    GLOBAL.config.erizoAgent.useIndividualLogFiles|| false;
+global.config = config || {};
+global.config.erizoAgent = global.config.erizoAgent || {};
+global.config.erizoAgent.maxProcesses = global.config.erizoAgent.maxProcesses || 1;
+global.config.erizoAgent.prerunProcesses =
+    global.config.erizoAgent.prerunProcesses === undefined ?
+        1 : global.config.erizoAgent.prerunProcesses;
+global.config.erizoAgent.publicIP = global.config.erizoAgent.publicIP || '';
+global.config.erizoAgent.instanceLogDir = global.config.erizoAgent.instanceLogDir || '.';
+global.config.erizoAgent.useIndividualLogFiles =
+    global.config.erizoAgent.useIndividualLogFiles|| false;
 
-var BINDED_INTERFACE_NAME = GLOBAL.config.erizoAgent.networkInterface;
+global.config.erizoAgent.launchDebugErizoJS = global.config.erizoAgent.launchDebugErizoJS || false;
+
+var BINDED_INTERFACE_NAME = global.config.erizoAgent.networkInterface;
+const LAUNCH_SCRIPT = './launch.sh';
 
 // Parse command line arguments
 var getopt = new Getopt([
@@ -30,6 +33,7 @@ var getopt = new Getopt([
   ['P' , 'prerun-processes=ARG'        , 'Default video Bandwidth'],
   ['I' , 'individual-logs'             , 'Use individual log files for ErizoJS processes'],
   ['m' , 'metadata=ARG'               , 'JSON metadata'],
+  ['d' , 'debug'                     , 'Run erizoJS with debug library'],
   ['h' , 'help'                       , 'display this help']
 ]);
 
@@ -40,7 +44,7 @@ var interfaces = require('os').networkInterfaces(),
     address,
     privateIP,
     publicIP;
-
+    
 var opt = getopt.parse(process.argv.slice(2));
 
 var metadata;
@@ -54,35 +58,37 @@ for (var prop in opt.options) {
                 process.exit(0);
                 break;
             case 'rabbit-host':
-                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
-                GLOBAL.config.rabbit.host = value;
+                global.config.rabbit = global.config.rabbit || {};
+                global.config.rabbit.host = value;
                 break;
             case 'rabbit-port':
-                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
-                GLOBAL.config.rabbit.port = value;
+                global.config.rabbit = global.config.rabbit || {};
+                global.config.rabbit.port = value;
                 break;
             case 'rabbit-heartbeat':
-                GLOBAL.config.rabbit = GLOBAL.config.rabbit || {};
-                GLOBAL.config.rabbit.heartbeat = value;
+                global.config.rabbit = global.config.rabbit || {};
+                global.config.rabbit.heartbeat = value;
                 break;
             case 'max-processes':
-                GLOBAL.config.erizoAgent = GLOBAL.config.erizoAgent || {};
-                GLOBAL.config.erizoAgent.maxProcesses = value;
+                global.config.erizoAgent = global.config.erizoAgent || {};
+                global.config.erizoAgent.maxProcesses = value;
                 break;
             case 'prerun-processes':
-                GLOBAL.config.erizoAgent = GLOBAL.config.erizoAgent || {};
-                GLOBAL.config.erizoAgent.prerunProcesses = value;
+                global.config.erizoAgent = global.config.erizoAgent || {};
+                global.config.erizoAgent.prerunProcesses = value;
                 break;
             case 'individual-logs':
-                GLOBAL.config.erizoAgent = GLOBAL.config.erizoAgent || {};
-                GLOBAL.config.erizoAgent.useIndividualLogFiles = true;
-
+                global.config.erizoAgent = global.config.erizoAgent || {};
+                global.config.erizoAgent.useIndividualLogFiles = true;
                 break;
             case 'metadata':
                 metadata = JSON.parse(value);
                 break;
+            case 'debug':
+                global.config.erizoAgent.launchDebugErizoJS = true;
+                break;
             default:
-                GLOBAL.config.erizoAgent[prop] = value;
+                global.config.erizoAgent[prop] = value;
                 break;
         }
     }
@@ -114,12 +120,11 @@ var guid = (function() {
 })();
 
 var myErizoAgentId = guid();
-
 var launchErizoJS;
 
 var fillErizos = function () {
-    if (erizos.length + idleErizos.length < GLOBAL.config.erizoAgent.maxProcesses) {
-        if (idleErizos.length < GLOBAL.config.erizoAgent.prerunProcesses) {
+    if (erizos.length + idleErizos.length < global.config.erizoAgent.maxProcesses) {
+        if (idleErizos.length < global.config.erizoAgent.prerunProcesses) {
             launchErizoJS();
             fillErizos();
         }
@@ -131,13 +136,18 @@ launchErizoJS = function() {
     log.debug('message: launching ErizoJS, erizoId: ' + id);
     var fs = require('fs');
     var erizoProcess, out, err;
-    if (GLOBAL.config.erizoAgent.useIndividualLogFiles){
-        out = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
-        err = fs.openSync(GLOBAL.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
-        erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, privateIP, publicIP],
+    const erizoLaunchOptions = ['./../erizoJS/erizoJS.js', id, privateIP, publicIP];
+    if (global.config.erizoAgent.launchDebugErizoJS) {
+      erizoLaunchOptions.push('-d');
+    }
+
+    if (global.config.erizoAgent.useIndividualLogFiles){
+        out = fs.openSync(global.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
+        err = fs.openSync(global.config.erizoAgent.instanceLogDir + '/erizo-' + id + '.log', 'a');
+        erizoProcess = spawn(LAUNCH_SCRIPT, erizoLaunchOptions,
                              { detached: true, stdio: [ 'ignore', out, err ] });
     }else{
-        erizoProcess = spawn('./launch.sh', ['./../erizoJS/erizoJS.js', id, privateIP, publicIP],
+        erizoProcess = spawn(LAUNCH_SCRIPT, erizoLaunchOptions,
                             { detached: true, stdio: [ 'ignore', 'pipe', 'pipe' ] });
         erizoProcess.stdout.setEncoding('utf8');
         erizoProcess.stdout.on('data', function (message) {
@@ -210,7 +220,7 @@ var getErizo = function () {
     var erizoId = idleErizos.shift();
 
     if (!erizoId) {
-        if (erizos.length < GLOBAL.config.erizoAgent.maxProcesses) {
+        if (erizos.length < global.config.erizoAgent.maxProcesses) {
             launchErizoJS();
             return getErizo();
         } else {
@@ -251,8 +261,8 @@ var api = {
 
 for (k in interfaces) {
     if (interfaces.hasOwnProperty(k)) {
-      if (!GLOBAL.config.erizoAgent.networkinterface ||
-          GLOBAL.config.erizoAgent.networkinterface === k) {
+      if (!global.config.erizoAgent.networkinterface ||
+          global.config.erizoAgent.networkinterface === k) {
         for (k2 in interfaces[k]) {
             if (interfaces[k].hasOwnProperty(k2)) {
                 address = interfaces[k][k2];
@@ -269,7 +279,7 @@ for (k in interfaces) {
 
 privateIP = addresses[0];
 
-if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicIP === undefined) {
+if (global.config.erizoAgent.publicIP === '' || global.config.erizoAgent.publicIP === undefined) {
     publicIP = addresses[0];
 
     if (global.config.cloudProvider.name === 'amazon') {
@@ -291,7 +301,7 @@ if (GLOBAL.config.erizoAgent.publicIP === '' || GLOBAL.config.erizoAgent.publicI
         fillErizos();
     }
 } else {
-    publicIP = GLOBAL.config.erizoAgent.publicIP;
+    publicIP = global.config.erizoAgent.publicIP;
     fillErizos();
 }
 

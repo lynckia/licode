@@ -42,15 +42,15 @@ void RtpPacketQueue::pushPacket(const char *data, int length) {
     return;
   }
 
-  // TODO(pedro) this should be a secret of the dataPacket class.  It should maintain its own memory
+  // TODO(pedro) this should be a secret of the DataPacket class.  It should maintain its own memory
   // and copy stuff as necessary.
-  boost::shared_ptr<dataPacket> packet(new dataPacket());
+  boost::shared_ptr<DataPacket> packet(new DataPacket());
   memcpy(packet->data, data, length);
   packet->length = length;
 
   // let's insert this packet where it belongs in the queue.
   boost::mutex::scoped_lock lock(queueMutex_);
-  std::list<boost::shared_ptr<dataPacket> >::iterator it;
+  std::list<boost::shared_ptr<DataPacket> >::iterator it;
   for (it=queue_.begin(); it != queue_.end(); ++it) {
     const RtpHeader *header = reinterpret_cast<const RtpHeader*>((*it)->data);
     uint16_t sequenceNumber = header->getSeqNumber();
@@ -80,8 +80,8 @@ void RtpPacketQueue::pushPacket(const char *data, int length) {
 }
 
 // pops a packet off the queue, respecting the specified queue depth.
-boost::shared_ptr<dataPacket> RtpPacketQueue::popPacket(bool ignore_depth) {
-  boost::shared_ptr<dataPacket> packet;
+boost::shared_ptr<DataPacket> RtpPacketQueue::popPacket(bool ignore_depth) {
+  boost::shared_ptr<DataPacket> packet;
 
   boost::mutex::scoped_lock lock(queueMutex_);
   if (queue_.size() > 0) {

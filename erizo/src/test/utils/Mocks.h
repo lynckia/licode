@@ -43,25 +43,41 @@ class MockMediaSink : public MediaSink {
   MOCK_METHOD0(internal_close, void());
   MOCK_METHOD2(deliverAudioDataInternal, void(char*, int));
   MOCK_METHOD2(deliverVideoDataInternal, void(char*, int));
+  MOCK_METHOD1(deliverEventInternal, void(MediaEventPtr));
 
  private:
-  int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override {
+  int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override {
     deliverAudioDataInternal(audio_packet->data, audio_packet->length);
     return 0;
   }
-  int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override {
+  int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override {
     deliverVideoDataInternal(video_packet->data, video_packet->length);
+    return 0;
+  }
+  int deliverEvent_(MediaEventPtr event) override {
+    deliverEventInternal(event);
     return 0;
   }
 };
 
 class MockWebRtcConnection: public WebRtcConnection {
  public:
-  MockWebRtcConnection(std::shared_ptr<Worker> worker, const IceConfig &ice_config,
+  MockWebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker, const IceConfig &ice_config,
                        const std::vector<RtpMap> rtp_mappings) :
-    WebRtcConnection(worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), nullptr) {}
+    WebRtcConnection(worker, io_worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), nullptr) {}
 
   virtual ~MockWebRtcConnection() {
+  }
+};
+
+class MockMediaStream: public MediaStream {
+ public:
+  MockMediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
+    const std::string& media_stream_id, const std::string& media_stream_label,
+    std::vector<RtpMap> rtp_mappings) :
+  MediaStream(worker, connection, media_stream_id, media_stream_label) {
+    local_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
+    remote_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
   }
 };
 
@@ -71,7 +87,7 @@ class Reader : public InboundHandler {
   MOCK_METHOD0(disable, void());
   MOCK_METHOD0(notifyUpdate, void());
   MOCK_METHOD0(getName, std::string());
-  MOCK_METHOD2(read, void(Context*, std::shared_ptr<dataPacket>));
+  MOCK_METHOD2(read, void(Context*, std::shared_ptr<DataPacket>));
 };
 
 class Writer : public OutboundHandler {
@@ -80,7 +96,7 @@ class Writer : public OutboundHandler {
   MOCK_METHOD0(disable, void());
   MOCK_METHOD0(notifyUpdate, void());
   MOCK_METHOD0(getName, std::string());
-  MOCK_METHOD2(write, void(Context*, std::shared_ptr<dataPacket>));
+  MOCK_METHOD2(write, void(Context*, std::shared_ptr<DataPacket>));
 };
 
 class MockRemoteBitrateEstimatorPicker : public RemoteBitrateEstimatorPicker {

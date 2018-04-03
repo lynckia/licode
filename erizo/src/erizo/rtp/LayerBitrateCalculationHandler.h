@@ -9,7 +9,6 @@
 
 namespace erizo {
 
-class WebRtcConnection;
 
 constexpr duration kLayerRateStatIntervalSize = std::chrono::milliseconds(100);
 constexpr uint32_t kLayerRateStatIntervals = 30;
@@ -28,7 +27,7 @@ class LayerBitrateCalculationHandler: public OutboundHandler {
      return "layer_bitrate_calculator";
   }
 
-  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
  private:

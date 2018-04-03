@@ -6,6 +6,7 @@
 #include <rtp/RtpHeaders.h>
 #include <MediaDefinitions.h>
 #include <WebRtcConnection.h>
+#include <MediaStream.h>
 
 #include <string>
 #include <vector>
@@ -19,7 +20,7 @@ using ::testing::IsNull;
 using ::testing::Args;
 using ::testing::Return;
 using ::testing::AllOf;
-using erizo::dataPacket;
+using erizo::DataPacket;
 using erizo::packetType;
 using erizo::AUDIO_PACKET;
 using erizo::VIDEO_PACKET;
@@ -91,4 +92,3 @@ TEST_F(SRPacketHandlerTest, shouldRewriteOctetsSent) {
   pipeline->write(packet);
   pipeline->write(sr_packet);
 }
-

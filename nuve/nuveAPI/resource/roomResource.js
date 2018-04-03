@@ -68,6 +68,9 @@ exports.updateRoom = function (req, res) {
             if (options.data) {
                 room.data = options.data;
             }
+            if (typeof options.mediaConfiguration === 'string') {
+                room.mediaConfiguration = options.mediaConfiguration;
+            }
 
             roomRegistry.updateRoom(id, room);
 

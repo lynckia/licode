@@ -27,7 +27,7 @@ TEST(erizoPacket, rtpPacketQueueBasicBehavior) {
     ASSERT_EQ(queue.hasData(), false);
 
     // If we try to pop this packet, we should get back a null shared_ptr object.
-    boost::shared_ptr<erizo::dataPacket> packet = queue.popPacket();
+    boost::shared_ptr<erizo::DataPacket> packet = queue.popPacket();
     ASSERT_THAT(packet.get(), IsNull());
     ASSERT_EQ(queue.getSize(), 1);
     ASSERT_EQ(queue.hasData(), false);
@@ -53,7 +53,7 @@ TEST(erizoPacket, rtpPacketQueueCorrectlyReordersSamples) {
 
     for (int x = 1; x <=10; x++) {
         // override our default pop behavior so we can validate these are ordered
-        boost::shared_ptr<erizo::dataPacket> packet = queue.popPacket(true);
+        boost::shared_ptr<erizo::DataPacket> packet = queue.popPacket(true);
         const erizo::RtpHeader *poppedHeader = reinterpret_cast<const erizo::RtpHeader*>(packet->data);
         ASSERT_EQ(poppedHeader->getSeqNumber(), x);
     }
@@ -74,7 +74,7 @@ TEST(erizoPacket, rtpPacketQueueCorrectlyHandlesSequenceNumberRollover) {
     x = 65530;
     while (x != 5) {
         // override our default pop behavior so we can validate these are ordered
-        boost::shared_ptr<erizo::dataPacket> packet = queue.popPacket(true);
+        boost::shared_ptr<erizo::DataPacket> packet = queue.popPacket(true);
         const erizo::RtpHeader *poppedHeader = reinterpret_cast<const erizo::RtpHeader*>(packet->data);
         ASSERT_EQ(poppedHeader->getSeqNumber(), x);
         x += 1;
@@ -97,7 +97,7 @@ TEST(erizoPacket, rtpPacketQueueCorrectlyHandlesSequenceNumberRolloverBackwards)
     x = 65530;
     while (x != 5) {
         // override our default pop behavior so we can validate these are ordered
-        boost::shared_ptr<erizo::dataPacket> packet = queue.popPacket(true);
+        boost::shared_ptr<erizo::DataPacket> packet = queue.popPacket(true);
         const erizo::RtpHeader *poppedHeader = reinterpret_cast<const erizo::RtpHeader*>(packet->data);
         ASSERT_EQ(poppedHeader->getSeqNumber(), x);
         x += 1;

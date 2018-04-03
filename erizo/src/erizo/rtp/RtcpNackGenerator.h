@@ -13,9 +13,6 @@
 
 namespace erizo {
 
-class WebRtcConnection;
-
-
 class NackInfo {
  public:
   NackInfo(): seq_num{0}, retransmits{0}, sent_time{0} {}
@@ -31,8 +28,8 @@ class RtcpNackGenerator{
  public:
   explicit RtcpNackGenerator(uint32_t ssrc_,
       std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
-  bool handleRtpPacket(std::shared_ptr<dataPacket> packet);
-  bool addNackPacketToRr(std::shared_ptr<dataPacket> rr_packet);
+  bool handleRtpPacket(std::shared_ptr<DataPacket> packet);
+  bool addNackPacketToRr(std::shared_ptr<DataPacket> rr_packet);
 
  private:
   bool addNacks(uint16_t seq_num);

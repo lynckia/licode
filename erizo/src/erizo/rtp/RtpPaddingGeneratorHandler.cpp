@@ -4,7 +4,7 @@
 #include <string>
 
 #include "./MediaDefinitions.h"
-#include "./WebRtcConnection.h"
+#include "./MediaStream.h"
 #include "./RtpUtils.h"
 
 namespace erizo {
@@ -18,7 +18,7 @@ constexpr uint64_t kInitialBitrate = 300000;
 constexpr uint64_t kPaddingBurstSize = 255 * 10;
 
 RtpPaddingGeneratorHandler::RtpPaddingGeneratorHandler(std::shared_ptr<erizo::Clock> the_clock) :
-  clock_{the_clock}, connection_{nullptr}, max_video_bw_{0}, higher_sequence_number_{0},
+  clock_{the_clock}, stream_{nullptr}, max_video_bw_{0}, higher_sequence_number_{0},
   video_sink_ssrc_{0}, audio_source_ssrc_{0},
   number_of_full_padding_packets_{0}, last_padding_packet_size_{0},
   last_rate_calculation_time_{clock_->now()}, started_at_{clock_->now()},
@@ -26,7 +26,7 @@ RtpPaddingGeneratorHandler::RtpPaddingGeneratorHandler(std::shared_ptr<erizo::Cl
   marker_rate_{std::chrono::milliseconds(100), 20, 1., clock_},
   rtp_header_length_{12},
   bucket_{kInitialBitrate, kPaddingBurstSize, clock_},
-  scheduled_task_{-1} {}
+  scheduled_task_{std::make_shared<ScheduledTaskReference>()} {}
 
 
 
@@ -38,10 +38,10 @@ void RtpPaddingGeneratorHandler::disable() {
 
 void RtpPaddingGeneratorHandler::notifyUpdate() {
   auto pipeline = getContext()->getPipelineShared();
-  if (pipeline && !connection_) {
-    connection_ = pipeline->getService<WebRtcConnection>().get();
-    video_sink_ssrc_ = connection_->getVideoSinkSSRC();
-    audio_source_ssrc_ = connection_->getAudioSinkSSRC();
+  if (pipeline && !stream_) {
+    stream_ = pipeline->getService<MediaStream>().get();
+    video_sink_ssrc_ = stream_->getVideoSinkSSRC();
+    audio_source_ssrc_ = stream_->getAudioSinkSSRC();
     stats_ = pipeline->getService<Stats>();
     stats_->getNode()["total"].insertStat("paddingBitrate",
         MovingIntervalRateStat{std::chrono::milliseconds(100), 30, 8., clock_});
@@ -61,15 +61,15 @@ void RtpPaddingGeneratorHandler::notifyUpdate() {
   }
 }
 
-void RtpPaddingGeneratorHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  ctx->fireRead(packet);
+void RtpPaddingGeneratorHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
+  ctx->fireRead(std::move(packet));
 }
 
-void RtpPaddingGeneratorHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtpPaddingGeneratorHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   bool is_higher_sequence_number = false;
   if (packet->type == VIDEO_PACKET && !chead->isRtcp()) {
-    connection_->getWorker()->unschedule(scheduled_task_);
+    stream_->getWorker()->unschedule(scheduled_task_);
     is_higher_sequence_number = isHigherSequenceNumber(packet);
     if (!first_packet_received_) {
       started_at_ = clock_->now();
@@ -80,11 +80,11 @@ void RtpPaddingGeneratorHandler::write(Context *ctx, std::shared_ptr<dataPacket>
   ctx->fireWrite(packet);
 
   if (is_higher_sequence_number) {
-    onVideoPacket(packet);
+    onVideoPacket(std::move(packet));
   }
 }
 
-void RtpPaddingGeneratorHandler::sendPaddingPacket(std::shared_ptr<dataPacket> packet, uint8_t padding_size) {
+void RtpPaddingGeneratorHandler::sendPaddingPacket(std::shared_ptr<DataPacket> packet, uint8_t padding_size) {
   if (padding_size == 0) {
     return;
   }
@@ -101,25 +101,27 @@ void RtpPaddingGeneratorHandler::sendPaddingPacket(std::shared_ptr<dataPacket> p
 
   rtp_header->setSeqNumber(sequence_number.output);
   stats_->getNode()["total"]["paddingBitrate"] += padding_packet->length;
-  getContext()->fireWrite(padding_packet);
+  getContext()->fireWrite(std::move(padding_packet));
 }
 
-void RtpPaddingGeneratorHandler::onPacketWithMarkerSet(std::shared_ptr<dataPacket> packet) {
+void RtpPaddingGeneratorHandler::onPacketWithMarkerSet(std::shared_ptr<DataPacket> packet) {
   marker_rate_++;
 
   for (uint i = 0; i < number_of_full_padding_packets_; i++) {
     sendPaddingPacket(packet, kMaxPaddingSize);
   }
-  sendPaddingPacket(packet, last_padding_packet_size_);
+  // Temporary fix since https://bugzilla.mozilla.org/show_bug.cgi?id=1435025 is fixed
+  // Only send full rtp padding packet as suggested also in webrtc code.
+  // sendPaddingPacket(packet, last_padding_packet_size_);
   std::weak_ptr<RtpPaddingGeneratorHandler> weak_this = shared_from_this();
-  scheduled_task_ = connection_->getWorker()->scheduleFromNow([packet, weak_this] {
+  scheduled_task_ = stream_->getWorker()->scheduleFromNow([packet, weak_this] {
     if (auto this_ptr = weak_this.lock()) {
       this_ptr->onPacketWithMarkerSet(packet);
     }
   }, std::chrono::milliseconds(1000 / kMinMarkerRate));
 }
 
-bool RtpPaddingGeneratorHandler::isHigherSequenceNumber(std::shared_ptr<dataPacket> packet) {
+bool RtpPaddingGeneratorHandler::isHigherSequenceNumber(std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   rtp_header_length_ = rtp_header->getHeaderLength();
   uint16_t new_sequence_number = rtp_header->getSeqNumber();
@@ -132,7 +134,7 @@ bool RtpPaddingGeneratorHandler::isHigherSequenceNumber(std::shared_ptr<dataPack
   return true;
 }
 
-void RtpPaddingGeneratorHandler::onVideoPacket(std::shared_ptr<dataPacket> packet) {
+void RtpPaddingGeneratorHandler::onVideoPacket(std::shared_ptr<DataPacket> packet) {
   if (!enabled_) {
     return;
   }
@@ -141,7 +143,7 @@ void RtpPaddingGeneratorHandler::onVideoPacket(std::shared_ptr<dataPacket> packe
 
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   if (rtp_header->getMarker()) {
-    onPacketWithMarkerSet(packet);
+    onPacketWithMarkerSet(std::move(packet));
   }
 }
 

@@ -16,6 +16,7 @@ parse_arguments(){
     ERIZOCONTROLLER=true
     ERIZOAGENT=true
     BASICEXAMPLE=true
+    ERIZODEBUG=false
 
   else
     while [ "$1" != "" ]; do
@@ -34,6 +35,9 @@ parse_arguments(){
         ;;
         "--erizoAgent")
         ERIZOAGENT=true
+        ;;
+        "--erizoDebug")
+        ERIZODEBUG=true
         ;;
         "--basicExample")
         BASICEXAMPLE=true
@@ -67,6 +71,7 @@ run_mongo() {
     if [ ! -d "$DB_DIR" ]; then
       mkdir -p "$DB_DIR"/db
     fi
+    mongod --repair --dbpath $DB_DIR
     mongod --nojournal --dbpath $DB_DIR --logpath $BUILD_DIR/mongo.log --fork
     sleep 5
   else
@@ -115,12 +120,15 @@ run_erizoController() {
 run_erizoAgent() {
   echo "Starting erizoAgent"
   cd $ROOT/erizo_controller/erizoAgent
-  node erizoAgent.js &
+  if [ "$ERIZODEBUG" == "true" ]; then
+    node erizoAgent.js -d &
+  else
+    node erizoAgent.js &
+  fi
 }
 run_basicExample() {
   echo "Starting basicExample"
   sleep 5
-  cp $ROOT/erizo_controller/erizoClient/dist/erizo.js $EXTRAS/basic_example/public/
   cp $ROOT/nuve/nuveClient/dist/nuve.js $EXTRAS/basic_example/
   cd $EXTRAS/basic_example
   node basicServer.js &
@@ -133,11 +141,11 @@ cd $ROOT/scripts
 run_nvm
 nvm use
 
-if [ "$MONGODB" = "true" ]; then
+if [ "$MONGODB" == "true" ]; then
   run_mongo
 fi
 
-if [ "$RABBITMQ" = "true" ]; then
+if [ "$RABBITMQ" == "true" ]; then
   run_rabbitmq
 fi
 
@@ -145,23 +153,27 @@ if [ ! -f "$ROOT"/licode_config.js ]; then
     cp "$SCRIPTS"/licode_default.js "$ROOT"/licode_config.js
 fi
 
-if [ "$NUVE" = "true" ]; then
+if [ ! -f "$ROOT"/rtp_media_config.js ]; then
+  cp "$SCRIPTS"/rtp_media_config_default.js "$ROOT"/rtp_media_config.js
+fi
+
+if [ "$NUVE" == "true" ]; then
   run_nuve
 fi
 
-if [ "$ERIZOCONTROLLER" = "true" ]; then
+if [ "$ERIZOCONTROLLER" == "true" ]; then
   echo "config.erizoController.publicIP = '$PUBLIC_IP';" >> /opt/licode/licode_config.js
   run_erizoController
 fi
 
-if [ "$ERIZOAGENT" = "true" ]; then
+if [ "$ERIZOAGENT" == "true" ]; then
   echo "config.erizoAgent.publicIP = '$PUBLIC_IP';" >> /opt/licode/licode_config.js
   echo "config.erizo.minport = '$MIN_PORT';" >> /opt/licode/licode_config.js
   echo "config.erizo.maxport = '$MAX_PORT';" >> /opt/licode/licode_config.js
   run_erizoAgent
 fi
 
-if [ "$BASICEXAMPLE" = "true" ]; then
+if [ "$BASICEXAMPLE" == "true" ]; then
   run_basicExample
 fi
 

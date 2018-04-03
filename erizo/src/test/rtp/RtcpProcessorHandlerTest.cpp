@@ -21,7 +21,7 @@ using ::testing::IsNull;
 using ::testing::Eq;
 using ::testing::Args;
 using ::testing::Return;
-using erizo::dataPacket;
+using erizo::DataPacket;
 using erizo::packetType;
 using erizo::AUDIO_PACKET;
 using erizo::VIDEO_PACKET;
@@ -70,8 +70,8 @@ TEST_F(RtcpProcessorHandlerTest, basicBehaviourShouldWritePackets) {
 }
 
 TEST_F(RtcpProcessorHandlerTest, shouldWriteRTCPIfProcessorAcceptsIt) {
-    uint ssrc = connection->getVideoSourceSSRC();
-    uint source_ssrc = connection->getVideoSinkSSRC();
+    uint ssrc = media_stream->getVideoSourceSSRC();
+    uint source_ssrc = media_stream->getVideoSinkSSRC();
     auto packet = erizo::PacketTools::createReceiverReport(ssrc, source_ssrc, erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
     EXPECT_CALL(*processor, analyzeFeedback(_, _)).Times(1).WillOnce(Return(1));
@@ -82,8 +82,8 @@ TEST_F(RtcpProcessorHandlerTest, shouldWriteRTCPIfProcessorAcceptsIt) {
 }
 
 TEST_F(RtcpProcessorHandlerTest, shouldNotWriteRTCPIfProcessorRejectsIt) {
-    uint ssrc = connection->getVideoSourceSSRC();
-    uint source_ssrc = connection->getVideoSinkSSRC();
+    uint ssrc = media_stream->getVideoSourceSSRC();
+    uint source_ssrc = media_stream->getVideoSinkSSRC();
     auto packet = erizo::PacketTools::createReceiverReport(ssrc, source_ssrc, erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
     EXPECT_CALL(*processor, analyzeFeedback(_, _)).Times(1).WillOnce(Return(0));
@@ -93,7 +93,7 @@ TEST_F(RtcpProcessorHandlerTest, shouldNotWriteRTCPIfProcessorRejectsIt) {
 }
 
 TEST_F(RtcpProcessorHandlerTest, shouldCallAnalyzeSrWhenReceivingSenderReports) {
-    uint ssrc = connection->getVideoSourceSSRC();
+    uint ssrc = media_stream->getVideoSourceSSRC();
     auto packet = erizo::PacketTools::createSenderReport(ssrc, VIDEO_PACKET);
 
     EXPECT_CALL(*processor, analyzeSr(_)).Times(1);

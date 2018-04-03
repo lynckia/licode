@@ -80,6 +80,9 @@ config.erizoController.listen_port = 8080; //default value: 8080
 // Use the name of the inferface you want to bind to for websockets
 // config.erizoController.networkInterface = 'eth1' // default value: undefined
 
+config.erizoController.exitOnNuveCheckFail = false;  // default value: false
+config.erizoController.allowSinglePC = false;  // default value: false
+
 config.erizoController.warning_n_rooms = 15; // default value: 15
 config.erizoController.limit_n_rooms = 20; // default value: 20
 config.erizoController.interval_time_keepAlive = 1000; // default value: 1000
@@ -95,6 +98,13 @@ config.erizoController.report = {
     session_events: false, 		// Session level events -- default value: false
     connection_events: false, 	// Connection (ICE) level events -- default value: false
     rtcp_stats: false				// RTCP stats -- default value: false
+};
+
+// Subscriptions to rtcp_stats via AMQP
+config.erizoController.reportSubscriptions = {
+	maxSubscriptions: 10,	// per ErizoJS -- set 0 to disable subscriptions -- default 10
+	minInterval: 1, 		// in seconds -- default 1
+	maxTimeout: 60			// in seconds -- default 60
 };
 
 // If undefined, the path will be /tmp/
@@ -125,6 +135,9 @@ config.erizoAgent.networkinterface = ''; //default value: ''
 //This files will be named erizo-ERIZO_ID_HASH.log
 config.erizoAgent.useIndividualLogFiles = false;
 
+// If true this Agent will launch Debug versions of ErizoJS
+config.erizoAgent.launchDebugErizoJS = false;
+
 // Custom log directory for agent instance log files.
 // If useIndividualLogFiles is enabled, files will go here
 // Default is [licode_path]/erizo_controller/erizoAgent
@@ -141,6 +154,9 @@ config.erizo = {};
 
 // Number of workers that will be used to handle WebRtcConnections
 config.erizo.numWorkers = 24;
+
+// Number of workers what will be used for IO (including ICE logic)
+config.erizo.numIOWorkers = 1;
 
 //STUN server IP address and port to be used by the server.
 //if '' is used, the address is discovered locally
@@ -161,6 +177,9 @@ config.erizo.networkinterface = ''; //default value: ''
 //note, this won't work with all versions of libnice. With 0 all the available ports are used
 config.erizo.minport = 0; // default value: 0
 config.erizo.maxport = 0; // default value: 0
+
+//Use of internal nICEr library instead of libNice.
+config.erizo.useNicer = false;  // default value: false
 
 config.erizo.disabledHandlers = []; // there are no handlers disabled by default
 

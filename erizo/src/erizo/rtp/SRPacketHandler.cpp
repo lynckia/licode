@@ -1,5 +1,5 @@
 #include "rtp/SRPacketHandler.h"
-#include "./WebRtcConnection.h"
+#include "./MediaStream.h"
 #include "lib/ClockUtils.h"
 
 namespace erizo {
@@ -7,7 +7,7 @@ namespace erizo {
 DEFINE_LOGGER(SRPacketHandler, "rtp.SRPacketHandler");
 
 SRPacketHandler::SRPacketHandler() :
-    enabled_{true}, initialized_{false}, connection_(nullptr) {}
+    enabled_{true}, initialized_{false}, stream_(nullptr) {}
 
 
 void SRPacketHandler::enable() {
@@ -19,7 +19,7 @@ void SRPacketHandler::disable() {
 }
 
 
-void SRPacketHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
+void SRPacketHandler::handleRtpPacket(std::shared_ptr<DataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
   uint32_t ssrc = head->getSSRC();
   auto sr_selected_info_iter = sr_info_map_.find(ssrc);
@@ -35,7 +35,7 @@ void SRPacketHandler::handleRtpPacket(std::shared_ptr<dataPacket> packet) {
 
 
 
-void SRPacketHandler::handleSR(std::shared_ptr<dataPacket> packet) {
+void SRPacketHandler::handleSR(std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   uint32_t ssrc = chead->getSSRC();
   auto sr_selected_info_iter = sr_info_map_.find(ssrc);
@@ -51,7 +51,7 @@ void SRPacketHandler::handleSR(std::shared_ptr<dataPacket> packet) {
   chead->setPacketsSent(selected_info->sent_packets);
 }
 
-void SRPacketHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void SRPacketHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (initialized_ && enabled_) {
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
     if (!chead->isRtcp() && enabled_) {
@@ -60,11 +60,11 @@ void SRPacketHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
       handleSR(packet);
     }
   }
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
-void SRPacketHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
-  ctx->fireRead(packet);
+void SRPacketHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
+  ctx->fireRead(std::move(packet));
 }
 
 void SRPacketHandler::notifyUpdate() {
@@ -72,10 +72,10 @@ void SRPacketHandler::notifyUpdate() {
     return;
   }
   auto pipeline = getContext()->getPipelineShared();
-  if (pipeline && !connection_) {
-    connection_ = pipeline->getService<WebRtcConnection>().get();
+  if (pipeline && !stream_) {
+    stream_ = pipeline->getService<MediaStream>().get();
   }
-  if (!connection_) {
+  if (!stream_) {
     return;
   }
   initialized_ = true;

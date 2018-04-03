@@ -5,7 +5,6 @@
 
 #include "pipeline/Handler.h"
 #include "./logger.h"
-#include "./WebRtcConnection.h"
 #include "rtp/SequenceNumberTranslator.h"
 #include "rtp/PacketBufferService.h"
 #include "rtp/RtpVP8Parser.h"
@@ -16,6 +15,9 @@ static constexpr uint16_t kMaxKeyframeSize = 20;
 static constexpr erizo::duration kFallbackKeyframeTimeout = std::chrono::seconds(5);
 
 namespace erizo {
+
+class MediaStream;
+
 class RtpSlideShowHandler : public Handler {
   DECLARE_LOGGER();
 
@@ -29,24 +31,24 @@ class RtpSlideShowHandler : public Handler {
     return "slideshow";
   }
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
-  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
+  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
   void setSlideShowMode(bool activated);
 
  private:
-  bool isVP8Keyframe(std::shared_ptr<dataPacket> packet);
-  bool isVP9Keyframe(std::shared_ptr<dataPacket> packet);
+  bool isVP8OrH264Keyframe(std::shared_ptr<DataPacket> packet);
+  bool isVP9Keyframe(std::shared_ptr<DataPacket> packet);
   void maybeUpdateHighestSeqNum(uint16_t seq_num);
   void resetKeyframeBuilding();
   void consolidateKeyframe();
   void maybeSendStoredKeyframe();
-  void storeKeyframePacket(std::shared_ptr<dataPacket> packet);
+  void storeKeyframePacket(std::shared_ptr<DataPacket> packet);
 
  private:
   std::shared_ptr<Clock> clock_;
-  WebRtcConnection* connection_;
+  MediaStream* stream_;
   SequenceNumberTranslator translator_;
   bool highest_seq_num_initialized_;
   bool is_building_keyframe_;
@@ -57,8 +59,8 @@ class RtpSlideShowHandler : public Handler {
   uint32_t current_keyframe_timestamp_;
   uint32_t last_timestamp_received_;
 
-  std::vector<std::shared_ptr<dataPacket>> keyframe_buffer_;
-  std::vector<std::shared_ptr<dataPacket>> stored_keyframe_;
+  std::vector<std::shared_ptr<DataPacket>> keyframe_buffer_;
+  std::vector<std::shared_ptr<DataPacket>> stored_keyframe_;
   time_point last_keyframe_sent_time_;
 };
 }  // namespace erizo

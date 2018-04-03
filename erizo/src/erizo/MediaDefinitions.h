@@ -19,24 +19,24 @@ enum packetType {
     OTHER_PACKET
 };
 
-struct dataPacket {
-  dataPacket() = default;
+struct DataPacket {
+  DataPacket() = default;
 
-  dataPacket(int comp_, const char *data_, int length_, packetType type_, uint64_t received_time_ms_) :
+  DataPacket(int comp_, const char *data_, int length_, packetType type_, uint64_t received_time_ms_) :
     comp{comp_}, length{length_}, type{type_}, received_time_ms{received_time_ms_}, is_keyframe{false},
-    ending_of_layer_frame{false} {
+    ending_of_layer_frame{false}, picture_id{-1} {
       memcpy(data, data_, length_);
   }
 
-  dataPacket(int comp_, const char *data_, int length_, packetType type_) :
+  DataPacket(int comp_, const char *data_, int length_, packetType type_) :
     comp{comp_}, length{length_}, type{type_}, received_time_ms{ClockUtils::timePointToMs(clock::now())},
-    is_keyframe{false}, ending_of_layer_frame{false} {
+    is_keyframe{false}, ending_of_layer_frame{false}, picture_id{-1} {
       memcpy(data, data_, length_);
   }
 
-  dataPacket(int comp_, const unsigned char *data_, int length_) :
+  DataPacket(int comp_, const unsigned char *data_, int length_) :
     comp{comp_}, length{length_}, type{VIDEO_PACKET}, received_time_ms{ClockUtils::timePointToMs(clock::now())},
-    is_keyframe{false}, ending_of_layer_frame{false} {
+    is_keyframe{false}, ending_of_layer_frame{false}, picture_id{-1} {
       memcpy(data, data_, length_);
   }
 
@@ -65,6 +65,8 @@ struct dataPacket {
   std::vector<int> compatible_temporal_layers;
   bool is_keyframe;  // Note: It can be just a keyframe first packet in VP8
   bool ending_of_layer_frame;
+  int picture_id;
+  std::string codec;
 };
 
 class Monitor {
@@ -72,16 +74,26 @@ class Monitor {
     boost::mutex monitor_mutex_;
 };
 
+class MediaEvent {
+ public:
+  MediaEvent() = default;
+  virtual ~MediaEvent() {}
+  virtual std::string getType() const {
+    return "event";
+  }
+};
+
+using MediaEventPtr = std::shared_ptr<MediaEvent>;
+
 class FeedbackSink {
  public:
     virtual ~FeedbackSink() {}
-    int deliverFeedback(std::shared_ptr<dataPacket> data_packet) {
+    int deliverFeedback(std::shared_ptr<DataPacket> data_packet) {
         return this->deliverFeedback_(data_packet);
     }
  private:
-    virtual int deliverFeedback_(std::shared_ptr<dataPacket> data_packet) = 0;
+    virtual int deliverFeedback_(std::shared_ptr<DataPacket> data_packet) = 0;
 };
-
 
 class FeedbackSource {
  protected:
@@ -106,10 +118,10 @@ class MediaSink: public virtual Monitor {
     FeedbackSource* sink_fb_source_;
 
  public:
-    int deliverAudioData(std::shared_ptr<dataPacket> data_packet) {
+    int deliverAudioData(std::shared_ptr<DataPacket> data_packet) {
         return this->deliverAudioData_(data_packet);
     }
-    int deliverVideoData(std::shared_ptr<dataPacket> data_packet) {
+    int deliverVideoData(std::shared_ptr<DataPacket> data_packet) {
         return this->deliverVideoData_(data_packet);
     }
     uint32_t getVideoSinkSSRC() {
@@ -138,14 +150,18 @@ class MediaSink: public virtual Monitor {
         boost::mutex::scoped_lock lock(monitor_mutex_);
         return sink_fb_source_;
     }
+    int deliverEvent(MediaEventPtr event) {
+      return this->deliverEvent_(event);
+    }
     MediaSink() : audio_sink_ssrc_{0}, video_sink_ssrc_{0}, sink_fb_source_{nullptr} {}
     virtual ~MediaSink() {}
 
     virtual void close() = 0;
 
  private:
-    virtual int deliverAudioData_(std::shared_ptr<dataPacket> data_packet) = 0;
-    virtual int deliverVideoData_(std::shared_ptr<dataPacket> data_packet) = 0;
+    virtual int deliverAudioData_(std::shared_ptr<DataPacket> data_packet) = 0;
+    virtual int deliverVideoData_(std::shared_ptr<DataPacket> data_packet) = 0;
+    virtual int deliverEvent_(MediaEventPtr event) = 0;
 };
 
 /**
@@ -158,6 +174,7 @@ class MediaSource: public virtual Monitor {
     std::vector<uint32_t> video_source_ssrc_list_;
     MediaSink* video_sink_;
     MediaSink* audio_sink_;
+    MediaSink* event_sink_;
     // can it accept feedback
     FeedbackSink* source_fb_sink_;
 
@@ -169,6 +186,10 @@ class MediaSource: public virtual Monitor {
     void setVideoSink(MediaSink* video_sink) {
         boost::mutex::scoped_lock lock(monitor_mutex_);
         this->video_sink_ = video_sink;
+    }
+    void setEventSink(MediaSink* event_sink) {
+      boost::mutex::scoped_lock lock(monitor_mutex_);
+      this->event_sink_ = event_sink;
     }
 
     FeedbackSink* getFeedbackSink() {
@@ -214,7 +235,7 @@ class MediaSource: public virtual Monitor {
     }
 
     MediaSource() : audio_source_ssrc_{0}, video_source_ssrc_list_{std::vector<uint32_t>(1, 0)},
-      video_sink_{nullptr}, audio_sink_{nullptr}, source_fb_sink_{nullptr} {}
+      video_sink_{nullptr}, audio_sink_{nullptr}, event_sink_{nullptr}, source_fb_sink_{nullptr} {}
     virtual ~MediaSource() {}
 
     virtual void close() = 0;

@@ -27,10 +27,10 @@ RtpExtensionProcessor::RtpExtensionProcessor(const std::vector<erizo::ExtMap> ex
 RtpExtensionProcessor::~RtpExtensionProcessor() {
 }
 
-void RtpExtensionProcessor::setSdpInfo(const SdpInfo& theInfo) {
+void RtpExtensionProcessor::setSdpInfo(std::shared_ptr<SdpInfo> theInfo) {
   // We build the Extension Map
-  for (unsigned int i = 0; i < theInfo.extMapVector.size(); i++) {
-    const ExtMap& theMap = theInfo.extMapVector[i];
+  for (unsigned int i = 0; i < theInfo->extMapVector.size(); i++) {
+    const ExtMap& theMap = theInfo->extMapVector[i];
     std::map<std::string, uint8_t>::iterator it;
     switch (theMap.mediaType) {
       case VIDEO_TYPE:
@@ -63,7 +63,7 @@ bool RtpExtensionProcessor::isValidExtension(std::string uri) {
   return value != ext_mappings_.end() && translationMap_.find(uri) != translationMap_.end();
 }
 
-uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<dataPacket> p) {
+uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<DataPacket> p) {
   const RtpHeader* head = reinterpret_cast<const RtpHeader*>(p->data);
   uint32_t len = p->length;
   std::array<RTPExtensions, 10> extMap;

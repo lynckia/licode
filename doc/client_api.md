@@ -72,22 +72,23 @@ You can access the next variables in a stream object:
 
 In the next table we can see the functions of this class:
 
-| Function                                                                | Description                                                             |
-|-------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| [hasAudio()](#check-if-the-stream-has-audio-video-andor-data-active)    | Indicates if the stream has audio activated.                            |
-| [hasVideo()](#check-if-the-stream-has-audio-video-andor-data-active)    | Indicates if the stream has video activated.                            |
-| [hasData()](#check-if-the-stream-has-audio-video-andor-data-active)     | Indicates if the stream has data activated.                             |
-| [init()](#initialize-the-stream)                                        | Initializes the local stream.                                           |
-| [close()](#close-a-local-stream)                                        | Closes the local stream.                                                |
-| [play(elementID, options)](#play-a-local-stream-in-the-html)            | Draws the video or starts playing the audio in the HTML.                |
-| [stop()](#remove-the-local-stream-from-the-html)                        | Removes the video from the HTML.                                        |
-| [muteAudio(isMuted, callback)](#mute-the-audio-track-of-a-remote-stream)| Mutes the audio track of a remote stream.                               |
-| [sendData(msg)](#send-data-through-the-stream)                          | It sends data through the Stream to clients that are subscribed.        |
-| [getAttributes()](#get-the-attributes-object)                           | Gets the attributes variable stored when you created the stream.        |
-| [setAttributes()](#set-the-attributes-object)                           | It sets new attributes to the local stream that are spread to the room. |
-| [getVideoFrame()](#set-the-attributes-object)                           | It gets a Bitmap from the video.                                        |
-| [getVideoFrameURL()](#get-the-url-of-a-frame-from-the-video)            | It gets the URL of a Bitmap from the video.                             |
-| [updateConfiguration(config, callback)](#get-the-url-of-a-frame-from-the-video) | Updates the spec of a stream.                                   |
+| Function                                                                         | Description                                                             |
+|----------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [hasAudio()](#check-if-the-stream-has-audio-video-andor-data-active)             | Indicates if the stream has audio activated.                            |
+| [hasVideo()](#check-if-the-stream-has-audio-video-andor-data-active)             | Indicates if the stream has video activated.                            |
+| [hasData()](#check-if-the-stream-has-audio-video-andor-data-active)              | Indicates if the stream has data activated.                             |
+| [init()](#initialize-the-stream)                                                 | Initializes the local stream.                                           |
+| [close()](#close-a-local-stream)                                                 | Closes the local stream.                                                |
+| [play(elementID, options)](#play-a-local-stream-in-the-html)                     | Draws the video or starts playing the audio in the HTML.                |
+| [stop()](#remove-the-local-stream-from-the-html)                                 | Removes the video from the HTML.                                        |
+| [muteAudio(isMuted, callback)](#mute-the-audio-or-video-track-of-a-remote-stream)| Mutes the audio track of a remote stream.                               |
+| [muteVideo(isMuted, callback)](#mute-the-audio-or-video-track-of-a-remote-stream)| Mutes the video track of a remote stream.                               |
+| [sendData(msg)](#send-data-through-the-stream)                                   | It sends data through the Stream to clients that are subscribed.        |
+| [getAttributes()](#get-the-attributes-object)                                    | Gets the attributes variable stored when you created the stream.        |
+| [setAttributes()](#set-the-attributes-object)                                    | It sets new attributes to the local stream that are spread to the room. |
+| [getVideoFrame()](#set-the-attributes-object)                                    | It gets a Bitmap from the video.                                        |
+| [getVideoFrameURL()](#get-the-url-of-a-frame-from-the-video)                     | It gets the URL of a Bitmap from the video.                             |
+| [updateConfiguration(config, callback)](#get-the-url-of-a-frame-from-the-video)  | Updates the spec of a stream.                                           |
 
 ## Check if the stream has audio, video and/or data active
 
@@ -173,9 +174,11 @@ You can stop to play the video/audio in the HTML with this code.
 stream.stop();
 ```
 
-## Mute the audio track of a remote stream
+## Mute the audio or video track of a remote stream
 
-It stops receiving audio from a remote stream. The publisher of the stream will keep sending audio information to Licode but this particular subscriber won't receive it.
+It stops receiving audio/video from a remote stream. The publisher of the stream will keep sending audio/video information to Licode but this particular subscriber won't receive it.
+
+If we call it in the publisher's side, Licode will stop sending audio/video data to all its subscribers.
 
 **Note:** it won't work on local streams, in p2p rooms or when the stream does not have an audio track.
 
@@ -202,6 +205,8 @@ stream.muteAudio(false, function (result) {
   }
 });
 ```
+
+Besides, you could also mute/unmute the video track by calling `muteVideo()` with the same parameters.
 
 ## Send Data through the stream
 
@@ -284,12 +289,12 @@ It gets the URL of an image frame from the video.
 
 ## Update the spec of a stream
 
-It updates the audio and video maximum bandwidth for a publisher.
+It updates the audio and video maximum bandwidth for a publisher or a subscriber (it will affect other subscribers when Simulcast is not used).
 
 It can also be used in remote streams to toggle `slideShowMode`
 
 <example>
-You can update the maximun bandwidth of video and audio. These values are defined in the object passed to the function. You can also pass a callback function to get the final result.
+You can update the maximum bandwidth of video and audio. These values are defined in the object passed to the function. You can also pass a callback function to get the final result.
 </example>
 
 ```
@@ -337,7 +342,7 @@ In the next table we can see the functions of this class:
 | [disconnect()](#disconnect-from-room)                    | It disconnects from the `room`.                                                   |
 | [startRecording(stream)](#start-recording)               | Starts recording the `stream`.                                                    |
 | [stopRecording(recordingId)](#stop-recording)            | Stops a recording identified by its `recordingId`.                                |
-| [getSreamsByAttribute(name, value)](#get-streams-by-attribute) | It returns a list of the remote streams that have the attribute specified by name - value strings.  |
+| [getStreamsByAttribute(name, value)](#get-streams-by-attribute) | It returns a list of the remote streams that have the attribute specified by name - value strings.  |
 
 
 ## Open a connection to Room
@@ -382,6 +387,12 @@ room.addEventListener("stream-added", function(event) {
 
 ```
 room.publish(localStream, {maxVideoBW:300});
+```
+
+We can also force the client to use a TURN server when publishing by setting the next parameter:
+
+```
+room.publish(localStream, {forceTurn: true});
 ```
 
 In `room.publish` you can include a callback with two parameters, `id` and `error`. If the stream has been published, `id` contains the id of that stream. On the other hand, if there has been any kind of error, `id` is `undefined` and the error is described in `error`.
@@ -445,6 +456,12 @@ room.addEventListener("stream-subscribed", function(streamEvt) {
 room.subscribe(stream, {audio: true, video: false});
 ```
 
+We can also force the client to use a TURN server when subscribing by setting the next parameter:
+
+```
+room.publish(localStream, {forceTurn: true});
+```
+
 In `room.subscribe` you can include a callback with two parameters, `result` and `error`. If the stream has been subscribed, `result` is true. On the other hand, if there has been any kind of error, `result` is `undefined` and the error is described in `error`.
 
 <example>
@@ -475,6 +492,20 @@ room.subscribe(stream, {audio: true, video: true, slideShowMode:true}, function(
 
 `SlideShowMode` can also be toggled on or off using `stream.updateConfiguration`. Keep in mind this will only work on remote streams (subscriptions).
 
+When we enable Simulcast it is also interesting to specify whether the subscriber should not receive a resolution or frame rate beyond a maximum. We
+can configure it like in the example below:
+
+```
+room.subscribe(stream, {video: {height: {max: 480}, width: {max: 640}, frameRate: {max:20}}}, function(result, error){
+  if (result === undefined){
+    console.log("Error subscribing to stream", error);
+  } else {
+    console.log("Stream subscribed!");
+  }
+});
+```
+
+It would help us not wasting CPU or bandwidth if, for instance, we will not render videos in a <video> element bigger than 640x480.
 
 ## Unsubscribe from a remote stream
 
@@ -894,17 +925,21 @@ You can configure and customize the way ErizoClient:
 
 Running erizo clients in your node.js applications.
 
-You can also run erizo clients in your node.js applications with the same API explained here. You can connect to rooms, publish and subscribe to streams and manage events. You need only to import the node module **erizofc.js**
+You can also run erizo clients in your node.js applications with the same API explained here. You can connect to rooms, publish and subscribe to streams and manage events. You need only to import the node module **erizofc.js**. This adds a new dependency that you will need to install: ` npm install socket.io-client`
 
 ```
-var Erizo = require('.erizofc').Erizo;
+var newIo = require('socket.io-client');
+var Erizo = require('.erizofc');
+```
+
+The line to initialize a room changes slightly. So, once you have a token:
+```
+var room = Erizo.Room(newIo, undefined, {token:'theToken'});
 ```
 
 And now you can use the API like explained for the browser case, calling `Erizo.Room`, `Erizo.Stream` and `Erizo.Events`. Note that you can not publish/subscribe streams with video and/or audio. We are working on this feature in order to develop another way of distribute video/audio streams.
 
 You can also use Erizo Client Logger for managing log levels, etc.
-
 ```
-var L = require('.erizofc').L;
-L.Logger.setLogLevel(2);
+Erizo.Logger.setLogLevel(Erizo.Logger.ERROR);
 ```

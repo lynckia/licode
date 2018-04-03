@@ -1,9 +1,11 @@
 {
-  "name" : "erizo-tests",
+  "name": "erizo-tests",
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "node-getopt":"0.2.3",
-    "chai":"3.5.0"
+    "aws-sdk": "^2.102.0",
+    "chai": "^3.5.0",
+    "node-getopt": "0.2.3",
+    "node-ssh": "^4.2.3"
   }
 }

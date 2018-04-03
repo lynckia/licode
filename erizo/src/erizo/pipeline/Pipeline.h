@@ -20,7 +20,6 @@
 namespace erizo {
 
 class PipelineBase;
-class WebRtcConnection;
 
 class PipelineManager {
  public:
@@ -161,7 +160,7 @@ class Pipeline : public PipelineBase {
 
   ~Pipeline();
 
-  void read(std::shared_ptr<dataPacket> packet);
+  void read(std::shared_ptr<DataPacket> packet);
 
   void readEOF();
 
@@ -169,13 +168,14 @@ class Pipeline : public PipelineBase {
 
   void transportInactive();
 
-  void write(std::shared_ptr<dataPacket> packet);
+  void write(std::shared_ptr<DataPacket> packet);
 
   void close();
 
   void finalize() override;
 
   void notifyUpdate();
+  void notifyEvent(MediaEventPtr event);
   void enable(std::string name);
   void disable(std::string name);
 

@@ -14,6 +14,8 @@ class ServiceBase {
 
   virtual void attachPipeline(Context* /*ctx*/) {}
   virtual void detachPipeline(Context* /*ctx*/) {}
+  virtual void notifyEvent(MediaEventPtr event) {}
+
 
   Context* getContext() {
     if (attach_count_ != 1) {

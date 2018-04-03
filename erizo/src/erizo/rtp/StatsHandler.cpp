@@ -3,7 +3,7 @@
 #include <string>
 
 #include "./MediaDefinitions.h"
-#include "./WebRtcConnection.h"
+#include "./MediaStream.h"
 
 
 
@@ -13,9 +13,9 @@ DEFINE_LOGGER(StatsCalculator, "rtp.StatsCalculator");
 DEFINE_LOGGER(IncomingStatsHandler, "rtp.IncomingStatsHandler");
 DEFINE_LOGGER(OutgoingStatsHandler, "rtp.OutgoingStatsHandler");
 
-void StatsCalculator::update(WebRtcConnection *connection, std::shared_ptr<Stats> stats) {
-  if (!connection_) {
-    connection_ = connection;
+void StatsCalculator::update(MediaStream *stream, std::shared_ptr<Stats> stats) {
+  if (!stream_) {
+    stream_ = stream;
     stats_ = stats;
     if (!getStatsInfo().hasChild("total")) {
       getStatsInfo()["total"].insertStat("bitrateCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
@@ -24,7 +24,7 @@ void StatsCalculator::update(WebRtcConnection *connection, std::shared_ptr<Stats
   }
 }
 
-void StatsCalculator::processPacket(std::shared_ptr<dataPacket> packet) {
+void StatsCalculator::processPacket(std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
   if (chead->isRtcp()) {
     processRtcpPacket(packet);
@@ -33,19 +33,19 @@ void StatsCalculator::processPacket(std::shared_ptr<dataPacket> packet) {
   }
 }
 
-void StatsCalculator::processRtpPacket(std::shared_ptr<dataPacket> packet) {
+void StatsCalculator::processRtpPacket(std::shared_ptr<DataPacket> packet) {
   char* buf = packet->data;
   int len = packet->length;
   RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);
   uint32_t ssrc = head->getSSRC();
-  if (!connection_->isSinkSSRC(ssrc) && !connection_->isSourceSSRC(ssrc)) {
+  if (!stream_->isSinkSSRC(ssrc) && !stream_->isSourceSSRC(ssrc)) {
     ELOG_DEBUG("message: Unknown SSRC in processRtpPacket, ssrc: %u, PT: %u", ssrc, head->getPayloadType());
     return;
   }
   if (!getStatsInfo()[ssrc].hasChild("bitrateCalculated")) {
-    if (connection_->isVideoSourceSSRC(ssrc) || connection_->isVideoSinkSSRC(ssrc)) {
+    if (stream_->isVideoSourceSSRC(ssrc) || stream_->isVideoSinkSSRC(ssrc)) {
       getStatsInfo()[ssrc].insertStat("type", StringStat{"video"});
-    } else if (connection_->isAudioSourceSSRC(ssrc) || connection_->isAudioSinkSSRC(ssrc)) {
+    } else if (stream_->isAudioSourceSSRC(ssrc) || stream_->isAudioSinkSSRC(ssrc)) {
       getStatsInfo()[ssrc].insertStat("type", StringStat{"audio"});
     }
     getStatsInfo()[ssrc].insertStat("bitrateCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
@@ -66,7 +66,7 @@ void StatsCalculator::incrStat(uint32_t ssrc, std::string stat) {
   getStatsInfo()[ssrc][stat]++;
 }
 
-void StatsCalculator::processRtcpPacket(std::shared_ptr<dataPacket> packet) {
+void StatsCalculator::processRtcpPacket(std::shared_ptr<DataPacket> packet) {
   char* buf = packet->data;
   int len = packet->length;
 
@@ -80,12 +80,12 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<dataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(movingBuf);
   if (chead->isFeedback()) {
     ssrc = chead->getSourceSSRC();
-    if (!connection_->isSinkSSRC(ssrc)) {
+    if (!stream_->isSinkSSRC(ssrc)) {
       is_feedback_on_publisher = true;
     }
   } else {
     ssrc = chead->getSSRC();
-    if (!connection_->isSourceSSRC(ssrc)) {
+    if (!stream_->isSourceSSRC(ssrc)) {
       return;
     }
   }
@@ -171,44 +171,44 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<dataPacket> packet) {
   notifyStats();
 }
 
-IncomingStatsHandler::IncomingStatsHandler() : connection_{nullptr} {}
+IncomingStatsHandler::IncomingStatsHandler() : stream_{nullptr} {}
 
 void IncomingStatsHandler::enable() {}
 
 void IncomingStatsHandler::disable() {}
 
 void IncomingStatsHandler::notifyUpdate() {
-  if (connection_) {
+  if (stream_) {
     return;
   }
   auto pipeline = getContext()->getPipelineShared();
-  update(pipeline->getService<WebRtcConnection>().get(),
+  update(pipeline->getService<MediaStream>().get(),
              pipeline->getService<Stats>());
 }
 
-void IncomingStatsHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void IncomingStatsHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   processPacket(packet);
-  ctx->fireRead(packet);
+  ctx->fireRead(std::move(packet));
 }
 
-OutgoingStatsHandler::OutgoingStatsHandler() : connection_{nullptr} {}
+OutgoingStatsHandler::OutgoingStatsHandler() : stream_{nullptr} {}
 
 void OutgoingStatsHandler::enable() {}
 
 void OutgoingStatsHandler::disable() {}
 
 void OutgoingStatsHandler::notifyUpdate() {
-  if (connection_) {
+  if (stream_) {
     return;
   }
   auto pipeline = getContext()->getPipelineShared();
-  update(pipeline->getService<WebRtcConnection>().get(),
+  update(pipeline->getService<MediaStream>().get(),
              pipeline->getService<Stats>());
 }
 
-void OutgoingStatsHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void OutgoingStatsHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   processPacket(packet);
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 }  // namespace erizo

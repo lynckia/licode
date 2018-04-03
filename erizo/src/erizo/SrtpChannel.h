@@ -6,7 +6,7 @@
 #define ERIZO_SRC_ERIZO_SRTPCHANNEL_H_
 
 #include <netinet/in.h>
-#include <srtp/srtp.h>
+#include <srtp2/srtp.h>
 #include <boost/thread/mutex.hpp>
 
 #include <string>

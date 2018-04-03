@@ -14,7 +14,7 @@
 
 namespace erizo {
 
-class WebRtcConnection;
+class MediaStream;
 
 class QualityFilterHandler: public Handler, public std::enable_shared_from_this<QualityFilterHandler> {
   DECLARE_LOGGER();
@@ -30,22 +30,23 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
      return "quality_filter";
   }
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
-  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
+  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
  private:
   void sendPLI();
   void checkLayers();
-  void handleFeedbackPackets(std::shared_ptr<dataPacket> packet);
+  void handleFeedbackPackets(const std::shared_ptr<DataPacket> &packet);
   bool checkSSRCChange(uint32_t ssrc);
-  void changeSpatialLayerOnKeyframeReceived(std::shared_ptr<dataPacket> packet);
-  void detectVideoScalability(std::shared_ptr<dataPacket> packet);
+  void changeSpatialLayerOnKeyframeReceived(const std::shared_ptr<DataPacket> &packet);
+  void detectVideoScalability(const std::shared_ptr<DataPacket> &packet);
+  void updatePictureID(const std::shared_ptr<DataPacket> &packet);
 
  private:
   std::shared_ptr<QualityManager> quality_manager_;
   SequenceNumberTranslator translator_;
-  WebRtcConnection *connection_;
+  MediaStream *stream_;
   bool enabled_;
   bool initialized_;
   bool receiving_multiple_ssrc_;
@@ -61,6 +62,8 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   uint32_t last_timestamp_sent_;
   uint32_t timestamp_offset_;
   time_point time_change_started_;
+  int picture_id_offset_;
+  int last_picture_id_sent_;
 };
 }  // namespace erizo
 

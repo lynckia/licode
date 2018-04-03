@@ -7,11 +7,10 @@
 #include "./logger.h"
 #include "pipeline/Handler.h"
 #include "rtp/SequenceNumberTranslator.h"
-#include "WebRtcConnection.h"
 
 namespace erizo {
 
-class WebRtcConnection;
+class MediaStream;
 
 class RtpPaddingRemovalHandler: public Handler, public std::enable_shared_from_this<RtpPaddingRemovalHandler> {
   DECLARE_LOGGER();
@@ -27,12 +26,12 @@ class RtpPaddingRemovalHandler: public Handler, public std::enable_shared_from_t
      return "padding_removal";
   }
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
-  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
+  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
  private:
-  bool removePaddingBytes(std::shared_ptr<dataPacket> packet,
+  bool removePaddingBytes(std::shared_ptr<DataPacket> packet,
       std::shared_ptr<SequenceNumberTranslator> translator);
   std::shared_ptr<SequenceNumberTranslator> getTranslatorForSsrc(uint32_t ssrc,
     bool should_create);
@@ -41,7 +40,7 @@ class RtpPaddingRemovalHandler: public Handler, public std::enable_shared_from_t
   bool enabled_;
   bool initialized_;
   std::map<uint32_t, std::shared_ptr<SequenceNumberTranslator>> translator_map_;
-  WebRtcConnection* connection_;
+  MediaStream* stream_;
 };
 }  // namespace erizo
 

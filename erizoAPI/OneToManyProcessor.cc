@@ -37,13 +37,12 @@ class AsyncDeleter : public Nan::AsyncWorker {
     }
  private:
     erizo::OneToManyProcessor* otmToDelete_;
-    Nan::Callback* callback_;
 };
 
-class AsyncRemoveSubscriber : public Nan::AsyncWorker{
+class AsyncRemoveSubscriber : public Nan::AsyncWorker {
  public:
     AsyncRemoveSubscriber(erizo::OneToManyProcessor* otm , const std::string& peerId, Nan::Callback *callback):
-      AsyncWorker(callback), otm_(otm), peerId_(peerId), callback_(callback) {
+      AsyncWorker(callback), otm_(otm), peerId_(peerId) {
       }
     ~AsyncRemoveSubscriber() {}
     void Execute() {
@@ -55,7 +54,6 @@ class AsyncRemoveSubscriber : public Nan::AsyncWorker{
  private:
     erizo::OneToManyProcessor* otm_;
     std::string peerId_;
-    Nan::Callback* callback_;
 };
 
 OneToManyProcessor::OneToManyProcessor() {
@@ -110,8 +108,8 @@ NAN_METHOD(OneToManyProcessor::setPublisher) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  WebRtcConnection* param = Nan::ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  auto wr = std::shared_ptr<erizo::WebRtcConnection>(param->me);
+  MediaStream* param = Nan::ObjectWrap::Unwrap<MediaStream>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  auto wr = std::shared_ptr<erizo::MediaStream>(param->me);
 
   std::shared_ptr<erizo::MediaSource> ms = std::dynamic_pointer_cast<erizo::MediaSource>(wr);
   me->setPublisher(ms);
@@ -149,7 +147,7 @@ NAN_METHOD(OneToManyProcessor::getPublisherState) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  auto wr = std::dynamic_pointer_cast<erizo::WebRtcConnection>(me->publisher);
+  auto wr = std::dynamic_pointer_cast<erizo::MediaStream>(me->publisher);
 
   int state = wr->getCurrentState();
   info.GetReturnValue().Set(Nan::New(state));
@@ -172,8 +170,8 @@ NAN_METHOD(OneToManyProcessor::addSubscriber) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
   erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
 
-  WebRtcConnection* param = Nan::ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  auto wr = std::shared_ptr<erizo::WebRtcConnection>(param->me);
+  MediaStream* param = Nan::ObjectWrap::Unwrap<MediaStream>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  auto wr = std::shared_ptr<erizo::MediaStream>(param->me);
 
   std::shared_ptr<erizo::MediaSink> ms = std::dynamic_pointer_cast<erizo::MediaSink>(wr);
   // get the param

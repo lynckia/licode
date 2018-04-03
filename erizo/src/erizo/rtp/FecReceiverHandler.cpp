@@ -1,6 +1,6 @@
 #include "rtp/FecReceiverHandler.h"
 #include "./MediaDefinitions.h"
-#include "./WebRtcConnection.h"
+#include "./MediaStream.h"
 
 namespace erizo {
 
@@ -28,20 +28,20 @@ void FecReceiverHandler::notifyUpdate() {
   if (!pipeline) {
     return;
   }
-  std::shared_ptr<WebRtcConnection> connection = pipeline->getService<WebRtcConnection>();
-  if (!connection) {
+  std::shared_ptr<MediaStream> stream = pipeline->getService<MediaStream>();
+  if (!stream) {
     return;
   }
-  SdpInfo &remote_sdp = connection->getRemoteSdpInfo();
-  bool is_slide_show_mode_active = connection->isSlideShowModeEnabled();
-  if (!remote_sdp.supportPayloadType(RED_90000_PT) || is_slide_show_mode_active) {
+  SdpInfo* remote_sdp = stream->getRemoteSdpInfo();
+  bool is_slide_show_mode_active = stream->isSlideShowModeEnabled();
+  if (!remote_sdp->supportPayloadType(RED_90000_PT) || is_slide_show_mode_active) {
     enable();
   } else {
     disable();
   }
 }
 
-void FecReceiverHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void FecReceiverHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (enabled_ && packet->type == VIDEO_PACKET) {
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
     if (rtp_header->getPayloadType() == RED_90000_PT) {
@@ -60,11 +60,11 @@ void FecReceiverHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet)
     }
   }
 
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 bool FecReceiverHandler::OnRecoveredPacket(const uint8_t* rtp_packet, size_t rtp_packet_length) {
-  getContext()->fireWrite(std::make_shared<dataPacket>(0, (char*)rtp_packet, rtp_packet_length, VIDEO_PACKET));  // NOLINT
+  getContext()->fireWrite(std::make_shared<DataPacket>(0, (char*)rtp_packet, rtp_packet_length, VIDEO_PACKET));  // NOLINT
   return true;
 }
 

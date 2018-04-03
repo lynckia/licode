@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
 
 #include "./logger.h"
 
@@ -32,6 +33,14 @@ enum MediaType {
 enum StreamDirection {
   SENDRECV, SENDONLY, RECVONLY
 };
+/**
+ * Simulcast rid direction
+ */
+enum RidDirection {
+  SEND, RECV
+};
+std::ostream& operator<<(std::ostream&, RidDirection);
+RidDirection reverse(RidDirection);
 /**
  * RTP Profile
  */
@@ -89,6 +98,7 @@ class CandidateInfo {
     std::string username;
     std::string password;
     MediaType mediaType;
+    std::string sdp;
 };
 
 /**
@@ -127,6 +137,16 @@ class ExtMap {
     std::string parameters;
     MediaType mediaType;
 };
+
+/**
+ * Simulcast rid structure
+ */
+struct Rid {
+  std::string id;
+  RidDirection direction;
+};
+
+bool operator==(const Rid&, const Rid&);
 
 /**
  * Contains the information of a single SDP.
@@ -172,6 +192,7 @@ class SdpInfo {
   * @return A vector containing the PT-codec information
   */
   std::vector<RtpMap>& getPayloadInfos();
+  std::vector<ExtMap> getExtensionMap(MediaType media);
   /**
    * Gets the actual SDP.
    * @return The SDP in string format.
@@ -221,17 +242,24 @@ class SdpInfo {
    * @brief copies relevant information from the offer sdp for which this will be an answer sdp
    * @param offerSdp The offer SDP as received via signaling and parsed
    */
-  void setOfferSdp(const SdpInfo& offerSdp);
+  void setOfferSdp(std::shared_ptr<SdpInfo> offerSdp);
 
   void updateSupportedExtensionMap(const std::vector<ExtMap> &ext_map);
   bool isValidExtension(std::string uri);
 
+  bool postProcessInfo();
+
+  /**
+  * @return A vector containing the simulcast RID informations
+  */
+  const std::vector<Rid>& rids() const { return rids_; }
+
   /**
    * The audio and video SSRCs for this particular SDP.
    */
-  unsigned int audio_ssrc;
-  std::vector<uint32_t> video_ssrc_list;
-  std::map<uint32_t, uint32_t> video_rtx_ssrc_map;
+  std::map<std::string, unsigned int> audio_ssrc_map;
+  std::map<std::string, std::vector<uint32_t>> video_ssrc_map;
+  std::map<std::string, std::map<uint32_t, uint32_t>> video_rtx_ssrc_map;
   /**
   * Is it Bundle
   */
@@ -289,13 +317,6 @@ class SdpInfo {
   int audioSdpMLine;
   int videoCodecs, audioCodecs;
   unsigned int videoBandwidth;
-
- private:
-  bool processSdp(const std::string& sdp, const std::string& media);
-  bool processCandidate(const std::vector<std::string>& pieces, MediaType mediaType);
-  std::string stringifyCandidate(const CandidateInfo & candidate);
-  void gen_random(char* s, int len);
-  void maybeAddSsrcToList(uint32_t ssrc);
   std::vector<CandidateInfo> candidateVector_;
   std::vector<CryptoInfo> cryptoVector_;
   std::vector<RtpMap> internalPayloadVector_;
@@ -303,6 +324,14 @@ class SdpInfo {
   std::string iceVideoPassword_, iceAudioPassword_;
   std::map<unsigned int, RtpMap> payload_parsed_map_;
   std::vector<ExtMap> supported_ext_map_;
+  std::vector<Rid> rids_;
+
+ private:
+  bool processSdp(const std::string& sdp, const std::string& media);
+  bool processCandidate(const std::vector<std::string>& pieces, MediaType mediaType, std::string sdp);
+  std::string stringifyCandidate(const CandidateInfo & candidate);
+  void gen_random(char* s, int len);
+  void maybeAddSsrcToList(uint32_t ssrc);
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_SDPINFO_H_

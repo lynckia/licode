@@ -19,7 +19,7 @@ using ::testing::_;
 using ::testing::IsNull;
 using ::testing::Args;
 using ::testing::Return;
-using erizo::dataPacket;
+using erizo::DataPacket;
 using erizo::packetType;
 using erizo::AUDIO_PACKET;
 using erizo::VIDEO_PACKET;
@@ -65,8 +65,8 @@ TEST_F(RtpRetransmissionHandlerTest, basicBehaviourShouldWritePackets) {
 
 TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingNacksWithGoodSeqNum) {
     auto rtp_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
-    uint ssrc = connection->getVideoSourceSSRC();
-    uint source_ssrc = connection->getVideoSinkSSRC();
+    uint ssrc = media_stream->getVideoSourceSSRC();
+    uint source_ssrc = media_stream->getVideoSinkSSRC();
     auto nack_packet = erizo::PacketTools::createNack(ssrc, source_ssrc, erizo::kArbitrarySeqNumber, VIDEO_PACKET);
 
     EXPECT_CALL(*writer.get(), write(_, _)).
@@ -79,8 +79,8 @@ TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingNacksW
 
 TEST_F(RtpRetransmissionHandlerTest, shouldNotRetransmitPackets_whenReceivingNacksWithBadSeqNum) {
     auto rtp_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
-    uint ssrc = connection->getVideoSourceSSRC();
-    uint source_ssrc = connection->getVideoSinkSSRC();
+    uint ssrc = media_stream->getVideoSourceSSRC();
+    uint source_ssrc = media_stream->getVideoSinkSSRC();
     auto nack_packet = erizo::PacketTools::createNack(ssrc, source_ssrc, erizo::kArbitrarySeqNumber + 1, VIDEO_PACKET);
 
     EXPECT_CALL(*writer.get(), write(_, _)).
@@ -95,8 +95,8 @@ TEST_F(RtpRetransmissionHandlerTest, shouldNotRetransmitPackets_whenReceivingNac
 
 TEST_F(RtpRetransmissionHandlerTest, shouldNotRetransmitPackets_whenReceivingNacksFromDifferentType) {
     auto rtp_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, VIDEO_PACKET);
-    uint ssrc = connection->getAudioSourceSSRC();
-    uint source_ssrc = connection->getAudioSinkSSRC();
+    uint ssrc = media_stream->getAudioSourceSSRC();
+    uint source_ssrc = media_stream->getAudioSinkSSRC();
     auto nack_packet = erizo::PacketTools::createNack(ssrc, source_ssrc, erizo::kArbitrarySeqNumber, AUDIO_PACKET);
 
     EXPECT_CALL(*writer.get(), write(_, _)).
@@ -108,8 +108,8 @@ TEST_F(RtpRetransmissionHandlerTest, shouldNotRetransmitPackets_whenReceivingNac
 }
 
 TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingWithSeqNumBeforeGeneralRollover) {
-    uint ssrc = connection->getVideoSourceSSRC();
-    uint source_ssrc = connection->getVideoSinkSSRC();
+    uint ssrc = media_stream->getVideoSourceSSRC();
+    uint source_ssrc = media_stream->getVideoSinkSSRC();
     auto nack_packet = erizo::PacketTools::createNack(ssrc, source_ssrc, erizo::kFirstSequenceNumber, VIDEO_PACKET);
 
     EXPECT_CALL(*writer.get(), write(_, _)).
@@ -124,8 +124,8 @@ TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingWithSe
 }
 
 TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingWithSeqNumBeforeBufferRollover) {
-    uint ssrc = connection->getVideoSourceSSRC();
-    uint source_ssrc = connection->getVideoSinkSSRC();
+    uint ssrc = media_stream->getVideoSourceSSRC();
+    uint source_ssrc = media_stream->getVideoSinkSSRC();
     auto nack_packet = erizo::PacketTools::createNack(ssrc, source_ssrc, kRetransmissionsBufferSize - 1, VIDEO_PACKET);
 
     EXPECT_CALL(*writer.get(), write(_, _)).
@@ -140,8 +140,8 @@ TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingWithSe
 }
 
 TEST_F(RtpRetransmissionHandlerTest, shouldRetransmitPackets_whenReceivingNackWithMultipleSeqNums) {
-    uint ssrc = connection->getVideoSourceSSRC();
-    uint source_ssrc = connection->getVideoSinkSSRC();
+    uint ssrc = media_stream->getVideoSourceSSRC();
+    uint source_ssrc = media_stream->getVideoSinkSSRC();
     auto nack_packet = erizo::PacketTools::createNack(ssrc, source_ssrc, erizo::kArbitrarySeqNumber, VIDEO_PACKET, 1);
 
     EXPECT_CALL(*writer.get(), write(_, _)).

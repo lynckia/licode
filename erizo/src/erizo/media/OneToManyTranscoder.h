@@ -14,7 +14,7 @@
 #include "./logger.h"
 
 namespace erizo {
-class WebRtcConnection;
+class MediaStream;
 class RTPSink;
 
 /**
@@ -32,15 +32,15 @@ class OneToManyTranscoder : public MediaSink, public RawDataReceiver, public RTP
   virtual ~OneToManyTranscoder();
   /**
   * Sets the Publisher
-  * @param webRtcConn The WebRtcConnection of the Publisher
+  * @param webRtcConn The MediaStream of the Publisher
   */
-  void setPublisher(MediaSource* webRtcConn);
+  void setPublisher(MediaSource* media_stream);
   /**
   * Sets the subscriber
-  * @param webRtcConn The WebRtcConnection of the subscriber
+  * @param webRtcConn The MediaStream of the subscriber
   * @param peerId An unique Id for the subscriber
   */
-  void addSubscriber(MediaSink* webRtcConn, const std::string& peerId);
+  void addSubscriber(MediaSink* media_stream, const std::string& peer_id);
   /**
   * Eliminates the subscriber given its peer id
   * @param peerId the peerId
@@ -57,13 +57,14 @@ class OneToManyTranscoder : public MediaSink, public RawDataReceiver, public RTP
   char sendVideoBuffer_[2000];
   char sendAudioBuffer_[2000];
   RTPSink* sink_;
-  std::vector<dataPacket> head;
+  std::vector<DataPacket> head;
   int gotFrame_, gotDecodedFrame_, size_;
-  void sendHead(WebRtcConnection* conn);
+  void sendHead(MediaStream* conn);
   RtpVP8Parser pars;
   unsigned int sentPackets_;
-  int deliverAudioData_(std::shared_ptr<dataPacket> audio_packet) override;
-  int deliverVideoData_(std::shared_ptr<dataPacket> video_packet) override;
+  int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override;
+  int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override;
+  int deliverEvent_(MediaEventPtr event) override;
   /**
   * Closes all the subscribers and the publisher, the object is useless after this
   */

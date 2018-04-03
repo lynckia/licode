@@ -8,6 +8,7 @@
 #include <chrono> // NOLINT
 #include <map>
 #include <memory>
+#include <future>  // NOLINT
 #include <vector>
 
 #include "lib/Clock.h"
@@ -15,6 +16,15 @@
 #include "thread/Scheduler.h"
 
 namespace erizo {
+
+class ScheduledTaskReference {
+ public:
+  ScheduledTaskReference();
+  bool isCancelled();
+  void cancel();
+ private:
+  std::atomic<bool> cancelled;
+};
 
 class Worker : public std::enable_shared_from_this<Worker> {
  public:
@@ -29,15 +39,13 @@ class Worker : public std::enable_shared_from_this<Worker> {
   virtual void task(Task f);
 
   virtual void start();
+  virtual void start(std::shared_ptr<std::promise<void>> start_promise);
   virtual void close();
 
-  virtual int scheduleFromNow(Task f, duration delta);
-  virtual void unschedule(int uuid);
+  virtual std::shared_ptr<ScheduledTaskReference> scheduleFromNow(Task f, duration delta);
+  virtual void unschedule(std::shared_ptr<ScheduledTaskReference> id);
 
   virtual void scheduleEvery(ScheduledTask f, duration period);
-
- protected:
-  bool isCancelled(int uuid);
 
  private:
   void scheduleEvery(ScheduledTask f, duration period, duration next_delay);
@@ -53,8 +61,6 @@ class Worker : public std::enable_shared_from_this<Worker> {
   asio_worker service_worker_;
   boost::thread_group group_;
   std::atomic<bool> closed_;
-  std::vector<int> cancelled_;
-  mutable std::mutex cancel_mutex_;
 };
 
 class SimulatedWorker : public Worker {
@@ -62,8 +68,9 @@ class SimulatedWorker : public Worker {
   explicit SimulatedWorker(std::shared_ptr<SimulatedClock> the_clock);
   void task(Task f) override;
   void start() override;
+  void start(std::shared_ptr<std::promise<void>> start_promise) override;
   void close() override;
-  int scheduleFromNow(Task f, duration delta) override;
+  std::shared_ptr<ScheduledTaskReference> scheduleFromNow(Task f, duration delta) override;
 
   void executeTasks();
   void executePastScheduledTasks();

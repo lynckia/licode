@@ -15,7 +15,7 @@
 
 namespace erizo {
 
-class WebRtcConnection;
+class MediaStream;
 
 class RtcpGeneratorPair {
  public:
@@ -40,12 +40,12 @@ class RtcpFeedbackGenerationHandler: public Handler {
      return "rtcp_feedback_generation";
   }
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
-  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
+  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
  private:
-  WebRtcConnection *connection_;
+  MediaStream *stream_;
   std::map<uint32_t, std::shared_ptr<RtcpGeneratorPair>> generators_map_;
 
   bool enabled_, initialized_;

@@ -12,6 +12,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <cassert>
 
 #include "rtp/RtpHeaders.h"
 #include "./StringUtil.h"
@@ -33,8 +34,7 @@ namespace erizo {
   static const char *sendonly = "a=sendonly";
   static const char *ice_user = "a=ice-ufrag";
   static const char *ice_pass = "a=ice-pwd";
-  static const char *ssrctag = "a=ssrc:";
-  static const char *ssrcgrouptag = "a=ssrc-group";
+  static const char *rid = "a=rid";
   static const char *savpf = "SAVPF";
   static const char *rtpmap = "a=rtpmap:";
   static const char *rtcpmux = "a=rtcp-mux";
@@ -57,7 +57,6 @@ namespace erizo {
     hasAudio = false;
     hasVideo = false;
     profile = SAVPF;
-    audio_ssrc = 0;
     videoCodecs = 0;
     audioCodecs = 0;
     videoSdpMLine = -1;
@@ -289,25 +288,20 @@ namespace erizo {
               sdp << "a=rtcp-fb:" << payload_type << " " << rtp.feedback_types[itFb] << "\n";
             }
           }
-          for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
-              theIt != rtp.format_parameters.end(); theIt++) {
-            if (theIt->first.compare("none")) {
-              sdp << "a=fmtp:" << payload_type << " " << theIt->first << "=" << theIt->second << endl;
-            } else {
-              sdp << "a=fmtp:" << payload_type << " " << theIt->second << endl;
+          if (!rtp.format_parameters.empty()) {
+            std::string fmtp_line;
+            for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
+                theIt != rtp.format_parameters.end(); theIt++) {
+              if (theIt->first.compare("none")) {
+                fmtp_line += theIt->first + "=" + theIt->second + ';';
+              } else {
+                fmtp_line += theIt->second + ';';
+              }
             }
+            fmtp_line.pop_back();
+            sdp << "a=fmtp:" << payload_type << " " << fmtp_line << std::endl;
           }
         }
-      }
-
-      if (audio_ssrc == 0) {
-        audio_ssrc = 44444;
-      }
-      if (audioDirection != RECVONLY) {
-        sdp << "a=ssrc:" << audio_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-          "a=ssrc:"<< audio_ssrc << " msid:"<< msidtemp << " a0"<< endl <<
-          "a=ssrc:"<< audio_ssrc << " mslabel:"<< msidtemp << endl <<
-          "a=ssrc:"<< audio_ssrc << " label:" << msidtemp << "a0" << endl;
       }
     }
 
@@ -389,6 +383,10 @@ namespace erizo {
         }
       }
 
+      for (const auto rid : rids()) {
+        sdp << "a=rid:" << rid.id << " " << rid.direction << "\n";
+      }
+
       for (unsigned int it = 0; it < payloadVector.size(); it++) {
         const RtpMap& rtp = payloadVector[it];
         if (rtp.media_type == VIDEO_TYPE) {
@@ -400,36 +398,31 @@ namespace erizo {
               sdp << "a=rtcp-fb:" << payload_type << " " << rtp.feedback_types[itFb] << "\n";
             }
           }
-          for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
-              theIt != rtp.format_parameters.end(); theIt++) {
-            if (theIt->first.compare("none")) {
-              sdp << "a=fmtp:" << payload_type << " " << theIt->first << "=" << theIt->second << endl;
-            } else {
-              sdp << "a=fmtp:" << payload_type << " " << theIt->second << endl;
+          if (!rtp.format_parameters.empty()) {
+            std::string fmtp_line;
+            for (std::map<std::string, std::string>::const_iterator theIt = rtp.format_parameters.begin();
+                theIt != rtp.format_parameters.end(); theIt++) {
+              if (theIt->first.compare("none")) {
+                fmtp_line += theIt->first + "=" + theIt->second + ';';
+              } else {
+                fmtp_line += theIt->second + ';';
+              }
             }
+            fmtp_line.pop_back();
+            sdp << "a=fmtp:" << payload_type << " " << fmtp_line << std::endl;
           }
         }
       }
-      if (video_ssrc_list.empty()) {
-        video_ssrc_list.push_back(55543);
-      }
-      if (videoDirection != RECVONLY) {
-        std::for_each(video_ssrc_list.begin(), video_ssrc_list.end(),
-            [&sdp, &msidtemp](uint32_t &video_ssrc){
-            sdp << "a=ssrc:" << video_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-            "a=ssrc:" << video_ssrc << " msid:"<< msidtemp << " v0"<< endl <<
-            "a=ssrc:" << video_ssrc << " mslabel:"<< msidtemp << endl <<
-            "a=ssrc:" << video_ssrc << " label:" << msidtemp << "v0" << endl;
-            });
-        /* TODO(pedro)  properly encode FID groups in sdp when supported
-        std::for_each(video_rtx_ssrc_map.begin(), video_rtx_ssrc_map.end(),
-            [&sdp, &msidtemp](uint32_t &video_rtx_ssrc){
-            sdp << "a=ssrc:" << video_rtx_ssrc << " cname:o/i14u9pJrxRKAsu" << endl <<
-            "a=ssrc:" << video_rtx_ssrc << " msid:"<< msidtemp << " v0"<< endl <<
-            "a=ssrc:" << video_rtx_ssrc << " mslabel:"<< msidtemp << endl <<
-            "a=ssrc:" << video_rtx_ssrc << " label:" << msidtemp << "v0" << endl;
-            });
-        */
+
+      if (!rids().empty()) {
+        sdp << "a=simulcast: " << rids()[0].direction << " rid=";
+        for (unsigned i = 0; i < rids().size(); ++i) {
+          sdp << rids()[i].id;
+          if (i < rids().size() - 1) {
+            sdp << ';';
+          }
+        }
+        sdp << '\n';
       }
     }
     ELOG_DEBUG("sdp local \n %s", sdp.str().c_str());
@@ -504,22 +497,26 @@ namespace erizo {
     ELOG_DEBUG("Setting Offer SDP");
   }
 
-  void SdpInfo::setOfferSdp(const SdpInfo& offerSdp) {
-    this->videoCodecs = offerSdp.videoCodecs;
-    this->audioCodecs = offerSdp.audioCodecs;
-    this->payloadVector = offerSdp.payloadVector;
-    this->isBundle = offerSdp.isBundle;
-    this->profile = offerSdp.profile;
-    this->isRtcpMux = offerSdp.isRtcpMux;
-    this->videoSdpMLine = offerSdp.videoSdpMLine;
-    this->audioSdpMLine = offerSdp.audioSdpMLine;
-    this->inOutPTMap = offerSdp.inOutPTMap;
-    this->outInPTMap = offerSdp.outInPTMap;
-    this->hasVideo = offerSdp.hasVideo;
-    this->hasAudio = offerSdp.hasAudio;
-    this->bundleTags = offerSdp.bundleTags;
-    this->extMapVector = offerSdp.extMapVector;
-    switch (offerSdp.videoDirection) {
+  void SdpInfo::setOfferSdp(std::shared_ptr<SdpInfo> offerSdp) {
+    this->videoCodecs = offerSdp->videoCodecs;
+    this->audioCodecs = offerSdp->audioCodecs;
+    this->payloadVector = offerSdp->payloadVector;
+    this->isBundle = offerSdp->isBundle;
+    this->profile = offerSdp->profile;
+    this->isRtcpMux = offerSdp->isRtcpMux;
+    this->videoSdpMLine = offerSdp->videoSdpMLine;
+    this->audioSdpMLine = offerSdp->audioSdpMLine;
+    this->inOutPTMap = offerSdp->inOutPTMap;
+    this->outInPTMap = offerSdp->outInPTMap;
+    this->hasVideo = offerSdp->hasVideo;
+    this->hasAudio = offerSdp->hasAudio;
+    this->bundleTags = offerSdp->bundleTags;
+    this->extMapVector = offerSdp->extMapVector;
+    this->rids_ = offerSdp->rids();
+    for (auto& rid : rids_) {
+      rid.direction = reverse(rid.direction);
+    }
+    switch (offerSdp->videoDirection) {
       case SENDONLY:
         this->videoDirection = RECVONLY;
         break;
@@ -533,7 +530,7 @@ namespace erizo {
         this->videoDirection = SENDRECV;
         break;
     }
-    switch (offerSdp.audioDirection) {
+    switch (offerSdp->audioDirection) {
       case SENDONLY:
         this->audioDirection = RECVONLY;
         break;
@@ -571,8 +568,7 @@ namespace erizo {
       size_t isCrypt = line.find(crypto);
       size_t isUser = line.find(ice_user);
       size_t isPass = line.find(ice_pass);
-      size_t isSsrc = line.find(ssrctag);
-      size_t isSsrcGroup = line.find(ssrcgrouptag);
+      size_t isRid = line.find(rid);
       size_t isSAVPF = line.find(savpf);
       size_t isRtpmap = line.find(rtpmap);
       size_t isRtcpMuxchar = line.find(rtcpmux);
@@ -676,7 +672,7 @@ namespace erizo {
       }
       if (isCand != std::string::npos) {
         std::vector<std::string> pieces = stringutil::splitOneOf(line, " :");
-        processCandidate(pieces, mtype);
+        processCandidate(pieces, mtype, line);
       }
       if (isCrypt != std::string::npos) {
         CryptoInfo crypinfo;
@@ -734,47 +730,32 @@ namespace erizo {
         }
       }
 
-      if (isSsrc != std::string::npos) {
-        std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 2);
-        // FIXME add error checking
-        if (mtype == VIDEO_TYPE) {
-          uint32_t parsed_ssrc = strtoul(parts[1].c_str(), nullptr, 10);
-          ELOG_DEBUG("message: maybeAdd video in isSsrc, ssrc: %u", parsed_ssrc);
-          maybeAddSsrcToList(parsed_ssrc);
-        } else if ((mtype == AUDIO_TYPE) && (audio_ssrc == 0)) {
-          audio_ssrc = strtoul(parts[1].c_str(), nullptr, 10);
-          ELOG_DEBUG("audio ssrc: %u", audio_ssrc);
-        }
-      }
-
-      if (isSsrcGroup != std::string::npos) {
-        if (mtype != VIDEO_TYPE) {
-          continue;
-        }
-        std::vector<std::string> parts = stringutil::splitOneOf(line, " :", 10);
-        if (parts.size() < 4) {
-          continue;
-        }
-        if (parts[1] == kSimulcastGroup) {
-          ELOG_DEBUG("Detected SIM group, size: %lu", parts.size());
-          std::for_each(parts.begin() + 2, parts.end(), [this] (std::string &part){
-              uint32_t parsed_ssrc = strtoul(part.c_str(), nullptr, 10);
-              ELOG_DEBUG("maybeAddSsrc video SIM, ssrc %u", parsed_ssrc);
-              maybeAddSsrcToList(parsed_ssrc);
-              });
-
-        } else if (parts[1] == kFidGroup) {
-          int number_of_ssrcs = parts.size() - 2;
-          if (number_of_ssrcs != 2) {
-            ELOG_DEBUG("FID Group with wrong number of SSRCs, ignoring");
-            continue;
+      if (isRid != std::string::npos) {
+          std::vector<std::string> parts = stringutil::splitOneOf(line, ":", 2);
+          if (mtype == VIDEO_TYPE) {
+            const auto& rid_raw = parts[1];
+            const auto delimiter_pos = rid_raw.find(" ");
+            if (delimiter_pos != std::string::npos) {
+              const auto direction = rid_raw.substr(delimiter_pos + 1, std::min(decltype(rid_raw.length()){4},
+                  rid_raw.length() - delimiter_pos - 1));
+              if (direction == "send") {
+                rids_.push_back({rid_raw.substr(0, delimiter_pos), RidDirection::SEND});
+                ELOG_DEBUG("message: added simulcast rid send, id: %s", rids_.back().id.c_str());
+              } else if (direction == "recv") {
+                rids_.push_back({rid_raw.substr(0, delimiter_pos), RidDirection::RECV});
+                ELOG_DEBUG("message: added simulcast rid recv, id: %s", rids_.back().id.c_str());
+              } else {
+                ELOG_DEBUG("message: invalid rid syntax: unknown direction %s length: %d", direction.c_str(),
+                    (int) direction.size());
+              }
+            } else {
+              ELOG_DEBUG("invalid rid syntax: missing delimiter");
+            }
+          } else if (mtype == AUDIO_TYPE) {
+            ELOG_DEBUG("audio shouldn't have simulcast rid! - ignoring this sdp line");
           }
-          uint32_t original_ssrc = strtoul(parts[2].c_str(), nullptr, 10);
-          uint32_t rtx_ssrc = strtoul(parts[3].c_str(), nullptr, 10);
-          video_rtx_ssrc_map[rtx_ssrc] = original_ssrc;
-          ELOG_DEBUG("message: parsed FID group, original_src: %u, rtx_ssrc: %u", original_ssrc, rtx_ssrc);
-        }
       }
+
       // a=rtpmap:PT codec_name/clock_rate
       if (isRtpmap != std::string::npos) {
         std::vector<std::string> parts = stringutil::splitOneOf(line, " :/\n", 4);
@@ -828,30 +809,40 @@ namespace erizo {
       }
 
       if (isFmtp != std::string::npos) {
-        std::vector<std::string> parts = stringutil::splitOneOf(line, " :=", 4);
-        if (parts.size() < 4) {
+        std::vector<std::string> parts = stringutil::splitOneOf(line, " :;", 40);
+        if (parts.size() < 3) {
           continue;
         }
-        unsigned int PT = strtoul(parts[2].c_str(), nullptr, 10);
-        std::string option = "none";
-        std::string value = "none";
-        if (parts.size() == 4) {
-          value = parts[3].c_str();
-        } else {
-          option = parts[3].c_str();
-          value = parts[4].c_str();
-        }
-        ELOG_DEBUG("message: Parsing format parameter, option: %s, value: %s, PT: %u",
-            option.c_str(), value.c_str(), PT);
-        value.pop_back();
-        auto map_element = payload_parsed_map_.find(PT);
-        if (map_element != payload_parsed_map_.end()) {
-          map_element->second.format_parameters[option] = value;
-        } else {
-          RtpMap new_map;
-          new_map.payload_type = PT;
-          new_map.format_parameters[option] = value;
-          payload_parsed_map_[PT] = new_map;
+        unsigned int PT = strtoul(parts[1].c_str(), nullptr, 10);
+
+        for (uint part_index = 2; part_index < parts.size(); part_index++) {
+          std::string fmtp_line = parts[part_index];
+          if (part_index == parts.size() - 1) {
+            fmtp_line.pop_back();  // remove end of line
+          }
+          std::vector<std::string> key_value = stringutil::splitOneOf(fmtp_line, "=", 40);
+          std::string option = "none";
+          std::string value = "none";
+          if (key_value.size() == 1) {
+            value = key_value[0];
+          } else if (key_value.size() == 2) {
+            option = key_value[0];
+            value = key_value[1];
+          } else {
+            continue;
+          }
+
+          ELOG_DEBUG("message: Parsing format parameter, option: %s, value: %s, PT: %u",
+              option.c_str(), value.c_str(), PT);
+          auto map_element = payload_parsed_map_.find(PT);
+          if (map_element != payload_parsed_map_.end()) {
+            map_element->second.format_parameters[option] = value;
+          } else {
+            RtpMap new_map;
+            new_map.payload_type = PT;
+            new_map.format_parameters[option] = value;
+            payload_parsed_map_[PT] = new_map;
+          }
         }
       }
 
@@ -866,6 +857,10 @@ namespace erizo {
       }
     }  // sdp lines loop
 
+    return postProcessInfo();
+  }
+
+  bool SdpInfo::postProcessInfo() {
     // If there is no video or audio credentials we use the ones we have
     if (iceVideoUsername_.empty() && iceAudioUsername_.empty()) {
       ELOG_ERROR("No valid credentials for ICE")
@@ -890,10 +885,6 @@ namespace erizo {
         c.username = iceAudioUsername_;
         c.password = iceAudioPassword_;
       }
-    }
-
-    if (video_ssrc_list.empty()) {
-      video_ssrc_list.push_back(0);
     }
 
     //  go through the payload_map_ and match it with internalPayloadVector_
@@ -937,14 +928,12 @@ namespace erizo {
         }
         negotiated_map.feedback_types = negotiated_feedback;
         std::map<std::string, std::string> negotiated_parameters;
-        ELOG_DEBUG("message, Checking fmtp parameters, parsed: %lu, internal: %lu", parsed_map.format_parameters.size(),
-            internal_map.format_parameters.size());
-        if (!parsed_map.format_parameters.empty() && !internal_map.format_parameters.empty()) {
+        if (parsed_map.format_parameters.size() == internal_map.format_parameters.size()) {
           for (const std::pair<std::string, std::string>& internal_parameter : internal_map.format_parameters) {
             auto found_parameter = parsed_map.format_parameters.find(internal_parameter.first);
             if (found_parameter != parsed_map.format_parameters.end()) {
               if (found_parameter->second == internal_parameter.second) {
-                ELOG_DEBUG("message: Adding fmpt, codec_name: %s, parameter: %s, value:%s",
+                ELOG_DEBUG("message: Adding fmtp, codec_name: %s, parameter: %s, value:%s",
                     parsed_map.encoding_name.c_str(), found_parameter->first.c_str(),
                     found_parameter->second.c_str());
                 negotiated_parameters[found_parameter->first] = found_parameter->second;
@@ -952,7 +941,6 @@ namespace erizo {
             }
           }
         }
-
         negotiated_map.format_parameters = negotiated_parameters;
 
         if (negotiated_map.media_type == VIDEO_TYPE) {
@@ -960,7 +948,10 @@ namespace erizo {
         } else {
           audioCodecs++;
         }
-        payloadVector.push_back(negotiated_map);
+        if (internal_map.format_parameters.empty() ||
+            parsed_map.format_parameters.size() == negotiated_parameters.size()) {
+          payloadVector.push_back(negotiated_map);
+        }
       }
     }
 
@@ -1008,6 +999,16 @@ namespace erizo {
     return payloadVector;
   }
 
+  std::vector<ExtMap> SdpInfo::getExtensionMap(MediaType media) {
+    std::vector<ExtMap> valid_extensions;
+    for (const ExtMap& extension : extMapVector) {
+      if (isValidExtension(extension.uri) && extension.mediaType == media) {
+        valid_extensions.push_back(extension);
+      }
+    }
+    return valid_extensions;
+  }
+
   unsigned int SdpInfo::getAudioInternalPT(unsigned int externalPT) {
     // should use separate mapping for video and audio at the very least
     // standard requires separate mappings for each media, even!
@@ -1042,7 +1043,7 @@ namespace erizo {
     return getAudioExternalPT(internalPT);
   }
 
-  bool SdpInfo::processCandidate(const std::vector<std::string>& pieces, MediaType mediaType) {
+  bool SdpInfo::processCandidate(const std::vector<std::string>& pieces, MediaType mediaType, std::string line) {
     CandidateInfo cand;
     static const char* types_str[] = { "host", "srflx", "prflx", "relay" };
     cand.mediaType = mediaType;
@@ -1105,6 +1106,7 @@ namespace erizo {
       cand.rPort = (unsigned int) strtoul(pieces[12].c_str(), nullptr, 10);
       ELOG_DEBUG("Parsing raddr srlfx or relay %s, %u \n", cand.rAddress.c_str(), cand.rPort);
     }
+    cand.sdp = line;
     candidateVector_.push_back(cand);
     return true;
   }
@@ -1122,19 +1124,34 @@ namespace erizo {
     s[len] = 0;
   }
 
-  void SdpInfo::maybeAddSsrcToList(uint32_t ssrc) {
-    auto find_rt = video_rtx_ssrc_map.find(ssrc);
-    if (find_rt != video_rtx_ssrc_map.end()) {
-      //  Its a rtx ssrc
-      return;
+  bool operator==(const Rid& lhs, const Rid& rhs) {
+  return lhs.id == rhs.id && lhs.direction == rhs.direction;
+  }
+
+  std::ostream& operator<<(std::ostream& os, RidDirection dir) {
+    switch (dir) {
+      case RidDirection::SEND:
+        os << "send";
+    break;
+      case RidDirection::RECV:
+        os << "recv";
+    break;
+      default:
+        assert(false);
     }
-    auto value = std::find_if(video_ssrc_list.begin(), video_ssrc_list.end(), [ssrc](uint32_t current_ssrc) {
-        return ssrc == current_ssrc;
-        });
-    if (value == video_ssrc_list.end()) {
-      ELOG_DEBUG("message: Adding ssrc to list, ssrc: %u", ssrc);
-      video_ssrc_list.push_back(ssrc);
+    return os;
+  }
+
+  RidDirection reverse(RidDirection dir) {
+    switch (dir) {
+      case RidDirection::SEND:
+        return RidDirection::RECV;
+      case RidDirection::RECV:
+        return RidDirection::SEND;
+      default:
+        assert(false);
     }
+    return dir;
   }
 
 }  // namespace erizo

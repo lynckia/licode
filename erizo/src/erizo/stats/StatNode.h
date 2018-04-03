@@ -43,7 +43,7 @@ class StatNode {
   virtual std::string toString();
 
  private:
-  bool is_node_;
+  bool is_node_{false};
   std::map<std::string, std::shared_ptr<StatNode>> node_map_;
 };
 

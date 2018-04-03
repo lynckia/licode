@@ -6,6 +6,7 @@
 #include <cstdio>
 #include "IceConnection.h"
 #include "thread/Worker.h"
+#include "thread/IOWorker.h"
 #include "./logger.h"
 
 /**
@@ -20,22 +21,22 @@ class Transport;
 
 class TransportListener {
  public:
-  virtual void onTransportData(std::shared_ptr<dataPacket> packet, Transport *transport) = 0;
+  virtual void onTransportData(std::shared_ptr<DataPacket> packet, Transport *transport) = 0;
   virtual void updateState(TransportState state, Transport *transport) = 0;
   virtual void onCandidate(const CandidateInfo& cand, Transport *transport) = 0;
 };
 
 class Transport : public std::enable_shared_from_this<Transport>, public IceConnectionListener, public LogContext {
  public:
-  boost::shared_ptr<IceConnection> ice_;
+  std::shared_ptr<IceConnection> ice_;
   MediaType mediaType;
   std::string transport_name;
   Transport(MediaType med, const std::string& transport_name, const std::string& connection_id, bool bundle,
       bool rtcp_mux, std::weak_ptr<TransportListener> transport_listener, const IceConfig& iceConfig,
-      std::shared_ptr<Worker> worker) :
+      std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker) :
     mediaType(med), transport_name(transport_name), rtcp_mux_(rtcp_mux), transport_listener_(transport_listener),
     connection_id_(connection_id), state_(TRANSPORT_INITIAL), iceConfig_(iceConfig), bundle_(bundle),
-    running_{true}, worker_{worker} {}
+    running_{true}, worker_{worker},  io_worker_{io_worker} {}
   virtual ~Transport() {}
   virtual void updateIceState(IceState state, IceConnection *conn) = 0;
   virtual void onIceData(packetPtr packet) = 0;
@@ -44,7 +45,7 @@ class Transport : public std::enable_shared_from_this<Transport>, public IceConn
   virtual void processLocalSdp(SdpInfo *localSdp_) = 0;
   virtual void start() = 0;
   virtual void close() = 0;
-  virtual boost::shared_ptr<IceConnection> getIceConnection() { return ice_; }
+  virtual std::shared_ptr<IceConnection> getIceConnection() { return ice_; }
   void setTransportListener(std::weak_ptr<TransportListener> listener) {
     transport_listener_ = listener;
   }
@@ -90,8 +91,8 @@ class Transport : public std::enable_shared_from_this<Transport>, public IceConn
 
   bool rtcp_mux_;
 
-  inline const char* toLog() {
-    return ("id: " + connection_id_ + ", " + printLogContext()).c_str();
+  inline std::string toLog() {
+    return "id: " + connection_id_ + ", " + printLogContext();
   }
 
   std::shared_ptr<Worker> getWorker() {
@@ -108,6 +109,7 @@ class Transport : public std::enable_shared_from_this<Transport>, public IceConn
   bool bundle_;
   bool running_;
   std::shared_ptr<Worker> worker_;
+  std::shared_ptr<IOWorker> io_worker_;
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_TRANSPORT_H_

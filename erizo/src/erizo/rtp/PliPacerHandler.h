@@ -5,11 +5,12 @@
 
 #include "./logger.h"
 #include "pipeline/Handler.h"
+#include "thread/Worker.h"
 #include "lib/Clock.h"
 
 namespace erizo {
 
-class WebRtcConnection;
+class MediaStream;
 
 class PliPacerHandler: public Handler, public std::enable_shared_from_this<PliPacerHandler> {
   DECLARE_LOGGER();
@@ -28,8 +29,8 @@ class PliPacerHandler: public Handler, public std::enable_shared_from_this<PliPa
     return "pli-pacer";
   }
 
-  void read(Context *ctx, std::shared_ptr<dataPacket> packet) override;
-  void write(Context *ctx, std::shared_ptr<dataPacket> packet) override;
+  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
+  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
  private:
@@ -39,11 +40,11 @@ class PliPacerHandler: public Handler, public std::enable_shared_from_this<PliPa
 
  private:
   bool enabled_;
-  WebRtcConnection* connection_;
+  MediaStream* stream_;
   std::shared_ptr<erizo::Clock> clock_;
   time_point time_last_keyframe_;
   bool waiting_for_keyframe_;
-  int scheduled_pli_;
+  std::shared_ptr<ScheduledTaskReference> scheduled_pli_;
   uint32_t video_sink_ssrc_;
   uint32_t video_source_ssrc_;
   uint8_t fir_seq_number_;

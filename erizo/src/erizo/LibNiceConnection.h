@@ -33,7 +33,7 @@ namespace erizo {
 #define NICE_STREAM_DEF_PWD     22 + 1   /* pwd + NULL */
 
 // forward declarations
-typedef std::shared_ptr<dataPacket> packetPtr;
+typedef std::shared_ptr<DataPacket> packetPtr;
 class CandidateInfo;
 class WebRtcConnection;
 
@@ -41,8 +41,7 @@ class LibNiceConnection : public IceConnection {
   DECLARE_LOGGER();
 
  public:
-  LibNiceConnection(boost::shared_ptr<LibNiceInterface> libnice, IceConnectionListener* listener,
-    const IceConfig& ice_config);
+  LibNiceConnection(boost::shared_ptr<LibNiceInterface> libnice, const IceConfig& ice_config);
 
   virtual ~LibNiceConnection();
   /**
@@ -50,23 +49,20 @@ class LibNiceConnection : public IceConnection {
    */
   void start() override;
   bool setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) override;
-  void gatheringDone(uint stream_id) override;
-  void getCandidate(uint stream_id, uint component_id, const std::string &foundation) override;
+  void gatheringDone(uint stream_id);
+  void getCandidate(uint stream_id, uint component_id, const std::string &foundation);
   void setRemoteCredentials(const std::string& username, const std::string& password) override;
-  int sendData(unsigned int compId, const void* buf, int len) override;
+  int sendData(unsigned int component_id, const void* buf, int len) override;
 
-  void updateIceState(IceState state) override;
-  IceState checkIceState() override;
-  void updateComponentState(unsigned int compId, IceState state) override;
+  void updateComponentState(unsigned int component_id, IceState state);
   void onData(unsigned int component_id, char* buf, int len) override;
   CandidatePair getSelectedPair() override;
   void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
 
-  static LibNiceConnection* create(IceConnectionListener *listener, const IceConfig& ice_config);
+  static LibNiceConnection* create(const IceConfig& ice_config);
 
  private:
-  std::string iceStateToString(IceState state) const;
   void mainLoop();
 
  private:
@@ -78,7 +74,7 @@ class LibNiceConnection : public IceConnection {
   unsigned int candsDelivered_;
 
   boost::thread m_Thread_;
-  boost::mutex closeMutex_;
+  boost::mutex close_mutex_;
   boost::condition_variable cond_;
 
   bool receivedLastCandidate_;

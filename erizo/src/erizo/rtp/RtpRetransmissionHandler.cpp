@@ -1,3 +1,4 @@
+#include "./MediaStream.h"
 #include "rtp/RtpRetransmissionHandler.h"
 
 #include <algorithm>
@@ -12,7 +13,7 @@ constexpr float kDefaultBitrate = 300000.;
 
 RtpRetransmissionHandler::RtpRetransmissionHandler(std::shared_ptr<erizo::Clock> the_clock)
   : clock_{the_clock},
-    connection_{nullptr},
+    stream_{nullptr},
     initialized_{false}, enabled_{true},
     bucket_{static_cast<uint64_t>(kDefaultBitrate * kMarginRtxBitrate), kBurstSize, clock_},
     last_bitrate_time_{clock_->now()} {}
@@ -28,8 +29,8 @@ void RtpRetransmissionHandler::disable() {
 
 void RtpRetransmissionHandler::notifyUpdate() {
   auto pipeline = getContext()->getPipelineShared();
-  if (pipeline && !connection_) {
-    connection_ = pipeline->getService<WebRtcConnection>().get();
+  if (pipeline && !stream_) {
+    stream_ = pipeline->getService<MediaStream>().get();
     stats_ = pipeline->getService<Stats>();
     packet_buffer_ = pipeline->getService<PacketBufferService>();
     if (stats_ && packet_buffer_) {
@@ -61,7 +62,7 @@ void RtpRetransmissionHandler::calculateRtxBitrate() {
   }
 }
 
-void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (!enabled_ || !initialized_) {
     return;
   }
@@ -84,11 +85,11 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
           bool packet_nacked = i == -1 || (plb >> i) & 0x0001;
 
           if (packet_nacked) {
-          std::shared_ptr<dataPacket> recovered;
+          std::shared_ptr<DataPacket> recovered;
 
-          if (connection_->getVideoSinkSSRC() == chead->getSourceSSRC()) {
+          if (stream_->getVideoSinkSSRC() == chead->getSourceSSRC()) {
             recovered = packet_buffer_->getVideoPacket(seq_num);
-          } else if (connection_->getAudioSinkSSRC() == chead->getSourceSSRC()) {
+          } else if (stream_->getAudioSinkSSRC() == chead->getSourceSSRC()) {
             recovered = packet_buffer_->getAudioPacket(seq_num);
           }
 
@@ -111,11 +112,11 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<dataPacket> pa
     }
   });
   if (!contains_nack || !is_fully_recovered) {
-    ctx->fireRead(packet);
+    ctx->fireRead(std::move(packet));
   }
 }
 
-void RtpRetransmissionHandler::write(Context *ctx, std::shared_ptr<dataPacket> packet) {
+void RtpRetransmissionHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (!initialized_) {
     return;
   }
@@ -123,7 +124,7 @@ void RtpRetransmissionHandler::write(Context *ctx, std::shared_ptr<dataPacket> p
   if (!chead->isRtcp()) {
     packet_buffer_->insertPacket(packet);
   }
-  ctx->fireWrite(packet);
+  ctx->fireWrite(std::move(packet));
 }
 
 }  // namespace erizo
