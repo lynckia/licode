@@ -67,6 +67,7 @@ struct DataPacket {
   bool ending_of_layer_frame;
   int picture_id;
   std::string codec;
+  unsigned int clock_rate = 0;
 };
 
 class Monitor {

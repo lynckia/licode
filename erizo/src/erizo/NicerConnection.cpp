@@ -328,7 +328,7 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
   nr_ice_peer_ctx *peer = peer_;
   nr_ice_media_stream *stream = stream_;
   std::shared_ptr<NicerInterface> nicer = nicer_;
-  async([cands, is_bundle, nicer, peer, stream, this, remote_candidates_promise]
+  async([cands, nicer, peer, stream, this, remote_candidates_promise]
           (std::shared_ptr<NicerConnection> this_ptr) {
     ELOG_DEBUG("%s message: adding remote candidates (%ld)", toLog(), cands.size());
     for (const CandidateInfo &cand : cands) {
