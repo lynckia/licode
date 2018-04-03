@@ -146,14 +146,14 @@ class Source extends NodeClass {
     }
     if (msg.type === 'offer') {
       const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-      connection.setRemoteDescription(sdp);
+      connection.setRemoteDescription(sdp, this.streamId);
       this.disableDefaultHandlers();
     } else if (msg.type === 'candidate') {
       connection.addRemoteCandidate(msg.candidate);
     } else if (msg.type === 'updatestream') {
       if (msg.sdp) {
         const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-        connection.setRemoteDescription(sdp);
+        connection.setRemoteDescription(sdp, this.streamId);
       }
       if (msg.config) {
         if (msg.config.minVideoBW) {
@@ -342,11 +342,15 @@ class Publisher extends Source {
     this.connection = connection;
 
     this.connection.mediaConfiguration = options.mediaConfiguration;
-    this.connection.addMediaStream(streamId, options);
+    this.connection.addMediaStream(streamId, options, true);
+    this._connectionListener = this._emitStatusEvent.bind(this);
+    connection.on('status_event', this._connectionListener);
     this.mediaStream = this.connection.getMediaStream(streamId);
 
     this.minVideoBW = options.minVideoBW;
     this.scheme = options.scheme;
+    this.ready = false;
+    this.connectionReady = connection.ready;
 
     this.mediaStream.setAudioReceiver(this.muxer);
     this.mediaStream.setVideoReceiver(this.muxer);
@@ -356,8 +360,37 @@ class Publisher extends Source {
     this.muteStream({video: muteVideo, audio: muteAudio});
   }
 
+  _emitStatusEvent(evt, status, streamId) {
+    log.debug('onStatusEvent in publisher', evt.type, this.streamId, streamId);
+    const isGlobalStatus = streamId === undefined || streamId === '';
+    const isNotMe = !isGlobalStatus && (streamId + '') !== (this.streamId + '');
+    if (isNotMe) {
+      log.debug('onStatusEvent dropped in publisher', streamId, this.streamId);
+      return;
+    }
+    if (evt.type === 'ready') {
+      if (this.connectionReady) {
+        return;
+      }
+      this.connectionReady = true;
+      if (!(this.ready && this.connectionReady)) {
+        log.debug('ready event dropped in publisher', this.ready, this.connectionReady);
+        return;
+      }
+    }
+
+    if (evt.type === 'answer' || evt.type === 'offer') {
+      if (!this.ready && this.connectionReady) {
+        this.emit('status_event', {type: 'ready'});
+      }
+      this.ready = true;
+    }
+    this.emit('status_event', evt, status);
+  }
+
   close() {
     this.connection.removeMediaStream(this.mediaStream.id);
+    this.connection.removeListener('status_event', this._connectionListener);
     if (this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);
     }
