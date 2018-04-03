@@ -75,7 +75,7 @@ class MockMediaStream: public MediaStream {
   MockMediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
     const std::string& media_stream_id, const std::string& media_stream_label,
     std::vector<RtpMap> rtp_mappings) :
-  MediaStream(worker, connection, media_stream_id, media_stream_label) {
+  MediaStream(worker, connection, media_stream_id, media_stream_label, true) {
     local_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
     remote_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
   }

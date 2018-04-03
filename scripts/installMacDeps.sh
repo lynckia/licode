@@ -96,8 +96,8 @@ install_brew_deps(){
   install_nvm_node
   nvm use
   npm install
-  npm install -g node-gyp gulp-cli
-  npm install webpack gulp gulp-eslint@3 run-sequence webpack-stream google-closure-compiler-js del gulp-sourcemaps script-loader expose-loader
+  npm install -g node-gyp
+  npm install gulp@3.9.1 gulp-eslint@3 run-sequence@2.2.1 webpack-stream@4.0.0 google-closure-compiler-js@20170521.0.0 del@3.0.0 gulp-sourcemaps@2.6.4 script-loader@0.7.2 expose-loader@0.7.5
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew install rabbitmq mongodb
   fi

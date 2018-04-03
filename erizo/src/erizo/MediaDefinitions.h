@@ -67,6 +67,7 @@ struct DataPacket {
   bool ending_of_layer_frame;
   int picture_id;
   std::string codec;
+  unsigned int clock_rate = 0;
 };
 
 class Monitor {
@@ -199,10 +200,17 @@ class MediaSource: public virtual Monitor {
     virtual int sendPLI() = 0;
     uint32_t getVideoSourceSSRC() {
         boost::mutex::scoped_lock lock(monitor_mutex_);
+        if (video_source_ssrc_list_.empty()) {
+          return 0;
+        }
         return video_source_ssrc_list_[0];
     }
     void setVideoSourceSSRC(uint32_t ssrc) {
         boost::mutex::scoped_lock lock(monitor_mutex_);
+        if (video_source_ssrc_list_.empty()) {
+          video_source_ssrc_list_.push_back(ssrc);
+          return;
+        }
         video_source_ssrc_list_[0] = ssrc;
     }
     std::vector<uint32_t> getVideoSourceSSRCList() {

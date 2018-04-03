@@ -15,9 +15,9 @@ const erizoTasks = (gulp, plugins, config) => {
   that.bundle = () =>
     gulp.src(erizoConfig.entry, { base: './' })
     .pipe(plugins.webpackGulp(erizoConfig.webpackConfig, plugins.webpack))
-    .on('error', anError => console.log('An error ', anError))
+    .on('error', anError => plugins.exitOnError(anError))
     .pipe(gulp.dest(erizoConfig.debug))
-    .on('error', anError => console.log('An error ', anError));
+    .on('error', anError => plugins.exitOnError(anError));
 
   that.compile = () =>
     gulp.src(`${erizoConfig.debug}/**/*.js`, { base: './' })
@@ -28,7 +28,9 @@ const erizoTasks = (gulp, plugins, config) => {
         jsOutputFile: 'erizo.js',
         createSourceMap: true,
       }))
+      .on('error', anError => plugins.exitOnError(anError))
       .pipe(plugins.sourcemaps.write('/')) // gulp-sourcemaps automatically adds the sourcemap url comment
+      .on('error', anError => plugins.exitOnError(anError))
       .pipe(gulp.dest(erizoConfig.production));
 
   that.dist = () =>

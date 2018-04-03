@@ -266,7 +266,6 @@ class Client extends events.EventEmitter {
   }
 
   onSubscribe(options, sdp, callback) {
-    log.info('Subscribing', options, this.user);
     if (this.user === undefined || !this.user.permissions[Permission.SUBSCRIBE]) {
         callback(null, 'Unauthorized');
         return;
