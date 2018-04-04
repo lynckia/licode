@@ -143,17 +143,15 @@ const BaseStack = (specInput) => {
       return;
     }
     Logger.info('Set remote and local description');
-    Logger.debug('Remote Description', msg.sdp);
-    Logger.debug('Local Description', localDesc.sdp);
     latestSessionVersion = sessionVersion;
 
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     that.setStartVideoBW(remoteSdp);
     that.setHardMinVideoBW(remoteSdp);
 
-    Logger.debug('Remote Description', remoteSdp.toString());
-    Logger.debug('Local Description', localDesc.sdp);
     msg.sdp = remoteSdp.toString();
+    Logger.debug('Remote Description', msg.sdp);
+    Logger.debug('Local Description', localDesc.sdp);
     that.remoteSdp = remoteSdp;
 
     remoteDesc = msg;
