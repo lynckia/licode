@@ -348,7 +348,7 @@ class RtcpHeader {
       uint32_t uniqueid;
       uint32_t numssrc:8;
       uint32_t brLength :24;
-      uint32_t ssrcfeedb;
+      uint32_t ssrcfeedb[50];
     } rembPacket;
 
     struct pli_t {
@@ -371,6 +371,9 @@ class RtcpHeader {
     return (packettype == RTCP_Receiver_PT ||
         packettype == RTCP_PS_Feedback_PT ||
         packettype == RTCP_RTP_Feedback_PT);
+  }
+  inline bool isREMB() {
+    return packettype == RTCP_PS_Feedback_PT && blockcount == RTCP_AFB;
   }
   inline bool isRtcp(void) {
     return (packettype >= RTCP_MIN_PT && packettype <= RTCP_MAX_PT);
@@ -511,11 +514,11 @@ class RtcpHeader {
   inline void setREMBNumSSRC(uint8_t num) {
     report.rembPacket.numssrc = num;
   }
-  inline uint32_t getREMBFeedSSRC() {
-    return ntohl(report.rembPacket.ssrcfeedb);
+  inline uint32_t getREMBFeedSSRC(uint8_t index) {
+    return ntohl(report.rembPacket.ssrcfeedb[index]);
   }
-  inline void setREMBFeedSSRC(uint32_t ssrc) {
-     report.rembPacket.ssrcfeedb = htonl(ssrc);
+  inline void setREMBFeedSSRC(uint8_t index, uint32_t ssrc) {
+     report.rembPacket.ssrcfeedb[index] = htonl(ssrc);
   }
   inline uint32_t getFCI() {
     return ntohl(report.pli.fci);

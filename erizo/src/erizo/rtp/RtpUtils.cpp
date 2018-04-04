@@ -40,7 +40,7 @@ void RtpUtils::forEachNack(RtcpHeader *chead, std::function<void(uint16_t, uint1
 
 bool RtpUtils::isPLI(std::shared_ptr<DataPacket> packet) {
   bool is_pli = false;
-  forEachRRBlock(packet, [&is_pli] (RtcpHeader *header) {
+  forEachRtcpBlock(packet, [&is_pli] (RtcpHeader *header) {
     if (header->getPacketType() == RTCP_PS_Feedback_PT &&
         header->getBlockCount() == RTCP_PLI_FMT) {
           is_pli = true;
@@ -51,7 +51,7 @@ bool RtpUtils::isPLI(std::shared_ptr<DataPacket> packet) {
 
 bool RtpUtils::isFIR(std::shared_ptr<DataPacket> packet) {
   bool is_fir = false;
-  forEachRRBlock(packet, [&is_fir] (RtcpHeader *header) {
+  forEachRtcpBlock(packet, [&is_fir] (RtcpHeader *header) {
     if (header->getPacketType() == RTCP_PS_Feedback_PT &&
         header->getBlockCount() == RTCP_FIR_FMT) {
           is_fir = true;
@@ -95,10 +95,10 @@ int RtpUtils::getPaddingLength(std::shared_ptr<DataPacket> packet) {
   return 0;
 }
 
-void RtpUtils::forEachRRBlock(std::shared_ptr<DataPacket> packet, std::function<void(RtcpHeader*)> f) {
+void RtpUtils::forEachRtcpBlock(std::shared_ptr<DataPacket> packet, std::function<void(RtcpHeader*)> f) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   int len = packet->length;
-  if (chead->isFeedback()) {
+  if (chead->isRtcp()) {
     char* moving_buffer = packet->data;
     int rtcp_length = 0;
     int total_length = 0;
