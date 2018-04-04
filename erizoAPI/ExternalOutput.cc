@@ -119,10 +119,18 @@ NAN_METHOD(ExternalOutput::New) {
     }
   }
 
+  std::vector<erizo::ExtMap> ext_mappings;
+  unsigned int value = 0;
+  if (media_config.find("extMappings") != media_config.end()) {
+    json ext_map_json = media_config["extMappings"];
+    for (json::iterator ext_map_it = ext_map_json.begin(); ext_map_it != ext_map_json.end(); ++ext_map_it) {
+      ext_mappings.push_back({value++, *ext_map_it});
+    }
+  }
   std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
   ExternalOutput* obj = new ExternalOutput();
-  obj->me = std::make_shared<erizo::ExternalOutput>(worker, url, rtp_mappings);
+  obj->me = std::make_shared<erizo::ExternalOutput>(worker, url, rtp_mappings, ext_mappings);
 
   obj->Wrap(info.This());
   info.GetReturnValue().Set(info.This());
