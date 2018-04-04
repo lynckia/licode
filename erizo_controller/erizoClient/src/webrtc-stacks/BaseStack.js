@@ -143,12 +143,15 @@ const BaseStack = (specInput) => {
       return;
     }
     Logger.info('Set remote and local description');
-    Logger.debug('Remote Description', msg.sdp);
-    Logger.debug('Local Description', localDesc.sdp);
     latestSessionVersion = sessionVersion;
 
     SdpHelpers.setMaxBW(remoteSdp, specBase);
+    that.setStartVideoBW(remoteSdp);
+    that.setHardMinVideoBW(remoteSdp);
+
     msg.sdp = remoteSdp.toString();
+    Logger.debug('Remote Description', msg.sdp);
+    Logger.debug('Local Description', localDesc.sdp);
     that.remoteSdp = remoteSdp;
 
     remoteDesc = msg;
@@ -205,6 +208,16 @@ const BaseStack = (specInput) => {
 
   that.peerConnection.onicecandidate = onIceCandidate;
   // public functions
+
+  that.setStartVideoBW = (sdpInput) => {
+    Logger.error('startVideoBW not implemented for this browser');
+    return sdpInput;
+  };
+
+  that.setHardMinVideoBW = (sdpInput) => {
+    Logger.error('hardMinVideoBw not implemented for this browser');
+    return sdpInput;
+  };
 
   that.enableSimulcast = (sdpInput) => {
     Logger.error('Simulcast not implemented');

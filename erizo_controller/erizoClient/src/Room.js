@@ -175,9 +175,12 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       limitMaxVideoBW: spec.maxVideoBW,
       label: stream.getLabel(),
       iceServers: that.iceServers,
-      forceTurn: stream.forceTurn };
+      forceTurn: stream.forceTurn,
+    };
     if (!isRemote) {
       connectionOpts.simulcast = options.simulcast;
+      connectionOpts.startVideoBW = options.startVideoBW;
+      connectionOpts.hardMinVideoBW = options.hardMinVideoBW;
     }
     return connectionOpts;
   };
