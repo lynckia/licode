@@ -77,8 +77,8 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.close();
   }
 
-  createOffer(isSubscribe, forceOfferToReceive) {
-    this.stack.createOffer(isSubscribe, forceOfferToReceive);
+  createOffer(isSubscribe, forceOfferToReceive, streamId) {
+    this.stack.createOffer(isSubscribe, forceOfferToReceive, streamId);
   }
 
   addStream(stream) {

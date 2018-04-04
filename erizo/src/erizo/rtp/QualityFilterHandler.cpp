@@ -29,7 +29,7 @@ void QualityFilterHandler::disable() {
 }
 
 void QualityFilterHandler::handleFeedbackPackets(const std::shared_ptr<DataPacket> &packet) {
-  RtpUtils::forEachRRBlock(packet, [this](RtcpHeader *chead) {
+  RtpUtils::forEachRtcpBlock(packet, [this](RtcpHeader *chead) {
     if (chead->packettype == RTCP_PS_Feedback_PT &&
           (chead->getBlockCount() == RTCP_PLI_FMT ||
            chead->getBlockCount() == RTCP_SLI_FMT ||
@@ -51,7 +51,7 @@ void QualityFilterHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet
 
 void QualityFilterHandler::checkLayers() {
   int new_spatial_layer = quality_manager_->getSpatialLayer();
-  if (new_spatial_layer != target_spatial_layer_) {
+  if (new_spatial_layer != target_spatial_layer_ && !changing_spatial_layer_) {
     sendPLI();
     future_spatial_layer_ = new_spatial_layer;
     changing_spatial_layer_ = true;
@@ -86,10 +86,12 @@ void QualityFilterHandler::changeSpatialLayerOnKeyframeReceived(const std::share
       packet->is_keyframe) {
     target_spatial_layer_ = future_spatial_layer_;
     future_spatial_layer_ = -1;
+    changing_spatial_layer_ = false;
   } else if (now - time_change_started_ > kSwitchTimeout) {
     sendPLI();
     target_spatial_layer_ = future_spatial_layer_;
     future_spatial_layer_ = -1;
+    changing_spatial_layer_ = false;
   }
 }
 

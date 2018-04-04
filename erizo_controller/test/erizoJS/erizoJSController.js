@@ -242,12 +242,18 @@ describe('Erizo JS Controller', function() {
     });
 
     it('should succeed sending ready event', function() {
-      mocks.WebRtcConnection.init.returns(1).callsArgWith(0, 104, '');  // CONN_READY
-      controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, {}, callback);
+      const stub = mocks.WebRtcConnection.init;
+      stub.returns(1);
 
-      expect(callback.callCount).to.equal(2);
-      expect(callback.args[1]).to.deep.equal(['callback', {type: 'initializing'}]);
-      expect(callback.args[0]).to.deep.equal(['callback', {type: 'ready'}]);
+      controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, {}, callback);
+      const initCallback = stub.getCall(0).args[0];
+      initCallback(103, '');  // CONN_GATHERED
+      initCallback(104, '');  // CONN_SDP
+
+      expect(callback.callCount).to.equal(3);
+      expect(callback.args[0]).to.deep.equal(['callback', {type: 'initializing'}]);
+      expect(callback.args[1][1].type).to.deep.equal('answer');
+      expect(callback.args[2]).to.deep.equal(['callback', {type: 'ready'}]);
     });
 
     it('should succeed sending started event', function() {
@@ -324,9 +330,13 @@ describe('Erizo JS Controller', function() {
         controller.addSubscriber(kArbitrarySubClientId, kArbitraryStreamId,
            {slideShowMode: true}, subCallback);
 
-        expect(subCallback.callCount).to.equal(2);
-        expect(subCallback.args[1]).to.deep.equal(['callback', {type: 'initializing'}]);
-        expect(subCallback.args[0]).to.deep.equal(['callback', {type: 'ready'}]);
+        const initCallback = mocks.WebRtcConnection.init.getCall(1).args[0];
+        initCallback(103, '');  // CONN_GATHERED
+        initCallback(104, '');  // CONN_READY
+
+        expect(subCallback.callCount).to.equal(3);
+        expect(subCallback.args[0]).to.deep.equal(['callback', {type: 'initializing'}]);
+        expect(subCallback.args[1]).to.deep.equal(['callback', {type: 'ready'}]);
         expect(mocks.MediaStream.setSlideShowMode.callCount).to.equal(1);
       });
 

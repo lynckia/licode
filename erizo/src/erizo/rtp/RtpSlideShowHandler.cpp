@@ -50,7 +50,7 @@ void RtpSlideShowHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet)
     ctx->fireRead(std::move(packet));
     return;
   }
-  RtpUtils::forEachRRBlock(packet, [this](RtcpHeader *chead) {
+  RtpUtils::forEachRtcpBlock(packet, [this](RtcpHeader *chead) {
     switch (chead->packettype) {
       case RTCP_Receiver_PT:
         {

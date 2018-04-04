@@ -159,12 +159,12 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   const getErizoConnectionOptions = (stream, options, isRemote) => {
     const connectionOpts = {
-      callback(message) {
-        Logger.info('Sending message', message);
+      callback(message, streamId = stream.getID()) {
+        Logger.info('Sending message', message, stream.getID(), streamId);
         socket.sendSDP('signaling_message', {
-          streamId: stream.getID(),
+          streamId,
           msg: message,
-          browser: stream.pc.browser }, undefined, () => {});
+          browser: stream.pc && stream.pc.browser }, undefined, () => {});
       },
       nop2p: true,
       audio: options.audio && stream.hasAudio(),
@@ -192,7 +192,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         onStreamFailed(stream);
       }
     });
-    stream.pc.createOffer(true);
+    stream.pc.createOffer(true, false, stream.getID());
   };
 
   const createLocalStreamErizoConnection = (streamInput, erizoId, options) => {
@@ -206,7 +206,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       }
     });
     stream.pc.addStream(stream);
-    if (!options.createOffer) { stream.pc.createOffer(false, spec.singlePC); }
+    if (!options.createOffer) { stream.pc.createOffer(false, spec.singlePC, stream.getID()); }
   };
 
   // We receive an event with a new stream in the room.

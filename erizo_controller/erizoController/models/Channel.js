@@ -62,7 +62,7 @@ class Channel extends events.EventEmitter {
 
   onToken(options, callback) {
     const token = options.token;
-    log.debug('message: token received, options: ', options);
+    log.debug('message: token received');
     if (checkSignature(token, NUVE_KEY)) {
       this.nuve.deleteToken(token.tokenId).then(tokenDB => {
         if (token.host === tokenDB.host) {

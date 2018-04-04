@@ -39,7 +39,7 @@ class MediaStream;
  */
 enum WebRTCEvent {
   CONN_INITIAL = 101, CONN_STARTED = 102, CONN_GATHERED = 103, CONN_READY = 104, CONN_FINISHED = 105,
-  CONN_CANDIDATE = 201, CONN_SDP = 202,
+  CONN_CANDIDATE = 201, CONN_SDP = 202, CONN_SDP_PROCESSED = 203,
   CONN_FAILED = 500
 };
 
@@ -47,7 +47,7 @@ class WebRtcConnectionEventListener {
  public:
     virtual ~WebRtcConnectionEventListener() {
     }
-    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message) = 0;
+    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message, const std::string &stream_id = "") = 0;
 };
 
 /**
@@ -81,13 +81,13 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void close();
   void syncClose();
 
-  bool setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp);
+  bool setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, std::string stream_id);
   /**
    * Sets the SDP of the remote peer.
    * @param sdp The SDP.
    * @return true if the SDP was received correctly.
    */
-  bool setRemoteSdp(const std::string &sdp);
+  bool setRemoteSdp(const std::string &sdp, std::string stream_id);
 
   bool createOffer(bool video_enabled, bool audio_enabled, bool bundle);
   /**
@@ -140,6 +140,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void addMediaStream(std::shared_ptr<MediaStream> media_stream);
   void removeMediaStream(const std::string& stream_id);
   void forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func);
+  void forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
 
   std::shared_ptr<Stats> getStatsService() { return stats_; }
 
@@ -152,9 +153,12 @@ class WebRtcConnection: public TransportListener, public LogContext,
   }
 
  private:
-  bool processRemoteSdp();
+  bool processRemoteSdp(std::string stream_id);
+  void setRemoteSdpsToMediaStreams(std::string stream_id);
+  void onRemoteSdpsSetToMediaStreams(std::string stream_id);
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
+  void onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport);
 
  private:
   std::string connection_id_;
@@ -184,7 +188,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   std::shared_ptr<SdpInfo> local_sdp_;
   bool audio_muted_;
   bool video_muted_;
-  bool remote_sdp_processed_;
+  bool first_remote_sdp_processed_;
 };
 
 }  // namespace erizo
