@@ -158,6 +158,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void onRemoteSdpsSetToMediaStreams(std::string stream_id);
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
+  void onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport);
 
  private:
   std::string connection_id_;
