@@ -86,6 +86,11 @@ MediaStream::~MediaStream() {
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
+uint32_t MediaStream::getMaxVideoBW() {
+  uint32_t bitrate = rtcp_processor_ ? rtcp_processor_->getMaxVideoBW() : 0;
+  return bitrate;
+}
+
 void MediaStream::syncClose() {
   ELOG_DEBUG("%s message:Close called", toLog());
   if (!sending_) {

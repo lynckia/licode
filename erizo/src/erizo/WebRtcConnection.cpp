@@ -71,6 +71,7 @@ void WebRtcConnection::syncClose() {
     return;
   }
   sending_ = false;
+  media_streams_.clear();
   if (video_transport_.get()) {
     video_transport_->close();
   }
@@ -470,22 +471,49 @@ void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transpo
   }
 }
 
+void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transport) {
+  std::vector<std::shared_ptr<MediaStream>> streams;
+
+  for (uint8_t index = 0; index < chead->getREMBNumSSRC(); index++) {
+    uint32_t ssrc_feed = chead->getREMBFeedSSRC(index);
+    forEachMediaStream([ssrc_feed, &streams] (const std::shared_ptr<MediaStream> &media_stream) {
+      if (media_stream->isSinkSSRC(ssrc_feed)) {
+        streams.push_back(media_stream);
+      }
+    });
+  }
+
+  std::sort(streams.begin(), streams.end(),
+    [](const std::shared_ptr<MediaStream> &i, const std::shared_ptr<MediaStream> &j) {
+      return i->getMaxVideoBW() < j->getMaxVideoBW();
+    });
+
+  uint8_t remaining_streams = streams.size();
+  uint32_t remaining_bitrate = chead->getREMBBitRate();
+  std::for_each(streams.begin(), streams.end(),
+    [&remaining_bitrate, &remaining_streams, transport, chead](const std::shared_ptr<MediaStream> &stream) {
+      uint32_t max_bitrate = stream->getMaxVideoBW();
+      uint32_t remaining_avg_bitrate = remaining_bitrate / remaining_streams;
+      uint32_t bitrate = std::min(max_bitrate, remaining_avg_bitrate);
+      auto generated_remb = RtpUtils::createREMB(chead->getSSRC(), {stream->getVideoSinkSSRC()}, bitrate);
+      stream->onTransportData(generated_remb, transport);
+      remaining_bitrate -= bitrate;
+      remaining_streams--;
+    });
+}
+
 void WebRtcConnection::onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport) {
   RtpUtils::forEachRtcpBlock(packet, [this, packet, transport](RtcpHeader *chead) {
     uint32_t ssrc = chead->isFeedback() ? chead->getSourceSSRC() : chead->getSSRC();
+    if (chead->isREMB()) {
+      onREMBFromTransport(chead, transport);
+      return;
+    }
     std::shared_ptr<DataPacket> rtcp = std::make_shared<DataPacket>(*packet);
     rtcp->length = (ntohs(chead->length) + 1) * 4;
     std::memcpy(rtcp->data, chead, rtcp->length);
-    forEachMediaStream([rtcp, transport, ssrc, chead] (const std::shared_ptr<MediaStream> &media_stream) {
-      if (chead->isREMB()) {
-        for (uint8_t index = 0; index < chead->getREMBNumSSRC(); index++) {
-          uint32_t ssrc_feed = chead->getREMBFeedSSRC(index);
-          if (media_stream->isSourceSSRC(ssrc_feed) || media_stream->isSinkSSRC(ssrc_feed)) {
-            // TODO(javier): Calculate the portion of bitrate that corresponds to this stream.
-            media_stream->onTransportData(rtcp, transport);
-          }
-        }
-      } else if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
+    forEachMediaStream([rtcp, transport, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
+      if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
         media_stream->onTransportData(rtcp, transport);
       }
     });
@@ -679,6 +707,11 @@ void WebRtcConnection::syncWrite(std::shared_ptr<DataPacket> packet) {
   }
   this->extension_processor_.processRtpExtensions(packet);
   transport->write(packet->data, packet->length);
+}
+
+void WebRtcConnection::setTransport(std::shared_ptr<Transport> transport) {  // Only for Testing purposes
+  video_transport_ = transport;
+  bundle_ = true;
 }
 
 }  // namespace erizo

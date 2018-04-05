@@ -86,6 +86,26 @@ std::shared_ptr<DataPacket> RtpUtils::createFIR(uint32_t source_ssrc, uint32_t s
   return std::make_shared<DataPacket>(0, buf, len, VIDEO_PACKET);
 }
 
+std::shared_ptr<DataPacket> RtpUtils::createREMB(uint32_t ssrc, std::vector<uint32_t> ssrc_list, uint32_t bitrate) {
+  erizo::RtcpHeader remb;
+  remb.setPacketType(RTCP_PS_Feedback_PT);
+  remb.setBlockCount(RTCP_AFB);
+  memcpy(&remb.report.rembPacket.uniqueid, "REMB", 4);
+
+  remb.setSSRC(ssrc);
+  remb.setSourceSSRC(0);
+  remb.setLength(4 + ssrc_list.size());
+  remb.setREMBBitRate(bitrate);
+  remb.setREMBNumSSRC(ssrc_list.size());
+  uint8_t index = 0;
+  for (uint32_t feed_ssrc : ssrc_list) {
+    remb.setREMBFeedSSRC(index++, feed_ssrc);
+  }
+  int len = (remb.getLength() + 1) * 4;
+  char *buf = reinterpret_cast<char*>(&remb);
+  return std::make_shared<erizo::DataPacket>(0, buf, len, erizo::OTHER_PACKET);
+}
+
 
 int RtpUtils::getPaddingLength(std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
