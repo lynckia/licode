@@ -284,7 +284,10 @@ NAN_METHOD(WebRtcConnection::setRemoteSdp) {
   v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string sdp = std::string(*param);
 
-  bool r = me->setRemoteSdp(sdp);
+  v8::String::Utf8Value stream_id_param(Nan::To<v8::String>(info[1]).ToLocalChecked());
+  std::string stream_id = std::string(*stream_id_param);
+
+  bool r = me->setRemoteSdp(sdp, stream_id);
 
   info.GetReturnValue().Set(Nan::New(r));
 }
@@ -300,7 +303,10 @@ NAN_METHOD(WebRtcConnection::setRemoteDescription) {
     Nan::ObjectWrap::Unwrap<ConnectionDescription>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   auto sdp = std::shared_ptr<erizo::SdpInfo>(param->me);
 
-  bool r = me->setRemoteSdpInfo(sdp);
+  v8::String::Utf8Value stream_id_param(Nan::To<v8::String>(info[1]).ToLocalChecked());
+  std::string stream_id = std::string(*stream_id_param);
+
+  bool r = me->setRemoteSdpInfo(sdp, stream_id);
   info.GetReturnValue().Set(Nan::New(r));
 }
 
@@ -390,10 +396,10 @@ NAN_METHOD(WebRtcConnection::removeMediaStream) {
 
 // Async methods
 
-void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message) {
+void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message, const std::string& stream_id) {
   boost::mutex::scoped_lock lock(mutex);
   this->eventSts.push(event);
-  this->eventMsgs.push(message);
+  this->eventMsgs.push(std::make_pair(message, stream_id));
   async_.data = this;
   uv_async_send(&async_);
 }
@@ -408,8 +414,10 @@ NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
   boost::mutex::scoped_lock lock(obj->mutex);
   ELOG_DEBUG("%s, message: eventsCallback", obj->toLog());
   while (!obj->eventSts.empty()) {
-    Local<Value> args[] = {Nan::New(obj->eventSts.front()), Nan::New(obj->eventMsgs.front().c_str()).ToLocalChecked()};
-    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->eventCallback_->GetFunction(), 2, args);
+    Local<Value> args[] = {Nan::New(obj->eventSts.front()),
+                           Nan::New(obj->eventMsgs.front().first.c_str()).ToLocalChecked(),
+                           Nan::New(obj->eventMsgs.front().second.c_str()).ToLocalChecked()};
+    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->eventCallback_->GetFunction(), 3, args);
     obj->eventMsgs.pop();
     obj->eventSts.pop();
   }

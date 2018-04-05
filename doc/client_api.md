@@ -395,6 +395,14 @@ We can also force the client to use a TURN server when publishing by setting the
 room.publish(localStream, {forceTurn: true});
 ```
 
+There are two options that allow advance control of video bitrate in Chrome:
+- `startVideoBW`: Configures Chrome to start sending video at the specified bitrate instead of the default one. 
+- `hardMinVideoBW`: Configures a hard limit for the minimum video bitrate. 
+
+```
+room.publish(localStream, {startVideoBW: 1000, hardMinVideoBW:500});
+```
+
 In `room.publish` you can include a callback with two parameters, `id` and `error`. If the stream has been published, `id` contains the id of that stream. On the other hand, if there has been any kind of error, `id` is `undefined` and the error is described in `error`.
 
 <example>

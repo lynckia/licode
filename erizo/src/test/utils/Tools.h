@@ -249,7 +249,7 @@ class PacketTools {
     remb_packet->setLength(5);
     remb_packet->setREMBBitRate(bitrate);
     remb_packet->setREMBNumSSRC(1);
-    remb_packet->setREMBFeedSSRC(55554);
+    remb_packet->setREMBFeedSSRC(0, 55554);
     int remb_length = (remb_packet->getLength() + 1) * 4;
     char *buf = reinterpret_cast<char*>(remb_packet);
     auto packet = std::make_shared<erizo::DataPacket>(0, buf, remb_length, erizo::OTHER_PACKET);
