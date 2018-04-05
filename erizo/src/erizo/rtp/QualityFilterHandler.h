@@ -1,24 +1,25 @@
 #ifndef ERIZO_SRC_ERIZO_RTP_QUALITYFILTERHANDLER_H_
 #define ERIZO_SRC_ERIZO_RTP_QUALITYFILTERHANDLER_H_
 
-#include <memory>
-#include <string>
-#include <random>
 #include <map>
+#include <memory>
+#include <random>
+#include <string>
 
 #include "./logger.h"
 #include "lib/Clock.h"
 #include "pipeline/Handler.h"
-#include "rtp/SequenceNumberTranslator.h"
 #include "rtp/QualityManager.h"
+#include "rtp/SequenceNumberTranslator.h"
 
 namespace erizo {
 
 class MediaStream;
 
-class QualityFilterHandler: public Handler, public std::enable_shared_from_this<QualityFilterHandler> {
+class QualityFilterHandler
+    : public Handler,
+      public std::enable_shared_from_this<QualityFilterHandler> {
   DECLARE_LOGGER();
-
 
  public:
   QualityFilterHandler();
@@ -26,9 +27,7 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   void enable() override;
   void disable() override;
 
-  std::string getName() override {
-     return "quality_filter";
-  }
+  std::string getName() override { return "quality_filter"; }
 
   void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
@@ -39,7 +38,8 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   void checkLayers();
   void handleFeedbackPackets(const std::shared_ptr<DataPacket> &packet);
   bool checkSSRCChange(uint32_t ssrc);
-  void changeSpatialLayerOnKeyframeReceived(const std::shared_ptr<DataPacket> &packet);
+  void changeSpatialLayerOnKeyframeReceived(
+      const std::shared_ptr<DataPacket> &packet);
   void detectVideoScalability(const std::shared_ptr<DataPacket> &packet);
   void updatePictureID(const std::shared_ptr<DataPacket> &packet);
 
@@ -65,6 +65,7 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   int picture_id_offset_;
   int last_picture_id_sent_;
   uint32_t base_ts_ssrc = 0;
+  uint32_t last_input_ts = 0;
   std::map<uint32_t, uint32_t> last_rtcp_timestamp;
   std::map<uint32_t, int64_t> ntp_ms;
 };
