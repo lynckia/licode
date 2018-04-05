@@ -138,7 +138,7 @@ TEST_P(WebRtcConnectionTest, forwardRembToStreams_When_StreamTheyExist) {
   for (int32_t expected_bitrate : expected_bitrates) {
     if (expected_bitrate > 0) {
       EXPECT_CALL(*(streams[index]), onTransportData(_, _))
-        .With(Args<0>(erizo::RembHasBitrateValue(expected_bitrate))).Times(1);
+        .With(Args<0>(erizo::RembHasBitrateValue(static_cast<uint32_t>(expected_bitrate)))).Times(1);
     } else {
       EXPECT_CALL(*streams[index], onTransportData(_, _)).Times(0);
     }
