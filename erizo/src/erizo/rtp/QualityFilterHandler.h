@@ -60,7 +60,7 @@ class QualityFilterHandler
   uint32_t last_ssrc_received_;
   uint32_t max_video_bw_;
   uint32_t last_timestamp_sent_;
-  int64_t timestamp_offset_;
+  uint32_t timestamp_offset_;
   time_point time_change_started_;
   int picture_id_offset_;
   int last_picture_id_sent_;

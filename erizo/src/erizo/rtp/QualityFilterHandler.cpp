@@ -196,6 +196,7 @@ void QualityFilterHandler::write(Context *ctx,
       }
     }
 
+    // TODO(kekkokk) manage timestamp wrapping
     // Keep aligned with SRs
     if (last_timestamp_sent_ > 0) {
       if (base_ts_ssrc != ssrc) {
