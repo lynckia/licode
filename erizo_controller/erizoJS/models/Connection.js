@@ -13,6 +13,7 @@ const CONN_INITIAL        = 101,
       CONN_FINISHED       = 105,
       CONN_CANDIDATE      = 201,
       CONN_SDP            = 202,
+      CONN_SDP_PROCESSED  = 203,
       CONN_FAILED         = 500,
       WARN_BAD_CONNECTION = 502;
 
@@ -31,6 +32,8 @@ class Connection extends events.EventEmitter {
     this.options = options;
     this.trickleIce = options.trickleIce || false;
     this.metadata = this.options.metadata || {};
+    this.isProcessingRemoteSdp = false;
+    this.ready = false;
   }
 
   _getMediaConfiguration(mediaConfiguration = 'default') {
@@ -74,10 +77,11 @@ class Connection extends events.EventEmitter {
     return wrtc;
   }
 
-  _createMediaStream(id, options = {}) {
-    log.debug(`message: _createMediaStream, connectionId: ${this.id}, mediaStreamId: ${id}`);
+  _createMediaStream(id, options = {}, isPublisher = true) {
+    log.debug(`message: _createMediaStream, connectionId: ${this.id}, ` +
+              `mediaStreamId: ${id}, isPublisher: ${isPublisher}`);
     const mediaStream = new addon.MediaStream(this.threadPool, this.wrtc, id,
-      options.label, this._getMediaConfiguration(this.mediaConfiguration));
+      options.label, this._getMediaConfiguration(this.mediaConfiguration), isPublisher);
     mediaStream.id = id;
     mediaStream.label = options.label;
     if (options.metadata) {
@@ -87,16 +91,34 @@ class Connection extends events.EventEmitter {
     return mediaStream;
   }
 
-  init() {
+  _maybeSendAnswer(evt, streamId) {
+    if (this.isProcessingRemoteSdp) {
+      return;
+    }
+    if (!this.alreadyGathered && !this.trickleIce) {
+      return;
+    }
+    this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
+    const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion++);
+    let message = sdp.toString();
+    message = message.replace(this.options.privateRegexp, this.options.publicIP);
+
+    const info = {type: this.options.createOffer ? 'offer' : 'answer', sdp: message};
+    log.debug(`message: _maybeSendAnswer sending event, type: ${info.type}, streamId: ${streamId}`);
+    this.emit('status_event', info, evt, streamId);
+  }
+
+  init(streamId) {
     if (this.initialized) {
       return false;
     }
+    const firstStreamId = streamId;
     this.initialized = true;
     log.debug(`message: Init Connection, connectionId: ${this.id} `+
               `${logger.objectToLog(this.options)}`);
-    let sessionVersion = 0;
+    this.sessionVersion = 0;
 
-    this.wrtc.init((newStatus, mess) => {
+    this.wrtc.init((newStatus, mess, streamId) => {
       log.info('message: WebRtcConnection status update, ' +
                'id: ' + this.id + ', status: ' + newStatus +
                 ', ' + logger.objectToLog(this.metadata));
@@ -105,21 +127,18 @@ class Connection extends events.EventEmitter {
           this.emit('status_event', {type: 'started'}, newStatus);
           break;
 
-        case CONN_SDP:
-        case CONN_GATHERED:
-          if (newStatus === CONN_GATHERED) {
-            this.alreadyGathered = true;
-          }
-          if (!this.alreadyGathered && !this.trickleIce) {
-            return;
-          }
-          this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
-          const sdp = this.wrtc.localDescription.getSdp(sessionVersion++);
-          mess = sdp.toString();
-          mess = mess.replace(this.options.privateRegexp, this.options.publicIP);
+        case CONN_SDP_PROCESSED:
+          this.isProcessingRemoteSdp = false;
+          this._maybeSendAnswer(newStatus, streamId);
+          break;
 
-          const info = {type: this.options.createOffer ? 'offer' : 'answer', sdp: mess};
-          this.emit('status_event', info, newStatus);
+        case CONN_SDP:
+          this._maybeSendAnswer(newStatus, streamId);
+          break;
+
+        case CONN_GATHERED:
+          this.alreadyGathered = true;
+          this._maybeSendAnswer(newStatus, firstStreamId);
           break;
 
         case CONN_CANDIDATE:
@@ -136,6 +155,7 @@ class Connection extends events.EventEmitter {
         case CONN_READY:
           log.debug('message: connection ready, ' + 'id: ' + this.id +
                     ', ' + 'status: ' + newStatus);
+          this.ready = true;
           this.emit('status_event', {type: 'ready'}, newStatus);
           break;
       }
@@ -151,10 +171,10 @@ class Connection extends events.EventEmitter {
     return true;
   }
 
-  addMediaStream(id, options) {
+  addMediaStream(id, options, isPublisher) {
     log.info(`message: addMediaStream, connectionId: ${this.id}, mediaStreamId: ${id}`);
     if (this.mediaStreams.get(id) === undefined) {
-      const mediaStream = this._createMediaStream(id, options);
+      const mediaStream = this._createMediaStream(id, options, isPublisher);
       this.wrtc.addMediaStream(mediaStream);
       this.mediaStreams.set(id, mediaStream);
     }
@@ -171,9 +191,10 @@ class Connection extends events.EventEmitter {
     }
   }
 
-  setRemoteDescription(sdp) {
+  setRemoteDescription(sdp, streamId) {
+    this.isProcessingRemoteSdp = true;
     this.remoteDescription = new SessionDescription(sdp, this.mediaConfiguration);
-    this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription);
+    this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription, streamId);
   }
 
   addRemoteCandidate(candidate) {
@@ -192,9 +213,6 @@ class Connection extends events.EventEmitter {
     log.info(`message: Closing connection ${this.id}`);
     log.info(`message: WebRtcConnection status update, id: ${this.id}, status: ${CONN_FINISHED}, ` +
             `${logger.objectToLog(this.metadata)}`);
-    if (this._onConnectionStatusEventListener) {
-      this.removeListener('status_event', this._onConnectionStatusEventListener);
-    }
     this.mediaStreams.forEach((mediaStream, id) => {
       log.debug(`message: Closing mediaStream, connectionId : ${this.id}, `+
         `mediaStreamId: ${id}`);

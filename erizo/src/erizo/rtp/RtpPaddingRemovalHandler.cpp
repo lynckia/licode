@@ -54,9 +54,9 @@ void RtpPaddingRemovalHandler::write(Context *ctx, std::shared_ptr<DataPacket> p
     ctx->fireWrite(std::move(packet));
     return;
   }
-  RtpUtils::forEachRRBlock(packet, [this, translator, ssrc](RtcpHeader *chead) {
+  RtpUtils::forEachRtcpBlock(packet, [this, translator, ssrc](RtcpHeader *chead) {
     if (chead->packettype == RTCP_RTP_Feedback_PT) {
-      RtpUtils::forEachNack(chead, [this, chead, translator, ssrc](uint16_t new_seq_num, uint16_t new_plb,
+      RtpUtils::forEachNack(chead, [this, translator, ssrc](uint16_t new_seq_num, uint16_t new_plb,
       RtcpHeader* nack_header) {
         uint16_t initial_seq_num = new_seq_num;
         std::vector<uint16_t> seq_nums;

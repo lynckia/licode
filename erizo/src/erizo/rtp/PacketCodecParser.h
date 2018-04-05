@@ -13,7 +13,7 @@ class PacketCodecParser: public InboundHandler {
 
 
  public:
-  explicit PacketCodecParser();
+  PacketCodecParser();
 
   void enable() override;
   void disable() override;
@@ -29,7 +29,6 @@ class PacketCodecParser: public InboundHandler {
   MediaStream *stream_;
   bool enabled_;
   bool initialized_;
-
 };
 }  // namespace erizo
 
