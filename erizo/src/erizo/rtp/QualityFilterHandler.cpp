@@ -153,13 +153,12 @@ void QualityFilterHandler::write(Context *ctx,
 
   if (chead->isRtcp()) {
     if (chead->packettype == RTCP_Sender_PT) {
-      if (last_rtcp_timestamp.find(chead->getSSRC()) ==
-          last_rtcp_timestamp.end()) {
+      if (first_rtcp_ts.find(chead->getSSRC()) == first_rtcp_ts.end()) {
         ELOG_DEBUG("Add first rtcp rtp ts for SSRC: %u", chead->getSSRC());
+        first_rtcp_ts[chead->getSSRC()] = chead->getRtpTimestamp();
+        ntp_ms[chead->getSSRC()] =
+            ntpToMs({chead->getNtpTimestampMSW(), chead->getNtpTimestampLSW()});
       }
-      last_rtcp_timestamp[chead->getSSRC()] = chead->getRtpTimestamp();
-      ntp_ms[chead->getSSRC()] =
-          ntpToMs({chead->getNtpTimestampMSW(), chead->getNtpTimestampLSW()});
     }
   }
 
@@ -200,11 +199,10 @@ void QualityFilterHandler::write(Context *ctx,
     // Keep aligned with SRs
     if (last_timestamp_sent_ > 0) {
       if (base_ts_ssrc != ssrc) {
-        if (last_rtcp_timestamp.find(base_ts_ssrc) !=
-                last_rtcp_timestamp.end() &&
-            last_rtcp_timestamp.find(ssrc) != last_rtcp_timestamp.end()) {
-          timestamp_offset_ = last_rtcp_timestamp[base_ts_ssrc] -
-                              last_rtcp_timestamp[ssrc] +
+        if (first_rtcp_ts.find(base_ts_ssrc) != first_rtcp_ts.end() &&
+            first_rtcp_ts.find(ssrc) != first_rtcp_ts.end()) {
+          timestamp_offset_ = first_rtcp_ts[base_ts_ssrc] -
+                              first_rtcp_ts[ssrc] +
                               1;  // Calculate offset based on rtcp SR
           int64_t rebase = (ntp_ms[base_ts_ssrc] - ntp_ms[ssrc]) *
                            (packet->clock_rate / 1000);

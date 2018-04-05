@@ -66,7 +66,7 @@ class QualityFilterHandler
   int last_picture_id_sent_;
   uint32_t base_ts_ssrc = 0;
   uint32_t last_input_ts = 0;
-  std::map<uint32_t, uint32_t> last_rtcp_timestamp;
+  std::map<uint32_t, uint32_t> first_rtcp_ts;
   std::map<uint32_t, int64_t> ntp_ms;
 };
 }  // namespace erizo
