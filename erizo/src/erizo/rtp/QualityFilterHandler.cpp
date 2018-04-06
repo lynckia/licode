@@ -7,16 +7,11 @@
 
 namespace {
 
-struct Ntp_timestamp {
-  uint32_t msw = 0;
-  uint32_t lsw = 0;
-};
-
 constexpr double kNtpFracPerMs = 4.294967296E6;
 
-int64_t ntpToMs(Ntp_timestamp ts) {
-  const double ntp_frac_ms = static_cast<double>(ts.lsw) / kNtpFracPerMs;
-  return 1000 * static_cast<int64_t>(ts.msw) +
+int64_t ntpToMs(uint32_t ntp_msw, uint32_t ntp_lsw) {
+  const double ntp_frac_ms = static_cast<double>(ntp_lsw) / kNtpFracPerMs;
+  return 1000 * static_cast<int64_t>(ntp_msw) +
          static_cast<int64_t>(ntp_frac_ms + 0.5);
 }
 
@@ -52,9 +47,13 @@ void QualityFilterHandler::enable() { enabled_ = true; }
 
 void QualityFilterHandler::disable() { enabled_ = false; }
 
+bool QualityFilterHandler::haveRtcp(uint32_t ssrc) {
+  return !(last_rtcp_timestamp.find(ssrc) == last_rtcp_timestamp.end());
+}
+
 void QualityFilterHandler::handleFeedbackPackets(
     const std::shared_ptr<DataPacket> &packet) {
-  RtpUtils::forEachRRBlock(packet, [this](RtcpHeader *chead) {
+  RtpUtils::forEachRtcpBlock(packet, [this](RtcpHeader *chead) {
     if (chead->packettype == RTCP_PS_Feedback_PT &&
         (chead->getBlockCount() == RTCP_PLI_FMT ||
          chead->getBlockCount() == RTCP_SLI_FMT ||
@@ -153,12 +152,13 @@ void QualityFilterHandler::write(Context *ctx,
 
   if (chead->isRtcp()) {
     if (chead->packettype == RTCP_Sender_PT) {
-      if (first_rtcp_ts.find(chead->getSSRC()) == first_rtcp_ts.end()) {
+      if (last_rtcp_timestamp.find(chead->getSSRC()) ==
+          last_rtcp_timestamp.end()) {
         ELOG_DEBUG("Add first rtcp rtp ts for SSRC: %u", chead->getSSRC());
-        first_rtcp_ts[chead->getSSRC()] = chead->getRtpTimestamp();
-        ntp_ms[chead->getSSRC()] =
-            ntpToMs({chead->getNtpTimestampMSW(), chead->getNtpTimestampLSW()});
       }
+      last_rtcp_timestamp[chead->getSSRC()] = chead->getRtpTimestamp();
+      ntp_ms[chead->getSSRC()] =
+          ntpToMs(chead->getNtpTimestampMSW(), chead->getNtpTimestampLSW());
     }
   }
 
@@ -168,11 +168,16 @@ void QualityFilterHandler::write(Context *ctx,
       packet->type == VIDEO_PACKET) {
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader *>(packet->data);
 
-    checkLayers();
-
     uint32_t ssrc = rtp_header->getSSRC();
     uint16_t sequence_number = rtp_header->getSeqNumber();
     int picture_id = packet->picture_id;
+
+    // We want to switch layer only if we have an rtcp for this ssrc to be able
+    // to sync
+    if (!packet->belongsToSpatialLayer(target_spatial_layer_) &&
+        haveRtcp(ssrc)) {
+      checkLayers();
+    }
 
     if (last_ssrc_received_ != 0 && ssrc != last_ssrc_received_) {
       receiving_multiple_ssrc_ = true;
@@ -200,18 +205,15 @@ void QualityFilterHandler::write(Context *ctx,
     // Keep aligned with SRs
     if (last_timestamp_sent_ > 0) {
       if (base_ts_ssrc != ssrc) {
-        if (first_rtcp_ts.find(base_ts_ssrc) != first_rtcp_ts.end() &&
-            first_rtcp_ts.find(ssrc) != first_rtcp_ts.end()) {
-          timestamp_offset_ = first_rtcp_ts[base_ts_ssrc] -
-                              first_rtcp_ts[ssrc] +
+        if (last_rtcp_timestamp.find(base_ts_ssrc) !=
+                last_rtcp_timestamp.end() &&
+            last_rtcp_timestamp.find(ssrc) != last_rtcp_timestamp.end()) {
+          timestamp_offset_ = last_rtcp_timestamp[base_ts_ssrc] -
+                              last_rtcp_timestamp[ssrc] +
                               1;  // Calculate offset based on rtcp SR
           int64_t rebase = (ntp_ms[base_ts_ssrc] - ntp_ms[ssrc]) *
                            (packet->clock_rate / 1000);
           timestamp_offset_ = timestamp_offset_ - rebase;
-        } else {
-          timestamp_offset_ = last_timestamp_sent_ - new_timestamp +
-                              1;  // Original "poor" implementation. If there's
-                                  // a lag from the publisher, the sync goes out
         }
       } else {
         timestamp_offset_ = 0;  // Don't need offset
