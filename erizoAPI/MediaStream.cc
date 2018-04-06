@@ -97,6 +97,7 @@ NAN_MODULE_INIT(MediaStream::Init) {
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
   Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
+  Nan::SetPrototypeMethod(tpl, "setMaxVideoBW", setMaxVideoBW);
   Nan::SetPrototypeMethod(tpl, "setQualityLayer", setQualityLayer);
   Nan::SetPrototypeMethod(tpl, "setVideoConstraints", setVideoConstraints);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
@@ -185,6 +186,17 @@ NAN_METHOD(MediaStream::muteStream) {
   bool mute_video = info[0]->BooleanValue();
   bool mute_audio = info[1]->BooleanValue();
   me->muteStream(mute_video, mute_audio);
+}
+
+NAN_METHOD(MediaStream::setMaxVideoBW) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
+
+  int max_video_bw = info[0]->IntegerValue();
+  me->setMaxVideoBW(max_video_bw);
 }
 
 NAN_METHOD(MediaStream::setVideoConstraints) {

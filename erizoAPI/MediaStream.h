@@ -105,6 +105,11 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener {
      */
     static NAN_METHOD(muteStream);
     /*
+     * Sets Max Video BW
+     * Param: The value for the max video bandwidth
+     */
+    static NAN_METHOD(setMaxVideoBW);
+    /*
      * Sets constraints to the subscribing video
      * Param: Max width, height and framerate.
      */

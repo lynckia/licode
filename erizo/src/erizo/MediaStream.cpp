@@ -91,6 +91,15 @@ uint32_t MediaStream::getMaxVideoBW() {
   return bitrate;
 }
 
+void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
+  asyncTask([max_video_bw] (std::shared_ptr<MediaStream> stream) {
+    if (stream->rtcp_processor_) {
+      stream->rtcp_processor_->setMaxVideoBW(max_video_bw * 1000);
+      stream->pipeline_->notifyUpdate();
+    }
+  });
+}
+
 void MediaStream::syncClose() {
   ELOG_DEBUG("%s message:Close called", toLog());
   if (!sending_) {
