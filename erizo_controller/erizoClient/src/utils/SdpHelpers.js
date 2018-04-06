@@ -23,6 +23,9 @@ SdpHelpers.addSpatialLayer = (cname, msid, mslabel,
   `a=ssrc:${spatialLayerIdRtx} label:${label}\r\n`;
 
 SdpHelpers.setMaxBW = (sdp, spec) => {
+  if (!spec.p2p) {
+    return;
+  }
   if (spec.video && spec.maxVideoBW) {
     const video = sdp.getMedia('video');
     if (video) {

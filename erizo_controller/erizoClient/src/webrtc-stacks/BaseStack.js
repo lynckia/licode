@@ -102,6 +102,7 @@ const BaseStack = (specInput) => {
     specBase.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,
+      config: { maxVideoBW: specBase.maxVideoBW },
     }, streamId);
   };
 
@@ -231,7 +232,9 @@ const BaseStack = (specInput) => {
 
   that.updateSpec = (configInput, streamId, callback = () => {}) => {
     const config = configInput;
-    if (config.maxVideoBW || config.maxAudioBW) {
+    const shouldApplyMaxVideoBWToSdp = specBase.p2p && config.maxVideoBW;
+    const shouldSendMaxVideoBWInOptions = !specBase.p2p && config.maxVideoBW;
+    if (shouldApplyMaxVideoBWToSdp || config.maxAudioBW) {
       if (config.maxVideoBW) {
         Logger.debug('Maxvideo Requested:', config.maxVideoBW,
                                 'limit:', specBase.limitMaxVideoBW);
@@ -273,9 +276,13 @@ const BaseStack = (specInput) => {
         specBase.callback({ type: 'updatestream', sdp: localDesc.sdp }, streamId);
       }
     }
-    if (config.minVideoBW || (config.slideShowMode !== undefined) ||
-            (config.muteStream !== undefined) || (config.qualityLayer !== undefined) ||
-            (config.video !== undefined)) {
+    if (shouldSendMaxVideoBWInOptions ||
+        config.minVideoBW ||
+        (config.slideShowMode !== undefined) ||
+        (config.muteStream !== undefined) ||
+        (config.qualityLayer !== undefined) ||
+        (config.video !== undefined)) {
+      Logger.debug('MaxVideoBW Changed to ', config.maxVideoBW);
       Logger.debug('MinVideo Changed to ', config.minVideoBW);
       Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
       Logger.debug('muteStream changed to ', config.muteStream);
