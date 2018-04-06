@@ -76,7 +76,7 @@ class Subscriber extends NodeClass {
     if (msg.type === 'offer') {
       const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
       connection.setRemoteDescription(sdp, this.erizoStreamId);
-      if (msg.config.maxVideoBW) {
+      if (msg.config && msg.config.maxVideoBW) {
         this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
       }
       this.disableDefaultHandlers();

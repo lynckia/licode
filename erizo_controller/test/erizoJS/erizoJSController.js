@@ -272,7 +272,7 @@ describe('Erizo JS Controller', function() {
       });
 
       it('should set remote sdp when received', function() {
-        controller.processSignaling(undefined, kArbitraryStreamId, {type: 'offer', sdp: ''});
+        controller.processSignaling(undefined, kArbitraryStreamId, {type: 'offer', sdp: '', config: {}});
 
         expect(mocks.WebRtcConnection.setRemoteDescription.callCount).to.equal(1);
       });
@@ -348,7 +348,7 @@ describe('Erizo JS Controller', function() {
 
         it('should set remote sdp when received', function() {
           controller.processSignaling(kArbitrarySubClientId, kArbitraryStreamId, {type: 'offer',
-            sdp: ''});
+            sdp: '', config: {}});
 
           expect(mocks.WebRtcConnection.setRemoteDescription.callCount).to.equal(1);
         });
