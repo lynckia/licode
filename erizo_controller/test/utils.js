@@ -167,6 +167,7 @@ var reset = module.exports.reset = function() {
     close: sinon.stub(),
     setAudioReceiver: sinon.stub(),
     setVideoReceiver: sinon.stub(),
+    setMaxVideoBW: sinon.stub(),
     getStats: sinon.stub(),
     getPeriodicStats: sinon.stub(),
     generatePLIPacket: sinon.stub(),
