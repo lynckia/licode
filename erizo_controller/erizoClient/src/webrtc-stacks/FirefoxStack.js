@@ -42,11 +42,11 @@ const FirefoxStack = (specInput) => {
 
   const baseCreateOffer = that.createOffer;
 
-  that.createOffer = (isSubscribe) => {
+  that.createOffer = (isSubscribe, forceOfferToReceive = false, streamId = '') => {
     if (isSubscribe !== true) {
       enableSimulcast();
     }
-    baseCreateOffer(isSubscribe);
+    baseCreateOffer(isSubscribe, forceOfferToReceive, streamId);
   };
 
   return that;
