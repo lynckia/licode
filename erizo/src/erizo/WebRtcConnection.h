@@ -142,6 +142,8 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func);
   void forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
 
+  void setTransport(std::shared_ptr<Transport> transport);  // Only for Testing purposes
+
   std::shared_ptr<Stats> getStatsService() { return stats_; }
 
   RtpExtensionProcessor& getRtpExtensionProcessor() { return extension_processor_; }
@@ -159,6 +161,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
   void onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport);
+  void onREMBFromTransport(RtcpHeader *chead, Transport *transport);
 
  private:
   std::string connection_id_;
