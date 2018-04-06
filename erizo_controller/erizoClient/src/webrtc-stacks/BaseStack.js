@@ -229,7 +229,7 @@ const BaseStack = (specInput) => {
     that.peerConnection.close();
   };
 
-  that.updateSpec = (configInput, callback = () => {}) => {
+  that.updateSpec = (configInput, streamId, callback = () => {}) => {
     const config = configInput;
     if (config.maxVideoBW || config.maxAudioBW) {
       if (config.maxVideoBW) {
@@ -264,13 +264,13 @@ const BaseStack = (specInput) => {
             return that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc));
           }).then(() => {
             specBase.remoteDescriptionSet = true;
-            specBase.callback({ type: 'updatestream', sdp: localDesc.sdp });
+            specBase.callback({ type: 'updatestream', sdp: localDesc.sdp }, streamId);
           }).catch(errorCallback.bind(null, 'updateSpec', callback));
       } else {
         Logger.debug('Updating without SDP renegotiation, ' +
                      'newVideoBW:', specBase.maxVideoBW,
                      'newAudioBW:', specBase.maxAudioBW);
-        specBase.callback({ type: 'updatestream', sdp: localDesc.sdp });
+        specBase.callback({ type: 'updatestream', sdp: localDesc.sdp }, streamId);
       }
     }
     if (config.minVideoBW || (config.slideShowMode !== undefined) ||
@@ -280,7 +280,7 @@ const BaseStack = (specInput) => {
       Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
       Logger.debug('muteStream changed to ', config.muteStream);
       Logger.debug('Video Constraints', config.video);
-      specBase.callback({ type: 'updatestream', config });
+      specBase.callback({ type: 'updatestream', config }, streamId);
     }
   };
 
