@@ -60,6 +60,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   virtual ~MediaStream();
   bool init();
   void close() override;
+  virtual uint32_t getMaxVideoBW();
   void syncClose();
   bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
   bool setLocalSdp(std::shared_ptr<SdpInfo> sdp);
@@ -84,7 +85,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   void getJSONStats(std::function<void(std::string)> callback);
 
-  void onTransportData(std::shared_ptr<DataPacket> packet, Transport *transport);
+  virtual void onTransportData(std::shared_ptr<DataPacket> packet, Transport *transport);
 
   void sendPacketAsync(std::shared_ptr<DataPacket> packet);
 
