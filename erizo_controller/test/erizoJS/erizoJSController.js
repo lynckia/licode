@@ -272,7 +272,8 @@ describe('Erizo JS Controller', function() {
       });
 
       it('should set remote sdp when received', function() {
-        controller.processSignaling(undefined, kArbitraryStreamId, {type: 'offer', sdp: '', config: {}});
+        controller.processSignaling(undefined, kArbitraryStreamId,
+          {type: 'offer', sdp: '', config: {}});
 
         expect(mocks.WebRtcConnection.setRemoteDescription.callCount).to.equal(1);
       });
