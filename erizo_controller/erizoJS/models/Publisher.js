@@ -147,6 +147,9 @@ class Source extends NodeClass {
     if (msg.type === 'offer') {
       const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
       connection.setRemoteDescription(sdp, this.streamId);
+      if (msg.config && msg.config.maxVideoBW) {
+        this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
+      }
       this.disableDefaultHandlers();
     } else if (msg.type === 'candidate') {
       connection.addRemoteCandidate(msg.candidate);
@@ -154,6 +157,9 @@ class Source extends NodeClass {
       if (msg.sdp) {
         const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
         connection.setRemoteDescription(sdp, this.streamId);
+        if (this.mediaStream) {
+          this.mediaStream.setMaxVideoBW();
+        }
       }
       if (msg.config) {
         if (msg.config.minVideoBW) {
@@ -170,6 +176,9 @@ class Source extends NodeClass {
         }
         if (msg.config.muteStream !== undefined) {
           this.muteStream(msg.config.muteStream);
+        }
+        if (msg.config.maxVideoBW) {
+          this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
         }
       }
     } else if (msg.type === 'control') {

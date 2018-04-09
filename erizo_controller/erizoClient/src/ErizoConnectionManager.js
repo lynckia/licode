@@ -110,8 +110,8 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.enableSimulcast(sdpInput);
   }
 
-  updateSpec(configInput, callback) {
-    this.stack.updateSpec(configInput, callback);
+  updateSpec(configInput, streamId, callback) {
+    this.stack.updateSpec(configInput, streamId, callback);
   }
 }
 

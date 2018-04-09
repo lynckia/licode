@@ -61,6 +61,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool init();
   void close() override;
   virtual uint32_t getMaxVideoBW();
+  void setMaxVideoBW(uint32_t max_video_bw);
   void syncClose();
   bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
   bool setLocalSdp(std::shared_ptr<SdpInfo> sdp);

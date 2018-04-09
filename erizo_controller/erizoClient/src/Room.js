@@ -114,6 +114,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       limitMaxAudioBW: spec.maxAudioBW,
       limitMaxVideoBW: spec.maxVideoBW,
       forceTurn: stream.forceTurn,
+      p2p: true,
     };
     return options;
   };
@@ -176,6 +177,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       label: stream.getLabel(),
       iceServers: that.iceServers,
       forceTurn: stream.forceTurn,
+      p2p: false,
     };
     if (!isRemote) {
       connectionOpts.simulcast = options.simulcast;
@@ -452,6 +454,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     Logger.info('Publishing to Erizo Normally, is createOffer', options.createOffer);
     const constraints = createSdpConstraints('erizo', stream, options);
     constraints.minVideoBW = options.minVideoBW;
+    constraints.maxVideoBW = options.maxVideoBW;
     constraints.scheme = options.scheme;
 
     socket.sendSDP('publish', constraints, undefined, (id, erizoId, error) => {
@@ -491,6 +494,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const constraint = { streamId: stream.getID(),
       audio: options.audio && stream.hasAudio(),
       video: getVideoConstraints(stream, options.video),
+      maxVideoBW: options.maxVideoBW,
       data: options.data && stream.hasData(),
       browser: that.ConnectionHelpers.getBrowser(),
       createOffer: options.createOffer,
