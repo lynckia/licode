@@ -43,10 +43,15 @@ void StatCallWorker::HandleOKCallback() {
   callback->Call(1, argv);
 }
 
+void destroyAsyncStats(uv_handle_t *handle) {
+  delete handle;
+}
+
 Nan::Persistent<Function> MediaStream::constructor;
 
 MediaStream::MediaStream() : closed_{false}, id_{"undefined"} {
-  uv_async_init(uv_default_loop(), &asyncStats_, &MediaStream::statsCallback);
+  async_stats_ = new uv_async_t;
+  uv_async_init(uv_default_loop(), async_stats_, &MediaStream::statsCallback);
 }
 
 MediaStream::~MediaStream() {
@@ -67,10 +72,11 @@ void MediaStream::close() {
     me.reset();
   }
   hasCallback_ = false;
-  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&asyncStats_))) {
+  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_stats_))) {
     ELOG_DEBUG("%s, message: Closing handle", toLog());
-    uv_close(reinterpret_cast<uv_handle_t*>(&asyncStats_), nullptr);
+    uv_close(reinterpret_cast<uv_handle_t*>(async_stats_), destroyAsyncStats);
   }
+  async_stats_ = nullptr;
   closed_ = true;
   ELOG_DEBUG("%s, message: Closed", toLog());
 }
@@ -366,10 +372,13 @@ void MediaStream::notifyStats(const std::string& message) {
   if (!this->hasCallback_) {
     return;
   }
+  if (!async_stats_) {
+    return;
+  }
   boost::mutex::scoped_lock lock(mutex);
   this->statsMsgs.push(message);
-  asyncStats_.data = this;
-  uv_async_send(&asyncStats_);
+  async_stats_->data = this;
+  uv_async_send(async_stats_);
 }
 
 NAUV_WORK_CB(MediaStream::statsCallback) {

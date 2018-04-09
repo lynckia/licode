@@ -39,7 +39,7 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     void close();
 
     Nan::Callback *eventCallback_;
-    uv_async_t async_;
+    uv_async_t *async_;
     bool closed_;
     std::string id_;
     /*

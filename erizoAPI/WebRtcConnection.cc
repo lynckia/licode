@@ -25,8 +25,13 @@ Nan::Persistent<Function> WebRtcConnection::constructor;
 
 DEFINE_LOGGER(WebRtcConnection, "ErizoAPI.WebRtcConnection");
 
+void destroyWebRtcConnectionAsyncHandle(uv_handle_t *handle) {
+  delete handle;
+}
+
 WebRtcConnection::WebRtcConnection() : closed_{false}, id_{"undefined"} {
-  uv_async_init(uv_default_loop(), &async_, &WebRtcConnection::eventsCallback);
+  async_ = new uv_async_t;
+  uv_async_init(uv_default_loop(), async_, &WebRtcConnection::eventsCallback);
 }
 
 WebRtcConnection::~WebRtcConnection() {
@@ -47,10 +52,11 @@ void WebRtcConnection::close() {
     me.reset();
   }
 
-  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&async_))) {
+  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_))) {
     ELOG_DEBUG("%s, message: Closing handle", toLog());
-    uv_close(reinterpret_cast<uv_handle_t*>(&async_), nullptr);
+    uv_close(reinterpret_cast<uv_handle_t*>(async_), destroyWebRtcConnectionAsyncHandle);
   }
+  async_ = nullptr;
   closed_ = true;
   ELOG_DEBUG("%s, message: Closed", toLog());
 }
@@ -398,10 +404,13 @@ NAN_METHOD(WebRtcConnection::removeMediaStream) {
 
 void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message, const std::string& stream_id) {
   boost::mutex::scoped_lock lock(mutex);
+  if (!async_) {
+    return;
+  }
   this->eventSts.push(event);
   this->eventMsgs.push(std::make_pair(message, stream_id));
-  async_.data = this;
-  uv_async_send(&async_);
+  async_->data = this;
+  uv_async_send(async_);
 }
 
 
