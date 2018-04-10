@@ -51,7 +51,7 @@ config.erizoController = {};
 // }
 config.erizoController.iceServers = [{'url': 'stun:stun.l.google.com:19302'}]; // default value: [{'url': 'stun:stun.l.google.com:19302'}]
 
-// Default and max video bandwidth parameters to be used by clients
+// Default and max video bandwidth parameters to be used by clients for both published and subscribed streams
 config.erizoController.defaultVideoBW = 300; //default value: 300
 config.erizoController.maxVideoBW = 300; //default value: 300
 
