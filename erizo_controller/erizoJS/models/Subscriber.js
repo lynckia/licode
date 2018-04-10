@@ -94,6 +94,9 @@ class Subscriber extends NodeClass {
         if (msg.config.qualityLayer !== undefined) {
           this.publisher.setQualityLayer(msg.config.qualityLayer, this.clientId);
         }
+        if (msg.config.minLayer !== undefined) {
+          this.publisher.setMinLayer(msg.config.minLayer, this.clientId);
+        }
         if (msg.config.video !== undefined) {
           this.publisher.setVideoConstraints(msg.config.video, this.clientId);
         }

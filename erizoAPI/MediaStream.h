@@ -144,6 +144,7 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener {
     static NAN_METHOD(disableHandler);
 
     static NAN_METHOD(setQualityLayer);
+    static NAN_METHOD(setMinLayer);
     static Nan::Persistent<v8::Function> constructor;
 
     static NAUV_WORK_CB(statsCallback);

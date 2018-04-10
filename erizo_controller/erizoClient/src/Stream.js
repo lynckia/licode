@@ -410,6 +410,19 @@ const Stream = (altConnectionHelpers, specInput) => {
     that.pc.updateSpec(config, callback);
   };
 
+  // eslint-disable-next-line no-underscore-dangle
+  that._setMinQualityLayer = (spatialLayer, temporalLayer, callback = () => {}) => {
+    if (that.room && that.room.p2p) {
+      Logger.warning('setMinQualityLayer is not implemented in p2p streams');
+      callback('error');
+      return;
+    }
+    const config = { minLayer: { spatialLayer, temporalLayer } };
+    that.checkOptions(config, true);
+    Logger.debug('Calling updateSpec with config', config);
+    that.pc.updateSpec(config, callback);
+  };
+
   const controlHandler = (handlersInput, publisherSideInput, enable) => {
     let publisherSide = publisherSideInput;
     let handlers = handlersInput;

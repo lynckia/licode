@@ -15,9 +15,9 @@ constexpr float QualityManager::kIncreaseLayerBitrateThreshold;
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
   : initialized_{false}, enabled_{false}, padding_enabled_{false}, forced_layers_{false},
   slideshow_mode_active_{false}, spatial_layer_{0}, temporal_layer_{0}, max_active_spatial_layer_{0},
-  max_active_temporal_layer_{0}, max_video_width_{-1}, max_video_height_{-1},
-  max_video_frame_rate_{-1}, current_estimated_bitrate_{0}, last_quality_check_{the_clock->now()},
-  last_activity_check_{the_clock->now()}, clock_{the_clock} {}
+  max_active_temporal_layer_{0}, min_temporal_layer_{0}, min_spatial_layer_{0}, max_video_width_{-1},
+  max_video_height_{-1}, max_video_frame_rate_{-1}, current_estimated_bitrate_{0},
+  last_quality_check_{the_clock->now()}, last_activity_check_{the_clock->now()}, clock_{the_clock} {}
 
 void QualityManager::enable() {
   ELOG_DEBUG("message: Enabling QualityManager");
@@ -88,6 +88,15 @@ void QualityManager::notifyQualityUpdate() {
 }
 
 bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_layer) {
+  int min_valid_temporal_layer = std::min(min_temporal_layer_, max_active_temporal_layer_);
+  int min_valid_spatial_layer = std::min(min_spatial_layer_, max_active_spatial_layer_);
+  ELOG_DEBUG("doesLayerMeetConstraints spatial %u, temporal %u, min_spatial %u, min_temporal %u",
+         spatial_layer, temporal_layer, min_spatial_layer_, min_temporal_layer_);
+  if (spatial_layer < min_valid_spatial_layer || temporal_layer < min_valid_temporal_layer) {
+    ELOG_DEBUG("spatial %u, temporal %u, Does not meet constraints: min_spatial %u, min_temporal %u",
+         spatial_layer, temporal_layer, min_spatial_layer_, min_temporal_layer_);
+      return false;
+  }
   if (static_cast<uint>(spatial_layer) > video_frame_width_list_.size() ||
       static_cast<uint>(spatial_layer) > video_frame_height_list_.size() ||
       static_cast<uint>(temporal_layer) > video_frame_rate_list_.size()) {
@@ -229,6 +238,12 @@ void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
 
   spatial_layer_ = spatial_layer;
   temporal_layer_ = temporal_layer;
+}
+
+void QualityManager::setMinDesiredLayers(int spatial_layer, int temporal_layer) {
+  min_spatial_layer_ = spatial_layer;
+  min_temporal_layer_ = temporal_layer;
+  selectLayer(true);
 }
 
 void QualityManager::setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate) {

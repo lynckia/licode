@@ -586,4 +586,10 @@ void MediaStream::setQualityLayer(int spatial_layer, int temporal_layer) {
   });
 }
 
+void MediaStream::setMinDesiredLayers(int spatial_layer, int temporal_layer) {
+  asyncTask([spatial_layer, temporal_layer] (std::shared_ptr<MediaStream> media_stream) {
+    media_stream->quality_manager_->setMinDesiredLayers(spatial_layer, temporal_layer);
+  });
+}
+
 }  // namespace erizo
