@@ -173,7 +173,7 @@ launchErizoJS = function(erizo) {
     });
 
     log.info('message: launched new ErizoJS, erizoId: ' + id);
-    erizos.process = erizoProcess;
+    erizo.process = erizoProcess;
 };
 
 erizos.on('launch-erizo', launchErizoJS);
