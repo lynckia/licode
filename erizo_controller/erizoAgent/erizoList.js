@@ -1,3 +1,4 @@
+'use strict';
 const EventEmitter = require('events');
 
 var guid = (function() {
@@ -51,18 +52,18 @@ class ErizoList extends EventEmitter {
     }
     erizo.idle = false;
     return erizo;
-  };
+  }
 
   forEach(task) {
     return this.erizos.forEach(task);
   }
 
   findById(id) {
-    return this.erizos.find(erizo => erizo.id == id);
+    return this.erizos.find(erizo => erizo.id === id);
   }
 
   findByPosition(position) {
-    return this.erizos.find(erizo => erizo.position == position);
+    return this.erizos.find(erizo => erizo.position === position);
   }
 
   areAllRunning() {
@@ -90,7 +91,7 @@ class ErizoList extends EventEmitter {
 
   delete(id) {
     const erizo = this.findById(id);
-    let process = undefined;
+    let process;
     if (erizo) {
       erizo.started = false;
       erizo.idle = false;
@@ -103,14 +104,14 @@ class ErizoList extends EventEmitter {
 
   clear() {
     let pos = 0;
-    this.erizos = (new Array(this.maxErizos)).fill(1).map(element => {
+    this.erizos = (new Array(this.maxErizos)).fill(1).map(() => {
       return {
         started: false,
         idle: false,
         id: undefined,
         position: pos++,
         process: undefined,
-      }
+      };
     });
   }
 

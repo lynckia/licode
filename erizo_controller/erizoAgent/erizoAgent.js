@@ -102,7 +102,8 @@ var amqper = require('./../common/amqper');
 // Logger
 var log = logger.getLogger('ErizoAgent');
 
-var erizos = new ErizoList(global.config.erizoAgent.prerunProcesses, global.config.erizoAgent.maxProcesses);
+var erizos = new ErizoList(global.config.erizoAgent.prerunProcesses,
+                           global.config.erizoAgent.maxProcesses);
 
 var guid = (function() {
   function s4() {
@@ -209,7 +210,7 @@ var api = {
 
             var erizo = erizos.getErizo();
             log.debug('message: createErizoJS returning, erizoId: ' + erizo.id);
-            callback('callback', {erizoId: erizo.id, internalId: erizo.position, agentId: myErizoAgentId});
+            callback('callback', {erizoId: erizo.id, agentId: myErizoAgentId});
             erizos.fill();
 
         } catch (error) {

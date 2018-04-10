@@ -44,7 +44,7 @@ describe('Erizo List', function() {
       erizoList = new ErizoList(prerun, max);
       erizoList.fill();
       for (let index = 0; index < max; index++) {
-        const erizo = erizoList.getErizo();
+        erizoList.getErizo();
       }
 
       expect(erizoList.idle.length).to.equal(0);
