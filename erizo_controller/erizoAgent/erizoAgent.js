@@ -205,12 +205,13 @@ var cleanErizos = function () {
 var reporter = require('./erizoAgentReporter').Reporter({id: myErizoAgentId, metadata: metadata});
 
 var api = {
-    createErizoJS: function(callback) {
+    createErizoJS: function(internalId, callback) {
         try {
-
-            var erizo = erizos.getErizo();
-            log.debug('message: createErizoJS returning, erizoId: ' + erizo.id);
-            callback('callback', {erizoId: erizo.id, agentId: myErizoAgentId});
+            var erizo = erizos.getErizo(internalId);
+            log.debug('message: createErizoJS returning, erizoId: ' + erizo.id +
+                      ' , agentId: ' + myErizoAgentId + ', internalId: ' + erizo.position);
+            callback('callback',
+              {erizoId: erizo.id, agentId: myErizoAgentId, internalId: erizo.position});
             erizos.fill();
 
         } catch (error) {

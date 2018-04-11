@@ -20,7 +20,10 @@ Returns
 		*default value: "ErizoAgent" - select the agent in round-robin mode
 
 */
-exports.getErizoAgent = function () {
+exports.getErizoAgent = function (agents, agentId) {
   'use strict';
+  if (agentId) {
+    return 'ErizoAgent_' + agentId;
+  }
   return 'ErizoAgent';
 };

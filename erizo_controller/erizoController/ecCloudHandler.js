@@ -61,43 +61,48 @@ exports.EcCloudHandler = function (spec) {
                       global.config.erizoController.cloudHandlerPolicy).getErizoAgent;
   }
 
-  var tryAgain = function (count, agentId, callback) {
+  var tryAgain = function (count, callback) {
     if (count >= AGENTS_ATTEMPTS) {
       callback('timeout');
       return;
     }
 
     log.warn('message: agent selected timed out trying again, ' +
-             'code: ' + WARN_TIMEOUT + ', agentId: ' + agentId);
+             'code: ' + WARN_TIMEOUT);
 
-    amqper.callRpc('ErizoAgent', 'createErizoJS', [], {callback: function(erizoId) {
-      if (erizoId === 'timeout') {
-        tryAgain(++count, agentId ,callback);
+    amqper.callRpc('ErizoAgent', 'createErizoJS', [undefined], {callback: function(resp) {
+      var erizoId = resp.erizoId;
+      var agentId = resp.agentId;
+      var internalId = resp.internalId;
+      if (resp === 'timeout') {
+        tryAgain(++count, callback);
       } else {
-        callback(erizoId);
+        callback(erizoId, agentId, internalId);
       }
     }});
   };
 
-  that.getErizoJS = function(callback) {
+  that.getErizoJS = function(agentId, internalId, callback) {
 
     var agentQueue = 'ErizoAgent';
 
     if (getErizoAgent) {
-      agentQueue = getErizoAgent(agents);
+      agentQueue = getErizoAgent(agents, agentId);
     }
 
     log.info('message: createErizoJS, agentId: ' + agentQueue);
 
-    amqper.callRpc(agentQueue, 'createErizoJS', [], {callback: function(resp) {
+    amqper.callRpc(agentQueue, 'createErizoJS', [internalId], {callback: function(resp) {
       var erizoId = resp.erizoId;
       var agentId = resp.agentId;
-      log.info('message: createErizoJS success, erizoId: ' + erizoId + ', agentId: ' + agentId);
+      var internalId = resp.internalId;
+      log.info('message: createErizoJS success, erizoId: ' + erizoId +
+               ', agentId: ' + agentId + ', internalId: ' + internalId);
 
       if (resp === 'timeout') {
-        tryAgain(0, agentId, callback);
+        tryAgain(0, callback);
       } else {
-        callback(erizoId, agentId);
+        callback(erizoId, agentId, internalId);
       }
     }});
   };
