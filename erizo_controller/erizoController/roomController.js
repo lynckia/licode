@@ -16,7 +16,8 @@ exports.RoomController = function (spec) {
         //     {publishers: [ids], kaCount: count, agentId: agentId, internalId: internalId}}
         erizos = {},
 
-        maxErizos = spec.maxConnections || global.config.erizoController.maxErizosInRoom,
+        maxErizosUsedByRoom = spec.maxErizosUsedByRoom || 
+                                global.config.erizoController.maxErizosUsedByRoom,
         currentErizo = 0,
 
         // {id: ExternalOutput}
@@ -78,8 +79,8 @@ exports.RoomController = function (spec) {
     var getErizoJS = function(callback) {
       let agentId;
       let internalId;
-      if (maxErizos && Object.keys(erizos).length === maxErizos) {
-        const erizoId = Object.keys(erizos)[currentErizo % maxErizos];
+      if (maxErizosUsedByRoom && Object.keys(erizos).length === maxErizosUsedByRoom) {
+        const erizoId = Object.keys(erizos)[currentErizo % maxErizosUsedByRoom];
         currentErizo++;
         const erizo = erizos[erizoId];
         if (erizo) {
