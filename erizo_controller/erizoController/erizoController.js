@@ -35,6 +35,8 @@ global.config.erizoController.recording_path =
   global.config.erizoController.recording_path || undefined;
 global.config.erizoController.exitOnNuveCheckFail = global.config.erizoController.exitOnNuveCheckFail || false;
 global.config.erizoController.allowSinglePC = global.config.erizoController.allowSinglePC || '';
+global.config.erizoController.maxErizosUsedByRoom = global.config.erizoController.maxErizosUsedByRoom || 0;
+
 // jshint ignore:end
 global.config.erizoController.roles = global.config.erizoController.roles ||
                   {'presenter': {'publish': true, 'subscribe': true, 'record': true},

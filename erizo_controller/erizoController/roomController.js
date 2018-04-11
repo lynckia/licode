@@ -11,8 +11,14 @@ exports.RoomController = function (spec) {
         subscribers = {},
         // {id: erizoJS_id}
         publishers = {},
-        // {erizoJS_id: {publishers: [ids], kaCount: count}}
+
+        // {erizoJS_id:
+        //     {publishers: [ids], kaCount: count, agentId: agentId, internalId: internalId}}
         erizos = {},
+
+        maxErizosUsedByRoom = spec.maxErizosUsedByRoom || 
+                                global.config.erizoController.maxErizosUsedByRoom,
+        currentErizo = 0,
 
         // {id: ExternalOutput}
         externalOutputs = {};
@@ -71,11 +77,28 @@ exports.RoomController = function (spec) {
     setInterval(sendKeepAlive, KEEPALIVE_INTERVAL);
 
     var getErizoJS = function(callback) {
-    	ecch.getErizoJS(function(erizoId, agentId) {
+      let agentId;
+      let internalId;
+      if (maxErizosUsedByRoom && Object.keys(erizos).length === maxErizosUsedByRoom) {
+        const erizoId = Object.keys(erizos)[currentErizo % maxErizosUsedByRoom];
+        currentErizo++;
+        const erizo = erizos[erizoId];
+        if (erizo) {
+          agentId = erizo.agentId;
+          internalId = erizo.internalId;
+        }
+      }
+
+      log.debug('message: Getting ErizoJS, agentId: ' + agentId +
+                ', internalId: ' + internalId, ', erizos: ' + JSON.stringify(erizos));
+    	ecch.getErizoJS(agentId, internalId, function(erizoId, agentId, internalId) {
             if (!erizos[erizoId] && erizoId !== 'timeout') {
-                erizos[erizoId] = {publishers: [], kaCount: 0};
+                erizos[erizoId] = {publishers: [], kaCount: 0, agentId, internalId};
+            } else if (erizos[erizoId]) {
+              erizos[erizoId].agentId = agentId;
+              erizos[erizoId].internalId = internalId;
             }
-            callback(erizoId, agentId);
+            callback(erizoId, agentId, internalId);
         });
     };
 
@@ -170,7 +193,7 @@ exports.RoomController = function (spec) {
         if (publishers[streamId] === undefined) {
 
             log.info('message: addPublisher, ' +
-                     'clientId ' + clientId + ', ' + 
+                     'clientId ' + clientId + ', ' +
                      'streamId: ' + streamId + ', ' +
                      logger.objectToLog(options) + ', ' +
                      logger.objectToLog(options.metadata));
