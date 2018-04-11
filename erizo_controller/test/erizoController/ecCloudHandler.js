@@ -52,7 +52,7 @@ describe('Erizo Controller / ec Cloud Handler', function() {
     it('should call createErizoJS', function() {
       var callback = sinon.stub();
 
-      ecCloudHandler.getErizoJS(callback);
+      ecCloudHandler.getErizoJS(undefined, undefined, callback);
 
       expect(amqperMock.callRpc.callCount).to.equal(1);
       expect(amqperMock.callRpc.args[0][1]).to.equal('createErizoJS');
@@ -61,29 +61,35 @@ describe('Erizo Controller / ec Cloud Handler', function() {
     it('should succeed if ErizoJS is created', function() {
       var arbitraryErizoId = 'erizoId';
       var arbitraryAgentId = 'agentId';
+      var arbitraryInternalId = 'internalId';
       var callback = sinon.stub();
 
-      ecCloudHandler.getErizoJS(callback);
+      ecCloudHandler.getErizoJS(undefined, undefined, callback);
       var sendResponse = amqperMock.callRpc.args[0][3].callback;
-      sendResponse({erizoId: arbitraryErizoId, agentId: arbitraryAgentId});
+      sendResponse({erizoId: arbitraryErizoId, agentId: arbitraryAgentId,
+                    internalId: arbitraryInternalId});
 
       expect(callback.callCount).to.equal(1);
-      expect(callback.args[0]).to.deep.equal([arbitraryErizoId, arbitraryAgentId]);
+      expect(callback.args[0]).to.
+        deep.equal([arbitraryErizoId, arbitraryAgentId, arbitraryInternalId]);
     });
 
     it('should succeed after retry less than 5 times if ErizoJS is not created', function() {
       var arbitraryErizoId = 'erizoId';
+      var arbitraryAgentId = 'agentId';
+      var arbitraryInternalId = 'internalId';
       var agentsAttemps = 4;
       var callback = sinon.stub();
       var sendResponse;
 
-      ecCloudHandler.getErizoJS(callback);
+      ecCloudHandler.getErizoJS(undefined, undefined, callback);
       for (var count = 0; count <= agentsAttemps; count++) {
        sendResponse = amqperMock.callRpc.args[count][3].callback;
        sendResponse('timeout');
       }
       sendResponse = amqperMock.callRpc.args[count][3].callback;
-      sendResponse(arbitraryErizoId);
+      sendResponse({erizoId: arbitraryErizoId, agentId: arbitraryAgentId,
+                    internalId: arbitraryInternalId});
 
       expect(callback.callCount).to.equal(1);
       expect(callback.args[0][0]).to.deep.equal(arbitraryErizoId);
@@ -93,7 +99,7 @@ describe('Erizo Controller / ec Cloud Handler', function() {
       var agentsAttemps = 5;
       var callback = sinon.stub();
 
-      ecCloudHandler.getErizoJS(callback);
+      ecCloudHandler.getErizoJS(undefined, undefined, callback);
       for (var count = 0; count <= agentsAttemps; count++) {
        var sendResponse = amqperMock.callRpc.args[count][3].callback;
        sendResponse('timeout');
