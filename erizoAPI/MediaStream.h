@@ -162,8 +162,8 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     virtual void notifyStats(const std::string& message);
 
     static NAUV_WORK_CB(eventCallback);
-    virtual void notifyMediaStreamEvent(const std::string& message = "",
-        const std::string& stream_id = "");
+    virtual void notifyMediaStreamEvent(const std::string& type = "",
+        const std::string& message = "");
 };
 
 #endif  // ERIZOAPI_MEDIASTREAM_H_
