@@ -11,7 +11,9 @@ exports.RoomController = function (spec) {
         subscribers = {},
         // {id: erizoJS_id}
         publishers = {},
-        // {erizoJS_id: {publishers: [ids], kaCount: count, agentId: agentId, internalId: internalId}}
+
+        // {erizoJS_id:
+        //     {publishers: [ids], kaCount: count, agentId: agentId, internalId: internalId}}
         erizos = {},
 
         maxErizos = spec.maxConnections || global.config.erizoController.maxErizosInRoom,
@@ -86,7 +88,8 @@ exports.RoomController = function (spec) {
         }
       }
 
-      log.debug('message: Getting ErizoJS, agentId: ' + agentId + ', internalId: ' + internalId, ', erizos: ' + JSON.stringify(erizos));
+      log.debug('message: Getting ErizoJS, agentId: ' + agentId +
+                ', internalId: ' + internalId, ', erizos: ' + JSON.stringify(erizos));
     	ecch.getErizoJS(agentId, internalId, function(erizoId, agentId, internalId) {
             if (!erizos[erizoId] && erizoId !== 'timeout') {
                 erizos[erizoId] = {publishers: [], kaCount: 0, agentId, internalId};
