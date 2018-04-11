@@ -123,7 +123,7 @@ describe('Erizo Agent', function() {
     it('should create erizos', function() {
       var callback = sinon.stub();
 
-      erizoAgentPublicApi.createErizoJS(callback);
+      erizoAgentPublicApi.createErizoJS(undefined, callback);
 
       expect(childProcessMock.spawn.callCount).to.equal(1);
       expect(childProcessMock.spawn.args[0][0]).to.equal('./launch.sh');
@@ -138,7 +138,7 @@ describe('Erizo Agent', function() {
     it('should delete erizos', function() {
       var erizoId;
       var callback = sinon.stub();
-      erizoAgentPublicApi.createErizoJS(function(type, info) {
+      erizoAgentPublicApi.createErizoJS(undefined, function(type, info) {
         erizoId = info.erizoId;
       });
 
