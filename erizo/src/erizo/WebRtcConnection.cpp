@@ -95,14 +95,12 @@ void WebRtcConnection::close() {
 }
 
 bool WebRtcConnection::init() {
-  if (conn_event_listener_ != nullptr) {
-    conn_event_listener_->notifyEvent(global_state_, "");
-  }
-  return true;
+    maybeNotifyWebRtcConnectionEvent(global_state_, "");
+    return true;
 }
 
 bool WebRtcConnection::createOffer(bool video_enabled, bool audioEnabled, bool bundle) {
-  boost::mutex::scoped_lock lock(updateStateMutex_);
+  boost::mutex::scoped_lock lock(update_state_mutex_);
   bundle_ = bundle;
   video_enabled_ = video_enabled;
   audio_enabled_ = audioEnabled;
@@ -147,10 +145,10 @@ bool WebRtcConnection::createOffer(bool video_enabled, bool audioEnabled, bool b
       audio_transport_->start();
     }
   }
-  if (conn_event_listener_ != nullptr) {
-    std::string msg = this->getLocalSdp();
-    conn_event_listener_->notifyEvent(global_state_, msg);
-  }
+
+  std::string msg = this->getLocalSdp();
+  maybeNotifyWebRtcConnectionEvent(global_state_, msg);
+
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   forEachMediaStreamAsync([weak_this] (const std::shared_ptr<MediaStream> &media_stream) {
     if (auto connection = weak_this.lock()) {
@@ -169,7 +167,7 @@ void WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream)
 
 void WebRtcConnection::removeMediaStream(const std::string& stream_id) {
   asyncTask([stream_id] (std::shared_ptr<WebRtcConnection> connection) {
-    boost::mutex::scoped_lock lock(connection->updateStateMutex_);
+    boost::mutex::scoped_lock lock(connection->update_state_mutex_);
     ELOG_DEBUG("%s message: removing mediaStream, id: %s", connection->toLog(), stream_id.c_str());
     connection->media_streams_.erase(std::remove_if(connection->media_streams_.begin(),
                                                     connection->media_streams_.end(),
@@ -218,7 +216,7 @@ bool WebRtcConnection::setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, std::strin
 }
 
 std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
-  boost::mutex::scoped_lock lock(updateStateMutex_);
+  boost::mutex::scoped_lock lock(update_state_mutex_);
   ELOG_DEBUG("%s message: getting local SDPInfo", toLog());
   forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
     if (!media_stream->isRunning() || media_stream->isPublisher()) {
@@ -287,7 +285,7 @@ void WebRtcConnection::onRemoteSdpsSetToMediaStreams(std::string stream_id) {
   asyncTask([stream_id] (std::shared_ptr<WebRtcConnection> connection) {
     ELOG_DEBUG("%s message: SDP processed", connection->toLog());
     std::string sdp = connection->getLocalSdp();
-    connection->conn_event_listener_->notifyEvent(CONN_SDP_PROCESSED, sdp, stream_id);
+    connection->maybeNotifyWebRtcConnectionEvent(CONN_SDP_PROCESSED, sdp, stream_id);
   });
 }
 
@@ -453,19 +451,17 @@ void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transpo
   std::string sdp = local_sdp_->addCandidate(cand);
   ELOG_DEBUG("%s message: Discovered New Candidate, candidate: %s", toLog(), sdp.c_str());
   if (trickle_enabled_) {
-    if (conn_event_listener_ != nullptr) {
-      if (!bundle_) {
-        std::string object = this->getJSONCandidate(transport->transport_name, sdp);
-        conn_event_listener_->notifyEvent(CONN_CANDIDATE, object);
-      } else {
-        if (remote_sdp_->hasAudio) {
-          std::string object = this->getJSONCandidate("audio", sdp);
-          conn_event_listener_->notifyEvent(CONN_CANDIDATE, object);
-        }
-        if (remote_sdp_->hasVideo) {
-          std::string object2 = this->getJSONCandidate("video", sdp);
-          conn_event_listener_->notifyEvent(CONN_CANDIDATE, object2);
-        }
+    if (!bundle_) {
+      std::string object = this->getJSONCandidate(transport->transport_name, sdp);
+      maybeNotifyWebRtcConnectionEvent(CONN_CANDIDATE, object);
+    } else {
+      if (remote_sdp_->hasAudio) {
+        std::string object = this->getJSONCandidate("audio", sdp);
+        maybeNotifyWebRtcConnectionEvent(CONN_CANDIDATE, object);
+      }
+      if (remote_sdp_->hasVideo) {
+        std::string object2 = this->getJSONCandidate("video", sdp);
+        maybeNotifyWebRtcConnectionEvent(CONN_CANDIDATE, object2);
       }
     }
   }
@@ -540,6 +536,15 @@ void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Trans
   }
 }
 
+void WebRtcConnection::maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message,
+    const std::string& stream_id) {
+  boost::mutex::scoped_lock lock(eventlistener_mutex_);
+  if (!conn_event_listener_) {
+      return;
+  }
+  conn_event_listener_->notifyEvent(event, message, stream_id);
+}
+
 void WebRtcConnection::asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f) {
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   worker_->task([weak_this, f] {
@@ -550,7 +555,7 @@ void WebRtcConnection::asyncTask(std::function<void(std::shared_ptr<WebRtcConnec
 }
 
 void WebRtcConnection::updateState(TransportState state, Transport * transport) {
-  boost::mutex::scoped_lock lock(updateStateMutex_);
+  boost::mutex::scoped_lock lock(update_state_mutex_);
   WebRTCEvent temp = global_state_;
   std::string msg = "";
   ELOG_DEBUG("%s transportName: %s, new_state: %d", toLog(), transport->transport_name.c_str(), state);
@@ -655,10 +660,8 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
 
   global_state_ = temp;
 
-  if (conn_event_listener_ != nullptr) {
-    ELOG_INFO("%s newGlobalState: %d", toLog(), global_state_);
-    conn_event_listener_->notifyEvent(global_state_, msg);
-  }
+  ELOG_INFO("%s newGlobalState: %d", toLog(), global_state_);
+  maybeNotifyWebRtcConnectionEvent(global_state_, msg);
 }
 
 void WebRtcConnection::trackTransportInfo() {
@@ -685,6 +688,11 @@ void WebRtcConnection::trackTransportInfo() {
 
 void WebRtcConnection::setMetadata(std::map<std::string, std::string> metadata) {
   setLogContext(metadata);
+}
+
+void WebRtcConnection::setWebRtcConnectionEventListener(WebRtcConnectionEventListener* listener) {
+  boost::mutex::scoped_lock lock(eventlistener_mutex_);
+  this->conn_event_listener_ = listener;
 }
 
 WebRTCEvent WebRtcConnection::getCurrentState() {

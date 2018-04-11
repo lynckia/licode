@@ -31,13 +31,14 @@ class StatCallWorker : public Nan::AsyncWorker {
  * A WebRTC Connection. This class represents a MediaStream that can be established with other peers via a SDP negotiation
  * it comprises all the necessary ICE and SRTP components.
  */
-class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener {
+class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, public erizo::MediaStreamEventListener {
  public:
     DECLARE_LOGGER();
     static NAN_MODULE_INIT(Init);
 
     std::shared_ptr<erizo::MediaStream> me;
     std::queue<std::string> statsMsgs;
+    std::queue<std::pair<std::string, std::string>> eventMsgs;
 
     boost::mutex mutex;
 
@@ -48,10 +49,13 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener {
     void close();
     std::string toLog();
 
-    Nan::Callback *statsCallback_;
+    Nan::Callback *eventCallback_;
+    uv_async_t *async_event_;
+    bool hasEventCallback_;
 
+    Nan::Callback *statsCallback_;
     uv_async_t *async_stats_;
-    bool hasCallback_;
+    bool hasStatsCallback_;
     bool closed_;
     std::string id_;
     std::string label_;
@@ -149,10 +153,17 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener {
     static NAN_METHOD(disableHandler);
 
     static NAN_METHOD(setQualityLayer);
+
+    static NAN_METHOD(onMediaStreamEvent);
+
     static Nan::Persistent<v8::Function> constructor;
 
     static NAUV_WORK_CB(statsCallback);
     virtual void notifyStats(const std::string& message);
+
+    static NAUV_WORK_CB(eventCallback);
+    virtual void notifyMediaStreamEvent(const std::string& message = "",
+        const std::string& stream_id = "");
 };
 
 #endif  // ERIZOAPI_MEDIASTREAM_H_

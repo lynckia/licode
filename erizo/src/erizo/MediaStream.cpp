@@ -368,6 +368,18 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
   }  // if not Feedback
 }
 
+void MediaStream::setMediaStreamEventListener(MediaStreamEventListener* listener) {
+  boost::mutex::scoped_lock lock(eventlistener_mutex_);
+  this->mediastream_event_listener_ = listener;
+}
+
+void MediaStream::notifyMediaStreamEvent(const std::string& type, const std::string& message) {
+  boost::mutex::scoped_lock lock(eventlistener_mutex_);
+  if (this->mediastream_event_listener_ != nullptr) {
+    mediastream_event_listener_->notifyMediaStreamEvent(type, message);
+  }
+}
+
 void MediaStream::notifyToEventSink(MediaEventPtr event) {
   event_sink_->deliverEvent(event);
 }
