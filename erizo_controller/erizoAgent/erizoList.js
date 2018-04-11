@@ -38,8 +38,17 @@ class ErizoList extends EventEmitter {
     return this.erizos.find(erizo => !erizo.started);
   }
 
-  getErizo() {
-    let erizo = this.firstIdle;
+  getErizo(internalId) {
+    let erizo;
+    if (internalId !== undefined && internalId !== null && internalId < this.maxErizos) {
+      erizo = this.erizos[internalId];
+      if (!erizo.started) {
+        this.emit('launch-erizo', erizo);
+      }
+      return erizo;
+    }
+
+    erizo = this.firstIdle;
     const erizoId = erizo && erizo.id;
     if (!erizoId) {
       if (!this.areAllRunning()) {
