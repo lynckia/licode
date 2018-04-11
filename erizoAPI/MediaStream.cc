@@ -43,10 +43,15 @@ void StatCallWorker::HandleOKCallback() {
   callback->Call(1, argv);
 }
 
+void destroyAsyncStats(uv_handle_t *handle) {
+  delete handle;
+}
+
 Nan::Persistent<Function> MediaStream::constructor;
 
 MediaStream::MediaStream() : closed_{false}, id_{"undefined"} {
-  uv_async_init(uv_default_loop(), &asyncStats_, &MediaStream::statsCallback);
+  async_stats_ = new uv_async_t;
+  uv_async_init(uv_default_loop(), async_stats_, &MediaStream::statsCallback);
 }
 
 MediaStream::~MediaStream() {
@@ -67,10 +72,11 @@ void MediaStream::close() {
     me.reset();
   }
   hasCallback_ = false;
-  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&asyncStats_))) {
+  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_stats_))) {
     ELOG_DEBUG("%s, message: Closing handle", toLog());
-    uv_close(reinterpret_cast<uv_handle_t*>(&asyncStats_), nullptr);
+    uv_close(reinterpret_cast<uv_handle_t*>(async_stats_), destroyAsyncStats);
   }
+  async_stats_ = nullptr;
   closed_ = true;
   ELOG_DEBUG("%s, message: Closed", toLog());
 }
@@ -97,6 +103,7 @@ NAN_MODULE_INIT(MediaStream::Init) {
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
   Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
+  Nan::SetPrototypeMethod(tpl, "setMaxVideoBW", setMaxVideoBW);
   Nan::SetPrototypeMethod(tpl, "setQualityLayer", setQualityLayer);
   Nan::SetPrototypeMethod(tpl, "setMinLayer", setMinLayer);
   Nan::SetPrototypeMethod(tpl, "setVideoConstraints", setVideoConstraints);
@@ -186,6 +193,17 @@ NAN_METHOD(MediaStream::muteStream) {
   bool mute_video = info[0]->BooleanValue();
   bool mute_audio = info[1]->BooleanValue();
   me->muteStream(mute_video, mute_audio);
+}
+
+NAN_METHOD(MediaStream::setMaxVideoBW) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
+
+  int max_video_bw = info[0]->IntegerValue();
+  me->setMaxVideoBW(max_video_bw);
 }
 
 NAN_METHOD(MediaStream::setVideoConstraints) {
@@ -368,10 +386,13 @@ void MediaStream::notifyStats(const std::string& message) {
   if (!this->hasCallback_) {
     return;
   }
+  if (!async_stats_) {
+    return;
+  }
   boost::mutex::scoped_lock lock(mutex);
   this->statsMsgs.push(message);
-  asyncStats_.data = this;
-  uv_async_send(&asyncStats_);
+  async_stats_->data = this;
+  uv_async_send(async_stats_);
 }
 
 NAUV_WORK_CB(MediaStream::statsCallback) {

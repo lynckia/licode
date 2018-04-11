@@ -88,15 +88,6 @@ void QualityManager::notifyQualityUpdate() {
 }
 
 bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_layer) {
-  int min_valid_temporal_layer = std::min(min_temporal_layer_, max_active_temporal_layer_);
-  int min_valid_spatial_layer = std::min(min_spatial_layer_, max_active_spatial_layer_);
-  ELOG_DEBUG("doesLayerMeetConstraints spatial %u, temporal %u, min_spatial %u, min_temporal %u",
-         spatial_layer, temporal_layer, min_spatial_layer_, min_temporal_layer_);
-  if (spatial_layer < min_valid_spatial_layer || temporal_layer < min_valid_temporal_layer) {
-    ELOG_DEBUG("spatial %u, temporal %u, Does not meet constraints: min_spatial %u, min_temporal %u",
-         spatial_layer, temporal_layer, min_spatial_layer_, min_temporal_layer_);
-      return false;
-  }
   if (static_cast<uint>(spatial_layer) > video_frame_width_list_.size() ||
       static_cast<uint>(spatial_layer) > video_frame_height_list_.size() ||
       static_cast<uint>(temporal_layer) > video_frame_rate_list_.size()) {
@@ -127,6 +118,22 @@ bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_la
 
   return meets_resolution && meets_frame_rate;
 }
+
+bool QualityManager::meetsLowerLayerLimit(int spatial_layer, int temporal_layer) {
+  min_valid_temporal_layer_ = std::min(min_temporal_layer_, max_active_temporal_layer_);
+  min_valid_spatial_layer_ = std::min(min_spatial_layer_, max_active_spatial_layer_);
+  ELOG_DEBUG("doesLayerMeetConstraints spatial %u, temporal %u, min_spatial %u, min_temporal %u,"
+          "min_valid_temporal: %u, min_valid_spatial: %u ",
+         spatial_layer, temporal_layer, min_spatial_layer_, min_temporal_layer_,
+         min_valid_spatial_layer_, min_valid_temporal_layer_);
+  if (spatial_layer < min_valid_spatial_layer_ || temporal_layer < min_valid_temporal_layer_) {
+    ELOG_DEBUG("spatial %u, temporal %u, Does not meet constraints: min_spatial %u, min_temporal %u",
+         spatial_layer, temporal_layer, min_valid_spatial_layer_, min_valid_temporal_layer_);
+      return false;
+  }
+  return true;
+}
+ 
 
 void QualityManager::selectLayer(bool try_higher_layers) {
   if (!stats_ || !stats_->getNode().hasChild("qualityLayers")) {
@@ -160,6 +167,13 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     }
     aux_temporal_layer = 0;
     aux_spatial_layer++;
+  }
+  if (!meetsLowerLayerLimit(next_spatial_layer, next_temporal_layer)) {
+      ELOG_DEBUG("Layer (%d/%d) is below the minimum layer, will use %d/%d",
+              next_spatial_layer, next_temporal_layer, min_valid_spatial_layer_, min_valid_temporal_layer_);
+      below_min_layer = true;
+      next_temporal_layer = min_valid_temporal_layer_;
+      next_spatial_layer = min_valid_spatial_layer_;
   }
 
   if (below_min_layer != slideshow_mode_active_) {

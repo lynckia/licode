@@ -86,6 +86,20 @@ MediaStream::~MediaStream() {
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
+uint32_t MediaStream::getMaxVideoBW() {
+  uint32_t bitrate = rtcp_processor_ ? rtcp_processor_->getMaxVideoBW() : 0;
+  return bitrate;
+}
+
+void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
+  asyncTask([max_video_bw] (std::shared_ptr<MediaStream> stream) {
+    if (stream->rtcp_processor_) {
+      stream->rtcp_processor_->setMaxVideoBW(max_video_bw * 1000);
+      stream->pipeline_->notifyUpdate();
+    }
+  });
+}
+
 void MediaStream::syncClose() {
   ELOG_DEBUG("%s message:Close called", toLog());
   if (!sending_) {
@@ -230,6 +244,15 @@ int MediaStream::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) {
 int MediaStream::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(fb_packet->data);
   uint32_t recvSSRC = chead->getSourceSSRC();
+  if (chead->isREMB()) {
+    for (uint8_t index = 0; index < chead->getREMBNumSSRC(); index++) {
+      uint32_t ssrc = chead->getREMBFeedSSRC(index);
+      if (isVideoSourceSSRC(ssrc)) {
+        recvSSRC = ssrc;
+        break;
+      }
+    }
+  }
   if (isVideoSourceSSRC(recvSSRC)) {
     fb_packet->type = VIDEO_PACKET;
     sendPacketAsync(fb_packet);

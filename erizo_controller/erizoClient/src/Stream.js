@@ -372,7 +372,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     const config = { muteStream: { audio: that.audioMuted, video: that.videoMuted } };
     that.checkOptions(config, true);
     if (that.pc) {
-      that.pc.updateSpec(config, callback);
+      that.pc.updateSpec(config, that.getID(), callback);
     }
   };
 
@@ -395,7 +395,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
     const config = { qualityLayer: { spatialLayer, temporalLayer } };
     that.checkOptions(config, true);
-    that.pc.updateSpec(config, callback);
+    that.pc.updateSpec(config, that.getID(), callback);
   };
 
   // eslint-disable-next-line no-underscore-dangle
@@ -407,7 +407,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
     const config = { qualityLayer: { spatialLayer: -1, temporalLayer: -1 } };
     that.checkOptions(config, true);
-    that.pc.updateSpec(config, callback);
+    that.pc.updateSpec(config, that.getID(), callback);
   };
 
   // eslint-disable-next-line no-underscore-dangle
@@ -420,7 +420,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     const config = { minLayer: { spatialLayer, temporalLayer } };
     that.checkOptions(config, true);
     Logger.debug('Calling updateSpec with config', config);
-    that.pc.updateSpec(config, callback);
+    that.pc.updateSpec(config, that.getID(), callback);
   };
 
   const controlHandler = (handlersInput, publisherSideInput, enable) => {
@@ -456,13 +456,13 @@ const Stream = (altConnectionHelpers, specInput) => {
       if (that.local) {
         if (that.room.p2p) {
           for (let index = 0; index < that.pc.length; index += 1) {
-            that.pc[index].updateSpec(config, callback);
+            that.pc[index].updateSpec(config, that.getID(), callback);
           }
         } else {
-          that.pc.updateSpec(config, callback);
+          that.pc.updateSpec(config, that.getID(), callback);
         }
       } else {
-        that.pc.updateSpec(config, callback);
+        that.pc.updateSpec(config, that.getID(), callback);
       }
     } else {
       callback('This stream has no peerConnection attached, ignoring');

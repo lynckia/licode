@@ -50,7 +50,7 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener {
 
     Nan::Callback *statsCallback_;
 
-    uv_async_t asyncStats_;
+    uv_async_t *async_stats_;
     bool hasCallback_;
     bool closed_;
     std::string id_;
@@ -104,6 +104,11 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener {
      * Param: A boolean indicating what to do
      */
     static NAN_METHOD(muteStream);
+    /*
+     * Sets Max Video BW
+     * Param: The value for the max video bandwidth
+     */
+    static NAN_METHOD(setMaxVideoBW);
     /*
      * Sets constraints to the subscribing video
      * Param: Max width, height and framerate.

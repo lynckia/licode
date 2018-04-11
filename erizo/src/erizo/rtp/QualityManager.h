@@ -44,6 +44,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   bool isInMaxLayer();
   void setPadding(bool enabled);
   bool doesLayerMeetConstraints(int spatial_layer, int temporal_layer);
+  bool meetsLowerLayerLimit(int spatial_layer, int temporal_layer);
 
  private:
   bool initialized_;
@@ -57,6 +58,8 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   int max_active_temporal_layer_;
   int min_temporal_layer_;
   int min_spatial_layer_;
+  int min_valid_temporal_layer_;
+  int min_valid_spatial_layer_;
   int64_t max_video_width_;
   int64_t max_video_height_;
   int64_t max_video_frame_rate_;
