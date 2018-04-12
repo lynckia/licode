@@ -1,7 +1,7 @@
 /*global require, exports, setInterval*/
 'use strict';
 var logger = require('./../common/logger').logger;
-var EventEmitter = require('Events').EventEmitter;
+var EventEmitter = require('events').EventEmitter;
 
 // Logger
 var log = logger.getLogger('RoomController');
