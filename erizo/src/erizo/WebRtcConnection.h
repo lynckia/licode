@@ -110,10 +110,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   /**
    * Sets the Event Listener for this WebRtcConnection
    */
-  inline void setWebRtcConnectionEventListener(WebRtcConnectionEventListener* listener) {
-    this->conn_event_listener_ = listener;
-  }
-
+  void setWebRtcConnectionEventListener(WebRtcConnectionEventListener* listener);
 
   /**
    * Gets the current state of the Ice Connection
@@ -162,6 +159,8 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void trackTransportInfo();
   void onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport);
   void onREMBFromTransport(RtcpHeader *chead, Transport *transport);
+  void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message,
+        const std::string& stream_id = "");
 
  private:
   std::string connection_id_;
@@ -182,7 +181,8 @@ class WebRtcConnection: public TransportListener, public LogContext,
   std::shared_ptr<Stats> stats_;
   WebRTCEvent global_state_;
 
-  boost::mutex updateStateMutex_;  // , slideShowMutex_;
+  boost::mutex update_state_mutex_;
+  boost::mutex event_listener_mutex_;
 
   std::shared_ptr<Worker> worker_;
   std::shared_ptr<IOWorker> io_worker_;

@@ -229,7 +229,7 @@ NAN_METHOD(WebRtcConnection::init) {
     return;
   }
 
-  obj->eventCallback_ = new Nan::Callback(info[0].As<Function>());
+  obj->event_callback_ = new Nan::Callback(info[0].As<Function>());
   bool r = me->init();
 
   info.GetReturnValue().Set(Nan::New(r));
@@ -407,8 +407,8 @@ void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& 
   if (!async_) {
     return;
   }
-  this->eventSts.push(event);
-  this->eventMsgs.push(std::make_pair(message, stream_id));
+  this->event_status.push(event);
+  this->event_messages.push(std::make_pair(message, stream_id));
   async_->data = this;
   uv_async_send(async_);
 }
@@ -422,13 +422,13 @@ NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
   }
   boost::mutex::scoped_lock lock(obj->mutex);
   ELOG_DEBUG("%s, message: eventsCallback", obj->toLog());
-  while (!obj->eventSts.empty()) {
-    Local<Value> args[] = {Nan::New(obj->eventSts.front()),
-                           Nan::New(obj->eventMsgs.front().first.c_str()).ToLocalChecked(),
-                           Nan::New(obj->eventMsgs.front().second.c_str()).ToLocalChecked()};
-    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->eventCallback_->GetFunction(), 3, args);
-    obj->eventMsgs.pop();
-    obj->eventSts.pop();
+  while (!obj->event_status.empty()) {
+    Local<Value> args[] = {Nan::New(obj->event_status.front()),
+                           Nan::New(obj->event_messages.front().first.c_str()).ToLocalChecked(),
+                           Nan::New(obj->event_messages.front().second.c_str()).ToLocalChecked()};
+    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->event_callback_->GetFunction(), 3, args);
+    obj->event_messages.pop();
+    obj->event_status.pop();
   }
   ELOG_DEBUG("%s, message: eventsCallback finished", obj->toLog());
 }
