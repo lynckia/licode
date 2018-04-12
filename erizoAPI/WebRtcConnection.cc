@@ -45,6 +45,7 @@ void WebRtcConnection::close() {
     ELOG_DEBUG("%s, message: Already closed", toLog());
     return;
   }
+  boost::mutex::scoped_lock lock(mutex);
   ELOG_DEBUG("%s, message: Closing", toLog());
   if (me) {
     me->setWebRtcConnectionEventListener(nullptr);

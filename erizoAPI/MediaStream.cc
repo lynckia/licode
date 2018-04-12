@@ -67,6 +67,7 @@ void MediaStream::close() {
     ELOG_DEBUG("%s, message: Already closed", toLog());
     return;
   }
+  boost::mutex::scoped_lock lock(mutex);
   ELOG_DEBUG("%s, message: Closing", toLog());
   if (me) {
     me->setMediaStreamStatsListener(nullptr);
@@ -390,26 +391,26 @@ NAN_METHOD(MediaStream::onMediaStreamEvent) {
 }
 
 void MediaStream::notifyStats(const std::string& message) {
+  boost::mutex::scoped_lock lock(mutex);
   if (!this->has_stats_callback_) {
     return;
   }
   if (!async_stats_) {
     return;
   }
-  boost::mutex::scoped_lock lock(mutex);
   this->stats_messages.push(message);
   async_stats_->data = this;
   uv_async_send(async_stats_);
 }
 
 void MediaStream::notifyMediaStreamEvent(const std::string& type, const std::string& message) {
+  boost::mutex::scoped_lock lock(mutex);
   if (!this->has_event_callback_) {
     return;
   }
   if (!async_event_) {
     return;
   }
-  boost::mutex::scoped_lock lock(mutex);
   this->event_messages.push(std::make_pair(type, message));
   async_event_->data = this;
   uv_async_send(async_event_);
