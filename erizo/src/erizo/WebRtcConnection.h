@@ -182,7 +182,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   WebRTCEvent global_state_;
 
   boost::mutex update_state_mutex_;
-  boost::mutex eventlistener_mutex_;
+  boost::mutex event_listener_mutex_;
 
   std::shared_ptr<Worker> worker_;
   std::shared_ptr<IOWorker> io_worker_;

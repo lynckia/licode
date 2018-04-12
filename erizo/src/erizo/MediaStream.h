@@ -162,8 +162,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   // parses incoming payload type, replaces occurence in buf
 
  private:
-  boost::mutex eventlistener_mutex_;
-  MediaStreamEventListener* mediastream_event_listener_;
+  boost::mutex event_listener_mutex_;
+  MediaStreamEventListener* media_stream_event_listener_;
   std::shared_ptr<WebRtcConnection> connection_;
   std::string stream_id_;
   std::string mslabel_;

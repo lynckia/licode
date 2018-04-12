@@ -538,7 +538,7 @@ void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Trans
 
 void WebRtcConnection::maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message,
     const std::string& stream_id) {
-  boost::mutex::scoped_lock lock(eventlistener_mutex_);
+  boost::mutex::scoped_lock lock(event_listener_mutex_);
   if (!conn_event_listener_) {
       return;
   }
@@ -691,7 +691,7 @@ void WebRtcConnection::setMetadata(std::map<std::string, std::string> metadata) 
 }
 
 void WebRtcConnection::setWebRtcConnectionEventListener(WebRtcConnectionEventListener* listener) {
-  boost::mutex::scoped_lock lock(eventlistener_mutex_);
+  boost::mutex::scoped_lock lock(event_listener_mutex_);
   this->conn_event_listener_ = listener;
 }
 

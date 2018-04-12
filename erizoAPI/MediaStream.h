@@ -37,8 +37,8 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     static NAN_MODULE_INIT(Init);
 
     std::shared_ptr<erizo::MediaStream> me;
-    std::queue<std::string> statsMsgs;
-    std::queue<std::pair<std::string, std::string>> eventMsgs;
+    std::queue<std::string> stats_messages;
+    std::queue<std::pair<std::string, std::string>> event_messages;
 
     boost::mutex mutex;
 
@@ -49,13 +49,13 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     void close();
     std::string toLog();
 
-    Nan::Callback *eventCallback_;
+    Nan::Callback *event_callback_;
     uv_async_t *async_event_;
-    bool hasEventCallback_;
+    bool has_event_callback_;
 
-    Nan::Callback *statsCallback_;
+    Nan::Callback *stats_callback_;
     uv_async_t *async_stats_;
-    bool hasStatsCallback_;
+    bool has_stats_callback_;
     bool closed_;
     std::string id_;
     std::string label_;

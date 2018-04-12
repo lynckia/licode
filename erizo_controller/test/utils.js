@@ -173,6 +173,7 @@ var reset = module.exports.reset = function() {
     generatePLIPacket: sinon.stub(),
     setSlideShowMode: sinon.stub(),
     muteStream: sinon.stub(),
+    onMediaStreamEvent: sinon.stub(),
   };
 
   module.exports.ExternalInput = {
