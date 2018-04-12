@@ -218,6 +218,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // type can be "media" or "data"
 
   const socketOnAddStream = (arg) => {
+    if (remoteStreams.has(arg.id)) {
+      return;
+    }
     const stream = Stream(that.Connection, { streamID: arg.id,
       local: false,
       audio: arg.audio,
