@@ -240,7 +240,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       stream = localStreams.get(arg.streamId);
     }
 
-    if (stream && !stream.failed) {
+    if (stream && stream.pc && !stream.failed) {
       stream.pc.processSignalingMessage(arg.mess);
     }
   };
