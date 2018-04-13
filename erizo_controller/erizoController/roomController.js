@@ -1,80 +1,10 @@
 /*global require, exports, setInterval*/
 'use strict';
 var logger = require('./../common/logger').logger;
-var EventEmitter = require('events').EventEmitter;
+var ErizoList = require('./models/ErizoList').ErizoList;
 
 // Logger
 var log = logger.getLogger('RoomController');
-
-const MAX_ERIZOS_PER_ROOM = 100;
-
-class ErizoList extends EventEmitter {
-  constructor(maxErizos = MAX_ERIZOS_PER_ROOM) {
-    super();
-    this.maxErizos = maxErizos;
-    this.erizos = new Array(maxErizos);
-    this.erizos.fill(1);
-    this.erizos = this.erizos.map(() => {
-      return {
-        pending: false,
-        erizoId: undefined,
-        agentId: undefined,
-        internalId: undefined,
-        publishers: [],
-        kaCount: 0,
-      };
-    });
-  }
-
-  findById(erizoId) {
-    return this.erizos.find((erizo) => {
-      return erizo.erizoId === erizoId;
-    });
-  }
-
-  getInternalPosition(position) {
-    return position % this.maxErizos;
-  }
-
-  isPending(position) {
-    return this.erizos[this.getInternalPosition(position)].pending;
-  }
-
-  get(position) {
-    return this.erizos[this.getInternalPosition(position)];
-  }
-
-  forEachExisting(task) {
-    this.erizos.forEach((erizo) => {
-      if (erizo.erizoId) {
-        task(erizo);
-      }
-    });
-  }
-
-  deleteById(erizoId) {
-    const erizo = this.findById(erizoId);
-    erizo.pending = false;
-    erizo.erizoId = undefined;
-    erizo.agentId = undefined;
-    erizo.internalId = undefined;
-    erizo.publishers = [];
-    erizo.kaCount = 0;
-  }
-
-  markAsPending(position) {
-    this.erizos[this.getInternalPosition(position)].pending = true;
-  }
-
-  set(position, erizoId, agentId, internalId) {
-    const erizo = this.erizos[this.getInternalPosition(position)];
-    erizo.pending = false;
-    erizo.erizoId = erizoId;
-    erizo.agentId = agentId;
-    erizo.internalId = internalId;
-    this.emit(position, erizo);
-  }
-}
 
 exports.RoomController = function (spec) {
     var that = {},
@@ -152,7 +82,9 @@ exports.RoomController = function (spec) {
 
     const waitForErizoInfoIfPending = (position, callback) => {
       if (erizos.isPending(position)) {
-        erizos.once(erizos.getInternalPosition(position), () => {
+        log.debug('message: Waiting for new ErizoId, position: ' + position);
+        erizos.onErizoReceived(position, () => {
+          log.debug('message: ErizoId received so trying again, position: ' + position);
           getErizoJS(callback, position);
         });
         return true;
@@ -162,7 +94,7 @@ exports.RoomController = function (spec) {
 
     getErizoJS = function(callback, previousPosition = undefined) {
       let agentId;
-      let internalId;
+      let erizoIdForAgent;
       const erizoPosition = previousPosition !== undefined ? previousPosition : currentErizo++;
 
       if (waitForErizoInfoIfPending(erizoPosition, callback)) {
@@ -174,19 +106,20 @@ exports.RoomController = function (spec) {
         erizos.markAsPending(erizoPosition);
       } else {
         agentId = erizo.agentId;
-        internalId = erizo.internalId;
+        erizoIdForAgent = erizo.erizoIdForAgent;
       }
 
-      log.debug('message: Getting ErizoJS, agentId: ' + agentId + ', internalId: ' + internalId);
-      ecch.getErizoJS(agentId, internalId, function(erizoId, agentId, internalId) {
+      log.debug('message: Getting ErizoJS, agentId: ' + agentId +
+                ', erizoIdForAgent: ' + erizoIdForAgent);
+      ecch.getErizoJS(agentId, erizoIdForAgent, function(erizoId, agentId, erizoIdForAgent) {
         const erizo = erizos.get(erizoPosition);
         if (!erizo.erizoId && erizoId !== 'timeout') {
-          erizos.set(erizoPosition, erizoId, agentId, internalId);
+          erizos.set(erizoPosition, erizoId, agentId, erizoIdForAgent);
         } else if (erizo.erizoId) {
           erizo.agentId = agentId;
-          erizo.internalId = internalId;
+          erizo.erizoIdForAgent = erizoIdForAgent;
         }
-        callback(erizoId, agentId, internalId);
+        callback(erizoId, agentId, erizoIdForAgent);
       });
     };
 
