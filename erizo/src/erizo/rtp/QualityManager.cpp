@@ -128,7 +128,7 @@ bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_la
 }
 
 void QualityManager::selectLayer(bool try_higher_layers) {
-  if (!stats_ || !stats_->getNode().hasChild("qualityLayers")) {
+  if (!initialized_ || !stats_->getNode().hasChild("qualityLayers")) {
     return;
   }
   last_quality_check_ = clock_->now();
@@ -139,7 +139,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   float bitrate_margin = try_higher_layers ? kIncreaseLayerBitrateThreshold : 0;
   bool below_min_layer = true;
   bool layer_capped_by_constraints = false;
-  ELOG_DEBUG("Calculate best layer with %lu, current layer %d/%d",
+  ELOG_DEBUG("message: Calculate best layer, estimated_bitrate: %lu, current layer %d/%d",
       current_estimated_bitrate_, spatial_layer_, temporal_layer_);
   for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
     for (auto &temporal_layer_node : spatial_layer_node.second->getMap()) {
@@ -162,10 +162,12 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   }
   int min_valid_spatial_layer = std::min(min_desired_spatial_layer_, max_active_spatial_layer_);
   if (next_spatial_layer < min_valid_spatial_layer) {
-      ELOG_DEBUG("Layer (%d) is below the minimum desired spatial layer, will use %d",
-              next_spatial_layer, min_valid_spatial_layer);
+      ELOG_DEBUG("message: selected layer is below the minimum desired spatial layer, selected_layer: %d,"
+          "used layer: %d", next_spatial_layer, min_valid_spatial_layer);
       if (!slideshow_manual_requested_) {
+        ELOG_DEBUG("1");
         stream_->notifyMediaStreamEvent("slideshow_update", std::to_string(kBelowMinLayerSlideshow));
+        ELOG_DEBUG("2");
         slideshow_manual_requested_ = true;
       }
       next_temporal_layer = 0;
@@ -179,7 +181,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   if (below_min_layer != slideshow_fallback_active_) {
     if (below_min_layer || try_higher_layers) {
       slideshow_fallback_active_ = below_min_layer;
-      ELOG_DEBUG("Slideshow fallback mode %d", slideshow_fallback_active_);
+      ELOG_DEBUG("message: Setting slideshow fallback, slidehow_fallback_active_: %d", slideshow_fallback_active_);
       HandlerManager *manager = getContext()->getPipelineShared()->getService<HandlerManager>().get();
       if (manager) {
         manager->notifyUpdateToHandlers();
@@ -256,7 +258,7 @@ void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
 }
 
 void QualityManager::setMinDesiredSpatialLayer(int spatial_layer) {
-  ELOG_DEBUG("message: etting min desired spatial layer, spatial_layer: %d", spatial_layer);
+  ELOG_DEBUG("message: setting min desired spatial layer, spatial_layer: %d", spatial_layer);
   min_desired_spatial_layer_ = spatial_layer;
   selectLayer(true);
 }
