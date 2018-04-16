@@ -165,9 +165,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
       ELOG_DEBUG("message: selected layer is below the minimum desired spatial layer, selected_layer: %d,"
           "used layer: %d", next_spatial_layer, min_valid_spatial_layer);
       if (!slideshow_manual_requested_) {
-        ELOG_DEBUG("1");
         stream_->notifyMediaStreamEvent("slideshow_update", std::to_string(kBelowMinLayerSlideshow));
-        ELOG_DEBUG("2");
         slideshow_manual_requested_ = true;
       }
       next_temporal_layer = 0;
