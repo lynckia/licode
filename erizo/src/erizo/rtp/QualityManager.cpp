@@ -128,7 +128,7 @@ bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_la
 }
 
 void QualityManager::selectLayer(bool try_higher_layers) {
-  if (!initialized_ || !stats_->getNode().hasChild("qualityLayers")) {
+  if (!initialized_  || !stats_->getNode().hasChild("qualityLayers")) {
     return;
   }
   last_quality_check_ = clock_->now();
