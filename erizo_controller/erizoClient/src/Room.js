@@ -218,6 +218,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // type can be "media" or "data"
 
   const socketOnAddStream = (arg) => {
+    if (remoteStreams.has(arg.id)) {
+      return;
+    }
     const stream = Stream(that.Connection, { streamID: arg.id,
       local: false,
       audio: arg.audio,
@@ -240,7 +243,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       stream = localStreams.get(arg.streamId);
     }
 
-    if (stream && !stream.failed) {
+    if (stream && stream.pc && !stream.failed) {
       stream.pc.processSignalingMessage(arg.mess);
     }
   };
