@@ -1,23 +1,25 @@
 /*global require, exports, setInterval*/
 'use strict';
 var logger = require('./../common/logger').logger;
+var ErizoList = require('./models/ErizoList').ErizoList;
 
 // Logger
 var log = logger.getLogger('RoomController');
 
 exports.RoomController = function (spec) {
     var that = {},
+
+        getErizoJS,
+
         // {id: array of subscribers}
         subscribers = {},
         // {id: erizoJS_id}
         publishers = {},
 
-        // {erizoJS_id:
-        //     {publishers: [ids], kaCount: count, agentId: agentId, internalId: internalId}}
-        erizos = {},
-
         maxErizosUsedByRoom = spec.maxErizosUsedByRoom || 
                                 global.config.erizoController.maxErizosUsedByRoom,
+
+        erizos = new ErizoList(maxErizosUsedByRoom),
         currentErizo = 0,
 
         // {id: ExternalOutput}
@@ -42,64 +44,83 @@ exports.RoomController = function (spec) {
     var callbackFor = function(erizoId) {
 
         return function(ok) {
-            if (!erizos[erizoId]) return;
+            const erizo = erizos.findById(erizoId);
+            if (!erizo) return;
 
             if (ok !== true) {
-                erizos[erizoId].kaCount ++;
+                erizo.kaCount ++;
 
-                if (erizos[erizoId].kaCount > TIMEOUT_LIMIT) {
-                    if (erizos[erizoId].publishers.length > 0){
+                if (erizo.kaCount > TIMEOUT_LIMIT) {
+                    if (erizo.publishers.length > 0){
                         log.error('message: ErizoJS timed out will be removed, ' +
                                   'erizoId: ' + erizoId + ', ' +
-                                  'publishersAffected: ' + erizos[erizoId].publishers.length);
-                        for (var p in erizos[erizoId].publishers) {
-                            dispatchEvent('unpublish', erizos[erizoId].publishers[p]);
+                                  'publishersAffected: ' + erizo.publishers.length);
+                        for (var p in erizo.publishers) {
+                            dispatchEvent('unpublish', erizo.publishers[p]);
                         }
 
                     } else {
                         log.debug('message: empty erizoJS removed, erizoId: ' + erizoId);
                     }
                     ecch.deleteErizoJS(erizoId);
-                    delete erizos[erizoId];
+                    erizos.deleteById(erizoId);
                 }
             } else {
-                erizos[erizoId].kaCount = 0;
+                erizo.kaCount = 0;
             }
         };
     };
 
     var sendKeepAlive = function() {
-        for (var e in erizos) {
-            amqper.callRpc('ErizoJS_' + e, 'keepAlive', [], {callback: callbackFor(e)});
-        }
+        erizos.forEachExisting(erizo => {
+            const erizoId = erizo.erizoId;
+            amqper.callRpc('ErizoJS_' + erizoId, 'keepAlive', [], {callback: callbackFor(erizoId)});
+        });
     };
 
     setInterval(sendKeepAlive, KEEPALIVE_INTERVAL);
 
-    var getErizoJS = function(callback) {
+    const waitForErizoInfoIfPending = (position, callback) => {
+      if (erizos.isPending(position)) {
+        log.debug('message: Waiting for new ErizoId, position: ' + position);
+        erizos.onErizoReceived(position, () => {
+          log.debug('message: ErizoId received so trying again, position: ' + position);
+          getErizoJS(callback, position);
+        });
+        return true;
+      }
+      return false;
+    };
+
+    getErizoJS = function(callback, previousPosition = undefined) {
       let agentId;
-      let internalId;
-      if (maxErizosUsedByRoom && Object.keys(erizos).length === maxErizosUsedByRoom) {
-        const erizoId = Object.keys(erizos)[currentErizo % maxErizosUsedByRoom];
-        currentErizo++;
-        const erizo = erizos[erizoId];
-        if (erizo) {
-          agentId = erizo.agentId;
-          internalId = erizo.internalId;
-        }
+      let erizoIdForAgent;
+      const erizoPosition = previousPosition !== undefined ? previousPosition : currentErizo++;
+
+      if (waitForErizoInfoIfPending(erizoPosition, callback)) {
+        return;
+      }
+
+      const erizo = erizos.get(erizoPosition);
+      if (!erizo.erizoId) {
+        erizos.markAsPending(erizoPosition);
+      } else {
+        agentId = erizo.agentId;
+        erizoIdForAgent = erizo.erizoIdForAgent;
       }
 
       log.debug('message: Getting ErizoJS, agentId: ' + agentId +
-                ', internalId: ' + internalId, ', erizos: ' + JSON.stringify(erizos));
-    	ecch.getErizoJS(agentId, internalId, function(erizoId, agentId, internalId) {
-            if (!erizos[erizoId] && erizoId !== 'timeout') {
-                erizos[erizoId] = {publishers: [], kaCount: 0, agentId, internalId};
-            } else if (erizos[erizoId]) {
-              erizos[erizoId].agentId = agentId;
-              erizos[erizoId].internalId = internalId;
-            }
-            callback(erizoId, agentId, internalId);
-        });
+                ', erizoIdForAgent: ' + erizoIdForAgent);
+      ecch.getErizoJS(agentId, erizoIdForAgent, function(erizoId, agentId, erizoIdForAgent) {
+        const erizo = erizos.get(erizoPosition);
+        if (!erizo.erizoId && erizoId !== 'timeout') {
+          erizos.set(erizoPosition, erizoId, agentId, erizoIdForAgent);
+        } else if (erizo.erizoId) {
+          erizo.agentId = agentId;
+          erizo.erizoIdForAgent = erizoIdForAgent;
+        }
+        callback(erizoId, agentId, erizoIdForAgent);
+      });
     };
 
     var getErizoQueue = function(streamId) {
@@ -127,7 +148,7 @@ exports.RoomController = function (spec) {
                 amqper.callRpc(getErizoQueue(publisherId), 'addExternalInput', args,
                                {callback: callback}, 20000);
 
-                erizos[erizoId].publishers.push(publisherId);
+                erizos.findById(erizoId).publishers.push(publisherId);
 
             });
         } else {
@@ -235,7 +256,7 @@ exports.RoomController = function (spec) {
                                  'streamId: ' + streamId + ', ' +
                                  'erizoId: ' + getErizoQueue(streamId) + ', ' +
                                  logger.objectToLog(options.metadata));
-                        var erizo = erizos[publishers[streamId]];
+                        var erizo = erizos.findById(publishers[streamId]);
                         if (erizo !== undefined) {
                            var index = erizo.publishers.indexOf(streamId);
                            erizo.publishers.splice(index, 1);
@@ -251,7 +272,7 @@ exports.RoomController = function (spec) {
                     }
                 }});
 
-                erizos[erizoId].publishers.push(streamId);
+                erizos.findById(erizoId).publishers.push(streamId);
             });
 
         } else {
@@ -337,10 +358,11 @@ exports.RoomController = function (spec) {
 
             var args = [clientId, streamId];
             amqper.callRpc(getErizoQueue(streamId), 'removePublisher', args, undefined);
+            const erizo = erizos.findById(publishers[streamId]);
 
-            if (erizos[publishers[streamId]] !== undefined) {
-                var index = erizos[publishers[streamId]].publishers.indexOf(streamId);
-                erizos[publishers[streamId]].publishers.splice(index, 1);
+            if (erizo) {
+                var index = erizo.publishers.indexOf(streamId);
+                erizo.publishers.splice(index, 1);
             } else {
                 log.warn('message: removePublisher was already removed, ' +
                          'streamId: ' + streamId + ', ' +
