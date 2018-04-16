@@ -285,14 +285,13 @@ class Source extends NodeClass {
     subscriber.mediaStream.setQualityLayer(qualityLayer.spatialLayer, qualityLayer.temporalLayer);
   }
 
-  setMinLayer(qualityLayer, clientId) {
+  setMinSpatialLayer(qualityLayer, clientId) {
     const subscriber = this.getSubscriber(clientId);
     if (!subscriber) {
       return;
     }
-    log.info('message: setMinLayer, spatialLayer: ', qualityLayer.spatialLayer,
-                                     ', temporalLayer: ', qualityLayer.temporalLayer);
-    subscriber.mediaStream.setMinLayer(qualityLayer.spatialLayer, qualityLayer.temporalLayer);
+    log.info('message: setMinSpatialLayer, spatialLayer: ', qualityLayer.spatialLayer);
+    subscriber.mediaStream.setMinSpatialLayer(qualityLayer.spatialLayer);
   }
 
   muteSubscriberStream(clientId, muteVideo, muteAudio) {

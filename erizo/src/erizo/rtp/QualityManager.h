@@ -8,6 +8,8 @@
 
 namespace erizo {
 
+class MediaStream;
+
 class QualityManager: public Service, public std::enable_shared_from_this<QualityManager> {
   DECLARE_LOGGER();
 
@@ -15,6 +17,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   static constexpr duration kMinLayerSwitchInterval = std::chrono::seconds(10);
   static constexpr duration kActiveLayerInterval = std::chrono::milliseconds(500);
   static constexpr float kIncreaseLayerBitrateThreshold = 0.1;
+  static constexpr int kBelowMinLayerSlideshow = 5000;
 
  public:
   explicit QualityManager(std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
@@ -23,13 +26,13 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
 
   virtual  int getSpatialLayer() const { return spatial_layer_; }
   virtual  int getTemporalLayer() const { return temporal_layer_; }
-  virtual  bool isSlideShowEnabled() const { return slideshow_mode_active_; }
+  virtual  bool isFallbackSlideShowEnabled() const { return slideshow_fallback_active_; }
 
   void setSpatialLayer(int spatial_layer);
   void setTemporalLayer(int temporal_layer);
 
   void forceLayers(int spatial_layer, int temporal_layer);
-  void setMinDesiredLayers(int spatial_layer, int temporal_layer);
+  void setMinDesiredSpatialLayer(int spatial_layer);
   void setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate);
   void notifyEvent(MediaEventPtr event) override;
   void notifyQualityUpdate();
@@ -44,22 +47,20 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   bool isInMaxLayer();
   void setPadding(bool enabled);
   bool doesLayerMeetConstraints(int spatial_layer, int temporal_layer);
-  bool meetsLowerLayerLimit(int spatial_layer, int temporal_layer);
 
  private:
+  MediaStream* stream_;
   bool initialized_;
   bool enabled_;
   bool padding_enabled_;
   bool forced_layers_;
-  bool slideshow_mode_active_;
+  bool slideshow_fallback_active_;
+  bool slideshow_manual_requested_;
   int spatial_layer_;
   int temporal_layer_;
   int max_active_spatial_layer_;
   int max_active_temporal_layer_;
-  int min_temporal_layer_;
-  int min_spatial_layer_;
-  int min_valid_temporal_layer_;
-  int min_valid_spatial_layer_;
+  int min_desired_spatial_layer_;
   int64_t max_video_width_;
   int64_t max_video_height_;
   int64_t max_video_frame_rate_;

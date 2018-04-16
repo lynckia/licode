@@ -411,13 +411,13 @@ const Stream = (altConnectionHelpers, specInput) => {
   };
 
   // eslint-disable-next-line no-underscore-dangle
-  that._setMinQualityLayer = (spatialLayer, temporalLayer, callback = () => {}) => {
+  that._setMinSpatialLayer = (spatialLayer, callback = () => {}) => {
     if (that.room && that.room.p2p) {
-      Logger.warning('setMinQualityLayer is not implemented in p2p streams');
+      Logger.warning('setMinSpatialLayer is not implemented in p2p streams');
       callback('error');
       return;
     }
-    const config = { minLayer: { spatialLayer, temporalLayer } };
+    const config = { minLayer: { spatialLayer } };
     that.checkOptions(config, true);
     Logger.debug('Calling updateSpec with config', config);
     that.pc.updateSpec(config, that.getID(), callback);

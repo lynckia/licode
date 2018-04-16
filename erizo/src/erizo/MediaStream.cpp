@@ -368,6 +368,18 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
   }  // if not Feedback
 }
 
+void MediaStream::setMediaStreamEventListener(MediaStreamEventListener* listener) {
+  boost::mutex::scoped_lock lock(event_listener_mutex_);
+  this->media_stream_event_listener_ = listener;
+}
+
+void MediaStream::notifyMediaStreamEvent(const std::string& type, const std::string& message) {
+  boost::mutex::scoped_lock lock(event_listener_mutex_);
+  if (this->media_stream_event_listener_ != nullptr) {
+    media_stream_event_listener_->notifyMediaStreamEvent(type, message);
+  }
+}
+
 void MediaStream::notifyToEventSink(MediaEventPtr event) {
   event_sink_->deliverEvent(event);
 }
@@ -609,9 +621,9 @@ void MediaStream::setQualityLayer(int spatial_layer, int temporal_layer) {
   });
 }
 
-void MediaStream::setMinDesiredLayers(int spatial_layer, int temporal_layer) {
-  asyncTask([spatial_layer, temporal_layer] (std::shared_ptr<MediaStream> media_stream) {
-    media_stream->quality_manager_->setMinDesiredLayers(spatial_layer, temporal_layer);
+void MediaStream::setMinDesiredSpatialLayer(int spatial_layer) {
+  asyncTask([spatial_layer] (std::shared_ptr<MediaStream> media_stream) {
+    media_stream->quality_manager_->setMinDesiredSpatialLayer(spatial_layer);
   });
 }
 

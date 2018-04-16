@@ -15,6 +15,7 @@ class Subscriber extends NodeClass {
     this.connection.addMediaStream(this.erizoStreamId, options, false);
     this._connectionListener = this._emitStatusEvent.bind(this);
     connection.on('status_event', this._connectionListener);
+    connection.on('media_stream_event', this._onMediaStreamEvent.bind(this));
     this.mediaStream = connection.getMediaStream(this.erizoStreamId);
     this.publisher = publisher;
     this.ready = false;
@@ -63,6 +64,13 @@ class Subscriber extends NodeClass {
     }
   }
 
+  _onMediaStreamEvent(mediaStreamEvent) {
+    if (mediaStreamEvent.type === 'slideshow_update') {
+      this.publisher.setSlideShow(mediaStreamEvent.message === 
+        'false'? false: parseInt(mediaStreamEvent.message), this.clientId);
+    }
+  }
+
   disableDefaultHandlers() {
     const disabledHandlers = global.config.erizo.disabledHandlers;
     for (const index in disabledHandlers) {
@@ -98,7 +106,7 @@ class Subscriber extends NodeClass {
           this.publisher.setQualityLayer(msg.config.qualityLayer, this.clientId);
         }
         if (msg.config.minLayer !== undefined) {
-          this.publisher.setMinLayer(msg.config.minLayer, this.clientId);
+          this.publisher.setMinSpatialLayer(msg.config.minLayer, this.clientId);
         }
         if (msg.config.video !== undefined) {
           this.publisher.setVideoConstraints(msg.config.video, this.clientId);

@@ -13,7 +13,7 @@ describe('Erizo Controller / Room Controller', function() {
       controller;
 
   beforeEach(function() {
-    global.config = {logger: {configFile: true}};
+    global.config = {logger: {configFile: true}, erizoController: {}};
     licodeConfigMock = mocks.start(mocks.licodeConfig);
     amqperMock = mocks.start(mocks.amqper);
     ecchInstanceMock = mocks.ecchInstance;
@@ -52,7 +52,7 @@ describe('Erizo Controller / Room Controller', function() {
 
     it('should call Erizo\'s addExternalInput', function() {
       var callback = sinon.stub();
-      ecchInstanceMock.getErizoJS.callsArgWith(0, 'erizoId');
+      ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
 
       controller.addExternalInput(kArbitraryId, kArbitraryUrl, callback);
       expect(amqperMock.callRpc.callCount).to.equal(1);
@@ -61,7 +61,7 @@ describe('Erizo Controller / Room Controller', function() {
 
     it('should fail if it already exists', function() {
       var callback = sinon.stub();
-      ecchInstanceMock.getErizoJS.callsArgWith(0, 'erizoId');
+      ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
 
       controller.addExternalInput(kArbitraryId, kArbitraryUrl, callback);
       expect(amqperMock.callRpc.callCount).to.equal(1);
@@ -77,7 +77,7 @@ describe('Erizo Controller / Room Controller', function() {
 
     beforeEach(function() {
       var callback = sinon.stub();
-      ecchInstanceMock.getErizoJS.callsArgWith(0, 'erizoId');
+      ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
 
       controller.addExternalInput(kArbitraryId, kArbitraryUrl, callback);
     });
@@ -94,7 +94,7 @@ describe('Erizo Controller / Room Controller', function() {
 
     it('should fail if it already exists', function() {
       var callback = sinon.stub();
-      ecchInstanceMock.getErizoJS.callsArgWith(0, 'erizoId');
+      ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
 
       controller.addExternalOutput(kArbitraryUnknownId, kArbitraryOutputUrl,
         kArbitraryOptions, callback);
@@ -137,7 +137,7 @@ describe('Erizo Controller / Room Controller', function() {
 
     it('should call Erizo\'s addPublisher', function() {
       var callback = sinon.stub();
-      ecchInstanceMock.getErizoJS.callsArgWith(0, 'erizoId');
+      ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
 
       controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, kArbitraryOptions, callback);
 
@@ -151,7 +151,7 @@ describe('Erizo Controller / Room Controller', function() {
 
     it('should call send error on erizoJS timeout', function() {
       var callback = sinon.stub();
-      ecchInstanceMock.getErizoJS.callsArgWith(0, 'timeout');
+      ecchInstanceMock.getErizoJS.callsArgWith(2, 'timeout');
 
       controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, kArbitraryOptions, callback);
 
@@ -163,7 +163,7 @@ describe('Erizo Controller / Room Controller', function() {
 
     it('should return error on Publisher timeout', function() {
       var callback = sinon.stub();
-      ecchInstanceMock.getErizoJS.callsArgWith(0, 'erizoId');
+      ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
 
       controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, kArbitraryOptions, callback);
 
@@ -181,7 +181,7 @@ describe('Erizo Controller / Room Controller', function() {
 
     it('should fail on callback if it has been already removed', function() {
       var callback = sinon.stub();
-      ecchInstanceMock.getErizoJS.callsArgWith(0, 'erizoId');
+      ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
 
       controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, kArbitraryOptions, callback);
 
@@ -203,7 +203,7 @@ describe('Erizo Controller / Room Controller', function() {
         kArbitraryPubOptions = {};
 
     beforeEach(function() {
-      ecchInstanceMock.getErizoJS.callsArgWith(0, 'erizoId');
+      ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
       controller.addPublisher(kArbitraryClientId, kArbitraryStreamId,
         kArbitraryPubOptions, sinon.stub());
     });
@@ -225,7 +225,7 @@ describe('Erizo Controller / Room Controller', function() {
         kArbitraryPubOptions = {};
 
     beforeEach(function() {
-      ecchInstanceMock.getErizoJS.callsArgWith(0, 'erizoId');
+      ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
       controller.addPublisher(kArbitraryClientId, kArbitraryStreamId,
          kArbitraryPubOptions, sinon.stub());
     });

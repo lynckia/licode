@@ -34,6 +34,13 @@ class MediaStreamStatsListener {
     virtual void notifyStats(const std::string& message) = 0;
 };
 
+
+class MediaStreamEventListener {
+ public:
+    virtual ~MediaStreamEventListener() {
+    }
+    virtual void notifyMediaStreamEvent(const std::string& type, const std::string& message) = 0;
+};
 /**
  * A MediaStream. This class represents a Media Stream that can be established with other peers via a SDP negotiation
  */
@@ -73,9 +80,16 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   int sendPLI() override;
   void sendPLIToFeedback();
   void setQualityLayer(int spatial_layer, int temporal_layer);
-  void setMinDesiredLayers(int spatial_layer, int temporal_layer);
+  void setMinDesiredSpatialLayer(int spatial_layer);
 
   WebRTCEvent getCurrentState();
+
+  /**
+   * Sets the Event Listener for this MediaStream
+   */
+  void setMediaStreamEventListener(MediaStreamEventListener* listener);
+
+  void notifyMediaStreamEvent(const std::string& type, const std::string& message);
 
   /**
    * Sets the Stats Listener for this MediaStream
@@ -149,6 +163,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   // parses incoming payload type, replaces occurence in buf
 
  private:
+  boost::mutex event_listener_mutex_;
+  MediaStreamEventListener* media_stream_event_listener_;
   std::shared_ptr<WebRtcConnection> connection_;
   std::string stream_id_;
   std::string mslabel_;
