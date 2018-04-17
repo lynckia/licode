@@ -6,7 +6,7 @@ const MAX_ERIZOS_PER_ROOM = 100;
 class ErizoList extends EventEmitter {
   constructor(maxErizos = MAX_ERIZOS_PER_ROOM) {
     super();
-    this.maxErizos = maxErizos;
+    this.maxErizos = maxErizos > 0 maxErizos : MAX_ERIZOS_PER_ROOM;
     this.erizos = new Array(maxErizos);
     this.erizos.fill(1);
     this.erizos = this.erizos.map(() => {
