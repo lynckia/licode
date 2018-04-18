@@ -89,14 +89,18 @@ class Connection extends events.EventEmitter {
       mediaStream.setMetadata(JSON.stringify(options.metadata));
     }
     mediaStream.onMediaStreamEvent((type, message) => {
-      this._onMediaStreamEvent(type, message);
+      this._onMediaStreamEvent(type, message, mediaStream.id);
     });
     return mediaStream;
   }
 
-  _onMediaStreamEvent(type, message) {
-    log.debug(`message: _onMediaStreamEvent, type: ${type}, msg: ${message}`);
-    this.emit('mediastream_event', type, message);
+  _onMediaStreamEvent(type, message, mediaStreamId) {
+    let streamEvent = {
+      type: type,
+      mediaStreamId: mediaStreamId,
+      message: message,
+    };
+    this.emit('media_stream_event', streamEvent);
   }
 
   _maybeSendAnswer(evt, streamId) {

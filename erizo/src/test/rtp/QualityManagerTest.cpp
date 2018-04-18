@@ -253,6 +253,43 @@ TEST_F(QualityManagerTest, shouldStickToForcedLayer) {
   EXPECT_EQ(quality_manager->getTemporalLayer() , kBaseTemporalLayer);
 }
 
+TEST_F(QualityManagerTest, shouldNotGoBelowMinDesiredSpatialLayerIfAvailable) {
+  const int kArbitrarySpatialLayer = 1;
+  const int kArbitraryTemporalLayer = 0;
+
+  const int kArbitraryDesiredMinSpatialLayer = 1;
+  setSenderBitrateEstimation(getStatForLayer(kArbitrarySpatialLayer, kArbitraryTemporalLayer) + 1);
+
+  quality_manager->notifyQualityUpdate();
+
+  quality_manager->setSpatialLayer(kArbitrarySpatialLayer);
+  quality_manager->setTemporalLayer(kArbitraryTemporalLayer);
+  quality_manager->setMinDesiredSpatialLayer(kArbitraryDesiredMinSpatialLayer);
+  addStatToLayer(kArbitrarySpatialLayer, kArbitraryTemporalLayer, 150);
+  advanceClock(erizo::QualityManager::kMinLayerSwitchInterval + std::chrono::milliseconds(1));
+
+  quality_manager->notifyQualityUpdate();
+  EXPECT_EQ(quality_manager->getSpatialLayer() , kArbitraryDesiredMinSpatialLayer);
+}
+
+TEST_F(QualityManagerTest, shouldGoBelowMinDesiredSpatialLayerIfNotAvailable) {
+  const int kArbitrarySpatialLayer = 1;
+  const int kArbitraryTemporalLayer = 0;
+
+  const int kArbitraryDesiredMinSpatialLayer = 1;
+  setSenderBitrateEstimation(getStatForLayer(kArbitrarySpatialLayer, kArbitraryTemporalLayer) + 1);
+
+  quality_manager->notifyQualityUpdate();
+
+  quality_manager->setSpatialLayer(kArbitrarySpatialLayer);
+  quality_manager->setTemporalLayer(kArbitraryTemporalLayer);
+  quality_manager->setMinDesiredSpatialLayer(kArbitraryDesiredMinSpatialLayer);
+  clearLayer(kArbitrarySpatialLayer, kArbitraryTemporalLayer);
+
+  quality_manager->notifyQualityUpdate();
+  EXPECT_FALSE(quality_manager->getSpatialLayer() == kArbitraryDesiredMinSpatialLayer);
+}
+
 class QualityManagerConstraintsTest : public QualityManagerBaseTest,
                            public ::testing::TestWithParam<std::tr1::tuple<int, int, int, int, int>> {
  public:
