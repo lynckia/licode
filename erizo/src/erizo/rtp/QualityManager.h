@@ -17,7 +17,6 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   static constexpr duration kMinLayerSwitchInterval = std::chrono::seconds(10);
   static constexpr duration kActiveLayerInterval = std::chrono::milliseconds(500);
   static constexpr float kIncreaseLayerBitrateThreshold = 0.1;
-  static constexpr int kBelowMinLayerSlideshow = 5000;
 
  public:
   explicit QualityManager(std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
@@ -55,7 +54,6 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   bool padding_enabled_;
   bool forced_layers_;
   bool slideshow_fallback_active_;
-  bool slideshow_manual_requested_;
   int spatial_layer_;
   int temporal_layer_;
   int max_active_spatial_layer_;

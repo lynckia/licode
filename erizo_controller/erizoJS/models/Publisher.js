@@ -12,6 +12,7 @@ const log = logger.getLogger('Publisher');
 
 const MIN_SLIDESHOW_PERIOD = 2000;
 const MAX_SLIDESHOW_PERIOD = 10000;
+const FALLBACK_SLIDESHOW_PERIOD = 3000;
 const PLIS_TO_RECOVER = 3;
 const WARN_NOT_FOUND = 404;
 
@@ -208,7 +209,8 @@ class Source extends NodeClass {
   maybeStopSlideShow() {
     if (this.connection && this.mediaStream && this.mediaStream.periodicPlis !== undefined) {
       for (const i in this.subscribers) {
-        if (this.getSubscriber(i).mediaStream.slideShowMode === true) {
+        if (this.getSubscriber(i).mediaStream.slideShowMode === true ||
+          this.getSubscriber(i).mediaStream.slideShowModeFallback === true) {
           return;
         }
       }
@@ -219,7 +221,20 @@ class Source extends NodeClass {
     }
   }
 
-  setSlideShow(slideShowMode, clientId) {
+  _updateMediaStreamSubscriberSlideshow(subscriber, slideShowMode, isFallback) {
+    if (isFallback) {
+      subscriber.mediaStream.slideShowModeFallback = slideShowMode;
+    } else {
+      subscriber.mediaStream.slideShowMode = slideShowMode;
+    }
+    let globalSlideShowStatus = subscriber.mediaStream.slideShowModeFallback ||
+      subscriber.mediaStream.slideShowMode;
+
+    subscriber.mediaStream.setSlideShowMode(globalSlideShowStatus);
+    return globalSlideShowStatus;
+  }
+
+  setSlideShow(slideShowMode, clientId, isFallback = false) {
     if (!this.mediaStream) {
       return;
     }
@@ -230,14 +245,16 @@ class Source extends NodeClass {
         return;
     }
 
-    log.debug('message: setting SlideShow, id: ' + subscriber.clientId +
-              ', slideShowMode: ' + slideShowMode);
+    log.warn('message: setting SlideShow, id: ' + subscriber.clientId +
+              ', slideShowMode: ' + slideShowMode + ' isFallback: ' + isFallback);
     let period = slideShowMode === true ? MIN_SLIDESHOW_PERIOD : slideShowMode;
+    if (isFallback) {
+      period = slideShowMode === true? FALLBACK_SLIDESHOW_PERIOD : slideShowMode;
+    } 
     if (Number.isSafeInteger(period)) {
       period = period < MIN_SLIDESHOW_PERIOD ? MIN_SLIDESHOW_PERIOD : period;
       period = period > MAX_SLIDESHOW_PERIOD ? MAX_SLIDESHOW_PERIOD : period;
-      subscriber.mediaStream.setSlideShowMode(true);
-      subscriber.mediaStream.slideShowMode = true;
+      this._updateMediaStreamSubscriberSlideshow(subscriber, true, isFallback);
       if (this.mediaStream.periodicPlis) {
         clearInterval(this.mediaStream.periodicPlis);
         this.mediaStream.periodicPlis = undefined;
@@ -246,12 +263,12 @@ class Source extends NodeClass {
         this.mediaStream.generatePLIPacket();
       }, period);
     } else {
-      for (let pliIndex = 0; pliIndex < PLIS_TO_RECOVER; pliIndex++) {
-        this.mediaStream.generatePLIPacket();
+      let result = this._updateMediaStreamSubscriberSlideshow(subscriber, false, isFallback);
+      if (!result) {
+        for (let pliIndex = 0; pliIndex < PLIS_TO_RECOVER; pliIndex++) {
+          this.mediaStream.generatePLIPacket();
+        }
       }
-
-      subscriber.mediaStream.setSlideShowMode(false);
-      subscriber.mediaStream.slideShowMode = false;
       this.maybeStopSlideShow();
     }
   }

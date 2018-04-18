@@ -65,9 +65,9 @@ class Subscriber extends NodeClass {
   }
 
   _onMediaStreamEvent(mediaStreamEvent) {
-    if (mediaStreamEvent.type === 'slideshow_update') {
+    if (mediaStreamEvent.type === 'slideshow_fallback_update') {
       this.publisher.setSlideShow(mediaStreamEvent.message === 
-        'false'? false: parseInt(mediaStreamEvent.message), this.clientId);
+        'false'? false: true, this.clientId, true);
     }
   }
 
