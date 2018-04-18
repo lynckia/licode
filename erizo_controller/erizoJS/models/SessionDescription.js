@@ -119,7 +119,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   }
 
   const sources = new Map();
-  if (mediaType === 'audio' && info.getDirection() !== 'recvonly') {
+  if (mediaType === 'audio' && info.getDirection('audio') !== 'recvonly') {
     const audioSsrcMap = info.getAudioSsrcMap();
     Object.keys(audioSsrcMap).forEach((streamLabel) => {
       addSsrc(sources, audioSsrcMap[streamLabel], sdp, media, streamLabel);
@@ -127,7 +127,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   } else if (mediaType === 'video') {
     media.setBitrate(info.getVideoBandwidth());
 
-    if (info.getDirection() !== 'recvonly') {
+    if (info.getDirection('video') !== 'recvonly') {
       const videoSsrcMap = info.getVideoSsrcMap();
       Object.keys(videoSsrcMap).forEach((streamLabel) => {
         videoSsrcMap[streamLabel].forEach((ssrc) => {
@@ -257,7 +257,14 @@ class SessionDescription {
 
     // we use the same field for both audio and video
     if (sdp.medias && sdp.medias.length > 0) {
-      info.setDirection(Direction.toString(sdp.medias[0].getDirection()));
+      sdp.medias.forEach((media) => {
+        if (media.getType() === 'audio') {
+          info.setAudioDirection(Direction.toString(media.getDirection()));
+        } else {
+          info.setVideoDirection(Direction.toString(media.getDirection()));
+        }
+      });
+
     }
 
     info.setProfile('UDP/TLS/RTP/SAVPF'); // TODO

@@ -224,22 +224,41 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
       return;
     }
     std::vector<uint32_t> video_ssrc_list = std::vector<uint32_t>();
-    video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
-    ELOG_DEBUG("%s message: getting local SDPInfo, stream_id: %s, video_ssrc: %u",
-               toLog(), media_stream->getId(), media_stream->getVideoSinkSSRC());
-    local_sdp_->video_ssrc_map[media_stream->getLabel()] = video_ssrc_list;
-    local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
+    if (media_stream->getVideoSinkSSRC() != kDefaultVideoSinkSSRC) {
+      video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
+    }
+    ELOG_DEBUG("%s message: getting local SDPInfo, stream_id: %s, audio_ssrc: %u",
+               toLog(), media_stream->getId(), media_stream->getAudioSinkSSRC());
+    if (!video_ssrc_list.empty()) {
+      local_sdp_->video_ssrc_map[media_stream->getLabel()] = video_ssrc_list;
+    }
+    if (media_stream->getAudioSinkSSRC() != kDefaultAudioSinkSSRC) {
+      local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
+    }
   });
-  if (local_sdp_->audioDirection != erizo::SENDONLY &&
-      local_sdp_->audio_ssrc_map.size() + local_sdp_->video_ssrc_map.size() > 2) {
+
+  bool sending_audio = local_sdp_->audio_ssrc_map.size() > 0;
+  bool sending_video = local_sdp_->video_ssrc_map.size() > 0;
+
+  bool receiving_audio = remote_sdp_->audio_ssrc_map.size() > 0;
+  bool receiving_video = remote_sdp_->video_ssrc_map.size() > 0;
+
+  if (!sending_audio && receiving_audio) {
+    local_sdp_->audioDirection = erizo::RECVONLY;
+  } else if (sending_audio && !receiving_audio) {
+    local_sdp_->audioDirection = erizo::SENDONLY;
+  } else {
     local_sdp_->audioDirection = erizo::SENDRECV;
+  }
+
+  if (!sending_video && receiving_video) {
+    local_sdp_->videoDirection = erizo::RECVONLY;
+  } else if (sending_video && !receiving_video) {
+    local_sdp_->videoDirection = erizo::SENDONLY;
+  } else {
     local_sdp_->videoDirection = erizo::SENDRECV;
   }
-  if (remote_sdp_->audioDirection == erizo::SENDRECV &&
-      remote_sdp_->audio_ssrc_map.size() + remote_sdp_->video_ssrc_map.size() > 0) {
-    local_sdp_->audioDirection = erizo::SENDRECV;
-    local_sdp_->videoDirection = erizo::SENDRECV;
-  }
+
   return local_sdp_;
 }
 

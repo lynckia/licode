@@ -71,7 +71,8 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "setVideoSsrcList", setVideoSsrcList);
   Nan::SetPrototypeMethod(tpl, "getVideoSsrcMap", getVideoSsrcMap);
 
-  Nan::SetPrototypeMethod(tpl, "setDirection", setDirection);
+  Nan::SetPrototypeMethod(tpl, "setVideoDirection", setVideoDirection);
+  Nan::SetPrototypeMethod(tpl, "setAudioDirection", setAudioDirection);
   Nan::SetPrototypeMethod(tpl, "getDirection", getDirection);
 
   Nan::SetPrototypeMethod(tpl, "setFingerprint", setFingerprint);
@@ -322,19 +323,29 @@ NAN_METHOD(ConnectionDescription::getVideoSsrcMap) {
   info.GetReturnValue().Set(video_ssrc_map);
 }
 
-NAN_METHOD(ConnectionDescription::setDirection) {
+NAN_METHOD(ConnectionDescription::setVideoDirection) {
+  GET_SDP();
+  std::string direction = getString(info[0]);
+
+  if (direction == "sendonly") {
+    sdp->videoDirection = erizo::SENDONLY;
+  } else if (direction == "sendrecv") {
+    sdp->videoDirection = erizo::SENDRECV;
+  } else if (direction == "recvonly") {
+    sdp->videoDirection = erizo::RECVONLY;
+  }
+}
+
+NAN_METHOD(ConnectionDescription::setAudioDirection) {
   GET_SDP();
   std::string direction = getString(info[0]);
 
   if (direction == "sendonly") {
     sdp->audioDirection = erizo::SENDONLY;
-    sdp->videoDirection = erizo::SENDONLY;
   } else if (direction == "sendrecv") {
     sdp->audioDirection = erizo::SENDRECV;
-    sdp->videoDirection = erizo::SENDRECV;
   } else if (direction == "recvonly") {
     sdp->audioDirection = erizo::RECVONLY;
-    sdp->videoDirection = erizo::RECVONLY;
   }
 }
 

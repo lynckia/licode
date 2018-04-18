@@ -4,7 +4,6 @@ import BaseStack from './BaseStack';
 const FirefoxStack = (specInput) => {
   Logger.info('Starting Firefox stack');
   const that = BaseStack(specInput);
-  const spec = specInput;
   const defaultSimulcastSpatialLayers = 2;
 
   const possibleLayers = [
@@ -14,7 +13,7 @@ const FirefoxStack = (specInput) => {
   ];
 
   const getSimulcastParameters = (sender) => {
-    let numSpatialLayers = spec.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
+    let numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
     const totalLayers = possibleLayers.length;
     numSpatialLayers = numSpatialLayers < totalLayers ?
                           numSpatialLayers : totalLayers;
@@ -28,7 +27,7 @@ const FirefoxStack = (specInput) => {
   };
 
   const enableSimulcast = () => {
-    if (!spec.simulcast) {
+    if (!that.simulcast) {
       return;
     }
     that.peerConnection.getSenders().forEach((sender) => {

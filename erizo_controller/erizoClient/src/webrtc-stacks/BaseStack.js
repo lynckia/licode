@@ -29,19 +29,21 @@ const BaseStack = (specInput) => {
   if (specBase.forceTurn === true) {
     that.pcConfig.iceTransportPolicy = 'relay';
   }
-  if (specBase.audio === undefined) {
-    specBase.audio = true;
+  that.audio = specBase.audio;
+  that.video = specBase.video;
+  if (that.audio === undefined) {
+    that.audio = true;
   }
-  if (specBase.video === undefined) {
-    specBase.video = true;
+  if (that.video === undefined) {
+    that.video = true;
   }
   specBase.remoteCandidates = [];
   specBase.localCandidates = [];
   specBase.remoteDescriptionSet = false;
 
   that.mediaConstraints = {
-    offerToReceiveVideo: (specBase.video !== undefined && specBase.video !== false),
-    offerToReceiveAudio: (specBase.audio !== undefined && specBase.audio !== false),
+    offerToReceiveVideo: (that.video !== undefined && that.video !== false),
+    offerToReceiveAudio: (that.audio !== undefined && that.audio !== false),
   };
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
@@ -228,6 +230,18 @@ const BaseStack = (specInput) => {
   that.close = () => {
     that.state = 'closed';
     that.peerConnection.close();
+  };
+
+  that.setSimulcast = (enable) => {
+    that.simulcast = enable;
+  };
+
+  that.setVideo = (video) => {
+    that.video = video;
+  };
+
+  that.setAudio = (audio) => {
+    that.audio = audio;
   };
 
   that.updateSpec = (configInput, streamId, callback = () => {}) => {

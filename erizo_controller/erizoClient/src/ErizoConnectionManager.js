@@ -106,8 +106,16 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.sendSignalingMessage(msg);
   }
 
-  enableSimulcast(sdpInput) {
-    this.stack.enableSimulcast(sdpInput);
+  setSimulcast(enable) {
+    this.stack.setSimulcast(enable);
+  }
+
+  setVideo(video) {
+    this.stack.setVideo(video);
+  }
+
+  setAudio(audio) {
+    this.stack.setAudio(audio);
   }
 
   updateSpec(configInput, streamId, callback) {
@@ -150,6 +158,16 @@ class ErizoConnectionManager {
         this.ErizoConnectionsMap.set(erizoId, connectionEntry);
       }
     }
+    if (specInput.simulcast) {
+      connection.setSimulcast(specInput.simulcast);
+    }
+    if (specInput.video) {
+      connection.setVideo(specInput.video);
+    }
+    if (specInput.audio) {
+      connection.setVideo(specInput.audio);
+    }
+
     return connection;
   }
 
