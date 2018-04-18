@@ -295,6 +295,7 @@ const BaseStack = (specInput) => {
         (config.slideShowMode !== undefined) ||
         (config.muteStream !== undefined) ||
         (config.qualityLayer !== undefined) ||
+        (config.minLayer !== undefined) ||
         (config.video !== undefined)) {
       Logger.debug('MaxVideoBW Changed to ', config.maxVideoBW);
       Logger.debug('MinVideo Changed to ', config.minVideoBW);

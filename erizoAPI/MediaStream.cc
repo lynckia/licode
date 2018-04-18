@@ -114,6 +114,7 @@ NAN_MODULE_INIT(MediaStream::Init) {
   Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
   Nan::SetPrototypeMethod(tpl, "setMaxVideoBW", setMaxVideoBW);
   Nan::SetPrototypeMethod(tpl, "setQualityLayer", setQualityLayer);
+  Nan::SetPrototypeMethod(tpl, "setMinSpatialLayer", setMinSpatialLayer);
   Nan::SetPrototypeMethod(tpl, "onMediaStreamEvent", onMediaStreamEvent);
   Nan::SetPrototypeMethod(tpl, "setVideoConstraints", setVideoConstraints);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
@@ -345,6 +346,18 @@ NAN_METHOD(MediaStream::setQualityLayer) {
   int temporal_layer = info[1]->IntegerValue();
 
   me->setQualityLayer(spatial_layer, temporal_layer);
+}
+
+NAN_METHOD(MediaStream::setMinSpatialLayer) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
+
+  int spatial_layer = info[0]->IntegerValue();
+
+  me->setMinDesiredSpatialLayer(spatial_layer);
 }
 
 NAN_METHOD(MediaStream::getStats) {
