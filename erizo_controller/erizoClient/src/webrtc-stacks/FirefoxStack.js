@@ -23,18 +23,20 @@ const FirefoxStack = (specInput) => {
     for (let layer = totalLayers - 1; layer >= totalLayers - numSpatialLayers; layer -= 1) {
       parameters.encodings.push(possibleLayers[layer]);
     }
-    sender.setParameters(parameters);
+    return sender.setParameters(parameters);
   };
 
   const enableSimulcast = () => {
     if (!that.simulcast) {
-      return;
+      return [];
     }
+    const promises = [];
     that.peerConnection.getSenders().forEach((sender) => {
       if (sender.track.kind === 'video') {
-        getSimulcastParameters(sender);
+        promises.push(getSimulcastParameters(sender));
       }
     });
+    return promises;
   };
 
   that.enableSimulcast = sdp => sdp;
@@ -42,10 +44,13 @@ const FirefoxStack = (specInput) => {
   const baseCreateOffer = that.createOffer;
 
   that.createOffer = (isSubscribe, forceOfferToReceive = false, streamId = '') => {
+    let promises = [];
     if (isSubscribe !== true) {
-      enableSimulcast();
+      promises = enableSimulcast();
     }
-    baseCreateOffer(isSubscribe, forceOfferToReceive, streamId);
+    Promise.all(promises).then(() => {
+      baseCreateOffer(isSubscribe, forceOfferToReceive, streamId);
+    });
   };
 
   return that;
