@@ -114,8 +114,8 @@ const Stream = (altConnectionHelpers, specInput) => {
       if (that.pc === undefined) {
         that.pc = ErizoMap();
       }
-      this.pc.add(p2pKey, pc);
-      that.pc.on('ice-state-change', onICEConnectionStateChange);
+      that.pc.add(p2pKey, pc);
+      pc.on('ice-state-change', onICEConnectionStateChange);
       return;
     }
     if (that.pc) {
