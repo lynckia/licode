@@ -2,6 +2,7 @@
 import ChromeStableStack from './webrtc-stacks/ChromeStableStack';
 import FirefoxStack from './webrtc-stacks/FirefoxStack';
 import FcStack from './webrtc-stacks/FcStack';
+import EdgeStack from './webrtc-stacks/EdgeStack';
 import Logger from './utils/Logger';
 import ErizoMap from './utils/ErizoMap';
 import ConnectionHelpers from './utils/ConnectionHelpers';
@@ -30,6 +31,8 @@ class ErizoConnection {
     } else if (this.browser === 'mozilla') {
       Logger.debug('Firefox Stack');
       this.stack = FirefoxStack(spec);
+    } else if (this.browser === 'edge') {
+      this.stack = EdgeStack(spec);
     } else if (this.browser === 'safari') {
       Logger.debug('Safari using Chrome Stable Stack');
       this.stack = ChromeStableStack(spec);

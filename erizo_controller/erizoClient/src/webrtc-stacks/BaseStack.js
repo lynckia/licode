@@ -19,6 +19,10 @@ const BaseStack = (specInput) => {
     iceServers: [],
   };
 
+  if (specBase.bundlePolicy) {
+    that.pcConfig.bundlePolicy = specBase.bundlePolicy;
+  }
+
   that.con = {};
   if (specBase.iceServers !== undefined) {
     that.pcConfig.iceServers = specBase.iceServers;

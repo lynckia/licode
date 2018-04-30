@@ -9,6 +9,10 @@ const getBrowser = () => {
   } else if (window.navigator.userAgent.match('Firefox') !== null) {
     // Firefox
     browser = 'mozilla';
+  } else if (window.navigator.userAgent.match('Edge') !== null) {
+    browser = 'edge';
+  } else if (window.navigator.userAgent.match('Trident') !== null) {
+    browser = 'ie';
   } else if (window.navigator.userAgent.match('Chrome') !== null) {
     browser = 'chrome-stable';
     if (window.navigator.userAgent.match('Electron') !== null) {
