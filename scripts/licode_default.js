@@ -51,7 +51,7 @@ config.erizoController = {};
 // }
 config.erizoController.iceServers = [{'url': 'stun:stun.l.google.com:19302'}]; // default value: [{'url': 'stun:stun.l.google.com:19302'}]
 
-// Default and max video bandwidth parameters to be used by clients
+// Default and max video bandwidth parameters to be used by clients for both published and subscribed streams
 config.erizoController.defaultVideoBW = 300; //default value: 300
 config.erizoController.maxVideoBW = 300; //default value: 300
 
@@ -81,6 +81,8 @@ config.erizoController.listen_port = 8080; //default value: 8080
 // config.erizoController.networkInterface = 'eth1' // default value: undefined
 
 config.erizoController.exitOnNuveCheckFail = false;  // default value: false
+config.erizoController.allowSinglePC = false;  // default value: false
+config.erizoController.maxErizosUsedByRoom = 100;  // default value: 100
 
 config.erizoController.warning_n_rooms = 15; // default value: 15
 config.erizoController.limit_n_rooms = 20; // default value: 20

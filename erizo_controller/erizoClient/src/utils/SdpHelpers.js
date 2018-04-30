@@ -23,6 +23,9 @@ SdpHelpers.addSpatialLayer = (cname, msid, mslabel,
   `a=ssrc:${spatialLayerIdRtx} label:${label}\r\n`;
 
 SdpHelpers.setMaxBW = (sdp, spec) => {
+  if (!spec.p2p) {
+    return;
+  }
   if (spec.video && spec.maxVideoBW) {
     const video = sdp.getMedia('video');
     if (video) {
@@ -47,6 +50,16 @@ SdpHelpers.enableOpusNacks = (sdpInput) => {
   }
 
   return sdp;
+};
+
+SdpHelpers.setParamForCodecs = (sdpInfo, mediaType, paramName, value) => {
+  sdpInfo.medias.forEach((mediaInfo) => {
+    if (mediaInfo.id === mediaType) {
+      mediaInfo.codecs.forEach((codec) => {
+        codec.setParam(paramName, value);
+      });
+    }
+  });
 };
 
 export default SdpHelpers;

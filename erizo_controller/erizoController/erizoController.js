@@ -34,6 +34,9 @@ global.config.erizoController.report.session_events =
 global.config.erizoController.recording_path =
   global.config.erizoController.recording_path || undefined;
 global.config.erizoController.exitOnNuveCheckFail = global.config.erizoController.exitOnNuveCheckFail || false;
+global.config.erizoController.allowSinglePC = global.config.erizoController.allowSinglePC || '';
+global.config.erizoController.maxErizosUsedByRoom = global.config.erizoController.maxErizosUsedByRoom || 100;
+
 // jshint ignore:end
 global.config.erizoController.roles = global.config.erizoController.roles ||
                   {'presenter': {'publish': true, 'subscribe': true, 'record': true},
@@ -288,17 +291,24 @@ var updateMyState = function () {
     nuve.setInfo({id: myId, state: myState});
 };
 
+var getSinglePCConfig = function(singlePC) {
+  return !!singlePC && global.config.erizoController.allowSinglePC;
+};
+
 var listen = function () {
     io.sockets.on('connection', function (socket) {
         log.info('message: socket connected, socketId: ' + socket.id);
 
         let channel = new Channel(socket, nuve);
 
-        channel.on('connected', (token, callback) => {
+        channel.on('connected', (token, options, callback) => {
+          options = options || {};
           try {
             let room = rooms.getOrCreateRoom(token.room, token.p2p);
-            let client = room.createClient(channel, token);
-            log.info('message: client connected, clientId: ' + client.id);
+            options.singlePC = getSinglePCConfig(options.singlePC);
+            let client = room.createClient(channel, token, options);
+            log.info('message: client connected, clientId: ' + client.id +
+                     ', singlePC: ' + options.singlePC);
             if (!room.p2p && global.config.erizoController.report.session_events) {  // jshint ignore:line
               var timeStamp = new Date();
               amqper.broadcast('event', {room: room.id,
@@ -315,6 +325,7 @@ var listen = function () {
             callback('success', {streams: streamList,
                                  id: room.id,
                                  clientId: client.id,
+                                 singlePC: options.singlePC,
                                  p2p: room.p2p,
                                  defaultVideoBW: global.config.erizoController.defaultVideoBW,
                                  maxVideoBW: global.config.erizoController.maxVideoBW,

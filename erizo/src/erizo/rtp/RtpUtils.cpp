@@ -40,7 +40,7 @@ void RtpUtils::forEachNack(RtcpHeader *chead, std::function<void(uint16_t, uint1
 
 bool RtpUtils::isPLI(std::shared_ptr<DataPacket> packet) {
   bool is_pli = false;
-  forEachRRBlock(packet, [&is_pli] (RtcpHeader *header) {
+  forEachRtcpBlock(packet, [&is_pli] (RtcpHeader *header) {
     if (header->getPacketType() == RTCP_PS_Feedback_PT &&
         header->getBlockCount() == RTCP_PLI_FMT) {
           is_pli = true;
@@ -51,7 +51,7 @@ bool RtpUtils::isPLI(std::shared_ptr<DataPacket> packet) {
 
 bool RtpUtils::isFIR(std::shared_ptr<DataPacket> packet) {
   bool is_fir = false;
-  forEachRRBlock(packet, [&is_fir] (RtcpHeader *header) {
+  forEachRtcpBlock(packet, [&is_fir] (RtcpHeader *header) {
     if (header->getPacketType() == RTCP_PS_Feedback_PT &&
         header->getBlockCount() == RTCP_FIR_FMT) {
           is_fir = true;
@@ -86,6 +86,26 @@ std::shared_ptr<DataPacket> RtpUtils::createFIR(uint32_t source_ssrc, uint32_t s
   return std::make_shared<DataPacket>(0, buf, len, VIDEO_PACKET);
 }
 
+std::shared_ptr<DataPacket> RtpUtils::createREMB(uint32_t ssrc, std::vector<uint32_t> ssrc_list, uint32_t bitrate) {
+  erizo::RtcpHeader remb;
+  remb.setPacketType(RTCP_PS_Feedback_PT);
+  remb.setBlockCount(RTCP_AFB);
+  memcpy(&remb.report.rembPacket.uniqueid, "REMB", 4);
+
+  remb.setSSRC(ssrc);
+  remb.setSourceSSRC(0);
+  remb.setLength(4 + ssrc_list.size());
+  remb.setREMBBitRate(bitrate);
+  remb.setREMBNumSSRC(ssrc_list.size());
+  uint8_t index = 0;
+  for (uint32_t feed_ssrc : ssrc_list) {
+    remb.setREMBFeedSSRC(index++, feed_ssrc);
+  }
+  int len = (remb.getLength() + 1) * 4;
+  char *buf = reinterpret_cast<char*>(&remb);
+  return std::make_shared<erizo::DataPacket>(0, buf, len, erizo::OTHER_PACKET);
+}
+
 
 int RtpUtils::getPaddingLength(std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
@@ -95,10 +115,10 @@ int RtpUtils::getPaddingLength(std::shared_ptr<DataPacket> packet) {
   return 0;
 }
 
-void RtpUtils::forEachRRBlock(std::shared_ptr<DataPacket> packet, std::function<void(RtcpHeader*)> f) {
+void RtpUtils::forEachRtcpBlock(std::shared_ptr<DataPacket> packet, std::function<void(RtcpHeader*)> f) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
   int len = packet->length;
-  if (chead->isFeedback()) {
+  if (chead->isRtcp()) {
     char* moving_buffer = packet->data;
     int rtcp_length = 0;
     int total_length = 0;
@@ -126,7 +146,7 @@ std::shared_ptr<DataPacket> RtpUtils::makePaddingPacket(std::shared_ptr<DataPack
   memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
 
   new_header->setPadding(true);
-
+  new_header->setMarker(false);
   packet_buffer[packet_length - 1] = padding_size;
 
   return std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);

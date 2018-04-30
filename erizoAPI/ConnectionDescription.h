@@ -46,10 +46,11 @@ class ConnectionDescription : public Nan::ObjectWrap {
 
     static NAN_METHOD(setAudioSsrc);
     static NAN_METHOD(setVideoSsrcList);
-    static NAN_METHOD(getAudioSsrc);
-    static NAN_METHOD(getVideoSsrcList);
+    static NAN_METHOD(getAudioSsrcMap);
+    static NAN_METHOD(getVideoSsrcMap);
 
-    static NAN_METHOD(setDirection);
+    static NAN_METHOD(setVideoDirection);
+    static NAN_METHOD(setAudioDirection);
     static NAN_METHOD(getDirection);
 
     static NAN_METHOD(setFingerprint);

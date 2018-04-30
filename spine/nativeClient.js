@@ -24,10 +24,12 @@ exports.ErizoNativeConnection = (config) => {
   const that = {};
   let wrtc;
   let mediaStream;
+  let streamId;
   let syntheticInput;
   let externalInput;
   let oneToMany;
   let externalOutput;
+  let firstOfferSent = false;
   const configuration = Object.assign({}, config);
 
   that.connected = false;
@@ -39,6 +41,7 @@ exports.ErizoNativeConnection = (config) => {
   // CONN_FINISHED = 105,
   const CONN_CANDIDATE = 201;
   const CONN_SDP = 202;
+  const CONN_SDP_PROCESSED  = 203;
   const CONN_FAILED = 500;
 
   const generatePLIs = () => {
@@ -67,6 +70,7 @@ exports.ErizoNativeConnection = (config) => {
 
         case CONN_SDP:
         case CONN_GATHERED:
+        case CONN_SDP_PROCESSED:
           setTimeout(() => {
             wrtc.localDescription = new SessionDescription(wrtc.getLocalDescription());
             const sdp = wrtc.localDescription.getSdp();
@@ -124,8 +128,10 @@ exports.ErizoNativeConnection = (config) => {
   global.config.erizo.turnpass,
   global.config.erizo.networkinterface);
 
+  streamId = `spine_${Math.floor(Math.random() * 1000)}`;
+
   mediaStream = new addon.MediaStream(threadPool, wrtc,
-      `spine_${configuration.sessionId}`,
+      streamId, config.label,
       JSON.stringify(global.mediaConfig));
 
   wrtc.addMediaStream(mediaStream);
@@ -175,7 +181,8 @@ exports.ErizoNativeConnection = (config) => {
     if (signalingMsg.type === 'started') {
       initWebRtcConnection((mess, info) => {
         log.info('Message from wrtc', info.type);
-        if (info.type === 'offer') {
+        if (info.type === 'offer' && !firstOfferSent) {
+          firstOfferSent = true;
           configuration.callback({ type: info.type, sdp: info.sdp });
         }
       }, {});
@@ -188,8 +195,17 @@ exports.ErizoNativeConnection = (config) => {
       setTimeout(() => {
         log.info('Passing delayed answer');
         const sdp = SemanticSdp.SDPInfo.processString(signalingMsg.sdp);
-        wrtc.setRemoteSdp(sdp.toString());
-        that.onaddstream({ stream: { active: true } });
+        this.remoteDescription = new SessionDescription(sdp, 'default');
+        wrtc.setRemoteDescription(this.remoteDescription.connectionDescription, streamId);
+        sdp.streams.forEach((stream) => {
+          let label = '';
+          for (const track of stream.tracks.values()) {
+            track.ssrcs.forEach(ssrc => {
+              label = ssrc.mslabel;
+            });
+          }
+          that.onaddstream({ stream: { active: true, id: label } });
+        });
       }, 10);
     }
   };

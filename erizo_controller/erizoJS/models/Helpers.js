@@ -14,3 +14,7 @@ exports.getMediaConfiguration = (mediaConfiguration = 'default') => {
     return JSON.stringify({});
   }
 };
+
+exports.getErizoStreamId = (clientId, streamId) =>{
+  return `${clientId}_${streamId}`;
+};

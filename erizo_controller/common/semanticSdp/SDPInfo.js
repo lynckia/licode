@@ -430,6 +430,12 @@ class SDPInfo {
 
       sdp.media.push(md);
     });
+    bundle.mids.sort();
+    sdp.media.sort((m1, m2) => {
+      if (m1.mid < m2.mid) return -1;
+      if (m1.mid > m2.mid) return 1;
+      return 0;
+    });
 
     for (const stream of this.streams.values()) { // eslint-disable-line no-restricted-syntax
       for (const track of stream.getTracks().values()) { // eslint-disable-line no-restricted-syntax

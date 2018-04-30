@@ -1,14 +1,17 @@
 const ConnectionHelpers = require('./NativeConnectionHelpers');
 const ErizoNativeConnection = require('./nativeClient');
+const { EventEmitter, ConnectionEvent } = require('./Events');
 const logger = require('./logger').logger;
 
 const log = logger.getLogger('NativeConnectionManager');
 
 let sessionId = 0;
 
-class NativeStack {
+class NativeStack extends EventEmitter {
   constructor(config) {
+    super();
     const configuration = Object.assign({}, config);
+    configuration.label = configuration.label || `spine_${Math.floor(Math.random() * 1000)}`;
     log.info('Creating a NativeStack', configuration);
 
 
@@ -24,10 +27,16 @@ class NativeStack {
     configuration.video = configuration.video || false;
 
     this.peerConnection = ErizoNativeConnection.ErizoNativeConnection(configuration);
-    this.peerConnection.onaddstream = (stream) => {
-      if (this.onaddstream) {
-        this.onaddstream(stream);
-      }
+    this.peerConnection.onaddstream = (evt) => {
+      this.emit(ConnectionEvent({ type: 'add-stream', stream: evt.stream }));
+    };
+
+    this.peerConnection.onremovestream = (evt) => {
+      this.emit(ConnectionEvent({ type: 'remove-stream', stream: evt.stream }));
+    };
+
+    this.peerConnection.oniceconnectionstatechange = (state) => {
+      this.emit(ConnectionEvent({ type: 'ice-state-change', state }));
     };
 
     this.desc = {};
@@ -71,7 +80,7 @@ class NativeStack {
 class ErizoConnectionManager {
   constructor() {}
 
-  getOrBuildErizoConnection(specInput, erizoId = undefined, enableSinglePC = false){
+  getOrBuildErizoConnection(specInput, erizoId = undefined, enableSinglePC = false) {
     log.debug(`getOrBuildErizoConnection, erizoId: ${erizoId}`);
     const configuration = Object.assign({}, specInput);
     configuration.sessionId = sessionId;
@@ -79,7 +88,7 @@ class ErizoConnectionManager {
     return new NativeStack(specInput); // jshint ignore:line
   }
 
-  closeConnection(connection) {
+  maybeCloseConnection(connection) {
     log.debug('Close connection');
     connection.close();
   }

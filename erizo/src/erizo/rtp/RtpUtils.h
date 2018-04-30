@@ -15,7 +15,7 @@ class RtpUtils {
  public:
   static bool sequenceNumberLessThan(uint16_t first, uint16_t second);
 
-  static void forEachRRBlock(std::shared_ptr<DataPacket> packet, std::function<void(RtcpHeader*)> f);
+  static void forEachRtcpBlock(std::shared_ptr<DataPacket> packet, std::function<void(RtcpHeader*)> f);
 
   static void updateREMB(RtcpHeader *chead, uint bitrate);
 
@@ -28,6 +28,7 @@ class RtpUtils {
   static std::shared_ptr<DataPacket> createPLI(uint32_t source_ssrc, uint32_t sink_ssrc);
 
   static std::shared_ptr<DataPacket> createFIR(uint32_t source_ssrc, uint32_t sink_ssrc, uint8_t seq_number);
+  static std::shared_ptr<DataPacket> createREMB(uint32_t ssrc, std::vector<uint32_t> ssrc_list, uint32_t bitrate);
 
   static int getPaddingLength(std::shared_ptr<DataPacket> packet);
 

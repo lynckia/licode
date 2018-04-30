@@ -3,6 +3,7 @@
 
 #include <nan.h>
 #include <WebRtcConnection.h>
+#include <logger.h>
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
 #include "ConnectionDescription.h"
@@ -20,12 +21,12 @@
 class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
    public Nan::ObjectWrap{
  public:
+    DECLARE_LOGGER();
     static NAN_MODULE_INIT(Init);
 
     std::shared_ptr<erizo::WebRtcConnection> me;
-    int eventSt;
-    std::queue<int> eventSts;
-    std::queue<std::string> eventMsgs;
+    std::queue<int> event_status;
+    std::queue<std::pair<std::string, std::string>> event_messages;
 
     boost::mutex mutex;
 
@@ -33,10 +34,13 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     WebRtcConnection();
     ~WebRtcConnection();
 
-    Nan::Callback *eventCallback_;
+    std::string toLog();
+    void close();
 
-    uv_async_t async_;
-    uv_async_t asyncStats_;
+    Nan::Callback *event_callback_;
+    uv_async_t *async_;
+    bool closed_;
+    std::string id_;
     /*
      * Constructor.
      * Constructs an empty WebRtcConnection without any configuration.
@@ -105,7 +109,9 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
 
     static NAUV_WORK_CB(eventsCallback);
 
-    virtual void notifyEvent(erizo::WebRTCEvent event, const std::string& message = "");
+    virtual void notifyEvent(erizo::WebRTCEvent event,
+                             const std::string& message = "",
+                             const std::string& stream_id = "");
 };
 
 #endif  // ERIZOAPI_WEBRTCCONNECTION_H_

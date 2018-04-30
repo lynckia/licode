@@ -1,6 +1,7 @@
 #include "rtp/QualityManager.h"
 #include <memory>
 
+#include "./MediaStream.h"
 #include "pipeline/HandlerManager.h"
 #include "rtp/LayerDetectorHandler.h"
 
@@ -14,10 +15,11 @@ constexpr float QualityManager::kIncreaseLayerBitrateThreshold;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
   : initialized_{false}, enabled_{false}, padding_enabled_{false}, forced_layers_{false},
-  slideshow_mode_active_{false}, spatial_layer_{0}, temporal_layer_{0}, max_active_spatial_layer_{0},
-  max_active_temporal_layer_{0}, max_video_width_{-1}, max_video_height_{-1},
-  max_video_frame_rate_{-1}, current_estimated_bitrate_{0}, last_quality_check_{the_clock->now()},
-  last_activity_check_{the_clock->now()}, clock_{the_clock} {}
+  slideshow_fallback_active_{false}, spatial_layer_{0},
+  temporal_layer_{0}, max_active_spatial_layer_{0},
+  max_active_temporal_layer_{0}, min_desired_spatial_layer_{0}, max_video_width_{-1},
+  max_video_height_{-1}, max_video_frame_rate_{-1}, current_estimated_bitrate_{0},
+  last_quality_check_{the_clock->now()}, last_activity_check_{the_clock->now()}, clock_{the_clock} {}
 
 void QualityManager::enable() {
   ELOG_DEBUG("message: Enabling QualityManager");
@@ -59,6 +61,10 @@ void QualityManager::notifyQualityUpdate() {
     if (!stats_->getNode()["total"].hasChild("senderBitrateEstimation")) {
       return;
     }
+    stream_ = pipeline->getService<MediaStream>().get();
+    if (!stream_) {
+      return;
+    }
     initialized_ = true;
   }
 
@@ -77,10 +83,10 @@ void QualityManager::notifyQualityUpdate() {
 
   bool layer_is_active = spatial_layer_ <= max_active_spatial_layer_;
 
-  if (!layer_is_active || (estimated_is_under_layer_bitrate && !slideshow_mode_active_)) {
+  if (!layer_is_active || (estimated_is_under_layer_bitrate && !slideshow_fallback_active_)) {
     ELOG_DEBUG("message: Forcing calculate new layer, "
-        "estimated_is_under_layer_bitrate: %d, layer_is_active: %d", estimated_is_under_layer_bitrate,
-        layer_is_active);
+        "estimated_is_under_layer_bitrate: %d, layer_is_active: %d, slideshow_fallback_active_: %d",
+        estimated_is_under_layer_bitrate, layer_is_active, slideshow_fallback_active_);
     selectLayer(false);
   } else if (now - last_quality_check_ > kMinLayerSwitchInterval) {
     selectLayer(true);
@@ -120,46 +126,63 @@ bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_la
 }
 
 void QualityManager::selectLayer(bool try_higher_layers) {
-  if (!stats_ || !stats_->getNode().hasChild("qualityLayers")) {
+  if (!initialized_  || !stats_->getNode().hasChild("qualityLayers")) {
     return;
   }
   last_quality_check_ = clock_->now();
+  int min_valid_spatial_layer = std::min(min_desired_spatial_layer_, max_active_spatial_layer_);
   int aux_temporal_layer = 0;
   int aux_spatial_layer = 0;
   int next_temporal_layer = 0;
-  int next_spatial_layer = 0;
+  int next_spatial_layer = min_valid_spatial_layer;
   float bitrate_margin = try_higher_layers ? kIncreaseLayerBitrateThreshold : 0;
   bool below_min_layer = true;
   bool layer_capped_by_constraints = false;
-  ELOG_DEBUG("Calculate best layer with %lu, current layer %d/%d",
+  ELOG_DEBUG("message: Calculate best layer, estimated_bitrate: %lu, current layer %d/%d",
       current_estimated_bitrate_, spatial_layer_, temporal_layer_);
   for (auto &spatial_layer_node : stats_->getNode()["qualityLayers"].getMap()) {
-    for (auto &temporal_layer_node : spatial_layer_node.second->getMap()) {
-      ELOG_DEBUG("Bitrate for layer %d/%d %lu",
-          aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
-      if (temporal_layer_node.second->value() != 0 &&
-          (1. + bitrate_margin) * temporal_layer_node.second->value() < current_estimated_bitrate_) {
-        if (doesLayerMeetConstraints(aux_spatial_layer, aux_temporal_layer)) {
-          next_temporal_layer = aux_temporal_layer;
-          next_spatial_layer = aux_spatial_layer;
-          below_min_layer = false;
-        } else {
-          layer_capped_by_constraints = true;
+    if (aux_spatial_layer >= min_valid_spatial_layer) {
+      for (auto &temporal_layer_node : spatial_layer_node.second->getMap()) {
+        ELOG_DEBUG("Bitrate for layer %d/%d %lu",
+            aux_spatial_layer, aux_temporal_layer, temporal_layer_node.second->value());
+        if (temporal_layer_node.second->value() != 0 &&
+            (1. + bitrate_margin) * temporal_layer_node.second->value() < current_estimated_bitrate_) {
+          if (doesLayerMeetConstraints(aux_spatial_layer, aux_temporal_layer)) {
+            next_temporal_layer = aux_temporal_layer;
+            next_spatial_layer = aux_spatial_layer;
+            below_min_layer = false;
+          } else {
+            layer_capped_by_constraints = true;
+          }
         }
+        aux_temporal_layer++;
       }
-      aux_temporal_layer++;
+    } else {
+      ELOG_DEBUG("message: Skipping below min spatial layer, aux_layer: %d, min_valid_spatial_layer",
+          aux_spatial_layer, min_valid_spatial_layer);
     }
     aux_temporal_layer = 0;
     aux_spatial_layer++;
   }
 
-  if (below_min_layer != slideshow_mode_active_) {
+  if (below_min_layer != slideshow_fallback_active_) {
     if (below_min_layer || try_higher_layers) {
-      slideshow_mode_active_ = below_min_layer;
-      ELOG_DEBUG("Slideshow fallback mode %d", slideshow_mode_active_);
+      slideshow_fallback_active_ = below_min_layer;
+      ELOG_DEBUG("message: Setting slideshow fallback, below_min_layer %u, spatial_layer %d,"
+          "next_spatial_layer %d slidehow_fallback_active_: %d",
+          below_min_layer, spatial_layer_, next_spatial_layer, slideshow_fallback_active_);
       HandlerManager *manager = getContext()->getPipelineShared()->getService<HandlerManager>().get();
       if (manager) {
         manager->notifyUpdateToHandlers();
+      }
+      if (below_min_layer && next_spatial_layer != 0) {
+        ELOG_DEBUG("message: Spatial layer is below minimum desired layer %d, activating keyframe resquests",
+            min_valid_spatial_layer);
+        stream_->notifyMediaStreamEvent("slideshow_fallback_update", "true");
+      } else if (spatial_layer_ != 0) {
+        ELOG_DEBUG("message: Spatial layer has recovered %d, deactivating keyframe resquests",
+            next_spatial_layer);
+        stream_->notifyMediaStreamEvent("slideshow_fallback_update", "false");
       }
     }
   }
@@ -196,6 +219,7 @@ void QualityManager::calculateMaxActiveLayer() {
   stats_->getNode()["qualityLayers"].insertStat("maxActiveTemporalLayer",
       CumulativeStat{static_cast<uint64_t>(max_active_temporal_layer_)});
 
+
   max_active_spatial_layer_ = max_active_spatial_layer;
   max_active_temporal_layer_ = max_active_temporal_layer;
 }
@@ -229,6 +253,12 @@ void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
 
   spatial_layer_ = spatial_layer;
   temporal_layer_ = temporal_layer;
+}
+
+void QualityManager::setMinDesiredSpatialLayer(int spatial_layer) {
+  ELOG_DEBUG("message: setting min desired spatial layer, spatial_layer: %d", spatial_layer);
+  min_desired_spatial_layer_ = spatial_layer;
+  selectLayer(true);
 }
 
 void QualityManager::setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate) {

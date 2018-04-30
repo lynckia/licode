@@ -47,7 +47,7 @@ const Socket = (newIo) => {
     });
   };
 
-  that.connect = (token, callback = defaultCallback, error = defaultCallback) => {
+  that.connect = (token, userOptions, callback = defaultCallback, error = defaultCallback) => {
     const options = {
       reconnection: true,
       reconnectionAttempts: 3,
@@ -139,7 +139,9 @@ const Socket = (newIo) => {
     });
 
     // First message with the token
-    that.sendMessage('token', token, (response) => {
+    const message = userOptions;
+    message.token = token;
+    that.sendMessage('token', message, (response) => {
       that.state = that.CONNECTED;
       that.id = response.clientId;
       callback(response);

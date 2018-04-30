@@ -53,6 +53,31 @@ const EventDispatcher = () => {
   return that;
 };
 
+class EventEmitter {
+  constructor() {
+    this.emitter = EventDispatcher();
+  }
+  addEventListener(eventType, listener) {
+    this.emitter.addEventListener(eventType, listener);
+  }
+  removeEventListener(eventType, listener) {
+    this.emitter.removeEventListener(eventType, listener);
+  }
+  dispatchEvent(evt) {
+    this.emitter.dispatchEvent(evt);
+  }
+  on(eventType, listener) {
+    this.addEventListener(eventType, listener);
+  }
+  off(eventType, listener) {
+    this.removeEventListener(eventType, listener);
+  }
+  emit(evt) {
+    this.dispatchEvent(evt);
+  }
+}
+
+
 // **** EVENTS ****
 
 /*
@@ -67,6 +92,25 @@ const LicodeEvent = (spec) => {
 
   // Event type. Examples are: 'room-connected', 'stream-added', etc.
   that.type = spec.type;
+
+  return that;
+};
+
+/*
+ * Class ConnectionEvent represents an Event that happens in a Room. It is a
+ * LicodeEvent.
+ * It is usually initialized as:
+ * var roomEvent = RoomEvent({type:"stream-added", streams:[stream1, stream2]});
+ * Event types:
+ * 'stream-added' - a stream has been added to the connection.
+ * 'stream-removed' - a stream has been removed from the connection.
+ * 'ice-state-change' - ICE state changed
+ */
+const ConnectionEvent = (spec) => {
+  const that = LicodeEvent(spec);
+
+  that.stream = spec.stream;
+  that.state = spec.state;
 
   return that;
 };
@@ -124,4 +168,5 @@ const PublisherEvent = (spec) => {
   return that;
 };
 
-export { EventDispatcher, LicodeEvent, RoomEvent, StreamEvent, PublisherEvent };
+export { EventDispatcher, EventEmitter, LicodeEvent, RoomEvent, StreamEvent, PublisherEvent,
+  ConnectionEvent };

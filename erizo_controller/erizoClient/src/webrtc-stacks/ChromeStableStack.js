@@ -11,10 +11,7 @@ const ChromeStableStack = (specInput) => {
   that.enableSimulcast = (sdpInput) => {
     let result;
     let sdp = sdpInput;
-    if (!spec.video) {
-      return sdp;
-    }
-    if (!spec.simulcast) {
+    if (!that.simulcast) {
       return sdp;
     }
 
@@ -24,7 +21,7 @@ const ChromeStableStack = (specInput) => {
       return sdp;
     }
     // TODO (pedro): Consider adding these to SdpHelpers
-    const numSpatialLayers = spec.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
+    const numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
     const baseSsrc = parseInt(matchGroup[1], 10);
     const baseSsrcRtx = parseInt(matchGroup[2], 10);
     const cname = sdp.match(new RegExp(`a=ssrc:${matchGroup[1]} cname:(.*)\r?\n`))[1];
@@ -64,6 +61,20 @@ const ChromeStableStack = (specInput) => {
     }
     result += 'a=x-google-flag:conference\r\n';
     return sdp.replace(matchGroup[0], result);
+  };
+
+  that.setStartVideoBW = (sdpInfo) => {
+    if (that.video && spec.startVideoBW) {
+      Logger.debug(`startVideoBW requested: ${spec.startVideoBW}`);
+      SdpHelpers.setParamForCodecs(sdpInfo, 'video', 'x-google-start-bitrate', spec.startVideoBW);
+    }
+  };
+
+  that.setHardMinVideoBW = (sdpInfo) => {
+    if (that.video && spec.hardMinVideoBW) {
+      Logger.debug(`hardMinVideoBW requested: ${spec.hardMinVideoBW}`);
+      SdpHelpers.setParamForCodecs(sdpInfo, 'video', 'x-google-min-bitrate', spec.hardMinVideoBW);
+    }
   };
 
   return that;

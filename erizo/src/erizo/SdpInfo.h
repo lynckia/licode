@@ -257,9 +257,9 @@ class SdpInfo {
   /**
    * The audio and video SSRCs for this particular SDP.
    */
-  unsigned int audio_ssrc;
-  std::vector<uint32_t> video_ssrc_list;
-  std::map<uint32_t, uint32_t> video_rtx_ssrc_map;
+  std::map<std::string, unsigned int> audio_ssrc_map;
+  std::map<std::string, std::vector<uint32_t>> video_ssrc_map;
+  std::map<std::string, std::map<uint32_t, uint32_t>> video_rtx_ssrc_map;
   /**
   * Is it Bundle
   */

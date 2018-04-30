@@ -25,8 +25,7 @@ exports.MonitorSubscriber = function (log) {
   };
 
 
-  that.monitorMinVideoBw = function(mediaStream, callback, idPub,
-     idSub, options, erizoJsController) {
+  that.monitorMinVideoBw = function(mediaStream, callback) {
     mediaStream.bwValues = [];
     var ticks = 0;
     var retries = 0;
@@ -34,7 +33,7 @@ exports.MonitorSubscriber = function (log) {
     var nextRetry = 0;
     mediaStream.bwStatus = BW_STABLE;
     log.info('message: Start wrtc adapt scheme, ' +
-    'id: ' + mediaStream.wrtcId + ', ' +
+    'id: ' + mediaStream.id + ', ' +
     'scheme: notify-slideshow, ' +
     'minVideoBW: ' + mediaStream.minVideoBW);
 
@@ -61,7 +60,7 @@ exports.MonitorSubscriber = function (log) {
             if(average <= lastAverage && (average < mediaStream.lowerThres)) {
               if (++ticks > TICKS_PER_TRANSITION){
                 log.info('message: scheme state change, ' +
-                'id: ' + mediaStream.wrtcId + ', ' +
+                'id: ' + mediaStream.id + ', ' +
                 'previousState: BW_STABLE, ' +
                 'newState: BW_SLIDESHOW, ' +
                 'averageBandwidth: ' + average + ', ' +
@@ -77,7 +76,7 @@ exports.MonitorSubscriber = function (log) {
             break;
           case BW_SLIDESHOW:
             log.info('message: Switched to audio-only, ' +
-            'id: ' + mediaStream.wrtcId + ', ' +
+            'id: ' + mediaStream.id + ', ' +
             'state: BW_SLIDESHOW, ' +
             'averageBandwidth: ' + average + ', ' +
             'lowerThreshold: ' + mediaStream.lowerThres);
@@ -87,14 +86,14 @@ exports.MonitorSubscriber = function (log) {
             average = 0;
             lastAverage = 0;
             mediaStream.minVideoBW = false;
-            erizoJsController.setSlideShow(true, idSub, idPub);
+            callback('scheme-slideshow-change', {enabled: true});
             callback('callback', {type: 'bandwidthAlert',
-            message: 'slideshow',
-            bandwidth: average});
+                                  message: 'slideshow',
+                                  bandwidth: average});
             clearInterval(mediaStream.monitorInterval);
             break;
           default:
-            log.error('Unknown BW status, id: ' + mediaStream.wrtcId);
+            log.error('Unknown BW status, id: ' + mediaStream.id);
         }
         lastAverage = average;
       }).catch((reason) => {

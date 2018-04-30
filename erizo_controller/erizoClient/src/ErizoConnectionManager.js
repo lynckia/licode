@@ -4,14 +4,16 @@ import FirefoxStack from './webrtc-stacks/FirefoxStack';
 import FcStack from './webrtc-stacks/FcStack';
 import EdgeStack from './webrtc-stacks/EdgeStack';
 import Logger from './utils/Logger';
+import { EventEmitter, ConnectionEvent } from './Events';
 import ErizoMap from './utils/ErizoMap';
 import ConnectionHelpers from './utils/ConnectionHelpers';
 
-
+const EventEmitterConst = EventEmitter; // makes google-closure-compiler happy
 let ErizoSessionId = 103;
 
-class ErizoConnection {
+class ErizoConnection extends EventEmitterConst {
   constructor(specInput, erizoId = undefined) {
+    super();
     Logger.debug('Building a new Connection');
     this.stack = {};
 
@@ -58,22 +60,16 @@ class ErizoConnection {
     // PeerConnection Events
     if (this.stack.peerConnection) {
       this.peerConnection = this.stack.peerConnection; // For backwards compatibility
-      this.stack.peerConnection.onaddstream = (stream) => {
-        if (this.onaddstream) {
-          this.onaddstream(stream);
-        }
+      this.stack.peerConnection.onaddstream = (evt) => {
+        this.emit(ConnectionEvent({ type: 'add-stream', stream: evt.stream }));
       };
 
-      this.stack.peerConnection.onremovestream = (stream) => {
-        if (this.onremovestream) {
-          this.onremovestream(stream);
-        }
+      this.stack.peerConnection.onremovestream = (evt) => {
+        this.emit(ConnectionEvent({ type: 'remove-stream', stream: evt.stream }));
       };
 
-      this.stack.peerConnection.oniceconnectionstatechange = (ev) => {
-        if (this.oniceconnectionstatechange) {
-          this.oniceconnectionstatechange(ev.target.iceConnectionState);
-        }
+      this.stack.peerConnection.oniceconnectionstatechange = (state) => {
+        this.emit(ConnectionEvent({ type: 'ice-state-change', state }));
       };
     }
   }
@@ -84,8 +80,8 @@ class ErizoConnection {
     this.stack.close();
   }
 
-  createOffer(isSubscribe) {
-    this.stack.createOffer(isSubscribe);
+  createOffer(isSubscribe, forceOfferToReceive, streamId) {
+    this.stack.createOffer(isSubscribe, forceOfferToReceive, streamId);
   }
 
   addStream(stream) {
@@ -113,12 +109,20 @@ class ErizoConnection {
     this.stack.sendSignalingMessage(msg);
   }
 
-  enableSimulcast(sdpInput) {
-    this.stack.enableSimulcast(sdpInput);
+  setSimulcast(enable) {
+    this.stack.setSimulcast(enable);
   }
 
-  updateSpec(configInput, callback) {
-    this.stack.updateSpec(configInput, callback);
+  setVideo(video) {
+    this.stack.setVideo(video);
+  }
+
+  setAudio(audio) {
+    this.stack.setAudio(audio);
+  }
+
+  updateSpec(configInput, streamId, callback) {
+    this.stack.updateSpec(configInput, streamId, callback);
   }
 }
 
@@ -127,7 +131,7 @@ class ErizoConnectionManager {
     this.ErizoConnectionsMap = new Map(); // key: erizoId, value: {connectionId: connection}
   }
 
-  getOrBuildErizoConnection(specInput, erizoId = undefined) {
+  getOrBuildErizoConnection(specInput, erizoId = undefined, singlePC = false) {
     Logger.debug(`message: getOrBuildErizoConnection, erizoId: ${erizoId}`);
     let connection = {};
 
@@ -135,23 +139,49 @@ class ErizoConnectionManager {
       // we have no erizoJS id - p2p
       return new ErizoConnection(specInput);
     }
-    connection = new ErizoConnection(specInput, erizoId);
-    if (this.ErizoConnectionsMap.has(erizoId)) {
-      this.ErizoConnectionsMap.get(erizoId)[connection.sessionId] = connection;
+    if (singlePC) {
+      let connectionEntry;
+      if (this.ErizoConnectionsMap.has(erizoId)) {
+        connectionEntry = this.ErizoConnectionsMap.get(erizoId);
+      } else {
+        connectionEntry = {};
+        this.ErizoConnectionsMap.set(erizoId, connectionEntry);
+      }
+      if (!connectionEntry['single-pc']) {
+        connectionEntry['single-pc'] = new ErizoConnection(specInput, erizoId);
+      }
+      connection = connectionEntry['single-pc'];
     } else {
-      const connectionEntry = {};
-      connectionEntry[connection.sessionId] = connection;
-      this.ErizoConnectionsMap.set(erizoId, connectionEntry);
+      connection = new ErizoConnection(specInput, erizoId);
+      if (this.ErizoConnectionsMap.has(erizoId)) {
+        this.ErizoConnectionsMap.get(erizoId)[connection.sessionId] = connection;
+      } else {
+        const connectionEntry = {};
+        connectionEntry[connection.sessionId] = connection;
+        this.ErizoConnectionsMap.set(erizoId, connectionEntry);
+      }
     }
+    if (specInput.simulcast) {
+      connection.setSimulcast(specInput.simulcast);
+    }
+    if (specInput.video) {
+      connection.setVideo(specInput.video);
+    }
+    if (specInput.audio) {
+      connection.setVideo(specInput.audio);
+    }
+
     return connection;
   }
 
-  closeConnection(connection) {
-    Logger.debug(`Removing connection ${connection.sessionId}
+  maybeCloseConnection(connection) {
+    Logger.debug(`Trying to remove connection ${connection.sessionId}
        with erizoId ${connection.erizoId}`);
-    connection.close();
-    if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined) {
-      delete this.ErizoConnectionsMap.get(connection.erizoId)[connection.sessionId];
+    if (connection.streamsMap.size() === 0) {
+      connection.close();
+      if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined) {
+        delete this.ErizoConnectionsMap.get(connection.erizoId)[connection.sessionId];
+      }
     }
   }
 }

@@ -34,7 +34,7 @@ exports.MonitorSubscriber = function (log) {
     var nextRetry = 0;
     mediaStream.bwStatus = BW_STABLE;
     log.info('message: Start wrtc adapt scheme, ' +
-    'id: ' + mediaStream.wrtcId + ', ' +
+    'id: ' + mediaStream.id + ', ' +
     'scheme: notify-break, ' +
     'minVideoBW: ' + mediaStream.minVideoBW);
 
@@ -61,7 +61,7 @@ exports.MonitorSubscriber = function (log) {
             if(average <= lastAverage && (average < mediaStream.lowerThres)) {
               if (++tics > TICS_PER_TRANSITION) {
                 log.info('message: scheme state change, ' +
-                'id: ' + mediaStream.wrtcId + ', ' +
+                'id: ' + mediaStream.id + ', ' +
                 'previousState: BW_STABLE, ' +
                 'newState: BW_WONT_RECOVER, ' +
                 'averageBandwidth: ' + average + ', ' +
@@ -77,7 +77,7 @@ exports.MonitorSubscriber = function (log) {
             break;
           case BW_WONTRECOVER:
             log.info('message: Switched to audio-only, ' +
-            'id: ' + mediaStream.wrtcId + ', ' +
+            'id: ' + mediaStream.id + ', ' +
             'state: BW_WONT_RECOVER, ' +
             'averageBandwidth: ' + average + ', ' +
             'lowerThreshold: ' + mediaStream.lowerThres);
@@ -94,7 +94,7 @@ exports.MonitorSubscriber = function (log) {
             clearInterval(mediaStream.monitorInterval);
             break;
           default:
-            log.error('Unknown BW status, id: ' + mediaStream.wrtcId);
+            log.error('Unknown BW status, id: ' + mediaStream.id);
         }
         lastAverage = average;
       }).catch((reason) => {

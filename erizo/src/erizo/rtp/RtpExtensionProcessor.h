@@ -32,6 +32,7 @@ class RtpExtensionProcessor{
 
   void setSdpInfo(std::shared_ptr<SdpInfo> theInfo);
   uint32_t processRtpExtensions(std::shared_ptr<DataPacket> p);
+  VideoRotation getVideoRotation();
 
   std::array<RTPExtensions, 10> getVideoExtensionMap() {
     return ext_map_video_;
@@ -48,7 +49,9 @@ class RtpExtensionProcessor{
   std::vector<ExtMap> ext_mappings_;
   std::array<RTPExtensions, 10> ext_map_video_, ext_map_audio_;
   std::map<std::string, uint8_t> translationMap_;
+  VideoRotation video_orientation_;
   uint32_t processAbsSendTime(char* buf);
+  uint32_t processVideoOrientation(char* buf);
   uint32_t stripExtension(char* buf, int len);
 };
 

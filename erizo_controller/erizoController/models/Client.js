@@ -23,12 +23,13 @@ function listenToSocketEvents(client) {
 }
 
 class Client extends events.EventEmitter {
-  constructor(channel, token, room) {
+  constructor(channel, token, options, room) {
     super();
     this.channel = channel;
     this.room = room;
     this.token = token;
     this.id = uuidv4();
+    this.options = options;
     listenToSocketEvents(this);
     this.user = {name: token.userName, role: token.role, permissions: {}};
     const permissions = global.config.erizoController.roles[token.role] || [];
@@ -99,7 +100,7 @@ class Client extends events.EventEmitter {
         const isControlMessage = message.msg.type === 'control';
         if (!isControlMessage ||
             (isControlMessage && this.hasPermission(message.msg.action.name))) {
-          this.room.controller.processSignaling(message.streamId, this.id, message.msg);
+          this.room.controller.processSignaling(this.id, message.streamId, message.msg);
         } else {
           log.info('message: User unauthorized to execute action on stream, action: ' +
             message.msg.action.name + ', streamId: ' + message.streamId);
@@ -163,6 +164,7 @@ class Client extends events.EventEmitter {
                                     audio: options.audio,
                                     video: options.video,
                                     data: options.data,
+                                    label: options.label,
                                     attributes: options.attributes});
                 st.status = PUBLISHER_READY;
                 this.streams.push(id);
@@ -176,11 +178,12 @@ class Client extends events.EventEmitter {
     } else if (options.state === 'erizo') {
         let st;
         options.mediaConfiguration = this.token.mediaConfiguration;
+        options.singlePC = this.options.singlePC || false;
         log.info('message: addPublisher requested, ' +
-                 'streamId: ' + id + ', clientId: ' + this.id + ', ' +
+                 'streamId: ' + id + ', clientId: ' + this.id +
                  logger.objectToLog(options) + ', ' +
                  logger.objectToLog(options.attributes));
-        this.room.controller.addPublisher(id, options, (signMess) => {
+        this.room.controller.addPublisher(this.id, id, options, (signMess) => {
             if (signMess.type === 'initializing') {
                 callback(id, signMess.erizoId);
                 st = new ST.Stream({id: id,
@@ -188,12 +191,14 @@ class Client extends events.EventEmitter {
                                     audio: options.audio,
                                     video: options.video,
                                     data: options.data,
+                                    label: options.label,
                                     screen: options.screen,
                                     attributes: options.attributes});
                 this.streams.push(id);
                 this.room.streams.set(id, st);
                 st.status = PUBLISHER_INITAL;
                 log.info('message: addPublisher, ' +
+                         'label: ' + options.label + ', ' +
                          'state: PUBLISHER_INITIAL, ' +
                          'clientId: ' + this.id + ', ' +
                          'streamId: ' + id);
@@ -249,6 +254,7 @@ class Client extends events.EventEmitter {
                             audio: options.audio,
                             video: options.video,
                             data: options.data,
+                            label: options.label,
                             screen: options.screen,
                             attributes: options.attributes});
         this.streams.push(id);
@@ -260,7 +266,6 @@ class Client extends events.EventEmitter {
   }
 
   onSubscribe(options, sdp, callback) {
-    log.info('Subscribing', options, this.user);
     if (this.user === undefined || !this.user.permissions[Permission.SUBSCRIBE]) {
         callback(null, 'Unauthorized');
         return;
@@ -293,6 +298,7 @@ class Client extends events.EventEmitter {
                      'streamId: ' + options.streamId + ', ' +
                      'clientId: ' + this.id);
             options.mediaConfiguration = this.token.mediaConfiguration;
+            options.singlePC = this.options.singlePC || false;
             this.room.controller.addSubscriber(this.id, options.streamId, options, (signMess) => {
                 if (signMess.type === 'initializing') {
                     log.info('message: addSubscriber, ' +
@@ -439,7 +445,7 @@ class Client extends events.EventEmitter {
 
         this.state = 'sleeping';
         if (!this.room.p2p) {
-            this.room.controller.removePublisher(streamId);
+            this.room.controller.removePublisher(this.id, streamId);
             if (global.config.erizoController.report.session_events) {  // jshint ignore:line
                 var timeStamp = new Date();
                 this.room.amqper.broadcast('event', {room: this.room.id,
@@ -523,7 +529,7 @@ class Client extends events.EventEmitter {
           if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
             if (!this.room.p2p) {
               log.info('message: Unpublishing stream, streamId:', streamId);
-              this.room.controller.removePublisher(streamId);
+              this.room.controller.removePublisher(this.id, streamId);
               if (global.config.erizoController.report.session_events) {  // jshint ignore:line
 
                 this.room.amqper.broadcast('event', {room: this.room.id,

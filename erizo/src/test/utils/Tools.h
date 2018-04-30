@@ -249,7 +249,7 @@ class PacketTools {
     remb_packet->setLength(5);
     remb_packet->setREMBBitRate(bitrate);
     remb_packet->setREMBNumSSRC(1);
-    remb_packet->setREMBFeedSSRC(55554);
+    remb_packet->setREMBFeedSSRC(0, 55554);
     int remb_length = (remb_packet->getLength() + 1) * 4;
     char *buf = reinterpret_cast<char*>(remb_packet);
     auto packet = std::make_shared<erizo::DataPacket>(0, buf, remb_length, erizo::OTHER_PACKET);
@@ -288,7 +288,7 @@ class BaseHandlerTest  {
     io_worker = std::make_shared<erizo::IOWorker>();
     io_worker->start();
     connection = std::make_shared<erizo::MockWebRtcConnection>(simulated_worker, io_worker, ice_config, rtp_maps);
-    media_stream = std::make_shared<erizo::MockMediaStream>(simulated_worker, connection, "", rtp_maps);
+    media_stream = std::make_shared<erizo::MockMediaStream>(simulated_worker, connection, "", "", rtp_maps);
     processor = std::make_shared<erizo::MockRtcpProcessor>();
     quality_manager = std::make_shared<erizo::MockQualityManager>();
     packet_buffer_service = std::make_shared<erizo::PacketBufferService>();
