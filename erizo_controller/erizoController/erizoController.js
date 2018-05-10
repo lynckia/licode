@@ -425,7 +425,7 @@ exports.deleteRoom = function (roomId, callback) {
 
     room.forEachClient((client) => {
       client.channel.disconnect();
-    })
+    });
 
     rooms.deleteRoom(roomId);
 
