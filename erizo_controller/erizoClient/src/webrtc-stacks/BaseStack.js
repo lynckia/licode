@@ -76,15 +76,14 @@ const BaseStack = (specInput) => {
         candidate: 'end',
       };
     } else {
-      if (!candidate.candidate.match(/a=/)) {
-        candidate.candidate = `a=${candidate.candidate}`;
-      }
-
       candidateObject = {
         sdpMLineIndex: candidate.sdpMLineIndex,
         sdpMid: candidate.sdpMid,
         candidate: candidate.candidate,
       };
+      if (!candidateObject.candidate.match(/a=/)) {
+        candidateObject.candidate = `a=${candidateObject.candidate}`;
+      }
     }
 
     if (specBase.remoteDescriptionSet) {
@@ -123,8 +122,7 @@ const BaseStack = (specInput) => {
       sdp: localDesc.sdp,
     });
     Logger.info('Setting local description p2p', localDesc);
-    that.peerConnection.setLocalDescription(localDesc).then(successCallback)
-    .catch(errorCallback);
+    that.peerConnection.setLocalDescription(localDesc, successCallback, errorCallback);
   };
 
   const processOffer = (message) => {
@@ -134,11 +132,12 @@ const BaseStack = (specInput) => {
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
     that.remoteSdp = remoteSdp;
-    that.peerConnection.setRemoteDescription(msg).then(() => {
-      that.peerConnection.createAnswer(that.mediaConstraints)
-      .then(setLocalDescForAnswerp2p).catch(errorCallback.bind(null, 'createAnswer p2p', undefined));
+
+    that.peerConnection.setRemoteDescription(msg, () => {
+      that.peerConnection.createAnswer(setLocalDescForAnswerp2p,
+        errorCallback.bind(null, 'createAnswer p2p', undefined));
       specBase.remoteDescriptionSet = true;
-    }).catch(errorCallback.bind(null, 'process Offer', undefined));
+    }, errorCallback.bind(null, 'process Offer', undefined));
   };
 
   const processAnswer = (message) => {
@@ -162,11 +161,12 @@ const BaseStack = (specInput) => {
     that.remoteSdp = remoteSdp;
 
     remoteDesc = msg;
-    that.peerConnection.setLocalDescription(localDesc).then(() => {
-      that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
+
+    that.peerConnection.setLocalDescription(localDesc, () => {
+      that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg), () => {
         specBase.remoteDescriptionSet = true;
         Logger.info('Candidates to be added: ', specBase.remoteCandidates.length,
-                      specBase.remoteCandidates);
+        specBase.remoteCandidates);
         while (specBase.remoteCandidates.length > 0) {
           // IMPORTANT: preserve ordering of candidates
           that.peerConnection.addIceCandidate(specBase.remoteCandidates.shift());
@@ -176,13 +176,8 @@ const BaseStack = (specInput) => {
           // IMPORTANT: preserve ordering of candidates
           specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
         }
-        isNegotiating = false;
-        if (offerQueue.length > 0) {
-          const args = offerQueue.pop();
-          that.createOffer(args[0], args[1], args[2]);
-        }
-      }).catch(errorCallback.bind(null, 'processAnswer', undefined));
-    }).catch(errorCallback.bind(null, 'processAnswer', undefined));
+      }, errorCallback.bind(null, 'processAnswer', undefined));
+    }, errorCallback.bind(null, 'processAnswer', undefined));
   };
 
   const processNewCandidate = (message) => {
@@ -276,17 +271,18 @@ const BaseStack = (specInput) => {
 
       if (config.Sdp || config.maxAudioBW) {
         Logger.debug('Updating with SDP renegotiation', specBase.maxVideoBW, specBase.maxAudioBW);
-        that.peerConnection.setLocalDescription(localDesc)
-          .then(() => {
-            remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
-            SdpHelpers.setMaxBW(remoteSdp, specBase);
-            remoteDesc.sdp = remoteSdp.toString();
-            that.remoteSdp = remoteSdp;
-            return that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc));
-          }).then(() => {
+
+
+        that.peerConnection.setLocalDescription(localDesc, () => {
+          remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
+          SdpHelpers.setMaxBW(remoteSdp, specBase);
+          remoteDesc.sdp = remoteSdp.toString();
+          that.remoteSdp = remoteSdp;
+          that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc), () => {
             specBase.remoteDescriptionSet = true;
             specBase.callback({ type: 'updatestream', sdp: localDesc.sdp }, streamId);
-          }).catch(errorCallback.bind(null, 'updateSpec', callback));
+          }, errorCallback.bind(null, 'updateSpec', callback));
+        }, errorCallback.bind(null, 'updateSpec', callback));
       } else {
         Logger.debug('Updating without SDP renegotiation, ' +
                      'newVideoBW:', specBase.maxVideoBW,
