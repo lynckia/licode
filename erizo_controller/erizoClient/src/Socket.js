@@ -62,7 +62,8 @@ const Socket = (newIo) => {
 
     // Hack to know the exact reason of the WS closure (socket.io does not publish it)
     let closeCode = WEBSOCKET_NORMAL_CLOSURE;
-    if (socket.io.engine.transport.ws) {
+
+    that.bindToOncloseFunction = () => {
       that.reconnectSupported = true;
       const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
       socket.io.engine.transport.ws.onclose = (closeEvent) => {
@@ -70,6 +71,10 @@ const Socket = (newIo) => {
         closeCode = closeEvent.code;
         socketOnCloseFunction(closeEvent);
       };
+    }
+
+    if (socket.io.engine.transport.ws) {
+      that.bindToOncloseFunction();
     }
 
     that.socket = socket;
@@ -91,14 +96,8 @@ const Socket = (newIo) => {
     socket.on('onRemoveStream', emit.bind(that, 'onRemoveStream'));
 
     socket.io.engine.on('upgrade', (newTransport) => {
-      Logger.info('Transport changed: ', newTransport);
-      that.reconnectSupported = true;
-      const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
-      socket.io.engine.transport.ws.onclose = (closeEvent) => {
-        Logger.warning('WebSocket closed, code:', closeEvent.code);
-        closeCode = closeEvent.code;
-        socketOnCloseFunction(closeEvent);
-      };
+      Logger.info('Websocket transport upgraded: ', newTransport);
+      that.bindToOncloseFunction();
     });
 
     // The socket has disconnected
