@@ -3,17 +3,23 @@
 set -e
 
 BIN_DIR="build"
+OBJ_DIR="CMakeFiles"
 
 buildAll() {
   if [ -d $BIN_DIR ]; then
-    for entry in "$BIN_DIR"/*
-    do
-      echo "Building directory: $entry with flags $*"
-      make -C $entry $*
+    cd $BIN_DIR
+    for d in */ ; do
+      echo "Building $d - $*"
+      cd $d
+      make $*
+      cd ..
     done
+    cd ..
   else
     echo "Error, build directory does not exist, run generateProject.sh first"
   fi
 }
+
+
 
 buildAll $*
