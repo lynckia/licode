@@ -31,6 +31,9 @@ class ConnectionDescription : public Nan::ObjectWrap {
      */
     static NAN_METHOD(close);
 
+    static NAN_METHOD(setMsidSemantic);
+    static NAN_METHOD(getMsidSemantic);
+
     static NAN_METHOD(setProfile);
     static NAN_METHOD(setBundle);
     static NAN_METHOD(addBundleTag);

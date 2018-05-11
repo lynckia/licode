@@ -159,9 +159,6 @@ namespace erizo {
   }
 
   std::string SdpInfo::getSdp() {
-    char msidtemp[11];
-    gen_random(msidtemp, 10);
-
     ELOG_DEBUG("Getting SDP");
 
     std::ostringstream sdp;
@@ -181,7 +178,7 @@ namespace erizo {
         sdp << " " << bundleTags[i].id;
       }
       sdp << "\n";
-      sdp << "a=msid-semantic: WMS " << msidtemp << endl;
+      sdp << "a=msid-semantic: WMS " << msidSemantic << endl;
     }
     // candidates audio
     bool printedAudio = true, printedVideo = true;

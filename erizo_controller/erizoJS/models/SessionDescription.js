@@ -204,7 +204,7 @@ class SessionDescription {
       address: '127.0.0.1' });
     sdp.name = 'LicodeMCU';
 
-    sdp.msidSemantic = { semantic: 'WMS', token: '*' };
+    sdp.msidSemantic = { semantic: 'WMS', token: info.getMsidSemantic() };
 
     if (info.hasAudio()) {
       const media = getMediaInfoFromDescription(info, sdp, 'audio');
@@ -252,6 +252,8 @@ class SessionDescription {
     const sdp = this.sdp;
     let audio;
     let video;
+
+    info.setMsidSemantic(sdp.msidSemantic.token);
 
     info.setRtcpMux(true);  // TODO
 

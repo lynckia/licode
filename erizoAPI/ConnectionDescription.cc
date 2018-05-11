@@ -53,6 +53,9 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   // Prototype
   Nan::SetPrototypeMethod(tpl, "close", close);
 
+  Nan::SetPrototypeMethod(tpl, "setMsidSemantic", setMsidSemantic);
+  Nan::SetPrototypeMethod(tpl, "getMsidSemantic", getMsidSemantic);
+
   Nan::SetPrototypeMethod(tpl, "setProfile", setProfile);
   Nan::SetPrototypeMethod(tpl, "setBundle", setBundle);
   Nan::SetPrototypeMethod(tpl, "addBundleTag", addBundleTag);
@@ -192,6 +195,16 @@ NAN_METHOD(ConnectionDescription::New) {
   } else {
     // TODO(pedro) Check what happens here
   }
+}
+
+NAN_METHOD(ConnectionDescription::setMsidSemantic) {
+  GET_SDP();
+  sdp->msidSemantic = getString(info[0]);
+}
+ 
+NAN_METHOD(ConnectionDescription::getMsidSemantic) {
+  GET_SDP();
+  info.GetReturnValue().Set(Nan::New(sdp->msidSemantic.c_str()).ToLocalChecked());
 }
 
 NAN_METHOD(ConnectionDescription::setProfile) {
