@@ -7,6 +7,7 @@ if [ -d $BIN_DIR ]; then
   cd $BIN_DIR
   # Set to Debug to be able to debug in Eclipse
   cmake -G "Eclipse CDT4 - Unix Makefiles" -D ERIZO_BUILD_TYPE=debug ../build/debug
+  cmake -G "Eclipse CDT4 - Unix Makefiles" -D ERIZO_BUILD_TYPE=release ../build/release
   echo "Done"
   cd ..
 else
