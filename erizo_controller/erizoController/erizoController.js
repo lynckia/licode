@@ -412,17 +412,20 @@ exports.deleteRoom = function (roomId, callback) {
        return;
     }
 
-    room.forEachClient((client) => {
-      room.controller.removeSubscriptions(client.id);
-    });
-
     if (!room.p2p) {
+      room.forEachClient((client) => {
+        room.controller.removeSubscriptions(client.id);
+      });
       room.forEachStream((stream) => {
         if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
           room.controller.removePublisher(stream.getID());
         }
       });
     }
+
+    room.forEachClient((client) => {
+      client.channel.disconnect();
+    });
 
     rooms.deleteRoom(roomId);
 
