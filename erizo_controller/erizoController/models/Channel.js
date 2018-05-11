@@ -30,6 +30,7 @@ function listenToSocketHandshakeEvents(channel) {
   channel.socket.on('token', channel.onToken.bind(channel));
   channel.socket.on('reconnected', channel.onReconnected.bind(channel));
   channel.socket.on('disconnect', channel.onDisconnect.bind(channel));
+  channel.socket.conn.on('upgrade', channel.bindToOncloseEvent.bind(channel))
 }
 
 const CONNECTED = Symbol('connected');
@@ -47,9 +48,19 @@ class Channel extends events.EventEmitter {
     this.state = DISCONNECTED;
     this.messageBuffer = [];
     this.id = uuidv4();
+    this.reconnectSupported = false;
 
     // Hack to know the exact reason of the WS closure (socket.io does not publish it)
     this.closeCode = WEBSOCKET_NORMAL_CLOSURE;
+    if (this.socket.conn.transport.socket) {
+      this.bindToOncloseEvent();
+    };
+    listenToSocketHandshakeEvents(this);
+  }
+
+  bindToOncloseEvent(transport) {
+    log.debug('bound to onclose event, transport websocket');
+    this.reconnectSupported = true;
     let onCloseFunction = this.socket.conn.transport.socket.internalOnClose;
     this.socket.conn.transport.socket.internalOnClose = (code, reason) => {
       this.closeCode = code;
@@ -57,8 +68,7 @@ class Channel extends events.EventEmitter {
         onCloseFunction(code, reason);
       }
     };
-    listenToSocketHandshakeEvents(this);
-  }
+  };
 
   onToken(options, callback) {
     const token = options.token;
@@ -97,7 +107,7 @@ class Channel extends events.EventEmitter {
 
   onDisconnect() {
     log.debug('message: socket disconnected, code:', this.closeCode);
-    if (this.closeCode !== WEBSOCKET_NORMAL_CLOSURE &&
+    if (this.reconnectSupported && this.closeCode !== WEBSOCKET_NORMAL_CLOSURE &&
         this.closeCode !== WEBSOCKET_GOING_AWAY_CLOSURE) {
       this.state = RECONNECTING;
       this.disconnecting = setTimeout(() => {

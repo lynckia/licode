@@ -134,7 +134,6 @@ if (global.config.erizoController.listen_ssl) {  // jshint ignore:line
 server.listen(global.config.erizoController.listen_port); // jshint ignore:line
 var io = require('socket.io').listen(server, {log:false});
 
-io.set('transports', ['websocket']);
 
 var EXIT_ON_NUVE_CHECK_FAIL = global.config.erizoController.exitOnNuveCheckFail;
 var WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms; // jshint ignore:line
