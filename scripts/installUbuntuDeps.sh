@@ -69,14 +69,16 @@ install_apt_deps(){
   install_nvm_node
   nvm use
   npm install
-  npm install -g node-gyp
-  npm install gulp@3.9.1 gulp-eslint@3 run-sequence@2.2.1 webpack-stream@4.0.0 google-closure-compiler-js@20170521.0.0 del@3.0.0 gulp-sourcemaps@2.6.4 script-loader@0.7.2 expose-loader@0.7.5
+  npm install -g node-gyp gulp-cli
+  npm install gulp@3.9.1 gulp-eslint@3 run-sequence@2.2.1 webpack-stream@4.0.0 google-closure-compiler-js@20170521.0.0 \
+	del@3.0.0 gulp-sourcemaps@2.6.4 script-loader@0.7.2 expose-loader@0.7.5
   sudo apt-get install -qq python-software-properties -y
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
-  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb curl libboost-test-dev -y
-  sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
+  sudo apt-get install build-essential -y
+  sudo apt-get install -qq automake autoconf libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev \
+	libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb curl libboost-test-dev -y
 
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
@@ -157,11 +159,12 @@ install_mediadeps(){
   sudo apt-get -qq install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./v11.1.tar.gz ]; then
-      curl -O -L https://github.com/libav/libav/archive/v11.1.tar.gz
-      tar -zxvf v11.1.tar.gz
-      cd libav-11.1
-      PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus --disable-doc
+    if [ ! -f ./v11.9.tar.gz ]; then
+      curl -O -L https://github.com/libav/libav/archive/v11.9.tar.gz
+      tar -zxvf v11.9.tar.gz
+      cd libav-11.9
+      PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared \
+	--enable-gpl --enable-libvpx --enable-libx264 --enable-libopus --disable-doc
       make $FAST_MAKE -s V=0
       make install
     else
@@ -180,11 +183,12 @@ install_mediadeps_nogpl(){
   sudo apt-get -qq install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./v11.1.tar.gz ]; then
-      curl -O -L https://github.com/libav/libav/archive/v11.1.tar.gz
-      tar -zxvf v11.1.tar.gz
-      cd libav-11.1
-      PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libopus --disable-doc
+    if [ ! -f ./v11.9.tar.gz ]; then
+      curl -O -L https://github.com/libav/libav/archive/v11.9.tar.gz
+      tar -zxvf v11.9.tar.gz
+      cd libav-11.9
+      PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared \
+	--enable-gpl --enable-libvpx --enable-libopus --disable-doc
       make $FAST_MAKE -s V=0
       make install
     else
