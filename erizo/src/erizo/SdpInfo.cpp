@@ -925,11 +925,22 @@ namespace erizo {
         }
         negotiated_map.feedback_types = negotiated_feedback;
         std::map<std::string, std::string> negotiated_parameters;
+
+        // Allow different profile-level-id when level-asymmetry-allowed
+        bool level_asymmetry_allowed = false;
+        auto found_parameter = parsed_map.format_parameters.find("level-asymmetry-allowed");
+        if (found_parameter != parsed_map.format_parameters.end()) {
+		  if (std::strcmp(found_parameter->second.c_str() ,"1") == 0) {
+			level_asymmetry_allowed = true;
+		  }
+        }
+
         if (parsed_map.format_parameters.size() == internal_map.format_parameters.size()) {
           for (const std::pair<std::string, std::string>& internal_parameter : internal_map.format_parameters) {
             auto found_parameter = parsed_map.format_parameters.find(internal_parameter.first);
             if (found_parameter != parsed_map.format_parameters.end()) {
-              if (found_parameter->second == internal_parameter.second) {
+              if (found_parameter->second == internal_parameter.second ||
+            		  ((std::strcmp(found_parameter->first.c_str(), "profile-level-id") == 0) && level_asymmetry_allowed)) {
                 ELOG_DEBUG("message: Adding fmtp, codec_name: %s, parameter: %s, value:%s",
                     parsed_map.encoding_name.c_str(), found_parameter->first.c_str(),
                     found_parameter->second.c_str());
