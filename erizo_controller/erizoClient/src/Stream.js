@@ -34,9 +34,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
 
   const onStreamAddedToPC = (evt) => {
-    if (evt.stream.id === that.getLabel()) {
-      that.emit(StreamEvent({ type: 'added', stream: evt.stream }));
-    }
+    that.emit(StreamEvent({ type: 'added', stream: evt.stream }));
   };
 
   const onStreamRemovedFroPC = (evt) => {
