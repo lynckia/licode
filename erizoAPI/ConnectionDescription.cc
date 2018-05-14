@@ -59,6 +59,7 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "setProfile", setProfile);
   Nan::SetPrototypeMethod(tpl, "setBundle", setBundle);
   Nan::SetPrototypeMethod(tpl, "addBundleTag", addBundleTag);
+  Nan::SetPrototypeMethod(tpl, "getBundleTag", getBundleTag);
   Nan::SetPrototypeMethod(tpl, "setRtcpMux", setRtcpMux);
   Nan::SetPrototypeMethod(tpl, "setAudioAndVideo", setAudioAndVideo);
 
@@ -228,6 +229,28 @@ NAN_METHOD(ConnectionDescription::addBundleTag) {
   std::string id = getString(info[0]);
   std::string media_type = getString(info[1]);
   sdp->bundleTags.push_back({id, getMediaType(media_type)});
+}
+
+NAN_METHOD(ConnectionDescription::getBundleTag) {
+  GET_SDP();
+  v8::Local<v8::Object> tags = Nan::New<v8::Object>();
+  for (const erizo::BundleTag& tag : sdp->getBundleTags()) {
+    std::ostringstream id;
+    id << tag.id;
+    switch(tag.mediaType) {
+      case 0:
+        tags->Set(Nan::New(tag.id).ToLocalChecked(), Nan::New("video").ToLocalChecked());
+      break;
+      case 1:
+        tags->Set(Nan::New(tag.id).ToLocalChecked(), Nan::New("audio").ToLocalChecked());
+      break;
+      default:
+        tags->Set(Nan::New(tag.id).ToLocalChecked(), Nan::New("other").ToLocalChecked());
+      break;
+    }
+  }
+  info.GetReturnValue().Set(tags);
+  // info.GetReturnValue().Set(Nan::New(sdp->bundleTags));
 }
 
 NAN_METHOD(ConnectionDescription::setRtcpMux) {

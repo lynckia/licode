@@ -256,6 +256,8 @@ class SdpInfo {
   */
   const std::vector<Rid>& rids() const { return rids_; }
 
+  const std::vector<BundleTag>& getBundleTags() const { return bundleTags; }
+
   /**
    * The audio and video SSRCs for this particular SDP.
    */

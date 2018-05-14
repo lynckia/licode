@@ -37,6 +37,7 @@ class ConnectionDescription : public Nan::ObjectWrap {
     static NAN_METHOD(setProfile);
     static NAN_METHOD(setBundle);
     static NAN_METHOD(addBundleTag);
+    static NAN_METHOD(getBundleTag);
     static NAN_METHOD(setRtcpMux);
     static NAN_METHOD(setAudioAndVideo);
 

@@ -204,17 +204,27 @@ class SessionDescription {
       address: '127.0.0.1' });
     sdp.name = 'LicodeMCU';
 
-    sdp.msidSemantic = { semantic: 'WMS', token: info.getMsidSemantic() };
+    sdp.msidSemantic = { semantic: 'WMS', token: info.getMsidSemantic ? info.getMsidSemantic() : '*' };
 
-    if (info.hasAudio()) {
-      const media = getMediaInfoFromDescription(info, sdp, 'audio');
-      sdp.addMedia(media);
+    if (info.getBundleTag) {
+      const bundleTags = info.getBundleTag();
+      Object.keys(bundleTags).forEach((key) => {
+        const mediaType = bundleTags[key];
+        const media = getMediaInfoFromDescription(info, sdp, mediaType);
+        sdp.addMedia(media);
+      });
+    } else {
+      if (info.hasAudio()) {
+        const media = getMediaInfoFromDescription(info, sdp, 'audio');
+        sdp.addMedia(media);
+      }
+
+      if (info.hasVideo()) {
+        const media = getMediaInfoFromDescription(info, sdp, 'video');
+        sdp.addMedia(media);
+      }
     }
 
-    if (info.hasVideo()) {
-      const media = getMediaInfoFromDescription(info, sdp, 'video');
-      sdp.addMedia(media);
-    }
 
     this.sdp = sdp;
 
