@@ -27,8 +27,8 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
     audio_stream_{nullptr}, video_source_ssrc_{0},
     first_video_timestamp_{-1}, first_audio_timestamp_{-1},
     first_data_received_{}, video_offset_ms_{-1}, audio_offset_ms_{-1},
-    need_to_send_fir_{true}, rtp_mappings_{rtp_mappings}, video_codec_{AV_CODEC_ID_NONE},
-    audio_codec_{AV_CODEC_ID_NONE}, pipeline_initialized_{false}, ext_processor_{ext_mappings} {
+    need_to_send_fir_{true}, rtp_mappings_{rtp_mappings}, video_codec_id_{AV_CODEC_ID_NONE},
+    audio_codec_id_{AV_CODEC_ID_NONE}, pipeline_initialized_{false}, ext_processor_{ext_mappings} {
   ELOG_DEBUG("Creating output to %s", output_url.c_str());
 
   fb_sink_ = nullptr;
@@ -114,12 +114,14 @@ void ExternalOutput::syncClose() {
       av_write_trailer(context_);
   }
 
-  if (video_stream_ && video_stream_->codec != nullptr) {
-      avcodec_close(video_stream_->codec);
+  if (video_ctx_ != nullptr) {
+    avcodec_close(video_ctx_);
+    avcodec_free_context(&video_ctx_);
   }
 
-  if (audio_stream_ && audio_stream_->codec != nullptr) {
-      avcodec_close(audio_stream_->codec);
+  if (audio_ctx_ != nullptr) {
+    avcodec_close(audio_ctx_);
+    avcodec_free_context(&audio_ctx_);
   }
 
   if (context_ != nullptr) {
@@ -192,7 +194,7 @@ void ExternalOutput::writeAudioData(char* buf, int len) {
   }
 
   long long timestamp_to_write = (current_timestamp - first_audio_timestamp_) /  // NOLINT
-                                    (audio_stream_->codec->sample_rate / audio_stream_->time_base.den);
+                                    (audio_ctx_->sample_rate / audio_stream_->time_base.den);
   // generally 48000 / 1000 for the denominator portion, at least for opus
   // Adjust for our start time offset
 
@@ -237,28 +239,28 @@ void ExternalOutput::writeVideoData(char* buf, int len) {
 }
 
 void ExternalOutput::updateAudioCodec(RtpMap map) {
-  if (audio_codec_ != AV_CODEC_ID_NONE) {
+  if (audio_codec_id_ != AV_CODEC_ID_NONE) {
     return;
   }
   audio_map_ = map;
   if (map.encoding_name == "opus") {
-    audio_codec_ = AV_CODEC_ID_OPUS;
+    audio_codec_id_ = AV_CODEC_ID_OPUS;
   } else if (map.encoding_name == "PCMU") {
-    audio_codec_ = AV_CODEC_ID_PCM_MULAW;
+    audio_codec_id_ = AV_CODEC_ID_PCM_MULAW;
   }
 }
 
 void ExternalOutput::updateVideoCodec(RtpMap map) {
-  if (video_codec_ != AV_CODEC_ID_NONE) {
+  if (video_codec_id_ != AV_CODEC_ID_NONE) {
     return;
   }
   video_map_ = map;
   if (map.encoding_name == "VP8") {
     depacketizer_.reset(new Vp8Depacketizer());
-    video_codec_ = AV_CODEC_ID_VP8;
+    video_codec_id_ = AV_CODEC_ID_VP8;
   } else if (map.encoding_name == "H264") {
     depacketizer_.reset(new H264Depacketizer());
-    video_codec_ = AV_CODEC_ID_H264;
+    video_codec_id_ = AV_CODEC_ID_H264;
   }
 }
 
@@ -369,48 +371,69 @@ int ExternalOutput::deliverEvent_(MediaEventPtr event) {
 }
 
 bool ExternalOutput::initContext() {
-  if (video_codec_ != AV_CODEC_ID_NONE &&
-            audio_codec_ != AV_CODEC_ID_NONE &&
+  if (video_codec_id_ != AV_CODEC_ID_NONE &&
+            audio_codec_id_ != AV_CODEC_ID_NONE &&
             video_stream_ == nullptr &&
             audio_stream_ == nullptr) {
-    AVCodec* video_codec = avcodec_find_encoder(video_codec_);
+    video_codec = avcodec_find_encoder(video_codec_id_);
+    int ret = -1;
     if (video_codec == nullptr) {
       ELOG_ERROR("Could not find video codec");
       return false;
     }
     need_to_send_fir_ = true;
     video_queue_.setTimebase(video_map_.clock_rate);
+    video_ctx_ = avcodec_alloc_context3(video_codec);
+    if (!video_ctx_) {
+      ELOG_ERROR("Could not alloc video codec context");
+      return false;
+    }
+    video_ctx_->pix_fmt = AV_PIX_FMT_YUV420P;
+    video_ctx_->width = 640;
+    video_ctx_->height = 480;
+    video_ctx_->time_base = (AVRational) { 1, 30 };
+
     video_stream_ = avformat_new_stream(context_, video_codec);
+    ret = avcodec_parameters_from_context(video_stream_->codecpar, video_ctx_);
+    if (ret != 0) {
+      ELOG_ERROR("Could not copy video codec paramaters");
+      return false;
+    }
     video_stream_->id = 0;
-    video_stream_->codec->codec_id = video_codec_;
-    video_stream_->codec->width = 640;
-    video_stream_->codec->height = 480;
     video_stream_->time_base = (AVRational) { 1, 30 };
     video_stream_->metadata = genVideoMetadata();
-    // A decent guess here suffices; if processing the file with ffmpeg,
-    // use -vsync 0 to force it not to duplicate frames.
-    video_stream_->codec->pix_fmt = PIX_FMT_YUV420P;
     if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
-      video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+      video_ctx_->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
     context_->oformat->flags |= AVFMT_VARIABLE_FPS;
 
-    AVCodec* audio_codec = avcodec_find_encoder(audio_codec_);
+    audio_codec = avcodec_find_encoder(audio_codec_id_);
     if (audio_codec == nullptr) {
       ELOG_ERROR("Could not find audio codec");
       return false;
     }
-
-    audio_stream_ = avformat_new_stream(context_, audio_codec);
-    audio_stream_->id = 1;
-    audio_stream_->codec->codec_id = audio_codec_;
-    audio_stream_->codec->sample_rate = audio_map_.clock_rate;
-    audio_stream_->time_base = (AVRational) { 1, audio_stream_->codec->sample_rate };
-    audio_stream_->codec->channels = audio_map_.channels;
-    if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
-      audio_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+    audio_ctx_ = avcodec_alloc_context3(audio_codec);
+    if (!audio_ctx_) {
+      ELOG_ERROR("Could not alloc audio codec context");
+      return false;
     }
+    audio_ctx_->sample_rate = audio_map_.clock_rate;
+    audio_ctx_->time_base = (AVRational) { 1, audio_ctx_->sample_rate };
+    audio_ctx_->channels = audio_map_.channels;
+    audio_stream_ = avformat_new_stream(context_, audio_codec);
+    ret = avcodec_parameters_from_context(audio_stream_->codecpar, audio_ctx_);
+    if (ret != 0) {
+      ELOG_ERROR("Could not copy audio codec paramaters");
+      return false;
+    }
+    audio_stream_->id = 1;
+    audio_stream_->time_base = (AVRational) { 1, audio_ctx_->sample_rate };
 
+    if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
+      video_ctx_->flags |= CODEC_FLAG_GLOBAL_HEADER;
+      audio_ctx_->flags |= CODEC_FLAG_GLOBAL_HEADER;
+    }
+    context_->oformat->flags |= AVFMT_VARIABLE_FPS;
     context_->streams[0] = video_stream_;
     context_->streams[1] = audio_stream_;
     if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
@@ -442,7 +465,7 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
     if (getAudioSinkSSRC() == 0) {
       ELOG_DEBUG("No audio detected");
       audio_map_ = RtpMap{0, "PCMU", 8000, AUDIO_TYPE, 1};
-      audio_codec_ = AV_CODEC_ID_PCM_MULAW;
+      audio_codec_id_ = AV_CODEC_ID_PCM_MULAW;
     }
   }
   if (need_to_send_fir_ && video_source_ssrc_) {

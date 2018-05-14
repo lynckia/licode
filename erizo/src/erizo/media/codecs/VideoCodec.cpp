@@ -63,7 +63,7 @@ int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
 
   vCoderContext->width = info.width;
   vCoderContext->height = info.height;
-  vCoderContext->pix_fmt = PIX_FMT_YUV420P;
+  vCoderContext->pix_fmt = AV_PIX_FMT_YUV420P;
   vCoderContext->time_base = (AVRational) {1, 90000};
 
   vCoderContext->sample_aspect_ratio = (AVRational) { info.width, info.height };
@@ -277,7 +277,7 @@ decoding:
     cromV += dst_linesize;
     src += src_linesize;
   }
-  av_free_packet(&avpkt);
+  av_packet_unref(&avpkt);
 
   return outSize * 3 / 2;
 }

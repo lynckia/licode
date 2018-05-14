@@ -27,7 +27,7 @@ ExternalInput::~ExternalInput() {
   thread_.join();
   if (needTranscoding_)
     encodeThread_.join();
-  av_free_packet(&avpacket_);
+  av_packet_unref(&avpacket_);
   if (context_ != NULL)
     avformat_free_context(context_);
   ELOG_DEBUG("ExternalInput closed");
@@ -221,7 +221,7 @@ void ExternalInput::receiveLoop() {
         }
       }
     }
-    av_free_packet(&orig_pkt);
+    av_packet_unref(&orig_pkt);
   }
   ELOG_DEBUG("Ended stream to play %s", url_.c_str());
   running_ = false;
