@@ -204,7 +204,8 @@ class SessionDescription {
       address: '127.0.0.1' });
     sdp.name = 'LicodeMCU';
 
-    sdp.msidSemantic = { semantic: 'WMS', token: info.getMsidSemantic ? info.getMsidSemantic() : '*' };
+    sdp.msidSemantic = { semantic: 'WMS',
+      token: info.getMsidSemantic ? info.getMsidSemantic() : '*' };
 
     if (info.getBundleTag) {
       const bundleTags = info.getBundleTag();
