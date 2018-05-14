@@ -111,35 +111,6 @@ const BaseStack = (specInput) => {
     }, streamId);
   };
 
-  const setLocalDescForAnswerp2p = (sessionDescription) => {
-    localDesc = sessionDescription;
-    localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
-    SdpHelpers.setMaxBW(localSdp, specBase);
-    localDesc.sdp = localSdp.toString();
-    that.localSdp = localSdp;
-    specBase.callback({
-      type: localDesc.type,
-      sdp: localDesc.sdp,
-    });
-    Logger.info('Setting local description p2p', localDesc);
-    that.peerConnection.setLocalDescription(localDesc, successCallback, errorCallback);
-  };
-
-  const processOffer = (message) => {
-    // Its an offer, we assume its p2p
-    const msg = message;
-    remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-    SdpHelpers.setMaxBW(remoteSdp, specBase);
-    msg.sdp = remoteSdp.toString();
-    that.remoteSdp = remoteSdp;
-
-    that.peerConnection.setRemoteDescription(msg, () => {
-      that.peerConnection.createAnswer(setLocalDescForAnswerp2p,
-        errorCallback.bind(null, 'createAnswer p2p', undefined));
-      specBase.remoteDescriptionSet = true;
-    }, errorCallback.bind(null, 'process Offer', undefined));
-  };
-
   const processAnswer = (message) => {
     const msg = message;
 
@@ -178,6 +149,35 @@ const BaseStack = (specInput) => {
         }
       }, errorCallback.bind(null, 'processAnswer', undefined));
     }, errorCallback.bind(null, 'processAnswer', undefined));
+  };
+
+  const setLocalDescForAnswerp2p = (sessionDescription) => {
+    localDesc = sessionDescription;
+    localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
+    SdpHelpers.setMaxBW(localSdp, specBase);
+    localDesc.sdp = localSdp.toString();
+    that.localSdp = localSdp;
+    specBase.callback({
+      type: localDesc.type,
+      sdp: localDesc.sdp,
+    });
+    Logger.info('Setting local description p2p', localDesc);
+    that.peerConnection.setLocalDescription(localDesc, successCallback, errorCallback);
+  };
+
+  const processOffer = (message) => {
+    // Its an offer, we assume its p2p
+    const msg = message;
+    remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
+    SdpHelpers.setMaxBW(remoteSdp, specBase);
+    msg.sdp = remoteSdp.toString();
+    that.remoteSdp = remoteSdp;
+
+    that.peerConnection.setRemoteDescription(msg, () => {
+      that.peerConnection.createAnswer(setLocalDescForAnswerp2p,
+        errorCallback.bind(null, 'createAnswer p2p', undefined));
+      specBase.remoteDescriptionSet = true;
+    }, errorCallback.bind(null, 'process Offer', undefined));
   };
 
   const processNewCandidate = (message) => {
