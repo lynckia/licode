@@ -62,4 +62,24 @@ SdpHelpers.setParamForCodecs = (sdpInfo, mediaType, paramName, value) => {
   });
 };
 
+SdpHelpers.forceCodecs = (sdp, codecs) => {
+  const video = sdp.getMedia('video');
+  const audio = sdp.getMedia('audio');
+  if (video) {
+    video.getCodecs().forEach((codec, index) => {
+      if (codec.codec.toLowerCase() !== codecs.video.toLowerCase()) {
+        sdp.getMedia('video').getCodecs().delete(index);
+      }
+    });
+  }
+  if (audio) {
+    audio.getCodecs().forEach((codec, index) => {
+      if (codec.codec.toLowerCase() !== codecs.audio.toLowerCase()) {
+        sdp.getMedia('audio').getCodecs().delete(index);
+      }
+    });
+  }
+};
+
+
 export default SdpHelpers;
