@@ -36,6 +36,7 @@ OPTIONS:
    -f      Use 4 threads to build
    -s      Install Spine
    -t      Run Tests
+   -w      Watch client changes and recompile debug version
 EOF
 }
 
@@ -98,6 +99,14 @@ execute_tests(){
   cd $CURRENT_DIR
 }
 
+watch_client(){
+  echo 'Watching client...'
+  . $NVM_CHECK
+  nvm use
+  cd $ROOT
+  npm run watchClient
+}
+
 if [ "$#" -eq 0 ]
 then
   install_erizo
@@ -105,7 +114,7 @@ then
   install_erizo_controller
   install_spine
 else
-  while getopts “heacstfd” OPTION
+  while getopts “heacstfdw” OPTION
   do
     case $OPTION in
       h)
@@ -133,6 +142,9 @@ else
         ;;
       d)
         DELETE_OBJECT_FILES='true'
+        ;;
+      w)
+        watch_client
         ;;
       ?)
         usage
