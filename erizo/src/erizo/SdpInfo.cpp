@@ -930,9 +930,9 @@ namespace erizo {
         bool level_asymmetry_allowed = false;
         auto found_parameter = parsed_map.format_parameters.find("level-asymmetry-allowed");
         if (found_parameter != parsed_map.format_parameters.end()) {
-		  if (std::strcmp(found_parameter->second.c_str() ,"1") == 0) {
-			level_asymmetry_allowed = true;
-		  }
+          if (std::strcmp(found_parameter->second.c_str(), "1") == 0) {
+            level_asymmetry_allowed = true;
+          }
         }
 
         if (parsed_map.format_parameters.size() == internal_map.format_parameters.size()) {
@@ -940,7 +940,7 @@ namespace erizo {
             auto found_parameter = parsed_map.format_parameters.find(internal_parameter.first);
             if (found_parameter != parsed_map.format_parameters.end()) {
               if (found_parameter->second == internal_parameter.second ||
-            		  ((std::strcmp(found_parameter->first.c_str(), "profile-level-id") == 0) && level_asymmetry_allowed)) {
+                 ((std::strcmp(found_parameter->first.c_str(), "profile-level-id") == 0) && level_asymmetry_allowed)) {
                 ELOG_DEBUG("message: Adding fmtp, codec_name: %s, parameter: %s, value:%s",
                     parsed_map.encoding_name.c_str(), found_parameter->first.c_str(),
                     found_parameter->second.c_str());
