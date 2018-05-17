@@ -53,10 +53,6 @@ int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
   vCoderContext->qmin = 0;
   vCoderContext->qmax = 40;  // rc_quantifiers
   vCoderContext->profile = 3;
-  // vCoderContext->frame_skip_threshold = 30;
-  vCoderContext->rc_buffer_aggressivity = 0.95;
-  // vCoderContext->rc_buffer_size = vCoderContext->bit_rate;
-  // vCoderContext->rc_initial_buffer_occupancy = vCoderContext->bit_rate / 2;
   vCoderContext->rc_initial_buffer_occupancy = 500;
 
   vCoderContext->rc_buffer_size = 1000;
@@ -86,8 +82,8 @@ int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
 }
 
 int VideoEncoder::encodeVideo(unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength) {
+  int ret;
   int size = vCoderContext->width * vCoderContext->height;
-  // ELOG_DEBUG("vCoderContext width %d", vCoderContext->width);
 
   cPicture->pts = AV_NOPTS_VALUE;
   cPicture->data[0] = inBuffer;
@@ -102,20 +98,26 @@ int VideoEncoder::encodeVideo(unsigned char* inBuffer, int inLength, unsigned ch
   pkt.data = outBuffer;
   pkt.size = outLength;
 
-  int ret = 0;
-  int got_packet = 0;
-  //    ELOG_DEBUG(
-  //        "Before encoding inBufflen %d, size %d, codecontext width %d pkt->size%d",
-  //        inLength, size, vCoderContext->width, pkt.size);
-  ret = avcodec_encode_video2(vCoderContext, &pkt, cPicture, &got_packet);
-  //    ELOG_DEBUG("Encoded video size %u, ret %d, got_packet %d, pts %lld, dts %lld",
-  //        pkt.size, ret, got_packet, pkt.pts, pkt.dts);
-  if (!ret && got_packet && vCoderContext->coded_frame) {
-    vCoderContext->coded_frame->pts = pkt.pts;
-    vCoderContext->coded_frame->key_frame =
-      !!(pkt.flags & AV_PKT_FLAG_KEY);
+  ret = avcodec_send_frame(vCoderContext, cPicture);
+  if (ret == 0) {
+    while (ret >= 0) {
+      ret = avcodec_receive_packet(vCoderContext, &pkt);
+      if (ret == AVERROR(EAGAIN)) {
+        ELOG_WARN("Encoder request more input. EAGAIN");
+        return ret;
+      } else if (ret == AVERROR_EOF) {
+        ELOG_WARN("Encoder AVERROR_EOF.");
+        return ret;
+      } else if (ret < 0) {
+        ELOG_ERROR("Error encoding frame.");
+        return ret;
+      }
+      //    ELOG_DEBUG("Encoded video size %u, ret %d, pts %lld, dts %lld",
+      //        pkt.size, ret, pkt.pts, pkt.dts);
+      av_packet_unref(&pkt);
+    }
   }
-  return ret ? ret : pkt.size;
+  return pkt.size > 0 ? pkt.size : ret;
 }
 
 int VideoEncoder::closeEncoder() {
@@ -171,20 +173,38 @@ int VideoDecoder::initDecoder(const VideoCodecInfo& info) {
   return 0;
 }
 
-int VideoDecoder::initDecoder(AVCodecContext* context) {
-  ELOG_DEBUG("Init Decoder with context");
+int VideoDecoder::initDecoder(AVCodecContext** context, AVCodecParameters *codecpar) {
+  int error;
+  AVCodecContext *c;
+
+  ELOG_DEBUG("Init Decoder context");
   initWithContext_ = true;
-  vDecoder = avcodec_find_decoder(context->codec_id);
+
+  vDecoder = avcodec_find_decoder(codecpar->codec_id);
   if (!vDecoder) {
     ELOG_DEBUG("Error getting video decoder");
     return -1;
   }
-  vDecoderContext = context;
 
-  if (avcodec_open2(vDecoderContext, vDecoder, NULL) < 0) {
+  c = avcodec_alloc_context3(vDecoder);
+  if (!c) {
+    ELOG_ERROR("Could not allocate video codec context.");
+    return -1;
+  }
+
+  error = avcodec_parameters_to_context(c, codecpar);
+  if (error < 0) {
+    ELOG_ERROR("Could copy parameters to context.");
+    return -1;
+  }
+
+  if (avcodec_open2(c, vDecoder, NULL) < 0) {
     ELOG_DEBUG("Error opening video decoder");
     return -1;
   }
+
+  *context = c;
+  vDecoderContext = *context;
 
   dPicture = av_frame_alloc();
   if (!dPicture) {
@@ -210,28 +230,23 @@ int VideoDecoder::decodeVideo(unsigned char* inBuff, int inBuffLen,
   avpkt.data = inBuff;
   avpkt.size = inBuffLen;
 
-  int got_picture;
-  int len;
+  int ret;
 
-  while (avpkt.size > 0) {
-    len = avcodec_decode_video2(vDecoderContext, dPicture, &got_picture,
-        &avpkt);
-
-    if (len < 0) {
-      ELOG_DEBUG("Error decoding video frame");
-      return -1;
+  if (avpkt.size > 0) {
+    ret = avcodec_send_packet(vDecoderContext, &avpkt);
+    if (ret == 0) {
+      while (ret >= 0) {
+        ret = avcodec_receive_frame(vDecoderContext, dPicture);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+          return -1;
+        } else if (ret < 0) {
+          ELOG_DEBUG("Error decoding video frame");
+          return -1;
+        }
+        *gotFrame = 1;
+        goto decoding;
+      }
     }
-
-    if (got_picture) {
-      *gotFrame = 1;
-      goto decoding;
-    }
-    avpkt.size -= len;
-    avpkt.data += len;
-  }
-
-  if (!got_picture) {
-    return -1;
   }
 
 decoding:

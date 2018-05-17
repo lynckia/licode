@@ -52,6 +52,7 @@ class ExternalInput : public MediaSource, public RTPDataReceiver {
   std::queue<RawDataPacket> packetQueue_;
   AVFormatContext* context_;
   AVPacket avpacket_;
+  AVCodecContext *video_codec_ctx_;
   int video_stream_index_, video_time_base_;
   int audio_stream_index_, audio_time_base_;
   int bufflen_;

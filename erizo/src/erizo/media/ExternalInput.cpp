@@ -86,12 +86,12 @@ int ExternalInput::init() {
                audio_stream_index_, audio_st->time_base.num, audio_st->time_base.den);
     audio_time_base_ = audio_st->time_base.den;
     ELOG_DEBUG("Audio Time base %d", audio_time_base_);
-    if (audio_st->codec->codec_id == AV_CODEC_ID_PCM_MULAW) {
+    if (audio_st->codecpar->codec_id == AV_CODEC_ID_PCM_MULAW) {
       ELOG_DEBUG("PCM U8");
       om.audioCodec.sampleRate = 8000;
       om.audioCodec.codec = AUDIO_CODEC_PCM_U8;
       om.rtpAudioInfo.PT = PCMU_8000_PT;
-    } else if (audio_st->codec->codec_id == AV_CODEC_ID_OPUS) {
+    } else if (audio_st->codecpar->codec_id == AV_CODEC_ID_OPUS) {
       ELOG_DEBUG("OPUS");
       om.audioCodec.sampleRate = 48000;
       om.audioCodec.codec = AUDIO_CODEC_OPUS;
@@ -102,7 +102,7 @@ int ExternalInput::init() {
   }
 
 
-  if (st->codec->codec_id == AV_CODEC_ID_VP8 || !om.hasVideo) {
+  if (st->codecpar->codec_id == AV_CODEC_ID_VP8 || !om.hasVideo) {
     ELOG_DEBUG("No need for video transcoding, already VP8");
     video_time_base_ = st->time_base.den;
     needTranscoding_ = false;
@@ -110,12 +110,12 @@ int ExternalInput::init() {
     MediaInfo om;
     om.processorType = PACKAGE_ONLY;
     if (audio_st) {
-      if (audio_st->codec->codec_id == AV_CODEC_ID_PCM_MULAW) {
+      if (audio_st->codecpar->codec_id == AV_CODEC_ID_PCM_MULAW) {
         ELOG_DEBUG("PCM U8");
         om.audioCodec.sampleRate = 8000;
         om.audioCodec.codec = AUDIO_CODEC_PCM_U8;
         om.rtpAudioInfo.PT = PCMU_8000_PT;
-      } else if (audio_st->codec->codec_id == AV_CODEC_ID_OPUS) {
+      } else if (audio_st->codecpar->codec_id == AV_CODEC_ID_OPUS) {
         ELOG_DEBUG("OPUS");
         om.audioCodec.sampleRate = 48000;
         om.audioCodec.codec = AUDIO_CODEC_OPUS;
@@ -126,9 +126,9 @@ int ExternalInput::init() {
     op_->init(om, this);
   } else {
     needTranscoding_ = true;
-    inCodec_.initDecoder(st->codec);
+    inCodec_.initDecoder(&video_codec_ctx_, st->codecpar);
 
-    bufflen_ = st->codec->width*st->codec->height*3/2;
+    bufflen_ = video_codec_ctx_->width*video_codec_ctx_->height*3/2;
     decodedBuffer_.reset((unsigned char*) malloc(bufflen_));
 
 

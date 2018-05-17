@@ -47,7 +47,7 @@ class VideoDecoder {
   VideoDecoder();
   virtual ~VideoDecoder();
   int initDecoder(const VideoCodecInfo& info);
-  int initDecoder(AVCodecContext* context);
+  int initDecoder(AVCodecContext** context, AVCodecParameters *codecpar);
   int decodeVideo(unsigned char* inBuff, int inBuffLen,
       unsigned char* outBuff, int outBuffLen, int* gotFrame);
   int closeDecoder();
