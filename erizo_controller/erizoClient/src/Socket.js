@@ -1,6 +1,6 @@
 /* global */
 
-import io from 'socket.io-client';
+import io from 'socket.io-client'; // eslint-disable-line
 import Logger from './utils/Logger';
 
 import { EventDispatcher, LicodeEvent } from './Events';
