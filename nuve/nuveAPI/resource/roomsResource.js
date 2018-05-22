@@ -2,10 +2,7 @@
 'use strict';
 var roomRegistry = require('./../mdb/roomRegistry');
 var serviceRegistry = require('./../mdb/serviceRegistry');
-
 var logger = require('./../logger').logger;
-
-// Logger
 var log = logger.getLogger('RoomsResource');
 
 /*
@@ -37,14 +34,13 @@ exports.createRoom = function (req, res) {
             roomRegistry.addRoom(room, function (result) {
                 currentService.testRoom = result;
                 currentService.rooms.push(result);
-                serviceRegistry.updateService(currentService);
+                serviceRegistry.addRoomToService(currentService, result);
                 log.info('message: testRoom created, serviceId: ' + currentService.name);
                 res.send(result);
             });
         }
     } else {
         room = {name: req.body.name};
-
         if (req.body.options.p2p) {
             room.p2p = true;
         }
@@ -55,11 +51,11 @@ exports.createRoom = function (req, res) {
             room.mediaConfiguration = req.body.options.mediaConfiguration;
         }
         roomRegistry.addRoom(room, function (result) {
-            currentService.rooms.push(result);
-            serviceRegistry.updateService(currentService);
-            log.info('message: createRoom success, roomName:' + req.body.name + ', serviceId: ' +
-                     currentService.name + ', p2p: ' + room.p2p);
-            res.send(result);
+          currentService.rooms.push(result);
+          serviceRegistry.addRoomToService(currentService, result);
+          log.info('message: createRoom success, roomName:' + req.body.name + ', serviceId: ' +
+                   currentService.name + ', p2p: ' + room.p2p);
+          res.send(result);
         });
     }
 };
