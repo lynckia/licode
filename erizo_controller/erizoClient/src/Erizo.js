@@ -4,12 +4,10 @@ import Stream from './Stream';
 import Logger from './utils/Logger';
 
 // #if process.env.INCLUDE_ADAPTER === 'TRUE'
-// eslint-disable-next-line
-import adapter from 'webrtc-adapter';
+import adapter from 'webrtc-adapter'; // eslint-disable-line
 // #endif
 
-// eslint-disable-next-line
-require('script-loader!./utils/L.Resizer.js');
+require('script-loader!./utils/L.Resizer.js');  // eslint-disable-line
 
 
 const Erizo = {
