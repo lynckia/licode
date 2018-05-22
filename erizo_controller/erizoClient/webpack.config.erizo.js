@@ -7,7 +7,12 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     libraryExport: 'default',
     library: 'Erizo',
-    libraryTarget: 'var',
+    libraryTarget: 'umd',
+  },
+  module: {
+    rules: [{
+      use: ['webpack-conditional-loader'],
+    }],
   },
   devtool: 'source-map', // Default development sourcemap
 };

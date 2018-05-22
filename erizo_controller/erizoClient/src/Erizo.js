@@ -3,8 +3,11 @@ import { LicodeEvent, RoomEvent, StreamEvent } from './Events';
 import Stream from './Stream';
 import Logger from './utils/Logger';
 
-// eslint-disable-next-line 
-require('expose-loader?adapter!../lib/adapter.js');
+// #if process.env.INCLUDE_ADAPTER === 'TRUE'
+// eslint-disable-next-line
+import adapter from 'webrtc-adapter';
+// #endif
+
 // eslint-disable-next-line
 require('script-loader!./utils/L.Resizer.js');
 
