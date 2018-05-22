@@ -14,21 +14,13 @@ extern "C" {
 
 #include "rtp/RtpVP8Parser.h"
 #include "./MediaDefinitions.h"
+#include "media/MediaInfo.h"
 #include "codecs/Codecs.h"
 #include "codecs/VideoCodec.h"
+#include "codecs/AudioCodec.h"
 #include "./logger.h"
 
 namespace erizo {
-struct RTPInfo {
-  enum AVCodecID codec;
-  unsigned int ssrc;
-  unsigned int PT;
-};
-
-enum ProcessorType {
-  RTP_ONLY, AVF, PACKAGE_ONLY
-};
-
 
 enum DataType {
   VIDEO, AUDIO
@@ -38,17 +30,6 @@ struct RawDataPacket {
   unsigned char* data;
   int length;
   DataType type;
-};
-
-struct MediaInfo {
-  std::string url;
-  bool hasVideo;
-  bool hasAudio;
-  ProcessorType processorType;
-  RTPInfo rtpVideoInfo;
-  RTPInfo rtpAudioInfo;
-  VideoCodecInfo videoCodec;
-  AudioCodecInfo audioCodec;
 };
 
 #define UNPACKAGED_BUFFER_SIZE 150000
@@ -93,9 +74,6 @@ class InputProcessor: public MediaSink {
   void close() override;
 
  private:
-  int audioDecoder;
-  int videoDecoder;
-
   double lastVideoTs_;
 
   MediaInfo mediaInfo;
@@ -113,24 +91,18 @@ class InputProcessor: public MediaSink {
   unsigned char* decodedAudioBuffer_;
   unsigned char* unpackagedAudioBuffer_;
 
-  AVCodec* aDecoder;
-  AVCodecContext* aDecoderContext;
-
-  VideoDecoder vDecoder;
+  VideoDecoder video_decoder_;
+  AudioDecoder audio_decoder_;
 
   RawDataReceiver* rawReceiver_;
 
   erizo::RtpVP8Parser pars;
-
-  bool initAudioDecoder();
 
   bool initAudioUnpackager();
   bool initVideoUnpackager();
   int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override;
   int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override;
   int deliverEvent_(MediaEventPtr event) override;
-
-  int decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff);
 };
 class OutputProcessor: public RawDataReceiver {
   DECLARE_LOGGER();
@@ -147,9 +119,6 @@ class OutputProcessor: public RawDataReceiver {
   int packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff, long int pts = 0);  // NOLINT
 
  private:
-  int audioCoder;
-  int videoCoder;
-
   int audioPackager;
   int videoPackager;
 
@@ -169,19 +138,13 @@ class OutputProcessor: public RawDataReceiver {
 
   RTPDataReceiver* rtpReceiver_;
 
-  AVCodec* aCoder;
-  AVCodecContext* aCoderContext;
-
-  VideoEncoder vCoder;
+  VideoEncoder video_encoder_;
+  AudioEncoder audio_encoder_;
 
   RtpVP8Parser pars;
 
-  bool initAudioCoder();
-
   bool initAudioPackager();
   bool initVideoPackager();
-
-  int encodeAudio(unsigned char* inBuff, int nSamples, AVPacket* pkt);
 };
 }  // namespace erizo
 

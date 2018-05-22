@@ -184,7 +184,7 @@ void ExternalInput::receiveLoop() {
     AVPacket orig_pkt = avpacket_;
     if (needTranscoding_) {
       if (avpacket_.stream_index == video_stream_index_) {  // packet is video
-        inCodec_.decodeVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get(), bufflen_, &gotDecodedFrame);
+        inCodec_.decodeVideoBuffer(avpacket_.data, avpacket_.size, decodedBuffer_.get(), bufflen_, &gotDecodedFrame);
         RawDataPacket packetR;
         if (gotDecodedFrame) {
           packetR.data = decodedBuffer_.get();

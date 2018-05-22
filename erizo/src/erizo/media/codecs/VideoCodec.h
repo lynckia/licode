@@ -5,7 +5,11 @@
 #ifndef ERIZO_SRC_ERIZO_MEDIA_CODECS_VIDEOCODEC_H_
 #define ERIZO_SRC_ERIZO_MEDIA_CODECS_VIDEOCODEC_H_
 
+#include <functional>
+
+#include "media/MediaInfo.h"
 #include "media/codecs/Codecs.h"
+#include "media/codecs/Coder.h"
 #include "./logger.h"
 
 extern "C" {
@@ -24,6 +28,8 @@ extern "C" {
 
 namespace erizo {
 
+typedef std::function<void(bool success, int len)> EncodeVideoBufferCB;
+
 class VideoEncoder {
   DECLARE_LOGGER();
 
@@ -31,12 +37,15 @@ class VideoEncoder {
   VideoEncoder();
   virtual ~VideoEncoder();
   int initEncoder(const VideoCodecInfo& info);
-  int encodeVideo(unsigned char* inBuffer, int length, unsigned char* outBuffer, int outLength);
+  void encodeVideoBuffer(unsigned char* inBuffer, int len, unsigned char* outBuffer,
+      const EncodeVideoBufferCB &done);
   int closeEncoder();
+  bool initialized;
 
  private:
-  AVCodec* vCoder;
-  AVCodecContext* vCoderContext;
+  Coder coder_;
+  AVCodec* av_codec;
+  AVCodecContext* encode_context_;
   AVFrame* cPicture;
 };
 
@@ -48,15 +57,17 @@ class VideoDecoder {
   virtual ~VideoDecoder();
   int initDecoder(const VideoCodecInfo& info);
   int initDecoder(AVCodecContext** context, AVCodecParameters *codecpar);
-  int decodeVideo(unsigned char* inBuff, int inBuffLen,
-      unsigned char* outBuff, int outBuffLen, int* gotFrame);
+  int decodeVideoBuffer(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff,
+      int outBuffLen, int* gotFrame);
   int closeDecoder();
+  bool initialized;
 
  private:
-  AVCodec* vDecoder;
-  bool initWithContext_;
-  AVCodecContext* vDecoderContext;
+  Coder coder_;
+  AVCodec* av_codec;
+  AVCodecContext* decode_context_;
   AVFrame* dPicture;
+  bool initWithContext_;
 };
 
 }  // namespace erizo

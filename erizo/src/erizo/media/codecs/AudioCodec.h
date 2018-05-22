@@ -10,10 +10,14 @@ extern "C" {
   #include <libavcodec/avcodec.h>
 }
 
+#include "media/MediaInfo.h"
 #include "./Codecs.h"
+#include "./Coder.h"
 #include "./logger.h"
 
 namespace erizo {
+
+typedef std::function<void(AVPacket *av_packet, bool got_packet)> EncodeAudioBufferCB;
 
 class AudioEncoder {
   DECLARE_LOGGER();
@@ -22,13 +26,16 @@ class AudioEncoder {
   AudioEncoder();
   virtual ~AudioEncoder();
   int initEncoder(const AudioCodecInfo& info);
-  int encodeAudio(unsigned char* inBuffer, int nSamples, AVPacket* pkt);
+  void encodeAudioBuffer(unsigned char* inBuffer, int nSamples, AVPacket* pkt,
+      EncodeAudioBufferCB &done);
   int closeEncoder();
+  bool initialized;
 
  private:
-  AVCodec* aCoder_;
-  AVCodecContext* aCoderContext_;
-  AVFrame* aFrame_;
+  Coder coder_;
+  AVCodec *encode_codec_;
+  AVCodecContext *encode_context_;
+  AVFrame *encoded_frame_;
 };
 
 class AudioDecoder {
@@ -38,13 +45,14 @@ class AudioDecoder {
   AudioDecoder();
   virtual ~AudioDecoder();
   int initDecoder(const AudioCodecInfo& info);
-  int initDecoder(AVCodecContext* context);
-  int decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff, int outBuffLen, int* gotFrame);
+  int decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff, int outBuffLen);
   int closeDecoder();
+  bool initialized;
 
  private:
-  AVCodec* aDecoder_;
-  AVCodecContext* aDecoderContext_;
+  Coder coder_;
+  AVCodec* decode_codec_;
+  AVCodecContext* decode_context_;
   AVFrame* dFrame_;
 };
 
