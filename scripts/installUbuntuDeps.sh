@@ -160,7 +160,7 @@ install_mediadeps(){
     curl -O -L https://ffmpeg.org/releases/ffmpeg-3.4.2.tar.gz
     tar -zxvf ffmpeg-3.4.2.tar.gz
     cd ffmpeg-3.4.2
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus --disable-doc
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus --disable-doc --enable-avresample
     make $FAST_MAKE -s V=0
     make install
     cd $CURRENT_DIR
@@ -179,7 +179,7 @@ install_mediadeps_nogpl(){
     curl -O -L https://ffmpeg.org/releases/ffmpeg-3.4.2.tar.gz
     tar -zxvf ffmpeg-3.4.2.tar.gz
     cd ffmpeg-3.4.2
-    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libopus --disable-doc
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libopus --disable-doc --enable-avresample
     make $FAST_MAKE -s V=0
     make install
     cd $CURRENT_DIR
