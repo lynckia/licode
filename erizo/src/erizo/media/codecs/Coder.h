@@ -2,9 +2,8 @@
 #define ERIZO_SRC_ERIZO_MEDIA_CODECS_CODER_H_
 
 #include <functional>
-#include "./logger.h"
-
 #include <boost/thread.hpp>
+#include <chrono>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -20,6 +19,8 @@ extern "C" {
 #include <libavutil/avutil.h>
 #include <libavresample/avresample.h>
 }
+
+#include "./logger.h"
 
 inline static const std::string av_make_error_string_cpp(int errnum) {
   char errbuf[AV_ERROR_MAX_STRING_SIZE];
