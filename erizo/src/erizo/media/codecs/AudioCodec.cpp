@@ -78,7 +78,7 @@ void AudioEncoder::encodeAudioBuffer(unsigned char* inBuffer, int nSamples, AVPa
                   (const uint8_t*)inBuffer,
                   nSamples * 2,
                   0)) < 0) {
-    ELOG_ERROR("avcodec_fill_audio_frame failed: %s", av_err2str(ret));
+    ELOG_ERROR("avcodec_fill_audio_frame failed: %s", av_err2str_cpp(ret));
     return;
   }
 

@@ -21,6 +21,14 @@ extern "C" {
 #include <libavresample/avresample.h>
 }
 
+inline static const std::string av_make_error_string_cpp(int errnum) {
+  char errbuf[AV_ERROR_MAX_STRING_SIZE];
+  av_strerror(errnum, errbuf, AV_ERROR_MAX_STRING_SIZE);
+  return (std::string)errbuf;
+}
+
+#define av_err2str_cpp(errnum) av_make_error_string_cpp(errnum).c_str()
+
 namespace erizo {
 
 typedef std::function<void(AVPacket *packet, AVFrame *frame, bool success)> EncodeCB;

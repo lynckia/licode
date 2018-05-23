@@ -68,12 +68,12 @@ bool Coder::decode(AVCodecContext *decode_ctx, AVFrame *frame, AVPacket *av_pack
   int ret;
   ret = avcodec_send_packet(decode_ctx, av_packet);
   if (ret < 0) {
-    ELOG_ERROR("avcodec_send_packet failed. %d %s", ret, av_err2str(ret));
+    ELOG_ERROR("avcodec_send_packet failed. %d %s", ret, av_err2str_cpp(ret));
     return false;
   }
   ret = avcodec_receive_frame(decode_ctx, frame);
   if (ret != 0) {
-    ELOG_ERROR("avcodec_receive_frame. %d %s", ret, av_err2str(ret));
+    ELOG_ERROR("avcodec_receive_frame. %d %s", ret, av_err2str_cpp(ret));
     return false;
   }
   ELOG_DEBUG("decoded %s, nb_samples: %d, size: %d", decode_ctx->codec->name,
@@ -86,14 +86,14 @@ void Coder::encode(AVCodecContext *encode_ctx, AVFrame *frame, AVPacket *av_pack
   int ret = avcodec_send_frame(encode_ctx, frame);
   if (ret < 0) {
     ELOG_ERROR("avcodec_send_frame failed for %s. %d %s", encode_ctx->codec->name,
-        ret, av_err2str(ret));
+        ret, av_err2str_cpp(ret));
     done(av_packet, frame, false);
   }
   while(ret >= 0) {
     ret = avcodec_receive_packet(encode_ctx, av_packet);
     if (ret == AVERROR_EOF) {
       ELOG_DEBUG("avcodec_receive_packet AVERROR_EOF, %s, ret: %d, %s", encode_ctx->codec->name,
-          ret, av_err2str(ret))
+          ret, av_err2str_cpp(ret))
       done(av_packet, frame, false);
       return;
     } else if (ret == AVERROR(EAGAIN)) {
@@ -106,7 +106,7 @@ void Coder::encode(AVCodecContext *encode_ctx, AVFrame *frame, AVPacket *av_pack
       done(av_packet, frame, true);
     } else {
       ELOG_ERROR("avcodec_receive_packet failed. %s, %d %s", encode_ctx->codec->name,
-          ret, av_err2str(ret));
+          ret, av_err2str_cpp(ret));
       done(av_packet, frame, false);
     }
   }
