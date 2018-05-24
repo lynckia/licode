@@ -6,6 +6,15 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/frame.h>
+#include <libavutil/audio_fifo.h>
+#include <libavutil/opt.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/error.h>
+#include <libavutil/samplefmt.h>
+#include <libavutil/channel_layout.h>
+#include <libavutil/mathematics.h>
+#include <libavutil/avutil.h>
 }
 
 #include <string>
@@ -23,6 +32,8 @@ extern "C" {
 #include "rtp/QualityManager.h"
 #include "pipeline/Handler.h"
 #include "pipeline/HandlerManager.h"
+#include "media/codecs/AudioCodec.h"
+#include "media/codecs/VideoCodec.h"
 
 #include "./logger.h"
 
@@ -62,13 +73,17 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   Pipeline::Ptr pipeline_;
   std::unique_ptr<webrtc::UlpfecReceiver> fec_receiver_;
   RtpPacketQueue audio_queue_, video_queue_;
-  std::atomic<bool> recording_, inited_;
+  std::atomic<bool> recording_, initialized_context_;
   boost::mutex mtx_;  // a mutex we use to signal our writer thread that data is waiting.
   boost::thread thread_;
   boost::condition_variable cond_;
-  AVStream *video_stream_, *audio_stream_;
+  AVStream *video_st_;
+  AVStream *audio_st_;
   AVFormatContext *context_;
-
+  VideoDecoder video_decoder_;
+  VideoEncoder video_encoder_;
+  AudioDecoder audio_decoder_;
+  AudioEncoder audio_encoder_;
   uint32_t video_source_ssrc_;
   std::unique_ptr<Depacketizer> depacketizer_;
 
@@ -107,21 +122,20 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   // so the second scheme seems not applicable.  Too bad.
   bool need_to_send_fir_;
   std::vector<RtpMap> rtp_mappings_;
-  enum AVCodecID video_codec_id_;
-  enum AVCodecID audio_codec_id_;
-  AVCodec *video_codec;
-  AVCodec *audio_codec;
-  AVCodecContext *video_ctx_;
-  AVCodecContext *audio_ctx_;
+  enum AVCodecID input_video_codec_id_;
+  enum AVCodecID input_audio_codec_id_;
+  bool need_video_transcode_;
+  bool need_audio_transcode_;
+  bool need_audio_resample_;
   std::map<uint, RtpMap> video_maps_;
   std::map<uint, RtpMap> audio_maps_;
   RtpMap video_map_;
   RtpMap audio_map_;
+  RtpExtensionProcessor ext_processor_;
   bool pipeline_initialized_;
   std::shared_ptr<Stats> stats_;
   std::shared_ptr<QualityManager> quality_manager_;
   std::shared_ptr<HandlerManager> handler_manager_;
-  RtpExtensionProcessor ext_processor_;
 
   bool initContext();
   int sendFirPacket();
@@ -140,6 +154,15 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   void initializePipeline();
   void syncClose();
   AVDictionary* genVideoMetadata();
+  void writePacket(AVPacket *av_packet, AVStream *st, bool should_write);
+  bool writeContextHeader();
+  void setupVideoDecodingParams(AVCodecContext *context, AVDictionary *dict);
+  void setupAudioDecodingParams(AVCodecContext *context, AVDictionary *dict);
+  void setupVideoEncodingParams(AVCodecContext *context, AVDictionary *dict);
+  void setupAudioEncodingParams(AVCodecContext *context, AVDictionary *dict);
+  AVStream * addOutputStream(int index, CoderCodec *coder_codec);
+  AVCodecID bestMatchOutputCodecId(AVCodecID input_codec_id);
+  bool audioNeedsResample();
 };
 
 class ExternalOuputWriter : public OutboundHandler {
@@ -165,6 +188,5 @@ class ExternalOuputWriter : public OutboundHandler {
  private:
   std::weak_ptr<ExternalOutput> output_;
 };
-
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_MEDIA_EXTERNALOUTPUT_H_

@@ -23,12 +23,12 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
                                const std::vector<RtpMap> rtp_mappings,
                                const std::vector<erizo::ExtMap> ext_mappings)
   : worker_{worker}, pipeline_{Pipeline::create()}, audio_queue_{5.0, 10.0}, video_queue_{5.0, 10.0},
-    inited_{false}, video_stream_{nullptr},
-    audio_stream_{nullptr}, video_source_ssrc_{0},
+    initialized_context_{false}, video_source_ssrc_{0},
     first_video_timestamp_{-1}, first_audio_timestamp_{-1},
     first_data_received_{}, video_offset_ms_{-1}, audio_offset_ms_{-1},
-    need_to_send_fir_{true}, rtp_mappings_{rtp_mappings}, video_codec_id_{AV_CODEC_ID_NONE},
-    audio_codec_id_{AV_CODEC_ID_NONE}, pipeline_initialized_{false}, ext_processor_{ext_mappings} {
+    need_to_send_fir_{true}, rtp_mappings_{rtp_mappings}, input_video_codec_id_{AV_CODEC_ID_NONE},
+    input_audio_codec_id_{AV_CODEC_ID_NONE}, need_video_transcode_{false}, need_audio_transcode_{false},
+    need_audio_resample_{false}, ext_processor_{ext_mappings}, pipeline_initialized_{false} {
   ELOG_DEBUG("Creating output to %s", output_url.c_str());
 
   fb_sink_ = nullptr;
@@ -37,6 +37,7 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
   // TODO(pedro): these should really only be called once per application run
   av_register_all();
   avcodec_register_all();
+  avformat_network_init();
 
   fec_receiver_.reset(webrtc::UlpfecReceiver::Create(this));
   stats_ = std::make_shared<Stats>();
@@ -61,7 +62,7 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
   } else {
     output_url.copy(context_->filename, sizeof(context_->filename), 0);
 
-    context_->oformat = av_guess_format(nullptr,  context_->filename, nullptr);
+    context_->oformat = av_guess_format(nullptr, context_->filename, nullptr);
     if (!context_->oformat) {
       ELOG_ERROR("Error guessing format %s", context_->filename);
     }
@@ -102,38 +103,33 @@ void ExternalOutput::close() {
 }
 
 void ExternalOutput::syncClose() {
-  if (!recording_) {
-    return;
-  }
-  // Stop our thread so we can safely nuke libav stuff and close our
-  // our file.
   cond_.notify_one();
   thread_.join();
 
-  if (audio_stream_ != nullptr && video_stream_ != nullptr && context_ != nullptr) {
-      av_write_trailer(context_);
-  }
-
-  if (video_ctx_ != nullptr) {
-    avcodec_close(video_ctx_);
-    avcodec_free_context(&video_ctx_);
-  }
-
-  if (audio_ctx_ != nullptr) {
-    avcodec_close(audio_ctx_);
-    avcodec_free_context(&audio_ctx_);
-  }
-
   if (context_ != nullptr) {
-      avio_close(context_->pb);
-      avformat_free_context(context_);
-      context_ = nullptr;
+    av_write_trailer(context_);
   }
+  if (video_decoder_.initialized) {
+    video_decoder_.closeCodec();
+  }
+  if (video_encoder_.initialized) {
+    video_encoder_.closeCodec();
+  }
+  if (audio_decoder_.initialized) {
+    audio_decoder_.closeCodec();
+  }
+  if (audio_encoder_.initialized) {
+    audio_encoder_.closeCodec();
+  }
+  if (context_ != nullptr) {
+    avio_close(context_->pb);
+  }
+  avformat_free_context(context_);
 
   pipeline_initialized_ = false;
   recording_ = false;
 
-  ELOG_DEBUG("Closed Successfully");
+  ELOG_INFO("Closed Successfully");
 }
 
 void ExternalOutput::asyncTask(std::function<void(std::shared_ptr<ExternalOutput>)> f) {
@@ -179,27 +175,13 @@ void ExternalOutput::writeAudioData(char* buf, int len) {
     updateAudioCodec(map_iterator->second);
   }
 
-  initContext();
-
-  if (audio_stream_ == nullptr) {
-      // not yet.
-      return;
+  if (!initContext()) {
+    return;
   }
 
-  long long current_timestamp = head->getTimestamp();  // NOLINT
-  if (current_timestamp - first_audio_timestamp_ < 0) {
-      // we wrapped.  add 2^32 to correct this. We only handle a single wrap around
-      // since that's 13 hours of recording, minimum.
-      current_timestamp += 0xFFFFFFFF;
-  }
-
-  long long timestamp_to_write = (current_timestamp - first_audio_timestamp_) /  // NOLINT
-                                    (audio_ctx_->sample_rate / audio_stream_->time_base.den);
-  // generally 48000 / 1000 for the denominator portion, at least for opus
-  // Adjust for our start time offset
-
-  // in practice, our timebase den is 1000, so this operation is a no-op.
-  timestamp_to_write += audio_offset_ms_ / (1000 / audio_stream_->time_base.den);
+  int64_t current_timestamp = head->getTimestamp();  // NOLINT
+  int64_t timestamp_to_write = (current_timestamp - first_audio_timestamp_);
+  timestamp_to_write += av_rescale(audio_offset_ms_, 1000, audio_map_.clock_rate);
 
   AVPacket av_packet;
   av_init_packet(&av_packet);
@@ -207,7 +189,27 @@ void ExternalOutput::writeAudioData(char* buf, int len) {
   av_packet.size = len - head->getHeaderLength();
   av_packet.pts = timestamp_to_write;
   av_packet.stream_index = 1;
-  av_interleaved_write_frame(context_, &av_packet);   // takes ownership of the packet
+
+  if (av_packet.size > 0 && need_audio_transcode_) {
+    if (audio_decoder_.decode(audio_decoder_.frame_, &av_packet)) {
+      EncodeCB encode_callback = [this](AVPacket *pkt, AVFrame *frame, bool should_write){
+        this->writePacket(pkt, audio_st_, should_write);
+      };
+      if (need_audio_resample_) {
+        if (audio_encoder_.resampleAudioFrame(audio_decoder_.frame_, &audio_encoder_.resampled_frame_)) {
+          static int64_t i = 0;
+          audio_encoder_.resampled_frame_->pts = i;
+          i += audio_encoder_.resampled_frame_->nb_samples;
+          audio_encoder_.encode(audio_encoder_.resampled_frame_, &av_packet, encode_callback);
+        }
+      } else {
+        audio_encoder_.encode(audio_decoder_.frame_, &av_packet, encode_callback);
+      }
+    }
+  } else if (av_packet.size > 0) {
+    this->writePacket(&av_packet, audio_st_, true);
+  }
+  av_packet_unref(&av_packet);
 }
 
 void ExternalOutput::writeVideoData(char* buf, int len) {
@@ -239,28 +241,28 @@ void ExternalOutput::writeVideoData(char* buf, int len) {
 }
 
 void ExternalOutput::updateAudioCodec(RtpMap map) {
-  if (audio_codec_id_ != AV_CODEC_ID_NONE) {
+  if (input_audio_codec_id_ != AV_CODEC_ID_NONE) {
     return;
   }
   audio_map_ = map;
   if (map.encoding_name == "opus") {
-    audio_codec_id_ = AV_CODEC_ID_OPUS;
+    input_audio_codec_id_ = AV_CODEC_ID_OPUS;
   } else if (map.encoding_name == "PCMU") {
-    audio_codec_id_ = AV_CODEC_ID_PCM_MULAW;
+    input_audio_codec_id_ = AV_CODEC_ID_PCM_MULAW;
   }
 }
 
 void ExternalOutput::updateVideoCodec(RtpMap map) {
-  if (video_codec_id_ != AV_CODEC_ID_NONE) {
+  if (input_video_codec_id_ != AV_CODEC_ID_NONE) {
     return;
   }
   video_map_ = map;
   if (map.encoding_name == "VP8") {
     depacketizer_.reset(new Vp8Depacketizer());
-    video_codec_id_ = AV_CODEC_ID_VP8;
+    input_video_codec_id_ = AV_CODEC_ID_VP8;
   } else if (map.encoding_name == "H264") {
     depacketizer_.reset(new H264Depacketizer());
-    video_codec_id_ = AV_CODEC_ID_H264;
+    input_video_codec_id_ = AV_CODEC_ID_H264;
   }
 }
 
@@ -269,9 +271,8 @@ void ExternalOutput::maybeWriteVideoPacket(char* buf, int len) {
   depacketizer_->fetchPacket((unsigned char*)buf, len);
   bool deliver = depacketizer_->processPacket();
 
-  initContext();
-  if (video_stream_ == nullptr) {
-    // could not init our context yet.
+  if (!initContext()) {
+    depacketizer_->reset();
     return;
   }
 
@@ -283,14 +284,8 @@ void ExternalOutput::maybeWriteVideoPacket(char* buf, int len) {
       current_timestamp += 0xFFFFFFFF;
     }
 
-    // All of our video offerings are using a 90khz clock.
-    long long timestamp_to_write = (current_timestamp - first_video_timestamp_) /  // NOLINT
-                                              (video_map_.clock_rate / video_stream_->time_base.den);
-
-    // Adjust for our start time offset
-
-    // in practice, our timebase den is 1000, so this operation is a no-op.
-    timestamp_to_write += video_offset_ms_ / (1000 / video_stream_->time_base.den);
+    long long timestamp_to_write = (current_timestamp - first_video_timestamp_);// NOLINT
+    timestamp_to_write += av_rescale(video_offset_ms_, 1000, video_map_.clock_rate);
 
     AVPacket av_packet;
     av_init_packet(&av_packet);
@@ -298,9 +293,52 @@ void ExternalOutput::maybeWriteVideoPacket(char* buf, int len) {
     av_packet.size = depacketizer_->frameSize();
     av_packet.pts = timestamp_to_write;
     av_packet.stream_index = 0;
-    av_interleaved_write_frame(context_, &av_packet);   // takes ownership of the packet
+    if (depacketizer_->isKeyframe()) {
+      av_packet.flags |= AV_PKT_FLAG_KEY;
+    }
+
+    if (av_packet.size > 0 && need_video_transcode_) {
+      if (video_decoder_.decode(video_decoder_.frame_, &av_packet)) {
+        auto done_callback = [this](AVPacket *pkt, AVFrame *frame, bool should_write){
+          this->writePacket(pkt, video_st_, should_write);
+        };
+        video_encoder_.encode(video_decoder_.frame_, &av_packet, done_callback);
+      }
+    } else {
+      this->writePacket(&av_packet, video_st_, av_packet.size > 0);
+    }
+    av_packet_unref(&av_packet);
     depacketizer_->reset();
   }
+}
+
+void ExternalOutput::writePacket(AVPacket *pkt, AVStream *st, bool should_write) {
+  const char *media_type;
+  if (st->id == 0) {
+    media_type = "video";
+      av_packet_rescale_ts(pkt, AVRational{1, static_cast<int>(video_map_.clock_rate)},
+          video_st_->time_base);
+  } else {
+    media_type = "audio";
+    av_packet_rescale_ts(pkt, audio_encoder_.codec_context_->time_base, audio_st_->time_base);
+  }
+  pkt->stream_index = st->id;
+
+  int64_t pts = pkt->pts;
+  int64_t dts = pkt->dts;
+  int64_t dl  = pkt->dts;
+
+  if (should_write) {
+    int ret = av_interleaved_write_frame(context_, pkt);
+    if (ret != 0) {
+      ELOG_ERROR("av_interleaved_write_frame pts: %d failed with: %d %s",
+          pts, ret, av_err2str_cpp(ret));
+    } else {
+      ELOG_DEBUG("Writed %s packet with pts: %lld, dts: %lld, duration: %lld",
+          media_type, pts, dts, dl);
+    }
+  }
+  av_packet_unref(pkt);
 }
 
 void ExternalOutput::notifyUpdateToHandlers() {
@@ -371,83 +409,69 @@ int ExternalOutput::deliverEvent_(MediaEventPtr event) {
 }
 
 bool ExternalOutput::initContext() {
-  if (video_codec_id_ != AV_CODEC_ID_NONE &&
-            audio_codec_id_ != AV_CODEC_ID_NONE &&
-            video_stream_ == nullptr &&
-            audio_stream_ == nullptr) {
-    video_codec = avcodec_find_encoder(video_codec_id_);
-    int ret = -1;
-    if (video_codec == nullptr) {
-      ELOG_ERROR("Could not find video codec");
-      return false;
-    }
+  if (input_video_codec_id_ != AV_CODEC_ID_NONE &&
+            input_audio_codec_id_ != AV_CODEC_ID_NONE &&
+            initialized_context_ == false) {
     need_to_send_fir_ = true;
     video_queue_.setTimebase(video_map_.clock_rate);
-    video_ctx_ = avcodec_alloc_context3(video_codec);
-    if (!video_ctx_) {
-      ELOG_ERROR("Could not alloc video codec context");
-      return false;
-    }
-    video_ctx_->pix_fmt = AV_PIX_FMT_YUV420P;
-    video_ctx_->width = 640;
-    video_ctx_->height = 480;
-    video_ctx_->time_base = (AVRational) { 1, 30 };
-
-    video_stream_ = avformat_new_stream(context_, video_codec);
-    ret = avcodec_parameters_from_context(video_stream_->codecpar, video_ctx_);
-    if (ret != 0) {
-      ELOG_ERROR("Could not copy video codec paramaters");
-      return false;
-    }
-    video_stream_->id = 0;
-    video_stream_->time_base = (AVRational) { 1, 30 };
-    video_stream_->metadata = genVideoMetadata();
-    if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
-      video_ctx_->flags |= CODEC_FLAG_GLOBAL_HEADER;
-    }
-    context_->oformat->flags |= AVFMT_VARIABLE_FPS;
-
-    audio_codec = avcodec_find_encoder(audio_codec_id_);
-    if (audio_codec == nullptr) {
-      ELOG_ERROR("Could not find audio codec");
-      return false;
-    }
-    audio_ctx_ = avcodec_alloc_context3(audio_codec);
-    if (!audio_ctx_) {
-      ELOG_ERROR("Could not alloc audio codec context");
-      return false;
-    }
-    audio_ctx_->sample_rate = audio_map_.clock_rate;
-    audio_ctx_->time_base = (AVRational) { 1, audio_ctx_->sample_rate };
-    audio_ctx_->channels = audio_map_.channels;
-    audio_stream_ = avformat_new_stream(context_, audio_codec);
-    ret = avcodec_parameters_from_context(audio_stream_->codecpar, audio_ctx_);
-    if (ret != 0) {
-      ELOG_ERROR("Could not copy audio codec paramaters");
-      return false;
-    }
-    audio_stream_->id = 1;
-    audio_stream_->time_base = (AVRational) { 1, audio_ctx_->sample_rate };
-
-    if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
-      video_ctx_->flags |= CODEC_FLAG_GLOBAL_HEADER;
-      audio_ctx_->flags |= CODEC_FLAG_GLOBAL_HEADER;
-    }
-    context_->oformat->flags |= AVFMT_VARIABLE_FPS;
-    context_->streams[0] = video_stream_;
-    context_->streams[1] = audio_stream_;
     if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
-      ELOG_ERROR("Error opening output file");
-      return false;
-    }
+      ELOG_ERROR("Error opening output context.");
+      exit(1);
+    } else {
+      AVCodecID output_video_codec_id = this->bestMatchOutputCodecId(input_video_codec_id_);
+      AVCodecID output_audio_codec_id = this->bestMatchOutputCodecId(input_audio_codec_id_);
 
-    if (avformat_write_header(context_, nullptr) < 0) {
-      ELOG_ERROR("Error writing header");
-      return false;
+      if (input_video_codec_id_ == output_video_codec_id) {
+        ELOG_INFO("Video input codec matches output codec, don't need to transcode.");
+      } else {
+        need_video_transcode_ = true;
+      }
+      if (input_audio_codec_id_ == output_audio_codec_id) {
+        ELOG_INFO("Audio input codec matches output codec, don't need to transcode.");
+      } else {
+        need_audio_transcode_ = true;
+      }
+
+      video_decoder_.initDecoder(input_video_codec_id_,
+          (InitContextCB)[this](AVCodecContext *context, AVDictionary *dict) {
+        this->setupVideoDecodingParams(context, dict);
+      });
+
+      audio_decoder_.initDecoder(input_audio_codec_id_,
+          (InitContextCB)[this](AVCodecContext *context, AVDictionary *dict) {
+        this->setupAudioDecodingParams(context, dict);
+      });
+
+      video_encoder_.initEncoder(output_video_codec_id,
+          (InitContextCB)[this](AVCodecContext *context, AVDictionary *dict) {
+        this->setupVideoEncodingParams(context, dict);
+      });
+
+      audio_encoder_.initEncoder(output_audio_codec_id,
+          (InitContextCB)[this](AVCodecContext *context, AVDictionary *dict) {
+        this->setupAudioEncodingParams(context, dict);
+      });
+
+      video_st_ = this->addOutputStream(0, &video_encoder_);
+      audio_st_ = this->addOutputStream(1, &audio_encoder_);
+
+      if (this->audioNeedsResample()) {
+        ELOG_INFO("Encode Audio needs resampling.");
+        need_audio_resample_ = true;
+      }
+      if (need_audio_resample_ &&
+          !audio_encoder_.initAudioResampler(audio_decoder_.codec_context_)) {
+        exit(1);
+      }
+
+      if (!this->writeContextHeader()) {
+        this->close();
+        exit(1);
+      }
+      initialized_context_ = true;
     }
   }
-
-  return true;
+  return initialized_context_;
 }
 
 void ExternalOutput::queueData(char* buffer, int length, packetType type) {
@@ -465,7 +489,7 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
     if (getAudioSinkSSRC() == 0) {
       ELOG_DEBUG("No audio detected");
       audio_map_ = RtpMap{0, "PCMU", 8000, AUDIO_TYPE, 1};
-      audio_codec_id_ = AV_CODEC_ID_PCM_MULAW;
+      input_audio_codec_id_ = AV_CODEC_ID_PCM_MULAW;
     }
   }
   if (need_to_send_fir_ && video_source_ssrc_) {
@@ -554,9 +578,6 @@ void ExternalOutput::sendLoop() {
       boost::shared_ptr<DataPacket> video_packet = video_queue_.popPacket();
       writeVideoData(video_packet->data, video_packet->length);
     }
-    if (!inited_ && first_data_received_ != time_point()) {
-      inited_ = true;
-    }
   }
 
   // Since we're bailing, let's completely drain our queues of all data.
@@ -568,6 +589,125 @@ void ExternalOutput::sendLoop() {
     boost::shared_ptr<DataPacket> video_packet = video_queue_.popPacket(true);  // ignore our minimum depth check
     writeVideoData(video_packet->data, video_packet->length);
   }
+}
+
+AVStream * ExternalOutput::addOutputStream(int index, CoderCodec *coder_codec) {
+  AVStream *st;
+  const char *codec_name = coder_codec->av_codec_->name;
+  st = avformat_new_stream(context_, coder_codec->av_codec_);
+  if (!st) {
+    ELOG_ERROR("Could not create stream for %s.", codec_name);
+    return nullptr;
+  } else {
+    int ret = avcodec_parameters_from_context(st->codecpar, coder_codec->codec_context_);
+    if (ret != 0) {
+      ELOG_ERROR("Could not copy codec paramaters for %s.", codec_name);
+      return nullptr;
+    }
+    st->id = index;
+    st->time_base = coder_codec->codec_context_->time_base;
+    context_->streams[index] = st;
+    ELOG_INFO("Created stream for codec: %s with index: %d", codec_name, index);
+    return st;
+  }
+}
+
+bool ExternalOutput::writeContextHeader() {
+  AVDictionary *opt = NULL;
+  int ret = avformat_write_header(context_, &opt);
+  av_dict_free(&opt);
+  if (ret < 0) {
+    static char error_str[255];
+    av_strerror(ret, error_str, sizeof(error_str));
+    ELOG_ERROR("Error writing header: %s", error_str);
+    return false;
+  }
+  return true;
+}
+
+void ExternalOutput::setupAudioEncodingParams(AVCodecContext *context, AVDictionary *dict) {
+  AVSampleFormat sample_fmt = context->codec->sample_fmts ?
+      context->codec->sample_fmts[0] : AV_SAMPLE_FMT_S16;
+  context->sample_fmt = sample_fmt;
+  context->bit_rate = 64000;
+  context->sample_rate = audio_encoder_.getBestSampleRate(context->codec);
+  context->time_base = (AVRational) { 1, context->sample_rate };
+  context->channel_layout = audio_encoder_.getChannelLayout(context->codec);
+  context->channels = av_get_channel_layout_nb_channels(context->channel_layout);
+
+  if (context->codec->id == AV_CODEC_ID_AAC) {
+    context->sample_rate = 48000;
+    context->time_base = (AVRational) { 1, context->sample_rate };
+#ifdef FF_PROFILE_AAC_MAIN
+    context->profile = FF_PROFILE_AAC_MAIN;
+#endif
+    av_dict_set(&dict, "strict", "experimental", 0);
+  }
+  if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
+    context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+  }
+}
+
+void ExternalOutput::setupAudioDecodingParams(AVCodecContext *context, AVDictionary *dict) {
+  context->sample_rate = audio_map_.clock_rate;
+  context->time_base = (AVRational) { 1, context->sample_rate };
+  context->channels = audio_map_.channels;
+  context->channel_layout = AV_CH_LAYOUT_STEREO;
+}
+
+void ExternalOutput::setupVideoEncodingParams(AVCodecContext *context, AVDictionary *dict) {
+  context->gop_size = 45;
+  context->bit_rate = 400 * 1000;
+  context->width = 640;
+  context->height = 480;
+  context->framerate = (AVRational){25, 1};
+  context->time_base = (AVRational){1, 25};
+  context->pix_fmt = AV_PIX_FMT_YUV420P;
+
+  if (context->codec->id == AV_CODEC_ID_VP8 || context->codec->id == AV_CODEC_ID_VP9) {
+    ELOG_DEBUG("Setting VPX params");
+  }
+  if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
+    context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+  }
+}
+
+void ExternalOutput::setupVideoDecodingParams(AVCodecContext *context, AVDictionary *dict)  {
+  context->width = 640;
+  context->height = 480;
+  context->framerate = (AVRational){0, 1};
+  context->pix_fmt = AV_PIX_FMT_YUV420P;
+}
+
+AVCodecID ExternalOutput::bestMatchOutputCodecId(AVCodecID input_codec_id) {
+  AVMediaType type = avcodec_get_type(input_codec_id);
+  if (av_codec_get_tag(context_->oformat->codec_tag, input_codec_id) != 0) {
+    return input_codec_id;
+  } else {
+    if (type == AVMEDIA_TYPE_VIDEO) {
+      return context_->oformat->video_codec;
+    } else if (type == AVMEDIA_TYPE_AUDIO) {
+      return context_->oformat->audio_codec;
+    } else {
+      return AV_CODEC_ID_NONE;
+    }
+  }
+}
+
+bool ExternalOutput::audioNeedsResample() {
+  if (AV_SAMPLE_FMT_S16 != audio_encoder_.codec_context_->sample_fmt) {
+    return true;
+  }
+  if (audio_decoder_.codec_context_->sample_rate != audio_encoder_.codec_context_->sample_rate) {
+    return true;
+  }
+  if (audio_decoder_.codec_context_->channels != audio_encoder_.codec_context_->channels) {
+    return true;
+  }
+  if (audio_decoder_.codec_context_->channel_layout != audio_encoder_.codec_context_->channel_layout) {
+    return true;
+  }
+  return false;
 }
 
 AVDictionary* ExternalOutput::genVideoMetadata() {
@@ -591,4 +731,5 @@ AVDictionary* ExternalOutput::genVideoMetadata() {
     }
     return dict;
 }
+
 }  // namespace erizo

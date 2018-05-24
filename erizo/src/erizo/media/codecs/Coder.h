@@ -3,7 +3,7 @@
 
 #include <functional>
 #include <boost/thread.hpp>
-#include <chrono>
+#include <chrono>  // NOLINT
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -33,18 +33,19 @@ inline static const std::string av_make_error_string_cpp(int errnum) {
 namespace erizo {
 
 typedef std::function<void(AVPacket *packet, AVFrame *frame, bool success)> EncodeCB;
+typedef std::function<void(AVCodecContext *context, AVDictionary *dict)> InitContextCB;
 
 enum CoderOperationType {
-  OPERATION_ENCODE,
-  OPERATION_DECODE
+  ENCODE_AV,
+  DECODE_AV
 };
 
 class Coder {
   DECLARE_LOGGER();
 
  public:
-  Coder();
-  virtual ~Coder();
+  bool initContext(AVCodecContext **codec_ctx, AVCodec **av_codec, AVCodecID codec_id,
+      CoderOperationType operation, const InitContextCB callback);
   bool allocCodecContext(AVCodecContext **ctx, AVCodec **c, AVCodecID codec_id,
     CoderOperationType operation);
   bool openCodecContext(AVCodecContext *codec_ctx, AVCodec *codec, AVDictionary *opt);
@@ -52,6 +53,43 @@ class Coder {
   bool decode(AVCodecContext *decode_ctx, AVFrame *frame, AVPacket *av_packet);
   void encode(AVCodecContext *encode_ctx, AVFrame *frame, AVPacket *av_packet,
       const EncodeCB &done);
+  void saveFrameAsJPEG(AVFrame *frame);
+  static void logAVStream(AVStream *av_stream);
+};
+
+class CoderCodec {
+  DECLARE_LOGGER();
+
+ public:
+  CoderCodec();
+  virtual ~CoderCodec();
+  virtual int closeCodec();
+  void logCodecContext();
+
+ public:
+  bool initialized;
+  AVCodec* av_codec_;
+  AVCodecContext* codec_context_;
+  AVFrame* frame_;
+
+ protected:
+  Coder coder_;
+};
+
+class CoderEncoder : public CoderCodec {
+  DECLARE_LOGGER();
+
+ public:
+  int initEncoder(const AVCodecID codec_id, const InitContextCB callback);
+  void encode(AVFrame *frame, AVPacket *av_packet, const EncodeCB &done);
+};
+
+class CoderDecoder : public CoderCodec {
+  DECLARE_LOGGER();
+
+ public:
+  int initDecoder(const AVCodecID codec_id, const InitContextCB callback);
+  bool decode(AVFrame *frame, AVPacket *av_packet);
 };
 
 }  // namespace erizo

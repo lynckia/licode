@@ -2,33 +2,50 @@
 
 namespace erizo {
 
-DEFINE_LOGGER(Coder, "media.codecs.Coder");
+DEFINE_LOGGER(Coder,        "media.codecs.Coder");
+DEFINE_LOGGER(CoderCodec,   "media.codecs.CoderCodec");
+DEFINE_LOGGER(CoderEncoder, "media.codecs.CoderEncoder");
+DEFINE_LOGGER(CoderDecoder, "media.codecs.CoderDecoder");
 
-Coder::Coder() {
-}
-
-Coder::~Coder() {
+bool Coder::initContext(AVCodecContext **codec_ctx, AVCodec **av_codec, AVCodecID codec_id,
+    CoderOperationType operation, InitContextCB callback) {
+  bool success = false;
+  AVDictionary *opt = NULL;
+  const char *codec_name = avcodec_get_name(codec_id);
+  const char *codec_for = operation == ENCODE_AV ? "encode" : "decode";
+  if (this->allocCodecContext(codec_ctx, av_codec, codec_id, operation)) {
+    callback(*codec_ctx, opt);
+    bool success = this->openCodecContext(*codec_ctx, *av_codec, opt);
+    if (success) {
+      ELOG_INFO("Successfully initialized %s context for %s.", codec_for, codec_name);
+    } else {
+      ELOG_ERROR("Could not initialize %s context for %s.", codec_for, codec_name);
+    }
+  }
+  av_dict_free(&opt);
+  return success;
 }
 
 bool Coder::allocCodecContext(AVCodecContext **ctx, AVCodec **c, AVCodecID codec_id,
     CoderOperationType operation) {
-  AVCodec *codec = nullptr;
-  AVCodecContext *codec_ctx = *ctx;
-  if (operation == OPERATION_ENCODE) {
+  AVCodec *codec;
+  AVCodecContext *codec_ctx;
+  const char *codec_for;
+  if (operation == ENCODE_AV) {
     codec = avcodec_find_encoder(codec_id);
+    codec_for = "encoding";
   } else {
     codec = avcodec_find_decoder(codec_id);
+    codec_for = "decoding";
   }
-  if (codec == nullptr) {
-    ELOG_ERROR("Cannot find codec %d", codec_id);
+  if (!codec) {
+    ELOG_ERROR("Cannot find codec %d for %s", codec_id, codec_for);
     return false;
   }
   codec_ctx = avcodec_alloc_context3(codec);
   if (!codec_ctx) {
       ELOG_ERROR("Could not allocate codec context for %s", codec->name);
       return false;
-  } else {
-    ELOG_INFO("Successfully allocated context for codec %s.", codec->name);
   }
   *c = codec;
   *ctx = codec_ctx;
@@ -53,15 +70,22 @@ bool Coder::openCodecContext(AVCodecContext *codec_ctx, AVCodec *codec, AVDictio
 void Coder::logCodecContext(AVCodecContext *codec_ctx) {
   const char *operation = (av_codec_is_encoder(codec_ctx->codec) ? "encoder" : "decoder");
   if (codec_ctx->codec->type == AVMEDIA_TYPE_AUDIO) {
-    ELOG_DEBUG("\nAudio %s codec: %s \nchannel_layout: %d\nchannels: %d\nframe_size: %d\nsample_rate: %d\nsample_fmt: %s\nbits per sample: %d",
+    ELOG_DEBUG("\nAudio %s codec: %s \nchannel_layout: %d\nchannels: %d\nframe_size: %d\ntime_base: %d/%d\n, sample_rate: "
+        "%d\nsample_fmt: %s\nbits per sample: %d",
         operation, codec_ctx->codec->name, codec_ctx->channel_layout, codec_ctx->channels, codec_ctx->frame_size,
-        codec_ctx->sample_rate, av_get_sample_fmt_name(codec_ctx->sample_fmt),
-        av_get_bytes_per_sample (codec_ctx->sample_fmt));
+        codec_ctx->time_base.num, codec_ctx->time_base.den, codec_ctx->sample_rate,
+        av_get_sample_fmt_name(codec_ctx->sample_fmt), av_get_bytes_per_sample(codec_ctx->sample_fmt));
   } else if (codec_ctx->codec->type == AVMEDIA_TYPE_VIDEO) {
     ELOG_DEBUG("\nVideo %s codec: %s\n framerate: {%d/%d}\n time_base: {%d/%d}\n",
         operation, codec_ctx->codec->name, codec_ctx->framerate.num, codec_ctx->framerate.den,
         codec_ctx->time_base.num, codec_ctx->time_base.den);
   }
+}
+
+void Coder::logAVStream(AVStream *st) {
+  ELOG_DEBUG("Stream idx: %d id: %d: codec: %s, start: %d, time_base: %d/%d",
+      st->index, st->id, avcodec_get_name(st->codecpar->codec_id), st->start_time,
+      st->time_base.num, st->time_base.den);
 }
 
 bool Coder::decode(AVCodecContext *decode_ctx, AVFrame *frame, AVPacket *av_packet) {
@@ -89,7 +113,7 @@ void Coder::encode(AVCodecContext *encode_ctx, AVFrame *frame, AVPacket *av_pack
         ret, av_err2str_cpp(ret));
     done(av_packet, frame, false);
   }
-  while(ret >= 0) {
+  while (ret >= 0) {
     ret = avcodec_receive_packet(encode_ctx, av_packet);
     if (ret == AVERROR_EOF) {
       ELOG_DEBUG("avcodec_receive_packet AVERROR_EOF, %s, ret: %d, %s", encode_ctx->codec->name,
@@ -112,4 +136,103 @@ void Coder::encode(AVCodecContext *encode_ctx, AVFrame *frame, AVPacket *av_pack
   }
 }
 
+void Coder::saveFrameAsJPEG(AVFrame *frame) {
+  AVCodec *codec;
+  AVCodecContext *context;
+  AVPacket packet;
+  FILE *file;
+  char name[256];
+  static int frame_number = 0;
+
+  const InitContextCB context_callback = [frame](AVCodecContext *context, AVDictionary *dict) {
+    context->pix_fmt = AV_PIX_FMT_YUVJ420P;
+    context->height = frame->height;
+    context->width = frame->width;
+    context->color_range = AVCOL_RANGE_JPEG;
+    context->time_base = (AVRational) {1, 30};
+  };
+  if (!this->initContext(&context, &codec, AV_CODEC_ID_MJPEG, ENCODE_AV, context_callback)) {
+    return;
+  }
+
+  av_init_packet(&packet);
+  EncodeCB encode_callback = [&name, &file, &context](AVPacket *pkt, AVFrame *frame, bool should_write) {
+    if (should_write) {
+      int len = 255;
+      snprintf(name, len, "/tmp/test/dvr-%06d.jpg", frame_number);
+      file = fopen(name, "wb");
+      int saved = fwrite(pkt->data, 1, pkt->size, file);
+      if (saved != pkt->size || ferror(file)) {
+        ELOG_ERROR("Could not save JPEG frame number: %d, size: %d", frame_number, pkt->size);
+      } else {
+        ELOG_DEBUG("Save JPEG frame with number: %d, size: %d at: %s", frame_number, pkt->size, name);
+      }
+      fclose(file);
+    }
+    avcodec_close(context);
+    avcodec_free_context(&context);
+    frame_number++;
+  };
+
+  this->encode(context, frame, &packet, encode_callback);
+}
+
+CoderCodec::CoderCodec() {
+  av_register_all();
+  avcodec_register_all();
+  av_codec_       = nullptr;
+  codec_context_  = nullptr;
+  initialized     = false;
+  frame_          = av_frame_alloc();
+  if (!frame_) {
+    ELOG_ERROR("Error allocating encode frame");
+  }
+}
+
+CoderCodec::~CoderCodec() {
+  this->closeCodec();
+}
+
+void CoderCodec::logCodecContext() {
+  coder_.logCodecContext(codec_context_);
+}
+
+int CoderCodec::closeCodec() {
+  ELOG_DEBUG("Closing CoderCodec.");
+  if (codec_context_ != nullptr) {
+    avcodec_close(codec_context_);
+    avcodec_free_context(&codec_context_);
+  }
+  if (frame_ != nullptr) {
+    av_frame_free(&frame_);
+  }
+  initialized = false;
+  return 0;
+}
+
+int CoderEncoder::initEncoder(const AVCodecID codec_id, const InitContextCB callback) {
+  if (coder_.initContext(&codec_context_, &av_codec_, codec_id, ENCODE_AV, callback)) {
+    initialized = true;
+    return 0;
+  } else {
+    return -1;
+  }
+}
+
+void CoderEncoder::encode(AVFrame *frame, AVPacket *av_packet, const EncodeCB &done) {
+  coder_.encode(codec_context_, frame, av_packet, done);
+}
+
+int CoderDecoder::initDecoder(const AVCodecID codec_id, InitContextCB callback) {
+  if (coder_.initContext(&codec_context_, &av_codec_, codec_id, DECODE_AV, callback)) {
+    initialized = true;
+    return 0;
+  } else {
+    return -1;
+  }
+}
+
+bool CoderDecoder::decode(AVFrame *frame, AVPacket *av_packet) {
+  return coder_.decode(codec_context_, frame, av_packet);
+}
 }  // namespace erizo

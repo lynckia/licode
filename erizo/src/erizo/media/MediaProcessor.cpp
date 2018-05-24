@@ -185,8 +185,8 @@ void InputProcessor::closeSink() {
 }
 
 void InputProcessor::close() {
-  audio_decoder_.closeDecoder();
-  video_decoder_.closeDecoder();
+  audio_decoder_.closeCodec();
+  video_decoder_.closeCodec();
   free(decodedBuffer_); decodedBuffer_ = NULL;
   free(unpackagedBuffer_); unpackagedBuffer_ = NULL;
   free(unpackagedAudioBuffer_); unpackagedAudioBuffer_ = NULL;
@@ -248,8 +248,8 @@ int OutputProcessor::init(const MediaInfo& info, RTPDataReceiver* rtpReceiver) {
 }
 
 void OutputProcessor::close() {
-  audio_encoder_.closeEncoder();
-  video_encoder_.closeEncoder();
+  audio_encoder_.closeCodec();
+  video_encoder_.closeCodec();
   free(encodedBuffer_); encodedBuffer_ = NULL;
   free(packagedBuffer_); packagedBuffer_ = NULL;
   free(rtpBuffer_); rtpBuffer_ = NULL;

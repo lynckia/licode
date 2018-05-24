@@ -126,9 +126,9 @@ int ExternalInput::init() {
     op_->init(om, this);
   } else {
     needTranscoding_ = true;
-    inCodec_.initDecoder(&video_codec_ctx_, st->codecpar);
+    inCodec_.initDecoder(st->codecpar);
 
-    bufflen_ = video_codec_ctx_->width*video_codec_ctx_->height*3/2;
+    bufflen_ = inCodec_.codec_context_->width*inCodec_.codec_context_->height*3/2;
     decodedBuffer_.reset((unsigned char*) malloc(bufflen_));
 
 

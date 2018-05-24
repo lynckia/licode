@@ -20,54 +20,31 @@ extern "C" {
 #include <libavutil/avutil.h>
 #include <libavcodec/avcodec.h>
 }
-// Forward Declarations
-
-// struct AVCodec;
-// struct AVCodecContext;
-// struct AVFrame;
 
 namespace erizo {
 
 typedef std::function<void(bool success, int len)> EncodeVideoBufferCB;
 
-class VideoEncoder {
+class VideoEncoder : public CoderEncoder {
   DECLARE_LOGGER();
 
  public:
-  VideoEncoder();
-  virtual ~VideoEncoder();
+  using CoderEncoder::initEncoder;
   int initEncoder(const VideoCodecInfo& info);
   void encodeVideoBuffer(unsigned char* inBuffer, int len, unsigned char* outBuffer,
       const EncodeVideoBufferCB &done);
-  int closeEncoder();
-  bool initialized;
-
- private:
-  Coder coder_;
-  AVCodec* av_codec;
-  AVCodecContext* encode_context_;
-  AVFrame* cPicture;
 };
 
-class VideoDecoder {
+class VideoDecoder : public CoderDecoder {
   DECLARE_LOGGER();
 
  public:
-  VideoDecoder();
-  virtual ~VideoDecoder();
+  using CoderDecoder::initDecoder;
   int initDecoder(const VideoCodecInfo& info);
-  int initDecoder(AVCodecContext** context, AVCodecParameters *codecpar);
+  int initDecoder(AVCodecParameters *codecpar);
+  bool decode(AVFrame *frame, AVPacket *av_packet);
   int decodeVideoBuffer(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff,
       int outBuffLen, int* gotFrame);
-  int closeDecoder();
-  bool initialized;
-
- private:
-  Coder coder_;
-  AVCodec* av_codec;
-  AVCodecContext* decode_context_;
-  AVFrame* dPicture;
-  bool initWithContext_;
 };
 
 }  // namespace erizo

@@ -19,41 +19,39 @@ namespace erizo {
 
 typedef std::function<void(AVPacket *av_packet, bool got_packet)> EncodeAudioBufferCB;
 
-class AudioEncoder {
+class AudioEncoder : public CoderEncoder {
   DECLARE_LOGGER();
 
  public:
   AudioEncoder();
   virtual ~AudioEncoder();
+  using CoderEncoder::initEncoder;
   int initEncoder(const AudioCodecInfo& info);
+  int closeCodec() override;
+  bool initAudioResampler(AVCodecContext *decode_ctx);
   void encodeAudioBuffer(unsigned char* inBuffer, int nSamples, AVPacket* pkt,
-      EncodeAudioBufferCB &done);
-  int closeEncoder();
-  bool initialized;
+      const EncodeAudioBufferCB &done);
+  bool resampleAudioFrame(AVFrame *frame, AVFrame **out_frame);
+  bool initConvertedSamples(uint8_t ***converted_input_samples, int frame_size, int *out_linesize);
+  bool addSamplesToFifo(uint8_t **converted_input_samples, const int frame_size);
+  uint64_t getChannelLayout(const AVCodec *codec);
+  int getBestSampleRate(const AVCodec *codec);
+
+ public:
+  AVFrame *resampled_frame_;
 
  private:
-  Coder coder_;
-  AVCodec *encode_codec_;
-  AVCodecContext *encode_context_;
-  AVFrame *encoded_frame_;
+  AVAudioFifo *audio_fifo_;
+  AVAudioResampleContext *avr_context_;
 };
 
-class AudioDecoder {
+class AudioDecoder : public CoderDecoder {
   DECLARE_LOGGER();
 
  public:
-  AudioDecoder();
-  virtual ~AudioDecoder();
+  using CoderDecoder::initDecoder;
   int initDecoder(const AudioCodecInfo& info);
   int decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff, int outBuffLen);
-  int closeDecoder();
-  bool initialized;
-
- private:
-  Coder coder_;
-  AVCodec* decode_codec_;
-  AVCodecContext* decode_context_;
-  AVFrame* dFrame_;
 };
 
 }  // namespace erizo
