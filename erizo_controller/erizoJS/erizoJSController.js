@@ -223,6 +223,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                   let subscriber = publisher.getSubscriber(subscriberKey);
                   log.info('message: Removing subscriber, id: ' + subscriberKey);
                   closeNode(subscriber);
+                  publisher.removeSubscriber(subscriberKey);
               }
               publisher.removeExternalOutputs().then(function() {
                 closeNode(publisher);
