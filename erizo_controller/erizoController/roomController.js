@@ -30,7 +30,6 @@ exports.RoomController = function (spec) {
 
     var KEEPALIVE_INTERVAL = 5*1000;
     var TIMEOUT_LIMIT = 2;
-    var MAX_ERIZOJS_RETRIES = 3;
 
     var eventListeners = [];
 
@@ -206,10 +205,7 @@ exports.RoomController = function (spec) {
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
      */
-    that.addPublisher = function (clientId, streamId, options, callback, retries) {
-        if (retries === undefined) {
-            retries = 0;
-        }
+    that.addPublisher = function (clientId, streamId, options, callback) {
 
         if (publishers[streamId] === undefined) {
 
@@ -240,19 +236,7 @@ exports.RoomController = function (spec) {
                 amqper.callRpc(getErizoQueue(streamId), 'addPublisher', args,
                               {callback: function (data){
                     if (data === 'timeout'){
-                        if (retries < MAX_ERIZOJS_RETRIES){
-                            log.warn('message: addPublisher ErizoJS timeout, ' +
-                                     'streamId: ' + streamId + ', ' +
-                                     'erizoId: ' + getErizoQueue(streamId) + ', ' +
-                                     'retries: ' + retries + ', ' +
-                                     logger.objectToLog(options.metadata));
-                            publishers[streamId] = undefined;
-                            retries++;
-                            that.addPublisher(clientId, streamId, options, callback, retries);
-                            return;
-                        }
-                        log.warn('message: addPublisher ErizoJS timeout no retry, ' +
-                                 'retries: ' + retries +
+                        log.warn('message: addPublisher ErizoJS timeout ' +
                                  'streamId: ' + streamId + ', ' +
                                  'erizoId: ' + getErizoQueue(streamId) + ', ' +
                                  logger.objectToLog(options.metadata));
@@ -286,13 +270,11 @@ exports.RoomController = function (spec) {
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
      */
-    that.addSubscriber = function (clientId, streamId, options, callback, retries) {
+    that.addSubscriber = function (clientId, streamId, options, callback) {
         if (clientId === null){
           callback('Error: null clientId');
           return;
         }
-        if (retries === undefined)
-            retries = 0;
 
         if (publishers[streamId] !== undefined &&
             subscribers[streamId].indexOf(clientId) === -1) {
@@ -319,17 +301,6 @@ exports.RoomController = function (spec) {
                     return;
                 }
                 if (data === 'timeout'){
-                    if (retries < MAX_ERIZOJS_RETRIES){
-                        retries++;
-                        log.warn('message: addSubscriber ErizoJS timeout, ' +
-                                 'clientId: ' + clientId + ', ' +
-                                 'streamId: ' + streamId + ', ' +
-                                 'erizoId: ' + getErizoQueue(streamId) + ', ' +
-                                 'retries: ' + retries + ', ' +
-                                 logger.objectToLog(options.metadata));
-                        that.addSubscriber(clientId, streamId, options, callback, retries);
-                        return;
-                    }
                     log.warn('message: addSubscriber ErizoJS timeout no retry, ' +
                              'clientId: ' + clientId + ', ' +
                              'streamId: ' + streamId + ', ' +

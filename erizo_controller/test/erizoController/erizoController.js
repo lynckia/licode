@@ -477,7 +477,7 @@ describe('Erizo Controller / Erizo Controller', function() {
 
                 onPublish(options, sdp, callback);
 
-                expect(callback.withArgs(null, null, 'ErizoJS is not reachable').callCount)
+                expect(callback.withArgs(null, null, 'JSTimeout').callCount)
                       .to.equal(1);
               });
 
@@ -633,7 +633,7 @@ describe('Erizo Controller / Erizo Controller', function() {
 
                     onSubscribe(subscriberOptions, subscriberSdp, callback);
 
-                    expect(callback.withArgs(null, null, 'ErizoJS is not reachable').callCount)
+                    expect(callback.withArgs(null, null, 'JSTimeout').callCount)
                           .to.equal(1);
                   });
                 });

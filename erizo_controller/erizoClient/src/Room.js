@@ -25,6 +25,10 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const CONNECTING = 1;
   const CONNECTED = 2;
 
+  const MAX_PUBLISH_RETRIES = 3;
+  const MAX_SUBSCRIBE_RETRIES = 3;
+  let publishRetries = 0;
+  let subscribeRetries = 0;
 
   that.remoteStreams = ErizoMap();
   that.localStreams = ErizoMap();
@@ -462,6 +466,18 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     socket.sendSDP('publish', constraints, undefined, (id, erizoId, error) => {
       if (id === null) {
+        if (error === 'JSTimeout') {
+          if (publishRetries < MAX_PUBLISH_RETRIES) {
+            Logger.info('Publish timeout, retry: ', publishRetries);
+            publishRetries += 1;
+            publishErizo(streamInput, options, callback);
+            return;
+          }
+          publishRetries = 0;
+          Logger.error('Error publishing stream Erizo Js not reachable');
+          callback(undefined, 'Erizo Js not reachable');
+          return;
+        }
         Logger.error('Error publishing stream', error);
         callback(undefined, error);
         return;
@@ -506,6 +522,18 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       slideShowMode: options.slideShowMode };
     socket.sendSDP('subscribe', constraint, undefined, (result, erizoId, error) => {
       if (result === null) {
+        if (error === 'JSTimeout') {
+          if (subscribeRetries < MAX_SUBSCRIBE_RETRIES) {
+            Logger.info('Subscribe timeout, retry: ', subscribeRetries);
+            subscribeRetries += 1;
+            subscribeErizo(streamInput, options, callback);
+            return;
+          }
+          subscribeRetries = 0;
+          Logger.error('Error subscribing stream Erizo JS not reachable');
+          callback(undefined, 'Erizo JS not reachable');
+          return;
+        }
         Logger.error('Error subscribing to stream ', error);
         callback(undefined, error);
         return;

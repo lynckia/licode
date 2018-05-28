@@ -171,9 +171,6 @@ describe('Erizo Controller / Room Controller', function() {
       expect(amqperMock.callRpc.args[0][1]).to.equal('addPublisher');
 
       amqperMock.callRpc.args[0][3].callback('timeout');
-      amqperMock.callRpc.args[1][3].callback('timeout');  // First retry
-      amqperMock.callRpc.args[2][3].callback('timeout');  // Second retry
-      amqperMock.callRpc.args[3][3].callback('timeout');  // Third retry
 
       expect(callback.callCount).to.equal(1);
       expect(callback.args[0][0]).to.equal('timeout-erizojs');
@@ -186,9 +183,6 @@ describe('Erizo Controller / Room Controller', function() {
       controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, kArbitraryOptions, callback);
 
       amqperMock.callRpc.args[0][3].callback('timeout');
-      amqperMock.callRpc.args[1][3].callback('timeout');  // First retry
-      amqperMock.callRpc.args[2][3].callback('timeout');  // Second retry
-      amqperMock.callRpc.args[3][3].callback('timeout');  // Third retry
 
       controller.removePublisher(kArbitraryClientId, kArbitraryStreamId);
 
@@ -253,9 +247,6 @@ describe('Erizo Controller / Room Controller', function() {
       expect(amqperMock.callRpc.args[1][1]).to.equal('addSubscriber');
 
       amqperMock.callRpc.args[1][3].callback('timeout');
-      amqperMock.callRpc.args[2][3].callback('timeout');  // First retry
-      amqperMock.callRpc.args[3][3].callback('timeout');  // Second retry
-      amqperMock.callRpc.args[4][3].callback('timeout');  // Third retry
 
       expect(callback.callCount).to.equal(1);
       expect(callback.args[0][0]).to.equal('timeout');
