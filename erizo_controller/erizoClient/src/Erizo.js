@@ -3,7 +3,7 @@ import { LicodeEvent, RoomEvent, StreamEvent } from './Events';
 import Stream from './Stream';
 import Logger from './utils/Logger';
 
-// #if process.env.INCLUDE_ADAPTER
+// #if process.env.INCLUDE_ADAPTER == 'TRUE'
 import adapter from 'webrtc-adapter'; // eslint-disable-line
 // #endif
 
@@ -11,10 +11,10 @@ require('script-loader!./utils/L.Resizer.js');  // eslint-disable-line
 
 
 const Erizo = {
-  // #if process.env.INCLUDE_SOCKETIO
+  // #if process.env.INCLUDE_SOCKETIO == 'TRUE'
   Room: Room.bind(null, undefined, undefined, undefined),
   // #endif
-  // #if !process.env.INCLUDE_SOCKETIO
+  // #if !process.env.INCLUDE_SOCKETIO == 'TRUE'
   Room: Room, // eslint-disable-line
   // #endif
   LicodeEvent,

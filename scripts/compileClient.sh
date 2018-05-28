@@ -60,7 +60,7 @@ compile() {
 if [ "$#" -eq 0 ]
 then
   echo 'Compiling client with socketio and adapter included in the bundle ...'
-  ENVS="INCLUDE_ADAPTER INCLUDE_SOCKETIO"
+  ENVS="INCLUDE_ADAPTER=TRUE INCLUDE_SOCKETIO=TRUE"
   compile
 else
   while getopts “hascw” OPTION
@@ -71,15 +71,16 @@ else
         exit 1
         ;;
       a)
-        ENVS+="INCLUDE_ADAPTER "
+        ENVS+="INCLUDE_ADAPTER=TRUE "
         ;;
       s)
-        ENVS+="INCLUDE_SOCKETIO "
+        ENVS+="INCLUDE_SOCKETIO=TRUE "
         ;;
       c)
         compile
         ;;
       w)
+        echo 'Remember to specify -s to include socketio and -a to include adapter before this option'
         watch_client
         ;;
       ?)
