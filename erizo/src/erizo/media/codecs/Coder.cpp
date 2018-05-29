@@ -70,8 +70,8 @@ bool Coder::openCodecContext(AVCodecContext *codec_ctx, AVCodec *codec, AVDictio
 void Coder::logCodecContext(AVCodecContext *codec_ctx) {
   const char *operation = (av_codec_is_encoder(codec_ctx->codec) ? "encoder" : "decoder");
   if (codec_ctx->codec->type == AVMEDIA_TYPE_AUDIO) {
-    ELOG_DEBUG("\nAudio %s codec: %s \nchannel_layout: %d\nchannels: %d\nframe_size: %d\ntime_base: %d/%d\n, sample_rate: "
-        "%d\nsample_fmt: %s\nbits per sample: %d",
+    ELOG_DEBUG("\nAudio %s codec: %s \nchannel_layout: %d\nchannels: %d\nframe_size: %d\ntime_base: %d/%d\n,"
+        "sample_rate: %d\nsample_fmt: %s\nbits per sample: %d",
         operation, codec_ctx->codec->name, codec_ctx->channel_layout, codec_ctx->channels, codec_ctx->frame_size,
         codec_ctx->time_base.num, codec_ctx->time_base.den, codec_ctx->sample_rate,
         av_get_sample_fmt_name(codec_ctx->sample_fmt), av_get_bytes_per_sample(codec_ctx->sample_fmt));
