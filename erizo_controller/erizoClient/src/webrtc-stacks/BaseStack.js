@@ -94,7 +94,7 @@ const BaseStack = (specInput) => {
     }
   };
 
-  const setLocalDescForOffer = (isSubscribe, streamId, sessionDescription) => {
+  that.setLocalDescForOffer = (isSubscribe, streamId, sessionDescription) => {
     localDesc = sessionDescription;
     if (!isSubscribe) {
       localDesc.sdp = that.enableSimulcast(localDesc.sdp);
@@ -111,7 +111,36 @@ const BaseStack = (specInput) => {
     }, streamId);
   };
 
-  const processAnswer = (message) => {
+  that.setLocalDescForAnswerp2p = (sessionDescription) => {
+    localDesc = sessionDescription;
+    localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
+    SdpHelpers.setMaxBW(localSdp, specBase);
+    localDesc.sdp = localSdp.toString();
+    that.localSdp = localSdp;
+    specBase.callback({
+      type: localDesc.type,
+      sdp: localDesc.sdp,
+    });
+    Logger.info('Setting local description p2p', localDesc);
+    that.peerConnection.setLocalDescription(localDesc).then(successCallback)
+    .catch(errorCallback);
+  };
+
+  that.processOffer = (message) => {
+    // Its an offer, we assume its p2p
+    const msg = message;
+    remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
+    SdpHelpers.setMaxBW(remoteSdp, specBase);
+    msg.sdp = remoteSdp.toString();
+    that.remoteSdp = remoteSdp;
+    that.peerConnection.setRemoteDescription(msg).then(() => {
+      that.peerConnection.createAnswer(that.mediaConstraints)
+      .then(that.setLocalDescForAnswerp2p).catch(errorCallback.bind(null, 'createAnswer p2p', undefined));
+      specBase.remoteDescriptionSet = true;
+    }).catch(errorCallback.bind(null, 'process Offer', undefined));
+  };
+
+  that.processAnswer = (message) => {
     const msg = message;
 
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
@@ -132,12 +161,11 @@ const BaseStack = (specInput) => {
     that.remoteSdp = remoteSdp;
 
     remoteDesc = msg;
-
-    that.peerConnection.setLocalDescription(localDesc, () => {
-      that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg), () => {
+    that.peerConnection.setLocalDescription(localDesc).then(() => {
+      that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
         specBase.remoteDescriptionSet = true;
         Logger.info('Candidates to be added: ', specBase.remoteCandidates.length,
-        specBase.remoteCandidates);
+                      specBase.remoteCandidates);
         while (specBase.remoteCandidates.length > 0) {
           // IMPORTANT: preserve ordering of candidates
           that.peerConnection.addIceCandidate(specBase.remoteCandidates.shift());
@@ -147,37 +175,13 @@ const BaseStack = (specInput) => {
           // IMPORTANT: preserve ordering of candidates
           specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
         }
-      }, errorCallback.bind(null, 'processAnswer', undefined));
-    }, errorCallback.bind(null, 'processAnswer', undefined));
-  };
-
-  const setLocalDescForAnswerp2p = (sessionDescription) => {
-    localDesc = sessionDescription;
-    localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
-    SdpHelpers.setMaxBW(localSdp, specBase);
-    localDesc.sdp = localSdp.toString();
-    that.localSdp = localSdp;
-    specBase.callback({
-      type: localDesc.type,
-      sdp: localDesc.sdp,
-    });
-    Logger.info('Setting local description p2p', localDesc);
-    that.peerConnection.setLocalDescription(localDesc, successCallback, errorCallback);
-  };
-
-  const processOffer = (message) => {
-    // Its an offer, we assume its p2p
-    const msg = message;
-    remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-    SdpHelpers.setMaxBW(remoteSdp, specBase);
-    msg.sdp = remoteSdp.toString();
-    that.remoteSdp = remoteSdp;
-
-    that.peerConnection.setRemoteDescription(msg, () => {
-      that.peerConnection.createAnswer(setLocalDescForAnswerp2p,
-        errorCallback.bind(null, 'createAnswer p2p', undefined));
-      specBase.remoteDescriptionSet = true;
-    }, errorCallback.bind(null, 'process Offer', undefined));
+        isNegotiating = false;
+        if (offerQueue.length > 0) {
+          const args = offerQueue.pop();
+          that.createOffer(args[0], args[1], args[2]);
+        }
+      }).catch(errorCallback.bind(null, 'processAnswer', undefined));
+    }).catch(errorCallback.bind(null, 'processAnswer', undefined));
   };
 
   const processNewCandidate = (message) => {
@@ -271,18 +275,17 @@ const BaseStack = (specInput) => {
 
       if (config.Sdp || config.maxAudioBW) {
         Logger.debug('Updating with SDP renegotiation', specBase.maxVideoBW, specBase.maxAudioBW);
-
-
-        that.peerConnection.setLocalDescription(localDesc, () => {
-          remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
-          SdpHelpers.setMaxBW(remoteSdp, specBase);
-          remoteDesc.sdp = remoteSdp.toString();
-          that.remoteSdp = remoteSdp;
-          that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc), () => {
+        that.peerConnection.setLocalDescription(localDesc)
+          .then(() => {
+            remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
+            SdpHelpers.setMaxBW(remoteSdp, specBase);
+            remoteDesc.sdp = remoteSdp.toString();
+            that.remoteSdp = remoteSdp;
+            return that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc));
+          }).then(() => {
             specBase.remoteDescriptionSet = true;
             specBase.callback({ type: 'updatestream', sdp: localDesc.sdp }, streamId);
-          }, errorCallback.bind(null, 'updateSpec', callback));
-        }, errorCallback.bind(null, 'updateSpec', callback));
+          }).catch(errorCallback.bind(null, 'updateSpec', callback));
       } else {
         Logger.debug('Updating without SDP renegotiation, ' +
                      'newVideoBW:', specBase.maxVideoBW,
@@ -320,7 +323,7 @@ const BaseStack = (specInput) => {
     isNegotiating = true;
     Logger.debug('Creating offer', that.mediaConstraints, streamId);
     that.peerConnection.createOffer(that.mediaConstraints)
-    .then(setLocalDescForOffer.bind(null, isSubscribe, streamId))
+    .then(that.setLocalDescForOffer.bind(null, isSubscribe, streamId))
     .catch(errorCallback.bind(null, 'Create Offer', undefined));
   };
 
@@ -330,9 +333,9 @@ const BaseStack = (specInput) => {
 
   that.processSignalingMessage = (msgInput) => {
     if (msgInput.type === 'offer') {
-      processOffer(msgInput);
+      that.processOffer(msgInput);
     } else if (msgInput.type === 'answer') {
-      processAnswer(msgInput);
+      that.processAnswer(msgInput);
     } else if (msgInput.type === 'candidate') {
       processNewCandidate(msgInput);
     }

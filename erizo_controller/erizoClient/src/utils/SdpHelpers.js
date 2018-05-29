@@ -62,4 +62,15 @@ SdpHelpers.setParamForCodecs = (sdpInfo, mediaType, paramName, value) => {
   });
 };
 
+SdpHelpers.filterAbsSendTimeAudio = (sdp) => {
+  const audio = sdp.getMedia('audio');
+  if (audio) {
+    audio.getExtensions().forEach((extension, index) => {
+      if (extension === 'http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time') {
+        sdp.getMedia('audio').getExtensions().delete(index);
+      }
+    });
+  }
+};
+
 export default SdpHelpers;
