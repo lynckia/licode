@@ -45,8 +45,8 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
   };
 
-  const onICEConnectionStateChange = (state) => {
-    that.emit(StreamEvent({ type: 'icestatechanged', msg: state }));
+  const onICEConnectionStateChange = (msg) => {
+    that.emit(StreamEvent({ type: 'icestatechanged', msg }));
   };
 
   if (that.videoSize !== undefined &&

@@ -65,7 +65,8 @@ class ErizoConnection extends EventEmitterConst {
         this.emit(ConnectionEvent({ type: 'remove-stream', stream: evt.stream }));
       };
 
-      this.stack.peerConnection.oniceconnectionstatechange = (state) => {
+      this.stack.peerConnection.oniceconnectionstatechange = () => {
+        const state = this.stack.peerConnection.iceConnectionState;
         this.emit(ConnectionEvent({ type: 'ice-state-change', state }));
       };
     }
