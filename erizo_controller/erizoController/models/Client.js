@@ -31,7 +31,7 @@ class Client extends events.EventEmitter {
     this.id = uuidv4();
     this.options = options;
     listenToSocketEvents(this);
-    this.user = {name: token.userName, role: token.role, permissions: {}};
+    this.user = {name: token.userName, role: token.role, permissions: {}, recordings: {}};
     const permissions = global.config.erizoController.roles[token.role] || [];
     for (const right in permissions) {
         this.user.permissions[right] = permissions[right];
@@ -151,11 +151,7 @@ class Client extends events.EventEmitter {
         let url = sdp;
         if (options.state === 'recording') {
             const recordingId = sdp;
-            if (global.config.erizoController.recording_path) {  // jshint ignore:line
-                url = global.config.erizoController.recording_path + recordingId + '.mkv'; // jshint ignore:line
-            } else {
-                url = '/tmp/' + recordingId + '.mkv';
-            }
+            url = this.user.recordings[recordingId];
         }
         this.room.controller.addExternalInput(id, url, (result) => {
             if (result === 'success') {
@@ -357,15 +353,18 @@ class Client extends events.EventEmitter {
         callback(null, 'Unauthorized');
         return;
     }
+    var extension = options.extension || 'mkv';
     var streamId = options.to;
     var recordingId = Math.random() * 1000000000000000000;
     var url;
 
     if (global.config.erizoController.recording_path) {  // jshint ignore:line
-        url = global.config.erizoController.recording_path + recordingId + '.mkv';  // jshint ignore:line
+        url = global.config.erizoController.recording_path + recordingId + '.' + extension;  // jshint ignore:line
     } else {
-        url = '/tmp/' + recordingId + '.mkv';
+        url = '/tmp/' + recordingId + '.' + extension;
     }
+
+    this.user.recordings[recordingId] = url;
 
     log.info('message: startRecorder, ' +
              'state: RECORD_REQUESTED, ' +
@@ -412,13 +411,7 @@ class Client extends events.EventEmitter {
         return;
     }
     var recordingId = options.id;
-    var url;
-
-    if (global.config.erizoController.recording_path) {  // jshint ignore:line
-        url = global.config.erizoController.recording_path + recordingId + '.mkv';  // jshint ignore:line
-    } else {
-        url = '/tmp/' + recordingId + '.mkv';
-    }
+    var url = this.user.recordings[recordingId];
 
     log.info('message: startRecorder, ' +
              'state: RECORD_STOPPED, ' +
