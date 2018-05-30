@@ -30,7 +30,7 @@ function listenToSocketHandshakeEvents(channel) {
   channel.socket.on('token', channel.onToken.bind(channel));
   channel.socket.on('reconnected', channel.onReconnected.bind(channel));
   channel.socket.on('disconnect', channel.onDisconnect.bind(channel));
-  channel.socket.conn.on('upgrade', channel.bindToOncloseEvent.bind(channel))
+  channel.socket.conn.on('upgrade', channel.maybeBindToOncloseEvent.bind(channel));
 }
 
 const CONNECTED = Symbol('connected');
@@ -52,23 +52,28 @@ class Channel extends events.EventEmitter {
 
     // Hack to know the exact reason of the WS closure (socket.io does not publish it)
     this.closeCode = WEBSOCKET_NORMAL_CLOSURE;
-    if (this.socket.conn.transport.socket) {
-      this.bindToOncloseEvent();
-    };
+
+    this.maybeBindToOncloseEvent();
     listenToSocketHandshakeEvents(this);
   }
 
-  bindToOncloseEvent(transport) {
-    log.debug('bound to onclose event, transport websocket');
-    this.reconnectSupported = true;
-    let onCloseFunction = this.socket.conn.transport.socket.internalOnClose;
-    this.socket.conn.transport.socket.internalOnClose = (code, reason) => {
-      this.closeCode = code;
-      if (onCloseFunction) {
-        onCloseFunction(code, reason);
-      }
-    };
-  };
+  isUsingWebSockets() {
+    return this.socket.conn.transport.socket !== undefined;
+  }
+
+  maybeBindToOncloseEvent() {
+    if (this.isUsingWebSockets()) {
+      log.debug('bound to onclose event, transport websocket');
+      this.reconnectSupported = true;
+      let onCloseFunction = this.socket.conn.transport.socket.internalOnClose;
+      this.socket.conn.transport.socket.internalOnClose = (code, reason) => {
+        this.closeCode = code;
+        if (onCloseFunction) {
+          onCloseFunction(code, reason);
+        }
+      };
+    }
+  }
 
   onToken(options, callback) {
     const token = options.token;
