@@ -685,11 +685,13 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   that.startRecording = (stream, callbackOrOptions) => {
     let callback = () => {};
     let extension = 'mkv';
+    let url = null;
     if (typeof callbackOrOptions === 'function') {
       callback = callbackOrOptions;
     } else if (typeof callbackOrOptions === 'object') {
       callback = callbackOrOptions.callback || callback;
       extension = callbackOrOptions.extension || extension;
+      url = callbackOrOptions.url || url;
     }
     if (stream === undefined) {
       Logger.error('Trying to start recording on an invalid stream', stream);
@@ -697,7 +699,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       return;
     }
     Logger.debug(`Start Recording stream: ${stream.getID()}`);
-    socket.sendMessage('startRecorder', { to: stream.getID(), extension }, (id, error) => {
+    socket.sendMessage('startRecorder', { to: stream.getID(), extension, url }, (id, error) => {
       if (id === null) {
         Logger.error('Error on start recording', error);
         callback(undefined, error);

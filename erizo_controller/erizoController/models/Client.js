@@ -356,9 +356,11 @@ class Client extends events.EventEmitter {
     var extension = options.extension || 'mkv';
     var streamId = options.to;
     var recordingId = Math.random() * 1000000000000000000;
-    var url;
+    var url = null;
 
-    if (global.config.erizoController.recording_path) {  // jshint ignore:line
+    if (options.url != null && options.url != undefined) {
+        url = options.url.replace('{RECORDING_ID}', recordingId);
+    } else if (global.config.erizoController.recording_path) {  // jshint ignore:line
         url = global.config.erizoController.recording_path + recordingId + '.' + extension;  // jshint ignore:line
     } else {
         url = '/tmp/' + recordingId + '.' + extension;
