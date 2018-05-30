@@ -125,7 +125,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       getP2PConnectionOptions(stream, peerSocket)));
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
-      if (evt.state === 'failed') {
+      Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
+      if (evt.msg.state === 'failed') {
         onStreamFailed(stream);
       }
     });
@@ -139,7 +140,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     stream.addPC(connection, peerSocket);
 
     stream.on('icestatechanged', (evt) => {
-      if (evt.state === 'failed') {
+      Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
+      if (evt.msg.state === 'failed') {
         stream.pc.get(peerSocket).close();
         stream.pc.remove(peerSocket);
       }
@@ -193,7 +195,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       getErizoConnectionOptions(stream, options, true), erizoId, spec.singlePC));
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
-      if (evt.state === 'failed') {
+      Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
+      if (evt.msg.state === 'failed') {
         onStreamFailed(stream);
       }
     });
@@ -206,7 +209,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       getErizoConnectionOptions(stream, options), erizoId, spec.singlePC));
 
     stream.on('icestatechanged', (evt) => {
-      if (evt.state === 'failed') {
+      Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
+      if (evt.msg.state === 'failed') {
         onStreamFailed(stream);
       }
     });
