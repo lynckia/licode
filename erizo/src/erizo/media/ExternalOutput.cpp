@@ -193,6 +193,7 @@ void ExternalOutput::writeAudioData(char* buf, int len) {
   if (av_packet.size > 0 && need_audio_transcode_) {
     if (audio_decoder_.decode(audio_decoder_.frame_, &av_packet)) {
       EncodeCB encode_callback = [this](AVPacket *pkt, AVFrame *frame, bool should_write){
+        av_frame_unref(frame);
         this->writePacket(pkt, audio_st_, should_write);
       };
       if (need_audio_resample_) {
@@ -202,6 +203,7 @@ void ExternalOutput::writeAudioData(char* buf, int len) {
           i += audio_encoder_.resampled_frame_->nb_samples;
           audio_encoder_.encode(audio_encoder_.resampled_frame_, &av_packet, encode_callback);
         }
+        av_frame_unref(audio_decoder_.frame_);
       } else {
         audio_encoder_.encode(audio_decoder_.frame_, &av_packet, encode_callback);
       }
@@ -300,6 +302,7 @@ void ExternalOutput::maybeWriteVideoPacket(char* buf, int len) {
     if (av_packet.size > 0 && need_video_transcode_) {
       if (video_decoder_.decode(video_decoder_.frame_, &av_packet)) {
         auto done_callback = [this](AVPacket *pkt, AVFrame *frame, bool should_write){
+          av_frame_unref(frame);
           this->writePacket(pkt, video_st_, should_write);
         };
         video_encoder_.encode(video_decoder_.frame_, &av_packet, done_callback);
@@ -313,22 +316,23 @@ void ExternalOutput::maybeWriteVideoPacket(char* buf, int len) {
 }
 
 void ExternalOutput::writePacket(AVPacket *pkt, AVStream *st, bool should_write) {
-  const char *media_type;
-  if (st->id == 0) {
-    media_type = "video";
-      av_packet_rescale_ts(pkt, AVRational{1, static_cast<int>(video_map_.clock_rate)},
-          video_st_->time_base);
-  } else {
-    media_type = "audio";
-    av_packet_rescale_ts(pkt, audio_encoder_.codec_context_->time_base, audio_st_->time_base);
-  }
-  pkt->stream_index = st->id;
-
-  int64_t pts = pkt->pts;
-  int64_t dts = pkt->dts;
-  int64_t dl  = pkt->dts;
-
   if (should_write) {
+    const char *media_type;
+
+    if (st->id == 0) {
+      media_type = "video";
+      av_packet_rescale_ts(pkt, AVRational{1, static_cast<int>(video_map_.clock_rate)},
+            video_st_->time_base);
+    } else {
+      media_type = "audio";
+      av_packet_rescale_ts(pkt, audio_encoder_.codec_context_->time_base, audio_st_->time_base);
+    }
+    pkt->stream_index = st->id;
+
+    int64_t pts = pkt->pts;
+    int64_t dts = pkt->dts;
+    int64_t dl  = pkt->dts;
+
     int ret = av_interleaved_write_frame(context_, pkt);
     if (ret != 0) {
       ELOG_ERROR("av_interleaved_write_frame pts: %d failed with: %d %s",
@@ -614,6 +618,7 @@ AVStream * ExternalOutput::addOutputStream(int index, CoderCodec *coder_codec) {
 
 bool ExternalOutput::writeContextHeader() {
   AVDictionary *opt = NULL;
+  context_->oformat->flags |= AVFMT_VARIABLE_FPS;
   int ret = avformat_write_header(context_, &opt);
   av_dict_free(&opt);
   if (ret < 0) {
@@ -663,6 +668,10 @@ void ExternalOutput::setupVideoEncodingParams(AVCodecContext *context, AVDiction
   context->framerate = (AVRational){25, 1};
   context->time_base = (AVRational){1, 25};
   context->pix_fmt = AV_PIX_FMT_YUV420P;
+
+  if (context->codec->id == AV_CODEC_ID_H264) {
+    av_opt_set(context->priv_data, "profile", "main", 0);
+  }
 
   if (context->codec->id == AV_CODEC_ID_VP8 || context->codec->id == AV_CODEC_ID_VP9) {
     ELOG_DEBUG("Setting VPX params");
