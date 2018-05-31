@@ -178,7 +178,7 @@ namespace erizo {
         sdp << " " << bundleTags[i].id;
       }
       sdp << "\n";
-      sdp << "a=msid-semantic: WMS " << msidSemantic << endl;
+      sdp << "a=msid-semantic: WMS " << msid_semantic << endl;
     }
     // candidates audio
     bool printedAudio = true, printedVideo = true;

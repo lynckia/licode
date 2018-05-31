@@ -200,12 +200,12 @@ NAN_METHOD(ConnectionDescription::New) {
 
 NAN_METHOD(ConnectionDescription::setMsidSemantic) {
   GET_SDP();
-  sdp->msidSemantic = getString(info[0]);
+  sdp->msid_semantic = getString(info[0]);
 }
  
 NAN_METHOD(ConnectionDescription::getMsidSemantic) {
   GET_SDP();
-  info.GetReturnValue().Set(Nan::New(sdp->msidSemantic.c_str()).ToLocalChecked());
+  info.GetReturnValue().Set(Nan::New(sdp->msid_semantic.c_str()).ToLocalChecked());
 }
 
 NAN_METHOD(ConnectionDescription::setProfile) {

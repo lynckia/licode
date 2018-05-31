@@ -249,7 +249,7 @@ class SdpInfo {
 
   bool postProcessInfo();
 
-  std::string msidSemantic;
+  std::string msid_semantic;
 
   /**
   * @return A vector containing the simulcast RID informations

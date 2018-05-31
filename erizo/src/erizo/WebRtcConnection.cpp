@@ -229,7 +229,7 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
     }
     ELOG_DEBUG("%s message: getting local SDPInfo, stream_id: %s, audio_ssrc: %u",
                toLog(), media_stream->getId(), media_stream->getAudioSinkSSRC());
-    local_sdp_->msidSemantic = media_stream->getLabel();
+    local_sdp_->msid_semantic = media_stream->getLabel();
     if (!video_ssrc_list.empty()) {
       local_sdp_->video_ssrc_map[media_stream->getLabel()] = video_ssrc_list;
     }
@@ -316,7 +316,7 @@ bool WebRtcConnection::processRemoteSdp(std::string stream_id) {
     return true;
   }
 
-  local_sdp_->msidSemantic = remote_sdp_->msidSemantic;
+  local_sdp_->msid_semantic = remote_sdp_->msid_semantic;
   bundle_ = remote_sdp_->isBundle;
   local_sdp_->setOfferSdp(remote_sdp_);
   extension_processor_.setSdpInfo(local_sdp_);
