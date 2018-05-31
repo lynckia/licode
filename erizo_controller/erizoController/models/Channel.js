@@ -28,7 +28,6 @@ const checkSignature = (token, key) => {
 
 function listenToSocketHandshakeEvents(channel) {
   channel.socket.on('token', channel.onToken.bind(channel));
-  channel.socket.on('reconnected', channel.onReconnected.bind(channel));
   channel.socket.on('disconnect', channel.onDisconnect.bind(channel));
 }
 
@@ -114,11 +113,6 @@ class Channel extends events.EventEmitter {
     this.socket.on(eventName, listener);
   }
 
-  onReconnected(clientId) {
-    this.state = CONNECTED;
-    this.emit('reconnected',  clientId);
-  }
-
   sendMessage(type, arg) {
     if (this.state === RECONNECTING) {
       this.addToBuffer(type, arg);
@@ -151,6 +145,10 @@ class Channel extends events.EventEmitter {
     this.state = DISCONNECTED;
     clearTimeout(this.disconnecting);
     this.socket.disconnect();
+  }
+
+  reconnected() {
+    this.state = CONNECTED;
   }
 
 }

@@ -301,6 +301,19 @@ var listen = function () {
 
         let channel = new Channel(socket, nuve);
 
+        let clientId = socket.handshake.query.clientId;
+
+        if (clientId) {
+            rooms.forEachRoom(room => {
+                const client = room.getClientById(clientId);
+                if (client !== undefined) {
+                    client.setNewChannel(channel);
+                }
+            });
+            channel.reconnected();
+            return;
+        }
+
         channel.on('connected', (token, options, callback) => {
           options = options || {};
           try {
@@ -333,15 +346,6 @@ var listen = function () {
           } catch(e) {
             log.warn('message: error creating Room or Client, error:', e);
           }
-        });
-
-        channel.on('reconnected', clientId => {
-          rooms.forEachRoom(room => {
-            const client = room.getClientById(clientId);
-            if (client !== undefined) {
-              client.setNewChannel(channel);
-            }
-          });
         });
 
         socket.channel = channel;

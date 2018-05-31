@@ -24,7 +24,6 @@ const Socket = (newIo) => {
   that.RECONNECTING = Symbol('reconnecting');
   that.DISCONNECTED = Symbol('disconnected');
 
-  const WEBSOCKET_NORMAL_CLOSURE = 1000;
   that.state = that.DISCONNECTED;
   that.IO = newIo === undefined ? io : newIo;
 
@@ -60,14 +59,7 @@ const Socket = (newIo) => {
     const host = token.host;
     socket = that.IO.connect(transport + host, options);
 
-    // Hack to know the exact reason of the WS closure (socket.io does not publish it)
-    let closeCode = WEBSOCKET_NORMAL_CLOSURE;
-    const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
-    socket.io.engine.transport.ws.onclose = (closeEvent) => {
-      Logger.warning('WebSocket closed, code:', closeEvent.code);
-      closeCode = closeEvent.code;
-      socketOnCloseFunction(closeEvent);
-    };
+
     that.socket = socket;
     socket.on('onAddStream', emit.bind(that, 'onAddStream'));
 
@@ -89,22 +81,18 @@ const Socket = (newIo) => {
     // The socket has disconnected
     socket.on('disconnect', (reason) => {
       Logger.debug('disconnect', that.id, reason);
-      if (closeCode !== WEBSOCKET_NORMAL_CLOSURE) {
-        that.state = that.RECONNECTING;
-        return;
-      }
-      emit('disconnect', reason);
-      socket.close();
+      that.state = that.RECONNECTING;
     });
 
     socket.on('connection_failed', (evt) => {
       Logger.error('connection failed, id:', that.id);
       emit('connection_failed', evt);
     });
+
     socket.on('error', (err) => {
       Logger.warning('socket error, id:', that.id, ', error:', err.message);
-      emit('error');
     });
+
     socket.on('connect_error', (err) => {
       Logger.warning('connect error, id:', that.id, ', error:', err.message);
     });
@@ -125,6 +113,9 @@ const Socket = (newIo) => {
     });
 
     socket.on('reconnect_attempt', (attemptNumber) => {
+      socket.io.opts.query = {
+        clientId: that.id,
+      };
       Logger.debug('reconnect attempt, id:', that.id, ', attempet:', attemptNumber);
     });
 
