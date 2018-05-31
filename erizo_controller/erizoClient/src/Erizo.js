@@ -14,7 +14,7 @@ const Erizo = {
   // #if process.env.INCLUDE_SOCKETIO == 'TRUE'
   Room: Room.bind(null, undefined, undefined, undefined),
   // #endif
-  // #if !process.env.INCLUDE_SOCKETIO == 'TRUE'
+  // #if process.env.INCLUDE_SOCKETIO != 'TRUE'
   Room: Room, // eslint-disable-line
   // #endif
   LicodeEvent,
