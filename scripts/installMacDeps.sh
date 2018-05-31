@@ -84,8 +84,7 @@ install_homebrew(){
   if [ "$CACHE" == "true" ]; then
     install_homebrew_from_cache
   fi
-  which -s brew
-  if [[ $? != 0 ]] ; then
+  if ! which -s brew; then
     # Install Homebrew
     ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
   fi
