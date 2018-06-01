@@ -111,9 +111,6 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/third_party/webrtc.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/third_party/nicer.cmake")
 
 ## Erizo
-if(APPLE)
-add_definitions(-Wall -Werror)
-endif()
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/erizo")
 
 ## Examples
