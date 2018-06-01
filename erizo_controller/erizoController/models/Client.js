@@ -358,7 +358,7 @@ class Client extends events.EventEmitter {
     var recordingId = Math.random() * 1000000000000000000;
     var url = null;
 
-    if (options.url != null && options.url != undefined) {
+    if (options.url !== null && options.url !== undefined) {
         url = options.url.replace('{RECORDING_ID}', recordingId);
     } else if (global.config.erizoController.recording_path) {  // jshint ignore:line
         url = global.config.erizoController.recording_path + recordingId + '.' + extension;  // jshint ignore:line
