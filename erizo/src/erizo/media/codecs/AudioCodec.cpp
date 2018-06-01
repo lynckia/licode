@@ -35,7 +35,7 @@ AudioEncoder::~AudioEncoder() {
 }
 
 int AudioEncoder::initEncoder(const AudioCodecInfo& mediaInfo) {
-  const InitContextCB callback = [mediaInfo](AVCodecContext *context, AVDictionary *dict) {
+  const InitContextBeforeOpenCB callback = [mediaInfo](AVCodecContext *context, AVDictionary *dict) {
     context->sample_fmt = AV_SAMPLE_FMT_FLT;
     // codec_context_->bit_rate = mediaInfo.bitRate;
     context->sample_rate = 8 /*mediaInfo.sampleRate*/;
@@ -228,7 +228,7 @@ uint64_t AudioEncoder::getChannelLayout(const AVCodec *codec) {
 }
 
 int AudioDecoder::initDecoder(const AudioCodecInfo& info) {
-  const InitContextCB callback = [info](AVCodecContext *context, AVDictionary *dict) {
+  const InitContextBeforeOpenCB callback = [info](AVCodecContext *context, AVDictionary *dict) {
     context->sample_fmt = AV_SAMPLE_FMT_S16;
     context->bit_rate = info.bitRate;
     context->sample_rate = info.sampleRate;

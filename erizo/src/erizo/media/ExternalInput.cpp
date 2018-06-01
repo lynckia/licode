@@ -128,7 +128,7 @@ int ExternalInput::init() {
     needTranscoding_ = true;
     inCodec_.initDecoder(st->codecpar);
 
-    bufflen_ = inCodec_.codec_context_->width*inCodec_.codec_context_->height*3/2;
+    bufflen_ = inCodec_.getContextWidth()*inCodec_.getContextHeight()*3/2;
     decodedBuffer_.reset((unsigned char*) malloc(bufflen_));
 
 

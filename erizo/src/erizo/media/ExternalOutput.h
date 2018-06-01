@@ -160,7 +160,6 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   void setupAudioDecodingParams(AVCodecContext *context, AVDictionary *dict);
   void setupVideoEncodingParams(AVCodecContext *context, AVDictionary *dict);
   void setupAudioEncodingParams(AVCodecContext *context, AVDictionary *dict);
-  AVStream * addOutputStream(int index, CoderCodec *coder_codec);
   AVCodecID bestMatchOutputCodecId(AVCodecID input_codec_id);
   bool audioNeedsResample();
 };

@@ -103,28 +103,32 @@ void ExternalOutput::close() {
 }
 
 void ExternalOutput::syncClose() {
+  if (!recording_) {
+    return;
+  }
+
   cond_.notify_one();
   thread_.join();
 
   if (context_ != nullptr) {
     av_write_trailer(context_);
   }
-  if (video_decoder_.initialized) {
+  if (video_decoder_.isInitialized()) {
     video_decoder_.closeCodec();
   }
-  if (video_encoder_.initialized) {
+  if (video_encoder_.isInitialized()) {
     video_encoder_.closeCodec();
   }
-  if (audio_decoder_.initialized) {
+  if (audio_decoder_.isInitialized()) {
     audio_decoder_.closeCodec();
   }
-  if (audio_encoder_.initialized) {
+  if (audio_encoder_.isInitialized()) {
     audio_encoder_.closeCodec();
   }
   if (context_ != nullptr) {
     avio_close(context_->pb);
+    avformat_free_context(context_);
   }
-  avformat_free_context(context_);
 
   pipeline_initialized_ = false;
   recording_ = false;
@@ -420,7 +424,6 @@ bool ExternalOutput::initContext() {
     video_queue_.setTimebase(video_map_.clock_rate);
     if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
       ELOG_ERROR("Error opening output context.");
-      exit(1);
     } else {
       AVCodecID output_video_codec_id = this->bestMatchOutputCodecId(input_video_codec_id_);
       AVCodecID output_audio_codec_id = this->bestMatchOutputCodecId(input_audio_codec_id_);
@@ -437,35 +440,37 @@ bool ExternalOutput::initContext() {
       }
 
       video_decoder_.initDecoder(input_video_codec_id_,
-          (InitContextCB)[this](AVCodecContext *context, AVDictionary *dict) {
+          (InitContextBeforeOpenCB)[this](AVCodecContext *context, AVDictionary *dict) {
         this->setupVideoDecodingParams(context, dict);
       });
 
       audio_decoder_.initDecoder(input_audio_codec_id_,
-          (InitContextCB)[this](AVCodecContext *context, AVDictionary *dict) {
+          (InitContextBeforeOpenCB)[this](AVCodecContext *context, AVDictionary *dict) {
         this->setupAudioDecodingParams(context, dict);
       });
 
-      video_encoder_.initEncoder(output_video_codec_id,
-          (InitContextCB)[this](AVCodecContext *context, AVDictionary *dict) {
+      if (video_encoder_.initEncoder(output_video_codec_id,
+          (InitContextBeforeOpenCB)[this](AVCodecContext *context, AVDictionary *dict) {
         this->setupVideoEncodingParams(context, dict);
-      });
-
-      audio_encoder_.initEncoder(output_audio_codec_id,
-          (InitContextCB)[this](AVCodecContext *context, AVDictionary *dict) {
-        this->setupAudioEncodingParams(context, dict);
-      });
-
-      video_st_ = this->addOutputStream(0, &video_encoder_);
-      audio_st_ = this->addOutputStream(1, &audio_encoder_);
-
-      if (this->audioNeedsResample()) {
-        ELOG_INFO("Encode Audio needs resampling.");
-        need_audio_resample_ = true;
+      })) {
+        if (video_encoder_.initializeStream(0, context_, &video_st_)) {
+          context_->streams[0] = video_st_;
+        }
       }
-      if (need_audio_resample_ &&
-          !audio_encoder_.initAudioResampler(audio_decoder_.codec_context_)) {
-        exit(1);
+
+      if (audio_encoder_.initEncoder(output_audio_codec_id,
+          (InitContextBeforeOpenCB)[this](AVCodecContext *context, AVDictionary *dict) {
+        this->setupAudioEncodingParams(context, dict);
+      })) {
+        if (audio_encoder_.initializeStream(1, context_, &audio_st_)) {
+          context_->streams[1] = audio_st_;
+        }
+
+        if (this->audioNeedsResample()) {
+          ELOG_INFO("Encode Audio needs resampling.");
+          need_audio_resample_ = true;
+          audio_encoder_.initAudioResampler(audio_decoder_.codec_context_);
+        }
       }
 
       if (!this->writeContextHeader()) {
@@ -592,27 +597,6 @@ void ExternalOutput::sendLoop() {
   while (video_queue_.getSize() > 0) {
     boost::shared_ptr<DataPacket> video_packet = video_queue_.popPacket(true);  // ignore our minimum depth check
     writeVideoData(video_packet->data, video_packet->length);
-  }
-}
-
-AVStream * ExternalOutput::addOutputStream(int index, CoderCodec *coder_codec) {
-  AVStream *st;
-  const char *codec_name = coder_codec->av_codec_->name;
-  st = avformat_new_stream(context_, coder_codec->av_codec_);
-  if (!st) {
-    ELOG_ERROR("Could not create stream for %s.", codec_name);
-    return nullptr;
-  } else {
-    int ret = avcodec_parameters_from_context(st->codecpar, coder_codec->codec_context_);
-    if (ret != 0) {
-      ELOG_ERROR("Could not copy codec paramaters for %s.", codec_name);
-      return nullptr;
-    }
-    st->id = index;
-    st->time_base = coder_codec->codec_context_->time_base;
-    context_->streams[index] = st;
-    ELOG_INFO("Created stream for codec: %s with index: %d", codec_name, index);
-    return st;
   }
 }
 

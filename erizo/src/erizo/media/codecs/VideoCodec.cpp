@@ -24,7 +24,7 @@ inline AVCodecID VideoCodecID2ffmpegDecoderID(VideoCodecID codec) {
 }
 
 int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
-  const InitContextCB callback = [info](AVCodecContext *context, AVDictionary *dict) {
+  const InitContextBeforeOpenCB callback = [info](AVCodecContext *context, AVDictionary *dict) {
     context->bit_rate = info.bitRate;
     context->rc_min_rate = info.bitRate;
     context->rc_max_rate = info.bitRate;  // VPX_CBR
@@ -71,7 +71,7 @@ void VideoEncoder::encodeVideoBuffer(unsigned char* inBuffer, int len, unsigned 
 }
 
 int VideoDecoder::initDecoder(const VideoCodecInfo& info) {
-  const InitContextCB callback = [info](AVCodecContext *context, AVDictionary *dict) {
+  const InitContextBeforeOpenCB callback = [info](AVCodecContext *context, AVDictionary *dict) {
     context->width = info.width;
     context->height = info.height;
   };
@@ -81,7 +81,7 @@ int VideoDecoder::initDecoder(const VideoCodecInfo& info) {
 }
 
 int VideoDecoder::initDecoder(AVCodecParameters *codecpar) {
-  const InitContextCB callback = [codecpar](AVCodecContext *context, AVDictionary *dict) {
+  const InitContextBeforeOpenCB callback = [codecpar](AVCodecContext *context, AVDictionary *dict) {
     int error = avcodec_parameters_to_context(context, codecpar);
     if (error < 0) {
       ELOG_ERROR("Could not copy parameters to context.");

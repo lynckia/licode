@@ -8,14 +8,14 @@ DEFINE_LOGGER(CoderEncoder, "media.codecs.CoderEncoder");
 DEFINE_LOGGER(CoderDecoder, "media.codecs.CoderDecoder");
 
 bool Coder::initContext(AVCodecContext **codec_ctx, AVCodec **av_codec, AVCodecID codec_id,
-    CoderOperationType operation, InitContextCB callback) {
+    CoderOperationType operation, InitContextBeforeOpenCB callback) {
   bool success = false;
   AVDictionary *opt = NULL;
   const char *codec_name = avcodec_get_name(codec_id);
   const char *codec_for = operation == ENCODE_AV ? "encode" : "decode";
   if (this->allocCodecContext(codec_ctx, av_codec, codec_id, operation)) {
     callback(*codec_ctx, opt);
-    bool success = this->openCodecContext(*codec_ctx, *av_codec, opt);
+    success = this->openCodecContext(*codec_ctx, *av_codec, opt);
     if (success) {
       ELOG_INFO("Successfully initialized %s context for %s.", codec_for, codec_name);
     } else {
@@ -136,53 +136,12 @@ void Coder::encode(AVCodecContext *encode_ctx, AVFrame *frame, AVPacket *av_pack
   }
 }
 
-void Coder::saveFrameAsJPEG(AVFrame *frame) {
-  AVCodec *codec;
-  AVCodecContext *context;
-  AVPacket packet;
-  FILE *file;
-  char name[256];
-  static int frame_number = 0;
-
-  const InitContextCB context_callback = [frame](AVCodecContext *context, AVDictionary *dict) {
-    context->pix_fmt = AV_PIX_FMT_YUVJ420P;
-    context->height = frame->height;
-    context->width = frame->width;
-    context->color_range = AVCOL_RANGE_JPEG;
-    context->time_base = (AVRational) {1, 30};
-  };
-  if (!this->initContext(&context, &codec, AV_CODEC_ID_MJPEG, ENCODE_AV, context_callback)) {
-    return;
-  }
-
-  av_init_packet(&packet);
-  EncodeCB encode_callback = [&name, &file, &context](AVPacket *pkt, AVFrame *frame, bool should_write) {
-    if (should_write) {
-      int len = 255;
-      snprintf(name, len, "/tmp/test/dvr-%06d.jpg", frame_number);
-      file = fopen(name, "wb");
-      int saved = fwrite(pkt->data, 1, pkt->size, file);
-      if (saved != pkt->size || ferror(file)) {
-        ELOG_ERROR("Could not save JPEG frame number: %d, size: %d", frame_number, pkt->size);
-      } else {
-        ELOG_DEBUG("Save JPEG frame with number: %d, size: %d at: %s", frame_number, pkt->size, name);
-      }
-      fclose(file);
-    }
-    avcodec_close(context);
-    avcodec_free_context(&context);
-    frame_number++;
-  };
-
-  this->encode(context, frame, &packet, encode_callback);
-}
-
 CoderCodec::CoderCodec() {
   av_register_all();
   avcodec_register_all();
   av_codec_       = nullptr;
   codec_context_  = nullptr;
-  initialized     = false;
+  initialized_    = false;
   frame_          = av_frame_alloc();
   if (!frame_) {
     ELOG_ERROR("Error allocating encode frame");
@@ -197,6 +156,43 @@ void CoderCodec::logCodecContext() {
   coder_.logCodecContext(codec_context_);
 }
 
+bool CoderCodec::isInitialized() {
+  return initialized_;
+}
+
+bool CoderCodec::initializeStream(int index, AVFormatContext *f_context, AVStream **out_st) {
+  if (!this->isInitialized()) {
+    ELOG_ERROR("You are trying to initialize a stream with an uninitialized codec.");
+    return false;
+  }
+  AVStream *st;
+  const char *codec_name = av_codec_->name;
+  st = avformat_new_stream(f_context, av_codec_);
+  if (!st) {
+    ELOG_ERROR("Could not create stream for %s.", codec_name);
+  } else {
+    int ret = avcodec_parameters_from_context(st->codecpar, codec_context_);
+    if (ret != 0) {
+      ELOG_ERROR("Could not copy codec paramaters for %s.", codec_name);
+    } else {
+      st->id = index;
+      st->time_base = codec_context_->time_base;
+      ELOG_INFO("Created stream for codec: %s with index: %d", codec_name, index);
+      *out_st = st;
+      return true;
+    }
+  }
+  return false;
+}
+
+int CoderCodec::getContextWidth() {
+  return codec_context_->width;
+}
+
+int CoderCodec::getContextHeight() {
+  return codec_context_->height;
+}
+
 int CoderCodec::closeCodec() {
   ELOG_DEBUG("Closing CoderCodec.");
   if (codec_context_ != nullptr) {
@@ -206,30 +202,26 @@ int CoderCodec::closeCodec() {
   if (frame_ != nullptr) {
     av_frame_free(&frame_);
   }
-  initialized = false;
+  initialized_ = false;
   return 0;
 }
 
-int CoderEncoder::initEncoder(const AVCodecID codec_id, const InitContextCB callback) {
+bool CoderEncoder::initEncoder(const AVCodecID codec_id, const InitContextBeforeOpenCB callback) {
   if (coder_.initContext(&codec_context_, &av_codec_, codec_id, ENCODE_AV, callback)) {
-    initialized = true;
-    return 0;
-  } else {
-    return -1;
+    initialized_ = true;
   }
+  return initialized_;
 }
 
 void CoderEncoder::encode(AVFrame *frame, AVPacket *av_packet, const EncodeCB &done) {
   coder_.encode(codec_context_, frame, av_packet, done);
 }
 
-int CoderDecoder::initDecoder(const AVCodecID codec_id, InitContextCB callback) {
+bool CoderDecoder::initDecoder(const AVCodecID codec_id, const InitContextBeforeOpenCB callback) {
   if (coder_.initContext(&codec_context_, &av_codec_, codec_id, DECODE_AV, callback)) {
-    initialized = true;
-    return 0;
-  } else {
-    return -1;
+    initialized_ = true;
   }
+  return initialized_;
 }
 
 bool CoderDecoder::decode(AVFrame *frame, AVPacket *av_packet) {

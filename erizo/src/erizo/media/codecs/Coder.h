@@ -33,7 +33,7 @@ inline static const std::string av_make_error_string_cpp(int errnum) {
 namespace erizo {
 
 typedef std::function<void(AVPacket *packet, AVFrame *frame, bool success)> EncodeCB;
-typedef std::function<void(AVCodecContext *context, AVDictionary *dict)> InitContextCB;
+typedef std::function<void(AVCodecContext *context, AVDictionary *dict)> InitContextBeforeOpenCB;
 
 enum CoderOperationType {
   ENCODE_AV,
@@ -45,7 +45,7 @@ class Coder {
 
  public:
   bool initContext(AVCodecContext **codec_ctx, AVCodec **av_codec, AVCodecID codec_id,
-      CoderOperationType operation, const InitContextCB callback);
+      CoderOperationType operation, const InitContextBeforeOpenCB callback);
   bool allocCodecContext(AVCodecContext **ctx, AVCodec **c, AVCodecID codec_id,
     CoderOperationType operation);
   bool openCodecContext(AVCodecContext *codec_ctx, AVCodec *codec, AVDictionary *opt);
@@ -53,7 +53,6 @@ class Coder {
   bool decode(AVCodecContext *decode_ctx, AVFrame *frame, AVPacket *av_packet);
   void encode(AVCodecContext *encode_ctx, AVFrame *frame, AVPacket *av_packet,
       const EncodeCB &done);
-  void saveFrameAsJPEG(AVFrame *frame);
   static void logAVStream(AVStream *av_stream);
 };
 
@@ -65,22 +64,26 @@ class CoderCodec {
   virtual ~CoderCodec();
   virtual int closeCodec();
   void logCodecContext();
+  bool isInitialized();
+  bool initializeStream(int index, AVFormatContext *f_context, AVStream **out_st);
+  int getContextWidth();
+  int getContextHeight();
 
  public:
-  bool initialized;
-  AVCodec* av_codec_;
-  AVCodecContext* codec_context_;
   AVFrame* frame_;
+  AVCodecContext* codec_context_;
 
  protected:
   Coder coder_;
+  AVCodec* av_codec_;
+  bool initialized_;
 };
 
 class CoderEncoder : public CoderCodec {
   DECLARE_LOGGER();
 
  public:
-  int initEncoder(const AVCodecID codec_id, const InitContextCB callback);
+  bool initEncoder(const AVCodecID codec_id, const InitContextBeforeOpenCB callback);
   void encode(AVFrame *frame, AVPacket *av_packet, const EncodeCB &done);
 };
 
@@ -88,7 +91,7 @@ class CoderDecoder : public CoderCodec {
   DECLARE_LOGGER();
 
  public:
-  int initDecoder(const AVCodecID codec_id, const InitContextCB callback);
+  bool initDecoder(const AVCodecID codec_id, const InitContextBeforeOpenCB callback);
   bool decode(AVFrame *frame, AVPacket *av_packet);
 };
 
