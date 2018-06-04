@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
-
 set -e
-
 SCRIPT=`pwd`/$0
-PATHNAME=`dirname $SCRIPT`
-ROOT=$PATHNAME/..
-NVM_CHECK="$PATHNAME"/checkNvm.sh
+ROOT=`dirname $SCRIPT`
+LICODE_ROOT="$ROOT"/..
+NVM_CHECK="$LICODE_ROOT"/scripts/checkNvm.sh
 
 ENVS=""
-
-export ERIZO_HOME=$ROOT/erizo
 
 usage()
 {
@@ -23,8 +19,8 @@ To build erizo without additional modules simply invoke this script with -c opti
 
 OPTIONS:
    -h      Show this message
-   -a      include adapter in the build
-   -s      include socket.io in the build
+   -a      Exclude adapter in the build
+   -s      Exclude socket.io in the build
    -w      watch for changes in client code and recompile it in debug mode
    -c      compile
 EOF
@@ -41,7 +37,7 @@ check_result() {
   fi
 }
 
-watch_client(){
+watch_client() {
   echo 'Watching client...'
   . $NVM_CHECK
   nvm use
@@ -59,8 +55,6 @@ compile() {
 
 if [ "$#" -eq 0 ]
 then
-  echo 'Compiling client with socketio and adapter included in the bundle ...'
-  ENVS="INCLUDE_ADAPTER=TRUE INCLUDE_SOCKETIO=TRUE"
   compile
 else
   while getopts “hascw” OPTION
@@ -71,16 +65,15 @@ else
         exit 1
         ;;
       a)
-        ENVS+="INCLUDE_ADAPTER=TRUE "
+        ENVS+="EXCLUDE_ADAPTER=TRUE "
         ;;
       s)
-        ENVS+="INCLUDE_SOCKETIO=TRUE "
+        ENVS+="EXCLUDE_SOCKETIO=TRUE "
         ;;
       c)
         compile
         ;;
       w)
-        echo 'Remember to specify -s to include socketio and -a to include adapter before this option'
         watch_client
         ;;
       ?)
