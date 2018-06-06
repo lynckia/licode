@@ -95,8 +95,9 @@ void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
   asyncTask([max_video_bw] (std::shared_ptr<MediaStream> stream) {
     if (stream->rtcp_processor_) {
       stream->rtcp_processor_->setMaxVideoBW(max_video_bw * 1000);
-      if(stream->pipeline_)
+      if (stream->pipeline_) {
         stream->pipeline_->notifyUpdate();
+      }
     }
   });
 }
@@ -148,7 +149,7 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   }
 
   if (pipeline_initialized_ && pipeline_) {
-      pipeline_->notifyUpdate();
+    pipeline_->notifyUpdate();
     return true;
   }
 
@@ -274,8 +275,9 @@ int MediaStream::deliverEvent_(MediaEventPtr event) {
       return;
     }
 
-    if(stream_ptr->pipeline_)
+    if (stream_ptr->pipeline_) {
       stream_ptr->pipeline_->notifyEvent(event);
+    }
   });
   return 1;
 }
@@ -312,8 +314,9 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> incoming_packet, T
       }
     }
 
-    if(stream_ptr->pipeline_)
+    if (stream_ptr->pipeline_) {
       stream_ptr->pipeline_->read(std::move(packet));
+    }
   });
 }
 
@@ -452,8 +455,9 @@ void MediaStream::muteStream(bool mute_video, bool mute_audio) {
                                                                              CumulativeStat{mute_audio});
     media_stream->stats_->getNode()[media_stream->getAudioSinkSSRC()].insertStat("erizoVideoMute",
                                                                              CumulativeStat{mute_video});
-    if(media_stream && media_stream->pipeline_)
+    if (media_stream && media_stream->pipeline_) {
       media_stream->pipeline_->notifyUpdate();
+    }
   });
 }
 
@@ -562,22 +566,25 @@ void MediaStream::write(std::shared_ptr<DataPacket> packet) {
 
 void MediaStream::enableHandler(const std::string &name) {
   asyncTask([name] (std::shared_ptr<MediaStream> conn) {
-      if(conn && conn->pipeline_)
+      if (conn && conn->pipeline_) {
         conn->pipeline_->enable(name);
+      }
   });
 }
 
 void MediaStream::disableHandler(const std::string &name) {
   asyncTask([name] (std::shared_ptr<MediaStream> conn) {
-    if(conn && conn->pipeline_)
+    if (conn && conn->pipeline_) {
       conn->pipeline_->disable(name);
+    }
   });
 }
 
 void MediaStream::notifyUpdateToHandlers() {
   asyncTask([] (std::shared_ptr<MediaStream> conn) {
-    if(conn && conn->pipeline_)
+    if (conn && conn->pipeline_) {
       conn->pipeline_->notifyUpdate();
+    }
   });
 }
 
@@ -620,8 +627,9 @@ void MediaStream::sendPacket(std::shared_ptr<DataPacket> p) {
     return;
   }
 
-  if(pipeline_)
+  if (pipeline_) {
     pipeline_->write(std::move(p));
+  }
 }
 
 void MediaStream::setQualityLayer(int spatial_layer, int temporal_layer) {
