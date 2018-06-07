@@ -107,7 +107,7 @@ describe('Rooms Resource', function() {
         .end(function(err) {
           if (err) throw err;
           expect(roomRegistryMock.addRoom.called).to.be.true;  // jshint ignore:line
-          expect(serviceRegistryMock.updateService.called).to.be.true;  // jshint ignore:line
+          expect(serviceRegistryMock.addRoomToService.called).to.be.true;  // jshint ignore:line
           done();
         });
     });
@@ -136,7 +136,7 @@ describe('Rooms Resource', function() {
         .end(function(err) {
           if (err) throw err;
           expect(roomRegistryMock.addRoom.called).to.be.true;  // jshint ignore:line
-          expect(serviceRegistryMock.updateService.called).to.be.true;  // jshint ignore:line
+          expect(serviceRegistryMock.addRoomToService.called).to.be.true;  // jshint ignore:line
           done();
         });
     });
