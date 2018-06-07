@@ -34,11 +34,15 @@ const Stream = (altConnectionHelpers, specInput) => {
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
 
   const onStreamAddedToPC = (evt) => {
-    that.emit(StreamEvent({ type: 'added', stream: evt.stream }));
+    // TODO (kekkokk) remove ugly Edge hack whenever the pc label on edge is fixed
+    if (evt.stream.id === that.getLabel() || that.ConnectionHelpers.getBrowser() === 'edge') {
+      that.emit(StreamEvent({ type: 'added', stream: evt.stream }));
+    }
   };
 
   const onStreamRemovedFroPC = (evt) => {
-    if (evt.stream.id === that.getLabel()) {
+    // TODO (kekkokk) remove ugly Edge hack whenever the pc label on edge is fixed
+    if (evt.stream.id === that.getLabel() || that.ConnectionHelpers.getBrowser() === 'edge') {
       that.emit(StreamEvent({ type: 'removed', stream: that }));
     }
   };
