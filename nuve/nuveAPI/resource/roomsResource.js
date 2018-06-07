@@ -37,7 +37,7 @@ exports.createRoom = function (req, res) {
             roomRegistry.addRoom(room, function (result) {
                 currentService.testRoom = result;
                 currentService.rooms.push(result);
-                serviceRegistry.updateService(currentService);
+                serviceRegistry.addRoomToService(currentService, result);
                 log.info('message: testRoom created, serviceId: ' + currentService.name);
                 res.send(result);
             });
@@ -56,7 +56,7 @@ exports.createRoom = function (req, res) {
         }
         roomRegistry.addRoom(room, function (result) {
             currentService.rooms.push(result);
-            serviceRegistry.updateService(currentService);
+            serviceRegistry.addRoomToService(currentService, result);
             log.info('message: createRoom success, roomName:' + req.body.name + ', serviceId: ' +
                      currentService.name + ', p2p: ' + room.p2p);
             res.send(result);

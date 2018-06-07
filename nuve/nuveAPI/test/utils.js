@@ -50,6 +50,7 @@ var reset = module.exports.reset = function() {
     getService: sinon.stub(),
     addService: sinon.stub(),
     updateService: sinon.stub(),
+    addRoomToService: sinon.stub(),
     removeService: sinon.stub(),
     getRoomForService: sinon.stub(),
     getList: sinon.stub().returns()
