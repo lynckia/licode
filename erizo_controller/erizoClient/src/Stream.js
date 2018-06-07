@@ -30,6 +30,7 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.desktopStreamId = spec.desktopStreamId;
   that.audioMuted = false;
   that.videoMuted = false;
+  that.p2p = false;
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
 
@@ -45,8 +46,8 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
   };
 
-  const onICEConnectionStateChange = (state) => {
-    that.emit(StreamEvent({ type: 'icestatechanged', msg: state }));
+  const onICEConnectionStateChange = (msg) => {
+    that.emit(StreamEvent({ type: 'icestatechanged', msg }));
   };
 
   if (that.videoSize !== undefined &&
@@ -111,6 +112,7 @@ const Stream = (altConnectionHelpers, specInput) => {
 
   that.addPC = (pc, p2pKey = undefined) => {
     if (p2pKey) {
+      that.p2p = true;
       if (that.pc === undefined) {
         that.pc = ErizoMap();
       }
@@ -229,10 +231,16 @@ const Stream = (altConnectionHelpers, specInput) => {
       }
       that.stream = undefined;
     }
-    if (that.pc) {
+    if (that.pc && !that.p2p) {
       that.pc.off('add-stream', spec.onStreamAddedToPC);
       that.pc.off('remove-stream', spec.onStreamRemovedFroPC);
       that.pc.off('ice-state-change', spec.onICEConnectionStateChange);
+    } else if (that.pc && that.p2p) {
+      that.pc.forEach((pc) => {
+        pc.off('add-stream', spec.onStreamAddedToPC);
+        pc.off('remove-stream', spec.onStreamRemovedFroPC);
+        pc.off('ice-state-change', spec.onICEConnectionStateChange);
+      });
     }
   };
 
