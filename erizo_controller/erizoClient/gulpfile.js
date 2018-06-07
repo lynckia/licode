@@ -31,11 +31,13 @@ const config = {
 
 const tasks = ['clean', 'bundle', 'compile', 'dist'];
 const debugTasks = ['clean', 'bundle', 'distDebug'];
-const targets = ['erizo', 'erizofc'];
+const targets = ['erizo', 'erizofc', 'erizoUmd'];
 
 const taskFunctions = {};
 taskFunctions.erizo = require('./gulp/erizoTasks.js')(gulp, plugins, config);
+taskFunctions.erizoUmd = require('./gulp/erizoUmdTasks.js')(gulp, plugins, config);
 taskFunctions.erizofc = require('./gulp/erizoFcTasks.js')(gulp, plugins, config);
+
 
 const watchTasks = ['lint'];
 

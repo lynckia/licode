@@ -1,4 +1,4 @@
-const webpackConfig = require('../webpack.config.erizo.js').var;
+const webpackConfig = require('../webpack.config.erizo.js').umd;
 
 const erizoTasks = (gulp, plugins, config) => {
   const that = {};
@@ -21,12 +21,12 @@ const erizoTasks = (gulp, plugins, config) => {
     .on('error', anError => plugins.exitOnError(anError));
 
   that.compile = () =>
-    gulp.src(`${erizoConfig.debug}/**/erizo.js`, { base: './' })
+    gulp.src(`${erizoConfig.debug}/**/erizoUmd.js`, { base: './' })
       .pipe(plugins.sourcemaps.init())
       .pipe(plugins.closureCompiler({
         languageIn: 'ECMASCRIPT6',
         languageOut: 'ECMASCRIPT5',
-        jsOutputFile: 'erizo.js',
+        jsOutputFile: 'erizoUmd.js',
         createSourceMap: true,
       }))
       .on('error', anError => plugins.exitOnError(anError))
