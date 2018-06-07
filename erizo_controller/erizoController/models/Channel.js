@@ -32,19 +32,20 @@ function listenToSocketHandshakeEvents(channel) {
   channel.socket.on('disconnect', channel.onDisconnect.bind(channel));
 }
 
-const CONNECTED = Symbol('connected');
-const RECONNECTING = Symbol('reconnecting');
-const DISCONNECTED = Symbol('disconnected');
-
 const WEBSOCKET_NORMAL_CLOSURE = 1000;
 const WEBSOCKET_GOING_AWAY_CLOSURE = 1001;
 
 class Channel extends events.EventEmitter {
   constructor(socket, nuve) {
     super();
+
+    this.CONNECTED = Symbol('connected');
+    this.RECONNECTING = Symbol('reconnecting');
+    this.DISCONNECTED = Symbol('disconnected');
+
     this.socket = socket;
     this.nuve = nuve;
-    this.state = DISCONNECTED;
+    this.state = this.DISCONNECTED;
     this.messageBuffer = [];
     this.id = uuidv4();
 
@@ -66,7 +67,7 @@ class Channel extends events.EventEmitter {
     if (checkSignature(token, NUVE_KEY)) {
       this.nuve.deleteToken(token.tokenId).then(tokenDB => {
         if (token.host === tokenDB.host) {
-          this.state = CONNECTED;
+          this.state = this.CONNECTED;
           this.emit('connected', tokenDB, options, callback);
         } else {
           log.warn('message: Token has invalid host, clientId: ' + this.id);
@@ -99,14 +100,14 @@ class Channel extends events.EventEmitter {
     log.debug('message: socket disconnected, code:', this.closeCode);
     if (this.closeCode !== WEBSOCKET_NORMAL_CLOSURE &&
         this.closeCode !== WEBSOCKET_GOING_AWAY_CLOSURE) {
-      this.state = RECONNECTING;
+      this.state = this.RECONNECTING;
       this.disconnecting = setTimeout(() => {
         this.emit('disconnect');
-        this.state = DISCONNECTED;
+        this.state = this.DISCONNECTED;
       }, RECONNECTION_TIMEOUT);
       return;
     }
-    this.state = DISCONNECTED;
+    this.state = this.DISCONNECTED;
     this.emit('disconnect');
   }
 
@@ -115,12 +116,12 @@ class Channel extends events.EventEmitter {
   }
 
   onReconnected(clientId) {
-    this.state = CONNECTED;
+    this.state = this.CONNECTED;
     this.emit('reconnected',  clientId);
   }
 
   sendMessage(type, arg) {
-    if (this.state === RECONNECTING) {
+    if (this.state === this.RECONNECTING) {
       this.addToBuffer(type, arg);
       return;
     }
@@ -136,7 +137,7 @@ class Channel extends events.EventEmitter {
   }
 
   sendBuffer(buffer) {
-    if (this.state !== CONNECTED) {
+    if (this.state !== this.CONNECTED) {
       return;
     }
     log.debug('message: sending buffered messages, number:', buffer.length,
@@ -148,7 +149,7 @@ class Channel extends events.EventEmitter {
   }
 
   disconnect() {
-    this.state = DISCONNECTED;
+    this.state = this.DISCONNECTED;
     clearTimeout(this.disconnecting);
     this.socket.disconnect();
   }
