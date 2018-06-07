@@ -201,18 +201,6 @@ exports.RoomController = function (spec) {
         }
     };
 
-    var isConnected = function(client) {
-        return (client && client.channel.state === client.channel.CONNECTED);
-    };
-
-    var maybeDeletePublisher = function(publisher, streamId) {
-        that.removePublisher(publisher, streamId);
-    };
-
-    var maybeDeleteSubscriber = function(subscriber, streamId) {
-        that.removeSubscriber(subscriber, streamId);
-    };
-
     /*
      * Adds a publisher to the room. This creates a new OneToManyProcessor
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
@@ -252,8 +240,8 @@ exports.RoomController = function (spec) {
 
                 amqper.callRpc(getErizoQueue(streamId), 'addPublisher', args,
                               {callback: function (data) {
-                    if (!isConnected(client)) {
-                        maybeDeletePublisher(publishers[streamId], streamId);
+                    if (!client.isConnected()) {
+                        that.removePublisher(publishers[streamId], streamId);
                         callback('client-left');
                         return;
                     }
@@ -264,8 +252,8 @@ exports.RoomController = function (spec) {
                                         'erizoId: ' + getErizoQueue(streamId) + ', ' +
                                         'retries: ' + retries + ', ' +
                                         logger.objectToLog(options.metadata));
-                            publishers[streamId] = undefined;
                             retries++;
+                            that.removePublisher(publishers[streamId], streamId);
                             that.addPublisher(client, streamId, options, callback, retries);
                             return;
                         }
@@ -274,7 +262,7 @@ exports.RoomController = function (spec) {
                                     'streamId: ' + streamId + ', ' +
                                     'erizoId: ' + getErizoQueue(streamId) + ', ' +
                                     logger.objectToLog(options.metadata));
-                        maybeDeletePublisher(publishers[streamId], streamId);
+                        that.removePublisher(publishers[streamId], streamId);
                         callback('timeout-erizojs');
                         return;
                     } else {
@@ -302,7 +290,7 @@ exports.RoomController = function (spec) {
      */
     that.addSubscriber = function (client, streamId, options, callback, retries) {
         var clientId = client.id;
-        if (clientId === null){
+        if (clientId === null) {
           callback('Error: null clientId');
           return;
         }
@@ -324,8 +312,8 @@ exports.RoomController = function (spec) {
 
             amqper.callRpc(getErizoQueue(streamId, undefined), 'addSubscriber', args,
                            {callback: function (data) {
-                if (!isConnected(client)) {
-                    maybeDeleteSubscriber(clientId, streamId);
+                if (!client.isConnected()) {
+                    that.removeSubscriber(clientId, streamId);
                     callback('client-left');
                     return;
                 }
@@ -347,7 +335,7 @@ exports.RoomController = function (spec) {
                                     'erizoId: ' + getErizoQueue(streamId) + ', ' +
                                     'retries: ' + retries + ', ' +
                                     logger.objectToLog(options.metadata));
-                        that.addSubscriber(clientId, streamId, options, callback, retries);
+                        that.addSubscriber(client, streamId, options, callback, retries);
                         return;
                     }
                     log.warn('message: addSubscriber ErizoJS timeout no retry, ' +
@@ -402,7 +390,7 @@ exports.RoomController = function (spec) {
      * This also removes it from the associated OneToManyProcessor.
      */
     that.removeSubscriber = function (subscriberId, streamId) {
-        if(subscribers[streamId]!==undefined){
+        if(subscribers[streamId]!== undefined) {
             var index = subscribers[streamId].indexOf(subscriberId);
             if (index !== -1) {
                 log.info('message: removeSubscriber, ' +

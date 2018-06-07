@@ -247,6 +247,7 @@ class Client extends events.EventEmitter {
             } else if (signMess === 'client-left') {
                 log.info('message: Abort publishing, client: ' + 
                 this.id + ' left while publishing');
+                return;
             }
             log.debug('Sending message back to the client', id);
             this.sendMessage('signaling_message_erizo', {mess: signMess, streamId: id});
@@ -347,6 +348,7 @@ class Client extends events.EventEmitter {
                 } else if (signMess === 'client-left') {
                     log.info('message: Abort subscription, client: ' + 
                     this.id + ' left while subscribing');
+                    return;
                 }
 
                 this.sendMessage('signaling_message_erizo', {mess: signMess,
@@ -577,6 +579,10 @@ class Client extends events.EventEmitter {
             callback(result);
         });
     }
+  }
+
+  isConnected() {
+      return (this.channel && this.channel.isConnected());
   }
 
 }
