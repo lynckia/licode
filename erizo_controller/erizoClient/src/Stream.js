@@ -366,31 +366,43 @@ const Stream = (altConnectionHelpers, specInput) => {
   };
 
   const muteStream = (callback = () => {}) => {
-    if (that.room && that.room.p2p) {
-      Logger.warning('muteAudio/muteVideo are not implemented in p2p streams');
-      callback('error');
-      return;
-    }
+    // if (that.room && that.room.p2p) {
+    //   Logger.warning('muteAudio/muteVideo are not implemented in p2p streams');
+    //   callback('error');
+    //   return;
+    // }
     if (that.stream) {
       for (let index = 0; index < that.stream.getVideoTracks().length; index += 1) {
         const track = that.stream.getVideoTracks()[index];
         track.enabled = !that.videoMuted;
       }
+      for (let index = 0; index < that.stream.getAudioTracks().length; index += 1) {
+        const track = that.stream.getAudioTracks()[index];
+        track.enabled = !that.audioMuted;
+      }
     }
-    const config = { muteStream: { audio: that.audioMuted, video: that.videoMuted } };
-    that.checkOptions(config, true);
-    if (that.pc) {
-      that.pc.updateSpec(config, that.getID(), callback);
+    if (that.room) {
+      const config = { muteStream: { audio: that.audioMuted, video: that.videoMuted } };
+      that.checkOptions(config, true);
+      if (that.room.p2p) {
+        that.pc.forEach((pc) => {
+          pc.updateSpec(config, that.getID(), callback);
+        });
+      } else if (that.pc) {
+        that.pc.updateSpec(config, that.getID(), callback);
+      }
     }
   };
 
   that.muteAudio = (isMuted, callback = () => {}) => {
-    that.audioMuted = isMuted;
+    const thisMuted = typeof isMuted === 'undefined' ? !that.audioMuted : isMuted;
+    that.audioMuted = thisMuted;
     muteStream(callback);
   };
 
   that.muteVideo = (isMuted, callback = () => {}) => {
-    that.videoMuted = isMuted;
+    const thisMuted = typeof isMuted === 'undefined' ? !that.videoMuted : isMuted;
+    that.videoMuted = thisMuted;
     muteStream(callback);
   };
 
