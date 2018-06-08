@@ -70,8 +70,15 @@ exports.Stream = function (spec) {
                 data: spec.data,
                 label: spec.label,
                 screen: spec.screen,
-                attributes: spec.attributes};
+                attributes: spec.attributes,
+                audioMuted: spec.audioMuted,
+                videoMuted: spec.videoMuted};
     };
+
+    that.onUpdateMuteConfig = function(config) {
+        spec.audioMuted = config.attrs.muteStream.audio;
+        spec.videoMuted = config.attrs.muteStream.video;
+    }
 
     return that;
 };

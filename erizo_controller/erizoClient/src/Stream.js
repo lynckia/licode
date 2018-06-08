@@ -28,8 +28,8 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.videoFrameRate = spec.videoFrameRate;
   that.extensionId = spec.extensionId;
   that.desktopStreamId = spec.desktopStreamId;
-  that.audioMuted = false;
-  that.videoMuted = false;
+  that.audioMuted = spec.audioMuted || false;
+  that.videoMuted = spec.videoMuted || false;
   that.p2p = false;
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
@@ -92,6 +92,11 @@ const Stream = (altConnectionHelpers, specInput) => {
 
   that.updateLocalAttributes = (attrs) => {
     spec.attributes = attrs;
+  };
+
+  that.updateMuteAttributes = (attrs) => {
+    that.audioMuted = attrs.muteStream.audio;
+    that.videoMuted = attrs.muteStream.video;
   };
 
   // Indicates if the stream has audio activated
@@ -365,12 +370,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
   };
 
-  const muteStream = (callback = () => {}) => {
-    // if (that.room && that.room.p2p) {
-    //   Logger.warning('muteAudio/muteVideo are not implemented in p2p streams');
-    //   callback('error');
-    //   return;
-    // }
+  const muteStream = () => {
     if (that.stream) {
       for (let index = 0; index < that.stream.getVideoTracks().length; index += 1) {
         const track = that.stream.getVideoTracks()[index];
@@ -384,26 +384,20 @@ const Stream = (altConnectionHelpers, specInput) => {
     if (that.room) {
       const config = { muteStream: { audio: that.audioMuted, video: that.videoMuted } };
       that.checkOptions(config, true);
-      if (that.room.p2p) {
-        that.pc.forEach((pc) => {
-          pc.updateSpec(config, that.getID(), callback);
-        });
-      } else if (that.pc) {
-        that.pc.updateSpec(config, that.getID(), callback);
-      }
+      that.emit(StreamEvent({ type: 'internal-mute-event', stream: that, attrs: config }));
     }
   };
 
-  that.muteAudio = (isMuted, callback = () => {}) => {
+  that.muteAudio = (isMuted) => {
     const thisMuted = typeof isMuted === 'undefined' ? !that.audioMuted : isMuted;
     that.audioMuted = thisMuted;
-    muteStream(callback);
+    muteStream();
   };
 
-  that.muteVideo = (isMuted, callback = () => {}) => {
+  that.muteVideo = (isMuted) => {
     const thisMuted = typeof isMuted === 'undefined' ? !that.videoMuted : isMuted;
     that.videoMuted = thisMuted;
-    muteStream(callback);
+    muteStream();
   };
 
   // eslint-disable-next-line no-underscore-dangle

@@ -115,6 +115,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       limitMaxVideoBW: spec.maxVideoBW,
       forceTurn: stream.forceTurn,
       p2p: true,
+      audioMuted: stream.audioMuted,
+      videoMuted: stream.videoMuted,
     };
     return options;
   };
@@ -232,7 +234,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       data: arg.data,
       label: arg.label,
       screen: arg.screen,
-      attributes: arg.attributes });
+      attributes: arg.attributes,
+      audioMuted: arg.audioMuted,
+      videoMuted: arg.videoMuted });
     stream.room = that;
     remoteStreams.add(arg.id, stream);
     const evt = StreamEvent({ type: 'stream-added', stream });
@@ -312,6 +316,16 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     stream.dispatchEvent(evt);
   };
 
+  // We receive an event of new data in one of the streams
+  const socketOnMuteStream = (arg) => {
+    const stream = remoteStreams.get(arg.id);
+    const evt = StreamEvent({ type: 'stream-mute-event',
+      attrs: arg.attrs.muteStream,
+      stream });
+    stream.updateMuteAttributes(arg.attrs);
+    stream.dispatchEvent(evt);
+  };
+
   // We receive an event of a stream removed from the room
   const socketOnRemoveStream = (arg) => {
     let stream = localStreams.get(arg.id);
@@ -381,6 +395,17 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
+  const updateMuteConfigFromStreamEvent = (evt) => {
+    const stream = evt.stream;
+    const attrs = evt.attrs;
+
+    if (stream.local) {
+      socket.sendMessage('updateMuteConfig', { id: stream.getID(), attrs });
+    } else {
+      Logger.error('You can not update attributes in a remote stream');
+    }
+  };
+
   const socketEventToArgs = (func, event) => {
     if (event.args) {
       func(...event.args);
@@ -415,6 +440,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     stream.getID = () => id;
     stream.on('internal-send-data', sendDataSocketFromStreamEvent);
     stream.on('internal-set-attributes', updateAttributesFromStreamEvent);
+    stream.on('internal-mute-event', updateMuteConfigFromStreamEvent);
     localStreams.add(id, stream);
     stream.room = that;
     callback(id);
@@ -609,7 +635,10 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           data: arg.data,
           label: arg.label,
           screen: arg.screen,
-          attributes: arg.attributes });
+          attributes: arg.attributes,
+          audioMuted: arg.audioMuted,
+          videoMuted: arg.videoMuted,
+        });
         streamList.push(stream);
         remoteStreams.add(arg.id, stream);
       }
@@ -745,6 +774,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       stream.getID = () => {};
       stream.off('internal-send-data', sendDataSocketFromStreamEvent);
       stream.off('internal-set-attributes', updateAttributesFromStreamEvent);
+      stream.off('internal-mute-event', updateMuteConfigFromStreamEvent);
     } else {
       const error = 'Cannot unpublish, stream does not exist or is not local';
       Logger.error(error);
@@ -873,6 +903,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   socket.on('onBandwidthAlert', socketEventToArgs.bind(null, socketOnBandwidthAlert));
   socket.on('onDataStream', socketEventToArgs.bind(null, socketOnDataStream));
   socket.on('onUpdateAttributeStream', socketEventToArgs.bind(null, socketOnUpdateAttributeStream));
+  socket.on('onUpdateMuteConfig', socketEventToArgs.bind(null, socketOnMuteStream));
   socket.on('onRemoveStream', socketEventToArgs.bind(null, socketOnRemoveStream));
   socket.on('disconnect', socketEventToArgs.bind(null, socketOnDisconnect));
   socket.on('connection_failed', socketEventToArgs.bind(null, socketOnICEConnectionFailed));

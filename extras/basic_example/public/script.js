@@ -107,6 +107,9 @@ window.onload = function () {
         if (localStream.getID() !== stream.getID()) {
           room.subscribe(stream, {slideShowMode: slideShowMode, metadata: {type: 'subscriber'}});
           stream.addEventListener('bandwidth-alert', cb);
+          stream.addEventListener('stream-mute-event', (evt) => {
+            console.log('Stream mute event: ', evt.attrs);
+          });
         }
       }
     };
