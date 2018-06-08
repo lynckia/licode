@@ -145,7 +145,7 @@ class Client extends events.EventEmitter {
       const clientId = clients[index];
       const client = this.room.getClientById(clientId);
       if (client) {
-            log.debug('message: Sending new attributes, ' +
+            log.debug('message: Sending mute event, ' +
                       'clientId: ' + clientId + ', streamId: ' + message.id);
             client.sendMessage('onUpdateMuteConfig', message);
         }
