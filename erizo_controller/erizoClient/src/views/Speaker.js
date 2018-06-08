@@ -16,7 +16,7 @@ const Speaker = (spec) => {
     that.media.muted = true;
     that.icon.setAttribute('src', `${that.url}/assets/mute48.png`);
     if (that.stream.local) {
-      that.stream.stream.getAudioTracks()[0].enabled = false;
+      that.stream.muteAudio(true);
     } else {
       lastVolume = that.picker.value;
       that.picker.value = 0;
@@ -28,7 +28,7 @@ const Speaker = (spec) => {
     that.media.muted = false;
     that.icon.setAttribute('src', `${that.url}/assets/sound48.png`);
     if (that.stream.local) {
-      that.stream.stream.getAudioTracks()[0].enabled = true;
+      that.stream.muteAudio(false);
     } else {
       that.picker.value = lastVolume;
       that.media.volume = that.picker.value / 100;
