@@ -7,7 +7,7 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     libraryExport: 'default',
     library: 'Erizo',
-    libraryTarget: 'var',
+    libraryTarget: 'umd',
   },
   module: {
     rules: [{
