@@ -28,8 +28,16 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.videoFrameRate = spec.videoFrameRate;
   that.extensionId = spec.extensionId;
   that.desktopStreamId = spec.desktopStreamId;
-  that.audioMuted = spec.audioMuted || false;
-  that.videoMuted = spec.videoMuted || false;
+  that.muted = {
+    audio: {
+      local: false,
+      remote: spec.audioMuted || false,
+    },
+    video: {
+      local: false,
+      remote: spec.videoMuted || false,
+    },
+  };
   that.p2p = false;
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
@@ -95,8 +103,12 @@ const Stream = (altConnectionHelpers, specInput) => {
   };
 
   that.updateMuteAttributes = (attrs) => {
-    that.audioMuted = attrs.muteStream.audio;
-    that.videoMuted = attrs.muteStream.video;
+    that.muted.audio.remote = attrs.muteStream.audio;
+    that.muted.video.remote = attrs.muteStream.video;
+    const evt = StreamEvent({ type: 'stream-mute-event',
+      attrs: that.muted,
+      stream: that });
+    that.dispatchEvent(evt);
   };
 
   // Indicates if the stream has audio activated
@@ -370,34 +382,38 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
   };
 
-  const muteStream = () => {
+  const muteStream = (callback = () => {}) => {
     if (that.stream) {
       for (let index = 0; index < that.stream.getVideoTracks().length; index += 1) {
         const track = that.stream.getVideoTracks()[index];
-        track.enabled = !that.videoMuted;
+        track.enabled = !that.muted.video.local;
       }
       for (let index = 0; index < that.stream.getAudioTracks().length; index += 1) {
         const track = that.stream.getAudioTracks()[index];
-        track.enabled = !that.audioMuted;
+        track.enabled = !that.muted.audio.local;
       }
     }
     if (that.room) {
-      const config = { muteStream: { audio: that.audioMuted, video: that.videoMuted } };
+      const config = { muteStream: { audio: that.muted.audio.local,
+        video: that.muted.video.local } };
       that.checkOptions(config, true);
       that.emit(StreamEvent({ type: 'internal-mute-event', stream: that, attrs: config }));
+      if (!that.room.p2p && that.pc) {
+        that.pc.updateSpec(config, that.getID(), callback);
+        return;
+      }
     }
+    callback(true);
   };
 
-  that.muteAudio = (isMuted) => {
-    const thisMuted = typeof isMuted === 'undefined' ? !that.audioMuted : isMuted;
-    that.audioMuted = thisMuted;
-    muteStream();
+  that.muteAudio = (isMuted, callback = () => {}) => {
+    that.muted.audio.local = typeof isMuted === 'undefined' ? !that.muted.audio.local : isMuted;
+    muteStream(callback);
   };
 
-  that.muteVideo = (isMuted) => {
-    const thisMuted = typeof isMuted === 'undefined' ? !that.videoMuted : isMuted;
-    that.videoMuted = thisMuted;
-    muteStream();
+  that.muteVideo = (isMuted, callback = () => {}) => {
+    that.muted.video.local = typeof isMuted === 'undefined' ? !that.muted.video.local : isMuted;
+    muteStream(callback);
   };
 
   // eslint-disable-next-line no-underscore-dangle

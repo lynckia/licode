@@ -319,11 +319,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // We receive an event of new data in one of the streams
   const socketOnMuteStream = (arg) => {
     const stream = remoteStreams.get(arg.id);
-    const evt = StreamEvent({ type: 'stream-mute-event',
-      attrs: arg.attrs.muteStream,
-      stream });
     stream.updateMuteAttributes(arg.attrs);
-    stream.dispatchEvent(evt);
   };
 
   // We receive an event of a stream removed from the room
