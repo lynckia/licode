@@ -20,7 +20,7 @@ module.exports.var = {
 module.exports.umd = {
   entry: './src/Erizo.js',
   output: {
-    filename: 'erizoUmd.js',
+    filename: 'erizo.js',
     path: path.resolve(__dirname, 'dist'),
     libraryExport: 'default',
     library: 'Erizo',

@@ -21,12 +21,12 @@ const erizoTasks = (gulp, plugins, config) => {
     .on('error', anError => plugins.exitOnError(anError));
 
   that.compile = () =>
-    gulp.src(`${erizoConfig.debug}/**/erizoUmd.js`, { base: './' })
+    gulp.src(`${erizoConfig.debug}/**/erizo.js`, { base: './' })
       .pipe(plugins.sourcemaps.init())
       .pipe(plugins.closureCompiler({
         languageIn: 'ECMASCRIPT6',
         languageOut: 'ECMASCRIPT5',
-        jsOutputFile: 'erizoUmd.js',
+        jsOutputFile: 'erizo.js',
         createSourceMap: true,
       }))
       .on('error', anError => plugins.exitOnError(anError))
