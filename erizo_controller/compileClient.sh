@@ -47,6 +47,7 @@ watch_client() {
 
 compile() {
   echo 'Compiling client...'
+  echo $ENVS
   . $NVM_CHECK
   nvm use
   cd $ROOT

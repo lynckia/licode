@@ -1,6 +1,6 @@
 /* global */
 
-// #if process.env.INCLUDE_SOCKETIO
+// #if process.env.EXCLUDE_SOCKETIO != 'TRUE'
 import io from 'socket.io-client';  // eslint-disable-line
 // #endif
 
