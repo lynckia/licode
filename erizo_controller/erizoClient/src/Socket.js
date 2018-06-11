@@ -83,6 +83,9 @@ const Socket = (newIo) => {
     // We receive an event of new data in one of the streams
     socket.on('onUpdateAttributeStream', emit.bind(that, 'onUpdateAttributeStream'));
 
+    // We receive an event of new data in one of the streams
+    socket.on('onUpdateMuteConfig', emit.bind(that, 'onUpdateMuteConfig'));
+
     // We receive an event of a stream removed from the room
     socket.on('onRemoveStream', emit.bind(that, 'onRemoveStream'));
 

@@ -12,6 +12,7 @@ function listenToSocketEvents(client) {
   client.channel.socketOn('sendDataStream', client.onSendDataStream.bind(client));
   client.channel.socketOn('signaling_message', client.onSignalingMessage.bind(client));
   client.channel.socketOn('updateStreamAttributes', client.onUpdateStreamAttributes.bind(client));
+  client.channel.socketOn('updateMuteConfig', client.onUpdateMuteConfig.bind(client));
   client.channel.socketOn('publish', client.onPublish.bind(client));
   client.channel.socketOn('subscribe', client.onSubscribe.bind(client));
   client.channel.socketOn('startRecorder', client.onStartRecorder.bind(client));
@@ -129,6 +130,28 @@ class Client extends events.EventEmitter {
     }
   }
 
+  onUpdateMuteConfig(message) {
+    const stream = this.room.getStreamById(message.id);
+    if  (stream === undefined) {
+      log.warn('message: Update attributes to a uninitialized stream, ' +
+               logger.objectToLog(message));
+      return;
+    }
+
+    stream.onUpdateMuteConfig(message);
+    const clients = stream.getDataSubscribers();
+
+    for (const index in clients) {
+      const clientId = clients[index];
+      const client = this.room.getClientById(clientId);
+      if (client) {
+            log.debug('message: Sending mute event, ' +
+                      'clientId: ' + clientId + ', streamId: ' + message.id);
+            client.sendMessage('onUpdateMuteConfig', message);
+        }
+    }
+  }
+
   onPublish(options, sdp, callback) {
     if (this.user === undefined || !this.user.permissions[Permission.PUBLISH]) {
         callback(null, 'Unauthorized');
@@ -165,7 +188,9 @@ class Client extends events.EventEmitter {
                                     video: options.video,
                                     data: options.data,
                                     label: options.label,
-                                    attributes: options.attributes});
+                                    attributes: options.attributes,
+                                    audioMuted: false,
+                                    videoMuted: false});
                 st.status = PUBLISHER_READY;
                 this.streams.push(id);
                 this.room.streams.set(id, st);
@@ -193,7 +218,9 @@ class Client extends events.EventEmitter {
                                     data: options.data,
                                     label: options.label,
                                     screen: options.screen,
-                                    attributes: options.attributes});
+                                    attributes: options.attributes,
+                                    audioMuted: false,
+                                    videoMuted: false});
                 this.streams.push(id);
                 this.room.streams.set(id, st);
                 st.status = PUBLISHER_INITAL;
@@ -212,7 +239,9 @@ class Client extends events.EventEmitter {
                                                stream: id,
                                                timestamp: timeStamp.getTime(),
                                                agent: signMess.agentId,
-                                               attributes: options.attributes});
+                                               attributes: options.attributes,
+                                               audioMuted: false,
+                                               videoMuted: false});
                 }
             } else if (signMess.type === 'failed'){
                 log.warn('message: addPublisher ICE Failed, ' +
@@ -256,7 +285,9 @@ class Client extends events.EventEmitter {
                             data: options.data,
                             label: options.label,
                             screen: options.screen,
-                            attributes: options.attributes});
+                            attributes: options.attributes,
+                            audioMuted: false,
+                            videoMuted: false});
         this.streams.push(id);
         this.room.streams.set(id, st);
         st.status = PUBLISHER_READY;
