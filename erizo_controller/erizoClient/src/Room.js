@@ -610,6 +610,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           label: arg.label,
           screen: arg.screen,
           attributes: arg.attributes });
+        stream.room = that;
         streamList.push(stream);
         remoteStreams.add(arg.id, stream);
       }
