@@ -15,6 +15,7 @@ erizo_controller/erizoAgent/out.log
 erizo_controller/erizoAgent/erizo-*.log
 .project
 .cproject
+.idea
 spine/erizofc.js
 spine/testResult.json
 extras/basic_example/public/assets/
