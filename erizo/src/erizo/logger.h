@@ -35,21 +35,21 @@ class LogContext {
   LogContext() : context_log_{""} {
   }
 
-  virtual ~LogContext() {}
+  virtual ~LogContext() = default;
 
-  void setLogContext(std::map<std::string, std::string> context) {
+  void setLogContext(const std::map<std::string, std::string>& context) {
     context_ = context;
     context_log_ = "";
-    for (const std::pair<std::string, std::string> &item : context) {
+    for (const auto &item : context) {
       context_log_ += item.first + ": " + item.second + ", ";
     }
   }
 
-  void copyLogContextFrom(LogContext *log_context) {
-    setLogContext(log_context->context_);
+  void copyLogContextFrom(const LogContext& log_context) {
+    setLogContext(log_context.context_);
   }
 
-  std::string printLogContext() {
+  const std::string& printLogContext() const {
     return context_log_;
   }
 

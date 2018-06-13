@@ -110,14 +110,14 @@ class IceConnection : public LogContext {
   virtual void setIceListener(std::weak_ptr<IceConnectionListener> listener);
   virtual std::weak_ptr<IceConnectionListener> getIceListener();
 
-  virtual std::string getLocalUsername();
-  virtual std::string getLocalPassword();
+  virtual const std::string& getLocalUsername() const;
+  virtual const std::string& getLocalPassword() const;
 
  private:
   virtual std::string iceStateToString(IceState state) const;
 
  protected:
-  inline std::string toLog() {
+  inline std::string toLog() const {
     return "id: " + ice_config_.connection_id + ", " + printLogContext();
   }
 

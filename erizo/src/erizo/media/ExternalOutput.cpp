@@ -316,10 +316,10 @@ void ExternalOutput::initializePipeline() {
   pipeline_->addService(quality_manager_);
   pipeline_->addService(stats_);
 
-  pipeline_->addFront(LayerBitrateCalculationHandler());
-  pipeline_->addFront(QualityFilterHandler());
+  pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
+  pipeline_->addFront(std::make_shared<QualityFilterHandler>());
 
-  pipeline_->addFront(ExternalOuputWriter(shared_from_this()));
+  pipeline_->addFront(std::make_shared<ExternalOuputWriter>(shared_from_this()));
   pipeline_->finalize();
   pipeline_initialized_ = true;
 }

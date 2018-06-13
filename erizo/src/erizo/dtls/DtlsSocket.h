@@ -131,7 +131,7 @@ class DtlsReceiver {
   virtual void onDtlsPacket(DtlsSocketContext *ctx, const unsigned char* data, unsigned int len) = 0;
   virtual void onHandshakeCompleted(DtlsSocketContext *ctx, std::string clientKey, std::string serverKey,
                                     std::string srtp_profile) = 0;
-  virtual void onHandshakeFailed(DtlsSocketContext *ctx, const std::string error) = 0;
+  virtual void onHandshakeFailed(DtlsSocketContext *ctx, const std::string& error) = 0;
 };
 
 class DtlsSocketContext {
@@ -153,7 +153,7 @@ class DtlsSocketContext {
   void handshakeFailed(const char *err);
   void setDtlsReceiver(DtlsReceiver *recv);
   void setDtlsSocket(DtlsSocket *sock) {mSocket = sock;}
-  std::string getFingerprint();
+  std::string getFingerprint() const;
 
   void handleTimeout();
 
