@@ -368,8 +368,8 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
   ELOG_DEBUG("%s message: processing local sdp, transportName: %s", toLog(), transport_name.c_str());
   localSdp_->isFingerprint = true;
   localSdp_->fingerprint = getMyFingerprint();
-  std::string username (ice_->getLocalUsername());
-  std::string password (ice_->getLocalPassword());
+  std::string username(ice_->getLocalUsername());
+  std::string password(ice_->getLocalPassword());
   if (bundle_) {
     localSdp_->setCredentials(username, password, VIDEO_TYPE);
     localSdp_->setCredentials(username, password, AUDIO_TYPE);
