@@ -128,20 +128,20 @@ bool WebRtcConnection::createOffer(bool video_enabled, bool audioEnabled, bool b
   if (bundle_) {
     video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
                                             listener, ice_config_ , "", "", true, worker_, io_worker_));
-    video_transport_->copyLogContextFrom(this);
+    video_transport_->copyLogContextFrom(*this);
     video_transport_->start();
   } else {
     if (video_transport_.get() == nullptr && video_enabled_) {
       // For now we don't re/check transports, if they are already created we leave them there
       video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
                                               listener, ice_config_ , "", "", true, worker_, io_worker_));
-      video_transport_->copyLogContextFrom(this);
+      video_transport_->copyLogContextFrom(*this);
       video_transport_->start();
     }
     if (audio_transport_.get() == nullptr && audio_enabled_) {
       audio_transport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
                                               listener, ice_config_, "", "", true, worker_, io_worker_));
-      audio_transport_->copyLogContextFrom(this);
+      audio_transport_->copyLogContextFrom(*this);
       audio_transport_->start();
     }
   }
@@ -339,7 +339,7 @@ bool WebRtcConnection::processRemoteSdp(std::string stream_id) {
           video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, remote_sdp_->isRtcpMux,
                                                   listener, ice_config_ , username, password, false,
                                                   worker_, io_worker_));
-          video_transport_->copyLogContextFrom(this);
+          video_transport_->copyLogContextFrom(*this);
           video_transport_->start();
         } else {
           ELOG_DEBUG("%s message: Updating videoTransport, ufrag: %s, pass: %s",
@@ -356,7 +356,7 @@ bool WebRtcConnection::processRemoteSdp(std::string stream_id) {
           audio_transport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, remote_sdp_->isRtcpMux,
                                                   listener, ice_config_, username, password, false,
                                                   worker_, io_worker_));
-          audio_transport_->copyLogContextFrom(this);
+          audio_transport_->copyLogContextFrom(*this);
           audio_transport_->start();
         } else {
           ELOG_DEBUG("%s message: Update audioTransport, ufrag: %s, pass: %s",
@@ -455,7 +455,7 @@ std::string WebRtcConnection::getJSONCandidate(const std::string& mid, const std
 
   std::ostringstream theString;
   theString << "{";
-  for (std::map<std::string, std::string>::iterator it = object.begin(); it != object.end(); ++it) {
+  for (std::map<std::string, std::string>::const_iterator it = object.begin(); it != object.end(); ++it) {
     theString << "\"" << it->first << "\":\"" << it->second << "\"";
     if (++it != object.end()) {
       theString << ",";
@@ -737,7 +737,7 @@ void WebRtcConnection::syncWrite(std::shared_ptr<DataPacket> packet) {
 }
 
 void WebRtcConnection::setTransport(std::shared_ptr<Transport> transport) {  // Only for Testing purposes
-  video_transport_ = transport;
+  video_transport_ = std::move(transport);
   bundle_ = true;
 }
 

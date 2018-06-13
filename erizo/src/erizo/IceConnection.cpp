@@ -31,11 +31,11 @@ std::weak_ptr<IceConnectionListener> IceConnection::getIceListener() {
   return listener_;
 }
 
-std::string IceConnection::getLocalUsername() {
+const std::string& IceConnection::getLocalUsername() const {
   return ufrag_;
 }
 
-std::string IceConnection::getLocalPassword() {
+const std::string& IceConnection::getLocalPassword() const {
   return upass_;
 }
 

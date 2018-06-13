@@ -48,12 +48,12 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   const std::string& media_stream_label,
   bool is_publisher) :
     audio_enabled_{false}, video_enabled_{false},
-    connection_{connection},
+    connection_{std::move(connection)},
     stream_id_{media_stream_id},
     mslabel_ {media_stream_label},
     bundle_{false},
     pipeline_{Pipeline::create()},
-    worker_{worker},
+    worker_{std::move(worker)},
     audio_muted_{false}, video_muted_{false},
     pipeline_initialized_{false},
     is_publisher_{is_publisher} {
@@ -190,7 +190,7 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
 }
 
 bool MediaStream::setLocalSdp(std::shared_ptr<SdpInfo> sdp) {
-  local_sdp_ = sdp;
+  local_sdp_ = std::move(sdp);
   return true;
 }
 
@@ -203,41 +203,41 @@ void MediaStream::initializePipeline() {
   pipeline_->addService(quality_manager_);
   pipeline_->addService(packet_buffer_);
 
-  pipeline_->addFront(PacketReader(this));
+  pipeline_->addFront(std::make_shared<PacketReader>(this));
 
-  pipeline_->addFront(RtcpProcessorHandler());
-  pipeline_->addFront(FecReceiverHandler());
-  pipeline_->addFront(LayerBitrateCalculationHandler());
-  pipeline_->addFront(QualityFilterHandler());
-  pipeline_->addFront(IncomingStatsHandler());
-  pipeline_->addFront(RtpTrackMuteHandler());
-  pipeline_->addFront(RtpSlideShowHandler());
-  pipeline_->addFront(RtpPaddingGeneratorHandler());
-  pipeline_->addFront(PliPacerHandler());
-  pipeline_->addFront(BandwidthEstimationHandler());
-  pipeline_->addFront(RtpPaddingRemovalHandler());
-  pipeline_->addFront(RtcpFeedbackGenerationHandler());
-  pipeline_->addFront(RtpRetransmissionHandler());
-  pipeline_->addFront(SRPacketHandler());
-  pipeline_->addFront(SenderBandwidthEstimationHandler());
-  pipeline_->addFront(LayerDetectorHandler());
-  pipeline_->addFront(OutgoingStatsHandler());
-  pipeline_->addFront(PacketCodecParser());
+  pipeline_->addFront(std::make_shared<RtcpProcessorHandler>());
+  pipeline_->addFront(std::make_shared<FecReceiverHandler>());
+  pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
+  pipeline_->addFront(std::make_shared<QualityFilterHandler>());
+  pipeline_->addFront(std::make_shared<IncomingStatsHandler>());
+  pipeline_->addFront(std::make_shared<RtpTrackMuteHandler>());
+  pipeline_->addFront(std::make_shared<RtpSlideShowHandler>());
+  pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());
+  pipeline_->addFront(std::make_shared<PliPacerHandler>());
+  pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
+  pipeline_->addFront(std::make_shared<RtpPaddingRemovalHandler>());
+  pipeline_->addFront(std::make_shared<RtcpFeedbackGenerationHandler>());
+  pipeline_->addFront(std::make_shared<RtpRetransmissionHandler>());
+  pipeline_->addFront(std::make_shared<SRPacketHandler>());
+  pipeline_->addFront(std::make_shared<SenderBandwidthEstimationHandler>());
+  pipeline_->addFront(std::make_shared<LayerDetectorHandler>());
+  pipeline_->addFront(std::make_shared<OutgoingStatsHandler>());
+  pipeline_->addFront(std::make_shared<PacketCodecParser>());
 
-  pipeline_->addFront(PacketWriter(this));
+  pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
   pipeline_initialized_ = true;
 }
 
 int MediaStream::deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) {
-  if (audio_enabled_ == true) {
+  if (audio_enabled_) {
     sendPacketAsync(std::make_shared<DataPacket>(*audio_packet));
   }
   return audio_packet->length;
 }
 
 int MediaStream::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) {
-  if (video_enabled_ == true) {
+  if (video_enabled_) {
     sendPacketAsync(std::make_shared<DataPacket>(*video_packet));
   }
   return video_packet->length;
@@ -388,7 +388,7 @@ void MediaStream::notifyMediaStreamEvent(const std::string& type, const std::str
 }
 
 void MediaStream::notifyToEventSink(MediaEventPtr event) {
-  event_sink_->deliverEvent(event);
+  event_sink_->deliverEvent(std::move(event));
 }
 
 int MediaStream::sendPLI() {
