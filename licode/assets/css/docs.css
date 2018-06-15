@@ -259,6 +259,11 @@ hr.soften {
   display: none;
 }
 
+.subhead a.normal {
+  color: #003478;
+  text-decoration: underline;
+}
+
 
 
 /* Marketing section of Overview
@@ -1053,5 +1058,3 @@ form.bs-docs-example {
     float: none;
   }
 }
-
-
