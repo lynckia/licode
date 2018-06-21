@@ -1,0 +1,54 @@
+--- ./../build/libdeps/logging-log4cxx-0_10_0/src/main/cpp/level.cpp	2014-01-02 11:17:05.000000000 +0100
++++ ./../build/libdeps/logging-log4cxx-0_10_0/src/main/cpp/level.cpp.patch	2018-06-20 18:22:48.000000000 +0200
+@@ -30,44 +30,36 @@
+ IMPLEMENT_LOG4CXX_OBJECT_WITH_CUSTOM_CLASS(Level, LevelClass)
+
+ LevelPtr Level::getOff() {
+-   static LevelPtr level(new Level(Level::OFF_INT, LOG4CXX_STR("OFF"), 0));
+-   return level;
++   return LevelPtr(new Level(Level::OFF_INT, LOG4CXX_STR("OFF"), 0));
+ }
+
+ LevelPtr Level::getFatal() {
+-   static LevelPtr level(new Level(Level::FATAL_INT, LOG4CXX_STR("FATAL"), 0));
+-   return level;
++   return LevelPtr(new Level(Level::FATAL_INT, LOG4CXX_STR("FATAL"), 0));
+ }
+
+ LevelPtr Level::getError() {
+-   static LevelPtr level(new Level(Level::ERROR_INT, LOG4CXX_STR("ERROR"), 3));
+-   return level;
++   return LevelPtr(new Level(Level::ERROR_INT, LOG4CXX_STR("ERROR"), 3));
+ }
+
+ LevelPtr Level::getWarn() {
+-   static LevelPtr level(new Level(Level::WARN_INT, LOG4CXX_STR("WARN"), 4));
+-   return level;
++   return LevelPtr(new Level(Level::WARN_INT, LOG4CXX_STR("WARN"), 4));
+ }
+
+ LevelPtr Level::getInfo() {
+-   static LevelPtr level(new Level(Level::INFO_INT, LOG4CXX_STR("INFO"), 6));
+-   return level;
++   return LevelPtr(new Level(Level::INFO_INT, LOG4CXX_STR("INFO"), 6));
+ }
+
+ LevelPtr Level::getDebug() {
+-   static LevelPtr level(new Level(Level::DEBUG_INT, LOG4CXX_STR("DEBUG"), 7));
+-   return level;
++   return LevelPtr(new Level(Level::DEBUG_INT, LOG4CXX_STR("DEBUG"), 7));
+ }
+
+ LevelPtr Level::getTrace() {
+-   static LevelPtr level(new Level(Level::TRACE_INT, LOG4CXX_STR("TRACE"), 7));
+-   return level;
++   return LevelPtr(new Level(Level::TRACE_INT, LOG4CXX_STR("TRACE"), 7));
+ }
+
+
+ LevelPtr Level::getAll() {
+-   static LevelPtr level(new Level(Level::ALL_INT, LOG4CXX_STR("ALL"), 7));
+-   return level;
++   return LevelPtr(new Level(Level::ALL_INT, LOG4CXX_STR("ALL"), 7));
+ }
+ 
