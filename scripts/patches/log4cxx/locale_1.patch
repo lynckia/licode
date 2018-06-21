@@ -1,8 +1,0 @@
---- ./../build/libdeps/logging-log4cxx-0_10_0/src/main/cpp/stringhelper.cpp
-+++ ./../build/libdeps/logging-log4cxx-0_10_0/src/main/cpp/stringhelper.cpp
-@@ -28,6 +28,7 @@
- #endif
- #include <log4cxx/private/log4cxx_private.h>
- #include <cctype>
-+#include <cstdlib>
- #include <apr.h>
