@@ -237,7 +237,7 @@ cleanup(){
     rm -r v11*
     rm -r openssl*
     rm -r opus*
-    rm -r apache*
+    rm -r logging*
     cd $CURRENT_DIR
   fi
 }
