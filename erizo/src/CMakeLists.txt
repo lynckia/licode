@@ -98,7 +98,7 @@ test_lib(${AVFORMAT})
 set (LIBS ${LIBS} ${AVFORMAT})
 
 # LOG4CXX
-find_library(LOG log4cxx)
+find_library(LOG log4cxx HINTS "${THIRD_PARTY_LIB}")
 test_lib(${LOG})
 
 # WEBRTC

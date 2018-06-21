@@ -75,7 +75,7 @@ install_apt_deps(){
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
-  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb curl libboost-test-dev -y
+  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev rabbitmq-server mongodb curl libboost-test-dev -y
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
 
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
@@ -212,6 +212,31 @@ install_libsrtp(){
   fi
 }
 
+install_log4cxx_10(){
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    curl -o apache-log4cxx-0.10.0.tar.gz http://it.apache.contactlab.it/logging/log4cxx/0.10.0/apache-log4cxx-0.10.0.tar.gz
+    tar -zxvf apache-log4cxx-0.10.0.tar.gz
+    cd apache-log4cxx-0.10.0
+    patch src/main/include/log4cxx/Makefile.am < $CURRENT_DIR/patches/log4cxx/log4cxx-385.patch # https://issues.apache.org/jira/secure/attachment/12485439/log4cxx-385.patch (1)
+    patch src/main/include/log4cxx/private/Makefile.am < $CURRENT_DIR/patches/log4cxx/log4cxx-385_1.patch # https://issues.apache.org/jira/secure/attachment/12485439/log4cxx-385.patch (2)
+    patch src/main/cpp/level.cpp < $CURRENT_DIR/patches/log4cxx/level.cpp.patch # Fixes https://issues.apache.org/jira/browse/LOGCXX-394 (multithread safe) but may introduce leaks
+    patch src/main/include/log4cxx/level.h < $CURRENT_DIR/patches/log4cxx/level.h.patch # Fixes https://issues.apache.org/jira/browse/LOGCXX-394 (multithread safe) but may introduce leaks
+    patch src/main/include/log4cxx/helpers/simpledateformat.h < $CURRENT_DIR/patches/log4cxx/locale.patch # Fixes compilation osx https://github.com/Homebrew/legacy-homebrew/blob/56b57d583e874e6dfe7a417d329a147e4d4b064f/Library/Formula/log4cxx.rb
+    patch src/main/cpp/stringhelper.cpp < $CURRENT_DIR/patches/log4cxx/locale_1.patch # Fixes compilation osx https://github.com/Homebrew/legacy-homebrew/blob/56b57d583e874e6dfe7a417d329a147e4d4b064f/Library/Formula/log4cxx.rb
+    ./autogen.sh
+    APR_PATH="$(cd /usr/local/Cellar/apr/*/bin && pwd)"
+    APR_UTILS_PATH="$(cd /usr/local/Cellar/apr-util/*/bin/ && pwd)"
+    ./configure --prefix=$PREFIX_DIR --disable-debug --disable-dependency-tracking --disable-doxygen --with-apr=$APR_PATH --with-apr-util=$APR_UTILS_PATH
+    make $FAST_MAKE -s V=0 && make install
+    check_result $?
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_log4cxx_10
+  fi
+}
+
 cleanup(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
@@ -231,6 +256,7 @@ mkdir -p $PREFIX_DIR
 
 install_apt_deps
 check_proxy
+install_log4cxx_10
 install_openssl
 install_libnice
 install_libsrtp

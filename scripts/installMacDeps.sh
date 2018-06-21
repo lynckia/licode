@@ -54,13 +54,13 @@ check_result() {
 install_homebrew_from_cache(){
   if [ -f cache/homebrew-cache.tar.gz ]; then
     tar xzf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar
-    brew link glib pkg-config boost cmake yasm log4cxx gettext coreutils
+    brew link glib pkg-config boost cmake yasm gettext coreutils apr apr-util
   fi
 }
 
 copy_homebrew_to_cache(){
   mkdir cache
-  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm log4cxx gettext coreutils
+  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar glib pkg-config boost cmake yasm gettext coreutils apr apr-util
 }
 
 install_nvm_node() {
@@ -92,7 +92,7 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils
+  brew install glib pkg-config boost cmake yasm gettext coreutils apr apr-util
   install_nvm_node
   nvm use
   npm install
@@ -209,6 +209,31 @@ install_mediadeps_nogpl(){
   fi
 }
 
+install_log4cxx_10(){
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    curl -o apache-log4cxx-0.10.0.tar.gz http://it.apache.contactlab.it/logging/log4cxx/0.10.0/apache-log4cxx-0.10.0.tar.gz
+    tar -zxvf apache-log4cxx-0.10.0.tar.gz
+    cd apache-log4cxx-0.10.0
+    patch src/main/include/log4cxx/Makefile.am < $CURRENT_DIR/patches/log4cxx/log4cxx-385.patch # https://issues.apache.org/jira/secure/attachment/12485439/log4cxx-385.patch (1)
+    patch src/main/include/log4cxx/private/Makefile.am < $CURRENT_DIR/patches/log4cxx/log4cxx-385_1.patch # https://issues.apache.org/jira/secure/attachment/12485439/log4cxx-385.patch (2)
+    patch src/main/cpp/level.cpp < $CURRENT_DIR/patches/log4cxx/level.cpp.patch # Fixes https://issues.apache.org/jira/browse/LOGCXX-394 (multithread safe) but may introduce leaks
+    patch src/main/include/log4cxx/level.h < $CURRENT_DIR/patches/log4cxx/level.h.patch # Fixes https://issues.apache.org/jira/browse/LOGCXX-394 (multithread safe) but may introduce leaks
+    patch src/main/include/log4cxx/helpers/simpledateformat.h < $CURRENT_DIR/patches/log4cxx/locale.patch # Fixes compilation osx https://github.com/Homebrew/legacy-homebrew/blob/56b57d583e874e6dfe7a417d329a147e4d4b064f/Library/Formula/log4cxx.rb
+    patch src/main/cpp/stringhelper.cpp < $CURRENT_DIR/patches/log4cxx/locale_1.patch # Fixes compilation osx https://github.com/Homebrew/legacy-homebrew/blob/56b57d583e874e6dfe7a417d329a147e4d4b064f/Library/Formula/log4cxx.rb
+    ./autogen.sh
+    APR_PATH="$(cd /usr/local/Cellar/apr/*/bin && pwd)"
+    APR_UTILS_PATH="$(cd /usr/local/Cellar/apr-util/*/bin/ && pwd)"
+    ./configure --prefix=$PREFIX_DIR --disable-debug --disable-dependency-tracking --disable-doxygen --with-apr=$APR_PATH --with-apr-util=$APR_UTILS_PATH
+    make $FAST_MAKE -s V=0 && make install
+    check_result $?
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_log4cxx_10
+  fi
+}
+
 parse_arguments $*
 
 mkdir -p $LIB_DIR
@@ -218,6 +243,9 @@ install_homebrew
 
 pause "Installing deps via homebrew..."
 install_brew_deps
+
+pause 'Installing Log4cxx with patches...'
+install_log4cxx_10
 
 pause 'Installing openssl...'
 install_openssl
