@@ -183,7 +183,7 @@ class Client extends events.EventEmitter {
                  'streamId: ' + id + ', clientId: ' + this.id +
                  logger.objectToLog(options) + ', ' +
                  logger.objectToLog(options.attributes));
-        this.room.controller.addPublisher(this.id, id, options, (signMess) => {
+        this.room.controller.addPublisher(this, id, options, (signMess) => {
             if (signMess.type === 'initializing') {
                 callback(id, signMess.erizoId);
                 st = new ST.Stream({id: id,
@@ -244,6 +244,10 @@ class Client extends events.EventEmitter {
                           'streamId: ' + id + ', clientId: ' + this.id);
                 callback(null, null, 'ErizoAgent or ErizoJS is not reachable');
                 return;
+            } else if (signMess === 'client-left') {
+                log.info('message: Abort publishing, client: ' + 
+                this.id + ' left while publishing');
+                return;
             }
             log.debug('Sending message back to the client', id);
             this.sendMessage('signaling_message_erizo', {mess: signMess, streamId: id});
@@ -299,7 +303,7 @@ class Client extends events.EventEmitter {
                      'clientId: ' + this.id);
             options.mediaConfiguration = this.token.mediaConfiguration;
             options.singlePC = this.options.singlePC || false;
-            this.room.controller.addSubscriber(this.id, options.streamId, options, (signMess) => {
+            this.room.controller.addSubscriber(this, options.streamId, options, (signMess) => {
                 if (signMess.type === 'initializing') {
                     log.info('message: addSubscriber, ' +
                              'state: SUBSCRIBER_INITIAL, ' +
@@ -316,7 +320,7 @@ class Client extends events.EventEmitter {
                                                    timestamp: timeStamp.getTime()});
                     }
                     return;
-                } else if (signMess.type === 'failed'){
+                } else if (signMess.type === 'failed') {
                     //TODO: Add Stats event
                     log.warn('message: addSubscriber ICE Failed, ' +
                              'state: SUBSCRIBER_FAILED, ' +
@@ -340,6 +344,10 @@ class Client extends events.EventEmitter {
                               'streamId: ', options.streamId, ', ' +
                               'clientId: ' + this.id);
                     callback(null, null, 'ErizoJS is not reachable');
+                    return;
+                } else if (signMess === 'client-left') {
+                    log.info('message: Abort subscription, client: ' + 
+                    this.id + ' left while subscribing');
                     return;
                 }
 
@@ -571,6 +579,10 @@ class Client extends events.EventEmitter {
             callback(result);
         });
     }
+  }
+
+  isConnected() {
+      return (this.channel && this.channel.isConnected());
   }
 
 }

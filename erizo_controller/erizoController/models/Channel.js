@@ -42,6 +42,7 @@ const WEBSOCKET_GOING_AWAY_CLOSURE = 1001;
 class Channel extends events.EventEmitter {
   constructor(socket, nuve) {
     super();
+
     this.socket = socket;
     this.nuve = nuve;
     this.state = DISCONNECTED;
@@ -151,6 +152,10 @@ class Channel extends events.EventEmitter {
     this.state = DISCONNECTED;
     clearTimeout(this.disconnecting);
     this.socket.disconnect();
+  }
+
+  isConnected() {
+    return this.state === CONNECTED;
   }
 
 }
