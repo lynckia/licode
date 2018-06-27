@@ -49,6 +49,7 @@ const EventDispatcher = () => {
   that.on = that.addEventListener;
   that.off = that.removeEventListener;
   that.emit = that.dispatchEvent;
+  that.unbindEvents = () => { dispatcher.eventListeners = {}; };
 
   return that;
 };
