@@ -33,6 +33,11 @@ const EventDispatcher = () => {
     }
   };
 
+  // It removes all listeners
+  that.removeAllListeners = () => {
+    dispatcher.eventListeners = {};
+  };
+
   // It dispatch a new event to the event listeners, based on the type
   // of event. All events are intended to be LicodeEvents.
   that.dispatchEvent = (event) => {
@@ -49,7 +54,6 @@ const EventDispatcher = () => {
   that.on = that.addEventListener;
   that.off = that.removeEventListener;
   that.emit = that.dispatchEvent;
-  that.unbindEvents = () => { dispatcher.eventListeners = {}; };
 
   return that;
 };

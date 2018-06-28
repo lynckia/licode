@@ -242,7 +242,7 @@ const Stream = (altConnectionHelpers, specInput) => {
         pc.off('ice-state-change', spec.onICEConnectionStateChange);
       });
     }
-    that.unbindEvents();
+    that.removeAllListeners();
   };
 
   that.play = (elementID, optionsInput) => {
