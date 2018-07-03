@@ -397,7 +397,7 @@ bool ExternalOutput::initContext() {
     context_->streams[0] = video_stream_;
   }
 
-  if(audio_codec_ != AV_CODEC_ID_NONE && audio_stream_ == nullptr){
+  if (audio_codec_ != AV_CODEC_ID_NONE && audio_stream_ == nullptr) {
     AVCodec* audio_codec = avcodec_find_encoder(audio_codec_);
     if (audio_codec == nullptr) {
       ELOG_ERROR("Could not find audio codec");
@@ -413,14 +413,14 @@ bool ExternalOutput::initContext() {
     if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
       audio_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
-    //TODO: this 'if' is to avoid a matroska error when no video available: 'Invalid packet stream index: 1'
+    // TODO(nvazquezg): this 'if' is to avoid a matroska error when no video available: 'Invalid packet stream index: 1'
     if (!init_video) {
         context_->streams[0] = avformat_new_stream(context_, nullptr);
     }
     context_->streams[1] = audio_stream_;
   }
 
-  if ( init_audio || init_video ){
+  if ( init_audio || init_video ) {
     if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
       ELOG_ERROR("Error opening output file");
       return false;
