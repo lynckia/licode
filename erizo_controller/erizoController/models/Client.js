@@ -284,6 +284,19 @@ class Client extends events.EventEmitter {
         return;
     }
 
+    if (stream.status !== PUBLISHER_READY) {
+      log.warn(`Trying to subscribe to a non-ready stream ${options.streamId}, retrying in 100ms`);
+      setTimeout(() => {
+        this.onSubscribe(options, sdp, callback);
+      }, 200);
+      return;
+    }
+
+    if (!this.isConnected()) {
+      log.warn(`Client disconnected while subscribing to ${options.streamId}`);
+      return;
+    }
+
     if (stream.hasData() && options.data !== false) {
         stream.addDataSubscriber(this.id);
     }
@@ -571,6 +584,10 @@ class Client extends events.EventEmitter {
             callback(result);
         });
     }
+  }
+
+  isConnected() {
+    return (this.channel && this.channel.isConnected());
   }
 
 }
