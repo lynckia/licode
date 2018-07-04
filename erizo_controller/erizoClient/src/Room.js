@@ -687,16 +687,12 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   };
 
   // Returns callback(id, error)
-  that.startRecording = (stream, callbackOrOptions) => {
-    let callback = () => {};
+  that.startRecording = (stream, callback, advancedOptions=undefined) => {
     let extension = 'mkv';
     let url = null;
-    if (typeof callbackOrOptions === 'function') {
-      callback = callbackOrOptions;
-    } else if (typeof callbackOrOptions === 'object') {
-      callback = callbackOrOptions.callback || callback;
-      extension = callbackOrOptions.extension || extension;
-      url = callbackOrOptions.url || url;
+    if (typeof advancedOptions === 'object') {
+      extension = advancedOptions.extension || extension;
+      url = advancedOptions.url || url;
     }
     if (stream === undefined) {
       Logger.error('Trying to start recording on an invalid stream', stream);
