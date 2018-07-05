@@ -783,6 +783,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         stream.forceTurn = options.forceTurn;
 
         if (that.p2p) {
+          const streamToSubscribe = remoteStreams.get(stream.getID());
+          streamToSubscribe.maxAudioBW = options.maxAudioBW;
+          streamToSubscribe.maxVideoBW = options.maxVideoBW;
           socket.sendSDP('subscribe', { streamId: stream.getID(), metadata: options.metadata });
           callback(true);
         } else {
