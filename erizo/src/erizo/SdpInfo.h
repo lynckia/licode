@@ -325,6 +325,7 @@ class SdpInfo {
   std::map<unsigned int, RtpMap> payload_parsed_map_;
   std::vector<ExtMap> supported_ext_map_;
   std::vector<Rid> rids_;
+  std::string google_conference_flag_set;
 
  private:
   bool processSdp(const std::string& sdp, const std::string& media);
