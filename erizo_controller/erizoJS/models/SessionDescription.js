@@ -154,7 +154,9 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
       simulcast.setSimulcastPlainString(direction + ' rid=' + ridsData.join(';'));
       media.simulcast_03 = simulcast;
     }
-
+    if (info.getXGoogleFlag() && info.getXGoogleFlag() !== "") {
+      media.setXGoogleFlag(info.getXGoogleFlag());
+    }
   }
   return media;
 }
@@ -329,6 +331,10 @@ class SessionDescription {
       media.getExtensions().forEach((uri, value) => {
         info.addExtension(value, uri, media.getType());
       });
+
+      if (media.getXGoogleFlag() && media.getXGoogleFlag() !== "") {
+        info.setXGoogleFlag(media.getXGoogleFlag());
+      }
     });
     info.setAudioAndVideo(audio !== undefined, video !== undefined);
 
