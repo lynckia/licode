@@ -687,7 +687,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   };
 
   // Returns callback(id, error)
-  that.startRecording = (stream, callback, advancedOptions=undefined) => {
+  that.startRecording = (stream, callback, advancedOptions = undefined) => {
     let extension = 'mkv';
     let url = null;
     if (typeof advancedOptions === 'object') {
