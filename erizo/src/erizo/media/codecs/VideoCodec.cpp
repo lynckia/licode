@@ -23,181 +23,85 @@ inline AVCodecID VideoCodecID2ffmpegDecoderID(VideoCodecID codec) {
   }
 }
 
-VideoEncoder::VideoEncoder() {
-  avcodec_register_all();
-  vCoder = NULL;
-  vCoderContext = NULL;
-  cPicture = NULL;
-}
-
-VideoEncoder::~VideoEncoder() {
-  this->closeEncoder();
-}
-
 int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
-  vCoder = avcodec_find_encoder(VideoCodecID2ffmpegDecoderID(info.codec));
-  if (!vCoder) {
-    ELOG_DEBUG("Video codec not found for encoder");
-    return -1;
-  }
+  const InitContextBeforeOpenCB callback = [info](AVCodecContext *context, AVDictionary *dict) {
+    context->bit_rate = info.bitRate;
+    context->rc_min_rate = info.bitRate;
+    context->rc_max_rate = info.bitRate;  // VPX_CBR
+    context->qmin = 0;
+    context->qmax = 40;  // rc_quantifiers
+    context->profile = 3;
+    context->rc_initial_buffer_occupancy = 500;
+    context->rc_buffer_size = 1000;
+    context->width = info.width;
+    context->height = info.height;
+    context->pix_fmt = AV_PIX_FMT_YUV420P;
+    context->time_base = (AVRational) {1, 90000};
+    context->sample_aspect_ratio = (AVRational) { info.width, info.height };
+    context->thread_count = 4;
+  };
 
-  vCoderContext = avcodec_alloc_context3(vCoder);
-  if (!vCoderContext) {
-    ELOG_DEBUG("Error allocating vCoderContext");
-    return -2;
-  }
-
-  vCoderContext->bit_rate = info.bitRate;
-  vCoderContext->rc_min_rate = info.bitRate;
-  vCoderContext->rc_max_rate = info.bitRate;  // VPX_CBR
-  vCoderContext->qmin = 0;
-  vCoderContext->qmax = 40;  // rc_quantifiers
-  vCoderContext->profile = 3;
-  // vCoderContext->frame_skip_threshold = 30;
-  vCoderContext->rc_buffer_aggressivity = 0.95;
-  // vCoderContext->rc_buffer_size = vCoderContext->bit_rate;
-  // vCoderContext->rc_initial_buffer_occupancy = vCoderContext->bit_rate / 2;
-  vCoderContext->rc_initial_buffer_occupancy = 500;
-
-  vCoderContext->rc_buffer_size = 1000;
-
-  vCoderContext->width = info.width;
-  vCoderContext->height = info.height;
-  vCoderContext->pix_fmt = PIX_FMT_YUV420P;
-  vCoderContext->time_base = (AVRational) {1, 90000};
-
-  vCoderContext->sample_aspect_ratio = (AVRational) { info.width, info.height };
-  vCoderContext->thread_count = 4;
-
-  if (avcodec_open2(vCoderContext, vCoder, NULL) < 0) {
-    ELOG_DEBUG("Error opening video decoder");
-    return -3;
-  }
-
-  cPicture = av_frame_alloc();
-  if (!cPicture) {
-    ELOG_DEBUG("Error allocating video frame");
-    return -4;
-  }
-
-  ELOG_DEBUG("videoCoder configured successfully %d x %d", vCoderContext->width,
-      vCoderContext->height);
-  return 0;
+  AVCodecID av_codec_id = VideoCodecID2ffmpegDecoderID(info.codec);
+  return this->initEncoder(av_codec_id, callback);
 }
 
-int VideoEncoder::encodeVideo(unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength) {
-  int size = vCoderContext->width * vCoderContext->height;
-  // ELOG_DEBUG("vCoderContext width %d", vCoderContext->width);
+void VideoEncoder::encodeVideoBuffer(unsigned char* inBuffer, int len, unsigned char* outBuffer,
+    const EncodeVideoBufferCB &done) {
+  int size = codec_context_->width * codec_context_->height;
 
-  cPicture->pts = AV_NOPTS_VALUE;
-  cPicture->data[0] = inBuffer;
-  cPicture->data[1] = inBuffer + size;
-  cPicture->data[2] = inBuffer + size + size / 4;
-  cPicture->linesize[0] = vCoderContext->width;
-  cPicture->linesize[1] = vCoderContext->width / 2;
-  cPicture->linesize[2] = vCoderContext->width / 2;
+  frame_->pts = AV_NOPTS_VALUE;
+  frame_->data[0] = inBuffer;
+  frame_->data[1] = inBuffer + size;
+  frame_->data[2] = inBuffer + size + size / 4;
+  frame_->linesize[0] = codec_context_->width;
+  frame_->linesize[1] = codec_context_->width / 2;
+  frame_->linesize[2] = codec_context_->width / 2;
 
-  AVPacket pkt;
-  av_init_packet(&pkt);
-  pkt.data = outBuffer;
-  pkt.size = outLength;
+  AVPacket *av_packet =  av_packet_alloc();
+  av_init_packet(av_packet);
+  av_packet->data = outBuffer;
 
-  int ret = 0;
-  int got_packet = 0;
-  //    ELOG_DEBUG(
-  //        "Before encoding inBufflen %d, size %d, codecontext width %d pkt->size%d",
-  //        inLength, size, vCoderContext->width, pkt.size);
-  ret = avcodec_encode_video2(vCoderContext, &pkt, cPicture, &got_packet);
-  //    ELOG_DEBUG("Encoded video size %u, ret %d, got_packet %d, pts %lld, dts %lld",
-  //        pkt.size, ret, got_packet, pkt.pts, pkt.dts);
-  if (!ret && got_packet && vCoderContext->coded_frame) {
-    vCoderContext->coded_frame->pts = pkt.pts;
-    vCoderContext->coded_frame->key_frame =
-      !!(pkt.flags & AV_PKT_FLAG_KEY);
-  }
-  return ret ? ret : pkt.size;
-}
-
-int VideoEncoder::closeEncoder() {
-  if (vCoderContext != NULL)
-    avcodec_close(vCoderContext);
-  if (cPicture != NULL)
-    av_frame_free(&cPicture);
-
-  return 0;
-}
-
-
-VideoDecoder::VideoDecoder() {
-  avcodec_register_all();
-  vDecoder = NULL;
-  vDecoderContext = NULL;
-  dPicture = NULL;
-  initWithContext_ = false;
-}
-
-VideoDecoder::~VideoDecoder() {
-  this->closeDecoder();
+  EncodeCB done_callback = [done](AVPacket *pkt, AVFrame *frame, bool got_packet) {
+    int len = pkt->size;
+    av_frame_free(&frame);
+    av_packet_free(&pkt);
+    done(got_packet, len);
+  };
+  this->encode(frame_, av_packet, done_callback);
 }
 
 int VideoDecoder::initDecoder(const VideoCodecInfo& info) {
-  ELOG_DEBUG("Init Decoder");
-  vDecoder = avcodec_find_decoder(VideoCodecID2ffmpegDecoderID(info.codec));
-  if (!vDecoder) {
-    ELOG_DEBUG("Error getting video decoder");
-    return -1;
-  }
+  const InitContextBeforeOpenCB callback = [info](AVCodecContext *context, AVDictionary *dict) {
+    context->width = info.width;
+    context->height = info.height;
+  };
 
-  vDecoderContext = avcodec_alloc_context3(vDecoder);
-  if (!vDecoderContext) {
-    ELOG_DEBUG("Error getting allocating decoder context");
-    return -1;
-  }
-
-  vDecoderContext->width = info.width;
-  vDecoderContext->height = info.height;
-
-  if (avcodec_open2(vDecoderContext, vDecoder, NULL) < 0) {
-    ELOG_DEBUG("Error opening video decoder");
-    return -1;
-  }
-
-  dPicture = av_frame_alloc();
-  if (!dPicture) {
-    ELOG_DEBUG("Error allocating video frame");
-    return -1;
-  }
-
-  return 0;
+  AVCodecID av_codec_id = VideoCodecID2ffmpegDecoderID(info.codec);
+  return this->initDecoder(av_codec_id, callback);
 }
 
-int VideoDecoder::initDecoder(AVCodecContext* context) {
-  ELOG_DEBUG("Init Decoder with context");
-  initWithContext_ = true;
-  vDecoder = avcodec_find_decoder(context->codec_id);
-  if (!vDecoder) {
-    ELOG_DEBUG("Error getting video decoder");
-    return -1;
-  }
-  vDecoderContext = context;
+int VideoDecoder::initDecoder(AVCodecParameters *codecpar) {
+  const InitContextBeforeOpenCB callback = [codecpar](AVCodecContext *context, AVDictionary *dict) {
+    int error = avcodec_parameters_to_context(context, codecpar);
+    if (error < 0) {
+      ELOG_ERROR("Could not copy parameters to context.");
+    }
+  };
 
-  if (avcodec_open2(vDecoderContext, vDecoder, NULL) < 0) {
-    ELOG_DEBUG("Error opening video decoder");
-    return -1;
-  }
-
-  dPicture = av_frame_alloc();
-  if (!dPicture) {
-    ELOG_DEBUG("Error allocating video frame");
-    return -1;
-  }
-
-  return 0;
+  return this->initDecoder(codecpar->codec_id, callback);
 }
 
-int VideoDecoder::decodeVideo(unsigned char* inBuff, int inBuffLen,
+bool VideoDecoder::decode(AVFrame *frame, AVPacket *av_packet) {
+  frame_->format = codec_context_->pix_fmt;
+  frame_->width  = codec_context_->width;
+  frame_->height = codec_context_->height;
+  frame_->pts    = av_packet->pts;
+  return CoderDecoder::decode(frame, av_packet);
+}
+
+int VideoDecoder::decodeVideoBuffer(unsigned char* inBuff, int inBuffLen,
     unsigned char* outBuff, int outBuffLen, int* gotFrame) {
-  if (vDecoder == 0 || vDecoderContext == 0) {
+  if (av_codec_ == 0 || codec_context_ == 0) {
     ELOG_DEBUG("Init Codec First");
     return -1;
   }
@@ -210,32 +114,15 @@ int VideoDecoder::decodeVideo(unsigned char* inBuff, int inBuffLen,
   avpkt.data = inBuff;
   avpkt.size = inBuffLen;
 
-  int got_picture;
-  int len;
-
-  while (avpkt.size > 0) {
-    len = avcodec_decode_video2(vDecoderContext, dPicture, &got_picture,
-        &avpkt);
-
-    if (len < 0) {
-      ELOG_DEBUG("Error decoding video frame");
-      return -1;
-    }
-
-    if (got_picture) {
+  if (avpkt.size > 0) {
+    if (this->decode(frame_, &avpkt)) {
       *gotFrame = 1;
       goto decoding;
     }
-    avpkt.size -= len;
-    avpkt.data += len;
-  }
-
-  if (!got_picture) {
-    return -1;
   }
 
 decoding:
-  int outSize = vDecoderContext->height * vDecoderContext->width;
+  int outSize = codec_context_->height * codec_context_->width;
 
   if (outBuffLen < (outSize * 3 / 2)) {
     return outSize * 3 / 2;
@@ -248,46 +135,37 @@ decoding:
   unsigned char *src = NULL;
   int src_linesize, dst_linesize;
 
-  src_linesize = dPicture->linesize[0];
-  dst_linesize = vDecoderContext->width;
-  src = dPicture->data[0];
+  src_linesize = frame_->linesize[0];
+  dst_linesize = codec_context_->width;
+  src = frame_->data[0];
 
-  for (int i = vDecoderContext->height; i > 0; i--) {
+  for (int i = codec_context_->height; i > 0; i--) {
     memcpy(lum, src, dst_linesize);
     lum += dst_linesize;
     src += src_linesize;
   }
 
-  src_linesize = dPicture->linesize[1];
-  dst_linesize = vDecoderContext->width / 2;
-  src = dPicture->data[1];
+  src_linesize = frame_->linesize[1];
+  dst_linesize = codec_context_->width / 2;
+  src = frame_->data[1];
 
-  for (int i = vDecoderContext->height / 2; i > 0; i--) {
+  for (int i = codec_context_->height / 2; i > 0; i--) {
     memcpy(cromU, src, dst_linesize);
     cromU += dst_linesize;
     src += src_linesize;
   }
 
-  src_linesize = dPicture->linesize[2];
-  dst_linesize = vDecoderContext->width / 2;
-  src = dPicture->data[2];
+  src_linesize = frame_->linesize[2];
+  dst_linesize = codec_context_->width / 2;
+  src = frame_->data[2];
 
-  for (int i = vDecoderContext->height / 2; i > 0; i--) {
+  for (int i = codec_context_->height / 2; i > 0; i--) {
     memcpy(cromV, src, dst_linesize);
     cromV += dst_linesize;
     src += src_linesize;
   }
-  av_free_packet(&avpkt);
+  av_packet_unref(&avpkt);
 
   return outSize * 3 / 2;
 }
-
-int VideoDecoder::closeDecoder() {
-  if (!initWithContext_ && vDecoderContext != NULL)
-    avcodec_close(vDecoderContext);
-  if (dPicture != NULL)
-    av_frame_free(&dPicture);
-  return 0;
-}
-
 }  // namespace erizo

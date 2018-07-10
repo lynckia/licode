@@ -132,15 +132,15 @@ install_mediadeps(){
   sudo apt-get -qq install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./v11.1.tar.gz ]; then
-      curl -O -L https://github.com/libav/libav/archive/v11.1.tar.gz
-      tar -zxvf v11.1.tar.gz
-      cd libav-11.1
+    if [ ! -f ./ffmpeg-3.4.2.tar.gz ]; then
+      curl -O -L https://ffmpeg.org/releases/ffmpeg-3.4.2.tar.gz
+      tar -zxvf ffmpeg-3.4.2.tar.gz
+      cd ffmpeg-3.4.2
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus --disable-doc 
       make -s V=0
       make install
     else
-      echo "libav already installed"
+      echo "ffmpeg already installed"
     fi
     cd $CURRENT_DIR
   else
@@ -154,15 +154,15 @@ install_mediadeps_nogpl(){
   sudo apt-get -qq install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./v11.1.tar.gz ]; then
-      curl -O -L https://github.com/libav/libav/archive/v11.1.tar.gz
-      tar -zxvf v11.1.tar.gz
-      cd libav-11.1
+    if [ ! -f ./ffmpeg-3.4.2.tar.gz ]; then
+      curl -O -L https://ffmpeg.org/releases/ffmpeg-3.4.2.tar.gz
+      tar -zxvf ffmpeg-3.4.2.tar.gz
+      cd ffmpeg-3.4.2
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libopus --disable-doc
       make -s V=0
       make install
     else
-      echo "libav already installed"
+      echo "ffmpeg already installed"
     fi
     cd $CURRENT_DIR
   else

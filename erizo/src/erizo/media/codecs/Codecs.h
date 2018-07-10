@@ -29,6 +29,8 @@ struct AudioCodecInfo {
   AudioCodecID codec;
   int bitRate;
   int sampleRate;
+  int sampleFmt;
+  int channels;
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_MEDIA_CODECS_CODECS_H_
