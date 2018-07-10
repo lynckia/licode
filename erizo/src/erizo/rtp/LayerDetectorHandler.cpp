@@ -191,6 +191,10 @@ void LayerDetectorHandler::parseLayerInfoFromH264(std::shared_ptr<DataPacket> pa
     packet->is_keyframe = false;
   }
 
+  addTemporalLayerAndCalculateRate(packet, 0, payload->start_bit);
+
+  notifyLayerInfoChangedEventMaybe();
+
   delete payload;
 }
 
