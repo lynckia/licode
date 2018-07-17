@@ -13,6 +13,7 @@ const BaseStack = (specInput) => {
   let remoteDesc;
   let localSdp;
   let remoteSdp;
+  let processOffer;
   let isNegotiating = false;
   let latestSessionVersion = -1;
 
@@ -90,6 +91,17 @@ const BaseStack = (specInput) => {
     }
   };
 
+  const checkOfferQueue = () => {
+    if (!isNegotiating && offerQueue.length > 0) {
+      const args = offerQueue.pop();
+      if (args[0] === 'local') {
+        that.createOffer(args[1], args[2], args[3]);
+      } else {
+        processOffer(args[1]);
+      }
+    }
+  };
+
   const setLocalDescForOffer = (isSubscribe, streamId, sessionDescription) => {
     localDesc = sessionDescription;
     if (!isSubscribe) {
@@ -107,7 +119,7 @@ const BaseStack = (specInput) => {
     }, streamId);
   };
 
-  const setLocalDescForAnswerp2p = (sessionDescription) => {
+  const setLocalDescForAnswer = (sessionDescription) => {
     localDesc = sessionDescription;
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
     SdpHelpers.setMaxBW(localSdp, specBase);
@@ -116,22 +128,31 @@ const BaseStack = (specInput) => {
     specBase.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,
+      config: { maxVideoBW: specBase.maxVideoBW },
     });
     Logger.info('Setting local description p2p', localDesc);
-    that.peerConnection.setLocalDescription(localDesc).then(successCallback)
-    .catch(errorCallback);
+    that.peerConnection.setLocalDescription(localDesc).then(() => {
+      isNegotiating = false;
+      checkOfferQueue();
+      successCallback();
+    }).catch(errorCallback);
   };
 
-  const processOffer = (message) => {
-    // Its an offer, we assume its p2p
+  processOffer = (message) => {
     const msg = message;
+    if (isNegotiating) {
+      offerQueue.push(['remote', message]);
+      return;
+    }
+    isNegotiating = true;
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
     that.remoteSdp = remoteSdp;
     that.peerConnection.setRemoteDescription(msg).then(() => {
       that.peerConnection.createAnswer(that.mediaConstraints)
-      .then(setLocalDescForAnswerp2p).catch(errorCallback.bind(null, 'createAnswer p2p', undefined));
+      .then(setLocalDescForAnswer)
+      .catch(errorCallback.bind(null, 'createAnswer', undefined));
       specBase.remoteDescriptionSet = true;
     }).catch(errorCallback.bind(null, 'process Offer', undefined));
   };
@@ -172,10 +193,7 @@ const BaseStack = (specInput) => {
           specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
         }
         isNegotiating = false;
-        if (offerQueue.length > 0) {
-          const args = offerQueue.pop();
-          that.createOffer(args[0], args[1], args[2]);
-        }
+        checkOfferQueue();
       }).catch(errorCallback.bind(null, 'processAnswer', undefined));
     }).catch(errorCallback.bind(null, 'processAnswer', undefined));
   };
@@ -313,7 +331,7 @@ const BaseStack = (specInput) => {
       };
     }
     if (isNegotiating) {
-      offerQueue.push([isSubscribe, forceOfferToReceive, streamId]);
+      offerQueue.push(['local', isSubscribe, forceOfferToReceive, streamId]);
       return;
     }
     isNegotiating = true;
@@ -325,6 +343,10 @@ const BaseStack = (specInput) => {
 
   that.addStream = (stream) => {
     that.peerConnection.addStream(stream);
+  };
+
+  that.removeStream = (stream) => {
+    that.peerConnection.removeStream(stream);
   };
 
   that.processSignalingMessage = (msgInput) => {

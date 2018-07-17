@@ -45,7 +45,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // Private functions
   const removeStream = (streamInput) => {
     const stream = streamInput;
-    if (stream.stream) {
+    if (stream.stream && !stream.local) {
       // Remove HTML element
       stream.hide();
 
@@ -53,6 +53,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       stream.close();
       delete stream.stream;
     }
+
+    stream.removeAllListeners();
 
     // Close PC stream
     if (stream.pc) {
@@ -226,7 +228,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       return;
     }
     const stream = Stream(that.Connection, { streamID: arg.id,
-      local: false,
+      local: localStreams.has(arg.id),
       audio: arg.audio,
       video: arg.video,
       data: arg.data,
@@ -733,10 +735,10 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         }
 
         delete stream.failed;
-
-        Logger.info('Stream unpublished');
         callback(true);
       });
+
+      Logger.info('Stream unpublished');
       stream.room = undefined;
       if (stream.hasMedia() && !stream.isExternal()) {
         removeStream(stream);
@@ -817,7 +819,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // It unsubscribes from the stream, removing the HTML element.
   that.unsubscribe = (streamInput, callback = () => {}) => {
     const stream = streamInput;
-    // Unsubscribe from stream stream
+    // Unsubscribe from stream
     if (socket !== undefined) {
       if (stream && !stream.local) {
         socket.sendMessage('unsubscribe', stream.getID(), (result, error) => {

@@ -214,7 +214,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
     /*
      * Removes a publisher from the room. This also deletes the associated OneToManyProcessor.
      */
-    that.removePublisher = function (clientId, streamId) {
+    that.removePublisher = function (clientId, streamId, callback = () => {}) {
       return new Promise(function(resolve) {
         var publisher = publishers[streamId];
           if (publisher !== undefined) {
@@ -239,6 +239,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
                         }
                     }
                     log.debug('message: remaining publishers, publisherCount: ' + count);
+                    callback('callback', true);
                     resolve();
                     if (count === 0)  {
                         log.info('message: Removed all publishers. Killing process.');
@@ -259,7 +260,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
      * Removes a subscriber from the room.
      * This also removes it from the associated OneToManyProcessor.
      */
-    that.removeSubscriber = function (clientId, streamId) {
+    that.removeSubscriber = function (clientId, streamId, callback = () => {}) {
         const publisher = publishers[streamId];
         if (publisher && publisher.hasSubscriber(clientId)) {
             let subscriber = publisher.getSubscriber(clientId);
@@ -268,6 +269,7 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
             closeNode(subscriber);
             publisher.removeSubscriber(clientId);
         }
+        callback('callback', true);
     };
 
     /*
