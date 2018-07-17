@@ -442,7 +442,7 @@ class Client extends events.EventEmitter {
     if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
         this.state = 'sleeping';
         if (!this.room.p2p) {
-            this.room.controller.removePublisher(this.id, streamId, function(result) {
+            this.room.controller.removePublisher(this.id, streamId, function() {
               if (global.config.erizoController.report.session_events) {  // jshint ignore:line
                   var timeStamp = new Date();
                   this.room.amqper.broadcast('event', {room: this.room.id,
@@ -452,13 +452,10 @@ class Client extends events.EventEmitter {
                                              timestamp: timeStamp.getTime()});
               }
               this.room.sendMessage('onRemoveStream', {id: streamId});
-
-              callback(result);
+              callback(true);
             }.bind(this));
         } else {
           this.room.sendMessage('onRemoveStream', {id: streamId});
-
-          callback(true);
         }
     }
 
@@ -467,7 +464,9 @@ class Client extends events.EventEmitter {
         this.streams.splice(index, 1);
     }
     this.room.removeStream(streamId);
-    callback(true);
+    if (this.room.p2p) {
+      callback(true);
+    }
   }
 
   onUnsubscribe(to, callback) {

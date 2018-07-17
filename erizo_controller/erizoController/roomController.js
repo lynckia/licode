@@ -375,7 +375,9 @@ exports.RoomController = function (spec) {
                 log.debug('message: removedPublisher, ' +
                           'streamId: ' + streamId + ', ' +
                           'publishersLeft: ' + Object.keys(publishers).length );
-                callback && callback(true);
+                if (callback) {
+                  callback(true);
+                }
             }.bind(this)});
 
         }
