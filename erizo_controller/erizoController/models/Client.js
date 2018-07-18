@@ -358,7 +358,7 @@ class Client extends events.EventEmitter {
         return;
     }
     var streamId = options.to;
-    var recordingId = Math.random() * 1000000000000000000;
+    var recordingId = options.recordingId ? options.recordingId : Math.random() * 1000000000000000000;
     var url;
 
     if (global.config.erizoController.recording_path) {  // jshint ignore:line
@@ -379,7 +379,12 @@ class Client extends events.EventEmitter {
     let stream = this.room.getStreamById(streamId);
 
     if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-        var mediaOptions = {mediaConfiguration: this.token.mediaConfiguration};
+        var mediaOptions = {
+            mediaConfiguration: this.token.mediaConfiguration,
+            hasAudio: stream.hasAudio(),
+            hasVideo: stream.hasVideo() || stream.hasScreen()
+        };
+        
         this.room.controller.addExternalOutput(streamId, url, mediaOptions, function (result) {
             if (result === 'success') {
                 log.info('message: startRecorder, ' +

@@ -52,6 +52,7 @@ NAN_MODULE_INIT(ExternalOutput::Init) {
   // Prototype
   Nan::SetPrototypeMethod(tpl, "close", close);
   Nan::SetPrototypeMethod(tpl, "init", init);
+  Nan::SetPrototypeMethod(tpl, "setHasAudioAndVideo", setHasAudioAndVideo);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("ExternalOutput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -157,3 +158,15 @@ NAN_METHOD(ExternalOutput::init) {
   int r = me->init();
   info.GetReturnValue().Set(Nan::New(r));
 }
+
+NAN_METHOD(ExternalOutput::setHasAudioAndVideo) {
+  ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(info.Holder());
+  std::shared_ptr<erizo::ExternalOutput> me = obj->me;
+
+  bool hasAudio = (bool) info[0]->BooleanValue();
+  bool hasVideo = (bool) info[1]->BooleanValue();
+
+  me->setHasAudioAndVideo(hasAudio, hasVideo);
+}
+
+
