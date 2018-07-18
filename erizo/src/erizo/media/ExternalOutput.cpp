@@ -433,7 +433,7 @@ bool ExternalOutput::initContext() {
     if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
       audio_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
-    
+
     if (!hasVideo_) {
         // To avoid the following matroska errors, we add CODEC_FLAG_GLOBAL_HEADER...
         // - Codec for stream 0 does not use global headers but container format requires global headers
