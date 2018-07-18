@@ -358,7 +358,7 @@ class Client extends events.EventEmitter {
         return;
     }
     var streamId = options.to;
-    var recordingId = options.recordingId ? options.recordingId : Math.random() * 1000000000000000000;
+    var recordingId = Math.random() * 1000000000000000000;
     var url;
 
     if (global.config.erizoController.recording_path) {  // jshint ignore:line
