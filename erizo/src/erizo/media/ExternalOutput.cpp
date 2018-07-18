@@ -380,11 +380,12 @@ bool ExternalOutput::initContext() {
   bool init_video = false;
   bool init_audio = false;
 
-  ELOG_DEBUG("hasVideo_: %d hasAudio_: %d video_codec_: %d audio_codec_: %d", hasVideo_, hasAudio_, video_codec_, audio_codec_);
+  ELOG_DEBUG("hasVideo_: %d hasAudio_: %d video_codec_: %d audio_codec_: %d",
+             hasVideo_, hasAudio_, video_codec_, audio_codec_);
 
   if (hasVideo_ && video_codec_ == AV_CODEC_ID_NONE) {
       return false;
-  } 
+  }
 
   if (hasAudio_ && audio_codec_ == AV_CODEC_ID_NONE) {
       return false;
@@ -416,7 +417,7 @@ bool ExternalOutput::initContext() {
     context_->streams[0] = video_stream_;
   }
 
-  if (hasAudio_ && audio_stream_ == nullptr){
+  if (hasAudio_ && audio_stream_ == nullptr) {
     AVCodec* audio_codec = avcodec_find_encoder(audio_codec_);
     if (audio_codec == nullptr) {
       ELOG_ERROR("Could not find audio codec");
@@ -432,7 +433,7 @@ bool ExternalOutput::initContext() {
     if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
       audio_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
-    //TODO: this 'if' is to avoid a matroska error when no video available: 'Invalid packet stream index: 1'
+    
     if (video_codec_ == AV_CODEC_ID_NONE) {
         // To avoid the following matroska errors, we add CODEC_FLAG_GLOBAL_HEADER...
         // - Codec for stream 0 does not use global headers but container format requires global headers
@@ -444,7 +445,7 @@ bool ExternalOutput::initContext() {
     context_->streams[1] = audio_stream_;
   }
 
-  if ( init_audio || init_video ){
+  if ( init_audio || init_video ) {
     if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
       ELOG_ERROR("Error opening output file");
       return false;
