@@ -56,7 +56,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   void notifyUpdateToHandlers() override;
 
   bool isRecording() { return recording_; }
-  
+
   void setHasAudioAndVideo(bool hasAudio, bool hasVideo);
 
  private:
