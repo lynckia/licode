@@ -49,8 +49,7 @@ jobs:
       - deploy:
           name: Push Licode Docker image
           command: |
-            FORCE_DOCKER_GENERATION=$(git log --pretty=oneline --abbrev-commit --no-merges -1 | awk '{$1=""; print $0}' | grep "[GENERATE DOCKER]" | wc -w)
-            if [ ${FORCE_DOCKER_GENERATION} -ge 2 ] && [ "${CIRCLE_PROJECT_USERNAME}" == "lynckia" ]; then
+            elif [ "${CIRCLE_BRANCH}" == "experimental" ] && [ "${CIRCLE_PROJECT_USERNAME}" == "lynckia" ]; then
               docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
               echo Pushing to lynckia/licode:experimental
               docker tag lynckia/licode:develop lynckia/licode:experimental
