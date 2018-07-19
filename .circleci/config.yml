@@ -49,7 +49,7 @@ jobs:
       - deploy:
           name: Push Licode Docker image
           command: |
-            elif [ "${CIRCLE_BRANCH}" == "experimental" ] && [ "${CIRCLE_PROJECT_USERNAME}" == "lynckia" ]; then
+            if [ "${CIRCLE_BRANCH}" == "experimental" ] && [ "${CIRCLE_PROJECT_USERNAME}" == "lynckia" ]; then
               docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
               echo Pushing to lynckia/licode:experimental
               docker tag lynckia/licode:develop lynckia/licode:experimental
