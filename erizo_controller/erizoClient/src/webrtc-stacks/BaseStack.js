@@ -130,7 +130,7 @@ const BaseStack = (specInput) => {
       sdp: localDesc.sdp,
       config: { maxVideoBW: specBase.maxVideoBW },
     });
-    Logger.info('Setting local description p2p', localDesc);
+    Logger.info('Setting local description', localDesc);
     that.peerConnection.setLocalDescription(localDesc).then(() => {
       isNegotiating = false;
       checkOfferQueue();

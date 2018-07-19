@@ -45,7 +45,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // Private functions
   const removeStream = (streamInput) => {
     const stream = streamInput;
-    if (stream.stream && !stream.local) {
+    if (stream.stream) {
       // Remove HTML element
       stream.hide();
 
