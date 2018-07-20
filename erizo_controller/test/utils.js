@@ -184,7 +184,8 @@ var reset = module.exports.reset = function() {
 
   module.exports.ExternalOutput = {
     init: sinon.stub(),
-    close: sinon.stub()
+    close: sinon.stub(),
+    setHasAudioAndVideo: sinon.stub()
   };
 
   module.exports.erizoAPI = createMock('../../erizoAPI/build/Release/addon', {
