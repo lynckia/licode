@@ -741,7 +741,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       Logger.info('Stream unpublished');
       stream.room = undefined;
       if (stream.hasMedia() && !stream.isExternal()) {
-        removeStream(stream);
+        const localStream = localStreams.has(stream.getID()) ?
+                              localStreams.get(stream.getID()) : stream;
+        removeStream(localStream);
       }
       localStreams.remove(stream.getID());
 
