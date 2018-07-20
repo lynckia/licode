@@ -45,15 +45,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // Private functions
   const removeStream = (streamInput) => {
     const stream = streamInput;
-    if (stream.stream) {
-      // Remove HTML element
-      stream.hide();
-
-      stream.stop();
-      stream.close();
-      delete stream.stream;
-    }
-
     stream.removeAllListeners();
 
     // Close PC stream
@@ -68,6 +59,14 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         that.erizoConnectionManager.maybeCloseConnection(stream.pc);
         delete stream.pc;
       }
+    }
+    if (stream.stream) {
+      // Remove HTML element
+      stream.hide();
+
+      stream.stop();
+      stream.close();
+      delete stream.stream;
     }
   };
 
