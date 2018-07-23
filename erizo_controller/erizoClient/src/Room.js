@@ -47,6 +47,20 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const stream = streamInput;
     stream.removeAllListeners();
 
+    if (stream.pc && !that.p2p) {
+      stream.pc.removeStream(stream);
+    }
+
+    Logger.warning('Removed stream');
+    if (stream.stream) {
+      // Remove HTML element
+      stream.hide();
+
+      stream.stop();
+      stream.close();
+      delete stream.stream;
+    }
+
     // Close PC stream
     if (stream.pc) {
       if (stream.local && that.p2p) {
@@ -55,18 +69,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           stream.pc.remove(id);
         });
       } else {
-        stream.pc.removeStream(stream);
         that.erizoConnectionManager.maybeCloseConnection(stream.pc);
         delete stream.pc;
       }
-    }
-    if (stream.stream) {
-      // Remove HTML element
-      stream.hide();
-
-      stream.stop();
-      stream.close();
-      delete stream.stream;
     }
   };
 
