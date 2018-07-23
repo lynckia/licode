@@ -51,7 +51,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       stream.pc.removeStream(stream);
     }
 
-    Logger.warning('Removed stream');
+    Logger.debug('Removed stream');
     if (stream.stream) {
       // Remove HTML element
       stream.hide();
