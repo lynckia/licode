@@ -49,7 +49,12 @@ jobs:
       - deploy:
           name: Push Licode Docker image
           command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ] && [ "${CIRCLE_PROJECT_USERNAME}" == "lynckia" ]; then
+            if [ "${CIRCLE_BRANCH}" == "experimental" ] && [ "${CIRCLE_PROJECT_USERNAME}" == "lynckia" ]; then
+              docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+              echo Pushing to lynckia/licode:experimental
+              docker tag lynckia/licode:develop lynckia/licode:experimental
+              docker push lynckia/licode:experimental
+            elif [ "${CIRCLE_BRANCH}" == "master" ] && [ "${CIRCLE_PROJECT_USERNAME}" == "lynckia" ]; then
               SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -7)"
               docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
               echo Tagging to lynckia/licode:${SHORT_GIT_HASH}
