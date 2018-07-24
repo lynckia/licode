@@ -369,15 +369,15 @@ int ExternalOutput::deliverEvent_(MediaEventPtr event) {
 }
 
 bool ExternalOutput::initContext() {
-  if (video_codec_ != AV_CODEC_ID_NONE &&
-            audio_codec_ != AV_CODEC_ID_NONE &&
-            video_stream_ == nullptr &&
-            audio_stream_ == nullptr) {
+  bool init_video = false;
+  bool init_audio = false;
+  if (video_codec_ != AV_CODEC_ID_NONE && video_stream_ == nullptr) {
     AVCodec* video_codec = avcodec_find_encoder(video_codec_);
     if (video_codec == nullptr) {
       ELOG_ERROR("Could not find video codec");
       return false;
     }
+    init_video = true;
     need_to_send_fir_ = true;
     video_queue_.setTimebase(video_map_.clock_rate);
     video_stream_ = avformat_new_stream(context_, video_codec);
@@ -394,13 +394,16 @@ bool ExternalOutput::initContext() {
       video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
     context_->oformat->flags |= AVFMT_VARIABLE_FPS;
+    context_->streams[0] = video_stream_;
+  }
 
+  if (audio_codec_ != AV_CODEC_ID_NONE && audio_stream_ == nullptr) {
     AVCodec* audio_codec = avcodec_find_encoder(audio_codec_);
     if (audio_codec == nullptr) {
       ELOG_ERROR("Could not find audio codec");
       return false;
     }
-
+    init_audio = true;
     audio_stream_ = avformat_new_stream(context_, audio_codec);
     audio_stream_->id = 1;
     audio_stream_->codec->codec_id = audio_codec_;
@@ -410,9 +413,14 @@ bool ExternalOutput::initContext() {
     if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
       audio_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
-
-    context_->streams[0] = video_stream_;
+    // TODO(nvazquezg): this 'if' is to avoid a matroska error when no video available: 'Invalid packet stream index: 1'
+    if (!init_video) {
+        context_->streams[0] = avformat_new_stream(context_, nullptr);
+    }
     context_->streams[1] = audio_stream_;
+  }
+
+  if ( init_audio || init_video ) {
     if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
       ELOG_ERROR("Error opening output file");
       return false;
