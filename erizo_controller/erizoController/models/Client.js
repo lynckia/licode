@@ -444,21 +444,23 @@ class Client extends events.EventEmitter {
         return;
     }
 
-    this.room.sendMessage('onRemoveStream', {id: streamId});
-
     if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-
         this.state = 'sleeping';
         if (!this.room.p2p) {
-            this.room.controller.removePublisher(this.id, streamId);
-            if (global.config.erizoController.report.session_events) {  // jshint ignore:line
-                var timeStamp = new Date();
-                this.room.amqper.broadcast('event', {room: this.room.id,
-                                           user: this.id,
-                                           type: 'unpublish',
-                                           stream: streamId,
-                                           timestamp: timeStamp.getTime()});
-            }
+            this.room.controller.removePublisher(this.id, streamId, function() {
+              if (global.config.erizoController.report.session_events) {  // jshint ignore:line
+                  var timeStamp = new Date();
+                  this.room.amqper.broadcast('event', {room: this.room.id,
+                                             user: this.id,
+                                             type: 'unpublish',
+                                             stream: streamId,
+                                             timestamp: timeStamp.getTime()});
+              }
+              this.room.sendMessage('onRemoveStream', {id: streamId});
+              callback(true);
+            }.bind(this));
+        } else {
+          this.room.sendMessage('onRemoveStream', {id: streamId});
         }
     }
 
@@ -467,7 +469,9 @@ class Client extends events.EventEmitter {
         this.streams.splice(index, 1);
     }
     this.room.removeStream(streamId);
-    callback(true);
+    if (this.room.p2p) {
+      callback(true);
+    }
   }
 
   onUnsubscribe(to, callback) {
@@ -488,19 +492,22 @@ class Client extends events.EventEmitter {
             const clientId = stream.getClient();
             const client = this.room.getClientById(clientId);
             client.sendMessage('unpublish_me', {streamId: stream.getID(), peerSocket: this.id});
+            callback(true);
         } else {
-            this.room.controller.removeSubscriber(this.id, to);
-            if (global.config.erizoController.report.session_events) {  // jshint ignore:line
-                var timeStamp = new Date();
-                this.room.amqper.broadcast('event', {room: this.room.id,
-                                           user: this.id,
-                                           type: 'unsubscribe',
-                                           stream: to,
-                                           timestamp: timeStamp.getTime()});
-            }
+            this.room.controller.removeSubscriber(this.id, to, function(result) {
+              if (global.config.erizoController.report.session_events) {  // jshint ignore:line
+                  var timeStamp = new Date();
+                  this.room.amqper.broadcast('event', {room: this.room.id,
+                                             user: this.id,
+                                             type: 'unsubscribe',
+                                             stream: to,
+                                             timestamp: timeStamp.getTime()});
+              }
+              callback(result);
+            }.bind(this));
         }
     }
-    callback(true);
+
   }
 
   onDisconnect() {

@@ -121,6 +121,10 @@ describe('Erizo Controller / Room Controller', function() {
 
       it('should fail if publisher does not exist', function() {
         controller.removePublisher(kArbitraryId, kArbitraryId);
+        expect(amqperMock.callRpc.withArgs('ErizoJS_erizoId', 'removePublisher').callCount, 1);
+        var cb = amqperMock.callRpc.withArgs('ErizoJS_erizoId', 'removePublisher')
+                    .args[0][3].callback;
+        cb(true);
 
         var callback = sinon.stub();
         controller.removeExternalOutput(kArbitraryUrl, callback);
