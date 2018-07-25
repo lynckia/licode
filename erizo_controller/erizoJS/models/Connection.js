@@ -27,10 +27,10 @@ class Connection extends events.EventEmitter {
     this.mediaConfiguration = 'default';
     //  {id: stream}
     this.mediaStreams = new Map();
-    this.wrtc = this._createWrtc();
-    this.initialized = false;
     this.options = options;
     this.trickleIce = options.trickleIce || false;
+    this.wrtc = this._createWrtc();
+    this.initialized = false;
     this.metadata = this.options.metadata || {};
     this.isProcessingRemoteSdp = false;
     this.ready = false;
