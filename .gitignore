@@ -20,3 +20,6 @@ spine/erizofc.js
 spine/testResult.json
 extras/basic_example/public/assets/
 rtp_media_config.js
+
+cmake-build-debug/
+erizo/cmake-build-debug/

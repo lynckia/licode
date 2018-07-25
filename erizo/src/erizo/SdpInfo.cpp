@@ -209,10 +209,10 @@ namespace erizo {
       if (isRtcpMux) {
         sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
       }
-      for (unsigned int it = 0; it < candidateVector_.size(); it++) {
-        if (candidateVector_[it].mediaType == AUDIO_TYPE || isBundle)
-          sdp << this->stringifyCandidate(candidateVector_[it]) << endl;
-      }
+//      for (unsigned int it = 0; it < candidateVector_.size(); it++) {
+//        if (candidateVector_[it].mediaType == AUDIO_TYPE || isBundle)
+//          sdp << this->stringifyCandidate(candidateVector_[it]) << endl;
+//      }
       if (iceAudioUsername_.size() > 0) {
         sdp << "a=ice-ufrag:" << iceAudioUsername_ << endl;
         sdp << "a=ice-pwd:" << iceAudioPassword_ << endl;
@@ -327,10 +327,10 @@ namespace erizo {
       if (isRtcpMux) {
         sdp << "a=rtcp:1 IN IP4 0.0.0.0" << endl;
       }
-      for (unsigned int it = 0; it < candidateVector_.size(); it++) {
-        if (candidateVector_[it].mediaType == VIDEO_TYPE)
-          sdp << this->stringifyCandidate(candidateVector_[it]) << endl;
-      }
+//      for (unsigned int it = 0; it < candidateVector_.size(); it++) {
+//        if (candidateVector_[it].mediaType == VIDEO_TYPE)
+//          sdp << this->stringifyCandidate(candidateVector_[it]) << endl;
+//      }
 
       sdp << "a=ice-ufrag:" << iceVideoUsername_ << endl;
       sdp << "a=ice-pwd:" << iceVideoPassword_ << endl;
