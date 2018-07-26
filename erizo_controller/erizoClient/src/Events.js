@@ -33,6 +33,10 @@ const EventDispatcher = () => {
     }
   };
 
+  that.removeAllListeners = () => {
+    dispatcher.eventListeners = {};
+  };
+
   // It dispatch a new event to the event listeners, based on the type
   // of event. All events are intended to be LicodeEvents.
   that.dispatchEvent = (event) => {

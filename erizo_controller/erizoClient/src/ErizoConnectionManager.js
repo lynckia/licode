@@ -96,6 +96,9 @@ class ErizoConnection extends EventEmitterConst {
       Logger.warning(`message: Cannot remove stream not in map, streamId: ${streamId}`);
       return;
     }
+    if (stream.local) {
+      this.stack.removeStream(stream.stream);
+    }
     this.streamsMap.remove(streamId);
   }
 

@@ -27,6 +27,8 @@
 
 namespace erizo {
 
+constexpr uint32_t kSlideshowMaxVideoBW = 40;  // kbps
+
 class MediaStreamStatsListener {
  public:
     virtual ~MediaStreamStatsListener() {

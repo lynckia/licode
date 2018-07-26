@@ -349,7 +349,7 @@ exports.RoomController = function (spec) {
     /*
      * Removes a publisher from the room. This also deletes the associated OneToManyProcessor.
      */
-    that.removePublisher = function (clientId, streamId) {
+    that.removePublisher = function (clientId, streamId, callback) {
 
         if (subscribers[streamId] !== undefined && publishers[streamId]!== undefined) {
             log.info('message: removePublisher, ' +
@@ -357,23 +357,29 @@ exports.RoomController = function (spec) {
                      'erizoId: ' + getErizoQueue(streamId));
 
             var args = [clientId, streamId];
-            amqper.callRpc(getErizoQueue(streamId), 'removePublisher', args, undefined);
-            const erizo = erizos.findById(publishers[streamId]);
+            amqper.callRpc(getErizoQueue(streamId), 'removePublisher', args, {
+              callback: function() {
+                const erizo = erizos.findById(publishers[streamId]);
 
-            if (erizo) {
-                var index = erizo.publishers.indexOf(streamId);
-                erizo.publishers.splice(index, 1);
-            } else {
-                log.warn('message: removePublisher was already removed, ' +
-                         'streamId: ' + streamId + ', ' +
-                         'erizoId: ' + getErizoQueue(streamId));
-            }
+                if (erizo) {
+                    var index = erizo.publishers.indexOf(streamId);
+                    erizo.publishers.splice(index, 1);
+                } else {
+                    log.warn('message: removePublisher was already removed, ' +
+                             'streamId: ' + streamId + ', ' +
+                             'erizoId: ' + getErizoQueue(streamId));
+                }
 
-            delete subscribers[streamId];
-            delete publishers[streamId];
-            log.debug('message: removedPublisher, ' +
-                      'streamId: ' + streamId + ', ' +
-                      'publishersLeft: ' + Object.keys(publishers).length );
+                delete subscribers[streamId];
+                delete publishers[streamId];
+                log.debug('message: removedPublisher, ' +
+                          'streamId: ' + streamId + ', ' +
+                          'publishersLeft: ' + Object.keys(publishers).length );
+                if (callback) {
+                  callback(true);
+                }
+            }.bind(this)});
+
         }
     };
 
@@ -381,7 +387,7 @@ exports.RoomController = function (spec) {
      * Removes a subscriber from the room.
      * This also removes it from the associated OneToManyProcessor.
      */
-    that.removeSubscriber = function (subscriberId, streamId) {
+    that.removeSubscriber = function (subscriberId, streamId, callback) {
         if(subscribers[streamId]!==undefined){
             var index = subscribers[streamId].indexOf(subscriberId);
             if (index !== -1) {
@@ -390,9 +396,11 @@ exports.RoomController = function (spec) {
                          'streamId: ' + streamId);
 
                 var args = [subscriberId, streamId];
-                amqper.callRpc(getErizoQueue(streamId), 'removeSubscriber', args, undefined);
-
-                subscribers[streamId].splice(index, 1);
+                amqper.callRpc(getErizoQueue(streamId), 'removeSubscriber', args, {
+                  callback: function() {
+                    subscribers[streamId].splice(index, 1);
+                    callback(true);
+                }.bind(this)});
             }
         } else {
             log.warn('message: removeSubscriber not found, ' +
