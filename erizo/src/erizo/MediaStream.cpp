@@ -207,12 +207,21 @@ void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("audioPL", CumulativeStat{0});
   log_stats_->getNode().insertStat("audioJitter", CumulativeStat{0});
   log_stats_->getNode().insertStat("audioMuted", CumulativeStat{0});
+  log_stats_->getNode().insertStat("audioNack", CumulativeStat{0});
+  log_stats_->getNode().insertStat("audioRemb", CumulativeStat{0});
 
   log_stats_->getNode().insertStat("videoBitrate", CumulativeStat{0});
   log_stats_->getNode().insertStat("videoFL", CumulativeStat{0});
   log_stats_->getNode().insertStat("videoPL", CumulativeStat{0});
   log_stats_->getNode().insertStat("videoJitter", CumulativeStat{0});
   log_stats_->getNode().insertStat("videoMuted", CumulativeStat{0});
+  log_stats_->getNode().insertStat("slideshow", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoNack", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoPli", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoFir", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoRemb", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoErizoRemb", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoKeyFrames", CumulativeStat{0});
 
   log_stats_->getNode().insertStat("SL0TL0", CumulativeStat{0});
   log_stats_->getNode().insertStat("SL0TL1", CumulativeStat{0});
@@ -238,6 +247,7 @@ void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("isPublisher", CumulativeStat{is_publisher_});
 
   log_stats_->getNode().insertStat("totalBitrate", CumulativeStat{0});
+  log_stats_->getNode().insertStat("rtxBitrate", CumulativeStat{0});
   log_stats_->getNode().insertStat("paddingBitrate", CumulativeStat{0});
   log_stats_->getNode().insertStat("bwe", CumulativeStat{0});
 
@@ -285,6 +295,8 @@ void MediaStream::printStats() {
     transferMediaStats("audioFL",      audio_ssrc, "fractionLost");
     transferMediaStats("audioJitter",  audio_ssrc, "jitter");
     transferMediaStats("audioMuted",   audio_ssrc, "erizoAudioMute");
+    transferMediaStats("audioNack",    audio_ssrc, "NACK");
+    transferMediaStats("audioRemb",    audio_ssrc, "bandwidth");
   }
   if (video_enabled_) {
     video_ssrc = std::to_string(is_publisher_ ? getVideoSourceSSRC() : getVideoSinkSSRC());
@@ -293,6 +305,13 @@ void MediaStream::printStats() {
     transferMediaStats("videoFL",      video_ssrc, "fractionLost");
     transferMediaStats("videoJitter",  video_ssrc, "jitter");
     transferMediaStats("videoMuted",   audio_ssrc, "erizoVideoMute");
+    transferMediaStats("slideshow",    video_ssrc, "erizoSlideShow");
+    transferMediaStats("videoNack",    video_ssrc, "NACK");
+    transferMediaStats("videoPli",     video_ssrc, "PLI");
+    transferMediaStats("videoFir",     video_ssrc, "FIR");
+    transferMediaStats("videoRemb",    video_ssrc, "bandwidth");
+    transferMediaStats("videoErizoRemb", video_ssrc, "erizoBandwidth");
+    transferMediaStats("videoKeyFrames", video_ssrc, "keyFrames");
   }
 
   for (uint32_t spatial = 0; spatial <= 3; spatial++) {
@@ -307,6 +326,7 @@ void MediaStream::printStats() {
   transferMediaStats("selectedTL", "qualityLayers", "selectedTemporalLayer");
   transferMediaStats("totalBitrate", "total", "bitrateCalculated");
   transferMediaStats("paddingBitrate", "total", "paddingBitrate");
+  transferMediaStats("rtxBitrate", "total", "rtxBitrate");
   transferMediaStats("bwe", "total", "senderBitrateEstimation");
 
   ELOG_INFOT(statsLogger, "%s", log_stats_->getStats());
