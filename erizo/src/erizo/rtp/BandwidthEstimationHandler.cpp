@@ -88,6 +88,9 @@ void BandwidthEstimationHandler::notifyUpdate() {
 }
 
 void BandwidthEstimationHandler::process() {
+  if (!initialized_) {
+    return;
+  }
   rbe_->Process();
   std::weak_ptr<BandwidthEstimationHandler> weak_ptr = shared_from_this();
   worker_->scheduleFromNow([weak_ptr]() {
@@ -143,6 +146,9 @@ void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RT
 }
 
 void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
+  if (!initialized_) {
+    return;
+  }
   if (initialized_ && !running_) {
     process();
     running_ = true;
