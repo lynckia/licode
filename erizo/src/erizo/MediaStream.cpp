@@ -202,6 +202,7 @@ bool MediaStream::setLocalSdp(std::shared_ptr<SdpInfo> sdp) {
 }
 
 void MediaStream::initializeStats() {
+  log_stats_->getNode().insertStat("streamId", StringStat{getId()});
   log_stats_->getNode().insertStat("audioBitrate", CumulativeStat{0});
   log_stats_->getNode().insertStat("audioFL", CumulativeStat{0});
   log_stats_->getNode().insertStat("audioPL", CumulativeStat{0});
