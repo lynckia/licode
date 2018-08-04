@@ -5,6 +5,18 @@
 #include "rtp/RtpUtils.h"
 #include "rtp/RtpVP8Parser.h"
 
+namespace {
+
+constexpr double kNtpFracPerMs = 4.294967296E6;
+
+int64_t ntpToMs(uint32_t ntp_msw, uint32_t ntp_lsw) {
+  const double ntp_frac_ms = static_cast<double>(ntp_lsw) / kNtpFracPerMs;
+  return 1000 * static_cast<int64_t>(ntp_msw) +
+         static_cast<int64_t>(ntp_frac_ms + 0.5);
+}
+
+}  // namespace
+
 namespace erizo {
 
 DEFINE_LOGGER(QualityFilterHandler, "rtp.QualityFilterHandler");
@@ -12,35 +24,48 @@ DEFINE_LOGGER(QualityFilterHandler, "rtp.QualityFilterHandler");
 constexpr duration kSwitchTimeout = std::chrono::seconds(3);
 
 QualityFilterHandler::QualityFilterHandler()
-  : stream_{nullptr}, enabled_{true}, initialized_{false},
-  receiving_multiple_ssrc_{false}, changing_spatial_layer_{false}, is_scalable_{false},
-  target_spatial_layer_{0},
-  future_spatial_layer_{-1}, target_temporal_layer_{0},
-  video_sink_ssrc_{0}, video_source_ssrc_{0}, last_ssrc_received_{0},
-  max_video_bw_{0}, last_timestamp_sent_{0}, timestamp_offset_{0},
-  time_change_started_{clock::now()}, picture_id_offset_{0}, last_picture_id_sent_{0} {}
+    : stream_{nullptr},
+      enabled_{true},
+      initialized_{false},
+      receiving_multiple_ssrc_{false},
+      changing_spatial_layer_{false},
+      is_scalable_{false},
+      target_spatial_layer_{0},
+      future_spatial_layer_{-1},
+      target_temporal_layer_{0},
+      video_sink_ssrc_{0},
+      video_source_ssrc_{0},
+      last_ssrc_received_{0},
+      max_video_bw_{0},
+      last_timestamp_sent_{0},
+      timestamp_offset_{0},
+      time_change_started_{clock::now()},
+      picture_id_offset_{0},
+      last_picture_id_sent_{0} {}
 
-void QualityFilterHandler::enable() {
-  enabled_ = true;
+void QualityFilterHandler::enable() { enabled_ = true; }
+
+void QualityFilterHandler::disable() { enabled_ = false; }
+
+bool QualityFilterHandler::haveRtcp(uint32_t ssrc) {
+  return !(last_rtcp_timestamp.find(ssrc) == last_rtcp_timestamp.end());
 }
 
-void QualityFilterHandler::disable() {
-  enabled_ = false;
-}
-
-void QualityFilterHandler::handleFeedbackPackets(const std::shared_ptr<DataPacket> &packet) {
+void QualityFilterHandler::handleFeedbackPackets(
+    const std::shared_ptr<DataPacket> &packet) {
   RtpUtils::forEachRtcpBlock(packet, [this](RtcpHeader *chead) {
     if (chead->packettype == RTCP_PS_Feedback_PT &&
-          (chead->getBlockCount() == RTCP_PLI_FMT ||
-           chead->getBlockCount() == RTCP_SLI_FMT ||
-           chead->getBlockCount() == RTCP_PLI_FMT)) {
+        (chead->getBlockCount() == RTCP_PLI_FMT ||
+         chead->getBlockCount() == RTCP_SLI_FMT ||
+         chead->getBlockCount() == RTCP_PLI_FMT)) {
       sendPLI();
     }
   });
 }
 
-void QualityFilterHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
-  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
+void QualityFilterHandler::read(Context *ctx,
+                                std::shared_ptr<DataPacket> packet) {
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader *>(packet->data);
   if (chead->isFeedback() && enabled_ && is_scalable_) {
     handleFeedbackPackets(packet);
     return;
@@ -71,10 +96,12 @@ bool QualityFilterHandler::checkSSRCChange(uint32_t ssrc) {
 }
 
 void QualityFilterHandler::sendPLI() {
-  getContext()->fireRead(RtpUtils::createPLI(video_sink_ssrc_, video_source_ssrc_));
+  getContext()->fireRead(
+      RtpUtils::createPLI(video_sink_ssrc_, video_source_ssrc_));
 }
 
-void QualityFilterHandler::changeSpatialLayerOnKeyframeReceived(const std::shared_ptr<DataPacket> &packet) {
+void QualityFilterHandler::changeSpatialLayerOnKeyframeReceived(
+    const std::shared_ptr<DataPacket> &packet) {
   if (future_spatial_layer_ == -1) {
     return;
   }
@@ -95,7 +122,8 @@ void QualityFilterHandler::changeSpatialLayerOnKeyframeReceived(const std::share
   }
 }
 
-void QualityFilterHandler::detectVideoScalability(const std::shared_ptr<DataPacket> &packet) {
+void QualityFilterHandler::detectVideoScalability(
+    const std::shared_ptr<DataPacket> &packet) {
   if (is_scalable_ || packet->type != VIDEO_PACKET) {
     return;
   }
@@ -105,28 +133,51 @@ void QualityFilterHandler::detectVideoScalability(const std::shared_ptr<DataPack
   }
 }
 
-void QualityFilterHandler::updatePictureID(const std::shared_ptr<DataPacket> &packet) {
+void QualityFilterHandler::updatePictureID(
+    const std::shared_ptr<DataPacket> &packet) {
   if (packet->codec == "VP8") {
-    RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
-    unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
+    RtpHeader *rtp_header = reinterpret_cast<RtpHeader *>(packet->data);
+    unsigned char *start_buffer =
+        reinterpret_cast<unsigned char *>(packet->data);
     start_buffer = start_buffer + rtp_header->getHeaderLength();
-    RtpVP8Parser::setVP8PictureID(start_buffer, packet->length - rtp_header->getHeaderLength(), last_picture_id_sent_);
+    RtpVP8Parser::setVP8PictureID(
+        start_buffer, packet->length - rtp_header->getHeaderLength(),
+        last_picture_id_sent_);
   }
 }
 
-void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
-  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
+void QualityFilterHandler::write(Context *ctx,
+                                 std::shared_ptr<DataPacket> packet) {
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader *>(packet->data);
+
+  if (chead->isRtcp()) {
+    if (chead->packettype == RTCP_Sender_PT) {
+      if (last_rtcp_timestamp.find(chead->getSSRC()) ==
+          last_rtcp_timestamp.end()) {
+        ELOG_DEBUG("Add first rtcp rtp ts for SSRC: %u", chead->getSSRC());
+      }
+      last_rtcp_timestamp[chead->getSSRC()] = chead->getRtpTimestamp();
+      ntp_ms[chead->getSSRC()] =
+          ntpToMs(chead->getNtpTimestampMSW(), chead->getNtpTimestampLSW());
+    }
+  }
 
   detectVideoScalability(packet);
 
-  if (is_scalable_ && !chead->isRtcp() && enabled_ && packet->type == VIDEO_PACKET) {
-    RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
-
-    checkLayers();
+  if (is_scalable_ && !chead->isRtcp() && enabled_ &&
+      packet->type == VIDEO_PACKET) {
+    RtpHeader *rtp_header = reinterpret_cast<RtpHeader *>(packet->data);
 
     uint32_t ssrc = rtp_header->getSSRC();
     uint16_t sequence_number = rtp_header->getSeqNumber();
     int picture_id = packet->picture_id;
+
+    // We want to switch layer only if we have an rtcp for this ssrc to be able
+    // to sync
+    if (!packet->belongsToSpatialLayer(target_spatial_layer_) &&
+        haveRtcp(ssrc)) {
+      checkLayers();
+    }
 
     if (last_ssrc_received_ != 0 && ssrc != last_ssrc_received_) {
       receiving_multiple_ssrc_ = true;
@@ -145,11 +196,27 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
 
     if (checkSSRCChange(ssrc)) {
       translator_.reset();
-      if (last_timestamp_sent_ > 0) {
-        timestamp_offset_ = last_timestamp_sent_ - new_timestamp + 1;
-      }
       if (last_picture_id_sent_ > 0) {
         picture_id_offset_ = last_picture_id_sent_ - picture_id + 1;
+      }
+    }
+
+    // TODO(kekkokk) manage timestamp wrapping
+    // Keep aligned with SRs
+    if (last_timestamp_sent_ > 0) {
+      if (base_ts_ssrc != ssrc) {
+        if (last_rtcp_timestamp.find(base_ts_ssrc) !=
+                last_rtcp_timestamp.end() &&
+            last_rtcp_timestamp.find(ssrc) != last_rtcp_timestamp.end()) {
+          timestamp_offset_ = last_rtcp_timestamp[base_ts_ssrc] -
+                              last_rtcp_timestamp[ssrc] +
+                              1;  // Calculate offset based on rtcp SR
+          int64_t rebase = (ntp_ms[base_ts_ssrc] - ntp_ms[ssrc]) *
+                           (packet->clock_rate / 1000);
+          timestamp_offset_ = timestamp_offset_ - rebase;
+        }
+      } else {
+        timestamp_offset_ = 0;  // Don't need offset
       }
     }
 
@@ -158,23 +225,44 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
       return;
     }
 
-    SequenceNumber sequence_number_info = translator_.get(sequence_number, false);
+    SequenceNumber sequence_number_info =
+        translator_.get(sequence_number, false);
     if (sequence_number_info.type != SequenceNumberType::Valid) {
       return;
     }
 
-    if (packet->compatible_spatial_layers.back() == target_spatial_layer_ && packet->ending_of_layer_frame) {
+    if (packet->compatible_spatial_layers.back() == target_spatial_layer_ &&
+        packet->ending_of_layer_frame) {
       rtp_header->setMarker(1);
     }
 
     rtp_header->setSSRC(video_sink_ssrc_);
     rtp_header->setSeqNumber(sequence_number_info.output);
 
-    last_timestamp_sent_ = new_timestamp + timestamp_offset_;
+    // Video frames are split in multiple packets. If we don't do this check and
+    // the new keyframe has ts < last sent ts, each packet of the same frame
+    // would have an increasing +1 ts. Firefox discard this packet resulting in
+    // a freeze or quality loss. Instead we set the same ts for all packets
+    // belonging to the same video frame
+    if (rtp_header->getTimestamp() != last_input_ts) {
+      // Avoid sending negative ts
+      if (last_timestamp_sent_ > (new_timestamp + timestamp_offset_)) {
+        last_timestamp_sent_ = last_timestamp_sent_ + 1;
+      } else {
+        last_timestamp_sent_ = new_timestamp + timestamp_offset_;
+      }
+    }
+
+    last_input_ts = rtp_header->getTimestamp();
+
     rtp_header->setTimestamp(last_timestamp_sent_);
 
     last_picture_id_sent_ = picture_id + picture_id_offset_;
     updatePictureID(packet);
+
+    if (base_ts_ssrc == 0) {
+      base_ts_ssrc = ssrc;
+    }
   }
 
   // TODO(javier): Handle SRs and translate Sequence Numbers?
