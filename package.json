@@ -12,12 +12,21 @@
     "eslint-plugin-import": "^2.6.0",
     "eslint-plugin-jsx-a11y": "^5.1.0",
     "eslint-plugin-react": "^7.1.0",
+    "expose-loader": "^0.7.5",
+    "google-closure-compiler-js": "^20180610.0.0",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^5.0.0",
+    "gulp-sourcemaps": "^2.6.4",
     "jshint": "^2.9.3",
     "mocha": "^3.1.2",
     "mock-require": "^1.3.0",
+    "run-sequence": "^2.2.1",
+    "script-loader": "^0.7.2",
     "sinon": "^1.17.6",
     "supertest": "^2.0.0",
     "vows": "0.6.x",
+    "webpack": "^4.16.5",
+    "webpack-stream": "^5.1.1",
     "winston": "~0.7.2"
   },
   "contributors": [
@@ -39,5 +48,8 @@
     "test": " ./node_modules/mocha/bin/mocha nuve/nuveAPI/test/* erizo_controller/test/*",
     "lintClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp lint",
     "lint": "./node_modules/jshint/bin/jshint erizo_controller/erizoAgent/ erizo_controller/erizoController/ erizo_controller/erizoJS/ erizo_controller/common/amqper.js erizo_controller/common/logger.js erizo_controller/test/ nuve/ extras/basic_example/basicServer.js extras/basic_example/public/*.js spine/"
+  },
+  "dependencies": {
+    "sdp-transform": "^2.4.1"
   }
 }
