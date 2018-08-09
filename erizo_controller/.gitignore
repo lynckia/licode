@@ -1,5 +1,3 @@
-erizoClient/dist/production/
-erizoClient/dist/debug/
 erizoController/node_modules/
 test/public/erizo.js
 erizoController/ch_policies/
