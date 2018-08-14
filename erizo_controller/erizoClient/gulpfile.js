@@ -59,7 +59,7 @@ targets.forEach(
   });
 
 gulp.task('lint', () => gulp.src(config.paths.js)
-  .pipe(plugins.eslint())
+  .pipe(plugins.eslint({fix: true}))
   .pipe(plugins.eslint.format())
   .pipe(plugins.eslint.failAfterError()));
 
