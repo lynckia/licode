@@ -114,6 +114,19 @@ void QualityFilterHandler::updatePictureID(const std::shared_ptr<DataPacket> &pa
   }
 }
 
+void QualityFilterHandler::removeVP8OptionalPayload(const std::shared_ptr<DataPacket> &packet) {
+  if (packet->codec == "VP8") {
+    RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
+    unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
+    start_buffer = start_buffer + rtp_header->getHeaderLength();
+    int packet_length = packet->length - rtp_header->getHeaderLength();
+    packet_length = RtpVP8Parser::removePictureID(start_buffer, packet_length);
+    packet_length = RtpVP8Parser::removeTl0PicIdx(start_buffer, packet_length);
+    packet_length = RtpVP8Parser::removeTIDAndKeyIdx(start_buffer, packet_length);
+    packet->length = packet_length + rtp_header->getHeaderLength();
+  }
+}
+
 void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
 
@@ -175,6 +188,8 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
 
     last_picture_id_sent_ = picture_id + picture_id_offset_;
     updatePictureID(packet);
+
+    removeVP8OptionalPayload(packet);
   }
 
   // TODO(javier): Handle SRs and translate Sequence Numbers?

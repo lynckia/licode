@@ -42,6 +42,7 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   void changeSpatialLayerOnKeyframeReceived(const std::shared_ptr<DataPacket> &packet);
   void detectVideoScalability(const std::shared_ptr<DataPacket> &packet);
   void updatePictureID(const std::shared_ptr<DataPacket> &packet);
+  void removeVP8OptionalPayload(const std::shared_ptr<DataPacket> &packet);
 
  private:
   std::shared_ptr<QualityManager> quality_manager_;
