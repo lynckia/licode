@@ -206,8 +206,10 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
 
     updatePictureID(packet, picture_id_info.output & 0x7FFF);
 
-    last_tl0_pic_idx_sent_ = tl0_pic_idx + tl0_pic_idx_offset_;
-    updateTL0PicIdx(packet, last_tl0_pic_idx_sent_);
+    uint8_t tl0_pic_idx_sent = tl0_pic_idx + tl0_pic_idx_offset_;
+    last_tl0_pic_idx_sent_ = RtpUtils::numberLessThan(last_tl0_pic_idx_sent_, tl0_pic_idx_sent, 8) ?
+      tl0_pic_idx_sent : last_tl0_pic_idx_sent_;
+    updateTL0PicIdx(packet, tl0_pic_idx_sent);
     // removeVP8OptionalPayload(packet);  // TODO(javier): uncomment this line in case of issues with pictureId
   }
 
