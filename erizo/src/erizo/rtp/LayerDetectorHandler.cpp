@@ -90,6 +90,9 @@ void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<DataPacket> pac
   if (payload->hasPictureID) {
     packet->picture_id = payload->pictureID;
   }
+  if (payload->hasTl0PicIdx) {
+    packet->tl0_pic_idx = payload->tl0PicIdx;
+  }
   packet->compatible_temporal_layers = {};
   switch (payload->tID) {
     case 0: addTemporalLayerAndCalculateRate(packet, 0, payload->beginningOfPartition);
