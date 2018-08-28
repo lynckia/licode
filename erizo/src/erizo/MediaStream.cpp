@@ -92,7 +92,6 @@ MediaStream::~MediaStream() {
 
 uint32_t MediaStream::getMaxVideoBW() {
   uint32_t bitrate = rtcp_processor_ ? rtcp_processor_->getMaxVideoBW() : 0;
-  bitrate = slide_show_mode_ ? kSlideshowMaxVideoBW : bitrate;
   return bitrate;
 }
 
