@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <cstdio>
+#include <cstring>
 #include <string>
 
 namespace erizo {
@@ -186,6 +187,162 @@ void RtpVP8Parser::setVP8PictureID(unsigned char* data, int data_length, int pic
       }
     }
   }
+}
+
+void RtpVP8Parser::setVP8TL0PicIdx(unsigned char* data, int data_length, uint8_t tl0_pic_idx) {
+  unsigned char* data_ptr = data;
+
+  bool extension = (*data_ptr & 0x80) ? true : false;  // X bit
+
+  data_ptr++;
+  data_length--;
+
+  if (extension) {
+    if (data_length <= 0) {
+      return;
+    }
+    bool has_picture_id = (*data_ptr & 0x80) ? true : false;  // I bit
+    bool has_tl0_pic_idx = (*data_ptr & 0x40) ? true : false;  // L bit
+    data_ptr++;
+    data_length--;
+
+    if (has_picture_id) {
+      if (data_length <= 0) {
+        return;
+      }
+      int picture_id_len = (*data_ptr & 0x80) ? 2 : 1;
+      data_ptr += picture_id_len;
+      data_length -= picture_id_len;
+    }
+
+    if (has_tl0_pic_idx) {
+      if (data_length <= 0) {
+        return;
+      }
+      data_ptr[0] = tl0_pic_idx;
+    }
+  }
+}
+
+int RtpVP8Parser::removePictureID(unsigned char* data, int data_length) {
+  unsigned char* data_ptr = data;
+  int previous_data_length = data_length;
+
+  bool extension = (*data_ptr & 0x80) ? true : false;  // X bit
+
+  data_ptr++;
+  data_length--;
+
+  if (extension) {
+    if (data_length <= 0) {
+      return previous_data_length;
+    }
+    bool has_picture_id = (*data_ptr & 0x80) ? true : false;  // I bit
+    data_ptr[0] = *data_ptr & 0x7F;  // unset I bit
+    data_ptr++;
+    data_length--;
+
+    if (has_picture_id) {
+      if (data_length <= 0) {
+        return previous_data_length;
+      }
+      int picture_id_len = (*data_ptr & 0x80) ? 2 : 1;
+      if (picture_id_len > data_length) return previous_data_length;
+      memmove(data_ptr, data_ptr + picture_id_len, data_length - picture_id_len);
+      previous_data_length -= picture_id_len;
+    }
+  }
+
+  return previous_data_length;
+}
+
+int RtpVP8Parser::removeTl0PicIdx(unsigned char* data, int data_length) {
+  unsigned char* data_ptr = data;
+  int previous_data_length = data_length;
+
+  bool extension = (*data_ptr & 0x80) ? true : false;  // X bit
+
+  data_ptr++;
+  data_length--;
+
+  if (extension) {
+    if (data_length <= 0) {
+      return previous_data_length;
+    }
+    bool has_picture_id = (*data_ptr & 0x80) ? true : false;  // I bit
+    bool has_tl0_pic_idx = (*data_ptr & 0x40) ? true : false;  // L bit
+    data_ptr[0] = *data_ptr & 0xBF;  // unset L bit
+    data_ptr++;
+    data_length--;
+
+    if (has_picture_id) {
+      if (data_length <= 0) {
+        return previous_data_length;
+      }
+      int picture_id_len = (*data_ptr & 0x80) ? 2 : 1;
+      data_ptr += picture_id_len;
+      data_length -= picture_id_len;
+    }
+
+    if (has_tl0_pic_idx) {
+      if (data_length <= 0) {
+        return previous_data_length;
+      }
+      memmove(data_ptr, data_ptr + 1, data_length - 1);
+      previous_data_length--;
+    }
+  }
+  return previous_data_length;
+}
+
+int RtpVP8Parser::removeTIDAndKeyIdx(unsigned char* data, int data_length) {
+  unsigned char* data_ptr = data;
+  int previous_data_length = data_length;
+
+  bool extension = (*data_ptr & 0x80) ? true : false;  // X bit
+
+  data_ptr++;
+  data_length--;
+
+  if (extension) {
+    if (data_length <= 0) {
+      return previous_data_length;
+    }
+    bool has_picture_id = (*data_ptr & 0x80) ? true : false;  // I bit
+    bool has_tl0_pic_idx = (*data_ptr & 0x40) ? true : false;  // L bit
+    bool has_tid = (*data_ptr & 0x20) ? true : false;  // T bit
+    bool has_key_idx = (*data_ptr & 0x10) ? true : false;  // K bit
+    data_ptr[0] = *data_ptr & 0xDF;  // unset T bit
+    data_ptr[0] = *data_ptr & 0xEF;  // unset T bit
+    data_ptr++;
+    data_length--;
+
+    if (has_picture_id) {
+      if (data_length <= 0) {
+        return previous_data_length;
+      }
+      int picture_id_len = (*data_ptr & 0x80) ? 2 : 1;
+      data_ptr += picture_id_len;
+      data_length -= picture_id_len;
+    }
+
+    if (has_tl0_pic_idx) {
+      if (data_length <= 0) {
+        return previous_data_length;
+      }
+      data_ptr++;
+      data_length--;
+    }
+
+    if (has_tid || has_key_idx) {
+      if (data_length <= 0) {
+        return previous_data_length;
+      }
+      memmove(data_ptr, data_ptr + 1, data_length - 1);
+      previous_data_length--;
+    }
+  }
+  return previous_data_length;
 }
 
 RTPPayloadVP8* RtpVP8Parser::parseVP8(unsigned char* data, int dataLength) {

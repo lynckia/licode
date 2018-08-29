@@ -37,6 +37,10 @@ class RtpVP8Parser {
   RtpVP8Parser();
   virtual ~RtpVP8Parser();
   static void setVP8PictureID(unsigned char* data, int data_length, int picture_id);
+  static void setVP8TL0PicIdx(unsigned char* data, int data_length, uint8_t tl0_pic_idx);
+  static int removePictureID(unsigned char* data, int data_length);
+  static int removeTl0PicIdx(unsigned char* data, int data_length);
+  static int removeTIDAndKeyIdx(unsigned char* data, int data_length);
   erizo::RTPPayloadVP8* parseVP8(unsigned char* data, int datalength);
 };
 }  // namespace erizo
