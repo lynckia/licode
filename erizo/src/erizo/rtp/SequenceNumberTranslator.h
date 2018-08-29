@@ -31,6 +31,7 @@ class SequenceNumberTranslator: public Service, public std::enable_shared_from_t
 
  public:
   SequenceNumberTranslator();
+  SequenceNumberTranslator(uint16_t max_number_in_buffer, uint16_t max_distance, uint16_t bits);
 
   SequenceNumber get(uint16_t input_sequence_number) const;
   SequenceNumber get(uint16_t input_sequence_number, bool skip);
@@ -44,6 +45,7 @@ class SequenceNumberTranslator: public Service, public std::enable_shared_from_t
   SequenceNumber& internalGet(uint16_t input_sequence_number);
   SequenceNumber& internalReverse(uint16_t output_sequence_number);
   void updateLastOutputSequenceNumber(bool skip, uint16_t output_sequence_number);
+  uint16_t boundedSequenceNumber(const uint16_t& input);
 
  private:
   std::vector<SequenceNumber> in_out_buffer_;
@@ -51,6 +53,10 @@ class SequenceNumberTranslator: public Service, public std::enable_shared_from_t
   uint16_t first_input_sequence_number_;
   uint16_t last_input_sequence_number_;
   uint16_t last_output_sequence_number_;
+  uint16_t max_number_in_buffer_;
+  uint16_t max_distance_;
+  uint16_t bits_;
+  uint32_t mask_;
   uint16_t offset_;
   bool initialized_;
   bool reset_;
