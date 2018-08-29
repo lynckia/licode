@@ -15,6 +15,8 @@ class RtpUtils {
  public:
   static bool sequenceNumberLessThan(uint16_t first, uint16_t second);
 
+  static bool numberLessThan(uint16_t first, uint16_t last, int bits);
+
   static void forEachRtcpBlock(std::shared_ptr<DataPacket> packet, std::function<void(RtcpHeader*)> f);
 
   static void updateREMB(RtcpHeader *chead, uint bitrate);

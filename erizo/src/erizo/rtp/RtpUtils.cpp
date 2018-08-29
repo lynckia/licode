@@ -1,5 +1,6 @@
 #include "rtp/RtpUtils.h"
 
+#include <cmath>
 #include <memory>
 
 namespace erizo {
@@ -8,8 +9,15 @@ namespace erizo {
 constexpr int kMaxPacketSize = 1500;
 
 bool RtpUtils::sequenceNumberLessThan(uint16_t first, uint16_t last) {
+  return RtpUtils::numberLessThan(first, last, 16);
+}
+
+bool RtpUtils::numberLessThan(uint16_t first, uint16_t last, int bits) {
   uint16_t result = first - last;
-  return result > 0xF000;
+  uint16_t mark = std::pow(2, bits) - 1;
+  result = result & mark;
+  uint16_t threshold = (bits > 4) ? std::pow(2, bits - 4) - 1 : std::pow(2, bits) - 1;
+  return result > threshold;
 }
 
 void RtpUtils::updateREMB(RtcpHeader *chead, uint bitrate) {
