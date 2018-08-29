@@ -779,7 +779,8 @@ describe('Erizo Controller / Erizo Controller', function() {
 
                     onUnsubscribe(streamId, callback);
 
-                    expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
+                    mocks.roomControllerInstance.removeSubscriber.firstCall.callArgWith(2, true);
+
                     expect(callback.withArgs(true).callCount).to.equal(1);
                   });
 
@@ -793,6 +794,7 @@ describe('Erizo Controller / Erizo Controller', function() {
                     onUnsubscribe(streamId, callback);
 
                     expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
+                    mocks.roomControllerInstance.removeSubscriber.firstCall.callArgWith(2, true);
                     expect(callback.withArgs(true).callCount).to.equal(1);
                   });
 
@@ -806,6 +808,7 @@ describe('Erizo Controller / Erizo Controller', function() {
                     onUnsubscribe(streamId, callback);
 
                     expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
+                    mocks.roomControllerInstance.removeSubscriber.firstCall.callArgWith(2, true);
                     expect(callback.withArgs(true).callCount).to.equal(1);
                   });
 
@@ -819,6 +822,7 @@ describe('Erizo Controller / Erizo Controller', function() {
                     onUnsubscribe(streamId, callback);
 
                     expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
+                    mocks.roomControllerInstance.removeSubscriber.firstCall.callArgWith(2, true);
                     expect(callback.withArgs(true).callCount).to.equal(1);
                   });
 
@@ -885,6 +889,8 @@ describe('Erizo Controller / Erizo Controller', function() {
                     expect(mocks.roomControllerInstance.removePublisher
                             .withArgs(client.id, streamId)
                             .callCount).to.equal(1);
+                    mocks.roomControllerInstance.removePublisher
+                      .withArgs(client.id, streamId).callArgWith(2, true);
                     expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
                           .to.equal(1);
                     expect(callback.withArgs(true).callCount).to.equal(1);
@@ -902,6 +908,8 @@ describe('Erizo Controller / Erizo Controller', function() {
                     expect(mocks.roomControllerInstance
                           .removePublisher.withArgs(client.id, streamId)
                           .callCount).to.equal(1);
+                    mocks.roomControllerInstance.removePublisher
+                      .withArgs(client.id, streamId).callArgWith(2, true);
                     expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
                           .to.equal(1);
                     expect(callback.withArgs(true).callCount).to.equal(1);
@@ -919,6 +927,8 @@ describe('Erizo Controller / Erizo Controller', function() {
                     expect(mocks.roomControllerInstance.removePublisher
                           .withArgs(client.id, streamId)
                           .callCount).to.equal(1);
+                    mocks.roomControllerInstance.removePublisher
+                      .withArgs(client.id, streamId).callArgWith(2, true);
                     expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
                             .to.equal(1);
                     expect(callback.withArgs(true).callCount).to.equal(1);
@@ -936,6 +946,8 @@ describe('Erizo Controller / Erizo Controller', function() {
                     expect(mocks.roomControllerInstance.removePublisher
                           .withArgs(client.id, streamId)
                           .callCount).to.equal(1);
+                    mocks.roomControllerInstance.removePublisher
+                      .withArgs(client.id, streamId).callArgWith(2, true);
                     expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
                             .to.equal(1);
                     expect(callback.withArgs(true).callCount).to.equal(1);

@@ -232,14 +232,14 @@ const Stream = (altConnectionHelpers, specInput) => {
       that.stream = undefined;
     }
     if (that.pc && !that.p2p) {
-      that.pc.off('add-stream', spec.onStreamAddedToPC);
-      that.pc.off('remove-stream', spec.onStreamRemovedFroPC);
-      that.pc.off('ice-state-change', spec.onICEConnectionStateChange);
+      that.pc.off('add-stream', onStreamAddedToPC);
+      that.pc.off('remove-stream', onStreamRemovedFroPC);
+      that.pc.off('ice-state-change', onICEConnectionStateChange);
     } else if (that.pc && that.p2p) {
       that.pc.forEach((pc) => {
-        pc.off('add-stream', spec.onStreamAddedToPC);
-        pc.off('remove-stream', spec.onStreamRemovedFroPC);
-        pc.off('ice-state-change', spec.onICEConnectionStateChange);
+        pc.off('add-stream', onStreamAddedToPC);
+        pc.off('remove-stream', onStreamRemovedFroPC);
+        pc.off('ice-state-change', onICEConnectionStateChange);
       });
     }
     that.removeAllListeners();
