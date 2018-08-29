@@ -61,6 +61,9 @@ class ConnectionDescription : public Nan::ObjectWrap {
     static NAN_METHOD(setVideoBandwidth);
     static NAN_METHOD(getVideoBandwidth);
 
+    static NAN_METHOD(setXGoogleFlag);
+    static NAN_METHOD(getXGoogleFlag);
+
     static NAN_METHOD(addCandidate);
     static NAN_METHOD(addCryptoInfo);
     static NAN_METHOD(setICECredentials);

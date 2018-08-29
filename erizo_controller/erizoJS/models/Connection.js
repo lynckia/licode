@@ -103,7 +103,7 @@ class Connection extends events.EventEmitter {
     this.emit('media_stream_event', streamEvent);
   }
 
-  _maybeSendAnswer(evt, streamId) {
+  _maybeSendAnswer(evt, streamId, forceOffer = false) {
     if (this.isProcessingRemoteSdp) {
       return;
     }
@@ -115,7 +115,7 @@ class Connection extends events.EventEmitter {
     let message = sdp.toString();
     message = message.replace(this.options.privateRegexp, this.options.publicIP);
 
-    const info = {type: this.options.createOffer ? 'offer' : 'answer', sdp: message};
+    const info = {type: this.options.createOffer || forceOffer ? 'offer' : 'answer', sdp: message};
     log.debug(`message: _maybeSendAnswer sending event, type: ${info.type}, streamId: ${streamId}`);
     this.emit('status_event', info, evt, streamId);
   }
@@ -198,6 +198,7 @@ class Connection extends events.EventEmitter {
       this.mediaStreams.get(id).close();
       this.mediaStreams.delete(id);
       log.debug(`removed mediaStreamId ${id}, remaining size ${this.getNumMediaStreams()}`);
+      this._maybeSendAnswer(CONN_SDP, id, true);
     } else {
       log.error(`message: Trying to remove mediaStream not found, id: ${id}`);
     }
