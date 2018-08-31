@@ -148,7 +148,7 @@ const Stream = (altConnectionHelpers, specInput) => {
         Logger.info('Requested access to local media');
         let videoOpt = spec.video;
         if (videoOpt === true || spec.screen === true) {
-          videoOpt = videoOpt === true ? {} : videoOpt;
+          videoOpt = videoOpt === true || videoOpt === null ? {} : videoOpt;
           if (that.videoSize !== undefined) {
             videoOpt.width = {
               min: that.videoSize[0],
@@ -242,6 +242,7 @@ const Stream = (altConnectionHelpers, specInput) => {
         pc.off('ice-state-change', onICEConnectionStateChange);
       });
     }
+    that.removeAllListeners();
   };
 
   that.play = (elementID, optionsInput) => {

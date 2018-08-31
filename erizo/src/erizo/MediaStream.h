@@ -48,6 +48,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
                         public FeedbackSource, public LogContext, public HandlerManagerListener,
                         public std::enable_shared_from_this<MediaStream>, public Service {
   DECLARE_LOGGER();
+  static log4cxx::LoggerPtr statsLogger;
 
  public:
   typedef typename Handler::Context Context;
@@ -125,6 +126,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   void asyncTask(std::function<void(std::shared_ptr<MediaStream>)> f);
 
+  void initializeStats();
+  void printStats();
+
   bool isAudioMuted() { return audio_muted_; }
   bool isVideoMuted() { return video_muted_; }
 
@@ -148,7 +152,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool isPublisher() { return is_publisher_; }
 
   inline std::string toLog() {
-    return "id: " + stream_id_ + ", role:" + (is_publisher_ ? "publisher" : "subscriber") + " " + printLogContext();
+    return "id: " + stream_id_ + ", role:" + (is_publisher_ ? "publisher" : "subscriber") + ", " + printLogContext();
   }
 
  private:
@@ -158,6 +162,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   int deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) override;
   int deliverEvent_(MediaEventPtr event) override;
   void initializePipeline();
+  void transferLayerStats(std::string spatial, std::string temporal);
+  void transferMediaStats(std::string target_node, std::string source_parent, std::string source_node);
 
   void changeDeliverPayloadType(DataPacket *dp, packetType type);
   // parses incoming payload type, replaces occurence in buf
@@ -181,6 +187,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   std::shared_ptr<RtcpProcessor> rtcp_processor_;
   std::shared_ptr<Stats> stats_;
+  std::shared_ptr<Stats> log_stats_;
   std::shared_ptr<QualityManager> quality_manager_;
   std::shared_ptr<PacketBufferService> packet_buffer_;
   std::shared_ptr<HandlerManager> handler_manager_;

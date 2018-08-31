@@ -33,6 +33,7 @@ const EventDispatcher = () => {
     }
   };
 
+  // It removes all listeners
   that.removeAllListeners = () => {
     dispatcher.eventListeners = {};
   };
