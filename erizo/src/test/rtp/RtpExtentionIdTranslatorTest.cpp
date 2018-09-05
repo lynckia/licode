@@ -1,7 +1,3 @@
-//
-// Created by bandyer on 04/09/18.
-//
-
 #include <gtest/gtest.h>
 #include <rtp/RtpExtentionIdTranslator.h>
 #include <utility>
@@ -79,4 +75,4 @@ TEST_P(RtpExtentionIdTranslatorTest, full_map_translation) {
 
 INSTANTIATE_TEST_CASE_P(ExtentionIds, RtpExtentionIdTranslatorTest,
                        // There can be up to 14 extensions, test them all
-                       testing::Values(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14));
+                       testing::Values(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14));
