@@ -77,6 +77,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "setRemoteDescription", setRemoteDescription);
   Nan::SetPrototypeMethod(tpl, "getLocalDescription", getLocalDescription);
   Nan::SetPrototypeMethod(tpl, "setRemoteSdp", setRemoteSdp);
+  Nan::SetPrototypeMethod(tpl, "setSourceExtensionMap", setSourceExtensionMap);
   Nan::SetPrototypeMethod(tpl, "addRemoteCandidate", addRemoteCandidate);
   Nan::SetPrototypeMethod(tpl, "getLocalSdp", getLocalSdp);
   Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
@@ -329,6 +330,20 @@ NAN_METHOD(WebRtcConnection::getLocalDescription) {
   ConnectionDescription* description = ObjectWrap::Unwrap<ConnectionDescription>(instance);
   description->me = sdp_info;
   info.GetReturnValue().Set(instance);
+}
+
+NAN_METHOD(WebRtcConnection::setSourceExtensionMap) {
+  WebRtcConnection * obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+
+  if (!me) {
+    return;
+  }
+
+  WebRtcConnection* source_wrtc = Nan::ObjectWrap::Unwrap<WebRtcConnection>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  auto wr = std::shared_ptr<erizo::WebRtcConnection>(source_wrtc->me);
+
+  me->setSourceExtensionMap(wr);
 }
 
 NAN_METHOD(WebRtcConnection::addRemoteCandidate) {

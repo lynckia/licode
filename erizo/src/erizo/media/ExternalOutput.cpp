@@ -73,7 +73,7 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
   ExtMap anExt(4, "urn:3gpp:video-orientation");
   anExt.mediaType = VIDEO_TYPE;
   sdp->extMapVector.push_back(anExt);
-  ext_processor_.setSdpInfo(sdp);
+  ext_processor_.setSdpInfo(*sdp);
 }
 
 bool ExternalOutput::init() {

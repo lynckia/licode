@@ -194,7 +194,7 @@ class VideoOrientation {
   inline uint8_t getLength() {
     return (ext_info & 0x0F);
   }
-  inline VideoRotation getVideoOrientation() {
+  inline VideoRotation getVideoOrientation() const {
     return convertCVOByteToVideoRotation(rotation_data);
   }
   inline static VideoRotation convertCVOByteToVideoRotation(uint8_t cvo_byte) {

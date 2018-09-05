@@ -81,6 +81,11 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
      */
     static NAN_METHOD(setRemoteSdp);
     /**
+     * Set the publisher extension map for translation
+     * Param: shared pointer of the source webrtcConnection
+    */
+    static NAN_METHOD(setSourceExtensionMap);
+    /**
      * Add new remote candidate (from remote peer).
      * @param sdp The candidate in SDP format.
      * @return true if the SDP was received correctly.

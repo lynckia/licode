@@ -113,6 +113,17 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void setWebRtcConnectionEventListener(WebRtcConnectionEventListener* listener);
 
   /**
+   * Obtains the local pair of video and audio extension map.
+   * @return a pair of RTPExtensionsMap.
+   */
+  std::pair<RTPExtensionsMap, RTPExtensionsMap> getSourceExtensionMap();
+
+  /**
+   * Sets the source (publisher) extension map for translation
+   */
+  void setSourceExtensionMap(std::shared_ptr<WebRtcConnection> source_wrtc);
+
+  /**
    * Gets the current state of the Ice Connection
    * @return
    */
