@@ -28,6 +28,10 @@ const Socket = (newIo) => {
   that.state = that.DISCONNECTED;
   that.IO = newIo === undefined ? io : newIo;
 
+  // Hack to know the exact reason of the WS closure (socket.io does not publish it)
+  let closeCode = WEBSOCKET_NORMAL_CLOSURE;
+  let reconnectSupported = false;
+
   let socket;
 
   const emit = (type, ...args) => {
@@ -47,27 +51,35 @@ const Socket = (newIo) => {
     });
   };
 
+  const isUsingWebSockets = () => socket.io.engine.transport.ws !== undefined;
+
+  // the close code is only available when transport is websocket
+  const maybeBindToWSOnCloseFunction = () => {
+    if (isUsingWebSockets()) {
+      reconnectSupported = true;
+      const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
+      socket.io.engine.transport.ws.onclose = (closeEvent) => {
+        Logger.warning('WebSocket closed, code:', closeEvent.code);
+        closeCode = closeEvent.code;
+        socketOnCloseFunction(closeEvent);
+      };
+    }
+  };
+
   that.connect = (token, userOptions, callback = defaultCallback, error = defaultCallback) => {
     const options = {
       reconnection: true,
       reconnectionAttempts: 3,
       secure: token.secure,
       forceNew: true,
-      transports: ['websocket'],
       rejectUnauthorized: false,
     };
     const transport = token.secure ? 'wss://' : 'ws://';
     const host = token.host;
     socket = that.IO.connect(transport + host, options);
 
-    // Hack to know the exact reason of the WS closure (socket.io does not publish it)
-    let closeCode = WEBSOCKET_NORMAL_CLOSURE;
-    const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
-    socket.io.engine.transport.ws.onclose = (closeEvent) => {
-      Logger.warning('WebSocket closed, code:', closeEvent.code);
-      closeCode = closeEvent.code;
-      socketOnCloseFunction(closeEvent);
-    };
+    maybeBindToWSOnCloseFunction();
+
     that.socket = socket;
     socket.on('onAddStream', emit.bind(that, 'onAddStream'));
 
@@ -86,10 +98,15 @@ const Socket = (newIo) => {
     // We receive an event of a stream removed from the room
     socket.on('onRemoveStream', emit.bind(that, 'onRemoveStream'));
 
+    socket.io.engine.on('upgrade', (newTransport) => {
+      Logger.info('Websocket transport upgraded: ', newTransport);
+      maybeBindToWSOnCloseFunction();
+    });
+
     // The socket has disconnected
     socket.on('disconnect', (reason) => {
       Logger.debug('disconnect', that.id, reason);
-      if (closeCode !== WEBSOCKET_NORMAL_CLOSURE) {
+      if (reconnectSupported && closeCode !== WEBSOCKET_NORMAL_CLOSURE) {
         that.state = that.RECONNECTING;
         return;
       }
