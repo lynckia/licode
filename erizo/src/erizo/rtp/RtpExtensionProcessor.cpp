@@ -49,7 +49,7 @@ bool RtpExtensionProcessor::isValidExtension(std::string uri) const {
 }
 
 uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<DataPacket> p) {
-  auto* head = reinterpret_cast<RtpHeader*>(p->data);
+  RtpHeader* head = reinterpret_cast<RtpHeader*>(p->data);
   uint32_t len = p->length;
 
   if ((p->type == VIDEO_PACKET || p->type == AUDIO_PACKET) &&
@@ -62,7 +62,7 @@ uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<DataPacket>
     uint8_t extLength = 0;
     while (currentPlace < (totalExtLength * 4)) {
       extByte = (uint8_t) (*extBuffer);
-      if (extByte != RtpExtentionIdTranslator::padding) {
+      if (extByte != RtpExtentionIdTranslator::unknown) {
         extId = extByte >> 4;
         if (extId == 15) {  // https://tools.ietf.org/html/rfc5285#section-4.2
           return len;
@@ -118,7 +118,7 @@ void RtpExtensionProcessor::translateExtension(void* extBuffer, const RtpExtenti
   uint8_t src_id = data[0] >> 4;
   uint8_t len = data[0] & (uint8_t) 0x0f;
   auto dest_id = (uint8_t) translator.translateId(src_id);
-  if (dest_id != RtpExtentionIdTranslator::padding) {
+  if (dest_id != RtpExtentionIdTranslator::unknown) {
     if (dest_id != src_id) {
       ELOG_DEBUG("Changing extension id from %d to %d", (int) src_id, (int) dest_id);
     }

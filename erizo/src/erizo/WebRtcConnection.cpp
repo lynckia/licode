@@ -746,7 +746,9 @@ std::pair<RTPExtensionsMap, RTPExtensionsMap> WebRtcConnection::getSourceExtensi
 }
 
 void WebRtcConnection::setSourceExtensionMap(std::shared_ptr<WebRtcConnection> source_wrtc) {
-  extension_processor_.setSourceExtensionMap(source_wrtc->getSourceExtensionMap());
+  asyncTask([source_wrtc](std::shared_ptr<WebRtcConnection> connection){
+    connection->extension_processor_.setSourceExtensionMap(source_wrtc->getSourceExtensionMap());
+  });
 }
 
 }  // namespace erizo
