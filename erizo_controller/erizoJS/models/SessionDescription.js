@@ -229,9 +229,11 @@ class SessionDescription {
   }
 
   getStreamInfo(info, stream) {
+    console.log('>>>>>>>> STREAM: ', JSON.stringify(stream, null, 2));
+    console.log('>>>>>>>> INFO: ', JSON.stringify(info, null, 2));
     const streamId = stream.id;
     let videoSsrcList = [];
-    let simulcastVideoSsrcList;
+    let simulcastVideoSsrcList, fidVideoSSrcList = [];
 
     stream.getTracks().forEach((track) => {
       if (track.getMedia() === 'audio') {
@@ -247,11 +249,15 @@ class SessionDescription {
         if (group.getSemantics().toUpperCase() === 'SIM') {
           simulcastVideoSsrcList = group.getSSRCs();
         }
+        if (group.getSemantics().toUpperCase() === 'FID') {
+          fidVideoSSrcList.push(group.getSSRCs());
+        }
       });
     });
 
     videoSsrcList = simulcastVideoSsrcList || videoSsrcList;
     info.setVideoSsrcList(streamId, videoSsrcList);
+    info.setVideoFIDMap(streamId, fidVideoSSrcList);
   }
 
   processSdp() {
@@ -283,8 +289,10 @@ class SessionDescription {
       info.setFingerprint(dtls.getFingerprint());
       info.setDtlsRole(Setup.toString(dtls.getSetup()));
     }
+    console.log('>>> SDP: ', JSON.stringify(sdp, null, 2));
 
     sdp.medias.forEach((media) => {
+      console.log('>>> MEDIA: ', JSON.stringify(media, null, 2));
       const dtls = media.getDTLS();
       if (dtls) {
         info.setFingerprint(dtls.getFingerprint());
@@ -350,6 +358,7 @@ class SessionDescription {
     }
 
     sdp.getStreams().forEach((stream) => {
+      console.log('STREAM', JSON.stringify(stream));
       this.getStreamInfo(info, stream);
     });
 

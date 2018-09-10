@@ -24,6 +24,7 @@
 #include "pipeline/Service.h"
 #include "rtp/QualityManager.h"
 #include "rtp/PacketBufferService.h"
+#include "rtp/RtxPacketTranslator.h"
 
 namespace erizo {
 
@@ -186,6 +187,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   time_point now_, mark_;
 
   std::shared_ptr<RtcpProcessor> rtcp_processor_;
+  std::shared_ptr<RtxPacketTranslator> rtx_packet_translator_;
   std::shared_ptr<Stats> stats_;
   std::shared_ptr<Stats> log_stats_;
   std::shared_ptr<QualityManager> quality_manager_;

@@ -75,6 +75,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   video_sink_ssrc_ = std::rand();
 
   rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
+  rtx_packet_translator_ = std::make_shared<RtxPacketTranslator>();
 
   should_send_feedback_ = true;
   slide_show_mode_ = false;
@@ -184,6 +185,7 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   video_enabled_ = remote_sdp_->hasVideo;
 
   rtcp_processor_->addSourceSsrc(getAudioSourceSSRC());
+  rtx_packet_translator_->setRtxMap(remote_sdp_->video_rtx_ssrc_map[getLabel()]);
   std::for_each(video_source_ssrc_list_.begin(), video_source_ssrc_list_.end(), [this] (uint32_t new_ssrc){
       rtcp_processor_->addSourceSsrc(new_ssrc);
   });
@@ -361,7 +363,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<LayerDetectorHandler>());
   pipeline_->addFront(std::make_shared<OutgoingStatsHandler>());
   pipeline_->addFront(std::make_shared<PacketCodecParser>());
-
+  pipeline_->addFront(rtx_packet_translator_);
   pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
   pipeline_initialized_ = true;

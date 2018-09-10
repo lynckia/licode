@@ -718,6 +718,7 @@ function getTracks(encodings, sdpInfo, md) {
   }
 
   if (md.ssrcGroups) {
+    console.log('MULTIPLE SSRCS FOUND');
     md.ssrcGroups.forEach((ssrcGroupAttr) => {
       const ssrcs = ssrcGroupAttr.ssrcs.split(' ');
       const group = new SourceGroupInfo(ssrcGroupAttr.semantics, ssrcs);
