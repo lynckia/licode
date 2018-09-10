@@ -749,9 +749,13 @@ std::pair<RTPExtensionsMap, RTPExtensionsMap> WebRtcConnection::getSourceExtensi
 }
 
 void WebRtcConnection::setSourceExtensionMap(std::shared_ptr<WebRtcConnection> source_wrtc) {
-  asyncTask([source_wrtc](std::shared_ptr<WebRtcConnection> connection){
-    std::lock_guard<std::mutex> lk(connection->extension_map_mutex);
-    connection->extension_processor_.setSourceExtensionMap(source_wrtc->getSourceExtensionMap());
+  asyncTask([source_wrtc](std::shared_ptr<WebRtcConnection> this_connection){
+    auto source_map_future = source_wrtc->worker_->post_async_task([source_wrtc]{
+      return source_wrtc->getSourceExtensionMap();
+    });
+    auto map = source_map_future.get();
+    std::lock_guard<std::mutex> lk(this_connection->extension_map_mutex);
+    this_connection->extension_processor_.setSourceExtensionMap(map);
   });
 }
 
