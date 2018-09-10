@@ -742,11 +742,15 @@ void WebRtcConnection::setTransport(std::shared_ptr<Transport> transport) {  // 
 }
 
 std::pair<RTPExtensionsMap, RTPExtensionsMap> WebRtcConnection::getSourceExtensionMap() {
-  return std::make_pair(extension_processor_.getVideoExtensionMap(), extension_processor_.getAudioExtensionMap());
+  std::lock_guard<std::mutex> lk(extension_map_mutex);
+  auto result = std::make_pair(extension_processor_.getVideoExtensionMap(),
+                               extension_processor_.getAudioExtensionMap());
+  return result;
 }
 
 void WebRtcConnection::setSourceExtensionMap(std::shared_ptr<WebRtcConnection> source_wrtc) {
   asyncTask([source_wrtc](std::shared_ptr<WebRtcConnection> connection){
+    std::lock_guard<std::mutex> lk(connection->extension_map_mutex);
     connection->extension_processor_.setSourceExtensionMap(source_wrtc->getSourceExtensionMap());
   });
 }

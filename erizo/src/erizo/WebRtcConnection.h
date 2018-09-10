@@ -203,6 +203,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   bool audio_muted_;
   bool video_muted_;
   bool first_remote_sdp_processed_;
+  std::mutex extension_map_mutex;
 };
 
 }  // namespace erizo
