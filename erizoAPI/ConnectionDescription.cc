@@ -616,6 +616,7 @@ NAN_METHOD(ConnectionDescription::getCodecs) {
   for (erizo::RtpMap &pt : media_pts) {
     v8::Local<v8::Object> codec = Nan::New<v8::Object>();
     Nan::Set(codec, Nan::New("type").ToLocalChecked(), Nan::New(pt.payload_type));
+    Nan::Set(codec, Nan::New("rtx").ToLocalChecked(), Nan::New(pt.rtx_payload_type));
     Nan::Set(codec, Nan::New("name").ToLocalChecked(),
                                 Nan::New(pt.encoding_name.c_str()).ToLocalChecked());
     Nan::Set(codec, Nan::New("rate").ToLocalChecked(), Nan::New(pt.clock_rate));
@@ -679,12 +680,14 @@ NAN_METHOD(ConnectionDescription::addPt) {
   std::string codec_name = getString(info[1]);
   unsigned int parsed_clock = info[2]->IntegerValue();
   erizo::MediaType media = getMediaType(getString(info[3]));
+  unsigned int rtx_pt = info[4]->IntegerValue();
 
   erizo::RtpMap new_mapping;
   new_mapping.payload_type = pt;
   new_mapping.encoding_name = codec_name;
   new_mapping.clock_rate = parsed_clock;
   new_mapping.media_type = media;
+  new_mapping.rtx_payload_type = rtx_pt;
   sdp->payload_parsed_map_[pt] = new_mapping;
 }
 

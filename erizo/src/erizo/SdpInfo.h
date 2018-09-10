@@ -123,6 +123,7 @@ struct RtpMap {
   unsigned int channels;
   std::vector<std::string> feedback_types;
   std::map<std::string, std::string> format_parameters;
+  unsigned int rtx_payload_type;
 };
 /**
  * A RTP extmap description

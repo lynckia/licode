@@ -79,6 +79,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
       const codecName = codec.name;
       const rate = codec.rate;
       const encoding = codec.channels;
+      const rtx = codec.rtx;
 
       let params = {};
       const feedback = [];
@@ -99,7 +100,11 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
       if (codecName.toUpperCase() === 'RTX') {
         apts.set(parseInt(params.apt, 10), type);
       } else {
-        media.addCodec(new CodecInfo(codecName, type, rate, encoding, params, feedback));
+        const codecInfo = new CodecInfo(codecName, type, rate, encoding, params, feedback);
+        if (rtx) {
+          codecInfo.setRTX(rtx);
+        }
+        media.addCodec(codecInfo);
       }
     });
   }
@@ -311,7 +316,7 @@ class SessionDescription {
       });
 
       media.getCodecs().forEach((codec) => {
-        info.addPt(codec.getType(), codec.getCodec(), codec.getRate(), media.getType());
+        info.addPt(codec.getType(), codec.getCodec(), codec.getRate(), media.getType(), codec.hasRTX() ? codec.getRTX() : 0);
 
         const params = codec.getParams();
         Object.keys(params).forEach((option) => {
