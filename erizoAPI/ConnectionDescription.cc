@@ -71,6 +71,9 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "setVideoSsrcList", setVideoSsrcList);
   Nan::SetPrototypeMethod(tpl, "getVideoSsrcMap", getVideoSsrcMap);
 
+  Nan::SetPrototypeMethod(tpl, "setVideoFIDMap", setVideoFIDMap);
+  Nan::SetPrototypeMethod(tpl, "getVideoFIDMap", getVideoFIDMap);
+
   Nan::SetPrototypeMethod(tpl, "setVideoDirection", setVideoDirection);
   Nan::SetPrototypeMethod(tpl, "setAudioDirection", setAudioDirection);
   Nan::SetPrototypeMethod(tpl, "getDirection", getDirection);
@@ -322,6 +325,39 @@ NAN_METHOD(ConnectionDescription::getVideoSsrcMap) {
       Nan::Set(array, index++, Nan::New(ssrc));
     }
     video_ssrc_map->Set(Nan::New(video_ssrcs.first.c_str()).ToLocalChecked(), array);
+  }
+  info.GetReturnValue().Set(video_ssrc_map);
+}
+
+NAN_METHOD(ConnectionDescription::setVideoFIDMap) {
+  GET_SDP();
+  std::string stream_id = getString(info[0]);
+  v8::Local<v8::Array> video_fid_array = v8::Local<v8::Array>::Cast(info[1]);
+  std::map<uint32_t, uint32_t> video_fid_map;
+
+  for (unsigned int i = 0; i < video_fid_array->Length(); i++) {
+    v8::Local<v8::Array> tempArray = v8::Local<v8::Array>::Cast(video_fid_array->Get(i));
+    unsigned int key = tempArray->Get(0)->IntegerValue();
+    unsigned int value = tempArray->Get(1)->IntegerValue();
+    video_fid_map[key] = value;
+  }
+
+  sdp->video_rtx_ssrc_map[stream_id] = video_fid_map;
+}
+
+NAN_METHOD(ConnectionDescription::getVideoFIDMap) {
+  GET_SDP();
+  Local<v8::Object> video_ssrc_map = Nan::New<v8::Object>();
+  for (auto const& video_fid_ssrc : sdp->video_rtx_ssrc_map) {
+    v8::Local<v8::Array> array = Nan::New<v8::Array>(video_fid_ssrc.second.size());
+    uint index = 0;
+    for (auto const& video_fid : video_fid_ssrc.second) {
+      v8::Local<v8::Array> temparray = Nan::New<v8::Array>(2);
+      Nan::Set(temparray, 0, Nan::New(video_fid.first));
+      Nan::Set(temparray, 1, Nan::New(video_fid.second));
+      Nan::Set(array, index++, temparray);
+    }
+    video_ssrc_map->Set(Nan::New(video_fid_ssrc.first.c_str()).ToLocalChecked(), array);
   }
   info.GetReturnValue().Set(video_ssrc_map);
 }
@@ -616,6 +652,7 @@ NAN_METHOD(ConnectionDescription::getCodecs) {
   for (erizo::RtpMap &pt : media_pts) {
     v8::Local<v8::Object> codec = Nan::New<v8::Object>();
     Nan::Set(codec, Nan::New("type").ToLocalChecked(), Nan::New(pt.payload_type));
+    Nan::Set(codec, Nan::New("rtx").ToLocalChecked(), Nan::New(pt.rtx_payload_type));
     Nan::Set(codec, Nan::New("name").ToLocalChecked(),
                                 Nan::New(pt.encoding_name.c_str()).ToLocalChecked());
     Nan::Set(codec, Nan::New("rate").ToLocalChecked(), Nan::New(pt.clock_rate));
@@ -679,12 +716,14 @@ NAN_METHOD(ConnectionDescription::addPt) {
   std::string codec_name = getString(info[1]);
   unsigned int parsed_clock = info[2]->IntegerValue();
   erizo::MediaType media = getMediaType(getString(info[3]));
+  unsigned int rtx_pt = info[4]->IntegerValue();
 
   erizo::RtpMap new_mapping;
   new_mapping.payload_type = pt;
   new_mapping.encoding_name = codec_name;
   new_mapping.clock_rate = parsed_clock;
   new_mapping.media_type = media;
+  new_mapping.rtx_payload_type = rtx_pt;
   sdp->payload_parsed_map_[pt] = new_mapping;
 }
 
