@@ -74,6 +74,12 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void syncClose();
   bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
   bool setLocalSdp(std::shared_ptr<SdpInfo> sdp);
+  std::shared_ptr<SdpInfo> getRemoteSdp() const {
+    return remote_sdp_;
+  }
+  std::shared_ptr<SdpInfo> getLocalSdp() const {
+    return local_sdp_;
+  }
 
   /**
    * Sends a PLI Packet
@@ -187,7 +193,6 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   time_point now_, mark_;
 
   std::shared_ptr<RtcpProcessor> rtcp_processor_;
-  std::shared_ptr<RtxPacketTranslator> rtx_packet_translator_;
   std::shared_ptr<Stats> stats_;
   std::shared_ptr<Stats> log_stats_;
   std::shared_ptr<QualityManager> quality_manager_;

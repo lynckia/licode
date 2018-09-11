@@ -3,6 +3,7 @@
 
 #include "pipeline/Handler.h"
 #include "./logger.h"
+#include "MediaStream.h"
 
 namespace erizo {
 class MediaStream;
@@ -18,11 +19,12 @@ class RtxPacketTranslator : public InboundHandler {
   }
 
   void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
-  void setRtxMap(const std::map<uint32_t, uint32_t>& input_rtx_map);
-  void notifyUpdate() override {};
+  void notifyUpdate() override;
 
 private:
     std::map<uint32_t, uint32_t> rtx_map;
+    bool initialized_;
+    MediaStream* stream_;
 };
 
 }

@@ -229,8 +229,6 @@ class SessionDescription {
   }
 
   getStreamInfo(info, stream) {
-    console.log('>>>>>>>> STREAM: ', JSON.stringify(stream, null, 2));
-    console.log('>>>>>>>> INFO: ', JSON.stringify(info, null, 2));
     const streamId = stream.id;
     let videoSsrcList = [];
     let simulcastVideoSsrcList, fidVideoSSrcList = [];
@@ -289,10 +287,8 @@ class SessionDescription {
       info.setFingerprint(dtls.getFingerprint());
       info.setDtlsRole(Setup.toString(dtls.getSetup()));
     }
-    console.log('>>> SDP: ', JSON.stringify(sdp, null, 2));
 
     sdp.medias.forEach((media) => {
-      console.log('>>> MEDIA: ', JSON.stringify(media, null, 2));
       const dtls = media.getDTLS();
       if (dtls) {
         info.setFingerprint(dtls.getFingerprint());
@@ -358,7 +354,6 @@ class SessionDescription {
     }
 
     sdp.getStreams().forEach((stream) => {
-      console.log('STREAM', JSON.stringify(stream));
       this.getStreamInfo(info, stream);
     });
 

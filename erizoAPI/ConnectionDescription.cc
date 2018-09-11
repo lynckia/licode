@@ -332,7 +332,6 @@ NAN_METHOD(ConnectionDescription::getVideoSsrcMap) {
 NAN_METHOD(ConnectionDescription::setVideoFIDMap) {
   GET_SDP();
   std::string stream_id = getString(info[0]);
-  std::cout << ">>>>>>>>>>>>>>>>>> ADDON STREAM ID: " << stream_id << std::endl;
   v8::Local<v8::Array> video_fid_array = v8::Local<v8::Array>::Cast(info[1]);
   std::map<uint32_t, uint32_t> video_fid_map;
 
