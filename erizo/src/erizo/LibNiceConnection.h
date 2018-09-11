@@ -55,7 +55,7 @@ class LibNiceConnection : public IceConnection {
   int sendData(unsigned int component_id, const void* buf, int len) override;
 
   void updateComponentState(unsigned int component_id, IceState state);
-  void onData(unsigned int component_id, char* buf, int len) override;
+  void onData(unsigned int component_id, const void* buf, int len) override;
   CandidatePair getSelectedPair() override;
   void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
@@ -75,7 +75,7 @@ class LibNiceConnection : public IceConnection {
 
   boost::thread m_Thread_;
   boost::mutex close_mutex_;
-  boost::condition_variable cond_;
+//  boost::condition_variable cond_;
 
   bool receivedLastCandidate_;
   boost::shared_ptr<std::vector<CandidateInfo> > local_candidates;

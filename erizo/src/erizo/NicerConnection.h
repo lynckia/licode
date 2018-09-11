@@ -54,7 +54,7 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   void setRemoteCredentials(const std::string& username, const std::string& password) override;
   int sendData(unsigned int component_id, const void* buf, int len) override;
 
-  void onData(unsigned int component_id, char* buf, int len) override;
+  void onData(unsigned int component_id, const void* buf, int len) override;
   CandidatePair getSelectedPair() override;
   void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
