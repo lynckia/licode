@@ -38,15 +38,6 @@ class Worker : public std::enable_shared_from_this<Worker> {
 
   virtual void task(Task f);
 
-  template<typename Fn>
-  auto post_async_task(Fn&& fn) -> boost::unique_future<decltype(fn())> {
-    using return_type = decltype(fn());
-    using task_t = boost::packaged_task<return_type>;
-    std::shared_ptr<task_t> task = std::make_shared<task_t>(std::forward<Fn>(fn));
-    service_.post(boost::bind(&task_t::operator(), task));
-    return task->get_future();
-  }
-
   virtual void start();
   virtual void start(std::shared_ptr<std::promise<void>> start_promise);
   virtual void close();

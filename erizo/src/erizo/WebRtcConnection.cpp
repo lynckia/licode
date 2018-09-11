@@ -742,20 +742,18 @@ void WebRtcConnection::setTransport(std::shared_ptr<Transport> transport) {  // 
 }
 
 std::pair<RTPExtensionsMap, RTPExtensionsMap> WebRtcConnection::getSourceExtensionMap() {
-  std::lock_guard<std::mutex> lk(extension_map_mutex);
   auto result = std::make_pair(extension_processor_.getVideoExtensionMap(),
                                extension_processor_.getAudioExtensionMap());
   return result;
 }
 
 void WebRtcConnection::setSourceExtensionMap(std::shared_ptr<WebRtcConnection> source_wrtc) {
-  asyncTask([source_wrtc](std::shared_ptr<WebRtcConnection> this_connection){
-    auto source_map_future = source_wrtc->worker_->post_async_task([source_wrtc]{
-      return source_wrtc->getSourceExtensionMap();
-    });
-    auto map = source_map_future.get();
-    std::lock_guard<std::mutex> lk(this_connection->extension_map_mutex);
-    this_connection->extension_processor_.setSourceExtensionMap(map);
+  std::weak_ptr<WebRtcConnection> this_weak = shared_from_this();
+  source_wrtc->asyncTask([this_weak](std::shared_ptr<WebRtcConnection> source_connection) {
+    auto map = source_connection->getSourceExtensionMap();
+    if(auto this_connection = this_weak.lock()) {
+      this_connection->extension_processor_.setSourceExtensionMap(map);
+    }
   });
 }
 

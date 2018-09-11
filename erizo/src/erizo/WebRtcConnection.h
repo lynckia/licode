@@ -113,12 +113,6 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void setWebRtcConnectionEventListener(WebRtcConnectionEventListener* listener);
 
   /**
-   * Obtains the local pair of video and audio extension map.
-   * @return a pair of RTPExtensionsMap.
-   */
-  std::pair<RTPExtensionsMap, RTPExtensionsMap> getSourceExtensionMap();
-
-  /**
    * Sets the source (publisher) extension map for translation
    */
   void setSourceExtensionMap(std::shared_ptr<WebRtcConnection> source_wrtc);
@@ -163,6 +157,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   }
 
  private:
+  std::pair<RTPExtensionsMap, RTPExtensionsMap> getSourceExtensionMap();
   bool processRemoteSdp(std::string stream_id);
   void setRemoteSdpsToMediaStreams(std::string stream_id);
   void onRemoteSdpsSetToMediaStreams(std::string stream_id);
@@ -203,7 +198,6 @@ class WebRtcConnection: public TransportListener, public LogContext,
   bool audio_muted_;
   bool video_muted_;
   bool first_remote_sdp_processed_;
-  std::mutex extension_map_mutex;
 };
 
 }  // namespace erizo
