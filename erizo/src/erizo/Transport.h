@@ -1,5 +1,3 @@
-#include <utility>
-
 #ifndef ERIZO_SRC_ERIZO_TRANSPORT_H_
 #define ERIZO_SRC_ERIZO_TRANSPORT_H_
 
@@ -36,10 +34,9 @@ class Transport : public std::enable_shared_from_this<Transport>, public IceConn
   Transport(MediaType med, const std::string& transport_name, const std::string& connection_id, bool bundle,
       bool rtcp_mux, std::weak_ptr<TransportListener> transport_listener, const IceConfig& iceConfig,
       std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker) :
-    mediaType(med), transport_name(transport_name), rtcp_mux_(rtcp_mux), transport_listener_(std::move(
-      transport_listener)),
+    mediaType(med), transport_name(transport_name), rtcp_mux_(rtcp_mux), transport_listener_(transport_listener),
     connection_id_(connection_id), state_(TRANSPORT_INITIAL), iceConfig_(iceConfig), bundle_(bundle),
-    running_{true}, worker_{std::move(worker)},  io_worker_{std::move(io_worker)} {}
+    running_{true}, worker_{worker},  io_worker_{io_worker} {}
   virtual ~Transport() {}
   virtual void updateIceState(IceState state, IceConnection *conn) = 0;
   virtual void onIceData(packetPtr packet) = 0;
@@ -50,7 +47,7 @@ class Transport : public std::enable_shared_from_this<Transport>, public IceConn
   virtual void close() = 0;
   virtual std::shared_ptr<IceConnection> getIceConnection() { return ice_; }
   void setTransportListener(std::weak_ptr<TransportListener> listener) {
-    transport_listener_ = std::move(listener);
+    transport_listener_ = listener;
   }
   std::weak_ptr<TransportListener> getTransportListener() {
     return transport_listener_;
@@ -68,9 +65,10 @@ class Transport : public std::enable_shared_from_this<Transport>, public IceConn
     }
   }
   void writeOnIce(int comp, void* buf, int len) {
-    if (running_) {
-      ice_->sendData(comp, buf, len);
+    if (!running_) {
+      return;
     }
+    ice_->sendData(comp, buf, len);
   }
   bool setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool isBundle) {
     return ice_->setRemoteCandidates(candidates, isBundle);
