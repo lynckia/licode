@@ -1,6 +1,5 @@
 #include "RtxPacketTranslator.h"
 #include "RtpHeaders.h"
-#include <iostream>
 
 namespace erizo
 {
