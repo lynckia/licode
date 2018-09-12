@@ -40,7 +40,8 @@ void RtxPacketTranslator::read(Context *ctx, std::shared_ptr<DataPacket> packet)
 
             memmove(data, data + 2, packet->length - header_len);
             packet->length -= 2;
-            ELOG_DEBUG("%s Rewriting rtx packet from ssrc: %u to: %u, original_seqnum: %u to: %u, original_pt: %u to: %u", stream_->toLog(), ssrc, fid_mapping->first, seq_num, original_seqnum, pt, apt_mapping->second);
+            ELOG_DEBUG("%s Rewriting rtx packet from ssrc: %u to: %u, orig_seqnum: %u to: %u, orig_pt: %u to: %u",
+                stream_->toLog(), ssrc, fid_mapping->first, seq_num, original_seqnum, pt, apt_mapping->second);
         }
     }
     ctx->fireRead(std::move(packet));

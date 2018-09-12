@@ -11,7 +11,7 @@ class MediaStream;
 class RtxPacketTranslator : public InboundHandler {
     DECLARE_LOGGER();
 
-   public:
+ public:
     void enable() override {}
     void disable() override {}
 
@@ -22,7 +22,7 @@ class RtxPacketTranslator : public InboundHandler {
     void read(Context* ctx, std::shared_ptr<DataPacket> packet) override;
     void notifyUpdate() override;
 
-   private:
+ private:
     std::map<uint32_t, uint32_t> fid_map;
     std::map<unsigned, unsigned> apt_translator;
     bool initialized_;
@@ -31,4 +31,4 @@ class RtxPacketTranslator : public InboundHandler {
 
 }  // namespace erizo
 
-#endif
+#endif  // ERIZO_SRC_ERIZO_RTP_RTXPACKETTRANSLATOR_H_
