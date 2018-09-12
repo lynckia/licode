@@ -74,8 +74,8 @@ class MediaInfo {
     this.codecs.forEach((codec) => {
       plain.codecs.push(codec.plain());
     });
-    this.extensions.forEach((extension) => {
-      plain.extensions.push(extension.plain());
+    this.extensions.forEach((extension, key) => {
+      plain.extensions[key] = extension;
     });
     this.rids.forEach((rid) => {
       plain.rids.push(rid.plain());

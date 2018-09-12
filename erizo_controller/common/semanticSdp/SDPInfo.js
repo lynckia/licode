@@ -519,8 +519,6 @@ class SDPInfo {
 }
 
 function getFormats(mediaInfo, md) {
-  const apts = new Map();
-
   md.rtp.forEach((fmt) => {
     const type = fmt.payload;
     const codec = fmt.codec;
@@ -546,18 +544,7 @@ function getFormats(mediaInfo, md) {
         }
       });
     }
-    if (codec.toUpperCase() === 'RTX') {
-      apts.set(parseInt(params.apt, 10), type);
-    } else {
-      mediaInfo.addCodec(new CodecInfo(codec, type, rate, encoding, params, feedback));
-    }
-  });
-
-  apts.forEach((apt, id) => {
-    const codecInfo = mediaInfo.getCodecForType(id);
-    if (codecInfo) {
-      codecInfo.setRTX(apt);
-    }
+    mediaInfo.addCodec(new CodecInfo(codec, type, rate, encoding, params, feedback));
   });
 }
 
