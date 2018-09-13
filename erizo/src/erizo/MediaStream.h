@@ -211,7 +211,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool is_publisher_;
 
   std::atomic_bool simulcast_;
-  std::atomic_uint64_t bitrate_from_max_quality_layer_;
+  std::atomic<uint64_t> bitrate_from_max_quality_layer_;
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;
   std::shared_ptr<SdpInfo> local_sdp_;
