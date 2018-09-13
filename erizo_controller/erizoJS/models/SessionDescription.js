@@ -71,7 +71,6 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
     });
   }
 
-  const apts = new Map();
   const codecs = info.getCodecs(mediaType);
   if (codecs) {
     codecs.forEach((codec) => {
@@ -95,21 +94,9 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
       if (codec.params) {
         params = codec.params;
       }
-
-      if (codecName.toUpperCase() === 'RTX') {
-        apts.set(parseInt(params.apt, 10), type);
-      } else {
-        media.addCodec(new CodecInfo(codecName, type, rate, encoding, params, feedback));
-      }
+      media.addCodec(new CodecInfo(codecName, type, rate, encoding, params, feedback));
     });
   }
-
-  apts.forEach((apt, id) => {
-    const codecInfo = media.getCodecForType(id);
-    if (codecInfo) {
-      codecInfo.setRTX(apt);
-    }
-  });
 
   const extmaps = info.getExtensions(mediaType);
   if (extmaps) {
@@ -226,7 +213,7 @@ class SessionDescription {
   getStreamInfo(info, stream) {
     const streamId = stream.id;
     let videoSsrcList = [];
-    let simulcastVideoSsrcList;
+    let simulcastVideoSsrcList, fidVideoSSrcList = [];
 
     stream.getTracks().forEach((track) => {
       if (track.getMedia() === 'audio') {
@@ -242,11 +229,15 @@ class SessionDescription {
         if (group.getSemantics().toUpperCase() === 'SIM') {
           simulcastVideoSsrcList = group.getSSRCs();
         }
+        if (group.getSemantics().toUpperCase() === 'FID') {
+          fidVideoSSrcList.push(group.getSSRCs());
+        }
       });
     });
 
     videoSsrcList = simulcastVideoSsrcList || videoSsrcList;
     info.setVideoSsrcList(streamId, videoSsrcList);
+    info.setVideoFIDMap(streamId, fidVideoSSrcList);
   }
 
   processSdp() {
@@ -311,7 +302,8 @@ class SessionDescription {
       });
 
       media.getCodecs().forEach((codec) => {
-        info.addPt(codec.getType(), codec.getCodec(), codec.getRate(), media.getType());
+        info.addPt(codec.getType(), codec.getCodec(), codec.getRate(),
+          codec.getEncoding(), media.getType());
 
         const params = codec.getParams();
         Object.keys(params).forEach((option) => {

@@ -259,7 +259,7 @@ class SdpInfo {
    */
   std::map<std::string, unsigned int> audio_ssrc_map;
   std::map<std::string, std::vector<uint32_t>> video_ssrc_map;
-  std::map<std::string, std::map<uint32_t, uint32_t>> video_rtx_ssrc_map;
+  std::map<std::string, std::map<uint32_t, uint32_t>> fid_ssrc_map;
   /**
   * Is it Bundle
   */

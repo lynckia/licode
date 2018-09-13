@@ -24,6 +24,7 @@
 #include "pipeline/Service.h"
 #include "rtp/QualityManager.h"
 #include "rtp/PacketBufferService.h"
+#include "rtp/RtxPacketTranslator.h"
 
 namespace erizo {
 
@@ -73,7 +74,6 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void syncClose();
   bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
   bool setLocalSdp(std::shared_ptr<SdpInfo> sdp);
-
   /**
    * Sends a PLI Packet
    * @return the size of the data sent

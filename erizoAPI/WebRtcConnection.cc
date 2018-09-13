@@ -140,10 +140,8 @@ NAN_METHOD(WebRtcConnection::New) {
         if (it.value()["clockRate"].is_number()) {
           rtp_map.clock_rate = it.value()["clockRate"];
         }
-        if (rtp_map.media_type == erizo::AUDIO_TYPE) {
-          if (it.value()["channels"].is_number()) {
-            rtp_map.channels = it.value()["channels"];
-          }
+        if (it.value()["channels"].is_number()) {
+          rtp_map.channels = it.value()["channels"];
         }
         if (it.value()["formatParameters"].is_object()) {
           json format_params_json = it.value()["formatParameters"];
