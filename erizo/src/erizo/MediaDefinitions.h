@@ -25,8 +25,8 @@ struct DataPacket {
   DataPacket(int comp_, const char *data_, int length_, packetType type_, uint64_t received_time_ms_) :
     comp{comp_}, length{length_}, type{type_}, received_time_ms{received_time_ms_}, is_keyframe{false},
     ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1} {
-    if(length_ > 0) {
-      memcpy(data, data_, std::min((size_t)length_, sizeof(data)));
+    if (length_ > 0) {
+      memcpy(data, data_, std::min((size_t) length_, sizeof(data)));
     }
   }
 
