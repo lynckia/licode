@@ -751,7 +751,7 @@ void WebRtcConnection::setSourceExtensionMap(std::shared_ptr<WebRtcConnection> s
   std::weak_ptr<WebRtcConnection> this_weak = shared_from_this();
   source_wrtc->asyncTask([this_weak](std::shared_ptr<WebRtcConnection> source_connection) {
     auto map = source_connection->getSourceExtensionMap();
-    if(auto this_connection = this_weak.lock()) {
+    if (auto this_connection = this_weak.lock()) {
       this_connection->extension_processor_.setSourceExtensionMap(map);
     }
   });
