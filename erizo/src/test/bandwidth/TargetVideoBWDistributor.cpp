@@ -43,7 +43,6 @@ typedef std::vector<int32_t>  ExpectedList;
 
 class BasicTargetVideoBWDistributor {
  protected:
-
   void setUpStreams() {
     for (StreamConfig stream_config : stream_config_list) {
       streams.push_back(addMediaStream(false, stream_config));
