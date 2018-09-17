@@ -501,11 +501,6 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
     });
   }
 
-  std::sort(streams.begin(), streams.end(),
-    [](const std::shared_ptr<MediaStream> &i, const std::shared_ptr<MediaStream> &j) {
-      return i->getMaxVideoBW() < j->getMaxVideoBW();
-    });
-
   distributor_->distribute(chead->getREMBBitRate(), chead->getSSRC(), streams, transport);
 }
 

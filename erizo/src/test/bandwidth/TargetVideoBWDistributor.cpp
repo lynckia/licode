@@ -41,23 +41,8 @@ typedef std::vector<uint32_t> TargetList;
 typedef std::vector<bool>     EnabledList;
 typedef std::vector<int32_t>  ExpectedList;
 
-class TargetVideoBWDistributorTest :
-  public ::testing::TestWithParam<std::tr1::tuple<StreamConfigList,
-                                                  uint32_t,
-                                                  EnabledList,
-                                                  ExpectedList>> {
+class BasicTargetVideoBWDistributor {
  protected:
-  virtual void SetUp() {
-    index = 0;
-    stream_config_list = std::tr1::get<0>(GetParam());
-    bitrate_value = std::tr1::get<1>(GetParam());
-    add_to_remb_list = std::tr1::get<2>(GetParam());
-    expected_bitrates = std::tr1::get<3>(GetParam());
-
-    distributor = std::make_shared<erizo::TargetVideoBWDistributor>();
-
-    setUpStreams();
-  }
 
   void setUpStreams() {
     for (StreamConfig stream_config : stream_config_list) {
@@ -73,7 +58,7 @@ class TargetVideoBWDistributorTest :
     uint32_t video_source_ssrc = getSsrcFromIndex(index) + 2;
     uint32_t audio_source_ssrc = getSsrcFromIndex(index) + 3;
     auto media_stream = std::make_shared<erizo::MockMediaStream>(nullptr, nullptr, id, label,
-      rtp_maps, is_publisher);
+     rtp_maps, is_publisher);
     media_stream->setVideoSinkSSRC(video_sink_ssrc);
     media_stream->setAudioSinkSSRC(audio_sink_ssrc);
     media_stream->setVideoSourceSSRC(video_source_ssrc);
@@ -82,7 +67,7 @@ class TargetVideoBWDistributorTest :
     EXPECT_CALL(*media_stream, getMaxVideoBW()).Times(AtLeast(0)).WillRepeatedly(Return(config.max_video_bw));
     EXPECT_CALL(*media_stream, getBitrateSent()).Times(AtLeast(0)).WillRepeatedly(Return(config.bitrate_sent));
     EXPECT_CALL(*media_stream, getBitrateFromMaxQualityLayer()).Times(AtLeast(0))
-      .WillRepeatedly(Return(config.max_quality_bitrate));
+     .WillRepeatedly(Return(config.max_quality_bitrate));
     EXPECT_CALL(*media_stream, isSlideShowModeEnabled()).Times(AtLeast(0)).WillRepeatedly(Return(config.slideshow));
     EXPECT_CALL(*media_stream, isSimulcast()).Times(AtLeast(0)).WillRepeatedly(Return(config.simulcast));
 
@@ -98,7 +83,7 @@ class TargetVideoBWDistributorTest :
     for (uint8_t index = 0; index < ids.size(); index++) {
       uint32_t ssrc_feed = ids[index];
       std::for_each(streams.begin(), streams.end(), [ssrc_feed, &enabled_streams]
-                                                      (const std::shared_ptr<MediaStream> &stream) {
+      (const std::shared_ptr<MediaStream> &stream) {
         if (stream->isSinkSSRC(ssrc_feed)) {
           enabled_streams.push_back(stream);
         }
@@ -127,10 +112,6 @@ class TargetVideoBWDistributorTest :
     return index * 1000;
   }
 
-  virtual void TearDown() {
-    streams.clear();
-  }
-
   std::vector<std::shared_ptr<erizo::MockMediaStream>> streams;
   StreamConfigList stream_config_list;
   uint32_t bitrate_value;
@@ -142,6 +123,29 @@ class TargetVideoBWDistributorTest :
   uint32_t index;
   std::shared_ptr<TargetVideoBWDistributor> distributor;
   std::queue<std::shared_ptr<DataPacket>> packet_queue;
+};
+
+class TargetVideoBWDistributorTest : public BasicTargetVideoBWDistributor,
+  public ::testing::TestWithParam<std::tr1::tuple<StreamConfigList,
+                                                  uint32_t,
+                                                  EnabledList,
+                                                  ExpectedList>> {
+ protected:
+  virtual void SetUp() {
+    index = 0;
+    stream_config_list = std::tr1::get<0>(GetParam());
+    bitrate_value = std::tr1::get<1>(GetParam());
+    add_to_remb_list = std::tr1::get<2>(GetParam());
+    expected_bitrates = std::tr1::get<3>(GetParam());
+
+    distributor = std::make_shared<erizo::TargetVideoBWDistributor>();
+
+    setUpStreams();
+  }
+
+  virtual void TearDown() {
+    streams.clear();
+  }
 };
 
 TEST_P(TargetVideoBWDistributorTest, forwardRembToStreams_When_TheyExist) {
@@ -321,3 +325,42 @@ INSTANTIATE_TEST_CASE_P(
                                 {100, 100, 100, false, true},
                                 {100, 100, 100, false, true}},
                                                               500, EnabledList{1, 1, 1}, ExpectedList{166, 100, 100})));
+
+class MultipleTargetVideoBWDistributorTest : public BasicTargetVideoBWDistributor,
+                                            public ::testing::Test {
+ protected:
+  virtual void SetUp() {
+    index = 0;
+    stream_config_list = StreamConfigList{};
+    bitrate_value = 2000;
+    add_to_remb_list = EnabledList{};
+    expected_bitrates = ExpectedList{};
+    for (int index = 0; index < 200; index++) {
+      stream_config_list.push_back({900, 100, 100, true, true});
+      add_to_remb_list.push_back(1);
+      expected_bitrates.push_back(10);
+    }
+    distributor = std::make_shared<erizo::TargetVideoBWDistributor>();
+
+    setUpStreams();
+  }
+
+  virtual void TearDown() {
+    streams.clear();
+  }
+};
+
+TEST_F(MultipleTargetVideoBWDistributorTest, forwardRembToStreams_When_TheyExist) {
+  uint32_t index = 0;
+  for (int32_t expected_bitrate : expected_bitrates) {
+    if (expected_bitrate > 0) {
+      EXPECT_CALL(*(streams[index]), onTransportData(_, _))
+        .With(Args<0>(erizo::RembHasBitrateValue(static_cast<uint32_t>(expected_bitrate)))).Times(1);
+    } else {
+      EXPECT_CALL(*streams[index], onTransportData(_, _)).Times(0);
+    }
+    index++;
+  }
+
+  onRembReceived();
+}

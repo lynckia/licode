@@ -15,11 +15,8 @@ void TargetVideoBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
                                   std::vector<std::shared_ptr<MediaStream>> streams, Transport *transport) {
   std::sort(streams.begin(), streams.end(),
     [this](const std::shared_ptr<MediaStream> &i, const std::shared_ptr<MediaStream> &j) {
-      if (i->isSlideShowModeEnabled()) return true;
-      if (j->isSlideShowModeEnabled()) return false;
       return getTargetVideoBW(i) < getTargetVideoBW(j);
     });
-
   uint8_t remaining_streams = streams.size();
   uint32_t remaining_bitrate = remb;
   std::for_each(streams.begin(), streams.end(),
