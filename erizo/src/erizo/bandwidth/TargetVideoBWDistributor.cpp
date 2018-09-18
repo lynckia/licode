@@ -28,11 +28,10 @@ void TargetVideoBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
       uint32_t remaining_avg_bitrate = remaining_bitrate / remaining_streams;
       uint32_t bitrate = std::min(target_bitrate, remaining_avg_bitrate);
       uint32_t remb = std::min(max_bitrate, remaining_avg_bitrate);
-      uint32_t bitrate_to_transfer = std::max(bitrate - target_bitrate * 1.2, 0.0);
       auto generated_remb = RtpUtils::createREMB(ssrc, {stream->getVideoSinkSSRC()}, remb);
       stream->onTransportData(generated_remb, transport);
 
-      remaining_bitrate -= bitrate + bitrate_to_transfer;
+      remaining_bitrate -= bitrate;
       remaining_streams--;
     });
 }
