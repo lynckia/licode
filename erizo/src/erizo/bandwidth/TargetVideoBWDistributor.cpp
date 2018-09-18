@@ -17,13 +17,12 @@ void TargetVideoBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
 
   std::for_each(streams.begin(), streams.end(),
     [&stream_infos](std::shared_ptr<MediaStream> stream) {
-      MediaStreamInfo info {stream,
+      stream_infos.push_back({stream,
                               stream->isSimulcast(),
                               stream->isSlideShowModeEnabled(),
                               stream->getBitrateSent(),
                               stream->getMaxVideoBW(),
-                              stream->getBitrateFromMaxQualityLayer()};
-      stream_infos.push_back(info);
+                              stream->getBitrateFromMaxQualityLayer()});
     });
 
   std::sort(stream_infos.begin(), stream_infos.end(),
