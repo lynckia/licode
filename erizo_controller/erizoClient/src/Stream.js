@@ -432,8 +432,8 @@ const Stream = (altConnectionHelpers, specInput) => {
     that.pc.updateSpec(config, that.getID(), callback);
   };
 
-  // eslint-disable-next-line no-underscore-dangle
   // This is an alias to keep backwards compatibility
+  // eslint-disable-next-line no-underscore-dangle
   that._setMinSpatialLayer = that._enableSlideShowBelowSpatialLayer;
 
   const controlHandler = (handlersInput, publisherSideInput, enable) => {
