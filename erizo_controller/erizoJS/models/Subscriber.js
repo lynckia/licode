@@ -107,7 +107,8 @@ class Subscriber extends NodeClass {
           this.publisher.setQualityLayer(msg.config.qualityLayer, this.clientId);
         }
         if (msg.config.slideShowBelowLayer !== undefined) {
-          this.publisher.enableSlideShowBelowSpatialLayer(msg.config.slideShowBelowLayer, this.clientId);
+          this.publisher.enableSlideShowBelowSpatialLayer(
+            msg.config.slideShowBelowLayer, this.clientId);
         }
         if (msg.config.video !== undefined) {
           this.publisher.setVideoConstraints(msg.config.video, this.clientId);
