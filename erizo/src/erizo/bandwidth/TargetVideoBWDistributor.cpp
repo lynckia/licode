@@ -13,38 +13,51 @@ namespace erizo {
 
 void TargetVideoBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
                                   std::vector<std::shared_ptr<MediaStream>> streams, Transport *transport) {
-  std::sort(streams.begin(), streams.end(),
-    [this](const std::shared_ptr<MediaStream> &i, const std::shared_ptr<MediaStream> &j) {
+  std::vector<MediaStreamInfo> stream_infos{};
+
+  std::for_each(streams.begin(), streams.end(),
+    [&stream_infos](std::shared_ptr<MediaStream> stream) {
+      MediaStreamInfo info {stream,
+                              stream->isSimulcast(),
+                              stream->isSlideShowModeEnabled(),
+                              stream->getBitrateSent(),
+                              stream->getMaxVideoBW(),
+                              stream->getBitrateFromMaxQualityLayer()};
+      stream_infos.push_back(info);
+    });
+
+  std::sort(stream_infos.begin(), stream_infos.end(),
+    [this](const MediaStreamInfo &i, const MediaStreamInfo &j) {
       return getTargetVideoBW(i) < getTargetVideoBW(j);
     });
   uint8_t remaining_streams = streams.size();
   uint32_t remaining_bitrate = remb;
-  std::for_each(streams.begin(), streams.end(),
-    [&remaining_bitrate, &remaining_streams, transport, ssrc, this](const std::shared_ptr<MediaStream> &stream) {
-      uint32_t max_bitrate = stream->getMaxVideoBW();
+  std::for_each(stream_infos.begin(), stream_infos.end(),
+    [&remaining_bitrate, &remaining_streams, transport, ssrc, this](const MediaStreamInfo &stream) {
+      uint32_t max_bitrate = stream.max_video_bw;
 
       uint32_t target_bitrate = getTargetVideoBW(stream);
 
       uint32_t remaining_avg_bitrate = remaining_bitrate / remaining_streams;
       uint32_t bitrate = std::min(target_bitrate, remaining_avg_bitrate);
       uint32_t remb = std::min(max_bitrate, remaining_avg_bitrate);
-      auto generated_remb = RtpUtils::createREMB(ssrc, {stream->getVideoSinkSSRC()}, remb);
-      stream->onTransportData(generated_remb, transport);
+      auto generated_remb = RtpUtils::createREMB(ssrc, {stream.stream->getVideoSinkSSRC()}, remb);
+      stream.stream->onTransportData(generated_remb, transport);
 
       remaining_bitrate -= bitrate;
       remaining_streams--;
     });
 }
 
-uint32_t TargetVideoBWDistributor::getTargetVideoBW(const std::shared_ptr<MediaStream> &stream) {
-  bool slide_show_mode = stream->isSlideShowModeEnabled();
-  bool is_simulcast = stream->isSimulcast();
-  uint32_t bitrate_sent = stream->getBitrateSent();
-  uint32_t max_bitrate = stream->getMaxVideoBW();
+uint32_t TargetVideoBWDistributor::getTargetVideoBW(const MediaStreamInfo &stream) {
+  bool slide_show_mode = stream.is_slideshow;
+  bool is_simulcast = stream.is_simulcast;
+  uint32_t bitrate_sent = stream.bitrate_sent;
+  uint32_t max_bitrate = stream.max_video_bw;
 
   uint32_t target_bitrate = max_bitrate;
   if (is_simulcast) {
-    target_bitrate = std::min(stream->getBitrateFromMaxQualityLayer(), max_bitrate);
+    target_bitrate = std::min(stream.bitrate_from_max_quality_layer, max_bitrate);
   }
   if (slide_show_mode) {
     target_bitrate = std::min(bitrate_sent, max_bitrate);
