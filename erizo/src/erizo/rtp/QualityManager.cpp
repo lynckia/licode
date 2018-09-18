@@ -129,6 +129,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   if (!initialized_  || !stats_->getNode().hasChild("qualityLayers")) {
     return;
   }
+  stream_->setSimulcast(true);
   last_quality_check_ = clock_->now();
   int min_requested_spatial_layer = std::max(slideshow_below_spatial_layer_, 0);
   int min_valid_spatial_layer = std::min(min_requested_spatial_layer, max_active_spatial_layer_);
@@ -226,6 +227,8 @@ void QualityManager::calculateMaxActiveLayer() {
 
   max_active_spatial_layer_ = max_active_spatial_layer;
   max_active_temporal_layer_ = max_active_temporal_layer;
+
+  stream_->setBitrateFromMaxQualityLayer(getInstantLayerBitrate(max_active_spatial_layer, max_active_temporal_layer));
 }
 
 uint64_t QualityManager::getInstantLayerBitrate(int spatial_layer, int temporal_layer) {
