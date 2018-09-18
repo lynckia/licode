@@ -153,7 +153,7 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     static NAN_METHOD(disableHandler);
 
     static NAN_METHOD(setQualityLayer);
-    static NAN_METHOD(setMinSpatialLayer);
+    static NAN_METHOD(enableSlideShowBelowSpatialLayer);
 
     static NAN_METHOD(onMediaStreamEvent);
 

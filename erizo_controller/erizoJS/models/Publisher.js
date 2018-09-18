@@ -302,13 +302,13 @@ class Source extends NodeClass {
     subscriber.mediaStream.setQualityLayer(qualityLayer.spatialLayer, qualityLayer.temporalLayer);
   }
 
-  setMinSpatialLayer(qualityLayer, clientId) {
+  enableSlideShowBelowSpatialLayer(qualityLayer, clientId) {
     const subscriber = this.getSubscriber(clientId);
     if (!subscriber) {
       return;
     }
     log.info('message: setMinSpatialLayer, spatialLayer: ', qualityLayer.spatialLayer);
-    subscriber.mediaStream.setMinSpatialLayer(qualityLayer.spatialLayer);
+    subscriber.mediaStream.enableSlideShowBelowSpatialLayer(qualityLayer.spatialLayer);
   }
 
   muteSubscriberStream(clientId, muteVideo, muteAudio) {
