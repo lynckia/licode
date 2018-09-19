@@ -7,6 +7,16 @@ namespace erizo {
 
 class MediaStream;
 
+struct MediaStreamInfo {
+ public:
+  std::shared_ptr<MediaStream> stream;
+  bool is_simulcast;
+  bool is_slideshow;
+  uint32_t bitrate_sent;
+  uint32_t max_video_bw;
+  uint32_t bitrate_from_max_quality_layer;
+};
+
 class TargetVideoBWDistributor : public BandwidthDistributionAlgorithm {
  public:
   TargetVideoBWDistributor() {}
@@ -14,7 +24,7 @@ class TargetVideoBWDistributor : public BandwidthDistributionAlgorithm {
   void distribute(uint32_t remb, uint32_t ssrc, std::vector<std::shared_ptr<MediaStream>> streams,
                   Transport *transport) override;
  private:
-  uint32_t getTargetVideoBW(const std::shared_ptr<MediaStream> &stream);
+  uint32_t getTargetVideoBW(const MediaStreamInfo &stream);
 };
 
 }  // namespace erizo
