@@ -796,9 +796,9 @@ void MediaStream::setQualityLayer(int spatial_layer, int temporal_layer) {
   });
 }
 
-void MediaStream::setMinDesiredSpatialLayer(int spatial_layer) {
-  asyncTask([spatial_layer] (std::shared_ptr<MediaStream> media_stream) {
-    media_stream->quality_manager_->setMinDesiredSpatialLayer(spatial_layer);
+void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer) {
+  asyncTask([enabled, spatial_layer] (std::shared_ptr<MediaStream> media_stream) {
+    media_stream->quality_manager_->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
   });
 }
 

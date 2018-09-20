@@ -34,12 +34,12 @@ void RtpSlideShowHandler::notifyUpdate() {
   if (pipeline && !stream_) {
     stream_ = pipeline->getService<MediaStream>().get();
   }
-  bool fallback_slideshow_enabled = pipeline->getService<QualityManager>()->isFallbackSlideShowEnabled();
+  bool fallback_slideshow_enabled = pipeline->getService<QualityManager>()->isFallbackFreezeEnabled();
   bool manual_slideshow_enabled = stream_->isSlideShowModeEnabled();
   if (fallback_slideshow_enabled) {
-    ELOG_DEBUG("Slideshow fallback mode enabled");
+    ELOG_DEBUG("SlideShow fallback mode enabled");
   } else {
-    ELOG_DEBUG("Slideshow fallback mode disabled");
+    ELOG_DEBUG("SlideShow fallback mode disabled");
   }
   setSlideShowMode(fallback_slideshow_enabled || manual_slideshow_enabled);
 }

@@ -312,13 +312,14 @@ const BaseStack = (specInput) => {
         (config.slideShowMode !== undefined) ||
         (config.muteStream !== undefined) ||
         (config.qualityLayer !== undefined) ||
-        (config.minLayer !== undefined) ||
+        (config.slideShowBelowLayer !== undefined) ||
         (config.video !== undefined)) {
       Logger.debug('MaxVideoBW Changed to ', config.maxVideoBW);
       Logger.debug('MinVideo Changed to ', config.minVideoBW);
       Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
       Logger.debug('muteStream changed to ', config.muteStream);
       Logger.debug('Video Constraints', config.video);
+      Logger.debug('Will activate slideshow when below layer', config.slideShowBelowLayer);
       specBase.callback({ type: 'updatestream', config }, streamId);
     }
   };
