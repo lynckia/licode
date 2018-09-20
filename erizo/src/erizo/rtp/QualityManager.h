@@ -25,13 +25,13 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
 
   virtual  int getSpatialLayer() const { return spatial_layer_; }
   virtual  int getTemporalLayer() const { return temporal_layer_; }
-  virtual  bool isFallbackSlideShowEnabled() const { return slideshow_fallback_active_; }
+  virtual  bool isFallbackFreezeEnabled() const { return freeze_fallback_active_; }
 
   void setSpatialLayer(int spatial_layer);
   void setTemporalLayer(int temporal_layer);
 
   void forceLayers(int spatial_layer, int temporal_layer);
-  void setMinDesiredSpatialLayer(int spatial_layer);
+  void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
   void setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate);
   void notifyEvent(MediaEventPtr event) override;
   void notifyQualityUpdate();
@@ -53,12 +53,13 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   bool enabled_;
   bool padding_enabled_;
   bool forced_layers_;
-  bool slideshow_fallback_active_;
+  bool freeze_fallback_active_;
+  bool enable_slideshow_below_spatial_layer_;
   int spatial_layer_;
   int temporal_layer_;
   int max_active_spatial_layer_;
   int max_active_temporal_layer_;
-  int min_desired_spatial_layer_;
+  int slideshow_below_spatial_layer_;
   int64_t max_video_width_;
   int64_t max_video_height_;
   int64_t max_video_frame_rate_;
