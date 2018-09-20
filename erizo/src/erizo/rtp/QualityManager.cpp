@@ -168,7 +168,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     aux_spatial_layer++;
   }
 
-  ELOG_DEBUG("below_min_layer %u, freeze_fallback_active_: %u", below_min_layer, freeze_fallback_active_);
+  ELOG_DEBUG("message: below_min_layer %u, freeze_fallback_active_: %u", below_min_layer, freeze_fallback_active_);
   if (below_min_layer != freeze_fallback_active_) {
     if (below_min_layer || try_higher_layers) {
       freeze_fallback_active_ = below_min_layer;
