@@ -31,7 +31,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   void setTemporalLayer(int temporal_layer);
 
   void forceLayers(int spatial_layer, int temporal_layer);
-  void enableSlideShowBelowSpatialLayer(int spatial_layer);
+  void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
   void setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate);
   void notifyEvent(MediaEventPtr event) override;
   void notifyQualityUpdate();
@@ -54,6 +54,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   bool padding_enabled_;
   bool forced_layers_;
   bool freeze_fallback_active_;
+  bool enable_slideshow_below_spatial_layer_;
   int spatial_layer_;
   int temporal_layer_;
   int max_active_spatial_layer_;

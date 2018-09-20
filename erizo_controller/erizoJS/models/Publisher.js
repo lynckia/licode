@@ -307,8 +307,9 @@ class Source extends NodeClass {
     if (!subscriber) {
       return;
     }
-    log.info('message: setMinSpatialLayer, spatialLayer: ', qualityLayer.spatialLayer);
-    subscriber.mediaStream.enableSlideShowBelowSpatialLayer(qualityLayer.spatialLayer);
+    log.info('message: setMinSpatialLayer, enabled: ', qualityLayer.enabled,
+      ' spatialLayer: ', qualityLayer.spatialLayer);
+    subscriber.mediaStream.enableSlideShowBelowSpatialLayer(qualityLayer.enabled, qualityLayer.spatialLayer);
   }
 
   muteSubscriberStream(clientId, muteVideo, muteAudio) {

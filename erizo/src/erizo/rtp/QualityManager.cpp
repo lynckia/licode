@@ -15,7 +15,7 @@ constexpr float QualityManager::kIncreaseLayerBitrateThreshold;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
   : initialized_{false}, enabled_{false}, padding_enabled_{false}, forced_layers_{false},
-  freeze_fallback_active_{false}, spatial_layer_{0},
+  freeze_fallback_active_{false}, enable_slideshow_below_spatial_layer_{false}, spatial_layer_{0},
   temporal_layer_{0}, max_active_spatial_layer_{0},
   max_active_temporal_layer_{0}, slideshow_below_spatial_layer_{-1}, max_video_width_{-1},
   max_video_height_{-1}, max_video_frame_rate_{-1}, current_estimated_bitrate_{0},
@@ -131,7 +131,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   }
   stream_->setSimulcast(true);
   last_quality_check_ = clock_->now();
-  int min_requested_spatial_layer = std::max(slideshow_below_spatial_layer_, 0);
+  int min_requested_spatial_layer = enable_slideshow_below_spatial_layer_ ? std::max(slideshow_below_spatial_layer_, 0) : 0;
   int min_valid_spatial_layer = std::min(min_requested_spatial_layer, max_active_spatial_layer_);
   int aux_temporal_layer = 0;
   int aux_spatial_layer = 0;
@@ -160,7 +160,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
         aux_temporal_layer++;
       }
     } else {
-      ELOG_DEBUG("message: Skipping below min spatial layer, aux_layer: %d, min_valid_spatial_layer",
+      ELOG_DEBUG("message: Skipping below min spatial layer, aux_layer: %d, min_valid_spatial_layer: %d",
           aux_spatial_layer, min_valid_spatial_layer);
     }
     aux_temporal_layer = 0;
@@ -172,19 +172,21 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     if (below_min_layer || try_higher_layers) {
       freeze_fallback_active_ = below_min_layer;
       ELOG_DEBUG("message: Setting slideshow fallback, below_min_layer %u, spatial_layer %d,"
-          "next_spatial_layer %d slidehow_fallback_active_: %d, min_desired_spatial_layer: %d",
-          below_min_layer, spatial_layer_, next_spatial_layer, freeze_fallback_active_, slideshow_below_spatial_layer_);
+          "next_spatial_layer %d freeze_fallback_active_: %d, min_requested_spatial_layer: %d,"
+          "slideshow_below_spatial_layer_ %d",
+          below_min_layer, spatial_layer_, next_spatial_layer, freeze_fallback_active_, 
+          min_requested_spatial_layer, slideshow_below_spatial_layer_);
       HandlerManager *manager = getContext()->getPipelineShared()->getService<HandlerManager>().get();
       if (manager) {
         manager->notifyUpdateToHandlers();
       }
-      if (slideshow_below_spatial_layer_ != -1) {
+      if (enable_slideshow_below_spatial_layer_ && slideshow_below_spatial_layer_ >= 0) {
         if (below_min_layer) {
-          ELOG_WARN("message: Spatial layer is below minimum desired layer %d, activating keyframe requests",
-              min_valid_spatial_layer);
+          ELOG_DEBUG("message: Spatial layer is below min valid spatial layer %d and slideshow is requested "
+              ", activating keyframe requests", min_valid_spatial_layer);
           stream_->notifyMediaStreamEvent("slideshow_fallback_update", "true");
         } else {
-          ELOG_WARN("message: Spatial layer has recovered %d, deactivating keyframe requests",
+          ELOG_DEBUG("message: Spatial layer has recovered %d, deactivating keyframe requests",
               next_spatial_layer);
           stream_->notifyMediaStreamEvent("slideshow_fallback_update", "false");
         }
@@ -262,9 +264,13 @@ void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
   temporal_layer_ = temporal_layer;
 }
 
-void QualityManager::enableSlideShowBelowSpatialLayer(int spatial_layer) {
-  ELOG_DEBUG("message: Will activate slideshow when below spatial layer, spatial_layer: %d", spatial_layer);
+void QualityManager::enableSlideShowBelowSpatialLayer(bool enable, int spatial_layer) {
+  ELOG_DEBUG("message: enableSlideShowBelowSpatialLayer, enable %d, spatial_layer: %d", enable, spatial_layer);
+  enable_slideshow_below_spatial_layer_ = enable;
   slideshow_below_spatial_layer_ = spatial_layer;
+ 
+  stream_->notifyMediaStreamEvent("slideshow_fallback_update", "false");
+ 
   freeze_fallback_active_ = false;
   selectLayer(true);
 }
