@@ -131,7 +131,8 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   }
   stream_->setSimulcast(true);
   last_quality_check_ = clock_->now();
-  int min_requested_spatial_layer = enable_slideshow_below_spatial_layer_ ? std::max(slideshow_below_spatial_layer_, 0) : 0;
+  int min_requested_spatial_layer =
+    enable_slideshow_below_spatial_layer_ ? std::max(slideshow_below_spatial_layer_, 0) : 0;
   int min_valid_spatial_layer = std::min(min_requested_spatial_layer, max_active_spatial_layer_);
   int aux_temporal_layer = 0;
   int aux_spatial_layer = 0;
@@ -174,7 +175,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
       ELOG_DEBUG("message: Setting slideshow fallback, below_min_layer %u, spatial_layer %d,"
           "next_spatial_layer %d freeze_fallback_active_: %d, min_requested_spatial_layer: %d,"
           "slideshow_below_spatial_layer_ %d",
-          below_min_layer, spatial_layer_, next_spatial_layer, freeze_fallback_active_, 
+          below_min_layer, spatial_layer_, next_spatial_layer, freeze_fallback_active_,
           min_requested_spatial_layer, slideshow_below_spatial_layer_);
       HandlerManager *manager = getContext()->getPipelineShared()->getService<HandlerManager>().get();
       if (manager) {
@@ -268,9 +269,9 @@ void QualityManager::enableSlideShowBelowSpatialLayer(bool enable, int spatial_l
   ELOG_DEBUG("message: enableSlideShowBelowSpatialLayer, enable %d, spatial_layer: %d", enable, spatial_layer);
   enable_slideshow_below_spatial_layer_ = enable;
   slideshow_below_spatial_layer_ = spatial_layer;
- 
+
   stream_->notifyMediaStreamEvent("slideshow_fallback_update", "false");
- 
+
   freeze_fallback_active_ = false;
   selectLayer(true);
 }
