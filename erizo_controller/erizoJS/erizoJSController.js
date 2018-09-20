@@ -219,7 +219,8 @@ exports.ErizoJSController = function (threadPool, ioThreadPool) {
         var publisher = publishers[streamId];
           if (publisher !== undefined) {
               log.info(`message: Removing publisher, id: ${clientId}, streamId: ${streamId}`);
-              for (let subscriberKey in publisher.subscribers) {
+              const subscriberKeys = publisher.subscribers;
+              for (let subscriberKey in subscriberKeys) {
                   let subscriber = publisher.getSubscriber(subscriberKey);
                   log.info('message: Removing subscriber, id: ' + subscriberKey);
                   closeNode(subscriber);
