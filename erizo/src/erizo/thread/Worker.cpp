@@ -130,7 +130,7 @@ void SimulatedWorker::close() {
 
 std::shared_ptr<ScheduledTaskReference> SimulatedWorker::scheduleFromNow(Task f, duration delta) {
   auto id = std::make_shared<ScheduledTaskReference>();
-  scheduled_tasks_[clock_->now() + delta] =  [this, f, id] {
+  scheduled_tasks_[clock_->now() + delta] =  [f, id] {
       if (id->isCancelled()) {
         return;
       }

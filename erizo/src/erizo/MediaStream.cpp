@@ -484,7 +484,7 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
   uint32_t recvSSRC = 0;
   if (!chead->isRtcp()) {
     recvSSRC = head->getSSRC();
-  } else if (chead->packettype == RTCP_Sender_PT) {  // Sender Report
+  } else if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_SDES_PT) {  // Sender Report
     recvSSRC = chead->getSSRC();
   }
   // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
