@@ -208,11 +208,6 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   return true;
 }
 
-bool MediaStream::setLocalSdp(std::shared_ptr<SdpInfo> sdp) {
-  local_sdp_ = std::move(sdp);
-  return true;
-}
-
 void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("streamId", StringStat{getId()});
   log_stats_->getNode().insertStat("audioBitrate", CumulativeStat{0});

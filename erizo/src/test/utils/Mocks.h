@@ -103,7 +103,6 @@ class MockMediaStream: public MediaStream {
     const std::string& media_stream_id, const std::string& media_stream_label,
     std::vector<RtpMap> rtp_mappings, bool is_publisher = true) :
   MediaStream(worker, connection, media_stream_id, media_stream_label, is_publisher) {
-    local_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
     remote_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
   }
 
