@@ -13,6 +13,8 @@
 #include "MediaStream.h"
 #include "DtlsTransport.h"
 #include "SdpInfo.h"
+#include "bandwidth/MaxVideoBWDistributor.h"
+#include "bandwidth/TargetVideoBWDistributor.h"
 #include "rtp/RtpHeaders.h"
 #include "rtp/RtpVP8Parser.h"
 #include "rtp/RtcpAggregator.h"
@@ -52,6 +54,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port);
   stats_ = std::make_shared<Stats>();
+  distributor_ = std::unique_ptr<BandwidthDistributionAlgorithm>(new TargetVideoBWDistributor());
   global_state_ = CONN_INITIAL;
 
   trickle_enabled_ = ice_config_.should_trickle;
@@ -149,12 +152,6 @@ bool WebRtcConnection::createOffer(bool video_enabled, bool audioEnabled, bool b
   std::string msg = this->getLocalSdp();
   maybeNotifyWebRtcConnectionEvent(global_state_, msg);
 
-  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
-  forEachMediaStreamAsync([weak_this] (const std::shared_ptr<MediaStream> &media_stream) {
-    if (auto connection = weak_this.lock()) {
-      media_stream->setLocalSdp(connection->local_sdp_);
-    }
-  });
   return true;
 }
 
@@ -224,7 +221,7 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
       return;
     }
     std::vector<uint32_t> video_ssrc_list = std::vector<uint32_t>();
-    if (media_stream->getVideoSinkSSRC() != kDefaultVideoSinkSSRC) {
+    if (media_stream->getVideoSinkSSRC() != kDefaultVideoSinkSSRC && media_stream->getVideoSinkSSRC() != 0) {
       video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
     }
     ELOG_DEBUG("%s message: getting local SDPInfo, stream_id: %s, audio_ssrc: %u",
@@ -232,7 +229,7 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
     if (!video_ssrc_list.empty()) {
       local_sdp_->video_ssrc_map[media_stream->getLabel()] = video_ssrc_list;
     }
-    if (media_stream->getAudioSinkSSRC() != kDefaultAudioSinkSSRC) {
+    if (media_stream->getAudioSinkSSRC() != kDefaultAudioSinkSSRC && media_stream->getAudioSinkSSRC() != 0) {
       local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
     }
   });
@@ -290,7 +287,6 @@ void WebRtcConnection::setRemoteSdpsToMediaStreams(std::string stream_id) {
     (*stream)->asyncTask([weak_this, stream_id] (const std::shared_ptr<MediaStream> &media_stream) {
       if (auto connection = weak_this.lock()) {
         media_stream->setRemoteSdp(connection->remote_sdp_);
-        media_stream->setLocalSdp(connection->local_sdp_);
         ELOG_DEBUG("%s message: setting remote SDP to stream, stream: %s", connection->toLog(), media_stream->getId());
         connection->onRemoteSdpsSetToMediaStreams(stream_id);
       }
@@ -498,23 +494,7 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
     });
   }
 
-  std::sort(streams.begin(), streams.end(),
-    [](const std::shared_ptr<MediaStream> &i, const std::shared_ptr<MediaStream> &j) {
-      return i->getMaxVideoBW() < j->getMaxVideoBW();
-    });
-
-  uint8_t remaining_streams = streams.size();
-  uint32_t remaining_bitrate = chead->getREMBBitRate();
-  std::for_each(streams.begin(), streams.end(),
-    [&remaining_bitrate, &remaining_streams, transport, chead](const std::shared_ptr<MediaStream> &stream) {
-      uint32_t max_bitrate = stream->getMaxVideoBW();
-      uint32_t remaining_avg_bitrate = remaining_bitrate / remaining_streams;
-      uint32_t bitrate = std::min(max_bitrate, remaining_avg_bitrate);
-      auto generated_remb = RtpUtils::createREMB(chead->getSSRC(), {stream->getVideoSinkSSRC()}, bitrate);
-      stream->onTransportData(generated_remb, transport);
-      remaining_bitrate -= bitrate;
-      remaining_streams--;
-    });
+  distributor_->distribute(chead->getREMBBitRate(), chead->getSSRC(), streams, transport);
 }
 
 void WebRtcConnection::onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport) {

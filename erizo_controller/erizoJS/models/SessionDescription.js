@@ -224,7 +224,7 @@ class SessionDescription {
   }
 
   getStreamInfo(info, stream) {
-    const streamId = stream.id;
+    const streamId = stream.getId();
     let videoSsrcList = [];
     let simulcastVideoSsrcList;
 

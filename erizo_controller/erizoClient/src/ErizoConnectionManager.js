@@ -181,6 +181,7 @@ class ErizoConnectionManager {
     if (connection.streamsMap.size() === 0) {
       connection.close();
       if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined) {
+        delete this.ErizoConnectionsMap.get(connection.erizoId)['single-pc'];
         delete this.ErizoConnectionsMap.get(connection.erizoId)[connection.sessionId];
       }
     }

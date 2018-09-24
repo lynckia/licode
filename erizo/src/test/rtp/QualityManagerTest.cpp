@@ -264,7 +264,7 @@ TEST_F(QualityManagerTest, shouldNotGoBelowMinDesiredSpatialLayerIfAvailable) {
 
   quality_manager->setSpatialLayer(kArbitrarySpatialLayer);
   quality_manager->setTemporalLayer(kArbitraryTemporalLayer);
-  quality_manager->setMinDesiredSpatialLayer(kArbitraryDesiredMinSpatialLayer);
+  quality_manager->enableSlideShowBelowSpatialLayer(true, kArbitraryDesiredMinSpatialLayer);
   addStatToLayer(kArbitrarySpatialLayer, kArbitraryTemporalLayer, 150);
   advanceClock(erizo::QualityManager::kMinLayerSwitchInterval + std::chrono::milliseconds(1));
 
@@ -283,7 +283,7 @@ TEST_F(QualityManagerTest, shouldGoBelowMinDesiredSpatialLayerIfNotAvailable) {
 
   quality_manager->setSpatialLayer(kArbitrarySpatialLayer);
   quality_manager->setTemporalLayer(kArbitraryTemporalLayer);
-  quality_manager->setMinDesiredSpatialLayer(kArbitraryDesiredMinSpatialLayer);
+  quality_manager->enableSlideShowBelowSpatialLayer(true, kArbitraryDesiredMinSpatialLayer);
   clearLayer(kArbitrarySpatialLayer, kArbitraryTemporalLayer);
 
   quality_manager->notifyQualityUpdate();

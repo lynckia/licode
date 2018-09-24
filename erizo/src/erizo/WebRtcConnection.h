@@ -12,6 +12,7 @@
 #include "./MediaDefinitions.h"
 #include "./Transport.h"
 #include "./Stats.h"
+#include "bandwidth/BandwidthDistributionAlgorithm.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
 #include "thread/IOWorker.h"
@@ -192,6 +193,8 @@ class WebRtcConnection: public TransportListener, public LogContext,
   bool audio_muted_;
   bool video_muted_;
   bool first_remote_sdp_processed_;
+
+  std::unique_ptr<BandwidthDistributionAlgorithm> distributor_;
 };
 
 }  // namespace erizo

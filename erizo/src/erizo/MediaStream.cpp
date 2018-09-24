@@ -51,6 +51,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   const std::string& media_stream_label,
   bool is_publisher) :
     audio_enabled_{false}, video_enabled_{false},
+    media_stream_event_listener_{nullptr},
     connection_{std::move(connection)},
     stream_id_{media_stream_id},
     mslabel_ {media_stream_label},
@@ -59,7 +60,9 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     worker_{std::move(worker)},
     audio_muted_{false}, video_muted_{false},
     pipeline_initialized_{false},
-    is_publisher_{is_publisher} {
+    is_publisher_{is_publisher},
+    simulcast_{false},
+    bitrate_from_max_quality_layer_{0} {
   setVideoSinkSSRC(kDefaultVideoSinkSSRC);
   setAudioSinkSSRC(kDefaultAudioSinkSSRC);
   ELOG_INFO("%s message: constructor, id: %s",
@@ -92,6 +95,16 @@ MediaStream::~MediaStream() {
 
 uint32_t MediaStream::getMaxVideoBW() {
   uint32_t bitrate = rtcp_processor_ ? rtcp_processor_->getMaxVideoBW() : 0;
+  return bitrate;
+}
+
+uint32_t MediaStream::getBitrateSent() {
+  uint32_t bitrate = 0;
+  std::string video_ssrc = std::to_string(is_publisher_ ? getVideoSourceSSRC() : getVideoSinkSSRC());
+  if (stats_->getNode().hasChild(video_ssrc) &&
+      stats_->getNode()[video_ssrc].hasChild("bitrateCalculated")) {
+    bitrate = stats_->getNode()[video_ssrc]["bitrateCalculated"].value();
+  }
   return bitrate;
 }
 
@@ -195,11 +208,6 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   return true;
 }
 
-bool MediaStream::setLocalSdp(std::shared_ptr<SdpInfo> sdp) {
-  local_sdp_ = std::move(sdp);
-  return true;
-}
-
 void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("streamId", StringStat{getId()});
   log_stats_->getNode().insertStat("audioBitrate", CumulativeStat{0});
@@ -251,6 +259,8 @@ void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("paddingBitrate", CumulativeStat{0});
   log_stats_->getNode().insertStat("bwe", CumulativeStat{0});
 
+  log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{0});
+
   std::weak_ptr<MediaStream> weak_this = shared_from_this();
   worker_->scheduleEvery([weak_this] () {
     if (auto stream = weak_this.lock()) {
@@ -287,6 +297,8 @@ void MediaStream::printStats() {
 
   log_stats_->getNode().insertStat("audioEnabled", CumulativeStat{audio_enabled_});
   log_stats_->getNode().insertStat("videoEnabled", CumulativeStat{video_enabled_});
+
+  log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{getMaxVideoBW()});
 
   if (audio_enabled_) {
     audio_ssrc = std::to_string(is_publisher_ ? getAudioSourceSSRC() : getAudioSinkSSRC());
@@ -467,7 +479,7 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
   uint32_t recvSSRC = 0;
   if (!chead->isRtcp()) {
     recvSSRC = head->getSSRC();
-  } else if (chead->packettype == RTCP_Sender_PT) {  // Sender Report
+  } else if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_SDES_PT) {  // Sender Report
     recvSSRC = chead->getSSRC();
   }
   // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
@@ -779,9 +791,9 @@ void MediaStream::setQualityLayer(int spatial_layer, int temporal_layer) {
   });
 }
 
-void MediaStream::setMinDesiredSpatialLayer(int spatial_layer) {
-  asyncTask([spatial_layer] (std::shared_ptr<MediaStream> media_stream) {
-    media_stream->quality_manager_->setMinDesiredSpatialLayer(spatial_layer);
+void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer) {
+  asyncTask([enabled, spatial_layer] (std::shared_ptr<MediaStream> media_stream) {
+    media_stream->quality_manager_->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
   });
 }
 

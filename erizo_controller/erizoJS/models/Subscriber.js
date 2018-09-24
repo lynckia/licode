@@ -14,8 +14,9 @@ class Subscriber extends NodeClass {
     this.connection.mediaConfiguration = options.mediaConfiguration;
     this.connection.addMediaStream(this.erizoStreamId, options, false);
     this._connectionListener = this._emitStatusEvent.bind(this);
+    this._mediaStreamListener = this._onMediaStreamEvent.bind(this);
     connection.on('status_event', this._connectionListener);
-    connection.on('media_stream_event', this._onMediaStreamEvent.bind(this));
+    connection.on('media_stream_event', this._mediaStreamListener);
     this.mediaStream = connection.getMediaStream(this.erizoStreamId);
     this.publisher = publisher;
     this.ready = false;
@@ -105,8 +106,9 @@ class Subscriber extends NodeClass {
         if (msg.config.qualityLayer !== undefined) {
           this.publisher.setQualityLayer(msg.config.qualityLayer, this.clientId);
         }
-        if (msg.config.minLayer !== undefined) {
-          this.publisher.setMinSpatialLayer(msg.config.minLayer, this.clientId);
+        if (msg.config.slideShowBelowLayer !== undefined) {
+          this.publisher.enableSlideShowBelowSpatialLayer(
+            msg.config.slideShowBelowLayer, this.clientId);
         }
         if (msg.config.video !== undefined) {
           this.publisher.setVideoConstraints(msg.config.video, this.clientId);
@@ -126,6 +128,7 @@ class Subscriber extends NodeClass {
     if (this.connection) {
       this.connection.removeMediaStream(this.mediaStream.id);
       this.connection.removeListener('status_event', this._connectionListener);
+      this.connection.removeListener('media_stream_event', this._mediaStreamListener);
     }
     if (this.mediaStream && this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);
