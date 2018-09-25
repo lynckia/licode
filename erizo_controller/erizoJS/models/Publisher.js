@@ -1,11 +1,13 @@
-/*global require, exports*/
-'use strict';
+/* global require, exports */
+
+
 const NodeClass = require('./Node').Node;
 const Subscriber = require('./Subscriber').Subscriber;
+// eslint-disable-next-line import/no-unresolved
 const addon = require('./../../../erizoAPI/build/Release/addon');
 const logger = require('./../../common/logger').logger;
 const Helpers = require('./Helpers');
-var SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
+const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
 
 // Logger
 const log = logger.getLogger('Publisher');
@@ -46,8 +48,8 @@ class Source extends NodeClass {
       this._onSchemeSlideShowModeChange.bind(this, clientId);
     subscriber.on('scheme-slideshow-change', subscriber._onSchemeSlideShowModeChangeListener);
 
-    log.debug(`message: Setting scheme from publisher to subscriber, ` +
-              `clientId: ${clientId}, scheme: ${this.scheme}, `+
+    log.debug('message: Setting scheme from publisher to subscriber, ' +
+              `clientId: ${clientId}, scheme: ${this.scheme}, ` +
                ` ${logger.objectToLog(options.metadata)}`);
 
     subscriber.mediaStream.scheme = this.scheme;
@@ -63,7 +65,7 @@ class Source extends NodeClass {
   }
 
   removeSubscriber(clientId) {
-    let subscriber = this.subscribers[clientId];
+    const subscriber = this.subscribers[clientId];
     if (subscriber === undefined) {
       log.warn(`message: subscriber to remove not found clientId: ${clientId}, ` +
         `streamId: ${this.streamId}`);
@@ -87,8 +89,8 @@ class Source extends NodeClass {
   }
 
   addExternalOutput(url, options) {
-    const eoId = url + '_' + this.streamId;
-    log.info('message: Adding ExternalOutput, id: ' + eoId + ', url: ' + url);
+    const eoId = `${url}_${this.streamId}`;
+    log.info(`message: Adding ExternalOutput, id: ${eoId}, url: ${url}`);
     const externalOutput = new addon.ExternalOutput(this.threadPool, url,
       Helpers.getMediaConfiguration(options.mediaConfiguration));
     externalOutput.id = eoId;
@@ -111,9 +113,10 @@ class Source extends NodeClass {
 
   removeExternalOutputs() {
     const promises = [];
-    for (let externalOutputKey in this.externalOutputs) {
-        log.info('message: Removing externalOutput, id ' + externalOutputKey);
-        promises.push(this.removeExternalOutput(externalOutputKey));
+    const externalOutputKeys = Object.keys(this.externalOutputs);
+    for (let i = 0; i < externalOutputKeys.length; i += 1) {
+      log.info(`message: Removing externalOutput, id ${externalOutputKeys[i]}`);
+      promises.push(this.removeExternalOutput(externalOutputKeys[i]));
     }
     return Promise.all(promises);
   }
@@ -131,9 +134,9 @@ class Source extends NodeClass {
     if (!this.mediaStream) {
       return;
     }
-    for (const index in disabledHandlers) {
-      this.mediaStream.disableHandler(disabledHandlers[index]);
-    }
+    disabledHandlers.forEach((handler) => {
+      this.mediaStream.disableHandler(handler);
+    });
   }
 
   _onSchemeSlideShowModeChange(message, clientId) {
@@ -164,12 +167,13 @@ class Source extends NodeClass {
       }
       if (msg.config) {
         if (msg.config.minVideoBW) {
-          log.debug('message: updating minVideoBW for publisher, ' +
-                    'id: ' + this.streamId + ', ' +
-                    'minVideoBW: ' + msg.config.minVideoBW);
+          log.debug('message: updating minVideoBW for publisher,' +
+                    `id: ${this.streamId}, ` +
+                    `minVideoBW: ${msg.config.minVideoBW}`);
           this.minVideoBW = msg.config.minVideoBW;
-          for (const clientId in this.subscribers) {
-            const subscriber = this.getSubscriber(clientId);
+          const subscriberKeys = Object.keys(this.subscribers);
+          for (let i = 0; i < subscriberKeys.length; i += 1) {
+            const subscriber = this.getSubscriber(subscriberKeys[i]);
             subscriber.minVideoBW = msg.config.minVideoBW * 1000; // bps
             subscriber.lowerThres = Math.floor(subscriber.minVideoBW * (1 - 0.2));
             subscriber.upperThres = Math.ceil(subscriber.minVideoBW * (1 + 0.1));
@@ -189,7 +193,7 @@ class Source extends NodeClass {
 
   processControlMessage(clientId, action) {
     const publisherSide = clientId === undefined || action.publisherSide;
-    switch(action.name) {
+    switch (action.name) {
       case 'controlhandlers':
         if (action.enable) {
           this.enableHandlers(publisherSide ? undefined : clientId, action.handlers);
@@ -197,6 +201,8 @@ class Source extends NodeClass {
           this.disableHandlers(publisherSide ? undefined : clientId, action.handlers);
         }
         break;
+      default:
+        log.error(`message: Unknwon processControlleMessage, action.name: ${action.name}`);
     }
   }
 
@@ -227,7 +233,7 @@ class Source extends NodeClass {
     } else {
       subscriber.mediaStream.slideShowMode = slideShowMode;
     }
-    let globalSlideShowStatus = subscriber.mediaStream.slideShowModeFallback ||
+    const globalSlideShowStatus = subscriber.mediaStream.slideShowModeFallback ||
       subscriber.mediaStream.slideShowMode;
 
     subscriber.mediaStream.setSlideShowMode(globalSlideShowStatus);
@@ -240,17 +246,17 @@ class Source extends NodeClass {
     }
     const subscriber = this.getSubscriber(clientId);
     if (!subscriber) {
-        log.warn('message: subscriber not found for updating slideshow, ' +
-                 'code: ' + WARN_NOT_FOUND + ', id: ' + clientId + '_' + this.streamId);
-        return;
+      log.warn(`${'message: subscriber not found for updating slideshow, ' +
+                 'code: '}${WARN_NOT_FOUND}, id: ${clientId}_${this.streamId}`);
+      return;
     }
 
-    log.warn('message: setting SlideShow, id: ' + subscriber.clientId +
-              ', slideShowMode: ' + slideShowMode + ' isFallback: ' + isFallback);
+    log.warn(`message: setting SlideShow, id: ${subscriber.clientId
+              }, slideShowMode: ${slideShowMode} isFallback: ${isFallback}`);
     let period = slideShowMode === true ? MIN_SLIDESHOW_PERIOD : slideShowMode;
     if (isFallback) {
-      period = slideShowMode === true? FALLBACK_SLIDESHOW_PERIOD : slideShowMode;
-    } 
+      period = slideShowMode === true ? FALLBACK_SLIDESHOW_PERIOD : slideShowMode;
+    }
     if (Number.isSafeInteger(period)) {
       period = period < MIN_SLIDESHOW_PERIOD ? MIN_SLIDESHOW_PERIOD : period;
       period = period > MAX_SLIDESHOW_PERIOD ? MAX_SLIDESHOW_PERIOD : period;
@@ -263,7 +269,7 @@ class Source extends NodeClass {
         this.mediaStream.generatePLIPacket();
       }, period);
     } else {
-      let result = this._updateMediaStreamSubscriberSlideshow(subscriber, false, isFallback);
+      const result = this._updateMediaStreamSubscriberSlideshow(subscriber, false, isFallback);
       if (!result) {
         for (let pliIndex = 0; pliIndex < PLIS_TO_RECOVER; pliIndex++) {
           this.mediaStream.generatePLIPacket();
@@ -275,10 +281,10 @@ class Source extends NodeClass {
 
   muteStream(muteStreamInfo, clientId) {
     if (muteStreamInfo.video === undefined) {
-        muteStreamInfo.video = false;
+      muteStreamInfo.video = false;
     }
     if (muteStreamInfo.audio === undefined) {
-        muteStreamInfo.audio = false;
+      muteStreamInfo.audio = false;
     }
     if (clientId && this.hasSubscriber(clientId)) {
       this.muteSubscriberStream(clientId, muteStreamInfo.video, muteStreamInfo.audio);
@@ -394,13 +400,13 @@ class Publisher extends Source {
     this.muxer.setPublisher(this.mediaStream);
     const muteVideo = (options.muteStream && options.muteStream.video) || false;
     const muteAudio = (options.muteStream && options.muteStream.audio) || false;
-    this.muteStream({video: muteVideo, audio: muteAudio});
+    this.muteStream({ video: muteVideo, audio: muteAudio });
   }
 
   _emitStatusEvent(evt, status, streamId) {
     log.debug('onStatusEvent in publisher', evt.type, this.streamId, streamId);
     const isGlobalStatus = streamId === undefined || streamId === '';
-    const isNotMe = !isGlobalStatus && (streamId + '') !== (this.streamId + '');
+    const isNotMe = !isGlobalStatus && (`${streamId}`) !== (`${this.streamId}`);
     if (isNotMe) {
       log.debug('onStatusEvent dropped in publisher', streamId, this.streamId);
       return;
@@ -418,7 +424,7 @@ class Publisher extends Source {
 
     if (evt.type === 'answer' || evt.type === 'offer') {
       if (!this.ready && this.connectionReady) {
-        this.emit('status_event', {type: 'ready'});
+        this.emit('status_event', { type: 'ready' });
       }
       this.ready = true;
     }
@@ -432,9 +438,9 @@ class Publisher extends Source {
       clearInterval(this.mediaStream.monitorInterval);
     }
     if (this.mediaStream.periodicPlis !== undefined) {
-        log.debug('message: clearing periodic PLIs for publisher, id: ' + this.streamId);
-        clearInterval(this.mediaStream.periodicPlis);
-        this.mediaStream.periodicPlis = undefined;
+      log.debug(`message: clearing periodic PLIs for publisher, id: ${this.streamId}`);
+      clearInterval(this.mediaStream.periodicPlis);
+      this.mediaStream.periodicPlis = undefined;
     }
   }
 }
@@ -442,9 +448,9 @@ class Publisher extends Source {
 class ExternalInput extends Source {
   constructor(url, streamId, threadPool) {
     super(url, streamId, threadPool);
-    const eiId = streamId + '_' + url;
+    const eiId = `${streamId}_${url}`;
 
-    log.info('message: Adding ExternalInput, id: ' + eiId);
+    log.info(`message: Adding ExternalInput, id: ${eiId}`);
 
     const ei = new addon.ExternalInput(url);
 

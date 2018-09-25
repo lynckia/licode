@@ -1,24 +1,27 @@
-/*global require, exports*/
-'use strict';
+/* global require, exports */
+
+
 const events = require('events');
+// eslint-disable-next-line import/no-unresolved
 const addon = require('./../../../erizoAPI/build/Release/addon');
 const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
+
 const log = logger.getLogger('Connection');
 
-const CONN_INITIAL        = 101,
-      // CONN_STARTED        = 102,
-      CONN_GATHERED       = 103,
-      CONN_READY          = 104,
-      CONN_FINISHED       = 105,
-      CONN_CANDIDATE      = 201,
-      CONN_SDP            = 202,
-      CONN_SDP_PROCESSED  = 203,
-      CONN_FAILED         = 500,
-      WARN_BAD_CONNECTION = 502;
+const CONN_INITIAL = 101;
+// CONN_STARTED        = 102,
+const CONN_GATHERED = 103;
+const CONN_READY = 104;
+const CONN_FINISHED = 105;
+const CONN_CANDIDATE = 201;
+const CONN_SDP = 202;
+const CONN_SDP_PROCESSED = 203;
+const CONN_FAILED = 500;
+const WARN_BAD_CONNECTION = 502;
 
 class Connection extends events.EventEmitter {
-  constructor (id, threadPool, ioThreadPool, options = {}) {
+  constructor(id, threadPool, ioThreadPool, options = {}) {
     super();
     log.info(`message: constructor, id: ${id}`);
     this.id = id;
@@ -30,34 +33,32 @@ class Connection extends events.EventEmitter {
     this.wrtc = this._createWrtc();
     this.initialized = false;
     this.options = options;
-    this.trickleIce = options.trickleIce || false;
-    this.metadata = this.options.metadata || {};
+    this.trickleIce = options.trickleIce || false;
+    this.metadata = this.options.metadata || {};
     this.isProcessingRemoteSdp = false;
     this.ready = false;
   }
 
-  _getMediaConfiguration(mediaConfiguration = 'default') {
+  static _getMediaConfiguration(mediaConfiguration = 'default') {
     if (global.mediaConfig && global.mediaConfig.codecConfigurations) {
       if (global.mediaConfig.codecConfigurations[mediaConfiguration]) {
         return JSON.stringify(global.mediaConfig.codecConfigurations[mediaConfiguration]);
       } else if (global.mediaConfig.codecConfigurations.default) {
         return JSON.stringify(global.mediaConfig.codecConfigurations.default);
-      } else {
-        log.warn(
-          'message: Bad media config file. You need to specify a default codecConfiguration.'
-         );
-        return JSON.stringify({});
       }
-    } else {
       log.warn(
-        'message: Bad media config file. You need to specify a default codecConfiguration.'
+        'message: Bad media config file. You need to specify a default codecConfiguration.',
       );
       return JSON.stringify({});
     }
+    log.warn(
+      'message: Bad media config file. You need to specify a default codecConfiguration.',
+    );
+    return JSON.stringify({});
   }
 
   _createWrtc() {
-    var wrtc = new addon.WebRtcConnection(this.threadPool, this.ioThreadPool, this.id,
+    const wrtc = new addon.WebRtcConnection(this.threadPool, this.ioThreadPool, this.id,
       global.config.erizo.stunserver,
       global.config.erizo.stunport,
       global.config.erizo.minport,
@@ -72,7 +73,7 @@ class Connection extends events.EventEmitter {
       global.config.erizo.networkinterface);
 
     if (this.metadata) {
-        wrtc.setMetadata(JSON.stringify(this.metadata));
+      wrtc.setMetadata(JSON.stringify(this.metadata));
     }
     return wrtc;
   }
@@ -95,10 +96,10 @@ class Connection extends events.EventEmitter {
   }
 
   _onMediaStreamEvent(type, message, mediaStreamId) {
-    let streamEvent = {
-      type: type,
-      mediaStreamId: mediaStreamId,
-      message: message,
+    const streamEvent = {
+      type,
+      mediaStreamId,
+      message,
     };
     this.emit('media_stream_event', streamEvent);
   }
@@ -111,32 +112,33 @@ class Connection extends events.EventEmitter {
       return;
     }
     this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
-    const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion++);
+    const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
+    this.sessionVersion += 1;
     let message = sdp.toString();
     message = message.replace(this.options.privateRegexp, this.options.publicIP);
 
-    const info = {type: this.options.createOffer || forceOffer ? 'offer' : 'answer', sdp: message};
+    const info = { type: this.options.createOffer || forceOffer ? 'offer' : 'answer', sdp: message };
     log.debug(`message: _maybeSendAnswer sending event, type: ${info.type}, streamId: ${streamId}`);
     this.emit('status_event', info, evt, streamId);
   }
 
-  init(streamId) {
+  init(newStreamId) {
     if (this.initialized) {
       return false;
     }
-    const firstStreamId = streamId;
+    const firstStreamId = newStreamId;
     this.initialized = true;
-    log.debug(`message: Init Connection, connectionId: ${this.id} `+
+    log.debug(`message: Init Connection, connectionId: ${this.id} ` +
               `${logger.objectToLog(this.options)}`);
     this.sessionVersion = 0;
 
     this.wrtc.init((newStatus, mess, streamId) => {
-      log.info('message: WebRtcConnection status update, ' +
-               'id: ' + this.id + ', status: ' + newStatus +
-                ', ' + logger.objectToLog(this.metadata));
-      switch(newStatus) {
+      log.info(`${'message: WebRtcConnection status update, ' +
+               'id: '}${this.id}, status: ${newStatus
+                }, ${logger.objectToLog(this.metadata)}`);
+      switch (newStatus) {
         case CONN_INITIAL:
-          this.emit('status_event', {type: 'started'}, newStatus);
+          this.emit('status_event', { type: 'started' }, newStatus);
           break;
 
         case CONN_SDP_PROCESSED:
@@ -154,22 +156,24 @@ class Connection extends events.EventEmitter {
           break;
 
         case CONN_CANDIDATE:
+          // eslint-disable-next-line no-param-reassign
           mess = mess.replace(this.options.privateRegexp, this.options.publicIP);
-          this.emit('status_event', {type: 'candidate', candidate: mess}, newStatus);
+          this.emit('status_event', { type: 'candidate', candidate: mess }, newStatus);
           break;
 
         case CONN_FAILED:
-          log.warn('message: failed the ICE process, ' + 'code: ' + WARN_BAD_CONNECTION +
-                   ', id: ' + this.id);
-          this.emit('status_event', {type: 'failed', sdp: mess}, newStatus);
+          log.warn(`message: failed the ICE process, code: ${WARN_BAD_CONNECTION},` +
+            `id: ${this.id}`);
+          this.emit('status_event', { type: 'failed', sdp: mess }, newStatus);
           break;
 
         case CONN_READY:
-          log.debug('message: connection ready, ' + 'id: ' + this.id +
-                    ', ' + 'status: ' + newStatus);
+          log.debug(`message: connection ready, id: ${this.id} status: ${newStatus}`);
           this.ready = true;
-          this.emit('status_event', {type: 'ready'}, newStatus);
+          this.emit('status_event', { type: 'ready' }, newStatus);
           break;
+        default:
+          log.error(`message: unknown webrtc status ${newStatus}`);
       }
     });
     if (this.options.createOffer) {
@@ -179,7 +183,7 @@ class Connection extends events.EventEmitter {
       const bundle = this.options.createOffer.bundle;
       this.wrtc.createOffer(videoEnabled, audioEnabled, bundle);
     }
-    this.emit('status_event', {type: 'initializing'});
+    this.emit('status_event', { type: 'initializing' });
     return true;
   }
 
@@ -227,7 +231,7 @@ class Connection extends events.EventEmitter {
     log.info(`message: WebRtcConnection status update, id: ${this.id}, status: ${CONN_FINISHED}, ` +
             `${logger.objectToLog(this.metadata)}`);
     this.mediaStreams.forEach((mediaStream, id) => {
-      log.debug(`message: Closing mediaStream, connectionId : ${this.id}, `+
+      log.debug(`message: Closing mediaStream, connectionId : ${this.id}, ` +
         `mediaStreamId: ${id}`);
       mediaStream.close();
     });

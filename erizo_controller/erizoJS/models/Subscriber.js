@@ -1,8 +1,9 @@
-/*global require, exports*/
-'use strict';
+/* global require, exports */
+
+
 const NodeClass = require('./Node').Node;
 const logger = require('./../../common/logger').logger;
-var SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
+const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
 
 // Logger
 const log = logger.getLogger('Subscriber');
@@ -25,7 +26,7 @@ class Subscriber extends NodeClass {
 
   _emitStatusEvent(evt, status, streamId) {
     const isGlobalStatus = streamId === undefined || streamId === '';
-    const isNotMe = !isGlobalStatus && (streamId + '') !== (this.erizoStreamId + '');
+    const isNotMe = !isGlobalStatus && (`${streamId}`) !== (`${this.erizoStreamId}`);
     if (isNotMe) {
       log.debug('onStatusEvent dropped in publisher', streamId, this.erizoStreamId);
       return;
@@ -43,7 +44,7 @@ class Subscriber extends NodeClass {
 
     if (evt.type === 'answer' || evt.type === 'offer') {
       if (!this.ready && this.connectionReady) {
-        const readyEvent = {type: 'ready'};
+        const readyEvent = { type: 'ready' };
         this._onConnectionStatusEvent(readyEvent);
         this.emit('status_event', readyEvent);
       }
@@ -56,9 +57,9 @@ class Subscriber extends NodeClass {
   _onConnectionStatusEvent(connectionEvent) {
     if (connectionEvent.type === 'ready') {
       if (this.clientId && this.options.browser === 'bowser') {
-          this.publisher.requestVideoKeyFrame();
+        this.publisher.requestVideoKeyFrame();
       }
-      if (this.options.slideShowMode === true || 
+      if (this.options.slideShowMode === true ||
           Number.isSafeInteger(this.options.slideShowMode)) {
         this.publisher.setSlideShow(this.options.slideShowMode, this.clientId);
       }
@@ -67,8 +68,8 @@ class Subscriber extends NodeClass {
 
   _onMediaStreamEvent(mediaStreamEvent) {
     if (mediaStreamEvent.type === 'slideshow_fallback_update') {
-      this.publisher.setSlideShow(mediaStreamEvent.message ===
-        'false'? false: true, this.clientId, true);
+      this.publisher.setSlideShow(mediaStreamEvent.message !==
+        'false', this.clientId, true);
     }
   }
 
@@ -80,7 +81,7 @@ class Subscriber extends NodeClass {
   }
 
   onSignalingMessage(msg, publisher) {
-    let connection = this.connection;
+    const connection = this.connection;
 
     if (msg.type === 'offer') {
       const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
