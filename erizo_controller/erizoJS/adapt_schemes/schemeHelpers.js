@@ -7,7 +7,7 @@ schemeHelpers.getBandwidthStat = mediaStream => new Promise((resolve, reject) =>
       reject('no stats');
     }
     const newStats = JSON.parse(statsString);
-    if (newStats.hasOwnProperty('total')) {
+    if (Object.prototype.hasOwnProperty.call(newStats, 'total')) {
       resolve(newStats.total.senderBitrateEstimation);
     }
     resolve(false);

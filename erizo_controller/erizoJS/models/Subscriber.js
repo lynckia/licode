@@ -36,13 +36,13 @@ class Subscriber extends NodeClass {
         return;
       }
       this.connectionReady = true;
-      if (!(this.ready && this.connectionReady)) {
+      if (!(this.ready && this.connectionReady)) {
         log.debug('ready event dropped in publisher', this.ready, this.connectionReady);
         return;
       }
     }
 
-    if (evt.type === 'answer' || evt.type === 'offer') {
+    if (evt.type === 'answer' || evt.type === 'offer') {
       if (!this.ready && this.connectionReady) {
         const readyEvent = { type: 'ready' };
         this._onConnectionStatusEvent(readyEvent);
@@ -75,9 +75,9 @@ class Subscriber extends NodeClass {
 
   disableDefaultHandlers() {
     const disabledHandlers = global.config.erizo.disabledHandlers;
-    for (const index in disabledHandlers) {
-      this.mediaStream.disableHandler(disabledHandlers[index]);
-    }
+    disabledHandlers.forEach((index) => {
+      this.mediaStream.disabledHandler(disabledHandlers[index]);
+    });
   }
 
   onSignalingMessage(msg, publisher) {

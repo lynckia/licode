@@ -1,5 +1,6 @@
 /* global require, exports */
 
+/* eslint-disable no-param-reassign */
 
 const NodeClass = require('./Node').Node;
 const Subscriber = require('./Subscriber').Subscriber;
@@ -33,6 +34,14 @@ class Source extends NodeClass {
   get numSubscribers() {
     return Object.keys(this.subscribers).length;
   }
+
+  forEachSubscriber(action) {
+    const subscriberKeys = Object.keys(this.subscribers);
+    for (let i = 0; i < subscriberKeys.length; i += 1) {
+      action(subscriberKeys[i], this.subscribers(subscriberKeys[i]));
+    }
+  }
+
 
   addSubscriber(clientId, connection, options) {
     log.info(`message: Adding subscriber, clientId: ${clientId}, ` +
@@ -113,11 +122,10 @@ class Source extends NodeClass {
 
   removeExternalOutputs() {
     const promises = [];
-    const externalOutputKeys = Object.keys(this.externalOutputs);
-    for (let i = 0; i < externalOutputKeys.length; i += 1) {
-      log.info(`message: Removing externalOutput, id ${externalOutputKeys[i]}`);
-      promises.push(this.removeExternalOutput(externalOutputKeys[i]));
-    }
+    Object.keys(this.externalOutputs).forEach((key) => {
+      log.info(`message: Removing externalOutput, id ${key}`);
+      promises.push(this.removeExternalOutput(key));
+    });
     return Promise.all(promises);
   }
 
@@ -171,13 +179,11 @@ class Source extends NodeClass {
                     `id: ${this.streamId}, ` +
                     `minVideoBW: ${msg.config.minVideoBW}`);
           this.minVideoBW = msg.config.minVideoBW;
-          const subscriberKeys = Object.keys(this.subscribers);
-          for (let i = 0; i < subscriberKeys.length; i += 1) {
-            const subscriber = this.getSubscriber(subscriberKeys[i]);
+          this.forEachSubscriber((clientId, subscriber) => {
             subscriber.minVideoBW = msg.config.minVideoBW * 1000; // bps
             subscriber.lowerThres = Math.floor(subscriber.minVideoBW * (1 - 0.2));
             subscriber.upperThres = Math.ceil(subscriber.minVideoBW * (1 + 0.1));
-          }
+          });
         }
         if (msg.config.muteStream !== undefined) {
           this.muteStream(msg.config.muteStream);
@@ -214,11 +220,16 @@ class Source extends NodeClass {
 
   maybeStopSlideShow() {
     if (this.connection && this.mediaStream && this.mediaStream.periodicPlis !== undefined) {
-      for (const i in this.subscribers) {
-        if (this.getSubscriber(i).mediaStream.slideShowMode === true ||
-          this.getSubscriber(i).mediaStream.slideShowModeFallback === true) {
-          return;
+      let shouldStopSlideShow = true;
+      this.forEachSubscriber((id, subscriber) => {
+        if (subscriber.mediaStream.slideShowMode === true ||
+          subscriber.mediaStream.slideShowModeFallback === true) {
+          shouldStopSlideShow = false;
         }
+      });
+
+      if (!shouldStopSlideShow) {
+        return;
       }
       log.debug('message: clearing Pli interval as no more ' +
                 'slideshows subscribers are present');
@@ -227,7 +238,7 @@ class Source extends NodeClass {
     }
   }
 
-  _updateMediaStreamSubscriberSlideshow(subscriber, slideShowMode, isFallback) {
+  static _updateMediaStreamSubscriberSlideshow(subscriber, slideShowMode, isFallback) {
     if (isFallback) {
       subscriber.mediaStream.slideShowModeFallback = slideShowMode;
     } else {
@@ -271,7 +282,7 @@ class Source extends NodeClass {
     } else {
       const result = this._updateMediaStreamSubscriberSlideshow(subscriber, false, isFallback);
       if (!result) {
-        for (let pliIndex = 0; pliIndex < PLIS_TO_RECOVER; pliIndex++) {
+        for (let pliIndex = 0; pliIndex < PLIS_TO_RECOVER; pliIndex += 1) {
           this.mediaStream.generatePLIPacket();
         }
       }
@@ -289,12 +300,11 @@ class Source extends NodeClass {
     if (clientId && this.hasSubscriber(clientId)) {
       this.muteSubscriberStream(clientId, muteStreamInfo.video, muteStreamInfo.audio);
     } else {
-      for (const subId in this.subscribers) {
-        const sub = this.getSubscriber(subId);
+      this.forEachSubscriber((id, subscriber) => {
         this.muteVideo = muteStreamInfo.video;
         this.muteAudio = muteStreamInfo.audio;
-        this.muteSubscriberStream(subId, sub.muteVideo, sub.muteAudio);
-      }
+        this.muteSubscriberStream(id, subscriber.muteVideo, subscriber.muteAudio);
+      });
     }
   }
 
@@ -352,9 +362,9 @@ class Source extends NodeClass {
       mediaStream = this.getSubscriber(clientId).mediaStream;
     }
     if (mediaStream) {
-      for (const index in handlers) {
-        mediaStream.enableHandler(handlers[index]);
-      }
+      Object.keys(handlers).forEach((handlerId) => {
+        mediaStream.enableHandler(handlers[handlerId]);
+      });
     }
   }
 
@@ -367,12 +377,13 @@ class Source extends NodeClass {
       mediaStream = this.getSubscriber(clientId).mediaStream;
     }
     if (mediaStream) {
-      for (const index in handlers) {
-        mediaStream.disableHandler(handlers[index]);
-      }
+      Object.keys(handlers).forEach((handlerId) => {
+        mediaStream.disableHandler(handlers[handlerId]);
+      });
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
   close() {
   }
 }
@@ -416,13 +427,13 @@ class Publisher extends Source {
         return;
       }
       this.connectionReady = true;
-      if (!(this.ready && this.connectionReady)) {
+      if (!(this.ready && this.connectionReady)) {
         log.debug('ready event dropped in publisher', this.ready, this.connectionReady);
         return;
       }
     }
 
-    if (evt.type === 'answer' || evt.type === 'offer') {
+    if (evt.type === 'answer' || evt.type === 'offer') {
       if (!this.ready && this.connectionReady) {
         this.emit('status_event', { type: 'ready' });
       }
@@ -470,7 +481,7 @@ class ExternalInput extends Source {
   init() {
     return this.ei.init();
   }
-
+  // eslint-disable-next-line class-methods-use-this
   close() {
   }
 }

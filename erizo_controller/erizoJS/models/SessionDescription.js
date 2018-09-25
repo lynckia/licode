@@ -1,6 +1,6 @@
 /* global require */
 
-
+// eslint-disable-next-line import/no-unresolved
 const ConnectionDescription = require('./../../../erizoAPI/build/Release/addon')
                                                           .ConnectionDescription;
 const SdpInfo = require('./../../common/semanticSdp/SDPInfo');
@@ -141,10 +141,10 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
     let isSimulcast = false;
     const simulcast = new SimulcastInfo();
     const ridsData = [];
-    let direction;
+    let ridDirection;
     Object.keys(rids).forEach((id) => {
       isSimulcast = true;
-      direction = rids[id];
+      ridDirection = rids[id];
       ridsData.push(id);
       const ridInfo = new RIDInfo(id, DirectionWay.byValue(rids[id]));
       media.addRID(ridInfo);
@@ -152,10 +152,10 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
 
     if (isSimulcast) {
       /* jshint camelcase: false */
-      simulcast.setSimulcastPlainString(`${direction} rid=${ridsData.join(';')}`);
+      simulcast.setSimulcastPlainString(`${ridDirection} rid=${ridsData.join(';')}`);
       media.simulcast_03 = simulcast;
     }
-    if (info.getXGoogleFlag() && info.getXGoogleFlag() !== '') {
+    if (info.getXGoogleFlag() && info.getXGoogleFlag() !== '') {
       media.setXGoogleFlag(info.getXGoogleFlag());
     }
   }
@@ -224,7 +224,7 @@ class SessionDescription {
     return this.sdp;
   }
 
-  getStreamInfo(info, stream) {
+  static getStreamInfo(info, stream) {
     const streamId = stream.getId();
     let videoSsrcList = [];
     let simulcastVideoSsrcList;
@@ -273,17 +273,17 @@ class SessionDescription {
 
     info.setBundle(true);  // TODO
 
-    const dtls = sdp.getDTLS();
-    if (dtls) {
-      info.setFingerprint(dtls.getFingerprint());
-      info.setDtlsRole(Setup.toString(dtls.getSetup()));
+    const sdpDtls = sdp.getDTLS();
+    if (sdpDtls) {
+      info.setFingerprint(sdpDtls.getFingerprint());
+      info.setDtlsRole(Setup.toString(sdpDtls.getSetup()));
     }
 
     sdp.medias.forEach((media) => {
-      const dtls = media.getDTLS();
-      if (dtls) {
-        info.setFingerprint(dtls.getFingerprint());
-        info.setDtlsRole(Setup.toString(dtls.getSetup()));
+      const mediaDtls = media.getDTLS();
+      if (mediaDtls) {
+        info.setFingerprint(mediaDtls.getFingerprint());
+        info.setDtlsRole(Setup.toString(mediaDtls.getSetup()));
       }
       if (media.getType() === 'audio') {
         audio = media;

@@ -1,37 +1,37 @@
+/* eslint-disable no-param-reassign */
 
 const schemeHelpers = require('./schemeHelpers.js').schemeHelpers;
 
-exports.MonitorSubscriber = function (log) {
-  let that = {},
-    INTERVAL_STATS = 1000,
-    TICKS_PER_TRANSITION = 10;
+exports.MonitorSubscriber = (log) => {
+  const that = {};
+  const INTERVAL_STATS = 1000;
+  const TICKS_PER_TRANSITION = 10;
 
   /* BW Status
   * 0 - Stable
   * 1 - SlideShow
   */
-  let BW_STABLE = 0,
-    BW_SLIDESHOW = 1;
+  const BW_STABLE = 0;
+  const BW_SLIDESHOW = 1;
 
-  const calculateAverage = function (values) {
+  const calculateAverage = (values) => {
     if (values === undefined) { return 0; }
     const cnt = values.length;
-    let tot = parseInt(0);
-    for (let i = 0; i < values.length; i++) {
-      tot += parseInt(values[i]);
+    let tot = parseInt(0, 10);
+    for (let i = 0; i < values.length; i += 1) {
+      tot += parseInt(values[i], 10);
     }
     return Math.ceil(tot / cnt);
   };
 
 
-  that.monitorMinVideoBw = function (mediaStream, callback) {
+  that.monitorMinVideoBw = (mediaStream, callback) => {
     mediaStream.bwValues = [];
     let ticks = 0;
-    let retries = 0;
-    let lastAverage,
-      average,
-      lastBWValue;
-    let nextRetry = 0;
+    let lastAverage;
+    let average;
+    let lastBWValue;
+
     mediaStream.bwStatus = BW_STABLE;
     log.info(`${'message: Start wrtc adapt scheme, ' +
     'id: '}${mediaStream.id}, ` +
@@ -58,7 +58,7 @@ exports.MonitorSubscriber = function (log) {
         switch (mediaStream.bwStatus) {
           case BW_STABLE:
             if (average <= lastAverage && (average < mediaStream.lowerThres)) {
-              if (++ticks > TICKS_PER_TRANSITION) {
+              if ((ticks += 1) > TICKS_PER_TRANSITION) {
                 log.info(`${'message: scheme state change, ' +
                 'id: '}${mediaStream.id}, ` +
                 'previousState: BW_STABLE, ' +
@@ -81,8 +81,6 @@ exports.MonitorSubscriber = function (log) {
             `averageBandwidth: ${average}, ` +
             `lowerThreshold: ${mediaStream.lowerThres}`);
             ticks = 0;
-            nextRetry = 0;
-            retries = 0;
             average = 0;
             lastAverage = 0;
             mediaStream.minVideoBW = false;

@@ -1,11 +1,12 @@
+/* eslint-disable no-param-reassign */
 
 const schemeHelpers = require('./schemeHelpers.js').schemeHelpers;
 
-exports.MonitorSubscriber = function (log) {
-  let that = {},
-    INTERVAL_STATS = 1000,
-    MIN_RECOVER_BW = 50000,
-    TICS_PER_TRANSITON = 10;
+exports.MonitorSubscriber = (log) => {
+  const that = {};
+  const INTERVAL_STATS = 1000;
+  const MIN_RECOVER_BW = 50000;
+  const TICS_PER_TRANSITION = 10;
 
 
   /* BW Status
@@ -14,31 +15,31 @@ exports.MonitorSubscriber = function (log) {
   * 2 - Trying recovery
   * 3 - Won't recover
   */
-  let BW_STABLE = 0,
-    BW_INSUFFICIENT = 1,
-    BW_RECOVERING = 2,
-    BW_WONTRECOVER = 3;
+  const BW_STABLE = 0;
+  const BW_INSUFFICIENT = 1;
+  const BW_RECOVERING = 2;
+  const BW_WONTRECOVER = 3;
 
-  const calculateAverage = function (values) {
+  const calculateAverage = (values) => {
     if (values === undefined) { return 0; }
     const cnt = values.length;
-    let tot = parseInt(0);
-    for (let i = 0; i < values.length; i++) {
-      tot += parseInt(values[i]);
+    let tot = parseInt(0, 10);
+    for (let i = 0; i < values.length; i += 1) {
+      tot += parseInt(values[i], 10);
     }
     return Math.ceil(tot / cnt);
   };
 
 
-  that.monitorMinVideoBw = function (mediaStream, callback) {
+  that.monitorMinVideoBw = (mediaStream, callback) => {
     mediaStream.bwValues = [];
     let tics = 0;
     let retries = 0;
     let ticsToTry = 0;
-    let lastAverage,
-      average,
-      lastBWValue,
-      toRecover;
+    let lastAverage;
+    let average;
+    let lastBWValue;
+    let toRecover;
     let nextRetry = 0;
     mediaStream.bwStatus = BW_STABLE;
     log.info(`${'message: Start mediaStream adapt scheme, ' +
@@ -65,7 +66,7 @@ exports.MonitorSubscriber = function (log) {
         switch (mediaStream.bwStatus) {
           case BW_STABLE:
             if (average <= lastAverage && (average < mediaStream.lowerThres)) {
-              if (++tics > TICS_PER_TRANSITON) {
+              if ((tics += 1) > TICS_PER_TRANSITION) {
                 log.info(`${'message: scheme state change, ' +
                 'id: '}${mediaStream.id}, ` +
                 'previousState: BW_STABLE, ' +
@@ -107,7 +108,7 @@ exports.MonitorSubscriber = function (log) {
               mediaStream.bwStatus = BW_WONTRECOVER;
             } else if (nextRetry === 0) {  // schedule next retry
               nextRetry = tics + 20;
-            } else if (++tics === nextRetry) {  // next retry is in order
+            } else if ((tics += 1) === nextRetry) {  // next retry is in order
               mediaStream.bwStatus = BW_RECOVERING;
               ticsToTry = tics + 10;
               mediaStream.setFeedbackReports(false, average);
@@ -143,7 +144,7 @@ exports.MonitorSubscriber = function (log) {
               `lowerThreshold: ${mediaStream.lowerThres}`);
               mediaStream.setFeedbackReports(false, average * (1 + 0.3));
               ticsToTry = tics + 10;
-            } else if (++tics >= ticsToTry) { // finish this retry
+            } else if ((tics += 1) >= ticsToTry) { // finish this retry
               log.info(`${'message: recovery tic passed, ' +
               'id: '}${mediaStream.id}, ` +
               'state: BW_RECOVERING, ' +
@@ -152,7 +153,7 @@ exports.MonitorSubscriber = function (log) {
               `lowerThreshold: ${mediaStream.lowerThres}`);
               ticsToTry = 0;
               nextRetry = 0;
-              retries++;
+              retries += 1;
               mediaStream.bwStatus = BW_INSUFFICIENT;
               mediaStream.setFeedbackReports(false, toRecover);
             }

@@ -1,31 +1,32 @@
+/* eslint-disable no-param-reassign */
 
 const schemeHelpers = require('./schemeHelpers.js').schemeHelpers;
 
-exports.MonitorSubscriber = function (log) {
-  let that = {},
-    INTERVAL_STATS = 1000,
-    TICS_PER_TRANSITION = 10;
+exports.MonitorSubscriber = (log) => {
+  const that = {};
+  const INTERVAL_STATS = 1000;
+  const TICS_PER_TRANSITION = 10;
 
-  const calculateAverage = function (values) {
+  const calculateAverage = (values) => {
     if (values === undefined) { return 0; }
     const cnt = values.length;
-    let tot = parseInt(0);
-    for (let i = 0; i < values.length; i++) {
-      tot += parseInt(values[i]);
+    let tot = parseInt(0, 10);
+    for (let i = 0; i < values.length; i += 1) {
+      tot += parseInt(values[i], 10);
     }
     return Math.ceil(tot / cnt);
   };
 
 
-  that.monitorMinVideoBw = function (mediaStream, callback) {
+  that.monitorMinVideoBw = (mediaStream, callback) => {
     mediaStream.bwValues = [];
     let tics = 0;
-    let lastAverage,
-      average,
-      lastBWValue;
+    let lastAverage;
+    let average;
+    let lastBWValue;
     log.info(`${'message: Start wrtc adapt scheme, ' +
-                 'id: '}${mediaStream.id}, ` +
-                `scheme: notify, minVideoBW: ${mediaStream.minVideoBW}`);
+        'id: '}${mediaStream.id}, ` +
+      `scheme: notify, minVideoBW: ${mediaStream.minVideoBW}`);
 
     mediaStream.minVideoBW *= 1000; // We need it in bps
     mediaStream.lowerThres = Math.floor(mediaStream.minVideoBW * (0.8));
@@ -46,11 +47,11 @@ exports.MonitorSubscriber = function (log) {
 
         log.debug(`message: Measuring interval, average: ${average}`);
         if (average <= lastAverage && (average < mediaStream.lowerThres)) {
-          if (++tics > TICS_PER_TRANSITION) {
+          if ((tics += 1) > TICS_PER_TRANSITION) {
             log.info(`${'message: Insufficient Bandwidth, ' +
-                  'id: '}${mediaStream.id}, ` +
-                  `averageBandwidth: ${average}, ` +
-                  `lowerThreshold: ${mediaStream.lowerThres}`);
+                'id: '}${mediaStream.id}, ` +
+              `averageBandwidth: ${average}, ` +
+              `lowerThreshold: ${mediaStream.lowerThres}`);
             tics = 0;
             callback('callback', { type: 'bandwidthAlert',
               message: 'insufficient',
