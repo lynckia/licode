@@ -20,7 +20,7 @@ void TargetVideoBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
       stream_infos.push_back({stream,
                               stream->isSimulcast(),
                               stream->isSlideShowModeEnabled(),
-                              stream->getBitrateSent(),
+                              stream->getVideoBitrate(),
                               stream->getMaxVideoBW(),
                               stream->getBitrateFromMaxQualityLayer()});
     });

@@ -98,16 +98,6 @@ uint32_t MediaStream::getMaxVideoBW() {
   return bitrate;
 }
 
-uint32_t MediaStream::getBitrateSent() {
-  uint32_t bitrate = 0;
-  std::string video_ssrc = std::to_string(is_publisher_ ? getVideoSourceSSRC() : getVideoSinkSSRC());
-  if (stats_->getNode().hasChild(video_ssrc) &&
-      stats_->getNode()[video_ssrc].hasChild("bitrateCalculated")) {
-    bitrate = stats_->getNode()[video_ssrc]["bitrateCalculated"].value();
-  }
-  return bitrate;
-}
-
 void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
   asyncTask([max_video_bw] (std::shared_ptr<MediaStream> stream) {
     if (stream->rtcp_processor_) {
