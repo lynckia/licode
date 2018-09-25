@@ -62,7 +62,8 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     pipeline_initialized_{false},
     is_publisher_{is_publisher},
     simulcast_{false},
-    bitrate_from_max_quality_layer_{0} {
+    bitrate_from_max_quality_layer_{0},
+    video_bitrate_{0} {
   setVideoSinkSSRC(kDefaultVideoSinkSSRC);
   setAudioSinkSSRC(kDefaultAudioSinkSSRC);
   ELOG_INFO("%s message: constructor, id: %s",
