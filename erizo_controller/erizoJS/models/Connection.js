@@ -47,13 +47,11 @@ class Connection extends events.EventEmitter {
         return JSON.stringify(global.mediaConfig.codecConfigurations.default);
       }
       log.warn(
-        'message: Bad media config file. You need to specify a default codecConfiguration.',
-      );
+        'message: Bad media config file. You need to specify a default codecConfiguration.');
       return JSON.stringify({});
     }
     log.warn(
-      'message: Bad media config file. You need to specify a default codecConfiguration.',
-    );
+      'message: Bad media config file. You need to specify a default codecConfiguration.');
     return JSON.stringify({});
   }
 
@@ -64,7 +62,7 @@ class Connection extends events.EventEmitter {
       global.config.erizo.minport,
       global.config.erizo.maxport,
       this.trickleIce,
-      this._getMediaConfiguration(this.mediaConfiguration),
+      Connection._getMediaConfiguration(this.mediaConfiguration),
       global.config.erizo.useNicer,
       global.config.erizo.turnserver,
       global.config.erizo.turnport,
@@ -82,7 +80,7 @@ class Connection extends events.EventEmitter {
     log.debug(`message: _createMediaStream, connectionId: ${this.id}, ` +
               `mediaStreamId: ${id}, isPublisher: ${isPublisher}`);
     const mediaStream = new addon.MediaStream(this.threadPool, this.wrtc, id,
-      options.label, this._getMediaConfiguration(this.mediaConfiguration), isPublisher);
+      options.label, Connection._getMediaConfiguration(this.mediaConfiguration), isPublisher);
     mediaStream.id = id;
     mediaStream.label = options.label;
     if (options.metadata) {

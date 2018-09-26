@@ -25,6 +25,13 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
   that.publishers = publishers;
   that.ioThreadPool = io;
 
+  const forEachPublisher = (action) => {
+    const publisherStreamIds = Object.keys(publishers);
+    for (let i = 0; i < publisherStreamIds.length; i += 1) {
+      action(publisherStreamIds[i], publishers[publisherStreamIds[i]]);
+    }
+  };
+
   const getOrCreateClient = (clientId, singlePC = false) => {
     log.debug(`getOrCreateClient with id ${clientId}`);
     let client = clients.get(clientId);
@@ -221,15 +228,11 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
       const publisher = publishers[streamId];
       if (publisher !== undefined) {
         log.info(`message: Removing publisher, id: ${clientId}, streamId: ${streamId}`);
-        const subscribersToThisPublisherKeysArray = Object.keys(publisher.subscribers);
-        for (let i = 0; i < subscribersToThisPublisherKeysArray.length; i += 1) {
-          const subscriberKey = subscribersToThisPublisherKeysArray[i];
-          const subscriber = publisher.getSubscriber(subscriberKey);
-          log.info(`message: Removing subscriber, id: ${subscriberKey}`);
+        publisher.forEachSubscriber((subscriberId, subscriber) => {
+          log.info(`message: Removing subscriber, id: ${subscriberId}`);
           closeNode(subscriber);
-          publisher.removeSubscriber(subscriberKey);
-        }
-
+          publisher.removeSubscriber(subscriberId);
+        });
         publisher.removeExternalOutputs().then(() => {
           closeNode(publisher);
           delete publishers[streamId];
@@ -276,9 +279,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
   that.removeSubscriptions = (clientId) => {
     log.info('message: removing subscriptions, clientId:', clientId);
         // we go through all the connections in the client and we close them
-    const publishersArray = Object.keys(publishers);
-    for (let i = 0; i < publishersArray.length; i += 1) {
-      const publisher = publishersArray[i];
+    forEachPublisher((publisherId, publisher) => {
       const subscriber = publisher.getSubscriber(clientId);
       if (subscriber) {
         log.debug('message: removing subscription, ' +
@@ -286,7 +287,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
         closeNode(subscriber);
         publisher.removeSubscriber(clientId);
       }
-    }
+    });
   };
 
   that.getStreamStats = (streamId, callbackRpc) => {
@@ -297,13 +298,13 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
     if (streamId && publishers[streamId]) {
       publisher = publishers[streamId];
       promises.push(publisher.getStats('publisher', stats));
-      const subscribersToThisPublisherKeysArray = Object.keys(publisher.subscribers);
-      for (let i = 0; i < subscribersToThisPublisherKeysArray.length; i += 1) {
+
+      publisher.forEachSubscriber((subscriberId, subscriber) => {
         promises.push(
-          publisher.subscribers[subscribersToThisPublisherKeysArray[i]].getStats(
-            subscribersToThisPublisherKeysArray[i],
+          subscriber.getStats(
+            subscriberId,
             stats));
-      }
+      });
       Promise.all(promises).then(() => {
         callbackRpc('callback', stats);
       });
@@ -347,13 +348,9 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
 
           stats.streamId = streamId;
           promises.push(publisher.getStats('publisher', stats));
-          const subscribersToThisPublisherKeysArray = Object.keys(publisher.subscribers);
-          for (let i = 0; i < subscribersToThisPublisherKeysArray.length; i += 1) {
-            promises.push(
-              publisher.subscribers[subscribersToThisPublisherKeysArray[i]].getStats(
-                subscribersToThisPublisherKeysArray[i], stats));
-          }
-
+          publisher.forEachSubscriber((subscriberId, subscriber) => {
+            promises.push(subscriber.getStats(subscriberId, stats));
+          });
           Promise.all(promises).then(() => {
             amqper.broadcast('stats_subscriptions', stats);
           });

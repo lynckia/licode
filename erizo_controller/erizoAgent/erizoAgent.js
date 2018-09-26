@@ -232,19 +232,21 @@ const api = {
   getErizoAgents: reporter.getErizoAgent,
 };
 
-Object.keys(interfaces).forEach((k) => {
-  if (!global.config.erizoAgent.networkinterface ||
-    global.config.erizoAgent.networkinterface === k) {
-    Object.keys(interfaces[k]).forEach((k2) => {
-      address = interfaces[k][k2];
-      if (address.family === 'IPv4' && !address.internal) {
-        if (k === BINDED_INTERFACE_NAME || !BINDED_INTERFACE_NAME) {
-          addresses.push(address.address);
+if (interfaces) {
+  Object.keys(interfaces).forEach((k) => {
+    if (!global.config.erizoAgent.networkinterface ||
+      global.config.erizoAgent.networkinterface === k) {
+      Object.keys(interfaces[k]).forEach((k2) => {
+        address = interfaces[k][k2];
+        if (address.family === 'IPv4' && !address.internal) {
+          if (k === BINDED_INTERFACE_NAME || !BINDED_INTERFACE_NAME) {
+            addresses.push(address.address);
+          }
         }
-      }
-    });
-  }
-});
+      });
+    }
+  });
+}
 
 privateIP = addresses[0];
 

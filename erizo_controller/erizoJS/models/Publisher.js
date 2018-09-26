@@ -36,9 +36,9 @@ class Source extends NodeClass {
   }
 
   forEachSubscriber(action) {
-    const subscriberKeys = Object.keys(this.subscribers);
-    for (let i = 0; i < subscriberKeys.length; i += 1) {
-      action(subscriberKeys[i], this.subscribers(subscriberKeys[i]));
+    const subscriberIds = Object.keys(this.subscribers);
+    for (let i = 0; i < subscriberIds.length; i += 1) {
+      action(subscriberIds[i], this.subscribers[subscriberIds[i]]);
     }
   }
 
@@ -139,7 +139,7 @@ class Source extends NodeClass {
 
   disableDefaultHandlers() {
     const disabledHandlers = global.config.erizo.disabledHandlers;
-    if (!this.mediaStream) {
+    if (!disabledHandlers || !this.mediaStream) {
       return;
     }
     disabledHandlers.forEach((handler) => {
@@ -271,7 +271,7 @@ class Source extends NodeClass {
     if (Number.isSafeInteger(period)) {
       period = period < MIN_SLIDESHOW_PERIOD ? MIN_SLIDESHOW_PERIOD : period;
       period = period > MAX_SLIDESHOW_PERIOD ? MAX_SLIDESHOW_PERIOD : period;
-      this._updateMediaStreamSubscriberSlideshow(subscriber, true, isFallback);
+      Source._updateMediaStreamSubscriberSlideshow(subscriber, true, isFallback);
       if (this.mediaStream.periodicPlis) {
         clearInterval(this.mediaStream.periodicPlis);
         this.mediaStream.periodicPlis = undefined;
@@ -280,7 +280,7 @@ class Source extends NodeClass {
         this.mediaStream.generatePLIPacket();
       }, period);
     } else {
-      const result = this._updateMediaStreamSubscriberSlideshow(subscriber, false, isFallback);
+      const result = Source._updateMediaStreamSubscriberSlideshow(subscriber, false, isFallback);
       if (!result) {
         for (let pliIndex = 0; pliIndex < PLIS_TO_RECOVER; pliIndex += 1) {
           this.mediaStream.generatePLIPacket();
@@ -355,30 +355,30 @@ class Source extends NodeClass {
 
   enableHandlers(clientId, handlers) {
     let mediaStream = this.mediaStream;
-    if (!mediaStream) {
+    if (!handlers || !mediaStream) {
       return;
     }
     if (clientId) {
       mediaStream = this.getSubscriber(clientId).mediaStream;
     }
     if (mediaStream) {
-      Object.keys(handlers).forEach((handlerId) => {
-        mediaStream.enableHandler(handlers[handlerId]);
+      handlers.forEach((handler) => {
+        mediaStream.enableHandler(handler);
       });
     }
   }
 
   disableHandlers(clientId, handlers) {
     let mediaStream = this.mediaStream;
-    if (!mediaStream) {
+    if (!handlers || !mediaStream) {
       return;
     }
     if (clientId) {
       mediaStream = this.getSubscriber(clientId).mediaStream;
     }
     if (mediaStream) {
-      Object.keys(handlers).forEach((handlerId) => {
-        mediaStream.disableHandler(handlers[handlerId]);
+      handlers.forEach((handler) => {
+        mediaStream.disableHandler(handler);
       });
     }
   }

@@ -345,7 +345,7 @@ class SessionDescription {
     }
 
     sdp.getStreams().forEach((stream) => {
-      this.getStreamInfo(info, stream);
+      SessionDescription.getStreamInfo(info, stream);
     });
 
     info.postProcessInfo();

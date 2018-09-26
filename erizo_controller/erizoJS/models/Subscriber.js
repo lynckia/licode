@@ -75,8 +75,11 @@ class Subscriber extends NodeClass {
 
   disableDefaultHandlers() {
     const disabledHandlers = global.config.erizo.disabledHandlers;
-    disabledHandlers.forEach((index) => {
-      this.mediaStream.disabledHandler(disabledHandlers[index]);
+    if (!disabledHandlers || !this.mediaStream) {
+      return;
+    }
+    disabledHandlers.forEach((handler) => {
+      this.mediaStream.disableHandler(handler);
     });
   }
 
