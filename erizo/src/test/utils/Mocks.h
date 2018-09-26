@@ -107,7 +107,7 @@ class MockMediaStream: public MediaStream {
   }
 
   MOCK_METHOD0(getMaxVideoBW, uint32_t());
-  MOCK_METHOD0(getBitrateSent, uint32_t());
+  MOCK_METHOD0(getVideoBitrate, uint32_t());
   MOCK_METHOD0(getBitrateFromMaxQualityLayer, uint32_t());
   MOCK_METHOD0(isSlideShowModeEnabled, bool());
   MOCK_METHOD0(isSimulcast, bool());

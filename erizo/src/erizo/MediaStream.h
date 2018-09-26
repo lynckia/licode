@@ -71,7 +71,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void close() override;
   virtual uint32_t getMaxVideoBW();
   virtual uint32_t getBitrateFromMaxQualityLayer() { return bitrate_from_max_quality_layer_; }
-  virtual uint32_t getBitrateSent();
+  virtual uint32_t getVideoBitrate() { return video_bitrate_; }
+  void setVideoBitrate(uint32_t bitrate) { video_bitrate_ = bitrate; }
   void setMaxVideoBW(uint32_t max_video_bw);
   void syncClose();
   bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
@@ -211,6 +212,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   std::atomic_bool simulcast_;
   std::atomic<uint64_t> bitrate_from_max_quality_layer_;
+  std::atomic<uint32_t> video_bitrate_;
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;
 };

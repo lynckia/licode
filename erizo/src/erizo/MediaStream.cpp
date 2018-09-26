@@ -62,7 +62,8 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     pipeline_initialized_{false},
     is_publisher_{is_publisher},
     simulcast_{false},
-    bitrate_from_max_quality_layer_{0} {
+    bitrate_from_max_quality_layer_{0},
+    video_bitrate_{0} {
   setVideoSinkSSRC(kDefaultVideoSinkSSRC);
   setAudioSinkSSRC(kDefaultAudioSinkSSRC);
   ELOG_INFO("%s message: constructor, id: %s",
@@ -95,16 +96,6 @@ MediaStream::~MediaStream() {
 
 uint32_t MediaStream::getMaxVideoBW() {
   uint32_t bitrate = rtcp_processor_ ? rtcp_processor_->getMaxVideoBW() : 0;
-  return bitrate;
-}
-
-uint32_t MediaStream::getBitrateSent() {
-  uint32_t bitrate = 0;
-  std::string video_ssrc = std::to_string(is_publisher_ ? getVideoSourceSSRC() : getVideoSinkSSRC());
-  if (stats_->getNode().hasChild(video_ssrc) &&
-      stats_->getNode()[video_ssrc].hasChild("bitrateCalculated")) {
-    bitrate = stats_->getNode()[video_ssrc]["bitrateCalculated"].value();
-  }
   return bitrate;
 }
 
