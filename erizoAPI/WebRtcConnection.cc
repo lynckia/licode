@@ -307,7 +307,7 @@ NAN_METHOD(WebRtcConnection::setRemoteDescription) {
 
   ConnectionDescription* param =
     Nan::ObjectWrap::Unwrap<ConnectionDescription>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  auto sdp = std::shared_ptr<erizo::SdpInfo>(param->me);
+  auto sdp = std::make_shared<erizo::SdpInfo>(*param->me.get());
 
   v8::String::Utf8Value stream_id_param(Nan::To<v8::String>(info[1]).ToLocalChecked());
   std::string stream_id = std::string(*stream_id_param);
@@ -323,7 +323,7 @@ NAN_METHOD(WebRtcConnection::getLocalDescription) {
     return;
   }
 
-  std::shared_ptr<erizo::SdpInfo> sdp_info = me->getLocalSdpInfo();
+  std::shared_ptr<erizo::SdpInfo> sdp_info = std::make_shared<erizo::SdpInfo>(*me->getLocalSdpInfo().get());
 
   v8::Local<v8::Object> instance = ConnectionDescription::NewInstance();
   ConnectionDescription* description = ObjectWrap::Unwrap<ConnectionDescription>(instance);
