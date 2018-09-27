@@ -1,201 +1,205 @@
-/*global require, __dirname, console*/
-'use strict';
-var express = require('express'),
-    bodyParser = require('body-parser'),
-    errorhandler = require('errorhandler'),
-    morgan = require('morgan'),
-    N = require('./nuve'),
-    fs = require('fs'),
-    https = require('https'),
-    config = require('./../../licode_config');
+/* global require, __dirname, console */
 
-var options = {
-    key: fs.readFileSync('../../cert/key.pem').toString(),
-    cert: fs.readFileSync('../../cert/cert.pem').toString()
+/* eslint-disable import/no-extraneous-dependencies, no-console */
+
+const express = require('express');
+const bodyParser = require('body-parser');
+const errorhandler = require('errorhandler');
+const morgan = require('morgan');
+// eslint-disable-next-line import/no-unresolved
+const N = require('./nuve');
+const fs = require('fs');
+const https = require('https');
+const config = require('./../../licode_config');
+
+const options = {
+  key: fs.readFileSync('../../cert/key.pem').toString(),
+  cert: fs.readFileSync('../../cert/cert.pem').toString(),
 };
 
 if (config.erizoController.sslCaCerts) {
-    options.ca = [];
-    for (var ca in config.erizoController.sslCaCerts) {
-        options.ca.push(fs.readFileSync(config.erizoController.sslCaCerts[ca]).toString());
-    }
+  options.ca = [];
+  config.erizoController.sslCaCerts.forEach((cert) => {
+    options.ca.push(fs.readFileSync(cert).toString());
+  });
 }
 
-var app = express();
+const app = express();
 
 // app.configure ya no existe
 app.use(errorhandler({
-    dumpExceptions: true,
-    showStack: true
+  dumpExceptions: true,
+  showStack: true,
 }));
 app.use(morgan('dev'));
-app.use(express.static(__dirname + '/public'));
+app.use(express.static(`${__dirname}/public`));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
-    extended: true
+  extended: true,
 }));
-app.use(function(req, res, next) {
+app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   next();
 });
 
 
-//app.set('views', __dirname + '/../views/');
-//disable layout
-//app.set("view options", {layout: false});
+// app.set('views', __dirname + '/../views/');
+// disable layout
+// app.set("view options", {layout: false});
 
 N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3000/');
 
-var defaultRoom;
+let defaultRoom;
 const defaultRoomName = 'basicExampleRoom';
 
-var getOrCreateRoom = function (name, type = 'erizo', mediaConfiguration = 'default',
-                                callback = function() {}) {
+const getOrCreateRoom = (name, type = 'erizo', mediaConfiguration = 'default',
+  callback = () => {}) => {
+  if (name === defaultRoomName && defaultRoom) {
+    callback(defaultRoom);
+    return;
+  }
 
-    if (name === defaultRoomName && defaultRoom) {
-        callback(defaultRoom);
-        return;
-    }
-
-    N.API.getRooms(function (roomlist){
-        var theRoom = '';
-        var rooms = JSON.parse(roomlist);
-        for (var room of rooms) {
-            if (room.name === name &&
+  N.API.getRooms((roomlist) => {
+    let theRoom = '';
+    const rooms = JSON.parse(roomlist);
+    for (let i = 0; i < rooms.length; i += 1) {
+      const room = rooms[i];
+      if (room.name === name &&
                 room.data &&
-                room.data.basicExampleRoom){
-
-                theRoom = room._id;
-                callback(theRoom);
-                return;
-            }
-        }
-        let extra = {data: {basicExampleRoom: true}, mediaConfiguration: mediaConfiguration};
-        if (type === 'p2p') extra.p2p = true;
-
-        N.API.createRoom(name, function (roomID) {
-            theRoom = roomID._id;
-            callback(theRoom);
-        }, function(){}, extra);
-    });
-};
-
-var deleteRoomsIfEmpty = function (theRooms, callback) {
-    if (theRooms.length === 0){
-        callback(true);
+                room.data.basicExampleRoom) {
+        theRoom = room._id;
+        callback(theRoom);
         return;
+      }
     }
-    var theRoomId = theRooms.pop()._id;
-    N.API.getUsers(theRoomId, function(userlist) {
-        var users = JSON.parse(userlist);
-        if (Object.keys(users).length === 0){
-            N.API.deleteRoom(theRoomId, function(){
-                deleteRoomsIfEmpty(theRooms, callback);
-            });
-        } else {
-            deleteRoomsIfEmpty(theRooms, callback);
-        }
-    }, function (error, status) {
-        console.log('Error getting user list for room ', theRoomId, 'reason: ', error);
-        switch (status) {
-            case 404:
-                deleteRoomsIfEmpty(theRooms, callback);
-                break;
-            case 503:
-                N.API.deleteRoom(theRoomId, function(){
-                    deleteRoomsIfEmpty(theRooms, callback);
-                });
-                break;
-        }
-    });
+    const extra = { data: { basicExampleRoom: true }, mediaConfiguration };
+    if (type === 'p2p') extra.p2p = true;
+
+    N.API.createRoom(name, (roomID) => {
+      theRoom = roomID._id;
+      callback(theRoom);
+    }, () => {}, extra);
+  });
 };
 
-var cleanExampleRooms = function (callback) {
-    console.log('Cleaning basic example rooms');
-    N.API.getRooms(function (roomlist) {
-        var rooms = JSON.parse(roomlist);
-        var roomsToCheck = [];
-        for (var room of rooms){
-            if (room.data &&
-                room.data.basicExampleRoom &&
-                room.name !== defaultRoomName){
-
-                roomsToCheck.push(room);
-            }
-        }
-        deleteRoomsIfEmpty (roomsToCheck, function () {
-            callback('done');
-        });
-    });
-
-};
-
-app.get('/getRooms/', function(req, res) {
-    N.API.getRooms(function(rooms) {
-        res.send(rooms);
-    });
-});
-
-app.get('/getUsers/:room', function(req, res) {
-    var room = req.params.room;
-    N.API.getUsers(room, function(users) {
-        res.send(users);
-    });
-});
-
-
-app.post('/createToken/', function(req, res) {
-    console.log('Creating token. Request body: ',req.body);
-
-    let username = req.body.username;
-    let role = req.body.role;
-
-    let room = defaultRoomName, type, roomId, mediaConfiguration;
-
-    if (req.body.room) room = req.body.room;
-    if (req.body.type) type = req.body.type;
-    if (req.body.roomId) roomId = req.body.roomId;
-    if (req.body.mediaConfiguration) mediaConfiguration = req.body.mediaConfiguration;
-
-    let createToken = function (roomId) {
-      N.API.createToken(roomId, username, role, function(token) {
-          console.log('Token created', token);
-          res.send(token);
-      }, function(error) {
-          console.log('Error creating token', error);
-          res.status(401).send('No Erizo Controller found');
+const deleteRoomsIfEmpty = (theRooms, callback) => {
+  if (theRooms.length === 0) {
+    callback(true);
+    return;
+  }
+  const theRoomId = theRooms.pop()._id;
+  N.API.getUsers(theRoomId, (userlist) => {
+    const users = JSON.parse(userlist);
+    if (Object.keys(users).length === 0) {
+      N.API.deleteRoom(theRoomId, () => {
+        deleteRoomsIfEmpty(theRooms, callback);
       });
-    };
-
-    if (roomId) {
-      createToken(roomId);
     } else {
-      getOrCreateRoom(room, type, mediaConfiguration, createToken);
+      deleteRoomsIfEmpty(theRooms, callback);
     }
-
-});
-
-
-app.use(function(req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
-    res.header('Access-Control-Allow-Headers', 'origin, content-type');
-    if (req.method === 'OPTIONS') {
-        res.send(200);
-    } else {
-        next();
+  }, (error, status) => {
+    console.log('Error getting user list for room ', theRoomId, 'reason: ', error);
+    switch (status) {
+      case 404:
+        deleteRoomsIfEmpty(theRooms, callback);
+        break;
+      case 503:
+        N.API.deleteRoom(theRoomId, () => {
+          deleteRoomsIfEmpty(theRooms, callback);
+        });
+        break;
+      default:
+        break;
     }
-});
+  });
+};
 
-cleanExampleRooms(function() {
-    getOrCreateRoom(defaultRoomName, undefined, undefined, function (roomId) {
-        defaultRoom = roomId;
-        app.listen(3001);
-        var server = https.createServer(options, app);
-        console.log('BasicExample started');
-        server.listen(3004);
-
+const cleanExampleRooms = (callback) => {
+  console.log('Cleaning basic example rooms');
+  N.API.getRooms((roomlist) => {
+    const rooms = JSON.parse(roomlist);
+    const roomsToCheck = [];
+    rooms.forEach((aRoom) => {
+      console.log('aRoom', aRoom);
+      if (aRoom.data &&
+                aRoom.data.basicExampleRoom &&
+                aRoom.name !== defaultRoomName) {
+        roomsToCheck.push(aRoom);
+      }
     });
+    deleteRoomsIfEmpty(roomsToCheck, () => {
+      callback('done');
+    });
+  });
+};
+
+app.get('/getRooms/', (req, res) => {
+  N.API.getRooms((rooms) => {
+    res.send(rooms);
+  });
+});
+
+app.get('/getUsers/:room', (req, res) => {
+  const room = req.params.room;
+  N.API.getUsers(room, (users) => {
+    res.send(users);
+  });
+});
+
+
+app.post('/createToken/', (req, res) => {
+  console.log('Creating token. Request body: ', req.body);
+
+  const username = req.body.username;
+  const role = req.body.role;
+
+  let room = defaultRoomName;
+  let type;
+  let roomId;
+  let mediaConfiguration;
+
+  if (req.body.room) room = req.body.room;
+  if (req.body.type) type = req.body.type;
+  if (req.body.roomId) roomId = req.body.roomId;
+  if (req.body.mediaConfiguration) mediaConfiguration = req.body.mediaConfiguration;
+
+  const createToken = (tokenRoomId) => {
+    N.API.createToken(tokenRoomId, username, role, (token) => {
+      console.log('Token created', token);
+      res.send(token);
+    }, (error) => {
+      console.log('Error creating token', error);
+      res.status(401).send('No Erizo Controller found');
+    });
+  };
+
+  if (roomId) {
+    createToken(roomId);
+  } else {
+    getOrCreateRoom(room, type, mediaConfiguration, createToken);
+  }
+});
+
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
+  res.header('Access-Control-Allow-Headers', 'origin, content-type');
+  if (req.method === 'OPTIONS') {
+    res.send(200);
+  } else {
+    next();
+  }
+});
+
+cleanExampleRooms(() => {
+  getOrCreateRoom(defaultRoomName, undefined, undefined, (roomId) => {
+    defaultRoom = roomId;
+    app.listen(3001);
+    const server = https.createServer(options, app);
+    console.log('BasicExample started');
+    server.listen(3004);
+  });
 });
