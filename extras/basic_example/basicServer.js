@@ -122,7 +122,6 @@ const cleanExampleRooms = (callback) => {
     const rooms = JSON.parse(roomlist);
     const roomsToCheck = [];
     rooms.forEach((aRoom) => {
-      console.log('aRoom', aRoom);
       if (aRoom.data &&
                 aRoom.data.basicExampleRoom &&
                 aRoom.name !== defaultRoomName) {
