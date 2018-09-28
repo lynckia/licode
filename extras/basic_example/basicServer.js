@@ -10,6 +10,7 @@ const morgan = require('morgan');
 const N = require('./nuve');
 const fs = require('fs');
 const https = require('https');
+// eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
 
 const options = {
