@@ -210,7 +210,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
     options.label = publisher.label;
     subscriber = publisher.addSubscriber(clientId, connection, options);
     subscriber.initMediaStream();
-    subscriber.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc));
+    subscriber.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc, 'callback'));
     subscriber.on('periodic_stats', onPeriodicStats.bind(this, clientId, streamId));
     subscriber.on('status_event',
           onConnectionStatusEvent.bind(this, callbackRpc, clientId, streamId));
