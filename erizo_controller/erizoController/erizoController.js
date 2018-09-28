@@ -3,6 +3,7 @@
 /* eslint-disable no-param-reassign */
 
 const rpcPublic = require('./rpc/rpcPublic');
+// eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const Getopt = require('node-getopt');

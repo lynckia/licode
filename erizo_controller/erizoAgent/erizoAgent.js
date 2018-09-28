@@ -5,6 +5,7 @@ const Getopt = require('node-getopt');
 
 const spawn = require('child_process').spawn;
 
+// eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
 const ErizoList = require('./erizoList').ErizoList;
 const fs = require('fs');

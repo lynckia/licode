@@ -4,7 +4,9 @@
 const Getopt = require('node-getopt');
 
 let addon;
+// eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
+// eslint-disable-next-line import/no-unresolved
 const mediaConfig = require('./../../rtp_media_config');
 
 global.config = config || {};
