@@ -31,6 +31,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   that.roomID = '';
   that.state = DISCONNECTED;
   that.p2p = false;
+  that.forceCodecs = spec.forceCodecs || false;
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
 
@@ -120,6 +121,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       limitMaxAudioBW: spec.maxAudioBW,
       limitMaxVideoBW: spec.maxVideoBW,
       forceTurn: stream.forceTurn,
+      mediaConfiguration: that.mediaConfiguration,
+      forceCodecs: that.forceCodecs,
       p2p: true,
     };
     return options;
@@ -185,6 +188,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       label: stream.getLabel(),
       iceServers: that.iceServers,
       forceTurn: stream.forceTurn,
+      mediaConfiguration: that.mediaConfiguration,
+      forceCodecs: that.forceCodecs,
       p2p: false,
     };
     if (!isRemote) {
@@ -583,7 +588,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // It stablishes a connection to the room.
   // Once it is done it throws a RoomEvent("room-connected")
   that.connect = (options = {}) => {
-    const token = Base64.decodeBase64(spec.token);
+    const token = JSON.parse(Base64.decodeBase64(spec.token));
 
     if (that.state !== DISCONNECTED) {
       Logger.warning('Room already connected');
@@ -591,7 +596,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     // 1- Connect to Erizo-Controller
     that.state = CONNECTING;
-    socket.connect(JSON.parse(token), options, (response) => {
+    socket.connect(token, options, (response) => {
       let stream;
       const streamList = [];
       const streams = response.streams || [];
@@ -600,6 +605,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       that.p2p = response.p2p;
       that.iceServers = response.iceServers;
       that.state = CONNECTED;
+      that.mediaConfiguration = token.mediaConfiguration;
       spec.singlePC = response.singlePC;
       spec.defaultVideoBW = response.defaultVideoBW;
       spec.maxVideoBW = response.maxVideoBW;

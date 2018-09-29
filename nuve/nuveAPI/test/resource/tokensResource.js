@@ -108,9 +108,9 @@ describe('Tokens Resource', function() {
       setUserStub.returns('username');
       serviceRegistryMock.getRoomForService.callsArgWith(2, kArbitraryRoom);
       cloudHandlerMock.getErizoControllerForRoom.callsArgWith(1, kArbitraryErizoController);
-      var token = 'eyJ0b2tlbklkIjoic3RyaW5nIiwiaG9zdCI6Imhvc3RuYW1lOjMwMDAiLCJzZWN1cmUiOnRyd' +
-                  'WUsInNpZ25hdHVyZSI6Ik5UYzBORGRpTWpneE5ERXhZek5oTkRVMlkyRXpZVFF3TVRGbE1HVT' +
-                  'FZelJoWVRoaE1UQXlaUT09In0=';
+      var token = 'eyJ0b2tlbklkIjoic3RyaW5nIiwiaG9zdCI6Imhvc3RuYW1lOjMwMDAiLCJzZWN1cmUiOnR' +
+                  'ydWUsInNpZ25hdHVyZSI6Ik5UYzBORGRpTWpneE5ERXhZek5oTkRVMlkyRXpZVFF3TVRGbE' +
+                  '1HVTFZelJoWVRoaE1UQXlaUT09IiwibWVkaWFDb25maWd1cmF0aW9uIjoiZGVmYXVsdCJ9';
       tokenRegistryMock.addToken.callsArgWith(1, 'string');
       request(app)
         .post('/rooms/1/tokens')

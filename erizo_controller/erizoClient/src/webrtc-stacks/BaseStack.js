@@ -17,6 +17,22 @@ const BaseStack = (specInput) => {
   let isNegotiating = false;
   let latestSessionVersion = -1;
 
+  const parseMediaConfiguration = () => {
+    const codecs = { audio: null, video: null };
+    switch (specBase.mediaConfiguration) {
+      case 'default':
+        codecs.video = 'VP8';
+        codecs.audio = 'OPUS';
+        break;
+      default:
+        codecs.video = specBase.mediaConfiguration.split('_AND_')[0];
+        codecs.audio = specBase.mediaConfiguration.split('_AND_')[1];
+    }
+    return codecs;
+  };
+
+  const codecs = parseMediaConfiguration();
+
   Logger.info('Starting Base stack', specBase);
 
   that.pcConfig = {
@@ -108,6 +124,9 @@ const BaseStack = (specInput) => {
       localDesc.sdp = that.enableSimulcast(localDesc.sdp);
     }
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
+    if (specBase.forceCodecs) {
+      SdpHelpers.forceCodecs(localSdp, codecs);
+    }
     SdpHelpers.setMaxBW(localSdp, specBase);
     localDesc.sdp = localSdp.toString();
     that.localSdp = localSdp;
@@ -122,6 +141,9 @@ const BaseStack = (specInput) => {
   const setLocalDescForAnswer = (sessionDescription) => {
     localDesc = sessionDescription;
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
+    if (specBase.forceCodecs) {
+      SdpHelpers.forceCodecs(localSdp, codecs);
+    }
     SdpHelpers.setMaxBW(localSdp, specBase);
     localDesc.sdp = localSdp.toString();
     that.localSdp = localSdp;
@@ -146,6 +168,9 @@ const BaseStack = (specInput) => {
     }
     isNegotiating = true;
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
+    if (specBase.forceCodecs) {
+      SdpHelpers.forceCodecs(remoteSdp, codecs);
+    }
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
     that.remoteSdp = remoteSdp;
@@ -168,6 +193,9 @@ const BaseStack = (specInput) => {
     Logger.info('Set remote and local description');
     latestSessionVersion = sessionVersion;
 
+    if (specBase.forceCodecs) {
+      SdpHelpers.forceCodecs(remoteSdp, codecs);
+    }
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     that.setStartVideoBW(remoteSdp);
     that.setHardMinVideoBW(remoteSdp);
@@ -283,6 +311,9 @@ const BaseStack = (specInput) => {
       }
 
       localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
+      if (specBase.forceCodecs) {
+        SdpHelpers.forceCodecs(localSdp, codecs);
+      }
       SdpHelpers.setMaxBW(localSdp, specBase);
       localDesc.sdp = localSdp.toString();
       that.localSdp = localSdp;
@@ -292,6 +323,9 @@ const BaseStack = (specInput) => {
         that.peerConnection.setLocalDescription(localDesc)
           .then(() => {
             remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
+            if (specBase.forceCodecs) {
+              SdpHelpers.forceCodecs(remoteSdp, codecs);
+            }
             SdpHelpers.setMaxBW(remoteSdp, specBase);
             remoteDesc.sdp = remoteSdp.toString();
             that.remoteSdp = remoteSdp;

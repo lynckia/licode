@@ -54,6 +54,7 @@ window.onload = function () {
   var mediaConfiguration = getParameterByName('mediaConfiguration') || 'default';
   var onlySubscribe = getParameterByName('onlySubscribe');
   var onlyPublish = getParameterByName('onlyPublish');
+  var forceCodecs = getParameterByName('forceCodecs') || false;
   console.log('Selected Room', roomName, 'of type', roomType);
   var config = {audio: true,
                 video: true,
@@ -93,7 +94,7 @@ window.onload = function () {
   createToken(roomData, function (response) {
     var token = response;
     console.log(token);
-    room = Erizo.Room({token: token});
+    room = Erizo.Room({token: token, forceCodecs: forceCodecs});
 
     var subscribeToStreams = function (streams) {
       if (onlyPublish) {

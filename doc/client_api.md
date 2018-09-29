@@ -321,6 +321,12 @@ Typical Room initialization would be:
 var room = Erizo.Room({token:'213h8012hwduahd-321ueiwqewq'});
 ```
 
+You can also pass an optional parameter which will force the codecs specified in createroom also in p2p (default is false)
+
+```
+var room = Erizo.Room({token:'213h8012hwduahd-321ueiwqewq', forceCodecs: true});
+```
+
 It will create the room object by passing the token this users have previously received from your service. This token is has to be retreived using the [Server API](/server_api), because it is a user access token. But you need to call to the connect function we will see later in order to connect to the room.
 
 You can access some variables like:
@@ -396,8 +402,8 @@ room.publish(localStream, {forceTurn: true});
 ```
 
 There are two options that allow advance control of video bitrate in Chrome:
-- `startVideoBW`: Configures Chrome to start sending video at the specified bitrate instead of the default one. 
-- `hardMinVideoBW`: Configures a hard limit for the minimum video bitrate. 
+- `startVideoBW`: Configures Chrome to start sending video at the specified bitrate instead of the default one.
+- `hardMinVideoBW`: Configures a hard limit for the minimum video bitrate.
 
 ```
 room.publish(localStream, {startVideoBW: 1000, hardMinVideoBW:500});
