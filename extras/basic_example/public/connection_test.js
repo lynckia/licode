@@ -1,22 +1,25 @@
 /* globals Erizo */
-'use strict';
-var serverUrl = '/';
-var localStream, room;
+
+/* eslint-env browser */
+/* eslint-disable no-param-reassign, no-console */
+
+const serverUrl = '/';
+let localStream;
+let room;
 
 function printText(text) {
-  document.getElementById('messages').value += '- ' + text + '\n';
+  document.getElementById('messages').value += `- ${text}\n`;
 }
 
-window.onload = function () {
-  var config = {audio: true, video: true, data: true, videoSize: [640, 480, 640, 480]};
+window.onload = () => {
+  const config = { audio: true, video: true, data: true, videoSize: [640, 480, 640, 480] };
   localStream = Erizo.Stream(config);
-  var createToken = function(userName, role, callback) {
+  const createToken = (userName, role, callback) => {
+    const req = new XMLHttpRequest();
+    const url = `${serverUrl}createToken/`;
+    const body = { username: userName, role };
 
-    var req = new XMLHttpRequest();
-    var url = serverUrl + 'createToken/';
-    var body = {username: userName, role: role};
-
-    req.onreadystatechange = function () {
+    req.onreadystatechange = () => {
       if (req.readyState === 4) {
         callback(req.responseText);
       }
@@ -27,58 +30,55 @@ window.onload = function () {
     req.send(JSON.stringify(body));
   };
 
-  createToken('user', 'presenter', function (response) {
-    var token = response;
+  createToken('user', 'presenter', (response) => {
+    const token = response;
     console.log(token);
-    room = Erizo.Room({token: token});
+    room = Erizo.Room({ token });
 
-    localStream.addEventListener('access-accepted', function () {
+    localStream.addEventListener('access-accepted', () => {
       printText('Mic and Cam OK');
-      var subscribeToStreams = function (streams) {
-        for (var index in streams) {
-          var stream = streams[index];
+      const subscribeToStreams = (streams) => {
+        streams.forEach((stream) => {
           room.subscribe(stream);
-        }
+        });
       };
 
-      room.addEventListener('room-connected', function () {
+      room.addEventListener('room-connected', () => {
         printText('Connected to the room OK');
-        room.publish(localStream, {maxVideoBW: 300});
+        room.publish(localStream, { maxVideoBW: 300 });
       });
 
-      room.addEventListener('stream-subscribed', function(streamEvent) {
+      room.addEventListener('stream-subscribed', (streamEvent) => {
         printText('Subscribed to your local stream OK');
-        var stream = streamEvent.stream;
+        const stream = streamEvent.stream;
         stream.show('my_subscribed_video');
-
       });
 
-      room.addEventListener('stream-added', function (streamEvent) {
+      room.addEventListener('stream-added', (streamEvent) => {
         printText('Local stream published OK');
-        var streams = [];
+        const streams = [];
         streams.push(streamEvent.stream);
         subscribeToStreams(streams);
       });
 
-      room.addEventListener('stream-removed', function (streamEvent) {
+      room.addEventListener('stream-removed', (streamEvent) => {
         // Remove stream from DOM
-        var stream = streamEvent.stream;
+        const stream = streamEvent.stream;
         if (stream.elementID !== undefined) {
-          var element = document.getElementById(stream.elementID);
+          const element = document.getElementById(stream.elementID);
           document.body.removeChild(element);
         }
       });
 
-      room.addEventListener('stream-failed', function (){
-          console.log('STREAM FAILED, DISCONNECTION');
-          printText('STREAM FAILED, DISCONNECTION');
-          room.disconnect();
+      room.addEventListener('stream-failed', () => {
+        console.log('STREAM FAILED, DISCONNECTION');
+        printText('STREAM FAILED, DISCONNECTION');
+        room.disconnect();
       });
 
       room.connect();
 
       localStream.show('my_local_video');
-
     });
     localStream.init();
   });

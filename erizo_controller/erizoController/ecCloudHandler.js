@@ -1,115 +1,123 @@
-/*global require, exports, setInterval*/
-'use strict';
-var logger = require('./../common/logger').logger;
+/* global require, exports, setInterval */
+
+/* eslint-disable no-param-reassign */
+
+const logger = require('./../common/logger').logger;
 
 // Logger
-var log = logger.getLogger('EcCloudHandler');
+const log = logger.getLogger('EcCloudHandler');
 
-var EA_TIMEOUT = 30000;
-var GET_EA_INTERVAL = 5000;
-var AGENTS_ATTEMPTS = 5;
-var WARN_UNAVAILABLE = 503, WARN_TIMEOUT = 504;
-exports.EcCloudHandler = function (spec) {
-  var that = {},
-  amqper = spec.amqper,
-  agents = {};
+const EA_TIMEOUT = 30000;
+const GET_EA_INTERVAL = 5000;
+const AGENTS_ATTEMPTS = 5;
+const WARN_UNAVAILABLE = 503;
+const WARN_TIMEOUT = 504;
+exports.EcCloudHandler = (spec) => {
+  const that = {};
+  const amqper = spec.amqper;
+  const agents = {};
+  let getErizoAgent;
 
+  const forEachAgent = (action) => {
+    const agentIds = Object.keys(agents);
+    for (let i = 0; i < agentIds.length; i += 1) {
+      action(agentIds[i], agents[agentIds[i]]);
+    }
+  };
 
-  that.getErizoAgents = function () {
-    amqper.broadcast('ErizoAgent', {method: 'getErizoAgents', args: []}, function (agent) {
+  that.getErizoAgents = () => {
+    amqper.broadcast('ErizoAgent', { method: 'getErizoAgents', args: [] }, (agent) => {
       if (agent === 'timeout') {
-        log.warn('message: no agents available, code: ' + WARN_UNAVAILABLE );
+        log.warn(`message: no agents available, code: ${WARN_UNAVAILABLE}`);
         return;
       }
 
-      var newAgent = true;
+      let newAgent = true;
 
-      for (var a in agents) {
-        if (a === agent.info.id) {
+      forEachAgent((agentId, agentInList) => {
+        if (agentId === agent.info.id) {
           // The agent is already registered, I update its stats and reset its
-          agents[a].stats = agent.stats;
-          agents[a].timeout = 0;
+          agentInList.stats = agent.stats;
+          agentInList.timeout = 0;
           newAgent = false;
         }
-      }
+      });
 
       if (newAgent === true) {
         // New agent
         agents[agent.info.id] = agent;
         agents[agent.info.id].timeout = 0;
       }
-
     });
 
     // Check agents timeout
-    for (var a in agents) {
-      agents[a].timeout ++;
-      if (agents[a].timeout > EA_TIMEOUT / GET_EA_INTERVAL) {
+    forEachAgent((agentId, agentInList) => {
+      agentInList.timeout += 1;
+      if (agentInList.timeout > EA_TIMEOUT / GET_EA_INTERVAL) {
         log.warn('message: agent timed out is being removed, ' +
-                 'code: ' + WARN_TIMEOUT + ', agentId: ' + agents[a].info.id);
-        delete agents[a];
+                 `code: ${WARN_TIMEOUT}, agentId: ${agentId}`);
+        delete agents[agentId];
       }
-    }
+    });
   };
 
   setInterval(that.getErizoAgents, GET_EA_INTERVAL);
 
-  var getErizoAgent;
 
   if (global.config.erizoController.cloudHandlerPolicy) {
-    getErizoAgent = require('./ch_policies/' +
-                      global.config.erizoController.cloudHandlerPolicy).getErizoAgent;
+    // eslint-disable-next-line global-require, import/no-dynamic-require
+    getErizoAgent = require(`./ch_policies/${
+                      global.config.erizoController.cloudHandlerPolicy}`).getErizoAgent;
   }
 
-  var tryAgain = function (count, callback) {
+  const tryAgain = (count, callback) => {
     if (count >= AGENTS_ATTEMPTS) {
       callback('timeout');
       return;
     }
 
     log.warn('message: agent selected timed out trying again, ' +
-             'code: ' + WARN_TIMEOUT);
+             `code: ${WARN_TIMEOUT}`);
 
-    amqper.callRpc('ErizoAgent', 'createErizoJS', [undefined], {callback: function(resp) {
-      var erizoId = resp.erizoId;
-      var agentId = resp.agentId;
-      var internalId = resp.internalId;
+    amqper.callRpc('ErizoAgent', 'createErizoJS', [undefined], { callback(resp) {
+      const erizoId = resp.erizoId;
+      const agentId = resp.agentId;
+      const internalId = resp.internalId;
       if (resp === 'timeout') {
-        tryAgain(++count, callback);
+        tryAgain((count += 1), callback);
       } else {
         callback(erizoId, agentId, internalId);
       }
-    }});
+    } });
   };
 
-  that.getErizoJS = function(agentId, internalId, callback) {
-
-    var agentQueue = 'ErizoAgent';
+  that.getErizoJS = (agentId, internalId, callback) => {
+    let agentQueue = 'ErizoAgent';
 
     if (getErizoAgent) {
       agentQueue = getErizoAgent(agents, agentId);
     }
 
-    log.info('message: createErizoJS, agentId: ' + agentQueue);
+    log.info(`message: createErizoJS, agentId: ${agentQueue}`);
 
-    amqper.callRpc(agentQueue, 'createErizoJS', [internalId], {callback: function(resp) {
-      var erizoId = resp.erizoId;
-      var agentId = resp.agentId;
-      var internalId = resp.internalId;
-      log.info('message: createErizoJS success, erizoId: ' + erizoId +
-               ', agentId: ' + agentId + ', internalId: ' + internalId);
+    amqper.callRpc(agentQueue, 'createErizoJS', [internalId], { callback(resp) {
+      const erizoId = resp.erizoId;
+      const newAgentId = resp.agentId;
+      const newInternalId = resp.internalId;
+      log.info(`message: createErizoJS success, erizoId: ${erizoId}, ` +
+        `agentId: ${newAgentId}, internalId: ${newInternalId}`);
 
       if (resp === 'timeout') {
         tryAgain(0, callback);
       } else {
-        callback(erizoId, agentId, internalId);
+        callback(erizoId, newAgentId, newInternalId);
       }
-    }});
+    } });
   };
 
-  that.deleteErizoJS = function(erizoId) {
-    log.info ('message: deleting erizoJS, erizoId: ' + erizoId);
-    amqper.broadcast('ErizoAgent', {method: 'deleteErizoJS', args: [erizoId]}, function(){});
+  that.deleteErizoJS = (erizoId) => {
+    log.info(`message: deleting erizoJS, erizoId: ${erizoId}`);
+    amqper.broadcast('ErizoAgent', { method: 'deleteErizoJS', args: [erizoId] }, () => {});
   };
 
   return that;

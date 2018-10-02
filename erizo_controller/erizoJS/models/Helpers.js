@@ -1,5 +1,5 @@
-/*global exports*/
-'use strict';
+/* global exports */
+
 
 exports.getMediaConfiguration = (mediaConfiguration = 'default') => {
   if (global.mediaConfig && global.mediaConfig.codecConfigurations) {
@@ -7,14 +7,10 @@ exports.getMediaConfiguration = (mediaConfiguration = 'default') => {
       return JSON.stringify(global.mediaConfig.codecConfigurations[mediaConfiguration]);
     } else if (global.mediaConfig.codecConfigurations.default) {
       return JSON.stringify(global.mediaConfig.codecConfigurations.default);
-    } else {
-      return JSON.stringify({});
     }
-  } else {
     return JSON.stringify({});
   }
+  return JSON.stringify({});
 };
 
-exports.getErizoStreamId = (clientId, streamId) =>{
-  return `${clientId}_${streamId}`;
-};
+exports.getErizoStreamId = (clientId, streamId) => `${clientId}_${streamId}`;
