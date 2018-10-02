@@ -124,6 +124,6 @@ amqper.connect(() => {
       log.debug(`message: bound to amqp queue, queueId: ErizoJS_${rpcID}`);
     });
   } catch (err) {
-    log.error(`message: AMQP connection error, ${logger.objectToLog(err)}`);
+    log.error('message: AMQP connection error, ', logger.objectToLog(err));
   }
 });

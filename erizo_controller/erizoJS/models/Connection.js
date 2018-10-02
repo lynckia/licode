@@ -126,14 +126,14 @@ class Connection extends events.EventEmitter {
     }
     const firstStreamId = newStreamId;
     this.initialized = true;
-    log.debug(`message: Init Connection, connectionId: ${this.id} ` +
-              `${logger.objectToLog(this.options)}`);
+    log.debug(`message: Init Connection, connectionId: ${this.id} `,
+      logger.objectToLog(this.options));
     this.sessionVersion = 0;
 
     this.wrtc.init((newStatus, mess, streamId) => {
-      log.info(`${'message: WebRtcConnection status update, ' +
-               'id: '}${this.id}, status: ${newStatus
-                }, ${logger.objectToLog(this.metadata)}`);
+      log.info('message: WebRtcConnection status update, ' +
+        `id: ${this.id}, status: ${newStatus}`,
+        logger.objectToLog(this.metadata));
       switch (newStatus) {
         case CONN_INITIAL:
           this.emit('status_event', { type: 'started' }, newStatus);

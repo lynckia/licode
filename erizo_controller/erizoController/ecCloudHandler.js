@@ -104,8 +104,8 @@ exports.EcCloudHandler = (spec) => {
       const erizoId = resp.erizoId;
       const newAgentId = resp.agentId;
       const newInternalId = resp.internalId;
-      log.info(`message: createErizoJS success, erizoId: ${erizoId
-               }, agentId: ${newAgentId}, internalId: ${newInternalId}`);
+      log.info(`message: createErizoJS success, erizoId: ${erizoId}, ` +
+        `agentId: ${newAgentId}, internalId: ${newInternalId}`);
 
       if (resp === 'timeout') {
         tryAgain(0, callback);

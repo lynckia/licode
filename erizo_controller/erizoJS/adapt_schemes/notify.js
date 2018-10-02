@@ -24,8 +24,8 @@ exports.MonitorSubscriber = (log) => {
     let lastAverage;
     let average;
     let lastBWValue;
-    log.info(`${'message: Start wrtc adapt scheme, ' +
-        'id: '}${mediaStream.id}, ` +
+    log.info('message: Start wrtc adapt scheme, ' +
+      `id: ${mediaStream.id}, ` +
       `scheme: notify, minVideoBW: ${mediaStream.minVideoBW}`);
 
     mediaStream.minVideoBW *= 1000; // We need it in bps
@@ -48,8 +48,8 @@ exports.MonitorSubscriber = (log) => {
         log.debug(`message: Measuring interval, average: ${average}`);
         if (average <= lastAverage && (average < mediaStream.lowerThres)) {
           if ((tics += 1) > TICS_PER_TRANSITION) {
-            log.info(`${'message: Insufficient Bandwidth, ' +
-                'id: '}${mediaStream.id}, ` +
+            log.info('message: Insufficient Bandwidth, ' +
+              `id: ${mediaStream.id}, ` +
               `averageBandwidth: ${average}, ` +
               `lowerThreshold: ${mediaStream.lowerThres}`);
             tics = 0;

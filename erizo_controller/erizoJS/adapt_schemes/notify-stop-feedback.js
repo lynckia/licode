@@ -8,9 +8,9 @@ exports.MonitorSubscriber = (log) => {
   const TICS_PER_TRANSITION = 10;
 
   /* BW Status
-  * 0 - Stable
-  * 1 - Stopped Feedback
-  */
+   * 0 - Stable
+   * 1 - Stopped Feedback
+   */
   const BW_STABLE = 0;
   const BW_NO_FEEDBACK = 1;
 
@@ -33,10 +33,10 @@ exports.MonitorSubscriber = (log) => {
     let average;
     let lastBWValue;
     mediaStream.bwStatus = BW_STABLE;
-    log.info(`${'message: Start wrtc adapt scheme, ' +
-    'id: '}${mediaStream.id}, ` +
-    'scheme: notify-stop-feedback, ' +
-    `minVideoBW: ${mediaStream.minVideoBW}`);
+    log.info('message: Start wrtc adapt scheme, ' +
+      `id: ${mediaStream.id}, ` +
+      'scheme: notify-stop-feedback, ' +
+      `minVideoBW: ${mediaStream.minVideoBW}`);
 
     mediaStream.minVideoBW *= 1000; // We need it in bps
     mediaStream.lowerThres = Math.floor(mediaStream.minVideoBW * (0.8));
@@ -59,12 +59,12 @@ exports.MonitorSubscriber = (log) => {
           case BW_STABLE:
             if (average <= lastAverage && (average < mediaStream.lowerThres)) {
               if ((tics += 1) > TICS_PER_TRANSITION) {
-                log.info(`${'message: scheme state change, ' +
-                'id: '}${mediaStream.id}, ` +
-                'previousState: BW_STABLE, ' +
-                'newState: BW_NO_FEEDBACK, ' +
-                `averageBandwidth: ${average}, ` +
-                `lowerThreshold: ${mediaStream.lowerThres}`);
+                log.info('message: scheme state change, ' +
+                  `id: ${mediaStream.id}, ` +
+                  'previousState: BW_STABLE, ' +
+                  'newState: BW_NO_FEEDBACK, ' +
+                  `averageBandwidth: ${average}, ` +
+                  `lowerThreshold: ${mediaStream.lowerThres}`);
                 mediaStream.bwStatus = BW_NO_FEEDBACK;
                 mediaStream.setFeedbackReports(false, 0);
                 tics = 0;
@@ -78,12 +78,12 @@ exports.MonitorSubscriber = (log) => {
           case BW_NO_FEEDBACK:
             if (average >= mediaStream.upperThres) {
               if ((tics += 1) > TICS_PER_TRANSITION) {
-                log.info(`${'message: scheme state change, ' +
-                'id: '}${mediaStream.id}, ` +
-                'previousState: BW_NO_FEEDBACK, ' +
-                'newState: BW_STABLE, ' +
-                `averageBandwidth: ${average}, ` +
-                `upperThreshold: ${mediaStream.upperThres}`);
+                log.info('message: scheme state change, ' +
+                  `id: ${mediaStream.id}, ` +
+                  'previousState: BW_NO_FEEDBACK, ' +
+                  'newState: BW_STABLE, ' +
+                  `averageBandwidth: ${average}, ` +
+                  `upperThreshold: ${mediaStream.upperThres}`);
                 mediaStream.bwStatus = BW_STABLE;
                 mediaStream.setFeedbackReports(true, 0);
                 tics = 0;

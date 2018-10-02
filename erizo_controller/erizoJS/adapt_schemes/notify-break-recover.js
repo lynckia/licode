@@ -10,11 +10,11 @@ exports.MonitorSubscriber = (log) => {
 
 
   /* BW Status
-  * 0 - Stable
-  * 1 - Insufficient Bandwidth
-  * 2 - Trying recovery
-  * 3 - Won't recover
-  */
+   * 0 - Stable
+   * 1 - Insufficient Bandwidth
+   * 2 - Trying recovery
+   * 3 - Won't recover
+   */
   const BW_STABLE = 0;
   const BW_INSUFFICIENT = 1;
   const BW_RECOVERING = 2;
@@ -42,9 +42,9 @@ exports.MonitorSubscriber = (log) => {
     let toRecover;
     let nextRetry = 0;
     mediaStream.bwStatus = BW_STABLE;
-    log.info(`${'message: Start mediaStream adapt scheme, ' +
-    'id: '}${mediaStream.id}, ` +
-    `scheme: notify-break-recover, minVideoBW: ${mediaStream.minVideoBW}`);
+    log.info('message: Start mediaStream adapt scheme, ' +
+      `id: ${mediaStream.id}, ` +
+      `scheme: notify-break-recover, minVideoBW: ${mediaStream.minVideoBW}`);
 
     mediaStream.minVideoBW *= 1000; // We need it in bps
     mediaStream.lowerThres = Math.floor(mediaStream.minVideoBW * (0.8));
@@ -67,12 +67,12 @@ exports.MonitorSubscriber = (log) => {
           case BW_STABLE:
             if (average <= lastAverage && (average < mediaStream.lowerThres)) {
               if ((tics += 1) > TICS_PER_TRANSITION) {
-                log.info(`${'message: scheme state change, ' +
-                'id: '}${mediaStream.id}, ` +
-                'previousState: BW_STABLE, ' +
-                'newState: BW_INSUFFICIENT, ' +
-                `averageBandwidth: ${average}, ` +
-                `lowerThreshold: ${mediaStream.lowerThres}`);
+                log.info('message: scheme state change, ' +
+                  `id: ${mediaStream.id}, ` +
+                  'previousState: BW_STABLE, ' +
+                  'newState: BW_INSUFFICIENT, ' +
+                  `averageBandwidth: ${average}, ` +
+                  `lowerThreshold: ${mediaStream.lowerThres}`);
                 mediaStream.bwStatus = BW_INSUFFICIENT;
                 mediaStream.setFeedbackReports(false, toRecover);
                 tics = 0;
@@ -84,12 +84,12 @@ exports.MonitorSubscriber = (log) => {
             break;
           case BW_INSUFFICIENT:
             if (average > mediaStream.upperThres) {
-              log.info(`${'message: scheme state change, ' +
-              'id: '}${mediaStream.id}, ` +
-              'previousState: BW_INSUFFICIENT, ' +
-              'newState: BW_STABLE, ' +
-              `averageBandwidth: ${average}, ` +
-              `lowerThreshold: ${mediaStream.lowerThres}`);
+              log.info('message: scheme state change, ' +
+                `id: ${mediaStream.id}, ` +
+                'previousState: BW_INSUFFICIENT, ' +
+                'newState: BW_STABLE, ' +
+                `averageBandwidth: ${average}, ` +
+                `lowerThreshold: ${mediaStream.lowerThres}`);
               tics = 0;
               nextRetry = 0;
               retries = 0;
@@ -99,12 +99,12 @@ exports.MonitorSubscriber = (log) => {
                 message: 'recovered',
                 bandwidth: average });
             } else if (retries >= 3) {
-              log.info(`${'message: scheme state change, ' +
-              'id: '}${mediaStream.id}, ` +
-              'previousState: BW_INSUFFICIENT, ' +
-              'newState: WONT_RECOVER, ' +
-              `averageBandwidth: ${average}, ` +
-              `lowerThreshold: ${mediaStream.lowerThres}`);
+              log.info('message: scheme state change, ' +
+                `id: ${mediaStream.id}, ` +
+                'previousState: BW_INSUFFICIENT, ' +
+                'newState: WONT_RECOVER, ' +
+                `averageBandwidth: ${average}, ` +
+                `lowerThreshold: ${mediaStream.lowerThres}`);
               mediaStream.bwStatus = BW_WONTRECOVER;
             } else if (nextRetry === 0) {  // schedule next retry
               nextRetry = tics + 20;
@@ -115,19 +115,19 @@ exports.MonitorSubscriber = (log) => {
             }
             break;
           case BW_RECOVERING:
-            log.info(`${'message: trying to recover, ' +
-            'id: '}${mediaStream.id}, ` +
-            'state: BW_RECOVERING, ' +
-            `lastBandwidthValue: ${lastBWValue}, ` +
-            `lastAverageBandwidth: ${lastAverage}, ` +
-            `lowerThreshold: ${mediaStream.lowerThres}`);
-            if (average > mediaStream.upperThres) {
-              log.info(`${'message: recovered, ' +
-              'id: '}${mediaStream.id}, ` +
+            log.info('message: trying to recover, ' +
+              `id: ${mediaStream.id}, ` +
               'state: BW_RECOVERING, ' +
-              'newState: BW_STABLE, ' +
-              `averageBandwidth: ${average}, ` +
+              `lastBandwidthValue: ${lastBWValue}, ` +
+              `lastAverageBandwidth: ${lastAverage}, ` +
               `lowerThreshold: ${mediaStream.lowerThres}`);
+            if (average > mediaStream.upperThres) {
+              log.info('message: recovered, ' +
+                `id: ${mediaStream.id}, ` +
+                'state: BW_RECOVERING, ' +
+                'newState: BW_STABLE, ' +
+                `averageBandwidth: ${average}, ` +
+                `lowerThreshold: ${mediaStream.lowerThres}`);
               tics = 0;
               nextRetry = 0;
               retries = 0;
@@ -137,20 +137,20 @@ exports.MonitorSubscriber = (log) => {
                 message: 'recovered',
                 bandwidth: average });
             } else if (average > lastAverage) { // we are recovering
-              log.info(`${'message: bw improvement, ' +
-              'id: '}${mediaStream.id}, ` +
-              'state: BW_RECOVERING, ' +
-              `averageBandwidth: ${average}, ` +
-              `lowerThreshold: ${mediaStream.lowerThres}`);
+              log.info('message: bw improvement, ' +
+                `id: ${mediaStream.id}, ` +
+                'state: BW_RECOVERING, ' +
+                `averageBandwidth: ${average}, ` +
+                `lowerThreshold: ${mediaStream.lowerThres}`);
               mediaStream.setFeedbackReports(false, average * (1 + 0.3));
               ticsToTry = tics + 10;
             } else if ((tics += 1) >= ticsToTry) { // finish this retry
-              log.info(`${'message: recovery tic passed, ' +
-              'id: '}${mediaStream.id}, ` +
-              'state: BW_RECOVERING, ' +
-              `numberOfRetries: ${retries}, ` +
-              `averageBandwidth: ${average}, ` +
-              `lowerThreshold: ${mediaStream.lowerThres}`);
+              log.info('message: recovery tic passed, ' +
+                `id: ${mediaStream.id}, ` +
+                'state: BW_RECOVERING, ' +
+                `numberOfRetries: ${retries}, ` +
+                `averageBandwidth: ${average}, ` +
+                `lowerThreshold: ${mediaStream.lowerThres}`);
               ticsToTry = 0;
               nextRetry = 0;
               retries += 1;
@@ -159,11 +159,11 @@ exports.MonitorSubscriber = (log) => {
             }
             break;
           case BW_WONTRECOVER:
-            log.info(`${'message: Stop trying to recover, ' +
-            'id: '}${mediaStream.id}, ` +
-            'state: BW_WONT_RECOVER, ' +
-            `averageBandwidth: ${average}, ` +
-            `lowerThreshold: ${mediaStream.lowerThres}`);
+            log.info('message: Stop trying to recover, ' +
+              `id: ${mediaStream.id}, ` +
+              'state: BW_WONT_RECOVER, ' +
+              `averageBandwidth: ${average}, ` +
+              `lowerThreshold: ${mediaStream.lowerThres}`);
             tics = 0;
             nextRetry = 0;
             retries = 0;

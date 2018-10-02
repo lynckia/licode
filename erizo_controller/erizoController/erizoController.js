@@ -240,8 +240,8 @@ const addToCloudHandler = (callback) => {
       callback('callback');
     }).catch((reason) => {
       if (reason === 'timeout') {
-        log.warn(`${'message: addECToCloudHandler cloudHandler does not respond, ' +
-                     'attemptsLeft: '}${attempt}`);
+        log.warn('message: addECToCloudHandler cloudHandler does not respond, ' +
+                     `attemptsLeft: ${attempt}`);
 
             // We'll try it more!
         setTimeout(() => {
@@ -279,8 +279,8 @@ const updateMyState = () => {
     log.warn(`message: reached Room Limit, roomLimit:${LIMIT_N_ROOMS}`);
     newState = 0;
   } else {
-    log.warn(`${'message: reached Warning room limit, ' +
-                 'warningRoomLimit: '}${WARNING_N_ROOMS}, ` +
+    log.warn('message: reached Warning room limit, ' +
+                 `warningRoomLimit: ${WARNING_N_ROOMS}, ` +
                  `roomLimit: ${LIMIT_N_ROOMS}`);
     newState = 1;
   }
@@ -312,8 +312,8 @@ const listen = () => {
         const room = rooms.getOrCreateRoom(token.room, token.p2p);
         options.singlePC = getSinglePCConfig(options.singlePC);
         const client = room.createClient(channel, token, options);
-        log.info(`message: client connected, clientId: ${client.id
-                     }, singlePC: ${options.singlePC}`);
+        log.info(`message: client connected, clientId: ${client.id}, ` +
+            `singlePC: ${options.singlePC}`);
         if (!room.p2p && global.config.erizoController.report.session_events) {
           const timeStamp = new Date();
           amqper.broadcast('event', { room: room.id,

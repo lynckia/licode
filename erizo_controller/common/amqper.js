@@ -59,15 +59,16 @@ exports.connect = (callback) => {
 
           clientQueue.subscribe((message) => {
             try {
-              log.debug(`${'message: message received, ' +
-                                      'queueName: '}${clientQueue.name}, ${
-                                      logger.objectToLog(message)}`);
+              log.debug('message: message received, ' +
+                `queueName: ${clientQueue.name}`,
+                logger.objectToLog(message));
 
               if (map[message.corrID] !== undefined) {
-                log.debug(`${'message: Callback, ' +
-                                          'queueName: '}${clientQueue.name}, ` +
-                                          `messageType: ${message.type},  ${
-                                          logger.objectToLog(message.data)}`);
+                log.debug('message: Callback, ' +
+                  `queueName: ${clientQueue.name}, ` +
+                  `messageType: ${message.type}`,
+                  logger.objectToLog(message.data));
+
                 clearTimeout(map[message.corrID].to);
                 if (message.type === 'onReady') {
                   map[message.corrID].fn[message.type].call({});
@@ -81,14 +82,14 @@ exports.connect = (callback) => {
                 }, REMOVAL_TIMEOUT);
               }
             } catch (err) {
-              log.error(`${'message: error processing message, ' +
-                                      'queueName: '}${clientQueue.name}, error: ${err.message}`);
+              log.error('message: error processing message, ' +
+                `queueName: ${clientQueue.name}, error: ${err.message}`);
             }
           });
         });
       } catch (err) {
-        log.error(`${'message: exchange error, ' +
-                          'exchangeName: '}${exchange.name}, error: ${err.message}`);
+        log.error('message: exchange error, ' +
+          `exchangeName: ${exchange.name}, error: ${err.message}`);
       }
     });
 
@@ -101,7 +102,8 @@ exports.connect = (callback) => {
   });
 
   connection.on('error', (e) => {
-    log.error(`message: AMQP connection error killing process, ${logger.objectToLog(e)}`);
+    log.error('message: AMQP connection error killing process, ',
+      logger.objectToLog(e));
     process.exit(1);
   });
 };
@@ -115,9 +117,9 @@ exports.bind = (id, callback) => {
       q.bind('rpcExchange', id, callback);
       q.subscribe((message) => {
         try {
-          log.debug(`${'message: message received, ' +
-                              'queueName: '}${q.name}, ${
-                              logger.objectToLog(message)}`);
+          log.debug('message: message received, ' +
+            `queueName: ${q.name}, `,
+            logger.objectToLog(message));
           message.args = message.args || [];
           message.args.push((type, result) => {
             rpcExc.publish(message.replyTo,
@@ -125,13 +127,13 @@ exports.bind = (id, callback) => {
           });
           rpcPublic[message.method](...message.args);
         } catch (error) {
-          log.error(`${'message: error processing call, ' +
-                              'queueName: '}${q.name}, error: ${error.message}`);
+          log.error('message: error processing call, ' +
+            `queueName: ${q.name}, error: ${error.message}`);
         }
       });
     } catch (err) {
-      log.error(`${'message: queue error, ' +
-                      'queueName: '}${q.name}, error: ${err.message}`);
+      log.error('message: queue error, ' +
+        `queueName: ${q.name}, error: ${err.message}`);
     }
   });
 };
@@ -169,8 +171,8 @@ exports.bindBroadcast = (id, callback) => {
         }
       });
     } catch (err) {
-      log.error(`${'message: exchange error, ' +
-                      'queueName: '}${q.name}, error: ${err.message}`);
+      log.error('message: exchange error, ' +
+        `queueName: ${q.name}, error: ${err.message}`);
     }
   });
 };

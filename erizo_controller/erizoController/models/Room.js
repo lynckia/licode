@@ -71,9 +71,9 @@ class Room extends events.EventEmitter {
     if (type === 'unpublish') {
         // It's supposed to be an integer.
       const streamId = parseInt(evt, 10);
-      log.warn(`${'message: Triggering removal of stream ' +
+      log.warn('message: Triggering removal of stream ' +
                  'because of ErizoJS timeout, ' +
-                 'streamId: '}${streamId}`);
+                 `streamId: ${streamId}`);
       this.sendMessage('onRemoveStream', { id: streamId });
         // remove clients and streams?
     }

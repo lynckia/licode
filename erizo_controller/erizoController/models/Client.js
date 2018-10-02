@@ -85,7 +85,7 @@ class Client extends events.EventEmitter {
     const stream = this.room.getStreamById(message.id);
     if (stream === undefined) {
       log.warn('message: Trying to send Data from a non-initialized stream, ' +
-               `clientId: ${this.id}, ${logger.objectToLog(message)}`);
+               `clientId: ${this.id}`, logger.objectToLog(message));
       return;
     }
     stream.forEachDataSubscriber((index, dataSubscriber) => {
@@ -125,8 +125,8 @@ class Client extends events.EventEmitter {
   onUpdateStreamAttributes(message) {
     const stream = this.room.getStreamById(message.id);
     if (stream === undefined) {
-      log.warn('message: Update attributes to a uninitialized stream ' +
-        `${logger.objectToLog(message)}`);
+      log.warn('message: Update attributes to a uninitialized stream ',
+        logger.objectToLog(message));
       return;
     }
     stream.setAttributes(message.attrs);
@@ -180,10 +180,10 @@ class Client extends events.EventEmitter {
       let st;
       options.mediaConfiguration = this.token.mediaConfiguration;
       options.singlePC = this.options.singlePC || false;
-      log.info(`${'message: addPublisher requested, ' +
-                 'streamId: '}${id}, clientId: ${this.id
-                 }${logger.objectToLog(options)}, ${
-                 logger.objectToLog(options.attributes)}`);
+      log.info('message: addPublisher requested, ' +
+        `streamId: ${id}, clientId: ${this.id}`,
+        logger.objectToLog(options),
+        logger.objectToLog(options.attributes));
       this.room.controller.addPublisher(this.id, id, options, (signMess) => {
         if (signMess.type === 'initializing') {
           callback(id, signMess.erizoId);
@@ -198,8 +198,8 @@ class Client extends events.EventEmitter {
           this.streams.push(id);
           this.room.streams.set(id, st);
           st.status = PUBLISHER_INITAL;
-          log.info(`${'message: addPublisher, ' +
-                         'label: '}${options.label}, ` +
+          log.info('message: addPublisher, ' +
+                         `label: ${options.label}, ` +
                          'state: PUBLISHER_INITIAL, ' +
                          `clientId: ${this.id}, ` +
                          `streamId: ${id}`);
@@ -216,9 +216,9 @@ class Client extends events.EventEmitter {
               attributes: options.attributes });
           }
         } else if (signMess.type === 'failed') {
-          log.warn(`${'message: addPublisher ICE Failed, ' +
+          log.warn('message: addPublisher ICE Failed, ' +
                          'state: PUBLISHER_FAILED, ' +
-                         'streamId: '}${id}, ` +
+                         `streamId: ${id}, ` +
                          `clientId: ${this.id}`);
           this.sendMessage('connection_failed', { type: 'publish', streamId: id });
                 // We're going to let the client disconnect
@@ -226,23 +226,23 @@ class Client extends events.EventEmitter {
         } else if (signMess.type === 'ready') {
           st.status = PUBLISHER_READY;
           this.room.sendMessage('onAddStream', st.getPublicStream());
-          log.info(`${'message: addPublisher, ' +
+          log.info('message: addPublisher, ' +
                          'state: PUBLISHER_READY, ' +
-                         'streamId: '}${id}, ` +
+                         `streamId: ${id}, ` +
                          `clientId: ${this.id}`);
         } else if (signMess === 'timeout-erizojs') {
-          log.error(`${'message: addPublisher timeout when contacting ErizoJS, ' +
-                          'streamId: '}${id}, clientId: ${this.id}`);
+          log.error('message: addPublisher timeout when contacting ErizoJS, ' +
+                          `streamId: ${id}, clientId: ${this.id}`);
           callback(null, null, 'ErizoJS is not reachable');
           return;
         } else if (signMess === 'timeout-agent') {
-          log.error(`${'message: addPublisher timeout when contacting Agent, ' +
-                          'streamId: '}${id}, clientId: ${this.id}`);
+          log.error('message: addPublisher timeout when contacting Agent, ' +
+                          `streamId: ${id}, clientId: ${this.id}`);
           callback(null, null, 'ErizoAgent is not reachable');
           return;
         } else if (signMess === 'timeout') {
-          log.error(`${'message: addPublisher Undefined RPC Timeout, ' +
-                          'streamId: '}${id}, clientId: ${this.id}`);
+          log.error('message: addPublisher Undefined RPC Timeout, ' +
+                          `streamId: ${id}, clientId: ${this.id}`);
           callback(null, null, 'ErizoAgent or ErizoJS is not reachable');
           return;
         }
@@ -287,16 +287,16 @@ class Client extends events.EventEmitter {
         const client = this.room.getClientById(clientId);
         client.sendMessage('publish_me', { streamId: options.streamId, peerSocket: this.id });
       } else {
-        log.info(`${'message: addSubscriber requested, ' +
-                     'streamId: '}${options.streamId}, ` +
+        log.info('message: addSubscriber requested, ' +
+                     `streamId: ${options.streamId}, ` +
                      `clientId: ${this.id}`);
         options.mediaConfiguration = this.token.mediaConfiguration;
         options.singlePC = this.options.singlePC || false;
         this.room.controller.addSubscriber(this.id, options.streamId, options, (signMess) => {
           if (signMess.type === 'initializing') {
-            log.info(`${'message: addSubscriber, ' +
+            log.info('message: addSubscriber, ' +
                              'state: SUBSCRIBER_INITIAL, ' +
-                             'clientId: '}${this.id}, ` +
+                             `clientId: ${this.id}, ` +
                              `streamId: ${options.streamId}`);
             callback(true, signMess.erizoId);
             if (global.config.erizoController.report.session_events) {  // jshint ignore:line
@@ -311,17 +311,17 @@ class Client extends events.EventEmitter {
             return;
           } else if (signMess.type === 'failed') {
                     // TODO: Add Stats event
-            log.warn(`${'message: addSubscriber ICE Failed, ' +
+            log.warn('message: addSubscriber ICE Failed, ' +
                              'state: SUBSCRIBER_FAILED, ' +
-                             'streamId: '}${options.streamId}, ` +
+                             `streamId: ${options.streamId}, ` +
                              `clientId: ${this.id}`);
             this.sendMessage('connection_failed', { type: 'subscribe',
               streamId: options.streamId });
             return;
           } else if (signMess.type === 'ready') {
-            log.info(`${'message: addSubscriber, ' +
+            log.info('message: addSubscriber, ' +
                              'state: SUBSCRIBER_READY, ' +
-                             'streamId: '}${options.streamId}, ` +
+                             `streamId: ${options.streamId}, ` +
                              `clientId: ${this.id}`);
           } else if (signMess.type === 'bandwidthAlert') {
             this.sendMessage('onBandwidthAlert', { streamID: options.streamId,
@@ -329,8 +329,8 @@ class Client extends events.EventEmitter {
               bandwidth: signMess.bandwidth });
           } else if (signMess === 'timeout') {
             log.error('message: addSubscriber timeout when contacting ErizoJS, ' +
-                              'streamId: ', options.streamId, `${', ' +
-                              'clientId: '}${this.id}`);
+                              `streamId: ${options.streamId}, ` +
+                              `clientId: ${this.id}`);
             callback(null, null, 'ErizoJS is not reachable');
             return;
           }
@@ -359,9 +359,9 @@ class Client extends events.EventEmitter {
       url = `/tmp/${recordingId}.mkv`;
     }
 
-    log.info(`${'message: startRecorder, ' +
+    log.info('message: startRecorder, ' +
              'state: RECORD_REQUESTED, ' +
-             'streamId: '}${streamId}, ` +
+             `streamId: ${streamId}, ` +
              `url: ${url}`);
 
     if (this.room.p2p) {
@@ -374,24 +374,24 @@ class Client extends events.EventEmitter {
       const mediaOptions = { mediaConfiguration: this.token.mediaConfiguration };
       this.room.controller.addExternalOutput(streamId, url, mediaOptions, (result) => {
         if (result === 'success') {
-          log.info(`${'message: startRecorder, ' +
+          log.info('message: startRecorder, ' +
                          'state: RECORD_STARTED, ' +
-                         'streamId: '}${streamId}, ` +
+                         `streamId: ${streamId}, ` +
                          `url: ${url}`);
           callback(recordingId);
         } else {
-          log.warn(`${'message: startRecorder stream not found, ' +
+          log.warn('message: startRecorder stream not found, ' +
                          'state: RECORD_FAILED, ' +
-                         'streamId: '}${streamId}, ` +
+                         `streamId: ${streamId}, ` +
                          `url: ${url}`);
           callback(null, 'Unable to subscribe to stream for recording, ' +
                                'publisher not present');
         }
       });
     } else {
-      log.warn(`${'message: startRecorder stream cannot be recorded, ' +
+      log.warn('message: startRecorder stream cannot be recorded, ' +
                  'state: RECORD_FAILED, ' +
-                 'streamId: '}${streamId}, ` +
+                 `streamId: ${streamId}, ` +
                  `url: ${url}`);
       callback(null, 'Stream can not be recorded');
     }
@@ -411,9 +411,9 @@ class Client extends events.EventEmitter {
       url = `/tmp/${recordingId}.mkv`;
     }
 
-    log.info(`${'message: startRecorder, ' +
+    log.info('message: startRecorder, ' +
              'state: RECORD_STOPPED, ' +
-             'streamId: '}${options.id}, ` +
+             `streamId: ${options.id}, ` +
              `url: ${url}`);
     this.room.controller.removeExternalOutput(url, callback);
   }

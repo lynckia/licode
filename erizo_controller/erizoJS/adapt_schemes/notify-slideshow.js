@@ -8,9 +8,9 @@ exports.MonitorSubscriber = (log) => {
   const TICKS_PER_TRANSITION = 10;
 
   /* BW Status
-  * 0 - Stable
-  * 1 - SlideShow
-  */
+   * 0 - Stable
+   * 1 - SlideShow
+   */
   const BW_STABLE = 0;
   const BW_SLIDESHOW = 1;
 
@@ -33,10 +33,10 @@ exports.MonitorSubscriber = (log) => {
     let lastBWValue;
 
     mediaStream.bwStatus = BW_STABLE;
-    log.info(`${'message: Start wrtc adapt scheme, ' +
-    'id: '}${mediaStream.id}, ` +
-    'scheme: notify-slideshow, ' +
-    `minVideoBW: ${mediaStream.minVideoBW}`);
+    log.info('message: Start wrtc adapt scheme, ' +
+      `id: ${mediaStream.id}, ` +
+      'scheme: notify-slideshow, ' +
+      `minVideoBW: ${mediaStream.minVideoBW}`);
 
     mediaStream.minVideoBW *= 1000; // We need it in bps
     mediaStream.lowerThres = Math.floor(mediaStream.minVideoBW * (0.8));
@@ -59,12 +59,12 @@ exports.MonitorSubscriber = (log) => {
           case BW_STABLE:
             if (average <= lastAverage && (average < mediaStream.lowerThres)) {
               if ((ticks += 1) > TICKS_PER_TRANSITION) {
-                log.info(`${'message: scheme state change, ' +
-                'id: '}${mediaStream.id}, ` +
-                'previousState: BW_STABLE, ' +
-                'newState: BW_SLIDESHOW, ' +
-                `averageBandwidth: ${average}, ` +
-                `lowerThreshold: ${mediaStream.lowerThres}`);
+                log.info('message: scheme state change, ' +
+                  `id: ${mediaStream.id}, ` +
+                  'previousState: BW_STABLE, ' +
+                  'newState: BW_SLIDESHOW, ' +
+                  `averageBandwidth: ${average}, ` +
+                  `lowerThreshold: ${mediaStream.lowerThres}`);
                 mediaStream.bwStatus = BW_SLIDESHOW;
                 mediaStream.setFeedbackReports(false, 1);
                 ticks = 0;
@@ -75,11 +75,11 @@ exports.MonitorSubscriber = (log) => {
             }
             break;
           case BW_SLIDESHOW:
-            log.info(`${'message: Switched to audio-only, ' +
-            'id: '}${mediaStream.id}, ` +
-            'state: BW_SLIDESHOW, ' +
-            `averageBandwidth: ${average}, ` +
-            `lowerThreshold: ${mediaStream.lowerThres}`);
+            log.info('message: Switched to audio-only, ' +
+              `id: ${mediaStream.id}, ` +
+              'state: BW_SLIDESHOW, ' +
+              `averageBandwidth: ${average}, ` +
+              `lowerThreshold: ${mediaStream.lowerThres}`);
             ticks = 0;
             average = 0;
             lastAverage = 0;

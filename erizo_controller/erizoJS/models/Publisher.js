@@ -44,9 +44,9 @@ class Source extends NodeClass {
 
 
   addSubscriber(clientId, connection, options) {
-    log.info(`message: Adding subscriber, clientId: ${clientId}, ` +
-             `${logger.objectToLog(options)}` +
-              `, ${logger.objectToLog(options.metadata)}`);
+    log.info(`message: Adding subscriber, clientId: ${clientId},`,
+              logger.objectToLog(options),
+              logger.objectToLog(options.metadata));
     const subscriber = new Subscriber(clientId, this.streamId, connection, this, options);
 
     this.subscribers[clientId] = subscriber;
@@ -58,8 +58,8 @@ class Source extends NodeClass {
     subscriber.on('scheme-slideshow-change', subscriber._onSchemeSlideShowModeChangeListener);
 
     log.debug('message: Setting scheme from publisher to subscriber, ' +
-              `clientId: ${clientId}, scheme: ${this.scheme}, ` +
-               ` ${logger.objectToLog(options.metadata)}`);
+              `clientId: ${clientId}, scheme: ${this.scheme}`,
+               logger.objectToLog(options.metadata));
 
     subscriber.mediaStream.scheme = this.scheme;
     const muteVideo = (options.muteStream && options.muteStream.video) || false;
@@ -257,13 +257,13 @@ class Source extends NodeClass {
     }
     const subscriber = this.getSubscriber(clientId);
     if (!subscriber) {
-      log.warn(`${'message: subscriber not found for updating slideshow, ' +
-                 'code: '}${WARN_NOT_FOUND}, id: ${clientId}_${this.streamId}`);
+      log.warn('message: subscriber not found for updating slideshow, ' +
+        `code: ${WARN_NOT_FOUND}, id: ${clientId}_${this.streamId}`);
       return;
     }
 
-    log.warn(`message: setting SlideShow, id: ${subscriber.clientId
-              }, slideShowMode: ${slideShowMode} isFallback: ${isFallback}`);
+    log.warn(`message: setting SlideShow, id: ${subscriber.clientId}, ` +
+      `slideShowMode: ${slideShowMode} isFallback: ${isFallback}`);
     let period = slideShowMode === true ? MIN_SLIDESHOW_PERIOD : slideShowMode;
     if (isFallback) {
       period = slideShowMode === true ? FALLBACK_SLIDESHOW_PERIOD : slideShowMode;

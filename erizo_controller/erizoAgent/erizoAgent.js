@@ -160,8 +160,8 @@ const launchErizoJS = (erizo) => {
     if (out !== undefined) {
       fs.close(out, (message) => {
         if (message) {
-          log.error(`${'message: error closing log file, '
-                              + 'erizoId: '}${id}, error:`, message);
+          log.error('message: error closing log file, ',
+                              `erizoId: ${id}`, 'error:', message);
         }
       });
     }
@@ -169,8 +169,8 @@ const launchErizoJS = (erizo) => {
     if (err !== undefined) {
       fs.close(err, (message) => {
         if (message) {
-          log.error(`${'message: error closing log file, '
-                              + 'erizoId: '}${id}, error:`, message);
+          log.error('message: error closing log file, ',
+                              `erizoId: ${id}`, 'error:', message);
         }
       });
     }
@@ -187,8 +187,8 @@ erizos.on('launch-erizo', launchErizoJS);
 const dropErizoJS = (erizoId, callback) => {
   const process = erizos.delete(erizoId);
   if (process) {
-    log.warn(`${'message: Dropping Erizo that was not closed before - '
-               + 'possible publisher/subscriber mismatch, erizoId:'}${erizoId}`);
+    log.warn('message: Dropping Erizo that was not closed before - ' +
+               `possible publisher/subscriber mismatch, erizoId: ${erizoId}`);
     process.kill();
     callback('callback', 'ok');
   }
@@ -214,8 +214,8 @@ const api = {
   createErizoJS(internalId, callback) {
     try {
       const erizo = erizos.getErizo(internalId);
-      log.debug(`message: createErizoJS returning, erizoId: ${erizo.id
-      } , agentId: ${myErizoAgentId}, internalId: ${erizo.position}`);
+      log.debug(`message: createErizoJS returning, erizoId: ${erizo.id} ` +
+        `agentId: ${myErizoAgentId}, internalId: ${erizo.position}`);
       callback('callback',
         { erizoId: erizo.id, agentId: myErizoAgentId, internalId: erizo.position });
       erizos.fill();

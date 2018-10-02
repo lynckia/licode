@@ -101,8 +101,8 @@ exports.RoomController = (spec) => {
       erizoIdForAgent = erizo.erizoIdForAgent;
     }
 
-    log.debug(`message: Getting ErizoJS, agentId: ${agentId
-                }, erizoIdForAgent: ${erizoIdForAgent}`);
+    log.debug(`message: Getting ErizoJS, agentId: ${agentId}, ` +
+            `erizoIdForAgent: ${erizoIdForAgent}`);
     ecch.getErizoJS(agentId, erizoIdForAgent, (gotErizoId, gotAgentId, gotErizoIdForAgent) => {
       const theErizo = erizos.get(erizoPosition);
       if (!theErizo.erizoId && gotErizoId !== 'timeout') {
@@ -139,8 +139,8 @@ exports.RoomController = (spec) => {
         erizos.findById(erizoId).publishers.push(publisherId);
       });
     } else {
-      log.info(`${'message: addExternalInput publisher already set, ' +
-                     'streamId: '}${publisherId}, url: ${url}`);
+      log.info('message: addExternalInput publisher already set, ' +
+                     `streamId: ${publisherId}, url: ${url}`);
     }
   };
 
@@ -196,23 +196,23 @@ exports.RoomController = (spec) => {
     }
 
     if (publishers[streamId] === undefined) {
-      log.info(`${'message: addPublisher, ' +
-                     'clientId '}${clientId}, ` +
-                     `streamId: ${streamId}, ${
-                     logger.objectToLog(options)}, ${
-                     logger.objectToLog(options.metadata)}`);
+      log.info('message: addPublisher, ' +
+                     `clientId ${clientId}, ` +
+                     `streamId: ${streamId}`,
+                     logger.objectToLog(options),
+                     logger.objectToLog(options.metadata));
 
             // We create a new ErizoJS with the streamId.
       getErizoJS((erizoId, agentId) => {
         if (erizoId === 'timeout') {
-          log.error(`message: addPublisher ErizoAgent timeout, streamId: ${
-                              streamId}, ${logger.objectToLog(options.metadata)}`);
+          log.error(`message: addPublisher ErizoAgent timeout, streamId: ${streamId}`,
+            logger.objectToLog(options.metadata));
           callback('timeout-agent');
           return;
         }
-        log.info(`${'message: addPublisher erizoJs assigned, ' +
-                        'erizoId: '}${erizoId}, streamId: `, `${streamId
-                         }, ${logger.objectToLog(options.metadata)}`);
+        log.info('message: addPublisher erizoJs assigned, ' +
+                        `erizoId: ${erizoId}, streamId: ${streamId}`,
+                         logger.objectToLog(options.metadata));
                 // Track publisher locally
                 // then we call its addPublisher method.
         const args = [clientId, streamId, options];
@@ -223,21 +223,20 @@ exports.RoomController = (spec) => {
           { callback: (data) => {
             if (data === 'timeout') {
               if (retries < MAX_ERIZOJS_RETRIES) {
-                log.warn(`${'message: addPublisher ErizoJS timeout, ' +
-                                     'streamId: '}${streamId}, ` +
+                log.warn('message: addPublisher ErizoJS timeout, ' +
+                                     `streamId: ${streamId}, ` +
                                      `erizoId: ${getErizoQueue(streamId)}, ` +
-                                     `retries: ${retries}, ${
-                                     logger.objectToLog(options.metadata)}`);
+                                     `retries: ${retries}, `,
+                                     logger.objectToLog(options.metadata));
                 publishers[streamId] = undefined;
                 retries += 1;
                 that.addPublisher(clientId, streamId, options, callback, retries);
                 return;
               }
-              log.warn(`${'message: addPublisher ErizoJS timeout no retry, ' +
-                                 'retries: '}${retries
-                                 }streamId: ${streamId}, ` +
-                                 `erizoId: ${getErizoQueue(streamId)}, ${
-                                 logger.objectToLog(options.metadata)}`);
+              log.warn('message: addPublisher ErizoJS timeout no retry, ' +
+                                 `retries: ${retries}, streamId: ${streamId}, ` +
+                                 `erizoId: ${getErizoQueue(streamId)},`,
+                                 logger.objectToLog(options.metadata));
               const erizo = erizos.findById(publishers[streamId]);
               if (erizo !== undefined) {
                 const index = erizo.publishers.indexOf(streamId);
@@ -256,8 +255,8 @@ exports.RoomController = (spec) => {
         erizos.findById(erizoId).publishers.push(streamId);
       });
     } else {
-      log.warn(`message: addPublisher already set, streamId: ${streamId
-                     }, ${logger.objectToLog(options.metadata)}`);
+      log.warn(`message: addPublisher already set, streamId: ${streamId} `,
+        logger.objectToLog(options.metadata));
     }
   };
 
@@ -275,11 +274,11 @@ exports.RoomController = (spec) => {
 
     if (publishers[streamId] !== undefined &&
             subscribers[streamId].indexOf(clientId) === -1) {
-      log.info(`${'message: addSubscriber, ' +
-                     'streamId: '}${streamId}, ` +
-                     `clientId: ${clientId}, ${
-                     logger.objectToLog(options)}, ${
-                     logger.objectToLog(options.metadata)}`);
+      log.info('message: addSubscriber, ' +
+                     `streamId: ${streamId}, ` +
+                     `clientId: ${clientId},`,
+                     logger.objectToLog(options),
+                     logger.objectToLog(options.metadata));
 
       if (options.audio === undefined) options.audio = true;
       if (options.video === undefined) options.video = true;
@@ -289,31 +288,31 @@ exports.RoomController = (spec) => {
       amqper.callRpc(getErizoQueue(streamId, undefined), 'addSubscriber', args,
         { callback: (data) => {
           if (!publishers[streamId] && !subscribers[streamId]) {
-            log.warn(`${'message: addSubscriber rpc callback has arrived after ' +
+            log.warn('message: addSubscriber rpc callback has arrived after ' +
                              'publisher is removed, ' +
-                             'streamId: '}${streamId}, ` +
-                             `clientId: ${clientId}, ${
-                             logger.objectToLog(options.metadata)}`);
+                             `streamId: ${streamId}, ` +
+                             `clientId: ${clientId},`,
+                             logger.objectToLog(options.metadata));
             callback('timeout');
             return;
           }
           if (data === 'timeout') {
             if (retries < MAX_ERIZOJS_RETRIES) {
               retries += 1;
-              log.warn(`${'message: addSubscriber ErizoJS timeout, ' +
-                                 'clientId: '}${clientId}, ` +
+              log.warn('message: addSubscriber ErizoJS timeout, ' +
+                                 `clientId: ${clientId}, ` +
                                  `streamId: ${streamId}, ` +
                                  `erizoId: ${getErizoQueue(streamId)}, ` +
-                                 `retries: ${retries}, ${
-                                 logger.objectToLog(options.metadata)}`);
+                                 `retries: ${retries},`,
+                                 logger.objectToLog(options.metadata));
               that.addSubscriber(clientId, streamId, options, callback, retries);
               return;
             }
-            log.warn(`${'message: addSubscriber ErizoJS timeout no retry, ' +
-                             'clientId: '}${clientId}, ` +
+            log.warn('message: addSubscriber ErizoJS timeout no retry, ' +
+                             `clientId: ${clientId}, ` +
                              `streamId: ${streamId}, ` +
-                             `erizoId: ${getErizoQueue(streamId)}, ${
-                             logger.objectToLog(options.metadata)}`);
+                             `erizoId: ${getErizoQueue(streamId)},`,
+                             logger.objectToLog(options.metadata));
             callback('timeout');
             return;
           } else if (data.type === 'initializing') {
@@ -330,8 +329,8 @@ exports.RoomController = (spec) => {
      */
   that.removePublisher = (clientId, streamId, callback) => {
     if (subscribers[streamId] !== undefined && publishers[streamId] !== undefined) {
-      log.info(`${'message: removePublisher, ' +
-                     'streamId: '}${streamId}, ` +
+      log.info('message: removePublisher, ' +
+                     `streamId: ${streamId}, ` +
                      `erizoId: ${getErizoQueue(streamId)}`);
 
       const args = [clientId, streamId];
@@ -343,15 +342,15 @@ exports.RoomController = (spec) => {
             const index = erizo.publishers.indexOf(streamId);
             erizo.publishers.splice(index, 1);
           } else {
-            log.warn(`${'message: removePublisher was already removed, ' +
-                             'streamId: '}${streamId}, ` +
+            log.warn('message: removePublisher was already removed, ' +
+                             `streamId: ${streamId}, ` +
                              `erizoId: ${getErizoQueue(streamId)}`);
           }
 
           delete subscribers[streamId];
           delete publishers[streamId];
-          log.debug(`${'message: removedPublisher, ' +
-                          'streamId: '}${streamId}, ` +
+          log.debug('message: removedPublisher, ' +
+                          `streamId: ${streamId}, ` +
                           `publishersLeft: ${Object.keys(publishers).length}`);
           if (callback) {
             callback(true);
@@ -368,8 +367,8 @@ exports.RoomController = (spec) => {
     if (subscribers[streamId] !== undefined) {
       const index = subscribers[streamId].indexOf(subscriberId);
       if (index !== -1) {
-        log.info(`${'message: removeSubscriber, ' +
-                         'clientId: '}${subscriberId}, ` +
+        log.info('message: removeSubscriber, ' +
+                         `clientId: ${subscriberId}, ` +
                          `streamId: ${streamId}`);
 
         const args = [subscriberId, streamId];
@@ -380,8 +379,8 @@ exports.RoomController = (spec) => {
           } });
       }
     } else {
-      log.warn(`${'message: removeSubscriber not found, ' +
-                     'clientId: '}${subscriberId}, ` +
+      log.warn('message: removeSubscriber not found, ' +
+                     `clientId: ${subscriberId}, ` +
                      `streamId: ${streamId}`);
     }
   };
@@ -399,9 +398,9 @@ exports.RoomController = (spec) => {
       const streamId = subscriberStreamIds[i];
       index = subscribers[streamId].indexOf(subscriberId);
       if (index !== -1) {
-        log.debug(`${'message: removeSubscriptions, ' +
-            'clientId: '}${subscriberId}, ` +
-          `streamId: ${streamId}`);
+        log.debug('message: removeSubscriptions, ' +
+            `clientId: ${subscriberId}, ` +
+            `streamId: ${streamId}`);
 
         const args = [subscriberId, streamId];
         amqper.callRpc(getErizoQueue(streamId), 'removeSubscriber', args, undefined);
