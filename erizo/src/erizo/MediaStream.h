@@ -71,11 +71,11 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void close() override;
   virtual uint32_t getMaxVideoBW();
   virtual uint32_t getBitrateFromMaxQualityLayer() { return bitrate_from_max_quality_layer_; }
-  virtual uint32_t getBitrateSent();
+  virtual uint32_t getVideoBitrate() { return video_bitrate_; }
+  void setVideoBitrate(uint32_t bitrate) { video_bitrate_ = bitrate; }
   void setMaxVideoBW(uint32_t max_video_bw);
   void syncClose();
   bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
-  bool setLocalSdp(std::shared_ptr<SdpInfo> sdp);
 
   /**
    * Sends a PLI Packet
@@ -135,7 +135,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool isAudioMuted() { return audio_muted_; }
   bool isVideoMuted() { return video_muted_; }
 
-  SdpInfo* getRemoteSdpInfo() { return remote_sdp_.get(); }
+  std::shared_ptr<SdpInfo> getRemoteSdpInfo() { return remote_sdp_; }
 
   virtual bool isSlideShowModeEnabled() { return slide_show_mode_; }
 
@@ -145,8 +145,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   RtpExtensionProcessor& getRtpExtensionProcessor() { return connection_->getRtpExtensionProcessor(); }
   std::shared_ptr<Worker> getWorker() { return worker_; }
 
-  std::string& getId() { return stream_id_; }
-  std::string& getLabel() { return mslabel_; }
+  std::string getId() { return stream_id_; }
+  std::string getLabel() { return mslabel_; }
 
   bool isSourceSSRC(uint32_t ssrc);
   bool isSinkSSRC(uint32_t ssrc);
@@ -212,9 +212,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   std::atomic_bool simulcast_;
   std::atomic<uint64_t> bitrate_from_max_quality_layer_;
+  std::atomic<uint32_t> video_bitrate_;
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;
-  std::shared_ptr<SdpInfo> local_sdp_;
 };
 
 class PacketReader : public InboundHandler {

@@ -51,12 +51,13 @@ window.onload = function () {
   var roomName = getParameterByName('room') || 'basicExampleRoom';
   var singlePC = getParameterByName('singlePC') || false;
   var roomType = getParameterByName('type') || 'erizo';
+  var audioOnly = getParameterByName('onlyAudio') || false;
   var mediaConfiguration = getParameterByName('mediaConfiguration') || 'default';
   var onlySubscribe = getParameterByName('onlySubscribe');
   var onlyPublish = getParameterByName('onlyPublish');
   console.log('Selected Room', roomName, 'of type', roomType);
   var config = {audio: true,
-                video: true,
+                video: !audioOnly,
                 data: true,
                 screen: screen,
                 videoSize: [640, 480, 640, 480],

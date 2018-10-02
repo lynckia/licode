@@ -270,9 +270,13 @@ void QualityManager::enableSlideShowBelowSpatialLayer(bool enable, int spatial_l
   enable_slideshow_below_spatial_layer_ = enable;
   slideshow_below_spatial_layer_ = spatial_layer;
 
-  stream_->notifyMediaStreamEvent("slideshow_fallback_update", "false");
+  if (!initialized_) {
+    return;
+  }
 
+  stream_->notifyMediaStreamEvent("slideshow_fallback_update", "false");
   freeze_fallback_active_ = false;
+
   selectLayer(true);
 }
 

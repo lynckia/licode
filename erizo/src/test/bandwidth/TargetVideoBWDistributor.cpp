@@ -64,7 +64,7 @@ class BasicTargetVideoBWDistributor {
     media_stream->setAudioSourceSSRC(audio_source_ssrc);
 
     EXPECT_CALL(*media_stream, getMaxVideoBW()).Times(AtLeast(0)).WillRepeatedly(Return(config.max_video_bw));
-    EXPECT_CALL(*media_stream, getBitrateSent()).Times(AtLeast(0)).WillRepeatedly(Return(config.bitrate_sent));
+    EXPECT_CALL(*media_stream, getVideoBitrate()).Times(AtLeast(0)).WillRepeatedly(Return(config.bitrate_sent));
     EXPECT_CALL(*media_stream, getBitrateFromMaxQualityLayer()).Times(AtLeast(0))
      .WillRepeatedly(Return(config.max_quality_bitrate));
     EXPECT_CALL(*media_stream, isSlideShowModeEnabled()).Times(AtLeast(0)).WillRepeatedly(Return(config.slideshow));

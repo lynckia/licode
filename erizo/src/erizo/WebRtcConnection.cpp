@@ -152,12 +152,6 @@ bool WebRtcConnection::createOffer(bool video_enabled, bool audioEnabled, bool b
   std::string msg = this->getLocalSdp();
   maybeNotifyWebRtcConnectionEvent(global_state_, msg);
 
-  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
-  forEachMediaStreamAsync([weak_this] (const std::shared_ptr<MediaStream> &media_stream) {
-    if (auto connection = weak_this.lock()) {
-      media_stream->setLocalSdp(connection->local_sdp_);
-    }
-  });
   return true;
 }
 
@@ -246,6 +240,9 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
   bool receiving_audio = remote_sdp_->audio_ssrc_map.size() > 0;
   bool receiving_video = remote_sdp_->video_ssrc_map.size() > 0;
 
+  audio_enabled_ = sending_audio || receiving_audio;
+  video_enabled_ = sending_video || receiving_video;
+
   if (!sending_audio && receiving_audio) {
     local_sdp_->audioDirection = erizo::RECVONLY;
   } else if (sending_audio && !receiving_audio) {
@@ -293,7 +290,6 @@ void WebRtcConnection::setRemoteSdpsToMediaStreams(std::string stream_id) {
     (*stream)->asyncTask([weak_this, stream_id] (const std::shared_ptr<MediaStream> &media_stream) {
       if (auto connection = weak_this.lock()) {
         media_stream->setRemoteSdp(connection->remote_sdp_);
-        media_stream->setLocalSdp(connection->local_sdp_);
         ELOG_DEBUG("%s message: setting remote SDP to stream, stream: %s", connection->toLog(), media_stream->getId());
         connection->onRemoteSdpsSetToMediaStreams(stream_id);
       }
