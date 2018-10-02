@@ -61,12 +61,13 @@ window.onload = () => {
   const roomName = getParameterByName('room') || 'basicExampleRoom';
   const singlePC = getParameterByName('singlePC') || false;
   const roomType = getParameterByName('type') || 'erizo';
+  const audioOnly = getParameterByName('onlyAudio') || false;
   const mediaConfiguration = getParameterByName('mediaConfiguration') || 'default';
   const onlySubscribe = getParameterByName('onlySubscribe');
   const onlyPublish = getParameterByName('onlyPublish');
   console.log('Selected Room', roomName, 'of type', roomType);
   const config = { audio: true,
-    video: true,
+    video: !audioOnly,
     data: true,
     screen,
     videoSize: [640, 480, 640, 480],
