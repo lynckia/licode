@@ -7,6 +7,10 @@ const ChromeStableStack = (specInput) => {
   const spec = specInput;
   const that = BaseStack(specInput);
   const defaultSimulcastSpatialLayers = 2;
+  that.mediaConstraints = {
+    offerToReceiveVideo: true,
+    offerToReceiveAudio: true,
+  };
 
   that.enableSimulcast = (sdpInput) => {
     let result;
