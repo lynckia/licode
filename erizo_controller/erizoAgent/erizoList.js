@@ -1,17 +1,17 @@
-'use strict';
+
 const EventEmitter = require('events');
 
-var guid = (function() {
+const guid = (function guid() {
   function s4() {
     return Math.floor((1 + Math.random()) * 0x10000)
-               .toString(16)
-               .substring(1);
+      .toString(16)
+      .substring(1);
   }
-  return function() {
-    return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
-           s4() + '-' + s4() + s4() + s4();
+  return function id() {
+    return `${s4() + s4()}-${s4()}-${s4()}-${
+      s4()}-${s4()}${s4()}${s4()}`;
   };
-})();
+}());
 
 class ErizoList extends EventEmitter {
   constructor(prerunErizos, maxErizos) {
@@ -54,10 +54,9 @@ class ErizoList extends EventEmitter {
       if (!this.areAllRunning()) {
         this.create();
         return this.getErizo();
-      } else {
-        erizo = this.erizos[this.currentPosition];
-        this.currentPosition = (this.currentPosition + 1) % this.maxErizos;
       }
+      erizo = this.erizos[this.currentPosition];
+      this.currentPosition = (this.currentPosition + 1) % this.maxErizos;
     }
     erizo.idle = false;
     return erizo;
@@ -114,11 +113,13 @@ class ErizoList extends EventEmitter {
   clear() {
     let pos = 0;
     this.erizos = (new Array(this.maxErizos)).fill(1).map(() => {
+      const position = pos;
+      pos += 1;
       return {
         started: false,
         idle: false,
         id: undefined,
-        position: pos++,
+        position,
         process: undefined,
       };
     });

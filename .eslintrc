@@ -1,6 +1,7 @@
 {
     "extends": "airbnb",
     "rules": {
-      "no-cond-assign": ["error", "except-parens"]
+      "no-cond-assign": ["error", "except-parens"],
+      "no-underscore-dangle": "off",
     }
 }

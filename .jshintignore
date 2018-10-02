@@ -1,7 +1,3 @@
 nuve/nuveClient/build
 nuve/nuveClient/dist
-erizo_controller/erizoClient/**/*.js
 spine/**/*.js
-extras/basic_example/public/erizo.js
-extras/basic_example/nuve.js
-extras/basic_example/public/lib/

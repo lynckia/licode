@@ -1,49 +1,52 @@
-/*global require, describe, it, beforeEach, afterEach*/
-'use strict';
-var mocks = require('../utils');
-var sinon = require('sinon');
-var expect  = require('chai').expect;
-var ErizoList = require('../../erizoAgent/erizoList').ErizoList;
+/* global require, describe, it, beforeEach, afterEach */
 
-describe('Erizo List', function() {
-  var erizoList;
 
-  beforeEach(function() {
+const mocks = require('../utils');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const sinon = require('sinon');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const expect = require('chai').expect;
+const ErizoList = require('../../erizoAgent/erizoList').ErizoList;
+
+describe('Erizo List', () => {
+  let erizoList;
+
+  beforeEach(() => {
   });
 
-  afterEach(function() {
+  afterEach(() => {
     mocks.deleteRequireCache();
     mocks.reset();
     global.config = {};
   });
 
   const pit = (prerun, max) => {
-    it('should not exceed prerun values, prerun: ' + prerun + ', max: ' + max, function() {
+    it(`should not exceed prerun values, prerun: ${prerun}, max: ${max}`, () => {
       erizoList = new ErizoList(prerun, max);
       erizoList.fill();
       expect(erizoList.idle.length).to.equal(Math.min(prerun, max));
       expect(erizoList.running.length).to.equal(Math.min(prerun, max));
     });
 
-    it('should not exceed prerun or max values, prerun: ' + prerun + ', max: ' + max, function() {
+    it(`should not exceed prerun or max values, prerun: ${prerun}, max: ${max}`, () => {
       erizoList = new ErizoList(prerun, max);
       erizoList.fill();
       expect(erizoList.idle.length).to.equal(Math.min(prerun, max));
       expect(erizoList.running.length).to.equal(Math.min(prerun, max));
     });
 
-    it('should emit event when launching erizo, prerun: ' + prerun + ', max: ' + max, function() {
-      var callback = sinon.stub();
+    it(`should emit event when launching erizo, prerun: ${prerun}, max: ${max}`, () => {
+      const callback = sinon.stub();
       erizoList = new ErizoList(prerun, max);
       erizoList.on('launch-erizo', callback);
       erizoList.fill();
       expect(callback.callCount).to.equal(Math.min(prerun, max));
     });
 
-    it('should not exceed max erizos, prerun: ' + prerun + ', max: ' + max, function() {
+    it(`should not exceed max erizos, prerun: ${prerun}, max: ${max}`, () => {
       erizoList = new ErizoList(prerun, max);
       erizoList.fill();
-      for (let index = 0; index < max; index++) {
+      for (let index = 0; index < max; index += 1) {
         erizoList.getErizo();
       }
 
@@ -51,10 +54,10 @@ describe('Erizo List', function() {
       expect(erizoList.running.length).to.equal(max);
     });
 
-    it('should assign erizos in round robin, prerun: ' + prerun + ', max: ' + max, function() {
+    it(`should assign erizos in round robin, prerun: ${prerun}, max: ${max}`, () => {
       erizoList = new ErizoList(prerun, max);
       erizoList.fill();
-      for (let index = 0; index < max; index++) {
+      for (let index = 0; index < max; index += 1) {
         const erizo = erizoList.getErizo();
         expect(erizo.position).to.equal(index);
       }
@@ -63,24 +66,24 @@ describe('Erizo List', function() {
       expect(erizoList.running.length).to.equal(max);
     });
 
-    it('should reassign erizos in round robin, prerun: ' + prerun + ', max: ' + max, function() {
+    it(`should reassign erizos in round robin, prerun: ${prerun}, max: ${max}`, () => {
       erizoList = new ErizoList(prerun, max);
       erizoList.fill();
-      var erizoIds = [];
-      for (let index = 0; index < max; index++) {
+      const erizoIds = [];
+      for (let index = 0; index < max; index += 1) {
         erizoIds.push(erizoList.getErizo().id);
       }
 
-      for (let index = 0; index < max * 10; index++) {
+      for (let index = 0; index < max * 10; index += 1) {
         expect(erizoList.getErizo().id).to.equal(erizoIds[index % max]);
       }
     });
 
-    it('should delete erizos, prerun: ' + prerun + ', max: ' + max, function() {
+    it(`should delete erizos, prerun: ${prerun}, max: ${max}`, () => {
       erizoList = new ErizoList(prerun, max);
       erizoList.fill();
-      var erizoIds = [];
-      for (let index = 0; index < max; index++) {
+      const erizoIds = [];
+      for (let index = 0; index < max; index += 1) {
         erizoIds.push(erizoList.getErizo().id);
       }
 
@@ -90,11 +93,11 @@ describe('Erizo List', function() {
       expect(erizoList.running.length).to.equal(max - 1);
     });
 
-    it('should relaunch new erizos, prerun: ' + prerun + ', max: ' + max, function() {
+    it(`should relaunch new erizos, prerun: ${prerun}, max: ${max}`, () => {
       erizoList = new ErizoList(prerun, max);
       erizoList.fill();
-      var erizoIds = [];
-      for (let index = 0; index < max; index++) {
+      const erizoIds = [];
+      for (let index = 0; index < max; index += 1) {
         erizoIds.push(erizoList.getErizo().id);
       }
 

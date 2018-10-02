@@ -1,63 +1,64 @@
-/*global require, exports*/
-'use strict';
-var os = require('os');
+/* global require, exports */
 
-exports.Reporter = function (spec) {
-  var that = {},
-      myId = spec.id,
-      myMeta = spec.metadata || {};
 
-  var lastTotal = 0;
-  var lastIdle = 0;
+const os = require('os');
 
-  var getStats = function () {
+exports.Reporter = (spec) => {
+  const that = {};
 
-    var cpus = os.cpus();
 
-    var user = 0;
-    var nice = 0;
-    var sys = 0;
-    var idle = 0;
-    var irq = 0;
-    var total = 0;
+  const myId = spec.id;
 
-    for(var cpu in cpus){
 
-      user += cpus[cpu].times.user;
-      nice += cpus[cpu].times.nice;
-      sys += cpus[cpu].times.sys;
-      irq += cpus[cpu].times.irq;
-      idle += cpus[cpu].times.idle;
-    }
+  const myMeta = spec.metadata || {};
 
+  let lastTotal = 0;
+  let lastIdle = 0;
+
+  const getStats = () => {
+    const cpus = os.cpus();
+
+    let user = 0;
+    let nice = 0;
+    let sys = 0;
+    let idle = 0;
+    let irq = 0;
+    let total = 0;
+    let cpu = 0;
+
+    cpus.forEach((singleCpuInfo) => {
+      user += singleCpuInfo.times.user;
+      nice += singleCpuInfo.times.nice;
+      sys += singleCpuInfo.times.sys;
+      irq += singleCpuInfo.times.irq;
+      idle += singleCpuInfo.times.idle;
+    });
     total = user + nice + sys + idle + irq;
 
-    cpu =  1 - ((idle - lastIdle) / (total - lastTotal));
-    var mem = 1 - (os.freemem() / os.totalmem());
+    cpu = 1 - ((idle - lastIdle) / (total - lastTotal));
+    const mem = 1 - (os.freemem() / os.totalmem());
 
     lastTotal = total;
     lastIdle = idle;
 
-    var data = {
-      perc_cpu: cpu,  // jshint ignore:line
-      perc_mem: mem  // jshint ignore:line
+    const data = {
+      perc_cpu: cpu,
+      perc_mem: mem,
     };
-
     return data;
   };
 
-  that.getErizoAgent = function (callback) {
-    var data = {
+  that.getErizoAgent = (callback) => {
+    const data = {
       info: {
         id: myId,
-        rpc_id: 'ErizoAgent_' + myId  // jshint ignore:line
+        rpc_id: `ErizoAgent_${myId}`,
       },
       metadata: myMeta,
-      stats: getStats()
+      stats: getStats(),
     };
     callback(data);
   };
-
 
   return that;
 };
