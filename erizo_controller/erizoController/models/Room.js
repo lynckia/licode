@@ -114,7 +114,7 @@ class Rooms extends events.EventEmitter {
   }
 
   forEachRoom(doSomething) {
-    this.rooms.values().forEach((room) => {
+    this.rooms.forEach((room) => {
       doSomething(room);
     });
   }
