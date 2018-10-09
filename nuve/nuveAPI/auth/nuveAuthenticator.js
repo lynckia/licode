@@ -9,6 +9,10 @@ var logger = require('./../logger').logger;
 var log = logger.getLogger('NuveAuthenticator');
 
 var cache = {};
+var checkTimestampRequired = true;
+if (process.env.NUVE_AUTH_CHECK_TIMESTAMP === 'false') {
+    checkTimestampRequired = false;
+}
 
 var checkTimestamp = function (ser, params) {
     var lastParams = cache[ser.name],
@@ -75,7 +79,7 @@ exports.authenticate = function (req, res, next) {
             var key = serv.key;
 
             // Check if timestam and cnonce are valids in order to avoid duplicate requests.
-            if (!checkTimestamp(serv, params)) {
+            if (checkTimestampRequired && !checkTimestamp(serv, params)) {
                 log.info('message: authenticate fail - Invalid timestamp or cnonce');
                 res.status(401).send({'WWW-Authenticate': challengeReq});
                 return;
