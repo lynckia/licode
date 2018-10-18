@@ -204,6 +204,8 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     // TODO(javier): should we wait for the actual spatial switch?
     // should we disable padding temporarily to avoid congestion (old padding + new bitrate)?
   }
+  stats_->getNode()["qualityLayers"].insertStat("qualityCappedByConstraints",
+                                                CumulativeStat{layer_capped_by_constraints});
   setPadding(!isInMaxLayer() && !layer_capped_by_constraints);
   ELOG_DEBUG("message: Is padding enabled, padding_enabled_: %d", padding_enabled_);
 }
