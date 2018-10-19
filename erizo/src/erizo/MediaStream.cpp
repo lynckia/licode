@@ -250,6 +250,7 @@ void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("bwe", CumulativeStat{0});
 
   log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{0});
+  log_stats_->getNode().insertStat("qualityCappedByConstraints", CumulativeStat{0});
 
   std::weak_ptr<MediaStream> weak_this = shared_from_this();
   worker_->scheduleEvery([weak_this] () {
@@ -289,6 +290,8 @@ void MediaStream::printStats() {
   log_stats_->getNode().insertStat("videoEnabled", CumulativeStat{video_enabled_});
 
   log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{getMaxVideoBW()});
+
+  transferMediaStats("qualityCappedByConstraints", "qualityLayers", "qualityCappedByConstraints");
 
   if (audio_enabled_) {
     audio_ssrc = std::to_string(is_publisher_ ? getAudioSourceSSRC() : getAudioSinkSSRC());
