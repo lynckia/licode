@@ -1,99 +1,112 @@
-/*global require, describe, it, beforeEach, afterEach*/
-'use strict';
-var mocks = require('../utils');
-var sinon = require('sinon');
-var expect  = require('chai').expect;
+/* global require, describe, it, beforeEach, afterEach */
 
-var kArbitraryErizoController = {name: 'arbitraryErizoController'};
-var kArbitraryErizoControllerId = '1';
 
-describe('ErizoController Registry', function() {
-  var erizoControllerRegistry,
-      dataBase;
-  beforeEach(function() {
+const mocks = require('../utils');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const sinon = require('sinon');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const expect = require('chai').expect;
+
+const kArbitraryErizoController = { name: 'arbitraryErizoController' };
+const kArbitraryErizoControllerId = '1';
+
+describe('ErizoController Registry', () => {
+  let erizoControllerRegistry;
+  let dataBase;
+  beforeEach(() => {
     mocks.start(mocks.licodeConfig);
     dataBase = mocks.start(mocks.dataBase);
+    // eslint-disable-next-line global-require
     erizoControllerRegistry = require('../../mdb/erizoControllerRegistry.js');
   });
 
-  afterEach(function() {
+  afterEach(() => {
     mocks.stop(mocks.licodeConfig);
     mocks.stop(dataBase);
     mocks.deleteRequireCache();
     mocks.reset();
   });
 
-  it('should return a list of erizoControllers when getErizoControllers is called', function() {
+  it('should return a list of erizoControllers when getErizoControllers is called', () => {
     dataBase.db.erizoControllers.find.returns({
-      toArray: function(cb) {
+      toArray(cb) {
         cb(null, [kArbitraryErizoController]);
-      }
+      },
     });
-    var callback = sinon.stub();
+    const callback = sinon.stub();
     erizoControllerRegistry.getErizoControllers(callback);
-
-    expect(callback.calledWith([kArbitraryErizoController])).to.be.true;  // jshint ignore:line
+    // eslint-disable-next-line no-unused-expressions
+    expect(callback.calledWith([kArbitraryErizoController])).to.be.true;
   });
 
-  it('should return undefined if not found in the db when getEC is called', function() {
-    var callback = sinon.stub();
+  it('should return undefined if not found in the db when getEC is called', () => {
+    const callback = sinon.stub();
     dataBase.db.erizoControllers.findOne.callsArgWith(1, null, undefined);
     erizoControllerRegistry.getErizoController(kArbitraryErizoControllerId, callback);
 
-    expect(callback.calledWith(undefined)).to.be.true;  // jshint ignore:line
+    // eslint-disable-next-line no-unused-expressions
+    expect(callback.calledWith(undefined)).to.be.true;
   });
 
-  it('should return a erizoController from the db when getEC is called', function() {
-    var callback = sinon.stub();
+  it('should return a erizoController from the db when getEC is called', () => {
+    const callback = sinon.stub();
     dataBase.db.erizoControllers.findOne.callsArgWith(1, null, kArbitraryErizoController);
     erizoControllerRegistry.getErizoController(kArbitraryErizoControllerId, callback);
 
-    expect(callback.calledWith(kArbitraryErizoController)).to.be.true;  // jshint ignore:line
+    // eslint-disable-next-line no-unused-expressions
+    expect(callback.calledWith(kArbitraryErizoController)).to.be.true;
   });
 
-  it('should return false if the EC is not found in db when hasEC is called', function() {
-    var callback = sinon.stub();
+  it('should return false if the EC is not found in db when hasEC is called', () => {
+    const callback = sinon.stub();
     dataBase.db.erizoControllers.findOne.callsArgWith(1, null, undefined);
     erizoControllerRegistry.hasErizoController(kArbitraryErizoControllerId, callback);
 
-    expect(callback.calledWith(false)).to.be.true;  // jshint ignore:line
+    // eslint-disable-next-line no-unused-expressions
+    expect(callback.calledWith(false)).to.be.true;
   });
 
-  it('should return true if the erizoController is found in db when hasEC is called', function() {
-    var callback = sinon.stub();
+  it('should return true if the erizoController is found in db when hasEC is called', () => {
+    const callback = sinon.stub();
     dataBase.db.erizoControllers.findOne.callsArgWith(1, null, kArbitraryErizoController);
     erizoControllerRegistry.hasErizoController(kArbitraryErizoControllerId, callback);
 
-    expect(callback.calledWith(true)).to.be.true;  // jshint ignore:line
+    // eslint-disable-next-line no-unused-expressions
+    expect(callback.calledWith(true)).to.be.true;
   });
 
-  it('should call save on Database when calling addErizoController', function() {
-    var callback = sinon.stub();
+  it('should call save on Database when calling addErizoController', () => {
+    const callback = sinon.stub();
     dataBase.db.erizoControllers.save.callsArgWith(1, null, kArbitraryErizoController);
     erizoControllerRegistry.addErizoController(kArbitraryErizoController, callback);
 
-    expect(dataBase.db.erizoControllers.save.calledOnce).to.be.true;  // jshint ignore:line
-    expect(callback.calledWith(kArbitraryErizoController)).to.be.true;  // jshint ignore:line
+    // eslint-disable-next-line no-unused-expressions
+    expect(dataBase.db.erizoControllers.save.calledOnce).to.be.true;
+    // eslint-disable-next-line no-unused-expressions
+    expect(callback.calledWith(kArbitraryErizoController)).to.be.true;
   });
 
-  it('should call update on Database when calling updateEC', function() {
-    erizoControllerRegistry.updateErizoController(kArbitraryErizoControllerId, 
+  it('should call update on Database when calling updateEC', () => {
+    erizoControllerRegistry.updateErizoController(kArbitraryErizoControllerId,
                                                   kArbitraryErizoController);
 
-    expect(dataBase.db.erizoControllers.update.calledOnce).to.be.true;  // jshint ignore:line
+    // eslint-disable-next-line no-unused-expressions
+    expect(dataBase.db.erizoControllers.update.calledOnce).to.be.true;
   });
 
-  it('should call remove on Database when removeEC is called and it exists', function() {
+  it('should call remove on Database when removeEC is called and it exists', () => {
     dataBase.db.erizoControllers.findOne.callsArgWith(1, null, undefined);
     erizoControllerRegistry.removeErizoController(kArbitraryErizoControllerId);
 
-    expect(dataBase.db.erizoControllers.remove.called).to.be.false;  // jshint ignore:line
+    // eslint-disable-next-line no-unused-expressions
+    expect(dataBase.db.erizoControllers.remove.called).to.be.false;
   });
 
-  it('should return true if the EC is found in the db when hasEC is called', function() {
+  it('should return true if the EC is found in the db when hasEC is called', () => {
     dataBase.db.erizoControllers.findOne.callsArgWith(1, null, kArbitraryErizoController);
     erizoControllerRegistry.removeErizoController(kArbitraryErizoControllerId);
 
-    expect(dataBase.db.erizoControllers.remove.called).to.be.true;  // jshint ignore:line
+    // eslint-disable-next-line no-unused-expressions
+    expect(dataBase.db.erizoControllers.remove.called).to.be.true;
   });
 });
