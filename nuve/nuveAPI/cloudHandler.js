@@ -3,6 +3,7 @@
 /* eslint-disable no-param-reassign */
 
 const rpc = require('./rpc/rpc');
+// eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
 const logger = require('./logger').logger;
 const erizoControllerRegistry = require('./mdb/erizoControllerRegistry');

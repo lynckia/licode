@@ -3,6 +3,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 const mongojs = require('mongojs');
 
+// eslint-disable-next-line import/no-unresolved
 const config = require('./../../../licode_config');
 
 config.nuve = config.nuve || {};

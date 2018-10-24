@@ -3,6 +3,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 const amqp = require('amqp');
 const rpcPublic = require('./rpcPublic');
+// eslint-disable-next-line import/no-unresolved
 const config = require('./../../../licode_config');
 const logger = require('./../logger').logger;
 

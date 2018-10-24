@@ -1,5 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 const log4js = require('log4js');
+// eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
 
 const logFile = config.logger.configFile || '../log4js_configuration.json';
