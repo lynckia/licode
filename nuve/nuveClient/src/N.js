@@ -1,4 +1,5 @@
-var N = N || {};
+// eslint-disable-next-line
+let N = N || {};
 
 N.authors = ['aalonsog@dit.upm.es', 'prodriguez@dit.upm.es', 'jcervino@dit.upm.es'];
 

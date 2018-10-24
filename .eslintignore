@@ -1,5 +1,5 @@
-nuve/nuveClient/build
-nuve/nuveClient/dist
+nuve/nuveClient/build/**/*.js
+nuve/nuveClient/dist/**/*.js
 erizo_controller/erizoClient/**/*.js
 spine/**/*.js
 extras/basic_example/public/erizo.js

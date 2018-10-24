@@ -19,7 +19,6 @@ global.config.erizoController.publicIP = global.config.erizoController.publicIP 
 global.config.erizoController.hostname = global.config.erizoController.hostname || '';
 global.config.erizoController.port = global.config.erizoController.port || 8080;
 global.config.erizoController.ssl = global.config.erizoController.ssl || false;
-// jshint ignore:start
 global.config.erizoController.ssl_key =
   global.config.erizoController.ssl_key || '../../cert/key.pem';
 global.config.erizoController.ssl_cert =
@@ -44,7 +43,6 @@ global.config.erizoController.allowSinglePC =
 global.config.erizoController.maxErizosUsedByRoom =
   global.config.erizoController.maxErizosUsedByRoom || 100;
 
-// jshint ignore:end
 global.config.erizoController.roles = global.config.erizoController.roles ||
   { presenter: { publish: true, subscribe: true, record: true },
     viewer: { subscribe: true },
@@ -123,8 +121,8 @@ if (global.config.erizoController.listen_ssl) {
   // eslint-disable-next-line global-require
   const fs = require('fs');
   const options = {
-    key: fs.readFileSync(config.erizoController.ssl_key).toString(), // jshint ignore:line
-    cert: fs.readFileSync(config.erizoController.ssl_cert).toString(), // jshint ignore:line
+    key: fs.readFileSync(config.erizoController.ssl_key).toString(),
+    cert: fs.readFileSync(config.erizoController.ssl_cert).toString(),
   };
   if (config.erizoController.sslCaCerts) {
     options.ca = [];
@@ -139,18 +137,18 @@ if (global.config.erizoController.listen_ssl) {
   server = http.createServer();
 }
 
-server.listen(global.config.erizoController.listen_port); // jshint ignore:line
+server.listen(global.config.erizoController.listen_port);
   // eslint-disable-next-line global-require, import/no-extraneous-dependencies
 const io = require('socket.io').listen(server, { log: false });
 
 io.set('transports', ['websocket']);
 
 const EXIT_ON_NUVE_CHECK_FAIL = global.config.erizoController.exitOnNuveCheckFail;
-const WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms; // jshint ignore:line
-const LIMIT_N_ROOMS = global.config.erizoController.limit_n_rooms; // jshint ignore:line
+const WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms;
+const LIMIT_N_ROOMS = global.config.erizoController.limit_n_rooms;
 
 const INTERVAL_TIME_KEEPALIVE =
-  global.config.erizoController.interval_time_keepAlive; // jshint ignore:line
+  global.config.erizoController.interval_time_keepAlive;
 
 const BINDED_INTERFACE_NAME = global.config.erizoController.networkInterface;
 

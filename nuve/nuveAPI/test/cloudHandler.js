@@ -2,7 +2,9 @@
 
 
 const mocks = require('./utils');
+// eslint-disable-next-line import/no-extraneous-dependencies
 const sinon = require('sinon');
+// eslint-disable-next-line import/no-extraneous-dependencies
 const expect = require('chai').expect;
 
 describe('Cloud Handler', () => {

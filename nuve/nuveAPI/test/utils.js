@@ -1,7 +1,9 @@
 /* globals require */
 
 
+// eslint-disable-next-line import/no-extraneous-dependencies
 const mock = require('mock-require');
+// eslint-disable-next-line import/no-extraneous-dependencies
 const sinon = require('sinon');
 
 module.exports.start = (mockObject) => {

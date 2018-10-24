@@ -2,6 +2,7 @@
 
 
 const mauthParser = require('../../auth/mauthParser');
+// eslint-disable-next-line import/no-extraneous-dependencies
 const expect = require('chai').expect;
 
 describe('MAuth Parser', () => {

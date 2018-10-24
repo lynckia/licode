@@ -2,11 +2,15 @@
 
 
 const mocks = require('../utils');
+// eslint-disable-next-line import/no-extraneous-dependencies
 const request = require('supertest');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const express = require('express');
+// eslint-disable-next-line import/no-extraneous-dependencies
 const sinon = require('sinon');
+// eslint-disable-next-line import/no-extraneous-dependencies
 const expect = require('chai').expect;
+// eslint-disable-next-line import/no-extraneous-dependencies
 const async = require('async');
 
 const kArbitraryServiceInfo = { key: '1' };
@@ -99,8 +103,8 @@ describe('Nuve Authenticator', () => {
             'mauth_signature=YmI1OTZlYWM1YzNjZjZhZTRmMTIyODQ1YTNiNWVhNWM0MzAxMmM5Yw==')
       .end((err) => {
         if (err) throw err;
-        // eslint-disable-next-line 
-        expect(nextStep.called).to.be.true; 
+        // eslint-disable-next-line
+        expect(nextStep.called).to.be.true;
         done();
       });
   });
@@ -130,7 +134,7 @@ describe('Nuve Authenticator', () => {
           });
       },
     ], () => {
-      // eslint-disable-next-line 
+      // eslint-disable-next-line
       expect(nextStep.calledOnce).to.be.true;
       done();
     });
@@ -161,7 +165,7 @@ describe('Nuve Authenticator', () => {
           });
       },
     ], () => {
-      // eslint-disable-next-line 
+      // eslint-disable-next-line
       expect(nextStep.calledOnce).to.be.true;
       done();
     });
@@ -191,7 +195,7 @@ describe('Nuve Authenticator', () => {
           });
       },
     ], () => {
-      // eslint-disable-next-line 
+      // eslint-disable-next-line
       expect(nextStep.calledTwice).to.be.true;
       done();
     });
@@ -221,7 +225,7 @@ describe('Nuve Authenticator', () => {
           });
       },
     ], () => {
-      // eslint-disable-next-line 
+      // eslint-disable-next-line
       expect(nextStep.calledTwice).to.be.true;
       done();
     });

@@ -33,7 +33,7 @@ const checkTimestamp = (ser, params) => {
 };
 
 const checkSignature = (params, key) => {
-  if (params.signature_method !== 'HMAC_SHA1') {  // jshint ignore:line
+  if (params.signature_method !== 'HMAC_SHA1') {
     return false;
   }
 

@@ -66,7 +66,7 @@ class Node extends EventEmitter {
       monitorMinVideoBw(mediaStream, this._onMonitorMinVideoBWCallback.bind(this), this.clientId);
     }
 
-    if (global.config.erizoController.report.rtcp_stats) {  // jshint ignore:line
+    if (global.config.erizoController.report.rtcp_stats) {
       log.debug('message: RTCP Stat collection is active');
       mediaStream.getPeriodicStats((newStats) => {
         this.emit('periodic_stats', newStats);
