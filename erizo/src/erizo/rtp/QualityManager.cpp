@@ -204,6 +204,8 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     // TODO(javier): should we wait for the actual spatial switch?
     // should we disable padding temporarily to avoid congestion (old padding + new bitrate)?
   }
+  stats_->getNode()["qualityLayers"].insertStat("qualityCappedByConstraints",
+                                                CumulativeStat{layer_capped_by_constraints});
   setPadding(!isInMaxLayer() && !layer_capped_by_constraints);
   ELOG_DEBUG("message: Is padding enabled, padding_enabled_: %d", padding_enabled_);
 }
@@ -270,9 +272,13 @@ void QualityManager::enableSlideShowBelowSpatialLayer(bool enable, int spatial_l
   enable_slideshow_below_spatial_layer_ = enable;
   slideshow_below_spatial_layer_ = spatial_layer;
 
-  stream_->notifyMediaStreamEvent("slideshow_fallback_update", "false");
+  if (!initialized_) {
+    return;
+  }
 
+  stream_->notifyMediaStreamEvent("slideshow_fallback_update", "false");
   freeze_fallback_active_ = false;
+
   selectLayer(true);
 }
 

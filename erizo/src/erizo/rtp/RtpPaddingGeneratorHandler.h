@@ -40,6 +40,7 @@ class RtpPaddingGeneratorHandler: public Handler, public std::enable_shared_from
 
   uint64_t getStat(std::string stat_name);
   uint64_t getTargetBitrate();
+  uint64_t getBurstSize();
 
   bool isTimeToCalculateBitrate();
   void recalculatePaddingRate();
@@ -62,6 +63,7 @@ class RtpPaddingGeneratorHandler: public Handler, public std::enable_shared_from
   time_point started_at_;
   bool enabled_;
   bool first_packet_received_;
+  bool slideshow_mode_active_;
   MovingIntervalRateStat marker_rate_;
   uint32_t rtp_header_length_;
   TokenBucket bucket_;

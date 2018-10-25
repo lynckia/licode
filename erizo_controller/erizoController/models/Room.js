@@ -1,8 +1,9 @@
-'use strict';
+
 const events = require('events');
 const controller = require('../roomController');
 const Client = require('./Client').Client;
 const logger = require('./../../common/logger').logger;
+
 const log = logger.getLogger('ErizoController - Room');
 
 class Room extends events.EventEmitter {
@@ -24,9 +25,9 @@ class Room extends events.EventEmitter {
   }
 
   forEachStream(doSomething) {
-    for (let stream of this.streams.values()) {
+    this.streams.forEach((stream) => {
       doSomething(stream);
-    }
+    });
   }
 
   removeStream(id) {
@@ -38,16 +39,16 @@ class Room extends events.EventEmitter {
   }
 
   createClient(channel, token, options) {
-    let client = new Client(channel, token, options, this);
+    const client = new Client(channel, token, options, this);
     client.on('disconnect', this.onClientDisconnected.bind(this, client));
     this.clients.set(client.id, client);
     return client;
   }
 
   forEachClient(doSomething) {
-    for (let client of this.clients.values()) {
+    this.clients.forEach((client) => {
       doSomething(client);
-    }
+    });
   }
 
   removeClient(id) {
@@ -56,37 +57,36 @@ class Room extends events.EventEmitter {
 
   onClientDisconnected() {
     if (this.clients.size === 0) {
-      log.debug('message: deleting empty room, roomId: ' + this.id);
+      log.debug(`message: deleting empty room, roomId: ${this.id}`);
       this.emit('room-empty');
     }
   }
 
   setupRoomController() {
-    this.controller = controller.RoomController({amqper: this.amqper, ecch: this.ecch});
+    this.controller = controller.RoomController({ amqper: this.amqper, ecch: this.ecch });
     this.controller.addEventListener(this.onRoomControllerEvent.bind(this));
   }
 
-  onRoomControllerEvent(type, evt ) {
+  onRoomControllerEvent(type, evt) {
     if (type === 'unpublish') {
         // It's supposed to be an integer.
-        var streamId = parseInt(evt);
-        log.warn('message: Triggering removal of stream ' +
+      const streamId = parseInt(evt, 10);
+      log.warn('message: Triggering removal of stream ' +
                  'because of ErizoJS timeout, ' +
-                 'streamId: ' + streamId);
-        this.sendMessage('onRemoveStream', {id: streamId});
+                 `streamId: ${streamId}`);
+      this.sendMessage('onRemoveStream', { id: streamId });
         // remove clients and streams?
     }
   }
 
   sendMessage(method, args) {
-    var clients = this.clients;
-    for (let client of clients.values()) {
+    this.forEachClient((client) => {
       log.debug('message: sendMsgToRoom,',
                 'clientId:', client.id, ',',
                 'roomId:', this.id, ', ',
                 logger.objectToLog(method));
       client.sendMessage(method, args);
-    }
+    });
   }
 }
 
@@ -114,9 +114,9 @@ class Rooms extends events.EventEmitter {
   }
 
   forEachRoom(doSomething) {
-    for (const room of this.rooms.values()) {
+    this.rooms.forEach((room) => {
       doSomething(room);
-    }
+    });
   }
 
   getRoomById(id) {

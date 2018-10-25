@@ -53,8 +53,11 @@ void StatsCalculator::processRtpPacket(std::shared_ptr<DataPacket> packet) {
   }
   getStatsInfo()[ssrc]["bitrateCalculated"] += len;
   getStatsInfo()["total"]["bitrateCalculated"] += len;
-  if (packet->type == VIDEO_PACKET && packet->is_keyframe) {
-    incrStat(ssrc, "keyFrames");
+  if (packet->type == VIDEO_PACKET) {
+    stream_->setVideoBitrate(getStatsInfo()[ssrc]["bitrateCalculated"].value());
+    if (packet->is_keyframe) {
+      incrStat(ssrc, "keyFrames");
+    }
   }
 }
 

@@ -240,6 +240,9 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
   bool receiving_audio = remote_sdp_->audio_ssrc_map.size() > 0;
   bool receiving_video = remote_sdp_->video_ssrc_map.size() > 0;
 
+  audio_enabled_ = sending_audio || receiving_audio;
+  video_enabled_ = sending_video || receiving_video;
+
   if (!sending_audio && receiving_audio) {
     local_sdp_->audioDirection = erizo::RECVONLY;
   } else if (sending_audio && !receiving_audio) {
