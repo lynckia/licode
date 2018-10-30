@@ -214,7 +214,6 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
   // is required
   DtlsSocketContext::DtlsSocketContext() {
     started = false;
-    DtlsSocketContext::Init();
 
     ELOG_DEBUG("Creating Dtls factory, Openssl v %s", OPENSSL_VERSION_TEXT);
 
