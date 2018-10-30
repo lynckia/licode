@@ -28,7 +28,7 @@ class ErizoList extends EventEmitter {
   }
 
   onErizoReceived(position, callback) {
-    this.on(this.getInternalPosition(position), callback);
+    this.once(this.getInternalPosition(position), callback);
   }
 
   getInternalPosition(position) {
