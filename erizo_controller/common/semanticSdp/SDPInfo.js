@@ -270,7 +270,7 @@ class SDPInfo {
 
       const candidates = media.getCandidates();
       candidates.forEach((candidate) => {
-        md.candidates.push({
+        const cand = {
           foundation: candidate.getFoundation(),
           component: candidate.getComponentId(),
           transport: candidate.getTransport(),
@@ -278,10 +278,13 @@ class SDPInfo {
           ip: candidate.getAddress(),
           port: candidate.getPort(),
           type: candidate.getType(),
-          relAddr: candidate.getRelAddr(),
-          relPort: candidate.getRelPort(),
           generation: candidate.getGeneration(),
-        });
+        };
+        if (candidate.getRelAddr()) {
+          cand.raddr = candidate.getRelAddr();
+          cand.rport = candidate.getRelPort();
+        }
+        md.candidates.push(cand);
       });
 
       ice = media.getICE();
@@ -822,7 +825,7 @@ SDPInfo.process = (sdp) => {
       candidates.forEach((candidate) => {
         mediaInfo.addCandidate(new CandidateInfo(candidate.foundation, candidate.component,
           candidate.transport, candidate.priority, candidate.ip, candidate.port, candidate.type,
-          candidate.generation, candidate.relAddr, candidate.relPort));
+          candidate.generation, candidate.raddr, candidate.rport));
       });
     }
 
