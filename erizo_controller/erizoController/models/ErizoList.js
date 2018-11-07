@@ -28,7 +28,7 @@ class ErizoList extends EventEmitter {
   }
 
   onErizoReceived(position, callback) {
-    this.on(this.getInternalPosition(position), callback);
+    this.once(this.getInternalPosition(position), callback);
   }
 
   getInternalPosition(position) {
@@ -71,7 +71,7 @@ class ErizoList extends EventEmitter {
     erizo.erizoId = erizoId;
     erizo.agentId = agentId;
     erizo.erizoIdForAgent = erizoIdForAgent;
-    this.emit(position, erizo);
+    this.emit(this.getInternalPosition(position), erizo);
   }
 }
 
