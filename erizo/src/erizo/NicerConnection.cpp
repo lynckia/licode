@@ -165,10 +165,6 @@ void NicerConnection::start() {
   async([] (std::shared_ptr<NicerConnection> this_ptr) {
     this_ptr->startSync();
   });
-  std::future_status status = start_promise_.get_future().wait_for(std::chrono::seconds(5));
-  if (status == std::future_status::timeout) {
-    ELOG_WARN("%s Start timed out", toLog());
-  }
 }
 
 void NicerConnection::startSync() {
