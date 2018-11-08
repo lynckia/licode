@@ -1,7 +1,7 @@
 set(NICER_BUILD "${CMAKE_CURRENT_BINARY_DIR}/libdeps/nicer")
 ExternalProject_Add(project_nicer
   GIT_REPOSITORY "https://github.com/lynckia/nicer.git"
-  GIT_TAG "master"
+  GIT_TAG "1.2"
   PREFIX ${NICER_BUILD}
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${NICER_BUILD}
   DOWNLOAD_DIR "${NICER_BUILD}/src"
